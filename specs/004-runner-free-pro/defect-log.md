@@ -1823,10 +1823,46 @@ Local verification for DEF-US5-246/247: export Drizzle schema SQL to temporary s
 
 ## DEF-US5-248 — Browser BDD native fallback lacks Runner dependencies
 
-Severity: Medium. Status: Fixed, verification pending. Owner: Feature implementer. Scope: browser BDD job prerequisites.
+Severity: Medium. Status: Verified. Owner: Feature implementer. Scope: browser BDD job prerequisites.
 
 CI39111034372 job117627528006 passes fresh schema initialization and reaches its native fallback presentation scenario, then fails with ERR_MODULE_NOT_FOUND for @puppeteer/browsers from packages/runner/test/support/native-media.mjs. That genuine browser journey owns a native fallback subprocess, but the browser jobs only installed root dependencies and Playwright. Provision frozen native dependencies, patch/native checks, prepared native Chrome, declared Chrome libraries and FFmpeg for each BDD shard; retain the genuine browser owner and assertions. A source scan confirms runner-presentation.ts is the browser suite's native subprocess entry and runner-readability.ts also needs FFmpeg. Verify the complete affected browser feature locally before pushing this prerequisite correction.
 
 DEF-US5-246/247 CI verification: run39111034372 passes all six coverage lanes, including434/434 workflow scenarios and their physical media owner, plus fresh browser schema setup, complete ATDD, acceptance and compliance jobs. The remaining browser-native/readability dependency failures are tracked separately under DEF-US5-248.
 
 DEF-US5-248 also covers BDD2 job117627528035 failing watermark-frame decoding with `spawnSync ffmpeg ENOENT`. The same BDD-only prerequisite steps install FFmpeg, the frozen Runner dependencies and prepared Chrome for every shard, independently of scenario placement. On a rebuilt current-source local app and separate fresh databases, the complete presentation feature passes4/4 (including actual native live/fallback/return), and complete readability feature passes6/6 across1920/360 widths and light/dark/busy frames. Both runs use retries0. Evidence: F1-local-browser-presentation-green.log, F1-local-browser-readability-green.log and build log. No assertion, deadline, source behavior or gate threshold changes. CI verification remains pending.
+
+DEF-US5-248 additional owning-path verification: CI BDD3 job117627528027 fails the same missing @puppeteer/browsers import in blocked native startup (runner-collision.feature). The complete collision feature now passes9/9 locally with retries0 on another fresh database (`F1-local-browser-collision-green.log`); native startup stays blocked as required. Together the local multistream5, presentation4, readability6 and collision9 owners pass24 actual cases, without substituting these targeted runs for required full CI.
+
+DEF-US5-248 final CI verification: run39112210810 on b8b72b27 passes all six browser owners, all coverage lanes, the merged Test gate, native tests, builds, formatting, lint and types. This runtime qualification predates the subsequent review refactors and is historical evidence, not qualification of those edits.
+
+## DEF-US5-249 — UUID validator extraction drops a segment
+
+Severity: High. Status: Verified locally. Owner: Feature implementer. Scope: uncommitted CodeFactor protocol refactor.
+
+The focused protocol run caught an accidental 8-4-4-12 pattern while extracting the existing UUID predicate, rejecting valid signed identities (115 failed,31 passed). Restore the original 8-4-4-4-12 predicate. All146 tests across execution-runtime, heartbeat-protocol and schedule-cache-validation then pass, including a repeat after permission-method extraction. This is an unintended refactor regression, not an intended behavior Red. Retained review evidence includes the failed and corrected runs. Fresh complete qualification is required before committing final review work.
+
+## DEF-US5-250 — Final readiness omitted static review findings
+
+Severity: High. Status: Open. Owner: Feature implementer. Scope: PR519 CodeFactor and CodeQL checks.
+
+Although b8b72b27 passes runtime CI, CodeFactor reports41 findings (40 complex methods and one unused import), and the current pull-request-head CodeQL result contains15 open alerts (three high token/cache SHA256 classifications and12 medium generated test-shim classifications). Review the exact annotated paths, refactor cohesive responsibilities with whole-file regression checks, and obtain fresh scanner results before readiness. No threshold reduction, blanket suppression or alert dismissal is authorized by this entry.
+
+Static security triage finds the three high sites use random bearer-token fingerprints or private-payload content integrity, not password verification. Keep hashing and signed binding intact. The12 medium sites interpolate JSON-quoted local paths into test module source; replace that generated module source with static shims and a protected JSON configuration file. These are evidence-backed triage conclusions, not a claim that the scanner has cleared. The canonical security triage artifact is stored by the Codex Security plugin; the review ledger records remaining work separately.
+
+## DEF-US5-251 — Playback extraction drops normal refusal result
+
+Severity: Medium. Status: Verified locally. Owner: Feature implementer. Scope: uncommitted engine complexity refactor.
+
+Five engine/capture/drain test files initially report six failures (85 passed): startup still closes capture and blocks publication, but the extracted helper's caller returns undefined instead of propagating the normal false refusal. Preserve all three outcomes: true means playback ready, false means a normal refused startup, and undefined means a concurrently interrupted attempt. Remove the unnecessary refusal wrapper and propagate the result. The same five complete files now pass91/91, and native type checking passes. Assertions and timing budgets remain unchanged. Evidence: F1-review-engine-regression.log and F1-review-engine-corrected.log. This is unintended refactor regression evidence, not intended behavior Red.
+
+DEF-US5-250 local checkpoint: after separating the large admission probe into named scenarios and extracting owner-locked resource helpers, all207 cases in the complete admission, admission-acceptance, destinations, schedules and schedule-continuity files pass. Application type checking and formatting pass. The complete lint gate finds four unused narrowed-claims parameters in scenario helpers; remove only the unused parameters and call arguments, preserving each dispatch condition and all assertions, then rerun lint. This gate failure is cleanup evidence, not product behavior Red. Native complete coverage is still executing; it is not yet credited.
+
+## DEF-US5-252 — Journal extraction exposes untested rejection statements
+
+Severity: Medium. Status: Open, focused verification in progress. Owner: Feature implementer. Scope: native critical coverage after review refactoring.
+
+The complete native owner passes52 suites and450 tests, with its one inherited updater TODO, but execution-journal statement coverage is94.44%, below its unchanged95% floor. Aggregate counters are S94.50/B90.14/F95.48/L97.51; aggregate success cannot override the per-file failure. Retain the failed full run as F1-review-native-coverage-before.log. Extend the existing durable-closure-proof rejection matrix with malformed playback outcomes, pending records without occurrence authority, malformed occurrence containers/windows and invalid suppression/resume flags. Every rejected input must leave the persisted receipt unchanged across restart. No production behavior, threshold or exclusion changes. A journal-only diagnostic passes37 cases but misses coverage from the other owning unit files; it is not complete coverage evidence. Run those complete owner files together for focused repair evidence, and retain full native qualification as outstanding until its complete owner succeeds.
+
+DEF-US5-250 lint repair: remove four unused helper parameters and their pure variable-read call arguments; keep dispatch predicates and executable bodies unchanged. The complete application lint gate now exits0 with its six existing warnings and no errors.
+
+DEF-US5-252 focused repair verification: all183 tests in the complete execution-journal, execution-runtime, heartbeat-protocol and schedule-cache-validation files pass. The journal's unchanged critical gate passes S98.41/B98.70/F100; its current report is retained separately from the failed full-native report. This is a focused diagnostic, not a replacement for complete native qualification. That complete owner must run again on the published checkpoint before final readiness.

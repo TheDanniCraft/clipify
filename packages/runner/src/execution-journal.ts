@@ -5,33 +5,39 @@ import { randomUUID } from "node:crypto";
 export type ExecutionRecord = { admissionId: string; ownerId: string; runnerId: string; sessionId: string; executionGeneration: string; leaseId: string; configurationRevision: number; state: "pending" | "starting" | "active" | "draining" | "stopped"; playbackOutcome?: "clip_completed" | "playback_timeout"; allOutputsClosed?: true; acknowledged?: boolean; updatedAt: number; occurrence?: { occurrenceId: string; start: number; end: number; suppressed?: boolean; explicitResume?: true } };
 const maximumSnapshotBytes = 2 * 1024 * 1024;
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-function record(value: unknown): ExecutionRecord {
-	if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Execution journal record invalid");
-	const input = value as ExecutionRecord;
-	for (const key of ["admissionId", "runnerId", "sessionId", "executionGeneration", "leaseId"] as const) if (typeof input[key] !== "string" || !uuid.test(input[key])) throw new Error("Execution journal identity invalid");
-	if (typeof input.ownerId !== "string" || !input.ownerId || input.ownerId.length > 256 || !Number.isSafeInteger(input.configurationRevision) || input.configurationRevision < 1 || !Number.isSafeInteger(input.updatedAt) || input.updatedAt < 0 || !["pending", "starting", "active", "draining", "stopped"].includes(input.state)) throw new Error("Execution journal record invalid");
+function validOwnerIdentity(ownerId: string) {
+	return typeof ownerId === "string" && ownerId.length > 0 && ownerId.length <= 256;
+}
+function validJournalTime(value: number) {
+	return Number.isSafeInteger(value) && value >= 0;
+}
+function validateRecordIdentity(input: ExecutionRecord) {
+	for (const key of ["admissionId", "runnerId", "sessionId", "executionGeneration", "leaseId"] as const) {
+		if (typeof input[key] !== "string" || !uuid.test(input[key])) throw new Error("Execution journal identity invalid");
+	}
+	if (!validOwnerIdentity(input.ownerId) || !Number.isSafeInteger(input.configurationRevision) || input.configurationRevision < 1 || !validJournalTime(input.updatedAt) || !["pending", "starting", "active", "draining", "stopped"].includes(input.state)) throw new Error("Execution journal record invalid");
+}
+function validateRecordState(input: ExecutionRecord) {
 	if (input.playbackOutcome !== undefined && !["clip_completed", "playback_timeout"].includes(input.playbackOutcome)) throw new Error("Execution journal playback outcome invalid");
 	if (input.state === "pending" && (!input.occurrence || input.allOutputsClosed !== undefined || input.acknowledged !== undefined)) throw new Error("Pending schedule journal record invalid");
 	if (input.state === "stopped" && input.allOutputsClosed !== true) throw new Error("Execution journal requires closed output proof");
-	if (input.occurrence !== undefined) {
-		const occurrence = input.occurrence;
-		if (
-			!occurrence ||
-			typeof occurrence !== "object" ||
-			Array.isArray(occurrence) ||
-			typeof occurrence.occurrenceId !== "string" ||
-			!occurrence.occurrenceId ||
-			occurrence.occurrenceId.length > 1024 ||
-			!Number.isSafeInteger(occurrence.start) ||
-			occurrence.start < 0 ||
-			!Number.isSafeInteger(occurrence.end) ||
-			occurrence.end <= occurrence.start ||
-			(occurrence.suppressed !== undefined && typeof occurrence.suppressed !== "boolean") ||
-			(occurrence.explicitResume !== undefined && occurrence.explicitResume !== true)
-		)
-			throw new Error("Execution journal occurrence invalid");
-	}
-	// Job credentials, URLs, signed bundles and unrelated fields never enter the journal.
+}
+function validateOccurrenceWindow(occurrence: NonNullable<ExecutionRecord["occurrence"]>) {
+	if (typeof occurrence.occurrenceId !== "string" || !occurrence.occurrenceId || occurrence.occurrenceId.length > 1024 || !validJournalTime(occurrence.start) || !Number.isSafeInteger(occurrence.end) || occurrence.end <= occurrence.start) throw new Error("Execution journal occurrence invalid");
+}
+function sanitizeOccurrence(occurrence: NonNullable<ExecutionRecord["occurrence"]>) {
+	if (!occurrence || typeof occurrence !== "object" || Array.isArray(occurrence)) throw new Error("Execution journal occurrence invalid");
+	validateOccurrenceWindow(occurrence);
+	if ((occurrence.suppressed !== undefined && typeof occurrence.suppressed !== "boolean") || (occurrence.explicitResume !== undefined && occurrence.explicitResume !== true)) throw new Error("Execution journal occurrence invalid");
+	return { occurrenceId: occurrence.occurrenceId, start: occurrence.start, end: occurrence.end, ...(occurrence.suppressed !== undefined ? { suppressed: occurrence.suppressed } : {}), ...(occurrence.explicitResume === true ? { explicitResume: true } : {}) };
+}
+function record(value: unknown): ExecutionRecord {
+	if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Execution journal record invalid");
+	const input = value as ExecutionRecord;
+	validateRecordIdentity(input);
+	validateRecordState(input);
+	const occurrence = input.occurrence !== undefined ? sanitizeOccurrence(input.occurrence) : undefined;
+	// Credentials, URLs, signed bundles and unrelated fields never enter the journal.
 	return JSON.parse(
 		JSON.stringify({
 			admissionId: input.admissionId,
@@ -46,7 +52,7 @@ function record(value: unknown): ExecutionRecord {
 			allOutputsClosed: input.allOutputsClosed === true ? true : undefined,
 			acknowledged: input.acknowledged === true ? true : undefined,
 			updatedAt: input.updatedAt,
-			...(input.occurrence ? { occurrence: { occurrenceId: input.occurrence.occurrenceId, start: input.occurrence.start, end: input.occurrence.end, ...(input.occurrence.suppressed !== undefined ? { suppressed: input.occurrence.suppressed } : {}), ...(input.occurrence.explicitResume === true ? { explicitResume: true } : {}) } } : {}),
+			...(occurrence ? { occurrence } : {}),
 		}),
 	) as ExecutionRecord;
 }

@@ -52,83 +52,96 @@ export class FreeExecutionController {
 		for (const execution of this.physicalExecutions()) {
 			this.refreshContinuity(execution);
 			if (execution.closing || execution.outputsClosed || !["starting", "active"].includes(execution.record.state) || this.executionState(execution) !== "active") continue;
-			const previous = execution.continuity;
-			const retained: PreparedScheduledWindow[] = [];
-			if (previous) {
-				for (const member of previous.members) {
-					if (member.record.state === "pending") {
-						const fresh = prepared.get(member.job.admissionId);
-						if (
-							!fresh ||
-							fresh.record.state !== "pending" ||
-							fresh.record.occurrence?.suppressed ||
-							fresh.job.executionGeneration !== member.job.executionGeneration ||
-							fresh.job.configurationRevision !== member.job.configurationRevision ||
-							fresh.record.leaseId !== member.record.leaseId ||
-							fresh.mediaHash !== member.mediaHash ||
-							fresh.job.sourceRevision !== member.job.sourceRevision ||
-							fresh.job.scheduledStart !== member.job.scheduledStart ||
-							fresh.job.scheduledEnd !== member.job.scheduledEnd ||
-							retained.at(-1)?.job.scheduledEnd !== member.job.scheduledStart
-						)
-							break;
-					}
-					retained.push(member);
-				}
-			} else {
-				const fresh = prepared.get(execution.record.admissionId);
-				const originalEnd = execution.guard.deadlineMonotonic;
-				if (!fresh || fresh.record.state !== "active" || fresh.record.occurrence?.suppressed || fresh.mediaHash !== execution.capture.mediaHash || fresh.job.sourceRevision !== execution.capture.sourceRevision || originalEnd === null || fresh.endMonotonic < now) continue;
-				const endMonotonic = Math.min(originalEnd, fresh.endMonotonic);
-				retained.push({ ...fresh, record: execution.record, endMonotonic, startMonotonic: endMonotonic - (fresh.job.scheduledEnd! - fresh.job.scheduledStart!) });
-			}
-			if (!retained.length) continue;
-			const anchor = retained[0];
-			while (true) {
-				const last = retained.at(-1)!;
-				const following = Array.from(prepared.values()).filter((candidate) => candidate.job.scheduledStart === last.job.scheduledEnd && candidate.mediaHash === execution.capture.mediaHash && candidate.job.sourceRevision === execution.capture.sourceRevision && candidate.record.state === "pending" && !candidate.record.occurrence?.suppressed && !retained.some((member) => member.record.admissionId === candidate.record.admissionId));
-				if (following.length !== 1) break;
-				const next = following[0];
-				const endMonotonic = Math.min(next.endMonotonic, anchor.endMonotonic + next.job.scheduledEnd! - anchor.job.scheduledEnd!);
-				retained.push({ ...next, endMonotonic, startMonotonic: last.endMonotonic });
-			}
-			if (!previous && retained.length === 1) continue;
-			const originalDeadline = previous?.deadlineMonotonic ?? execution.guard.deadlineMonotonic!;
-			const desiredDeadline = retained.at(-1)!.endMonotonic;
-			try {
-				for (const member of retained) if (member.record.state === "pending" && !previous?.members.some((existing) => existing.record.admissionId === member.record.admissionId)) this.options.journal.save(member.record);
-			} catch {
-				execution.outputGate.permitted = false;
-				execution.closeImmediately = true;
-				execution.record.state = "draining";
-				return false;
-			}
-			// Shorter authority fences immediately. Longer authority waits for the
-			// renderer acknowledgement and cannot revive an expired capture.
-			const continuity = { members: retained, deadlineMonotonic: Math.min(originalDeadline, desiredDeadline) };
-			execution.continuity = continuity;
-			if (desiredDeadline !== originalDeadline && execution.engine.updateScheduledDeadline) {
-				execution.deadlineUpdate = (execution.deadlineUpdate ?? Promise.resolve())
-					.then(async () => {
-						if (execution.continuity !== continuity || execution.closing || execution.outputsClosed || !["starting", "active"].includes(execution.record.state)) return;
-						await execution.engine.updateScheduledDeadline!(desiredDeadline);
-						if (execution.continuity !== continuity || execution.closing || execution.outputsClosed || !["starting", "active"].includes(execution.record.state)) return;
-						const current = (this.options.clock ?? executionNow)();
-						if (desiredDeadline > originalDeadline && (!Number.isFinite(current) || current >= originalDeadline)) {
-							execution.outputGate.permitted = false;
-							execution.record.state = "draining";
-							return;
-						}
-						continuity.deadlineMonotonic = desiredDeadline;
-					})
-					.catch(() => {
-						execution.outputGate.permitted = false;
-						execution.closeImmediately = true;
-						execution.record.state = "draining";
-					});
-			}
+			if (!this.refreshPreparedContinuity(execution, prepared, now)) return false;
 		}
 		return true;
+	}
+	private refreshPreparedContinuity(execution: ActiveExecution, prepared: Map<string, PreparedScheduledWindow>, now: number): boolean {
+		const previous = execution.continuity;
+		const retained = this.retainedScheduleMembers(execution, prepared, now);
+		if (!retained?.length) return true;
+		this.extendAdjacentWindows(execution, prepared, retained);
+		if (!previous && retained.length === 1) return true;
+		const originalDeadline = previous?.deadlineMonotonic ?? execution.guard.deadlineMonotonic!;
+		const desiredDeadline = retained.at(-1)!.endMonotonic;
+		try {
+			for (const member of retained) if (member.record.state === "pending" && !previous?.members.some((existing) => existing.record.admissionId === member.record.admissionId)) this.options.journal.save(member.record);
+		} catch {
+			execution.outputGate.permitted = false;
+			execution.closeImmediately = true;
+			execution.record.state = "draining";
+			return false;
+		}
+		// Shorter authority fences immediately. Longer authority waits for the
+		// renderer acknowledgement and cannot revive an expired capture.
+		const continuity = { members: retained, deadlineMonotonic: Math.min(originalDeadline, desiredDeadline) };
+		execution.continuity = continuity;
+		if (desiredDeadline !== originalDeadline && execution.engine.updateScheduledDeadline) {
+			execution.deadlineUpdate = (execution.deadlineUpdate ?? Promise.resolve())
+				.then(() => this.acknowledgeContinuityDeadline(execution, continuity, desiredDeadline, originalDeadline))
+				.catch(() => {
+					execution.outputGate.permitted = false;
+					execution.closeImmediately = true;
+					execution.record.state = "draining";
+				});
+		}
+		return true;
+	}
+	private async acknowledgeContinuityDeadline(execution: ActiveExecution, continuity: NonNullable<ActiveExecution["continuity"]>, desiredDeadline: number, originalDeadline: number) {
+		if (execution.continuity !== continuity || execution.closing || execution.outputsClosed || !["starting", "active"].includes(execution.record.state)) return;
+		await execution.engine.updateScheduledDeadline!(desiredDeadline);
+		if (execution.continuity !== continuity || execution.closing || execution.outputsClosed || !["starting", "active"].includes(execution.record.state)) return;
+		const current = (this.options.clock ?? executionNow)();
+		if (desiredDeadline > originalDeadline && (!Number.isFinite(current) || current >= originalDeadline)) {
+			execution.outputGate.permitted = false;
+			execution.record.state = "draining";
+			return;
+		}
+		continuity.deadlineMonotonic = desiredDeadline;
+	}
+	private extendAdjacentWindows(execution: ActiveExecution, prepared: Map<string, PreparedScheduledWindow>, retained: PreparedScheduledWindow[]) {
+		const anchor = retained[0];
+		while (true) {
+			const last = retained.at(-1)!;
+			const following = Array.from(prepared.values()).filter((candidate) => candidate.job.scheduledStart === last.job.scheduledEnd && candidate.mediaHash === execution.capture.mediaHash && candidate.job.sourceRevision === execution.capture.sourceRevision && candidate.record.state === "pending" && !candidate.record.occurrence?.suppressed && !retained.some((member) => member.record.admissionId === candidate.record.admissionId));
+			if (following.length !== 1) break;
+			const next = following[0];
+			const endMonotonic = Math.min(next.endMonotonic, anchor.endMonotonic + next.job.scheduledEnd! - anchor.job.scheduledEnd!);
+			retained.push({ ...next, endMonotonic, startMonotonic: last.endMonotonic });
+		}
+	}
+	private retainedScheduleMembers(execution: ActiveExecution, prepared: Map<string, PreparedScheduledWindow>, now: number) {
+		const previous = execution.continuity;
+		const retained: PreparedScheduledWindow[] = [];
+		if (previous) {
+			for (const member of previous.members) {
+				if (member.record.state === "pending") {
+					const fresh = prepared.get(member.job.admissionId);
+					if (
+						!fresh ||
+						fresh.record.state !== "pending" ||
+						fresh.record.occurrence?.suppressed ||
+						fresh.job.executionGeneration !== member.job.executionGeneration ||
+						fresh.job.configurationRevision !== member.job.configurationRevision ||
+						fresh.record.leaseId !== member.record.leaseId ||
+						fresh.mediaHash !== member.mediaHash ||
+						fresh.job.sourceRevision !== member.job.sourceRevision ||
+						fresh.job.scheduledStart !== member.job.scheduledStart ||
+						fresh.job.scheduledEnd !== member.job.scheduledEnd ||
+						retained.at(-1)?.job.scheduledEnd !== member.job.scheduledStart
+					)
+						break;
+				}
+				retained.push(member);
+			}
+		} else {
+			const fresh = prepared.get(execution.record.admissionId);
+			const originalEnd = execution.guard.deadlineMonotonic;
+			if (!fresh || fresh.record.state !== "active" || fresh.record.occurrence?.suppressed || fresh.mediaHash !== execution.capture.mediaHash || fresh.job.sourceRevision !== execution.capture.sourceRevision || originalEnd === null || fresh.endMonotonic < now) return null;
+			const endMonotonic = Math.min(originalEnd, fresh.endMonotonic);
+			retained.push({ ...fresh, record: execution.record, endMonotonic, startMonotonic: endMonotonic - (fresh.job.scheduledEnd! - fresh.job.scheduledStart!) });
+		}
+		return retained;
 	}
 	private verifyScheduledWindow(job: FreeExecutionJob, request: LeaseRequestContext): PreparedScheduledWindow | null {
 		try {
@@ -296,51 +309,7 @@ export class FreeExecutionController {
 		return execution.closing;
 	}
 
-	async apply(job: FreeExecutionJob, request: LeaseRequestContext): Promise<boolean> {
-		if (job.desiredState !== "running" || job.ownerId !== this.options.ownerId || job.runnerId !== this.options.runnerId) return false;
-		if (job.cacheAuthorization === true && job.occurrenceId && this.options.journal.isOccurrenceSuppressed({ ownerId: job.ownerId, runnerId: job.runnerId, occurrenceId: job.occurrenceId })) return false;
-		const persisted = this.options.journal.get(job.admissionId);
-		if (persisted && (persisted.state === "draining" || persisted.state === "stopped" || persisted.occurrence?.suppressed === true)) return false;
-		if (persisted?.occurrence && job.scheduledEnd !== persisted.occurrence.end) return false;
-		const targets = job.destinations ?? [{ id: job.id, rtmpUrl: job.rtmpUrl, streamKey: job.streamKey }];
-		if (!targets.length || new Set(targets.map((target) => target.id)).size !== targets.length) return false;
-		const targetHash = hashExecutionTargets(targets);
-		if (targetHash !== job.targetHash) return false;
-		let leaseId: string;
-		let policy: string;
-		try {
-			const untrusted = JSON.parse(Buffer.from(job.lease.payload, "base64url").toString("utf8"));
-			leaseId = untrusted.leaseId;
-			policy = untrusted.policy;
-		} catch {
-			return false;
-		}
-		if (policy !== "free_lease" && policy !== "pro_broadcast") return false;
-		if (policy === "free_lease" && targets.length > 1) return false;
-		if (job.cacheAuthorization === true && (policy !== "pro_broadcast" || !["24/7", "24_7"].includes(job.mode) || typeof job.overlaySecret !== "string")) return false;
-		const cachedIdentity = { ...(job.occurrenceId !== undefined || job.scheduledStart !== undefined ? { occurrenceId: job.occurrenceId, scheduledStart: job.scheduledStart } : {}), ...(job.cacheAuthorization === true ? { cacheAuthorization: true as const, executionPayloadHash: hashScheduledExecutionPayload(job) } : {}) };
-		const existing = this.active.get(job.id);
-		if (existing?.continuity) {
-			this.refreshContinuity(existing);
-			const member = existing.continuity.members.find((entry) => entry.record.admissionId === job.admissionId);
-			const verified = member ? this.verifyScheduledWindow(job, request) : null;
-			return !!member && !!verified && member.record.state === "active" && member.mediaHash === verified.mediaHash && member.record.executionGeneration === job.executionGeneration && member.record.configurationRevision === job.configurationRevision && member.record.occurrence?.end === job.scheduledEnd && this.executionState(existing) === "active";
-		}
-		if (existing && existing.record.executionGeneration !== job.executionGeneration) return false;
-		const guard =
-			existing?.guard ??
-			new (policy === "pro_broadcast" ? ProExecutionPermit : FreeExecutionLease)({ ...cachedIdentity, ownerId: job.ownerId, runnerId: job.runnerId, sessionId: job.id, generation: job.executionGeneration, targetHash, sourceId: job.overlayId, configurationRevision: job.configurationRevision, sourceRevision: job.sourceRevision, admissionId: job.admissionId, leaseId, ...(job.scheduledEnd === undefined ? {} : { scheduledEnd: job.scheduledEnd }) }, this.options.keys, this.options.clock);
-		if (!guard.beginRenewal(request) || !guard.accept(job.lease)) return false;
-		if (job.occurrenceId) {
-			const control = this.options.journal.occurrenceControl({ ownerId: job.ownerId, runnerId: job.runnerId, occurrenceId: job.occurrenceId });
-			if (job.configurationRevision < control.revision || (job.cacheAuthorization !== true && control.revision > 0 && job.configurationRevision === control.revision && persisted?.occurrence?.explicitResume !== true)) return false;
-		}
-
-		// Adjacent cached windows share one physical schedule lane on this Runner.
-		// A following authorization cannot replace a clip that is still finishing;
-		// the watchdog retries it after durable closure, while its window is active.
-		if (!existing && job.cacheAuthorization === true && Array.from(this.active.values()).some((execution) => execution.record.occurrence !== undefined)) return false;
-		if (existing) return true;
+	private async startExecution(job: FreeExecutionJob, persisted: ExecutionRecord | undefined, leaseId: string, policy: string, guard: FreeExecutionLease | ProExecutionPermit): Promise<boolean> {
 		const occurrence = job.occurrenceId !== undefined && job.scheduledStart !== undefined && job.scheduledEnd != null ? { ...persisted?.occurrence, occurrenceId: job.occurrenceId, start: job.scheduledStart, end: job.scheduledEnd, ...(job.cacheAuthorization !== true ? { explicitResume: true as const } : {}) } : persisted?.occurrence;
 		const record: ExecutionRecord = { ownerId: job.ownerId, runnerId: job.runnerId, sessionId: job.id, admissionId: job.admissionId, executionGeneration: job.executionGeneration, leaseId, configurationRevision: job.configurationRevision, state: "starting", updatedAt: Date.now(), ...(occurrence ? { occurrence } : {}) };
 		this.options.journal.save(record);
@@ -380,5 +349,62 @@ export class FreeExecutionController {
 		if (execution.continuity) execution.continuity.members[0].record = active;
 		this.refreshContinuity(execution);
 		return true;
+	}
+	private acceptsContinuityJob(existing: ActiveExecution, job: FreeExecutionJob, request: LeaseRequestContext) {
+		this.refreshContinuity(existing);
+		const member = existing.continuity!.members.find((entry) => entry.record.admissionId === job.admissionId);
+		const verified = member ? this.verifyScheduledWindow(job, request) : null;
+		return !!member && !!verified && member.record.state === "active" && member.mediaHash === verified.mediaHash && member.record.executionGeneration === job.executionGeneration && member.record.configurationRevision === job.configurationRevision && member.record.occurrence?.end === job.scheduledEnd && this.executionState(existing) === "active";
+	}
+	private prepareExecutionIdentity(job: FreeExecutionJob) {
+		if (job.desiredState !== "running" || job.ownerId !== this.options.ownerId || job.runnerId !== this.options.runnerId) return null;
+		if (job.cacheAuthorization === true && job.occurrenceId && this.options.journal.isOccurrenceSuppressed({ ownerId: job.ownerId, runnerId: job.runnerId, occurrenceId: job.occurrenceId })) return null;
+		const persisted = this.options.journal.get(job.admissionId);
+		if (persisted && (persisted.state === "draining" || persisted.state === "stopped" || persisted.occurrence?.suppressed === true)) return null;
+		if (persisted?.occurrence && job.scheduledEnd !== persisted.occurrence.end) return null;
+		const targets = job.destinations ?? [{ id: job.id, rtmpUrl: job.rtmpUrl, streamKey: job.streamKey }];
+		if (!targets.length || new Set(targets.map((target) => target.id)).size !== targets.length) return null;
+		const targetHash = hashExecutionTargets(targets);
+		if (targetHash !== job.targetHash) return null;
+		let leaseId: string;
+		let policy: string;
+		try {
+			const untrusted = JSON.parse(Buffer.from(job.lease.payload, "base64url").toString("utf8"));
+			leaseId = untrusted.leaseId;
+			policy = untrusted.policy;
+		} catch {
+			return null;
+		}
+		if (policy !== "free_lease" && policy !== "pro_broadcast") return null;
+		if (policy === "free_lease" && targets.length > 1) return null;
+		if (job.cacheAuthorization === true && (policy !== "pro_broadcast" || !["24/7", "24_7"].includes(job.mode) || typeof job.overlaySecret !== "string")) return null;
+		return { persisted, targetHash, leaseId, policy };
+	}
+	private cachedExecutionIdentity(job: FreeExecutionJob) {
+		return { ...(job.occurrenceId !== undefined || job.scheduledStart !== undefined ? { occurrenceId: job.occurrenceId, scheduledStart: job.scheduledStart } : {}), ...(job.cacheAuthorization === true ? { cacheAuthorization: true as const, executionPayloadHash: hashScheduledExecutionPayload(job) } : {}) };
+	}
+	async apply(job: FreeExecutionJob, request: LeaseRequestContext): Promise<boolean> {
+		const identity = this.prepareExecutionIdentity(job);
+		if (!identity) return false;
+		const { persisted, targetHash, leaseId, policy } = identity;
+		const cachedIdentity = this.cachedExecutionIdentity(job);
+		const existing = this.active.get(job.id);
+		if (existing?.continuity) return this.acceptsContinuityJob(existing, job, request);
+		if (existing && existing.record.executionGeneration !== job.executionGeneration) return false;
+		const guard =
+			existing?.guard ??
+			new (policy === "pro_broadcast" ? ProExecutionPermit : FreeExecutionLease)({ ...cachedIdentity, ownerId: job.ownerId, runnerId: job.runnerId, sessionId: job.id, generation: job.executionGeneration, targetHash, sourceId: job.overlayId, configurationRevision: job.configurationRevision, sourceRevision: job.sourceRevision, admissionId: job.admissionId, leaseId, ...(job.scheduledEnd === undefined ? {} : { scheduledEnd: job.scheduledEnd }) }, this.options.keys, this.options.clock);
+		if (!guard.beginRenewal(request) || !guard.accept(job.lease)) return false;
+		if (job.occurrenceId) {
+			const control = this.options.journal.occurrenceControl({ ownerId: job.ownerId, runnerId: job.runnerId, occurrenceId: job.occurrenceId });
+			if (job.configurationRevision < control.revision || (job.cacheAuthorization !== true && control.revision > 0 && job.configurationRevision === control.revision && persisted?.occurrence?.explicitResume !== true)) return false;
+		}
+
+		// Adjacent cached windows share one physical schedule lane on this Runner.
+		// A following authorization cannot replace a clip that is still finishing;
+		// the watchdog retries it after durable closure, while its window is active.
+		if (!existing && job.cacheAuthorization === true && Array.from(this.active.values()).some((execution) => execution.record.occurrence !== undefined)) return false;
+		if (existing) return true;
+		return this.startExecution(job, persisted, leaseId, policy, guard);
 	}
 }

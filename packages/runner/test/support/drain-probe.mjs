@@ -2,12 +2,13 @@ import { createServer } from "node:http";
 import { createHash, generateKeyPairSync, randomUUID, sign } from "node:crypto";
 import { createRequire, syncBuiltinESMExports } from "node:module";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, statSync, existsSync, rmSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 import { build } from "esbuild";
 import { nativeChromePath } from "./native-media.mjs";
+import { prepareNativeTestShims } from "./native-test-shims.mjs";
 import { observeColdRestart } from "./observe-cold-restart.mjs";
 
 const packageRoot = fileURLToPath(new URL("../../", import.meta.url));
@@ -103,10 +104,7 @@ let engine, server, replaySpec;
 try {
 	const clip = join(directory, "clip.mp4");
 	execFileSync(ffmpeg, ["-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "color=c=blue:s=320x180:r=15", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=44100", "-t", maximumOverrun ? "360" : "12", "-vf", "drawbox=x=0:y=0:w=iw:h=ih:color=lime:t=fill:enable='gte(t,11.5)'", "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p", "-c:a", "aac", "-movflags", "+faststart", clip], { timeout: 15000 });
-	const dependencies = join(compiled, "dependencies.mjs"),
-		os = join(compiled, "os.mjs");
-	writeFileSync(dependencies, `export async function ensureDependencies(){return {chromePath:${JSON.stringify(chrome)},ffmpegPath:${JSON.stringify(ffmpeg)}}}`);
-	writeFileSync(os, `import * as os from 'node:os';export * from 'node:os';export const homedir=()=>${JSON.stringify(directory)};export const tmpdir=()=>${JSON.stringify(directory)};export default {...os,homedir,tmpdir};`);
+	const { dependencies, os } = prepareNativeTestShims(compiled, { chromePath: chrome, ffmpegPath: ffmpeg, home: directory });
 	await build({
 		entryPoints: [join(packageRoot, "src/engine.ts")],
 		outfile: join(compiled, "engine.mjs"),

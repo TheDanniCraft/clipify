@@ -547,6 +547,57 @@ export class Engine {
 		throw lastError;
 	}
 
+	private async beginCapturedPlayback(capturePage: Page): Promise<boolean | undefined> {
+		const previousEpoch = this.executionOptions.presentationSessionId
+			? await capturePage.evaluate(() => {
+					const value = document.querySelector("[data-runner-presentation-generation]")?.querySelector("[data-runner-content-epoch]")?.getAttribute("data-runner-content-epoch");
+					const epoch = value == null ? NaN : Number(value);
+					return Number.isSafeInteger(epoch) && epoch >= 0 ? epoch : null;
+				})
+			: null;
+		if (this.executionOptions.presentationSessionId && previousEpoch === null) return this.refusePresentation();
+		const playbackFunction = this.mode === "failsafe" ? "startFallback" : "startRunnerPlayback";
+		const playbackStarted = await capturePage.evaluate((functionName) => {
+			const startPlayback = window[functionName as "startFallback" | "startRunnerPlayback"];
+			if (typeof startPlayback !== "function") return false;
+			startPlayback();
+			return true;
+		}, playbackFunction);
+		if (!playbackStarted) throw new Error(`Missing ${playbackFunction} function in overlay`);
+		if (this.executionOptions.presentationSessionId && previousEpoch !== null) {
+			try {
+				const ready = await capturePage.waitForFunction(
+					(expectedGeneration, beforeEpoch) => {
+						const surface = document.querySelector("[data-runner-presentation-generation]");
+						if (surface?.getAttribute("data-runner-presentation-generation") !== expectedGeneration || window.clipifyRunnerPresentation?.snapshot().generation !== expectedGeneration) return false;
+						const content = surface.querySelector("[data-runner-content-phase]");
+						if (!content) return false;
+						const epoch = Number(content.getAttribute("data-runner-content-epoch"));
+						const phase = content.getAttribute("data-runner-content-phase");
+						if (!Number.isSafeInteger(epoch) || epoch <= beforeEpoch || !["playback", "empty"].includes(phase ?? "")) return false;
+						const status = surface.getAttribute("data-runner-layout-status");
+						if (status === "clean") return "clean";
+						const key = [String(epoch), phase, content.getAttribute("data-runner-content-id") ?? ""].join(":");
+						if (surface.getAttribute("data-runner-layout-content-key") !== key) return false;
+						return status === "placed" || status === "blocked" ? status : false;
+					},
+					{ timeout: 15000 },
+					this.executionOptions.executionGeneration!,
+					previousEpoch,
+				);
+				const status = await ready.jsonValue();
+				await ready.dispose();
+				if (!this.mayOpenOutput() || this.isForwardingObs || this.page !== capturePage) return;
+				if (status === "blocked") return this.refusePresentation("Adjust your overlay layout to leave room for Clipify attribution, then try again.");
+				if (status !== "placed" && status !== "clean") return this.refusePresentation();
+			} catch {
+				if (!this.mayOpenOutput() || this.isForwardingObs || this.page !== capturePage) return;
+				return this.refusePresentation();
+			}
+		}
+		return true;
+	}
+
 	private async startCloudLoopStream() {
 		this.expectedCloudLoopExit = false;
 		if (this.ffmpeg || !this.mayOpenOutput() || this.isForwardingObs || !this.page) return;
@@ -577,53 +628,8 @@ export class Engine {
 			this.mediaStream = capturedStream;
 
 			if (this.page) {
-				const previousEpoch = this.executionOptions.presentationSessionId
-					? await capturePage.evaluate(() => {
-							const value = document.querySelector("[data-runner-presentation-generation]")?.querySelector("[data-runner-content-epoch]")?.getAttribute("data-runner-content-epoch");
-							const epoch = value == null ? NaN : Number(value);
-							return Number.isSafeInteger(epoch) && epoch >= 0 ? epoch : null;
-						})
-					: null;
-				if (this.executionOptions.presentationSessionId && previousEpoch === null) return this.refusePresentation();
-				const playbackFunction = this.mode === "failsafe" ? "startFallback" : "startRunnerPlayback";
-				const playbackStarted = await capturePage.evaluate((functionName) => {
-					const startPlayback = window[functionName as "startFallback" | "startRunnerPlayback"];
-					if (typeof startPlayback !== "function") return false;
-					startPlayback();
-					return true;
-				}, playbackFunction);
-				if (!playbackStarted) throw new Error(`Missing ${playbackFunction} function in overlay`);
-				if (this.executionOptions.presentationSessionId && previousEpoch !== null) {
-					try {
-						const ready = await capturePage.waitForFunction(
-							(expectedGeneration, beforeEpoch) => {
-								const surface = document.querySelector("[data-runner-presentation-generation]");
-								if (surface?.getAttribute("data-runner-presentation-generation") !== expectedGeneration || window.clipifyRunnerPresentation?.snapshot().generation !== expectedGeneration) return false;
-								const content = surface.querySelector("[data-runner-content-phase]");
-								if (!content) return false;
-								const epoch = Number(content.getAttribute("data-runner-content-epoch"));
-								const phase = content.getAttribute("data-runner-content-phase");
-								if (!Number.isSafeInteger(epoch) || epoch <= beforeEpoch || !["playback", "empty"].includes(phase ?? "")) return false;
-								const status = surface.getAttribute("data-runner-layout-status");
-								if (status === "clean") return "clean";
-								const key = [String(epoch), phase, content.getAttribute("data-runner-content-id") ?? ""].join(":");
-								if (surface.getAttribute("data-runner-layout-content-key") !== key) return false;
-								return status === "placed" || status === "blocked" ? status : false;
-							},
-							{ timeout: 15000 },
-							this.executionOptions.executionGeneration!,
-							previousEpoch,
-						);
-						const status = await ready.jsonValue();
-						await ready.dispose();
-						if (!this.mayOpenOutput() || this.isForwardingObs || this.page !== capturePage) return;
-						if (status === "blocked") return this.refusePresentation("Adjust your overlay layout to leave room for Clipify attribution, then try again.");
-						if (status !== "placed" && status !== "clean") return this.refusePresentation();
-					} catch {
-						if (!this.mayOpenOutput() || this.isForwardingObs || this.page !== capturePage) return;
-						return this.refusePresentation();
-					}
-				}
+				const playback = await this.beginCapturedPlayback(capturePage);
+				if (playback !== true) return playback;
 			}
 
 			if (!this.mayOpenOutput() || this.isForwardingObs || this.page !== capturePage) return;
@@ -843,6 +849,48 @@ export class Engine {
 		);
 	}
 
+	private async finishPresentationClip(started: number, deadline: number, generation: string, clock: () => number) {
+		let lastProgressAt = started,
+			lastProgress = "";
+		let finished = false;
+		// Browser RPCs can stall without rejecting. They share the playback watchdog
+		// budget rather than delaying the next deadline check indefinitely.
+		const readPresentation = async (operation: Promise<PlaybackSnapshot | null>) => {
+			let timer: ReturnType<typeof setTimeout> | undefined;
+			try {
+				const remaining = Math.max(0, Math.min(deadline, lastProgressAt + 60000) - clock());
+				return await Promise.race([
+					operation.catch(() => null),
+					new Promise<null>((resolve) => {
+						timer = setTimeout(() => resolve(null), remaining);
+					}),
+				]);
+			} finally {
+				clearTimeout(timer);
+			}
+		};
+		if (!this.isForwardingObs && this.page) {
+			let report: PlaybackSnapshot | null = await readPresentation(this.page.evaluate((expected) => window.clipifyRunnerPresentation?.requestDrain(expected) ?? null, generation));
+			while (this.isRunning) {
+				const now = clock();
+				if (report?.generation === generation && report.state === "drained") {
+					finished = true;
+					break;
+				}
+				const progress = report?.generation === generation ? JSON.stringify(report.clips.map((clip) => [clip.id, clip.time])) : "";
+				if (progress && progress !== lastProgress) {
+					if (lastProgress) lastProgressAt = now;
+					lastProgress = progress;
+				}
+				if (!Number.isFinite(now) || now >= deadline || now - lastProgressAt >= 60000) break;
+				await new Promise((resolve) => setTimeout(resolve, Math.max(0, Math.min(250, deadline - now, lastProgressAt + 60000 - now))));
+				if (!this.page) break;
+				report = await readPresentation(this.page.evaluate(() => window.clipifyRunnerPresentation?.snapshot() ?? null));
+			}
+		}
+		return finished;
+	}
+
 	/** Keep capture alive through the already-playing clip, then flush encoded output. */
 	requestDrain(options: { deadlineMonotonic?: number } = {}) {
 		if (this.stopPromise) return this.stopPromise;
@@ -855,45 +903,8 @@ export class Engine {
 				generation = this.executionOptions.executionGeneration ?? "legacy";
 			const requested = options.deadlineMonotonic;
 			const deadline = Math.min(started + 300000, typeof requested === "number" && Number.isFinite(requested) ? requested : Infinity);
-			let lastProgressAt = started,
-				lastProgress = "";
-			let finished = false;
 			const generatedPlayback = !this.isForwardingObs;
-			// Browser RPCs can stall without rejecting. They share the playback watchdog
-			// budget rather than delaying the next deadline check indefinitely.
-			const readPresentation = async (operation: Promise<PlaybackSnapshot | null>) => {
-				let timer: ReturnType<typeof setTimeout> | undefined;
-				try {
-					const remaining = Math.max(0, Math.min(deadline, lastProgressAt + 60000) - clock());
-					return await Promise.race([
-						operation.catch(() => null),
-						new Promise<null>((resolve) => {
-							timer = setTimeout(() => resolve(null), remaining);
-						}),
-					]);
-				} finally {
-					clearTimeout(timer);
-				}
-			};
-			if (!this.isForwardingObs && this.page) {
-				let report: PlaybackSnapshot | null = await readPresentation(this.page.evaluate((expected) => window.clipifyRunnerPresentation?.requestDrain(expected) ?? null, generation));
-				while (this.isRunning) {
-					const now = clock();
-					if (report?.generation === generation && report.state === "drained") {
-						finished = true;
-						break;
-					}
-					const progress = report?.generation === generation ? JSON.stringify(report.clips.map((clip) => [clip.id, clip.time])) : "";
-					if (progress && progress !== lastProgress) {
-						if (lastProgress) lastProgressAt = now;
-						lastProgress = progress;
-					}
-					if (!Number.isFinite(now) || now >= deadline || now - lastProgressAt >= 60000) break;
-					await new Promise((resolve) => setTimeout(resolve, Math.max(0, Math.min(250, deadline - now, lastProgressAt + 60000 - now))));
-					if (!this.page) break;
-					report = await readPresentation(this.page.evaluate(() => window.clipifyRunnerPresentation?.snapshot() ?? null));
-				}
-			}
+			const finished = await this.finishPresentationClip(started, deadline, generation, clock);
 			this.drainOutcome = this.isRunning && generatedPlayback ? (finished ? "clip_completed" : "playback_timeout") : null;
 			await this.stop(finished, Math.min(5000, Math.max(0, deadline - clock())));
 		})();

@@ -517,6 +517,51 @@ function getRunnerScheduleCache(credentialId: string, runnerId: string, apiBase:
 	return cache;
 }
 
+async function handleHeartbeatFailure(response: Response, credentialId: string, request: { requestId: string; sentAt: number }, token: string, apiBase: string, runnerId?: string): Promise<"reauth" | "retry"> {
+	console.error(`[Error] API returned status ${response.status}`);
+	if (response.status === 401) {
+		scheduleContexts.delete(credentialId);
+		const revokedSchedule = scheduleCaches.get(credentialId);
+		scheduleCaches.delete(credentialId);
+		try {
+			revokedSchedule?.revoke();
+		} catch {
+			console.error("[Runner] Revoked schedule cache could not be removed; synchronization is required.");
+		}
+		ownerBenefitCaches.get(credentialId)?.accept(null, request);
+		ownerBenefitCaches.delete(credentialId);
+		if (runnerId) await getTerminalCredentials().save({ runnerId, apiBase, token });
+		await stopActiveEngines();
+		if (terminalDelivery) await terminalDelivery;
+		await retryTerminalDelivery();
+		if (!process.env.CLIPIFY_TOKEN) {
+			await clearCredentials(runnerId);
+			console.error("[Runner] Credentials invalid or revoked. Starting new enrollment...");
+			return "reauth";
+		}
+		console.error("[Runner] Token invalid or revoked. Outputs are closed; update the configured token to reconnect.");
+	}
+	return "retry";
+}
+
+async function processExecutionHeartbeatJob(job: HeartbeatJob, request: { requestId: string; sentAt: number }, credentialId: string, apiBase: string, token: string, runnerId?: string) {
+	const candidateId = runnerId ?? (typeof job.runnerId === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(job.runnerId) ? job.runnerId : undefined);
+	const controller = candidateId ? getFreeController(job, candidateId, apiBase, token) : null;
+	if (!controller) return runnerId;
+	const operation = job.desiredState === "running" ? (job.lease ? controller.apply(job as FreeExecutionJob, request) : Promise.resolve(false)) : controller.stop(job as FreeExecutionJob, job.stopMode === "immediate");
+	void operation.catch(() => console.error("[Runner] Execution control failed; keeping shutdown receipt pending."));
+	if (!runnerId && candidateId && job.admissionId) {
+		// Journal identity was persisted only after lease verification.
+		const verified = getFreeJournal(candidateId).get(job.admissionId);
+		if (verified && verified.ownerId === job.ownerId && verified.runnerId === candidateId && verified.sessionId === job.id && verified.executionGeneration === job.executionGeneration && verified.configurationRevision === job.configurationRevision && ["starting", "active"].includes(verified.state)) {
+			await saveCredentials({ runnerId: candidateId, apiBase, token });
+			learnedDevices.set(credentialId, candidateId);
+			runnerId = candidateId;
+		}
+	}
+	return runnerId;
+}
+
 async function pollHeartbeat(token: string, apiBase: string, runnerId?: string): Promise<"ok" | "reauth" | "retry"> {
 	try {
 		const credentialId = createHash("sha256")
@@ -537,32 +582,7 @@ async function pollHeartbeat(token: string, apiBase: string, runnerId?: string):
 			headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
 			body: JSON.stringify({ requestId: request.requestId, executions, protocolVersion: 2, capabilities: ["admissions", "destinations", "drain", "runner_presentation", "free_lease", "schedule_cache"], os: getRunnerOsInfo(), hostname: os.hostname(), version: RUNNER_VERSION, actualStates }),
 		});
-		if (!response.ok) {
-			console.error(`[Error] API returned status ${response.status}`);
-			if (response.status === 401) {
-				scheduleContexts.delete(credentialId);
-				const revokedSchedule = scheduleCaches.get(credentialId);
-				scheduleCaches.delete(credentialId);
-				try {
-					revokedSchedule?.revoke();
-				} catch {
-					console.error("[Runner] Revoked schedule cache could not be removed; synchronization is required.");
-				}
-				ownerBenefitCaches.get(credentialId)?.accept(null, request);
-				ownerBenefitCaches.delete(credentialId);
-				if (runnerId) await getTerminalCredentials().save({ runnerId, apiBase, token });
-				await stopActiveEngines();
-				if (terminalDelivery) await terminalDelivery;
-				await retryTerminalDelivery();
-				if (!process.env.CLIPIFY_TOKEN) {
-					await clearCredentials(runnerId);
-					console.error("[Runner] Credentials invalid or revoked. Starting new enrollment...");
-					return "reauth";
-				}
-				console.error("[Runner] Token invalid or revoked. Outputs are closed; update the configured token to reconnect.");
-			}
-			return "retry";
-		}
+		if (!response.ok) return await handleHeartbeatFailure(response, credentialId, request, token, apiBase, runnerId);
 		const data = (await response.json()) as { jobs?: HeartbeatJob[]; benefitSnapshot?: unknown; scheduleCache?: unknown; acceptedExecutions?: { admissionId: string; executionGeneration: string; state: string }[] };
 		if (data.benefitSnapshot !== undefined || ownerBenefitCaches.has(credentialId)) {
 			const cache = getRunnerBenefitCache(credentialId, runnerId);
@@ -581,20 +601,7 @@ async function pollHeartbeat(token: string, apiBase: string, runnerId?: string):
 		for (const entry of freeControllers.values()) if (entry.runnerId === runnerId) entry.controller.confirm(data.acceptedExecutions ?? []);
 		for (const job of data.jobs ?? []) {
 			if (job.admissionId || job.lease) {
-				const candidateId = runnerId ?? (typeof job.runnerId === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(job.runnerId) ? job.runnerId : undefined);
-				const controller = candidateId ? getFreeController(job, candidateId, apiBase, token) : null;
-				if (!controller) continue;
-				const operation = job.desiredState === "running" ? (job.lease ? controller.apply(job as FreeExecutionJob, request) : Promise.resolve(false)) : controller.stop(job as FreeExecutionJob, job.stopMode === "immediate");
-				void operation.catch(() => console.error("[Runner] Execution control failed; keeping shutdown receipt pending."));
-				if (!runnerId && candidateId && job.admissionId) {
-					// Journal identity was persisted only after lease verification.
-					const verified = getFreeJournal(candidateId).get(job.admissionId);
-					if (verified && verified.ownerId === job.ownerId && verified.runnerId === candidateId && verified.sessionId === job.id && verified.executionGeneration === job.executionGeneration && verified.configurationRevision === job.configurationRevision && ["starting", "active"].includes(verified.state)) {
-						await saveCredentials({ runnerId: candidateId, apiBase, token });
-						learnedDevices.set(credentialId, candidateId);
-						runnerId = candidateId;
-					}
-				}
+				runnerId = await processExecutionHeartbeatJob(job, request, credentialId, apiBase, token, runnerId);
 			} else await processHeartbeatJob(job, apiBase, token);
 		}
 		return "ok";

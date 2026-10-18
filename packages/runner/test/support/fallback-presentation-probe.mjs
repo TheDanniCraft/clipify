@@ -8,6 +8,7 @@ import { once } from "node:events";
 import { build } from "esbuild";
 import { createRequire } from "node:module";
 import { nativeChromePath } from "./native-media.mjs";
+import { prepareNativeTestShims } from "./native-test-shims.mjs";
 
 // Private device credentials arrive on stdin, never in argv or retained logs.
 let input = "";
@@ -139,10 +140,7 @@ process.once("SIGTERM", () => {
 });
 
 try {
-	const dependencies = join(compiled, "dependencies.mjs"),
-		os = join(compiled, "os.mjs");
-	writeFileSync(dependencies, `export async function ensureDependencies(){return {chromePath:${JSON.stringify(nativeChromePath())},ffmpegPath:${JSON.stringify(ffmpeg)}}}`);
-	writeFileSync(os, `import * as os from 'node:os';export * from 'node:os';export const homedir=()=>${JSON.stringify(directory)};export const tmpdir=()=>${JSON.stringify(directory)};export default {...os,homedir,tmpdir};`);
+	const { dependencies, os } = prepareNativeTestShims(compiled, { chromePath: nativeChromePath(), ffmpegPath: ffmpeg, home: directory });
 	await build({
 		entryPoints: [join(packageRoot, "src/engine.ts")],
 		outfile: join(compiled, "engine.mjs"),

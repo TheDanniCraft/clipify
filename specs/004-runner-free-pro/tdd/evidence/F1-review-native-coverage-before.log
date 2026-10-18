@@ -1,0 +1,34 @@
+$ node run-coverage.mjs
+[in#0 @ 0x557f807dbc80] Error opening input: Invalid data found when processing input
+Error opening input file pipe:0.
+Error opening input files: Invalid data found when processing input
+[Error] API returned status 503
+
+=============================== Coverage summary ===============================
+Statements   : 94.5% ( 2065/2185 )
+Branches     : 90.14% ( 1527/1694 )
+Functions    : 95.48% ( 317/332 )
+Lines        : 97.51% ( 1766/1811 )
+================================================================================
+Jest: Coverage for statements (94.44%) does not meet "./src/execution-journal.ts" threshold (95%)
+
+Test Suites: 52 passed, 52 total
+Tests:       1 todo, 450 passed, 451 total
+Snapshots:   0 total
+Time:        781.16 s
+Ran all test suites.
+Test results written to: coverage/runner-feature/jest-results.json
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?
+file:///home/coder/clipify/packages/runner/run-coverage.mjs:62
+	if (result.status !== 0) throw new Error("Native coverage execution or configured thresholds failed");
+	                               ^
+
+Error: Native coverage execution or configured thresholds failed
+    at runRunnerCoverage (file:///home/coder/clipify/packages/runner/run-coverage.mjs:62:33)
+    at file:///home/coder/clipify/packages/runner/run-coverage.mjs:71:85
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+Node.js v22.23.3
+error: script "test:coverage" exited with code 1

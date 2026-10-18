@@ -40,34 +40,58 @@ function readSignedClaims(bundle: unknown, trustedKeys: Readonly<Record<string, 
 	return JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
 }
 
-/** Verify the exact serialized bytes; callers supply their trusted resource identity. */
+function boundedIdentity(value: unknown, limit = 256): value is string {
+	return typeof value === "string" && value.length > 0 && value.length <= limit;
+}
+function uuidIdentity(value: unknown): value is string {
+	return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+function digestIdentity(value: unknown): value is string {
+	return typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
+}
+function validExecutionWindow(claims: Pick<ExecutionClaims, "issuedAt" | "expiresAt">, now: number) {
+	return Number.isSafeInteger(now) && Number.isSafeInteger(claims.issuedAt) && Number.isSafeInteger(claims.expiresAt) && claims.issuedAt <= now && claims.expiresAt > now && claims.expiresAt > claims.issuedAt;
+}
+function matchesExecutionIdentity(claims: ExecutionClaims, expected: ExecutionIdentity) {
+	for (const field of ["ownerId", "runnerId", "sessionId", "generation", "targetHash"] as const) if (!boundedIdentity(claims[field])) return false;
+	for (const field of ["configurationRevision", "sourceRevision"] as const) if (!Number.isSafeInteger(claims[field]) || claims[field] < 1) return false;
+	return (["ownerId", "runnerId", "sessionId", "generation", "targetHash", "configurationRevision", "sourceRevision"] as const).every((field) => claims[field] === expected[field]);
+}
+function matchesExecutionPolicy(claims: ExecutionClaims, expected: ExecutionIdentity) {
+	const hasLeaseBinding = (["admissionId", "leaseId", "requestId"] as const).some((field) => expected[field] !== undefined);
+	if (hasLeaseBinding && claims.policy !== "free_lease" && claims.policy !== "pro_broadcast") return false;
+	if (expected.sourceId !== undefined && claims.sourceId !== expected.sourceId) return false;
+	if (expected.scheduledEnd !== undefined && claims.scheduledEnd !== expected.scheduledEnd) return false;
+	return claims.scheduledEnd == null || (claims.policy === "pro_broadcast" && Number.isSafeInteger(claims.scheduledEnd) && claims.scheduledEnd > claims.issuedAt);
+}
+function matchesOccurrenceIdentity(claims: ExecutionClaims, expected: ExecutionIdentity) {
+	return claims.policy === "pro_broadcast" && boundedIdentity(claims.occurrenceId, 1024) && claims.occurrenceId === expected.occurrenceId;
+}
+function matchesOccurrenceWindow(claims: ExecutionClaims, expected: ExecutionIdentity) {
+	return Number.isSafeInteger(claims.scheduledStart) && Number(claims.scheduledStart) >= 0 && claims.scheduledStart === expected.scheduledStart && claims.scheduledEnd != null && Number(claims.scheduledStart) < claims.scheduledEnd;
+}
+function matchesOptionalOccurrence(claims: ExecutionClaims, expected: ExecutionIdentity) {
+	const present = claims.occurrenceId !== undefined || expected.occurrenceId !== undefined || claims.scheduledStart !== undefined || expected.scheduledStart !== undefined;
+	return !present || (matchesOccurrenceIdentity(claims, expected) && matchesOccurrenceWindow(claims, expected));
+}
+function matchesCacheAuthorization(claims: ExecutionClaims, expected: ExecutionIdentity) {
+	if (expected.cacheAuthorization !== true) return claims.cacheAuthorization === undefined;
+	return claims.cacheAuthorization === true && matchesOccurrenceIdentity(claims, expected) && matchesOccurrenceWindow(claims, expected) && Number(claims.scheduledStart) < claims.expiresAt && digestIdentity(claims.executionPayloadHash) && claims.executionPayloadHash === expected.executionPayloadHash;
+}
+function matchesLeaseBinding(claims: ExecutionClaims, expected: ExecutionIdentity) {
+	if (claims.policy !== "free_lease" && claims.policy !== "pro_broadcast") return true;
+	if (claims.expiresAt - claims.issuedAt > (expected.cacheAuthorization === true ? 604800000 : 300000)) return false;
+	return (["admissionId", "leaseId", "requestId", "sourceId"] as const).every((field) => uuidIdentity(claims[field]) && claims[field] === expected[field]);
+}
+function executionClaimsHeader(claims: ExecutionClaims, expected: ExecutionIdentity) {
+	return !!claims && typeof claims === "object" && !Array.isArray(claims) && claims.issuer === "clipify.us" && claims.kind === (expected.cacheAuthorization === true ? "scheduled_execution" : "execution");
+}
+
+/** Verify exact serialized bytes, identity, temporal bounds and captured policy independently. */
 export function verifyExecutionBundle(bundle: unknown, trustedKeys: Readonly<Record<string, string>>, expected: ExecutionIdentity, now = Date.now()): ExecutionClaims | null {
 	try {
 		const claims = readSignedClaims(bundle, trustedKeys) as ExecutionClaims;
-		if (!claims || typeof claims !== "object" || Array.isArray(claims) || claims.issuer !== "clipify.us" || claims.kind !== (expected.cacheAuthorization === true ? "scheduled_execution" : "execution")) return null;
-		if (!Number.isSafeInteger(now) || !Number.isSafeInteger(claims.issuedAt) || !Number.isSafeInteger(claims.expiresAt) || claims.issuedAt > now || claims.expiresAt <= now || claims.expiresAt <= claims.issuedAt) return null;
-		for (const field of ["ownerId", "runnerId", "sessionId", "generation", "targetHash"] as const) if (typeof claims[field] !== "string" || !claims[field] || claims[field].length > 256) return null;
-		for (const field of ["configurationRevision", "sourceRevision"] as const) if (!Number.isSafeInteger(claims[field]) || claims[field] < 1) return null;
-		for (const field of ["ownerId", "runnerId", "sessionId", "generation", "targetHash", "configurationRevision", "sourceRevision"] as const) if (claims[field] !== expected[field]) return null;
-		if ((["admissionId", "leaseId", "requestId"] as const).some((field) => expected[field] !== undefined) && claims.policy !== "free_lease" && claims.policy !== "pro_broadcast") return null;
-		if (expected.sourceId !== undefined && claims.sourceId !== expected.sourceId) return null;
-		if (expected.scheduledEnd !== undefined && claims.scheduledEnd !== expected.scheduledEnd) return null;
-		if (claims.scheduledEnd != null && (claims.policy !== "pro_broadcast" || !Number.isSafeInteger(claims.scheduledEnd) || claims.scheduledEnd <= claims.issuedAt)) return null;
-		if (claims.occurrenceId !== undefined || expected.occurrenceId !== undefined || claims.scheduledStart !== undefined || expected.scheduledStart !== undefined) {
-			if (claims.policy !== "pro_broadcast" || typeof claims.occurrenceId !== "string" || !claims.occurrenceId || claims.occurrenceId.length > 1024 || claims.occurrenceId !== expected.occurrenceId || !Number.isSafeInteger(claims.scheduledStart) || Number(claims.scheduledStart) < 0 || claims.scheduledStart !== expected.scheduledStart || claims.scheduledEnd == null || Number(claims.scheduledStart) >= claims.scheduledEnd) return null;
-		}
-		const cached = expected.cacheAuthorization === true;
-		if (cached) {
-			if (claims.cacheAuthorization !== true || claims.policy !== "pro_broadcast" || typeof claims.occurrenceId !== "string" || !claims.occurrenceId || claims.occurrenceId.length > 1024 || claims.occurrenceId !== expected.occurrenceId) return null;
-			if (!Number.isSafeInteger(claims.scheduledStart) || Number(claims.scheduledStart) < 0 || claims.scheduledStart !== expected.scheduledStart || claims.scheduledEnd == null || Number(claims.scheduledStart) >= claims.scheduledEnd || Number(claims.scheduledStart) >= claims.expiresAt) return null;
-			if (typeof claims.executionPayloadHash !== "string" || !/^[a-f0-9]{64}$/.test(claims.executionPayloadHash) || claims.executionPayloadHash !== expected.executionPayloadHash) return null;
-		} else if (claims.cacheAuthorization !== undefined) return null;
-		if (claims.policy === "free_lease" || claims.policy === "pro_broadcast") {
-			if (claims.expiresAt - claims.issuedAt > (cached ? 604800000 : 300000)) return null;
-			for (const field of ["admissionId", "leaseId", "requestId", "sourceId"] as const) {
-				if (typeof claims[field] !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(claims[field]) || claims[field] !== expected[field]) return null;
-			}
-		}
+		if (!executionClaimsHeader(claims, expected) || !validExecutionWindow(claims, now) || !matchesExecutionIdentity(claims, expected) || !matchesExecutionPolicy(claims, expected) || !matchesOptionalOccurrence(claims, expected) || !matchesCacheAuthorization(claims, expected) || !matchesLeaseBinding(claims, expected)) return null;
 		return claims;
 	} catch {
 		return null;
@@ -78,22 +102,39 @@ export type RunnerBenefitSnapshotIdentity = { ownerId: string; runnerId: string;
 export type RunnerBenefitPolicy = { basicAccess: true; runnerPro: boolean; maxRegisteredDevices: null; maxActiveBroadcasts: number | null; maxTargets: number | null; scheduling: boolean; customStandby: boolean; attributionRequired: boolean; monthlyUsageLimit: null; validUntil: string | null; source: string; evaluatedAt: string; capabilityRevision: string };
 export type RunnerBenefitSnapshotClaims = RunnerBenefitSnapshotIdentity & { configurationRevision: number; issuer: "clipify.us"; kind: "benefits"; issuedAt: number; expiresAt: number; capabilities: RunnerBenefitPolicy };
 
+function matchesBenefitIdentity(claims: RunnerBenefitSnapshotClaims, expected: RunnerBenefitSnapshotIdentity) {
+	if (!boundedIdentity(claims.ownerId) || claims.ownerId !== expected.ownerId) return false;
+	for (const field of ["runnerId", "requestId"] as const) if (!uuidIdentity(claims[field]) || claims[field] !== expected[field]) return false;
+	return Number.isSafeInteger(claims.configurationRevision) && claims.configurationRevision >= 1 && (expected.configurationRevision === undefined || claims.configurationRevision === expected.configurationRevision);
+}
+function matchesBenefitEntitlements(policy: Record<string, unknown>) {
+	const paid = policy.runnerPro;
+	const required = { basicAccess: true, maxRegisteredDevices: null, maxActiveBroadcasts: paid ? null : 1, maxTargets: paid ? null : 1, scheduling: paid, customStandby: paid, attributionRequired: !paid, monthlyUsageLimit: null };
+	return Object.entries(required).every(([field, value]) => policy[field] === value);
+}
+function validBenefitEvaluation(policy: Record<string, unknown>, issuedAt: number) {
+	return digestIdentity(policy.capabilityRevision) && typeof policy.evaluatedAt === "string" && Date.parse(policy.evaluatedAt) === issuedAt;
+}
+function validBenefitSource(policy: Record<string, unknown>) {
+	return typeof policy.source === "string" && ["free", "pro", "trial", "grant", "legacy", "agency"].includes(policy.source) && (policy.runnerPro ? policy.source !== "free" : policy.source === "free");
+}
+function withinKnownPaidEnd(policy: { runnerPro?: unknown; validUntil?: unknown }, expiresAt: number) {
+	return policy.validUntil === null || (typeof policy.validUntil === "string" && Number.isFinite(Date.parse(policy.validUntil)) && (!policy.runnerPro || expiresAt <= Date.parse(policy.validUntil)));
+}
+function validBenefitPolicy(claims: RunnerBenefitSnapshotClaims) {
+	const policy = claims.capabilities as unknown as Record<string, unknown>;
+	if (!policy || typeof policy !== "object" || Array.isArray(policy) || typeof policy.runnerPro !== "boolean") return false;
+	return matchesBenefitEntitlements(policy) && validBenefitEvaluation(policy, claims.issuedAt) && validBenefitSource(policy) && withinKnownPaidEnd(policy, claims.expiresAt);
+}
+function benefitClaimsHeader(claims: RunnerBenefitSnapshotClaims) {
+	return !!claims && typeof claims === "object" && !Array.isArray(claims) && claims.issuer === "clipify.us" && claims.kind === "benefits";
+}
+
 /** Owner policy cannot substitute for an admission or an execution permit. */
 export function verifyRunnerBenefitSnapshot(bundle: unknown, trustedKeys: Readonly<Record<string, string>>, expected: RunnerBenefitSnapshotIdentity, now = Date.now()): RunnerBenefitSnapshotClaims | null {
 	try {
 		const claims = readSignedClaims(bundle, trustedKeys) as RunnerBenefitSnapshotClaims;
-		if (!claims || typeof claims !== "object" || Array.isArray(claims) || claims.issuer !== "clipify.us" || claims.kind !== "benefits") return null;
-		if (!Number.isSafeInteger(now) || !Number.isSafeInteger(claims.issuedAt) || !Number.isSafeInteger(claims.expiresAt) || claims.issuedAt < 0 || claims.issuedAt > now || claims.expiresAt <= now || claims.expiresAt <= claims.issuedAt || claims.expiresAt - claims.issuedAt > 604800000) return null;
-		if (typeof claims.ownerId !== "string" || !claims.ownerId || claims.ownerId.length > 256 || claims.ownerId !== expected.ownerId) return null;
-		for (const field of ["runnerId", "requestId"] as const) if (typeof claims[field] !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(claims[field]) || claims[field] !== expected[field]) return null;
-		if (!Number.isSafeInteger(claims.configurationRevision) || claims.configurationRevision < 1 || (expected.configurationRevision !== undefined && claims.configurationRevision !== expected.configurationRevision)) return null;
-		const policy = claims.capabilities as unknown as Record<string, unknown>;
-		if (!policy || typeof policy !== "object" || Array.isArray(policy) || typeof policy.runnerPro !== "boolean") return null;
-		const paid = policy.runnerPro;
-		for (const [field, value] of Object.entries({ basicAccess: true, maxRegisteredDevices: null, maxActiveBroadcasts: paid ? null : 1, maxTargets: paid ? null : 1, scheduling: paid, customStandby: paid, attributionRequired: !paid, monthlyUsageLimit: null })) if (policy[field] !== value) return null;
-		if (typeof policy.capabilityRevision !== "string" || !/^[a-f0-9]{64}$/.test(policy.capabilityRevision) || typeof policy.evaluatedAt !== "string" || Date.parse(policy.evaluatedAt) !== claims.issuedAt) return null;
-		if (typeof policy.source !== "string" || !["free", "pro", "trial", "grant", "legacy", "agency"].includes(policy.source) || (paid ? policy.source === "free" : policy.source !== "free")) return null;
-		if (policy.validUntil !== null && (typeof policy.validUntil !== "string" || !Number.isFinite(Date.parse(policy.validUntil)) || (paid && claims.expiresAt > Date.parse(policy.validUntil)))) return null;
+		if (!benefitClaimsHeader(claims) || !validExecutionWindow(claims, now) || claims.issuedAt < 0 || claims.expiresAt - claims.issuedAt > 604800000 || !matchesBenefitIdentity(claims, expected) || !validBenefitPolicy(claims)) return null;
 		return claims;
 	} catch {
 		return null;
@@ -199,6 +240,22 @@ export class RunnerBenefitSnapshotCache {
  * Restarted processes have no accepted lease and must obtain a fresh response.
  * The runtime journals terminal transitions and owns actual output shutdown.
  */
+function untrustedExecutionCandidate(bundle: unknown): ExecutionClaims | null {
+	if (!bundle || typeof bundle !== "object") return null;
+	const payload = (bundle as SignedExecutionBundle).payload;
+	if (typeof payload !== "string" || payload.length > 65536) return null;
+	const candidate = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+	return candidate && typeof candidate === "object" ? candidate : null;
+}
+function scheduledPermissionWindowOpen(expected: ExecutionIdentity, claims: ExecutionClaims, pending: LeaseRequestContext, now: number) {
+	if (expected.cacheAuthorization !== true) return true;
+	return claims.scheduledStart !== undefined && claims.scheduledEnd != null && now >= pending.sentAt + claims.scheduledStart - claims.issuedAt && now < pending.sentAt + claims.scheduledEnd - claims.issuedAt;
+}
+function capturedOutputDeadline(policy: "free_lease" | "pro_broadcast", claims: ExecutionClaims, pending: LeaseRequestContext, renewalDeadline: number) {
+	if (policy === "free_lease") return renewalDeadline;
+	return claims.scheduledEnd == null ? null : pending.sentAt + (claims.scheduledEnd - claims.issuedAt);
+}
+
 class ExecutionPermission {
 	private phase: "renewal_required" | "active" | "draining" = "renewal_required";
 	private deadline: number | null = null;
@@ -241,22 +298,19 @@ class ExecutionPermission {
 		const pending = this.pending;
 		this.pending = null;
 		try {
-			if (!bundle || typeof bundle !== "object") return false;
-			const payload = (bundle as SignedExecutionBundle).payload;
-			if (typeof payload !== "string" || payload.length > 65536) return false;
-			const untrusted = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
-			if (!untrusted || typeof untrusted !== "object") return false;
+			const untrusted = untrustedExecutionCandidate(bundle);
+			if (!untrusted) return false;
 			const claims = verifyExecutionBundle(bundle, this.keys, { ...this.expected, requestId: pending.requestId }, untrusted.issuedAt);
 			if (!claims || claims.policy !== this.policy) return false;
 			const now = this.clock(),
 				deadline = pending.sentAt + (claims.expiresAt - claims.issuedAt);
 			if (!Number.isFinite(now) || now < pending.sentAt) return false;
-			if (this.expected.cacheAuthorization === true && (claims.scheduledStart === undefined || claims.scheduledEnd == null || now < pending.sentAt + claims.scheduledStart - claims.issuedAt || now >= pending.sentAt + claims.scheduledEnd - claims.issuedAt)) return false;
+			if (!scheduledPermissionWindowOpen(this.expected, claims, pending, now)) return false;
 			if (now >= deadline) {
 				this.phase = "draining";
 				return false;
 			}
-			const outputDeadline = this.policy === "free_lease" ? deadline : claims.scheduledEnd == null ? null : pending.sentAt + (claims.scheduledEnd - claims.issuedAt);
+			const outputDeadline = capturedOutputDeadline(this.policy, claims, pending, deadline);
 			this.deadline = this.policy === "pro_broadcast" && this.deadline !== null ? Math.min(this.deadline, outputDeadline ?? Infinity) : outputDeadline;
 			this.phase = "active";
 			return true;
@@ -293,20 +347,33 @@ export function hashScheduledExecutionPayload(job: { overlayId: string; overlayS
 }
 
 export type ScheduleCacheManifest = { issuer: "clipify.us"; kind: "schedule_cache"; version: 1; ownerId: string; runnerId: string; requestId: string; configurationRevision: number; issuedAt: number; expiresAt: number; capabilities: RunnerBenefitPolicy; entries: { admissionId: string; occurrenceId: string; authorizationHash: string }[] };
+function matchesManifestIdentity(claims: ScheduleCacheManifest, expected: { runnerId: string; ownerId?: string; requestId: string }) {
+	return !!claims && claims.issuer === "clipify.us" && claims.kind === "schedule_cache" && claims.version === 1 && claims.runnerId === expected.runnerId && claims.requestId === expected.requestId && boundedIdentity(claims.ownerId) && (expected.ownerId === undefined || claims.ownerId === expected.ownerId);
+}
+function validManifestWindow(claims: ScheduleCacheManifest, now: number) {
+	return [now, claims.issuedAt, claims.expiresAt, claims.configurationRevision].every(Number.isSafeInteger) && claims.issuedAt >= 0 && claims.configurationRevision >= 1 && claims.issuedAt <= now && claims.expiresAt > now && claims.expiresAt - claims.issuedAt <= 604800000;
+}
+function validManifestEntry(entry: ScheduleCacheManifest["entries"][number], ids: Set<string>) {
+	return !!entry && typeof entry.admissionId === "string" && /^[0-9a-f-]{36}$/i.test(entry.admissionId) && !ids.has(entry.admissionId) && boundedIdentity(entry.occurrenceId, 1024) && digestIdentity(entry.authorizationHash);
+}
+function validManifestEntries(claims: ScheduleCacheManifest) {
+	if (!Array.isArray(claims.entries) || claims.entries.length > 1024 || (!claims.capabilities.runnerPro && claims.entries.length)) return false;
+	const ids = new Set<string>();
+	for (const entry of claims.entries) {
+		if (!validManifestEntry(entry, ids)) return false;
+		ids.add(entry.admissionId);
+	}
+	return true;
+}
+function validManifestPolicy(claims: ScheduleCacheManifest) {
+	const policy = claims.capabilities;
+	return !!policy && typeof policy.runnerPro === "boolean" && policy.scheduling === policy.runnerPro && withinKnownPaidEnd(policy, claims.expiresAt);
+}
 /** The enclosing manifest binds cache replacement/clearing to one authenticated response. */
 export function verifyScheduleCacheManifest(bundle: unknown, keys: Readonly<Record<string, string>>, expected: { runnerId: string; ownerId?: string; requestId: string }, now: number): ScheduleCacheManifest | null {
 	try {
 		const claims = readSignedClaims(bundle, keys) as ScheduleCacheManifest;
-		if (!claims || claims.issuer !== "clipify.us" || claims.kind !== "schedule_cache" || claims.version !== 1 || claims.runnerId !== expected.runnerId || claims.requestId !== expected.requestId || typeof claims.ownerId !== "string" || !claims.ownerId || claims.ownerId.length > 256 || (expected.ownerId !== undefined && claims.ownerId !== expected.ownerId)) return null;
-		if (![now, claims.issuedAt, claims.expiresAt, claims.configurationRevision].every(Number.isSafeInteger) || claims.issuedAt < 0 || claims.configurationRevision < 1 || claims.issuedAt > now || claims.expiresAt <= now || claims.expiresAt - claims.issuedAt > 604800000) return null;
-		const policy = claims.capabilities;
-		if (!policy || typeof policy.runnerPro !== "boolean" || policy.scheduling !== policy.runnerPro || (policy.validUntil !== null && (typeof policy.validUntil !== "string" || !Number.isFinite(Date.parse(policy.validUntil)) || (policy.runnerPro && claims.expiresAt > Date.parse(policy.validUntil))))) return null;
-		if (!Array.isArray(claims.entries) || claims.entries.length > 1024 || (!policy.runnerPro && claims.entries.length)) return null;
-		const ids = new Set<string>();
-		for (const entry of claims.entries) {
-			if (!entry || typeof entry.admissionId !== "string" || !/^[0-9a-f-]{36}$/i.test(entry.admissionId) || ids.has(entry.admissionId) || typeof entry.occurrenceId !== "string" || !entry.occurrenceId || entry.occurrenceId.length > 1024 || typeof entry.authorizationHash !== "string" || !/^[a-f0-9]{64}$/.test(entry.authorizationHash)) return null;
-			ids.add(entry.admissionId);
-		}
+		if (!matchesManifestIdentity(claims, expected) || !validManifestWindow(claims, now) || !validManifestPolicy(claims) || !validManifestEntries(claims)) return null;
 		return claims;
 	} catch {
 		return null;

@@ -238,6 +238,29 @@ function overlaps(left: CalendarSchedule, right: CalendarSchedule) {
 	return first.some((a) => second.some((b) => Date.parse(a.startUtc) < Date.parse(b.endUtc) && Date.parse(b.startUtc) < Date.parse(a.endUtc)));
 }
 
+function scheduleEventValues(input: z.infer<typeof scheduleInput>, current: typeof runnerScheduleEventsTable.$inferSelect | undefined) {
+	return {
+		ownerId: input.ownerId,
+		runnerId: input.runnerId,
+		sessionId: input.sessionId,
+		overlayId: input.overlayId,
+		title: input.title,
+		timezone: input.timezone,
+		recurrence: input.recurrence,
+		recurrenceAnchor: current?.recurrenceAnchor ?? input.localStartDate,
+		weekdayAnchors: input.recurrence === "weekly" ? reconcileWeekdayAnchors(current, input.weekdays) : [],
+		localStartDate: input.localStartDate,
+		localEndDate: input.recurrence === "once" ? input.localEndDate! : null,
+		localStartTime: input.localStartTime,
+		localEndTime: input.localEndTime,
+		weekdays: input.recurrence === "weekly" ? [...input.weekdays].sort((a, b) => a - b) : [],
+		endDayOffset: input.recurrence === "weekly" ? input.endDayOffset : 0,
+		enabled: input.enabled,
+		configurationRevision: (current?.configurationRevision ?? 0) + 1,
+		updatedAt: new Date(),
+	};
+}
+
 /** Owner/member/benefit locks serialize revisions and same-Runner overlap decisions. */
 export async function saveRunnerScheduleEventForPrincipal(principal: TrustedCreatorPrincipal, rawInput: unknown, client: DatabaseClient = db, clock: () => number = Date.now) {
 	const owner = ownerId.safeParse(typeof rawInput === "object" && rawInput !== null ? Reflect.get(rawInput, "ownerId") : undefined);
@@ -284,26 +307,7 @@ export async function saveRunnerScheduleEventForPrincipal(principal: TrustedCrea
 				.from(runnerDestinationsTable)
 				.where(and(eq(runnerDestinationsTable.ownerId, input.ownerId), inArray(runnerDestinationsTable.id, input.destinationIds), or(eq(runnerDestinationsTable.runnerId, input.runnerId), isNull(runnerDestinationsTable.runnerId))));
 			if (targets.length !== input.destinationIds.length) return failure("INVALID_INPUT", "Choose destinations belonging to this creator and Runner.");
-			const values = {
-				ownerId: input.ownerId,
-				runnerId: input.runnerId,
-				sessionId: input.sessionId,
-				overlayId: input.overlayId,
-				title: input.title,
-				timezone: input.timezone,
-				recurrence: input.recurrence,
-				recurrenceAnchor: current?.recurrenceAnchor ?? input.localStartDate,
-				weekdayAnchors: input.recurrence === "weekly" ? reconcileWeekdayAnchors(current, input.weekdays) : [],
-				localStartDate: input.localStartDate,
-				localEndDate: input.recurrence === "once" ? input.localEndDate! : null,
-				localStartTime: input.localStartTime,
-				localEndTime: input.localEndTime,
-				weekdays: input.recurrence === "weekly" ? [...input.weekdays].sort((a, b) => a - b) : [],
-				endDayOffset: input.recurrence === "weekly" ? input.endDayOffset : 0,
-				enabled: input.enabled,
-				configurationRevision: (current?.configurationRevision ?? 0) + 1,
-				updatedAt: new Date(),
-			};
+			const values = scheduleEventValues(input, current);
 			const candidate = { ...values, id: current?.id ?? randomUUID() };
 			const peers = await readEvents(tx, input.ownerId, input.runnerId);
 			if (candidate.enabled && peers.some((row) => row.id !== candidate.id && row.enabled && overlaps(candidate, row))) return failure("INVALID_INPUT", "This schedule overlaps another event on this Runner.");
@@ -516,6 +520,36 @@ export async function resumeRunnerScheduleOccurrenceForPrincipal(principal: Trus
 	});
 }
 
+async function retainedScheduleCapturesAvailable(tx: TransactionClient, ownerId: string, openAdmissions: (typeof runnerBroadcastAdmissionsTable.$inferSelect)[]) {
+	const { decryptString } = await import("@/app/lib/encryption");
+	for (const current of openAdmissions) {
+		const sourceId = current.benefitsAtStart.sourceIdAtStart;
+		const [retainedSource] =
+			typeof sourceId === "string"
+				? await tx
+						.select({ id: overlaysTable.id, status: overlaysTable.status })
+						.from(overlaysTable)
+						.where(and(eq(overlaysTable.id, sourceId), eq(overlaysTable.ownerId, ownerId)))
+						.limit(1)
+						.for("share")
+				: [];
+		const plaintext = current.encryptedTargetsSnapshot ? decryptString(current.encryptedTargetsSnapshot) : null;
+		let readableTargets = false;
+		if (plaintext) {
+			try {
+				const captured = JSON.parse(plaintext);
+				readableTargets = captured.version === 1 && Array.isArray(captured.destinations) && captured.destinations.length > 0;
+			} catch {
+				/* Invalid retained snapshot cannot authorize a replacement. */
+			}
+		}
+		if (!retainedSource || retainedSource.status !== "active" || !readableTargets || !(await resolveRetainedResourceAccess({ kind: "overlay", ownerId: ownerId, resourceId: retainedSource.id, client: tx })).runtime) {
+			return false;
+		}
+	}
+	return true;
+}
+
 /** Assigned devices receive execution authority only under fresh owner/device locks.
  * Future authorizations occupy authority without claiming that physical output is active.
  */
@@ -558,36 +592,7 @@ export async function issueRunnerScheduleCache(runner: Pick<typeof runnersTable.
 				.for("update");
 			if (openAdmissions.some((row) => !["reserved", "starting", "active"].includes(row.state) || row.revokedAt || row.benefitsAtStart.scheduleSuppressed === true)) continue;
 			const { decryptString } = await import("@/app/lib/encryption");
-			// Future rights must not replace an unavailable accepted capture.
-			// Validate that capture independently from each future event's source.
-			let currentCaptureAvailable = true;
-			for (const current of openAdmissions) {
-				const sourceId = current.benefitsAtStart.sourceIdAtStart;
-				const [retainedSource] =
-					typeof sourceId === "string"
-						? await tx
-								.select({ id: overlaysTable.id, status: overlaysTable.status })
-								.from(overlaysTable)
-								.where(and(eq(overlaysTable.id, sourceId), eq(overlaysTable.ownerId, owner.id)))
-								.limit(1)
-								.for("share")
-						: [];
-				const plaintext = current.encryptedTargetsSnapshot ? decryptString(current.encryptedTargetsSnapshot) : null;
-				let readableTargets = false;
-				if (plaintext) {
-					try {
-						const captured = JSON.parse(plaintext);
-						readableTargets = captured.version === 1 && Array.isArray(captured.destinations) && captured.destinations.length > 0;
-					} catch {
-						/* Invalid retained snapshot cannot authorize a replacement. */
-					}
-				}
-				if (!retainedSource || retainedSource.status !== "active" || !readableTargets || !(await resolveRetainedResourceAccess({ kind: "overlay", ownerId: owner.id, resourceId: retainedSource.id, client: tx })).runtime) {
-					currentCaptureAvailable = false;
-					break;
-				}
-			}
-			if (!currentCaptureAvailable) continue;
+			if (!(await retainedScheduleCapturesAvailable(tx, owner.id, openAdmissions))) continue;
 			const physical = openAdmissions.find((row) => row.occurrenceId === occurrence.occurrenceId);
 			const capturedSourceId = typeof physical?.benefitsAtStart.sourceIdAtStart === "string" ? physical.benefitsAtStart.sourceIdAtStart : occurrence.overlayId;
 

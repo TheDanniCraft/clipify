@@ -11,6 +11,52 @@ export type RunnerBenefitOwner = Pick<AuthenticatedUser, "id" | "plan">;
 type ProSource = NonNullable<RunnerBenefitInput["proSource"]>;
 type RunnerSource = NonNullable<RunnerBenefitInput["runnerSource"]>;
 
+type BenefitSource<T extends string> = { end: Date | null; source: T };
+type BenefitSources = { pro: BenefitSource<ProSource>[]; runner: BenefitSource<RunnerSource>[] };
+type Grant = typeof entitlementGrantsTable.$inferSelect;
+type Allocation = typeof agencyLicenseAllocationsTable.$inferSelect;
+type Subscription = { userId: string; status: string; end: Date | null };
+
+function accessPeriodActive(end: Date | null, now: Date) {
+	return end === null || end.getTime() > now.getTime();
+}
+function billingSources(userId: string, raw: UserEntitlements, subscriptions: Subscription[], now: Date): BenefitSource<ProSource>[] {
+	if (!raw.isBillingPro) return [];
+	const billing = subscriptions.filter((row) => row.userId === userId);
+	// Imported billing access may have no period; signed snapshots still require refresh.
+	if (!billing.length) return [{ end: null, source: "pro" }];
+	return billing.filter((row) => ["active", "trialing", "past_due"].includes(row.status) && accessPeriodActive(row.end, now)).map((row) => ({ end: row.end, source: "pro" }));
+}
+function grantApplies(grant: Grant, userId: string, now: Date) {
+	return (grant.userId === null || grant.userId === userId) && !grant.revokedAt && grant.startsAt <= now && accessPeriodActive(grantAccessEndsAt(grant), now);
+}
+function grantSources(userId: string, raw: UserEntitlements, grants: Grant[], now: Date): BenefitSources {
+	const sources: BenefitSources = { pro: [], runner: [] };
+	for (const grant of grants) {
+		if (!grantApplies(grant, userId, now)) continue;
+		const end = grantAccessEndsAt(grant);
+		if (raw.proAccess && grant.entitlement === Entitlement.ProAccess) sources.pro.push({ end, source: grant.source === EntitlementGrantSource.ReverseTrial ? "trial" : "grant" });
+		if (raw.runnerAccess && grant.entitlement === Entitlement.RunnerAccess) sources.runner.push({ end, source: "legacy" });
+	}
+	return sources;
+}
+function allocationApplies(allocation: Allocation, userId: string, now: Date) {
+	return allocation.creatorId === userId && ["active", "removal_scheduled"].includes(allocation.status) && allocation.effectiveAt <= now && accessPeriodActive(allocation.endsAt, now);
+}
+function agencySources(userId: string, raw: UserEntitlements, allocations: Allocation[], now: Date): BenefitSources {
+	const sources: BenefitSources = { pro: [], runner: [] };
+	for (const allocation of allocations) {
+		if (!allocationApplies(allocation, userId, now)) continue;
+		if (raw.proAccess && allocation.product === "creator_pro") sources.pro.push({ end: allocation.endsAt, source: "agency" });
+		if (raw.runnerAccess && allocation.product === "runner") sources.runner.push({ end: allocation.endsAt, source: "agency" });
+	}
+	return sources;
+}
+function benefitFromSources(pro: BenefitSource<ProSource>[], runner: BenefitSource<RunnerSource>[]): RunnerBenefitInput {
+	const ends = [...pro, ...runner].flatMap((source) => (source.end === null ? [] : [source.end.getTime()]));
+	return { proAccess: pro.length > 0, runnerAccess: runner.length > 0, validUntil: ends.length ? new Date(Math.min(...ends)) : null, ...(pro[0] ? { proSource: pro[0].source } : {}), ...(runner[0] ? { runnerSource: runner[0].source } : {}) };
+}
+
 /** Resolve only evidence for the authorized owners; never an operator's plan. */
 async function resolveInputs(users: RunnerBenefitOwner[], resolved: Map<string, UserEntitlements>, client: QueryClient, now: Date) {
 	const result = new Map<string, RunnerBenefitInput>();
@@ -29,32 +75,11 @@ async function resolveInputs(users: RunnerBenefitOwner[], resolved: Map<string, 
 		.innerJoin(billingSubscriptionItemsTable, eq(billingSubscriptionItemsTable.subscriptionId, billingSubscriptionsTable.id))
 		.where(and(inArray(billingSubscriptionsTable.userId, paidIds), eq(billingSubscriptionItemsTable.productKey, BillingProduct.Pro)))
 		.orderBy(asc(billingSubscriptionsTable.id));
-	const activeEnd = (end: Date | null) => end === null || end.getTime() > now.getTime();
 	for (const user of users) {
 		const raw = resolved.get(user.id)!;
-		const pro: { end: Date | null; source: ProSource }[] = [];
-		const runner: { end: Date | null; source: RunnerSource }[] = [];
-		if (raw.isBillingPro) {
-			const billing = subscriptions.filter((subscription) => subscription.userId === user.id);
-			// Older/imported billing access may have no persisted period. Do not
-			// invent a deadline; the signed snapshot horizon still requires refresh.
-			if (!billing.length) pro.push({ end: null, source: "pro" });
-			for (const subscription of billing) if (["active", "trialing", "past_due"].includes(subscription.status) && activeEnd(subscription.end)) pro.push({ end: subscription.end, source: "pro" });
-		}
-		for (const grant of grants) {
-			if ((grant.userId !== null && grant.userId !== user.id) || grant.revokedAt || grant.startsAt > now) continue;
-			const end = grantAccessEndsAt(grant);
-			if (!activeEnd(end)) continue;
-			if (raw.proAccess && grant.entitlement === Entitlement.ProAccess) pro.push({ end, source: grant.source === EntitlementGrantSource.ReverseTrial ? "trial" : "grant" });
-			if (raw.runnerAccess && grant.entitlement === Entitlement.RunnerAccess) runner.push({ end, source: "legacy" });
-		}
-		for (const allocation of allocations) {
-			if (allocation.creatorId !== user.id || !["active", "removal_scheduled"].includes(allocation.status) || allocation.effectiveAt > now || !activeEnd(allocation.endsAt)) continue;
-			if (raw.proAccess && allocation.product === "creator_pro") pro.push({ end: allocation.endsAt, source: "agency" });
-			if (raw.runnerAccess && allocation.product === "runner") runner.push({ end: allocation.endsAt, source: "agency" });
-		}
-		const ends = [...pro, ...runner].flatMap((source) => (source.end === null ? [] : [source.end.getTime()]));
-		result.set(user.id, { proAccess: pro.length > 0, runnerAccess: runner.length > 0, validUntil: ends.length ? new Date(Math.min(...ends)) : null, ...(pro[0] ? { proSource: pro[0].source } : {}), ...(runner[0] ? { runnerSource: runner[0].source } : {}) });
+		const grantsForOwner = grantSources(user.id, raw, grants, now);
+		const agency = agencySources(user.id, raw, allocations, now);
+		result.set(user.id, benefitFromSources([...billingSources(user.id, raw, subscriptions, now), ...grantsForOwner.pro, ...agency.pro], [...grantsForOwner.runner, ...agency.runner]));
 	}
 	return result;
 }

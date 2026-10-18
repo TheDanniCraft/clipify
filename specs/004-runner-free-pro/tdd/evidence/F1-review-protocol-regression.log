@@ -1,0 +1,2307 @@
+$ jest --runInBand --forceExit --runTestsByPath src/__tests__/execution-runtime.test.ts src/__tests__/heartbeat-protocol.test.ts src/__tests__/schedule-cache-validation.test.ts "--coverage=false"
+FAIL src/__tests__/execution-runtime.test.ts
+  ● TDD-US5-CON015 U277: a captured paid window finishes its current clip at the signed scheduled end
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      152 | 		const engine = { start: jest.fn().mockResolvedValue(undefined), stop: jest.fn().mockResolvedValue(undefined), requestDrain: jest.fn(() => clipClosed) };
+      153 | 		const controller = new FreeExecutionController({ ...fixture, journal, clock: () => monotonic, createEngine: () => engine });
+    > 154 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+          | 		                                                             ^
+      155 | 		monotonic = 20999;
+      156 | 		await controller.tick();
+      157 | 		expect(engine.requestDrain).not.toHaveBeenCalled();
+
+      at Object.toBe (src/__tests__/execution-runtime.test.ts:154:64)
+
+  ● TDD-US1-DEC001: a valid fresh signed lease persists starting before opening output and active after startup
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      182 | 		const { FreeExecutionController } = existsSync(join(__dirname, "../execution-runtime.ts")) ? await import("../execution-runtime") : { FreeExecutionController: undefined };
+      183 | 		const controller = FreeExecutionController ? new FreeExecutionController({ ...fixture, journal, clock: () => 1500, createEngine }) : undefined;
+    > 184 | 		expect(await controller?.apply(fixture.job, fixture.request)).toBe(true);
+          | 		                                                              ^
+      185 | 		expect(createEngine).toHaveBeenCalledTimes(1);
+      186 | 		expect(start).toHaveBeenCalledTimes(1);
+      187 | 		expect(read()).toMatchObject([{ admissionId: fixture.job.admissionId, executionGeneration: fixture.job.executionGeneration, state: "active" }]);
+
+      at Object.toBe (src/__tests__/execution-runtime.test.ts:184:65)
+
+  ● TDD-US1-DEC001: monotonic lease expiry starts bounded drain and persists closure before exposing a terminal receipt
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      210 | 		};
+      211 | 		const controller = new FreeExecutionController({ ...fixture, journal, clock: () => monotonic, createEngine: () => engine });
+    > 212 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+          | 		                                                             ^
+      213 | 		const boundary = controller as typeof controller & { tick?: () => Promise<void> };
+      214 | 		monotonic = 300999;
+      215 | 		await boundary.tick?.();
+
+      at Object.toBe (src/__tests__/execution-runtime.test.ts:212:64)
+
+  ● TDD-US1-DEC001: a failed drain-intent write cannot delay closing expired output
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      261 | 		});
+      262 | 		await Promise.resolve();
+    > 263 | 		expect(engine.requestDrain).toHaveBeenCalledTimes(1);
+          | 		                            ^
+      264 | 		expect(journal.pendingTerminals()).toEqual([]);
+      265 | 		closed?.();
+      266 | 		await expiring;
+
+      at Object.toHaveBeenCalledTimes (src/__tests__/execution-runtime.test.ts:263:31)
+
+  ● TDD-US1-DEC001: terminal write failure keeps the receipt unavailable and retries persistence without reopening output
+
+    expect(received).rejects.toThrow()
+
+    Received promise resolved instead of rejected
+    Resolved to value: undefined
+
+      288 | 			});
+      289 | 		monotonic = 301000;
+    > 290 | 		await expect(controller.tick()).rejects.toThrow("controlled terminal failure");
+          | 		      ^
+      291 | 		expect(engine.requestDrain).toHaveBeenCalledTimes(1);
+      292 | 		expect(journal.pendingTerminals()).toEqual([]);
+      293 | 		write.mockRestore();
+
+      at expect (node_modules/@jest/expect/node_modules/expect/build/index.js:2116:15)
+      at Object.expect (src/__tests__/execution-runtime.test.ts:290:9)
+
+  ● TDD-US1-DEC001: startup completing after expiry closure cannot become active
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 6
+    + Received  + 1
+
+    - Array [
+    -   Object {
+    -     "allOutputsClosed": true,
+    -     "state": "stopped",
+    -   },
+    - ]
+    + Array []
+
+      366 | 		await applying;
+      367 | 		expect(result).toBe(false);
+    > 368 | 		expect(journal.pendingTerminals()).toMatchObject([{ state: "stopped", allOutputsClosed: true }]);
+          | 		                                   ^
+      369 | 	} finally {
+      370 | 		rmSync(directory, { recursive: true, force: true });
+      371 | 	}
+
+      at Object.toMatchObject (src/__tests__/execution-runtime.test.ts:368:38)
+
+  ● TDD-US1-DEC001: the engine factory receives a live lease permission gate
+
+    TypeError: Cannot read properties of undefined (reading '1')
+
+      382 | 		const controller = new FreeExecutionController({ ...fixture, journal, clock: () => monotonic, createEngine });
+      383 | 		await controller.apply(fixture.job, fixture.request);
+    > 384 | 		const policy = (createEngine.mock.calls[0] as unknown as [unknown, { mayOpenOutput?: () => boolean } | undefined])[1];
+          | 		                                          ^
+      385 | 		expect(policy?.mayOpenOutput?.()).toBe(true);
+      386 | 		monotonic = 301000;
+      387 | 		expect(policy?.mayOpenOutput?.()).toBe(false);
+
+      at Object.<anonymous> (src/__tests__/execution-runtime.test.ts:384:45)
+
+  ● TDD-US1-DEC001: failed startup waits for output cleanup before persisting a terminal receipt
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      419 | 		await Promise.resolve();
+      420 | 		await Promise.resolve();
+    > 421 | 		expect(engine.stop).toHaveBeenCalledTimes(1);
+          | 		                    ^
+      422 | 		expect(journal.pendingTerminals()).toEqual([]);
+      423 | 		closed?.();
+      424 | 		await applying;
+
+      at Object.toHaveBeenCalledTimes (src/__tests__/execution-runtime.test.ts:421:23)
+
+  ● TDD-US1-FR004: Stop commands bind the exact execution and Stop now interrupts an ongoing drain
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      500 | 		const draining = stop?.(fixture.job);
+      501 | 		await Promise.resolve();
+    > 502 | 		expect(engine.requestDrain).toHaveBeenCalledTimes(1);
+          | 		                            ^
+      503 | 		expect(journal.pendingTerminals()).toEqual([]);
+      504 | 		expect(await controller.apply(fixture.renew(randomUUID()), { requestId: randomUUID(), sentAt: 1000 })).toBe(false);
+      505 | 		expect(await stop?.(fixture.job, true)).toBe(true);
+
+      at Object.toHaveBeenCalledTimes (src/__tests__/execution-runtime.test.ts:502:31)
+
+  ● TDD-US1-DEC001: heartbeat reports expose exact active identity and retain closed receipts until confirmed
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 10
+    + Received  +  1
+
+    - Array [
+    -   Object {
+    -     "admissionId": "f51fd1f4-e459-44af-9fe8-0ed60249a870",
+    -     "configurationRevision": 2,
+    -     "executionGeneration": "2f0d6faf-1a9f-4bbb-9ef5-af707a9132da",
+    -     "leaseId": "db0ae8e7-b639-4500-98f6-9e949f950bfd",
+    -     "sessionId": "c106f127-6c84-4a2a-bc43-e5b324312558",
+    -     "state": "active",
+    -   },
+    - ]
+    + Array []
+
+      523 | 		const reports = (controller as unknown as { reports?: () => unknown[] }).reports?.bind(controller);
+      524 | 		const identity = { admissionId: fixture.job.admissionId, sessionId: fixture.job.id, executionGeneration: fixture.job.executionGeneration, leaseId: JSON.parse(Buffer.from(fixture.job.lease.payload, "base64url").toString()).leaseId, configurationRevision: 2 };
+    > 525 | 		expect(reports?.()).toEqual([{ ...identity, state: "active" }]);
+          | 		                    ^
+      526 | 		await controller.stop(fixture.job);
+      527 | 		expect(reports?.()).toEqual([{ ...identity, state: "stopped", allOutputsClosed: true }]);
+      528 | 		const restarted = new FreeExecutionController({ ...fixture, journal: new ExecutionJournal(directory), createEngine: jest.fn() });
+
+      at Object.toEqual (src/__tests__/execution-runtime.test.ts:525:23)
+
+  ● TDD-US1-FR004: local disconnect shutdown waits for every output and persists retryable terminal proof
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      556 | 		const disconnect = (controller as unknown as { stopAll?: () => Promise<void> }).stopAll?.();
+      557 | 		await Promise.resolve();
+    > 558 | 		expect(engine.requestDrain).toHaveBeenCalledTimes(1);
+          | 		                            ^
+      559 | 		expect(journal.pendingTerminals()).toEqual([]);
+      560 | 		closed?.();
+      561 | 		await disconnect;
+
+      at Object.toHaveBeenCalledTimes (src/__tests__/execution-runtime.test.ts:558:31)
+
+  ● TDD-US1-DEC001 startup that consumes its lease drains before an Active report even without a watchdog tick
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: {"deadlineMonotonic": 601000}
+
+    Number of calls: 0
+
+      582 | 		const controller = new FreeExecutionController({ ...fixture, journal, clock: () => clock, createEngine: () => engine });
+      583 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(false);
+    > 584 | 		expect(engine.requestDrain).toHaveBeenCalledWith({ deadlineMonotonic: 601000 });
+          | 		                            ^
+      585 | 		expect(controller.reports()).toMatchObject([{ state: "stopped", allOutputsClosed: true }]);
+      586 | 		expect(journal.get(fixture.job.admissionId)?.state).toBe("stopped");
+      587 | 	} finally {
+
+      at Object.toHaveBeenCalledWith (src/__tests__/execution-runtime.test.ts:584:31)
+
+  ● TDD-US1-FR023: fresh Free leases keep one execution active across a month and 24 connected hours
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      622 | 		const { FreeExecutionController } = await import("../execution-runtime");
+      623 | 		const controller = new FreeExecutionController({ ...fixture, journal, clock: () => now, createEngine });
+    > 624 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+          | 		                                                             ^
+      625 | 		const renewalStepMs = 240000;
+      626 | 		const renewals = 360;
+      627 | 		const accepted: boolean[] = [];
+
+      at Object.toBe (src/__tests__/execution-runtime.test.ts:624:64)
+
+  ● TDD-US3-FR012: local output consumes its bound cached authorization only inside the captured window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      659 | 		expect(engine.start).not.toHaveBeenCalled();
+      660 | 		elapsed = 3601000;
+    > 661 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+          | 		                                                             ^
+      662 | 		expect(engine.start).toHaveBeenCalledTimes(1);
+      663 | 		expect(new ExecutionJournal(directory).get(fixture.job.admissionId)).toMatchObject({ state: "active", occurrence: { occurrenceId: fixture.job.occurrenceId, start: 4600000, end: 8200000 } });
+      664 | 		elapsed = 7201000;
+
+      at Object.toBe (src/__tests__/execution-runtime.test.ts:661:64)
+
+  ● TDD-US3-EC010 / TDD-US3-CON008: explicit local Stop records occurrence suppression before output drain
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      688 | 		const options = { ...fixture, journal, clock: () => 3601000, createEngine: () => engine };
+      689 | 		const controller = new FreeExecutionController(options);
+    > 690 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+          | 		                                                             ^
+      691 | 		journal.save({ admissionId: pendingAdmission, ownerId: fixture.ownerId, runnerId: fixture.runnerId, sessionId: fixture.job.id, executionGeneration: randomUUID(), leaseId: randomUUID(), configurationRevision: 3, state: "pending", updatedAt: 1, occurrence: { occurrenceId: fixture.job.occurrenceId!, start: 4600000, end: 8200000 } });
+      692 | 		expect(await controller.stop(fixture.job)).toBe(true);
+      693 | 		expect(new ExecutionJournal(directory).get(fixture.job.admissionId)).toMatchObject({ state: "stopped", occurrence: { suppressed: true } });
+
+      at Object.toBe (src/__tests__/execution-runtime.test.ts:690:64)
+
+  ● TDD-US3-CON008: failure to persist occurrence suppression still drains physical outputs before retrying storage
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      740 | 		const engine = { start: jest.fn().mockResolvedValue(undefined), stop: jest.fn().mockResolvedValue(undefined), requestDrain: jest.fn().mockResolvedValue(undefined) };
+      741 | 		const controller = new FreeExecutionController({ ...fixture, journal, clock: () => 3601000, createEngine: () => engine });
+    > 742 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+          | 		                                                             ^
+      743 | 		const pendingAdmission = randomUUID();
+      744 | 		journal.save({ admissionId: pendingAdmission, ownerId: fixture.ownerId, runnerId: fixture.runnerId, sessionId: fixture.job.id, executionGeneration: randomUUID(), leaseId: randomUUID(), configurationRevision: 3, state: "pending", updatedAt: 1, occurrence: { occurrenceId: fixture.job.occurrenceId!, start: 4600000, end: 8200000 } });
+      745 | 		jest.spyOn(journal, "suppressOccurrence").mockImplementationOnce(() => {
+
+      at Object.toBe (src/__tests__/execution-runtime.test.ts:742:64)
+
+  ● TDD-US3-FR012: fresh online permission after cached-process restart preserves the original occurrence journal
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      765 | 		const controller = new FreeExecutionController({ ...fixture, journal, clock: () => 1001, createEngine: () => engine });
+      766 | 		const request = { requestId: randomUUID(), sentAt: 1000 };
+    > 767 | 		expect(await controller.apply(fixture.renew(request.requestId, 4600001, true), request)).toBe(true);
+          | 		                                                                                         ^
+      768 | 		expect(engine.start).toHaveBeenCalledTimes(1);
+      769 | 		expect(new ExecutionJournal(directory).get(fixture.job.admissionId)).toMatchObject({ state: "active", occurrence: { occurrenceId: fixture.job.occurrenceId, start: 4600000, end: 8200000 } });
+      770 | 	} finally {
+
+      at Object.toBe (src/__tests__/execution-runtime.test.ts:767:92)
+
+  ● TDD-US3-EC009: playback timeout survives journal restart and remains in the terminal receipt
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      782 | 		const engine = { start: jest.fn().mockResolvedValue(undefined), stop: jest.fn().mockResolvedValue(undefined), requestDrain: jest.fn().mockResolvedValue(undefined), drainOutcome: "playback_timeout" as const };
+      783 | 		const controller = new FreeExecutionController({ ...fixture, journal, clock: () => monotonic, createEngine: () => engine });
+    > 784 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+          | 		                                                             ^
+      785 | 		monotonic = 21000;
+      786 | 		await controller.tick();
+      787 | 		expect(controller.reports()).toContainEqual(expect.objectContaining({ admissionId: fixture.job.admissionId, state: "stopped", allOutputsClosed: true, playbackOutcome: "playback_timeout" }));
+
+      at Object.toBe (src/__tests__/execution-runtime.test.ts:784:64)
+
+  ● TDD-US3-OPT039: only verified scheduled Pro authority supplies the player deadline (pro_broadcast/1020000)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      804 | 		const createEngine = jest.fn(() => ({ start: jest.fn().mockResolvedValue(undefined), stop: jest.fn().mockResolvedValue(undefined), requestDrain: jest.fn().mockResolvedValue(undefined) }));
+      805 | 		const controller = new FreeExecutionController({ ...fixture, journal: new ExecutionJournal(directory), clock: () => 1500, createEngine });
+    > 806 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+          | 		                                                             ^
+      807 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      808 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: expected });
+      809 | 	} finally {
+
+      at toBe (src/__tests__/execution-runtime.test.ts:806:64)
+
+  ● TDD-US3-OPT039: only verified scheduled Pro authority supplies the player deadline (free_lease/undefined)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      804 | 		const createEngine = jest.fn(() => ({ start: jest.fn().mockResolvedValue(undefined), stop: jest.fn().mockResolvedValue(undefined), requestDrain: jest.fn().mockResolvedValue(undefined) }));
+      805 | 		const controller = new FreeExecutionController({ ...fixture, journal: new ExecutionJournal(directory), clock: () => 1500, createEngine });
+    > 806 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+          | 		                                                             ^
+      807 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      808 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: expected });
+      809 | 	} finally {
+
+      at toBe (src/__tests__/execution-runtime.test.ts:806:64)
+
+  ● TDD-US3-OPT039: only verified scheduled Pro authority supplies the player deadline (pro_broadcast/undefined)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      804 | 		const createEngine = jest.fn(() => ({ start: jest.fn().mockResolvedValue(undefined), stop: jest.fn().mockResolvedValue(undefined), requestDrain: jest.fn().mockResolvedValue(undefined) }));
+      805 | 		const controller = new FreeExecutionController({ ...fixture, journal: new ExecutionJournal(directory), clock: () => 1500, createEngine });
+    > 806 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+          | 		                                                             ^
+      807 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      808 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: expected });
+      809 | 	} finally {
+
+      at toBe (src/__tests__/execution-runtime.test.ts:806:64)
+
+  ● TDD-US3-FR013: finishing is reported while physical clip closure is still pending
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      832 | 		const journal = new ExecutionJournal(directory);
+      833 | 		const controller = new FreeExecutionController({ ...fixture, journal, clock: () => monotonic, createEngine: () => engine });
+    > 834 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+          | 		                                                             ^
+      835 | 		monotonic = 21000;
+      836 | 		draining = controller.tick();
+      837 | 		expect(controller.reports()).toContainEqual(expect.objectContaining({ admissionId: fixture.job.admissionId, executionGeneration: fixture.job.executionGeneration, state: "draining" }));
+
+      at Object.toBe (src/__tests__/execution-runtime.test.ts:834:64)
+
+  ● TDD-US3-FR014 / TDD-US3-OPT048: a distinct adjacent admission cannot start until the earlier physical closure is journaled
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      863 | 	const controller = new FreeExecutionController({ ...fixture, journal, clock: () => monotonic, createEngine });
+      864 | 	try {
+    > 865 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+          | 		                                                             ^
+      866 | 		monotonic = 21001;
+      867 | 		const draining = controller.tick();
+      868 | 		const next = fixture.adjacentScheduledJob();
+
+      at Object.toBe (src/__tests__/execution-runtime.test.ts:865:64)
+
+  ● TDD-US3-OPT047: a source-only change keeps its original target but waits for prior physical closure
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      901 | 	try {
+      902 | 		expect(next.targetHash).toBe(fixture.job.targetHash);
+    > 903 | 		expect(controller.prepareScheduledJobs([fixture.job, next], fixture.request)).toBe(true);
+          | 		                                                                              ^
+      904 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+      905 | 		monotonic = 21001;
+      906 | 		const draining = controller.tick();
+
+      at Object.toBe (src/__tests__/execution-runtime.test.ts:903:81)
+
+  ● TDD-US3-OPT049: a successor remains unstarted when its signed end passes before prior physical closure
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      938 | 	const controller = new FreeExecutionController({ ...fixture, journal, clock: () => monotonic, createEngine });
+      939 | 	try {
+    > 940 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+          | 		                                                             ^
+      941 | 		monotonic = 21001;
+      942 | 		const draining = controller.tick();
+      943 | 		const next = fixture.adjacentScheduledJob();
+
+      at Object.toBe (src/__tests__/execution-runtime.test.ts:940:64)
+
+  ● TDD-US3-OPT046 / TDD-US3-DEC010: a verified matching week-boundary continuation shares one engine and retains both original occurrence ends
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      971 | 	try {
+      972 | 		(controller as unknown as { prepareScheduledJobs?: (jobs: FreeExecutionJob[], request: typeof fixture.request) => boolean }).prepareScheduledJobs?.([fixture.job, next], fixture.request);
+    > 973 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+          | 		                                                             ^
+      974 | 		monotonic = 61001;
+      975 | 		await controller.tick();
+      976 | 		expect(engine.requestDrain).not.toHaveBeenCalled();
+
+      at Object.toBe (src/__tests__/execution-runtime.test.ts:973:64)
+
+  ● TDD-US3-DEC010: a delayed previous-member Stop cannot terminate the current shared occurrence
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1003 | 	const controller = new FreeExecutionController({ ...fixture, journal, clock: () => monotonic, createEngine: () => engine });
+      1004 | 	try {
+    > 1005 | 		expect(controller.prepareScheduledJobs([fixture.job, next], fixture.request)).toBe(true);
+           | 		                                                                              ^
+      1006 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+      1007 | 		monotonic = 21001;
+      1008 | 		await controller.tick();
+
+      at Object.toBe (src/__tests__/execution-runtime.test.ts:1005:81)
+
+  ● TDD-US3-DEC010: stopping before a shared continuation starts leaves that distinct future occurrence startable
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1033 | 	const controller = new FreeExecutionController({ ...fixture, journal, clock: () => monotonic, createEngine });
+      1034 | 	try {
+    > 1035 | 		expect(controller.prepareScheduledJobs([fixture.job, next], fixture.request)).toBe(true);
+           | 		                                                                              ^
+      1036 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+      1037 | 		expect(controller.reports().map((record) => record.admissionId)).toEqual([fixture.job.admissionId]);
+      1038 | 		expect(await controller.stop(fixture.job)).toBe(true);
+
+      at Object.toBe (src/__tests__/execution-runtime.test.ts:1035:81)
+
+  ● TDD-US3-DEC010: failed continuation activation persistence fences output and closes only started membership
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1082 | 	});
+      1083 | 	try {
+    > 1084 | 		expect(controller.prepareScheduledJobs([fixture.job, next], fixture.request)).toBe(true);
+           | 		                                                                              ^
+      1085 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+      1086 | 		expect(mayOpenOutput()).toBe(true);
+      1087 | 		monotonic = 21001;
+
+      at Object.toBe (src/__tests__/execution-runtime.test.ts:1084:81)
+
+  ● TDD-US3-DEC010: failing the first shared active receipt closes physical output before returning an unsuccessful start
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1130 | 	});
+      1131 | 	try {
+    > 1132 | 		expect(controller.prepareScheduledJobs([fixture.job, next], fixture.request)).toBe(true);
+           | 		                                                                              ^
+      1133 | 		await expect(controller.apply(fixture.job, fixture.request)).resolves.toBe(false);
+      1134 | 		expect(mayOpenOutput()).toBe(false);
+      1135 | 		expect(engine.stop).toHaveBeenCalledTimes(1);
+
+      at Object.toBe (src/__tests__/execution-runtime.test.ts:1132:81)
+
+  ● TDD-US3-EC010: preparing an empty replacement removes only unstarted continuity authority and preserves the current original end
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1162 | 	});
+      1163 | 	try {
+    > 1164 | 		expect(controller.prepareScheduledJobs([fixture.job, next], fixture.request)).toBe(true);
+           | 		                                                                              ^
+      1165 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+      1166 | 		monotonic = 2000;
+      1167 | 		expect(controller.prepareScheduledJobs([], fixture.request)).toBe(true);
+
+      at Object.toBe (src/__tests__/execution-runtime.test.ts:1164:81)
+
+  ● TDD-US3-DEC010: retrying a partial member receipt cannot erase an already acknowledged terminal
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1205 | 	try {
+      1206 | 		controller.prepareScheduledJobs([fixture.job, next], fixture.request);
+    > 1207 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                             ^
+      1208 | 		monotonic = 21001;
+      1209 | 		await controller.tick();
+      1210 | 		monotonic = 81000;
+
+      at Object.toBe (src/__tests__/execution-runtime.test.ts:1207:64)
+
+  ● TDD-US3-DEC010: invalid-signature cannot widen the captured current window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1346 | 	try {
+      1347 | 		controller.prepareScheduledJobs([fixture.job, next, ...extra], request);
+    > 1348 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                             ^
+      1349 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      1350 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: 21000 });
+      1351 | 		expect(createEngine).toHaveBeenCalledTimes(1);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1348:64)
+
+  ● TDD-US3-DEC010: unknown-key cannot widen the captured current window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1346 | 	try {
+      1347 | 		controller.prepareScheduledJobs([fixture.job, next, ...extra], request);
+    > 1348 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                             ^
+      1349 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      1350 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: 21000 });
+      1351 | 		expect(createEngine).toHaveBeenCalledTimes(1);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1348:64)
+
+  ● TDD-US3-DEC010: wrong-request cannot widen the captured current window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1346 | 	try {
+      1347 | 		controller.prepareScheduledJobs([fixture.job, next, ...extra], request);
+    > 1348 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                             ^
+      1349 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      1350 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: 21000 });
+      1351 | 		expect(createEngine).toHaveBeenCalledTimes(1);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1348:64)
+
+  ● TDD-US3-DEC010: foreign-owner cannot widen the captured current window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1346 | 	try {
+      1347 | 		controller.prepareScheduledJobs([fixture.job, next, ...extra], request);
+    > 1348 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                             ^
+      1349 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      1350 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: 21000 });
+      1351 | 		expect(createEngine).toHaveBeenCalledTimes(1);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1348:64)
+
+  ● TDD-US3-DEC010: foreign-runner cannot widen the captured current window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1346 | 	try {
+      1347 | 		controller.prepareScheduledJobs([fixture.job, next, ...extra], request);
+    > 1348 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                             ^
+      1349 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      1350 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: 21000 });
+      1351 | 		expect(createEngine).toHaveBeenCalledTimes(1);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1348:64)
+
+  ● TDD-US3-DEC010: non-pro-policy cannot widen the captured current window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1346 | 	try {
+      1347 | 		controller.prepareScheduledJobs([fixture.job, next, ...extra], request);
+    > 1348 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                             ^
+      1349 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      1350 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: 21000 });
+      1351 | 		expect(createEngine).toHaveBeenCalledTimes(1);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1348:64)
+
+  ● TDD-US3-DEC010: ordinary-job cannot widen the captured current window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1346 | 	try {
+      1347 | 		controller.prepareScheduledJobs([fixture.job, next, ...extra], request);
+    > 1348 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                             ^
+      1349 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      1350 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: 21000 });
+      1351 | 		expect(createEngine).toHaveBeenCalledTimes(1);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1348:64)
+
+  ● TDD-US3-DEC010: empty-targets cannot widen the captured current window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1346 | 	try {
+      1347 | 		controller.prepareScheduledJobs([fixture.job, next, ...extra], request);
+    > 1348 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                             ^
+      1349 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      1350 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: 21000 });
+      1351 | 		expect(createEngine).toHaveBeenCalledTimes(1);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1348:64)
+
+  ● TDD-US3-DEC010: changed-private-target cannot widen the captured current window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1346 | 	try {
+      1347 | 		controller.prepareScheduledJobs([fixture.job, next, ...extra], request);
+    > 1348 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                             ^
+      1349 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      1350 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: 21000 });
+      1351 | 		expect(createEngine).toHaveBeenCalledTimes(1);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1348:64)
+
+  ● TDD-US3-DEC010: changed-private-source cannot widen the captured current window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1346 | 	try {
+      1347 | 		controller.prepareScheduledJobs([fixture.job, next, ...extra], request);
+    > 1348 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                             ^
+      1349 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      1350 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: 21000 });
+      1351 | 		expect(createEngine).toHaveBeenCalledTimes(1);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1348:64)
+
+  ● TDD-US3-DEC010: changed-source-id cannot widen the captured current window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1346 | 	try {
+      1347 | 		controller.prepareScheduledJobs([fixture.job, next, ...extra], request);
+    > 1348 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                             ^
+      1349 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      1350 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: 21000 });
+      1351 | 		expect(createEngine).toHaveBeenCalledTimes(1);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1348:64)
+
+  ● TDD-US3-DEC010: changed-source-revision cannot widen the captured current window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1346 | 	try {
+      1347 | 		controller.prepareScheduledJobs([fixture.job, next, ...extra], request);
+    > 1348 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                             ^
+      1349 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      1350 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: 21000 });
+      1351 | 		expect(createEngine).toHaveBeenCalledTimes(1);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1348:64)
+
+  ● TDD-US3-DEC010: changed-fps cannot widen the captured current window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1346 | 	try {
+      1347 | 		controller.prepareScheduledJobs([fixture.job, next, ...extra], request);
+    > 1348 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                             ^
+      1349 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      1350 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: 21000 });
+      1351 | 		expect(createEngine).toHaveBeenCalledTimes(1);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1348:64)
+
+  ● TDD-US3-DEC010: changed-resolution cannot widen the captured current window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1346 | 	try {
+      1347 | 		controller.prepareScheduledJobs([fixture.job, next, ...extra], request);
+    > 1348 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                             ^
+      1349 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      1350 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: 21000 });
+      1351 | 		expect(createEngine).toHaveBeenCalledTimes(1);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1348:64)
+
+  ● TDD-US3-DEC010: one-ms-gap cannot widen the captured current window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1346 | 	try {
+      1347 | 		controller.prepareScheduledJobs([fixture.job, next, ...extra], request);
+    > 1348 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                             ^
+      1349 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      1350 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: 21000 });
+      1351 | 		expect(createEngine).toHaveBeenCalledTimes(1);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1348:64)
+
+  ● TDD-US3-DEC010: one-ms-overlap cannot widen the captured current window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1346 | 	try {
+      1347 | 		controller.prepareScheduledJobs([fixture.job, next, ...extra], request);
+    > 1348 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                             ^
+      1349 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      1350 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: 21000 });
+      1351 | 		expect(createEngine).toHaveBeenCalledTimes(1);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1348:64)
+
+  ● TDD-US3-DEC010: mismatched-signed-end cannot widen the captured current window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1346 | 	try {
+      1347 | 		controller.prepareScheduledJobs([fixture.job, next, ...extra], request);
+    > 1348 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                             ^
+      1349 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      1350 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: 21000 });
+      1351 | 		expect(createEngine).toHaveBeenCalledTimes(1);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1348:64)
+
+  ● TDD-US3-DEC010: journal-stopped cannot widen the captured current window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1346 | 	try {
+      1347 | 		controller.prepareScheduledJobs([fixture.job, next, ...extra], request);
+    > 1348 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                             ^
+      1349 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      1350 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: 21000 });
+      1351 | 		expect(createEngine).toHaveBeenCalledTimes(1);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1348:64)
+
+  ● TDD-US3-DEC010: journal-draining cannot widen the captured current window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1346 | 	try {
+      1347 | 		controller.prepareScheduledJobs([fixture.job, next, ...extra], request);
+    > 1348 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                             ^
+      1349 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      1350 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: 21000 });
+      1351 | 		expect(createEngine).toHaveBeenCalledTimes(1);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1348:64)
+
+  ● TDD-US3-DEC010: journal-suppressed cannot widen the captured current window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1346 | 	try {
+      1347 | 		controller.prepareScheduledJobs([fixture.job, next, ...extra], request);
+    > 1348 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                             ^
+      1349 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      1350 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: 21000 });
+      1351 | 		expect(createEngine).toHaveBeenCalledTimes(1);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1348:64)
+
+  ● TDD-US3-DEC010: journal-wrong-lease cannot widen the captured current window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1346 | 	try {
+      1347 | 		controller.prepareScheduledJobs([fixture.job, next, ...extra], request);
+    > 1348 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                             ^
+      1349 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      1350 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: 21000 });
+      1351 | 		expect(createEngine).toHaveBeenCalledTimes(1);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1348:64)
+
+  ● TDD-US3-DEC010: duplicate-admission cannot widen the captured current window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1346 | 	try {
+      1347 | 		controller.prepareScheduledJobs([fixture.job, next, ...extra], request);
+    > 1348 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                             ^
+      1349 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      1350 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: 21000 });
+      1351 | 		expect(createEngine).toHaveBeenCalledTimes(1);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1348:64)
+
+  ● TDD-US3-DEC010: ambiguous-following-window cannot widen the captured current window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1346 | 	try {
+      1347 | 		controller.prepareScheduledJobs([fixture.job, next, ...extra], request);
+    > 1348 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                             ^
+      1349 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      1350 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: 21000 });
+      1351 | 		expect(createEngine).toHaveBeenCalledTimes(1);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1348:64)
+
+  ● TDD-US3-DEC010: expires-at-start cannot widen the captured current window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1346 | 	try {
+      1347 | 		controller.prepareScheduledJobs([fixture.job, next, ...extra], request);
+    > 1348 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                             ^
+      1349 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      1350 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: 21000 });
+      1351 | 		expect(createEngine).toHaveBeenCalledTimes(1);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1348:64)
+
+  ● TDD-US3-DEC010: malformed-payload cannot widen the captured current window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1346 | 	try {
+      1347 | 		controller.prepareScheduledJobs([fixture.job, next, ...extra], request);
+    > 1348 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                             ^
+      1349 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      1350 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: 21000 });
+      1351 | 		expect(createEngine).toHaveBeenCalledTimes(1);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1348:64)
+
+  ● TDD-US3-DEC010: future-request-clock cannot widen the captured current window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1346 | 	try {
+      1347 | 		controller.prepareScheduledJobs([fixture.job, next, ...extra], request);
+    > 1348 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                             ^
+      1349 | 		const parameters: unknown[] = createEngine.mock.calls[0];
+      1350 | 		expect(parameters[1]).toMatchObject({ scheduledDeadlineMonotonic: 21000 });
+      1351 | 		expect(createEngine).toHaveBeenCalledTimes(1);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1348:64)
+
+  ● TDD-US3-EC010: a stalled renderer deadline update cannot block the original native end or output closure
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1375 | 	let firstTick: Promise<void> | undefined, endTick: Promise<void> | undefined;
+      1376 | 	try {
+    > 1377 | 		expect(controller.prepareScheduledJobs([fixture.job, next], fixture.request)).toBe(true);
+           | 		                                                                              ^
+      1378 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+      1379 | 		monotonic = 2000;
+      1380 | 		expect(controller.prepareScheduledJobs([], fixture.request)).toBe(true);
+
+      at Object.toBe (src/__tests__/execution-runtime.test.ts:1377:81)
+
+  ● TDD-US3-EC010: durable logical Stop blocks an unseen admission at configuration revision 2 after restart
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1405 | 	let restarted: InstanceType<typeof FreeExecutionController> | undefined;
+      1406 | 	try {
+    > 1407 | 		expect(await original.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                           ^
+      1408 | 		expect(await original.stop(fixture.job)).toBe(true);
+      1409 | 		const alias = fixture.resignScheduledJob(fixture.job, { admissionId: randomUUID(), executionGeneration: randomUUID(), configurationRevision }, { leaseId: randomUUID() });
+      1410 | 		const journal = new ExecutionJournal(directory);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1407:62)
+
+  ● TDD-US3-EC010: durable logical Stop blocks an unseen admission at configuration revision 3 after restart
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1405 | 	let restarted: InstanceType<typeof FreeExecutionController> | undefined;
+      1406 | 	try {
+    > 1407 | 		expect(await original.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                           ^
+      1408 | 		expect(await original.stop(fixture.job)).toBe(true);
+      1409 | 		const alias = fixture.resignScheduledJob(fixture.job, { admissionId: randomUUID(), executionGeneration: randomUUID(), configurationRevision }, { leaseId: randomUUID() });
+      1410 | 		const journal = new ExecutionJournal(directory);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1407:62)
+
+  ● TDD-US3-FR015 / TDD-US3-OPT045: restored active identity starts once with only its original remaining window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1431 | 	let restarted: InstanceType<typeof FreeExecutionController> | undefined;
+      1432 | 	try {
+    > 1433 | 		expect(await original.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                           ^
+      1434 | 		await oldEngine.stop(); // Process loss leaves the durable active record, without Stop intent.
+      1435 | 		monotonic = 15000;
+      1436 | 		const journal = new ExecutionJournal(directory);
+
+      at Object.toBe (src/__tests__/execution-runtime.test.ts:1433:62)
+
+  ● TDD-US3-OPT042 / TDD-US3-OPT089 / TDD-US3-CON011: suppression of one weekly occurrence preserves a later offline window's original bounds and single start
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1466 | 	let returned: InstanceType<typeof FreeExecutionController> | undefined;
+      1467 | 	try {
+    > 1468 | 		expect(await original.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                           ^
+      1469 | 		expect(await original.stop(fixture.job)).toBe(true);
+      1470 | 		const request = { requestId: randomUUID(), sentAt: 1000 };
+      1471 | 		const issuedAt = 1000000 + 604800000 - 10000;
+
+      at Object.toBe (src/__tests__/execution-runtime.test.ts:1468:62)
+
+  ● TDD-US3-EC010: explicit signed owner Resume persists its occurrence control revision for a later cached cold restart
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1505 | 	let restarted: InstanceType<typeof FreeExecutionController> | undefined;
+      1506 | 	try {
+    > 1507 | 		expect(await original.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                           ^
+      1508 | 		expect(await original.stop(fixture.job)).toBe(true);
+      1509 | 		const resumeRequest = { requestId: randomUUID(), sentAt: 2000 };
+      1510 | 		now = 2500;
+
+      at Object.toBe (src/__tests__/execution-runtime.test.ts:1507:62)
+
+  ● TDD-US3-EC010: durable owner control ordering rejects older_cache_after_resume after process reconstruction
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1562 | 	let restarted: InstanceType<typeof FreeExecutionController> | undefined;
+      1563 | 	try {
+    > 1564 | 		expect(await original.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                           ^
+      1565 | 		expect(await original.stop(fixture.job)).toBe(true);
+      1566 | 		const resumeRequest = { requestId: randomUUID(), sentAt: 2000 };
+      1567 | 		now = 2500;
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1564:62)
+
+  ● TDD-US3-EC010: durable owner control ordering rejects newer_cache_after_second_stop after process reconstruction
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1562 | 	let restarted: InstanceType<typeof FreeExecutionController> | undefined;
+      1563 | 	try {
+    > 1564 | 		expect(await original.apply(fixture.job, fixture.request)).toBe(true);
+           | 		                                                           ^
+      1565 | 		expect(await original.stop(fixture.job)).toBe(true);
+      1566 | 		const resumeRequest = { requestId: randomUUID(), sentAt: 2000 };
+      1567 | 		now = 2500;
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1564:62)
+
+  ● TDD-US3-EC010 / TDD-US3-OPT046: fresh adjacent authority joins cached_start without replacing its accepted capture
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1600 | 	const controller = new FreeExecutionController({ ...fixture, journal, clock: () => now, createEngine });
+      1601 | 	try {
+    > 1602 | 		if (initialKind === "cached_start") expect(controller.prepareScheduledJobs([first], fixture.request)).toBe(true);
+           | 		                                                                                                      ^
+      1603 | 		expect(await controller.apply(first, fixture.request)).toBe(true);
+      1604 | 		const request = { requestId: randomUUID(), sentAt: 2000 };
+      1605 | 		now = 2500;
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1602:105)
+
+  ● TDD-US3-EC010 / TDD-US3-OPT046: fresh adjacent authority joins ordinary_owner_start without replacing its accepted capture
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1601 | 	try {
+      1602 | 		if (initialKind === "cached_start") expect(controller.prepareScheduledJobs([first], fixture.request)).toBe(true);
+    > 1603 | 		expect(await controller.apply(first, fixture.request)).toBe(true);
+           | 		                                                       ^
+      1604 | 		const request = { requestId: randomUUID(), sentAt: 2000 };
+      1605 | 		now = 2500;
+      1606 | 		const claims = { requestId: request.requestId, issuedAt: 1001000 };
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1603:58)
+
+  ● TDD-US3-EC010 / TDD-US3-OPT088: Pause removes future authority while the first capture is still starting
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1642 | 	let started: Promise<boolean> | undefined;
+      1643 | 	try {
+    > 1644 | 		expect(controller.prepareScheduledJobs([fixture.job, next], fixture.request)).toBe(true);
+           | 		                                                                              ^
+      1645 | 		started = controller.apply(fixture.job, fixture.request);
+      1646 | 		expect(journal.get(fixture.job.admissionId)?.state).toBe("starting");
+      1647 | 		expect(controller.prepareScheduledJobs([fixture.job], fixture.request)).toBe(true);
+
+      at Object.toBe (src/__tests__/execution-runtime.test.ts:1644:81)
+
+  ● TDD-US3-EC010 / TDD-US3-OPT046: a stalled extension cannot activate the future member or revive capture after its original end
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1674 | 	const controller = new FreeExecutionController({ ...fixture, journal, clock: () => now, createEngine });
+      1675 | 	try {
+    > 1676 | 		expect(controller.prepareScheduledJobs([fixture.job], fixture.request)).toBe(true);
+           | 		                                                                        ^
+      1677 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+      1678 | 		expect(controller.prepareScheduledJobs([fixture.job, next], fixture.request)).toBe(true);
+      1679 | 		await controller.tick();
+
+      at Object.toBe (src/__tests__/execution-runtime.test.ts:1676:75)
+
+  ● TDD-US3-OPT088: Pause at 21000 preserves the adjacent window that already began before the next watchdog tick
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1709 | 		controller = new FreeExecutionController({ ...fixture, journal, clock: () => now, createEngine: () => engine });
+      1710 | 	try {
+    > 1711 | 		expect(controller.prepareScheduledJobs([fixture.job, next], fixture.request)).toBe(true);
+           | 		                                                                              ^
+      1712 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+      1713 | 		now = boundary;
+      1714 | 		expect(controller.prepareScheduledJobs([], fixture.request)).toBe(true);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1711:81)
+
+  ● TDD-US3-OPT088: Pause at 21001 preserves the adjacent window that already began before the next watchdog tick
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1709 | 		controller = new FreeExecutionController({ ...fixture, journal, clock: () => now, createEngine: () => engine });
+      1710 | 	try {
+    > 1711 | 		expect(controller.prepareScheduledJobs([fixture.job, next], fixture.request)).toBe(true);
+           | 		                                                                              ^
+      1712 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+      1713 | 		now = boundary;
+      1714 | 		expect(controller.prepareScheduledJobs([], fixture.request)).toBe(true);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1711:81)
+
+  ● TDD-US3-CON011: a nonfinite clock fences capture without consuming its unstarted adjacent permission
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1735 | 		controller = new FreeExecutionController({ ...fixture, journal, clock: () => now, createEngine: () => engine });
+      1736 | 	try {
+    > 1737 | 		expect(controller.prepareScheduledJobs([fixture.job, next], fixture.request)).toBe(true);
+           | 		                                                                              ^
+      1738 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+      1739 | 		now = NaN;
+      1740 | 		await controller.tick();
+
+      at Object.toBe (src/__tests__/execution-runtime.test.ts:1737:81)
+
+  ● TDD-US3-EC010 / TDD-US3-OPT046: journal_failure cannot extend or reopen a playing capture
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1769 | 	const controller = new FreeExecutionController({ ...fixture, journal, clock: () => 1500, createEngine });
+      1770 | 	try {
+    > 1771 | 		expect(controller.prepareScheduledJobs([fixture.job], fixture.request)).toBe(true);
+           | 		                                                                        ^
+      1772 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+      1773 | 		if (fault === "journal_failure") {
+      1774 | 			const save = journal.save.bind(journal);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1771:75)
+
+  ● TDD-US3-EC010 / TDD-US3-OPT046: renderer_failure cannot extend or reopen a playing capture
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1769 | 	const controller = new FreeExecutionController({ ...fixture, journal, clock: () => 1500, createEngine });
+      1770 | 	try {
+    > 1771 | 		expect(controller.prepareScheduledJobs([fixture.job], fixture.request)).toBe(true);
+           | 		                                                                        ^
+      1772 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(true);
+      1773 | 		if (fault === "journal_failure") {
+      1774 | 			const save = journal.save.bind(journal);
+
+      at toBe (src/__tests__/execution-runtime.test.ts:1771:75)
+
+  ● TDD-US4-CON012: presentation refusal returns a stopped receipt instead of claiming an active broadcast
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      1808 | 		const controller = new FreeExecutionController({ ...fixture, journal, clock: () => 1500, createEngine: () => engine });
+      1809 | 		expect(await controller.apply(fixture.job, fixture.request)).toBe(false);
+    > 1810 | 		expect(engine.stop).toHaveBeenCalledTimes(1);
+           | 		                    ^
+      1811 | 		expect(journal.pendingTerminals()).toMatchObject([{ state: "stopped", allOutputsClosed: true }]);
+      1812 | 		expect(journal.get(fixture.job.admissionId)?.state).toBe("stopped");
+      1813 | 	} finally {
+
+      at Object.toHaveBeenCalledTimes (src/__tests__/execution-runtime.test.ts:1810:23)
+
+FAIL src/__tests__/heartbeat-protocol.test.ts
+  ● Console
+
+    console.log
+      [Heartbeat] Polling http://127.0.0.1/api/runner/heartbeat...
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:451:13)
+
+    console.log
+      [Jobs] Received 0 jobs.
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:503:13)
+
+    console.log
+      [Heartbeat] Polling http://127.0.0.1/api/runner/heartbeat...
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:451:13)
+
+    console.log
+      [Jobs] Received 0 jobs.
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:503:13)
+
+    console.log
+      [Heartbeat] Polling http://127.0.0.1/api/runner/heartbeat...
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:451:13)
+
+    console.log
+      [Jobs] Received 0 jobs.
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:503:13)
+
+    console.log
+      [Heartbeat] Polling http://127.0.0.1/api/runner/heartbeat...
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:451:13)
+
+    console.log
+      [Jobs] Received 0 jobs.
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:503:13)
+
+    console.log
+      [Heartbeat] Polling http://127.0.0.1/api/runner/heartbeat...
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:451:13)
+
+    console.log
+      [Jobs] Received 1 jobs.
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:503:13)
+
+    console.log
+      [Heartbeat] Polling http://127.0.0.1/api/runner/heartbeat...
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:451:13)
+
+    console.log
+      [Jobs] Received 0 jobs.
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:503:13)
+
+    console.log
+      [Heartbeat] Polling http://127.0.0.1/api/runner/heartbeat...
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:451:13)
+
+    console.log
+      [Jobs] Received 0 jobs.
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:503:13)
+
+    console.log
+      [Runner] Shutting down (fixture)...
+
+      at eval (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:615:28)
+
+    console.log
+      [Heartbeat] Polling http://127.0.0.1:3107/api/runner/heartbeat...
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:451:13)
+
+    console.error
+      [Error] API returned status 401
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:464:15)
+      at src/__tests__/heartbeat-protocol.test.ts:329:10
+
+    console.error
+      [Runner] Credentials invalid or revoked. Starting new enrollment...
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:482:19)
+      at src/__tests__/heartbeat-protocol.test.ts:329:10
+
+    console.log
+      [Heartbeat] Polling http://127.0.0.1:3107/api/runner/heartbeat...
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:451:13)
+
+    console.error
+      [Error] API returned status 401
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:464:15)
+      at src/__tests__/heartbeat-protocol.test.ts:329:10
+
+    console.error
+      [Runner] Token invalid or revoked. Outputs are closed; update the configured token to reconnect.
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:485:17)
+      at src/__tests__/heartbeat-protocol.test.ts:329:10
+
+    console.log
+      [Heartbeat] Polling http://127.0.0.1:3107/api/runner/heartbeat...
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:451:13)
+
+    console.log
+      [Jobs] Received 1 jobs.
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:503:13)
+
+    console.log
+      [Heartbeat] Polling http://127.0.0.1:3107/api/runner/heartbeat...
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:451:13)
+
+    console.log
+      [Jobs] Received 0 jobs.
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:503:13)
+
+    console.log
+      [Heartbeat] Polling http://127.0.0.1:3107/api/runner/heartbeat...
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:451:13)
+
+    console.log
+      [Jobs] Received 1 jobs.
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:503:13)
+
+    console.log
+      [Heartbeat] Polling http://127.0.0.1:3107/api/runner/heartbeat...
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:451:13)
+
+    console.log
+      [Jobs] Received 0 jobs.
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:503:13)
+
+    console.warn
+      [Security] RTMP reachability check could not start (status 403). Continuing without blocking.
+
+      at checkPublicRtmpReachability (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:206:15)
+      at prepareLiveFallback (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:241:24)
+      at Object.start (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:409:36)
+      at Object.<anonymous> (src/__tests__/heartbeat-protocol.test.ts:420:3)
+
+    console.log
+      [Heartbeat] Polling http://127.0.0.1/api/runner/heartbeat...
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:451:13)
+
+    console.warn
+      [Runner] Schedule synchronization required; new scheduled starts are unavailable.
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:500:69)
+      at Object.<anonymous> (src/__tests__/heartbeat-protocol.test.ts:457:10)
+
+    console.log
+      [Jobs] Received 0 jobs.
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:503:13)
+
+    console.log
+      [Heartbeat] Polling http://127.0.0.1/api/runner/heartbeat...
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:451:13)
+
+    console.warn
+      [Runner] Schedule synchronization required; new scheduled starts are unavailable.
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:500:69)
+      at assertCachedOutputAcrossControlFailure (src/__tests__/heartbeat-protocol.test.ts:544:10)
+
+    console.log
+      [Jobs] Received 0 jobs.
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:503:13)
+
+    console.log
+      [Heartbeat] Polling http://127.0.0.1/api/runner/heartbeat...
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:451:13)
+
+    console.error
+      [Error] Failed to poll heartbeat: Error: isolated control connection unavailable
+          at assertCachedOutputAcrossControlFailure (/home/coder/clipify/packages/runner/src/__tests__/heartbeat-protocol.test.ts:554:260)
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:524:13)
+      at assertCachedOutputAcrossControlFailure (src/__tests__/heartbeat-protocol.test.ts:560:10)
+
+    console.log
+      [Heartbeat] Polling http://127.0.0.1/api/runner/heartbeat...
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:451:13)
+
+    console.warn
+      [Runner] Schedule synchronization required; new scheduled starts are unavailable.
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:500:69)
+      at assertCachedOutputAcrossControlFailure (src/__tests__/heartbeat-protocol.test.ts:544:10)
+
+    console.log
+      [Jobs] Received 0 jobs.
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:503:13)
+
+    console.log
+      [Heartbeat] Polling http://127.0.0.1/api/runner/heartbeat...
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:451:13)
+
+    console.error
+      [Error] Failed to poll heartbeat: Error: isolated control connection unavailable
+          at assertCachedOutputAcrossControlFailure (/home/coder/clipify/packages/runner/src/__tests__/heartbeat-protocol.test.ts:554:260)
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:524:13)
+      at assertCachedOutputAcrossControlFailure (src/__tests__/heartbeat-protocol.test.ts:560:10)
+
+    console.log
+      [Heartbeat] Polling http://127.0.0.1/api/runner/heartbeat...
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:451:13)
+
+    console.warn
+      [Runner] Schedule synchronization required; new scheduled starts are unavailable.
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:500:69)
+      at assertCachedOutputAcrossControlFailure (src/__tests__/heartbeat-protocol.test.ts:544:10)
+
+    console.log
+      [Jobs] Received 0 jobs.
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:503:13)
+
+    console.log
+      [Heartbeat] Polling http://127.0.0.1/api/runner/heartbeat...
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:451:13)
+
+    console.error
+      [Error] API returned status 401
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:464:15)
+      at assertCachedOutputAcrossControlFailure (src/__tests__/heartbeat-protocol.test.ts:560:10)
+
+    console.error
+      [Runner] Credentials invalid or revoked. Starting new enrollment...
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:482:19)
+      at assertCachedOutputAcrossControlFailure (src/__tests__/heartbeat-protocol.test.ts:560:10)
+
+    console.log
+      [Heartbeat] Polling http://127.0.0.1/api/runner/heartbeat...
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:451:13)
+
+    console.warn
+      [Runner] Schedule synchronization required; new scheduled starts are unavailable.
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:500:69)
+      at assertCachedOutputAcrossControlFailure (src/__tests__/heartbeat-protocol.test.ts:544:10)
+
+    console.log
+      [Jobs] Received 0 jobs.
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:503:13)
+
+    console.log
+      [Heartbeat] Polling http://127.0.0.1/api/runner/heartbeat...
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:451:13)
+
+    console.error
+      [Error] Failed to poll heartbeat: Error: isolated control connection unavailable
+          at assertCachedOutputAcrossControlFailure (/home/coder/clipify/packages/runner/src/__tests__/heartbeat-protocol.test.ts:554:260)
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:524:13)
+      at assertCachedOutputAcrossControlFailure (src/__tests__/heartbeat-protocol.test.ts:560:10)
+
+    console.log
+      [Heartbeat] Polling http://127.0.0.1/api/runner/heartbeat...
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:451:13)
+
+    console.warn
+      [Runner] Schedule synchronization required; new scheduled starts are unavailable.
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:500:69)
+      at assertCachedOutputAcrossControlFailure (src/__tests__/heartbeat-protocol.test.ts:544:10)
+
+    console.log
+      [Jobs] Received 0 jobs.
+
+      at Object.pollHeartbeat (eval at compileRunnerCli (test/support/cli-adapter.ts:30:2), <anonymous>:503:13)
+
+  ● TDD-US5-CON015: official polling learns device identity only after verified owner policy
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: {"apiBase": "http://127.0.0.1", "runnerId": "76abe89c-0504-4691-9b56-4943f2d620a9", "token": "fixture-token"}
+
+    Number of calls: 0
+
+      51 | 		mode = "valid";
+      52 | 		expect(await cli.pollHeartbeat("fixture-token", "http://127.0.0.1")).toBe("ok");
+    > 53 | 		expect(saveCredentials).toHaveBeenCalledWith({ runnerId, apiBase: "http://127.0.0.1", token: "fixture-token" });
+         | 		                        ^
+      54 | 		expect(cli.getRunnerBenefitCache).toEqual(expect.any(Function));
+      55 | 		const credentialId = createHash("sha256")
+      56 | 			.update(JSON.stringify(["http://127.0.0.1", "fixture-token"]))
+
+      at Object.toHaveBeenCalledWith (src/__tests__/heartbeat-protocol.test.ts:53:27)
+
+  ● TDD-US3-FR012: actual heartbeat polling persists a verified schedule cache with private payload references
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      457 | 		expect(await cli.pollHeartbeat("fixture-token", "http://127.0.0.1", fixture.runnerId)).toBe("ok");
+      458 | 		const snapshotPath = join(directory, ".clipify-runner", "schedules", fixture.runnerId, "snapshot.json");
+    > 459 | 		expect(existsSync(snapshotPath)).toBe(true);
+          | 		                                 ^
+      460 | 		const snapshot = readFileSync(snapshotPath, "utf8");
+      461 | 		expect(snapshot).not.toContain(fixture.overlaySecret);
+      462 | 		expect(snapshot).not.toContain(fixture.streamKey);
+
+      at Object.toBe (src/__tests__/heartbeat-protocol.test.ts:459:36)
+
+  ● TDD-US3-FR012: official polling and watchdog honor cached output across disconnect
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      593 | 			await jest.advanceTimersByTimeAsync(250);
+      594 | 		}
+    > 595 | 		expect(start).toHaveBeenCalledTimes(1);
+          | 		              ^
+      596 | 		elapsed = scenario === "restart" ? 5000 : 21000;
+      597 | 		uptime = 70000;
+      598 | 		await jest.advanceTimersByTimeAsync(250);
+
+      at toHaveBeenCalledTimes (src/__tests__/heartbeat-protocol.test.ts:595:17)
+
+  ● TDD-US3-FR012: official polling and watchdog honor cached output across restart
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      593 | 			await jest.advanceTimersByTimeAsync(250);
+      594 | 		}
+    > 595 | 		expect(start).toHaveBeenCalledTimes(1);
+          | 		              ^
+      596 | 		elapsed = scenario === "restart" ? 5000 : 21000;
+      597 | 		uptime = 70000;
+      598 | 		await jest.advanceTimersByTimeAsync(250);
+
+      at toHaveBeenCalledTimes (src/__tests__/heartbeat-protocol.test.ts:595:17)
+
+  ● TDD-US3-FR012: official polling and watchdog honor cached output across missed
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 11
+    + Received  +  1
+
+    - Array [
+    -   ObjectContaining {
+    -     "allOutputsClosed": true,
+    -     "occurrence": Object {
+    -       "end": 1020000,
+    -       "occurrenceId": "[\"event\",\"original\"]",
+    -       "start": 1010000,
+    -     },
+    -     "state": "stopped",
+    -   },
+    - ]
+    + Array []
+
+      583 | 			const { ExecutionJournal } = jest.requireActual("../execution-journal");
+      584 | 			const journal = new ExecutionJournal(join(directory, ".clipify-runner", "executions", fixture.runnerId));
+    > 585 | 			expect(journal.pendingTerminals()).toEqual([expect.objectContaining({ state: "stopped", allOutputsClosed: true, occurrence: { occurrenceId: '["event","original"]', start: 1010000, end: 1020000 } })]);
+          | 			                                   ^
+      586 | 			return;
+      587 | 		}
+      588 | 		await jest.advanceTimersByTimeAsync(250);
+
+      at toEqual (src/__tests__/heartbeat-protocol.test.ts:585:39)
+
+  ● TDD-US3-OPT044: an accepted cached execution survives a control 503 while retaining its original end
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      549 | 			uptime = 60000;
+      550 | 			await jest.advanceTimersByTimeAsync(250);
+    > 551 | 			expect(start).toHaveBeenCalledTimes(1);
+          | 			              ^
+      552 | 			expect(drain).not.toHaveBeenCalled();
+      553 | 		}
+      554 | 		global.fetch = scenario === "revoked" ? (jest.fn(async () => new Response(null, { status: 401 })) as typeof fetch) : scenario === "disconnect_active" ? (jest.fn(async () => new Response(null, { status: 503 })) as typeof fetch) : jest.fn().mockRejectedValue(new Error("isolated control connection unavailable"));
+
+      at toHaveBeenCalledTimes (src/__tests__/heartbeat-protocol.test.ts:551:18)
+
+FAIL src/__tests__/schedule-cache-validation.test.ts
+  ● TDD-US3-CON008 cache admission baseline: missing response preserves the last valid document and requires sync
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      154 | 		const cache = new RunnerScheduleCache({ directory, runnerId: fixture.runnerId, ownerId: fixture.ownerId, keys: fixture.keys, clock: () => 1000, uptime: () => 50000, bootId: () => "boot", keyring: { set, get: async (id) => payloads.get(id) ?? null } });
+      155 | 		const response = fixture.response(request.requestId).scheduleCache;
+    > 156 | 		expect(await cache.accept(response, request)).toBe(true);
+          | 		                                              ^
+      157 | 		const previous = readFileSync(join(directory, "snapshot.json"), "utf8");
+      158 | 		set.mockClear();
+      159 | 		expect(await cache.accept(alter(JSON.parse(JSON.stringify(response))), request)).toBe(false);
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:156:49)
+
+  ● TDD-US3-CON008 cache admission baseline: missing bundle preserves the last valid document and requires sync
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      154 | 		const cache = new RunnerScheduleCache({ directory, runnerId: fixture.runnerId, ownerId: fixture.ownerId, keys: fixture.keys, clock: () => 1000, uptime: () => 50000, bootId: () => "boot", keyring: { set, get: async (id) => payloads.get(id) ?? null } });
+      155 | 		const response = fixture.response(request.requestId).scheduleCache;
+    > 156 | 		expect(await cache.accept(response, request)).toBe(true);
+          | 		                                              ^
+      157 | 		const previous = readFileSync(join(directory, "snapshot.json"), "utf8");
+      158 | 		set.mockClear();
+      159 | 		expect(await cache.accept(alter(JSON.parse(JSON.stringify(response))), request)).toBe(false);
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:156:49)
+
+  ● TDD-US3-CON008 cache admission baseline: non-array entries preserves the last valid document and requires sync
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      154 | 		const cache = new RunnerScheduleCache({ directory, runnerId: fixture.runnerId, ownerId: fixture.ownerId, keys: fixture.keys, clock: () => 1000, uptime: () => 50000, bootId: () => "boot", keyring: { set, get: async (id) => payloads.get(id) ?? null } });
+      155 | 		const response = fixture.response(request.requestId).scheduleCache;
+    > 156 | 		expect(await cache.accept(response, request)).toBe(true);
+          | 		                                              ^
+      157 | 		const previous = readFileSync(join(directory, "snapshot.json"), "utf8");
+      158 | 		set.mockClear();
+      159 | 		expect(await cache.accept(alter(JSON.parse(JSON.stringify(response))), request)).toBe(false);
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:156:49)
+
+  ● TDD-US3-CON008 cache admission baseline: unreadable claims preserves the last valid document and requires sync
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      154 | 		const cache = new RunnerScheduleCache({ directory, runnerId: fixture.runnerId, ownerId: fixture.ownerId, keys: fixture.keys, clock: () => 1000, uptime: () => 50000, bootId: () => "boot", keyring: { set, get: async (id) => payloads.get(id) ?? null } });
+      155 | 		const response = fixture.response(request.requestId).scheduleCache;
+    > 156 | 		expect(await cache.accept(response, request)).toBe(true);
+          | 		                                              ^
+      157 | 		const previous = readFileSync(join(directory, "snapshot.json"), "utf8");
+      158 | 		set.mockClear();
+      159 | 		expect(await cache.accept(alter(JSON.parse(JSON.stringify(response))), request)).toBe(false);
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:156:49)
+
+  ● TDD-US3-CON008 cache admission baseline: invalid manifest signature preserves the last valid document and requires sync
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      154 | 		const cache = new RunnerScheduleCache({ directory, runnerId: fixture.runnerId, ownerId: fixture.ownerId, keys: fixture.keys, clock: () => 1000, uptime: () => 50000, bootId: () => "boot", keyring: { set, get: async (id) => payloads.get(id) ?? null } });
+      155 | 		const response = fixture.response(request.requestId).scheduleCache;
+    > 156 | 		expect(await cache.accept(response, request)).toBe(true);
+          | 		                                              ^
+      157 | 		const previous = readFileSync(join(directory, "snapshot.json"), "utf8");
+      158 | 		set.mockClear();
+      159 | 		expect(await cache.accept(alter(JSON.parse(JSON.stringify(response))), request)).toBe(false);
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:156:49)
+
+  ● TDD-US3-CON008 cache admission baseline: missing private entry preserves the last valid document and requires sync
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      154 | 		const cache = new RunnerScheduleCache({ directory, runnerId: fixture.runnerId, ownerId: fixture.ownerId, keys: fixture.keys, clock: () => 1000, uptime: () => 50000, bootId: () => "boot", keyring: { set, get: async (id) => payloads.get(id) ?? null } });
+      155 | 		const response = fixture.response(request.requestId).scheduleCache;
+    > 156 | 		expect(await cache.accept(response, request)).toBe(true);
+          | 		                                              ^
+      157 | 		const previous = readFileSync(join(directory, "snapshot.json"), "utf8");
+      158 | 		set.mockClear();
+      159 | 		expect(await cache.accept(alter(JSON.parse(JSON.stringify(response))), request)).toBe(false);
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:156:49)
+
+  ● TDD-US3-CON008 cache admission baseline: wrong admission preserves the last valid document and requires sync
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      154 | 		const cache = new RunnerScheduleCache({ directory, runnerId: fixture.runnerId, ownerId: fixture.ownerId, keys: fixture.keys, clock: () => 1000, uptime: () => 50000, bootId: () => "boot", keyring: { set, get: async (id) => payloads.get(id) ?? null } });
+      155 | 		const response = fixture.response(request.requestId).scheduleCache;
+    > 156 | 		expect(await cache.accept(response, request)).toBe(true);
+          | 		                                              ^
+      157 | 		const previous = readFileSync(join(directory, "snapshot.json"), "utf8");
+      158 | 		set.mockClear();
+      159 | 		expect(await cache.accept(alter(JSON.parse(JSON.stringify(response))), request)).toBe(false);
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:156:49)
+
+  ● TDD-US3-CON008 cache admission baseline: wrong owner preserves the last valid document and requires sync
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      154 | 		const cache = new RunnerScheduleCache({ directory, runnerId: fixture.runnerId, ownerId: fixture.ownerId, keys: fixture.keys, clock: () => 1000, uptime: () => 50000, bootId: () => "boot", keyring: { set, get: async (id) => payloads.get(id) ?? null } });
+      155 | 		const response = fixture.response(request.requestId).scheduleCache;
+    > 156 | 		expect(await cache.accept(response, request)).toBe(true);
+          | 		                                              ^
+      157 | 		const previous = readFileSync(join(directory, "snapshot.json"), "utf8");
+      158 | 		set.mockClear();
+      159 | 		expect(await cache.accept(alter(JSON.parse(JSON.stringify(response))), request)).toBe(false);
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:156:49)
+
+  ● TDD-US3-CON008 cache admission baseline: wrong device preserves the last valid document and requires sync
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      154 | 		const cache = new RunnerScheduleCache({ directory, runnerId: fixture.runnerId, ownerId: fixture.ownerId, keys: fixture.keys, clock: () => 1000, uptime: () => 50000, bootId: () => "boot", keyring: { set, get: async (id) => payloads.get(id) ?? null } });
+      155 | 		const response = fixture.response(request.requestId).scheduleCache;
+    > 156 | 		expect(await cache.accept(response, request)).toBe(true);
+          | 		                                              ^
+      157 | 		const previous = readFileSync(join(directory, "snapshot.json"), "utf8");
+      158 | 		set.mockClear();
+      159 | 		expect(await cache.accept(alter(JSON.parse(JSON.stringify(response))), request)).toBe(false);
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:156:49)
+
+  ● TDD-US3-CON008 cache admission baseline: wrong occurrence preserves the last valid document and requires sync
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      154 | 		const cache = new RunnerScheduleCache({ directory, runnerId: fixture.runnerId, ownerId: fixture.ownerId, keys: fixture.keys, clock: () => 1000, uptime: () => 50000, bootId: () => "boot", keyring: { set, get: async (id) => payloads.get(id) ?? null } });
+      155 | 		const response = fixture.response(request.requestId).scheduleCache;
+    > 156 | 		expect(await cache.accept(response, request)).toBe(true);
+          | 		                                              ^
+      157 | 		const previous = readFileSync(join(directory, "snapshot.json"), "utf8");
+      158 | 		set.mockClear();
+      159 | 		expect(await cache.accept(alter(JSON.parse(JSON.stringify(response))), request)).toBe(false);
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:156:49)
+
+  ● TDD-US3-CON008 cache admission baseline: missing source credential preserves the last valid document and requires sync
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      154 | 		const cache = new RunnerScheduleCache({ directory, runnerId: fixture.runnerId, ownerId: fixture.ownerId, keys: fixture.keys, clock: () => 1000, uptime: () => 50000, bootId: () => "boot", keyring: { set, get: async (id) => payloads.get(id) ?? null } });
+      155 | 		const response = fixture.response(request.requestId).scheduleCache;
+    > 156 | 		expect(await cache.accept(response, request)).toBe(true);
+          | 		                                              ^
+      157 | 		const previous = readFileSync(join(directory, "snapshot.json"), "utf8");
+      158 | 		set.mockClear();
+      159 | 		expect(await cache.accept(alter(JSON.parse(JSON.stringify(response))), request)).toBe(false);
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:156:49)
+
+  ● TDD-US3-CON008 cache admission baseline: fallback mode preserves the last valid document and requires sync
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      154 | 		const cache = new RunnerScheduleCache({ directory, runnerId: fixture.runnerId, ownerId: fixture.ownerId, keys: fixture.keys, clock: () => 1000, uptime: () => 50000, bootId: () => "boot", keyring: { set, get: async (id) => payloads.get(id) ?? null } });
+      155 | 		const response = fixture.response(request.requestId).scheduleCache;
+    > 156 | 		expect(await cache.accept(response, request)).toBe(true);
+          | 		                                              ^
+      157 | 		const previous = readFileSync(join(directory, "snapshot.json"), "utf8");
+      158 | 		set.mockClear();
+      159 | 		expect(await cache.accept(alter(JSON.parse(JSON.stringify(response))), request)).toBe(false);
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:156:49)
+
+  ● TDD-US3-CON008 cache admission baseline: zero capture FPS preserves the last valid document and requires sync
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      154 | 		const cache = new RunnerScheduleCache({ directory, runnerId: fixture.runnerId, ownerId: fixture.ownerId, keys: fixture.keys, clock: () => 1000, uptime: () => 50000, bootId: () => "boot", keyring: { set, get: async (id) => payloads.get(id) ?? null } });
+      155 | 		const response = fixture.response(request.requestId).scheduleCache;
+    > 156 | 		expect(await cache.accept(response, request)).toBe(true);
+          | 		                                              ^
+      157 | 		const previous = readFileSync(join(directory, "snapshot.json"), "utf8");
+      158 | 		set.mockClear();
+      159 | 		expect(await cache.accept(alter(JSON.parse(JSON.stringify(response))), request)).toBe(false);
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:156:49)
+
+  ● TDD-US3-CON008 cache admission baseline: excess capture FPS preserves the last valid document and requires sync
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      154 | 		const cache = new RunnerScheduleCache({ directory, runnerId: fixture.runnerId, ownerId: fixture.ownerId, keys: fixture.keys, clock: () => 1000, uptime: () => 50000, bootId: () => "boot", keyring: { set, get: async (id) => payloads.get(id) ?? null } });
+      155 | 		const response = fixture.response(request.requestId).scheduleCache;
+    > 156 | 		expect(await cache.accept(response, request)).toBe(true);
+          | 		                                              ^
+      157 | 		const previous = readFileSync(join(directory, "snapshot.json"), "utf8");
+      158 | 		set.mockClear();
+      159 | 		expect(await cache.accept(alter(JSON.parse(JSON.stringify(response))), request)).toBe(false);
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:156:49)
+
+  ● TDD-US3-CON008 cache admission baseline: invalid capture resolution preserves the last valid document and requires sync
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      154 | 		const cache = new RunnerScheduleCache({ directory, runnerId: fixture.runnerId, ownerId: fixture.ownerId, keys: fixture.keys, clock: () => 1000, uptime: () => 50000, bootId: () => "boot", keyring: { set, get: async (id) => payloads.get(id) ?? null } });
+      155 | 		const response = fixture.response(request.requestId).scheduleCache;
+    > 156 | 		expect(await cache.accept(response, request)).toBe(true);
+          | 		                                              ^
+      157 | 		const previous = readFileSync(join(directory, "snapshot.json"), "utf8");
+      158 | 		set.mockClear();
+      159 | 		expect(await cache.accept(alter(JSON.parse(JSON.stringify(response))), request)).toBe(false);
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:156:49)
+
+  ● TDD-US3-CON008 cache admission baseline: missing target URL preserves the last valid document and requires sync
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      154 | 		const cache = new RunnerScheduleCache({ directory, runnerId: fixture.runnerId, ownerId: fixture.ownerId, keys: fixture.keys, clock: () => 1000, uptime: () => 50000, bootId: () => "boot", keyring: { set, get: async (id) => payloads.get(id) ?? null } });
+      155 | 		const response = fixture.response(request.requestId).scheduleCache;
+    > 156 | 		expect(await cache.accept(response, request)).toBe(true);
+          | 		                                              ^
+      157 | 		const previous = readFileSync(join(directory, "snapshot.json"), "utf8");
+      158 | 		set.mockClear();
+      159 | 		expect(await cache.accept(alter(JSON.parse(JSON.stringify(response))), request)).toBe(false);
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:156:49)
+
+  ● TDD-US3-CON008 cache admission baseline: invalid target credential preserves the last valid document and requires sync
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      154 | 		const cache = new RunnerScheduleCache({ directory, runnerId: fixture.runnerId, ownerId: fixture.ownerId, keys: fixture.keys, clock: () => 1000, uptime: () => 50000, bootId: () => "boot", keyring: { set, get: async (id) => payloads.get(id) ?? null } });
+      155 | 		const response = fixture.response(request.requestId).scheduleCache;
+    > 156 | 		expect(await cache.accept(response, request)).toBe(true);
+          | 		                                              ^
+      157 | 		const previous = readFileSync(join(directory, "snapshot.json"), "utf8");
+      158 | 		set.mockClear();
+      159 | 		expect(await cache.accept(alter(JSON.parse(JSON.stringify(response))), request)).toBe(false);
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:156:49)
+
+  ● TDD-US3-CON008 cache admission baseline: changed authorization preserves the last valid document and requires sync
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      154 | 		const cache = new RunnerScheduleCache({ directory, runnerId: fixture.runnerId, ownerId: fixture.ownerId, keys: fixture.keys, clock: () => 1000, uptime: () => 50000, bootId: () => "boot", keyring: { set, get: async (id) => payloads.get(id) ?? null } });
+      155 | 		const response = fixture.response(request.requestId).scheduleCache;
+    > 156 | 		expect(await cache.accept(response, request)).toBe(true);
+          | 		                                              ^
+      157 | 		const previous = readFileSync(join(directory, "snapshot.json"), "utf8");
+      158 | 		set.mockClear();
+      159 | 		expect(await cache.accept(alter(JSON.parse(JSON.stringify(response))), request)).toBe(false);
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:156:49)
+
+  ● TDD-US3-CON008 cache admission baseline: empty destinations preserves the last valid document and requires sync
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      154 | 		const cache = new RunnerScheduleCache({ directory, runnerId: fixture.runnerId, ownerId: fixture.ownerId, keys: fixture.keys, clock: () => 1000, uptime: () => 50000, bootId: () => "boot", keyring: { set, get: async (id) => payloads.get(id) ?? null } });
+      155 | 		const response = fixture.response(request.requestId).scheduleCache;
+    > 156 | 		expect(await cache.accept(response, request)).toBe(true);
+          | 		                                              ^
+      157 | 		const previous = readFileSync(join(directory, "snapshot.json"), "utf8");
+      158 | 		set.mockClear();
+      159 | 		expect(await cache.accept(alter(JSON.parse(JSON.stringify(response))), request)).toBe(false);
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:156:49)
+
+  ● TDD-US3-CON008 cache admission baseline: duplicate destinations preserves the last valid document and requires sync
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      154 | 		const cache = new RunnerScheduleCache({ directory, runnerId: fixture.runnerId, ownerId: fixture.ownerId, keys: fixture.keys, clock: () => 1000, uptime: () => 50000, bootId: () => "boot", keyring: { set, get: async (id) => payloads.get(id) ?? null } });
+      155 | 		const response = fixture.response(request.requestId).scheduleCache;
+    > 156 | 		expect(await cache.accept(response, request)).toBe(true);
+          | 		                                              ^
+      157 | 		const previous = readFileSync(join(directory, "snapshot.json"), "utf8");
+      158 | 		set.mockClear();
+      159 | 		expect(await cache.accept(alter(JSON.parse(JSON.stringify(response))), request)).toBe(false);
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:156:49)
+
+  ● TDD-US3-CON008 cache admission baseline: invalid destination credential preserves the last valid document and requires sync
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      154 | 		const cache = new RunnerScheduleCache({ directory, runnerId: fixture.runnerId, ownerId: fixture.ownerId, keys: fixture.keys, clock: () => 1000, uptime: () => 50000, bootId: () => "boot", keyring: { set, get: async (id) => payloads.get(id) ?? null } });
+      155 | 		const response = fixture.response(request.requestId).scheduleCache;
+    > 156 | 		expect(await cache.accept(response, request)).toBe(true);
+          | 		                                              ^
+      157 | 		const previous = readFileSync(join(directory, "snapshot.json"), "utf8");
+      158 | 		set.mockClear();
+      159 | 		expect(await cache.accept(alter(JSON.parse(JSON.stringify(response))), request)).toBe(false);
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:156:49)
+
+  ● TDD-US3-CON008 cache admission baseline: changed private source preserves the last valid document and requires sync
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      154 | 		const cache = new RunnerScheduleCache({ directory, runnerId: fixture.runnerId, ownerId: fixture.ownerId, keys: fixture.keys, clock: () => 1000, uptime: () => 50000, bootId: () => "boot", keyring: { set, get: async (id) => payloads.get(id) ?? null } });
+      155 | 		const response = fixture.response(request.requestId).scheduleCache;
+    > 156 | 		expect(await cache.accept(response, request)).toBe(true);
+          | 		                                              ^
+      157 | 		const previous = readFileSync(join(directory, "snapshot.json"), "utf8");
+      158 | 		set.mockClear();
+      159 | 		expect(await cache.accept(alter(JSON.parse(JSON.stringify(response))), request)).toBe(false);
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:156:49)
+
+  ● TDD-US3-CON008 restore baseline: invalid reference cannot restore private scheduled inputs
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      188 | 			},
+      189 | 		};
+    > 190 | 		expect(await new RunnerScheduleCache(options).accept(fixture.response(request.requestId).scheduleCache, request)).toBe(true);
+          | 		                                                                                                                  ^
+      191 | 		const path = join(directory, "snapshot.json"),
+      192 | 			document = JSON.parse(readFileSync(path, "utf8"));
+      193 | 		if (variant === "invalid reference") document.entries[0].credentialReference = "invalid";
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:190:117)
+
+  ● TDD-US3-CON008 restore baseline: missing private payload cannot restore private scheduled inputs
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      188 | 			},
+      189 | 		};
+    > 190 | 		expect(await new RunnerScheduleCache(options).accept(fixture.response(request.requestId).scheduleCache, request)).toBe(true);
+          | 		                                                                                                                  ^
+      191 | 		const path = join(directory, "snapshot.json"),
+      192 | 			document = JSON.parse(readFileSync(path, "utf8"));
+      193 | 		if (variant === "invalid reference") document.entries[0].credentialReference = "invalid";
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:190:117)
+
+  ● TDD-US3-CON008 restore baseline: altered private payload cannot restore private scheduled inputs
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      188 | 			},
+      189 | 		};
+    > 190 | 		expect(await new RunnerScheduleCache(options).accept(fixture.response(request.requestId).scheduleCache, request)).toBe(true);
+          | 		                                                                                                                  ^
+      191 | 		const path = join(directory, "snapshot.json"),
+      192 | 			document = JSON.parse(readFileSync(path, "utf8"));
+      193 | 		if (variant === "invalid reference") document.entries[0].credentialReference = "invalid";
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:190:117)
+
+  ● TDD-US3-CON008 restore baseline: oversized snapshot cannot restore private scheduled inputs
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      188 | 			},
+      189 | 		};
+    > 190 | 		expect(await new RunnerScheduleCache(options).accept(fixture.response(request.requestId).scheduleCache, request)).toBe(true);
+          | 		                                                                                                                  ^
+      191 | 		const path = join(directory, "snapshot.json"),
+      192 | 			document = JSON.parse(readFileSync(path, "utf8"));
+      193 | 		if (variant === "invalid reference") document.entries[0].credentialReference = "invalid";
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:190:117)
+
+  ● TDD-US3-CON008 restore baseline: invalid anchor cannot restore private scheduled inputs
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      188 | 			},
+      189 | 		};
+    > 190 | 		expect(await new RunnerScheduleCache(options).accept(fixture.response(request.requestId).scheduleCache, request)).toBe(true);
+          | 		                                                                                                                  ^
+      191 | 		const path = join(directory, "snapshot.json"),
+      192 | 			document = JSON.parse(readFileSync(path, "utf8"));
+      193 | 		if (variant === "invalid reference") document.entries[0].credentialReference = "invalid";
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:190:117)
+
+  ● TDD-US3-CON008 protected fallback baseline: valid private storage is isolated from signed metadata
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      210 | 			request = { requestId: "11111111-1111-4111-8111-111111111111", sentAt: 1000 };
+      211 | 		const options = { directory, runnerId: fixture.runnerId, keys: fixture.keys, clock: () => 1000, bootId: () => "boot" };
+    > 212 | 		expect(await new RunnerScheduleCache(options).accept(fixture.response(request.requestId).scheduleCache, request)).toBe(true);
+          | 		                                                                                                                  ^
+      213 | 		const path = join(directory, "private-payloads.json");
+      214 | 		expect(readFileSync(join(directory, "snapshot.json"), "utf8")).not.toContain(fixture.overlaySecret);
+      215 | 		if (variant === "corrupt") writeFileSync(path, JSON.stringify({ arbitrary: 12 }));
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:212:117)
+
+  ● TDD-US3-CON008 protected fallback baseline: corrupt private storage is isolated from signed metadata
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      210 | 			request = { requestId: "11111111-1111-4111-8111-111111111111", sentAt: 1000 };
+      211 | 		const options = { directory, runnerId: fixture.runnerId, keys: fixture.keys, clock: () => 1000, bootId: () => "boot" };
+    > 212 | 		expect(await new RunnerScheduleCache(options).accept(fixture.response(request.requestId).scheduleCache, request)).toBe(true);
+          | 		                                                                                                                  ^
+      213 | 		const path = join(directory, "private-payloads.json");
+      214 | 		expect(readFileSync(join(directory, "snapshot.json"), "utf8")).not.toContain(fixture.overlaySecret);
+      215 | 		if (variant === "corrupt") writeFileSync(path, JSON.stringify({ arbitrary: 12 }));
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:212:117)
+
+  ● TDD-US3-CON008 protected fallback baseline: oversized private storage is isolated from signed metadata
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      210 | 			request = { requestId: "11111111-1111-4111-8111-111111111111", sentAt: 1000 };
+      211 | 		const options = { directory, runnerId: fixture.runnerId, keys: fixture.keys, clock: () => 1000, bootId: () => "boot" };
+    > 212 | 		expect(await new RunnerScheduleCache(options).accept(fixture.response(request.requestId).scheduleCache, request)).toBe(true);
+          | 		                                                                                                                  ^
+      213 | 		const path = join(directory, "private-payloads.json");
+      214 | 		expect(readFileSync(join(directory, "snapshot.json"), "utf8")).not.toContain(fixture.overlaySecret);
+      215 | 		if (variant === "corrupt") writeFileSync(path, JSON.stringify({ arbitrary: 12 }));
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:212:117)
+
+  ● TDD-US3-CON008 boot identity baseline: unknown platform requires sync after restart
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      240 | 		const options = { directory, runnerId: fixture.runnerId, keys: fixture.keys, clock: () => 1000, uptime: () => 50000, keyring: { set: async () => undefined, get: async () => null } };
+      241 | 		const current = new RunnerScheduleCache(options);
+    > 242 | 		expect(await current.accept(fixture.response(request.requestId).scheduleCache, request)).toBe(true);
+          | 		                                                                                         ^
+      243 | 		expect((await current.restore())?.jobs).toHaveLength(1);
+      244 | 		const restarted = new RunnerScheduleCache(options);
+      245 | 		expect(await restarted.restore()).toBeNull();
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:242:92)
+
+  ● TDD-US3-CON008 boot identity baseline: invalid boot response requires sync after restart
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      240 | 		const options = { directory, runnerId: fixture.runnerId, keys: fixture.keys, clock: () => 1000, uptime: () => 50000, keyring: { set: async () => undefined, get: async () => null } };
+      241 | 		const current = new RunnerScheduleCache(options);
+    > 242 | 		expect(await current.accept(fixture.response(request.requestId).scheduleCache, request)).toBe(true);
+          | 		                                                                                         ^
+      243 | 		expect((await current.restore())?.jobs).toHaveLength(1);
+      244 | 		const restarted = new RunnerScheduleCache(options);
+      245 | 		expect(await restarted.restore()).toBeNull();
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:242:92)
+
+  ● TDD-US3-CON008 boot identity baseline: boot command failure requires sync after restart
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      240 | 		const options = { directory, runnerId: fixture.runnerId, keys: fixture.keys, clock: () => 1000, uptime: () => 50000, keyring: { set: async () => undefined, get: async () => null } };
+      241 | 		const current = new RunnerScheduleCache(options);
+    > 242 | 		expect(await current.accept(fixture.response(request.requestId).scheduleCache, request)).toBe(true);
+          | 		                                                                                         ^
+      243 | 		expect((await current.restore())?.jobs).toHaveLength(1);
+      244 | 		const restarted = new RunnerScheduleCache(options);
+      245 | 		expect(await restarted.restore()).toBeNull();
+
+      at toBe (src/__tests__/schedule-cache-validation.test.ts:242:92)
+
+Test Suites: 3 failed, 3 total
+Tests:       115 failed, 31 passed, 146 total
+Snapshots:   0 total
+Time:        0.89 s
+Ran all test suites within paths "src/__tests__/execution-runtime.test.ts", "src/__tests__/heartbeat-protocol.test.ts", "src/__tests__/schedule-cache-validation.test.ts".
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?
+error: script "test" exited with code 1

@@ -57,6 +57,33 @@ export async function withOwnedRunner<T>(principal: TrustedCreatorPrincipal, inp
 	}
 }
 
+type BrandingInput = z.infer<typeof saveInput>;
+type BrandingProfile = typeof runnerBrandingProfilesTable.$inferSelect;
+const proBrandingFields = ["proShowAttribution", "standbyBackgroundColor", "backgroundAssetId", "logoAssetId", "message", "showNextBroadcastTime"] as const;
+function changesProBranding(input: BrandingInput) {
+	return proBrandingFields.some((field) => input[field] !== undefined);
+}
+async function brandingAssetAvailable(tx: TransactionClient, ownerId: string, assetId: string | null | undefined, kind: "background" | "logo") {
+	if (!assetId) return true;
+	const asset = await tx.query.runnerBrandingAssetsTable.findFirst({ where: and(eq(runnerBrandingAssetsTable.id, assetId), eq(runnerBrandingAssetsTable.ownerId, ownerId), eq(runnerBrandingAssetsTable.kind, kind)), columns: { id: true } });
+	return !!asset;
+}
+function detachedBrandingAssets(current: BrandingProfile | undefined, input: BrandingInput) {
+	const detached: string[] = [];
+	for (const field of ["backgroundAssetId", "logoAssetId"] as const) {
+		const previous = current?.[field];
+		if (previous && input[field] !== undefined && input[field] !== previous) detached.push(previous);
+	}
+	return detached;
+}
+function brandingChanges(input: BrandingInput) {
+	const fields = ["watermarkCorner", ...proBrandingFields] as const;
+	return Object.fromEntries(fields.filter((field) => input[field] !== undefined).map((field) => [field, input[field]])) as Pick<BrandingInput, (typeof fields)[number]>;
+}
+function initialBrandingValues(input: BrandingInput) {
+	return { ownerId: input.ownerId, runnerId: input.runnerId, watermarkCorner: input.watermarkCorner, proShowAttribution: input.proShowAttribution ?? false, standbyBackgroundColor: input.standbyBackgroundColor ?? "#000000", backgroundAssetId: input.backgroundAssetId ?? null, logoAssetId: input.logoAssetId ?? null, message: input.message ?? "", showNextBroadcastTime: input.showNextBroadcastTime ?? false };
+}
+
 export async function saveRunnerBrandingProfileForPrincipal(principal: TrustedCreatorPrincipal, rawInput: unknown, client: DatabaseClient = db) {
 	const parsed = saveInput.safeParse(rawInput);
 	if (!parsed.success) return failure("INVALID_INPUT");
@@ -64,40 +91,20 @@ export async function saveRunnerBrandingProfileForPrincipal(principal: TrustedCr
 	const detachedAssetIds: string[] = [];
 	const result = await withOwnedRunner(principal, input, "runner:update", client, async (tx, authority) => {
 		const runnerPro = deriveRunnerCapabilities(await resolveRunnerBenefits(authority.creator, tx)).runnerPro;
-		if ((input.proShowAttribution !== undefined || input.standbyBackgroundColor !== undefined || input.backgroundAssetId !== undefined || input.logoAssetId !== undefined || input.message !== undefined || input.showNextBroadcastTime !== undefined) && !runnerPro) return failure("FEATURE_RESTRICTED");
+		if (changesProBranding(input) && !runnerPro) return failure("FEATURE_RESTRICTED");
 		const current = await tx.query.runnerBrandingProfilesTable.findFirst({ where: and(eq(runnerBrandingProfilesTable.ownerId, input.ownerId), eq(runnerBrandingProfilesTable.runnerId, input.runnerId)) });
 		if (input.expectedRevision !== (current?.revision ?? 0)) return failure("CONFLICT");
-		if (input.backgroundAssetId) {
-			const asset = await tx.query.runnerBrandingAssetsTable.findFirst({ where: and(eq(runnerBrandingAssetsTable.id, input.backgroundAssetId), eq(runnerBrandingAssetsTable.ownerId, input.ownerId), eq(runnerBrandingAssetsTable.kind, "background")), columns: { id: true } });
-			if (!asset) return failure("RESOURCE_UNAVAILABLE");
-		}
-		if (input.logoAssetId) {
-			const asset = await tx.query.runnerBrandingAssetsTable.findFirst({ where: and(eq(runnerBrandingAssetsTable.id, input.logoAssetId), eq(runnerBrandingAssetsTable.ownerId, input.ownerId), eq(runnerBrandingAssetsTable.kind, "logo")), columns: { id: true } });
-			if (!asset) return failure("RESOURCE_UNAVAILABLE");
-		}
-		if (current?.backgroundAssetId && input.backgroundAssetId !== undefined && input.backgroundAssetId !== current.backgroundAssetId) detachedAssetIds.push(current.backgroundAssetId);
-		if (current?.logoAssetId && input.logoAssetId !== undefined && input.logoAssetId !== current.logoAssetId) detachedAssetIds.push(current.logoAssetId);
+		if (!(await brandingAssetAvailable(tx, input.ownerId, input.backgroundAssetId, "background"))) return failure("RESOURCE_UNAVAILABLE");
+		if (!(await brandingAssetAvailable(tx, input.ownerId, input.logoAssetId, "logo"))) return failure("RESOURCE_UNAVAILABLE");
+		detachedAssetIds.push(...detachedBrandingAssets(current, input));
 
 		const [row] = current
 			? await tx
 					.update(runnerBrandingProfilesTable)
-					.set({
-						watermarkCorner: input.watermarkCorner,
-						...(input.proShowAttribution !== undefined ? { proShowAttribution: input.proShowAttribution } : {}),
-						...(input.standbyBackgroundColor !== undefined ? { standbyBackgroundColor: input.standbyBackgroundColor } : {}),
-						...(input.backgroundAssetId !== undefined ? { backgroundAssetId: input.backgroundAssetId } : {}),
-						...(input.logoAssetId !== undefined ? { logoAssetId: input.logoAssetId } : {}),
-						...(input.message !== undefined ? { message: input.message } : {}),
-						...(input.showNextBroadcastTime !== undefined ? { showNextBroadcastTime: input.showNextBroadcastTime } : {}),
-						revision: current.revision + 1,
-						updatedAt: new Date(),
-					})
+					.set({ ...brandingChanges(input), revision: current.revision + 1, updatedAt: new Date() })
 					.where(and(eq(runnerBrandingProfilesTable.id, current.id), eq(runnerBrandingProfilesTable.revision, input.expectedRevision)))
 					.returning()
-			: await tx
-					.insert(runnerBrandingProfilesTable)
-					.values({ ownerId: input.ownerId, runnerId: input.runnerId, watermarkCorner: input.watermarkCorner, proShowAttribution: input.proShowAttribution ?? false, standbyBackgroundColor: input.standbyBackgroundColor ?? "#000000", backgroundAssetId: input.backgroundAssetId ?? null, logoAssetId: input.logoAssetId ?? null, message: input.message ?? "", showNextBroadcastTime: input.showNextBroadcastTime ?? false })
-					.returning();
+			: await tx.insert(runnerBrandingProfilesTable).values(initialBrandingValues(input)).returning();
 		if (!row) return failure("CONFLICT");
 		authority.assertAuthorityCurrent();
 		return { success: true as const, profile: { id: row.id, watermarkCorner: row.watermarkCorner, proShowAttribution: row.proShowAttribution, standbyBackgroundColor: row.standbyBackgroundColor, backgroundAssetId: row.backgroundAssetId, logoAssetId: row.logoAssetId, message: row.message, showNextBroadcastTime: row.showNextBroadcastTime, revision: row.revision } };

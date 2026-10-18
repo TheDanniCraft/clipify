@@ -138,7 +138,7 @@ export async function runRunnerAdmissionProbe(input: Parameters<typeof runRunner
 			return { occupied, desiredRunning };
 		};
 
-		if (["admission_emergency_stop", "admission_emergency_snapshot_race"].includes(input.variant)) {
+		async function observeEmergencyStop() {
 			const { call } = await runRunnerFreeProProbe(input);
 			await call("control_stream_session", { sessionId: sessionIds[0], expectedRevision: 1, state: "running" });
 			const initial = (await input.fixture.pool.query("SELECT * FROM runner_broadcast_admissions WHERE session_id=$1", [sessionIds[0]])).rows[0];
@@ -175,7 +175,8 @@ export async function runRunnerAdmissionProbe(input: Parameters<typeof runRunner
 			const delivered = { status: heartbeat.status, stopMode: job?.stopMode, command: job?.command, matchingAdmission: job?.admissionId === initial.id, matchingGeneration: job?.executionGeneration === initial.execution_generation, commandIdPresent: typeof job?.commandId === "string" && /^[0-9a-f-]{36}$/i.test(job.commandId), noOutputCredentials: job?.overlaySecret === "" && job?.streamKey === null };
 			return { accepted: stopped.result?.structuredContent?.accepted === true, applied: stopped.result?.structuredContent?.applied, admissionState: admission.state, stopMode: admission.stop_mode, generationRetained: admission.execution_generation === initial.execution_generation, closed: admission.stopped_at !== null, session, delivered, ...(await inspect()) };
 		}
-		if (input.variant.startsWith("admission_lease_")) {
+		if (["admission_emergency_stop", "admission_emergency_snapshot_race"].includes(input.variant)) return await observeEmergencyStop();
+		async function observeExecutionLease() {
 			const credentialBound = input.variant === "admission_lease_key_binding";
 			const fixtureStreamKey = "private-canonical-target-fixture";
 			if (credentialBound) {
@@ -203,7 +204,7 @@ export async function runRunnerAdmissionProbe(input: Parameters<typeof runRunner
 				claims = verifyExecutionBundle(job.lease, { [job.lease.keyId]: publicKey.export({ type: "spki", format: "pem" }).toString() }, expected, decoded.issuedAt) ?? undefined;
 				verified = claims !== undefined;
 			}
-			if (credentialBound) {
+			async function observeCredentialBinding() {
 				const { createHash } = await import("node:crypto");
 				const decoded = job.lease ? JSON.parse(Buffer.from(job.lease.payload, "base64url").toString("utf8")) : {};
 				const expectedHash = createHash("sha256")
@@ -211,7 +212,8 @@ export async function runRunnerAdmissionProbe(input: Parameters<typeof runRunner
 					.digest("hex");
 				return { status: response.status, verified, actualTargetBound: decoded.targetHash === expectedHash, sourceBound: decoded.sourceId === overlayId, secretExcluded: !JSON.stringify(decoded).includes(fixtureStreamKey), ...(await inspect()) };
 			}
-			if (input.variant === "admission_lease_normal_replay" && claims) {
+			if (credentialBound) return await observeCredentialBinding();
+			async function observeTerminalReplay() {
 				const heartbeat = async (executions: unknown[] = []) => POST(new Request(input.origin + "/api/runner/heartbeat", { method: "POST", headers: { Authorization: "Bearer private-admission-device-0", "Content-Type": "application/json" }, body: JSON.stringify({ protocolVersion: 2, capabilities: ["admissions", "drain", "runner_presentation", "free_lease"], requestId: randomUUID(), executions }) }));
 				const oldReceipt = { admissionId: before.id, sessionId: sessionIds[0], executionGeneration: before.execution_generation, leaseId: stored.lease_id, configurationRevision: 2, state: "stopped", allOutputsClosed: true };
 				const closed = await heartbeat([oldReceipt]);
@@ -231,10 +233,11 @@ export async function runRunnerAdmissionProbe(input: Parameters<typeof runRunner
 					after = await snapshot();
 				return { closedStatus: closed.status, startedAgain: startedAgain.result?.structuredContent?.accepted === true, nextAttemptPresent: true, differentGeneration: nextAttempt.execution_generation !== before.execution_generation, dispatchedStatus: dispatched.status, activeStatus: active.status, replayStatus: replayed.status, unchanged: JSON.stringify(prior) === JSON.stringify(after), after, ...(await inspect()) };
 			}
-			if (input.variant.startsWith("admission_lease_boundary_") && claims) {
+			if (input.variant === "admission_lease_normal_replay" && claims) return await observeTerminalReplay();
+			async function observeLeaseBoundary(verifiedClaims: Record<string, unknown>) {
 				const boundary = input.variant.replace("admission_lease_boundary_", ""),
 					offset = boundary === "before" ? -1 : boundary === "at" ? 0 : 1;
-				const at = Number(claims.expiresAt) + offset,
+				const at = Number(verifiedClaims.expiresAt) + offset,
 					nextRequest = randomUUID(),
 					originalNow = Date.now;
 				Date.now = () => at;
@@ -254,7 +257,8 @@ export async function runRunnerAdmissionProbe(input: Parameters<typeof runRunner
 				}
 				return { status: renewed.status, validNext, state: current.state, deadlineDelta: new Date(current.lease_expires_at).getTime() - new Date(stored.lease_expires_at).getTime(), sameGeneration: current.execution_generation === stored.execution_generation, sameLease: current.lease_id === stored.lease_id, closed: current.stopped_at != null, hasOutputCredentials: !!nextJob?.overlaySecret || !!nextJob?.streamKey, ...(await inspect()) };
 			}
-			if (input.variant.startsWith("admission_lease_bad_ack_") && claims) {
+			if (input.variant.startsWith("admission_lease_boundary_") && claims) return await observeLeaseBoundary(claims);
+			async function observeInvalidAcknowledgment() {
 				const field = input.variant.replace("admission_lease_bad_ack_", "");
 				const acknowledgment: Record<string, unknown> = { admissionId: before.id, sessionId: sessionIds[0], executionGeneration: before.execution_generation, leaseId: stored.lease_id, configurationRevision: 2, state: "stopped", allOutputsClosed: true };
 				let bearer = "private-admission-device-0";
@@ -278,7 +282,8 @@ export async function runRunnerAdmissionProbe(input: Parameters<typeof runRunner
 				const after = await snapshot();
 				return { status: ack.status, unchanged: JSON.stringify(original) === JSON.stringify(after), original, after, ...(await inspect()) };
 			}
-			if (["admission_lease_stop_ack", "admission_lease_receipt_confirmation"].includes(input.variant) && claims) {
+			if (input.variant.startsWith("admission_lease_bad_ack_") && claims) return await observeInvalidAcknowledgment();
+			async function observeClosedOutputReceipt() {
 				const ack = await POST(
 					new Request(input.origin + "/api/runner/heartbeat", {
 						method: "POST",
@@ -303,7 +308,8 @@ export async function runRunnerAdmissionProbe(input: Parameters<typeof runRunner
 				}
 				return { status: ack.status, state: terminal.state, closed: terminal.stopped_at != null, reason: terminal.terminal_reason, generationRetained: terminal.execution_generation === stored.execution_generation, deadlineRetained: terminal.lease_expires_at === stored.lease_expires_at, noOutputCredentials: Array.isArray(ackBody.jobs) && ackBody.jobs.every((job: { streamKey?: string | null; overlaySecret?: string }) => job.streamKey == null && !job.overlaySecret), actual, ...(await inspect()) };
 			}
-			if (input.variant === "admission_lease_active_ack" && claims) {
+			if (["admission_lease_stop_ack", "admission_lease_receipt_confirmation"].includes(input.variant) && claims) return await observeClosedOutputReceipt();
+			async function observeActiveReceipt() {
 				const ack = await POST(
 					new Request(input.origin + "/api/runner/heartbeat", {
 						method: "POST",
@@ -315,9 +321,10 @@ export async function runRunnerAdmissionProbe(input: Parameters<typeof runRunner
 				const actual = (await input.fixture.pool.query("SELECT actual_state,desired_state,configuration_revision FROM stream_sessions WHERE id=$1", [sessionIds[0]])).rows[0];
 				return { status: ack.status, state: acknowledged.state, started: acknowledged.started_at != null, observed: acknowledged.last_observed_at != null, dispatchRetained: acknowledged.dispatched_at === stored.dispatched_at, generationRetained: acknowledged.execution_generation === stored.execution_generation, actual, ...(await inspect()) };
 			}
-			if (input.variant === "admission_lease_renew" && claims) {
+			if (input.variant === "admission_lease_active_ack" && claims) return await observeActiveReceipt();
+			async function observeLeaseRenewal(verifiedClaims: Record<string, unknown>) {
 				const renewedRequestId = randomUUID(),
-					renewAt = Number(claims.issuedAt) + 100000;
+					renewAt = Number(verifiedClaims.issuedAt) + 100000;
 				const originalNow = Date.now;
 				Date.now = () => renewAt;
 				let renewal: Response;
@@ -346,6 +353,7 @@ export async function runRunnerAdmissionProbe(input: Parameters<typeof runRunner
 					...(await inspect()),
 				};
 			}
+			if (input.variant === "admission_lease_renew" && claims) return await observeLeaseRenewal(claims);
 			return {
 				started: started.result?.structuredContent?.accepted === true,
 				status: response.status,
@@ -362,8 +370,9 @@ export async function runRunnerAdmissionProbe(input: Parameters<typeof runRunner
 				...(await inspect()),
 			};
 		}
+		if (input.variant.startsWith("admission_lease_")) return await observeExecutionLease();
 
-		if (input.variant === "admission_service_retry") {
+		async function observeServiceRetry() {
 			const { reserveBroadcastAdmission } = await import("@/server/runner/admission");
 			const session = (await input.fixture.db.query.streamSessionsTable.findMany()).find((row) => row.id === sessionIds[0])!;
 			const first = await input.fixture.db.transaction((tx) => reserveBroadcastAdmission(tx, session, { proAccess: false, runnerAccess: false }, 2));
@@ -372,8 +381,9 @@ export async function runRunnerAdmissionProbe(input: Parameters<typeof runRunner
 			if (isResourceFailure(first) || isResourceFailure(second)) throw new Error("FIXTURE_ADMISSION_UNEXPECTED_DENIAL");
 			return { sameId: first.id === second.id, sameGeneration: first.executionGeneration === second.executionGeneration, revision: second.configurationRevision, state: second.state, dispatched: second.dispatchedAt, ...(await inspect()) };
 		}
+		if (input.variant === "admission_service_retry") return await observeServiceRetry();
 
-		if (["admission_terminal_ack", "admission_terminal_wrong_generation", "admission_terminal_replay"].includes(input.variant)) {
+		async function observeTerminalAcknowledgment() {
 			const { call } = await runRunnerFreeProProbe(input);
 			const start = await call("control_stream_session", { sessionId: sessionIds[0], expectedRevision: 1, state: "running" });
 			const admissionId = start.result?.structuredContent?.admissionId,
@@ -437,7 +447,8 @@ export async function runRunnerAdmissionProbe(input: Parameters<typeof runRunner
 				safe: !JSON.stringify(ack).includes("private-admission-device-0"),
 			};
 		}
-		if (["admission_revoke_unlink", "admission_revoke_delete", "admission_revoke_twice", "admission_revoke_reserved"].includes(input.variant)) {
+		if (["admission_terminal_ack", "admission_terminal_wrong_generation", "admission_terminal_replay"].includes(input.variant)) return await observeTerminalAcknowledgment();
+		async function observeDeviceRevocation() {
 			const { call } = await runRunnerFreeProProbe(input);
 			const started = await call("control_stream_session", { sessionId: sessionIds[0], expectedRevision: 1, state: "running" });
 			const generation = started.result?.structuredContent?.executionGeneration;
@@ -471,7 +482,8 @@ export async function runRunnerAdmissionProbe(input: Parameters<typeof runRunner
 				...(await inspect()),
 			};
 		}
-		if (input.variant === "admission_public_retry") {
+		if (["admission_revoke_unlink", "admission_revoke_delete", "admission_revoke_twice", "admission_revoke_reserved"].includes(input.variant)) return await observeDeviceRevocation();
+		async function observePublicRetry() {
 			const { call } = await runRunnerFreeProProbe(input);
 			const args = { sessionId: sessionIds[0], expectedRevision: 1, state: "running" };
 			const first = await call("control_stream_session", args);
@@ -483,7 +495,8 @@ export async function runRunnerAdmissionProbe(input: Parameters<typeof runRunner
 			const afterEdit = (await input.fixture.pool.query("SELECT configuration_revision FROM stream_sessions WHERE id=$1", [sessionIds[0]])).rows[0];
 			return { first: first.result?.structuredContent, retry: retry.result?.structuredContent, afterRetry, admissions, staleAfterEditCode: staleAfterEdit.result?.structuredContent?.error?.code, afterEdit, ...(await inspect()) };
 		}
-		if (input.variant === "admission_stale_generation") {
+		if (input.variant === "admission_public_retry") return await observePublicRetry();
+		async function observeStaleGeneration() {
 			const { call } = await runRunnerFreeProProbe(input);
 			const first = await call("control_stream_session", { sessionId: sessionIds[0], expectedRevision: 1, state: "running" });
 			const oldGeneration = first.result?.structuredContent?.executionGeneration;
@@ -502,7 +515,8 @@ export async function runRunnerAdmissionProbe(input: Parameters<typeof runRunner
 			const matching = await call("control_stream_session", { sessionId: sessionIds[0], expectedRevision: 4, executionGeneration: generation, state: "stopped" });
 			return { differentGenerations: oldGeneration !== generation, staleCode: stale.result?.structuredContent?.error?.code, unchanged: JSON.stringify(before) === JSON.stringify(after), currentGenerationRetained: after.admission?.execution_generation === generation, matchingAccepted: matching.result?.structuredContent?.accepted === true, ...(await inspect()) };
 		}
-		if (["admission_cancel_reserved", "admission_stop_dispatched", "admission_restart_draining"].includes(input.variant)) {
+		if (input.variant === "admission_stale_generation") return await observeStaleGeneration();
+		async function observeStopLifecycle() {
 			const { call } = await runRunnerFreeProProbe(input);
 			const started = await call("control_stream_session", { sessionId: sessionIds[0], expectedRevision: 1, state: "running" });
 			const initial = (await input.fixture.pool.query("SELECT id,execution_generation,state,dispatched_at FROM runner_broadcast_admissions WHERE session_id=$1", [sessionIds[0]])).rows[0];
@@ -540,7 +554,8 @@ export async function runRunnerAdmissionProbe(input: Parameters<typeof runRunner
 				...(await inspect()),
 			};
 		}
-		if (input.variant === "failed_before_output") {
+		if (["admission_cancel_reserved", "admission_stop_dispatched", "admission_restart_draining"].includes(input.variant)) return await observeStopLifecycle();
+		async function observeFailureBeforeOutput() {
 			await input.fixture.pool.query("UPDATE stream_sessions SET rtmp_url='rtmp://live.twitch.tv/app',encrypted_stream_key=NULL WHERE id=$1", [sessionIds[0]]);
 			const { call } = await runRunnerFreeProProbe(input);
 			const failed = await call("control_stream_session", { sessionId: sessionIds[0], expectedRevision: 1, state: "running" });
@@ -551,7 +566,8 @@ export async function runRunnerAdmissionProbe(input: Parameters<typeof runRunner
 			const writes = Number((await input.fixture.pool.query("SELECT count(*) FROM audit_events WHERE action='sensitive-integration:mcp.control_stream_session' AND outcome='success'")).rows[0].count);
 			return { failureCode: failed.result?.structuredContent?.error?.code, afterFailure, failedSession, retryAccepted: retry.result?.structuredContent?.accepted === true, retryApplied: retry.result?.structuredContent?.applied, onlyRetryReserved: admissions.length === 1 && admissions[0].session_id === sessionIds[1] && admissions[0].state === "reserved" && admissions[0].dispatched_at === null, writes, ...(await inspect()), safe: !JSON.stringify([failed, retry]).includes("private-admission-") };
 		}
-		if (input.variant.startsWith("occupied_")) {
+		if (input.variant === "failed_before_output") return await observeFailureBeforeOutput();
+		async function observeOccupiedAdmission() {
 			const proOperator = input.variant === "occupied_policy-agency-pro-operator";
 			if (proOperator) {
 				await input.fixture.pool.query("INSERT INTO auth.organization(id,name,slug,created_at) VALUES('actor-personal-org','Personal Pro','actor-personal-pro',now()); INSERT INTO users(id,email,username,avatar,role,plan) VALUES('actor-personal','personal@example.invalid','Personal Pro','','user','pro'); INSERT INTO creator_accounts(creator_id,organization_id,status) VALUES('actor-personal','actor-personal-org','active')");
@@ -566,7 +582,7 @@ export async function runRunnerAdmissionProbe(input: Parameters<typeof runRunner
 			await input.fixture.pool.query("INSERT INTO runner_broadcast_admissions(id,owner_id,runner_id,session_id,execution_generation,state,configuration_revision,benefits_at_start,dispatched_at,started_at) VALUES($1,'fixture-creator',$2,$3,$4,'active',1,$5,now(),now())", [admissionId, runnerIds[0], sessionIds[0], randomUUID(), JSON.stringify(deriveRunnerCapabilities({ proAccess: false, runnerAccess: false }))]);
 			const holder = async () => (await input.fixture.pool.query("SELECT a.state,a.execution_generation,a.configuration_revision,s.desired_state,s.actual_state FROM runner_broadcast_admissions a JOIN stream_sessions s ON s.id=a.session_id WHERE a.id=$1", [admissionId])).rows[0];
 
-			if (input.variant.startsWith("occupied_lease_")) {
+			async function observeExpiredLeaseRecovery() {
 				const clock = Date.now();
 				const record = (await input.fixture.pool.query("SELECT to_jsonb(a) AS record FROM runner_broadcast_admissions a WHERE id=$1", [admissionId])).rows[0].record;
 				const leaseStorageAvailable = Object.hasOwn(record, "lease_expires_at") && Object.hasOwn(record, "protocol_supports_lease");
@@ -591,6 +607,7 @@ export async function runRunnerAdmissionProbe(input: Parameters<typeof runRunner
 				const terminal = (await input.fixture.pool.query("SELECT to_jsonb(a) AS record FROM runner_broadcast_admissions a WHERE id=$1", [admissionId])).rows[0].record;
 				return { leaseStorageAvailable, accepted: result.result?.structuredContent?.accepted === true, code: result.result?.structuredContent?.error?.code, terminal, ...(await inspect()) };
 			}
+			if (input.variant.startsWith("occupied_lease_")) return await observeExpiredLeaseRecovery();
 			let nonLeasedLegacy: boolean | undefined;
 			if (input.variant === "occupied_legacy_no_lease") {
 				await input.fixture.pool.query("UPDATE runners SET status='offline',last_heartbeat_at=now()-interval '2 hours',protocol_version=1,capabilities='[]' WHERE id=$1", [runnerIds[0]]);
@@ -647,6 +664,7 @@ export async function runRunnerAdmissionProbe(input: Parameters<typeof runRunner
 				safe: !JSON.stringify(result).includes("private-admission-"),
 			};
 		}
+		if (input.variant.startsWith("occupied_")) return await observeOccupiedAdmission();
 		if (["admission_lock", "admission_service_lock", "admission_service_pro"].includes(input.variant)) {
 			const { controlStreamSession } = await import("@/server/resources/runners");
 			const principal = { kind: "session" as const, authUserId: input.actorId, sessionId: "fixture-controlled-session", authenticatedAt: new Date(), organizationId: "creator-org" };

@@ -44,7 +44,28 @@ test("TDD-US1-FR004: invalid records cannot replace durable closure proof", () =
 		const journal = new ExecutionJournal(directory),
 			receipt = executionRecord();
 		journal.save(receipt);
-		const invalid = [null, [], { ...receipt, runnerId: "invalid" }, { ...receipt, ownerId: "" }, { ...receipt, ownerId: "x".repeat(257) }, { ...receipt, configurationRevision: 0 }, { ...receipt, configurationRevision: 1.5 }, { ...receipt, updatedAt: -1 }, { ...receipt, updatedAt: NaN }, { ...receipt, state: "unknown" }, { ...receipt, allOutputsClosed: undefined }];
+		const occurrence = { occurrenceId: "captured-occurrence", start: 1000, end: 2000 };
+		const invalid = [
+			{ ...receipt, playbackOutcome: "invented" },
+			{ ...receipt, state: "pending", allOutputsClosed: undefined },
+			{ ...receipt, occurrence: null },
+			{ ...receipt, occurrence: [] },
+			{ ...receipt, occurrence: { ...occurrence, occurrenceId: "" } },
+			{ ...receipt, occurrence: { ...occurrence, end: 1000 } },
+			{ ...receipt, occurrence: { ...occurrence, suppressed: "yes" } },
+			{ ...receipt, occurrence: { ...occurrence, explicitResume: false } },
+			null,
+			[],
+			{ ...receipt, runnerId: "invalid" },
+			{ ...receipt, ownerId: "" },
+			{ ...receipt, ownerId: "x".repeat(257) },
+			{ ...receipt, configurationRevision: 0 },
+			{ ...receipt, configurationRevision: 1.5 },
+			{ ...receipt, updatedAt: -1 },
+			{ ...receipt, updatedAt: NaN },
+			{ ...receipt, state: "unknown" },
+			{ ...receipt, allOutputsClosed: undefined },
+		];
 		for (const value of invalid) {
 			expect(() => journal.save(value as ExecutionRecord)).toThrow();
 			expect(new ExecutionJournal(directory).pendingTerminals()).toEqual([receipt]);

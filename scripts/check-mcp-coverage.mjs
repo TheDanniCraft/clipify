@@ -92,12 +92,29 @@ export function readMcpSourceManifest() {
 	return { feature, critical, strictCritical: runner.critical };
 }
 
+function nonemptyStringList(value) {
+	return Array.isArray(value) && value.length > 0 && value.every((path) => typeof path === "string");
+}
+function validSourceManifest(manifest) {
+	return object(manifest) && nonemptyStringList(manifest.feature) && nonemptyStringList(manifest.critical) && manifest.critical.every((path) => manifest.feature.includes(path));
+}
+function validStrictCriticalManifest(manifest) {
+	return manifest.strictCritical === undefined || (Array.isArray(manifest.strictCritical) && manifest.strictCritical.every((path) => typeof path === "string" && manifest.critical.includes(path)));
+}
+function checkSourceThresholds(summary, path, critical, strictCritical, errors) {
+	const thresholds = { statements: strictCritical.has(path) ? 95 : 90, functions: strictCritical.has(path) ? 95 : 90, lines: critical.has(path) ? 95 : 90, branches: critical.has(path) ? 90 : 85 };
+	for (const [metric, threshold] of Object.entries(thresholds)) {
+		const percentage = summary[metric].total === 0 ? 100 : summary[metric].pct;
+		if (typeof percentage !== "number" || !Number.isFinite(percentage) || percentage < threshold) errors.push(`${path}: ${metric} ${percentage}% is below ${threshold}%`);
+	}
+}
+
 /** Required files and raw executable counters determine coverage; reported percentages are ignored. */
 export function evaluateMcpCoverage(report, manifest = readMcpSourceManifest()) {
 	const errors = [];
 	if (!object(report)) return { ok: false, errors: ["Coverage JSON must contain an Istanbul file map"] };
-	if (!object(manifest) || !Array.isArray(manifest.feature) || !manifest.feature.length || !Array.isArray(manifest.critical) || !manifest.critical.length || ![...manifest.feature, ...manifest.critical].every((path) => typeof path === "string") || manifest.critical.some((path) => !manifest.feature.includes(path))) return { ok: false, errors: ["Required feature and critical source manifests must be nonempty and consistent"] };
-	if (manifest.strictCritical !== undefined && (!Array.isArray(manifest.strictCritical) || manifest.strictCritical.some((path) => typeof path !== "string" || !manifest.critical.includes(path)))) return { ok: false, errors: ["Strict critical sources must belong to the critical inventory"] };
+	if (!validSourceManifest(manifest)) return { ok: false, errors: ["Required feature and critical source manifests must be nonempty and consistent"] };
+	if (!validStrictCriticalManifest(manifest)) return { ok: false, errors: ["Strict critical sources must belong to the critical inventory"] };
 	const source = new Map(Object.entries(report).map(([path, value]) => [normalize(path), value]));
 	const files = {};
 	const collected = createCoverageMap({});
@@ -119,11 +136,7 @@ export function evaluateMcpCoverage(report, manifest = readMcpSourceManifest()) 
 			collected.addFileCoverage(coverage);
 			const summary = coverage.toSummary().toJSON();
 			files[path] = summary;
-			const thresholds = { statements: strictCritical.has(path) ? 95 : 90, functions: strictCritical.has(path) ? 95 : 90, lines: critical.has(path) ? 95 : 90, branches: critical.has(path) ? 90 : 85 };
-			for (const [metric, threshold] of Object.entries(thresholds)) {
-				const percentage = summary[metric].total === 0 ? 100 : summary[metric].pct;
-				if (typeof percentage !== "number" || !Number.isFinite(percentage) || percentage < threshold) errors.push(`${path}: ${metric} ${percentage}% is below ${threshold}%`);
-			}
+			checkSourceThresholds(summary, path, critical, strictCritical, errors);
 		} catch {
 			errors.push(`Invalid executable source coverage: ${path}`);
 		}

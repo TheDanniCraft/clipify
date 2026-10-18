@@ -3,7 +3,7 @@ import "server-only";
 import { randomUUID, sign } from "node:crypto";
 import { runnerSigningKey as signingKey } from "./signing";
 import { and, desc, eq, inArray } from "drizzle-orm";
-import { db, type DatabaseClient, type QueryClient } from "@/db/client";
+import { db, type DatabaseClient, type QueryClient, type TransactionClient } from "@/db/client";
 import { runnersTable, streamSessionsTable, runnerBroadcastAdmissionsTable, overlaysTable, usersTable } from "@/db/schema";
 import { StreamState } from "@types";
 import { hashExecutionTargets } from "../../../packages/runner/src/protocol";
@@ -30,6 +30,25 @@ export async function issueRunnerBenefitSnapshot(runner: Pick<typeof runnersTabl
 		const payload = Buffer.from(JSON.stringify(claims)).toString("base64url");
 		return { keyId, payload, signature: sign(null, Buffer.from(payload), key).toString("base64url") };
 	});
+}
+
+async function capturedExecutionTargets(admission: AdmissionRow, session: SessionRow) {
+	const { decryptString } = await import("@/app/lib/encryption");
+	const streamKey = session.encryptedStreamKey ? decryptString(session.encryptedStreamKey) : null;
+	if (session.encryptedStreamKey && !streamKey) return null;
+	let destinations: { id: string; name?: string; provider?: string; rtmpUrl: string; streamKey: string | null }[] | undefined;
+	if (admission.encryptedTargetsSnapshot) {
+		const decoded = decryptString(admission.encryptedTargetsSnapshot);
+		if (!decoded) return null;
+		try {
+			const snapshot = JSON.parse(decoded);
+			if (snapshot.version !== 1 || !Array.isArray(snapshot.destinations) || !snapshot.destinations.length) return null;
+			destinations = snapshot.destinations;
+		} catch {
+			return null;
+		}
+	}
+	return { streamKey, destinations };
 }
 
 /** A returned permit is usable only after the owner-locked transaction commits.
@@ -116,21 +135,9 @@ export async function issueFreeExecutionLease(runner: Pick<typeof runnersTable.$
 		const currentPaidEnd = currentPaidPolicy?.validUntil ? Date.parse(currentPaidPolicy.validUntil) : null;
 		const leaseId = admission.leaseId ?? randomUUID(),
 			expiresAt = currentPaidEnd !== null ? Math.min(now + 300000, currentPaidEnd) : now + 300000;
-		const { decryptString } = await import("@/app/lib/encryption");
-		const streamKey = session.encryptedStreamKey ? decryptString(session.encryptedStreamKey) : null;
-		if (session.encryptedStreamKey && !streamKey) return null;
-		let destinations: { id: string; name?: string; provider?: string; rtmpUrl: string; streamKey: string | null }[] | undefined;
-		if (admission.encryptedTargetsSnapshot) {
-			const decoded = decryptString(admission.encryptedTargetsSnapshot);
-			if (!decoded) return null;
-			try {
-				const snapshot = JSON.parse(decoded);
-				if (snapshot.version !== 1 || !Array.isArray(snapshot.destinations) || !snapshot.destinations.length) return null;
-				destinations = snapshot.destinations;
-			} catch {
-				return null;
-			}
-		}
+		const targets = await capturedExecutionTargets(admission, session);
+		if (!targets) return null;
+		const { streamKey, destinations } = targets;
 		const targetHash = hashExecutionTargets(destinations ?? [{ id: session.id, rtmpUrl: session.rtmpUrl, streamKey }]);
 		const occurrence = paid && admission.occurrenceId && typeof admission.benefitsAtStart.scheduledStart === "number" ? { occurrenceId: admission.occurrenceId, scheduledStart: admission.benefitsAtStart.scheduledStart } : {};
 		const claims = {
@@ -174,6 +181,33 @@ export async function readRunnerOutputStates(client: QueryClient, ownerId: strin
 	return new Map(rows.filter((row) => row.sessionId !== null).map((row) => [row.sessionId!, row.outputs ?? []]));
 }
 export type FreeExecutionAcknowledgment = { admissionId: string; sessionId: string; executionGeneration: string; leaseId: string; configurationRevision: number } & ({ state: "active"; outputs?: RunnerOutputObservation[] } | { state: "draining" } | { state: "stopped"; allOutputsClosed: true; playbackOutcome?: "clip_completed" | "playback_timeout" });
+type AdmissionRow = typeof runnerBroadcastAdmissionsTable.$inferSelect;
+type SessionRow = typeof streamSessionsTable.$inferSelect;
+type RunnerIdentity = Pick<typeof runnersTable.$inferSelect, "id" | "ownerId" | "token">;
+async function acknowledgeStoppedOutput(tx: TransactionClient, runner: RunnerIdentity, ack: Extract<FreeExecutionAcknowledgment, { state: "stopped" }>, session: SessionRow, admission: AdmissionRow, now: Date) {
+	// Terminal replay must never stop a newer execution of the same session.
+	if (ack.allOutputsClosed !== true) return false;
+
+	if (admission.state === "stopped") return true;
+	await tx
+		.update(runnerBroadcastAdmissionsTable)
+		.set({ state: "stopped", stoppedAt: now, lastObservedAt: now, terminalReason: ack.playbackOutcome === "playback_timeout" ? "playback_timeout" : "all_outputs_closed" })
+		.where(and(eq(runnerBroadcastAdmissionsTable.id, admission.id), eq(runnerBroadcastAdmissionsTable.ownerId, runner.ownerId)));
+	const [otherOutput] = await tx
+		.select({ id: runnerBroadcastAdmissionsTable.id })
+		.from(runnerBroadcastAdmissionsTable)
+		.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, runner.ownerId), eq(runnerBroadcastAdmissionsTable.sessionId, session.id), inArray(runnerBroadcastAdmissionsTable.state, ["reserved", "starting", "active", "draining", "uncertain"])))
+		.limit(1)
+		.for("update");
+	if (!otherOutput) {
+		await tx
+			.update(streamSessionsTable)
+			.set({ ...(ack.playbackOutcome === "playback_timeout" ? { lastError: PLAYBACK_TIMEOUT_MESSAGE } : {}), actualState: StreamState.Stopped, desiredState: StreamState.Stopped, configurationRevision: session.configurationRevision + (session.desiredState === StreamState.Running ? 1 : 0) })
+			.where(and(eq(streamSessionsTable.id, session.id), eq(streamSessionsTable.ownerId, runner.ownerId)));
+	}
+	return true;
+}
+
 /** Session-only telemetry cannot apply or release a new-policy Free execution. */
 export async function acknowledgeFreeExecutions(runner: Pick<typeof runnersTable.$inferSelect, "id" | "ownerId" | "token">, acknowledgments: readonly FreeExecutionAcknowledgment[], client: QueryClient = db, clock: () => number = Date.now) {
 	return client.transaction(async (tx) => {
@@ -203,26 +237,7 @@ export async function acknowledgeFreeExecutions(runner: Pick<typeof runnersTable
 			const now = new Date(clock());
 			if (!admission || admission.revokedAt || !admission.dispatchedAt || !admission.protocolSupportsLease || admission.leaseId !== ack.leaseId || admission.configurationRevision !== ack.configurationRevision || !admission.leaseExpiresAt) continue;
 			if (ack.state === "stopped") {
-				// Terminal replay must never stop a newer execution of the same session.
-				if (ack.allOutputsClosed !== true) continue;
-				accepted.push({ admissionId: admission.id, executionGeneration: admission.executionGeneration, state: "stopped" });
-				if (admission.state === "stopped") continue;
-				await tx
-					.update(runnerBroadcastAdmissionsTable)
-					.set({ state: "stopped", stoppedAt: now, lastObservedAt: now, terminalReason: ack.playbackOutcome === "playback_timeout" ? "playback_timeout" : "all_outputs_closed" })
-					.where(and(eq(runnerBroadcastAdmissionsTable.id, admission.id), eq(runnerBroadcastAdmissionsTable.ownerId, runner.ownerId)));
-				const [otherOutput] = await tx
-					.select({ id: runnerBroadcastAdmissionsTable.id })
-					.from(runnerBroadcastAdmissionsTable)
-					.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, runner.ownerId), eq(runnerBroadcastAdmissionsTable.sessionId, session.id), inArray(runnerBroadcastAdmissionsTable.state, ["reserved", "starting", "active", "draining", "uncertain"])))
-					.limit(1)
-					.for("update");
-				if (!otherOutput) {
-					await tx
-						.update(streamSessionsTable)
-						.set({ ...(ack.playbackOutcome === "playback_timeout" ? { lastError: PLAYBACK_TIMEOUT_MESSAGE } : {}), actualState: StreamState.Stopped, desiredState: StreamState.Stopped, configurationRevision: session.configurationRevision + (session.desiredState === StreamState.Running ? 1 : 0) })
-						.where(and(eq(streamSessionsTable.id, session.id), eq(streamSessionsTable.ownerId, runner.ownerId)));
-				}
+				if (await acknowledgeStoppedOutput(tx, runner, ack, session, admission, now)) accepted.push({ admissionId: admission.id, executionGeneration: admission.executionGeneration, state: "stopped" });
 				continue;
 			}
 			if (ack.state === "draining") {

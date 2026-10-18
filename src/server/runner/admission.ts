@@ -37,6 +37,39 @@ export async function recognizeLegacyBroadcasts(tx: TransactionClient, ownerId: 
 	return recognized;
 }
 
+type Admission = typeof runnerBroadcastAdmissionsTable.$inferSelect;
+async function recoverExpiredAdmissions(tx: TransactionClient, ownerId: string, occupied: Admission[], recoveryNow: number) {
+	// Supported Free leases and explicitly bounded cached Scheduled authority prove a stop.
+	// The owner lock also serializes renewal; heartbeat age is deliberately irrelevant.
+	const recoveryTime = new Date(recoveryNow);
+	const recovered = new Set<string>();
+	for (const admission of occupied) {
+		const cachedScheduled = admission.benefitsAtStart.cacheAuthorization === true && admission.benefitsAtStart.runnerPro === true && admission.scheduledEnd !== null;
+		if ((admission.benefitsAtStart.runnerPro !== false && !cachedScheduled) || !admission.protocolSupportsLease || !admission.leaseId || !admission.leaseExpiresAt || !admission.dispatchedAt) continue;
+		const deadline = cachedScheduled ? Math.max(admission.leaseExpiresAt.getTime(), admission.scheduledEnd!.getTime()) : admission.leaseExpiresAt.getTime();
+		if (deadline + 305000 > recoveryNow) continue;
+		await tx
+			.update(runnerBroadcastAdmissionsTable)
+			.set({ state: "stopped", stoppedAt: recoveryTime, recoveredAt: recoveryTime, terminalReason: "lease_recovered" })
+			.where(and(eq(runnerBroadcastAdmissionsTable.id, admission.id), eq(runnerBroadcastAdmissionsTable.ownerId, ownerId)));
+		if (admission.sessionId) {
+			const [otherOutput] = await tx
+				.select({ id: runnerBroadcastAdmissionsTable.id })
+				.from(runnerBroadcastAdmissionsTable)
+				.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, ownerId), eq(runnerBroadcastAdmissionsTable.sessionId, admission.sessionId), inArray(runnerBroadcastAdmissionsTable.state, ["reserved", "starting", "active", "draining", "uncertain"])))
+				.limit(1)
+				.for("update");
+			if (!otherOutput)
+				await tx
+					.update(streamSessionsTable)
+					.set({ desiredState: StreamState.Stopped, actualState: StreamState.Stopped })
+					.where(and(eq(streamSessionsTable.id, admission.sessionId), eq(streamSessionsTable.ownerId, ownerId)));
+		}
+		recovered.add(admission.id);
+	}
+	return occupied.filter((admission) => !recovered.has(admission.id));
+}
+
 /** Every admission is committed under the resource owner's lock, never device health. */
 export async function reserveBroadcastAdmission(tx: TransactionClient, session: typeof streamSessionsTable.$inferSelect, benefits: RunnerBenefitInput, configurationRevision: number, scheduleEventId?: string, clock: () => number = Date.now) {
 	await tx.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, session.ownerId)).limit(1).for("update");
@@ -48,36 +81,8 @@ export async function reserveBroadcastAdmission(tx: TransactionClient, session: 
 		.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, session.ownerId), notInArray(runnerBroadcastAdmissionsTable.state, ["stopped", "failed_before_output"])))
 		.orderBy(asc(runnerBroadcastAdmissionsTable.id))
 		.for("update");
-	// Supported Free leases and explicitly bounded cached Scheduled authority prove a stop.
-	// The owner lock also serializes renewal; heartbeat age is deliberately irrelevant.
 	const recoveryNow = clock();
-	const recoveryTime = new Date(recoveryNow);
-	const recovered = new Set<string>();
-	for (const admission of occupied) {
-		const cachedScheduled = admission.benefitsAtStart.cacheAuthorization === true && admission.benefitsAtStart.runnerPro === true && admission.scheduledEnd !== null;
-		if ((admission.benefitsAtStart.runnerPro !== false && !cachedScheduled) || !admission.protocolSupportsLease || !admission.leaseId || !admission.leaseExpiresAt || !admission.dispatchedAt) continue;
-		const deadline = cachedScheduled ? Math.max(admission.leaseExpiresAt.getTime(), admission.scheduledEnd!.getTime()) : admission.leaseExpiresAt.getTime();
-		if (deadline + 305000 > recoveryNow) continue;
-		await tx
-			.update(runnerBroadcastAdmissionsTable)
-			.set({ state: "stopped", stoppedAt: recoveryTime, recoveredAt: recoveryTime, terminalReason: "lease_recovered" })
-			.where(and(eq(runnerBroadcastAdmissionsTable.id, admission.id), eq(runnerBroadcastAdmissionsTable.ownerId, session.ownerId)));
-		if (admission.sessionId) {
-			const [otherOutput] = await tx
-				.select({ id: runnerBroadcastAdmissionsTable.id })
-				.from(runnerBroadcastAdmissionsTable)
-				.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, session.ownerId), eq(runnerBroadcastAdmissionsTable.sessionId, admission.sessionId), inArray(runnerBroadcastAdmissionsTable.state, ["reserved", "starting", "active", "draining", "uncertain"])))
-				.limit(1)
-				.for("update");
-			if (!otherOutput)
-				await tx
-					.update(streamSessionsTable)
-					.set({ desiredState: StreamState.Stopped, actualState: StreamState.Stopped })
-					.where(and(eq(streamSessionsTable.id, admission.sessionId), eq(streamSessionsTable.ownerId, session.ownerId)));
-		}
-		recovered.add(admission.id);
-	}
-	occupied = occupied.filter((admission) => !recovered.has(admission.id));
+	occupied = await recoverExpiredAdmissions(tx, session.ownerId, occupied, recoveryNow);
 	const unknownCachedOutput = occupied.some((admission) => admission.sessionId === session.id && admission.state === "authorized" && admission.benefitsAtStart.cacheAuthorization === true && typeof admission.benefitsAtStart.scheduledStart === "number" && admission.benefitsAtStart.scheduledStart <= recoveryNow);
 	if (unknownCachedOutput) return resourceFailure("RUNNER_RECOVERY_REQUIRED");
 	const existing = occupied.find((admission) => admission.sessionId === session.id && admission.state !== "authorized");

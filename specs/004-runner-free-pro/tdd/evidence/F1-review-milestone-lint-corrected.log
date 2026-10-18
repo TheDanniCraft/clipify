@@ -1,0 +1,20 @@
+$ eslint .
+
+/home/coder/clipify/packages/runner/test/support/native-os-shim.mjs
+  7:1  warning  Assign object to a variable before exporting as module default  import/no-anonymous-default-export
+
+/home/coder/clipify/packages/video/scripts/clipify-showcase/generate-soundtrack.mjs
+  134:7  warning  'dun' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/coder/clipify/src/app/components/creator/CreatorPageClient.tsx
+  217:8   warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  291:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/home/coder/clipify/src/app/components/gallery/GalleryFrame.tsx
+  30:5  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/home/coder/clipify/src/app/components/gallery/GalleryPlayer.tsx
+  293:78  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+✖ 6 problems (0 errors, 6 warnings)
+
