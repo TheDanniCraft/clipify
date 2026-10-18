@@ -20,4 +20,4 @@ mkdir -p /tmp/clipify-runner-review-evidence
 tar -xzf specs/004-runner-free-pro/tdd/review-evidence.tar.gz -C /tmp/clipify-runner-review-evidence
 ```
 
-The three SHA256 CodeQL findings remain open until their reviewed disposition is accepted. Archived failing runs, setup failures and deliberately mutated executions never count as passing qualification.
+CodeFactor is clear and complete runtime CI passes on `4be68ca3`. The three SHA256 CodeQL findings remain open because automatic approval review rejected external dismissal without explicit authorization; the exact proposal and current triage are tracked alongside this document. Archived failing runs, setup failures and deliberately mutated executions never count as passing qualification.

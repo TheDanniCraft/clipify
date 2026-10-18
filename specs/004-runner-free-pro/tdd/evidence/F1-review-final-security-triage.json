@@ -1,0 +1,189 @@
+{
+  "schema_version": "triage-finding/v0",
+  "repository": {
+    "path": "/home/coder/clipify",
+    "revision": "4be68ca38f0057eb783685894ad7f02e0ae2c091"
+  },
+  "findings": [
+    {
+      "triage_item_id": "triage-final-001",
+      "input_id": "26",
+      "source_type": "scanner_ticket",
+      "title": "Use of password hash with insufficient computational effort",
+      "normalized_input": {
+        "vulnerable_component": "packages/runner/src/terminal-credentials.ts",
+        "claimed_source": "OS keyring getPassword result",
+        "claimed_sink": "SHA-256 digest",
+        "claimed_control": "password work factor",
+        "affected_version_or_path": "packages/runner/src/terminal-credentials.ts",
+        "preconditions": [
+          "Credential stored in OS keyring"
+        ],
+        "impact": "claimed offline password guessing",
+        "references": [
+          "https://github.com/TheDanniCraft/clipify/security/code-scanning/26"
+        ]
+      },
+      "verdict": "not_actionable",
+      "confidence": "high",
+      "affected_locations": [
+        {
+          "label": "reported sink",
+          "path": "packages/runner/src/terminal-credentials.ts",
+          "lines": "62-62",
+          "detail": "Credential identifier or signed cache integrity digest, not a password verifier"
+        }
+      ],
+      "reachable_path": [
+        "Server generates 192-bit random Runner bearer (resources/runners.ts:139,199)",
+        "Native storage retains bearer in keyring",
+        "Digest identifies local cache/terminal record; original bearer still required for Authorization"
+      ],
+      "boundary_assessment": {
+        "product_surface": "CLI",
+        "source_trust": "local_only",
+        "boundary_crossed": false,
+        "policy_basis": "SECURITY.md; src/server/resources/runners.ts; packages/runner/src/storage.ts; terminal-delivery.ts; schedule-cache.ts signed manifest validation; native build/fixture entrypoints"
+      },
+      "exploitability_stack_rank": {
+        "rank_queue": null,
+        "rank": null,
+        "rationale": "Static evidence defeats password-verifier/code-injection claim",
+        "drivers": []
+      },
+      "evidence": [
+        "Bearer enrollment/rotation uses randomBytes(24).",
+        "Fingerprints are not accepted as authentication credentials.",
+        "Schedule restore separately verifies server-signed manifests and complete execution payload bindings."
+      ],
+      "counterevidence": [
+        "getPassword is a generic keyring API name; no human password authentication verifier is being stored here."
+      ],
+      "proof_gaps": [
+        "Static triage only; no exploit tests performed in this phase."
+      ],
+      "recommended_next_step": "Record the false-positive disposition for this exact non-password use; preserve SHA256, original bearer authentication and signed execution validation.",
+      "fix_finding_handoff": null
+    },
+    {
+      "triage_item_id": "triage-final-002",
+      "input_id": "27",
+      "source_type": "scanner_ticket",
+      "title": "Use of password hash with insufficient computational effort",
+      "normalized_input": {
+        "vulnerable_component": "packages/runner/src/schedule-cache.ts",
+        "claimed_source": "JSON private execution payload retrieved from OS keyring",
+        "claimed_sink": "SHA-256 digest",
+        "claimed_control": "password work factor",
+        "affected_version_or_path": "packages/runner/src/schedule-cache.ts",
+        "preconditions": [
+          "Credential stored in OS keyring"
+        ],
+        "impact": "claimed offline password guessing",
+        "references": [
+          "https://github.com/TheDanniCraft/clipify/security/code-scanning/27"
+        ]
+      },
+      "verdict": "not_actionable",
+      "confidence": "high",
+      "affected_locations": [
+        {
+          "label": "reported sink",
+          "path": "packages/runner/src/schedule-cache.ts",
+          "lines": "227-227",
+          "detail": "Credential identifier or signed cache integrity digest, not a password verifier"
+        }
+      ],
+      "reachable_path": [
+        "Verified schedule job separates private overlay/RTMP credentials from signed public metadata",
+        "Keyring returns serialized private payload",
+        "SHA-256 binds the private payload reference; restore then validates the signed manifest, target hash and full scheduled execution payload"
+      ],
+      "boundary_assessment": {
+        "product_surface": "CLI",
+        "source_trust": "local_only",
+        "boundary_crossed": false,
+        "policy_basis": "SECURITY.md; src/server/resources/runners.ts; packages/runner/src/storage.ts; terminal-delivery.ts; schedule-cache.ts signed manifest validation; native build/fixture entrypoints"
+      },
+      "exploitability_stack_rank": {
+        "rank_queue": null,
+        "rank": null,
+        "rationale": "Static evidence defeats password-verifier/code-injection claim",
+        "drivers": []
+      },
+      "evidence": [
+        "Private-payload digest is an integrity/content reference, not an authentication verifier.",
+        "Native restore reconstructs the job and verifies its server-signed authorization and private-payload bindings.",
+        "Fresh CodeQL assigns alert27 to restorePrivateJob at line227 after helper extraction; it is the same private-payload content-address check previously tracked as alert25. retain serializes the payload and uses its SHA256 as the keyring reference, and restore validates the complete signed execution bindings before returning usable jobs."
+      ],
+      "counterevidence": [
+        "The keyring getPassword API returns serialized execution data here, not a user's authentication password."
+      ],
+      "proof_gaps": [
+        "Static triage only; no exploit tests performed in this phase."
+      ],
+      "recommended_next_step": "Record the false-positive disposition for this exact non-password use; preserve SHA256, original bearer authentication and signed execution validation.",
+      "fix_finding_handoff": null
+    },
+    {
+      "triage_item_id": "triage-final-003",
+      "input_id": "24",
+      "source_type": "scanner_ticket",
+      "title": "Use of password hash with insufficient computational effort",
+      "normalized_input": {
+        "vulnerable_component": "packages/runner/src/index.ts",
+        "claimed_source": "OS keyring getPassword result",
+        "claimed_sink": "SHA-256 digest",
+        "claimed_control": "password work factor",
+        "affected_version_or_path": "packages/runner/src/index.ts",
+        "preconditions": [
+          "Credential stored in OS keyring"
+        ],
+        "impact": "claimed offline password guessing",
+        "references": [
+          "https://github.com/TheDanniCraft/clipify/security/code-scanning/24"
+        ]
+      },
+      "verdict": "not_actionable",
+      "confidence": "high",
+      "affected_locations": [
+        {
+          "label": "reported sink",
+          "path": "packages/runner/src/index.ts",
+          "lines": "590-590",
+          "detail": "Credential identifier or signed cache integrity digest, not a password verifier"
+        }
+      ],
+      "reachable_path": [
+        "Server generates 192-bit random Runner bearer (resources/runners.ts:139,199)",
+        "Native storage retains bearer in keyring",
+        "Digest identifies local cache/terminal record; original bearer still required for Authorization"
+      ],
+      "boundary_assessment": {
+        "product_surface": "CLI",
+        "source_trust": "local_only",
+        "boundary_crossed": false,
+        "policy_basis": "SECURITY.md; src/server/resources/runners.ts; packages/runner/src/storage.ts; terminal-delivery.ts; schedule-cache.ts signed manifest validation; native build/fixture entrypoints"
+      },
+      "exploitability_stack_rank": {
+        "rank_queue": null,
+        "rank": null,
+        "rationale": "Static evidence defeats password-verifier/code-injection claim",
+        "drivers": []
+      },
+      "evidence": [
+        "Bearer enrollment/rotation uses randomBytes(24).",
+        "Fingerprints are not accepted as authentication credentials.",
+        "Schedule restore separately verifies server-signed manifests and complete execution payload bindings."
+      ],
+      "counterevidence": [
+        "getPassword is a generic keyring API name; no human password authentication verifier is being stored here."
+      ],
+      "proof_gaps": [
+        "Static triage only; no exploit tests performed in this phase."
+      ],
+      "recommended_next_step": "Record the false-positive disposition for this exact non-password use; preserve SHA256, original bearer authentication and signed execution validation.",
+      "fix_finding_handoff": null
+    }
+  ]
+}
