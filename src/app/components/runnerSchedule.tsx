@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState, useRef, useTransition } from "react";
-import { Button, Card, Checkbox, Input, Label, ListBox, Modal, Select, Spinner, TextField } from "@heroui/react";
-import { IconCalendarEvent, IconPlus, IconPencil } from "@tabler/icons-react";
+import { Button, Checkbox, Input, Label, ListBox, Modal, Select, Spinner, TextField } from "@heroui/react";
+import { IconPlus, IconPencil } from "@tabler/icons-react";
 import { listRunnerScheduleEvents, saveRunnerScheduleEvent, deleteRunnerScheduleEvent, resumeRunnerScheduleOccurrence, setRunnerAutomationPaused } from "@/app/actions/runner";
 import RunnerScheduleAgenda from "./runnerScheduleAgenda";
+import { ScheduleDateField, ScheduleTimeField, TimezonePicker } from "./runner/ScheduleFields";
+import { now as calendarNow } from "@internationalized/date";
 import ConfirmModal from "./confirmModal";
 import { resolveCalendarSchedule } from "../../../packages/runner/src/schedule-calendar";
 
@@ -14,14 +16,7 @@ type RunnerScheduleView = ScheduleRead["events"][number];
 type Props = { ownerId: string; runnerId: string; sessionId?: string; overlayId: string; overlays: { id: string; name: string }[]; destinations: { id: string; name: string }[]; selectedDestinationIds: string[]; clipPlayback: boolean; onPolicyChange: (policy: Policy) => void };
 type Draft = { title: string; timezone: string; recurrence: "once" | "weekly"; localStartDate: string; localEndDate: string; localStartTime: string; localEndTime: string; weekdays: number[]; endDayOffset: number; overlayId: string; destinationIds: string[] };
 const weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-const fields = [
-	{ name: "title", label: "Event title", type: "text" },
-	{ name: "timezone", label: "Timezone", type: "text" },
-	{ name: "localStartDate", label: "Start date", type: "date" },
-	{ name: "localEndDate", label: "End date", type: "date" },
-	{ name: "localStartTime", label: "Start time", type: "time" },
-	{ name: "localEndTime", label: "End time", type: "time" },
-] as const;
+
 function elapsedDescription(event: RunnerScheduleView) {
 	if (event.recurrence !== "once" || !event.localEndDate) return "Weekly in " + event.timezone;
 	const start = new Date(event.localStartDate + "T00:00:00Z"),
@@ -34,6 +29,8 @@ function elapsedDescription(event: RunnerScheduleView) {
 }
 
 export default function RunnerSchedule(props: Props) {
+	const [timezoneInputValid, setTimezoneInputValid] = useState(true);
+	const [calendarTimezone, setCalendarTimezone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
 	const [events, setEvents] = useState<RunnerScheduleView[]>([]),
 		[automationControls, setAutomationControls] = useState<ScheduleRead["automation"]>([]),
 		[policy, setPolicy] = useState<Policy | null>(null),
@@ -123,19 +120,23 @@ export default function RunnerSchedule(props: Props) {
 		setDraftNotice(null);
 		setEditing(event);
 		setError(null);
-		const today = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+		const local = calendarNow(calendarTimezone);
+		const start = local.add({ minutes: 30 - (local.minute % 30) }).set({ second: 0, millisecond: 0 });
+		const end = start.add({ hours: 1 });
+		if (event) setCalendarTimezone(event.timezone);
 		setDraft(
 			event
 				? { title: event.title, timezone: event.timezone, recurrence: event.recurrence, localStartDate: event.localStartDate, localEndDate: event.localEndDate ?? event.localStartDate, localStartTime: event.localStartTime.slice(0, 5), localEndTime: event.localEndTime.slice(0, 5), weekdays: event.weekdays, endDayOffset: event.endDayOffset, overlayId: event.overlayId, destinationIds: event.destinationIds }
-				: { title: "", timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, recurrence: "once", localStartDate: today, localEndDate: today, localStartTime: "12:00", localEndTime: "13:00", weekdays: [1], endDayOffset: 0, overlayId: props.overlayId, destinationIds: props.selectedDestinationIds },
+				: { title: "", timezone: calendarTimezone, recurrence: "once", localStartDate: start.toString().slice(0, 10), localEndDate: end.toString().slice(0, 10), localStartTime: start.toString().slice(11, 16), localEndTime: end.toString().slice(11, 16), weekdays: [1], endDayOffset: 0, overlayId: props.overlayId, destinationIds: props.selectedDestinationIds },
 		);
+		setTimezoneInputValid(true);
 		setOpen(true);
 	}
 	function update<K extends keyof Draft>(key: K, value: Draft[K]) {
 		setDraft((current) => (current ? { ...current, [key]: value } : current));
 	}
 	async function save() {
-		if (!draft || saving || !props.sessionId || !canEdit) return;
+		if (!draft || saving || !props.sessionId || !canEdit || !timezoneInputValid) return;
 		setSaving(true);
 		setError(null);
 		try {
@@ -198,15 +199,8 @@ export default function RunnerSchedule(props: Props) {
 	}
 	return (
 		<>
-			<Card>
-				<Card.Header className='flex flex-row flex-wrap items-center justify-between gap-3'>
-					<div>
-						<h2 className='flex items-center gap-2 text-lg font-semibold'>
-							<IconCalendarEvent size={20} />
-							Broadcast schedule
-						</h2>
-						<p className='mt-1 text-sm text-muted'>Plan one-time or weekly broadcasts. Your Runner computer must stay on.</p>
-					</div>
+			<section className='space-y-5'>
+				<div className='flex flex-wrap items-center justify-between gap-3'>
 					{props.clipPlayback && automation?.controlMode === "scheduled" && (
 						<Button variant='secondary' onPress={toggleAutomation} isDisabled={loading || automationPending || (automationPaused && !policy?.scheduling)}>
 							{automationPaused ? "Resume automation" : "Pause automation"}
@@ -216,8 +210,8 @@ export default function RunnerSchedule(props: Props) {
 						<IconPlus size={16} />
 						Add schedule
 					</Button>
-				</Card.Header>
-				<Card.Content className='space-y-4'>
+				</div>
+				<div className='space-y-4'>
 					{automationMessage && (
 						<p role='status' className='text-sm text-muted'>
 							{automationMessage}
@@ -230,22 +224,28 @@ export default function RunnerSchedule(props: Props) {
 						</p>
 					)}
 					{!loading && (
-						<RunnerScheduleAgenda
-							events={events}
-							canEdit={canEdit}
-							onCreate={(window) => {
-								edit(null);
-								setDraft((current) => (current ? { ...current, ...window } : current));
-							}}
-							onEdit={(id, window, notice) => {
-								const event = events.find((event) => event.id === id);
-								if (event) {
-									edit(event);
-									setDraftNotice(notice ?? null);
-									if (window) setDraft((current) => (current ? { ...current, ...window } : current));
-								}
-							}}
-						/>
+						<>
+							<div className='max-w-sm'>
+								<TimezonePicker label='Calendar timezone' value={calendarTimezone} onChange={setCalendarTimezone} />
+							</div>
+							<RunnerScheduleAgenda
+								timezone={calendarTimezone}
+								events={events}
+								canEdit={canEdit}
+								onCreate={(window) => {
+									edit(null);
+									setDraft((current) => (current ? { ...current, ...window } : current));
+								}}
+								onEdit={(id, window, notice) => {
+									const event = events.find((event) => event.id === id);
+									if (event) {
+										edit(event);
+										setDraftNotice(notice ?? null);
+										if (window) setDraft((current) => (current ? { ...current, ...window } : current));
+									}
+								}}
+							/>
+						</>
 					)}
 					{controlFeedback && (
 						<p role='status' className='text-sm text-muted'>
@@ -255,7 +255,7 @@ export default function RunnerSchedule(props: Props) {
 					{events.length ? (
 						<ul aria-label='Saved schedules' className='space-y-3'>
 							{events.map((event) => (
-								<li key={event.id} className='flex flex-wrap items-center justify-between gap-3 rounded-xl border border-divider p-4'>
+								<li key={event.id} className='flex flex-wrap items-center justify-between gap-3 rounded-xl border border-separator p-4'>
 									<div>
 										<p className='font-medium'>{event.title}</p>
 										<p className='text-sm text-muted'>
@@ -279,8 +279,8 @@ export default function RunnerSchedule(props: Props) {
 					) : (
 						!loading && <p className='text-sm text-muted'>No scheduled broadcasts yet.</p>
 					)}
-				</Card.Content>
-			</Card>
+				</div>
+			</section>
 			<Modal.Backdrop isOpen={open} onOpenChange={setOpen}>
 				<Modal.Container size='lg'>
 					<Modal.Dialog>
@@ -298,14 +298,22 @@ export default function RunnerSchedule(props: Props) {
 							{draft && (
 								<>
 									<div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
-										{fields
-											.filter((field) => draft.recurrence === "once" || field.name !== "localEndDate")
-											.map((field) => (
-												<TextField key={field.name} value={draft[field.name]} onChange={(value) => update(field.name, value)}>
-													<Label>{field.label}</Label>
-													<Input type={field.type} />
-												</TextField>
-											))}
+										<TextField value={draft.title} onChange={(value) => update("title", value)}>
+											<Label>Event title</Label>
+											<Input variant='secondary' />
+										</TextField>
+										<TimezonePicker
+											value={draft.timezone}
+											onValidityChange={setTimezoneInputValid}
+											onChange={(value) => {
+												update("timezone", value);
+												setCalendarTimezone(value);
+											}}
+										/>
+										<ScheduleDateField label='Start date' value={draft.localStartDate} onChange={(value) => update("localStartDate", value)} />
+										{draft.recurrence === "once" && <ScheduleDateField label='End date' value={draft.localEndDate} onChange={(value) => update("localEndDate", value)} />}
+										<ScheduleTimeField label='Start time' value={draft.localStartTime} onChange={(value) => update("localStartTime", value)} />
+										<ScheduleTimeField label='End time' value={draft.localEndTime} onChange={(value) => update("localEndTime", value)} />
 									</div>
 									<Select value={draft.recurrence} onChange={(value) => update("recurrence", value === "weekly" ? "weekly" : "once")} variant='secondary'>
 										<Label>Recurrence</Label>
@@ -336,11 +344,23 @@ export default function RunnerSchedule(props: Props) {
 													</Checkbox>
 												))}
 											</div>
-											<TextField value={String(draft.endDayOffset)} onChange={(value) => update("endDayOffset", Number(value))}>
-												<Label>End day offset</Label>
-												<Input type='number' min={0} max={7} />
-												<p className='text-xs text-muted'>0 ends on the start day; 1 ends the next day; 7 ends the following week.</p>
-											</TextField>
+											<Select value={String(draft.endDayOffset)} onChange={(value) => update("endDayOffset", Number(value))} variant='secondary'>
+												<Label>End day</Label>
+												<Select.Trigger>
+													<Select.Value />
+													<Select.Indicator />
+												</Select.Trigger>
+												<Select.Popover>
+													<ListBox>
+														{Array.from({ length: 8 }, (_, days) => (
+															<ListBox.Item id={String(days)} key={days} textValue={days === 0 ? "Same day" : days === 1 ? "Next day" : `${days} days later`}>
+																<Label>{days === 0 ? "Same day" : days === 1 ? "Next day" : `${days} days later`}</Label>
+																<ListBox.ItemIndicator />
+															</ListBox.Item>
+														))}
+													</ListBox>
+												</Select.Popover>
+											</Select>
 										</>
 									)}
 									<Select value={draft.overlayId || "none"} onChange={(value) => update("overlayId", value === "none" ? "" : String(value ?? ""))} variant='secondary'>
@@ -398,7 +418,7 @@ export default function RunnerSchedule(props: Props) {
 							<Button variant='tertiary' onPress={() => setOpen(false)}>
 								Cancel
 							</Button>
-							<Button variant='primary' onPress={save} isPending={saving} isDisabled={!canEdit}>
+							<Button variant='primary' onPress={save} isPending={saving} isDisabled={!canEdit || !timezoneInputValid}>
 								Save schedule
 							</Button>
 						</Modal.Footer>

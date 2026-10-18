@@ -319,7 +319,7 @@ test("upgrade request preserves chosen billing cycle and feature", async () => {
 	expect(screen.queryByText("Upgrade Account")).not.toBeInTheDocument();
 });
 test.each(["free", "pro"])("old Runner add-on request opens normal %s billing without a purchase modal", async (plan) => {
-	validateAuth.mockResolvedValue({ id: "owner", username: "Owner", plan, entitlements: { effectivePlan: plan, runnerAccess: false } });
+	validateAuth.mockResolvedValue({ id: "owner", username: "Owner", plan, entitlements: { effectivePlan: plan } });
 	window.history.replaceState({}, "", "/dashboard/settings?addon=runner");
 	render(<SettingsPage />);
 	expect(await screen.findByText("Billing panel")).toBeVisible();

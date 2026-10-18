@@ -1,3 +1,4 @@
+import { openRunnerDestinations } from "../../support/runner/editor";
 import { createBdd } from "playwright-bdd";
 import { Pool } from "pg";
 import { test, expect } from "../support/mcp-support";
@@ -6,6 +7,7 @@ import { browserDatabaseUrl } from "../../support/mcp/browser-database.cjs";
 const { When, Then } = createBdd(test);
 When("they cancel and then confirm deleting that saved destination", async ({ page, mcpWorld }) => {
 	const name = mcpWorld.input?.destinationName as string;
+	await openRunnerDestinations(page);
 	const remove = page.getByRole("button", { name: `Delete ${name}`, exact: true });
 	await expect(remove).toBeVisible();
 	await remove.click();
@@ -31,10 +33,11 @@ Then("the destination is removed from the browser and storage", async ({ page, m
 });
 When("they enter a custom destination with a name containing {int} characters", async ({ page, mcpWorld }, length: number) => {
 	mcpWorld.input = { ...mcpWorld.input, destinationName: "x".repeat(length) };
-	const add = page.getByRole("button", { name: "Add destination", exact: true });
+	const manager = await openRunnerDestinations(page);
+	const add = manager.getByRole("button", { name: "Add destination", exact: true });
 	await expect(add).toBeVisible();
 	await add.click();
-	const editor = page.getByRole("dialog");
+	const editor = page.getByRole("dialog", { name: "Add destination", exact: true });
 	await editor.getByLabel("Destination name", { exact: true }).fill("x".repeat(length));
 	await editor.getByRole("button", { name: /Provider$/ }).click();
 	await page.getByRole("option", { name: "Custom RTMP", exact: true }).click();
@@ -46,8 +49,9 @@ Then("the destination name is {string} and saved data agrees", async ({ page, mc
 	const name = mcpWorld.input?.destinationName as string;
 	const state = mcpWorld.input?.runnerManual as { owner: { fixture: { creatorId: string } }; runnerId: string };
 	if (outcome === "accepted") {
-		await expect(page.getByRole("dialog")).toHaveCount(0);
+		await expect(page.getByRole("dialog", { name: "Add destination", exact: true })).toHaveCount(0);
 		await page.reload();
+		await openRunnerDestinations(page);
 		await expect(page.getByRole("button", { name: `Edit ${name}`, exact: true })).toBeVisible();
 	} else {
 		await expect(page.getByText(/1.*80 characters/)).toBeVisible();
@@ -77,13 +81,22 @@ When("they reopen a legacy broadcast and save its configuration twice", async ({
 	}
 	await page.reload();
 	for (let save = 0; save < 2; save++) {
-		if (save === 0) await expect(page.getByText("Your existing destination is preserved.", { exact: false })).toBeVisible();
-		else await expect(page.getByRole("group", { name: "Broadcast destinations" }).getByRole("button", { name: /Twitch/ })).toHaveAttribute("aria-pressed", "true");
+		if (save === 0) {
+			const manager = await openRunnerDestinations(page);
+			await manager.getByRole("button", { name: "Add destination", exact: true }).click();
+			const editor = page.getByRole("dialog", { name: "Add destination", exact: true });
+			await editor.getByLabel("Destination name", { exact: true }).fill("Twitch");
+			await editor.getByLabel("Destination stream key", { exact: true }).fill("replacement-fixture-key");
+			await editor.getByRole("button", { name: "Save destination", exact: true }).click();
+			await expect(editor).not.toBeVisible();
+			await page.keyboard.press("Escape");
+		} else await expect(page.getByRole("group", { name: "Broadcast destinations" }).getByRole("button", { name: /Broadcast destinations$/ })).toContainText("Twitch");
 		await Promise.all([page.waitForResponse((response) => response.request().method() === "POST" && new URL(response.url()).pathname === `/dashboard/runners/${state.runnerId}` && Boolean(response.request().postData()?.includes(sessionId))), page.getByRole("button", { name: "Save Configuration", exact: true }).click()]);
 		await page.reload();
 	}
 });
 Then("its converted destination remains visible once after reloading", async ({ page, mcpWorld }) => {
+	await openRunnerDestinations(page);
 	await expect(page.getByRole("button", { name: "Edit Twitch", exact: true })).toHaveCount(1);
 	const state = mcpWorld.input?.runnerManual as { owner: { fixture: { creatorId: string } }; runnerId: string };
 	const pool = new Pool({ connectionString: browserDatabaseUrl(), max: 1 });

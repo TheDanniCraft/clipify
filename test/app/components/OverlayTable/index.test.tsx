@@ -1196,7 +1196,7 @@ describe("components/OverlayTable/index", () => {
 		expect(getAvatar).toHaveBeenCalledWith("another-owner", "another-owner");
 	});
 	it("Free runner empty state offers creation without implicitly creating hardware", async () => {
-		validateAuth.mockResolvedValue({ id: "owner-1", plan: "free", entitlements: { effectivePlan: "free", runnerAccess: false } });
+		validateAuth.mockResolvedValue({ id: "owner-1", plan: "free", entitlements: { effectivePlan: "free" } });
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
 			render(<Table userId='owner-1' />);

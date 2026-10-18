@@ -28,7 +28,7 @@ beforeEach(() => {
 	mockIdentity.mockReturnValue(identity);
 	mockExecution.mockResolvedValue(execution);
 	mockOwner.mockResolvedValue({ id: identity.ownerId, plan: "free" });
-	mockBenefits.mockResolvedValue({ proAccess: true, runnerAccess: false, validUntil: new Date(Date.now() + 60000) });
+	mockBenefits.mockResolvedValue({ proAccess: true, validUntil: new Date(Date.now() + 60000) });
 	mockProfile.mockResolvedValue({ proShowAttribution: false, watermarkCorner: "top_left", revision: 2 });
 });
 test("TDD-US4-EXP001 U294: unauthenticated or foreign presentation cookies reveal no appearance policy", async () => {
@@ -54,7 +54,7 @@ test("TDD-US4-EXP001 U294: a revoked or replaced execution cannot refresh its po
 test("TDD-US4-EXP001 U294: the current owner benefit extends appearance without mutating captured admission", async () => {
 	const captured = structuredClone(execution);
 	const until = new Date(Date.now() + 60000);
-	mockBenefits.mockResolvedValue({ proAccess: true, runnerAccess: false, validUntil: until });
+	mockBenefits.mockResolvedValue({ proAccess: true, validUntil: until });
 	const response = await invoke();
 	expect(response.status).toBe(200);
 	expect(await response.json()).toEqual({ executionGeneration: identity.executionGeneration, attributionRequired: false, runnerPro: true, validUntil: until.toISOString(), standby: baselineStandby });
@@ -71,7 +71,7 @@ test("TDD-US4-EXP001 U294: an owner mismatch reveals no paid or saved appearance
 	expect(mockProfile).not.toHaveBeenCalled();
 });
 test.each([false, true])("TDD-US4-EXP001 U294: effective expiry requires branding regardless of saved paid choice=%s", async (proShowAttribution) => {
-	mockBenefits.mockResolvedValue({ proAccess: false, runnerAccess: false, validUntil: null });
+	mockBenefits.mockResolvedValue({ proAccess: false, validUntil: null });
 	mockProfile.mockResolvedValue({ proShowAttribution });
 	const response = await invoke();
 	expect(response.status).toBe(200);
@@ -93,7 +93,7 @@ test("TDD-US4-EXP001 U294: active policy refresh renews the scoped presentation 
 		mockCookies.mockImplementation(() => ({ get: () => ({ value: token }) }));
 		mockSign.mockImplementation(actual.signRunnerPresentationIdentity);
 		const paidEnd = start + 900000;
-		mockBenefits.mockResolvedValue({ proAccess: true, runnerAccess: false, validUntil: new Date(paidEnd) });
+		mockBenefits.mockResolvedValue({ proAccess: true, validUntil: new Date(paidEnd) });
 		now = start + 540000;
 		jest.setSystemTime(now);
 		const response = await invoke();
@@ -165,7 +165,7 @@ test("TDD-US4-OPT063 U103: enabled next-time policy derives the owned Runner sch
 	expect(JSON.stringify(policy.standby)).not.toContain("eventId");
 });
 test("TDD-US4-OPT063 U103 baseline: Free policy hides a retained next-time choice and never derives its paid calendar", async () => {
-	mockBenefits.mockResolvedValue({ proAccess: false, runnerAccess: false, validUntil: null });
+	mockBenefits.mockResolvedValue({ proAccess: false, validUntil: null });
 	mockProfile.mockResolvedValue({ proShowAttribution: false, standbyBackgroundColor: "#16324f", message: "Retained paid text", showNextBroadcastTime: true });
 	const response = await invoke();
 	expect(response.status).toBe(200);

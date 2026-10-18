@@ -1243,3 +1243,19 @@ Frontend dependency refinement for confirmed DEF207: U291/U292 run before the U2
 A180/BDD-US4-EXP001 owns the real expiry/renewal presentation boundary; no duplicated commercial workflow execution is introduced. Renewal is an audit before any production change.
 
 T1046 is an E4 remediation of the existing E3 U294/EXP001 owner for long-lived presentation identity. Original delivery ownership is retained; the E4 followup adds no duplicate public artifact or execution label and remains required at the E4 gate.
+
+## UX correction behaviors (2026-10-18)
+
+- [ ] UX-C1 Retired Runner access cannot grant advanced Runner capabilities; only effective Pro can.
+- [ ] UX-C2 Billing, schema and entitlement surfaces contain no standalone Runner product or allocation.
+- [ ] UX-C3 Fresh setup offers inline destination creation and a valid Manual save with retryable failures.
+- [ ] UX-C4 Appearance edits keep one stable preview and use the shared color editor/DropZone with secondary fields.
+- [ ] UX-C5 Scheduling uses the installed Agenda navigation/views and selected local timezone; users can save across days.
+- [ ] UX-C6 Real-browser desktop/mobile and keyboard flows match Clipify conventions and enforce Free/Pro gating.
+
+The correction's outer browser UX journeys are added after the first implementation changes; do not claim historical ATDD Red for them. The recorded unit Reds above establish the specific entitlement, inline-action, stable-preview and timezone regressions. Full browser acceptance is still mandatory for completion.
+
+- [ ] UX-C7 Invalid/uncommitted timezone search blocks saving and preserves the stored event until a valid list selection is committed (BDD-US3-OPT036).
+- [ ] UX-C8 Timed Agenda events expose accessible keyboard actions while preserving pointer move/resize and multi-day identities.
+
+- [ ] UX-C9 Expired Pro multi-destination configuration remains visible and can be reduced to one without deleting saved targets; Save/Start require a valid Free count.

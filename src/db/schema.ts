@@ -139,7 +139,7 @@ export const agencyBillingStatusEnum = pgEnum("agency_billing_status", ["pending
 export const agencyBillingCollectionMethodEnum = pgEnum("agency_billing_collection_method", ["charge_automatically", "send_invoice"]);
 export const agencyCreatorLinkStatusEnum = pgEnum("agency_creator_link_status", ["proposed", "accepted", "revoked"]);
 export const agencyLicenseAllocationStatusEnum = pgEnum("agency_license_allocation_status", ["active", "removal_scheduled", "ended", "released_by_deletion"]);
-export const agencyLicenseProductEnum = pgEnum("agency_license_product", ["creator_pro", "runner"]);
+export const agencyLicenseProductEnum = pgEnum("agency_license_product", ["creator_pro"]);
 export const accountDeletionChoiceEnum = pgEnum("account_deletion_choice", ["paid_through", "immediate"]);
 export const accountDeletionStatusEnum = pgEnum("account_deletion_status", ["scheduled", "suspended", "recovered", "purge_eligible", "purged", "cancelled"]);
 export const auditOutcomeEnum = pgEnum("audit_outcome", ["success", "denied", "error"]);
@@ -186,12 +186,11 @@ export const agencyAccountsTable = pgTable(
 		status: agencyAccountStatusEnum("status").notNull().default("provisioned"),
 		commercialReference: varchar("commercial_reference", { length: 160 }),
 		creatorSeatLimit: integer("creator_seat_limit").notNull().default(0),
-		runnerSeatLimit: integer("runner_seat_limit").notNull().default(0),
 		provisionedBy: text("provisioned_by").references(() => authUserTable.id, { onDelete: "set null" }),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 	},
-	(table) => [check("agency_accounts_seat_limit_nonnegative", sql`${table.creatorSeatLimit} >= 0 AND ${table.runnerSeatLimit} >= 0`), check("agency_accounts_commercial_reference_non_secret", sql`${table.commercialReference} IS NULL OR ${table.commercialReference} !~* '(bearer[[:space:]]+|token=|password=|secret=|credential=)'`)],
+	(table) => [check("agency_accounts_seat_limit_nonnegative", sql`${table.creatorSeatLimit} >= 0`), check("agency_accounts_commercial_reference_non_secret", sql`${table.commercialReference} IS NULL OR ${table.commercialReference} !~* '(bearer[[:space:]]+|token=|password=|secret=|credential=)'`)],
 );
 
 export const agencyBillingAccountsTable = pgTable(
@@ -212,25 +211,13 @@ export const agencyBillingAccountsTable = pgTable(
 		creatorSeatMinimum: integer("creator_seat_minimum").notNull(),
 		creatorSeatQuantity: integer("creator_seat_quantity").notNull(),
 		pendingCreatorSeatQuantity: integer("pending_creator_seat_quantity"),
-		runnerSeatPriceId: varchar("runner_seat_price_id"),
-		runnerSeatItemId: varchar("runner_seat_item_id"),
-		runnerSeatMinimum: integer("runner_seat_minimum").notNull().default(0),
-		runnerSeatQuantity: integer("runner_seat_quantity").notNull().default(0),
-		pendingRunnerSeatQuantity: integer("pending_runner_seat_quantity"),
 		currentPeriodStart: timestamp("current_period_start", { withTimezone: true }),
 		currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
 		latestStripeEventCreated: bigint("latest_stripe_event_created", { mode: "number" }).notNull().default(0),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 	},
-	(table) => [
-		index("agency_billing_status_idx").on(table.status),
-		check("agency_billing_creator_minimum_nonnegative", sql`${table.creatorSeatMinimum} >= 0`),
-		check("agency_billing_creator_quantity_nonnegative", sql`${table.creatorSeatQuantity} >= 0`),
-		check("agency_billing_runner_minimum_nonnegative", sql`${table.runnerSeatMinimum} >= 0`),
-		check("agency_billing_runner_quantity_nonnegative", sql`${table.runnerSeatQuantity} >= 0`),
-		check("agency_billing_invoice_terms", sql`(${table.collectionMethod} = 'send_invoice' AND ${table.daysUntilDue} BETWEEN 1 AND 90) OR (${table.collectionMethod} = 'charge_automatically' AND ${table.daysUntilDue} IS NULL)`),
-	],
+	(table) => [index("agency_billing_status_idx").on(table.status), check("agency_billing_creator_minimum_nonnegative", sql`${table.creatorSeatMinimum} >= 0`), check("agency_billing_creator_quantity_nonnegative", sql`${table.creatorSeatQuantity} >= 0`), check("agency_billing_invoice_terms", sql`(${table.collectionMethod} = 'send_invoice' AND ${table.daysUntilDue} BETWEEN 1 AND 90) OR (${table.collectionMethod} = 'charge_automatically' AND ${table.daysUntilDue} IS NULL)`)],
 );
 
 export const agencyCreatorLinksTable = pgTable(

@@ -1,3 +1,4 @@
+import { openRunnerAppearance } from "../../support/runner/editor";
 import { createBdd } from "playwright-bdd";
 import { Pool } from "pg";
 import { randomUUID, createHash } from "node:crypto";
@@ -100,6 +101,7 @@ Then("the standby message is {string} and the saved appearance is consistent", a
 		expect(stored.assets).toEqual(boundary.assets);
 	}
 	await page.reload();
+	await openRunnerAppearance(page);
 	await expect(page.getByLabel("Standby message", { exact: true })).toHaveValue(outcome === "accepted" ? "x".repeat(boundary.length!) : String(boundary.before.message));
 });
 
@@ -141,6 +143,7 @@ Then("the standby image is {string} and the saved appearance is consistent", asy
 		expect(stored.assets).toEqual(boundary.assets);
 	}
 	await page.reload();
+	await openRunnerAppearance(page);
 	await expect(image).toHaveJSProperty("naturalWidth", outcome === "accepted" ? boundary.image!.width : 16);
 	await expect(image).toHaveJSProperty("naturalHeight", outcome === "accepted" ? boundary.image!.height : 16);
 	await expect(page.getByLabel("Standby message", { exact: true })).toHaveValue(String(boundary.before.message));

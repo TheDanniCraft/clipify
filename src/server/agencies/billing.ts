@@ -10,7 +10,7 @@ import { agencyIncreasePaymentBehavior, decideAgencySeatChange } from "./billing
 import { syncAgencyStripeSubscription } from "./billing-sync";
 import { requireAgencyMember } from "./database";
 
-export type AgencySeatKind = "creator" | "runner";
+export type AgencySeatKind = "creator";
 
 function stripeId(value: string | { id: string } | null | undefined) {
 	return typeof value === "string" ? value : (value?.id ?? null);
@@ -46,16 +46,13 @@ async function ensureStripeCustomer(stripe: Stripe, billing: typeof agencyBillin
 
 function lineItems(billing: typeof agencyBillingAccountsTable.$inferSelect) {
 	const creatorQuantity = billing.pendingCreatorSeatQuantity ?? billing.creatorSeatQuantity;
-	const runnerQuantity = billing.pendingRunnerSeatQuantity ?? billing.runnerSeatQuantity;
 	const items: Stripe.Checkout.SessionCreateParams.LineItem[] = [{ price: billing.creatorSeatPriceId, quantity: creatorQuantity }];
-	if (billing.runnerSeatPriceId && runnerQuantity > 0) items.push({ price: billing.runnerSeatPriceId, quantity: runnerQuantity });
 	return items;
 }
 
 export async function createAgencyBillingStart() {
 	const { billing } = await requireBillingContext("billing:manage");
 	if (billing.stripeSubscriptionId) return createAgencyBillingPortal();
-	if ((billing.pendingRunnerSeatQuantity ?? billing.runnerSeatQuantity) > 0) return { kind: "included" as const, success: false as const, code: "RUNNER_INCLUDED" as const, error: "Remove Runner seats before starting billing.", url: null };
 	const stripe = getStripe();
 	const customer = await ensureStripeCustomer(stripe, billing);
 	const metadata = { clipifyAccountType: "agency", clipifyAgencyOrganizationId: billing.organizationId };
@@ -90,7 +87,7 @@ export async function createAgencyBillingStart() {
 			subscription_data: { metadata },
 			metadata,
 		},
-		{ idempotencyKey: `clipify-agency-checkout:${billing.organizationId}:${billing.creatorSeatQuantity}:${billing.runnerSeatQuantity}` },
+		{ idempotencyKey: `clipify-agency-checkout:${billing.organizationId}:${billing.creatorSeatQuantity}` },
 	);
 	if (!session.url) throw new Error("AGENCY_CHECKOUT_URL_MISSING");
 	return { kind: "checkout" as const, url: session.url };
@@ -104,34 +101,31 @@ export async function createAgencyBillingPortal() {
 	return { kind: "portal" as const, url: session.url };
 }
 
-function seatTerms(billing: typeof agencyBillingAccountsTable.$inferSelect, kind: AgencySeatKind) {
-	return kind === "creator" ? { priceId: billing.creatorSeatPriceId, itemId: billing.creatorSeatItemId, currentQuantity: billing.creatorSeatQuantity, minimumQuantity: billing.creatorSeatMinimum } : { priceId: billing.runnerSeatPriceId, itemId: billing.runnerSeatItemId, currentQuantity: billing.runnerSeatQuantity, minimumQuantity: billing.runnerSeatMinimum };
+function seatTerms(billing: typeof agencyBillingAccountsTable.$inferSelect) {
+	return { priceId: billing.creatorSeatPriceId, itemId: billing.creatorSeatItemId, currentQuantity: billing.creatorSeatQuantity, minimumQuantity: billing.creatorSeatMinimum };
 }
 
-async function occupiedSeats(organizationId: string, kind: AgencySeatKind) {
+async function occupiedSeats(organizationId: string) {
 	const rows = await db
 		.select({ id: agencyLicenseAllocationsTable.id })
 		.from(agencyLicenseAllocationsTable)
 		.innerJoin(agencyCreatorLinksTable, eq(agencyLicenseAllocationsTable.linkId, agencyCreatorLinksTable.id))
-		.where(and(eq(agencyCreatorLinksTable.agencyOrganizationId, organizationId), eq(agencyLicenseAllocationsTable.product, kind === "creator" ? "creator_pro" : "runner"), inArray(agencyLicenseAllocationsTable.status, ["active", "removal_scheduled"])));
+		.where(and(eq(agencyCreatorLinksTable.agencyOrganizationId, organizationId), eq(agencyLicenseAllocationsTable.product, "creator_pro"), inArray(agencyLicenseAllocationsTable.status, ["active", "removal_scheduled"])));
 	return rows.length;
 }
 
 export async function changeAgencySeatQuantity(kind: AgencySeatKind, requestedQuantity: number) {
+	if (kind !== "creator") return { kind: "invalid" as const, success: false as const, error: "INVALID_AGENCY_SEAT_KIND" };
 	const { billing } = await requireBillingContext("billing:manage");
-	if (kind === "runner" && requestedQuantity > billing.runnerSeatQuantity) return { kind: "included" as const, success: false as const, code: "RUNNER_INCLUDED" as const, error: "Additional Runner seats cannot be purchased." };
 	if (!billing.stripeSubscriptionId) throw new Error("AGENCY_SUBSCRIPTION_REQUIRED");
-	const terms = seatTerms(billing, kind);
+	const terms = seatTerms(billing);
 	if (!terms.priceId) throw new Error("AGENCY_SUBSCRIPTION_ITEM_REQUIRED");
-	const decision = decideAgencySeatChange({ currentQuantity: terms.currentQuantity, requestedQuantity, minimumQuantity: terms.minimumQuantity, occupiedQuantity: await occupiedSeats(billing.organizationId, kind) });
+	const decision = decideAgencySeatChange({ currentQuantity: terms.currentQuantity, requestedQuantity, minimumQuantity: terms.minimumQuantity, occupiedQuantity: await occupiedSeats(billing.organizationId) });
 	if (decision.kind === "unchanged") return decision;
 	const stripe = getStripe();
 
 	if (decision.kind === "increase") {
-		await db
-			.update(agencyBillingAccountsTable)
-			.set(kind === "creator" ? { pendingCreatorSeatQuantity: decision.quantity, updatedAt: new Date() } : { pendingRunnerSeatQuantity: decision.quantity, updatedAt: new Date() })
-			.where(eq(agencyBillingAccountsTable.organizationId, billing.organizationId));
+		await db.update(agencyBillingAccountsTable).set({ pendingCreatorSeatQuantity: decision.quantity, updatedAt: new Date() }).where(eq(agencyBillingAccountsTable.organizationId, billing.organizationId));
 		await stripe.subscriptions.update(billing.stripeSubscriptionId, {
 			items: [terms.itemId ? { id: terms.itemId, quantity: decision.quantity } : { price: terms.priceId, quantity: decision.quantity }],
 			proration_behavior: decision.prorationBehavior,
@@ -157,10 +151,7 @@ export async function changeAgencySeatQuantity(kind: AgencySeatKind, requestedQu
 			{ start_date: subscription.items.data[0]?.current_period_end, duration: { interval: subscription.items.data[0]?.price.recurring?.interval ?? "month", interval_count: 1 }, items, proration_behavior: "none" },
 		],
 	});
-	await db
-		.update(agencyBillingAccountsTable)
-		.set(kind === "creator" ? { stripeSubscriptionScheduleId: scheduleId, pendingCreatorSeatQuantity: decision.quantity, updatedAt: new Date() } : { stripeSubscriptionScheduleId: scheduleId, pendingRunnerSeatQuantity: decision.quantity, updatedAt: new Date() })
-		.where(eq(agencyBillingAccountsTable.organizationId, billing.organizationId));
+	await db.update(agencyBillingAccountsTable).set({ stripeSubscriptionScheduleId: scheduleId, pendingCreatorSeatQuantity: decision.quantity, updatedAt: new Date() }).where(eq(agencyBillingAccountsTable.organizationId, billing.organizationId));
 	return decision;
 }
 

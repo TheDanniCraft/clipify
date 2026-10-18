@@ -44,7 +44,7 @@ function RunnerEnrollFormContent({ onReset, initialCode }: { onReset: () => void
 		startCreatingRunner(async () => {
 			const result = await createOwnRunner("New Hardware Node");
 			if (!result.success || !result.runner) {
-				setCreateError(result.error === "Runner add-on required" ? "Refresh this page and try again." : "Failed to create runner. Please try again.");
+				setCreateError("Failed to create runner. Please try again.");
 				return;
 			}
 

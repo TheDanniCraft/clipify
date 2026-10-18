@@ -1,3 +1,4 @@
+import { openRunnerAppearance } from "../../support/runner/editor";
 import { createBdd } from "playwright-bdd";
 import type { Locator } from "@playwright/test";
 import { test, expect } from "../support/mcp-support";
@@ -17,7 +18,7 @@ When("its owner opens the Runner appearance settings", async ({ page, mcpWorld }
 	await expect(privacy).toBeVisible();
 	await Promise.all([page.waitForEvent("load"), privacy.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 	await page.goto(`http://127.0.0.1:3107/dashboard/runners/${world.runnerId}`);
-	await expect(page.getByRole("heading", { name: "Destinations", exact: true })).toBeVisible();
+	await openRunnerAppearance(page);
 });
 
 async function expectCornerAttribution(badge: Locator, selectedCorner: string) {
@@ -49,6 +50,7 @@ Then("choosing {word} persists and the preview and generated presentation use th
 	await page.getByRole("button", { name: "Save appearance", exact: true }).click();
 	await expect(page.getByRole("status").filter({ hasText: "Appearance saved" })).toBeVisible();
 	await page.reload();
+	await openRunnerAppearance(page);
 	await expect(corner).toContainText(label);
 	await expectCornerAttribution(page.frameLocator('iframe[title="Runner appearance preview"]').getByLabel("Livestream powered by Clipify.us", { exact: true }), selectedCorner);
 	const world = state(mcpWorld.input);

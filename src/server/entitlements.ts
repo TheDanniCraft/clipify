@@ -8,7 +8,7 @@ export type DowngradeEffects = {
 
 const none = (): CreatorResourceInventory => ({ overlays: [], playlists: [], galleries: [], runners: [] });
 
-export function deriveDowngradeEffects(input: { inventory: CreatorResourceInventory; effectivePlan: "free" | "pro"; runnerAccess: boolean; source?: string }): DowngradeEffects {
+export function deriveDowngradeEffects(input: { inventory: CreatorResourceInventory; effectivePlan: "free" | "pro"; source?: string }): DowngradeEffects {
 	const pro = input.effectivePlan === "pro";
 	const restrictions: string[] = [];
 	if (!pro && input.inventory.overlays.length > 1) restrictions.push("extra-overlays-read-only");

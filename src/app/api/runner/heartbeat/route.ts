@@ -6,7 +6,6 @@ import { runnersTable, streamSessionsTable, overlaysTable, runnerBroadcastAdmiss
 import { and, eq, inArray, InferSelectModel, sql } from "drizzle-orm";
 import { RunnerStatus, StreamState } from "@types";
 import { decryptString } from "@/app/lib/encryption";
-import { hasActiveRunnerAccess } from "@lib/entitlements";
 import { issueRunnerScheduleCache } from "@/server/runner/schedules";
 import { issueFreeExecutionLease, acknowledgeFreeExecutions, issueRunnerBenefitSnapshot } from "@/server/runner/lease";
 import { tryRateLimit } from "@actions/rateLimit";
@@ -104,8 +103,6 @@ export async function POST(req: Request) {
 			return heartbeatResponse({ error: "Invalid runner token" }, { status: 401 });
 		}
 
-		const advancedAccess = await hasActiveRunnerAccess(runner.ownerId);
-
 		// 2. Parse payload
 		const payload = await readHeartbeat(req);
 		if ("error" in payload) {
@@ -113,11 +110,11 @@ export async function POST(req: Request) {
 			return heartbeatResponse({ error: payload.error === 413 ? "Heartbeat payload too large" : "Invalid heartbeat payload" }, { status: payload.error });
 		}
 		const { body } = payload;
-		const { os, version, actualStates, hostname } = body;
+		const { os, version, hostname } = body;
 		const signedProtocol = Boolean(body.protocolVersion === 2 && body.requestId && ["admissions", "drain", "runner_presentation", "free_lease"].every((capability) => (body.capabilities ?? []).includes(capability)));
-		if (!advancedAccess && !signedProtocol) {
+		if (!signedProtocol) {
 			recordOutcome("update_required");
-			return heartbeatResponse({ error: "Update Clipify Runner before using Free broadcasting", code: "update_required", supportedProtocolVersion: 2, jobs: [] }, { status: 426 });
+			return heartbeatResponse({ error: "Update Clipify Runner to continue broadcasting", code: "update_required", supportedProtocolVersion: 2, jobs: [] }, { status: 426 });
 		}
 
 		// 3. Update Runner Status
@@ -146,21 +143,6 @@ export async function POST(req: Request) {
 			return heartbeatResponse({ error: "Update Clipify Runner before starting this broadcast", code: "update_required", supportedProtocolVersion: 2, jobs: [] }, { status: 426, headers: { "Cache-Control": "no-store" } });
 		}
 
-		// 5. Update actual states in DB (if the runner reported them)
-		// For a rough prototype, we might skip full state reconciliation and just send desired state
-		if (advancedAccess && actualStates && typeof actualStates === "object") {
-			const allowedSessionIds = new Set(sessions.map((session) => session.id));
-			await Promise.all(
-				Object.keys(actualStates).flatMap((sessionId) => {
-					if (!allowedSessionIds.has(sessionId)) return [];
-					const state = actualStates[sessionId];
-					const parsedState = z.enum(StreamState).safeParse(state);
-					if (!parsedState.success) return [];
-					return [db.update(streamSessionsTable).set({ actualState: parsedState.data }).where(eq(streamSessionsTable.id, sessionId))];
-				}),
-			);
-		}
-
 		const acceptedExecutions = body.executions ? await acknowledgeFreeExecutions(runner, body.executions) : undefined;
 
 		// 6. Build jobs for the runner based on desiredState
@@ -172,12 +154,12 @@ export async function POST(req: Request) {
 				const execution = body.requestId && session.desiredState === StreamState.Running ? await issueFreeExecutionLease(runner, session.id, body.requestId) : null;
 				const sourceId = execution && "sourceId" in execution && typeof execution.sourceId === "string" ? execution.sourceId : session.overlayId;
 				const overlay = sourceId === session.overlayId ? overlaysById.get(sourceId) : await db.query.overlaysTable.findFirst({ where: and(eq(overlaysTable.id, sourceId), eq(overlaysTable.ownerId, runner.ownerId)) });
-				const permitted = (advancedAccess && !signedProtocol) || session.desiredState !== StreamState.Running || execution !== null;
+				const permitted = session.desiredState !== StreamState.Running || execution !== null;
 
 				return {
 					id: session.id,
 					overlayId: sourceId,
-					overlaySecret: advancedAccess || execution ? overlay?.secret || "" : "",
+					overlaySecret: execution ? overlay?.secret || "" : "",
 					mode: session.mode,
 					desiredState: permitted ? session.desiredState : StreamState.Stopped,
 					resolution: session.resolution,

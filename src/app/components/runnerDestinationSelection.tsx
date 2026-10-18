@@ -1,36 +1,48 @@
 "use client";
-
-import { Button } from "@heroui/react";
+import { Button, Label, ListBox, Select } from "@heroui/react";
 
 type Destination = { id: string; name: string; provider: string; host: string; credentialConfigured: boolean };
-
 export function canStartWithDestinations(destinations: readonly Destination[], selectedIds: readonly string[]) {
 	return selectedIds.length > 0 && selectedIds.every((id) => destinations.some((destination) => destination.id === id && (destination.provider === "custom" || destination.credentialConfigured)));
 }
-
-export default function RunnerDestinationSelection({ destinations, selectedIds, runnerPro, onChange }: { destinations: readonly Destination[]; selectedIds: readonly string[]; runnerPro: boolean; onChange: (ids: string[]) => void }) {
+export default function RunnerDestinationSelection({ destinations, selectedIds, runnerPro, onChange, onManage }: { destinations: readonly Destination[]; selectedIds: readonly string[]; runnerPro: boolean; onChange: (ids: string[]) => void; onManage?: () => void }) {
+	const multiple = runnerPro || selectedIds.length > 1;
 	return (
 		<fieldset className='space-y-3'>
-			<legend className='text-sm font-medium'>Broadcast destinations</legend>
-			<p className='text-sm text-muted'>{runnerPro ? "Select destinations for this broadcast." : "Select a destination for this broadcast."}</p>
-			<div className='grid gap-2 sm:grid-cols-2'>
-				{destinations.map((destination) => {
-					const selected = selectedIds.includes(destination.id);
-					const ready = destination.provider === "custom" || destination.credentialConfigured;
-					return (
-						<Button key={destination.id} variant={selected ? "secondary" : "outline"} aria-pressed={selected} isDisabled={!ready && !selected} className='h-auto justify-start whitespace-normal px-4 py-3 text-left' onPress={() => onChange(selected ? selectedIds.filter((id) => id !== destination.id) : runnerPro ? [...selectedIds, destination.id] : [destination.id])}>
-							<span className='flex flex-col gap-1'>
-								<span className='font-medium'>{destination.name}</span>
-								<span className='text-xs text-muted'>
-									{destination.host}
-									{!ready && <span className='block'>Add a stream key in Destinations</span>}
-								</span>
-							</span>
-						</Button>
-					);
-				})}
-			</div>
-			{!destinations.length && <p className='text-sm text-muted'>Add a destination below, then select it for this broadcast.</p>}
+			<legend className='sr-only'>Broadcast destinations</legend>
+			<Select variant='secondary' selectionMode={multiple ? "multiple" : "single"} value={multiple ? selectedIds : (selectedIds[0] ?? null)} placeholder={destinations.length ? "Choose destinations" : "No destinations yet"} isDisabled={!destinations.length} onChange={(value) => onChange(Array.isArray(value) ? value.map(String) : value ? [String(value)] : [])} onClear={() => onChange([])}>
+				<Label>Broadcast destinations</Label>
+				<Select.Trigger>
+					<Select.Value />
+					<Select.ClearButton />
+					<Select.Indicator />
+				</Select.Trigger>
+				<Select.Popover>
+					<ListBox>
+						{destinations.map((destination) => {
+							const ready = destination.provider === "custom" || destination.credentialConfigured;
+							return (
+								<ListBox.Item key={destination.id} id={destination.id} textValue={destination.name} isDisabled={(!ready || (!runnerPro && selectedIds.length > 1)) && !selectedIds.includes(destination.id)}>
+									<ListBox.ItemIndicator />
+									<div>
+										<Label>{destination.name}</Label>
+										<p className='text-xs text-muted'>
+											{destination.host}
+											{!ready && <span className='block'>Add a stream key in Destinations</span>}
+										</p>
+									</div>
+								</ListBox.Item>
+							);
+						})}
+					</ListBox>
+				</Select.Popover>
+			</Select>
+			{!runnerPro && selectedIds.length > 1 && <p className='text-sm text-muted'>Select one destination before saving.</p>}
+			{onManage && (
+				<Button variant='secondary' size='sm' onPress={onManage}>
+					{destinations.length ? "Manage destinations" : "Add destination"}
+				</Button>
+			)}
 		</fieldset>
 	);
 }

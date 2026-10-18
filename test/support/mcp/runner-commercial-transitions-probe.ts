@@ -231,7 +231,7 @@ async function runKnownExpiryBoundary(input: Parameters<typeof runRunnerFreeProP
 	const longProfile = input.variant.endsWith("_owner_long_refresh");
 	const knownEnd = Date.now() + (longProfile ? 30 * 86400000 : 120000);
 	await input.fixture.pool.query("UPDATE users SET plan='free' WHERE id=$1", [ownerId]);
-	await input.fixture.pool.query("INSERT INTO entitlement_grants(user_id,entitlement,source,starts_at,ends_at) VALUES($1,'runner_access','partner',now()-interval '1 hour',$2)", [ownerId, revokedBeforeDispatch ? null : new Date(knownEnd)]);
+	await input.fixture.pool.query("INSERT INTO entitlement_grants(user_id,entitlement,source,starts_at,ends_at) VALUES($1,'pro_access','support',now()-interval '1 hour',$2)", [ownerId, revokedBeforeDispatch ? null : new Date(knownEnd)]);
 	await input.fixture.pool.query("INSERT INTO runners(id,owner_id,name,token,status,last_heartbeat_at,protocol_version,capabilities) VALUES($1,$2,'Known expiry device',$3,'online',now(),2,$4)", [runnerId, ownerId, token, JSON.stringify(["admissions", "destinations", "drain", "runner_presentation", "free_lease"])]);
 	await input.fixture.pool.query("INSERT INTO overlays(id,owner_id,secret,name,status,type) VALUES($1,$2,'private-known-expiry-source','Expiry source','active','Featured')", [overlayId, ownerId]);
 	for (const id of sessionIds) await input.fixture.pool.query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,rtmp_url) VALUES($1,$2,$3,$4,'24/7','rtmp://127.0.0.1:19350/live')", [id, ownerId, runnerId, overlayId]);
@@ -249,7 +249,7 @@ async function runKnownExpiryBoundary(input: Parameters<typeof runRunnerFreeProP
 		}
 	};
 	await start(0);
-	if (revokedBeforeDispatch) await input.fixture.pool.query("UPDATE entitlement_grants SET revoked_at=now() WHERE user_id=$1 AND entitlement='runner_access'", [ownerId]);
+	if (revokedBeforeDispatch) await input.fixture.pool.query("UPDATE entitlement_grants SET revoked_at=now() WHERE user_id=$1 AND entitlement='pro_access'", [ownerId]);
 	const { POST } = await import("@/app/api/runner/heartbeat/route");
 	const heartbeat = async (executions?: unknown[]) => {
 		const requestId = randomUUID();
@@ -270,7 +270,7 @@ async function runKnownExpiryBoundary(input: Parameters<typeof runRunnerFreeProP
 	const claims = verifyExecutionBundle(job.lease, trusted, { ...expected, requestId: first.requestId });
 	if (!claims || claims.policy !== "pro_broadcast") throw new Error("KNOWN_EXPIRY_FIXTURE_PAID_PERMIT_INVALID");
 	async function observeRevokedDispatch() {
-		await input.fixture.pool.query("UPDATE entitlement_grants SET revoked_at=now() WHERE user_id=$1 AND entitlement='runner_access'", [ownerId]);
+		await input.fixture.pool.query("UPDATE entitlement_grants SET revoked_at=now() WHERE user_id=$1 AND entitlement='pro_access'", [ownerId]);
 		const uncertain = await heartbeat();
 		const pending = uncertain.body.jobs?.find((value: any) => value.id === sessionIds[0]);
 		const denied = await start(1);
@@ -328,7 +328,7 @@ async function runKnownExpiryBoundary(input: Parameters<typeof runRunnerFreeProP
 		const expiredJob = expired.body.jobs?.find((value: any) => value.id === sessionIds[0]);
 		async function observePendingRenewal() {
 			const renewedEnd = knownEnd + 86400000;
-			await input.fixture.pool.query("UPDATE entitlement_grants SET ends_at=$2 WHERE user_id=$1 AND entitlement='runner_access'", [ownerId, new Date(renewedEnd)]);
+			await input.fixture.pool.query("UPDATE entitlement_grants SET ends_at=$2 WHERE user_id=$1 AND entitlement='pro_access'", [ownerId, new Date(renewedEnd)]);
 			Date.now = () => knownEnd + 1000;
 			monotonic += 1000;
 			const renewal = await heartbeat();

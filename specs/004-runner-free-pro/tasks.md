@@ -2395,3 +2395,14 @@ artifact registry or duplicate tests. Added tasks:
 | T1016 | U275     | atomic contract prerequisite | T309         |
 | T1017 | U276     | atomic contract prerequisite | T309         |
 | T1018 | U277     | atomic contract prerequisite | T309         |
+
+## UX correction pass (2026-10-18)
+
+The user superseded legacy Runner preservation: hard cut the unreleased Runner entitlement/product/configuration paths. Preserve unrelated Pro grants and agency creator seats. Do not generate migrations on this branch.
+
+- [ ] UXR-01 Retire Runner-only capability grants and standalone billing/schema paths; update policy tests and documentation.
+- [ ] UXR-02 Integrate broadcast setup, destination selection/creation and recoverable saving with shared owner policy.
+- [ ] UXR-03 Rebuild appearance as an integrated modal using shared overlay color/preview patterns, HeroUI DropZone and secondary controls; stabilize preview updates.
+- [ ] UXR-04 Use native HeroUI Agenda controls, shared local timezone, accessible date/time editing and coherent multi-day scheduling.
+- [ ] UXR-05 Add durable UX rules to AGENTS.md and real-component browser acceptance for setup, locks, appearance, schedule and responsive design.
+- [ ] UXR-06 Verify all audit findings with corrective checks, affected suites and release gates; push the complete correction.

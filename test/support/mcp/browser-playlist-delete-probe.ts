@@ -48,12 +48,11 @@ async function main() {
 							sessionId = randomUUID();
 						await fixture.pool.query("INSERT INTO runners(id,owner_id,name,token) VALUES($1,'creator','Browser runner','private-browser-runner')", [runnerId]);
 						await fixture.pool.query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,rtmp_url) VALUES($1,'creator',$2,$3,'24/7','rtmp://custom.example/live')", [sessionId, runnerId, overlayId]);
-						await fixture.pool.query("INSERT INTO entitlement_grants(user_id,entitlement,source,starts_at) VALUES('creator','runner_access','partner',now()-interval '1 hour')");
 
 						const admissionGeneration = randomUUID();
 						if (mode.endsWith("-admission")) {
 							const { deriveRunnerCapabilities } = await import("@/server/runner/capabilities");
-							await fixture.pool.query("INSERT INTO runner_broadcast_admissions(owner_id,runner_id,session_id,execution_generation,state,dispatched_at,started_at,configuration_revision,benefits_at_start) VALUES('creator',$1,$2,$3,'active',now(),now(),1,$4)", [runnerId, sessionId, admissionGeneration, JSON.stringify(deriveRunnerCapabilities({ proAccess: false, runnerAccess: true }))]);
+							await fixture.pool.query("INSERT INTO runner_broadcast_admissions(owner_id,runner_id,session_id,execution_generation,state,dispatched_at,started_at,configuration_revision,benefits_at_start) VALUES('creator',$1,$2,$3,'active',now(),now(),1,$4)", [runnerId, sessionId, admissionGeneration, JSON.stringify(deriveRunnerCapabilities({ proAccess: false }))]);
 							await fixture.pool.query("UPDATE stream_sessions SET desired_state='running',actual_state='running' WHERE id=$1", [sessionId]);
 						}
 						const action = await import("@/app/actions/runner");
@@ -85,7 +84,7 @@ async function main() {
 								await fixture.pool.query("UPDATE stream_sessions SET desired_state='running',actual_state='running' WHERE id=$1", [sessionId]);
 							}
 							const heartbeat = await import("@/app/api/runner/heartbeat/route");
-							const request = () => new Request("http://127.0.0.1:3107/api/runner/heartbeat", { method: "POST", headers: { Authorization: "Bearer private-browser-runner", "Content-Type": "application/json" }, body: JSON.stringify({ hostname: "Native runner", os: "Linux", version: "fixture" }) });
+							const request = () => new Request("http://127.0.0.1:3107/api/runner/heartbeat", { method: "POST", headers: { Authorization: "Bearer private-browser-runner", "Content-Type": "application/json" }, body: JSON.stringify({ ...(!mode.endsWith("expired") ? { protocolVersion: 2, capabilities: ["admissions", "drain", "runner_presentation", "free_lease"], requestId: randomUUID() } : {}), hostname: "Native runner", os: "Linux", version: "fixture" }) });
 							stateExtras.firstHeartbeatStatus = (await heartbeat.POST(request())).status;
 							stateExtras.firstHeartbeatRecord = (await fixture.pool.query("SELECT name,configuration_revision FROM runners WHERE id=$1", [runnerId])).rows[0];
 							stateExtras.firstHeartbeatSessionRevision = (await fixture.pool.query("SELECT configuration_revision FROM stream_sessions WHERE id=$1", [sessionId])).rows[0].configuration_revision;

@@ -1,3 +1,4 @@
+import { openRunnerAppearance } from "../../support/runner/editor";
 import { createBdd } from "playwright-bdd";
 import { randomUUID, createHash } from "node:crypto";
 import { Pool } from "pg";
@@ -38,6 +39,7 @@ Given("a Pro creator has a saved custom standby and a playable generated source"
 	await expect(privacy).toBeVisible();
 	await Promise.all([page.waitForEvent("load"), privacy.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 	await page.goto(`http://127.0.0.1:3107/dashboard/runners/${world.runnerId}`);
+	await openRunnerAppearance(page);
 	await expect(page.getByTitle("Runner appearance preview")).toBeVisible();
 });
 When("they review real standby and clip previews at all four attribution corners", async ({ page }) => {
@@ -56,13 +58,15 @@ When("they review real standby and clip previews at all four attribution corners
 		const badge = preview.getByLabel("Livestream powered by Clipify.us", { exact: true });
 		await expect(badge).toBeVisible();
 		await expect
-			.poll(() =>
-				badge.evaluate((element) => {
+			.poll(async () => {
+				const geometry = await badge.evaluate((element) => {
 					const box = element.getBoundingClientRect();
 					return { left: box.left, right: innerWidth - box.right, top: box.top, bottom: innerHeight - box.bottom, scale: innerHeight / 1080 };
-				}),
-			)
-			.toMatchObject({ scale: expect.any(Number) });
+				});
+				return Math.max(Math.abs((corner.right ? geometry.right : geometry.left) - 24 * geometry.scale), Math.abs((corner.bottom ? geometry.bottom : geometry.top) - 24 * geometry.scale));
+			})
+			.toBeLessThan(0.5);
+
 		const geometry = await badge.evaluate((element) => {
 			const box = element.getBoundingClientRect();
 			return { left: box.left, right: innerWidth - box.right, top: box.top, bottom: innerHeight - box.bottom, scale: innerHeight / 1080 };

@@ -2,13 +2,17 @@ import { act, render } from "@testing-library/react";
 import RunnerPage from "@/app/dashboard/runners/[id]/page";
 import { getRunner } from "@/app/actions/runner";
 
-jest.mock("next/navigation", () => ({ useParams: () => ({ id: "polling-runner" }), useRouter: () => ({ push: jest.fn() }) }));
+jest.mock("next/navigation", () => {
+	const router = { push: jest.fn() };
+	return { useParams: () => ({ id: "polling-runner" }), useRouter: () => router };
+});
 jest.mock("@/app/actions/auth", () => ({ validateAuth: jest.fn(async () => ({ id: "polling-owner" })) }));
 jest.mock("@/app/actions/database", () => ({ getAllOverlays: jest.fn(async () => []) }));
 jest.mock("@/app/actions/runner", () => ({ getRunner: jest.fn(), getRunnerToken: jest.fn(async () => ({ success: true, token: "local-fixture-token" })), getRunnerVersionManifest: jest.fn(async () => null), getStreamSessionsForRunner: jest.fn(async () => []), listRunnerDestinations: jest.fn(async () => ({ success: true, destinations: [] })), listRunnerScheduleEvents: jest.fn(), upsertStreamSession: jest.fn(), setStreamDesiredState: jest.fn(), unlinkRunner: jest.fn() }));
 jest.mock("@/app/lib/toast", () => ({ notify: jest.fn() }));
 jest.mock("@/app/components/upgradeModal", () => ({ __esModule: true, default: () => null }));
 jest.mock("@/app/components/dashboardNavbar", () => ({ __esModule: true, default: () => null }));
+jest.mock("@/app/components/runner/RunnerBrandingPreview", () => ({ __esModule: true, default: () => null }));
 jest.mock("@/app/components/runnerSchedule", () => ({ __esModule: true, default: () => null }));
 jest.mock("@/app/components/runnerDestinations", () => ({ __esModule: true, default: () => null }));
 jest.mock("@/app/components/runnerDestinationSelection", () => ({ __esModule: true, default: () => null, canStartWithDestinations: () => false }));
@@ -51,4 +55,18 @@ test("TDD-US3-FR010: a slow telemetry batch cannot queue more polling ahead of s
 		await jest.advanceTimersByTimeAsync(10000);
 	});
 	expect(getRunner).toHaveBeenCalledTimes(3);
+});
+
+test("UX-C3: initial transport failure shows a recoverable retry instead of an endless spinner", async () => {
+	const { screen, fireEvent } = await import("@testing-library/react");
+	jest.mocked(getRunner).mockRejectedValueOnce(new Error("local-fixture-offline"));
+	const view = render(<RunnerPage />);
+	await act(async () => {});
+	expect(screen.getByRole("alert")).toHaveTextContent("Could not load this runner");
+	jest.mocked(getRunner).mockResolvedValue({ id: "polling-runner", ownerId: "polling-owner", name: "Recovered runner", status: "offline" } as never);
+	fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+	await act(async () => {});
+	expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+	expect(getRunner).toHaveBeenCalledTimes(2);
+	view.unmount();
 });

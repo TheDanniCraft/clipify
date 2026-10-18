@@ -68,7 +68,7 @@ async function entitlementNoticeApplies(record: DeliveryRecord, now: Date): Prom
 		.from(entitlementGrantsTable)
 		.where(eq(entitlementGrantsTable.id, String(record.payload.grantId)))
 		.limit(1);
-	if (!grant) return false;
+	if (!grant || grant.entitlement !== "pro_access") return false;
 	if (record.payload.event === "revoked") return revokedBenefitNoticeApplies(record, now, grant);
 	if (grant.revokedAt || !benefitPayloadMatches(record, grant)) return false;
 	const partner = grant.source === "partner" && grant.entitlement === "pro_access";
@@ -80,7 +80,7 @@ type BenefitGrant = typeof entitlementGrantsTable.$inferSelect;
 async function revokedBenefitNoticeApplies(record: DeliveryRecord, now: Date, grant: BenefitGrant): Promise<boolean> {
 	if (!grant.revokedAt || record.dedupe_key.split(":").at(-1) !== String(grant.revokedAt.getTime())) return false;
 	record.payload.partner = grant.source === "partner" && grant.entitlement === "pro_access";
-	if (grant.userId) record.payload[grant.entitlement === "runner_access" ? "runnerContinues" : "proContinues"] = await hasContinuingBenefit(grant.entitlement === "runner_access" ? "runner" : "pro", grant.userId, now, grant.id);
+	if (grant.userId) record.payload["proContinues"] = await hasContinuingBenefit("pro", grant.userId, now, grant.id);
 	return true;
 }
 
@@ -88,7 +88,7 @@ function optionalPayloadMatches(value: unknown, current: unknown) {
 	return value === undefined || value === current;
 }
 function benefitPayloadMatches(record: DeliveryRecord, grant: BenefitGrant) {
-	return record.payload.endsAt === (grant.endsAt?.toISOString() ?? null) && grant.source !== "billing" && optionalPayloadMatches(record.payload.trial, grant.source === "reverse_trial") && optionalPayloadMatches(record.payload.benefit, grant.entitlement === "runner_access" ? "runner" : "pro") && optionalPayloadMatches(record.payload.partner, grant.source === "partner" && grant.entitlement === "pro_access");
+	return record.payload.endsAt === (grant.endsAt?.toISOString() ?? null) && grant.source !== "billing" && optionalPayloadMatches(record.payload.trial, grant.source === "reverse_trial") && optionalPayloadMatches(record.payload.benefit, "pro") && optionalPayloadMatches(record.payload.partner, grant.source === "partner" && grant.entitlement === "pro_access");
 }
 function partnerEndingNoticeApplies(grant: BenefitGrant, now: Date, event: string, partner: boolean) {
 	if (!partner || !grant.endsAt) return false;
@@ -106,7 +106,7 @@ function endedPartnerNoticeApplies(grant: BenefitGrant, accessEnd: Date | null, 
 }
 async function endedBenefitNoticeApplies(record: DeliveryRecord, grant: BenefitGrant, accessEnd: Date | null, now: Date) {
 	if (!accessEnd || accessEnd > now) return false;
-	if (grant.userId) record.payload[grant.entitlement === "runner_access" ? "runnerContinues" : "proContinues"] = await hasContinuingBenefit(grant.entitlement === "runner_access" ? "runner" : "pro", grant.userId, now, grant.id);
+	if (grant.userId) record.payload["proContinues"] = await hasContinuingBenefit("pro", grant.userId, now, grant.id);
 	return true;
 }
 async function benefitReminderApplies(grant: BenefitGrant, accessEnd: Date | null, now: Date, event: string) {
@@ -114,7 +114,7 @@ async function benefitReminderApplies(grant: BenefitGrant, accessEnd: Date | nul
 	const days = Number(event.split("-").at(-1)?.replace("d", ""));
 	// Skip stale countdowns; suppress sales emails when another source survives this access period.
 	if (accessEnd.getTime() - now.getTime() > days * 86400000 || accessEnd.getTime() - now.getTime() <= (days - 1) * 86400000) return false;
-	if (grant.userId && (await hasContinuingBenefit(grant.entitlement === "runner_access" ? "runner" : "pro", grant.userId, accessEnd, grant.id))) return false;
+	if (grant.userId && (await hasContinuingBenefit("pro", grant.userId, accessEnd, grant.id))) return false;
 	return true;
 }
 async function activeBenefitNoticeApplies(record: DeliveryRecord, now: Date, grant: BenefitGrant, partner: boolean): Promise<boolean> {
@@ -153,7 +153,7 @@ async function agencyNoticeApplies(record: DeliveryRecord, now: Date): Promise<b
 	if (!allocation) return false;
 	record.payload.product = allocation.product;
 	if (record.payload.boundary === "granted") return allocation.status === "active" || allocation.status === "removal_scheduled";
-	if (record.payload.boundary === "ended") return allocation.status === "ended" && !(await hasContinuingBenefit(allocation.product === "runner" ? "runner" : "pro", allocation.creatorId, now));
+	if (record.payload.boundary === "ended") return allocation.status === "ended" && !(await hasContinuingBenefit("pro", allocation.creatorId, now));
 	return agencyRemovalNoticeApplies(record, allocation, now);
 }
 
@@ -164,7 +164,7 @@ async function agencyRemovalNoticeApplies(record: DeliveryRecord, allocation: ty
 		if (record.payload.effectiveAt !== allocation.endsAt.toISOString()) return false;
 		const days = Number(boundary.slice("removal-".length, -1));
 		if (!reminderIsCurrent(allocation.endsAt, now, days)) return false;
-		return !(await hasContinuingBenefit(allocation.product === "runner" ? "runner" : "pro", allocation.creatorId, allocation.endsAt));
+		return !(await hasContinuingBenefit("pro", allocation.creatorId, allocation.endsAt));
 	}
 	return true;
 }
@@ -179,6 +179,7 @@ const eligibilityChecks: Record<string, (record: DeliveryRecord, now: Date) => P
 	"agency-allocation": agencyNoticeApplies,
 };
 export async function notificationStillApplies(record: DeliveryRecord, now: Date): Promise<boolean> {
+	if (record.payload.benefit === "runner" || record.payload.product === "runner") return false;
 	const check = eligibilityChecks[record.event_type];
 	return check ? check(record, now) : true;
 }

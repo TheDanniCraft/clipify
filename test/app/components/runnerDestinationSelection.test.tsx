@@ -1,6 +1,24 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { render, screen, fireEvent } from "@testing-library/react";
+jest.mock("@heroui/react", () => {
+	const base = jest.requireActual("@heroui/react");
+	const React = jest.requireActual("react");
+	const Context = React.createContext({});
+	const Box = ({ children }: { children?: React.ReactNode }) => <>{children}</>;
+	const Select = Object.assign(({ children, ...props }: { children: React.ReactNode }) => <Context.Provider value={props}>{children}</Context.Provider>, { Trigger: Box, Value: () => null, ClearButton: () => null, Indicator: () => null, Popover: Box });
+	const Item = ({ children, id, isDisabled }: { children: React.ReactNode; id: string; isDisabled?: boolean }) => {
+		const { value, onChange, selectionMode } = React.useContext(Context);
+		const selected = Array.isArray(value) ? value.includes(id) : value === id;
+		return (
+			<button disabled={isDisabled} aria-pressed={selected} onClick={() => onChange(selectionMode === "multiple" ? (selected ? value.filter((key: string) => key !== id) : [...value, id]) : selected ? null : id)}>
+				{children}
+			</button>
+		);
+	};
+	return { ...base, Select, ListBox: Object.assign(Box, { Item, ItemIndicator: () => null }) };
+});
+
 const Selection = existsSync(join(process.cwd(), "src/app/components/runnerDestinationSelection.tsx")) ? require("@/app/components/runnerDestinationSelection").default : () => null;
 const canStart = require("@/app/components/runnerDestinationSelection").canStartWithDestinations ?? (() => undefined);
 const destinations = [
@@ -27,7 +45,7 @@ test.each([true, false])("TDD-US2-FR006: saved destination selection uses protec
 test("TDD-US2-FR006: a keyless custom destination remains selectable and an empty library explains setup", () => {
 	const onChange = jest.fn();
 	const { rerender } = render(<Selection destinations={[]} selectedIds={[]} runnerPro={false} onChange={onChange} />);
-	expect(screen.getByText(/Add a destination below/)).toBeInTheDocument();
+	expect(screen.getByRole("group", { name: "Broadcast destinations" })).toBeInTheDocument();
 	rerender(<Selection destinations={[{ id: "custom", name: "Local RTMP", provider: "custom", host: "127.0.0.1", credentialConfigured: false }]} selectedIds={[]} runnerPro={false} onChange={onChange} />);
 	fireEvent.click(screen.getByRole("button", { name: /Local RTMP/ }));
 	expect(onChange).toHaveBeenCalledWith(["custom"]);
@@ -48,4 +66,20 @@ test("TDD-US2-FR008: Start requires ready saved targets while custom keyless tar
 	expect(canStart(destinations, ["deleted"])).toBe(false);
 	expect(canStart(destinations, ["youtube", "twitch"])).toBe(true);
 	expect(canStart([{ id: "custom", name: "Custom", provider: "custom", host: "localhost", credentialConfigured: false }], ["custom"])).toBe(true);
+});
+
+test("UX-C3: empty destination selection offers creation beside the control", () => {
+	const onManage = jest.fn();
+	render(<Selection destinations={[]} selectedIds={[]} runnerPro={false} onChange={jest.fn()} onManage={onManage} />);
+	fireEvent.click(screen.getByRole("button", { name: "Add destination" }));
+	expect(onManage).toHaveBeenCalledTimes(1);
+});
+
+test("UX-C9: a downgraded multi-destination draft exposes every retained target and can reduce to one", () => {
+	const onChange = jest.fn();
+	render(<Selection destinations={destinations} selectedIds={["youtube", "twitch"]} runnerPro={false} onChange={onChange} />);
+	expect(screen.getByRole("button", { name: /My YouTube/ })).toHaveAttribute("aria-pressed", "true");
+	expect(screen.getByRole("button", { name: /My Twitch/ })).toHaveAttribute("aria-pressed", "true");
+	fireEvent.click(screen.getByRole("button", { name: /My YouTube/ }));
+	expect(onChange).toHaveBeenLastCalledWith(["twitch"]);
 });

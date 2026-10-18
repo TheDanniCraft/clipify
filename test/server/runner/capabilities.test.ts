@@ -16,8 +16,8 @@ test("TDD-US5-CON015 U276/U277: known validity bounds a new paid Start without e
 });
 
 test.each([
-	["lifetime", true, "legacy"],
-	["active", true, "legacy"],
+	["lifetime", true, "grant"],
+	["active", true, "grant"],
 	["expired", false, "free"],
 	["revoked", false, "free"],
 	["agency_active", true, "agency"],
@@ -38,12 +38,12 @@ test.each([
 	expect(result.historyUnchanged).toBe(true);
 });
 
-test.each(["lifetime", "active", "agency_active"])("TDD-US5-CON015 U275: %s Runner-only metadata cannot manufacture general Pro", (state) => {
+test.each(["lifetime", "active", "agency_active"])("TDD-US5-CON015 U275: %s Pro-source metadata agrees with general Pro", (state) => {
 	const result = flowProbe(`catalogue:workflow:runner_free_pro:commercial_metadata_${state}`);
 	expect(result.available).toBe(true);
-	expect(result.individual).toMatchObject({ proAccess: false, runnerAccess: true });
+	expect(result.individual).toMatchObject({ proAccess: true });
 	expect(result.individualPolicy).toMatchObject({ runnerPro: true, scheduling: true });
-	expect(result.raw).toMatchObject({ effectivePlan: "free", proAccess: false, runnerAccess: true, isBillingPro: false });
+	expect(result.raw).toMatchObject({ effectivePlan: "pro", proAccess: true, isBillingPro: false });
 	expect(result.historyUnchanged).toBe(true);
 	expect(result.otherPolicy.runnerPro).toBe(false);
 });

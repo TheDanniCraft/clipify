@@ -1,3 +1,4 @@
+import { StreamState } from "@types";
 import { randomUUID, createHmac } from "node:crypto";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { createRequire } from "node:module";
@@ -28,10 +29,9 @@ export async function runRunnerRegistrationProbe(input: Parameters<typeof runRun
 		await input.fixture.pool.query("UPDATE users SET plan='free' WHERE id='fixture-creator'");
 		const access = input.variant.replace("register_", "");
 		if (access === "pro") await input.fixture.pool.query("UPDATE users SET plan='pro' WHERE id='fixture-creator'");
-		if (access === "legacy" || access === "trial") await input.fixture.pool.query("INSERT INTO entitlement_grants(user_id,entitlement,source,starts_at,ends_at) VALUES('fixture-creator',$1,$2,now()-interval '1 hour',now()+interval '1 day')", [access === "legacy" ? "runner_access" : "pro_access", access === "legacy" ? "partner" : "reverse_trial"]);
+		if (access === "grant" || access === "trial") await input.fixture.pool.query("INSERT INTO entitlement_grants(user_id,entitlement,source,starts_at,ends_at) VALUES('fixture-creator',$1,$2,now()-interval '1 hour',now()+interval '1 day')", ["pro_access", access === "grant" ? "support" : "reverse_trial"]);
 		if (access === "agency") {
 			await (await import("./seed-pro-allocation")).seedCreatorProAllocation(input.fixture.pool, "fixture-creator", "creator-org", input.actorId);
-			await input.fixture.pool.query("UPDATE agency_license_allocations SET product='runner' WHERE creator_id='fixture-creator'");
 		}
 
 		const { call } = await runRunnerFreeProProbe(input);
@@ -60,7 +60,6 @@ export async function runRunnerDeniedOperationsProbe(input: Parameters<typeof ru
 			runnerId = randomUUID(),
 			sessionId = randomUUID();
 		await input.fixture.pool.query("UPDATE users SET plan='pro' WHERE id='fixture-creator'");
-		await input.fixture.pool.query("INSERT INTO entitlement_grants(user_id,entitlement,source,starts_at) VALUES('fixture-creator','runner_access','partner',now()-interval '1 hour')");
 		await input.fixture.pool.query("INSERT INTO overlays(id,owner_id,secret,name,status,type) VALUES($1,'fixture-creator','private-denial-overlay','Protected source','active','Featured')", [overlayId]);
 		await input.fixture.pool.query("INSERT INTO runners(id,owner_id,name,token) VALUES($1,'fixture-creator','Protected Runner','private-denial-runner')", [runnerId]);
 		await input.fixture.pool.query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,desired_state,actual_state) VALUES($1,'fixture-creator',$2,$3,'24/7','running','running')", [sessionId, runnerId, overlayId]);
@@ -88,7 +87,6 @@ export async function runRunnerHeartbeatIsolationProbe(input: Parameters<typeof 
 		ownSession = randomUUID(),
 		foreignSession = randomUUID();
 	await input.fixture.pool.query("UPDATE users SET plan='pro' WHERE id='fixture-creator'");
-	await input.fixture.pool.query("INSERT INTO entitlement_grants(user_id,entitlement,source,starts_at) VALUES('fixture-creator','runner_access','partner',now()-interval '1 hour')");
 	for (const [id, secret] of [
 		[ownOverlay, "own-private-overlay"],
 		[foreignOverlay, "foreign-private-overlay"],
@@ -104,9 +102,21 @@ export async function runRunnerHeartbeatIsolationProbe(input: Parameters<typeof 
 		[ownSession, ownRunner, ownOverlay],
 		[foreignSession, foreignRunner, foreignOverlay],
 	])
-		await input.fixture.pool.query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,desired_state,actual_state,encrypted_stream_key) VALUES($1,'fixture-creator',$2,$3,'24/7','running','stopped',$4)", [id, runner, overlay, encryptString(id === ownSession ? "own-stream-key" : "foreign-stream-key")]);
+		await input.fixture.pool.query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,desired_state,actual_state,encrypted_stream_key) VALUES($1,'fixture-creator',$2,$3,'24/7','stopped','stopped',$4)", [id, runner, overlay, encryptString(id === ownSession ? "own-stream-key" : "foreign-stream-key")]);
+
+	const { generateKeyPairSync } = await import("node:crypto");
+	process.env.RUNNER_EXECUTION_SIGNING_PRIVATE_KEY = generateKeyPairSync("ed25519").privateKey.export({ type: "pkcs8", format: "pem" }).toString();
+	const { db } = await import("@/db/client");
+	const { streamSessionsTable } = await import("@/db/schema");
+	const { eq } = await import("drizzle-orm");
+	const { reserveBroadcastAdmission } = await import("@/server/runner/admission");
+	await db.transaction(async (tx) => {
+		const session = await tx.query.streamSessionsTable.findFirst({ where: eq(streamSessionsTable.id, ownSession) });
+		await reserveBroadcastAdmission(tx, session!, { proAccess: true, proSource: "pro" }, 1);
+		await tx.update(streamSessionsTable).set({ desiredState: StreamState.Running }).where(eq(streamSessionsTable.id, ownSession));
+	});
 	const { POST } = await import("@/app/api/runner/heartbeat/route");
-	const response = await POST(new Request(`${input.origin}/api/runner/heartbeat`, { method: "POST", headers: { Authorization: "Bearer own-device-token", "Content-Type": "application/json" }, body: JSON.stringify({ protocolVersion: 2, capabilities: ["admissions", "drain", "runner_presentation"], lastAcknowledgedConfigRevision: 7, actualStates: { [foreignSession]: "running" } }) }));
+	const response = await POST(new Request(`${input.origin}/api/runner/heartbeat`, { method: "POST", headers: { Authorization: "Bearer own-device-token", "Content-Type": "application/json" }, body: JSON.stringify({ protocolVersion: 2, capabilities: ["admissions", "drain", "runner_presentation", "free_lease"], requestId: randomUUID(), lastAcknowledgedConfigRevision: 7, actualStates: { [foreignSession]: "running" } }) }));
 	const body = await response.json();
 	const telemetry = (await input.fixture.pool.query("SELECT to_jsonb(r)->'protocol_version' AS protocol, to_jsonb(r)->'capabilities' AS capabilities, to_jsonb(r)->'last_acknowledged_config_revision' AS ack FROM runners r WHERE id=$1", [ownRunner])).rows[0];
 	const foreignState = (await input.fixture.pool.query("SELECT actual_state FROM stream_sessions WHERE id=$1", [foreignSession])).rows[0].actual_state;
@@ -394,8 +404,8 @@ export async function runRunnerAdmissionProbe(input: Parameters<typeof runRunner
 		async function observeServiceRetry() {
 			const { reserveBroadcastAdmission } = await import("@/server/runner/admission");
 			const session = (await input.fixture.db.query.streamSessionsTable.findMany()).find((row) => row.id === sessionIds[0])!;
-			const first = await input.fixture.db.transaction((tx) => reserveBroadcastAdmission(tx, session, { proAccess: false, runnerAccess: false }, 2));
-			const second = await input.fixture.db.transaction((tx) => reserveBroadcastAdmission(tx, session, { proAccess: false, runnerAccess: false }, 3));
+			const first = await input.fixture.db.transaction((tx) => reserveBroadcastAdmission(tx, session, { proAccess: false }, 2));
+			const second = await input.fixture.db.transaction((tx) => reserveBroadcastAdmission(tx, session, { proAccess: false }, 3));
 			const { isResourceFailure } = await import("@/server/resources/errors");
 			if (isResourceFailure(first) || isResourceFailure(second)) throw new Error("FIXTURE_ADMISSION_UNEXPECTED_DENIAL");
 			return { sameId: first.id === second.id, sameGeneration: first.executionGeneration === second.executionGeneration, revision: second.configurationRevision, state: second.state, dispatched: second.dispatchedAt, ...(await inspect()) };
@@ -602,7 +612,7 @@ export async function runRunnerAdmissionProbe(input: Parameters<typeof runRunner
 			await input.fixture.pool.query("UPDATE stream_sessions SET desired_state='running',actual_state='running' WHERE id=$1", [sessionIds[0]]);
 			await input.fixture.pool.query("UPDATE stream_sessions SET mode=$2 WHERE id=$1", [sessionIds[0], modes[0]]);
 			await input.fixture.pool.query("UPDATE stream_sessions SET mode=$2 WHERE id=$1", [sessionIds[1], modes[1]]);
-			await input.fixture.pool.query("INSERT INTO runner_broadcast_admissions(id,owner_id,runner_id,session_id,execution_generation,state,configuration_revision,benefits_at_start,dispatched_at,started_at) VALUES($1,'fixture-creator',$2,$3,$4,'active',1,$5,now(),now())", [admissionId, runnerIds[0], sessionIds[0], randomUUID(), JSON.stringify(deriveRunnerCapabilities({ proAccess: false, runnerAccess: false }))]);
+			await input.fixture.pool.query("INSERT INTO runner_broadcast_admissions(id,owner_id,runner_id,session_id,execution_generation,state,configuration_revision,benefits_at_start,dispatched_at,started_at) VALUES($1,'fixture-creator',$2,$3,$4,'active',1,$5,now(),now())", [admissionId, runnerIds[0], sessionIds[0], randomUUID(), JSON.stringify(deriveRunnerCapabilities({ proAccess: false }))]);
 			const holder = async () => (await input.fixture.pool.query("SELECT a.state,a.execution_generation,a.configuration_revision,s.desired_state,s.actual_state FROM runner_broadcast_admissions a JOIN stream_sessions s ON s.id=a.session_id WHERE a.id=$1", [admissionId])).rows[0];
 
 			async function observeExpiredLeaseRecovery() {
@@ -715,7 +725,7 @@ export async function runRunnerAdmissionProbe(input: Parameters<typeof runRunner
 								.transaction(async (tx) => {
 									const { reserveBroadcastAdmission } = await import("@/server/runner/admission");
 									const session = serviceSessions.find((value) => value.id === sessionId)!;
-									await reserveBroadcastAdmission(tx, session, { proAccess: input.variant === "admission_service_pro", runnerAccess: false }, 2);
+									await reserveBroadcastAdmission(tx, session, { proAccess: input.variant === "admission_service_pro" }, 2);
 									return { accepted: true };
 								})
 								.catch((error) => ({ accepted: false, code: error.message }))

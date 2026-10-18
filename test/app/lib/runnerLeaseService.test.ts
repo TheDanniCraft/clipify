@@ -3,7 +3,7 @@ jest.mock("server-only", () => ({}));
 const mockTransaction = jest.fn();
 jest.mock("@/db/client", () => ({ db: { transaction: (callback: unknown) => mockTransaction(callback) } }));
 jest.mock("@/app/lib/encryption", () => ({ decryptString: jest.fn() }));
-jest.mock("@/server/runner/benefits", () => ({ resolveRunnerBenefits: jest.fn(async () => ({ proAccess: true, runnerAccess: false })) }));
+jest.mock("@/server/runner/benefits", () => ({ resolveRunnerBenefits: jest.fn(async () => ({ proAccess: true })) }));
 import { issueFreeExecutionLease, acknowledgeFreeExecutions, issueRunnerBenefitSnapshot, readRunnerOutputStates } from "@/server/runner/lease";
 import { decryptString } from "@/app/lib/encryption";
 import { resolveRunnerBenefits } from "@/server/runner/benefits";
@@ -211,7 +211,7 @@ test("TDD-US3-FR012 paid deadline baseline: unreadable captured validity cannot 
 });
 
 test.each([false, true])("TDD-US3-FR012 revocation baseline: dispatched=%s preserves only authority already issued", async (dispatched) => {
-	(resolveRunnerBenefits as jest.Mock).mockResolvedValueOnce({ proAccess: false, runnerAccess: false });
+	(resolveRunnerBenefits as jest.Mock).mockResolvedValueOnce({ proAccess: false });
 	const captured = { ...admission, state: dispatched ? "starting" : "reserved", dispatchedAt: dispatched ? new Date(1) : null, benefitsAtStart: { runnerPro: true } };
 	const { set } = transaction([[{ id: actor.ownerId }], [actor], [session], [captured]]);
 	const result = await issueFreeExecutionLease(actor, session.id, randomUUID());

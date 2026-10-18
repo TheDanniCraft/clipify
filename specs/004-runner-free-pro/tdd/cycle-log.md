@@ -3160,3 +3160,51 @@ F1 static-review refactor qualification: the frozen 1660-input execution fingerp
 F1 final published refactor verification: complete runtime CI 39122026804 and official five-platform native workflow 39122022382 pass on `4be68ca3`. Application and native artifact source fingerprints both equal be699c61e99437437c1721d70ffde7e259442f68eebece586bc421012d2be43d. The published native packaging fingerprint is 54ff2834fbd8a9b6def81fe791c3ff6ee28e3118445410423683dee190c8daba. CodeFactor reports zero issues. Original intended Red and honest unexpected-failure evidence are preserved. QG-11 and the five story/full-validation closure tasks remain blocked only on explicit authorization for three exact GitHub false-positive dispositions after automatic approval rejection; no code, threshold, rule or alert-state workaround was applied.
 
 Final security approval: user explicitly authorizes the three false-positive dispositions. GitHub confirms24,26,27 dismissed with individual reasons, zero open PR alerts, CodeQL and CodeFactor success, and complete runtime CI39123709920 success on04402364. All1660 qualified execution inputs match. QG-11 and T149/T235/T316/T521/T639 close with this evidence; all1046 tasks are complete. No new intended behavior Red is claimed, and no scanner rule or cryptographic validation changes.
+
+### UX-C1 — Retired Runner access (2026-10-18)
+
+- Red: `bun run test --runInBand --coverage=false --runTestsByPath test/server/runner/retired-access.test.ts`; `UX-C1` failed: expected `runnerPro: false`, received `runnerPro: true` (also scheduling/customStandby/attribution/concurrency mismatches).
+- Green: same whole-file command passed after advanced capabilities were restricted to effective Pro. Old Runner input no longer unlocks advanced features. Further billing/schema retirement is UX-C2.
+
+### UX-C2 — Retired catalog contract (2026-10-18)
+
+- Red: whole-file `test/server/runner/retired-access.test.ts`; `UX-C2` expected `["pro_access"]` and received the additional `runner_access` enum member.
+- Green: same whole-file command passed after retiring the entitlement/product enum members and capability sources. Follow-through removes billing/agency/notification paths, updates superseded legacy-positive fixtures and verifies current Pro behavior; user explicitly authorized this breaking hard cut.
+
+### UX-C3 — Inline setup prerequisites
+
+- Red: whole-file `test/app/components/runnerDestinationSelection.test.tsx`; UX-C3 failed to find the `Add destination` button beside the empty selector.
+- Green: same whole-file command passed (6 tests) after inline creation/management was added. Refactor uses a HeroUI Select/multiselect; the whole-file owner remains green. Real-component acceptance owns actual popover interaction.
+
+### UX-C4 — Stable appearance preview
+
+- Red: whole-file `test/app/components/runnerBrandingPreview.test.tsx`; UX-C4 failed `expect(...).toBe(frame)` because typing replaced the iframe.
+- Green: the whole-file owner passed 21 tests after switching to a stable document with validated same-origin draft messages. Earlier URL-query assertions were deliberately updated to observe the draft transport, preserving their upload/save/preview intent under the user's requested architecture correction. Preview save checks now require acknowledgment of the current draft revision as well as safe layout.
+
+### UX-C5 — Calendar timezone and installed controls
+
+- Initial test setup could not resolve the import-only Pro package and lacked matchMedia; corrected the unit test's explicit Pro double/browser setup. These were setup failures, not behavioral Red.
+- Behavioral Red: `test/app/components/runnerScheduleAgenda.test.tsx` expected `Europe/Berlin`, received `UTC`.
+- Green: the widget owner run passed 35 tests across Agenda timezone, schedule load cancellation, multi-day planner and appearance after sharing timezone and using the installed compound controls. Browser acceptance, including actual widgets and layout, remains required.
+
+### UX corrective regression checkpoint (2026-10-18)
+
+The follow-up transport, initial-load retry and message-origin/Free-branding checks are regression checks added after the corrective implementation; they are not claimed as historical ATDD/TDD Reds. The original targeted Reds above and the real pre-correction browser audit remain the test-first evidence actually observed. The new browser owner uses installed HeroUI, an isolated production build, disposable PostgreSQL and local assets. Free setup passed through inline creation, rejected-save retry, Start readiness, Scheduled upgrade lock and the appearance editor. Pro reached cross-day schedule persistence and live preview typing. Remaining upload/color/mobile checks and complete frozen-source gates must pass before closure.
+
+Commercial retirement/entitlements/catalog owners passed81 cases; current heartbeat, Pro-source metadata, agency provisioning and notification owners passed120 cases. The appearance route/message owners passed; an obsolete shared heartbeat fixture required correction. Earlier complete gates remain historical and do not qualify this worktree.
+
+### UX-C7 — Uncommitted timezone search must not save as the previous selection
+
+Red: the complete Runner browser owner (`playwright test --project=bdd-chromium runner-free-pro.feature --workers=1 --max-failures=3`) failed BDD-US3-OPT036/EC006: after entering Invalid/Nowhere, Save closed the event editor without an error instead of retaining the saved event unchanged. Existing ComboBox selection remained UTC while the visible input showed the uncommitted search. Add field validation, retain search text for correction, and prevent Schedule save until a list selection is committed. Green must include the unchanged-storage assertion; no substituted timezone or silent reset is acceptable.
+
+### UX-C8 — Accessible Agenda event activation
+
+The same complete browser owner exposed two additional Reds (mobile and desktop week continuation): events rendered visually, but no named event button existed. Installed Agenda.Event is a motion div with pointer selection and no keyboard/role props. Its supported children now include a HeroUI Button/Agenda.EventTitle action, with keyboard activation and press propagation for the parent drag interaction. Keep actual drag, resize, mobile and keyboard owners as required checks; do not replace this with a hand-styled native button or silently drop accessible-role assertions.
+
+### UX-C9 — Retained multi-destination settings after downgrade
+
+Red: complete `test/app/components/runnerDestinationSelection.test.tsx` owner,1 failed/6 passed. A Free view with two retained destinations rendered the second as unselected (expected aria-pressed true; received false), masking paid configuration. Preserve the full selection for removal, prevent adding while over the Free allowance, provide the one-destination action, and require a valid count before Save/Start. Green must prove reducing to one without deleting either named destination. Extend both real expiry acceptance examples with a saved second destination and explicit reduction before Manual save.
+
+UX-C7/C8 observed Green checkpoint: the complete browser rerun passes invalid-timezone storage preservation (BDD-US3-OPT036), mobile multi-week navigation and editable true dates, and desktop first-week continuation (DEC009). The run then exposed pointer setup still scrolling the removed wrapper. Update that observation to scroll Agenda.TimeGrid itself while keeping elementFromPoint, selected date/time, pointer and storage assertions unchanged; full owner remains pending.
+
+UX-C9 inner Green: all7 destination-selection cases pass after exposing retained selections for removal. Real expired-Pro two-target acceptance remains required.

@@ -4,14 +4,15 @@ const mockFindRunner = jest.fn();
 const mockFindSessions = jest.fn();
 const mockFindOverlays = jest.fn();
 const mockFindAdmissions = jest.fn();
-const mockAccess = jest.fn();
+
 const mockSet = jest.fn();
 const mockWhere = jest.fn().mockResolvedValue(undefined);
 const mockRateLimit = jest.fn();
+const supported = { protocolVersion: 2, capabilities: ["admissions", "drain", "runner_presentation", "free_lease"], requestId: "11111111-1111-4111-8111-111111111111" };
 const builder = { set: mockSet, where: mockWhere };
 mockSet.mockReturnValue(builder);
 jest.mock("@/db/client", () => ({ db: { query: { runnerBroadcastAdmissionsTable: { findMany: (...args: unknown[]) => mockFindAdmissions(...args) }, runnersTable: { findFirst: (...args: unknown[]) => mockFindRunner(...args) }, streamSessionsTable: { findMany: (...args: unknown[]) => mockFindSessions(...args) }, overlaysTable: { findMany: (...args: unknown[]) => mockFindOverlays(...args) } }, update: () => builder } }));
-jest.mock("@lib/entitlements", () => ({ hasActiveRunnerAccess: (...args: unknown[]) => mockAccess(...args) }));
+jest.mock("@/server/runner/lease", () => ({ issueFreeExecutionLease: jest.fn(async () => null), acknowledgeFreeExecutions: jest.fn(async () => []), issueRunnerBenefitSnapshot: jest.fn(async () => null) }));
 jest.mock("@actions/rateLimit", () => ({ tryRateLimit: (...args: unknown[]) => mockRateLimit(...args) }));
 jest.mock("@lib/sentryServer", () => ({ captureUnexpectedError: jest.fn() }));
 jest.mock("@lib/operationalHealth", () => ({ operationalCount: jest.fn(), operationalDuration: jest.fn() }));
@@ -32,10 +33,8 @@ describe("Runner heartbeat authentication and assigned state", () => {
 		mockFindSessions.mockResolvedValue([]);
 		mockFindOverlays.mockResolvedValue([]);
 		mockFindAdmissions.mockResolvedValue([]);
-		mockAccess.mockResolvedValue(true);
 	});
 	it("TDD-US3-EC009: accepts finite playback outcomes in terminal reports before protocol negotiation", async () => {
-		mockAccess.mockResolvedValue(false);
 		const { randomUUID } = await import("node:crypto");
 		for (const playbackOutcome of ["playback_timeout", "clip_completed", "unexpected"]) {
 			const response = await POST(new Request("http://localhost/api/runner/heartbeat", { method: "POST", headers: { Authorization: "Bearer fixture-token" }, body: JSON.stringify({ protocolVersion: 1, executions: [{ admissionId: randomUUID(), sessionId: randomUUID(), executionGeneration: randomUUID(), leaseId: randomUUID(), configurationRevision: 1, state: "stopped", allOutputsClosed: true, playbackOutcome }] }) }));
@@ -44,7 +43,6 @@ describe("Runner heartbeat authentication and assigned state", () => {
 	});
 
 	it.each(["draining", "unexpected"])("TDD-US3-FR013: finite finishing state %s parses before protocol negotiation", async (state) => {
-		mockAccess.mockResolvedValue(false);
 		const { randomUUID } = await import("node:crypto");
 		const response = await POST(new Request("http://localhost/api/runner/heartbeat", { method: "POST", headers: { Authorization: "Bearer fixture-token" }, body: JSON.stringify({ protocolVersion: 1, executions: [{ admissionId: randomUUID(), sessionId: randomUUID(), executionGeneration: randomUUID(), leaseId: randomUUID(), configurationRevision: 1, state }] }) }));
 		expect(response.status).toBe(state === "draining" ? 426 : 400);
@@ -59,14 +57,13 @@ describe("Runner heartbeat authentication and assigned state", () => {
 
 	it("U230: heartbeat ignores actual state for a session assigned to another device", async () => {
 		mockFindSessions.mockResolvedValue([{ id: "owned-session", overlayId: "owned-overlay", desiredState: "stopped" }]);
-		const response = await POST(new Request("http://localhost/api/runner/heartbeat", { method: "POST", headers: { Authorization: "Bearer fixture-token" }, body: JSON.stringify({ actualStates: { "foreign-session": "running" } }) }));
+		const response = await POST(new Request("http://localhost/api/runner/heartbeat", { method: "POST", headers: { Authorization: "Bearer fixture-token" }, body: JSON.stringify({ ...supported, actualStates: { "foreign-session": "running" } }) }));
 		expect(response.status).toBe(200);
 		expect(mockSet).toHaveBeenCalledTimes(1);
 		expect(mockSet).not.toHaveBeenCalledWith({ actualState: "running" });
 	});
 
 	it("U231 replacement: an old Free device must update before any new-policy output", async () => {
-		mockAccess.mockResolvedValue(false);
 		const response = await POST(new Request("http://localhost/api/runner/heartbeat", { method: "POST", headers: { Authorization: "Bearer fixture-token" }, body: "{}" }));
 		expect(response.status).toBe(426);
 		expect(await response.json()).toMatchObject({ code: "update_required", jobs: [] });
@@ -110,7 +107,7 @@ describe("Runner heartbeat authentication and assigned state", () => {
 			const statuses: number[] = [];
 			let response: Response | undefined;
 			for (let request = 0; request < 12; request++) {
-				response = await POST(new Request("http://localhost/api/runner/heartbeat", { method: "POST", headers: { Authorization: "Bearer fixture-U204-device" }, body: "{}" }));
+				response = await POST(new Request("http://localhost/api/runner/heartbeat", { method: "POST", headers: { Authorization: "Bearer fixture-U204-device" }, body: JSON.stringify(supported) }));
 				statuses.push(response.status);
 			}
 			expect(statuses.slice(0, 12)).toEqual(Array(12).fill(200));
@@ -130,7 +127,7 @@ describe("Runner heartbeat authentication and assigned state", () => {
 			const statuses: number[] = [];
 			let response: Response | undefined;
 			for (let request = 0; request < 13; request++) {
-				response = await POST(new Request("http://localhost/api/runner/heartbeat", { method: "POST", headers: { Authorization: "Bearer fixture-U205-device" }, body: "{}" }));
+				response = await POST(new Request("http://localhost/api/runner/heartbeat", { method: "POST", headers: { Authorization: "Bearer fixture-U205-device" }, body: JSON.stringify(supported) }));
 				statuses.push(response.status);
 			}
 			expect(statuses.slice(0, 12)).toEqual(Array(12).fill(200));
@@ -144,14 +141,14 @@ describe("Runner heartbeat authentication and assigned state", () => {
 
 	it("TDD-US1-CON004 U140: a supported v2 device cannot change another session's actual state", async () => {
 		mockFindSessions.mockResolvedValue([{ id: "owned-session", overlayId: "owned-overlay", desiredState: "running", encryptedStreamKey: null }]);
-		const response = await POST(new Request("http://localhost/api/runner/heartbeat", { method: "POST", headers: { Authorization: "Bearer fixture-token" }, body: JSON.stringify({ protocolVersion: 2, capabilities: ["admissions", "drain", "runner_presentation"], actualStates: { "foreign-session": "running" } }) }));
+		const response = await POST(new Request("http://localhost/api/runner/heartbeat", { method: "POST", headers: { Authorization: "Bearer fixture-token" }, body: JSON.stringify({ ...supported, actualStates: { "foreign-session": "running" } }) }));
 		expect(response.status).toBe(200);
 		expect(mockSet).toHaveBeenCalledTimes(1);
 		expect(mockSet).not.toHaveBeenCalledWith({ actualState: "running" });
 	});
 	it("TDD-US1-CON004 U243: authenticated device receives only its own private assignments with no-store", () => {
 		const result = flowProbe("catalogue:workflow:runner_free_pro:heartbeat_isolation");
-		expect(result).toEqual({ telemetry: { protocol: 2, capabilities: ["admissions", "drain", "runner_presentation"], ack: 7 }, status: 200, noStore: true, onlyAssigned: true, foreignDataExposed: false, ownCredentials: true, foreignState: "stopped" });
+		expect(result).toEqual({ telemetry: { protocol: 2, capabilities: ["admissions", "drain", "runner_presentation", "free_lease"], ack: 7 }, status: 200, noStore: true, onlyAssigned: true, foreignDataExposed: false, ownCredentials: true, foreignState: "stopped" });
 	});
 
 	it("TDD-US1-CON004 U242: execution verification admits an authentic permit and rejects a forged bundle", () => {
@@ -227,13 +224,13 @@ describe("Runner heartbeat authentication and assigned state", () => {
 		expect(response.status).toBe(413);
 		expect(mockSet).not.toHaveBeenCalled();
 	});
-	it("TDD-US1-CON004 observations: valid assigned state is persisted while invalid state is ignored", async () => {
+	it("TDD-US1-CON004 observations: unsigned state claims never change a session, even when assigned", async () => {
 		mockFindSessions.mockResolvedValue([{ id: "owned-session", overlayId: "owned-overlay", desiredState: "stopped" }]);
-		const request = (state: string) => new Request("http://localhost/api/runner/heartbeat", { method: "POST", headers: { Authorization: "Bearer fixture-token" }, body: JSON.stringify({ actualStates: { "owned-session": state, "foreign-session": "running" } }) });
+		const request = (state: string) => new Request("http://localhost/api/runner/heartbeat", { method: "POST", headers: { Authorization: "Bearer fixture-token" }, body: JSON.stringify({ ...supported, actualStates: { "owned-session": state, "foreign-session": "running" } }) });
 		const valid = await POST(request("running"));
 		expect(valid.status).toBe(200);
-		expect(mockSet).toHaveBeenCalledTimes(2);
-		expect(mockSet).toHaveBeenCalledWith({ actualState: "running" });
+		expect(mockSet).toHaveBeenCalledTimes(1);
+		expect(mockSet).not.toHaveBeenCalledWith({ actualState: "running" });
 		mockSet.mockClear();
 		const invalid = await POST(request("not-a-stream-state"));
 		expect(invalid.status).toBe(200);
@@ -402,7 +399,6 @@ test("TDD-US1-FR004: heartbeat carries a generation-bound explicit emergency com
 	mockRateLimit.mockResolvedValue({ success: true });
 	mockSet.mockReturnValue(builder);
 	mockFindOverlays.mockResolvedValue([]);
-	mockAccess.mockResolvedValue(false);
 	mockFindRunner.mockResolvedValue({ id: "device-one", ownerId: "owner-one" });
 	mockFindSessions.mockResolvedValue([{ id: "session", overlayId: "overlay", desiredState: "stopped", configurationRevision: 3 }]);
 	mockFindAdmissions.mockResolvedValue([{ id: "admission", sessionId: "session", executionGeneration: "generation", configurationRevision: 2, commandId: "command", stopMode: "immediate", state: "draining" }]);
@@ -416,7 +412,6 @@ test("TDD-US1-FR004: an old stopped snapshot cannot send a stop to a replacement
 	mockRateLimit.mockResolvedValue({ success: true });
 	mockSet.mockReturnValue(builder);
 	mockFindOverlays.mockResolvedValue([]);
-	mockAccess.mockResolvedValue(false);
 	mockFindRunner.mockResolvedValue({ id: "device-one", ownerId: "owner-one" });
 	mockFindSessions.mockResolvedValue([{ id: "session", overlayId: "overlay", desiredState: "stopped", configurationRevision: 3 }]);
 	mockFindAdmissions.mockResolvedValue([{ id: "replacement", sessionId: "session", executionGeneration: "new-generation", configurationRevision: 4, commandId: "new-start", stopMode: "graceful", state: "active" }]);

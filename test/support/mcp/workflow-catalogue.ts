@@ -59,7 +59,6 @@ export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<
 	await fixture.pool.query("INSERT INTO runners(id,owner_id,name,token,status,last_heartbeat_at) VALUES($1,'fixture-creator','Workflow runner','private-workflow-runner','online',now())", [runnerId]);
 	const runnerKey = (await import("@/app/lib/encryption")).encryptString("private-workflow-key");
 	await fixture.pool.query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,encrypted_stream_key) VALUES($1,'fixture-creator',$2,$3,'24/7',$4)", [sessionId, runnerId, overlayId, runnerKey]);
-	await fixture.pool.query("INSERT INTO entitlement_grants(user_id,entitlement,source,starts_at) VALUES('fixture-creator','runner_access','partner',now()-interval '1 hour')");
 	process.env.TWITCH_CLIENT_ID = "workflow-client";
 	const encrypted = await symmetricEncrypt({ key: process.env.BETTER_AUTH_SECRET!, data: "private-workflow-provider" });
 	await fixture.pool.query("INSERT INTO creator_identity_links(creator_id,auth_user_id,source) VALUES('fixture-creator',$1,'twitch_onboarding')", [actorId]);
@@ -347,7 +346,6 @@ export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<
 				await fixture.pool.query("UPDATE users SET plan='free' WHERE id='fixture-creator'");
 				args.patch = { theme: "dark" };
 			}
-			if (variant === "no_runner_access") await fixture.pool.query("DELETE FROM entitlement_grants WHERE entitlement='runner_access'");
 			if (variant === "expired_grant") await fixture.pool.query("UPDATE mcp_connection_grants SET expires_at=now()-interval '1 second'");
 			if (variant === "suspended_creator") await fixture.pool.query("UPDATE users SET disabled=true WHERE id='fixture-creator'");
 			if (variant === "revoked") await fixture.pool.query("UPDATE mcp_connection_grants SET active=false,revoked_at=now()");

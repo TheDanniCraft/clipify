@@ -86,7 +86,7 @@ export async function runRunnerManualConfigurationProbe(input: Parameters<typeof
 				businessDenialReturned,
 				businessDenialThrownCode,
 				capabilityAllowed: capability.result?.structuredContent?.operations?.configure_stream_session?.allowed === true,
-				ownerFree: !benefits.proAccess && !benefits.runnerAccess,
+				ownerFree: !benefits.proAccess,
 				browserAuthenticated: browser.error !== "Unauthorized",
 				mcpAccepted: typeof mcp?.id === "string",
 				mcpError: mcp?.error?.code ?? null,

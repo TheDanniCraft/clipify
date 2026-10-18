@@ -7,55 +7,55 @@ import { runnerAccessFixtures, RUNNER_FIXTURE_NOW } from "../../support/runner/f
 describe("Runner capability admission", () => {
 	it("TDD-US1-FR001: a Free owner can register more than one device without a paid grant", () => {
 		const owner = runnerAccessFixtures.free.build();
-		const capabilities = deriveRunnerCapabilities({ proAccess: owner.effectivePro, runnerAccess: owner.activeLegacyRunnerGrant || owner.activeAgencyRunnerAllocation }, RUNNER_FIXTURE_NOW);
+		const capabilities = deriveRunnerCapabilities({ proAccess: owner.effectivePro }, RUNNER_FIXTURE_NOW);
 		expect(capabilities.basicAccess).toBe(true);
 		expect(capabilities.maxRegisteredDevices).toBeNull();
 	});
 
 	it("TDD-US1-OPT001: Free registration resolves manual single-broadcast capabilities with unlimited hours", () => {
-		expect(deriveRunnerCapabilities({ proAccess: false, runnerAccess: false }, RUNNER_FIXTURE_NOW)).toMatchObject({ basicAccess: true, runnerPro: false, maxRegisteredDevices: null, maxActiveBroadcasts: 1, maxTargets: 1, scheduling: false, customStandby: false, attributionRequired: true, monthlyUsageLimit: null });
+		expect(deriveRunnerCapabilities({ proAccess: false }, RUNNER_FIXTURE_NOW)).toMatchObject({ basicAccess: true, runnerPro: false, maxRegisteredDevices: null, maxActiveBroadcasts: 1, maxTargets: 1, scheduling: false, customStandby: false, attributionRequired: true, monthlyUsageLimit: null });
 	});
 
 	it("TDD-US1-OPT002: Pro registration resolves unrestricted Runner capabilities", () => {
-		const capabilities = deriveRunnerCapabilities({ proAccess: true, runnerAccess: false }, RUNNER_FIXTURE_NOW);
+		const capabilities = deriveRunnerCapabilities({ proAccess: true }, RUNNER_FIXTURE_NOW);
 		expect(capabilities).toMatchObject({ basicAccess: true, runnerPro: true, maxRegisteredDevices: null, maxActiveBroadcasts: null, maxTargets: null, scheduling: true, customStandby: true, attributionRequired: false, monthlyUsageLimit: null, evaluatedAt: RUNNER_FIXTURE_NOW.toISOString(), validUntil: null, source: "pro", capabilityRevision: expect.any(String) });
 	});
 
-	it("TDD-US1-OPT003: a scoped legacy grant preserves Runner benefits and its known expiry without granting Pro", () => {
+	it("TDD-US1-OPT003: retired Runner-only grants cannot unlock advanced Runner features", () => {
 		const owner = runnerAccessFixtures.legacy.build();
 		const endsAt = new Date("2026-10-15T12:00:00.000Z");
-		const capabilities = deriveRunnerCapabilities({ proAccess: owner.effectivePro, runnerAccess: owner.activeLegacyRunnerGrant, validUntil: endsAt }, RUNNER_FIXTURE_NOW);
-		expect(capabilities).toMatchObject({ basicAccess: true, runnerPro: true, maxActiveBroadcasts: null, maxTargets: null, scheduling: true, customStandby: true, attributionRequired: false, validUntil: endsAt.toISOString(), source: "legacy" });
+		const capabilities = deriveRunnerCapabilities({ proAccess: owner.effectivePro, validUntil: endsAt }, RUNNER_FIXTURE_NOW);
+		expect(capabilities).toMatchObject({ basicAccess: true, runnerPro: false, maxActiveBroadcasts: 1, maxTargets: 1, scheduling: false, customStandby: false, attributionRequired: true, validUntil: endsAt.toISOString(), source: "free" });
 		expect(owner.effectivePro).toBe(false);
 	});
 
-	it("TDD-US1-OPT004: an agency Runner allocation retains its scoped provenance", () => {
+	it("TDD-US1-OPT004: retired agency Runner metadata cannot unlock advanced Runner features", () => {
 		const owner = runnerAccessFixtures.agency.build();
-		expect(deriveRunnerCapabilities({ proAccess: owner.effectivePro, runnerAccess: owner.activeAgencyRunnerAllocation, runnerSource: "agency" }, RUNNER_FIXTURE_NOW)).toMatchObject({ basicAccess: true, runnerPro: true, maxActiveBroadcasts: null, scheduling: true, source: "agency" });
+		expect(deriveRunnerCapabilities({ proAccess: owner.effectivePro }, RUNNER_FIXTURE_NOW)).toMatchObject({ basicAccess: true, runnerPro: false, maxActiveBroadcasts: 1, scheduling: false, source: "free" });
 		expect(owner.effectivePro).toBe(false);
 	});
 
 	it("TDD-US1-OPT005: an active Pro trial exposes Runner benefits with its trial expiry", () => {
 		const owner = runnerAccessFixtures.trial.build();
 		const trialEnd = new Date("2026-10-21T12:00:00.000Z");
-		expect(deriveRunnerCapabilities({ proAccess: owner.effectivePro, runnerAccess: false, proSource: "trial", validUntil: trialEnd }, RUNNER_FIXTURE_NOW)).toMatchObject({ runnerPro: true, maxTargets: null, attributionRequired: false, source: "trial", validUntil: trialEnd.toISOString() });
+		expect(deriveRunnerCapabilities({ proAccess: owner.effectivePro, proSource: "trial", validUntil: trialEnd }, RUNNER_FIXTURE_NOW)).toMatchObject({ runnerPro: true, maxTargets: null, attributionRequired: false, source: "trial", validUntil: trialEnd.toISOString() });
 	});
 
 	it("TDD-US1-OPT002 expiry: the snapshot carries the earliest known paid benefit deadline", () => {
 		const early = new Date("2026-10-16T12:00:00.000Z");
 		const later = new Date("2026-10-17T12:00:00.000Z");
-		expect(deriveRunnerCapabilities({ proAccess: true, runnerAccess: false, knownPaidExpiries: [later, null, early] }, RUNNER_FIXTURE_NOW).validUntil).toBe(early.toISOString());
+		expect(deriveRunnerCapabilities({ proAccess: true, knownPaidExpiries: [later, null, early] }, RUNNER_FIXTURE_NOW).validUntil).toBe(early.toISOString());
 	});
 
 	it("TDD-US1-OPT002 revision: evaluation time cannot invalidate an unchanged capability policy", () => {
-		const benefits = { proAccess: true, runnerAccess: false };
+		const benefits = { proAccess: true };
 		const first = deriveRunnerCapabilities(benefits, RUNNER_FIXTURE_NOW);
 		const later = deriveRunnerCapabilities(benefits, new Date(RUNNER_FIXTURE_NOW.getTime() + 60000));
 		const current = deriveRunnerCapabilities(benefits);
 		expect(later.capabilityRevision).toBe(first.capabilityRevision);
 		expect(current.capabilityRevision).toBe(first.capabilityRevision);
 		expect(later.evaluatedAt).not.toBe(first.evaluatedAt);
-		expect(deriveRunnerCapabilities({ proAccess: false, runnerAccess: false }).capabilityRevision).not.toBe(first.capabilityRevision);
+		expect(deriveRunnerCapabilities({ proAccess: false }).capabilityRevision).not.toBe(first.capabilityRevision);
 	});
 
 	it("TDD-US1-EC003: paid benefits cannot give a read-only operator start edit or stop permission", () => {

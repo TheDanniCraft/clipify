@@ -33,12 +33,10 @@ describe("public pricing server page and FAQ boundary", () => {
 		const campaign = { title: "Current offer" };
 		const proMonthly = { amount: 4, currency: "EUR", formatted: "4 EUR" };
 		const proYearly = { amount: 40, currency: "EUR", formatted: "40 EUR" };
-		const runnerMonthly = { amount: 2, currency: "EUR", formatted: "2 EUR" };
-		const runnerYearly = { amount: 20, currency: "EUR", formatted: "20 EUR" };
 		getActiveCampaignOffer.mockResolvedValue(campaign);
-		resolveBillingCatalog.mockResolvedValue({ [BillingProduct.Pro]: { monthly: proMonthly, yearly: proYearly }, [BillingProduct.RunnerSelfHosted]: { monthly: runnerMonthly, yearly: runnerYearly } });
+		resolveBillingCatalog.mockResolvedValue({ [BillingProduct.Pro]: { monthly: proMonthly, yearly: proYearly } });
 		render(await PricingPage());
-		expect(comparisonProps).toHaveBeenCalledWith({ campaignOffer: campaign, pricing: { pro: { monthly: proMonthly, yearly: proYearly }, runner: { monthly: runnerMonthly, yearly: runnerYearly } } });
+		expect(comparisonProps).toHaveBeenCalledWith({ campaignOffer: campaign, pricing: { pro: { monthly: proMonthly, yearly: proYearly } } });
 		expect(screen.getByRole("navigation", { name: "Public navigation" })).toBeInTheDocument();
 		expect(screen.getByRole("heading", { name: "Pricing questions" })).toBeInTheDocument();
 		for (const question of ["Can I use Clipify for free?", "Do I need to keep my computer running?", "Can I switch between monthly and yearly billing?", "What happens if I stop using Pro?"]) expect(screen.getByRole("button", { name: question })).toBeInTheDocument();

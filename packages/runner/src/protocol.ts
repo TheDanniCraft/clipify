@@ -116,7 +116,7 @@ function validBenefitEvaluation(policy: Record<string, unknown>, issuedAt: numbe
 	return digestIdentity(policy.capabilityRevision) && typeof policy.evaluatedAt === "string" && Date.parse(policy.evaluatedAt) === issuedAt;
 }
 function validBenefitSource(policy: Record<string, unknown>) {
-	return typeof policy.source === "string" && ["free", "pro", "trial", "grant", "legacy", "agency"].includes(policy.source) && (policy.runnerPro ? policy.source !== "free" : policy.source === "free");
+	return typeof policy.source === "string" && ["free", "pro", "trial", "grant", "agency"].includes(policy.source) && (policy.runnerPro ? policy.source !== "free" : policy.source === "free");
 }
 function withinKnownPaidEnd(policy: { runnerPro?: unknown; validUntil?: unknown }, expiresAt: number) {
 	return policy.validUntil === null || (typeof policy.validUntil === "string" && Number.isFinite(Date.parse(policy.validUntil)) && (!policy.runnerPro || expiresAt <= Date.parse(policy.validUntil)));

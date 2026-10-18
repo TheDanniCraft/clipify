@@ -47,88 +47,28 @@ test.each(["signed out", "invalid runner", "missing runner", "permission denied"
 	expect(result).not.toContain("private-preview-secret");
 });
 
-test.each([
-	[undefined, "bottom_right"],
-	["invalid", "bottom_right"],
-	["top_left", "top_left"],
-	["top_right", "top_right"],
-	["bottom_left", "bottom_left"],
-	["bottom_right", "bottom_right"],
-])("TDD-US4-FR017: an authorized draft corner %s resolves safely to %s", async (draft, expected) => {
-	const result = await Preview({ params: Promise.resolve({ runnerId }), searchParams: Promise.resolve({ overlayId, watermarkCorner: draft }) });
-	expect(result.props).toMatchObject({ attributionRequired: true, executionGeneration: `preview-${runnerId}`, watermarkCorner: expected });
-	expect(mockProfile).toHaveBeenCalledWith({ userId: ownerId }, { ownerId, runnerId });
-	expect(mockAccess).toHaveBeenCalledWith(overlayId, "websocket", "private-preview-secret");
-	expect(result.props.children.props).toMatchObject({ initialStandby: true, runnerPresentation: true });
-	expect(renderToStaticMarkup(result)).toContain('data-runner-attribution="true"');
-});
-
-test("TDD-US4-FR018 U18: authorized Pro preview defaults clean while retaining its saved corner", async () => {
-	mockProfile.mockResolvedValue({ success: true, runnerPro: true, profile: { watermarkCorner: "top_left", proShowAttribution: false, revision: 2 } });
-	const result = await Preview({ params: Promise.resolve({ runnerId }), searchParams: Promise.resolve({ overlayId }) });
-	expect(result.props).toMatchObject({ attributionRequired: false, executionGeneration: `preview-${runnerId}`, watermarkCorner: "top_left" });
-	expect(renderToStaticMarkup(result)).not.toContain('data-runner-attribution="true"');
-});
-
-test("TDD-US4-OPT093 U133: authorized Pro preview renders its saved voluntary attribution", async () => {
-	mockProfile.mockResolvedValue({ success: true, runnerPro: true, profile: { watermarkCorner: "top_left", proShowAttribution: true, revision: 3 } });
-	const result = await Preview({ params: Promise.resolve({ runnerId }), searchParams: Promise.resolve({ overlayId }) });
-	expect(result.props).toMatchObject({ attributionRequired: true, executionGeneration: `preview-${runnerId}`, watermarkCorner: "top_left" });
-	expect(renderToStaticMarkup(result)).toContain('data-runner-attribution="true"');
-});
-
-test.each([
-	{ runnerPro: true, saved: false, draft: "true", required: true },
-	{ runnerPro: true, saved: true, draft: "false", required: false },
-	{ runnerPro: true, saved: true, draft: "invalid", required: true },
-	{ runnerPro: false, saved: false, draft: "false", required: true },
-])("TDD-US4-OPT093 U133: owned draft $draft with Pro=$runnerPro resolves safely to attribution=$required", async ({ runnerPro, saved, draft, required }) => {
-	mockProfile.mockResolvedValue({ success: true, runnerPro, profile: { watermarkCorner: "top_left", proShowAttribution: saved, revision: 3 } });
-	const result = await Preview({ params: Promise.resolve({ runnerId }), searchParams: Promise.resolve({ overlayId, proShowAttribution: draft }) });
-	expect(result.props).toMatchObject({ attributionRequired: required, executionGeneration: `preview-${runnerId}`, watermarkCorner: "top_left" });
-	expect(mockProfile).toHaveBeenCalledWith({ userId: ownerId }, { ownerId, runnerId });
-});
-
-test("TDD-US4-EXP001 U288: owner preview passes known paid validity to its mounted generated renderer", async () => {
-	const knownPaidUntil = new Date(Date.now() + 60000).toISOString();
-	mockProfile.mockResolvedValue({ success: true, runnerPro: true, validUntil: knownPaidUntil, profile: { watermarkCorner: "top_left", proShowAttribution: false, revision: 3 } });
-	const result = await Preview({ params: Promise.resolve({ runnerId }), searchParams: Promise.resolve({ overlayId }) });
-	expect(result.props).toMatchObject({ attributionRequired: false, executionGeneration: `preview-${runnerId}`, watermarkCorner: "top_left", knownPaidUntil });
-});
-
 const savedAppearance = { watermarkCorner: "bottom_right", proShowAttribution: false, revision: 3, standbyBackgroundColor: "#16324f", message: "Saved message", backgroundAssetId: "33333333-3333-4333-8333-333333333333", logoAssetId: "44444444-4444-4444-8444-444444444444", showNextBroadcastTime: true };
 
-test("TDD-US4-FR019 strength: valid Pro drafts preview all appearance fields and muted playback without saving", async () => {
-	mockProfile.mockResolvedValue({ success: true, runnerPro: true, profile: savedAppearance });
-	const backgroundAssetId = "55555555-5555-4555-8555-555555555555";
-	const logoAssetId = "66666666-6666-4666-8666-666666666666";
-	const result = await Preview({ params: Promise.resolve({ runnerId }), searchParams: Promise.resolve({ overlayId, standbyBackgroundColor: "#abcdef", backgroundAssetId, logoAssetId, message: "Draft message", showNextBroadcastTime: "true", previewMode: "playback" }) });
-	expect(result.props).toMatchObject({ runnerPro: true, standbyBackgroundColor: "#abcdef", standbyMessage: "Draft message", standbyBackgroundImageUrl: `/runner/preview/${runnerId}/assets/${backgroundAssetId}`, standbyLogoUrl: `/runner/preview/${runnerId}/assets/${logoAssetId}?kind=logo`, standbyNextBroadcast: { startUtc: "2028-01-15T13:00:00.000Z", timezone: "Europe/Berlin" } });
-	expect(result.props.children.props).toMatchObject({ initialStandby: false, embedMuted: true, embedAutoplay: true, runnerPresentation: true });
-	expect(mockOwnedAsset).toHaveBeenCalledWith(ownerId, backgroundAssetId, "background");
-	expect(mockOwnedAsset).toHaveBeenCalledWith(ownerId, logoAssetId, "logo");
-	expect(mockNextBroadcast).toHaveBeenCalledWith({ ownerId, runnerId });
+test.each([false, true])("UX-C3: authenticated preview loads saved appearance with authoritative Pro=%s", async (runnerPro) => {
+	mockProfile.mockResolvedValue({ success: true, runnerPro, profile: savedAppearance });
+	const result = await Preview({ params: Promise.resolve({ runnerId }), searchParams: Promise.resolve({ overlayId }) });
+	expect(result.props).toMatchObject({ runnerId, runnerPro, overlay: { id: overlayId, ownerId }, initial: { watermarkCorner: savedAppearance.watermarkCorner, message: savedAppearance.message, backgroundAssetId: savedAppearance.backgroundAssetId, previewMode: "standby" } });
+	expect(mockProfile).toHaveBeenCalledWith({ userId: ownerId }, { ownerId, runnerId });
+	expect(mockAccess).toHaveBeenCalledWith(overlayId, "websocket", "private-preview-secret");
+	expect(renderToStaticMarkup(result).includes('data-runner-attribution="true"')).toBe(!runnerPro);
+	expect(mockNextBroadcast).toHaveBeenCalledTimes(runnerPro ? 1 : 0);
 });
 
-test("TDD-US4-FR019 strength: invalid Pro drafts retain saved appearance and its enabled next-start hint", async () => {
+test("UX-C3: draft query parameters cannot configure the initial authenticated preview", async () => {
 	mockProfile.mockResolvedValue({ success: true, runnerPro: true, profile: savedAppearance });
-	const result = await Preview({ params: Promise.resolve({ runnerId }), searchParams: Promise.resolve({ overlayId, standbyBackgroundColor: "invalid", backgroundAssetId: "invalid", logoAssetId: "invalid", message: "x".repeat(161), showNextBroadcastTime: "invalid" }) });
-	expect(result.props).toMatchObject({ standbyBackgroundColor: savedAppearance.standbyBackgroundColor, standbyMessage: savedAppearance.message, standbyBackgroundImageUrl: `/runner/preview/${runnerId}/assets/${savedAppearance.backgroundAssetId}`, standbyLogoUrl: `/runner/preview/${runnerId}/assets/${savedAppearance.logoAssetId}?kind=logo`, standbyNextBroadcast: { timezone: "Europe/Berlin" } });
-});
-
-test("TDD-US4-FR019 strength: empty optional-image drafts and a disabled hint clear the preview without storage reads", async () => {
-	mockProfile.mockResolvedValue({ success: true, runnerPro: true, profile: savedAppearance });
-	const result = await Preview({ params: Promise.resolve({ runnerId }), searchParams: Promise.resolve({ overlayId, backgroundAssetId: "", logoAssetId: "", message: "", showNextBroadcastTime: "false" }) });
-	expect(result.props).toMatchObject({ standbyBackgroundImageUrl: undefined, standbyLogoUrl: undefined, standbyNextBroadcast: null, standbyMessage: "" });
+	const result = await Preview({ params: Promise.resolve({ runnerId }), searchParams: Promise.resolve({ overlayId, proShowAttribution: "true", message: "URL draft", backgroundAssetId: "", watermarkCorner: "top_left" }) });
+	expect(result.props.initial).toMatchObject({ watermarkCorner: "bottom_right", message: "Saved message", backgroundAssetId: savedAppearance.backgroundAssetId, proShowAttribution: false, previewMode: "standby" });
 	expect(mockOwnedAsset).not.toHaveBeenCalled();
-	expect(mockNextBroadcast).not.toHaveBeenCalled();
 });
 
-test("TDD-US4-FR019 strength: Free preview cannot apply paid draft fields or enable a next-start hint", async () => {
-	mockProfile.mockResolvedValue({ success: true, runnerPro: false, profile: savedAppearance });
-	const result = await Preview({ params: Promise.resolve({ runnerId }), searchParams: Promise.resolve({ overlayId, standbyBackgroundColor: "#abcdef", backgroundAssetId: "55555555-5555-4555-8555-555555555555", logoAssetId: "66666666-6666-4666-8666-666666666666", message: "Hidden draft", showNextBroadcastTime: "true" }) });
-	expect(result.props).toMatchObject({ runnerPro: false, standbyBackgroundColor: savedAppearance.standbyBackgroundColor, standbyMessage: savedAppearance.message, standbyNextBroadcast: null });
-	expect(mockOwnedAsset).toHaveBeenCalledWith(ownerId, savedAppearance.backgroundAssetId, "background");
-	expect(mockOwnedAsset).toHaveBeenCalledWith(ownerId, savedAppearance.logoAssetId, "logo");
-	expect(mockNextBroadcast).not.toHaveBeenCalled();
+test("TDD-US4-EXP001: preview passes the known paid deadline to the mounted renderer", async () => {
+	const validUntil = "2028-01-15T13:00:00.000Z";
+	mockProfile.mockResolvedValue({ success: true, runnerPro: true, validUntil, profile: savedAppearance });
+	const result = await Preview({ params: Promise.resolve({ runnerId }), searchParams: Promise.resolve({ overlayId }) });
+	expect(result.props).toMatchObject({ runnerPro: true, validUntil });
 });

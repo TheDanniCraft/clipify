@@ -9,7 +9,7 @@ export default function RunnerOutputStatus({ outputs = [], destinations, online 
 			{!outputs.length && <p className='text-sm text-muted'>Waiting for the Runner to report destination status.</p>}
 			<ul aria-label='Destination status' aria-live='polite' className='space-y-2'>
 				{outputs.map((output) => (
-					<li key={output.id} className='flex items-center justify-between gap-4 rounded-lg border border-divider px-3 py-2 text-sm'>
+					<li key={output.id} className='flex items-center justify-between gap-4 rounded-lg border border-separator px-3 py-2 text-sm'>
 						<span>{destinations.find((destination) => destination.id === output.id)?.name ?? `Destination ${output.id.slice(0, 8)}`}</span>
 						<span className={!online ? "text-muted" : output.state === "streaming" ? "text-success" : output.state === "failed" ? "text-danger" : output.state === "retrying" ? "text-warning" : "text-muted"}>{labels[output.state]}</span>
 					</li>

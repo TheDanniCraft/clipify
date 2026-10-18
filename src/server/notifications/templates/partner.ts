@@ -13,7 +13,7 @@ function renderPartnerWelcome(input: PartnerEmail) {
 	const { end, graceEnd } = partnerContext(input);
 	return renderBrandedEmail({
 		subject: "Welcome to the Clipify Partner family 💜",
-		paragraphs: ["Thank you for putting your trust in me and Clipify. I'm delighted to have you as a Partner.", "During your partnership, you have access to all Clipify Pro features. Runner access is managed separately.", "Your feedback means a lot to me. If you have an idea, need help, or something doesn't work as expected, reply to this email. I'd love to hear from you.", "Daniel / TheDanniCraft, founder of Clipify.us"],
+		paragraphs: ["Thank you for putting your trust in me and Clipify. I'm delighted to have you as a Partner.", "During your partnership, you have access to all Clipify Pro features, including advanced Runner features.", "Your feedback means a lot to me. If you have an idea, need help, or something doesn't work as expected, reply to this email. I'd love to hear from you.", "Daniel / TheDanniCraft, founder of Clipify.us"],
 		children: createElement(EmailNotice, { type: "success", title: "You are now a Clipify Partner" }, end ? `Your partnership runs until ${formatEmailDate(end)}. Pro continues until ${graceEnd}, including your seven-day transition period.` : "Enjoy your Partner benefits and all Clipify Pro features."),
 		action: { label: "Explore Clipify", url: emailUrl("/dashboard") },
 	});

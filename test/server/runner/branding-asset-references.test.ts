@@ -47,7 +47,7 @@ const mockTransaction = {
 beforeEach(() => {
 	jest.clearAllMocks();
 	mockAuthorize.mockResolvedValue({ creator: { id: ownerId, plan: "pro" }, assertAuthorityCurrent: mockAssertAuthority });
-	mockBenefits.mockResolvedValue({ proAccess: true, runnerAccess: false });
+	mockBenefits.mockResolvedValue({ proAccess: true });
 	mockProfile.mockResolvedValue(current);
 	mockAsset.mockResolvedValue(null);
 	mockReturned.mockResolvedValue([]);

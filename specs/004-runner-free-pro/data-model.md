@@ -1,6 +1,6 @@
 # Data Model: Free Runner and Pro Broadcasting
 
-Use `src/db/schema.ts` as schema source only. No generated files under `drizzle/` are created or edited on this feature branch. Existing IDs/enum values and legacy scalar stream target data remain readable.
+Use `src/db/schema.ts` as schema source only. No generated files under `drizzle/` are created or edited on this feature branch. Remove the unreleased Runner-only entitlement enum and agency Runner seat columns. Shared grant and allocation tables remain for Pro; never convert a Runner-only record into Pro.
 
 ## Runner capabilities (derived, not another subscription table)
 

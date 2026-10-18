@@ -153,3 +153,14 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## Product UI and UX
+
+- Use the installed HeroUI and HeroUI Pro components for visible controls. Read their installed API and official examples before composing them. Prefer the library's date/time pickers, select/multiselect, DropZone, color controls and Agenda compound components over hand-styled native substitutes. Native elements inside library components and hidden form inputs are expected.
+- Reuse Clipify's existing editor, dialog, preview, color-picker and layout patterns. Extract shared components from established screens when necessary; do not create a separate visual language for each feature.
+- Use `variant='secondary'` on supported field controls placed on cards or equivalent surfaces. Follow current theme tokens, consistent widths, spacing and responsive layout. Review light and dark themes.
+- Keep controls close to their prerequisites: provide inline create/manage actions for empty selectors, explain a missing prerequisite at the relevant field, and preserve drafts after failures. Disable actions only for a clear temporary or incompatible state. Paid locks should open the existing upgrade flow without changing or saving an unavailable value.
+- Use coherent editor sections or modes, with focused modals for secondary editing. Avoid long stacks of unrelated cards, duplicate headings, scattered save buttons, and permanent empty previews. Keep previews stable while editing; do not reload an iframe on every keystroke.
+- Write UI copy for the user's action or outcome. Keep internal policy, storage, architecture and implementation rationale out of normal screens. Put plan comparisons on pricing surfaces. Do not use middle-dot separators as decorative copy formatting.
+- Default dates and schedules to the user's local or saved timezone and use that selection consistently in calendar views and event forms. Provide accessible names, keyboard operation, visible focus, loading, empty, error and retry states.
+- Acceptance for a changed user flow includes real installed components in a browser: first-run setup, success and failure recovery, permissions/upgrade behavior, keyboard/focus, and desktop/mobile layout. Inspect screenshots against the existing Clipify design in both themes. Mocked component tests, screenshot capture alone, and a no-overflow assertion do not establish acceptable UX.

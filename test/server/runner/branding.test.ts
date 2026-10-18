@@ -10,24 +10,24 @@ test("TDD-US4-OPT056: generated Free standby requires attribution without mutati
 	const resolvePolicy = Reflect.get(branding, "resolveRunnerPresentationPolicy");
 	expect(resolvePolicy).toEqual(expect.any(Function));
 	if (typeof resolvePolicy !== "function") return;
-	const authority = deriveRunnerCapabilities({ proAccess: false, runnerAccess: false }, new Date("2027-01-04T12:00:00Z"));
+	const authority = deriveRunnerCapabilities({ proAccess: false }, new Date("2027-01-04T12:00:00Z"));
 	const original = structuredClone(authority);
 	expect(resolvePolicy(authority, "generated_standby")).toMatchObject({ attributionRequired: true });
 	expect(authority).toEqual(original);
 });
 
 test("TDD-US4-OPT058: ordinary overlay authority does not acquire Runner attribution", () => {
-	const authority = deriveRunnerCapabilities({ proAccess: false, runnerAccess: false }, new Date("2027-01-04T12:00:00Z"));
+	const authority = deriveRunnerCapabilities({ proAccess: false }, new Date("2027-01-04T12:00:00Z"));
 	expect(branding.resolveRunnerPresentationPolicy(authority, "ordinary_overlay")).toEqual({ attributionRequired: false });
 });
 
 test("TDD-US4-OPT054: Free generated clip playback requires Clipify attribution", () => {
-	const authority = deriveRunnerCapabilities({ proAccess: false, runnerAccess: false }, new Date("2027-01-04T12:00:00Z"));
+	const authority = deriveRunnerCapabilities({ proAccess: false }, new Date("2027-01-04T12:00:00Z"));
 	expect(branding.resolveRunnerPresentationPolicy(authority, "generated_playback")).toEqual({ attributionRequired: true });
 });
 
 test("TDD-US4-FR016 / TDD-US4-OPT055 / TDD-US4-OPT057: disconnect and return brand only generated fallback", () => {
-	const authority = deriveRunnerCapabilities({ proAccess: false, runnerAccess: false }, new Date("2027-01-04T12:00:00Z"));
+	const authority = deriveRunnerCapabilities({ proAccess: false }, new Date("2027-01-04T12:00:00Z"));
 	const surfaces = ["live", "generated_fallback", "live"] as const;
 	expect(surfaces.map((surface) => branding.resolveRunnerPresentationPolicy(authority, surface).attributionRequired)).toEqual([false, true, false]);
 });
@@ -212,14 +212,14 @@ test("TDD-US4-FR018 U18: a Pro owner saves attribution off without replacing pro
 });
 
 test("TDD-US4-OPT093 U133: optional Runner Pro attribution brands generated surfaces while preserving live and ordinary output", () => {
-	const authority = deriveRunnerCapabilities({ proAccess: false, runnerAccess: true });
+	const authority = deriveRunnerCapabilities({ proAccess: true });
 	const saved = { proShowAttribution: true, watermarkCorner: "top_left" };
 	const original = structuredClone({ authority, saved });
 	const resolvePolicy = Reflect.get(branding, "resolveRunnerPresentationPolicy");
 	const surfaces = ["generated_playback", "generated_fallback", "generated_standby", "live", "ordinary_overlay"] as const;
 	expect(surfaces.map((surface) => resolvePolicy(authority, surface, saved).attributionRequired)).toEqual([true, true, true, false, false]);
 	expect({ authority, saved }).toEqual(original);
-	expect(authority.source).toBe("legacy");
+	expect(authority.source).toBe("pro");
 });
 
 test.each([

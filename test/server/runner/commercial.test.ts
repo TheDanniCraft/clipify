@@ -45,7 +45,7 @@ jest.mock("@actions/auth", () => ({ validateAuth: jest.fn(async () => ({ id: "fi
 jest.mock("@actions/utils", () => ({ getBaseUrl: jest.fn(async () => new URL("https://clipify.example.invalid")) }));
 jest.mock("next/headers", () => ({ cookies: jest.fn(async () => ({ get: cookieGet, set: cookieSet })) }));
 jest.mock("@lib/campaignOffers", () => ({ getActiveCampaignOffer: jest.fn(async () => null) }));
-jest.mock("@lib/entitlements", () => ({ resolveUserEntitlements: jest.fn(async () => ({ proAccess: false, runnerAccess: false, reverseTrialActive: false })), getActiveEntitlementGrant: jest.fn(async () => null) }));
+jest.mock("@lib/entitlements", () => ({ resolveUserEntitlements: jest.fn(async () => ({ proAccess: false, reverseTrialActive: false })), getActiveEntitlementGrant: jest.fn(async () => null) }));
 jest.mock("@actions/rateLimit", () => ({ tryRateLimit: jest.fn(async () => ({ success: true })) }));
 jest.mock("@/db/client", () => ({ db: { update: databaseUpdate, select: databaseSelect } }));
 jest.mock("@/server/agencies/database", () => ({ requireAgencyMember: jest.fn(async () => ({ account: { organizationId: "org_fixture_agency" } })) }));
@@ -87,13 +87,12 @@ test("TDD-US5-CON014: existing Pro checkout keeps its current price and mocked S
 	expect(customerCreate).not.toHaveBeenCalled();
 });
 
-test("TDD-US5-FR020: standalone Runner checkout returns an included-plan result before Stripe writes", async () => {
-	const { generateRunnerPaymentLink } = await import("@/app/actions/subscription");
-	const result = await generateRunnerPaymentLink("monthly");
-	expect(result).toEqual({ success: false, code: "RUNNER_INCLUDED", error: expect.stringMatching(/No purchase is needed to use Runner/) });
+test("TDD-US5-FR020: retired Runner checkout is rejected before Stripe writes", async () => {
+	const actions = await import("@/app/actions/subscription");
+	expect(actions).not.toHaveProperty("generateRunnerPaymentLink");
+	expect(await actions.generateCheckout(["runner_self_hosted" as BillingProduct])).toMatchObject({ success: false, code: "INVALID_PRODUCT" });
 	expect(checkoutCreate).not.toHaveBeenCalled();
 	expect(customerCreate).not.toHaveBeenCalled();
-	expect(stripe.prices.list).not.toHaveBeenCalled();
 });
 
 test.each(["runner=true&cycle=monthly", "plan=pro&runner=true&cycle=monthly", "runner=true&runnerCycle=yearly"])("TDD-US5-OPT065: Runner query rejection never commits a signed checkout intent (%s)", async (query) => {
@@ -103,7 +102,7 @@ test.each(["runner=true&cycle=monthly", "plan=pro&runner=true&cycle=monthly", "r
 		const { NextRequest } = await import("next/server");
 		const { GET } = await import("@/app/checkout/start/route");
 		const response = await GET(new NextRequest(`https://clipify.example.invalid/checkout/start?${query}`));
-		expect(response.headers.get("location")).toBe("https://clipify.example.invalid/pricing?runner=included");
+		expect(response.headers.get("location")).toBe("https://clipify.example.invalid/pricing");
 		expect(cookieSet).not.toHaveBeenCalled();
 		expect(checkoutCreate).not.toHaveBeenCalled();
 		expect(customerCreate).not.toHaveBeenCalled();
@@ -141,28 +140,26 @@ test("TDD-US5-OPT064: included Runner limits are represented in the existing two
 test("TDD-US5-OPT066: billing options do not select a new Runner product", async () => {
 	const { getBillingProductOptions } = await import("@/app/actions/subscription");
 	const result = await getBillingProductOptions(BillingProduct.Pro);
-	expect(result.options.find((option) => option.key === BillingProduct.RunnerSelfHosted)).toMatchObject({ owned: false, required: false, selectable: false });
+	expect(result.options.map((option) => option.key)).toEqual([BillingProduct.Pro]);
 	expect(result.options.find((option) => option.key === BillingProduct.Pro)).toMatchObject({ owned: false, required: true });
 	expect(checkoutCreate).not.toHaveBeenCalled();
 	expect(customerCreate).not.toHaveBeenCalled();
 });
 
-test("TDD-US5-OPT066: existing Runner subscription remains visible as owned historical billing", async () => {
+test("TDD-US5-OPT066: retired Runner items never reappear in billing options", async () => {
 	stripe.subscriptions.list.mockResolvedValue({ data: [{ id: "sub_fixture_historical_runner", status: "active", items: { data: [{ price: { id: "price_fixture_runner_monthly", product: "prod_fixture_runner", recurring: { interval: "month" } } }] } }] });
 	const { getBillingProductOptions } = await import("@/app/actions/subscription");
 	const result = await getBillingProductOptions(BillingProduct.Pro);
-	expect(result.options.find((option) => option.key === BillingProduct.RunnerSelfHosted)).toMatchObject({ owned: true, required: false, selectable: false });
+	expect(result.options.map((option) => option.key)).toEqual([BillingProduct.Pro]);
 	expect(checkoutCreate).not.toHaveBeenCalled();
 	expect(customerCreate).not.toHaveBeenCalled();
 });
 
-test("TDD-US5-OPT067: old Runner upgrade requests offer only the existing Pro plan", async () => {
+test("TDD-US5-OPT067: current upgrade requests contain only Pro", async () => {
 	const { getBillingProductOptions } = await import("@/app/actions/subscription");
-	const result = await getBillingProductOptions(BillingProduct.RunnerSelfHosted);
+	const result = await getBillingProductOptions(BillingProduct.Pro);
 	expect(result.primaryProduct).toBe(BillingProduct.Pro);
-	expect(result.options.find((option) => option.key === BillingProduct.RunnerSelfHosted)).toMatchObject({ required: false, selectable: false });
-	expect(checkoutCreate).not.toHaveBeenCalled();
-	expect(customerCreate).not.toHaveBeenCalled();
+	expect(result.options.map((option) => option.key)).toEqual([BillingProduct.Pro]);
 });
 
 test("TDD-US5-CON014: creator-seat increases retain the existing Stripe write contract", async () => {
@@ -174,20 +171,18 @@ test("TDD-US5-CON014: creator-seat increases retain the existing Stripe write co
 
 test("TDD-US5-CON014 U273: Runner-seat increases return included access before database or Stripe writes", async () => {
 	const { changeAgencySeatQuantity } = await import("@/server/agencies/billing");
-	expect(await changeAgencySeatQuantity("runner", 3)).toMatchObject({ success: false, code: "RUNNER_INCLUDED" });
+	expect(await changeAgencySeatQuantity("runner" as never, 3)).toMatchObject({ kind: "invalid", error: "INVALID_AGENCY_SEAT_KIND" });
 	expect(databaseUpdate).not.toHaveBeenCalled();
 	expect(stripe.subscriptions.update).not.toHaveBeenCalled();
 	expect(checkoutCreate).not.toHaveBeenCalled();
 });
 
-test("TDD-US5-CON014: initial agency checkout rejects a new Runner line item before writes", async () => {
+test("TDD-US5-CON014: agency checkout bills only creator seats", async () => {
 	billingRead.mockResolvedValue([{ ...agencyBilling, stripeSubscriptionId: null }]);
+	checkoutCreate.mockResolvedValue({ url: "https://checkout.example.invalid" });
 	const { createAgencyBillingStart } = await import("@/server/agencies/billing");
-	expect(await createAgencyBillingStart()).toMatchObject({ kind: "included", success: false, code: "RUNNER_INCLUDED", url: null });
-	expect(databaseUpdate).not.toHaveBeenCalled();
-	expect(checkoutCreate).not.toHaveBeenCalled();
-	expect(customerCreate).not.toHaveBeenCalled();
-	expect(stripe.subscriptions.create).not.toHaveBeenCalled();
+	expect(await createAgencyBillingStart()).toMatchObject({ kind: "checkout" });
+	expect(checkoutCreate).toHaveBeenCalledWith(expect.objectContaining({ line_items: [{ price: "price_fixture_creator", quantity: 5 }] }), expect.anything());
 });
 
 test("TDD-US5-CON014: agency form presents included access instead of reporting an unchanged purchase", async () => {
@@ -195,19 +190,17 @@ test("TDD-US5-CON014: agency form presents included access instead of reporting 
 	const form = new FormData();
 	form.set("kind", "runner");
 	form.set("quantity", "3");
-	await expect(changeAgencySeatQuantityFormAction(form)).rejects.toThrow(`TEST_REDIRECT:/dashboard/agency?billingError=${encodeURIComponent("Additional Runner seats cannot be purchased.")}`);
+	await expect(changeAgencySeatQuantityFormAction(form)).rejects.toThrow(`TEST_REDIRECT:/dashboard/agency?billingError=${encodeURIComponent("INVALID_AGENCY_SEAT_KIND")}`);
 	expect(redirectTo).toHaveBeenCalledTimes(1);
 	expect(databaseUpdate).not.toHaveBeenCalled();
 	expect(stripe.subscriptions.update).not.toHaveBeenCalled();
 });
 
-test("TDD-US5-CON014: initial agency form explains included Runner instead of reporting an invoice", async () => {
+test("TDD-US5-CON014: agency creator checkout form redirects to its checkout", async () => {
 	billingRead.mockResolvedValue([{ ...agencyBilling, stripeSubscriptionId: null }]);
+	checkoutCreate.mockResolvedValue({ url: "https://checkout.example.invalid" });
 	const { startAgencyBillingFormAction } = await import("@/app/actions/agency");
-	await expect(startAgencyBillingFormAction()).rejects.toThrow(`TEST_REDIRECT:/dashboard/agency?billingError=${encodeURIComponent("Remove Runner seats before starting billing.")}`);
-	expect(redirectTo).toHaveBeenCalledTimes(1);
-	expect(checkoutCreate).not.toHaveBeenCalled();
-	expect(stripe.subscriptions.create).not.toHaveBeenCalled();
+	await expect(startAgencyBillingFormAction()).rejects.toThrow("TEST_REDIRECT:https://checkout.example.invalid");
 });
 
 test("TDD-US5-CON014: creator-only agency checkout remains available without a Runner line item", async () => {
@@ -219,12 +212,12 @@ test("TDD-US5-CON014: creator-only agency checkout remains available without a R
 
 test("TDD-US5-CON014: unchanged historical Runner quantity performs no mutation", async () => {
 	const { changeAgencySeatQuantity } = await import("@/server/agencies/billing");
-	expect(await changeAgencySeatQuantity("runner", 2)).toEqual({ kind: "unchanged", quantity: 2 });
+	expect(await changeAgencySeatQuantity("runner" as never, 2)).toMatchObject({ kind: "invalid", error: "INVALID_AGENCY_SEAT_KIND" });
 	expect(databaseUpdate).not.toHaveBeenCalled();
 	expect(stripe.subscriptions.update).not.toHaveBeenCalled();
 });
 
-test("TDD-US5-CON014: historical Runner seat reduction retains its next-period Stripe schedule", async () => {
+test("TDD-US5-CON014: creator seat reduction retains its next-period Stripe schedule", async () => {
 	stripe.subscriptions.retrieve.mockResolvedValue({
 		id: "sub_fixture_agency",
 		schedule: "sched_fixture_agency",
@@ -236,7 +229,7 @@ test("TDD-US5-CON014: historical Runner seat reduction retains its next-period S
 		},
 	});
 	const { changeAgencySeatQuantity } = await import("@/server/agencies/billing");
-	expect(await changeAgencySeatQuantity("runner", 1)).toEqual({ kind: "decrease", quantity: 1, effective: "next_period" });
+	expect(await changeAgencySeatQuantity("creator", 4)).toEqual({ kind: "decrease", quantity: 4, effective: "next_period" });
 	expect(stripe.subscriptions.update).not.toHaveBeenCalled();
 	expect(stripe.subscriptionSchedules.update).toHaveBeenCalledWith(
 		"sched_fixture_agency",
@@ -250,8 +243,8 @@ test("TDD-US5-CON014: historical Runner seat reduction retains its next-period S
 				}),
 				expect.objectContaining({
 					items: [
-						{ price: "price_fixture_creator", quantity: 5 },
-						{ price: "price_fixture_runner", quantity: 1 },
+						{ price: "price_fixture_creator", quantity: 4 },
+						{ price: "price_fixture_runner", quantity: 2 },
 					],
 					proration_behavior: "none",
 				}),
@@ -271,8 +264,8 @@ test.each([
 	process.env.APP_ENV = environment;
 	try {
 		const { resolveBillingProductForPrice } = await import("@/server/billingCatalog");
-		expect(await resolveBillingProductForPrice(priceId)).toBe(BillingProduct.RunnerSelfHosted);
-		expect(stripe.prices.retrieve).not.toHaveBeenCalled();
+		expect(await resolveBillingProductForPrice(priceId)).toBeNull();
+		expect(stripe.prices.retrieve).toHaveBeenCalledWith(priceId, expect.anything());
 		expect(stripe.prices.list).not.toHaveBeenCalled();
 		expect(checkoutCreate).not.toHaveBeenCalled();
 	} finally {
@@ -285,12 +278,12 @@ test.each(["product-keys", "per-product-cycles"])("TDD-US5-CON014 U150: mixed %s
 	const { generateCheckout } = await import("@/app/actions/subscription");
 	const products =
 		selectionType === "product-keys"
-			? [BillingProduct.Pro, BillingProduct.RunnerSelfHosted]
+			? [BillingProduct.Pro, "runner_self_hosted" as BillingProduct]
 			: [
 					{ product: BillingProduct.Pro, billingCycle: "yearly" as const },
-					{ product: BillingProduct.RunnerSelfHosted, billingCycle: "monthly" as const },
+					{ product: "runner_self_hosted" as BillingProduct, billingCycle: "monthly" as const },
 				];
-	expect(await generateCheckout(products)).toMatchObject({ success: false, code: "RUNNER_INCLUDED" });
+	expect(await generateCheckout(products)).toMatchObject({ success: false, code: "INVALID_PRODUCT" });
 	expect(checkoutCreate).not.toHaveBeenCalled();
 	expect(customerCreate).not.toHaveBeenCalled();
 	expect(stripe.prices.list).not.toHaveBeenCalled();
@@ -301,15 +294,15 @@ test("TDD-US5-CON014: an old signed Runner intent is consumed once and cannot cr
 	const previousSecret = process.env.JWT_SECRET;
 	process.env.JWT_SECRET = "commercial-intent-fixture-not-production";
 	try {
-		const { encodeCheckoutIntent, CHECKOUT_INTENT_COOKIE } = await import("@/server/checkoutIntent");
-		const token = encodeCheckoutIntent({ products: [{ product: BillingProduct.RunnerSelfHosted, billingCycle: "monthly" }], source: "pricing_page", entrypoint: "runner_addon", nonce: "historical-commercial-intent" });
+		const { CHECKOUT_INTENT_COOKIE } = await import("@/server/checkoutIntent");
+		const token = (await import("jsonwebtoken")).default.sign({ v: 1, products: [{ product: "runner_self_hosted", billingCycle: "monthly" }], source: "pricing_page", entrypoint: "runner_addon", nonce: "historical-commercial-intent" }, process.env.JWT_SECRET!, { issuer: "clipify-checkout", audience: "clipify-checkout" });
 		cookieGet.mockReturnValue({ value: token });
 		cookieSet.mockImplementation((name: string, value: string) => {
 			if (name === CHECKOUT_INTENT_COOKIE && value === "") cookieGet.mockReturnValue(undefined);
 		});
 		const { GET } = await import("@/app/checkout/continue/route");
 		const response = await GET();
-		expect(response.headers.get("location")).toBe("https://clipify.example.invalid/pricing?runner=included");
+		expect(response.headers.get("location")).toBe("https://clipify.example.invalid/pricing");
 		expect(cookieSet).toHaveBeenCalledWith(CHECKOUT_INTENT_COOKIE, "", expect.objectContaining({ maxAge: 0 }));
 		expect((await GET()).headers.get("location")).toBe("https://clipify.example.invalid/pricing");
 		expect(checkoutCreate).not.toHaveBeenCalled();
@@ -339,28 +332,28 @@ test("TDD-US5-DEC013: reference templates and home FAQ describe included unlimit
 	expect(runnerFaq?.content).not.toMatch(/3 EUR|30 EUR|add-on/);
 });
 
-test("TDD-US5-FR021: lifetime Runner grants resolve individually and in batches without leaking Pro or owner scope", () => {
+test("TDD-US5-FR021: lifetime Pro grants resolve individually and in batches without leaking owner scope", () => {
 	const result = flowProbe("catalogue:workflow:runner_free_pro:commercial_service_lifetime");
-	expect(result.individual).toMatchObject({ effectivePlan: "free", proAccess: false, runnerAccess: true });
+	expect(result.individual).toMatchObject({ effectivePlan: "pro", proAccess: true });
 	expect(result.batch).toEqual(result.individual);
-	expect(result.ungranted).toMatchObject({ effectivePlan: "free", proAccess: false, runnerAccess: false });
+	expect(result.ungranted).toMatchObject({ effectivePlan: "free", proAccess: false });
 	expect(result.capabilities).toMatchObject({ basicAccess: true, runnerPro: true, scheduling: true, customStandby: true, attributionRequired: false, maxActiveBroadcasts: null, maxTargets: null, validUntil: null });
 	expect(result.grantLifetime).toEqual([{ ends_at: null, revoked_at: null }]);
 });
 
-test("TDD-US5-OPT068: a bounded active Runner grant preserves scoped capabilities in both resolvers", () => {
+test("TDD-US5-OPT068: a bounded active Pro grant preserves scoped capabilities in both resolvers", () => {
 	const result = flowProbe("catalogue:workflow:runner_free_pro:commercial_service_active");
-	expect(result.individual).toMatchObject({ effectivePlan: "free", proAccess: false, runnerAccess: true });
+	expect(result.individual).toMatchObject({ effectivePlan: "pro", proAccess: true });
 	expect(result.batch).toEqual(result.individual);
-	expect(result.ungranted.runnerAccess).toBe(false);
+	expect(result.ungranted).not.toHaveProperty("runnerAccess");
 	expect(result.capabilities).toMatchObject({ runnerPro: true, scheduling: true, customStandby: true, attributionRequired: false });
 	expect(new Date(result.grantLifetime[0].ends_at).getTime()).toBeGreaterThan(Date.now());
 	expect(result.grantLifetime[0].revoked_at).toBeNull();
 });
 
-test("TDD-US5-OPT069: an expired Runner partner grant receives no Pro grace and leaves basic Runner available", () => {
+test("TDD-US5-OPT069: an expired scoped Pro support grant receives no Partner grace and leaves basic Runner available", () => {
 	const result = flowProbe("catalogue:workflow:runner_free_pro:commercial_service_expired");
-	expect(result.individual).toMatchObject({ effectivePlan: "free", proAccess: false, runnerAccess: false });
+	expect(result.individual).toMatchObject({ effectivePlan: "free", proAccess: false });
 	expect(result.batch).toEqual(result.individual);
 	expect(result.capabilities).toMatchObject({ basicAccess: true, runnerPro: false, scheduling: false, customStandby: false, attributionRequired: true, maxActiveBroadcasts: 1, maxTargets: 1 });
 	expect(new Date(result.grantLifetime[0].ends_at).getTime()).toBeLessThan(Date.now());
@@ -370,18 +363,18 @@ test("TDD-US5-OPT069: an expired Runner partner grant receives no Pro grace and 
 
 test("TDD-US5-OPT070: revocation removes only advanced Runner access before the unexpired grant deadline", () => {
 	const result = flowProbe("catalogue:workflow:runner_free_pro:commercial_service_revoked");
-	expect(result.individual).toMatchObject({ effectivePlan: "free", proAccess: false, runnerAccess: false });
+	expect(result.individual).toMatchObject({ effectivePlan: "free", proAccess: false });
 	expect(result.batch).toEqual(result.individual);
 	expect(result.capabilities).toMatchObject({ basicAccess: true, runnerPro: false, scheduling: false, attributionRequired: true });
 	expect(new Date(result.grantLifetime[0].ends_at).getTime()).toBeGreaterThan(Date.now());
 	expect(new Date(result.grantLifetime[0].revoked_at).getTime()).toBeLessThan(Date.now());
 });
 
-test("TDD-US5-OPT071: an active agency Runner allocation grants only scoped Runner benefits in both resolvers", () => {
+test("TDD-US5-OPT071: an active agency creator allocation grants Pro Runner benefits in both resolvers", () => {
 	const result = flowProbe("catalogue:workflow:runner_free_pro:commercial_service_agency_active");
-	expect(result.individual).toMatchObject({ effectivePlan: "free", proAccess: false, runnerAccess: true });
+	expect(result.individual).toMatchObject({ effectivePlan: "pro", proAccess: true });
 	expect(result.batch).toEqual(result.individual);
-	expect(result.ungranted).toMatchObject({ proAccess: false, runnerAccess: false });
+	expect(result.ungranted).toMatchObject({ proAccess: false });
 	expect(result.capabilities).toMatchObject({ runnerPro: true, scheduling: true, customStandby: true, attributionRequired: false, maxActiveBroadcasts: null });
 	expect(result.grantLifetime).toEqual([]);
 	expect(result.agencyLifetime).toHaveLength(1);
@@ -391,7 +384,7 @@ test("TDD-US5-OPT071: an active agency Runner allocation grants only scoped Runn
 
 test.each(["agency_ended", "agency_ended_status"])("TDD-US5-OPT072: ended agency Runner allocation %s denies advanced benefits in both resolvers", (state) => {
 	const result = flowProbe(`catalogue:workflow:runner_free_pro:commercial_service_${state}`);
-	expect(result.individual).toMatchObject({ effectivePlan: "free", proAccess: false, runnerAccess: false });
+	expect(result.individual).toMatchObject({ effectivePlan: "free", proAccess: false });
 	expect(result.batch).toEqual(result.individual);
 	expect(result.capabilities).toMatchObject({ basicAccess: true, runnerPro: false, scheduling: false, customStandby: false, attributionRequired: true });
 	expect(result.grantLifetime).toEqual([]);
@@ -403,9 +396,9 @@ test.each(["agency_ended", "agency_ended_status"])("TDD-US5-OPT072: ended agency
 
 test.each(["pro", "trial", "pro_grant", "agency_creator"])("TDD-US5-FR021 supplemental: effective Pro source %s includes Runner without fabricating a legacy Runner grant", (state) => {
 	const result = flowProbe(`catalogue:workflow:runner_free_pro:commercial_service_${state}`);
-	expect(result.individual).toMatchObject({ effectivePlan: "pro", proAccess: true, runnerAccess: false });
+	expect(result.individual).toMatchObject({ effectivePlan: "pro", proAccess: true });
 	expect(result.batch).toEqual(result.individual);
-	expect(result.ungranted).toMatchObject({ proAccess: false, runnerAccess: false });
+	expect(result.ungranted).toMatchObject({ proAccess: false });
 	expect(result.capabilities).toMatchObject({ runnerPro: true, scheduling: true, customStandby: true, attributionRequired: false, maxActiveBroadcasts: null, maxTargets: null });
-	expect(result.grantLifetime).toEqual([]);
+	expect(result.grantLifetime).toHaveLength(state === "trial" || state === "pro_grant" ? 1 : 0);
 });

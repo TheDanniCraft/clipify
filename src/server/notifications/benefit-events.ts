@@ -9,7 +9,7 @@ type GrantNotice = { payload: BenefitEmail; at: Date };
 function grantPayload(grant: GrantEmailInput): BenefitEmail {
 	const partner = grant.source === "partner" && grant.entitlement === "pro_access";
 	const trial = grant.source === "reverse_trial";
-	const payload: BenefitEmail = { type: "benefit", benefit: grant.entitlement === "runner_access" ? "runner" : "pro", event: "granted", partner, complimentary: grant.source !== "managed_contract", trial, startsAt: grant.startsAt.toISOString(), endsAt: grant.endsAt?.toISOString() ?? null, reason: trial ? null : grant.reason };
+	const payload: BenefitEmail = { type: "benefit", benefit: "pro", event: "granted", partner, complimentary: grant.source !== "managed_contract", trial, startsAt: grant.startsAt.toISOString(), endsAt: grant.endsAt?.toISOString() ?? null, reason: trial ? null : grant.reason };
 	return payload;
 }
 function countdownNotices(payload: BenefitEmail, boundary: Date, after: Date, prefix: "trial" | "access" | "partner-ending" | "partner", offset = 0): GrantNotice[] {
@@ -28,7 +28,7 @@ function grantNoticeKey(grant: GrantEmailInput, notice: GrantNotice) {
 	return `benefit:${grant.id}:${notice.payload.event}${notice.payload.event === "granted" ? "" : `:${grant.endsAt!.getTime()}`}`;
 }
 export async function queueGrantEmails(grant: GrantEmailInput, client: QueryClient = db, includeStart = true) {
-	if (!grant.userId || grant.source === "billing" || !["pro_access", "runner_access"].includes(grant.entitlement)) return;
+	if (!grant.userId || grant.source === "billing" || !["pro_access"].includes(grant.entitlement)) return;
 	const [user] = await client.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, grant.userId)).limit(1).execute();
 	if (!user?.email) return;
 	const payload = grantPayload(grant);
@@ -41,6 +41,7 @@ export async function queueGrantEmails(grant: GrantEmailInput, client: QueryClie
 }
 
 export async function queueCancellationEmail(input: { subscriptionId: string; userId: string; eventCreated: number; benefit: "pro" | "runner"; endsAt: Date | null }, client: QueryClient = db) {
+	if (input.benefit && input.benefit !== "pro") return;
 	const [user] = await client.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, input.userId)).limit(1).execute();
 	if (!user?.email) return;
 	await client
@@ -55,7 +56,7 @@ export async function queueRevokedGrantEmails(now = new Date()) {
 	const result = await db.execute(sql`
  SELECT grants.id, grants.entitlement, grants.source, grants.revoked_at, users.email
  FROM entitlement_grants grants JOIN users ON users.id=grants.user_id
- WHERE grants.source <> 'billing' AND grants.entitlement IN ('pro_access', 'runner_access') AND users.email <> '' AND grants.revoked_at >= ${new Date(now.getTime() - 7 * 86400000)} AND grants.revoked_at <= ${now}
+ WHERE grants.source <> 'billing' AND grants.entitlement IN ('pro_access') AND users.email <> '' AND grants.revoked_at >= ${new Date(now.getTime() - 7 * 86400000)} AND grants.revoked_at <= ${now}
  AND NOT EXISTS (SELECT 1 FROM notification_outbox notices WHERE notices.dedupe_key = 'benefit:' || grants.id::text || ':revoked:' || floor(extract(epoch FROM grants.revoked_at)*1000)::text)
  ORDER BY grants.revoked_at,grants.id LIMIT 100
  `);
@@ -63,7 +64,7 @@ export async function queueRevokedGrantEmails(now = new Date()) {
 		if (!row.email) continue;
 		await db
 			.insert(notificationOutboxTable)
-			.values({ eventType: "entitlement", recipient: row.email, templateVersion: "benefit-v1", locale: "en", payload: { type: "benefit", benefit: row.entitlement === "runner_access" ? "runner" : "pro", event: "revoked", partner: row.source === "partner" && row.entitlement === "pro_access", grantId: row.id }, scheduledAt: now, dedupeKey: `benefit:${row.id}:revoked:${new Date(row.revoked_at).getTime()}` })
+			.values({ eventType: "entitlement", recipient: row.email, templateVersion: "benefit-v1", locale: "en", payload: { type: "benefit", benefit: "pro", event: "revoked", partner: row.source === "partner" && row.entitlement === "pro_access", grantId: row.id }, scheduledAt: now, dedupeKey: `benefit:${row.id}:revoked:${new Date(row.revoked_at).getTime()}` })
 			.onConflictDoNothing({ target: notificationOutboxTable.dedupeKey });
 	}
 }
@@ -73,7 +74,7 @@ export async function queueExistingGrantReminders(now = new Date()) {
 	const { sql } = await import("drizzle-orm");
 	const result = await db.execute(sql`
  SELECT grants.* FROM entitlement_grants grants JOIN users ON users.id=grants.user_id
- WHERE grants.source <> 'billing' AND grants.entitlement IN ('pro_access', 'runner_access') AND users.email <> '' AND grants.user_id IS NOT NULL AND grants.revoked_at IS NULL AND grants.ends_at + CASE WHEN grants.source='partner' AND grants.entitlement='pro_access' THEN interval '7 days' ELSE interval '0 days' END > ${now}
+ WHERE grants.source <> 'billing' AND grants.entitlement IN ('pro_access') AND users.email <> '' AND grants.user_id IS NOT NULL AND grants.revoked_at IS NULL AND grants.ends_at + CASE WHEN grants.source='partner' AND grants.entitlement='pro_access' THEN interval '7 days' ELSE interval '0 days' END > ${now}
  AND NOT EXISTS (SELECT 1 FROM notification_outbox notices WHERE notices.dedupe_key = 'benefit:' || grants.id::text || ':ended:' || floor(extract(epoch FROM grants.ends_at)*1000)::text)
  ORDER BY grants.ends_at, grants.id LIMIT 100
  `);
@@ -86,12 +87,13 @@ export async function queueGrantRevocation(grant: { id: string; userId: string |
 	if (!user?.email) return;
 	await client
 		.insert(notificationOutboxTable)
-		.values({ eventType: "entitlement", recipient: user.email, templateVersion: "benefit-v1", locale: "en", payload: { type: "benefit", benefit: grant.entitlement === "runner_access" ? "runner" : "pro", event: "revoked", partner: grant.source === "partner" && grant.entitlement === "pro_access", grantId: grant.id }, scheduledAt: new Date(), dedupeKey: `benefit:${grant.id}:revoked:${grant.revokedAt.getTime()}` })
+		.values({ eventType: "entitlement", recipient: user.email, templateVersion: "benefit-v1", locale: "en", payload: { type: "benefit", benefit: "pro", event: "revoked", partner: grant.source === "partner" && grant.entitlement === "pro_access", grantId: grant.id }, scheduledAt: new Date(), dedupeKey: `benefit:${grant.id}:revoked:${grant.revokedAt.getTime()}` })
 		.onConflictDoNothing({ target: notificationOutboxTable.dedupeKey });
 }
 
 /** Stripe-synced cancellations; the delivery check revalidates renewal and access. */
 export async function queueSubscriptionCancellationReminders(input: { subscriptionId: string; userId: string; endsAt: Date; ended?: boolean; benefit?: "pro" | "runner" }, client: QueryClient = db) {
+	if (input.benefit && input.benefit !== "pro") return;
 	const [user] = await client.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, input.userId)).limit(1).execute();
 	if (!user?.email) return;
 	const benefit = input.benefit ?? "pro";
@@ -115,11 +117,11 @@ export async function queueSubscriptionCancellationReminders(input: { subscripti
 export async function queueExistingSubscriptionCancellationReminders(now = new Date()) {
 	const { sql } = await import("drizzle-orm");
 	const result = await db.execute(sql`SELECT subscriptions.id, subscriptions.user_id, subscriptions.current_period_end,
- CASE WHEN items.product_key='runner_self_hosted' THEN 'runner' ELSE 'pro' END AS benefit
+ 'pro' AS benefit
  FROM billing_subscriptions subscriptions JOIN billing_subscription_items items ON items.subscription_id=subscriptions.id
  WHERE subscriptions.cancel_at_period_end AND subscriptions.status IN ('active','trialing','past_due')
- AND subscriptions.current_period_end > ${now} AND items.product_key IN ('pro','runner_self_hosted')
- AND NOT EXISTS (SELECT 1 FROM notification_outbox notices WHERE notices.dedupe_key=(CASE WHEN items.product_key='runner_self_hosted' THEN 'runner' ELSE 'pro' END)||'-cancellation:'||subscriptions.id||':'||floor(extract(epoch FROM subscriptions.current_period_end)*1000)::text||':1d')
+ AND subscriptions.current_period_end > ${now} AND items.product_key IN ('pro')
+ AND NOT EXISTS (SELECT 1 FROM notification_outbox notices WHERE notices.dedupe_key=('pro')||'-cancellation:'||subscriptions.id||':'||floor(extract(epoch FROM subscriptions.current_period_end)*1000)::text||':1d')
  ORDER BY subscriptions.current_period_end, subscriptions.id LIMIT 100`);
 	for (const row of result.rows as Array<{ id: string; user_id: string; current_period_end: Date; benefit: "pro" | "runner" }>) await queueSubscriptionCancellationReminders({ subscriptionId: row.id, userId: row.user_id, endsAt: new Date(row.current_period_end), benefit: row.benefit });
 }

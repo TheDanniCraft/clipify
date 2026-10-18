@@ -65,7 +65,7 @@ test("TDD-US5-OPT073 U113: expiry with no output retains a scheduled configurati
 test("TDD-US5-SC005 U40: downgrade preserves saved Runner configuration and basic control without forced runtime suspension", async () => {
 	const inventory = { overlays: ["overlay"], playlists: ["playlist"], galleries: [], runners: ["runner"] };
 	const saved = structuredClone(inventory);
-	const effects = deriveDowngradeEffects({ inventory, effectivePlan: "free", runnerAccess: false });
+	const effects = deriveDowngradeEffects({ inventory, effectivePlan: "free" });
 	expect(effects.capabilities.runnerControl).toBe(true);
 	expect(effects.retained).toEqual(saved);
 	expect(effects.deleted).toEqual({ overlays: [], playlists: [], galleries: [], runners: [] });
