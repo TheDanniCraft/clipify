@@ -23,14 +23,14 @@ const fields = [
 	{ name: "localEndTime", label: "End time", type: "time" },
 ] as const;
 function elapsedDescription(event: RunnerScheduleView) {
-	if (event.recurrence !== "once" || !event.localEndDate) return "Weekly · " + event.timezone;
+	if (event.recurrence !== "once" || !event.localEndDate) return "Weekly in " + event.timezone;
 	const start = new Date(event.localStartDate + "T00:00:00Z"),
 		end = new Date(event.localEndDate + "T00:00:00Z");
 	end.setUTCDate(end.getUTCDate() + 2);
 	start.setUTCDate(start.getUTCDate() - 2);
 	const result = resolveCalendarSchedule(event, { start: start.toISOString(), end: end.toISOString() });
 	const occurrence = result.occurrences[0];
-	return occurrence ? `${(Date.parse(occurrence.endUtc) - Date.parse(occurrence.startUtc)) / 3600000} hours · ${event.timezone}` : (result.skipped[0]?.message ?? event.timezone);
+	return occurrence ? `${(Date.parse(occurrence.endUtc) - Date.parse(occurrence.startUtc)) / 3600000} hours (${event.timezone})` : (result.skipped[0]?.message ?? event.timezone);
 }
 
 export default function RunnerSchedule(props: Props) {

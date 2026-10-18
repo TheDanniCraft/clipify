@@ -378,7 +378,7 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 								variant='primary'
 							>
 								{<IconDiamondFilled />}
-								{ctaLabel ?? (payableProducts.length === 0 ? "Already included" : `${user.entitlements?.effectivePlan === "pro" ? "Add to subscription" : "Start subscription"} · ${totalLabel}/${billingCycle === "monthly" ? "month" : "year"}`)}
+								{ctaLabel ?? (payableProducts.length === 0 ? "Already included" : `${user.entitlements?.effectivePlan === "pro" ? "Add to subscription" : "Start subscription"} for ${totalLabel}/${billingCycle === "monthly" ? "month" : "year"}`)}
 							</Button>
 						</div>
 						<p className='mt-1 text-xs text-muted'>You can cancel anytime in your billing portal.</p>

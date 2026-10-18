@@ -23,7 +23,7 @@ export default function RunnerDestinationSelection({ destinations, selectedIds, 
 								<span className='font-medium'>{destination.name}</span>
 								<span className='text-xs text-muted'>
 									{destination.host}
-									{ready ? "" : " · Add a stream key in Destinations"}
+									{!ready && <span className='block'>Add a stream key in Destinations</span>}
 								</span>
 							</span>
 						</Button>

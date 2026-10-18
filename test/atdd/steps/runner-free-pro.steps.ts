@@ -60,9 +60,17 @@ Then("the saved destination remains available and they can switch to basic Manua
 	await expect(page.getByRole("button", { name: "Edit Saved vacation destination", exact: true })).toBeVisible();
 	const control = page.getByRole("button", { name: / Control$/ });
 	await control.click();
-	await expect(page.getByRole("option", { name: /Scheduled/ })).toBeDisabled();
+	await expect(page.getByRole("option", { name: /Scheduled/ })).toBeEnabled();
+	await expect(page.getByRole("option", { name: /Scheduled/ }).getByRole("img", { name: "Requires Pro" })).toBeVisible();
 	await page.getByRole("option", { name: "Manual", exact: true }).click();
 	await expect(control).toContainText("Manual");
+	await control.click();
+	await page.getByRole("option", { name: /Scheduled/ }).click();
+	const upgrade = page.getByRole("dialog", { name: "Upgrade to Pro", exact: true });
+	await expect(upgrade).toBeVisible();
+	await expect(control).toContainText("Manual");
+	await page.keyboard.press("Escape");
+	await expect(upgrade).toHaveCount(0);
 	await Promise.all([page.waitForResponse((response) => response.request().method() === "POST" && new URL(response.url()).pathname === `/dashboard/runners/${state.runnerId}` && Boolean(response.request().postData()?.includes(state.sessionId))), page.getByRole("button", { name: "Save Configuration", exact: true }).click()]);
 	await expect(page.getByText("Stream session configuration saved.", { exact: true })).toBeVisible();
 	await page.reload();
