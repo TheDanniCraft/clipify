@@ -1,0 +1,245 @@
+﻿2026-10-18T07:52:15.4445410Z Current runner version: '2.337.0'
+2026-10-18T07:52:15.4468882Z ##[group]Runner Image Provisioner
+2026-10-18T07:52:15.4470053Z Hosted Compute Agent
+2026-10-18T07:52:15.4470727Z Version: 20261012.601
+2026-10-18T07:52:15.4471356Z Commit: f3dc54e1fb89da6852db922499a0233137369e1d
+2026-10-18T07:52:15.4472187Z Build Date: 2026-10-12T17:48:21Z
+2026-10-18T07:52:15.4472877Z Worker ID: {2ae7b153-7f4f-486b-a90f-c2020b7e560a}
+2026-10-18T07:52:15.4473630Z Region: southcentralus
+2026-10-18T07:52:15.4474285Z Cloud: Azure
+2026-10-18T07:52:15.4474835Z ##[endgroup]
+2026-10-18T07:52:15.4476717Z ##[group]Operating System
+2026-10-18T07:52:15.4477489Z Ubuntu
+2026-10-18T07:52:15.4478007Z 24.04.5
+2026-10-18T07:52:15.4478658Z LTS
+2026-10-18T07:52:15.4479370Z ##[endgroup]
+2026-10-18T07:52:15.4480035Z ##[group]Runner Image
+2026-10-18T07:52:15.4480679Z Image: ubuntu-24.04
+2026-10-18T07:52:15.4481258Z Version: 20261012.334.1
+2026-10-18T07:52:15.4482589Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-18T07:52:15.4484242Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+2026-10-18T07:52:15.4485221Z ##[endgroup]
+2026-10-18T07:52:15.4486503Z ##[group]GITHUB_TOKEN Permissions
+2026-10-18T07:52:15.4488603Z Contents: read
+2026-10-18T07:52:15.4489515Z Metadata: read
+2026-10-18T07:52:15.4490229Z PullRequests: write
+2026-10-18T07:52:15.4490852Z ##[endgroup]
+2026-10-18T07:52:15.4492948Z Secret source: Actions
+2026-10-18T07:52:15.4493973Z Cache mode: write
+2026-10-18T07:52:15.4494736Z Prepare workflow directory
+2026-10-18T07:52:15.4825622Z Prepare all required actions
+2026-10-18T07:52:15.4872853Z Getting action download info
+2026-10-18T07:52:15.7805091Z Download action repository 'actions/checkout@v7' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+2026-10-18T07:52:15.8963191Z Download action repository 'actions/setup-node@v7' (SHA:949feb2413d6458794dcd2491c4babbbce0c15c1)
+2026-10-18T07:52:16.4624868Z Download action repository 'oven-sh/setup-bun@v2' (SHA:0c5077e51419868618aeaa5fe8019c62421857d6)
+2026-10-18T07:52:16.8735670Z Download action repository 'actions/upload-artifact@v7' (SHA:cf430e030ddbb5b0abf93d22962f4752f3646cd9)
+2026-10-18T07:52:17.5832494Z Complete job name: 🏃 Runner typecheck and tests
+2026-10-18T07:52:17.6812265Z ##[group]Run actions/checkout@v7
+2026-10-18T07:52:17.6813695Z with:
+2026-10-18T07:52:17.6814608Z   repository: TheDanniCraft/clipify
+2026-10-18T07:52:17.6823269Z   token: ***
+2026-10-18T07:52:17.6824246Z   ssh-strict: true
+2026-10-18T07:52:17.6825240Z   ssh-user: git
+2026-10-18T07:52:17.6826162Z   persist-credentials: true
+2026-10-18T07:52:17.6827146Z   clean: true
+2026-10-18T07:52:17.6828141Z   sparse-checkout-cone-mode: true
+2026-10-18T07:52:17.6829374Z   fetch-depth: 1
+2026-10-18T07:52:17.6830339Z   fetch-tags: false
+2026-10-18T07:52:17.6831289Z   show-progress: true
+2026-10-18T07:52:17.6832223Z   lfs: false
+2026-10-18T07:52:17.6833185Z   submodules: false
+2026-10-18T07:52:17.6834190Z   set-safe-directory: true
+2026-10-18T07:52:17.6835304Z   allow-unsafe-pr-checkout: false
+2026-10-18T07:52:17.6836716Z ##[endgroup]
+2026-10-18T07:52:17.7855567Z Syncing repository: TheDanniCraft/clipify
+2026-10-18T07:52:17.7858464Z ##[group]Getting Git version info
+2026-10-18T07:52:17.7860384Z Working directory is '/home/runner/work/clipify/clipify'
+2026-10-18T07:52:17.7862367Z [command]/usr/bin/git version
+2026-10-18T07:52:17.7945494Z git version 2.55.0
+2026-10-18T07:52:17.7972430Z ##[endgroup]
+2026-10-18T07:52:17.7983596Z Temporarily overriding HOME='/home/runner/work/_temp/a2730351-4864-4208-9033-1566e57af497' before making global git config changes
+2026-10-18T07:52:17.7988263Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-18T07:52:17.7992552Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/clipify/clipify
+2026-10-18T07:52:17.8047699Z Deleting the contents of '/home/runner/work/clipify/clipify'
+2026-10-18T07:52:17.8052648Z ##[group]Determining repository object format
+2026-10-18T07:52:17.8056296Z ##[endgroup]
+2026-10-18T07:52:17.8059669Z ##[group]Initializing the repository
+2026-10-18T07:52:17.8062272Z [command]/usr/bin/git init /home/runner/work/clipify/clipify
+2026-10-18T07:52:17.8189816Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-18T07:52:17.8192875Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-18T07:52:17.8195662Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-18T07:52:17.8197843Z hint: call:
+2026-10-18T07:52:17.8199028Z hint:
+2026-10-18T07:52:17.8200739Z hint: 	git config --global init.defaultBranch <name>
+2026-10-18T07:52:17.8202558Z hint:
+2026-10-18T07:52:17.8204771Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-18T07:52:17.8207634Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-18T07:52:17.8214256Z hint:
+2026-10-18T07:52:17.8215518Z hint: 	git branch -m <name>
+2026-10-18T07:52:17.8216985Z hint:
+2026-10-18T07:52:17.8218856Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-18T07:52:17.8222099Z Initialized empty Git repository in /home/runner/work/clipify/clipify/.git/
+2026-10-18T07:52:17.8229419Z [command]/usr/bin/git remote add origin https://github.com/TheDanniCraft/clipify
+2026-10-18T07:52:17.8288749Z ##[endgroup]
+2026-10-18T07:52:17.8291405Z ##[group]Disabling automatic garbage collection
+2026-10-18T07:52:17.8293658Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-18T07:52:17.8326595Z ##[endgroup]
+2026-10-18T07:52:17.8329096Z ##[group]Setting up auth
+2026-10-18T07:52:17.8331016Z Removing SSH command configuration
+2026-10-18T07:52:17.8333330Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-18T07:52:17.8394813Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-18T07:52:17.8781879Z Removing HTTP extra header
+2026-10-18T07:52:17.8786666Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-18T07:52:17.8827947Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-18T07:52:17.9048310Z Removing includeIf entries pointing to credentials config files
+2026-10-18T07:52:17.9054025Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-18T07:52:17.9091094Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-18T07:52:17.9317291Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-7c14a4bf-1ace-40fa-95ea-ff5c6fd90a95.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-18T07:52:17.9356949Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/clipify/clipify/.git.path /home/runner/work/_temp/git-credentials-7c14a4bf-1ace-40fa-95ea-ff5c6fd90a95.config
+2026-10-18T07:52:17.9393348Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/clipify/clipify/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-7c14a4bf-1ace-40fa-95ea-ff5c6fd90a95.config
+2026-10-18T07:52:17.9431070Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-7c14a4bf-1ace-40fa-95ea-ff5c6fd90a95.config
+2026-10-18T07:52:17.9468899Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-7c14a4bf-1ace-40fa-95ea-ff5c6fd90a95.config
+2026-10-18T07:52:17.9502855Z ##[endgroup]
+2026-10-18T07:52:17.9505213Z ##[group]Fetching the repository
+2026-10-18T07:52:17.9511418Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +e51f6e3d90e5eda75565b6eef3837d2725046b23:refs/remotes/pull/519/merge
+2026-10-18T07:52:19.4291394Z From https://github.com/TheDanniCraft/clipify
+2026-10-18T07:52:19.4292565Z  * [new ref]         e51f6e3d90e5eda75565b6eef3837d2725046b23 -> pull/519/merge
+2026-10-18T07:52:19.4296543Z ##[endgroup]
+2026-10-18T07:52:19.4297305Z ##[group]Determining the checkout info
+2026-10-18T07:52:19.4298396Z ##[endgroup]
+2026-10-18T07:52:19.4305126Z [command]/usr/bin/git sparse-checkout disable
+2026-10-18T07:52:19.4366286Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-18T07:52:19.4400154Z ##[group]Checking out the ref
+2026-10-18T07:52:19.4405419Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/519/merge
+2026-10-18T07:52:19.6504838Z Note: switching to 'refs/remotes/pull/519/merge'.
+2026-10-18T07:52:19.6505520Z 
+2026-10-18T07:52:19.6505932Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-18T07:52:19.6506902Z changes and commit them, and you can discard any commits you make in this
+2026-10-18T07:52:19.6507962Z state without impacting any branches by switching back to a branch.
+2026-10-18T07:52:19.6508628Z 
+2026-10-18T07:52:19.6509040Z If you want to create a new branch to retain commits you create, you may
+2026-10-18T07:52:19.6510204Z do so (now or later) by using -c with the switch command. Example:
+2026-10-18T07:52:19.6510695Z 
+2026-10-18T07:52:19.6510915Z   git switch -c <new-branch-name>
+2026-10-18T07:52:19.6511269Z 
+2026-10-18T07:52:19.6511468Z Or undo this operation with:
+2026-10-18T07:52:19.6511796Z 
+2026-10-18T07:52:19.6512023Z   git switch -
+2026-10-18T07:52:19.6512307Z 
+2026-10-18T07:52:19.6512743Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-18T07:52:19.6513394Z 
+2026-10-18T07:52:19.6514084Z HEAD is now at e51f6e3 Merge 73541b597b02e594b363e0a02288017e5617149c into 2786b3f816e4e447b9fd219dceda9a3483d823f1
+2026-10-18T07:52:19.6529623Z ##[endgroup]
+2026-10-18T07:52:19.6580776Z [command]/usr/bin/git log -1 --format=%H
+2026-10-18T07:52:19.6610657Z e51f6e3d90e5eda75565b6eef3837d2725046b23
+2026-10-18T07:52:19.6887395Z ##[group]Run actions/setup-node@v7
+2026-10-18T07:52:19.6887687Z with:
+2026-10-18T07:52:19.6887904Z   node-version: 22.23.3
+2026-10-18T07:52:19.6888137Z   check-latest: false
+2026-10-18T07:52:19.6890850Z   token: ***
+2026-10-18T07:52:19.6891085Z   package-manager-cache: true
+2026-10-18T07:52:19.6891342Z ##[endgroup]
+2026-10-18T07:52:19.8162953Z Found in cache @ /opt/hostedtoolcache/node/22.23.3/x64
+2026-10-18T07:52:19.9191681Z ##[group]Environment details
+2026-10-18T07:52:20.2766811Z node: v22.23.3
+2026-10-18T07:52:20.2768091Z npm: 10.9.9
+2026-10-18T07:52:20.2768414Z yarn: 1.22.22
+2026-10-18T07:52:20.2769572Z ##[endgroup]
+2026-10-18T07:52:20.2931362Z ##[group]Run oven-sh/setup-bun@v2
+2026-10-18T07:52:20.2931642Z with:
+2026-10-18T07:52:20.2931841Z   bun-version: 1.4.2
+2026-10-18T07:52:20.2932054Z   no-cache: false
+2026-10-18T07:52:20.2934540Z   token: ***
+2026-10-18T07:52:20.2934741Z ##[endgroup]
+2026-10-18T07:52:20.6221214Z Downloading a new version of Bun: https://github.com/oven-sh/bun/releases/download/bun-v1.4.2/bun-linux-x64.zip
+2026-10-18T07:52:21.0537342Z [command]/usr/bin/unzip -o -q /home/runner/work/_temp/c29dc412-f8ba-4faa-93d9-25b52ab35777.zip
+2026-10-18T07:52:21.6821101Z [command]/home/runner/.bun/bin/bun --revision
+2026-10-18T07:52:21.6864212Z 1.4.2+744846f84
+2026-10-18T07:52:21.6998987Z ##[group]Run bun install --frozen-lockfile
+2026-10-18T07:52:21.6999702Z [36;1mbun install --frozen-lockfile[0m
+2026-10-18T07:52:21.7294668Z shell: /usr/bin/bash -e {0}
+2026-10-18T07:52:21.7294974Z ##[endgroup]
+2026-10-18T07:52:21.7415368Z bun install v1.4.2 (744846f84)
+2026-10-18T07:52:21.7454319Z Resolving dependencies
+2026-10-18T07:52:21.7480038Z Resolved, downloaded and extracted [3]
+2026-10-18T07:52:22.5121353Z 
+2026-10-18T07:52:22.5150169Z + @swc/core@1.16.13
+2026-10-18T07:52:22.5150633Z + @swc/jest@0.2.39
+2026-10-18T07:52:22.5151046Z + @types/jest@30.0.0
+2026-10-18T07:52:22.5151623Z + @types/node@26.6.3
+2026-10-18T07:52:22.5151885Z + @yao-pkg/pkg@6.23.0
+2026-10-18T07:52:22.5152112Z + esbuild@0.28.2
+2026-10-18T07:52:22.5152321Z + jest@30.5.2
+2026-10-18T07:52:22.5152521Z + resedit@3.1.0
+2026-10-18T07:52:22.5152753Z + typescript@6.0.3
+2026-10-18T07:52:22.5153027Z + @internationalized/date@3.12.4
+2026-10-18T07:52:22.5153330Z + @napi-rs/keyring@2.1.0
+2026-10-18T07:52:22.5153654Z + @puppeteer/browsers@3.2.3
+2026-10-18T07:52:22.5153921Z + puppeteer-core@25.12.0
+2026-10-18T07:52:22.5154176Z + puppeteer-stream@3.0.23
+2026-10-18T07:52:22.5154331Z 
+2026-10-18T07:52:22.5154480Z 416 packages installed [771.00ms]
+2026-10-18T07:52:22.5204482Z ##[group]Run bun audit --audit-level=high
+2026-10-18T07:52:22.5204851Z [36;1mbun audit --audit-level=high[0m
+2026-10-18T07:52:22.5271896Z shell: /usr/bin/bash -e {0}
+2026-10-18T07:52:22.5272161Z ##[endgroup]
+2026-10-18T07:52:22.5374704Z bun audit v1.4.2 (744846f84)
+2026-10-18T07:52:22.5375986Z 
+2026-10-18T07:52:22.6501763Z No vulnerabilities found (checked 439 packages, 1 below --audit-level=high) [113.00ms]
+2026-10-18T07:52:22.6564761Z ##[group]Run bun run patches:validate
+2026-10-18T07:52:22.6565097Z [36;1mbun run patches:validate[0m
+2026-10-18T07:52:22.6627137Z shell: /usr/bin/bash -e {0}
+2026-10-18T07:52:22.6627394Z ##[endgroup]
+2026-10-18T07:52:22.6725761Z $ bun ../../scripts/validate-patched-dependencies.ts
+2026-10-18T07:52:27.5970757Z Verified 3 patched dependencies, 4 patched files, and 4 type-checked files in /home/runner/work/clipify/clipify/packages/runner/node_modules
+2026-10-18T07:52:27.6535565Z ##[group]Run node check-native.mjs
+2026-10-18T07:52:27.6535895Z [36;1mnode check-native.mjs[0m
+2026-10-18T07:52:27.6598031Z shell: /usr/bin/bash -e {0}
+2026-10-18T07:52:27.6598287Z ##[endgroup]
+2026-10-18T07:52:28.2587864Z [Runner] Native keyring binding loaded on linux-x64
+2026-10-18T07:52:28.3458715Z ##[group]Run bun run typecheck
+2026-10-18T07:52:28.3459407Z [36;1mbun run typecheck[0m
+2026-10-18T07:52:28.3528803Z shell: /usr/bin/bash -e {0}
+2026-10-18T07:52:28.3529060Z ##[endgroup]
+2026-10-18T07:52:28.4138643Z $ tsc --noEmit
+2026-10-18T07:52:32.3570916Z ##[error]../../test/support/runner/scenario-inventory.ts(1,34): error TS2307: Cannot find module '@cucumber/gherkin' or its corresponding type declarations.
+2026-10-18T07:52:32.3578829Z ##[error]../../test/support/runner/scenario-inventory.ts(2,46): error TS2307: Cannot find module '@cucumber/messages' or its corresponding type declarations.
+2026-10-18T07:52:32.3580876Z ##[error]../../test/support/runner/scenario-inventory.ts(6,36): error TS7006: Parameter 'e' implicitly has an 'any' type.
+2026-10-18T07:52:32.3582344Z ##[error]../../test/support/runner/scenario-inventory.ts(8,33): error TS7006: Parameter 'e' implicitly has an 'any' type.
+2026-10-18T07:52:32.3583793Z ##[error]../../test/support/runner/scenario-inventory.ts(8,71): error TS7006: Parameter 't' implicitly has an 'any' type.
+2026-10-18T07:52:32.3585194Z ##[error]../../test/support/runner/scenario-inventory.ts(8,102): error TS7006: Parameter 'name' implicitly has an 'any' type.
+2026-10-18T07:52:32.3586754Z ##[error]../../test/support/runner/scenario-inventory.ts(9,16): error TS7006: Parameter 'row' implicitly has an 'any' type.
+2026-10-18T07:52:32.3840484Z ##[error]Process completed with exit code 2.
+2026-10-18T07:52:32.3970647Z Post job cleanup.
+2026-10-18T07:52:32.4847784Z [command]/usr/bin/git version
+2026-10-18T07:52:32.4893186Z git version 2.55.0
+2026-10-18T07:52:32.4930827Z Temporarily overriding HOME='/home/runner/work/_temp/954608a2-6188-4f38-bea1-2f68af612157' before making global git config changes
+2026-10-18T07:52:32.4932662Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-18T07:52:32.4937124Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/clipify/clipify
+2026-10-18T07:52:32.4970971Z Removing SSH command configuration
+2026-10-18T07:52:32.4978406Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-18T07:52:32.5029619Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-18T07:52:32.5285930Z Removing HTTP extra header
+2026-10-18T07:52:32.5291629Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-18T07:52:32.5333970Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-18T07:52:32.5576352Z Removing includeIf entries pointing to credentials config files
+2026-10-18T07:52:32.5584050Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-18T07:52:32.5618275Z includeif.gitdir:/home/runner/work/clipify/clipify/.git.path
+2026-10-18T07:52:32.5619929Z includeif.gitdir:/home/runner/work/clipify/clipify/.git/worktrees/*.path
+2026-10-18T07:52:32.5620892Z includeif.gitdir:/github/workspace/.git.path
+2026-10-18T07:52:32.5621690Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-10-18T07:52:32.5628175Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/clipify/clipify/.git.path
+2026-10-18T07:52:32.5671292Z /home/runner/work/_temp/git-credentials-7c14a4bf-1ace-40fa-95ea-ff5c6fd90a95.config
+2026-10-18T07:52:32.5674482Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/clipify/clipify/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-7c14a4bf\-1ace\-40fa\-95ea\-ff5c6fd90a95\.config
+2026-10-18T07:52:32.5740506Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/clipify/clipify/.git/worktrees/*.path
+2026-10-18T07:52:32.5770166Z /home/runner/work/_temp/git-credentials-7c14a4bf-1ace-40fa-95ea-ff5c6fd90a95.config
+2026-10-18T07:52:32.5772836Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/clipify/clipify/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-7c14a4bf\-1ace\-40fa\-95ea\-ff5c6fd90a95\.config
+2026-10-18T07:52:32.5800664Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-10-18T07:52:32.5831124Z /github/runner_temp/git-credentials-7c14a4bf-1ace-40fa-95ea-ff5c6fd90a95.config
+2026-10-18T07:52:32.5835306Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-7c14a4bf\-1ace\-40fa\-95ea\-ff5c6fd90a95\.config
+2026-10-18T07:52:32.5872659Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-10-18T07:52:32.5898829Z /github/runner_temp/git-credentials-7c14a4bf-1ace-40fa-95ea-ff5c6fd90a95.config
+2026-10-18T07:52:32.5907811Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-7c14a4bf\-1ace\-40fa\-95ea\-ff5c6fd90a95\.config
+2026-10-18T07:52:32.5945635Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-18T07:52:32.6166614Z Removing credentials config '/home/runner/work/_temp/git-credentials-7c14a4bf-1ace-40fa-95ea-ff5c6fd90a95.config'
+2026-10-18T07:52:32.6308266Z Cleaning up orphan processes
