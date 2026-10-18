@@ -228,14 +228,16 @@ export async function runRunnerScheduleContractProbe(input: Input) {
 		await input.fixture.pool.query("INSERT INTO runner_destinations(id,owner_id,runner_id,name,provider,rtmp_url) VALUES($1,$2,$3,'Active lock target','custom','rtmp://127.0.0.1:1949/active')", [activeTargetId, ownerId, activeRunnerId]);
 		await input.fixture.pool.query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,control_mode) VALUES($1,$2,$3,$4,'24/7','scheduled')", [activeSessionId, ownerId, activeRunnerId, overlayId]);
 		await input.fixture.pool.query("INSERT INTO stream_session_destinations(session_id,destination_id,owner_id,position) VALUES($1,$2,$3,0)", [activeSessionId, activeTargetId, ownerId]);
-		const activeStart = new Date(Date.now() - 3600000).toISOString(),
-			activeEnd = new Date(Date.now() + 3600000).toISOString();
+		const activeNow = Date.now(),
+			activeStart = new Date(activeNow - 3600000).toISOString(),
+			activeEnd = new Date(activeNow + 3600000).toISOString(),
+			resizedEnd = new Date(activeNow + 7200000).toISOString();
 		const activeDraft = { ...draft, runnerId: activeRunnerId, sessionId: activeSessionId, destinationIds: [activeTargetId], title: "Active locked event", localStartDate: activeStart.slice(0, 10), localEndDate: activeEnd.slice(0, 10), localStartTime: activeStart.slice(11, 16), localEndTime: activeEnd.slice(11, 16) };
 		const activeCreated = await schedules.saveRunnerScheduleEventForPrincipal(principal, activeDraft);
 		if (!activeCreated.success) throw new Error("ACTIVE_SCHEDULE_FIXTURE_DENIED:" + activeCreated.code);
 		const activeEdits: Record<string, unknown> = {};
 		for (const boundary of ["service", "action"])
-			for (const [kind, patch] of Object.entries({ move: { localStartDate: "2028-01-01", localEndDate: "2028-01-01" }, resize: { localEndDate: new Date(Date.now() + 7200000).toISOString().slice(0, 10), localEndTime: new Date(Date.now() + 7200000).toISOString().slice(11, 16) }, configuration: { title: "Changed live configuration", enabled: false } })) {
+			for (const [kind, patch] of Object.entries({ move: { localStartDate: "2028-01-01", localEndDate: "2028-01-01", localStartTime: "12:00", localEndTime: "14:00" }, resize: { localEndDate: resizedEnd.slice(0, 10), localEndTime: resizedEnd.slice(11, 16) }, configuration: { title: "Changed live configuration", enabled: false } })) {
 				await input.fixture.pool.query("UPDATE runner_schedule_events SET local_start_date=$1,local_end_date=$2,local_start_time=$3,local_end_time=$4,title=$5,enabled=true,configuration_revision=1 WHERE id=$6", [activeDraft.localStartDate, activeDraft.localEndDate, activeDraft.localStartTime, activeDraft.localEndTime, activeDraft.title, activeCreated.event.id]);
 				const before = await persisted();
 				const change = { ...activeDraft, id: activeCreated.event.id, expectedRevision: 1, ...patch };

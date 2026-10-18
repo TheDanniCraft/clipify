@@ -1,0 +1,7 @@
+[tests] Native application probes compiled once for this run
+[tests] database: 1 suites, 1 worker(s)
+Test Suites: 1 passed, 1 total
+Tests:       106 passed, 106 total
+Snapshots:   0 total
+Time:        15.772 s, estimated 16 s
+Ran all test suites matching test/server/runner/schedules.test.ts.
