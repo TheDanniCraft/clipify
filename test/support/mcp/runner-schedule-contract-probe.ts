@@ -282,6 +282,9 @@ export async function runRunnerScheduleContractProbe(input: Input) {
 	const exactActivationDeleteUnchanged = JSON.stringify(activationBefore) === JSON.stringify(await persisted());
 	await input.fixture.pool.query("DELETE FROM runner_schedule_events WHERE id=$1", [activationCreated.event.id]);
 	const { controlStreamSession } = await import("@/server/resources/runners");
+	// Earlier recurring examples must not overlap this wall-clock resume fixture.
+	// Retain their rows for the later expired-entitlement read assertions.
+	await input.fixture.pool.query("UPDATE runner_schedule_events SET enabled=false WHERE owner_id=$1 AND runner_id=$2", [ownerId, input.runnerId]);
 	const resumeEndEpoch = Math.floor((Date.now() + 3600000) / 60000) * 60000;
 	const resumeStart = new Date(resumeEndEpoch - 7200000).toISOString(),
 		resumeEnd = new Date(resumeEndEpoch).toISOString();
@@ -371,6 +374,11 @@ export async function runRunnerScheduleContractProbe(input: Input) {
 		cacheEnd = new Date(cacheStartEpoch + 300000).toISOString();
 	const cachedEvent = await schedules.saveRunnerScheduleEventForPrincipal(principal, { ...base, title: "Offline authorized event", overlayId: eventSourceId, destinationIds: [eventTargetId], localStartDate: cacheStart.slice(0, 10), localEndDate: cacheEnd.slice(0, 10), localStartTime: cacheStart.slice(11, 16), localEndTime: cacheEnd.slice(11, 16) });
 	if (!cachedEvent.success) throw new Error("OFFLINE_EVENT_FIXTURE_DENIED:" + cachedEvent.code);
+	// Recovery observes a separate future authorization, independent of earlier recurrence examples.
+	const recoveryStart = new Date(cacheStartEpoch + 600000).toISOString();
+	const recoveryEnd = new Date(cacheStartEpoch + 900000).toISOString();
+	const recoveryEvent = await schedules.saveRunnerScheduleEventForPrincipal(principal, { ...base, title: "Future recovery occurrence", overlayId: eventSourceId, destinationIds: [eventTargetId], localStartDate: recoveryStart.slice(0, 10), localEndDate: recoveryEnd.slice(0, 10), localStartTime: recoveryStart.slice(11, 16), localEndTime: recoveryEnd.slice(11, 16) });
+	if (!recoveryEvent.success) throw new Error("FUTURE_RECOVERY_EVENT_FIXTURE_DENIED:" + recoveryEvent.code);
 	const cacheHeartbeat = await heartbeatPost(new Request(input.origin + "/api/runner/heartbeat", { method: "POST", headers: { Authorization: `Bearer ${deviceToken}`, "Content-Type": "application/json" }, body: JSON.stringify({ protocolVersion: 2, requestId: randomUUID(), capabilities: ["admissions", "destinations", "drain", "runner_presentation", "free_lease", "schedule_cache"] }) }));
 	const cacheBody = await cacheHeartbeat.json();
 	const offlineAuthorization = {

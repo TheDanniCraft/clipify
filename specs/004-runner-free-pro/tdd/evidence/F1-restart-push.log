@@ -1,0 +1,785 @@
+TAP version 13
+# Subtest: documentation avoids duplicate application tests
+ok 1 - documentation avoids duplicate application tests
+  ---
+  duration_ms: 1.668956
+  type: 'test'
+  ...
+# Subtest: hook changes run their dedicated checks without application changes
+ok 2 - hook changes run their dedicated checks without application changes
+  ---
+  duration_ms: 0.137058
+  type: 'test'
+  ...
+# Subtest: UI and its regression tests select related suites
+ok 3 - UI and its regression tests select related suites
+  ---
+  duration_ms: 0.349812
+  type: 'test'
+  ...
+# Subtest: shared infrastructure and unknown files require the full suite
+ok 4 - shared infrastructure and unknown files require the full suite
+  ---
+  duration_ms: 0.219118
+  type: 'test'
+  ...
+# Subtest: all commits and refs being pushed contribute paths
+ok 5 - all commits and refs being pushed contribute paths
+  ---
+  duration_ms: 0.971696
+  type: 'test'
+  ...
+# Subtest: new branches compare to the master merge base
+ok 6 - new branches compare to the master merge base
+  ---
+  duration_ms: 0.194562
+  type: 'test'
+  ...
+# Subtest: deleted refs need no tests and invalid input fails closed
+ok 7 - deleted refs need no tests and invalid input fails closed
+  ---
+  duration_ms: 0.315066
+  type: 'test'
+  ...
+# Subtest: Gherkin changes use scoped local checks while browser acceptance stays in CI
+ok 8 - Gherkin changes use scoped local checks while browser acceptance stays in CI
+  ---
+  duration_ms: 0.141544
+  type: 'test'
+  ...
+# Subtest: migration automation does not require an unrelated application database for generated artifacts
+ok 9 - migration automation does not require an unrelated application database for generated artifacts
+  ---
+  duration_ms: 0.368248
+  type: 'test'
+  ...
+# Subtest: migration automation still tests source changes and unexpected artifacts
+ok 10 - migration automation still tests source changes and unexpected artifacts
+  ---
+  duration_ms: 0.450489
+  type: 'test'
+  ...
+# Subtest: generated migrations outside their owning workflow retain full push checks
+ok 11 - generated migrations outside their owning workflow retain full push checks
+  ---
+  duration_ms: 0.170447
+  type: 'test'
+  ...
+# Subtest: self-test children cannot consume the ref input needed for scoped checks
+ok 12 - self-test children cannot consume the ref input needed for scoped checks
+  ---
+  duration_ms: 36.764249
+  type: 'test'
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 54.817161
+[pre-push] Running scoped feedback for 406 changed files. Complete coverage and browser checks remain mandatory in CI.
+TAP version 13
+# Subtest: recognizes generated Drizzle artifacts but not schema sources
+ok 1 - recognizes generated Drizzle artifacts but not schema sources
+  ---
+  duration_ms: 1.505893
+  type: 'test'
+  ...
+# Subtest: rejects migration artifacts on an ordinary feature branch
+ok 2 - rejects migration artifacts on an ordinary feature branch
+  ---
+  duration_ms: 1.255593
+  type: 'test'
+  ...
+# Subtest: allows only the authenticated master workflow for ordinary generation
+ok 3 - allows only the authenticated master workflow for ordinary generation
+  ---
+  duration_ms: 0.226974
+  type: 'test'
+  ...
+# Subtest: accepts the explicit human approval escape hatch
+ok 4 - accepts the explicit human approval escape hatch
+  ---
+  duration_ms: 0.212585
+  type: 'test'
+  ...
+# Subtest: owning coverage lane records changed worktree inputs without requiring a new commit
+ok 5 - owning coverage lane records changed worktree inputs without requiring a new commit
+  ---
+  duration_ms: 858.6825
+  type: 'test'
+  ...
+# Subtest: native provider completes long MCP login, consent and PKCE token exchange
+ok 6 - native provider completes long MCP login, consent and PKCE token exchange
+  ---
+  duration_ms: 152.502666
+  type: 'test'
+  ...
+# Subtest: Twitch cancellation returns to the native signed login query for retry
+ok 7 - Twitch cancellation returns to the native signed login query for retry
+  ---
+  duration_ms: 22.400747
+  type: 'test'
+  ...
+# Subtest: the provider rejects tampered authorization before starting Twitch sign-in
+ok 8 - the provider rejects tampered authorization before starting Twitch sign-in
+  ---
+  duration_ms: 12.195873
+  type: 'test'
+  ...
+# Subtest: the provider rejects expired authorization instead of falling back to ordinary login
+ok 9 - the provider rejects expired authorization instead of falling back to ordinary login
+  ---
+  duration_ms: 18.18787
+  type: 'test'
+  ...
+# Subtest: native email change delivers both codes with hashed storage and updates the verified address
+ok 10 - native email change delivers both codes with hashed storage and updates the verified address
+  ---
+  duration_ms: 13.314989
+  type: 'test'
+  ...
+# Subtest: ordinary Twitch sign-in retains its app callback and creates a revocable native session
+ok 11 - ordinary Twitch sign-in retains its app callback and creates a revocable native session
+  ---
+  duration_ms: 16.352137
+  type: 'test'
+  ...
+# =============================== Coverage summary ===============================
+# Statements   : 50% ( 1/2 )
+# Branches     : 100% ( 0/0 )
+# Functions    : 100% ( 0/0 )
+# Lines        : 50% ( 1/2 )
+# ================================================================================
+# Jest: Coverage for statements (50%) does not meet "global" threshold (100%)
+# =============================== Coverage summary ===============================
+# Statements   : 100% ( 2/2 )
+# Branches     : 100% ( 0/0 )
+# Functions    : 100% ( 0/0 )
+# Lines        : 100% ( 2/2 )
+# ================================================================================
+# Subtest: coverage aggregation rejects missing, repeated and foreign evidence
+ok 12 - coverage aggregation rejects missing, repeated and foreign evidence
+  ---
+  duration_ms: 26.402499
+  type: 'test'
+  ...
+# Subtest: installed Jest thresholds fail incomplete counters and pass their complete union
+ok 13 - installed Jest thresholds fail incomplete counters and pass their complete union
+  ---
+  duration_ms: 40.559868
+  type: 'test'
+  ...
+# Subtest: coverage aggregation rejects different worktree bytes even at the same commit tree
+ok 14 - coverage aggregation rejects different worktree bytes even at the same commit tree
+  ---
+  duration_ms: 0.694775
+  type: 'test'
+  ...
+# Subtest: production behind a reverse proxy keeps a short state for long MCP return URLs
+ok 15 - production behind a reverse proxy keeps a short state for long MCP return URLs
+  ---
+  duration_ms: 24.253892
+  type: 'test'
+  ...
+# Subtest: request-origin inference reproduces unnecessarily expanded production state
+ok 16 - request-origin inference reproduces unnecessarily expanded production state
+  ---
+  duration_ms: 16.145775
+  type: 'test'
+  ...
+# Subtest: explicit preview origin still proxies Twitch through production
+ok 17 - explicit preview origin still proxies Twitch through production
+  ---
+  duration_ms: 3.333209
+  type: 'test'
+  ...
+# Subtest: database state preserves long MCP callbacks without exceeding browser cookie limits
+ok 18 - database state preserves long MCP callbacks without exceeding browser cookie limits
+  ---
+  duration_ms: 122.951887
+  type: 'test'
+  ...
+# Subtest: real social sign-in stores OpenAI-sized state on the server and sets a small signed cookie
+ok 19 - real social sign-in stores OpenAI-sized state on the server and sets a small signed cookie
+  ---
+  duration_ms: 39.097637
+  type: 'test'
+  ...
+# Subtest: documentation avoids duplicate application tests
+ok 20 - documentation avoids duplicate application tests
+  ---
+  duration_ms: 2.754721
+  type: 'test'
+  ...
+# Subtest: hook changes run their dedicated checks without application changes
+ok 21 - hook changes run their dedicated checks without application changes
+  ---
+  duration_ms: 0.343152
+  type: 'test'
+  ...
+# Subtest: UI and its regression tests select related suites
+ok 22 - UI and its regression tests select related suites
+  ---
+  duration_ms: 0.504171
+  type: 'test'
+  ...
+# Subtest: shared infrastructure and unknown files require the full suite
+ok 23 - shared infrastructure and unknown files require the full suite
+  ---
+  duration_ms: 0.484638
+  type: 'test'
+  ...
+# Subtest: all commits and refs being pushed contribute paths
+ok 24 - all commits and refs being pushed contribute paths
+  ---
+  duration_ms: 6.577068
+  type: 'test'
+  ...
+# Subtest: new branches compare to the master merge base
+ok 25 - new branches compare to the master merge base
+  ---
+  duration_ms: 0.516887
+  type: 'test'
+  ...
+# Subtest: deleted refs need no tests and invalid input fails closed
+ok 26 - deleted refs need no tests and invalid input fails closed
+  ---
+  duration_ms: 0.660763
+  type: 'test'
+  ...
+# Subtest: Gherkin changes use scoped local checks while browser acceptance stays in CI
+ok 27 - Gherkin changes use scoped local checks while browser acceptance stays in CI
+  ---
+  duration_ms: 0.343106
+  type: 'test'
+  ...
+# Subtest: migration automation does not require an unrelated application database for generated artifacts
+ok 28 - migration automation does not require an unrelated application database for generated artifacts
+  ---
+  duration_ms: 0.992017
+  type: 'test'
+  ...
+# Subtest: migration automation still tests source changes and unexpected artifacts
+ok 29 - migration automation still tests source changes and unexpected artifacts
+  ---
+  duration_ms: 0.927229
+  type: 'test'
+  ...
+# Subtest: generated migrations outside their owning workflow retain full push checks
+ok 30 - generated migrations outside their owning workflow retain full push checks
+  ---
+  duration_ms: 0.42389
+  type: 'test'
+  ...
+# Subtest: self-test children cannot consume the ref input needed for scoped checks
+ok 31 - self-test children cannot consume the ref input needed for scoped checks
+  ---
+  duration_ms: 45.202602
+  type: 'test'
+  ...
+# Subtest: allows only the approved loopback GitHub Actions target
+ok 32 - allows only the approved loopback GitHub Actions target
+  ---
+  duration_ms: 1.405364
+  type: 'test'
+  ...
+# Subtest: rejects schema push outside GitHub Actions
+ok 33 - rejects schema push outside GitHub Actions
+  ---
+  duration_ms: 1.974572
+  type: 'test'
+  ...
+# Subtest: rejects schema push outside the browser job
+ok 34 - rejects schema push outside the browser job
+  ---
+  duration_ms: 0.186388
+  type: 'test'
+  ...
+# Subtest: rejects schema push without explicit CI approval
+ok 35 - rejects schema push without explicit CI approval
+  ---
+  duration_ms: 0.158933
+  type: 'test'
+  ...
+# Subtest: rejects schema push against a remote host
+ok 36 - rejects schema push against a remote host
+  ---
+  duration_ms: 0.198052
+  type: 'test'
+  ...
+# Subtest: rejects schema push against a differently named database
+ok 37 - rejects schema push against a differently named database
+  ---
+  duration_ms: 0.207237
+  type: 'test'
+  ...
+# Subtest: rejects schema push as a different database user
+ok 38 - rejects schema push as a different database user
+  ---
+  duration_ms: 0.191397
+  type: 'test'
+  ...
+# Subtest: mandatory Test gate retains its existing FULL refusal
+ok 39 - mandatory Test gate retains its existing FULL refusal
+  ---
+  duration_ms: 5.379082
+  type: 'test'
+  ...
+# Subtest: mandatory Test gate retains its existing COVERAGE refusal
+ok 40 - mandatory Test gate retains its existing COVERAGE refusal
+  ---
+  duration_ms: 2.403951
+  type: 'test'
+  ...
+# Subtest: mandatory Test gate retains its existing BROWSER refusal
+ok 41 - mandatory Test gate retains its existing BROWSER refusal
+  ---
+  duration_ms: 2.088053
+  type: 'test'
+  ...
+# Subtest: mandatory Test gate rejects a required native result of failure
+ok 42 - mandatory Test gate rejects a required native result of failure
+  ---
+  duration_ms: 1.880613
+  type: 'test'
+  ...
+# Subtest: mandatory Test gate rejects a required native result of cancelled
+ok 43 - mandatory Test gate rejects a required native result of cancelled
+  ---
+  duration_ms: 1.873316
+  type: 'test'
+  ...
+# Subtest: mandatory Test gate rejects a required native result of skipped
+ok 44 - mandatory Test gate rejects a required native result of skipped
+  ---
+  duration_ms: 1.737863
+  type: 'test'
+  ...
+# Subtest: mandatory Test gate permits unchanged Runner scope and requires the actual native job
+ok 45 - mandatory Test gate permits unchanged Runner scope and requires the actual native job
+  ---
+  duration_ms: 4.060584
+  type: 'test'
+  ...
+# Subtest: coverage merger uses the same pinned Node as the owning lanes
+ok 46 - coverage merger uses the same pinned Node as the owning lanes
+  ---
+  duration_ms: 0.189319
+  type: 'test'
+  ...
+# Subtest: every official native platform checks out identical LF source before fingerprinting
+ok 47 - every official native platform checks out identical LF source before fingerprinting
+  ---
+  duration_ms: 0.451129
+  type: 'test'
+  ...
+# Subtest: native coverage collects all thirteen modules and keeps critical95/90 and ordinary90/85 floors
+ok 48 - native coverage collects all thirteen modules and keeps critical95/90 and ordinary90/85 floors
+  ---
+  duration_ms: 2.65494
+  type: 'test'
+  ...
+# Subtest: retained player and new Runner counter floors preserve the approved baseline
+ok 49 - retained player and new Runner counter floors preserve the approved baseline
+  ---
+  duration_ms: 2.156712
+  type: 'test'
+  ...
+# Subtest: default CI source audit includes new Runner delivery, normalization and standby editor paths
+ok 50 - default CI source audit includes new Runner delivery, normalization and standby editor paths
+  ---
+  duration_ms: 4.091326
+  type: 'test'
+  ...
+# Subtest: normal Jest collection includes the Runner decoration source
+ok 51 - normal Jest collection includes the Runner decoration source
+  ---
+  duration_ms: 12485.825685
+  type: 'test'
+  ...
+# Subtest: native evidence accepts the complete owned source and case inventory
+ok 52 - native evidence accepts the complete owned source and case inventory
+  ---
+  duration_ms: 4.625257
+  type: 'test'
+  ...
+# Subtest: native evidence refuses an empty inventory
+ok 53 - native evidence refuses an empty inventory
+  ---
+  duration_ms: 2.774719
+  type: 'test'
+  ...
+# Subtest: native evidence refuses inconsistent case totals
+ok 54 - native evidence refuses inconsistent case totals
+  ---
+  duration_ms: 0.858761
+  type: 'test'
+  ...
+# Subtest: native evidence rejects missing, foreign and malformed source counters
+ok 55 - native evidence rejects missing, foreign and malformed source counters
+  ---
+  duration_ms: 3.140662
+  type: 'test'
+  ...
+# Subtest: native evidence rejects missing owners, duplicate owners and skipped assertions
+ok 56 - native evidence rejects missing owners, duplicate owners and skipped assertions
+  ---
+  duration_ms: 1.926318
+  type: 'test'
+  ...
+# Subtest: native evidence retains only the exact inherited updater TODO
+ok 57 - native evidence retains only the exact inherited updater TODO
+  ---
+  duration_ms: 2.068782
+  type: 'test'
+  ...
+# =============================== Coverage summary ===============================
+# Statements   : 100% ( 102/102 )
+# Branches     : 100% ( 102/102 )
+# Functions    : 100% ( 102/102 )
+# Lines        : 100% ( 102/102 )
+# ================================================================================
+# =============================== Coverage summary ===============================
+# Statements   : 99.01% ( 101/102 )
+# Branches     : 100% ( 102/102 )
+# Functions    : 100% ( 102/102 )
+# Lines        : 99.01% ( 101/102 )
+# ================================================================================
+# =============================== Coverage summary ===============================
+# Statements   : 100% ( 102/102 )
+# Branches     : 100% ( 102/102 )
+# Functions    : 99.01% ( 101/102 )
+# Lines        : 100% ( 102/102 )
+# ================================================================================
+# =============================== Coverage summary ===============================
+# Statements   : 100% ( 102/102 )
+# Branches     : 99.01% ( 101/102 )
+# Functions    : 100% ( 102/102 )
+# Lines        : 100% ( 102/102 )
+# ================================================================================
+# =============================== Coverage summary ===============================
+# Statements   : Unknown% ( 0/0 )
+# Branches     : Unknown% ( 0/0 )
+# Functions    : Unknown% ( 0/0 )
+# Lines        : Unknown% ( 0/0 )
+# ================================================================================
+# =============================== Coverage summary ===============================
+# Statements   : 100% ( 102/102 )
+# Branches     : 100% ( 102/102 )
+# Functions    : 1.96% ( 2/102 )
+# Lines        : 100% ( 102/102 )
+# ================================================================================
+# Subtest: Runner player gate accepts complete retained and changed counters
+ok 58 - Runner player gate accepts complete retained and changed counters
+  ---
+  duration_ms: 45.639733
+  type: 'test'
+  ...
+# Subtest: Runner statements cannot hide behind the much larger retained player
+ok 59 - Runner statements cannot hide behind the much larger retained player
+  ---
+  duration_ms: 4.386342
+  type: 'test'
+  ...
+# Subtest: Runner functions cannot hide behind the much larger retained player
+ok 60 - Runner functions cannot hide behind the much larger retained player
+  ---
+  duration_ms: 2.769353
+  type: 'test'
+  ...
+# Subtest: Runner branches cannot hide behind the much larger retained player
+ok 61 - Runner branches cannot hide behind the much larger retained player
+  ---
+  duration_ms: 2.39986
+  type: 'test'
+  ...
+# Subtest: Runner player source is required even when global coverage would pass
+ok 62 - Runner player source is required even when global coverage would pass
+  ---
+  duration_ms: 1.031081
+  type: 'test'
+  ...
+# Subtest: retained player floors cannot regress while every new Runner counter passes
+ok 63 - retained player floors cannot regress while every new Runner counter passes
+  ---
+  duration_ms: 4.501038
+  type: 'test'
+  ...
+# Subtest: every suite has one owner and timing proofs stay isolated
+ok 64 - every suite has one owner and timing proofs stay isolated
+  ---
+  duration_ms: 20.639169
+  type: 'test'
+  ...
+# Subtest: Jest filter returns the exact string-path contract rather than wrapping paths
+ok 65 - Jest filter returns the exact string-path contract rather than wrapping paths
+  ---
+  duration_ms: 1.63479
+  type: 'test'
+  ...
+# Subtest: ready PRs, master and unknown events require complete validation
+ok 66 - ready PRs, master and unknown events require complete validation
+  ---
+  duration_ms: 0.262985
+  type: 'test'
+  ...
+# Subtest: native workflow scenarios have one owner; browser shards remain exhaustive
+ok 67 - native workflow scenarios have one owner; browser shards remain exhaustive
+  ---
+  duration_ms: 0.684837
+  type: 'test'
+  ...
+# Subtest: CI keeps a mandatory complete gate and triggers when a draft becomes ready
+ok 68 - CI keeps a mandatory complete gate and triggers when a draft becomes ready
+  ---
+  duration_ms: 84.127058
+  type: 'test'
+  ...
+# Subtest: Runner database-backed contracts and health sweeps use a database coverage lane
+ok 69 - Runner database-backed contracts and health sweeps use a database coverage lane
+  ---
+  duration_ms: 0.419338
+  type: 'test'
+  ...
+1..69
+# tests 69
+# suites 0
+# pass 69
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 12634.427173
+{
+  "ok": true,
+  "counts": {
+    "bdd": 1317,
+    "atdd": 24,
+    "bdd/mcp-support": 711
+  },
+  "errors": []
+}
+[tests] Native application probes compiled once for this run
+[tests] ordinary: 2 suites, 1 worker(s)
+[tests] database: 3 suites, 1 worker(s)
+
+Test Suites: 5 passed, 5 total
+Tests:       8 passed, 8 total
+Snapshots:   0 total
+Time:        57.328 s
+Ran all test suites matching test/mcp/unit/test-runner-lanes.test.ts|test/mcp/unit/test-runner-database-budget.test.ts|test/mcp/unit/coverage-parallel.test.ts|test/mcp/integration/fixture-template.test.ts|test/mcp/integration/notification-outbox-failures.test.ts.
+[tests] Native application probes compiled once for this run
+[tests] ordinary: 235 suites, 8 worker(s)
+[tests] database: 39 suites, 4 worker(s)
+Error: RESUME_WINDOW_FIXTURE_DENIED:INVALID_INPUT
+    at Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:20539:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:21651:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:24912:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25030:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25033:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25515:12)
+Error: RESUME_WINDOW_FIXTURE_DENIED:INVALID_INPUT
+    at Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:20539:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:21651:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:24912:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25030:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25033:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25515:12)
+Error: RESUME_WINDOW_FIXTURE_DENIED:INVALID_INPUT
+    at Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:20539:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:21651:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:24912:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25030:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25033:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25515:12)
+Error: RESUME_WINDOW_FIXTURE_DENIED:INVALID_INPUT
+    at Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:20539:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:21651:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:24912:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25030:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25033:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25515:12)
+Error: RESUME_WINDOW_FIXTURE_DENIED:INVALID_INPUT
+    at Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:20539:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:21651:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:24912:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25030:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25033:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25515:12)
+Error: RESUME_WINDOW_FIXTURE_DENIED:INVALID_INPUT
+    at Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:20539:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:21651:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:24912:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25030:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25033:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25515:12)
+Error: RESUME_WINDOW_FIXTURE_DENIED:INVALID_INPUT
+    at Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:20539:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:21651:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:24912:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25030:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25033:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25515:12)
+Error: RESUME_WINDOW_FIXTURE_DENIED:INVALID_INPUT
+    at Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:20539:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:21651:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:24912:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25030:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25033:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25515:12)
+Error: RESUME_WINDOW_FIXTURE_DENIED:INVALID_INPUT
+    at Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:20539:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:21651:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:24912:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25030:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25033:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25515:12)
+Error: RESUME_WINDOW_FIXTURE_DENIED:INVALID_INPUT
+    at Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:20539:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:21651:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:24912:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25030:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25033:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25515:12)
+Error: RESUME_WINDOW_FIXTURE_DENIED:INVALID_INPUT
+    at Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:20539:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:21651:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:24912:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25030:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25033:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25515:12)
+Error: RESUME_WINDOW_FIXTURE_DENIED:INVALID_INPUT
+    at Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:20539:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:21651:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:24912:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25030:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25033:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25515:12)
+Error: RESUME_WINDOW_FIXTURE_DENIED:INVALID_INPUT
+    at Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:20539:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:21651:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:24912:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25030:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25033:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25515:12)
+Error: RESUME_WINDOW_FIXTURE_DENIED:INVALID_INPUT
+    at Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:20539:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:21651:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:24912:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25030:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25033:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25515:12)
+Error: RESUME_WINDOW_FIXTURE_DENIED:INVALID_INPUT
+    at Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:20539:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:21651:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:24912:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25030:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25033:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25515:12)
+Error: RESUME_WINDOW_FIXTURE_DENIED:INVALID_INPUT
+    at Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:20539:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:21651:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:24912:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25030:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25033:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25515:12)
+Error: RESUME_WINDOW_FIXTURE_DENIED:INVALID_INPUT
+    at Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:20539:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:21651:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:24912:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25030:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25033:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25515:12)
+Error: RESUME_WINDOW_FIXTURE_DENIED:INVALID_INPUT
+    at Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:20539:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:21651:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:24912:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25030:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25033:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25515:12)
+Error: RESUME_WINDOW_FIXTURE_DENIED:INVALID_INPUT
+    at Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:20539:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:21651:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:24912:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25030:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25033:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25515:12)
+Error: RESUME_WINDOW_FIXTURE_DENIED:INVALID_INPUT
+    at Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:20539:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:21651:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:24912:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25030:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25033:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25515:12)
+Error: RESUME_WINDOW_FIXTURE_DENIED:INVALID_INPUT
+    at Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:20539:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:21651:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:24912:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25030:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25033:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25515:12)
+Error: RESUME_WINDOW_FIXTURE_DENIED:INVALID_INPUT
+    at Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:20539:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:21651:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:24912:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25030:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25033:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25515:12)
+Error: RESUME_WINDOW_FIXTURE_DENIED:INVALID_INPUT
+    at Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:20539:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:21651:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:24912:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25030:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25033:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25515:12)
+Error: RESUME_WINDOW_FIXTURE_DENIED:INVALID_INPUT
+    at Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:20539:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:21651:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:24912:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25030:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25033:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25515:12)
+Error: RESUME_WINDOW_FIXTURE_DENIED:INVALID_INPUT
+    at Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:20539:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:21651:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:24912:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25030:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25033:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25515:12)
+Error: RESUME_WINDOW_FIXTURE_DENIED:INVALID_INPUT
+    at Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:20539:37)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:21651:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:24912:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25030:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25033:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-dvcMhH/flow-probe.mjs:25515:12)

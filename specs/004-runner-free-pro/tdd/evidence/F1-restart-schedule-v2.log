@@ -1,0 +1,8 @@
+$ jest --runInBand --runTestsByPath test/server/runner/schedules.test.ts "--coverage=false"
+[tests] Native application probes compiled once for this run
+[tests] database: 1 suites, 1 worker(s)
+Test Suites: 1 passed, 1 total
+Tests:       106 passed, 106 total
+Snapshots:   0 total
+Time:        17.901 s
+Ran all test suites within paths "test/server/runner/schedules.test.ts".
