@@ -150,41 +150,56 @@ try {
 	const presentationAssignments = new Map();
 	const presentationCredentials = new Map();
 	const registerPresentation = (job) => presentationAssignments.set(job.executionGeneration, { sessionId: job.id, sourceId: job.overlayId });
+	async function bootstrapPresentation(request, response) {
+		let body = "";
+		for await (const chunk of request) body += chunk;
+		const input = JSON.parse(body);
+		const assignment = presentationAssignments.get(input.executionGeneration);
+		if (request.method !== "POST" || request.headers.authorization !== "Bearer fixture-token" || !assignment || assignment.sessionId !== input.sessionId) {
+			response.statusCode = 403;
+			response.end(JSON.stringify({ error: "PRESENTATION_UNAVAILABLE" }));
+			return;
+		}
+		const path = `/runner/presentation/${input.sessionId}`;
+		const token = `fixture-presentation-${input.executionGeneration}`;
+		presentationCredentials.set(token, { ...assignment, generation: input.executionGeneration });
+		response.setHeader("Set-Cookie", `clipify_runner_presentation=${token}; Path=${path}; HttpOnly; SameSite=Strict`);
+		response.setHeader("Content-Type", "application/json");
+		response.end(JSON.stringify({ url: path, expiresAt: Date.now() + 600000 }));
+		return;
+	}
+	function servePresentation(request, response) {
+		const token = request.headers.cookie
+			?.split(";")
+			.map((value) => value.trim())
+			.find((value) => value.startsWith("clipify_runner_presentation="))
+			?.slice("clipify_runner_presentation=".length);
+		const presentation = presentationCredentials.get(token);
+		if (!presentation || request.url !== `/runner/presentation/${presentation.sessionId}`) {
+			response.statusCode = 403;
+			response.end("Presentation unavailable");
+			return;
+		}
+		response.setHeader("Content-Type", "text/html");
+		response.end(html.replace("<body style=", `<body data-runner-presentation-generation="${presentation.generation}" data-runner-layout-status="clean" data-fixture-source-id="${presentation.sourceId}" style=`));
+		return;
+	}
+	async function observePreview(request, response) {
+		let body = "";
+		for await (const chunk of request) body += chunk;
+		try {
+			const jpeg = Buffer.from(JSON.parse(body).image.split(",")[1], "base64");
+			const rgb = execFileSync(ffmpeg, ["-hide_banner", "-loglevel", "error", "-i", "pipe:0", "-vf", "scale=1:1:flags=area", "-pix_fmt", "rgb24", "-frames:v", "1", "-f", "rawvideo", "pipe:1"], { input: jpeg, timeout: 10000 });
+			if (rgb[1] > 150 && rgb[0] < 80 && rgb[2] < 80 && (!scheduledHandoff || Date.now() >= handoffReleaseAfter)) finalMarkerCaptured = (await engine?.page?.evaluate(() => window.releaseFinalMarker())) === true;
+		} catch {
+			/* A partially written preview is retried on the next actual upload. */
+		}
+		response.end("{}");
+		return;
+	}
 	server = createServer(async (request, response) => {
-		if (request.url === "/api/runner/presentation") {
-			let body = "";
-			for await (const chunk of request) body += chunk;
-			const input = JSON.parse(body);
-			const assignment = presentationAssignments.get(input.executionGeneration);
-			if (request.method !== "POST" || request.headers.authorization !== "Bearer fixture-token" || !assignment || assignment.sessionId !== input.sessionId) {
-				response.statusCode = 403;
-				response.end(JSON.stringify({ error: "PRESENTATION_UNAVAILABLE" }));
-				return;
-			}
-			const path = `/runner/presentation/${input.sessionId}`;
-			const token = `fixture-presentation-${input.executionGeneration}`;
-			presentationCredentials.set(token, { ...assignment, generation: input.executionGeneration });
-			response.setHeader("Set-Cookie", `clipify_runner_presentation=${token}; Path=${path}; HttpOnly; SameSite=Strict`);
-			response.setHeader("Content-Type", "application/json");
-			response.end(JSON.stringify({ url: path, expiresAt: Date.now() + 600000 }));
-			return;
-		}
-		if (request.url.startsWith("/runner/presentation/")) {
-			const token = request.headers.cookie
-				?.split(";")
-				.map((value) => value.trim())
-				.find((value) => value.startsWith("clipify_runner_presentation="))
-				?.slice("clipify_runner_presentation=".length);
-			const presentation = presentationCredentials.get(token);
-			if (!presentation || request.url !== `/runner/presentation/${presentation.sessionId}`) {
-				response.statusCode = 403;
-				response.end("Presentation unavailable");
-				return;
-			}
-			response.setHeader("Content-Type", "text/html");
-			response.end(html.replace("<body style=", `<body data-runner-presentation-generation="${presentation.generation}" data-runner-layout-status="clean" data-fixture-source-id="${presentation.sourceId}" style=`));
-			return;
-		}
+		if (request.url === "/api/runner/presentation") return await bootstrapPresentation(request, response);
+		if (request.url.startsWith("/runner/presentation/")) return servePresentation(request, response);
 		if (request.url.startsWith("/clip.mp4")) {
 			response.setHeader("Content-Type", "video/mp4");
 			response.end(readFileSync(clip));
@@ -202,19 +217,7 @@ try {
 			response.end("ok");
 			return;
 		}
-		if (request.url === "/api/runner/preview" && (!finalMarkerCaptured || beforeEndAdvance || continuousSchedule)) {
-			let body = "";
-			for await (const chunk of request) body += chunk;
-			try {
-				const jpeg = Buffer.from(JSON.parse(body).image.split(",")[1], "base64");
-				const rgb = execFileSync(ffmpeg, ["-hide_banner", "-loglevel", "error", "-i", "pipe:0", "-vf", "scale=1:1:flags=area", "-pix_fmt", "rgb24", "-frames:v", "1", "-f", "rawvideo", "pipe:1"], { input: jpeg, timeout: 10000 });
-				if (rgb[1] > 150 && rgb[0] < 80 && rgb[2] < 80 && (!scheduledHandoff || Date.now() >= handoffReleaseAfter)) finalMarkerCaptured = (await engine?.page?.evaluate(() => window.releaseFinalMarker())) === true;
-			} catch {
-				/* A partially written preview is retried on the next actual upload. */
-			}
-			response.end("{}");
-			return;
-		}
+		if (request.url === "/api/runner/preview" && (!finalMarkerCaptured || beforeEndAdvance || continuousSchedule)) return await observePreview(request, response);
 		if (request.url === "/api/runner/heartbeat" && controlConnectionFails) {
 			controlFailureCalls++;
 			response.statusCode = 503;

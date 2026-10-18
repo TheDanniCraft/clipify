@@ -261,6 +261,27 @@ function scheduleEventValues(input: z.infer<typeof scheduleInput>, current: type
 	};
 }
 
+async function lockEditableScheduleEvent(tx: TransactionClient, input: z.infer<typeof scheduleInput>, clock: () => number) {
+	const current = input.id
+		? (
+				await tx
+					.select()
+					.from(runnerScheduleEventsTable)
+					.where(and(eq(runnerScheduleEventsTable.ownerId, input.ownerId), eq(runnerScheduleEventsTable.id, input.id)))
+					.limit(1)
+					.for("update")
+			)[0]
+		: undefined;
+	if (input.id && !current) return failure("RESOURCE_UNAVAILABLE");
+	if (current && current.configurationRevision !== input.expectedRevision) return failure("CONFLICT");
+	if (current && (activeScheduleWindowEnd(current, clock()) || (await readCapturedScheduleLocks(tx, current.ownerId, current.runnerId, new Date(clock()))).has(current.id))) return failure("ACTIVE_OCCURRENCE_LOCKED");
+	return { current };
+}
+
+function validScheduleAssignment(runner: { id: string } | undefined, session: { mode: string } | undefined, overlay: { id: string } | undefined) {
+	return !!runner && !!session && session.mode === "24/7" && !!overlay;
+}
+
 /** Owner/member/benefit locks serialize revisions and same-Runner overlap decisions. */
 export async function saveRunnerScheduleEventForPrincipal(principal: TrustedCreatorPrincipal, rawInput: unknown, client: DatabaseClient = db, clock: () => number = Date.now) {
 	const owner = ownerId.safeParse(typeof rawInput === "object" && rawInput !== null ? Reflect.get(rawInput, "ownerId") : undefined);
@@ -273,19 +294,9 @@ export async function saveRunnerScheduleEventForPrincipal(principal: TrustedCrea
 			const input = parsed.data;
 			const policy = deriveRunnerCapabilities(await resolveRunnerBenefits(authority.creator, tx));
 			if (!policy.scheduling) return failure("FEATURE_RESTRICTED");
-			const current = input.id
-				? (
-						await tx
-							.select()
-							.from(runnerScheduleEventsTable)
-							.where(and(eq(runnerScheduleEventsTable.ownerId, input.ownerId), eq(runnerScheduleEventsTable.id, input.id)))
-							.limit(1)
-							.for("update")
-					)[0]
-				: undefined;
-			if (input.id && !current) return failure("RESOURCE_UNAVAILABLE");
-			if (current && current.configurationRevision !== input.expectedRevision) return failure("CONFLICT");
-			if (current && (activeScheduleWindowEnd(current, clock()) || (await readCapturedScheduleLocks(tx, current.ownerId, current.runnerId, new Date(clock()))).has(current.id))) return failure("ACTIVE_OCCURRENCE_LOCKED");
+			const existing = await lockEditableScheduleEvent(tx, input, clock);
+			if ("success" in existing) return existing;
+			const { current } = existing;
 			const [runner] = await tx
 				.select({ id: runnersTable.id })
 				.from(runnersTable)
@@ -301,7 +312,7 @@ export async function saveRunnerScheduleEventForPrincipal(principal: TrustedCrea
 				.from(overlaysTable)
 				.where(and(eq(overlaysTable.ownerId, input.ownerId), eq(overlaysTable.id, input.overlayId)))
 				.limit(1);
-			if (!runner || !session || session.mode !== "24/7" || !overlay) return failure("INVALID_INPUT", "Choose an owned clip-playback source and Runner broadcast.");
+			if (!validScheduleAssignment(runner, session, overlay)) return failure("INVALID_INPUT", "Choose an owned clip-playback source and Runner broadcast.");
 			const targets = await tx
 				.select({ id: runnerDestinationsTable.id })
 				.from(runnerDestinationsTable)
@@ -550,6 +561,152 @@ async function retainedScheduleCapturesAvailable(tx: TransactionClient, ownerId:
 	return true;
 }
 
+type CacheOccurrence = Awaited<ReturnType<typeof buildRunnerScheduleMetadata>>["occurrences"][number];
+type ScheduleCacheFrame = {
+	tx: TransactionClient;
+	ownerId: string;
+	runnerId: string;
+	now: Date;
+	issuedAt: number;
+	expiresAt: number;
+	policy: ReturnType<typeof deriveRunnerCapabilities>;
+	requestId: string;
+	signed: (claims: object) => FreeExecutionJob["lease"];
+};
+async function lockScheduledSession(frame: ScheduleCacheFrame, occurrence: CacheOccurrence) {
+	const { tx, ownerId, runnerId } = frame;
+	const [session] = await tx
+		.select()
+		.from(streamSessionsTable)
+		.where(and(eq(streamSessionsTable.id, occurrence.sessionId), eq(streamSessionsTable.ownerId, ownerId), eq(streamSessionsTable.runnerId, runnerId)))
+		.limit(1)
+		.for("update");
+	if (!session || session.controlMode !== "scheduled" || session.mode !== "24/7" || session.automationPausedAt !== null) return null;
+	const openAdmissions = await tx
+		.select()
+		.from(runnerBroadcastAdmissionsTable)
+		.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, ownerId), eq(runnerBroadcastAdmissionsTable.runnerId, runnerId), eq(runnerBroadcastAdmissionsTable.sessionId, session.id), inArray(runnerBroadcastAdmissionsTable.state, ["reserved", "starting", "active", "draining", "uncertain"])))
+		.for("update");
+	if (openAdmissions.some((row) => !["reserved", "starting", "active"].includes(row.state) || row.revokedAt || row.benefitsAtStart.scheduleSuppressed === true)) return null;
+	return { session, openAdmissions };
+}
+async function prepareScheduledCapture(frame: ScheduleCacheFrame, occurrence: CacheOccurrence, locked: NonNullable<Awaited<ReturnType<typeof lockScheduledSession>>>) {
+	const { tx, ownerId } = frame;
+	const { session, openAdmissions } = locked;
+	const { decryptString } = await import("@/app/lib/encryption");
+	if (!(await retainedScheduleCapturesAvailable(tx, ownerId, openAdmissions))) return null;
+	const physical = openAdmissions.find((row) => row.occurrenceId === occurrence.occurrenceId);
+	const capturedSourceId = typeof physical?.benefitsAtStart.sourceIdAtStart === "string" ? physical.benefitsAtStart.sourceIdAtStart : occurrence.overlayId;
+
+	const [source] = await tx
+		.select()
+		.from(overlaysTable)
+		.where(and(eq(overlaysTable.id, capturedSourceId), eq(overlaysTable.ownerId, ownerId)))
+		.limit(1)
+		.for("share");
+	if (!source || source.status !== "active" || !(await resolveRetainedResourceAccess({ kind: "overlay", ownerId: ownerId, resourceId: source.id, client: tx })).runtime) return null;
+	const captured = physical ? (physical.encryptedTargetsSnapshot ? { encryptedTargetsSnapshot: physical.encryptedTargetsSnapshot, targetIdsSnapshot: physical.targetIdsSnapshot } : resourceFailure("RESOURCE_UNAVAILABLE")) : await captureSessionDestinations(tx, session, true, occurrence.eventId);
+	if (isResourceFailure(captured)) return null;
+	const plaintext = captured.encryptedTargetsSnapshot ? decryptString(captured.encryptedTargetsSnapshot) : null;
+	if (!plaintext) return null;
+	const destinations: NonNullable<FreeExecutionJob["destinations"]> = JSON.parse(plaintext).destinations;
+	const targetHash = hashExecutionTargets(destinations);
+	const sourceRevision = typeof physical?.benefitsAtStart.sourceRevisionAtStart === "number" ? physical.benefitsAtStart.sourceRevisionAtStart : source.configurationRevision;
+	const privateJob = { overlayId: source.id, overlaySecret: source.secret, mode: "24/7" as const, fps: session.fps, resolution: session.resolution, targetHash };
+	const executionPayloadHash = hashScheduledExecutionPayload(privateJob);
+	const cacheConfigurationHash = createHash("sha256")
+		.update(JSON.stringify({ eventRevision: occurrence.configurationRevision, sourceRevision, executionPayloadHash }))
+		.digest("hex");
+	return { physical, source, captured, destinations, targetHash, sourceRevision, privateJob, executionPayloadHash, cacheConfigurationHash };
+}
+type ScheduledCapture = NonNullable<Awaited<ReturnType<typeof prepareScheduledCapture>>>;
+async function writeScheduledAuthorization(frame: ScheduleCacheFrame, occurrence: CacheOccurrence, session: typeof streamSessionsTable.$inferSelect, capture: ScheduledCapture) {
+	const { tx, ownerId, runnerId, policy, now, expiresAt } = frame;
+	const { physical, captured, source, executionPayloadHash, cacheConfigurationHash } = capture;
+	const previous = await tx
+		.select()
+		.from(runnerBroadcastAdmissionsTable)
+		.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, ownerId), eq(runnerBroadcastAdmissionsTable.runnerId, runnerId), eq(runnerBroadcastAdmissionsTable.sessionId, session.id), eq(runnerBroadcastAdmissionsTable.occurrenceId, occurrence.occurrenceId), eq(runnerBroadcastAdmissionsTable.state, "authorized"), isNull(runnerBroadcastAdmissionsTable.revokedAt)))
+		.for("update");
+	let admission = physical ?? previous.find((row) => row.benefitsAtStart.cacheConfigurationHash === cacheConfigurationHash);
+	if (!admission) {
+		[admission] = await tx
+			.insert(runnerBroadcastAdmissionsTable)
+			.values({
+				ownerId: ownerId,
+				runnerId: runnerId,
+				sessionId: session.id,
+				executionGeneration: randomUUID(),
+				occurrenceId: occurrence.occurrenceId,
+				state: "authorized",
+				configurationRevision: session.configurationRevision,
+				...captured,
+				scheduledEnd: new Date(occurrence.endUtc),
+				leaseId: randomUUID(),
+				leaseExpiresAt: new Date(expiresAt),
+				protocolSupportsLease: true,
+				dispatchedAt: now,
+				benefitsAtStart: { ...policy, ingestModeAtStart: "24/7", scheduleEventId: occurrence.eventId, scheduleEventRevision: occurrence.configurationRevision, scheduledStart: Date.parse(occurrence.startUtc), sourceIdAtStart: source.id, sourceRevisionAtStart: source.configurationRevision, cacheConfigurationHash, executionPayloadHashAtStart: executionPayloadHash, cacheAuthorization: true },
+			})
+			.returning();
+	} else {
+		[admission] = await tx
+			.update(runnerBroadcastAdmissionsTable)
+			.set({ leaseId: admission.leaseId ?? randomUUID(), leaseExpiresAt: new Date(expiresAt), protocolSupportsLease: true, dispatchedAt: admission.dispatchedAt ?? now, state: admission.state === "reserved" ? "starting" : admission.state, benefitsAtStart: { ...admission.benefitsAtStart, executionPayloadHashAtStart: executionPayloadHash } })
+			.where(eq(runnerBroadcastAdmissionsTable.id, admission.id))
+			.returning();
+	}
+	return admission;
+}
+function scheduledExecutionEntry(frame: ScheduleCacheFrame, occurrence: CacheOccurrence, session: typeof streamSessionsTable.$inferSelect, capture: ScheduledCapture, admission: typeof runnerBroadcastAdmissionsTable.$inferSelect): { job: FreeExecutionJob } {
+	const { ownerId, runnerId, requestId, issuedAt, expiresAt, signed } = frame;
+	const { source, sourceRevision, targetHash, executionPayloadHash, privateJob, destinations } = capture;
+	const claims = {
+		issuer: "clipify.us",
+		kind: "scheduled_execution",
+		policy: "pro_broadcast",
+		cacheAuthorization: true as const,
+		ownerId: ownerId,
+		runnerId: runnerId,
+		sessionId: session.id,
+		admissionId: admission.id,
+		generation: admission.executionGeneration,
+		leaseId: admission.leaseId,
+		requestId,
+		configurationRevision: admission.configurationRevision,
+		sourceId: source.id,
+		sourceRevision,
+		targetHash,
+		executionPayloadHash,
+		occurrenceId: occurrence.occurrenceId,
+		scheduledStart: typeof admission.benefitsAtStart.scheduledStart === "number" ? admission.benefitsAtStart.scheduledStart : Date.parse(occurrence.startUtc),
+		scheduledEnd: admission.scheduledEnd?.getTime() ?? Date.parse(occurrence.endUtc),
+		issuedAt,
+		expiresAt,
+	};
+	return {
+		job: {
+			...privateJob,
+			id: session.id,
+			ownerId: ownerId,
+			runnerId: runnerId,
+			admissionId: admission.id,
+			executionGeneration: admission.executionGeneration,
+			configurationRevision: admission.configurationRevision,
+			sourceRevision,
+			rtmpUrl: destinations[0].rtmpUrl,
+			streamKey: destinations[0].streamKey,
+			destinations,
+			desiredState: "running",
+			cacheAuthorization: true,
+			occurrenceId: occurrence.occurrenceId,
+			scheduledStart: claims.scheduledStart,
+			scheduledEnd: claims.scheduledEnd,
+			lease: signed(claims),
+		},
+	};
+}
+
 /** Assigned devices receive execution authority only under fresh owner/device locks.
  * Future authorizations occupy authority without claiming that physical output is active.
  */
@@ -575,123 +732,16 @@ export async function issueRunnerScheduleCache(runner: Pick<typeof runnersTable.
 			const payload = Buffer.from(JSON.stringify(claims)).toString("base64url");
 			return { keyId, payload, signature: sign(null, Buffer.from(payload), key).toString("base64url") };
 		};
+		const frame: ScheduleCacheFrame = { tx, ownerId: owner.id, runnerId: device.id, now, issuedAt, expiresAt, policy, requestId, signed };
 		const entries: { job: FreeExecutionJob }[] = [];
 		for (const occurrence of policy.scheduling ? snapshot.occurrences : []) {
 			if (occurrence.suppressed || Date.parse(occurrence.startUtc) >= expiresAt || Date.parse(occurrence.endUtc) <= issuedAt) continue;
-			const [session] = await tx
-				.select()
-				.from(streamSessionsTable)
-				.where(and(eq(streamSessionsTable.id, occurrence.sessionId), eq(streamSessionsTable.ownerId, owner.id), eq(streamSessionsTable.runnerId, device.id)))
-				.limit(1)
-				.for("update");
-			if (!session || session.controlMode !== "scheduled" || session.mode !== "24/7" || session.automationPausedAt !== null) continue;
-			const openAdmissions = await tx
-				.select()
-				.from(runnerBroadcastAdmissionsTable)
-				.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, owner.id), eq(runnerBroadcastAdmissionsTable.runnerId, device.id), eq(runnerBroadcastAdmissionsTable.sessionId, session.id), inArray(runnerBroadcastAdmissionsTable.state, ["reserved", "starting", "active", "draining", "uncertain"])))
-				.for("update");
-			if (openAdmissions.some((row) => !["reserved", "starting", "active"].includes(row.state) || row.revokedAt || row.benefitsAtStart.scheduleSuppressed === true)) continue;
-			const { decryptString } = await import("@/app/lib/encryption");
-			if (!(await retainedScheduleCapturesAvailable(tx, owner.id, openAdmissions))) continue;
-			const physical = openAdmissions.find((row) => row.occurrenceId === occurrence.occurrenceId);
-			const capturedSourceId = typeof physical?.benefitsAtStart.sourceIdAtStart === "string" ? physical.benefitsAtStart.sourceIdAtStart : occurrence.overlayId;
-
-			const [source] = await tx
-				.select()
-				.from(overlaysTable)
-				.where(and(eq(overlaysTable.id, capturedSourceId), eq(overlaysTable.ownerId, owner.id)))
-				.limit(1)
-				.for("share");
-			if (!source || source.status !== "active" || !(await resolveRetainedResourceAccess({ kind: "overlay", ownerId: owner.id, resourceId: source.id, client: tx })).runtime) continue;
-			const captured = physical ? (physical.encryptedTargetsSnapshot ? { encryptedTargetsSnapshot: physical.encryptedTargetsSnapshot, targetIdsSnapshot: physical.targetIdsSnapshot } : resourceFailure("RESOURCE_UNAVAILABLE")) : await captureSessionDestinations(tx, session, true, occurrence.eventId);
-			if (isResourceFailure(captured)) continue;
-			const plaintext = captured.encryptedTargetsSnapshot ? decryptString(captured.encryptedTargetsSnapshot) : null;
-			if (!plaintext) continue;
-			const destinations: NonNullable<FreeExecutionJob["destinations"]> = JSON.parse(plaintext).destinations;
-			const targetHash = hashExecutionTargets(destinations);
-			const sourceRevision = typeof physical?.benefitsAtStart.sourceRevisionAtStart === "number" ? physical.benefitsAtStart.sourceRevisionAtStart : source.configurationRevision;
-			const privateJob = { overlayId: source.id, overlaySecret: source.secret, mode: "24/7" as const, fps: session.fps, resolution: session.resolution, targetHash };
-			const executionPayloadHash = hashScheduledExecutionPayload(privateJob);
-			const cacheConfigurationHash = createHash("sha256")
-				.update(JSON.stringify({ eventRevision: occurrence.configurationRevision, sourceRevision, executionPayloadHash }))
-				.digest("hex");
-			const previous = await tx
-				.select()
-				.from(runnerBroadcastAdmissionsTable)
-				.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, owner.id), eq(runnerBroadcastAdmissionsTable.runnerId, device.id), eq(runnerBroadcastAdmissionsTable.sessionId, session.id), eq(runnerBroadcastAdmissionsTable.occurrenceId, occurrence.occurrenceId), eq(runnerBroadcastAdmissionsTable.state, "authorized"), isNull(runnerBroadcastAdmissionsTable.revokedAt)))
-				.for("update");
-			let admission = physical ?? previous.find((row) => row.benefitsAtStart.cacheConfigurationHash === cacheConfigurationHash);
-			if (!admission) {
-				[admission] = await tx
-					.insert(runnerBroadcastAdmissionsTable)
-					.values({
-						ownerId: owner.id,
-						runnerId: device.id,
-						sessionId: session.id,
-						executionGeneration: randomUUID(),
-						occurrenceId: occurrence.occurrenceId,
-						state: "authorized",
-						configurationRevision: session.configurationRevision,
-						...captured,
-						scheduledEnd: new Date(occurrence.endUtc),
-						leaseId: randomUUID(),
-						leaseExpiresAt: new Date(expiresAt),
-						protocolSupportsLease: true,
-						dispatchedAt: now,
-						benefitsAtStart: { ...policy, ingestModeAtStart: "24/7", scheduleEventId: occurrence.eventId, scheduleEventRevision: occurrence.configurationRevision, scheduledStart: Date.parse(occurrence.startUtc), sourceIdAtStart: source.id, sourceRevisionAtStart: source.configurationRevision, cacheConfigurationHash, executionPayloadHashAtStart: executionPayloadHash, cacheAuthorization: true },
-					})
-					.returning();
-			} else {
-				[admission] = await tx
-					.update(runnerBroadcastAdmissionsTable)
-					.set({ leaseId: admission.leaseId ?? randomUUID(), leaseExpiresAt: new Date(expiresAt), protocolSupportsLease: true, dispatchedAt: admission.dispatchedAt ?? now, state: admission.state === "reserved" ? "starting" : admission.state, benefitsAtStart: { ...admission.benefitsAtStart, executionPayloadHashAtStart: executionPayloadHash } })
-					.where(eq(runnerBroadcastAdmissionsTable.id, admission.id))
-					.returning();
-			}
-			const claims = {
-				issuer: "clipify.us",
-				kind: "scheduled_execution",
-				policy: "pro_broadcast",
-				cacheAuthorization: true as const,
-				ownerId: owner.id,
-				runnerId: device.id,
-				sessionId: session.id,
-				admissionId: admission.id,
-				generation: admission.executionGeneration,
-				leaseId: admission.leaseId,
-				requestId,
-				configurationRevision: admission.configurationRevision,
-				sourceId: source.id,
-				sourceRevision,
-				targetHash,
-				executionPayloadHash,
-				occurrenceId: occurrence.occurrenceId,
-				scheduledStart: typeof admission.benefitsAtStart.scheduledStart === "number" ? admission.benefitsAtStart.scheduledStart : Date.parse(occurrence.startUtc),
-				scheduledEnd: admission.scheduledEnd?.getTime() ?? Date.parse(occurrence.endUtc),
-				issuedAt,
-				expiresAt,
-			};
-			entries.push({
-				job: {
-					...privateJob,
-					id: session.id,
-					ownerId: owner.id,
-					runnerId: device.id,
-					admissionId: admission.id,
-					executionGeneration: admission.executionGeneration,
-					configurationRevision: admission.configurationRevision,
-					sourceRevision,
-					rtmpUrl: destinations[0].rtmpUrl,
-					streamKey: destinations[0].streamKey,
-					destinations,
-					desiredState: "running",
-					cacheAuthorization: true,
-					occurrenceId: occurrence.occurrenceId,
-					scheduledStart: claims.scheduledStart,
-					scheduledEnd: claims.scheduledEnd,
-					lease: signed(claims),
-				},
-			});
+			const locked = await lockScheduledSession(frame, occurrence);
+			if (!locked) continue;
+			const capture = await prepareScheduledCapture(frame, occurrence, locked);
+			if (!capture) continue;
+			const admission = await writeScheduledAuthorization(frame, occurrence, locked.session, capture);
+			entries.push(scheduledExecutionEntry(frame, occurrence, locked.session, capture, admission));
 		}
 		const bundle = signed({ issuer: "clipify.us", kind: "schedule_cache", version: 1, ownerId: owner.id, runnerId: device.id, requestId, configurationRevision: device.configurationRevision, issuedAt, expiresAt, capabilities: policy, entries: entries.map(({ job }) => ({ admissionId: job.admissionId, occurrenceId: job.occurrenceId, authorizationHash: createHash("sha256").update(job.lease.payload).digest("hex") })) });
 		return { bundle, entries };

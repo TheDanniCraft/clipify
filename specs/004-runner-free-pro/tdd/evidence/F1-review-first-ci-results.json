@@ -1,0 +1,216 @@
+{
+  "scope": "Historical first review checkpoint; does not qualify later working-tree refactors",
+  "sourceCommit": "f75e10910dd82ca432c06e7157fdcce9ba2c86ab",
+  "checks": [
+    {
+      "id": 117647843474,
+      "name": "\ud83e\uddea Test",
+      "status": "completed",
+      "conclusion": "failure",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39116878135/job/117647843474"
+    },
+    {
+      "id": 117644951472,
+      "name": "\ud83c\udf10 Browser tests (acceptance)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39116878135/job/117644951472"
+    },
+    {
+      "id": 117644951430,
+      "name": "\ud83c\udf10 Browser tests (bdd-1)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39116878135/job/117644951430"
+    },
+    {
+      "id": 117644951422,
+      "name": "\ud83c\udf10 Browser tests (bdd-3)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39116878135/job/117644951422"
+    },
+    {
+      "id": 117644951412,
+      "name": "\ud83c\udf10 Browser tests (bdd-2)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39116878135/job/117644951412"
+    },
+    {
+      "id": 117644951388,
+      "name": "\ud83c\udf10 Browser tests (atdd)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39116878135/job/117644951388"
+    },
+    {
+      "id": 117644951376,
+      "name": "\ud83c\udf10 Browser tests (compliance)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39116878135/job/117644951376"
+    },
+    {
+      "id": 117644705492,
+      "name": "\ud83d\udce6 Publish Runner OCI artifacts",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39116874016/job/117644705492"
+    },
+    {
+      "id": 117644662937,
+      "name": "\u2705 Validate Runner matrix",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39116874016/job/117644662937"
+    },
+    {
+      "id": 117644458354,
+      "name": "\ud83e\uddea Scoped draft checks",
+      "status": "completed",
+      "conclusion": "skipped",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39116878135/job/117644458354"
+    },
+    {
+      "id": 117644457402,
+      "name": "\ud83e\uddea Coverage (workflows)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39116878135/job/117644457402"
+    },
+    {
+      "id": 117644457347,
+      "name": "\ud83e\uddea Coverage (database-2)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39116878135/job/117644457347"
+    },
+    {
+      "id": 117644457296,
+      "name": "\ud83e\uddea Coverage (database-3)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39116878135/job/117644457296"
+    },
+    {
+      "id": 117644457273,
+      "name": "\ud83e\uddea Coverage (unit)",
+      "status": "completed",
+      "conclusion": "failure",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39116878135/job/117644457273"
+    },
+    {
+      "id": 117644457253,
+      "name": "\ud83c\udfd7\ufe0f Build",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39116878135/job/117644457253"
+    },
+    {
+      "id": 117644457229,
+      "name": "\ud83e\uddea Coverage (database-1)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39116878135/job/117644457229"
+    },
+    {
+      "id": 117644457226,
+      "name": "\ud83d\udd0e Typecheck",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39116878135/job/117644457226"
+    },
+    {
+      "id": 117644457211,
+      "name": "\ud83c\udfc3 Runner typecheck and tests",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39116878135/job/117644457211"
+    },
+    {
+      "id": 117644457210,
+      "name": "\ud83c\udfd7\ufe0f Shared browser build",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39116878135/job/117644457210"
+    },
+    {
+      "id": 117644457195,
+      "name": "\ud83e\uddea Coverage (quiet)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39116878135/job/117644457195"
+    },
+    {
+      "id": 117644457151,
+      "name": "\ud83c\udfa8 Format",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39116878135/job/117644457151"
+    },
+    {
+      "id": 117644457132,
+      "name": "\ud83e\uddf9 Lint",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39116878135/job/117644457132"
+    },
+    {
+      "id": 117644448724,
+      "name": "CodeQL",
+      "status": "completed",
+      "conclusion": "failure",
+      "html_url": "https://github.com/TheDanniCraft/clipify/runs/117644448724"
+    },
+    {
+      "id": 117644389364,
+      "name": "\ud83c\udfd7\ufe0f Build Runner",
+      "status": "completed",
+      "conclusion": "skipped",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39116878226/job/117644389364"
+    },
+    {
+      "id": 117644384239,
+      "name": "\ud83c\udfd7\ufe0f Build Runner (macos-arm64, node24-macos-arm64, macos-14, clipify-runner-macos-arm64)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39116874016/job/117644384239"
+    },
+    {
+      "id": 117644384208,
+      "name": "\ud83c\udfd7\ufe0f Build Runner (windows-x64, node24-win-x64, windows-latest, clipify-runner-windows.exe)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39116874016/job/117644384208"
+    },
+    {
+      "id": 117644384155,
+      "name": "\ud83c\udfd7\ufe0f Build Runner (linux-x64, node24-linux-x64, ubuntu-latest, clipify-runner-linux)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39116874016/job/117644384155"
+    },
+    {
+      "id": 117644384143,
+      "name": "\ud83c\udfd7\ufe0f Build Runner (macos-x64, node24-macos-x64, macos-15-intel, clipify-runner-macos)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39116874016/job/117644384143"
+    },
+    {
+      "id": 117644384133,
+      "name": "\ud83c\udfd7\ufe0f Build Runner (linux-arm64, node24-linux-arm64, ubuntu-24.04-arm, clipify-runner-linux-arm64)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39116874016/job/117644384133"
+    },
+    {
+      "id": 117644361025,
+      "name": "CodeFactor",
+      "status": "completed",
+      "conclusion": "failure",
+      "html_url": "https://github.com/TheDanniCraft/clipify/runs/117644361025"
+    }
+  ]
+}

@@ -43,17 +43,20 @@ export async function runRunnerBrandingProbe(input: Parameters<typeof runRunnerF
 					},
 				})
 			: input.fixture.db;
-	if (["branding_save_update", "branding_stale_revision", "branding_standby_permission", "branding_foreign_save", "branding_foreign_runner", "branding_invalid_corner", "branding_storage_failure"].includes(input.variant)) {
-		try {
-			updated = await save(principal, { ownerId: "fixture-creator", runnerId: foreignRunnerId ?? runnerId, expectedRevision: input.variant === "branding_stale_revision" || foreignRunnerId ? 0 : 1, watermarkCorner: input.variant === "branding_invalid_corner" ? "center" : "bottom_right" }, saveClient);
-		} catch {
-			updateThrew = true;
+	async function applyCornerUpdate() {
+		if (["branding_save_update", "branding_stale_revision", "branding_standby_permission", "branding_foreign_save", "branding_foreign_runner", "branding_invalid_corner", "branding_storage_failure"].includes(input.variant)) {
+			try {
+				updated = await save(principal, { ownerId: "fixture-creator", runnerId: foreignRunnerId ?? runnerId, expectedRevision: input.variant === "branding_stale_revision" || foreignRunnerId ? 0 : 1, watermarkCorner: input.variant === "branding_invalid_corner" ? "center" : "bottom_right" }, saveClient);
+			} catch {
+				updateThrew = true;
+			}
 		}
 	}
+	await applyCornerUpdate();
 	let concurrent: { threw: boolean; value: any }[] = [];
 	let observedLocks = 0;
 	let settledBeforeRelease = 0;
-	if (["branding_revision_race", "branding_create_race"].includes(input.variant)) {
+	async function exerciseBrandingRevisionRace() {
 		const blocker = await input.fixture.pool.connect();
 		const pending: Promise<{ threw: boolean; value: any }>[] = [];
 		let released = false;
@@ -89,32 +92,40 @@ export async function runRunnerBrandingProbe(input: Parameters<typeof runRunnerF
 			await Promise.allSettled(pending);
 		}
 	}
+	if (["branding_revision_race", "branding_create_race"].includes(input.variant)) await exerciseBrandingRevisionRace();
 	let knownAppearanceEnd: string | undefined;
-	if (input.variant === "branding_read_known_expiry") {
-		knownAppearanceEnd = new Date(Date.now() + 60000).toISOString();
-		await input.fixture.pool.query("INSERT INTO entitlement_grants(user_id,entitlement,source,starts_at,ends_at) VALUES('fixture-creator','pro_access','reverse_trial',now()-interval '1 hour',$1)", [knownAppearanceEnd]);
+	async function readSavedBranding() {
+		if (input.variant === "branding_read_known_expiry") {
+			knownAppearanceEnd = new Date(Date.now() + 60000).toISOString();
+			await input.fixture.pool.query("INSERT INTO entitlement_grants(user_id,entitlement,source,starts_at,ends_at) VALUES('fixture-creator','pro_access','reverse_trial',now()-interval '1 hour',$1)", [knownAppearanceEnd]);
+		}
+		if (["branding_read_default", "branding_read_saved", "branding_read_foreign", "branding_read_invalid", "branding_read_known_expiry"].includes(input.variant)) {
+			const read = Reflect.get(branding, "getRunnerBrandingProfileForPrincipal");
+			if (typeof read !== "function") return { available: false };
+			updated = await read(principal, { ownerId: "fixture-creator", runnerId: input.variant === "branding_read_invalid" ? "invalid" : runnerId });
+		}
 	}
-	if (["branding_read_default", "branding_read_saved", "branding_read_foreign", "branding_read_invalid", "branding_read_known_expiry"].includes(input.variant)) {
-		const read = Reflect.get(branding, "getRunnerBrandingProfileForPrincipal");
-		if (typeof read !== "function") return { available: false };
-		updated = await read(principal, { ownerId: "fixture-creator", runnerId: input.variant === "branding_read_invalid" ? "invalid" : runnerId });
-	}
-	if (["branding_standby_color", "branding_standby_color_free", "branding_standby_color_invalid", "branding_standby_color_omit"].includes(input.variant)) {
-		if (input.variant !== "branding_standby_color_free") await input.fixture.pool.query("UPDATE users SET plan='pro' WHERE id='fixture-creator'");
-		updated = await save(principal, { ownerId: "fixture-creator", runnerId, expectedRevision: 1, watermarkCorner: "top_left", standbyBackgroundColor: input.variant === "branding_standby_color_invalid" ? "url(https://example.invalid/image)" : "#16324f" });
-		if (input.variant === "branding_standby_color_omit") updated = await save(principal, { ownerId: "fixture-creator", runnerId, expectedRevision: 2, watermarkCorner: "bottom_right" });
-	}
+	const readFailure = await readSavedBranding();
+	if (readFailure) return readFailure;
 	let storedProAttribution: unknown;
-	if (input.variant === "branding_pro_hide") {
-		await input.fixture.pool.query("UPDATE users SET plan='pro' WHERE id='fixture-creator'");
-		updated = await save(principal, { ownerId: "fixture-creator", runnerId, expectedRevision: 1, watermarkCorner: "top_left", proShowAttribution: false });
-		storedProAttribution = (await input.fixture.pool.query("SELECT to_jsonb(p)->'pro_show_attribution' AS choice FROM runner_branding_profiles p WHERE runner_id=$1", [runnerId])).rows[0]?.choice;
+	async function applyStandbyPreferences() {
+		if (["branding_standby_color", "branding_standby_color_free", "branding_standby_color_invalid", "branding_standby_color_omit"].includes(input.variant)) {
+			if (input.variant !== "branding_standby_color_free") await input.fixture.pool.query("UPDATE users SET plan='pro' WHERE id='fixture-creator'");
+			updated = await save(principal, { ownerId: "fixture-creator", runnerId, expectedRevision: 1, watermarkCorner: "top_left", standbyBackgroundColor: input.variant === "branding_standby_color_invalid" ? "url(https://example.invalid/image)" : "#16324f" });
+			if (input.variant === "branding_standby_color_omit") updated = await save(principal, { ownerId: "fixture-creator", runnerId, expectedRevision: 2, watermarkCorner: "bottom_right" });
+		}
+		if (input.variant === "branding_pro_hide") {
+			await input.fixture.pool.query("UPDATE users SET plan='pro' WHERE id='fixture-creator'");
+			updated = await save(principal, { ownerId: "fixture-creator", runnerId, expectedRevision: 1, watermarkCorner: "top_left", proShowAttribution: false });
+			storedProAttribution = (await input.fixture.pool.query("SELECT to_jsonb(p)->'pro_show_attribution' AS choice FROM runner_branding_profiles p WHERE runner_id=$1", [runnerId])).rows[0]?.choice;
+		}
+		if (["branding_free_choice_true", "branding_free_choice_false"].includes(input.variant)) {
+			updated = await save(principal, { ownerId: "fixture-creator", runnerId, expectedRevision: 1, watermarkCorner: "bottom_right", proShowAttribution: input.variant === "branding_free_choice_true" });
+			storedProAttribution = (await input.fixture.pool.query("SELECT to_jsonb(p)->'pro_show_attribution' AS choice FROM runner_branding_profiles p WHERE runner_id=$1", [runnerId])).rows[0]?.choice;
+		}
 	}
-	if (["branding_free_choice_true", "branding_free_choice_false"].includes(input.variant)) {
-		updated = await save(principal, { ownerId: "fixture-creator", runnerId, expectedRevision: 1, watermarkCorner: "bottom_right", proShowAttribution: input.variant === "branding_free_choice_true" });
-		storedProAttribution = (await input.fixture.pool.query("SELECT to_jsonb(p)->'pro_show_attribution' AS choice FROM runner_branding_profiles p WHERE runner_id=$1", [runnerId])).rows[0]?.choice;
-	}
-	if (/^branding_message_boundary_(159|160|161)$/.test(input.variant)) {
+	await applyStandbyPreferences();
+	async function observeMessageBoundary() {
 		await input.fixture.pool.query("UPDATE users SET plan='pro' WHERE id='fixture-creator'");
 		const length = Number(input.variant.split("_").at(-1));
 		const before = (await input.fixture.pool.query("SELECT to_jsonb(p) AS profile FROM runner_branding_profiles p WHERE runner_id=$1", [runnerId])).rows[0].profile;
@@ -122,7 +133,8 @@ export async function runRunnerBrandingProbe(input: Parameters<typeof runRunnerF
 		const after = (await input.fixture.pool.query("SELECT to_jsonb(p) AS profile FROM runner_branding_profiles p WHERE runner_id=$1", [runnerId])).rows[0].profile;
 		return { saved, before, after, unchanged: JSON.stringify(before) === JSON.stringify(after) };
 	}
-	if (input.variant === "branding_standby_compound") {
+	if (/^branding_message_boundary_(159|160|161)$/.test(input.variant)) return await observeMessageBoundary();
+	async function observeCompoundStandby() {
 		await input.fixture.pool.query("UPDATE users SET plan='pro' WHERE id='fixture-creator'");
 		const { storeRunnerBrandingAssetForPrincipal: store } = await import("@/server/runner/branding-assets");
 		const sharp = (await import("sharp")).default;
@@ -141,7 +153,8 @@ export async function runRunnerBrandingProbe(input: Parameters<typeof runRunnerF
 		const authority = { runnerPro: true };
 		return { initialized: true, saved, read, appearance, inputUnchanged: JSON.stringify(before) === JSON.stringify(appearance), configurationRevision: runner.configuration_revision, admissions, ordinary: branding.resolveRunnerPresentationPolicy(authority, "ordinary_overlay", appearance), live: branding.resolveRunnerPresentationPolicy(authority, "live", appearance), generated: branding.resolveRunnerPresentationPolicy(authority, "generated_standby", appearance) };
 	}
-	if (input.variant === "branding_standby_next_time") {
+	if (input.variant === "branding_standby_compound") return await observeCompoundStandby();
+	async function observeNextBroadcastTime() {
 		await input.fixture.pool.query("UPDATE users SET plan='pro' WHERE id='fixture-creator'");
 		updated = await save(principal, { ownerId: "fixture-creator", runnerId, expectedRevision: 1, watermarkCorner: "top_left", showNextBroadcastTime: true });
 		const overlayId = randomUUID(),
@@ -159,29 +172,37 @@ export async function runRunnerBrandingProbe(input: Parameters<typeof runRunnerF
 		const stored = (await input.fixture.pool.query("SELECT to_jsonb(p)->'show_next_broadcast_time' AS enabled FROM runner_branding_profiles p WHERE runner_id=$1", [runnerId])).rows[0]?.enabled;
 		return { available: typeof readNext === "function", result: updated, stored, next };
 	}
+	if (input.variant === "branding_standby_next_time") return await observeNextBroadcastTime();
 	let storedMessage: unknown;
-	if (input.variant === "branding_standby_message") {
-		await input.fixture.pool.query("UPDATE users SET plan='pro' WHERE id='fixture-creator'");
-		updated = await save(principal, { ownerId: "fixture-creator", runnerId, expectedRevision: 1, watermarkCorner: "top_left", message: "Back soon <3 — thanks for watching!" });
-		storedMessage = (await input.fixture.pool.query("SELECT to_jsonb(p)->'message' AS value FROM runner_branding_profiles p WHERE runner_id=$1", [runnerId])).rows[0]?.value;
+	async function applyStandbyMessage() {
+		if (input.variant === "branding_standby_message") {
+			await input.fixture.pool.query("UPDATE users SET plan='pro' WHERE id='fixture-creator'");
+			updated = await save(principal, { ownerId: "fixture-creator", runnerId, expectedRevision: 1, watermarkCorner: "top_left", message: "Back soon <3 — thanks for watching!" });
+			storedMessage = (await input.fixture.pool.query("SELECT to_jsonb(p)->'message' AS value FROM runner_branding_profiles p WHERE runner_id=$1", [runnerId])).rows[0]?.value;
+		}
 	}
+	await applyStandbyMessage();
 	let storedBackground: unknown;
 	let storedLogo: unknown;
-	if (["branding_standby_background", "branding_standby_logo"].includes(input.variant)) {
-		const kind = input.variant === "branding_standby_logo" ? "logo" : "background";
-		await input.fixture.pool.query("UPDATE users SET plan='pro' WHERE id='fixture-creator'");
-		const store = Reflect.get(branding, "storeRunnerBrandingAssetForPrincipal");
-		if (typeof store !== "function") return { available: false, missing: "standby asset upload service", original };
-		const sharp = (await import("sharp")).default;
-		const bytes = await sharp({ create: { width: 16, height: 16, channels: 3, background: { r: 40, g: 120, b: 200 } } })
-			.png()
-			.toBuffer();
-		const asset = await store(principal, { ownerId: "fixture-creator", runnerId, kind, bytes }, input.fixture.db);
-		if (!asset.success) return { available: true, asset, result: asset };
-		updated = await save(principal, { ownerId: "fixture-creator", runnerId, expectedRevision: 1, watermarkCorner: "top_left", [kind === "logo" ? "logoAssetId" : "backgroundAssetId"]: asset.asset.id });
-		storedBackground = (await input.fixture.pool.query("SELECT to_jsonb(p)->'background_asset_id' AS id FROM runner_branding_profiles p WHERE runner_id=$1", [runnerId])).rows[0]?.id;
-		storedLogo = (await input.fixture.pool.query("SELECT to_jsonb(p)->'logo_asset_id' AS id FROM runner_branding_profiles p WHERE runner_id=$1", [runnerId])).rows[0]?.id;
+	async function applyStandbyAssets() {
+		if (["branding_standby_background", "branding_standby_logo"].includes(input.variant)) {
+			const kind = input.variant === "branding_standby_logo" ? "logo" : "background";
+			await input.fixture.pool.query("UPDATE users SET plan='pro' WHERE id='fixture-creator'");
+			const store = Reflect.get(branding, "storeRunnerBrandingAssetForPrincipal");
+			if (typeof store !== "function") return { available: false, missing: "standby asset upload service", original };
+			const sharp = (await import("sharp")).default;
+			const bytes = await sharp({ create: { width: 16, height: 16, channels: 3, background: { r: 40, g: 120, b: 200 } } })
+				.png()
+				.toBuffer();
+			const asset = await store(principal, { ownerId: "fixture-creator", runnerId, kind, bytes }, input.fixture.db);
+			if (!asset.success) return { available: true, asset, result: asset };
+			updated = await save(principal, { ownerId: "fixture-creator", runnerId, expectedRevision: 1, watermarkCorner: "top_left", [kind === "logo" ? "logoAssetId" : "backgroundAssetId"]: asset.asset.id });
+			storedBackground = (await input.fixture.pool.query("SELECT to_jsonb(p)->'background_asset_id' AS id FROM runner_branding_profiles p WHERE runner_id=$1", [runnerId])).rows[0]?.id;
+			storedLogo = (await input.fixture.pool.query("SELECT to_jsonb(p)->'logo_asset_id' AS id FROM runner_branding_profiles p WHERE runner_id=$1", [runnerId])).rows[0]?.id;
+		}
 	}
+	const assetFailure = await applyStandbyAssets();
+	if (assetFailure) return assetFailure;
 	const rows = (await input.fixture.pool.query('SELECT id,owner_id AS "ownerId",runner_id AS "runnerId",watermark_corner AS "watermarkCorner",revision FROM runner_branding_profiles WHERE runner_id=$1', [runnerId])).rows;
 	const foreignProfileCount = foreignRunnerId ? Number((await input.fixture.pool.query("SELECT count(*) FROM runner_branding_profiles WHERE runner_id=$1", [foreignRunnerId])).rows[0].count) : undefined;
 	const standbyColor = (await input.fixture.pool.query("SELECT to_jsonb(p)->'standby_background_color' AS color FROM runner_branding_profiles p WHERE runner_id=$1", [runnerId])).rows[0]?.color;

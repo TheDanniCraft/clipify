@@ -67,20 +67,24 @@ export async function runRunnerFreeBoundaryProbe(input: Input) {
 		const job = dispatched.body.jobs?.find((row: { id: string }) => row.id === sessions[winnerIndex]);
 		const admission = (await input.fixture.pool.query("SELECT lease_id,configuration_revision FROM runner_broadcast_admissions WHERE id=$1", [started.admissionId])).rows[0];
 		const targetId = configured[winnerIndex].result?.structuredContent?.destinationIds?.[0];
-		summary.leaseVerified =
-			typeof targetId === "string" &&
-			!!job?.lease &&
-			verifyExecutionBundle(
-				job.lease,
-				{ [job.lease.keyId]: publicKey.export({ type: "spki", format: "pem" }).toString() },
-				{ ownerId: "fixture-creator", runnerId: runners[winnerIndex], sessionId: sessions[winnerIndex], generation: started.executionGeneration, admissionId: started.admissionId, leaseId: admission.lease_id, configurationRevision: admission.configuration_revision, sourceId: overlayId, sourceRevision: 1, targetHash: hashExecutionTargets([{ id: targetId, rtmpUrl: "rtmp://live.twitch.tv/app", streamKey }]), requestId: dispatched.requestId },
-			) !== null;
+		function initialLeaseIsVerified() {
+			return (
+				typeof targetId === "string" &&
+				!!job?.lease &&
+				verifyExecutionBundle(
+					job.lease,
+					{ [job.lease.keyId]: publicKey.export({ type: "spki", format: "pem" }).toString() },
+					{ ownerId: "fixture-creator", runnerId: runners[winnerIndex], sessionId: sessions[winnerIndex], generation: started.executionGeneration, admissionId: started.admissionId, leaseId: admission.lease_id, configurationRevision: admission.configuration_revision, sourceId: overlayId, sourceRevision: 1, targetHash: hashExecutionTargets([{ id: targetId, rtmpUrl: "rtmp://live.twitch.tv/app", streamKey }]), requestId: dispatched.requestId },
+				) !== null
+			);
+		}
+		summary.leaseVerified = initialLeaseIsVerified();
 		if (!summary.leaseVerified) return summary;
 		const identity = { admissionId: started.admissionId, sessionId: sessions[winnerIndex], executionGeneration: started.executionGeneration, leaseId: admission.lease_id, configurationRevision: admission.configuration_revision };
 		const active = await heartbeat(winnerIndex, [{ ...identity, state: "active" }]);
 		summary.activeConfirmed = active.status === 200 && (await input.fixture.pool.query("SELECT actual_state FROM stream_sessions WHERE id=$1", [sessions[winnerIndex]])).rows[0].actual_state === "running";
 
-		if (input.variant === "free_acceptance_extended") {
+		async function observeExtendedHours() {
 			// A valid long-running generation retains its fresh lease; history is controlled fixture input.
 			const historyDays = 45;
 			const historicalStart = new Date(Date.now() - historyDays * 24 * 60 * 60 * 1000);
@@ -102,21 +106,25 @@ export async function runRunnerFreeBoundaryProbe(input: Input) {
 			responses.push(attempted);
 			summary.secondAttemptError = attempted.result?.structuredContent?.error?.code ?? null;
 		}
-		const stopped = await call("control_stream_session", { sessionId: sessions[winnerIndex], expectedRevision: started.configurationRevision, state: "stopped", stopMode: "graceful" });
-		responses.push(stopped);
-		summary.stopAccepted = stopped.result?.structuredContent?.accepted === true;
-		summary.stopAppliedInitially = stopped.result?.structuredContent?.applied;
-		const draining = await heartbeat(winnerIndex);
-		const drain = draining.body.jobs?.find((row: { id: string }) => row.id === sessions[winnerIndex]);
-		summary.drainDelivered = drain?.command === "drain" && drain?.stopMode === "graceful" && drain?.executionGeneration === started.executionGeneration;
-		const closed = await heartbeat(winnerIndex, [{ ...identity, state: "stopped", allOutputsClosed: true }]);
-		const terminal = (await input.fixture.pool.query("SELECT state,stopped_at FROM runner_broadcast_admissions WHERE id=$1", [started.admissionId])).rows[0];
-		summary.stoppedConfirmed = closed.status === 200 && terminal.state === "stopped" && terminal.stopped_at !== null;
-		summary.occupiedAfterStop = Number((await input.fixture.pool.query("SELECT count(*) FROM runner_broadcast_admissions WHERE state NOT IN ('stopped','failed_before_output')")).rows[0].count);
-		summary.sessionsStopped = (await input.fixture.pool.query("SELECT desired_state,actual_state FROM stream_sessions")).rows.every((row) => row.desired_state === "stopped" && row.actual_state === "stopped");
-		summary.protocolErrors = responses.flatMap((row) => (row.error ? [row.error.code] : []));
-		summary.safe = !JSON.stringify(responses).includes(streamKey) && tokens.every((token) => !JSON.stringify(responses).includes(token));
-		return summary;
+		if (input.variant === "free_acceptance_extended") await observeExtendedHours();
+		async function observeStopLifecycle() {
+			const stopped = await call("control_stream_session", { sessionId: sessions[winnerIndex], expectedRevision: started.configurationRevision, state: "stopped", stopMode: "graceful" });
+			responses.push(stopped);
+			summary.stopAccepted = stopped.result?.structuredContent?.accepted === true;
+			summary.stopAppliedInitially = stopped.result?.structuredContent?.applied;
+			const draining = await heartbeat(winnerIndex);
+			const drain = draining.body.jobs?.find((row: { id: string }) => row.id === sessions[winnerIndex]);
+			summary.drainDelivered = drain?.command === "drain" && drain?.stopMode === "graceful" && drain?.executionGeneration === started.executionGeneration;
+			const closed = await heartbeat(winnerIndex, [{ ...identity, state: "stopped", allOutputsClosed: true }]);
+			const terminal = (await input.fixture.pool.query("SELECT state,stopped_at FROM runner_broadcast_admissions WHERE id=$1", [started.admissionId])).rows[0];
+			summary.stoppedConfirmed = closed.status === 200 && terminal.state === "stopped" && terminal.stopped_at !== null;
+			summary.occupiedAfterStop = Number((await input.fixture.pool.query("SELECT count(*) FROM runner_broadcast_admissions WHERE state NOT IN ('stopped','failed_before_output')")).rows[0].count);
+			summary.sessionsStopped = (await input.fixture.pool.query("SELECT desired_state,actual_state FROM stream_sessions")).rows.every((row) => row.desired_state === "stopped" && row.actual_state === "stopped");
+			summary.protocolErrors = responses.flatMap((row) => (row.error ? [row.error.code] : []));
+			summary.safe = !JSON.stringify(responses).includes(streamKey) && tokens.every((token) => !JSON.stringify(responses).includes(token));
+			return summary;
+		}
+		return await observeStopLifecycle();
 	} finally {
 		globalThis.fetch = previousFetch;
 	}

@@ -3,6 +3,13 @@ import { createHmac, randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
 import type { runRunnerFreeProProbe } from "./runner-free-pro-probe";
 
+function destinationApiAvailable(save: unknown, list: unknown) {
+	return typeof save === "function" && typeof list === "function";
+}
+function observedSessionConfiguration(raw: { id?: unknown; error?: { code?: unknown } } | undefined, sessionId: string) {
+	return { success: raw?.id === sessionId && !raw?.error, code: raw?.error?.code };
+}
+
 /** Exercise real authenticated actions and storage; never use a shared database or external provider. */
 export async function runRunnerDestinationsProbe(input: Parameters<typeof runRunnerFreeProProbe>[0]) {
 	const previousFetch = globalThis.fetch;
@@ -35,11 +42,11 @@ export async function runRunnerDestinationsProbe(input: Parameters<typeof runRun
 				// boundary is the explicit missing product contract, never an import/setup failure.
 				const save = Reflect.get(actions, "saveRunnerDestination");
 				const list = Reflect.get(actions, "listRunnerDestinations");
-				if (typeof save !== "function" || typeof list !== "function") return { authenticated, available: false };
+				if (!destinationApiAvailable(save, list)) return { authenticated, available: false };
 				if (input.variant === "destinations_standby_permission") return (await import("./runner-standby-probe")).runRunnerStandbyPermissionProbe({ ...input, runnerId, actions, headers });
 				if (input.variant.startsWith("schedule_")) return (await import("./runner-schedule-probe")).runRunnerScheduleProbe({ ...input, authenticated, runnerId, deviceToken, actions });
 				if (input.variant.startsWith("multistream_")) return (await import("./runner-multistream-probe")).runRunnerMultistreamProbe({ ...input, authenticated, runnerId, deviceToken, actions });
-				if (input.variant.startsWith("destinations_legacy_")) {
+				async function observeLegacyDestinations() {
 					const overlayId = randomUUID();
 					const sessionId = randomUUID();
 					const legacyKey = "private-legacy-conversion-key";
@@ -48,7 +55,7 @@ export async function runRunnerDestinationsProbe(input: Parameters<typeof runRun
 					await input.fixture.pool.query("INSERT INTO overlays(id,owner_id,secret,name,status,type) VALUES($1,'fixture-creator','legacy-source-secret','Legacy source','active','Featured')", [overlayId]);
 					await input.fixture.pool.query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,rtmp_url,encrypted_stream_key) VALUES($1,'fixture-creator',$2,$3,'24/7',$4,$5)", [sessionId, runnerId, overlayId, legacyUrl, input.variant === "destinations_legacy_custom" ? null : encryptString(legacyKey)]);
 					const data = { id: sessionId, ownerId: "fixture-creator", runnerId, overlayId, mode: "24/7" as Parameters<typeof actions.upsertStreamSession>[0]["mode"], streamKey: "", rtmpUrl: legacyUrl };
-					if (input.variant === "destinations_legacy_rollback") {
+					async function observeLegacyRollback() {
 						const before = (await input.fixture.pool.query("SELECT * FROM stream_sessions WHERE id=$1", [sessionId])).rows[0];
 						await input.fixture.pool.query("CREATE FUNCTION legacy_conversion_failure() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'controlled legacy conversion failure'; END $$");
 						await input.fixture.pool.query("CREATE TRIGGER legacy_conversion_failure AFTER INSERT ON runner_destinations FOR EACH ROW EXECUTE FUNCTION legacy_conversion_failure()");
@@ -56,8 +63,9 @@ export async function runRunnerDestinationsProbe(input: Parameters<typeof runRun
 						const after = (await input.fixture.pool.query("SELECT * FROM stream_sessions WHERE id=$1", [sessionId])).rows[0];
 						return { authenticated, attempted, unchanged: JSON.stringify(before) === JSON.stringify(after), targets: Number((await input.fixture.pool.query("SELECT count(*) FROM runner_destinations")).rows[0].count), references: Number((await input.fixture.pool.query("SELECT count(*) FROM stream_session_destinations")).rows[0].count) };
 					}
+					if (input.variant === "destinations_legacy_rollback") return await observeLegacyRollback();
 
-					if (input.variant.startsWith("destinations_legacy_mcp_")) {
+					async function observeLegacyMcpConversion() {
 						const rollback = input.variant.endsWith("rollback");
 						const before = (await input.fixture.pool.query("SELECT * FROM stream_sessions WHERE id=$1", [sessionId])).rows[0];
 						if (rollback) {
@@ -67,7 +75,7 @@ export async function runRunnerDestinationsProbe(input: Parameters<typeof runRun
 						const { call } = await (await import("./runner-free-pro-probe")).runRunnerFreeProProbe(input);
 						const request = { sessionId, runnerId, overlayId, mode: "24/7", resolution: "720p", fps: 30 };
 						const firstRaw = (await call("configure_stream_session", { ...request, expectedRevision: 1 })).result?.structuredContent;
-						const first = { success: firstRaw?.id === sessionId && !firstRaw?.error, code: firstRaw?.error?.code };
+						const first = observedSessionConfiguration(firstRaw, sessionId);
 						const firstRows = (await input.fixture.pool.query("SELECT id FROM runner_destinations WHERE owner_id='fixture-creator'")).rows;
 						const secondRaw = rollback ? undefined : (await call("configure_stream_session", { ...request, expectedRevision: 2 })).result?.structuredContent;
 						const rows = (await input.fixture.pool.query("SELECT id,encrypted_stream_key,credential_revision FROM runner_destinations WHERE owner_id='fixture-creator'")).rows;
@@ -78,7 +86,7 @@ export async function runRunnerDestinationsProbe(input: Parameters<typeof runRun
 							authenticated,
 							first,
 							attempted: first,
-							second: { success: secondRaw?.id === sessionId && !secondRaw?.error, code: secondRaw?.error?.code },
+							second: observedSessionConfiguration(secondRaw, sessionId),
 							firstCount: firstRows.length,
 							count: rows.length,
 							references: references.length,
@@ -91,18 +99,23 @@ export async function runRunnerDestinationsProbe(input: Parameters<typeof runRun
 							safe: ![legacyKey, deviceToken].some((value) => JSON.stringify({ firstRaw, secondRaw, reopened, readAfter }).includes(value)),
 						};
 					}
+					if (input.variant.startsWith("destinations_legacy_mcp_")) return await observeLegacyMcpConversion();
 
-					let peer: { id: string; before: unknown } | undefined;
-					if (input.variant === "destinations_legacy_reuse" || input.variant === "destinations_legacy_collision") {
-						const reuse = input.variant === "destinations_legacy_reuse";
-						const savedPeer = await save({ ownerId: "fixture-creator", ...(reuse ? {} : { runnerId }), name: reuse ? "Reusable Twitch" : "Twitch", provider: reuse ? "twitch" : "custom", rtmpUrl: reuse ? legacyUrl : "rtmp://127.0.0.1:1942/collision", credentialAction: reuse ? "replace" : "clear", ...(reuse ? { streamKey: legacyKey } : {}) });
-						if (!savedPeer.success) throw new Error("LEGACY_PEER_FIXTURE_FAILED");
-						peer = { id: savedPeer.destination.id, before: (await input.fixture.pool.query("SELECT * FROM runner_destinations WHERE id=$1", [savedPeer.destination.id])).rows[0] };
+					async function seedLegacyPeer() {
+						let peer: { id: string; before: unknown } | undefined;
+						if (input.variant === "destinations_legacy_reuse" || input.variant === "destinations_legacy_collision") {
+							const reuse = input.variant === "destinations_legacy_reuse";
+							const savedPeer = await save({ ownerId: "fixture-creator", ...(reuse ? {} : { runnerId }), name: reuse ? "Reusable Twitch" : "Twitch", provider: reuse ? "twitch" : "custom", rtmpUrl: reuse ? legacyUrl : "rtmp://127.0.0.1:1942/collision", credentialAction: reuse ? "replace" : "clear", ...(reuse ? { streamKey: legacyKey } : {}) });
+							if (!savedPeer.success) throw new Error("LEGACY_PEER_FIXTURE_FAILED");
+							peer = { id: savedPeer.destination.id, before: (await input.fixture.pool.query("SELECT * FROM runner_destinations WHERE id=$1", [savedPeer.destination.id])).rows[0] };
+						}
+
+						return peer;
 					}
-
+					const peer = await seedLegacyPeer();
 					const first = await actions.upsertStreamSession({ ...data, expectedRevision: 1 });
 					const firstRows = (await input.fixture.pool.query("SELECT id FROM runner_destinations WHERE owner_id='fixture-creator'")).rows;
-					if (input.variant.startsWith("destinations_legacy_endpoint_")) {
+					async function observeLegacyEndpointChange() {
 						const entry = input.variant.replace("destinations_legacy_endpoint_", "");
 						const clear = entry === "clear";
 						const targetUrl = clear ? "rtmp://127.0.0.1:1943/keyless" : entry === "mcp_same" ? legacyUrl : "rtmp://a.rtmp.youtube.com/live2";
@@ -116,8 +129,9 @@ export async function runRunnerDestinationsProbe(input: Parameters<typeof runRun
 						const session = (await input.fixture.pool.query("SELECT * FROM stream_sessions WHERE id=$1", [sessionId])).rows[0];
 						return { authenticated, attempted, endpointChanged: target.rtmp_url === targetUrl, provider: target.provider, keyPreserved: decryptString(target.encrypted_stream_key) === legacyKey, cleared: target.encrypted_stream_key === null, credentialRevision: target.credential_revision, configurationRevision: target.configuration_revision, scalarSynchronized: session.rtmp_url === target.rtmp_url && session.encrypted_stream_key === target.encrypted_stream_key };
 					}
+					if (input.variant.startsWith("destinations_legacy_endpoint_")) return await observeLegacyEndpointChange();
 
-					if (input.variant.startsWith("destinations_legacy_authority_")) {
+					async function observeLegacyAuthority() {
 						const replacementKey = "private-authoritative-stream-key";
 						const replacementUrl = "rtmps://retained-destination.invalid:443/live";
 						const edited = await save({ ownerId: "fixture-creator", runnerId, id: firstRows[0].id, expectedRevision: 1, name: "Authoritative destination", provider: "custom", rtmpUrl: replacementUrl, credentialAction: "replace", streamKey: replacementKey });
@@ -144,8 +158,9 @@ export async function runRunnerDestinationsProbe(input: Parameters<typeof runRun
 							safe: ![legacyKey, replacementKey, replacementUrl, deviceToken].some((value) => JSON.stringify({ attempted, reopened }).includes(value)),
 						};
 					}
+					if (input.variant.startsWith("destinations_legacy_authority_")) return await observeLegacyAuthority();
 
-					if (peer || input.variant === "destinations_legacy_youtube" || input.variant === "destinations_legacy_custom") {
+					async function observeLegacyConversion() {
 						const targets = (await input.fixture.pool.query("SELECT d.id,d.name,d.provider,d.encrypted_stream_key FROM runner_destinations d JOIN stream_session_destinations s ON s.destination_id=d.id AND s.owner_id=d.owner_id WHERE s.session_id=$1", [sessionId])).rows;
 						const start = input.variant === "destinations_legacy_custom" ? await actions.setStreamDesiredState(sessionId, "running" as Parameters<typeof actions.setStreamDesiredState>[1], 2) : undefined;
 						return {
@@ -158,8 +173,9 @@ export async function runRunnerDestinationsProbe(input: Parameters<typeof runRun
 							start,
 						};
 					}
+					if (peer || input.variant === "destinations_legacy_youtube" || input.variant === "destinations_legacy_custom") return await observeLegacyConversion();
 
-					if (input.variant === "destinations_legacy_owner_delete") {
+					async function observeLegacyOwnerDeletion() {
 						const remove = Reflect.get(actions, "deleteRunnerDestination");
 						const blocked = await remove({ ownerId: "fixture-creator", id: firstRows[0].id, expectedRevision: 1 });
 						const directDeletionBlocked = blocked.success === false && blocked.code === "RESOURCE_IN_USE";
@@ -184,8 +200,9 @@ export async function runRunnerDestinationsProbe(input: Parameters<typeof runRun
 							references: Number((await input.fixture.pool.query("SELECT count(*) FROM stream_session_destinations WHERE owner_id='fixture-creator'")).rows[0].count),
 						};
 					}
+					if (input.variant === "destinations_legacy_owner_delete") return await observeLegacyOwnerDeletion();
 
-					if (input.variant === "destinations_legacy_multiple") {
+					async function observeLegacyMultipleSelection() {
 						const added = await save({ ownerId: "fixture-creator", runnerId, name: "Additional custom target", provider: "custom", rtmpUrl: "rtmp://127.0.0.1:1940/second", credentialAction: "clear" });
 						if (!added.success) throw new Error("LEGACY_ADDITIONAL_TARGET_FIXTURE_FAILED");
 						await input.fixture.pool.query("INSERT INTO stream_session_destinations(session_id,destination_id,owner_id,position) VALUES($1,$2,'fixture-creator',1)", [sessionId, added.destination.id]);
@@ -193,8 +210,9 @@ export async function runRunnerDestinationsProbe(input: Parameters<typeof runRun
 						const attempted = await actions.upsertStreamSession({ ...data, expectedRevision: 2, streamKey: "must-not-change-multiple-key" });
 						return { authenticated, first, attempted, unchanged: JSON.stringify(before) === JSON.stringify((await input.fixture.pool.query("SELECT * FROM stream_sessions WHERE id=$1", [sessionId])).rows[0]), targets: Number((await input.fixture.pool.query("SELECT count(*) FROM runner_destinations")).rows[0].count), references: Number((await input.fixture.pool.query("SELECT count(*) FROM stream_session_destinations WHERE session_id=$1", [sessionId])).rows[0].count) };
 					}
+					if (input.variant === "destinations_legacy_multiple") return await observeLegacyMultipleSelection();
 
-					if (input.variant === "destinations_legacy_shared") {
+					async function observeLegacySharedSelection() {
 						const otherSession = randomUUID();
 						await input.fixture.pool.query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,rtmp_url,encrypted_stream_key) SELECT $1,owner_id,runner_id,overlay_id,mode,rtmp_url,encrypted_stream_key FROM stream_sessions WHERE id=$2", [otherSession, sessionId]);
 						await input.fixture.pool.query("INSERT INTO stream_session_destinations(session_id,destination_id,owner_id,position) VALUES($1,$2,'fixture-creator',0)", [otherSession, firstRows[0].id]);
@@ -210,27 +228,32 @@ export async function runRunnerDestinationsProbe(input: Parameters<typeof runRun
 							references: Number((await input.fixture.pool.query("SELECT count(*) FROM stream_session_destinations WHERE destination_id=$1", [firstRows[0].id])).rows[0].count),
 						};
 					}
+					if (input.variant === "destinations_legacy_shared") return await observeLegacySharedSelection();
 
-					const rekey = input.variant === "destinations_legacy_rekey";
-					const second = await actions.upsertStreamSession({ ...data, expectedRevision: 2, ...(rekey ? { streamKey: "replacement-legacy-key" } : {}) });
-					const rows = (await input.fixture.pool.query("SELECT id,encrypted_stream_key,credential_revision FROM runner_destinations WHERE owner_id='fixture-creator'")).rows;
-					const references = (await input.fixture.pool.query("SELECT destination_id FROM stream_session_destinations WHERE session_id=$1", [sessionId])).rows;
-					const reopened = await list("fixture-creator", runnerId);
-					return {
-						authenticated,
-						available: true,
-						first,
-						second,
-						firstCount: firstRows.length,
-						count: rows.length,
-						references: references.length,
-						stable: rows.length === 1 && rows[0].id === firstRows[0]?.id && references[0]?.destination_id === rows[0].id,
-						encrypted: rows.length === 1 && rows[0].encrypted_stream_key !== legacyKey && decryptString(rows[0].encrypted_stream_key) === (rekey ? "replacement-legacy-key" : legacyKey),
-						credentialRevision: rows[0]?.credential_revision,
-						reopened,
-						safe: ![legacyKey, "replacement-legacy-key"].some((value) => JSON.stringify({ first, second, reopened }).includes(value)),
-					};
+					async function observeLegacyRekey() {
+						const rekey = input.variant === "destinations_legacy_rekey";
+						const second = await actions.upsertStreamSession({ ...data, expectedRevision: 2, ...(rekey ? { streamKey: "replacement-legacy-key" } : {}) });
+						const rows = (await input.fixture.pool.query("SELECT id,encrypted_stream_key,credential_revision FROM runner_destinations WHERE owner_id='fixture-creator'")).rows;
+						const references = (await input.fixture.pool.query("SELECT destination_id FROM stream_session_destinations WHERE session_id=$1", [sessionId])).rows;
+						const reopened = await list("fixture-creator", runnerId);
+						return {
+							authenticated,
+							available: true,
+							first,
+							second,
+							firstCount: firstRows.length,
+							count: rows.length,
+							references: references.length,
+							stable: rows.length === 1 && rows[0].id === firstRows[0]?.id && references[0]?.destination_id === rows[0].id,
+							encrypted: rows.length === 1 && rows[0].encrypted_stream_key !== legacyKey && decryptString(rows[0].encrypted_stream_key) === (rekey ? "replacement-legacy-key" : legacyKey),
+							credentialRevision: rows[0]?.credential_revision,
+							reopened,
+							safe: ![legacyKey, "replacement-legacy-key"].some((value) => JSON.stringify({ first, second, reopened }).includes(value)),
+						};
+					}
+					return await observeLegacyRekey();
 				}
+				if (input.variant.startsWith("destinations_legacy_")) return await observeLegacyDestinations();
 				const secret = "private-named-destination-stream-key";
 				const saved = await save({ ownerId: "fixture-creator", runnerId, name: "My Twitch", provider: "twitch", rtmpUrl: "rtmp://live.twitch.tv/app", credentialAction: "replace", streamKey: secret });
 				if (!saved.success) return { authenticated, available: true, saved };
@@ -238,18 +261,19 @@ export async function runRunnerDestinationsProbe(input: Parameters<typeof runRun
 				const before = (await input.fixture.pool.query("SELECT * FROM runner_destinations WHERE id=$1", [destinationId])).rows[0];
 				let attempted: unknown;
 				const variant = input.variant.replace("destinations_", "");
-				if (variant === "persisted_control_url") {
+				async function observePersistedControlUrl() {
 					await input.fixture.pool.query("UPDATE runner_destinations SET rtmp_url=$2 WHERE id=$1", [destinationId, "rtmp://127.0.0.1/li\nve"]);
 					const before = (await input.fixture.pool.query("SELECT * FROM runner_destinations WHERE id=$1", [destinationId])).rows[0];
 					const attempted = await save({ ownerId: "fixture-creator", runnerId, id: destinationId, expectedRevision: 1, name: "Rejected edit", provider: "twitch", credentialAction: "keep" });
 					const after = (await input.fixture.pool.query("SELECT * FROM runner_destinations WHERE id=$1", [destinationId])).rows[0];
 					return { authenticated, attempted, unchanged: JSON.stringify(before) === JSON.stringify(after), credentialPreserved: Boolean(after.encrypted_stream_key) && after.encrypted_stream_key === before.encrypted_stream_key && after.encrypted_stream_key !== secret, revision: after.configuration_revision, safe: !JSON.stringify(attempted).includes(secret) };
 				}
+				if (variant === "persisted_control_url") return await observePersistedControlUrl();
 
 				const remove = Reflect.get(actions, "deleteRunnerDestination");
 				if (variant.startsWith("delete") && typeof remove !== "function") return { authenticated, available: true, deleteAvailable: false };
 				let clearSessionId: string | undefined;
-				if (variant === "clear" || variant === "clear_metadata" || variant === "delete_referenced") {
+				if (["clear", "clear_metadata", "delete_referenced"].includes(variant)) {
 					const overlayId = randomUUID();
 					clearSessionId = randomUUID();
 					await input.fixture.pool.query("INSERT INTO overlays(id,owner_id,secret,name,status,type) VALUES($1,'fixture-creator','destination-source-secret','Destination source','active','Featured')", [overlayId]);
@@ -258,7 +282,7 @@ export async function runRunnerDestinationsProbe(input: Parameters<typeof runRun
 					await input.fixture.pool.query("INSERT INTO stream_session_destinations(session_id,destination_id,owner_id,position) VALUES($1,$2,'fixture-creator',0)", [clearSessionId, destinationId]);
 				}
 				const update = { ownerId: "fixture-creator", runnerId, id: destinationId, expectedRevision: 1, name: "My Twitch", provider: "twitch", rtmpUrl: "rtmp://live.twitch.tv/app", credentialAction: "keep" } as const;
-				if (variant === "validation_matrix") {
+				async function observeDestinationValidation() {
 					const invalidInputs = [
 						["missing revision", { ...update, expectedRevision: undefined }],
 						["invalid owner", { ...update, ownerId: "bad.owner" }],
@@ -287,45 +311,53 @@ export async function runRunnerDestinationsProbe(input: Parameters<typeof runRun
 					const scoped = await list("fixture-creator", runnerId);
 					return { authenticated, invalid, reads, removals, global, globalEdit, all, scoped, unchanged: JSON.stringify(before) === JSON.stringify((await input.fixture.pool.query("SELECT * FROM runner_destinations WHERE id=$1", [destinationId])).rows[0]), safe: ![secret, deviceToken].some((value) => JSON.stringify({ invalid, reads, removals, global, globalEdit, all, scoped }).includes(value)) };
 				}
+				if (variant === "validation_matrix") return await observeDestinationValidation();
 
-				if (variant === "invalid_url") attempted = await save({ ...update, rtmpUrl: "https://example.invalid/not-rtmp" });
-				if (variant === "missing_youtube" || variant === "missing_twitch") attempted = await save({ ...update, provider: variant.endsWith("youtube") ? "youtube" : "twitch", rtmpUrl: variant.endsWith("youtube") ? "rtmp://a.rtmp.youtube.com/live2" : update.rtmpUrl, credentialAction: "replace", streamKey: "" });
-				if (variant === "duplicate") attempted = await save({ ...update, id: undefined, expectedRevision: undefined, name: "Duplicate", credentialAction: "replace", streamKey: secret });
-				if (variant === "keep" || variant === "replace" || variant === "clear") attempted = await save({ ...update, credentialAction: variant, ...(variant === "replace" ? { streamKey: "replacement-named-stream-key" } : {}) });
-				if (variant === "clear_metadata") {
-					const cleared = await save({ ...update, credentialAction: "clear" });
-					if (!cleared.success) throw new Error("CLEAR_METADATA_FIXTURE_FAILED");
-					attempted = await save({ ...update, expectedRevision: 2, name: "Renamed without key", credentialAction: "keep" });
-				}
+				async function applyDestinationMutation() {
+					if (variant === "invalid_url") attempted = await save({ ...update, rtmpUrl: "https://example.invalid/not-rtmp" });
+					if (["missing_youtube", "missing_twitch"].includes(variant)) attempted = await save({ ...update, provider: variant.endsWith("youtube") ? "youtube" : "twitch", rtmpUrl: variant.endsWith("youtube") ? "rtmp://a.rtmp.youtube.com/live2" : update.rtmpUrl, credentialAction: "replace", streamKey: "" });
+					if (variant === "duplicate") attempted = await save({ ...update, id: undefined, expectedRevision: undefined, name: "Duplicate", credentialAction: "replace", streamKey: secret });
+					if (isCredentialAction(variant)) attempted = await save({ ...update, credentialAction: variant, ...(variant === "replace" ? { streamKey: "replacement-named-stream-key" } : {}) });
+					if (variant === "clear_metadata") {
+						const cleared = await save({ ...update, credentialAction: "clear" });
+						if (!cleared.success) throw new Error("CLEAR_METADATA_FIXTURE_FAILED");
+						attempted = await save({ ...update, expectedRevision: 2, name: "Renamed without key", credentialAction: "keep" });
+					}
 
-				if (variant.startsWith("delete")) attempted = await remove({ ownerId: "fixture-creator", id: destinationId, expectedRevision: variant === "delete_stale" ? 2 : 1 });
-				if (variant.startsWith("bound_")) attempted = await save({ ownerId: "fixture-creator", runnerId, name: "x".repeat(Number(variant.slice(6))), provider: "custom", rtmpUrl: "rtmp://127.0.0.1:1940/local", credentialAction: "clear" });
-				if (variant === "rollback") {
-					// A real transaction fault after the attempted row mutation must preserve prior data.
-					await input.fixture.pool.query("CREATE FUNCTION destination_test_failure() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'controlled destination transaction failure'; END $$");
-					await input.fixture.pool.query("CREATE TRIGGER destination_test_failure AFTER UPDATE ON runner_destinations FOR EACH ROW EXECUTE FUNCTION destination_test_failure()");
-					try {
-						attempted = await save({ ...update, name: "Must roll back", credentialAction: "replace", streamKey: "must-not-persist" });
-					} finally {
-						await input.fixture.pool.query("DROP TRIGGER destination_test_failure ON runner_destinations");
+					if (variant.startsWith("delete")) attempted = await remove({ ownerId: "fixture-creator", id: destinationId, expectedRevision: variant === "delete_stale" ? 2 : 1 });
+					if (variant.startsWith("bound_")) attempted = await save({ ownerId: "fixture-creator", runnerId, name: "x".repeat(Number(variant.slice(6))), provider: "custom", rtmpUrl: "rtmp://127.0.0.1:1940/local", credentialAction: "clear" });
+					if (variant === "rollback") {
+						// A real transaction fault after the attempted row mutation must preserve prior data.
+						await input.fixture.pool.query("CREATE FUNCTION destination_test_failure() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'controlled destination transaction failure'; END $$");
+						await input.fixture.pool.query("CREATE TRIGGER destination_test_failure AFTER UPDATE ON runner_destinations FOR EACH ROW EXECUTE FUNCTION destination_test_failure()");
+						try {
+							attempted = await save({ ...update, name: "Must roll back", credentialAction: "replace", streamKey: "must-not-persist" });
+						} finally {
+							await input.fixture.pool.query("DROP TRIGGER destination_test_failure ON runner_destinations");
+						}
 					}
 				}
-				let foreignReadsDenied: boolean | undefined;
-				if (variant === "foreign") {
-					const fc = await import("fast-check");
-					foreignReadsDenied = true;
-					await fc.assert(
-						fc.asyncProperty(fc.uuid(), async (foreignId) => {
-							const denied = await list(foreignId, runnerId);
-							if (denied.success !== false || JSON.stringify(denied).includes(secret) || JSON.stringify(denied).includes(destinationId)) foreignReadsDenied = false;
-							return denied.success === false && !JSON.stringify(denied).includes(secret) && !JSON.stringify(denied).includes(destinationId);
-						}),
-						{ seed: 41971, numRuns: 20 },
-					);
+				await applyDestinationMutation();
+				async function observeForeignReads() {
+					let foreignReadsDenied: boolean | undefined;
+					if (variant === "foreign") {
+						const fc = await import("fast-check");
+						foreignReadsDenied = true;
+						await fc.assert(
+							fc.asyncProperty(fc.uuid(), async (foreignId) => {
+								const denied = await list(foreignId, runnerId);
+								if (denied.success !== false || JSON.stringify(denied).includes(secret) || JSON.stringify(denied).includes(destinationId)) foreignReadsDenied = false;
+								return denied.success === false && !JSON.stringify(denied).includes(secret) && !JSON.stringify(denied).includes(destinationId);
+							}),
+							{ seed: 41971, numRuns: 20 },
+						);
+					}
+					return foreignReadsDenied;
 				}
+				const foreignReadsDenied = await observeForeignReads();
 				const reopened = await list("fixture-creator", runnerId);
 				let clearedStart: unknown;
-				if (clearSessionId && (variant === "clear" || variant === "clear_metadata")) {
+				if (clearSessionId && ["clear", "clear_metadata"].includes(variant)) {
 					const { call } = await (await import("./runner-free-pro-probe")).runRunnerFreeProProbe(input);
 					clearedStart = await call("control_stream_session", { sessionId: clearSessionId, expectedRevision: 1, state: "running" });
 				}
@@ -350,4 +382,8 @@ export async function runRunnerDestinationsProbe(input: Parameters<typeof runRun
 	} finally {
 		globalThis.fetch = previousFetch;
 	}
+}
+
+function isCredentialAction(value: string): value is "keep" | "replace" | "clear" {
+	return ["keep", "replace", "clear"].includes(value);
 }

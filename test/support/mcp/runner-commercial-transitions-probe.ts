@@ -15,7 +15,7 @@ export async function runRunnerCommercialTransitionsProbe(input: Parameters<type
 		process.env.ENTITLEMENTS_HYBRID_ENABLED = "true";
 		const keys = ephemeralRunnerKeys();
 		process.env.RUNNER_EXECUTION_SIGNING_PRIVATE_KEY = keys.privateKey.export({ type: "pkcs8", format: "pem" }).toString();
-		if (input.variant.endsWith("_known_expiry") || input.variant.endsWith("_owner_snapshot") || input.variant.endsWith("_revoked_before_dispatch") || input.variant.endsWith("_revoked_after_dispatch") || input.variant.endsWith("_renewed_pending") || input.variant.endsWith("_owner_long_refresh")) return await runKnownExpiryBoundary(input, keys);
+		if (["_known_expiry", "_owner_snapshot", "_revoked_before_dispatch", "_revoked_after_dispatch", "_renewed_pending", "_owner_long_refresh"].some((suffix) => input.variant.endsWith(suffix))) return await runKnownExpiryBoundary(input, keys);
 		const ownerId = "fixture-creator",
 			overlayId = randomUUID();
 		const zero = input.variant.endsWith("_zero");
@@ -53,15 +53,18 @@ export async function runRunnerCommercialTransitionsProbe(input: Parameters<type
 		};
 		// Establish accepted active generations before expiry, rather than treating an
 		// undispatched reservation as grandfathered output.
-		for (const device of devices.slice(0, activeCount)) {
-			const first = await heartbeat(device);
-			const job = first.body.jobs?.find((value: any) => value.id === device.sessionId);
-			if (!job?.lease) throw new Error("TRANSITION_FIXTURE_PAID_START_UNAVAILABLE");
-			const captured = (await input.fixture.pool.query("SELECT lease_id FROM runner_broadcast_admissions WHERE id=$1", [job.admissionId])).rows[0];
-			const claims = verifyExecutionBundle(job.lease, { [job.lease.keyId]: keys.publicKey.export({ type: "spki", format: "pem" }).toString() }, { ...job, sessionId: device.sessionId, generation: job.executionGeneration, requestId: first.requestId, sourceId: overlayId, leaseId: captured.lease_id });
-			if (claims?.policy !== "pro_broadcast") throw new Error("TRANSITION_FIXTURE_INVALID_START_SIGNATURE");
-			await heartbeat(device, [{ admissionId: job.admissionId, sessionId: device.sessionId, executionGeneration: job.executionGeneration, leaseId: captured.lease_id, configurationRevision: job.configurationRevision, state: "active" }]);
+		async function establishAcceptedGenerations() {
+			for (const device of devices.slice(0, activeCount)) {
+				const first = await heartbeat(device);
+				const job = first.body.jobs?.find((value: any) => value.id === device.sessionId);
+				if (!job?.lease) throw new Error("TRANSITION_FIXTURE_PAID_START_UNAVAILABLE");
+				const captured = (await input.fixture.pool.query("SELECT lease_id FROM runner_broadcast_admissions WHERE id=$1", [job.admissionId])).rows[0];
+				const claims = verifyExecutionBundle(job.lease, { [job.lease.keyId]: keys.publicKey.export({ type: "spki", format: "pem" }).toString() }, { ...job, sessionId: device.sessionId, generation: job.executionGeneration, requestId: first.requestId, sourceId: overlayId, leaseId: captured.lease_id });
+				if (claims?.policy !== "pro_broadcast") throw new Error("TRANSITION_FIXTURE_INVALID_START_SIGNATURE");
+				await heartbeat(device, [{ admissionId: job.admissionId, sessionId: device.sessionId, executionGeneration: job.executionGeneration, leaseId: captured.lease_id, configurationRevision: job.configurationRevision, state: "active" }]);
+			}
 		}
+		await establishAcceptedGenerations();
 		const established = Number((await input.fixture.pool.query("SELECT count(*) FROM runner_broadcast_admissions WHERE owner_id=$1 AND state='active'", [ownerId])).rows[0].count);
 		const readSessions = async () => (await input.fixture.pool.query("SELECT id,runner_id,overlay_id,mode,control_mode,rtmp_url,desired_state,configuration_revision FROM stream_sessions WHERE owner_id=$1 ORDER BY id", [ownerId])).rows;
 		const readAdmissions = async () => (await input.fixture.pool.query("SELECT id,session_id,execution_generation,state,benefits_at_start FROM runner_broadcast_admissions WHERE owner_id=$1 ORDER BY id", [ownerId])).rows;
@@ -73,7 +76,7 @@ export async function runRunnerCommercialTransitionsProbe(input: Parameters<type
 		const afterSessions = await readSessions(),
 			afterAdmissions = await readAdmissions();
 		const settingsRetained = JSON.stringify(afterSessions.map(({ desired_state: _desiredState, configuration_revision: _configurationRevision, ...saved }) => saved)) === JSON.stringify(beforeSessions.map(({ desired_state: _desiredState, configuration_revision: _configurationRevision, ...saved }) => saved));
-		if (scheduled) {
+		async function observeScheduledExpiry() {
 			// The active calendar window was captured by the real control path.
 			// Never rewrite that immutable capture while output is active.
 			const initial = (await input.fixture.pool.query("SELECT id,execution_generation,lease_id,configuration_revision,scheduled_end,occurrence_id,benefits_at_start FROM runner_broadcast_admissions WHERE session_id=$1", [devices[0].sessionId])).rows[0];
@@ -132,7 +135,8 @@ export async function runRunnerCommercialTransitionsProbe(input: Parameters<type
 				settingsRetained,
 			};
 		}
-		if (single || many) {
+		if (scheduled) return await observeScheduledExpiry();
+		async function observeCapturedAdmissionClosure() {
 			const { controlStreamSession } = await import("@/server/resources/runners");
 			const { toPublicResourceError } = await import("@/server/resources/errors");
 			const principal = { kind: "session" as const, authUserId: input.actorId, sessionId: "fixture-transition-session", authenticatedAt: new Date(), organizationId: "creator-org" };
@@ -179,7 +183,8 @@ export async function runRunnerCommercialTransitionsProbe(input: Parameters<type
 				safe: !JSON.stringify([stop, beforeAck, basic]).includes("private-transition-source"),
 			};
 		}
-		if (zero) {
+		if (single || many) return await observeCapturedAdmissionClosure();
+		async function observeDowngradedIdleStart() {
 			const { controlStreamSession } = await import("@/server/resources/runners");
 			const principal = { kind: "session" as const, authUserId: input.actorId, sessionId: "fixture-transition-session", authenticatedAt: new Date(), organizationId: "creator-org" };
 			const internal = input.variant === "transition_service_zero";
@@ -194,22 +199,25 @@ export async function runRunnerCommercialTransitionsProbe(input: Parameters<type
 			const basicAdmission = (await input.fixture.pool.query("SELECT benefits_at_start FROM runner_broadcast_admissions WHERE session_id=$1", [devices[1].sessionId])).rows[0];
 			return { established, paidDenied, paidAdmissions, paidSuccessAudits, paidStartUnchanged, settingsRetained, basicAccepted: basic.desiredState === "running", basicAdmissionPaid: basicAdmission?.benefits_at_start?.runnerPro, safe: !JSON.stringify([paidDenied, basic]).includes("private-transition-source") };
 		}
+		if (zero) return await observeDowngradedIdleStart();
 		if (input.variant === "transition_service_multiple") return { established, reconciled, beforeSessions, afterSessions, beforeAdmissions, afterAdmissions, settingsRetained, runnersOnline: Number((await input.fixture.pool.query("SELECT count(*) FROM runners WHERE owner_id=$1 AND status='online'", [ownerId])).rows[0].count) };
-		const jobs = [];
-		for (const device of devices.slice(0, 2)) {
-			const { body, requestId } = await heartbeat(device);
-			const job = body.jobs?.find((value: any) => value.id === device.sessionId);
-			const original = beforeAdmissions.find((value) => value.session_id === device.sessionId);
-			const captured = original ? (await input.fixture.pool.query("SELECT lease_id FROM runner_broadcast_admissions WHERE id=$1", [original.id])).rows[0] : null;
-			const claims = job?.lease ? verifyExecutionBundle(job.lease, { [job.lease.keyId]: keys.publicKey.export({ type: "spki", format: "pem" }).toString() }, { ...job, sessionId: device.sessionId, generation: job.executionGeneration, requestId, sourceId: overlayId, leaseId: captured?.lease_id }) : null;
-			jobs.push({ desiredState: job?.desiredState, signed: claims?.policy === "pro_broadcast", originalGeneration: job?.executionGeneration === original?.execution_generation });
+		async function observeGrandfatheredContinuation() {
+			const jobs = [];
+			for (const device of devices.slice(0, 2)) {
+				const { body, requestId } = await heartbeat(device);
+				const job = body.jobs?.find((value: any) => value.id === device.sessionId);
+				const original = beforeAdmissions.find((value) => value.session_id === device.sessionId);
+				const captured = original ? (await input.fixture.pool.query("SELECT lease_id FROM runner_broadcast_admissions WHERE id=$1", [original.id])).rows[0] : null;
+				const claims = job?.lease ? verifyExecutionBundle(job.lease, { [job.lease.keyId]: keys.publicKey.export({ type: "spki", format: "pem" }).toString() }, { ...job, sessionId: device.sessionId, generation: job.executionGeneration, requestId, sourceId: overlayId, leaseId: captured?.lease_id }) : null;
+				jobs.push({ desiredState: job?.desiredState, signed: claims?.policy === "pro_broadcast", originalGeneration: job?.executionGeneration === original?.execution_generation });
+			}
+			const denied = await call("control_stream_session", { sessionId: devices[2].sessionId, expectedRevision: 1, state: "running" });
+			return { established, jobs, denied, occupied: (await readAdmissions()).filter((value) => !["stopped", "failed_before_output"].includes(value.state)).length, thirdState: (await readSessions()).find((value) => value.id === devices[2].sessionId)?.desired_state, settingsRetained, safe: !JSON.stringify([jobs, denied]).includes("private-transition-source") };
 		}
-		const denied = await call("control_stream_session", { sessionId: devices[2].sessionId, expectedRevision: 1, state: "running" });
-		return { established, jobs, denied, occupied: (await readAdmissions()).filter((value) => !["stopped", "failed_before_output"].includes(value.state)).length, thirdState: (await readSessions()).find((value) => value.id === devices[2].sessionId)?.desired_state, settingsRetained, safe: !JSON.stringify([jobs, denied]).includes("private-transition-source") };
+		return await observeGrandfatheredContinuation();
 	} finally {
 		globalThis.fetch = previousFetch;
-		if (previousKey === undefined) delete process.env.RUNNER_EXECUTION_SIGNING_PRIVATE_KEY;
-		else process.env.RUNNER_EXECUTION_SIGNING_PRIVATE_KEY = previousKey;
+		restoreSigningKey(previousKey);
 	}
 }
 
@@ -249,18 +257,19 @@ async function runKnownExpiryBoundary(input: Parameters<typeof runRunnerFreeProP
 		return { body: await response.json(), requestId };
 	};
 	const first = await heartbeat();
-	if (revokedBeforeDispatch) {
+	async function observeRevokedReservation() {
 		const before = (await input.fixture.pool.query("SELECT * FROM runner_broadcast_admissions WHERE session_id=$1", [sessionIds[0]])).rows[0];
 		const next = await start(1);
 		return { freshPaidPermit: first.body.jobs?.some((job: any) => Boolean(job.lease)) ?? false, admissionState: before.state, dispatched: before.dispatched_at !== null, nextAccepted: !next.error, capturedPaid: before.benefits_at_start.runnerPro };
 	}
+	if (revokedBeforeDispatch) return await observeRevokedReservation();
 	const job = first.body.jobs?.find((value: any) => value.id === sessionIds[0]);
 	const captured = (await input.fixture.pool.query("SELECT * FROM runner_broadcast_admissions WHERE session_id=$1", [sessionIds[0]])).rows[0];
 	const expected = { ownerId, runnerId, sessionId: sessionIds[0], admissionId: captured.id, generation: captured.execution_generation, leaseId: captured.lease_id, configurationRevision: captured.configuration_revision, sourceId: overlayId, sourceRevision: 1, targetHash: hashExecutionTargets([{ id: sessionIds[0], rtmpUrl: "rtmp://127.0.0.1:19350/live", streamKey: null }]), scheduledEnd: null };
 	const trusted = { [job.lease.keyId]: keys.publicKey.export({ type: "spki", format: "pem" }).toString() };
 	const claims = verifyExecutionBundle(job.lease, trusted, { ...expected, requestId: first.requestId });
 	if (!claims || claims.policy !== "pro_broadcast") throw new Error("KNOWN_EXPIRY_FIXTURE_PAID_PERMIT_INVALID");
-	if (input.variant.endsWith("_revoked_after_dispatch")) {
+	async function observeRevokedDispatch() {
 		await input.fixture.pool.query("UPDATE entitlement_grants SET revoked_at=now() WHERE user_id=$1 AND entitlement='runner_access'", [ownerId]);
 		const uncertain = await heartbeat();
 		const pending = uncertain.body.jobs?.find((value: any) => value.id === sessionIds[0]);
@@ -275,7 +284,8 @@ async function runKnownExpiryBoundary(input: Parameters<typeof runRunnerFreeProP
 			lateContinuation: Boolean(late.body.jobs?.find((value: any) => value.id === sessionIds[0])?.lease),
 		};
 	}
-	if (longProfile) {
+	if (input.variant.endsWith("_revoked_after_dispatch")) return await observeRevokedDispatch();
+	async function observeLongProfileRefresh() {
 		const { RunnerBenefitSnapshotCache } = await import("../../../packages/runner/src/protocol");
 		let profileElapsed = 0;
 		const cache = new RunnerBenefitSnapshotCache({ ownerId, runnerId, keys: trusted, clock: () => profileElapsed });
@@ -302,6 +312,7 @@ async function runKnownExpiryBoundary(input: Parameters<typeof runRunnerFreeProP
 			Date.now = previousNow;
 		}
 	}
+	if (longProfile) return await observeLongProfileRefresh();
 	let monotonic = 0;
 	const accepted = new ProExecutionPermit(expected, trusted, () => monotonic);
 	accepted.beginRenewal({ requestId: first.requestId, sentAt: 0 });
@@ -315,7 +326,7 @@ async function runKnownExpiryBoundary(input: Parameters<typeof runRunnerFreeProP
 	try {
 		const expired = await heartbeat();
 		const expiredJob = expired.body.jobs?.find((value: any) => value.id === sessionIds[0]);
-		if (input.variant.endsWith("_renewed_pending")) {
+		async function observePendingRenewal() {
 			const renewedEnd = knownEnd + 86400000;
 			await input.fixture.pool.query("UPDATE entitlement_grants SET ends_at=$2 WHERE user_id=$1 AND entitlement='runner_access'", [ownerId, new Date(renewedEnd)]);
 			Date.now = () => knownEnd + 1000;
@@ -339,51 +350,63 @@ async function runKnownExpiryBoundary(input: Parameters<typeof runRunnerFreeProP
 				admissions: Number((await input.fixture.pool.query("SELECT count(*) FROM runner_broadcast_admissions WHERE owner_id=$1", [ownerId])).rows[0].count),
 			};
 		}
+		if (input.variant.endsWith("_renewed_pending")) return await observePendingRenewal();
 		const denied = await start(1);
 		const occupied = Number((await input.fixture.pool.query("SELECT count(*) FROM runner_broadcast_admissions WHERE owner_id=$1 AND state NOT IN ('stopped','failed_before_output')", [ownerId])).rows[0].count);
 		const late = await heartbeat([{ admissionId: captured.id, sessionId: sessionIds[0], executionGeneration: captured.execution_generation, leaseId: captured.lease_id, configurationRevision: captured.configuration_revision, state: "active" }]);
-		const outcome = {
-			knownEnd: new Date(knownEnd).toISOString(),
-			capturedValidity: captured.benefits_at_start.validUntil,
-			permitExpiresAt: new Date(claims.expiresAt).toISOString(),
-			delayedStartAccepted,
-			acceptedStillActive: accepted.state === "active",
-			expiredFreshPermit: Boolean(expiredJob?.lease),
-			pendingBound: expiredJob?.admissionId === captured.id && expiredJob?.executionGeneration === captured.execution_generation,
-			secondCode: denied.error?.code,
-			occupied,
-			lateAckAccepted: late.body.acceptedExecutions?.some((value: any) => value.admissionId === captured.id && value.state === "active"),
-			lateContinuation: Boolean(late.body.jobs?.find((value: any) => value.id === sessionIds[0])?.lease),
-		};
+		function observeExpiryOutcome(validClaims: NonNullable<typeof claims>) {
+			return {
+				knownEnd: new Date(knownEnd).toISOString(),
+				capturedValidity: captured.benefits_at_start.validUntil,
+				permitExpiresAt: new Date(validClaims.expiresAt).toISOString(),
+				delayedStartAccepted,
+				acceptedStillActive: accepted.state === "active",
+				expiredFreshPermit: Boolean(expiredJob?.lease),
+				pendingBound: expiredJob?.admissionId === captured.id && expiredJob?.executionGeneration === captured.execution_generation,
+				secondCode: denied.error?.code,
+				occupied,
+				lateAckAccepted: late.body.acceptedExecutions?.some((value: any) => value.admissionId === captured.id && value.state === "active"),
+				lateContinuation: Boolean(late.body.jobs?.find((value: any) => value.id === sessionIds[0])?.lease),
+			};
+		}
+		const outcome = observeExpiryOutcome(claims);
 		if (!input.variant.endsWith("_owner_snapshot")) return outcome;
-		const verifier = Reflect.get(await import("../../../packages/runner/src/protocol"), "verifyRunnerBenefitSnapshot");
-		if (typeof verifier !== "function" || !first.body.benefitSnapshot || !expired.body.benefitSnapshot) return { ...outcome, snapshotPresent: false };
-		const scope = { ownerId, runnerId, configurationRevision: 1 };
-		const before = verifier(first.body.benefitSnapshot, trusted, { ...scope, requestId: first.requestId }, knownEnd - 1);
-		const baseline = verifier(expired.body.benefitSnapshot, trusted, { ...scope, requestId: expired.requestId }, knownEnd);
-		if (!before || !baseline) throw new Error("OWNER_SNAPSHOT_FIXTURE_VERIFICATION_FAILED");
-		const Cache = Reflect.get(await import("../../../packages/runner/src/protocol"), "RunnerBenefitSnapshotCache");
-		if (typeof Cache !== "function") return { ...outcome, snapshotPresent: true, cacheAvailable: false, beforePolicy: before?.capabilities, afterPolicy: baseline?.capabilities };
-		let cacheMonotonic = 0;
-		const guard = new Cache({ ownerId, runnerId, keys: trusted, clock: () => cacheMonotonic });
-		const cachedAccepted = guard.accept(first.body.benefitSnapshot, { requestId: first.requestId, sentAt: 0 });
-		const cachedPaidBefore = guard.runnerPro;
-		cacheMonotonic = knownEnd - before.issuedAt;
-		const cachedPaidAfter = guard.runnerPro;
-		return {
-			...outcome,
-			snapshotPresent: true,
-			cacheAvailable: true,
-			cachedAccepted,
-			cachedPaidBefore,
-			cachedPaidAfter,
-			cachedScope: guard.scope,
-			beforePolicy: before?.capabilities,
-			afterPolicy: baseline?.capabilities,
-			ownerBound: verifier(first.body.benefitSnapshot, trusted, { ...scope, ownerId: "operator", requestId: first.requestId }, knownEnd - 1) === null,
-			runnerBound: verifier(first.body.benefitSnapshot, trusted, { ...scope, runnerId: randomUUID(), requestId: first.requestId }, knownEnd - 1) === null,
-		};
+		async function observeOwnerSnapshotExpiry() {
+			const verifier = Reflect.get(await import("../../../packages/runner/src/protocol"), "verifyRunnerBenefitSnapshot");
+			if (typeof verifier !== "function" || !first.body.benefitSnapshot || !expired.body.benefitSnapshot) return { ...outcome, snapshotPresent: false };
+			const scope = { ownerId, runnerId, configurationRevision: 1 };
+			const before = verifier(first.body.benefitSnapshot, trusted, { ...scope, requestId: first.requestId }, knownEnd - 1);
+			const baseline = verifier(expired.body.benefitSnapshot, trusted, { ...scope, requestId: expired.requestId }, knownEnd);
+			if (!before || !baseline) throw new Error("OWNER_SNAPSHOT_FIXTURE_VERIFICATION_FAILED");
+			const Cache = Reflect.get(await import("../../../packages/runner/src/protocol"), "RunnerBenefitSnapshotCache");
+			if (typeof Cache !== "function") return { ...outcome, snapshotPresent: true, cacheAvailable: false, beforePolicy: before?.capabilities, afterPolicy: baseline?.capabilities };
+			let cacheMonotonic = 0;
+			const guard = new Cache({ ownerId, runnerId, keys: trusted, clock: () => cacheMonotonic });
+			const cachedAccepted = guard.accept(first.body.benefitSnapshot, { requestId: first.requestId, sentAt: 0 });
+			const cachedPaidBefore = guard.runnerPro;
+			cacheMonotonic = knownEnd - before.issuedAt;
+			const cachedPaidAfter = guard.runnerPro;
+			return {
+				...outcome,
+				snapshotPresent: true,
+				cacheAvailable: true,
+				cachedAccepted,
+				cachedPaidBefore,
+				cachedPaidAfter,
+				cachedScope: guard.scope,
+				beforePolicy: before?.capabilities,
+				afterPolicy: baseline?.capabilities,
+				ownerBound: verifier(first.body.benefitSnapshot, trusted, { ...scope, ownerId: "operator", requestId: first.requestId }, knownEnd - 1) === null,
+				runnerBound: verifier(first.body.benefitSnapshot, trusted, { ...scope, runnerId: randomUUID(), requestId: first.requestId }, knownEnd - 1) === null,
+			};
+		}
+		return await observeOwnerSnapshotExpiry();
 	} finally {
 		Date.now = originalNow;
 	}
+}
+
+function restoreSigningKey(value: string | undefined) {
+	if (value === undefined) delete process.env.RUNNER_EXECUTION_SIGNING_PRIVATE_KEY;
+	else process.env.RUNNER_EXECUTION_SIGNING_PRIVATE_KEY = value;
 }

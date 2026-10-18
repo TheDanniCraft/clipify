@@ -246,6 +246,22 @@ export function getStreamSessionForPrincipal(principal: TrustedCreatorPrincipal,
 }
 
 import { authorizeTrustedCreatorOperation } from "@/auth/authorize-operation";
+type StreamConfigurationInput = ReturnType<typeof workflowInputSchemas.configure_stream_session.parse>;
+type DestinationSelection = Extract<Awaited<ReturnType<typeof resolveRunnerDestinationSelection>>, unknown[]>;
+async function updateConfiguredSession(input: StreamConfigurationInput, context: WorkflowContext, current: typeof streamSessionsTable.$inferSelect, selected: DestinationSelection | undefined, endpoints: Record<"twitch" | "youtube", string>) {
+	if ((input.controlMode ?? current.controlMode) === "scheduled" && input.mode !== "24/7") return resourceFailure("INVALID_INPUT");
+	const revision = nextConfigurationRevision(current.configurationRevision, input.expectedRevision!);
+	const rtmpUrl = selected?.[0].rtmpUrl ?? (input.destination ? endpoints[input.destination] : current.rtmpUrl);
+	const [row] = await context.tx
+		.update(streamSessionsTable)
+		.set({ runnerId: input.runnerId, overlayId: input.overlayId, mode: input.mode as StreamMode, ...(input.controlMode ? { controlMode: input.controlMode } : {}), resolution: input.resolution, fps: input.fps, rtmpUrl, ...(selected ? { encryptedStreamKey: selected[0].encryptedStreamKey } : rtmpUrl !== current.rtmpUrl ? { encryptedStreamKey: null, desiredState: StreamState.Stopped } : {}), configurationRevision: revision, updatedAt: new Date() })
+		.where(and(eq(streamSessionsTable.id, current.id), eq(streamSessionsTable.ownerId, input.creatorId)))
+		.returning();
+	if (selected) await replaceSessionDestinationSelection(context.tx, input.creatorId, row.id, selected);
+	const normalized = selected ? { rtmpUrl, encryptedStreamKey: selected[0].encryptedStreamKey } : await normalizeLegacySessionDestination(context.tx, input.creatorId, row.id, { replaceRtmpUrl: input.destination !== undefined, clearCredentialOnUrlChange: true });
+	return { ...(await sessionWithDestinations(context.tx, { ...row, ...normalized })), credentialsRequired: destination(normalized.rtmpUrl) !== "custom" && !normalized.encryptedStreamKey, dashboardUrl: `${getMcpConfiguration().origin}/dashboard/runners/${input.runnerId}` };
+}
+
 export function configureStreamSession(principal: TrustedCreatorPrincipal, input: unknown, client?: DatabaseClient) {
 	return workflowOperation(
 		principal,
@@ -262,22 +278,10 @@ export function configureStreamSession(principal: TrustedCreatorPrincipal, input
 			if (!overlay) throw new Error("RESOURCE_UNAVAILABLE");
 			const current = input.sessionId ? await sessionRecord(context, input.sessionId, true) : undefined;
 			if (current && (current.runnerId !== input.runnerId || current.overlayId !== input.overlayId) && (await broadcastAssignmentIsLocked(context.tx, input.creatorId, current.id))) return resourceFailure("CONFLICT");
-			const selected = input.destinationIds ? await resolveRunnerDestinationSelection(context.tx, input.creatorId, input.runnerId, input.destinationIds, deriveRunnerCapabilities(context.runnerBenefits ?? { proAccess: context.pro, runnerAccess: context.runnerAccess }).runnerPro) : undefined;
+			const selected = input.destinationIds ? await resolveRunnerDestinationSelection(context.tx, input.creatorId, input.runnerId, input.destinationIds, deriveRunnerCapabilities(effectiveRunnerBenefits(context)).runnerPro) : undefined;
 			if (isResourceFailure(selected)) return selected;
 			const endpoints = { twitch: "rtmp://live.twitch.tv/app", youtube: "rtmp://a.rtmp.youtube.com/live2" };
-			if (current) {
-				if ((input.controlMode ?? current.controlMode) === "scheduled" && input.mode !== "24/7") return resourceFailure("INVALID_INPUT");
-				const revision = nextConfigurationRevision(current.configurationRevision, input.expectedRevision!);
-				const rtmpUrl = selected?.[0].rtmpUrl ?? (input.destination ? endpoints[input.destination] : current.rtmpUrl);
-				const [row] = await context.tx
-					.update(streamSessionsTable)
-					.set({ runnerId: input.runnerId, overlayId: input.overlayId, mode: input.mode as StreamMode, ...(input.controlMode ? { controlMode: input.controlMode } : {}), resolution: input.resolution, fps: input.fps, rtmpUrl, ...(selected ? { encryptedStreamKey: selected[0].encryptedStreamKey } : rtmpUrl !== current.rtmpUrl ? { encryptedStreamKey: null, desiredState: StreamState.Stopped } : {}), configurationRevision: revision, updatedAt: new Date() })
-					.where(and(eq(streamSessionsTable.id, current.id), eq(streamSessionsTable.ownerId, input.creatorId)))
-					.returning();
-				if (selected) await replaceSessionDestinationSelection(context.tx, input.creatorId, row.id, selected);
-				const normalized = selected ? { rtmpUrl, encryptedStreamKey: selected[0].encryptedStreamKey } : await normalizeLegacySessionDestination(context.tx, input.creatorId, row.id, { replaceRtmpUrl: input.destination !== undefined, clearCredentialOnUrlChange: true });
-				return { ...(await sessionWithDestinations(context.tx, { ...row, ...normalized })), credentialsRequired: destination(normalized.rtmpUrl) !== "custom" && !normalized.encryptedStreamKey, dashboardUrl: `${getMcpConfiguration().origin}/dashboard/runners/${input.runnerId}` };
-			}
+			if (current) return updateConfiguredSession(input, context, current, selected, endpoints);
 			return workflowRetry(context, "configure_stream_session", input, async () => {
 				const [row] = await context.tx
 					.insert(streamSessionsTable)
@@ -293,9 +297,37 @@ export function configureStreamSession(principal: TrustedCreatorPrincipal, input
 }
 
 import { resolveRetainedResourceAccess } from "@/server/entitlements/resource-access";
+function effectiveRunnerBenefits(context: WorkflowContext) {
+	return context.runnerBenefits ?? { proAccess: context.pro, runnerAccess: context.runnerAccess };
+}
+function scheduledStartIsAllowed(context: WorkflowContext, current: typeof streamSessionsTable.$inferSelect) {
+	return current.controlMode !== "scheduled" || current.desiredState === StreamState.Running || deriveRunnerCapabilities(effectiveRunnerBenefits(context)).runnerPro;
+}
+async function resolveSessionStartSource(tx: TransactionClient, ownerId: string, overlayId: string) {
+	const [overlay] = await tx
+		.select({ id: overlaysTable.id, status: overlaysTable.status, revision: overlaysTable.configurationRevision })
+		.from(overlaysTable)
+		.where(and(eq(overlaysTable.id, overlayId), eq(overlaysTable.ownerId, ownerId)))
+		.limit(1);
+	if (!overlay) throw new Error("RESOURCE_UNAVAILABLE");
+	const access = await resolveRetainedResourceAccess({ kind: "overlay", ownerId: ownerId, resourceId: overlay.id, client: tx });
+	if (!access.runtime || overlay.status !== "active") return resourceFailure("FEATURE_RESTRICTED");
+	return overlay;
+}
+async function validateManualStartCredentials(tx: TransactionClient, ownerId: string, current: typeof streamSessionsTable.$inferSelect) {
+	if (!(await selectedDestinationsHaveCredentials(tx, ownerId, current.id))) return resourceFailure("INVALID_INPUT");
+	if (destination(current.rtmpUrl) !== "custom" && !current.encryptedStreamKey) throw new Error("INVALID_INPUT");
+}
+function capturedStartBinding(reserved: typeof runnerBroadcastAdmissionsTable.$inferSelect, scheduled: Awaited<ReturnType<typeof resolveActiveRunnerScheduleWindow>>, overlay: { id: string; revision: number }) {
+	return {
+		...(scheduled ? { occurrenceId: scheduled.occurrence.occurrenceId, scheduledEnd: new Date(scheduled.occurrence.endUtc) } : {}),
+		benefitsAtStart: { ...reserved.benefitsAtStart, ...(scheduled ? { scheduleEventId: scheduled.event.id, scheduleEventRevision: scheduled.event.configurationRevision, scheduledStart: Date.parse(scheduled.occurrence.startUtc) } : {}), sourceIdAtStart: overlay.id, sourceRevisionAtStart: overlay.revision },
+	};
+}
+
 type StreamControlInput = ReturnType<typeof workflowInputSchemas.control_stream_session.parse>;
 async function reserveSessionStart(input: StreamControlInput, context: WorkflowContext, current: typeof streamSessionsTable.$inferSelect, revision: number, clock: () => number) {
-	if (current.controlMode === "scheduled" && current.desiredState !== StreamState.Running && !deriveRunnerCapabilities(context.runnerBenefits ?? { proAccess: context.pro, runnerAccess: context.runnerAccess }).runnerPro) return resourceFailure("FEATURE_RESTRICTED");
+	if (!scheduledStartIsAllowed(context, current)) return resourceFailure("FEATURE_RESTRICTED");
 	if (!current.runnerId) throw new Error("RESOURCE_UNAVAILABLE");
 	const scheduled = current.controlMode === "scheduled" ? await resolveActiveRunnerScheduleWindow(context.tx, input.creatorId, current.runnerId, current.id, input.occurrenceId, clock()) : null;
 	if (current.controlMode === "scheduled" && !scheduled) return resourceFailure("SCHEDULE_WINDOW_ENDED");
@@ -310,24 +342,17 @@ async function reserveSessionStart(input: StreamControlInput, context: WorkflowC
 	}
 
 	await runnerRecord(context, current.runnerId);
-	const [overlay] = await context.tx
-		.select({ id: overlaysTable.id, status: overlaysTable.status, revision: overlaysTable.configurationRevision })
-		.from(overlaysTable)
-		.where(and(eq(overlaysTable.id, scheduled?.event.overlayId ?? current.overlayId), eq(overlaysTable.ownerId, input.creatorId)))
-		.limit(1);
-	if (!overlay) throw new Error("RESOURCE_UNAVAILABLE");
-	const access = await resolveRetainedResourceAccess({ kind: "overlay", ownerId: input.creatorId, resourceId: overlay.id, client: context.tx });
-	if (!access.runtime || overlay.status !== "active") return resourceFailure("FEATURE_RESTRICTED");
-	if (!scheduled && !(await selectedDestinationsHaveCredentials(context.tx, input.creatorId, current.id))) return resourceFailure("INVALID_INPUT");
-	if (!scheduled && destination(current.rtmpUrl) !== "custom" && !current.encryptedStreamKey) throw new Error("INVALID_INPUT");
-	const reserved = await reserveBroadcastAdmission(context.tx, current, context.runnerBenefits ?? { proAccess: context.pro, runnerAccess: context.runnerAccess }, revision, scheduled?.event.id, clock);
+	const overlay = await resolveSessionStartSource(context.tx, input.creatorId, scheduled?.event.overlayId ?? current.overlayId);
+	if (isResourceFailure(overlay)) return overlay;
+	if (!scheduled) {
+		const credentialFailure = await validateManualStartCredentials(context.tx, input.creatorId, current);
+		if (credentialFailure) return credentialFailure;
+	}
+	const reserved = await reserveBroadcastAdmission(context.tx, current, effectiveRunnerBenefits(context), revision, scheduled?.event.id, clock);
 	if (isResourceFailure(reserved)) return reserved;
 	const [bound] = await context.tx
 		.update(runnerBroadcastAdmissionsTable)
-		.set({
-			...(scheduled ? { occurrenceId: scheduled.occurrence.occurrenceId, scheduledEnd: new Date(scheduled.occurrence.endUtc) } : {}),
-			benefitsAtStart: { ...reserved.benefitsAtStart, ...(scheduled ? { scheduleEventId: scheduled.event.id, scheduleEventRevision: scheduled.event.configurationRevision, scheduledStart: Date.parse(scheduled.occurrence.startUtc) } : {}), sourceIdAtStart: overlay.id, sourceRevisionAtStart: overlay.revision },
-		})
+		.set(capturedStartBinding(reserved, scheduled, overlay))
 		.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, input.creatorId), eq(runnerBroadcastAdmissionsTable.id, reserved.id)))
 		.returning();
 	return bound;
@@ -359,6 +384,32 @@ async function suppressStoppedOccurrence(input: StreamControlInput, context: Wor
 	}
 }
 
+async function validateSessionControlIntent(input: StreamControlInput, context: WorkflowContext, current: typeof streamSessionsTable.$inferSelect) {
+	if (input.occurrenceId && current.controlMode !== "scheduled") return resourceFailure("CONFLICT");
+	if (input.executionGeneration) {
+		const [attempt] = await context.tx
+			.select({ generation: runnerBroadcastAdmissionsTable.executionGeneration })
+			.from(runnerBroadcastAdmissionsTable)
+			.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, input.creatorId), eq(runnerBroadcastAdmissionsTable.sessionId, current.id), notInArray(runnerBroadcastAdmissionsTable.state, ["stopped", "failed_before_output"])))
+			.limit(1)
+			.for("update");
+		if (attempt?.generation !== input.executionGeneration) throw new Error("REVISION_CONFLICT");
+	}
+}
+
+async function replaySessionStart(input: StreamControlInput, context: WorkflowContext, current: typeof streamSessionsTable.$inferSelect) {
+	if (input.state === "running" && current.desiredState === StreamState.Running && input.expectedRevision === current.configurationRevision - 1) {
+		const [existing] = await context.tx
+			.select()
+			.from(runnerBroadcastAdmissionsTable)
+			.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, input.creatorId), eq(runnerBroadcastAdmissionsTable.sessionId, current.id), eq(runnerBroadcastAdmissionsTable.configurationRevision, current.configurationRevision), inArray(runnerBroadcastAdmissionsTable.state, ["reserved", "starting", "active"])))
+			.limit(1)
+			.for("update");
+		if (existing && input.occurrenceId && existing.occurrenceId !== input.occurrenceId) return resourceFailure("CONFLICT");
+		if (existing) return { ...(await sessionWithDestinations(context.tx, current)), accepted: true, applied: existing.state === "active" && current.actualState === StreamState.Running, requestedState: input.state, admissionId: existing.id, executionGeneration: existing.executionGeneration };
+	}
+}
+
 export function controlStreamSession(principal: TrustedCreatorPrincipal, input: unknown, client?: DatabaseClient, clock: () => number = Date.now) {
 	return workflowOperation(
 		principal,
@@ -366,27 +417,11 @@ export function controlStreamSession(principal: TrustedCreatorPrincipal, input: 
 		input,
 		async (input, context) => {
 			const current = await sessionRecord(context, input.sessionId, true);
-			if (input.occurrenceId && current.controlMode !== "scheduled") return resourceFailure("CONFLICT");
-			if (input.executionGeneration) {
-				const [attempt] = await context.tx
-					.select({ generation: runnerBroadcastAdmissionsTable.executionGeneration })
-					.from(runnerBroadcastAdmissionsTable)
-					.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, input.creatorId), eq(runnerBroadcastAdmissionsTable.sessionId, current.id), notInArray(runnerBroadcastAdmissionsTable.state, ["stopped", "failed_before_output"])))
-					.limit(1)
-					.for("update");
-				if (attempt?.generation !== input.executionGeneration) throw new Error("REVISION_CONFLICT");
-			}
+			const intentFailure = await validateSessionControlIntent(input, context, current);
+			if (intentFailure) return intentFailure;
 
-			if (input.state === "running" && current.desiredState === StreamState.Running && input.expectedRevision === current.configurationRevision - 1) {
-				const [existing] = await context.tx
-					.select()
-					.from(runnerBroadcastAdmissionsTable)
-					.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, input.creatorId), eq(runnerBroadcastAdmissionsTable.sessionId, current.id), eq(runnerBroadcastAdmissionsTable.configurationRevision, current.configurationRevision), inArray(runnerBroadcastAdmissionsTable.state, ["reserved", "starting", "active"])))
-					.limit(1)
-					.for("update");
-				if (existing && input.occurrenceId && existing.occurrenceId !== input.occurrenceId) return resourceFailure("CONFLICT");
-				if (existing) return { ...(await sessionWithDestinations(context.tx, current)), accepted: true, applied: existing.state === "active" && current.actualState === StreamState.Running, requestedState: input.state, admissionId: existing.id, executionGeneration: existing.executionGeneration };
-			}
+			const replay = await replaySessionStart(input, context, current);
+			if (replay) return replay;
 			const revision = nextConfigurationRevision(current.configurationRevision, input.expectedRevision);
 			let admission: typeof runnerBroadcastAdmissionsTable.$inferSelect | undefined;
 			if (input.state === "running") {

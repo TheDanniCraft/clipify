@@ -544,6 +544,28 @@ async function handleHeartbeatFailure(response: Response, credentialId: string, 
 	return "retry";
 }
 
+type HeartbeatResponse = { jobs?: HeartbeatJob[]; benefitSnapshot?: unknown; scheduleCache?: unknown; acceptedExecutions?: { admissionId: string; executionGeneration: string; state: string }[] };
+async function acceptHeartbeatCaches(data: HeartbeatResponse, request: { requestId: string; sentAt: number }, credentialId: string, apiBase: string, token: string, runnerId?: string) {
+	if (data.benefitSnapshot !== undefined || ownerBenefitCaches.has(credentialId)) {
+		const cache = getRunnerBenefitCache(credentialId, runnerId);
+		if (cache.accept(data.benefitSnapshot, request) && !runnerId && cache.scope) {
+			await saveCredentials({ runnerId: cache.scope.runnerId, apiBase, token });
+			learnedDevices.set(credentialId, cache.scope.runnerId);
+			runnerId = cache.scope.runnerId;
+		}
+	}
+	if (data.scheduleCache !== undefined && runnerId) {
+		const cache = getRunnerScheduleCache(credentialId, runnerId, apiBase, token);
+		if (!(await cache.accept(data.scheduleCache, request))) console.warn("[Runner] Schedule synchronization required; new scheduled starts are unavailable.");
+		else scheduleContexts.set(credentialId, { runnerId, apiBase, token, busy: false, warned: false });
+	}
+	return runnerId;
+}
+
+function executionReportMatches(verified: ReturnType<ExecutionJournal["get"]>, job: HeartbeatJob, candidateId: string) {
+	return !!verified && verified.ownerId === job.ownerId && verified.runnerId === candidateId && verified.sessionId === job.id && verified.executionGeneration === job.executionGeneration && verified.configurationRevision === job.configurationRevision && ["starting", "active"].includes(verified.state);
+}
+
 async function processExecutionHeartbeatJob(job: HeartbeatJob, request: { requestId: string; sentAt: number }, credentialId: string, apiBase: string, token: string, runnerId?: string) {
 	const candidateId = runnerId ?? (typeof job.runnerId === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(job.runnerId) ? job.runnerId : undefined);
 	const controller = candidateId ? getFreeController(job, candidateId, apiBase, token) : null;
@@ -553,7 +575,7 @@ async function processExecutionHeartbeatJob(job: HeartbeatJob, request: { reques
 	if (!runnerId && candidateId && job.admissionId) {
 		// Journal identity was persisted only after lease verification.
 		const verified = getFreeJournal(candidateId).get(job.admissionId);
-		if (verified && verified.ownerId === job.ownerId && verified.runnerId === candidateId && verified.sessionId === job.id && verified.executionGeneration === job.executionGeneration && verified.configurationRevision === job.configurationRevision && ["starting", "active"].includes(verified.state)) {
+		if (executionReportMatches(verified, job, candidateId)) {
 			await saveCredentials({ runnerId: candidateId, apiBase, token });
 			learnedDevices.set(credentialId, candidateId);
 			runnerId = candidateId;
@@ -583,20 +605,8 @@ async function pollHeartbeat(token: string, apiBase: string, runnerId?: string):
 			body: JSON.stringify({ requestId: request.requestId, executions, protocolVersion: 2, capabilities: ["admissions", "destinations", "drain", "runner_presentation", "free_lease", "schedule_cache"], os: getRunnerOsInfo(), hostname: os.hostname(), version: RUNNER_VERSION, actualStates }),
 		});
 		if (!response.ok) return await handleHeartbeatFailure(response, credentialId, request, token, apiBase, runnerId);
-		const data = (await response.json()) as { jobs?: HeartbeatJob[]; benefitSnapshot?: unknown; scheduleCache?: unknown; acceptedExecutions?: { admissionId: string; executionGeneration: string; state: string }[] };
-		if (data.benefitSnapshot !== undefined || ownerBenefitCaches.has(credentialId)) {
-			const cache = getRunnerBenefitCache(credentialId, runnerId);
-			if (cache.accept(data.benefitSnapshot, request) && !runnerId && cache.scope) {
-				await saveCredentials({ runnerId: cache.scope.runnerId, apiBase, token });
-				learnedDevices.set(credentialId, cache.scope.runnerId);
-				runnerId = cache.scope.runnerId;
-			}
-		}
-		if (data.scheduleCache !== undefined && runnerId) {
-			const cache = getRunnerScheduleCache(credentialId, runnerId, apiBase, token);
-			if (!(await cache.accept(data.scheduleCache, request))) console.warn("[Runner] Schedule synchronization required; new scheduled starts are unavailable.");
-			else scheduleContexts.set(credentialId, { runnerId, apiBase, token, busy: false, warned: false });
-		}
+		const data = (await response.json()) as HeartbeatResponse;
+		runnerId = await acceptHeartbeatCaches(data, request, credentialId, apiBase, token, runnerId);
 		console.log(`[Jobs] Received ${data.jobs?.length || 0} jobs.`);
 		for (const entry of freeControllers.values()) if (entry.runnerId === runnerId) entry.controller.confirm(data.acceptedExecutions ?? []);
 		for (const job of data.jobs ?? []) {

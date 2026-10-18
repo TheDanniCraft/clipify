@@ -33,6 +33,23 @@ export async function createMultistreamMedia(input: Parameters<typeof runRunnerF
 	const terminal = (await import("@/app/api/runner/terminal/route")).POST;
 	const presentation = (await import("@/app/api/runner/presentation/route")).POST;
 	const presentationAuthority = await import("@/server/runner/presentation");
+	async function serveAuthenticatedPresentation(request: import("node:http").IncomingMessage, response: import("node:http").ServerResponse, url: URL) {
+		const sessionId = url.pathname.slice("/runner/presentation/".length);
+		const cookie = request.headers.cookie
+			?.split(";")
+			.map((value) => value.trim())
+			.find((value) => value.startsWith(`${presentationAuthority.RUNNER_PRESENTATION_COOKIE}=`))
+			?.slice(presentationAuthority.RUNNER_PRESENTATION_COOKIE.length + 1);
+		const identity = presentationAuthority.verifyRunnerPresentationIdentity(cookie, sessionId);
+		const execution = identity ? await presentationAuthority.resolveRunnerPresentationExecution(identity) : null;
+		if (!identity || !execution) {
+			response.writeHead(403).end("Presentation unavailable");
+			return;
+		}
+		response.setHeader("Content-Type", "text/html");
+		response.end(html(identity.executionGeneration).replace("<body style=", `<body data-runner-presentation-generation="${identity.executionGeneration}" data-runner-layout-status="clean" style=`));
+		return;
+	}
 	const server = createServer(async (request, response) => {
 		try {
 			const url = new URL(request.url!, input.origin);
@@ -64,23 +81,7 @@ export async function createMultistreamMedia(input: Parameters<typeof runRunnerF
 				response.end(await result.text());
 				return;
 			}
-			if (url.pathname.startsWith("/runner/presentation/")) {
-				const sessionId = url.pathname.slice("/runner/presentation/".length);
-				const cookie = request.headers.cookie
-					?.split(";")
-					.map((value) => value.trim())
-					.find((value) => value.startsWith(`${presentationAuthority.RUNNER_PRESENTATION_COOKIE}=`))
-					?.slice(presentationAuthority.RUNNER_PRESENTATION_COOKIE.length + 1);
-				const identity = presentationAuthority.verifyRunnerPresentationIdentity(cookie, sessionId);
-				const execution = identity ? await presentationAuthority.resolveRunnerPresentationExecution(identity) : null;
-				if (!identity || !execution) {
-					response.writeHead(403).end("Presentation unavailable");
-					return;
-				}
-				response.setHeader("Content-Type", "text/html");
-				response.end(html(identity.executionGeneration).replace("<body style=", `<body data-runner-presentation-generation="${identity.executionGeneration}" data-runner-layout-status="clean" style=`));
-				return;
-			}
+			if (url.pathname.startsWith("/runner/presentation/")) return await serveAuthenticatedPresentation(request, response, url);
 			if (["/api/runner/heartbeat", "/api/runner/terminal"].includes(url.pathname)) {
 				const result = await (url.pathname.endsWith("heartbeat") ? heartbeat : terminal)(new Request(url, { method: "POST", headers: { Authorization: request.headers.authorization || "", "Content-Type": "application/json" }, body }));
 				response.writeHead(result.status, Object.fromEntries(result.headers));

@@ -10,3 +10,14 @@ tar -xzf specs/004-runner-free-pro/tdd/evidence.tar.gz -C /tmp/clipify-runner-ev
 ```
 
 Archive paths are relative to this directory. Registry `tdd/evidence/...` references resolve under the extracted `evidence/` directory. To restore missing historical paths in a clean checkout, extract into `specs/004-runner-free-pro/tdd` after confirming no newer evidence will be overwritten. The small final gate/review records and public pricing screenshots are also tracked directly. Generated coverage, HTML reports, video, executable binaries and crash dumps stay outside Git; owning CI jobs retain their raw artifacts under the existing retention policy.
+
+## Static review follow-up
+
+`review-evidence.tar.gz` retains the static-review regression logs, rejected local commands, deliberate-fault drivers/results and CI intake without adding thousands of generated lines to the source review. `review-evidence-manifest.json` records every archived path and SHA256. Current gate summaries and source identities are also tracked directly. Archive paths start with `evidence/`; extract to a separate directory to preserve newer workspace reports:
+
+```sh
+mkdir -p /tmp/clipify-runner-review-evidence
+tar -xzf specs/004-runner-free-pro/tdd/review-evidence.tar.gz -C /tmp/clipify-runner-review-evidence
+```
+
+The three SHA256 CodeQL findings remain open until their reviewed disposition is accepted. Archived failing runs, setup failures and deliberately mutated executions never count as passing qualification.

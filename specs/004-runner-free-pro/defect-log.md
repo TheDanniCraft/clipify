@@ -1859,10 +1859,46 @@ DEF-US5-250 local checkpoint: after separating the large admission probe into na
 
 ## DEF-US5-252 — Journal extraction exposes untested rejection statements
 
-Severity: Medium. Status: Open, focused verification in progress. Owner: Feature implementer. Scope: native critical coverage after review refactoring.
+Severity: Medium. Status: Verified on f75e1091; subsequent native refactors require fresh qualification. Owner: Feature implementer. Scope: native critical coverage after review refactoring.
 
 The complete native owner passes52 suites and450 tests, with its one inherited updater TODO, but execution-journal statement coverage is94.44%, below its unchanged95% floor. Aggregate counters are S94.50/B90.14/F95.48/L97.51; aggregate success cannot override the per-file failure. Retain the failed full run as F1-review-native-coverage-before.log. Extend the existing durable-closure-proof rejection matrix with malformed playback outcomes, pending records without occurrence authority, malformed occurrence containers/windows and invalid suppression/resume flags. Every rejected input must leave the persisted receipt unchanged across restart. No production behavior, threshold or exclusion changes. A journal-only diagnostic passes37 cases but misses coverage from the other owning unit files; it is not complete coverage evidence. Run those complete owner files together for focused repair evidence, and retain full native qualification as outstanding until its complete owner succeeds.
 
 DEF-US5-250 lint repair: remove four unused helper parameters and their pure variable-read call arguments; keep dispatch predicates and executable bodies unchanged. The complete application lint gate now exits0 with its six existing warnings and no errors.
 
 DEF-US5-252 focused repair verification: all183 tests in the complete execution-journal, execution-runtime, heartbeat-protocol and schedule-cache-validation files pass. The journal's unchanged critical gate passes S98.41/B98.70/F100; its current report is retained separately from the failed full-native report. This is a focused diagnostic, not a replacement for complete native qualification. That complete owner must run again on the published checkpoint before final readiness.
+
+DEF-US5-252 complete checkpoint verification: CI39116878135 native job117644457211 passes all52 suites,450 cases and unchanged critical/ordinary floors on f75e1091. Aggregate counters are S94.69/B90.43/F95.48/L97.51, with the one inherited updater TODO. The per-file critical checks pass, so the original journal coverage failure is resolved for that checkpoint. Subsequent native refactors require fresh owner validation.
+
+## DEF-US5-253 — Extracted helpers lose compile-time context
+
+Severity: Medium. Status: Verified locally. Owner: Feature implementer. Scope: uncommitted second review batch.
+
+The lease extraction changes inferred optional fields on pending-permission results, causing three existing caller type errors. Add an explicit pending-identity view type while preserving the exact returned object and serialized response. Application type checking passes and376 complete owning cases pass. The destination extraction separately loses its parent-local decryptString binding; type checking catches the missing name. Stop the pending destination test execution, pass that existing function explicitly into the helper, and rerun the three complete owning files after type checking succeeds. All69 cases pass. These are unintended refactor defects; no Red behavior evidence is claimed and no caller assertions were removed.
+
+## DEF-US5-254 — MCP startup test launches an unrelated database worker
+
+Severity: Medium. Status: Fixed locally, complete CI pending. Owner: Feature implementer. Scope: unit test startup isolation.
+
+CI39116878135 unit job117644457273 executes3806 cases successfully, then fails the Runner polling suite with pgPass is not a function after a database request from cleanup-startup.test.ts outlives its Jest environment. That owner mocks every unrelated startup worker except overlay-effect-scheduler. Reproduce safely by mocking database execution and asserting that the MCP-only fixture starts no direct database work: the existing enabled-startup case fails with one overlay_effect_jobs schema query (four other cases pass). Stub only the unrelated scheduler, assert its enabled/disabled startup wiring, and keep the real MCP cleanup owner plus the real overlay-effects scheduler owner. All29 tests in those owners and Runner polling then pass. Production scheduler behavior is unchanged. Retain failed/green evidence and require a fresh complete unit lane.
+
+DEF-US5-250 scanner checkpoint: f75e1091 clears12 medium CodeQL generated-source alerts; three high token/cache SHA256 classifications remain open, with no dismissal or suppression. CodeFactor reports32 findings, down from41, including one newly identified anonymous default export in the static OS shim. Name that default object without changing its value and verify the actual multistream owner: all five scenarios pass with retries0. The next review batch's remaining method refactors are not scanner-cleared until published analysis confirms them.
+
+## DEF-US5-255 — Deliberate signature fault initially selected an incomplete owner
+
+Severity: Medium. Status: Verified locally. Owner: Feature implementer. Scope: review strength evidence.
+
+The initial signature-verification fault survives the native runtime/cache/heartbeat cohort because those tests do not own the real server-issued signature contract. Preserve that unfavorable result as F1-review-strength-incomplete-owner-results.json and its fault/restoration logs; do not count it as a kill. The existing application heartbeat owner exercises that contract: the signature fault fails two assertions, expiry one and identity one. Existing native engine owners kill capture-fence and clip-flush faults with four and three failures respectively; the owner-wide admission guard fault fails two real admission assertions. Every restored whole-file owner passes, with exact source restoration verified. No new assertions were added to manufacture these kills. Refresh execution-input identities after the remaining observer refactors before final qualification.
+
+DEF-US5-253 additional compile-time repairs: extracted manual-observer and continuity helpers require the existing narrowed result/job types explicitly. The destination mutation observer uses a credential-action type predicate to retain the original keep/replace/clear narrowing. Full application type checking passes after these corrections; no casts, weakened assertions or intended behavior Red is claimed.
+
+## DEF-US5-256 — Free workflow selector also matches app-server acceptance scenarios
+
+Severity: Low. Status: Verified exact owner. Owner: Feature implementer. Scope: local review execution.
+
+The local MCP Playwright command selected runner-free-pro.feature by basename, matching both the two intended mcp-workflows cases and two genuine browser cases. Both workflow cases pass; the unrelated browser cases fail ECONNREFUSED at127.0.0.1:3107 because this configuration deliberately does not start Next. Retain F1-review-free-atdd-selector-before.log as setup evidence, exclude the mixed failed execution from qualification, and select mcp-workflows/runner-free-pro.feature explicitly. The complete browser owner remains required in fresh full CI. No product changes or assertion changes address this selector error.
+
+DEF-US5-256 exact-owner verification: mcp-workflows/runner-free-pro.feature passes both intended scenarios with retries0 in14.6s. The mixed-selector run remains excluded from qualification; its two ECONNREFUSED app-server failures are setup evidence. Final current-source multistream verification independently passes all five real media scenarios with retries0 in2.0m.
+
+DEF-US5-256 additional local invocation cleanup: a diagnostic migration-policy call omitted its required staged argument and produced usage output, not a passing guard result. Keep that output as setup evidence and run the documented test:migration-policy owner plus the actual staged guard at commit. No migration generation or policy bypass was attempted.
+
+Final native review qualification: the complete owner passes52 suites and450 cases with the single inherited updater TODO. All unchanged configured per-file floors and exact source/inventory validation pass, aggregate S94.78/B90.41/F95.61/L97.53. The execution fingerprint matches the frozen final review inputs. This resolves current native coverage for DEF-US5-250/252 without reducing thresholds.
