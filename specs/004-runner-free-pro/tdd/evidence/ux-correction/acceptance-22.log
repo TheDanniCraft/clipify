@@ -1,0 +1,46 @@
+[WebServer] (node:560805) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:560805) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 22 tests using 1 worker
+
+(node:560917) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [atdd-chromium] › .features-gen/atdd/auth-engine-rewrite.feature.spec.js:6:7 › Creator identity and delegated team access › A live overlay continues while its creator is signed out @auth-engine-rewrite @US1 @ATDD-US1-003 (33ms)
+  ✓   2 [atdd-chromium] › .features-gen/atdd/auth-engine-rewrite.feature.spec.js:13:7 › Creator identity and delegated team access › A creator starts onboarding through Better Auth and Twitch @auth-engine-rewrite @US2 @ATDD-US2-001 (1.8s)
+  ✓   3 [atdd-chromium] › .features-gen/atdd/auth-engine-rewrite.feature.spec.js:23:9 › Creator identity and delegated team access › An owner delegates access with one invitation token › Example #1 @auth-engine-rewrite @US3 @ATDD-US3-001 (25ms)
+  ✓   4 [atdd-chromium] › .features-gen/atdd/auth-engine-rewrite.feature.spec.js:32:9 › Creator identity and delegated team access › An owner delegates access with one invitation token › Example #2 @auth-engine-rewrite @US3 @ATDD-US3-001 (10ms)
+  ✓   5 [atdd-chromium] › .features-gen/atdd/auth-engine-rewrite.feature.spec.js:43:7 › Creator identity and delegated team access › Provisioned agency owner activates the Agency Account @auth-engine-rewrite @US4 @ATDD-US4-003 (2.6s)
+[WebServer] (node:560805) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+  ✓   6 [atdd-chromium] › .features-gen/atdd/auth-engine-rewrite.feature.spec.js:50:7 › Creator identity and delegated team access › Agency gains access after creator approval @auth-engine-rewrite @US4 @ATDD-US4-001 (2.4s)
+  ✓   7 [atdd-chromium] › .features-gen/atdd/auth-engine-rewrite.feature.spec.js:57:7 › Creator identity and delegated team access › Agency allocates a paid creator license @auth-engine-rewrite @US4 @ATDD-US4-002 (4.0s)
+  ✓   8 [atdd-chromium] › .features-gen/atdd/auth-engine-rewrite.feature.spec.js:67:9 › Creator identity and delegated team access › Agency owner changes negotiated creator capacity › Example #1 @auth-engine-rewrite @US4 @ATDD-US4-004 (13ms)
+  ✓   9 [atdd-chromium] › .features-gen/atdd/auth-engine-rewrite.feature.spec.js:74:9 › Creator identity and delegated team access › Agency owner changes negotiated creator capacity › Example #2 @auth-engine-rewrite @US4 @ATDD-US4-004 (6ms)
+  ✓  10 [atdd-chromium] › .features-gen/atdd/auth-engine-rewrite.feature.spec.js:81:9 › Creator identity and delegated team access › Agency owner changes negotiated creator capacity › Example #3 @auth-engine-rewrite @US4 @ATDD-US4-004 (5ms)
+[WebServer] [creator-analytics] PLAUSIBLE_API_KEY is not configured {
+[WebServer]   ownerId: 'e2e-creator-0007b974-5f3b-4578-8bee-ae98c65d36fa',
+[WebServer]   cacheKey: 'creator-page:analytics:v6:2026-09-19:2026-10-18'
+[WebServer] }
+  ✓  11 [atdd-chromium] › .features-gen/atdd/auth-engine-rewrite.feature.spec.js:92:9 › Creator identity and delegated team access › Owner manages account and subscription › Example #1 @auth-engine-rewrite @US5 @ATDD-US5-001 (3.2s)
+  ✓  12 [atdd-chromium] › .features-gen/atdd/auth-engine-rewrite.feature.spec.js:98:9 › Creator identity and delegated team access › Owner manages account and subscription › Example #2 @auth-engine-rewrite @US5 @ATDD-US5-001 (3.7s)
+  ✓  13 [atdd-chromium] › .features-gen/atdd/auth-engine-rewrite.feature.spec.js:104:9 › Creator identity and delegated team access › Owner manages account and subscription › Example #3 @auth-engine-rewrite @US5 @ATDD-US5-001 (5.6s)
+  ✓  14 [atdd-chromium] › .features-gen/atdd/auth-engine-rewrite.feature.spec.js:114:9 › Creator identity and delegated team access › Account deletion observes the recovery boundary › Example #1 @auth-engine-rewrite @US5 @ATDD-US5-002 (1.9s)
+  ✓  15 [atdd-chromium] › .features-gen/atdd/auth-engine-rewrite.feature.spec.js:120:9 › Creator identity and delegated team access › Account deletion observes the recovery boundary › Example #2 @auth-engine-rewrite @US5 @ATDD-US5-002 (2.1s)
+  ✓  16 [atdd-chromium] › .features-gen/atdd/auth-engine-rewrite.feature.spec.js:128:7 › Creator identity and delegated team access › Owner recovers a suspended account through authenticated recovery @auth-engine-rewrite @US5 @ATDD-US5-003 (2.1s)
+  ✓  17 [atdd-chromium] › .features-gen/atdd/auth-engine-rewrite.feature.spec.js:138:9 › Creator identity and delegated team access › Owner chooses when deletion suspension begins › Example #1 @auth-engine-rewrite @US5 @ATDD-US5-004 (4.3s)
+  ✓  18 [atdd-chromium] › .features-gen/atdd/auth-engine-rewrite.feature.spec.js:145:9 › Creator identity and delegated team access › Owner chooses when deletion suspension begins › Example #2 @auth-engine-rewrite @US5 @ATDD-US5-004 (4.1s)
+  ✓  19 [atdd-chromium] › .features-gen/atdd/harness.feature.spec.js:6:7 › Auth rewrite acceptance harness › Deterministic acceptance fixtures are available @auth-engine-rewrite @harness (6ms)
+  ✓  20 [atdd-chromium] › .features-gen/atdd/runner-free-pro.feature.spec.js:6:7 › Existing Runner customers keep basic access › An expired Pro grant retains configuration and basic manual broadcasting @ATDD @US5 @runner-commercial-acceptance @SC-005 @ATDD-US5-SC005 (5.5s)
+  ✓  21 [atdd-chromium] › .features-gen/atdd/runner-free-pro.feature.spec.js:12:7 › Existing Runner customers keep basic access › A known paid billing deadline takes effect before the billing webhook updates the saved plan @ATDD @US5 @runner-commercial-acceptance @SC-005 @ATDD-US5-SC005 (5.4s)
+(node:561809) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  22 [atdd-chromium] › .features-gen/atdd/runner-standby.feature.spec.js:6:7 › Review generated Runner appearance before broadcast › Review custom standby at all four corners and in both preview modes @ATDD @US4 @SC-004 @runner-standby-acceptance @ATDD-US4-SC004 (5.9s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+
+  22 passed (1.1m)

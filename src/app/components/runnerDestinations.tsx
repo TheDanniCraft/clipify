@@ -112,11 +112,7 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 	return (
 		<>
 			<section className='space-y-4'>
-				<div className='flex flex-wrap items-center justify-between gap-3'>
-					<div>
-						<h2 className='text-lg font-semibold'>Destinations</h2>
-						<p className='text-sm text-muted'>Save your streaming destinations and manage their protected keys.</p>
-					</div>
+				<div className='flex justify-end'>
 					<Button variant='secondary' onPress={() => edit(null)}>
 						<IconPlus size={16} />
 						Add destination
