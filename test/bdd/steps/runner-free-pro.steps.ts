@@ -318,7 +318,8 @@ Then("their uploaded background image matches preview and saved generated standb
 	const bytes = await sharp({ create: { width: 16, height: 16, channels: 3, background: { r: 40, g: 120, b: 200 } } })
 		.png()
 		.toBuffer();
-	await page.getByLabel("Standby background image", { exact: true }).setInputFiles({ name: "standby.png", mimeType: "image/png", buffer: bytes });
+	const [upload] = await Promise.all([page.waitForEvent("filechooser"), page.getByRole("button", { name: "Choose image", exact: true }).nth(1).click()]);
+	await upload.setFiles({ name: "standby.png", mimeType: "image/png", buffer: bytes });
 	const preview = page.frameLocator('iframe[title="Runner appearance preview"]').getByRole("img", { name: "Standby background", exact: true });
 	await expect(preview).toBeVisible();
 	await expect(preview).toHaveJSProperty("naturalWidth", 16);
@@ -345,9 +346,8 @@ Then("their uploaded logo matches preview and saved generated standby", async ({
 	const bytes = await sharp({ create: { width: 16, height: 16, channels: 4, background: { r: 180, g: 40, b: 120, alpha: 0.8 } } })
 		.png()
 		.toBuffer();
-	const upload = page.getByLabel("Standby logo", { exact: true });
-	await expect(upload).toBeVisible();
-	await upload.setInputFiles({ name: "logo.png", mimeType: "image/png", buffer: bytes });
+	const [upload] = await Promise.all([page.waitForEvent("filechooser"), page.getByRole("button", { name: "Choose image", exact: true }).first().click()]);
+	await upload.setFiles({ name: "logo.png", mimeType: "image/png", buffer: bytes });
 	const preview = page.frameLocator('iframe[title="Runner appearance preview"]').getByRole("img", { name: "Standby logo", exact: true });
 	await expect(preview).toBeVisible();
 	await expect(preview).toHaveJSProperty("naturalWidth", 16);

@@ -151,7 +151,7 @@ export default function RunnerBrandingPreview({ ownerId, runnerId, overlayId, re
 	}
 	return (
 		<div className='grid gap-6 xl:grid-cols-[minmax(18rem,1fr)_minmax(0,2fr)]'>
-			<div className='space-y-5'>
+			<div className='space-y-5 px-6 sm:px-0'>
 				<h3 className='text-lg font-semibold'>Standby and branding</h3>
 				<p className='text-sm text-muted'>Choose where Clipify attribution appears on generated content.</p>
 
@@ -222,7 +222,7 @@ export default function RunnerBrandingPreview({ ownerId, runnerId, overlayId, re
 			</div>
 			<div className='space-y-4 xl:sticky xl:top-0 xl:self-start'>
 				{profile && overlayId && (
-					<div role='group' aria-label='Appearance preview mode' className='flex flex-wrap gap-2'>
+					<div role='group' aria-label='Appearance preview mode' className='flex flex-wrap gap-2 px-6 sm:px-0'>
 						<Button variant={previewMode === "standby" ? "primary" : "secondary"} aria-pressed={previewMode === "standby"} onPress={() => setPreviewMode("standby")} isDisabled={saving || uploading}>
 							Preview standby
 						</Button>
@@ -232,7 +232,7 @@ export default function RunnerBrandingPreview({ ownerId, runnerId, overlayId, re
 					</div>
 				)}
 				{profile && overlayId && (
-					<div ref={previewContainerRef} className='relative aspect-video w-full overflow-hidden rounded-xl bg-black ring-1 ring-separator'>
+					<div ref={previewContainerRef} className='relative aspect-video w-full overflow-hidden bg-black ring-1 ring-separator sm:rounded-xl'>
 						<iframe ref={previewRef} key={`${runnerId}:${overlayId}:${resolution}`} onLoad={sendPreviewDraft} title='Runner appearance preview' src={`/runner/preview/${runnerId}?overlayId=${encodeURIComponent(overlayId)}`} className='absolute left-0 top-0 max-w-none border-0' style={{ width: previewCanvas.width, height: previewCanvas.height, transform: `scale(${previewWidth / previewCanvas.width})`, transformOrigin: "top left" }} />
 					</div>
 				)}
