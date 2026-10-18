@@ -6,7 +6,16 @@ jest.mock("@heroui/react", () => {
 	const React = jest.requireActual("react");
 	const Context = React.createContext({});
 	const Box = ({ children }: { children?: React.ReactNode }) => <>{children}</>;
-	const Select = Object.assign(({ children, ...props }: { children: React.ReactNode }) => <Context.Provider value={props}>{children}</Context.Provider>, { Trigger: Box, Value: () => null, ClearButton: () => null, Indicator: () => null, Popover: Box });
+	const Select = Object.assign(({ children, ...props }: { children: React.ReactNode }) => <Context.Provider value={props}>{children}</Context.Provider>, {
+		Trigger: Box,
+		Value: () => null,
+		ClearButton: () => {
+			const { onClear } = React.useContext(Context);
+			return <button onClick={onClear}>Clear destinations</button>;
+		},
+		Indicator: () => null,
+		Popover: Box,
+	});
 	const Item = ({ children, id, isDisabled }: { children: React.ReactNode; id: string; isDisabled?: boolean }) => {
 		const { value, onChange, selectionMode } = React.useContext(Context);
 		const selected = Array.isArray(value) ? value.includes(id) : value === id;
@@ -82,4 +91,15 @@ test("UX-C9: a downgraded multi-destination draft exposes every retained target 
 	expect(screen.getByRole("button", { name: /My Twitch/ })).toHaveAttribute("aria-pressed", "true");
 	fireEvent.click(screen.getByRole("button", { name: /My YouTube/ }));
 	expect(onChange).toHaveBeenLastCalledWith(["twitch"]);
+});
+
+test("clearing all selected destinations reports an empty draft and leaves saved targets available", () => {
+	const onChange = jest.fn();
+	const onManage = jest.fn();
+	render(<Selection destinations={destinations} selectedIds={["youtube", "twitch"]} runnerPro onChange={onChange} onManage={onManage} />);
+	fireEvent.click(screen.getByRole("button", { name: "Clear destinations" }));
+	expect(onChange).toHaveBeenLastCalledWith([]);
+	expect(screen.getByRole("button", { name: /My YouTube/ })).toBeInTheDocument();
+	fireEvent.click(screen.getByRole("button", { name: "Manage destinations" }));
+	expect(onManage).toHaveBeenCalledTimes(1);
 });
