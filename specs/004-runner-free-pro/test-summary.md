@@ -5,13 +5,21 @@
 
 ## Outcome
 
-All23 delivery slices and376 primary artifacts are implemented and locally qualified. The pre-restart frozen-input checkpoint passes **7,574 physical cases**; post-restart fixture/schema corrections have separate scoped evidence and await fresh complete CI. The sole inherited native updater TODO is explicitly retained and is not counted as a pass. The final changed-file formatting check passes810 files.
+All23 delivery slices and376 primary artifacts are implemented. Release recommendation remains **No-Go** while static review remediation and current-source qualification are open.
 
-Release recommendation remains **No-Go** until required full CI and the official five-platform native workflow qualify the published source. Six tasks remain blocked on that evidence after local formatting: T149, T235, T316, T521, T639 and T651. These are release/story quality gates, not unbuilt feature work. This is the completed local checkpoint before CI publication; it claims no official CI pass, merge, deployment or release email.
+The published review checkpoint is `f75e1091`. Its fresh CodeQL result clears12 generated-test-source alerts and retains three SHA256 token/cache classifications with documented static dispositions. CodeFactor is down from41 to32 findings. No alerts were dismissed and no rules or coverage thresholds were disabled. Follow-up refactors address every remaining annotated method locally; published scanner confirmation is pending. Current scanner evidence is retained in the review ledger.
+
+On that checkpoint, the complete native owner passes450 cases and all configured per-file coverage thresholds, with the sole inherited updater TODO. The official five-platform native build/self-test/matrix workflow also passes. Its application CI unit lane fails because an unrelated overlay-effects scheduler escapes a mocked MCP startup test and performs database work after teardown. The isolated repair passes all29 local owning tests and awaits fresh complete CI. The final affected server run passes312 cases in ten whole files. Current exact Free acceptance passes2/2 and actual native multistream passes5/5 with retries0; application/native types and application lint also pass. Those focused checks do not replace the final full Test gate or current native-platform evidence.
+
+The final review execution fingerprint is `be699c61e99437437c1721d70ffde7e259442f68eebece586bc421012d2be43d` across1660 inputs. Complete native coverage validates that same identity. The earlier frozen-input checkpoint's **7,574 physical cases**, source fingerprints and source inventories below are historical qualification for their recorded inputs. Five story/full-validation tasks remain open (T149,T235,T316,T521,T639); current native coverage passes450 cases and unchanged per-file floors, while the native platform matrix and deliberate-fault evidence require refresh for the final refactor inputs. No merge, deployment or release email has occurred.
 
 The approved Free/Pro names and prices remain. Free Runner has unlimited hours and registered devices, one owner-wide active broadcast and one destination, Manual/fallback operation and generated-content attribution. Pro adds local multi-destination/broadcast execution, Agenda scheduling, clean branding and custom standby. Media and scheduling execute on the end user's computer. Historical scoped Runner benefits and records remain supported; new standalone Runner purchases are retired.
 
-## Exact candidate and execution policy
+## Historical frozen-input qualification
+
+The following frozen-input execution, counts and review conclusions describe the earlier candidate only. They do not qualify the current review refactors; the Outcome above is the current readiness decision.
+
+### Exact candidate and execution policy
 
 The source/execution fingerprint is `5bcb13275c521475a2f04a15832de856fb2f0440575ff02f1f3d96a20cc3dd78`; its1657 input hashes are in [F1-v2-frozen-execution-inputs.json](tdd/evidence/F1-v2-frozen-execution-inputs.json). Node22.23.3, Bun1.4.2, disposable loopback PostgreSQL18.6, generated local media and local RTMP receivers were used. Native packaging targets Node24; the local binary is Linux x64 only.
 

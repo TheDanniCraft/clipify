@@ -51,6 +51,140 @@ async function capturedExecutionTargets(admission: AdmissionRow, session: Sessio
 	return { streamKey, destinations };
 }
 
+async function resolveAdmissionPaidPolicy(tx: TransactionClient, owner: Pick<typeof usersTable.$inferSelect, "id" | "plan">, runner: RunnerIdentity, session: SessionRow, admission: AdmissionRow, paid: boolean, now: number) {
+	const knownPaidEnd = typeof admission.benefitsAtStart.validUntil === "string" ? Date.parse(admission.benefitsAtStart.validUntil) : null;
+	if (paid && knownPaidEnd !== null && !Number.isFinite(knownPaidEnd)) return { allowed: false as const, response: null };
+	const acceptedPaid = paid && admission.state === "active" && admission.startedAt !== null;
+	const currentPaidPolicy = paid && !acceptedPaid ? deriveRunnerCapabilities(await resolveRunnerBenefits(owner, tx, new Date(now)), new Date(now)) : null;
+	if (currentPaidPolicy && !currentPaidPolicy.runnerPro) {
+		if (!admission.dispatchedAt && admission.state === "reserved") {
+			await tx
+				.update(runnerBroadcastAdmissionsTable)
+				.set({ state: "failed_before_output", stoppedAt: new Date(now), terminalReason: "benefits_revoked_before_dispatch" })
+				.where(eq(runnerBroadcastAdmissionsTable.id, admission.id));
+			await tx
+				.update(streamSessionsTable)
+				.set({ desiredState: StreamState.Stopped, configurationRevision: session.configurationRevision + 1, updatedAt: new Date(now) })
+				.where(eq(streamSessionsTable.id, session.id));
+			return { allowed: false as const, response: null };
+		}
+		// A dispatched permit may already have opened output. Preserve its
+		// identity for a late receipt without issuing another paid Start.
+		return { allowed: false as const, response: { lease: undefined, destinations: undefined, scheduledEnd: undefined, targetHash: undefined, sourceRevision: undefined, permissionPending: true as const, admissionId: admission.id, executionGeneration: admission.executionGeneration, ownerId: runner.ownerId, runnerId: runner.id, configurationRevision: admission.configurationRevision } };
+	}
+	return { allowed: true as const, currentPaidPolicy };
+}
+
+async function expireAdmissionAuthority(tx: TransactionClient, runner: RunnerIdentity, session: SessionRow, admission: AdmissionRow, paid: boolean, now: number) {
+	if (paid && admission.scheduledEnd && admission.scheduledEnd.getTime() <= now) {
+		await requestBroadcastDrain(tx, session);
+		await tx
+			.update(streamSessionsTable)
+			.set({ desiredState: StreamState.Stopped, configurationRevision: session.configurationRevision + 1, updatedAt: new Date(now) })
+			.where(and(eq(streamSessionsTable.id, session.id), eq(streamSessionsTable.ownerId, runner.ownerId)));
+		return true;
+	}
+	if (!paid && admission.leaseExpiresAt && admission.leaseExpiresAt.getTime() <= now) {
+		await tx.update(runnerBroadcastAdmissionsTable).set({ state: "draining" }).where(eq(runnerBroadcastAdmissionsTable.id, admission.id));
+		return true;
+	}
+	return false;
+}
+
+async function resolveAdmissionSource(tx: TransactionClient, runner: RunnerIdentity, session: SessionRow, admission: AdmissionRow) {
+	const capturedSource = admission.benefitsAtStart.sourceIdAtStart;
+	const capturedRevision = admission.benefitsAtStart.sourceRevisionAtStart;
+	if (capturedSource !== undefined && (typeof capturedSource !== "string" || !Number.isSafeInteger(capturedRevision) || Number(capturedRevision) < 1)) return null;
+	const sourceId = typeof capturedSource === "string" ? capturedSource : session.overlayId;
+	const [overlay] = await tx
+		.select()
+		.from(overlaysTable)
+		.where(and(eq(overlaysTable.id, sourceId), eq(overlaysTable.ownerId, runner.ownerId)))
+		.limit(1)
+		.for("share");
+	if (!overlay || overlay.status !== "active") return null;
+	return { sourceId, sourceRevision: typeof capturedRevision === "number" ? capturedRevision : overlay.configurationRevision };
+}
+
+async function signAdmissionLease(tx: TransactionClient, runner: RunnerIdentity, session: SessionRow, admission: AdmissionRow, source: { sourceId: string; sourceRevision: number }, targets: NonNullable<Awaited<ReturnType<typeof capturedExecutionTargets>>>, window: { leaseId: string; requestId: string; now: number; expiresAt: number }, paid: boolean) {
+	const { sourceId, sourceRevision } = source;
+	const { streamKey, destinations } = targets;
+	const { leaseId, requestId, now, expiresAt } = window;
+	const targetHash = hashExecutionTargets(destinations ?? [{ id: session.id, rtmpUrl: session.rtmpUrl, streamKey }]);
+	const occurrence = paid && admission.occurrenceId && typeof admission.benefitsAtStart.scheduledStart === "number" ? { occurrenceId: admission.occurrenceId, scheduledStart: admission.benefitsAtStart.scheduledStart } : {};
+	const claims = {
+		issuer: "clipify.us",
+		kind: "execution",
+		...occurrence,
+		policy: paid ? "pro_broadcast" : "free_lease",
+		...(paid ? { scheduledEnd: admission.scheduledEnd?.getTime() ?? null } : {}),
+		ownerId: runner.ownerId,
+		runnerId: runner.id,
+		sessionId: session.id,
+		generation: admission.executionGeneration,
+		targetHash,
+		configurationRevision: admission.configurationRevision,
+		sourceRevision,
+		sourceId,
+		admissionId: admission.id,
+		leaseId,
+		requestId,
+		issuedAt: now,
+		expiresAt,
+	};
+	const { key, keyId } = signingKey(),
+		payload = Buffer.from(JSON.stringify(claims)).toString("base64url");
+	const lease = { keyId, payload, signature: sign(null, Buffer.from(payload), key).toString("base64url") };
+	await tx
+		.update(runnerBroadcastAdmissionsTable)
+		.set({ leaseId, leaseExpiresAt: new Date(expiresAt), protocolSupportsLease: true, dispatchedAt: admission.dispatchedAt ?? new Date(now), state: admission.state === "reserved" ? "starting" : admission.state })
+		.where(and(eq(runnerBroadcastAdmissionsTable.id, admission.id), eq(runnerBroadcastAdmissionsTable.ownerId, runner.ownerId)));
+	return { lease, ...occurrence, ...(paid ? { scheduledEnd: admission.scheduledEnd?.getTime() ?? null } : {}), ...(destinations ? { destinations } : {}), admissionId: admission.id, executionGeneration: admission.executionGeneration, ownerId: runner.ownerId, runnerId: runner.id, targetHash, configurationRevision: admission.configurationRevision, sourceId, sourceRevision };
+}
+
+async function lockLeaseAssignment(tx: TransactionClient, runner: RunnerIdentity, sessionId: string) {
+	const [device] = await tx
+		.select()
+		.from(runnersTable)
+		.where(and(eq(runnersTable.id, runner.id), eq(runnersTable.ownerId, runner.ownerId)))
+		.limit(1)
+		.for("update");
+	if (!device || device.token !== runner.token) return null;
+	const [session] = await tx
+		.select()
+		.from(streamSessionsTable)
+		.where(and(eq(streamSessionsTable.id, sessionId), eq(streamSessionsTable.ownerId, runner.ownerId), eq(streamSessionsTable.runnerId, runner.id)))
+		.limit(1)
+		.for("update");
+	if (!session || session.desiredState !== StreamState.Running) return null;
+	const [admission] = await tx
+		.select()
+		.from(runnerBroadcastAdmissionsTable)
+		.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, runner.ownerId), eq(runnerBroadcastAdmissionsTable.runnerId, runner.id), eq(runnerBroadcastAdmissionsTable.sessionId, session.id), inArray(runnerBroadcastAdmissionsTable.state, ["reserved", "starting", "active"])))
+		.orderBy(desc(runnerBroadcastAdmissionsTable.scheduledEnd))
+		.limit(1)
+		.for("update");
+	if (!admission || admission.revokedAt) return null;
+	return { session, admission };
+}
+
+type PendingExecutionIdentity = {
+	lease: undefined;
+	permissionPending: true;
+	admissionId: string;
+	executionGeneration: string;
+	ownerId: string;
+	runnerId: string;
+	configurationRevision: number;
+	destinations?: undefined;
+	scheduledEnd?: undefined;
+	targetHash?: undefined;
+	sourceRevision?: undefined;
+};
+function pendingExecutionIdentity(runner: RunnerIdentity, admission: AdmissionRow): PendingExecutionIdentity {
+	return { lease: undefined, permissionPending: true as const, admissionId: admission.id, executionGeneration: admission.executionGeneration, ownerId: runner.ownerId, runnerId: runner.id, configurationRevision: admission.configurationRevision };
+}
+
 /** A returned permit is usable only after the owner-locked transaction commits.
  * Current device credentials are rechecked inside that lock, before any signing.
  */
@@ -58,78 +192,22 @@ export async function issueFreeExecutionLease(runner: Pick<typeof runnersTable.$
 	return client.transaction(async (tx) => {
 		const [owner] = await tx.select({ id: usersTable.id, plan: usersTable.plan }).from(usersTable).where(eq(usersTable.id, runner.ownerId)).limit(1).for("update");
 		if (!owner) return null;
-		const [device] = await tx
-			.select()
-			.from(runnersTable)
-			.where(and(eq(runnersTable.id, runner.id), eq(runnersTable.ownerId, runner.ownerId)))
-			.limit(1)
-			.for("update");
-		if (!device || device.token !== runner.token) return null;
-		const [session] = await tx
-			.select()
-			.from(streamSessionsTable)
-			.where(and(eq(streamSessionsTable.id, sessionId), eq(streamSessionsTable.ownerId, runner.ownerId), eq(streamSessionsTable.runnerId, runner.id)))
-			.limit(1)
-			.for("update");
-		if (!session || session.desiredState !== StreamState.Running) return null;
-		const [admission] = await tx
-			.select()
-			.from(runnerBroadcastAdmissionsTable)
-			.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, runner.ownerId), eq(runnerBroadcastAdmissionsTable.runnerId, runner.id), eq(runnerBroadcastAdmissionsTable.sessionId, session.id), inArray(runnerBroadcastAdmissionsTable.state, ["reserved", "starting", "active"])))
-			.orderBy(desc(runnerBroadcastAdmissionsTable.scheduledEnd))
-			.limit(1)
-			.for("update");
-		if (!admission || admission.revokedAt) return null;
+		const assignment = await lockLeaseAssignment(tx, runner, sessionId);
+		if (!assignment) return null;
+		const { session, admission } = assignment;
 		const paid = admission.benefitsAtStart.runnerPro === true;
 		const now = Date.now();
-		const knownPaidEnd = typeof admission.benefitsAtStart.validUntil === "string" ? Date.parse(admission.benefitsAtStart.validUntil) : null;
-		if (paid && knownPaidEnd !== null && !Number.isFinite(knownPaidEnd)) return null;
-		const acceptedPaid = paid && admission.state === "active" && admission.startedAt !== null;
-		const currentPaidPolicy = paid && !acceptedPaid ? deriveRunnerCapabilities(await resolveRunnerBenefits(owner, tx, new Date(now)), new Date(now)) : null;
-		if (currentPaidPolicy && !currentPaidPolicy.runnerPro) {
-			if (!admission.dispatchedAt && admission.state === "reserved") {
-				await tx
-					.update(runnerBroadcastAdmissionsTable)
-					.set({ state: "failed_before_output", stoppedAt: new Date(now), terminalReason: "benefits_revoked_before_dispatch" })
-					.where(eq(runnerBroadcastAdmissionsTable.id, admission.id));
-				await tx
-					.update(streamSessionsTable)
-					.set({ desiredState: StreamState.Stopped, configurationRevision: session.configurationRevision + 1, updatedAt: new Date(now) })
-					.where(eq(streamSessionsTable.id, session.id));
-				return null;
-			}
-			// A dispatched permit may already have opened output. Preserve its
-			// identity for a late receipt without issuing another paid Start.
-			return { lease: undefined, destinations: undefined, scheduledEnd: undefined, targetHash: undefined, sourceRevision: undefined, permissionPending: true as const, admissionId: admission.id, executionGeneration: admission.executionGeneration, ownerId: runner.ownerId, runnerId: runner.id, configurationRevision: admission.configurationRevision };
-		}
+		const paidPolicy = await resolveAdmissionPaidPolicy(tx, owner, runner, session, admission, paid, now);
+		if (!paidPolicy.allowed) return paidPolicy.response;
+		const currentPaidPolicy = paidPolicy.currentPaidPolicy;
 		// Cached automatic starts retain their separate signed purpose. Reissuing
 		// an ordinary execution command here would falsely become an owner Resume.
 		if (paid && admission.benefitsAtStart.cacheAuthorization === true && admission.state === "active") {
-			return { lease: undefined, permissionPending: true as const, admissionId: admission.id, executionGeneration: admission.executionGeneration, ownerId: runner.ownerId, runnerId: runner.id, configurationRevision: admission.configurationRevision };
+			return pendingExecutionIdentity(runner, admission);
 		}
-		if (paid && admission.scheduledEnd && admission.scheduledEnd.getTime() <= now) {
-			await requestBroadcastDrain(tx, session);
-			await tx
-				.update(streamSessionsTable)
-				.set({ desiredState: StreamState.Stopped, configurationRevision: session.configurationRevision + 1, updatedAt: new Date(now) })
-				.where(and(eq(streamSessionsTable.id, session.id), eq(streamSessionsTable.ownerId, runner.ownerId)));
-			return null;
-		}
-		if (!paid && admission.leaseExpiresAt && admission.leaseExpiresAt.getTime() <= now) {
-			await tx.update(runnerBroadcastAdmissionsTable).set({ state: "draining" }).where(eq(runnerBroadcastAdmissionsTable.id, admission.id));
-			return null;
-		}
-		const capturedSource = admission.benefitsAtStart.sourceIdAtStart;
-		const capturedRevision = admission.benefitsAtStart.sourceRevisionAtStart;
-		if (capturedSource !== undefined && (typeof capturedSource !== "string" || !Number.isSafeInteger(capturedRevision) || Number(capturedRevision) < 1)) return null;
-		const sourceId = typeof capturedSource === "string" ? capturedSource : session.overlayId;
-		const [overlay] = await tx
-			.select()
-			.from(overlaysTable)
-			.where(and(eq(overlaysTable.id, sourceId), eq(overlaysTable.ownerId, runner.ownerId)))
-			.limit(1)
-			.for("share");
-		if (!overlay || overlay.status !== "active") return null;
+		if (await expireAdmissionAuthority(tx, runner, session, admission, paid, now)) return null;
+		const source = await resolveAdmissionSource(tx, runner, session, admission);
+		if (!source) return null;
 		// Captured benefits remain historical. A fresh pending permit uses current
 		// validity, allowing renewal of the same intent without another admission.
 		const currentPaidEnd = currentPaidPolicy?.validUntil ? Date.parse(currentPaidPolicy.validUntil) : null;
@@ -137,37 +215,7 @@ export async function issueFreeExecutionLease(runner: Pick<typeof runnersTable.$
 			expiresAt = currentPaidEnd !== null ? Math.min(now + 300000, currentPaidEnd) : now + 300000;
 		const targets = await capturedExecutionTargets(admission, session);
 		if (!targets) return null;
-		const { streamKey, destinations } = targets;
-		const targetHash = hashExecutionTargets(destinations ?? [{ id: session.id, rtmpUrl: session.rtmpUrl, streamKey }]);
-		const occurrence = paid && admission.occurrenceId && typeof admission.benefitsAtStart.scheduledStart === "number" ? { occurrenceId: admission.occurrenceId, scheduledStart: admission.benefitsAtStart.scheduledStart } : {};
-		const claims = {
-			issuer: "clipify.us",
-			kind: "execution",
-			...occurrence,
-			policy: paid ? "pro_broadcast" : "free_lease",
-			...(paid ? { scheduledEnd: admission.scheduledEnd?.getTime() ?? null } : {}),
-			ownerId: runner.ownerId,
-			runnerId: runner.id,
-			sessionId: session.id,
-			generation: admission.executionGeneration,
-			targetHash,
-			configurationRevision: admission.configurationRevision,
-			sourceRevision: typeof capturedRevision === "number" ? capturedRevision : overlay.configurationRevision,
-			sourceId,
-			admissionId: admission.id,
-			leaseId,
-			requestId,
-			issuedAt: now,
-			expiresAt,
-		};
-		const { key, keyId } = signingKey(),
-			payload = Buffer.from(JSON.stringify(claims)).toString("base64url");
-		const lease = { keyId, payload, signature: sign(null, Buffer.from(payload), key).toString("base64url") };
-		await tx
-			.update(runnerBroadcastAdmissionsTable)
-			.set({ leaseId, leaseExpiresAt: new Date(expiresAt), protocolSupportsLease: true, dispatchedAt: admission.dispatchedAt ?? new Date(now), state: admission.state === "reserved" ? "starting" : admission.state })
-			.where(and(eq(runnerBroadcastAdmissionsTable.id, admission.id), eq(runnerBroadcastAdmissionsTable.ownerId, runner.ownerId)));
-		return { lease, ...occurrence, ...(paid ? { scheduledEnd: admission.scheduledEnd?.getTime() ?? null } : {}), ...(destinations ? { destinations } : {}), admissionId: admission.id, executionGeneration: admission.executionGeneration, ownerId: runner.ownerId, runnerId: runner.id, targetHash, configurationRevision: admission.configurationRevision, sourceId, sourceRevision: typeof capturedRevision === "number" ? capturedRevision : overlay.configurationRevision };
+		return signAdmissionLease(tx, runner, session, admission, source, targets, { leaseId, requestId, now, expiresAt }, paid);
 	});
 }
 
@@ -208,6 +256,94 @@ async function acknowledgeStoppedOutput(tx: TransactionClient, runner: RunnerIde
 	return true;
 }
 
+async function acknowledgeDrainingOutput(tx: TransactionClient, runner: RunnerIdentity, session: SessionRow, admission: AdmissionRow, now: Date) {
+	if (admission.state === "authorized") {
+		const start = admission.benefitsAtStart.scheduledStart;
+		if (admission.benefitsAtStart.cacheAuthorization !== true || admission.benefitsAtStart.runnerPro !== true || admission.benefitsAtStart.scheduleSuppressed === true || session.controlMode !== "scheduled" || session.mode !== "24/7" || typeof start !== "number" || !Number.isSafeInteger(start) || now.getTime() < start || !admission.scheduledEnd || now.getTime() >= admission.scheduledEnd.getTime() + 305000) return false;
+		const [otherOutput] = await tx
+			.select({ id: runnerBroadcastAdmissionsTable.id })
+			.from(runnerBroadcastAdmissionsTable)
+			.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, runner.ownerId), eq(runnerBroadcastAdmissionsTable.sessionId, session.id), inArray(runnerBroadcastAdmissionsTable.state, ["reserved", "starting", "active", "draining", "uncertain"])))
+			.limit(1)
+			.for("update");
+		if (otherOutput) return false;
+	} else if (!["starting", "active", "draining"].includes(admission.state)) return false;
+	await tx
+		.update(runnerBroadcastAdmissionsTable)
+		.set({ state: "draining", lastObservedAt: now })
+		.where(and(eq(runnerBroadcastAdmissionsTable.id, admission.id), eq(runnerBroadcastAdmissionsTable.ownerId, runner.ownerId)));
+	await tx
+		.update(streamSessionsTable)
+		.set({ actualState: StreamState.Running, desiredState: StreamState.Stopped, configurationRevision: session.configurationRevision + (session.desiredState === StreamState.Running ? 1 : 0) })
+		.where(and(eq(streamSessionsTable.id, session.id), eq(streamSessionsTable.ownerId, runner.ownerId)));
+
+	return true;
+}
+
+type AdmittedLease = AdmissionRow & { leaseExpiresAt: Date };
+function validExecutionAcknowledgment(admission: AdmissionRow | undefined, ack: FreeExecutionAcknowledgment): admission is AdmittedLease {
+	return !!admission && !admission.revokedAt && !!admission.dispatchedAt && admission.protocolSupportsLease && admission.leaseId === ack.leaseId && admission.configurationRevision === ack.configurationRevision && !!admission.leaseExpiresAt;
+}
+function cachedStartWindowValid(session: SessionRow, admission: AdmissionRow, now: Date) {
+	const start = admission.benefitsAtStart.scheduledStart;
+	return !(session.controlMode !== "scheduled" || session.mode !== "24/7" || admission.benefitsAtStart.scheduleSuppressed === true || typeof start !== "number" || !Number.isSafeInteger(start) || now.getTime() < start || !admission.scheduledEnd || now.getTime() >= admission.scheduledEnd.getTime());
+}
+
+async function capturedStartContinuity(tx: TransactionClient, runner: RunnerIdentity, session: SessionRow, admission: AdmissionRow, now: Date) {
+	const start = admission.benefitsAtStart.scheduledStart;
+	if (!cachedStartWindowValid(session, admission, now)) return false as const;
+	const otherOutputs = await tx
+		.select()
+		.from(runnerBroadcastAdmissionsTable)
+		.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, runner.ownerId), eq(runnerBroadcastAdmissionsTable.sessionId, session.id), inArray(runnerBroadcastAdmissionsTable.state, ["reserved", "starting", "active", "draining", "uncertain"])))
+		.for("update");
+	if (otherOutputs.length) {
+		const fingerprint = admission.benefitsAtStart.executionPayloadHashAtStart;
+		const predecessor = otherOutputs.find((row) => row.scheduledEnd?.getTime() === start);
+		if (!predecessor || typeof fingerprint !== "string" || !/^[a-f0-9]{64}$/.test(fingerprint)) return false as const;
+		const root = predecessor.continuityRootAdmissionId ?? predecessor.id;
+		if (otherOutputs.some((row) => row.state !== "active" || row.revokedAt || row.benefitsAtStart.runnerPro !== true || row.benefitsAtStart.scheduleSuppressed === true || row.benefitsAtStart.executionPayloadHashAtStart !== fingerprint || row.benefitsAtStart.sourceRevisionAtStart !== admission.benefitsAtStart.sourceRevisionAtStart || (row.continuityRootAdmissionId ?? row.id) !== root)) return false as const;
+		return root;
+	}
+	return undefined;
+}
+
+function observedOutputStates(ack: Extract<FreeExecutionAcknowledgment, { state: "active" }>, admission: AdmissionRow, sessionId: string) {
+	const targetIds = admission.targetIdsSnapshot ?? [sessionId];
+	if (ack.outputs && (!ack.outputs.length || new Set(ack.outputs.map((output) => output.id)).size !== ack.outputs.length || ack.outputs.some((output) => !targetIds.includes(output.id) || !["connecting", "streaming", "retrying", "failed", "stopped"].includes(output.state)))) return null;
+	const outputStates = ack.outputs
+		? targetIds.map((id) => {
+				const observed = ack.outputs!.find((output) => output.id === id) ?? admission.outputStates?.find((output) => output.id === id);
+				return { id, state: observed?.state ?? ("connecting" as const) };
+			})
+		: undefined;
+	return { outputStates };
+}
+
+async function acknowledgeActiveOutput(tx: TransactionClient, runner: RunnerIdentity, session: SessionRow, admission: AdmittedLease, ack: Extract<FreeExecutionAcknowledgment, { state: "active" }>, now: Date) {
+	let continuityRootAdmissionId: string | undefined;
+	const cachedStart = admission.state === "authorized" && admission.benefitsAtStart.cacheAuthorization === true;
+	if (cachedStart) {
+		const continuity = await capturedStartContinuity(tx, runner, session, admission, now);
+		if (continuity === false) return false;
+		continuityRootAdmissionId = continuity;
+	} else {
+		if (session.desiredState !== StreamState.Running || !["starting", "active"].includes(admission.state) || (admission.benefitsAtStart.runnerPro !== true && admission.leaseExpiresAt.getTime() <= now.getTime())) return false;
+	}
+	const observations = observedOutputStates(ack, admission, session.id);
+	if (!observations) return false;
+	const { outputStates } = observations;
+	await tx
+		.update(runnerBroadcastAdmissionsTable)
+		.set({ state: "active", startedAt: admission.startedAt ?? now, lastObservedAt: now, ...(continuityRootAdmissionId ? { continuityRootAdmissionId } : {}), ...(outputStates ? { outputStates } : {}) })
+		.where(and(eq(runnerBroadcastAdmissionsTable.id, admission.id), eq(runnerBroadcastAdmissionsTable.ownerId, runner.ownerId)));
+	await tx
+		.update(streamSessionsTable)
+		.set({ actualState: StreamState.Running, ...(session.lastError === PLAYBACK_TIMEOUT_MESSAGE ? { lastError: null } : {}), ...(cachedStart ? { desiredState: StreamState.Running } : {}) })
+		.where(and(eq(streamSessionsTable.id, session.id), eq(streamSessionsTable.ownerId, runner.ownerId)));
+	return true;
+}
+
 /** Session-only telemetry cannot apply or release a new-policy Free execution. */
 export async function acknowledgeFreeExecutions(runner: Pick<typeof runnersTable.$inferSelect, "id" | "ownerId" | "token">, acknowledgments: readonly FreeExecutionAcknowledgment[], client: QueryClient = db, clock: () => number = Date.now) {
 	return client.transaction(async (tx) => {
@@ -235,71 +371,16 @@ export async function acknowledgeFreeExecutions(runner: Pick<typeof runnersTable
 				.limit(1)
 				.for("update");
 			const now = new Date(clock());
-			if (!admission || admission.revokedAt || !admission.dispatchedAt || !admission.protocolSupportsLease || admission.leaseId !== ack.leaseId || admission.configurationRevision !== ack.configurationRevision || !admission.leaseExpiresAt) continue;
+			if (!validExecutionAcknowledgment(admission, ack)) continue;
 			if (ack.state === "stopped") {
 				if (await acknowledgeStoppedOutput(tx, runner, ack, session, admission, now)) accepted.push({ admissionId: admission.id, executionGeneration: admission.executionGeneration, state: "stopped" });
 				continue;
 			}
 			if (ack.state === "draining") {
-				if (admission.state === "authorized") {
-					const start = admission.benefitsAtStart.scheduledStart;
-					if (admission.benefitsAtStart.cacheAuthorization !== true || admission.benefitsAtStart.runnerPro !== true || admission.benefitsAtStart.scheduleSuppressed === true || session.controlMode !== "scheduled" || session.mode !== "24/7" || typeof start !== "number" || !Number.isSafeInteger(start) || now.getTime() < start || !admission.scheduledEnd || now.getTime() >= admission.scheduledEnd.getTime() + 305000) continue;
-					const [otherOutput] = await tx
-						.select({ id: runnerBroadcastAdmissionsTable.id })
-						.from(runnerBroadcastAdmissionsTable)
-						.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, runner.ownerId), eq(runnerBroadcastAdmissionsTable.sessionId, session.id), inArray(runnerBroadcastAdmissionsTable.state, ["reserved", "starting", "active", "draining", "uncertain"])))
-						.limit(1)
-						.for("update");
-					if (otherOutput) continue;
-				} else if (!["starting", "active", "draining"].includes(admission.state)) continue;
-				await tx
-					.update(runnerBroadcastAdmissionsTable)
-					.set({ state: "draining", lastObservedAt: now })
-					.where(and(eq(runnerBroadcastAdmissionsTable.id, admission.id), eq(runnerBroadcastAdmissionsTable.ownerId, runner.ownerId)));
-				await tx
-					.update(streamSessionsTable)
-					.set({ actualState: StreamState.Running, desiredState: StreamState.Stopped, configurationRevision: session.configurationRevision + (session.desiredState === StreamState.Running ? 1 : 0) })
-					.where(and(eq(streamSessionsTable.id, session.id), eq(streamSessionsTable.ownerId, runner.ownerId)));
-				accepted.push({ admissionId: admission.id, executionGeneration: admission.executionGeneration, state: "draining" });
+				if (await acknowledgeDrainingOutput(tx, runner, session, admission, now)) accepted.push({ admissionId: admission.id, executionGeneration: admission.executionGeneration, state: "draining" });
 				continue;
 			}
-			let continuityRootAdmissionId: string | undefined;
-			const cachedStart = admission.state === "authorized" && admission.benefitsAtStart.cacheAuthorization === true;
-			if (cachedStart) {
-				const start = admission.benefitsAtStart.scheduledStart;
-				if (session.controlMode !== "scheduled" || session.mode !== "24/7" || admission.benefitsAtStart.scheduleSuppressed === true || typeof start !== "number" || !Number.isSafeInteger(start) || now.getTime() < start || !admission.scheduledEnd || now.getTime() >= admission.scheduledEnd.getTime()) continue;
-				const otherOutputs = await tx
-					.select()
-					.from(runnerBroadcastAdmissionsTable)
-					.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, runner.ownerId), eq(runnerBroadcastAdmissionsTable.sessionId, session.id), inArray(runnerBroadcastAdmissionsTable.state, ["reserved", "starting", "active", "draining", "uncertain"])))
-					.for("update");
-				if (otherOutputs.length) {
-					const fingerprint = admission.benefitsAtStart.executionPayloadHashAtStart;
-					const predecessor = otherOutputs.find((row) => row.scheduledEnd?.getTime() === start);
-					if (!predecessor || typeof fingerprint !== "string" || !/^[a-f0-9]{64}$/.test(fingerprint)) continue;
-					const root = predecessor.continuityRootAdmissionId ?? predecessor.id;
-					if (otherOutputs.some((row) => row.state !== "active" || row.revokedAt || row.benefitsAtStart.runnerPro !== true || row.benefitsAtStart.scheduleSuppressed === true || row.benefitsAtStart.executionPayloadHashAtStart !== fingerprint || row.benefitsAtStart.sourceRevisionAtStart !== admission.benefitsAtStart.sourceRevisionAtStart || (row.continuityRootAdmissionId ?? row.id) !== root)) continue;
-					continuityRootAdmissionId = root;
-				}
-			} else {
-				if (session.desiredState !== StreamState.Running || !["starting", "active"].includes(admission.state) || (admission.benefitsAtStart.runnerPro !== true && admission.leaseExpiresAt.getTime() <= now.getTime())) continue;
-			}
-			const targetIds = admission.targetIdsSnapshot ?? [session.id];
-			if (ack.outputs && (!ack.outputs.length || new Set(ack.outputs.map((output) => output.id)).size !== ack.outputs.length || ack.outputs.some((output) => !targetIds.includes(output.id) || !["connecting", "streaming", "retrying", "failed", "stopped"].includes(output.state)))) continue;
-			const outputStates = ack.outputs
-				? targetIds.map((id) => {
-						const observed = ack.outputs!.find((output) => output.id === id) ?? admission.outputStates?.find((output) => output.id === id);
-						return { id, state: observed?.state ?? ("connecting" as const) };
-					})
-				: undefined;
-			await tx
-				.update(runnerBroadcastAdmissionsTable)
-				.set({ state: "active", startedAt: admission.startedAt ?? now, lastObservedAt: now, ...(continuityRootAdmissionId ? { continuityRootAdmissionId } : {}), ...(outputStates ? { outputStates } : {}) })
-				.where(and(eq(runnerBroadcastAdmissionsTable.id, admission.id), eq(runnerBroadcastAdmissionsTable.ownerId, runner.ownerId)));
-			await tx
-				.update(streamSessionsTable)
-				.set({ actualState: StreamState.Running, ...(session.lastError === PLAYBACK_TIMEOUT_MESSAGE ? { lastError: null } : {}), ...(cachedStart ? { desiredState: StreamState.Running } : {}) })
-				.where(and(eq(streamSessionsTable.id, session.id), eq(streamSessionsTable.ownerId, runner.ownerId)));
+			if (!(await acknowledgeActiveOutput(tx, runner, session, admission, ack, now))) continue;
 			accepted.push({ admissionId: admission.id, executionGeneration: admission.executionGeneration, state: "active" });
 		}
 		return accepted;

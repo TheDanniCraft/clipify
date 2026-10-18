@@ -89,39 +89,43 @@ export async function runRunnerScheduleContinuityProbe(input: Input) {
 		}
 		negativeJoins[vector] = { ...(observed as object), unchanged: before === (await persisted()) };
 	}
-	const continuityConstraints: Record<string, unknown> = {};
-	const foreignOwner = randomUUID();
-	await input.fixture.pool.query("INSERT INTO users(id,email,username,avatar,role,plan) VALUES($1,$2,'Foreign continuity owner','','user','free')", [foreignOwner, foreignOwner + "@example.invalid"]);
+	async function observeContinuityConstraints(approvedJobs: NonNullable<typeof jobs>) {
+		const continuityConstraints: Record<string, unknown> = {};
+		const foreignOwner = randomUUID();
+		await input.fixture.pool.query("INSERT INTO users(id,email,username,avatar,role,plan) VALUES($1,$2,'Foreign continuity owner','','user','free')", [foreignOwner, foreignOwner + "@example.invalid"]);
 
-	for (const vector of ["foreign_owner_root", "self_root", "second_physical_root"]) {
-		const before = await persisted(),
-			rollback = new Error("CONTINUITY_CONSTRAINT_ROLLBACK");
-		let code = "accepted";
-		try {
-			await input.fixture.db.transaction(async (tx) => {
-				if (vector === "foreign_owner_root") {
-					const [foreign] = await tx.insert(admissions).values({ ownerId: foreignOwner, state: "authorized", configurationRevision: 1, executionGeneration: randomUUID(), benefitsAtStart: {} }).returning();
-					await tx.update(admissions).set({ continuityRootAdmissionId: foreign.id }).where(eq(admissions.id, jobs[1].admissionId));
-				}
-				if (vector === "self_root") await tx.update(admissions).set({ continuityRootAdmissionId: jobs[1].admissionId }).where(eq(admissions.id, jobs[1].admissionId));
-				if (vector === "second_physical_root") await tx.insert(admissions).values({ ownerId, runnerId: input.runnerId, sessionId, state: "active", configurationRevision: 1, executionGeneration: randomUUID(), benefitsAtStart: { runnerPro: true } });
-				throw rollback;
-			});
-		} catch (error) {
-			if (error !== rollback) {
-				let cause: unknown = error;
-				for (let depth = 0; depth < 5 && cause && typeof cause === "object"; depth++) {
-					if (typeof Reflect.get(cause, "code") === "string") {
-						code = Reflect.get(cause, "code");
-						break;
+		for (const vector of ["foreign_owner_root", "self_root", "second_physical_root"]) {
+			const before = await persisted(),
+				rollback = new Error("CONTINUITY_CONSTRAINT_ROLLBACK");
+			let code = "accepted";
+			try {
+				await input.fixture.db.transaction(async (tx) => {
+					if (vector === "foreign_owner_root") {
+						const [foreign] = await tx.insert(admissions).values({ ownerId: foreignOwner, state: "authorized", configurationRevision: 1, executionGeneration: randomUUID(), benefitsAtStart: {} }).returning();
+						await tx.update(admissions).set({ continuityRootAdmissionId: foreign.id }).where(eq(admissions.id, approvedJobs[1].admissionId));
 					}
-					cause = Reflect.get(cause, "cause");
+					if (vector === "self_root") await tx.update(admissions).set({ continuityRootAdmissionId: approvedJobs[1].admissionId }).where(eq(admissions.id, approvedJobs[1].admissionId));
+					if (vector === "second_physical_root") await tx.insert(admissions).values({ ownerId, runnerId: input.runnerId, sessionId, state: "active", configurationRevision: 1, executionGeneration: randomUUID(), benefitsAtStart: { runnerPro: true } });
+					throw rollback;
+				});
+			} catch (error) {
+				if (error !== rollback) {
+					let cause: unknown = error;
+					for (let depth = 0; depth < 5 && cause && typeof cause === "object"; depth++) {
+						if (typeof Reflect.get(cause, "code") === "string") {
+							code = Reflect.get(cause, "code");
+							break;
+						}
+						cause = Reflect.get(cause, "cause");
+					}
+					if (code === "accepted") throw error;
 				}
-				if (code === "accepted") throw error;
 			}
+			continuityConstraints[vector] = { code, unchanged: before === (await persisted()) };
 		}
-		continuityConstraints[vector] = { code, unchanged: before === (await persisted()) };
+		return continuityConstraints;
 	}
+	const continuityConstraints = await observeContinuityConstraints(jobs);
 	const secondActive = await acknowledgeFreeExecutions(identity, [receipt(1)], input.fixture.db, () => boundary + 1);
 	const states = (await input.fixture.pool.query("SELECT id,state,scheduled_end,stopped_at,to_jsonb(r)->>'continuity_root_admission_id' AS continuity_root FROM runner_broadcast_admissions r WHERE session_id=$1 ORDER BY scheduled_end", [sessionId])).rows;
 	const repeatedFirst = await acknowledgeFreeExecutions(identity, [receipt(0)], input.fixture.db, () => boundary + 2);

@@ -5,6 +5,34 @@ import { eq } from "drizzle-orm";
 import { usersTable, runnersTable } from "@/db/schema";
 import { runRunnerFreeProProbe } from "./runner-free-pro-probe";
 
+function manualScenario(variant: string) {
+	const invalidFallback = variant === "manual_fallback_scheduled_invalid";
+	const proScheduled = ["manual_pro_clip_scheduled", "manual_existing_scheduled_fallback"].includes(variant);
+	const scheduled = variant === "manual_scheduled_denied" || invalidFallback || proScheduled;
+	const mode = variant === "manual_invalid_behavior" ? "invalid-mode" : scheduled && !invalidFallback ? "24/7" : "failsafe";
+	return { invalidFallback, proScheduled, scheduled, mode };
+}
+
+async function observeBusinessDenial(input: Parameters<typeof runRunnerFreeProProbe>[0], runnerId: string, overlayId: string, mode: string) {
+	let businessDenialReturned: boolean | undefined;
+	let businessDenialThrownCode: string | null = null;
+	if (input.variant === "manual_scheduled_denied") {
+		const { configureStreamSession } = await import("@/server/resources/runners");
+		try {
+			const denial = await configureStreamSession({ kind: "session", authUserId: input.actorId, sessionId: "fixture-controlled-session", authenticatedAt: new Date(), organizationId: "creator-org" }, { creatorId: "fixture-creator", runnerId, overlayId, mode, controlMode: "scheduled", destination: "twitch", resolution: "720p", fps: 30, retryKey: "manual-direct-scheduling-denial" }, input.fixture.db);
+			businessDenialReturned = (denial.error as { code?: string } | undefined)?.code === "FEATURE_RESTRICTED";
+		} catch (error) {
+			businessDenialReturned = false;
+			businessDenialThrownCode = error instanceof Error ? error.message : "UNKNOWN";
+		}
+	}
+	return { businessDenialReturned, businessDenialThrownCode };
+}
+
+function manualConfigurationPayload(mcp: { id?: unknown; configurationRevision?: unknown } | undefined, runnerId: string, overlayId: string, mode: string, scheduled: boolean, key: string) {
+	return { id: typeof mcp?.id === "string" ? mcp.id : undefined, expectedRevision: typeof mcp?.configurationRevision === "number" ? mcp.configurationRevision : undefined, ownerId: "fixture-creator", runnerId, overlayId, mode: mode as import("@/app/lib/types").StreamMode, controlMode: scheduled ? ("scheduled" as const) : ("manual" as const), streamKey: key, rtmpUrl: "rtmp://live.twitch.tv/app", resolution: "720p", fps: 30 };
+}
+
 export async function runRunnerManualConfigurationProbe(input: Parameters<typeof runRunnerFreeProProbe>[0]) {
 	const previousFetch = globalThis.fetch;
 	globalThis.fetch = ((value: RequestInfo | URL, init?: RequestInit) => {
@@ -19,26 +47,12 @@ export async function runRunnerManualConfigurationProbe(input: Parameters<typeof
 		const runnerId = randomUUID(),
 			overlayId = randomUUID(),
 			key = "private-manual-fallback-key";
-		const invalidFallback = input.variant === "manual_fallback_scheduled_invalid";
-		const proScheduled = ["manual_pro_clip_scheduled", "manual_existing_scheduled_fallback"].includes(input.variant);
-		const scheduled = input.variant === "manual_scheduled_denied" || invalidFallback || proScheduled;
-		const mode = input.variant === "manual_invalid_behavior" ? "invalid-mode" : scheduled && !invalidFallback ? "24/7" : "failsafe";
+		const { invalidFallback, proScheduled, scheduled, mode } = manualScenario(input.variant);
 		await input.fixture.pool.query("UPDATE users SET plan=$1 WHERE id='fixture-creator'", [invalidFallback || proScheduled ? "pro" : "free"]);
 		await input.fixture.pool.query("INSERT INTO runners(id,owner_id,name,token,status,last_heartbeat_at,protocol_version,capabilities) VALUES($1,'fixture-creator','Manual fixture',$2,'online',now(),2,$3::jsonb)", [runnerId, randomUUID(), JSON.stringify(["admissions", "drain", "runner_presentation", "free_lease"])]);
 		await input.fixture.pool.query("INSERT INTO overlays(id,owner_id,secret,name,status,type) VALUES($1,'fixture-creator','manual-source-secret','Manual source','active','Featured')", [overlayId]);
 		const { call } = await runRunnerFreeProProbe(input);
-		let businessDenialReturned: boolean | undefined;
-		let businessDenialThrownCode: string | null = null;
-		if (input.variant === "manual_scheduled_denied") {
-			const { configureStreamSession } = await import("@/server/resources/runners");
-			try {
-				const denial = await configureStreamSession({ kind: "session", authUserId: input.actorId, sessionId: "fixture-controlled-session", authenticatedAt: new Date(), organizationId: "creator-org" }, { creatorId: "fixture-creator", runnerId, overlayId, mode, controlMode: "scheduled", destination: "twitch", resolution: "720p", fps: 30, retryKey: "manual-direct-scheduling-denial" }, input.fixture.db);
-				businessDenialReturned = (denial.error as { code?: string } | undefined)?.code === "FEATURE_RESTRICTED";
-			} catch (error) {
-				businessDenialReturned = false;
-				businessDenialThrownCode = error instanceof Error ? error.message : "UNKNOWN";
-			}
-		}
+		const { businessDenialReturned, businessDenialThrownCode } = await observeBusinessDenial(input, runnerId, overlayId, mode);
 		const capability = await call("get_capabilities", {});
 		const configured = await call("configure_stream_session", { runnerId, overlayId, mode, controlMode: scheduled ? "scheduled" : "manual", destination: "twitch", resolution: "720p", fps: 30, retryKey: "manual-fallback-configuration" });
 		const mcp = configured.result?.structuredContent;
@@ -52,36 +66,39 @@ export async function runRunnerManualConfigurationProbe(input: Parameters<typeof
 		Reflect.set(globalThis, Symbol.for("next-ws.request-store"), storage);
 		const { workAsyncStorage } = createRequire(import.meta.url)("next/dist/server/app-render/work-async-storage.external.js");
 		const { upsertStreamSession } = await import("@/app/actions/runner");
-		const payload = { id: typeof mcp?.id === "string" ? mcp.id : undefined, expectedRevision: typeof mcp?.configurationRevision === "number" ? mcp.configurationRevision : undefined, ownerId: "fixture-creator", runnerId, overlayId, mode: mode as import("@/app/lib/types").StreamMode, controlMode: scheduled ? ("scheduled" as const) : ("manual" as const), streamKey: key, rtmpUrl: "rtmp://live.twitch.tv/app", resolution: "720p", fps: 30 };
+		const payload = manualConfigurationPayload(mcp, runnerId, overlayId, mode, scheduled, key);
 		const browser = await workAsyncStorage.run({ route: "/dashboard/runners/[id]", isStaticGeneration: false, incrementalCache: {}, pendingRevalidatedTags: [] }, () => storage.run({ headers }, () => upsertStreamSession(payload)));
-		let existingEdit;
+		let existingEdit: { mcpCode: unknown; browser: Awaited<ReturnType<typeof upsertStreamSession>> } | undefined;
 		if (input.variant === "manual_existing_scheduled_fallback") {
 			const denied = await call("configure_stream_session", { sessionId: mcp.id, expectedRevision: 2, runnerId, overlayId, mode: "failsafe", destination: "twitch", resolution: "720p", fps: 30 });
 			const rejectedBrowser = await workAsyncStorage.run({ route: "/dashboard/runners/[id]", isStaticGeneration: false, incrementalCache: {}, pendingRevalidatedTags: [] }, () => storage.run({ headers }, () => upsertStreamSession({ id: mcp.id, expectedRevision: 2, ownerId: "fixture-creator", runnerId, overlayId, mode: "failsafe" as import("@/app/lib/types").StreamMode, streamKey: key, rtmpUrl: "rtmp://live.twitch.tv/app" })));
 			existingEdit = { mcpCode: denied.result?.structuredContent?.error?.code, browser: rejectedBrowser };
 		}
-		const rows = (await input.fixture.pool.query('SELECT mode,desired_state AS "desiredState",actual_state AS "actualState",configuration_revision AS "configurationRevision",to_jsonb(s)->>\'control_mode\' AS "controlMode",encrypted_stream_key AS "protectedKey" FROM stream_sessions s WHERE owner_id=\'fixture-creator\' AND runner_id=$1', [runnerId])).rows;
-		const [creator] = await input.fixture.db.select().from(usersTable).where(eq(usersTable.id, "fixture-creator")).limit(1);
-		const benefits = await (await import("@/app/lib/entitlements")).resolveUserEntitlements(creator, input.fixture.db);
-		const policy = (await import("@/server/runner/capabilities")).deriveRunnerCapabilities(benefits);
-		const protectedKey = rows[0]?.protectedKey;
-		const { decryptString } = await import("@/app/lib/encryption");
-		return {
-			existingEdit,
-			businessDenialReturned,
-			businessDenialThrownCode,
-			capabilityAllowed: capability.result?.structuredContent?.operations?.configure_stream_session?.allowed === true,
-			ownerFree: !benefits.proAccess && !benefits.runnerAccess,
-			browserAuthenticated: browser.error !== "Unauthorized",
-			mcpAccepted: typeof mcp?.id === "string",
-			mcpError: mcp?.error?.code ?? null,
-			browser,
-			configuration: rows[0] ? { ...rows[0], protectedKey: undefined } : null,
-			sessions: rows.length,
-			credentialEncrypted: Boolean(protectedKey && protectedKey !== key && decryptString(protectedKey) === key),
-			schedulingAvailable: policy.scheduling,
-			safe: !JSON.stringify([configured, browser]).includes(key),
-		};
+		async function observeManualConfiguration() {
+			const rows = (await input.fixture.pool.query('SELECT mode,desired_state AS "desiredState",actual_state AS "actualState",configuration_revision AS "configurationRevision",to_jsonb(s)->>\'control_mode\' AS "controlMode",encrypted_stream_key AS "protectedKey" FROM stream_sessions s WHERE owner_id=\'fixture-creator\' AND runner_id=$1', [runnerId])).rows;
+			const [creator] = await input.fixture.db.select().from(usersTable).where(eq(usersTable.id, "fixture-creator")).limit(1);
+			const benefits = await (await import("@/app/lib/entitlements")).resolveUserEntitlements(creator, input.fixture.db);
+			const policy = (await import("@/server/runner/capabilities")).deriveRunnerCapabilities(benefits);
+			const protectedKey = rows[0]?.protectedKey;
+			const { decryptString } = await import("@/app/lib/encryption");
+			return {
+				existingEdit,
+				businessDenialReturned,
+				businessDenialThrownCode,
+				capabilityAllowed: capability.result?.structuredContent?.operations?.configure_stream_session?.allowed === true,
+				ownerFree: !benefits.proAccess && !benefits.runnerAccess,
+				browserAuthenticated: browser.error !== "Unauthorized",
+				mcpAccepted: typeof mcp?.id === "string",
+				mcpError: mcp?.error?.code ?? null,
+				browser,
+				configuration: rows[0] ? { ...rows[0], protectedKey: undefined } : null,
+				sessions: rows.length,
+				credentialEncrypted: Boolean(protectedKey && protectedKey !== key && decryptString(protectedKey) === key),
+				schedulingAvailable: policy.scheduling,
+				safe: !JSON.stringify([configured, browser]).includes(key),
+			};
+		}
+		return await observeManualConfiguration();
 	} finally {
 		globalThis.fetch = previousFetch;
 	}

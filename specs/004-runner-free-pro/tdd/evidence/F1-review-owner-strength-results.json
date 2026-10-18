@@ -1,0 +1,32 @@
+{
+  "scope": "owner-wide admission limit fault; excluded from passing qualification",
+  "source": "src/server/runner/admission.ts",
+  "beforeSha256": "2acb8264750d767b6940cd56449362cd4be1a2cbc1862a68a02fb1eb7fd80cae",
+  "owners": [
+    "test/server/runner/admission-acceptance.test.ts"
+  ],
+  "ok": true,
+  "executionInputFingerprint": "be699c61e99437437c1721d70ffde7e259442f68eebece586bc421012d2be43d",
+  "mutantSha256": "c08a868c88244219ce830079f27e4084a747ec9cd5f0ecf9cfc352829087d081",
+  "fault": {
+    "exitCode": 1,
+    "passed": 0,
+    "failed": 2,
+    "runtimeErrors": 0,
+    "failedCases": [
+      "TDD-US1-CON001 U137 direct / TDD-US1-SC001 U36: the shared admission service serializes callers without an outer mutex",
+      "TDD-US1-SC006 U136: a long-running active Free lease denies another reservation for concurrency without consuming time"
+    ],
+    "log": "specs/004-runner-free-pro/tdd/evidence/F1-review-strength-owner-fault.log"
+  },
+  "restored": {
+    "exitCode": 0,
+    "passed": 2,
+    "failed": 0,
+    "runtimeErrors": 0,
+    "failedCases": [],
+    "log": "specs/004-runner-free-pro/tdd/evidence/F1-review-strength-owner-restored.log"
+  },
+  "allSourcesRestored": true,
+  "restoredSha256": "2acb8264750d767b6940cd56449362cd4be1a2cbc1862a68a02fb1eb7fd80cae"
+}

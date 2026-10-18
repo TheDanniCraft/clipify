@@ -547,6 +547,24 @@ export class Engine {
 		throw lastError;
 	}
 
+	private captureIsCurrent(capturePage: Page) {
+		return this.mayOpenOutput() && !this.isForwardingObs && this.page === capturePage;
+	}
+	private captureVideoConstraints() {
+		return {
+			mandatory: {
+				minFrameRate: this.fps,
+				maxFrameRate: this.fps,
+				minWidth: this.resolution === "1080p" ? 1920 : 1280,
+				maxWidth: this.resolution === "1080p" ? 1920 : 1280,
+				minHeight: this.resolution === "1080p" ? 1080 : 720,
+				maxHeight: this.resolution === "1080p" ? 1080 : 720,
+			},
+		};
+	}
+	private clipProgress(report: PlaybackSnapshot | null, generation: string) {
+		return report?.generation === generation ? JSON.stringify(report.clips.map((clip) => [clip.id, clip.time])) : "";
+	}
 	private async beginCapturedPlayback(capturePage: Page): Promise<boolean | undefined> {
 		const previousEpoch = this.executionOptions.presentationSessionId
 			? await capturePage.evaluate(() => {
@@ -587,11 +605,11 @@ export class Engine {
 				);
 				const status = await ready.jsonValue();
 				await ready.dispose();
-				if (!this.mayOpenOutput() || this.isForwardingObs || this.page !== capturePage) return;
+				if (!this.captureIsCurrent(capturePage)) return;
 				if (status === "blocked") return this.refusePresentation("Adjust your overlay layout to leave room for Clipify attribution, then try again.");
 				if (status !== "placed" && status !== "clean") return this.refusePresentation();
 			} catch {
-				if (!this.mayOpenOutput() || this.isForwardingObs || this.page !== capturePage) return;
+				if (!this.captureIsCurrent(capturePage)) return;
 				return this.refusePresentation();
 			}
 		}
@@ -610,18 +628,9 @@ export class Engine {
 				video: true,
 				frameSize: 20,
 				videoBitsPerSecond: 8000000,
-				videoConstraints: {
-					mandatory: {
-						minFrameRate: this.fps,
-						maxFrameRate: this.fps,
-						minWidth: this.resolution === "1080p" ? 1920 : 1280,
-						maxWidth: this.resolution === "1080p" ? 1920 : 1280,
-						minHeight: this.resolution === "1080p" ? 1080 : 720,
-						maxHeight: this.resolution === "1080p" ? 1080 : 720,
-					},
-				} as any,
+				videoConstraints: this.captureVideoConstraints() as any,
 			});
-			if (!this.mayOpenOutput() || this.isForwardingObs || this.page !== capturePage) {
+			if (!this.captureIsCurrent(capturePage)) {
 				capturedStream.destroy();
 				return;
 			}
@@ -632,7 +641,7 @@ export class Engine {
 				if (playback !== true) return playback;
 			}
 
-			if (!this.mayOpenOutput() || this.isForwardingObs || this.page !== capturePage) return;
+			if (!this.captureIsCurrent(capturePage)) return;
 
 			console.log(`[Engine] Spawning Cloud Loop FFmpeg...`);
 			const fullRtmpUrl = this.streamKey ? `${this.rtmpUrl}/${this.streamKey}` : this.rtmpUrl;
@@ -877,7 +886,7 @@ export class Engine {
 					finished = true;
 					break;
 				}
-				const progress = report?.generation === generation ? JSON.stringify(report.clips.map((clip) => [clip.id, clip.time])) : "";
+				const progress = this.clipProgress(report, generation);
 				if (progress && progress !== lastProgress) {
 					if (lastProgress) lastProgressAt = now;
 					lastProgress = progress;

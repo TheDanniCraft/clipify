@@ -64,17 +64,48 @@ async function audit(tx: TransactionClient, principal: TrustedCreatorPrincipal, 
 	await tx.insert(auditEventsTable).values({ actorUserId: principal.authUserId, ...(principal.kind === "session" ? { actorSessionId: principal.sessionId } : {}), targetType: "runner_destination", targetId: resourceId, action, outcome: "success", correlationId: randomUUID(), occurredAt: new Date() });
 }
 
+type ParsedDestinationInput = z.infer<typeof destinationInput>;
+function invalidCredentialIntent(input: ParsedDestinationInput, replacement: string | undefined) {
+	return (input.credentialAction !== "replace" && !!input.streamKey) || (input.credentialAction === "replace" && (!replacement || /[\u0000-\u001f\u007f]/.test(replacement)));
+}
+function requiresProviderCredential(input: ParsedDestinationInput, current: Destination | undefined, encryptedStreamKey: string | null) {
+	return input.provider !== "custom" && !encryptedStreamKey && !(current && (input.credentialAction === "clear" || (input.credentialAction === "keep" && current.provider === input.provider)));
+}
+function destinationConflicts(peer: Destination, current: Destination | undefined, input: ParsedDestinationInput, rtmpUrl: string, credential: string | null, decryptString: (value: string) => string | null) {
+	if (peer.id === current?.id) return false;
+	if (peer.name.toLocaleLowerCase("en-US") === input.name.toLocaleLowerCase("en-US")) return true;
+	return peer.provider === input.provider && normalizedRtmpUrl(peer.rtmpUrl) === rtmpUrl && (peer.encryptedStreamKey ? decryptString(peer.encryptedStreamKey) : null) === credential;
+}
+
+function selectedRunnerId(input: ParsedDestinationInput, current: Destination | undefined) {
+	return input.runnerId === undefined ? (current?.runnerId ?? null) : input.runnerId;
+}
+function editableDestinationUrl(input: ParsedDestinationInput, current: Destination | undefined) {
+	return normalizedRtmpUrl(input.rtmpUrl ?? current?.rtmpUrl ?? "");
+}
+async function persistDestination(tx: TransactionClient, input: ParsedDestinationInput, current: Destination | undefined, values: Pick<Destination, "runnerId" | "name" | "provider" | "rtmpUrl" | "encryptedStreamKey" | "updatedAt">) {
+	return current
+		? await tx
+				.update(runnerDestinationsTable)
+				.set({ ...values, credentialRevision: current.credentialRevision + (input.credentialAction === "keep" ? 0 : 1), configurationRevision: current.configurationRevision + 1 })
+				.where(and(eq(runnerDestinationsTable.ownerId, input.ownerId), eq(runnerDestinationsTable.id, current.id), eq(runnerDestinationsTable.configurationRevision, input.expectedRevision!)))
+				.returning()
+		: await tx
+				.insert(runnerDestinationsTable)
+				.values({ ...values, ownerId: input.ownerId })
+				.returning();
+}
+
 async function resolveDestinationCredential(input: z.infer<typeof destinationInput>, current: Destination | undefined) {
-	if (input.credentialAction !== "replace" && input.streamKey) return failure("INVALID_INPUT");
 	const replacement = input.streamKey?.trim();
-	if (input.credentialAction === "replace" && (!replacement || /[\u0000-\u001f\u007f]/.test(replacement))) return failure("INVALID_INPUT");
+	if (invalidCredentialIntent(input, replacement)) return failure("INVALID_INPUT");
 	const { encryptString, decryptString } = await import("@/app/lib/encryption");
 	let encryptedStreamKey = current?.encryptedStreamKey ?? null;
 	if (input.credentialAction === "replace") encryptedStreamKey = encryptString(replacement!);
 	if (input.credentialAction === "clear") encryptedStreamKey = null;
 	// Explicit clear retains editable metadata. Keeping an already empty key does not
 	// authorize a Start or a new provider configuration without credentials.
-	if (input.provider !== "custom" && !encryptedStreamKey && !(current && (input.credentialAction === "clear" || (input.credentialAction === "keep" && current.provider === input.provider)))) return failure("INVALID_INPUT");
+	if (requiresProviderCredential(input, current, encryptedStreamKey)) return failure("INVALID_INPUT");
 	const credential = encryptedStreamKey ? decryptString(encryptedStreamKey) : null;
 	if (encryptedStreamKey && credential === null) return failure("RESOURCE_UNAVAILABLE");
 	return { encryptedStreamKey, credential };
@@ -98,7 +129,7 @@ export async function saveRunnerDestinationForPrincipal(principal: TrustedCreato
 			if (!current) return failure("RESOURCE_UNAVAILABLE");
 			if (current.configurationRevision !== input.expectedRevision) return failure("CONFLICT");
 		}
-		const runnerId = input.runnerId === undefined ? (current?.runnerId ?? null) : input.runnerId;
+		const runnerId = selectedRunnerId(input, current);
 		if (runnerId) {
 			const [runner] = await tx
 				.select({ id: runnersTable.id })
@@ -107,7 +138,7 @@ export async function saveRunnerDestinationForPrincipal(principal: TrustedCreato
 				.limit(1);
 			if (!runner) return failure("RESOURCE_UNAVAILABLE");
 		}
-		const rtmpUrl = normalizedRtmpUrl(input.rtmpUrl ?? current?.rtmpUrl ?? "");
+		const rtmpUrl = editableDestinationUrl(input, current);
 		if (!rtmpUrl) return failure("INVALID_INPUT");
 		const credentials = await resolveDestinationCredential(input, current);
 		if ("success" in credentials) return credentials;
@@ -118,22 +149,9 @@ export async function saveRunnerDestinationForPrincipal(principal: TrustedCreato
 			.from(runnerDestinationsTable)
 			.where(and(eq(runnerDestinationsTable.ownerId, input.ownerId), runnerId ? eq(runnerDestinationsTable.runnerId, runnerId) : isNull(runnerDestinationsTable.runnerId)))
 			.orderBy(asc(runnerDestinationsTable.id));
-		for (const peer of peers) {
-			if (peer.id === current?.id) continue;
-			if (peer.name.toLocaleLowerCase("en-US") === input.name.toLocaleLowerCase("en-US")) return failure("INVALID_INPUT");
-			if (peer.provider === input.provider && normalizedRtmpUrl(peer.rtmpUrl) === rtmpUrl && (peer.encryptedStreamKey ? decryptString(peer.encryptedStreamKey) : null) === credential) return failure("INVALID_INPUT");
-		}
+		if (peers.some((peer) => destinationConflicts(peer, current, input, rtmpUrl, credential, decryptString))) return failure("INVALID_INPUT");
 		const values = { runnerId, name: input.name, provider: input.provider, rtmpUrl, encryptedStreamKey, updatedAt: new Date() };
-		const [row] = current
-			? await tx
-					.update(runnerDestinationsTable)
-					.set({ ...values, credentialRevision: current.credentialRevision + (input.credentialAction === "keep" ? 0 : 1), configurationRevision: current.configurationRevision + 1 })
-					.where(and(eq(runnerDestinationsTable.ownerId, input.ownerId), eq(runnerDestinationsTable.id, current.id), eq(runnerDestinationsTable.configurationRevision, input.expectedRevision!)))
-					.returning()
-			: await tx
-					.insert(runnerDestinationsTable)
-					.values({ ...values, ownerId: input.ownerId })
-					.returning();
+		const [row] = await persistDestination(tx, input, current, values);
 		if (!row) return failure("CONFLICT");
 		await audit(tx, principal, row.id, current ? "runner.destination.update" : "runner.destination.create");
 		authority.assertAuthorityCurrent();
@@ -208,8 +226,46 @@ export async function deleteRunnerDestinationForPrincipal(principal: TrustedCrea
 	});
 }
 
+function providerForRtmpUrl(url: string) {
+	const host = new URL(url).hostname;
+	return host === "live.twitch.tv" ? "twitch" : host === "a.rtmp.youtube.com" ? "youtube" : "custom";
+}
+function legacyDestinationCredential(mutation: LegacyDestinationMutation, current: Destination, session: typeof streamSessionsTable.$inferSelect, url: string) {
+	let encryptedStreamKey = mutation.credentialAction === "replace" ? session.encryptedStreamKey : mutation.credentialAction === "clear" ? null : current.encryptedStreamKey;
+	if (mutation.clearCredentialOnUrlChange && url !== current.rtmpUrl) encryptedStreamKey = null;
+	return encryptedStreamKey;
+}
+
+type LegacyDestinationMutation = { credentialAction?: "keep" | "replace" | "clear"; replaceRtmpUrl?: boolean; clearCredentialOnUrlChange?: boolean };
+async function normalizeSelectedDestination(tx: TransactionClient, creatorId: string, session: typeof streamSessionsTable.$inferSelect, destinationId: string, mutation: LegacyDestinationMutation, decryptString: (value: string) => string | null) {
+	const [current] = await tx
+		.select()
+		.from(runnerDestinationsTable)
+		.where(and(eq(runnerDestinationsTable.id, destinationId), eq(runnerDestinationsTable.ownerId, creatorId)))
+		.limit(1);
+	if (!current) throw new Error("RESOURCE_UNAVAILABLE");
+	const url = normalizedRtmpUrl(mutation.replaceRtmpUrl ? session.rtmpUrl : current.rtmpUrl);
+	if (!url) throw new Error("INVALID_INPUT");
+	const provider = mutation.replaceRtmpUrl ? providerForRtmpUrl(url) : current.provider;
+	const encryptedStreamKey = legacyDestinationCredential(mutation, current, session, url);
+	const keyChanged = decryptString(current.encryptedStreamKey ?? "") !== decryptString(encryptedStreamKey ?? "");
+	if (keyChanged || current.rtmpUrl !== url || current.provider !== provider) {
+		const references = await tx
+			.select({ sessionId: streamSessionDestinationsTable.sessionId })
+			.from(streamSessionDestinationsTable)
+			.where(and(eq(streamSessionDestinationsTable.destinationId, current.id), eq(streamSessionDestinationsTable.ownerId, creatorId)));
+		// Transaction-only rollback signal; public boundaries return a safe conflict.
+		if (references.some((reference) => reference.sessionId !== session.id)) throw new Error("CONFLICT");
+		await tx
+			.update(runnerDestinationsTable)
+			.set({ provider, rtmpUrl: url, encryptedStreamKey, credentialRevision: current.credentialRevision + (keyChanged ? 1 : 0), configurationRevision: current.configurationRevision + 1, updatedAt: new Date() })
+			.where(and(eq(runnerDestinationsTable.id, current.id), eq(runnerDestinationsTable.ownerId, creatorId)));
+	}
+	return { rtmpUrl: url, encryptedStreamKey };
+}
+
 /** Caller holds the creator policy lock and commits the scalar edit and conversion together. */
-export async function normalizeLegacySessionDestination(tx: TransactionClient, creatorId: string, sessionId: string, mutation: { credentialAction?: "keep" | "replace" | "clear"; replaceRtmpUrl?: boolean; clearCredentialOnUrlChange?: boolean } = {}) {
+export async function normalizeLegacySessionDestination(tx: TransactionClient, creatorId: string, sessionId: string, mutation: LegacyDestinationMutation = {}) {
 	const { decryptString } = await import("@/app/lib/encryption");
 	const [session] = await tx
 		.select()
@@ -234,37 +290,12 @@ export async function normalizeLegacySessionDestination(tx: TransactionClient, c
 		return { rtmpUrl, encryptedStreamKey };
 	}
 	if (selected.length === 1) {
-		const [current] = await tx
-			.select()
-			.from(runnerDestinationsTable)
-			.where(and(eq(runnerDestinationsTable.id, selected[0].destinationId), eq(runnerDestinationsTable.ownerId, creatorId)))
-			.limit(1);
-		if (!current) throw new Error("RESOURCE_UNAVAILABLE");
-		const url = normalizedRtmpUrl(mutation.replaceRtmpUrl ? session.rtmpUrl : current.rtmpUrl);
-		if (!url) throw new Error("INVALID_INPUT");
-		const host = new URL(url).hostname;
-		const provider = mutation.replaceRtmpUrl ? (host === "live.twitch.tv" ? "twitch" : host === "a.rtmp.youtube.com" ? "youtube" : "custom") : current.provider;
-		let encryptedStreamKey = mutation.credentialAction === "replace" ? session.encryptedStreamKey : mutation.credentialAction === "clear" ? null : current.encryptedStreamKey;
-		if (mutation.clearCredentialOnUrlChange && url !== current.rtmpUrl) encryptedStreamKey = null;
-		const keyChanged = decryptString(current.encryptedStreamKey ?? "") !== decryptString(encryptedStreamKey ?? "");
-		if (keyChanged || current.rtmpUrl !== url || current.provider !== provider) {
-			const references = await tx
-				.select({ sessionId: streamSessionDestinationsTable.sessionId })
-				.from(streamSessionDestinationsTable)
-				.where(and(eq(streamSessionDestinationsTable.destinationId, current.id), eq(streamSessionDestinationsTable.ownerId, creatorId)));
-			// Transaction-only rollback signal; public boundaries return a safe conflict.
-			if (references.some((reference) => reference.sessionId !== sessionId)) throw new Error("CONFLICT");
-			await tx
-				.update(runnerDestinationsTable)
-				.set({ provider, rtmpUrl: url, encryptedStreamKey, credentialRevision: current.credentialRevision + (keyChanged ? 1 : 0), configurationRevision: current.configurationRevision + 1, updatedAt: new Date() })
-				.where(and(eq(runnerDestinationsTable.id, current.id), eq(runnerDestinationsTable.ownerId, creatorId)));
-		}
-		return synchronizeShadow(url, encryptedStreamKey);
+		const normalized = await normalizeSelectedDestination(tx, creatorId, session, selected[0].destinationId, mutation, decryptString);
+		return synchronizeShadow(normalized.rtmpUrl, normalized.encryptedStreamKey);
 	}
 	const url = normalizedRtmpUrl(session.rtmpUrl);
 	if (!url) throw new Error("INVALID_INPUT");
-	const host = new URL(url).hostname;
-	const provider = host === "live.twitch.tv" ? "twitch" : host === "a.rtmp.youtube.com" ? "youtube" : "custom";
+	const provider = providerForRtmpUrl(url);
 	const name = provider === "twitch" ? "Twitch" : provider === "youtube" ? "YouTube" : "Custom RTMP";
 	const peers = await tx
 		.select()

@@ -1,6 +1,6 @@
 # PR519 security alert disposition
 
-Baseline: b8b72b27, refs/pull/519/head. Status: static triage complete; fresh scanner verification pending. No alert dismissal or rule suppression applied.
+Baseline: b8b72b27, refs/pull/519/head. Static triage is complete. Fresh CodeQL on f75e1091 confirms all12 generated-source alerts cleared and three SHA256 classifications still open. No alert dismissal or rule suppression applied.
 
 ## SHA256 classifications
 
@@ -8,15 +8,15 @@ The three high-severity alerts classify operating-system keyring secrets as pass
 
 | Alert                                                                     | Location                                       | Use                                                                                                  |
 | ------------------------------------------------------------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| [#26](https://github.com/TheDanniCraft/clipify/security/code-scanning/26) | packages/runner/src/terminal-credentials.ts:62 | Local terminal-credential record identifier derived from runner, API origin and random bearer token. |
-| [#25](https://github.com/TheDanniCraft/clipify/security/code-scanning/25) | packages/runner/src/schedule-cache.ts:226      | Content-addressed private schedule payload reference, checked before signed execution validation.    |
-| [#24](https://github.com/TheDanniCraft/clipify/security/code-scanning/24) | packages/runner/src/index.ts:523               | In-memory cache identity for API origin and random bearer token.                                     |
+| [#26](https://github.com/TheDanniCraft/clipify/security/code-scanning/26) | packages/runner/src/terminal-credentials.ts:61 | Local terminal-credential record identifier derived from runner, API origin and random bearer token. |
+| [#25](https://github.com/TheDanniCraft/clipify/security/code-scanning/25) | packages/runner/src/schedule-cache.ts:227      | Content-addressed private schedule payload reference, checked before signed execution validation.    |
+| [#24](https://github.com/TheDanniCraft/clipify/security/code-scanning/24) | packages/runner/src/index.ts:589               | In-memory cache identity for API origin and random bearer token.                                     |
 
 SHA256 is appropriate for these high-entropy fingerprints and integrity references. Replacing it with a password KDF would change the wrong contract; removing it would weaken the current integrity checks. These findings still need an explicit reviewed disposition if CodeQL continues to report them.
 
 ## Test source construction
 
-Twelve medium alerts cover three native media probes that previously constructed JavaScript modules by interpolating JSON-quoted local executable and home paths. Static triage finds developer-controlled local configuration, not an attacker-controlled browser or shell boundary. The cleanup nevertheless removes that generated module source: static dependency/OS modules now read a private JSON runtime file. Actual CLI/media checks must verify the replacement.
+Twelve medium alerts cover three native media probes that previously constructed JavaScript modules by interpolating JSON-quoted local executable and home paths. Static triage finds developer-controlled local configuration, not an attacker-controlled browser or shell boundary. The cleanup nevertheless removes that generated module source: static dependency/OS modules now read a private JSON runtime file. The actual five-scenario native multistream owner passes after the replacement, and the complete native owner passes450 cases on f75e1091. Follow-up native refactors require refreshed qualification.
 
 ## Evidence and limits
 

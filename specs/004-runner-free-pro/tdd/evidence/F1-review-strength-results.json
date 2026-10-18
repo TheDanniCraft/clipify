@@ -1,0 +1,167 @@
+{
+  "scope": "deliberate invariant faults after review refactors; excluded from passing qualification",
+  "cycles": [
+    {
+      "name": "signature",
+      "source": "packages/runner/src/protocol.ts",
+      "beforeSha256": "304dc6180c587567fa1f007bdaa74ad131371b8bcaadc9c2edc9451749e39da9",
+      "mutantSha256": "ccec67c2df76bdb93ea0ea1fb19a21e3a52bb78f8e6020b2efd3b740b32369af",
+      "owners": [
+        "test/app/api/runner/heartbeat.test.ts"
+      ],
+      "fault": {
+        "exitCode": 1,
+        "passed": 32,
+        "failed": 2,
+        "runtimeErrors": 0,
+        "failedCases": [
+          "Runner heartbeat authentication and assigned state TDD-US1-CON004 U242: execution verification admits an authentic permit and rejects a forged bundle",
+          "Runner heartbeat authentication and assigned state TDD-US1-CON004 U242 validity: signed permits fail closed at expiry and for unknown keys or malformed claims"
+        ],
+        "log": "specs/004-runner-free-pro/tdd/evidence/F1-review-strength-signature-fault.log"
+      },
+      "restoredSha256": "304dc6180c587567fa1f007bdaa74ad131371b8bcaadc9c2edc9451749e39da9",
+      "restored": {
+        "exitCode": 0,
+        "passed": 34,
+        "failed": 0,
+        "runtimeErrors": 0,
+        "failedCases": [],
+        "log": "specs/004-runner-free-pro/tdd/evidence/F1-review-strength-signature-restored.log"
+      },
+      "killed": true
+    },
+    {
+      "name": "expiry",
+      "source": "packages/runner/src/protocol.ts",
+      "beforeSha256": "304dc6180c587567fa1f007bdaa74ad131371b8bcaadc9c2edc9451749e39da9",
+      "mutantSha256": "e34a8916b2745ec5c7be0a7ca885244fc846f672a453c7e1b2db9123ad75a2a5",
+      "owners": [
+        "test/app/api/runner/heartbeat.test.ts"
+      ],
+      "fault": {
+        "exitCode": 1,
+        "passed": 33,
+        "failed": 1,
+        "runtimeErrors": 0,
+        "failedCases": [
+          "Runner heartbeat authentication and assigned state TDD-US1-CON004 U242 validity: signed permits fail closed at expiry and for unknown keys or malformed claims"
+        ],
+        "log": "specs/004-runner-free-pro/tdd/evidence/F1-review-strength-expiry-fault.log"
+      },
+      "restoredSha256": "304dc6180c587567fa1f007bdaa74ad131371b8bcaadc9c2edc9451749e39da9",
+      "restored": {
+        "exitCode": 0,
+        "passed": 34,
+        "failed": 0,
+        "runtimeErrors": 0,
+        "failedCases": [],
+        "log": "specs/004-runner-free-pro/tdd/evidence/F1-review-strength-expiry-restored.log"
+      },
+      "killed": true
+    },
+    {
+      "name": "identity",
+      "source": "packages/runner/src/protocol.ts",
+      "beforeSha256": "304dc6180c587567fa1f007bdaa74ad131371b8bcaadc9c2edc9451749e39da9",
+      "mutantSha256": "803e1e09b083880c108cf49650e098f3dbc9f582e7757553fa558ad14816b18c",
+      "owners": [
+        "test/app/api/runner/heartbeat.test.ts"
+      ],
+      "fault": {
+        "exitCode": 1,
+        "passed": 33,
+        "failed": 1,
+        "runtimeErrors": 0,
+        "failedCases": [
+          "Runner heartbeat authentication and assigned state TDD-US1-CON004 U242 identity: a valid signature cannot substitute another resource, generation or revision"
+        ],
+        "log": "specs/004-runner-free-pro/tdd/evidence/F1-review-strength-identity-fault.log"
+      },
+      "restoredSha256": "304dc6180c587567fa1f007bdaa74ad131371b8bcaadc9c2edc9451749e39da9",
+      "restored": {
+        "exitCode": 0,
+        "passed": 34,
+        "failed": 0,
+        "runtimeErrors": 0,
+        "failedCases": [],
+        "log": "specs/004-runner-free-pro/tdd/evidence/F1-review-strength-identity-restored.log"
+      },
+      "killed": true
+    },
+    {
+      "name": "capture-fence",
+      "source": "packages/runner/src/engine.ts",
+      "beforeSha256": "67d532500d7c437417062f7c70fe4b30c77e764e72222320a443b0790155ca00",
+      "mutantSha256": "004c0375713be8d1f74b88a1792327a081c00d3f8e9628361b355a9193ad7a9b",
+      "owners": [
+        "src/__tests__/capture-startup.test.ts",
+        "src/__tests__/engine.test.ts",
+        "src/__tests__/presentation-bootstrap.test.ts",
+        "src/__tests__/controller-drain.test.ts",
+        "src/__tests__/drain.test.ts"
+      ],
+      "fault": {
+        "exitCode": 1,
+        "passed": 87,
+        "failed": 4,
+        "runtimeErrors": 0,
+        "failedCases": [
+          "Engine (Raw Logic Tests) TDD-US4-DEC012 U290 baseline: deferred startup readiness permission-revoked fences encoder publication",
+          "Engine (Raw Logic Tests) TDD-US1-FR004: capture arriving after completed Stop is destroyed without opening an encoder",
+          "Engine (Raw Logic Tests) TDD-US1-FR004: Stop during playback activation cannot spawn a late encoder",
+          "Engine (Raw Logic Tests) TDD-US1-DEC001: lease permission expiring during capture setup prevents encoder creation before the next tick"
+        ],
+        "log": "specs/004-runner-free-pro/tdd/evidence/F1-review-strength-capture-fence-fault.log"
+      },
+      "restoredSha256": "67d532500d7c437417062f7c70fe4b30c77e764e72222320a443b0790155ca00",
+      "restored": {
+        "exitCode": 0,
+        "passed": 91,
+        "failed": 0,
+        "runtimeErrors": 0,
+        "failedCases": [],
+        "log": "specs/004-runner-free-pro/tdd/evidence/F1-review-strength-capture-fence-restored.log"
+      },
+      "killed": true
+    },
+    {
+      "name": "clip-flush",
+      "source": "packages/runner/src/engine.ts",
+      "beforeSha256": "67d532500d7c437417062f7c70fe4b30c77e764e72222320a443b0790155ca00",
+      "mutantSha256": "549fd2e64d2667db213bfbd5a38820d32c387569620d7063ef479b4c23fa92de",
+      "owners": [
+        "src/__tests__/capture-startup.test.ts",
+        "src/__tests__/engine.test.ts",
+        "src/__tests__/presentation-bootstrap.test.ts",
+        "src/__tests__/controller-drain.test.ts",
+        "src/__tests__/drain.test.ts"
+      ],
+      "fault": {
+        "exitCode": 1,
+        "passed": 88,
+        "failed": 3,
+        "runtimeErrors": 0,
+        "failedCases": [
+          "TDD-US3-CON010 U262: a retired generation completion cannot close its replacement engine",
+          "TDD-US3-FR013 U13; TDD-US3-OPT040 U80; TDD-US3-CON010 U146: the 22:00 end waits for a progressing current clip until its 22:01 boundary",
+          "TDD-US3-OPT041 U81: standby drain closes immediately without consuming any watchdog time"
+        ],
+        "log": "specs/004-runner-free-pro/tdd/evidence/F1-review-strength-clip-flush-fault.log"
+      },
+      "restoredSha256": "67d532500d7c437417062f7c70fe4b30c77e764e72222320a443b0790155ca00",
+      "restored": {
+        "exitCode": 0,
+        "passed": 91,
+        "failed": 0,
+        "runtimeErrors": 0,
+        "failedCases": [],
+        "log": "specs/004-runner-free-pro/tdd/evidence/F1-review-strength-clip-flush-restored.log"
+      },
+      "killed": true
+    }
+  ],
+  "ok": true,
+  "executionInputFingerprint": "be699c61e99437437c1721d70ffde7e259442f68eebece586bc421012d2be43d",
+  "allSourcesRestored": true
+}

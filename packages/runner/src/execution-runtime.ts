@@ -1,5 +1,5 @@
 import { executionNow } from "./execution-clock";
-import { FreeExecutionLease, ProExecutionPermit, hashExecutionTargets, hashScheduledExecutionPayload, verifyExecutionBundle, type LeaseRequestContext, type SignedExecutionBundle } from "./protocol";
+import { FreeExecutionLease, ProExecutionPermit, hashExecutionTargets, hashScheduledExecutionPayload, verifyExecutionBundle, type ExecutionIdentity, type LeaseRequestContext, type SignedExecutionBundle } from "./protocol";
 import { ExecutionJournal, type ExecutionRecord } from "./execution-journal";
 import type { RunnerOutputState } from "./output";
 
@@ -309,9 +309,39 @@ export class FreeExecutionController {
 		return execution.closing;
 	}
 
-	private async startExecution(job: FreeExecutionJob, persisted: ExecutionRecord | undefined, leaseId: string, policy: string, guard: FreeExecutionLease | ProExecutionPermit): Promise<boolean> {
+	private startingExecutionRecord(job: FreeExecutionJob, persisted: ExecutionRecord | undefined, leaseId: string): ExecutionRecord {
 		const occurrence = job.occurrenceId !== undefined && job.scheduledStart !== undefined && job.scheduledEnd != null ? { ...persisted?.occurrence, occurrenceId: job.occurrenceId, start: job.scheduledStart, end: job.scheduledEnd, ...(job.cacheAuthorization !== true ? { explicitResume: true as const } : {}) } : persisted?.occurrence;
-		const record: ExecutionRecord = { ownerId: job.ownerId, runnerId: job.runnerId, sessionId: job.id, admissionId: job.admissionId, executionGeneration: job.executionGeneration, leaseId, configurationRevision: job.configurationRevision, state: "starting", updatedAt: Date.now(), ...(occurrence ? { occurrence } : {}) };
+		return { ownerId: job.ownerId, runnerId: job.runnerId, sessionId: job.id, admissionId: job.admissionId, executionGeneration: job.executionGeneration, leaseId, configurationRevision: job.configurationRevision, state: "starting", updatedAt: Date.now(), ...(occurrence ? { occurrence } : {}) };
+	}
+	private executionPolicy(job: FreeExecutionJob, targetCount: number) {
+		let leaseId: string;
+		let policy: string;
+		try {
+			const untrusted = JSON.parse(Buffer.from(job.lease.payload, "base64url").toString("utf8"));
+			leaseId = untrusted.leaseId;
+			policy = untrusted.policy;
+		} catch {
+			return null;
+		}
+		if (policy !== "free_lease" && policy !== "pro_broadcast") return null;
+		if (policy === "free_lease" && targetCount > 1) return null;
+		if (job.cacheAuthorization === true && (policy !== "pro_broadcast" || !["24/7", "24_7"].includes(job.mode) || typeof job.overlaySecret !== "string")) return null;
+		return { leaseId, policy };
+	}
+	private persistedExecutionBlocks(job: FreeExecutionJob, persisted: ExecutionRecord | undefined) {
+		if (persisted && (persisted.state === "draining" || persisted.state === "stopped" || persisted.occurrence?.suppressed === true)) return true;
+		if (persisted?.occurrence && job.scheduledEnd !== persisted.occurrence.end) return true;
+		return false;
+	}
+	private occurrenceAllowsCommand(job: FreeExecutionJob, persisted: ExecutionRecord | undefined) {
+		if (job.occurrenceId) {
+			const control = this.options.journal.occurrenceControl({ ownerId: job.ownerId, runnerId: job.runnerId, occurrenceId: job.occurrenceId });
+			if (job.configurationRevision < control.revision || (job.cacheAuthorization !== true && control.revision > 0 && job.configurationRevision === control.revision && persisted?.occurrence?.explicitResume !== true)) return false;
+		}
+		return true;
+	}
+	private async startExecution(job: FreeExecutionJob, persisted: ExecutionRecord | undefined, leaseId: string, policy: string, guard: FreeExecutionLease | ProExecutionPermit): Promise<boolean> {
+		const record = this.startingExecutionRecord(job, persisted, leaseId);
 		this.options.journal.save(record);
 		const outputGate = { permitted: true };
 		const continuity = job.cacheAuthorization === true ? this.scheduledContinuity(job) : undefined;
@@ -360,28 +390,21 @@ export class FreeExecutionController {
 		if (job.desiredState !== "running" || job.ownerId !== this.options.ownerId || job.runnerId !== this.options.runnerId) return null;
 		if (job.cacheAuthorization === true && job.occurrenceId && this.options.journal.isOccurrenceSuppressed({ ownerId: job.ownerId, runnerId: job.runnerId, occurrenceId: job.occurrenceId })) return null;
 		const persisted = this.options.journal.get(job.admissionId);
-		if (persisted && (persisted.state === "draining" || persisted.state === "stopped" || persisted.occurrence?.suppressed === true)) return null;
-		if (persisted?.occurrence && job.scheduledEnd !== persisted.occurrence.end) return null;
+		if (this.persistedExecutionBlocks(job, persisted)) return null;
 		const targets = job.destinations ?? [{ id: job.id, rtmpUrl: job.rtmpUrl, streamKey: job.streamKey }];
 		if (!targets.length || new Set(targets.map((target) => target.id)).size !== targets.length) return null;
 		const targetHash = hashExecutionTargets(targets);
 		if (targetHash !== job.targetHash) return null;
-		let leaseId: string;
-		let policy: string;
-		try {
-			const untrusted = JSON.parse(Buffer.from(job.lease.payload, "base64url").toString("utf8"));
-			leaseId = untrusted.leaseId;
-			policy = untrusted.policy;
-		} catch {
-			return null;
-		}
-		if (policy !== "free_lease" && policy !== "pro_broadcast") return null;
-		if (policy === "free_lease" && targets.length > 1) return null;
-		if (job.cacheAuthorization === true && (policy !== "pro_broadcast" || !["24/7", "24_7"].includes(job.mode) || typeof job.overlaySecret !== "string")) return null;
+		const policyBinding = this.executionPolicy(job, targets.length);
+		if (!policyBinding) return null;
+		const { leaseId, policy } = policyBinding;
 		return { persisted, targetHash, leaseId, policy };
 	}
 	private cachedExecutionIdentity(job: FreeExecutionJob) {
 		return { ...(job.occurrenceId !== undefined || job.scheduledStart !== undefined ? { occurrenceId: job.occurrenceId, scheduledStart: job.scheduledStart } : {}), ...(job.cacheAuthorization === true ? { cacheAuthorization: true as const, executionPayloadHash: hashScheduledExecutionPayload(job) } : {}) };
+	}
+	private createExecutionGuard(job: FreeExecutionJob, cachedIdentity: Pick<ExecutionIdentity, "occurrenceId" | "scheduledStart" | "cacheAuthorization" | "executionPayloadHash">, targetHash: string, leaseId: string, policy: string) {
+		return new (policy === "pro_broadcast" ? ProExecutionPermit : FreeExecutionLease)({ ...cachedIdentity, ownerId: job.ownerId, runnerId: job.runnerId, sessionId: job.id, generation: job.executionGeneration, targetHash, sourceId: job.overlayId, configurationRevision: job.configurationRevision, sourceRevision: job.sourceRevision, admissionId: job.admissionId, leaseId, ...(job.scheduledEnd === undefined ? {} : { scheduledEnd: job.scheduledEnd }) }, this.options.keys, this.options.clock);
 	}
 	async apply(job: FreeExecutionJob, request: LeaseRequestContext): Promise<boolean> {
 		const identity = this.prepareExecutionIdentity(job);
@@ -391,14 +414,9 @@ export class FreeExecutionController {
 		const existing = this.active.get(job.id);
 		if (existing?.continuity) return this.acceptsContinuityJob(existing, job, request);
 		if (existing && existing.record.executionGeneration !== job.executionGeneration) return false;
-		const guard =
-			existing?.guard ??
-			new (policy === "pro_broadcast" ? ProExecutionPermit : FreeExecutionLease)({ ...cachedIdentity, ownerId: job.ownerId, runnerId: job.runnerId, sessionId: job.id, generation: job.executionGeneration, targetHash, sourceId: job.overlayId, configurationRevision: job.configurationRevision, sourceRevision: job.sourceRevision, admissionId: job.admissionId, leaseId, ...(job.scheduledEnd === undefined ? {} : { scheduledEnd: job.scheduledEnd }) }, this.options.keys, this.options.clock);
+		const guard = existing?.guard ?? this.createExecutionGuard(job, cachedIdentity, targetHash, leaseId, policy);
 		if (!guard.beginRenewal(request) || !guard.accept(job.lease)) return false;
-		if (job.occurrenceId) {
-			const control = this.options.journal.occurrenceControl({ ownerId: job.ownerId, runnerId: job.runnerId, occurrenceId: job.occurrenceId });
-			if (job.configurationRevision < control.revision || (job.cacheAuthorization !== true && control.revision > 0 && job.configurationRevision === control.revision && persisted?.occurrence?.explicitResume !== true)) return false;
-		}
+		if (!this.occurrenceAllowsCommand(job, persisted)) return false;
 
 		// Adjacent cached windows share one physical schedule lane on this Runner.
 		// A following authorization cannot replace a clip that is still finishing;
