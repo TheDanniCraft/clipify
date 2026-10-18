@@ -496,6 +496,23 @@ jobs:
       - name: 🌐 Install Playwright Chromium
         run: bunx playwright install --with-deps chromium
 
+      - name: 📦 Install BDD native presentation dependencies
+        if: matrix.project == 'bdd-chromium'
+        working-directory: packages/runner
+        run: |
+          bun install --frozen-lockfile
+          bun run patches:validate
+          node check-native.mjs
+      - name: 🌐 Prepare BDD native presentation browser
+        if: matrix.project == 'bdd-chromium'
+        working-directory: packages/runner
+        run: node test/support/prepare-media.mjs
+      - name: 🎞️ Install BDD native media system dependencies
+        if: matrix.project == 'bdd-chromium'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          sudo apt-get satisfy -y --no-install-recommends "$(paste -sd, "$(dirname "$RUNNER_CHROME_PATH")/deb.deps")"
       - name: 🧩 Compile native application probes once
         run: |
           node --input-type=module -e "import { buildMcpCoverageProbes } from './scripts/build-mcp-coverage-probes.mjs'; await buildMcpCoverageProbes({ outputDirectory: 'test-results/mcp/browser-native-probes' });"
