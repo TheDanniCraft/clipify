@@ -372,7 +372,7 @@ Given("their scheduled occurrence is inside its original active window", async (
 });
 Then("its schedule editor is locked while broadcast controls remain available", async ({ page, mcpWorld }) => {
 	await expect(page.getByRole("button", { name: "Edit Active schedule", exact: true })).toBeDisabled();
-	await expect(page.getByText("This occurrence is active. Its schedule stays locked until the window ends.", { exact: true })).toBeVisible();
+	await expect(page.getByText("You can edit this schedule after its current time slot ends.", { exact: true })).toBeVisible();
 	await expect(page.getByRole("button", { name: "Stop", exact: true })).toBeVisible();
 	await expect(page.getByRole("dialog", { name: "Schedule broadcast", exact: true })).toHaveCount(0);
 	const state = mcpWorld.input?.scheduleContract as State;
@@ -391,7 +391,7 @@ Given("that window ended while its captured output is still draining", async ({ 
 });
 Then("its schedule stays locked until the draining outputs close", async ({ page, mcpWorld }) => {
 	await expect(page.getByRole("button", { name: "Edit Active schedule", exact: true })).toBeDisabled();
-	await expect(page.getByText("This occurrence is finishing. Its schedule stays locked until its outputs close.", { exact: true })).toBeVisible();
+	await expect(page.getByText("You can edit this schedule after the broadcast finishes.", { exact: true })).toBeVisible();
 	const state = mcpWorld.input?.scheduleContract as State;
 	expect(await saved(state)).toEqual(state.before);
 });

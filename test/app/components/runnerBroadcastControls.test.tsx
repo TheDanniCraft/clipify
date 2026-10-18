@@ -8,7 +8,7 @@ test.each([true, false])("TDD-US1-FR004 dashboard distinguishes requested Stop f
 		onStop = jest.fn();
 	const props = { onStart, onStop, canStart: true, requiresConnection: true, clipPlayback, desiredState: "running", actualState: "running" };
 	const { rerender } = render(<Controls {...props} />);
-	expect(screen.getByText(/Free broadcasts need a connection to Clipify/)).toBeInTheDocument();
+	expect(screen.getByText(/Keep Runner connected to the internet/)).toBeInTheDocument();
 	expect(screen.getByRole("button", { name: "Start" })).toBeDisabled();
 	expect(screen.queryByRole("button", { name: "Stop now" })).not.toBeInTheDocument();
 	fireEvent.click(screen.getByRole("button", { name: "Stop" }));
@@ -24,7 +24,7 @@ test.each([true, false])("TDD-US1-FR004 dashboard distinguishes requested Stop f
 	expect(screen.queryByRole("button", { name: "Stop now" })).not.toBeInTheDocument();
 	expect(screen.getByRole("button", { name: "Start" })).toBeEnabled();
 	rerender(<Controls {...props} requiresConnection={false} desiredState='stopped' actualState='stopped' />);
-	expect(screen.queryByText(/Free broadcasts need a connection to Clipify/)).not.toBeInTheDocument();
+	expect(screen.queryByText(/Keep Runner connected to the internet/)).not.toBeInTheDocument();
 });
 
 test("TDD-US3-EC009: closed playback timeout explains the watchdog without exposing native error text", () => {

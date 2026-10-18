@@ -55,7 +55,7 @@ function lineItems(billing: typeof agencyBillingAccountsTable.$inferSelect) {
 export async function createAgencyBillingStart() {
 	const { billing } = await requireBillingContext("billing:manage");
 	if (billing.stripeSubscriptionId) return createAgencyBillingPortal();
-	if ((billing.pendingRunnerSeatQuantity ?? billing.runnerSeatQuantity) > 0) return { kind: "included" as const, success: false as const, code: "RUNNER_INCLUDED" as const, error: "Runner is included with Free and Pro. Start agency billing without a separate Runner purchase.", url: null };
+	if ((billing.pendingRunnerSeatQuantity ?? billing.runnerSeatQuantity) > 0) return { kind: "included" as const, success: false as const, code: "RUNNER_INCLUDED" as const, error: "Remove Runner seats before starting billing.", url: null };
 	const stripe = getStripe();
 	const customer = await ensureStripeCustomer(stripe, billing);
 	const metadata = { clipifyAccountType: "agency", clipifyAgencyOrganizationId: billing.organizationId };
@@ -119,7 +119,7 @@ async function occupiedSeats(organizationId: string, kind: AgencySeatKind) {
 
 export async function changeAgencySeatQuantity(kind: AgencySeatKind, requestedQuantity: number) {
 	const { billing } = await requireBillingContext("billing:manage");
-	if (kind === "runner" && requestedQuantity > billing.runnerSeatQuantity) return { kind: "included" as const, success: false as const, code: "RUNNER_INCLUDED" as const, error: "Runner is included with Free and Pro. Additional Runner seats cannot be purchased." };
+	if (kind === "runner" && requestedQuantity > billing.runnerSeatQuantity) return { kind: "included" as const, success: false as const, code: "RUNNER_INCLUDED" as const, error: "Additional Runner seats cannot be purchased." };
 	if (!billing.stripeSubscriptionId) throw new Error("AGENCY_SUBSCRIPTION_REQUIRED");
 	const terms = seatTerms(billing, kind);
 	if (!terms.priceId) throw new Error("AGENCY_SUBSCRIPTION_ITEM_REQUIRED");

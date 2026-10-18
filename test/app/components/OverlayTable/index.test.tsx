@@ -1195,7 +1195,7 @@ describe("components/OverlayTable/index", () => {
 		expect(screen.getByText("Shared Gallery")).toBeInTheDocument();
 		expect(getAvatar).toHaveBeenCalledWith("another-owner", "another-owner");
 	});
-	it("Free runner empty state explains included access without implicitly creating hardware", async () => {
+	it("Free runner empty state offers creation without implicitly creating hardware", async () => {
 		validateAuth.mockResolvedValue({ id: "owner-1", plan: "free", entitlements: { effectivePlan: "free", runnerAccess: false } });
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
@@ -1204,7 +1204,7 @@ describe("components/OverlayTable/index", () => {
 		await act(async () => {
 			fireEvent.click(screen.getByRole("button", { name: "Runners" }));
 		});
-		expect(screen.getByText("Runner is included with Free and Pro.")).toBeInTheDocument();
+		expect(screen.queryByText("Runner is included with Free and Pro.")).not.toBeInTheDocument();
 		expect(screen.queryByRole("button", { name: "Upgrade with Runner" })).not.toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Create runner" })).toBeInTheDocument();
 		expect(createRunner).not.toHaveBeenCalled();

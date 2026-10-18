@@ -37,7 +37,7 @@ export default function RunnerBroadcastControls({ desiredState, actualState, can
 					{PLAYBACK_TIMEOUT_MESSAGE}
 				</p>
 			)}
-			{requiresConnection && <p className='text-xs text-muted'>Free broadcasts need a connection to Clipify. If Clipify stays unreachable for about five minutes, the Runner finishes playback and stops.</p>}
+			{requiresConnection && <p className='text-xs text-muted'>Keep Runner connected to the internet. After about five minutes without a connection, it finishes playback and stops.</p>}
 			{finishing && (
 				<p role='status' className='text-sm text-muted'>
 					{clipPlayback ? "Finishing current clip…" : "Stopping broadcast…"}

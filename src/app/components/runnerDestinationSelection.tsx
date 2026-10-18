@@ -12,7 +12,7 @@ export default function RunnerDestinationSelection({ destinations, selectedIds, 
 	return (
 		<fieldset className='space-y-3'>
 			<legend className='text-sm font-medium'>Broadcast destinations</legend>
-			<p className='text-sm text-muted'>{runnerPro ? "Select the destinations for this broadcast. Your Runner sends to each from your computer." : "Free includes one destination per broadcast."}</p>
+			<p className='text-sm text-muted'>{runnerPro ? "Select destinations for this broadcast." : "Select a destination for this broadcast."}</p>
 			<div className='grid gap-2 sm:grid-cols-2'>
 				{destinations.map((destination) => {
 					const selected = selectedIds.includes(destination.id);

@@ -424,7 +424,7 @@ function GalleryEditorContent({ initialGallery, playlists, canUseAdvanced, canUs
 
 						<Separator />
 
-						<SettingsSection title='Advanced Live Filters' description={canUseAdvanced ? "Apply precise filters to live galleries." : "Available with Pro. Free galleries keep broad discovery useful."}>
+						<SettingsSection title='Advanced Live Filters' description={canUseAdvanced ? "Apply precise filters to live galleries." : "Available with Pro."}>
 							{!canUseAdvanced ? (
 								<Alert status='warning'>
 									<Alert.Indicator>
@@ -455,7 +455,7 @@ function GalleryEditorContent({ initialGallery, playlists, canUseAdvanced, canUs
 
 						<Separator />
 
-						<SettingsSection title='Pro Styling' description={canUseStyling ? "Saved defaults for the gallery and website modal." : "Free galleries use Clipify defaults and attribution."}>
+						<SettingsSection title='Pro Styling' description={canUseStyling ? "Saved defaults for the gallery and website modal." : "Customize gallery colors and branding with Pro."}>
 							<div className='grid w-full gap-4 sm:grid-cols-2'>
 								<GallerySelect
 									label='Theme'

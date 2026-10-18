@@ -223,7 +223,7 @@ export default function RunnerSchedule(props: Props) {
 							{automationMessage}
 						</p>
 					)}
-					{loading ? <Spinner size='sm' aria-label='Loading schedule' /> : !policy?.scheduling ? <p className='text-sm text-muted'>Pro includes scheduled broadcasts. Your saved schedules are retained, and Manual broadcasting remains available.</p> : !props.clipPlayback ? <p className='text-sm text-muted'>Scheduling is available for Clip playback.</p> : !props.sessionId ? <p className='text-sm text-muted'>Save your broadcast configuration before adding a schedule.</p> : null}
+					{loading ? <Spinner size='sm' aria-label='Loading schedule' /> : !policy?.scheduling ? <p className='text-sm text-muted'>Upgrade to Pro to schedule broadcasts.</p> : !props.clipPlayback ? <p className='text-sm text-muted'>Scheduling is available for Clip playback.</p> : !props.sessionId ? <p className='text-sm text-muted'>Save your broadcast configuration before adding a schedule.</p> : null}
 					{error && !open && (
 						<p role='alert' className='text-sm text-danger'>
 							{error}
@@ -262,7 +262,7 @@ export default function RunnerSchedule(props: Props) {
 											{event.localStartDate} {event.localStartTime.slice(0, 5)} — {event.localEndDate ?? "Weekly"} {event.localEndTime.slice(0, 5)}
 										</p>
 										<p className='text-sm text-muted'>{elapsedDescription(event)}</p>
-										{event.lockedUntil && <p className='text-xs text-muted'>{event.lockReason === "output_drain" ? "This occurrence is finishing. Its schedule stays locked until its outputs close." : "This occurrence is active. Its schedule stays locked until the window ends."}</p>}
+										{event.lockedUntil && <p className='text-xs text-muted'>{event.lockReason === "output_drain" ? "You can edit this schedule after the broadcast finishes." : "You can edit this schedule after its current time slot ends."}</p>}
 									</div>
 									{event.currentOccurrence && (
 										<Button variant='secondary' size='sm' aria-label={`Resume ${event.title}`} isDisabled={!canEdit || saving || !event.currentOccurrence.canResume} onPress={() => resume(event)}>

@@ -90,7 +90,7 @@ test("TDD-US5-CON014: existing Pro checkout keeps its current price and mocked S
 test("TDD-US5-FR020: standalone Runner checkout returns an included-plan result before Stripe writes", async () => {
 	const { generateRunnerPaymentLink } = await import("@/app/actions/subscription");
 	const result = await generateRunnerPaymentLink("monthly");
-	expect(result).toEqual({ success: false, code: "RUNNER_INCLUDED", error: expect.stringMatching(/included.*Free.*Pro/) });
+	expect(result).toEqual({ success: false, code: "RUNNER_INCLUDED", error: expect.stringMatching(/No purchase is needed to use Runner/) });
 	expect(checkoutCreate).not.toHaveBeenCalled();
 	expect(customerCreate).not.toHaveBeenCalled();
 	expect(stripe.prices.list).not.toHaveBeenCalled();
@@ -195,7 +195,7 @@ test("TDD-US5-CON014: agency form presents included access instead of reporting 
 	const form = new FormData();
 	form.set("kind", "runner");
 	form.set("quantity", "3");
-	await expect(changeAgencySeatQuantityFormAction(form)).rejects.toThrow(`TEST_REDIRECT:/dashboard/agency?billingError=${encodeURIComponent("Runner is included with Free and Pro. Additional Runner seats cannot be purchased.")}`);
+	await expect(changeAgencySeatQuantityFormAction(form)).rejects.toThrow(`TEST_REDIRECT:/dashboard/agency?billingError=${encodeURIComponent("Additional Runner seats cannot be purchased.")}`);
 	expect(redirectTo).toHaveBeenCalledTimes(1);
 	expect(databaseUpdate).not.toHaveBeenCalled();
 	expect(stripe.subscriptions.update).not.toHaveBeenCalled();
@@ -204,7 +204,7 @@ test("TDD-US5-CON014: agency form presents included access instead of reporting 
 test("TDD-US5-CON014: initial agency form explains included Runner instead of reporting an invoice", async () => {
 	billingRead.mockResolvedValue([{ ...agencyBilling, stripeSubscriptionId: null }]);
 	const { startAgencyBillingFormAction } = await import("@/app/actions/agency");
-	await expect(startAgencyBillingFormAction()).rejects.toThrow(`TEST_REDIRECT:/dashboard/agency?billingError=${encodeURIComponent("Runner is included with Free and Pro. Start agency billing without a separate Runner purchase.")}`);
+	await expect(startAgencyBillingFormAction()).rejects.toThrow(`TEST_REDIRECT:/dashboard/agency?billingError=${encodeURIComponent("Remove Runner seats before starting billing.")}`);
 	expect(redirectTo).toHaveBeenCalledTimes(1);
 	expect(checkoutCreate).not.toHaveBeenCalled();
 	expect(stripe.subscriptions.create).not.toHaveBeenCalled();
@@ -334,8 +334,8 @@ test("TDD-US5-DEC013: reference templates and home FAQ describe included unlimit
 	}
 	expect(full).toMatch(/Runner and broadcasting/);
 	expect(full).toMatch(/existing.*Runner.*grants.*unrelated Pro/i);
-	const runnerFaq = faqs.find((faq) => faq.title === "What is the self-hosted Runner and what does it cost?");
-	expect(runnerFaq?.content).toMatch(/included with Free and Pro/);
+	const runnerFaq = faqs.find((faq) => faq.title === "What is the self-hosted Runner?");
+	expect(runnerFaq?.content).toMatch(/broadcasts clips from your Windows, Linux, or macOS computer/);
 	expect(runnerFaq?.content).not.toMatch(/3 EUR|30 EUR|add-on/);
 });
 

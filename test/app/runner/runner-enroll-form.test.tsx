@@ -27,7 +27,7 @@ describe("RunnerEnrollForm", () => {
 
 		const continueButton = screen.getByRole("button", { name: "Continue" });
 		expect(continueButton).toBeEnabled();
-		expect(screen.getByText("Runner is included with Free and Pro.", { exact: true })).toBeInTheDocument();
+		expect(screen.getByText("Enter the device code shown in your runner terminal.")).toBeInTheDocument();
 		expect(mockSubmitRunnerEnrollCode).not.toHaveBeenCalled();
 
 		fireEvent.click(continueButton);
