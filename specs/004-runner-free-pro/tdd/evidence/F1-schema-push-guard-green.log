@@ -1,0 +1,64 @@
+TAP version 13
+# Subtest: allows only the approved loopback GitHub Actions target
+ok 1 - allows only the approved loopback GitHub Actions target
+  ---
+  duration_ms: 2.351809
+  type: 'test'
+  ...
+# Subtest: rejects schema push outside GitHub Actions
+ok 2 - rejects schema push outside GitHub Actions
+  ---
+  duration_ms: 1.01433
+  type: 'test'
+  ...
+# Subtest: rejects schema push outside the browser job
+ok 3 - rejects schema push outside the browser job
+  ---
+  duration_ms: 0.142683
+  type: 'test'
+  ...
+# Subtest: rejects schema push without explicit CI approval
+ok 4 - rejects schema push without explicit CI approval
+  ---
+  duration_ms: 0.139159
+  type: 'test'
+  ...
+# Subtest: rejects schema push against a remote host
+ok 5 - rejects schema push against a remote host
+  ---
+  duration_ms: 0.172668
+  type: 'test'
+  ...
+# Subtest: rejects schema push against a differently named database
+ok 6 - rejects schema push against a differently named database
+  ---
+  duration_ms: 0.187446
+  type: 'test'
+  ...
+# Subtest: rejects schema push as a different database user
+ok 7 - rejects schema push as a different database user
+  ---
+  duration_ms: 0.144225
+  type: 'test'
+  ...
+# Subtest: rejects zero-exit schema push when PostgreSQL reports a failed constraint
+ok 8 - rejects zero-exit schema push when PostgreSQL reports a failed constraint
+  ---
+  duration_ms: 0.327246
+  type: 'test'
+  ...
+# Subtest: rejects nonzero schema push and accepts clean applied schema output
+ok 9 - rejects nonzero schema push and accepts clean applied schema output
+  ---
+  duration_ms: 0.647594
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 83.950141

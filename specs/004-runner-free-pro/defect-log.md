@@ -1793,8 +1793,26 @@ Verification for DEF-US5-244: the revised fixture explicitly creates a separate 
 
 ## DEF-US5-245 — Native CI omits shared test parser dependencies
 
-Severity: Medium. Status: Fixed, CI verification pending. Owner: Feature implementer. Scope: owning Runner CI environment.
+Severity: Medium. Status: Verified. Owner: Feature implementer. Scope: owning Runner CI environment.
 
 Full CI run39109250297, Runner job117621708651, fails `bun run typecheck` with TS2307 for `@cucumber/gherkin` and `@cucumber/messages` imported by `test/support/runner/scenario-inventory.ts`. The job installs the Runner package only; its shared test helper resolves dependencies from the repository root. Local qualification had both locked dependency trees installed, so it did not reproduce this missing owning-job setup.
 
 The Runner CI job now depends on the existing dependency-cache owner and restores the same root dependency cache as other owning jobs before installing its separate frozen Runner lockfile. A cache miss fails explicitly. The native package audit, patch validation, type check, full coverage, native binding and media checks remain mandatory and unchanged. Verification requires a fresh owning CI job; no local result is substituted for that missing CI execution.
+
+Verification for DEF-US5-245: current-source CI run39109433179 passes the owning Runner job, including shared dependency restore, type check, full native coverage and actual media tests.
+
+## DEF-US5-246 — Workflow coverage owner lacks FFmpeg
+
+Severity: Medium. Status: Fixed, CI verification pending. Owner: Feature implementer. Scope: workflow coverage CI environment.
+
+CI39109433179 job117622444680 fails real multistream scenarios with `spawnSync ffmpeg ENOENT` while generating local media. Native CI installs FFmpeg, but the separate owning workflow coverage lane did not. Add FFmpeg only to that owning lane and retain the existing complete scenario inventory, coverage thresholds and assertions. Failed workflow log retained as `tdd/evidence/F1-ci-workflows-missing-ffmpeg.log`; the failure is an incomplete environment run, not valid product Red.
+
+## DEF-US5-247 — Composite foreign-key targets are created after references
+
+Severity: High. Status: Fixed, CI verification pending. Owner: Feature implementer. Scope: declarative Runner schema and fresh database initialization.
+
+CI39109433179 browser BDD job117622817944 initially reports `there is no unique constraint matching given keys for referenced table runner_branding_assets` during guarded schema push. Drizzle then leaves an incomplete database, causing later rate-counter ON CONFLICT errors and registration HTTP503. Local schema fixtures created indexes before foreign keys, hiding the ordinary schema-push ordering problem.
+
+Declare the six referenced owner/identity composite keys as named unique constraints rather than separate unique indexes. PostgreSQL creates those constraints with their tables before foreign-key additions; column sets, uniqueness, names and owner isolation remain. No generated Drizzle files, manual SQL migration or guard override is introduced. The original failing CI schema setup is retained in `tdd/evidence/F1-ci-browser-schema-reference-order.log`; fresh owning CI must verify actual schema push and complete browser journeys.
+
+Additional DEF-US5-247 regression: the schema-push CLI can return process status0 while reporting the SQL error. The guarded wrapper now captures output, forwards it for diagnosis and fails on reported errors or unsuccessful process status. Target validation remains unchanged and runs before execution. `scripts/push-e2e-schema.test.mjs` records a failing missing-guard export before implementation and then nine passing restriction/error-handling cases; retained red/green logs identify this small guard cycle. Actual schema push remains restricted to the owning CI browser job and is not executed locally.

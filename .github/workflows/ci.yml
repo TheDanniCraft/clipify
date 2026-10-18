@@ -372,6 +372,12 @@ jobs:
         if: matrix.lane == 'unit'
         run: node --test scripts/*.test.cjs scripts/*.test.mjs
 
+      - name: 🎞️ Install workflow media dependencies
+        if: matrix.lane == 'workflows'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          ffmpeg -version
       - name: 🧪 Run owning coverage lane
         run: node scripts/run-coverage-lane.mjs ${{ matrix.lane }}
 

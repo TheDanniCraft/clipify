@@ -1,0 +1,1150 @@
+{
+  "workflow": {
+    "conclusion": "success",
+    "databaseId": 39109206765,
+    "headSha": "73541b597b02e594b363e0a02288017e5617149c",
+    "jobs": [
+      {
+        "completedAt": "2026-10-18T07:51:07Z",
+        "conclusion": "success",
+        "databaseId": 117621485004,
+        "name": "\ud83e\udded Prepare Runner context",
+        "startedAt": "2026-10-18T07:51:01Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-10-18T07:51:02Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-10-18T07:51:02Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:04Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@v7",
+            "number": 2,
+            "startedAt": "2026-10-18T07:51:02Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:05Z",
+            "conclusion": "success",
+            "name": "Run git config core.autocrlf false",
+            "number": 3,
+            "startedAt": "2026-10-18T07:51:04Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:05Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v7",
+            "number": 6,
+            "startedAt": "2026-10-18T07:51:05Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:05Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 7,
+            "startedAt": "2026-10-18T07:51:05Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/TheDanniCraft/clipify/actions/runs/39109206765/job/117621485004"
+      },
+      {
+        "completedAt": "2026-10-18T07:51:52Z",
+        "conclusion": "success",
+        "databaseId": 117621511095,
+        "name": "\ud83c\udfd7\ufe0f Build Runner (macos-x64, node24-macos-x64, macos-15-intel, clipify-runner-macos)",
+        "startedAt": "2026-10-18T07:51:10Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-10-18T07:51:13Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-10-18T07:51:11Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:13Z",
+            "conclusion": "success",
+            "name": "\ud83d\udd0f Preserve identical checkout bytes across native platforms",
+            "number": 2,
+            "startedAt": "2026-10-18T07:51:13Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:17Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@v7",
+            "number": 3,
+            "startedAt": "2026-10-18T07:51:13Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:18Z",
+            "conclusion": "success",
+            "name": "Run oven-sh/setup-bun@v2",
+            "number": 4,
+            "startedAt": "2026-10-18T07:51:17Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:22Z",
+            "conclusion": "success",
+            "name": "\ud83d\udce6 Install Runner dependencies",
+            "number": 5,
+            "startedAt": "2026-10-18T07:51:18Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:22Z",
+            "conclusion": "success",
+            "name": "\ud83d\udee1\ufe0f Audit Runner dependencies",
+            "number": 6,
+            "startedAt": "2026-10-18T07:51:22Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:28Z",
+            "conclusion": "success",
+            "name": "\ud83e\ude79 Verify Runner patched dependencies",
+            "number": 7,
+            "startedAt": "2026-10-18T07:51:22Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:29Z",
+            "conclusion": "success",
+            "name": "\ud83d\udd10 Verify native keyring binding",
+            "number": 8,
+            "startedAt": "2026-10-18T07:51:28Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:29Z",
+            "conclusion": "success",
+            "name": "\ud83d\udd0f Verify shared source fingerprint",
+            "number": 9,
+            "startedAt": "2026-10-18T07:51:29Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:42Z",
+            "conclusion": "success",
+            "name": "\ud83d\udee0\ufe0f Build runner",
+            "number": 10,
+            "startedAt": "2026-10-18T07:51:29Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:42Z",
+            "conclusion": "success",
+            "name": "\ud83e\uddea Smoke-test executable",
+            "number": 11,
+            "startedAt": "2026-10-18T07:51:42Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:43Z",
+            "conclusion": "success",
+            "name": "\ud83d\udcdd Write artifact metadata",
+            "number": 12,
+            "startedAt": "2026-10-18T07:51:42Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:47Z",
+            "conclusion": "success",
+            "name": "Run actions/upload-artifact@v7",
+            "number": 13,
+            "startedAt": "2026-10-18T07:51:43Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:49Z",
+            "conclusion": "success",
+            "name": "Post Run oven-sh/setup-bun@v2",
+            "number": 25,
+            "startedAt": "2026-10-18T07:51:47Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:50Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v7",
+            "number": 26,
+            "startedAt": "2026-10-18T07:51:49Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:50Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 27,
+            "startedAt": "2026-10-18T07:51:50Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/TheDanniCraft/clipify/actions/runs/39109206765/job/117621511095"
+      },
+      {
+        "completedAt": "2026-10-18T07:51:37Z",
+        "conclusion": "success",
+        "databaseId": 117621511127,
+        "name": "\ud83c\udfd7\ufe0f Build Runner (linux-x64, node24-linux-x64, ubuntu-latest, clipify-runner-linux)",
+        "startedAt": "2026-10-18T07:51:10Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-10-18T07:51:12Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-10-18T07:51:11Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:12Z",
+            "conclusion": "success",
+            "name": "\ud83d\udd0f Preserve identical checkout bytes across native platforms",
+            "number": 2,
+            "startedAt": "2026-10-18T07:51:12Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:14Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@v7",
+            "number": 3,
+            "startedAt": "2026-10-18T07:51:12Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:15Z",
+            "conclusion": "success",
+            "name": "Run oven-sh/setup-bun@v2",
+            "number": 4,
+            "startedAt": "2026-10-18T07:51:14Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:16Z",
+            "conclusion": "success",
+            "name": "\ud83d\udce6 Install Runner dependencies",
+            "number": 5,
+            "startedAt": "2026-10-18T07:51:15Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:16Z",
+            "conclusion": "success",
+            "name": "\ud83d\udee1\ufe0f Audit Runner dependencies",
+            "number": 6,
+            "startedAt": "2026-10-18T07:51:16Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:20Z",
+            "conclusion": "success",
+            "name": "\ud83e\ude79 Verify Runner patched dependencies",
+            "number": 7,
+            "startedAt": "2026-10-18T07:51:16Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:22Z",
+            "conclusion": "success",
+            "name": "\ud83d\udd10 Verify native keyring binding",
+            "number": 8,
+            "startedAt": "2026-10-18T07:51:20Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:22Z",
+            "conclusion": "success",
+            "name": "\ud83d\udd0f Verify shared source fingerprint",
+            "number": 9,
+            "startedAt": "2026-10-18T07:51:22Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:28Z",
+            "conclusion": "success",
+            "name": "\ud83d\udee0\ufe0f Build runner",
+            "number": 10,
+            "startedAt": "2026-10-18T07:51:22Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:29Z",
+            "conclusion": "success",
+            "name": "\ud83e\uddea Smoke-test executable",
+            "number": 11,
+            "startedAt": "2026-10-18T07:51:28Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:29Z",
+            "conclusion": "success",
+            "name": "\ud83d\udcdd Write artifact metadata",
+            "number": 12,
+            "startedAt": "2026-10-18T07:51:29Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:32Z",
+            "conclusion": "success",
+            "name": "Run actions/upload-artifact@v7",
+            "number": 13,
+            "startedAt": "2026-10-18T07:51:29Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:35Z",
+            "conclusion": "success",
+            "name": "Post Run oven-sh/setup-bun@v2",
+            "number": 25,
+            "startedAt": "2026-10-18T07:51:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:35Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v7",
+            "number": 26,
+            "startedAt": "2026-10-18T07:51:35Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:35Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 27,
+            "startedAt": "2026-10-18T07:51:35Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/TheDanniCraft/clipify/actions/runs/39109206765/job/117621511127"
+      },
+      {
+        "completedAt": "2026-10-18T07:51:34Z",
+        "conclusion": "success",
+        "databaseId": 117621511131,
+        "name": "\ud83c\udfd7\ufe0f Build Runner (linux-arm64, node24-linux-arm64, ubuntu-24.04-arm, clipify-runner-linux-arm64)",
+        "startedAt": "2026-10-18T07:51:12Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-10-18T07:51:14Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-10-18T07:51:12Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:14Z",
+            "conclusion": "success",
+            "name": "\ud83d\udd0f Preserve identical checkout bytes across native platforms",
+            "number": 2,
+            "startedAt": "2026-10-18T07:51:14Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:15Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@v7",
+            "number": 3,
+            "startedAt": "2026-10-18T07:51:14Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:16Z",
+            "conclusion": "success",
+            "name": "Run oven-sh/setup-bun@v2",
+            "number": 4,
+            "startedAt": "2026-10-18T07:51:15Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:17Z",
+            "conclusion": "success",
+            "name": "\ud83d\udce6 Install Runner dependencies",
+            "number": 5,
+            "startedAt": "2026-10-18T07:51:16Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:17Z",
+            "conclusion": "success",
+            "name": "\ud83d\udee1\ufe0f Audit Runner dependencies",
+            "number": 6,
+            "startedAt": "2026-10-18T07:51:17Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:20Z",
+            "conclusion": "success",
+            "name": "\ud83e\ude79 Verify Runner patched dependencies",
+            "number": 7,
+            "startedAt": "2026-10-18T07:51:17Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:21Z",
+            "conclusion": "success",
+            "name": "\ud83d\udd10 Verify native keyring binding",
+            "number": 8,
+            "startedAt": "2026-10-18T07:51:20Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:21Z",
+            "conclusion": "success",
+            "name": "\ud83d\udd0f Verify shared source fingerprint",
+            "number": 9,
+            "startedAt": "2026-10-18T07:51:21Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:27Z",
+            "conclusion": "success",
+            "name": "\ud83d\udee0\ufe0f Build runner",
+            "number": 10,
+            "startedAt": "2026-10-18T07:51:21Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:27Z",
+            "conclusion": "success",
+            "name": "\ud83e\uddea Smoke-test executable",
+            "number": 11,
+            "startedAt": "2026-10-18T07:51:27Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:27Z",
+            "conclusion": "success",
+            "name": "\ud83d\udcdd Write artifact metadata",
+            "number": 12,
+            "startedAt": "2026-10-18T07:51:27Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:30Z",
+            "conclusion": "success",
+            "name": "Run actions/upload-artifact@v7",
+            "number": 13,
+            "startedAt": "2026-10-18T07:51:27Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:32Z",
+            "conclusion": "success",
+            "name": "Post Run oven-sh/setup-bun@v2",
+            "number": 25,
+            "startedAt": "2026-10-18T07:51:30Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:32Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v7",
+            "number": 26,
+            "startedAt": "2026-10-18T07:51:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:32Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 27,
+            "startedAt": "2026-10-18T07:51:32Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/TheDanniCraft/clipify/actions/runs/39109206765/job/117621511131"
+      },
+      {
+        "completedAt": "2026-10-18T07:51:43Z",
+        "conclusion": "success",
+        "databaseId": 117621511136,
+        "name": "\ud83c\udfd7\ufe0f Build Runner (macos-arm64, node24-macos-arm64, macos-14, clipify-runner-macos-arm64)",
+        "startedAt": "2026-10-18T07:51:15Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-10-18T07:51:17Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-10-18T07:51:15Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:17Z",
+            "conclusion": "success",
+            "name": "\ud83d\udd0f Preserve identical checkout bytes across native platforms",
+            "number": 2,
+            "startedAt": "2026-10-18T07:51:17Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:19Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@v7",
+            "number": 3,
+            "startedAt": "2026-10-18T07:51:17Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:21Z",
+            "conclusion": "success",
+            "name": "Run oven-sh/setup-bun@v2",
+            "number": 4,
+            "startedAt": "2026-10-18T07:51:19Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:23Z",
+            "conclusion": "success",
+            "name": "\ud83d\udce6 Install Runner dependencies",
+            "number": 5,
+            "startedAt": "2026-10-18T07:51:21Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:24Z",
+            "conclusion": "success",
+            "name": "\ud83d\udee1\ufe0f Audit Runner dependencies",
+            "number": 6,
+            "startedAt": "2026-10-18T07:51:23Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:27Z",
+            "conclusion": "success",
+            "name": "\ud83e\ude79 Verify Runner patched dependencies",
+            "number": 7,
+            "startedAt": "2026-10-18T07:51:24Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:28Z",
+            "conclusion": "success",
+            "name": "\ud83d\udd10 Verify native keyring binding",
+            "number": 8,
+            "startedAt": "2026-10-18T07:51:27Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:28Z",
+            "conclusion": "success",
+            "name": "\ud83d\udd0f Verify shared source fingerprint",
+            "number": 9,
+            "startedAt": "2026-10-18T07:51:28Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:35Z",
+            "conclusion": "success",
+            "name": "\ud83d\udee0\ufe0f Build runner",
+            "number": 10,
+            "startedAt": "2026-10-18T07:51:28Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:36Z",
+            "conclusion": "success",
+            "name": "\ud83e\uddea Smoke-test executable",
+            "number": 11,
+            "startedAt": "2026-10-18T07:51:35Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:36Z",
+            "conclusion": "success",
+            "name": "\ud83d\udcdd Write artifact metadata",
+            "number": 12,
+            "startedAt": "2026-10-18T07:51:36Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:39Z",
+            "conclusion": "success",
+            "name": "Run actions/upload-artifact@v7",
+            "number": 13,
+            "startedAt": "2026-10-18T07:51:36Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:41Z",
+            "conclusion": "success",
+            "name": "Post Run oven-sh/setup-bun@v2",
+            "number": 25,
+            "startedAt": "2026-10-18T07:51:39Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:41Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v7",
+            "number": 26,
+            "startedAt": "2026-10-18T07:51:41Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:42Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 27,
+            "startedAt": "2026-10-18T07:51:41Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/TheDanniCraft/clipify/actions/runs/39109206765/job/117621511136"
+      },
+      {
+        "completedAt": "2026-10-18T07:52:23Z",
+        "conclusion": "success",
+        "databaseId": 117621511147,
+        "name": "\ud83c\udfd7\ufe0f Build Runner (windows-x64, node24-win-x64, windows-latest, clipify-runner-windows.exe)",
+        "startedAt": "2026-10-18T07:51:10Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-10-18T07:51:13Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-10-18T07:51:11Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:14Z",
+            "conclusion": "success",
+            "name": "\ud83d\udd0f Preserve identical checkout bytes across native platforms",
+            "number": 2,
+            "startedAt": "2026-10-18T07:51:13Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:22Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@v7",
+            "number": 3,
+            "startedAt": "2026-10-18T07:51:14Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:24Z",
+            "conclusion": "success",
+            "name": "Run oven-sh/setup-bun@v2",
+            "number": 4,
+            "startedAt": "2026-10-18T07:51:22Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:48Z",
+            "conclusion": "success",
+            "name": "\ud83d\udce6 Install Runner dependencies",
+            "number": 5,
+            "startedAt": "2026-10-18T07:51:24Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:48Z",
+            "conclusion": "success",
+            "name": "\ud83d\udee1\ufe0f Audit Runner dependencies",
+            "number": 6,
+            "startedAt": "2026-10-18T07:51:48Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:53Z",
+            "conclusion": "success",
+            "name": "\ud83e\ude79 Verify Runner patched dependencies",
+            "number": 7,
+            "startedAt": "2026-10-18T07:51:48Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:58Z",
+            "conclusion": "success",
+            "name": "\ud83d\udd10 Verify native keyring binding",
+            "number": 8,
+            "startedAt": "2026-10-18T07:51:53Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:51:59Z",
+            "conclusion": "success",
+            "name": "\ud83d\udd0f Verify shared source fingerprint",
+            "number": 9,
+            "startedAt": "2026-10-18T07:51:58Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:52:12Z",
+            "conclusion": "success",
+            "name": "\ud83d\udee0\ufe0f Build runner",
+            "number": 10,
+            "startedAt": "2026-10-18T07:51:59Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:52:12Z",
+            "conclusion": "success",
+            "name": "\ud83e\uddea Smoke-test executable",
+            "number": 11,
+            "startedAt": "2026-10-18T07:52:12Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:52:13Z",
+            "conclusion": "success",
+            "name": "\ud83d\udcdd Write artifact metadata",
+            "number": 12,
+            "startedAt": "2026-10-18T07:52:12Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:52:17Z",
+            "conclusion": "success",
+            "name": "Run actions/upload-artifact@v7",
+            "number": 13,
+            "startedAt": "2026-10-18T07:52:13Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:52:20Z",
+            "conclusion": "success",
+            "name": "Post Run oven-sh/setup-bun@v2",
+            "number": 25,
+            "startedAt": "2026-10-18T07:52:17Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:52:22Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v7",
+            "number": 26,
+            "startedAt": "2026-10-18T07:52:20Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:52:22Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 27,
+            "startedAt": "2026-10-18T07:52:22Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/TheDanniCraft/clipify/actions/runs/39109206765/job/117621511147"
+      },
+      {
+        "completedAt": "2026-10-18T07:52:38Z",
+        "conclusion": "success",
+        "databaseId": 117621746070,
+        "name": "\u2705 Validate Runner matrix",
+        "startedAt": "2026-10-18T07:52:26Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-10-18T07:52:28Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-10-18T07:52:27Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:52:31Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@v7",
+            "number": 2,
+            "startedAt": "2026-10-18T07:52:28Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:52:35Z",
+            "conclusion": "success",
+            "name": "Run actions/download-artifact@v8",
+            "number": 3,
+            "startedAt": "2026-10-18T07:52:31Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:52:35Z",
+            "conclusion": "success",
+            "name": "\ud83d\udd0e Validate complete matrix",
+            "number": 4,
+            "startedAt": "2026-10-18T07:52:35Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:52:36Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v7",
+            "number": 8,
+            "startedAt": "2026-10-18T07:52:35Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:52:36Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 9,
+            "startedAt": "2026-10-18T07:52:36Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/TheDanniCraft/clipify/actions/runs/39109206765/job/117621746070"
+      },
+      {
+        "completedAt": "2026-10-18T07:53:50Z",
+        "conclusion": "success",
+        "databaseId": 117621786619,
+        "name": "\ud83d\udce6 Publish Runner OCI artifacts",
+        "startedAt": "2026-10-18T07:52:40Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-10-18T07:52:45Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-10-18T07:52:41Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:52:47Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@v7",
+            "number": 2,
+            "startedAt": "2026-10-18T07:52:45Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:52:59Z",
+            "conclusion": "success",
+            "name": "Run docker/setup-buildx-action@v4",
+            "number": 3,
+            "startedAt": "2026-10-18T07:52:47Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:53:00Z",
+            "conclusion": "success",
+            "name": "\ud83d\udd10 Log in to GHCR",
+            "number": 4,
+            "startedAt": "2026-10-18T07:52:59Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:53:00Z",
+            "conclusion": "success",
+            "name": "\u267b\ufe0f Reuse existing immutable Runner manifest",
+            "number": 5,
+            "startedAt": "2026-10-18T07:53:00Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:53:03Z",
+            "conclusion": "success",
+            "name": "Run actions/download-artifact@v8",
+            "number": 6,
+            "startedAt": "2026-10-18T07:53:00Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:53:04Z",
+            "conclusion": "success",
+            "name": "\ud83d\udd0e Revalidate complete Runner matrix",
+            "number": 7,
+            "startedAt": "2026-10-18T07:53:03Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:53:43Z",
+            "conclusion": "success",
+            "name": "\ud83e\uddf1 Publish immutable platform artifacts",
+            "number": 8,
+            "startedAt": "2026-10-18T07:53:04Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:53:44Z",
+            "conclusion": "success",
+            "name": "\ud83e\uddfe Create deterministic Runner manifest",
+            "number": 9,
+            "startedAt": "2026-10-18T07:53:43Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:53:46Z",
+            "conclusion": "success",
+            "name": "\ud83d\udccc Publish immutable manifest",
+            "number": 10,
+            "startedAt": "2026-10-18T07:53:44Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:53:46Z",
+            "conclusion": "skipped",
+            "name": "\ud83d\udd01 Update Preview Runner alias",
+            "number": 11,
+            "startedAt": "2026-10-18T07:53:46Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:53:46Z",
+            "conclusion": "skipped",
+            "name": "\ud83e\uddf9 Remove superseded PR Runner versions",
+            "number": 12,
+            "startedAt": "2026-10-18T07:53:46Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:53:47Z",
+            "conclusion": "success",
+            "name": "Run actions/upload-artifact@v7",
+            "number": 13,
+            "startedAt": "2026-10-18T07:53:46Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:53:47Z",
+            "conclusion": "success",
+            "name": "Post \ud83d\udd10 Log in to GHCR",
+            "number": 24,
+            "startedAt": "2026-10-18T07:53:47Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:53:48Z",
+            "conclusion": "success",
+            "name": "Post Run docker/setup-buildx-action@v4",
+            "number": 25,
+            "startedAt": "2026-10-18T07:53:47Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:53:48Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v7",
+            "number": 26,
+            "startedAt": "2026-10-18T07:53:48Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-18T07:53:48Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 27,
+            "startedAt": "2026-10-18T07:53:48Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/TheDanniCraft/clipify/actions/runs/39109206765/job/117621786619"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/TheDanniCraft/clipify/actions/runs/39109206765"
+  },
+  "currentSource": {
+    "sourceFingerprint": "3838cbac9f93dd9b5bb5e00d5a4a98bad6402aa2372a573975e0481796b8307c",
+    "sourceCommit": "c054ff28aa9231b2bd4ef264944f0da390bbc5f7",
+    "files": [
+      ".github/workflows/runner-native.yml",
+      "packages/runner/build-config.json",
+      "packages/runner/build-inputs.mjs",
+      "packages/runner/build.mjs",
+      "packages/runner/bun.lock",
+      "packages/runner/bundle-extension.ts",
+      "packages/runner/check-native.mjs",
+      "packages/runner/jest.config.cjs",
+      "packages/runner/package.json",
+      "packages/runner/patches/puppeteer-core-24.patch",
+      "packages/runner/patches/puppeteer-stream.patch",
+      "packages/runner/patches/yao-pkg-qemu.patch",
+      "packages/runner/run-coverage.mjs",
+      "packages/runner/src/__tests__/browser.test.ts",
+      "packages/runner/src/__tests__/capture-startup.test.ts",
+      "packages/runner/src/__tests__/cli-configuration.test.ts",
+      "packages/runner/src/__tests__/cli-coverage-adapter.test.ts",
+      "packages/runner/src/__tests__/cli-enrollment.test.ts",
+      "packages/runner/src/__tests__/cli-errors.test.ts",
+      "packages/runner/src/__tests__/cli-free-factory.test.ts",
+      "packages/runner/src/__tests__/cli-job-lifecycle.test.ts",
+      "packages/runner/src/__tests__/cli-main.test.ts",
+      "packages/runner/src/__tests__/cli-reachability.test.ts",
+      "packages/runner/src/__tests__/cli-watchdog.test.ts",
+      "packages/runner/src/__tests__/controller-drain.test.ts",
+      "packages/runner/src/__tests__/drain.test.ts",
+      "packages/runner/src/__tests__/engine.test.ts",
+      "packages/runner/src/__tests__/execution-clock-binding.test.ts",
+      "packages/runner/src/__tests__/execution-journal.test.ts",
+      "packages/runner/src/__tests__/execution-key-packaging.test.ts",
+      "packages/runner/src/__tests__/execution-keys.test.ts",
+      "packages/runner/src/__tests__/execution-runtime.test.ts",
+      "packages/runner/src/__tests__/heartbeat-protocol.test.ts",
+      "packages/runner/src/__tests__/multistream-controller.test.ts",
+      "packages/runner/src/__tests__/output.test.ts",
+      "packages/runner/src/__tests__/presentation-bootstrap.test.ts",
+      "packages/runner/src/__tests__/presentation.test.ts",
+      "packages/runner/src/__tests__/proxy.test.ts",
+      "packages/runner/src/__tests__/reachability.test.ts",
+      "packages/runner/src/__tests__/schedule-cache-validation.test.ts",
+      "packages/runner/src/__tests__/schedule-recovery.test.ts",
+      "packages/runner/src/__tests__/schedule.test.ts",
+      "packages/runner/src/__tests__/terminal-credentials.test.ts",
+      "packages/runner/src/__tests__/terminal-delivery.test.ts",
+      "packages/runner/src/__tests__/terminal-keyring.test.ts",
+      "packages/runner/src/__tests__/updater.test.ts",
+      "packages/runner/src/browser.ts",
+      "packages/runner/src/downloader.ts",
+      "packages/runner/src/engine.ts",
+      "packages/runner/src/execution-clock.ts",
+      "packages/runner/src/execution-journal.ts",
+      "packages/runner/src/execution-keys.ts",
+      "packages/runner/src/execution-runtime.ts",
+      "packages/runner/src/extension.ts",
+      "packages/runner/src/index.ts",
+      "packages/runner/src/logger.ts",
+      "packages/runner/src/output.ts",
+      "packages/runner/src/presentation-bootstrap.ts",
+      "packages/runner/src/presentation.ts",
+      "packages/runner/src/protocol.ts",
+      "packages/runner/src/reachability.ts",
+      "packages/runner/src/schedule-cache.ts",
+      "packages/runner/src/schedule-calendar.ts",
+      "packages/runner/src/schedule.ts",
+      "packages/runner/src/storage.ts",
+      "packages/runner/src/terminal-credentials.ts",
+      "packages/runner/src/terminal-delivery.ts",
+      "packages/runner/src/updater.ts",
+      "packages/runner/test/atdd/runner-free-pro.feature",
+      "packages/runner/test/atdd/runner-free-pro.test.ts",
+      "packages/runner/test/bdd/runner-cached-schedule.test.ts",
+      "packages/runner/test/bdd/runner-drain-regression.test.ts",
+      "packages/runner/test/bdd/runner-free-lease-expiry.feature",
+      "packages/runner/test/bdd/runner-free-lease-expiry.test.ts",
+      "packages/runner/test/bdd/runner-free-lease-replay.feature",
+      "packages/runner/test/bdd/runner-free-lease-replay.test.ts",
+      "packages/runner/test/bdd/runner-free-leases.feature",
+      "packages/runner/test/bdd/runner-free-leases.test.ts",
+      "packages/runner/test/bdd/runner-free-pro.feature",
+      "packages/runner/test/bdd/runner-free-pro.test.ts",
+      "packages/runner/test/bdd/runner-lease-startup.feature",
+      "packages/runner/test/bdd/runner-lease-startup.test.ts",
+      "packages/runner/test/bdd/runner-outside-standby.feature",
+      "packages/runner/test/bdd/runner-outside-standby.test.ts",
+      "packages/runner/test/bdd/runner-schedule-connection.test.ts",
+      "packages/runner/test/bdd/runner-schedule-late-continuity.test.ts",
+      "packages/runner/test/bdd/runner-schedule-owner-resume.test.ts",
+      "packages/runner/test/bdd/runner-schedule-recovery.test.ts",
+      "packages/runner/test/bdd/runner-schedule-recurrence.test.ts",
+      "packages/runner/test/bdd/runner-schedule-same-session.test.ts",
+      "packages/runner/test/bdd/runner-schedule-transitions.test.ts",
+      "packages/runner/test/bdd/runner-schedule-window-boundaries.test.ts",
+      "packages/runner/test/output.integration.test.ts",
+      "packages/runner/test/storage.test.ts",
+      "packages/runner/test/support/capture-probe.mjs",
+      "packages/runner/test/support/cli-adapter.ts",
+      "packages/runner/test/support/drain-probe.mjs",
+      "packages/runner/test/support/fallback-presentation-probe.mjs",
+      "packages/runner/test/support/multistream-cli-probe.mjs",
+      "packages/runner/test/support/native-media.mjs",
+      "packages/runner/test/support/observe-cold-restart.mjs",
+      "packages/runner/test/support/output-recovery-probe.mjs",
+      "packages/runner/test/support/outside-standby-probe.mjs",
+      "packages/runner/test/support/prepare-media.mjs",
+      "packages/runner/test/support/receivers.ts",
+      "packages/runner/test/support/replay-probe.mjs",
+      "packages/runner/test/support/scenario-inventory.ts",
+      "packages/runner/test/support/schedule-calendar-probe.mjs",
+      "packages/runner/test/support/schedule-fixture.ts",
+      "packages/runner/test/support/schedule-restart-probe.mjs",
+      "packages/runner/tsconfig.json",
+      "scripts/create-runner-manifest.mjs",
+      "scripts/fingerprint-runner.mjs",
+      "scripts/run-runner-self-test.mjs",
+      "scripts/validate-runner-matrix.mjs",
+      "scripts/verify-runner-manifest.mjs",
+      "scripts/write-runner-metadata.mjs"
+    ]
+  },
+  "manifest": {
+    "schemaVersion": 1,
+    "sourceFingerprint": "3838cbac9f93dd9b5bb5e00d5a4a98bad6402aa2372a573975e0481796b8307c",
+    "sourceCommit": "73541b597b02e594b363e0a02288017e5617149c",
+    "repository": "ghcr.io/thedannicraft/clipify-runner",
+    "artifacts": [
+      {
+        "platform": "linux-arm64",
+        "target": "node24-linux-arm64",
+        "filename": "clipify-runner-linux-arm64",
+        "sha256": "b1869e210a5267914c6f279b5b638ba92ac2fdf3191f5377c29493706e3438e6",
+        "size": 111835570,
+        "oci": {
+          "reference": "ghcr.io/thedannicraft/clipify-runner:fp-3838cbac9f93dd9b5bb5e00d5a4a98bad6402aa2372a573975e0481796b8307c-linux-arm64",
+          "digest": "sha256:c7dec4ee209f4815a0838c95844c5c2c01bfc99f5ecf784b97fada67bdb8ecf5"
+        }
+      },
+      {
+        "platform": "linux-x64",
+        "target": "node24-linux-x64",
+        "filename": "clipify-runner-linux",
+        "sha256": "a14bbeb344e269e4afd3f498f075a7300b2b90b4a0915e304fe2caada75805db",
+        "size": 118264590,
+        "oci": {
+          "reference": "ghcr.io/thedannicraft/clipify-runner:fp-3838cbac9f93dd9b5bb5e00d5a4a98bad6402aa2372a573975e0481796b8307c-linux-x64",
+          "digest": "sha256:8697d0386826f76a353c64ab7760f14de4b6ed1cf780f3adc804c904635b8520"
+        }
+      },
+      {
+        "platform": "macos-arm64",
+        "target": "node24-macos-arm64",
+        "filename": "clipify-runner-macos-arm64",
+        "sha256": "e974fab5ae567890a4b534d18fac492621b242740157b0fec45ee70d3c49147f",
+        "size": 105648624,
+        "oci": {
+          "reference": "ghcr.io/thedannicraft/clipify-runner:fp-3838cbac9f93dd9b5bb5e00d5a4a98bad6402aa2372a573975e0481796b8307c-macos-arm64",
+          "digest": "sha256:e36b61249f6defda6fa4db821993c77e9e3be883ee93b640b41ab6bd92780939"
+        }
+      },
+      {
+        "platform": "macos-x64",
+        "target": "node24-macos-x64",
+        "filename": "clipify-runner-macos",
+        "sha256": "cbf00eb36d07a084178dabaa5b5e5112fd3afe5f97d75a290273f088f4d5c4a7",
+        "size": 108049008,
+        "oci": {
+          "reference": "ghcr.io/thedannicraft/clipify-runner:fp-3838cbac9f93dd9b5bb5e00d5a4a98bad6402aa2372a573975e0481796b8307c-macos-x64",
+          "digest": "sha256:ccfa851a86534eb3dc0732ace31b9ba5792a0251fd896214cef8352fb1d2b4e0"
+        }
+      },
+      {
+        "platform": "windows-x64",
+        "target": "node24-win-x64",
+        "filename": "clipify-runner-windows.exe",
+        "sha256": "44a75dee93f589891ed2b8ed8e145ff8e7984a20733122ed90fbc66cce4c261b",
+        "size": 132320976,
+        "oci": {
+          "reference": "ghcr.io/thedannicraft/clipify-runner:fp-3838cbac9f93dd9b5bb5e00d5a4a98bad6402aa2372a573975e0481796b8307c-windows-x64",
+          "digest": "sha256:42b779904cfbdffc3c3bdc9a1d71c2236d7b50446163597ec81a6ac457d21774"
+        }
+      }
+    ]
+  },
+  "scope": "Official packaging/self-test gate only; separate full native coverage/application CI remains required. Public trust mapping matches the currently configured empty repository variable; production signing setup remains deployment-owned."
+}

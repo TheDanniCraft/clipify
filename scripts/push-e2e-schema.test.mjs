@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { validateE2eSchemaPushTarget } from "./push-e2e-schema.mjs";
+import { validateE2eSchemaPushTarget, assertSchemaPushSucceeded } from "./push-e2e-schema.mjs";
 
 const approvedEnvironment = {
 	GITHUB_ACTIONS: "true",
@@ -25,3 +25,12 @@ for (const [name, overrides, expected] of [
 		assert.throws(() => validateE2eSchemaPushTarget({ ...approvedEnvironment, ...overrides }), { message: expected });
 	});
 }
+
+// Drizzle can report a PostgreSQL error while its process exits successfully.
+test("rejects zero-exit schema push when PostgreSQL reports a failed constraint", () => {
+	assert.throws(() => assertSchemaPushSucceeded({ status: 0, stdout: "Pulling schema...\nerror: there is no unique constraint matching given keys for referenced table runner_branding_assets\n", stderr: "" }), /E2E_SCHEMA_PUSH_FAILED/);
+});
+test("rejects nonzero schema push and accepts clean applied schema output", () => {
+	assert.throws(() => assertSchemaPushSucceeded({ status: 1, stdout: "", stderr: "connection refused" }), /E2E_SCHEMA_PUSH_FAILED/);
+	assert.doesNotThrow(() => assertSchemaPushSucceeded({ status: 0, stdout: "Changes applied", stderr: "" }));
+});

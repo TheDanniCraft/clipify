@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -22,10 +22,18 @@ export function validateE2eSchemaPushTarget(environment = process.env) {
 	return url;
 }
 
+export function assertSchemaPushSucceeded(result) {
+	const output = `${result.stdout ?? ""}\n${result.stderr ?? ""}`.replace(/\x1b\[[0-9;]*m/g, "");
+	if (result.error || result.status !== 0 || /(?:^|[\r\n])\s*(?:error|[A-Za-z]*Error):/m.test(output)) throw new Error("E2E_SCHEMA_PUSH_FAILED");
+}
+
 export function pushE2eSchema(environment = process.env) {
 	validateE2eSchemaPushTarget(environment);
 	const drizzleKitBin = resolve(dirname(require.resolve("drizzle-kit")), "bin.cjs");
-	execFileSync(process.execPath, [drizzleKitBin, "push", "--force"], { cwd: process.cwd(), env: environment, stdio: "inherit" });
+	const result = spawnSync(process.execPath, [drizzleKitBin, "push", "--force"], { cwd: process.cwd(), env: environment, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+	if (result.stdout) process.stdout.write(result.stdout);
+	if (result.stderr) process.stderr.write(result.stderr);
+	assertSchemaPushSucceeded(result);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

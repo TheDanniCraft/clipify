@@ -1,4 +1,4 @@
-import { varchar, pgTable, check, timestamp, uuid, integer, bigint, text, uniqueIndex, primaryKey, foreignKey, index, pgEnum, boolean, jsonb, customType } from "drizzle-orm/pg-core";
+import { varchar, pgTable, check, timestamp, uuid, integer, bigint, text, uniqueIndex, unique, primaryKey, foreignKey, index, pgEnum, boolean, jsonb, customType } from "drizzle-orm/pg-core";
 import {
 	type Role,
 	type Plan,
@@ -792,7 +792,7 @@ export const runnersTable = pgTable(
 		lastAcknowledgedConfigRevision: integer("last_acknowledged_config_revision"),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	},
-	(table) => [check("runners_revision_positive", sql`${table.configurationRevision} > 0`), uniqueIndex("runners_owner_id_unique").on(table.ownerId, table.id)],
+	(table) => [check("runners_revision_positive", sql`${table.configurationRevision} > 0`), unique("runners_owner_id_unique").on(table.ownerId, table.id)],
 );
 
 const runnerAssetBytes = customType<{ data: Buffer; driverData: Buffer }>({
@@ -823,7 +823,7 @@ export const runnerBrandingAssetsTable = pgTable(
 		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 	},
 	(table) => [
-		uniqueIndex("runner_branding_assets_owner_id_unique").on(table.ownerId, table.id),
+		unique("runner_branding_assets_owner_id_unique").on(table.ownerId, table.id),
 		check("runner_branding_assets_kind_valid", sql`${table.kind} IN ('logo','background')`),
 		check("runner_branding_assets_mime_valid", sql`${table.normalizedMime} IN ('image/png','image/jpeg','image/webp')`),
 		check("runner_branding_assets_bounds_valid", sql`${table.sizeBytes} > 0 AND ${table.sizeBytes} <= 2097152 AND octet_length(${table.bytes}) = ${table.sizeBytes} AND ${table.width} > 0 AND ${table.width} <= 4096 AND ${table.height} > 0 AND ${table.height} <= 4096 AND ${table.width}::bigint * ${table.height} <= 16000000`),
@@ -902,7 +902,7 @@ export const streamSessionsTable = pgTable(
 		lastError: text("last_error"),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 	},
-	(table) => [uniqueIndex("stream_sessions_owner_identity").on(table.ownerId, table.id), check("stream_sessions_revision_positive", sql`${table.configurationRevision} > 0`), check("stream_sessions_automation_revision_nonnegative", sql`${table.automationRevision} >= 0`), check("stream_sessions_scheduled_clips_only", sql`${table.controlMode} <> 'scheduled' OR ${table.mode} = '24/7'`)],
+	(table) => [unique("stream_sessions_owner_identity").on(table.ownerId, table.id), check("stream_sessions_revision_positive", sql`${table.configurationRevision} > 0`), check("stream_sessions_automation_revision_nonnegative", sql`${table.automationRevision} >= 0`), check("stream_sessions_scheduled_clips_only", sql`${table.controlMode} <> 'scheduled' OR ${table.mode} = '24/7'`)],
 );
 
 export const runnerDestinationProviderEnum = pgEnum("runner_destination_provider", ["youtube", "twitch", "custom"]);
@@ -923,7 +923,7 @@ export const runnerDestinationsTable = pgTable(
 		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 	},
-	(table) => [uniqueIndex("runner_destinations_owner_identity").on(table.ownerId, table.id), index("runner_destinations_visible_scope").on(table.ownerId, table.runnerId), check("runner_destinations_name_length", sql`char_length(trim(${table.name})) BETWEEN 1 AND 80`), check("runner_destinations_url_length", sql`char_length(${table.rtmpUrl}) BETWEEN 1 AND 4096`), check("runner_destinations_revisions_positive", sql`${table.credentialRevision} > 0 AND ${table.configurationRevision} > 0`)],
+	(table) => [unique("runner_destinations_owner_identity").on(table.ownerId, table.id), index("runner_destinations_visible_scope").on(table.ownerId, table.runnerId), check("runner_destinations_name_length", sql`char_length(trim(${table.name})) BETWEEN 1 AND 80`), check("runner_destinations_url_length", sql`char_length(${table.rtmpUrl}) BETWEEN 1 AND 4096`), check("runner_destinations_revisions_positive", sql`${table.credentialRevision} > 0 AND ${table.configurationRevision} > 0`)],
 );
 
 export const streamSessionDestinationsTable = pgTable(
@@ -970,7 +970,7 @@ export const runnerScheduleEventsTable = pgTable(
 		updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 	},
 	(table) => [
-		uniqueIndex("runner_schedule_events_owner_identity").on(table.ownerId, table.id),
+		unique("runner_schedule_events_owner_identity").on(table.ownerId, table.id),
 		index("runner_schedule_events_device").on(table.ownerId, table.runnerId),
 		foreignKey({ columns: [table.ownerId, table.sessionId], foreignColumns: [streamSessionsTable.ownerId, streamSessionsTable.id] }).onDelete("cascade"),
 		check("runner_schedule_events_title_bounds", sql`char_length(trim(${table.title})) BETWEEN 1 AND 80`),
@@ -1027,7 +1027,7 @@ export const runnerBroadcastAdmissionsTable = pgTable(
 		recoveredAt: timestamp("recovered_at", { withTimezone: true }),
 	},
 	(table) => [
-		uniqueIndex("runner_admissions_owner_identity_unique").on(table.ownerId, table.id),
+		unique("runner_admissions_owner_identity_unique").on(table.ownerId, table.id),
 		foreignKey({ columns: [table.ownerId, table.continuityRootAdmissionId], foreignColumns: [table.ownerId, table.id], name: "runner_admissions_continuity_owner_fk" }),
 		check("runner_admissions_continuity_not_self", sql`${table.continuityRootAdmissionId} is null or ${table.continuityRootAdmissionId} <> ${table.id}`),
 		uniqueIndex("runner_admissions_generation_unique").on(table.ownerId, table.executionGeneration),
