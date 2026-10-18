@@ -1,0 +1,19 @@
+{
+  "scope": "Retain successful root/native High audit only for identical dependency lock bytes; expected negative owner/credential/signature/asset owners reran in complete frozen-v2 app/native/workflow lanes.",
+  "locks": {
+    "bun.lock": "059385dada6cadad16e7cf7cc4596ea3d2d7fcd182fac3694d5f72a7318ce140",
+    "packages/runner/bun.lock": "f192b2ee9454f6c0121b294ed621fa7ac6a74d8332e3b8f63e5498a1e85c8aaa"
+  },
+  "rootAudit": "E4-current-audit.log",
+  "nativeAudit": "F1-preflight-native-audit.log",
+  "existingRootIgnore": "GHSA-vfj7-8cjw-p6xm",
+  "newExceptions": [],
+  "negativeSuiteEvidence": [
+    "F1-v2-full-native.log",
+    "F1-v2-full-unit.log",
+    "F1-v2-full-database-1.log",
+    "F1-v2-full-database-2.log",
+    "F1-v2-full-database-3.log",
+    "F1-v2-full-workflows.log"
+  ]
+}

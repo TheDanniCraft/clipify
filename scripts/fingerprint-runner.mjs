@@ -30,26 +30,26 @@ const collectFiles = (root) => {
 };
 for (const root of roots) {
 	try {
-		const output = git(["ls-files", "-z", "--", root]).toString("utf8");
-		const tracked = output.split("\0").filter(Boolean);
-		if (tracked.length) {
-			for (const file of tracked) files.add(file);
-			continue;
-		}
+		const output = git(["ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", root]).toString("utf8");
+		for (const file of output.split("\0").filter(Boolean)) if (existsSync(file)) files.add(file);
+		continue;
 	} catch {
 		// Docker build contexts do not contain Git metadata.
 	}
 	collectFiles(root);
 }
 const hash = createHash("sha256");
+try {
+	const keys = JSON.parse(process.env.RUNNER_EXECUTION_PUBLIC_KEYS || "{}");
+	if (!keys || typeof keys !== "object" || Array.isArray(keys)) throw new Error();
+	hash.update("execution-verification-keys\0" + JSON.stringify(Object.entries(keys).sort(([a], [b]) => a.localeCompare(b))) + "\0");
+} catch {
+	throw new Error("Runner public verification key input invalid");
+}
+
 const sortedFiles = [...files].sort();
 for (const file of sortedFiles) {
-	let content;
-	try {
-		content = git(["show", `${commit}:${file}`]);
-	} catch {
-		content = readFileSync(file);
-	}
+	const content = readFileSync(file);
 	hash.update(`file\0${file}\0${content.length}\0`);
 	hash.update(content);
 }

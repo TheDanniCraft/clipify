@@ -10,12 +10,15 @@ import { resolveUserEntitlements } from "@lib/entitlements";
 import { authorizeLockedMutation } from "./mutation";
 import { workflowInputSchemas, type WorkflowToolName } from "@/server/mcp/workflows/schemas";
 import { workflowPermissions, workflowAnnotations } from "@/server/mcp/workflows/catalogue";
-export type WorkflowContext = { tx: TransactionClient; principal: TrustedCreatorPrincipal; creatorId: string; pro: boolean; runnerAccess: boolean; assertCurrent: () => void; afterCommit: (callback: () => void) => void };
-export async function workflowOperation<T extends WorkflowToolName>(principal: TrustedCreatorPrincipal, tool: T, rawInput: unknown, operation: (input: ReturnType<(typeof workflowInputSchemas)[T]["parse"]>, context: WorkflowContext) => Promise<Record<string, unknown>>, client: DatabaseClient = db, auditTool: ToolName = tool) {
+import { LegacyBroadcastRecoveryRequired, resourceFailure, isResourceFailure } from "./errors";
+import { deriveRunnerCapabilities, resolveRunnerBenefits, type RunnerBenefitInput } from "@/server/runner/capabilities";
+export type WorkflowContext = { tx: TransactionClient; principal: TrustedCreatorPrincipal; creatorId: string; pro: boolean; runnerAccess: boolean; runnerBenefits?: RunnerBenefitInput; assertCurrent: () => void; afterCommit: (callback: () => void) => void };
+export async function workflowOperation<T extends WorkflowToolName>(principal: TrustedCreatorPrincipal, tool: T, rawInput: unknown, operation: (input: ReturnType<(typeof workflowInputSchemas)[T]["parse"]>, context: WorkflowContext) => Promise<Record<string, unknown>>, client: DatabaseClient = db, auditTool: ToolName = tool): Promise<Record<string, unknown>> {
 	const parsed = workflowInputSchemas[tool].safeParse(rawInput);
 	if (!parsed.success) throw new Error("INVALID_INPUT");
 	const input = parsed.data;
 	const afterCommit: Array<() => void> = [];
+	let reconciliationError: LegacyBroadcastRecoveryRequired | undefined;
 	const result = await client.transaction(async (tx) => {
 		const authority = await authorizeLockedMutation(principal, input.creatorId, workflowPermissions[tool], tx);
 		if (tool.includes("runner") || tool.includes("stream_session")) {
@@ -33,13 +36,26 @@ export async function workflowOperation<T extends WorkflowToolName>(principal: T
 				.for("share");
 		}
 		const entitlements = await resolveUserEntitlements(authority.creator, tx);
+		const runnerBenefits = tool.includes("runner") || tool.includes("stream_session") ? await resolveRunnerBenefits(authority.creator, tx, new Date(Date.now())) : undefined;
+		authority.assertAuthorityCurrent();
 		const remote = ["get_overlay_runtime", "get_overlay_queues", "control_overlay", "play_overlay", "pause_overlay", "skip_overlay", "hide_overlay", "show_overlay", "set_overlay_volume", "mute_overlay", "unmute_overlay", "toggle_overlay_mute", "enqueue_overlay_clip", "clear_overlay_queue"].includes(tool);
-		if (remote && !entitlements.proAccess) throw new Error("FEATURE_RESTRICTED");
-		if (["get_runner_setup", "create_runner", "configure_stream_session", "control_stream_session"].includes(tool) && !entitlements.runnerAccess) throw new Error("FEATURE_RESTRICTED");
-		const context: WorkflowContext = { tx, principal, creatorId: input.creatorId, pro: entitlements.proAccess, runnerAccess: entitlements.runnerAccess, assertCurrent: authority.assertAuthorityCurrent, afterCommit: (callback) => afterCommit.push(callback) };
+		if (remote && !entitlements.proAccess) return resourceFailure("FEATURE_RESTRICTED");
+		if (tool === "configure_stream_session" && "controlMode" in input && input.controlMode === "scheduled" && !deriveRunnerCapabilities(runnerBenefits!).runnerPro) return resourceFailure("FEATURE_RESTRICTED");
+		const context: WorkflowContext = { tx, principal, creatorId: input.creatorId, pro: entitlements.proAccess, runnerAccess: entitlements.runnerAccess, runnerBenefits, assertCurrent: authority.assertAuthorityCurrent, afterCommit: (callback) => afterCommit.push(callback) };
 		authority.assertAuthorityCurrent();
-		const result = await operation(input as ReturnType<(typeof workflowInputSchemas)[T]["parse"]>, context);
+		let result: Record<string, unknown>;
+		try {
+			result = await operation(input as ReturnType<(typeof workflowInputSchemas)[T]["parse"]>, context);
+		} catch (error) {
+			if (!(error instanceof LegacyBroadcastRecoveryRequired)) throw error;
+			// Persist only recognized pre-existing output, before any requested Start mutation.
+			// Recheck authority through commit and deliberately write no success audit.
+			authority.assertAuthorityCurrent();
+			reconciliationError = error;
+			return {};
+		}
 		authority.assertAuthorityCurrent();
+		if (isResourceFailure(result)) return result;
 		async function recordWorkflowMutation() {
 			if (!workflowAnnotations(tool).readOnlyHint) {
 				const selectors = input as { overlayId?: string; playlistId?: string; galleryId?: string; runnerId?: string; sessionId?: string };
@@ -61,6 +77,7 @@ export async function workflowOperation<T extends WorkflowToolName>(principal: T
 		authority.assertAuthorityCurrent();
 		return result;
 	});
+	if (reconciliationError) throw reconciliationError;
 	for (const callback of afterCommit) callback();
 	return result;
 }

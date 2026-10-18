@@ -43,7 +43,7 @@ function formatOriginalPrice(value?: string | number | null) {
 		.trim();
 }
 
-export default function UpgradeModal({ isOpen, onOpenChange, user, title, description, ctaLabel, returnUrl, source = "upgrade_modal", feature = "unknown", initialBillingCycle = "yearly", mode = "plan", primaryProduct }: UpgradeModalProps) {
+export default function UpgradeModal({ isOpen, onOpenChange, user, title, description, ctaLabel, returnUrl, source = "upgrade_modal", feature = "unknown", initialBillingCycle = "yearly", primaryProduct }: UpgradeModalProps) {
 	const plausible = usePlausible();
 	const effectivePlan = user.entitlements?.effectivePlan ?? user.plan;
 	const [billingCycle, setBillingCycle] = useState<BillingCycle>(initialBillingCycle);
@@ -69,11 +69,8 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 	const yearlySuffix = frequencies.find((f) => f.key === FrequencyEnum.Yearly)?.priceSuffix ?? "per year";
 	const monthlySuffix = frequencies.find((f) => f.key === FrequencyEnum.Monthly)?.priceSuffix ?? "per month";
 	const inTrial = isReverseTrialActive(user);
-	const ownsRunner = user.entitlements?.runnerAccess ?? false;
-	const runnerAddonOnly = mode === "runner_addon" && effectivePlan === "pro";
-	const runnerPurchaseMode = mode === "runner_addon" && !ownsRunner;
-	const primary = primaryProduct ?? (mode === "runner_addon" ? BillingProduct.RunnerSelfHosted : BillingProduct.Pro);
-	const canUpgrade = runnerPurchaseMode || effectivePlan === "free" || inTrial || selectedOptionalProducts.size > 0;
+	const primary = primaryProduct === BillingProduct.RunnerSelfHosted ? BillingProduct.Pro : (primaryProduct ?? BillingProduct.Pro);
+	const canUpgrade = effectivePlan === "free" || inTrial || selectedOptionalProducts.size > 0;
 	const selectedProducts = billingOptions.filter((option) => option.owned || option.required || selectedOptionalProducts.has(option.key));
 	const payableProducts = selectedProducts.filter((option) => !option.owned);
 	const cycleFor = (option: BillingProductOption) => productCycles.get(option.key) ?? initialBillingCycle;
@@ -153,7 +150,7 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 						</Modal.Heading>
 					</Modal.Header>
 					<Modal.Body className='gap-5 pb-3'>
-						<p className='text-base text-muted'>{description ?? (runnerAddonOnly ? "Run Clipify overlays from your own computer with the self-hosted Runner add-on." : "Unlock advanced features for professional streamers and support the development of Clipify.")}</p>
+						<p className='text-base text-muted'>{description ?? "Unlock advanced features for professional streamers and support the development of Clipify."}</p>
 						{campaignOffer?.showPricingTierPromo ? (
 							<div className='rounded-xl border border-brand-secondary/25 bg-brand-secondary/10 px-4 py-3 text-sm text-foreground'>
 								<div className='font-semibold text-brand-secondary'>{campaignOffer.badgeText ?? campaignOffer.title}</div>
@@ -161,7 +158,7 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 							</div>
 						) : null}
 
-						{!runnerAddonOnly && (
+						{
 							<div className='flex flex-wrap items-center justify-between gap-3 text-xs text-muted'>
 								<div className='flex items-center gap-2'>
 									<span>Plan:</span>
@@ -197,9 +194,9 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 									</Tabs>
 								) : null}
 							</div>
-						)}
+						}
 
-						{!runnerAddonOnly && (monthly || yearly) && (
+						{(monthly || yearly) && (
 							<>
 								<div className='mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2'>
 									<div className='rounded-xl border border-default/60 bg-surface-secondary p-5'>
@@ -256,7 +253,7 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 							</>
 						)}
 
-						{!runnerAddonOnly && proTier && (
+						{proTier && (
 							<>
 								<p className='mt-3 text-lg text-foreground'>What&apos;s included with Pro</p>
 								<ul className='mt-1 grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2'>
@@ -361,7 +358,7 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 									const products = payableProducts.map((option) => ({ product: option.key, billingCycle: cycleFor(option) }));
 									const link = await generateCheckout(products, billingCycle, returnUrl ?? (typeof window !== "undefined" ? window.location.href : undefined), window.numok?.getStripeMetadata(), source);
 
-									if (link) {
+									if (typeof link === "string" && link) {
 										trackPaywallEvent(plausible, "checkout_start", {
 											source,
 											feature,
@@ -372,7 +369,7 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 									} else {
 										addToast({
 											title: "Error",
-											description: "Failed to generate payment link. Please try again later.",
+											description: link && typeof link === "object" ? link.error : "Failed to generate payment link. Please try again later.",
 											color: "danger",
 										});
 									}

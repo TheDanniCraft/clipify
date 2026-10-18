@@ -12,7 +12,7 @@ describe("TDD-US5-003 non-destructive downgrade", () => {
 		const effects = deriveDowngradeEffects({ inventory, effectivePlan: "free", runnerAccess: false });
 		expect(effects.retained).toEqual(inventory);
 		expect(effects.deleted).toEqual({ overlays: [], playlists: [], galleries: [], runners: [] });
-		expect(effects.capabilities).toMatchObject({ advancedOverlayMutation: false, additionalOverlayMutation: false, runnerControl: false, resourceRead: true });
+		expect(effects.capabilities).toMatchObject({ advancedOverlayMutation: false, additionalOverlayMutation: false, runnerControl: true, resourceRead: true });
 	});
 
 	it.each(["billing", "grant", "agency"] as const)("keeps Pro capabilities for %s entitlement source", (source) => {
@@ -23,8 +23,9 @@ describe("TDD-US5-003 non-destructive downgrade", () => {
 
 	it("blocks unsupported mutations while leaving data readable", () => {
 		const effects = deriveDowngradeEffects({ inventory: inventories[2]!, effectivePlan: "free", runnerAccess: false });
-		expect(effects.restrictions).toEqual(expect.arrayContaining(["extra-overlays-read-only", "extra-playlists-read-only", "runner-control-disabled", "advanced-overlay-settings-read-only"]));
+		expect(effects.restrictions).toEqual(expect.arrayContaining(["extra-overlays-read-only", "extra-playlists-read-only", "advanced-overlay-settings-read-only"]));
 		expect(effects.capabilities.resourceRead).toBe(true);
+		expect(effects.restrictions).not.toContain("runner-control-disabled");
 	});
 
 	it("performs zero delete calls when applying a downgrade", async () => {
@@ -33,7 +34,7 @@ describe("TDD-US5-003 non-destructive downgrade", () => {
 		const markReconciled = jest.fn();
 		await applyDowngradeEffects(deriveDowngradeEffects({ inventory: inventories[2]!, effectivePlan: "free", runnerAccess: false }), { deleteResource, pauseRuntime, markReconciled });
 		expect(deleteResource).not.toHaveBeenCalled();
-		expect(pauseRuntime).toHaveBeenCalledWith({ runners: ["r1", "r2"] });
+		expect(pauseRuntime).not.toHaveBeenCalled();
 		expect(markReconciled).toHaveBeenCalledTimes(1);
 	});
 

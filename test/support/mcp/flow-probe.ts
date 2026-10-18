@@ -261,6 +261,7 @@ async function main() {
 					if (mode === "deny-empty") finalScopes = [];
 					if (needsFullScopes) finalScopes = [...MCP_SCOPES, "offline_access"];
 					if (mode === "catalogue:workflow:submit_feedback:read_only") finalScopes = ["creator:read"];
+					if (mode.startsWith("catalogue:workflow:runner_free_pro:denied_")) finalScopes = finalScopes.filter((scope) => !scope.startsWith("runner:") || scope === "runner:read");
 					if (mode.startsWith("catalogue:workflow:") && mode.endsWith(":missing_scope")) {
 						const { toolPermissions } = await import("@/server/mcp/permissions");
 						const permission = toolPermissions[mode.split(":")[2] as keyof typeof toolPermissions];

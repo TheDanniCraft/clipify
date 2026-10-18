@@ -545,8 +545,8 @@ describe("components/OverlayTable/index", () => {
 		expect(push).not.toHaveBeenCalled();
 	});
 
-	it.each(["success", "failed", "rejected", "restricted"])("owned runner creation %s respects entitlement and safe outcomes", async (mode) => {
-		validateAuth.mockResolvedValue({ id: "owner-1", plan: "pro", entitlements: { effectivePlan: "pro", runnerAccess: mode !== "restricted" } });
+	it.each(["success", "failed", "rejected", "no-paid-entitlement"])("owned runner creation %s permits included access and preserves safe outcomes", async (mode) => {
+		validateAuth.mockResolvedValue({ id: "owner-1", plan: "pro", entitlements: { effectivePlan: "pro", runnerAccess: mode !== "no-paid-entitlement" } });
 		if (mode === "failed") createRunner.mockResolvedValue({ success: false });
 		if (mode === "rejected") createRunner.mockRejectedValue(new Error("private runner failure"));
 		const Table = (await import("@/app/components/OverlayTable")).default;
@@ -562,10 +562,9 @@ describe("components/OverlayTable/index", () => {
 		await act(async () => {
 			fireEvent.click(screen.getByRole("button", { name: "Add Runner" }));
 		});
-		if (mode === "success") await waitFor(() => expect(push).toHaveBeenCalledWith("/dashboard/runners/created-runner"));
-		else if (mode === "restricted") expect(createRunner).not.toHaveBeenCalled();
+		if (mode === "success" || mode === "no-paid-entitlement") await waitFor(() => expect(push).toHaveBeenCalledWith("/dashboard/runners/created-runner"));
 		else await waitFor(() => expect(addToast).toHaveBeenCalledWith(expect.objectContaining({ color: "danger" })));
-		if (mode !== "success") expect(push).not.toHaveBeenCalled();
+		if (mode === "failed" || mode === "rejected") expect(push).not.toHaveBeenCalled();
 	});
 
 	it.each(["Overlays", "Playlists", "Galleries"])("cached Free %s ceiling requests upgrade before creation", async (tab) => {
@@ -690,7 +689,7 @@ describe("components/OverlayTable/index", () => {
 
 	it.each(["offline", "online", "running"])("runner %s state renders current server status", async (state) => {
 		getAllRunners.mockResolvedValue([{ id: "runner-one", ownerId: "owner-1", name: "Hardware", status: state === "offline" ? "offline" : "online", createdAt: new Date(), lastHeartbeatAt: state === "offline" ? null : new Date() }]);
-		getAllStreamSessions.mockResolvedValue([{ runnerId: "runner-one", actualState: state === "running" ? "running" : "stopped", lastError: state === "running" ? "stream failed" : null }]);
+		getAllStreamSessions.mockResolvedValue([{ runnerId: "runner-one", actualState: state === "running" ? "running" : "stopped", hasError: state === "running" }]);
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
 			render(<Table userId='owner-1' />);
@@ -1143,7 +1142,7 @@ describe("components/OverlayTable/index", () => {
 		expect(addToast).toHaveBeenCalledWith(expect.objectContaining({ description: "This creator is using 1 of 1 overlays. Upgrade to Pro to create more.", color: "warning" }));
 	});
 
-	it("active workspace runner creation requires the Runner entitlement", async () => {
+	it("active workspace runner creation uses included access without a paid Runner entitlement", async () => {
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
 			render(<Table userId='owner-1' />);
@@ -1155,8 +1154,8 @@ describe("components/OverlayTable/index", () => {
 		await act(async () => {
 			fireEvent.click(await screen.findByRole("button", { name: "Add Runner" }));
 		});
-		expect(createRunner).not.toHaveBeenCalled();
-		expect(push).not.toHaveBeenCalled();
+		expect(createRunner).toHaveBeenCalledWith("owner-1", "New Hardware Node");
+		expect(push).toHaveBeenCalledWith("/dashboard/runners/created-runner");
 	});
 	it("reload adopts current runner stream states and keeps unknown sessions offline", async () => {
 		const Table = (await import("@/app/components/OverlayTable")).default;
@@ -1168,7 +1167,7 @@ describe("components/OverlayTable/index", () => {
 			{ id: "connected", ownerId: "owner-1", name: "Connected Hardware", status: "online", createdAt: new Date(), lastHeartbeatAt: new Date() },
 			{ id: "disconnected", ownerId: "owner-1", name: "Disconnected Hardware", status: "offline", createdAt: new Date(), lastHeartbeatAt: null },
 		]);
-		getAllStreamSessions.mockResolvedValue([{ runnerId: "connected", actualState: "running", lastError: null }]);
+		getAllStreamSessions.mockResolvedValue([{ runnerId: "connected", actualState: "running", hasError: false }]);
 		await act(async () => {
 			await act(async () => {
 				fireEvent.click(screen.getByRole("button", { name: "Reload" }));
@@ -1196,7 +1195,7 @@ describe("components/OverlayTable/index", () => {
 		expect(screen.getByText("Shared Gallery")).toBeInTheDocument();
 		expect(getAvatar).toHaveBeenCalledWith("another-owner", "another-owner");
 	});
-	it("Free runner empty state explains the add-on requirement and does not create hardware", async () => {
+	it("Free runner empty state explains included access without implicitly creating hardware", async () => {
 		validateAuth.mockResolvedValue({ id: "owner-1", plan: "free", entitlements: { effectivePlan: "free", runnerAccess: false } });
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
@@ -1205,8 +1204,9 @@ describe("components/OverlayTable/index", () => {
 		await act(async () => {
 			fireEvent.click(screen.getByRole("button", { name: "Runners" }));
 		});
-		expect(screen.getByText("Runner add-on required")).toBeInTheDocument();
-		expect(screen.getAllByRole("button", { name: "Upgrade with Runner" })).toHaveLength(2);
+		expect(screen.getByText("Runner is included with Free and Pro.")).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Upgrade with Runner" })).not.toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Create runner" })).toBeInTheDocument();
 		expect(createRunner).not.toHaveBeenCalled();
 	});
 

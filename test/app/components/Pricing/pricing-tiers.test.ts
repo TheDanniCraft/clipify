@@ -1,4 +1,4 @@
-import { pricingFeatures, runnerAddon } from "@/app/components/Pricing/pricing-catalog";
+import { pricingFeatures, runnerIncluded } from "@/app/components/Pricing/pricing-catalog";
 import { tiers, frequencies } from "@/app/components/Pricing/pricing-tiers";
 import { resolveRuntimePricing } from "@/app/components/Pricing/pricing-types";
 
@@ -27,9 +27,9 @@ describe("components/Pricing/pricing-tiers", () => {
 		expect(pricingFeatures.flatMap((group) => group.items).find((feature) => feature.title === "Analytics CSV export")?.tiers).toEqual({ free: false, pro: true });
 	});
 
-	it("models the Runner as an add-on available to both plans", () => {
-		expect(runnerAddon.availability).toBe("Available with Free or Pro");
-		expect(runnerAddon.prices).toEqual({ monthly: "Unavailable", yearly: "Unavailable" });
+	it("models Runner as included with no separate public purchase prices", () => {
+		expect(runnerIncluded.availability).toBe("Included with Free and Pro");
+		expect(runnerIncluded).not.toHaveProperty("prices");
 	});
 
 	it("provides an explanation for every comparison feature", () => {

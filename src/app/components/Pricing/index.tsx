@@ -7,7 +7,7 @@ import { buttonVariants } from "@heroui/styles";
 import { IconArrowRight, IconCheck, IconHeart } from "@tabler/icons-react";
 import { usePlausible } from "next-plausible";
 
-import { frequencies, runnerAddon, tiers } from "./pricing-catalog";
+import { frequencies, runnerIncluded, tiers } from "./pricing-catalog";
 import { FrequencyEnum, resolveRuntimePricing, type RuntimePricing } from "./pricing-types";
 import { trackPaywallEvent } from "@lib/paywallTracking";
 import ProSetupModal from "./ProSetupModal";
@@ -37,12 +37,7 @@ export default function TiersComponent({ campaignOffer = null, context = "public
 		if (frequency) setSelectedFrequency(frequency);
 	};
 
-	const integrationHref = (kind: "plan" | "runner") => {
-		const query = kind === "runner" ? `addon=runner&cycle=${selectedFrequency.key}&source=pricing_page` : `upgrade&cycle=${selectedFrequency.key}&source=pricing_page&feature=plan`;
-		const dashboardHref = `/dashboard/settings?${query}`;
-		if (context === "dashboard") return dashboardHref;
-		return kind === "runner" ? `/checkout/start?runner=true&cycle=${selectedFrequency.key}&entrypoint=runner_addon` : `/checkout/start?plan=pro&cycle=${selectedFrequency.key}&entrypoint=direct_cta`;
-	};
+	const integrationHref = () => (context === "dashboard" ? `/dashboard/settings?upgrade&cycle=${selectedFrequency.key}&source=pricing_page&feature=plan` : `/checkout/start?plan=pro&cycle=${selectedFrequency.key}&entrypoint=direct_cta`);
 	const openProSetup = () => {
 		trackPaywallEvent(plausible, "paywall_cta_click", { source: "pricing_page", feature: "plan", plan: "pro", cycle: selectedFrequency.key });
 		setIsPlanModalOpen(true);
@@ -130,7 +125,7 @@ export default function TiersComponent({ campaignOffer = null, context = "public
 											{tier.buttonText}
 										</Button>
 									) : (
-										<Link href={tier.key === "free" ? (context === "dashboard" ? "/dashboard" : "/checkout/clear") : integrationHref("plan")} aria-label={tier.buttonText} onPress={() => trackPaywallEvent(plausible, "paywall_cta_click", { source: "pricing_page", feature: "plan", plan: tier.key, cycle: selectedFrequency.key })} className={buttonVariants({ fullWidth: true, variant: tier.mostPopular ? "primary" : "secondary", className: cn("no-underline", tier.mostPopular && "shadow-md") })}>
+										<Link href={tier.key === "free" ? (context === "dashboard" ? "/dashboard" : "/checkout/clear") : integrationHref()} aria-label={tier.buttonText} onPress={() => trackPaywallEvent(plausible, "paywall_cta_click", { source: "pricing_page", feature: "plan", plan: tier.key, cycle: selectedFrequency.key })} className={buttonVariants({ fullWidth: true, variant: tier.mostPopular ? "primary" : "secondary", className: cn("no-underline", tier.mostPopular && "shadow-md") })}>
 											{tier.buttonText}
 										</Link>
 									)}
@@ -161,33 +156,16 @@ export default function TiersComponent({ campaignOffer = null, context = "public
 			) : null}
 
 			{showRunner ? (
-				<Card variant='secondary' className='mt-4 w-full border border-accent/30'>
+				<Card variant='secondary' className='mt-4 w-full border border-default/60'>
 					<Card.Content className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
 						<div className='min-w-0 flex-1'>
-							<div className='flex flex-wrap items-center gap-2'>
-								<h2 className='font-semibold'>{runnerAddon.title} add-on</h2>
-								<Chip size='sm' variant='tertiary'>
-									Optional
-								</Chip>
-							</div>
-							<p className='mt-1 text-sm text-muted'>{runnerAddon.description}</p>
-							<p className='mt-1 text-xs font-medium text-muted'>{runnerAddon.availability}</p>
-							<Link className='mt-2 text-xs' href='mailto:contact@clipify.us?subject=Managed%20Runner'>
-								Need a managed Runner?
-							</Link>
+							<h2 className='font-semibold'>{runnerIncluded.title}</h2>
+							<p className='mt-1 text-sm text-muted'>{runnerIncluded.description}</p>
+							<p className='mt-1 text-xs font-medium text-muted'>{runnerIncluded.availability}</p>
 						</div>
-						<div className='flex shrink-0 flex-col gap-2 sm:items-end sm:text-right'>
-							<p className='font-semibold tabular-nums'>
-								{runtimePricing.runner[selectedFrequency.key].formatted} / {selectedFrequency.key === FrequencyEnum.Monthly ? "month" : "year"}
-							</p>
-							{context === "dashboard" ? (
-								<Link href={integrationHref("runner")} className={buttonVariants({ variant: "primary", className: "no-underline" })}>
-									Add Runner
-								</Link>
-							) : (
-								<p className='max-w-52 text-xs text-muted'>Select Get Pro to include it during setup.</p>
-							)}
-						</div>
+						<Link href='/runner/enroll' className={buttonVariants({ variant: "secondary", className: "shrink-0 no-underline" })}>
+							Set up Runner
+						</Link>
 					</Card.Content>
 				</Card>
 			) : null}

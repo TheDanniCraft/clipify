@@ -11,10 +11,10 @@ function cycle(value: string | null) {
 
 export async function GET(request: NextRequest) {
 	const url = new URL(request.url);
+	if (url.searchParams.get("runner") === "true") return NextResponse.redirect(new URL("/pricing?runner=included", await getBaseUrl()));
 	const selectedCycle = cycle(url.searchParams.get("cycle"));
 	const products: CheckoutIntentProduct[] = [];
 	if (url.searchParams.get("plan") === "pro") products.push({ product: BillingProduct.Pro, billingCycle: selectedCycle });
-	if (url.searchParams.get("runner") === "true") products.push({ product: BillingProduct.RunnerSelfHosted, billingCycle: cycle(url.searchParams.get("runnerCycle") ?? url.searchParams.get("cycle")) });
 	if (products.length === 0) return NextResponse.redirect(new URL("/login", await getBaseUrl()));
 
 	const requestedEntrypoint = url.searchParams.get("entrypoint");

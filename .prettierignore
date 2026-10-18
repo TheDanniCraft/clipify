@@ -1,3 +1,10 @@
 drizzle
 test/__mocks__
 **/graphify-out/graph.json
+
+# Generated native Runner bundles and executables
+/packages/runner/build/
+
+# Preserve raw machine reports and the append-only execution ledger.
+/specs/*/tdd/evidence/**
+/specs/*/tdd/cycle-log.md

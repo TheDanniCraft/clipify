@@ -4,12 +4,12 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "nod
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-test.each(["integration", "workflows"])(
+test.each(["integration", "workflows", "runner"])(
 	"actual %s database lane honors available PostgreSQL slots rather than CPU workers alone",
 	(lane) => {
 		mkdirSync("test-results/mcp", { recursive: true });
 		const directory = mkdtempSync(join(process.cwd(), "test-results/mcp/runner-database-"));
-		const fixtures = join(directory, `test/mcp/${lane}`);
+		const fixtures = join(directory, lane === "runner" ? "test/server/runner" : `test/mcp/${lane}`);
 		mkdirSync(fixtures, { recursive: true });
 		const plans = join(directory, "plans.jsonl");
 		const output = join(directory, "result.json");

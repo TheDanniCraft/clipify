@@ -100,7 +100,7 @@ export default function BillingPanel() {
 									variant='secondary'
 									onPress={async () => {
 										const link = await getPortalLink();
-										if (link) window.location.href = link;
+										if (typeof link === "string" && link) window.location.href = link;
 									}}
 								>
 									<IconCreditCardFilled />
@@ -142,75 +142,78 @@ export default function BillingPanel() {
 							<p className='text-sm text-muted'>Select the products you want, then save your subscription changes.</p>
 						</Card.Header>
 						<Card.Content className='space-y-3'>
-							{options.map((option) => {
-								const product = overview?.products.find((entry) => entry.key === option.key);
-								const checked = selectedProducts.has(option.key);
-								const locked = option.owned && product?.source === "grant";
-								const cycle = selectedProducts.get(option.key) ?? product?.billingInterval ?? "yearly";
-								const canceling = Boolean(product?.cancelAtPeriodEnd);
-								return (
-									<div key={option.key} className='flex flex-wrap items-center justify-between gap-3 rounded-xl border border-default/60 bg-surface-secondary p-4'>
-										<div className='flex items-center gap-3'>
-											<Checkbox
-												aria-label={option.label}
-												isSelected={checked}
-												isDisabled={locked}
-												onChange={(selected) =>
-													setSelectedProducts((previous) => {
-														const next = new Map(previous);
-														if (selected) next.set(option.key, cycle);
-														else next.delete(option.key);
-														return next;
-													})
-												}
-											>
-												<Checkbox.Content>
-													<Checkbox.Control>
-														<Checkbox.Indicator />
-													</Checkbox.Control>
-													<div>
-														<p className='font-medium'>{option.label}</p>
-														<p className='text-xs text-muted'>{locked ? "Included access" : option.description}</p>
-													</div>
-												</Checkbox.Content>
-											</Checkbox>
-										</div>
-										<div className='flex items-center gap-3'>
-											{option.owned ? (
-												<Chip color={canceling ? "warning" : "success"} variant='soft'>
-													{product ? (product.source === "billing" ? (product.cancelAtPeriodEnd ? "Ends " : "Renews ") + formatDate(product.currentPeriodEnd) : product.currentPeriodEnd ? (product.grantSource === "reverse_trial" ? "Included until " : "Available until ") + formatDate(product.currentPeriodEnd) : "Included") : "Included"}
-												</Chip>
-											) : (
-												<Tabs
-													selectedKey={cycle}
-													onSelectionChange={(key) =>
+							<p className='text-sm text-muted'>Runner is included with Free and Pro.</p>
+							{options
+								.filter((option) => option.key !== BillingProduct.RunnerSelfHosted || option.owned)
+								.map((option) => {
+									const product = overview?.products.find((entry) => entry.key === option.key);
+									const checked = selectedProducts.has(option.key);
+									const locked = option.owned && product?.source === "grant";
+									const cycle = selectedProducts.get(option.key) ?? product?.billingInterval ?? "yearly";
+									const canceling = Boolean(product?.cancelAtPeriodEnd);
+									return (
+										<div key={option.key} className='flex flex-wrap items-center justify-between gap-3 rounded-xl border border-default/60 bg-surface-secondary p-4'>
+											<div className='flex items-center gap-3'>
+												<Checkbox
+													aria-label={option.label}
+													isSelected={checked}
+													isDisabled={locked}
+													onChange={(selected) =>
 														setSelectedProducts((previous) => {
 															const next = new Map(previous);
-															if (checked) next.set(option.key, String(key) as BillingCycle);
+															if (selected) next.set(option.key, cycle);
+															else next.delete(option.key);
 															return next;
 														})
 													}
-													className='w-fit'
 												>
-													<Tabs.ListContainer>
-														<Tabs.List aria-label={`${option.label} billing frequency`}>
-															<Tabs.Tab id='monthly'>
-																Monthly
-																<Tabs.Indicator />
-															</Tabs.Tab>
-															<Tabs.Tab id='yearly'>
-																Yearly
-																<Tabs.Indicator />
-															</Tabs.Tab>
-														</Tabs.List>
-													</Tabs.ListContainer>
-												</Tabs>
-											)}{" "}
-											{!option.owned && <span className='text-sm font-medium'>{option.prices[cycle].formatted}</span>}
+													<Checkbox.Content>
+														<Checkbox.Control>
+															<Checkbox.Indicator />
+														</Checkbox.Control>
+														<div>
+															<p className='font-medium'>{option.label}</p>
+															<p className='text-xs text-muted'>{locked ? "Included access" : option.description}</p>
+														</div>
+													</Checkbox.Content>
+												</Checkbox>
+											</div>
+											<div className='flex items-center gap-3'>
+												{option.owned ? (
+													<Chip color={canceling ? "warning" : "success"} variant='soft'>
+														{product ? (product.source === "billing" ? (product.cancelAtPeriodEnd ? "Ends " : "Renews ") + formatDate(product.currentPeriodEnd) : product.currentPeriodEnd ? (product.grantSource === "reverse_trial" ? "Included until " : "Available until ") + formatDate(product.currentPeriodEnd) : "Included") : "Included"}
+													</Chip>
+												) : (
+													<Tabs
+														selectedKey={cycle}
+														onSelectionChange={(key) =>
+															setSelectedProducts((previous) => {
+																const next = new Map(previous);
+																if (checked) next.set(option.key, String(key) as BillingCycle);
+																return next;
+															})
+														}
+														className='w-fit'
+													>
+														<Tabs.ListContainer>
+															<Tabs.List aria-label={`${option.label} billing frequency`}>
+																<Tabs.Tab id='monthly'>
+																	Monthly
+																	<Tabs.Indicator />
+																</Tabs.Tab>
+																<Tabs.Tab id='yearly'>
+																	Yearly
+																	<Tabs.Indicator />
+																</Tabs.Tab>
+															</Tabs.List>
+														</Tabs.ListContainer>
+													</Tabs>
+												)}{" "}
+												{!option.owned && <span className='text-sm font-medium'>{option.prices[cycle].formatted}</span>}
+											</div>
 										</div>
-									</div>
-								);
-							})}
+									);
+								})}
 							<div className='flex justify-end border-t border-default/60 pt-4'>
 								<Button variant='primary' isDisabled={!hasChanges} onPress={openConfirm}>
 									Save changes
@@ -237,7 +240,8 @@ export default function BillingPanel() {
 									undefined,
 									"upgrade_modal",
 								);
-								if (link) window.location.href = link;
+								if (typeof link === "string" && link) window.location.href = link;
+								else if (link && typeof link === "object") addToast({ title: "Runner included", description: link.error, color: "default" });
 								return;
 							}
 							for (const product of actualRemovals) await scheduleProductCancellation(product.key, true);

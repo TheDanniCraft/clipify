@@ -1,0 +1,34 @@
+diff --git a/lib/cjs/puppeteer/node/BrowserLauncher.js b/lib/cjs/puppeteer/node/BrowserLauncher.js
+--- a/lib/cjs/puppeteer/node/BrowserLauncher.js
++++ b/lib/cjs/puppeteer/node/BrowserLauncher.js
+@@ -193,11 +193,11 @@
+             if (this.#browser === 'chrome' && !usePipe) {
+                 throw new Error('To use `enableExtensions` with a list of paths in Chrome, you must be connected with `--remote-debugging-pipe` (`pipe: true`).');
+             }
+-            await Promise.all([
++            await Promise.all(
+                 enableExtensions.map(path => {
+                     return browser.installExtension(path);
+                 }),
+-            ]);
++            );
+         }
+         if (waitForInitialPage) {
+             await this.waitForPageTarget(browser, timeout);
+diff --git a/lib/esm/puppeteer/node/BrowserLauncher.js b/lib/esm/puppeteer/node/BrowserLauncher.js
+--- a/lib/esm/puppeteer/node/BrowserLauncher.js
++++ b/lib/esm/puppeteer/node/BrowserLauncher.js
+@@ -157,11 +157,11 @@
+             if (this.#browser === 'chrome' && !usePipe) {
+                 throw new Error('To use `enableExtensions` with a list of paths in Chrome, you must be connected with `--remote-debugging-pipe` (`pipe: true`).');
+             }
+-            await Promise.all([
++            await Promise.all(
+                 enableExtensions.map(path => {
+                     return browser.installExtension(path);
+                 }),
+-            ]);
++            );
+         }
+         if (waitForInitialPage) {
+             await this.waitForPageTarget(browser, timeout);

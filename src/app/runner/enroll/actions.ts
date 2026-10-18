@@ -22,7 +22,7 @@ export type PendingRunnerOption = {
 
 export async function getAccessiblePendingRunners(userId: string): Promise<PendingRunnerOption[]> {
 	void userId;
-	const accessibleCreators = await listAuthorizedCreatorOperations({ permission: "runner:read", requiredEntitlement: "runner" });
+	const accessibleCreators = await listAuthorizedCreatorOperations({ permission: "runner:read" });
 	const accessibleOwnerIds = accessibleCreators.map((access) => access.creator.id);
 	if (accessibleOwnerIds.length === 0) return [];
 	const runners = await db.query.runnersTable.findMany({
@@ -97,7 +97,7 @@ async function approveRunnerEnrollment(code: string, runnerId?: string): Promise
 	}
 
 	if (!runner) return { status: "unauthorized" };
-	const access = await authorizeCreatorOperation({ creatorId: runner.ownerId, resourceOwnerId: runner.ownerId, permission: "runner:control", requiredEntitlement: "runner" });
+	const access = await authorizeCreatorOperation({ creatorId: runner.ownerId, resourceOwnerId: runner.ownerId, permission: "runner:control" });
 	if (!access.allowed) return { status: access.code === "ENTITLEMENT_REQUIRED" ? "entitlement-required" : "unauthorized" };
 
 	await db

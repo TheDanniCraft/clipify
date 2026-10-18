@@ -1,0 +1,7 @@
+{
+  "scope": "Disposable local public verification key, Linux-only packaging/self-test. No private key retained or packaged. Official five-platform qualification remains separate.",
+  "keyId": "8aeca3ded11f6f2b",
+  "publicKey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAZiuuQtKrarocLqAu+OTAU/Id+BOzJwaM2RZfEJds/3s=\n-----END PUBLIC KEY-----\n",
+  "target": "node24-linux-x64",
+  "apiUrl": "http://127.0.0.1:3000"
+}

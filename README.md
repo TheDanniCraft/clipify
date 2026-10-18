@@ -65,6 +65,13 @@ You can upgrade to Pro directly on [clipify.us](https://clipify.us).
    bun run app:dev
    ```
 
+### Local tests
+
+Follow [the local test setup guide](docs/local-testing.md) before running the
+complete Jest, native workflow or browser checks. These require disposable
+localhost PostgreSQL, the CI template environment and Chromium system libraries;
+`bun install` alone does not provide them.
+
 ### Database
 
 Clipify uses [Drizzle ORM](https://orm.drizzle.team/) for database management. Example commands:

@@ -1,0 +1,17 @@
+{
+  "scope": "Fresh local Linux x64 artifact and real executable self-test only. Other official platform targets remain unexecuted here; no official matrix pass is claimed.",
+  "platform": "linux",
+  "arch": "x64",
+  "target": "node24-linux-x64",
+  "apiUrl": "http://127.0.0.1:3000",
+  "publicKeyId": "8aeca3ded11f6f2b",
+  "sourceFingerprint": "64843c60d3f4d0ec40197c6afb11b8a1483458211cc50c0201170ae93854425f",
+  "baseCommit": "2786b3f816e4e447b9fd219dceda9a3483d823f1",
+  "sourceFiles": 117,
+  "binary": "public/downloads/runner/clipify-runner-linux",
+  "sha256": "d570d20aefdcd553bef8ea6d026833ff2fefc489e1c6249f2e9d8091011d035a",
+  "size": 148173455,
+  "buildLog": "F1-v2-linux-native-build.log",
+  "selfTestLog": "F1-v2-linux-native-self-test.log",
+  "selfTestPassed": true
+}

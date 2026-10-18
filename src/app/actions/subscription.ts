@@ -113,6 +113,7 @@ export async function requestAccountDataExport() {
 }
 
 export async function getBillingProductOptions(primaryProduct: BillingProduct) {
+	if (primaryProduct === BillingProduct.RunnerSelfHosted) primaryProduct = BillingProduct.Pro;
 	const authUser = await getAuthorizedUser();
 	const entitlements = await resolveUserEntitlements(authUser);
 	const catalog = await resolveBillingCatalog();
@@ -148,7 +149,7 @@ export async function getBillingProductOptions(primaryProduct: BillingProduct) {
 				...BILLING_PRODUCT_INFO[product],
 				owned,
 				required: product === primaryProduct && !owned,
-				selectable: !owned && product !== primaryProduct,
+				selectable: product !== BillingProduct.RunnerSelfHosted && !owned && product !== primaryProduct,
 				prices: { monthly: prices[0], yearly: prices[1] },
 			};
 		}),
@@ -244,6 +245,9 @@ async function persistStripeCustomerId(userId: string, customerId: string) {
 }
 
 export async function generateCheckout(productKeys: BillingProduct[] | Array<{ product: BillingProduct; billingCycle: BillingCycle }>, billingCycle: BillingCycle = "yearly", returnUrl?: string, numokMetadata?: NumokStripeMetadata, source?: PaywallSource, checkoutOptions?: { idempotencyKey?: string; successUrl?: string; cancelUrl?: string }) {
+	if (productKeys.some((entry) => (typeof entry === "string" ? entry : entry.product) === BillingProduct.RunnerSelfHosted)) {
+		return { success: false as const, code: "RUNNER_INCLUDED" as const, error: "Runner is included with Free and Pro. No separate Runner purchase is needed." };
+	}
 	const authUser = await getAuthorizedUser();
 	const selectedProducts = Array.from(new Map(productKeys.map((entry) => (typeof entry === "string" ? [entry, { product: entry, billingCycle }] : [`${entry.product}:${entry.billingCycle}`, entry]))).values());
 	if (selectedProducts.length === 0) throw new Error("Select at least one product");

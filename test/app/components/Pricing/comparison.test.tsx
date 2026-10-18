@@ -69,7 +69,7 @@ describe("PricingComparison Pro setup", () => {
 		runner: { monthly: { amount: 3, currency: "EUR", formatted: "3 EUR" }, yearly: { amount: 30, currency: "EUR", formatted: "30 EUR" } },
 	};
 
-	it("offers the Runner once after Get Pro instead of rendering a separate plan builder", () => {
+	it("includes Runner in Pro setup without rendering a separate purchase option", () => {
 		render(<PricingComparison pricing={pricing} />);
 
 		expect(screen.queryByText("Build your plan")).not.toBeInTheDocument();
@@ -78,16 +78,15 @@ describe("PricingComparison Pro setup", () => {
 		expect(dialog).not.toBeNull();
 		const dialogQueries = within(dialog as HTMLElement);
 		const products = dialogQueries.getAllByRole("checkbox") as HTMLInputElement[];
-		expect(products).toHaveLength(2);
+		expect(products).toHaveLength(1);
 		expect(products[0]).toBeChecked();
 		expect(products[0]).toBeDisabled();
-		expect(products[1]).not.toBeChecked();
 		expect(screen.queryByRole("button", { name: "Add" })).not.toBeInTheDocument();
 		expect(screen.queryByRole("link", { name: "Add Runner" })).not.toBeInTheDocument();
 
-		fireEvent.click(products[1]);
+		expect(dialogQueries.getByText("Runner is included with Free and Pro.")).toBeInTheDocument();
 		const runnerCheckout = dialogQueries.getByRole("link", { name: "Continue to checkout" });
 		expect(runnerCheckout).toHaveAttribute("href", expect.stringContaining("plan=pro"));
-		expect(runnerCheckout).toHaveAttribute("href", expect.stringContaining("runner=true"));
+		expect(runnerCheckout).not.toHaveAttribute("href", expect.stringContaining("runner=true"));
 	});
 });

@@ -33,7 +33,7 @@ function browserProviderEnvironment(environment = process.env, nodeOptions = "")
 		RATE_LIMIT_HASH_SECRET: "clipify-e2e-rate-limit-secret-not-for-production",
 		TWITCH_CLIENT_ID: "isolated-browser-client",
 		TWITCH_CLIENT_SECRET: "isolated-browser-client-secret",
-		NODE_OPTIONS: `${nodeOptions} --import=${pathToFileURL(join(__dirname, "browser-provider-preload.mjs")).href}`.trim(),
+		NODE_OPTIONS: `${nodeOptions} --import=${pathToFileURL(join(__dirname, "runner-presentation-provider-preload.mjs")).href} --import=${pathToFileURL(join(__dirname, "browser-provider-preload.mjs")).href}`.trim(),
 	};
 }
 

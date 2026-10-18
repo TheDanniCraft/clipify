@@ -25,6 +25,27 @@ function evaluate(coverage: unknown, sources: unknown = manifest) {
 	return JSON.parse(execFileSync(process.execPath, ["--input-type=module", "--eval", code, JSON.stringify(coverage), JSON.stringify(sources)], { encoding: "utf8" }));
 }
 describe("TDD-US4-021 feature coverage gate", () => {
+	test.each([
+		[94, 95],
+		[95, 94],
+	])("strict Runner critical statement/function boundary %s/%s fails", (statements, functions) => {
+		const input = report();
+		input["src/security.ts"] = file("src/security.ts", statements, functions, 90);
+		// Several statements can share an already-covered line. Keep line
+		// coverage green so it cannot conceal a missing statement floor.
+		for (const [id, hits] of Object.entries(input["src/security.ts"].s)) {
+			if (hits === 0) input["src/security.ts"].statementMap[id] = { start: { line: 1, column: 100 + Number(id) * 2 }, end: { line: 1, column: 101 + Number(id) * 2 } };
+		}
+		expect(evaluate(input, { ...manifest, strictCritical: manifest.critical })).toMatchObject({ ok: false });
+	});
+	test("strict Runner critical coverage accepts exactly95 percent statements/functions", () => {
+		const input = report();
+		input["src/security.ts"] = file("src/security.ts", 95, 95, 90);
+		expect(evaluate(input, { ...manifest, strictCritical: manifest.critical })).toMatchObject({ ok: true });
+	});
+	test("strict coverage cannot refer to a source outside the critical inventory", () => {
+		expect(evaluate(report(), { ...manifest, strictCritical: ["src/feature.ts"] })).toMatchObject({ ok: false });
+	});
 	test("accepts exact feature and critical boundaries", () => {
 		expect(evaluate(report())).toMatchObject({ ok: true });
 	});
@@ -91,7 +112,7 @@ describe("required real source collection", () => {
 	test("feature manifest includes MCP pricing and framework boundary changes", () => {
 		const code = "const {readMcpSourceManifest}=await import('./scripts/check-mcp-coverage.mjs'); process.stdout.write(JSON.stringify(readMcpSourceManifest()));";
 		const result = JSON.parse(execFileSync(process.execPath, ["--input-type=module", "--eval", code], { encoding: "utf8" }));
-		expect(result.feature).toEqual(expect.arrayContaining(["src/app/pricing/page.tsx", "src/app/components/Pricing/pricing-faq.tsx", "src/app/components/Pricing/pricing-catalog.ts", "src/app/dashboard/member-card/page.tsx"]));
+		expect(result.feature).toEqual(expect.arrayContaining(["src/app/pricing/page.tsx", "src/app/components/Pricing/pricing-faq.tsx", "src/app/components/Pricing/pricing-catalog.ts", "src/app/dashboard/member-card/page.tsx", "src/app/components/runnerDestinationSelection.tsx"]));
 	});
 
 	test("default manifest treats backend authorization and projection sources as critical", () => {
@@ -121,4 +142,59 @@ describe("standard Istanbul compiler mappings", () => {
 		input["src/feature.ts"].branchMap["0"].locations[0] = { start: { line: -1 }, end: { line: -1 } };
 		expect(evaluate(input)).toMatchObject({ ok: false });
 	});
+});
+
+describe("Runner service coverage ownership", () => {
+	test("the canonical coverage inventory includes the new capability service as critical", () => {
+		const code = "import{createRequire}from'node:module';const require=createRequire(process.cwd()+'/package.json');const {projectConfig}=await require('jest-config').readConfig({},process.cwd());process.stdout.write(JSON.stringify({...((await import('./scripts/check-mcp-coverage.mjs')).readMcpSourceManifest()),collected:projectConfig.collectCoverageFrom}))";
+		const sources = JSON.parse(execFileSync(process.execPath, ["--input-type=module", "--eval", code], { encoding: "utf8" }));
+		expect(sources.feature).toContain("src/server/runner/capabilities.ts");
+		expect(sources.critical).toContain("src/server/runner/capabilities.ts");
+		expect(sources.feature).toContain("packages/runner/src/protocol.ts");
+		expect(sources.critical).toContain("packages/runner/src/protocol.ts");
+		expect(sources.feature).toContain("packages/runner/src/execution-clock.ts");
+		expect(sources.critical).toContain("packages/runner/src/execution-clock.ts");
+		expect(sources.collected).toContain("packages/runner/src/execution-clock.ts");
+		expect(sources.feature).toContain("src/app/api/runner/heartbeat/route.ts");
+		expect(sources.critical).toContain("src/app/api/runner/heartbeat/route.ts");
+	});
+});
+
+test("terminal receipt transport has a canonical collector and critical coverage owner", () => {
+	const code = `import{createRequire}from'node:module';const require=createRequire(process.cwd()+'/package.json');const {projectConfig}=await require('jest-config').readConfig({},process.cwd());const sources=(await import('./scripts/check-mcp-coverage.mjs')).readMcpSourceManifest();process.stdout.write(JSON.stringify({sources,collected:projectConfig.collectCoverageFrom}));`;
+	const result = JSON.parse(execFileSync(process.execPath, ["--input-type=module", "--eval", code], { encoding: "utf8" }));
+	const path = "src/app/api/runner/terminal/route.ts";
+	expect(result.sources.feature).toContain(path);
+	expect(result.sources.critical).toContain(path);
+	expect(result.collected).toContain(path);
+});
+
+test("private Runner presentation authority and rendering have mandatory collector and critical source ownership", () => {
+	const code = `import{createRequire}from'node:module';const require=createRequire(process.cwd()+'/package.json');const {projectConfig}=await require('jest-config').readConfig({},process.cwd());const sources=(await import('./scripts/check-mcp-coverage.mjs')).readMcpSourceManifest();process.stdout.write(JSON.stringify({sources,collected:projectConfig.collectCoverageFrom}));`;
+	const result = JSON.parse(execFileSync(process.execPath, ["--input-type=module", "--eval", code], { encoding: "utf8" }));
+	for (const path of ["src/app/api/runner/presentation/route.ts", "src/app/runner/presentation/[sessionId]/page.tsx", "src/app/components/runnerGeneratedPresentation.tsx", "src/server/runner/presentation.ts", "src/server/runner/branding.ts"]) {
+		expect(result.sources.feature).toContain(path);
+		expect(result.sources.critical).toContain(path);
+	}
+	expect(result.collected).toContain("src/app/api/runner/presentation/route.ts");
+	expect(result.collected).toContain("src/app/runner/presentation/**/*.{ts,tsx}");
+});
+
+test("the shared Runner downgrade authority cannot disappear from the default coverage inventory", () => {
+	const code = `import{createRequire}from'node:module';const require=createRequire(process.cwd()+'/package.json');const {projectConfig}=await require('jest-config').readConfig({},process.cwd());const sources=(await import('./scripts/check-mcp-coverage.mjs')).readMcpSourceManifest();process.stdout.write(JSON.stringify({sources,collected:projectConfig.collectCoverageFrom}));`;
+	const result = JSON.parse(execFileSync(process.execPath, ["--input-type=module", "--eval", code], { encoding: "utf8" }));
+	const path = "src/server/entitlements.ts";
+	expect(result.sources.feature).toContain(path);
+	expect(result.sources.critical).toContain(path);
+	expect(result.collected).toContain(path);
+});
+
+test("Runner appearance placement, owner preview and controls retain mandatory source ownership", () => {
+	const code = `import{createRequire}from'node:module';const require=createRequire(process.cwd()+'/package.json');const {projectConfig}=await require('jest-config').readConfig({},process.cwd());const sources=(await import('./scripts/check-mcp-coverage.mjs')).readMcpSourceManifest();process.stdout.write(JSON.stringify({sources,collected:projectConfig.collectCoverageFrom}));`;
+	const result = JSON.parse(execFileSync(process.execPath, ["--input-type=module", "--eval", code], { encoding: "utf8" }));
+	for (const path of ["src/app/lib/runnerBrandingLayout.ts", "src/app/runner/preview/[runnerId]/page.tsx", "src/app/components/runner/RunnerBrandingPreview.tsx", "src/server/runner/branding-profiles.ts"]) expect(result.sources.feature).toContain(path);
+	for (const path of ["src/app/lib/runnerBrandingLayout.ts", "src/app/runner/preview/[runnerId]/page.tsx", "src/server/runner/branding-profiles.ts"]) expect(result.sources.critical).toContain(path);
+	expect(result.collected).toContain("src/app/runner/preview/**/*.{ts,tsx}");
+	expect(result.collected).toContain("src/app/lib/**/*.{ts,tsx}");
+	expect(result.collected).toContain("src/app/components/**/*.{ts,tsx}");
 });

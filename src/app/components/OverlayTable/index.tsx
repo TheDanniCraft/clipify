@@ -41,7 +41,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 	type LocalOverlay = Overlay & { accessType?: "owner" | "editor" };
 	type LocalPlaylist = { id: string; ownerId: string; name: string; clipCount: number; configurationRevision: number; accessType?: "owner" | "editor" };
 	type LocalGallery = Gallery & { accessType?: "owner" | "editor" };
-	type LocalRunner = { id: string; ownerId: string; name: string; status: string; createdAt: Date; lastHeartbeatAt: Date | null; streamState?: string; streamError?: string | null; isLinked?: boolean };
+	type LocalRunner = { id: string; ownerId: string; name: string; status: string; createdAt: Date; lastHeartbeatAt: Date | null; streamState?: string; streamError?: boolean; isLinked?: boolean };
 
 	const [overlays, setOverlays] = useState<LocalOverlay[]>();
 	const [playlists, setPlaylists] = useState<LocalPlaylist[]>();
@@ -113,7 +113,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 					}));
 				const combinedRunners: LocalRunner[] = (runnersData ?? []).map((r) => {
 					const session = streamSessionsData?.find((s) => s.runnerId === r.id);
-					return { ...r, streamState: session?.actualState, streamError: session?.lastError };
+					return { ...r, streamState: session?.actualState, streamError: session?.hasError };
 				});
 
 				setOverlays(combinedOverlays);
@@ -497,7 +497,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 			}));
 		const combinedRunners: LocalRunner[] = (runnersData ?? []).map((r) => {
 			const session = streamSessionsData?.find((s) => s.runnerId === r.id);
-			return { ...r, streamState: session?.actualState, streamError: session?.lastError };
+			return { ...r, streamState: session?.actualState, streamError: session?.hasError };
 		});
 
 		setOverlays(combinedOverlays);
@@ -907,10 +907,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 						isDisabled={overlays === undefined}
 						onPress={async () => {
 							if (activeTab === "runners") {
-								if (!currentUser?.entitlements?.runnerAccess) {
-									onUpgradeOpen();
-									return;
-								}
+								if (!currentUser) return;
 								setIsLoading(true);
 								try {
 									const newRunner = await createRunner(userId, "New Hardware Node");
@@ -1162,15 +1159,10 @@ export default function OverlayTable({ userId }: { userId: string }) {
 					</Button>
 				</div>
 			)}
-			{activeTab === "runners" && currentUser && !currentUser.entitlements?.runnerAccess && (
-				<div className='mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning bg-warning-soft px-4 py-3 text-sm text-warning'>
-					<div>
-						<p className='font-medium'>Self-hosted runners are an optional add-on.</p>
-						<p className='text-xs text-warning/80'>Purchase the Runner add-on to create, connect, and stream with runners. Your Free or Pro limits still apply.</p>
-					</div>
-					<Button variant='tertiary' onPress={onUpgradeOpen}>
-						{currentUser.entitlements?.effectivePlan === "pro" ? "Add Runner add-on" : "Upgrade with Runner"}
-					</Button>
+			{activeTab === "runners" && currentUser && (
+				<div className='mb-4 rounded-lg border border-default/60 bg-surface-secondary px-4 py-3 text-sm'>
+					<p className='font-medium'>Runner is included with Free and Pro.</p>
+					<p className='text-xs text-muted'>Broadcast from your own computer with unlimited hours. Free includes one active broadcast and one destination. Pro adds scheduling, multiple destinations and broadcasts, custom standby screens, and watermark removal.</p>
 				</div>
 			)}
 			{topContent}
@@ -1281,22 +1273,10 @@ export default function OverlayTable({ userId }: { userId: string }) {
 									) : (
 										<TableEmptyState>
 											<div className='flex flex-col items-center gap-2'>
-												{currentUser?.entitlements?.runnerAccess ? (
-													<>
-														<p className='text-muted'>No runners found</p>
-														<Button size='sm' variant='secondary' onPress={() => router.push("/runner/enroll")}>
-															Create runner
-														</Button>
-													</>
-												) : (
-													<>
-														<p className='font-medium text-foreground'>Runner add-on required</p>
-														<p className='max-w-md text-sm text-muted'>Purchase the self-hosted Runner add-on to create and connect runners.</p>
-														<Button size='sm' variant='primary' onPress={onUpgradeOpen}>
-															{currentUser?.entitlements?.effectivePlan === "pro" ? "Add Runner add-on" : "Upgrade with Runner"}
-														</Button>
-													</>
-												)}
+												<p className='text-muted'>No runners found</p>
+												<Button size='sm' variant='secondary' onPress={() => router.push("/runner/enroll")}>
+													Create runner
+												</Button>
 											</div>
 										</TableEmptyState>
 									);
@@ -1352,18 +1332,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 				onConfirm={confirmUnlink}
 			/>
 
-			{currentUser && (
-				<UpgradeModal
-					isOpen={isUpgradeOpen}
-					onOpenChange={onUpgradeOpenChange}
-					user={currentUser}
-					title={activeTab === "overlays" ? "Upgrade to add more overlays" : activeTab === "playlists" ? "Upgrade to add more playlists" : currentUser.entitlements?.effectivePlan === "pro" ? "Add the Runner add-on" : "Upgrade with Runner"}
-					description={activeTab === "runners" ? "Run Clipify overlays from your own computer with the self-hosted Runner add-on." : undefined}
-					source='upgrade_modal'
-					feature={activeTab === "overlays" ? "multi_overlay" : activeTab === "playlists" ? "multi_playlist" : "runner_access"}
-					mode={activeTab === "runners" ? "runner_addon" : "plan"}
-				/>
-			)}
+			{currentUser && activeTab !== "runners" && <UpgradeModal isOpen={isUpgradeOpen} onOpenChange={onUpgradeOpenChange} user={currentUser} title={activeTab === "overlays" ? "Upgrade to add more overlays" : activeTab === "playlists" ? "Upgrade to add more playlists" : "Upgrade to Pro"} source='upgrade_modal' feature={activeTab === "overlays" ? "multi_overlay" : activeTab === "playlists" ? "multi_playlist" : "multi_gallery"} mode='plan' />}
 		</div>
 	);
 }

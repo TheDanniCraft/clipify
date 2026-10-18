@@ -8,10 +8,12 @@ test("capabilities reflect Free gallery quota and remote-control restrictions", 
 	expect(value.operations.create_gallery).toEqual({ allowed: false, reason: "PLAN_LIMIT_REACHED" });
 	for (const name of ["get_overlay_runtime", "get_overlay_queues", "play_overlay", "pause_overlay", "skip_overlay", "hide_overlay", "show_overlay", "set_overlay_volume", "mute_overlay", "unmute_overlay", "toggle_overlay_mute", "enqueue_overlay_clip", "clear_overlay_queue"]) expect(value.operations[name]).toEqual({ allowed: false, reason: "FEATURE_RESTRICTED" });
 });
-test("expired Runner access denies setup and streaming but preserves cleanup", () => {
+test("basic Runner setup and registration remain available without a standalone Runner grant", () => {
 	const row = flowProbe("catalogue:workflow:get_capabilities:no_runner_access");
 	const value = row.result?.structuredContent;
-	for (const name of ["get_runner_setup", "create_runner", "configure_stream_session", "control_stream_session"]) expect(value.operations[name]).toEqual({ allowed: false, reason: "FEATURE_RESTRICTED" });
+	for (const name of ["get_runner_setup", "create_runner", "control_stream_session"]) expect(value.operations[name]).toEqual({ allowed: true });
+	expect(value.operations.configure_stream_session).toEqual({ allowed: true });
+	expect(value.features.runnerAccess).toBe(true);
 	for (const name of ["get_runner", "list_runners", "delete_runner", "unlink_runner"]) expect(value.operations[name]).toEqual({ allowed: true });
 });
 

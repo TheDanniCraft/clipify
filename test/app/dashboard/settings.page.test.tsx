@@ -318,13 +318,14 @@ test("upgrade request preserves chosen billing cycle and feature", async () => {
 	fireEvent.click(screen.getByRole("button", { name: "Close upgrade" }));
 	expect(screen.queryByText("Upgrade Account")).not.toBeInTheDocument();
 });
-test.each(["free", "pro"])("Runner add-on request chooses the %s account presentation", async (plan) => {
+test.each(["free", "pro"])("old Runner add-on request opens normal %s billing without a purchase modal", async (plan) => {
 	validateAuth.mockResolvedValue({ id: "owner", username: "Owner", plan, entitlements: { effectivePlan: plan, runnerAccess: false } });
 	window.history.replaceState({}, "", "/dashboard/settings?addon=runner");
 	render(<SettingsPage />);
-	expect(await screen.findByText(plan === "pro" ? "Add the Runner add-on" : "Upgrade with Runner")).toBeVisible();
-	expect(screen.getByText("Upgrade runner_access yearly")).toBeVisible();
-	expect(screen.getByText("Billing panel")).toBeVisible();
+	expect(await screen.findByText("Billing panel")).toBeVisible();
+	expect(screen.queryByText("Add the Runner add-on")).not.toBeInTheDocument();
+	expect(screen.queryByText("Upgrade with Runner")).not.toBeInTheDocument();
+	expect(screen.queryByText("Upgrade runner_access yearly")).not.toBeInTheDocument();
 });
 test("return from recent export sign-in stores a bounded window and removes return marker", async () => {
 	window.history.replaceState({}, "", "/dashboard/settings?reauthenticated=export&tab=settings");

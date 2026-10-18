@@ -15,3 +15,16 @@ test("bundled public Next entries retain resolvable installed framework imports"
 		rmSync(directory, { recursive: true, force: true });
 	}
 });
+
+test("instrumented native-workspace exports load through the real server admission path and retain original counters", () => {
+	const directory = mkdtempSync(join(process.cwd(), "test-results/mcp/native-workspace-module-"));
+	try {
+		const code = `import fs from 'node:fs';import{execFileSync}from'node:child_process';import{buildMcpCoverageProbes}from'./scripts/build-mcp-coverage-probes.mjs';const dir=process.argv[1],raw=dir+'/raw';fs.mkdirSync(raw,{recursive:true});await buildMcpCoverageProbes({outputDirectory:dir+'/probes',instrument:true});const out=execFileSync(process.execPath,['--conditions=react-server',dir+'/probes/flow-probe.mjs','catalogue:workflow:runner_free_pro:admission_service_retry'],{encoding:'utf8',timeout:30000,env:{...process.env,MCP_ISTANBUL_COVERAGE_DIR:raw}});const result=JSON.parse(out.trim().split('\\n').at(-1));const coverage=JSON.parse(fs.readFileSync(raw+'/'+fs.readdirSync(raw).find(name=>name.startsWith('istanbul-')),'utf8'));const source=Object.keys(coverage).find(path=>path.endsWith('/packages/runner/src/protocol.ts'));const definitions=Object.values(coverage[source]?.fnMap??{}).filter(fn=>fn.name==='verifyExecutionBundle').length;process.stdout.write(JSON.stringify({result,source,definitions}));`;
+		const output = JSON.parse(execFileSync(process.execPath, ["--input-type=module", "--eval", code, directory], { encoding: "utf8", timeout: 60000 }));
+		expect(output.result).toEqual({ sameId: true, sameGeneration: true, revision: 2, state: "reserved", dispatched: null, occupied: 1, desiredRunning: 0 });
+		expect(output.source).toMatch(/packages\/runner\/src\/protocol\.ts$/);
+		expect(output.definitions).toBe(1);
+	} finally {
+		rmSync(directory, { recursive: true, force: true });
+	}
+}, 65000);
