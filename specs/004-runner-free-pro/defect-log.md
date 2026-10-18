@@ -1790,3 +1790,11 @@ The restored push hook reports `RESUME_WINDOW_FIXTURE_DENIED:INVALID_INPUT` from
 After all earlier schedule observations are captured, disable prior events belonging to this disposable owner and Runner before creating the wall-clock resume fixture. Retain rows for expired-entitlement read assertions. No production behavior, assertion, timeout, coverage threshold or hook is changed. Rerun the complete schedule owner and affected feedback; prior full-suite evidence describes its original1657 input manifest and must not be relabeled as execution of this revised fixture.
 
 Verification for DEF-US5-244: the revised fixture explicitly creates a separate future recovery event instead of relying on an earlier weekly example. Complete `test/server/runner/schedules.test.ts` passes106/106, no coverage or assertion changes. Retained evidence: `tdd/evidence/F1-restart-schedule-v2.log`; earlier partial rejected runs are retained separately and excluded from qualification. Full CI remains required for this revised test input.
+
+## DEF-US5-245 — Native CI omits shared test parser dependencies
+
+Severity: Medium. Status: Fixed, CI verification pending. Owner: Feature implementer. Scope: owning Runner CI environment.
+
+Full CI run39109250297, Runner job117621708651, fails `bun run typecheck` with TS2307 for `@cucumber/gherkin` and `@cucumber/messages` imported by `test/support/runner/scenario-inventory.ts`. The job installs the Runner package only; its shared test helper resolves dependencies from the repository root. Local qualification had both locked dependency trees installed, so it did not reproduce this missing owning-job setup.
+
+The Runner CI job now depends on the existing dependency-cache owner and restores the same root dependency cache as other owning jobs before installing its separate frozen Runner lockfile. A cache miss fails explicitly. The native package audit, patch validation, type check, full coverage, native binding and media checks remain mandatory and unchanged. Verification requires a fresh owning CI job; no local result is substituted for that missing CI execution.

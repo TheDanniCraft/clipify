@@ -567,7 +567,7 @@ jobs:
   runner:
     name: 🏃 Runner typecheck and tests
     runs-on: ubuntu-latest
-    needs: changes
+    needs: [changes, deps]
     if: needs.changes.outputs.runner == 'true'
     steps:
       - name: 📥 Check out repository
@@ -580,6 +580,15 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.2
+      - name: ♻️ Restore shared test dependencies
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            ~/.bun/install/cache
+            ~/.bun/install/global
+            **/node_modules
+          key: ${{ needs.deps.outputs.cache-key }}
+          fail-on-cache-miss: true
       - name: 📦 Install Runner dependencies
         working-directory: packages/runner
         run: bun install --frozen-lockfile
