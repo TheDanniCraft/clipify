@@ -1,0 +1,7 @@
+[tests] Native application probes compiled once for this run
+[tests] database: 1 suites, 1 worker(s)
+Test Suites: 1 passed, 1 total
+Tests:       1 passed, 1 total
+Snapshots:   0 total
+Time:        8.059 s
+Ran all test suites matching test/mcp/integration/notification-event-triggers.test.ts.

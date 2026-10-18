@@ -1,0 +1,148 @@
+TAP version 13
+# Subtest: application and database fallback share one grant event and one expiry event
+ok 1 - application and database fallback share one grant event and one expiry event
+  ---
+  duration_ms: 2452.603797
+  type: 'test'
+  ...
+# Subtest: direct SQL reverse trial creates its start, countdowns and expiry
+ok 2 - direct SQL reverse trial creates its start, countdowns and expiry
+  ---
+  duration_ms: 47.775544
+  type: 'test'
+  ...
+# Subtest: noop and reason-only updates produce no notification; manual extension does
+ok 3 - noop and reason-only updates produce no notification; manual extension does
+  ---
+  duration_ms: 55.08887
+  type: 'test'
+  ...
+# Subtest: manual revocation and application queuing cannot double-send
+ok 4 - manual revocation and application queuing cannot double-send
+  ---
+  duration_ms: 48.688209
+  type: 'test'
+  ...
+# Subtest: rolled-back grants also roll back their notifications
+ok 5 - rolled-back grants also roll back their notifications
+  ---
+  duration_ms: 45.617307
+  type: 'test'
+  ...
+# Subtest: billing reconciliation and global grants do not generate free-gift notifications
+ok 6 - billing reconciliation and global grants do not generate free-gift notifications
+  ---
+  duration_ms: 51.435867
+  type: 'test'
+  ...
+# Subtest: manual badge award and removal use the same keys as application notifications
+ok 7 - manual badge award and removal use the same keys as application notifications
+  ---
+  duration_ms: 66.55686
+  type: 'test'
+  ...
+# Subtest: cascading account deletion produces no badge-removal message
+ok 8 - cascading account deletion produces no badge-removal message
+  ---
+  duration_ms: 61.249799
+  type: 'test'
+  ...
+# Subtest: account status fallback ignores profile edits and deduplicates the admin event
+ok 9 - account status fallback ignores profile edits and deduplicates the admin event
+  ---
+  duration_ms: 63.503782
+  type: 'test'
+  ...
+# Subtest: expired account purge deletes only its creator and queues the final email once
+ok 10 - expired account purge deletes only its creator and queues the final email once
+  ---
+  duration_ms: 133.117239
+  type: 'test'
+  ...
+# Subtest: Partner expiry schedules badge ending, two grace reminders and Pro expiry with shared dedupe keys
+ok 11 - Partner expiry schedules badge ending, two grace reminders and Pro expiry with shared dedupe keys
+  ---
+  duration_ms: 72.313511
+  type: 'test'
+  ...
+# Subtest: actual entitlement queries retain Partner Pro for exactly seven days, never runner access
+ok 12 - actual entitlement queries retain Partner Pro for exactly seven days, never runner access
+  ---
+  duration_ms: 97.530916
+  type: 'test'
+  ...
+# Subtest: paid Pro welcome and renewal deduplicate invoice replay and transactions
+ok 13 - paid Pro welcome and renewal deduplicate invoice replay and transactions
+  ---
+  duration_ms: 91.118126
+  type: 'test'
+  ...
+# Subtest: first paid cycle without prior welcome sends one thank-you even when replayed
+ok 14 - first paid cycle without prior welcome sends one thank-you even when replayed
+  ---
+  duration_ms: 53.566396
+  type: 'test'
+  ...
+# Subtest: notification access checks preserve another Partner, paid plan or agency source
+ok 15 - notification access checks preserve another Partner, paid plan or agency source
+  ---
+  duration_ms: 94.423218
+  type: 'test'
+  ...
+# Subtest: Stripe ending cannot override Partner or agency Pro, and Partner ending cannot override paid Pro
+ok 16 - Stripe ending cannot override Partner or agency Pro, and Partner ending cannot override paid Pro
+  ---
+  duration_ms: 176.123328
+  type: 'test'
+  ...
+# Subtest: successful invoice notifications roll back atomically
+ok 17 - successful invoice notifications roll back atomically
+  ---
+  duration_ms: 98.251479
+  type: 'test'
+  ...
+# Subtest: resubscribing sends a welcome back per new subscription without repeating the first thank-you
+ok 18 - resubscribing sends a welcome back per new subscription without repeating the first thank-you
+  ---
+  duration_ms: 110.083299
+  type: 'test'
+  ...
+# Subtest: paid Pro cancellation reminders deduplicate snapshots and track changed Stripe end dates
+ok 19 - paid Pro cancellation reminders deduplicate snapshots and track changed Stripe end dates
+  ---
+  duration_ms: 166.443151
+  type: 'test'
+  ...
+# Subtest: long partnerships queue thirty, seven, three and one day warnings and seven-day Pro grace
+ok 20 - long partnerships queue thirty, seven, three and one day warnings and seven-day Pro grace
+  ---
+  duration_ms: 229.225849
+  type: 'test'
+  ...
+# Subtest: long Pro and Runner awards and trials share all reminder keys between PostgreSQL and the app
+ok 21 - long Pro and Runner awards and trials share all reminder keys between PostgreSQL and the app
+  ---
+  duration_ms: 305.177814
+  type: 'test'
+  ...
+# Subtest: retired Runner continuation cannot revive a standalone benefit
+ok 22 - retired Runner continuation cannot revive a standalone benefit
+  ---
+  duration_ms: 240.574576
+  type: 'test'
+  ...
+# Subtest: each distinct revoke-and-restore cycle sends a restoration once
+ok 23 - each distinct revoke-and-restore cycle sends a restoration once
+  ---
+  duration_ms: 125.256107
+  type: 'test'
+  ...
+1..23
+# tests 23
+# suites 0
+# pass 23
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 7224.785522

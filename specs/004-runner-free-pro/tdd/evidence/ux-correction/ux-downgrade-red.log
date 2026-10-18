@@ -1,0 +1,28 @@
+$ jest --runInBand "--coverage=false" --runTestsByPath test/app/components/runnerDestinationSelection.test.tsx
+[tests] ordinary: 1 suites, 1 worker(s)
+FAIL test/app/components/runnerDestinationSelection.test.tsx
+  ● UX-C9: a downgraded multi-destination draft exposes every retained target and can reduce to one
+
+    expect(element).toHaveAttribute("aria-pressed", "true") // element.getAttribute("aria-pressed") === "true"
+
+    Expected the element to have attribute:
+      aria-pressed="true"
+    Received:
+      aria-pressed="false"
+
+      80 |  render(<Selection destinations={destinations} selectedIds={['youtube','twitch']} runnerPro={false} onChange={onChange}/>);
+      81 |  expect(screen.getByRole('button',{name:/My YouTube/})).toHaveAttribute('aria-pressed','true');
+    > 82 |  expect(screen.getByRole('button',{name:/My Twitch/})).toHaveAttribute('aria-pressed','true');
+         |                                                        ^
+      83 |  fireEvent.click(screen.getByRole('button',{name:/My YouTube/}));
+      84 |  expect(onChange).toHaveBeenLastCalledWith(['twitch']);
+      85 | });
+
+      at Object.toHaveAttribute (test/app/components/runnerDestinationSelection.test.tsx:82:56)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 6 passed, 7 total
+Snapshots:   0 total
+Time:        0.995 s, estimated 1 s
+Ran all test suites within paths "test/app/components/runnerDestinationSelection.test.tsx".
+error: script "test" exited with code 1
