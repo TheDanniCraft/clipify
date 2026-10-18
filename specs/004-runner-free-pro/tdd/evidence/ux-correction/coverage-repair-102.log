@@ -1,0 +1,7 @@
+[tests] ordinary: 2 suites, 1 worker(s)
+
+Test Suites: 2 passed, 2 total
+Tests:       102 passed, 102 total
+Snapshots:   0 total
+Time:        10.973 s, estimated 11 s
+Ran all test suites matching test/app/components/runnerDestinationSelection.test.tsx|test/app/dashboard/overlay.theme.page.test.tsx.
