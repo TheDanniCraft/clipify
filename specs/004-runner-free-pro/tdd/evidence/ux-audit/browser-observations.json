@@ -1,0 +1,89 @@
+{
+  "errors": [],
+  "free": {
+    "locked": 0,
+    "upgradeVisible": true,
+    "control": "Manual",
+    "saveDisabled": true,
+    "addScheduleDisabled": true,
+    "attributionSwitchCount": 0,
+    "destinationButtons": 0
+  },
+  "layout": [
+    {
+      "text": "Runner Telemetry",
+      "y": 313
+    },
+    {
+      "text": "Live Stream Preview",
+      "y": 673
+    },
+    {
+      "text": "Appearance",
+      "y": 1022.5
+    },
+    {
+      "text": "Broadcast schedule",
+      "y": 1810.5
+    },
+    {
+      "text": "Destinations",
+      "y": 2620.5
+    },
+    {
+      "text": "Upgrade to Pro",
+      "y": 257.41668701171875
+    }
+  ],
+  "legacy": {
+    "attributionSwitchCount": 1,
+    "addScheduleDisabled": true
+  },
+  "nativeControls": [
+    {
+      "tag": "SELECT",
+      "type": null,
+      "label": null
+    },
+    {
+      "tag": "SELECT",
+      "type": null,
+      "label": null
+    },
+    {
+      "tag": "SELECT",
+      "type": null,
+      "label": null
+    },
+    {
+      "tag": "SELECT",
+      "type": null,
+      "label": null
+    },
+    {
+      "tag": "INPUT",
+      "type": "file",
+      "label": "Standby logo"
+    },
+    {
+      "tag": "INPUT",
+      "type": "file",
+      "label": "Standby background image"
+    },
+    {
+      "tag": "INPUT",
+      "type": "color",
+      "label": "Standby background color"
+    },
+    {
+      "tag": "SELECT",
+      "type": null,
+      "label": null
+    }
+  ],
+  "previewNavigationRequestsForFiveKeystrokes": 5,
+  "mobile": {
+    "viewport": 390,
+    "scrollWidth": 390
+  }
+}
