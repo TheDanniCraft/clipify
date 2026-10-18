@@ -48,6 +48,7 @@ for (const plan of ["free", "pro"] as const)
 			await editor.getByRole("textbox", { name: "RTMP URL", exact: true }).fill("rtmp://127.0.0.1:19350/live");
 			await editor.getByRole("button", { name: "Save destination", exact: true }).click();
 			await expect(editor).not.toBeVisible();
+			await expect(manager.getByRole("button", { name: "Add destination", exact: true })).toBeFocused();
 			await page.keyboard.press("Escape");
 			await expect(manager).not.toBeVisible();
 			await expect(selector.getByRole("button", { name: /Broadcast destinations$/ })).toContainText("My local output");
