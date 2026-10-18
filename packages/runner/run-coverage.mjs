@@ -12,24 +12,35 @@ const repository = resolve(directory, "../..");
 const config = createRequire(import.meta.url)("./jest.config.cjs");
 const normalize = (path) => relative(directory, resolve(directory, path)).replaceAll("\\", "/");
 
-export function validateRunnerCoverageEvidence(results, report, owners) {
-	const errors = [];
-	if (!Array.isArray(owners) || !owners.length || new Set(owners.map(normalize)).size !== owners.length) errors.push("Missing or duplicated expected native inventory");
-	const actual = (results.testResults ?? []).map((suite) => normalize(suite.name)).sort();
-	if (JSON.stringify(actual) !== JSON.stringify([...owners].map(normalize).sort())) errors.push("Missing, duplicated or foreign native test owner");
-	if (!results.success || results.numFailedTests || results.numFailedTestSuites || results.numPendingTests || results.numRuntimeErrorTestSuites) errors.push("Incomplete native test execution");
+function inheritedUpdaterTodo(suite, test) {
+	return normalize(suite.name) === "src/__tests__/updater.test.ts" && test.fullName === "Updater logic should apply an update after a verified hash mismatch" && test.status === "todo";
+}
+function nativeExecutionComplete(results) {
+	return results.success && !results.numFailedTests && !results.numFailedTestSuites && !results.numPendingTests && !results.numRuntimeErrorTestSuites;
+}
+function countNativeCases(results, errors) {
 	let passed = 0;
 	let inheritedTodos = 0;
 	for (const suite of results.testResults ?? []) {
 		if (suite.status !== "passed") errors.push("Nonpassing native owner " + normalize(suite.name));
 		if (!suite.assertionResults?.length) errors.push("Empty native owner " + normalize(suite.name));
 		for (const test of suite.assertionResults ?? []) {
-			const inheritedTodo = normalize(suite.name) === "src/__tests__/updater.test.ts" && test.fullName === "Updater logic should apply an update after a verified hash mismatch" && test.status === "todo";
+			const inheritedTodo = inheritedUpdaterTodo(suite, test);
 			if (test.status !== "passed" && !inheritedTodo) errors.push("Nonpassing native case " + test.fullName);
 			if (test.status === "passed") passed++;
 			if (inheritedTodo) inheritedTodos++;
 		}
 	}
+	return { passed, inheritedTodos };
+}
+
+export function validateRunnerCoverageEvidence(results, report, owners) {
+	const errors = [];
+	if (!Array.isArray(owners) || !owners.length || new Set(owners.map(normalize)).size !== owners.length) errors.push("Missing or duplicated expected native inventory");
+	const actual = (results.testResults ?? []).map((suite) => normalize(suite.name)).sort();
+	if (JSON.stringify(actual) !== JSON.stringify([...owners].map(normalize).sort())) errors.push("Missing, duplicated or foreign native test owner");
+	if (!nativeExecutionComplete(results)) errors.push("Incomplete native test execution");
+	const { passed, inheritedTodos } = countNativeCases(results, errors);
 	if (passed !== results.numPassedTests || inheritedTodos !== results.numTodoTests || inheritedTodos > 1) errors.push("Inconsistent native case totals or expanded inherited TODO allowance");
 	const required = [...config.collectCoverageFrom].sort();
 	const sources = Object.keys(report).map(normalize).sort();

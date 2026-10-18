@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 import { execFile, spawn } from "node:child_process";
 import { build } from "esbuild";
 import { nativeChromePath } from "./native-media.mjs";
+import { prepareNativeTestShims } from "./native-test-shims.mjs";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const require = createRequire(new URL("../../package.json", import.meta.url));
@@ -92,12 +93,9 @@ try {
 		child.stderr.resume();
 		receivers.push({ provider, rtmpUrl, streamKey, path, child });
 	}
-	const dependencies = join(compiled, "dependencies.mjs"),
-		os = join(compiled, "os.mjs"),
-		logger = join(compiled, "logger.mjs"),
+	const { dependencies, os } = prepareNativeTestShims(compiled, { chromePath: chrome, ffmpegPath: ffmpeg, home: home });
+	const logger = join(compiled, "logger.mjs"),
 		keyring = join(compiled, "keyring.mjs");
-	writeFileSync(dependencies, `export async function ensureDependencies(){return {chromePath:${JSON.stringify(chrome)},ffmpegPath:${JSON.stringify(ffmpeg)}}}`);
-	writeFileSync(os, `import * as os from 'node:os';export * from 'node:os';export const homedir=()=>${JSON.stringify(home)};export const tmpdir=()=>${JSON.stringify(home)};export default {...os,homedir,tmpdir};`);
 	writeFileSync(logger, "export const ConsoleUI=new Proxy({},{get:()=>()=>{}})");
 	writeFileSync(keyring, "export class Entry{constructor(){throw new Error('Isolated fixture keyring unavailable')}}");
 	const source = readFileSync(join(root, "src/index.ts"), "utf8"),

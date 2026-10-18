@@ -1,3 +1,4 @@
+import type { workflowInputSchemas } from "@/server/mcp/workflows/schemas";
 import { resolveActiveRunnerScheduleWindow } from "@/server/runner/schedules";
 import "server-only";
 import { isResourceFailure, resourceFailure } from "./errors";
@@ -292,6 +293,72 @@ export function configureStreamSession(principal: TrustedCreatorPrincipal, input
 }
 
 import { resolveRetainedResourceAccess } from "@/server/entitlements/resource-access";
+type StreamControlInput = ReturnType<typeof workflowInputSchemas.control_stream_session.parse>;
+async function reserveSessionStart(input: StreamControlInput, context: WorkflowContext, current: typeof streamSessionsTable.$inferSelect, revision: number, clock: () => number) {
+	if (current.controlMode === "scheduled" && current.desiredState !== StreamState.Running && !deriveRunnerCapabilities(context.runnerBenefits ?? { proAccess: context.pro, runnerAccess: context.runnerAccess }).runnerPro) return resourceFailure("FEATURE_RESTRICTED");
+	if (!current.runnerId) throw new Error("RESOURCE_UNAVAILABLE");
+	const scheduled = current.controlMode === "scheduled" ? await resolveActiveRunnerScheduleWindow(context.tx, input.creatorId, current.runnerId, current.id, input.occurrenceId, clock()) : null;
+	if (current.controlMode === "scheduled" && !scheduled) return resourceFailure("SCHEDULE_WINDOW_ENDED");
+	if (scheduled) {
+		const [open] = await context.tx
+			.select({ id: runnerBroadcastAdmissionsTable.id })
+			.from(runnerBroadcastAdmissionsTable)
+			.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, input.creatorId), eq(runnerBroadcastAdmissionsTable.sessionId, current.id), notInArray(runnerBroadcastAdmissionsTable.state, ["stopped", "failed_before_output"])))
+			.limit(1)
+			.for("update");
+		if (open) return resourceFailure("RUNNER_RECOVERY_REQUIRED");
+	}
+
+	await runnerRecord(context, current.runnerId);
+	const [overlay] = await context.tx
+		.select({ id: overlaysTable.id, status: overlaysTable.status, revision: overlaysTable.configurationRevision })
+		.from(overlaysTable)
+		.where(and(eq(overlaysTable.id, scheduled?.event.overlayId ?? current.overlayId), eq(overlaysTable.ownerId, input.creatorId)))
+		.limit(1);
+	if (!overlay) throw new Error("RESOURCE_UNAVAILABLE");
+	const access = await resolveRetainedResourceAccess({ kind: "overlay", ownerId: input.creatorId, resourceId: overlay.id, client: context.tx });
+	if (!access.runtime || overlay.status !== "active") return resourceFailure("FEATURE_RESTRICTED");
+	if (!scheduled && !(await selectedDestinationsHaveCredentials(context.tx, input.creatorId, current.id))) return resourceFailure("INVALID_INPUT");
+	if (!scheduled && destination(current.rtmpUrl) !== "custom" && !current.encryptedStreamKey) throw new Error("INVALID_INPUT");
+	const reserved = await reserveBroadcastAdmission(context.tx, current, context.runnerBenefits ?? { proAccess: context.pro, runnerAccess: context.runnerAccess }, revision, scheduled?.event.id, clock);
+	if (isResourceFailure(reserved)) return reserved;
+	const [bound] = await context.tx
+		.update(runnerBroadcastAdmissionsTable)
+		.set({
+			...(scheduled ? { occurrenceId: scheduled.occurrence.occurrenceId, scheduledEnd: new Date(scheduled.occurrence.endUtc) } : {}),
+			benefitsAtStart: { ...reserved.benefitsAtStart, ...(scheduled ? { scheduleEventId: scheduled.event.id, scheduleEventRevision: scheduled.event.configurationRevision, scheduledStart: Date.parse(scheduled.occurrence.startUtc) } : {}), sourceIdAtStart: overlay.id, sourceRevisionAtStart: overlay.revision },
+		})
+		.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, input.creatorId), eq(runnerBroadcastAdmissionsTable.id, reserved.id)))
+		.returning();
+	return bound;
+}
+
+async function suppressStoppedOccurrence(input: StreamControlInput, context: WorkflowContext, current: typeof streamSessionsTable.$inferSelect, clock: () => number) {
+	if (current.controlMode === "scheduled") {
+		const captures = await context.tx
+			.select({ occurrenceId: runnerBroadcastAdmissionsTable.occurrenceId })
+			.from(runnerBroadcastAdmissionsTable)
+			.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, input.creatorId), eq(runnerBroadcastAdmissionsTable.sessionId, current.id), inArray(runnerBroadcastAdmissionsTable.state, ["reserved", "starting", "active", "draining", "uncertain"])))
+			.for("update");
+		const occurrences = captures.map((row) => row.occurrenceId).filter((id): id is string => id !== null);
+		const stopTime = clock();
+		// Keep owner Stop intent after terminal receipts replace terminalReason.
+		// A later explicit Resume has its own higher-revision admission.
+		await context.tx
+			.update(runnerBroadcastAdmissionsTable)
+			.set({ benefitsAtStart: sql`jsonb_set(${runnerBroadcastAdmissionsTable.benefitsAtStart}, '{scheduleSuppressed}', 'true'::jsonb)` })
+			.where(
+				and(
+					eq(runnerBroadcastAdmissionsTable.ownerId, input.creatorId),
+					eq(runnerBroadcastAdmissionsTable.sessionId, current.id),
+					isNotNull(runnerBroadcastAdmissionsTable.occurrenceId),
+					notInArray(runnerBroadcastAdmissionsTable.state, ["stopped", "failed_before_output"]),
+					or(ne(runnerBroadcastAdmissionsTable.state, "authorized"), occurrences.length ? inArray(runnerBroadcastAdmissionsTable.occurrenceId, occurrences) : undefined, and(sql`case when jsonb_typeof(${runnerBroadcastAdmissionsTable.benefitsAtStart}->'scheduledStart') = 'number' then (${runnerBroadcastAdmissionsTable.benefitsAtStart}->>'scheduledStart')::numeric else 0 end <= ${stopTime}`, gt(runnerBroadcastAdmissionsTable.scheduledEnd, new Date(stopTime)))),
+				),
+			);
+	}
+}
+
 export function controlStreamSession(principal: TrustedCreatorPrincipal, input: unknown, client?: DatabaseClient, clock: () => number = Date.now) {
 	return workflowOperation(
 		principal,
@@ -323,66 +390,11 @@ export function controlStreamSession(principal: TrustedCreatorPrincipal, input: 
 			const revision = nextConfigurationRevision(current.configurationRevision, input.expectedRevision);
 			let admission: typeof runnerBroadcastAdmissionsTable.$inferSelect | undefined;
 			if (input.state === "running") {
-				if (current.controlMode === "scheduled" && current.desiredState !== StreamState.Running && !deriveRunnerCapabilities(context.runnerBenefits ?? { proAccess: context.pro, runnerAccess: context.runnerAccess }).runnerPro) return resourceFailure("FEATURE_RESTRICTED");
-				if (!current.runnerId) throw new Error("RESOURCE_UNAVAILABLE");
-				const scheduled = current.controlMode === "scheduled" ? await resolveActiveRunnerScheduleWindow(context.tx, input.creatorId, current.runnerId, current.id, input.occurrenceId, clock()) : null;
-				if (current.controlMode === "scheduled" && !scheduled) return resourceFailure("SCHEDULE_WINDOW_ENDED");
-				if (scheduled) {
-					const [open] = await context.tx
-						.select({ id: runnerBroadcastAdmissionsTable.id })
-						.from(runnerBroadcastAdmissionsTable)
-						.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, input.creatorId), eq(runnerBroadcastAdmissionsTable.sessionId, current.id), notInArray(runnerBroadcastAdmissionsTable.state, ["stopped", "failed_before_output"])))
-						.limit(1)
-						.for("update");
-					if (open) return resourceFailure("RUNNER_RECOVERY_REQUIRED");
-				}
-
-				await runnerRecord(context, current.runnerId);
-				const [overlay] = await context.tx
-					.select({ id: overlaysTable.id, status: overlaysTable.status, revision: overlaysTable.configurationRevision })
-					.from(overlaysTable)
-					.where(and(eq(overlaysTable.id, scheduled?.event.overlayId ?? current.overlayId), eq(overlaysTable.ownerId, input.creatorId)))
-					.limit(1);
-				if (!overlay) throw new Error("RESOURCE_UNAVAILABLE");
-				const access = await resolveRetainedResourceAccess({ kind: "overlay", ownerId: input.creatorId, resourceId: overlay.id, client: context.tx });
-				if (!access.runtime || overlay.status !== "active") return resourceFailure("FEATURE_RESTRICTED");
-				if (!scheduled && !(await selectedDestinationsHaveCredentials(context.tx, input.creatorId, current.id))) return resourceFailure("INVALID_INPUT");
-				if (!scheduled && destination(current.rtmpUrl) !== "custom" && !current.encryptedStreamKey) throw new Error("INVALID_INPUT");
-				const reserved = await reserveBroadcastAdmission(context.tx, current, context.runnerBenefits ?? { proAccess: context.pro, runnerAccess: context.runnerAccess }, revision, scheduled?.event.id, clock);
+				const reserved = await reserveSessionStart(input, context, current, revision, clock);
 				if (isResourceFailure(reserved)) return reserved;
-				const [bound] = await context.tx
-					.update(runnerBroadcastAdmissionsTable)
-					.set({
-						...(scheduled ? { occurrenceId: scheduled.occurrence.occurrenceId, scheduledEnd: new Date(scheduled.occurrence.endUtc) } : {}),
-						benefitsAtStart: { ...reserved.benefitsAtStart, ...(scheduled ? { scheduleEventId: scheduled.event.id, scheduleEventRevision: scheduled.event.configurationRevision, scheduledStart: Date.parse(scheduled.occurrence.startUtc) } : {}), sourceIdAtStart: overlay.id, sourceRevisionAtStart: overlay.revision },
-					})
-					.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, input.creatorId), eq(runnerBroadcastAdmissionsTable.id, reserved.id)))
-					.returning();
-				admission = bound;
+				admission = reserved;
 			} else {
-				if (current.controlMode === "scheduled") {
-					const captures = await context.tx
-						.select({ occurrenceId: runnerBroadcastAdmissionsTable.occurrenceId })
-						.from(runnerBroadcastAdmissionsTable)
-						.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, input.creatorId), eq(runnerBroadcastAdmissionsTable.sessionId, current.id), inArray(runnerBroadcastAdmissionsTable.state, ["reserved", "starting", "active", "draining", "uncertain"])))
-						.for("update");
-					const occurrences = captures.map((row) => row.occurrenceId).filter((id): id is string => id !== null);
-					const stopTime = clock();
-					// Keep owner Stop intent after terminal receipts replace terminalReason.
-					// A later explicit Resume has its own higher-revision admission.
-					await context.tx
-						.update(runnerBroadcastAdmissionsTable)
-						.set({ benefitsAtStart: sql`jsonb_set(${runnerBroadcastAdmissionsTable.benefitsAtStart}, '{scheduleSuppressed}', 'true'::jsonb)` })
-						.where(
-							and(
-								eq(runnerBroadcastAdmissionsTable.ownerId, input.creatorId),
-								eq(runnerBroadcastAdmissionsTable.sessionId, current.id),
-								isNotNull(runnerBroadcastAdmissionsTable.occurrenceId),
-								notInArray(runnerBroadcastAdmissionsTable.state, ["stopped", "failed_before_output"]),
-								or(ne(runnerBroadcastAdmissionsTable.state, "authorized"), occurrences.length ? inArray(runnerBroadcastAdmissionsTable.occurrenceId, occurrences) : undefined, and(sql`case when jsonb_typeof(${runnerBroadcastAdmissionsTable.benefitsAtStart}->'scheduledStart') = 'number' then (${runnerBroadcastAdmissionsTable.benefitsAtStart}->>'scheduledStart')::numeric else 0 end <= ${stopTime}`, gt(runnerBroadcastAdmissionsTable.scheduledEnd, new Date(stopTime)))),
-							),
-						);
-				}
+				await suppressStoppedOccurrence(input, context, current, clock);
 				const cancelled = await cancelReservedAdmission(context.tx, current);
 				if (!cancelled) admission = await requestBroadcastDrain(context.tx, current, input.stopMode);
 			}

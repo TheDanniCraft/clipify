@@ -64,6 +64,22 @@ async function audit(tx: TransactionClient, principal: TrustedCreatorPrincipal, 
 	await tx.insert(auditEventsTable).values({ actorUserId: principal.authUserId, ...(principal.kind === "session" ? { actorSessionId: principal.sessionId } : {}), targetType: "runner_destination", targetId: resourceId, action, outcome: "success", correlationId: randomUUID(), occurredAt: new Date() });
 }
 
+async function resolveDestinationCredential(input: z.infer<typeof destinationInput>, current: Destination | undefined) {
+	if (input.credentialAction !== "replace" && input.streamKey) return failure("INVALID_INPUT");
+	const replacement = input.streamKey?.trim();
+	if (input.credentialAction === "replace" && (!replacement || /[\u0000-\u001f\u007f]/.test(replacement))) return failure("INVALID_INPUT");
+	const { encryptString, decryptString } = await import("@/app/lib/encryption");
+	let encryptedStreamKey = current?.encryptedStreamKey ?? null;
+	if (input.credentialAction === "replace") encryptedStreamKey = encryptString(replacement!);
+	if (input.credentialAction === "clear") encryptedStreamKey = null;
+	// Explicit clear retains editable metadata. Keeping an already empty key does not
+	// authorize a Start or a new provider configuration without credentials.
+	if (input.provider !== "custom" && !encryptedStreamKey && !(current && (input.credentialAction === "clear" || (input.credentialAction === "keep" && current.provider === input.provider)))) return failure("INVALID_INPUT");
+	const credential = encryptedStreamKey ? decryptString(encryptedStreamKey) : null;
+	if (encryptedStreamKey && credential === null) return failure("RESOURCE_UNAVAILABLE");
+	return { encryptedStreamKey, credential };
+}
+
 /** No network connection is made here: private/local RTMP addresses belong to the user's Runner. */
 export async function saveRunnerDestinationForPrincipal(principal: TrustedCreatorPrincipal, rawInput: unknown, client: DatabaseClient = db) {
 	const parsed = destinationInput.safeParse(rawInput);
@@ -93,18 +109,10 @@ export async function saveRunnerDestinationForPrincipal(principal: TrustedCreato
 		}
 		const rtmpUrl = normalizedRtmpUrl(input.rtmpUrl ?? current?.rtmpUrl ?? "");
 		if (!rtmpUrl) return failure("INVALID_INPUT");
-		if (input.credentialAction !== "replace" && input.streamKey) return failure("INVALID_INPUT");
-		const replacement = input.streamKey?.trim();
-		if (input.credentialAction === "replace" && (!replacement || /[\u0000-\u001f\u007f]/.test(replacement))) return failure("INVALID_INPUT");
-		const { encryptString, decryptString } = await import("@/app/lib/encryption");
-		let encryptedStreamKey = current?.encryptedStreamKey ?? null;
-		if (input.credentialAction === "replace") encryptedStreamKey = encryptString(replacement!);
-		if (input.credentialAction === "clear") encryptedStreamKey = null;
-		// Explicit clear retains editable metadata. Keeping an already empty key does not
-		// authorize a Start or a new provider configuration without credentials.
-		if (input.provider !== "custom" && !encryptedStreamKey && !(current && (input.credentialAction === "clear" || (input.credentialAction === "keep" && current.provider === input.provider)))) return failure("INVALID_INPUT");
-		const credential = encryptedStreamKey ? decryptString(encryptedStreamKey) : null;
-		if (encryptedStreamKey && credential === null) return failure("RESOURCE_UNAVAILABLE");
+		const credentials = await resolveDestinationCredential(input, current);
+		if ("success" in credentials) return credentials;
+		const { encryptedStreamKey, credential } = credentials;
+		const { decryptString } = await import("@/app/lib/encryption");
 		const peers = await tx
 			.select()
 			.from(runnerDestinationsTable)

@@ -126,6 +126,26 @@ export class RunnerScheduleCache {
 		this.failure = "sync_required";
 		rmSync(this.path, { force: true });
 	}
+	private validCachedIdentity(job: FreeExecutionJob, manifest: ScheduleCacheManifest, expected: ScheduleCacheManifest["entries"][number]) {
+		if (!job || job.cacheAuthorization !== true || !job.lease || job.ownerId !== manifest.ownerId || job.runnerId !== manifest.runnerId || job.occurrenceId !== expected.occurrenceId || job.mode !== "24/7" || typeof job.overlaySecret !== "string" || typeof job.rtmpUrl !== "string" || (job.streamKey !== null && typeof job.streamKey !== "string") || !Number.isSafeInteger(job.fps) || job.fps < 1 || job.fps > 120 || typeof job.resolution !== "string" || !["720p", "1080p"].includes(job.resolution))
+			return false;
+		return true;
+	}
+	private validCachedTargets(job: FreeExecutionJob) {
+		const targets = job.destinations ?? [{ id: job.id, rtmpUrl: job.rtmpUrl, streamKey: job.streamKey }];
+		if (!targets.length || new Set(targets.map((target) => target.id)).size !== targets.length || targets.some((target) => !target || typeof target.id !== "string" || typeof target.rtmpUrl !== "string" || (target.streamKey !== null && typeof target.streamKey !== "string")) || hashExecutionTargets(targets) !== job.targetHash) return false;
+		return true;
+	}
+	private validCachedJob(job: FreeExecutionJob, manifest: ScheduleCacheManifest, expected: ScheduleCacheManifest["entries"][number], requestId: string) {
+		if (!this.validCachedIdentity(job, manifest, expected)) return false;
+
+		if (createHash("sha256").update(job.lease.payload).digest("hex") !== expected.authorizationHash) return false;
+		if (!this.validCachedTargets(job)) return false;
+
+		const claims = verifyExecutionBundle(job.lease, this.keys, { ...job, sourceId: job.overlayId, sessionId: job.id, generation: job.executionGeneration, requestId, leaseId: JSON.parse(Buffer.from(job.lease.payload, "base64url").toString("utf8")).leaseId, executionPayloadHash: hashScheduledExecutionPayload(job) }, manifest.issuedAt);
+		if (!claims || claims.issuedAt !== manifest.issuedAt || claims.expiresAt !== manifest.expiresAt) return false;
+		return true;
+	}
 	private validate(raw: unknown, requestId: string): { manifest: ScheduleCacheManifest; entries: FreeExecutionJob[]; bundle: SignedExecutionBundle } | null {
 		if (!raw || typeof raw !== "object") return null;
 		const response = raw as { bundle?: SignedExecutionBundle; entries?: { job: FreeExecutionJob }[] };
@@ -143,13 +163,7 @@ export class RunnerScheduleCache {
 			const matches = response.entries.filter((entry) => entry?.job?.admissionId === expected.admissionId);
 			if (matches.length !== 1) return null;
 			const job = matches[0].job;
-			if (!job || job.cacheAuthorization !== true || !job.lease || job.ownerId !== manifest.ownerId || job.runnerId !== manifest.runnerId || job.occurrenceId !== expected.occurrenceId || job.mode !== "24/7" || typeof job.overlaySecret !== "string" || typeof job.rtmpUrl !== "string" || (job.streamKey !== null && typeof job.streamKey !== "string") || !Number.isSafeInteger(job.fps) || job.fps < 1 || job.fps > 120 || typeof job.resolution !== "string" || !["720p", "1080p"].includes(job.resolution))
-				return null;
-			if (createHash("sha256").update(job.lease.payload).digest("hex") !== expected.authorizationHash) return null;
-			const targets = job.destinations ?? [{ id: job.id, rtmpUrl: job.rtmpUrl, streamKey: job.streamKey }];
-			if (!targets.length || new Set(targets.map((target) => target.id)).size !== targets.length || targets.some((target) => !target || typeof target.id !== "string" || typeof target.rtmpUrl !== "string" || (target.streamKey !== null && typeof target.streamKey !== "string")) || hashExecutionTargets(targets) !== job.targetHash) return null;
-			const claims = verifyExecutionBundle(job.lease, this.keys, { ...job, sourceId: job.overlayId, sessionId: job.id, generation: job.executionGeneration, requestId, leaseId: JSON.parse(Buffer.from(job.lease.payload, "base64url").toString("utf8")).leaseId, executionPayloadHash: hashScheduledExecutionPayload(job) }, manifest.issuedAt);
-			if (!claims || claims.issuedAt !== manifest.issuedAt || claims.expiresAt !== manifest.expiresAt) return null;
+			if (!this.validCachedJob(job, manifest, expected, requestId)) return null;
 			jobs.push(structuredClone(job));
 		}
 		return { manifest, entries: jobs, bundle: response.bundle };
@@ -203,6 +217,17 @@ export class RunnerScheduleCache {
 			return false;
 		}
 	}
+	private async restorePrivateJob(entry: StoredEntry): Promise<FreeExecutionJob> {
+		if (!entry || !/^[a-f0-9]{64}$/.test(entry.credentialReference)) throw new Error();
+		let serialized: string | null = null;
+		try {
+			serialized = await this.keyring.get(entry.credentialReference);
+		} catch {}
+		serialized ??= this.fallback()[entry.credentialReference] ?? null;
+		if (!serialized || createHash("sha256").update(serialized).digest("hex") !== entry.credentialReference) throw new Error();
+		const value = JSON.parse(serialized) as PrivatePayload;
+		return { ...entry.job, overlaySecret: value.overlaySecret, rtmpUrl: value.rtmpUrl, streamKey: value.streamKey, ...(value.destinations ? { destinations: value.destinations } : {}) };
+	}
 	async restore(): Promise<{ jobs: FreeExecutionJob[]; request: LeaseRequestContext; serverTimeLower: number; serverTimeUpper: number; manifest: ScheduleCacheManifest } | null> {
 		try {
 			if (this.failure || !this.current) throw new Error();
@@ -216,17 +241,7 @@ export class RunnerScheduleCache {
 			let verified = this.resolved?.snapshot === stored ? { entries: this.resolved.jobs, manifest: this.resolved.manifest } : null;
 			if (!verified) {
 				const entries: { job: FreeExecutionJob }[] = [];
-				for (const entry of stored.entries) {
-					if (!entry || !/^[a-f0-9]{64}$/.test(entry.credentialReference)) throw new Error();
-					let serialized: string | null = null;
-					try {
-						serialized = await this.keyring.get(entry.credentialReference);
-					} catch {}
-					serialized ??= this.fallback()[entry.credentialReference] ?? null;
-					if (!serialized || createHash("sha256").update(serialized).digest("hex") !== entry.credentialReference) throw new Error();
-					const value = JSON.parse(serialized) as PrivatePayload;
-					entries.push({ job: { ...entry.job, overlaySecret: value.overlaySecret, rtmpUrl: value.rtmpUrl, streamKey: value.streamKey, ...(value.destinations ? { destinations: value.destinations } : {}) } });
-				}
+				for (const entry of stored.entries) entries.push({ job: await this.restorePrivateJob(entry) });
 				const untrusted = JSON.parse(Buffer.from(stored.bundle.payload, "base64url").toString("utf8"));
 				const validated = this.validate({ bundle: stored.bundle, entries }, untrusted.requestId);
 				if (!validated) throw new Error();
