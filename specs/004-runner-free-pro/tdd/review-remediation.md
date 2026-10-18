@@ -48,7 +48,7 @@ Current published source: `4be68ca3`. CodeFactor passes with zero issues and zer
 
 ## Security disposition
 
-The fresh CodeQL check on f75e1091 clears all 12 generated-test-source alerts. Three high SHA256 classifications remain open. Static triage identifies random bearer-token/cache fingerprints and content integrity, not password verification; each use and its authentication boundary is documented in [security-alert-disposition.md](security-alert-disposition.md). No alert has been dismissed and no rule disabled. The final refactor checkpoint still needs fresh CodeQL.
+CodeQL clears12 generated-source alerts. The user explicitly approves the reviewed false-positive dispositions for24,26,27; each is applied with its individual reason. GitHub verifies zero open PR alerts and a successful CodeQL check. Evidence: F1-approved-security-dispositions.json. Scanner rules and cryptographic checks remain intact.
 
 ## Qualification
 
@@ -61,3 +61,5 @@ Final follow-up regression checkpoint: all312 cases in ten complete server owner
 Current scanner checkpoint: CodeFactor 0 issues; CodeQL 12 generated-source alerts cleared, three non-password SHA256 classifications remain open (#24, #26 and #27; #27 replaces #25 after helper extraction). All three are not_actionable/high-confidence in the current source-bound triage. Automatic approval review rejects external dismissal without explicit user approval, so no state changes occur. See security-alert-disposition.md and github-disposition-proposal.json for the concrete proposed metadata changes.
 
 Final complete CI verification: run 39122026804 passes every runtime job, all six coverage lanes, all six browser owners and the merged Test gate on `4be68ca3`. Downloaded application/native coverage artifacts both match the frozen 1660-input fingerprint; all 39 application/workflow and 13 native sources pass unchanged floors. CodeFactor remains zero. The only blocker is explicit approval of the three documented CodeQL false-positive dispositions; the proposed writeback was automatically rejected and no alert state changed.
+
+Final approved closure: explicit user approval resolves the prior external-writeback blocker. All three exact dispositions are verified, CodeQL and CodeFactor succeed, and complete runtime CI39123709920 passes on04402364. All17 quality gates and1046 tasks are complete. Earlier blocked statements above describe historical checkpoints only.

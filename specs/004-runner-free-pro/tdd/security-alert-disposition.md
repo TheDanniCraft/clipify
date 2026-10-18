@@ -1,6 +1,6 @@
 # PR519 security alert disposition
 
-Current reviewed source: 4be68ca38f0057eb783685894ad7f02e0ae2c091, refs/pull/519/head. Fresh CodeQL confirms all 12 generated-source alerts cleared. Three SHA256 classifications remain open:24,26,27. Static triage finds each not actionable with high confidence. No alert state changed and no scanner rule was suppressed.
+Current reviewed code is unchanged from4be68ca3, with complete runtime CI on04402364. CodeQL clears all12 generated-source alerts. On the user's explicit instruction, alerts24,26,27 are now dismissed as false positives with individual reasons. GitHub verifies zero open PR alerts and a successful CodeQL check. Scanner rules and cryptographic checks remain intact. Evidence: evidence/F1-approved-security-dispositions.json.
 
 ## SHA256 classifications
 
@@ -12,7 +12,7 @@ The three high-severity alerts classify operating-system keyring secrets as pass
 | [#27](https://github.com/TheDanniCraft/clipify/security/code-scanning/27) | packages/runner/src/schedule-cache.ts:227      | Content-addressed private schedule payload reference, checked before signed execution validation.    |
 | [#24](https://github.com/TheDanniCraft/clipify/security/code-scanning/24) | packages/runner/src/index.ts:590               | In-memory cache identity for API origin and random bearer token.                                     |
 
-SHA256 is appropriate for these high-entropy fingerprints and integrity references. Replacing it with a password KDF would change the wrong contract; removing it would weaken the current integrity checks. These findings still need an explicit reviewed disposition if CodeQL continues to report them.
+SHA256 is appropriate for these high-entropy fingerprints and integrity references. Replacing it with a password KDF would change the wrong contract; removing it would weaken the current integrity checks. The user approved these exact false-positive dispositions after reviewing the explanation; all three are now applied and verified.
 
 ## Test source construction
 
@@ -28,4 +28,4 @@ Fresh analysis assigns #27 to the extracted restorePrivateJob content-address ch
 
 The concrete proposal in github-disposition-proposal.json changes only alerts #24, #26 and #27 to dismissed with reason false positive and an individual evidence comment. It leaves the hashing, bearer authentication, signed payload validation and scanner rules intact. Dismissal removes those records from the open alert queue; this is a reviewed classification decision, not a claim that password KDFs are unnecessary for real passwords.
 
-Automatic approval review rejected that external security-state mutation as outside current authorization. No PATCH request executed, and a read-only recheck confirms all three records remain open. Obtain the user's explicit approval for these exact dispositions before writeback; do not retry or use an indirect workaround. Until then QG-11 and the five story/full-validation gates remain blocked.
+Automatic approval review initially rejected writeback without explicit authorization, and no request executed then. The user subsequently instructed: “Okay you can mark them false positive”. Only the three proposed records were updated, with reason false positive and their documented comments. A read-only recheck verifies every dismissal, zero open PR alerts and successful CodeQL. QG-11 and the five story/full-validation gates are now complete.

@@ -21,3 +21,5 @@ tar -xzf specs/004-runner-free-pro/tdd/review-evidence.tar.gz -C /tmp/clipify-ru
 ```
 
 CodeFactor is clear and complete runtime CI passes on `4be68ca3`. The three SHA256 CodeQL findings remain open because automatic approval review rejected external dismissal without explicit authorization; the exact proposal and current triage are tracked alongside this document. Archived failing runs, setup failures and deliberately mutated executions never count as passing qualification.
+
+Approved closure: the user subsequently authorizes exactly24,26,27 as false positives. F1-approved-security-dispositions.json records the verified GitHub results and successful current checks; earlier blocked records remain historical evidence.

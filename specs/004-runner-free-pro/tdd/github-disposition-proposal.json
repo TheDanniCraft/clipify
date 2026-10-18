@@ -1,6 +1,6 @@
 {
 	"sourceCommit": "4be68ca38f0057eb783685894ad7f02e0ae2c091",
-	"status": "Blocked pending explicit user approval after automatic approval review rejection",
+	"status": "Applied after explicit user approval; all three verified dismissed as false positive",
 	"scope": "Only the three reviewed non-password SHA256 classifications; preserve cryptographic checks and all scanner rules",
 	"actions": [
 		{
@@ -30,5 +30,7 @@
 				"dismissed_comment": "SHA-256 verifies the content address of serialized private schedule payloads, not passwords. Signed manifest and execution bindings are validated separately. Reviewed at 4be68ca3; see specs/004-runner-free-pro/tdd/security-alert-disposition.md (formerly #25)."
 			}
 		}
-	]
+	],
+	"approval": "User: Okay you can mark them false positive",
+	"evidence": "evidence/F1-approved-security-dispositions.json"
 }

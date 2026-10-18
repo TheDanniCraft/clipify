@@ -1,7 +1,7 @@
 {
 	"scope": "Static review follow-up raw evidence, including rejected attempts and deliberate faults; only recorded restored/qualifying runs count as passes",
 	"archive": "review-evidence.tar.gz",
-	"archiveSha256": "64c359ae2017efeac2c81e553b139cfd7e7d14194855a75292fdde824919523b",
+	"archiveSha256": "3a767be1162018ac8f9fc4461747463f5d59e5ec4e86f4fdcbcb4943df3bb559",
 	"files": [
 		{
 			"path": "evidence/F1-review-admission.log",
@@ -131,7 +131,7 @@
 		{
 			"path": "evidence/F1-review-final-mapping-audit.json",
 			"size": 414,
-			"sha256": "7063b56b253971df62edc4afbe0625c1024e2336f2d24d4d1b607176764b4d2a"
+			"sha256": "d3c56ec287a42329cbacedcde7d3bb4b6c632047983ae62bd8afac1d6c203cde"
 		},
 		{
 			"path": "evidence/F1-review-final-migration-staged.log",
