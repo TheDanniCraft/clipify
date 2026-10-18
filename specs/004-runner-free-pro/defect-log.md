@@ -1843,7 +1843,7 @@ The focused protocol run caught an accidental 8-4-4-12 pattern while extracting 
 
 ## DEF-US5-250 — Final readiness omitted static review findings
 
-Severity: High. Status: Blocked pending explicit GitHub disposition approval. Owner: Feature implementer. Scope: PR519 CodeFactor and CodeQL checks.
+Severity: High. Status: Verified after explicit user approval and GitHub disposition verification. Owner: Feature implementer. Scope: PR519 CodeFactor and CodeQL checks.
 
 Although b8b72b27 passes runtime CI, CodeFactor reports41 findings (40 complex methods and one unused import), and the current pull-request-head CodeQL result contains15 open alerts (three high token/cache SHA256 classifications and12 medium generated test-shim classifications). Review the exact annotated paths, refactor cohesive responsibilities with whole-file regression checks, and obtain fresh scanner results before readiness. No threshold reduction, blanket suppression or alert dismissal is authorized by this entry.
 
@@ -1906,3 +1906,5 @@ Final native review qualification: the complete owner passes52 suites and450 cas
 DEF-US5-254 complete verification: CI39122026804 unit job117659469821 passes on4be68ca3, confirming the local29-case isolation repair under the complete owning lane.
 
 DEF-US5-250 published complexity verification: CodeFactor check117659385846 on4be68ca3 reports No issues found, zero annotations. The complete five-platform native workflow39122022382 also passes; its manifest fingerprint54ff2834fbd8a9b6def81fe791c3ff6ee28e3118445410423683dee190c8daba matches current inputs. The only remaining static disposition concerns three high SHA256 classifications (24,26,27) statically triaged as not actionable. Automatic approval review blocks external dismissal as outside authorization; no PATCH request runs and the alerts remain open pending explicit user approval. This governance blocker does not justify weakening cryptography or suppressing a rule.
+
+DEF-US5-250 final resolution: the user explicitly approves the three reviewed false-positive dispositions. Alerts24,26,27 are dismissed with individual reasons; GitHub confirms zero open PR alerts and CodeQL success on04402364. CodeFactor remains zero and complete runtime CI39123709920 passes. All1660 qualified execution inputs remain unchanged. No scanner rule or cryptographic check changed. Evidence: F1-approved-security-dispositions.json.

@@ -1,0 +1,57 @@
+{
+  "ok": true,
+  "approval": "User: Okay you can mark them false positive",
+  "recordedAt": "2026-10-18T12:34:18.997924+00:00",
+  "sourceCommit": "04402364162705541df44f1ff0cfcd668bafcdfc",
+  "sourceFingerprint": "be699c61e99437437c1721d70ffde7e259442f68eebece586bc421012d2be43d",
+  "executionInputsUnchanged": 1660,
+  "dispositions": [
+    {
+      "number": 24,
+      "state": "dismissed",
+      "dismissed_reason": "false positive",
+      "dismissed_comment": "SHA-256 keys an in-memory cache by API origin and a 192-bit random Runner bearer. The original bearer authenticates requests; this digest never verifies a password. Reviewed at commit 4be68ca3; see specs/004-runner-free-pro/tdd/security-alert-disposition.md.",
+      "dismissed_at": "2026-10-18T12:33:05Z",
+      "html_url": "https://github.com/TheDanniCraft/clipify/security/code-scanning/24"
+    },
+    {
+      "number": 26,
+      "state": "dismissed",
+      "dismissed_reason": "false positive",
+      "dismissed_comment": "SHA-256 identifies a local keyring record for a 192-bit random Runner bearer, not a password verifier. Authentication still needs the original bearer. Reviewed at commit 4be68ca3; see specs/004-runner-free-pro/tdd/security-alert-disposition.md.",
+      "dismissed_at": "2026-10-18T12:33:06Z",
+      "html_url": "https://github.com/TheDanniCraft/clipify/security/code-scanning/26"
+    },
+    {
+      "number": 27,
+      "state": "dismissed",
+      "dismissed_reason": "false positive",
+      "dismissed_comment": "SHA-256 verifies the content address of serialized private schedule payloads, not passwords. Signed manifest and execution bindings are validated separately. Reviewed at 4be68ca3; see specs/004-runner-free-pro/tdd/security-alert-disposition.md (formerly #25).",
+      "dismissed_at": "2026-10-18T12:33:07Z",
+      "html_url": "https://github.com/TheDanniCraft/clipify/security/code-scanning/27"
+    }
+  ],
+  "openPullRequestAlerts": [],
+  "checks": [
+    {
+      "id": 117667883661,
+      "name": "\ud83e\uddea Test",
+      "conclusion": "success",
+      "html_url": "https://github.com/TheDanniCraft/clipify/actions/runs/39123709920/job/117667883661"
+    },
+    {
+      "id": 117664456254,
+      "name": "CodeQL",
+      "conclusion": "success",
+      "html_url": "https://github.com/TheDanniCraft/clipify/runs/117664456254"
+    },
+    {
+      "id": 117664364854,
+      "name": "CodeFactor",
+      "conclusion": "success",
+      "html_url": "https://github.com/TheDanniCraft/clipify/runs/117664364854"
+    }
+  ],
+  "runtimeCI": "https://github.com/TheDanniCraft/clipify/actions/runs/39123709920",
+  "nativeMatrix": "https://github.com/TheDanniCraft/clipify/actions/runs/39122022382"
+}
