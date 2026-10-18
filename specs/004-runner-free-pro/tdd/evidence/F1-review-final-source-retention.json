@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "scope": "Retain completed CI for the documentation-only follow-up only after verifying every recorded source/test/execution input, not from head SHA alone",
+  "qualifiedSourceCommit": "4be68ca38f0057eb783685894ad7f02e0ae2c091",
+  "qualifiedRuntimeCI": "https://github.com/TheDanniCraft/clipify/actions/runs/39122026804",
+  "qualifiedNativeMatrix": "https://github.com/TheDanniCraft/clipify/actions/runs/39122022382",
+  "sourceFingerprint": "be699c61e99437437c1721d70ffde7e259442f68eebece586bc421012d2be43d",
+  "executionInputCount": 1660,
+  "changedExecutionInputs": [],
+  "nativeArtifactReportDigestVerified": true,
+  "currentSecurityBlocker": "Three reviewed GitHub false-positive dispositions require explicit user approval; alerts unchanged",
+  "mergePolicy": "Required GitHub checks remain active; the documentation-only push may trigger full CI again and must not be treated as passed until it completes."
+}

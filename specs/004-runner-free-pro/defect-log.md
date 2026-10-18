@@ -1843,7 +1843,7 @@ The focused protocol run caught an accidental 8-4-4-12 pattern while extracting 
 
 ## DEF-US5-250 — Final readiness omitted static review findings
 
-Severity: High. Status: Open. Owner: Feature implementer. Scope: PR519 CodeFactor and CodeQL checks.
+Severity: High. Status: Blocked pending explicit GitHub disposition approval. Owner: Feature implementer. Scope: PR519 CodeFactor and CodeQL checks.
 
 Although b8b72b27 passes runtime CI, CodeFactor reports41 findings (40 complex methods and one unused import), and the current pull-request-head CodeQL result contains15 open alerts (three high token/cache SHA256 classifications and12 medium generated test-shim classifications). Review the exact annotated paths, refactor cohesive responsibilities with whole-file regression checks, and obtain fresh scanner results before readiness. No threshold reduction, blanket suppression or alert dismissal is authorized by this entry.
 
@@ -1859,7 +1859,7 @@ DEF-US5-250 local checkpoint: after separating the large admission probe into na
 
 ## DEF-US5-252 — Journal extraction exposes untested rejection statements
 
-Severity: Medium. Status: Verified on f75e1091; subsequent native refactors require fresh qualification. Owner: Feature implementer. Scope: native critical coverage after review refactoring.
+Severity: Medium. Status: Verified on4be68ca3 with current complete native coverage. Owner: Feature implementer. Scope: native critical coverage after review refactoring.
 
 The complete native owner passes52 suites and450 tests, with its one inherited updater TODO, but execution-journal statement coverage is94.44%, below its unchanged95% floor. Aggregate counters are S94.50/B90.14/F95.48/L97.51; aggregate success cannot override the per-file failure. Retain the failed full run as F1-review-native-coverage-before.log. Extend the existing durable-closure-proof rejection matrix with malformed playback outcomes, pending records without occurrence authority, malformed occurrence containers/windows and invalid suppression/resume flags. Every rejected input must leave the persisted receipt unchanged across restart. No production behavior, threshold or exclusion changes. A journal-only diagnostic passes37 cases but misses coverage from the other owning unit files; it is not complete coverage evidence. Run those complete owner files together for focused repair evidence, and retain full native qualification as outstanding until its complete owner succeeds.
 
@@ -1877,7 +1877,7 @@ The lease extraction changes inferred optional fields on pending-permission resu
 
 ## DEF-US5-254 — MCP startup test launches an unrelated database worker
 
-Severity: Medium. Status: Fixed locally, complete CI pending. Owner: Feature implementer. Scope: unit test startup isolation.
+Severity: Medium. Status: Verified by complete unit CI on4be68ca3. Owner: Feature implementer. Scope: unit test startup isolation.
 
 CI39116878135 unit job117644457273 executes3806 cases successfully, then fails the Runner polling suite with pgPass is not a function after a database request from cleanup-startup.test.ts outlives its Jest environment. That owner mocks every unrelated startup worker except overlay-effect-scheduler. Reproduce safely by mocking database execution and asserting that the MCP-only fixture starts no direct database work: the existing enabled-startup case fails with one overlay_effect_jobs schema query (four other cases pass). Stub only the unrelated scheduler, assert its enabled/disabled startup wiring, and keep the real MCP cleanup owner plus the real overlay-effects scheduler owner. All29 tests in those owners and Runner polling then pass. Production scheduler behavior is unchanged. Retain failed/green evidence and require a fresh complete unit lane.
 
@@ -1902,3 +1902,7 @@ DEF-US5-256 exact-owner verification: mcp-workflows/runner-free-pro.feature pass
 DEF-US5-256 additional local invocation cleanup: a diagnostic migration-policy call omitted its required staged argument and produced usage output, not a passing guard result. Keep that output as setup evidence and run the documented test:migration-policy owner plus the actual staged guard at commit. No migration generation or policy bypass was attempted.
 
 Final native review qualification: the complete owner passes52 suites and450 cases with the single inherited updater TODO. All unchanged configured per-file floors and exact source/inventory validation pass, aggregate S94.78/B90.41/F95.61/L97.53. The execution fingerprint matches the frozen final review inputs. This resolves current native coverage for DEF-US5-250/252 without reducing thresholds.
+
+DEF-US5-254 complete verification: CI39122026804 unit job117659469821 passes on4be68ca3, confirming the local29-case isolation repair under the complete owning lane.
+
+DEF-US5-250 published complexity verification: CodeFactor check117659385846 on4be68ca3 reports No issues found, zero annotations. The complete five-platform native workflow39122022382 also passes; its manifest fingerprint54ff2834fbd8a9b6def81fe791c3ff6ee28e3118445410423683dee190c8daba matches current inputs. The only remaining static disposition concerns three high SHA256 classifications (24,26,27) statically triaged as not actionable. Automatic approval review blocks external dismissal as outside authorization; no PATCH request runs and the alerts remain open pending explicit user approval. This governance blocker does not justify weakening cryptography or suppressing a rule.

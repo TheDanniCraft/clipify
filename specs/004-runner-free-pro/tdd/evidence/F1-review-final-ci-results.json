@@ -1,0 +1,155 @@
+{
+  "ok": true,
+  "scope": "Complete current-source application CI including six coverage lanes, merged Test, all browser owners, native coverage, builds, types, lint and format. Separate CodeQL dispositions remain open.",
+  "workflow": "https://github.com/TheDanniCraft/clipify/actions/runs/39122026804",
+  "sourceCommit": "4be68ca38f0057eb783685894ad7f02e0ae2c091",
+  "sourceFingerprint": "be699c61e99437437c1721d70ffde7e259442f68eebece586bc421012d2be43d",
+  "executionInputCount": 1660,
+  "jobs": [
+    {
+      "name": "\ud83d\udccb Verify Runner manifest extraction",
+      "databaseId": 117659383795,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "\u267b\ufe0f Prepare dependency cache",
+      "databaseId": 117659383879,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83d\udd0e Detect changed areas",
+      "databaseId": 117659383933,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83c\udfd7\ufe0f Build",
+      "databaseId": 117659469761,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83c\udfd7\ufe0f Shared browser build",
+      "databaseId": 117659469766,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83c\udfc3 Runner typecheck and tests",
+      "databaseId": 117659469787,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83e\uddea Coverage (workflows)",
+      "databaseId": 117659469795,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83e\uddea Coverage (database-3)",
+      "databaseId": 117659469796,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83e\uddf9 Lint",
+      "databaseId": 117659469805,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83c\udfa8 Format",
+      "databaseId": 117659469818,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83e\uddea Coverage (unit)",
+      "databaseId": 117659469821,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83e\uddea Coverage (quiet)",
+      "databaseId": 117659469836,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83e\uddea Coverage (database-1)",
+      "databaseId": 117659469855,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83d\udd0e Typecheck",
+      "databaseId": 117659469874,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83e\uddea Coverage (database-2)",
+      "databaseId": 117659469879,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83e\uddea Scoped draft checks",
+      "databaseId": 117659470486,
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "\ud83c\udf10 Browser tests (acceptance)",
+      "databaseId": 117660132471,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83c\udf10 Browser tests (bdd-2)",
+      "databaseId": 117660132476,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83c\udf10 Browser tests (bdd-3)",
+      "databaseId": 117660132482,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83c\udf10 Browser tests (atdd)",
+      "databaseId": 117660132499,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83c\udf10 Browser tests (bdd-1)",
+      "databaseId": 117660132521,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83c\udf10 Browser tests (compliance)",
+      "databaseId": 117660132527,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83e\uddea Test",
+      "databaseId": 117663049947,
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "featureSourceCount": 39,
+  "nativeSourceCount": 13,
+  "nativeCases": 450,
+  "nativeInheritedTodo": 1,
+  "coverageArtifactId": 12135177424,
+  "nativeCoverageArtifactId": 12134084359,
+  "securityStatus": "CodeFactor zero findings. CodeQL24/26/27 remain open pending explicit approval of the reviewed false-positive dispositions."
+}

@@ -1,7 +1,7 @@
 {
 	"scope": "Static review follow-up raw evidence, including rejected attempts and deliberate faults; only recorded restored/qualifying runs count as passes",
 	"archive": "review-evidence.tar.gz",
-	"archiveSha256": "7c622097423abb28e79b5aae65218dd91fb23d7b9042c82ea5f3d8793e43eaa9",
+	"archiveSha256": "64c359ae2017efeac2c81e553b139cfd7e7d14194855a75292fdde824919523b",
 	"files": [
 		{
 			"path": "evidence/F1-review-admission.log",
@@ -69,9 +69,54 @@
 			"sha256": "ed2a3b4b53aa1add8e01f444b3bae9c292fdd93aef66877f792ac55659ad6394"
 		},
 		{
+			"path": "evidence/F1-review-final-ci-feature-gate.json",
+			"size": 4482,
+			"sha256": "42dcf454d2ee6e2a10cc105007a4dac2fe436e8484f8dec4d4f9bcdeb7971c79"
+		},
+		{
+			"path": "evidence/F1-review-final-ci-native-inputs.json",
+			"size": 3037,
+			"sha256": "e12ea00cc1eeb8f7be528e674caed53a752e1e45c51695abafa73711c3e6edd3"
+		},
+		{
+			"path": "evidence/F1-review-final-ci-native.log",
+			"size": 497908,
+			"sha256": "4cd59aa266bd494b7be73c4bb582bb30129dacd328c446d53bb8a7418713844c"
+		},
+		{
+			"path": "evidence/F1-review-final-ci-results.json",
+			"size": 4421,
+			"sha256": "399aa2126a1b9ccf6571d3584f929fa4e56aa5b751e71e0674fba6fa03d362c7"
+		},
+		{
+			"path": "evidence/F1-review-final-ci-unit.log",
+			"size": 895749,
+			"sha256": "00112bc09041fa012da2980568a9950390d7170ff616945d2ae9b5915d818617"
+		},
+		{
+			"path": "evidence/F1-review-final-codefactor-check.json",
+			"size": 482,
+			"sha256": "2667438a14928d17bccf95346b89285420da917ee87adf8d03d53a9c443bb30d"
+		},
+		{
+			"path": "evidence/F1-review-final-codeql-check.json",
+			"size": 880,
+			"sha256": "c04616aac29a71eb65e2026e60662a147be73a509034457bb9d49c76eb3024f8"
+		},
+		{
+			"path": "evidence/F1-review-final-codeql-open-alerts.json",
+			"size": 385,
+			"sha256": "9e37c10a4d34f9e7d6856529dc6240ce043a2b9804dafcea37d4237a97ead6c6"
+		},
+		{
 			"path": "evidence/F1-review-final-execution-inputs.json",
 			"size": 195379,
 			"sha256": "f401aef96fbc08e6bfff82fb41b9ac7572fe67f97070ba9cbc2458be9c937fa3"
+		},
+		{
+			"path": "evidence/F1-review-final-fixture-cleanup.json",
+			"size": 1649,
+			"sha256": "fe41d34d0219fb919c48630a37d2aeb1375bddf56b9db1142ac0a75b0ae0130a"
 		},
 		{
 			"path": "evidence/F1-review-final-free-atdd.log",
@@ -114,6 +159,11 @@
 			"sha256": "2f9d8b9f3141076766532ebb139a6275b55faaed5d754c0bfa764474f712fdcc"
 		},
 		{
+			"path": "evidence/F1-review-final-native-matrix.json",
+			"size": 5362,
+			"sha256": "0ed83e36147c12e7f0ee75f7454ba062a5bb62279b7500176d5fc461aa115d52"
+		},
+		{
 			"path": "evidence/F1-review-final-native-types.log",
 			"size": 15,
 			"sha256": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92"
@@ -124,9 +174,29 @@
 			"sha256": "df38d15c7ae4c3f456d134f64b79a8a015bb96ac78733025480350d0259ead6b"
 		},
 		{
+			"path": "evidence/F1-review-final-push.log",
+			"size": 4477,
+			"sha256": "a0464b6bcbe46c36db2417ced3e370c360efaa75dfc8b238ef572761ac0f17b6"
+		},
+		{
+			"path": "evidence/F1-review-final-record-format.log",
+			"size": 452,
+			"sha256": "dbc43238d694a0e498a7f5ccdfa705f9a0ecbe0f5d369912a1f4a5effc5cc004"
+		},
+		{
+			"path": "evidence/F1-review-final-security-triage.json",
+			"size": 8751,
+			"sha256": "9dc705d73a520c1fbb01989646c83eb2217ab01330f9a2d99944798ef8b25182"
+		},
+		{
 			"path": "evidence/F1-review-final-source-format.log",
 			"size": 107,
 			"sha256": "0c5d710ceb8c990ad32ee5912ebe6c033f19af851ce97065029c9f03ce31df52"
+		},
+		{
+			"path": "evidence/F1-review-final-source-retention.json",
+			"size": 933,
+			"sha256": "df83868fa8ed6f2383c70ef9094b06150d3a1a3e5f1aad826a54cdbf8f01ab08"
 		},
 		{
 			"path": "evidence/F1-review-final-types.log",
