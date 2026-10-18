@@ -660,6 +660,7 @@ When("they drag an event with {string}", async ({ page, mcpWorld }, ambiguity: s
 	await expect(editor).toHaveCount(0);
 	const state = mcpWorld.input?.scheduleContract as State;
 	state.before = await saved(state);
+	if (ambiguity === "different timezone") await fillScheduleField(page, "Calendar timezone", "UTC");
 	await fillScheduleField(page, "Displayed date", "2027-01-04");
 	const calendar = page.getByRole("region", { name: "Broadcast calendar", exact: true });
 	await calendar.scrollIntoViewIfNeeded();
@@ -753,6 +754,7 @@ Then("this occurrence is durably suppressed and its original window remains lock
 	expect(new Date(admission.scheduled_end).toISOString()).toBe(state.originalEnd);
 	const event = (await saved(state))[0];
 	expect(admission.occurrence_id).toBe(JSON.stringify([state.eventId, event.recurrence_anchor]));
+	await openRunnerSchedule(page);
 	await expect(page.getByRole("button", { name: "Edit Active schedule", exact: true })).toBeDisabled();
 });
 
@@ -799,6 +801,7 @@ Given("that scheduled broadcast currently has a captured running execution", asy
 	expect((await query("SELECT actual_state FROM stream_sessions WHERE id=$1", [state.sessionId]))[0].actual_state).toBe("running");
 });
 When("they pause schedule automation", async ({ page }) => {
+	await openRunnerSchedule(page);
 	const button = page.getByRole("button", { name: "Pause automation", exact: true });
 	await expect(button).toBeEnabled();
 	const response = page.waitForResponse((r) => r.request().method() === "POST" && r.url().includes("/dashboard/runners/"));

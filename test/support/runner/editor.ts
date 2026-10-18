@@ -30,7 +30,7 @@ function parts(label: string, value: string) {
 			];
 }
 export async function fillScheduleField(scope: Page | Locator, label: string, value: string) {
-	if (label === "Timezone") {
+	if (label === "Timezone" || label === "Calendar timezone") {
 		const combo = scope.getByRole("combobox", { name: label, exact: true });
 		await combo.fill(value);
 		const page = "page" in scope ? scope.page() : scope;
@@ -48,7 +48,7 @@ export async function fillScheduleField(scope: Page | Locator, label: string, va
 	}
 }
 export async function expectScheduleField(scope: Page | Locator, label: string, value: string) {
-	if (label === "Timezone") {
+	if (label === "Timezone" || label === "Calendar timezone") {
 		await expect(scope.getByRole("combobox", { name: label, exact: true })).toHaveValue(value);
 		return;
 	}
