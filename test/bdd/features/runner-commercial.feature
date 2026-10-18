@@ -4,7 +4,7 @@ Feature: Runner is included in the existing plans
   Scenario: Pro setup includes Runner without another purchase
     Given a visitor is viewing Clipify's public pricing
     When they open the Pro setup dialog
-    Then Runner is described as included and no standalone Runner purchase is offered
+    Then Pro setup offers checkout without a separate Runner purchase
 
   @FR-020 @BDD-US5-OPT065
   Scenario: Retired Runner checkout links return to included access
@@ -21,13 +21,13 @@ Feature: Runner is included in the existing plans
   Scenario: Billing controls include Runner without selling an add-on
     Given a visitor is viewing Clipify's public pricing
     When a Free creator opens their billing controls
-    Then billing offers no new Runner purchase and explains included access
+    Then billing offers Pro without a separate Runner purchase
 
   @FR-020 @BDD-US5-OPT067
   Scenario: A Free creator can create a Runner without a purchase
     Given a visitor is viewing Clipify's public pricing
     When a Free creator opens Runner onboarding
-    Then Runner onboarding explains included access and creates a Runner without checkout
+    Then Runner onboarding creates a Runner without checkout
 
   @FR-020 @FR-023 @BDD-US5-DEC013
   Scenario: Public and machine-readable guidance agree on included Runner

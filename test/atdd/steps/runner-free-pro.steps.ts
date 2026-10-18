@@ -71,7 +71,7 @@ Then("the saved destination remains available and they can switch to basic Manua
 	await expect(page.getByRole("dialog", { name: /Upgrade|Runner add-on/ })).toHaveCount(0);
 	await page.goto("/dashboard/settings");
 	await page.getByRole("tab", { name: "Billing", exact: true }).click();
-	await expect(page.getByText("Runner is included with Free and Pro.", { exact: true })).toBeVisible();
+	await expect(page.getByRole("checkbox", { name: "Pro", exact: true })).toBeVisible();
 	await expect(page.getByRole("checkbox", { name: "Self-hosted Runner", exact: true })).toHaveCount(0);
 	const pool = new Pool({ connectionString: browserDatabaseUrl(), max: 1 });
 	try {

@@ -22,16 +22,16 @@ const pricingFaq = [
 		content: "Yes. Free includes unlimited Twitch clips, one overlay, one 50-clip playlist, a branded gallery, a Creator Page, and essential playback tools.",
 	},
 	{
-		title: "Is the Self-hosted Runner a separate plan?",
-		content: "No. Runner is included with Free and Pro and runs on your own hardware. Both plans have unlimited streaming hours. Free includes one active broadcast and one destination with Clipify branding on generated content. Pro adds scheduling, multiple destinations and broadcasts, custom standby screens, and watermark removal.",
+		title: "Do I need to keep my computer running?",
+		content: "Yes. Runner broadcasts from your computer, so it must stay on and connected to the internet.",
 	},
 	{
 		title: "Can I switch between monthly and yearly billing?",
-		content: "Yes. Pro supports monthly and yearly billing. Yearly billing includes two months free compared with monthly billing. Runner is included without a separate subscription.",
+		content: "Yes. Pro supports monthly and yearly billing. Yearly billing includes two months free compared with monthly billing.",
 	},
 	{
 		title: "What happens if I stop using Pro?",
-		content: "Your account returns to the Free limits. Clipify preserves supported data according to the downgrade rules shown in the relevant feature settings.",
+		content: "Your account returns to Free. Your saved settings and content are kept, and you can use Pro features again by resubscribing.",
 	},
 ];
 

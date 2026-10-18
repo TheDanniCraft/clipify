@@ -683,7 +683,6 @@ export default function RunnerPage() {
 												</Select.Popover>
 											</Select>
 										</div>
-										<p className='text-xs text-muted'>Manual control is available on every plan. Scheduling is for clip playback with Pro.</p>
 
 										{mode === StreamMode.Failsafe && (
 											<div className='bg-warning/10 border border-warning/20 p-4 rounded-md text-sm text-warning-600 dark:text-warning-400 leading-relaxed'>

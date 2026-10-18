@@ -246,7 +246,7 @@ async function persistStripeCustomerId(userId: string, customerId: string) {
 
 export async function generateCheckout(productKeys: BillingProduct[] | Array<{ product: BillingProduct; billingCycle: BillingCycle }>, billingCycle: BillingCycle = "yearly", returnUrl?: string, numokMetadata?: NumokStripeMetadata, source?: PaywallSource, checkoutOptions?: { idempotencyKey?: string; successUrl?: string; cancelUrl?: string }) {
 	if (productKeys.some((entry) => (typeof entry === "string" ? entry : entry.product) === BillingProduct.RunnerSelfHosted)) {
-		return { success: false as const, code: "RUNNER_INCLUDED" as const, error: "Runner is included with Free and Pro. No separate Runner purchase is needed." };
+		return { success: false as const, code: "RUNNER_INCLUDED" as const, error: "No purchase is needed to use Runner. Open Runner from your dashboard." };
 	}
 	const authUser = await getAuthorizedUser();
 	const selectedProducts = Array.from(new Map(productKeys.map((entry) => (typeof entry === "string" ? [entry, { product: entry, billingCycle }] : [`${entry.product}:${entry.billingCycle}`, entry]))).values());

@@ -65,7 +65,7 @@ function getResultContent(state: RunnerEnrollResultProps["state"]): ResultConten
 		return {
 			tone: "warning" as const,
 			title: "Refresh Runner access",
-			description: "Runner is included with Free and Pro. Refresh your account and retry enrollment.",
+			description: "Refresh this page and retry enrollment.",
 			actionHref: "/runner/enroll",
 			actionLabel: "Back to enrollment",
 		};

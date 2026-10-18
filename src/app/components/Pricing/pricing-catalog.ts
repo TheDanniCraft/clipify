@@ -66,7 +66,7 @@ export const tiers: Tier[] = [
 
 export const runnerIncluded = {
 	title: "Self-hosted Runner",
-	description: "Broadcast from your own computer with unlimited streaming hours. Free includes manual clip playback and live fallback; Pro adds advanced broadcasting controls.",
+	description: "Broadcast clips from your computer or play them automatically when your live feed goes offline.",
 	availability: "Included with Free and Pro",
 };
 
@@ -74,8 +74,8 @@ export const pricingFeatures: PricingFeatures = [
 	{
 		title: "Runner and broadcasting",
 		items: [
-			{ title: "Self-hosted Runner", tiers: { free: true, pro: true }, helpText: "Runner is included with Free and Pro. Broadcasting runs on your own computer, which must stay online." },
-			{ title: "Streaming hours", tiers: { free: "Unlimited", pro: "Unlimited" }, helpText: "No monthly streaming quota. Free Runner needs a connection to Clipify to renew its broadcast permission." },
+			{ title: "Self-hosted Runner", tiers: { free: true, pro: true }, helpText: "Keep your computer online while broadcasting." },
+			{ title: "Streaming hours", tiers: { free: "Unlimited", pro: "Unlimited" }, helpText: "Broadcast without a monthly time limit." },
 			{ title: "Registered devices", tiers: { free: "Unlimited", pro: "Unlimited" }, helpText: "Register your own computers and choose which device hosts each broadcast." },
 			{ title: "Active broadcasts", tiers: { free: "1", pro: "Unlimited" }, helpText: "Free supports one active broadcast across your devices. Pro supports independent broadcasts, subject to your hardware and connection." },
 			{ title: "Destinations per broadcast", tiers: { free: "1", pro: "Multiple" }, helpText: "Send directly from your computer to YouTube, Twitch, or custom RTMP destinations. Each destination uses additional upload bandwidth." },
@@ -117,7 +117,7 @@ export const pricingFeatures: PricingFeatures = [
 			{
 				title: "Gallery attribution",
 				tiers: { free: "Included", pro: "Optional" },
-				helpText: 'Free galleries include a small "Made with Clipify" banner. It helps other creators discover Clipify and helps us keep growing. With Pro, you can choose whether to show it.',
+				helpText: 'Free galleries include a small "Made with Clipify" banner. With Pro, you can choose whether to show it.',
 			},
 		],
 	},

@@ -142,7 +142,6 @@ export default function BillingPanel() {
 							<p className='text-sm text-muted'>Select the products you want, then save your subscription changes.</p>
 						</Card.Header>
 						<Card.Content className='space-y-3'>
-							<p className='text-sm text-muted'>Runner is included with Free and Pro.</p>
 							{options
 								.filter((option) => option.key !== BillingProduct.RunnerSelfHosted || option.owned)
 								.map((option) => {

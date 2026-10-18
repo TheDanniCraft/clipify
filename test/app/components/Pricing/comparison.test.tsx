@@ -84,7 +84,7 @@ describe("PricingComparison Pro setup", () => {
 		expect(screen.queryByRole("button", { name: "Add" })).not.toBeInTheDocument();
 		expect(screen.queryByRole("link", { name: "Add Runner" })).not.toBeInTheDocument();
 
-		expect(dialogQueries.getByText("Runner is included with Free and Pro.")).toBeInTheDocument();
+		expect(dialogQueries.queryByText("Runner included")).not.toBeInTheDocument();
 		const runnerCheckout = dialogQueries.getByRole("link", { name: "Continue to checkout" });
 		expect(runnerCheckout).toHaveAttribute("href", expect.stringContaining("plan=pro"));
 		expect(runnerCheckout).not.toHaveAttribute("href", expect.stringContaining("runner=true"));

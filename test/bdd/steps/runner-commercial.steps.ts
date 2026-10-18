@@ -23,10 +23,10 @@ When("they open the Pro setup dialog", async ({ page }) => {
 	await expect(page.getByRole("dialog", { name: "Complete your Pro setup", exact: true })).toBeVisible();
 });
 
-Then("Runner is described as included and no standalone Runner purchase is offered", async ({ page }) => {
+Then("Pro setup offers checkout without a separate Runner purchase", async ({ page }) => {
 	const setup = page.getByRole("dialog", { name: "Complete your Pro setup", exact: true });
 	await expect(setup.getByRole("checkbox", { name: /Runner/ })).toHaveCount(0);
-	await expect(setup.getByText("Runner is included with Free and Pro.", { exact: true })).toBeVisible();
+	await expect(setup.getByRole("link", { name: "Continue to checkout" })).toHaveAttribute("href", /plan=pro/);
 	await expect(setup.locator('a[href*="runner=true"]')).toHaveCount(0);
 });
 
@@ -75,14 +75,14 @@ When("a Free creator opens their billing controls", async ({ page, request, mcpW
 	await expect(page.getByText("Your plan", { exact: true })).toBeVisible();
 });
 
-Then("billing offers no new Runner purchase and explains included access", async ({ page }) => {
+Then("billing offers Pro without a separate Runner purchase", async ({ page }) => {
 	await expect(page.getByRole("checkbox", { name: "Self-hosted Runner", exact: true })).toHaveCount(0);
-	await expect(page.getByText("Runner is included with Free and Pro.", { exact: true })).toBeVisible();
+	await expect(page.getByRole("checkbox", { name: "Pro", exact: true })).toBeVisible();
 	await expect(page.getByRole("checkbox", { name: "Pro", exact: true })).toBeVisible();
 	await page.goto("http://127.0.0.1:3107/dashboard/settings?addon=runner");
 	await expect(page.getByText("Your plan", { exact: true })).toBeVisible();
 	await expect(page.getByRole("dialog", { name: /Upgrade with Runner|Add the Runner add-on/ })).toHaveCount(0);
-	await expect(page.getByText("Runner is included with Free and Pro.", { exact: true })).toBeVisible();
+	await expect(page.getByRole("checkbox", { name: "Pro", exact: true })).toBeVisible();
 });
 
 AfterScenario({ tags: "@runner-commercial-browser" }, async ({ request, mcpWorld }) => {
@@ -103,8 +103,8 @@ When("a Free creator opens Runner onboarding", async ({ page, request, mcpWorld 
 	await page.getByRole("tab", { name: "Runners", exact: true }).click();
 });
 
-Then("Runner onboarding explains included access and creates a Runner without checkout", async ({ page }) => {
-	await expect(page.getByText("Runner is included with Free and Pro.", { exact: true })).toBeVisible();
+Then("Runner onboarding creates a Runner without checkout", async ({ page }) => {
+	await expect(page.getByRole("button", { name: "Add Runner", exact: true })).toBeEnabled();
 	await expect(page.locator("body")).not.toContainText("Purchase the Runner add-on");
 	await page.getByRole("button", { name: "Add Runner", exact: true }).click();
 	await expect(page).toHaveURL(/\/dashboard\/runners\/[a-f0-9-]+$/);

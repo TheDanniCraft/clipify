@@ -20,7 +20,6 @@ export default function ProSetupModal({ isOpen, onOpenChange, pricing, selectedF
 					<Modal.CloseTrigger />
 					<Modal.Header>
 						<Modal.Heading>Complete your Pro setup</Modal.Heading>
-						<p className='text-sm text-muted'>Runner is included with Free and Pro.</p>
 					</Modal.Header>
 					<Modal.Body className='space-y-3'>
 						<div className='flex flex-wrap items-center justify-between gap-4 rounded-xl border border-accent bg-accent/5 p-4'>
@@ -40,10 +39,6 @@ export default function ProSetupModal({ isOpen, onOpenChange, pricing, selectedF
 							<p className='font-semibold tabular-nums'>
 								{pricing.pro[selectedFrequency].formatted} / {period}
 							</p>
-						</div>
-						<div className='rounded-xl border border-default/60 bg-surface-secondary p-4'>
-							<p className='font-semibold'>Runner included</p>
-							<p className='text-sm text-muted'>Broadcast from your own computer. Pro adds scheduling, multiple destinations, custom standby screens, and watermark removal.</p>
 						</div>
 						<div className='flex items-end justify-between gap-4 border-t border-default/60 pt-4'>
 							<div>

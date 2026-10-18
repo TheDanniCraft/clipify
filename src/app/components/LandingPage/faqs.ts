@@ -22,12 +22,12 @@ const faqs: Faq[] = [
 		content: "Normally, Clipify automatically selects clips based on your filters (e.g. last week). But with Playlists, you can handpick specific clips to play, even in a custom order. This gives you full control over the content that gets showcased on your stream.",
 	},
 	{
-		title: "What is the self-hosted Runner and what does it cost?",
-		content: "The self-hosted Runner is included with Free and Pro, with unlimited streaming hours on your own Windows, Linux, or macOS computer. Free includes manual clip playback or live fallback, one active broadcast, one destination, and Clipify branding on generated content. Pro adds scheduling, multiple destinations and broadcasts, custom standby screens, and watermark removal.",
+		title: "What is the self-hosted Runner?",
+		content: "Runner broadcasts clips from your Windows, Linux, or macOS computer. You can also use it to play clips automatically when your live feed goes offline.",
 	},
 	{
 		title: "Is there a free version of Clipify?",
-		content: "Yes, Clipify offers a free version with basic features. Runner is included at no extra charge. You can upgrade to Pro for additional creative controls and advanced Runner broadcasting.",
+		content: "Yes. You can start using overlays, playlists, galleries, and Runner for free.",
 	},
 	{
 		title: "What is a Clipify Creator Page?",

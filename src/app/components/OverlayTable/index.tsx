@@ -1159,12 +1159,6 @@ export default function OverlayTable({ userId }: { userId: string }) {
 					</Button>
 				</div>
 			)}
-			{activeTab === "runners" && currentUser && (
-				<div className='mb-4 rounded-lg border border-default/60 bg-surface-secondary px-4 py-3 text-sm'>
-					<p className='font-medium'>Runner is included with Free and Pro.</p>
-					<p className='text-xs text-muted'>Broadcast from your own computer with unlimited hours. Free includes one active broadcast and one destination. Pro adds scheduling, multiple destinations and broadcasts, custom standby screens, and watermark removal.</p>
-				</div>
-			)}
 			{topContent}
 			<Table>
 				<Table.ScrollContainer>
