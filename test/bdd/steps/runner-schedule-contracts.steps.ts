@@ -797,6 +797,7 @@ Given("that scheduled broadcast currently has a captured running execution", asy
 	await page.reload();
 	await openRunnerSchedule(page);
 	await page.keyboard.press("Escape");
+	await expect(page.getByRole("dialog", { name: "Broadcast schedule", exact: true })).not.toBeVisible();
 	await expect(page.getByRole("button", { name: "Stop", exact: true })).toBeEnabled();
 	expect((await query("SELECT actual_state FROM stream_sessions WHERE id=$1", [state.sessionId]))[0].actual_state).toBe("running");
 });

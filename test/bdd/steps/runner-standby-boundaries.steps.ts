@@ -17,7 +17,7 @@ When("image storage fails while they upload a new standby image", async ({ page,
 		failedUploads++;
 		await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ success: false, code: "SERVICE_UNAVAILABLE", error: "Could not upload the image. Your saved appearance is unchanged. Please try again." }) });
 	});
-	await page.getByLabel("Standby background image", { exact: true }).setInputFiles(file);
+	await page.locator('input[type="file"][aria-label="Standby background image"]').setInputFiles(file);
 	await expect.poll(() => failedUploads).toBe(1);
 	await expect(page.getByRole("alert").filter({ hasText: "Could not upload the image. Your saved appearance is unchanged." })).toBeVisible();
 });
@@ -110,7 +110,7 @@ When("they upload a standby image containing {int} file bytes", async ({ page, m
 	const file = await standbyImageBoundary({ bytes });
 	const boundary = mcpWorld.input?.standbyBoundary as Boundary;
 	boundary.image = { width: 16, height: 16, mimeType: file.mimeType };
-	await page.getByLabel("Standby background image", { exact: true }).setInputFiles(file);
+	await page.locator('input[type="file"][aria-label="Standby background image"]').setInputFiles(file);
 });
 
 Then("the standby image is {string} and the saved appearance is consistent", async ({ page, mcpWorld }, outcome: string) => {
@@ -154,7 +154,7 @@ When("they upload a {int} by {int} standby raster image", async ({ page, mcpWorl
 	const file = await standbyImageBoundary({ width, height });
 	const boundary = mcpWorld.input?.standbyBoundary as Boundary;
 	boundary.image = { width, height, mimeType: file.mimeType };
-	await page.getByLabel("Standby background image", { exact: true }).setInputFiles(file);
+	await page.locator('input[type="file"][aria-label="Standby background image"]').setInputFiles(file);
 });
 
 When("they upload a standby file in {string} format", async ({ page, mcpWorld }, format: string) => {
@@ -167,5 +167,5 @@ When("they upload a standby file in {string} format", async ({ page, mcpWorld },
 	else throw new Error("Unknown boundary fixture format");
 	const boundary = mcpWorld.input?.standbyBoundary as Boundary;
 	boundary.image = { width: 16, height: 16, mimeType: file.mimeType };
-	await page.getByLabel("Standby background image", { exact: true }).setInputFiles(file);
+	await page.locator('input[type="file"][aria-label="Standby background image"]').setInputFiles(file);
 });

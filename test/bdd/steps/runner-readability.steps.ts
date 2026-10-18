@@ -69,6 +69,7 @@ Then("its actual attribution is readable on {word} frames at {int} pixels", asyn
 	if (width === 360) {
 		const frame = page.locator('iframe[title="Runner appearance preview"]');
 		await frame.scrollIntoViewIfNeeded();
+		await expect.poll(async () => (await frame.boundingBox())?.width).toBeCloseTo(360, 0);
 		const box = await frame.boundingBox();
 		expect(box).not.toBeNull();
 		expect(box!.width, "The mobile preview must actually use the complete 360px viewport").toBeCloseTo(360, 0);

@@ -633,13 +633,13 @@ export default function RunnerPage() {
 					</Modal.Backdrop>
 				)}
 				<Modal.Backdrop isOpen={appearanceOpen} onOpenChange={setAppearanceOpen}>
-					<Modal.Container size='cover'>
-						<Modal.Dialog>
+					<Modal.Container size='cover' className='px-0 sm:px-10'>
+						<Modal.Dialog className='rounded-none px-0 sm:rounded-3xl sm:px-6'>
 							<Modal.CloseTrigger />
-							<Modal.Header>
+							<Modal.Header className='px-6 sm:px-0'>
 								<Modal.Heading>Appearance</Modal.Heading>
 							</Modal.Header>
-							<Modal.Body>
+							<Modal.Body className='mx-0 px-0 sm:-mx-[3px] sm:px-[3px]'>
 								{appearanceOpen && (
 									<RunnerBrandingPreview
 										onPolicyInvalidated={() => {

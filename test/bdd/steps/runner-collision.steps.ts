@@ -184,7 +184,7 @@ Then("its mobile preview uses the configured broadcast resolution", async ({ pag
 	await page.setViewportSize({ width: 360, height: 800 });
 	const frame = page.locator('iframe[title="Runner appearance preview"]');
 	await frame.scrollIntoViewIfNeeded();
-	expect((await frame.boundingBox())!.width).toBeCloseTo(360, 0);
+	await expect.poll(async () => (await frame.boundingBox())?.width).toBeCloseTo(360, 0);
 	await expect.poll(() => frame.evaluate((element) => (element as HTMLIFrameElement).contentWindow!.innerWidth)).toBe(expected.width);
 	await expect.poll(() => frame.evaluate((element) => (element as HTMLIFrameElement).contentWindow!.innerHeight)).toBe(expected.height);
 	expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
