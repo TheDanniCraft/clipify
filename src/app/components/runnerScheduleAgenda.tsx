@@ -66,7 +66,7 @@ export default function RunnerScheduleAgenda({ events, canEdit, onEdit, onCreate
 				<div className='mr-auto'>
 					<h3 className='font-semibold'>Broadcast calendar</h3>
 					<p className='text-xs text-muted'>
-						{mobile ? "Day" : "Week"} view · Dates use {timezone}
+						{mobile ? "Day" : "Week"} view ({timezone})
 					</p>
 				</div>
 				<label className='min-w-0 text-xs text-muted'>

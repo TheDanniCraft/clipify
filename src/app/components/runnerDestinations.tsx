@@ -137,7 +137,8 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 									<div className='min-w-0'>
 										<p className='truncate font-medium'>{destination.name}</p>
 										<p className='truncate text-sm text-muted'>
-											{providers.find((row) => row.id === destination.provider)?.name} · {destination.host}
+											{providers.find((row) => row.id === destination.provider)?.name}
+											<span className='block'>{destination.host}</span>
 										</p>
 										<Chip size='sm' variant='soft' className='mt-2'>
 											{destination.credentialConfigured ? "Key saved" : destination.provider === "custom" ? "No key configured" : "Key required"}

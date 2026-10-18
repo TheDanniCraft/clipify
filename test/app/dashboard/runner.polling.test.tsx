@@ -7,6 +7,7 @@ jest.mock("@/app/actions/auth", () => ({ validateAuth: jest.fn(async () => ({ id
 jest.mock("@/app/actions/database", () => ({ getAllOverlays: jest.fn(async () => []) }));
 jest.mock("@/app/actions/runner", () => ({ getRunner: jest.fn(), getRunnerToken: jest.fn(async () => ({ success: true, token: "local-fixture-token" })), getRunnerVersionManifest: jest.fn(async () => null), getStreamSessionsForRunner: jest.fn(async () => []), listRunnerDestinations: jest.fn(async () => ({ success: true, destinations: [] })), listRunnerScheduleEvents: jest.fn(), upsertStreamSession: jest.fn(), setStreamDesiredState: jest.fn(), unlinkRunner: jest.fn() }));
 jest.mock("@/app/lib/toast", () => ({ notify: jest.fn() }));
+jest.mock("@/app/components/upgradeModal", () => ({ __esModule: true, default: () => null }));
 jest.mock("@/app/components/dashboardNavbar", () => ({ __esModule: true, default: () => null }));
 jest.mock("@/app/components/runnerSchedule", () => ({ __esModule: true, default: () => null }));
 jest.mock("@/app/components/runnerDestinations", () => ({ __esModule: true, default: () => null }));

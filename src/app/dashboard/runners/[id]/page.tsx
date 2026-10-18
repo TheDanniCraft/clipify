@@ -16,6 +16,8 @@ import RunnerBrandingPreview from "@components/runner/RunnerBrandingPreview";
 import RunnerSchedule from "@components/runnerSchedule";
 import RunnerDestinationSelection, { canStartWithDestinations } from "@components/runnerDestinationSelection";
 import RunnerOutputStatus from "@components/runnerOutputStatus";
+import RunnerControlSelection from "@components/runnerControlSelection";
+import UpgradeModal from "@components/upgradeModal";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { AuthenticatedUser, Overlay, StreamMode, StreamState, RunnerStatus, type StreamControlMode } from "@types";
 
@@ -113,6 +115,7 @@ export default function RunnerPage() {
 	const [mode, setMode] = useState<StreamMode>(StreamMode.AlwaysOn);
 	const [controlMode, setControlMode] = useState<StreamControlMode>("manual");
 	const [isUnlinkConfirmOpen, setIsUnlinkConfirmOpen] = useState(false);
+	const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
 	const hasMounted = useRef(false);
 	useEffect(() => {
 		if (!installPlatform) return;
@@ -222,7 +225,6 @@ export default function RunnerPage() {
 		setTimeout(() => setCopied(false), 2000);
 	};
 
-	const schedulingAvailable = mode === StreamMode.AlwaysOn && Boolean(runnerPolicy?.scheduling);
 	const legacyDestination = Boolean(streamSessions[0]?.legacyDestinationConfigured && !streamSessions[0]?.destinationIds.length);
 	const streamConfigValid = Boolean(overlayId && (selectedDestinationIds.length || legacyDestination));
 	const streamReadyToStart = streamConfigValid && (selectedDestinationIds.length ? canStartWithDestinations(destinationOptions, selectedDestinationIds) : legacyDestination);
@@ -656,32 +658,7 @@ export default function RunnerPage() {
 												</Select.Popover>
 											</Select>
 
-											<Select
-												value={controlMode}
-												onChange={(selected) => {
-													if (selected === "manual" || (selected === "scheduled" && schedulingAvailable)) setControlMode(selected);
-												}}
-												variant='secondary'
-											>
-												<Label>Control</Label>
-												<Select.Trigger>
-													<Select.Value />
-													<Select.Indicator />
-												</Select.Trigger>
-												<Select.Popover>
-													<ListBox>
-														<ListBox.Item id='manual' textValue='Manual'>
-															<ListBox.ItemIndicator />
-															<Label>Manual</Label>
-														</ListBox.Item>
-														<ListBox.Item id='scheduled' textValue='Scheduled' isDisabled={!schedulingAvailable}>
-															<ListBox.ItemIndicator />
-															<Label>Scheduled</Label>
-															<span className='text-xs text-muted'>Pro · Clip playback</span>
-														</ListBox.Item>
-													</ListBox>
-												</Select.Popover>
-											</Select>
+											<RunnerControlSelection value={controlMode} clipPlayback={mode === StreamMode.AlwaysOn} scheduling={runnerPolicy?.scheduling ?? null} onChange={setControlMode} onUpgrade={() => setIsUpgradeOpen(true)} />
 										</div>
 
 										{mode === StreamMode.Failsafe && (
@@ -738,6 +715,7 @@ export default function RunnerPage() {
 						</Modal.Dialog>
 					</Modal.Container>
 				</Modal.Backdrop>
+				<UpgradeModal isOpen={isUpgradeOpen} onOpenChange={setIsUpgradeOpen} user={user} title='Upgrade to Pro' source='upgrade_modal' feature='runner_scheduling' mode='plan' />
 				<ConfirmModal
 					isOpen={isUnlinkConfirmOpen}
 					onOpenChange={setIsUnlinkConfirmOpen}

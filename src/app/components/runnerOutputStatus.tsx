@@ -5,7 +5,7 @@ export default function RunnerOutputStatus({ outputs = [], destinations, online 
 	return (
 		<section className='space-y-3' aria-label='Broadcast destination status'>
 			<h3 className='text-sm font-medium'>Destination status</h3>
-			{!online && <p className='text-sm text-muted'>Runner offline · last reported status</p>}
+			{!online && <p className='text-sm text-muted'>Runner offline. Showing last reported status.</p>}
 			{!outputs.length && <p className='text-sm text-muted'>Waiting for the Runner to report destination status.</p>}
 			<ul aria-label='Destination status' aria-live='polite' className='space-y-2'>
 				{outputs.map((output) => (
