@@ -1772,3 +1772,21 @@ Severity: Low. Status: Verified. Owner: Feature implementer. Scope: local-only `
 The public pricing preview helper clicks Reject optional and waits for network idle without first binding the resulting navigation; its later document-width evaluation sees an execution context destroyed by that reload. This does not fail a product test: complete913 browser-project cases already passed. Preserve the rejected empty preview metadata/log, bind and await the consent navigation explicitly, then recapture desktop/mobile and inspect them. No application/test-source, assertion, timeout or required gate edit.
 
 Verification: final F1-v2-pricing-preview.json records both desktop1440/mobile390 views, visible Runner group and retained annual price, and document widths equal to viewport widths. Both final PNGs were visually inspected. Consent navigation is awaited explicitly. The final preview uses local Stripe price fixtures matching the existing2EUR/month and20EUR/year test catalog; no checkout action is taken. Earlier helper failures and absent-catalog states are excluded from visual qualification. F1-v2-fixture-cleanup.json confirms all owned browser databases and template identifiers are absent after cleanup. No application or executable test source changed.
+
+## DEF-US5-243 — Restart removes local test prerequisites
+
+Severity: Medium. Status: Verified. Owner: Feature implementer. Scope: local environment after container shutdown.
+
+The first post-restart `git push -u origin plan/free-runner-branding` was rejected by its unchanged pre-push hook: four harness/fixture suites failed because PostgreSQL was absent (`ECONNREFUSED 127.0.0.1:54419`) and the per-job template environment had not been restored. This is prerequisite failure evidence, not an intended TDD Red or proof of a product regression. The complete prior local qualification remains retained.
+
+Restoration follows `docs/local-testing.md`: install PostgreSQL18 and Chromium with its OS dependencies, initialize a disposable loopback cluster on port54419, create only its fixture-control database, and rerun the normal push hook with explicit job-owned template ID and native/Jest environment. All1657 frozen execution inputs were compared byte-for-byte after restart and remain unchanged. No assertion, application source, hook, migration guard or test threshold is modified. Verification: the unchanged owning harness/fixture rerun passes all5 suites and8 tests with the restored local service and job environment. The rest of the push feedback remains in progress and is not credited by this closure. `/tmp/clipify-restart-push.log` contains its current output.
+
+## DEF-US5-244 — Resume fixture overlaps earlier recurring examples
+
+Severity: Medium. Status: Verified. Owner: Feature implementer. Scope: schedule contract probe isolation.
+
+The restored push hook reports `RESUME_WINDOW_FIXTURE_DENIED:INVALID_INPUT` from `test/support/mcp/runner-schedule-contract-probe.ts`. On Sunday2026-10-18 around07:36UTC, its moving06:36–08:36UTC resume fixture overlaps the earlier Sunday02:30–03:30 America/New_York recurring example (06:30–07:30UTC). The production overlap rejection is correct; the examples incorrectly share enabled schedules. Prior qualification at a different wall-clock time did not expose this fixture conflict.
+
+After all earlier schedule observations are captured, disable prior events belonging to this disposable owner and Runner before creating the wall-clock resume fixture. Retain rows for expired-entitlement read assertions. No production behavior, assertion, timeout, coverage threshold or hook is changed. Rerun the complete schedule owner and affected feedback; prior full-suite evidence describes its original1657 input manifest and must not be relabeled as execution of this revised fixture.
+
+Verification for DEF-US5-244: the revised fixture explicitly creates a separate future recovery event instead of relying on an earlier weekly example. Complete `test/server/runner/schedules.test.ts` passes106/106, no coverage or assertion changes. Retained evidence: `tdd/evidence/F1-restart-schedule-v2.log`; earlier partial rejected runs are retained separately and excluded from qualification. Full CI remains required for this revised test input.

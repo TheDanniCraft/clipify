@@ -94,3 +94,7 @@ Local runtime, source coverage, build, native smoke, security, traceability, vis
 Historical planning/delivery details remain in the cycle log, immutable A1–E4 checkpoint artifacts, and the [prior rolling summary](tdd/evidence/F1-v2-prior-summary.md). This report supersedes its earlier planning/in-progress status fields.
 
 The versioned [evidence archive](tdd/evidence.tar.gz) and [manifest](tdd/evidence-manifest.json) preserve the original text test-first outputs and structured results without adding thousands of generated files to the source review. See [evidence instructions](tdd/README.md) to inspect or restore historical paths. Coverage directories, HTML/media reports, executables and crash dumps remain outside Git.
+
+## Post-restart qualification
+
+The implementation commit survived shutdown unchanged across all1657 recorded inputs. Restored PostgreSQL18 and Chromium prerequisites resolve DEF-US5-243 (five harness/fixture suites, eight tests). Post-restart broader feedback exposed DEF-US5-244: wall-clock resume examples overlapped an earlier recurring event. The test fixture now disables earlier examples and explicitly creates its future recovery event; the complete schedule owner passes106/106 (`tdd/evidence/F1-restart-schedule-v2.log`). Both findings are Verified. The earlier7574-pass full qualification belongs to its recorded input manifest; it is not relabeled as execution of the revised fixture. Complete CI and the native matrix remain pending, and the six gate tasks remain open.
