@@ -57,10 +57,7 @@ type SettingsSection = "settings" | "creator" | "billing";
 export default function SettingsPage() {
 	const [user, setUser] = useState<AuthenticatedUser | null>(null);
 	const { isOpen: upgradeModalIsOpen, open: upgradeModalOnOpen, setOpen: upgradeModalOnOpenChange } = useOverlayState();
-	const [upgradeMode] = useState<"plan" | "runner_addon">(() => {
-		if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("addon") === "runner") return "runner_addon";
-		return "plan";
-	});
+
 	const [sectionTab, setSectionTab] = useState<SettingsSection>("settings");
 	const { isOpen: deleteModalIsOpen, open: deleteModalOnOpen, setOpen: deleteModalOnOpenChange } = useOverlayState();
 	const { isOpen: exportModalIsOpen, open: exportModalOnOpen, setOpen: exportModalOnOpenChange } = useOverlayState();
@@ -235,13 +232,6 @@ export default function SettingsPage() {
 		if (!params.has("upgrade") || !canUpgradeFromBilling) return;
 		upgradeModalOnOpen();
 	}, [canUpgradeFromBilling, upgradeModalOnOpen, user]);
-
-	useEffect(() => {
-		if (!user || user.entitlements?.runnerAccess || typeof window === "undefined") return;
-		const params = new URLSearchParams(window.location.search);
-		if (params.get("addon") !== "runner") return;
-		upgradeModalOnOpen();
-	}, [upgradeModalOnOpen, user]);
 
 	const creatorAnalyticsAccess = user ? getFeatureAccess(user, "creator_page_analytics") : { allowed: false as const };
 	const creatorSocialPreviewAccess = user ? getFeatureAccess(user, "creator_page_social_preview") : { allowed: false as const };
@@ -725,17 +715,7 @@ export default function SettingsPage() {
 				</Modal.Footer>
 			</ControlledModal>
 
-			<UpgradeModal
-				key={`${upgradeMode}-${upgradeIntent.source}-${upgradeIntent.feature}-${upgradeIntent.cycle}`}
-				isOpen={upgradeModalIsOpen}
-				onOpenChange={upgradeModalOnOpenChange}
-				user={user}
-				title={upgradeMode === "runner_addon" ? (user.entitlements?.effectivePlan === "pro" ? "Add the Runner add-on" : "Upgrade with Runner") : "Upgrade Account"}
-				source={upgradeIntent.source}
-				feature={upgradeMode === "runner_addon" ? "runner_access" : upgradeIntent.feature}
-				initialBillingCycle={upgradeIntent.cycle}
-				mode={upgradeMode}
-			/>
+			<UpgradeModal key={`plan-${upgradeIntent.source}-${upgradeIntent.feature}-${upgradeIntent.cycle}`} isOpen={upgradeModalIsOpen} onOpenChange={upgradeModalOnOpenChange} user={user} title='Upgrade Account' source={upgradeIntent.source} feature={upgradeIntent.feature} initialBillingCycle={upgradeIntent.cycle} mode='plan' />
 
 			<ConfirmModal
 				isOpen={deleteModalIsOpen}

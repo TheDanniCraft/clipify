@@ -1,5 +1,5 @@
 /** @jest-environment node */
-import { discoveryFilters } from "@/server/mcp/workflows/schemas";
+import { discoveryFilters, creatorPageFields } from "@/server/mcp/workflows/schemas";
 import { toolInputSchemas as schemas } from "@/server/mcp/schemas";
 const creatorId = "creator";
 const overlayId = "11111111-1111-4111-8111-111111111111";
@@ -38,4 +38,22 @@ test("stream creation requires a retry key and existing configuration requires a
 });
 test.each(["update_gallery_settings", "update_creator_page"] as const)("%s rejects empty edits", (tool) => {
 	expect(schemas[tool].safeParse({ creatorId, ...(tool === "update_gallery_settings" ? { galleryId: overlayId } : {}), expectedRevision: 1, patch: {} }).success).toBe(false);
+});
+
+test("clip search without explicit filters keeps its bounded UTC defaults", () => {
+	expect(schemas.search_clips.parse({ creatorId })).toMatchObject({ creatorId, limit: 25, filters: { timezone: "UTC", sort: "newest" } });
+});
+
+test("Creator Page social preview fields retain explicit title and visibility bounds", () => {
+	expect(creatorPageFields.creatorPageSocialTitle.safeParse("x".repeat(120)).success).toBe(true);
+	expect(creatorPageFields.creatorPageSocialTitle.safeParse("x".repeat(121)).success).toBe(false);
+	expect(creatorPageFields.creatorPageVisibility.safeParse("unlisted").success).toBe(true);
+	expect(creatorPageFields.creatorPageVisibility.safeParse("public").success).toBe(false);
+});
+
+test("TDD-US2-FR006: saved destination IDs and a legacy preset cannot ambiguously select a broadcast target", () => {
+	const input = { creatorId, runnerId: overlayId, overlayId, mode: "24/7", retryKey: "selection" };
+	expect(schemas.configure_stream_session.safeParse({ ...input, destinationIds: [overlayId] }).success).toBe(true);
+	expect(schemas.configure_stream_session.safeParse({ ...input, destination: "twitch" }).success).toBe(true);
+	expect(schemas.configure_stream_session.safeParse({ ...input, destination: "twitch", destinationIds: [overlayId] }).success).toBe(false);
 });

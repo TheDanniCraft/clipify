@@ -20,7 +20,7 @@ describe("deployment recovery", () => {
 		}
 	});
 
-	it.each(["/embed/overlay-1", "/overlay/overlay-1", "/controller/overlay-1", "/gallery/gallery-1/frame", "/gallery/gallery-1/clip/clip-1", "/dashboard/galleries/gallery-1/preview/clip/clip-1", "/demoPlayer"])("monitors the long-lived runtime path %s", (pathname) => {
+	it.each(["/runner/presentation/session-1", "/embed/overlay-1", "/overlay/overlay-1", "/controller/overlay-1", "/gallery/gallery-1/frame", "/gallery/gallery-1/clip/clip-1", "/dashboard/galleries/gallery-1/preview/clip/clip-1", "/demoPlayer"])("monitors the long-lived runtime path %s", (pathname) => {
 		expect(isLongLivedRuntimePath(pathname)).toBe(true);
 	});
 

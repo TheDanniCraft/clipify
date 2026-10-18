@@ -14,6 +14,7 @@ import { clamp, getSlotOpacity, parseThemeFontSetting, sanitizeFontCssUrl, trimC
 import { usePlausible } from "next-plausible";
 import { PLAUSIBLE_EVENTS } from "@lib/plausibleEvents";
 import { ACTIVE_PLAYBACK_CONFIRM_SECONDS, CROSSFADE_MS, CROSSFADE_SECONDS, HOLD_FRAME_SECONDS, HOLD_TIMEOUT_MS, NEXT_VIDEO_PREPARE_SECONDS, PLAYBACK_BUFFERING_GRACE_MS, PLAYBACK_ISSUE_REPORT_COOLDOWN_MS, PLAYBACK_LOAD_TIMEOUT_MS, PLAYBACK_PROGRESS_EPSILON_SECONDS, PLAYBACK_RECOVERY_RECHECK_MS, PLAYBACK_STALL_THRESHOLD_MS, PLAYBACK_WATCHDOG_INTERVAL_MS, SHOW_FADE_SECONDS } from "./overlayPlayer.constants";
+import { createPlaybackDrain, type PlaybackDrain } from "../../../packages/runner/src/presentation";
 import { startOverlayPresence } from "@lib/overlayPresence";
 import { requestDeploymentCheck } from "@lib/deployment";
 
@@ -59,6 +60,7 @@ function ResolutionWarning({ width, height }: { width: number; height: number })
 }
 
 type OverlayViewportProps = {
+	runnerContent?: { phase: "standby" | "loading" | "playback" | "empty"; epoch: number; id: string };
 	clipA: VideoClip | null;
 	clipB: VideoClip | null;
 	activeSlot: "a" | "b";
@@ -125,6 +127,7 @@ type OverlayViewportProps = {
 };
 
 function OverlayViewport({
+	runnerContent,
 	clipA,
 	clipB,
 	activeSlot,
@@ -190,7 +193,7 @@ function OverlayViewport({
 	viewportHeight,
 }: OverlayViewportProps) {
 	return (
-		<div className='relative w-screen h-screen group' role={showClickToPlay ? "button" : undefined} tabIndex={showClickToPlay ? 0 : -1} aria-label={showClickToPlay ? "Play clips" : undefined} onClick={showClickToPlay ? onStartRequested : undefined} onKeyDown={onStartKeyDown}>
+		<div data-runner-content-phase={runnerContent?.phase} data-runner-content-epoch={runnerContent?.epoch} data-runner-content-id={runnerContent?.id} className='relative w-screen h-screen group' role={showClickToPlay ? "button" : undefined} tabIndex={showClickToPlay ? 0 : -1} aria-label={showClickToPlay ? "Play clips" : undefined} onClick={showClickToPlay ? onStartRequested : undefined} onKeyDown={onStartKeyDown}>
 			<AnimatePresence>{showResolutionWarning && <ResolutionWarning width={viewportWidth} height={viewportHeight} />}</AnimatePresence>
 			{(clipA?.mediaUrl || clipB?.mediaUrl) && (
 				<>
@@ -313,7 +316,18 @@ function OverlayViewport({
 					{showOverlay && canShowOverlay && !showClickToPlay && (
 						<>
 							{overlay.showChannelInfo && (
-								<PlayerOverlay key={`${videoClip.id}-channel`} left={channelAnchoredRight ? undefined : `${channelInfoPos.x}%`} right={channelAnchoredRight ? `${100 - channelInfoPos.x}%` : undefined} top={channelAnchoredBottom ? undefined : `${channelInfoPos.y}%`} bottom={channelAnchoredBottom ? `${100 - channelInfoPos.y}%` : undefined} scale={overlayScale * channelScale} fadeOutSeconds={overlayFadeOutSeconds} className='w-fit p-2 shadow-lg backdrop-blur-sm' style={themeStyle}>
+								<PlayerOverlay
+									reserveBeforeFade={Boolean(runnerContent)}
+									key={`${videoClip.id}-channel`}
+									left={channelAnchoredRight ? undefined : `${channelInfoPos.x}%`}
+									right={channelAnchoredRight ? `${100 - channelInfoPos.x}%` : undefined}
+									top={channelAnchoredBottom ? undefined : `${channelInfoPos.y}%`}
+									bottom={channelAnchoredBottom ? `${100 - channelInfoPos.y}%` : undefined}
+									scale={overlayScale * channelScale}
+									fadeOutSeconds={overlayFadeOutSeconds}
+									className='w-fit p-2 shadow-lg backdrop-blur-sm'
+									style={themeStyle}
+								>
 									<div className={`flex items-center ${channelMirrored ? "flex-row-reverse" : ""}`}>
 										<Avatar size='md'>
 											<Avatar.Image alt={videoClip.broadcaster_name} src={videoClip.brodcasterAvatar || ownerAvatar} />
@@ -328,7 +342,18 @@ function OverlayViewport({
 							)}
 
 							{overlay.showClipInfo && (
-								<PlayerOverlay key={`${videoClip.id}-clip`} left={clipAnchoredRight ? undefined : `${clipInfoPos.x}%`} right={clipAnchoredRight ? `${100 - clipInfoPos.x}%` : undefined} top={clipAnchoredBottom ? undefined : `${clipInfoPos.y}%`} bottom={clipAnchoredBottom ? `${100 - clipInfoPos.y}%` : undefined} scale={overlayScale * clipScale} fadeOutSeconds={overlayFadeOutSeconds} className='w-fit p-2 shadow-lg backdrop-blur-sm max-w-[min(360px,42vw)]' style={themeStyle}>
+								<PlayerOverlay
+									reserveBeforeFade={Boolean(runnerContent)}
+									key={`${videoClip.id}-clip`}
+									left={clipAnchoredRight ? undefined : `${clipInfoPos.x}%`}
+									right={clipAnchoredRight ? `${100 - clipInfoPos.x}%` : undefined}
+									top={clipAnchoredBottom ? undefined : `${clipInfoPos.y}%`}
+									bottom={clipAnchoredBottom ? `${100 - clipInfoPos.y}%` : undefined}
+									scale={overlayScale * clipScale}
+									fadeOutSeconds={overlayFadeOutSeconds}
+									className='w-fit p-2 shadow-lg backdrop-blur-sm max-w-[min(360px,42vw)]'
+									style={themeStyle}
+								>
 									<div className={`flex flex-col break-normal ${clipAnchoredRight ? "items-end text-right" : "items-start text-left"}`}>
 										<span className='font-bold'>{videoClip.title}</span>
 										<span className='text-xs opacity-80 mt-1'>clipped by {videoClip.creator_name}</span>
@@ -338,6 +363,7 @@ function OverlayViewport({
 
 							{overlay.showTimer && (
 								<PlayerOverlay
+									reserveBeforeFade={Boolean(runnerContent)}
 									key={`${videoClip.id}-timer`}
 									left={timerAnchoredRight ? undefined : `${timerPos.x}%`}
 									right={timerAnchoredRight ? `${100 - timerPos.x}%` : undefined}
@@ -354,7 +380,7 @@ function OverlayViewport({
 						</>
 					)}
 					{overlay.showProgressBar && canShowOverlay && !showClickToPlay && (
-						<div className='absolute left-0 right-0 bottom-0 overflow-hidden' style={{ backgroundColor: "rgba(0, 0, 0, 0.35)", height: `${progressBarHeight}px` }}>
+						<div data-player-overlay='progress' className='absolute left-0 right-0 bottom-0 overflow-hidden' style={{ backgroundColor: "rgba(0, 0, 0, 0.35)", height: `${progressBarHeight}px` }}>
 							<div
 								className='h-full transition-[width] duration-150 ease-linear'
 								style={{
@@ -385,6 +411,7 @@ type OverlayPlayerProps = {
 	embedAutoplay?: boolean;
 	overlaySecret?: string;
 	initialStandby?: boolean;
+	runnerPresentation?: boolean;
 	showFallbackBanner?: boolean;
 };
 
@@ -394,10 +421,12 @@ type RunnerPlaybackWindow = Window & {
 	stopFallback?: () => void;
 };
 
-export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedOverlay, isDemoPlayer, embedMuted, embedAutoplay, overlaySecret, initialStandby = false }: OverlayPlayerProps) {
+export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedOverlay, isDemoPlayer, embedMuted, embedAutoplay, overlaySecret, initialStandby = false, runnerPresentation = false }: OverlayPlayerProps) {
 	const plausible = usePlausible();
 
 	const [isStandby, setIsStandby] = useState<boolean>(!!initialStandby);
+	const [runnerSelectionSettled, setRunnerSelectionSettled] = useState(false);
+	const [runnerContentEpoch, setRunnerContentEpoch] = useState(0);
 
 	const [videoClip, setVideoClip] = useState<VideoClip | null>(null);
 	const [nextClip, setNextClip] = useState<VideoClip | null>(null);
@@ -603,11 +632,58 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 	const recoveryInFlightRef = useRef(false);
 	const lastPlaybackIssueReportRef = useRef(0);
 	const bufferingGraceUntilRef = useRef(0);
+	const runnerDrainRef = useRef<PlaybackDrain | null>(null);
+	const runnerSlotsRef = useRef({ activeSlot, isCrossfading });
+	useEffect(() => {
+		runnerSlotsRef.current = { activeSlot, isCrossfading };
+	}, [activeSlot, isCrossfading]);
+	useEffect(() => {
+		const generation = window.__clipifyRunnerExecution?.generation;
+		if (!generation) return;
+		const bridge = createPlaybackDrain({
+			generation,
+			deadlineMonotonic: window.__clipifyRunnerExecution?.deadlineMonotonic,
+			readClips: () => {
+				const slots = runnerSlotsRef.current;
+				return (
+					[
+						["a", videoARef.current],
+						["b", videoBRef.current],
+					] as const
+				)
+					.filter(([slot, video]) => !!video && (slot === slots.activeSlot || slots.isCrossfading || crossfadeLockRef.current))
+					.map(([slot, video]) => ({ id: slot, time: video!.currentTime, duration: video!.duration, started: !isStandbyRef.current && (!video!.paused || video!.currentTime > 0), ended: video!.ended }));
+			},
+			preventNext: () => {
+				prefetchAbortRef.current?.abort();
+				requestIdRef.current++;
+				playbackGenerationRef.current++;
+				pendingSkipRef.current = 0;
+				nextClipRef.current = null;
+				setNextClip(null);
+				const incoming = runnerSlotsRef.current.activeSlot === "a" ? videoBRef.current : videoARef.current;
+				if (crossfadeLockRef.current && (!incoming || (incoming.paused && incoming.currentTime === 0))) {
+					crossfadeLockRef.current = false;
+					setIncomingClip(null);
+					setIsCrossfading(false);
+				}
+			},
+		});
+		runnerDrainRef.current = bridge;
+		window.clipifyRunnerPresentation = bridge;
+		return () => {
+			if (window.clipifyRunnerPresentation === bridge) delete window.clipifyRunnerPresentation;
+			runnerDrainRef.current = null;
+		};
+	}, []);
 
 	useEffect(() => {
 		const runnerWindow = window as RunnerPlaybackWindow;
 		const startPlayback = () => {
+			setRunnerSelectionSettled(false);
+			if (runnerDrainRef.current?.canAdvance() === false) return;
 			playbackGenerationRef.current += 1;
+			if (runnerPresentation) setRunnerContentEpoch((epoch) => epoch + 1);
 			isStandbyRef.current = false;
 			setIsStandby(false);
 			setShowPlayer(true);
@@ -616,6 +692,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 		};
 		const stopPlayback = () => {
 			playbackGenerationRef.current += 1;
+			if (runnerPresentation) setRunnerContentEpoch((epoch) => epoch + 1);
 			isStandbyRef.current = true;
 			recoveryInFlightRef.current = false;
 			setPlaybackStarted(false);
@@ -634,7 +711,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 			delete runnerWindow.startFallback;
 			delete runnerWindow.stopFallback;
 		};
-	}, []);
+	}, [runnerPresentation]);
 
 	const getMediaUrlCached = useCallback(async (clipId: string, broadcasterId: string) => {
 		const cached = mediaUrlCacheRef.current.get(clipId);
@@ -967,6 +1044,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 
 	const activateClipImmediately = useCallback(
 		(nextClipToPlay: VideoClip) => {
+			if (runnerDrainRef.current?.canAdvance() === false) return;
 			const targetSlot = activeSlot === "a" ? "b" : "a";
 			const previousVideo = activeSlot === "a" ? videoARef.current : videoBRef.current;
 
@@ -1008,6 +1086,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 	 * Guards against concurrent calls + stale async overwrites.
 	 */
 	const advanceClip = useCallback(async (): Promise<boolean> => {
+		if (runnerDrainRef.current?.canAdvance() === false) return false;
 		if (advanceLockRef.current) return false;
 		advanceLockRef.current = true;
 
@@ -1580,15 +1659,15 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 
 		const run = async () => {
 			const candidate = await getRandomClip();
-			if (cancelled || isStandbyRef.current || !candidate) return;
+			if (runnerDrainRef.current?.canAdvance() === false || cancelled || isStandbyRef.current || !candidate) return;
 
 			const myReqId = ++requestIdRef.current;
 			const built = await buildVideoClipFast(candidate.clip);
-			if (cancelled || isStandbyRef.current || myReqId !== requestIdRef.current) return;
+			if (runnerDrainRef.current?.canAdvance() === false || cancelled || isStandbyRef.current || myReqId !== requestIdRef.current) return;
 
 			if (built) {
 				await consumeQueueItem(candidate.queueItem);
-				if (cancelled || isStandbyRef.current || myReqId !== requestIdRef.current) return;
+				if (runnerDrainRef.current?.canAdvance() === false || cancelled || isStandbyRef.current || myReqId !== requestIdRef.current) return;
 				committed = true;
 				if (activeSlot === "a") {
 					readyARef.current = false;
@@ -1614,18 +1693,20 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 			}
 		};
 
-		void run();
+		void run().finally(() => {
+			if (runnerPresentation && !cancelled && !isStandbyRef.current) setRunnerSelectionSettled(true);
+		});
 		return () => {
 			cancelled = true;
 			if (!committed) didInitRef.current = false;
 		};
-	}, [activeSlot, buildVideoClipFast, consumeQueueItem, getRandomClip, isDemoPlayer, isStandby]);
+	}, [activeSlot, buildVideoClipFast, consumeQueueItem, getRandomClip, isDemoPlayer, isStandby, runnerPresentation]);
 
 	/**
 	 * Prefetch next clip while current plays.
 	 */
 	useEffect(() => {
-		if (!videoClip) return;
+		if (!videoClip || runnerDrainRef.current?.canAdvance() === false) return;
 
 		let cancelled = false;
 
@@ -1656,6 +1737,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 
 	const prepareNextVideo = useCallback(
 		(slot: "a" | "b") => {
+			if (runnerDrainRef.current?.canAdvance() === false) return;
 			const selected = nextClipRef.current;
 			if (!selected || isCrossfading || preparedNextClipIdRef.current === selected.id) return;
 			preparedNextClipIdRef.current = selected.id;
@@ -1672,6 +1754,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 	);
 
 	const startCrossfade = useCallback(() => {
+		if (runnerDrainRef.current?.canAdvance() === false) return;
 		if (crossfadeLockRef.current || isCrossfading) return;
 		const prefetched = nextClipRef.current;
 		if (!prefetched || preparedNextClipIdRef.current !== prefetched.id) return;
@@ -1769,7 +1852,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 	}, [activeSlot, isCrossfading, nextClip, paused, showPlayer, startCrossfade]);
 
 	useEffect(() => {
-		if (!incomingClip || !isCrossfading) return;
+		if (!incomingClip || !isCrossfading || runnerDrainRef.current?.canAdvance() === false) return;
 
 		const inactiveSlot = activeSlot === "a" ? "b" : "a";
 		const inactiveVideo = inactiveSlot === "a" ? videoARef.current : videoBRef.current;
@@ -1787,6 +1870,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 			setIncomingClip(null);
 			setIsCrossfading(false);
 			crossfadeLockRef.current = false;
+			runnerDrainRef.current?.notifyEnded(activeSlot);
 			if (activeVideo) {
 				activeVideo.pause();
 				activeVideo.currentTime = 0;
@@ -1956,7 +2040,8 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 		};
 	}, [activeSlot, advanceClip, isCrossfading, isDocumentVisible, isStandby, overlay.id, paused, playbackStarted, sendStateUpdate, showPlayer]);
 
-	if (!videoClip) return null;
+	const runnerContent: OverlayViewportProps["runnerContent"] = runnerPresentation ? { phase: isStandby ? "standby" : videoClip && showOverlay ? "playback" : runnerSelectionSettled ? "empty" : "loading", epoch: runnerContentEpoch, id: videoClip?.id ?? "" } : undefined;
+	if (!videoClip) return runnerContent ? <span hidden data-runner-content-phase={runnerContent.phase} data-runner-content-epoch={runnerContent.epoch} data-runner-content-id={runnerContent.id} /> : null;
 
 	if (isEmbed || isDemoPlayer || !isInIframe()) {
 		const showClickToPlay = embedBehaviorEnabled && paused && !hasUserStarted;
@@ -2018,6 +2103,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 
 		const handleSlotAEnded = (event: SyntheticEvent<HTMLVideoElement>) => {
 			if (event.currentTarget !== videoARef.current) return;
+			runnerDrainRef.current?.notifyEnded("a");
 			if (activeSlot !== "a") return;
 			if (isCrossfading) return;
 			if (holdLastFrameRef.current) return;
@@ -2028,6 +2114,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 
 		const handleSlotBEnded = (event: SyntheticEvent<HTMLVideoElement>) => {
 			if (event.currentTarget !== videoBRef.current) return;
+			runnerDrainRef.current?.notifyEnded("b");
 			if (activeSlot !== "b") return;
 			if (isCrossfading) return;
 			if (holdLastFrameRef.current) return;
@@ -2038,6 +2125,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 
 		return (
 			<OverlayViewport
+				runnerContent={runnerContent}
 				clipA={clipA}
 				clipB={clipB}
 				activeSlot={activeSlot}

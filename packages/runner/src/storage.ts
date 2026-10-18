@@ -19,13 +19,13 @@ function ensureConfigDir() {
 		fs.mkdirSync(CONFIG_DIR, { recursive: true, mode: 0o700 });
 	}
 }
-function restrictConfigFile() {
+export function restrictCredentialFile(filePath: string) {
 	try {
-		fs.chmodSync(CONFIG_PATH, 0o600);
+		fs.chmodSync(filePath, 0o600);
 	} catch {}
 	if (process.platform !== "win32" || !process.env.USERNAME) return;
 	try {
-		execFileSync("icacls", [CONFIG_PATH, "/inheritance:r", "/grant:r", `${process.env.USERNAME}:F`], { stdio: "ignore", windowsHide: true });
+		execFileSync("icacls", [filePath, "/inheritance:r", "/grant:r", `${process.env.USERNAME}:F`], { stdio: "ignore", windowsHide: true });
 	} catch {
 		console.warn("[Storage] Could not restrict Windows config ACL; keeping the default profile ACL.");
 	}
@@ -58,7 +58,7 @@ export async function saveCredentials(credentials: RunnerCredentials) {
 		encoding: "utf-8",
 		mode: 0o600, // Read/Write only for owner
 	});
-	restrictConfigFile();
+	restrictCredentialFile(CONFIG_PATH);
 }
 
 export async function loadCredentials(): Promise<RunnerCredentials> {

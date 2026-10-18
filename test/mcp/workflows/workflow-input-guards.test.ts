@@ -24,3 +24,33 @@ test("retained retries require a key before invoking storage or the resource eff
 	expect(select).not.toHaveBeenCalled();
 	expect(operation).not.toHaveBeenCalled();
 });
+
+test("trusted session retry delegates once without retaining an OAuth replay identity", async () => {
+	const select = jest.fn(),
+		operation = jest.fn(async () => ({ id: "session-resource" }));
+	const result = await workflowRetry({ principal: { kind: "session", authUserId: "actor" }, creatorId: "creator", tx: { select } } as any, "create_gallery", {}, operation);
+	expect(result).toEqual({ id: "session-resource" });
+	expect(operation).toHaveBeenCalledTimes(1);
+	expect(select).not.toHaveBeenCalled();
+});
+
+test.each([
+	{ selectors: { playlistId: "playlist-resource" }, expectedId: "playlist-resource" },
+	{ selectors: { overlayId: "overlay-resource" }, expectedId: "overlay-resource" },
+])("retained workflow replay binds the existing selected resource %j", async ({ selectors, expectedId }) => {
+	const read: any = { from: () => read, where: () => read, limit: async () => [] };
+	const values = jest.fn(async () => undefined);
+	const operation = jest.fn(async () => ({ configurationRevision: 2 }));
+	const tx = { select: () => read, insert: jest.fn(() => ({ values })) };
+	const result = await workflowRetry({ principal, creatorId: "creator", tx } as any, "configure_stream_session", { retryKey: "owned-retry", ...selectors }, operation);
+	expect(result).toEqual({ configurationRevision: 2 });
+	expect(operation).toHaveBeenCalledTimes(1);
+	expect(values).toHaveBeenCalledWith(expect.objectContaining({ resourceId: expectedId, creatorId: "creator", grantId: "grant", grantGeneration: 1, authUserId: "actor", clientId: "client", safeResponse: result }));
+});
+
+test("an unidentifiable workflow result never persists a replay record", async () => {
+	const read: any = { from: () => read, where: () => read, limit: async () => [] };
+	const insert = jest.fn();
+	await expect(workflowRetry({ principal, creatorId: "creator", tx: { select: () => read, insert } } as any, "configure_stream_session", { retryKey: "owned-retry" }, async () => ({ configurationRevision: 2 }))).rejects.toThrow("SERVICE_UNAVAILABLE");
+	expect(insert).not.toHaveBeenCalled();
+});

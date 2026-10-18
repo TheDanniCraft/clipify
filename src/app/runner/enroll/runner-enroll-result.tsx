@@ -64,10 +64,10 @@ function getResultContent(state: RunnerEnrollResultProps["state"]): ResultConten
 	if (state.status === "entitlement-required") {
 		return {
 			tone: "warning" as const,
-			title: "Runner add-on required",
-			description: "The runner owner needs the Self-hosted Runner add-on before this device can be enrolled.",
-			actionHref: "/dashboard/settings?addon=runner",
-			actionLabel: "View Runner add-on",
+			title: "Refresh Runner access",
+			description: "Runner is included with Free and Pro. Refresh your account and retry enrollment.",
+			actionHref: "/runner/enroll",
+			actionLabel: "Back to enrollment",
 		};
 	}
 

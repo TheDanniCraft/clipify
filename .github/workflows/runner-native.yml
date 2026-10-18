@@ -35,6 +35,9 @@ concurrency:
   group: runner-native-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  RUNNER_EXECUTION_PUBLIC_KEYS: ${{ vars.RUNNER_EXECUTION_PUBLIC_KEYS }}
+
 jobs:
   prepare-context:
     name: 🧭 Prepare Runner context
@@ -97,6 +100,9 @@ jobs:
           - { platform: macos-arm64, target: node24-macos-arm64, runner: macos-14, binary: clipify-runner-macos-arm64 }
     runs-on: ${{ matrix.runner }}
     steps:
+      - name: 🔏 Preserve identical checkout bytes across native platforms
+        shell: bash
+        run: git config --global core.autocrlf false
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.prepare-context.outputs.ref }}
@@ -108,6 +114,9 @@ jobs:
       - name: 📦 Install Runner dependencies
         working-directory: packages/runner
         run: bun install --frozen-lockfile
+      - name: 🛡️ Audit Runner dependencies
+        working-directory: packages/runner
+        run: bun audit --audit-level=high
       - name: 🩹 Verify Runner patched dependencies
         working-directory: packages/runner
         run: bun run patches:validate

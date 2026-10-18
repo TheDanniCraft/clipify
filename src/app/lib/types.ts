@@ -189,6 +189,8 @@ export enum StreamMode {
 	Failsafe = "failsafe",
 }
 
+export type StreamControlMode = "manual" | "scheduled";
+
 export enum StreamState {
 	Stopped = "stopped",
 	Starting = "starting",

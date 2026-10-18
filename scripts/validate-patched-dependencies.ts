@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
 type PackageJson = {
@@ -63,14 +63,49 @@ function run(command: string, args: string[], options: RunOptions = {}) {
 	};
 }
 
+let installedPackages: Array<{ name: string; version: string; directory: string }> | undefined;
+
+function findInstalledPackages() {
+	if (installedPackages) return installedPackages;
+	installedPackages = [];
+	const pending = [nodeModulesRoot];
+	const visited = new Set<string>();
+	while (pending.length) {
+		const modules = pending.pop()!;
+		if (!existsSync(modules)) continue;
+		const directories: string[] = [];
+		for (const entry of readdirSync(modules)) {
+			if (entry.startsWith(".")) continue;
+			const entryPath = join(modules, entry);
+			if (!existsSync(entryPath) || !statSync(entryPath).isDirectory()) continue;
+			if (entry.startsWith("@")) {
+				for (const name of readdirSync(entryPath)) directories.push(join(entryPath, name));
+			} else directories.push(entryPath);
+		}
+		for (const directory of directories) {
+			if (!existsSync(join(directory, "package.json"))) continue;
+			const actualDirectory = realpathSync(directory);
+			if (visited.has(actualDirectory)) continue;
+			visited.add(actualDirectory);
+			const manifest = JSON.parse(readFileSync(join(actualDirectory, "package.json"), "utf8")) as { name: string; version: string };
+			installedPackages.push({ name: manifest.name, version: manifest.version, directory: actualDirectory });
+			pending.push(join(actualDirectory, "node_modules"));
+		}
+	}
+	return installedPackages;
+}
+
 function getPackageDetails(specifier: string) {
 	const versionSeparator = specifier.lastIndexOf("@");
 	if (versionSeparator <= 0) fail(`Invalid patched dependency specifier: ${specifier}`);
 
 	const packageName = specifier.slice(0, versionSeparator);
 	const expectedVersion = specifier.slice(versionSeparator + 1);
-	const packageDirectory = join(nodeModulesRoot, ...packageName.split("/"));
-	return { packageName, expectedVersion, packageDirectory };
+	const packageDirectories = findInstalledPackages()
+		.filter((installed) => installed.name === packageName && installed.version === expectedVersion)
+		.map((installed) => installed.directory);
+	if (!packageDirectories.length) fail(`Patched dependency version is not installed: ${specifier}`);
+	return { packageName, expectedVersion, packageDirectories };
 }
 
 function getPatchedFiles(patchSource: string, specifier: string): PatchedFile[] {
@@ -143,28 +178,30 @@ let patchedFileCount = 0;
 let typeCheckedFileCount = 0;
 
 for (const [specifier, patchFile] of Object.entries(patchedDependencies)) {
-	const { packageName, expectedVersion, packageDirectory } = getPackageDetails(specifier);
+	const { packageName, expectedVersion, packageDirectories } = getPackageDetails(specifier);
 	const patchPath = resolve(packageRoot, patchFile);
 	if (!existsSync(patchPath)) fail(`Missing patch for ${specifier}: ${patchFile}`);
 
-	const installedPackageJson = join(packageDirectory, "package.json");
-	if (!existsSync(installedPackageJson)) fail(`Patched dependency is not installed: ${packageName}`);
-
-	const installedPackage = JSON.parse(readFileSync(installedPackageJson, "utf8")) as { version?: string };
-	if (installedPackage.version !== expectedVersion) {
-		fail(`Patch version mismatch for ${packageName}: patch targets ${expectedVersion}, installed ${installedPackage.version ?? "unknown"}`);
-	}
-
 	const patchSource = readFileSync(patchPath, "utf8");
 	const patchedFiles = getPatchedFiles(patchSource, specifier);
-	const targets = patchedFiles.map(({ file, ranges }) => ({ targetPath: resolve(packageDirectory, file), ranges }));
-	for (const { targetPath } of targets) {
-		ensureTargetIsInsidePackage(packageDirectory, targetPath, specifier);
-		if (!existsSync(targetPath)) fail(`Patched target is missing for ${specifier}: ${targetPath}`);
-	}
+	for (const packageDirectory of packageDirectories) {
+		const installedPackageJson = join(packageDirectory, "package.json");
+		if (!existsSync(installedPackageJson)) fail(`Patched dependency is not installed: ${packageName}`);
 
-	patchedFileCount += targets.length;
-	typeCheckedFileCount += verifyCodeTargets(targets, specifier);
+		const installedPackage = JSON.parse(readFileSync(installedPackageJson, "utf8")) as { version?: string };
+		if (installedPackage.version !== expectedVersion) {
+			fail(`Patch version mismatch for ${packageName}: patch targets ${expectedVersion}, installed ${installedPackage.version ?? "unknown"}`);
+		}
+
+		const targets = patchedFiles.map(({ file, ranges }) => ({ targetPath: resolve(packageDirectory, file), ranges }));
+		for (const { targetPath } of targets) {
+			ensureTargetIsInsidePackage(packageDirectory, targetPath, specifier);
+			if (!existsSync(targetPath)) fail(`Patched target is missing for ${specifier}: ${targetPath}`);
+		}
+
+		patchedFileCount += targets.length;
+		typeCheckedFileCount += verifyCodeTargets(targets, specifier);
+	}
 }
 
 console.log(`Verified ${Object.keys(patchedDependencies).length} patched dependencies, ${patchedFileCount} patched files, and ${typeCheckedFileCount} type-checked files in ${nodeModulesRoot}`);

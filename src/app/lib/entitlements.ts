@@ -429,7 +429,9 @@ export async function suspendRunnersForOwner(ownerId: string, reason = "runner_e
 }
 
 async function reconcileResolvedUserEntitlements(user: EntitlementUserRef, entitlements: UserEntitlements) {
-	const runnerResult = entitlements.runnerAccess ? { runners: 0, sessions: 0 } : await suspendRunnersForOwner(user.id);
+	// Basic Runner access survives a downgrade. Accepted broadcasts retain their
+	// captured admission; new Starts resolve current benefits and owner occupancy.
+	const runnerResult = { runners: 0, sessions: 0 };
 	let resources = null;
 	if (entitlements.effectivePlan === "free") resources = await recordFreeCapabilityReconciliation(user, entitlements);
 	else await db.update(usersTable).set({ updatedAt: new Date(), lastEntitlementReconciledAt: new Date() }).where(eq(usersTable.id, user.id)).execute();

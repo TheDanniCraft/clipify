@@ -1,0 +1,25 @@
+{
+  "scope": "Public pricing visual review only; no checkout or external writes. Both responsive views use the frozen browser build and a fresh disposable local database.",
+  "views": [
+    {
+      "name": "desktop",
+      "screenshot": "F1-v2-pricing-desktop.png",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440
+      },
+      "retainedYearlyPriceVisible": true,
+      "runnerCategoryVisible": true
+    },
+    {
+      "name": "mobile",
+      "screenshot": "F1-v2-pricing-mobile.png",
+      "overflow": {
+        "viewport": 390,
+        "document": 390
+      },
+      "retainedYearlyPriceVisible": true,
+      "runnerCategoryVisible": true
+    }
+  ]
+}

@@ -89,6 +89,19 @@ Example:
 💄 Refine team and authorization management
 ```
 
+## Local test prerequisites
+
+- Before a local full-suite, native MCP workflow or browser baseline, follow
+  [docs/local-testing.md](docs/local-testing.md). Verify disposable loopback
+  PostgreSQL is accepting connections, set a job-owned `MCP_TEST_TEMPLATE_ID`,
+  and install Chromium with its operating-system dependencies.
+- Environment exports do not persist between terminals or agent shell calls.
+  Reapply the documented test environment for each execution; never substitute
+  production or shared development credentials.
+- Compare the exact owning CI job and environment before treating a local
+  prerequisite failure as a code regression. Missing services or browser
+  libraries are blocked setup evidence, not an intended product-test Red.
+
 ## Test execution and pull requests
 
 - Open new pull requests as drafts by default. Draft CI provides scoped feedback;

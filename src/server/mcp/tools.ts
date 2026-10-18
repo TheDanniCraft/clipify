@@ -5,6 +5,7 @@ import "server-only";
 import { listPlaylists, getPlaylist, createPlaylistForPrincipal, updatePlaylist, deletePlaylist, removePlaylistItems, reorderPlaylistItems, addPlaylistItems } from "@/server/resources/playlists";
 import { recordMcpCallActivity } from "./activity";
 import { toolFailure } from "./errors";
+import { isResourceFailure } from "@/server/resources/errors";
 import { ProtocolError, ProtocolErrorCode, type McpServer } from "@modelcontextprotocol/server";
 import type { TrustedCreatorPrincipal } from "@/auth/authorize-operation";
 import { listCreators, getCapabilities } from "./creators";
@@ -32,6 +33,15 @@ async function readResult(operation: () => Promise<Record<string, unknown>>, pri
 			return measuredFailure(error);
 		}
 		return measuredFailure(cause);
+	}
+	if (isResourceFailure(result)) {
+		try {
+			await recordMcpCallActivity(principal, { tool: name, outcome: "denied", reason: result.error.code });
+		} catch (error) {
+			return measuredFailure(error);
+		}
+		reportMcpToolOutcome("denied", result.error.code);
+		return { isError: true, content: [{ type: "text" as const, text: JSON.stringify(result.error) }], structuredContent: { error: result.error } };
 	}
 	if (toolAnnotations(name).readOnlyHint) {
 		const selectors = input as { creatorId?: string; overlayId?: string; playlistId?: string; galleryId?: string; runnerId?: string; sessionId?: string } | undefined;

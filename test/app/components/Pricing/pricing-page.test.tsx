@@ -43,7 +43,7 @@ describe("public pricing server page and FAQ boundary", () => {
 		expect(screen.getByRole("heading", { name: "Pricing questions" })).toBeInTheDocument();
 		for (const question of ["Can I use Clipify for free?", "Is the Self-hosted Runner a separate plan?", "Can I switch between monthly and yearly billing?", "What happens if I stop using Pro?"]) expect(screen.getByRole("button", { name: question })).toBeInTheDocument();
 		expect(screen.getByText(/Free includes unlimited Twitch clips/)).toBeInTheDocument();
-		expect(screen.getByText(/Runner is an optional add-on/)).toBeInTheDocument();
+		expect(screen.getByText(/Runner is included with Free and Pro/)).toBeInTheDocument();
 		expect(screen.getByText(/two months free/)).toBeInTheDocument();
 		expect(screen.getByText(/preserves supported data/)).toBeInTheDocument();
 		expect(screen.getByText("Clipify footer")).toBeInTheDocument();

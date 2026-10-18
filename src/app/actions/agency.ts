@@ -98,6 +98,7 @@ export async function allocateAgencyLicenseFormAction(formData: FormData) {
 
 export async function startAgencyBillingFormAction() {
 	const result = await createAgencyBillingStart();
+	if (result.kind === "included") redirect(`/dashboard/agency?billingError=${encodeURIComponent(result.error)}`);
 	if (result.url) redirect(result.url);
 	revalidatePath("/dashboard/agency");
 	redirect("/dashboard/agency?billing=invoice-sent");
@@ -111,13 +112,15 @@ export async function openAgencyBillingPortalFormAction() {
 export async function changeAgencySeatQuantityFormAction(formData: FormData) {
 	const kind: AgencySeatKind = value(formData, "kind") === "runner" ? "runner" : "creator";
 	const quantity = Number.parseInt(value(formData, "quantity"), 10);
+	let result: Awaited<ReturnType<typeof changeAgencySeatQuantity>>;
 	try {
-		const result = await changeAgencySeatQuantity(kind, quantity);
-		revalidatePath("/dashboard/agency");
-		redirect(`/dashboard/agency?billing=${result.kind === "increase" ? "increase-pending" : result.kind === "decrease" ? "decrease-scheduled" : "unchanged"}`);
+		result = await changeAgencySeatQuantity(kind, quantity);
 	} catch (error) {
 		redirect(`/dashboard/agency?billingError=${encodeURIComponent(errorCode(error))}`);
 	}
+	if (result.kind === "included") redirect(`/dashboard/agency?billingError=${encodeURIComponent(result.error)}`);
+	revalidatePath("/dashboard/agency");
+	redirect(`/dashboard/agency?billing=${result.kind === "increase" ? "increase-pending" : result.kind === "decrease" ? "decrease-scheduled" : "unchanged"}`);
 }
 
 export async function removeAgencyLicenseFormAction(formData: FormData) {

@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "protectedOrGeneratedEdits": [],
+  "newGeneratedFiles": [],
+  "sourceSchemaDiff": "src/db/schema.ts | 211 ++++++++++++++++++++++++++++++++++++++++++++++++++++++-\n 1 file changed, 208 insertions(+), 3 deletions(-)",
+  "tests": "F1-v2-script-gates.log: all69 script gate tests pass, including migration and disposable E2E schema guards.",
+  "overrideUsed": false
+}

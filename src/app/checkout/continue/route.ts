@@ -18,6 +18,7 @@ export async function GET() {
 			successUrl: new URL("/checkout/success", baseUrl).toString(),
 			cancelUrl: new URL("/pricing?checkout=cancelled", baseUrl).toString(),
 		});
+		if (checkoutUrl && typeof checkoutUrl === "object") return NextResponse.redirect(new URL("/pricing?runner=included", baseUrl));
 		return NextResponse.redirect(checkoutUrl ?? new URL("/pricing?checkout=unavailable", baseUrl).toString());
 	} catch (error) {
 		if (error instanceof Error && error.message === "You already own every selected product") return NextResponse.redirect(new URL("/dashboard/settings?tab=billing&billing=already-owned", baseUrl));

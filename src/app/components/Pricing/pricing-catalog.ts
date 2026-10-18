@@ -14,8 +14,8 @@ export const tiers: Tier[] = [
 		featured: false,
 		mostPopular: false,
 		description: "Everything you need to get your clips on stream and online.",
-		summaryFeatures: ["Unlimited Twitch clips", "One overlay and one 50-clip playlist", "One branded website gallery", "A shareable Creator Page", "Basic website Clip Player", "Essential playback and filtering"],
-		features: ["Unlimited clips", "One overlay", "One playlist (up to 50 clips)", "One branded clip gallery (up to 50 live clips)", "Shareable Creator Page for your Twitch clips", "Playlist overlay type", "Manual playlist curation", "Plug & Play setup", "Random playback mode", "Basic clip filtering", "Keeps your stream entertained", "Basic clip player for embedding in websites", "AI assistant access (MCP)"],
+		summaryFeatures: ["Unlimited Twitch clips", "One overlay and one 50-clip playlist", "One branded website gallery", "A shareable Creator Page", "Basic website Clip Player", "Manual Runner with unlimited hours"],
+		features: ["Unlimited clips", "One overlay", "One playlist (up to 50 clips)", "One branded clip gallery (up to 50 live clips)", "Shareable Creator Page for your Twitch clips", "Playlist overlay type", "Manual playlist curation", "Plug & Play setup", "Random playback mode", "Basic clip filtering", "Keeps your stream entertained", "Basic clip player for embedding in websites", "AI assistant access (MCP)", "Manual Runner broadcasting with unlimited hours"],
 		buttonText: "Start for Free",
 	},
 	{
@@ -32,10 +32,11 @@ export const tiers: Tier[] = [
 			[FrequencyEnum.Yearly]: "10 EUR",
 		},
 		featured: false,
-		summaryFeatures: ["Unlimited overlays, playlists, and galleries", "Advanced filters and playback modes", "Theme Studio and website customization", "Remote controls, chat, and channel points", "Editors and managers", "Creator analytics and CSV export"],
+		summaryFeatures: ["Unlimited overlays, playlists, and galleries", "Advanced filters and playback modes", "Theme Studio and website customization", "Remote controls, chat, and channel points", "Editors and managers", "Creator analytics, exports, and advanced Runner"],
 		personalNote: "Your subscription directly supports an independent developer building Clipify.",
 		features: [
 			"Everything in Free",
+			"Advanced Runner broadcasting: scheduling, multiple destinations and broadcasts, custom standby screens, and watermark removal",
 			"Multiple overlays",
 			"Unlimited playlists and playlist clips",
 			"Unlimited clip galleries",
@@ -63,17 +64,27 @@ export const tiers: Tier[] = [
 	},
 ];
 
-export const runnerAddon = {
+export const runnerIncluded = {
 	title: "Self-hosted Runner",
-	description: "Run Clipify from your own hardware for continuous playback or as an OBS failsafe.",
-	availability: "Available with Free or Pro",
-	prices: {
-		[FrequencyEnum.Monthly]: "Unavailable",
-		[FrequencyEnum.Yearly]: "Unavailable",
-	},
+	description: "Broadcast from your own computer with unlimited streaming hours. Free includes manual clip playback and live fallback; Pro adds advanced broadcasting controls.",
+	availability: "Included with Free and Pro",
 };
 
 export const pricingFeatures: PricingFeatures = [
+	{
+		title: "Runner and broadcasting",
+		items: [
+			{ title: "Self-hosted Runner", tiers: { free: true, pro: true }, helpText: "Runner is included with Free and Pro. Broadcasting runs on your own computer, which must stay online." },
+			{ title: "Streaming hours", tiers: { free: "Unlimited", pro: "Unlimited" }, helpText: "No monthly streaming quota. Free Runner needs a connection to Clipify to renew its broadcast permission." },
+			{ title: "Registered devices", tiers: { free: "Unlimited", pro: "Unlimited" }, helpText: "Register your own computers and choose which device hosts each broadcast." },
+			{ title: "Active broadcasts", tiers: { free: "1", pro: "Unlimited" }, helpText: "Free supports one active broadcast across your devices. Pro supports independent broadcasts, subject to your hardware and connection." },
+			{ title: "Destinations per broadcast", tiers: { free: "1", pro: "Multiple" }, helpText: "Send directly from your computer to YouTube, Twitch, or custom RTMP destinations. Each destination uses additional upload bandwidth." },
+			{ title: "Manual playback and live fallback", tiers: { free: true, pro: true }, helpText: "Start broadcasts manually or play clips when your live input is offline. Clipify branding applies only to generated content on Free." },
+			{ title: "Scheduled broadcasts", tiers: { free: false, pro: true }, helpText: "Schedule playback across days in your timezone. Your Runner must stay online; scheduled stops finish the current clip." },
+			{ title: "Custom standby screen", tiers: { free: false, pro: true }, helpText: "Customize the standby background, logo, message, and next broadcast time." },
+			{ title: "Runner watermark removal", tiers: { free: false, pro: true }, helpText: "Free generated content includes Clipify attribution. Pro removes it; your normal live feed has no Runner watermark." },
+		],
+	},
 	{
 		title: "Clips and playback",
 		items: [

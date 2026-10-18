@@ -5,6 +5,48 @@ import { toolInputSchemas } from "@/server/mcp/schemas";
 export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<typeof createMcpPostgresFixture>>; auth: any; origin: string; token: string; actorId: string; mode: string }) {
 	const { fixture, auth, origin, token, actorId, mode } = input;
 	const [, , name, variant = "success"] = mode.split(":");
+	if (
+		name === "runner_free_pro" &&
+		(variant.startsWith("occupied_") ||
+			variant.startsWith("admission_lease_") ||
+			[
+				"admission_race",
+				"admission_lock",
+				"admission_service_lock",
+				"admission_service_pro",
+				"admission_service_retry",
+				"admission_cancel_reserved",
+				"admission_stop_dispatched",
+				"admission_emergency_stop",
+				"admission_emergency_snapshot_race",
+				"admission_restart_draining",
+				"admission_lease_issue",
+				"admission_lease_renew",
+				"admission_lease_active_ack",
+				"admission_lease_stop_ack",
+				"admission_stale_generation",
+				"admission_public_retry",
+				"admission_revoke_unlink",
+				"admission_revoke_delete",
+				"admission_revoke_twice",
+				"admission_revoke_reserved",
+				"admission_terminal_ack",
+				"admission_terminal_wrong_generation",
+				"admission_terminal_replay",
+				"failed_before_output",
+			].includes(variant))
+	)
+		return (await import("./runner-free-pro-probe")).runRunnerAdmissionProbe({ fixture, origin, token, variant, auth, actorId });
+	if (name === "runner_free_pro" && variant.startsWith("branding_")) return (await import("./runner-branding-probe")).runRunnerBrandingProbe({ fixture, origin, token, variant, auth, actorId });
+	if (name === "runner_free_pro" && variant.startsWith("transition_")) return (await import("./runner-commercial-transitions-probe")).runRunnerCommercialTransitionsProbe({ fixture, origin, token, variant, auth, actorId });
+	if (name === "runner_free_pro" && variant.startsWith("commercial_")) return (await import("./runner-commercial-probe")).runRunnerCommercialProbe({ fixture, origin, token, variant, auth, actorId });
+	if (name === "runner_free_pro" && variant === "heartbeat_isolation") return (await import("./runner-free-pro-probe")).runRunnerHeartbeatIsolationProbe({ fixture, origin, token, variant, auth, actorId });
+	if (name === "runner_free_pro" && variant === "health_snapshot") return (await import("./runner-free-pro-probe")).runRunnerHealthProbe({ fixture, origin, token, variant, auth, actorId });
+	if (name === "runner_free_pro" && variant.startsWith("denied_")) return (await import("./runner-free-pro-probe")).runRunnerDeniedOperationsProbe({ fixture, origin, token, variant, auth, actorId });
+	if (name === "runner_free_pro" && (variant.startsWith("manual_ingest_") || variant.startsWith("manual_commit_") || ["manual_fallback", "manual_scheduled_denied", "manual_fallback_scheduled_invalid", "manual_pro_clip_scheduled", "manual_existing_scheduled_fallback", "manual_invalid_behavior"].includes(variant))) return (await import("./runner-manual-configuration-probe")).runRunnerManualConfigurationProbe({ fixture, origin, token, variant, auth, actorId });
+	if (name === "runner_free_pro" && (variant.startsWith("destinations_") || variant.startsWith("multistream_") || variant.startsWith("schedule_"))) return (await import("./runner-destinations-probe")).runRunnerDestinationsProbe({ fixture, origin, token, variant, auth, actorId });
+	if (name === "runner_free_pro" && ["free_acceptance", "free_acceptance_extended", "free_admission_extended"].includes(variant)) return (await import("./runner-free-boundary-probe")).runRunnerFreeBoundaryProbe({ fixture, origin, token, variant, auth, actorId });
+	if (name === "runner_free_pro") return (await import("./runner-free-pro-probe")).runRunnerRegistrationProbe({ fixture, origin, token, variant, auth, actorId });
 	const overlayId = randomUUID(),
 		playlistId = randomUUID(),
 		galleryId = randomUUID(),
@@ -15,7 +57,8 @@ export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<
 	await fixture.pool.query("INSERT INTO playlists(id,owner_id,name) VALUES($1,'fixture-creator','Workflow playlist')", [playlistId]);
 	await fixture.pool.query("INSERT INTO galleries(id,owner_id,name,playlist_id,published) VALUES($1,'fixture-creator','Workflow gallery',$2,true)", [galleryId, playlistId]);
 	await fixture.pool.query("INSERT INTO runners(id,owner_id,name,token,status,last_heartbeat_at) VALUES($1,'fixture-creator','Workflow runner','private-workflow-runner','online',now())", [runnerId]);
-	await fixture.pool.query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,encrypted_stream_key) VALUES($1,'fixture-creator',$2,$3,'24/7','private-workflow-key')", [sessionId, runnerId, overlayId]);
+	const runnerKey = (await import("@/app/lib/encryption")).encryptString("private-workflow-key");
+	await fixture.pool.query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,encrypted_stream_key) VALUES($1,'fixture-creator',$2,$3,'24/7',$4)", [sessionId, runnerId, overlayId, runnerKey]);
 	await fixture.pool.query("INSERT INTO entitlement_grants(user_id,entitlement,source,starts_at) VALUES('fixture-creator','runner_access','partner',now()-interval '1 hour')");
 	process.env.TWITCH_CLIENT_ID = "workflow-client";
 	const encrypted = await symmetricEncrypt({ key: process.env.BETTER_AUTH_SECRET!, data: "private-workflow-provider" });

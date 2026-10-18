@@ -211,6 +211,7 @@ export default function HomePageClient({ campaignOffer, pricing }: HomePageClien
 					<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16'>
 						<FeatureCard title='Easy to Use' description='Intuitive interface designed for effortless setup and management.' icon={IconThumbUp} />
 						<FeatureCard title='Plug & Play' description="It's as easy as adding a browser source to your streaming software." icon={IconPlugConnected} />
+						<FeatureCard title='Self-hosted Runner' description='Broadcast from your own computer with unlimited hours, included with Free and Pro. Start manually or use live fallback; Pro adds scheduling, multiple destinations and broadcasts, custom standby screens, and watermark removal.' icon={IconDeviceRemote} />
 						<FeatureCard title='Keeps Your Stream Entertained' description="Auto-play clips to keep your audience engaged even when you're away." icon={IconMoodSmile} />
 						<FeatureCard title='Clip Playlists' description='Build reusable clip playlists, reorder them manually, or auto-import highlights with filters for dates, creators, categories, and views.' icon={IconPlaylist} />
 						<FeatureCard title='Smart Playback Modes' description='Switch between Random, Top, and Smart Shuffle playback, plus advanced creator and category filters with Pro.' icon={IconAdjustments} />

@@ -7,6 +7,9 @@ permissions:
   contents: read
   packages: write
 
+env:
+  RUNNER_EXECUTION_PUBLIC_KEYS: ${{ vars.RUNNER_EXECUTION_PUBLIC_KEYS }}
+
 jobs:
   verify-runner:
     name: 🔐 Verify exact Runner artifact
@@ -129,6 +132,7 @@ jobs:
           push: true
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
+            RUNNER_EXECUTION_PUBLIC_KEYS=${{ vars.RUNNER_EXECUTION_PUBLIC_KEYS }}
             SOURCE_COMMIT=${{ github.sha }}
             SENTRY_RELEASE=clipify@${{ github.event.release.tag_name }}+${{ github.sha }}
           secrets: |

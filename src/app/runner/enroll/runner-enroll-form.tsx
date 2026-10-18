@@ -44,7 +44,7 @@ function RunnerEnrollFormContent({ onReset, initialCode }: { onReset: () => void
 		startCreatingRunner(async () => {
 			const result = await createOwnRunner("New Hardware Node");
 			if (!result.success || !result.runner) {
-				setCreateError(result.error === "Runner add-on required" ? "The Self-hosted Runner add-on is required before creating a runner." : "Failed to create runner. Please try again.");
+				setCreateError(result.error === "Runner add-on required" ? "Runner is included with Free and Pro. Refresh your account and try again." : "Failed to create runner. Please try again.");
 				return;
 			}
 
@@ -62,6 +62,7 @@ function RunnerEnrollFormContent({ onReset, initialCode }: { onReset: () => void
 			<div className='space-y-2'>
 				<h1 className='text-2xl font-semibold'>Clipify Runner</h1>
 				<p className='text-sm text-muted-foreground'>Enter the device code shown in your runner terminal.</p>
+				<p className='text-sm text-muted-foreground'>Runner is included with Free and Pro.</p>
 			</div>
 			<form
 				ref={formRef}

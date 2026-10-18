@@ -3,20 +3,26 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { validateAuth } from "@actions/auth";
-import { getRunner, getRunnerToken, getRunnerVersionManifest, getStreamSessionsForRunner, upsertStreamSession, setStreamDesiredState, unlinkRunner } from "@actions/runner";
+import { getRunner, getRunnerToken, getRunnerVersionManifest, getStreamSessionsForRunner, upsertStreamSession, setStreamDesiredState, unlinkRunner, listRunnerDestinations, listRunnerScheduleEvents } from "@actions/runner";
 import { getAllOverlays } from "@actions/database";
 import { Accordion, Button, Card, Label, Select, Spinner, TextField, ListBox, Input, Chip, Separator, Modal, Dropdown, Tooltip } from "@heroui/react";
-import { IconCopy, IconCheck, IconEye, IconChevronDown, IconDownload, IconPlayerPlay, IconPlayerStop, IconArrowLeft, IconTrash, IconBrandWindows, IconTerminal2, IconBrandApple, IconAlertTriangle, IconCircleCheck, IconUnlink } from "@tabler/icons-react";
+import { IconCopy, IconCheck, IconEye, IconChevronDown, IconDownload, IconArrowLeft, IconBrandWindows, IconTerminal2, IconBrandApple, IconAlertTriangle, IconCircleCheck, IconUnlink } from "@tabler/icons-react";
 import { notify } from "@lib/toast";
 import FullscreenLoadingState from "@components/fullscreenLoadingState";
 import ConfirmModal from "@components/confirmModal";
-import { streamSessionsTable } from "@/db/schema";
-import { InferSelectModel } from "drizzle-orm";
+import RunnerBroadcastControls from "@components/runnerBroadcastControls";
+import RunnerDestinations from "@components/runnerDestinations";
+import RunnerBrandingPreview from "@components/runner/RunnerBrandingPreview";
+import RunnerSchedule from "@components/runnerSchedule";
+import RunnerDestinationSelection, { canStartWithDestinations } from "@components/runnerDestinationSelection";
+import RunnerOutputStatus from "@components/runnerOutputStatus";
 import DashboardNavbar from "@components/dashboardNavbar";
-import { AuthenticatedUser, Overlay, StreamMode, StreamState, RunnerStatus } from "@types";
+import { AuthenticatedUser, Overlay, StreamMode, StreamState, RunnerStatus, type StreamControlMode } from "@types";
 
 type Runner = NonNullable<Awaited<ReturnType<typeof getRunner>>>;
-type StreamSession = InferSelectModel<typeof streamSessionsTable>;
+type StreamSession = Awaited<ReturnType<typeof getStreamSessionsForRunner>>[number];
+type RunnerPolicy = Extract<Awaited<ReturnType<typeof listRunnerScheduleEvents>>, { success: true }>["policy"];
+type DestinationView = Extract<Awaited<ReturnType<typeof listRunnerDestinations>>, { success: true }>["destinations"][number];
 type RunnerPlatform = "windows" | "linux" | "linux-arm64" | "macos" | "macos-arm64";
 type RunnerVersionManifest = Awaited<ReturnType<typeof getRunnerVersionManifest>>;
 
@@ -77,10 +83,6 @@ function getRunnerPlatformFromOs(osInfo: string | null | undefined) {
 	return null;
 }
 
-function requiresStreamKey(rtmpUrl: string) {
-	return rtmpUrl === "rtmp://live.twitch.tv/app" || rtmpUrl === "rtmp://a.rtmp.youtube.com/live2";
-}
-
 export default function RunnerPage() {
 	const params = useParams() as { id: string };
 	const router = useRouter();
@@ -92,7 +94,9 @@ export default function RunnerPage() {
 	const [overlays, setOverlays] = useState<Overlay[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 
-	const [clearStreamKey, setClearStreamKey] = useState<boolean>(false);
+	const [runnerPolicy, setRunnerPolicy] = useState<RunnerPolicy | null>(null);
+	const [destinationOptions, setDestinationOptions] = useState<DestinationView[]>([]);
+	const [selectedDestinationIds, setSelectedDestinationIds] = useState<string[]>([]);
 	const [copied, setCopied] = useState(false);
 	const [manualToken, setManualToken] = useState<string | null>(null);
 	const [isTokenVisible, setIsTokenVisible] = useState(false);
@@ -105,11 +109,9 @@ export default function RunnerPage() {
 	const [installPlatform, setInstallPlatform] = useState<RunnerPlatform | null>(null);
 	const [downloadCountdown, setDownloadCountdown] = useState(0);
 
-	const [preset, setPreset] = useState<string>("custom");
-	const [rtmpUrl, setRtmpUrl] = useState("");
-	const [streamKey, setStreamKey] = useState("");
 	const [overlayId, setOverlayId] = useState("");
 	const [mode, setMode] = useState<StreamMode>(StreamMode.AlwaysOn);
+	const [controlMode, setControlMode] = useState<StreamControlMode>("manual");
 	const [isUnlinkConfirmOpen, setIsUnlinkConfirmOpen] = useState(false);
 	const hasMounted = useRef(false);
 	useEffect(() => {
@@ -121,7 +123,10 @@ export default function RunnerPage() {
 	useEffect(() => {
 		if (!user) return;
 
+		let polling = false;
 		const pollData = async () => {
+			if (polling) return;
+			polling = true;
 			try {
 				const [fetchedRunner, fetchedSessions, fetchedVersionManifest] = await Promise.all([getRunner(params.id, user.id), getStreamSessionsForRunner(params.id, user.id), getRunnerVersionManifest()]);
 
@@ -143,6 +148,8 @@ export default function RunnerPage() {
 				}
 			} catch (e) {
 				console.error("Polling error", e);
+			} finally {
+				polling = false;
 			}
 		};
 
@@ -164,7 +171,7 @@ export default function RunnerPage() {
 			}
 			setUser(authUser);
 
-			const [fetchedRunner, fetchedSessions, fetchedOverlays, fetchedVersionManifest, fetchedToken] = await Promise.all([getRunner(params.id, authUser.id), getStreamSessionsForRunner(params.id, authUser.id), getAllOverlays(authUser.id), getRunnerVersionManifest(), getRunnerToken(params.id, authUser.id)]);
+			const [fetchedRunner, fetchedSessions, fetchedOverlays, fetchedVersionManifest, fetchedToken, fetchedDestinations] = await Promise.all([getRunner(params.id, authUser.id), getStreamSessionsForRunner(params.id, authUser.id), getAllOverlays(authUser.id), getRunnerVersionManifest(), getRunnerToken(params.id, authUser.id), listRunnerDestinations(authUser.id, params.id)]);
 
 			if (!fetchedRunner) {
 				router.push("/dashboard");
@@ -180,20 +187,14 @@ export default function RunnerPage() {
 			else setTokenError("Runner token could not be loaded.");
 			setIsLoadingToken(false);
 
+			if (fetchedDestinations.success) setDestinationOptions(fetchedDestinations.destinations);
 			const session = fetchedSessions[0];
 			if (session) {
-				setRtmpUrl(session.rtmpUrl);
+				setSelectedDestinationIds(session.destinationIds);
 				setOverlayId(session.overlayId);
 				setMode(session.mode as StreamMode);
-
-				if (session.rtmpUrl === "rtmp://live.twitch.tv/app") setPreset("twitch");
-				else if (session.rtmpUrl === "rtmp://a.rtmp.youtube.com/live2") setPreset("youtube");
-				else setPreset("custom");
-			} else if (fetchedOverlays && fetchedOverlays.length > 0) {
-				setOverlayId(fetchedOverlays[0].id);
-				setRtmpUrl("rtmp://live.twitch.tv/app");
-				setPreset("twitch");
-			}
+				setControlMode(session.controlMode ?? "manual");
+			} else if (fetchedOverlays?.length) setOverlayId(fetchedOverlays[0].id);
 
 			setIsLoading(false);
 		}
@@ -221,25 +222,25 @@ export default function RunnerPage() {
 		setTimeout(() => setCopied(false), 2000);
 	};
 
-	const handlePresetChange = (value: string) => {
-		setPreset(value);
-		setStreamKey(""); // Clear stream key when preset changes for security
-		setClearStreamKey(true);
-		if (value === "twitch") {
-			setRtmpUrl("rtmp://live.twitch.tv/app");
-		} else if (value === "youtube") {
-			setRtmpUrl("rtmp://a.rtmp.youtube.com/live2");
-		} else {
-			setRtmpUrl("");
+	const schedulingAvailable = mode === StreamMode.AlwaysOn && Boolean(runnerPolicy?.scheduling);
+	const legacyDestination = Boolean(streamSessions[0]?.legacyDestinationConfigured && !streamSessions[0]?.destinationIds.length);
+	const streamConfigValid = Boolean(overlayId && (selectedDestinationIds.length || legacyDestination));
+	const streamReadyToStart = streamConfigValid && (selectedDestinationIds.length ? canStartWithDestinations(destinationOptions, selectedDestinationIds) : legacyDestination);
+	const refreshDestinationOptions = async () => {
+		if (!user || !runner) return;
+		const result = await listRunnerDestinations(user.id, runner.id);
+		if (result.success) {
+			setDestinationOptions(result.destinations);
+			setSelectedDestinationIds((current) => {
+				const retained = current.filter((id) => result.destinations.some((target) => target.id === id));
+				return retained.length ? retained : result.destinations.slice(0, 1).map((target) => target.id);
+			});
 		}
 	};
 
-	const streamKeyRequired = requiresStreamKey(rtmpUrl);
-	const streamConfigValid = Boolean(overlayId && rtmpUrl.trim() && (!streamKeyRequired || streamKey.trim() || (streamSessions[0]?.encryptedStreamKey && !clearStreamKey)));
-
 	const handleSave = async () => {
 		if (!streamConfigValid) {
-			notify({ title: "Incomplete stream configuration", description: streamKeyRequired ? "Enter a stream key before saving." : "Select an overlay and enter an RTMP URL before saving.", color: "warning" });
+			notify({ title: "Incomplete stream configuration", description: "Select an overlay and a configured destination before saving.", color: "warning" });
 			return;
 		}
 		setIsSaving(true);
@@ -250,9 +251,10 @@ export default function RunnerPage() {
 			runnerId: runner.id,
 			overlayId,
 			mode,
-			rtmpUrl,
-			streamKey,
-			clearStreamKey,
+			controlMode,
+			rtmpUrl: "",
+			streamKey: "",
+			...(selectedDestinationIds.length ? { destinationIds: selectedDestinationIds } : {}),
 		});
 
 		setIsSaving(false);
@@ -260,22 +262,26 @@ export default function RunnerPage() {
 			notify({ title: "Saved", description: "Stream session configuration saved.", color: "success" });
 			const fetchedSessions = await getStreamSessionsForRunner(params.id, user.id);
 			setStreamSessions(fetchedSessions);
+			setSelectedDestinationIds(fetchedSessions[0]?.destinationIds ?? []);
+			await refreshDestinationOptions();
 		} else {
-			notify({ title: "Error", description: "Failed to save stream session.", color: "danger" });
+			notify({ title: "Error", description: res.error || "Failed to save stream session.", color: "danger" });
 		}
 	};
 
-	const handleAction = async (state: "started" | "stopped") => {
-		if (state === "started" && !streamConfigValid) {
-			notify({ title: "Incomplete stream configuration", description: streamKeyRequired ? "Enter a stream key before starting." : "Select an overlay and enter an RTMP URL before starting.", color: "warning" });
+	const handleAction = async (state: "started" | "stopped", stopMode: "graceful" | "immediate" = "graceful") => {
+		if (state === "started" && !streamReadyToStart) {
+			notify({ title: "Incomplete stream configuration", description: "Select an overlay and a configured destination before starting.", color: "warning" });
 			return;
 		}
 		if (!streamSessions[0]?.id) return;
-		const res = await setStreamDesiredState(streamSessions[0].id, state === "started" ? StreamState.Running : StreamState.Stopped, streamSessions[0].configurationRevision);
+		const res = await setStreamDesiredState(streamSessions[0].id, state === "started" ? StreamState.Running : StreamState.Stopped, streamSessions[0].configurationRevision, stopMode);
 		if (res.success) {
-			notify({ title: "Action sent", description: `Stream state set to ${state}.`, color: "success" });
+			notify({ title: state === "started" ? "Start requested" : stopMode === "immediate" ? "Stop now requested" : "Stop requested", description: state === "started" ? "Waiting for the runner to confirm it is live." : "Waiting for the runner to close its outputs.", color: "success" });
 			const fetchedSessions = await getStreamSessionsForRunner(params.id, user.id);
 			setStreamSessions(fetchedSessions);
+		} else {
+			notify({ title: state === "started" ? "Cannot start broadcast" : "Cannot stop broadcast", description: res.error || "Please try again.", color: "danger" });
 		}
 	};
 
@@ -533,9 +539,9 @@ export default function RunnerPage() {
 													</span>
 												</div>
 											)}
-											{streamSessions[0]?.lastError && (
+											{streamSessions[0]?.hasError && !streamSessions[0]?.playbackTimedOut && (
 												<div className='bg-danger/10 border border-danger/20 p-3 rounded-md mt-2 text-danger'>
-													<strong>Error:</strong> {streamSessions[0].lastError}
+													<strong>Error:</strong> The Runner reported a broadcast error. Check its local status and destination settings.
 												</div>
 											)}
 										</div>
@@ -620,36 +626,17 @@ export default function RunnerPage() {
 											</Select.Popover>
 										</Select>
 
-										<Select value={mode || null} onChange={(selected) => setMode(String(selected ?? "") as StreamMode)} variant='secondary'>
-											<Label>Engine Mode</Label>
-											<Select.Trigger>
-												<Select.Value />
-												<Select.Indicator />
-											</Select.Trigger>
-											<Select.Popover>
-												<ListBox>
-													{[
-														{ id: StreamMode.AlwaysOn, name: "24/7 Cloud Loop (Puppeteer)" },
-														{ id: StreamMode.Failsafe, name: "Failsafe Mode (Local OBS Fallback)" },
-													].map((item) => (
-														<ListBox.Item id={item.id} key={item.id} textValue={item.name}>
-															<ListBox.ItemIndicator />
-															<Label>{item.name}</Label>
-														</ListBox.Item>
-													))}
-												</ListBox>
-											</Select.Popover>
-										</Select>
-
-										{mode === StreamMode.Failsafe && (
-											<div className='bg-warning/10 border border-warning/20 p-4 rounded-md text-sm text-warning-600 dark:text-warning-400 leading-relaxed'>
-												<strong>Failsafe Mode Active:</strong> Direct your local OBS to stream to <code>rtmp://localhost:1935/live</code> (the Stream Key in OBS can be left empty). If your OBS connection drops, the local Runner will instantly fallback to the 24/7 Cloud Loop.
-											</div>
-										)}
-
-										<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-											<Select value={preset || null} onChange={(selected) => handlePresetChange(String(selected ?? ""))} variant='secondary'>
-												<Label>Stream Target Preset</Label>
+										<div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+											<Select
+												value={mode || null}
+												onChange={(selected) => {
+													const next = String(selected ?? "") as StreamMode;
+													setMode(next);
+													if (next === StreamMode.Failsafe) setControlMode("manual");
+												}}
+												variant='secondary'
+											>
+												<Label>Broadcast behavior</Label>
 												<Select.Trigger>
 													<Select.Value />
 													<Select.Indicator />
@@ -657,9 +644,8 @@ export default function RunnerPage() {
 												<Select.Popover>
 													<ListBox>
 														{[
-															{ id: "twitch", name: "Twitch" },
-															{ id: "youtube", name: "YouTube" },
-															{ id: "custom", name: "Custom RTMP" },
+															{ id: StreamMode.AlwaysOn, name: "Clip playback" },
+															{ id: StreamMode.Failsafe, name: "Live fallback" },
 														].map((item) => (
 															<ListBox.Item id={item.id} key={item.id} textValue={item.name}>
 																<ListBox.ItemIndicator />
@@ -669,61 +655,52 @@ export default function RunnerPage() {
 													</ListBox>
 												</Select.Popover>
 											</Select>
-										</div>
 
-										<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-											<TextField variant='secondary'>
-												<Label>RTMP URL</Label>
-												<Input value={rtmpUrl} onChange={(e) => setRtmpUrl(e.target.value)} disabled={preset !== "custom"} />
-											</TextField>
-
-											<TextField variant='secondary'>
-												<Label>Stream Key {streamKeyRequired ? "(Required)" : "(Optional)"}</Label>
-												<div className='relative w-full'>
-													<Input
-														type='password'
-														value={streamKey}
-														onChange={(e) => {
-															setStreamKey(e.target.value);
-															setClearStreamKey(e.target.value === "");
-														}}
-														placeholder={streamSessions[0]?.encryptedStreamKey && !clearStreamKey ? "******** (Saved)" : "live_xxx_..."}
-														className='w-full pr-10'
-													/>
-													{streamSessions[0]?.encryptedStreamKey && !clearStreamKey && (
-														<Button
-															isIconOnly
-															variant='ghost'
-															size='sm'
-															className='absolute right-1 top-1/2 -translate-y-1/2 min-w-8 w-8 h-8'
-															onPress={() => {
-																setStreamKey("");
-																setClearStreamKey(true);
-															}}
-														>
-															<IconTrash size={16} className='text-danger' />
-														</Button>
-													)}
-												</div>
-												<p className='text-xs text-muted mt-1'>{preset === "custom" ? "Custom RTMP targets may not require a stream key. Leave blank if embedded in the custom RTMP URL." : "A stream key is required for this platform."}</p>
-											</TextField>
+											<Select
+												value={controlMode}
+												onChange={(selected) => {
+													if (selected === "manual" || (selected === "scheduled" && schedulingAvailable)) setControlMode(selected);
+												}}
+												variant='secondary'
+											>
+												<Label>Control</Label>
+												<Select.Trigger>
+													<Select.Value />
+													<Select.Indicator />
+												</Select.Trigger>
+												<Select.Popover>
+													<ListBox>
+														<ListBox.Item id='manual' textValue='Manual'>
+															<ListBox.ItemIndicator />
+															<Label>Manual</Label>
+														</ListBox.Item>
+														<ListBox.Item id='scheduled' textValue='Scheduled' isDisabled={!schedulingAvailable}>
+															<ListBox.ItemIndicator />
+															<Label>Scheduled</Label>
+															<span className='text-xs text-muted'>Pro · Clip playback</span>
+														</ListBox.Item>
+													</ListBox>
+												</Select.Popover>
+											</Select>
 										</div>
+										<p className='text-xs text-muted'>Manual control is available on every plan. Scheduling is for clip playback with Pro.</p>
+
+										{mode === StreamMode.Failsafe && (
+											<div className='bg-warning/10 border border-warning/20 p-4 rounded-md text-sm text-warning-600 dark:text-warning-400 leading-relaxed'>
+												<strong>Live fallback:</strong> Send OBS to <code>rtmp://localhost:1935/live</code> and leave its stream key empty. If live input disconnects, this runner automatically plays clips or its standby screen until live input returns.
+											</div>
+										)}
+
+										<RunnerDestinationSelection destinations={destinationOptions} selectedIds={selectedDestinationIds} runnerPro={Boolean(runnerPolicy?.runnerPro)} onChange={setSelectedDestinationIds} />
+										{legacyDestination && !selectedDestinationIds.length && <p className='text-sm text-muted'>Your existing destination is preserved. Save configuration to add it to your named destinations.</p>}
+										{streamSessions[0] && (streamSessions[0].desiredState !== StreamState.Stopped || streamSessions[0].outputs.length > 0) && <RunnerOutputStatus outputs={streamSessions[0].outputs} destinations={destinationOptions} online={runner.status === RunnerStatus.Online} />}
 
 										<div className='flex flex-col sm:flex-row gap-3 mt-auto pb-6 pt-6 border-t border-divider'>
 											<Button variant='primary' onPress={handleSave} isDisabled={!streamConfigValid} isPending={isSaving} className='sm:w-auto w-full'>
 												{isSaving ? <Spinner size='sm' color='current' /> : "Save Configuration"}
 											</Button>
 
-											{streamSessions[0]?.id && (
-												<div className='flex gap-3 sm:ml-auto w-full sm:w-auto'>
-													<Button className='bg-success text-success-foreground' onPress={() => handleAction("started")} isDisabled={runner?.status !== RunnerStatus.Online || streamSessions[0]?.desiredState === StreamState.Running || !streamConfigValid}>
-														<IconPlayerPlay size={18} /> Start
-													</Button>
-													<Button className='bg-danger text-danger-foreground' onPress={() => handleAction("stopped")} isDisabled={streamSessions[0]?.desiredState === StreamState.Stopped}>
-														<IconPlayerStop size={18} /> Stop
-													</Button>
-												</div>
-											)}
+											{streamSessions[0]?.id && <RunnerBroadcastControls playbackTimedOut={streamSessions[0].playbackTimedOut} desiredState={streamSessions[0].desiredState} actualState={streamSessions[0].actualState} canStart={runner?.status === RunnerStatus.Online && streamReadyToStart} requiresConnection={!runnerPolicy?.runnerPro} clipPlayback={streamSessions[0].mode === "24/7"} onStart={() => handleAction("started")} onStop={(stopMode) => handleAction("stopped", stopMode)} />}
 										</div>
 									</div>
 								</div>
@@ -731,6 +708,9 @@ export default function RunnerPage() {
 						)}
 					</Card.Content>
 				</Card>
+				<RunnerBrandingPreview ownerId={runner.ownerId} runnerId={runner.id} overlayId={overlayId} resolution={streamSessions[0]?.resolution === "1080p" ? "1080p" : "720p"} />
+				<RunnerSchedule ownerId={runner.ownerId} runnerId={runner.id} sessionId={streamSessions[0]?.id} overlayId={overlayId} overlays={overlays} destinations={destinationOptions} selectedDestinationIds={selectedDestinationIds} clipPlayback={mode === StreamMode.AlwaysOn} onPolicyChange={setRunnerPolicy} />
+				<RunnerDestinations ownerId={runner.ownerId} runnerId={runner.id} onChange={refreshDestinationOptions} />
 				<Modal.Backdrop
 					isOpen={!!installPlatform}
 					onOpenChange={(isOpen) => {

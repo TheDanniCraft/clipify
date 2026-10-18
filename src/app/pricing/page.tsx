@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
 	title: "Pricing | Clipify",
-	description: "Compare Clipify Free and Pro, explore every feature, and add a self-hosted Runner when you need one.",
+	description: "Compare Clipify Free and Pro, including self-hosted Runner broadcasting with unlimited streaming hours.",
 };
 
 const pricingFaq = [
@@ -23,11 +23,11 @@ const pricingFaq = [
 	},
 	{
 		title: "Is the Self-hosted Runner a separate plan?",
-		content: "No. The Runner is an optional add-on that works with either Free or Pro and runs on your own hardware.",
+		content: "No. Runner is included with Free and Pro and runs on your own hardware. Both plans have unlimited streaming hours. Free includes one active broadcast and one destination with Clipify branding on generated content. Pro adds scheduling, multiple destinations and broadcasts, custom standby screens, and watermark removal.",
 	},
 	{
 		title: "Can I switch between monthly and yearly billing?",
-		content: "Yes. Pro and the Runner support monthly and yearly billing. Yearly billing includes two months free compared with monthly billing.",
+		content: "Yes. Pro supports monthly and yearly billing. Yearly billing includes two months free compared with monthly billing. Runner is included without a separate subscription.",
 	},
 	{
 		title: "What happens if I stop using Pro?",

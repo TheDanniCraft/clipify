@@ -1426,6 +1426,53 @@ describe("components/overlayPlayer", () => {
 		await prepareInactiveVideo();
 	});
 
+	it("TDD-US4-DEC012 U291: Runner content exposes a fresh loading/playable epoch after standby", async () => {
+		let resolveMediaUrl: ((url: string) => void) | undefined;
+		getTwitchClipBatch.mockResolvedValue([buildClip("measured-start")]);
+
+		render(<OverlayPlayer overlay={buildOverlay()} initialStandby runnerPresentation />);
+		const content = () => document.querySelector("[data-runner-content-phase]");
+		expect(content()).toHaveAttribute("data-runner-content-phase", "standby");
+		const beforeEpoch = Number(content()!.getAttribute("data-runner-content-epoch"));
+		getTwitchClipPlaybackUrl.mockImplementationOnce(
+			() =>
+				new Promise<string>((resolve) => {
+					resolveMediaUrl = resolve;
+				}),
+		);
+		await act(async () => {
+			(window as typeof window & { startRunnerPlayback?: () => void }).startRunnerPlayback?.();
+		});
+		await waitFor(() => expect(resolveMediaUrl).toBeDefined());
+		expect(content()).toHaveAttribute("data-runner-content-phase", "loading");
+		expect(Number(content()!.getAttribute("data-runner-content-epoch"))).toBeGreaterThan(beforeEpoch);
+		await act(async () => {
+			resolveMediaUrl?.("https://media.example/measured-start.mp4");
+		});
+		await screen.findByText("clip-measured-start");
+		expect(content()).toHaveAttribute("data-runner-content-phase", "playback");
+		expect(content()).toHaveAttribute("data-runner-content-id", "measured-start");
+		const playingEpoch = Number(content()!.getAttribute("data-runner-content-epoch"));
+		await act(async () => {
+			(window as typeof window & { stopFallback?: () => void }).stopFallback?.();
+		});
+		expect(content()).toHaveAttribute("data-runner-content-phase", "standby");
+		expect(Number(content()!.getAttribute("data-runner-content-epoch"))).toBeGreaterThan(playingEpoch);
+	});
+
+	it("TDD-US4-DEC012 U291: a settled empty Runner source reports ready standby without playing media", async () => {
+		getTwitchClipBatch.mockResolvedValue([]);
+		render(<OverlayPlayer overlay={buildOverlay()} initialStandby runnerPresentation />);
+		expect(document.querySelector("[data-runner-content-phase]")).toHaveAttribute("data-runner-content-phase", "standby");
+		await act(async () => {
+			(window as typeof window & { startRunnerPlayback?: () => void }).startRunnerPlayback?.();
+		});
+		await waitFor(() => expect(document.querySelector("[data-runner-content-phase]")).toHaveAttribute("data-runner-content-phase", "empty"));
+		expect(document.querySelector("[data-runner-content-phase]")).toHaveAttribute("data-runner-content-id", "");
+		expect(document.querySelector("video")).not.toBeInTheDocument();
+		expect(playMock).not.toHaveBeenCalled();
+	});
+
 	it("keeps initial standby inert until runner playback is started", async () => {
 		getTwitchClipBatch.mockResolvedValue([buildClip("standby-a")]);
 		render(<OverlayPlayer overlay={buildOverlay()} initialStandby />);
@@ -1576,5 +1623,96 @@ describe("components/overlayPlayer", () => {
 			expect(getTwitchClipPlaybackUrl).toHaveBeenCalledWith("no-quality", "owner-1");
 		});
 		expect(screen.queryByText("clip-no-quality")).not.toBeInTheDocument();
+	});
+	it("TDD-US1-FR004 player bridge: a Runner drain finishes its active clip and blocks prefetched advancement", async () => {
+		getTwitchClipBatch.mockResolvedValue([buildClip("drain-current", { view_count: 900 }), buildClip("drain-next", { view_count: 100 })]);
+		Reflect.set(window, "__clipifyRunnerExecution", { generation: "component-drain-generation" });
+		try {
+			render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
+			await screen.findByText("clip-drain-current");
+			const current = document.querySelector("video") as HTMLVideoElement;
+			setVideoTiming(current, 30, 10);
+			fireEvent.timeUpdate(current);
+			const bridge = window.clipifyRunnerPresentation;
+			expect(bridge).toBeDefined();
+			if (!bridge) return;
+			const pausesBefore = pauseMock.mock.contexts.filter((context) => context === current).length;
+			act(() => {
+				bridge.requestDrain("component-drain-generation");
+			});
+			expect(bridge.snapshot().state).toBe("draining");
+			expect(pauseMock.mock.contexts.filter((context) => context === current)).toHaveLength(pausesBefore);
+			const plays = playMock.mock.calls.length;
+			setVideoTiming(current, 30, 29.8);
+			fireEvent.timeUpdate(current);
+			setVideoTiming(current, 30, 30);
+			fireEvent.ended(current);
+			await act(async () => {
+				await Promise.resolve();
+				await Promise.resolve();
+			});
+			expect(bridge.snapshot().state).toBe("drained");
+			expect(playMock.mock.calls.length).toBe(plays);
+			expect(screen.queryByText("clip-drain-next")).not.toBeInTheDocument();
+		} finally {
+			Reflect.deleteProperty(window, "__clipifyRunnerExecution");
+		}
+	});
+	it("TDD-US3-CON010 U261: drain cancels a prepared crossfade before incoming playback starts", async () => {
+		jest.useFakeTimers();
+		getTwitchClipBatch.mockResolvedValue([buildClip("pending-current", { title: "pending-current", view_count: 900 }), buildClip("pending-next", { title: "pending-next", view_count: 100 })]);
+		Reflect.set(window, "__clipifyRunnerExecution", { generation: "pending-crossfade" });
+		try {
+			render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
+			await screen.findByText("pending-current");
+			await prepareInactiveVideo();
+			const [current, incoming] = Array.from(document.querySelectorAll("video"));
+			fireEvent.canPlay(incoming);
+			setVideoTiming(current, 10, 9.5);
+			fireEvent.timeUpdate(current);
+			const bridge = window.clipifyRunnerPresentation!;
+			act(() => {
+				bridge.requestDrain("pending-crossfade");
+			});
+			expect(bridge.canAdvance()).toBe(false);
+			expect(bridge.snapshot().pendingClipIds).toEqual(["a"]);
+			await act(async () => {
+				jest.advanceTimersByTime(1000);
+			});
+			expect(screen.getByText("pending-current")).toBeInTheDocument();
+			expect(bridge.snapshot().state).toBe("draining");
+			fireEvent.ended(current);
+			expect(bridge.snapshot().state).toBe("drained");
+		} finally {
+			Reflect.deleteProperty(window, "__clipifyRunnerExecution");
+		}
+	});
+
+	it("TDD-US3-OPT039: the generated player enforces its native deadline before next-clip advancement", async () => {
+		jest.useFakeTimers();
+		getTwitchClipBatch.mockResolvedValue([buildClip("exact-current", { view_count: 900 }), buildClip("exact-next", { view_count: 100 })]);
+		Reflect.set(window, "__clipifyRunnerExecution", { generation: "exact-component", deadlineMonotonic: performance.now() + 1000 });
+		try {
+			render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
+			await screen.findByText("clip-exact-current");
+			const current = document.querySelector("video") as HTMLVideoElement;
+			setVideoTiming(current, 30, 29.99);
+			await act(async () => {
+				jest.advanceTimersByTime(1000);
+			});
+			act(() => {
+				expect(window.clipifyRunnerPresentation!.canAdvance()).toBe(false);
+			});
+			expect(window.clipifyRunnerPresentation!.snapshot().pendingClipIds).toEqual(["a"]);
+			const plays = playMock.mock.calls.length;
+			fireEvent.ended(current);
+			await act(async () => {
+				await Promise.resolve();
+			});
+			expect(window.clipifyRunnerPresentation!.snapshot().state).toBe("drained");
+			expect(playMock.mock.calls.length).toBe(plays);
+		} finally {
+			Reflect.deleteProperty(window, "__clipifyRunnerExecution");
+		}
 	});
 });
