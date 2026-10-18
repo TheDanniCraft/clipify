@@ -1,6 +1,7 @@
 import NextLink from "next/link";
 import type { ReactNode } from "react";
 import { buttonVariants } from "@heroui/styles";
+import { Button } from "@heroui/react";
 import { IconAlertCircle, IconCircleCheck, IconCircleX } from "@tabler/icons-react";
 
 import type { RunnerEnrollActionState } from "./actions";
@@ -132,14 +133,14 @@ export default function RunnerEnrollResult({ state, onReset }: RunnerEnrollResul
 			<Icon className={iconClassName} size={56} stroke={1.8} />
 			<div className='space-y-2'>
 				<h1 className='text-2xl font-semibold'>{result.title}</h1>
-				<p className='text-sm text-muted-foreground'>{result.description}</p>
+				<p className='text-sm text-muted'>{result.description}</p>
 			</div>
 			{result.actionComponent ? (
 				result.actionComponent
 			) : canReset ? (
-				<button type='button' className={buttonVariants({ variant: "secondary" })} onClick={onReset}>
+				<Button type='button' variant='secondary' onPress={onReset}>
 					{result.actionLabel}
-				</button>
+				</Button>
 			) : (
 				<NextLink href={result.actionHref ?? "/runner/enroll"} className={buttonVariants({ variant: result.tone === "success" ? "primary" : "secondary" })}>
 					{result.actionLabel}

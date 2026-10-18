@@ -41,7 +41,7 @@ export default async function RunnerSelectPage({ searchParams }: RunnerSelectPag
 							<IconAlertCircle className='text-warning' size={56} stroke={1.8} />
 							<div className='space-y-2'>
 								<h1 className='text-2xl font-semibold'>No runner available</h1>
-								<p className='text-sm text-muted-foreground'>Create or download a runner from your dashboard, then enter the new code.</p>
+								<p className='text-sm text-muted'>Create or download a runner from your dashboard, then enter the new code.</p>
 							</div>
 							<NextLink href='/dashboard' className={buttonVariants({ variant: "secondary" })}>
 								Open dashboard
