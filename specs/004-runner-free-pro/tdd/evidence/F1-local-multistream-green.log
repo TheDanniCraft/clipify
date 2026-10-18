@@ -1,0 +1,22 @@
+
+Running 5 tests using 1 worker
+
+(node:50859) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:50885) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [bdd-chromium] › .features-gen/bdd/mcp-workflows/runner-multistream.feature.spec.js:6:7 › Runner multistream delivery › A Pro broadcast delivers one capture to YouTube and Twitch @BDD @US2 @FR-006 @BDD-US2-FR006 (25.9s)
+(node:53548) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 [bdd-chromium] › .features-gen/bdd/mcp-workflows/runner-multistream.feature.spec.js:12:7 › Runner multistream delivery › Two Pro devices broadcast independently at the same time @BDD @US2 @FR-007 @BDD-US2-FR007 (21.0s)
+(node:56633) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 [bdd-chromium] › .features-gen/bdd/mcp-workflows/runner-multistream.feature.spec.js:20:9 › Runner multistream delivery › A selected provider receives the complete broadcast › Example #1 @BDD @US2 @FR-006 @BDD-US2-OPT010 (20.9s)
+(node:58347) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  4 [bdd-chromium] › .features-gen/bdd/mcp-workflows/runner-multistream.feature.spec.js:26:9 › Runner multistream delivery › A selected provider receives the complete broadcast › Example #2 @BDD @US2 @FR-006 @BDD-US2-OPT011 (20.4s)
+(node:60031) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  5 [bdd-chromium] › .features-gen/bdd/mcp-workflows/runner-multistream.feature.spec.js:32:9 › Runner multistream delivery › A selected provider receives the complete broadcast › Example #3 @BDD @US2 @FR-006 @BDD-US2-OPT012 (21.1s)
+
+  5 passed (1.9m)

@@ -1803,13 +1803,13 @@ Verification for DEF-US5-245: current-source CI run39109433179 passes the owning
 
 ## DEF-US5-246 — Workflow coverage owner lacks FFmpeg
 
-Severity: Medium. Status: Fixed, CI verification pending. Owner: Feature implementer. Scope: workflow coverage CI environment.
+Severity: Medium. Status: Verified. Owner: Feature implementer. Scope: workflow coverage CI environment.
 
 CI39109433179 job117622444680 fails real multistream scenarios with `spawnSync ffmpeg ENOENT` while generating local media. Native CI installs FFmpeg, but the separate owning workflow coverage lane did not. Add FFmpeg only to that owning lane and retain the existing complete scenario inventory, coverage thresholds and assertions. Failed workflow log retained as `tdd/evidence/F1-ci-workflows-missing-ffmpeg.log`; the failure is an incomplete environment run, not valid product Red.
 
 ## DEF-US5-247 — Composite foreign-key targets are created after references
 
-Severity: High. Status: Fixed, CI verification pending. Owner: Feature implementer. Scope: declarative Runner schema and fresh database initialization.
+Severity: High. Status: Verified. Owner: Feature implementer. Scope: declarative Runner schema and fresh database initialization.
 
 CI39109433179 browser BDD job117622817944 initially reports `there is no unique constraint matching given keys for referenced table runner_branding_assets` during guarded schema push. Drizzle then leaves an incomplete database, causing later rate-counter ON CONFLICT errors and registration HTTP503. Local schema fixtures created indexes before foreign keys, hiding the ordinary schema-push ordering problem.
 
@@ -1818,3 +1818,15 @@ Declare the six referenced owner/identity composite keys as named unique constra
 Additional DEF-US5-247 regression: the schema-push CLI can return process status0 while reporting the SQL error. The guarded wrapper now captures output, forwards it for diagnosis and fails on reported errors or unsuccessful process status. Target validation remains unchanged and runs before execution. `scripts/push-e2e-schema.test.mjs` records a failing missing-guard export before implementation and then nine passing restriction/error-handling cases; retained red/green logs identify this small guard cycle. Actual schema push remains restricted to the owning CI browser job and is not executed locally.
 
 DEF-US5-246 prerequisite review: workflow media helpers also launch the actual native CLI and `nativeChromePath()`. Provision its separate frozen Runner install, validate patched/native dependencies, prepare its version-matched Chrome, and install Chrome's declared `deb.deps` in the owning workflow lane. Root Playwright installation alone does not satisfy that native capture dependency. These mirror the already successful native-test job prerequisites, without duplicating its execution evidence.
+
+Local verification for DEF-US5-246/247: export Drizzle schema SQL to temporary stdout files (no migration generation or guarded schema push), then apply each to a separately created loopback database. The pre-fix schema fails with PostgreSQL42830 on runner_branding_assets; corrected schema creates all69 tables, all six expected unique constraints, and a successful repeated rate-counter ON CONFLICT update. Both databases are removed in finally cleanup. `tdd/evidence/F1-fresh-drizzle-schema-red-green.json` retains SQL hashes and exact outcomes; the reproduction script is retained beside it. The complete runner-multistream workflow file passes5/5 locally with retries0 in1.9minutes (`F1-local-multistream-green.log`). An initial rejected selector consumed the filename as a project because --project was space-separated; it executed no tests and is retained separately, excluded from qualification. Fresh complete CI remains required for closure.
+
+## DEF-US5-248 — Browser BDD native fallback lacks Runner dependencies
+
+Severity: Medium. Status: Fixed, verification pending. Owner: Feature implementer. Scope: browser BDD job prerequisites.
+
+CI39111034372 job117627528006 passes fresh schema initialization and reaches its native fallback presentation scenario, then fails with ERR_MODULE_NOT_FOUND for @puppeteer/browsers from packages/runner/test/support/native-media.mjs. That genuine browser journey owns a native fallback subprocess, but the browser jobs only installed root dependencies and Playwright. Provision frozen native dependencies, patch/native checks, prepared native Chrome, declared Chrome libraries and FFmpeg for each BDD shard; retain the genuine browser owner and assertions. A source scan confirms runner-presentation.ts is the browser suite's native subprocess entry and runner-readability.ts also needs FFmpeg. Verify the complete affected browser feature locally before pushing this prerequisite correction.
+
+DEF-US5-246/247 CI verification: run39111034372 passes all six coverage lanes, including434/434 workflow scenarios and their physical media owner, plus fresh browser schema setup, complete ATDD, acceptance and compliance jobs. The remaining browser-native/readability dependency failures are tracked separately under DEF-US5-248.
+
+DEF-US5-248 also covers BDD2 job117627528035 failing watermark-frame decoding with `spawnSync ffmpeg ENOENT`. The same BDD-only prerequisite steps install FFmpeg, the frozen Runner dependencies and prepared Chrome for every shard, independently of scenario placement. On a rebuilt current-source local app and separate fresh databases, the complete presentation feature passes4/4 (including actual native live/fallback/return), and complete readability feature passes6/6 across1920/360 widths and light/dark/busy frames. Both runs use retries0. Evidence: F1-local-browser-presentation-green.log, F1-local-browser-readability-green.log and build log. No assertion, deadline, source behavior or gate threshold changes. CI verification remains pending.

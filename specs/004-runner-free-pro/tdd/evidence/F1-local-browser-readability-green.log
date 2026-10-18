@@ -1,0 +1,65 @@
+[WebServer] (node:67568) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:67568) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 6 tests using 1 worker
+
+(node:67680) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  1 [bdd-chromium] › .features-gen/bdd/runner-readability.feature.spec.js:8:9 › Runner attribution readability › Fixed attribution remains readable on <background> frames at <width> pixels › Fixed attribution remains readable on light frames at 1920 pixels @BDD @US4 @FR-017 @BDD-US4-DEC011 @runner-readability-browser (10.4s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  2 [bdd-chromium] › .features-gen/bdd/runner-readability.feature.spec.js:14:9 › Runner attribution readability › Fixed attribution remains readable on <background> frames at <width> pixels › Fixed attribution remains readable on dark frames at 1920 pixels @BDD @US4 @FR-017 @BDD-US4-DEC011 @runner-readability-browser (9.8s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  3 [bdd-chromium] › .features-gen/bdd/runner-readability.feature.spec.js:20:9 › Runner attribution readability › Fixed attribution remains readable on <background> frames at <width> pixels › Fixed attribution remains readable on busy frames at 1920 pixels @BDD @US4 @FR-017 @BDD-US4-DEC011 @runner-readability-browser (9.6s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  4 [bdd-chromium] › .features-gen/bdd/runner-readability.feature.spec.js:26:9 › Runner attribution readability › Fixed attribution remains readable on <background> frames at <width> pixels › Fixed attribution remains readable on light frames at 360 pixels @BDD @US4 @FR-017 @BDD-US4-DEC011 @runner-readability-browser (9.1s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  5 [bdd-chromium] › .features-gen/bdd/runner-readability.feature.spec.js:32:9 › Runner attribution readability › Fixed attribution remains readable on <background> frames at <width> pixels › Fixed attribution remains readable on dark frames at 360 pixels @BDD @US4 @FR-017 @BDD-US4-DEC011 @runner-readability-browser (9.6s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  6 [bdd-chromium] › .features-gen/bdd/runner-readability.feature.spec.js:38:9 › Runner attribution readability › Fixed attribution remains readable on <background> frames at <width> pixels › Fixed attribution remains readable on busy frames at 360 pixels @BDD @US4 @FR-017 @BDD-US4-DEC011 @runner-readability-browser (9.1s)
+
+  6 passed (1.1m)
