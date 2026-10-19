@@ -1,0 +1,3 @@
+# Repository plugin preferences. Hook trust remains a per-user decision.
+[plugins."ponytail@clipify"]
+enabled = true

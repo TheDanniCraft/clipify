@@ -67,6 +67,8 @@ You can upgrade to Pro directly on [clipify.us](https://clipify.us).
 
 ### Local tests
 
+For Codex contributors, see [project plugin setup](docs/codex-plugins.md).
+
 Follow [the local test setup guide](docs/local-testing.md) before running the
 complete Jest, native workflow or browser checks. These require disposable
 localhost PostgreSQL, the CI template environment and Chromium system libraries;
