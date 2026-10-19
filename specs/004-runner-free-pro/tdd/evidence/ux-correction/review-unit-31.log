@@ -1,0 +1,7 @@
+[tests] ordinary: 3 suites, 1 worker(s)
+
+Test Suites: 3 passed, 3 total
+Tests:       31 passed, 31 total
+Snapshots:   0 total
+Time:        2.921 s
+Ran all test suites matching test/app/components/runnerBrandingPreview.test.tsx|test/app/components/runnerControlSelection.test.tsx|test/app/dashboard/runner.polling.test.tsx.

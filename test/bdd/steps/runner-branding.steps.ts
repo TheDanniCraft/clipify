@@ -40,18 +40,17 @@ async function expectCornerAttribution(badge: Locator, selectedCorner: string) {
 
 Then("choosing {word} persists and the preview and generated presentation use that corner", async ({ page, mcpWorld }, selectedCorner: string) => {
 	const label = ({ "top-left": "Top left", "top-right": "Top right", "bottom-left": "Bottom left", "bottom-right": "Bottom right" } as Record<string, string>)[selectedCorner];
-	const corner = page.getByRole("button", { name: /Attribution corner$/ });
-	await expect(corner, "The owner must have an attribution corner selector").toBeVisible();
-	await corner.click();
-	const option = page.getByRole("option", { name: label, exact: true });
-	await expect(option, `The owner must be able to choose ${label}`).toBeVisible();
-	await option.click();
+	const corner = page.getByRole("radiogroup", { name: "Attribution position", exact: true });
+	await expect(corner, "The owner must have a visual attribution position picker").toBeVisible();
+	const option = corner.getByRole("radio", { name: label, exact: true });
+	await corner.getByText(label, { exact: true }).click();
+	await expect(option).toBeChecked();
 	await expectCornerAttribution(page.frameLocator('iframe[title="Runner appearance preview"]').getByLabel("Livestream powered by Clipify.us", { exact: true }), selectedCorner);
 	await page.getByRole("button", { name: "Save appearance", exact: true }).click();
 	await expect(page.getByRole("status").filter({ hasText: "Appearance saved" })).toBeVisible();
 	await page.reload();
 	await openRunnerAppearance(page);
-	await expect(corner).toContainText(label);
+	await expect(option).toBeChecked();
 	await expectCornerAttribution(page.frameLocator('iframe[title="Runner appearance preview"]').getByLabel("Livestream powered by Clipify.us", { exact: true }), selectedCorner);
 	const world = state(mcpWorld.input);
 	const response = await page.request.post("http://127.0.0.1:3107/api/runner/presentation", { headers: { Authorization: `Bearer ${world.token}` }, data: { sessionId: world.sessionId, executionGeneration: world.generation } });

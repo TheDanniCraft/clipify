@@ -1,7 +1,7 @@
 "use client";
 
 import { Label, ListBox, Select } from "@heroui/react";
-import { IconLock } from "@tabler/icons-react";
+import { IconCrown } from "@tabler/icons-react";
 import type { StreamControlMode } from "@types";
 
 export default function RunnerControlSelection({ value, clipPlayback, scheduling, onChange, onUpgrade }: { value: StreamControlMode; clipPlayback: boolean; scheduling: boolean | null; onChange: (value: StreamControlMode) => void; onUpgrade: () => void }) {
@@ -31,7 +31,7 @@ export default function RunnerControlSelection({ value, clipPlayback, scheduling
 					<ListBox.Item id='scheduled' textValue='Scheduled' isDisabled={!clipPlayback || scheduling === null}>
 						<ListBox.ItemIndicator />
 						<Label>Scheduled</Label>
-						{scheduling === false && <IconLock size={16} role='img' aria-label='Requires Pro' />}
+						{scheduling === false && <IconCrown size={16} className='text-amber-200' role='img' aria-label='Requires Pro' />}
 					</ListBox.Item>
 				</ListBox>
 			</Select.Popover>

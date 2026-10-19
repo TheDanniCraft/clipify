@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Button, Label, ListBox, Select, Switch } from "@heroui/react";
+import { Button, Label, Radio, RadioGroup, Switch, Tabs } from "@heroui/react";
 import StandbyEditor from "./StandbyEditor";
 import { getRunnerBrandingProfile, saveRunnerBrandingProfile } from "@/app/actions/runner";
 
@@ -186,31 +186,34 @@ export default function RunnerBrandingPreview({ ownerId, runnerId, overlayId, re
 						</Switch.Content>
 					</Switch>
 				)}
-				<Select
+				<RadioGroup
 					value={corner}
 					onChange={(value) => {
-						setCorner(String(value) as Profile["watermarkCorner"]);
+						setCorner(value as Profile["watermarkCorner"]);
 						setNotice(null);
 					}}
 					variant='secondary'
 					isDisabled={!profile || saving || uploading}
 				>
-					<Label>Attribution corner</Label>
-					<Select.Trigger>
-						<Select.Value />
-						<Select.Indicator />
-					</Select.Trigger>
-					<Select.Popover>
-						<ListBox>
-							{corners.map((item) => (
-								<ListBox.Item key={item.id} id={item.id} textValue={item.name}>
-									<ListBox.ItemIndicator />
-									<Label>{item.name}</Label>
-								</ListBox.Item>
-							))}
-						</ListBox>
-					</Select.Popover>
-				</Select>
+					<Label>Attribution position</Label>
+					<div className='grid grid-cols-2 gap-3'>
+						{corners.map((item) => (
+							<Radio key={item.id} value={item.id} className='mt-0!'>
+								<Radio.Content aria-label={item.name} className={`w-full flex-col items-stretch gap-2 rounded-lg border p-3 ${corner === item.id ? "border-accent" : "border-separator"}`}>
+									<span aria-hidden='true' className='relative block aspect-video w-full rounded-md bg-secondary'>
+										<span className={`absolute h-2 w-6 rounded-sm bg-accent ${item.id.startsWith("top") ? "top-2" : "bottom-2"} ${item.id.endsWith("left") ? "left-2" : "right-2"}`} />
+									</span>
+									<span className='flex items-center gap-2 text-sm'>
+										<Radio.Control>
+											<Radio.Indicator />
+										</Radio.Control>
+										{item.name}
+									</span>
+								</Radio.Content>
+							</Radio>
+						))}
+					</div>
+				</RadioGroup>
 				<Button onPress={() => void save()} isDisabled={!profile || !overlayId || saving || uploading}>
 					Save appearance
 				</Button>
@@ -222,19 +225,25 @@ export default function RunnerBrandingPreview({ ownerId, runnerId, overlayId, re
 			</div>
 			<div className='space-y-4 xl:sticky xl:top-0 xl:self-start'>
 				{profile && overlayId && (
-					<div role='group' aria-label='Appearance preview mode' className='flex flex-wrap gap-2 px-6 sm:px-0'>
-						<Button variant={previewMode === "standby" ? "primary" : "secondary"} aria-pressed={previewMode === "standby"} onPress={() => setPreviewMode("standby")} isDisabled={saving || uploading}>
-							Preview standby
-						</Button>
-						<Button variant={previewMode === "playback" ? "primary" : "secondary"} aria-pressed={previewMode === "playback"} onPress={() => setPreviewMode("playback")} isDisabled={saving || uploading}>
-							Preview clips
-						</Button>
-					</div>
-				)}
-				{profile && overlayId && (
-					<div ref={previewContainerRef} className='relative aspect-video w-full overflow-hidden bg-black ring-1 ring-separator sm:rounded-xl'>
-						<iframe ref={previewRef} key={`${runnerId}:${overlayId}:${resolution}`} onLoad={sendPreviewDraft} title='Runner appearance preview' src={`/runner/preview/${runnerId}?overlayId=${encodeURIComponent(overlayId)}`} className='absolute left-0 top-0 max-w-none border-0' style={{ width: previewCanvas.width, height: previewCanvas.height, transform: `scale(${previewWidth / previewCanvas.width})`, transformOrigin: "top left" }} />
-					</div>
+					<Tabs selectedKey={previewMode} onSelectionChange={(key) => setPreviewMode(key as "standby" | "playback")} isDisabled={saving || uploading} className='space-y-4'>
+						<Tabs.ListContainer className='mx-6 w-fit sm:mx-0'>
+							<Tabs.List aria-label='Appearance preview mode'>
+								<Tabs.Tab id='standby'>
+									Standby
+									<Tabs.Indicator />
+								</Tabs.Tab>
+								<Tabs.Tab id='playback'>
+									Clips
+									<Tabs.Indicator />
+								</Tabs.Tab>
+							</Tabs.List>
+						</Tabs.ListContainer>
+						<Tabs.Panel id={previewMode} className='p-0'>
+							<div ref={previewContainerRef} className='relative aspect-video w-full overflow-hidden bg-black ring-1 ring-separator sm:rounded-xl'>
+								<iframe ref={previewRef} key={`${runnerId}:${overlayId}:${resolution}`} onLoad={sendPreviewDraft} title='Runner appearance preview' src={`/runner/preview/${runnerId}?overlayId=${encodeURIComponent(overlayId)}`} className='absolute left-0 top-0 max-w-none border-0' style={{ width: previewCanvas.width, height: previewCanvas.height, transform: `scale(${previewWidth / previewCanvas.width})`, transformOrigin: "top left" }} />
+							</div>
+						</Tabs.Panel>
+					</Tabs>
 				)}
 			</div>
 		</div>
