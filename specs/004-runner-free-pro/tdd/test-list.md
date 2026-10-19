@@ -1264,3 +1264,4 @@ The correction's outer browser UX journeys are added after the first implementat
 
 - [x] UX-C11 Database fixture SQL changes alter coverage execution identity (whole-file Red/Green; current full CI verified).
 - [x] UX-C12 Installed preview Tabs support arrow keys without iframe navigation; four visual corner choices update previews and preserve keyboard selection; icon-only Unlink, full-width Appearance, Pro crown and centered/mobile geometry match the shared editor conventions. The real three-journey acceptance owner passes; presentation regression and final full gates remain required for release.
+- [x] UX-C13 The exact-boundary Pause fixture keeps native shutdown suspended through the renderer proof, then resumes the real watchdog so an early native tick cannot strand outputs; preserve final-frame/no-next-clip assertions and require a persisted closed-output receipt. Trace: BDD-US3-EC010. Whole recovery owner Red5/1, Green6/0; complete CI remains required.
