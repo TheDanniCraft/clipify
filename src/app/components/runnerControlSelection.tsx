@@ -31,7 +31,7 @@ export default function RunnerControlSelection({ value, clipPlayback, scheduling
 					<ListBox.Item id='scheduled' textValue='Scheduled' isDisabled={!clipPlayback || scheduling === null}>
 						<ListBox.ItemIndicator />
 						<Label>Scheduled</Label>
-						{scheduling === false && <IconCrown size={16} className='text-amber-200' role='img' aria-label='Requires Pro' />}
+						{scheduling === false && <IconCrown size={16} className='text-warning' role='img' aria-label='Requires Pro' />}
 					</ListBox.Item>
 				</ListBox>
 			</Select.Popover>
