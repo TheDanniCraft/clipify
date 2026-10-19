@@ -125,13 +125,23 @@ test("Runner preserves first connection, headless setup, updates, quality and re
 				await setup.getByRole("button", { name: platform.startsWith("linux") ? "Download for Linux" : "Download for macOS", exact: true }).click();
 				await page.getByRole("menuitem", { name: ({ linux: "Linux x64", "linux-arm64": "Linux ARM64", macos: "macOS Intel", "macos-arm64": "macOS Apple Silicon" } as Record<string, string>)[platform], exact: true }).click();
 			}
-			const install = page.getByRole("dialog", { name: /Install Clipify Runner for/ });
+			const install = page.getByRole("dialog", { name: "Your download is starting" });
 			await expect(install).toBeVisible();
+			await expect(install.getByText(/^Clipify Runner for/)).toBeVisible();
+			const retry = install.getByRole("link", { name: /^download again/ });
+			await expect(retry).toHaveAttribute("aria-disabled", "true");
+			if (platform === "windows") {
+				await expect(retry).not.toHaveAttribute("aria-disabled", "true", { timeout: 7_000 });
+				await retry.focus();
+				await page.keyboard.press("Enter");
+				await expect(retry).toHaveAttribute("aria-disabled", "true");
+				await expect(retry).toContainText(/\([1-5]s\)/);
+			}
 			if (platform.startsWith("linux")) await expect(install.getByText(`chmod +x clipify-runner-${platform}`, { exact: true })).toBeVisible();
 			await install.getByRole("button", { name: "Close", exact: true }).click();
 			await expect(install).not.toBeVisible();
 		}
-		expect(await page.evaluate(() => JSON.parse(document.documentElement.dataset.runnerDownloads ?? "[]"))).toEqual(["windows", "linux", "linux-arm64", "macos", "macos-arm64"]);
+		expect(await page.evaluate(() => JSON.parse(document.documentElement.dataset.runnerDownloads ?? "[]"))).toEqual(["windows", "windows", "linux", "linux-arm64", "macos", "macos-arm64"]);
 		for (const theme of ["dark", "light"]) {
 			if (theme === "light") await page.getByRole("button", { name: "Toggle Theme", exact: true }).click();
 			for (const viewport of [
@@ -141,6 +151,11 @@ test("Runner preserves first connection, headless setup, updates, quality and re
 				await page.setViewportSize(viewport);
 				await expectCenteredSetup();
 				await page.screenshot({ path: testInfo.outputPath(`runner-first-connection-${theme}-${viewport.width}.png`), fullPage: true, animations: "disabled" });
+				await setup.getByRole("button", { name: "Download for Windows", exact: true }).click();
+				const downloadDialog = page.getByRole("dialog", { name: "Your download is starting" });
+				await expect(downloadDialog).toBeVisible();
+				await page.screenshot({ path: testInfo.outputPath(`runner-download-${theme}-${viewport.width}.png`), fullPage: true, animations: "disabled" });
+				await downloadDialog.getByRole("button", { name: "Close", exact: true }).click();
 				expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 			}
 		}
