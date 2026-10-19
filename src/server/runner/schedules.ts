@@ -40,7 +40,7 @@ const scheduleInput = z
 		overlayId: z.uuid(),
 		id: z.uuid().optional(),
 		expectedRevision: z.number().int().positive().max(2_147_483_646).optional(),
-		title: z.string().trim().min(1).max(80),
+		title: z.string().trim().min(1, "Enter an event title.").max(80, "Use 80 characters or fewer."),
 		timezone: z
 			.string()
 			.min(1)
