@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button, Chip, Input, Label, ListBox, Modal, Select, Table, TextField, Tooltip } from "@heroui/react";
 import { IconPlus, IconPencil, IconTrash } from "@tabler/icons-react";
 import { deleteRunnerDestination, listRunnerDestinations, saveRunnerDestination } from "@/app/actions/runner";
@@ -16,11 +16,13 @@ const providers = [
 type Provider = (typeof providers)[number]["id"];
 const endpoints = { twitch: "rtmp://live.twitch.tv/app", youtube: "rtmp://a.rtmp.youtube.com/live2", custom: "" };
 
-export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ownerId: string; runnerId: string; onChange?: () => void }) {
+export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ownerId: string; runnerId: string; onChange?: (change?: { deletedId: string }) => void }) {
 	const [destinations, setDestinations] = useState<RunnerDestinationView[]>([]);
 	const [open, setOpen] = useState(false);
 	const [editing, setEditing] = useState<RunnerDestinationView | null>(null);
 	const [deleting, setDeleting] = useState<RunnerDestinationView | null>(null);
+	const addButtonRef = useRef<HTMLButtonElement>(null);
+	const focusAddAfterDelete = useRef(false);
 	const [name, setName] = useState("");
 	const [provider, setProvider] = useState<Provider>("twitch");
 	const [url, setUrl] = useState(endpoints.twitch);
@@ -47,6 +49,13 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 			current = false;
 		};
 	}, [ownerId, runnerId]);
+
+	useEffect(() => {
+		if (!deleting && focusAddAfterDelete.current) {
+			focusAddAfterDelete.current = false;
+			addButtonRef.current?.focus();
+		}
+	}, [deleting]);
 
 	function edit(destination: RunnerDestinationView | null) {
 		setEditing(destination);
@@ -89,7 +98,7 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 		setSaving(true);
 		setError(null);
 		try {
-			const result = await deleteRunnerDestination({ ownerId, id: deleting.id, expectedRevision: deleting.configurationRevision });
+			const result = await deleteRunnerDestination({ ownerId, id: deleting.id, expectedRevision: deleting.configurationRevision, removeFromSavedBroadcasts: true });
 			if (!result.success) {
 				setError(result.error);
 				if (result.code === "CONFLICT") {
@@ -100,7 +109,8 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 				return;
 			}
 			setDestinations((current) => current.filter((row) => row.id !== deleting.id));
-			onChange?.();
+			onChange?.({ deletedId: deleting.id });
+			focusAddAfterDelete.current = true;
 			setDeleting(null);
 		} catch {
 			setError("Could not delete the destination. Please try again.");
@@ -113,7 +123,7 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 		<>
 			<section className='space-y-4'>
 				<div className='flex justify-end'>
-					<Button variant='secondary' onPress={() => edit(null)}>
+					<Button ref={addButtonRef} variant='secondary' onPress={() => edit(null)}>
 						<IconPlus size={16} />
 						Add destination
 					</Button>
@@ -201,7 +211,7 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 				confirmLabel='Delete destination'
 				description={
 					<div className='space-y-3'>
-						<p>Remove “{deleting?.name}” and its saved key?</p>
+						<p>Delete “{deleting?.name}” and its saved key? It will also be removed from stopped broadcasts.</p>
 						{error && (
 							<p role='alert' className='text-sm text-danger'>
 								{error}

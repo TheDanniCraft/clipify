@@ -286,3 +286,32 @@ test.each([
 	if (entry === "mcp_change") expect(result.attempted).toMatchObject({ credentialsRequired: true, credentialsConfigured: false });
 	if (entry === "mcp_same") expect(result.attempted).toMatchObject({ credentialsRequired: false, credentialsConfigured: true });
 });
+
+test("confirmed deletion detaches a stopped saved broadcast and clears its legacy endpoint", () => {
+	const result = flowProbe("catalogue:workflow:runner_free_pro:destinations_delete_detach");
+	expect(result.attempted).toMatchObject({ success: true });
+	expect(result.stored).toHaveLength(0);
+	expect(result.reopened.destinations).toHaveLength(0);
+	expect(result.sessionReferences).toBe(0);
+	expect(result.savedBroadcast).toEqual({ rtmp_url: "", has_key: false, configuration_revision: 2 });
+	expect(result.safe).toBe(true);
+});
+
+test.each(["active", "cached", "uncertain", "running", "desired", "snapshot", "schedule", "stale", "rollback"])("confirmed deletion preserves a destination and its saved selection when %s prevents removal", (variant) => {
+	const result = flowProbe(`catalogue:workflow:runner_free_pro:destinations_delete_detach_${variant}`);
+	expect(result.attempted).toMatchObject({ success: false, ...(variant === "stale" ? { code: "CONFLICT" } : variant !== "rollback" ? { code: "RESOURCE_IN_USE" } : {}) });
+	expect(result.unchanged).toBe(true);
+	expect(result.sessionReferences).toBe(variant === "snapshot" ? 0 : 1);
+	expect(result.savedBroadcast).toEqual({ rtmp_url: "rtmp://live.twitch.tv/app", has_key: true, configuration_revision: 1 });
+	expect(result.safe).toBe(true);
+});
+
+test("confirmed deletion retains other selected destinations and their compatible endpoint", () => {
+	const result = flowProbe("catalogue:workflow:runner_free_pro:destinations_delete_detach_multiple");
+	expect(result.attempted).toMatchObject({ success: true });
+	expect(result.sessionReferences).toBe(0);
+	expect(result.remainingTargets).toEqual(["Backup"]);
+	expect(result.savedBroadcast).toEqual({ rtmp_url: "rtmp://127.0.0.1:1943/backup", has_key: false, configuration_revision: 2 });
+	expect(result.reopened.destinations.map((row: { name: string }) => row.name)).toEqual(["Backup"]);
+	expect(result.safe).toBe(true);
+});

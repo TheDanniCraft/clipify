@@ -1,0 +1,33 @@
+$ jest --runInBand --runTestsByPath test/server/runner/destination-editor.test.ts "--coverage=false"
+[tests] Native application probes compiled once for this run
+[tests] database: 1 suites, 1 worker(s)
+FAIL test/server/runner/destination-editor.test.ts (124.95 s)
+  ● confirmed deletion preserves a destination and its saved selection when snapshot prevents removal
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 2
+    + Received  + 1
+
+      Object {
+    -   "code": "RESOURCE_IN_USE",
+    -   "success": false,
+    +   "success": true,
+      }
+
+      300 | test.each(["active", "cached", "uncertain", "running", "desired", "snapshot", "schedule", "stale", "rollback"])("confirmed deletion preserves a destination and its saved selection when %s prevents removal", (variant) => {
+      301 | 	const result = flowProbe(`catalogue:workflow:runner_free_pro:destinations_delete_detach_${variant}`);
+    > 302 | 	expect(result.attempted).toMatchObject({ success: false, ...(variant === "stale" ? { code: "CONFLICT" } : variant !== "rollback" ? { code: "RESOURCE_IN_USE" } : {}) });
+          | 	                         ^
+      303 | 	expect(result.unchanged).toBe(true);
+      304 | 	expect(result.sessionReferences).toBe(variant === "snapshot" ? 0 : 1);
+      305 | 	expect(result.savedBroadcast).toEqual({ rtmp_url: "rtmp://live.twitch.tv/app", has_key: true, configuration_revision: 1 });
+
+      at toMatchObject (test/server/runner/destination-editor.test.ts:302:27)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 47 passed, 48 total
+Snapshots:   0 total
+Time:        125.471 s
+Ran all test suites within paths "test/server/runner/destination-editor.test.ts".
+error: script "test" exited with code 1

@@ -1,9 +1,9 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { and, asc, eq, isNull, or, inArray } from "drizzle-orm";
+import { and, asc, eq, isNull, or, inArray, arrayContains, ne } from "drizzle-orm";
 import { z } from "zod";
 import { db, type DatabaseClient, type TransactionClient } from "@/db/client";
-import { auditEventsTable, runnerDestinationsTable, runnersTable, streamSessionDestinationsTable, streamSessionsTable, runnerScheduleEventDestinationsTable } from "@/db/schema";
+import { auditEventsTable, runnerDestinationsTable, runnersTable, streamSessionDestinationsTable, streamSessionsTable, runnerScheduleEventDestinationsTable, runnerBroadcastAdmissionsTable } from "@/db/schema";
 import type { TrustedCreatorPrincipal } from "@/auth/authorize-operation";
 import { authorizeLockedMutation } from "@/server/resources/mutation";
 import { resourceFailure } from "@/server/resources/errors";
@@ -193,8 +193,43 @@ export async function selectedDestinationsHaveCredentials(tx: TransactionClient,
 	return selected.every((target) => target.provider === "custom" || Boolean(target.encryptedStreamKey));
 }
 
+/** Caller owns the creator lock, so Start/configuration cannot race this detach. */
+async function detachStoppedBroadcasts(tx: TransactionClient, owner: string, destinationId: string, sessionIds: string[]) {
+	const sessions = sessionIds.length
+		? await tx
+				.select()
+				.from(streamSessionsTable)
+				.where(and(eq(streamSessionsTable.ownerId, owner), inArray(streamSessionsTable.id, sessionIds)))
+				.orderBy(asc(streamSessionsTable.id))
+				.for("update")
+		: [];
+	const [openAdmission] = await tx
+		.select({ id: runnerBroadcastAdmissionsTable.id })
+		.from(runnerBroadcastAdmissionsTable)
+		.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, owner), inArray(runnerBroadcastAdmissionsTable.state, ["authorized", "reserved", "starting", "active", "draining", "uncertain"]), or(arrayContains(runnerBroadcastAdmissionsTable.targetIdsSnapshot, [destinationId]), sessionIds.length ? inArray(runnerBroadcastAdmissionsTable.sessionId, sessionIds) : undefined)))
+		.limit(1);
+	if (openAdmission || sessions.some((session) => session.desiredState !== "stopped" || ["starting", "running"].includes(session.actualState))) return { ...failure("RESOURCE_IN_USE"), error: "Stop the broadcasts using this destination before deleting it." };
+	for (const session of sessions) {
+		const [remaining] = await tx
+			.select({ rtmpUrl: runnerDestinationsTable.rtmpUrl, encryptedStreamKey: runnerDestinationsTable.encryptedStreamKey })
+			.from(streamSessionDestinationsTable)
+			.innerJoin(runnerDestinationsTable, and(eq(runnerDestinationsTable.id, streamSessionDestinationsTable.destinationId), eq(runnerDestinationsTable.ownerId, owner)))
+			.where(and(eq(streamSessionDestinationsTable.ownerId, owner), eq(streamSessionDestinationsTable.sessionId, session.id), ne(streamSessionDestinationsTable.destinationId, destinationId)))
+			.orderBy(asc(streamSessionDestinationsTable.position), asc(streamSessionDestinationsTable.destinationId))
+			.limit(1);
+		await tx
+			.update(streamSessionsTable)
+			.set({ rtmpUrl: remaining?.rtmpUrl ?? "", encryptedStreamKey: remaining?.encryptedStreamKey ?? null, configurationRevision: session.configurationRevision + 1, updatedAt: new Date() })
+			.where(and(eq(streamSessionsTable.ownerId, owner), eq(streamSessionsTable.id, session.id)));
+	}
+	await tx.delete(streamSessionDestinationsTable).where(and(eq(streamSessionDestinationsTable.ownerId, owner), eq(streamSessionDestinationsTable.destinationId, destinationId)));
+}
+
 export async function deleteRunnerDestinationForPrincipal(principal: TrustedCreatorPrincipal, rawInput: unknown, client: DatabaseClient = db) {
-	const parsed = z.object({ ownerId, id: uuid, expectedRevision: revision }).strict().safeParse(rawInput);
+	const parsed = z
+		.object({ ownerId, id: uuid, expectedRevision: revision, removeFromSavedBroadcasts: z.boolean().default(false) })
+		.strict()
+		.safeParse(rawInput);
 	if (!parsed.success) return failure("INVALID_INPUT");
 	const input = parsed.data;
 	return client.transaction(async (tx) => {
@@ -218,7 +253,14 @@ export async function deleteRunnerDestinationForPrincipal(principal: TrustedCrea
 			.from(runnerScheduleEventDestinationsTable)
 			.where(and(eq(runnerScheduleEventDestinationsTable.ownerId, input.ownerId), eq(runnerScheduleEventDestinationsTable.destinationId, input.id)))
 			.orderBy(asc(runnerScheduleEventDestinationsTable.eventId));
-		if (references.length || schedules.length) return { ...failure("RESOURCE_IN_USE"), references: { sessions: references.map((reference) => reference.sessionId), schedules: schedules.map((reference) => reference.eventId) } };
+		if (schedules.length || (references.length && !input.removeFromSavedBroadcasts)) return { ...failure("RESOURCE_IN_USE"), ...(schedules.length ? { error: "Remove this destination from its schedules before deleting it." } : {}), references: { sessions: references.map((reference) => reference.sessionId), schedules: schedules.map((reference) => reference.eventId) } };
+		const busy = await detachStoppedBroadcasts(
+			tx,
+			input.ownerId,
+			input.id,
+			references.map((reference) => reference.sessionId),
+		);
+		if (busy) return busy;
 		await tx.delete(runnerDestinationsTable).where(and(eq(runnerDestinationsTable.ownerId, input.ownerId), eq(runnerDestinationsTable.id, input.id)));
 		await audit(tx, principal, row.id, "runner.destination.delete");
 		authority.assertAuthorityCurrent();
