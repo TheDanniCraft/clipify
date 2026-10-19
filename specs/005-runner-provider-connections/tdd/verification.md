@@ -11,9 +11,13 @@ The approved mockup is implemented using the real Runner editor, account-wide de
 
 ## Final completion gates
 
-Final source was frozen after the category-label corrections. Complete application coverage, native Runner coverage, production/browser builds and final lint are recorded below when their commands finish. Interrupted earlier runs are not completion evidence.
+Final runtime and test source was frozen after the optional-import regression correction and compatibility-test updates. Complete application coverage, native Runner coverage, production/browser builds and final lint are recorded below when their commands finish. Interrupted earlier runs are not completion evidence.
 
-Pending.
+- Production webpack build, TypeScript and standalone dependency verification passed on the corrected source. Server-action manifest check passed. Formatting and the staged migration-policy check passed. Final lint passed with zero errors and five existing warnings.
+- Complete native Runner coverage passed: 52 suites, 451 passing tests and the single inherited updater TODO. Coverage was 97.53% lines, 90.41% branches, 95.61% functions and 94.78% statements; configured per-file gates passed. Its execution-input metadata validates the complete inventory and unchanged source fingerprint `586aebc0be1e86210a9a447be995cd7c255ea4991ceec8f4843decff7a024b96`.
+- The complete application Jest phase passed 529 suites and 5,907 tests, with two pre-existing skipped suites and 11 skipped cases. The canonical workflow stage passed 430 scenarios and failed four stale media fixtures; its counters were correctly withheld. After correcting their transport boundary and account-wide names, the complete five-scenario media owner passed. Fresh six-lane merged coverage remains pending.
+- Seven distinct installed browser journeys passed: the new connection/details journey and six existing Runner editor, cross-computer reuse, setup parity and schedule-history journeys. The unchanged parity scenario needed a rerun after a five-second preview-poll observation timeout. Native cold-resume likewise passed unchanged after the concurrent-build capture timeout; the later complete native gate passed without relaxing assertions or timeouts.
+- Normal commit and push hooks passed, including 170 related suites / 2,741 cases (one skipped suite, three skipped cases), five automation/fixture suites / eight cases, and script automation checks. CodeFactor passed on implementation commit `3428f37e`; remaining GitHub checks were queued at that checkpoint. The PR remains draft until the full local gate finishes.
 
 ## Operational verification
 

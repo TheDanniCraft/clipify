@@ -1,3 +1,4 @@
+@mode:serial
 Feature: Runner multistream delivery
 
   @BDD @US2 @FR-006 @BDD-US2-FR006
