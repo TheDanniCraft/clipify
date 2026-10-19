@@ -57,6 +57,11 @@ for (const plan of ["free", "pro"] as const)
 			await editor.getByRole("textbox", { name: "Destination name", exact: true }).fill("My local output");
 			await expect(editor.getByLabel("Destination stream key", { exact: true })).toHaveValue("");
 			await expect(editor.getByRole("button", { name: "Save destination", exact: true })).toBeDisabled();
+			await expect(editor.getByRole("textbox", { name: "RTMP URL", exact: true })).toHaveCount(0);
+			await editor.getByRole("button", { name: /Provider$/ }).click();
+			await page.getByRole("option", { name: "YouTube", exact: true }).click();
+			await expect(editor.getByRole("textbox", { name: "RTMP URL", exact: true })).toHaveCount(0);
+			await editor.screenshot({ path: testInfo.outputPath(`${plan}-youtube-destination.png`), animations: "disabled" });
 			await editor.getByRole("button", { name: /Provider$/ }).click();
 			await page.getByRole("option", { name: "Custom RTMP", exact: true }).click();
 			await editor.getByRole("textbox", { name: "RTMP URL", exact: true }).fill("rtmp://127.0.0.1:19350/live");

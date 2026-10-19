@@ -3289,3 +3289,9 @@ Replace the rejected credential-action selector with the existing HeroUI passwor
 The first expanded run passed the credential/database assertions but placed the historical keyboard-only focus assertion after new pointer-driven save/reopen steps. Restore that unchanged keyboard journey before the additional credential checks; no focus assertion or credential assertion is removed. Final complete editor owner passes3/3 in55.9s. Production build/types, affected lint and formatting pass; Free/Pro masked-field captures inspected. Fresh full PR CI is required for these execution inputs.
 
 Screenshot review caught one page capture during the modal entry animation. Use the dialog locator screenshot so Playwright waits for stability; the complete owner passes3/3 again in55.9s and the final dialog captures show the masked field correctly.
+
+### 2026-10-19 — Provider endpoint editing follow-up
+
+Restrict the RTMP URL field to Custom RTMP. Initialize named-provider edits from the Twitch/YouTube endpoint presets rather than retaining a hidden arbitrary URL. Extend the complete real editor owner to check the field is absent for Twitch and YouTube before switching to and saving Custom RTMP. This is a review correction; no test-first Red is claimed.
+
+Complete real editor owner passes3/3 in54.0s, retaining credential/database, deletion, schedule, appearance and keyboard assertions. Production build/types, affected lint and formatting pass; the named-provider modal capture was inspected. Full PR CI remains the merge gate for these new inputs.
