@@ -1,10 +1,13 @@
 "use client";
 
+import RunnerDestinations from "./runnerDestinations";
+import BroadcastDetails from "./runner/BroadcastDetails";
+import type { StreamDetails } from "@/app/lib/runnerProviderDetails";
 import LocalizedDate from "@components/localizedDate";
 import { useCallback, useEffect, useState, useRef, useTransition } from "react";
-import { Button, Checkbox, FieldError, Input, Label, ListBox, Modal, Select, Spinner, TextField } from "@heroui/react";
-import { IconPlus, IconEye, IconPencil, IconPlayerPause, IconPlayerPlay } from "@tabler/icons-react";
-import { listRunnerScheduleEvents, saveRunnerScheduleEvent, renameRunnerScheduleEvent, deleteRunnerScheduleEvent, resumeRunnerScheduleOccurrence, setRunnerAutomationPaused } from "@/app/actions/runner";
+import { Button, Checkbox, FieldError, Input, Label, ListBox, Modal, Select, Spinner, TextField, Tabs } from "@heroui/react";
+import { IconPlus, IconEye, IconPencil, IconPlayerPause, IconPlayerPlay, IconCrown } from "@tabler/icons-react";
+import { listRunnerScheduleEvents, listRunnerDestinations, saveRunnerScheduleEvent, renameRunnerScheduleEvent, deleteRunnerScheduleEvent, resumeRunnerScheduleOccurrence, setRunnerAutomationPaused } from "@/app/actions/runner";
 import RunnerDestinationSelection from "./runnerDestinationSelection";
 import { plannerCreateWindow, isAllDayWindow } from "./runnerSchedulePlanner";
 import RunnerScheduleAgenda from "./runnerScheduleAgenda";
@@ -16,8 +19,8 @@ import { resolveCalendarSchedule } from "../../../packages/runner/src/schedule-c
 type ScheduleRead = Extract<Awaited<ReturnType<typeof listRunnerScheduleEvents>>, { success: true }>;
 type Policy = ScheduleRead["policy"];
 type RunnerScheduleView = ScheduleRead["events"][number];
-type Props = { ownerId: string; runnerId: string; sessionId?: string; overlayId: string; overlays: { id: string; name: string }[]; destinations: { id: string; name: string }[]; selectedDestinationIds: string[]; clipPlayback: boolean; onPolicyChange: (policy: Policy) => void };
-type Draft = { allDay: boolean; title: string; timezone: string; recurrence: "once" | "weekly"; localStartDate: string; localEndDate: string; localStartTime: string; localEndTime: string; weekdays: number[]; endDayOffset: number; overlayId: string; destinationIds: string[] };
+type Props = { onDestinationsChange?: (change?: { deletedId: string }) => Promise<void> | void; ownerId: string; runnerId: string; sessionId?: string; overlayId: string; overlays: { id: string; name: string }[]; destinations: { id: string; name: string; provider?: string; connectionId?: string | null }[]; selectedDestinationIds: string[]; clipPlayback: boolean; onPolicyChange: (policy: Policy) => void };
+type Draft = { setStreamDetails: boolean; streamDetails: StreamDetails[]; allDay: boolean; title: string; timezone: string; recurrence: "once" | "weekly"; localStartDate: string; localEndDate: string; localStartTime: string; localEndTime: string; weekdays: number[]; endDayOffset: number; overlayId: string; destinationIds: string[] };
 const weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 function elapsedDescription(event: RunnerScheduleView) {
@@ -32,6 +35,10 @@ function elapsedDescription(event: RunnerScheduleView) {
 }
 
 export default function RunnerSchedule(props: Props) {
+	const [editorView, setEditorView] = useState("schedule");
+	const [destinationReturnView, setDestinationReturnView] = useState("details");
+	const [destinations, setDestinations] = useState(props.destinations);
+	const [detailsBusy, setDetailsBusy] = useState(false);
 	const [calendarTime, setCalendarTime] = useState(Date.now);
 	useEffect(() => {
 		const timer = window.setInterval(() => setCalendarTime(Date.now()), 1000);
@@ -145,6 +152,7 @@ export default function RunnerSchedule(props: Props) {
 	const currentEditing = events.find((event) => event.id === editing?.id) ?? editing;
 	const detailsOnly = Boolean((currentEditing?.recurrence === "once" && currentEditing?.lockedUntil) || occurrenceReadOnly || (selectedOccurrenceStart && Date.parse(selectedOccurrenceStart) <= calendarTime) || (editing && !canEdit));
 	function edit(event: RunnerScheduleView | null, readOnly = false, occurrenceStart?: string) {
+		setEditorView("schedule");
 		setSelectedOccurrenceStart(occurrenceStart ?? null);
 		setScopePrompt(null);
 		setOccurrenceReadOnly(readOnly);
@@ -159,6 +167,8 @@ export default function RunnerSchedule(props: Props) {
 		setDraft(
 			event
 				? {
+						setStreamDetails: event.setStreamDetails,
+						streamDetails: event.streamDetails,
 						allDay: isAllDayWindow(event),
 						title: event.title,
 						timezone: event.timezone,
@@ -172,10 +182,28 @@ export default function RunnerSchedule(props: Props) {
 						overlayId: event.overlayId,
 						destinationIds: event.destinationIds,
 					}
-				: { allDay: false, title: "", timezone: calendarTimezone, recurrence: "once", localStartDate: start.toString().slice(0, 10), localEndDate: end.toString().slice(0, 10), localStartTime: start.toString().slice(11, 16), localEndTime: end.toString().slice(11, 16), weekdays: [1], endDayOffset: 0, overlayId: props.overlayId, destinationIds: props.selectedDestinationIds },
+				: { setStreamDetails: false, streamDetails: [], allDay: false, title: "", timezone: calendarTimezone, recurrence: "once", localStartDate: start.toString().slice(0, 10), localEndDate: end.toString().slice(0, 10), localStartTime: start.toString().slice(11, 16), localEndTime: end.toString().slice(11, 16), weekdays: [1], endDayOffset: 0, overlayId: props.overlayId, destinationIds: props.selectedDestinationIds },
 		);
 		setTimezoneInputValid(true);
 		setOpen(true);
+	}
+	function manageDestinations(view: "schedule" | "details") {
+		setDestinationReturnView(view);
+		setEditorView("destinations");
+	}
+	function selectDestinations(ids: string[]) {
+		setDraft((current) => (current ? { ...current, destinationIds: ids, setStreamDetails: current.setStreamDetails && ids.some((id) => destinations.some((target) => target.id === id && target.connectionId && target.provider !== "custom")) } : current));
+	}
+	async function refreshDestinations(change?: { deletedId: string }) {
+		try {
+			const result = await listRunnerDestinations(ownerId, runnerId);
+			if (result.success) setDestinations(result.destinations);
+			else setError(result.error);
+			if (change?.deletedId) setDraft((current) => (current ? { ...current, destinationIds: current.destinationIds.filter((id) => id !== change.deletedId), streamDetails: current.streamDetails.filter((detail) => detail.destinationId !== change.deletedId) } : current));
+			await props.onDestinationsChange?.(change);
+		} catch {
+			setError("Could not reload destinations. Please try again.");
+		}
 	}
 	function update<K extends keyof Draft>(key: K, value: Draft[K]) {
 		setDraft((current) => (current ? { ...current, [key]: value } : current));
@@ -198,6 +226,7 @@ export default function RunnerSchedule(props: Props) {
 		setError(null);
 		try {
 			const { allDay, ...fields } = draft;
+			fields.streamDetails = fields.streamDetails.filter((detail) => fields.destinationIds.includes(detail.destinationId));
 			const input = { ownerId, runnerId, sessionId: props.sessionId, ...fields, ...(allDay ? { localStartTime: "00:00", localEndTime: "00:00", endDayOffset: draft.recurrence === "weekly" ? Math.max(1, draft.endDayOffset) : 0 } : {}), localEndDate: draft.recurrence === "once" ? (allDay ? parseDate(draft.localEndDate).add({ days: 1 }).toString() : draft.localEndDate) : null, enabled: true, ...(editing ? { id: editing.id, expectedRevision: editing.configurationRevision } : {}) };
 			const result =
 				detailsOnly && currentEditing
@@ -351,6 +380,13 @@ export default function RunnerSchedule(props: Props) {
 										</p>
 										<p className='text-sm text-muted'>{elapsedDescription(event)}</p>
 										{event.lockedUntil && <p className='text-xs text-muted'>{event.lockReason === "completed" ? "Completed broadcast" : "Broadcast settings are locked for this occurrence."}</p>}
+										{event.streamDetailsFeedback
+											?.filter((result) => result.status !== "applied")
+											.map((result) => (
+												<p key={result.destinationId} role='status' className='mt-1 text-sm text-danger'>
+													{destinations.find((target) => target.id === result.destinationId)?.name}: {result.error}
+												</p>
+											))}
 									</div>
 									{event.currentOccurrence && (
 										<Button variant='secondary' size='sm' aria-label={`Resume ${event.title}`} isDisabled={!canEdit || saving || !event.currentOccurrence.canResume} onPress={() => resume(event)}>
@@ -382,13 +418,18 @@ export default function RunnerSchedule(props: Props) {
 					)}
 				</div>
 			</section>
-			<Modal.Backdrop isOpen={open} onOpenChange={setOpen}>
+			<Modal.Backdrop
+				isOpen={open}
+				onOpenChange={(next) => {
+					if (!saving && !detailsBusy) setOpen(next);
+				}}
+			>
 				<Modal.Container size='lg'>
 					<Modal.Dialog>
-						<Modal.CloseTrigger />
+						<Modal.CloseTrigger isDisabled={saving || detailsBusy} />
 						<Modal.Header>
-							<Modal.Heading>{detailsOnly ? "Broadcast details" : "Schedule broadcast"}</Modal.Heading>
-							<p className='text-sm text-muted'>{detailsOnly ? (canEdit ? "Broadcast settings are read-only. You can still rename this event." : "Broadcast settings are read-only.") : "All dates and times use the selected timezone."}</p>
+							<Modal.Heading>{editorView === "destinations" ? "Manage destinations" : detailsOnly ? "Broadcast details" : "Schedule broadcast"}</Modal.Heading>
+							{(detailsOnly || editorView === "schedule") && <p className='text-sm text-muted'>{detailsOnly ? (canEdit ? "Broadcast settings are read-only. You can still rename this event." : "Broadcast settings are read-only.") : "All dates and times use the selected timezone."}</p>}
 							{draftNotice && (
 								<p role='status' className='text-sm text-muted'>
 									{draftNotice}
@@ -396,188 +437,228 @@ export default function RunnerSchedule(props: Props) {
 							)}
 						</Modal.Header>
 						<Modal.Body className='space-y-5'>
-							{draft && (
-								<>
-									{detailsOnly ? (
-										<>
-											<TextField
-												value={draft.title}
-												isReadOnly={!canEdit}
-												isInvalid={Boolean(titleError)}
-												onChange={(value) => {
-													update("title", value);
-													setTitleError(null);
-												}}
-											>
-												<Label>Event title</Label>
-												<Input ref={titleInput} aria-label='Event title' variant='secondary' />
-												{titleError && <FieldError>{titleError}</FieldError>}
-											</TextField>
-											<dl className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
-												<div>
-													<dt className='text-sm text-muted'>Start</dt>
-													<dd>
-														<LocalizedDate value={draft.localStartDate} /> {draft.allDay ? "All day" : draft.localStartTime}
-													</dd>
-												</div>
-												<div>
-													<dt className='text-sm text-muted'>End</dt>
-													<dd>
-														<LocalizedDate value={draft.localEndDate} /> {draft.allDay ? "All day" : draft.localEndTime}
-													</dd>
-												</div>
-												<div>
-													<dt className='text-sm text-muted'>Timezone</dt>
-													<dd>{draft.timezone}</dd>
-												</div>
-												<div>
-													<dt className='text-sm text-muted'>Recurrence</dt>
-													<dd>{draft.recurrence === "weekly" ? "Weekly" : "One time"}</dd>
-												</div>
-												<div>
-													<dt className='text-sm text-muted'>Schedule source</dt>
-													<dd>{props.overlays.find((source) => source.id === draft.overlayId)?.name ?? "Source unavailable"}</dd>
-												</div>
-												<div>
-													<dt className='text-sm text-muted'>Destinations</dt>
-													<dd>{draft.destinationIds.map((id) => props.destinations.find((destination) => destination.id === id)?.name ?? "Destination unavailable").join(", ")}</dd>
-												</div>
-											</dl>
-										</>
-									) : (
-										<>
-											<div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
-												<TextField
-													value={draft.title}
-													isRequired
-													isInvalid={Boolean(titleError)}
-													onChange={(value) => {
-														update("title", value);
-														setTitleError(null);
-													}}
-												>
-													<Label>Event title</Label>
-													<Input ref={titleInput} aria-label='Event title' variant='secondary' />
-													{titleError && <FieldError>{titleError}</FieldError>}
-												</TextField>
-												<TimezonePicker
-													value={draft.timezone}
-													onValidityChange={setTimezoneInputValid}
-													onChange={(value) => {
-														update("timezone", value);
-														setCalendarTimezone(value);
-													}}
-												/>
-												<Checkbox className='sm:col-span-2' isSelected={draft.allDay} onChange={(allDay) => setDraft((current) => (current ? { ...current, allDay, ...(allDay ? { endDayOffset: Math.max(1, current.endDayOffset) } : current.localStartTime === "00:00" && current.localEndTime === "00:00" ? { localStartTime: "09:00", localEndTime: "10:00" } : {}) } : current))}>
-													<Checkbox.Control>
-														<Checkbox.Indicator />
-													</Checkbox.Control>
-													<Checkbox.Content>All day</Checkbox.Content>
-												</Checkbox>
-												<ScheduleDateField label='Start date' value={draft.localStartDate} onChange={(value) => update("localStartDate", value)} />
-												{draft.recurrence === "once" && <ScheduleDateField label='End date' value={draft.localEndDate} onChange={(value) => update("localEndDate", value)} />}
-												{!draft.allDay && <ScheduleTimeField label='Start time' value={draft.localStartTime} onChange={(value) => update("localStartTime", value)} />}
-												{!draft.allDay && <ScheduleTimeField label='End time' value={draft.localEndTime} onChange={(value) => update("localEndTime", value)} />}
-											</div>
-											<Select value={draft.recurrence} onChange={(value) => update("recurrence", value === "weekly" ? "weekly" : "once")} variant='secondary'>
-												<Label>Recurrence</Label>
-												<Select.Trigger>
-													<Select.Value />
-													<Select.Indicator />
-												</Select.Trigger>
-												<Select.Popover>
-													<ListBox>
-														<ListBox.Item id='once' textValue='One time'>
-															One time
-														</ListBox.Item>
-														<ListBox.Item id='weekly' textValue='Weekly'>
-															Weekly
-														</ListBox.Item>
-													</ListBox>
-												</Select.Popover>
-											</Select>
-											{draft.recurrence === "weekly" && (
-												<>
-													<div role='group' aria-label='Start weekdays' className='grid grid-cols-2 gap-3 sm:grid-cols-4'>
-														{weekdays.map((day, index) => (
-															<Checkbox key={day} isSelected={draft.weekdays.includes(index + 1)} onChange={(selected) => update("weekdays", selected ? [...draft.weekdays, index + 1] : draft.weekdays.filter((value) => value !== index + 1))}>
-																<Checkbox.Control>
-																	<Checkbox.Indicator />
-																</Checkbox.Control>
-																<Checkbox.Content>{day}</Checkbox.Content>
-															</Checkbox>
-														))}
-													</div>
-													<Select value={String(draft.endDayOffset)} onChange={(value) => update("endDayOffset", Number(value))} variant='secondary'>
-														<Label>{draft.allDay ? "Duration" : "End day"}</Label>
-														<Select.Trigger>
-															<Select.Value />
-															<Select.Indicator />
-														</Select.Trigger>
-														<Select.Popover>
-															<ListBox>
-																{Array.from({ length: 8 }, (_, days) => (
-																	<ListBox.Item isDisabled={draft.allDay && days === 0} id={String(days)} key={days} textValue={draft.allDay ? `${days} ${days === 1 ? "day" : "days"}` : days === 0 ? "Same day" : days === 1 ? "Next day" : `${days} days later`}>
-																		<Label>{draft.allDay ? `${days} ${days === 1 ? "day" : "days"}` : days === 0 ? "Same day" : days === 1 ? "Next day" : `${days} days later`}</Label>
-																		<ListBox.ItemIndicator />
-																	</ListBox.Item>
-																))}
-															</ListBox>
-														</Select.Popover>
-													</Select>
-												</>
-											)}
-											<Select value={draft.overlayId || "none"} onChange={(value) => update("overlayId", value === "none" ? "" : String(value ?? ""))} variant='secondary'>
-												<Label>Schedule source</Label>
-												<Select.Trigger>
-													<Select.Value />
-													<Select.Indicator />
-												</Select.Trigger>
-												<Select.Popover>
-													<ListBox>
-														<ListBox.Item id='none' textValue='Choose a source'>
-															Choose a source
-														</ListBox.Item>
-														{props.overlays.map((source) => (
-															<ListBox.Item key={source.id} id={source.id} textValue={source.name}>
-																{source.name}
-															</ListBox.Item>
-														))}
-													</ListBox>
-												</Select.Popover>
-											</Select>
-											<RunnerDestinationSelection label='Schedule destinations' destinations={props.destinations} selectedIds={draft.destinationIds} runnerPro onChange={(ids) => update("destinationIds", ids)} />
-										</>
-									)}
-									{error && (
-										<p role='alert' className='text-sm text-danger'>
-											{error}
-										</p>
-									)}
-								</>
+							{editorView === "destinations" ? (
+								<RunnerDestinations ownerId={ownerId} runnerId={runnerId} onChange={refreshDestinations} />
+							) : (
+								<Tabs
+									selectedKey={editorView}
+									onSelectionChange={(value) => {
+										if (!detailsBusy) setEditorView(String(value));
+									}}
+								>
+									<Tabs.ListContainer className='w-full'>
+										<Tabs.List aria-label='Schedule editor mode' className='w-full'>
+											<Tabs.Tab isDisabled={detailsBusy} id='schedule' className='flex-1'>
+												Schedule
+												<Tabs.Indicator />
+											</Tabs.Tab>
+											<Tabs.Tab isDisabled={detailsBusy} id='details' className='flex-1 gap-2'>
+												Broadcast details
+												<IconCrown size={16} className='text-warning' aria-label='Pro feature' />
+												<Tabs.Indicator />
+											</Tabs.Tab>
+										</Tabs.List>
+									</Tabs.ListContainer>
+									<Tabs.Panel id={editorView} className='space-y-5 pt-5 text-foreground'>
+										{editorView === "details" ? (
+											draft && <BroadcastDetails ownerId={ownerId} runnerId={runnerId} eventTitle={draft.title} targets={destinations.filter((target) => draft.destinationIds.includes(target.id))} enabled={draft.setStreamDetails} details={draft.streamDetails} disabled={detailsOnly || !canEdit || saving} onEnabledChange={(value) => update("setStreamDetails", value)} onChange={(value) => update("streamDetails", value)} onBusyChange={setDetailsBusy} onManage={() => manageDestinations("details")} />
+										) : (
+											<>
+												{draft && (
+													<>
+														{detailsOnly ? (
+															<>
+																<TextField
+																	value={draft.title}
+																	isReadOnly={!canEdit}
+																	isInvalid={Boolean(titleError)}
+																	onChange={(value) => {
+																		update("title", value);
+																		setTitleError(null);
+																	}}
+																>
+																	<Label>Event title</Label>
+																	<Input ref={titleInput} aria-label='Event title' variant='secondary' />
+																	{titleError && <FieldError>{titleError}</FieldError>}
+																</TextField>
+																<dl className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+																	<div>
+																		<dt className='text-sm text-muted'>Start</dt>
+																		<dd>
+																			<LocalizedDate value={draft.localStartDate} /> {draft.allDay ? "All day" : draft.localStartTime}
+																		</dd>
+																	</div>
+																	<div>
+																		<dt className='text-sm text-muted'>End</dt>
+																		<dd>
+																			<LocalizedDate value={draft.localEndDate} /> {draft.allDay ? "All day" : draft.localEndTime}
+																		</dd>
+																	</div>
+																	<div>
+																		<dt className='text-sm text-muted'>Timezone</dt>
+																		<dd>{draft.timezone}</dd>
+																	</div>
+																	<div>
+																		<dt className='text-sm text-muted'>Recurrence</dt>
+																		<dd>{draft.recurrence === "weekly" ? "Weekly" : "One time"}</dd>
+																	</div>
+																	<div>
+																		<dt className='text-sm text-muted'>Schedule source</dt>
+																		<dd>{props.overlays.find((source) => source.id === draft.overlayId)?.name ?? "Source unavailable"}</dd>
+																	</div>
+																	<div>
+																		<dt className='text-sm text-muted'>Destinations</dt>
+																		<dd>{draft.destinationIds.map((id) => destinations.find((destination) => destination.id === id)?.name ?? "Destination unavailable").join(", ")}</dd>
+																	</div>
+																</dl>
+															</>
+														) : (
+															<>
+																<div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+																	<TextField
+																		value={draft.title}
+																		isRequired
+																		isInvalid={Boolean(titleError)}
+																		onChange={(value) => {
+																			update("title", value);
+																			setTitleError(null);
+																		}}
+																	>
+																		<Label>Event title</Label>
+																		<Input ref={titleInput} aria-label='Event title' variant='secondary' />
+																		{titleError && <FieldError>{titleError}</FieldError>}
+																	</TextField>
+																	<TimezonePicker
+																		value={draft.timezone}
+																		onValidityChange={setTimezoneInputValid}
+																		onChange={(value) => {
+																			update("timezone", value);
+																			setCalendarTimezone(value);
+																		}}
+																	/>
+																	<Checkbox className='sm:col-span-2' isSelected={draft.allDay} onChange={(allDay) => setDraft((current) => (current ? { ...current, allDay, ...(allDay ? { endDayOffset: Math.max(1, current.endDayOffset) } : current.localStartTime === "00:00" && current.localEndTime === "00:00" ? { localStartTime: "09:00", localEndTime: "10:00" } : {}) } : current))}>
+																		<Checkbox.Control>
+																			<Checkbox.Indicator />
+																		</Checkbox.Control>
+																		<Checkbox.Content>All day</Checkbox.Content>
+																	</Checkbox>
+																	<ScheduleDateField label='Start date' value={draft.localStartDate} onChange={(value) => update("localStartDate", value)} />
+																	{draft.recurrence === "once" && <ScheduleDateField label='End date' value={draft.localEndDate} onChange={(value) => update("localEndDate", value)} />}
+																	{!draft.allDay && <ScheduleTimeField label='Start time' value={draft.localStartTime} onChange={(value) => update("localStartTime", value)} />}
+																	{!draft.allDay && <ScheduleTimeField label='End time' value={draft.localEndTime} onChange={(value) => update("localEndTime", value)} />}
+																</div>
+																<Select value={draft.recurrence} onChange={(value) => update("recurrence", value === "weekly" ? "weekly" : "once")} variant='secondary'>
+																	<Label>Recurrence</Label>
+																	<Select.Trigger>
+																		<Select.Value />
+																		<Select.Indicator />
+																	</Select.Trigger>
+																	<Select.Popover>
+																		<ListBox>
+																			<ListBox.Item id='once' textValue='One time'>
+																				One time
+																			</ListBox.Item>
+																			<ListBox.Item id='weekly' textValue='Weekly'>
+																				Weekly
+																			</ListBox.Item>
+																		</ListBox>
+																	</Select.Popover>
+																</Select>
+																{draft.recurrence === "weekly" && (
+																	<>
+																		<div role='group' aria-label='Start weekdays' className='grid grid-cols-2 gap-3 sm:grid-cols-4'>
+																			{weekdays.map((day, index) => (
+																				<Checkbox key={day} isSelected={draft.weekdays.includes(index + 1)} onChange={(selected) => update("weekdays", selected ? [...draft.weekdays, index + 1] : draft.weekdays.filter((value) => value !== index + 1))}>
+																					<Checkbox.Control>
+																						<Checkbox.Indicator />
+																					</Checkbox.Control>
+																					<Checkbox.Content>{day}</Checkbox.Content>
+																				</Checkbox>
+																			))}
+																		</div>
+																		<Select value={String(draft.endDayOffset)} onChange={(value) => update("endDayOffset", Number(value))} variant='secondary'>
+																			<Label>{draft.allDay ? "Duration" : "End day"}</Label>
+																			<Select.Trigger>
+																				<Select.Value />
+																				<Select.Indicator />
+																			</Select.Trigger>
+																			<Select.Popover>
+																				<ListBox>
+																					{Array.from({ length: 8 }, (_, days) => (
+																						<ListBox.Item isDisabled={draft.allDay && days === 0} id={String(days)} key={days} textValue={draft.allDay ? `${days} ${days === 1 ? "day" : "days"}` : days === 0 ? "Same day" : days === 1 ? "Next day" : `${days} days later`}>
+																							<Label>{draft.allDay ? `${days} ${days === 1 ? "day" : "days"}` : days === 0 ? "Same day" : days === 1 ? "Next day" : `${days} days later`}</Label>
+																							<ListBox.ItemIndicator />
+																						</ListBox.Item>
+																					))}
+																				</ListBox>
+																			</Select.Popover>
+																		</Select>
+																	</>
+																)}
+																<Select value={draft.overlayId || "none"} onChange={(value) => update("overlayId", value === "none" ? "" : String(value ?? ""))} variant='secondary'>
+																	<Label>Schedule source</Label>
+																	<Select.Trigger>
+																		<Select.Value />
+																		<Select.Indicator />
+																	</Select.Trigger>
+																	<Select.Popover>
+																		<ListBox>
+																			<ListBox.Item id='none' textValue='Choose a source'>
+																				Choose a source
+																			</ListBox.Item>
+																			{props.overlays.map((source) => (
+																				<ListBox.Item key={source.id} id={source.id} textValue={source.name}>
+																					{source.name}
+																				</ListBox.Item>
+																			))}
+																		</ListBox>
+																	</Select.Popover>
+																</Select>
+																<RunnerDestinationSelection label='Schedule destinations' destinations={destinations} selectedIds={draft.destinationIds} runnerPro onChange={selectDestinations} onManage={() => manageDestinations("schedule")} />
+															</>
+														)}
+														{error && (
+															<p role='alert' className='text-sm text-danger'>
+																{error}
+															</p>
+														)}
+													</>
+												)}
+											</>
+										)}
+									</Tabs.Panel>
+								</Tabs>
 							)}
 						</Modal.Body>
 						<Modal.Footer>
-							{editing && !detailsOnly && (
-								<Button
-									variant='danger'
-									isDisabled={!canEdit || saving}
-									onPress={() => {
-										setDeleteError(null);
-										if (editing.recurrence === "weekly") setScopePrompt("delete");
-										else setDeleting(true);
-									}}
-								>
-									Delete schedule
+							{editorView === "destinations" ? (
+								<Button variant='secondary' onPress={() => setEditorView(destinationReturnView)}>
+									Back to event
 								</Button>
-							)}
+							) : (
+								<>
+									{editing && !detailsOnly && (
+										<Button
+											variant='danger'
+											isDisabled={!canEdit || saving}
+											onPress={() => {
+												setDeleteError(null);
+												if (editing.recurrence === "weekly") setScopePrompt("delete");
+												else setDeleting(true);
+											}}
+										>
+											Delete schedule
+										</Button>
+									)}
 
-							<Button variant='tertiary' onPress={() => setOpen(false)}>
-								{detailsOnly ? "Close" : "Cancel"}
-							</Button>
-							<Button variant='primary' onPress={() => save()} isPending={saving} isDisabled={!canEdit || (!detailsOnly && !timezoneInputValid) || (detailsOnly && draft?.title === currentEditing?.title)}>
-								{detailsOnly ? "Save title" : "Save schedule"}
-							</Button>
+									<Button variant='tertiary' isDisabled={saving || detailsBusy} onPress={() => setOpen(false)}>
+										{detailsOnly ? "Close" : "Cancel"}
+									</Button>
+									<Button variant='primary' onPress={() => save()} isPending={saving} isDisabled={detailsBusy || !canEdit || (!detailsOnly && !timezoneInputValid) || (detailsOnly && draft?.title === currentEditing?.title)}>
+										{detailsOnly ? "Save title" : "Save schedule"}
+									</Button>
+								</>
+							)}
 						</Modal.Footer>
 					</Modal.Dialog>
 				</Modal.Container>

@@ -3,7 +3,7 @@ import { resolveActiveRunnerScheduleWindow } from "@/server/runner/schedules";
 import "server-only";
 import { isResourceFailure, resourceFailure } from "./errors";
 import { broadcastAssignmentIsLocked, reserveBroadcastAdmission, cancelReservedAdmission, requestBroadcastDrain, revokeDeviceAdmissions } from "@/server/runner/admission";
-import { and, or, ne, eq, asc, gt, sql, notInArray, inArray, isNotNull } from "drizzle-orm";
+import { and, or, ne, eq, asc, gt, sql, notInArray, inArray, isNotNull, isNull } from "drizzle-orm";
 import { randomBytes } from "node:crypto";
 import { runnersTable, streamSessionsTable, overlaysTable, runnerBroadcastAdmissionsTable, streamSessionDestinationsTable } from "@/db/schema";
 import { selectedDestinationsHaveCredentials, normalizeLegacySessionDestination, resolveRunnerDestinationSelection, replaceSessionDestinationSelection } from "@/server/runner/destinations";
@@ -222,7 +222,7 @@ export function listStreamSessionsForPrincipal(principal: TrustedCreatorPrincipa
 			const rows = await tx
 				.select()
 				.from(streamSessionsTable)
-				.where(and(eq(streamSessionsTable.ownerId, input.creatorId), after ? gt(streamSessionsTable.id, after) : undefined))
+				.where(and(eq(streamSessionsTable.ownerId, input.creatorId), isNull(streamSessionsTable.testExpiresAt), after ? gt(streamSessionsTable.id, after) : undefined))
 				.orderBy(asc(streamSessionsTable.id))
 				.limit(input.limit + 1);
 			const items = await Promise.all(rows.slice(0, input.limit).map((row) => sessionWithDestinations(tx, row)));
@@ -352,7 +352,7 @@ async function reserveSessionStart(input: StreamControlInput, context: WorkflowC
 	if (isResourceFailure(reserved)) return reserved;
 	const [bound] = await context.tx
 		.update(runnerBroadcastAdmissionsTable)
-		.set(capturedStartBinding(reserved, scheduled, overlay))
+		.set({ ...capturedStartBinding(reserved, scheduled, overlay), ...(scheduled ? { benefitsAtStart: { ...capturedStartBinding(reserved, scheduled, overlay).benefitsAtStart, streamDetailsAtStart: await (await import("@/server/runner/provider-metadata")).captureBroadcastDetails(context.tx, input.creatorId, scheduled.event.id, scheduled.occurrence.occurrenceId) } } : {}) })
 		.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, input.creatorId), eq(runnerBroadcastAdmissionsTable.id, reserved.id)))
 		.returning();
 	return bound;

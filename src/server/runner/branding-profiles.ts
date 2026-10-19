@@ -112,7 +112,17 @@ export async function saveRunnerBrandingProfileForPrincipal(principal: TrustedCr
 	if (result.success)
 		for (const detachedAssetId of new Set(detachedAssetIds)) {
 			try {
-				await client.delete(runnerBrandingAssetsTable).where(and(eq(runnerBrandingAssetsTable.id, detachedAssetId), eq(runnerBrandingAssetsTable.ownerId, input.ownerId), sql`NOT EXISTS (SELECT 1 FROM runner_branding_profiles p WHERE p.background_asset_id = ${runnerBrandingAssetsTable.id} OR p.logo_asset_id = ${runnerBrandingAssetsTable.id})`));
+				await client
+					.delete(runnerBrandingAssetsTable)
+					.where(
+						and(
+							eq(runnerBrandingAssetsTable.id, detachedAssetId),
+							eq(runnerBrandingAssetsTable.ownerId, input.ownerId),
+							sql`NOT EXISTS (SELECT 1 FROM runner_branding_profiles p WHERE p.background_asset_id = ${runnerBrandingAssetsTable.id} OR p.logo_asset_id = ${runnerBrandingAssetsTable.id})`,
+							sql`NOT EXISTS (SELECT 1 FROM runner_schedule_events e WHERE e.owner_id = ${input.ownerId} AND e.stream_details @> jsonb_build_array(jsonb_build_object('thumbnailAssetId', ${runnerBrandingAssetsTable.id}::text)))`,
+							sql`NOT EXISTS (SELECT 1 FROM runner_broadcast_admissions a WHERE a.owner_id = ${input.ownerId} AND a.benefits_at_start->'streamDetailsAtStart' @> jsonb_build_array(jsonb_build_object('thumbnailAssetId', ${runnerBrandingAssetsTable.id}::text)))`,
+						),
+					);
 			} catch {
 				Sentry.captureException(new Error("Runner branding asset cleanup failed"), { tags: { operation: "runner_branding_asset_cleanup" } });
 			}

@@ -1,0 +1,12 @@
+# Acceptance and inner behavior coverage
+
+| Criteria | Acceptance behavior                                                                                                                                               | Inner tests                                                                              |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| PC-1     | One combined optional permission prompt; account identity reused; cancellation preserves destination draft                                                        | provider-contract, provider-api, provider-connections, provider-callback                 |
+| PC-2     | Manual key save remains available; provider endpoints cannot be edited                                                                                            | provider-api, provider-connections; existing destination-editor and destinations suites  |
+| PC-3     | Toggle starts off; blank title inherits event title; selected destination details persist and reopen                                                              | provider-contract, provider-connections, runnerBroadcastDetails                          |
+| PC-4     | Per-occurrence metadata captures source revision, stays unchanged on resume, applies only when due, preserves omitted platform fields, reports retryable failures | provider-api, provider-connections; existing schedules/automation suites                 |
+| PC-5     | Private output requires an online configured Runner; deadline bounds its signed lease; stop/drain retains output-closure safety                                   | provider-connections; existing lease/admission suites                                    |
+| PC-6     | Real HeroUI keyboard/toggle, local validation, draft recovery, thumbnail upload and light/dark desktop/mobile review                                              | runner-provider-connections.spec.ts; runnerProviderConnection and runnerBroadcastDetails |
+
+The browser journey owns composed UI evidence. Service tests use a separate disposable database per case and controlled provider responses. It does not claim live provider delivery verification.

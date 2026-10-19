@@ -6,10 +6,11 @@ import { hashExecutionTargets, verifyExecutionBundle } from "../../../packages/r
 
 type Input = Parameters<typeof runRunnerFreeProProbe>[0] & { authenticated: boolean; runnerId: string; deviceToken: string; actions: typeof RunnerActions };
 
+// State-only observer: named providers use their fixed endpoints. Media scenarios return earlier and use local sinks.
 function expectedTargetsForVariant(variant: string) {
 	const allTargets = [
-		{ name: "YouTube destination", provider: "youtube" as const, rtmpUrl: "rtmp://127.0.0.1:19440/youtube", streamKey: "private-multistream-youtube-key" },
-		{ name: "Twitch destination", provider: "twitch" as const, rtmpUrl: "rtmp://127.0.0.1:19441/twitch", streamKey: "private-multistream-twitch-key" },
+		{ name: "YouTube destination", provider: "youtube" as const, rtmpUrl: "rtmp://a.rtmp.youtube.com/live2", streamKey: "private-multistream-youtube-key" },
+		{ name: "Twitch destination", provider: "twitch" as const, rtmpUrl: "rtmp://live.twitch.tv/app", streamKey: "private-multistream-twitch-key" },
 	];
 	const provider = variant.replace("multistream_provider_", "");
 	const expected = variant === "multistream_active_reassignment_legacy" ? allTargets.slice(0, 1) : variant.startsWith("multistream_provider_") ? (provider === "custom" ? [{ name: "Custom destination", provider: "custom" as const, rtmpUrl: "rtmp://127.0.0.1:19443/custom", streamKey: "private-multistream-custom-key" }] : allTargets.filter((target) => target.provider === provider)) : allTargets;
@@ -142,7 +143,7 @@ export async function runRunnerMultistreamProbe(input: Input) {
 		const decoded = typeof ciphertext === "string" ? decryptString(ciphertext) : null;
 		const snapshot = decoded ? JSON.parse(decoded) : null;
 		// Editing a saved record after admission must affect future starts, not this broadcast.
-		await input.actions.saveRunnerDestination({ ownerId, runnerId: input.runnerId, id: ids[0], expectedRevision: 1, name: expected[0].name, provider: expected[0].provider, rtmpUrl: "rtmp://127.0.0.1:19442/changed", credentialAction: "replace", streamKey: "private-new-target-key" });
+		await input.actions.saveRunnerDestination({ ownerId, runnerId: input.runnerId, id: ids[0], expectedRevision: 1, name: expected[0].name, provider: "custom", rtmpUrl: "rtmp://127.0.0.1:19442/changed", credentialAction: "replace", streamKey: "private-new-target-key" });
 		const response = await heartbeat();
 		const job = response.body.jobs?.find((row: { id: string }) => row.id === configured.id);
 		let telemetryAccepted: boolean | undefined;

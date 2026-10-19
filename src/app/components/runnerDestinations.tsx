@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Button, Chip, Input, Label, ListBox, Modal, Select, Table, TextField, Tooltip } from "@heroui/react";
-import { IconPlus, IconPencil, IconTrash } from "@tabler/icons-react";
+import { Button, Chip, Input, Label, ListBox, Modal, Select, Table, TextField, Tooltip, Tabs, Spinner } from "@heroui/react";
+import { IconPlus, IconPencil, IconTrash, IconBrandTwitch, IconBrandYoutube, IconActivity } from "@tabler/icons-react";
 import { deleteRunnerDestination, listRunnerDestinations, saveRunnerDestination } from "@/app/actions/runner";
+import { useConnectionTest } from "./runner/useConnectionTest";
+import { useProviderConnection } from "./runner/useProviderConnection";
 import ConfirmModal from "@/app/components/confirmModal";
 
 type RunnerDestinationView = Extract<Awaited<ReturnType<typeof listRunnerDestinations>>, { success: true }>["destinations"][number];
@@ -28,12 +30,24 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 	const [url, setUrl] = useState(endpoints.twitch);
 	const [key, setKey] = useState("");
 	const savedKeyAvailable = Boolean(editing?.credentialConfigured && editing.provider === provider);
-	const credentialAction = key.trim() ? "replace" : savedKeyAvailable ? "keep" : "clear";
+
+	const [connectionMethod, setConnectionMethod] = useState("account");
+
+	const [testOpen, setTestOpen] = useState(false);
+
+	const ProviderIcon = provider === "youtube" ? IconBrandYoutube : IconBrandTwitch;
+	const providerName = provider === "youtube" ? "YouTube" : "Twitch";
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const account = useProviderConnection(ownerId, setError);
+	const connectionTest = useConnectionTest(ownerId, runnerId, setError);
+	const testRunning = Boolean(connectionTest.test && connectionTest.test.state !== "stopped");
+	const accountConnected = Boolean(account.connection && account.connection.provider === provider);
+	const credentialAction = key.trim() ? "replace" : savedKeyAvailable ? "keep" : "clear";
+
 	const nameValid = name.trim().length >= 1 && name.trim().length <= 80;
 	const credentialValid = provider === "custom" || savedKeyAvailable || key.trim().length > 0;
-	const valid = nameValid && Boolean(url.trim() || editing) && Boolean(credentialValid);
+	const valid = nameValid && (provider !== "custom" && connectionMethod === "account" ? accountConnected && (provider !== "youtube" || (Boolean(account.streamId) && !account.loadingStreams && !account.streamsError)) : Boolean(url.trim() || editing) && Boolean(credentialValid));
 
 	useEffect(() => {
 		let current = true;
@@ -60,6 +74,9 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 
 	function edit(destination: RunnerDestinationView | null) {
 		setEditing(destination);
+		setConnectionMethod(destination && !destination.connectionId ? "key" : "account");
+		account.setConnectionId(destination?.connectionId ?? account.connections.find((row) => row.provider === (destination?.provider ?? "twitch"))?.id ?? null);
+		account.setStreamId(destination?.providerStreamId ?? "");
 		setName(destination?.name ?? "");
 		setProvider(destination?.provider ?? "twitch");
 		setUrl(destination?.provider === "custom" ? "" : endpoints[destination?.provider ?? "twitch"]);
@@ -73,7 +90,15 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 		setSaving(true);
 		setError(null);
 		try {
-			const result = await saveRunnerDestination({ ownerId, runnerId, ...(editing ? { id: editing.id, expectedRevision: editing.configurationRevision } : {}), name, provider, ...(url.trim() ? { rtmpUrl: url } : {}), credentialAction, ...(credentialAction === "replace" && key.trim() ? { streamKey: key } : {}) });
+			const result = await saveRunnerDestination({
+				ownerId,
+				runnerId,
+				...(editing ? { id: editing.id, expectedRevision: editing.configurationRevision } : {}),
+				name,
+				provider,
+				...(url.trim() ? { rtmpUrl: url } : {}),
+				...(provider !== "custom" && connectionMethod === "account" ? { connectionId: account.connectionId, providerStreamId: provider === "youtube" ? account.streamId : undefined, credentialAction: "keep" as const } : { connectionId: null, credentialAction, ...(credentialAction === "replace" && key.trim() ? { streamKey: key } : {}) }),
+			});
 			if (!result.success) {
 				if (result.code === "CONFLICT") {
 					const refreshed = await listRunnerDestinations(ownerId, runnerId);
@@ -224,83 +249,328 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 			<Modal.Backdrop
 				isOpen={open}
 				onOpenChange={(next) => {
+					if (testOpen && !next) {
+						if (!connectionTest.pending)
+							void connectionTest.stop().then((stopped) => {
+								if (stopped) setTestOpen(false);
+							});
+						return;
+					}
 					if (!saving) {
 						setOpen(next);
 						if (!next) setKey("");
 					}
 				}}
 			>
-				<Modal.Container size='lg'>
+				<Modal.Container size={testOpen ? "md" : "lg"}>
 					<Modal.Dialog>
 						<Modal.CloseTrigger />
-						<Modal.Header>
-							<Modal.Heading>{editing ? "Edit destination" : "Add destination"}</Modal.Heading>
-						</Modal.Header>
-						<Modal.Body className='space-y-4'>
-							<TextField>
-								<Label>Destination name</Label>
-								<Input variant='secondary' value={name} onChange={(event) => setName(event.target.value)} />
-								{!nameValid && <p className='text-sm text-danger'>Use 1–80 characters.</p>}
-							</TextField>
-							<Select
-								variant='secondary'
-								value={provider}
-								onChange={(value) => {
-									const next = String(value) as Provider;
-									setProvider(next);
-									setUrl(endpoints[next]);
-									setKey("");
-								}}
-							>
-								<Label>Provider</Label>
-								<Select.Trigger>
-									<Select.Value />
-									<Select.Indicator />
-								</Select.Trigger>
-								<Select.Popover>
-									<ListBox>
-										{providers.map((row) => (
-											<ListBox.Item key={row.id} id={row.id} textValue={row.name}>
-												<ListBox.ItemIndicator />
-												<Label>{row.name}</Label>
-											</ListBox.Item>
-										))}
-									</ListBox>
-								</Select.Popover>
-							</Select>
-							{provider === "custom" && (
-								<TextField>
-									<Label>RTMP URL</Label>
-									<Input variant='secondary' value={url} onChange={(event) => setUrl(event.target.value)} placeholder={editing ? `Keep current destination (${editing.host})` : "rtmp://your-server/live"} />
-									<p className='text-xs text-muted'>Connections originate from your Runner. Local and private servers are supported.</p>
-								</TextField>
-							)}
-							<TextField type='password'>
-								<Label>Destination stream key</Label>
-								<Input variant='secondary' type='password' autoComplete='new-password' placeholder={savedKeyAvailable ? "••••••••" : undefined} value={key} onChange={(event) => setKey(event.target.value)} />
-								<p className='text-xs text-muted'>{provider === "custom" ? "Optional for custom RTMP servers." : "Required for this provider."}</p>
-							</TextField>
-							{error && (
-								<p role='alert' className='text-sm text-danger'>
-									{error}
-								</p>
-							)}
-						</Modal.Body>
-						<Modal.Footer>
-							<Button
-								variant='tertiary'
-								isDisabled={saving}
-								onPress={() => {
-									setKey("");
-									setOpen(false);
-								}}
-							>
-								Cancel
-							</Button>
-							<Button variant='primary' isDisabled={!valid || saving} isPending={saving} onPress={save}>
-								Save destination
-							</Button>
-						</Modal.Footer>
+						{testOpen ? (
+							<>
+								<Modal.Header>
+									<Modal.Heading>Test Twitch connection</Modal.Heading>
+								</Modal.Header>
+								<Modal.Body className='space-y-5'>
+									<div className='flex items-center gap-3'>
+										<IconBrandTwitch size={24} className='text-accent' />
+										<div>
+											<p className='font-semibold'>{account.connection?.channelName}</p>
+											<p className='text-sm text-muted'>Your channel stays offline during the test.</p>
+										</div>
+									</div>
+									{testRunning ? (
+										<div role='status' className='flex flex-col items-center gap-3 py-8'>
+											<Spinner size='lg' />
+											<p className='font-medium'>{connectionTest.test?.state === "running" ? "Testing connection" : connectionTest.test?.state === "stopping" ? "Stopping test" : "Waiting for Runner"}</p>
+											<p className='text-sm text-muted'>{connectionTest.test?.outputs.some((output) => output.state === "streaming") ? "Twitch is receiving the test stream." : "Checking stream health"}</p>
+										</div>
+									) : (
+										<Select value={connectionTest.duration} onChange={(value) => connectionTest.setDuration(String(value))} variant='secondary'>
+											<Label>Test duration</Label>
+											<Select.Trigger>
+												<Select.Value />
+												<Select.Indicator />
+											</Select.Trigger>
+											<Select.Popover>
+												<ListBox>
+													<ListBox.Item id='30'>30 seconds</ListBox.Item>
+													<ListBox.Item id='60'>1 minute</ListBox.Item>
+													<ListBox.Item id='120'>2 minutes</ListBox.Item>
+												</ListBox>
+											</Select.Popover>
+										</Select>
+									)}
+									{connectionTest.test?.state === "stopped" && (
+										<p role='status' className='text-sm'>
+											Test finished.
+										</p>
+									)}
+									{error && (
+										<p role='alert' className='text-sm text-danger'>
+											{error}
+										</p>
+									)}
+								</Modal.Body>
+								<Modal.Footer>
+									<Button
+										variant={testRunning ? "danger-soft" : "tertiary"}
+										isPending={connectionTest.pending}
+										onPress={() => {
+											void connectionTest.stop().then((stopped) => {
+												if (stopped) {
+													setTestOpen(false);
+													setOpen(true);
+												}
+											});
+										}}
+									>
+										{testRunning ? "End test" : "Cancel"}
+									</Button>
+									{!testRunning && (
+										<Button
+											variant='primary'
+											isPending={connectionTest.pending}
+											isDisabled={!account.connectionId}
+											onPress={() => {
+												if (account.connectionId) void connectionTest.start(account.connectionId);
+											}}
+										>
+											<IconActivity size={18} />
+											Start test
+										</Button>
+									)}
+								</Modal.Footer>
+							</>
+						) : (
+							<>
+								<Modal.Header>
+									<Modal.Heading>{editing ? "Edit destination" : "Add destination"}</Modal.Heading>
+								</Modal.Header>
+								<Modal.Body className='space-y-4'>
+									<TextField>
+										<Label>Destination name</Label>
+										<Input variant='secondary' value={name} onChange={(event) => setName(event.target.value)} />
+									</TextField>
+									<Select
+										variant='secondary'
+										value={provider}
+										onChange={(value) => {
+											const next = String(value) as Provider;
+											setProvider(next);
+											account.setConnectionId(account.connections.find((row) => row.provider === next)?.id ?? null);
+											account.setStreamId("");
+											setUrl(endpoints[next]);
+											setKey("");
+										}}
+									>
+										<Label>Provider</Label>
+										<Select.Trigger>
+											<Select.Value />
+											<Select.Indicator />
+										</Select.Trigger>
+										<Select.Popover>
+											<ListBox>
+												{providers.map((row) => (
+													<ListBox.Item key={row.id} id={row.id} textValue={row.name}>
+														<ListBox.ItemIndicator />
+														<Label>{row.name}</Label>
+													</ListBox.Item>
+												))}
+											</ListBox>
+										</Select.Popover>
+									</Select>
+									{provider !== "custom" && (
+										<Tabs selectedKey={connectionMethod} onSelectionChange={(value) => setConnectionMethod(String(value))}>
+											<Tabs.ListContainer className='w-full'>
+												<Tabs.List aria-label='Connection method' className='w-full'>
+													<Tabs.Tab id='account' className='flex-1'>
+														Connect account
+														<Tabs.Indicator />
+													</Tabs.Tab>
+													<Tabs.Tab id='key' className='flex-1'>
+														Stream key
+														<Tabs.Indicator />
+													</Tabs.Tab>
+												</Tabs.List>
+											</Tabs.ListContainer>
+											<Tabs.Panel id='account' className='pt-5 text-foreground'>
+												{accountConnected ? (
+													<div className='flex flex-col gap-3 py-2 sm:flex-row sm:items-center sm:justify-between'>
+														<div className='flex items-center gap-3'>
+															<span className='flex size-11 items-center justify-center rounded-full bg-accent/10 text-accent'>
+																<ProviderIcon size={24} />
+															</span>
+															<div>
+																<p className='font-semibold'>{account.connection?.channelName}</p>
+																<p className='text-sm text-muted'>{providerName} channel</p>
+															</div>
+														</div>
+														<div className='flex items-center justify-between gap-2 sm:justify-end'>
+															<Chip color='success' variant='soft' size='sm'>
+																Connected
+															</Chip>
+															<Button
+																variant='tertiary'
+																size='sm'
+																onPress={() => {
+																	void account.connect(provider);
+																}}
+																isPending={account.connecting}
+															>
+																Change
+															</Button>
+														</div>
+													</div>
+												) : (
+													<div className='flex items-start gap-3 py-2'>
+														<span className='flex size-11 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent'>
+															<ProviderIcon size={24} />
+														</span>
+														<div>
+															<p className='font-semibold'>Connect your {providerName} channel</p>
+															<p className='mt-1 text-sm text-muted'>Choose the channel you want to stream to.</p>
+														</div>
+													</div>
+												)}
+
+												{account.connections.filter((row) => row.provider === provider).length > 1 && (
+													<Select variant='secondary' className='mt-4' value={account.connectionId ?? ""} onChange={(value) => account.setConnectionId(String(value))}>
+														<Label>Channel</Label>
+														<Select.Trigger>
+															<Select.Value />
+															<Select.Indicator />
+														</Select.Trigger>
+														<Select.Popover>
+															<ListBox>
+																{account.connections
+																	.filter((row) => row.provider === provider)
+																	.map((row) => (
+																		<ListBox.Item id={row.id} key={row.id} textValue={row.channelName}>
+																			{row.channelName}
+																		</ListBox.Item>
+																	))}
+															</ListBox>
+														</Select.Popover>
+													</Select>
+												)}
+												{provider === "youtube" && accountConnected && (
+													<div className='mt-4 space-y-2'>
+														<Select variant='secondary' value={account.streamId} onChange={(value) => account.setStreamId(String(value))} isDisabled={account.loadingStreams}>
+															<Label>YouTube stream key</Label>
+															<Select.Trigger>
+																<Select.Value />
+																<Select.Indicator />
+															</Select.Trigger>
+															<Select.Popover>
+																<ListBox>
+																	{account.streams.map((row) => (
+																		<ListBox.Item id={row.id} key={row.id} textValue={row.name}>
+																			{row.name}
+																		</ListBox.Item>
+																	))}
+																</ListBox>
+															</Select.Popover>
+														</Select>
+														{account.loadingStreams && (
+															<p role='status' className='flex items-center gap-2 text-sm text-muted'>
+																<Spinner size='sm' />
+																Loading stream keys…
+															</p>
+														)}
+														{account.streamsError && (
+															<div className='space-y-2'>
+																<p role='alert' className='text-sm text-danger'>
+																	{account.streamsError}
+																</p>
+																<Button
+																	variant='secondary'
+																	size='sm'
+																	onPress={() => {
+																		if (account.streamsErrorCode === "RECONNECT_REQUIRED") void account.connect("youtube");
+																		else account.retryStreams();
+																	}}
+																>
+																	{account.streamsErrorCode === "RECONNECT_REQUIRED" ? "Reconnect YouTube" : "Retry"}
+																</Button>
+															</div>
+														)}
+														{!account.loadingStreams && !account.streamsError && !account.streams.length && <p className='text-sm text-muted'>Create a stream key in YouTube Studio, then refresh this list.</p>}
+														{!account.loadingStreams && !account.streamsError && !account.streams.length && (
+															<Button variant='secondary' size='sm' onPress={account.retryStreams}>
+																Refresh stream keys
+															</Button>
+														)}
+													</div>
+												)}
+											</Tabs.Panel>
+											<Tabs.Panel id='key' className='pt-5'>
+												<TextField type='password'>
+													<Label>Destination stream key</Label>
+													<Input variant='secondary' type='password' autoComplete='new-password' placeholder={savedKeyAvailable ? "••••••••" : undefined} value={key} onChange={(event) => setKey(event.target.value)} />
+												</TextField>
+											</Tabs.Panel>
+										</Tabs>
+									)}
+									{provider === "custom" && (
+										<TextField>
+											<Label>RTMP URL</Label>
+											<Input variant='secondary' value={url} onChange={(event) => setUrl(event.target.value)} placeholder={editing ? `Keep current destination (${editing.host})` : "rtmp://your-server/live"} />
+											<p className='text-xs text-muted'>Connections originate from your Runner. Local and private servers are supported.</p>
+										</TextField>
+									)}
+									{provider === "custom" && (
+										<TextField type='password'>
+											<Label>Destination stream key</Label>
+											<Input variant='secondary' type='password' autoComplete='new-password' placeholder={savedKeyAvailable ? "••••••••" : undefined} value={key} onChange={(event) => setKey(event.target.value)} />
+											<p className='text-xs text-muted'>{provider === "custom" ? "Optional for custom RTMP servers." : "Required for this provider."}</p>
+										</TextField>
+									)}
+									{error && (
+										<p role='alert' className='text-sm text-danger'>
+											{error}
+										</p>
+									)}
+								</Modal.Body>
+								<Modal.Footer className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+									{provider === "twitch" && accountConnected && connectionMethod === "account" && (
+										<Button
+											className='w-full sm:w-auto'
+											variant='secondary'
+											onPress={() => {
+												connectionTest.reset();
+												setError(null);
+												setTestOpen(true);
+											}}
+										>
+											<IconActivity size={18} />
+											Test connection
+										</Button>
+									)}
+									<div className='flex w-full justify-end gap-2 sm:ml-auto sm:w-auto'>
+										<Button className='flex-1 sm:flex-none' variant='tertiary' onPress={() => setOpen(false)}>
+											Cancel
+										</Button>
+										{provider !== "custom" && connectionMethod === "account" && !accountConnected ? (
+											<Button
+												className='flex-[2] sm:flex-none'
+												variant='primary'
+												isPending={account.connecting}
+												onPress={() => {
+													void account.connect(provider);
+												}}
+											>
+												<ProviderIcon size={18} />
+												Connect {providerName}
+											</Button>
+										) : (
+											<Button className='flex-[2] sm:flex-none' variant='primary' isDisabled={!valid || account.connecting} isPending={saving} onPress={save}>
+												Save destination
+											</Button>
+										)}
+									</div>
+								</Modal.Footer>
+							</>
+						)}
 					</Modal.Dialog>
 				</Modal.Container>
 			</Modal.Backdrop>

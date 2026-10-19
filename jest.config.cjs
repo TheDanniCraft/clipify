@@ -50,6 +50,7 @@ const customJestConfig = {
 		"src/app/api/runner/presentation/route.ts",
 		"src/app/api/runner/branding-assets/route.ts",
 		"src/app/runner/presentation/**/*.{ts,tsx}",
+		"src/app/runner/connect/**/*.{ts,tsx}",
 		"src/app/runner/preview/**/*.{ts,tsx}",
 		"src/server/entitlements.ts",
 		"src/server/entitlements/resource-access.ts",

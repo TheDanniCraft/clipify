@@ -38,12 +38,29 @@ export async function recognizeLegacyBroadcasts(tx: TransactionClient, ownerId: 
 }
 
 type Admission = typeof runnerBroadcastAdmissionsTable.$inferSelect;
+export function isExpiredUndispatchedConnectionTest(admission: Pick<Admission, "state" | "dispatchedAt" | "scheduledEnd" | "benefitsAtStart">, now: number) {
+	return admission.state === "reserved" && !admission.dispatchedAt && typeof admission.benefitsAtStart.testConnectionId === "string" && !!admission.scheduledEnd && admission.scheduledEnd.getTime() <= now;
+}
 async function recoverExpiredAdmissions(tx: TransactionClient, ownerId: string, occupied: Admission[], recoveryNow: number) {
 	// Supported Free leases and explicitly bounded cached Scheduled authority prove a stop.
 	// The owner lock also serializes renewal; heartbeat age is deliberately irrelevant.
 	const recoveryTime = new Date(recoveryNow);
 	const recovered = new Set<string>();
 	for (const admission of occupied) {
+		if (isExpiredUndispatchedConnectionTest(admission, recoveryNow)) {
+			await tx
+				.update(runnerBroadcastAdmissionsTable)
+				.set({ state: "failed_before_output", stoppedAt: recoveryTime, terminalReason: "test_expired_before_dispatch" })
+				.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, ownerId), eq(runnerBroadcastAdmissionsTable.id, admission.id)));
+			if (admission.sessionId)
+				await tx
+					.update(streamSessionsTable)
+					.set({ desiredState: StreamState.Stopped, actualState: StreamState.Stopped })
+					.where(and(eq(streamSessionsTable.ownerId, ownerId), eq(streamSessionsTable.id, admission.sessionId)));
+			recovered.add(admission.id);
+			continue;
+		}
+
 		const cachedScheduled = admission.benefitsAtStart.cacheAuthorization === true && admission.benefitsAtStart.runnerPro === true && admission.scheduledEnd !== null;
 		if ((admission.benefitsAtStart.runnerPro !== false && !cachedScheduled) || !admission.protocolSupportsLease || !admission.leaseId || !admission.leaseExpiresAt || !admission.dispatchedAt) continue;
 		const deadline = cachedScheduled ? Math.max(admission.leaseExpiresAt.getTime(), admission.scheduledEnd!.getTime()) : admission.leaseExpiresAt.getTime();

@@ -1,12 +1,13 @@
 "use server";
 
 import { z } from "zod";
+import { ProviderRequestError } from "@/server/runner/provider-api";
 import { runnerPreviewCache } from "@lib/runnerPreviewCache";
 import { db, type QueryClient } from "@/db/client";
 import { overlaysTable, runnersTable, usersTable } from "@/db/schema";
 import { revalidatePath } from "next/cache";
 import { randomBytes, randomUUID } from "crypto";
-import { eq, and, sql, inArray, asc } from "drizzle-orm";
+import { eq, and, sql, inArray, asc, isNull } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { deriveRunnerCapabilities, resolveRunnerBenefits } from "@/server/runner/capabilities";
 import { StreamState } from "@types";
@@ -63,6 +64,7 @@ async function runnerDestinationAction<T>(operation: string, run: (principal: Tr
 		if (!principal) return { success: false as const, error: "Unauthorized", code: "ACCESS_DENIED" as const };
 		return await run(principal);
 	} catch (cause) {
+		if (cause instanceof ProviderRequestError) return { success: false as const, error: cause.message, code: cause.code };
 		const error = toPublicResourceError(cause instanceof Error && cause.message === "AUTHENTICATION_REQUIRED" ? new Error("ACCESS_DENIED") : cause);
 		if (error.code === "SERVICE_UNAVAILABLE") {
 			// ORM/process errors may carry credential parameters. Report the unexpected failure
@@ -362,7 +364,7 @@ export async function getAllStreamSessions(ownerId: string) {
 	try {
 		if (!(await hasAccess(ownerId, "runner:read"))) return [];
 
-		const sessions = await db.query.streamSessionsTable.findMany({ where: eq(streamSessionsTable.ownerId, ownerId) });
+		const sessions = await db.query.streamSessionsTable.findMany({ where: and(eq(streamSessionsTable.ownerId, ownerId), isNull(streamSessionsTable.testExpiresAt)) });
 		return await publicSessionConfigurations(sessions, ownerId);
 	} catch (error) {
 		console.error("Failed to fetch stream sessions:", error);
@@ -412,7 +414,7 @@ export async function getStreamSessionsForRunner(runnerId: string, ownerId: stri
 	try {
 		if (!(await hasAccess(ownerId, "runner:read"))) return [];
 
-		const sessions = await db.query.streamSessionsTable.findMany({ where: and(eq(streamSessionsTable.runnerId, runnerId), eq(streamSessionsTable.ownerId, ownerId)) });
+		const sessions = await db.query.streamSessionsTable.findMany({ where: and(eq(streamSessionsTable.runnerId, runnerId), eq(streamSessionsTable.ownerId, ownerId), isNull(streamSessionsTable.testExpiresAt)) });
 		return await publicSessionConfigurations(sessions, ownerId);
 	} catch (error) {
 		console.error("Failed to fetch stream sessions for runner:", error);
@@ -495,4 +497,86 @@ export async function getRunnerLivePreview(runnerId: string, ownerId: string) {
 		captureUnexpectedError(new Error("Runner preview read failed"), "runner-actions", "read-preview");
 		return { success: false as const, code: "SERVICE_UNAVAILABLE" as const, error: "Preview unavailable. Please try again." };
 	}
+}
+
+export async function connectRunnerStreamingProvider(input: unknown) {
+	return runnerDestinationAction("connect-streaming-provider", async (principal) => {
+		const { beginStreamingConnection } = await import("@/server/runner/provider-connections");
+		return beginStreamingConnection(principal, input);
+	});
+}
+export async function getRunnerStreamingConnections(ownerId: string) {
+	return runnerDestinationAction("list-streaming-connections", async (principal) => {
+		const { listStreamingConnections } = await import("@/server/runner/provider-connections");
+		return listStreamingConnections(principal, ownerId);
+	});
+}
+export async function getRunnerYoutubeStreams(input: { ownerId: string; connectionId: string }) {
+	return runnerDestinationAction("list-youtube-streams", async (principal) => {
+		const parsed = z
+			.object({ ownerId: z.string().min(1).max(255), connectionId: z.uuid() })
+			.strict()
+			.safeParse(input);
+		if (!parsed.success) return { success: false as const, error: "Choose a connected channel.", code: "INVALID_INPUT" as const };
+		const { authorizeLockedMutation } = await import("@/server/resources/mutation");
+		const { withStreamingConnection } = await import("@/server/runner/provider-connections");
+		const { fetchYoutubeStreams, ProviderRequestError } = await import("@/server/runner/provider-api");
+		return db.transaction(async (tx) => {
+			const authority = await authorizeLockedMutation(principal, input.ownerId, "runner:update", tx);
+			const streams = await withStreamingConnection(tx, input.ownerId, input.connectionId, async (context) => {
+				if (context.provider !== "youtube") throw new ProviderRequestError("CHANNEL_UNAVAILABLE");
+				return (await fetchYoutubeStreams(context)).map((stream) => ({ id: stream.id, name: stream.snippet.title }));
+			});
+			authority.assertAuthorityCurrent();
+			if (!streams.success) return streams;
+			return { success: true as const, streams: streams.value };
+		});
+	});
+}
+
+export async function searchRunnerTwitchCategories(input: { ownerId: string; connectionId: string; query: string }) {
+	return runnerDestinationAction("search-twitch-categories", async (principal) => {
+		const parsed = z
+			.object({ ownerId: z.string().min(1).max(255), connectionId: z.uuid(), query: z.string().trim().min(2).max(100) })
+			.strict()
+			.safeParse(input);
+		if (!parsed.success) return { success: false as const, error: "Enter at least two characters.", code: "INVALID_INPUT" as const };
+		const { authorizeLockedMutation } = await import("@/server/resources/mutation");
+		const { withStreamingConnection } = await import("@/server/runner/provider-connections");
+		const { searchTwitchCategories } = await import("@/server/runner/provider-api");
+		return db.transaction(async (tx) => {
+			const authority = await authorizeLockedMutation(principal, input.ownerId, "runner:read", tx);
+			const categories = await withStreamingConnection(tx, input.ownerId, input.connectionId, (context) => searchTwitchCategories(context, parsed.data.query));
+			authority.assertAuthorityCurrent();
+			if (!categories.success) return categories;
+			return { success: true as const, categories: categories.value };
+		});
+	});
+}
+export async function uploadRunnerScheduleThumbnail(form: FormData) {
+	return runnerDestinationAction("upload-schedule-thumbnail", async (principal) => {
+		const file = form.get("file");
+		if (!(file instanceof File) || !file.size || file.size > 2097152) return { success: false as const, error: "Choose an image no larger than 2 MiB.", code: "INVALID_INPUT" as const };
+		const { storeRunnerBrandingAssetForPrincipal } = await import("@/server/runner/branding-assets");
+		return storeRunnerBrandingAssetForPrincipal(principal, { ownerId: form.get("ownerId"), runnerId: form.get("runnerId"), kind: "background", bytes: new Uint8Array(await file.arrayBuffer()) });
+	});
+}
+
+export async function startRunnerConnectionTest(input: unknown) {
+	return runnerDestinationAction("start-connection-test", async (principal) => {
+		const { startTwitchConnectionTest } = await import("@/server/runner/provider-test");
+		return startTwitchConnectionTest(principal, input);
+	});
+}
+export async function readRunnerConnectionTest(input: unknown) {
+	return runnerDestinationAction("read-connection-test", async (principal) => {
+		const { readTwitchConnectionTest } = await import("@/server/runner/provider-test");
+		return readTwitchConnectionTest(principal, input);
+	});
+}
+export async function stopRunnerConnectionTest(input: unknown) {
+	return runnerDestinationAction("stop-connection-test", async (principal) => {
+		const { readTwitchConnectionTest } = await import("@/server/runner/provider-test");
+		return readTwitchConnectionTest(principal, input, true);
+	});
 }

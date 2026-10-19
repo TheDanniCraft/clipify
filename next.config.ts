@@ -18,6 +18,7 @@ const nextConfigPromise = Promise.resolve(drizzle).then(
 			// E2E uses the full checkout with a custom server; standalone remains the deployment artifact.
 			output: process.env.E2E_TEST_MODE === "true" ? undefined : "standalone",
 			deploymentId,
+			experimental: { serverActions: { bodySizeLimit: "3mb" } },
 			distDir: process.env.E2E_TEST_MODE === "true" ? ".next-playwright" : ".next",
 			outputFileTracingIncludes: {
 				"**": [...drizzle, "./node_modules/@sentry/profiling-node/**", "./node_modules/@sentry/node-cpu-profiler/**"],
