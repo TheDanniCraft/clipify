@@ -117,7 +117,7 @@ When("their Pro broadcast reports one retrying and one live destination", async 
 		await pool.query("UPDATE users SET plan='pro' WHERE id=$1", [state.owner.fixture.creatorId]);
 		const session = (await pool.query("SELECT s.id,s.configuration_revision,d.destination_id FROM stream_sessions s JOIN stream_session_destinations d ON d.session_id=s.id WHERE s.runner_id=$1", [state.runnerId])).rows[0];
 		const targetId = randomUUID();
-		await pool.query("INSERT INTO runner_destinations(id,owner_id,runner_id,name,provider,rtmp_url,encrypted_stream_key) SELECT $1,owner_id,runner_id,'YouTube','youtube',rtmp_url,encrypted_stream_key FROM runner_destinations WHERE id=$2", [targetId, session.destination_id]);
+		await pool.query("INSERT INTO runner_destinations(id,owner_id,name,provider,rtmp_url,encrypted_stream_key) SELECT $1,owner_id,'YouTube','youtube',rtmp_url,encrypted_stream_key FROM runner_destinations WHERE id=$2", [targetId, session.destination_id]);
 		await pool.query("INSERT INTO stream_session_destinations(owner_id,session_id,destination_id,position) VALUES($1,$2,$3,1)", [state.owner.fixture.creatorId, session.id, targetId]);
 		await pool.query("UPDATE stream_sessions SET desired_state='running',actual_state='running' WHERE id=$1", [session.id]);
 		await pool.query("UPDATE runners SET last_heartbeat_at=now() WHERE id=$1", [state.runnerId]);
@@ -421,7 +421,7 @@ Given("its schedule includes a future Berlin broadcast beyond the current cache 
 	try {
 		const { encryptString } = await import("@/app/lib/encryption");
 		const target = randomUUID();
-		await pool.query("INSERT INTO runner_destinations(id,owner_id,runner_id,name,provider,rtmp_url,encrypted_stream_key) VALUES($1,$2,$3,'Scheduled loopback','custom','rtmp://127.0.0.1:1949/live',$4)", [target, world.owner.fixture.creatorId, world.runnerId, encryptString("disposable-schedule-key")]);
+		await pool.query("INSERT INTO runner_destinations(id,owner_id,name,provider,rtmp_url,encrypted_stream_key) VALUES($1,$2,'Scheduled loopback','custom','rtmp://127.0.0.1:1949/live',$3)", [target, world.owner.fixture.creatorId, encryptString("disposable-schedule-key")]);
 		await pool.query("UPDATE stream_sessions SET control_mode='scheduled' WHERE id=$1", [world.sessionId]);
 		const startDate = new Date(Date.now() - 86400000).toISOString().slice(0, 10),
 			endDate = new Date(Date.now() + 86400000).toISOString().slice(0, 10),

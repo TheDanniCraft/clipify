@@ -1,0 +1,16 @@
+[WebServer] (node:335890) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:335890) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 5 tests using 1 worker
+
+(node:336000) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [acceptance-chromium] › test/acceptance/calendar-localization.spec.ts:20:6 › calendar all-day setup and displayed dates follow en-US (17.3s)
+  ✓  2 [acceptance-chromium] › test/acceptance/calendar-localization.spec.ts:20:6 › calendar all-day setup and displayed dates follow de-DE (16.3s)
+  ✓  3 [acceptance-chromium] › test/acceptance/runner-editor-ux.spec.ts:557:5 › a second Runner reuses an account destination without asking for its key again (14.6s)
+  ✓  4 [acceptance-chromium] › test/acceptance/runner-master-parity.spec.ts:14:5 › Runner preserves first connection, headless setup, updates, quality and recoverable preview (28.0s)
+  ✓  5 [acceptance-chromium] › test/acceptance/runner-schedule-history.spec.ts:7:5 › past broadcasts remain read-only and future recurring changes have explicit scope (22.9s)
+
+  5 passed (1.8m)

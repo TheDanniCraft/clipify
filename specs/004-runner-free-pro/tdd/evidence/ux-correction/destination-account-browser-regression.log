@@ -1,0 +1,68 @@
+[WebServer] (node:330639) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:330639) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 5 tests using 1 worker
+
+(node:330761) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  1 [acceptance-chromium] › test/acceptance/runner-editor-ux.spec.ts:41:6 › free Runner setup and appearance follow the Clipify editor flow (46.4s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching incremental clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching backfill clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching incremental clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching backfill clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching incremental clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching backfill clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching incremental clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching backfill clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching incremental clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching backfill clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  2 [acceptance-chromium] › test/acceptance/runner-editor-ux.spec.ts:41:6 › pro Runner setup and appearance follow the Clipify editor flow (1.0m)
+  ✓  3 [acceptance-chromium] › test/acceptance/runner-editor-ux.spec.ts:532:5 › Runner setup without an overlay offers a source action and recoverable validation (5.4s)
+  ✘  4 [acceptance-chromium] › test/acceptance/runner-editor-ux.spec.ts:557:5 › a second Runner reuses an account destination without asking for its key again (1.4m)
+
+
+  1) [acceptance-chromium] › test/acceptance/runner-editor-ux.spec.ts:557:5 › a second Runner reuses an account destination without asking for its key again
+
+    Test was interrupted.
+
+    Error: apiRequestContext.delete: Target page, context or browser has been closed
+
+      609 | 				await page.getByRole("button", { name: "Toggle Theme", exact: true }).click();
+      610 | 				await selector.getByRole("button", { name: "Manage destinations", exact: true }).click();
+    > 611 | 				await expect(manager).toBeVisible();
+          | 				                                    ^
+      612 | 			}
+      613 | 			await manager.screenshot({ path: testInfo.outputPath(`account-destinations-${theme}.png`), animations: "disabled" });
+      614 | 		}
+        at /home/coder/clipify/test/acceptance/runner-editor-ux.spec.ts:611:41
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/destination-account-review/runner-editor-ux-a-second--d0438-ut-asking-for-its-key-again-acceptance-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/destination-account-review/runner-editor-ux-a-second--d0438-ut-asking-for-its-key-again-acceptance-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/destination-account-review/runner-editor-ux-a-second--d0438-ut-asking-for-its-key-again-acceptance-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/destination-account-review/runner-editor-ux-a-second--d0438-ut-asking-for-its-key-again-acceptance-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/destination-account-review/runner-editor-ux-a-second--d0438-ut-asking-for-its-key-again-acceptance-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 interrupted
+    [acceptance-chromium] › test/acceptance/runner-editor-ux.spec.ts:557:5 › a second Runner reuses an account destination without asking for its key again
+  1 did not run
+  3 passed (3.5m)

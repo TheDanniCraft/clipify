@@ -18,7 +18,7 @@ test("past broadcasts remain read-only and future recurring changes have explici
 			seriesId = randomUUID();
 		const creatorId = owner.fixture.creatorId;
 		await pool.query("INSERT INTO runners(id,owner_id,name,token,status,last_heartbeat_at) VALUES($1,$2,'Schedule history',$3,'online',now())", [runnerId, creatorId, randomUUID()]);
-		await pool.query("INSERT INTO runner_destinations(id,owner_id,runner_id,name,provider,rtmp_url) VALUES($1,$2,$3,'Local destination','custom','rtmp://127.0.0.1:1949/live')", [targetId, creatorId, runnerId]);
+		await pool.query("INSERT INTO runner_destinations(id,owner_id,name,provider,rtmp_url) VALUES($1,$2,'Local destination','custom','rtmp://127.0.0.1:1949/live')", [targetId, creatorId]);
 		await pool.query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,control_mode) VALUES($1,$2,$3,$4,'24/7','scheduled')", [sessionId, creatorId, runnerId, owner.fixture.overlayId]);
 		await pool.query("INSERT INTO stream_session_destinations(session_id,destination_id,owner_id,position) VALUES($1,$2,$3,0)", [sessionId, targetId, creatorId]);
 		await pool.query("INSERT INTO runner_schedule_events(id,owner_id,runner_id,session_id,overlay_id,title,timezone,recurrence,recurrence_anchor,local_start_date,local_end_date,local_start_time,local_end_time) VALUES($1,$2,$3,$4,$5,'Past broadcast','UTC','once','past',to_char(now()-interval '2 days','YYYY-MM-DD'),to_char(now()-interval '2 days','YYYY-MM-DD'),'12:00','13:00')", [pastId, creatorId, runnerId, sessionId, owner.fixture.overlayId]);

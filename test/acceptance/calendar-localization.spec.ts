@@ -34,7 +34,7 @@ for (const locale of ["en-US", "de-DE"])
 				sessionId = randomUUID(),
 				targetId = randomUUID();
 			await pool.query("INSERT INTO runners(id,owner_id,name,token,status,last_heartbeat_at,protocol_version,capabilities) VALUES($1,$2,'Calendar review',$3,'online',now(),2,$4::jsonb)", [runnerId, owner.fixture.creatorId, randomUUID(), JSON.stringify(["admissions", "destinations", "drain", "runner_presentation", "free_lease"])]);
-			await pool.query("INSERT INTO runner_destinations(id,owner_id,runner_id,name,provider,rtmp_url) VALUES($1,$2,$3,'Review output','custom','rtmp://127.0.0.1:1949/live')", [targetId, owner.fixture.creatorId, runnerId]);
+			await pool.query("INSERT INTO runner_destinations(id,owner_id,name,provider,rtmp_url) VALUES($1,$2,'Review output','custom','rtmp://127.0.0.1:1949/live')", [targetId, owner.fixture.creatorId]);
 			await pool.query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,control_mode) VALUES($1,$2,$3,$4,'24/7','scheduled')", [sessionId, owner.fixture.creatorId, runnerId, owner.fixture.overlayId]);
 			await pool.query("INSERT INTO stream_session_destinations(session_id,destination_id,owner_id,position) VALUES($1,$2,$3,0)", [sessionId, targetId, owner.fixture.creatorId]);
 			await page.goto("/legal/cookies");

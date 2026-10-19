@@ -348,8 +348,8 @@ export async function saveRunnerScheduleEventForPrincipal(principal: TrustedCrea
 			const targets = await tx
 				.select({ id: runnerDestinationsTable.id })
 				.from(runnerDestinationsTable)
-				.where(and(eq(runnerDestinationsTable.ownerId, input.ownerId), inArray(runnerDestinationsTable.id, input.destinationIds), or(eq(runnerDestinationsTable.runnerId, input.runnerId), isNull(runnerDestinationsTable.runnerId))));
-			if (targets.length !== input.destinationIds.length) return failure("INVALID_INPUT", "Choose destinations belonging to this creator and Runner.");
+				.where(and(eq(runnerDestinationsTable.ownerId, input.ownerId), inArray(runnerDestinationsTable.id, input.destinationIds)));
+			if (targets.length !== input.destinationIds.length) return failure("INVALID_INPUT", "Choose destinations belonging to this account.");
 			const values = scheduleEventValues(input, scoped ? undefined : current);
 			const candidate = { ...values, id: scoped ? randomUUID() : (current?.id ?? randomUUID()), excludedDates: scoped ? (input.scope === "following" ? current!.excludedDates.filter((date) => date >= scoped.localDate) : []) : (current?.excludedDates ?? []), repeatUntilDate: current?.repeatUntilDate ?? null, ...(scoped && input.scope === "this" ? { seriesParentId: current!.id, originalOccurrenceDate: scoped.localDate } : {}) };
 			if (scoped && seriesHasStarted(candidate, clock())) return failure("INVALID_INPUT", "Choose a future start time.");

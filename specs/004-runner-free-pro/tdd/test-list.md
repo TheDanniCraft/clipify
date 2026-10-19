@@ -1298,3 +1298,6 @@ The correction's outer browser UX journeys are added after the first implementat
 - [x] UX-C35: matching architecture controls update status/download; connected quality and safe general error indication remain visible.
 - [x] UX-C36: a running preview distinguishes first-frame waiting, failed read/retry and actual uploaded image; an offline Runner retains connected configuration.
 - [x] UX-C37: Schedule leaves Control width unchanged, shares equal-width desktop actions with Appearance and stacks on mobile; both themes preserve the established editor.
+
+- [x] UX-C38: a destination created from one Runner is listed on a second, can be selected for its broadcast/schedule and captured with its protected existing credential; shared edits preserve encrypted bytes and device deletion preserves the destination.
+- [x] UX-C39: installed browser setup reuses the saved ID/key without another key entry; account-wide duplicate detection and existing cross-owner/admission/deletion protections remain enforced.

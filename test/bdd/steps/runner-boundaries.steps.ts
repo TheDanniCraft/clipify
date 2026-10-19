@@ -25,7 +25,7 @@ Then("the destination is removed from the browser and storage", async ({ page, m
 	const state = mcpWorld.input?.runnerManual as { owner: { fixture: { creatorId: string } }; runnerId: string };
 	const pool = new Pool({ connectionString: browserDatabaseUrl(), max: 1 });
 	try {
-		const result = await pool.query("SELECT count(*) FROM runner_destinations WHERE owner_id=$1 AND runner_id=$2", [state.owner.fixture.creatorId, state.runnerId]);
+		const result = await pool.query("SELECT count(*) FROM runner_destinations WHERE owner_id=$1", [state.owner.fixture.creatorId]);
 		expect(Number(result.rows[0].count)).toBe(0);
 	} finally {
 		await pool.end();
@@ -58,7 +58,7 @@ Then("the destination name is {string} and saved data agrees", async ({ page, mc
 	}
 	const pool = new Pool({ connectionString: browserDatabaseUrl(), max: 1 });
 	try {
-		const rows = await pool.query("SELECT name FROM runner_destinations WHERE owner_id=$1 AND runner_id=$2", [state.owner.fixture.creatorId, state.runnerId]);
+		const rows = await pool.query("SELECT name FROM runner_destinations WHERE owner_id=$1", [state.owner.fixture.creatorId]);
 		expect(rows.rows).toEqual(outcome === "accepted" ? [{ name }] : []);
 	} finally {
 		await pool.end();
@@ -75,7 +75,7 @@ When("they reopen a legacy broadcast and save its configuration twice", async ({
 		sessionId = sessions.rows[0].id;
 		// Reconstruct the persisted pre-conversion shape in this disposable fixture only.
 		await pool.query("DELETE FROM stream_session_destinations WHERE session_id=$1", [sessionId]);
-		await pool.query("DELETE FROM runner_destinations WHERE owner_id=$1 AND runner_id=$2", [state.owner.fixture.creatorId, state.runnerId]);
+		await pool.query("DELETE FROM runner_destinations WHERE owner_id=$1", [state.owner.fixture.creatorId]);
 	} finally {
 		await pool.end();
 	}
@@ -101,7 +101,7 @@ Then("its converted destination remains visible once after reloading", async ({ 
 	const state = mcpWorld.input?.runnerManual as { owner: { fixture: { creatorId: string } }; runnerId: string };
 	const pool = new Pool({ connectionString: browserDatabaseUrl(), max: 1 });
 	try {
-		const targets = await pool.query("SELECT id,credential_revision FROM runner_destinations WHERE owner_id=$1 AND runner_id=$2", [state.owner.fixture.creatorId, state.runnerId]);
+		const targets = await pool.query("SELECT id,credential_revision FROM runner_destinations WHERE owner_id=$1", [state.owner.fixture.creatorId]);
 		expect(targets.rows).toHaveLength(1);
 		expect(targets.rows[0].credential_revision).toBe(1);
 		const references = await pool.query("SELECT destination_id FROM stream_session_destinations WHERE owner_id=$1", [state.owner.fixture.creatorId]);

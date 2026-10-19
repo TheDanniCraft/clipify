@@ -13,7 +13,7 @@ export async function runRunnerScheduleContractProbe(input: Input) {
 		sessionId = randomUUID(),
 		targetId = randomUUID();
 	await input.fixture.pool.query("INSERT INTO overlays(id,owner_id,secret,name,status,type) VALUES($1,$2,'schedule-source-secret','Schedule source','active','Featured')", [overlayId, ownerId]);
-	await input.fixture.pool.query("INSERT INTO runner_destinations(id,owner_id,runner_id,name,provider,rtmp_url) VALUES($1,$2,$3,'Schedule target','custom','rtmp://127.0.0.1:1949/live')", [targetId, ownerId, input.runnerId]);
+	await input.fixture.pool.query("INSERT INTO runner_destinations(id,owner_id,name,provider,rtmp_url) VALUES($1,$2,'Schedule target','custom','rtmp://127.0.0.1:1949/live')", [targetId, ownerId]);
 	await input.fixture.pool.query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,control_mode) VALUES($1,$2,$3,$4,'24/7','scheduled')", [sessionId, ownerId, input.runnerId, overlayId]);
 	await input.fixture.pool.query("INSERT INTO stream_session_destinations(session_id,destination_id,owner_id,position) VALUES($1,$2,$3,0)", [sessionId, targetId, ownerId]);
 	const { privateKey, publicKey } = ephemeralRunnerKeys();
@@ -137,7 +137,7 @@ export async function runRunnerScheduleContractProbe(input: Input) {
 				target = randomUUID(),
 				session = randomUUID();
 			await input.fixture.pool.query("INSERT INTO runners(id,owner_id,name,token) VALUES($1,$2,'Weekly boundary Runner',$3)", [runner, ownerId, randomUUID()]);
-			await input.fixture.pool.query("INSERT INTO runner_destinations(id,owner_id,runner_id,name,provider,rtmp_url) VALUES($1,$2,$3,'Weekly target','custom','rtmp://127.0.0.1:1949/weekly')", [target, ownerId, runner]);
+			await input.fixture.pool.query("INSERT INTO runner_destinations(id,owner_id,name,provider,rtmp_url) VALUES($1,$2,'Weekly target','custom','rtmp://127.0.0.1:1949/weekly')", [target, ownerId]);
 			await input.fixture.pool.query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,control_mode) VALUES($1,$2,$3,$4,'24/7','scheduled')", [session, ownerId, runner, overlayId]);
 			await input.fixture.pool.query("INSERT INTO stream_session_destinations(session_id,destination_id,owner_id,position) VALUES($1,$2,$3,0)", [session, target, ownerId]);
 			const result = await schedules.saveRunnerScheduleEventForPrincipal(principal, { ...weeklyDraft, runnerId: runner, sessionId: session, destinationIds: [target], endDayOffset: offset, localStartTime: "00:00", localEndTime: offset === 0 ? "01:00" : "00:00" });
@@ -226,7 +226,7 @@ export async function runRunnerScheduleContractProbe(input: Input) {
 			activeSessionId = randomUUID(),
 			activeTargetId = randomUUID();
 		await input.fixture.pool.query("INSERT INTO runners(id,owner_id,name,token) VALUES($1,$2,'Active lock fixture',$3)", [activeRunnerId, ownerId, randomUUID()]);
-		await input.fixture.pool.query("INSERT INTO runner_destinations(id,owner_id,runner_id,name,provider,rtmp_url) VALUES($1,$2,$3,'Active lock target','custom','rtmp://127.0.0.1:1949/active')", [activeTargetId, ownerId, activeRunnerId]);
+		await input.fixture.pool.query("INSERT INTO runner_destinations(id,owner_id,name,provider,rtmp_url) VALUES($1,$2,'Active lock target','custom','rtmp://127.0.0.1:1949/active')", [activeTargetId, ownerId]);
 		await input.fixture.pool.query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,control_mode) VALUES($1,$2,$3,$4,'24/7','scheduled')", [activeSessionId, ownerId, activeRunnerId, overlayId]);
 		await input.fixture.pool.query("INSERT INTO stream_session_destinations(session_id,destination_id,owner_id,position) VALUES($1,$2,$3,0)", [activeSessionId, activeTargetId, ownerId]);
 		const activeNow = Date.now(),
@@ -394,7 +394,7 @@ export async function runRunnerScheduleContractProbe(input: Input) {
 		const eventTargetId = randomUUID(),
 			eventSourceId = randomUUID();
 		await input.fixture.pool.query("INSERT INTO overlays(id,owner_id,secret,name,status,type,configuration_revision) VALUES($1,$2,'captured-source-secret','Occurrence-only source','active','Featured',7)", [eventSourceId, ownerId]);
-		await input.fixture.pool.query("INSERT INTO runner_destinations(id,owner_id,runner_id,name,provider,rtmp_url) VALUES($1,$2,$3,'Occurrence-only target','custom','rtmp://127.0.0.1:1950/event')", [eventTargetId, ownerId, input.runnerId]);
+		await input.fixture.pool.query("INSERT INTO runner_destinations(id,owner_id,name,provider,rtmp_url) VALUES($1,$2,'Occurrence-only target','custom','rtmp://127.0.0.1:1950/event')", [eventTargetId, ownerId]);
 		const targetEvent = await schedules.saveRunnerScheduleEventForPrincipal(principal, { ...base, title: "Captured event target", overlayId: eventSourceId, localStartDate: resumeStart.slice(0, 10), localEndDate: resumeEnd.slice(0, 10), localStartTime: resumeStart.slice(11, 16), localEndTime: resumeEnd.slice(11, 16), destinationIds: [eventTargetId] });
 		if (!targetEvent.success) throw new Error("EVENT_TARGET_FIXTURE_DENIED:" + targetEvent.code);
 		await input.fixture.pool.query("UPDATE stream_sessions SET desired_state='stopped',actual_state='stopped',configuration_revision=20 WHERE id=$1", [sessionId]);
@@ -702,7 +702,7 @@ export async function runRunnerScheduleContractProbe(input: Input) {
 			seriesSessionId = randomUUID(),
 			seriesTargetId = randomUUID();
 		await input.fixture.pool.query("INSERT INTO runners(id,owner_id,name,token) VALUES($1,$2,'Series fixture',$3)", [seriesRunnerId, ownerId, randomUUID()]);
-		await input.fixture.pool.query("INSERT INTO runner_destinations(id,owner_id,runner_id,name,provider,rtmp_url) VALUES($1,$2,$3,'Series target','custom','rtmp://127.0.0.1:1949/series')", [seriesTargetId, ownerId, seriesRunnerId]);
+		await input.fixture.pool.query("INSERT INTO runner_destinations(id,owner_id,name,provider,rtmp_url) VALUES($1,$2,'Series target','custom','rtmp://127.0.0.1:1949/series')", [seriesTargetId, ownerId]);
 		await input.fixture.pool.query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,control_mode) VALUES($1,$2,$3,$4,'24/7','scheduled')", [seriesSessionId, ownerId, seriesRunnerId, overlayId]);
 		const base = { ...draft, runnerId: seriesRunnerId, sessionId: seriesSessionId, destinationIds: [seriesTargetId], title: "Weekly history", recurrence: "weekly", localStartDate: "2029-01-01", localEndDate: null, weekdays: [1], endDayOffset: 0, localStartTime: "12:00", localEndTime: "14:00" };
 		const created = await schedules.saveRunnerScheduleEventForPrincipal(principal, base);

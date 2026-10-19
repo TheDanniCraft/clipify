@@ -48,7 +48,7 @@ Given("a Pro creator is authoring a Runner schedule in the browser", async ({ pa
 	const state: State = { owner, runnerId: randomUUID(), sessionId: randomUUID(), targetId: randomUUID() };
 	mcpWorld.input = { scheduleContract: state };
 	await query("INSERT INTO runners(id,owner_id,name,token,status,last_heartbeat_at,protocol_version,capabilities) VALUES($1,$2,'Schedule contract Runner',$3,'online',now(),2,$4::jsonb)", [state.runnerId, owner.fixture.creatorId, randomUUID(), JSON.stringify(["admissions", "drain", "runner_presentation", "free_lease"])]);
-	await query("INSERT INTO runner_destinations(id,owner_id,runner_id,name,provider,rtmp_url) VALUES($1,$2,$3,'Vacation target','custom','rtmp://127.0.0.1:1949/live')", [state.targetId, owner.fixture.creatorId, state.runnerId]);
+	await query("INSERT INTO runner_destinations(id,owner_id,name,provider,rtmp_url) VALUES($1,$2,'Vacation target','custom','rtmp://127.0.0.1:1949/live')", [state.targetId, owner.fixture.creatorId]);
 	await query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,control_mode) VALUES($1,$2,$3,$4,'24/7','scheduled')", [state.sessionId, owner.fixture.creatorId, state.runnerId, owner.fixture.overlayId]);
 	await query("INSERT INTO stream_session_destinations(session_id,destination_id,owner_id,position) VALUES($1,$2,$3,0)", [state.sessionId, state.targetId, owner.fixture.creatorId]);
 	await page.context().addCookies([owner.cookie]);

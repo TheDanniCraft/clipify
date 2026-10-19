@@ -260,6 +260,45 @@ export async function runRunnerDestinationsProbe(input: Parameters<typeof runRun
 				const destinationId = saved.destination.id;
 				const before = (await input.fixture.pool.query("SELECT * FROM runner_destinations WHERE id=$1", [destinationId])).rows[0];
 				let attempted: unknown;
+				if (input.variant === "destinations_account_reuse") {
+					const otherRunner = randomUUID();
+					await input.fixture.pool.query("INSERT INTO runners(id,owner_id,name,token) VALUES($1,'fixture-creator','Second computer',$2)", [otherRunner, randomUUID()]);
+					const reused = await list("fixture-creator", otherRunner);
+					const duplicate = await save({ ownerId: "fixture-creator", runnerId: otherRunner, name: "my twitch", provider: "custom", rtmpUrl: "rtmp://127.0.0.1:1945/unique", credentialAction: "clear" });
+					const edited = await save({ ownerId: "fixture-creator", runnerId: otherRunner, id: destinationId, expectedRevision: 1, name: "Community Twitch", provider: "twitch", credentialAction: "keep" });
+					const after = (await input.fixture.pool.query("SELECT * FROM runner_destinations WHERE id=$1", [destinationId])).rows[0];
+					const overlayId = randomUUID();
+					await input.fixture.pool.query("INSERT INTO overlays(id,owner_id,secret,name,status,type) VALUES($1,'fixture-creator','account-source','Account source','active','Featured')", [overlayId]);
+					const { getVerifiedSessionPrincipal } = await import("@/auth/session-principal");
+					const { configureStreamSession } = await import("@/server/resources/runners");
+					const principal = await getVerifiedSessionPrincipal();
+					if (!principal) throw new Error("ACCOUNT_REUSE_AUTH_REQUIRED");
+					const configured = await configureStreamSession(principal, { creatorId: "fixture-creator", runnerId: otherRunner, overlayId, mode: "24/7", controlMode: "scheduled", destinationIds: [destinationId], resolution: "720p", fps: 30, retryKey: "account-reuse" });
+					let scheduled = false,
+						capturedCredential = false;
+					if ("id" in configured && typeof configured.id === "string") {
+						const configuredId = configured.id;
+						const event = await actions.saveRunnerScheduleEvent({ ownerId: "fixture-creator", runnerId: otherRunner, sessionId: configured.id, overlayId, title: "Reuse saved Twitch", timezone: "UTC", recurrence: "once", localStartDate: "2030-03-04", localEndDate: "2030-03-04", localStartTime: "12:00", localEndTime: "13:00", destinationIds: [destinationId] });
+						scheduled = event.success;
+						const { db } = await import("@/db/client");
+						const { captureSessionDestinations } = await import("@/server/runner/destinations");
+						const { streamSessionsTable } = await import("@/db/schema");
+						const { eq } = await import("drizzle-orm");
+						const { decryptString } = await import("@/app/lib/encryption");
+						const snapshot = await db.transaction(async (tx) => {
+							const [session] = await tx.select().from(streamSessionsTable).where(eq(streamSessionsTable.id, configuredId));
+							return captureSessionDestinations(tx, session, true, event.success ? event.event.id : undefined);
+						});
+						if ("encryptedTargetsSnapshot" in snapshot) {
+							const decoded = JSON.parse(decryptString(snapshot.encryptedTargetsSnapshot)!);
+							capturedCredential = decoded.destinations.length === 1 && decoded.destinations[0].id === destinationId && decoded.destinations[0].streamKey === secret;
+						}
+					}
+					const firstView = await list("fixture-creator", runnerId);
+					await input.fixture.pool.query("DELETE FROM runners WHERE id=$1", [runnerId]);
+					const surviving = await list("fixture-creator", otherRunner);
+					return { authenticated, destinationId, reused, duplicate, edited, configured: "id" in configured, scheduled, capturedCredential, firstView, surviving, credentialPreserved: before.encrypted_stream_key === after.encrypted_stream_key, safe: !JSON.stringify({ reused, duplicate, edited, firstView, surviving }).includes(secret) };
+				}
 				const variant = input.variant.replace("destinations_", "");
 				async function observePersistedControlUrl() {
 					await input.fixture.pool.query("UPDATE runner_destinations SET rtmp_url=$2 WHERE id=$1", [destinationId, "rtmp://127.0.0.1/li\nve"]);
