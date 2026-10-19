@@ -10,7 +10,7 @@ Removing the retired `runner_access` enum value leaves the existing `clipify_ent
 
 Authorize `drizzle/0028_retire_runner_notification_branch.sql` plus its single index28 entry in `drizzle/meta/_journal.json`, replacing **only** `public.clipify_entitlement_notification()` with the definition below. Do not edit historical migration0026, shared grant tables, billing records, schema-generation guards or unrelated triggers. This function is safe with both the old enum and its Pro-only replacement: compare the value as text and emit only Pro notifications. All event keys, deduplication, trials, Partner grace, expiry scheduling and rollback behavior remain unchanged.
 
-Drizzle schema generation does not express replacements of existing PL/pgSQL function bodies. Ordinary enum/column migration generation remains owned by the post-merge Generate Migrations workflow. Adding this custom migration and its journal entry requires explicit approval. Also authorize `CLIPIFY_MANUAL_MIGRATION_APPROVED=1` only for committing those approved files; do not export it globally or use it to generate migrations. No override has been set. No schema snapshot is created or edited.
+Drizzle schema generation does not express replacements of existing PL/pgSQL function bodies. Ordinary enum/column migration generation remains owned by the post-merge Generate Migrations workflow. Adding this custom migration and its journal entry requires explicit approval. Also authorize `CLIPIFY_MANUAL_MIGRATION_APPROVED=1` only for committing those approved files; do not export it globally or use it to generate migrations. The marker was supplied only to the approved migration commit114f4a1b; it was not exported globally or used for generation. No schema snapshot is created or edited.
 
 AGENTS.md: “A manual/custom migration is allowed only when Drizzle cannot express the required database behavior and the user explicitly authorizes that exact migration. Stop and explain the unsupported behavior before creating it.”
 
@@ -76,9 +76,9 @@ $$;
 
 ## Local validation
 
-Confirmed: the original whole-file Jest owner reproduces the failure against the Pro-only schema. A temporary local copy of its unchanged23 underlying database behaviors then passes23/23 after applying exactly the proposed function replacement to its disposable fixture. Event keys, Partner grace, expiry, revocation/restoration, account/badge notifications, deduplication and rollback assertions are unchanged. The prototype initially ran from `/tmp` and could not resolve repository dependencies; rerunning it from ignored test-results resolves setup. This is local proposal validation, not a created migration or production application.
+Confirmed: the original whole-file Jest owner reproduces the failure against the Pro-only schema. A temporary local copy of its unchanged23 underlying database behaviors then passes23/23 after applying exactly the proposed function replacement to its disposable fixture. Event keys, Partner grace, expiry, revocation/restoration, account/badge notifications, deduplication and rollback assertions are unchanged. The prototype initially ran from `/tmp` and could not resolve repository dependencies; rerunning it from ignored test-results resolves setup. That prototype validated the proposal before approval. The named migration was subsequently created after authorization; no production database was changed.
 
-Evidence: [original failure](tdd/evidence/ux-correction/notification-trigger-red.log), [proposed replacement validation](tdd/evidence/ux-correction/notification-trigger-proposal-23.log). The real owning test will load the new migration after historical0026 once approved; it will not rewrite or stub the old SQL.
+Evidence: [original failure](tdd/evidence/ux-correction/notification-trigger-red.log), [proposed replacement validation](tdd/evidence/ux-correction/notification-trigger-proposal-23.log). The real owning test now loads the approved migration after historical0026; it does not rewrite or stub the old SQL.
 
 ## Implementation validation
 

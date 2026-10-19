@@ -6,8 +6,8 @@ import { useParams, useRouter } from "next/navigation";
 import { validateAuth } from "@actions/auth";
 import { getRunner, getRunnerToken, getStreamSessionsForRunner, upsertStreamSession, setStreamDesiredState, unlinkRunner, listRunnerDestinations, listRunnerScheduleEvents } from "@actions/runner";
 import { getAllOverlays } from "@actions/database";
-import { Accordion, Button, Card, Label, Select, Spinner, TextField, ListBox, Input, Chip, Modal, Dropdown } from "@heroui/react";
-import { IconArrowLeft, IconBrandWindows, IconTerminal2, IconBrandApple } from "@tabler/icons-react";
+import { Accordion, Button, Card, Label, Select, Spinner, TextField, ListBox, Input, Chip, Modal, Dropdown, Tooltip } from "@heroui/react";
+import { IconArrowLeft, IconBrandWindows, IconTerminal2, IconBrandApple, IconUnlink } from "@tabler/icons-react";
 import { notify } from "@lib/toast";
 import FullscreenLoadingState from "@components/fullscreenLoadingState";
 import ConfirmModal from "@components/confirmModal";
@@ -431,17 +431,17 @@ export default function RunnerPage() {
 						<Chip size='sm' variant='soft' color={runner.status === "online" ? "success" : "default"}>
 							{runner.status === "online" ? "Online" : runnerConnectionLabel}
 						</Chip>
-						<Button variant='secondary' onPress={() => setAppearanceOpen(true)} isDisabled={!overlayId}>
-							Appearance
-						</Button>
 						{controlMode === "scheduled" && (
 							<Button variant='secondary' onPress={() => (runnerPolicy?.scheduling ? (dirty ? void handleSave() : setScheduleOpen(true)) : setIsUpgradeOpen(true))}>
 								Schedule
 							</Button>
 						)}
-						<Button variant='tertiary' onPress={() => setIsUnlinkConfirmOpen(true)} isDisabled={!canUnlinkRunner}>
-							Unlink runner
-						</Button>
+						<Tooltip delay={0}>
+							<Button isIconOnly variant='tertiary' aria-label='Unlink runner' onPress={() => setIsUnlinkConfirmOpen(true)} isDisabled={!canUnlinkRunner}>
+								<IconUnlink />
+							</Button>
+							<Tooltip.Content>Unlink runner</Tooltip.Content>
+						</Tooltip>
 					</div>
 				</div>
 				{!runner.lastHeartbeatAt && (
@@ -542,6 +542,9 @@ export default function RunnerPage() {
 								{configurationError}
 							</p>
 						)}
+						<Button variant='secondary' className='w-full' onPress={() => setAppearanceOpen(true)} isDisabled={!overlayId}>
+							Appearance
+						</Button>
 						<div className='flex flex-wrap items-center justify-between gap-4 border-t border-separator pt-4'>
 							<Button variant='primary' onPress={handleSave} isDisabled={isSaving} isPending={isSaving}>
 								Save Configuration
@@ -633,8 +636,8 @@ export default function RunnerPage() {
 					</Modal.Backdrop>
 				)}
 				<Modal.Backdrop isOpen={appearanceOpen} onOpenChange={setAppearanceOpen}>
-					<Modal.Container size='cover' className='px-0 sm:px-10'>
-						<Modal.Dialog className='rounded-none px-0 sm:rounded-3xl sm:px-6'>
+					<Modal.Container size='lg' placement='center' scroll='inside' className='px-0 sm:w-full sm:px-10'>
+						<Modal.Dialog className='max-w-6xl rounded-none px-0 sm:rounded-3xl sm:px-6'>
 							<Modal.CloseTrigger />
 							<Modal.Header className='px-6 sm:px-0'>
 								<Modal.Heading>Appearance</Modal.Heading>

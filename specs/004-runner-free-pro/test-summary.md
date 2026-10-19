@@ -7,6 +7,8 @@
 
 ## Current corrective implementation
 
+The corrective baseline is fully qualified by CI39175629536 on5738f616, with matching execution identity815795f23330ca6d45da85eecbfd7b9c7cb6988d533ae2377a444041706f789e. The user subsequently requested icon/layout/tab/corner-picker refinements on2026-10-19. These are implemented and pass31 affected unit/component cases and3 real editor journeys; the complete affected presentation owners additionally pass27/27 with inspected clean captures. Fresh final CI remains required for this changed source.
+
 The Runner editor and standalone-entitlement hard cut are implemented in `6f87bd3b`/`9433536e`, with enrollment cleanup in `ec95eae8`, pushed to PR #519. The PR is ready for review so complete CI owns completion validation. The complete Runner browser regression owner passes 42/42 scenarios on the corrected production build. Required push feedback passes 201 suites and 3,043 cases (one existing conditional suite and three conditional cases skipped); this is scoped feedback, not the full coverage gate.
 
 The correction uses inline destination creation, recoverable configuration saves, modal appearance/scheduling, the shared overlay color picker, HeroUI Pro DropZone and Agenda, local timezone/date controls, stable message-driven previews and effective-Pro-only advanced access. AGENTS.md now requires real-component UX acceptance and visual review. Historical standalone Runner benefits are removed; unrelated Pro grants/trials/creator seats remain supported.

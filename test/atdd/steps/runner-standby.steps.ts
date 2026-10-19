@@ -43,7 +43,7 @@ Given("a Pro creator has a saved custom standby and a playable generated source"
 	await expect(page.getByTitle("Runner appearance preview")).toBeVisible();
 });
 When("they review real standby and clip previews at all four attribution corners", async ({ page }) => {
-	await page.getByRole("button", { name: "Preview standby", exact: true }).click();
+	await page.getByRole("tab", { name: "Standby", exact: true }).click();
 	const preview = page.frameLocator('iframe[title="Runner appearance preview"]');
 	await expect(preview.getByRole("img", { name: "Standby logo", exact: true })).toBeVisible();
 	await expect(preview.getByText("Back soon <3", { exact: true })).toBeVisible();
@@ -53,8 +53,7 @@ When("they review real standby and clip previews at all four attribution corners
 		{ label: "Bottom left", right: false, bottom: true },
 		{ label: "Bottom right", right: true, bottom: true },
 	]) {
-		await page.getByRole("button", { name: /Attribution corner$/ }).click();
-		await page.getByRole("option", { name: corner.label, exact: true }).click();
+		await page.getByRole("radiogroup", { name: "Attribution position", exact: true }).getByText(corner.label, { exact: true }).click();
 		const badge = preview.getByLabel("Livestream powered by Clipify.us", { exact: true });
 		await expect(badge).toBeVisible();
 		await expect
@@ -74,7 +73,7 @@ When("they review real standby and clip previews at all four attribution corners
 		expect(corner.right ? geometry.right : geometry.left).toBeCloseTo(24 * geometry.scale, 0);
 		expect(corner.bottom ? geometry.bottom : geometry.top).toBeCloseTo(24 * geometry.scale, 0);
 	}
-	await page.getByRole("button", { name: "Preview clips", exact: true }).click();
+	await page.getByRole("tab", { name: "Clips", exact: true }).click();
 	await expect
 		.poll(() =>
 			preview
@@ -84,7 +83,7 @@ When("they review real standby and clip previews at all four attribution corners
 		)
 		.toBeGreaterThan(0.2);
 	await expect(preview.locator("[data-runner-standby]")).toHaveCount(0);
-	await page.getByRole("button", { name: "Preview standby", exact: true }).click();
+	await page.getByRole("tab", { name: "Standby", exact: true }).click();
 	await expect(preview.locator("[data-runner-standby]")).toBeVisible();
 });
 Then("clearing optional images previews the saved color and message before applying them", async ({ page, mcpWorld }) => {

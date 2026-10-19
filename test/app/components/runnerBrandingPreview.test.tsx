@@ -4,6 +4,56 @@ import { getRunnerBrandingProfile, saveRunnerBrandingProfile } from "@/app/actio
 
 jest.mock("@/app/actions/runner", () => ({ getRunnerBrandingProfile: jest.fn(), saveRunnerBrandingProfile: jest.fn() }));
 
+jest.mock("@heroui/react", () => {
+	const base = jest.requireActual("@heroui/react");
+	const React = jest.requireActual("react");
+	const Context = React.createContext({});
+	const Box = ({ children }: { children?: React.ReactNode }) => <div>{children}</div>;
+	const Tabs = Object.assign(({ children, ...value }: { children: React.ReactNode }) => <Context.Provider value={value}>{children}</Context.Provider>, {
+		ListContainer: Box,
+		List: ({ children, ...props }: { children: React.ReactNode }) => (
+			<div role='tablist' {...props}>
+				{children}
+			</div>
+		),
+		Tab: ({ id, children }: { id: string; children: React.ReactNode }) => {
+			const state = React.useContext(Context);
+			return (
+				<button role='tab' aria-selected={state.selectedKey === id} disabled={state.isDisabled} onClick={() => state.onSelectionChange(id)}>
+					{children}
+				</button>
+			);
+		},
+		Indicator: () => null,
+		Panel: Box,
+	});
+	const RadioContext = React.createContext({});
+	const ValueContext = React.createContext("");
+	const RadioGroup = ({ children, ...state }: { children: React.ReactNode }) => (
+		<RadioContext.Provider value={state}>
+			<div>{children}</div>
+		</RadioContext.Provider>
+	);
+	const Radio = Object.assign(({ children, value }: { children: React.ReactNode; value: string }) => <ValueContext.Provider value={value}>{children}</ValueContext.Provider>, {
+		Content: ({ children, ...props }: { children: React.ReactNode }) => {
+			const state = React.useContext(RadioContext);
+			const value = React.useContext(ValueContext);
+			return (
+				<button {...props} role='radio' aria-checked={state.value === value} disabled={state.isDisabled} onClick={() => state.onChange(value)}>
+					{children}
+				</button>
+			);
+		},
+		Control: Box,
+		Indicator: () => null,
+	});
+	return new Proxy(base, {
+		get(target, property) {
+			return property === "Tabs" ? Tabs : property === "RadioGroup" ? RadioGroup : property === "Radio" ? Radio : target[property];
+		},
+	});
+});
+
 // Unit owner checks draft transport and upload/save handling; real widgets are browser-owned.
 jest.mock("@/app/components/runner/ImageDropZone", () => ({ __esModule: true, default: ({ label, disabled, onSelect }: { label: string; disabled: boolean; onSelect: (file: File) => void }) => <input type='file' aria-label={label} disabled={disabled} onChange={(event) => onSelect(event.target.files![0])} /> }));
 jest.mock("@/app/components/theme/ThemeColorInput", () => ({ __esModule: true, default: ({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) => <input type='color' aria-label={label} value={value} onChange={(event) => onChange(event.target.value)} /> }));
@@ -165,10 +215,11 @@ test("TDD-US4-SC004 U39: real preview controls switch only the owner iframe with
 	jest.mocked(getRunnerBrandingProfile).mockResolvedValue({ success: true, profile, runnerPro: true });
 	render(<RunnerBrandingPreview ownerId='fixture-owner' runnerId='11111111-1111-4111-8111-111111111111' overlayId='22222222-2222-4222-8222-222222222222' />);
 	await observeDraftPreview();
-	fireEvent.click(screen.getByRole("button", { name: "Preview clips" }));
+	fireEvent.click(screen.getByRole("tab", { name: "Clips" }));
 	let frame = screen.getByTitle("Runner appearance preview") as HTMLIFrameElement;
 	expect(draftQuery(frame).get("previewMode")).toBe("playback");
-	fireEvent.click(screen.getByRole("button", { name: "Preview standby" }));
+	expect(screen.getByRole("tab", { name: "Clips" })).toHaveAttribute("aria-selected", "true");
+	fireEvent.click(screen.getByRole("tab", { name: "Standby" }));
 	frame = screen.getByTitle("Runner appearance preview") as HTMLIFrameElement;
 	expect(draftQuery(frame).get("previewMode")).toBe("standby");
 	expect(saveRunnerBrandingProfile).not.toHaveBeenCalled();
@@ -293,4 +344,20 @@ test("UX-C4: editing the standby message keeps the same preview document", async
 	fireEvent.change(screen.getByRole("textbox", { name: "Standby message" }), { target: { value: "Back soon" } });
 	expect(screen.getByTitle("Runner appearance preview")).toBe(frame);
 	expect(frame).toHaveAttribute("src", src);
+});
+
+test.each([
+	["top_left", "Top left"],
+	["top_right", "Top right"],
+	["bottom_left", "Bottom left"],
+	["bottom_right", "Bottom right"],
+])("visual %s placement updates the stable preview without saving", async (corner, name) => {
+	jest.mocked(getRunnerBrandingProfile).mockResolvedValue({ success: true, profile, runnerPro: false });
+	render(<RunnerBrandingPreview ownerId='fixture-owner' runnerId='11111111-1111-4111-8111-111111111111' overlayId='22222222-2222-4222-8222-222222222222' />);
+	const frame = await observeDraftPreview();
+	fireEvent.click(screen.getByRole("radio", { name }));
+	expect(screen.getByRole("radio", { name })).toHaveAttribute("aria-checked", "true");
+	expect(draftQuery(frame).get("watermarkCorner")).toBe(corner);
+	expect(screen.getByTitle("Runner appearance preview")).toBe(frame);
+	expect(saveRunnerBrandingProfile).not.toHaveBeenCalled();
 });

@@ -1261,3 +1261,6 @@ The correction's outer browser UX journeys are added after the first implementat
 - [x] UX-C9 Expired Pro multi-destination configuration remains visible and can be reduced to one without deleting saved targets; Save/Start require a valid Free count.
 
 - [x] UX-C10 Appearance modal retains a full-width 360px mobile preview, the configured broadcast canvas and the existing physical text readability/edge exposure minimum on light, dark and busy frames; desktop styling remains coherent.
+
+- [x] UX-C11 Database fixture SQL changes alter coverage execution identity (whole-file Red/Green; current full CI verified).
+- [x] UX-C12 Installed preview Tabs support arrow keys without iframe navigation; four visual corner choices update previews and preserve keyboard selection; icon-only Unlink, full-width Appearance, Pro crown and centered/mobile geometry match the shared editor conventions. The real three-journey acceptance owner passes; presentation regression and final full gates remain required for release.

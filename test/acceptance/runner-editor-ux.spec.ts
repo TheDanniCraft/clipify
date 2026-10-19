@@ -32,6 +32,18 @@ for (const plan of ["free", "pro"] as const)
 			await prepare(page);
 			await page.goto(`/dashboard/runners/${runnerId}`);
 			await expect(page.getByRole("heading", { name: "Stream Configuration", exact: true })).toBeVisible({ timeout: 60000 });
+			await expect(page.getByRole("button", { name: "Unlink runner", exact: true })).toHaveText("");
+			const appearanceAction = page.getByRole("button", { name: "Appearance", exact: true });
+			await expect
+				.poll(async () => {
+					const available = await appearanceAction.locator("..").evaluate((node) => {
+						const style = getComputedStyle(node);
+						return node.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+					});
+					const bounds = await appearanceAction.boundingBox();
+					return bounds ? Math.abs(bounds.width - available) : Infinity;
+				})
+				.toBeLessThan(2);
 			await expect(page.getByRole("heading", { name: "Broadcast schedule", exact: true })).toHaveCount(0);
 			const selector = page.getByRole("group", { name: "Broadcast destinations", exact: true });
 			const add = selector.getByRole("button", { name: "Add destination", exact: true });
@@ -71,6 +83,7 @@ for (const plan of ["free", "pro"] as const)
 			await expect(scheduled).not.toContainText("Pro · Clip playback");
 			if (plan === "free") {
 				await expect(scheduled.getByRole("img", { name: "Requires Pro" })).toBeVisible();
+				await expect(scheduled.locator("svg.tabler-icon-crown")).toBeVisible();
 				await scheduled.click();
 				const upgrade = page.getByRole("dialog", { name: "Upgrade to Pro", exact: true });
 				await expect(upgrade).toBeVisible();
@@ -103,10 +116,39 @@ for (const plan of ["free", "pro"] as const)
 			await page.getByRole("button", { name: "Appearance", exact: true }).click();
 			const appearance = page.getByRole("dialog", { name: "Appearance", exact: true });
 			await expect(appearance).toBeVisible();
+			await expect
+				.poll(async () => {
+					const bounds = await appearance.boundingBox();
+					return bounds ? Math.abs(bounds.y + bounds.height / 2 - page.viewportSize()!.height / 2) : Infinity;
+				})
+				.toBeLessThan(3);
 			await expect(appearance.locator("input[type=color]")).toHaveCount(0);
 			const preview = appearance.locator('iframe[title="Runner appearance preview"]');
 			await expect(preview).toBeVisible();
 			await expect(preview.contentFrame().locator("[data-runner-layout-status]")).toHaveAttribute("data-runner-layout-status", /placed|clean/);
+			const standbyTab = appearance.getByRole("tab", { name: "Standby", exact: true });
+			const clipsTab = appearance.getByRole("tab", { name: "Clips", exact: true });
+			let tabNavigations = 0;
+			page.on("request", (request) => {
+				if (request.resourceType() === "document" && new URL(request.url()).pathname === `/runner/preview/${runnerId}`) tabNavigations++;
+			});
+			await standbyTab.focus();
+			await standbyTab.press("ArrowRight");
+			await expect(clipsTab).toHaveAttribute("aria-selected", "true");
+			await expect(preview.contentFrame().locator("[data-runner-preview-revision]")).toHaveAttribute("data-runner-preview-revision", /"previewMode":"playback"/);
+			await clipsTab.press("ArrowLeft");
+			await expect(standbyTab).toHaveAttribute("aria-selected", "true");
+			await expect(preview.contentFrame().locator("[data-runner-preview-revision]")).toHaveAttribute("data-runner-preview-revision", /"previewMode":"standby"/);
+			expect(tabNavigations).toBe(0);
+			const positions = appearance.getByRole("radiogroup", { name: "Attribution position", exact: true });
+			await expect(positions.getByRole("radio")).toHaveCount(4);
+			await positions.getByText("Top left", { exact: true }).click();
+			await expect(positions.getByRole("radio", { name: "Top left", exact: true })).toBeChecked();
+			await expect(preview.contentFrame().locator("[data-runner-preview-revision]")).toHaveAttribute("data-runner-preview-revision", /"watermarkCorner":"top_left"/);
+			await positions.getByRole("radio", { name: "Top left", exact: true }).press("ArrowRight");
+			await expect(positions.getByRole("radio", { name: "Top right", exact: true })).toBeChecked();
+			await expect(preview.contentFrame().locator("[data-runner-preview-revision]")).toHaveAttribute("data-runner-preview-revision", /"watermarkCorner":"top_right"/);
+			await positions.getByText("Bottom right", { exact: true }).click();
 			if (plan === "free") await expect(appearance.getByRole("switch", { name: "Show Clipify attribution", exact: true })).toHaveCount(0);
 			else {
 				await expect(appearance.getByRole("switch", { name: "Show Clipify attribution", exact: true })).toBeVisible();
@@ -139,6 +181,7 @@ for (const plan of ["free", "pro"] as const)
 				await appearance.getByRole("button", { name: "Save appearance", exact: true }).click();
 				await expect(appearance.getByRole("status").filter({ hasText: "Appearance saved" })).toBeVisible();
 			}
+			await expect(page.locator('[data-slot="toast"]:not([data-hidden="true"])').filter({ hasText: "Stream session configuration saved." })).toHaveCount(0);
 			await page.screenshot({ path: testInfo.outputPath(`${plan}-appearance-desktop.png`), fullPage: true, animations: "disabled" });
 			await appearance.getByRole("button", { name: "Close", exact: true }).focus();
 			await page.keyboard.press("Enter");
@@ -150,6 +193,16 @@ for (const plan of ["free", "pro"] as const)
 			await expect(mainSave).toBeVisible();
 			expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 			await page.screenshot({ path: testInfo.outputPath(`${plan}-setup-mobile.png`), fullPage: true, animations: "disabled" });
+			await appearanceAction.click();
+			await expect(appearance).toBeVisible();
+			await expect(appearance.getByRole("radiogroup", { name: "Attribution position", exact: true })).toBeVisible();
+			await page.screenshot({ path: testInfo.outputPath(`${plan}-appearance-mobile-controls.png`), fullPage: true, animations: "disabled" });
+			await preview.scrollIntoViewIfNeeded();
+			await expect.poll(async () => Math.round((await preview.locator("..").boundingBox())?.width ?? 0)).toBe(390);
+			expect(await appearance.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
+			await page.screenshot({ path: testInfo.outputPath(`${plan}-appearance-mobile-preview.png`), fullPage: true, animations: "disabled" });
+			await appearance.getByRole("button", { name: "Close", exact: true }).click();
+			await expect(appearance).not.toBeVisible();
 			if (plan === "pro") {
 				await page.getByRole("button", { name: "Schedule", exact: true }).click();
 				const mobileSchedule = page.getByRole("dialog", { name: "Broadcast schedule", exact: true });

@@ -1,0 +1,184 @@
+[WebServer] (node:885633) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:885633) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 27 tests using 1 worker
+
+(node:885725) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓   1 [atdd-chromium] › .features-gen/atdd/runner-standby.feature.spec.js:6:7 › Review generated Runner appearance before broadcast › Review custom standby at all four corners and in both preview modes @ATDD @US4 @SC-004 @runner-standby-acceptance @ATDD-US4-SC004 (5.1s)
+(node:885889) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓   2 [bdd-chromium] › .features-gen/bdd/runner-branding.feature.spec.js:6:7 › Runner attribution placement › A Free owner saves a preferred top-left attribution position @BDD @US4 @FR-017 @BDD-US4-FR017 @BDD-US4-OPT050 @runner-branding-browser (4.2s)
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓   3 [bdd-chromium] › .features-gen/bdd/runner-branding.feature.spec.js:12:7 › Runner attribution placement › A Free owner saves a preferred top-right attribution position @BDD @US4 @FR-017 @BDD-US4-OPT051 @runner-branding-browser (4.8s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓   4 [bdd-chromium] › .features-gen/bdd/runner-branding.feature.spec.js:18:7 › Runner attribution placement › A Free owner saves a preferred bottom-left attribution position @BDD @US4 @FR-017 @BDD-US4-OPT052 @runner-branding-browser (3.1s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓   5 [bdd-chromium] › .features-gen/bdd/runner-branding.feature.spec.js:24:7 › Runner attribution placement › A Free owner saves a preferred bottom-right attribution position @BDD @US4 @FR-017 @BDD-US4-OPT053 @runner-branding-browser (3.4s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓   6 [bdd-chromium] › .features-gen/bdd/runner-collision.feature.spec.js:8:9 › Runner attribution avoids overlay content › A <corner> preference avoids visible overlay panels › A bottom-right preference avoids visible overlay panels @BDD @US4 @FR-017 @BDD-US4-DEC012 @runner-collision-browser (5.9s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓   7 [bdd-chromium] › .features-gen/bdd/runner-collision.feature.spec.js:14:9 › Runner attribution avoids overlay content › A <corner> preference avoids visible overlay panels › A top-left preference avoids visible overlay panels @BDD @US4 @FR-017 @BDD-US4-DEC012 @runner-collision-browser (6.1s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓   8 [bdd-chromium] › .features-gen/bdd/runner-collision.feature.spec.js:20:9 › Runner attribution avoids overlay content › A <corner> preference avoids visible overlay panels › A top-right preference avoids visible overlay panels @BDD @US4 @FR-017 @BDD-US4-DEC012 @runner-collision-browser (5.9s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓   9 [bdd-chromium] › .features-gen/bdd/runner-collision.feature.spec.js:26:9 › Runner attribution avoids overlay content › A <corner> preference avoids visible overlay panels › A bottom-left preference avoids visible overlay panels @BDD @US4 @FR-017 @BDD-US4-DEC012 @runner-collision-browser (5.9s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  10 [bdd-chromium] › .features-gen/bdd/runner-collision.feature.spec.js:34:7 › Runner attribution avoids overlay content › Attribution returns to its preferred corner after panels fade @BDD @US4 @FR-017 @BDD-US4-DEC012 @runner-collision-browser (17.2s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  11 [bdd-chromium] › .features-gen/bdd/runner-collision.feature.spec.js:40:7 › Runner attribution avoids overlay content › A fully occupied mobile preview reports a configuration error @BDD @US4 @FR-017 @BDD-US4-DEC012 @runner-collision-browser (4.1s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  12 [bdd-chromium] › .features-gen/bdd/runner-collision.feature.spec.js:50:9 › Runner attribution avoids overlay content › Mobile preview keeps the configured <resolution> broadcast canvas › Mobile preview keeps the configured 720p broadcast canvas @BDD @US4 @FR-017 @BDD-US4-DEC012 @runner-collision-browser (2.6s)
+  ✓  13 [bdd-chromium] › .features-gen/bdd/runner-collision.feature.spec.js:56:9 › Runner attribution avoids overlay content › Mobile preview keeps the configured <resolution> broadcast canvas › Mobile preview keeps the configured 1080p broadcast canvas @BDD @US4 @FR-017 @BDD-US4-DEC012 @runner-collision-browser (2.5s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-87ac1abb-ecb7-40ed-a48a-2d87890f1ff6
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-87ac1abb-ecb7-40ed-a48a-2d87890f1ff6
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-87ac1abb-ecb7-40ed-a48a-2d87890f1ff6
+  ✓  14 [bdd-chromium] › .features-gen/bdd/runner-collision.feature.spec.js:64:7 › Runner attribution avoids overlay content › A blocked playing layout prevents native output startup @BDD @US4 @FR-017 @BDD-US4-DEC012 @runner-collision-browser @runner-presentation-browser @runner-blocked-startup-browser (4.8s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  15 [bdd-chromium] › .features-gen/bdd/runner-readability.feature.spec.js:8:9 › Runner attribution readability › Fixed attribution remains readable on <background> frames at <width> pixels › Fixed attribution remains readable on light frames at 1920 pixels @BDD @US4 @FR-017 @BDD-US4-DEC011 @runner-readability-browser (5.5s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  16 [bdd-chromium] › .features-gen/bdd/runner-readability.feature.spec.js:14:9 › Runner attribution readability › Fixed attribution remains readable on <background> frames at <width> pixels › Fixed attribution remains readable on dark frames at 1920 pixels @BDD @US4 @FR-017 @BDD-US4-DEC011 @runner-readability-browser (5.6s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  17 [bdd-chromium] › .features-gen/bdd/runner-readability.feature.spec.js:20:9 › Runner attribution readability › Fixed attribution remains readable on <background> frames at <width> pixels › Fixed attribution remains readable on busy frames at 1920 pixels @BDD @US4 @FR-017 @BDD-US4-DEC011 @runner-readability-browser (5.6s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  18 [bdd-chromium] › .features-gen/bdd/runner-readability.feature.spec.js:26:9 › Runner attribution readability › Fixed attribution remains readable on <background> frames at <width> pixels › Fixed attribution remains readable on light frames at 360 pixels @BDD @US4 @FR-017 @BDD-US4-DEC011 @runner-readability-browser (5.7s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  19 [bdd-chromium] › .features-gen/bdd/runner-readability.feature.spec.js:32:9 › Runner attribution readability › Fixed attribution remains readable on <background> frames at <width> pixels › Fixed attribution remains readable on dark frames at 360 pixels @BDD @US4 @FR-017 @BDD-US4-DEC011 @runner-readability-browser (5.6s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  20 [bdd-chromium] › .features-gen/bdd/runner-readability.feature.spec.js:38:9 › Runner attribution readability › Fixed attribution remains readable on <background> frames at <width> pixels › Fixed attribution remains readable on busy frames at 360 pixels @BDD @US4 @FR-017 @BDD-US4-DEC011 @runner-readability-browser (5.4s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  21 [bdd-chromium] › .features-gen/bdd/runner-standby.feature.spec.js:6:7 › Runner standby customization › An image upload storage failure preserves the saved standby screen @BDD @US1 @runner-manual-browser @US4 @FR-019 @BDD-US4-OPT081 @runner-presentation-browser @runner-custom-standby-browser (3.0s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-f6a8f976-45e0-4c17-a49a-d8a5c9c81890
+  ✓  22 [bdd-chromium] › .features-gen/bdd/runner-standby.feature.spec.js:14:7 › Runner standby customization › An active Pro broadcast with no playable clips shows its saved standby @BDD @US1 @runner-manual-browser @US4 @FR-019 @BDD-US4-FR019 @runner-presentation-browser @runner-custom-standby-browser (602ms)
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  23 [bdd-chromium] › .features-gen/bdd/runner-standby.feature.spec.js:21:7 › Runner standby customization › A Pro owner previews and saves a standby background color @BDD @US1 @runner-manual-browser @US4 @FR-019 @BDD-US4-OPT059 @runner-presentation-browser @runner-custom-standby-browser (3.3s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  24 [bdd-chromium] › .features-gen/bdd/runner-standby.feature.spec.js:27:7 › Runner standby customization › A Pro owner previews and saves a standby background image @BDD @US1 @runner-manual-browser @US4 @FR-019 @BDD-US4-OPT060 @runner-presentation-browser @runner-custom-standby-browser (3.2s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  25 [bdd-chromium] › .features-gen/bdd/runner-standby.feature.spec.js:33:7 › Runner standby customization › A Pro owner previews and saves a standby logo @BDD @US1 @runner-manual-browser @US4 @FR-019 @BDD-US4-OPT061 @runner-presentation-browser @runner-custom-standby-browser (3.4s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  26 [bdd-chromium] › .features-gen/bdd/runner-standby.feature.spec.js:39:7 › Runner standby customization › A Pro owner previews and saves a plain-text standby message @BDD @US1 @runner-manual-browser @US4 @FR-019 @BDD-US4-OPT062 @runner-presentation-browser @runner-custom-standby-browser (3.9s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  27 [bdd-chromium] › .features-gen/bdd/runner-standby.feature.spec.js:45:7 › Runner standby customization › A Pro owner previews the next broadcast in its saved timezone @BDD @US1 @runner-manual-browser @US4 @FR-019 @BDD-US4-OPT063 @runner-presentation-browser @runner-custom-standby-browser (4.0s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+
+  27 passed (2.4m)
