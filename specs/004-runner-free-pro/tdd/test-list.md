@@ -1279,3 +1279,5 @@ The correction's outer browser UX journeys are added after the first implementat
 - [x] UX-C23 Schedule destinations use the shared HeroUI multiselect with secondary styling. Existing selections appear, can be toggled off/on and persist to the saved schedule. Verify the installed listbox multiple-selection semantics, Escape preserving the event editor and desktop/mobile presentation in both themes.
 
 - [x] UX-C24 Saving an empty, whitespace-only or overlong event title keeps the editor open, marks/focuses the title input and associates its readable error with that input. Correcting the title clears its invalid state and allows normal saving. Persisted-service title boundaries retain readable errors. The frontend continues to call the saveRunnerScheduleEvent server action.
+
+- [x] UX-C25 Editable calendar entries have a colorful dashed outline; locked/read-only entries have a darker solid outline and accessible bottom-corner lock. Verify day/week/month in both themes, mobile placement, different computed fills/borders and that selecting locked entries cannot open an editor. These remain saved scheduled events, not unsaved drafts.

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useSyncExternalStore } from "react";
+import { IconLock } from "@tabler/icons-react";
 import { Button } from "@heroui/react";
 import { Agenda, useAgenda, type AgendaView } from "@heroui-pro/react";
 import { ScheduleDateField } from "./runner/ScheduleFields";
@@ -26,6 +27,14 @@ export default function RunnerScheduleAgenda({ events, canEdit, onEdit, onCreate
 	const [selectedView, setView] = useState<AgendaView | null>(null);
 	const view = selectedView ?? (mobile ? "day" : "week");
 	const segments = useMemo(() => projectScheduleViewport(events, view === "day" ? date : startOfWeek(view === "month" ? startOfMonth(date) : date, locale), view === "day" ? 1 : view === "month" ? 42 : 7, timezone), [events, date, view, timezone, locale]);
+	const eventLocked = (id: string) => Boolean(events.find((event) => event.id === segments.find((segment) => segment.id === id)?.eventId)?.lockedUntil);
+	const eventClass = (id: string) => (eventLocked(id) || !canEdit ? styles.locked : styles.editable);
+	const lockIcon = (id: string) =>
+		eventLocked(id) || !canEdit ? (
+			<span className={styles.lockIcon} role='img' aria-label='Locked event' title='This event cannot be edited'>
+				<IconLock size={12} aria-hidden='true' />
+			</span>
+		) : null;
 	const agenda = useAgenda({
 		events: segments.map((segment) => ({ ...segment, isReadOnly: !canEdit || Boolean(events.find((event) => event.id === segment.eventId)?.lockedUntil) })),
 		view,
@@ -92,12 +101,18 @@ export default function RunnerScheduleAgenda({ events, canEdit, onEdit, onCreate
 								return (
 									<Agenda.MonthRow key={index} spanningRowCount={layout.rowCount}>
 										{layout.items.map((item) => (
-											<Agenda.MonthSpanningEvent key={item.event.id} event={item.event} colStart={item.colStart} colSpan={item.colSpan} row={item.row} />
+											<Agenda.MonthSpanningEvent key={item.event.id} event={item.event} colStart={item.colStart} colSpan={item.colSpan} row={item.row} className={eventClass(item.event.id)}>
+												<span>{item.event.title}</span>
+												{lockIcon(item.event.id)}
+											</Agenda.MonthSpanningEvent>
 										))}
 										{week.map((day, column) => (
 											<Agenda.MonthCell key={day.toString()} date={day} spanningRowCount={layout.rowCountPerCol[column] ?? 0}>
 												{agenda.getPerCellEvents(day, week).map((event) => (
-													<Agenda.MonthEvent key={event.id} event={event} />
+													<Agenda.MonthEvent key={event.id} event={event} className={eventClass(event.id)}>
+														<span>{event.title}</span>
+														{lockIcon(event.id)}
+													</Agenda.MonthEvent>
 												))}
 											</Agenda.MonthCell>
 										))}
@@ -117,11 +132,12 @@ export default function RunnerScheduleAgenda({ events, canEdit, onEdit, onCreate
 								{agenda.visibleDays.map((day) => (
 									<Agenda.DayColumn key={day.toString()} date={day}>
 										{agenda.getEventsForDay(day).map((event) => (
-											<Agenda.Event key={event.id} event={event} className={segments.find((segment) => segment.id === event.id)?.canResizeEnd && event.end.millisecond === 0 ? undefined : styles.continues}>
+											<Agenda.Event key={event.id} event={event} className={[eventClass(event.id), segments.find((segment) => segment.id === event.id)?.canResizeEnd && event.end.millisecond === 0 ? "" : styles.continues].join(" ")}>
 												<Button variant='ghost' size='sm' className='h-auto min-h-0 w-full min-w-0 justify-start rounded-none p-0 text-left text-inherit' isDisabled={!canEdit || event.isReadOnly} onPressStart={(press) => press.continuePropagation()} onPress={() => agenda.selectEvent(event.id)} onClick={(click) => click.stopPropagation()}>
 													<Agenda.EventTitle>{event.title}</Agenda.EventTitle>
 												</Button>
 												<Agenda.EventTime event={event} />
+												{lockIcon(event.id)}
 											</Agenda.Event>
 										))}
 									</Agenda.DayColumn>
