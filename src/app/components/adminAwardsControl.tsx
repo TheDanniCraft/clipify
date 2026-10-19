@@ -1,4 +1,5 @@
 "use client";
+import LocalizedDate from "@components/localizedDate";
 import { useState, useTransition } from "react";
 import { Button, Modal, TextField, TextArea, Input, Label, Select, ListBox, Checkbox } from "@heroui/react";
 import { grantAdminAwards, getAdminUserAwards, revokeAdminAward, type AdminAwardInput } from "@/app/actions/admin-benefits";
@@ -176,7 +177,7 @@ export default function AdminAwardsControl({ recipients, onChanged, label = "Man
 										{awards.grants.map((grant) => (
 											<div key={grant.id} className='flex items-center justify-between gap-2'>
 												<span>
-													{grant.source === "partner" && grant.entitlement === "pro_access" ? "Partnership" : "Clipify Pro"} · {grant.endsAt ? new Date(grant.endsAt).toLocaleDateString("en-US") : "No expiry"}
+													{grant.source === "partner" && grant.entitlement === "pro_access" ? "Partnership" : "Clipify Pro"} · {grant.endsAt ? <LocalizedDate value={grant.endsAt} /> : "No expiry"}
 												</span>
 												<Button size='sm' variant='danger-soft' isPending={pending} isDisabled={grant.partnershipEnded} onPress={() => setRemoval({ grantId: grant.id })}>
 													{grant.partnershipEnded ? "Partnership ended" : grant.source === "partner" && grant.entitlement === "pro_access" ? "End partnership" : "Remove access"}

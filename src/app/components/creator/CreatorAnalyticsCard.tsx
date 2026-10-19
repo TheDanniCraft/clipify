@@ -1,5 +1,6 @@
 "use client";
 
+import LocalizedDate from "@components/localizedDate";
 import { exportCreatorAnalyticsBundle, getCreatorAnalytics, getCreatorAnalyticsExportTargets, getOwnCreatorAnalytics, type CreatorAnalyticsExportTarget } from "@actions/creatorAnalytics";
 import AppDateRangePicker, { type AppDateRange } from "@components/appDateRangePicker";
 import type { CreatorAnalyticsBreakdownItem, CreatorAnalyticsExportDataset, CreatorAnalyticsTimeseriesPoint } from "@lib/plausibleCreatorAnalytics";
@@ -16,8 +17,6 @@ type Data = Awaited<ReturnType<typeof getOwnCreatorAnalytics>>;
 type MetricKey = "visitors" | "pageviews" | "visits" | "bounceRate" | "timeOnPage" | "scrollDepth" | "clipPlays" | "playsPerVisit" | "playRate";
 
 const compactNumber = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
-const dateFormatter = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
-const dateTimeFormatter = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" });
 
 function lastDays(days: number): AppDateRange {
 	const end = today(getLocalTimeZone());
@@ -77,7 +76,7 @@ function MetricCard({ title, value, valueKey, points, icon, color, suffix, avera
 							return (
 								<div style={{ transform: "translate(-50%, calc(-100% - 10px))" }}>
 									<ChartTooltip>
-										<ChartTooltip.Header>{dateFormatter.format(new Date(`${String(point.payload.label)}T00:00:00Z`))}</ChartTooltip.Header>
+										<ChartTooltip.Header>{<LocalizedDate value={`${String(point.payload.label)}T00:00:00Z`} timeZone='UTC' />}</ChartTooltip.Header>
 										<ChartTooltip.Item>
 											<ChartTooltip.Indicator color={String(point.stroke ?? color)} />
 											<ChartTooltip.Label>{title}</ChartTooltip.Label>
@@ -372,7 +371,7 @@ export default function CreatorAnalyticsCard({ allowed, onUpgrade }: { allowed: 
 				<div>
 					<p className='font-semibold'>Creator Page performance</p>
 					<p className='text-xs text-muted'>
-						{data.stale ? "Last checked" : "Updated"}: {dateTimeFormatter.format(new Date(data.fetchedAt))}
+						{data.stale ? "Last checked" : "Updated"}: {<LocalizedDate value={data.fetchedAt} showTime />}
 						{" · "}Results are cached for up to 10 minutes, so new visits may not appear immediately.
 					</p>
 				</div>

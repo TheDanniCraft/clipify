@@ -1,13 +1,15 @@
 "use client";
 
+import LocalizedDate from "@components/localizedDate";
 import { useCallback, useEffect, useState, useRef, useTransition } from "react";
 import { Button, Checkbox, FieldError, Input, Label, ListBox, Modal, Select, Spinner, TextField } from "@heroui/react";
-import { IconPlus, IconPencil } from "@tabler/icons-react";
+import { IconPlus, IconPencil, IconPlayerPause, IconPlayerPlay } from "@tabler/icons-react";
 import { listRunnerScheduleEvents, saveRunnerScheduleEvent, deleteRunnerScheduleEvent, resumeRunnerScheduleOccurrence, setRunnerAutomationPaused } from "@/app/actions/runner";
 import RunnerDestinationSelection from "./runnerDestinationSelection";
+import { isAllDayWindow } from "./runnerSchedulePlanner";
 import RunnerScheduleAgenda from "./runnerScheduleAgenda";
 import { ScheduleDateField, ScheduleTimeField, TimezonePicker } from "./runner/ScheduleFields";
-import { now as calendarNow } from "@internationalized/date";
+import { parseDate, now as calendarNow } from "@internationalized/date";
 import ConfirmModal from "./confirmModal";
 import { resolveCalendarSchedule } from "../../../packages/runner/src/schedule-calendar";
 
@@ -15,7 +17,7 @@ type ScheduleRead = Extract<Awaited<ReturnType<typeof listRunnerScheduleEvents>>
 type Policy = ScheduleRead["policy"];
 type RunnerScheduleView = ScheduleRead["events"][number];
 type Props = { ownerId: string; runnerId: string; sessionId?: string; overlayId: string; overlays: { id: string; name: string }[]; destinations: { id: string; name: string }[]; selectedDestinationIds: string[]; clipPlayback: boolean; onPolicyChange: (policy: Policy) => void };
-type Draft = { title: string; timezone: string; recurrence: "once" | "weekly"; localStartDate: string; localEndDate: string; localStartTime: string; localEndTime: string; weekdays: number[]; endDayOffset: number; overlayId: string; destinationIds: string[] };
+type Draft = { allDay: boolean; title: string; timezone: string; recurrence: "once" | "weekly"; localStartDate: string; localEndDate: string; localStartTime: string; localEndTime: string; weekdays: number[]; endDayOffset: number; overlayId: string; destinationIds: string[] };
 const weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 function elapsedDescription(event: RunnerScheduleView) {
@@ -130,8 +132,21 @@ export default function RunnerSchedule(props: Props) {
 		if (event) setCalendarTimezone(event.timezone);
 		setDraft(
 			event
-				? { title: event.title, timezone: event.timezone, recurrence: event.recurrence, localStartDate: event.localStartDate, localEndDate: event.localEndDate ?? event.localStartDate, localStartTime: event.localStartTime.slice(0, 5), localEndTime: event.localEndTime.slice(0, 5), weekdays: event.weekdays, endDayOffset: event.endDayOffset, overlayId: event.overlayId, destinationIds: event.destinationIds }
-				: { title: "", timezone: calendarTimezone, recurrence: "once", localStartDate: start.toString().slice(0, 10), localEndDate: end.toString().slice(0, 10), localStartTime: start.toString().slice(11, 16), localEndTime: end.toString().slice(11, 16), weekdays: [1], endDayOffset: 0, overlayId: props.overlayId, destinationIds: props.selectedDestinationIds },
+				? {
+						allDay: isAllDayWindow(event),
+						title: event.title,
+						timezone: event.timezone,
+						recurrence: event.recurrence,
+						localStartDate: event.localStartDate,
+						localEndDate: event.localEndDate && isAllDayWindow(event) ? parseDate(event.localEndDate).subtract({ days: 1 }).toString() : (event.localEndDate ?? event.localStartDate),
+						localStartTime: event.localStartTime.slice(0, 5),
+						localEndTime: event.localEndTime.slice(0, 5),
+						weekdays: event.weekdays,
+						endDayOffset: event.endDayOffset,
+						overlayId: event.overlayId,
+						destinationIds: event.destinationIds,
+					}
+				: { allDay: false, title: "", timezone: calendarTimezone, recurrence: "once", localStartDate: start.toString().slice(0, 10), localEndDate: end.toString().slice(0, 10), localStartTime: start.toString().slice(11, 16), localEndTime: end.toString().slice(11, 16), weekdays: [1], endDayOffset: 0, overlayId: props.overlayId, destinationIds: props.selectedDestinationIds },
 		);
 		setTimezoneInputValid(true);
 		setOpen(true);
@@ -151,7 +166,8 @@ export default function RunnerSchedule(props: Props) {
 		setSaving(true);
 		setError(null);
 		try {
-			const input = { ownerId, runnerId, sessionId: props.sessionId, ...draft, localEndDate: draft.recurrence === "once" ? draft.localEndDate : null, enabled: true, ...(editing ? { id: editing.id, expectedRevision: editing.configurationRevision } : {}) };
+			const { allDay, ...fields } = draft;
+			const input = { ownerId, runnerId, sessionId: props.sessionId, ...fields, ...(allDay ? { localStartTime: "00:00", localEndTime: "00:00", endDayOffset: draft.recurrence === "weekly" ? Math.max(1, draft.endDayOffset) : 0 } : {}), localEndDate: draft.recurrence === "once" ? (allDay ? parseDate(draft.localEndDate).add({ days: 1 }).toString() : draft.localEndDate) : null, enabled: true, ...(editing ? { id: editing.id, expectedRevision: editing.configurationRevision } : {}) };
 			const result = await saveRunnerScheduleEvent(input);
 			if (!result.success) {
 				setError(result.error);
@@ -211,17 +227,6 @@ export default function RunnerSchedule(props: Props) {
 	return (
 		<>
 			<section className='space-y-5'>
-				<div className='flex flex-wrap items-center justify-between gap-3'>
-					{props.clipPlayback && automation?.controlMode === "scheduled" && (
-						<Button variant='secondary' onPress={toggleAutomation} isDisabled={loading || automationPending || (automationPaused && !policy?.scheduling)}>
-							{automationPaused ? "Resume automation" : "Pause automation"}
-						</Button>
-					)}
-					<Button variant='secondary' onPress={() => edit(null)} isDisabled={!canEdit || loading}>
-						<IconPlus size={16} />
-						Add schedule
-					</Button>
-				</div>
 				<div className='space-y-4'>
 					{automationMessage && (
 						<p role='status' className='text-sm text-muted'>
@@ -236,10 +241,23 @@ export default function RunnerSchedule(props: Props) {
 					)}
 					{!loading && (
 						<>
-							<div className='max-w-sm'>
-								<TimezonePicker label='Calendar timezone' value={calendarTimezone} onChange={setCalendarTimezone} />
-							</div>
 							<RunnerScheduleAgenda
+								timezoneControl={<TimezonePicker label='Calendar timezone' value={calendarTimezone} onChange={setCalendarTimezone} />}
+								toolbar={
+									<>
+										{props.clipPlayback && automation?.controlMode === "scheduled" && (
+											<Button aria-label={automationPaused ? "Resume automation" : "Pause automation"} variant='secondary' onPress={toggleAutomation} isDisabled={loading || automationPending || (automationPaused && !policy?.scheduling)}>
+												{automationPaused ? <IconPlayerPlay size={16} /> : <IconPlayerPause size={16} />}
+												<span className='sm:hidden'>{automationPaused ? "Resume" : "Pause"}</span>
+												<span className='hidden sm:inline'>{automationPaused ? "Resume automation" : "Pause automation"}</span>
+											</Button>
+										)}
+										<Button variant='primary' onPress={() => edit(null)} isDisabled={!canEdit || loading}>
+											<IconPlus size={16} />
+											Add schedule
+										</Button>
+									</>
+								}
 								timezone={calendarTimezone}
 								events={events}
 								canEdit={canEdit}
@@ -252,7 +270,7 @@ export default function RunnerSchedule(props: Props) {
 									if (event) {
 										edit(event);
 										setDraftNotice(notice ?? null);
-										if (window) setDraft((current) => (current ? { ...current, ...window } : current));
+										if (window) setDraft((current) => (current ? { ...current, ...window, ...(current.allDay ? { localEndDate: parseDate(window.localEndDate).subtract({ days: 1 }).toString() } : {}) } : current));
 									}
 								}}
 							/>
@@ -270,7 +288,22 @@ export default function RunnerSchedule(props: Props) {
 									<div>
 										<p className='font-medium'>{event.title}</p>
 										<p className='text-sm text-muted'>
-											{event.localStartDate} {event.localStartTime.slice(0, 5)} — {event.localEndDate ?? "Weekly"} {event.localEndTime.slice(0, 5)}
+											{isAllDayWindow(event) ? (
+												<>
+													<LocalizedDate value={event.localStartDate} />
+													{event.localEndDate && (
+														<>
+															{" "}
+															to <LocalizedDate value={parseDate(event.localEndDate).subtract({ days: 1 }).toString()} />
+														</>
+													)}{" "}
+													(All day)
+												</>
+											) : (
+												<>
+													<LocalizedDate value={event.localStartDate} /> {event.localStartTime.slice(0, 5)} to {event.localEndDate ? <LocalizedDate value={event.localEndDate} /> : "Weekly"} {event.localEndTime.slice(0, 5)}
+												</>
+											)}
 										</p>
 										<p className='text-sm text-muted'>{elapsedDescription(event)}</p>
 										{event.lockedUntil && <p className='text-xs text-muted'>{event.lockReason === "output_drain" ? "You can edit this schedule after the broadcast finishes." : "You can edit this schedule after its current time slot ends."}</p>}
@@ -330,10 +363,16 @@ export default function RunnerSchedule(props: Props) {
 												setCalendarTimezone(value);
 											}}
 										/>
+										<Checkbox className='sm:col-span-2' isSelected={draft.allDay} onChange={(allDay) => setDraft((current) => (current ? { ...current, allDay, ...(allDay ? { endDayOffset: Math.max(1, current.endDayOffset) } : current.localStartTime === "00:00" && current.localEndTime === "00:00" ? { localStartTime: "09:00", localEndTime: "10:00" } : {}) } : current))}>
+											<Checkbox.Control>
+												<Checkbox.Indicator />
+											</Checkbox.Control>
+											<Checkbox.Content>All day</Checkbox.Content>
+										</Checkbox>
 										<ScheduleDateField label='Start date' value={draft.localStartDate} onChange={(value) => update("localStartDate", value)} />
 										{draft.recurrence === "once" && <ScheduleDateField label='End date' value={draft.localEndDate} onChange={(value) => update("localEndDate", value)} />}
-										<ScheduleTimeField label='Start time' value={draft.localStartTime} onChange={(value) => update("localStartTime", value)} />
-										<ScheduleTimeField label='End time' value={draft.localEndTime} onChange={(value) => update("localEndTime", value)} />
+										{!draft.allDay && <ScheduleTimeField label='Start time' value={draft.localStartTime} onChange={(value) => update("localStartTime", value)} />}
+										{!draft.allDay && <ScheduleTimeField label='End time' value={draft.localEndTime} onChange={(value) => update("localEndTime", value)} />}
 									</div>
 									<Select value={draft.recurrence} onChange={(value) => update("recurrence", value === "weekly" ? "weekly" : "once")} variant='secondary'>
 										<Label>Recurrence</Label>
@@ -365,7 +404,7 @@ export default function RunnerSchedule(props: Props) {
 												))}
 											</div>
 											<Select value={String(draft.endDayOffset)} onChange={(value) => update("endDayOffset", Number(value))} variant='secondary'>
-												<Label>End day</Label>
+												<Label>{draft.allDay ? "Duration" : "End day"}</Label>
 												<Select.Trigger>
 													<Select.Value />
 													<Select.Indicator />
@@ -373,8 +412,8 @@ export default function RunnerSchedule(props: Props) {
 												<Select.Popover>
 													<ListBox>
 														{Array.from({ length: 8 }, (_, days) => (
-															<ListBox.Item id={String(days)} key={days} textValue={days === 0 ? "Same day" : days === 1 ? "Next day" : `${days} days later`}>
-																<Label>{days === 0 ? "Same day" : days === 1 ? "Next day" : `${days} days later`}</Label>
+															<ListBox.Item isDisabled={draft.allDay && days === 0} id={String(days)} key={days} textValue={draft.allDay ? `${days} ${days === 1 ? "day" : "days"}` : days === 0 ? "Same day" : days === 1 ? "Next day" : `${days} days later`}>
+																<Label>{draft.allDay ? `${days} ${days === 1 ? "day" : "days"}` : days === 0 ? "Same day" : days === 1 ? "Next day" : `${days} days later`}</Label>
 																<ListBox.ItemIndicator />
 															</ListBox.Item>
 														))}

@@ -391,7 +391,7 @@ test("TDD-US4-OPT063 U103: standby displays the saved timezone's next start and 
 		const time = view.container.querySelector("[data-runner-next-broadcast]");
 		expect(time).toHaveAttribute("datetime", props.standbyNextBroadcast.startUtc);
 		expect(time).toHaveAttribute("data-timezone", "Europe/Berlin");
-		expect(time).toHaveTextContent("14:00");
+		expect(time).toHaveTextContent("02:00 PM");
 		await act(async () => {
 			await jest.advanceTimersByTimeAsync(1001);
 		});

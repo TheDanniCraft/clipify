@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { type ReactNode, useMemo, useState, useSyncExternalStore } from "react";
 import { IconLock } from "@tabler/icons-react";
 import { Button } from "@heroui/react";
 import { Agenda, useAgenda, type AgendaView } from "@heroui-pro/react";
@@ -16,7 +16,7 @@ function subscribeViewport(listener: () => void) {
 	query.addEventListener("change", listener);
 	return () => query.removeEventListener("change", listener);
 }
-export default function RunnerScheduleAgenda({ events, canEdit, onEdit, onCreate, timezone = getLocalTimeZone() }: { events: PlannerEvent[]; timezone?: string; canEdit: boolean; onEdit: (id: string, window?: ReturnType<typeof plannerCreateWindow>, notice?: string) => void; onCreate: (window: ReturnType<typeof plannerCreateWindow>) => void }) {
+export default function RunnerScheduleAgenda({ events, canEdit, onEdit, onCreate, toolbar, timezoneControl, timezone = getLocalTimeZone() }: { events: PlannerEvent[]; toolbar?: ReactNode; timezoneControl?: ReactNode; timezone?: string; canEdit: boolean; onEdit: (id: string, window?: ReturnType<typeof plannerCreateWindow>, notice?: string) => void; onCreate: (window: ReturnType<typeof plannerCreateWindow>) => void }) {
 	const { locale } = useLocale();
 	const mobile = useSyncExternalStore(
 		subscribeViewport,
@@ -75,24 +75,30 @@ export default function RunnerScheduleAgenda({ events, canEdit, onEdit, onCreate
 	return (
 		<section aria-label='Broadcast calendar' className='min-w-0'>
 			<Agenda {...agenda} timeZone={timezone} className='w-full min-w-0'>
-				<Agenda.Header className='flex-wrap gap-3'>
-					<Agenda.Heading />
-					<Agenda.ViewSelector />
-					<Agenda.Navigation>
-						<Agenda.NavButton slot='previous' />
-						<Agenda.TodayButton />
-						<Agenda.NavButton slot='next' />
-					</Agenda.Navigation>
+				<Agenda.Header className={styles.header}>
+					<div className={styles.titlebar}>
+						<Agenda.Heading />
+						<div className={styles.actions}>{toolbar}</div>
+					</div>
+					<div className={styles.controls}>
+						<Agenda.Navigation className={styles.navigation}>
+							<Agenda.NavButton slot='previous' />
+							<Agenda.TodayButton />
+							<Agenda.NavButton slot='next' />
+						</Agenda.Navigation>
+						<Agenda.ViewSelector className={styles.views} />
+						<div className={styles.dateControl}>
+							<ScheduleDateField
+								label='Displayed date'
+								value={date.toString()}
+								onChange={(value) => {
+									if (value) setDate(parseDate(value));
+								}}
+							/>
+						</div>
+						{timezoneControl && <div className={styles.timezoneControl}>{timezoneControl}</div>}
+					</div>
 				</Agenda.Header>
-				<div className='max-w-64 px-3 pb-4'>
-					<ScheduleDateField
-						label='Displayed date'
-						value={date.toString()}
-						onChange={(value) => {
-							if (value) setDate(parseDate(value));
-						}}
-					/>
-				</div>
 				<Agenda.Body>
 					{agenda.view === "month" ? (
 						<Agenda.MonthGrid>
@@ -127,7 +133,33 @@ export default function RunnerScheduleAgenda({ events, canEdit, onEdit, onCreate
 									<Agenda.DayHeader key={day.toString()} date={day} />
 								))}
 							</Agenda.WeekHeader>
-							<Agenda.TimeGrid className='max-h-[60vh]'>
+							{agenda.allDayLayout.length > 0 && (
+								<Agenda.AllDaySection>
+									<Agenda.AllDayLabel>All day</Agenda.AllDayLabel>
+									{agenda.allDayLayout.map((item) => (
+										<Agenda.AllDayEvent
+											key={item.event.id}
+											event={item.event}
+											colStart={item.colStart}
+											colSpan={item.colSpan}
+											row={item.row}
+											className={eventClass(item.event.id)}
+											aria-disabled={item.event.isReadOnly || undefined}
+											tabIndex={item.event.isReadOnly ? -1 : 0}
+											onKeyDown={(key) => {
+												if (key.key === "Enter" || key.key === " ") {
+													key.preventDefault();
+													agenda.selectEvent(item.event.id);
+												}
+											}}
+										>
+											<span className='min-w-0 truncate'>{item.event.title}</span>
+											{lockIcon(item.event.id)}
+										</Agenda.AllDayEvent>
+									))}
+								</Agenda.AllDaySection>
+							)}
+							<Agenda.TimeGrid className='max-h-[45vh] sm:max-h-[60vh]'>
 								<Agenda.CurrentTimeIndicator />
 								{agenda.visibleDays.map((day) => (
 									<Agenda.DayColumn key={day.toString()} date={day}>

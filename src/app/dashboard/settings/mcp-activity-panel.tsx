@@ -1,4 +1,5 @@
 "use client";
+import LocalizedDate from "@components/localizedDate";
 import { useEffect, useRef, useState } from "react";
 import { Alert, Button, Card, Chip, Label, ListBox, Select, Spinner, Table } from "@heroui/react";
 import { EmptyState } from "@heroui-pro/react";
@@ -218,7 +219,7 @@ export default function McpActivityPanel() {
 											</Table.Cell>
 											<Table.Cell>
 												<time className='text-xs text-muted' dateTime={item.occurredAt}>
-													{new Date(item.occurredAt).toLocaleString()}
+													{<LocalizedDate value={item.occurredAt} showTime />}
 												</time>
 											</Table.Cell>
 										</Table.Row>

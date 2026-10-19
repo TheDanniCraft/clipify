@@ -1,5 +1,6 @@
 "use client";
 
+import LocalizedDate from "@components/localizedDate";
 import { Carousel } from "@heroui-pro/react/carousel";
 import type { Gallery, TwitchClip } from "@types";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
@@ -16,7 +17,6 @@ type Props = {
 
 const PROTOCOL_VERSION = 1;
 const viewCountFormatter = new Intl.NumberFormat("en-US");
-const createdAtFormatter = new Intl.DateTimeFormat("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
 
 function formatDuration(duration: number) {
 	const minutes = Math.floor(duration / 60);
@@ -35,7 +35,7 @@ function ClipCard({ clip, gallery, onSelect, horizontal = false }: { clip: Twitc
 				<span className={styles.details}>
 					{gallery.showCreator ? <span>{clip.creator_name}</span> : null}
 					{gallery.showViews ? <span>{viewCountFormatter.format(clip.view_count)} views</span> : null}
-					{gallery.showCreatedAt ? <time dateTime={clip.created_at}>{createdAtFormatter.format(new Date(clip.created_at))}</time> : null}
+					{gallery.showCreatedAt ? <LocalizedDate value={clip.created_at} timeZone='UTC' /> : null}
 				</span>
 			</span>
 		</button>

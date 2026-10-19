@@ -1,5 +1,6 @@
 "use client";
 
+import LocalizedDate from "@components/localizedDate";
 import { generateCheckout, getBillingOverview, getBillingProductOptions, getPortalLink, scheduleProductCancellation } from "@actions/subscription";
 import type { BillingCycle, BillingOverview, BillingProductOption } from "@actions/subscription";
 import ConfirmModal from "@components/confirmModal";
@@ -12,15 +13,13 @@ import { notify as addToast } from "@lib/toast";
 import TiersComponent from "@components/Pricing";
 import type { RuntimePricing } from "@components/Pricing/pricing-types";
 
-function formatDate(value: string | null) {
-	if (!value) return "—";
-	return new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
-}
-
 function productAccessLabel(product: BillingOverview["products"][number]) {
-	if (product.source === "billing") return `${product.cancelAtPeriodEnd ? "Ends" : "Renews"} ${formatDate(product.currentPeriodEnd)}`;
 	if (!product.currentPeriodEnd) return "Included";
-	return `${product.grantSource === "reverse_trial" ? "Included until" : "Available until"} ${formatDate(product.currentPeriodEnd)}`;
+	return (
+		<>
+			{product.source === "billing" ? (product.cancelAtPeriodEnd ? "Ends" : "Renews") : product.grantSource === "reverse_trial" ? "Included until" : "Available until"} <LocalizedDate value={product.currentPeriodEnd} />
+		</>
+	);
 }
 
 export default function BillingPanel() {
@@ -177,7 +176,7 @@ export default function BillingPanel() {
 										<div className='flex items-center gap-3'>
 											{option.owned ? (
 												<Chip color={canceling ? "warning" : "success"} variant='soft'>
-													{product ? (product.source === "billing" ? (product.cancelAtPeriodEnd ? "Ends " : "Renews ") + formatDate(product.currentPeriodEnd) : product.currentPeriodEnd ? (product.grantSource === "reverse_trial" ? "Included until " : "Available until ") + formatDate(product.currentPeriodEnd) : "Included") : "Included"}
+													{product ? productAccessLabel(product) : "Included"}
 												</Chip>
 											) : (
 												<Tabs

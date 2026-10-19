@@ -1,5 +1,6 @@
 "use client";
 
+import LocalizedDate from "@components/localizedDate";
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
 
 import { useEffect, useState } from "react";
@@ -602,7 +603,7 @@ export default function RunnerPage() {
 									</div>
 									<div>
 										<dt className='text-muted'>Last connection</dt>
-										<dd>{runner.lastHeartbeatAt ? new Date(runner.lastHeartbeatAt).toLocaleString() : "Not connected"}</dd>
+										<dd>{runner.lastHeartbeatAt ? <LocalizedDate value={runner.lastHeartbeatAt} showTime /> : "Not connected"}</dd>
 									</div>
 								</dl>
 								<div className='flex flex-wrap gap-3'>

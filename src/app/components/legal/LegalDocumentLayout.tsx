@@ -1,3 +1,4 @@
+import LocalizedDate from "@components/localizedDate";
 import type { ReactNode } from "react";
 import Image from "next/image";
 import type { LegalDocumentManifestEntry } from "@lib/legal/documents";
@@ -7,13 +8,6 @@ type LegalDocumentLayoutProps = {
 	document: LegalDocumentManifestEntry;
 	children: ReactNode;
 };
-
-function formatLegalDate(value: string) {
-	return new Intl.DateTimeFormat("en-US", {
-		dateStyle: "long",
-		timeZone: "UTC",
-	}).format(new Date(`${value}T00:00:00Z`));
-}
 
 export default function LegalDocumentLayout({ document, children }: LegalDocumentLayoutProps) {
 	return (
@@ -26,7 +20,9 @@ export default function LegalDocumentLayout({ document, children }: LegalDocumen
 						<p className='min-h-12 max-w-2xl text-base text-muted sm:min-h-14 sm:text-lg'>{document.description}</p>
 						<div className='flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted'>
 							<span>Version {document.version}</span>
-							<span>Effective {formatLegalDate(document.effectiveDate)}</span>
+							<span>
+								Effective <LocalizedDate value={document.effectiveDate} />
+							</span>
 						</div>
 					</div>
 					<Image src='/clippy/Clippy.svg' alt='Clippy mascot' width={144} height={144} loading='eager' className='h-24 w-24 sm:mt-1 sm:h-36 sm:w-36' />

@@ -1,5 +1,6 @@
 "use client";
 
+import LocalizedDate from "@components/localizedDate";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import Logo from "./logo";
 import { parseRunnerStandbyAppearance, type RunnerStandbyAppearance, type RunnerNextBroadcast } from "@/app/lib/runnerStandby";
@@ -206,10 +207,7 @@ export default function RunnerGeneratedPresentation({
 							)}
 							{appearanceNext && (
 								<p data-player-overlay='standby-next-time' className='rounded-xl' style={{ fontSize: outputSize(40), lineHeight: 1.25, padding: outputSize(16), background: "rgba(0,0,0,0.6)", opacity: 1 }}>
-									Next broadcast:{" "}
-									<time data-runner-next-broadcast dateTime={appearanceNext.startUtc} data-timezone={appearanceNext.timezone}>
-										{new Intl.DateTimeFormat("en-GB", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZone: appearanceNext.timezone, timeZoneName: "short" }).format(new Date(appearanceNext.startUtc))}
-									</time>
+									Next broadcast: <LocalizedDate data-runner-next-broadcast data-timezone={appearanceNext.timezone} value={appearanceNext.startUtc} showTime timeZone={appearanceNext.timezone} />
 								</p>
 							)}
 						</div>

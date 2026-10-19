@@ -1,5 +1,6 @@
 "use client";
 
+import LocalizedDate from "@components/localizedDate";
 import { buttonVariants } from "@heroui/styles";
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
 
@@ -647,7 +648,7 @@ export default function PlaylistPage() {
 											<Table.Cell>{item.creator_name}</Table.Cell>
 											<Table.Cell>{getGameName(item.game_id)}</Table.Cell>
 											<Table.Cell>{item.view_count}</Table.Cell>
-											<Table.Cell>{new Date(item.created_at).toLocaleDateString()}</Table.Cell>
+											<Table.Cell>{<LocalizedDate value={item.created_at} />}</Table.Cell>
 										</Table.Row>
 									))}
 								</Table.Body>

@@ -62,3 +62,26 @@ test("TDD-US3-DEC009 baseline: the display-only last millisecond never replaces 
 	expect(segment.trueEndUtc).toBe("2027-01-05T00:00:00.000Z");
 	expect(plannerResizeWindow(segment, parseDateTime("2027-01-04T23:00"), "UTC")).toBeNull();
 });
+
+test.each([
+	["2027-03-28", "2027-03-29", 23],
+	["2027-10-31", "2027-11-01", 25],
+])("full calendar day %s stays one all-day bar across DST", (localStartDate, localEndDate, hours) => {
+	const rows = projectScheduleViewport([{ ...vacation, localStartDate, localEndDate, localStartTime: "00:00", localEndTime: "00:00" }], parseDate(localStartDate), 1, "Europe/Berlin");
+	expect(rows).toHaveLength(1);
+	expect(rows[0].isAllDay).toBe(true);
+	expect(Date.parse(rows[0].trueEndUtc) - Date.parse(rows[0].trueStartUtc)).toBe(Number(hours) * 3600000);
+	expect(rows[0].end.toString()).toBe(`${localStartDate}T23:59:59.999`);
+});
+test("a multi-day all-day broadcast spans once rather than filling each time column", () => {
+	const rows = projectScheduleViewport([{ ...vacation, localStartDate: "2027-01-04", localEndDate: "2027-01-07", localStartTime: "00:00", localEndTime: "00:00" }], parseDate("2027-01-04"), 7, "Europe/Berlin");
+	expect(rows).toHaveLength(1);
+	expect(rows[0]).toMatchObject({ isAllDay: true, eventId: vacation.id });
+	expect(rows[0].end.toString()).toBe("2027-01-06T23:59:59.999");
+});
+
+test("a window offset from midnight by seconds remains timed", () => {
+	const rows = projectScheduleViewport([{ ...vacation, localStartDate: "2027-01-04", localEndDate: "2027-01-05", localStartTime: "00:00:30", localEndTime: "00:00:30" }], parseDate("2027-01-04"), 7, "Europe/Berlin");
+	expect(rows).toHaveLength(2);
+	expect(rows.every((row) => !row.isAllDay)).toBe(true);
+});
