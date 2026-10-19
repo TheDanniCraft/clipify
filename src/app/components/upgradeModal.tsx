@@ -1,8 +1,7 @@
 "use client";
-import { Button, Checkbox, Chip, Separator, Modal, Tabs } from "@heroui/react";
-import { notify as addToast } from "@lib/toast";
+import { Button, Chip, Modal, Tabs } from "@heroui/react";
 
-import { IconBolt, IconCheck, IconDiamondFilled, IconSparkles } from "@tabler/icons-react";
+import { IconCheck, IconCrown } from "@tabler/icons-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import NextLink from "next/link";
 import { generateCheckout, getBillingProductOptions } from "@actions/subscription";
@@ -48,13 +47,14 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 	const effectivePlan = user.entitlements?.effectivePlan ?? user.plan;
 	const [billingCycle, setBillingCycle] = useState<BillingCycle>(initialBillingCycle);
 	const [billingOptions, setBillingOptions] = useState<BillingProductOption[]>([]);
-	const [selectedOptionalProducts, setSelectedOptionalProducts] = useState<Set<BillingProduct>>(new Set());
+	const [priceLoadError, setPriceLoadError] = useState(false);
+	const [priceLoadAttempt, setPriceLoadAttempt] = useState(0);
+	const [checkingOut, setCheckingOut] = useState(false);
+	const [checkoutError, setCheckoutError] = useState<string | null>(null);
 	const [productCycles, setProductCycles] = useState<Map<BillingProduct, BillingCycle>>(new Map());
 	const [campaignOffer, setCampaignOffer] = useState<CampaignOffer | null>(null);
 	const proTier = useMemo(() => tiers.find((t) => t.key === TiersEnum.Pro), []);
-	const freeTier = useMemo(() => tiers.find((t) => t.key === TiersEnum.Free), []);
-	const proFeatures = proTier?.features ?? [];
-	const uniqueProFeatures = proFeatures.filter((f) => !(freeTier?.features ?? []).includes(f) && f !== "Everything in Free");
+	const proFeatures = proTier?.summaryFeatures ?? [];
 	const proBillingOption = billingOptions.find((option) => option.key === BillingProduct.Pro);
 	const pricingPromoByFrequency = {
 		[FrequencyEnum.Monthly]: campaignOffer?.showPricingTierPromo ? campaignOffer.pricingMonthlyPromo : null,
@@ -70,17 +70,14 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 	const monthlySuffix = frequencies.find((f) => f.key === FrequencyEnum.Monthly)?.priceSuffix ?? "per month";
 	const inTrial = isReverseTrialActive(user);
 	const primary = primaryProduct ?? BillingProduct.Pro;
-	const canUpgrade = effectivePlan === "free" || inTrial || selectedOptionalProducts.size > 0;
-	const selectedProducts = billingOptions.filter((option) => option.owned || option.required || selectedOptionalProducts.has(option.key));
+	const canUpgrade = effectivePlan === "free" || inTrial;
+	const selectedProducts = billingOptions.filter((option) => option.owned || option.required);
 	const payableProducts = selectedProducts.filter((option) => !option.owned);
 	const cycleFor = (option: BillingProductOption) => productCycles.get(option.key) ?? initialBillingCycle;
 	const total = payableProducts.reduce((sum, option) => sum + (option.prices[cycleFor(option)].amount ?? 0), 0);
 	const totalCurrency = payableProducts[0]?.prices[cycleFor(payableProducts[0])].currency ?? "EUR";
 	const totalLabel = payableProducts.length > 0 ? new Intl.NumberFormat("en", { style: "currency", currency: totalCurrency }).format(total) : "No additional charge";
-	const primaryOption = billingOptions.find((option) => option.key === primary);
-	const optionalOptions = billingOptions.filter((option) => option.key !== primary);
 	const trialDaysLeft = getTrialDaysLeft(user);
-	const planLabel = effectivePlan === "pro" ? "Pro" : "Free";
 	const hasTrackedImpressionRef = useRef(false);
 
 	useEffect(() => {
@@ -121,36 +118,39 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 		void getBillingProductOptions(primary)
 			.then((result) => {
 				if (cancelled) return;
+				setPriceLoadError(false);
 				setBillingOptions(result.options);
 				if (result.preferredBillingCycle) setBillingCycle(result.preferredBillingCycle);
-				setSelectedOptionalProducts(new Set(result.options.filter((option) => option.required).map((option) => option.key)));
 				setProductCycles(new Map(result.options.map((option) => [option.key, result.preferredBillingCycle ?? initialBillingCycle] as [BillingProduct, BillingCycle])));
 			})
 			.catch(() => {
-				if (!cancelled) setBillingOptions([]);
+				if (!cancelled) {
+					setBillingOptions([]);
+					setPriceLoadError(true);
+				}
 			});
 		return () => {
 			cancelled = true;
 		};
-	}, [initialBillingCycle, isOpen, primary]);
+	}, [initialBillingCycle, isOpen, primary, priceLoadAttempt]);
 
 	return (
 		<Modal.Backdrop isOpen={isOpen} onOpenChange={onOpenChange}>
-			<Modal.Container size='lg' className='max-w-3xl'>
-				<Modal.Dialog className='max-h-[90vh] overflow-y-auto'>
+			<Modal.Container size='lg' placement='center' scroll='inside'>
+				<Modal.Dialog className='max-h-[90dvh]'>
 					<Modal.CloseTrigger />
 					<Modal.Header className='flex flex-col gap-3 pr-10'>
 						<Modal.Heading>
 							<div className='flex items-center gap-3'>
-								<span className='inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-500/15 text-brand-400'>
-									<IconSparkles size={20} />
+								<span className='inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-400/10 text-amber-300'>
+									<IconCrown size={20} />
 								</span>
 								<p className='text-xl font-semibold leading-tight'>{title ?? "Upgrade to Pro"}</p>
 							</div>
 						</Modal.Heading>
 					</Modal.Header>
-					<Modal.Body className='gap-5 pb-3'>
-						<p className='text-base text-muted'>{description ?? "Unlock advanced features for professional streamers and support the development of Clipify."}</p>
+					<Modal.Body className='space-y-5 pb-3'>
+						<p className='text-sm text-muted'>{description ?? "More ways to play, customize, and share your clips."}</p>
 						{campaignOffer?.showPricingTierPromo ? (
 							<div className='rounded-xl border border-brand-secondary/25 bg-brand-secondary/10 px-4 py-3 text-sm text-foreground'>
 								<div className='font-semibold text-brand-secondary'>{campaignOffer.badgeText ?? campaignOffer.title}</div>
@@ -158,231 +158,135 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 							</div>
 						) : null}
 
-						{
-							<div className='flex flex-wrap items-center justify-between gap-3 text-xs text-muted'>
-								<div className='flex items-center gap-2'>
-									<span>Plan:</span>
-									<span className={`${effectivePlan === "free" ? "text-success" : "text-brand-300"} ${effectivePlan === "pro" ? "font-bold" : "font-medium"}`}>{planLabel}</span>
-									{inTrial && (
-										<Chip size='sm' variant='tertiary' className='border border-amber-300/40 bg-amber-400/20 font-medium text-amber-100'>
-											Trial active: {trialDaysLeft <= 1 ? "Ends today" : `${trialDaysLeft} days left`}
-										</Chip>
-									)}
-								</div>
-								{proBillingOption && !proBillingOption.owned ? (
-									<Tabs
-										selectedKey={cycleFor(proBillingOption)}
-										onSelectionChange={(key) => {
-											const cycle = String(key) as BillingCycle;
-											setBillingCycle(cycle);
-											setProductCycles((previous) => new Map(previous).set(proBillingOption.key, cycle));
-										}}
-										className='w-fit'
-									>
-										<Tabs.ListContainer>
-											<Tabs.List aria-label='Pro billing frequency'>
-												<Tabs.Tab id='monthly'>
-													Monthly
-													<Tabs.Indicator />
-												</Tabs.Tab>
-												<Tabs.Tab id='yearly'>
-													Yearly
-													<Tabs.Indicator />
-												</Tabs.Tab>
-											</Tabs.List>
-										</Tabs.ListContainer>
-									</Tabs>
-								) : null}
+						<div className='flex flex-wrap items-end justify-between gap-4 rounded-xl bg-surface-secondary p-4'>
+							<div aria-live='polite'>
+								{proBillingOption ? (
+									<>
+										<p className='text-sm text-muted'>{billingCycle === "yearly" ? "Billed yearly" : "Billed monthly"}</p>
+										<div className='mt-1 flex flex-wrap items-baseline gap-2'>
+											{(billingCycle === "yearly" ? yearlyHasSale : monthlyHasSale) && <span className='text-sm text-muted line-through'>{formatOriginalPrice(billingCycle === "yearly" ? yearly : monthly)}</span>}
+											<span className='text-3xl font-semibold'>{(billingCycle === "yearly" ? yearlyHasSale : monthlyHasSale) ? formatPromoPrice(billingCycle === "yearly" ? yearlyDiscount : monthlyDiscount) : billingCycle === "yearly" ? yearly : monthly}</span>
+											<span className='text-sm text-muted'>{billingCycle === "yearly" ? yearlySuffix : monthlySuffix}</span>
+										</div>
+									</>
+								) : priceLoadError ? (
+									<div>
+										<p role='alert' className='text-sm text-danger'>
+											Could not load prices.
+										</p>
+										<Button
+											size='sm'
+											variant='tertiary'
+											onPress={() => {
+												setPriceLoadError(false);
+												setPriceLoadAttempt((attempt) => attempt + 1);
+											}}
+										>
+											Try again
+										</Button>
+									</div>
+								) : (
+									<p className='text-sm text-muted'>Loading current prices…</p>
+								)}
 							</div>
-						}
-
-						{(monthly || yearly) && (
-							<>
-								<div className='mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2'>
-									<div className='rounded-xl border border-default/60 bg-surface-secondary p-5'>
-										<div className='flex items-center justify-between'>
-											<div className='text-xs text-muted'>Monthly</div>
-											{monthlyHasSale && (
-												<Chip size='sm' color='accent' variant='tertiary'>
-													Offer
-												</Chip>
-											)}
-										</div>
-										<div className='mt-1 flex items-center gap-2'>
-											{monthlyHasSale ? (
-												<>
-													<span className='self-center text-sm leading-none text-muted line-through'>{formatOriginalPrice(monthly)}</span>
-													<span className='text-3xl font-semibold leading-none'>{formatPromoPrice(monthlyDiscount)}</span>
-												</>
-											) : (
-												<span className='text-3xl font-semibold leading-none'>{monthly}</span>
-											)}
-											<span className='self-end text-xs text-muted'>{monthlySuffix}</span>
-										</div>
-										<div className='mt-2 inline-flex items-center gap-1 text-xs text-muted'>
-											<IconBolt size={14} className='text-brand-400' />
-											Best for trying Pro
-										</div>
-									</div>
-									<div className='rounded-xl border border-brand-300/40 bg-brand-500/10 p-5'>
-										<div className='flex items-center justify-between'>
-											<div className='text-xs text-brand-300'>Yearly</div>
-											{yearlyHasSale && (
-												<Chip size='sm' color='accent' variant='tertiary'>
-													Offer
-												</Chip>
-											)}
-										</div>
-										<div className='mt-1 flex items-center gap-2'>
-											{yearlyHasSale ? (
-												<>
-													<span className='self-center text-sm leading-none text-brand-300/80 line-through'>{formatOriginalPrice(yearly)}</span>
-													<span className='text-3xl font-semibold leading-none text-brand-200'>{formatPromoPrice(yearlyDiscount)}</span>
-												</>
-											) : (
-												<span className='text-3xl font-semibold leading-none text-brand-200'>{yearly}</span>
-											)}
-											<span className='self-end text-xs text-brand-300'>{yearlySuffix}</span>
-										</div>
-										<div className='mt-2 inline-flex items-center gap-1 text-xs text-brand-200'>
-											<IconSparkles size={14} />
-											Best value
-										</div>
-									</div>
-								</div>
-							</>
+							{proBillingOption && !proBillingOption.owned ? (
+								<Tabs
+									selectedKey={cycleFor(proBillingOption)}
+									onSelectionChange={(key) => {
+										const cycle = String(key) as BillingCycle;
+										setCheckoutError(null);
+										setBillingCycle(cycle);
+										setProductCycles((previous) => new Map(previous).set(proBillingOption.key, cycle));
+									}}
+									className='w-fit'
+								>
+									<Tabs.ListContainer>
+										<Tabs.List aria-label='Pro billing frequency'>
+											<Tabs.Tab id='monthly'>
+												Monthly
+												<Tabs.Indicator />
+											</Tabs.Tab>
+											<Tabs.Tab id='yearly'>
+												Yearly
+												<Tabs.Indicator />
+											</Tabs.Tab>
+										</Tabs.List>
+									</Tabs.ListContainer>
+								</Tabs>
+							) : null}
+						</div>
+						{inTrial && (
+							<Chip size='sm' variant='tertiary'>
+								Trial active: {trialDaysLeft <= 1 ? "Ends today" : `${trialDaysLeft} days left`}
+							</Chip>
 						)}
 
 						{proTier && (
 							<>
-								<p className='mt-3 text-lg text-foreground'>What&apos;s included with Pro</p>
-								<ul className='mt-1 grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2'>
-									{uniqueProFeatures.slice(0, 6).map((f) => {
-										const isUnique = uniqueProFeatures.includes(f);
-										return (
-											<li key={f} className='flex items-start gap-2'>
-												<IconCheck size={16} className={isUnique ? "text-accent mt-0.5" : "text-muted mt-0.5"} />
-												<p className={isUnique ? "text-foreground font-medium" : "text-muted"}>{f}</p>
-											</li>
-										);
-									})}
+								<p className='text-sm font-semibold text-foreground'>What&apos;s included with Pro</p>
+								<ul className='mt-3 grid grid-cols-1 gap-x-5 gap-y-3 text-sm sm:grid-cols-2'>
+									{proFeatures.map((feature) => (
+										<li key={feature} className='flex items-start gap-2'>
+											<IconCheck size={16} className='mt-0.5 shrink-0 text-accent' aria-hidden='true' />
+											<span>{feature}</span>
+										</li>
+									))}
 								</ul>
 								<NextLink href='/pricing' className='mt-3 inline-block text-sm text-brand-400 underline underline-offset-2'>
 									View all Pro features
 								</NextLink>
 							</>
 						)}
-
-						<Separator className='my-3' />
-						<div className='space-y-3'>
-							{billingOptions.length === 0 ? (
-								<p className='text-sm text-muted'>Loading current prices…</p>
-							) : (
-								<>
-									{primaryOption && (
-										<div className='rounded-xl border border-brand-300/50 bg-brand-500/10 p-4'>
-											<div className='flex flex-wrap items-center justify-between gap-4'>
-												<div>
-													<p className='font-semibold text-foreground'>{primaryOption.label}</p>
-													<p className='text-xs text-muted'>{primaryOption.owned ? "Already included on your account" : primaryOption.description}</p>
-												</div>
-												<div className='flex items-center gap-3'>
-													<span className='shrink-0 text-sm font-semibold'>{primaryOption.owned ? "Included" : primaryOption.prices[cycleFor(primaryOption)].formatted}</span>
-												</div>
-											</div>
-										</div>
-									)}
-									{optionalOptions.length > 0 && <p className='pt-2 text-sm font-semibold text-foreground'>You may also be interested in</p>}
-									{optionalOptions.map((option) => {
-										const checked = option.owned || selectedOptionalProducts.has(option.key);
-										return (
-											<div key={option.key} className='rounded-xl border border-default/60 bg-surface-secondary p-4'>
-												<Checkbox
-													isSelected={checked}
-													isDisabled={option.owned}
-													onChange={(selected) =>
-														setSelectedOptionalProducts((previous) => {
-															const next = new Set(previous);
-															if (selected) next.add(option.key);
-															else next.delete(option.key);
-															return next;
-														})
-													}
-												>
-													<Checkbox.Content>
-														<Checkbox.Control>
-															<Checkbox.Indicator />
-														</Checkbox.Control>
-														<div className='ml-2 flex flex-1 flex-wrap items-center justify-between gap-4'>
-															<div>
-																<p className='font-medium text-foreground'>{option.label}</p>
-																<p className='text-xs text-muted'>{option.owned ? "Already included on your account" : option.description}</p>
-															</div>
-															<div className='flex items-center gap-3'>
-																{!option.owned && (
-																	<Tabs selectedKey={cycleFor(option)} onSelectionChange={(key) => setProductCycles((previous) => new Map(previous).set(option.key, String(key) as BillingCycle))} className='w-fit'>
-																		<Tabs.ListContainer>
-																			<Tabs.List aria-label={`${option.label} billing frequency`}>
-																				<Tabs.Tab id='monthly'>
-																					Monthly
-																					<Tabs.Indicator />
-																				</Tabs.Tab>
-																				<Tabs.Tab id='yearly'>
-																					Yearly
-																					<Tabs.Indicator />
-																				</Tabs.Tab>
-																			</Tabs.List>
-																		</Tabs.ListContainer>
-																	</Tabs>
-																)}
-																<span className='shrink-0 text-sm font-medium'>{option.owned ? "Included" : option.prices[cycleFor(option)].formatted}</span>
-															</div>
-														</div>
-													</Checkbox.Content>
-												</Checkbox>
-											</div>
-										);
-									})}
-								</>
-							)}
-						</div>
-						<div className='mt-3'>
+					</Modal.Body>
+					<Modal.Footer className='flex-col items-stretch gap-3'>
+						{checkoutError && (
+							<p role='alert' className='text-sm text-danger'>
+								{checkoutError}
+							</p>
+						)}
+						<div>
 							<Button
 								onPress={async () => {
-									trackPaywallEvent(plausible, "paywall_cta_click", {
-										source,
-										feature,
-										plan: user.plan,
-										cycle: billingCycle,
-									});
-									const products = payableProducts.map((option) => ({ product: option.key, billingCycle: cycleFor(option) }));
-									const link = await generateCheckout(products, billingCycle, returnUrl ?? (typeof window !== "undefined" ? window.location.href : undefined), window.numok?.getStripeMetadata(), source);
-
-									if (typeof link === "string" && link) {
-										trackPaywallEvent(plausible, "checkout_start", {
+									if (checkingOut) return;
+									setCheckingOut(true);
+									setCheckoutError(null);
+									try {
+										trackPaywallEvent(plausible, "paywall_cta_click", {
 											source,
 											feature,
 											plan: user.plan,
 											cycle: billingCycle,
 										});
-										window.location.href = link;
-									} else {
-										addToast({
-											title: "Error",
-											description: link && typeof link === "object" ? link.error : "Failed to generate payment link. Please try again later.",
-											color: "danger",
-										});
+										const products = payableProducts.map((option) => ({ product: option.key, billingCycle: cycleFor(option) }));
+										const link = await generateCheckout(products, billingCycle, returnUrl ?? (typeof window !== "undefined" ? window.location.href : undefined), window.numok?.getStripeMetadata(), source);
+
+										if (typeof link === "string" && link) {
+											trackPaywallEvent(plausible, "checkout_start", {
+												source,
+												feature,
+												plan: user.plan,
+												cycle: billingCycle,
+											});
+											window.location.assign(link);
+										} else {
+											setCheckoutError(link && typeof link === "object" ? link.error : "Could not open checkout. Please try again.");
+										}
+									} catch {
+										setCheckoutError("Could not open checkout. Please try again.");
+									} finally {
+										setCheckingOut(false);
 									}
 								}}
-								isDisabled={!canUpgrade || billingOptions.length === 0 || payableProducts.length === 0}
+								className='w-full'
+								isPending={checkingOut}
+								isDisabled={checkingOut || !canUpgrade || billingOptions.length === 0 || payableProducts.length === 0 || payableProducts.some((option) => option.prices[cycleFor(option)].amount === null)}
 								variant='primary'
 							>
-								{<IconDiamondFilled />}
-								{ctaLabel ?? (payableProducts.length === 0 ? "Already included" : `${user.entitlements?.effectivePlan === "pro" ? "Add to subscription" : "Start subscription"} for ${totalLabel}/${billingCycle === "monthly" ? "month" : "year"}`)}
+								{ctaLabel ?? (billingOptions.length === 0 ? "Loading prices…" : payableProducts.length === 0 ? "Already included" : `Get Pro for ${totalLabel}/${billingCycle === "monthly" ? "month" : "year"}`)}
 							</Button>
 						</div>
-						<p className='mt-1 text-xs text-muted'>You can cancel anytime in your billing portal.</p>
-					</Modal.Body>
+						<p className='text-center text-xs text-muted'>You can cancel anytime in your billing portal.</p>
+					</Modal.Footer>
 				</Modal.Dialog>
 			</Modal.Container>
 		</Modal.Backdrop>

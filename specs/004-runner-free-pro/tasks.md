@@ -2418,3 +2418,5 @@ The user superseded legacy Runner preservation: hard cut the unreleased Runner e
 - [x] UXR-11 Replace the destination credential-action dropdown with one masked password field. Keep untouched saved credentials, replace only explicitly entered keys, reset drafts on cancel/provider changes, and verify the real Free/Pro editor and database credential revisions.
 
 - [x] UXR-12 Show the editable RTMP URL only for Custom RTMP; initialize Twitch/YouTube edits with their preset endpoints. Verify named-provider switching and custom URL entry in the real Free/Pro editor.
+
+- [x] UXR-13 Correct the upgrade modal: one price surface and cycle control, compact shared Pro feature highlights, consistent crown and footer action, no redundant product card or Runner paragraph. Verify billing-cycle payloads, checkout failure recovery and inspected light/dark desktop/mobile real-component layouts.

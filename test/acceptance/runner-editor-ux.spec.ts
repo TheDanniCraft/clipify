@@ -196,11 +196,67 @@ for (const plan of ["free", "pro"] as const)
 			if (plan === "free") {
 				await expect(scheduled.getByRole("img", { name: "Requires Pro" })).toBeVisible();
 				await expect(scheduled.locator("svg.tabler-icon-crown")).toBeVisible();
+				let priceFixtureApplied = false;
+				const checkoutAttempts: string[] = [];
+				const upgradeRoute = `**/dashboard/runners/${runnerId}`;
+				await page.route(upgradeRoute, async (route) => {
+					if (route.request().method() !== "POST") return route.continue();
+					const body = route.request().postData() ?? "";
+					if (body.includes('"product":"pro"')) {
+						checkoutAttempts.push(body);
+						return route.abort("failed");
+					}
+					const response = await route.fetch();
+					const original = await response.text();
+					// Synthetic price transport only; actual auth, ownership, server actions and widgets stay real.
+					const fixture = original.replace('"monthly":{"amount":null,"currency":"EUR","formatted":"Unavailable"}', '"monthly":{"amount":2,"currency":"EUR","formatted":"€2.00"}').replace('"yearly":{"amount":null,"currency":"EUR","formatted":"Unavailable"}', '"yearly":{"amount":20,"currency":"EUR","formatted":"€20.00"}');
+					if (fixture !== original) priceFixtureApplied = true;
+					return route.fulfill({ response, body: fixture });
+				});
 				await scheduled.click();
 				const upgrade = page.getByRole("dialog", { name: "Upgrade to Pro", exact: true });
 				await expect(upgrade).toBeVisible();
+				await expect(upgrade.getByRole("button", { name: "Get Pro for €20.00/year", exact: true })).toBeEnabled();
+				expect(priceFixtureApplied).toBe(true);
+				await expect(upgrade.getByRole("listitem")).toHaveCount(6);
+				await expect(upgrade.getByText(/^Advanced Runner broadcasting:/)).toHaveCount(0);
+				const monthlyTab = upgrade.getByRole("tab", { name: "Monthly", exact: true });
+				await monthlyTab.focus();
+				await monthlyTab.press("Enter");
+				await expect(monthlyTab).toHaveAttribute("aria-selected", "true");
+				const monthlyCheckout = upgrade.getByRole("button", { name: "Get Pro for €2.00/month", exact: true });
+				await expect(monthlyCheckout).toBeEnabled();
+				await monthlyCheckout.click();
+				await expect(upgrade.getByRole("alert")).toHaveText("Could not open checkout. Please try again.");
+				expect(checkoutAttempts).toHaveLength(1);
+				expect(checkoutAttempts[0]).toContain('"billingCycle":"monthly"');
+				await expect(monthlyCheckout).toBeEnabled();
+				await upgrade.getByRole("tab", { name: "Yearly", exact: true }).click();
+				for (const theme of ["dark", "light"]) {
+					if (theme === "light") {
+						await page.keyboard.press("Escape");
+						await expect(upgrade).not.toBeVisible();
+						if (await page.getByRole("listbox").isVisible()) await page.keyboard.press("Escape");
+						await page.setViewportSize({ width: 1280, height: 900 });
+						await page.getByRole("button", { name: "Toggle Theme", exact: true }).click();
+						await control.click();
+						await scheduled.click();
+					}
+					for (const viewport of [
+						{ width: 1280, height: 900 },
+						{ width: 390, height: 844 },
+					]) {
+						await page.setViewportSize(viewport);
+						await expect(upgrade.getByRole("button", { name: "Get Pro for €20.00/year", exact: true })).toBeVisible();
+						expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+						await upgrade.screenshot({ path: testInfo.outputPath(`upgrade-${theme}-${viewport.width}.png`), animations: "disabled" });
+					}
+				}
 				await page.keyboard.press("Escape");
+				await page.setViewportSize({ width: 1280, height: 900 });
+				await page.getByRole("button", { name: "Toggle Theme", exact: true }).click();
 				await expect(upgrade).not.toBeVisible();
+				await page.unroute(upgradeRoute);
 				await expect(control).toContainText("Manual");
 			} else {
 				await scheduled.click();
