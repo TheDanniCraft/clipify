@@ -45,6 +45,7 @@ try {
 	);
 	const child = spawn(original, [worker], { stdio: "inherit" });
 	const [code] = await once(child, "exit");
+	if (code !== 0) console.error("Helper startup diagnostics:", await readFile(`${original}.update-error.log`, "utf8").catch(() => "No helper startup log"));
 	assert.equal(code, 0, "handoff process must exit successfully");
 	const deadline = Date.now() + 65000;
 	let result;

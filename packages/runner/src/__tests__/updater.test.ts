@@ -113,14 +113,16 @@ describe("Updater logic", () => {
 	it("should schedule a detached Windows update after the current process exits", async () => {
 		const unref = jest.fn();
 		const { EventEmitter } = await import("events");
-		const child = Object.assign(new EventEmitter(), { unref });
+		const child = Object.assign(new EventEmitter(), { unref, kill: jest.fn(), stdout: Object.assign(new EventEmitter(), { destroy: jest.fn() }), stderr: Object.assign(new EventEmitter(), { destroy: jest.fn() }) });
 		(spawn as jest.Mock).mockReturnValue(child);
 
 		const handoff = launchWindowsUpdateHelper("C:\\Program Files\\Clipify\\runner.exe", "C:\\Program Files\\Clipify\\runner.exe.new", "C:\\Program Files\\Clipify\\runner.exe.old", ["--api-url", "https://clipify.example/a path", "--name", 'runner "one"'], 1234);
 
 		child.emit("spawn");
+		expect(unref).not.toHaveBeenCalled();
+		child.stdout.emit("data", Buffer.from("CLIPIFY_UPDATE_READY\r\n"));
 		await handoff;
-		expect(spawn).toHaveBeenCalledWith("powershell.exe", expect.arrayContaining(["-EncodedCommand", expect.any(String)]), { detached: true, stdio: "ignore", windowsHide: true });
+		expect(spawn).toHaveBeenCalledWith("powershell.exe", expect.arrayContaining(["-EncodedCommand", expect.any(String)]), { detached: true, stdio: ["ignore", "pipe", "pipe"], windowsHide: true });
 		const spawnArgs = (spawn as jest.Mock).mock.calls[0][1] as string[];
 		const script = Buffer.from(spawnArgs.at(-1)!, "base64").toString("utf16le");
 		expect(script).toContain("$ErrorActionPreference = 'Stop'");
@@ -140,12 +142,24 @@ describe("Updater logic", () => {
 
 	it("does not hand off when Windows cannot start the update helper", async () => {
 		const { EventEmitter } = await import("events");
-		const child = Object.assign(new EventEmitter(), { unref: jest.fn() });
+		const child = Object.assign(new EventEmitter(), { unref: jest.fn(), kill: jest.fn(), stdout: Object.assign(new EventEmitter(), { destroy: jest.fn() }), stderr: Object.assign(new EventEmitter(), { destroy: jest.fn() }) });
 		(spawn as jest.Mock).mockReturnValue(child);
 		const handoff = launchWindowsUpdateHelper("runner.exe", "runner.new.exe", "runner.exe.old", [], 1234);
 		child.emit("error", new Error("PowerShell unavailable"));
 		await expect(handoff).rejects.toThrow("PowerShell unavailable");
 		expect(child.unref).not.toHaveBeenCalled();
+	});
+
+	it("keeps the Runner alive if PowerShell exits before its readiness signal", async () => {
+		const { EventEmitter } = await import("events");
+		const child = Object.assign(new EventEmitter(), { unref: jest.fn(), kill: jest.fn(), stdout: Object.assign(new EventEmitter(), { destroy: jest.fn() }), stderr: Object.assign(new EventEmitter(), { destroy: jest.fn() }) });
+		(spawn as jest.Mock).mockReturnValue(child);
+		const handoff = launchWindowsUpdateHelper("runner.exe", "runner.new.exe", "runner.exe.old", [], 1234);
+		child.stderr.emit("data", Buffer.from("controlled PowerShell startup failure"));
+		child.emit("exit", 1);
+		await expect(handoff).rejects.toThrow("exited before becoming ready");
+		expect(child.unref).not.toHaveBeenCalled();
+		expect(fs.writeFileSync).toHaveBeenCalledWith("runner.exe.update-error.log", "controlled PowerShell startup failure", { mode: 0o600 });
 	});
 
 	it.todo("should apply an update after a verified hash mismatch");

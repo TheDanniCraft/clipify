@@ -114,6 +114,8 @@ export async function launchWindowsUpdateHelper(execPath: string, newPath: strin
 	const restart = argumentLine ? `Start-Process -FilePath ${quotePowerShell(execPath)} -ArgumentList ${quotePowerShell(argumentLine)}` : `Start-Process -FilePath ${quotePowerShell(execPath)}`;
 	const script = [
 		"$ErrorActionPreference = 'Stop'",
+		"$ProgressPreference = 'SilentlyContinue'",
+		"[Console]::Out.WriteLine('CLIPIFY_UPDATE_READY')",
 		"function Move-WithRetry($source, $destination) { for ($attempt = 0; $attempt -lt 120; $attempt++) { try { Move-Item -LiteralPath $source -Destination $destination -Force; return } catch { if ($attempt -eq 119) { throw }; Start-Sleep -Milliseconds 500 } } }",
 		`Wait-Process -Id ${pid} -ErrorAction SilentlyContinue`,
 		`try {
@@ -131,12 +133,42 @@ export async function launchWindowsUpdateHelper(execPath: string, newPath: strin
 	const encodedCommand = Buffer.from(script, "utf16le").toString("base64");
 	const helper = spawn("powershell.exe", ["-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encodedCommand], {
 		detached: true,
-		stdio: "ignore",
+		stdio: ["ignore", "pipe", "pipe"],
 		windowsHide: true,
 	});
 	await new Promise<void>((resolve, reject) => {
-		helper.once("error", reject);
-		helper.once("spawn", () => {
+		let ready = false;
+		let output = "";
+		let diagnostics = "";
+		const timer = setTimeout(() => fail(new Error("Windows update helper did not become ready within 15 seconds.")), 15_000);
+		function fail(error: Error) {
+			if (ready) return;
+			clearTimeout(timer);
+			if (diagnostics) {
+				try {
+					fs.writeFileSync(`${execPath}.update-error.log`, diagnostics, { mode: 0o600 });
+				} catch {}
+			}
+			helper.kill();
+			helper.stdout?.destroy();
+			helper.stderr?.destroy();
+			reject(error);
+		}
+		helper.once("error", fail);
+		helper.once("exit", (code) => fail(new Error(`Windows update helper exited before becoming ready (exit ${code}).`)));
+		helper.stderr?.on("data", (data: Buffer) => {
+			diagnostics = (diagnostics + data.toString("utf8")).slice(-16_384);
+		});
+		helper.stdout?.on("data", (data: Buffer) => {
+			output = (output + data.toString("utf8").replaceAll("\0", "")).slice(-1024);
+			if (!output.includes("CLIPIFY_UPDATE_READY")) return;
+			ready = true;
+			clearTimeout(timer);
+			// Keep draining the pipes until exit: closing them while PowerShell is
+			// initializing can break its console writer. Unref their handles instead.
+			for (const stream of [helper.stdout, helper.stderr]) {
+				if (stream && "unref" in stream && typeof stream.unref === "function") stream.unref();
+			}
 			helper.unref();
 			resolve();
 		});
