@@ -204,3 +204,12 @@ test("TDD-US3-SC003 U38: cached permission preserves its original end throughout
 	expect(permit.beginRenewal({ ...context, sentAt: elapsed })).toBeNull();
 	expect(permit.deadlineMonotonic).toBe(originalDeadline);
 });
+
+test("recurrence exceptions and an exclusive series end preserve original past occurrence identities across DST", () => {
+	const range = { start: "2026-03-21T00:00:00Z", end: "2026-04-20T00:00:00Z" };
+	const original = resolveCalendarSchedule(event, range);
+	const changed = resolveCalendarSchedule({ ...event, excludedDates: ["2026-04-05"], repeatUntilDate: "2026-04-12", configurationRevision: event.configurationRevision + 1 }, range);
+	expect(changed.occurrences).toHaveLength(1);
+	expect(changed.occurrences[0]).toMatchObject({ startUtc: "2026-03-22T01:30:00.000Z", endUtc: "2026-03-22T02:30:00.000Z", occurrenceId: original.occurrences[0].occurrenceId });
+	expect(changed.skipped).toEqual([expect.objectContaining({ reason: "DST_GAP" })]);
+});

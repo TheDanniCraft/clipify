@@ -13,6 +13,8 @@ export type CalendarSchedule = {
 	endDayOffset: number;
 	recurrenceAnchor: string;
 	weekdayAnchors?: { weekday: number; anchor: string }[];
+	excludedDates?: string[];
+	repeatUntilDate?: string | null;
 };
 export type CalendarOccurrence = { eventId: string; occurrenceId: string; recurrenceAnchor: string; configurationRevision: number; startUtc: string; endUtc: string };
 export type SkippedCalendarOccurrence = { eventId: string; recurrenceAnchor: string; reason: string; message: string };
@@ -53,7 +55,7 @@ export function resolveCalendarSchedule(event: CalendarSchedule, horizon: { star
 		const firstWeek = originalDate.subtract({ days: getDayOfWeek(originalDate, "en-GB") });
 		const weekdays = [...new Set(event.weekdays)].sort((left, right) => left - right);
 		for (let date = localHorizonStart.subtract({ days: 7 }); date.compare(localHorizonEnd) <= 0; date = date.add({ days: 1 })) {
-			if (date.compare(firstDate) < 0) continue;
+			if (date.compare(firstDate) < 0 || (event.repeatUntilDate && date.toString() >= event.repeatUntilDate) || event.excludedDates?.includes(date.toString())) continue;
 			const weekday = getDayOfWeek(date, "en-GB") + 1,
 				index = weekdays.indexOf(weekday);
 			if (index < 0) continue;
@@ -67,4 +69,13 @@ export function resolveCalendarSchedule(event: CalendarSchedule, horizon: { star
 /** Configuration revisions cannot reset a logical occurrence or its suppression key. */
 export function scheduleOccurrenceKey(input: { eventId: string; recurrenceAnchor: string; configurationRevision: number }): string {
 	return JSON.stringify([input.eventId, input.recurrenceAnchor]);
+}
+
+/** One-time events retain their original bounds after completion. */
+export function completedScheduleEnd(event: CalendarSchedule, now = Date.now()): string | null {
+	if (event.recurrence !== "once" || !event.localStartDate || !event.localEndDate) return null;
+	const start = parseDate(event.localStartDate).subtract({ days: 2 }).toString() + "T00:00:00Z";
+	const end = parseDate(event.localEndDate).add({ days: 2 }).toString() + "T00:00:00Z";
+	const occurrence = resolveCalendarSchedule(event, { start, end }).occurrences[0];
+	return occurrence && Date.parse(occurrence.endUtc) <= now ? occurrence.endUtc : null;
 }

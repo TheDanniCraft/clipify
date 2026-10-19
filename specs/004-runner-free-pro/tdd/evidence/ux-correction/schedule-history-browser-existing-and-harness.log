@@ -1,0 +1,86 @@
+[WebServer] (node:282310) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:282310) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 6 tests using 1 worker
+
+(node:282384) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [acceptance-chromium] › test/acceptance/calendar-localization.spec.ts:20:6 › calendar all-day setup and displayed dates follow en-US (10.4s)
+  ✓  2 [acceptance-chromium] › test/acceptance/calendar-localization.spec.ts:20:6 › calendar all-day setup and displayed dates follow de-DE (9.3s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching incremental clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching backfill clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching incremental clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching backfill clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching incremental clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching backfill clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching incremental clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching backfill clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  3 [acceptance-chromium] › test/acceptance/runner-editor-ux.spec.ts:37:6 › free Runner setup and appearance follow the Clipify editor flow (19.6s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching incremental clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching backfill clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching incremental clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching backfill clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching incremental clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching backfill clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching incremental clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching backfill clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching incremental clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching backfill clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  4 [acceptance-chromium] › test/acceptance/runner-editor-ux.spec.ts:37:6 › pro Runner setup and appearance follow the Clipify editor flow (31.8s)
+  ✓  5 [acceptance-chromium] › test/acceptance/runner-editor-ux.spec.ts:523:5 › Runner setup without an overlay offers a source action and recoverable validation (2.2s)
+  ✘  6 [acceptance-chromium] › test/acceptance/runner-schedule-history.spec.ts:7:5 › past broadcasts remain read-only and future recurring changes have explicit scope (8.2s)
+
+
+  1) [acceptance-chromium] › test/acceptance/runner-schedule-history.spec.ts:7:5 › past broadcasts remain read-only and future recurring changes have explicit scope 
+
+    Error: locator.click: Error: strict mode violation: getByRole('dialog', { name: 'Broadcast schedule', exact: true }).getByRole('button', { name: 'Edit Weekly broadcast', exact: true }) resolved to 6 elements:
+        1) <button data-rac="" tabindex="0" type="button" data-slot="button" data-react-aria-pressable="true" id="react-aria6728698508-_r_9l_" aria-label="Edit Weekly broadcast" class="button button--sm button--ghost h-auto min-h-0 w-full min-w-0 justify-start rounded-none p-0 text-left text-inherit">…</button> aka locator('#react-aria6728698508-_r_9l_')
+        2) <button data-rac="" tabindex="0" type="button" data-slot="button" data-react-aria-pressable="true" id="react-aria6728698508-_r_9n_" aria-label="Edit Weekly broadcast" class="button button--sm button--ghost h-auto min-h-0 w-full min-w-0 justify-start rounded-none p-0 text-left text-inherit">…</button> aka locator('#react-aria6728698508-_r_9n_')
+        3) <button data-rac="" tabindex="0" type="button" data-slot="button" data-react-aria-pressable="true" id="react-aria6728698508-_r_9p_" aria-label="Edit Weekly broadcast" class="button button--sm button--ghost h-auto min-h-0 w-full min-w-0 justify-start rounded-none p-0 text-left text-inherit">…</button> aka locator('#react-aria6728698508-_r_9p_')
+        4) <button data-rac="" tabindex="0" type="button" data-slot="button" data-react-aria-pressable="true" id="react-aria6728698508-_r_9r_" aria-label="Edit Weekly broadcast" class="button button--sm button--ghost h-auto min-h-0 w-full min-w-0 justify-start rounded-none p-0 text-left text-inherit">…</button> aka locator('#react-aria6728698508-_r_9r_')
+        5) <button data-rac="" tabindex="0" type="button" data-slot="button" data-react-aria-pressable="true" id="react-aria6728698508-_r_9t_" aria-label="Edit Weekly broadcast" class="button button--sm button--ghost h-auto min-h-0 w-full min-w-0 justify-start rounded-none p-0 text-left text-inherit">…</button> aka locator('#react-aria6728698508-_r_9t_')
+        6) <button data-rac="" tabindex="0" type="button" data-slot="button" data-react-aria-pressable="true" id="react-aria6728698508-_r_93_" aria-label="Edit Weekly broadcast" class="button button--sm button--tertiary">…</button> aka getByText('Edit')
+
+    Call log:
+      - waiting for getByRole('dialog', { name: 'Broadcast schedule', exact: true }).getByRole('button', { name: 'Edit Weekly broadcast', exact: true })
+
+
+      72 | 		await page.setViewportSize({ width: 1280, height: 900 });
+      73 | 		const editor = page.getByRole("dialog", { name: "Schedule broadcast", exact: true });
+    > 74 | 		await schedule.getByRole("button", { name: "Edit Weekly broadcast", exact: true }).click();
+         | 		                                                                                   ^
+      75 | 		await editor.getByRole("textbox", { name: /^Event title\*?$/ }).fill("One changed occurrence");
+      76 | 		await editor.getByRole("button", { name: "Save schedule", exact: true }).click();
+      77 | 		const scope = page.getByRole("dialog", { name: "Edit recurring broadcast", exact: true });
+        at /home/coder/clipify/test/acceptance/runner-schedule-history.spec.ts:74:86
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/schedule-history-linked-review/runner-schedule-history-pa-68f81-changes-have-explicit-scope-acceptance-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/schedule-history-linked-review/runner-schedule-history-pa-68f81-changes-have-explicit-scope-acceptance-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/schedule-history-linked-review/runner-schedule-history-pa-68f81-changes-have-explicit-scope-acceptance-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/schedule-history-linked-review/runner-schedule-history-pa-68f81-changes-have-explicit-scope-acceptance-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/schedule-history-linked-review/runner-schedule-history-pa-68f81-changes-have-explicit-scope-acceptance-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [acceptance-chromium] › test/acceptance/runner-schedule-history.spec.ts:7:5 › past broadcasts remain read-only and future recurring changes have explicit scope 
+  5 passed (1.5m)

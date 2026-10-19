@@ -1285,3 +1285,10 @@ The correction's outer browser UX journeys are added after the first implementat
 - [x] UX-C26 Calendar actions form a coherent responsive toolbar with primary Add schedule and icon-labelled Pause/Resume. Verify both automation actions and inspect desktop/mobile in light/dark themes.
 - [x] UX-C27 All day saves an inclusive date range as the existing midnight interval, reopens with the same dates, displays in the native all-day strip/month-spanning row instead of filling time columns, and supports keyboard editing. Preserve23/25-hour DST days, IDs and lock behavior.
 - [x] UX-C28 Date-only and date/time UI use browser locale consistently with real HeroUI pickers, including US and German order, explicit timezone handling, no civil-day shift and no hydration errors. Keep ISO storage/API values and generated image dates unchanged.
+
+### Schedule history and occurrence scope review (2026-10-19)
+
+- [x] UX-C29: completed one-time events reject configuration changes and deletion after terminal closure; current/past entries open details.
+- [x] UX-C30: title-only rename changes no execution/occurrence revision or target selection, rejects stale title/revision and unexpected streaming fields.
+- [x] UX-C31: This occurrence edits/deletes only a future selected occurrence; This and following splits/truncates future entries; preserve prior/current windows, DST resolution and original occurrence keys.
+- [x] UX-C32: installed browser details, all four recurring scope actions, cancellation/draft retention, keyboard/focus, desktop/mobile and both themes.

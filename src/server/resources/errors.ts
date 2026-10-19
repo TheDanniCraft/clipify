@@ -11,7 +11,8 @@ export class LegacyBroadcastRecoveryRequired extends Error {
 
 const messages = {
 	SCHEDULE_WINDOW_ENDED: "This scheduled window is not active. Use Manual control or plan another event.",
-	ACTIVE_OCCURRENCE_LOCKED: "This occurrence is active. Its schedule stays locked until the window ends.",
+	SCHEDULE_COMPLETED: "This broadcast has ended. Its schedule is read-only.",
+	ACTIVE_OCCURRENCE_LOCKED: "This occurrence has started. Its streaming settings are read-only.",
 	RUNNER_TARGET_LIMIT: "Free allows one destination per broadcast. Choose one destination or use Pro for multistreaming.",
 	RUNNER_INGEST_IN_USE: "This Runner already has a live fallback broadcast. Stop it and wait for its outputs to close before starting another, or use a different Runner device.",
 	RUNNER_RECOVERY_REQUIRED: "Your previous Runner has not confirmed that its outputs closed. Reconnect that device and stop the existing broadcast before starting another.",
