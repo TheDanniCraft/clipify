@@ -5,4 +5,4 @@
 - [x] S3 Test and implement event metadata persistence, recurrence and per-occurrence application (PC-3/4).
 - [x] S4 Test and implement real Runner test output lifecycle (PC-5).
 - [x] S5 Test and implement approved destination/event UI with toggle and inherited title (PC-1/2/3/6).
-- [ ] S6 Browser acceptance, affected tests, documentation, type/lint/build and release checks.
+- [x] S6 Browser acceptance, affected tests, documentation, type/lint/build and release checks.
