@@ -1,5 +1,7 @@
 # Test Summary Report: Free Runner and Pro Broadcasting
 
+> Provider-endpoint follow-up (2026-10-19): Twitch/YouTube use their presets and expose no editable URL; Custom RTMP retains its URL editor. Build/types/lint and complete real editor3/3 pass in54.0s, including provider switching and custom URL saving. Named-provider modal capture inspected. Fresh full PR CI is required before merge.
+
 > Stream-key follow-up (2026-10-19): one HeroUI password field replaces the credential-action selector. Real Free/Pro editor checks verify empty initial input, password masking, untouched ciphertext/revision preservation, saved replacement and cancelled draft preservation. Complete editor3/3 passes in55.9s; production build/types and affected lint pass. Masked-field captures inspected. Fresh full PR CI remains required before merge.
 
 > Destination-deletion follow-up (2026-10-19): confirmed deletion detaches stopped saved broadcasts atomically, clears the last legacy endpoint/key, preserves alternate selections and protects live/cached/uncertain executions and schedules. Complete destination-editor48/48 and related destinations19/19 pass. Real editor3/3 passes on Free/Pro, including actual Delete confirmation, stable focus/Escape, empty selection and disabled Start, database clearing, reload and explicitly saving a replacement. Build/types/lint pass; confirmation and deleted-state screenshots were inspected. Earlier full CI belongs to its recorded inputs; fresh PR CI must qualify this change before merge.

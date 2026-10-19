@@ -62,7 +62,7 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 		setEditing(destination);
 		setName(destination?.name ?? "");
 		setProvider(destination?.provider ?? "twitch");
-		setUrl(destination ? "" : endpoints.twitch);
+		setUrl(destination?.provider === "custom" ? "" : endpoints[destination?.provider ?? "twitch"]);
 		setKey("");
 		setError(null);
 		setOpen(true);
@@ -268,11 +268,13 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 									</ListBox>
 								</Select.Popover>
 							</Select>
-							<TextField>
-								<Label>RTMP URL</Label>
-								<Input variant='secondary' value={url} onChange={(event) => setUrl(event.target.value)} placeholder={editing ? `Keep current destination (${editing.host})` : "rtmp://your-server/live"} />
-								<p className='text-xs text-muted'>Connections originate from your Runner. Local and private servers are supported.</p>
-							</TextField>
+							{provider === "custom" && (
+								<TextField>
+									<Label>RTMP URL</Label>
+									<Input variant='secondary' value={url} onChange={(event) => setUrl(event.target.value)} placeholder={editing ? `Keep current destination (${editing.host})` : "rtmp://your-server/live"} />
+									<p className='text-xs text-muted'>Connections originate from your Runner. Local and private servers are supported.</p>
+								</TextField>
+							)}
 							<TextField>
 								<Label>Destination stream key</Label>
 								<Input variant='secondary' type='password' autoComplete='new-password' placeholder={savedKeyAvailable ? "••••••••" : undefined} value={key} onChange={(event) => setKey(event.target.value)} />
