@@ -231,9 +231,12 @@ for (const plan of ["free", "pro"] as const)
 					return route.fulfill({ response, body: fixture });
 				});
 				await scheduled.click();
-				const upgrade = page.getByRole("dialog", { name: "Upgrade to Pro", exact: true });
+				const upgrade = page.getByRole("dialog", { name: "Schedule your broadcasts with Pro", exact: true });
 				await expect(upgrade).toBeVisible();
-				await expect(upgrade.getByRole("button", { name: "Get Pro for €20.00/year", exact: true })).toBeEnabled();
+				await expect(upgrade.getByText("Plan when your clips go live and let your Runner follow the schedule.", { exact: true })).toBeVisible();
+				await expect(upgrade.getByText("Also included with Pro", { exact: true })).toBeVisible();
+				await expect(upgrade.getByRole("link", { name: "Compare Free and Pro", exact: true })).toHaveAttribute("href", "/pricing");
+				await expect(upgrade.getByRole("button", { name: "Upgrade to Pro for €20.00/year", exact: true })).toBeEnabled();
 				expect(priceFixtureApplied).toBe(true);
 				await expect(upgrade.getByRole("listitem")).toHaveCount(6);
 				await expect(upgrade.getByText(/^Advanced Runner broadcasting:/)).toHaveCount(0);
@@ -241,7 +244,7 @@ for (const plan of ["free", "pro"] as const)
 				await monthlyTab.focus();
 				await monthlyTab.press("Enter");
 				await expect(monthlyTab).toHaveAttribute("aria-selected", "true");
-				const monthlyCheckout = upgrade.getByRole("button", { name: "Get Pro for €2.00/month", exact: true });
+				const monthlyCheckout = upgrade.getByRole("button", { name: "Upgrade to Pro for €2.00/month", exact: true });
 				await expect(monthlyCheckout).toBeEnabled();
 				await monthlyCheckout.click();
 				await expect(upgrade.getByRole("alert")).toHaveText("Could not open checkout. Please try again.");
@@ -264,7 +267,7 @@ for (const plan of ["free", "pro"] as const)
 						{ width: 390, height: 844 },
 					]) {
 						await page.setViewportSize(viewport);
-						await expect(upgrade.getByRole("button", { name: "Get Pro for €20.00/year", exact: true })).toBeVisible();
+						await expect(upgrade.getByRole("button", { name: "Upgrade to Pro for €20.00/year", exact: true })).toBeVisible();
 						expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 						await upgrade.screenshot({ path: testInfo.outputPath(`upgrade-${theme}-${viewport.width}.png`), animations: "disabled" });
 					}

@@ -1,5 +1,6 @@
 "use client";
 
+import { buttonVariants } from "@heroui/styles";
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
 
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
@@ -814,7 +815,7 @@ export default function PlaylistPage() {
 					<Button variant='tertiary' onPress={onAutoImportLockedClose}>
 						Close
 					</Button>
-					<Link href='/dashboard/settings' className='inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-accent text-accent-foreground hover:bg-accent-hover'>
+					<Link href='/dashboard/settings?upgrade&source=upgrade_modal&feature=playlist_import' className={buttonVariants({ variant: "primary", className: "no-underline" })}>
 						Upgrade
 					</Link>
 				</Modal.Footer>

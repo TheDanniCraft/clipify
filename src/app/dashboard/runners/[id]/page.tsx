@@ -704,7 +704,7 @@ export default function RunnerPage() {
 						</Modal.Dialog>
 					</Modal.Container>
 				</Modal.Backdrop>
-				<UpgradeModal isOpen={isUpgradeOpen} onOpenChange={setIsUpgradeOpen} user={user} title='Upgrade to Pro' source='upgrade_modal' feature='runner_scheduling' mode='plan' />
+				<UpgradeModal isOpen={isUpgradeOpen} onOpenChange={setIsUpgradeOpen} user={user} source='upgrade_modal' feature='runner_scheduling' mode='plan' />
 				<ConfirmModal
 					isOpen={isUnlinkConfirmOpen}
 					onOpenChange={setIsUnlinkConfirmOpen}

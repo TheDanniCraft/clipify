@@ -18,6 +18,7 @@ import { useEffect, useMemo, useState } from "react";
 import { requestAccountDataExport, requestAccountDeletion } from "@actions/subscription";
 import { forceRefreshOwnClipCache, getOwnClipForceRefreshStatus } from "@actions/twitch";
 import { useNavigationGuard } from "nextjs-nav-guard";
+import { getUpgradeCopy } from "@lib/upgradeCopy";
 import UpgradeModal from "@components/upgradeModal";
 import BillingPanel from "./billing-panel";
 import ChatwootData from "@components/chatwootData";
@@ -180,6 +181,7 @@ export default function SettingsPage() {
 		};
 	}, [user, sectionTab]);
 
+	const [upgradeFeature, setUpgradeFeature] = useState<string | null>(null);
 	const upgradeIntent = useMemo<{ cycle: BillingCycle; source: PaywallSource; feature: string }>(() => {
 		if (typeof window === "undefined") {
 			return { cycle: "yearly", source: "upgrade_modal", feature: "account" };
@@ -450,7 +452,14 @@ export default function SettingsPage() {
 													<Alert.Title>Custom social previews are a Pro feature</Alert.Title>
 													<Alert.Description>Upgrade to control the title and description shown when people share your Creator Page.</Alert.Description>
 												</Alert.Content>
-												<Button size='sm' variant='tertiary' onPress={upgradeModalOnOpen}>
+												<Button
+													size='sm'
+													variant='tertiary'
+													onPress={() => {
+														setUpgradeFeature("creator_social_preview");
+														upgradeModalOnOpen();
+													}}
+												>
 													Upgrade to Pro
 												</Button>
 											</Alert>
@@ -478,7 +487,13 @@ export default function SettingsPage() {
 							<Separator />
 							<div>
 								<h3 className='mb-3 text-base font-semibold'>Creator Page Analytics</h3>
-								<CreatorAnalyticsCard allowed={creatorAnalyticsAccess.allowed} onUpgrade={upgradeModalOnOpen} />
+								<CreatorAnalyticsCard
+									allowed={creatorAnalyticsAccess.allowed}
+									onUpgrade={() => {
+										setUpgradeFeature("creator_analytics");
+										upgradeModalOnOpen();
+									}}
+								/>
 							</div>
 						</Card.Content>
 					</Card>
@@ -715,7 +730,7 @@ export default function SettingsPage() {
 				</Modal.Footer>
 			</ControlledModal>
 
-			<UpgradeModal key={`plan-${upgradeIntent.source}-${upgradeIntent.feature}-${upgradeIntent.cycle}`} isOpen={upgradeModalIsOpen} onOpenChange={upgradeModalOnOpenChange} user={user} title='Upgrade Account' source={upgradeIntent.source} feature={upgradeIntent.feature} initialBillingCycle={upgradeIntent.cycle} mode='plan' />
+			<UpgradeModal key={`plan-${upgradeIntent.source}-${upgradeFeature ?? upgradeIntent.feature}-${upgradeIntent.cycle}`} isOpen={upgradeModalIsOpen} onOpenChange={upgradeModalOnOpenChange} user={user} title={getUpgradeCopy(upgradeFeature ?? upgradeIntent.feature)?.title ?? "Upgrade Account"} source={upgradeIntent.source} feature={upgradeFeature ?? upgradeIntent.feature} initialBillingCycle={upgradeIntent.cycle} mode='plan' />
 
 			<ConfirmModal
 				isOpen={deleteModalIsOpen}
