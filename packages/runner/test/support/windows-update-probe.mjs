@@ -1,7 +1,7 @@
 // Run on Windows CI: exercise the actual PowerShell handoff, locked executable,
 // restart arguments, original filename and old-version cleanup.
 import { build } from "esbuild";
-import { copyFile, mkdtemp, readFile, rm, writeFile, access } from "node:fs/promises";
+import { copyFile, mkdtemp, readFile, readdir, rm, writeFile, access } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -26,10 +26,14 @@ try {
 		resumed,
 		`
     import {writeFileSync} from 'node:fs';
-    import {cleanupOldVersions} from ${JSON.stringify(pathToFileURL(updater).href)};
-    process.pkg = {};
-    await cleanupOldVersions();
-    writeFileSync(${JSON.stringify(marker)}, JSON.stringify({path:process.execPath,args:process.argv.slice(2)}));
+    try {
+      const {cleanupOldVersions} = await import(${JSON.stringify(pathToFileURL(updater).href)});
+      process.pkg = {};
+      await cleanupOldVersions();
+      writeFileSync(${JSON.stringify(marker)}, JSON.stringify({path:process.execPath,args:process.argv.slice(2)}));
+    } catch(error) {
+      writeFileSync(${JSON.stringify(marker)}, JSON.stringify({error:String(error.stack ?? error)}));
+    }
   `,
 	);
 	await writeFile(
@@ -52,7 +56,12 @@ try {
 			await new Promise((resolve) => setTimeout(resolve, 250));
 		}
 	}
+	if (!result) {
+		console.error("Update probe files:", await readdir(directory));
+		console.error("PowerShell failure:", await readFile(`${original}.update-error.log`, "utf8").catch(() => "No helper error log"));
+	}
 	assert.ok(result, "replacement must restart and report its arguments");
+	assert.equal(result.error, undefined, `Replacement startup failed: ${result.error}`);
 	assert.equal(result.path.toLowerCase(), original.toLowerCase());
 	assert.deepEqual(result.args, ["--name", 'runner "one" with spaces']);
 	await access(original);

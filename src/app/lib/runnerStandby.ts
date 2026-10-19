@@ -1,4 +1,4 @@
-export type RunnerNextBroadcast = { startUtc: string; timezone: string };
+export type RunnerNextBroadcast = { startUtc: string; timezone?: string };
 export type RunnerStandbyAppearance = { backgroundColor: string; backgroundImageUrl: string | null; logoUrl: string | null; message: string; nextBroadcast?: RunnerNextBroadcast | null };
 /** Accept only bounded plain text and same-origin, execution-scoped asset references. */
 export function parseRunnerStandbyAppearance(value: unknown): RunnerStandbyAppearance | null {
@@ -11,13 +11,17 @@ export function parseRunnerStandbyAppearance(value: unknown): RunnerStandbyAppea
 		if (appearance.nextBroadcast === null) nextBroadcast = null;
 		else {
 			const next = appearance.nextBroadcast;
-			if (!next || typeof next !== "object" || !("startUtc" in next) || typeof next.startUtc !== "string" || !Number.isFinite(Date.parse(next.startUtc)) || !("timezone" in next) || typeof next.timezone !== "string" || next.timezone.length > 128) return null;
-			try {
-				new Intl.DateTimeFormat("en-GB", { timeZone: next.timezone });
-			} catch {
-				return null;
+			if (!next || typeof next !== "object" || !("startUtc" in next) || typeof next.startUtc !== "string" || !Number.isFinite(Date.parse(next.startUtc))) return null;
+			const timezone = "timezone" in next ? next.timezone : undefined;
+			if (timezone !== undefined) {
+				if (typeof timezone !== "string" || timezone.length > 128) return null;
+				try {
+					new Intl.DateTimeFormat(undefined, { timeZone: timezone });
+				} catch {
+					return null;
+				}
 			}
-			nextBroadcast = { startUtc: next.startUtc, timezone: next.timezone };
+			nextBroadcast = { startUtc: next.startUtc, ...(typeof timezone === "string" ? { timezone } : {}) };
 		}
 	}
 	return { backgroundColor: appearance.backgroundColor, backgroundImageUrl: appearance.backgroundImageUrl, logoUrl: appearance.logoUrl, message: appearance.message, ...(nextBroadcast !== undefined ? { nextBroadcast } : {}) };

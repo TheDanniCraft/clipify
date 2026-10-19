@@ -29,8 +29,7 @@ async function readChannelSchedule(ownerId: string, now: Date): Promise<RunnerNe
 		if (!response.ok) return null;
 		const result = await response.json();
 		const data = result?.data;
-		if (typeof data?.timezone !== "string" || !Array.isArray(data.segments)) return null;
-		new Intl.DateTimeFormat(undefined, { timeZone: data.timezone });
+		if (!Array.isArray(data?.segments)) return null;
 		const candidates: number[] = [];
 		for (const segment of data.segments) {
 			if (typeof segment?.start_time !== "string" || segment.canceled_until) continue;
@@ -41,7 +40,8 @@ async function readChannelSchedule(ownerId: string, now: Date): Promise<RunnerNe
 			candidates.push(start);
 		}
 		if (!candidates.length) return null;
-		return { startUtc: new Date(Math.min(...candidates)).toISOString(), timezone: data.timezone };
+		// Helix returns UTC instants, not the channel’s configured timezone.
+		return { startUtc: new Date(Math.min(...candidates)).toISOString() };
 	} catch {
 		// This optional hint must never prevent previewing or broadcasting standby.
 		return null;

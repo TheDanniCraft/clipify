@@ -14,12 +14,12 @@ beforeEach(() => {
 afterAll(() => {
 	global.fetch = originalFetch;
 });
-function response(segments: unknown[], timezone = "Europe/Berlin") {
-	return { ok: true, json: async () => ({ data: { segments, timezone } }) };
+function response(segments: unknown[]) {
+	return { ok: true, json: async () => ({ data: { segments } }) };
 }
 test("standby advertises the owner's Twitch schedule without requiring Runner automation", async () => {
 	fetchMock.mockResolvedValue(response([{ start_time: "2026-10-20T12:00:00Z", canceled_until: null }]));
-	expect(await readRunnerNextBroadcastInternal({ ownerId: "1234", runnerId: "unused" }, now)).toEqual({ startUtc: "2026-10-20T12:00:00.000Z", timezone: "Europe/Berlin" });
+	expect(await readRunnerNextBroadcastInternal({ ownerId: "1234", runnerId: "unused" }, now)).toEqual({ startUtc: "2026-10-20T12:00:00.000Z" });
 	expect(String(fetchMock.mock.calls[0][0])).toContain("broadcaster_id=1234");
 });
 test("current, canceled and malformed segments are not advertised", async () => {
@@ -67,7 +67,7 @@ test("a short-lived empty response is shared rather than repeatedly calling Twit
 });
 test("broadcasts during a channel vacation are skipped", async () => {
 	fetchMock.mockResolvedValue({ ok: true, json: async () => ({ data: { timezone: "UTC", vacation: { start_time: "2026-10-20T00:00:00Z", end_time: "2026-10-21T00:00:00Z" }, segments: [{ start_time: "2026-10-20T12:00:00Z" }, { start_time: "2026-10-21T12:00:00Z" }] } }) });
-	expect(await readRunnerNextBroadcastInternal({ ownerId: "9914", runnerId: "unused" }, now)).toEqual({ startUtc: "2026-10-21T12:00:00.000Z", timezone: "UTC" });
+	expect(await readRunnerNextBroadcastInternal({ ownerId: "9914", runnerId: "unused" }, now)).toEqual({ startUtc: "2026-10-21T12:00:00.000Z" });
 });
 test.each([{ data: null }, { data: { timezone: "UTC", segments: null } }, { data: { timezone: null, segments: [] } }, { data: { timezone: "invalid/timezone", segments: [] } }])("malformed schedule data hides the optional hint (%j)", async (body) => {
 	fetchMock.mockResolvedValue({ ok: true, json: async () => body });
@@ -77,9 +77,9 @@ test("non-Twitch fixture identifiers never request an external channel", async (
 	expect(await readRunnerNextBroadcastInternal({ ownerId: "fixture-creator", runnerId: "unused" })).toBeNull();
 	expect(mockToken).not.toHaveBeenCalled();
 });
-test("the normal clock returns the earliest future broadcast in its saved timezone", async () => {
+test("the normal clock returns the earliest future broadcast for localized display", async () => {
 	fetchMock.mockResolvedValue(response([{ start_time: "2099-01-02T12:00:00Z" }, { start_time: "2099-01-01T12:00:00Z" }]));
-	expect(await readRunnerNextBroadcastInternal({ ownerId: "9915", runnerId: "unused" })).toEqual({ startUtc: "2099-01-01T12:00:00.000Z", timezone: "Europe/Berlin" });
+	expect(await readRunnerNextBroadcastInternal({ ownerId: "9915", runnerId: "unused" })).toEqual({ startUtc: "2099-01-01T12:00:00.000Z" });
 });
 
 test("schedule edits on Twitch become visible after the short cache expires", async () => {
@@ -94,4 +94,9 @@ test("schedule edits on Twitch become visible after the short cache expires", as
 	} finally {
 		clock.mockRestore();
 	}
+});
+
+test("accepts Twitch's documented schedule response without an invented timezone field", async () => {
+	fetchMock.mockResolvedValue({ ok: true, json: async () => ({ data: { segments: [{ id: "segment-id", start_time: "2099-07-01T18:00:00Z", end_time: "2099-07-01T19:00:00Z", title: "Monthly update", canceled_until: null, category: null, is_recurring: false }], broadcaster_id: "141981764", broadcaster_name: "TwitchDev", broadcaster_login: "twitchdev", vacation: null }, pagination: {} }) });
+	expect(await readRunnerNextBroadcastInternal({ ownerId: "141981764", runnerId: "unused" }, now)).toEqual({ startUtc: "2099-07-01T18:00:00.000Z" });
 });
