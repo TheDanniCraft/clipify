@@ -274,7 +274,6 @@ export default function RunnerPage() {
 			setStreamSessions(sessions);
 			setSelectedDestinationIds(sessions[0]?.destinationIds ?? selectedDestinationIds);
 			notify({ title: "Saved", description: "Stream session configuration saved.", color: "success" });
-			if (controlMode === "scheduled") setScheduleOpen(true);
 		} catch {
 			setConfigurationError("Could not save this broadcast. Your changes are kept. Please try again.");
 		} finally {
@@ -433,11 +432,6 @@ export default function RunnerPage() {
 						<Chip size='sm' variant='soft' color={runner.status === "online" ? "success" : "default"}>
 							{runner.status === "online" ? "Online" : runnerConnectionLabel}
 						</Chip>
-						{controlMode === "scheduled" && (
-							<Button variant='secondary' onPress={() => (runnerPolicy?.scheduling ? (dirty ? void handleSave() : setScheduleOpen(true)) : setIsUpgradeOpen(true))}>
-								Schedule
-							</Button>
-						)}
 						<Tooltip delay={0}>
 							<Button isIconOnly variant='tertiary' aria-label='Unlink runner' onPress={() => setIsUnlinkConfirmOpen(true)} isDisabled={!canUnlinkRunner}>
 								<IconUnlink />
@@ -526,7 +520,17 @@ export default function RunnerPage() {
 											</ListBox>
 										</Select.Popover>
 									</Select>
-									<RunnerControlSelection value={controlMode} clipPlayback={mode === StreamMode.AlwaysOn} scheduling={runnerPolicy?.scheduling ?? null} onChange={setControlMode} onUpgrade={() => setIsUpgradeOpen(true)} />
+									<div className='space-y-2'>
+										<RunnerControlSelection value={controlMode} clipPlayback={mode === StreamMode.AlwaysOn} scheduling={runnerPolicy?.scheduling ?? null} onChange={setControlMode} onUpgrade={() => setIsUpgradeOpen(true)} />
+										{controlMode === "scheduled" && (
+											<>
+												<Button variant='secondary' isDisabled={dirty || isSaving} onPress={() => (runnerPolicy?.scheduling ? setScheduleOpen(true) : setIsUpgradeOpen(true))}>
+													Schedule
+												</Button>
+												{dirty && <p className='text-xs text-muted'>Save configuration to edit the schedule.</p>}
+											</>
+										)}
+									</div>
 								</div>
 								{mode === StreamMode.Failsafe && (
 									<p className='text-sm text-muted'>

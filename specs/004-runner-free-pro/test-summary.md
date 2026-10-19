@@ -1,5 +1,7 @@
 # Test Summary Report: Free Runner and Pro Broadcasting
 
+> Explicit-schedule follow-up (2026-10-19): Save configuration no longer opens the calendar. Schedule sits beside its control selector, requires a saved draft and opens only on explicit action. Complete real editor3/3 passes in52.8s, including desktop/mobile opening and event creation. Build/types/lint and inspected dark/light desktop and mobile captures pass. Fresh full PR CI is required before merge.
+
 > Upgrade-modal follow-up (2026-10-19): one selected-price surface, native cycle Tabs, concise shared feature highlights, Pro crown and one footer action replace duplicated pricing and the long Runner paragraph. Complete real editor3/3 passes in52.6s, including keyboard cycle selection, monthly checkout payload and retry after an intercepted network failure. All four light/dark desktop/mobile captures inspected; build/types/lint pass. Synthetic price transport is isolated from the payment provider. Fresh full PR CI is required before merge.
 
 > Provider-endpoint follow-up (2026-10-19): Twitch/YouTube use their presets and expose no editable URL; Custom RTMP retains its URL editor. Build/types/lint and complete real editor3/3 pass in54.0s, including provider switching and custom URL saving. Named-provider modal capture inspected. Fresh full PR CI is required before merge.
