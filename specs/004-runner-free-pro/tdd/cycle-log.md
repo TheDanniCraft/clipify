@@ -3392,3 +3392,10 @@ Final scope-width refinement passes the complete history browser owner 1/1 in 23
 - Set the destination credential TextField’s type to password at its parent, matching the installed HeroUI/React Aria context API; the browser checks real masking during entry and retained-key editing. Build/types, affected lint and formatting pass.
 
 - Browser checkpoint: three established Free/Pro/setup journeys pass. Interrupt the new screenshot harness after it tries to click the theme toggle behind its own modal; reopen the manager after toggling and await its loaded row. Final account reuse, setup/heartbeat/preview, schedule history and US/German locale owners pass five cases. These form eight unique passing relevant journeys; screenshot review includes stable loaded tables in both themes.
+
+
+## Restore master setup presentation (2026-10-19)
+
+The functional setup restoration did not preserve master’s visual hierarchy. Compare the original centered 3xl heading, bounded instruction text, grouped download actions and generous spacing against the compressed left-aligned replacement. Restore that hierarchy inside the reviewed shared editor card. Center the waiting spinner and label beneath the downloads and keep advanced token fields in a bounded section below. Mobile download controls have equal widths; desktop controls form a centered row.
+
+Extend the existing installed-component parity owner with actual heading/spinner centering and mobile button geometry assertions, and capture the whole page in both themes at desktop/mobile widths. Visual review caught unequal mobile button widths in the first rendering; correct the library button widths before the final browser run. This is a presentation correction; no formal test-first Red is claimed. Build/types, lint and formatting pass. Final browser evidence and reviewed captures are retained under `evidence/ux-correction/runner-setup-layout-*`.
