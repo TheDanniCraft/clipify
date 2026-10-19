@@ -1,6 +1,6 @@
 import { act, render } from "@testing-library/react";
 import RunnerPage from "@/app/dashboard/runners/[id]/page";
-import { getRunner } from "@/app/actions/runner";
+import { getRunner, getRunnerVersionManifest } from "@/app/actions/runner";
 
 jest.mock("next/navigation", () => {
 	const router = { push: jest.fn() };
@@ -8,10 +8,21 @@ jest.mock("next/navigation", () => {
 });
 jest.mock("@/app/actions/auth", () => ({ validateAuth: jest.fn(async () => ({ id: "polling-owner" })) }));
 jest.mock("@/app/actions/database", () => ({ getAllOverlays: jest.fn(async () => []) }));
-jest.mock("@/app/actions/runner", () => ({ getRunner: jest.fn(), getRunnerToken: jest.fn(async () => ({ success: true, token: "local-fixture-token" })), getRunnerVersionManifest: jest.fn(async () => null), getStreamSessionsForRunner: jest.fn(async () => []), listRunnerDestinations: jest.fn(async () => ({ success: true, destinations: [] })), listRunnerScheduleEvents: jest.fn(), upsertStreamSession: jest.fn(), setStreamDesiredState: jest.fn(), unlinkRunner: jest.fn() }));
+jest.mock("@/app/actions/runner", () => ({
+	getRunner: jest.fn(),
+	getRunnerToken: jest.fn(async () => ({ success: true, token: "local-fixture-token" })),
+	getRunnerLivePreview: jest.fn(async () => ({ success: true, image: null })),
+	getRunnerVersionManifest: jest.fn(async () => null),
+	getStreamSessionsForRunner: jest.fn(async () => []),
+	listRunnerDestinations: jest.fn(async () => ({ success: true, destinations: [] })),
+	listRunnerScheduleEvents: jest.fn(),
+	upsertStreamSession: jest.fn(),
+	setStreamDesiredState: jest.fn(),
+	unlinkRunner: jest.fn(),
+}));
 jest.mock("@/app/lib/toast", () => ({ notify: jest.fn() }));
 jest.mock("@/app/components/upgradeModal", () => ({ __esModule: true, default: () => null }));
-jest.mock("@/app/components/dashboardNavbar", () => ({ __esModule: true, default: () => null }));
+jest.mock("@/app/components/dashboardNavbar", () => ({ __esModule: true, default: ({ children }: { children: React.ReactNode }) => <main>{children}</main> }));
 jest.mock("@/app/components/runner/RunnerBrandingPreview", () => ({ __esModule: true, default: () => null }));
 jest.mock("@/app/components/runnerSchedule", () => ({ __esModule: true, default: () => null }));
 jest.mock("@/app/components/runnerDestinations", () => ({ __esModule: true, default: () => null }));
@@ -68,5 +79,26 @@ test("UX-C3: initial transport failure shows a recoverable retry instead of an e
 	await act(async () => {});
 	expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 	expect(getRunner).toHaveBeenCalledTimes(2);
+	view.unmount();
+});
+
+test("first connection presents installation and Docker guidance instead of premature broadcast controls", async () => {
+	const { screen } = await import("@testing-library/react");
+	jest.mocked(getRunner).mockResolvedValue({ id: "polling-runner", ownerId: "polling-owner", name: "New computer", status: "offline", lastHeartbeatAt: null, osInfo: null, version: null, configurationRevision: 1 } as never);
+	const view = render(<RunnerPage />);
+	await act(async () => {});
+	expect(screen.getByRole("heading", { name: "Setup Your Runner" })).toBeVisible();
+	expect(screen.queryByRole("heading", { name: "Stream Configuration" })).not.toBeInTheDocument();
+	expect(screen.getByText(/CLIPIFY_TOKEN/)).toBeInTheDocument();
+	view.unmount();
+});
+
+test("connected ARM Linux shows the matching platform update state", async () => {
+	const { screen } = await import("@testing-library/react");
+	jest.mocked(getRunner).mockResolvedValue({ id: "polling-runner", ownerId: "polling-owner", name: "ARM computer", status: "online", lastHeartbeatAt: new Date(), osInfo: "Linux arm64", version: "a".repeat(64), configurationRevision: 1 } as never);
+	jest.mocked(getRunnerVersionManifest).mockResolvedValue({ linuxArm: "a".repeat(64), linux: "b".repeat(64) } as never);
+	const view = render(<RunnerPage />);
+	await act(async () => {});
+	expect(screen.getByRole("button", { name: "Runner up to date" })).toBeDisabled();
 	view.unmount();
 });

@@ -2442,3 +2442,7 @@ The user superseded legacy Runner preservation: hard cut the unreleased Runner e
 - [x] UXR-24 Preserve completed events and open locked occurrences in read-only details with presentation-only title changes.
 - [x] UXR-25 Add future recurring edit/delete scope choices, transactional exclusions/splitting and history protection.
 - [x] UXR-26 Validate the real installed calendar flows, failures, keyboard/focus and both themes at desktop/mobile widths; retain authentic evidence.
+
+- [x] UXR-27 Compare the complete Runner detail flow with refreshed master; document retained behavior, accidental removals and approved replacements.
+- [x] UXR-28 Restore first-connection installation/headless setup, masked token recovery, platform update/quality diagnostics and safe live-preview states.
+- [x] UXR-29 Move Schedule into the responsive Appearance action row without shrinking Control; add actual component/browser parity and geometry checks.

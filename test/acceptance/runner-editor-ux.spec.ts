@@ -11,13 +11,17 @@ const expect = baseExpect.configure({ timeout: 30000 });
 test.setTimeout(180000);
 async function expectScheduleActionAlignment(page: Page) {
 	const control = page.getByRole("button", { name: / Control$/ });
-	const action = page.getByRole("button", { name: "Schedule", exact: true });
+	const behavior = page.getByRole("button", { name: /Broadcast behavior$/ });
+	const schedule = page.getByRole("button", { name: "Schedule", exact: true });
+	const appearance = page.getByRole("button", { name: "Appearance", exact: true });
 	await expect
 		.poll(async () => {
-			const selectorBounds = await control.boundingBox();
-			const actionBounds = await action.boundingBox();
-			if (!selectorBounds || !actionBounds || actionBounds.x < selectorBounds.x + selectorBounds.width) return Infinity;
-			return Math.abs(selectorBounds.y + selectorBounds.height - actionBounds.y - actionBounds.height);
+			const [c, b, s, a] = await Promise.all([control.boundingBox(), behavior.boundingBox(), schedule.boundingBox(), appearance.boundingBox()]);
+			if (!c || !b || !s || !a || s.y < c.y + c.height) return Infinity;
+			const mobile = (page.viewportSize()?.width ?? 1280) < 640;
+			if (mobile && (Math.abs(s.x - a.x) > 1 || s.y < a.y + a.height)) return Infinity;
+			if (!mobile && (Math.abs(s.y - a.y) > 1 || s.x < a.x + a.width)) return Infinity;
+			return Math.max(Math.abs(c.width - b.width), Math.abs(s.width - a.width));
 		})
 		.toBeLessThan(2);
 }
@@ -208,6 +212,7 @@ for (const plan of ["free", "pro"] as const)
 			await mainSave.click();
 			await expect(page.getByRole("button", { name: "Start", exact: true })).toBeEnabled();
 			const control = page.getByRole("button", { name: / Control$/ });
+			const manualControlBounds = await control.boundingBox();
 			await control.click();
 			const scheduled = page.getByRole("option", { name: /Scheduled/ });
 			await expect(scheduled).not.toContainText("Pro · Clip playback");
@@ -277,10 +282,14 @@ for (const plan of ["free", "pro"] as const)
 				await page.setViewportSize({ width: 1280, height: 900 });
 				await page.getByRole("button", { name: "Toggle Theme", exact: true }).click();
 				await expect(upgrade).not.toBeVisible();
-				await page.unroute(upgradeRoute);
+				await page.unrouteAll({ behavior: "wait" });
 				await expect(control).toContainText("Manual");
 			} else {
 				await scheduled.click();
+				const scheduledControlBounds = await control.boundingBox();
+				expect(scheduledControlBounds).not.toBeNull();
+				expect(manualControlBounds).not.toBeNull();
+				expect(Math.abs(scheduledControlBounds!.width - manualControlBounds!.width)).toBeLessThan(2);
 				await expect(page.getByRole("button", { name: "Schedule", exact: true })).toBeDisabled();
 				await mainSave.click();
 				await expect(page.getByRole("button", { name: "Schedule", exact: true })).toBeEnabled();

@@ -1292,3 +1292,9 @@ The correction's outer browser UX journeys are added after the first implementat
 - [x] UX-C30: title-only rename changes no execution/occurrence revision or target selection, rejects stale title/revision and unexpected streaming fields.
 - [x] UX-C31: This occurrence edits/deletes only a future selected occurrence; This and following splits/truncates future entries; preserve prior/current windows, DST resolution and original occurrence keys.
 - [x] UX-C32: installed browser details, all four recurring scope actions, cancellation/draft retention, keyboard/focus, desktop/mobile and both themes.
+
+- [x] UX-C33: before first heartbeat, installation/advanced setup are available and configuration is hidden; a real Runner heartbeat reveals configuration automatically.
+- [x] UX-C34: all five platform choices preserve their instructions; masked token reveal/hide/copy and clipboard failure recovery work with installed HeroUI.
+- [x] UX-C35: matching architecture controls update status/download; connected quality and safe general error indication remain visible.
+- [x] UX-C36: a running preview distinguishes first-frame waiting, failed read/retry and actual uploaded image; an offline Runner retains connected configuration.
+- [x] UX-C37: Schedule leaves Control width unchanged, shares equal-width desktop actions with Appearance and stacks on mobile; both themes preserve the established editor.

@@ -1,5 +1,7 @@
 "use server";
 
+import { z } from "zod";
+import { runnerPreviewCache } from "@lib/runnerPreviewCache";
 import { db, type QueryClient } from "@/db/client";
 import { overlaysTable, runnersTable, usersTable } from "@/db/schema";
 import { revalidatePath } from "next/cache";
@@ -479,4 +481,18 @@ export async function renameRunnerScheduleEvent(data: unknown) {
 		const { renameRunnerScheduleEventForPrincipal } = await import("@/server/runner/schedules");
 		return renameRunnerScheduleEventForPrincipal(principal, data);
 	});
+}
+
+/** Dashboard reads use server actions; Runner uploads keep their external API. */
+export async function getRunnerLivePreview(runnerId: string, ownerId: string) {
+	if (!z.uuid().safeParse(runnerId).success || !/^[A-Za-z0-9_-]{1,255}$/.test(ownerId)) return { success: false as const, code: "INVALID_INPUT" as const, error: "Choose a valid Runner." };
+	try {
+		if (!(await hasAccess(ownerId, "runner:read"))) return { success: false as const, code: "ACCESS_DENIED" as const, error: "You do not have access to this Runner." };
+		const runner = await db.query.runnersTable.findFirst({ where: and(eq(runnersTable.id, runnerId), eq(runnersTable.ownerId, ownerId)), columns: { id: true } });
+		if (!runner) return { success: false as const, code: "RESOURCE_UNAVAILABLE" as const, error: "This Runner is unavailable." };
+		return { success: true as const, image: runnerPreviewCache.get(runner.id) };
+	} catch {
+		captureUnexpectedError(new Error("Runner preview read failed"), "runner-actions", "read-preview");
+		return { success: false as const, code: "SERVICE_UNAVAILABLE" as const, error: "Preview unavailable. Please try again." };
+	}
 }

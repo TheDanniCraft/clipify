@@ -3,17 +3,19 @@
 import LocalizedDate from "@components/localizedDate";
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { validateAuth } from "@actions/auth";
-import { getRunner, getRunnerToken, getStreamSessionsForRunner, upsertStreamSession, setStreamDesiredState, unlinkRunner, listRunnerDestinations, listRunnerScheduleEvents } from "@actions/runner";
+import { getRunner, getRunnerLivePreview, getRunnerToken, getRunnerVersionManifest, getStreamSessionsForRunner, upsertStreamSession, setStreamDesiredState, unlinkRunner, listRunnerDestinations, listRunnerScheduleEvents } from "@actions/runner";
 import { getAllOverlays } from "@actions/database";
-import { Accordion, Button, Card, Label, Select, Spinner, TextField, ListBox, Input, Chip, Modal, Dropdown, Tooltip, Separator } from "@heroui/react";
-import { IconArrowLeft, IconBrandWindows, IconTerminal2, IconBrandApple, IconUnlink } from "@tabler/icons-react";
+import { Accordion, Button, Card, Label, Select, Spinner, ListBox, Chip, Modal, Dropdown, Tooltip, Separator } from "@heroui/react";
+import { IconArrowLeft, IconBrandWindows, IconTerminal2, IconBrandApple, IconUnlink, IconAlertTriangle, IconCircleCheck, IconRefresh } from "@tabler/icons-react";
 import { notify } from "@lib/toast";
 import FullscreenLoadingState from "@components/fullscreenLoadingState";
 import ConfirmModal from "@components/confirmModal";
+import AdvancedRunnerSetup from "@components/runner/AdvancedSetup";
+import { formatRunnerVersion, getRunnerPlatformFromOs, getRunnerVersionState, type RunnerPlatform } from "@lib/runnerInstallation";
 import RunnerBroadcastControls from "@components/runnerBroadcastControls";
 import RunnerDestinations from "@components/runnerDestinations";
 import RunnerBrandingPreview from "@components/runner/RunnerBrandingPreview";
@@ -29,7 +31,6 @@ type Runner = NonNullable<Awaited<ReturnType<typeof getRunner>>>;
 type StreamSession = Awaited<ReturnType<typeof getStreamSessionsForRunner>>[number];
 type RunnerPolicy = Extract<Awaited<ReturnType<typeof listRunnerScheduleEvents>>, { success: true }>["policy"];
 type DestinationView = Extract<Awaited<ReturnType<typeof listRunnerDestinations>>, { success: true }>["destinations"][number];
-type RunnerPlatform = "windows" | "linux" | "linux-arm64" | "macos" | "macos-arm64";
 
 const runnerPlatformLabels: Record<RunnerPlatform, string> = {
 	windows: "Windows",
@@ -38,16 +39,6 @@ const runnerPlatformLabels: Record<RunnerPlatform, string> = {
 	macos: "macOS Intel",
 	"macos-arm64": "macOS Apple Silicon",
 };
-
-function formatRunnerVersion(version: string | null | undefined) {
-	if (!version) return "Unknown";
-	const normalized = normalizeRunnerVersion(version);
-	return normalized.slice(0, 8);
-}
-
-function normalizeRunnerVersion(version: string | null | undefined) {
-	return (version ?? "").trim().replace(/^v/i, "");
-}
 
 export default function RunnerPage() {
 	const params = useParams() as { id: string };
@@ -63,14 +54,31 @@ export default function RunnerPage() {
 	const [runnerPolicy, setRunnerPolicy] = useState<RunnerPolicy | null>(null);
 	const [destinationOptions, setDestinationOptions] = useState<DestinationView[]>([]);
 	const [selectedDestinationIds, setSelectedDestinationIds] = useState<string[]>([]);
-	const [copied, setCopied] = useState(false);
+	const [versionManifest, setVersionManifest] = useState<Awaited<ReturnType<typeof getRunnerVersionManifest>>>(null);
+	const [versionPending, setVersionPending] = useState(false);
+	const [tokenPending, setTokenPending] = useState(false);
 	const [manualToken, setManualToken] = useState<string | null>(null);
-	const [isTokenVisible, setIsTokenVisible] = useState(false);
 	const [tokenError, setTokenError] = useState<string | null>(null);
 
 	const [isSaving, setIsSaving] = useState(false);
 
 	const [previewImage, setPreviewImage] = useState<string | null>(null);
+	const [previewState, setPreviewState] = useState<"loading" | "waiting" | "ready" | "unavailable">("loading");
+	const readPreview = useCallback(async (runnerId: string, ownerId: string) => {
+		try {
+			const result = await getRunnerLivePreview(runnerId, ownerId);
+			if (result.success) {
+				setPreviewImage(result.image);
+				setPreviewState(result.image ? "ready" : "waiting");
+			} else {
+				setPreviewImage(null);
+				setPreviewState("unavailable");
+			}
+		} catch {
+			setPreviewImage(null);
+			setPreviewState("unavailable");
+		}
+	}, []);
 
 	const [installPlatform, setInstallPlatform] = useState<RunnerPlatform | null>(null);
 	const [downloadCountdown, setDownloadCountdown] = useState(0);
@@ -101,20 +109,17 @@ export default function RunnerPage() {
 			if (polling) return;
 			polling = true;
 			try {
-				const [fetchedRunner, fetchedSessions] = await Promise.all([getRunner(params.id, user.id), getStreamSessionsForRunner(params.id, user.id)]);
+				const [fetchedRunner, fetchedSessions, manifest] = await Promise.all([getRunner(params.id, user.id), getStreamSessionsForRunner(params.id, user.id), getRunnerVersionManifest().catch(() => null)]);
+				setVersionManifest(manifest);
 
 				if (fetchedRunner) setRunner(fetchedRunner);
 				if (fetchedSessions) setStreamSessions(fetchedSessions);
 
 				if (fetchedRunner?.status === "online" && fetchedSessions[0]?.actualState === "running") {
-					const res = await fetch(`/api/runner/preview?runnerId=${params.id}`);
-					if (res.ok) {
-						const data = await res.json();
-						if (data.image) setPreviewImage(data.image);
-						else setPreviewImage(null);
-					}
+					await readPreview(params.id, user.id);
 				} else {
 					setPreviewImage(null);
+					setPreviewState("loading");
 				}
 			} catch (e) {
 				console.error("Polling error", e);
@@ -130,7 +135,7 @@ export default function RunnerPage() {
 		return () => {
 			clearInterval(interval);
 		};
-	}, [params.id, user]);
+	}, [params.id, user, readPreview]);
 
 	useEffect(() => {
 		let active = true;
@@ -147,7 +152,7 @@ export default function RunnerPage() {
 				if (!active) return;
 				setUser(authUser);
 
-				const [fetchedRunner, fetchedSessions, fetchedOverlays, fetchedToken, fetchedDestinations, fetchedSchedule] = await Promise.all([getRunner(params.id, authUser.id), getStreamSessionsForRunner(params.id, authUser.id), getAllOverlays(authUser.id), getRunnerToken(params.id, authUser.id), listRunnerDestinations(authUser.id, params.id), listRunnerScheduleEvents(authUser.id, params.id)]);
+				const [fetchedRunner, fetchedSessions, fetchedOverlays, fetchedToken, fetchedDestinations, fetchedSchedule, manifest] = await Promise.all([getRunner(params.id, authUser.id), getStreamSessionsForRunner(params.id, authUser.id), getAllOverlays(authUser.id), getRunnerToken(params.id, authUser.id), listRunnerDestinations(authUser.id, params.id), listRunnerScheduleEvents(authUser.id, params.id), getRunnerVersionManifest().catch(() => null)]);
 
 				if (!active) return;
 				if (!fetchedRunner) {
@@ -156,6 +161,7 @@ export default function RunnerPage() {
 				}
 
 				setRunner(fetchedRunner);
+				setVersionManifest(manifest);
 				setStreamSessions(fetchedSessions);
 				setOverlays(fetchedOverlays || []);
 
@@ -214,16 +220,29 @@ export default function RunnerPage() {
 		return <FullscreenLoadingState message='Loading runner configuration' />;
 	}
 
-	const revealToken = () => {
-		if (!manualToken) return;
-		setIsTokenVisible((visible) => !visible);
+	const reloadToken = async () => {
+		setTokenPending(true);
+		try {
+			const result = await getRunnerToken(runner.id, runner.ownerId);
+			if (result.success && result.token) {
+				setManualToken(result.token);
+				setTokenError(null);
+			} else setTokenError("Runner token could not be loaded. Please try again.");
+		} catch {
+			setTokenError("Runner token could not be loaded. Please try again.");
+		} finally {
+			setTokenPending(false);
+		}
 	};
-
-	const copyToken = async () => {
-		if (!manualToken) return;
-		await navigator.clipboard.writeText(manualToken);
-		setCopied(true);
-		setTimeout(() => setCopied(false), 2000);
+	const refreshVersion = async () => {
+		setVersionPending(true);
+		try {
+			setVersionManifest(await getRunnerVersionManifest());
+		} catch {
+			setVersionManifest(null);
+		} finally {
+			setVersionPending(false);
+		}
 	};
 
 	const savedSession = streamSessions[0];
@@ -420,6 +439,8 @@ export default function RunnerPage() {
 	};
 
 	const runnerVersionLabel = formatRunnerVersion(runner.version);
+	const runnerVersionState = getRunnerVersionState(runner, versionManifest);
+	const runnerPlatform = getRunnerPlatformFromOs(runner.osInfo);
 	const isRunnerStreaming = runner.status === "online" && streamSessions[0]?.actualState === "running";
 	const canUnlinkRunner = !isRunnerStreaming;
 	const runnerConnectionLabel = runner.lastHeartbeatAt ? "Offline" : "Not connected";
@@ -454,6 +475,10 @@ export default function RunnerPage() {
 								<h3 className='text-lg font-semibold'>Setup Your Runner</h3>
 
 								<p className='text-sm text-muted'>Download Runner, open it on your computer, and approve the enrollment prompt.</p>
+								<div role='status' className='flex items-center gap-3 text-sm text-muted'>
+									<Spinner size='sm' aria-label='Waiting for first Runner connection' />
+									Waiting for Runner to connect
+								</div>
 								<div className='flex flex-wrap gap-3'>
 									<Button variant='secondary' onPress={() => handleRunnerDownload("windows")}>
 										<IconBrandWindows size={18} />
@@ -462,106 +487,112 @@ export default function RunnerPage() {
 									{renderLinuxDownloadDropdown("Download for Linux")}
 									{renderMacOSDownloadDropdown("Download for macOS")}
 								</div>
+								<AdvancedRunnerSetup token={manualToken} error={tokenError} pending={tokenPending} onRetry={reloadToken} />
 							</section>
 						)}
-						<h3 className='text-lg font-semibold'>Stream Configuration</h3>
-						<div className='grid gap-6 lg:grid-cols-2'>
-							<div className='space-y-5'>
-								<Select value={overlayId || null} onChange={(value) => setOverlayId(String(value ?? ""))} variant='secondary'>
-									<Label>Target Overlay</Label>
-									<Select.Trigger>
-										<Select.Value />
-										<Select.Indicator />
-									</Select.Trigger>
-									<Select.Popover>
-										<ListBox>
-											{overlays.map((overlay) => (
-												<ListBox.Item id={overlay.id} key={overlay.id} textValue={overlay.name}>
-													<ListBox.ItemIndicator />
-													<Label>{overlay.name}</Label>
-												</ListBox.Item>
-											))}
-										</ListBox>
-									</Select.Popover>
-								</Select>
-								{!overlays.length && (
-									<p className='text-sm text-muted'>
-										Create an overlay in{" "}
-										<a className='text-accent underline' href='/dashboard'>
-											your dashboard
-										</a>{" "}
-										to choose the clips for this broadcast.
-									</p>
-								)}
-								<div className='grid gap-4 sm:grid-cols-2'>
-									<Select
-										value={mode}
-										onChange={(value) => {
-											const next = String(value) as StreamMode;
-											setMode(next);
-											if (next === StreamMode.Failsafe) setControlMode("manual");
-										}}
-										variant='secondary'
-									>
-										<Label>Broadcast behavior</Label>
-										<Select.Trigger>
-											<Select.Value />
-											<Select.Indicator />
-										</Select.Trigger>
-										<Select.Popover>
-											<ListBox>
-												{[
-													{ id: StreamMode.AlwaysOn, name: "Clip playback" },
-													{ id: StreamMode.Failsafe, name: "Live fallback" },
-												].map((item) => (
-													<ListBox.Item id={item.id} key={item.id} textValue={item.name}>
-														<ListBox.ItemIndicator />
-														<Label>{item.name}</Label>
-													</ListBox.Item>
-												))}
-											</ListBox>
-										</Select.Popover>
-									</Select>
-									<div className='space-y-2'>
-										<div className='flex items-end gap-2'>
-											<div className='min-w-0 flex-1'>
-												<RunnerControlSelection value={controlMode} clipPlayback={mode === StreamMode.AlwaysOn} scheduling={runnerPolicy?.scheduling ?? null} onChange={setControlMode} onUpgrade={() => setIsUpgradeOpen(true)} />
-											</div>
-											{controlMode === "scheduled" && (
-												<Button className='shrink-0' variant='secondary' isDisabled={dirty || isSaving} onPress={() => (runnerPolicy?.scheduling ? setScheduleOpen(true) : setIsUpgradeOpen(true))}>
-													Schedule
-												</Button>
-											)}
+						{runner.lastHeartbeatAt && (
+							<>
+								<h3 className='text-lg font-semibold'>Stream Configuration</h3>
+								<div className='grid gap-6 lg:grid-cols-2'>
+									<div className='space-y-5'>
+										<Select value={overlayId || null} onChange={(value) => setOverlayId(String(value ?? ""))} variant='secondary'>
+											<Label>Target Overlay</Label>
+											<Select.Trigger>
+												<Select.Value />
+												<Select.Indicator />
+											</Select.Trigger>
+											<Select.Popover>
+												<ListBox>
+													{overlays.map((overlay) => (
+														<ListBox.Item id={overlay.id} key={overlay.id} textValue={overlay.name}>
+															<ListBox.ItemIndicator />
+															<Label>{overlay.name}</Label>
+														</ListBox.Item>
+													))}
+												</ListBox>
+											</Select.Popover>
+										</Select>
+										{!overlays.length && (
+											<p className='text-sm text-muted'>
+												Create an overlay in{" "}
+												<a className='text-accent underline' href='/dashboard'>
+													your dashboard
+												</a>{" "}
+												to choose the clips for this broadcast.
+											</p>
+										)}
+										<div className='grid gap-4 sm:grid-cols-2'>
+											<Select
+												value={mode}
+												onChange={(value) => {
+													const next = String(value) as StreamMode;
+													setMode(next);
+													if (next === StreamMode.Failsafe) setControlMode("manual");
+												}}
+												variant='secondary'
+											>
+												<Label>Broadcast behavior</Label>
+												<Select.Trigger>
+													<Select.Value />
+													<Select.Indicator />
+												</Select.Trigger>
+												<Select.Popover>
+													<ListBox>
+														{[
+															{ id: StreamMode.AlwaysOn, name: "Clip playback" },
+															{ id: StreamMode.Failsafe, name: "Live fallback" },
+														].map((item) => (
+															<ListBox.Item id={item.id} key={item.id} textValue={item.name}>
+																<ListBox.ItemIndicator />
+																<Label>{item.name}</Label>
+															</ListBox.Item>
+														))}
+													</ListBox>
+												</Select.Popover>
+											</Select>
+											<RunnerControlSelection value={controlMode} clipPlayback={mode === StreamMode.AlwaysOn} scheduling={runnerPolicy?.scheduling ?? null} onChange={setControlMode} onUpgrade={() => setIsUpgradeOpen(true)} />
 										</div>
-										{controlMode === "scheduled" && dirty && <p className='text-xs text-muted'>Save configuration to edit the schedule.</p>}
+										{mode === StreamMode.Failsafe && (
+											<p className='text-sm text-muted'>
+												Send OBS to <code>rtmp://localhost:1935/live</code> with an empty stream key. Clips play when your live feed goes offline.
+											</p>
+										)}
+									</div>
+									<div className='space-y-4'>
+										<RunnerDestinationSelection destinations={destinationOptions} selectedIds={selectedDestinationIds} runnerPro={Boolean(runnerPolicy?.runnerPro)} onChange={setSelectedDestinationIds} onManage={() => setDestinationsOpen(true)} />
+										{savedSession && (savedSession.desiredState !== StreamState.Stopped || savedSession.outputs.length > 0) && <RunnerOutputStatus outputs={savedSession.outputs} destinations={destinationOptions} online={runner.status === RunnerStatus.Online} />}
 									</div>
 								</div>
-								{mode === StreamMode.Failsafe && (
-									<p className='text-sm text-muted'>
-										Send OBS to <code>rtmp://localhost:1935/live</code> with an empty stream key. Clips play when your live feed goes offline.
+								{configurationError && (
+									<p role='alert' className='text-sm text-danger'>
+										{configurationError}
 									</p>
 								)}
-							</div>
-							<div className='space-y-4'>
-								<RunnerDestinationSelection destinations={destinationOptions} selectedIds={selectedDestinationIds} runnerPro={Boolean(runnerPolicy?.runnerPro)} onChange={setSelectedDestinationIds} onManage={() => setDestinationsOpen(true)} />
-								{savedSession && (savedSession.desiredState !== StreamState.Stopped || savedSession.outputs.length > 0) && <RunnerOutputStatus outputs={savedSession.outputs} destinations={destinationOptions} online={runner.status === RunnerStatus.Online} />}
-							</div>
-						</div>
-						{configurationError && (
-							<p role='alert' className='text-sm text-danger'>
-								{configurationError}
-							</p>
+								{savedSession?.hasError && !savedSession.playbackTimedOut && (
+									<p role='alert' className='text-sm text-danger'>
+										The Runner reported a broadcast error. Check its logs before retrying.
+									</p>
+								)}
+								<div className={controlMode === "scheduled" ? "grid gap-3 sm:grid-cols-2" : "grid gap-3"}>
+									<Button variant='secondary' className='w-full' onPress={() => setAppearanceOpen(true)} isDisabled={!overlayId}>
+										Appearance
+									</Button>
+									{controlMode === "scheduled" && (
+										<Button className='w-full' variant='secondary' isDisabled={dirty || isSaving} onPress={() => (runnerPolicy?.scheduling ? setScheduleOpen(true) : setIsUpgradeOpen(true))}>
+											Schedule
+										</Button>
+									)}
+								</div>
+								{controlMode === "scheduled" && dirty && <p className='text-xs text-muted'>Save configuration to edit the schedule.</p>}
+								<div className='flex flex-wrap items-center justify-between gap-4 border-t border-separator pt-4'>
+									<Button variant='primary' onPress={handleSave} isDisabled={isSaving} isPending={isSaving}>
+										Save Configuration
+									</Button>
+									{savedSession && <RunnerBroadcastControls playbackTimedOut={savedSession.playbackTimedOut} desiredState={savedSession.desiredState} actualState={savedSession.actualState} canStart={!actionPending && runner.status === RunnerStatus.Online && streamReadyToStart} requiresConnection={!runnerPolicy?.runnerPro} clipPlayback={savedSession.mode === "24/7"} onStart={() => handleAction("started")} onStop={(stopMode) => handleAction("stopped", stopMode)} />}
+								</div>
+								{savedSession && dirty && <p className='text-sm text-muted'>Save your changes before starting this broadcast.</p>}
+							</>
 						)}
-						<Button variant='secondary' className='w-full' onPress={() => setAppearanceOpen(true)} isDisabled={!overlayId}>
-							Appearance
-						</Button>
-						<div className='flex flex-wrap items-center justify-between gap-4 border-t border-separator pt-4'>
-							<Button variant='primary' onPress={handleSave} isDisabled={isSaving} isPending={isSaving}>
-								Save Configuration
-							</Button>
-							{savedSession && <RunnerBroadcastControls playbackTimedOut={savedSession.playbackTimedOut} desiredState={savedSession.desiredState} actualState={savedSession.actualState} canStart={!actionPending && runner.status === RunnerStatus.Online && streamReadyToStart} requiresConnection={!runnerPolicy?.runnerPro} clipPlayback={savedSession.mode === "24/7"} onStart={() => handleAction("started")} onStop={(stopMode) => handleAction("stopped", stopMode)} />}
-						</div>
-						{savedSession && dirty && <p className='text-sm text-muted'>Save your changes before starting this broadcast.</p>}
 					</Card.Content>
 				</Card>
 				{isRunnerStreaming && (
@@ -575,61 +606,96 @@ export default function RunnerPage() {
 									<Image src={previewImage} alt='Live Stream Preview' width={1280} height={720} unoptimized className='h-full w-full object-contain' />
 								) : (
 									<div className='flex h-full items-center justify-center'>
-										<Spinner aria-label='Loading live preview' />
+										{previewState === "loading" ? (
+											<Spinner aria-label='Loading live preview' />
+										) : previewState === "unavailable" ? (
+											<div className='space-y-3 text-center'>
+												<p role='alert' className='text-sm text-muted'>
+													Preview unavailable.
+												</p>
+												<Button
+													variant='secondary'
+													onPress={() => {
+														setPreviewState("loading");
+														void readPreview(runner.id, runner.ownerId);
+													}}
+												>
+													Retry preview
+												</Button>
+											</div>
+										) : (
+											<p role='status' className='text-sm text-muted'>
+												Waiting for first frame...
+											</p>
+										)}
 									</div>
 								)}
 							</div>
 						</Card.Content>
 					</Card>
 				)}
-				<Accordion>
-					<Accordion.Item>
-						<Accordion.Heading>
-							<Accordion.Trigger>
-								Runner details
-								<Accordion.Indicator />
-							</Accordion.Trigger>
-						</Accordion.Heading>
-						<Accordion.Panel>
-							<Accordion.Body className='space-y-5'>
-								<dl className='grid gap-4 text-sm sm:grid-cols-3'>
-									<div>
-										<dt className='text-muted'>Computer</dt>
-										<dd>{runner.osInfo || "Unknown"}</dd>
-									</div>
-									<div>
-										<dt className='text-muted'>Runner version</dt>
-										<dd>{runnerVersionLabel}</dd>
-									</div>
-									<div>
-										<dt className='text-muted'>Last connection</dt>
-										<dd>{runner.lastHeartbeatAt ? <LocalizedDate value={runner.lastHeartbeatAt} showTime /> : "Not connected"}</dd>
-									</div>
-								</dl>
-								<div className='flex flex-wrap gap-3'>
-									<Button variant='secondary' onPress={() => handleRunnerDownload("windows")}>
-										Download for Windows
-									</Button>
-									{renderLinuxDownloadDropdown("Download for Linux")}
-									{renderMacOSDownloadDropdown("Download for macOS")}
-								</div>
-								<TextField>
-									<Label>Runner token</Label>
-									<Input variant='secondary' type={isTokenVisible ? "text" : "password"} value={manualToken ?? ""} readOnly />
-									<div className='flex gap-2'>
-										<Button variant='secondary' onPress={revealToken} isDisabled={!manualToken}>
-											{isTokenVisible ? "Hide token" : "Reveal token"}
+				{runner.lastHeartbeatAt && (
+					<Accordion>
+						<Accordion.Item>
+							<Accordion.Heading>
+								<Accordion.Trigger>
+									Runner details
+									{runnerVersionState === "outdated" && (
+										<Chip size='sm' color='warning' variant='soft'>
+											Update available
+										</Chip>
+									)}
+									<Accordion.Indicator />
+								</Accordion.Trigger>
+							</Accordion.Heading>
+							<Accordion.Panel>
+								<Accordion.Body className='space-y-5'>
+									<dl className='grid gap-4 text-sm sm:grid-cols-3'>
+										<div>
+											<dt className='text-muted'>Computer</dt>
+											<dd>{runner.osInfo || "Unknown"}</dd>
+										</div>
+										<div>
+											<dt className='text-muted'>Runner version</dt>
+											<dd className='flex items-center gap-2'>
+												<span title={runner.version ?? undefined}>{runnerVersionLabel}</span>
+												{runnerVersionState === "latest" ? <IconCircleCheck size={16} className='text-success' aria-label='Latest runner version' /> : runnerVersionState === "outdated" ? <IconAlertTriangle size={16} className='text-warning' aria-label='Runner update available' /> : <span className='text-muted'>Update status unavailable</span>}
+												<Button isIconOnly size='sm' variant='tertiary' aria-label='Check for Runner updates' isPending={versionPending} onPress={refreshVersion}>
+													<IconRefresh size={16} />
+												</Button>
+											</dd>
+										</div>
+										<div>
+											<dt className='text-muted'>Last connection</dt>
+											<dd>{runner.lastHeartbeatAt ? <LocalizedDate value={runner.lastHeartbeatAt} showTime /> : "Not connected"}</dd>
+										</div>
+										{savedSession && (
+											<div>
+												<dt className='text-muted'>Video quality</dt>
+												<dd>
+													{savedSession.resolution} at {savedSession.fps} FPS
+												</dd>
+											</div>
+										)}
+									</dl>
+									{runnerPlatform && (
+										<Button className='w-full' variant={runnerVersionState === "outdated" ? "primary" : "secondary"} isDisabled={runnerVersionState === "latest"} onPress={() => handleRunnerDownload(runnerPlatform)}>
+											{runnerVersionState === "latest" ? "Runner up to date" : "Download latest runner"}
 										</Button>
-										<Button variant='secondary' onPress={copyToken} isDisabled={!manualToken}>
-											{copied ? "Copied" : "Copy token"}
+									)}
+									<div className='flex flex-wrap gap-3'>
+										<Button variant='secondary' onPress={() => handleRunnerDownload("windows")}>
+											Download for Windows
 										</Button>
+										{renderLinuxDownloadDropdown("Download for Linux")}
+										{renderMacOSDownloadDropdown("Download for macOS")}
 									</div>
-									{tokenError && <p className='text-sm text-danger'>{tokenError}</p>}
-								</TextField>
-							</Accordion.Body>
-						</Accordion.Panel>
-					</Accordion.Item>
-				</Accordion>
+									<AdvancedRunnerSetup token={manualToken} error={tokenError} pending={tokenPending} onRetry={reloadToken} />
+								</Accordion.Body>
+							</Accordion.Panel>
+						</Accordion.Item>
+					</Accordion>
+				)}
 				{destinationsOpen && (
 					<Modal.Backdrop isOpen={destinationsOpen} onOpenChange={setDestinationsOpen}>
 						<Modal.Container size='lg' placement='center' scroll='inside'>
