@@ -1,0 +1,27 @@
+[WebServer] (node:209100) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:209100) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:209184) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching incremental clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching backfill clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching incremental clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching backfill clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching incremental clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching backfill clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching incremental clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching backfill clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching incremental clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching backfill clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  1 [acceptance-chromium] › test/acceptance/runner-editor-ux.spec.ts:37:6 › pro Runner setup and appearance follow the Clipify editor flow (31.1s)
+  ✓  2 [acceptance-chromium] › test/acceptance/runner-editor-ux.spec.ts:516:5 › Runner setup without an overlay offers a source action and recoverable validation (2.1s)
+
+  2 passed (41.7s)

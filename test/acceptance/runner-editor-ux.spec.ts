@@ -35,6 +35,7 @@ async function prepare(page: Page) {
 }
 for (const plan of ["free", "pro"] as const)
 	test(`${plan} Runner setup and appearance follow the Clipify editor flow`, async ({ page, request, context }, testInfo) => {
+		page.setDefaultTimeout(30000);
 		let owner: AuthFixture | undefined;
 		const pool = new Pool({ connectionString: browserDatabaseUrl(), max: 1 });
 		try {
@@ -361,6 +362,46 @@ for (const plan of ["free", "pro"] as const)
 				await page.keyboard.press("Escape");
 				await expect(schedule).not.toBeVisible();
 				await page.setViewportSize({ width: 1280, height: 900 });
+				await page.getByRole("button", { name: "Toggle Theme", exact: true }).click();
+
+				const lockedId = randomUUID();
+				await pool.query(
+					"INSERT INTO runner_schedule_events (id,owner_id,runner_id,session_id,overlay_id,title,timezone,recurrence,recurrence_anchor,local_start_date,local_end_date,local_start_time,local_end_time) SELECT $2::uuid,owner_id,runner_id,session_id,overlay_id,'Locked broadcast',timezone,'once',$2::text,to_char((now() AT TIME ZONE timezone)-interval '30 minutes','YYYY-MM-DD'),to_char((now() AT TIME ZONE timezone)+interval '30 minutes','YYYY-MM-DD'),to_char((now() AT TIME ZONE timezone)-interval '30 minutes','HH24:MI'),to_char((now() AT TIME ZONE timezone)+interval '30 minutes','HH24:MI') FROM runner_schedule_events WHERE owner_id=$1 LIMIT 1",
+					[owner.fixture.creatorId, lockedId],
+				);
+				await pool.query("UPDATE runner_schedule_events SET local_start_date=to_char((now() AT TIME ZONE timezone)+interval '2 hours','YYYY-MM-DD'),local_start_time=to_char((now() AT TIME ZONE timezone)+interval '2 hours','HH24:MI'),local_end_date=to_char((now() AT TIME ZONE timezone)+interval '26 hours','YYYY-MM-DD'),local_end_time=to_char((now() AT TIME ZONE timezone)+interval '26 hours','HH24:MI') WHERE owner_id=$1 AND id<>$2", [owner.fixture.creatorId, lockedId]);
+				for (const theme of ["dark", "light"]) {
+					if (theme === "light") await page.getByRole("button", { name: "Toggle Theme", exact: true }).click();
+					await page.getByRole("button", { name: "Schedule", exact: true }).click();
+					await expect(schedule).toBeVisible();
+					const calendar = schedule.getByRole("region", { name: "Broadcast calendar" });
+					for (const view of ["Week", "Month", "Day"]) {
+						await calendar.getByRole("radio", { name: view, exact: true }).click();
+						const locked = calendar.locator('[data-slot="agenda-event"], [data-slot="agenda-month-event"], [data-slot="agenda-month-spanning-event"]').filter({ hasText: "Locked broadcast" }).first();
+						const editable = calendar.locator('[data-slot="agenda-event"], [data-slot="agenda-month-event"], [data-slot="agenda-month-spanning-event"]').filter({ hasText: "Vacation broadcast" }).first();
+						await expect(locked.getByRole("img", { name: "Locked event", exact: true })).toBeVisible();
+						await expect(locked).toHaveCSS("border-top-style", "solid");
+						await expect(editable).toHaveCSS("border-top-style", "dashed");
+						expect(await locked.evaluate((node) => getComputedStyle(node).backgroundColor)).not.toBe(await editable.evaluate((node) => getComputedStyle(node).backgroundColor));
+						await locked.scrollIntoViewIfNeeded();
+						await locked.click();
+						await expect(event).not.toBeVisible();
+						await calendar.screenshot({ path: testInfo.outputPath(`event-states-${theme}-${view}.png`), animations: "disabled" });
+						if (view === "Day") {
+							await page.setViewportSize({ width: 390, height: 844 });
+							await locked.scrollIntoViewIfNeeded();
+							const bounds = await locked.boundingBox();
+							const icon = await locked.getByRole("img", { name: "Locked event", exact: true }).boundingBox();
+							expect(bounds && icon).toBeTruthy();
+							expect(Math.abs(bounds!.x + bounds!.width - icon!.x - icon!.width)).toBeLessThan(7);
+							expect(Math.abs(bounds!.y + bounds!.height - icon!.y - icon!.height)).toBeLessThan(7);
+							await calendar.screenshot({ path: testInfo.outputPath(`event-states-${theme}-mobile.png`), animations: "disabled" });
+							await page.setViewportSize({ width: 1280, height: 900 });
+						}
+					}
+					await page.keyboard.press("Escape");
+					await expect(schedule).not.toBeVisible();
+				}
 				await page.getByRole("button", { name: "Toggle Theme", exact: true }).click();
 			}
 			await page.getByRole("button", { name: "Appearance", exact: true }).click();
