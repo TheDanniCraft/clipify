@@ -1,26 +1,30 @@
 # Provider connection verification
 
-The approved mockup is implemented using the real Runner editor, account-wide destination storage and installed HeroUI controls. Test traceability is in test-list.md. No generated Drizzle migration is included.
+The approved real-code Runner mockup is implemented with account-wide destinations and installed HeroUI controls. Criteria traceability is in test-list.md. No generated Drizzle migration is included.
 
-## Completed scoped evidence
+## Final completion evidence
 
-- Provider contracts, provider HTTP behavior, callbacks and isolated PostgreSQL service tests passed 88 cases before the final category-label regression tests were added. The scoped critical coverage check passed: callback 100% lines/branches; other new server modules at least 97% lines and 90% branches. This partial lane is development evidence, not the complete gate.
-- Category contract and database save/reopen regression checks passed 63 cases; the category-clear and manual-destination UI whole file passed two cases.
-- The authenticated browser journey passed with actual installed components: combined Twitch consent URL, cancelled-consent draft preservation, manual-key save/delete, keyboard tabs/toggle, local title validation, inherited title, per-destination metadata, thumbnail upload/save/reopen, and inline destination-management return with an unsaved draft. Desktop/mobile and both themes were visually inspected. External consent is controlled; no real platform broadcast is claimed.
-- Existing affected Runner schedule, admission, continuity, account, destination and heartbeat suites passed; the heartbeat file passed 35 cases and destinations file passed 18 cases after their fixture/mocking corrections.
+Validated implementation commit: `b8cd3671fd22390824633a7bbac98e3d72c56f46`.
 
-## Final completion gates
+Execution source fingerprint: `16f906faf24cc274e4c36713bb31ef1614c944dc87d3d630b28cde3a314d1108`.
 
-Final runtime and test source was frozen after the optional-import regression correction and compatibility-test updates. Complete application coverage, native Runner coverage, production/browser builds and final lint are recorded below when their commands finish. Interrupted earlier runs are not completion evidence.
+- All six canonical application lanes completed with identical source fingerprints and the same Git tree. The five Jest lanes passed 530 suites and 5,914 tests; the two inherited skipped suites and 11 skipped cases remain unchanged. The workflow owner passed all 434 scenarios.
+- The canonical `scripts/merge-test-coverage.mjs` gate passed, including complete inventories, unchanged execution inputs, global/per-file floors, strict Runner critical floors, MCP source coverage and the legacy player gate. Overall coverage: statements 85.52%, branches 80.10%, functions 81.86%, lines 87.88%. `coverage/runner-feature/gate.json` reports `ok: true` for the fingerprint above. These overall percentages do not replace the stricter per-source gates.
+- Complete native Runner coverage passed: 52 suites, 451 passing tests and the single inherited updater TODO. Coverage: statements 94.78%, branches 90.41%, functions 95.61%, lines 97.53%. Its complete-inventory execution metadata is valid and matches the same fingerprint.
+- Production webpack build, TypeScript and standalone patched-dependency verification passed. Server-action manifest verification passed. Full-project lint passed with zero errors and five existing warnings. Formatting, migration-policy and TypeScript commit hooks passed.
+- Seven distinct real installed-component browser journeys passed: connected provider/details, Free editor, Pro editor, missing-source recovery, account-wide cross-computer reuse, first-connection/master setup parity and schedule-history protection. Desktop/mobile and light/dark screenshots were visually inspected. The connection journey covers consent cancellation and draft preservation, manual keys, keyboard navigation, local title validation, inherited metadata, thumbnail persistence and inline destination management without losing a draft.
+- Normal commit/push hooks passed on the implementation. GitHub draft build, typecheck, lint, formatting, scoped tests and Runner checks passed. The aggregate Test job deliberately rejects draft-only validation; marking the PR ready triggers the mandatory full CI gate. No merge or deployment is performed by this work.
 
-- Production webpack build, TypeScript and standalone dependency verification passed on the corrected source. Server-action manifest check passed. Formatting and the staged migration-policy check passed. Final lint passed with zero errors and five existing warnings.
-- Complete native Runner coverage passed: 52 suites, 451 passing tests and the single inherited updater TODO. Coverage was 97.53% lines, 90.41% branches, 95.61% functions and 94.78% statements; configured per-file gates passed. Its execution-input metadata validates the complete inventory and unchanged source fingerprint `586aebc0be1e86210a9a447be995cd7c255ea4991ceec8f4843decff7a024b96`.
-- The complete application Jest phase passed 529 suites and 5,907 tests, with two pre-existing skipped suites and 11 skipped cases. The canonical workflow stage passed 430 scenarios and failed four stale media fixtures; its counters were correctly withheld. After correcting their transport boundary and account-wide names, the complete five-scenario media owner passed. Fresh six-lane merged coverage remains pending.
-- Seven distinct installed browser journeys passed: the new connection/details journey and six existing Runner editor, cross-computer reuse, setup parity and schedule-history journeys. The unchanged parity scenario needed a rerun after a five-second preview-poll observation timeout. Native cold-resume likewise passed unchanged after the concurrent-build capture timeout; the later complete native gate passed without relaxing assertions or timeouts.
-- Normal commit and push hooks passed, including 170 related suites / 2,741 cases (one skipped suite, three skipped cases), five automation/fixture suites / eight cases, and script automation checks. CodeFactor passed on implementation commit `3428f37e`; remaining GitHub checks were queued at that checkpoint. The PR remains draft until the full local gate finishes.
+## Corrections and reruns
+
+Earlier failing or interrupted reports are diagnostic evidence, not completion passes. The cycle log records the optional-import regression, category display/clear regressions, media-fixture compatibility corrections and coverage gaps that were corrected before the final runs.
+
+An initial database-2 run sharing PostgreSQL with other lanes exceeded a default test teardown deadline; its unchanged whole-lane rerun with its own service passed. Final database/workflow lanes used separate disposable loopback services. One OAuth discovery case in the first final database-1 run hit its existing child-process timeout during concurrent startup/build load. After all other heavy jobs completed, its entire 53-file lane passed unchanged with one worker. No assertions, deadlines or coverage thresholds were relaxed, and the failing report was not merged. The final serial timing/race lane also passed all 26 suites / 193 cases.
+
+An earlier browser setup-parity observation timeout and native cold-capture timeout passed on unchanged owning reruns; subsequent complete native coverage passed as recorded above. Mocked component tests and partial diagnostic coverage are not used as browser acceptance or final merged coverage.
 
 ## Operational verification
 
-Configure exact OAuth callbacks and provider credentials described in docs/runner-provider-connections.md. YouTube additionally requires its API/consent configuration and applicable Google verification. Verify real consent, live eligibility, metadata delivery and private Twitch output with authorized test accounts before enabling those integrations publicly. Local fixtures do not establish these external conditions.
+Configure exact callbacks and credentials in docs/runner-provider-connections.md. YouTube additionally requires its API/consent setup and applicable Google verification. Verify real consent, live eligibility, metadata delivery and private Twitch output with authorized test accounts before public enablement. Local controlled provider responses and browser consent interception do not establish those external conditions.
 
-Offline cached broadcasts retain the provider's previous details until a connected Runner heartbeat can apply the occurrence's captured settings. Optional metadata failure remains visible and retryable without terminating the broadcast.
+Offline cached broadcasts retain the provider's previous details until a connected Runner heartbeat can apply the occurrence's captured settings. Optional metadata failures remain visible and retryable without terminating the broadcast.
