@@ -131,10 +131,15 @@ export async function launchWindowsUpdateHelper(execPath: string, newPath: strin
 		}`,
 	].join("\n");
 	const encodedCommand = Buffer.from(script, "utf16le").toString("base64");
-	const helper = spawn("powershell.exe", ["-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encodedCommand], {
-		detached: true,
+	// A detached, hidden Windows PowerShell can exit successfully before running
+	// any script. CMD supplies its hidden console; unref releases the Node parent.
+	// Only constant flags and base64 enter CMD. Paths/arguments stay inside the
+	// encoded PowerShell script and never become CMD syntax.
+	const helper = spawn("cmd.exe", ["/d", "/s", "/c", `powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand ${encodedCommand}`], {
+		detached: false,
 		stdio: ["ignore", "pipe", "pipe"],
 		windowsHide: true,
+		windowsVerbatimArguments: true,
 	});
 	await new Promise<void>((resolve, reject) => {
 		let ready = false;

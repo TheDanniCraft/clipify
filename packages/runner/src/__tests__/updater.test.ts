@@ -110,7 +110,7 @@ describe("Updater logic", () => {
 		});
 	});
 
-	it("should schedule a detached Windows update after the current process exits", async () => {
+	it("runs the Windows helper in a hidden console and waits for readiness", async () => {
 		const unref = jest.fn();
 		const { EventEmitter } = await import("events");
 		const child = Object.assign(new EventEmitter(), { unref, kill: jest.fn(), stdout: Object.assign(new EventEmitter(), { destroy: jest.fn() }), stderr: Object.assign(new EventEmitter(), { destroy: jest.fn() }) });
@@ -122,9 +122,9 @@ describe("Updater logic", () => {
 		expect(unref).not.toHaveBeenCalled();
 		child.stdout.emit("data", Buffer.from("CLIPIFY_UPDATE_READY\r\n"));
 		await handoff;
-		expect(spawn).toHaveBeenCalledWith("powershell.exe", expect.arrayContaining(["-EncodedCommand", expect.any(String)]), { detached: true, stdio: ["ignore", "pipe", "pipe"], windowsHide: true });
+		expect(spawn).toHaveBeenCalledWith("cmd.exe", ["/d", "/s", "/c", expect.stringMatching(/^powershell\.exe .* -EncodedCommand [A-Za-z0-9+/=]+$/)], { detached: false, stdio: ["ignore", "pipe", "pipe"], windowsHide: true, windowsVerbatimArguments: true });
 		const spawnArgs = (spawn as jest.Mock).mock.calls[0][1] as string[];
-		const script = Buffer.from(spawnArgs.at(-1)!, "base64").toString("utf16le");
+		const script = Buffer.from(spawnArgs.at(-1)!.split(" ").at(-1)!, "base64").toString("utf16le");
 		expect(script).toContain("$ErrorActionPreference = 'Stop'");
 		expect(script).toContain("Start-Sleep -Milliseconds 500");
 		expect(script).toContain("Wait-Process -Id 1234");
