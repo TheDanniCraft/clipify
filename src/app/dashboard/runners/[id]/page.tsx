@@ -227,7 +227,7 @@ export default function RunnerPage() {
 	const dirty = !savedSession || overlayId !== savedSession.overlayId || mode !== savedSession.mode || controlMode !== savedSession.controlMode || [...selectedDestinationIds].sort().join() !== [...savedSession.destinationIds].sort().join();
 	const streamConfigValid = Boolean(overlayId && selectedDestinationIds.length && (runnerPolicy?.runnerPro || selectedDestinationIds.length === 1));
 	const streamReadyToStart = !dirty && streamConfigValid && canStartWithDestinations(destinationOptions, selectedDestinationIds);
-	const refreshDestinationOptions = async () => {
+	const refreshDestinationOptions = async (change?: { deletedId: string }) => {
 		if (!user || !runner) return;
 		try {
 			const result = await listRunnerDestinations(user.id, runner.id);
@@ -235,8 +235,10 @@ export default function RunnerPage() {
 				setDestinationOptions(result.destinations);
 				setSelectedDestinationIds((current) => {
 					const retained = current.filter((id) => result.destinations.some((target) => target.id === id));
+					if (change?.deletedId) return retained;
 					return retained.length ? retained : result.destinations.slice(0, 1).map((target) => target.id);
 				});
+				if (change?.deletedId) setStreamSessions(await getStreamSessionsForRunner(runner.id, user.id));
 			}
 		} catch {
 			setConfigurationError("Could not refresh destinations. Please try again.");

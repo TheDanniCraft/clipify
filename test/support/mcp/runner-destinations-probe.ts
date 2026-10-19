@@ -273,7 +273,7 @@ export async function runRunnerDestinationsProbe(input: Parameters<typeof runRun
 				const remove = Reflect.get(actions, "deleteRunnerDestination");
 				if (variant.startsWith("delete") && typeof remove !== "function") return { authenticated, available: true, deleteAvailable: false };
 				let clearSessionId: string | undefined;
-				if (["clear", "clear_metadata", "delete_referenced"].includes(variant)) {
+				if (["clear", "clear_metadata", "delete_referenced"].includes(variant) || variant.startsWith("delete_detach")) {
 					const overlayId = randomUUID();
 					clearSessionId = randomUUID();
 					await input.fixture.pool.query("INSERT INTO overlays(id,owner_id,secret,name,status,type) VALUES($1,'fixture-creator','destination-source-secret','Destination source','active','Featured')", [overlayId]);
@@ -281,6 +281,30 @@ export async function runRunnerDestinationsProbe(input: Parameters<typeof runRun
 					await input.fixture.pool.query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,rtmp_url,encrypted_stream_key) VALUES($1,'fixture-creator',$2,$3,'24/7','rtmp://live.twitch.tv/app',$4)", [clearSessionId, runnerId, overlayId, encryptString(secret)]);
 					await input.fixture.pool.query("INSERT INTO stream_session_destinations(session_id,destination_id,owner_id,position) VALUES($1,$2,'fixture-creator',0)", [clearSessionId, destinationId]);
 				}
+				async function seedDeletionSafety() {
+					const admissionStates: Record<string, string> = { delete_detach_active: "active", delete_detach_cached: "authorized", delete_detach_uncertain: "uncertain", delete_detach_snapshot: "active" };
+					const state = admissionStates[variant];
+					if (state) await input.fixture.pool.query("INSERT INTO runner_broadcast_admissions(owner_id,runner_id,session_id,execution_generation,state,configuration_revision,benefits_at_start,target_ids_snapshot) VALUES('fixture-creator',$1,$2,$3,$4,1,'{}'::jsonb,ARRAY[$5::uuid])", [runnerId, clearSessionId, randomUUID(), state, destinationId]);
+					if (variant === "delete_detach_snapshot") await input.fixture.pool.query("DELETE FROM stream_session_destinations WHERE session_id=$1", [clearSessionId]);
+					if (variant === "delete_detach_desired") await input.fixture.pool.query("UPDATE stream_sessions SET desired_state='running' WHERE id=$1", [clearSessionId]);
+					if (variant === "delete_detach_running") await input.fixture.pool.query("UPDATE stream_sessions SET actual_state='running' WHERE id=$1", [clearSessionId]);
+					if (variant === "delete_detach_multiple") {
+						const backup = await save({ ownerId: "fixture-creator", runnerId, name: "Backup", provider: "custom", rtmpUrl: "rtmp://127.0.0.1:1943/backup", credentialAction: "clear" });
+						if (!backup.success) throw new Error("DELETION_BACKUP_FIXTURE_FAILED");
+						await input.fixture.pool.query("INSERT INTO stream_session_destinations(session_id,destination_id,owner_id,position) VALUES($1,$2,'fixture-creator',1)", [clearSessionId, backup.destination.id]);
+					}
+					if (variant === "delete_detach_schedule") {
+						const eventId = randomUUID();
+						const { rows } = await input.fixture.pool.query("SELECT overlay_id FROM stream_sessions WHERE id=$1", [clearSessionId]);
+						await input.fixture.pool.query("INSERT INTO runner_schedule_events(id,owner_id,runner_id,session_id,overlay_id,title,timezone,recurrence,recurrence_anchor,local_start_date,local_end_date,local_start_time,local_end_time) VALUES($1,'fixture-creator',$2,$3,$4,'Saved schedule','UTC','once','once-anchor','2027-01-03','2027-01-03','12:00','13:00')", [eventId, runnerId, clearSessionId, rows[0].overlay_id]);
+						await input.fixture.pool.query("INSERT INTO runner_schedule_event_destinations(event_id,owner_id,destination_id,position) VALUES($1,'fixture-creator',$2,0)", [eventId, destinationId]);
+					}
+					if (variant === "delete_detach_rollback") {
+						await input.fixture.pool.query("CREATE FUNCTION destination_delete_failure() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'controlled destination deletion failure'; END $$");
+						await input.fixture.pool.query("CREATE TRIGGER destination_delete_failure AFTER DELETE ON runner_destinations FOR EACH ROW EXECUTE FUNCTION destination_delete_failure()");
+					}
+				}
+				await seedDeletionSafety();
 				const update = { ownerId: "fixture-creator", runnerId, id: destinationId, expectedRevision: 1, name: "My Twitch", provider: "twitch", rtmpUrl: "rtmp://live.twitch.tv/app", credentialAction: "keep" } as const;
 				async function observeDestinationValidation() {
 					const invalidInputs = [
@@ -324,7 +348,7 @@ export async function runRunnerDestinationsProbe(input: Parameters<typeof runRun
 						attempted = await save({ ...update, expectedRevision: 2, name: "Renamed without key", credentialAction: "keep" });
 					}
 
-					if (variant.startsWith("delete")) attempted = await remove({ ownerId: "fixture-creator", id: destinationId, expectedRevision: variant === "delete_stale" ? 2 : 1 });
+					if (variant.startsWith("delete")) attempted = await remove({ ownerId: "fixture-creator", id: destinationId, expectedRevision: variant.endsWith("_stale") ? 2 : 1, ...(variant.startsWith("delete_detach") ? { removeFromSavedBroadcasts: true } : {}) });
 					if (variant.startsWith("bound_")) attempted = await save({ ownerId: "fixture-creator", runnerId, name: "x".repeat(Number(variant.slice(6))), provider: "custom", rtmpUrl: "rtmp://127.0.0.1:1940/local", credentialAction: "clear" });
 					if (variant === "rollback") {
 						// A real transaction fault after the attempted row mutation must preserve prior data.
@@ -368,6 +392,8 @@ export async function runRunnerDestinationsProbe(input: Parameters<typeof runRun
 					available: true,
 					deleteAvailable: typeof remove === "function",
 					sessionReferences: Number((await input.fixture.pool.query("SELECT count(*) FROM stream_session_destinations WHERE destination_id=$1", [destinationId])).rows[0].count),
+					remainingTargets: clearSessionId ? (await input.fixture.pool.query("SELECT d.name FROM stream_session_destinations sd JOIN runner_destinations d ON d.id=sd.destination_id WHERE sd.session_id=$1 ORDER BY sd.position", [clearSessionId])).rows.map((row) => row.name) : [],
+					savedBroadcast: clearSessionId ? (await input.fixture.pool.query("SELECT rtmp_url,encrypted_stream_key IS NOT NULL AS has_key,configuration_revision FROM stream_sessions WHERE id=$1", [clearSessionId])).rows[0] : undefined,
 					attempted,
 					clearedStart,
 					foreignReadsDenied,

@@ -122,7 +122,7 @@ export async function listRunnerDestinations(ownerId: string, runnerId?: string)
 	});
 }
 
-export async function deleteRunnerDestination(data: { ownerId: string; id: string; expectedRevision: number }) {
+export async function deleteRunnerDestination(data: { ownerId: string; id: string; expectedRevision: number; removeFromSavedBroadcasts?: boolean }) {
 	return runnerDestinationAction("delete-runner-destination", async (principal) => {
 		const { deleteRunnerDestinationForPrincipal } = await import("@/server/runner/destinations");
 		const result = await deleteRunnerDestinationForPrincipal(principal, data);
