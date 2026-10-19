@@ -625,3 +625,42 @@ test("PC-5 missing and non-Twitch grants cannot start a test output", async () =
 		else process.env.YOUTUBE_CLIENT_SECRET = previousSecret;
 	}
 });
+test("PC-4 provider failure feedback is visible on the owned saved schedule", async () => {
+	const { applyRunnerBroadcastDetails } = await import("@/server/runner/provider-metadata");
+	const { listRunnerScheduleEventsForPrincipal } = await import("@/server/runner/schedules");
+	const state = await metadataCase();
+	global.fetch = jest.fn().mockResolvedValue(new Response("{}", { status: 503 }));
+	await applyRunnerBroadcastDetails(state.runner, fixture.db);
+	const result = await listRunnerScheduleEventsForPrincipal(principal, { ownerId: "provider-owner", runnerId: state.runner.id }, fixture.db);
+	expect(result).toMatchObject({ success: true, events: [expect.objectContaining({ id: state.event.id, streamDetailsFeedback: [expect.objectContaining({ destinationId: state.target.id, status: "retry", error: expect.any(String) })] })] });
+});
+test.each([true, false])("PC-4 only an owned YouTube thumbnail can be saved on an event: owned=%s", async (owned) => {
+	const { saveRunnerScheduleEventForPrincipal } = await import("@/server/runner/schedules");
+	const state = await metadataCase(),
+		asset = randomUUID();
+	await fixture.pool.query("DELETE FROM runner_broadcast_admissions");
+	await fixture.pool.query("DELETE FROM runner_schedule_events");
+	await fixture.pool.query("UPDATE runner_provider_connections SET provider='youtube' WHERE id=$1", [state.target.connection_id]);
+	await fixture.pool.query("UPDATE runner_destinations SET provider='youtube',rtmp_url='rtmp://a.rtmp.youtube.com/live2' WHERE id=$1", [state.target.id]);
+	if (owned) await fixture.pool.query("INSERT INTO runner_branding_assets(id,owner_id,kind,normalized_mime,size_bytes,width,height,checksum,bytes) VALUES($1,'provider-owner','background','image/png',1,1,1,'fixture',decode('00','hex'))", [asset]);
+	const session = (await fixture.pool.query("SELECT id,overlay_id FROM stream_sessions LIMIT 1")).rows[0];
+	const result = await saveRunnerScheduleEventForPrincipal(
+		principal,
+		{ ownerId: "provider-owner", runnerId: state.runner.id, sessionId: session.id, overlayId: session.overlay_id, title: "Vacation", timezone: "Europe/Berlin", recurrence: "once", localStartDate: "2027-02-01", localEndDate: "2027-02-01", localStartTime: "12:00", localEndTime: "13:00", destinationIds: [state.target.id], setStreamDetails: true, streamDetails: [{ destinationId: state.target.id, thumbnailAssetId: asset }] },
+		fixture.db,
+	);
+	expect(result).toMatchObject(owned ? { success: true, event: { streamDetails: [{ destinationId: state.target.id, thumbnailAssetId: asset }] } } : { success: false, code: "INVALID_INPUT", error: expect.stringContaining("thumbnail") });
+});
+test("PC-4 Twitch does not accept YouTube-only metadata", async () => {
+	const { saveRunnerScheduleEventForPrincipal } = await import("@/server/runner/schedules");
+	const state = await metadataCase();
+	await fixture.pool.query("DELETE FROM runner_broadcast_admissions");
+	await fixture.pool.query("DELETE FROM runner_schedule_events");
+	const session = (await fixture.pool.query("SELECT id,overlay_id FROM stream_sessions LIMIT 1")).rows[0];
+	const result = await saveRunnerScheduleEventForPrincipal(
+		principal,
+		{ ownerId: "provider-owner", runnerId: state.runner.id, sessionId: session.id, overlayId: session.overlay_id, title: "Vacation", timezone: "Europe/Berlin", recurrence: "once", localStartDate: "2027-02-01", localEndDate: "2027-02-01", localStartTime: "12:00", localEndTime: "13:00", destinationIds: [state.target.id], setStreamDetails: true, streamDetails: [{ destinationId: state.target.id, description: "Unsupported" }] },
+		fixture.db,
+	);
+	expect(result).toMatchObject({ success: false, code: "INVALID_INPUT", error: expect.stringContaining("supported") });
+});

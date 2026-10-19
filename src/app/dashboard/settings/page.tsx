@@ -65,7 +65,6 @@ export default function SettingsPage() {
 	const { isOpen: deleteModalIsOpen, open: deleteModalOnOpen, setOpen: deleteModalOnOpenChange } = useOverlayState();
 	const { isOpen: exportModalIsOpen, open: exportModalOnOpen, setOpen: exportModalOnOpenChange } = useOverlayState();
 	const [deletionChoice, setDeletionChoice] = useState<"paid_through" | "immediate">("paid_through");
-	const [timer, setTimer] = useState<number>(0);
 	const [settings, setSettings] = useState<UserSettings | null>(null);
 	const [baseSettings, setBaseSettings] = useState<UserSettings | null>(null);
 	const [clipCacheStatus, setClipCacheStatus] = useState<ClipCacheStatusState | null>(null);
@@ -93,15 +92,6 @@ export default function SettingsPage() {
 
 		validateUser();
 	}, [router]);
-
-	useEffect(() => {
-		if (timer > 0) {
-			const interval = setInterval(() => {
-				setTimer((prev) => prev - 1);
-			}, 1000);
-			return () => clearInterval(interval);
-		}
-	}, [timer]);
 
 	useEffect(() => {
 		function updateRecentAuthWindow() {
