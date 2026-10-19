@@ -1,0 +1,314 @@
+{
+  "qualifiedCommit": "9b49c6322d603cad16e8aaa355296ba2bb29e8c8",
+  "sourceFingerprint": "b610c21f97e5542206040fc854e8b344e241f6bbc85e61bc8b9594f2eb025ab6",
+  "ci": {
+    "url": "https://github.com/TheDanniCraft/clipify/actions/runs/39218922432",
+    "status": "completed",
+    "conclusion": "success",
+    "headSha": "9b49c6322d603cad16e8aaa355296ba2bb29e8c8",
+    "jobs": [
+      {
+        "name": "♻️ Prepare dependency cache",
+        "conclusion": "success"
+      },
+      {
+        "name": "📋 Verify Runner manifest extraction",
+        "conclusion": "success"
+      },
+      {
+        "name": "🔎 Detect changed areas",
+        "conclusion": "success"
+      },
+      {
+        "name": "🎨 Format",
+        "conclusion": "success"
+      },
+      {
+        "name": "🔎 Typecheck",
+        "conclusion": "success"
+      },
+      {
+        "name": "🧹 Lint",
+        "conclusion": "success"
+      },
+      {
+        "name": "🧪 Coverage (unit)",
+        "conclusion": "success"
+      },
+      {
+        "name": "🏗️ Build",
+        "conclusion": "success"
+      },
+      {
+        "name": "🏃 Runner typecheck and tests",
+        "conclusion": "success"
+      },
+      {
+        "name": "🧪 Coverage (workflows)",
+        "conclusion": "success"
+      },
+      {
+        "name": "🧪 Coverage (database-2)",
+        "conclusion": "success"
+      },
+      {
+        "name": "🧪 Coverage (quiet)",
+        "conclusion": "success"
+      },
+      {
+        "name": "🏗️ Shared browser build",
+        "conclusion": "success"
+      },
+      {
+        "name": "🧪 Coverage (database-1)",
+        "conclusion": "success"
+      },
+      {
+        "name": "🧪 Coverage (database-3)",
+        "conclusion": "success"
+      },
+      {
+        "name": "🧪 Scoped draft checks",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "🌐 Browser tests (atdd)",
+        "conclusion": "success"
+      },
+      {
+        "name": "🌐 Browser tests (bdd-2)",
+        "conclusion": "success"
+      },
+      {
+        "name": "🌐 Browser tests (acceptance)",
+        "conclusion": "success"
+      },
+      {
+        "name": "🌐 Browser tests (bdd-3)",
+        "conclusion": "success"
+      },
+      {
+        "name": "🌐 Browser tests (bdd-1)",
+        "conclusion": "success"
+      },
+      {
+        "name": "🌐 Browser tests (compliance)",
+        "conclusion": "success"
+      },
+      {
+        "name": "🧪 Test",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "nativeMatrix": {
+    "url": "https://github.com/TheDanniCraft/clipify/actions/runs/39218915226",
+    "status": "completed",
+    "conclusion": "success",
+    "headSha": "9b49c6322d603cad16e8aaa355296ba2bb29e8c8",
+    "jobs": [
+      {
+        "name": "🧭 Prepare Runner context",
+        "conclusion": "success"
+      },
+      {
+        "name": "🏗️ Build Runner (linux-arm64, node24-linux-arm64, ubuntu-24.04-arm, clipify-runner-linux-arm64)",
+        "conclusion": "success"
+      },
+      {
+        "name": "🏗️ Build Runner (macos-x64, node24-macos-x64, macos-15-intel, clipify-runner-macos)",
+        "conclusion": "success"
+      },
+      {
+        "name": "🏗️ Build Runner (linux-x64, node24-linux-x64, ubuntu-latest, clipify-runner-linux)",
+        "conclusion": "success"
+      },
+      {
+        "name": "🏗️ Build Runner (windows-x64, node24-win-x64, windows-latest, clipify-runner-windows.exe)",
+        "conclusion": "success"
+      },
+      {
+        "name": "🏗️ Build Runner (macos-arm64, node24-macos-arm64, macos-14, clipify-runner-macos-arm64)",
+        "conclusion": "success"
+      },
+      {
+        "name": "✅ Validate Runner matrix",
+        "conclusion": "success"
+      },
+      {
+        "name": "📦 Publish Runner OCI artifacts",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "native": {
+    "ok": true,
+    "passed": 450,
+    "suites": 52,
+    "inheritedTodo": 1,
+    "reportSha256": "f7578262f7cda18152ae60b4945b14f9568fbefea0172ede4c5e9f05637e9f2e"
+  },
+  "mergedGate": {
+    "ok": true,
+    "sourceFingerprint": "b610c21f97e5542206040fc854e8b344e241f6bbc85e61bc8b9594f2eb025ab6",
+    "sources": [
+      "packages/runner/src/protocol.ts",
+      "src/app/api/runner/branding-assets/route.ts",
+      "src/app/api/runner/heartbeat/route.ts",
+      "src/app/api/runner/presentation/route.ts",
+      "src/app/api/runner/terminal/route.ts",
+      "src/app/components/overlayPlayer.tsx",
+      "src/app/components/playerOverlay.tsx",
+      "src/app/components/runner/RunnerBrandingPreview.tsx",
+      "src/app/components/runner/StandbyEditor.tsx",
+      "src/app/components/runnerGeneratedPresentation.tsx",
+      "src/app/lib/deployment.ts",
+      "src/app/lib/embeddedRoutes.ts",
+      "src/app/lib/entitlements.ts",
+      "src/app/lib/runnerBrandingLayout.ts",
+      "src/app/lib/runnerStandby.ts",
+      "src/app/runner/presentation/[sessionId]/assets/[assetId]/route.ts",
+      "src/app/runner/presentation/[sessionId]/page.tsx",
+      "src/app/runner/presentation/[sessionId]/policy/route.ts",
+      "src/app/runner/preview/[runnerId]/assets/[assetId]/route.ts",
+      "src/app/runner/preview/[runnerId]/page.tsx",
+      "src/server/entitlements.ts",
+      "src/server/mcp/creators.ts",
+      "src/server/resources/errors.ts",
+      "src/server/resources/runners.ts",
+      "src/server/resources/workflow.ts",
+      "src/server/runner/admission.ts",
+      "src/server/runner/benefits.ts",
+      "src/server/runner/branding-assets.ts",
+      "src/server/runner/branding-profiles.ts",
+      "src/server/runner/branding.ts",
+      "src/server/runner/capabilities.ts",
+      "src/server/runner/destinations.ts",
+      "src/server/runner/lease.ts",
+      "src/server/runner/presentation.ts",
+      "src/server/runner/schedule-time.ts",
+      "src/server/runner/schedules.ts",
+      "src/server/runner/signing.ts",
+      "src/server/runner/standby-next-broadcast.ts",
+      "src/server/runner/terminal.ts"
+    ],
+    "strictCritical": [
+      "packages/runner/src/protocol.ts",
+      "src/app/api/runner/heartbeat/route.ts",
+      "src/app/api/runner/terminal/route.ts",
+      "src/app/lib/entitlements.ts",
+      "src/server/entitlements.ts",
+      "src/server/mcp/creators.ts",
+      "src/server/resources/errors.ts",
+      "src/server/resources/runners.ts",
+      "src/server/resources/workflow.ts",
+      "src/server/runner/admission.ts",
+      "src/server/runner/benefits.ts",
+      "src/server/runner/branding.ts",
+      "src/server/runner/capabilities.ts",
+      "src/server/runner/destinations.ts",
+      "src/server/runner/lease.ts",
+      "src/server/runner/presentation.ts",
+      "src/server/runner/schedule-time.ts",
+      "src/server/runner/schedules.ts",
+      "src/server/runner/signing.ts",
+      "src/server/runner/terminal.ts",
+      "src/app/api/runner/presentation/route.ts",
+      "src/app/runner/presentation/[sessionId]/page.tsx",
+      "src/app/components/runnerGeneratedPresentation.tsx",
+      "src/server/runner/branding-profiles.ts",
+      "src/app/lib/runnerBrandingLayout.ts",
+      "src/app/runner/preview/[runnerId]/page.tsx",
+      "src/app/runner/presentation/[sessionId]/policy/route.ts",
+      "src/server/runner/branding-assets.ts",
+      "src/server/runner/standby-next-broadcast.ts",
+      "src/app/api/runner/branding-assets/route.ts",
+      "src/app/runner/preview/[runnerId]/assets/[assetId]/route.ts",
+      "src/app/runner/presentation/[sessionId]/assets/[assetId]/route.ts",
+      "src/app/lib/runnerStandby.ts"
+    ],
+    "criticalFloors": {
+      "statements": 95,
+      "functions": 95,
+      "lines": 95,
+      "branches": 90
+    },
+    "ordinaryFloors": {
+      "statements": 90,
+      "functions": 90,
+      "lines": 90,
+      "branches": 85
+    },
+    "legacy": {
+      "ok": true,
+      "errors": [],
+      "summary": {
+        "lines": {
+          "total": 1079,
+          "covered": 1014,
+          "skipped": 0,
+          "pct": 93.97
+        },
+        "functions": {
+          "total": 198,
+          "covered": 175,
+          "skipped": 0,
+          "pct": 88.38
+        },
+        "statements": {
+          "total": 1260,
+          "covered": 1123,
+          "skipped": 0,
+          "pct": 89.12
+        },
+        "branches": {
+          "total": 964,
+          "covered": 754,
+          "skipped": 0,
+          "pct": 78.21
+        }
+      },
+      "runner": {
+        "statements": {
+          "covered": 21,
+          "total": 21,
+          "pct": 100
+        },
+        "functions": {
+          "covered": 9,
+          "total": 9,
+          "pct": 100
+        },
+        "branches": {
+          "covered": 35,
+          "total": 35,
+          "pct": 100
+        },
+        "lines": {
+          "covered": 9,
+          "total": 9,
+          "pct": 100
+        }
+      }
+    }
+  },
+  "qualityChecks": [
+    {
+      "link": "https://github.com/TheDanniCraft/clipify/runs/117949530275",
+      "name": "CodeQL",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://www.codefactor.io/repository/github/thedannicraft/clipify/pull/519",
+      "name": "CodeFactor",
+      "state": "SUCCESS"
+    }
+  ],
+  "local": {
+    "componentCases": 31,
+    "editorJourneys": 3,
+    "presentationRegressions": 27,
+    "recoveryCases": 6
+  },
+  "scope": "Final documentation only updates preserve these verified execution inputs; no merge or production deployment."
+}

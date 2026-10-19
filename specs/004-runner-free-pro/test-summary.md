@@ -1,13 +1,16 @@
 # Test Summary Report: Free Runner and Pro Broadcasting
 
-> Current correction checkpoint (2026-10-18): the Runner UX and standalone-entitlement hard cut reopen validation. The historical totals below qualify their recorded frozen inputs, not this changed worktree. Current corrective execution and visual evidence must pass before this branch is release-ready.
+> Current correction checkpoint (2026-10-19): full CI39218922432 and five-platform native matrix39218915226 pass on9b49c632. CodeQL and CodeFactor pass. The merged application/native evidence matches execution fingerprint b610c21f97e5542206040fc854e8b344e241f6bbc85e61bc8b9594f2eb025ab6. All implementation and correction tasks are complete. Historical pending/No-Go statements below describe earlier candidates and are superseded by this qualification. No merge or production deployment is performed.
 
-**Updated:** 2026-10-18 · **Branch:** `plan/free-runner-branding`  
+**Updated:** 2026-10-19 · **Branch:** `plan/free-runner-branding`
+
 **Specification:** [spec.md](spec.md) · **Plan:** [plan.md](plan.md) · **Registry:** [test-traceability.md](test-traceability.md) · **Defects:** [defect-log.md](defect-log.md)
 
 ## Current corrective implementation
 
-The corrective baseline is fully qualified by CI39175629536 on5738f616, with matching execution identity815795f23330ca6d45da85eecbfd7b9c7cb6988d533ae2377a444041706f789e. The user subsequently requested icon/layout/tab/corner-picker refinements on2026-10-19. These are implemented and pass31 affected unit/component cases and3 real editor journeys; the complete affected presentation owners additionally pass27/27 with inspected clean captures. Fresh final CI remains required for this changed source.
+The icon/layout/tab/corner-picker refinements pass31 affected unit/component cases and3 real editor journeys; the complete affected presentation owners additionally pass27/27 with inspected clean captures. Final [full CI39218922432](https://github.com/TheDanniCraft/clipify/actions/runs/39218922432) passes every application coverage lane, all six browser groups, merged coverage, native coverage, build, types, lint and formatting. Native coverage passes450 tests across52 suites with one inherited updater TODO. The [native matrix39218915226](https://github.com/TheDanniCraft/clipify/actions/runs/39218915226) passes all five platforms. Retained qualification metadata is `tdd/evidence/ux-correction/final-qualified-ci.json`.
+
+CI152f8b70 exposed an exact-boundary fixture that suspended the native watchdog for renderer proof, then relied on a single estimated clock tick for shutdown. A deliberately early tick reproduces its open-output failure. Restore the real watchdog after the renderer proof and require the persisted closure receipt; the whole recovery owner passes6/6 and final native coverage passes. All original final-frame, no-next-clip and closed-output assertions and deadlines remain intact. No production shutdown code changes.
 
 The Runner editor and standalone-entitlement hard cut are implemented in `6f87bd3b`/`9433536e`, with enrollment cleanup in `ec95eae8`, pushed to PR #519. The PR is ready for review so complete CI owns completion validation. The complete Runner browser regression owner passes 42/42 scenarios on the corrected production build. Required push feedback passes 201 suites and 3,043 cases (one existing conditional suite and three conditional cases skipped); this is scoped feedback, not the full coverage gate.
 
