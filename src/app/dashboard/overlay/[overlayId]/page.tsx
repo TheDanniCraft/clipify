@@ -1,5 +1,7 @@
 "use client";
 
+import DashboardEditorLayout from "@components/dashboardEditorLayout";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useParams, useRouter } from "next/navigation";
@@ -787,12 +789,13 @@ export default function OverlaySettings() {
 			<ChatwootData user={user} overlay={overlay} />
 
 			<DashboardNavbar user={user!} title='Overlay Settings' tagline='Manage your overlays'>
-				<div className='flex flex-col items-center justify-center w-full p-4'>
+				<DashboardEditorLayout>
 					<Card className='w-full max-w-4xl'>
 						<Card.Header className='flex w-full flex-row items-center justify-between gap-4'>
 							<div className='flex min-w-0 items-center gap-3'>
 								<Button
 									isIconOnly
+									aria-label='Back to dashboard'
 									variant='tertiary'
 									onPress={() => {
 										router.push(`${baseUrl}/dashboard`);
@@ -802,7 +805,7 @@ export default function OverlaySettings() {
 								</Button>
 								<h1 className='text-xl font-bold'>Overlay Settings</h1>
 							</div>
-							<span className='shrink-0 text-sm text-muted'>ID: {overlayId}</span>
+							<span className='hidden shrink-0 text-sm text-muted sm:inline'>ID: {overlayId}</span>
 						</Card.Header>
 						<Separator />
 						<Card.Content>
@@ -1004,6 +1007,7 @@ export default function OverlaySettings() {
 											<TextField fullWidth className='min-w-0 flex-1'>
 												<InputGroup fullWidth variant='secondary'>
 													<InputGroup.Input
+														className='min-w-0'
 														onChange={(event) => {
 															event.preventDefault();
 														}}
@@ -1321,7 +1325,7 @@ export default function OverlaySettings() {
 							</div>
 						</Card.Content>
 					</Card>
-				</div>
+				</DashboardEditorLayout>
 
 				<ControlledModal isOpen={isCliplistOpen} onOpenChange={onCliplistOpenChange} dialogClassName='flex max-h-[80vh] flex-col overflow-hidden'>
 					<Modal.Header className='flex w-full flex-row items-center justify-between gap-3 pt-10'>

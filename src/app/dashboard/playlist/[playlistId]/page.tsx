@@ -1,5 +1,7 @@
 "use client";
 
+import DashboardEditorLayout from "@components/dashboardEditorLayout";
+
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getAllPlaylists, getPlaylistClips, previewImportPlaylistClips, savePlaylist, upsertPlaylistClips } from "@actions/database";
@@ -378,15 +380,15 @@ export default function PlaylistPage() {
 
 	return (
 		<DashboardNavbar user={user!} title='Playlist Management' tagline='Manage your curated clip sets'>
-			<div className='flex flex-col items-center justify-center w-full p-4'>
+			<DashboardEditorLayout>
 				<Card className='w-full max-w-4xl'>
 					<Card.Header className='flex flex-col items-stretch gap-3'>
 						<div className='flex items-center gap-2'>
-							<Button isIconOnly variant='tertiary' onPress={() => router.push("/dashboard")}>
+							<Button isIconOnly variant='tertiary' aria-label='Back to dashboard' onPress={() => router.push("/dashboard")}>
 								<IconArrowLeft />
 							</Button>
-							<TextField className='min-w-[260px]'>
-								<Input value={playlistNameDraft} onChange={(event) => setPlaylistNameDraft(event.target.value)} placeholder='Playlist name' className='h-8 text-sm' />
+							<TextField className='min-w-0 flex-1'>
+								<Input variant='secondary' aria-label='Playlist name' value={playlistNameDraft} onChange={(event) => setPlaylistNameDraft(event.target.value)} placeholder='Playlist name' className='h-8 text-sm' />
 							</TextField>
 						</div>
 						<div className='flex flex-wrap items-center gap-2 pt-1'>
@@ -569,7 +571,7 @@ export default function PlaylistPage() {
 						</ul>
 					</Card.Content>
 				</Card>
-			</div>
+			</DashboardEditorLayout>
 
 			<ControlledModal isOpen={isAddClipsOpen} onOpenChange={onAddClipsOpenChange} size='lg' containerClassName='max-w-5xl' dialogClassName='max-h-[80vh]'>
 				<Modal.Header className='flex flex-col gap-1'>

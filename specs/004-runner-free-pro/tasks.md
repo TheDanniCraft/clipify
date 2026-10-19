@@ -2424,3 +2424,5 @@ The user superseded legacy Runner preservation: hard cut the unreleased Runner e
 - [x] UXR-14 Make Schedule an explicit action beside the control selector. Saving configuration must never open the calendar; Schedule must not silently save drafts. Explain the save prerequisite locally and verify explicit desktop/mobile opening and real event creation.
 
 - [x] UXR-15 Align Schedule inline with its Control selector, filling the available row without a floating button beneath it. Verify desktop/mobile alignment and inspect the revised layouts while retaining explicit opening and save behavior.
+
+- [x] UXR-16 Audit dashboard editor layout against Overlay/Gallery/Playlist. Share editor width/gutters, move Runner navigation/name/actions into its primary card, integrate first setup, correct Tools nested padding, Playlist mobile name sizing and accessible labels, and Overlay narrow header ID visibility. Verify real cross-editor navigation, long names, keyboard behavior, light/dark desktop/mobile captures and the complete Runner flow.

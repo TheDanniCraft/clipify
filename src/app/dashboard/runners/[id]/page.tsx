@@ -1,12 +1,14 @@
 "use client";
 
+import DashboardEditorLayout from "@components/dashboardEditorLayout";
+
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { validateAuth } from "@actions/auth";
 import { getRunner, getRunnerToken, getStreamSessionsForRunner, upsertStreamSession, setStreamDesiredState, unlinkRunner, listRunnerDestinations, listRunnerScheduleEvents } from "@actions/runner";
 import { getAllOverlays } from "@actions/database";
-import { Accordion, Button, Card, Label, Select, Spinner, TextField, ListBox, Input, Chip, Modal, Dropdown, Tooltip } from "@heroui/react";
+import { Accordion, Button, Card, Label, Select, Spinner, TextField, ListBox, Input, Chip, Modal, Dropdown, Tooltip, Separator } from "@heroui/react";
 import { IconArrowLeft, IconBrandWindows, IconTerminal2, IconBrandApple, IconUnlink } from "@tabler/icons-react";
 import { notify } from "@lib/toast";
 import FullscreenLoadingState from "@components/fullscreenLoadingState";
@@ -422,47 +424,46 @@ export default function RunnerPage() {
 	const runnerConnectionLabel = runner.lastHeartbeatAt ? "Offline" : "Not connected";
 
 	return (
-		<DashboardNavbar user={user} title={runner.name} tagline='Runner'>
-			<div className='mx-auto w-full max-w-6xl space-y-6 px-4 pb-10 sm:px-6'>
-				<div className='flex flex-wrap items-center justify-between gap-3'>
-					<Button isIconOnly variant='tertiary' aria-label='Back to runners' onPress={() => router.push("/dashboard?tab=runners")}>
-						<IconArrowLeft />
-					</Button>
-					<div className='flex flex-wrap items-center gap-2'>
-						<Chip size='sm' variant='soft' color={runner.status === "online" ? "success" : "default"}>
-							{runner.status === "online" ? "Online" : runnerConnectionLabel}
-						</Chip>
-						<Tooltip delay={0}>
-							<Button isIconOnly variant='tertiary' aria-label='Unlink runner' onPress={() => setIsUnlinkConfirmOpen(true)} isDisabled={!canUnlinkRunner}>
-								<IconUnlink />
-							</Button>
-							<Tooltip.Content>Unlink runner</Tooltip.Content>
-						</Tooltip>
-					</div>
-				</div>
-				{!runner.lastHeartbeatAt && (
-					<Card>
-						<Card.Header>
-							<h2 className='text-lg font-semibold'>Setup Your Runner</h2>
-						</Card.Header>
-						<Card.Content className='space-y-4'>
-							<p className='text-sm text-muted'>Download Runner, open it on your computer, and approve the enrollment prompt.</p>
-							<div className='flex flex-wrap gap-3'>
-								<Button variant='secondary' onPress={() => handleRunnerDownload("windows")}>
-									<IconBrandWindows size={18} />
-									Download for Windows
-								</Button>
-								{renderLinuxDownloadDropdown("Download for Linux")}
-								{renderMacOSDownloadDropdown("Download for macOS")}
-							</div>
-						</Card.Content>
-					</Card>
-				)}
+		<DashboardNavbar user={user} title='Runner Settings' tagline='Manage your runner'>
+			<DashboardEditorLayout>
 				<Card>
-					<Card.Header>
-						<h2 className='text-lg font-semibold'>Stream Configuration</h2>
+					<Card.Header className='flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between'>
+						<div className='flex min-w-0 flex-1 items-center gap-3'>
+							<Button isIconOnly className='shrink-0' variant='tertiary' aria-label='Back to runners' onPress={() => router.push("/dashboard?tab=runners")}>
+								<IconArrowLeft />
+							</Button>
+							<h2 className='min-w-0 break-words text-xl font-bold'>{runner.name}</h2>
+						</div>
+						<div className='flex shrink-0 items-center justify-end gap-2'>
+							<Chip size='sm' variant='soft' color={runner.status === "online" ? "success" : "default"}>
+								{runner.status === "online" ? "Online" : runnerConnectionLabel}
+							</Chip>
+							<Tooltip delay={0}>
+								<Button isIconOnly variant='tertiary' aria-label='Unlink runner' onPress={() => setIsUnlinkConfirmOpen(true)} isDisabled={!canUnlinkRunner}>
+									<IconUnlink />
+								</Button>
+								<Tooltip.Content>Unlink runner</Tooltip.Content>
+							</Tooltip>
+						</div>
 					</Card.Header>
+					<Separator />
 					<Card.Content className='space-y-6'>
+						{!runner.lastHeartbeatAt && (
+							<section className='space-y-4' aria-label='Connect runner'>
+								<h3 className='text-lg font-semibold'>Setup Your Runner</h3>
+
+								<p className='text-sm text-muted'>Download Runner, open it on your computer, and approve the enrollment prompt.</p>
+								<div className='flex flex-wrap gap-3'>
+									<Button variant='secondary' onPress={() => handleRunnerDownload("windows")}>
+										<IconBrandWindows size={18} />
+										Download for Windows
+									</Button>
+									{renderLinuxDownloadDropdown("Download for Linux")}
+									{renderMacOSDownloadDropdown("Download for macOS")}
+								</div>
+							</section>
+						)}
+						<h3 className='text-lg font-semibold'>Stream Configuration</h3>
 						<div className='grid gap-6 lg:grid-cols-2'>
 							<div className='space-y-5'>
 								<Select value={overlayId || null} onChange={(value) => setOverlayId(String(value ?? ""))} variant='secondary'>
@@ -714,7 +715,7 @@ export default function RunnerPage() {
 						if (await handleUnlinkRunner()) setIsUnlinkConfirmOpen(false);
 					}}
 				/>
-			</div>
+			</DashboardEditorLayout>
 		</DashboardNavbar>
 	);
 }
