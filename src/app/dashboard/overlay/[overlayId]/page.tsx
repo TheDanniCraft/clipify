@@ -121,6 +121,11 @@ export default function OverlaySettings() {
 	const { isOpen: isImportOpen, open: onImportOpen, close: onImportClose, setOpen: onImportOpenChange } = useOverlayState();
 	const { isOpen: isAddClipsOpen, open: onAddClipsOpen, close: onAddClipsClose, setOpen: onAddClipsOpenChange } = useOverlayState();
 	const { isOpen: isUpgradeOpen, open: onUpgradeOpen, setOpen: onUpgradeOpenChange } = useOverlayState();
+	const [upgradeFeature, setUpgradeFeature] = useState("advanced_filters");
+	const openFeatureUpgrade = (feature = "advanced_filters") => {
+		setUpgradeFeature(feature);
+		onUpgradeOpen();
+	};
 	const { isOpen: isAutoImportLockedOpen, open: onAutoImportLockedOpen, close: onAutoImportLockedClose, setOpen: onAutoImportLockedOpenChange } = useOverlayState();
 	const plausible = usePlausible();
 
@@ -962,7 +967,7 @@ export default function OverlaySettings() {
 																feature: "advanced_filters",
 																plan: user?.plan ?? "free",
 															});
-															onUpgradeOpen();
+															openFeatureUpgrade();
 														}}
 														className='mt-3 w-full font-semibold'
 													>
@@ -973,7 +978,7 @@ export default function OverlaySettings() {
 													) : (
 														<div className='mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning bg-warning-soft px-3 py-2'>
 															<p className='text-xs'>{inTrial ? `Trial active: ${trialDaysLeft <= 1 ? "ends today." : `${trialDaysLeft} days left.`}` : "Start Pro now. Cancel anytime."}</p>
-															<Button size='sm' variant='tertiary' onPress={onUpgradeOpen}>
+															<Button size='sm' variant='tertiary' onPress={() => openFeatureUpgrade()}>
 																Upgrade now
 															</Button>
 														</div>
@@ -1823,7 +1828,13 @@ export default function OverlaySettings() {
 						<Button variant='tertiary' onPress={onAutoImportLockedClose}>
 							Close
 						</Button>
-						<Button onPress={onUpgradeOpen} variant='primary'>
+						<Button
+							onPress={() => {
+								onAutoImportLockedClose();
+								openFeatureUpgrade("playlist_import");
+							}}
+							variant='primary'
+						>
 							Upgrade
 						</Button>
 					</Modal.Footer>
@@ -1855,7 +1866,7 @@ export default function OverlaySettings() {
 				</ControlledModal>
 			</DashboardNavbar>
 
-			{user && <UpgradeModal isOpen={isUpgradeOpen} onOpenChange={onUpgradeOpenChange} user={user} title='Upgrade to unlock Pro overlay features' source='upgrade_modal' feature='advanced_filters' />}
+			{user && <UpgradeModal isOpen={isUpgradeOpen} onOpenChange={onUpgradeOpenChange} user={user} source='upgrade_modal' feature={upgradeFeature} />}
 		</>
 	);
 }

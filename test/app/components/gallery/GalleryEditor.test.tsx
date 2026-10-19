@@ -250,13 +250,13 @@ describe("GalleryEditor", () => {
 		expect(previewGallery.accentColor).toBe("#7C3AED");
 	});
 
-	it("shows Free gates and sends users to pricing", () => {
+	it("shows Free gates and preserves the gallery upgrade context", () => {
 		render(<GalleryEditor initialGallery={buildGallery()} playlists={[]} canUseAdvanced={false} canUseStyling={false} previewClips={[]} previewOwnerName='Alice' showPreviewAttribution />);
 		expect(screen.getByText("Advanced live filters require Pro")).toBeInTheDocument();
 		expect(screen.queryByText("Stable random")).not.toBeInTheDocument();
 		expect(screen.queryByText("Custom dates")).not.toBeInTheDocument();
-		fireEvent.click(screen.getByRole("button", { name: "View Pro" }));
-		expect(push).toHaveBeenCalledWith("/pricing");
+		fireEvent.click(screen.getByRole("button", { name: "Upgrade gallery filters" }));
+		expect(push).toHaveBeenCalledWith("/dashboard/settings?upgrade&source=upgrade_modal&feature=gallery_filters");
 		expect(screen.getByRole("button", { name: /Reset Theme/ })).toBeDisabled();
 		expect(screen.getByRole("button", { name: "Included Category IDs" })).toBeDisabled();
 	});

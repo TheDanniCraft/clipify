@@ -986,7 +986,7 @@ export default function OverlayStylePage() {
 					</Card>
 				</div>
 			</DashboardNavbar>
-			<UpgradeModal isOpen={isUpgradeOpen} onOpenChange={onUpgradeOpenChange} user={user} title='Upgrade to unlock Theme Studio' source='upgrade_modal' feature='advanced_filters' />
+			<UpgradeModal isOpen={isUpgradeOpen} onOpenChange={onUpgradeOpenChange} user={user} source='upgrade_modal' feature='theme_studio' />
 		</>
 	);
 }

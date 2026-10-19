@@ -3,7 +3,9 @@ import { Button, Chip, Modal, Tabs } from "@heroui/react";
 
 import { IconCheck, IconCrown } from "@tabler/icons-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import NextLink from "next/link";
+import { buttonVariants } from "@heroui/styles";
+import { Link } from "@heroui/react";
+import { getUpgradeCopy } from "@lib/upgradeCopy";
 import { generateCheckout, getBillingProductOptions } from "@actions/subscription";
 import type { BillingCycle, BillingProductOption, PaywallSource } from "@actions/subscription";
 import { getActiveCampaignOfferAction } from "@actions/campaignOffers";
@@ -44,6 +46,7 @@ function formatOriginalPrice(value?: string | number | null) {
 
 export default function UpgradeModal({ isOpen, onOpenChange, user, title, description, ctaLabel, returnUrl, source = "upgrade_modal", feature = "unknown", initialBillingCycle = "yearly", primaryProduct }: UpgradeModalProps) {
 	const plausible = usePlausible();
+	const contextualCopy = getUpgradeCopy(feature);
 	const effectivePlan = user.entitlements?.effectivePlan ?? user.plan;
 	const [billingCycle, setBillingCycle] = useState<BillingCycle>(initialBillingCycle);
 	const [billingOptions, setBillingOptions] = useState<BillingProductOption[]>([]);
@@ -145,12 +148,12 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 								<span className='inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-400/10 text-amber-300'>
 									<IconCrown size={20} />
 								</span>
-								<p className='text-xl font-semibold leading-tight'>{title ?? "Upgrade to Pro"}</p>
+								<p className='text-xl font-semibold leading-tight'>{title ?? contextualCopy?.title ?? "Upgrade to Pro"}</p>
 							</div>
 						</Modal.Heading>
 					</Modal.Header>
 					<Modal.Body className='space-y-5 pb-3'>
-						<p className='text-sm text-muted'>{description ?? "More ways to play, customize, and share your clips."}</p>
+						<p className='text-sm text-muted'>{description ?? contextualCopy?.description ?? "More ways to play, customize, and share your clips."}</p>
 						{campaignOffer?.showPricingTierPromo ? (
 							<div className='rounded-xl border border-brand-secondary/25 bg-brand-secondary/10 px-4 py-3 text-sm text-foreground'>
 								<div className='font-semibold text-brand-secondary'>{campaignOffer.badgeText ?? campaignOffer.title}</div>
@@ -223,7 +226,7 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 
 						{proTier && (
 							<>
-								<p className='text-sm font-semibold text-foreground'>What&apos;s included with Pro</p>
+								<p className='text-sm font-semibold text-foreground'>{contextualCopy ? "Also included with Pro" : "What’s included with Pro"}</p>
 								<ul className='mt-3 grid grid-cols-1 gap-x-5 gap-y-3 text-sm sm:grid-cols-2'>
 									{proFeatures.map((feature) => (
 										<li key={feature} className='flex items-start gap-2'>
@@ -232,9 +235,9 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 										</li>
 									))}
 								</ul>
-								<NextLink href='/pricing' className='mt-3 inline-block text-sm text-brand-400 underline underline-offset-2'>
-									View all Pro features
-								</NextLink>
+								<Link href='/pricing' className={buttonVariants({ variant: "secondary", className: "mt-3 w-fit no-underline" })}>
+									Compare Free and Pro
+								</Link>
 							</>
 						)}
 					</Modal.Body>
@@ -282,7 +285,7 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 								isDisabled={checkingOut || !canUpgrade || billingOptions.length === 0 || payableProducts.length === 0 || payableProducts.some((option) => option.prices[cycleFor(option)].amount === null)}
 								variant='primary'
 							>
-								{ctaLabel ?? (billingOptions.length === 0 ? "Loading prices…" : payableProducts.length === 0 ? "Already included" : `Get Pro for ${totalLabel}/${billingCycle === "monthly" ? "month" : "year"}`)}
+								{ctaLabel ?? (billingOptions.length === 0 ? "Loading prices…" : payableProducts.length === 0 ? "Already included" : `Upgrade to Pro for ${totalLabel}/${billingCycle === "monthly" ? "month" : "year"}`)}
 							</Button>
 						</div>
 						<p className='text-center text-xs text-muted'>You can cancel anytime in your billing portal.</p>

@@ -435,8 +435,8 @@ function GalleryEditorContent({ initialGallery, playlists, canUseAdvanced, canUs
 									<Alert.Content>
 										<Alert.Title>Advanced live filters require Pro</Alert.Title>
 										<Alert.Description>Upgrade to filter by categories, views, duration, title, and creators.</Alert.Description>
-										<Button size='sm' variant='secondary' onPress={() => router.push("/pricing")}>
-											View Pro
+										<Button size='sm' variant='secondary' onPress={() => router.push("/dashboard/settings?upgrade&source=upgrade_modal&feature=gallery_filters")}>
+											Upgrade gallery filters
 										</Button>
 									</Alert.Content>
 								</Alert>
