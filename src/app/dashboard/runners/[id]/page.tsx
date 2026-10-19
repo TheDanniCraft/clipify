@@ -471,23 +471,26 @@ export default function RunnerPage() {
 					<Separator />
 					<Card.Content className='space-y-6'>
 						{!runner.lastHeartbeatAt && (
-							<section className='space-y-4' aria-label='Connect runner'>
-								<h3 className='text-lg font-semibold'>Setup Your Runner</h3>
-
-								<p className='text-sm text-muted'>Download Runner, open it on your computer, and approve the enrollment prompt.</p>
-								<div role='status' className='flex items-center gap-3 text-sm text-muted'>
-									<Spinner size='sm' aria-label='Waiting for first Runner connection' />
-									Waiting for Runner to connect
+							<section className='flex flex-col items-center gap-8 px-2 py-8 sm:px-8 sm:py-12' aria-label='Connect runner'>
+								<div className='flex w-full max-w-2xl flex-col items-center gap-5 text-center'>
+									<h3 className='text-3xl font-bold text-primary'>Setup Your Runner</h3>
+									<p className='text-base text-muted'>Download Runner for your computer, open it, and approve the browser enrollment prompt to connect your account.</p>
+									<div className='mt-2 flex w-full flex-col items-stretch justify-center gap-4 sm:w-auto sm:flex-row sm:items-center'>
+										<Button className='w-full sm:w-auto' variant='secondary' onPress={() => handleRunnerDownload("windows")}>
+											<IconBrandWindows size={20} />
+											Download for Windows
+										</Button>
+										{renderLinuxDownloadDropdown("Download for Linux", false, "secondary", "w-full sm:w-auto")}
+										{renderMacOSDownloadDropdown("Download for macOS", false, "secondary", "w-full sm:w-auto")}
+									</div>
+									<div role='status' className='mt-3 flex flex-col items-center justify-center gap-3 text-sm text-muted'>
+										<Spinner size='md' aria-label='Waiting for first Runner connection' />
+										Waiting for Runner to connect
+									</div>
 								</div>
-								<div className='flex flex-wrap gap-3'>
-									<Button variant='secondary' onPress={() => handleRunnerDownload("windows")}>
-										<IconBrandWindows size={18} />
-										Download for Windows
-									</Button>
-									{renderLinuxDownloadDropdown("Download for Linux")}
-									{renderMacOSDownloadDropdown("Download for macOS")}
+								<div className='w-full max-w-2xl border-t border-separator pt-4'>
+									<AdvancedRunnerSetup token={manualToken} error={tokenError} pending={tokenPending} onRetry={reloadToken} />
 								</div>
-								<AdvancedRunnerSetup token={manualToken} error={tokenError} pending={tokenPending} onRetry={reloadToken} />
 							</section>
 						)}
 						{runner.lastHeartbeatAt && (

@@ -54,6 +54,30 @@ test("Runner preserves first connection, headless setup, updates, quality and re
 		await expect(page.getByRole("heading", { name: "Stream Configuration", exact: true })).toHaveCount(0);
 		await expect(page.getByRole("button", { name: "Save Configuration", exact: true })).toHaveCount(0);
 		await expect(setup.getByText("Waiting for Runner to connect", { exact: true })).toBeVisible();
+		const expectCenteredSetup = async () => {
+			const panel = await setup.boundingBox();
+			const spinner = await setup.getByLabel("Waiting for first Runner connection", { exact: true }).boundingBox();
+			const title = await setup.getByRole("heading", { name: "Setup Your Runner", exact: true }).evaluate((node) => {
+				const range = document.createRange();
+				range.selectNodeContents(node);
+				const rect = range.getBoundingClientRect();
+				return { x: rect.x, width: rect.width };
+			});
+			expect(panel).not.toBeNull();
+			expect(spinner).not.toBeNull();
+			const center = panel!.x + panel!.width / 2;
+			expect(Math.abs(spinner!.x + spinner!.width / 2 - center)).toBeLessThan(2);
+			expect(Math.abs(title.x + title.width / 2 - center)).toBeLessThan(2);
+			if ((page.viewportSize()?.width ?? 1280) < 640) {
+				const buttons = await Promise.all(["Windows", "Linux", "macOS"].map((platform) => setup.getByRole("button", { name: `Download for ${platform}`, exact: true }).boundingBox()));
+				for (const button of buttons) {
+					expect(button).not.toBeNull();
+					expect(Math.abs(button!.x + button!.width / 2 - center)).toBeLessThan(2);
+					expect(Math.abs(button!.width - buttons[0]!.width)).toBeLessThan(2);
+				}
+			}
+		};
+		await expectCenteredSetup();
 		const advanced = setup.getByRole("button", { name: "Advanced / Docker setup", exact: true });
 		await advanced.focus();
 		await advanced.press("Enter");
@@ -115,7 +139,8 @@ test("Runner preserves first connection, headless setup, updates, quality and re
 				{ width: 390, height: 844 },
 			]) {
 				await page.setViewportSize(viewport);
-				await setup.screenshot({ path: testInfo.outputPath(`runner-first-connection-${theme}-${viewport.width}.png`) });
+				await expectCenteredSetup();
+				await page.screenshot({ path: testInfo.outputPath(`runner-first-connection-${theme}-${viewport.width}.png`), fullPage: true, animations: "disabled" });
 				expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 			}
 		}
