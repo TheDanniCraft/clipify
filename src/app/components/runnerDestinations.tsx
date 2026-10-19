@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, Chip, Input, Label, ListBox, Modal, Select, TextField } from "@heroui/react";
+import { Button, Chip, Input, Label, ListBox, Modal, Select, Table, TextField, Tooltip } from "@heroui/react";
 import { IconPlus, IconPencil, IconTrash } from "@tabler/icons-react";
 import { deleteRunnerDestination, listRunnerDestinations, saveRunnerDestination } from "@/app/actions/runner";
 import ConfirmModal from "@/app/components/confirmModal";
@@ -127,41 +127,64 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 					{destinations.length === 0 ? (
 						<p className='text-sm text-muted'>No saved destinations yet.</p>
 					) : (
-						<ul className='grid grid-cols-1 gap-3 md:grid-cols-2'>
-							{destinations.map((destination) => (
-								<li key={destination.id} className='flex items-center justify-between gap-3 rounded-xl border border-separator p-4'>
-									<div className='min-w-0'>
-										<p className='truncate font-medium'>{destination.name}</p>
-										<p className='truncate text-sm text-muted'>
-											{providers.find((row) => row.id === destination.provider)?.name}
-											<span className='block'>{destination.host}</span>
-										</p>
-										<Chip size='sm' variant='soft' className='mt-2'>
-											{destination.credentialConfigured ? "Key saved" : destination.provider === "custom" ? "No key configured" : "Key required"}
-										</Chip>
-									</div>
-									<div className='flex shrink-0 items-center gap-1'>
-										<Button size='sm' variant='tertiary' aria-label={`Edit ${destination.name}`} onPress={() => edit(destination)}>
-											<IconPencil size={16} />
-											Edit
-										</Button>
-										<Button
-											isIconOnly
-											size='sm'
-											variant='tertiary'
-											className='text-danger'
-											aria-label={`Delete ${destination.name}`}
-											onPress={() => {
-												setError(null);
-												setDeleting(destination);
-											}}
-										>
-											<IconTrash size={16} />
-										</Button>
-									</div>
-								</li>
-							))}
-						</ul>
+						<Table variant='secondary' className='w-full'>
+							<Table.ScrollContainer>
+								<Table.Content aria-label='Saved destinations' className='w-full table-fixed'>
+									<Table.Header>
+										<Table.Column id='destination' isRowHeader>
+											Destination
+										</Table.Column>
+										<Table.Column id='connection' className='hidden sm:table-cell'>
+											Connection
+										</Table.Column>
+										<Table.Column id='actions' className='w-28 text-end'>
+											Actions
+										</Table.Column>
+									</Table.Header>
+									<Table.Body>
+										{destinations.map((destination) => (
+											<Table.Row key={destination.id} id={destination.id} textValue={destination.name}>
+												<Table.Cell className='py-4 align-middle'>
+													<p className='break-words font-medium'>{destination.name}</p>
+													<p className='text-sm text-muted'>{providers.find((row) => row.id === destination.provider)?.name}</p>
+													<p className='mt-1 break-all text-sm text-muted sm:hidden'>{destination.host}</p>
+													<Chip size='sm' variant='soft' className='mt-2'>
+														{destination.credentialConfigured ? "Key saved" : destination.provider === "custom" ? "No key configured" : "Key required"}
+													</Chip>
+												</Table.Cell>
+												<Table.Cell className='hidden break-all py-4 align-middle text-sm text-muted sm:table-cell'>{destination.host}</Table.Cell>
+												<Table.Cell className='py-4 align-middle'>
+													<div className='flex items-center justify-end gap-2'>
+														<Tooltip>
+															<Button isIconOnly size='sm' variant='tertiary' aria-label={`Edit ${destination.name}`} onPress={() => edit(destination)}>
+																<IconPencil size={16} />
+															</Button>
+															<Tooltip.Content>Edit destination</Tooltip.Content>
+														</Tooltip>
+														<Tooltip>
+															<Button
+																isIconOnly
+																size='sm'
+																variant='tertiary'
+																className='text-danger'
+																aria-label={`Delete ${destination.name}`}
+																onPress={() => {
+																	setError(null);
+																	setDeleting(destination);
+																}}
+															>
+																<IconTrash size={16} />
+															</Button>
+															<Tooltip.Content>Delete destination</Tooltip.Content>
+														</Tooltip>
+													</div>
+												</Table.Cell>
+											</Table.Row>
+										))}
+									</Table.Body>
+								</Table.Content>
+							</Table.ScrollContainer>
+						</Table>
 					)}
 				</div>
 			</section>

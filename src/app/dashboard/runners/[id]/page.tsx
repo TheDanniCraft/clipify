@@ -622,7 +622,7 @@ export default function RunnerPage() {
 				</Accordion>
 				{destinationsOpen && (
 					<Modal.Backdrop isOpen={destinationsOpen} onOpenChange={setDestinationsOpen}>
-						<Modal.Container size='lg'>
+						<Modal.Container size='lg' placement='center' scroll='inside'>
 							<Modal.Dialog>
 								<Modal.CloseTrigger />
 								<Modal.Header>

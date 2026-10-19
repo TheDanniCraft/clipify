@@ -61,8 +61,63 @@ for (const plan of ["free", "pro"] as const)
 			await editor.getByRole("button", { name: "Save destination", exact: true }).click();
 			await expect(editor).not.toBeVisible();
 			await expect(manager.getByRole("button", { name: "Add destination", exact: true })).toBeFocused();
+			await manager.getByRole("button", { name: "Add destination", exact: true }).click();
+			await editor.getByRole("textbox", { name: "Destination name", exact: true }).fill("Backup output for the community broadcast");
+			await editor.getByRole("button", { name: /Provider$/ }).click();
+			await page.getByRole("option", { name: "Custom RTMP", exact: true }).click();
+			await editor.getByRole("textbox", { name: "RTMP URL", exact: true }).fill("rtmp://backup-livestream.internal.example:1935/live");
+			await editor.getByRole("button", { name: "Save destination", exact: true }).click();
+			await expect(editor).not.toBeVisible();
+			const savedTable = manager.locator('table[aria-label="Saved destinations"]');
+			await expect(savedTable).toBeVisible();
+			await expect(savedTable.getByRole("row")).toHaveCount(3);
+			const destinationRow = savedTable.getByRole("row").filter({ hasText: "My local output" });
+			const editDestination = destinationRow.getByRole("button", { name: "Edit My local output", exact: true });
+			const deleteDestination = destinationRow.getByRole("button", { name: "Delete My local output", exact: true });
+			for (const viewport of [
+				{ width: 1280, height: 900 },
+				{ width: 390, height: 844 },
+			]) {
+				await page.setViewportSize(viewport);
+				await expect(editDestination).toBeVisible();
+				await expect(deleteDestination).toBeVisible();
+				await expect
+					.poll(async () => {
+						const editBounds = await editDestination.boundingBox();
+						const deleteBounds = await deleteDestination.boundingBox();
+						return editBounds && deleteBounds ? deleteBounds.x - editBounds.x - editBounds.width : 0;
+					})
+					.toBeGreaterThanOrEqual(8);
+				expect(await savedTable.evaluate((node) => node.scrollWidth <= node.parentElement!.clientWidth)).toBe(true);
+				expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+				await page.screenshot({ path: testInfo.outputPath(`${plan}-destinations-${viewport.width}.png`), fullPage: true, animations: "disabled" });
+			}
+			await page.setViewportSize({ width: 1280, height: 900 });
+			await editDestination.focus();
+			await page.keyboard.press("Enter");
+			const destinationEditor = page.getByRole("dialog", { name: "Edit destination", exact: true });
+			await expect(destinationEditor.getByRole("textbox", { name: "Destination name", exact: true })).toHaveValue("My local output");
+			await destinationEditor.getByRole("button", { name: "Cancel", exact: true }).click();
+			await expect(destinationEditor).not.toBeVisible();
+			await expect(destinationRow).toBeFocused();
+			await page.keyboard.press("ArrowLeft");
+			await expect(destinationRow.getByRole("gridcell").last()).toBeFocused();
+			await page.keyboard.press("Tab");
+			await expect(editDestination).toBeFocused();
+			await deleteDestination.click();
+			const deletion = page.getByRole("dialog", { name: "Delete destination?", exact: true });
+			await expect(deletion).toBeVisible();
+			await deletion.getByRole("button", { name: "Cancel", exact: true }).click();
+			await expect(destinationRow).toBeVisible();
 			await page.keyboard.press("Escape");
 			await expect(manager).not.toBeVisible();
+			await page.getByRole("button", { name: "Toggle Theme", exact: true }).click();
+			await selector.getByRole("button", { name: "Manage destinations", exact: true }).click();
+			await expect(savedTable).toBeVisible();
+			await page.screenshot({ path: testInfo.outputPath(`${plan}-destinations-light.png`), fullPage: true, animations: "disabled" });
+			await page.keyboard.press("Escape");
+			await expect(manager).not.toBeVisible();
+			await page.getByRole("button", { name: "Toggle Theme", exact: true }).click();
 			await expect(selector.getByRole("button", { name: /Broadcast destinations$/ })).toContainText("My local output");
 			let failSave = true;
 			await page.route(`**/dashboard/runners/${runnerId}`, async (route) => {
