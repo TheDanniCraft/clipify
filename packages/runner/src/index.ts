@@ -776,9 +776,10 @@ async function main() {
 
 	console.log(`[Info] Token loaded. API Base URL is ${apiBase}. Starting polling loop...`);
 
+	let connectionStatus = "Connection: Connecting 🟡";
 	// Update UI real-time
 	setInterval(() => {
-		const pinned = [`Connection: Online 🟢`, `Jobs Active: ${Object.keys(activeEngines).length}`];
+		const pinned = [connectionStatus, `Jobs Active: ${Object.keys(activeEngines).length}`];
 		for (const [id, engine] of Object.entries(activeEngines)) {
 			pinned.push(`- Engine [${id.substring(0, 8)}]: Mode=${engine.mode}, FFmpeg=${engine.ffmpegStatus}`);
 		}
@@ -789,6 +790,7 @@ async function main() {
 	let heartbeatFailures = 0;
 	while (true) {
 		const heartbeatStatus = await pollHeartbeat(token, apiBase, runnerId);
+		connectionStatus = heartbeatStatus === "ok" ? "Connection: Online 🟢" : heartbeatStatus === "reauth" ? "Connection: Reconnecting 🟡" : "Connection: Offline 🔴";
 		if (heartbeatStatus === "reauth") {
 			await stopActiveEngines();
 			const reauthenticated = await initializeRunner([...runnerArgs, "--api-url", apiBase]);
