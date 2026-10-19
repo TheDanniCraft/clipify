@@ -39,7 +39,7 @@ Show next broadcast time reads the Clipify resource owner's public Twitch channe
 schedule. It does not advertise Runner playback events or depend on scheduled
 Runner control. Reading that public schedule uses application authorization and
 requires no additional user consent. The preview and active standby use the same
-source and saved Twitch timezone. Past/current, canceled and vacation broadcasts
+source and the browser’s local timezone; Twitch supplies UTC timestamps. Past/current, canceled and vacation broadcasts
 are excluded. If Twitch has no upcoming broadcast or is unavailable, the optional
 time stays hidden; standby playback continues.
 

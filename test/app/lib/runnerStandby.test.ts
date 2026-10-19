@@ -30,6 +30,11 @@ test.each([
 	expect(parseRunnerStandbyAppearance(input)).toBeNull();
 });
 
-test.each([false, "tomorrow", {}, { startUtc: 42 }, { startUtc: "not-a-date" }, { startUtc: "2028-01-15T13:00:00.000Z" }, { startUtc: "2028-01-15T13:00:00.000Z", timezone: 42 }, { startUtc: "2028-01-15T13:00:00.000Z", timezone: "x".repeat(129) }, { startUtc: "2028-01-15T13:00:00.000Z", timezone: "Invalid/Fixture" }])("TDD-US4-CON013 U149 strength: invalid next-start data %j cannot replace a valid appearance", (nextBroadcast) => {
+test.each([false, "tomorrow", {}, { startUtc: 42 }, { startUtc: "not-a-date" }, { startUtc: "2028-01-15T13:00:00.000Z", timezone: 42 }, { startUtc: "2028-01-15T13:00:00.000Z", timezone: "x".repeat(129) }, { startUtc: "2028-01-15T13:00:00.000Z", timezone: "Invalid/Fixture" }])("TDD-US4-CON013 U149 strength: invalid next-start data %j cannot replace a valid appearance", (nextBroadcast) => {
 	expect(parseRunnerStandbyAppearance({ ...appearance, nextBroadcast })).toBeNull();
+});
+
+test("Twitch UTC instants without a saved timezone retain local display semantics", () => {
+	const nextBroadcast = { startUtc: "2028-01-15T13:00:00.000Z" };
+	expect(parseRunnerStandbyAppearance({ ...appearance, nextBroadcast })).toEqual({ ...appearance, nextBroadcast });
 });
