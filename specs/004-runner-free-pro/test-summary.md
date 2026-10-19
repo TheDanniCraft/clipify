@@ -1,5 +1,7 @@
 # Test Summary Report: Free Runner and Pro Broadcasting
 
+> Destination-table follow-up (2026-10-19): replace the card grid with a responsive HeroUI table and separated right-aligned icon actions. Production build/types and affected lint pass; the complete editor acceptance owner passes3/3 with multi-row/long-content desktop/mobile geometry, keyboard Edit and cancellation, deletion cancellation, and inspected dark/light captures. This changes execution inputs after the full qualification below; fresh PR CI is required before merge.
+
 > Current correction checkpoint (2026-10-19): full CI39218922432 and five-platform native matrix39218915226 pass on9b49c632. CodeQL and CodeFactor pass. The merged application/native evidence matches execution fingerprint b610c21f97e5542206040fc854e8b344e241f6bbc85e61bc8b9594f2eb025ab6. All implementation and correction tasks are complete. Historical pending/No-Go statements below describe earlier candidates and are superseded by this qualification. No merge or production deployment is performed.
 
 **Updated:** 2026-10-19 · **Branch:** `plan/free-runner-branding`
