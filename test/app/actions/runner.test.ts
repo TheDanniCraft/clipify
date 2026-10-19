@@ -228,4 +228,31 @@ describe("actions/runner", () => {
 			log.mockRestore();
 		}
 	});
+	it("returns a cached preview only after owner read authorization", async () => {
+		const id = "cb892e15-7654-43a2-8eee-bbfda1db885b";
+		const { runnerPreviewCache } = await import("@/app/lib/runnerPreviewCache");
+		const { getRunnerLivePreview } = await import("@/app/actions/runner");
+		mockRunnerFindFirst.mockResolvedValue({ id, ownerId: "owner-1" });
+		runnerPreviewCache.set(id, "data:image/jpeg;base64,cHJldmlldw==");
+		await expect(getRunnerLivePreview(id, "owner-1")).resolves.toEqual({ success: true, image: "data:image/jpeg;base64,cHJldmlldw==" });
+	});
+	it("returns preview denials locally without querying a runner or reporting an incident", async () => {
+		const { getRunnerLivePreview } = await import("@/app/actions/runner");
+		mockValidateAuth.mockResolvedValue({ id: "another-owner" });
+		await expect(getRunnerLivePreview("cb892e15-7654-43a2-8eee-bbfda1db885b", "owner-1")).resolves.toMatchObject({ success: false, code: "ACCESS_DENIED" });
+		expect(mockRunnerFindFirst).not.toHaveBeenCalled();
+		expect(mockCaptureUnexpectedError).not.toHaveBeenCalled();
+	});
+	it("does not expose a cached frame when the runner is absent from the authorized owner", async () => {
+		const id = "cb892e15-7654-43a2-8eee-bbfda1db885b";
+		const { getRunnerLivePreview } = await import("@/app/actions/runner");
+		mockRunnerFindFirst.mockResolvedValue(undefined);
+		await expect(getRunnerLivePreview(id, "owner-1")).resolves.toMatchObject({ success: false, code: "RESOURCE_UNAVAILABLE" });
+		expect(mockCaptureUnexpectedError).not.toHaveBeenCalled();
+	});
+	it("returns invalid preview IDs as expected input failures", async () => {
+		const { getRunnerLivePreview } = await import("@/app/actions/runner");
+		await expect(getRunnerLivePreview("bad-id", "owner-1")).resolves.toMatchObject({ success: false, code: "INVALID_INPUT" });
+		expect(mockCaptureUnexpectedError).not.toHaveBeenCalled();
+	});
 });

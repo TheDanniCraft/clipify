@@ -1,0 +1,622 @@
+$ jest --runInBand --runTestsByPath test/app/dashboard/runner.polling.test.tsx "--coverage=false"
+[tests] ordinary: 1 suites, 1 worker(s)
+FAIL test/app/dashboard/runner.polling.test.tsx
+  ● first connection presents installation and Docker guidance instead of premature broadcast controls
+
+    expect(element).not.toBeInTheDocument()
+
+    expected document not to contain element, found <h3 class="text-lg font-semibold">Stream Configuration</h3> instead
+
+      78 | 	const view=render(<RunnerPage />);await act(async()=>{});
+      79 | 	expect(screen.getByRole("heading",{name:"Setup Your Runner"})).toBeVisible();
+    > 80 | 	expect(screen.queryByRole("heading",{name:"Stream Configuration"})).not.toBeInTheDocument();
+         | 	                                                                        ^
+      81 | 	expect(screen.getByText(/CLIPIFY_TOKEN/)).toBeInTheDocument();
+      82 | 	view.unmount();
+      83 | });
+
+      at Object.toBeInTheDocument (test/app/dashboard/runner.polling.test.tsx:80:74)
+
+  ● connected ARM Linux shows the matching update state and video quality
+
+    TestingLibraryElementError: Unable to find an accessible element with the role "button" and name "Runner up to date"
+
+    Here are the accessible roles:
+
+      main:
+
+      Name "":
+      [36m<main />[39m
+
+      --------------------------------------------------
+      region:
+
+      Name "Editor workspace":
+      [36m<section[39m
+        [33maria-label[39m=[32m"Editor workspace"[39m
+        [33mclass[39m=[32m"w-full max-w-4xl space-y-6"[39m
+      [36m/>[39m
+
+      --------------------------------------------------
+      button:
+
+      Name "Back to runners":
+      [36m<button[39m
+        [33maria-label[39m=[32m"Back to runners"[39m
+        [33mclass[39m=[32m"shrink-0"[39m
+      [36m/>[39m
+
+      Name "Unlink runner":
+      [36m<button[39m
+        [33maria-label[39m=[32m"Unlink runner"[39m
+      [36m/>[39m
+
+      Name "Appearance":
+      [36m<button[39m
+        [33mclass[39m=[32m"w-full"[39m
+        [33mdisabled[39m=[32m""[39m
+      [36m/>[39m
+
+      Name "Save Configuration":
+      [36m<button />[39m
+
+      Name "Download for Windows":
+      [36m<button />[39m
+
+      Name "Reveal token":
+      [36m<button />[39m
+
+      Name "Copy token":
+      [36m<button />[39m
+
+      --------------------------------------------------
+      heading:
+
+      Name "ARM computer":
+      [36m<h2[39m
+        [33mclass[39m=[32m"min-w-0 break-words text-xl font-bold"[39m
+      [36m/>[39m
+
+      Name "Stream Configuration":
+      [36m<h3[39m
+        [33mclass[39m=[32m"text-lg font-semibold"[39m
+      [36m/>[39m
+
+      --------------------------------------------------
+      paragraph:
+
+      Name "":
+      [36m<p[39m
+        [33mclass[39m=[32m"text-sm text-muted"[39m
+      [36m/>[39m
+
+      --------------------------------------------------
+      link:
+
+      Name "your dashboard":
+      [36m<a[39m
+        [33mclass[39m=[32m"text-accent underline"[39m
+        [33mhref[39m=[32m"/dashboard"[39m
+      [36m/>[39m
+
+      --------------------------------------------------
+      term:
+
+      Name "":
+      [36m<dt[39m
+        [33mclass[39m=[32m"text-muted"[39m
+      [36m/>[39m
+
+      Name "":
+      [36m<dt[39m
+        [33mclass[39m=[32m"text-muted"[39m
+      [36m/>[39m
+
+      Name "":
+      [36m<dt[39m
+        [33mclass[39m=[32m"text-muted"[39m
+      [36m/>[39m
+
+      --------------------------------------------------
+      definition:
+
+      Name "":
+      [36m<dd />[39m
+
+      Name "":
+      [36m<dd />[39m
+
+      Name "":
+      [36m<dd />[39m
+
+      --------------------------------------------------
+      time:
+
+      Name "":
+      [36m<time[39m
+        [33mdatetime[39m=[32m"2026-10-19T12:28:58.872Z"[39m
+      [36m/>[39m
+
+      --------------------------------------------------
+
+    Ignored nodes: comments, script, style
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<main>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex w-full flex-col items-center p-4"[39m
+          [36m>[39m
+            [36m<section[39m
+              [33maria-label[39m=[32m"Editor workspace"[39m
+              [33mclass[39m=[32m"w-full max-w-4xl space-y-6"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between"[39m
+                [36m>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"flex min-w-0 flex-1 items-center gap-3"[39m
+                  [36m>[39m
+                    [36m<button[39m
+                      [33maria-label[39m=[32m"Back to runners"[39m
+                      [33mclass[39m=[32m"shrink-0"[39m
+                    [36m>[39m
+                      [36m<svg[39m
+                        [33mclass[39m=[32m"tabler-icon tabler-icon-arrow-left"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"24"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"24"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"M5 12l14 0"[39m
+                        [36m/>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"M5 12l6 6"[39m
+                        [36m/>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"M5 12l6 -6"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</button>[39m
+                    [36m<h2[39m
+                      [33mclass[39m=[32m"min-w-0 break-words text-xl font-bold"[39m
+                    [36m>[39m
+                      [0mARM computer[0m
+                    [36m</h2>[39m
+                  [36m</div>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"flex shrink-0 items-center justify-end gap-2"[39m
+                  [36m>[39m
+                    [36m<div>[39m
+                      [0mOnline[0m
+                    [36m</div>[39m
+                    [36m<div>[39m
+                      [36m<button[39m
+                        [33maria-label[39m=[32m"Unlink runner"[39m
+                      [36m>[39m
+                        [36m<svg[39m
+                          [33mclass[39m=[32m"tabler-icon tabler-icon-unlink"[39m
+                          [33mfill[39m=[32m"none"[39m
+                          [33mheight[39m=[32m"24"[39m
+                          [33mstroke[39m=[32m"currentColor"[39m
+                          [33mstroke-linecap[39m=[32m"round"[39m
+                          [33mstroke-linejoin[39m=[32m"round"[39m
+                          [33mstroke-width[39m=[32m"2"[39m
+                          [33mviewBox[39m=[32m"0 0 24 24"[39m
+                          [33mwidth[39m=[32m"24"[39m
+                          [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                        [36m>[39m
+                          [36m<path[39m
+                            [33md[39m=[32m"M17 22v-2"[39m
+                          [36m/>[39m
+                          [36m<path[39m
+                            [33md[39m=[32m"M9 15l6 -6"[39m
+                          [36m/>[39m
+                          [36m<path[39m
+                            [33md[39m=[32m"M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464"[39m
+                          [36m/>[39m
+                          [36m<path[39m
+                            [33md[39m=[32m"M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463"[39m
+                          [36m/>[39m
+                          [36m<path[39m
+                            [33md[39m=[32m"M20 17h2"[39m
+                          [36m/>[39m
+                          [36m<path[39m
+                            [33md[39m=[32m"M2 7h2"[39m
+                          [36m/>[39m
+                          [36m<path[39m
+                            [33md[39m=[32m"M7 2v2"[39m
+                          [36m/>[39m
+                        [36m</svg>[39m
+                      [36m</button>[39m
+                      [36m<div>[39m
+                        [0mUnlink runner[0m
+                      [36m</div>[39m
+                    [36m</div>[39m
+                  [36m</div>[39m
+                [36m</div>[39m
+                [36m<div />[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"space-y-6"[39m
+                [36m>[39m
+                  [36m<h3[39m
+                    [33mclass[39m=[32m"text-lg font-semibold"[39m
+                  [36m>[39m
+                    [0mStream Configuration[0m
+                  [36m</h3>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"grid gap-6 lg:grid-cols-2"[39m
+                  [36m>[39m
+                    [36m<div[39m
+                      [33mclass[39m=[32m"space-y-5"[39m
+                    [36m>[39m
+                      [36m<div>[39m
+                        [36m<label>[39m
+                          [0mTarget Overlay[0m
+                        [36m</label>[39m
+                        [36m<div>[39m
+                          [36m<div />[39m
+                          [36m<div />[39m
+                        [36m</div>[39m
+                        [36m<div>[39m
+                          [36m<div />[39m
+                        [36m</div>[39m
+                      [36m</div>[39m
+                      [36m<p[39m
+                        [33mclass[39m=[32m"text-sm text-muted"[39m
+                      [36m>[39m
+                        [0mCreate an overlay in[0m
+                        [0m [0m
+                        [36m<a[39m
+                          [33mclass[39m=[32m"text-accent underline"[39m
+                          [33mhref[39m=[32m"/dashboard"[39m
+                        [36m>[39m
+                          [0myour dashboard[0m
+                        [36m</a>[39m
+                        [0m [0m
+                        [0mto choose the clips for this broadcast.[0m
+                      [36m</p>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"grid gap-4 sm:grid-cols-2"[39m
+                      [36m>[39m
+                        [36m<div>[39m
+                          [36m<label>[39m
+                            [0mBroadcast behavior[0m
+                          [36m</label>[39m
+                          [36m<div>[39m
+                            [36m<div />[39m
+                            [36m<div />[39m
+                          [36m</div>[39m
+                          [36m<div>[39m
+                            [36m<div>[39m
+                              [36m<div[39m
+                                [33mid[39m=[32m"24/7"[39m
+                              [36m>[39m
+                                [36m<div />[39m
+                                [36m<label>[39m
+                                  [0mClip playback[0m
+                                [36m</label>[39m
+                              [36m</div>[39m
+                              [36m<div[39m
+                                [33mid[39m=[32m"failsafe"[39m
+                              [36m>[39m
+                                [36m<div />[39m
+                                [36m<label>[39m
+                                  [0mLive fallback[0m
+                                [36m</label>[39m
+                              [36m</div>[39m
+                            [36m</div>[39m
+                          [36m</div>[39m
+                        [36m</div>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"space-y-2"[39m
+                        [36m>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"flex items-end gap-2"[39m
+                          [36m>[39m
+                            [36m<div[39m
+                              [33mclass[39m=[32m"min-w-0 flex-1"[39m
+                            [36m>[39m
+                              [36m<div>[39m
+                                [36m<label>[39m
+                                  [0mControl[0m
+                                [36m</label>[39m
+                                [36m<div>[39m
+                                  [36m<div />[39m
+                                  [36m<div />[39m
+                                [36m</div>[39m
+                                [36m<div>[39m
+                                  [36m<div>[39m
+                                    [36m<div[39m
+                                      [33mid[39m=[32m"manual"[39m
+                                    [36m>[39m
+                                      [36m<div />[39m
+                                      [36m<label>[39m
+                                        [0mManual[0m
+                                      [36m</label>[39m
+                                    [36m</div>[39m
+                                    [36m<div[39m
+                                      [33mid[39m=[32m"scheduled"[39m
+                                    [36m>[39m
+                                      [36m<div />[39m
+                                      [36m<label>[39m
+                                        [0mScheduled[0m
+                                      [36m</label>[39m
+                                    [36m</div>[39m
+                                  [36m</div>[39m
+                                [36m</div>[39m
+                              [36m</div>[39m
+                            [36m</div>[39m
+                          [36m</div>[39m
+                        [36m</div>[39m
+                      [36m</div>[39m
+                    [36m</div>[39m
+                    [36m<div[39m
+                      [33mclass[39m=[32m"space-y-4"[39m
+                    [36m/>[39m
+                  [36m</div>[39m
+                  [36m<button[39m
+                    [33mclass[39m=[32m"w-full"[39m
+                    [33mdisabled[39m=[32m""[39m
+                  [36m>[39m
+                    [0mAppearance[0m
+                  [36m</button>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"flex flex-wrap items-center justify-between gap-4 border-t border-separator pt-4"[39m
+                  [36m>[39m
+                    [36m<button>[39m
+                      [0mSave Configuration[0m
+                    [36m</button>[39m
+                  [36m</div>[39m
+                [36m</div>[39m
+              [36m</div>[39m
+              [36m<div>[39m
+                [36m<div>[39m
+                  [36m<div>[39m
+                    [36m<div>[39m
+                      [0mRunner details[0m
+                      [36m<div />[39m
+                    [36m</div>[39m
+                  [36m</div>[39m
+                  [36m<div>[39m
+                    [36m<div[39m
+                      [33mclass[39m=[32m"space-y-5"[39m
+                    [36m>[39m
+                      [36m<dl[39m
+                        [33mclass[39m=[32m"grid gap-4 text-sm sm:grid-cols-3"[39m
+                      [36m>[39m
+                        [36m<div>[39m
+                          [36m<dt[39m
+                            [33mclass[39m=[32m"text-muted"[39m
+                          [36m>[39m
+                            [0mComputer[0m
+                          [36m</dt>[39m
+                          [36m<dd>[39m
+                            [0mLinux arm64[0m
+                          [36m</dd>[39m
+                        [36m</div>[39m
+                        [36m<div>[39m
+                          [36m<dt[39m
+                            [33mclass[39m=[32m"text-muted"[39m
+                          [36m>[39m
+                            [0mRunner version[0m
+                          [36m</dt>[39m
+                          [36m<dd>[39m
+                            [0maaaaaaaa[0m
+                          [36m</dd>[39m
+                        [36m</div>[39m
+                        [36m<div>[39m
+                          [36m<dt[39m
+                            [33mclass[39m=[32m"text-muted"[39m
+                          [36m>[39m
+                            [0mLast connection[0m
+                          [36m</dt>[39m
+                          [36m<dd>[39m
+                            [36m<time[39m
+                              [33mdatetime[39m=[32m"2026-10-19T12:28:58.872Z"[39m
+                            [36m>[39m
+                              [0m10/19/2026, 12:28 PM[0m
+                            [36m</time>[39m
+                          [36m</dd>[39m
+                        [36m</div>[39m
+                      [36m</dl>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"flex flex-wrap gap-3"[39m
+                      [36m>[39m
+                        [36m<button>[39m
+                          [0mDownload for Windows[0m
+                        [36m</button>[39m
+                        [36m<div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"button button--md button--secondary inline-flex items-center justify-center gap-2"[39m
+                          [36m>[39m
+                            [36m<svg[39m
+                              [33mclass[39m=[32m"tabler-icon tabler-icon-terminal-2"[39m
+                              [33mfill[39m=[32m"none"[39m
+                              [33mheight[39m=[32m"18"[39m
+                              [33mstroke[39m=[32m"currentColor"[39m
+                              [33mstroke-linecap[39m=[32m"round"[39m
+                              [33mstroke-linejoin[39m=[32m"round"[39m
+                              [33mstroke-width[39m=[32m"2"[39m
+                              [33mviewBox[39m=[32m"0 0 24 24"[39m
+                              [33mwidth[39m=[32m"18"[39m
+                              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                            [36m>[39m
+                              [36m<path[39m
+                                [33md[39m=[32m"M8 9l3 3l-3 3"[39m
+                              [36m/>[39m
+                              [36m<path[39m
+                                [33md[39m=[32m"M13 15l3 0"[39m
+                              [36m/>[39m
+                              [36m<path[39m
+                                [33md[39m=[32m"M3 6a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2l0 -12"[39m
+                              [36m/>[39m
+                            [36m</svg>[39m
+                            [0mDownload for Linux[0m
+                          [36m</div>[39m
+                          [36m<div>[39m
+                            [36m<div[39m
+                              [33maria-label[39m=[32m"Select Linux runner build"[39m
+                            [36m>[39m
+                              [36m<div[39m
+                                [33mid[39m=[32m"linux-x64"[39m
+                              [36m>[39m
+                                [0mLinux x64[0m
+                              [36m</div>[39m
+                              [36m<div[39m
+                                [33mid[39m=[32m"linux-arm64"[39m
+                              [36m>[39m
+                                [0mLinux ARM64[0m
+                              [36m</div>[39m
+                            [36m</div>[39m
+                          [36m</div>[39m
+                        [36m</div>[39m
+                        [36m<div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"button button--md button--secondary inline-flex items-center justify-center gap-2"[39m
+                          [36m>[39m
+                            [36m<svg[39m
+                              [33mclass[39m=[32m"tabler-icon tabler-icon-brand-apple"[39m
+                              [33mfill[39m=[32m"none"[39m
+                              [33mheight[39m=[32m"18"[39m
+                              [33mstroke[39m=[32m"currentColor"[39m
+                              [33mstroke-linecap[39m=[32m"round"[39m
+                              [33mstroke-linejoin[39m=[32m"round"[39m
+                              [33mstroke-width[39m=[32m"2"[39m
+                              [33mviewBox[39m=[32m"0 0 24 24"[39m
+                              [33mwidth[39m=[32m"18"[39m
+                              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                            [36m>[39m
+                              [36m<path[39m
+                                [33md[39m=[32m"M8.286 7.008c-3.216 0 -4.286 3.23 -4.286 5.92c0 3.229 2.143 8.072 4.286 8.072c1.165 -.05 1.799 -.538 3.214 -.538c1.406 0 1.607 .538 3.214 .538s4.286 -3.229 4.286 -5.381c-.03 -.011 -2.649 -.434 -2.679 -3.23c-.02 -2.335 2.589 -3.179 2.679 -3.228c-1.096 -1.606 -3.162 -2.113 -3.75 -2.153c-1.535 -.12 -3.032 1.077 -3.75 1.077c-.729 0 -2.036 -1.077 -3.214 -1.077"[39m
+                              [36m/>[39m
+                              [36m<path[39m
+                                [33md[39m=[32m"M12 4a2 2 0 0 0 2 -2a2 2 0 0 0 -2 2"[39m
+                              [36m/>[39m
+                            [36m</svg>[39m
+                            [0mDownload for macOS[0m
+                          [36m</div>[39m
+                          [36m<div>[39m
+                            [36m<div[39m
+                              [33maria-label[39m=[32m"Select macOS runner build"[39m
+                            [36m>[39m
+                              [36m<div[39m
+                                [33mid[39m=[32m"macos-intel"[39m
+                              [36m>[39m
+                                [0mmacOS Intel[0m
+                              [36m</div>[39m
+                              [36m<div[39m
+                                [33mid[39m=[32m"macos-apple-silicon"[39m
+                              [36m>[39m
+                                [0mmacOS Apple Silicon[0m
+                              [36m</div>[39m
+                            [36m</div>[39m
+                          [36m</div>[39m
+                        [36m</div>[39m
+                      [36m</div>[39m
+                      [36m<div>[39m
+                        [36m<label>[39m
+                          [0mRunner token[0m
+                        [36m</label>[39m
+                        [36m<input[39m
+                          [33mreadonly[39m=[32m""[39m
+                          [33mtype[39m=[32m"password"[39m
+                          [33mvalue[39m=[32m"local-fixture-token"[39m
+                          [33mvariant[39m=[32m"secondary"[39m
+                        [36m/>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"flex gap-2"[39m
+                        [36m>[39m
+                          [36m<button>[39m
+                            [0mReveal token[0m
+                          [36m</button>[39m
+                          [36m<button>[39m
+                            [0mCopy token[0m
+                          [36m</button>[39m
+                        [36m</div>[39m
+                      [36m</div>[39m
+                    [36m</div>[39m
+                  [36m</div>[39m
+                [36m</div>[39m
+              [36m</div>[39m
+              [36m<div>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"px-0 sm:w-full sm:px-10"[39m
+                [36m>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"max-w-6xl rounded-none px-0 sm:rounded-3xl sm:px-6"[39m
+                  [36m>[39m
+                    [36m<div />[39m
+                    [36m<div[39m
+                      [33mclass[39m=[32m"px-6 sm:px-0"[39m
+                    [36m>[39m
+                      [36m<div>[39m
+                        [0mAppearance[0m
+                      [36m</div>[39m
+                    [36m</div>[39m
+                    [36m<div[39m
+                      [33mclass[39m=[32m"mx-0 px-0 sm:-mx-[3px] sm:px-[3px]"[39m
+                    [36m/>[39m
+                  [36m</div>[39m
+                [36m</div>[39m
+              [36m</div>[39m
+              [36m<div>[39m
+                [36m<div>[39m
+                  [36m<div>[39m
+                    [36m<div />[39m
+                    [36m<div>[39m
+                      [36m<div>[39m
+                        [0mBroadcast schedule[0m
+                      [36m</div>[39m
+                    [36m</div>[39m
+                    [36m<div />[39m
+                  [36m</div>[39m
+                [36m</div>[39m
+              [36m</div>[39m
+              [36m<div>[39m
+                [36m<div>[39m
+                  [36m<div>[39m
+                    [36m<div />[39m
+                    [36m<div>[39m
+                      [36m<div>[39m
+                        [0mInstall Clipify Runner for [0m
+                      [36m</div>[39m
+                    [36m</div>[39m
+                    [36m<div[39m
+                      [33mclass[39m=[32m"space-y-4"[39m
+                    [36m/>[39m
+                  [36m</div>[39m
+                [36m</div>[39m
+              [36m</div>[39m
+            [36m</section>[39m
+          [36m</div>[39m
+        [36m</main>[39m
+      [36m</div>[39m
+    [36m</body>[39m
+
+      88 | 	jest.mocked(getRunnerVersionManifest).mockResolvedValue({linuxArm:"a".repeat(64), linux:"b".repeat(64)} as never);
+      89 | 	const view=render(<RunnerPage />);await act(async()=>{});
+    > 90 | 	expect(screen.getByRole("button",{name:"Runner up to date"})).toBeDisabled();
+         | 	              ^
+      91 | 	view.unmount();
+      92 | });
+      93 |
+
+      at Object.getElementError (node_modules/@testing-library/dom/dist/config.js:37:19)
+      at node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+      at node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+      at node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+      at Object.getByRole (test/app/dashboard/runner.polling.test.tsx:90:16)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 2 passed, 4 total
+Snapshots:   0 total
+Time:        1.164 s
+Ran all test suites within paths "test/app/dashboard/runner.polling.test.tsx".
+error: script "test" exited with code 1
