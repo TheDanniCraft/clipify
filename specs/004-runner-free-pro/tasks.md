@@ -2420,3 +2420,5 @@ The user superseded legacy Runner preservation: hard cut the unreleased Runner e
 - [x] UXR-12 Show the editable RTMP URL only for Custom RTMP; initialize Twitch/YouTube edits with their preset endpoints. Verify named-provider switching and custom URL entry in the real Free/Pro editor.
 
 - [x] UXR-13 Correct the upgrade modal: one price surface and cycle control, compact shared Pro feature highlights, consistent crown and footer action, no redundant product card or Runner paragraph. Verify billing-cycle payloads, checkout failure recovery and inspected light/dark desktop/mobile real-component layouts.
+
+- [x] UXR-14 Make Schedule an explicit action beside the control selector. Saving configuration must never open the calendar; Schedule must not silently save drafts. Explain the save prerequisite locally and verify explicit desktop/mobile opening and real event creation.

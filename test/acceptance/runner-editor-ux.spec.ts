@@ -260,7 +260,15 @@ for (const plan of ["free", "pro"] as const)
 				await expect(control).toContainText("Manual");
 			} else {
 				await scheduled.click();
+				await expect(page.getByRole("button", { name: "Schedule", exact: true })).toBeDisabled();
 				await mainSave.click();
+				await expect(page.getByRole("button", { name: "Schedule", exact: true })).toBeEnabled();
+				await expect(page.getByRole("dialog", { name: "Broadcast schedule", exact: true })).toHaveCount(0);
+				await page.screenshot({ path: testInfo.outputPath("pro-schedule-action-dark.png"), fullPage: true, animations: "disabled" });
+				await page.getByRole("button", { name: "Toggle Theme", exact: true }).click();
+				await page.screenshot({ path: testInfo.outputPath("pro-schedule-action-light.png"), fullPage: true, animations: "disabled" });
+				await page.getByRole("button", { name: "Toggle Theme", exact: true }).click();
+				await page.getByRole("button", { name: "Schedule", exact: true }).click();
 				const schedule = page.getByRole("dialog", { name: "Broadcast schedule", exact: true });
 				await expect(schedule).toBeVisible();
 				await expect(schedule.getByRole("button", { name: "Today", exact: true })).toBeVisible();
@@ -372,6 +380,7 @@ for (const plan of ["free", "pro"] as const)
 			await appearance.getByRole("button", { name: "Close", exact: true }).click();
 			await expect(appearance).not.toBeVisible();
 			if (plan === "pro") {
+				await page.screenshot({ path: testInfo.outputPath("pro-schedule-action-mobile.png"), fullPage: true, animations: "disabled" });
 				await page.getByRole("button", { name: "Schedule", exact: true }).click();
 				const mobileSchedule = page.getByRole("dialog", { name: "Broadcast schedule", exact: true });
 				await expect(mobileSchedule.locator("[data-slot=agenda]")).toHaveAttribute("data-view", "day");
