@@ -521,15 +521,17 @@ export default function RunnerPage() {
 										</Select.Popover>
 									</Select>
 									<div className='space-y-2'>
-										<RunnerControlSelection value={controlMode} clipPlayback={mode === StreamMode.AlwaysOn} scheduling={runnerPolicy?.scheduling ?? null} onChange={setControlMode} onUpgrade={() => setIsUpgradeOpen(true)} />
-										{controlMode === "scheduled" && (
-											<>
-												<Button variant='secondary' isDisabled={dirty || isSaving} onPress={() => (runnerPolicy?.scheduling ? setScheduleOpen(true) : setIsUpgradeOpen(true))}>
+										<div className='flex items-end gap-2'>
+											<div className='min-w-0 flex-1'>
+												<RunnerControlSelection value={controlMode} clipPlayback={mode === StreamMode.AlwaysOn} scheduling={runnerPolicy?.scheduling ?? null} onChange={setControlMode} onUpgrade={() => setIsUpgradeOpen(true)} />
+											</div>
+											{controlMode === "scheduled" && (
+												<Button className='shrink-0' variant='secondary' isDisabled={dirty || isSaving} onPress={() => (runnerPolicy?.scheduling ? setScheduleOpen(true) : setIsUpgradeOpen(true))}>
 													Schedule
 												</Button>
-												{dirty && <p className='text-xs text-muted'>Save configuration to edit the schedule.</p>}
-											</>
-										)}
+											)}
+										</div>
+										{controlMode === "scheduled" && dirty && <p className='text-xs text-muted'>Save configuration to edit the schedule.</p>}
 									</div>
 								</div>
 								{mode === StreamMode.Failsafe && (
