@@ -278,7 +278,7 @@ export function configureStreamSession(principal: TrustedCreatorPrincipal, input
 			if (!overlay) throw new Error("RESOURCE_UNAVAILABLE");
 			const current = input.sessionId ? await sessionRecord(context, input.sessionId, true) : undefined;
 			if (current && (current.runnerId !== input.runnerId || current.overlayId !== input.overlayId) && (await broadcastAssignmentIsLocked(context.tx, input.creatorId, current.id))) return resourceFailure("CONFLICT");
-			const selected = input.destinationIds ? await resolveRunnerDestinationSelection(context.tx, input.creatorId, input.runnerId, input.destinationIds, deriveRunnerCapabilities(effectiveRunnerBenefits(context)).runnerPro) : undefined;
+			const selected = input.destinationIds ? await resolveRunnerDestinationSelection(context.tx, input.creatorId, input.destinationIds, deriveRunnerCapabilities(effectiveRunnerBenefits(context)).runnerPro) : undefined;
 			if (isResourceFailure(selected)) return selected;
 			const endpoints = { twitch: "rtmp://live.twitch.tv/app", youtube: "rtmp://a.rtmp.youtube.com/live2" };
 			if (current) return updateConfiguredSession(input, context, current, selected, endpoints);

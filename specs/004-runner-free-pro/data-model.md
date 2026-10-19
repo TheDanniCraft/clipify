@@ -18,7 +18,7 @@ Existing `rtmpUrl` / `encryptedStreamKey` remain as legacy read-through source d
 
 ## Destination and selection
 
-`runner_destinations`: id, ownerId, optional runnerId (visible scope), name (1–80 characters), provider (`youtube|twitch|custom`), rtmpUrl, encryptedStreamKey, credentialRevision, configurationRevision, createdAt, updatedAt. Validate RTMP/RTMPS scheme and destination syntax; no browser-supplied owner. Custom targets may deliberately use local/private addresses on the user's PC; do not server-fetch the URL or forward the server's network to it. No full URL-with-key in output/logs.
+`runner_destinations`: id, ownerId, name (1–80 characters), provider (`youtube|twitch|custom`), rtmpUrl, encryptedStreamKey, credentialRevision, configurationRevision, createdAt, updatedAt. Validate RTMP/RTMPS scheme and destination syntax; no browser-supplied owner. Custom targets may deliberately use local/private addresses on the user's PC; do not server-fetch the URL or forward the server's network to it. No full URL-with-key in output/logs.
 
 `stream_session_destinations`: sessionId, destinationId, ownerId, position; unique session+destination. Ordered selection IDs are presentation only; compare normalized sets for adjacency. Deny cross-owner selection; enforce Free target count at save and admission. Limit name/payload/URL sizes as input bounds rather than sales caps. Credential removal preserves metadata but blocks starts that require keys.
 
@@ -65,3 +65,5 @@ D3 offline authority uses the existing admission table with a distinct `authoriz
 Runner schedule rows add excludedDates (JSON local-date strings, default empty) and repeatUntilDate (nullable exclusive local start-day boundary). The resolver skips excluded dates and starts at/after the boundary. One-occurrence changes retain the source series with an exclusion; edits create a one-time replacement. Following changes retain the source series with the boundary; edits create a replacement series. Preserve original rows and their historical occurrence anchors. Presentation-only rename leaves configurationRevision unchanged and guards both original title and execution revision. No generated migration is created on the feature branch.
 
 One-time replacements retain seriesParentId and originalOccurrenceDate with an owner-scoped self-reference. Following edits transfer applicable exceptions to the replacement series, and following deletion removes future detached replacements while retaining already-started history. A source with replacements cannot be deleted through an unscoped call.
+
+Saved destinations have no device foreign key or visibility scope. They survive device deletion and may be selected by any authorized Runner/session/schedule in the same creator account. Session/schedule joins retain owner-bound foreign keys; deleting a shared destination checks references and active/uncertain admissions across all of the account’s Runners.

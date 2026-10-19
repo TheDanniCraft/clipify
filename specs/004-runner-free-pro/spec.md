@@ -1855,3 +1855,7 @@ For future recurring occurrences, editing and deletion offer This occurrence and
 ### Master Runner behavior preservation (2026-10-19)
 
 Free/Pro must retain the established first-connection installation screen and wait for the first heartbeat before exposing broadcast configuration. Provide all five platform downloads and existing installation instructions, plus advanced headless/Docker token guidance with masked reveal/copy and local failure recovery. Connected Runner details show architecture-aware update status and resolution/FPS. Running previews distinguish loading, waiting for the first frame, unavailable/retry and a real frame. Show broadcast failures without exposing raw diagnostic secrets. Schedule remains an explicit action without compressing or shifting the Control selector. See [the scoped parity audit](runner-master-parity-audit.md).
+
+### Account-wide destinations (2026-10-19)
+
+Saved broadcast destinations belong to the creator account and are reusable across its Runners. Creating a new Runner must not require entering a saved stream key again. Broadcasts and schedules select account-owned destination IDs independently; Free still permits one destination per broadcast. Shared edits preserve credentials when unchanged and affect future starts; active admissions retain immutable captured targets. Deleting a Runner does not remove saved destinations. Cross-account listing, edits and selection remain denied.

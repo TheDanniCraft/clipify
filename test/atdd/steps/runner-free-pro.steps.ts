@@ -19,10 +19,10 @@ Given("an existing Runner customer has saved Scheduled configuration and a Pro g
 		await pool.query("INSERT INTO entitlement_grants(user_id,entitlement,source,starts_at,ends_at) VALUES($1,'pro_access','support',now()-interval '1 hour',now()+interval '1 day')", [owner.fixture.creatorId]);
 		await pool.query("INSERT INTO runners(id,owner_id,name,token,status,last_heartbeat_at,protocol_version,capabilities) VALUES($1,$2,'Existing local Runner',$3,'online',now(),2,$4::jsonb)", [state.runnerId, owner.fixture.creatorId, randomUUID(), JSON.stringify(["admissions", "destinations", "drain", "runner_presentation", "free_lease"])]);
 		await pool.query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,control_mode,rtmp_url) VALUES($1,$2,$3,$4,'24/7','scheduled','rtmp://127.0.0.1:19350/live')", [state.sessionId, owner.fixture.creatorId, state.runnerId, owner.fixture.overlayId]);
-		await pool.query("INSERT INTO runner_destinations(id,owner_id,runner_id,name,provider,rtmp_url) VALUES($1,$2,$3,'Saved vacation destination','custom','rtmp://127.0.0.1:19350/live')", [state.destinationId, owner.fixture.creatorId, state.runnerId]);
+		await pool.query("INSERT INTO runner_destinations(id,owner_id,name,provider,rtmp_url) VALUES($1,$2,'Saved vacation destination','custom','rtmp://127.0.0.1:19350/live')", [state.destinationId, owner.fixture.creatorId]);
 		await pool.query("INSERT INTO stream_session_destinations(owner_id,session_id,destination_id,position) VALUES($1,$2,$3,0)", [owner.fixture.creatorId, state.sessionId, state.destinationId]);
 		const backupId = randomUUID();
-		await pool.query("INSERT INTO runner_destinations(id,owner_id,runner_id,name,provider,rtmp_url) VALUES($1,$2,$3,'Saved backup destination','custom','rtmp://127.0.0.1:19351/backup')", [backupId, owner.fixture.creatorId, state.runnerId]);
+		await pool.query("INSERT INTO runner_destinations(id,owner_id,name,provider,rtmp_url) VALUES($1,$2,'Saved backup destination','custom','rtmp://127.0.0.1:19351/backup')", [backupId, owner.fixture.creatorId]);
 		await pool.query("INSERT INTO stream_session_destinations(owner_id,session_id,destination_id,position) VALUES($1,$2,$3,1)", [owner.fixture.creatorId, state.sessionId, backupId]);
 	} finally {
 		await pool.end();

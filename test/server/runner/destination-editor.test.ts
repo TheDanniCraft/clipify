@@ -187,8 +187,8 @@ test("TDD-US2-EC004 U26 / TDD-US2-CON005 U235: invalid request matrix preserves 
 		{ success: false, code: "INVALID_INPUT" },
 		{ success: false, code: "RESOURCE_UNAVAILABLE" },
 	]);
-	expect(result.global).toMatchObject({ success: true, destination: { runnerId: null } });
-	expect(result.globalEdit).toMatchObject({ success: true, destination: { name: "Renamed global", runnerId: null, configurationRevision: 2 } });
+	expect(result.global).toMatchObject({ success: true, destination: { credentialConfigured: false } });
+	expect(result.globalEdit).toMatchObject({ success: true, destination: { name: "Renamed global", configurationRevision: 2 } });
 	expect(result.all.destinations).toHaveLength(2);
 	expect(result.scoped.destinations).toHaveLength(2);
 	expect(result.unchanged).toBe(true);

@@ -376,3 +376,7 @@ Use excludedDates and repeatUntilDate on persisted schedule rows and the shared 
 ### Preserve master Runner setup and diagnostics
 
 Restore first-heartbeat gating around the existing shared editor; poll into configuration automatically after the Runner connects. Share the installed HeroUI advanced token section before/after connection, with password type owned by TextField. Reuse artifact manifests with architecture-aware comparison and downloads; preserve all OS instructions. Keep safe session error signals and quality telemetry. Dashboard live-preview reads use an authorized server action with typed failures; token-authenticated Runner uploads remain API-owned. Place Schedule beside Appearance in a responsive action row. The parity audit records retained, restored and explicitly approved removals.
+
+### Account-wide saved destination correction
+
+Remove runner_id from runner_destinations and index by owner/creation time; ordinary migration generation remains workflow-owned. List, deduplicate, normalize legacy destinations, select session targets and capture scheduled/manual admissions by creator ownership. Optional Runner IDs on editor actions validate only the caller’s current Runner context and never constrain visibility or persist ownership. Preserve encrypted credential revisions, typed failures, immutable admission snapshots and existing owner-wide deletion/reference protections.

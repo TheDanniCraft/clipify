@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { and, asc, eq, isNull, or, inArray, arrayContains, ne } from "drizzle-orm";
+import { and, asc, eq, or, inArray, arrayContains, ne } from "drizzle-orm";
 import { z } from "zod";
 import { db, type DatabaseClient, type TransactionClient } from "@/db/client";
 import { auditEventsTable, runnerDestinationsTable, runnersTable, streamSessionDestinationsTable, streamSessionsTable, runnerScheduleEventDestinationsTable, runnerBroadcastAdmissionsTable } from "@/db/schema";
@@ -46,7 +46,7 @@ function failure(code: Parameters<typeof resourceFailure>[0]) {
 }
 
 function destinationView(row: Destination) {
-	return { id: row.id, name: row.name, provider: row.provider, host: new URL(row.rtmpUrl).host, runnerId: row.runnerId, credentialConfigured: Boolean(row.encryptedStreamKey), credentialActions: ["keep", "replace", "clear"] as const, credentialRevision: row.credentialRevision, configurationRevision: row.configurationRevision };
+	return { id: row.id, name: row.name, provider: row.provider, host: new URL(row.rtmpUrl).host, credentialConfigured: Boolean(row.encryptedStreamKey), credentialActions: ["keep", "replace", "clear"] as const, credentialRevision: row.credentialRevision, configurationRevision: row.configurationRevision };
 }
 
 function normalizedRtmpUrl(value: string) {
@@ -77,13 +77,10 @@ function destinationConflicts(peer: Destination, current: Destination | undefine
 	return peer.provider === input.provider && normalizedRtmpUrl(peer.rtmpUrl) === rtmpUrl && (peer.encryptedStreamKey ? decryptString(peer.encryptedStreamKey) : null) === credential;
 }
 
-function selectedRunnerId(input: ParsedDestinationInput, current: Destination | undefined) {
-	return input.runnerId === undefined ? (current?.runnerId ?? null) : input.runnerId;
-}
 function editableDestinationUrl(input: ParsedDestinationInput, current: Destination | undefined) {
 	return normalizedRtmpUrl(input.rtmpUrl ?? current?.rtmpUrl ?? "");
 }
-async function persistDestination(tx: TransactionClient, input: ParsedDestinationInput, current: Destination | undefined, values: Pick<Destination, "runnerId" | "name" | "provider" | "rtmpUrl" | "encryptedStreamKey" | "updatedAt">) {
+async function persistDestination(tx: TransactionClient, input: ParsedDestinationInput, current: Destination | undefined, values: Pick<Destination, "name" | "provider" | "rtmpUrl" | "encryptedStreamKey" | "updatedAt">) {
 	return current
 		? await tx
 				.update(runnerDestinationsTable)
@@ -129,7 +126,8 @@ export async function saveRunnerDestinationForPrincipal(principal: TrustedCreato
 			if (!current) return failure("RESOURCE_UNAVAILABLE");
 			if (current.configurationRevision !== input.expectedRevision) return failure("CONFLICT");
 		}
-		const runnerId = selectedRunnerId(input, current);
+		// Optional Runner context validates the caller's editor, never destination ownership.
+		const runnerId = input.runnerId;
 		if (runnerId) {
 			const [runner] = await tx
 				.select({ id: runnersTable.id })
@@ -144,13 +142,9 @@ export async function saveRunnerDestinationForPrincipal(principal: TrustedCreato
 		if ("success" in credentials) return credentials;
 		const { encryptedStreamKey, credential } = credentials;
 		const { decryptString } = await import("@/app/lib/encryption");
-		const peers = await tx
-			.select()
-			.from(runnerDestinationsTable)
-			.where(and(eq(runnerDestinationsTable.ownerId, input.ownerId), runnerId ? eq(runnerDestinationsTable.runnerId, runnerId) : isNull(runnerDestinationsTable.runnerId)))
-			.orderBy(asc(runnerDestinationsTable.id));
+		const peers = await tx.select().from(runnerDestinationsTable).where(eq(runnerDestinationsTable.ownerId, input.ownerId)).orderBy(asc(runnerDestinationsTable.id));
 		if (peers.some((peer) => destinationConflicts(peer, current, input, rtmpUrl, credential, decryptString))) return failure("INVALID_INPUT");
-		const values = { runnerId, name: input.name, provider: input.provider, rtmpUrl, encryptedStreamKey, updatedAt: new Date() };
+		const values = { name: input.name, provider: input.provider, rtmpUrl, encryptedStreamKey, updatedAt: new Date() };
 		const [row] = await persistDestination(tx, input, current, values);
 		if (!row) return failure("CONFLICT");
 		await audit(tx, principal, row.id, current ? "runner.destination.update" : "runner.destination.create");
@@ -173,11 +167,7 @@ export async function listRunnerDestinationsForPrincipal(principal: TrustedCreat
 				.limit(1);
 			if (!runner) return failure("RESOURCE_UNAVAILABLE");
 		}
-		const rows = await tx
-			.select()
-			.from(runnerDestinationsTable)
-			.where(and(eq(runnerDestinationsTable.ownerId, input.ownerId), input.runnerId ? or(eq(runnerDestinationsTable.runnerId, input.runnerId), isNull(runnerDestinationsTable.runnerId)) : undefined))
-			.orderBy(asc(runnerDestinationsTable.createdAt), asc(runnerDestinationsTable.id));
+		const rows = await tx.select().from(runnerDestinationsTable).where(eq(runnerDestinationsTable.ownerId, input.ownerId)).orderBy(asc(runnerDestinationsTable.createdAt), asc(runnerDestinationsTable.id));
 		authority.assertAuthorityCurrent();
 		return { success: true as const, destinations: rows.map(destinationView) };
 	});
@@ -339,17 +329,13 @@ export async function normalizeLegacySessionDestination(tx: TransactionClient, c
 	if (!url) throw new Error("INVALID_INPUT");
 	const provider = providerForRtmpUrl(url);
 	const name = provider === "twitch" ? "Twitch" : provider === "youtube" ? "YouTube" : "Custom RTMP";
-	const peers = await tx
-		.select()
-		.from(runnerDestinationsTable)
-		.where(and(eq(runnerDestinationsTable.ownerId, creatorId), session.runnerId ? or(eq(runnerDestinationsTable.runnerId, session.runnerId), isNull(runnerDestinationsTable.runnerId)) : isNull(runnerDestinationsTable.runnerId)))
-		.orderBy(asc(runnerDestinationsTable.id));
+	const peers = await tx.select().from(runnerDestinationsTable).where(eq(runnerDestinationsTable.ownerId, creatorId)).orderBy(asc(runnerDestinationsTable.id));
 	const existing = peers.find((row) => row.provider === provider && normalizedRtmpUrl(row.rtmpUrl) === url && decryptString(row.encryptedStreamKey ?? "") === decryptString(session.encryptedStreamKey ?? ""));
 	let destinationId = existing?.id;
 	if (!destinationId) {
 		let uniqueName = name;
 		for (let suffix = 2; peers.some((row) => row.name.toLowerCase() === uniqueName.toLowerCase()); suffix++) uniqueName = `${name} ${suffix}`;
-		const [created] = await tx.insert(runnerDestinationsTable).values({ ownerId: creatorId, runnerId: session.runnerId, name: uniqueName, provider, rtmpUrl: url, encryptedStreamKey: session.encryptedStreamKey }).returning({ id: runnerDestinationsTable.id });
+		const [created] = await tx.insert(runnerDestinationsTable).values({ ownerId: creatorId, name: uniqueName, provider, rtmpUrl: url, encryptedStreamKey: session.encryptedStreamKey }).returning({ id: runnerDestinationsTable.id });
 		destinationId = created.id;
 	}
 	await tx.insert(streamSessionDestinationsTable).values({ ownerId: creatorId, sessionId, destinationId, position: 0 });
@@ -357,7 +343,7 @@ export async function normalizeLegacySessionDestination(tx: TransactionClient, c
 }
 
 /** Caller owns the creator lock. Validate the complete selection before any write. */
-export async function resolveRunnerDestinationSelection(tx: TransactionClient, owner: string, runnerId: string, ids: readonly string[], runnerPro: boolean) {
+export async function resolveRunnerDestinationSelection(tx: TransactionClient, owner: string, ids: readonly string[], runnerPro: boolean) {
 	if (!ids.length || new Set(ids).size !== ids.length || ids.some((id) => !uuid.safeParse(id).success)) return resourceFailure("INVALID_INPUT");
 	if (!runnerPro && ids.length > 1) return resourceFailure("RUNNER_TARGET_LIMIT");
 	const rows = await tx
@@ -366,7 +352,7 @@ export async function resolveRunnerDestinationSelection(tx: TransactionClient, o
 		.where(and(eq(runnerDestinationsTable.ownerId, owner), inArray(runnerDestinationsTable.id, [...ids])))
 		.orderBy(asc(runnerDestinationsTable.id))
 		.for("share");
-	if (rows.length !== ids.length || rows.some((row) => row.runnerId !== null && row.runnerId !== runnerId)) return resourceFailure("RESOURCE_UNAVAILABLE");
+	if (rows.length !== ids.length) return resourceFailure("RESOURCE_UNAVAILABLE");
 	return ids.map((id) => rows.find((row) => row.id === id)!);
 }
 
@@ -393,10 +379,9 @@ export async function captureSessionDestinations(tx: TransactionClient, session:
 				.orderBy(asc(streamSessionDestinationsTable.position));
 	if (scheduleEventId && !selected.length) return resourceFailure("INVALID_INPUT");
 	if (!runnerPro && selected.length > 1) return resourceFailure("RUNNER_TARGET_LIMIT");
-	const targets = selected.length ? selected.map(({ target }) => target) : [{ id: session.id, name: "Legacy destination", provider: "custom" as const, runnerId: session.runnerId, rtmpUrl: session.rtmpUrl, encryptedStreamKey: session.encryptedStreamKey, configurationRevision: session.configurationRevision, credentialRevision: 1 }];
+	const targets = selected.length ? selected.map(({ target }) => target) : [{ id: session.id, name: "Legacy destination", provider: "custom" as const, rtmpUrl: session.rtmpUrl, encryptedStreamKey: session.encryptedStreamKey, configurationRevision: session.configurationRevision, credentialRevision: 1 }];
 	const destinations = [];
 	for (const target of targets) {
-		if (target.runnerId !== null && target.runnerId !== session.runnerId) return resourceFailure("RESOURCE_UNAVAILABLE");
 		const streamKey = target.encryptedStreamKey ? decryptString(target.encryptedStreamKey) : null;
 		if ((target.encryptedStreamKey && !streamKey) || (target.provider !== "custom" && !streamKey)) return resourceFailure("INVALID_INPUT");
 		destinations.push({ id: target.id, name: target.name, provider: target.provider, rtmpUrl: target.rtmpUrl, streamKey, configurationRevision: target.configurationRevision, credentialRevision: target.credentialRevision });

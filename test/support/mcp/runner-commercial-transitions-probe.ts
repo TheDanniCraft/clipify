@@ -39,7 +39,7 @@ export async function runRunnerCommercialTransitionsProbe(input: Parameters<type
 			const start = new Date(capturedEnd - 3600000).toISOString(),
 				end = new Date(capturedEnd).toISOString();
 			// Use the same canonical target identity as the old scalar fixture.
-			await input.fixture.pool.query("INSERT INTO runner_destinations(id,owner_id,runner_id,name,provider,rtmp_url) VALUES($1,$2,$3,'Captured expiry target','custom','rtmp://127.0.0.1:19350/live')", [device.sessionId, ownerId, device.runnerId]);
+			await input.fixture.pool.query("INSERT INTO runner_destinations(id,owner_id,name,provider,rtmp_url) VALUES($1,$2,'Captured expiry target','custom','rtmp://127.0.0.1:19350/live')", [device.sessionId, ownerId]);
 			await input.fixture.pool.query("INSERT INTO stream_session_destinations(session_id,destination_id,owner_id,position) VALUES($1,$1,$2,0)", [device.sessionId, ownerId]);
 			await input.fixture.pool.query("INSERT INTO runner_schedule_events(id,owner_id,runner_id,session_id,overlay_id,title,timezone,recurrence,recurrence_anchor,local_start_date,local_end_date,local_start_time,local_end_time) VALUES($1,$2,$3,$4,$5,'Captured expiry window','UTC','once',$6,$6,$7,$8,$9)", [eventId, ownerId, device.runnerId, device.sessionId, overlayId, start.slice(0, 10), end.slice(0, 10), start.slice(11, 19), end.slice(11, 19)]);
 			await input.fixture.pool.query("INSERT INTO runner_schedule_event_destinations(event_id,destination_id,owner_id,position) VALUES($1,$2,$3,0)", [eventId, device.sessionId, ownerId]);

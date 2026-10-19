@@ -106,3 +106,7 @@ Schedule history review: open a completed broadcast and a currently active calen
 ### Runner master-parity check
 
 Use a never-connected disposable Runner: confirm configuration is hidden, all five download/install choices work, advanced token starts masked, reveal/hide/copy are keyboard accessible and clipboard failure can recover. Send a real authenticated heartbeat and confirm configuration appears without a reload. In connected details verify matching architecture update status and video quality. While running, test no frame, failed preview/read retry, actual uploaded frame and offline recovery; raw diagnostic secrets must remain absent. Compare Manual/Scheduled selector widths, equal Schedule/Appearance buttons on desktop and stacked mobile actions. Run `runner-master-parity.spec.ts` with the existing Runner editor, calendar localization and schedule-history browser owners after the documented isolated test setup.
+
+### Reuse an account destination
+
+Create a destination with a stream key on one Runner. Open a second Runner in the same creator account, select that destination and save without entering another key. Verify its destination manager shows the same saved record with a masked-key placeholder. Changes to its name appear on both devices, and removing the original device leaves it saved. Confirm another creator cannot list/select/edit it. Pro schedules may select the same account record; Free destination and active-broadcast limits remain unchanged.

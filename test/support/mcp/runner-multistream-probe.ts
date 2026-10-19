@@ -24,10 +24,6 @@ function multistreamMediaScenario(variant: string) {
 function acceptedConfiguration(value: { id?: unknown; error?: unknown } | undefined) {
 	return typeof value?.id === "string" && !value.error;
 }
-function globalTargetsRequired(variant: string, selection: string) {
-	return variant.startsWith("multistream_active_reassignment") || variant === "multistream_inactive_reassignment" || selection === "global";
-}
-
 function hasAcceptedOutputReport(response: { status: number; body: { acceptedExecutions?: { admissionId: string }[] } }, admissionId: string) {
 	return response.status === 200 && response.body.acceptedExecutions?.some((ack) => ack.admissionId === admissionId);
 }
@@ -51,11 +47,6 @@ export async function runRunnerMultistreamProbe(input: Input) {
 		const invalidSelection = input.variant.replace("multistream_selection_", "");
 		if (invalidSelection === "duplicate") requestedIds = [ids[0], ids[0]];
 		if (invalidSelection === "missing") requestedIds = [randomUUID()];
-		if (invalidSelection === "wrong_runner") {
-			const otherRunner = randomUUID();
-			await input.fixture.pool.query("INSERT INTO runners(id,owner_id,name,token) VALUES($1,$2,'Other scoped device',$3)", [otherRunner, ownerId, randomUUID()]);
-			await input.fixture.pool.query("UPDATE runner_destinations SET runner_id=$1 WHERE id=$2", [otherRunner, ids[0]]);
-		}
 		if (invalidSelection === "foreign") {
 			await input.fixture.pool.query("INSERT INTO users(id,email,username,avatar,role,plan) SELECT 'foreign-target-owner','foreign@example.invalid','foreign','',role,'free' FROM users WHERE id=$1", [ownerId]);
 			await input.fixture.pool.query("UPDATE runner_destinations SET owner_id='foreign-target-owner' WHERE id=$1", [ids[0]]);
@@ -70,11 +61,10 @@ export async function runRunnerMultistreamProbe(input: Input) {
 	async function observeInternalSelection() {
 		const { db } = await import("@/db/client");
 		const { resolveRunnerDestinationSelection } = await import("@/server/runner/destinations");
-		const result = await db.transaction((tx) => resolveRunnerDestinationSelection(tx, ownerId, input.runnerId, invalidSelection === "empty_internal" ? [] : ["invalid"], true));
+		const result = await db.transaction((tx) => resolveRunnerDestinationSelection(tx, ownerId, invalidSelection === "empty_internal" ? [] : ["invalid"], true));
 		return { authenticated: input.authenticated, configurationAccepted: false, configurationError: "error" in result ? result.error.code : undefined, sessions: 0 };
 	}
 	if (["empty_internal", "malformed_internal"].includes(invalidSelection)) return await observeInternalSelection();
-	if (globalTargetsRequired(input.variant, invalidSelection)) await input.fixture.pool.query("UPDATE runner_destinations SET runner_id=NULL WHERE id=ANY($1::uuid[])", [ids]);
 	const { call } = await (await import("./runner-free-pro-probe")).runRunnerFreeProProbe(input);
 	const { privateKey, publicKey } = ephemeralRunnerKeys();
 	process.env.RUNNER_EXECUTION_SIGNING_PRIVATE_KEY = privateKey.export({ type: "pkcs8", format: "pem" }).toString();

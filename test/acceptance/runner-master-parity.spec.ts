@@ -28,7 +28,7 @@ test("Runner preserves first connection, headless setup, updates, quality and re
 		owner = await createAuthenticatedFixture(request, context, { withProviderCredentials: true });
 		const creatorId = owner.fixture.creatorId;
 		await pool.query("INSERT INTO runners(id,owner_id,name,token,status,protocol_version,capabilities) VALUES($1,$2,'Master parity computer',$3,'offline',2,$4::jsonb)", [runnerId, creatorId, runnerToken, JSON.stringify(["admissions", "destinations", "drain", "runner_presentation", "free_lease"])]);
-		await pool.query("INSERT INTO runner_destinations(id,owner_id,runner_id,name,provider,rtmp_url) VALUES($1,$2,$3,'Local output','custom','rtmp://127.0.0.1:1949/live')", [destinationId, creatorId, runnerId]);
+		await pool.query("INSERT INTO runner_destinations(id,owner_id,name,provider,rtmp_url) VALUES($1,$2,'Local output','custom','rtmp://127.0.0.1:1949/live')", [destinationId, creatorId]);
 		await pool.query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,control_mode,resolution,fps) VALUES($1,$2,$3,$4,'24/7','manual','720p',30)", [sessionId, creatorId, runnerId, owner.fixture.overlayId]);
 		await pool.query("INSERT INTO stream_session_destinations(session_id,destination_id,owner_id,position) VALUES($1,$2,$3,0)", [sessionId, destinationId, creatorId]);
 		// Synthetic manifest metadata only; installed controls and download-link actions,

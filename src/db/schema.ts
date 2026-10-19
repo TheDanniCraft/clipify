@@ -908,7 +908,6 @@ export const runnerDestinationsTable = pgTable(
 		ownerId: varchar("owner_id")
 			.notNull()
 			.references(() => usersTable.id, { onDelete: "cascade" }),
-		runnerId: uuid("runner_id").references(() => runnersTable.id, { onDelete: "set null" }),
 		name: varchar("name", { length: 80 }).notNull(),
 		provider: runnerDestinationProviderEnum("provider").notNull(),
 		rtmpUrl: text("rtmp_url").notNull(),
@@ -918,7 +917,7 @@ export const runnerDestinationsTable = pgTable(
 		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 	},
-	(table) => [unique("runner_destinations_owner_identity").on(table.ownerId, table.id), index("runner_destinations_visible_scope").on(table.ownerId, table.runnerId), check("runner_destinations_name_length", sql`char_length(trim(${table.name})) BETWEEN 1 AND 80`), check("runner_destinations_url_length", sql`char_length(${table.rtmpUrl}) BETWEEN 1 AND 4096`), check("runner_destinations_revisions_positive", sql`${table.credentialRevision} > 0 AND ${table.configurationRevision} > 0`)],
+	(table) => [unique("runner_destinations_owner_identity").on(table.ownerId, table.id), index("runner_destinations_owner_created").on(table.ownerId, table.createdAt), check("runner_destinations_name_length", sql`char_length(trim(${table.name})) BETWEEN 1 AND 80`), check("runner_destinations_url_length", sql`char_length(${table.rtmpUrl}) BETWEEN 1 AND 4096`), check("runner_destinations_revisions_positive", sql`${table.credentialRevision} > 0 AND ${table.configurationRevision} > 0`)],
 );
 
 export const streamSessionDestinationsTable = pgTable(

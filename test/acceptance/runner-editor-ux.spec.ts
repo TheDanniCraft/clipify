@@ -140,7 +140,7 @@ for (const plan of ["free", "pro"] as const)
 			await expect(streamKey).toHaveAttribute("type", "password");
 			await expect(streamKey).toHaveAttribute("placeholder", "••••••••");
 			await expect(streamKey).toHaveValue("");
-			const credential = async () => (await pool.query("SELECT encrypted_stream_key, credential_revision FROM runner_destinations WHERE runner_id=$1 AND name=$2", [runnerId, "My local output"])).rows[0];
+			const credential = async () => (await pool.query("SELECT encrypted_stream_key, credential_revision FROM runner_destinations WHERE owner_id=$1 AND name=$2", [owner!.fixture.creatorId, "My local output"])).rows[0];
 			const originalCredential = await credential();
 			await destinationEditor.getByRole("button", { name: "Save destination", exact: true }).click();
 			await expect(destinationEditor).not.toBeVisible();
@@ -545,6 +545,74 @@ test("Runner setup without an overlay offers a source action and recoverable val
 		await save.click();
 		await expect(page.getByRole("alert").filter({ hasText: "Choose an overlay before saving." })).toBeVisible();
 		await expect(save).toBeEnabled();
+	} finally {
+		await pool.end();
+		if (owner) {
+			const response = await request.delete("/api/test/auth-fixture", { headers: fixtureHeaders, data: { authUserId: owner.fixture.authUserId, creatorId: owner.fixture.creatorId, organizationIds: [owner.fixture.creatorOrganizationId, owner.fixture.agencyOrganizationId] } });
+			expect(response.status()).toBe(204);
+		}
+	}
+});
+
+test("a second Runner reuses an account destination without asking for its key again", async ({ page, request, context }, testInfo) => {
+	const pool = new Pool({ connectionString: browserDatabaseUrl(), max: 1 });
+	let owner: AuthFixture | undefined;
+	try {
+		owner = await createAuthenticatedFixture(request, context, { withProviderCredentials: true });
+		const creatorId = owner.fixture.creatorId;
+		const first = randomUUID(),
+			second = randomUUID();
+		for (const [id, name] of [
+			[first, "First computer"],
+			[second, "Second computer"],
+		])
+			await pool.query("INSERT INTO runners(id,owner_id,name,token,status,last_heartbeat_at,protocol_version,capabilities) VALUES($1,$2,$3,$4,'online',now(),2,'[]'::jsonb)", [id, creatorId, name, randomUUID()]);
+		await prepare(page);
+		await page.goto(`/dashboard/runners/${first}`);
+		const selector = page.getByRole("group", { name: "Broadcast destinations", exact: true });
+		await selector.getByRole("button", { name: "Add destination", exact: true }).click();
+		const manager = page.getByRole("dialog", { name: "Manage destinations", exact: true });
+		await manager.getByRole("button", { name: "Add destination", exact: true }).click();
+		const editor = page.getByRole("dialog", { name: "Add destination", exact: true });
+		await editor.getByRole("textbox", { name: "Destination name", exact: true }).fill("Community Twitch");
+		await expect(editor.getByLabel("Destination stream key", { exact: true })).toHaveAttribute("type", "password");
+		await editor.getByLabel("Destination stream key", { exact: true }).fill("private-reusable-browser-key");
+		await editor.getByRole("button", { name: "Save destination", exact: true }).click();
+		await expect(editor).not.toBeVisible();
+		await expect(manager.getByRole("row").filter({ hasText: "Community Twitch" })).toBeVisible();
+		const saved = (await pool.query("SELECT id,encrypted_stream_key,credential_revision FROM runner_destinations WHERE owner_id=$1", [creatorId])).rows;
+		expect(saved).toHaveLength(1);
+		expect(saved[0].encrypted_stream_key).not.toContain("private-reusable-browser-key");
+		await page.goto(`/dashboard/runners/${second}`);
+		await expect(page.getByRole("heading", { name: "Second computer", exact: true })).toBeVisible();
+		await selector.getByRole("button", { name: /Choose destinations/ }).click();
+		await page.getByRole("option", { name: /Community Twitch/ }).click();
+		if (await page.getByRole("listbox").isVisible()) await page.keyboard.press("Escape");
+		await page.getByRole("button", { name: /Target Overlay$/ }).click();
+		await page.getByRole("option", { name: /E2E continuity overlay/ }).click();
+		await page.getByRole("button", { name: "Save Configuration", exact: true }).click();
+		await expect(page.getByRole("button", { name: "Start", exact: true })).toBeEnabled();
+		const selection = (await pool.query("SELECT d.destination_id FROM stream_session_destinations d JOIN stream_sessions s ON s.id=d.session_id WHERE s.owner_id=$1 AND s.runner_id=$2", [creatorId, second])).rows;
+		expect(selection).toEqual([{ destination_id: saved[0].id }]);
+		expect((await pool.query("SELECT id,encrypted_stream_key,credential_revision FROM runner_destinations WHERE owner_id=$1", [creatorId])).rows).toEqual(saved);
+		await selector.getByRole("button", { name: "Manage destinations", exact: true }).click();
+		await manager.getByRole("button", { name: "Edit Community Twitch", exact: true }).click();
+		const edit = page.getByRole("dialog", { name: "Edit destination", exact: true });
+		await expect(edit.getByLabel("Destination stream key", { exact: true })).toHaveAttribute("placeholder", "••••••••");
+		await expect(edit.getByLabel("Destination stream key", { exact: true })).toHaveValue("");
+		await page.keyboard.press("Escape");
+		await expect(edit).not.toBeVisible();
+		for (const theme of ["dark", "light"]) {
+			if (theme === "light") {
+				await page.keyboard.press("Escape");
+				await expect(manager).not.toBeVisible();
+				await page.getByRole("button", { name: "Toggle Theme", exact: true }).click();
+				await selector.getByRole("button", { name: "Manage destinations", exact: true }).click();
+				await expect(manager).toBeVisible();
+			}
+			await expect(manager.getByRole("row").filter({ hasText: "Community Twitch" })).toBeVisible();
+			await manager.screenshot({ path: testInfo.outputPath(`account-destinations-${theme}.png`), animations: "disabled" });
+		}
 	} finally {
 		await pool.end();
 		if (owner) {

@@ -73,7 +73,7 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 		setSaving(true);
 		setError(null);
 		try {
-			const result = await saveRunnerDestination({ ownerId, runnerId: editing ? editing.runnerId : runnerId, ...(editing ? { id: editing.id, expectedRevision: editing.configurationRevision } : {}), name, provider, ...(url.trim() ? { rtmpUrl: url } : {}), credentialAction, ...(credentialAction === "replace" && key.trim() ? { streamKey: key } : {}) });
+			const result = await saveRunnerDestination({ ownerId, runnerId, ...(editing ? { id: editing.id, expectedRevision: editing.configurationRevision } : {}), name, provider, ...(url.trim() ? { rtmpUrl: url } : {}), credentialAction, ...(credentialAction === "replace" && key.trim() ? { streamKey: key } : {}) });
 			if (!result.success) {
 				if (result.code === "CONFLICT") {
 					const refreshed = await listRunnerDestinations(ownerId, runnerId);
@@ -275,7 +275,7 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 									<p className='text-xs text-muted'>Connections originate from your Runner. Local and private servers are supported.</p>
 								</TextField>
 							)}
-							<TextField>
+							<TextField type='password'>
 								<Label>Destination stream key</Label>
 								<Input variant='secondary' type='password' autoComplete='new-password' placeholder={savedKeyAvailable ? "••••••••" : undefined} value={key} onChange={(event) => setKey(event.target.value)} />
 								<p className='text-xs text-muted'>{provider === "custom" ? "Optional for custom RTMP servers." : "Required for this provider."}</p>

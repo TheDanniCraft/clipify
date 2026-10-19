@@ -11,7 +11,7 @@ export async function runRunnerScheduleAutomationProbe(input: Input) {
 		sessionId = randomUUID(),
 		targetId = randomUUID();
 	await input.fixture.pool.query("INSERT INTO overlays(id,owner_id,secret,name,status,type) VALUES($1,$2,'automation-source-secret','Automation source','active','Featured')", [overlayId, ownerId]);
-	await input.fixture.pool.query("INSERT INTO runner_destinations(id,owner_id,runner_id,name,provider,rtmp_url) VALUES($1,$2,$3,'Automation target','custom','rtmp://127.0.0.1:1949/live')", [targetId, ownerId, input.runnerId]);
+	await input.fixture.pool.query("INSERT INTO runner_destinations(id,owner_id,name,provider,rtmp_url) VALUES($1,$2,'Automation target','custom','rtmp://127.0.0.1:1949/live')", [targetId, ownerId]);
 	await input.fixture.pool.query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,control_mode) VALUES($1,$2,$3,$4,'24/7','scheduled')", [sessionId, ownerId, input.runnerId, overlayId]);
 	await input.fixture.pool.query("INSERT INTO stream_session_destinations(session_id,destination_id,owner_id,position) VALUES($1,$2,$3,0)", [sessionId, targetId, ownerId]);
 	const principal = await getVerifiedSessionPrincipal();

@@ -1,0 +1,38 @@
+$ jest --runInBand --runTestsByPath test/server/runner/destination-account.test.ts "--coverage=false"
+[tests] Native application probes compiled once for this run
+[tests] database: 1 suites, 1 worker(s)
+FAIL test/server/runner/destination-account.test.ts (6.845 s)
+  ● saved destinations are reusable account-wide across computers without re-entering credentials
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 6
+    + Received  + 1
+
+      Object {
+    -   "destinations": Array [
+    -     Object {
+    -       "credentialConfigured": true,
+    -       "id": "9815d77a-b510-45f6-8d75-8026aaea8ad5",
+    -     },
+    -   ],
+    +   "destinations": Array [],
+        "success": true,
+      }
+
+       5 | 	const result = flowProbe("catalogue:workflow:runner_free_pro:destinations_account_reuse");
+       6 | 	expect(result.authenticated).toBe(true);
+    >  7 | 	expect(result.reused).toMatchObject({ success: true, destinations: [{ id: result.destinationId, credentialConfigured: true }] });
+         | 	                      ^
+       8 | 	expect(result.duplicate).toMatchObject({ success: false, code: "INVALID_INPUT" });
+       9 | 	expect(result.edited).toMatchObject({ success: true });
+      10 | 	expect(result.credentialPreserved).toBe(true);
+
+      at Object.toMatchObject (test/server/runner/destination-account.test.ts:7:24)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 total
+Snapshots:   0 total
+Time:        7.545 s
+Ran all test suites within paths "test/server/runner/destination-account.test.ts".
+error: script "test" exited with code 1

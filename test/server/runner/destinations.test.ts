@@ -73,7 +73,6 @@ test.each([
 	{ variant: "duplicate", code: "INVALID_INPUT" },
 	{ variant: "missing", code: "RESOURCE_UNAVAILABLE" },
 	{ variant: "foreign", code: "RESOURCE_UNAVAILABLE" },
-	{ variant: "wrong_runner", code: "RESOURCE_UNAVAILABLE" },
 	{ variant: "rollback", code: "SERVICE_UNAVAILABLE" },
 	{ variant: "empty_internal", code: "INVALID_INPUT" },
 	{ variant: "malformed_internal", code: "INVALID_INPUT" },
