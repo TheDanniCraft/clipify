@@ -9,7 +9,7 @@ import { useParams, useRouter } from "next/navigation";
 import { validateAuth } from "@actions/auth";
 import { getRunner, getRunnerLivePreview, getRunnerToken, getRunnerVersionManifest, getStreamSessionsForRunner, upsertStreamSession, setStreamDesiredState, unlinkRunner, listRunnerDestinations, listRunnerScheduleEvents } from "@actions/runner";
 import { getAllOverlays } from "@actions/database";
-import { Accordion, Button, Card, Label, Select, Spinner, ListBox, Chip, Modal, Dropdown, Tooltip, Separator } from "@heroui/react";
+import { Accordion, Button, Card, Label, Select, Spinner, ListBox, Chip, Link, Modal, Dropdown, Tooltip, Separator } from "@heroui/react";
 import { IconArrowLeft, IconBrandWindows, IconTerminal2, IconBrandApple, IconUnlink, IconAlertTriangle, IconCircleCheck, IconRefresh } from "@tabler/icons-react";
 import { notify } from "@lib/toast";
 import FullscreenLoadingState from "@components/fullscreenLoadingState";
@@ -760,14 +760,24 @@ export default function RunnerPage() {
 					<Modal.Container size='lg'>
 						<Modal.Dialog>
 							<Modal.CloseTrigger />
-							<Modal.Header>
-								<Modal.Heading>Install Clipify Runner for {installPlatform ? runnerPlatformLabels[installPlatform] : ""}</Modal.Heading>
+							<Modal.Header className='flex-row items-center gap-3'>
+								<span className='flex size-11 shrink-0 items-center justify-center rounded-full bg-success/10 text-success'>
+									<IconCircleCheck size={26} aria-hidden='true' />
+								</span>
+								<div className='space-y-1'>
+									<Modal.Heading>Your download is starting</Modal.Heading>
+									<p className='text-sm text-muted'>Clipify Runner for {installPlatform ? runnerPlatformLabels[installPlatform] : ""}</p>
+								</div>
 							</Modal.Header>
-							<Modal.Body className='space-y-4'>
+							<Modal.Body className='space-y-5'>
 								{installPlatform && (
-									<Button variant='secondary' isDisabled={downloadCountdown > 0} onPress={() => handleRunnerDownload(installPlatform)}>
-										Download again{downloadCountdown > 0 ? ` (${downloadCountdown})` : ""}
-									</Button>
+									<p className='text-sm text-muted'>
+										If it doesn’t start,{" "}
+										<Link href={getRunnerDownloadUrl(installPlatform)} download='' isDisabled={downloadCountdown > 0} onPress={() => setDownloadCountdown(5)} className='inline text-sm underline underline-offset-4'>
+											download again{downloadCountdown > 0 ? ` (${downloadCountdown}s)` : ""}
+										</Link>
+										.
+									</p>
 								)}
 								{renderInstallSteps()}
 							</Modal.Body>

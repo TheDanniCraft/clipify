@@ -28,3 +28,9 @@ An earlier browser setup-parity observation timeout and native cold-capture time
 Configure exact callbacks and credentials in docs/runner-provider-connections.md. YouTube additionally requires its API/consent setup and applicable Google verification. Verify real consent, live eligibility, metadata delivery and private Twitch output with authorized test accounts before public enablement. Local controlled provider responses and browser consent interception do not establish those external conditions.
 
 Offline cached broadcasts retain the provider's previous details until a connected Runner heartbeat can apply the occurrence's captured settings. Optional metadata failures remain visible and retryable without terminating the broadcast.
+
+## Download dialog follow-up
+
+Replace the large retry button with an installed HeroUI download link in the fallback sentence. Show a green confirmation icon, “Your download is starting” and the selected platform. The copy acknowledges the requested download without claiming the browser completed it. Preserve the five-second cooldown and installation instructions.
+
+The production browser build/typecheck, scoped lint and formatting passed. The complete existing runner-master-parity browser file passed, including all five platform downloads, disabled countdown, keyboard retry, cooldown reset and four reviewed light/dark desktop/mobile dialog screenshots. This narrow UI follow-up uses its affected browser owner; the complete six-lane evidence above belongs to the explicitly identified implementation commit.
