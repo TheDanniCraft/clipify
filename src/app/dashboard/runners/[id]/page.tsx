@@ -440,7 +440,7 @@ export default function RunnerPage() {
 								{runner.status === "online" ? "Online" : runnerConnectionLabel}
 							</Chip>
 							<Tooltip delay={0}>
-								<Button isIconOnly variant='tertiary' aria-label='Unlink runner' onPress={() => setIsUnlinkConfirmOpen(true)} isDisabled={!canUnlinkRunner}>
+								<Button isIconOnly variant='danger-soft' aria-label='Unlink runner' onPress={() => setIsUnlinkConfirmOpen(true)} isDisabled={!canUnlinkRunner}>
 									<IconUnlink />
 								</Button>
 								<Tooltip.Content>Unlink runner</Tooltip.Content>
