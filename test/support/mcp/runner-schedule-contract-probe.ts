@@ -40,6 +40,7 @@ export async function runRunnerScheduleContractProbe(input: Input) {
 		if (!bundle || typeof bundle.payload !== "string" || typeof bundle.signature !== "string") return { present: false, verified: false, claims: null };
 		return { present: true, verified: verify(null, Buffer.from(bundle.payload), publicKey, Buffer.from(bundle.signature, "base64url")), claims: JSON.parse(Buffer.from(bundle.payload, "base64url").toString()) };
 	};
+	const scopedRecurrence = await observeScopedRecurrence();
 	const initialView = await rows();
 	const authoringState = { desiredState: (await input.fixture.pool.query("SELECT desired_state FROM stream_sessions WHERE id=$1", [sessionId])).rows[0].desired_state, admissions: Number((await input.fixture.pool.query("SELECT count(*) FROM runner_broadcast_admissions WHERE session_id=$1", [sessionId])).rows[0].count) };
 	const persisted = async () => ({
@@ -260,11 +261,21 @@ export async function runRunnerScheduleContractProbe(input: Input) {
 		await resetEnded();
 		await input.fixture.pool.query("UPDATE runner_broadcast_admissions SET state='stopped',stopped_at=now() WHERE id=$1", [drainingAdmission]);
 		const afterClosureEdit = await schedules.saveRunnerScheduleEventForPrincipal(principal, { ...endedDraft, id: activeCreated.event.id, expectedRevision: 1, title: "Editable after closure" });
+		const afterClosureDelete = await schedules.deleteRunnerScheduleEventForPrincipal(principal, { ownerId, runnerId: activeRunnerId, id: activeCreated.event.id, expectedRevision: 1 });
+		const completedView = await schedules.listRunnerScheduleEventsForPrincipal(principal, { ownerId, runnerId: activeRunnerId });
+		const renameInput = { ownerId, runnerId: activeRunnerId, id: activeCreated.event.id, expectedRevision: 1, expectedTitle: activeDraft.title, title: "Archived broadcast title" };
+		const renameBefore = await persisted();
+		const renamedCompleted = await schedules.renameRunnerScheduleEventForPrincipal(principal, renameInput);
+		const renameAfter = await persisted();
+		const staleRename = await schedules.renameRunnerScheduleEventForPrincipal(principal, { ...renameInput, title: "Stale overwrite" });
+		const injectionRename = await schedules.renameRunnerScheduleEventForPrincipal(principal, { ...renameInput, expectedTitle: "Archived broadcast title", localStartTime: "23:00" });
+		const renameFieldsOnly = JSON.stringify(renameBefore.destinations) === JSON.stringify(renameAfter.destinations) && JSON.stringify(renameBefore.events.map((row: Record<string, unknown>) => ({ ...row, title: undefined, updated_at: undefined }))) === JSON.stringify(renameAfter.events.map((row: Record<string, unknown>) => ({ ...row, title: undefined, updated_at: undefined })));
+
 		await input.fixture.pool.query("DELETE FROM runner_broadcast_admissions WHERE id=$1", [drainingAdmission]);
 		await input.fixture.pool.query("DELETE FROM runner_schedule_events WHERE id=$1", [activeCreated.event.id]);
-		return { activeEdits, activeDelete, activeDeleteUnchanged, drainingEdit, drainingUnchanged, afterClosureEdit };
+		return { activeEdits, activeDelete, activeDeleteUnchanged, drainingEdit, drainingUnchanged, afterClosureEdit, afterClosureDelete, completedView, renamedCompleted, staleRename, injectionRename, renameFieldsOnly };
 	}
-	const { activeEdits, activeDelete, activeDeleteUnchanged, drainingEdit, drainingUnchanged, afterClosureEdit } = await observeLiveEditLocks();
+	const { activeEdits, activeDelete, activeDeleteUnchanged, drainingEdit, drainingUnchanged, afterClosureEdit, afterClosureDelete, completedView, renamedCompleted, staleRename, injectionRename, renameFieldsOnly } = await observeLiveEditLocks();
 
 	async function observeCalendarAuthoring() {
 		const deletable = await schedules.saveRunnerScheduleEventForPrincipal(principal, { ...base, title: "Deletable future event", localStartDate: "2029-01-04", localEndDate: "2029-01-04" });
@@ -686,7 +697,41 @@ export async function runRunnerScheduleContractProbe(input: Input) {
 	}
 	const { expiredView, expiredWrite, expiredWriteUnchanged, expiredSigned, retainedPlan, legacyPaidDenied } = await observeExpiredAuthoring();
 
+	async function observeScopedRecurrence() {
+		const seriesRunnerId = randomUUID(),
+			seriesSessionId = randomUUID(),
+			seriesTargetId = randomUUID();
+		await input.fixture.pool.query("INSERT INTO runners(id,owner_id,name,token) VALUES($1,$2,'Series fixture',$3)", [seriesRunnerId, ownerId, randomUUID()]);
+		await input.fixture.pool.query("INSERT INTO runner_destinations(id,owner_id,runner_id,name,provider,rtmp_url) VALUES($1,$2,$3,'Series target','custom','rtmp://127.0.0.1:1949/series')", [seriesTargetId, ownerId, seriesRunnerId]);
+		await input.fixture.pool.query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,control_mode) VALUES($1,$2,$3,$4,'24/7','scheduled')", [seriesSessionId, ownerId, seriesRunnerId, overlayId]);
+		const base = { ...draft, runnerId: seriesRunnerId, sessionId: seriesSessionId, destinationIds: [seriesTargetId], title: "Weekly history", recurrence: "weekly", localStartDate: "2029-01-01", localEndDate: null, weekdays: [1], endDayOffset: 0, localStartTime: "12:00", localEndTime: "14:00" };
+		const created = await schedules.saveRunnerScheduleEventForPrincipal(principal, base);
+		if (!created.success) throw new Error("SERIES_FIXTURE_DENIED:" + created.code);
+		const clock = () => Date.parse("2029-01-15T13:00:00.000Z");
+		const single = await schedules.saveRunnerScheduleEventForPrincipal(principal, { ...base, id: created.event.id, expectedRevision: 1, scope: "this", occurrenceStart: "2029-01-22T12:00:00.000Z", recurrence: "once", weekdays: [], localStartDate: "2029-01-22", localEndDate: "2029-01-22", localStartTime: "15:00", localEndTime: "16:00" }, undefined, clock);
+		const laterException = await schedules.saveRunnerScheduleEventForPrincipal(principal, { ...base, id: created.event.id, expectedRevision: 2, scope: "this", occurrenceStart: "2029-02-26T12:00:00.000Z", recurrence: "once", weekdays: [], localStartDate: "2029-02-26", localEndDate: "2029-02-26", localStartTime: "16:00", localEndTime: "17:00" }, undefined, clock);
+		const following = await schedules.saveRunnerScheduleEventForPrincipal(principal, { ...base, id: created.event.id, expectedRevision: 3, scope: "following", occurrenceStart: "2029-01-29T12:00:00.000Z", localStartDate: "2029-01-29", localStartTime: "15:00", localEndTime: "16:00" }, undefined, clock);
+		if (!following.success) return { single, following };
+		const pastDelete = await schedules.deleteRunnerScheduleEventForPrincipal(principal, { ownerId, runnerId: seriesRunnerId, id: created.event.id, expectedRevision: 4, scope: "this", occurrenceStart: "2029-01-08T12:00:00.000Z" }, undefined, clock);
+		const currentEdit = await schedules.saveRunnerScheduleEventForPrincipal(principal, { ...base, id: created.event.id, expectedRevision: 4, scope: "this", occurrenceStart: "2029-01-15T12:00:00.000Z", recurrence: "once", weekdays: [], localStartDate: "2029-01-15", localEndDate: "2029-01-15" }, undefined, clock);
+		const removedOne = await schedules.deleteRunnerScheduleEventForPrincipal(principal, { ownerId, runnerId: seriesRunnerId, id: following.event.id, expectedRevision: 1, scope: "this", occurrenceStart: "2029-02-05T15:00:00.000Z" }, undefined, clock);
+		const removedFollowing = await schedules.deleteRunnerScheduleEventForPrincipal(principal, { ownerId, runnerId: seriesRunnerId, id: following.event.id, expectedRevision: 2, scope: "following", occurrenceStart: "2029-02-12T15:00:00.000Z" }, undefined, clock);
+		const rows = (await input.fixture.pool.query("SELECT * FROM runner_schedule_events WHERE id=ANY($1::uuid[])", [[created.event.id, single.success ? single.event.id : created.event.id, following.event.id, laterException.success ? laterException.event.id : created.event.id]])).rows;
+		const { resolveCalendarSchedule } = await import("@/server/runner/schedule-time");
+		const view = await schedules.listRunnerScheduleEventsForPrincipal(principal, { ownerId, runnerId: seriesRunnerId });
+		const ids = rows.map((row) => row.id);
+		const windows = view.success
+			? view.events
+					.filter((event) => ids.includes(event.id))
+					.flatMap((event) => resolveCalendarSchedule(event, { start: "2029-01-01T00:00:00.000Z", end: "2029-03-01T00:00:00.000Z" }).occurrences)
+					.map((row) => [row.startUtc, row.endUtc])
+					.sort()
+			: [];
+		return { laterException, single, following, pastDelete, currentEdit, removedOne, removedFollowing, windows };
+	}
+
 	return {
+		scopedRecurrence,
 		offlineAuthorization,
 		manualSourceCapture,
 		eventTargetCapture,
@@ -731,6 +776,12 @@ export async function runRunnerScheduleContractProbe(input: Input) {
 		drainingEdit,
 		drainingUnchanged,
 		afterClosureEdit,
+		afterClosureDelete,
+		completedView,
+		renamedCompleted,
+		staleRename,
+		injectionRename,
+		renameFieldsOnly,
 		activeEdits,
 		authenticated: input.authenticated,
 		saved: true,

@@ -136,6 +136,7 @@ Runner is included with Free and Pro, with unlimited streaming hours and no sepa
 - Free generated clips and standby include readable Clipify attribution. The normal live feed is not watermarked by Runner.
 - Pro adds scheduling, multiple destinations per broadcast, multiple independent active broadcasts, custom standby screens, and watermark removal. Additional destinations use the creator's upload bandwidth; they do not require separate quality encodes.
 - Schedule blocks can span days and weeks in the configured timezone. The computer and Runner must stay online. New starts and schedule changes require Clipify connectivity. Scheduled stops finish the current clip before going offline.
+- Past and current occurrences open read-only broadcast details; their titles can still be renamed. Future recurring edits and deletion offer This occurrence or This and following, preserving earlier broadcasts.
 - Advanced Runner features require effective Pro, including valid Pro grants, trials, and agency creator seats. The standalone Runner entitlement, purchase and agency Runner seats are retired.
 - Manage destinations alongside broadcast configuration. Appearance and schedules open in dedicated editors; the calendar supports day, week, and month views with local timezone date/time controls.
 - Enroll and manage devices from the dashboard. Streaming keys stay protected and are delivered only to the authorized assigned Runner; public setup/status responses do not reveal them.

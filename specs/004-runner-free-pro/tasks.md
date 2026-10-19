@@ -2438,3 +2438,7 @@ The user superseded legacy Runner preservation: hard cut the unreleased Runner e
 - [x] UXR-21 Group calendar heading/actions and navigation/date/timezone/views using the installed Agenda composition. Make Add schedule primary, add Pause/Resume icons and align mobile controls instead of a loose stack. Retain automation behavior and Pro gates.
 - [x] UXR-22 Add an All day editor control with inclusive end-date editing and existing midnight interval persistence. Project one logical all-day bar across days in native Agenda top strips/month rows, preserve locked styling and keyboard editing, and verify DST23/25-hour boundaries and saved/edit round trips without schema/API changes.
 - [x] UXR-23 Standardize browser UI dates through a hydration-safe locale-aware component/shared formatter across Runner, galleries, Creator Page/analytics, membership, legal, admin, billing, team and account settings. Follow browser locale consistently with installed date pickers; preserve ISO transport, civil dates, saved timezones and deterministic generated images. Record a durable UI rule and verify actual US/German browser flows.
+
+- [x] UXR-24 Preserve completed events and open locked occurrences in read-only details with presentation-only title changes.
+- [x] UXR-25 Add future recurring edit/delete scope choices, transactional exclusions/splitting and history protection.
+- [x] UXR-26 Validate the real installed calendar flows, failures, keyboard/focus and both themes at desktop/mobile widths; retain authentic evidence.

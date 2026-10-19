@@ -473,3 +473,10 @@ export async function saveRunnerBrandingProfile(input: unknown) {
 		return saveRunnerBrandingProfileForPrincipal(principal, input);
 	});
 }
+
+export async function renameRunnerScheduleEvent(data: unknown) {
+	return runnerDestinationAction("rename-runner-schedule-event", async (principal) => {
+		const { renameRunnerScheduleEventForPrincipal } = await import("@/server/runner/schedules");
+		return renameRunnerScheduleEventForPrincipal(principal, data);
+	});
+}

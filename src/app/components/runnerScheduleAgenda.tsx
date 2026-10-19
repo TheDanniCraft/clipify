@@ -6,7 +6,7 @@ import { Button } from "@heroui/react";
 import { Agenda, useAgenda, type AgendaView } from "@heroui-pro/react";
 import { ScheduleDateField } from "./runner/ScheduleFields";
 import { useLocale } from "react-aria-components/I18nProvider";
-import { parseDate, today, startOfWeek, startOfMonth, getLocalTimeZone } from "@internationalized/date";
+import { parseDate, fromDate, toCalendarDateTime, today, startOfWeek, startOfMonth, getLocalTimeZone } from "@internationalized/date";
 import styles from "./runnerScheduleAgenda.module.css";
 import { projectScheduleViewport, plannerCreateWindow, plannerMoveWindow, plannerResizeWindow, type PlannerEvent } from "./runnerSchedulePlanner";
 
@@ -16,7 +16,7 @@ function subscribeViewport(listener: () => void) {
 	query.addEventListener("change", listener);
 	return () => query.removeEventListener("change", listener);
 }
-export default function RunnerScheduleAgenda({ events, canEdit, onEdit, onCreate, toolbar, timezoneControl, timezone = getLocalTimeZone() }: { events: PlannerEvent[]; toolbar?: ReactNode; timezoneControl?: ReactNode; timezone?: string; canEdit: boolean; onEdit: (id: string, window?: ReturnType<typeof plannerCreateWindow>, notice?: string) => void; onCreate: (window: ReturnType<typeof plannerCreateWindow>) => void }) {
+export default function RunnerScheduleAgenda({ events, canEdit, now, onEdit, onCreate, toolbar, timezoneControl, timezone = getLocalTimeZone() }: { events: PlannerEvent[]; now: number; toolbar?: ReactNode; timezoneControl?: ReactNode; timezone?: string; canEdit: boolean; onEdit: (id: string, window?: ReturnType<typeof plannerCreateWindow>, notice?: string, readOnly?: boolean, occurrenceStart?: string) => void; onCreate: (window: ReturnType<typeof plannerCreateWindow>) => void }) {
 	const { locale } = useLocale();
 	const mobile = useSyncExternalStore(
 		subscribeViewport,
@@ -27,7 +27,10 @@ export default function RunnerScheduleAgenda({ events, canEdit, onEdit, onCreate
 	const [selectedView, setView] = useState<AgendaView | null>(null);
 	const view = selectedView ?? (mobile ? "day" : "week");
 	const segments = useMemo(() => projectScheduleViewport(events, view === "day" ? date : startOfWeek(view === "month" ? startOfMonth(date) : date, locale), view === "day" ? 1 : view === "month" ? 42 : 7, timezone), [events, date, view, timezone, locale]);
-	const eventLocked = (id: string) => Boolean(events.find((event) => event.id === segments.find((segment) => segment.id === id)?.eventId)?.lockedUntil);
+	const eventLocked = (id: string) => {
+		const segment = segments.find((segment) => segment.id === id);
+		return Boolean(segment && Date.parse(segment.trueStartUtc) <= now);
+	};
 	const eventClass = (id: string) => (eventLocked(id) || !canEdit ? styles.locked : styles.editable);
 	const lockIcon = (id: string) =>
 		eventLocked(id) || !canEdit ? (
@@ -36,17 +39,17 @@ export default function RunnerScheduleAgenda({ events, canEdit, onEdit, onCreate
 			</span>
 		) : null;
 	const agenda = useAgenda({
-		events: segments.map((segment) => ({ ...segment, isReadOnly: !canEdit || Boolean(events.find((event) => event.id === segment.eventId)?.lockedUntil) })),
+		events: segments.map((segment) => ({ ...segment, isReadOnly: !canEdit || eventLocked(segment.id) })),
 		view,
 		onViewChange: setView,
 		date,
 		onDateChange: setDate,
 		selectedEventId: null,
 		onEventSelect: (id) => {
-			if (!id || !canEdit) return;
+			if (!id) return;
 			const segment = segments.find((segment) => segment.id === id);
 			const event = segment && events.find((event) => event.id === segment.eventId);
-			if (event && !event.lockedUntil) onEdit(event.id);
+			if (event && segment) onEdit(event.id, plannerCreateWindow(toCalendarDateTime(fromDate(new Date(segment.trueStartUtc), timezone)), toCalendarDateTime(fromDate(new Date(segment.trueEndUtc), timezone)), timezone), undefined, eventLocked(id) || !canEdit, segment.trueStartUtc);
 		},
 		startHour: 0,
 		endHour: 24,
@@ -56,19 +59,19 @@ export default function RunnerScheduleAgenda({ events, canEdit, onEdit, onCreate
 			? (id, _start, end) => {
 					const segment = segments.find((segment) => segment.id === id);
 					const event = segment && events.find((event) => event.id === segment.eventId);
-					if (!segment || !event || event.lockedUntil) return;
+					if (!segment || !event || eventLocked(id)) return;
 					const window = event.recurrence === "once" && event.timezone === timezone ? (plannerResizeWindow(segment, end, timezone) ?? undefined) : undefined;
-					onEdit(event.id, window, window ? undefined : "This event repeats or uses a different timezone. Edit its full dates and times below.");
+					onEdit(event.id, window, window ? undefined : "Edit the full dates and times below.", false, segment.trueStartUtc);
 				}
 			: undefined,
 		onEventMove: canEdit
 			? (id, start) => {
 					const segment = segments.find((segment) => segment.id === id);
 					const event = segment && events.find((event) => event.id === segment.eventId);
-					if (!segment || !event || event.lockedUntil) return;
+					if (!segment || !event || eventLocked(id)) return;
 					// A weekly-series or cross-zone gesture needs explicit full configuration choices.
 					const window = event.recurrence === "once" && event.timezone === timezone ? plannerMoveWindow(segment, start, timezone) : undefined;
-					onEdit(event.id, window, window ? undefined : "This event repeats or uses a different timezone. Edit its full dates and times below.");
+					onEdit(event.id, window, window ? undefined : "Edit the full dates and times below.", false, segment.trueStartUtc);
 				}
 			: undefined,
 	});
@@ -144,8 +147,7 @@ export default function RunnerScheduleAgenda({ events, canEdit, onEdit, onCreate
 											colSpan={item.colSpan}
 											row={item.row}
 											className={eventClass(item.event.id)}
-											aria-disabled={item.event.isReadOnly || undefined}
-											tabIndex={item.event.isReadOnly ? -1 : 0}
+											tabIndex={0}
 											onKeyDown={(key) => {
 												if (key.key === "Enter" || key.key === " ") {
 													key.preventDefault();
@@ -165,7 +167,7 @@ export default function RunnerScheduleAgenda({ events, canEdit, onEdit, onCreate
 									<Agenda.DayColumn key={day.toString()} date={day}>
 										{agenda.getEventsForDay(day).map((event) => (
 											<Agenda.Event key={event.id} event={event} className={[eventClass(event.id), segments.find((segment) => segment.id === event.id)?.canResizeEnd && event.end.millisecond === 0 ? "" : styles.continues].join(" ")}>
-												<Button variant='ghost' size='sm' className='h-auto min-h-0 w-full min-w-0 justify-start rounded-none p-0 text-left text-inherit' isDisabled={!canEdit || event.isReadOnly} onPressStart={(press) => press.continuePropagation()} onPress={() => agenda.selectEvent(event.id)} onClick={(click) => click.stopPropagation()}>
+												<Button variant='ghost' size='sm' className='h-auto min-h-0 w-full min-w-0 justify-start rounded-none p-0 text-left text-inherit' aria-label={`${event.isReadOnly ? "View" : "Edit"} ${event.title}`} onPressStart={(press) => press.continuePropagation()} onPress={() => agenda.selectEvent(event.id)} onClick={(click) => click.stopPropagation()}>
 													<Agenda.EventTitle>{event.title}</Agenda.EventTitle>
 												</Button>
 												<Agenda.EventTime event={event} />

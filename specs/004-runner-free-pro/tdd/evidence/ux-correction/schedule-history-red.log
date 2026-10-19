@@ -1,0 +1,33 @@
+$ jest --runInBand --runTestsByPath test/server/runner/schedules.test.ts "--coverage=false"
+[tests] Native application probes compiled once for this run
+[tests] database: 1 suites, 1 worker(s)
+FAIL test/server/runner/schedules.test.ts (12.911 s)
+  ● TDD-US3-DEC007: an ended occurrence stays locked after terminal closure to preserve history
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 2
+    + Received  + 1
+
+      Object {
+    -   "code": "SCHEDULE_COMPLETED",
+    -   "success": false,
+    +   "success": true,
+      }
+
+      346 | 	expect(result.drainingEdit).toMatchObject({ success: false, code: "ACTIVE_OCCURRENCE_LOCKED" });
+      347 | 	expect(result.drainingUnchanged).toBe(true);
+    > 348 | 	expect(result.afterClosureEdit).toMatchObject({ success: false, code: "SCHEDULE_COMPLETED" });
+          | 	                                ^
+      349 | 	expect(result.afterClosureDelete).toMatchObject({ success: false, code: "SCHEDULE_COMPLETED" });
+      350 | 	expect(result.completedView.events).toEqual(expect.arrayContaining([expect.objectContaining({ lockReason: "completed", lockedUntil: expect.any(String) })]));
+      351 | });
+
+      at Object.toMatchObject (test/server/runner/schedules.test.ts:348:34)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 105 passed, 106 total
+Snapshots:   0 total
+Time:        13.536 s
+Ran all test suites within paths "test/server/runner/schedules.test.ts".
+error: script "test" exited with code 1

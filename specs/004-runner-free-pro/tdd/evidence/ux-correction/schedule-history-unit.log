@@ -1,0 +1,10 @@
+$ jest --runInBand --runTestsByPath test/server/runner/schedules.test.ts test/server/runner/schedule-continuity.test.ts test/server/runner/schedule-time.test.ts test/app/components/runnerSchedule.test.tsx test/app/components/runnerScheduleAgenda.test.tsx test/app/components/runnerSchedulePlanner.test.ts "--coverage=false"
+[tests] Native application probes compiled once for this run
+[tests] ordinary: 3 suites, 1 worker(s)
+[tests] database: 3 suites, 1 worker(s)
+
+Test Suites: 6 passed, 6 total
+Tests:       140 passed, 140 total
+Snapshots:   0 total
+Time:        17.214 s, estimated 20 s
+Ran all test suites within paths "test/server/runner/schedules.test.ts", "test/server/runner/schedule-continuity.test.ts", "test/server/runner/schedule-time.test.ts", "test/app/components/runnerSchedule.test.tsx", "test/app/components/runnerScheduleAgenda.test.tsx", "test/app/components/runnerSchedulePlanner.test.ts".

@@ -1,3 +1,9 @@
+## Schedule history and recurring scope, 2026-10-19
+
+Past/current occurrences open details with streaming settings read-only. Completed one-time events cannot be rescheduled or deleted; a separate title action leaves execution revisions and selections unchanged. Future weekly changes offer This occurrence / This and following, preserving earlier windows and linked exceptions. Schema changes remain migration-workflow owned.
+
+Validation: six affected service/calendar suites pass 140 tests; the Runner recurrence file passes 40 tests. Build/types and affected lint pass. The existing Runner/locale browser owners pass five cases, and the complete new history owner passes separately, including all four recurring choices, cancellation, database persistence, active-series future editing and desktop/mobile details in both themes. Final full-width scope-button refinement passes the complete history browser owner; captures are inspected. Full latest-head CI remains required before merge.
+
 ## Calendar and locale review, 2026-10-19
 
 The calendar uses grouped HeroUI controls, a primary Add schedule action, icon-labelled automation controls, and native all-day strips/month spanning bars. Browser-visible dates follow browser locale through shared formatting; ISO transport and explicit schedule timezones remain unchanged.

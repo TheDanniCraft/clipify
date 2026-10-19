@@ -1,1 +1,1 @@
-export { resolveCalendarSchedule, scheduleOccurrenceKey, type CalendarSchedule } from "../../../packages/runner/src/schedule-calendar";
+export { resolveCalendarSchedule, completedScheduleEnd, scheduleOccurrenceKey, type CalendarSchedule } from "../../../packages/runner/src/schedule-calendar";

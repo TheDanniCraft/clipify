@@ -385,6 +385,13 @@ for (const plan of ["free", "pro"] as const)
 						expect(await locked.evaluate((node) => getComputedStyle(node).backgroundColor)).not.toBe(await editable.evaluate((node) => getComputedStyle(node).backgroundColor));
 						await locked.scrollIntoViewIfNeeded();
 						await locked.click();
+						const details = page.getByRole("dialog", { name: "Broadcast details", exact: true });
+						await expect(details).toBeVisible();
+						await expect(details.getByText("Broadcast settings are read-only. You can still rename this event.", { exact: true })).toBeVisible();
+						await expect(details.getByRole("button", { name: "Delete schedule", exact: true })).toHaveCount(0);
+						await expect(details.getByRole("button", { name: "Save schedule", exact: true })).toHaveCount(0);
+						await expect(details.getByRole("button", { name: "Save title", exact: true })).toBeDisabled();
+						await details.getByRole("button", { name: "Close", exact: true }).last().click();
 						await expect(event).not.toBeVisible();
 						await calendar.screenshot({ path: testInfo.outputPath(`event-states-${theme}-${view}.png`), animations: "disabled" });
 						if (view === "Day") {

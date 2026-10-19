@@ -953,6 +953,10 @@ export const runnerScheduleEventsTable = pgTable(
 		recurrence: runnerScheduleRecurrenceEnum("recurrence").notNull(),
 		recurrenceAnchor: varchar("recurrence_anchor", { length: 80 }).notNull(),
 		weekdayAnchors: jsonb("weekday_anchors").$type<{ weekday: number; anchor: string }[]>().notNull().default([]),
+		excludedDates: jsonb("excluded_dates").$type<string[]>().notNull().default([]),
+		seriesParentId: uuid("series_parent_id"),
+		originalOccurrenceDate: varchar("original_occurrence_date", { length: 10 }),
+		repeatUntilDate: varchar("repeat_until_date", { length: 10 }),
 		localStartDate: varchar("local_start_date", { length: 10 }).notNull(),
 		localEndDate: varchar("local_end_date", { length: 10 }),
 		weekdays: jsonb("weekdays").$type<number[]>().notNull().default([]),
@@ -966,6 +970,7 @@ export const runnerScheduleEventsTable = pgTable(
 	},
 	(table) => [
 		unique("runner_schedule_events_owner_identity").on(table.ownerId, table.id),
+		foreignKey({ columns: [table.ownerId, table.seriesParentId], foreignColumns: [table.ownerId, table.id] }),
 		index("runner_schedule_events_device").on(table.ownerId, table.runnerId),
 		foreignKey({ columns: [table.ownerId, table.sessionId], foreignColumns: [streamSessionsTable.ownerId, streamSessionsTable.id] }).onDelete("cascade"),
 		check("runner_schedule_events_title_bounds", sql`char_length(trim(${table.title})) BETWEEN 1 AND 80`),

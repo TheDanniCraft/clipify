@@ -1,16 +1,16 @@
 import "server-only";
 import { randomUUID, createHash, sign } from "node:crypto";
 import { runnerSigningKey } from "./signing";
-import { and, asc, desc, eq, gt, inArray, isNull, isNotNull, notInArray, or, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, isNull, isNotNull, notInArray, or, ne, sql } from "drizzle-orm";
 import { z } from "zod";
-import { parseDate, parseDateTime } from "@internationalized/date";
+import { parseDate, parseDateTime, fromDate, toCalendarDate } from "@internationalized/date";
 import type { TrustedCreatorPrincipal } from "@/auth/authorize-operation";
 import { db, type DatabaseClient, type QueryClient, type TransactionClient } from "@/db/client";
 import { auditEventsTable, overlaysTable, runnersTable, runnerDestinationsTable, streamSessionsTable, runnerScheduleEventsTable, runnerScheduleEventDestinationsTable, runnerBroadcastAdmissionsTable, usersTable } from "@/db/schema";
 import { authorizeLockedMutation } from "@/server/resources/mutation";
 import { resourceFailure, isResourceFailure, toPublicResourceError } from "@/server/resources/errors";
 import { deriveRunnerCapabilities, resolveRunnerBenefits } from "./capabilities";
-import { resolveCalendarSchedule, type CalendarSchedule } from "./schedule-time";
+import { completedScheduleEnd, resolveCalendarSchedule, type CalendarSchedule } from "./schedule-time";
 import { captureSessionDestinations } from "./destinations";
 import { resolveRetainedResourceAccess } from "@/server/entitlements/resource-access";
 import { hashExecutionTargets, hashScheduledExecutionPayload } from "../../../packages/runner/src/protocol";
@@ -65,6 +65,8 @@ const scheduleInput = z
 			.min(1)
 			.refine((values) => new Set(values).size === values.length),
 		enabled: z.boolean().default(true),
+		scope: z.enum(["this", "following"]).optional(),
+		occurrenceStart: z.iso.datetime().optional(),
 	})
 	.strict()
 	.superRefine((value, context) => {
@@ -87,7 +89,7 @@ const scheduleInput = z
 	});
 export type RunnerScheduleInput = z.input<typeof scheduleInput>;
 type Event = typeof runnerScheduleEventsTable.$inferSelect;
-export type RunnerScheduleView = Omit<Event, "ownerId" | "createdAt" | "updatedAt"> & { destinationIds: string[]; lockedUntil: string | null; lockReason: "active_window" | "output_drain" | null; currentOccurrence: { occurrenceId: string; endUtc: string; canResume: boolean; sessionRevision: number } | null };
+export type RunnerScheduleView = Omit<Event, "ownerId" | "createdAt" | "updatedAt"> & { destinationIds: string[]; lockedUntil: string | null; lockReason: "active_window" | "output_drain" | "completed" | null; currentOccurrence: { occurrenceId: string; endUtc: string; canResume: boolean; sessionRevision: number } | null };
 type Failure = { success: false; code: string; error: string };
 function failure(code: Parameters<typeof resourceFailure>[0], message?: string): Failure {
 	const result = resourceFailure(code);
@@ -196,11 +198,12 @@ export async function resolveActiveRunnerScheduleWindow(tx: TransactionClient, o
 
 function eventView(row: Event, destinationIds: string[], capturedEnd: string | null = null, control?: { canResume: boolean; sessionRevision: number }): RunnerScheduleView {
 	const occurrence = currentScheduleOccurrence(row);
-	const lockedUntil = occurrence?.endUtc ?? capturedEnd;
+	const completedEnd = completedScheduleEnd(row);
+	const lockedUntil = occurrence?.endUtc ?? capturedEnd ?? completedEnd;
 	return {
 		lockedUntil,
 		currentOccurrence: occurrence ? { occurrenceId: occurrence.occurrenceId, endUtc: occurrence.endUtc, canResume: control?.canResume ?? false, sessionRevision: control?.sessionRevision ?? 0 } : null,
-		lockReason: lockedUntil ? (Date.parse(lockedUntil) > Date.now() ? "active_window" : "output_drain") : null,
+		lockReason: capturedEnd ? "output_drain" : completedEnd ? "completed" : lockedUntil ? "active_window" : null,
 		id: row.id,
 		runnerId: row.runnerId,
 		sessionId: row.sessionId,
@@ -210,6 +213,10 @@ function eventView(row: Event, destinationIds: string[], capturedEnd: string | n
 		recurrence: row.recurrence,
 		recurrenceAnchor: row.recurrenceAnchor,
 		weekdayAnchors: row.weekdayAnchors,
+		excludedDates: row.excludedDates,
+		seriesParentId: row.seriesParentId,
+		originalOccurrenceDate: row.originalOccurrenceDate,
+		repeatUntilDate: row.repeatUntilDate,
 		localStartDate: row.localStartDate,
 		localEndDate: row.localEndDate,
 		weekdays: row.weekdays,
@@ -236,6 +243,26 @@ function overlaps(left: CalendarSchedule, right: CalendarSchedule) {
 	const first = resolveCalendarSchedule(left, range).occurrences,
 		second = resolveCalendarSchedule(right, range).occurrences;
 	return first.some((a) => second.some((b) => Date.parse(a.startUtc) < Date.parse(b.endUtc) && Date.parse(b.startUtc) < Date.parse(a.endUtc)));
+}
+
+function seriesHasStarted(event: CalendarSchedule, now: number) {
+	if (!event.localStartDate) return false;
+	const start = event.localStartDate + "T00:00:00Z";
+	const end =
+		parseDate(event.localStartDate)
+			.add({ days: ((event.excludedDates?.length ?? 0) + 2) * 7 })
+			.toString() + "T00:00:00Z";
+	return resolveCalendarSchedule(event, { start: new Date(Date.parse(start) - 86400000).toISOString(), end }).occurrences.some((occurrence) => Date.parse(occurrence.startUtc) <= now);
+}
+function futureSeriesChange(event: Event, input: { scope?: "this" | "following"; occurrenceStart?: string }, now: number) {
+	if (event.recurrence !== "weekly" || !input.occurrenceStart) return failure("INVALID_INPUT", "Choose a recurring broadcast occurrence.");
+	const occurrence = resolveCalendarSchedule(event, { start: input.occurrenceStart, end: new Date(Date.parse(input.occurrenceStart) + 1).toISOString() }).occurrences.find((row) => row.startUtc === input.occurrenceStart);
+	if (!occurrence) return failure("CONFLICT");
+	if (Date.parse(occurrence.startUtc) <= now) return failure("ACTIVE_OCCURRENCE_LOCKED", "Past and current occurrences are read-only.");
+	return { localDate: toCalendarDate(fromDate(new Date(occurrence.startUtc), event.timezone)).toString() };
+}
+function seriesChangePatch(event: Event, localDate: string, scope: "this" | "following") {
+	return { ...(scope === "this" ? { excludedDates: [...new Set([...event.excludedDates, localDate])] } : { repeatUntilDate: localDate }), configurationRevision: event.configurationRevision + 1, updatedAt: new Date() };
 }
 
 function scheduleEventValues(input: z.infer<typeof scheduleInput>, current: typeof runnerScheduleEventsTable.$inferSelect | undefined) {
@@ -274,7 +301,8 @@ async function lockEditableScheduleEvent(tx: TransactionClient, input: z.infer<t
 		: undefined;
 	if (input.id && !current) return failure("RESOURCE_UNAVAILABLE");
 	if (current && current.configurationRevision !== input.expectedRevision) return failure("CONFLICT");
-	if (current && (activeScheduleWindowEnd(current, clock()) || (await readCapturedScheduleLocks(tx, current.ownerId, current.runnerId, new Date(clock()))).has(current.id))) return failure("ACTIVE_OCCURRENCE_LOCKED");
+	if (current && !input.scope && completedScheduleEnd(current, clock()) && !(await readCapturedScheduleLocks(tx, current.ownerId, current.runnerId, new Date(clock()))).has(current.id)) return failure("SCHEDULE_COMPLETED");
+	if (current && !input.scope && (activeScheduleWindowEnd(current, clock()) || (await readCapturedScheduleLocks(tx, current.ownerId, current.runnerId, new Date(clock()))).has(current.id))) return failure("ACTIVE_OCCURRENCE_LOCKED");
 	return { current };
 }
 
@@ -297,6 +325,10 @@ export async function saveRunnerScheduleEventForPrincipal(principal: TrustedCrea
 			const existing = await lockEditableScheduleEvent(tx, input, clock);
 			if ("success" in existing) return existing;
 			const { current } = existing;
+			const scoped = current && input.scope ? futureSeriesChange(current, input, clock()) : null;
+			if (scoped && "success" in scoped) return scoped;
+			if (input.scope && (!current || current.runnerId !== input.runnerId || current.sessionId !== input.sessionId || (input.scope === "this" && input.recurrence !== "once"))) return failure("INVALID_INPUT");
+			if (current?.recurrence === "weekly" && !input.scope && seriesHasStarted(current, clock())) return failure("INVALID_INPUT", "Choose this occurrence or this and following.");
 			const [runner] = await tx
 				.select({ id: runnersTable.id })
 				.from(runnersTable)
@@ -318,13 +350,22 @@ export async function saveRunnerScheduleEventForPrincipal(principal: TrustedCrea
 				.from(runnerDestinationsTable)
 				.where(and(eq(runnerDestinationsTable.ownerId, input.ownerId), inArray(runnerDestinationsTable.id, input.destinationIds), or(eq(runnerDestinationsTable.runnerId, input.runnerId), isNull(runnerDestinationsTable.runnerId))));
 			if (targets.length !== input.destinationIds.length) return failure("INVALID_INPUT", "Choose destinations belonging to this creator and Runner.");
-			const values = scheduleEventValues(input, current);
-			const candidate = { ...values, id: current?.id ?? randomUUID() };
+			const values = scheduleEventValues(input, scoped ? undefined : current);
+			const candidate = { ...values, id: scoped ? randomUUID() : (current?.id ?? randomUUID()), excludedDates: scoped ? (input.scope === "following" ? current!.excludedDates.filter((date) => date >= scoped.localDate) : []) : (current?.excludedDates ?? []), repeatUntilDate: current?.repeatUntilDate ?? null, ...(scoped && input.scope === "this" ? { seriesParentId: current!.id, originalOccurrenceDate: scoped.localDate } : {}) };
+			if (scoped && seriesHasStarted(candidate, clock())) return failure("INVALID_INPUT", "Choose a future start time.");
+			const sourcePatch = scoped ? seriesChangePatch(current!, scoped.localDate, input.scope!) : null;
 			const peers = await readEvents(tx, input.ownerId, input.runnerId);
-			if (candidate.enabled && peers.some((row) => row.id !== candidate.id && row.enabled && overlaps(candidate, row))) return failure("INVALID_INPUT", "This schedule overlaps another event on this Runner.");
+			if (candidate.enabled && peers.some((row) => row.id !== candidate.id && row.enabled && overlaps(candidate, sourcePatch && row.id === current?.id ? { ...row, ...sourcePatch } : row))) return failure("INVALID_INPUT", "This schedule overlaps another event on this Runner.");
 			authority.assertAuthorityCurrent();
-			const [saved] = current ? await tx.update(runnerScheduleEventsTable).set(values).where(eq(runnerScheduleEventsTable.id, current.id)).returning() : await tx.insert(runnerScheduleEventsTable).values(candidate).returning();
-			if (current) await tx.delete(runnerScheduleEventDestinationsTable).where(and(eq(runnerScheduleEventDestinationsTable.ownerId, input.ownerId), eq(runnerScheduleEventDestinationsTable.eventId, saved.id)));
+			if (sourcePatch) await tx.update(runnerScheduleEventsTable).set(sourcePatch).where(eq(runnerScheduleEventsTable.id, current!.id));
+			const [saved] = current && !scoped ? await tx.update(runnerScheduleEventsTable).set(values).where(eq(runnerScheduleEventsTable.id, current.id)).returning() : await tx.insert(runnerScheduleEventsTable).values(candidate).returning();
+			if (scoped && input.scope === "following")
+				await tx
+					.update(runnerScheduleEventsTable)
+					.set({ seriesParentId: saved.id })
+					.where(and(eq(runnerScheduleEventsTable.ownerId, input.ownerId), eq(runnerScheduleEventsTable.seriesParentId, current!.id), gte(runnerScheduleEventsTable.originalOccurrenceDate, scoped.localDate)));
+
+			if (current && !scoped) await tx.delete(runnerScheduleEventDestinationsTable).where(and(eq(runnerScheduleEventDestinationsTable.ownerId, input.ownerId), eq(runnerScheduleEventDestinationsTable.eventId, saved.id)));
 			await tx.insert(runnerScheduleEventDestinationsTable).values(input.destinationIds.map((destinationId, position) => ({ eventId: saved.id, ownerId: input.ownerId, destinationId, position })));
 			await tx.insert(auditEventsTable).values({ actorUserId: principal.authUserId, ...(principal.kind === "session" ? { actorSessionId: principal.sessionId } : {}), targetType: "runner_schedule_event", targetId: saved.id, action: "runner.schedule.save", outcome: "success", correlationId: randomUUID(), occurredAt: new Date() });
 			return { success: true as const, event: eventView(saved, input.destinationIds) };
@@ -491,7 +532,7 @@ export async function deleteRunnerScheduleEventForPrincipal(principal: TrustedCr
 		client.transaction(async (tx) => {
 			const authority = await authorizeLockedMutation(principal, owner.data, "runner:update", tx);
 			const parsed = z
-				.object({ ownerId, runnerId: z.uuid(), id: z.uuid(), expectedRevision: z.number().int().positive().max(2_147_483_646) })
+				.object({ ownerId, runnerId: z.uuid(), id: z.uuid(), expectedRevision: z.number().int().positive().max(2_147_483_646), scope: z.enum(["this", "following"]).optional(), occurrenceStart: z.iso.datetime().optional() })
 				.strict()
 				.safeParse(rawInput);
 			if (!parsed.success) return failure("INVALID_INPUT");
@@ -506,6 +547,50 @@ export async function deleteRunnerScheduleEventForPrincipal(principal: TrustedCr
 				.for("update");
 			if (!event) return failure("RESOURCE_UNAVAILABLE");
 			if (event.configurationRevision !== input.expectedRevision) return failure("CONFLICT");
+			if (input.scope) {
+				const selected = futureSeriesChange(event, input, clock());
+				if ("success" in selected) return selected;
+				const children =
+					input.scope === "following"
+						? await tx
+								.select()
+								.from(runnerScheduleEventsTable)
+								.where(and(eq(runnerScheduleEventsTable.ownerId, input.ownerId), eq(runnerScheduleEventsTable.seriesParentId, event.id), gte(runnerScheduleEventsTable.originalOccurrenceDate, selected.localDate)))
+						: [];
+				const futureChildren = children.filter((child) => !seriesHasStarted(child, clock()));
+				const captured = futureChildren.length ? await readCapturedScheduleLocks(tx, input.ownerId, event.runnerId, new Date(clock())) : new Map<string, string>();
+				if (futureChildren.some((child) => captured.has(child.id))) return failure("ACTIVE_OCCURRENCE_LOCKED");
+				if (futureChildren.length)
+					await tx.delete(runnerScheduleEventsTable).where(
+						and(
+							eq(runnerScheduleEventsTable.ownerId, input.ownerId),
+							inArray(
+								runnerScheduleEventsTable.id,
+								futureChildren.map((child) => child.id),
+							),
+						),
+					);
+				authority.assertAuthorityCurrent();
+				await tx
+					.update(runnerScheduleEventsTable)
+					.set(seriesChangePatch(event, selected.localDate, input.scope))
+					.where(eq(runnerScheduleEventsTable.id, event.id));
+				await tx.insert(auditEventsTable).values({ actorUserId: principal.authUserId, targetType: "runner_schedule_event", targetId: event.id, action: "runner.schedule.delete_occurrences", outcome: "success", correlationId: randomUUID(), occurredAt: new Date() });
+				return { success: true as const, id: event.id, retained: true as const };
+			}
+			if (
+				event.recurrence === "weekly" &&
+				(
+					await tx
+						.select({ id: runnerScheduleEventsTable.id })
+						.from(runnerScheduleEventsTable)
+						.where(and(eq(runnerScheduleEventsTable.ownerId, input.ownerId), eq(runnerScheduleEventsTable.seriesParentId, event.id)))
+						.limit(1)
+				).length
+			)
+				return failure("INVALID_INPUT", "Choose this occurrence or this and following.");
+			if (event.recurrence === "weekly" && seriesHasStarted(event, clock())) return failure("INVALID_INPUT", "Choose this occurrence or this and following.");
+			if (completedScheduleEnd(event, clock()) && !(await readCapturedScheduleLocks(tx, event.ownerId, event.runnerId, new Date(clock()))).has(event.id)) return failure("SCHEDULE_COMPLETED");
 			if (activeScheduleWindowEnd(event, clock()) || (await readCapturedScheduleLocks(tx, event.ownerId, event.runnerId, new Date(clock()))).has(event.id)) return failure("ACTIVE_OCCURRENCE_LOCKED");
 			authority.assertAuthorityCurrent();
 			await tx.delete(runnerScheduleEventsTable).where(and(eq(runnerScheduleEventsTable.ownerId, input.ownerId), eq(runnerScheduleEventsTable.id, event.id)));
@@ -746,4 +831,33 @@ export async function issueRunnerScheduleCache(runner: Pick<typeof runnersTable.
 		const bundle = signed({ issuer: "clipify.us", kind: "schedule_cache", version: 1, ownerId: owner.id, runnerId: device.id, requestId, configurationRevision: device.configurationRevision, issuedAt, expiresAt, capabilities: policy, entries: entries.map(({ job }) => ({ admissionId: job.admissionId, occurrenceId: job.occurrenceId, authorizationHash: createHash("sha256").update(job.lease.payload).digest("hex") })) });
 		return { bundle, entries };
 	});
+}
+
+/** Presentation-only edits never change signed execution or occurrence revisions. */
+export async function renameRunnerScheduleEventForPrincipal(principal: TrustedCreatorPrincipal, rawInput: unknown, client: DatabaseClient = db) {
+	const parsed = z
+		.object({ ownerId, runnerId: z.uuid(), id: z.uuid(), expectedRevision: z.number().int().positive(), expectedTitle: z.string().min(1).max(80), title: z.string().trim().min(1, "Enter an event title.").max(80, "Use 80 characters or fewer.") })
+		.strict()
+		.safeParse(rawInput);
+	if (!parsed.success) return failure("INVALID_INPUT", parsed.error.issues[0]?.message);
+	const input = parsed.data;
+	return expectedFailures(() =>
+		client.transaction(async (tx) => {
+			const authority = await authorizeLockedMutation(principal, input.ownerId, "runner:update", tx);
+			if (!deriveRunnerCapabilities(await resolveRunnerBenefits(authority.creator, tx)).scheduling) return failure("FEATURE_RESTRICTED");
+			const [event] = await tx
+				.select()
+				.from(runnerScheduleEventsTable)
+				.where(and(eq(runnerScheduleEventsTable.ownerId, input.ownerId), eq(runnerScheduleEventsTable.runnerId, input.runnerId), eq(runnerScheduleEventsTable.id, input.id)))
+				.limit(1)
+				.for("update");
+			if (!event) return failure("RESOURCE_UNAVAILABLE");
+			if (event.configurationRevision !== input.expectedRevision || event.title !== input.expectedTitle) return failure("CONFLICT");
+			authority.assertAuthorityCurrent();
+			await tx.update(runnerScheduleEventsTable).set({ title: input.title, updatedAt: new Date() }).where(eq(runnerScheduleEventsTable.id, event.id));
+			await tx.insert(auditEventsTable).values({ actorUserId: principal.authUserId, ...(principal.kind === "session" ? { actorSessionId: principal.sessionId } : {}), targetType: "runner_schedule_event", targetId: event.id, action: "runner.schedule.rename", outcome: "success", correlationId: randomUUID(), occurredAt: new Date() });
+			authority.assertAuthorityCurrent();
+			return { success: true as const, event: (await readEvents(tx, input.ownerId, input.runnerId)).find((row) => row.id === event.id)! };
+		}),
+	);
 }

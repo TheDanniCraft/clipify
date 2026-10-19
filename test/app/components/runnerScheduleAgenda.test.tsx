@@ -20,6 +20,6 @@ beforeEach(() => {
 	Object.defineProperty(window, "matchMedia", { configurable: true, value: () => ({ matches: false, addEventListener: jest.fn(), removeEventListener: jest.fn() }) });
 });
 test("UX-C5: the calendar honors the selected event timezone rather than resetting to UTC", () => {
-	render(<RunnerScheduleAgenda events={[]} canEdit onCreate={jest.fn()} onEdit={jest.fn()} timezone='Europe/Berlin' />);
+	render(<RunnerScheduleAgenda now={Date.now()} events={[]} canEdit onCreate={jest.fn()} onEdit={jest.fn()} timezone='Europe/Berlin' />);
 	expect(mockAgendaProps.mock.calls.at(-1)?.[0].timeZone).toBe("Europe/Berlin");
 });

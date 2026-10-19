@@ -341,11 +341,13 @@ test("TDD-US3-DEC007 U189: active event move, resize and configuration edits are
 	}
 });
 
-test("TDD-US3-DEC007: an ended occurrence stays locked during captured output drain and unlocks only after terminal closure", () => {
+test("TDD-US3-DEC007: an ended occurrence stays locked after terminal closure to preserve history", () => {
 	const result = contract();
 	expect(result.drainingEdit).toMatchObject({ success: false, code: "ACTIVE_OCCURRENCE_LOCKED" });
 	expect(result.drainingUnchanged).toBe(true);
-	expect(result.afterClosureEdit).toMatchObject({ success: true, event: { title: "Editable after closure" } });
+	expect(result.afterClosureEdit).toMatchObject({ success: false, code: "SCHEDULE_COMPLETED" });
+	expect(result.afterClosureDelete).toMatchObject({ success: false, code: "SCHEDULE_COMPLETED" });
+	expect(result.completedView.events).toEqual(expect.arrayContaining([expect.objectContaining({ lockReason: "completed", lockedUntil: expect.any(String) })]));
 });
 
 test("TDD-US3-DEC007: deleting an active occurrence cannot remove the event or its selected targets", () => {
@@ -607,4 +609,26 @@ test("TDD-US3-EC010: an explicit owner Resume delivers signed ordinary execution
 	expect(resumed.signed.verified).toBe(true);
 	expect(resumed.job).toMatchObject({ occurrenceId: result.resumeOccurrenceId, scheduledStart: resumed.expectedStart, scheduledEnd: resumed.expectedEnd, configurationRevision: 11 });
 	expect(resumed.signed.claims).toMatchObject({ kind: "execution", policy: "pro_broadcast", occurrenceId: result.resumeOccurrenceId, scheduledStart: resumed.expectedStart, scheduledEnd: resumed.expectedEnd, configurationRevision: 11 });
+});
+
+test("completed broadcast titles can change without modifying execution configuration or bypassing revision checks", () => {
+	const result = contract();
+	expect(result.renamedCompleted).toMatchObject({ success: true, event: { title: "Archived broadcast title", configurationRevision: 1, lockReason: "completed" } });
+	expect(result.renameFieldsOnly).toBe(true);
+	expect(result.staleRename).toMatchObject({ success: false, code: "CONFLICT" });
+	expect(result.injectionRename).toMatchObject({ success: false, code: "INVALID_INPUT" });
+});
+
+test("future recurring edits and deletions preserve earlier and active occurrences", () => {
+	const result = contract().scopedRecurrence;
+	expect(Object.fromEntries(["laterException", "single", "following", "removedOne", "removedFollowing"].map((key) => [key, result[key]]))).toMatchObject(Object.fromEntries(["laterException", "single", "following", "removedOne", "removedFollowing"].map((key) => [key, { success: true }])));
+	expect(result.pastDelete).toMatchObject({ success: false, code: "ACTIVE_OCCURRENCE_LOCKED" });
+	expect(result.currentEdit).toMatchObject({ success: false, code: "ACTIVE_OCCURRENCE_LOCKED" });
+	expect(result.windows).toEqual([
+		["2029-01-01T12:00:00.000Z", "2029-01-01T14:00:00.000Z"],
+		["2029-01-08T12:00:00.000Z", "2029-01-08T14:00:00.000Z"],
+		["2029-01-15T12:00:00.000Z", "2029-01-15T14:00:00.000Z"],
+		["2029-01-22T15:00:00.000Z", "2029-01-22T16:00:00.000Z"],
+		["2029-01-29T15:00:00.000Z", "2029-01-29T16:00:00.000Z"],
+	]);
 });
