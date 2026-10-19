@@ -65,7 +65,7 @@ test.each(["ok", "retry", "reauth"])("main initializes the native runner and han
 		if (status === "reauth") expect(clearCredentials).toHaveBeenCalledWith("device");
 		timers.mockRestore();
 		await jest.advanceTimersByTimeAsync(1000);
-		expect(setPinned).toHaveBeenCalledWith(expect.arrayContaining(["Connection: Online 🟢", "Jobs Active: 0"]));
+		expect(setPinned).toHaveBeenCalledWith(expect.arrayContaining([status === "retry" ? "Connection: Offline 🔴" : "Connection: Online 🟢", "Jobs Active: 0"]));
 	} finally {
 		network.mockRestore();
 		timers.mockRestore();
