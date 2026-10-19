@@ -439,30 +439,25 @@ Given("its schedule includes a future Berlin broadcast beyond the current cache 
 		await pool.end();
 	}
 });
-Then("the optional next broadcast time matches preview and generated standby", async ({ page, mcpWorld }) => {
+Then("Runner playback schedules are not advertised as the next Twitch broadcast", async ({ page, mcpWorld }) => {
 	const choice = page.getByRole("switch", { name: "Show next broadcast time", exact: true });
 	await expect(choice).toBeVisible();
 	await choice.focus();
 	await choice.press("Space");
 	await expect(choice).toBeChecked();
-	const expected = mcpWorld.input?.runnerStandbyNext as { expected: string; timezone: string };
 	const preview = page.frameLocator('iframe[title="Runner appearance preview"]').locator("[data-runner-next-broadcast]");
-	await expect(preview).toHaveAttribute("datetime", expected.expected);
-	await expect(preview).toHaveAttribute("data-timezone", expected.timezone);
-	await expect(preview).toContainText("14:00");
+	await expect(preview).toHaveCount(0);
 	await page.getByRole("button", { name: "Save appearance", exact: true }).click();
 	await expect(page.getByRole("status").filter({ hasText: "Appearance saved" })).toBeVisible();
 	await page.reload();
 	await openRunnerAppearance(page);
 	await expect(choice).toBeChecked();
-	await expect(preview).toHaveAttribute("datetime", expected.expected);
+	await expect(preview).toHaveCount(0);
 	const world = presentationState(mcpWorld.input);
 	const response = await page.request.post("http://127.0.0.1:3107/api/runner/presentation", { headers: { Authorization: `Bearer ${world.token}` }, data: { sessionId: world.sessionId, executionGeneration: world.generation } });
 	expect(response.status()).toBe(200);
 	const { url } = await response.json();
 	await page.goto(`http://127.0.0.1:3107${url}`);
 	const time = page.locator("[data-runner-next-broadcast]");
-	await expect(time).toHaveAttribute("datetime", expected.expected);
-	await expect(time).toHaveAttribute("data-timezone", expected.timezone);
-	await expect(time).toContainText("14:00");
+	await expect(time).toHaveCount(0);
 });

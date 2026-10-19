@@ -49,6 +49,7 @@ jobs:
       source-commit: ${{ steps.context.outputs.source-commit }}
       api-url: ${{ steps.context.outputs.api-url }}
       pr-number: ${{ steps.context.outputs.pr-number }}
+      execution-public-keys: ${{ steps.context.outputs.execution-public-keys }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -62,12 +63,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           git config core.autocrlf false
-          context="$(node scripts/fingerprint-runner.mjs --json)"
-          fingerprint="$(node -e 'const fs=require("fs"); console.log(JSON.parse(fs.readFileSync(0, "utf8")).sourceFingerprint)' <<<"$context")"
-          commit="$(node -e 'const fs=require("fs"); console.log(JSON.parse(fs.readFileSync(0, "utf8")).sourceCommit)' <<<"$context")"
-          echo "ref=$CHECKOUT_REF" >> "$GITHUB_OUTPUT"
-          echo "source-fingerprint=$fingerprint" >> "$GITHUB_OUTPUT"
-          echo "source-commit=$commit" >> "$GITHUB_OUTPUT"
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
             pr_number="${{ github.event.pull_request.number }}"
           elif [ "$GITHUB_REF_NAME" != "$DEFAULT_BRANCH" ]; then
@@ -80,6 +75,16 @@ jobs:
           else
             api_url="https://clipify.us"
           fi
+          if [ -n "$pr_number" ]; then
+            export RUNNER_EXECUTION_PUBLIC_KEYS="$(node -e 'console.log(JSON.stringify(require("./packages/runner/preview-execution-public-keys.json")))')"
+          fi
+          echo "execution-public-keys=$RUNNER_EXECUTION_PUBLIC_KEYS" >> "$GITHUB_OUTPUT"
+          context="$(node scripts/fingerprint-runner.mjs --json)"
+          fingerprint="$(node -e 'const fs=require("fs"); console.log(JSON.parse(fs.readFileSync(0, "utf8")).sourceFingerprint)' <<<"$context")"
+          commit="$(node -e 'const fs=require("fs"); console.log(JSON.parse(fs.readFileSync(0, "utf8")).sourceCommit)' <<<"$context")"
+          echo "ref=$CHECKOUT_REF" >> "$GITHUB_OUTPUT"
+          echo "source-fingerprint=$fingerprint" >> "$GITHUB_OUTPUT"
+          echo "source-commit=$commit" >> "$GITHUB_OUTPUT"
           echo "pr-number=$pr_number" >> "$GITHUB_OUTPUT"
           echo "api-url=$api_url" >> "$GITHUB_OUTPUT"
           echo "Runner API: $api_url"
@@ -88,6 +93,8 @@ jobs:
   build:
     name: 🏗️ Build Runner
     needs: prepare-context
+    env:
+      RUNNER_EXECUTION_PUBLIC_KEYS: ${{ needs.prepare-context.outputs.execution-public-keys }}
     if: needs.prepare-context.result == 'success'
     strategy:
       fail-fast: false
@@ -128,6 +135,10 @@ jobs:
         env:
           EXPECTED_FINGERPRINT: ${{ needs.prepare-context.outputs.source-fingerprint }}
         run: test "$(node scripts/fingerprint-runner.mjs --fingerprint)" = "$EXPECTED_FINGERPRINT"
+      - name: 🪟 Verify real Windows update handoff
+        if: runner.os == 'Windows'
+        working-directory: packages/runner
+        run: node test/support/windows-update-probe.mjs
       - name: 🛠️ Build runner
         working-directory: packages/runner
         env:

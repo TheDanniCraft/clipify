@@ -1,4 +1,4 @@
-import { checkForUpdates, cleanupOldVersions, launchUpdatedRunner, launchWindowsUpdateHelper } from "../updater";
+import { checkForUpdates, cleanupOldVersions, launchUpdatedRunner, launchWindowsUpdateHelper, getWindowsUpdatePaths } from "../updater";
 import fs from "fs";
 import crypto from "crypto";
 import { spawn } from "child_process";
@@ -110,20 +110,42 @@ describe("Updater logic", () => {
 		});
 	});
 
-	it("should schedule a detached Windows update after the current process exits", () => {
+	it("should schedule a detached Windows update after the current process exits", async () => {
 		const unref = jest.fn();
-		(spawn as jest.Mock).mockReturnValue({ unref });
+		const { EventEmitter } = await import("events");
+		const child = Object.assign(new EventEmitter(), { unref });
+		(spawn as jest.Mock).mockReturnValue(child);
 
-		launchWindowsUpdateHelper("C:\\Program Files\\Clipify\\runner.exe", "C:\\Program Files\\Clipify\\runner.exe.new", "C:\\Program Files\\Clipify\\runner.exe.old", ["--api-url", "https://clipify.example/a path", "--name", 'runner "one"'], 1234);
+		const handoff = launchWindowsUpdateHelper("C:\\Program Files\\Clipify\\runner.exe", "C:\\Program Files\\Clipify\\runner.exe.new", "C:\\Program Files\\Clipify\\runner.exe.old", ["--api-url", "https://clipify.example/a path", "--name", 'runner "one"'], 1234);
 
+		child.emit("spawn");
+		await handoff;
 		expect(spawn).toHaveBeenCalledWith("powershell.exe", expect.arrayContaining(["-EncodedCommand", expect.any(String)]), { detached: true, stdio: "ignore", windowsHide: true });
 		const spawnArgs = (spawn as jest.Mock).mock.calls[0][1] as string[];
 		const script = Buffer.from(spawnArgs.at(-1)!, "base64").toString("utf16le");
+		expect(script).toContain("$ErrorActionPreference = 'Stop'");
+		expect(script).toContain("Start-Sleep -Milliseconds 500");
 		expect(script).toContain("Wait-Process -Id 1234");
-		expect(script).toContain("Move-Item -LiteralPath 'C:\\Program Files\\Clipify\\runner.exe.new'");
+		expect(script).toContain("Move-WithRetry 'C:\\Program Files\\Clipify\\runner.exe.new'");
 		expect(script).toContain("Start-Process -FilePath 'C:\\Program Files\\Clipify\\runner.exe'");
 		expect(script).toContain('runner \\\"one\\\"');
 		expect(unref).toHaveBeenCalled();
+	});
+
+	it("keeps staged Windows downloads executable and recognizes manually launched stages", () => {
+		expect(getWindowsUpdatePaths("C:\\Clipify\\runner.exe")).toEqual({ executable: "C:\\Clipify\\runner.exe", staged: "C:\\Clipify\\runner.new.exe" });
+		expect(getWindowsUpdatePaths("C:\\Clipify\\runner.new.exe").executable).toBe("C:\\Clipify\\runner.exe");
+		expect(getWindowsUpdatePaths("C:\\Clipify\\runner.exe.new").executable).toBe("C:\\Clipify\\runner.exe");
+	});
+
+	it("does not hand off when Windows cannot start the update helper", async () => {
+		const { EventEmitter } = await import("events");
+		const child = Object.assign(new EventEmitter(), { unref: jest.fn() });
+		(spawn as jest.Mock).mockReturnValue(child);
+		const handoff = launchWindowsUpdateHelper("runner.exe", "runner.new.exe", "runner.exe.old", [], 1234);
+		child.emit("error", new Error("PowerShell unavailable"));
+		await expect(handoff).rejects.toThrow("PowerShell unavailable");
+		expect(child.unref).not.toHaveBeenCalled();
 	});
 
 	it.todo("should apply an update after a verified hash mismatch");

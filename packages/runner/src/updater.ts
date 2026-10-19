@@ -49,7 +49,7 @@ async function fetchRemoteHash(apiBase: string, osKey: string): Promise<string |
 
 async function applyUpdate(apiBase: string, osKey: string, remoteHash: string): Promise<void> {
 	const execPath = process.execPath;
-	const newPath = `${execPath}.new`;
+	const newPath = process.platform === "win32" ? getWindowsUpdatePaths(execPath).staged : `${execPath}.new`;
 	const oldPath = `${execPath}.old`;
 	await downloadFile(`${apiBase}/api/runner/download?os=${encodeURIComponent(osKey)}`, newPath);
 
@@ -62,7 +62,7 @@ async function applyUpdate(apiBase: string, osKey: string, remoteHash: string): 
 	console.log("[Updater] Download verified. Applying update...");
 	if (process.platform === "win32") {
 		console.log("[Updater] Scheduling update for after the runner exits...");
-		launchWindowsUpdateHelper(execPath, newPath, oldPath, process.argv.slice(2), process.pid);
+		await launchWindowsUpdateHelper(execPath, newPath, oldPath, process.argv.slice(2), process.pid);
 		process.exit(0);
 	}
 
@@ -104,17 +104,43 @@ function quoteWindowsArgument(value: string): string {
 	return quoted + "\\".repeat(backslashes * 2) + '"';
 }
 
-export function launchWindowsUpdateHelper(execPath: string, newPath: string, oldPath: string, args: string[], pid: number) {
+export function getWindowsUpdatePaths(path: string) {
+	const executable = path.replace(/\.exe\.new$/i, ".exe").replace(/\.new\.exe$/i, ".exe");
+	return { executable, staged: executable.replace(/\.exe$/i, ".new.exe") };
+}
+
+export async function launchWindowsUpdateHelper(execPath: string, newPath: string, oldPath: string, args: string[], pid: number) {
 	const argumentLine = args.map(quoteWindowsArgument).join(" ");
 	const restart = argumentLine ? `Start-Process -FilePath ${quotePowerShell(execPath)} -ArgumentList ${quotePowerShell(argumentLine)}` : `Start-Process -FilePath ${quotePowerShell(execPath)}`;
-	const script = [`Wait-Process -Id ${pid} -ErrorAction SilentlyContinue`, `Remove-Item -LiteralPath ${quotePowerShell(oldPath)} -Force -ErrorAction SilentlyContinue`, `Move-Item -LiteralPath ${quotePowerShell(execPath)} -Destination ${quotePowerShell(oldPath)} -Force`, `Move-Item -LiteralPath ${quotePowerShell(newPath)} -Destination ${quotePowerShell(execPath)} -Force`, restart].join("; ");
+	const script = [
+		"$ErrorActionPreference = 'Stop'",
+		"function Move-WithRetry($source, $destination) { for ($attempt = 0; $attempt -lt 120; $attempt++) { try { Move-Item -LiteralPath $source -Destination $destination -Force; return } catch { if ($attempt -eq 119) { throw }; Start-Sleep -Milliseconds 500 } } }",
+		`Wait-Process -Id ${pid} -ErrorAction SilentlyContinue`,
+		`try {
+			Remove-Item -LiteralPath ${quotePowerShell(oldPath)} -Force -ErrorAction SilentlyContinue
+			if (Test-Path -LiteralPath ${quotePowerShell(execPath)}) { Move-WithRetry ${quotePowerShell(execPath)} ${quotePowerShell(oldPath)} }
+			try { Move-WithRetry ${quotePowerShell(newPath)} ${quotePowerShell(execPath)} } catch {
+				if (Test-Path -LiteralPath ${quotePowerShell(oldPath)}) { Move-WithRetry ${quotePowerShell(oldPath)} ${quotePowerShell(execPath)} }
+				throw
+			}
+			${restart}
+		} catch {
+			$_ | Out-String | Set-Content -LiteralPath ${quotePowerShell(`${execPath}.update-error.log`)}
+		}`,
+	].join("\n");
 	const encodedCommand = Buffer.from(script, "utf16le").toString("base64");
 	const helper = spawn("powershell.exe", ["-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encodedCommand], {
 		detached: true,
 		stdio: "ignore",
 		windowsHide: true,
 	});
-	helper.unref();
+	await new Promise<void>((resolve, reject) => {
+		helper.once("error", reject);
+		helper.once("spawn", () => {
+			helper.unref();
+			resolve();
+		});
+	});
 	return helper;
 }
 
@@ -156,6 +182,14 @@ export async function checkForUpdates(apiBase: string): Promise<string> {
 
 	const { osKey } = getUpdateTarget();
 	try {
+		if (process.platform === "win32") {
+			const { executable } = getWindowsUpdatePaths(process.execPath);
+			if (executable !== process.execPath) {
+				console.log("[Updater] Finishing the staged update and restoring the original filename...");
+				await launchWindowsUpdateHelper(executable, process.execPath, `${executable}.old`, process.argv.slice(2), process.pid);
+				process.exit(0);
+			}
+		}
 		const remoteHash = await fetchRemoteHash(apiBase, osKey);
 		if (!remoteHash) {
 			console.warn(`[Updater] No remote hash found for OS: ${osKey}`);

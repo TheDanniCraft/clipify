@@ -32,3 +32,18 @@ Connection state is random, short-lived, single-use, and bound to the initiating
 No generated migration belongs on the feature branch. The normal master migration workflow owns the schema change.
 
 Local validation uses disposable loopback PostgreSQL, fixture accounts and controlled provider responses. The browser journey uses installed HeroUI components and intercepts only the external consent page. Real consent, live-stream eligibility and delivery must also be checked with authorized provider test accounts after credentials and callback URLs are configured.
+
+## Standby broadcast time
+
+Show next broadcast time reads the Clipify resource owner's public Twitch channel
+schedule. It does not advertise Runner playback events or depend on scheduled
+Runner control. Reading that public schedule uses application authorization and
+requires no additional user consent. The preview and active standby use the same
+source and saved Twitch timezone. Past/current, canceled and vacation broadcasts
+are excluded. If Twitch has no upcoming broadcast or is unavailable, the optional
+time stays hidden; standby playback continues.
+
+Deleting a destination also checks its independent schedule selections, including
+those on other computers. Changing the main broadcast destination does not change
+those events. A blocked deletion lists the schedules still using the destination
+and links to their calendars. Current and past occurrence protections still apply.

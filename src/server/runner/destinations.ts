@@ -5,7 +5,7 @@ import { z } from "zod";
 import { providerIngest } from "./provider-contract";
 import { fetchStreamingKey, ProviderRequestError } from "./provider-api";
 import { db, type DatabaseClient, type TransactionClient } from "@/db/client";
-import { auditEventsTable, runnerDestinationsTable, runnersTable, streamSessionDestinationsTable, streamSessionsTable, runnerScheduleEventDestinationsTable, runnerBroadcastAdmissionsTable } from "@/db/schema";
+import { auditEventsTable, runnerDestinationsTable, runnersTable, streamSessionDestinationsTable, streamSessionsTable, runnerScheduleEventDestinationsTable, runnerBroadcastAdmissionsTable, runnerScheduleEventsTable } from "@/db/schema";
 import type { TrustedCreatorPrincipal } from "@/auth/authorize-operation";
 import { authorizeLockedMutation } from "@/server/resources/mutation";
 import { resourceFailure } from "@/server/resources/errors";
@@ -261,11 +261,12 @@ export async function deleteRunnerDestinationForPrincipal(principal: TrustedCrea
 			.orderBy(asc(streamSessionDestinationsTable.sessionId));
 		authority.assertAuthorityCurrent();
 		const schedules = await tx
-			.select({ eventId: runnerScheduleEventDestinationsTable.eventId })
+			.select({ eventId: runnerScheduleEventDestinationsTable.eventId, title: runnerScheduleEventsTable.title, runnerId: runnerScheduleEventsTable.runnerId })
 			.from(runnerScheduleEventDestinationsTable)
+			.innerJoin(runnerScheduleEventsTable, and(eq(runnerScheduleEventsTable.id, runnerScheduleEventDestinationsTable.eventId), eq(runnerScheduleEventsTable.ownerId, input.ownerId)))
 			.where(and(eq(runnerScheduleEventDestinationsTable.ownerId, input.ownerId), eq(runnerScheduleEventDestinationsTable.destinationId, input.id)))
 			.orderBy(asc(runnerScheduleEventDestinationsTable.eventId));
-		if (schedules.length || (references.length && !input.removeFromSavedBroadcasts)) return { ...failure("RESOURCE_IN_USE"), ...(schedules.length ? { error: "Remove this destination from its schedules before deleting it." } : {}), references: { sessions: references.map((reference) => reference.sessionId), schedules: schedules.map((reference) => reference.eventId) } };
+		if (schedules.length || (references.length && !input.removeFromSavedBroadcasts)) return { ...failure("RESOURCE_IN_USE"), ...(schedules.length ? { error: "Remove this destination from its schedules before deleting it." } : {}), scheduleUsage: schedules, references: { sessions: references.map((reference) => reference.sessionId), schedules: schedules.map((reference) => reference.eventId) } };
 		const busy = await detachStoppedBroadcasts(
 			tx,
 			input.ownerId,

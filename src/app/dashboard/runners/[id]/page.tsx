@@ -10,7 +10,7 @@ import { validateAuth } from "@actions/auth";
 import { getRunner, getRunnerLivePreview, getRunnerToken, getRunnerVersionManifest, getStreamSessionsForRunner, upsertStreamSession, setStreamDesiredState, unlinkRunner, listRunnerDestinations, listRunnerScheduleEvents } from "@actions/runner";
 import { getAllOverlays } from "@actions/database";
 import { Accordion, Button, Card, Label, Select, Spinner, ListBox, Chip, Link, Modal, Dropdown, Tooltip, Separator } from "@heroui/react";
-import { IconArrowLeft, IconBrandWindows, IconTerminal2, IconBrandApple, IconUnlink, IconAlertTriangle, IconCircleCheck, IconRefresh, IconPencil, IconCalendarEvent } from "@tabler/icons-react";
+import { IconArrowLeft, IconBrandWindows, IconTerminal2, IconBrandApple, IconUnlink, IconAlertTriangle, IconCircleCheck, IconRefresh, IconPaint, IconCalendarEvent } from "@tabler/icons-react";
 import { notify } from "@lib/toast";
 import FullscreenLoadingState from "@components/fullscreenLoadingState";
 import ConfirmModal from "@components/confirmModal";
@@ -169,7 +169,10 @@ export default function RunnerPage() {
 				else setTokenError("Runner token could not be loaded.");
 
 				if (fetchedDestinations.success) setDestinationOptions(fetchedDestinations.destinations);
-				if (fetchedSchedule?.success) setRunnerPolicy(fetchedSchedule.policy);
+				if (fetchedSchedule?.success) {
+					setRunnerPolicy(fetchedSchedule.policy);
+					if (fetchedSchedule.policy.scheduling && new URLSearchParams(window.location.search).has("schedule")) setScheduleOpen(true);
+				}
 				const session = fetchedSessions[0];
 				if (session) {
 					setSelectedDestinationIds(session.destinationIds);
@@ -587,7 +590,7 @@ export default function RunnerPage() {
 								)}
 								<div className={controlMode === "scheduled" ? "grid gap-3 sm:grid-cols-2" : "grid gap-3"}>
 									<Button variant='ghost' className='w-full' onPress={() => setAppearanceOpen(true)} isDisabled={!overlayId}>
-										<IconPencil size={18} aria-hidden='true' />
+										<IconPaint size={18} aria-hidden='true' />
 										Appearance
 									</Button>
 									{controlMode === "scheduled" && (
@@ -599,7 +602,7 @@ export default function RunnerPage() {
 								</div>
 								{controlMode === "scheduled" && dirty && <p className='text-xs text-muted'>Save configuration to activate your schedule.</p>}
 								<div className='flex flex-wrap items-center justify-between gap-4 border-t border-separator pt-4'>
-									<Button variant='primary' onPress={handleSave} isDisabled={isSaving} isPending={isSaving}>
+									<Button variant='primary' onPress={handleSave} isDisabled={isSaving || !dirty} isPending={isSaving}>
 										Save Configuration
 									</Button>
 									{savedSession && <RunnerBroadcastControls playbackTimedOut={savedSession.playbackTimedOut} desiredState={savedSession.desiredState} actualState={savedSession.actualState} canStart={!actionPending && runner.status === RunnerStatus.Online && streamReadyToStart} requiresConnection={!runnerPolicy?.runnerPro} clipPlayback={savedSession.mode === "24/7"} onStart={() => handleAction("started")} onStop={(stopMode) => handleAction("stopped", stopMode)} />}

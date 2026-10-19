@@ -55,7 +55,15 @@ jest.mock("@heroui/react", () => {
 });
 
 // Unit owner checks draft transport and upload/save handling; real widgets are browser-owned.
-jest.mock("@/app/components/runner/ImageDropZone", () => ({ __esModule: true, default: ({ label, disabled, onSelect }: { label: string; disabled: boolean; onSelect: (file: File) => void }) => <input type='file' aria-label={label} disabled={disabled} onChange={(event) => onSelect(event.target.files![0])} /> }));
+jest.mock("@/app/components/runner/ImageDropZone", () => ({
+	__esModule: true,
+	default: ({ label, disabled, onSelect, imageUrl, onRemove }: { label: string; disabled: boolean; onSelect: (file: File) => void; imageUrl?: string; onRemove?: () => void }) => (
+		<div>
+			<input type='file' aria-label={label} disabled={disabled} onChange={(event) => onSelect(event.target.files![0])} />
+			{imageUrl && <button aria-label={`Remove ${label.replace(/^Standby /, "").toLowerCase()}`} disabled={disabled} onClick={onRemove} />}
+		</div>
+	),
+}));
 jest.mock("@/app/components/theme/ThemeColorInput", () => ({ __esModule: true, default: ({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) => <input type='color' aria-label={label} value={value} onChange={(event) => onChange(event.target.value)} /> }));
 const previewMessages = new WeakMap<HTMLIFrameElement, jest.SpyInstance>();
 async function observeDraftPreview() {

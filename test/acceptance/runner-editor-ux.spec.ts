@@ -57,7 +57,7 @@ for (const plan of ["free", "pro"] as const)
 			await expect(page.getByRole("button", { name: "Unlink runner", exact: true })).toHaveText("");
 			const appearanceAction = page.getByRole("button", { name: "Appearance", exact: true });
 			await expect(appearanceAction).toHaveClass(/button--ghost/);
-			await expect(appearanceAction.locator("svg.tabler-icon-pencil")).toBeVisible();
+			await expect(appearanceAction.locator("svg.tabler-icon-paint")).toBeVisible();
 			await expect
 				.poll(async () => {
 					const available = await appearanceAction.locator("..").evaluate((node) => {
@@ -191,6 +191,7 @@ for (const plan of ["free", "pro"] as const)
 			await expect(selector.getByRole("button", { name: /Broadcast destinations$/ })).toContainText("My local output");
 			await mainSave.click();
 			await expect(page.getByRole("button", { name: "Start", exact: true })).toBeEnabled();
+			await expect(mainSave).toBeDisabled();
 			await selector.getByRole("button", { name: "Manage destinations", exact: true }).click();
 			await manager.getByRole("button", { name: "Delete My local output", exact: true }).click();
 			const confirmedDeletion = page.getByRole("dialog", { name: "Delete destination?", exact: true });
@@ -387,7 +388,7 @@ for (const plan of ["free", "pro"] as const)
 
 				const lockedId = randomUUID();
 				await pool.query(
-					"INSERT INTO runner_schedule_events (id,owner_id,runner_id,session_id,overlay_id,title,timezone,recurrence,recurrence_anchor,local_start_date,local_end_date,local_start_time,local_end_time) SELECT $2::uuid,owner_id,runner_id,session_id,overlay_id,'Locked broadcast',timezone,'once',$2::text,to_char((now() AT TIME ZONE timezone)-interval '30 minutes','YYYY-MM-DD'),to_char((now() AT TIME ZONE timezone)+interval '30 minutes','YYYY-MM-DD'),to_char((now() AT TIME ZONE timezone)-interval '30 minutes','HH24:MI'),to_char((now() AT TIME ZONE timezone)+interval '30 minutes','HH24:MI') FROM runner_schedule_events WHERE owner_id=$1 LIMIT 1",
+					"INSERT INTO runner_schedule_events (id,owner_id,runner_id,session_id,overlay_id,title,timezone,recurrence,recurrence_anchor,local_start_date,local_end_date,local_start_time,local_end_time) SELECT $2::uuid,owner_id,runner_id,session_id,overlay_id,'Locked broadcast',timezone,'once',$2::text,to_char((now() AT TIME ZONE timezone)-interval '30 minutes','YYYY-MM-DD'),to_char((now() AT TIME ZONE timezone)+interval '26 hours','YYYY-MM-DD'),to_char((now() AT TIME ZONE timezone)-interval '30 minutes','HH24:MI'),to_char((now() AT TIME ZONE timezone)+interval '26 hours','HH24:MI') FROM runner_schedule_events WHERE owner_id=$1 LIMIT 1",
 					[owner.fixture.creatorId, lockedId],
 				);
 				await pool.query("UPDATE runner_schedule_events SET local_start_date=to_char((now() AT TIME ZONE timezone)+interval '2 hours','YYYY-MM-DD'),local_start_time=to_char((now() AT TIME ZONE timezone)+interval '2 hours','HH24:MI'),local_end_date=to_char((now() AT TIME ZONE timezone)+interval '26 hours','YYYY-MM-DD'),local_end_time=to_char((now() AT TIME ZONE timezone)+interval '26 hours','HH24:MI') WHERE owner_id=$1 AND id<>$2", [owner.fixture.creatorId, lockedId]);
@@ -402,6 +403,9 @@ for (const plan of ["free", "pro"] as const)
 						const editable = calendar.locator('[data-slot="agenda-event"], [data-slot="agenda-month-event"], [data-slot="agenda-month-spanning-event"]').filter({ hasText: "Vacation broadcast" }).first();
 						await expect(locked.getByRole("img", { name: "Locked event", exact: true })).toBeVisible();
 						await expect(locked).toHaveCSS("border-top-style", "solid");
+						// The future event may be tomorrow or in the next week/month after a date boundary.
+						// The locked fixture spans that boundary, so both states remain comparable.
+						if ((await editable.count()) === 0) await calendar.getByRole("button", { name: "Next", exact: true }).click();
 						await expect(editable).toHaveCSS("border-top-style", "dashed");
 						expect(await locked.evaluate((node) => getComputedStyle(node).backgroundColor)).not.toBe(await editable.evaluate((node) => getComputedStyle(node).backgroundColor));
 						await locked.scrollIntoViewIfNeeded();
@@ -489,6 +493,14 @@ for (const plan of ["free", "pro"] as const)
 				const [chooser] = await Promise.all([page.waitForEvent("filechooser"), choose.click()]);
 				await chooser.setFiles("public/web-app-manifest-192x192.png");
 				await expect(appearance.getByRole("button", { name: "Remove logo", exact: true })).toBeVisible();
+				await expect(appearance.getByRole("img", { name: "Standby logo", exact: true })).toBeVisible();
+				await expect(appearance.getByRole("button", { name: "Remove logo", exact: true })).toHaveText("");
+				await appearance.getByRole("button", { name: "Remove logo", exact: true }).click();
+				await expect(appearance.getByRole("img", { name: "Standby logo", exact: true })).toHaveCount(0);
+				await expect(appearance.getByRole("button", { name: "Remove logo", exact: true })).toHaveCount(0);
+				const [replacement] = await Promise.all([page.waitForEvent("filechooser"), appearance.getByRole("button", { name: "Choose image", exact: true }).first().click()]);
+				await replacement.setFiles("public/web-app-manifest-192x192.png");
+				await expect(appearance.getByRole("img", { name: "Standby logo", exact: true })).toBeVisible();
 				await expect(preview.contentFrame().locator('img[src*="/assets/"]').first()).toBeVisible();
 				await appearance.getByRole("button", { name: "Pick Standby background color", exact: true }).click();
 				await expect(page.getByRole("dialog", { name: "Pick Standby background color", exact: true }).getByRole("slider", { name: "Hue", exact: true })).toBeVisible();
@@ -626,6 +638,54 @@ test("a second Runner reuses an account destination without asking for its key a
 			await expect(manager.getByRole("row").filter({ hasText: "Community Twitch" })).toBeVisible();
 			await manager.screenshot({ path: testInfo.outputPath(`account-destinations-${theme}.png`), animations: "disabled" });
 		}
+	} finally {
+		await pool.end();
+		if (owner) {
+			const response = await request.delete("/api/test/auth-fixture", { headers: fixtureHeaders, data: { authUserId: owner.fixture.authUserId, creatorId: owner.fixture.creatorId, organizationIds: [owner.fixture.creatorOrganizationId, owner.fixture.agencyOrganizationId] } });
+			expect(response.status()).toBe(204);
+		}
+	}
+});
+
+test("destination deletion identifies its schedule even when another destination is selected", async ({ page, request, context }, testInfo) => {
+	let owner: AuthFixture | undefined;
+	const pool = new Pool({ connectionString: browserDatabaseUrl(), max: 1 });
+	try {
+		owner = await createAuthenticatedFixture(request, context, { withProviderCredentials: true });
+		const ownerId = owner.fixture.creatorId;
+		const runnerId = randomUUID(),
+			sessionId = randomUUID(),
+			eventId = randomUUID(),
+			scheduledTarget = randomUUID(),
+			manualTarget = randomUUID();
+		await pool.query("UPDATE users SET plan='pro' WHERE id=$1", [ownerId]);
+		const overlayId = (await pool.query("SELECT id FROM overlays WHERE owner_id=$1 LIMIT 1", [ownerId])).rows[0].id;
+		await pool.query("INSERT INTO runners(id,owner_id,name,token,status,last_heartbeat_at,protocol_version,capabilities) VALUES($1,$2,'Destination reference Runner',$3,'online',now(),2,$4::jsonb)", [runnerId, ownerId, randomUUID(), JSON.stringify(["admissions", "destinations", "drain", "runner_presentation", "free_lease"])]);
+		await pool.query("INSERT INTO runner_destinations(id,owner_id,name,provider,rtmp_url) VALUES($1,$3,'Scheduled output','custom','rtmp://127.0.0.1:19350/scheduled'),($2,$3,'Manual output','custom','rtmp://127.0.0.1:19350/manual')", [scheduledTarget, manualTarget, ownerId]);
+		await pool.query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,control_mode,rtmp_url) VALUES($1,$2,$3,$4,'24/7','manual','rtmp://127.0.0.1:19350/manual')", [sessionId, ownerId, runnerId, overlayId]);
+		await pool.query("INSERT INTO stream_session_destinations(owner_id,session_id,destination_id,position) VALUES($1,$2,$3,0)", [ownerId, sessionId, manualTarget]);
+		await pool.query("INSERT INTO runner_schedule_events(id,owner_id,runner_id,session_id,overlay_id,title,timezone,recurrence,recurrence_anchor,local_start_date,local_end_date,local_start_time,local_end_time) VALUES($1,$2,$3,$4,$5,'Vacation broadcast','UTC','once','2028-01-15','2028-01-15','2028-01-15','12:00','13:00')", [eventId, ownerId, runnerId, sessionId, overlayId]);
+		await pool.query("INSERT INTO runner_schedule_event_destinations(owner_id,event_id,destination_id,position) VALUES($1,$2,$3,0)", [ownerId, eventId, scheduledTarget]);
+		await prepare(page);
+		await page.goto(`/dashboard/runners/${runnerId}`);
+		await expect(page.getByRole("button", { name: "Save Configuration", exact: true })).toBeDisabled();
+		await page.getByRole("button", { name: "Manage destinations", exact: true }).click();
+		const manager = page.getByRole("dialog", { name: "Manage destinations", exact: true });
+		await manager.getByRole("button", { name: "Delete Scheduled output", exact: true }).click();
+		const confirmation = page.getByRole("dialog", { name: "Delete destination?", exact: true });
+		const remove = confirmation.getByRole("button", { name: "Delete destination", exact: true });
+		await remove.click();
+		await expect(confirmation.getByRole("link", { name: "Vacation broadcast", exact: true })).toHaveAttribute("href", `/dashboard/runners/${runnerId}?schedule=${eventId}`);
+		await expect(remove).toBeDisabled();
+		await confirmation.screenshot({ path: testInfo.outputPath("destination-schedule-reference.png"), animations: "disabled" });
+		await confirmation.getByRole("button", { name: "Cancel", exact: true }).click();
+		// Remove only this isolated fixture's future event, then retry the same UI flow.
+		await pool.query("DELETE FROM runner_schedule_events WHERE id=$1 AND owner_id=$2", [eventId, ownerId]);
+		await manager.getByRole("button", { name: "Delete Scheduled output", exact: true }).click();
+		await remove.click();
+		await expect(confirmation).not.toBeVisible();
+		await expect(manager.getByRole("button", { name: "Delete Scheduled output", exact: true })).toHaveCount(0);
+		await expect(manager.getByRole("button", { name: "Delete Manual output", exact: true })).toBeVisible();
 	} finally {
 		await pool.end();
 		if (owner) {

@@ -1,4 +1,5 @@
 "use client";
+import { IconSettings, IconPlus } from "@tabler/icons-react";
 import { Button, Label, ListBox, Select } from "@heroui/react";
 
 type Destination = { id: string; name: string; provider: string; host: string; credentialConfigured: boolean };
@@ -40,6 +41,7 @@ export default function RunnerDestinationSelection({ destinations, selectedIds, 
 			{!runnerPro && selectedIds.length > 1 && <p className='text-sm text-muted'>Select one destination before saving.</p>}
 			{onManage && (
 				<Button variant='secondary' size='sm' onPress={onManage}>
+					{destinations.length ? <IconSettings size={16} aria-hidden='true' /> : <IconPlus size={16} aria-hidden='true' />}
 					{destinations.length ? "Manage destinations" : "Add destination"}
 				</Button>
 			)}

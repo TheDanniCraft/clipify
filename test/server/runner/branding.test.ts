@@ -313,12 +313,13 @@ test("TDD-US4-OPT062 U102: the owned plain-text standby message persists without
 	expect(result.rows).toHaveLength(1);
 });
 
-test("TDD-US4-OPT063 U103: saved optional next-time resolves the owned future event beyond seven days in its own timezone", () => {
+test("TDD-US4-OPT063 U103: saved optional next-time never advertises a Runner playback schedule as a Twitch stream", () => {
 	const result = flowProbe("catalogue:workflow:runner_free_pro:branding_standby_next_time");
 	expect(result.result).toMatchObject({ success: true, profile: { showNextBroadcastTime: true, revision: 2 } });
 	expect(result.stored).toBe(true);
 	expect(result.available).toBe(true);
-	expect(result.next).toEqual({ startUtc: "2028-01-15T13:00:00.000Z", timezone: "Europe/Berlin" });
+	// A Runner playback schedule must not be advertised as the channel’s Twitch schedule.
+	expect(result.next).toBeNull();
 });
 
 test("TDD-US4-SC004 U39 baseline: all custom appearance fields round-trip atomically without changing source isolation or broadcast configuration", () => {
