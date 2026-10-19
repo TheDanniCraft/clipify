@@ -30,6 +30,7 @@ test("TDD-US3-BND005: title0 is rejected at the persisted service boundary", () 
 	const vector = result.vectors.title0;
 	expect(vector.result.success).toBe(false);
 	expect(vector.result.code).toBe("INVALID_INPUT");
+	expect(vector.result.error).toBe("Enter an event title.");
 	expect(vector.unchanged).toBe(true);
 });
 
@@ -53,6 +54,7 @@ test("TDD-US3-BND008: title81 is rejected at the persisted service boundary", ()
 	const vector = result.vectors.title81;
 	expect(vector.result.success).toBe(false);
 	expect(vector.result.code).toBe("INVALID_INPUT");
+	expect(vector.result.error).toBe("Use 80 characters or fewer.");
 	expect(vector.unchanged).toBe(true);
 });
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, useRef, useTransition } from "react";
-import { Button, Checkbox, Input, Label, ListBox, Modal, Select, Spinner, TextField } from "@heroui/react";
+import { Button, Checkbox, FieldError, Input, Label, ListBox, Modal, Select, Spinner, TextField } from "@heroui/react";
 import { IconPlus, IconPencil } from "@tabler/icons-react";
 import { listRunnerScheduleEvents, saveRunnerScheduleEvent, deleteRunnerScheduleEvent, resumeRunnerScheduleOccurrence, setRunnerAutomationPaused } from "@/app/actions/runner";
 import RunnerDestinationSelection from "./runnerDestinationSelection";
@@ -45,6 +45,8 @@ export default function RunnerSchedule(props: Props) {
 		[controlFeedback, setControlFeedback] = useState<string | null>(null),
 		[error, setError] = useState<string | null>(null),
 		[draft, setDraft] = useState<Draft | null>(null);
+	const [titleError, setTitleError] = useState<string | null>(null);
+	const titleInput = useRef<HTMLInputElement>(null);
 	const { ownerId, runnerId, onPolicyChange } = props;
 
 	const requestGeneration = useRef(0);
@@ -119,6 +121,7 @@ export default function RunnerSchedule(props: Props) {
 
 	function edit(event: RunnerScheduleView | null) {
 		setDraftNotice(null);
+		setTitleError(null);
 		setEditing(event);
 		setError(null);
 		const local = calendarNow(calendarTimezone);
@@ -138,6 +141,13 @@ export default function RunnerSchedule(props: Props) {
 	}
 	async function save() {
 		if (!draft || saving || !props.sessionId || !canEdit || !timezoneInputValid) return;
+		const invalidTitle = !draft.title.trim() ? "Enter an event title." : draft.title.trim().length > 80 ? "Use 80 characters or fewer." : null;
+		setTitleError(invalidTitle);
+		if (invalidTitle) {
+			setError(null);
+			titleInput.current?.focus();
+			return;
+		}
 		setSaving(true);
 		setError(null);
 		try {
@@ -299,9 +309,18 @@ export default function RunnerSchedule(props: Props) {
 							{draft && (
 								<>
 									<div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
-										<TextField value={draft.title} onChange={(value) => update("title", value)}>
+										<TextField
+											value={draft.title}
+											isRequired
+											isInvalid={Boolean(titleError)}
+											onChange={(value) => {
+												update("title", value);
+												setTitleError(null);
+											}}
+										>
 											<Label>Event title</Label>
-											<Input variant='secondary' />
+											<Input ref={titleInput} aria-label='Event title' variant='secondary' />
+											{titleError && <FieldError>{titleError}</FieldError>}
 										</TextField>
 										<TimezonePicker
 											value={draft.timezone}

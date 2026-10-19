@@ -297,7 +297,21 @@ for (const plan of ["free", "pro"] as const)
 				await schedule.getByRole("button", { name: "Add schedule", exact: true }).click();
 				const event = page.getByRole("dialog", { name: "Schedule broadcast", exact: true });
 				await expect(event).toBeVisible();
-				await event.getByRole("textbox", { name: "Event title", exact: true }).fill("Vacation broadcast");
+				await event.getByRole("button", { name: "Save schedule", exact: true }).click();
+				const titleField = event.getByRole("textbox", { name: /^Event title\*?$/ });
+				await expect(titleField).toHaveAttribute("aria-invalid", "true");
+				await expect(titleField).toBeFocused();
+				await expect(titleField).toHaveAccessibleDescription("Enter an event title.");
+				await event.screenshot({ path: testInfo.outputPath("schedule-title-error-dark.png"), animations: "disabled" });
+				await titleField.fill("   ");
+				await event.getByRole("button", { name: "Save schedule", exact: true }).click();
+				await expect(titleField).toHaveAccessibleDescription("Enter an event title.");
+				await titleField.fill("x".repeat(81));
+				await event.getByRole("button", { name: "Save schedule", exact: true }).click();
+				await expect(titleField).toHaveAccessibleDescription("Use 80 characters or fewer.");
+
+				await titleField.fill("Vacation broadcast");
+				await expect(titleField).not.toHaveAttribute("aria-invalid", "true");
 				const scheduleDestinations = event.getByRole("group", { name: "Schedule destinations", exact: true });
 				const destinationSelect = scheduleDestinations.getByRole("button", { name: /Schedule destinations$/ });
 				await destinationSelect.click();
@@ -336,6 +350,8 @@ for (const plan of ["free", "pro"] as const)
 				await page.getByRole("button", { name: "Schedule", exact: true }).click();
 				await schedule.getByRole("button", { name: "Add schedule", exact: true }).click();
 				await expect(event).toBeVisible();
+				await event.getByRole("button", { name: "Save schedule", exact: true }).click();
+				await expect(event.getByRole("textbox", { name: /^Event title\*?$/ })).toHaveAccessibleDescription("Enter an event title.");
 				await event.screenshot({ path: testInfo.outputPath("schedule-destinations-light-desktop.png"), animations: "disabled" });
 				await page.setViewportSize({ width: 390, height: 844 });
 				await event.getByRole("group", { name: "Schedule destinations", exact: true }).scrollIntoViewIfNeeded();
