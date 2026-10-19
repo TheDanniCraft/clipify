@@ -3,7 +3,6 @@ import { Button, Chip, Modal, Tabs } from "@heroui/react";
 
 import { IconCheck, IconCrown } from "@tabler/icons-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { buttonVariants } from "@heroui/styles";
 import { Link } from "@heroui/react";
 import { getUpgradeCopy } from "@lib/upgradeCopy";
 import { generateCheckout, getBillingProductOptions } from "@actions/subscription";
@@ -235,7 +234,7 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 										</li>
 									))}
 								</ul>
-								<Link href='/pricing' className={buttonVariants({ variant: "secondary", className: "mt-3 w-fit no-underline" })}>
+								<Link href='/pricing' className='mt-3 w-fit text-sm underline underline-offset-4'>
 									Compare Free and Pro
 								</Link>
 							</>

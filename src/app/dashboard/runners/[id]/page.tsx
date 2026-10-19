@@ -10,7 +10,7 @@ import { validateAuth } from "@actions/auth";
 import { getRunner, getRunnerLivePreview, getRunnerToken, getRunnerVersionManifest, getStreamSessionsForRunner, upsertStreamSession, setStreamDesiredState, unlinkRunner, listRunnerDestinations, listRunnerScheduleEvents } from "@actions/runner";
 import { getAllOverlays } from "@actions/database";
 import { Accordion, Button, Card, Label, Select, Spinner, ListBox, Chip, Link, Modal, Dropdown, Tooltip, Separator } from "@heroui/react";
-import { IconArrowLeft, IconBrandWindows, IconTerminal2, IconBrandApple, IconUnlink, IconAlertTriangle, IconCircleCheck, IconRefresh } from "@tabler/icons-react";
+import { IconArrowLeft, IconBrandWindows, IconTerminal2, IconBrandApple, IconUnlink, IconAlertTriangle, IconCircleCheck, IconRefresh, IconPencil, IconCalendarEvent } from "@tabler/icons-react";
 import { notify } from "@lib/toast";
 import FullscreenLoadingState from "@components/fullscreenLoadingState";
 import ConfirmModal from "@components/confirmModal";
@@ -553,7 +553,16 @@ export default function RunnerPage() {
 													</ListBox>
 												</Select.Popover>
 											</Select>
-											<RunnerControlSelection value={controlMode} clipPlayback={mode === StreamMode.AlwaysOn} scheduling={runnerPolicy?.scheduling ?? null} onChange={setControlMode} onUpgrade={() => setIsUpgradeOpen(true)} />
+											<RunnerControlSelection
+												value={controlMode}
+												clipPlayback={mode === StreamMode.AlwaysOn}
+												scheduling={runnerPolicy?.scheduling ?? null}
+												onChange={(value) => {
+													setControlMode(value);
+													if (value === "scheduled") setScheduleOpen(true);
+												}}
+												onUpgrade={() => setIsUpgradeOpen(true)}
+											/>
 										</div>
 										{mode === StreamMode.Failsafe && (
 											<p className='text-sm text-muted'>
@@ -577,16 +586,18 @@ export default function RunnerPage() {
 									</p>
 								)}
 								<div className={controlMode === "scheduled" ? "grid gap-3 sm:grid-cols-2" : "grid gap-3"}>
-									<Button variant='secondary' className='w-full' onPress={() => setAppearanceOpen(true)} isDisabled={!overlayId}>
+									<Button variant='ghost' className='w-full' onPress={() => setAppearanceOpen(true)} isDisabled={!overlayId}>
+										<IconPencil size={18} aria-hidden='true' />
 										Appearance
 									</Button>
 									{controlMode === "scheduled" && (
-										<Button className='w-full' variant='secondary' isDisabled={dirty || isSaving} onPress={() => (runnerPolicy?.scheduling ? setScheduleOpen(true) : setIsUpgradeOpen(true))}>
+										<Button className='w-full' variant='ghost' isDisabled={isSaving} onPress={() => (runnerPolicy?.scheduling ? setScheduleOpen(true) : setIsUpgradeOpen(true))}>
+											<IconCalendarEvent size={18} aria-hidden='true' />
 											Schedule
 										</Button>
 									)}
 								</div>
-								{controlMode === "scheduled" && dirty && <p className='text-xs text-muted'>Save configuration to edit the schedule.</p>}
+								{controlMode === "scheduled" && dirty && <p className='text-xs text-muted'>Save configuration to activate your schedule.</p>}
 								<div className='flex flex-wrap items-center justify-between gap-4 border-t border-separator pt-4'>
 									<Button variant='primary' onPress={handleSave} isDisabled={isSaving} isPending={isSaving}>
 										Save Configuration
