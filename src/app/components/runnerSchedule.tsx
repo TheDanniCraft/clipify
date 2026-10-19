@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, useRef, useTransition } from "react";
 import { Button, Checkbox, Input, Label, ListBox, Modal, Select, Spinner, TextField } from "@heroui/react";
 import { IconPlus, IconPencil } from "@tabler/icons-react";
 import { listRunnerScheduleEvents, saveRunnerScheduleEvent, deleteRunnerScheduleEvent, resumeRunnerScheduleOccurrence, setRunnerAutomationPaused } from "@/app/actions/runner";
+import RunnerDestinationSelection from "./runnerDestinationSelection";
 import RunnerScheduleAgenda from "./runnerScheduleAgenda";
 import { ScheduleDateField, ScheduleTimeField, TimezonePicker } from "./runner/ScheduleFields";
 import { now as calendarNow } from "@internationalized/date";
@@ -382,17 +383,7 @@ export default function RunnerSchedule(props: Props) {
 											</ListBox>
 										</Select.Popover>
 									</Select>
-									<div role='group' aria-label='Schedule destinations' className='space-y-3'>
-										<p className='text-sm font-medium'>Destinations</p>
-										{props.destinations.map((target) => (
-											<Checkbox key={target.id} isSelected={draft.destinationIds.includes(target.id)} onChange={(selected) => update("destinationIds", selected ? [...draft.destinationIds, target.id] : draft.destinationIds.filter((id) => id !== target.id))}>
-												<Checkbox.Control>
-													<Checkbox.Indicator />
-												</Checkbox.Control>
-												<Checkbox.Content>{target.name}</Checkbox.Content>
-											</Checkbox>
-										))}
-									</div>
+									<RunnerDestinationSelection label='Schedule destinations' destinations={props.destinations} selectedIds={draft.destinationIds} runnerPro onChange={(ids) => update("destinationIds", ids)} />
 									{error && (
 										<p role='alert' className='text-sm text-danger'>
 											{error}

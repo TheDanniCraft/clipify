@@ -298,6 +298,26 @@ for (const plan of ["free", "pro"] as const)
 				const event = page.getByRole("dialog", { name: "Schedule broadcast", exact: true });
 				await expect(event).toBeVisible();
 				await event.getByRole("textbox", { name: "Event title", exact: true }).fill("Vacation broadcast");
+				const scheduleDestinations = event.getByRole("group", { name: "Schedule destinations", exact: true });
+				const destinationSelect = scheduleDestinations.getByRole("button", { name: /Schedule destinations$/ });
+				await destinationSelect.click();
+				await expect(page.getByRole("listbox")).toHaveAttribute("aria-multiselectable", "true");
+				const backupOption = page.getByRole("option", { name: /Backup output for the community broadcast/ });
+				await expect(backupOption).toHaveAttribute("aria-selected", "true");
+				await backupOption.click();
+				await expect(backupOption).toHaveAttribute("aria-selected", "false");
+				await backupOption.click();
+				await page.keyboard.press("Escape");
+				await expect(event).toBeVisible();
+				await expect(destinationSelect).toContainText("Backup output for the community broadcast");
+				await event.screenshot({ path: testInfo.outputPath("schedule-destinations-desktop.png"), animations: "disabled" });
+				await page.setViewportSize({ width: 390, height: 844 });
+				await destinationSelect.click();
+				await expect(backupOption).toBeVisible();
+				await page.screenshot({ path: testInfo.outputPath("schedule-destinations-mobile.png"), animations: "disabled" });
+				await page.keyboard.press("Escape");
+				await page.setViewportSize({ width: 1280, height: 900 });
+
 				const endDay = event.getByRole("spinbutton", { name: /day, End date/i });
 				await endDay.focus();
 				await endDay.press("ArrowUp");
@@ -307,8 +327,25 @@ for (const plan of ["free", "pro"] as const)
 				const stored = (await pool.query("SELECT local_start_date,local_end_date FROM runner_schedule_events WHERE owner_id=$1", [owner.fixture.creatorId])).rows;
 				expect(stored).toHaveLength(1);
 				expect(String(stored[0].local_end_date) > String(stored[0].local_start_date)).toBe(true);
+				const savedTargets = await pool.query("SELECT d.name FROM runner_schedule_event_destinations s JOIN runner_destinations d ON d.id=s.destination_id WHERE s.owner_id=$1", [owner.fixture.creatorId]);
+				expect(savedTargets.rows).toEqual([{ name: "Backup output for the community broadcast" }]);
+
 				await page.keyboard.press("Escape");
 				await expect(schedule).not.toBeVisible();
+				await page.getByRole("button", { name: "Toggle Theme", exact: true }).click();
+				await page.getByRole("button", { name: "Schedule", exact: true }).click();
+				await schedule.getByRole("button", { name: "Add schedule", exact: true }).click();
+				await expect(event).toBeVisible();
+				await event.screenshot({ path: testInfo.outputPath("schedule-destinations-light-desktop.png"), animations: "disabled" });
+				await page.setViewportSize({ width: 390, height: 844 });
+				await event.getByRole("group", { name: "Schedule destinations", exact: true }).scrollIntoViewIfNeeded();
+				await event.screenshot({ path: testInfo.outputPath("schedule-destinations-light-mobile.png"), animations: "disabled" });
+				await page.keyboard.press("Escape");
+				await expect(event).not.toBeVisible();
+				await page.keyboard.press("Escape");
+				await expect(schedule).not.toBeVisible();
+				await page.setViewportSize({ width: 1280, height: 900 });
+				await page.getByRole("button", { name: "Toggle Theme", exact: true }).click();
 			}
 			await page.getByRole("button", { name: "Appearance", exact: true }).click();
 			const appearance = page.getByRole("dialog", { name: "Appearance", exact: true });
