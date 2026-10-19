@@ -204,6 +204,7 @@ async function runMediaProbe(input: Input, keys = ephemeralRunnerKeys(), onStart
 		async function configureMediaSession() {
 			let sessionId: string | undefined,
 				revision = 1;
+			let configurationFailure: unknown;
 			if (control) {
 				const target = ready.destinations[0];
 				const saved = await input.actions.upsertStreamSession({ ownerId, runnerId: input.runnerId, overlayId, mode: "24/7" as Parameters<typeof input.actions.upsertStreamSession>[0]["mode"], rtmpUrl: target.rtmpUrl, streamKey: target.streamKey, resolution: "720p", fps: 15 });
@@ -211,17 +212,19 @@ async function runMediaProbe(input: Input, keys = ephemeralRunnerKeys(), onStart
 			} else {
 				const ids: string[] = [];
 				for (const target of ready.destinations) {
-					const saved = await input.actions.saveRunnerDestination({ ownerId, runnerId: input.runnerId, ...target, credentialAction: target.streamKey ? "replace" : "clear" });
+					const saved = await input.actions.saveRunnerDestination({ ownerId, runnerId: input.runnerId, ...target, name: `${target.name} ${input.runnerId}`, credentialAction: target.streamKey ? "replace" : "clear" });
 					if (saved.success) ids.push(saved.destination.id);
+					else configurationFailure = { stage: "destination", ...saved };
 				}
 				const configured = (await call("configure_stream_session", { runnerId: input.runnerId, overlayId, mode: "24/7", controlMode: "manual", destinationIds: ids, resolution: "720p", fps: 30, retryKey: `multistream-media-${input.runnerId}` })).result?.structuredContent;
 				sessionId = configured?.id;
 				revision = configured?.configurationRevision;
+				if (!sessionId) configurationFailure ??= { stage: "session", result: configured };
 			}
-			return { sessionId, revision };
+			return { sessionId, revision, configurationFailure };
 		}
-		const { sessionId, revision } = await configureMediaSession();
-		if (!sessionId) return { authenticated: input.authenticated, sourcePrefixPreserved: ready.sourcePrefixPreserved, configurationAccepted: false };
+		const { sessionId, revision, configurationFailure } = await configureMediaSession();
+		if (!sessionId) return { authenticated: input.authenticated, sourcePrefixPreserved: ready.sourcePrefixPreserved, configurationAccepted: false, configurationFailure };
 		const { POST } = await import("@/app/api/runner/heartbeat/route");
 		await POST(new Request(input.origin + "/api/runner/heartbeat", { method: "POST", headers: { Authorization: `Bearer ${input.deviceToken}`, "Content-Type": "application/json" }, body: JSON.stringify({ protocolVersion: 2, requestId: randomUUID(), capabilities: ["admissions", "destinations", "drain", "runner_presentation", "free_lease"] }) }));
 		const started = (await call("control_stream_session", { sessionId, expectedRevision: revision, state: "running" })).result?.structuredContent;
@@ -247,18 +250,20 @@ async function runIndependentMedia(input: Input) {
 	const bothStarted = new Promise<void>((resolve) => (release = resolve));
 	const onStarted = async () => {
 		if (++started === 2) release();
-		let timer: ReturnType<typeof setTimeout>;
+		await bothStarted;
+	};
+	const observe = async (candidate: Input) => {
 		try {
-			await Promise.race([
-				bothStarted,
-				new Promise<never>((_, reject) => {
-					timer = setTimeout(() => reject(new Error("Independent broadcast did not reach playback")), 25000);
-				}),
-			]);
-		} finally {
-			clearTimeout(timer!);
+			const result = await runMediaProbe(candidate, keys, onStarted);
+			// A failed peer must release the other observer so the assertions can
+			// report both actual outcomes, rather than timing out at a shorter latch.
+			if (result.started !== true) release();
+			return result;
+		} catch (error) {
+			release();
+			throw error;
 		}
 	};
-	const results = await Promise.all([runMediaProbe(input, keys, onStarted), runMediaProbe({ ...input, runnerId, deviceToken }, keys, onStarted)]);
+	const results = await Promise.all([observe(input), observe({ ...input, runnerId, deviceToken })]);
 	return { authenticated: input.authenticated, bothRan: started === 2, results };
 }

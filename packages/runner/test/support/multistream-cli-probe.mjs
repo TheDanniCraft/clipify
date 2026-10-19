@@ -20,6 +20,7 @@ const compiled = mkdtempSync(join(cache, "multistream-"));
 const ffmpeg = process.env.RUNNER_FFMPEG_PATH || "ffmpeg";
 const chrome = nativeChromePath();
 const providers = JSON.parse(process.argv[2]);
+const mappedProviders = new Set();
 const receivers = [],
 	products = new Set();
 let cli,
@@ -87,11 +88,12 @@ try {
 	for (const [index, provider] of providers.entries()) {
 		const base = `rtmp://127.0.0.1:${await port()}/live`;
 		const streamKey = provider === "custom" ? "" : `private-media-target-${index}`;
-		const rtmpUrl = provider === "custom" ? `${base}/keyless` : base;
+		const transportUrl = provider === "custom" ? `${base}/keyless` : base;
+		const rtmpUrl = provider === "youtube" ? "rtmp://a.rtmp.youtube.com/live2" : provider === "twitch" ? "rtmp://live.twitch.tv/app" : transportUrl;
 		const path = join(home, `receiver-${index}.flv`);
-		const child = spawn(ffmpeg, ["-hide_banner", "-loglevel", "error", "-y", "-listen", "1", "-i", streamKey ? `${rtmpUrl}/${streamKey}` : rtmpUrl, "-c", "copy", "-flush_packets", "1", "-f", "flv", path], { stdio: ["ignore", "ignore", "pipe"] });
+		const child = spawn(ffmpeg, ["-hide_banner", "-loglevel", "error", "-y", "-listen", "1", "-i", streamKey ? `${transportUrl}/${streamKey}` : transportUrl, "-c", "copy", "-flush_packets", "1", "-f", "flv", path], { stdio: ["ignore", "ignore", "pipe"] });
 		child.stderr.resume();
-		receivers.push({ provider, rtmpUrl, streamKey, path, child });
+		receivers.push({ provider, rtmpUrl, transportUrl, streamKey, path, child });
 	}
 	const { dependencies, os } = prepareNativeTestShims(compiled, { chromePath: chrome, ffmpegPath: ffmpeg, home: home });
 	const logger = join(compiled, "logger.mjs"),
@@ -126,6 +128,18 @@ try {
 	const childProcess = require("node:child_process"),
 		originalSpawn = childProcess.spawn;
 	childProcess.spawn = (...args) => {
+		// Preserve provider URLs through validation, signing and the real CLI. Only
+		// the external encoder transport is redirected to controlled RTMP sinks.
+		if (args[0] === ffmpeg && Array.isArray(args[1])) {
+			args[1] = args[1].map((argument) => {
+				if (typeof argument !== "string" || !/^rtmps?:\/\//.test(argument)) return argument;
+				const receiver = receivers.find((target) => target.provider !== "custom" && argument === `${target.rtmpUrl}/${target.streamKey}`);
+				const destination = receiver ? `${receiver.transportUrl}/${receiver.streamKey}` : argument;
+				if (new URL(destination).hostname !== "127.0.0.1") throw new Error("Unexpected external media output");
+				if (receiver) mappedProviders.add(receiver.provider);
+				return destination;
+			});
+		}
 		const child = originalSpawn(...args);
 		products.add(child);
 		child.once("close", () => products.delete(child));
@@ -177,7 +191,7 @@ try {
 			await pause(200);
 			const frames = await Promise.all(receivers.map((receiver) => decoded(receiver.path, true)));
 			const sounds = await Promise.all(receivers.map((receiver) => audio(receiver.path)));
-			emit({ type: "result", captures, encoders, markerReleased, terminalObserved, destinations: frames.map((frame, index) => ({ ...frame, audio: sounds[index] })), allProcessesClosed: products.size === 0 && receivers.every((receiver) => receiver.child.exitCode !== null || receiver.child.signalCode !== null) });
+			emit({ type: "result", captures, encoders, providerTransportReroutes: mappedProviders.size, markerReleased, terminalObserved, destinations: frames.map((frame, index) => ({ ...frame, audio: sounds[index] })), allProcessesClosed: products.size === 0 && receivers.every((receiver) => receiver.child.exitCode !== null || receiver.child.signalCode !== null) });
 			break;
 		} else if (message.action === "shutdown") break;
 	}

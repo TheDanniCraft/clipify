@@ -22,6 +22,7 @@ Then("both destinations receive the complete clip from one capture and encoder",
 	expect(result.captures).toBe(1);
 	expect(result.encoders).toBe(1);
 	expect(result.destinations).toHaveLength(2);
+	expect(result.providerTransportReroutes).toBe(2);
 	for (const destination of result.destinations) {
 		expect(destination.frames).toBeGreaterThan(1);
 		expect(destination.green).toBe(true);
@@ -78,6 +79,7 @@ Then("the selected provider receives the complete clip with audio", async ({ mcp
 	expect(result.captures).toBe(1);
 	expect(result.encoders).toBe(1);
 	expect(result.destinations).toHaveLength(1);
+	expect(result.providerTransportReroutes).toBe(mcpWorld.input?.multistreamVariant === "multistream_media_custom" ? 0 : 1);
 	expect(result.destinations[0].frames).toBeGreaterThan(1);
 	expect(result.destinations[0]).toMatchObject({ green: true, audio: true });
 	expect(result.clipCompleted).toBe(true);
