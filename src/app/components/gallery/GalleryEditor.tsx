@@ -1,5 +1,7 @@
 "use client";
 
+import DashboardEditorLayout from "@components/dashboardEditorLayout";
+
 import { getGalleryDraftPreview, saveGallery } from "@actions/gallery";
 import AppDateRangePicker from "@components/appDateRangePicker";
 import ControlledModal from "@components/controlledModal";
@@ -270,7 +272,7 @@ function GalleryEditorContent({ initialGallery, playlists, canUseAdvanced, canUs
 		}));
 
 	return (
-		<div className='flex w-full flex-col items-center justify-center p-4'>
+		<DashboardEditorLayout>
 			<Card className='w-full max-w-4xl'>
 				<Card.Header className='flex w-full flex-row items-center justify-between gap-4'>
 					<div className='flex min-w-0 items-center gap-3'>
@@ -540,6 +542,6 @@ function GalleryEditorContent({ initialGallery, playlists, canUseAdvanced, canUs
 					</Button>
 				</Modal.Footer>
 			</ControlledModal>
-		</div>
+		</DashboardEditorLayout>
 	);
 }

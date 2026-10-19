@@ -1,0 +1,8 @@
+$ jest --runInBand --runTestsByPath test/app/components/tools/ToolsClient.test.tsx test/app/components/gallery/GalleryEditor.test.tsx test/app/dashboard/playlist.page.test.tsx test/app/dashboard/overlay.settings.playlist.test.tsx test/app/dashboard/runner.polling.test.tsx "--coverage=false"
+[tests] ordinary: 5 suites, 1 worker(s)
+
+Test Suites: 5 passed, 5 total
+Tests:       152 passed, 152 total
+Snapshots:   0 total
+Time:        23.349 s
+Ran all test suites within paths "test/app/components/tools/ToolsClient.test.tsx", "test/app/components/gallery/GalleryEditor.test.tsx", "test/app/dashboard/playlist.page.test.tsx", "test/app/dashboard/overlay.settings.playlist.test.tsx", "test/app/dashboard/runner.polling.test.tsx".

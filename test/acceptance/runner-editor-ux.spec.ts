@@ -45,6 +45,10 @@ for (const plan of ["free", "pro"] as const)
 			await prepare(page);
 			await page.goto(`/dashboard/runners/${runnerId}`);
 			await expect(page.getByRole("heading", { name: "Stream Configuration", exact: true })).toBeVisible({ timeout: 60000 });
+			await expect(page.getByRole("heading", { name: "Runner Settings", exact: true })).toBeVisible();
+			const runnerCard = page.getByRole("button", { name: "Back to runners", exact: true }).locator('xpath=ancestor::*[@data-slot="card"][1]');
+			await expect(runnerCard.locator('[data-slot="card-header"]').getByRole("heading", { name: "UX acceptance Runner", exact: true })).toBeVisible();
+			await expect(runnerCard.locator('[data-slot="card-header"]').getByRole("button", { name: "Unlink runner", exact: true })).toBeVisible();
 			await expect(page.getByRole("button", { name: "Unlink runner", exact: true })).toHaveText("");
 			const appearanceAction = page.getByRole("button", { name: "Appearance", exact: true });
 			await expect

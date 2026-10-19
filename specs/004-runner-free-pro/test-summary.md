@@ -1,5 +1,7 @@
 # Test Summary Report: Free Runner and Pro Broadcasting
 
+> Shared-editor follow-up (2026-10-19): Runner navigation/name/status/unlink now live inside the primary card under generic page chrome. Runner, Overlay, Gallery, Playlist and Tools share editor width/gutters. Fix Tools padding, Playlist mobile name sizing/labels, Overlay mobile ID visibility/Back label and a reproduced reward-input overflow. Five affected unit files pass152/152; cross-editor browser1/1 and complete Runner3/3 pass. Final build/types/lint and inspected light/dark desktop/mobile captures pass. Fresh full PR CI is required before merge.
+
 > Schedule-alignment follow-up (2026-10-19): Schedule sits inline to the right of Control, with a shared bottom edge and the selector filling the remaining row. Real desktop/mobile alignment checks and the complete editor3/3 pass in52.7s. Revised dark/light desktop and mobile captures inspected; build/types/lint pass. This supersedes the earlier floating-button layout. Fresh full PR CI is required before merge.
 
 > Explicit-schedule follow-up (2026-10-19): Save configuration no longer opens the calendar. Schedule sits beside its control selector, requires a saved draft and opens only on explicit action. Complete real editor3/3 passes in52.8s, including desktop/mobile opening and event creation. Build/types/lint and inspected dark/light desktop and mobile captures pass. Fresh full PR CI is required before merge.
