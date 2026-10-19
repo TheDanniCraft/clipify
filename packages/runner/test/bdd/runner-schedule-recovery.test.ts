@@ -31,7 +31,7 @@ test("BDD-US3-EC010 exact boundary: the renderer cannot queue a new clip after P
 			.split("\n")
 			.findLast((line) => line.startsWith("{"))!,
 	);
-	expect(result).toMatchObject({ pauseAccepted: true, pausedCacheEmpty: true, currentRemainedLiveBeforeEnd: true, futureMemberActivated: false, nextClipStarted: false, clipCompleted: true, encodedFinalFrame: true, allOutputsClosed: true });
+	expect(result).toMatchObject({ pauseAccepted: true, pausedCacheEmpty: true, currentRemainedLiveBeforeEnd: true, prematureNativeTickStayedLive: true, runtimeExpired: true, futureMemberActivated: false, nextClipStarted: false, clipCompleted: true, encodedFinalFrame: true, allOutputsClosed: true });
 }, 70000);
 
 test("BDD-US3-EC010 stalled control: an unresponsive deadline RPC cannot block current-clip closure at the original end", () => {

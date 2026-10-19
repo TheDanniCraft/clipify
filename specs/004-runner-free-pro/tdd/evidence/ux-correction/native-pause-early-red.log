@@ -1,0 +1,36 @@
+$ jest --runInBand --forceExit --runTestsByPath test/bdd/runner-schedule-recovery.test.ts "--coverage=false"
+FAIL test/bdd/runner-schedule-recovery.test.ts (165.613 s)
+  ● BDD-US3-EC010 exact boundary: the renderer cannot queue a new clip after Pause removes future authority while the native timer is held
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 1
+    + Received  + 1
+
+    @@ -1,7 +1,7 @@
+      Object {
+    -   "allOutputsClosed": true,
+    +   "allOutputsClosed": false,
+        "clipCompleted": true,
+        "currentRemainedLiveBeforeEnd": true,
+        "encodedFinalFrame": true,
+        "futureMemberActivated": false,
+        "nextClipStarted": false,
+
+      32 | 			.findLast((line) => line.startsWith("{"))!,
+      33 | 	);
+    > 34 | 	expect(result).toMatchObject({ pauseAccepted: true, pausedCacheEmpty: true, currentRemainedLiveBeforeEnd: true, futureMemberActivated: false, nextClipStarted: false, clipCompleted: true, encodedFinalFrame: true, allOutputsClosed: true });
+         | 	               ^
+      35 | }, 70000);
+      36 |
+      37 | test("BDD-US3-EC010 stalled control: an unresponsive deadline RPC cannot block current-clip closure at the original end", () => {
+
+      at Object.toMatchObject (test/bdd/runner-schedule-recovery.test.ts:34:17)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 5 passed, 6 total
+Snapshots:   0 total
+Time:        165.692 s
+Ran all test suites within paths "test/bdd/runner-schedule-recovery.test.ts".
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?
+error: script "test" exited with code 1

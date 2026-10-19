@@ -61,6 +61,8 @@ let pauseCache,
 	currentRemainedLiveBeforeEnd = false,
 	futureMemberActivated = false;
 let rendererDeadlineObservation;
+let nativeDeadlineObservation;
+let prematureNativeTickStayedLive;
 let deadlineUpdateHeld = false;
 let scheduleRestoreReads = 0,
 	manualStopAccepted = false,
@@ -738,7 +740,17 @@ try {
 					}
 				}
 				clockOffset = executionRequest.sentAt + 60000 - performance.now();
-				if (pauseExactBoundary) await lifecycleController.tick();
+				if (pauseExactBoundary) {
+					// Cache restoration may shift the native anchor slightly past the
+					// request-based estimate. Exercise an early tick deterministically.
+					clockOffset = engine.executionOptions.scheduledDeadlineMonotonic - 1000 - performance.now();
+					nativeDeadlineObservation = { now: leaseClock(), deadline: engine.executionOptions.scheduledDeadlineMonotonic };
+					await lifecycleController.tick();
+					prematureNativeTickStayedLive = engine.isRunning && nativeDeadlineObservation.now < nativeDeadlineObservation.deadline;
+					// The renderer proof is complete. Restore the real periodic owner:
+					// one early tick must not strand the execution after its deadline.
+					watchdogTimer = scheduleCli.startExecutionWatchdog();
+				}
 				const closureDeadline = Date.now() + 20000;
 				while (!executionJournal.pendingTerminals().some((receipt) => receipt.executionGeneration === executionGeneration && receipt.allOutputsClosed === true) && !events.some((event) => event.generation === executionGeneration && event.kind === "started" && event.index > indexAtStop)) {
 					if (Date.now() >= closureDeadline) break;
@@ -887,7 +899,7 @@ try {
 					replay,
 					...(controlConnectionFails ? { controlFailureStatus, controlFailureCalls, liveAfterControlFailure } : {}),
 					...(pauseStalledBoundary ? { deadlineUpdateHeld } : {}),
-					...(pauseExactBoundary ? { rendererDeadlineObservation } : {}),
+					...(pauseExactBoundary ? { rendererDeadlineObservation, nativeDeadlineObservation, prematureNativeTickStayedLive, openOutputs: { running: engine.isRunning, encoder: !!engine.ffmpeg, forwarder: !!engine.obsForwarder, browser: !!engine.browser, capture: !!engine.mediaStream } } : {}),
 					...(pauseScheduledAutomation ? { pauseAccepted, pausedCacheEmpty, currentRemainedLiveBeforeEnd, futureMemberActivated } : {}),
 					...(replayStoppedOccurrence ? { aliasCacheAccepted } : {}),
 					...(manualScheduledStop ? { manualStopAccepted, manualSuppressed, manualClosed, stoppedInsideWindow, restartedAfterStop, outputStarts } : {}),
