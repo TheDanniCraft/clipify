@@ -162,8 +162,8 @@ export default function RunnerBrandingPreview({ ownerId, runnerId, overlayId, re
 				)}
 				{runnerPro && (
 					<StandbyEditor
-						hasLogo={Boolean(logoAssetId)}
-						hasBackground={Boolean(backgroundAssetId)}
+						logoUrl={logoAssetId ? `/runner/preview/${runnerId}/assets/${logoAssetId}?kind=logo` : undefined}
+						backgroundUrl={backgroundAssetId ? `/runner/preview/${runnerId}/assets/${backgroundAssetId}` : undefined}
 						onRemoveLogo={() => setLogoAssetId(null)}
 						onRemoveBackground={() => setBackgroundAssetId(null)}
 						showNextBroadcastTime={showNextBroadcastTime}

@@ -41,8 +41,8 @@ Feature: Runner standby customization
     Then their standby message matches draft preview and the already active presentation
 
   @US4 @FR-019 @BDD-US4-OPT063 @runner-presentation-browser @runner-custom-standby-browser
-  Scenario: A Pro owner previews the next broadcast in its saved timezone
+  Scenario: Runner automation is not advertised as the next Twitch broadcast
     Given a Pro Runner has an active broadcast with playable clips
     And its schedule includes a future Berlin broadcast beyond the current cache horizon
     When its owner opens the Runner appearance settings
-    Then the optional next broadcast time matches preview and generated standby
+    Then Runner playback schedules are not advertised as the next Twitch broadcast

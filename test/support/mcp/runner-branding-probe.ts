@@ -168,7 +168,7 @@ export async function runRunnerBrandingProbe(input: Parameters<typeof runRunnerF
 		await input.fixture.pool.query("INSERT INTO runner_schedule_events(id,owner_id,runner_id,session_id,overlay_id,title,timezone,recurrence,recurrence_anchor,local_start_date,local_end_date,local_start_time,local_end_time) VALUES($1,'fixture-creator',$2,$3,$4,'Future Berlin broadcast','Europe/Berlin','once','2028-01-15','2028-01-15','2028-01-15','14:00','16:00')", [eventId, runnerId, sessionId, overlayId]);
 		await input.fixture.pool.query("INSERT INTO runner_schedule_event_destinations(owner_id,event_id,destination_id,position) VALUES('fixture-creator',$1,$2,0)", [eventId, targetId]);
 		const readNext = Reflect.get(branding, "readRunnerNextBroadcastInternal");
-		const next = typeof readNext === "function" ? await readNext({ ownerId: "fixture-creator", runnerId }, new Date("2027-01-01T00:00:00Z"), input.fixture.db) : null;
+		const next = typeof readNext === "function" ? await readNext({ ownerId: "fixture-creator", runnerId }, new Date("2027-01-01T00:00:00Z")) : null;
 		const stored = (await input.fixture.pool.query("SELECT to_jsonb(p)->'show_next_broadcast_time' AS enabled FROM runner_branding_profiles p WHERE runner_id=$1", [runnerId])).rows[0]?.enabled;
 		return { available: typeof readNext === "function", result: updated, stored, next };
 	}

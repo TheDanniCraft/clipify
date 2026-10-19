@@ -53,6 +53,23 @@ Runner in development, provide the same public JSON through its
 `RUNNER_EXECUTION_PUBLIC_KEYS` environment variable. Local tests generate their
 own ephemeral keys and do not require deployment credentials.
 
+## Preview deployments
+
+Preview builds use `packages/runner/preview-execution-public-keys.json`, containing
+only development public keys. The native workflow selects this mapping for PRs
+before computing its fingerprint. Docker selects the same mapping when Coolify's
+`COOLIFY_URL` identifies a `beta-*.clipify.cloud.thedannicraft.de` preview.
+The matching private key belongs only in Infisical's `dev` environment as
+`RUNNER_EXECUTION_SIGNING_PRIVATE_KEY`. Restart the preview application after
+changing it, and rebuild/download the matching native Runner. Existing binaries
+do not acquire new trusted keys from heartbeat responses.
+
+Production release builds continue to use the repository variable described
+above. Never copy the development private key into production or add its public
+key to the production trust mapping. Configure a separate production pair before
+release. A missing signing key prevents starting signed broadcasts; configuring
+only the server secret without rebuilding native trust is insufficient.
+
 ## Rotation and compatibility
 
 The public configuration supports up to eight Ed25519 verification keys. Publish

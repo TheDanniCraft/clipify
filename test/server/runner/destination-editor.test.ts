@@ -301,6 +301,7 @@ test.each(["active", "cached", "uncertain", "running", "desired", "snapshot", "s
 	const result = flowProbe(`catalogue:workflow:runner_free_pro:destinations_delete_detach_${variant}`);
 	expect(result.attempted).toMatchObject({ success: false, ...(variant === "stale" ? { code: "CONFLICT" } : variant !== "rollback" ? { code: "RESOURCE_IN_USE" } : {}) });
 	expect(result.unchanged).toBe(true);
+	if (variant === "schedule") expect(result.attempted.scheduleUsage).toEqual([expect.objectContaining({ title: "Saved schedule", runnerId: expect.any(String), eventId: expect.any(String) })]);
 	expect(result.sessionReferences).toBe(variant === "snapshot" ? 0 : 1);
 	expect(result.savedBroadcast).toEqual({ rtmp_url: "rtmp://live.twitch.tv/app", has_key: true, configuration_revision: 1 });
 	expect(result.safe).toBe(true);

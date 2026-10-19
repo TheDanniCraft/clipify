@@ -136,7 +136,7 @@ Creators see Runner included in Free and the additional Pro benefits, with exist
 - **FR-016**: System MUST show logo and two-line Livestream powered / by Clipify.us branding only on Free Runner-generated playback, fallback clips and standby; do not brand incoming live video or ordinary non-Runner overlays.
 - **FR-017**: System MUST default attribution to bottom-right; allow all four corners at a fixed 56-pixel two-line text size and 112-pixel logo at 1920x1080, scaled proportionally for output resolution, with fixed translucent styling and collision-aware placement. Free has no hide, size or opacity controls. Preview the actual branded output.
 - **FR-018**: System MUST remove required attribution for effective Pro access; optionally allow Pro creators to keep it visible.
-- **FR-019**: System MUST allow Pro creators to customize standby logo, background image or color, message and optional next-broadcast time with preview. Show standby only during an active broadcast, never outside scheduled windows.
+- **FR-019**: System MUST allow Pro creators to customize standby logo, background image or color, message and optional next-broadcast time with preview. The optional time MUST use the resource owner’s Twitch channel schedule, independent of Runner control mode; hide it when no upcoming Twitch broadcast is available, rather than advertising Runner playback events. Show standby only during an active broadcast, never outside scheduled windows.
 - **FR-020**: System MUST remove the standalone Runner product from new purchase flows, pricing, checkout, billing controls and onboarding and retire unreleased Runner-only grants, billing configuration and agency Runner seats. Keep Free + Pro names and current prices; update public pricing/features, onboarding/billing copy, llms.txt and llms-full.txt consistently, grouping Runner and broadcasting benefits in the existing comparison.
 - **FR-021**: System MUST derive advanced Runner access exclusively from effective Pro, including valid Pro grants, trials and agency creator seats. Remove the standalone Runner entitlement enum and agency Runner seats without converting them into Pro.
 - **FR-022**: System MUST on Pro expiry retain settings, disable future scheduled starts, and restore Free branding for generated content. Allow active broadcasts to finish their scheduled window or manual stop without adding targets or new broadcasts. After completion enforce one active broadcast and one destination.
@@ -365,7 +365,7 @@ Feature: Free Runner and Pro broadcasting
 
   @BDD @US4 @FR-019
   @BDD-US4-FR019
-  Scenario: FR-019 Allow Pro creators to customize standby logo, background image or color, message and optional next-broadcast time with preview. Show standby only during an active broadcast, never outside scheduled windows.
+  Scenario: FR-019 Allow Pro creators to customize standby logo, background image or color, message and optional next-broadcast time with preview. The optional time MUST use the resource owner’s Twitch channel schedule, independent of Runner control mode; hide it when no upcoming Twitch broadcast is available, rather than advertising Runner playback events. Show standby only during an active broadcast, never outside scheduled windows.
     Given a Pro creator with a customized standby screen
     When an active broadcast has no playable clips
     Then their configured standby is shown

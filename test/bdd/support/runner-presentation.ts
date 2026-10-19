@@ -41,7 +41,7 @@ export async function preparePresentationFixture(request: APIRequestContext, mcp
 			await pool.query("INSERT INTO playlist_clips(playlist_id,clip_id,position,clip_data) VALUES($1,$2,0,$3)", [owner.fixture.playlistId, world.clipId, JSON.stringify(clip)]);
 			await pool.query(`INSERT INTO "twitchCache"(type,key,value,expires_at) VALUES('clip',$1,$2,now()+interval '1 hour')`, [`clip:${owner.fixture.creatorId}:${world.clipId}`, JSON.stringify({ clip, lastValidatedAt: now, lastSeenAt: now })]);
 		}
-		await pool.query("INSERT INTO runners(id,owner_id,name,token,status,protocol_version) VALUES($1,$2,'Presentation Runner',$3,'online',2)", [world.runnerId, owner.fixture.creatorId, world.token]);
+		await pool.query("INSERT INTO runners(id,owner_id,name,token,status,protocol_version,last_heartbeat_at) VALUES($1,$2,'Presentation Runner',$3,'online',2,now())", [world.runnerId, owner.fixture.creatorId, world.token]);
 		await pool.query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,desired_state,actual_state,rtmp_url) VALUES($1,$2,$3,$4,'24/7','running','running','rtmp://127.0.0.1:1949/live')", [world.sessionId, owner.fixture.creatorId, world.runnerId, owner.fixture.overlayId]);
 		await pool.query("INSERT INTO runner_broadcast_admissions(owner_id,runner_id,session_id,execution_generation,state,configuration_revision,started_at,benefits_at_start,lease_expires_at,lease_id,protocol_supports_lease,dispatched_at) VALUES($1,$2,$3,$4,'active',1,now(),$5::jsonb,now()+interval '5 minutes',gen_random_uuid(),true,now())", [
 			owner.fixture.creatorId,

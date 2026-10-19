@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Button, Chip, Input, Label, ListBox, Modal, Select, Table, TextField, Tooltip, Tabs, Spinner } from "@heroui/react";
+import { Button, Chip, Input, Link, Label, ListBox, Modal, Select, Table, TextField, Tooltip, Tabs, Spinner } from "@heroui/react";
 import { IconPlus, IconPencil, IconTrash, IconBrandTwitch, IconBrandYoutube, IconActivity } from "@tabler/icons-react";
 import { deleteRunnerDestination, listRunnerDestinations, saveRunnerDestination } from "@/app/actions/runner";
 import { useConnectionTest } from "./runner/useConnectionTest";
@@ -38,6 +38,8 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 	const ProviderIcon = provider === "youtube" ? IconBrandYoutube : IconBrandTwitch;
 	const providerName = provider === "youtube" ? "YouTube" : "Twitch";
 	const [saving, setSaving] = useState(false);
+	const [blockedDeletion, setBlockedDeletion] = useState(false);
+	const [scheduleUsage, setScheduleUsage] = useState<{ eventId: string; title: string; runnerId: string }[]>([]);
 	const [error, setError] = useState<string | null>(null);
 	const account = useProviderConnection(ownerId, setError);
 	const connectionTest = useConnectionTest(ownerId, runnerId, setError);
@@ -119,13 +121,17 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 	}
 
 	async function remove() {
-		if (!deleting || saving) return;
+		if (!deleting || saving || blockedDeletion) return;
 		setSaving(true);
 		setError(null);
 		try {
 			const result = await deleteRunnerDestination({ ownerId, id: deleting.id, expectedRevision: deleting.configurationRevision, removeFromSavedBroadcasts: true });
 			if (!result.success) {
 				setError(result.error);
+				if (result.code === "RESOURCE_IN_USE") {
+					setBlockedDeletion(true);
+					setScheduleUsage("scheduleUsage" in result && Array.isArray(result.scheduleUsage) ? result.scheduleUsage : []);
+				}
 				if (result.code === "CONFLICT") {
 					const refreshed = await listRunnerDestinations(ownerId, runnerId);
 					if (refreshed.success) setDestinations(refreshed.destinations);
@@ -225,10 +231,13 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 			</section>
 			<ConfirmModal
 				isOpen={deleting !== null}
+				isConfirmDisabled={blockedDeletion}
 				isPending={saving}
 				onOpenChange={(next) => {
 					if (!next) {
 						setDeleting(null);
+						setBlockedDeletion(false);
+						setScheduleUsage([]);
 						setError(null);
 					}
 				}}
@@ -237,6 +246,16 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 				description={
 					<div className='space-y-3'>
 						<p>Delete “{deleting?.name}” and its saved key? It will also be removed from stopped broadcasts.</p>
+						{scheduleUsage.length > 0 && (
+							<div className='space-y-2'>
+								<p className='text-sm text-muted'>Still used by these scheduled broadcasts:</p>
+								{scheduleUsage.map((usage) => (
+									<Link key={usage.eventId} href={`/dashboard/runners/${usage.runnerId}?schedule=${encodeURIComponent(usage.eventId)}`} className='block'>
+										{usage.title}
+									</Link>
+								))}
+							</div>
+						)}
 						{error && (
 							<p role='alert' className='text-sm text-danger'>
 								{error}
