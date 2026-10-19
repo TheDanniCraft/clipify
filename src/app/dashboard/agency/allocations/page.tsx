@@ -1,3 +1,4 @@
+import LocalizedDate from "@components/localizedDate";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { IconArrowLeft, IconCalendarClock, IconLicense, IconTrash, IconUserCheck } from "@tabler/icons-react";
@@ -114,10 +115,10 @@ export default async function AgencyAllocationsPage() {
 														</Chip>
 													</TableCell>
 													<TableCell>
-														<span className='text-sm'>{allocation.effectiveAt.toLocaleDateString()}</span>
+														<span className='text-sm'>{<LocalizedDate value={allocation.effectiveAt} />}</span>
 													</TableCell>
 													<TableCell>
-														<span className='text-sm text-muted'>{allocation.endsAt ? allocation.endsAt.toLocaleString() : "—"}</span>
+														<span className='text-sm text-muted'>{allocation.endsAt ? <LocalizedDate value={allocation.endsAt} showTime /> : "—"}</span>
 													</TableCell>
 													<TableCell className='text-right'>
 														{allocation.status === "active" ? (

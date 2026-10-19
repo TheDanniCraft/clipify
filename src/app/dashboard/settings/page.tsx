@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDisplayDate } from "@lib/dateFormat";
+import LocalizedDate from "@components/localizedDate";
 import { validateAuth } from "@actions/auth";
 import { getClipCacheStatus, getSettings, saveSettings } from "@actions/database";
 import ConfirmModal from "@components/confirmModal";
@@ -254,7 +256,7 @@ export default function SettingsPage() {
 		if (!value) return "Never";
 		const parsed = new Date(value);
 		if (Number.isNaN(parsed.getTime())) return "Unknown";
-		return parsed.toLocaleString();
+		return <LocalizedDate value={parsed} showTime />;
 	}
 
 	function formatDurationMs(value: number) {
@@ -637,7 +639,7 @@ export default function SettingsPage() {
 												</Switch>
 											</div>
 											<p className='mt-2 text-xs text-muted'>Opt out anytime here or by using the unsubscribe link in any email.</p>
-											{settings?.marketingOptInAt && <p className='mt-1 text-xs text-muted'>Consent recorded on {new Date(settings.marketingOptInAt).toLocaleString()}.</p>}
+											{settings?.marketingOptInAt && <p className='mt-1 text-xs text-muted'>Consent recorded on {<LocalizedDate value={settings.marketingOptInAt} showTime />}.</p>}
 										</Card.Content>
 									</Card>
 									<Card variant='secondary' className='w-full'>
@@ -766,7 +768,7 @@ export default function SettingsPage() {
 							return;
 						}
 						deleteModalOnOpenChange(false);
-						addToast({ title: "Deletion scheduled", description: `Access remains available until ${new Date(result.suspensionAt).toLocaleString()}.`, color: "success" });
+						addToast({ title: "Deletion scheduled", description: `Access remains available until ${formatDisplayDate(result.suspensionAt, undefined, { hour: "2-digit", minute: "2-digit" })}.`, color: "success" });
 					} catch (error) {
 						if (error instanceof Error && error.message === "RECENT_AUTH_REQUIRED") {
 							deleteModalOnOpenChange(false);
@@ -806,7 +808,7 @@ export default function SettingsPage() {
 							try {
 								const result = await requestAccountDataExport();
 								exportModalOnOpenChange(false);
-								addToast({ title: "Data export requested", description: `We sent the download link to ${result.email}. It expires ${new Date(result.expiresAt).toLocaleString()}.`, color: "success" });
+								addToast({ title: "Data export requested", description: `We sent the download link to ${result.email}. It expires ${formatDisplayDate(result.expiresAt, undefined, { hour: "2-digit", minute: "2-digit" })}.`, color: "success" });
 							} catch (error) {
 								if (error instanceof Error && error.message === "RECENT_AUTH_REQUIRED") {
 									exportModalOnOpenChange(false);

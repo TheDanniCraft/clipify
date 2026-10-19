@@ -11,7 +11,7 @@ jest.mock(
 			return <>{children}</>;
 		};
 		const Agenda = new Proxy(Root, { get: () => Box });
-		return { Agenda, useAgenda: (options: Record<string, unknown>) => ({ ...options, view: options.view ?? options.defaultView ?? "week", visibleDays: [], visibleWeeks: [], heading: "Calendar", getEventsForDay: () => [], goToPrevious: jest.fn(), goToNext: jest.fn(), goToToday: jest.fn() }) };
+		return { Agenda, useAgenda: (options: Record<string, unknown>) => ({ ...options, view: options.view ?? options.defaultView ?? "week", visibleDays: [], visibleWeeks: [], allDayLayout: [], heading: "Calendar", getEventsForDay: () => [], goToPrevious: jest.fn(), goToNext: jest.fn(), goToToday: jest.fn() }) };
 	},
 	{ virtual: true },
 );

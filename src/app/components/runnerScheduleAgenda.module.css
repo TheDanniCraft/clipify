@@ -28,7 +28,91 @@
 	pointer-events: none;
 	line-height: 0;
 }
+.locked:global([data-slot="agenda-all-day-event"]),
 .locked:global([data-slot="agenda-month-event"]),
 .locked:global([data-slot="agenda-month-spanning-event"]) {
 	position: relative;
+}
+
+.header.header {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 1rem;
+	padding: 0 0 1rem;
+}
+
+.titlebar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+.actions {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px;
+	width: 100%;
+}
+.controls {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	align-items: end;
+	gap: 12px;
+	padding-bottom: 16px;
+	border-bottom: 1px solid var(--color-separator);
+}
+.navigation {
+	order: 1;
+}
+.views {
+	order: 2;
+	justify-self: end;
+	align-self: center;
+}
+.dateControl {
+	order: 3;
+	min-width: 0;
+}
+.timezoneControl {
+	order: 4;
+	min-width: 0;
+}
+@media (min-width: 640px) {
+	.actions {
+		display: flex;
+		align-items: center;
+		width: auto;
+	}
+	.controls {
+		display: flex;
+		gap: 16px;
+	}
+	.dateControl {
+		order: 2;
+		width: 160px;
+	}
+	.timezoneControl {
+		order: 3;
+		width: 240px;
+	}
+	.views {
+		order: 4;
+		margin-inline-start: auto;
+	}
+}
+
+/* Agenda's mobile defaults position these slots within its own header grid. */
+.navigation.navigation,
+.views.views {
+	grid-area: auto;
+}
+.actions :global(button) {
+	width: 100%;
+}
+@media (min-width: 640px) {
+	.actions :global(button) {
+		width: auto;
+	}
 }

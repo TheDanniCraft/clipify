@@ -1,3 +1,9 @@
+## Calendar and locale review, 2026-10-19
+
+The calendar uses grouped HeroUI controls, a primary Add schedule action, icon-labelled automation controls, and native all-day strips/month spanning bars. Browser-visible dates follow browser locale through shared formatting; ISO transport and explicit schedule timezones remain unchanged.
+
+Validation: 32 affected suites / 441 tests, plus the final exact-midnight regression and editor files (17 tests), without coverage. Production build passes. The real-browser owner checks en-US/de-DE all-day save/edit and locale behavior, desktop/mobile and both themes; the complete Runner owner remains included. All five final browser cases pass. Latest-source complete PR CI is still required before merge.
+
 # Test Summary Report: Free Runner and Pro Broadcasting
 
 > Event-state appearance follow-up (2026-10-19): editable Agenda events use a vivid fill and dashed border; locked entries use a darker solid surface and an accessible bottom-corner lock. Day/week/month, both themes, mobile icon bounds and locked selection protection pass in the real Pro owner, with the setup owner also green. Free behavior and the complete Agenda unit file pass; build/types/lint and inspected desktop/mobile captures pass. Saved events remain scheduled. Latest-source full CI remains required before merge.

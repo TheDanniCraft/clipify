@@ -1,5 +1,6 @@
 "use client";
 
+import LocalizedDate from "@components/localizedDate";
 import { dismissDashboardContent } from "@actions/contentStates";
 import type { DashboardContentItem } from "@lib/dashboardContent";
 import { Button, Modal } from "@heroui/react";
@@ -21,7 +22,7 @@ export default function DashboardContentHost({ items }: { items: DashboardConten
 		setDismissing(false);
 	};
 
-	const expiry = current.expiresAt ? new Date(current.expiresAt).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }) : null;
+	const expiry = current.expiresAt ? <LocalizedDate value={current.expiresAt} /> : null;
 
 	return (
 		<Modal.Backdrop

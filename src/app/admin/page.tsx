@@ -1,3 +1,4 @@
+import LocalizedDate from "@components/localizedDate";
 import { validateAdminAuth } from "@actions/auth";
 import { getAdminExplorerPage } from "@actions/adminView";
 import AdminMcpClients from "@components/adminMcpClients";
@@ -42,7 +43,7 @@ function formatPercent(value: number) {
 
 function formatDate(value: Date | string | null) {
 	if (!value) return "never";
-	return new Date(value).toLocaleString();
+	return <LocalizedDate value={value} showTime />;
 }
 
 export default async function AdminPage({ searchParams }: { searchParams: Promise<AdminPageSearchParams> }) {

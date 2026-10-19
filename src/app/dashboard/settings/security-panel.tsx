@@ -1,5 +1,6 @@
 "use client";
 
+import LocalizedDate from "@components/localizedDate";
 import { useEffect, useState } from "react";
 import { Button, Card, Chip, Input, InputOTP, Label, Modal, REGEXP_ONLY_DIGITS, TextField, Tooltip } from "@heroui/react";
 import { IconAt, IconDeviceLaptop, IconInfoCircle, IconKey, IconMailCheck, IconPlus, IconTrash } from "@tabler/icons-react";
@@ -13,9 +14,7 @@ type EmailChangeStep = "idle" | "verify-current" | "verify-new";
 const PENDING_EMAIL_STORAGE_KEY = "clipify:pending-email-change";
 
 function formatDate(value: Date | string | null) {
-	if (!value) return "Date unavailable";
-	const date = new Date(value);
-	return Number.isNaN(date.getTime()) ? "Date unavailable" : new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
+	return value ? <LocalizedDate value={value} /> : "Date unavailable";
 }
 
 export default function SecuritySettingsPanel() {

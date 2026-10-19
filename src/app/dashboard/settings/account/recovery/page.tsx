@@ -1,3 +1,4 @@
+import LocalizedDate from "@components/localizedDate";
 import { redirect } from "next/navigation";
 import { IconCalendarClock, IconDatabase, IconRefresh, IconShieldLock } from "@tabler/icons-react";
 import DashboardNavbar from "@components/dashboardNavbar";
@@ -56,10 +57,10 @@ export default async function AccountRecoveryPage() {
 							</div>
 							<div>
 								<CardDescription>Permanent-erasure eligibility</CardDescription>
-								<CardTitle>{purgeDate ? purgeDate.toLocaleDateString() : "30 days after suspension"}</CardTitle>
+								<CardTitle>{purgeDate ? <LocalizedDate value={purgeDate} /> : "30 days after suspension"}</CardTitle>
 							</div>
 						</CardHeader>
-						<CardFooter className='text-sm text-muted'>{purgeDate ? purgeDate.toLocaleString() : "The exact date will be set when suspension begins."}</CardFooter>
+						<CardFooter className='text-sm text-muted'>{purgeDate ? <LocalizedDate value={purgeDate} showTime /> : "The exact date will be set when suspension begins."}</CardFooter>
 					</CardRoot>
 				</div>
 

@@ -1,5 +1,6 @@
 "use client";
 
+import LocalizedDate from "@components/localizedDate";
 import { validateAuth } from "@actions/auth";
 import DashboardNavbar from "@components/dashboardNavbar";
 import DashboardUserAvatar from "@components/dashboardUserAvatar";
@@ -65,9 +66,7 @@ function organizationAccountType(metadata: unknown) {
 }
 
 function formatExpiration(value: Date | string) {
-	const date = new Date(value);
-	if (Number.isNaN(date.getTime())) return "Unknown";
-	return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
+	return <LocalizedDate value={value} />;
 }
 
 function groupPermissions(permissions: readonly Permission[]) {

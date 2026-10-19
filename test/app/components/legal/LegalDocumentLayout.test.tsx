@@ -39,7 +39,7 @@ describe("LegalDocumentLayout", () => {
 		expect(screen.getByRole("main")).toBeInTheDocument();
 		expect(screen.getByRole("heading", { level: 1, name: "Privacy Policy" })).toBeInTheDocument();
 		expect(screen.getByText("Version 1.1.0")).toBeInTheDocument();
-		expect(screen.getByText("Effective September 25, 2026")).toBeInTheDocument();
+		expect(screen.getByText("09/25/2026").parentElement).toHaveTextContent("Effective 09/25/2026");
 		expect(screen.getByText(document!.description)).toBeInTheDocument();
 		expect(screen.queryByText(document!.scope)).not.toBeInTheDocument();
 		expect(screen.getByRole("article")).toHaveTextContent("Policy content");

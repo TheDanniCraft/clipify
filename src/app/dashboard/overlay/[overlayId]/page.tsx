@@ -1,5 +1,6 @@
 "use client";
 
+import LocalizedDate from "@components/localizedDate";
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -1637,7 +1638,7 @@ export default function OverlaySettings() {
 												<Table.Cell>{item.creator_name}</Table.Cell>
 												<Table.Cell>{getGameName(item.game_id)}</Table.Cell>
 												<Table.Cell>{item.view_count}</Table.Cell>
-												<Table.Cell>{new Date(item.created_at).toLocaleDateString()}</Table.Cell>
+												<Table.Cell>{<LocalizedDate value={item.created_at} />}</Table.Cell>
 											</Table.Row>
 										))}
 									</Table.Body>

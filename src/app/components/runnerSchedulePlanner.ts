@@ -2,7 +2,10 @@ import { fromDate, toCalendarDateTime, toZoned, type CalendarDate, type Calendar
 import { resolveCalendarSchedule, type CalendarSchedule } from "../../../packages/runner/src/schedule-calendar";
 
 export type PlannerEvent = CalendarSchedule & { title: string; enabled: boolean; lockedUntil?: string | null };
-export type PlannerSegment = { id: string; eventId: string; occurrenceId: string; title: string; start: CalendarDateTime; end: CalendarDateTime; trueStartUtc: string; trueEndUtc: string; canResizeStart: boolean; canResizeEnd: boolean };
+export type PlannerSegment = { id: string; eventId: string; occurrenceId: string; title: string; isAllDay?: boolean; start: CalendarDateTime; end: CalendarDateTime; trueStartUtc: string; trueEndUtc: string; canResizeStart: boolean; canResizeEnd: boolean };
+export function isAllDayWindow(event: Pick<CalendarSchedule, "localStartTime" | "localEndTime">) {
+	return /^00:00(?::00)?$/.test(event.localStartTime) && /^00:00(?::00)?$/.test(event.localEndTime);
+}
 /** Agenda only indexes an event's starting day; each visual segment retains real bounds. */
 export function projectScheduleViewport(events: readonly PlannerEvent[], start: CalendarDate, days: number, timezone: string): PlannerSegment[] {
 	const horizonStart = toZoned(toCalendarDateTime(start), timezone).toDate().toISOString();
@@ -12,7 +15,11 @@ export function projectScheduleViewport(events: readonly PlannerEvent[], start: 
 	const result: PlannerSegment[] = [];
 	for (const event of events.filter((event) => event.enabled)) {
 		const { occurrences } = resolveCalendarSchedule(event, { start: horizonStart, end: horizonEnd });
-		for (const occurrence of occurrences)
+		for (const occurrence of occurrences) {
+			if (isAllDayWindow(event)) {
+				result.push({ id: JSON.stringify([occurrence.occurrenceId, "all-day"]), eventId: event.id, occurrenceId: occurrence.occurrenceId, title: event.title, isAllDay: true, start: toCalendarDateTime(fromDate(new Date(occurrence.startUtc), timezone)), end: toCalendarDateTime(fromDate(new Date(Date.parse(occurrence.endUtc) - 1), timezone)), trueStartUtc: occurrence.startUtc, trueEndUtc: occurrence.endUtc, canResizeStart: true, canResizeEnd: true });
+				continue;
+			}
 			for (let offset = 0; offset < days; offset++) {
 				const day = start.add({ days: offset });
 				const dayStart = toZoned(toCalendarDateTime(day), timezone).toDate().getTime();
@@ -26,6 +33,7 @@ export function projectScheduleViewport(events: readonly PlannerEvent[], start: 
 				if (segmentStart >= segmentEnd) continue;
 				result.push({ id: JSON.stringify([occurrence.occurrenceId, day.toString()]), eventId: event.id, occurrenceId: occurrence.occurrenceId, title: event.title, start: toCalendarDateTime(fromDate(new Date(segmentStart), timezone)), end: toCalendarDateTime(fromDate(new Date(segmentEnd === dayEnd ? segmentEnd - 1 : segmentEnd), timezone)), trueStartUtc: occurrence.startUtc, trueEndUtc: occurrence.endUtc, canResizeStart: segmentStart === trueStart, canResizeEnd: segmentEnd === trueEnd });
 			}
+		}
 	}
 	return result;
 }

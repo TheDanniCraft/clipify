@@ -1,4 +1,5 @@
 "use client";
+import LocalizedDate from "@components/localizedDate";
 import { useEffect, useState } from "react";
 import { Accordion, Alert, Button, Card, Chip, Link, Modal, Spinner, Table } from "@heroui/react";
 import ConfirmModal from "@components/confirmModal";
@@ -224,7 +225,7 @@ export default function ConnectedAppsPanel() {
 													{connectionStatus(connection)}
 												</Chip>
 											</Table.Cell>
-											<Table.Cell className='text-xs text-muted'>{new Date(connection.expiresAt).toLocaleDateString()}</Table.Cell>
+											<Table.Cell className='text-xs text-muted'>{<LocalizedDate value={connection.expiresAt} />}</Table.Cell>
 											<Table.Cell>
 												<div className='flex flex-wrap gap-1'>
 													<Button size='sm' variant='tertiary' aria-label={`Details for ${connection.clientName}`} aria-haspopup='dialog' onPress={() => setDetailsId(detailsId === connection.id ? null : connection.id)}>
