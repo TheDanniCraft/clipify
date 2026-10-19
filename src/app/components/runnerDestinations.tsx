@@ -27,11 +27,12 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 	const [provider, setProvider] = useState<Provider>("twitch");
 	const [url, setUrl] = useState(endpoints.twitch);
 	const [key, setKey] = useState("");
-	const [credentialAction, setCredentialAction] = useState<"keep" | "replace" | "clear">("replace");
+	const savedKeyAvailable = Boolean(editing?.credentialConfigured && editing.provider === provider);
+	const credentialAction = key.trim() ? "replace" : savedKeyAvailable ? "keep" : "clear";
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const nameValid = name.trim().length >= 1 && name.trim().length <= 80;
-	const credentialValid = provider === "custom" || (editing && credentialAction === "clear") || (credentialAction === "keep" && editing?.credentialConfigured) || (credentialAction === "replace" && key.trim().length > 0);
+	const credentialValid = provider === "custom" || savedKeyAvailable || key.trim().length > 0;
 	const valid = nameValid && Boolean(url.trim() || editing) && Boolean(credentialValid);
 
 	useEffect(() => {
@@ -63,7 +64,6 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 		setProvider(destination?.provider ?? "twitch");
 		setUrl(destination ? "" : endpoints.twitch);
 		setKey("");
-		setCredentialAction(destination ? "keep" : "replace");
 		setError(null);
 		setOpen(true);
 	}
@@ -73,7 +73,7 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 		setSaving(true);
 		setError(null);
 		try {
-			const result = await saveRunnerDestination({ ownerId, runnerId: editing ? editing.runnerId : runnerId, ...(editing ? { id: editing.id, expectedRevision: editing.configurationRevision } : {}), name, provider, ...(url.trim() ? { rtmpUrl: url } : {}), credentialAction: !editing && provider === "custom" && !key.trim() ? "clear" : credentialAction, ...(credentialAction === "replace" && key.trim() ? { streamKey: key } : {}) });
+			const result = await saveRunnerDestination({ ownerId, runnerId: editing ? editing.runnerId : runnerId, ...(editing ? { id: editing.id, expectedRevision: editing.configurationRevision } : {}), name, provider, ...(url.trim() ? { rtmpUrl: url } : {}), credentialAction, ...(credentialAction === "replace" && key.trim() ? { streamKey: key } : {}) });
 			if (!result.success) {
 				if (result.code === "CONFLICT") {
 					const refreshed = await listRunnerDestinations(ownerId, runnerId);
@@ -249,7 +249,6 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 									const next = String(value) as Provider;
 									setProvider(next);
 									setUrl(endpoints[next]);
-									setCredentialAction("replace");
 									setKey("");
 								}}
 							>
@@ -274,44 +273,11 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 								<Input variant='secondary' value={url} onChange={(event) => setUrl(event.target.value)} placeholder={editing ? `Keep current destination (${editing.host})` : "rtmp://your-server/live"} />
 								<p className='text-xs text-muted'>Connections originate from your Runner. Local and private servers are supported.</p>
 							</TextField>
-							{editing && (
-								<Select
-									variant='secondary'
-									value={credentialAction}
-									onChange={(value) => {
-										setCredentialAction(String(value) as typeof credentialAction);
-										setKey("");
-									}}
-								>
-									<Label>Stream key action</Label>
-									<Select.Trigger>
-										<Select.Value />
-										<Select.Indicator />
-									</Select.Trigger>
-									<Select.Popover>
-										<ListBox>
-											{[
-												{ id: "keep", name: "Keep saved key" },
-												{ id: "replace", name: "Replace key" },
-												{ id: "clear", name: "Clear saved key" },
-											].map((row) => (
-												<ListBox.Item key={row.id} id={row.id} textValue={row.name}>
-													<ListBox.ItemIndicator />
-													<Label>{row.name}</Label>
-												</ListBox.Item>
-											))}
-										</ListBox>
-									</Select.Popover>
-								</Select>
-							)}
-							{credentialAction === "replace" && (
-								<TextField>
-									<Label>Destination stream key</Label>
-									<Input variant='secondary' type='password' autoComplete='new-password' value={key} onChange={(event) => setKey(event.target.value)} />
-									<p className='text-xs text-muted'>{provider === "custom" ? "Optional for custom RTMP servers." : "Required for this provider."}</p>
-								</TextField>
-							)}
-							{editing && credentialAction === "clear" && <p className='text-sm text-muted'>The destination stays saved. A new broadcast will require a key for Twitch or YouTube.</p>}
+							<TextField>
+								<Label>Destination stream key</Label>
+								<Input variant='secondary' type='password' autoComplete='new-password' placeholder={savedKeyAvailable ? "••••••••" : undefined} value={key} onChange={(event) => setKey(event.target.value)} />
+								<p className='text-xs text-muted'>{provider === "custom" ? "Optional for custom RTMP servers." : "Required for this provider."}</p>
+							</TextField>
 							{error && (
 								<p role='alert' className='text-sm text-danger'>
 									{error}
