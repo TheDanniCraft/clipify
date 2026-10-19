@@ -2422,3 +2422,5 @@ The user superseded legacy Runner preservation: hard cut the unreleased Runner e
 - [x] UXR-13 Correct the upgrade modal: one price surface and cycle control, compact shared Pro feature highlights, consistent crown and footer action, no redundant product card or Runner paragraph. Verify billing-cycle payloads, checkout failure recovery and inspected light/dark desktop/mobile real-component layouts.
 
 - [x] UXR-14 Make Schedule an explicit action beside the control selector. Saving configuration must never open the calendar; Schedule must not silently save drafts. Explain the save prerequisite locally and verify explicit desktop/mobile opening and real event creation.
+
+- [x] UXR-15 Align Schedule inline with its Control selector, filling the available row without a floating button beneath it. Verify desktop/mobile alignment and inspect the revised layouts while retaining explicit opening and save behavior.

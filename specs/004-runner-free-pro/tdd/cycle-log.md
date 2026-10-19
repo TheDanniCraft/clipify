@@ -3307,3 +3307,9 @@ The first run verified price selection, the monthly checkout payload and retry r
 Remove calendar opening from configuration save and remove implicit configuration saving from the Schedule action. Place Schedule beside its control selector; unsaved changes show a local save prerequisite and disable calendar editing until saved. Extend the real Pro journey to require a disabled action before save, an enabled action with no calendar after save, then explicitly open it before creating an event. Retain the mobile explicit-open journey and all original calendar assertions. No test-first Red is claimed for this review correction.
 
 Complete real editor owner passes3/3 in52.8s, including saved state without a calendar, explicit calendar opening, event creation and mobile opening. Build/types, affected lint and formatting pass. Desktop dark/light and mobile configuration captures inspected. Fresh full PR CI remains the merge gate.
+
+### 2026-10-19 — Schedule action alignment refinement
+
+User review rejected the small left-aligned button beneath Control despite the earlier behavior checks passing. Place it inline with the selector, bottom-aligned, with the selector filling the available row and the action retaining its width. Add real desktop/mobile geometry checks and retain all save/calendar/event assertions. The previous floating-button captures document the superseded layout; new captures must qualify this refinement. No test-first Red is claimed for this visual review correction.
+
+Complete editor owner passes3/3 in52.7s. Installed selector/action bounds verify inline alignment on desktop/mobile; dark/light desktop and mobile captures were inspected and the selected value remains readable. Build/types, affected lint and formatting pass. These captures supersede the floating Schedule button from UXR-14. Fresh full PR CI remains required before merge.

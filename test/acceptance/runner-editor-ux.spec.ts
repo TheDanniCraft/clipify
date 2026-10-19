@@ -9,6 +9,19 @@ test.describe.configure({ mode: "serial" });
 test.use({ timezoneId: "Europe/Berlin" });
 const expect = baseExpect.configure({ timeout: 30000 });
 test.setTimeout(180000);
+async function expectScheduleActionAlignment(page: Page) {
+	const control = page.getByRole("button", { name: / Control$/ });
+	const action = page.getByRole("button", { name: "Schedule", exact: true });
+	await expect
+		.poll(async () => {
+			const selectorBounds = await control.boundingBox();
+			const actionBounds = await action.boundingBox();
+			if (!selectorBounds || !actionBounds || actionBounds.x < selectorBounds.x + selectorBounds.width) return Infinity;
+			return Math.abs(selectorBounds.y + selectorBounds.height - actionBounds.y - actionBounds.height);
+		})
+		.toBeLessThan(2);
+}
+
 async function prepare(page: Page) {
 	await page.goto("/legal/cookies");
 	await expect(page.getByRole("button", { name: "Enable support chat", exact: true })).toBeVisible();
@@ -264,6 +277,7 @@ for (const plan of ["free", "pro"] as const)
 				await mainSave.click();
 				await expect(page.getByRole("button", { name: "Schedule", exact: true })).toBeEnabled();
 				await expect(page.getByRole("dialog", { name: "Broadcast schedule", exact: true })).toHaveCount(0);
+				await expectScheduleActionAlignment(page);
 				await page.screenshot({ path: testInfo.outputPath("pro-schedule-action-dark.png"), fullPage: true, animations: "disabled" });
 				await page.getByRole("button", { name: "Toggle Theme", exact: true }).click();
 				await page.screenshot({ path: testInfo.outputPath("pro-schedule-action-light.png"), fullPage: true, animations: "disabled" });
@@ -380,6 +394,7 @@ for (const plan of ["free", "pro"] as const)
 			await appearance.getByRole("button", { name: "Close", exact: true }).click();
 			await expect(appearance).not.toBeVisible();
 			if (plan === "pro") {
+				await expectScheduleActionAlignment(page);
 				await page.screenshot({ path: testInfo.outputPath("pro-schedule-action-mobile.png"), fullPage: true, animations: "disabled" });
 				await page.getByRole("button", { name: "Schedule", exact: true }).click();
 				const mobileSchedule = page.getByRole("dialog", { name: "Broadcast schedule", exact: true });
