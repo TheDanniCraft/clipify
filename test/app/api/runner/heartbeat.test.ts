@@ -12,11 +12,15 @@ const supported = { protocolVersion: 2, capabilities: ["admissions", "drain", "r
 const builder = { set: mockSet, where: mockWhere };
 mockSet.mockReturnValue(builder);
 jest.mock("@/db/client", () => ({ db: { query: { runnerBroadcastAdmissionsTable: { findMany: (...args: unknown[]) => mockFindAdmissions(...args) }, runnersTable: { findFirst: (...args: unknown[]) => mockFindRunner(...args) }, streamSessionsTable: { findMany: (...args: unknown[]) => mockFindSessions(...args) }, overlaysTable: { findMany: (...args: unknown[]) => mockFindOverlays(...args) } }, update: () => builder } }));
+jest.mock("@/server/runner/provider-metadata", () => ({ applyRunnerBroadcastDetails: jest.fn(async () => undefined) }));
+jest.mock("@/server/runner/provider-test", () => ({ expireRunnerConnectionTests: jest.fn(async () => undefined) }));
 jest.mock("@/server/runner/lease", () => ({ issueFreeExecutionLease: jest.fn(async () => null), acknowledgeFreeExecutions: jest.fn(async () => []), issueRunnerBenefitSnapshot: jest.fn(async () => null) }));
 jest.mock("@actions/rateLimit", () => ({ tryRateLimit: (...args: unknown[]) => mockRateLimit(...args) }));
 jest.mock("@lib/sentryServer", () => ({ captureUnexpectedError: jest.fn() }));
 jest.mock("@lib/operationalHealth", () => ({ operationalCount: jest.fn(), operationalDuration: jest.fn() }));
 jest.mock("@/app/lib/encryption", () => ({ decryptString: jest.fn() }));
+import { applyRunnerBroadcastDetails } from "@/server/runner/provider-metadata";
+import { expireRunnerConnectionTests } from "@/server/runner/provider-test";
 import { decryptString } from "@/app/lib/encryption";
 import { POST } from "@/app/api/runner/heartbeat/route";
 import { captureUnexpectedError } from "@lib/sentryServer";
@@ -33,6 +37,13 @@ describe("Runner heartbeat authentication and assigned state", () => {
 		mockFindSessions.mockResolvedValue([]);
 		mockFindOverlays.mockResolvedValue([]);
 		mockFindAdmissions.mockResolvedValue([]);
+	});
+	it("PC-4/5 expires tests before reading assignments and applies due stream details before responding", async () => {
+		const response = await POST(new Request("http://localhost/api/runner/heartbeat", { method: "POST", headers: { Authorization: "Bearer fixture" }, body: JSON.stringify(supported) }));
+		expect(response.status).toBe(200);
+		expect(expireRunnerConnectionTests).toHaveBeenCalledWith("device-one");
+		expect(applyRunnerBroadcastDetails).toHaveBeenCalledWith(expect.objectContaining({ id: "device-one", ownerId: "owner-one" }));
+		expect(jest.mocked(expireRunnerConnectionTests).mock.invocationCallOrder[0]).toBeLessThan(mockFindSessions.mock.invocationCallOrder[0]);
 	});
 	it("TDD-US3-EC009: accepts finite playback outcomes in terminal reports before protocol negotiation", async () => {
 		const { randomUUID } = await import("node:crypto");

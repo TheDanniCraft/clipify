@@ -33,6 +33,7 @@ import {
 } from "@types";
 import { sql } from "drizzle-orm";
 import { badgeSlugs } from "@lib/badgeCatalog";
+import type { StreamDetails } from "@/app/lib/runnerProviderDetails";
 import type { Permission } from "@/auth/permissions";
 import { organization as authOrganizationTable, user as authUserTable } from "./auth-schema";
 
@@ -885,6 +886,7 @@ export const streamSessionsTable = pgTable(
 			.references(() => overlaysTable.id, { onDelete: "cascade" }),
 		mode: streamModeEnum("mode").$type<StreamMode>().notNull(),
 		controlMode: streamControlModeEnum("control_mode").notNull().default("manual"),
+		testExpiresAt: timestamp("test_expires_at", { withTimezone: true }),
 		automationPausedAt: timestamp("automation_paused_at", { withTimezone: true }),
 		automationRevision: integer("automation_revision").notNull().default(0),
 		configurationRevision: integer("configuration_revision").notNull().default(1),
@@ -901,6 +903,36 @@ export const streamSessionsTable = pgTable(
 );
 
 export const runnerDestinationProviderEnum = pgEnum("runner_destination_provider", ["youtube", "twitch", "custom"]);
+export const runnerProviderConnectionsTable = pgTable(
+	"runner_provider_connections",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		ownerId: varchar("owner_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		provider: runnerDestinationProviderEnum("provider").notNull(),
+		channelId: varchar("channel_id", { length: 128 }).notNull(),
+		channelName: varchar("channel_name", { length: 120 }).notNull(),
+		encryptedTokens: text("encrypted_tokens").notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(table) => [unique("runner_provider_connections_owner_channel").on(table.ownerId, table.provider, table.channelId), unique("runner_provider_connections_owner_identity").on(table.ownerId, table.id), check("runner_provider_connections_supported", sql`${table.provider} IN ('twitch','youtube')`)],
+);
+export const runnerProviderStatesTable = pgTable(
+	"runner_provider_states",
+	{
+		digest: varchar("digest", { length: 64 }).primaryKey(),
+		ownerId: varchar("owner_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		authUserId: varchar("auth_user_id").notNull(),
+		sessionId: varchar("session_id").notNull(),
+		provider: runnerDestinationProviderEnum("provider").notNull(),
+		expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+	},
+	(table) => [index("runner_provider_states_expiry").on(table.expiresAt)],
+);
 export const runnerDestinationsTable = pgTable(
 	"runner_destinations",
 	{
@@ -912,12 +944,21 @@ export const runnerDestinationsTable = pgTable(
 		provider: runnerDestinationProviderEnum("provider").notNull(),
 		rtmpUrl: text("rtmp_url").notNull(),
 		encryptedStreamKey: text("encrypted_stream_key"),
+		connectionId: uuid("connection_id"),
+		providerStreamId: varchar("provider_stream_id", { length: 128 }),
 		credentialRevision: integer("credential_revision").notNull().default(1),
 		configurationRevision: integer("configuration_revision").notNull().default(1),
 		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 	},
-	(table) => [unique("runner_destinations_owner_identity").on(table.ownerId, table.id), index("runner_destinations_owner_created").on(table.ownerId, table.createdAt), check("runner_destinations_name_length", sql`char_length(trim(${table.name})) BETWEEN 1 AND 80`), check("runner_destinations_url_length", sql`char_length(${table.rtmpUrl}) BETWEEN 1 AND 4096`), check("runner_destinations_revisions_positive", sql`${table.credentialRevision} > 0 AND ${table.configurationRevision} > 0`)],
+	(table) => [
+		foreignKey({ columns: [table.ownerId, table.connectionId], foreignColumns: [runnerProviderConnectionsTable.ownerId, runnerProviderConnectionsTable.id] }),
+		unique("runner_destinations_owner_identity").on(table.ownerId, table.id),
+		index("runner_destinations_owner_created").on(table.ownerId, table.createdAt),
+		check("runner_destinations_name_length", sql`char_length(trim(${table.name})) BETWEEN 1 AND 80`),
+		check("runner_destinations_url_length", sql`char_length(${table.rtmpUrl}) BETWEEN 1 AND 4096`),
+		check("runner_destinations_revisions_positive", sql`${table.credentialRevision} > 0 AND ${table.configurationRevision} > 0`),
+	],
 );
 
 export const streamSessionDestinationsTable = pgTable(
@@ -948,6 +989,8 @@ export const runnerScheduleEventsTable = pgTable(
 			.notNull()
 			.references(() => overlaysTable.id, { onDelete: "cascade" }),
 		title: varchar("title", { length: 80 }).notNull(),
+		setStreamDetails: boolean("set_stream_details").notNull().default(false),
+		streamDetails: jsonb("stream_details").$type<StreamDetails[]>().notNull().default([]),
 		timezone: varchar("timezone", { length: 128 }).notNull(),
 		recurrence: runnerScheduleRecurrenceEnum("recurrence").notNull(),
 		recurrenceAnchor: varchar("recurrence_anchor", { length: 80 }).notNull(),

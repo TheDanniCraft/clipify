@@ -2,6 +2,8 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { and, asc, eq, or, inArray, arrayContains, ne } from "drizzle-orm";
 import { z } from "zod";
+import { providerIngest } from "./provider-contract";
+import { fetchStreamingKey, ProviderRequestError } from "./provider-api";
 import { db, type DatabaseClient, type TransactionClient } from "@/db/client";
 import { auditEventsTable, runnerDestinationsTable, runnersTable, streamSessionDestinationsTable, streamSessionsTable, runnerScheduleEventDestinationsTable, runnerBroadcastAdmissionsTable } from "@/db/schema";
 import type { TrustedCreatorPrincipal } from "@/auth/authorize-operation";
@@ -32,9 +34,11 @@ const destinationInput = z
 			.optional(),
 		credentialAction: z.enum(["keep", "replace", "clear"]).default("keep"),
 		streamKey: z.string().max(4096).optional(),
+		connectionId: z.uuid().nullable().optional(),
+		providerStreamId: z.string().min(1).max(128).optional(),
 	})
 	.strict()
-	.refine((input) => (input.id ? input.expectedRevision !== undefined : input.rtmpUrl !== undefined));
+	.refine((input) => (input.id ? input.expectedRevision !== undefined : input.rtmpUrl !== undefined || !!input.connectionId));
 
 type Destination = typeof runnerDestinationsTable.$inferSelect;
 export type RunnerDestinationView = ReturnType<typeof destinationView>;
@@ -46,7 +50,7 @@ function failure(code: Parameters<typeof resourceFailure>[0]) {
 }
 
 function destinationView(row: Destination) {
-	return { id: row.id, name: row.name, provider: row.provider, host: new URL(row.rtmpUrl).host, credentialConfigured: Boolean(row.encryptedStreamKey), credentialActions: ["keep", "replace", "clear"] as const, credentialRevision: row.credentialRevision, configurationRevision: row.configurationRevision };
+	return { connectionId: row.connectionId, providerStreamId: row.providerStreamId, id: row.id, name: row.name, provider: row.provider, host: new URL(row.rtmpUrl).host, credentialConfigured: Boolean(row.encryptedStreamKey), credentialActions: ["keep", "replace", "clear"] as const, credentialRevision: row.credentialRevision, configurationRevision: row.configurationRevision };
 }
 
 function normalizedRtmpUrl(value: string) {
@@ -78,13 +82,16 @@ function destinationConflicts(peer: Destination, current: Destination | undefine
 }
 
 function editableDestinationUrl(input: ParsedDestinationInput, current: Destination | undefined) {
-	return normalizedRtmpUrl(input.rtmpUrl ?? current?.rtmpUrl ?? "");
+	if (input.provider === "custom") return normalizedRtmpUrl(input.rtmpUrl ?? current?.rtmpUrl ?? "");
+	const endpoint = providerIngest[input.provider];
+	const supplied = input.rtmpUrl ?? (current?.provider === input.provider ? current.rtmpUrl : endpoint);
+	return normalizedRtmpUrl(supplied) !== endpoint ? null : endpoint;
 }
-async function persistDestination(tx: TransactionClient, input: ParsedDestinationInput, current: Destination | undefined, values: Pick<Destination, "name" | "provider" | "rtmpUrl" | "encryptedStreamKey" | "updatedAt">) {
+async function persistDestination(tx: TransactionClient, input: ParsedDestinationInput, current: Destination | undefined, values: Pick<Destination, "name" | "provider" | "rtmpUrl" | "encryptedStreamKey" | "updatedAt" | "connectionId" | "providerStreamId">) {
 	return current
 		? await tx
 				.update(runnerDestinationsTable)
-				.set({ ...values, credentialRevision: current.credentialRevision + (input.credentialAction === "keep" ? 0 : 1), configurationRevision: current.configurationRevision + 1 })
+				.set({ ...values, credentialRevision: current.credentialRevision + (input.credentialAction === "keep" && !input.connectionId ? 0 : 1), configurationRevision: current.configurationRevision + 1 })
 				.where(and(eq(runnerDestinationsTable.ownerId, input.ownerId), eq(runnerDestinationsTable.id, current.id), eq(runnerDestinationsTable.configurationRevision, input.expectedRevision!)))
 				.returning()
 		: await tx
@@ -138,13 +145,28 @@ export async function saveRunnerDestinationForPrincipal(principal: TrustedCreato
 		}
 		const rtmpUrl = editableDestinationUrl(input, current);
 		if (!rtmpUrl) return failure("INVALID_INPUT");
-		const credentials = await resolveDestinationCredential(input, current);
+		const connectionId = input.connectionId;
+		let credentials: Awaited<ReturnType<typeof resolveDestinationCredential>>;
+		if (connectionId) {
+			if (input.provider === "custom" || input.credentialAction !== "keep" || input.streamKey) return failure("INVALID_INPUT");
+			const connected = await (
+				await import("./provider-connections")
+			).withStreamingConnection(tx, input.ownerId, connectionId, async (context) => {
+				if (context.provider !== input.provider) throw new ProviderRequestError("CHANNEL_UNAVAILABLE");
+				return fetchStreamingKey(context, input.providerStreamId);
+			});
+			if (!connected.success) return connected;
+			const credential = connected.value;
+			const { encryptString } = await import("@/app/lib/encryption");
+			credentials = { credential, encryptedStreamKey: encryptString(credential) };
+		} else credentials = await resolveDestinationCredential(input, current);
 		if ("success" in credentials) return credentials;
 		const { encryptedStreamKey, credential } = credentials;
 		const { decryptString } = await import("@/app/lib/encryption");
 		const peers = await tx.select().from(runnerDestinationsTable).where(eq(runnerDestinationsTable.ownerId, input.ownerId)).orderBy(asc(runnerDestinationsTable.id));
 		if (peers.some((peer) => destinationConflicts(peer, current, input, rtmpUrl, credential, decryptString))) return failure("INVALID_INPUT");
-		const values = { name: input.name, provider: input.provider, rtmpUrl, encryptedStreamKey, updatedAt: new Date() };
+		const retainConnection = input.connectionId === undefined && input.credentialAction === "keep" && current?.provider === input.provider;
+		const values = { name: input.name, provider: input.provider, rtmpUrl, encryptedStreamKey, connectionId: connectionId ?? (retainConnection ? (current?.connectionId ?? null) : null), providerStreamId: connectionId ? (input.providerStreamId ?? null) : retainConnection ? (current?.providerStreamId ?? null) : null, updatedAt: new Date() };
 		const [row] = await persistDestination(tx, input, current, values);
 		if (!row) return failure("CONFLICT");
 		await audit(tx, principal, row.id, current ? "runner.destination.update" : "runner.destination.create");

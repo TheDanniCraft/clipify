@@ -6,6 +6,7 @@ import { runnersTable, streamSessionsTable, overlaysTable, runnerBroadcastAdmiss
 import { and, eq, inArray, InferSelectModel, sql } from "drizzle-orm";
 import { RunnerStatus, StreamState } from "@types";
 import { decryptString } from "@/app/lib/encryption";
+import { applyRunnerBroadcastDetails } from "@/server/runner/provider-metadata";
 import { issueRunnerScheduleCache } from "@/server/runner/schedules";
 import { issueFreeExecutionLease, acknowledgeFreeExecutions, issueRunnerBenefitSnapshot } from "@/server/runner/lease";
 import { tryRateLimit } from "@actions/rateLimit";
@@ -132,6 +133,8 @@ export async function POST(req: Request) {
 			})
 			.where(eq(runnersTable.id, runner.id));
 
+		await (await import("@/server/runner/provider-test")).expireRunnerConnectionTests(runner.id);
+
 		// 4. Find all sessions assigned to this runner
 		const sessions = await db.query.streamSessionsTable.findMany({
 			where: eq(streamSessionsTable.runnerId, runner.id),
@@ -180,6 +183,7 @@ export async function POST(req: Request) {
 		});
 		const benefitSnapshot = signedProtocol && body.requestId ? await issueRunnerBenefitSnapshot(runner, body.requestId) : undefined;
 		const scheduleCache = signedProtocol && body.requestId && body.capabilities?.includes("schedule_cache") ? await issueRunnerScheduleCache(runner, body.requestId) : undefined;
+		await applyRunnerBroadcastDetails(runner);
 		recordOutcome("success");
 		return heartbeatResponse({ success: true, jobs: commandedJobs, ...(scheduleCache !== undefined ? { scheduleCache } : {}), ...(benefitSnapshot !== undefined ? { benefitSnapshot } : {}), ...(acceptedExecutions ? { acceptedExecutions } : {}) }, { headers: { "Cache-Control": "no-store" } });
 	} catch (error) {

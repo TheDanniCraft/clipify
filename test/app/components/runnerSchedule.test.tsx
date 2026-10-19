@@ -1,3 +1,4 @@
+jest.mock("@/app/components/runner/BroadcastDetails", () => ({ __esModule: true, default: () => null }));
 import { act, render } from "@testing-library/react";
 jest.mock("@/app/components/runner/ScheduleFields", () => ({ ScheduleDateField: () => null, ScheduleTimeField: () => null, TimezonePicker: () => null }));
 import RunnerSchedule from "@/app/components/runnerSchedule";

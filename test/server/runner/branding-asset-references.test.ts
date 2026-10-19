@@ -69,10 +69,12 @@ test("TDD-US4-CON013 U272 strength: clearing a saved logo detaches only its owne
 	expect(result).toMatchObject({ success: true, profile: { logoAssetId: null, message: current.message, revision: 4 } });
 	expect(mockSet).toHaveBeenCalledWith(expect.objectContaining({ logoAssetId: null, revision: 4 }));
 	const query = new PgDialect().sqlToQuery(mockCleanup.mock.calls[0][0]);
-	expect(query.params).toEqual([oldLogo, ownerId]);
+	expect(query.params).toEqual([oldLogo, ownerId, ownerId, ownerId]);
 	expect(query.sql).toContain("NOT EXISTS");
 	expect(query.sql).toContain("p.background_asset_id");
 	expect(query.sql).toContain("p.logo_asset_id");
+	expect(query.sql).toContain("runner_schedule_events");
+	expect(query.sql).toContain("runner_broadcast_admissions");
 });
 
 test("TDD-US4-CON013 U271 strength: a lost guarded update returns conflict without deleting its pending detached logo", async () => {

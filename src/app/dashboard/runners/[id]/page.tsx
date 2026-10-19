@@ -747,7 +747,7 @@ export default function RunnerPage() {
 							<Modal.Header>
 								<Modal.Heading>Broadcast schedule</Modal.Heading>
 							</Modal.Header>
-							<Modal.Body>{scheduleOpen && <RunnerSchedule ownerId={runner.ownerId} runnerId={runner.id} sessionId={savedSession?.id} overlayId={overlayId} overlays={overlays} destinations={destinationOptions} selectedDestinationIds={selectedDestinationIds} clipPlayback={mode === StreamMode.AlwaysOn} onPolicyChange={setRunnerPolicy} />}</Modal.Body>
+							<Modal.Body>{scheduleOpen && <RunnerSchedule ownerId={runner.ownerId} runnerId={runner.id} sessionId={savedSession?.id} overlayId={overlayId} overlays={overlays} destinations={destinationOptions} selectedDestinationIds={selectedDestinationIds} clipPlayback={mode === StreamMode.AlwaysOn} onPolicyChange={setRunnerPolicy} onDestinationsChange={refreshDestinationOptions} />}</Modal.Body>
 						</Modal.Dialog>
 					</Modal.Container>
 				</Modal.Backdrop>

@@ -3,6 +3,7 @@ import { randomUUID, createHash, sign } from "node:crypto";
 import { runnerSigningKey } from "./signing";
 import { and, asc, desc, eq, gt, gte, inArray, isNull, isNotNull, notInArray, or, ne, sql } from "drizzle-orm";
 import { z } from "zod";
+import { streamDetailsSchema, resultSchema } from "./provider-contract";
 import { parseDate, parseDateTime, fromDate, toCalendarDate } from "@internationalized/date";
 import type { TrustedCreatorPrincipal } from "@/auth/authorize-operation";
 import { db, type DatabaseClient, type QueryClient, type TransactionClient } from "@/db/client";
@@ -65,6 +66,8 @@ const scheduleInput = z
 			.min(1)
 			.refine((values) => new Set(values).size === values.length),
 		enabled: z.boolean().default(true),
+		setStreamDetails: z.boolean().default(false),
+		streamDetails: streamDetailsSchema.default([]),
 		scope: z.enum(["this", "following"]).optional(),
 		occurrenceStart: z.iso.datetime().optional(),
 	})
@@ -89,7 +92,7 @@ const scheduleInput = z
 	});
 export type RunnerScheduleInput = z.input<typeof scheduleInput>;
 type Event = typeof runnerScheduleEventsTable.$inferSelect;
-export type RunnerScheduleView = Omit<Event, "ownerId" | "createdAt" | "updatedAt"> & { destinationIds: string[]; lockedUntil: string | null; lockReason: "active_window" | "output_drain" | "completed" | null; currentOccurrence: { occurrenceId: string; endUtc: string; canResume: boolean; sessionRevision: number } | null };
+export type RunnerScheduleView = Omit<Event, "ownerId" | "createdAt" | "updatedAt"> & { destinationIds: string[]; lockedUntil: string | null; lockReason: "active_window" | "output_drain" | "completed" | null; streamDetailsFeedback: { destinationId: string; status: "applied" | "retry" | "reconnect"; error?: string; attemptedAt: number }[]; currentOccurrence: { occurrenceId: string; endUtc: string; canResume: boolean; sessionRevision: number } | null };
 type Failure = { success: false; code: string; error: string };
 function failure(code: Parameters<typeof resourceFailure>[0], message?: string): Failure {
 	const result = resourceFailure(code);
@@ -140,14 +143,23 @@ async function readEvents(tx: TransactionClient, owner: string, runner: string) 
 				.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, owner), eq(runnerBroadcastAdmissionsTable.runnerId, runner), notInArray(runnerBroadcastAdmissionsTable.state, ["stopped", "failed_before_output"])))
 		: [];
 	const busy = new Set(occupied.map((row) => row.sessionId));
-	return events.map((row) =>
-		eventView(
+	const detailsUpdates = events.length
+		? await tx
+				.select({ benefits: runnerBroadcastAdmissionsTable.benefitsAtStart })
+				.from(runnerBroadcastAdmissionsTable)
+				.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, owner), eq(runnerBroadcastAdmissionsTable.runnerId, runner), sql`jsonb_typeof(${runnerBroadcastAdmissionsTable.benefitsAtStart}->'streamDetailsResults')='object'`))
+				.orderBy(desc(runnerBroadcastAdmissionsTable.scheduledEnd))
+				.limit(128)
+		: [];
+	return events.map((row) => ({
+		...eventView(
 			row,
 			selections.filter((item) => item.eventId === row.id).map((item) => item.destinationId),
 			captured.get(row.id) ?? null,
 			{ sessionRevision: sessions.find((session) => session.id === row.sessionId)?.revision ?? 0, canResume: sessions.some((session) => session.id === row.sessionId && session.controlMode === "scheduled" && session.desiredState === "stopped") && !busy.has(row.sessionId) },
 		),
-	);
+		streamDetailsFeedback: Object.entries(resultSchema.safeParse(detailsUpdates.find((update) => update.benefits.scheduleEventId === row.id)?.benefits.streamDetailsResults).data ?? {}).map(([destinationId, result]) => ({ destinationId, ...result })),
+	}));
 }
 /** Captured output ownership outlives the calendar end and heartbeat age. */
 async function readCapturedScheduleLocks(tx: TransactionClient, owner: string, runner: string, now = new Date()) {
@@ -201,6 +213,7 @@ function eventView(row: Event, destinationIds: string[], capturedEnd: string | n
 	const completedEnd = completedScheduleEnd(row);
 	const lockedUntil = occurrence?.endUtc ?? capturedEnd ?? completedEnd;
 	return {
+		streamDetailsFeedback: [],
 		lockedUntil,
 		currentOccurrence: occurrence ? { occurrenceId: occurrence.occurrenceId, endUtc: occurrence.endUtc, canResume: control?.canResume ?? false, sessionRevision: control?.sessionRevision ?? 0 } : null,
 		lockReason: capturedEnd ? "output_drain" : completedEnd ? "completed" : lockedUntil ? "active_window" : null,
@@ -209,6 +222,8 @@ function eventView(row: Event, destinationIds: string[], capturedEnd: string | n
 		sessionId: row.sessionId,
 		overlayId: row.overlayId,
 		title: row.title,
+		setStreamDetails: row.setStreamDetails,
+		streamDetails: row.streamDetails,
 		timezone: row.timezone,
 		recurrence: row.recurrence,
 		recurrenceAnchor: row.recurrenceAnchor,
@@ -272,6 +287,8 @@ function scheduleEventValues(input: z.infer<typeof scheduleInput>, current: type
 		sessionId: input.sessionId,
 		overlayId: input.overlayId,
 		title: input.title,
+		setStreamDetails: input.setStreamDetails,
+		streamDetails: input.setStreamDetails ? input.streamDetails : [],
 		timezone: input.timezone,
 		recurrence: input.recurrence,
 		recurrenceAnchor: current?.recurrenceAnchor ?? input.localStartDate,
@@ -346,10 +363,25 @@ export async function saveRunnerScheduleEventForPrincipal(principal: TrustedCrea
 				.limit(1);
 			if (!validScheduleAssignment(runner, session, overlay)) return failure("INVALID_INPUT", "Choose an owned clip-playback source and Runner broadcast.");
 			const targets = await tx
-				.select({ id: runnerDestinationsTable.id })
+				.select({ id: runnerDestinationsTable.id, connectionId: runnerDestinationsTable.connectionId, provider: runnerDestinationsTable.provider })
 				.from(runnerDestinationsTable)
 				.where(and(eq(runnerDestinationsTable.ownerId, input.ownerId), inArray(runnerDestinationsTable.id, input.destinationIds)));
 			if (targets.length !== input.destinationIds.length) return failure("INVALID_INPUT", "Choose destinations belonging to this account.");
+			if (input.setStreamDetails && input.streamDetails.some((detail) => !targets.some((target) => target.id === detail.destinationId && target.connectionId && target.provider !== "custom"))) return failure("INVALID_INPUT", "Connect each selected channel before setting its stream details.");
+			if (
+				input.streamDetails.some((detail) => {
+					const target = targets.find((target) => target.id === detail.destinationId);
+					return target?.provider === "twitch" && (!!detail.description || !!detail.thumbnailAssetId);
+				})
+			)
+				return failure("INVALID_INPUT", "Choose details supported by this destination.");
+			for (const detail of input.setStreamDetails ? input.streamDetails : []) {
+				if (detail.thumbnailAssetId) {
+					const { readOwnedRunnerBrandingAsset } = await import("./branding-assets");
+					if (!(await readOwnedRunnerBrandingAsset(input.ownerId, detail.thumbnailAssetId, "background", tx))) return failure("INVALID_INPUT", "Upload a thumbnail belonging to this account.");
+				}
+			}
+
 			const values = scheduleEventValues(input, scoped ? undefined : current);
 			const candidate = { ...values, id: scoped ? randomUUID() : (current?.id ?? randomUUID()), excludedDates: scoped ? (input.scope === "following" ? current!.excludedDates.filter((date) => date >= scoped.localDate) : []) : (current?.excludedDates ?? []), repeatUntilDate: current?.repeatUntilDate ?? null, ...(scoped && input.scope === "this" ? { seriesParentId: current!.id, originalOccurrenceDate: scoped.localDate } : {}) };
 			if (scoped && seriesHasStarted(candidate, clock())) return failure("INVALID_INPUT", "Choose a future start time.");
@@ -731,7 +763,19 @@ async function writeScheduledAuthorization(frame: ScheduleCacheFrame, occurrence
 				leaseExpiresAt: new Date(expiresAt),
 				protocolSupportsLease: true,
 				dispatchedAt: now,
-				benefitsAtStart: { ...policy, ingestModeAtStart: "24/7", scheduleEventId: occurrence.eventId, scheduleEventRevision: occurrence.configurationRevision, scheduledStart: Date.parse(occurrence.startUtc), sourceIdAtStart: source.id, sourceRevisionAtStart: source.configurationRevision, cacheConfigurationHash, executionPayloadHashAtStart: executionPayloadHash, cacheAuthorization: true },
+				benefitsAtStart: {
+					...policy,
+					streamDetailsAtStart: await (await import("./provider-metadata")).captureBroadcastDetails(tx, ownerId, occurrence.eventId, occurrence.occurrenceId),
+					ingestModeAtStart: "24/7",
+					scheduleEventId: occurrence.eventId,
+					scheduleEventRevision: occurrence.configurationRevision,
+					scheduledStart: Date.parse(occurrence.startUtc),
+					sourceIdAtStart: source.id,
+					sourceRevisionAtStart: source.configurationRevision,
+					cacheConfigurationHash,
+					executionPayloadHashAtStart: executionPayloadHash,
+					cacheAuthorization: true,
+				},
 			})
 			.returning();
 	} else {

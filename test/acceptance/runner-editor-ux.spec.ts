@@ -77,6 +77,7 @@ for (const plan of ["free", "pro"] as const)
 			await manager.getByRole("button", { name: "Add destination", exact: true }).click();
 			const editor = page.getByRole("dialog", { name: "Add destination", exact: true });
 			await editor.getByRole("textbox", { name: "Destination name", exact: true }).fill("My local output");
+			await editor.getByRole("tab", { name: "Stream key", exact: true }).click();
 			await expect(editor.getByLabel("Destination stream key", { exact: true })).toHaveValue("");
 			await expect(editor.getByRole("button", { name: "Save destination", exact: true })).toBeDisabled();
 			await expect(editor.getByRole("textbox", { name: "RTMP URL", exact: true })).toHaveCount(0);
@@ -575,6 +576,7 @@ test("a second Runner reuses an account destination without asking for its key a
 		await manager.getByRole("button", { name: "Add destination", exact: true }).click();
 		const editor = page.getByRole("dialog", { name: "Add destination", exact: true });
 		await editor.getByRole("textbox", { name: "Destination name", exact: true }).fill("Community Twitch");
+		await editor.getByRole("tab", { name: "Stream key", exact: true }).click();
 		await expect(editor.getByLabel("Destination stream key", { exact: true })).toHaveAttribute("type", "password");
 		await editor.getByLabel("Destination stream key", { exact: true }).fill("private-reusable-browser-key");
 		await editor.getByRole("button", { name: "Save destination", exact: true }).click();

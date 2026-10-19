@@ -197,6 +197,10 @@ export async function issueFreeExecutionLease(runner: Pick<typeof runnersTable.$
 		const { session, admission } = assignment;
 		const paid = admission.benefitsAtStart.runnerPro === true;
 		const now = Date.now();
+		if (session.testExpiresAt && session.testExpiresAt.getTime() <= now) {
+			await requestBroadcastDrain(tx, session, "immediate");
+			return null;
+		}
 		const paidPolicy = await resolveAdmissionPaidPolicy(tx, owner, runner, session, admission, paid, now);
 		if (!paidPolicy.allowed) return paidPolicy.response;
 		const currentPaidPolicy = paidPolicy.currentPaidPolicy;
@@ -212,7 +216,7 @@ export async function issueFreeExecutionLease(runner: Pick<typeof runnersTable.$
 		// validity, allowing renewal of the same intent without another admission.
 		const currentPaidEnd = currentPaidPolicy?.validUntil ? Date.parse(currentPaidPolicy.validUntil) : null;
 		const leaseId = admission.leaseId ?? randomUUID(),
-			expiresAt = currentPaidEnd !== null ? Math.min(now + 300000, currentPaidEnd) : now + 300000;
+			expiresAt = Math.min(currentPaidEnd !== null ? Math.min(now + 300000, currentPaidEnd) : now + 300000, session.testExpiresAt?.getTime() ?? Number.POSITIVE_INFINITY);
 		const targets = await capturedExecutionTargets(admission, session);
 		if (!targets) return null;
 		return signAdmissionLease(tx, runner, session, admission, source, targets, { leaseId, requestId, now, expiresAt }, paid);
