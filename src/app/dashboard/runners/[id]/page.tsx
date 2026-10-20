@@ -613,12 +613,12 @@ export default function RunnerPage() {
 									</p>
 								)}
 								<div className={controlMode === "scheduled" ? "grid gap-3 sm:grid-cols-2" : "grid gap-3"}>
-									<Button variant='ghost' className='w-full' onPress={() => setAppearanceOpen(true)} isDisabled={!overlayId}>
+									<Button variant='outline' className='w-full' onPress={() => setAppearanceOpen(true)} isDisabled={!overlayId}>
 										<IconPaint size={18} aria-hidden='true' />
 										Appearance
 									</Button>
 									{controlMode === "scheduled" && (
-										<Button className='w-full' variant='ghost' isDisabled={isSaving} onPress={() => (runnerPolicy?.scheduling ? setScheduleOpen(true) : setIsUpgradeOpen(true))}>
+										<Button className='w-full' variant='outline' isDisabled={isSaving} onPress={() => (runnerPolicy?.scheduling ? setScheduleOpen(true) : setIsUpgradeOpen(true))}>
 											<IconCalendarEvent size={18} aria-hidden='true' />
 											Schedule
 										</Button>
