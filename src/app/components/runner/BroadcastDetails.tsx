@@ -6,6 +6,7 @@ import { searchRunnerTwitchCategories, uploadRunnerScheduleThumbnail } from "@/a
 import type { StreamDetails } from "@/app/lib/runnerProviderDetails";
 type Target = { id: string; name: string; provider?: string; connectionId?: string | null };
 export default function BroadcastDetails({ ownerId, runnerId, targets, eventTitle, enabled, details, disabled, onEnabledChange, onChange, onBusyChange, onManage }: { ownerId: string; runnerId: string; targets: Target[]; eventTitle: string; enabled: boolean; details: StreamDetails[]; disabled: boolean; onEnabledChange: (value: boolean) => void; onChange: (details: StreamDetails[]) => void; onBusyChange: (busy: boolean) => void; onManage: () => void }) {
+	const customOnly = targets.length > 0 && targets.every((target) => target.provider === "custom");
 	const eligible = targets.filter((target) => target.connectionId && ["twitch", "youtube"].includes(target.provider ?? ""));
 	const [selected, setSelected] = useState(eligible[0]?.id ?? "");
 	const target = eligible.find((target) => target.id === selected) ?? eligible[0];
@@ -90,7 +91,7 @@ export default function BroadcastDetails({ ownerId, runnerId, targets, eventTitl
 			</Switch>
 			{!eligible.length && (
 				<div className='space-y-3'>
-					<p className='text-sm text-muted'>Connect a Twitch or YouTube channel to set its stream details.</p>
+					<p className='text-sm text-muted'>{customOnly ? "Stream details aren’t available for custom RTMP destinations." : targets.length ? "Connect a Twitch or YouTube channel to set its stream details." : "Select a Twitch or YouTube destination to set its stream details."}</p>
 					<Button variant='secondary' isDisabled={disabled} onPress={onManage}>
 						Manage destinations
 					</Button>
