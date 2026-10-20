@@ -38,7 +38,7 @@ test("CI keeps a mandatory complete gate and triggers when a draft becomes ready
 	assert.ok(workflow.on.pull_request.types.includes("ready_for_review"));
 	assert.ok(workflow.jobs.test.needs.includes("coverage-lanes"));
 	assert.ok(workflow.jobs.test.needs.includes("browser-tests"));
-	assert.equal(workflow.jobs.test.if, "always()");
+	assert.equal(workflow.jobs.test.if, "${{ !cancelled() }}");
 	assert.deepEqual(workflow.jobs["coverage-lanes"].strategy.matrix.lane, ["unit", "database-1", "database-2", "database-3", "quiet", "workflows"]);
 	assert.ok(workflow.jobs["browser-tests"].needs.includes("browser-build"));
 	assert.match(workflow.jobs.changes.steps.find((step) => step.id === "mode").run, /fullValidationRequired/);

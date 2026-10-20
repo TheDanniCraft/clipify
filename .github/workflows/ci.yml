@@ -182,7 +182,7 @@ jobs:
 
   test:
     name: 🧪 Test
-    if: always()
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     needs: [deps, changes, coverage-lanes, browser-tests, draft-tests, runner]
     steps:
