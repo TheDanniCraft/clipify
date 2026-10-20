@@ -1,4 +1,6 @@
 "use client";
+import { useDeploymentDraft } from "@lib/deploymentDrafts";
+
 import ThemeColorInput, { clamp } from "@components/theme/ThemeColorInput";
 
 import { validateAuth } from "@actions/auth";
@@ -546,6 +548,11 @@ export default function OverlayStylePage() {
 	const [overlay, setOverlay] = useState<Overlay | null>(null);
 	const [baseOverlay, setBaseOverlay] = useState<Overlay | null>(null);
 	const [user, setUser] = useState<AuthenticatedUser>();
+	useDeploymentDraft(user && overlay && baseOverlay ? `overlay-theme:${user.id}:${overlay.id}` : null, overlay ?? {}, baseOverlay ?? {}, (draft, saved) => {
+		setOverlay(draft as Overlay);
+		setBaseOverlay(saved as Overlay);
+	});
+
 	const [ownerPlan, setOwnerPlan] = useState<Plan | null>(null);
 	const [dragSupported, setDragSupported] = useState(true);
 	const [dragBlockedReason, setDragBlockedReason] = useState<DragBlockedReason | null>(null);

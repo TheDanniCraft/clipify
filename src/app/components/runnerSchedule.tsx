@@ -1,4 +1,5 @@
 "use client";
+import { useDeploymentDraft } from "@lib/deploymentDrafts";
 
 import RunnerDestinations from "./runnerDestinations";
 import BroadcastDetails from "./runner/BroadcastDetails";
@@ -65,6 +66,16 @@ export default function RunnerSchedule(props: Props) {
 	const [titleError, setTitleError] = useState<string | null>(null);
 	const titleInput = useRef<HTMLInputElement>(null);
 	const { ownerId, runnerId, onPolicyChange } = props;
+
+	useDeploymentDraft(!loading ? `runner-schedule:${ownerId}:${runnerId}` : null, { draft, editing, open, editorView, selectedOccurrenceStart, occurrenceReadOnly, calendarTimezone }, { draft: null as Draft | null, editing: null as RunnerScheduleView | null, open: false, editorView: "schedule", selectedOccurrenceStart: null as string | null, occurrenceReadOnly: false, calendarTimezone }, (recovered) => {
+		setDraft(recovered.draft);
+		setEditing(recovered.editing);
+		setOpen(recovered.open);
+		setEditorView(recovered.editorView);
+		setSelectedOccurrenceStart(recovered.selectedOccurrenceStart);
+		setOccurrenceReadOnly(recovered.occurrenceReadOnly);
+		setCalendarTimezone(recovered.calendarTimezone);
+	});
 
 	const requestGeneration = useRef(0);
 	const accept = useCallback(

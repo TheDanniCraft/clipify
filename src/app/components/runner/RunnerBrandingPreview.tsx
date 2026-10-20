@@ -1,4 +1,5 @@
 "use client";
+import { useDeploymentDraft } from "@lib/deploymentDrafts";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Label, Radio, RadioGroup, Switch, Tabs } from "@heroui/react";
@@ -58,6 +59,23 @@ export default function RunnerBrandingPreview({ ownerId, runnerId, overlayId, re
 		};
 	}, [ownerId, runnerId]);
 	const draft = { watermarkCorner: corner, proShowAttribution: showAttribution, standbyBackgroundColor, backgroundAssetId, logoAssetId, message, showNextBroadcastTime, previewMode };
+	useDeploymentDraft(
+		profile ? `runner-appearance:${ownerId}:${runnerId}` : null,
+		{ ...draft, configurationRevision: profile?.revision },
+		{ ...draft, configurationRevision: profile?.revision, watermarkCorner: profile?.watermarkCorner ?? "bottom_right", proShowAttribution: profile?.proShowAttribution ?? false, standbyBackgroundColor: profile?.standbyBackgroundColor ?? "#000000", backgroundAssetId: profile?.backgroundAssetId ?? null, logoAssetId: profile?.logoAssetId ?? null, message: profile?.message ?? "", showNextBroadcastTime: profile?.showNextBroadcastTime ?? false },
+		(recovered) => {
+			setProfile((current) => (current && recovered.configurationRevision !== undefined ? { ...current, revision: recovered.configurationRevision } : current));
+			setCorner(recovered.watermarkCorner);
+			setShowAttribution(recovered.proShowAttribution);
+			setStandbyBackgroundColor(recovered.standbyBackgroundColor);
+			setBackgroundAssetId(recovered.backgroundAssetId);
+			setLogoAssetId(recovered.logoAssetId);
+			setMessage(recovered.message);
+			setShowNextBroadcastTime(recovered.showNextBroadcastTime);
+			setPreviewMode(recovered.previewMode);
+		},
+	);
+
 	const draftRevision = JSON.stringify(draft);
 	const sendPreviewDraft = useCallback(() => previewRef.current?.contentWindow?.postMessage({ type: "clipify:runner-preview", runnerId, draft: JSON.parse(draftRevision), revision: draftRevision }, window.location.origin), [runnerId, draftRevision]);
 	useEffect(() => {

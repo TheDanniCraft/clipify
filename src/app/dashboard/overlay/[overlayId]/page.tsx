@@ -1,4 +1,5 @@
 "use client";
+import { useDeploymentDraft } from "@lib/deploymentDrafts";
 
 import LocalizedDate from "@components/localizedDate";
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
@@ -129,6 +130,11 @@ export default function OverlaySettings() {
 	};
 	const { isOpen: isAutoImportLockedOpen, open: onAutoImportLockedOpen, close: onAutoImportLockedClose, setOpen: onAutoImportLockedOpenChange } = useOverlayState();
 	const plausible = usePlausible();
+
+	useDeploymentDraft(user && overlay && baseOverlay ? `overlay:${user.id}:${overlay.id}` : null, overlay ?? {}, baseOverlay ?? {}, (draft, saved) => {
+		setOverlay(draft as Overlay);
+		setBaseOverlay(saved as Overlay);
+	});
 
 	const navGuard = useNavigationGuard({ enabled: isFormDirty() });
 

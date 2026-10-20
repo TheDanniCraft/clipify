@@ -1,4 +1,5 @@
 "use client";
+import { useDeploymentDraft } from "@lib/deploymentDrafts";
 
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
 
@@ -169,6 +170,11 @@ function GalleryEditorContent({ initialGallery, playlists, canUseAdvanced, canUs
 	const router = useRouter();
 	const [gallery, setGallery] = useState(initialGallery);
 	const [savedGallery, setSavedGallery] = useState(initialGallery);
+	useDeploymentDraft(`gallery:${gallery.ownerId}:${gallery.id}`, gallery, savedGallery, (draft, saved) => {
+		setGallery({ ...draft, liveCustomStart: draft.liveCustomStart ? new Date(draft.liveCustomStart) : null, liveCustomEnd: draft.liveCustomEnd ? new Date(draft.liveCustomEnd) : null });
+		setSavedGallery({ ...saved, liveCustomStart: saved.liveCustomStart ? new Date(saved.liveCustomStart) : null, liveCustomEnd: saved.liveCustomEnd ? new Date(saved.liveCustomEnd) : null });
+	});
+
 	const [saving, setSaving] = useState(false);
 	const [livePreviewClips, setLivePreviewClips] = useState(previewClips);
 	const [previewUpdating, setPreviewUpdating] = useState(false);
