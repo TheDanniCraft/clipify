@@ -3,7 +3,8 @@
 Missing Server Actions are detected from Next.js's `x-nextjs-action-not-found`
 response header, including when an editor catches the resulting error. The
 client checks `/api/deployment`. A missing action also permits recovery after a
-rebuild of the same commit, whose deployment ID may not have changed.
+rebuild of the same commit, whose deployment ID may not have changed. An explicit
+missing-action response still enables recovery when deployment metadata is absent.
 
 Interactive pages ask before refreshing. Dismissing the prompt keeps the page
 and edits intact and leaves an Update available button. An action ID explicitly

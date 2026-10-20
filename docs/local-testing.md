@@ -174,6 +174,11 @@ Run local browser suites after all Next.js builds finish. CI downloads a complet
 browser build in a separate job; compiling another app build concurrently can
 delay server actions beyond browser assertion deadlines on the same machine.
 
+Use `bun run test:e2e:build` to match the shared CI browser build. Deployment
+recovery must also work without `SOURCE_COMMIT`, `SENTRY_RELEASE` or
+`NEXT_DEPLOYMENT_ID`; supplying a local-only deployment ID does not verify that
+case. Check both configured and absent metadata when changing recovery.
+
 ## Disposable browser database
 
 Browser fixture safety requires a uniquely named `mcp_<32 hex characters>`
@@ -269,6 +274,11 @@ CI run. The TDD profile records verified commands and current observations; it
 must not credit unexecuted full-suite gates.
 
 ## Native Runner media tests
+
+Linux tests do not validate Windows process replacement or packaged executable
+behavior. Changes to that code require the real Windows job in Native Runner
+validation; report its result separately from Linux unit/media checks. A Linux
+Docker daemon alone cannot run Windows containers.
 
 The Runner package installs its own test browser; these tests use its actual
 Puppeteer capture dependency and do not need the root Playwright installation.

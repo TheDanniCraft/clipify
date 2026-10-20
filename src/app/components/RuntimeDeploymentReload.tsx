@@ -46,12 +46,12 @@ export default function RuntimeDeploymentReload({ deploymentId }: { deploymentId
 
 	const checkDeployment = useCallback(
 		async (missingAction = false) => {
-			if (!deploymentId || checking.current) return;
+			if ((!deploymentId && !missingAction) || checking.current) return;
 			checking.current = true;
 			try {
 				const response = await fetch("/api/deployment", { cache: "no-store", credentials: "omit" });
 				if (!response.ok) return;
-				const currentDeploymentId = response.headers.get(DEPLOYMENT_ID_HEADER)?.trim();
+				const currentDeploymentId = response.headers.get(DEPLOYMENT_ID_HEADER)?.trim() || (missingAction ? deploymentId || "missing-action" : "");
 				if (!currentDeploymentId || (!missingAction && currentDeploymentId === deploymentId) || recentlyReloadedFor(currentDeploymentId)) return;
 				if (isLongLivedRuntimePath(pathname)) {
 					rememberReload(currentDeploymentId);
@@ -73,8 +73,7 @@ export default function RuntimeDeploymentReload({ deploymentId }: { deploymentId
 	);
 
 	useEffect(() => {
-		if (!deploymentId) return;
-		const unattended = isLongLivedRuntimePath(pathname);
+		const unattended = Boolean(deploymentId) && isLongLivedRuntimePath(pathname);
 		const requestCheck = () => {
 			void checkDeployment();
 		};

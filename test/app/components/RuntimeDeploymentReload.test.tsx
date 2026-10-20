@@ -78,6 +78,16 @@ describe("RuntimeDeploymentReload", () => {
 		view.unmount();
 	});
 
+	it("recovers a missing action even when deployment metadata is not configured", async () => {
+		fetchMock.mockResolvedValueOnce({ ok: false, headers: { get: (name: string) => (name === "x-nextjs-action-not-found" ? "1" : null) } }).mockResolvedValueOnce({ ok: true, headers: { get: () => "" } });
+		const view = render(<RuntimeDeploymentReload deploymentId='' />);
+		await window.fetch("/dashboard/settings", { method: "POST", headers: { "Next-Action": "old-action" } });
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+		fireEvent.click(screen.getByRole("button", { name: "Keep editing" }));
+		expect(screen.getByRole("button", { name: "Update available" })).toBeVisible();
+		view.unmount();
+	});
+
 	it("does not treat validation or an external service response as a missing dashboard action", async () => {
 		const view = render(<RuntimeDeploymentReload deploymentId='deployment-1' />);
 		await window.fetch("/dashboard/settings", { method: "POST", headers: { "Next-Action": "valid-action" } });
