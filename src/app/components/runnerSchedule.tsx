@@ -465,7 +465,7 @@ export default function RunnerSchedule(props: Props) {
 											</Tabs.Tab>
 											<Tabs.Tab isDisabled={detailsBusy} id='details' className='flex-1 gap-2'>
 												Broadcast details
-												<IconCrown size={16} className='text-warning' aria-label='Pro feature' />
+												{!policy?.runnerPro && <IconCrown size={16} className='text-warning' aria-label='Pro feature' />}
 												<Tabs.Indicator />
 											</Tabs.Tab>
 										</Tabs.List>

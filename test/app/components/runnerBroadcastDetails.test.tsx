@@ -5,6 +5,7 @@ jest.mock("@/app/components/runner/ImageDropZone", () => ({ __esModule: true, de
 test("PC-6 a selected manual destination offers account management without discarding the event draft", () => {
 	const manage = jest.fn();
 	render(<BroadcastDetails ownerId='owner' runnerId='runner' targets={[{ id: "target", name: "Twitch", provider: "twitch" }]} eventTitle='Vacation' enabled={false} details={[]} disabled={false} onEnabledChange={jest.fn()} onChange={jest.fn()} onBusyChange={jest.fn()} onManage={manage} />);
+	expect(screen.getByText("Connect a Twitch or YouTube channel to set its stream details.")).toBeVisible();
 	fireEvent.click(screen.getByRole("button", { name: "Manage destinations" }));
 	expect(manage).toHaveBeenCalledTimes(1);
 });
@@ -14,4 +15,17 @@ test("PC-4 keeping the current category clears its saved label as well as its id
 	fireEvent.click(screen.getByRole("button", { name: "Keep current category" }));
 	expect(change.mock.calls[0][0][0].categoryId).toBeUndefined();
 	expect(change.mock.calls[0][0][0].categoryName).toBeUndefined();
+});
+
+test("custom RTMP explains its unsupported stream details instead of asking for account authorization", () => {
+	render(<BroadcastDetails ownerId='owner' runnerId='runner' targets={[{ id: "custom", name: "Restreamer", provider: "custom" }]} eventTitle='Vacation' enabled={false} details={[]} disabled={false} onEnabledChange={jest.fn()} onChange={jest.fn()} onBusyChange={jest.fn()} onManage={jest.fn()} />);
+	expect(screen.getByRole("switch")).toBeDisabled();
+	expect(screen.getByText("Stream details aren’t available for custom RTMP destinations.")).toBeVisible();
+	expect(screen.queryByText(/Connect a Twitch/)).not.toBeInTheDocument();
+});
+
+test("no selected destination asks for a destination before account authorization", () => {
+	render(<BroadcastDetails ownerId='owner' runnerId='runner' targets={[]} eventTitle='Vacation' enabled={false} details={[]} disabled={false} onEnabledChange={jest.fn()} onChange={jest.fn()} onBusyChange={jest.fn()} onManage={jest.fn()} />);
+	expect(screen.getByRole("switch")).toBeDisabled();
+	expect(screen.getByText("Select a Twitch or YouTube destination to set its stream details.")).toBeVisible();
 });
