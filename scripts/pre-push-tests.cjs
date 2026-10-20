@@ -60,6 +60,13 @@ function main() {
 	}
 	const native = paths?.some((path) => path.startsWith("packages/runner/"));
 	if (native) {
+		console.log("[pre-push] Checking the native Runner execution policy.");
+		const policy = spawnSync(process.execPath, [require("node:path").join(__dirname, "runner-ci-policy.test.mjs")], { stdio: "inherit" });
+		if (policy.error) console.error(policy.error.message);
+		if (policy.status !== 0) {
+			process.exitCode = policy.status ?? 1;
+			return;
+		}
 		console.log("[pre-push] Running the native Runner coverage owner.");
 		const result = spawnSync("bun", ["run", "test:coverage"], { cwd: "packages/runner", stdio: "inherit" });
 		if (result.error) console.error(result.error.message);

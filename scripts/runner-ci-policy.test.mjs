@@ -40,10 +40,10 @@ test("every official native platform checks out identical LF source before finge
 	const checkout = native.jobs.build.steps.findIndex((step) => step.uses?.startsWith("actions/checkout@"));
 	assert.ok(native.jobs.build.steps.slice(0, checkout).some((step) => step.shell === "bash" && /git config --global core.autocrlf false/.test(step.run)));
 });
-test("native coverage collects all thirteen modules and keeps critical95/90 and ordinary90/85 floors", () => {
+test("native coverage collects all Runner modules and keeps critical95/90 and ordinary90/85 floors", () => {
 	const require = createRequire(import.meta.url);
 	const config = require("../packages/runner/jest.config.cjs");
-	const critical = ["execution-runtime", "execution-journal", "execution-keys", "terminal-credentials", "terminal-delivery", "storage", "schedule-cache", "presentation-bootstrap"];
+	const critical = ["startup-recovery", "execution-runtime", "execution-journal", "execution-keys", "terminal-credentials", "terminal-delivery", "storage", "schedule-cache", "presentation-bootstrap"];
 	const ordinary = ["engine", "index", "output", "presentation", "schedule"];
 	assert.deepEqual([...(config.collectCoverageFrom ?? [])].sort(), [...critical, ...ordinary].map((name) => `src/${name}.ts`).sort());
 	assert.deepEqual(config.coverageThreshold.global, { statements: 90, functions: 90, lines: 90, branches: 85 });
