@@ -58,8 +58,20 @@ function main() {
 		console.log("[pre-push] No application files changed; hook checks passed. Full application checks run in CI.");
 		return;
 	}
-	console.log(paths ? `[pre-push] Running scoped feedback for ${paths.length} changed files. Complete coverage and browser checks remain mandatory in CI.` : "[pre-push] Running the full fallback suite.");
-	const result = paths ? spawnSync(process.execPath, [require("node:path").join(__dirname, "run-scoped-tests.mjs"), "--paths", JSON.stringify(paths)], { stdio: "inherit" }) : spawnSync("bun", ["run", "test"], { stdio: "inherit" });
+	const native = paths?.some((path) => path.startsWith("packages/runner/"));
+	if (native) {
+		console.log("[pre-push] Running the native Runner coverage owner.");
+		const result = spawnSync("bun", ["run", "test:coverage"], { cwd: "packages/runner", stdio: "inherit" });
+		if (result.error) console.error(result.error.message);
+		if (result.status !== 0) {
+			process.exitCode = result.status ?? 1;
+			return;
+		}
+	}
+	const applicationPaths = paths?.filter((path) => !path.startsWith("packages/runner/"));
+	if (native && !applicationPaths.length) return;
+	console.log(check.full ? "[pre-push] Running the full application coverage owner for shared changes." : "[pre-push] Running related application tests. Coverage and browser checkpoints remain mandatory before pushing.");
+	const result = check.full ? spawnSync("bun", ["run", "test:coverage"], { stdio: "inherit" }) : spawnSync(process.execPath, [require("node:path").join(__dirname, "run-scoped-tests.mjs"), "--paths", JSON.stringify(applicationPaths)], { stdio: "inherit" });
 	if (result.error) console.error(result.error.message);
 	process.exitCode = result.status ?? 1;
 }

@@ -122,6 +122,26 @@ Example:
 - Master keeps complete validation unless identical tested source and execution
   inputs are verified. A prior successful head SHA alone is insufficient evidence.
 
+## Push checkpoints
+
+- Do not push an intentionally failing TDD Red. Keep Red/Green cycles local and
+  push only after the affected whole-file tests pass.
+- Before pushing a completed slice, run affected coverage with the existing CI
+  thresholds, including files exercised by changed tests. Passing assertions alone
+  do not establish that coverage passed. Run the relevant real browser journeys
+  with CI's build/runtime configuration; do not add local-only environment values
+  that hide an absent-configuration failure.
+- The pre-push hook runs related tests for ordinary application changes, the full
+  application coverage owner for shared/configuration changes, and the native
+  Runner coverage owner for Runner changes. It is a safety net, not evidence that
+  browser acceptance, packaging or another operating system has passed.
+- Never bypass a failed hook or lower thresholds to push. Fix the failure or report
+  the specific unavailable prerequisite. Do not repeatedly push speculative fixes
+  and cancel the validation checkpoint before its final gate finishes.
+- Report local checks, platform-specific checks and the final CI gate separately.
+  Windows process/update/capture changes need real Windows validation; a Linux
+  test run or Linux Docker host cannot establish Windows behavior.
+
 ## Drizzle migration ownership (non-negotiable)
 
 - On feature branches, edit `src/db/schema.ts`, `src/db/auth-schema.ts`, and
