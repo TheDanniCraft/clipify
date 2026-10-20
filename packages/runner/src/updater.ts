@@ -20,7 +20,34 @@ async function downloadFile(url: string, dest: string): Promise<void> {
 	try {
 		const response = await fetch(parsedUrl, { signal: AbortSignal.timeout(5 * 60 * 1000) });
 		if (!response.ok) throw new Error(`Failed to download file: ${response.status}`);
-		fs.writeFileSync(dest, Buffer.from(await response.arrayBuffer()));
+		if (!response.body) throw new Error("Update download has no response body");
+		const length = response.headers.get("content-encoding") ? 0 : Number(response.headers.get("content-length"));
+		const total = Number.isFinite(length) && length > 0 ? length : 0;
+		const chunks: Buffer[] = [];
+		let received = 0;
+		let lastReport = Date.now();
+		const report = (complete: boolean) => {
+			const size = (received / 1024 / 1024).toFixed(1);
+			console.log(total ? `[Updater] Download: ${Math.min(complete ? 100 : 99, Math.floor((received / total) * 100))}% (${size} / ${(total / 1024 / 1024).toFixed(1)} MiB)` : `[Updater] Download: ${size} MiB${complete ? " (complete)" : ""}`);
+		};
+		const reader = response.body.getReader();
+		try {
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+				chunks.push(Buffer.from(value));
+				received += value.byteLength;
+				const now = Date.now();
+				if (now - lastReport >= 1000) {
+					report(false);
+					lastReport = now;
+				}
+			}
+		} finally {
+			reader.releaseLock();
+		}
+		fs.writeFileSync(dest, Buffer.concat(chunks));
+		report(true);
 	} catch (error) {
 		try {
 			fs.unlinkSync(dest);
