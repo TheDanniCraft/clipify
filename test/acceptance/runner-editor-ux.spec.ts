@@ -56,7 +56,7 @@ for (const plan of ["free", "pro"] as const)
 			await expect(runnerCard.locator('[data-slot="card-header"]').getByRole("button", { name: "Unlink runner", exact: true })).toBeVisible();
 			await expect(page.getByRole("button", { name: "Unlink runner", exact: true })).toHaveText("");
 			const appearanceAction = page.getByRole("button", { name: "Appearance", exact: true });
-			await expect(appearanceAction).toHaveClass(/button--ghost/);
+			await expect(appearanceAction).toHaveClass(/button--outline/);
 			await expect(appearanceAction.locator("svg.tabler-icon-paint")).toBeVisible();
 			await expect
 				.poll(async () => {
@@ -298,7 +298,7 @@ for (const plan of ["free", "pro"] as const)
 				const openedSchedule = page.getByRole("dialog", { name: "Broadcast schedule", exact: true });
 				await expect(openedSchedule).toBeVisible();
 				await openedSchedule.getByRole("button", { name: "Close", exact: true }).click();
-				await expect(page.getByRole("button", { name: "Schedule", exact: true })).toHaveClass(/button--ghost/);
+				await expect(page.getByRole("button", { name: "Schedule", exact: true })).toHaveClass(/button--outline/);
 				await expect(page.getByRole("button", { name: "Schedule", exact: true }).locator("svg.tabler-icon-calendar-event")).toBeVisible();
 				await expect(page.getByRole("button", { name: "Schedule", exact: true })).toBeEnabled();
 				await page.getByRole("button", { name: "Schedule", exact: true }).click();
