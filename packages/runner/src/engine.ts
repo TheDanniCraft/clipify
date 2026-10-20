@@ -641,7 +641,7 @@ export class Engine {
 			const fullRtmpUrl = this.streamKey ? `${this.rtmpUrl}/${this.streamKey}` : this.rtmpUrl;
 
 			const previewPath = path.join(os.tmpdir(), `clipify-preview-${this.overlayId}.jpg`);
-			this.ffmpeg = spawn(this.ffmpegPath, ["-y", "-thread_queue_size", "1024", "-i", "-", "-c:v", "libx264", "-preset", "veryfast", "-b:v", "4500k", "-maxrate", "4500k", "-bufsize", "9000k", "-pix_fmt", "yuv420p", "-g", `${this.fps * 2}`, "-r", `${this.fps}`, "-c:a", "aac", "-b:a", "160k", "-ar", "44100", ...(this.executionOptions.destinations?.length ? ["-f", "mpegts", "pipe:1"] : ["-f", "flv", fullRtmpUrl]), "-map", "0:v:0", "-f", "image2", "-update", "1", "-r", "1", previewPath], {
+			this.ffmpeg = spawn(this.ffmpegPath, ["-y", "-i", "-", "-c:v", "libx264", "-preset", "veryfast", "-b:v", "4500k", "-maxrate", "4500k", "-bufsize", "9000k", "-pix_fmt", "yuv420p", "-g", `${this.fps * 2}`, "-r", `${this.fps}`, "-c:a", "aac", "-b:a", "160k", "-ar", "44100", ...(this.executionOptions.destinations?.length ? ["-f", "mpegts", "pipe:1"] : ["-f", "flv", fullRtmpUrl]), "-map", "0:v:0", "-f", "image2", "-update", "1", "-r", "1", previewPath], {
 				windowsHide: true,
 			});
 

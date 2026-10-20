@@ -492,10 +492,14 @@ describe("Engine (Raw Logic Tests)", () => {
 		// 2. Starts Puppeteer background
 		expect(mockLaunch).toHaveBeenCalled();
 
+		await engine.stop();
+
+		// Current FFmpeg rejects this former input queue option before opening media.
+		const encoderArgs = mockSpawn.mock.calls.find(([, args]) => args.includes("libx264"))![1];
+		expect(encoderArgs.slice(0, encoderArgs.indexOf("-i"))).not.toContain("-thread_queue_size");
+
 		// 3. Spawns Cloud Loop FFmpeg immediately
 		expect(mockSpawn).toHaveBeenCalledWith("/mock/ffmpeg", expect.arrayContaining(["-i", "-", "-c:v", "libx264"]), expect.any(Object));
-
-		await engine.stop();
 	});
 
 	it("preserves the FFmpeg cause before the final generic line and redacts chunked credentials", () => {
