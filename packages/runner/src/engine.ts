@@ -469,18 +469,12 @@ export class Engine {
 
 	private monitorFFmpeg(child: any, name: string, aggregateStatus = true) {
 		let lastLogTime = 0;
-		let lastErrorLine = "";
+		let diagnosticTail = "";
 
 		child.stderr.on("data", (data: Buffer) => {
 			const text = this.safeDiagnostic(data.toString());
 
-			const lines = text
-				.split("\n")
-				.map((l) => l.trim())
-				.filter((l) => l.length > 0);
-			if (lines.length > 0) {
-				lastErrorLine = lines[lines.length - 1];
-			}
+			diagnosticTail = (diagnosticTail + data.toString()).slice(-8192);
 
 			if (aggregateStatus && text.includes("bitrate=")) {
 				const now = Date.now();
@@ -501,7 +495,7 @@ export class Engine {
 			if (aggregateStatus) this.ffmpegStatus = `Stopped 🔴 (Code: ${code})`;
 			console.log(`[${name}] Exited with code ${code}`);
 			if (code !== 0 && code !== null) {
-				console.error(`[${name}] 🔴 Stopped unexpectedly. Last log: ${lastErrorLine}`);
+				console.error(`[${name}] 🔴 Stopped unexpectedly. FFmpeg diagnostics:\n${this.safeDiagnostic(diagnosticTail).trim()}`);
 			}
 		});
 	}
@@ -674,7 +668,7 @@ export class Engine {
 				}
 			});
 			this.mediaStream.pipe(this.ffmpeg.stdin!);
-			console.log(`[Engine] Cloud Loop successfully started to the configured destination`);
+			console.log(`[Engine] Capture connected; waiting for FFmpeg output`);
 		} catch (error) {
 			const message = this.safeDiagnostic(error);
 			console.error(`[Engine] Failed to start cloud loop stream:`, message);
