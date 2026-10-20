@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { browserDatabaseUrl } from "../support/mcp/browser-database.cjs";
 import { createAuthenticatedFixture, type AuthFixture } from "../atdd/support/auth-engine-rewrite";
 
-test("Runner connection updates Start without reloading or discarding unsaved configuration", async ({ page, request, context }) => {
+test("Runner connection updates Start without reloading or discarding unsaved configuration", async ({ page, request, context }, info) => {
 	test.setTimeout(120000);
 	page.setDefaultTimeout(15000);
 	const pool = new Pool({ connectionString: browserDatabaseUrl(), max: 1 });
@@ -56,6 +56,28 @@ test("Runner connection updates Start without reloading or discarding unsaved co
 		await expect(page.getByRole("button", { name: /Broadcast behavior$/ })).toContainText("Live fallback");
 		await expect(page.getByRole("button", { name: "Save Configuration", exact: true })).toBeEnabled();
 		await expect(start).toBeDisabled();
+		await pool.query("UPDATE stream_sessions SET desired_state='stopped', actual_state='running' WHERE id=$1", [sessionId]);
+		await pool.query("UPDATE runners SET status='offline' WHERE id=$1", [runnerId]);
+		await expect(page.getByText("Offline", { exact: true })).toBeVisible({ timeout: 15000 });
+		await expect(page.getByRole("status").filter({ hasText: "Runner offline. Waiting for stop confirmation." })).toBeVisible();
+		await expect(page.getByText("Finishing current clip…", { exact: true })).toHaveCount(0);
+		await expect(page.getByRole("button", { name: "Stop now", exact: true })).toHaveCount(0);
+		for (const theme of ["dark", "light"]) {
+			await page.evaluate((theme) => {
+				document.documentElement.classList.remove("dark", "light");
+				document.documentElement.classList.add(theme);
+				document.documentElement.style.colorScheme = theme;
+			}, theme);
+			await page.setViewportSize({ width: theme === "dark" ? 1280 : 390, height: 960 });
+			await page.screenshot({ path: info.outputPath(`offline-stop-${theme}.png`), fullPage: true });
+		}
+
+		await pool.query("UPDATE runners SET status='online', last_heartbeat_at=now() WHERE id=$1", [runnerId]);
+		await expect(page.getByText("Online", { exact: true })).toBeVisible({ timeout: 15000 });
+		await expect(page.getByRole("status").filter({ hasText: "Finishing current clip…" })).toBeVisible();
+		await expect(page.getByRole("button", { name: "Stop now", exact: true })).toBeEnabled();
+		await pool.query("UPDATE stream_sessions SET actual_state='stopped' WHERE id=$1", [sessionId]);
+		await expect(page.getByText("Finishing current clip…", { exact: true })).toHaveCount(0);
 		expect(navigations).toBe(0);
 	} finally {
 		if (owner) await request.delete("/api/test/auth-fixture", { headers: { Authorization: "Bearer clipify-playwright-auth-fixture" }, data: { authUserId: owner.fixture.authUserId, creatorId: owner.fixture.creatorId, organizationIds: [owner.fixture.creatorOrganizationId, owner.fixture.agencyOrganizationId] } });
