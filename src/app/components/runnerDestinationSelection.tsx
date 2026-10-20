@@ -13,7 +13,7 @@ export default function RunnerDestinationSelection({ destinations, selectedIds, 
 			<legend className='sr-only'>{label}</legend>
 			<Select variant='secondary' selectionMode={multiple ? "multiple" : "single"} value={multiple ? selectedIds : (selectedIds[0] ?? null)} placeholder={destinations.length ? "Choose destinations" : "No destinations yet"} isDisabled={!destinations.length} onChange={(value) => onChange(Array.isArray(value) ? value.map(String) : value ? [String(value)] : [])} onClear={() => onChange([])}>
 				<Label>{label}</Label>
-				<Select.Trigger>
+				<Select.Trigger aria-label={label}>
 					<Select.Value />
 					<Select.ClearButton />
 					<Select.Indicator />

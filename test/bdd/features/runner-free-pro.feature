@@ -91,10 +91,10 @@ Feature: Manual Runner configuration
     Then the saved midnight boundaries survive reload
 
   @US3 @FR-011 @BDD-US3-OPT091 @runner-schedule-browser
-  Scenario: A future weekly event can change timezone without changing logical identity
+  Scenario: A future weekly event can change timezone while preserving its previous series
     Given a Pro creator is authoring a Runner schedule in the browser
     When they change a saved future weekly event timezone
-    Then its future timezone changes while its logical event identity is preserved
+    Then its future timezone changes while its previous series is preserved
 
   @US3 @FR-011 @EC-011 @BDD-US3-EC011 @runner-schedule-browser
   Scenario: A failed database save keeps the previously saved schedule authoritative

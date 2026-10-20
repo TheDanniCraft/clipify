@@ -218,9 +218,7 @@ export default function McpActivityPanel() {
 												</Chip>
 											</Table.Cell>
 											<Table.Cell>
-												<time className='text-xs text-muted' dateTime={item.occurredAt}>
-													{<LocalizedDate value={item.occurredAt} showTime />}
-												</time>
+												<LocalizedDate className='text-xs text-muted' value={item.occurredAt} showTime />
 											</Table.Cell>
 										</Table.Row>
 									))}

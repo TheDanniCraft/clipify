@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Button, Chip, Input, Link, Label, ListBox, Modal, Select, Table, TextField, Tooltip, Tabs, Spinner } from "@heroui/react";
+import { Button, Chip, Input, Link, Label, ListBox, Modal, Select, Table, TextField, Tooltip, Tabs, Spinner, FieldError } from "@heroui/react";
 import { IconPlus, IconPencil, IconTrash, IconBrandTwitch, IconBrandYoutube, IconActivity } from "@tabler/icons-react";
 import { deleteRunnerDestination, listRunnerDestinations, saveRunnerDestination } from "@/app/actions/runner";
 import { useConnectionTest } from "./runner/useConnectionTest";
@@ -366,9 +366,10 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 									<Modal.Heading>{editing ? "Edit destination" : "Add destination"}</Modal.Heading>
 								</Modal.Header>
 								<Modal.Body className='space-y-4'>
-									<TextField>
+									<TextField isInvalid={!nameValid}>
 										<Label>Destination name</Label>
 										<Input variant='secondary' value={name} onChange={(event) => setName(event.target.value)} />
+										{!nameValid && <FieldError>Enter a name between 1 and 80 characters.</FieldError>}
 									</TextField>
 									<Select
 										variant='secondary'

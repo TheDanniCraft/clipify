@@ -62,8 +62,7 @@ Then("the saved destination remains available and they can switch to basic Manua
 	await expect(page.getByRole("heading", { name: "Stream Configuration", exact: true })).toBeVisible();
 	await expect(page.getByRole("button", { name: /Broadcast destinations$/ })).toContainText("Saved vacation destination");
 	await expect(page.getByRole("button", { name: /Broadcast destinations$/ })).toContainText("Saved backup destination");
-	await page.getByRole("button", { name: "Save Configuration", exact: true }).click();
-	await expect(page.getByRole("alert").filter({ hasText: "Select one broadcast destination before saving." })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Save Configuration", exact: true })).toBeDisabled();
 	await page.getByRole("button", { name: /Broadcast destinations$/ }).click();
 	await page.getByRole("option", { name: /Saved backup destination/ }).click();
 	await page.keyboard.press("Escape");
@@ -76,7 +75,7 @@ Then("the saved destination remains available and they can switch to basic Manua
 	await expect(control).toContainText("Manual");
 	await control.click();
 	await page.getByRole("option", { name: /Scheduled/ }).click();
-	const upgrade = page.getByRole("dialog", { name: "Upgrade to Pro", exact: true });
+	const upgrade = page.getByRole("dialog", { name: "Schedule your broadcasts with Pro", exact: true });
 	await expect(upgrade).toBeVisible();
 	await expect(control).toContainText("Manual");
 	await page.keyboard.press("Escape");

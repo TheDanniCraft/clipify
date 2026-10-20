@@ -402,7 +402,7 @@ export default function RunnerSchedule(props: Props) {
 												edit(event);
 												return;
 											}
-											const next = resolveCalendarSchedule(event, { start: new Date().toISOString(), end: new Date(Date.now() + Math.max(14, (event.excludedDates.length + 2) * 7) * 86400000).toISOString() }).occurrences.find((row) => Date.parse(row.startUtc) > Date.now());
+											const next = resolveCalendarSchedule(event, { start: new Date().toISOString(), end: new Date(Math.max(Date.now(), Date.parse(event.localStartDate)) + Math.max(14, (event.excludedDates.length + 2) * 7) * 86400000).toISOString() }).occurrences.find((row) => Date.parse(row.startUtc) > Date.now());
 											edit(event, !next, next?.startUtc);
 											if (next) setDraft((current) => (current ? { ...current, ...plannerCreateWindow(toCalendarDateTime(fromDate(new Date(next.startUtc), event.timezone)), toCalendarDateTime(fromDate(new Date(next.endUtc), event.timezone)), event.timezone), ...(current.allDay ? { localEndDate: parseDate(next.endUtc.slice(0, 10)).subtract({ days: 1 }).toString() } : {}) } : current));
 										}}

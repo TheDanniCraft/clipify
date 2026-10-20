@@ -50,11 +50,13 @@ When("they choose Live fallback with Manual control and save its destination", a
 	await expect(control).toContainText("Manual");
 	await control.click();
 	await expect(page.getByRole("option", { name: /Scheduled/ })).toBeDisabled();
+	await expect(page.getByRole("option", { name: /Scheduled/ }).getByRole("img", { name: "Requires Pro" })).toBeVisible();
 	await page.keyboard.press("Escape");
 	const manager = await openRunnerDestinations(page);
 	await manager.getByRole("button", { name: "Add destination", exact: true }).click();
 	const editor = page.getByRole("dialog", { name: "Add destination", exact: true });
 	await editor.getByLabel("Destination name", { exact: true }).fill("Twitch");
+	await editor.getByRole("tab", { name: "Stream key", exact: true }).click();
 	await editor.getByLabel("Destination stream key", { exact: true }).fill("fixture-runner-stream-key");
 	await editor.getByRole("button", { name: "Save destination", exact: true }).click();
 	await expect(editor).toHaveCount(0);
@@ -75,6 +77,7 @@ Then("the browser retains manual fallback and keeps scheduling unavailable", asy
 	await expect(page.getByText("rtmp://localhost:1935/live", { exact: true })).toBeVisible();
 	await page.getByRole("button", { name: / Control$/ }).click();
 	await expect(page.getByRole("option", { name: /Scheduled/ })).toBeDisabled();
+	await expect(page.getByRole("option", { name: /Scheduled/ }).getByRole("img", { name: "Requires Pro" })).toBeVisible();
 	await page.keyboard.press("Escape");
 	await expect(page.getByText("Runner add-on required", { exact: false })).toHaveCount(0);
 });

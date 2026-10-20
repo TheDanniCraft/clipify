@@ -22,6 +22,15 @@ async function query(text: string, values: unknown[] = []) {
 async function saved(state: State) {
 	return query("SELECT * FROM runner_schedule_events WHERE owner_id=$1 ORDER BY created_at,id", [state.owner.fixture.creatorId]);
 }
+async function expectLockedSchedule(page: Page) {
+	await page.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "View Active schedule", exact: true }).click();
+	const details = page.getByRole("dialog", { name: "Broadcast details", exact: true });
+	await expect(details.getByText("Broadcast settings are read-only. You can still rename this event.", { exact: true })).toBeVisible();
+	await expect(details.getByRole("combobox")).toHaveCount(0);
+	await expect(details.getByRole("button", { name: "Delete schedule", exact: true })).toHaveCount(0);
+	await expect(details.getByRole("button", { name: "Save title", exact: true })).toBeDisabled();
+	await details.getByRole("button", { name: "Close", exact: true }).filter({ hasText: "Close" }).click();
+}
 async function fillEvent(page: Page, fields: { title?: string; startDate?: string; endDate?: string; startTime?: string; endTime?: string; zone?: string } = {}) {
 	await page.getByRole("button", { name: "Add schedule", exact: true }).click();
 	const editor = page.getByRole("dialog", { name: "Schedule broadcast", exact: true });
@@ -112,7 +121,7 @@ Then("the explicit dates survive reload and the active rolling cache retains the
 	const state = mcpWorld.input?.scheduleContract as State;
 	await page.reload();
 	await openRunnerSchedule(page);
-	await page.getByRole("button", { name: "Edit Vacation broadcast", exact: true }).click();
+	await page.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Vacation broadcast", exact: true }).click();
 	const editor = page.getByRole("dialog", { name: "Schedule broadcast", exact: true });
 	await expectScheduleField(editor, "Start date", "2027-01-04");
 	await expectScheduleField(editor, "End date", "2027-01-13");
@@ -146,7 +155,7 @@ When("they save a one-time event and move its future start and end", async ({ pa
 	const row = (await saved(state))[0];
 	state.eventId = row.id;
 	state.before = row;
-	await page.getByRole("button", { name: "Edit Vacation broadcast", exact: true }).click();
+	await page.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Vacation broadcast", exact: true }).click();
 	const editor = page.getByRole("dialog", { name: "Schedule broadcast", exact: true });
 	await fillScheduleField(editor, "Start date", "2027-01-05");
 	await fillScheduleField(editor, "End date", "2027-01-05");
@@ -190,10 +199,10 @@ Then("the saved schedule choices survive a browser reload", async ({ page, mcpWo
 		before = state.before as Record<string, unknown>;
 	await page.reload();
 	await openRunnerSchedule(page);
-	await page.getByRole("button", { name: "Edit Vacation broadcast", exact: true }).click();
+	await page.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Vacation broadcast", exact: true }).click();
 	const editor = page.getByRole("dialog", { name: "Schedule broadcast", exact: true });
 	await expectScheduleField(editor, "Timezone", "Europe/Berlin");
-	await expect(editor.getByRole("checkbox", { name: "Vacation target", exact: true })).toBeChecked();
+	await expect(editor.getByRole("button", { name: /Schedule destinations$/ })).toContainText("Vacation target");
 	expect((await saved(state))[0]).toEqual(before);
 	expect(before.session_id).toBe(state.sessionId);
 	expect(before.overlay_id).toBe(state.owner.fixture.overlayId);
@@ -211,11 +220,10 @@ When("they submit a schedule with {string}", async ({ page, mcpWorld }, invalid:
 		await page.getByRole("option", { name: "Choose a source", exact: true }).click();
 	}
 	if (invalid === "missing targets") {
-		const checkbox = editor.getByRole("checkbox", { name: "Vacation target", exact: true });
-		await expect(checkbox).toBeChecked();
-		await checkbox.focus();
-		await checkbox.press("Space");
-		await expect(checkbox).not.toBeChecked();
+		await editor.getByRole("button", { name: /Schedule destinations$/ }).click();
+		await page.getByRole("option", { name: /Vacation target/ }).click();
+		await page.keyboard.press("Escape");
+		await expect(editor.getByRole("button", { name: /Schedule destinations$/ })).not.toContainText("Vacation target");
 	}
 	await submit(page);
 });
@@ -227,7 +235,7 @@ Then("the saved midnight boundaries survive reload", async ({ page, mcpWorld }) 
 	await expect(page.getByRole("dialog", { name: "Schedule broadcast", exact: true })).toHaveCount(0);
 	await page.reload();
 	await openRunnerSchedule(page);
-	await page.getByRole("button", { name: "Edit Vacation broadcast", exact: true }).click();
+	await page.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Vacation broadcast", exact: true }).click();
 	const editor = page.getByRole("dialog", { name: "Schedule broadcast", exact: true });
 	await expectScheduleField(editor, "Start time", "23:30");
 	await expectScheduleField(editor, "End time", "00:30");
@@ -244,21 +252,24 @@ When("they change a saved future weekly event timezone", async ({ page, mcpWorld
 	await submit(page);
 	await expect(editor).toHaveCount(0);
 	state.before = (await saved(state))[0];
-	await page.getByRole("button", { name: "Edit Vacation broadcast", exact: true }).click();
+	await page.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Vacation broadcast", exact: true }).click();
 	await fillScheduleField(page.getByRole("dialog", { name: "Schedule broadcast", exact: true }), "Timezone", "America/New_York");
-	await submit(page);
+	await page.getByRole("dialog", { name: "Schedule broadcast", exact: true }).getByRole("button", { name: "Save schedule", exact: true }).click();
+	await page.getByRole("dialog", { name: "Edit recurring broadcast", exact: true }).getByRole("button", { name: "This and following", exact: true }).click();
 });
-Then("its future timezone changes while its logical event identity is preserved", async ({ page, mcpWorld }) => {
+Then("its future timezone changes while its previous series is preserved", async ({ page, mcpWorld }) => {
 	await expect(page.getByRole("dialog", { name: "Schedule broadcast", exact: true })).toHaveCount(0);
-	const state = mcpWorld.input?.scheduleContract as State,
-		before = state.before as Record<string, unknown>,
-		row = (await saved(state))[0];
-	expect(row.id).toBe(before.id);
-	expect(row.timezone).toBe("America/New_York");
-	expect(row.configuration_revision).toBe(Number(before.configuration_revision) + 1);
+	const state = mcpWorld.input?.scheduleContract as State;
+	const before = state.before as Record<string, unknown>;
+	const rows = await saved(state);
+	expect(rows).toHaveLength(2);
+	const original = rows.find((row) => row.id === before.id)!;
+	const following = rows.find((row) => row.id !== before.id)!;
+	expect(original).toMatchObject({ timezone: "Europe/Berlin", configuration_revision: Number(before.configuration_revision) + 1, repeat_until_date: "2027-01-04" });
+	expect(following).toMatchObject({ timezone: "America/New_York", title: before.title, local_start_date: "2027-01-04", configuration_revision: 1 });
 	await page.reload();
 	await openRunnerSchedule(page);
-	await page.getByRole("button", { name: "Edit Vacation broadcast", exact: true }).click();
+	await page.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Vacation broadcast", exact: true }).last().click();
 	await expectScheduleField(page.getByRole("dialog", { name: "Schedule broadcast", exact: true }), "Timezone", "America/New_York");
 });
 
@@ -273,7 +284,7 @@ When("storage rejects an edit to a saved schedule", async ({ page, mcpWorld }) =
 	const owner = state.owner.fixture.creatorId.replaceAll("'", "''");
 	await query(`CREATE FUNCTION "${state.triggerName}"() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.owner_id='${owner}' THEN RAISE EXCEPTION 'controlled schedule persistence failure'; END IF; RETURN NEW; END $$`);
 	await query(`CREATE TRIGGER "${state.triggerName}" BEFORE UPDATE ON runner_schedule_events FOR EACH ROW EXECUTE FUNCTION "${state.triggerName}"()`);
-	await page.getByRole("button", { name: "Edit Retained schedule", exact: true }).click();
+	await page.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Retained schedule", exact: true }).click();
 	await page.getByRole("dialog", { name: "Schedule broadcast", exact: true }).getByLabel("Event title", { exact: true }).fill("Rejected edit");
 	await submit(page);
 });
@@ -306,7 +317,7 @@ Then("its day segments retain one event with editable true start and end dates",
 	await calendar.getByRole("button", { name: "Next", exact: true }).click();
 	await expectScheduleField(page, "Displayed date", "2027-01-07");
 	await calendar.screenshot({ path: "test-results/runner-ux-mobile-agenda.png" });
-	await page.getByRole("button", { name: "Edit Mobile vacation", exact: true }).click();
+	await page.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Mobile vacation", exact: true }).click();
 	const editor = page.getByRole("dialog", { name: "Schedule broadcast", exact: true });
 	await expectScheduleField(editor, "Start date", "2027-01-03");
 	await expectScheduleField(editor, "End date", "2027-01-13");
@@ -382,8 +393,7 @@ Given("their scheduled occurrence is inside its original active window", async (
 	await openRunnerSchedule(page);
 });
 Then("its schedule editor is locked while broadcast controls remain available", async ({ page, mcpWorld }) => {
-	await expect(page.getByRole("button", { name: "Edit Active schedule", exact: true })).toBeDisabled();
-	await expect(page.getByText("You can edit this schedule after its current time slot ends.", { exact: true })).toBeVisible();
+	await expectLockedSchedule(page);
 	await page.keyboard.press("Escape");
 	await expect(page.getByRole("button", { name: "Stop", exact: true })).toBeVisible();
 	await expect(page.getByRole("dialog", { name: "Schedule broadcast", exact: true })).toHaveCount(0);
@@ -403,8 +413,7 @@ Given("that window ended while its captured output is still draining", async ({ 
 	await openRunnerSchedule(page);
 });
 Then("its schedule stays locked until the draining outputs close", async ({ page, mcpWorld }) => {
-	await expect(page.getByRole("button", { name: "Edit Active schedule", exact: true })).toBeDisabled();
-	await expect(page.getByText("You can edit this schedule after the broadcast finishes.", { exact: true })).toBeVisible();
+	await expectLockedSchedule(page);
 	const state = mcpWorld.input?.scheduleContract as State;
 	expect(await saved(state)).toEqual(state.before);
 });
@@ -414,7 +423,7 @@ When("they open a saved future schedule using {string}", async ({ page }, intera
 	await submit(page);
 	await expect(page.getByRole("dialog", { name: "Schedule broadcast", exact: true })).toHaveCount(0);
 	if (interaction === "keyboard") {
-		const edit = page.getByRole("button", { name: "Edit Deletable schedule", exact: true });
+		const edit = page.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Deletable schedule", exact: true });
 		await edit.focus();
 		await edit.press("Enter");
 	} else {
@@ -459,7 +468,7 @@ When("they move a saved future interval one hour using {string}", async ({ page,
 	await expect(page.getByRole("dialog", { name: "Schedule broadcast", exact: true })).toHaveCount(0);
 	state.before = (await saved(state))[0];
 	if (interaction === "keyboard") {
-		const edit = page.getByRole("button", { name: "Edit Movable schedule", exact: true });
+		const edit = page.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Movable schedule", exact: true });
 		await edit.focus();
 		await edit.press("Enter");
 		const editor = page.getByRole("dialog", { name: "Schedule broadcast", exact: true });
@@ -518,7 +527,7 @@ When("they extend a future schedule by one hour using {string}", async ({ page, 
 	await expect(page.getByRole("dialog", { name: "Schedule broadcast", exact: true })).toHaveCount(0);
 	state.before = (await saved(state))[0];
 	if (interaction === "keyboard") {
-		const edit = page.getByRole("button", { name: "Edit Resizable schedule", exact: true });
+		const edit = page.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Resizable schedule", exact: true });
 		await edit.focus();
 		await edit.press("Enter");
 		await fillScheduleField(page.getByRole("dialog", { name: "Schedule broadcast", exact: true }), "End time", "14:00");
@@ -571,7 +580,7 @@ Then("the continuation has no resize end and its full end date can be edited by 
 	await expect(calendar.locator('[data-slot="agenda-day-column"]').first().locator(".agenda__resize-handle")).toBeHidden();
 	const state = mcpWorld.input?.scheduleContract as State,
 		before = (await saved(state))[0];
-	const edit = page.getByRole("button", { name: "Edit Week boundary vacation", exact: true });
+	const edit = page.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Week boundary vacation", exact: true });
 	await edit.focus();
 	await edit.press("Enter");
 	const editor = page.getByRole("dialog", { name: "Schedule broadcast", exact: true });
@@ -619,7 +628,7 @@ When("they rename a saved future schedule using {string}", async ({ page, mcpWor
 	const state = mcpWorld.input?.scheduleContract as State;
 	state.before = (await saved(state))[0];
 	if (interaction === "keyboard") {
-		const edit = page.getByRole("button", { name: "Edit Editable schedule", exact: true });
+		const edit = page.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Editable schedule", exact: true });
 		await edit.focus();
 		await edit.press("Enter");
 	} else {
@@ -684,7 +693,7 @@ When("they drag an event with {string}", async ({ page, mcpWorld }, ambiguity: s
 Then("the full-event editor explains why the gesture needs explicit dates and times", async ({ page, mcpWorld }) => {
 	const editor = page.getByRole("dialog", { name: "Schedule broadcast", exact: true });
 	await expect(editor).toBeVisible();
-	await expect(editor.getByText("This event repeats or uses a different timezone. Edit its full dates and times below.", { exact: true })).toBeVisible();
+	await expect(editor.getByText("Edit the full dates and times below.", { exact: true })).toBeVisible();
 	await expectScheduleField(editor, "Start time", "12:00");
 	await expectScheduleField(editor, "End time", "13:00");
 	const state = mcpWorld.input?.scheduleContract as State;
@@ -755,7 +764,7 @@ Then("this occurrence is durably suppressed and its original window remains lock
 	const event = (await saved(state))[0];
 	expect(admission.occurrence_id).toBe(JSON.stringify([state.eventId, event.recurrence_anchor]));
 	await openRunnerSchedule(page);
-	await expect(page.getByRole("button", { name: "Edit Active schedule", exact: true })).toBeDisabled();
+	await expectLockedSchedule(page);
 });
 
 When("they submit an event overlapping an existing saved event", async ({ page, mcpWorld }) => {
