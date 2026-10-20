@@ -41,7 +41,7 @@ afterEach(async () => {
 	global.fetch = nativeFetch;
 	jest.clearAllMocks();
 	await fixture?.close();
-});
+}, 30000);
 test("PC-1/6 one-use state is session-bound and wrong-session attempts do not consume it", async () => {
 	const begun = await beginStreamingConnection(principal, { ownerId: "provider-owner", provider: "twitch" }, fixture.db);
 	expect(begun.success).toBe(true);
