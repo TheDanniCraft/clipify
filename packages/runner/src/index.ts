@@ -475,6 +475,9 @@ function getFreeController(job: Pick<HeartbeatJob, "ownerId" | "runnerId">, runn
 				await stopRtmpProxyIfUnused();
 			};
 			return {
+				get isRunning() {
+					return engine.isRunning;
+				},
 				start: async () => {
 					if (mode === "failsafe") await prepareLiveFallback(apiBase, token);
 					const started = await engine.start();

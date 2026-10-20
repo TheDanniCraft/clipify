@@ -17,6 +17,7 @@ import FullscreenLoadingState from "@components/fullscreenLoadingState";
 import ConfirmModal from "@components/confirmModal";
 import AdvancedRunnerSetup from "@components/runner/AdvancedSetup";
 import { formatRunnerVersion, getRunnerPlatformFromOs, getRunnerVersionState, type RunnerPlatform } from "@lib/runnerInstallation";
+import RunnerPreviewRefresh from "@components/runnerPreviewRefresh";
 import RunnerBroadcastControls from "@components/runnerBroadcastControls";
 import RunnerDestinations from "@components/runnerDestinations";
 import RunnerBrandingPreview from "@components/runner/RunnerBrandingPreview";
@@ -62,6 +63,7 @@ export default function RunnerPage() {
 
 	const [isSaving, setIsSaving] = useState(false);
 
+	const [previewRefreshedAt, setPreviewRefreshedAt] = useState(Date.now);
 	const [previewImage, setPreviewImage] = useState<string | null>(null);
 	const [previewState, setPreviewState] = useState<"loading" | "waiting" | "ready" | "unavailable">("loading");
 	const readPreview = useCallback(async (runnerId: string, ownerId: string) => {
@@ -70,6 +72,7 @@ export default function RunnerPage() {
 			if (result.success) {
 				setPreviewImage(result.image);
 				setPreviewState(result.image ? "ready" : "waiting");
+				setPreviewRefreshedAt(Date.now());
 			} else {
 				setPreviewImage(null);
 				setPreviewState("unavailable");
@@ -638,17 +641,23 @@ export default function RunnerPage() {
 				</Card>
 				{isRunnerStreaming && (
 					<Card>
-						<Card.Header>
-							<h2 className='text-lg font-semibold'>Live Stream Preview</h2>
+						<Card.Header className='flex flex-wrap items-center justify-between gap-3'>
+							<h2 className='text-lg font-semibold'>Stream preview</h2>
+							<div className='flex items-center gap-3'>
+								<Chip size='sm' variant='soft'>
+									Snapshots
+								</Chip>
+								{previewState === "ready" && <RunnerPreviewRefresh refreshedAt={previewRefreshedAt} />}
+							</div>
 						</Card.Header>
 						<Card.Content>
 							<div className='aspect-video overflow-hidden rounded-xl bg-black'>
 								{previewImage ? (
-									<Image src={previewImage} alt='Live Stream Preview' width={1280} height={720} unoptimized className='h-full w-full object-contain' />
+									<Image src={previewImage} alt='Broadcast snapshot' width={1280} height={720} unoptimized className='h-full w-full object-contain' />
 								) : (
 									<div className='flex h-full items-center justify-center'>
 										{previewState === "loading" ? (
-											<Spinner aria-label='Loading live preview' />
+											<Spinner aria-label='Loading snapshot' />
 										) : previewState === "unavailable" ? (
 											<div className='space-y-3 text-center'>
 												<p role='alert' className='text-sm text-muted'>

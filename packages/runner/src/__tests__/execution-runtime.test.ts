@@ -1174,6 +1174,8 @@ test("TDD-US3-EC010: preparing an empty replacement removes only unstarted conti
 		expect(mayOpenOutput()).toBe(false);
 		await controller.tick();
 		expect(engine.start).toHaveBeenCalledTimes(1);
+		const restarted = new FreeExecutionController({ ...fixture, journal: new ExecutionJournal(directory), createEngine: jest.fn() });
+		expect(restarted.reports()).toMatchObject([{ state: "stopped", allOutputsClosed: true }]);
 		expect(engine.requestDrain).toHaveBeenCalledTimes(1);
 		expect(journal.get(fixture.job.admissionId)).toMatchObject({ state: "stopped", allOutputsClosed: true, occurrence: { end: 1020000 } });
 		expect(journal.get(next.admissionId)).toMatchObject({ state: "pending" });
@@ -1811,6 +1813,77 @@ test("TDD-US4-CON012: presentation refusal returns a stopped receipt instead of 
 		expect(journal.pendingTerminals()).toMatchObject([{ state: "stopped", allOutputsClosed: true }]);
 		expect(journal.get(fixture.job.admissionId)?.state).toBe("stopped");
 	} finally {
+		rmSync(directory, { recursive: true, force: true });
+	}
+});
+
+test("an engine crash closes its output before publishing a terminal receipt", async () => {
+	const { FreeExecutionController } = await import("../execution-runtime");
+	const directory = mkdtempSync(join(tmpdir(), "clipify-engine-crash-"));
+	try {
+		const fixture = runtimeFixture(),
+			journal = new ExecutionJournal(directory);
+		let closed!: () => void;
+		const engine = {
+			isRunning: true,
+			start: jest.fn(async () => {}),
+			requestDrain: jest.fn(async () => {}),
+			stop: jest.fn(
+				() =>
+					new Promise<void>((resolve) => {
+						closed = resolve;
+					}),
+			),
+		};
+		const controller = new FreeExecutionController({ ...fixture, journal, clock: () => 1500, createEngine: () => engine });
+		await controller.apply(fixture.job, fixture.request);
+		engine.isRunning = false;
+		const tick = controller.tick();
+		await Promise.resolve();
+		expect(engine.stop).toHaveBeenCalledTimes(1);
+		expect(journal.pendingTerminals()).toEqual([]);
+		closed();
+		await tick;
+		expect(controller.reports()).toMatchObject([{ state: "stopped", allOutputsClosed: true }]);
+		await controller.tick();
+		expect(engine.start).toHaveBeenCalledTimes(1);
+		const restarted = new FreeExecutionController({ ...fixture, journal: new ExecutionJournal(directory), createEngine: jest.fn() });
+		expect(restarted.reports()).toMatchObject([{ state: "stopped", allOutputsClosed: true }]);
+	} finally {
+		rmSync(directory, { recursive: true, force: true });
+	}
+});
+
+test("Stop now publishes closure even when the previous graceful drain never returns", async () => {
+	const { FreeExecutionController } = await import("../execution-runtime");
+	const directory = mkdtempSync(join(tmpdir(), "clipify-force-stalled-drain-"));
+	let finishDrain!: () => void;
+	let graceful: Promise<boolean> | undefined, immediate: Promise<boolean> | undefined;
+	try {
+		const fixture = runtimeFixture(),
+			journal = new ExecutionJournal(directory);
+		const engine = {
+			start: jest.fn(async () => {}),
+			requestDrain: jest.fn(
+				() =>
+					new Promise<void>((resolve) => {
+						finishDrain = resolve;
+					}),
+			),
+			stop: jest.fn(async () => {}),
+		};
+		const controller = new FreeExecutionController({ ...fixture, journal, clock: () => 1500, createEngine: () => engine });
+		await controller.apply(fixture.job, fixture.request);
+		graceful = controller.stop(fixture.job);
+		await Promise.resolve();
+		immediate = controller.stop(fixture.job, true);
+		expect(await Promise.race([immediate, new Promise((resolve) => setTimeout(() => resolve("blocked by drain"), 100))])).toBe(true);
+		expect(engine.stop).toHaveBeenCalledTimes(1);
+		expect(controller.reports()).toMatchObject([{ state: "stopped", allOutputsClosed: true }]);
+	} finally {
+		finishDrain?.();
+		await graceful;
+		await immediate;
 		rmSync(directory, { recursive: true, force: true });
 	}
 });
