@@ -111,11 +111,16 @@ export default function RunnerPage() {
 			if (polling) return;
 			polling = true;
 			try {
-				const [fetchedRunner, fetchedSessions, manifest] = await Promise.all([getRunner(params.id, user.id), getStreamSessionsForRunner(params.id, user.id), getRunnerVersionManifest().catch(() => null)]);
-				setVersionManifest(manifest);
-
-				if (fetchedRunner) setRunner(fetchedRunner);
-				if (fetchedSessions) setStreamSessions(fetchedSessions);
+				const [fetchedRunner, fetchedSessions] = await Promise.all([
+					getRunner(params.id, user.id).then((current) => {
+						if (current) setRunner(current);
+						return current;
+					}),
+					getStreamSessionsForRunner(params.id, user.id).then((sessions) => {
+						if (sessions) setStreamSessions(sessions);
+						return sessions;
+					}),
+				]);
 
 				if (fetchedRunner?.status === "online" && fetchedSessions[0]?.actualState === "running") {
 					await readPreview(params.id, user.id);
