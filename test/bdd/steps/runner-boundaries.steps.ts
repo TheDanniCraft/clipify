@@ -95,8 +95,9 @@ When("they reopen a legacy broadcast and save its configuration twice", async ({
 			await expect(page.getByRole("group", { name: "Broadcast destinations" }).getByRole("button", { name: /Broadcast destinations$/ })).toContainText("Twitch");
 			await expect(page.getByRole("button", { name: "Save Configuration", exact: true })).toBeDisabled();
 			await page.getByRole("button", { name: /Broadcast behavior$/ }).click();
-			await page.getByRole("option", { name: "Live fallback", exact: true }).click();
+			await page.getByRole("option", { name: "Clip playback", exact: true }).click();
 		}
+		await expect(page.getByRole("button", { name: "Save Configuration", exact: true })).toBeEnabled();
 		await Promise.all([page.waitForResponse((response) => response.request().method() === "POST" && new URL(response.url()).pathname === `/dashboard/runners/${state.runnerId}` && Boolean(response.request().postData()?.includes(sessionId))), page.getByRole("button", { name: "Save Configuration", exact: true }).click()]);
 		await page.reload();
 	}
