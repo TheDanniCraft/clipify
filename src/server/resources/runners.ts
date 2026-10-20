@@ -371,7 +371,7 @@ async function suppressStoppedOccurrence(input: StreamControlInput, context: Wor
 		// A later explicit Resume has its own higher-revision admission.
 		await context.tx
 			.update(runnerBroadcastAdmissionsTable)
-			.set({ benefitsAtStart: sql`jsonb_set(${runnerBroadcastAdmissionsTable.benefitsAtStart}, '{scheduleSuppressed}', 'true'::jsonb)` })
+			.set({ benefitsAtStart: sql`jsonb_set(${runnerBroadcastAdmissionsTable.benefitsAtStart}, '{scheduleSuppressed}', 'true'::jsonb) || jsonb_build_object('scheduleSuppressedAtRevision', ${current.configurationRevision + 1}::integer)` })
 			.where(
 				and(
 					eq(runnerBroadcastAdmissionsTable.ownerId, input.creatorId),
@@ -435,7 +435,7 @@ export function controlStreamSession(principal: TrustedCreatorPrincipal, input: 
 			}
 			const [row] = await context.tx
 				.update(streamSessionsTable)
-				.set({ desiredState: input.state as StreamState, configurationRevision: revision, updatedAt: new Date() })
+				.set({ desiredState: input.state as StreamState, ...(input.state === "stopped" ? { controlMode: "manual" as const } : {}), configurationRevision: revision, updatedAt: new Date() })
 				.where(and(eq(streamSessionsTable.id, current.id), eq(streamSessionsTable.ownerId, input.creatorId)))
 				.returning();
 			return { ...(await sessionWithDestinations(context.tx, row)), accepted: true, applied: input.state === "stopped" && admission ? false : row.actualState === input.state, requestedState: input.state, ...(admission ? { admissionId: admission.id, executionGeneration: admission.executionGeneration } : {}) };

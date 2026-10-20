@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { generateKeyPairSync } from "node:crypto";
 import next from "next";
 
 const hostname = "127.0.0.1";
@@ -9,6 +10,9 @@ const shutdownToken = "clipify-playwright-local-shutdown";
 if (process.env.E2E_TEST_MODE !== "true") {
 	throw new Error("The Playwright server may only run with E2E_TEST_MODE=true.");
 }
+
+// Browser-owned Runner requests use a disposable signing identity.
+process.env.RUNNER_EXECUTION_SIGNING_PRIVATE_KEY = generateKeyPairSync("ed25519").privateKey.export({ type: "pkcs8", format: "pem" }).toString();
 
 let shuttingDown = false;
 let handle;

@@ -2,7 +2,7 @@
 
 import { type ReactNode, useMemo, useState, useSyncExternalStore } from "react";
 import { IconLock } from "@tabler/icons-react";
-import { Button } from "@heroui/react";
+import { Button, Chip } from "@heroui/react";
 import { Agenda, useAgenda, type AgendaView } from "@heroui-pro/react";
 import { ScheduleDateField } from "./runner/ScheduleFields";
 import { useLocale } from "react-aria-components/I18nProvider";
@@ -26,7 +26,7 @@ export default function RunnerScheduleAgenda({ events, canEdit, now, onEdit, onC
 	const [date, setDate] = useState(() => today(timezone));
 	const [selectedView, setView] = useState<AgendaView | null>(null);
 	const view = selectedView ?? (mobile ? "day" : "week");
-	const segments = useMemo(() => projectScheduleViewport(events, view === "day" ? date : startOfWeek(view === "month" ? startOfMonth(date) : date, locale), view === "day" ? 1 : view === "month" ? 42 : 7, timezone), [events, date, view, timezone, locale]);
+	const segments = useMemo(() => projectScheduleViewport(events, view === "day" ? date : startOfWeek(view === "month" ? startOfMonth(date) : date, locale), view === "day" ? 1 : view === "month" ? 42 : 7, timezone, now), [events, date, view, timezone, locale, now]);
 	const eventLocked = (id: string) => {
 		const segment = segments.find((segment) => segment.id === id);
 		return Boolean(segment && Date.parse(segment.trueStartUtc) <= now);
@@ -37,6 +37,17 @@ export default function RunnerScheduleAgenda({ events, canEdit, now, onEdit, onC
 			<span className={styles.lockIcon} role='img' aria-label='Locked event' title='This event cannot be edited'>
 				<IconLock size={12} aria-hidden='true' />
 			</span>
+		) : null;
+	const eventTitle = (event: { id: string; title: string; isReadOnly?: boolean }) => (
+		<Button variant='ghost' size='sm' className='h-auto min-h-0 w-full min-w-0 justify-start rounded-none p-0 text-left text-inherit' aria-label={`${event.isReadOnly ? "View" : "Edit"} ${event.title}`} onPressStart={(press) => press.continuePropagation()} onPress={() => agenda.selectEvent(event.id)} onClick={(click) => click.stopPropagation()}>
+			<Agenda.EventTitle>{event.title}</Agenda.EventTitle>
+		</Button>
+	);
+	const liveBadge = (id: string) =>
+		segments.find((segment) => segment.id === id)?.isLive ? (
+			<Chip size='sm' color='success' variant='soft' className='shrink-0'>
+				Live
+			</Chip>
 		) : null;
 	const agenda = useAgenda({
 		events: segments.map((segment) => ({ ...segment, isReadOnly: !canEdit || eventLocked(segment.id) })),
@@ -49,7 +60,7 @@ export default function RunnerScheduleAgenda({ events, canEdit, now, onEdit, onC
 			if (!id) return;
 			const segment = segments.find((segment) => segment.id === id);
 			const event = segment && events.find((event) => event.id === segment.eventId);
-			if (event && segment) onEdit(event.id, plannerCreateWindow(toCalendarDateTime(fromDate(new Date(segment.trueStartUtc), timezone)), toCalendarDateTime(fromDate(new Date(segment.trueEndUtc), timezone)), timezone), undefined, eventLocked(id) || !canEdit, segment.trueStartUtc);
+			if (event && segment) onEdit(event.id, plannerCreateWindow(toCalendarDateTime(fromDate(new Date(segment.trueStartUtc), event.timezone)), toCalendarDateTime(fromDate(new Date(segment.trueEndUtc), event.timezone)), event.timezone), undefined, eventLocked(id) || !canEdit, segment.trueStartUtc);
 		},
 		startHour: 0,
 		endHour: 24,
@@ -111,7 +122,10 @@ export default function RunnerScheduleAgenda({ events, canEdit, now, onEdit, onC
 									<Agenda.MonthRow key={index} spanningRowCount={layout.rowCount}>
 										{layout.items.map((item) => (
 											<Agenda.MonthSpanningEvent key={item.event.id} event={item.event} colStart={item.colStart} colSpan={item.colSpan} row={item.row} className={eventClass(item.event.id)}>
-												<span>{item.event.title}</span>
+												<div className='flex w-full min-w-0 items-center gap-1'>
+													{eventTitle(item.event)}
+													{liveBadge(item.event.id)}
+												</div>
 												{lockIcon(item.event.id)}
 											</Agenda.MonthSpanningEvent>
 										))}
@@ -119,7 +133,10 @@ export default function RunnerScheduleAgenda({ events, canEdit, now, onEdit, onC
 											<Agenda.MonthCell key={day.toString()} date={day} spanningRowCount={layout.rowCountPerCol[column] ?? 0}>
 												{agenda.getPerCellEvents(day, week).map((event) => (
 													<Agenda.MonthEvent key={event.id} event={event} className={eventClass(event.id)}>
-														<span>{event.title}</span>
+														<div className='flex w-full min-w-0 items-center gap-1'>
+															{eventTitle(event)}
+															{liveBadge(event.id)}
+														</div>
 														{lockIcon(event.id)}
 													</Agenda.MonthEvent>
 												))}
@@ -155,7 +172,10 @@ export default function RunnerScheduleAgenda({ events, canEdit, now, onEdit, onC
 												}
 											}}
 										>
-											<span className='min-w-0 truncate'>{item.event.title}</span>
+											<div className='flex w-full min-w-0 items-center gap-1'>
+												<span className='min-w-0 flex-1 truncate'>{item.event.title}</span>
+												{liveBadge(item.event.id)}
+											</div>
 											{lockIcon(item.event.id)}
 										</Agenda.AllDayEvent>
 									))}
@@ -167,10 +187,9 @@ export default function RunnerScheduleAgenda({ events, canEdit, now, onEdit, onC
 									<Agenda.DayColumn key={day.toString()} date={day}>
 										{agenda.getEventsForDay(day).map((event) => (
 											<Agenda.Event key={event.id} event={event} className={[eventClass(event.id), segments.find((segment) => segment.id === event.id)?.canResizeEnd && event.end.millisecond === 0 ? "" : styles.continues].join(" ")}>
-												<Button variant='ghost' size='sm' className='h-auto min-h-0 w-full min-w-0 justify-start rounded-none p-0 text-left text-inherit' aria-label={`${event.isReadOnly ? "View" : "Edit"} ${event.title}`} onPressStart={(press) => press.continuePropagation()} onPress={() => agenda.selectEvent(event.id)} onClick={(click) => click.stopPropagation()}>
-													<Agenda.EventTitle>{event.title}</Agenda.EventTitle>
-												</Button>
+												{eventTitle(event)}
 												<Agenda.EventTime event={event} />
+												{liveBadge(event.id)}
 												{lockIcon(event.id)}
 											</Agenda.Event>
 										))}

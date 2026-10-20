@@ -41,7 +41,16 @@ test("past broadcasts remain read-only and future recurring changes have explici
 		await page.goto(`/dashboard/runners/${runnerId}`);
 		await page.getByRole("button", { name: "Schedule", exact: true }).click();
 		const schedule = page.getByRole("dialog", { name: "Broadcast schedule", exact: true });
-		await schedule.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "View Past broadcast", exact: true }).click();
+		const openCalendarEvent = async (title: string) => {
+			const calendar = schedule.getByRole("region", { name: "Broadcast calendar", exact: true });
+			await calendar.getByRole("radio", { name: "Month", exact: true }).click();
+			const editable = calendar.getByRole("button", { name: `Edit ${title}`, exact: true });
+			const event = (await editable.count()) ? editable.first() : calendar.getByRole("button", { name: `View ${title}`, exact: true }).first();
+			await event.click();
+		};
+		await expect(schedule.getByRole("list", { name: "Saved schedules", exact: true })).toHaveCount(0);
+
+		await openCalendarEvent("Past broadcast");
 		const details = page.getByRole("dialog", { name: "Broadcast details", exact: true });
 		await expect(details).toBeVisible();
 		await expect(details.getByRole("button", { name: "Delete schedule", exact: true })).toHaveCount(0);
@@ -50,10 +59,10 @@ test("past broadcasts remain read-only and future recurring changes have explici
 		await details.getByRole("button", { name: "Save title", exact: true }).click();
 		await expect(details).not.toBeVisible();
 		expect((await pool.query("SELECT title,configuration_revision FROM runner_schedule_events WHERE id=$1", [pastId])).rows[0]).toEqual({ title: "Archived broadcast", configuration_revision: 1 });
-		await schedule.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "View Archived broadcast", exact: true }).click();
+		await openCalendarEvent("Archived broadcast");
 		await details.screenshot({ path: testInfo.outputPath("past-broadcast-details-dark.png") });
 		await details.getByRole("button", { name: "Close", exact: true }).last().click();
-		await schedule.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "View Archived broadcast", exact: true }).click();
+		await openCalendarEvent("Archived broadcast");
 		await page.setViewportSize({ width: 390, height: 844 });
 		await details.screenshot({ path: testInfo.outputPath("past-details-dark-mobile.png") });
 		await details.getByRole("button", { name: "Close", exact: true }).last().click();
@@ -63,7 +72,7 @@ test("past broadcasts remain read-only and future recurring changes have explici
 		await page.getByRole("button", { name: "Toggle Theme", exact: true }).click();
 		await page.setViewportSize({ width: 1280, height: 900 });
 		await page.getByRole("button", { name: "Schedule", exact: true }).click();
-		await schedule.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "View Archived broadcast", exact: true }).click();
+		await openCalendarEvent("Archived broadcast");
 		await details.screenshot({ path: testInfo.outputPath("past-details-light-desktop.png") });
 		await page.setViewportSize({ width: 390, height: 844 });
 		await details.screenshot({ path: testInfo.outputPath("past-details-light-mobile.png") });
@@ -71,7 +80,7 @@ test("past broadcasts remain read-only and future recurring changes have explici
 		await details.getByRole("button", { name: "Close", exact: true }).last().click();
 		await page.setViewportSize({ width: 1280, height: 900 });
 		const editor = page.getByRole("dialog", { name: "Schedule broadcast", exact: true });
-		await schedule.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Weekly broadcast", exact: true }).click();
+		await openCalendarEvent("Weekly broadcast");
 		await editor.getByRole("textbox", { name: /^Event title\*?$/ }).fill("One changed occurrence");
 		await editor.getByRole("button", { name: "Save schedule", exact: true }).click();
 		const scope = page.getByRole("dialog", { name: "Edit recurring broadcast", exact: true });
@@ -86,18 +95,18 @@ test("past broadcasts remain read-only and future recurring changes have explici
 		const single = (await pool.query("SELECT recurrence FROM runner_schedule_events WHERE owner_id=$1 AND title='One changed occurrence'", [creatorId])).rows;
 		expect(single).toEqual([{ recurrence: "once" }]);
 		expect((await pool.query("SELECT excluded_dates,configuration_revision FROM runner_schedule_events WHERE id=$1", [seriesId])).rows[0]).toMatchObject({ excluded_dates: [expect.any(String)], configuration_revision: 2 });
-		await schedule.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Weekly broadcast", exact: true }).click();
+		await openCalendarEvent("Weekly broadcast");
 		await editor.getByRole("textbox", { name: /^Event title\*?$/ }).fill("Following broadcasts");
 		await editor.getByRole("button", { name: "Save schedule", exact: true }).click();
 		await scope.getByRole("button", { name: "This and following", exact: true }).click();
 		await expect(editor).not.toBeVisible();
-		await schedule.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Following broadcasts", exact: true }).click();
+		await openCalendarEvent("Following broadcasts");
 		await editor.getByRole("button", { name: "Delete schedule", exact: true }).click();
 		const deletion = page.getByRole("dialog", { name: "Delete recurring broadcast", exact: true });
 		await expect(deletion).toBeVisible();
 		await deletion.getByRole("button", { name: "This occurrence", exact: true }).click();
 		await expect(editor).not.toBeVisible();
-		await schedule.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Following broadcasts", exact: true }).click();
+		await openCalendarEvent("Following broadcasts");
 		await editor.getByRole("button", { name: "Delete schedule", exact: true }).click();
 		await deletion.getByRole("button", { name: "This and following", exact: true }).click();
 		await expect(editor).not.toBeVisible();

@@ -11,7 +11,7 @@ import { validateAuth } from "@actions/auth";
 import { getRunner, getRunnerLivePreview, getRunnerToken, getRunnerVersionManifest, getStreamSessionsForRunner, upsertStreamSession, setStreamDesiredState, unlinkRunner, listRunnerDestinations, listRunnerScheduleEvents } from "@actions/runner";
 import { getAllOverlays } from "@actions/database";
 import { Accordion, Button, Card, Label, Select, Spinner, ListBox, Chip, Link, Modal, Dropdown, Tooltip, Separator } from "@heroui/react";
-import { IconArrowLeft, IconBrandWindows, IconTerminal2, IconBrandApple, IconUnlink, IconAlertTriangle, IconCircleCheck, IconRefresh, IconPaint, IconCalendarEvent } from "@tabler/icons-react";
+import { IconArrowLeft, IconBrandWindows, IconTerminal2, IconBrandApple, IconUnlink, IconAlertTriangle, IconCircleCheck, IconRefresh, IconPaint, IconCalendarEvent, IconCrown } from "@tabler/icons-react";
 import { notify } from "@lib/toast";
 import FullscreenLoadingState from "@components/fullscreenLoadingState";
 import ConfirmModal from "@components/confirmModal";
@@ -295,38 +295,41 @@ export default function RunnerPage() {
 		}
 	};
 
-	const handleSave = async () => {
-		if (isSaving) return;
+	const handleSave = async (savedControlMode = controlMode) => {
+		if (isSaving) return false;
 		setConfigurationError(null);
 		if (!overlayId) {
 			setConfigurationError("Choose an overlay before saving.");
-			return;
+			return false;
 		}
 		if (!selectedDestinationIds.length) {
 			setConfigurationError("Add and select a broadcast destination.");
 			setDestinationsOpen(true);
-			return;
+			return false;
 		}
 		if (!runnerPolicy?.runnerPro && selectedDestinationIds.length > 1) {
 			setConfigurationError("Select one broadcast destination before saving.");
-			return;
+			return false;
 		}
 		setIsSaving(true);
 		try {
-			const res = await upsertStreamSession({ id: savedSession?.id, expectedRevision: recoveredRevision ?? savedSession?.configurationRevision, ownerId: runner.ownerId, runnerId: runner.id, overlayId, mode, controlMode, rtmpUrl: "", streamKey: "", destinationIds: selectedDestinationIds });
+			const res = await upsertStreamSession({ id: savedSession?.id, expectedRevision: recoveredRevision ?? savedSession?.configurationRevision, ownerId: runner.ownerId, runnerId: runner.id, overlayId, mode, controlMode: savedControlMode, rtmpUrl: "", streamKey: "", destinationIds: selectedDestinationIds });
 			if (!res.success) {
 				setConfigurationError(res.error || "Could not save this broadcast. Please try again.");
 				const current = await listRunnerScheduleEvents(runner.ownerId, runner.id);
 				if (current.success) setRunnerPolicy(current.policy);
-				return;
+				return false;
 			}
 			const sessions = await getStreamSessionsForRunner(runner.id, runner.ownerId);
 			setStreamSessions(sessions);
 			setSelectedDestinationIds(sessions[0]?.destinationIds ?? selectedDestinationIds);
 			setRecoveredRevision(undefined);
+			setControlMode(savedControlMode);
 			notify({ title: "Saved", description: "Stream session configuration saved.", color: "success" });
+			return true;
 		} catch {
 			setConfigurationError("Could not save this broadcast. Your changes are kept. Please try again.");
+			return false;
 		} finally {
 			setIsSaving(false);
 		}
@@ -345,6 +348,7 @@ export default function RunnerPage() {
 				notify({ title: state === "started" ? "Start requested" : stopMode === "immediate" ? "Stop now requested" : "Stop requested", description: state === "started" ? "Waiting for the runner to confirm it is live." : "Waiting for the runner to close its outputs.", color: "success" });
 				const fetchedSessions = await getStreamSessionsForRunner(params.id, user.id);
 				setStreamSessions(fetchedSessions);
+				if (state === "stopped") setControlMode("manual");
 			} else {
 				notify({ title: state === "started" ? "Cannot start broadcast" : "Cannot stop broadcast", description: res.error || "Please try again.", color: "danger" });
 			}
@@ -613,25 +617,36 @@ export default function RunnerPage() {
 										The Runner reported a broadcast error. Check its logs before retrying.
 									</p>
 								)}
-								<div className={controlMode === "scheduled" ? "grid gap-3 sm:grid-cols-2" : "grid gap-3"}>
+								<div className={mode === StreamMode.AlwaysOn ? "grid gap-3 sm:grid-cols-2" : "grid gap-3"}>
 									<Button variant='outline' className='w-full' onPress={() => setAppearanceOpen(true)} isDisabled={!overlayId}>
 										<IconPaint size={18} aria-hidden='true' />
 										Appearance
 									</Button>
-									{controlMode === "scheduled" && (
-										<Button className='w-full' variant='outline' isDisabled={isSaving} onPress={() => (runnerPolicy?.scheduling ? setScheduleOpen(true) : setIsUpgradeOpen(true))}>
+									{mode === StreamMode.AlwaysOn && (
+										<Button aria-label='Schedule' aria-description={runnerPolicy?.scheduling === false ? "Requires Pro" : undefined} className='w-full' variant='outline' isDisabled={isSaving || !runnerPolicy} onPress={() => (runnerPolicy?.scheduling ? setScheduleOpen(true) : setIsUpgradeOpen(true))}>
 											<IconCalendarEvent size={18} aria-hidden='true' />
 											Schedule
+											{runnerPolicy?.scheduling === false && <IconCrown size={16} aria-hidden='true' />}
 										</Button>
 									)}
 								</div>
 								{controlMode === "scheduled" && dirty && <p className='text-xs text-muted'>Save configuration to activate your schedule.</p>}
 								<div className='flex flex-wrap items-center justify-between gap-4 border-t border-separator pt-4'>
-									<Button variant='primary' onPress={handleSave} isDisabled={isSaving || !dirty} isPending={isSaving}>
+									<Button variant='primary' onPress={() => void handleSave()} isDisabled={isSaving || !dirty} isPending={isSaving}>
 										Save Configuration
 									</Button>
 									{savedSession && (
-										<RunnerBroadcastControls online={runner.status === RunnerStatus.Online} playbackTimedOut={savedSession.playbackTimedOut} desiredState={savedSession.desiredState} actualState={savedSession.actualState} canStart={!actionPending && runner.status === RunnerStatus.Online && streamReadyToStart} requiresConnection={!runnerPolicy?.runnerPro} clipPlayback={savedSession.mode === "24/7"} onStart={() => handleAction("started")} onStop={(stopMode) => handleAction("stopped", stopMode)} />
+										<RunnerBroadcastControls
+											online={runner.status === RunnerStatus.Online}
+											playbackTimedOut={savedSession.playbackTimedOut}
+											desiredState={savedSession.desiredState}
+											actualState={savedSession.actualState}
+											canStart={savedSession.controlMode !== "scheduled" && !actionPending && runner.status === RunnerStatus.Online && streamReadyToStart}
+											requiresConnection={!runnerPolicy?.runnerPro}
+											clipPlayback={savedSession.mode === "24/7"}
+											onStart={() => handleAction("started")}
+											onStop={(stopMode) => handleAction("stopped", stopMode)}
+										/>
 									)}
 								</div>
 								{savedSession && dirty && <p className='text-sm text-muted'>Save your changes before starting this broadcast.</p>}
@@ -795,7 +810,7 @@ export default function RunnerPage() {
 							<Modal.Header>
 								<Modal.Heading>Broadcast schedule</Modal.Heading>
 							</Modal.Header>
-							<Modal.Body>{scheduleOpen && <RunnerSchedule ownerId={runner.ownerId} runnerId={runner.id} sessionId={savedSession?.id} overlayId={overlayId} overlays={overlays} destinations={destinationOptions} selectedDestinationIds={selectedDestinationIds} clipPlayback={mode === StreamMode.AlwaysOn} onPolicyChange={setRunnerPolicy} onDestinationsChange={refreshDestinationOptions} />}</Modal.Body>
+							<Modal.Body>{scheduleOpen && <RunnerSchedule ownerId={runner.ownerId} runnerId={runner.id} sessionId={savedSession?.id} overlayId={overlayId} overlays={overlays} destinations={destinationOptions} selectedDestinationIds={selectedDestinationIds} clipPlayback={mode === StreamMode.AlwaysOn} onEnableScheduling={() => handleSave("scheduled")} onPolicyChange={setRunnerPolicy} onDestinationsChange={refreshDestinationOptions} />}</Modal.Body>
 						</Modal.Dialog>
 					</Modal.Container>
 				</Modal.Backdrop>

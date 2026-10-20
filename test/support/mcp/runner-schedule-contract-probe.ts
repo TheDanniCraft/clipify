@@ -42,6 +42,16 @@ export async function runRunnerScheduleContractProbe(input: Input) {
 	};
 	const scopedRecurrence = await observeScopedRecurrence();
 	const initialView = await rows();
+	const liveAdmissionId = randomUUID();
+	const occurrenceId = JSON.stringify([initial.event.id, "2027-02-01T12:00:00.000Z"]);
+	await input.fixture.pool.query("INSERT INTO runner_broadcast_admissions(id,owner_id,runner_id,session_id,execution_generation,occurrence_id,state,configuration_revision,benefits_at_start,last_observed_at,output_states) VALUES($1,$2,$3,$4,$5,$6,'active',1,'{}',now(),$7)", [liveAdmissionId, ownerId, input.runnerId, sessionId, randomUUID(), occurrenceId, JSON.stringify([{ id: targetId, state: "streaming" }])]);
+	const liveView = await rows();
+	await input.fixture.pool.query("UPDATE runner_broadcast_admissions SET last_observed_at=now()-interval '31 seconds' WHERE id=$1", [liveAdmissionId]);
+	const staleLiveView = await rows();
+	await input.fixture.pool.query("UPDATE runner_broadcast_admissions SET last_observed_at=now(),output_states='[]' WHERE id=$1", [liveAdmissionId]);
+	const noOutputLiveView = await rows();
+	await input.fixture.pool.query("DELETE FROM runner_broadcast_admissions WHERE id=$1", [liveAdmissionId]);
+
 	const authoringState = { desiredState: (await input.fixture.pool.query("SELECT desired_state FROM stream_sessions WHERE id=$1", [sessionId])).rows[0].desired_state, admissions: Number((await input.fixture.pool.query("SELECT count(*) FROM runner_broadcast_admissions WHERE session_id=$1", [sessionId])).rows[0].count) };
 	const persisted = async () => ({
 		events: (await input.fixture.pool.query("SELECT * FROM runner_schedule_events WHERE owner_id=$1 ORDER BY id", [ownerId])).rows,
@@ -376,7 +386,7 @@ export async function runRunnerScheduleContractProbe(input: Input) {
 		const beforeClosureUnchanged = JSON.stringify(unclosedBefore) === JSON.stringify(await controlState());
 		const stopObservations = [];
 		for (const state of ["active", "reserved"] as const) {
-			await input.fixture.pool.query("UPDATE stream_sessions SET desired_state='running',actual_state=$2,configuration_revision=10 WHERE id=$1", [sessionId, state === "active" ? "running" : "stopped"]);
+			await input.fixture.pool.query("UPDATE stream_sessions SET desired_state='running',actual_state=$2,control_mode='scheduled',configuration_revision=10 WHERE id=$1", [sessionId, state === "active" ? "running" : "stopped"]);
 			await input.fixture.pool.query("UPDATE runner_broadcast_admissions SET state=$2::runner_admission_state,stopped_at=null,terminal_reason=null,dispatched_at=CASE WHEN $2::text='active' THEN now() ELSE null END,benefits_at_start=$3::jsonb WHERE id=$1", [stoppedAdmission, state, JSON.stringify({ runnerPro: true, ingestModeAtStart: "24/7" })]);
 			const result = await controlStreamSession(principal, { creatorId: ownerId, sessionId, state: "stopped", expectedRevision: 10, stopMode: "graceful" });
 			const admission = (await input.fixture.pool.query("SELECT state,occurrence_id,scheduled_end,benefits_at_start FROM runner_broadcast_admissions WHERE id=$1", [stoppedAdmission])).rows[0];
@@ -397,7 +407,7 @@ export async function runRunnerScheduleContractProbe(input: Input) {
 		await input.fixture.pool.query("INSERT INTO runner_destinations(id,owner_id,name,provider,rtmp_url) VALUES($1,$2,'Occurrence-only target','custom','rtmp://127.0.0.1:1950/event')", [eventTargetId, ownerId]);
 		const targetEvent = await schedules.saveRunnerScheduleEventForPrincipal(principal, { ...base, title: "Captured event target", overlayId: eventSourceId, localStartDate: resumeStart.slice(0, 10), localEndDate: resumeEnd.slice(0, 10), localStartTime: resumeStart.slice(11, 16), localEndTime: resumeEnd.slice(11, 16), destinationIds: [eventTargetId] });
 		if (!targetEvent.success) throw new Error("EVENT_TARGET_FIXTURE_DENIED:" + targetEvent.code);
-		await input.fixture.pool.query("UPDATE stream_sessions SET desired_state='stopped',actual_state='stopped',configuration_revision=20 WHERE id=$1", [sessionId]);
+		await input.fixture.pool.query("UPDATE stream_sessions SET desired_state='stopped',actual_state='stopped',control_mode='scheduled',configuration_revision=20 WHERE id=$1", [sessionId]);
 		const eventTargetStart = await controlStreamSession(principal, { creatorId: ownerId, sessionId, state: "running", expectedRevision: 20 });
 		const targetCapture = (await input.fixture.pool.query("SELECT target_ids_snapshot FROM runner_broadcast_admissions WHERE session_id=$1", [sessionId])).rows;
 		const unchangedDefaultTargets = (await input.fixture.pool.query("SELECT destination_id FROM stream_session_destinations WHERE session_id=$1 ORDER BY position", [sessionId])).rows;
@@ -582,7 +592,7 @@ export async function runRunnerScheduleContractProbe(input: Input) {
 		const afterScheduledStop = (await input.fixture.pool.query("SELECT state,benefits_at_start FROM runner_broadcast_admissions WHERE session_id=$1", [sessionId])).rows;
 		Reflect.set(offlineAuthorization, "scheduledStop", { accepted: stopCurrentWithFuture.accepted, future: afterScheduledStop.filter((row) => row.state === "authorized").map((row) => ({ suppressed: row.benefits_at_start.scheduleSuppressed === true })), current: afterScheduledStop.find((row) => row.state === "draining")?.benefits_at_start.scheduleSuppressed });
 		await input.fixture.pool.query("UPDATE runner_broadcast_admissions SET state='active' WHERE id=$1", [dueJob.admissionId]);
-		await input.fixture.pool.query("UPDATE stream_sessions SET desired_state='running',actual_state='running' WHERE id=$1", [sessionId]);
+		await input.fixture.pool.query("UPDATE stream_sessions SET desired_state='running',actual_state='running',control_mode='scheduled' WHERE id=$1", [sessionId]);
 	}
 	await observeScheduledStop();
 
@@ -788,6 +798,9 @@ export async function runRunnerScheduleContractProbe(input: Input) {
 		readAvailable: true,
 		initial,
 		initialView,
+		liveView,
+		staleLiveView,
+		noOutputLiveView,
 		vectors,
 		vacation,
 		activeCache,

@@ -7,33 +7,21 @@ import type { StreamDetails } from "@/app/lib/runnerProviderDetails";
 import LocalizedDate from "@components/localizedDate";
 import { useCallback, useEffect, useState, useRef, useTransition } from "react";
 import { Button, Checkbox, FieldError, Input, Label, ListBox, Modal, Select, Spinner, TextField, Tabs } from "@heroui/react";
-import { IconPlus, IconEye, IconPencil, IconPlayerPause, IconPlayerPlay, IconCrown } from "@tabler/icons-react";
-import { listRunnerScheduleEvents, listRunnerDestinations, saveRunnerScheduleEvent, renameRunnerScheduleEvent, deleteRunnerScheduleEvent, resumeRunnerScheduleOccurrence, setRunnerAutomationPaused } from "@/app/actions/runner";
+import { IconPlus, IconPlayerPause, IconPlayerPlay, IconCrown } from "@tabler/icons-react";
+import { listRunnerScheduleEvents, listRunnerDestinations, saveRunnerScheduleEvent, renameRunnerScheduleEvent, deleteRunnerScheduleEvent, setRunnerAutomationPaused } from "@/app/actions/runner";
 import RunnerDestinationSelection from "./runnerDestinationSelection";
-import { plannerCreateWindow, isAllDayWindow } from "./runnerSchedulePlanner";
+import { isAllDayWindow } from "./runnerSchedulePlanner";
 import RunnerScheduleAgenda from "./runnerScheduleAgenda";
 import { ScheduleDateField, ScheduleTimeField, TimezonePicker } from "./runner/ScheduleFields";
-import { parseDate, fromDate, toCalendarDateTime, now as calendarNow } from "@internationalized/date";
+import { parseDate, now as calendarNow } from "@internationalized/date";
 import ConfirmModal from "./confirmModal";
-import { resolveCalendarSchedule } from "../../../packages/runner/src/schedule-calendar";
 
 type ScheduleRead = Extract<Awaited<ReturnType<typeof listRunnerScheduleEvents>>, { success: true }>;
 type Policy = ScheduleRead["policy"];
 type RunnerScheduleView = ScheduleRead["events"][number];
-type Props = { onDestinationsChange?: (change?: { deletedId: string }) => Promise<void> | void; ownerId: string; runnerId: string; sessionId?: string; overlayId: string; overlays: { id: string; name: string }[]; destinations: { id: string; name: string; provider?: string; connectionId?: string | null }[]; selectedDestinationIds: string[]; clipPlayback: boolean; onPolicyChange: (policy: Policy) => void };
+type Props = { onEnableScheduling?: () => Promise<boolean>; onDestinationsChange?: (change?: { deletedId: string }) => Promise<void> | void; ownerId: string; runnerId: string; sessionId?: string; overlayId: string; overlays: { id: string; name: string }[]; destinations: { id: string; name: string; provider?: string; connectionId?: string | null }[]; selectedDestinationIds: string[]; clipPlayback: boolean; onPolicyChange: (policy: Policy) => void };
 type Draft = { setStreamDetails: boolean; streamDetails: StreamDetails[]; allDay: boolean; title: string; timezone: string; recurrence: "once" | "weekly"; localStartDate: string; localEndDate: string; localStartTime: string; localEndTime: string; weekdays: number[]; endDayOffset: number; overlayId: string; destinationIds: string[] };
 const weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-
-function elapsedDescription(event: RunnerScheduleView) {
-	if (event.recurrence !== "once" || !event.localEndDate) return "Weekly in " + event.timezone;
-	const start = new Date(event.localStartDate + "T00:00:00Z"),
-		end = new Date(event.localEndDate + "T00:00:00Z");
-	end.setUTCDate(end.getUTCDate() + 2);
-	start.setUTCDate(start.getUTCDate() - 2);
-	const result = resolveCalendarSchedule(event, { start: start.toISOString(), end: end.toISOString() });
-	const occurrence = result.occurrences[0];
-	return occurrence ? `${(Date.parse(occurrence.endUtc) - Date.parse(occurrence.startUtc)) / 3600000} hours (${event.timezone})` : (result.skipped[0]?.message ?? event.timezone);
-}
 
 export default function RunnerSchedule(props: Props) {
 	const [editorView, setEditorView] = useState("schedule");
@@ -57,7 +45,6 @@ export default function RunnerSchedule(props: Props) {
 		[deleting, setDeleting] = useState(false),
 		[deleteError, setDeleteError] = useState<string | null>(null),
 		[draftNotice, setDraftNotice] = useState<string | null>(null),
-		[controlFeedback, setControlFeedback] = useState<string | null>(null),
 		[error, setError] = useState<string | null>(null),
 		[draft, setDraft] = useState<Draft | null>(null);
 	const [selectedOccurrenceStart, setSelectedOccurrenceStart] = useState<string | null>(null);
@@ -131,7 +118,7 @@ export default function RunnerSchedule(props: Props) {
 	useEffect(() => {
 		const interval = window.setInterval(() => {
 			if (document.visibilityState === "visible") void reload();
-		}, 30_000);
+		}, 10_000);
 		const refresh = () => {
 			if (document.visibilityState === "visible") void reload();
 		};
@@ -145,7 +132,7 @@ export default function RunnerSchedule(props: Props) {
 	const [automationPending, startAutomationTransition] = useTransition();
 	const automation = automationControls.find((control) => control.sessionId === props.sessionId);
 	const automationPaused = Boolean(automation?.pausedAt);
-	const automationMessage = automationPaused ? (automation?.actualState === "running" ? "Automation paused. This broadcast keeps its scheduled end; you can still stop it." : "Automation paused. Scheduled broadcasts will not start until you resume automation.") : null;
+	const automationMessage = automation?.controlMode === "manual" ? "Scheduling is off. Save and enable scheduling to start your scheduled broadcasts." : automationPaused ? (automation?.actualState === "running" ? "Automation paused. This broadcast keeps its scheduled end; you can still stop it." : "Automation paused. Scheduled broadcasts will not start until you resume automation.") : null;
 	function toggleAutomation() {
 		if (!automation || automationPending) return;
 		startAutomationTransition(async () => {
@@ -257,23 +244,6 @@ export default function RunnerSchedule(props: Props) {
 			setSaving(false);
 		}
 	}
-	async function resume(event: RunnerScheduleView) {
-		const occurrence = event.currentOccurrence;
-		if (!occurrence || !occurrence.canResume || saving || !canEdit) return;
-		setSaving(true);
-		setError(null);
-		setControlFeedback(null);
-		try {
-			const result = await resumeRunnerScheduleOccurrence({ ownerId, sessionId: event.sessionId, occurrenceId: occurrence.occurrenceId, expectedRevision: occurrence.sessionRevision });
-			if (!result.success) setError(result.error);
-			else setControlFeedback("Resume requested. This occurrence keeps its original end time.");
-			await reload();
-		} catch {
-			setError("Could not resume this occurrence. Please try again.");
-		} finally {
-			setSaving(false);
-		}
-	}
 	async function remove(scope?: "this" | "following") {
 		if (!editing || saving || !canEdit || detailsOnly) return;
 		if (editing.recurrence === "weekly" && !scope) {
@@ -328,6 +298,28 @@ export default function RunnerSchedule(props: Props) {
 								timezoneControl={<TimezonePicker label='Calendar timezone' value={calendarTimezone} onChange={setCalendarTimezone} />}
 								toolbar={
 									<>
+										{canEdit && automation?.controlMode === "manual" && props.onEnableScheduling && (
+											<Button
+												variant='secondary'
+												aria-label='Save and enable scheduling'
+												isDisabled={automationPending}
+												onPress={() =>
+													startAutomationTransition(async () => {
+														setError(null);
+														try {
+															if (await props.onEnableScheduling!()) await reload();
+															else setError("Could not enable scheduling. Check your broadcast configuration and try again.");
+														} catch {
+															setError("Could not enable scheduling. Your changes are kept. Please try again.");
+														}
+													})
+												}
+											>
+												<IconPlayerPlay size={16} />
+												<span className='sm:hidden'>Enable</span>
+												<span className='hidden sm:inline'>Save and enable scheduling</span>
+											</Button>
+										)}
 										{props.clipPlayback && automation?.controlMode === "scheduled" && (
 											<Button aria-label={automationPaused ? "Resume automation" : "Pause automation"} variant='secondary' onPress={toggleAutomation} isDisabled={loading || automationPending || (automationPaused && !policy?.scheduling)}>
 												{automationPaused ? <IconPlayerPlay size={16} /> : <IconPlayerPause size={16} />}
@@ -360,73 +352,7 @@ export default function RunnerSchedule(props: Props) {
 							/>
 						</>
 					)}
-					{controlFeedback && (
-						<p role='status' className='text-sm text-muted'>
-							{controlFeedback}
-						</p>
-					)}
-					{events.length ? (
-						<ul aria-label='Saved schedules' className='space-y-3'>
-							{events.map((event) => (
-								<li key={event.id} className='flex flex-wrap items-center justify-between gap-3 rounded-xl border border-separator p-4'>
-									<div>
-										<p className='font-medium'>{event.title}</p>
-										<p className='text-sm text-muted'>
-											{isAllDayWindow(event) ? (
-												<>
-													<LocalizedDate value={event.localStartDate} />
-													{event.localEndDate && (
-														<>
-															{" "}
-															to <LocalizedDate value={parseDate(event.localEndDate).subtract({ days: 1 }).toString()} />
-														</>
-													)}{" "}
-													(All day)
-												</>
-											) : (
-												<>
-													<LocalizedDate value={event.localStartDate} /> {event.localStartTime.slice(0, 5)} to {event.localEndDate ? <LocalizedDate value={event.localEndDate} /> : "Weekly"} {event.localEndTime.slice(0, 5)}
-												</>
-											)}
-										</p>
-										<p className='text-sm text-muted'>{elapsedDescription(event)}</p>
-										{event.lockedUntil && <p className='text-xs text-muted'>{event.lockReason === "completed" ? "Completed broadcast" : "Broadcast settings are locked for this occurrence."}</p>}
-										{event.streamDetailsFeedback
-											?.filter((result) => result.status !== "applied")
-											.map((result) => (
-												<p key={result.destinationId} role='status' className='mt-1 text-sm text-danger'>
-													{destinations.find((target) => target.id === result.destinationId)?.name}: {result.error}
-												</p>
-											))}
-									</div>
-									{event.currentOccurrence && (
-										<Button variant='secondary' size='sm' aria-label={`Resume ${event.title}`} isDisabled={!canEdit || saving || !event.currentOccurrence.canResume} onPress={() => resume(event)}>
-											Resume
-										</Button>
-									)}
-									<Button
-										variant='tertiary'
-										size='sm'
-										aria-label={`${(event.recurrence === "once" && event.lockedUntil) || !canEdit ? "View" : "Edit"} ${event.title}`}
-										onPress={() => {
-											if (event.recurrence !== "weekly") {
-												edit(event);
-												return;
-											}
-											const next = resolveCalendarSchedule(event, { start: new Date().toISOString(), end: new Date(Math.max(Date.now(), Date.parse(event.localStartDate)) + Math.max(14, (event.excludedDates.length + 2) * 7) * 86400000).toISOString() }).occurrences.find((row) => Date.parse(row.startUtc) > Date.now());
-											edit(event, !next, next?.startUtc);
-											if (next) setDraft((current) => (current ? { ...current, ...plannerCreateWindow(toCalendarDateTime(fromDate(new Date(next.startUtc), event.timezone)), toCalendarDateTime(fromDate(new Date(next.endUtc), event.timezone)), event.timezone), ...(current.allDay ? { localEndDate: parseDate(next.endUtc.slice(0, 10)).subtract({ days: 1 }).toString() } : {}) } : current));
-										}}
-									>
-										{(event.recurrence === "once" && event.lockedUntil) || !canEdit ? <IconEye size={16} /> : <IconPencil size={16} />}
-										{(event.recurrence === "once" && event.lockedUntil) || !canEdit ? "View details" : "Edit"}
-									</Button>
-								</li>
-							))}
-						</ul>
-					) : (
-						!loading && <p className='text-sm text-muted'>No scheduled broadcasts yet.</p>
-					)}
+					{!loading && !events.length && <p className='text-sm text-muted'>No scheduled broadcasts yet.</p>}
 				</div>
 			</section>
 			<Modal.Backdrop
@@ -687,6 +613,13 @@ export default function RunnerSchedule(props: Props) {
 							<Modal.Heading>{scopePrompt === "delete" ? "Delete recurring broadcast" : "Edit recurring broadcast"}</Modal.Heading>
 						</Modal.Header>
 						<Modal.Body>
+							{currentEditing?.streamDetailsFeedback
+								?.filter((result) => result.status !== "applied")
+								.map((result) => (
+									<p key={result.destinationId} role='status' className='text-sm text-danger'>
+										{destinations.find((target) => target.id === result.destinationId)?.name}: {result.error}
+									</p>
+								))}
 							<p>Apply this change to this occurrence or this and following? Past and current broadcasts stay unchanged.</p>
 						</Modal.Body>
 						<Modal.Footer className='flex-col items-stretch'>

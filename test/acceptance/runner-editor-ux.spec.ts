@@ -58,6 +58,8 @@ for (const plan of ["free", "pro"] as const)
 			const appearanceAction = page.getByRole("button", { name: "Appearance", exact: true });
 			await expect(appearanceAction).toHaveClass(/button--outline/);
 			await expect(appearanceAction.locator("svg.tabler-icon-paint")).toBeVisible();
+			await expect(page.getByRole("button", { name: "Schedule", exact: true })).toBeVisible();
+			await expect(page.getByRole("button", { name: "Schedule", exact: true }).locator("svg.tabler-icon-crown")).toHaveCount(plan === "free" ? 1 : 0);
 			await expect
 				.poll(async () => {
 					const available = await appearanceAction.locator("..").evaluate((node) => {
@@ -65,7 +67,8 @@ for (const plan of ["free", "pro"] as const)
 						return node.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
 					});
 					const bounds = await appearanceAction.boundingBox();
-					return bounds ? Math.abs(bounds.width - available) : Infinity;
+					const scheduleBounds = await page.getByRole("button", { name: "Schedule", exact: true }).boundingBox();
+					return bounds && scheduleBounds ? Math.max(Math.abs(bounds.width - scheduleBounds.width), Math.abs(bounds.width + scheduleBounds.width + 12 - available)) : Infinity;
 				})
 				.toBeLessThan(2);
 			await expect(page.getByRole("heading", { name: "Broadcast schedule", exact: true })).toHaveCount(0);
@@ -297,6 +300,27 @@ for (const plan of ["free", "pro"] as const)
 				expect(Math.abs(scheduledControlBounds!.width - manualControlBounds!.width)).toBeLessThan(2);
 				const openedSchedule = page.getByRole("dialog", { name: "Broadcast schedule", exact: true });
 				await expect(openedSchedule).toBeVisible();
+				await expect(openedSchedule.getByText(/Scheduling is off/)).toBeVisible();
+				for (const theme of ["dark", "light"]) {
+					if (theme === "light") {
+						await page.setViewportSize({ width: 1280, height: 900 });
+						await openedSchedule.getByRole("button", { name: "Close", exact: true }).click();
+						await page.getByRole("button", { name: "Toggle Theme", exact: true }).click();
+						await page.getByRole("button", { name: "Schedule", exact: true }).click();
+					}
+					for (const width of [1280, 390]) {
+						await page.setViewportSize({ width, height: 900 });
+						await expect(openedSchedule.getByRole("button", { name: "Save and enable scheduling", exact: true })).toBeVisible();
+						await openedSchedule.screenshot({ path: testInfo.outputPath(`schedule-enable-${theme}-${width}.png`), animations: "disabled" });
+					}
+				}
+				await page.setViewportSize({ width: 1280, height: 900 });
+				await openedSchedule.getByRole("button", { name: "Close", exact: true }).click();
+				await page.getByRole("button", { name: "Toggle Theme", exact: true }).click();
+				await page.getByRole("button", { name: "Schedule", exact: true }).click();
+				await openedSchedule.getByRole("button", { name: "Save and enable scheduling", exact: true }).click();
+				await expect(openedSchedule.getByRole("button", { name: "Pause automation", exact: true })).toBeVisible();
+				expect((await pool.query("SELECT control_mode FROM stream_sessions WHERE runner_id=$1", [runnerId])).rows[0].control_mode).toBe("scheduled");
 				await openedSchedule.getByRole("button", { name: "Close", exact: true }).click();
 				await expect(page.getByRole("button", { name: "Schedule", exact: true })).toHaveClass(/button--outline/);
 				await expect(page.getByRole("button", { name: "Schedule", exact: true }).locator("svg.tabler-icon-calendar-event")).toBeVisible();
@@ -304,7 +328,8 @@ for (const plan of ["free", "pro"] as const)
 				await page.getByRole("button", { name: "Schedule", exact: true }).click();
 				await expect(openedSchedule).toBeVisible();
 				await openedSchedule.getByRole("button", { name: "Close", exact: true }).click();
-				await mainSave.click();
+				await expect(mainSave).toBeDisabled();
+				await expect(page.getByRole("button", { name: "Start", exact: true })).toBeDisabled();
 				await expect(page.getByRole("button", { name: "Schedule", exact: true })).toBeEnabled();
 				await expect(page.getByRole("dialog", { name: "Broadcast schedule", exact: true })).toHaveCount(0);
 				await expectScheduleActionAlignment(page);
@@ -392,8 +417,10 @@ for (const plan of ["free", "pro"] as const)
 					[owner.fixture.creatorId, lockedId],
 				);
 				await pool.query("UPDATE runner_schedule_events SET local_start_date=to_char((now() AT TIME ZONE timezone)+interval '2 hours','YYYY-MM-DD'),local_start_time=to_char((now() AT TIME ZONE timezone)+interval '2 hours','HH24:MI'),local_end_date=to_char((now() AT TIME ZONE timezone)+interval '26 hours','YYYY-MM-DD'),local_end_time=to_char((now() AT TIME ZONE timezone)+interval '26 hours','HH24:MI') WHERE owner_id=$1 AND id<>$2", [owner.fixture.creatorId, lockedId]);
+				await pool.query("INSERT INTO runner_broadcast_admissions(owner_id,runner_id,session_id,execution_generation,occurrence_id,state,configuration_revision,benefits_at_start,last_observed_at,output_states) SELECT owner_id,runner_id,session_id,$2,$4,'active',1,'{}',now(),jsonb_build_array(jsonb_build_object('id',$3::text,'state','streaming')) FROM runner_schedule_events WHERE id=$1", [lockedId, randomUUID(), randomUUID(), JSON.stringify([lockedId, lockedId])]);
 				for (const theme of ["dark", "light"]) {
 					if (theme === "light") await page.getByRole("button", { name: "Toggle Theme", exact: true }).click();
+					await pool.query("UPDATE runner_broadcast_admissions SET last_observed_at=now() WHERE session_id IN (SELECT session_id FROM runner_schedule_events WHERE id=$1)", [lockedId]);
 					await page.getByRole("button", { name: "Schedule", exact: true }).click();
 					await expect(schedule).toBeVisible();
 					const calendar = schedule.getByRole("region", { name: "Broadcast calendar" });
@@ -402,6 +429,7 @@ for (const plan of ["free", "pro"] as const)
 						const locked = calendar.locator('[data-slot="agenda-event"], [data-slot="agenda-month-event"], [data-slot="agenda-month-spanning-event"]').filter({ hasText: "Locked broadcast" }).first();
 						const editable = calendar.locator('[data-slot="agenda-event"], [data-slot="agenda-month-event"], [data-slot="agenda-month-spanning-event"]').filter({ hasText: "Vacation broadcast" }).first();
 						await expect(locked.getByRole("img", { name: "Locked event", exact: true })).toBeVisible();
+						if (view === "Week") await expect(locked.getByText("Live", { exact: true })).toBeVisible();
 						await expect(locked).toHaveCSS("border-top-style", "solid");
 						// The future event may be tomorrow or in the next week/month after a date boundary.
 						// The locked fixture spans that boundary, so both states remain comparable.
