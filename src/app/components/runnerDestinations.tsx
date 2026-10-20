@@ -1,4 +1,5 @@
 "use client";
+import { useDeploymentDraft } from "@lib/deploymentDrafts";
 
 import { useEffect, useRef, useState } from "react";
 import { Button, Chip, Input, Link, Label, ListBox, Modal, Select, Table, TextField, Tooltip, Tabs, Spinner, FieldError } from "@heroui/react";
@@ -20,6 +21,7 @@ const endpoints = { twitch: "rtmp://live.twitch.tv/app", youtube: "rtmp://a.rtmp
 
 export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ownerId: string; runnerId: string; onChange?: (change?: { deletedId: string }) => void }) {
 	const [destinations, setDestinations] = useState<RunnerDestinationView[]>([]);
+	const [loaded, setLoaded] = useState(false);
 	const [open, setOpen] = useState(false);
 	const [editing, setEditing] = useState<RunnerDestinationView | null>(null);
 	const [deleting, setDeleting] = useState<RunnerDestinationView | null>(null);
@@ -51,13 +53,26 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 	const credentialValid = provider === "custom" || savedKeyAvailable || key.trim().length > 0;
 	const valid = nameValid && (provider !== "custom" && connectionMethod === "account" ? accountConnected && (provider !== "youtube" || (Boolean(account.streamId) && !account.loadingStreams && !account.streamsError)) : Boolean(url.trim() || editing) && Boolean(credentialValid));
 
+	useDeploymentDraft(loaded ? `runner-destination:${ownerId}:${runnerId}` : null, { name, provider, url, open, editing, connectionMethod, connectionId: account.connectionId, streamId: account.streamId }, { name: "", provider: "twitch" as Provider, url: endpoints.twitch, open: false, editing: null as RunnerDestinationView | null, connectionMethod: "account", connectionId: null as string | null, streamId: "" }, (recovered) => {
+		setName(recovered.name);
+		setProvider(recovered.provider);
+		setUrl(recovered.url);
+		setOpen(recovered.open);
+		setEditing(recovered.editing);
+		setConnectionMethod(recovered.connectionMethod);
+		account.setConnectionId(recovered.connectionId);
+		account.setStreamId(recovered.streamId);
+	});
+
 	useEffect(() => {
 		let current = true;
 		void listRunnerDestinations(ownerId, runnerId)
 			.then((result) => {
 				if (!current) return;
-				if (result.success) setDestinations(result.destinations);
-				else setError(result.error);
+				if (result.success) {
+					setDestinations(result.destinations);
+					setLoaded(true);
+				} else setError(result.error);
 			})
 			.catch(() => {
 				if (current) setError("Could not load destinations. Please try again.");

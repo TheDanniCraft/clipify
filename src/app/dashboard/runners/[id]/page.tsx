@@ -1,4 +1,5 @@
 "use client";
+import { useDeploymentDraft } from "@lib/deploymentDrafts";
 
 import LocalizedDate from "@components/localizedDate";
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
@@ -91,6 +92,7 @@ export default function RunnerPage() {
 	const [appearanceOpen, setAppearanceOpen] = useState(false);
 	const [scheduleOpen, setScheduleOpen] = useState(false);
 	const [destinationsOpen, setDestinationsOpen] = useState(false);
+	const [recoveredRevision, setRecoveredRevision] = useState<number | undefined>();
 	const [configurationError, setConfigurationError] = useState<string | null>(null);
 	const [loadError, setLoadError] = useState<string | null>(null);
 	const [loadAttempt, setLoadAttempt] = useState(0);
@@ -210,6 +212,23 @@ export default function RunnerPage() {
 		return () => window.clearTimeout(timer);
 	}, [runnerPolicy?.validUntil, runner, user]);
 
+	const savedSession = streamSessions[0];
+	useDeploymentDraft(
+		user && runner && !isLoading ? `runner:${user.id}:${runner.id}` : null,
+		{ overlayId, mode, controlMode, selectedDestinationIds, appearanceOpen, scheduleOpen, destinationsOpen, configurationRevision: recoveredRevision ?? savedSession?.configurationRevision },
+		{ overlayId: savedSession?.overlayId ?? "", mode: (savedSession?.mode as StreamMode) ?? StreamMode.AlwaysOn, controlMode: savedSession?.controlMode ?? "manual", selectedDestinationIds: savedSession?.destinationIds ?? [], appearanceOpen: false, scheduleOpen: false, destinationsOpen: false, configurationRevision: savedSession?.configurationRevision },
+		(draft) => {
+			setOverlayId(draft.overlayId);
+			setMode(draft.mode);
+			setControlMode(draft.controlMode);
+			setSelectedDestinationIds(draft.selectedDestinationIds);
+			setAppearanceOpen(draft.appearanceOpen);
+			setScheduleOpen(draft.scheduleOpen);
+			setDestinationsOpen(draft.destinationsOpen);
+			setRecoveredRevision(draft.configurationRevision);
+		},
+	);
+
 	if (loadError)
 		return (
 			<div className='mx-auto max-w-xl space-y-4 p-6'>
@@ -248,7 +267,6 @@ export default function RunnerPage() {
 		}
 	};
 
-	const savedSession = streamSessions[0];
 	const dirty = !savedSession || overlayId !== savedSession.overlayId || mode !== savedSession.mode || controlMode !== savedSession.controlMode || [...selectedDestinationIds].sort().join() !== [...savedSession.destinationIds].sort().join();
 	const streamConfigValid = Boolean(overlayId && selectedDestinationIds.length && (runnerPolicy?.runnerPro || selectedDestinationIds.length === 1));
 	const streamReadyToStart = !dirty && streamConfigValid && canStartWithDestinations(destinationOptions, selectedDestinationIds);
@@ -288,7 +306,7 @@ export default function RunnerPage() {
 		}
 		setIsSaving(true);
 		try {
-			const res = await upsertStreamSession({ id: savedSession?.id, expectedRevision: savedSession?.configurationRevision, ownerId: runner.ownerId, runnerId: runner.id, overlayId, mode, controlMode, rtmpUrl: "", streamKey: "", destinationIds: selectedDestinationIds });
+			const res = await upsertStreamSession({ id: savedSession?.id, expectedRevision: recoveredRevision ?? savedSession?.configurationRevision, ownerId: runner.ownerId, runnerId: runner.id, overlayId, mode, controlMode, rtmpUrl: "", streamKey: "", destinationIds: selectedDestinationIds });
 			if (!res.success) {
 				setConfigurationError(res.error || "Could not save this broadcast. Please try again.");
 				const current = await listRunnerScheduleEvents(runner.ownerId, runner.id);
@@ -298,6 +316,7 @@ export default function RunnerPage() {
 			const sessions = await getStreamSessionsForRunner(runner.id, runner.ownerId);
 			setStreamSessions(sessions);
 			setSelectedDestinationIds(sessions[0]?.destinationIds ?? selectedDestinationIds);
+			setRecoveredRevision(undefined);
 			notify({ title: "Saved", description: "Stream session configuration saved.", color: "success" });
 		} catch {
 			setConfigurationError("Could not save this broadcast. Your changes are kept. Please try again.");

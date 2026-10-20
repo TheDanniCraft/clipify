@@ -369,3 +369,20 @@ test.each([
 	expect(screen.getByTitle("Runner appearance preview")).toBe(frame);
 	expect(saveRunnerBrandingProfile).not.toHaveBeenCalled();
 });
+
+test("restores appearance edits with their original save revision after deployment refresh", async () => {
+	jest.mocked(saveRunnerBrandingProfile).mockResolvedValue({ success: true, profile: { ...profile, id: "33333333-3333-4333-8333-333333333333", revision: 1 } });
+	sessionStorage.setItem("clipify:deployment-drafts", JSON.stringify({ pathname: location.pathname, expiresAt: Date.now() + 60000, drafts: { "runner-appearance:fixture-owner:11111111-1111-4111-8111-111111111111": { changes: { watermarkCorner: "top_left", configurationRevision: 0 }, baseline: { watermarkCorner: "bottom_right", configurationRevision: 0 } } } }));
+	try {
+		const { frame, save } = await previewWithLayout("placed");
+		await waitFor(() => expect(screen.getByRole("radio", { name: "Top left" })).toHaveAttribute("aria-checked", "true"));
+		fireEvent.load(frame);
+		frame.contentDocument!.querySelector("[data-runner-preview-revision]")?.remove();
+		acknowledgePreview(frame);
+		fireEvent.click(save);
+		await waitFor(() => expect(saveRunnerBrandingProfile).toHaveBeenCalledWith(expect.objectContaining({ watermarkCorner: "top_left", expectedRevision: 0 })));
+		expect(await screen.findByRole("status")).toHaveTextContent("Appearance saved");
+	} finally {
+		sessionStorage.clear();
+	}
+});

@@ -1,4 +1,5 @@
 "use client";
+import { useDeploymentDraft } from "@lib/deploymentDrafts";
 
 import { formatDisplayDate } from "@lib/dateFormat";
 import LocalizedDate from "@components/localizedDate";
@@ -67,6 +68,11 @@ export default function SettingsPage() {
 	const [deletionChoice, setDeletionChoice] = useState<"paid_through" | "immediate">("paid_through");
 	const [settings, setSettings] = useState<UserSettings | null>(null);
 	const [baseSettings, setBaseSettings] = useState<UserSettings | null>(null);
+	useDeploymentDraft(user && settings && baseSettings ? `settings:${user.id}` : null, settings ?? {}, baseSettings ?? {}, (draft, saved) => {
+		setSettings(draft as UserSettings);
+		setBaseSettings(saved as UserSettings);
+	});
+
 	const [clipCacheStatus, setClipCacheStatus] = useState<ClipCacheStatusState | null>(null);
 	const [clipForceRefreshStatus, setClipForceRefreshStatus] = useState<ClipForceRefreshStatusState>(null);
 	const [isForceRefreshing, setIsForceRefreshing] = useState(false);

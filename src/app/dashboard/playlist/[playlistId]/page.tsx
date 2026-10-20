@@ -1,4 +1,5 @@
 "use client";
+import { useDeploymentDraft } from "@lib/deploymentDrafts";
 
 import LocalizedDate from "@components/localizedDate";
 import { buttonVariants } from "@heroui/styles";
@@ -243,6 +244,18 @@ export default function PlaylistPage() {
 	const selectedIds = Array.from(selectedCachedClipIds as Set<string>);
 	const selectedNewClipCount = (cachedClips ?? []).filter((clip) => selectedIds.includes(clip.id) && !playlistClips.some((existing) => existing.id === clip.id)).length;
 	const wouldExceedFreeLimit = isFreePlaylistLimitActive && playlistClipUsage + selectedNewClipCount > FREE_PLAYLIST_CLIP_LIMIT;
+	useDeploymentDraft(
+		user && playlist && isPlaylistResolved ? `playlist:${user.id}:${playlist.id}` : null,
+		{ name: playlistNameDraft, clips: playlistClips, savedIds: savedPlaylistClipIds, configurationRevision: playlist?.configurationRevision },
+		{ name: playlist?.name ?? "", clips: savedPlaylistClipIds.map((id) => playlistClips.find((clip) => clip.id === id)).filter((clip): clip is TwitchClip => Boolean(clip)), savedIds: savedPlaylistClipIds, configurationRevision: playlist?.configurationRevision },
+		(draft, saved) => {
+			setPlaylistNameDraft(draft.name);
+			setPlaylistClips(draft.clips);
+			setSavedPlaylistClipIds(saved.savedIds);
+			setPlaylist((current) => (current ? { ...current, name: saved.name, configurationRevision: saved.configurationRevision ?? current.configurationRevision } : current));
+		},
+	);
+
 	const isPlaylistDirty = playlistClips.map((clip) => clip.id).join(",") !== savedPlaylistClipIds.join(",");
 	const isPlaylistNameDirty = playlist ? playlistNameDraft.trim() !== playlist.name : false;
 	const canSavePlaylist = isPlaylistDirty || isPlaylistNameDirty;
