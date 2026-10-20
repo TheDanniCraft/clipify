@@ -1,3 +1,4 @@
+import { acquireRunnerInstance, recoverInterruptedExecutions } from "./startup-recovery";
 import { parseExecutionPublicKeys } from "./execution-keys";
 import { executionNow } from "./execution-clock";
 import { RunnerBenefitSnapshotCache } from "./protocol";
@@ -31,6 +32,7 @@ const activeEngines: Record<string, Engine> = {};
 const drainingEngines = new Set<Engine>();
 const freeControllers = new Map<string, { runnerId: string; controller: FreeExecutionController }>();
 const freeJournals = new Map<string, ExecutionJournal>();
+const closedOnRestart = new Set<string>();
 const learnedDevices = new Map<string, string>();
 const ownerBenefitCaches = new Map<string, RunnerBenefitSnapshotCache>();
 const scheduleCaches = new Map<string, RunnerScheduleCache>();
@@ -461,6 +463,7 @@ function getFreeController(job: Pick<HeartbeatJob, "ownerId" | "runnerId">, runn
 		runnerId,
 		keys,
 		journal: getFreeJournal(runnerId),
+		closedOnRestart,
 		clock: executionNow,
 		createEngine: (assignment, policy) => {
 			const mode = assignment.mode === "24/7" ? "24_7" : assignment.mode;
@@ -761,6 +764,12 @@ async function main() {
 		console.log("Clipify Runner self-test passed");
 		process.exit(0);
 	}
+
+	const directory = join(os.homedir(), ".clipify-runner");
+	await acquireRunnerInstance(directory);
+	const recovered = await recoverInterruptedExecutions(directory);
+	for (const admissionId of recovered) closedOnRestart.add(admissionId);
+	if (recovered.size) console.log(`[Runner] Closed interrupted outputs; reconciling ${recovered.size} broadcasts.`);
 
 	const oldVersionCleanup = cleanupOldVersions();
 	await Promise.race([oldVersionCleanup, sleep(5_000)]);

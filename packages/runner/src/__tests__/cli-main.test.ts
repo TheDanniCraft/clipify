@@ -12,6 +12,8 @@ test.each(["ok", "retry", "reauth"])("main initializes the native runner and han
 	const saved = { runnerId: "device", apiBase: "https://example.invalid", token: "fixture-token" };
 	const loadCredentials = jest.fn().mockResolvedValue(saved),
 		clearCredentials = jest.fn().mockResolvedValue(undefined);
+	const acquireRunnerInstance = jest.fn().mockResolvedValue(undefined),
+		recoverInterruptedExecutions = jest.fn().mockResolvedValue(new Set(["interrupted"]));
 	const checkForUpdates = jest.fn().mockResolvedValue("fixture-version"),
 		init = jest.fn(),
 		setPinned = jest.fn();
@@ -20,6 +22,7 @@ test.each(["ok", "retry", "reauth"])("main initializes the native runner and han
 	await compileRunnerCli(
 		source,
 		(name: string) => {
+			if (name === "./startup-recovery") return { acquireRunnerInstance, recoverInterruptedExecutions };
 			if (name === "./storage") return { loadCredentials, clearCredentials };
 			if (name === "./updater") return { checkForUpdates, cleanupOldVersions: async () => undefined };
 			if (name === "./logger") return { ConsoleUI: { init, setPinned } };
@@ -60,6 +63,9 @@ test.each(["ok", "retry", "reauth"])("main initializes the native runner and han
 	try {
 		await expect(cli.main()).rejects.toBe(sentinel);
 		expect(init).toHaveBeenCalledTimes(1);
+		expect(acquireRunnerInstance).toHaveBeenCalledTimes(1);
+		expect(recoverInterruptedExecutions).toHaveBeenCalledTimes(1);
+		expect(recoverInterruptedExecutions.mock.invocationCallOrder[0]).toBeLessThan(loadCredentials.mock.invocationCallOrder[0]);
 		expect(checkForUpdates).toHaveBeenCalledTimes(status === "reauth" ? 2 : 1);
 		expect(loadCredentials).toHaveBeenCalledTimes(status === "reauth" ? 2 : 1);
 		if (status === "reauth") expect(clearCredentials).toHaveBeenCalledWith("device");
