@@ -135,12 +135,53 @@ When("their Pro broadcast reports one retrying and one live destination", async 
 	await page.reload();
 });
 
-Then("the browser shows each named destination's own status", async ({ page }) => {
-	const status = page.getByRole("list", { name: "Destination status", exact: true });
-	await expect(status).toBeVisible();
-	await expect(status.getByRole("listitem").filter({ hasText: "Twitch" })).toContainText("Retrying");
-	await expect(status.getByRole("listitem").filter({ hasText: "YouTube" })).toContainText("Live");
-	await expect(page.getByText("Your other destinations keep streaming while this destination reconnects.", { exact: true })).toBeVisible();
+Then("the browser shows each named destination's own status", async ({ page, mcpWorld }) => {
+	const selector = page.getByRole("group", { name: "Broadcast destinations" });
+	await expect(selector.getByRole("status", { name: "Twitch: Retrying", exact: true })).toBeVisible();
+	await expect(selector.getByRole("status", { name: "YouTube: Live", exact: true })).toBeVisible();
+	const state = mcpWorld.input?.runnerManual as ManualWorld;
+	const pool = new Pool({ connectionString: browserDatabaseUrl(), max: 1 });
+	try {
+		const report = (await pool.query("SELECT output_states FROM runner_broadcast_admissions WHERE runner_id=$1 AND state='active'", [state.runnerId])).rows[0].output_states;
+		await pool.query("UPDATE runner_broadcast_admissions SET output_states='[]'::jsonb WHERE runner_id=$1 AND state='active'", [state.runnerId]);
+		await expect(selector.getByRole("status", { name: "Twitch: Awaiting status", exact: true })).toBeVisible();
+		const trigger = selector.getByRole("button", { name: /Broadcast destinations$/ });
+		const awaiting = await trigger.boundingBox();
+		const savePosition = await page.getByRole("button", { name: "Save Configuration", exact: true }).boundingBox();
+		await pool.query("UPDATE runner_broadcast_admissions SET output_states=$2::jsonb WHERE runner_id=$1 AND state='active'", [state.runnerId, JSON.stringify(report)]);
+		await expect(selector.getByRole("status", { name: "YouTube: Live", exact: true })).toBeVisible();
+		expect(await trigger.boundingBox()).toEqual(awaiting);
+		expect(await page.getByRole("button", { name: "Save Configuration", exact: true }).boundingBox()).toEqual(savePosition);
+	} finally {
+		await pool.end();
+	}
+	await selector.getByRole("button", { name: /Broadcast destinations$/ }).click();
+	await expect(page.getByRole("option", { name: /^Twitch\b/ })).toContainText("Retrying");
+	await expect(page.getByRole("option", { name: /^YouTube\b/ })).toContainText("Live");
+	await page.getByRole("option", { name: /^Twitch\b/ }).press("Escape");
+	await expect(selector.getByRole("button", { name: /Broadcast destinations$/ })).toHaveAttribute("aria-expanded", "false");
+	await expect(page.getByRole("heading", { name: "Destination status" })).toHaveCount(0);
+	for (const theme of ["dark", "light"]) {
+		await page.evaluate((theme) => {
+			document.documentElement.classList.remove("dark", "light");
+			document.documentElement.classList.add(theme);
+			document.documentElement.style.colorScheme = theme;
+		}, theme);
+		for (const width of [1280, 390]) {
+			await page.setViewportSize({ width, height: 960 });
+			const trigger = selector.getByRole("button", { name: /Broadcast destinations$/ });
+			await expect(trigger).toBeVisible();
+			const closed = await trigger.boundingBox();
+			await trigger.focus();
+			await page.keyboard.press("ArrowDown");
+			await expect(page.getByRole("option", { name: /^YouTube\b/ })).toBeVisible();
+			await page.screenshot({ path: test.info().outputPath(`destination-status-${theme}-${width}.png`), fullPage: true, animations: "disabled" });
+			await page.getByRole("option", { name: /^YouTube\b/ }).press("Escape");
+			await expect(trigger).toHaveAttribute("aria-expanded", "false");
+			await expect(trigger).toBeFocused();
+			expect(await trigger.boundingBox()).toEqual(closed);
+		}
+	}
 });
 
 AfterScenario({ tags: "@runner-manual-browser" }, async ({ request, mcpWorld }) => {

@@ -22,7 +22,6 @@ import RunnerDestinations from "@components/runnerDestinations";
 import RunnerBrandingPreview from "@components/runner/RunnerBrandingPreview";
 import RunnerSchedule from "@components/runnerSchedule";
 import RunnerDestinationSelection, { canStartWithDestinations } from "@components/runnerDestinationSelection";
-import RunnerOutputStatus from "@components/runnerOutputStatus";
 import RunnerControlSelection from "@components/runnerControlSelection";
 import UpgradeModal from "@components/upgradeModal";
 import DashboardNavbar from "@components/dashboardNavbar";
@@ -523,7 +522,7 @@ export default function RunnerPage() {
 						{runner.lastHeartbeatAt && (
 							<>
 								<h3 className='text-lg font-semibold'>Stream Configuration</h3>
-								<div className='grid gap-6 lg:grid-cols-2'>
+								<div className='grid grid-cols-1 gap-6 lg:grid-cols-2'>
 									<div className='space-y-5'>
 										<Select value={overlayId || null} onChange={(value) => setOverlayId(String(value ?? ""))} variant='secondary'>
 											<Label>Target Overlay</Label>
@@ -597,9 +596,8 @@ export default function RunnerPage() {
 											</p>
 										)}
 									</div>
-									<div className='space-y-4'>
-										<RunnerDestinationSelection destinations={destinationOptions} selectedIds={selectedDestinationIds} runnerPro={Boolean(runnerPolicy?.runnerPro)} onChange={setSelectedDestinationIds} onManage={() => setDestinationsOpen(true)} />
-										{savedSession && (savedSession.desiredState !== StreamState.Stopped || savedSession.outputs.length > 0) && <RunnerOutputStatus outputs={savedSession.outputs} destinations={destinationOptions} online={runner.status === RunnerStatus.Online} />}
+									<div className='min-w-0 space-y-4'>
+										<RunnerDestinationSelection destinations={destinationOptions} selectedIds={selectedDestinationIds} runnerPro={Boolean(runnerPolicy?.runnerPro)} onChange={setSelectedDestinationIds} onManage={() => setDestinationsOpen(true)} outputs={savedSession && (savedSession.desiredState !== StreamState.Stopped || savedSession.outputs.length > 0) ? savedSession.outputs : undefined} online={runner.status === RunnerStatus.Online} />
 									</div>
 								</div>
 								{configurationError && (

@@ -8,7 +8,11 @@ jest.mock("@heroui/react", () => {
 	const Box = ({ children }: { children?: React.ReactNode }) => <>{children}</>;
 	const Select = Object.assign(({ children, ...props }: { children: React.ReactNode }) => <Context.Provider value={props}>{children}</Context.Provider>, {
 		Trigger: Box,
-		Value: () => null,
+		Value: ({ children }: { children: (props: unknown) => React.ReactNode }) => {
+			const { value } = React.useContext(Context);
+			const keys = Array.isArray(value) ? value : value ? [value] : [];
+			return children({ isPlaceholder: !keys.length, defaultChildren: "Choose destinations", selectedItems: keys.map((key: string) => ({ key, textValue: key })) });
+		},
 		ClearButton: () => {
 			const { onClear } = React.useContext(Context);
 			return <button onClick={onClear}>Clear destinations</button>;
@@ -102,4 +106,22 @@ test("clearing all selected destinations reports an empty draft and leaves saved
 	expect(screen.getByRole("button", { name: /My YouTube/ })).toBeInTheDocument();
 	fireEvent.click(screen.getByRole("button", { name: "Manage destinations" }));
 	expect(onManage).toHaveBeenCalledTimes(1);
+});
+
+test("live telemetry stays inside the destination selector and offline reports lose live status", () => {
+	const props = { destinations, selectedIds: ["youtube", "twitch"], runnerPro: true, onChange: jest.fn() };
+	const outputs = [
+		{ id: "youtube", state: "streaming" },
+		{ id: "twitch", state: "retrying" },
+	] as const;
+	const { rerender } = render(<Selection {...props} outputs={outputs} online />);
+	expect(screen.getAllByRole("status", { name: "My YouTube: Live" })).toHaveLength(2);
+	expect(screen.getAllByRole("status", { name: "My Twitch: Retrying" })).toHaveLength(2);
+	expect(screen.queryByRole("heading", { name: "Destination status" })).not.toBeInTheDocument();
+	expect(screen.queryByText(/Waiting for the Runner to report/)).not.toBeInTheDocument();
+	rerender(<Selection {...props} outputs={outputs} online={false} />);
+	expect(screen.getAllByRole("status", { name: "My YouTube: Offline" })).toHaveLength(2);
+	expect(screen.queryByText("Live")).not.toBeInTheDocument();
+	rerender(<Selection {...props} outputs={[]} online />);
+	expect(screen.getAllByRole("status", { name: "My Twitch: Awaiting status" })).toHaveLength(2);
 });
