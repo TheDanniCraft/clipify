@@ -2,7 +2,7 @@ import { render, waitFor, fireEvent, screen } from "@testing-library/react";
 import RuntimeDeploymentReload from "@/app/components/RuntimeDeploymentReload";
 import { DEPLOYMENT_CHECK_EVENT } from "@/app/lib/deployment";
 
-let pathname = "/";
+let pathname = "/dashboard";
 
 jest.mock("next/navigation", () => ({
 	usePathname: () => pathname,
@@ -14,7 +14,7 @@ describe("RuntimeDeploymentReload", () => {
 	const fetchMock = jest.fn();
 
 	beforeEach(() => {
-		pathname = "/";
+		pathname = "/dashboard";
 		global.Request = class {} as unknown as typeof Request;
 		fetchMock.mockReset();
 		fetchMock.mockResolvedValue({ ok: true, headers: { get: () => "deployment-1" } });
@@ -30,6 +30,13 @@ describe("RuntimeDeploymentReload", () => {
 		pathname = "/overlay/overlay-1";
 		const view = render(<RuntimeDeploymentReload deploymentId='deployment-1' />);
 
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/deployment", { cache: "no-store", credentials: "omit" }));
+		view.unmount();
+	});
+
+	it.each(["/gallery", "/gallery/gallery-1", "/runner/preview/runner-1", "/pricing"])("monitors %s without waiting for interaction", async (path) => {
+		pathname = path;
+		const view = render(<RuntimeDeploymentReload deploymentId='deployment-1' />);
 		await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/deployment", { cache: "no-store", credentials: "omit" }));
 		view.unmount();
 	});
@@ -59,7 +66,7 @@ describe("RuntimeDeploymentReload", () => {
 		expect(fetchMock).toHaveBeenCalledTimes(2);
 	});
 
-	it("does not poll ordinary application pages", () => {
+	it("does not poll dashboard editors", () => {
 		const view = render(<RuntimeDeploymentReload deploymentId='deployment-1' />);
 
 		expect(fetchMock).not.toHaveBeenCalled();
