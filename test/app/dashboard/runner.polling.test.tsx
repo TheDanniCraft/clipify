@@ -1,6 +1,6 @@
 import { act, render } from "@testing-library/react";
 import RunnerPage from "@/app/dashboard/runners/[id]/page";
-import { getRunner, getRunnerVersionManifest } from "@/app/actions/runner";
+import { getRunner, getRunnerVersionManifest, getStreamSessionsForRunner } from "@/app/actions/runner";
 
 jest.mock("next/navigation", () => {
 	const router = { push: jest.fn() };
@@ -100,5 +100,32 @@ test("connected ARM Linux shows the matching platform update state", async () =>
 	const view = render(<RunnerPage />);
 	await act(async () => {});
 	expect(screen.getByRole("button", { name: "Runner up to date" })).toBeDisabled();
+	view.unmount();
+});
+
+test("connection status updates even when session telemetry is still pending", async () => {
+	jest.useFakeTimers();
+	const { screen } = await import("@testing-library/react");
+	const runner = { id: "polling-runner", ownerId: "polling-owner", name: "Connecting computer", status: "offline", lastHeartbeatAt: new Date(), osInfo: "Windows", version: null, configurationRevision: 1 };
+	jest.mocked(getRunner).mockResolvedValue(runner as never);
+	const view = render(<RunnerPage />);
+	await act(async () => {});
+	expect(screen.getByText("Offline", { exact: true })).toBeVisible();
+	const manifestCalls = jest.mocked(getRunnerVersionManifest).mock.calls.length;
+	jest.mocked(getRunner).mockResolvedValue({ ...runner, status: "online" } as never);
+	let finish!: (sessions: Awaited<ReturnType<typeof getStreamSessionsForRunner>>) => void;
+	jest.mocked(getStreamSessionsForRunner).mockReturnValueOnce(
+		new Promise((resolve) => {
+			finish = resolve;
+		}),
+	);
+	await act(async () => {
+		await jest.advanceTimersByTimeAsync(2000);
+	});
+	expect(screen.getByText("Online", { exact: true })).toBeVisible();
+	expect(getRunnerVersionManifest).toHaveBeenCalledTimes(manifestCalls);
+	await act(async () => {
+		finish([]);
+	});
 	view.unmount();
 });
