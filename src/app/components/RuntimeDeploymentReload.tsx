@@ -145,7 +145,7 @@ export default function RuntimeDeploymentReload({ deploymentId }: { deploymentId
 	function refresh() {
 		const sensitiveInput = [...sensitiveEdits.current].some((input) => input.isConnected && Boolean(input.value));
 		if (sensitiveInput || !preserveDeploymentDrafts()) {
-			setRecoveryError(sensitiveInput ? "Copy or finish any unsaved passwords, stream keys or selected files before refreshing. These cannot be restored." : "Your browser could not preserve your changes. Keep this page open and copy your edits before refreshing.");
+			setRecoveryError(sensitiveInput ? "Copy any unsaved passwords or stream keys, and note selected files before refreshing. These cannot be restored." : "Your browser could not preserve your changes. Keep this page open and copy your edits before refreshing.");
 			return;
 		}
 		if (updateId) rememberReload(updateId);
@@ -156,7 +156,7 @@ export default function RuntimeDeploymentReload({ deploymentId }: { deploymentId
 			{updateId && !promptOpen && (
 				<Button variant='secondary' className='fixed bottom-4 left-1/2 z-50 -translate-x-1/2 shadow-lg' onPress={() => setPromptOpen(true)}>
 					<IconRefresh size={18} />
-					Update available
+					Refresh required
 				</Button>
 			)}
 			<Modal.Backdrop
@@ -167,12 +167,12 @@ export default function RuntimeDeploymentReload({ deploymentId }: { deploymentId
 			>
 				<Modal.Container size='sm'>
 					<Modal.Dialog>
-						<Modal.CloseTrigger />
+						<Modal.CloseTrigger aria-label='Close update dialog' />
 						<Modal.Header>
 							<Modal.Heading>Clipify has been updated</Modal.Heading>
 						</Modal.Header>
 						<Modal.Body className='space-y-3'>
-							<p>{hasDeploymentDrafts() ? "Refresh to continue. Your editor changes will be restored in this tab." : "Refresh to continue. Copy any unsaved edits on this page before refreshing."} Nothing will be saved or started automatically.</p>
+							<p>{hasDeploymentDrafts() ? "Refresh Clipify before saving. Your unsaved editor changes will be restored in this tab." : "Refresh Clipify before saving. Copy any unsaved changes on this page first."}</p>
 							{recoveryError && (
 								<p role='alert' className='text-sm text-danger'>
 									{recoveryError}
@@ -180,9 +180,6 @@ export default function RuntimeDeploymentReload({ deploymentId }: { deploymentId
 							)}
 						</Modal.Body>
 						<Modal.Footer>
-							<Button variant='tertiary' onPress={() => setPromptOpen(false)}>
-								Keep editing
-							</Button>
 							<Button variant='primary' onPress={refresh}>
 								<IconRefresh size={18} />
 								Refresh Clipify

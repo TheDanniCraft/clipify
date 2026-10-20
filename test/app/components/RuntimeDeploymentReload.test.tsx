@@ -83,8 +83,9 @@ describe("RuntimeDeploymentReload", () => {
 		const view = render(<RuntimeDeploymentReload deploymentId='' />);
 		await window.fetch("/dashboard/settings", { method: "POST", headers: { "Next-Action": "old-action" } });
 		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-		fireEvent.click(screen.getByRole("button", { name: "Keep editing" }));
-		expect(screen.getByRole("button", { name: "Update available" })).toBeVisible();
+		expect(screen.queryByRole("button", { name: "Keep editing" })).not.toBeInTheDocument();
+		expect(screen.getByText(/Refresh Clipify before saving/)).toBeVisible();
+		expect(screen.getByRole("button", { name: "Refresh Clipify" })).toBeVisible();
 		view.unmount();
 	});
 
