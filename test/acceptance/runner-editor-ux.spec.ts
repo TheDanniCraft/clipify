@@ -202,15 +202,15 @@ for (const plan of ["free", "pro"] as const)
 			await expect(manager.getByRole("button", { name: "Add destination", exact: true })).toBeFocused();
 			await page.keyboard.press("Escape");
 			await expect(manager).not.toBeVisible();
-			await expect(selector.getByRole("button", { name: /^Choose destinations(?: Broadcast destinations)?$/ })).toContainText("Choose destinations");
+			await expect(selector.getByRole("button", { name: /Broadcast destinations$/ })).toContainText("Choose destinations");
 			await expect(page.getByRole("button", { name: "Start", exact: true })).toBeDisabled();
 			await page.screenshot({ path: testInfo.outputPath(`${plan}-destination-deleted.png`), fullPage: true, animations: "disabled" });
 			const detached = await pool.query("SELECT rtmp_url, encrypted_stream_key IS NOT NULL AS has_key FROM stream_sessions WHERE runner_id=$1 AND owner_id=$2", [runnerId, owner.fixture.creatorId]);
 			expect(detached.rows).toEqual([{ rtmp_url: "", has_key: false }]);
 			await page.reload();
 			await expect(page.getByRole("heading", { name: "Stream Configuration", exact: true })).toBeVisible();
-			await expect(selector.getByRole("button", { name: /^Choose destinations(?: Broadcast destinations)?$/ })).toContainText("Choose destinations");
-			await selector.getByRole("button", { name: /^Choose destinations(?: Broadcast destinations)?$/ }).click();
+			await expect(selector.getByRole("button", { name: /Broadcast destinations$/ })).toContainText("Choose destinations");
+			await selector.getByRole("button", { name: /Broadcast destinations$/ }).click();
 			await page.getByRole("option", { name: /Backup output for the community broadcast/ }).click();
 			if (await page.getByRole("listbox").isVisible()) await page.keyboard.press("Escape");
 			await mainSave.click();
@@ -610,7 +610,7 @@ test("a second Runner reuses an account destination without asking for its key a
 		expect(saved[0].encrypted_stream_key).not.toContain("private-reusable-browser-key");
 		await page.goto(`/dashboard/runners/${second}`);
 		await expect(page.getByRole("heading", { name: "Second computer", exact: true })).toBeVisible();
-		await selector.getByRole("button", { name: /Choose destinations/ }).click();
+		await selector.getByRole("button", { name: /Broadcast destinations$/ }).click();
 		await page.getByRole("option", { name: /Community Twitch/ }).click();
 		if (await page.getByRole("listbox").isVisible()) await page.keyboard.press("Escape");
 		await page.getByRole("button", { name: /Target Overlay$/ }).click();

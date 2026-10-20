@@ -41,7 +41,7 @@ test("past broadcasts remain read-only and future recurring changes have explici
 		await page.goto(`/dashboard/runners/${runnerId}`);
 		await page.getByRole("button", { name: "Schedule", exact: true }).click();
 		const schedule = page.getByRole("dialog", { name: "Broadcast schedule", exact: true });
-		await schedule.getByRole("button", { name: "View Past broadcast", exact: true }).click();
+		await schedule.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "View Past broadcast", exact: true }).click();
 		const details = page.getByRole("dialog", { name: "Broadcast details", exact: true });
 		await expect(details).toBeVisible();
 		await expect(details.getByRole("button", { name: "Delete schedule", exact: true })).toHaveCount(0);
@@ -50,10 +50,10 @@ test("past broadcasts remain read-only and future recurring changes have explici
 		await details.getByRole("button", { name: "Save title", exact: true }).click();
 		await expect(details).not.toBeVisible();
 		expect((await pool.query("SELECT title,configuration_revision FROM runner_schedule_events WHERE id=$1", [pastId])).rows[0]).toEqual({ title: "Archived broadcast", configuration_revision: 1 });
-		await schedule.getByRole("button", { name: "View Archived broadcast", exact: true }).click();
+		await schedule.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "View Archived broadcast", exact: true }).click();
 		await details.screenshot({ path: testInfo.outputPath("past-broadcast-details-dark.png") });
 		await details.getByRole("button", { name: "Close", exact: true }).last().click();
-		await schedule.getByRole("button", { name: "View Archived broadcast", exact: true }).click();
+		await schedule.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "View Archived broadcast", exact: true }).click();
 		await page.setViewportSize({ width: 390, height: 844 });
 		await details.screenshot({ path: testInfo.outputPath("past-details-dark-mobile.png") });
 		await details.getByRole("button", { name: "Close", exact: true }).last().click();
@@ -63,7 +63,7 @@ test("past broadcasts remain read-only and future recurring changes have explici
 		await page.getByRole("button", { name: "Toggle Theme", exact: true }).click();
 		await page.setViewportSize({ width: 1280, height: 900 });
 		await page.getByRole("button", { name: "Schedule", exact: true }).click();
-		await schedule.getByRole("button", { name: "View Archived broadcast", exact: true }).click();
+		await schedule.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "View Archived broadcast", exact: true }).click();
 		await details.screenshot({ path: testInfo.outputPath("past-details-light-desktop.png") });
 		await page.setViewportSize({ width: 390, height: 844 });
 		await details.screenshot({ path: testInfo.outputPath("past-details-light-mobile.png") });

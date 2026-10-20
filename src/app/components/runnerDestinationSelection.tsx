@@ -11,9 +11,9 @@ export default function RunnerDestinationSelection({ destinations, selectedIds, 
 	return (
 		<fieldset className='space-y-3'>
 			<legend className='sr-only'>{label}</legend>
-			<Select variant='secondary' selectionMode={multiple ? "multiple" : "single"} value={multiple ? selectedIds : (selectedIds[0] ?? null)} placeholder={destinations.length ? "Choose destinations" : "No destinations yet"} isDisabled={!destinations.length} onChange={(value) => onChange(Array.isArray(value) ? value.map(String) : value ? [String(value)] : [])} onClear={() => onChange([])}>
+			<Select aria-label={label} variant='secondary' selectionMode={multiple ? "multiple" : "single"} value={multiple ? selectedIds : (selectedIds[0] ?? null)} placeholder={destinations.length ? "Choose destinations" : "No destinations yet"} isDisabled={!destinations.length} onChange={(value) => onChange(Array.isArray(value) ? value.map(String) : value ? [String(value)] : [])} onClear={() => onChange([])}>
 				<Label>{label}</Label>
-				<Select.Trigger aria-label={label}>
+				<Select.Trigger>
 					<Select.Value />
 					<Select.ClearButton />
 					<Select.Indicator />
