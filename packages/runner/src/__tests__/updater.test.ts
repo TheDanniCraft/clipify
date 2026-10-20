@@ -162,5 +162,62 @@ describe("Updater logic", () => {
 		expect(fs.writeFileSync).toHaveBeenCalledWith("runner.exe.update-error.log", "controlled PowerShell startup failure", { mode: 0o600 });
 	});
 
+	it.each([true, false])("reports update download progress with a known size=%s", async (knownSize) => {
+		(fs.existsSync as jest.Mock).mockReturnValue(true);
+		(crypto.createHash as jest.Mock).mockReturnValue({ update: jest.fn(), digest: jest.fn().mockReturnValue("old-hash") });
+		const chunks = [new Uint8Array(1024 * 1024), new Uint8Array(1024 * 1024)];
+		(global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true, json: async () => ({ linux: "new-hash", windows: "new-hash" }) }).mockResolvedValueOnce(
+			new Response(
+				new ReadableStream({
+					start(controller) {
+						for (const chunk of chunks) controller.enqueue(chunk);
+						controller.close();
+					},
+				}),
+				{ headers: knownSize ? { "content-length": String(2 * 1024 * 1024) } : {} },
+			),
+		);
+		const log = jest.spyOn(console, "log").mockImplementation(() => {});
+		const time = jest.spyOn(Date, "now");
+		let now = 1000;
+		time.mockImplementation(() => (now += 1000));
+		try {
+			await checkForUpdates("https://clipify.example");
+			const progress = log.mock.calls.map(([message]) => String(message)).filter((message) => message.startsWith("[Updater] Download:"));
+			expect(progress).toContain(knownSize ? "[Updater] Download: 50% (1.0 / 2.0 MiB)" : "[Updater] Download: 1.0 MiB");
+			expect(progress.at(-1)).toBe(knownSize ? "[Updater] Download: 100% (2.0 / 2.0 MiB)" : "[Updater] Download: 2.0 MiB (complete)");
+			expect(fs.writeFileSync).toHaveBeenCalledWith(expect.stringContaining(".new"), Buffer.concat(chunks));
+		} finally {
+			log.mockRestore();
+			time.mockRestore();
+		}
+	});
+
+	it("cleans up an interrupted download without claiming completion or replacing the Runner", async () => {
+		(fs.existsSync as jest.Mock).mockReturnValue(true);
+		(crypto.createHash as jest.Mock).mockReturnValue({ update: jest.fn(), digest: jest.fn().mockReturnValue("old-hash") });
+		const reader = {
+			read: jest
+				.fn()
+				.mockResolvedValueOnce({ done: false, value: new Uint8Array([1, 2, 3]) })
+				.mockRejectedValueOnce(new Error("Connection lost")),
+			releaseLock: jest.fn(),
+		};
+		(global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true, json: async () => ({ linux: "new-hash", windows: "new-hash" }) }).mockResolvedValueOnce({ ok: true, headers: new Headers(), body: { getReader: () => reader } });
+		const log = jest.spyOn(console, "log").mockImplementation(() => {});
+		const error = jest.spyOn(console, "error").mockImplementation(() => {});
+		try {
+			await expect(checkForUpdates("https://clipify.example")).resolves.toBe("old-hash");
+			expect(reader.releaseLock).toHaveBeenCalled();
+			expect(fs.unlinkSync).toHaveBeenCalledWith(expect.stringContaining(".new"));
+			expect(fs.writeFileSync).not.toHaveBeenCalled();
+			expect(fs.renameSync).not.toHaveBeenCalled();
+			expect(log.mock.calls.flat().join(" ")).not.toMatch(/100%|\(complete\)|Download verified/);
+		} finally {
+			log.mockRestore();
+			error.mockRestore();
+		}
+	});
+
 	it.todo("should apply an update after a verified hash mismatch");
 });
