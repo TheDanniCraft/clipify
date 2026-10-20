@@ -189,12 +189,21 @@ test("Runner preserves first connection, headless setup, updates, quality and re
 		});
 		const upload = await request.post("/api/runner/preview", { headers: { Authorization: `Bearer ${runnerToken}` }, data: { overlayId: owner.fixture.overlayId, image } });
 		expect(upload.status()).toBe(200);
-		const preview = page.getByRole("img", { name: "Live Stream Preview", exact: true });
+		const preview = page.getByRole("img", { name: "Broadcast snapshot", exact: true });
 		await expect(preview).toBeVisible();
+		await expect(page.getByText("Snapshots", { exact: true })).toBeVisible();
+		await expect(page.getByRole("timer", { name: "Snapshot refresh" })).toHaveText(/Refresh in [12]s|Refreshing…/);
 		await expect.poll(() => preview.evaluate((node: HTMLImageElement) => node.naturalWidth)).toBe(8);
-		await page.screenshot({ path: testInfo.outputPath("runner-restored-diagnostics-light.png"), fullPage: true });
+		for (const theme of ["light", "dark"]) {
+			if (theme === "dark") await page.getByRole("button", { name: "Toggle Theme", exact: true }).click();
+			for (const width of [1280, 390]) {
+				await page.setViewportSize({ width, height: 900 });
+				await expect(page.getByRole("timer", { name: "Snapshot refresh" })).toBeVisible();
+				await page.screenshot({ path: testInfo.outputPath(`runner-snapshots-${theme}-${width}.png`), fullPage: true, animations: "disabled" });
+			}
+		}
 		await pool.query("UPDATE runners SET status='offline' WHERE id=$1", [runnerId]);
-		await expect(page.getByRole("img", { name: "Live Stream Preview", exact: true })).toHaveCount(0);
+		await expect(page.getByRole("img", { name: "Broadcast snapshot", exact: true })).toHaveCount(0);
 		await expect(page.getByRole("heading", { name: "Stream Configuration", exact: true })).toBeVisible();
 		await expect(page.getByRole("heading", { name: "Setup Your Runner", exact: true })).toHaveCount(0);
 	} finally {

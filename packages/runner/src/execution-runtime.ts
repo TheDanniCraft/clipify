@@ -27,7 +27,7 @@ export type FreeExecutionJob = {
 	scheduledStart?: number;
 	destinations?: { id: string; name?: string; provider?: string; rtmpUrl: string; streamKey: string | null }[];
 };
-export type ExecutionEngine = { updateScheduledDeadline?: (deadlineMonotonic: number) => Promise<void>; drainOutcome?: "clip_completed" | "playback_timeout" | null; start: () => Promise<void | boolean>; stop: () => Promise<void>; requestDrain: (options?: { deadlineMonotonic?: number }) => Promise<void>; outputStates?: () => { id: string; state: RunnerOutputState }[] };
+export type ExecutionEngine = { readonly isRunning?: boolean; updateScheduledDeadline?: (deadlineMonotonic: number) => Promise<void>; drainOutcome?: "clip_completed" | "playback_timeout" | null; start: () => Promise<void | boolean>; stop: () => Promise<void>; requestDrain: (options?: { deadlineMonotonic?: number }) => Promise<void>; outputStates?: () => { id: string; state: RunnerOutputState }[] };
 type PreparedScheduledWindow = { job: FreeExecutionJob; record: ExecutionRecord; mediaHash: string; startMonotonic: number; endMonotonic: number };
 type ActiveExecution = { capture: { mediaHash: string; sourceRevision: number }; deadlineUpdate?: Promise<void>; continuity?: { members: PreparedScheduledWindow[]; deadlineMonotonic: number }; guard: FreeExecutionLease | ProExecutionPermit; engine: ExecutionEngine; record: ExecutionRecord; closing?: Promise<void>; outputsClosed?: boolean; outputGate: { permitted: boolean }; closeImmediately?: boolean };
 type ExecutionOptions = { ownerId: string; runnerId: string; keys: Readonly<Record<string, string>>; journal: ExecutionJournal; clock?: () => number; createEngine: (job: FreeExecutionJob, policy: { mayOpenOutput: () => boolean; scheduledDeadlineMonotonic: number | null }) => ExecutionEngine };
@@ -221,7 +221,12 @@ export class FreeExecutionController {
 			if (member) member.record = { ...bound, occurrence: { ...bound.occurrence, suppressed: true } };
 			if (bound.admissionId === execution.record.admissionId) execution.record = { ...execution.record, occurrence: { ...bound.occurrence, suppressed: true } };
 		}
-		if (immediate && execution.closing && !execution.outputsClosed) await execution.engine.stop();
+		if (immediate && execution.closing && !execution.outputsClosed) {
+			await execution.engine.stop();
+			execution.outputsClosed = true;
+			// Physical closure must not wait for a stalled graceful renderer RPC.
+			execution.closing = undefined;
+		}
 		await this.closeExecution(execution, immediate);
 		return true;
 	}
@@ -258,7 +263,8 @@ export class FreeExecutionController {
 		for (const execution of this.physicalExecutions()) {
 			// Browser control delivery cannot delay the independent native output fence.
 			this.refreshContinuity(execution);
-			if (this.executionState(execution) === "draining" || execution.record.state === "draining") closing.push(this.closeExecution(execution));
+			if (execution.record.state === "active" && execution.engine.isRunning === false) closing.push(this.closeExecution(execution, true));
+			else if (this.executionState(execution) === "draining" || execution.record.state === "draining") closing.push(this.closeExecution(execution));
 		}
 		await Promise.all(closing);
 	}
