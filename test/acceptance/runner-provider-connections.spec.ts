@@ -149,7 +149,8 @@ test("PC-1/3/6 connected channel, one permission prompt, optional event details 
 				{ destinationId: youtube, description: "Community clips while I am away.", thumbnailAssetId: expect.any(String) },
 			]),
 		);
-		await calendar.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Vacation highlights", exact: true }).click();
+		await calendar.getByRole("radio", { name: "Month", exact: true }).click();
+		await calendar.locator('[data-slot="agenda-month-event"], [data-slot="agenda-month-spanning-event"]').filter({ hasText: "Vacation highlights" }).first().click();
 		await event.getByRole("tab", { name: /Broadcast details/ }).click();
 		await expect(event.getByRole("switch", { name: "Set stream details", exact: true })).toBeChecked();
 		await expect(event.getByRole("textbox", { name: "Stream title", exact: true })).toHaveValue("Community highlights");

@@ -1,3 +1,4 @@
+import { parseZonedDateTime } from "@internationalized/date";
 import { openRunnerSchedule, fillScheduleField, expectScheduleField } from "../../support/runner/editor";
 import { createBdd } from "playwright-bdd";
 import { randomUUID } from "node:crypto";
@@ -22,8 +23,20 @@ async function query(text: string, values: unknown[] = []) {
 async function saved(state: State) {
 	return query("SELECT * FROM runner_schedule_events WHERE owner_id=$1 ORDER BY created_at,id", [state.owner.fixture.creatorId]);
 }
+async function scheduleEntry(page: Page, title: string) {
+	const runnerId = new URL(page.url()).pathname.split("/").at(-1);
+	const [row] = await query("SELECT local_start_date FROM runner_schedule_events WHERE runner_id=$1 AND title=$2 ORDER BY created_at DESC LIMIT 1", [runnerId, title]);
+	expect(row).toBeTruthy();
+	await fillScheduleField(page, "Displayed date", row.local_start_date);
+	const calendar = page.getByRole("region", { name: "Broadcast calendar", exact: true });
+	await calendar.getByRole("radio", { name: "Month", exact: true }).click();
+	return calendar
+		.getByRole("button", { name: `Edit ${title}`, exact: true })
+		.or(calendar.getByRole("button", { name: `View ${title}`, exact: true }))
+		.first();
+}
 async function expectLockedSchedule(page: Page) {
-	await page.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "View Active schedule", exact: true }).click();
+	await (await scheduleEntry(page, "Active schedule")).click();
 	const details = page.getByRole("dialog", { name: "Broadcast details", exact: true });
 	await expect(details.getByText("Broadcast settings are read-only. You can still rename this event.", { exact: true })).toBeVisible();
 	await expect(details.getByRole("combobox")).toHaveCount(0);
@@ -107,7 +120,7 @@ Then("the schedule boundary is {string} without changing a previously saved even
 		expect(rows.at(-1).title).toBe(state.submittedTitle);
 		await page.reload();
 		await openRunnerSchedule(page);
-		await expect(page.getByRole("list", { name: "Saved schedules", exact: true })).toContainText(state.submittedTitle!);
+		await expect(await scheduleEntry(page, state.submittedTitle!)).toBeVisible();
 	}
 });
 When("they save a Monday to next Wednesday vacation event", async ({ page, mcpWorld }) => {
@@ -121,7 +134,7 @@ Then("the explicit dates survive reload and the active rolling cache retains the
 	const state = mcpWorld.input?.scheduleContract as State;
 	await page.reload();
 	await openRunnerSchedule(page);
-	await page.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Vacation broadcast", exact: true }).click();
+	await (await scheduleEntry(page, "Vacation broadcast")).click();
 	const editor = page.getByRole("dialog", { name: "Schedule broadcast", exact: true });
 	await expectScheduleField(editor, "Start date", "2027-01-04");
 	await expectScheduleField(editor, "End date", "2027-01-13");
@@ -142,10 +155,10 @@ Then("its saved elapsed duration is {int} hours", async ({ page, mcpWorld }, hou
 	expect(rows[0].timezone).toBe("Europe/Berlin");
 	expect(rows[0].local_start_time).toMatch(/^00:00/);
 	expect(rows[0].local_end_time).toMatch(/^00:00/);
-	await expect(page.getByRole("list", { name: "Saved schedules", exact: true })).toContainText(`${hours} hours`);
+	expect((parseZonedDateTime(`${rows[0].local_end_date}T${rows[0].local_end_time}[Europe/Berlin]`).toDate().getTime() - parseZonedDateTime(`${rows[0].local_start_date}T${rows[0].local_start_time}[Europe/Berlin]`).toDate().getTime()) / 3600000).toBe(hours);
 	await page.reload();
 	await openRunnerSchedule(page);
-	await expect(page.getByRole("list", { name: "Saved schedules", exact: true })).toContainText("Vacation broadcast");
+	await expect(await scheduleEntry(page, "Vacation broadcast")).toBeVisible();
 });
 When("they save a one-time event and move its future start and end", async ({ page, mcpWorld }) => {
 	const state = mcpWorld.input?.scheduleContract as State;
@@ -155,7 +168,7 @@ When("they save a one-time event and move its future start and end", async ({ pa
 	const row = (await saved(state))[0];
 	state.eventId = row.id;
 	state.before = row;
-	await page.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Vacation broadcast", exact: true }).click();
+	await (await scheduleEntry(page, "Vacation broadcast")).click();
 	const editor = page.getByRole("dialog", { name: "Schedule broadcast", exact: true });
 	await fillScheduleField(editor, "Start date", "2027-01-05");
 	await fillScheduleField(editor, "End date", "2027-01-05");
@@ -199,7 +212,7 @@ Then("the saved schedule choices survive a browser reload", async ({ page, mcpWo
 		before = state.before as Record<string, unknown>;
 	await page.reload();
 	await openRunnerSchedule(page);
-	await page.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Vacation broadcast", exact: true }).click();
+	await (await scheduleEntry(page, "Vacation broadcast")).click();
 	const editor = page.getByRole("dialog", { name: "Schedule broadcast", exact: true });
 	await expectScheduleField(editor, "Timezone", "Europe/Berlin");
 	await expect(editor.getByRole("button", { name: /Schedule destinations$/ })).toContainText("Vacation target");
@@ -235,7 +248,7 @@ Then("the saved midnight boundaries survive reload", async ({ page, mcpWorld }) 
 	await expect(page.getByRole("dialog", { name: "Schedule broadcast", exact: true })).toHaveCount(0);
 	await page.reload();
 	await openRunnerSchedule(page);
-	await page.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Vacation broadcast", exact: true }).click();
+	await (await scheduleEntry(page, "Vacation broadcast")).click();
 	const editor = page.getByRole("dialog", { name: "Schedule broadcast", exact: true });
 	await expectScheduleField(editor, "Start time", "23:30");
 	await expectScheduleField(editor, "End time", "00:30");
@@ -252,7 +265,7 @@ When("they change a saved future weekly event timezone", async ({ page, mcpWorld
 	await submit(page);
 	await expect(editor).toHaveCount(0);
 	state.before = (await saved(state))[0];
-	await page.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Vacation broadcast", exact: true }).click();
+	await (await scheduleEntry(page, "Vacation broadcast")).click();
 	await fillScheduleField(page.getByRole("dialog", { name: "Schedule broadcast", exact: true }), "Timezone", "America/New_York");
 	await page.getByRole("dialog", { name: "Schedule broadcast", exact: true }).getByRole("button", { name: "Save schedule", exact: true }).click();
 	await page.getByRole("dialog", { name: "Edit recurring broadcast", exact: true }).getByRole("button", { name: "This and following", exact: true }).click();
@@ -269,7 +282,7 @@ Then("its future timezone changes while its previous series is preserved", async
 	expect(following).toMatchObject({ timezone: "America/New_York", title: before.title, local_start_date: "2027-01-04", configuration_revision: 1 });
 	await page.reload();
 	await openRunnerSchedule(page);
-	await page.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Vacation broadcast", exact: true }).last().click();
+	await (await scheduleEntry(page, "Vacation broadcast")).last().click();
 	await expectScheduleField(page.getByRole("dialog", { name: "Schedule broadcast", exact: true }), "Timezone", "America/New_York");
 });
 
@@ -284,7 +297,7 @@ When("storage rejects an edit to a saved schedule", async ({ page, mcpWorld }) =
 	const owner = state.owner.fixture.creatorId.replaceAll("'", "''");
 	await query(`CREATE FUNCTION "${state.triggerName}"() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.owner_id='${owner}' THEN RAISE EXCEPTION 'controlled schedule persistence failure'; END IF; RETURN NEW; END $$`);
 	await query(`CREATE TRIGGER "${state.triggerName}" BEFORE UPDATE ON runner_schedule_events FOR EACH ROW EXECUTE FUNCTION "${state.triggerName}"()`);
-	await page.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Retained schedule", exact: true }).click();
+	await (await scheduleEntry(page, "Retained schedule")).click();
 	await page.getByRole("dialog", { name: "Schedule broadcast", exact: true }).getByLabel("Event title", { exact: true }).fill("Rejected edit");
 	await submit(page);
 });
@@ -294,8 +307,8 @@ Then("the browser reports the save failure and retains the prior saved schedule"
 	expect(await saved(state)).toEqual(state.before);
 	await page.reload();
 	await openRunnerSchedule(page);
-	await expect(page.getByRole("list", { name: "Saved schedules", exact: true })).toContainText("Retained schedule");
-	await expect(page.getByRole("list", { name: "Saved schedules", exact: true })).not.toContainText("Rejected edit");
+	await expect(await scheduleEntry(page, "Retained schedule")).toBeVisible();
+	await expect(page.getByRole("region", { name: "Broadcast calendar", exact: true })).not.toContainText("Rejected edit");
 });
 
 When("they open a multi-week vacation schedule on a mobile calendar", async ({ page, mcpWorld }) => {
@@ -317,7 +330,7 @@ Then("its day segments retain one event with editable true start and end dates",
 	await calendar.getByRole("button", { name: "Next", exact: true }).click();
 	await expectScheduleField(page, "Displayed date", "2027-01-07");
 	await calendar.screenshot({ path: "test-results/runner-ux-mobile-agenda.png" });
-	await page.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Mobile vacation", exact: true }).click();
+	await (await scheduleEntry(page, "Mobile vacation")).click();
 	const editor = page.getByRole("dialog", { name: "Schedule broadcast", exact: true });
 	await expectScheduleField(editor, "Start date", "2027-01-03");
 	await expectScheduleField(editor, "End date", "2027-01-13");
@@ -377,7 +390,7 @@ Then("the explicit editor persists the selected pointer calendar range", async (
 		rows = await saved(state);
 	expect(rows).toHaveLength(1);
 	expect(rows[0]).toMatchObject({ title: "Pointer broadcast", local_start_time: expect.stringMatching(/^18:00(?::00)?$/), local_end_time: expect.stringMatching(/^20:00(?::00)?$/), overlay_id: state.owner.fixture.overlayId });
-	await expect(page.getByRole("list", { name: "Saved schedules", exact: true })).toContainText("Pointer broadcast");
+	await expect(await scheduleEntry(page, "Pointer broadcast")).toBeVisible();
 });
 
 Given("their scheduled occurrence is inside its original active window", async ({ page, mcpWorld }) => {
@@ -423,7 +436,7 @@ When("they open a saved future schedule using {string}", async ({ page }, intera
 	await submit(page);
 	await expect(page.getByRole("dialog", { name: "Schedule broadcast", exact: true })).toHaveCount(0);
 	if (interaction === "keyboard") {
-		const edit = page.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Deletable schedule", exact: true });
+		const edit = await scheduleEntry(page, "Deletable schedule");
 		await edit.focus();
 		await edit.press("Enter");
 	} else {
@@ -468,7 +481,7 @@ When("they move a saved future interval one hour using {string}", async ({ page,
 	await expect(page.getByRole("dialog", { name: "Schedule broadcast", exact: true })).toHaveCount(0);
 	state.before = (await saved(state))[0];
 	if (interaction === "keyboard") {
-		const edit = page.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Movable schedule", exact: true });
+		const edit = await scheduleEntry(page, "Movable schedule");
 		await edit.focus();
 		await edit.press("Enter");
 		const editor = page.getByRole("dialog", { name: "Schedule broadcast", exact: true });
@@ -527,7 +540,7 @@ When("they extend a future schedule by one hour using {string}", async ({ page, 
 	await expect(page.getByRole("dialog", { name: "Schedule broadcast", exact: true })).toHaveCount(0);
 	state.before = (await saved(state))[0];
 	if (interaction === "keyboard") {
-		const edit = page.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Resizable schedule", exact: true });
+		const edit = await scheduleEntry(page, "Resizable schedule");
 		await edit.focus();
 		await edit.press("Enter");
 		await fillScheduleField(page.getByRole("dialog", { name: "Schedule broadcast", exact: true }), "End time", "14:00");
@@ -580,7 +593,7 @@ Then("the continuation has no resize end and its full end date can be edited by 
 	await expect(calendar.locator('[data-slot="agenda-day-column"]').first().locator(".agenda__resize-handle")).toBeHidden();
 	const state = mcpWorld.input?.scheduleContract as State,
 		before = (await saved(state))[0];
-	const edit = page.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Week boundary vacation", exact: true });
+	const edit = await scheduleEntry(page, "Week boundary vacation");
 	await edit.focus();
 	await edit.press("Enter");
 	const editor = page.getByRole("dialog", { name: "Schedule broadcast", exact: true });
@@ -619,7 +632,7 @@ Then("the keyboard-authored schedule retains its selected dates source and targe
 	expect(rows).toHaveLength(1);
 	expect(rows[0]).toMatchObject({ title: "Keyboard authored", local_start_date: "2027-01-05", local_end_date: "2027-01-05", local_start_time: expect.stringMatching(/^18:30(?::00)?$/), local_end_time: expect.stringMatching(/^19:15(?::00)?$/), overlay_id: state.owner.fixture.overlayId, session_id: state.sessionId });
 	expect(await query("SELECT destination_id FROM runner_schedule_event_destinations WHERE event_id=$1", [rows[0].id])).toEqual([{ destination_id: state.targetId }]);
-	await expect(page.getByRole("list", { name: "Saved schedules", exact: true })).toContainText("Keyboard authored");
+	await expect(await scheduleEntry(page, "Keyboard authored")).toBeVisible();
 });
 When("they rename a saved future schedule using {string}", async ({ page, mcpWorld }, interaction: string) => {
 	await fillEvent(page, { title: "Editable schedule" });
@@ -628,7 +641,7 @@ When("they rename a saved future schedule using {string}", async ({ page, mcpWor
 	const state = mcpWorld.input?.scheduleContract as State;
 	state.before = (await saved(state))[0];
 	if (interaction === "keyboard") {
-		const edit = page.getByRole("list", { name: "Saved schedules", exact: true }).getByRole("button", { name: "Edit Editable schedule", exact: true });
+		const edit = await scheduleEntry(page, "Editable schedule");
 		await edit.focus();
 		await edit.press("Enter");
 	} else {
@@ -705,36 +718,41 @@ Given("its previous captured execution is fully closed after a manual stop", asy
 		event = (await saved(state))[0];
 	state.originalEnd = new Date(event.local_end_date + "T" + event.local_end_time + ":00Z").toISOString();
 	state.stoppedAdmission = randomUUID();
-	await query("UPDATE stream_sessions SET rtmp_url='rtmp://127.0.0.1:1949/live',desired_state='stopped',actual_state='stopped',configuration_revision=10 WHERE id=$1", [state.sessionId]);
-	await query("INSERT INTO runner_broadcast_admissions(id,owner_id,runner_id,session_id,execution_generation,occurrence_id,state,configuration_revision,benefits_at_start,scheduled_end,terminal_reason,stopped_at) VALUES($1,$2,$3,$4,$5,$6,'stopped',9,$7::jsonb,$8,'manual_stop',now())", [
+	await query("UPDATE stream_sessions SET rtmp_url='rtmp://127.0.0.1:1949/live',desired_state='stopped',actual_state='stopped',control_mode='manual',configuration_revision=10 WHERE id=$1", [state.sessionId]);
+	await query("INSERT INTO runner_broadcast_admissions(id,owner_id,runner_id,session_id,execution_generation,occurrence_id,state,configuration_revision,benefits_at_start,scheduled_end,terminal_reason,stopped_at) VALUES($1,$2,$3,$4,$5,$6,'stopped',9,$7::jsonb,$8,'all_outputs_closed',now())", [
 		state.stoppedAdmission,
 		state.owner.fixture.creatorId,
 		state.runnerId,
 		state.sessionId,
 		randomUUID(),
 		JSON.stringify([state.eventId, event.recurrence_anchor]),
-		JSON.stringify({ runnerPro: true, ingestModeAtStart: "24/7" }),
+		JSON.stringify({ runnerPro: true, ingestModeAtStart: "24/7", scheduleSuppressed: true, scheduleSuppressedAtRevision: 10 }),
 		state.originalEnd,
 	]);
 	await page.reload();
 	await openRunnerSchedule(page);
 });
-When("they explicitly resume the stopped occurrence", async ({ page }) => {
-	const resume = page.getByRole("button", { name: "Resume Active schedule", exact: true });
-	await expect(resume).toBeEnabled();
-	const response = page.waitForResponse((r) => r.request().method() === "POST" && r.url().includes("/dashboard/runners/"));
-	await resume.click();
-	await response;
+When("they re-enable scheduling for the stopped occurrence", async ({ page, mcpWorld }) => {
+	const state = mcpWorld.input?.scheduleContract as State;
+	await page.getByRole("button", { name: "Save and enable scheduling", exact: true }).click();
+	await expect(page.getByRole("button", { name: "Pause automation", exact: true })).toBeVisible();
+	const [device] = await query("SELECT token FROM runners WHERE id=$1", [state.runnerId]);
+	const response = await page.request.post("/api/runner/heartbeat", { headers: { Authorization: `Bearer ${device.token}` }, data: { protocolVersion: 2, requestId: randomUUID(), capabilities: ["admissions", "destinations", "drain", "runner_presentation", "free_lease", "schedule_cache"] } });
+	expect(response.status()).toBe(200);
+	const body = await response.json();
+	expect(body.scheduleCache.entries).toHaveLength(1);
+	expect(body.scheduleCache.entries[0].job.scheduledStart).toBeLessThan(Date.now());
+	expect(new Date(body.scheduleCache.entries[0].job.scheduledEnd).toISOString()).toBe(state.originalEnd);
 });
 Then("a new generation retains Scheduled mode and the original end without claiming output is already live", async ({ page, mcpWorld }) => {
-	await expect(page.getByText("Resume requested. This occurrence keeps its original end time.", { exact: true })).toBeVisible();
 	const state = mcpWorld.input?.scheduleContract as State,
-		event = (await saved(state))[0],
-		session = (await query("SELECT desired_state,actual_state,control_mode,configuration_revision FROM stream_sessions WHERE id=$1", [state.sessionId]))[0];
-	expect(session).toMatchObject({ desired_state: "running", actual_state: "stopped", control_mode: "scheduled", configuration_revision: 11 });
+		event = (await saved(state))[0];
+	const session = (await query("SELECT desired_state,actual_state,control_mode,configuration_revision FROM stream_sessions WHERE id=$1", [state.sessionId]))[0];
+	expect(session).toMatchObject({ desired_state: "stopped", actual_state: "stopped", control_mode: "scheduled", configuration_revision: 11 });
+	await expect(page.getByRole("region", { name: "Broadcast calendar", exact: true }).getByText("Live", { exact: true })).toHaveCount(0);
 	const admissions = await query("SELECT id,state,occurrence_id,scheduled_end FROM runner_broadcast_admissions WHERE session_id=$1 AND id<>$2", [state.sessionId, state.stoppedAdmission]);
 	expect(admissions).toHaveLength(1);
-	expect(admissions[0]).toMatchObject({ state: "reserved", occurrence_id: JSON.stringify([state.eventId, event.recurrence_anchor]) });
+	expect(admissions[0]).toMatchObject({ state: "authorized", occurrence_id: JSON.stringify([state.eventId, event.recurrence_anchor]) });
 	expect(new Date(admissions[0].scheduled_end).toISOString()).toBe(state.originalEnd);
 });
 
@@ -757,7 +775,7 @@ When("they request a graceful scheduled Stop", async ({ page }) => {
 Then("this occurrence is durably suppressed and its original window remains locked", async ({ page, mcpWorld }) => {
 	const state = mcpWorld.input?.scheduleContract as State;
 	const session = (await query("SELECT desired_state,actual_state,control_mode,configuration_revision FROM stream_sessions WHERE id=$1", [state.sessionId]))[0];
-	expect(session).toMatchObject({ desired_state: "stopped", actual_state: state.initialExecutionState === "active" ? "running" : "stopped", control_mode: "scheduled", configuration_revision: 11 });
+	expect(session).toMatchObject({ desired_state: "stopped", actual_state: state.initialExecutionState === "active" ? "running" : "stopped", control_mode: "manual", configuration_revision: 11 });
 	const admission = (await query("SELECT state,occurrence_id,scheduled_end,benefits_at_start FROM runner_broadcast_admissions WHERE id=$1", [state.stoppedAdmission]))[0];
 	expect(admission).toMatchObject({ state: state.initialExecutionState === "active" ? "draining" : "failed_before_output", benefits_at_start: { scheduleSuppressed: true } });
 	expect(new Date(admission.scheduled_end).toISOString()).toBe(state.originalEnd);
@@ -782,8 +800,8 @@ Then("the overlap explanation appears and the original schedule remains authorit
 	expect(await saved(state)).toEqual(state.before);
 	await page.reload();
 	await openRunnerSchedule(page);
-	await expect(page.getByRole("list", { name: "Saved schedules", exact: true })).toContainText("Original authoritative event");
-	await expect(page.getByRole("list", { name: "Saved schedules", exact: true })).not.toContainText("Rejected overlapping event");
+	await expect(await scheduleEntry(page, "Original authoritative event")).toBeVisible();
+	await expect(page.getByRole("region", { name: "Broadcast calendar", exact: true })).not.toContainText("Rejected overlapping event");
 	expect(await saved(state)).toEqual(state.before);
 });
 

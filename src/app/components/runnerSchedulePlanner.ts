@@ -1,13 +1,13 @@
 import { fromDate, toCalendarDateTime, toZoned, type CalendarDate, type CalendarDateTime } from "@internationalized/date";
 import { resolveCalendarSchedule, type CalendarSchedule } from "../../../packages/runner/src/schedule-calendar";
 
-export type PlannerEvent = CalendarSchedule & { title: string; enabled: boolean; lockedUntil?: string | null };
-export type PlannerSegment = { id: string; eventId: string; occurrenceId: string; title: string; isAllDay?: boolean; start: CalendarDateTime; end: CalendarDateTime; trueStartUtc: string; trueEndUtc: string; canResizeStart: boolean; canResizeEnd: boolean };
+export type PlannerEvent = CalendarSchedule & { title: string; enabled: boolean; liveOccurrence?: { occurrenceId: string; reportedAt: string } | null; lockedUntil?: string | null };
+export type PlannerSegment = { id: string; eventId: string; occurrenceId: string; title: string; isLive: boolean; isAllDay?: boolean; start: CalendarDateTime; end: CalendarDateTime; trueStartUtc: string; trueEndUtc: string; canResizeStart: boolean; canResizeEnd: boolean };
 export function isAllDayWindow(event: Pick<CalendarSchedule, "localStartTime" | "localEndTime">) {
 	return /^00:00(?::00)?$/.test(event.localStartTime) && /^00:00(?::00)?$/.test(event.localEndTime);
 }
 /** Agenda only indexes an event's starting day; each visual segment retains real bounds. */
-export function projectScheduleViewport(events: readonly PlannerEvent[], start: CalendarDate, days: number, timezone: string): PlannerSegment[] {
+export function projectScheduleViewport(events: readonly PlannerEvent[], start: CalendarDate, days: number, timezone: string, now = Date.now()): PlannerSegment[] {
 	const horizonStart = toZoned(toCalendarDateTime(start), timezone).toDate().toISOString();
 	const horizonEnd = toZoned(toCalendarDateTime(start.add({ days })), timezone)
 		.toDate()
@@ -16,8 +16,9 @@ export function projectScheduleViewport(events: readonly PlannerEvent[], start: 
 	for (const event of events.filter((event) => event.enabled)) {
 		const { occurrences } = resolveCalendarSchedule(event, { start: horizonStart, end: horizonEnd });
 		for (const occurrence of occurrences) {
+			const isLive = event.liveOccurrence?.occurrenceId === occurrence.occurrenceId && Date.parse(event.liveOccurrence.reportedAt) > now - 30_000;
 			if (isAllDayWindow(event)) {
-				result.push({ id: JSON.stringify([occurrence.occurrenceId, "all-day"]), eventId: event.id, occurrenceId: occurrence.occurrenceId, title: event.title, isAllDay: true, start: toCalendarDateTime(fromDate(new Date(occurrence.startUtc), timezone)), end: toCalendarDateTime(fromDate(new Date(Date.parse(occurrence.endUtc) - 1), timezone)), trueStartUtc: occurrence.startUtc, trueEndUtc: occurrence.endUtc, canResizeStart: true, canResizeEnd: true });
+				result.push({ id: JSON.stringify([occurrence.occurrenceId, "all-day"]), eventId: event.id, occurrenceId: occurrence.occurrenceId, title: event.title, isLive, isAllDay: true, start: toCalendarDateTime(fromDate(new Date(occurrence.startUtc), timezone)), end: toCalendarDateTime(fromDate(new Date(Date.parse(occurrence.endUtc) - 1), timezone)), trueStartUtc: occurrence.startUtc, trueEndUtc: occurrence.endUtc, canResizeStart: true, canResizeEnd: true });
 				continue;
 			}
 			for (let offset = 0; offset < days; offset++) {
@@ -31,7 +32,7 @@ export function projectScheduleViewport(events: readonly PlannerEvent[], start: 
 				const segmentStart = Math.max(dayStart, trueStart),
 					segmentEnd = Math.min(dayEnd, trueEnd);
 				if (segmentStart >= segmentEnd) continue;
-				result.push({ id: JSON.stringify([occurrence.occurrenceId, day.toString()]), eventId: event.id, occurrenceId: occurrence.occurrenceId, title: event.title, start: toCalendarDateTime(fromDate(new Date(segmentStart), timezone)), end: toCalendarDateTime(fromDate(new Date(segmentEnd === dayEnd ? segmentEnd - 1 : segmentEnd), timezone)), trueStartUtc: occurrence.startUtc, trueEndUtc: occurrence.endUtc, canResizeStart: segmentStart === trueStart, canResizeEnd: segmentEnd === trueEnd });
+				result.push({ id: JSON.stringify([occurrence.occurrenceId, day.toString()]), eventId: event.id, occurrenceId: occurrence.occurrenceId, title: event.title, isLive, start: toCalendarDateTime(fromDate(new Date(segmentStart), timezone)), end: toCalendarDateTime(fromDate(new Date(segmentEnd === dayEnd ? segmentEnd - 1 : segmentEnd), timezone)), trueStartUtc: occurrence.startUtc, trueEndUtc: occurrence.endUtc, canResizeStart: segmentStart === trueStart, canResizeEnd: segmentEnd === trueEnd });
 			}
 		}
 	}

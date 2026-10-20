@@ -28,6 +28,10 @@ their native PostgreSQL installation and the same Playwright dependency setup.
 
 ## Runner package prerequisites
 
+The guarded Playwright server generates a disposable Ed25519 signing key for
+authenticated Runner browser requests. These tests do not need deployment signing
+credentials.
+
 The Runner has its own lockfile and dependency tree. The root install does not
 refresh `packages/runner/node_modules`. Before Runner checks, install its locked
 dependencies and validate the patched versions:

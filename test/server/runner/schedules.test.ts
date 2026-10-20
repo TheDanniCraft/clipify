@@ -437,12 +437,12 @@ test("TDD-US3-DEC008 U210: a pending output drain prevents resume even before or
 	expect(result.beforeClosureUnchanged).toBe(true);
 });
 
-test.each(["active", "reserved"])("TDD-US3-DEC008 U190: Stop durably suppresses the %s captured occurrence without changing Scheduled mode or its end", (initialState) => {
+test.each(["active", "reserved"])("TDD-US3-DEC008 U190: Stop durably suppresses the %s captured occurrence and switches to Manual without changing its end", (initialState) => {
 	const result = contract();
 	const stopped = result.stopObservations.find((row: { initialState: string }) => row.initialState === initialState);
-	expect(stopped.result).toMatchObject({ accepted: true, requestedState: "stopped", controlMode: "scheduled" });
-	expect(stopped.session).toMatchObject({ desired_state: "stopped", control_mode: "scheduled", configuration_revision: 11 });
-	expect(stopped.admission).toMatchObject({ state: initialState === "active" ? "draining" : "failed_before_output", occurrence_id: result.resumeOccurrenceId, scheduled_end: result.resumeEnd, benefits_at_start: { scheduleSuppressed: true } });
+	expect(stopped.result).toMatchObject({ accepted: true, requestedState: "stopped", controlMode: "manual" });
+	expect(stopped.session).toMatchObject({ desired_state: "stopped", control_mode: "manual", configuration_revision: 11 });
+	expect(stopped.admission).toMatchObject({ state: initialState === "active" ? "draining" : "failed_before_output", occurrence_id: result.resumeOccurrenceId, scheduled_end: result.resumeEnd, benefits_at_start: { scheduleSuppressed: true, scheduleSuppressedAtRevision: 11 } });
 	expect(stopped.edit).toMatchObject({ success: false, code: "ACTIVE_OCCURRENCE_LOCKED" });
 });
 
@@ -631,4 +631,12 @@ test("future recurring edits and deletions preserve earlier and active occurrenc
 		["2029-01-22T15:00:00.000Z", "2029-01-22T16:00:00.000Z"],
 		["2029-01-29T15:00:00.000Z", "2029-01-29T16:00:00.000Z"],
 	]);
+});
+
+test("schedule live status requires a fresh active output report for that occurrence", () => {
+	const result = contract();
+	expect(result.initialView.events[0].liveOccurrence).toBeNull();
+	expect(result.liveView.events[0].liveOccurrence).toMatchObject({ occurrenceId: expect.any(String), reportedAt: expect.any(String) });
+	expect(result.staleLiveView.events[0].liveOccurrence).toBeNull();
+	expect(result.noOutputLiveView.events[0].liveOccurrence).toBeNull();
 });

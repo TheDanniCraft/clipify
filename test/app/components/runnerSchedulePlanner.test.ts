@@ -85,3 +85,12 @@ test("a window offset from midnight by seconds remains timed", () => {
 	expect(rows).toHaveLength(2);
 	expect(rows.every((row) => !row.isAllDay)).toBe(true);
 });
+
+test("only the reported occurrence is marked live, and stale reports expire", () => {
+	const first = projectScheduleViewport([vacation], parseDate("2027-01-04"), 1, "Europe/Berlin")[0];
+	const reportedAt = Date.parse("2027-01-04T12:00:00Z");
+	const live = { ...vacation, liveOccurrence: { occurrenceId: first.occurrenceId, reportedAt: new Date(reportedAt).toISOString() } };
+	expect(projectScheduleViewport([live], parseDate("2027-01-04"), 1, "Europe/Berlin", reportedAt)[0].isLive).toBe(true);
+	expect(projectScheduleViewport([live], parseDate("2027-01-04"), 1, "Europe/Berlin", reportedAt + 30_001)[0].isLive).toBe(false);
+	expect(projectScheduleViewport([{ ...live, liveOccurrence: { ...live.liveOccurrence, occurrenceId: "other" } }], parseDate("2027-01-04"), 1, "Europe/Berlin", reportedAt)[0].isLive).toBe(false);
+});

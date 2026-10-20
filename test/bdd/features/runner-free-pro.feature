@@ -212,15 +212,15 @@ Feature: Manual Runner configuration
       | different timezone |
 
   @US3 @FR-010 @FR-011 @FR-015 @BDD-US3-DEC008 @runner-agenda-browser
-  Scenario: A stopped occurrence can explicitly resume within its original window
+  Scenario: Re-enabling scheduling catches up inside the original window
     Given a Pro creator is authoring a Runner schedule in the browser
     And their scheduled occurrence is inside its original active window
     And its previous captured execution is fully closed after a manual stop
-    When they explicitly resume the stopped occurrence
+    When they re-enable scheduling for the stopped occurrence
     Then a new generation retains Scheduled mode and the original end without claiming output is already live
 
   @US3 @FR-010 @FR-011 @FR-015 @BDD-US3-DEC008 @runner-agenda-browser @runner-schedule-stop-browser
-  Scenario Outline: Stop suppresses the captured occurrence while preserving Scheduled control
+  Scenario Outline: Stop suppresses the captured occurrence and switches to Manual control
     Given a Pro creator is authoring a Runner schedule in the browser
     And their scheduled occurrence is inside its original active window
     And its previous captured execution is fully closed after a manual stop

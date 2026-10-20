@@ -92,7 +92,14 @@ const scheduleInput = z
 	});
 export type RunnerScheduleInput = z.input<typeof scheduleInput>;
 type Event = typeof runnerScheduleEventsTable.$inferSelect;
-export type RunnerScheduleView = Omit<Event, "ownerId" | "createdAt" | "updatedAt"> & { destinationIds: string[]; lockedUntil: string | null; lockReason: "active_window" | "output_drain" | "completed" | null; streamDetailsFeedback: { destinationId: string; status: "applied" | "retry" | "reconnect"; error?: string; attemptedAt: number }[]; currentOccurrence: { occurrenceId: string; endUtc: string; canResume: boolean; sessionRevision: number } | null };
+export type RunnerScheduleView = Omit<Event, "ownerId" | "createdAt" | "updatedAt"> & {
+	destinationIds: string[];
+	liveOccurrence?: { occurrenceId: string; reportedAt: string } | null;
+	lockedUntil: string | null;
+	lockReason: "active_window" | "output_drain" | "completed" | null;
+	streamDetailsFeedback: { destinationId: string; status: "applied" | "retry" | "reconnect"; error?: string; attemptedAt: number }[];
+	currentOccurrence: { occurrenceId: string; endUtc: string; canResume: boolean; sessionRevision: number } | null;
+};
 type Failure = { success: false; code: string; error: string };
 function failure(code: Parameters<typeof resourceFailure>[0], message?: string): Failure {
 	const result = resourceFailure(code);
@@ -108,7 +115,7 @@ async function expectedFailures<T>(run: () => Promise<T>): Promise<T | Failure> 
 		throw cause;
 	}
 }
-async function readEvents(tx: TransactionClient, owner: string, runner: string) {
+async function readEvents(tx: TransactionClient, owner: string, runner: string): Promise<RunnerScheduleView[]> {
 	const events = await tx
 		.select()
 		.from(runnerScheduleEventsTable)
@@ -138,7 +145,7 @@ async function readEvents(tx: TransactionClient, owner: string, runner: string) 
 		: [];
 	const occupied = events.length
 		? await tx
-				.select({ sessionId: runnerBroadcastAdmissionsTable.sessionId })
+				.select({ sessionId: runnerBroadcastAdmissionsTable.sessionId, occurrenceId: runnerBroadcastAdmissionsTable.occurrenceId, state: runnerBroadcastAdmissionsTable.state, lastObservedAt: runnerBroadcastAdmissionsTable.lastObservedAt, outputStates: runnerBroadcastAdmissionsTable.outputStates })
 				.from(runnerBroadcastAdmissionsTable)
 				.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, owner), eq(runnerBroadcastAdmissionsTable.runnerId, runner), notInArray(runnerBroadcastAdmissionsTable.state, ["stopped", "failed_before_output"])))
 		: [];
@@ -158,6 +165,10 @@ async function readEvents(tx: TransactionClient, owner: string, runner: string) 
 			captured.get(row.id) ?? null,
 			{ sessionRevision: sessions.find((session) => session.id === row.sessionId)?.revision ?? 0, canResume: sessions.some((session) => session.id === row.sessionId && session.controlMode === "scheduled" && session.desiredState === "stopped") && !busy.has(row.sessionId) },
 		),
+		liveOccurrence: (() => {
+			const admission = occupied.find((capture) => capture.sessionId === row.sessionId && capture.occurrenceId?.startsWith(`["${row.id}",`) && (capture.state === "active" || capture.state === "draining") && capture.lastObservedAt && capture.lastObservedAt.getTime() > Date.now() - 30_000 && capture.outputStates.some((output) => output.state === "streaming"));
+			return admission?.occurrenceId && admission.lastObservedAt ? { occurrenceId: admission.occurrenceId, reportedAt: admission.lastObservedAt.toISOString() } : null;
+		})(),
 		streamDetailsFeedback: Object.entries(resultSchema.safeParse(detailsUpdates.find((update) => update.benefits.scheduleEventId === row.id)?.benefits.streamDetailsResults).data ?? {}).map(([destinationId, result]) => ({ destinationId, ...result })),
 	}));
 }
@@ -522,14 +533,14 @@ async function buildRunnerScheduleMetadata(tx: TransactionClient, owner: string,
 	const occurrenceIds = expanded.flatMap((row) => row.occurrences.map((occurrence) => occurrence.occurrenceId));
 	const captured = occurrenceIds.length
 		? await tx
-				.select({ occurrenceId: runnerBroadcastAdmissionsTable.occurrenceId, revision: runnerBroadcastAdmissionsTable.configurationRevision, benefits: runnerBroadcastAdmissionsTable.benefitsAtStart, reason: runnerBroadcastAdmissionsTable.terminalReason })
+				.select({ occurrenceId: runnerBroadcastAdmissionsTable.occurrenceId, revision: runnerBroadcastAdmissionsTable.configurationRevision, sessionId: runnerBroadcastAdmissionsTable.sessionId, benefits: runnerBroadcastAdmissionsTable.benefitsAtStart, reason: runnerBroadcastAdmissionsTable.terminalReason })
 				.from(runnerBroadcastAdmissionsTable)
 				.where(and(eq(runnerBroadcastAdmissionsTable.ownerId, owner), eq(runnerBroadcastAdmissionsTable.runnerId, device.id), inArray(runnerBroadcastAdmissionsTable.occurrenceId, occurrenceIds)))
 				.orderBy(desc(runnerBroadcastAdmissionsTable.configurationRevision))
 		: [];
 	const executionIntents = new Map<string, { executionRevision: number; suppressed: boolean }>();
 	for (const capture of captured) {
-		if (capture.occurrenceId && !executionIntents.has(capture.occurrenceId)) executionIntents.set(capture.occurrenceId, { executionRevision: capture.revision, suppressed: capture.benefits.scheduleSuppressed === true || capture.reason === "manual_stop" });
+		if (capture.occurrenceId && !executionIntents.has(capture.occurrenceId)) executionIntents.set(capture.occurrenceId, { executionRevision: capture.revision, suppressed: (capture.benefits.scheduleSuppressed === true && (typeof capture.benefits.scheduleSuppressedAtRevision !== "number" || (automation.find((control) => control.sessionId === capture.sessionId)?.configurationRevision ?? 0) <= capture.benefits.scheduleSuppressedAtRevision)) || capture.reason === "manual_stop" });
 	}
 	const occurrences = expanded
 		.flatMap((row) => row.occurrences)
@@ -542,7 +553,7 @@ async function buildRunnerScheduleMetadata(tx: TransactionClient, owner: string,
 		});
 	const skipped = expanded.flatMap((row) => row.skipped);
 	const snapshotRevision = createHash("sha256")
-		.update(JSON.stringify({ events, automation: automation.map(({ sessionId, automationRevision, pausedAt }) => ({ sessionId, automationRevision, pausedAt })), sources, targetVersions, executionIntents: [...executionIntents], capabilityRevision: policy.capabilityRevision }))
+		.update(JSON.stringify({ events: events.map((event) => ({ ...event, liveOccurrence: undefined })), automation: automation.map(({ sessionId, automationRevision, pausedAt }) => ({ sessionId, automationRevision, pausedAt })), sources, targetVersions, executionIntents: [...executionIntents], capabilityRevision: policy.capabilityRevision }))
 		.digest("hex");
 	const issuedAt = now.getTime(),
 		expiresAt = policy.runnerPro && policy.validUntil ? Math.min(issuedAt + 604800000, Date.parse(policy.validUntil)) : issuedAt + 604800000;
