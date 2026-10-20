@@ -498,6 +498,26 @@ describe("Engine (Raw Logic Tests)", () => {
 		await engine.stop();
 	});
 
+	it("preserves the FFmpeg cause before the final generic line and redacts chunked credentials", () => {
+		const engine = new Engine("diagnostic", "rtmp://private-host/live", "overlay-private", "key-private", 30, "720p", "24_7", "http://api", "runner-private");
+		const child = Object.assign(new EventEmitter(), { stderr: new EventEmitter() });
+		const errors = jest.spyOn(console, "error").mockImplementation(() => {});
+		try {
+			Reflect.get(engine, "monitorFFmpeg").call(engine, child, "Cloud Loop FFmpeg");
+			child.stderr.emit("data", Buffer.from("x".repeat(20000)));
+			child.stderr.emit("data", Buffer.from("\nSpecific input failure: key-pri"));
+			child.stderr.emit("data", Buffer.from("vate overlay-private runner-private rtmp://private-host/live/key-private\nError opening input files: Invalid argument\n"));
+			child.emit("close", 4294967274);
+			const text = errors.mock.calls.flat().join("\n");
+			expect(text).toContain("Specific input failure");
+			expect(text).toContain("Error opening input files: Invalid argument");
+			for (const secret of ["key-private", "overlay-private", "runner-private", "private-host"]) expect(text).not.toContain(secret);
+			expect(text.length).toBeLessThan(9000);
+		} finally {
+			errors.mockRestore();
+		}
+	});
+
 	it("reports encoder health, publishes previews and stops when the encoder unexpectedly closes", async () => {
 		jest.useFakeTimers();
 		const child = Object.assign(new EventEmitter(), { exitCode: null, signalCode: null, stdin: Object.assign(new EventEmitter(), { end: jest.fn() }), stderr: new EventEmitter(), kill: jest.fn() });
