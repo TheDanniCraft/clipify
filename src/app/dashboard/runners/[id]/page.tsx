@@ -702,6 +702,7 @@ export default function RunnerPage() {
 									)}
 									<div className='flex flex-wrap gap-3'>
 										<Button variant='secondary' onPress={() => handleRunnerDownload("windows")}>
+											<IconBrandWindows size={20} aria-hidden='true' />
 											Download for Windows
 										</Button>
 										{renderLinuxDownloadDropdown("Download for Linux")}
