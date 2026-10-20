@@ -629,7 +629,9 @@ export default function RunnerPage() {
 									<Button variant='primary' onPress={handleSave} isDisabled={isSaving || !dirty} isPending={isSaving}>
 										Save Configuration
 									</Button>
-									{savedSession && <RunnerBroadcastControls playbackTimedOut={savedSession.playbackTimedOut} desiredState={savedSession.desiredState} actualState={savedSession.actualState} canStart={!actionPending && runner.status === RunnerStatus.Online && streamReadyToStart} requiresConnection={!runnerPolicy?.runnerPro} clipPlayback={savedSession.mode === "24/7"} onStart={() => handleAction("started")} onStop={(stopMode) => handleAction("stopped", stopMode)} />}
+									{savedSession && (
+										<RunnerBroadcastControls online={runner.status === RunnerStatus.Online} playbackTimedOut={savedSession.playbackTimedOut} desiredState={savedSession.desiredState} actualState={savedSession.actualState} canStart={!actionPending && runner.status === RunnerStatus.Online && streamReadyToStart} requiresConnection={!runnerPolicy?.runnerPro} clipPlayback={savedSession.mode === "24/7"} onStart={() => handleAction("started")} onStop={(stopMode) => handleAction("stopped", stopMode)} />
+									)}
 								</div>
 								{savedSession && dirty && <p className='text-sm text-muted'>Save your changes before starting this broadcast.</p>}
 							</>

@@ -6,7 +6,7 @@ const Controls = existsSync(join(process.cwd(), "src/app/components/runnerBroadc
 test.each([true, false])("TDD-US1-FR004 dashboard distinguishes requested Stop from output closure (clip=%s)", (clipPlayback) => {
 	const onStart = jest.fn(),
 		onStop = jest.fn();
-	const props = { onStart, onStop, canStart: true, requiresConnection: true, clipPlayback, desiredState: "running", actualState: "running" };
+	const props = { online: true, onStart, onStop, canStart: true, requiresConnection: true, clipPlayback, desiredState: "running", actualState: "running" };
 	const { rerender } = render(<Controls {...props} />);
 	expect(screen.getByText(/Keep Runner connected to the internet/)).toBeInTheDocument();
 	expect(screen.getByRole("button", { name: "Start" })).toBeDisabled();
@@ -28,8 +28,23 @@ test.each([true, false])("TDD-US1-FR004 dashboard distinguishes requested Stop f
 });
 
 test("TDD-US3-EC009: closed playback timeout explains the watchdog without exposing native error text", () => {
-	render(<Controls desiredState='stopped' actualState='stopped' canStart={true} clipPlayback={true} playbackTimedOut={true} onStart={jest.fn()} onStop={jest.fn()} />);
+	render(<Controls online desiredState='stopped' actualState='stopped' canStart={true} clipPlayback={true} playbackTimedOut={true} onStart={jest.fn()} onStop={jest.fn()} />);
 	expect(screen.getByRole("alert")).toHaveTextContent("Playback timeout: the current clip stopped responding or exceeded the five-minute finishing limit.");
 	expect(screen.getByRole("button", { name: "Start" })).toBeEnabled();
 	expect(screen.queryByRole("button", { name: "Stop now" })).not.toBeInTheDocument();
+});
+
+test("an offline Runner cannot claim it is finishing a clip from its last reported state", () => {
+	const props = { online: false, desiredState: "stopped", actualState: "running", canStart: true, clipPlayback: true, onStart: jest.fn(), onStop: jest.fn() };
+	const { rerender } = render(<Controls {...props} />);
+	expect(screen.getByRole("status")).toHaveTextContent("Runner offline. Waiting for stop confirmation.");
+	expect(screen.queryByText(/Finishing current clip/)).not.toBeInTheDocument();
+	expect(screen.queryByRole("button", { name: "Stop now" })).not.toBeInTheDocument();
+	expect(screen.getByRole("button", { name: "Start" })).toBeDisabled();
+	rerender(<Controls {...props} online />);
+	expect(screen.getByRole("status")).toHaveTextContent("Finishing current clip");
+	expect(screen.getByRole("button", { name: "Stop now" })).toBeEnabled();
+	rerender(<Controls {...props} online actualState='stopped' />);
+	expect(screen.queryByRole("status")).not.toBeInTheDocument();
+	expect(screen.getByRole("button", { name: "Start" })).toBeEnabled();
 });
