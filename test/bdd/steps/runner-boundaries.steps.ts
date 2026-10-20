@@ -86,11 +86,17 @@ When("they reopen a legacy broadcast and save its configuration twice", async ({
 			await manager.getByRole("button", { name: "Add destination", exact: true }).click();
 			const editor = page.getByRole("dialog", { name: "Add destination", exact: true });
 			await editor.getByLabel("Destination name", { exact: true }).fill("Twitch");
+			await editor.getByRole("tab", { name: "Stream key", exact: true }).click();
 			await editor.getByLabel("Destination stream key", { exact: true }).fill("replacement-fixture-key");
 			await editor.getByRole("button", { name: "Save destination", exact: true }).click();
 			await expect(editor).not.toBeVisible();
 			await page.keyboard.press("Escape");
-		} else await expect(page.getByRole("group", { name: "Broadcast destinations" }).getByRole("button", { name: /Broadcast destinations$/ })).toContainText("Twitch");
+		} else {
+			await expect(page.getByRole("group", { name: "Broadcast destinations" }).getByRole("button", { name: /Broadcast destinations$/ })).toContainText("Twitch");
+			await expect(page.getByRole("button", { name: "Save Configuration", exact: true })).toBeDisabled();
+			await page.getByRole("button", { name: /Broadcast behavior$/ }).click();
+			await page.getByRole("option", { name: "Live fallback", exact: true }).click();
+		}
 		await Promise.all([page.waitForResponse((response) => response.request().method() === "POST" && new URL(response.url()).pathname === `/dashboard/runners/${state.runnerId}` && Boolean(response.request().postData()?.includes(sessionId))), page.getByRole("button", { name: "Save Configuration", exact: true }).click()]);
 		await page.reload();
 	}

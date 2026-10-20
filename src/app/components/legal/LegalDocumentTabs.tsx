@@ -11,6 +11,7 @@ export default function LegalDocumentTabs({ activeDocumentId, children }: { acti
 	return (
 		<Tabs
 			selectedKey={activeDocumentId}
+			keyboardActivation='manual'
 			variant='secondary'
 			className='w-full'
 			onSelectionChange={(key) => {

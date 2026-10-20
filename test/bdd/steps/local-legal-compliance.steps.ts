@@ -120,6 +120,9 @@ Then("the legal document remains readable and every legal destination is keyboar
 		await page.keyboard.press("ArrowRight");
 		await expect(legalTabs.nth(index)).toBeFocused();
 	}
+	await legalTabs.last().press("Enter");
+	await expect(page).toHaveURL(/\/legal\/imprint$/);
+	await expect(page.getByRole("tab", { name: "Imprint", exact: true })).toHaveAttribute("aria-selected", "true");
 });
 
 When("they inspect the complete consent inventory", async ({ page }) => {
