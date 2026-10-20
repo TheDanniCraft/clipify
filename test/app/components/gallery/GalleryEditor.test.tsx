@@ -286,8 +286,10 @@ describe("GalleryEditor", () => {
 		fireEvent.click(screen.getByRole("button", { name: "Save Gallery Settings" }));
 		await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Save failed", description: "Please try again." })));
 	});
-	it("restores custom-range dates as Dates before saving a recovered gallery", async () => {
-		const initial = buildGallery({ configurationRevision: 4 });
+	it.each([true, false])("restores custom dates and cleared ranges before saving a recovered gallery (custom=%s)", async (custom) => {
+		const start = "2026-07-01T00:00:00.000Z",
+			end = "2026-07-31T00:00:00.000Z";
+		const initial = buildGallery({ configurationRevision: 4, ...(custom ? {} : { liveTimeWindow: "custom", liveCustomStart: new Date(start), liveCustomEnd: new Date(end) }) });
 		sessionStorage.setItem(
 			"clipify:deployment-drafts",
 			JSON.stringify({
@@ -295,18 +297,18 @@ describe("GalleryEditor", () => {
 				expiresAt: Date.now() + 60000,
 				drafts: {
 					[`gallery:${initial.ownerId}:${initial.id}`]: {
-						changes: { liveTimeWindow: "custom", liveCustomStart: "2026-07-01T00:00:00.000Z", liveCustomEnd: "2026-07-31T00:00:00.000Z", configurationRevision: 3 },
-						baseline: { liveTimeWindow: initial.liveTimeWindow, liveCustomStart: null, liveCustomEnd: null, configurationRevision: 3 },
+						changes: { liveTimeWindow: custom ? "custom" : "7d", liveCustomStart: custom ? start : null, liveCustomEnd: custom ? end : null, configurationRevision: 3 },
+						baseline: { liveTimeWindow: initial.liveTimeWindow, liveCustomStart: initial.liveCustomStart, liveCustomEnd: initial.liveCustomEnd, configurationRevision: 3 },
 					},
 				},
 			}),
 		);
 		try {
 			render(<GalleryEditor initialGallery={initial} playlists={[]} canUseAdvanced canUseStyling previewClips={[]} previewOwnerName='Alice' showPreviewAttribution={false} />);
-			expect(previewGallery.liveCustomStart).toBeInstanceOf(Date);
-			expect(previewGallery.liveCustomStart?.toISOString()).toBe("2026-07-01T00:00:00.000Z");
+			expect(previewGallery.liveCustomStart).toEqual(custom ? new Date(start) : null);
+			expect(previewGallery.liveCustomEnd).toEqual(custom ? new Date(end) : null);
 			fireEvent.click(screen.getByRole("button", { name: "Save Gallery Settings" }));
-			await waitFor(() => expect(saveGallery).toHaveBeenCalledWith(initial.id, expect.objectContaining({ liveCustomStart: expect.any(Date), liveCustomEnd: expect.any(Date) }), 3));
+			await waitFor(() => expect(saveGallery).toHaveBeenCalledWith(initial.id, expect.objectContaining({ liveTimeWindow: custom ? "custom" : "7d", liveCustomStart: custom ? expect.any(Date) : null, liveCustomEnd: custom ? expect.any(Date) : null }), 3));
 			await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Gallery settings saved" })));
 		} finally {
 			sessionStorage.removeItem("clipify:deployment-drafts");
