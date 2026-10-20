@@ -20,11 +20,11 @@ describe("deployment recovery", () => {
 		}
 	});
 
-	it.each(["/runner/presentation/session-1", "/embed/overlay-1", "/overlay/overlay-1", "/controller/overlay-1", "/gallery/gallery-1/frame", "/gallery/gallery-1/clip/clip-1", "/dashboard/galleries/gallery-1/preview/clip/clip-1", "/demoPlayer"])("monitors the long-lived runtime path %s", (pathname) => {
+	it.each(["/runner/presentation/session-1", "/embed/overlay-1", "/overlay/overlay-1", "/controller/overlay-1", "/gallery/gallery-1/frame", "/gallery/gallery-1/clip/clip-1", "/dashboard/galleries/gallery-1/preview/clip/clip-1", "/demoPlayer", "/", "/gallery", "/gallery/gallery-1", "/runner/preview/runner-1", "/pricing", "/creators/streamer", "/dashboard-other"])("automatically recovers public and player path %s", (pathname) => {
 		expect(isLongLivedRuntimePath(pathname)).toBe(true);
 	});
 
-	it.each(["/", "/gallery", "/gallery/gallery-1", "/dashboard/galleries/gallery-1", "/dashboard/overlay/overlay-1"])("does not poll regular application path %s", (pathname) => {
+	it.each(["/dashboard", "/dashboard/", "/dashboard/galleries/gallery-1", "/dashboard/overlay/overlay-1", "/dashboard/overlay/overlay-1/theme", "/dashboard/runners/runner-1", "/dashboard/settings"])("preserves manual recovery for dashboard editor path %s", (pathname) => {
 		expect(isLongLivedRuntimePath(pathname)).toBe(false);
 	});
 

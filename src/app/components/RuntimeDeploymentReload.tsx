@@ -18,7 +18,7 @@ type ReloadRecord = {
 
 function recentlyReloadedFor(deploymentId: string) {
 	try {
-		const stored = sessionStorage.getItem(RELOAD_GUARD_KEY);
+		const stored = sessionStorage.getItem(`${RELOAD_GUARD_KEY}:${window.location.pathname}`);
 		if (!stored) return false;
 		const record = JSON.parse(stored) as Partial<ReloadRecord>;
 		return record.deploymentId === deploymentId && typeof record.reloadedAt === "number" && Date.now() - record.reloadedAt < RELOAD_GUARD_MS;
@@ -29,7 +29,7 @@ function recentlyReloadedFor(deploymentId: string) {
 
 function rememberReload(deploymentId: string) {
 	try {
-		sessionStorage.setItem(RELOAD_GUARD_KEY, JSON.stringify({ deploymentId, reloadedAt: Date.now() } satisfies ReloadRecord));
+		sessionStorage.setItem(`${RELOAD_GUARD_KEY}:${window.location.pathname}`, JSON.stringify({ deploymentId, reloadedAt: Date.now() } satisfies ReloadRecord));
 	} catch {
 		// Storage may be unavailable in privacy-restricted browser sources.
 	}

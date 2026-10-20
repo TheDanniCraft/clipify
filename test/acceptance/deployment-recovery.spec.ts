@@ -157,3 +157,71 @@ test("an overlay draft survives deployment recovery without overwriting a concur
 		}
 	}
 });
+
+test("public pages and embedded galleries recover missing actions without a refresh prompt", async ({ page, request, context }) => {
+	test.setTimeout(120000);
+	page.setDefaultTimeout(15000);
+	const pool = new Pool({ connectionString: browserDatabaseUrl(), max: 1 });
+	let owner: AuthFixture | undefined;
+	try {
+		owner = await createAuthenticatedFixture(request, context, { withProviderCredentials: true });
+		const playlistId = randomUUID(),
+			galleryId = randomUUID();
+		await pool.query("UPDATE users SET plan='pro' WHERE id=$1", [owner.fixture.creatorId]);
+		await pool.query("INSERT INTO playlists(id,owner_id,name) VALUES($1,$2,'Recovery clips')", [playlistId, owner.fixture.creatorId]);
+		await pool.query("INSERT INTO galleries(id,owner_id,name,playlist_id,published) VALUES($1,$2,'Recovery gallery',$3,true)", [galleryId, owner.fixture.creatorId, playlistId]);
+		let documents = 0;
+		page.on("request", (request) => {
+			if (request.isNavigationRequest() && request.frame() === page.mainFrame()) documents++;
+		});
+		const paths = ["/gallery", "/embed/default", `/overlay/${owner.fixture.overlayId}?secret=${owner.fixture.overlaySecret}`];
+		for (const path of paths) {
+			await page.goto(path);
+			await page.waitForLoadState("networkidle");
+			await page.route("**/api/deployment", (route) => route.fulfill({ status: 204, headers: { "x-clipify-deployment-id": "public-recovery" } }));
+			const before = documents;
+			const loaded = page.waitForEvent("load");
+			expect(
+				await page.evaluate(async () => {
+					const response = await fetch(location.href, { method: "POST", headers: { "Next-Action": "00" + "0".repeat(40) }, body: "[]" });
+					return response.headers.get("x-nextjs-action-not-found");
+				}),
+			).toBe("1");
+			await loaded;
+			await page.waitForTimeout(500);
+			expect(documents).toBe(before + 1);
+			await expect(page.getByRole("dialog", { name: "Clipify has been updated", exact: true })).toHaveCount(0);
+			await expect(page.getByRole("button", { name: "Refresh required", exact: true })).toHaveCount(0);
+			await page.unroute("**/api/deployment");
+		}
+		await page.goto("/gallery");
+		await page.waitForLoadState("networkidle");
+		const attached = page.waitForEvent("frameattached");
+		await page.evaluate((src) => {
+			const frame = document.createElement("iframe");
+			frame.name = "recovery-gallery";
+			frame.src = src;
+			document.body.append(frame);
+		}, `/gallery/${galleryId}/frame`);
+		const frame = await attached;
+		await expect(frame.getByText("No clips are available yet.", { exact: true })).toBeVisible();
+		await frame.waitForLoadState("networkidle");
+		await page.route("**/api/deployment", (route) => route.fulfill({ status: 204, headers: { "x-clipify-deployment-id": "public-recovery" } }));
+		const before = documents;
+		const navigated = page.waitForEvent("framenavigated", (changed) => changed === frame);
+		expect(
+			await frame.evaluate(async () => {
+				const response = await fetch(location.href, { method: "POST", headers: { "Next-Action": "00" + "0".repeat(40) }, body: "[]" });
+				return response.headers.get("x-nextjs-action-not-found");
+			}),
+		).toBe("1");
+		await navigated;
+		await expect(frame.getByText("No clips are available yet.", { exact: true })).toBeVisible();
+		await expect(frame.getByRole("dialog", { name: "Clipify has been updated", exact: true })).toHaveCount(0);
+		expect(documents).toBe(before);
+	} finally {
+		await page.unrouteAll({ behavior: "wait" });
+		if (owner) await request.delete("/api/test/auth-fixture", { headers: { Authorization: "Bearer clipify-playwright-auth-fixture" }, data: { authUserId: owner.fixture.authUserId, creatorId: owner.fixture.creatorId, organizationIds: [owner.fixture.creatorOrganizationId, owner.fixture.agencyOrganizationId] } });
+		await pool.end();
+	}
+});
