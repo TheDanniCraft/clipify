@@ -5,7 +5,7 @@ import { copyFile, mkdtemp, readFile, readdir, rm, writeFile, access } from "nod
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { spawn } from "node:child_process";
+import { spawn, execFileSync } from "node:child_process";
 import { once } from "node:events";
 import assert from "node:assert/strict";
 
@@ -72,3 +72,6 @@ try {
 } finally {
 	await rm(directory, { recursive: true, force: true, maxRetries: 20, retryDelay: 500 });
 }
+
+// The replacement must also recover an interrupted execution using real Windows process handles.
+execFileSync(process.execPath, ["node_modules/jest/bin/jest.js", "src/__tests__/startup-recovery.test.ts", "--runInBand", "--coverage=false", "--testTimeout=35000"], { stdio: "inherit" });

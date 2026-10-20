@@ -160,6 +160,9 @@ export class ExecutionJournal {
 		if (!entry.acknowledged) this.save({ ...entry, acknowledged: true });
 		return true;
 	}
+	interrupted() {
+		return this.entries.filter((entry) => ["starting", "active", "draining"].includes(entry.state)).map((entry) => structuredClone(entry));
+	}
 	pendingTerminals() {
 		return this.entries.filter((entry) => entry.state === "stopped" && entry.allOutputsClosed === true && !entry.acknowledged).map((entry) => structuredClone(entry));
 	}

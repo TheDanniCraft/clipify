@@ -1887,3 +1887,62 @@ test("Stop now publishes closure even when the previous graceful drain never ret
 		rmSync(directory, { recursive: true, force: true });
 	}
 });
+
+test("cold Stop requires physical closure proof and the complete persisted command identity", async () => {
+	const { FreeExecutionController } = await import("../execution-runtime");
+	const directory = mkdtempSync(join(tmpdir(), "clipify-cold-stop-"));
+	try {
+		const fixture = runtimeFixture(),
+			journal = new ExecutionJournal(directory);
+		const occurrence = { occurrenceId: "stopped-occurrence", start: 1000, end: 2000 };
+		journal.save({ admissionId: fixture.job.admissionId, ownerId: fixture.ownerId, runnerId: fixture.runnerId, sessionId: fixture.job.id, executionGeneration: fixture.job.executionGeneration, leaseId: fixture.leaseId, configurationRevision: fixture.job.configurationRevision, state: "active", updatedAt: 1000, occurrence });
+		const createEngine = jest.fn();
+		const withoutProof = new FreeExecutionController({ ...fixture, journal, createEngine });
+		expect(await withoutProof.stop(fixture.job)).toBe(false);
+		const closedOnRestart = new Set<string>();
+		const controller = new FreeExecutionController({ ...fixture, journal, createEngine, closedOnRestart });
+		expect(await controller.stop(fixture.job)).toBe(false);
+		closedOnRestart.add(fixture.job.admissionId);
+		for (const change of [{ ownerId: "other" }, { runnerId: randomUUID() }, { id: randomUUID() }, { admissionId: randomUUID() }, { executionGeneration: randomUUID() }, { configurationRevision: 9 }]) expect(await controller.stop({ ...fixture.job, ...change })).toBe(false);
+		expect(journal.pendingTerminals()).toEqual([]);
+		expect(await controller.stop(fixture.job, true)).toBe(true);
+		expect(journal.isOccurrenceSuppressed({ ownerId: fixture.ownerId, runnerId: fixture.runnerId, occurrenceId: occurrence.occurrenceId })).toBe(true);
+		expect(controller.reports()).toMatchObject([{ state: "stopped", allOutputsClosed: true }]);
+		expect(await controller.stop(fixture.job)).toBe(false);
+		closedOnRestart.add(fixture.job.admissionId);
+		expect(await controller.stop(fixture.job)).toBe(false);
+		expect(createEngine).not.toHaveBeenCalled();
+	} finally {
+		rmSync(directory, { recursive: true, force: true });
+	}
+});
+
+test("fresh signed restart revokes old closure proof before reopening output", async () => {
+	const { FreeExecutionController } = await import("../execution-runtime");
+	const directory = mkdtempSync(join(tmpdir(), "clipify-resume-proof-"));
+	try {
+		const fixture = runtimeFixture(),
+			journal = new ExecutionJournal(directory);
+		const engine = { start: jest.fn(async () => {}), stop: jest.fn(async () => {}), requestDrain: jest.fn(async () => {}) };
+		const beforeCrash = new FreeExecutionController({ ...fixture, journal, clock: () => 1500, createEngine: () => engine });
+		expect(await beforeCrash.apply(fixture.job, fixture.request)).toBe(true);
+		const closedOnRestart = new Set([fixture.job.admissionId]);
+		const restarted = new FreeExecutionController({
+			...fixture,
+			journal: new ExecutionJournal(directory),
+			closedOnRestart,
+			clock: () => 1500,
+			createEngine: () => {
+				expect(closedOnRestart.size).toBe(0);
+				return engine;
+			},
+		});
+		const request = { requestId: randomUUID(), sentAt: 1500 };
+		expect(await restarted.apply(fixture.renew(request.requestId, 1001000), request)).toBe(true);
+		expect(restarted.reports()).toMatchObject([{ state: "active" }]);
+		expect(await restarted.stop(fixture.job)).toBe(true);
+		expect(engine.requestDrain).toHaveBeenCalledTimes(1);
+	} finally {
+		rmSync(directory, { recursive: true, force: true });
+	}
+});

@@ -1,4 +1,4 @@
-const critical = ["execution-runtime", "execution-journal", "execution-keys", "terminal-credentials", "terminal-delivery", "storage", "schedule-cache", "presentation-bootstrap"];
+const critical = ["startup-recovery", "execution-runtime", "execution-journal", "execution-keys", "terminal-credentials", "terminal-delivery", "storage", "schedule-cache", "presentation-bootstrap"];
 const ordinary = ["engine", "index", "output", "presentation", "schedule"];
 
 module.exports = {

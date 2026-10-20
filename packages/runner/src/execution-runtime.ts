@@ -30,7 +30,8 @@ export type FreeExecutionJob = {
 export type ExecutionEngine = { readonly isRunning?: boolean; updateScheduledDeadline?: (deadlineMonotonic: number) => Promise<void>; drainOutcome?: "clip_completed" | "playback_timeout" | null; start: () => Promise<void | boolean>; stop: () => Promise<void>; requestDrain: (options?: { deadlineMonotonic?: number }) => Promise<void>; outputStates?: () => { id: string; state: RunnerOutputState }[] };
 type PreparedScheduledWindow = { job: FreeExecutionJob; record: ExecutionRecord; mediaHash: string; startMonotonic: number; endMonotonic: number };
 type ActiveExecution = { capture: { mediaHash: string; sourceRevision: number }; deadlineUpdate?: Promise<void>; continuity?: { members: PreparedScheduledWindow[]; deadlineMonotonic: number }; guard: FreeExecutionLease | ProExecutionPermit; engine: ExecutionEngine; record: ExecutionRecord; closing?: Promise<void>; outputsClosed?: boolean; outputGate: { permitted: boolean }; closeImmediately?: boolean };
-type ExecutionOptions = { ownerId: string; runnerId: string; keys: Readonly<Record<string, string>>; journal: ExecutionJournal; clock?: () => number; createEngine: (job: FreeExecutionJob, policy: { mayOpenOutput: () => boolean; scheduledDeadlineMonotonic: number | null }) => ExecutionEngine };
+type ExecutionStopCommand = Pick<FreeExecutionJob, "id" | "ownerId" | "runnerId" | "admissionId" | "executionGeneration" | "configurationRevision">;
+type ExecutionOptions = { closedOnRestart?: Set<string>; ownerId: string; runnerId: string; keys: Readonly<Record<string, string>>; journal: ExecutionJournal; clock?: () => number; createEngine: (job: FreeExecutionJob, policy: { mayOpenOutput: () => boolean; scheduledDeadlineMonotonic: number | null }) => ExecutionEngine };
 
 /** Admission identity is learned only from a fresh, nonce-bound verified response. */
 export class FreeExecutionController {
@@ -204,9 +205,9 @@ export class FreeExecutionController {
 	async stopAll(): Promise<void> {
 		await Promise.all(this.physicalExecutions().map((execution) => this.closeExecution(execution)));
 	}
-	async stop(command: Pick<FreeExecutionJob, "id" | "ownerId" | "runnerId" | "admissionId" | "executionGeneration" | "configurationRevision">, immediate = false): Promise<boolean> {
+	async stop(command: ExecutionStopCommand, immediate = false): Promise<boolean> {
 		const execution = this.active.get(command.id);
-		if (!execution) return false;
+		if (!execution) return this.stopInterrupted(command);
 		this.refreshContinuity(execution);
 		const member = execution.continuity?.members.find((entry) => entry.record.admissionId === command.admissionId);
 		const bound = member?.record ?? execution.record;
@@ -230,6 +231,15 @@ export class FreeExecutionController {
 		await this.closeExecution(execution, immediate);
 		return true;
 	}
+	private stopInterrupted(command: ExecutionStopCommand): boolean {
+		const record = this.options.journal.get(command.admissionId);
+		if (!record || !this.options.closedOnRestart?.has(record.admissionId) || !["starting", "active"].includes(record.state) || command.ownerId !== this.options.ownerId || command.runnerId !== this.options.runnerId || record.ownerId !== command.ownerId || record.runnerId !== command.runnerId || record.sessionId !== command.id || record.executionGeneration !== command.executionGeneration || record.configurationRevision !== command.configurationRevision) return false;
+		if (record.occurrence) this.options.journal.suppressOccurrence({ ownerId: record.ownerId, runnerId: record.runnerId, occurrenceId: record.occurrence.occurrenceId });
+		this.options.journal.save({ ...record, state: "stopped", allOutputsClosed: true, updatedAt: Date.now(), ...(record.occurrence ? { occurrence: { ...record.occurrence, suppressed: true } } : {}) });
+		this.options.closedOnRestart.delete(record.admissionId);
+		return true;
+	}
+
 	reports() {
 		for (const execution of this.physicalExecutions()) this.refreshContinuity(execution);
 		const identity = (entry: ExecutionRecord) => ({ admissionId: entry.admissionId, sessionId: entry.sessionId, executionGeneration: entry.executionGeneration, leaseId: entry.leaseId, configurationRevision: entry.configurationRevision });
@@ -349,6 +359,7 @@ export class FreeExecutionController {
 	private async startExecution(job: FreeExecutionJob, persisted: ExecutionRecord | undefined, leaseId: string, policy: string, guard: FreeExecutionLease | ProExecutionPermit): Promise<boolean> {
 		const record = this.startingExecutionRecord(job, persisted, leaseId);
 		this.options.journal.save(record);
+		this.options.closedOnRestart?.delete(record.admissionId);
 		const outputGate = { permitted: true };
 		const continuity = job.cacheAuthorization === true ? this.scheduledContinuity(job) : undefined;
 		if (continuity) {
