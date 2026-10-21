@@ -275,6 +275,7 @@ export default function RunnerPage() {
 	};
 
 	const dirty = !savedSession || overlayId !== savedSession.overlayId || mode !== savedSession.mode || controlMode !== savedSession.controlMode || [...selectedDestinationIds].sort().join() !== [...savedSession.destinationIds].sort().join();
+	const scheduleNeedsSave = !!runnerPolicy?.scheduling && controlMode === "scheduled" && dirty;
 	const streamConfigValid = Boolean(overlayId && selectedDestinationIds.length && (runnerPolicy?.runnerPro || selectedDestinationIds.length === 1));
 	const streamReadyToStart = !dirty && streamConfigValid && canStartWithDestinations(destinationOptions, selectedDestinationIds);
 	const refreshDestinationOptions = async (change?: { deletedId: string }) => {
@@ -586,16 +587,7 @@ export default function RunnerPage() {
 													</ListBox>
 												</Select.Popover>
 											</Select>
-											<RunnerControlSelection
-												value={controlMode}
-												clipPlayback={mode === StreamMode.AlwaysOn}
-												scheduling={runnerPolicy?.scheduling ?? null}
-												onChange={(value) => {
-													setControlMode(value);
-													if (value === "scheduled") setScheduleOpen(true);
-												}}
-												onUpgrade={() => setIsUpgradeOpen(true)}
-											/>
+											<RunnerControlSelection value={controlMode} clipPlayback={mode === StreamMode.AlwaysOn} scheduling={runnerPolicy?.scheduling ?? null} onChange={setControlMode} onUpgrade={() => setIsUpgradeOpen(true)} />
 										</div>
 										{mode === StreamMode.Failsafe && (
 											<p className='text-sm text-muted'>
@@ -617,20 +609,27 @@ export default function RunnerPage() {
 										The Runner reported a broadcast error. Check its logs before retrying.
 									</p>
 								)}
-								<div className={mode === StreamMode.AlwaysOn ? "grid gap-3 sm:grid-cols-2" : "grid gap-3"}>
+								<div className={mode === StreamMode.AlwaysOn ? "grid items-start gap-3 sm:grid-cols-2" : "grid gap-3"}>
 									<Button variant='outline' className='w-full' onPress={() => setAppearanceOpen(true)} isDisabled={!overlayId}>
 										<IconPaint size={18} aria-hidden='true' />
 										Appearance
 									</Button>
 									{mode === StreamMode.AlwaysOn && (
-										<Button aria-label='Schedule' aria-description={runnerPolicy?.scheduling === false ? "Requires Pro" : undefined} className='w-full' variant='outline' isDisabled={isSaving || !runnerPolicy} onPress={() => (runnerPolicy?.scheduling ? setScheduleOpen(true) : setIsUpgradeOpen(true))}>
-											<IconCalendarEvent size={18} aria-hidden='true' />
-											Schedule
-											{runnerPolicy?.scheduling === false && <IconCrown size={16} aria-hidden='true' />}
-										</Button>
+										<div className='space-y-2'>
+											<Button aria-label='Schedule' aria-describedby={scheduleNeedsSave ? "schedule-save-hint" : undefined} aria-description={runnerPolicy?.scheduling === false ? "Requires Pro" : undefined} className='w-full' variant='outline' isDisabled={isSaving || !runnerPolicy || scheduleNeedsSave} onPress={() => (runnerPolicy?.scheduling ? setScheduleOpen(true) : setIsUpgradeOpen(true))}>
+												<IconCalendarEvent size={18} aria-hidden='true' />
+												Schedule
+												{runnerPolicy?.scheduling === false && <IconCrown size={16} aria-hidden='true' />}
+											</Button>
+											{scheduleNeedsSave && (
+												<p id='schedule-save-hint' className='text-xs text-muted'>
+													Save configuration to edit the schedule.
+												</p>
+											)}
+										</div>
 									)}
 								</div>
-								{controlMode === "scheduled" && dirty && <p className='text-xs text-muted'>Save configuration to activate your schedule.</p>}
+
 								<div className='flex flex-wrap items-center justify-between gap-4 border-t border-separator pt-4'>
 									<Button variant='primary' onPress={() => void handleSave()} isDisabled={isSaving || !dirty} isPending={isSaving}>
 										Save Configuration
@@ -810,7 +809,7 @@ export default function RunnerPage() {
 							<Modal.Header>
 								<Modal.Heading>Broadcast schedule</Modal.Heading>
 							</Modal.Header>
-							<Modal.Body>{scheduleOpen && <RunnerSchedule ownerId={runner.ownerId} runnerId={runner.id} sessionId={savedSession?.id} overlayId={overlayId} overlays={overlays} destinations={destinationOptions} selectedDestinationIds={selectedDestinationIds} clipPlayback={mode === StreamMode.AlwaysOn} onEnableScheduling={() => handleSave("scheduled")} onPolicyChange={setRunnerPolicy} onDestinationsChange={refreshDestinationOptions} />}</Modal.Body>
+							<Modal.Body>{scheduleOpen && <RunnerSchedule ownerId={runner.ownerId} runnerId={runner.id} sessionId={savedSession?.id} overlayId={overlayId} overlays={overlays} destinations={destinationOptions} selectedDestinationIds={selectedDestinationIds} clipPlayback={mode === StreamMode.AlwaysOn} onPolicyChange={setRunnerPolicy} onDestinationsChange={refreshDestinationOptions} />}</Modal.Body>
 						</Modal.Dialog>
 					</Modal.Container>
 				</Modal.Backdrop>

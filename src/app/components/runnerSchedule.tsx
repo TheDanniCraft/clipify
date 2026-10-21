@@ -19,7 +19,7 @@ import ConfirmModal from "./confirmModal";
 type ScheduleRead = Extract<Awaited<ReturnType<typeof listRunnerScheduleEvents>>, { success: true }>;
 type Policy = ScheduleRead["policy"];
 type RunnerScheduleView = ScheduleRead["events"][number];
-type Props = { onEnableScheduling?: () => Promise<boolean>; onDestinationsChange?: (change?: { deletedId: string }) => Promise<void> | void; ownerId: string; runnerId: string; sessionId?: string; overlayId: string; overlays: { id: string; name: string }[]; destinations: { id: string; name: string; provider?: string; connectionId?: string | null }[]; selectedDestinationIds: string[]; clipPlayback: boolean; onPolicyChange: (policy: Policy) => void };
+type Props = { onDestinationsChange?: (change?: { deletedId: string }) => Promise<void> | void; ownerId: string; runnerId: string; sessionId?: string; overlayId: string; overlays: { id: string; name: string }[]; destinations: { id: string; name: string; provider?: string; connectionId?: string | null }[]; selectedDestinationIds: string[]; clipPlayback: boolean; onPolicyChange: (policy: Policy) => void };
 type Draft = { setStreamDetails: boolean; streamDetails: StreamDetails[]; allDay: boolean; title: string; timezone: string; recurrence: "once" | "weekly"; localStartDate: string; localEndDate: string; localStartTime: string; localEndTime: string; weekdays: number[]; endDayOffset: number; overlayId: string; destinationIds: string[] };
 const weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -132,7 +132,7 @@ export default function RunnerSchedule(props: Props) {
 	const [automationPending, startAutomationTransition] = useTransition();
 	const automation = automationControls.find((control) => control.sessionId === props.sessionId);
 	const automationPaused = Boolean(automation?.pausedAt);
-	const automationMessage = automation?.controlMode === "manual" ? "Scheduling is off. Save and enable scheduling to start your scheduled broadcasts." : automationPaused ? (automation?.actualState === "running" ? "Automation paused. This broadcast keeps its scheduled end; you can still stop it." : "Automation paused. Scheduled broadcasts will not start until you resume automation.") : null;
+	const automationMessage = automationPaused ? (automation?.actualState === "running" ? "Automation paused. This broadcast keeps its scheduled end; you can still stop it." : "Automation paused. Scheduled broadcasts will not start until you resume automation.") : null;
 	function toggleAutomation() {
 		if (!automation || automationPending) return;
 		startAutomationTransition(async () => {
@@ -298,28 +298,6 @@ export default function RunnerSchedule(props: Props) {
 								timezoneControl={<TimezonePicker label='Calendar timezone' value={calendarTimezone} onChange={setCalendarTimezone} />}
 								toolbar={
 									<>
-										{canEdit && automation?.controlMode === "manual" && props.onEnableScheduling && (
-											<Button
-												variant='secondary'
-												aria-label='Save and enable scheduling'
-												isDisabled={automationPending}
-												onPress={() =>
-													startAutomationTransition(async () => {
-														setError(null);
-														try {
-															if (await props.onEnableScheduling!()) await reload();
-															else setError("Could not enable scheduling. Check your broadcast configuration and try again.");
-														} catch {
-															setError("Could not enable scheduling. Your changes are kept. Please try again.");
-														}
-													})
-												}
-											>
-												<IconPlayerPlay size={16} />
-												<span className='sm:hidden'>Enable</span>
-												<span className='hidden sm:inline'>Save and enable scheduling</span>
-											</Button>
-										)}
 										{props.clipPlayback && automation?.controlMode === "scheduled" && (
 											<Button aria-label={automationPaused ? "Resume automation" : "Pause automation"} variant='secondary' onPress={toggleAutomation} isDisabled={loading || automationPending || (automationPaused && !policy?.scheduling)}>
 												{automationPaused ? <IconPlayerPlay size={16} /> : <IconPlayerPause size={16} />}

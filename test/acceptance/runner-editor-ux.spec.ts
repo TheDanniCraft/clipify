@@ -299,26 +299,29 @@ for (const plan of ["free", "pro"] as const)
 				expect(manualControlBounds).not.toBeNull();
 				expect(Math.abs(scheduledControlBounds!.width - manualControlBounds!.width)).toBeLessThan(2);
 				const openedSchedule = page.getByRole("dialog", { name: "Broadcast schedule", exact: true });
-				await expect(openedSchedule).toBeVisible();
-				await expect(openedSchedule.getByText(/Scheduling is off/)).toBeVisible();
+				await expect(openedSchedule).not.toBeVisible();
+				const scheduleAction = page.getByRole("button", { name: "Schedule", exact: true });
+				await expect(scheduleAction).toBeDisabled();
+				await expect(page.getByText("Save configuration to edit the schedule.", { exact: true })).toBeVisible();
 				for (const theme of ["dark", "light"]) {
 					if (theme === "light") {
 						await page.setViewportSize({ width: 1280, height: 900 });
-						await openedSchedule.getByRole("button", { name: "Close", exact: true }).click();
 						await page.getByRole("button", { name: "Toggle Theme", exact: true }).click();
-						await page.getByRole("button", { name: "Schedule", exact: true }).click();
 					}
 					for (const width of [1280, 390]) {
 						await page.setViewportSize({ width, height: 900 });
-						await expect(openedSchedule.getByRole("button", { name: "Save and enable scheduling", exact: true })).toBeVisible();
-						await openedSchedule.screenshot({ path: testInfo.outputPath(`schedule-enable-${theme}-${width}.png`), animations: "disabled" });
+						await expect(scheduleAction).toBeDisabled();
+						await page.screenshot({ path: testInfo.outputPath(`schedule-save-${theme}-${width}.png`), fullPage: true, animations: "disabled" });
 					}
 				}
 				await page.setViewportSize({ width: 1280, height: 900 });
-				await openedSchedule.getByRole("button", { name: "Close", exact: true }).click();
 				await page.getByRole("button", { name: "Toggle Theme", exact: true }).click();
-				await page.getByRole("button", { name: "Schedule", exact: true }).click();
-				await openedSchedule.getByRole("button", { name: "Save and enable scheduling", exact: true }).click();
+				await mainSave.click();
+				await expect(scheduleAction).toBeEnabled();
+				await expect(openedSchedule).not.toBeVisible();
+				await expect(page.getByText("Save configuration to edit the schedule.", { exact: true })).toHaveCount(0);
+				await scheduleAction.click();
+				await expect(openedSchedule.getByText(/Scheduling is off/)).toHaveCount(0);
 				await expect(openedSchedule.getByRole("button", { name: "Pause automation", exact: true })).toBeVisible();
 				expect((await pool.query("SELECT control_mode FROM stream_sessions WHERE runner_id=$1", [runnerId])).rows[0].control_mode).toBe("scheduled");
 				await openedSchedule.getByRole("button", { name: "Close", exact: true }).click();
