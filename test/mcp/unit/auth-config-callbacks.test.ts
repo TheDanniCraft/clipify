@@ -71,6 +71,39 @@ test("provider configuration uses native MCP grant options", () => {
 	expect(plugin("passkey")).toMatchObject({ rpID: "localhost", origin: "http://localhost:3000" });
 	expect(plugin("native-mcp")).toEqual({ origin: "http://localhost:3000", options: providerGrantOptions });
 });
+test.each([
+	[undefined, undefined, false],
+	["google-client", undefined, false],
+	[undefined, "google-secret", false],
+	["   ", "google-secret", false],
+	["google-client", "   ", false],
+	[" google-client ", " google-secret ", true],
+])("Google proxy configuration requires both credentials (%p, %p)", (clientId, clientSecret, enabled) => {
+	const previous = { ...process.env };
+	try {
+		delete process.env.YOUTUBE_CLIENT_ID;
+		delete process.env.YOUTUBE_CLIENT_SECRET;
+		if (clientId !== undefined) process.env.YOUTUBE_CLIENT_ID = clientId;
+		if (clientSecret !== undefined) process.env.YOUTUBE_CLIENT_SECRET = clientSecret;
+		process.env.NEXT_PUBLIC_BASE_URL = "https://clipify.us";
+		process.env.OAUTH_PROXY_SECRET = "fixture-shared-oauth-proxy-secret-32chars";
+		jest.isolateModules(() => {
+			const configured = require("@/auth/config").auth.options;
+			expect(configured.socialProviders.twitch).toEqual(options.socialProviders.twitch);
+			expect(configured.account.accountLinking).toEqual(options.account.accountLinking);
+			const proxy = configured.plugins.find((value: any) => value.id === "oauth-proxy").options;
+			expect(proxy).toMatchObject({ currentURL: "https://clipify.us", productionURL: "https://clipify.us", secret: process.env.OAUTH_PROXY_SECRET });
+			if (enabled) {
+				expect(configured.socialProviders.google).toEqual({ clientId: "google-client", clientSecret: "google-secret", accessType: "offline", prompt: "consent", disableSignUp: true });
+			} else {
+				expect(configured.socialProviders.google).toBeUndefined();
+			}
+		});
+	} finally {
+		process.env = previous;
+	}
+});
+
 test("unrelated auth endpoints do not run role-assignment reads", async () => {
 	await options.hooks.before(context({}, "/sign-in/social"));
 	expect(getSessionFromCtx).not.toHaveBeenCalled();

@@ -46,6 +46,11 @@ export const auth = betterAuth({
 			refreshAccessToken: refreshTwitchAccessToken,
 			requireEmailVerification: true,
 		},
+		...(process.env.YOUTUBE_CLIENT_ID?.trim() && process.env.YOUTUBE_CLIENT_SECRET?.trim()
+			? {
+					google: { clientId: process.env.YOUTUBE_CLIENT_ID.trim(), clientSecret: process.env.YOUTUBE_CLIENT_SECRET.trim(), accessType: "offline" as const, prompt: "consent" as const, disableSignUp: true },
+				}
+			: {}),
 	},
 	session: {
 		cookieCache: { enabled: false },
