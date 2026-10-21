@@ -39,6 +39,8 @@ test("Pro custom RTMP schedules explain unavailable details without a paid lock"
 
 		await page.getByRole("button", { name: / Control$/ }).click();
 		await page.getByRole("option", { name: /Scheduled/ }).click();
+		await page.getByRole("button", { name: "Save Configuration", exact: true }).click();
+		await page.getByRole("button", { name: "Schedule", exact: true }).click();
 		const calendar = page.getByRole("dialog", { name: "Broadcast schedule", exact: true });
 		await calendar.getByRole("button", { name: "Add schedule", exact: true }).click();
 		const editor = page.getByRole("dialog", { name: "Schedule broadcast", exact: true });

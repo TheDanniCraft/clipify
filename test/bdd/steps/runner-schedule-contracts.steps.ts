@@ -734,7 +734,11 @@ Given("its previous captured execution is fully closed after a manual stop", asy
 });
 When("they re-enable scheduling for the stopped occurrence", async ({ page, mcpWorld }) => {
 	const state = mcpWorld.input?.scheduleContract as State;
-	await page.getByRole("button", { name: "Save and enable scheduling", exact: true }).click();
+	await page.getByRole("dialog", { name: "Broadcast schedule", exact: true }).getByRole("button", { name: "Close", exact: true }).click();
+	await page.getByRole("button", { name: / Control$/ }).click();
+	await page.getByRole("option", { name: /Scheduled/ }).click();
+	await page.getByRole("button", { name: "Save Configuration", exact: true }).click();
+	await openRunnerSchedule(page);
 	await expect(page.getByRole("button", { name: "Pause automation", exact: true })).toBeVisible();
 	const [device] = await query("SELECT token FROM runners WHERE id=$1", [state.runnerId]);
 	const response = await page.request.post("/api/runner/heartbeat", { headers: { Authorization: `Bearer ${device.token}` }, data: { protocolVersion: 2, requestId: randomUUID(), capabilities: ["admissions", "destinations", "drain", "runner_presentation", "free_lease", "schedule_cache"] } });
