@@ -48,3 +48,20 @@ test("failed preparation can retry instead of caching a rejected download", asyn
 		network.mockRestore();
 	}
 });
+
+test("a missing FFmpeg binary after an unsuccessful download is not cached as ready", async () => {
+	const { ensureDependencies } = await import("../downloader");
+	const browsers = await import("@puppeteer/browsers");
+	const files = await import("fs");
+	jest.mocked(browsers.resolveBuildId).mockResolvedValue("fixture-build");
+	jest.mocked(files.existsSync).mockImplementation((file) => !String(file).includes("ffmpeg"));
+	const network = jest.spyOn(globalThis, "fetch").mockImplementation(async () => new Response(""));
+	try {
+		await expect(ensureDependencies()).rejects.toThrow("Runner dependencies are not ready");
+		jest.mocked(files.existsSync).mockReturnValue(true);
+		await expect(ensureDependencies()).resolves.toMatchObject({ chromePath: "/fixture/chrome" });
+		expect(browsers.resolveBuildId).toHaveBeenCalledTimes(2);
+	} finally {
+		network.mockRestore();
+	}
+});

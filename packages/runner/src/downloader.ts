@@ -337,6 +337,7 @@ async function prepareDependencies() {
 	if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
 	const chromePath = await ensureChromeDependencies();
 	const ffmpegPath = await ensureFfmpegDependencies();
+	if (!fs.existsSync(chromePath) || !fs.existsSync(ffmpegPath)) throw new Error("Runner dependencies are not ready");
 	return { chromePath, ffmpegPath };
 }
 
