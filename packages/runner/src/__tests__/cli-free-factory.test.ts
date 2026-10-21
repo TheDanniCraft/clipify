@@ -34,7 +34,7 @@ test("Free engine adapters retain a replacement execution when an older generati
 		},
 		fixtureModule,
 	);
-	const cli = fixtureModule.exports as { getFreeController: (job: Assignment, id: string, api: string, token: string) => unknown; actualStates: Record<string, string>; activeEngines: Record<string, unknown> };
+	const cli = fixtureModule.exports as { getFreeController: (job: Assignment, id: string, api: string, token: string) => unknown; processHeartbeatJob: (job: Record<string, unknown>, api: string, token: string) => Promise<void>; actualStates: Record<string, string>; activeEngines: Record<string, unknown> };
 	const assignment = { id: "session", ownerId: "owner", runnerId: "device", mode: "24/7", streamKey: "fixture" };
 	const controller = cli.getFreeController(assignment, "device", "https://example.invalid", "fixture");
 	expect(cli.getFreeController(assignment, "device", "https://example.invalid", "fixture")).toBe(controller);
@@ -42,6 +42,10 @@ test("Free engine adapters retain a replacement execution when an older generati
 	const old = factory!(assignment, { mayOpenOutput: () => true });
 	expect(construction[0][9]).toMatchObject({ presentationSessionId: assignment.id });
 	await old.start();
+	expect(cli.actualStates.session).toBe("running");
+	await cli.processHeartbeatJob({ ...assignment, desiredState: "stopped" }, "https://example.invalid", "fixture");
+	expect(engines[0].requestDrain).not.toHaveBeenCalled();
+	expect(engines[0].stop).not.toHaveBeenCalled();
 	expect(cli.actualStates.session).toBe("running");
 	const replacement = factory!(assignment, { mayOpenOutput: () => true });
 	await old.requestDrain({ deadlineMonotonic: 123 });

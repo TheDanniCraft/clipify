@@ -17,11 +17,13 @@ test.each(["ok", "retry", "reauth"])("main initializes the native runner and han
 	const checkForUpdates = jest.fn().mockResolvedValue("fixture-version"),
 		init = jest.fn(),
 		setPinned = jest.fn();
+	const ensureDependencies = jest.fn(() => (status === "retry" ? Promise.reject(new Error("offline")) : new Promise(() => {})));
 	const fixtureModule = { exports: {} };
 	const source = readFileSync(join(__dirname, "../index.ts"), "utf8").replace("main().catch(console.error);", "");
 	await compileRunnerCli(
 		source,
 		(name: string) => {
+			if (name === "./downloader") return { ensureDependencies };
 			if (name === "./startup-recovery") return { acquireRunnerInstance, recoverInterruptedExecutions };
 			if (name === "./storage") return { loadCredentials, clearCredentials };
 			if (name === "./updater") return { checkForUpdates, cleanupOldVersions: async () => undefined };
@@ -63,6 +65,8 @@ test.each(["ok", "retry", "reauth"])("main initializes the native runner and han
 	try {
 		await expect(cli.main()).rejects.toBe(sentinel);
 		expect(init).toHaveBeenCalledTimes(1);
+		expect(ensureDependencies).toHaveBeenCalledTimes(1);
+		expect(ensureDependencies.mock.invocationCallOrder[0]).toBeLessThan(network.mock.invocationCallOrder[0]);
 		expect(acquireRunnerInstance).toHaveBeenCalledTimes(1);
 		expect(recoverInterruptedExecutions).toHaveBeenCalledTimes(1);
 		expect(recoverInterruptedExecutions.mock.invocationCallOrder[0]).toBeLessThan(loadCredentials.mock.invocationCallOrder[0]);
