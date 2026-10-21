@@ -162,21 +162,44 @@ describe("Updater logic", () => {
 		expect(fs.writeFileSync).toHaveBeenCalledWith("runner.exe.update-error.log", "controlled PowerShell startup failure", { mode: 0o600 });
 	});
 
-	it.each([true, false])("reports update download progress with a known size=%s", async (knownSize) => {
+	it.each<{ source: string; knownSize: boolean; manifestSize: boolean; headers: Headers; invalidSize?: boolean }>([
+		{ source: "response header", knownSize: true, manifestSize: false, headers: new Headers({ "content-length": String(2 * 1024 * 1024) }) },
+		{ source: "manifest for a chunked response", knownSize: true, manifestSize: true, headers: new Headers() },
+		{ source: "manifest for a compressed response", knownSize: true, manifestSize: true, headers: new Headers({ "content-encoding": "gzip", "content-length": "123" }) },
+		{ source: "unknown total", knownSize: false, manifestSize: false, headers: new Headers() },
+		{ source: "invalid manifest size", knownSize: false, manifestSize: true, invalidSize: true, headers: new Headers() },
+		{ source: "compressed size without manifest", knownSize: false, manifestSize: false, headers: new Headers({ "content-encoding": "gzip", "content-length": "123" }) },
+	])("reports download percentage, total and ETA using $source", async ({ knownSize, manifestSize, headers, invalidSize }) => {
 		(fs.existsSync as jest.Mock).mockReturnValue(true);
 		(crypto.createHash as jest.Mock).mockReturnValue({ update: jest.fn(), digest: jest.fn().mockReturnValue("old-hash") });
 		const chunks = [new Uint8Array(1024 * 1024), new Uint8Array(1024 * 1024)];
-		(global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true, json: async () => ({ linux: "new-hash", windows: "new-hash" }) }).mockResolvedValueOnce(
-			new Response(
-				new ReadableStream({
-					start(controller) {
-						for (const chunk of chunks) controller.enqueue(chunk);
-						controller.close();
-					},
+		(global.fetch as jest.Mock)
+			.mockResolvedValueOnce({
+				ok: true,
+				json: async () => ({
+					linux: "new-hash",
+					windows: "new-hash",
+					...(manifestSize
+						? {
+								artifacts: [
+									{ sha256: "other-hash", size: 99 },
+									{ sha256: "new-hash", size: invalidSize ? -1 : 2 * 1024 * 1024 },
+								],
+							}
+						: {}),
 				}),
-				{ headers: knownSize ? { "content-length": String(2 * 1024 * 1024) } : {} },
-			),
-		);
+			})
+			.mockResolvedValueOnce(
+				new Response(
+					new ReadableStream({
+						start(controller) {
+							for (const chunk of chunks) controller.enqueue(chunk);
+							controller.close();
+						},
+					}),
+					{ headers },
+				),
+			);
 		const log = jest.spyOn(console, "log").mockImplementation(() => {});
 		const time = jest.spyOn(Date, "now");
 		let now = 1000;
@@ -184,7 +207,7 @@ describe("Updater logic", () => {
 		try {
 			await checkForUpdates("https://clipify.example");
 			const progress = log.mock.calls.map(([message]) => String(message)).filter((message) => message.startsWith("[Updater] Download:"));
-			expect(progress).toContain(knownSize ? "[Updater] Download: 50% (1.0 / 2.0 MiB)" : "[Updater] Download: 1.0 MiB");
+			expect(progress).toContain(knownSize ? "[Updater] Download: 50% (1.0 / 2.0 MiB), 1.0 MiB/s, about 1s remaining" : "[Updater] Download: 1.0 MiB (total size and ETA unavailable)");
 			expect(progress.at(-1)).toBe(knownSize ? "[Updater] Download: 100% (2.0 / 2.0 MiB)" : "[Updater] Download: 2.0 MiB (complete)");
 			expect(fs.writeFileSync).toHaveBeenCalledWith(expect.stringContaining(".new"), Buffer.concat(chunks));
 		} finally {

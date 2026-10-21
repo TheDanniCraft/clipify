@@ -14,7 +14,7 @@ function getFileHash(filePath: string): string {
 	return hashSum.digest("hex");
 }
 
-async function downloadFile(url: string, dest: string): Promise<void> {
+async function downloadFile(url: string, dest: string, expectedSize?: number): Promise<void> {
 	const parsedUrl = new URL(url);
 	if (!["http:", "https:"].includes(parsedUrl.protocol)) throw new Error(`Unsupported update URL protocol: ${parsedUrl.protocol}`);
 	try {
@@ -22,13 +22,19 @@ async function downloadFile(url: string, dest: string): Promise<void> {
 		if (!response.ok) throw new Error(`Failed to download file: ${response.status}`);
 		if (!response.body) throw new Error("Update download has no response body");
 		const length = response.headers.get("content-encoding") ? 0 : Number(response.headers.get("content-length"));
-		const total = Number.isFinite(length) && length > 0 ? length : 0;
+		const total = expectedSize ?? (Number.isSafeInteger(length) && length > 0 ? length : 0);
 		const chunks: Buffer[] = [];
 		let received = 0;
-		let lastReport = Date.now();
-		const report = (complete: boolean) => {
+		const startedAt = Date.now();
+		let lastReport = startedAt;
+		const report = (complete: boolean, now: number) => {
 			const size = (received / 1024 / 1024).toFixed(1);
-			console.log(total ? `[Updater] Download: ${Math.min(complete ? 100 : 99, Math.floor((received / total) * 100))}% (${size} / ${(total / 1024 / 1024).toFixed(1)} MiB)` : `[Updater] Download: ${size} MiB${complete ? " (complete)" : ""}`);
+			const elapsed = now - startedAt;
+			const speed = elapsed > 0 ? received / elapsed : 0;
+			const seconds = speed > 0 ? Math.ceil(Math.max(0, total - received) / speed / 1000) : null;
+			const eta = seconds === null ? "calculating time remaining" : `about ${seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`} remaining`;
+			const rate = speed > 0 ? `${((speed * 1000) / 1024 / 1024).toFixed(1)} MiB/s, ` : "";
+			console.log(total ? `[Updater] Download: ${Math.min(complete ? 100 : 99, Math.floor((received / total) * 100))}% (${size} / ${(total / 1024 / 1024).toFixed(1)} MiB)${complete ? "" : `, ${rate}${eta}`}` : `[Updater] Download: ${size} MiB (${complete ? "complete" : "total size and ETA unavailable"})`);
 		};
 		const reader = response.body.getReader();
 		try {
@@ -39,7 +45,7 @@ async function downloadFile(url: string, dest: string): Promise<void> {
 				received += value.byteLength;
 				const now = Date.now();
 				if (now - lastReport >= 1000) {
-					report(false);
+					report(false, now);
 					lastReport = now;
 				}
 			}
@@ -47,7 +53,7 @@ async function downloadFile(url: string, dest: string): Promise<void> {
 			reader.releaseLock();
 		}
 		fs.writeFileSync(dest, Buffer.concat(chunks));
-		report(true);
+		report(true, Date.now());
 	} catch (error) {
 		try {
 			fs.unlinkSync(dest);
@@ -64,21 +70,24 @@ function getUpdateTarget(): UpdateTarget {
 		osKey: isWindows ? "windows" : isLinuxArm64 ? "linuxArm" : isMacOS && process.arch === "arm64" ? "macosArm" : isMacOS ? "macos" : "linux",
 	};
 }
-async function fetchRemoteHash(apiBase: string, osKey: string): Promise<string | undefined> {
+async function fetchRemoteUpdate(apiBase: string, osKey: string): Promise<{ hash: string; size?: number } | undefined> {
 	const res = await fetch(`${apiBase}/api/runner/version`);
 	if (!res.ok) {
 		console.warn(`[Updater] Failed to check for updates: HTTP ${res.status}`);
 		return undefined;
 	}
-	const data = (await res.json()) as Partial<Record<string, string>>;
-	return data[osKey];
+	const data = (await res.json()) as Partial<Record<string, string>> & { artifacts?: { sha256: string; size: number }[] };
+	const hash = data[osKey];
+	if (typeof hash !== "string" || !hash) return undefined;
+	const artifact = Array.isArray(data.artifacts) ? data.artifacts.find((candidate) => candidate?.sha256 === hash) : undefined;
+	return { hash, ...(artifact && Number.isSafeInteger(artifact.size) && artifact.size > 0 ? { size: artifact.size } : {}) };
 }
 
-async function applyUpdate(apiBase: string, osKey: string, remoteHash: string): Promise<void> {
+async function applyUpdate(apiBase: string, osKey: string, remoteHash: string, expectedSize?: number): Promise<void> {
 	const execPath = process.execPath;
 	const newPath = process.platform === "win32" ? getWindowsUpdatePaths(execPath).staged : `${execPath}.new`;
 	const oldPath = `${execPath}.old`;
-	await downloadFile(`${apiBase}/api/runner/download?os=${encodeURIComponent(osKey)}`, newPath);
+	await downloadFile(`${apiBase}/api/runner/download?os=${encodeURIComponent(osKey)}`, newPath, expectedSize);
 
 	if (getFileHash(newPath) !== remoteHash) {
 		console.error("[Updater] Downloaded file hash mismatch! Aborting update.");
@@ -254,15 +263,15 @@ export async function checkForUpdates(apiBase: string): Promise<string> {
 				process.exit(0);
 			}
 		}
-		const remoteHash = await fetchRemoteHash(apiBase, osKey);
-		if (!remoteHash) {
+		const remote = await fetchRemoteUpdate(apiBase, osKey);
+		if (!remote) {
 			console.warn(`[Updater] No remote hash found for OS: ${osKey}`);
 			return localVersion;
 		}
-		if (localVersion !== remoteHash) {
-			console.log(`[Updater] Update found! Local: ${localVersion}, Remote: ${remoteHash}`);
+		if (localVersion !== remote.hash) {
+			console.log(`[Updater] Update found! Local: ${localVersion}, Remote: ${remote.hash}`);
 			console.log("[Updater] Downloading new version...");
-			await applyUpdate(apiBase, osKey, remoteHash);
+			await applyUpdate(apiBase, osKey, remote.hash, remote.size);
 		} else {
 			console.log("[Updater] Runner is up to date.");
 		}
