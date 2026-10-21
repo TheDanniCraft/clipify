@@ -6,3 +6,5 @@
 - [x] S4 Test and implement real Runner test output lifecycle (PC-5).
 - [x] S5 Test and implement approved destination/event UI with toggle and inherited title (PC-1/2/3/6).
 - [x] S6 Browser acceptance, affected tests, documentation, type/lint/build and release checks.
+
+- [x] S7 Replace standalone Runner OAuth exchange with Better Auth explicit linking and preview proxy; verify different emails, unchanged identity/login, disabled implicit merging, ownership conflicts, grant preservation, browser recovery and affected coverage.

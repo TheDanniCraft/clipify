@@ -6,6 +6,16 @@ import { randomUUID } from "node:crypto";
 import { encryptString } from "@/app/lib/encryption";
 import { usersTable } from "@/db/schema";
 import type { TrustedCreatorPrincipal } from "@/auth/authorize-operation";
+jest.mock("@/server/provider-credentials", () => ({ withSerializedProviderCredential: jest.fn(async (_pool: unknown, _id: string, run: () => Promise<unknown>) => run()) }));
+jest.mock("next/headers", () => ({ headers: async () => new Headers({ cookie: "session=fixture" }) }));
+jest.mock("@/auth/config", () => ({
+	auth: {
+		api: {
+			linkSocialAccount: jest.fn(async ({ body }: { body: { callbackURL: string } }) => ({ url: `https://provider.invalid/authorize?state=${new URL(body.callbackURL).searchParams.get("intent")}` })),
+			getAccessToken: jest.fn(async () => ({ accessToken: "connected-access" })),
+		},
+	},
+}));
 jest.mock("@/server/resources/mutation", () => ({
 	authorizeLockedMutation: jest.fn(async (_p: unknown, owner: string) => {
 		if (owner !== "provider-owner") throw new Error("ACCESS_DENIED");
@@ -248,30 +258,32 @@ async function beginGrant(provider: "twitch" | "youtube" = "twitch") {
 	if (!result.success) throw new Error("Fixture consent could not start");
 	return new URL(result.url).searchParams.get("state")!;
 }
-test.each([true, false])("PC-1/2 the full connection callback encrypts a new grant, including refresh reissue=%s", async (reissued) => {
-	const { completeStreamingConnection } = await import("@/server/runner/provider-connections");
+async function linkedGrant(provider: "twitch" | "youtube" = "twitch", refreshToken: string | null = "encrypted-refresh") {
+	const { account } = await import("@/db/auth-schema");
+	const row = { id: randomUUID(), userId: "auth-user", providerId: provider === "youtube" ? "google" : "twitch", accountId: "provider-subject", accessToken: "encrypted-access", refreshToken, scope: provider === "twitch" ? "channel:read:stream_key,channel:manage:broadcast" : "https://www.googleapis.com/auth/youtube.force-ssl" };
+	await fixture.db.insert(account).values(row);
+	return row;
+}
+test("PC-1/2 Better Auth stores the grant once and Runner references the exact linked account", async () => {
+	const { recordStreamingAccount, completeStreamingConnection } = await import("@/server/runner/provider-connections");
 	const { decryptString } = await import("@/app/lib/encryption");
 	const nonce = await beginGrant();
-	global.fetch = jest
-		.fn()
-		.mockResolvedValueOnce(new Response(JSON.stringify({ access_token: "connected-access", ...(reissued ? { refresh_token: "connected-refresh" } : {}), expires_in: 3600, scope: ["channel:read:stream_key", "channel:manage:broadcast"] })))
-		.mockResolvedValueOnce(new Response(JSON.stringify({ data: [{ id: "42", display_name: "Connected channel" }] })));
-	const result = await completeStreamingConnection(principal, "twitch", nonce, "code", fixture.db);
+	const account = await linkedGrant();
+	global.fetch = jest.fn().mockResolvedValue(new Response(JSON.stringify({ data: [{ id: "42", display_name: "Connected channel" }] })));
+	await recordStreamingAccount(account, nonce, fixture.db);
+	const result = await completeStreamingConnection(principal, "twitch", nonce, fixture.db);
 	expect(result).toMatchObject({ success: true, connection: { provider: "twitch", channelName: "Connected channel" } });
 	const rows = (await fixture.pool.query("SELECT encrypted_tokens FROM runner_provider_connections WHERE channel_id='42'")).rows;
-	expect(rows).toHaveLength(1);
-	expect(rows[0].encrypted_tokens).not.toContain("connected-access");
-	expect(JSON.parse(decryptString(rows[0].encrypted_tokens)!)).toMatchObject({ accessToken: "connected-access", refreshToken: reissued ? "connected-refresh" : "refresh" });
+	expect(JSON.parse(decryptString(rows[0].encrypted_tokens)!)).toEqual({ authAccountId: account.id, authUserId: "auth-user" });
 	expect(JSON.stringify(result)).not.toContain("connected-access");
+	expect(await completeStreamingConnection(principal, "twitch", nonce, fixture.db)).toMatchObject({ success: false });
 });
 test("PC-6 a new connection cannot save an unusable grant without offline access", async () => {
-	const { completeStreamingConnection } = await import("@/server/runner/provider-connections");
+	const { recordStreamingAccount } = await import("@/server/runner/provider-connections");
 	const nonce = await beginGrant();
-	global.fetch = jest
-		.fn()
-		.mockResolvedValueOnce(new Response(JSON.stringify({ access_token: "access", expires_in: 3600, scope: ["channel:read:stream_key", "channel:manage:broadcast"] })))
-		.mockResolvedValueOnce(new Response(JSON.stringify({ data: [{ id: "99", display_name: "No offline access" }] })));
-	await expect(completeStreamingConnection(principal, "twitch", nonce, "code", fixture.db)).rejects.toMatchObject({ code: "RECONNECT_REQUIRED" });
+	const account = await linkedGrant("twitch", null);
+	global.fetch = jest.fn().mockResolvedValue(new Response(JSON.stringify({ data: [{ id: "99", display_name: "No offline access" }] })));
+	await expect(recordStreamingAccount(account, nonce, fixture.db)).rejects.toMatchObject({ code: "RECONNECT_REQUIRED" });
 	expect((await fixture.pool.query("SELECT id FROM runner_provider_connections WHERE channel_id='99'")).rowCount).toBe(0);
 });
 test("PC-6 invalid and incomplete connection requests do not contact a provider", async () => {
@@ -282,11 +294,11 @@ test("PC-6 invalid and incomplete connection requests do not contact a provider"
 	expect(await beginStreamingConnection({ ...principal, kind: "oauth" }, { ownerId: "provider-owner", provider: "twitch" }, fixture.db)).toMatchObject({ success: false });
 	expect(await consumeStreamingState({ ...principal, kind: "oauth" }, "twitch", "invalid", fixture.db)).toBeNull();
 	expect(await consumeStreamingState({ ...principal, sessionId: undefined }, "twitch", "invalid", fixture.db)).toBeNull();
-	expect(await completeStreamingConnection(principal, "twitch", "invalid", "code", fixture.db)).toMatchObject({ success: false });
+	expect(await completeStreamingConnection(principal, "twitch", "invalid", fixture.db)).toMatchObject({ success: false });
 	const state = await beginGrant();
-	expect(await completeStreamingConnection(principal, "twitch", state, "", fixture.db)).toMatchObject({ success: false });
+	expect(await completeStreamingConnection(principal, "twitch", state, fixture.db)).toMatchObject({ success: false });
 	const other = await beginGrant();
-	expect(await completeStreamingConnection(principal, "twitch", other, "x".repeat(4097), fixture.db)).toMatchObject({ success: false });
+	expect(await completeStreamingConnection(principal, "twitch", other, fixture.db)).toMatchObject({ success: false });
 	expect(global.fetch).not.toHaveBeenCalled();
 });
 test("PC-6 missing provider configuration keeps the manual-key path available", async () => {
@@ -302,7 +314,7 @@ test("PC-6 missing provider configuration keeps the manual-key path available", 
 		process.env.YOUTUBE_CLIENT_SECRET = "secret";
 		const nonce = await beginGrant("youtube");
 		delete process.env.YOUTUBE_CLIENT_SECRET;
-		expect(await completeStreamingConnection(principal, "youtube", nonce, "code", fixture.db)).toMatchObject({ success: false });
+		expect(await completeStreamingConnection(principal, "youtube", nonce, fixture.db)).toMatchObject({ success: false });
 	} finally {
 		if (previousId === undefined) delete process.env.YOUTUBE_CLIENT_ID;
 		else process.env.YOUTUBE_CLIENT_ID = previousId;
@@ -319,10 +331,10 @@ test("PC-2 account-wide connection views expose identity without token storage",
 	expect(JSON.stringify(result)).not.toContain("refresh");
 	await expect(listStreamingConnections(principal, "foreign", fixture.db)).rejects.toThrow("ACCESS_DENIED");
 });
-test.each(["missing", "corrupt", "expired_without_refresh"])("PC-6 %s stored grants return a reconnect result without invoking the operation", async (variant) => {
+test.each(["missing", "corrupt", "malformed", "expired_without_refresh"])("PC-6 %s stored grants return a reconnect result without invoking the operation", async (variant) => {
 	const { withStreamingConnection } = await import("@/server/runner/provider-connections");
 	const row = (await fixture.pool.query("SELECT id FROM runner_provider_connections LIMIT 1")).rows[0];
-	if (variant !== "missing") await fixture.pool.query("UPDATE runner_provider_connections SET encrypted_tokens=$1 WHERE id=$2", [encryptString(variant === "corrupt" ? "not JSON" : JSON.stringify({ accessToken: "expired", expiresAt: 0 })), row.id]);
+	if (variant !== "missing") await fixture.pool.query("UPDATE runner_provider_connections SET encrypted_tokens=$1 WHERE id=$2", [encryptString(variant === "corrupt" ? "not JSON" : variant === "malformed" ? JSON.stringify({ accessToken: "" }) : JSON.stringify({ accessToken: "expired", expiresAt: 0 })), row.id]);
 	const operation = jest.fn(async () => true);
 	const result = await fixture.db.transaction((tx) => withStreamingConnection(tx, "provider-owner", variant === "missing" ? randomUUID() : row.id, operation));
 	expect(result).toMatchObject({ success: false, code: "RECONNECT_REQUIRED" });
@@ -453,20 +465,20 @@ test("PC-4 a mismatched provider snapshot cannot use a grant for another platfor
 	expect(global.fetch).not.toHaveBeenCalled();
 	expect((await fixture.pool.query("SELECT benefits_at_start FROM runner_broadcast_admissions WHERE id=$1", [state.id])).rows[0].benefits_at_start.streamDetailsResults[state.target.id].status).toBe("reconnect");
 });
-test("PC-1 YouTube connection is a channel grant and does not create a Google login account", async () => {
-	const { completeStreamingConnection } = await import("@/server/runner/provider-connections");
+test("PC-1 YouTube uses a linked Google account without creating another Clipify identity", async () => {
+	const { recordStreamingAccount, completeStreamingConnection } = await import("@/server/runner/provider-connections");
 	const priorId = process.env.YOUTUBE_CLIENT_ID,
 		priorSecret = process.env.YOUTUBE_CLIENT_SECRET;
 	try {
 		process.env.YOUTUBE_CLIENT_ID = "youtube-client";
 		process.env.YOUTUBE_CLIENT_SECRET = "youtube-secret";
-		const nonce = await beginGrant("youtube");
-		global.fetch = jest
-			.fn()
-			.mockResolvedValueOnce(new Response(JSON.stringify({ access_token: "youtube-access", refresh_token: "youtube-refresh", expires_in: 3600, scope: "https://www.googleapis.com/auth/youtube.force-ssl" })))
-			.mockResolvedValueOnce(new Response(JSON.stringify({ items: [{ id: "UCfixture", snippet: { title: "YouTube channel" } }] })));
-		expect(await completeStreamingConnection(principal, "youtube", nonce, "code", fixture.db)).toMatchObject({ success: true, connection: { provider: "youtube", channelName: "YouTube channel" } });
-		expect((await fixture.pool.query("SELECT id FROM auth.account")).rowCount).toBe(0);
+		const nonce = await beginGrant("youtube"),
+			account = await linkedGrant("youtube");
+		global.fetch = jest.fn().mockResolvedValue(new Response(JSON.stringify({ items: [{ id: "UCfixture", snippet: { title: "YouTube channel" } }] })));
+		await recordStreamingAccount(account, nonce, fixture.db);
+		expect(await completeStreamingConnection(principal, "youtube", nonce, fixture.db)).toMatchObject({ success: true, connection: { provider: "youtube", channelName: "YouTube channel" } });
+		expect((await fixture.pool.query("SELECT id FROM auth.user")).rowCount).toBe(1);
+		expect((await fixture.pool.query("SELECT provider_id FROM auth.account")).rows).toEqual([{ provider_id: "google" }]);
 	} finally {
 		if (priorId === undefined) delete process.env.YOUTUBE_CLIENT_ID;
 		else process.env.YOUTUBE_CLIENT_ID = priorId;
@@ -663,4 +675,80 @@ test("PC-4 Twitch does not accept YouTube-only metadata", async () => {
 		fixture.db,
 	);
 	expect(result).toMatchObject({ success: false, code: "INVALID_INPUT", error: expect.stringContaining("supported") });
+});
+
+test("PC-6 authenticated linking delegates to Better Auth and removes abandoned intents on failure", async () => {
+	const { auth } = await import("@/auth/config");
+	const headers = new Headers({ cookie: "session=fixture" });
+	await beginStreamingConnection(principal, { ownerId: "provider-owner", provider: "twitch" }, fixture.db, Date.now, headers);
+	expect(auth.api.linkSocialAccount).toHaveBeenCalledWith(expect.objectContaining({ headers, body: expect.objectContaining({ provider: "twitch", scopes: ["channel:read:stream_key", "channel:manage:broadcast"], disableRedirect: true }) }));
+	const before = (await fixture.pool.query("SELECT count(*) FROM runner_provider_states")).rows[0].count;
+	jest.mocked(auth.api.linkSocialAccount).mockRejectedValueOnce(new Error("private configuration"));
+	expect(await beginStreamingConnection(principal, { ownerId: "provider-owner", provider: "twitch" }, fixture.db)).toMatchObject({ success: false, error: expect.stringContaining("try again") });
+	expect((await fixture.pool.query("SELECT count(*) FROM runner_provider_states")).rows[0].count).toBe(before);
+});
+test("PC-6 foreign, expired, logged-out and insufficient-scope linking cannot attach a destination", async () => {
+	const { recordStreamingAccount } = await import("@/server/runner/provider-connections");
+	const nonce = await beginGrant(),
+		account = await linkedGrant();
+	global.fetch = jest.fn();
+	await recordStreamingAccount(account, "invalid", fixture.db);
+	await recordStreamingAccount({ ...account, providerId: "unknown" }, nonce, fixture.db);
+	await recordStreamingAccount({ ...account, userId: "foreign-user" }, nonce, fixture.db);
+	await expect(recordStreamingAccount({ ...account, scope: "openid" }, nonce, fixture.db)).rejects.toMatchObject({ code: "RECONNECT_REQUIRED" });
+	await fixture.pool.query("UPDATE auth.session SET expires_at=now()-interval '1 second'");
+	await recordStreamingAccount(account, nonce, fixture.db);
+	expect(global.fetch).not.toHaveBeenCalled();
+	expect((await fixture.pool.query("SELECT id FROM auth.verification WHERE identifier LIKE 'runner-connection:%'")).rowCount).toBe(0);
+});
+test("PC-6 linked account removal and token failure return reconnect without falling back to old credentials", async () => {
+	const { withStreamingConnection } = await import("@/server/runner/provider-connections");
+	const { auth } = await import("@/auth/config");
+	const account = await linkedGrant();
+	const reference = encryptString(JSON.stringify({ authAccountId: account.id, authUserId: account.userId }));
+	const row = (await fixture.pool.query("UPDATE runner_provider_connections SET encrypted_tokens=$1 RETURNING id", [reference])).rows[0];
+	const operation = jest.fn();
+	jest.mocked(auth.api.getAccessToken).mockRejectedValueOnce(new Error("expired refresh"));
+	expect(await fixture.db.transaction((tx) => withStreamingConnection(tx, "provider-owner", row.id, operation))).toMatchObject({ success: false, code: "RECONNECT_REQUIRED" });
+	await fixture.pool.query("DELETE FROM auth.account");
+	expect(await fixture.db.transaction((tx) => withStreamingConnection(tx, "provider-owner", row.id, operation))).toMatchObject({ success: false, code: "RECONNECT_REQUIRED" });
+	expect(operation).not.toHaveBeenCalled();
+});
+
+test("PC-6 cancellation during provider lookup cannot attach an abandoned destination", async () => {
+	const { recordStreamingAccount, consumeStreamingState } = await import("@/server/runner/provider-connections");
+	const nonce = await beginGrant(),
+		account = await linkedGrant();
+	global.fetch = jest.fn(async () => {
+		await consumeStreamingState(principal, "twitch", nonce, fixture.db);
+		return new Response(JSON.stringify({ data: [{ id: "99", display_name: "Abandoned channel" }] }));
+	});
+	await recordStreamingAccount(account, nonce, fixture.db);
+	expect((await fixture.pool.query("SELECT id FROM runner_provider_connections WHERE channel_id='99'")).rowCount).toBe(0);
+});
+
+test("PC-6 removed provider configuration, missing permissions and token lookup failure leave no connected channel", async () => {
+	const { recordStreamingAccount } = await import("@/server/runner/provider-connections");
+	const { auth } = await import("@/auth/config");
+	const nonce = await beginGrant(),
+		account = await linkedGrant();
+	const previous = process.env.TWITCH_CLIENT_ID;
+	try {
+		delete process.env.TWITCH_CLIENT_ID;
+		await expect(recordStreamingAccount(account, nonce, fixture.db)).rejects.toMatchObject({ code: "PROVIDER_UNAVAILABLE" });
+	} finally {
+		process.env.TWITCH_CLIENT_ID = previous;
+	}
+	await expect(recordStreamingAccount({ ...account, scope: null }, nonce, fixture.db)).rejects.toMatchObject({ code: "RECONNECT_REQUIRED" });
+	jest.mocked(auth.api.getAccessToken).mockRejectedValueOnce(new Error("invalid grant"));
+	await expect(recordStreamingAccount(account, nonce, fixture.db)).rejects.toMatchObject({ code: "RECONNECT_REQUIRED" });
+});
+test("PC-6 a destination removed before returning to the editor gives a recoverable result", async () => {
+	const { recordStreamingAccount, completeStreamingConnection } = await import("@/server/runner/provider-connections");
+	const nonce = await beginGrant(),
+		account = await linkedGrant();
+	global.fetch = jest.fn().mockResolvedValue(new Response(JSON.stringify({ data: [{ id: "99", display_name: "Removed channel" }] })));
+	await recordStreamingAccount(account, nonce, fixture.db);
+	await fixture.pool.query("DELETE FROM runner_provider_connections WHERE channel_id='99'");
+	expect(await completeStreamingConnection(principal, "twitch", nonce, fixture.db)).toMatchObject({ success: false, error: expect.stringContaining("reconnect") });
 });

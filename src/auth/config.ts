@@ -1,7 +1,8 @@
 import { queueIdentityEmail } from "@/server/notifications/identity-events";
 import { randomUUID } from "node:crypto";
 import { betterAuth } from "better-auth";
-import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
+import { nextCookies } from "better-auth/next-js";
+import { APIError, createAuthMiddleware, getSessionFromCtx, getOAuthState } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { emailOTP, magicLink, oAuthProxy, organization } from "better-auth/plugins";
 import { and, eq, gt, inArray } from "drizzle-orm";
@@ -19,6 +20,20 @@ import { evaluateRoleAssignment } from "./role-assignment-policy";
 import { createMcpPlugins } from "./mcp-options";
 import { providerGrantOptions } from "@/server/mcp/grants";
 import { withResourceSeedErrorCompatibility } from "./resource-seed-adapter";
+import { toPublicResourceError } from "@/server/resources/errors";
+
+async function recordRunnerAccount(account: { id: string; userId: string; providerId: string; scope?: string | null }, path?: string) {
+	if (!path?.startsWith("/callback/")) return;
+	const state = await getOAuthState();
+	if (state?.link?.userId !== account.userId || !state.runnerConnectionIntent) return;
+	const { recordStreamingAccount } = await import("@/server/runner/provider-connections");
+	const { ProviderRequestError } = await import("@/server/runner/provider-api");
+	try {
+		await recordStreamingAccount(account, state.runnerConnectionIntent);
+	} catch (error) {
+		if (!(error instanceof ProviderRequestError) && toPublicResourceError(error).code === "SERVICE_UNAVAILABLE") throw error;
+	}
+}
 
 const resolvedBaseUrl = resolveBaseUrl();
 const baseURL = resolvedBaseUrl.origin;
@@ -46,6 +61,26 @@ export const auth = betterAuth({
 			refreshAccessToken: refreshTwitchAccessToken,
 			requireEmailVerification: true,
 		},
+		...(process.env.YOUTUBE_CLIENT_ID?.trim() && process.env.YOUTUBE_CLIENT_SECRET?.trim()
+			? {
+					google: { clientId: process.env.YOUTUBE_CLIENT_ID.trim(), clientSecret: process.env.YOUTUBE_CLIENT_SECRET.trim(), accessType: "offline" as const, prompt: "consent" as const, disableSignUp: true },
+				}
+			: {}),
+	},
+	user: {
+		validateUserInfo: async ({ user, source }) => {
+			if (source.action !== "sign-in" || source.method !== "oauth" || source.oauth?.providerId !== "twitch") return;
+			const state = await getOAuthState();
+			if (!state || state.link || typeof user.id !== "string" || typeof source.oauth?.profile?.sub !== "string") return;
+			const [account] = await db
+				.select()
+				.from(schema.account)
+				.where(and(eq(schema.account.userId, user.id), eq(schema.account.providerId, "twitch"), eq(schema.account.accountId, source.oauth.profile.sub)))
+				.limit(1);
+			if (!account || !["channel:read:stream_key", "channel:manage:broadcast"].every((scope) => (account.scope ?? "").split(/[ ,]+/).includes(scope))) return;
+			// This request-local state is already consumed and is never sent back to the provider.
+			state.serverContext = { ...state.serverContext, runnerAccountTokens: { accessToken: account.accessToken, refreshToken: account.refreshToken, accessTokenExpiresAt: account.accessTokenExpiresAt, refreshTokenExpiresAt: account.refreshTokenExpiresAt } };
+		},
 	},
 	session: {
 		cookieCache: { enabled: false },
@@ -59,7 +94,8 @@ export const auth = betterAuth({
 		accountLinking: {
 			enabled: true,
 			disableImplicitLinking: true,
-			allowDifferentEmails: false,
+			allowDifferentEmails: true,
+			updateUserInfoOnLink: false,
 			allowUnlinkingAll: false,
 		},
 	},
@@ -67,6 +103,7 @@ export const auth = betterAuth({
 		account: {
 			create: {
 				after: async (account, context) => {
+					await recordRunnerAccount(account, context?.path);
 					if (account.providerId === "twitch" && (context?.path === "/callback/twitch" || (context?.path === "/callback/:id" && context.params?.id === "twitch"))) {
 						const { restoreTwitchAccountAccess } = await import("@/server/notifications/twitch-account-access");
 						await restoreTwitchAccountAccess(account.userId);
@@ -74,7 +111,15 @@ export const auth = betterAuth({
 				},
 			},
 			update: {
+				before: async (account, context) => {
+					if (account.providerId !== "twitch" || !context?.path?.startsWith("/callback/")) return;
+					const state = await getOAuthState();
+					const preserved = state?.serverContext?.runnerAccountTokens;
+					if (!preserved || state?.link) return;
+					return { data: { ...account, ...preserved } };
+				},
 				after: async (account, context) => {
+					await recordRunnerAccount(account, context?.path);
 					if (account.providerId === "twitch" && (context?.path === "/callback/twitch" || (context?.path === "/callback/:id" && context.params?.id === "twitch"))) {
 						const { restoreTwitchAccountAccess } = await import("@/server/notifications/twitch-account-access");
 						await restoreTwitchAccountAccess(account.userId);
@@ -231,6 +276,7 @@ export const auth = betterAuth({
 				afterRemoveMember: async ({ user, organization, member }) => queueIdentityEmail(user.email, { type: "organization-membership", organizationName: organization.name, status: "removed" }, `organization-removed:${member.id}`),
 			},
 		}),
+		nextCookies(),
 	],
 });
 

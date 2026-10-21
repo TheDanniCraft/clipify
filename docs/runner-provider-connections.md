@@ -1,6 +1,6 @@
 # Runner channel connections
 
-Runner destinations are account-wide. Connect Twitch or YouTube once in Manage destinations and reuse that destination on other computers. Manual stream keys remain available. Connecting a streaming channel does not add a new Clipify login provider or change the scopes requested at normal Twitch sign-in.
+Runner destinations are account-wide. Connect Twitch or YouTube once in Manage destinations and reuse that destination on other computers. Manual stream keys remain available. Channel authorization uses Better Auth account linking and its existing preview OAuth proxy. Normal Twitch sign-in requests its existing scopes; the Runner connection requests the streaming permissions together. Linking Google adds a login method to the existing Clipify identity, without creating another Clipify user. Google is not offered as a new-user sign-up option. Existing account-linking protections remain: verified identities and no implicit account merging. Explicit linking permits different provider emails without replacing the Clipify email/profile or its existing Twitch login. Twitch connections extend the existing Twitch identity; linking a second creator identity remains prohibited.
 
 The connection prompt requests all supported streaming permissions together:
 
@@ -9,7 +9,7 @@ The connection prompt requests all supported streaming permissions together:
 | Twitch   | `channel:read:stream_key`, `channel:manage:broadcast`                   | Existing `TWITCH_CLIENT_ID` and `TWITCH_CLIENT_SECRET` |
 | YouTube  | `https://www.googleapis.com/auth/youtube.force-ssl` with offline access | `YOUTUBE_CLIENT_ID` and `YOUTUBE_CLIENT_SECRET`        |
 
-Register the exact production or preview origin followed by `/runner/connect/twitch/callback` or `/runner/connect/youtube/callback` in the provider console. YouTube uses a web OAuth client with the YouTube Data API enabled. Configure the Google consent screen and complete Google's applicable verification before enabling it for public users. It is a streaming authorization, not Google sign-in.
+Register `https://clipify.us/api/auth/callback/twitch` for Twitch and `https://clipify.us/api/auth/callback/google` for Google. Preview deployments use these stable production callbacks through the existing Better Auth OAuth proxy, so they do not need per-preview provider registrations. Production and preview must configure the same provider credentials and `OAUTH_PROXY_SECRET`. The `/runner/connect/{provider}/complete` URL is only an internal popup return page, not a provider callback. YouTube uses a web OAuth client with the YouTube Data API enabled. Configure the Google consent screen and complete Google's applicable verification before enabling it for public users. Publish the Google application as External / In production and submit the applicable verification before public release.
 
 YouTube destinations select an existing stream key from the connected channel. Create it in YouTube Studio if the channel has none. For scheduled metadata, bind one upcoming or live broadcast to that stream key. Clipify refuses ambiguous matches rather than changing an arbitrary video. It does not create, publish or change a video's privacy automatically.
 
@@ -27,7 +27,7 @@ The selected 30/60/120-second deadline bounds the signed output lease, including
 
 ## Security and validation
 
-Connection state is random, short-lived, single-use, and bound to the initiating authenticated session, creator and provider. Both begin and callback recheck creator authority. Provider tokens and stream keys are encrypted at rest. OAuth responses, browser views and logs exclude tokens and keys. Row locks serialize refresh rotation; an expected downstream denial commits a successful refresh so it cannot lose a rotated token. Provider requests use fixed HTTPS endpoints, bounded bodies and deadlines.
+Connection state is random, short-lived, single-use, and bound to the initiating authenticated session, creator and provider. Both begin and callback recheck creator authority. Provider tokens remain encrypted in Better Auth. New Runner connections store only an encrypted reference to that exact account; access-token refresh goes through Better Auth. Existing grants retain their legacy encrypted credentials until reconnected. Stream keys are encrypted at rest. OAuth responses, browser views and logs exclude tokens and keys. Row locks serialize refresh rotation; an expected downstream denial commits a successful refresh so it cannot lose a rotated token. Provider requests use fixed HTTPS endpoints, bounded bodies and deadlines.
 
 No generated migration belongs on the feature branch. The normal master migration workflow owns the schema change.
 

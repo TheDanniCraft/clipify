@@ -1,5 +1,5 @@
 /** @jest-environment node */
-import { exchangeStreamingCode, fetchStreamingChannel, updateStreamingMetadata, ProviderRequestError } from "@/server/runner/provider-api";
+import { fetchStreamingChannel, updateStreamingMetadata, ProviderRequestError } from "@/server/runner/provider-api";
 const original = global.fetch;
 afterEach(() => {
 	global.fetch = original;
@@ -8,15 +8,6 @@ afterEach(() => {
 function response(data: unknown, status = 200) {
 	return new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json" } });
 }
-test("PC-1 exchange sends credentials only to fixed provider token endpoint", async () => {
-	const fetcher = jest.fn().mockResolvedValue(response({ access_token: "access", refresh_token: "refresh", expires_in: 3600, scope: "channel:read:stream_key channel:manage:broadcast" }));
-	global.fetch = fetcher;
-	const result = await exchangeStreamingCode("twitch", { clientId: "id", clientSecret: "secret", redirectUri: "https://clipify.us/callback", code: "code" });
-	expect(result.accessToken).toBe("access");
-	expect(result.refreshToken).toBe("refresh");
-	expect(fetcher.mock.calls[0][0]).toBe("https://id.twitch.tv/oauth2/token");
-	expect(fetcher.mock.calls[0][1].redirect).toBe("error");
-});
 test("PC-2 obtains Twitch identity from token and never a browser supplied broadcaster ID", async () => {
 	const fetcher = jest.fn().mockResolvedValueOnce(response({ data: [{ id: "42", display_name: "DanniCraft" }] }));
 	global.fetch = fetcher;
@@ -38,10 +29,7 @@ test("oversized provider responses are rejected", async () => {
 	global.fetch = jest.fn().mockResolvedValue(response({ data: "x".repeat(300000) }));
 	await expect(fetchStreamingChannel("twitch", "token", "client")).rejects.toMatchObject({ code: "PROVIDER_UNAVAILABLE" });
 });
-test("PC-1 missing combined permissions rejects the grant", async () => {
-	global.fetch = jest.fn().mockResolvedValue(response({ access_token: "access", refresh_token: "refresh", expires_in: 3600, scope: ["channel:read:stream_key"] }));
-	await expect(exchangeStreamingCode("twitch", { clientId: "client", clientSecret: "secret", redirectUri: "https://clipify.us/callback", code: "code" })).rejects.toMatchObject({ code: "RECONNECT_REQUIRED" });
-});
+
 test("PC-2 refresh preserves an offline token when the provider does not rotate it", async () => {
 	const { refreshStreamingTokens } = await import("@/server/runner/provider-api");
 	global.fetch = jest.fn().mockResolvedValue(response({ access_token: "new-access", expires_in: 3600 }));
@@ -102,18 +90,12 @@ test("PC-6 network failures and malformed success bodies return only safe retry 
 	global.fetch = jest.fn().mockRejectedValueOnce(new Error("private-token")).mockResolvedValueOnce(new Response("not JSON")).mockResolvedValueOnce(new Response(null));
 	for (let index = 0; index < 3; index++) await expect(fetchStreamingChannel("twitch", "token", "client")).rejects.toMatchObject({ code: "PROVIDER_UNAVAILABLE", message: "The streaming service is unavailable. Please try again." });
 });
-test("PC-6 malformed grants cannot become usable tokens", async () => {
+test("PC-6 malformed legacy refresh cannot become usable tokens", async () => {
 	const { refreshStreamingTokens } = await import("@/server/runner/provider-api");
-	global.fetch = jest
-		.fn()
-		.mockResolvedValueOnce(response({}))
-		.mockResolvedValueOnce(response({ access_token: "access", expires_in: 3600 }))
-		.mockResolvedValueOnce(response({}));
-	const input = { clientId: "client", clientSecret: "secret", redirectUri: "https://clipify.us/callback", code: "code" };
-	await expect(exchangeStreamingCode("youtube", input)).rejects.toMatchObject({ code: "PROVIDER_UNAVAILABLE" });
-	await expect(exchangeStreamingCode("youtube", input)).rejects.toMatchObject({ code: "RECONNECT_REQUIRED" });
+	global.fetch = jest.fn().mockResolvedValue(response({}));
 	await expect(refreshStreamingTokens("twitch", { clientId: "client", clientSecret: "secret", refreshToken: "refresh" })).rejects.toMatchObject({ code: "RECONNECT_REQUIRED" });
 });
+
 test("PC-4 category search encodes user input and returns only category identity", async () => {
 	const { searchTwitchCategories } = await import("@/server/runner/provider-api");
 	const fetcher = jest.fn().mockResolvedValue(response({ data: [{ id: "509658", name: "Just Chatting", box_art_url: "ignored" }] }));

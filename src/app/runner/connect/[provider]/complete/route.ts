@@ -4,7 +4,7 @@ import { completeStreamingConnection } from "@/server/runner/provider-connection
 import { streamingProviderSchema } from "@/server/runner/provider-contract";
 import { resolveBaseUrl } from "@/app/lib/baseUrl";
 
-/** OAuth redirect is an external-provider callback; UI mutations use server actions. */
+/** Local popup completion after Better Auth handles the provider callback. */
 export async function GET(request: Request, { params }: { params: Promise<{ provider: string }> }) {
 	const provider = streamingProviderSchema.safeParse((await params).provider);
 	const url = new URL(request.url);
@@ -14,7 +14,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
 	try {
 		const principal = await getVerifiedSessionPrincipal(request.headers);
 		if (principal && provider.success && !url.searchParams.has("error")) {
-			const result = await completeStreamingConnection(principal, provider.data, url.searchParams.get("state") ?? "", url.searchParams.get("code") ?? "");
+			const result = await completeStreamingConnection(principal, provider.data, url.searchParams.get("intent") ?? "");
 			if (result.success) {
 				success = true;
 				connectionId = result.connection.id;

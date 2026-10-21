@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { providerScopes, type StreamingProvider } from "./provider-contract";
+import { type StreamingProvider } from "./provider-contract";
 export class ProviderRequestError extends Error {
 	constructor(
 		readonly code: "RECONNECT_REQUIRED" | "PROVIDER_UNAVAILABLE" | "CHANNEL_UNAVAILABLE",
@@ -70,14 +70,6 @@ async function request(url: string, init: RequestInit = {}) {
 }
 const tokenResponse = z.object({ access_token: z.string().min(1).max(8192), refresh_token: z.string().min(1).max(8192).optional(), expires_in: z.number().int().positive().max(31536000), scope: z.union([z.string(), z.array(z.string())]).optional() });
 export type StreamingTokens = { accessToken: string; refreshToken?: string; expiresAt: number };
-export async function exchangeStreamingCode(provider: StreamingProvider, input: { clientId: string; clientSecret: string; redirectUri: string; code: string }) {
-	const data = await request(provider === "twitch" ? "https://id.twitch.tv/oauth2/token" : "https://oauth2.googleapis.com/token", { method: "POST", body: new URLSearchParams({ client_id: input.clientId, client_secret: input.clientSecret, redirect_uri: input.redirectUri, code: input.code, grant_type: "authorization_code" }) });
-	const parsed = tokenResponse.safeParse(data);
-	if (!parsed.success) throw new ProviderRequestError("PROVIDER_UNAVAILABLE");
-	const scopes = Array.isArray(parsed.data.scope) ? parsed.data.scope : (parsed.data.scope ?? "").split(" ");
-	if (providerScopes(provider).some((scope) => !scopes.includes(scope))) throw new ProviderRequestError("RECONNECT_REQUIRED");
-	return { accessToken: parsed.data.access_token, refreshToken: parsed.data.refresh_token, expiresAt: Date.now() + parsed.data.expires_in * 1000 };
-}
 export async function refreshStreamingTokens(provider: StreamingProvider, input: { clientId: string; clientSecret: string; refreshToken: string }) {
 	const data = await request(provider === "twitch" ? "https://id.twitch.tv/oauth2/token" : "https://oauth2.googleapis.com/token", { method: "POST", body: new URLSearchParams({ client_id: input.clientId, client_secret: input.clientSecret, refresh_token: input.refreshToken, grant_type: "refresh_token" }) });
 	const parsed = tokenResponse.safeParse(data);
