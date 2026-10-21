@@ -13,6 +13,7 @@ import { randomUUID, createHash } from "node:crypto";
 import * as os from "os";
 import * as readline from "readline";
 import { activateRtmpProbeNonce, Engine, startTCPProxy, stopTCPProxy } from "./engine";
+import { ensureDependencies } from "./downloader";
 import { ConsoleUI } from "./logger";
 import { checkForUpdates, cleanupOldVersions } from "./updater";
 import { openBrowser } from "./browser";
@@ -30,6 +31,7 @@ const DEVELOPMENT_API_BASE = "http://localhost:3000";
 const actualStates: Record<string, string> = {};
 const activeEngines: Record<string, Engine> = {};
 const drainingEngines = new Set<Engine>();
+const admittedEngines = new WeakSet<Engine>();
 const freeControllers = new Map<string, { runnerId: string; controller: FreeExecutionController }>();
 const freeJournals = new Map<string, ExecutionJournal>();
 const closedOnRestart = new Set<string>();
@@ -311,6 +313,8 @@ async function processHeartbeatJob(job: HeartbeatJob, apiBase: string, token: st
 	const mode = job.mode === "24/7" ? "24_7" : job.mode;
 	const streamKey = job.streamKey ?? "";
 	const existingEngine = activeEngines[job.id];
+	// Admission-bound commands exclusively control signed executions, including cached schedules.
+	if (existingEngine && admittedEngines.has(existingEngine)) return;
 	if (existingEngine && drainingEngines.has(existingEngine) && !(job.desiredState === "stopped" && job.stopMode === "immediate")) return;
 	const needsRestart = Boolean(existingEngine && (existingEngine.mode !== mode || existingEngine.rtmpUrl !== job.rtmpUrl || existingEngine.streamKey !== streamKey || existingEngine.overlayId !== job.overlayId || existingEngine.fps !== job.fps || existingEngine.resolution !== job.resolution));
 
@@ -469,6 +473,7 @@ function getFreeController(job: Pick<HeartbeatJob, "ownerId" | "runnerId">, runn
 			const mode = assignment.mode === "24/7" ? "24_7" : assignment.mode;
 			const engine = new Engine(assignment.overlayId, assignment.rtmpUrl, assignment.overlaySecret, assignment.streamKey ?? "", assignment.fps, assignment.resolution, mode, apiBase, token, { presentationSessionId: assignment.id, scheduledDeadlineMonotonic: policy.scheduledDeadlineMonotonic, destinations: assignment.destinations, executionGeneration: assignment.executionGeneration, mayOpenOutput: policy.mayOpenOutput });
 			activeEngines[assignment.id] = engine;
+			admittedEngines.add(engine);
 			const closed = async (operation: Promise<void>) => {
 				await operation;
 				if (activeEngines[assignment.id] === engine) {
@@ -781,6 +786,7 @@ async function main() {
 	ConsoleUI.init();
 
 	RUNNER_VERSION = await checkForUpdates(apiBase);
+	void ensureDependencies().catch(() => console.warn("[Runner] Dependency preparation failed; the next broadcast start will retry."));
 
 	console.log("==========================================");
 	console.log(`=       Clipify Runner (${RUNNER_VERSION.substring(0, 8)})        =`);
