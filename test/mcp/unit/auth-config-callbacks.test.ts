@@ -23,7 +23,7 @@ jest.mock("better-auth/api", () => ({
 jest.mock("better-auth/adapters/drizzle", () => ({ drizzleAdapter: jest.fn(() => ({})) }));
 jest.mock("better-auth/plugins", () => ({ magicLink: (options: unknown) => ({ id: "magic-link", options }), emailOTP: (options: unknown) => ({ id: "email-otp", options }), oAuthProxy: (options: unknown) => ({ id: "oauth-proxy", options }), organization: (options: unknown) => ({ id: "organization", options }) }));
 jest.mock("@better-auth/passkey", () => ({ passkey: (options: unknown) => ({ id: "passkey", options }) }));
-jest.mock("@/db/client", () => ({ db: { select: jest.fn() } }));
+jest.mock("@/db/client", () => ({ db: { select: jest.fn(), execute: jest.fn() } }));
 jest.mock("@/auth/organization-access", () => ({ clipifyAccessControl: {}, betterAuthOrganizationRoles: { owner: {}, operations: {}, "content-manager": {}, analyst: {}, "billing-manager": {} } }));
 jest.mock("@/auth/transactional-mail", () => ({ sendAuthOtp: jest.fn(), sendTeamInvitation: jest.fn() }));
 jest.mock("@/auth/providers/twitch-refresh", () => ({ refreshTwitchAccessToken: jest.fn() }));
@@ -31,7 +31,9 @@ jest.mock("@/auth/mcp-options", () => ({ createMcpPlugins: jest.fn((options: unk
 jest.mock("@/server/mcp/config", () => ({ getMcpConfiguration: () => ({ valid: true }) }));
 jest.mock("@/server/mcp/grants", () => ({ providerGrantOptions: {} }));
 jest.mock("@/server/notifications/twitch-account-access", () => ({ restoreTwitchAccountAccess: jest.fn() }));
+jest.mock("@/server/creator-onboarding", () => ({ processCreatorOnboarding: jest.fn() }));
 import { restoreTwitchAccountAccess } from "@/server/notifications/twitch-account-access";
+import { processCreatorOnboarding } from "@/server/creator-onboarding";
 jest.mock("@/server/notifications/identity-events", () => ({ queueIdentityEmail: jest.fn() }));
 import { queueIdentityEmail } from "@/server/notifications/identity-events";
 import { getSessionFromCtx } from "better-auth/api";
@@ -61,6 +63,20 @@ beforeEach(() => {
 });
 const plugin = (id: string) => options.plugins.find((value: any) => value.id === id).options;
 const context = (body: unknown = { memberId: "target", role: "operations" }, path = "/organization/update-member-role") => ({ path, body });
+
+test("session creation records a linked creator's returning login", async () => {
+	await options.databaseHooks.session.create.after({ userId: "returning-identity" });
+	expect(db.execute).toHaveBeenCalledTimes(1);
+});
+
+test("only Twitch account creation consumes durable onboarding eligibility", async () => {
+	await options.databaseHooks.account.create.after({ providerId: "twitch", userId: "identity", accountId: "creator" }, undefined);
+	expect(processCreatorOnboarding).toHaveBeenCalledWith("creator");
+	(processCreatorOnboarding as jest.Mock).mockClear();
+	await options.databaseHooks.account.create.after({ providerId: "credential", userId: "identity" }, undefined);
+	await options.databaseHooks.account.update.after({ providerId: "twitch", userId: "identity", accountId: "creator" }, undefined);
+	expect(processCreatorOnboarding).not.toHaveBeenCalled();
+});
 
 test("provider configuration uses native MCP grant options", () => {
 	expect(options.account.encryptOAuthTokens).toBe(true);

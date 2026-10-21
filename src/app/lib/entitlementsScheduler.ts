@@ -27,6 +27,13 @@ export function startEntitlementsScheduler() {
 		if (globalThis.__entitlementsSchedulerRunning) return;
 		globalThis.__entitlementsSchedulerRunning = true;
 		try {
+			try {
+				const { retryCreatorOnboarding } = await import("@/server/creator-onboarding");
+				await retryCreatorOnboarding();
+			} catch (error) {
+				captureUnexpectedError(error, "entitlements-scheduler", "retry-creator-onboarding");
+				console.error("[creator-onboarding] scheduler_run_failed", error);
+			}
 			await reconcileRevokedUsersBatch(batchSize, cooldownHours);
 		} catch (error) {
 			captureUnexpectedError(error, "entitlements-scheduler", "reconcile-revoked-users");

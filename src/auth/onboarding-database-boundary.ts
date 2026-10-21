@@ -17,6 +17,7 @@ DECLARE
 	existing_auth_user_id text;
 	existing_creator_id varchar;
 	existing_organization_id text;
+	new_creator_id varchar;
 BEGIN
 	IF NEW.provider_id <> 'twitch' THEN
 		RETURN NEW;
@@ -45,12 +46,16 @@ BEGIN
 
 	INSERT INTO public.users (id, email, username, avatar, role, plan, created_at, updated_at, last_login)
 	VALUES (NEW.account_id, lower(identity.email), identity.name, coalesce(identity.image, ''), 'user', 'free', identity.created_at, now(), now())
-	ON CONFLICT (id) DO UPDATE
-	SET email = EXCLUDED.email,
-		username = EXCLUDED.username,
-		avatar = EXCLUDED.avatar,
-		updated_at = now(),
-		last_login = now();
+	ON CONFLICT (id) DO NOTHING
+	RETURNING id INTO new_creator_id;
+
+	IF new_creator_id IS NOT NULL THEN
+		INSERT INTO public.creator_onboarding_jobs (creator_id) VALUES (new_creator_id);
+	ELSE
+		UPDATE public.users SET email = lower(identity.email), username = identity.name,
+			avatar = coalesce(identity.image, ''), updated_at = now(), last_login = now()
+		WHERE id = NEW.account_id;
+	END IF;
 
 	INSERT INTO auth.organization (id, name, slug, logo, created_at, metadata)
 	VALUES (

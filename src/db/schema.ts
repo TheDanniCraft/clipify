@@ -100,6 +100,19 @@ export const usersTable = pgTable(
 	],
 );
 
+// Enqueued in the Twitch account transaction only for genuinely new creators.
+export const creatorOnboardingJobsTable = pgTable("creator_onboarding_jobs", {
+	creatorId: varchar("creator_id")
+		.primaryKey()
+		.references(() => usersTable.id, { onDelete: "cascade" }),
+	initializedAt: timestamp("initialized_at", { withTimezone: true }),
+	profileSyncedAt: timestamp("profile_synced_at", { withTimezone: true }),
+	contactSyncedAt: timestamp("contact_synced_at", { withTimezone: true }),
+	nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }).defaultNow().notNull(),
+	attempts: integer("attempts").notNull().default(0),
+	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const userBadgesTable = pgTable(
 	"user_badges",
 	{

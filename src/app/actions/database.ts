@@ -1598,16 +1598,12 @@ export async function getSettingsServer(userId: string, forceSyncExternal = fals
 					creatorPageVisibility: defaultSettings.creatorPageVisibility,
 					creatorPageShowBio: defaultSettings.creatorPageShowBio,
 				})
-				.onConflictDoUpdate({
-					target: settingsTable.id,
-					set: {
-						useSendProductUpdatesContactId: contactId,
-						showOnCommunityPage: defaultSettings.showOnCommunityPage,
-					},
-				})
+				.onConflictDoNothing()
 				.execute();
 
-			return { ...defaultSettings, useSendProductUpdatesContactId: contactId };
+			// A concurrent settings save may have won the insert; return that row.
+			const [savedSettings] = await db.select().from(settingsTable).where(eq(settingsTable.id, userId)).limit(1).execute();
+			return savedSettings ?? { ...defaultSettings, useSendProductUpdatesContactId: contactId };
 		}
 
 		const currentSettings = settingsWithoutEditors[0];

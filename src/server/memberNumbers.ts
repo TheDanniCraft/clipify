@@ -1,6 +1,6 @@
 import "server-only";
 
-import { db } from "@/db/client";
+import { db, type QueryClient } from "@/db/client";
 import { sql } from "drizzle-orm";
 
 // ON CONFLICT increments the persisted row, not the proposed population seed.
@@ -15,8 +15,8 @@ export const memberNumberAllocationQuery = sql`
 	RETURNING last_allocated AS "memberNumber"
 `;
 
-export async function allocateMemberNumber(): Promise<number> {
-	const result = await db.execute<{ memberNumber: number }>(memberNumberAllocationQuery);
+export async function allocateMemberNumber(client: QueryClient = db): Promise<number> {
+	const result = await client.execute<{ memberNumber: number }>(memberNumberAllocationQuery);
 	const memberNumber = result.rows[0]?.memberNumber;
 	if (!Number.isSafeInteger(memberNumber) || memberNumber <= 0) throw new Error("Could not allocate member number");
 	return memberNumber;
