@@ -85,6 +85,8 @@ export const usersTable = pgTable(
 		disabledReason: varchar("disabled_reason"),
 		stripeCustomerId: varchar("stripe_customer_id"),
 		memberNumber: integer("member_number"),
+		// Set only when the Twitch account trigger creates a new creator.
+		onboardingPending: boolean("onboarding_pending").notNull().default(false),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 		twitchCreatedAt: timestamp("twitch_created_at", { withTimezone: true })
 			.default(sql`'2016-05-01T00:00:00.000Z'::timestamptz`)
@@ -99,19 +101,6 @@ export const usersTable = pgTable(
 			.where(sql`${t.memberNumber} > 0`),
 	],
 );
-
-// Enqueued in the Twitch account transaction only for genuinely new creators.
-export const creatorOnboardingJobsTable = pgTable("creator_onboarding_jobs", {
-	creatorId: varchar("creator_id")
-		.primaryKey()
-		.references(() => usersTable.id, { onDelete: "cascade" }),
-	initializedAt: timestamp("initialized_at", { withTimezone: true }),
-	profileSyncedAt: timestamp("profile_synced_at", { withTimezone: true }),
-	contactSyncedAt: timestamp("contact_synced_at", { withTimezone: true }),
-	nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }).defaultNow().notNull(),
-	attempts: integer("attempts").notNull().default(0),
-	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
 
 export const userBadgesTable = pgTable(
 	"user_badges",

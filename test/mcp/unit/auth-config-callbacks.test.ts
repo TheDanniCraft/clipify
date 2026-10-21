@@ -31,9 +31,9 @@ jest.mock("@/auth/mcp-options", () => ({ createMcpPlugins: jest.fn((options: unk
 jest.mock("@/server/mcp/config", () => ({ getMcpConfiguration: () => ({ valid: true }) }));
 jest.mock("@/server/mcp/grants", () => ({ providerGrantOptions: {} }));
 jest.mock("@/server/notifications/twitch-account-access", () => ({ restoreTwitchAccountAccess: jest.fn() }));
-jest.mock("@/server/creator-onboarding", () => ({ processCreatorOnboarding: jest.fn() }));
+jest.mock("@/server/creator-onboarding", () => ({ completeTwitchSignIn: jest.fn() }));
 import { restoreTwitchAccountAccess } from "@/server/notifications/twitch-account-access";
-import { processCreatorOnboarding } from "@/server/creator-onboarding";
+import { completeTwitchSignIn } from "@/server/creator-onboarding";
 jest.mock("@/server/notifications/identity-events", () => ({ queueIdentityEmail: jest.fn() }));
 import { queueIdentityEmail } from "@/server/notifications/identity-events";
 import { getSessionFromCtx } from "better-auth/api";
@@ -69,13 +69,18 @@ test("session creation records a linked creator's returning login", async () => 
 	expect(db.execute).toHaveBeenCalledTimes(1);
 });
 
-test("only Twitch account creation consumes durable onboarding eligibility", async () => {
+test("Twitch account creation completes onboarding; token refresh alone does not", async () => {
 	await options.databaseHooks.account.create.after({ providerId: "twitch", userId: "identity", accountId: "creator" }, undefined);
-	expect(processCreatorOnboarding).toHaveBeenCalledWith("creator");
-	(processCreatorOnboarding as jest.Mock).mockClear();
+	expect(completeTwitchSignIn).toHaveBeenCalledWith("creator");
+	(completeTwitchSignIn as jest.Mock).mockClear();
 	await options.databaseHooks.account.create.after({ providerId: "credential", userId: "identity" }, undefined);
 	await options.databaseHooks.account.update.after({ providerId: "twitch", userId: "identity", accountId: "creator" }, undefined);
-	expect(processCreatorOnboarding).not.toHaveBeenCalled();
+	expect(completeTwitchSignIn).not.toHaveBeenCalled();
+});
+
+test("returning Twitch callback retries onboarding", async () => {
+	await options.databaseHooks.account.update.after({ providerId: "twitch", userId: "identity", accountId: "creator" }, { path: "/callback/twitch" });
+	expect(completeTwitchSignIn).toHaveBeenCalledWith("creator");
 });
 
 test("provider configuration uses native MCP grant options", () => {

@@ -2,7 +2,6 @@ import { readFileSync, readdirSync, mkdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { build } from "esbuild";
 import { createRequire } from "node:module";
-import { pathToFileURL } from "node:url";
 const require = createRequire(import.meta.url);
 
 /** Native ESM removes CommonJS export-analysis annotations from source mappings. */
@@ -53,7 +52,7 @@ export async function buildMcpCoverageProbes({ outputDirectory, instrument = fal
 				name: "installed-server-compatible-export",
 				setup(build) {
 					// Match the actual CommonJS server utility used by direct Node+tsx entries; do not mock it.
-					build.onResolve({ filter: /^nextjs-turnstile$/ }, () => ({ path: pathToFileURL(require.resolve("nextjs-turnstile")).href, external: true }));
+					build.onResolve({ filter: /^nextjs-turnstile$/ }, () => ({ path: require.resolve("nextjs-turnstile"), external: true }));
 					build.onResolve({ filter: /^@sentry\/nextjs$/ }, () => ({ path: resolve("test/support/mcp/sentry-native-exports.mjs") }));
 				},
 			},

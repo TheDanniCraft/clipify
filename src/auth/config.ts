@@ -77,8 +77,8 @@ export const auth = betterAuth({
 			create: {
 				after: async (account, context) => {
 					if (account.providerId === "twitch") {
-						const { processCreatorOnboarding } = await import("@/server/creator-onboarding");
-						await processCreatorOnboarding(account.accountId);
+						const { completeTwitchSignIn } = await import("@/server/creator-onboarding");
+						await completeTwitchSignIn(account.accountId);
 					}
 					if (account.providerId === "twitch" && (context?.path === "/callback/twitch" || (context?.path === "/callback/:id" && context.params?.id === "twitch"))) {
 						const { restoreTwitchAccountAccess } = await import("@/server/notifications/twitch-account-access");
@@ -89,6 +89,8 @@ export const auth = betterAuth({
 			update: {
 				after: async (account, context) => {
 					if (account.providerId === "twitch" && (context?.path === "/callback/twitch" || (context?.path === "/callback/:id" && context.params?.id === "twitch"))) {
+						const { completeTwitchSignIn } = await import("@/server/creator-onboarding");
+						await completeTwitchSignIn(account.accountId);
 						const { restoreTwitchAccountAccess } = await import("@/server/notifications/twitch-account-access");
 						await restoreTwitchAccountAccess(account.userId);
 					}

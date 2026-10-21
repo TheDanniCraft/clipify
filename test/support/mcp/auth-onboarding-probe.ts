@@ -12,19 +12,19 @@ async function main() {
 	};
 	const { auth } = await import("@/auth/config");
 	const { dbPool } = await import("@/db/client");
-	const { initializeCreator, processCreatorOnboarding } = await import("@/server/creator-onboarding");
+	const { completeTwitchSignIn, initializeCreator } = await import("@/server/creator-onboarding");
 	const email = process.argv[2],
 		creatorId = process.argv[3];
 	if (!email || !creatorId) throw new Error("ONBOARDING_PROBE_INPUT_REQUIRED");
 	try {
 		const context = await auth.$context;
 		if (process.argv[4] === "retry") {
-			await processCreatorOnboarding(creatorId);
+			await completeTwitchSignIn(creatorId);
 			process.stdout.write(JSON.stringify({ retried: true }) + "\n");
 			return;
 		}
 		if (process.argv[4] === "initialize") {
-			await Promise.all(Array.from({ length: 8 }, () => initializeCreator(creatorId)));
+			await Promise.all(Array.from({ length: 8 }, () => initializeCreator(creatorId, new Date("2012-04-15T13:45:00Z"))));
 			process.stdout.write(JSON.stringify({ initialized: true }) + "\n");
 			return;
 		}
