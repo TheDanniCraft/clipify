@@ -5,14 +5,19 @@ export const streamingProviderSchema = z.enum(["twitch", "youtube"]);
 export function providerScopes(provider: StreamingProvider): string[] {
 	return provider === "twitch" ? ["channel:read:stream_key", "channel:manage:broadcast"] : ["https://www.googleapis.com/auth/youtube.force-ssl"];
 }
-export function providerAuthorizationUrl(provider: StreamingProvider, input: { clientId: string; redirectUri: string; state: string }) {
-	const url = new URL(provider === "twitch" ? "https://id.twitch.tv/oauth2/authorize" : "https://accounts.google.com/o/oauth2/v2/auth");
-	for (const [key, value] of Object.entries({ client_id: input.clientId, redirect_uri: input.redirectUri, state: input.state, response_type: "code", scope: providerScopes(provider).join(" ") })) url.searchParams.set(key, value);
-	if (provider === "youtube") {
-		url.searchParams.set("access_type", "offline");
-		url.searchParams.set("prompt", "consent");
-	} else url.searchParams.set("force_verify", "true");
-	return url.toString();
+/** Better Auth owns provider callbacks, state, PKCE and preview proxying. */
+export function providerLinkRequest(provider: StreamingProvider, origin: string, intent: string) {
+	const callback = new URL(`/runner/connect/${provider}/complete`, origin);
+	callback.searchParams.set("intent", intent);
+	return {
+		provider: provider === "youtube" ? ("google" as const) : ("twitch" as const),
+		callbackURL: callback.toString(),
+		errorCallbackURL: callback.toString(),
+		disableRedirect: true,
+		scopes: providerScopes(provider),
+		additionalData: { runnerConnectionIntent: intent },
+		additionalParams: (provider === "youtube" ? { access_type: "offline", prompt: "consent" } : { force_verify: "true" }) as Record<string, string>,
+	};
 }
 export const streamDetailSchema = z
 	.object({

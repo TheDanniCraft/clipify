@@ -33,7 +33,7 @@
 		"src/app/runner/preview/[runnerId]/assets/[assetId]/route.ts",
 		"src/app/runner/presentation/[sessionId]/assets/[assetId]/route.ts",
 		"src/app/lib/runnerStandby.ts",
-		"src/app/runner/connect/[provider]/callback/route.ts"
+		"src/app/runner/connect/[provider]/complete/route.ts"
 	],
 	"ordinary": ["src/app/lib/deployment.ts", "src/app/lib/embeddedRoutes.ts", "src/app/components/runner/RunnerBrandingPreview.tsx", "src/app/components/playerOverlay.tsx", "src/app/components/runner/StandbyEditor.tsx"],
 	"legacy": {

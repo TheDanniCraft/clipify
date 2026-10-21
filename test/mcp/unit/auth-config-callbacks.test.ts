@@ -14,12 +14,15 @@ jest.mock("better-auth", () => ({ betterAuth: (options: unknown) => ({ options }
 jest.mock("better-auth/api", () => ({
 	createAuthMiddleware: (callback: unknown) => callback,
 	getSessionFromCtx: jest.fn(),
+	getOAuthState: jest.fn(),
 	APIError: class extends Error {
 		constructor(_status: string, body: { message: string }) {
 			super(body.message);
 		}
 	},
 }));
+jest.mock("better-auth/next-js", () => ({ nextCookies: () => ({ id: "next-cookies" }) }));
+jest.mock("@/server/runner/provider-connections", () => ({ recordStreamingAccount: jest.fn() }));
 jest.mock("better-auth/adapters/drizzle", () => ({ drizzleAdapter: jest.fn(() => ({})) }));
 jest.mock("better-auth/plugins", () => ({ magicLink: (options: unknown) => ({ id: "magic-link", options }), emailOTP: (options: unknown) => ({ id: "email-otp", options }), oAuthProxy: (options: unknown) => ({ id: "oauth-proxy", options }), organization: (options: unknown) => ({ id: "organization", options }) }));
 jest.mock("@better-auth/passkey", () => ({ passkey: (options: unknown) => ({ id: "passkey", options }) }));
@@ -36,7 +39,8 @@ import { restoreTwitchAccountAccess } from "@/server/notifications/twitch-accoun
 import { completeTwitchSignIn } from "@/server/creator-onboarding";
 jest.mock("@/server/notifications/identity-events", () => ({ queueIdentityEmail: jest.fn() }));
 import { queueIdentityEmail } from "@/server/notifications/identity-events";
-import { getSessionFromCtx } from "better-auth/api";
+import { recordStreamingAccount } from "@/server/runner/provider-connections";
+import { getSessionFromCtx, getOAuthState } from "better-auth/api";
 import { db } from "@/db/client";
 import { sendAuthOtp, sendTeamInvitation } from "@/auth/transactional-mail";
 import { providerGrantOptions } from "@/server/mcp/grants";
@@ -53,6 +57,7 @@ afterAll(() => {
 });
 beforeEach(() => {
 	jest.clearAllMocks();
+	jest.mocked(getOAuthState).mockResolvedValue(null);
 	rows = [];
 	(db.update as jest.Mock).mockReturnValue({ set: jest.fn().mockReturnValue({ where: jest.fn().mockResolvedValue(undefined) }) });
 	(db.select as jest.Mock).mockImplementation(() => {
@@ -251,4 +256,42 @@ test("only the successful Twitch OAuth callback restores automatically disabled 
 test("native parameterized Twitch callbacks also restore access on account creation", async () => {
 	await options.databaseHooks.account.create.after({ providerId: "twitch", userId: "identity" }, { path: "/callback/:id", params: { id: "twitch" } });
 	expect(restoreTwitchAccountAccess).toHaveBeenCalledWith("identity");
+});
+
+test("explicit linking permits different provider emails without merging users or changing the local profile", () => {
+	expect(options.account.accountLinking).toMatchObject({ enabled: true, disableImplicitLinking: true, allowDifferentEmails: true, updateUserInfoOnLink: false });
+	expect(options.plugins.at(-1).id).toBe("next-cookies");
+});
+test.each(["create", "update"])("%s account hook associates only the current user's explicit Runner intent", async (operation) => {
+	const account = { id: "account", userId: "actor", providerId: "google", scope: "https://www.googleapis.com/auth/youtube.force-ssl" };
+	jest.mocked(getOAuthState).mockResolvedValue({ link: { userId: "actor", email: "actor@example.invalid" }, runnerConnectionIntent: "intent" } as any);
+	await options.databaseHooks.account[operation].after(account, { path: "/callback/:id/oauth-proxy" });
+	expect(recordStreamingAccount).toHaveBeenCalledWith(account, "intent");
+	jest.mocked(recordStreamingAccount).mockClear();
+	jest.mocked(getOAuthState).mockResolvedValue({ link: { userId: "foreign", email: "foreign@example.invalid" }, runnerConnectionIntent: "intent" } as any);
+	await options.databaseHooks.account[operation].after(account, { path: "/callback/:id" });
+	expect(recordStreamingAccount).not.toHaveBeenCalled();
+});
+test("expected missing grants complete as a recoverable connection failure; unexpected storage failures remain visible", async () => {
+	const { ProviderRequestError } = await import("@/server/runner/provider-api");
+	jest.mocked(getOAuthState).mockResolvedValue({ link: { userId: "actor", email: "actor@example.invalid" }, runnerConnectionIntent: "intent" } as any);
+	jest.mocked(recordStreamingAccount).mockRejectedValueOnce(new ProviderRequestError("RECONNECT_REQUIRED"));
+	await expect(options.databaseHooks.account.create.after({ id: "account", userId: "actor", providerId: "google" }, { path: "/callback/:id" })).resolves.toBeUndefined();
+	jest.mocked(recordStreamingAccount).mockRejectedValueOnce(new Error("ACCESS_DENIED"));
+	await expect(options.databaseHooks.account.create.after({ id: "account", userId: "actor", providerId: "google" }, { path: "/callback/:id" })).resolves.toBeUndefined();
+	jest.mocked(recordStreamingAccount).mockRejectedValueOnce(new Error("storage failed"));
+	await expect(options.databaseHooks.account.create.after({ id: "account", userId: "actor", providerId: "google" }, { path: "/callback/:id" })).rejects.toThrow("storage failed");
+});
+test("ordinary login without a saved streaming grant keeps normal credential updates", async () => {
+	await options.user.validateUserInfo({ user: { id: "actor" }, source: { action: "create-user", method: "oauth", oauth: { providerId: "twitch", profile: { sub: "42" } } } });
+	await options.user.validateUserInfo({ user: { id: "actor" }, source: { action: "sign-in", method: "oauth", oauth: { providerId: "google", profile: { sub: "42" } } } });
+	await options.user.validateUserInfo({ user: { id: "actor" }, source: { action: "sign-in", method: "oauth", oauth: { providerId: "twitch", profile: { sub: "42" } } } });
+	const state = { callbackURL: "/dashboard", codeVerifier: "fixture", expiresAt: Date.now() + 1000 };
+	jest.mocked(getOAuthState).mockResolvedValue(state);
+	rows.push([{ scope: "openid,user:read:email" }]);
+	await options.user.validateUserInfo({ user: { id: "actor" }, source: { action: "sign-in", method: "oauth", oauth: { providerId: "twitch", profile: { sub: "42" } } } });
+	expect(state).not.toHaveProperty("serverContext");
+	expect(await options.databaseHooks.account.update.before({ providerId: "twitch", accessToken: "new-token" }, { path: "/callback/:id" })).toBeUndefined();
+	expect(await options.databaseHooks.account.update.before({ providerId: "google" }, { path: "/callback/:id" })).toBeUndefined();
+	expect(await options.databaseHooks.account.update.before({ providerId: "twitch" }, { path: "/get-access-token" })).toBeUndefined();
 });
