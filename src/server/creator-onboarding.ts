@@ -27,6 +27,10 @@ export async function initializeCreator(creatorId: string, twitchCreatedAt: Date
 
 /** Runs during Twitch sign-in. A failed first sign-in can finish on the next one. */
 export async function completeTwitchSignIn(creatorId: string) {
+	const [creator] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, creatorId)).limit(1);
+	// An explicitly linked Runner channel is an OAuth credential, not a new
+	// Clipify identity. Its provider subject therefore has no creator row.
+	if (!creator) return;
 	const token = await getBetterAuthProviderAccessToken(creatorId);
 	if (!token?.accessToken) throw new Error("ONBOARDING_TWITCH_TOKEN_UNAVAILABLE");
 	const response = await fetch("https://api.twitch.tv/helix/users", { headers: { Authorization: `Bearer ${token.accessToken}`, "Client-Id": process.env.TWITCH_CLIENT_ID ?? "" }, signal: AbortSignal.timeout(10_000) });
