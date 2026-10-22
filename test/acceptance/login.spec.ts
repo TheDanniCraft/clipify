@@ -6,4 +6,5 @@ test("the public login entry point renders from the real app", async ({ page }) 
 	expect(response?.ok()).toBe(true);
 	await expect(page).toHaveTitle(/Clipify/);
 	await expect(page.getByRole("button", { name: "Login with Twitch" })).toBeVisible();
+	await expect(page.getByRole("button", { name: /Google/i })).toHaveCount(0);
 });
