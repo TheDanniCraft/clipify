@@ -33,7 +33,7 @@ export async function startTwitchConnectionTest(principal: TrustedCreatorPrincip
 			.select()
 			.from(admissions)
 			.where(and(eq(admissions.ownerId, input.ownerId), notInArray(admissions.state, ["stopped", "failed_before_output"])));
-		if (open.some((row) => !isExpiredUndispatchedConnectionTest(row, now) && (row.state !== "authorized" || typeof row.benefitsAtStart.scheduledStart !== "number" || row.benefitsAtStart.scheduledStart <= expiresAt.getTime()))) return fail("Stop your broadcasts before testing this connection.");
+		if (open.some((row) => !isExpiredUndispatchedConnectionTest(row, now) && (row.state !== "authorized" || typeof row.benefitsAtStart.scheduledStart !== "number" || (row.benefitsAtStart.scheduledStart <= expiresAt.getTime() && (!row.scheduledEnd || row.scheduledEnd.getTime() > now))))) return fail("Stop your broadcasts before testing this connection.");
 		const [source] = await tx
 			.select({ overlayId: sessions.overlayId })
 			.from(sessions)
