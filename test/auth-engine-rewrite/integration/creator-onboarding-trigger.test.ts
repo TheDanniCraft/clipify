@@ -4,9 +4,9 @@ import { randomUUID } from "node:crypto";
 import { runMcpProbe } from "../../support/mcp/probe";
 import { Pool, type PoolClient } from "pg";
 import { installCreatorOnboardingTriggers } from "@/auth/onboarding-database-boundary";
+import { createMcpPostgresFixture } from "../../support/mcp/postgres";
 
-const databaseUrl = process.env.AUTH_TEST_DATABASE_URL;
-const describePostgres = databaseUrl ? describe : describe.skip;
+jest.setTimeout(60_000);
 
 type ProvisionedRows = {
 	creator: string;
@@ -15,11 +15,15 @@ type ProvisionedRows = {
 	owner: string;
 };
 
-describePostgres("TDD-US2-003 atomic Better Auth creator onboarding", () => {
+describe("TDD-US2-003 atomic Better Auth creator onboarding", () => {
 	let pool: Pool;
+	let fixture: Awaited<ReturnType<typeof createMcpPostgresFixture>>;
+	const previousDatabaseUrl = process.env.DATABASE_URL;
 
-	beforeAll(async () => {
-		pool = new Pool({ connectionString: databaseUrl, max: 2 });
+	beforeEach(async () => {
+		fixture = await createMcpPostgresFixture();
+		pool = fixture.pool;
+		process.env.DATABASE_URL = fixture.url;
 		const client = await pool.connect();
 		try {
 			await client.query("BEGIN");
@@ -34,8 +38,10 @@ describePostgres("TDD-US2-003 atomic Better Auth creator onboarding", () => {
 		}
 	});
 
-	afterAll(async () => {
-		await pool.end();
+	afterEach(async () => {
+		if (previousDatabaseUrl === undefined) delete process.env.DATABASE_URL;
+		else process.env.DATABASE_URL = previousDatabaseUrl;
+		await fixture?.close();
 	});
 
 	async function inRollback(operation: (client: PoolClient) => Promise<void>) {
@@ -83,6 +89,7 @@ describePostgres("TDD-US2-003 atomic Better Auth creator onboarding", () => {
 			expect(await provisioned(client, creatorId)).toEqual({ creator: "1", organization: "1", identity: "1", owner: "1" });
 			const creator = await client.query("SELECT email, username, avatar, role::text, plan::text FROM public.users WHERE id = $1", [creatorId]);
 			expect(creator.rows[0]).toEqual({ email: `${suffix}@example.invalid`, username: "Creator Name", avatar: "https://example.invalid/avatar.png", role: "user", plan: "free" });
+			expect((await client.query("SELECT onboarding_pending FROM users WHERE id=$1", [creatorId])).rows[0].onboarding_pending).toBe(true);
 		});
 	});
 
@@ -97,6 +104,17 @@ describePostgres("TDD-US2-003 atomic Better Auth creator onboarding", () => {
 			const client = await pool.connect();
 			try {
 				expect(await provisioned(client, creatorId)).toEqual({ creator: "1", organization: "1", identity: "1", owner: "1" });
+				const result = await client.query(
+					`SELECT u.member_number, u.twitch_created_at, s.prefix, s.creator_page_visibility,
+				 NOT u.onboarding_pending AS initialized,
+				 (SELECT count(*)::int FROM entitlement_grants WHERE user_id=u.id AND source='reverse_trial' AND ends_at-starts_at=interval '7 days') AS trials,
+				 (SELECT count(*)::int FROM notification_outbox WHERE dedupe_key LIKE 'benefit:%:granted' AND recipient=u.email) AS notices
+				 FROM users u JOIN "userSettings" s ON s.id=u.id WHERE u.id=$1`,
+					[creatorId],
+				);
+				expect(result.rows[0]).toMatchObject({ prefix: "!", creator_page_visibility: "discoverable", initialized: true, trials: 1, notices: 1 });
+				expect(result.rows[0].member_number).toBeGreaterThan(0);
+				expect(result.rows[0].twitch_created_at.toISOString()).toBe("2012-04-15T13:45:00.000Z");
 			} finally {
 				client.release();
 			}
@@ -173,6 +191,7 @@ describePostgres("TDD-US2-003 atomic Better Auth creator onboarding", () => {
 			await client.query(`INSERT INTO auth.user (id, name, email, email_verified, created_at, updated_at) VALUES ($1, 'Retry Creator', $2, true, now(), now())`, [authUserId, `${suffix}@example.invalid`]);
 			await client.query(`INSERT INTO auth.account (id, account_id, provider_id, user_id, created_at, updated_at) VALUES ($1, $2, 'twitch', $3, now(), now())`, [accountId, creatorId, authUserId]);
 			await client.query(`UPDATE auth.account SET updated_at = now() WHERE id = $1`, [accountId]);
+			expect((await client.query("SELECT onboarding_pending FROM users WHERE id=$1", [creatorId])).rows[0].onboarding_pending).toBe(true);
 
 			expect(await provisioned(client, creatorId)).toEqual({ creator: "1", organization: "1", identity: "1", owner: "1" });
 		});
@@ -203,5 +222,96 @@ describePostgres("TDD-US2-003 atomic Better Auth creator onboarding", () => {
 
 			expect(await provisioned(client, externalId)).toEqual({ creator: "0", organization: "0", identity: "0", owner: "0" });
 		});
+	});
+
+	it("retries concurrent initialization without restarting expired trials or replacing customized settings", async () => {
+		const suffix = randomUUID();
+		const creatorId = `retry-${suffix}`;
+		const created = runMcpProbe("auth-onboarding-probe", [`${suffix}@example.invalid`, creatorId]);
+		await pool.query(`UPDATE "userSettings" SET prefix='?', marketing_opt_in=false, creator_page_visibility='unlisted' WHERE id=$1`, [creatorId]);
+		await pool.query(`UPDATE entitlement_grants SET starts_at=now()-interval '10 days', ends_at=now()-interval '3 days' WHERE user_id=$1 AND source='reverse_trial'`, [creatorId]);
+		await pool.query(`UPDATE users SET onboarding_pending=true WHERE id=$1`, [creatorId]);
+		const before = (await pool.query("SELECT member_number FROM users WHERE id=$1", [creatorId])).rows[0].member_number;
+		expect(runMcpProbe("auth-onboarding-probe", [`${suffix}@example.invalid`, creatorId, "initialize"])).toEqual({ initialized: true });
+		const result = await pool.query(
+			`SELECT u.member_number,s.prefix,s.marketing_opt_in,s.creator_page_visibility,
+		 (SELECT count(*)::int FROM entitlement_grants WHERE user_id=u.id AND source='reverse_trial') AS trials,
+		 (SELECT count(*)::int FROM entitlement_grants WHERE user_id=u.id AND source='reverse_trial' AND ends_at>now()) AS active_trials
+		 FROM users u JOIN "userSettings" s ON s.id=u.id WHERE u.id=$1`,
+			[creatorId],
+		);
+		expect(result.rows[0]).toEqual({ member_number: before, prefix: "?", marketing_opt_in: false, creator_page_visibility: "unlisted", trials: 1, active_trials: 0 });
+		expect(created.authUserId).toBeTruthy();
+	});
+
+	it("rolls mandatory initialization back together and recovers on retry", async () => {
+		const suffix = randomUUID();
+		const creatorId = `failure-${suffix}`;
+		await pool.query(`INSERT INTO auth.user (id,name,email,email_verified,created_at,updated_at) VALUES ($1,'Retry',$2,true,now(),now())`, [suffix, `${suffix}@example.invalid`]);
+		await pool.query(`INSERT INTO auth.account (id,account_id,provider_id,user_id,created_at,updated_at) VALUES ($1,$2,'twitch',$1,now(),now())`, [suffix, creatorId]);
+		await pool.query(`CREATE FUNCTION public.reject_test_trial() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'TEST_TRIAL_FAILURE'; END $$;
+		 CREATE TRIGGER reject_test_trial BEFORE INSERT ON entitlement_grants FOR EACH ROW EXECUTE FUNCTION public.reject_test_trial()`);
+		expect(() => runMcpProbe("auth-onboarding-probe", [`${suffix}@example.invalid`, creatorId, "initialize"])).toThrow();
+		const result = await pool.query(
+			`SELECT u.member_number,u.onboarding_pending,
+		 (SELECT count(*)::int FROM "userSettings" WHERE id=u.id) AS settings,
+		 (SELECT count(*)::int FROM entitlement_grants WHERE user_id=u.id) AS grants
+		 FROM users u WHERE u.id=$1`,
+			[creatorId],
+		);
+		expect(result.rows[0]).toEqual({ member_number: null, onboarding_pending: true, settings: 0, grants: 0 });
+		await pool.query("DROP TRIGGER reject_test_trial ON entitlement_grants");
+		expect(runMcpProbe("auth-onboarding-probe", [`${suffix}@example.invalid`, creatorId, "initialize"])).toEqual({ initialized: true });
+	});
+
+	it("does not make an existing paid, manually disabled creator eligible during identity linking", async () => {
+		await inRollback(async (client) => {
+			const id = randomUUID();
+			await client.query(`INSERT INTO users (id,email,username,avatar,role,plan,member_number,disabled,disable_type) VALUES ($1,$2,'Existing','','user','pro',700001,true,'manual')`, [id, `${id}@example.invalid`]);
+			await client.query(`INSERT INTO auth.user (id,name,email,email_verified,created_at,updated_at) VALUES ($1,'Existing',$2,true,now(),now())`, [id, `${id}@example.invalid`]);
+			await client.query(`INSERT INTO auth.account (id,account_id,provider_id,user_id,created_at,updated_at) VALUES ($1,$1,'twitch',$1,now(),now())`, [id]);
+			expect((await client.query("SELECT onboarding_pending FROM users WHERE id=$1", [id])).rows[0].onboarding_pending).toBe(false);
+			expect((await client.query("SELECT plan,member_number,disabled,disable_type FROM users WHERE id=$1", [id])).rows[0]).toEqual({ plan: "pro", member_number: 700001, disabled: true, disable_type: "manual" });
+		});
+	});
+
+	it("fails an invalid first sign-in and completes it on retry without losing signup eligibility", async () => {
+		const id = `profile-${randomUUID()}`;
+		expect(() => runMcpProbe("auth-onboarding-probe", [`${id}@example.invalid`, id, "wrong-profile"])).toThrow();
+		const before = (await pool.query("SELECT twitch_created_at,onboarding_pending FROM users WHERE id=$1", [id])).rows[0];
+		expect(before.twitch_created_at.toISOString()).toBe("2016-05-01T00:00:00.000Z");
+		expect(before.onboarding_pending).toBe(true);
+		runMcpProbe("auth-onboarding-probe", [`${id}@example.invalid`, id, "retry"]);
+		const after = (
+			await pool.query(
+				`SELECT u.twitch_created_at,u.onboarding_pending,
+		 (SELECT count(*)::int FROM entitlement_grants WHERE user_id=u.id AND source='reverse_trial') AS trials
+		 FROM users u WHERE u.id=$1`,
+				[id],
+			)
+		).rows[0];
+		expect(after.twitch_created_at.toISOString()).toBe("2012-04-15T13:45:00.000Z");
+		expect(after.onboarding_pending).toBe(false);
+		expect(after.trials).toBe(1);
+	});
+
+	it("allocates unique membership numbers and complete benefits for concurrent real Better Auth signups", async () => {
+		const id = `concurrent-${randomUUID()}`;
+		const result = runMcpProbe("auth-onboarding-probe", [`${id}@example.invalid`, id, "concurrent"]);
+		const rows = (
+			await pool.query(
+				`SELECT u.member_number,NOT u.onboarding_pending AS initialized,s.prefix,
+		 (SELECT count(*)::int FROM entitlement_grants WHERE user_id=u.id AND source='reverse_trial') AS trials
+		 FROM users u JOIN "userSettings" s ON s.id=u.id WHERE u.id=ANY($1::varchar[])`,
+				[result.creators],
+			)
+		).rows;
+		expect(rows).toHaveLength(4);
+		expect(new Set(rows.map((row) => row.member_number)).size).toBe(4);
+		for (const row of rows) {
+			expect(row.member_number).toBeGreaterThan(0);
+			expect(row.initialized).toBe(true);
+			expect(row).toMatchObject({ prefix: "!", trials: 1 });
+		}
 	});
 });

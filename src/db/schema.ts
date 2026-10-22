@@ -85,6 +85,8 @@ export const usersTable = pgTable(
 		disabledReason: varchar("disabled_reason"),
 		stripeCustomerId: varchar("stripe_customer_id"),
 		memberNumber: integer("member_number"),
+		// Set only when the Twitch account trigger creates a new creator.
+		onboardingPending: boolean("onboarding_pending").notNull().default(false),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 		twitchCreatedAt: timestamp("twitch_created_at", { withTimezone: true })
 			.default(sql`'2016-05-01T00:00:00.000Z'::timestamptz`)

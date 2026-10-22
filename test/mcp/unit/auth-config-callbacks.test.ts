@@ -23,7 +23,7 @@ jest.mock("better-auth/api", () => ({
 jest.mock("better-auth/adapters/drizzle", () => ({ drizzleAdapter: jest.fn(() => ({})) }));
 jest.mock("better-auth/plugins", () => ({ magicLink: (options: unknown) => ({ id: "magic-link", options }), emailOTP: (options: unknown) => ({ id: "email-otp", options }), oAuthProxy: (options: unknown) => ({ id: "oauth-proxy", options }), organization: (options: unknown) => ({ id: "organization", options }) }));
 jest.mock("@better-auth/passkey", () => ({ passkey: (options: unknown) => ({ id: "passkey", options }) }));
-jest.mock("@/db/client", () => ({ db: { select: jest.fn() } }));
+jest.mock("@/db/client", () => ({ db: { select: jest.fn(), update: jest.fn() } }));
 jest.mock("@/auth/organization-access", () => ({ clipifyAccessControl: {}, betterAuthOrganizationRoles: { owner: {}, operations: {}, "content-manager": {}, analyst: {}, "billing-manager": {} } }));
 jest.mock("@/auth/transactional-mail", () => ({ sendAuthOtp: jest.fn(), sendTeamInvitation: jest.fn() }));
 jest.mock("@/auth/providers/twitch-refresh", () => ({ refreshTwitchAccessToken: jest.fn() }));
@@ -31,7 +31,9 @@ jest.mock("@/auth/mcp-options", () => ({ createMcpPlugins: jest.fn((options: unk
 jest.mock("@/server/mcp/config", () => ({ getMcpConfiguration: () => ({ valid: true }) }));
 jest.mock("@/server/mcp/grants", () => ({ providerGrantOptions: {} }));
 jest.mock("@/server/notifications/twitch-account-access", () => ({ restoreTwitchAccountAccess: jest.fn() }));
+jest.mock("@/server/creator-onboarding", () => ({ completeTwitchSignIn: jest.fn() }));
 import { restoreTwitchAccountAccess } from "@/server/notifications/twitch-account-access";
+import { completeTwitchSignIn } from "@/server/creator-onboarding";
 jest.mock("@/server/notifications/identity-events", () => ({ queueIdentityEmail: jest.fn() }));
 import { queueIdentityEmail } from "@/server/notifications/identity-events";
 import { getSessionFromCtx } from "better-auth/api";
@@ -52,6 +54,7 @@ afterAll(() => {
 beforeEach(() => {
 	jest.clearAllMocks();
 	rows = [];
+	(db.update as jest.Mock).mockReturnValue({ set: jest.fn().mockReturnValue({ where: jest.fn().mockResolvedValue(undefined) }) });
 	(db.select as jest.Mock).mockImplementation(() => {
 		const result = rows.shift() ?? [];
 		const query: any = { from: () => query, innerJoin: () => query, where: () => query, limit: async () => result, then: (resolve: any, reject: any) => Promise.resolve(result).then(resolve, reject) };
@@ -61,6 +64,26 @@ beforeEach(() => {
 });
 const plugin = (id: string) => options.plugins.find((value: any) => value.id === id).options;
 const context = (body: unknown = { memberId: "target", role: "operations" }, path = "/organization/update-member-role") => ({ path, body });
+
+test("session creation records a linked creator's returning login", async () => {
+	await options.databaseHooks.session.create.after({ userId: "returning-identity" });
+	expect(db.update).toHaveBeenCalledWith(require("@/db/schema").usersTable);
+	expect((db.update as jest.Mock).mock.results[0].value.set).toHaveBeenCalledWith({ lastLogin: expect.any(Date) });
+});
+
+test("Twitch account creation completes onboarding; token refresh alone does not", async () => {
+	await options.databaseHooks.account.create.after({ providerId: "twitch", userId: "identity", accountId: "creator" }, undefined);
+	expect(completeTwitchSignIn).toHaveBeenCalledWith("creator");
+	(completeTwitchSignIn as jest.Mock).mockClear();
+	await options.databaseHooks.account.create.after({ providerId: "credential", userId: "identity" }, undefined);
+	await options.databaseHooks.account.update.after({ providerId: "twitch", userId: "identity", accountId: "creator" }, undefined);
+	expect(completeTwitchSignIn).not.toHaveBeenCalled();
+});
+
+test("returning Twitch callback retries onboarding", async () => {
+	await options.databaseHooks.account.update.after({ providerId: "twitch", userId: "identity", accountId: "creator" }, { path: "/callback/twitch" });
+	expect(completeTwitchSignIn).toHaveBeenCalledWith("creator");
+});
 
 test("provider configuration uses native MCP grant options", () => {
 	expect(options.account.encryptOAuthTokens).toBe(true);

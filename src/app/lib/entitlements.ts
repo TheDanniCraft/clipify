@@ -114,10 +114,10 @@ export async function getActivePartnerAccessGrant(userId: string, now = new Date
 	return grant ?? null;
 }
 
-export async function ensureReverseTrialGrantForUser(user: Pick<AuthenticatedUser, "id" | "plan">) {
+export async function ensureReverseTrialGrantForUser(user: Pick<AuthenticatedUser, "id" | "plan">, client?: QueryClient) {
 	if (user.plan !== Plan.Free) return { created: false as const };
 
-	return db.transaction(async (tx) => {
+	const persist = async (tx: QueryClient) => {
 		// Serialize reverse-trial grant creation per user to avoid race duplicates.
 		await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`reverse_trial:${user.id}`}))`);
 
@@ -150,7 +150,8 @@ export async function ensureReverseTrialGrantForUser(user: Pick<AuthenticatedUse
 
 		await queueGrantEmails({ id, userId: user.id, entitlement: PRO_ACCESS, source: EntitlementGrantSource.ReverseTrial, reason: null, startsAt, endsAt }, tx);
 		return { created: true as const };
-	});
+	};
+	return client ? persist(client) : db.transaction(persist);
 }
 
 function pickBestGrant(grants: ActiveGrant[]) {

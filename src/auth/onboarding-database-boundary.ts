@@ -43,8 +43,8 @@ BEGIN
 		RAISE EXCEPTION 'AUTH_USER_ALREADY_LINKED_TO_CREATOR' USING ERRCODE = '23505';
 	END IF;
 
-	INSERT INTO public.users (id, email, username, avatar, role, plan, created_at, updated_at, last_login)
-	VALUES (NEW.account_id, lower(identity.email), identity.name, coalesce(identity.image, ''), 'user', 'free', identity.created_at, now(), now())
+	INSERT INTO public.users (id, email, username, avatar, role, plan, created_at, updated_at, last_login, onboarding_pending)
+	VALUES (NEW.account_id, lower(identity.email), identity.name, coalesce(identity.image, ''), 'user', 'free', identity.created_at, now(), now(), true)
 	ON CONFLICT (id) DO UPDATE
 	SET email = EXCLUDED.email,
 		username = EXCLUDED.username,

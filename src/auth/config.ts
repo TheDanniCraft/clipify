@@ -5,6 +5,7 @@ import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/a
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { emailOTP, magicLink, oAuthProxy, organization } from "better-auth/plugins";
 import { and, eq, gt, inArray } from "drizzle-orm";
+import { creatorIdentityLinksTable, usersTable } from "@/db/schema";
 import { passkey } from "@better-auth/passkey";
 import { db } from "@/db/client";
 import * as schema from "@/db/auth-schema";
@@ -69,9 +70,23 @@ export const auth = betterAuth({
 		},
 	},
 	databaseHooks: {
+		session: {
+			create: {
+				after: async (session) => {
+					await db
+						.update(usersTable)
+						.set({ lastLogin: new Date() })
+						.where(inArray(usersTable.id, db.select({ creatorId: creatorIdentityLinksTable.creatorId }).from(creatorIdentityLinksTable).where(eq(creatorIdentityLinksTable.authUserId, session.userId))));
+				},
+			},
+		},
 		account: {
 			create: {
 				after: async (account, context) => {
+					if (account.providerId === "twitch") {
+						const { completeTwitchSignIn } = await import("@/server/creator-onboarding");
+						await completeTwitchSignIn(account.accountId);
+					}
 					if (account.providerId === "twitch" && (context?.path === "/callback/twitch" || (context?.path === "/callback/:id" && context.params?.id === "twitch"))) {
 						const { restoreTwitchAccountAccess } = await import("@/server/notifications/twitch-account-access");
 						await restoreTwitchAccountAccess(account.userId);
@@ -81,6 +96,8 @@ export const auth = betterAuth({
 			update: {
 				after: async (account, context) => {
 					if (account.providerId === "twitch" && (context?.path === "/callback/twitch" || (context?.path === "/callback/:id" && context.params?.id === "twitch"))) {
+						const { completeTwitchSignIn } = await import("@/server/creator-onboarding");
+						await completeTwitchSignIn(account.accountId);
 						const { restoreTwitchAccountAccess } = await import("@/server/notifications/twitch-account-access");
 						await restoreTwitchAccountAccess(account.userId);
 					}

@@ -231,7 +231,7 @@ export type UserEntitlements = {
 	sources?: EntitlementSource[];
 };
 
-export type DbUser = InferSelectModel<typeof usersTable>;
+export type DbUser = Omit<InferSelectModel<typeof usersTable>, "onboardingPending">;
 export type AdminViewContext = {
 	active: true;
 	adminUserId: string;
