@@ -652,7 +652,13 @@ export const twitchCacheTable = pgTable(
 		fetchedAt: timestamp("fetched_at", { withTimezone: true }).defaultNow().notNull(),
 		expiresAt: timestamp("expires_at", { withTimezone: true }),
 	},
-	(t) => [uniqueIndex("twitch_cache_type_key_unique").on(t.type, t.key), index("twitch_cache_expires_at_idx").on(t.expiresAt)],
+	(t) => [
+		uniqueIndex("twitch_cache_type_key_unique").on(t.type, t.key),
+		index("twitch_cache_expires_at_idx").on(t.expiresAt),
+		index("twitch_cache_clip_validation_idx")
+			.on(t.fetchedAt)
+			.where(sql`${t.type} = 'clip' AND ${t.key} LIKE 'clip:%' AND ${t.value}::jsonb ? 'lastValidatedAt'`),
+	],
 );
 
 export const clipCrawlJobsTable = pgTable(
