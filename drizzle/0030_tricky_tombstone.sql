@@ -1,0 +1,3 @@
+ALTER TABLE "runtimePolicyDecision" DROP CONSTRAINT "c15t_runtimePolicyDecision_dedupeKey_unique";--> statement-breakpoint
+CREATE INDEX "twitch_cache_clip_validation_idx" ON "twitchCache" USING btree ("fetched_at") WHERE "twitchCache"."type" = 'clip' AND "twitchCache"."key" LIKE 'clip:%' AND "twitchCache"."value"::jsonb ? 'lastValidatedAt';--> statement-breakpoint
+ALTER TABLE "runtimePolicyDecision" ADD CONSTRAINT "runtimePolicyDecision_dedupeKey_unique" UNIQUE("dedupeKey");

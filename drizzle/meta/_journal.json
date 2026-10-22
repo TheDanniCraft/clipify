@@ -211,6 +211,13 @@
       "when": 1792712400000,
       "tag": "0029_adopt_c15t_v3",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1792691136676,
+      "tag": "0030_tricky_tombstone",
+      "breakpoints": true
     }
   ]
 }
