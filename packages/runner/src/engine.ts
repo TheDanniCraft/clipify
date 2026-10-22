@@ -34,6 +34,8 @@ export const proxyEvents = new EventEmitter();
 const CAPTURE_ATTEMPT_TIMEOUT_MS = 15_000;
 const CAPTURE_MAX_ATTEMPTS = 3;
 const CAPTURE_RETRY_DELAY_MS = 5_000;
+const BROWSER_LAUNCH_MAX_ATTEMPTS = 3;
+const BROWSER_LAUNCH_RETRY_DELAY_MS = 2_000;
 const RTMP_PROXY_PORT = 1935;
 const RTMP_PROBE_PREFIX = "CLIPIFY_RTMP_PROBE ";
 const MAX_PROBE_BYTES = 512;
@@ -377,16 +379,27 @@ export class Engine {
 	private async startChromiumBackground() {
 		if (this.browser) return;
 		console.log(`[Engine] Launching Puppeteer...`);
-		this.browser = (await launch({
-			executablePath: this.chromePath,
-			extensionPath: this.extPath,
-			headless: "new",
-			defaultViewport: {
-				width: 1920,
-				height: 1080,
-			},
-			args: ["--no-sandbox", "--disable-setuid-sandbox", "--autoplay-policy=no-user-gesture-required", "--window-size=1920,1080"],
-		})) as any;
+		for (let attempt = 1; attempt <= BROWSER_LAUNCH_MAX_ATTEMPTS; attempt++) {
+			if (!this.mayOpenOutput()) return false;
+			try {
+				this.browser = (await launch({
+					executablePath: this.chromePath,
+					extensionPath: this.extPath,
+					headless: "new",
+					defaultViewport: {
+						width: 1920,
+						height: 1080,
+					},
+					args: ["--no-sandbox", "--disable-setuid-sandbox", "--autoplay-policy=no-user-gesture-required", "--window-size=1920,1080"],
+				})) as any;
+				break;
+			} catch (error) {
+				if (attempt === BROWSER_LAUNCH_MAX_ATTEMPTS) throw error;
+				console.warn(`[Engine] Chromium launch attempt ${attempt}/${BROWSER_LAUNCH_MAX_ATTEMPTS} failed; retrying...`);
+				await new Promise((resolve) => setTimeout(resolve, BROWSER_LAUNCH_RETRY_DELAY_MS));
+			}
+		}
+		if (!this.browser) return false;
 		if (!this.mayOpenOutput()) {
 			await this.browser!.close();
 			this.browser = null;

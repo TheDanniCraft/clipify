@@ -604,6 +604,27 @@ describe("Engine (Raw Logic Tests)", () => {
 		await engine.stop();
 	});
 
+	it("retries a transient Chromium launch failure before starting output", async () => {
+		jest.useFakeTimers();
+		const page = { goto: jest.fn().mockResolvedValue(null), evaluateOnNewDocument: jest.fn().mockResolvedValue(undefined), evaluate: jest.fn().mockResolvedValue(true) };
+		const close = jest.fn().mockResolvedValue(null);
+		mockLaunch.mockRejectedValueOnce(new Error("Target closed")).mockResolvedValueOnce({ newPage: jest.fn().mockResolvedValue(page), close });
+		const warning = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+		const engine = new Engine("launch-retry", "rtmp://fake", "secret", "streamKey", 30, "720p", "24_7", "http://api");
+		try {
+			const starting = engine.start();
+			await jest.advanceTimersByTimeAsync(2000);
+			await expect(starting).resolves.toBeUndefined();
+			expect(mockLaunch).toHaveBeenCalledTimes(2);
+			expect(mockSpawn).toHaveBeenCalled();
+			expect(warning).toHaveBeenCalledWith("[Engine] Chromium launch attempt 1/3 failed; retrying...");
+		} finally {
+			warning.mockRestore();
+			await engine.stop();
+			jest.useRealTimers();
+		}
+	});
+
 	it("retries failed capture with a fresh browser and surfaces exhaustion without opening an encoder", async () => {
 		jest.useFakeTimers();
 		const engine = new Engine("capture-retry", "rtmp://fake", "secret", "");
