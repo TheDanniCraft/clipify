@@ -47,7 +47,7 @@
         "next": "16.4.1",
         "next-plausible": "^4.0.0",
         "next-themes": "^0.4.6",
-        "next-ws": "^2.2.16",
+        "next-ws": "^2.2.19",
         "nextjs-nav-guard": "^1.1.2",
         "nextjs-turnstile": "^1.0.5",
         "pg": "^8.23.1",
@@ -119,7 +119,7 @@
     "@heroui-pro/react",
   ],
   "patchedDependencies": {
-    "next-ws@2.2.16": "patches/next-ws@2.2.16.patch",
+    "next-ws@2.2.19": "patches/next-ws@2.2.19.patch",
     "next@16.4.1": "patches/next.patch",
   },
   "overrides": {
@@ -2206,7 +2206,7 @@
 
     "next-themes": ["next-themes@0.4.6", "", { "peerDependencies": { "react": "^16.8 || ^17 || ^18 || ^19 || ^19.0.0-rc", "react-dom": "^16.8 || ^17 || ^18 || ^19 || ^19.0.0-rc" } }, "sha512-pZvgD5L0IEvX5/9GWyHMf3m8BKiVQwsCMHfoFosXtXBMnaS0ZnIJ9ST4b4NqLVKDEm8QBxoNNGNaBv2JNF6XNA=="],
 
-    "next-ws": ["next-ws@2.2.16", "", { "dependencies": { "jscodeshift": "^17.3.0", "minimist": "^1.2.8", "semver": "^7.7.4" }, "peerDependencies": { "next": ">=13.5.1", "react": "*", "ws": "*" }, "bin": { "next-ws": "dist/cli.cjs" } }, "sha512-hAAGm0oInpm038oR4SfyNr/KGLY6co0VRMYu9z+tInyoTxBLNKC8LBi6ryReXTLu7jJFiJ3+/mitWtQfGEsr/g=="],
+    "next-ws": ["next-ws@2.2.19", "", { "dependencies": { "jscodeshift": "^17.3.0", "minimist": "^1.2.8", "semver": "^7.7.4" }, "peerDependencies": { "next": ">=13.5.1", "react": "*", "ws": "*" }, "bin": { "next-ws": "dist/cli.cjs" } }, "sha512-MpR3xT5FJ0ty2k9+BIOdm3yCqkh6RayxEJepQwNCG2IQKsaTF0bsE+cXUi1MH/4C/ROHFWvVs0Nedz6331aKxQ=="],
 
     "nextjs-nav-guard": ["nextjs-nav-guard@1.1.2", "", { "peerDependencies": { "next": "^14 || ^15 || ^16", "react": "^18.0.0 || ^19.0.0" } }, "sha512-Yg8f9I/F3N+O6m070s4CvZDXrGNIHO+Cf4v4F1XqgHFBqEfCZgyzZ1CKPH65wQS2NZbh/ISlQcsCWPbzenNq9w=="],
 
