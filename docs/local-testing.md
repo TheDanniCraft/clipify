@@ -2,7 +2,7 @@
 
 Application development and test fixtures use different databases. The test
 commands need the same prerequisites that `.github/workflows/ci.yml` provisions:
-Node 22.23.3, Bun 1.4.2, PostgreSQL, and Chromium with its operating-system
+Node 24.21.0, Bun 1.4.2, PostgreSQL, and Chromium with its operating-system
 libraries. Installing JavaScript dependencies alone does not provide the database
 service or browser libraries. A green CI run therefore does not establish that a
 new workspace is ready to run the same tests locally.

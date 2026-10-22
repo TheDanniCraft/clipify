@@ -197,7 +197,7 @@ jobs:
       - name: 🟢 Match coverage producer Node
         uses: actions/setup-node@v7
         with:
-          node-version: 22.23.3
+          node-version: 24.21.0
 
       - name: ♻️ Restore deps cache
         uses: actions/cache/restore@v6
@@ -610,7 +610,7 @@ jobs:
       - name: 🟢 Match native test Node
         uses: actions/setup-node@v7
         with:
-          node-version: 22.23.3
+          node-version: 24.21.0
       - name: 🟢 Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
