@@ -12,7 +12,7 @@ test("inactive connection cleanup preserves active authority and audit history i
 		mkdirSync(rawDirectory, { recursive: true });
 		environment.MCP_ISTANBUL_COVERAGE_DIR = rawDirectory;
 	}
-	const result = spawnSync(process.execPath, ["--conditions=react-server", ...(!directory ? ["--import", "tsx"] : []), "--test", entry], { encoding: "utf8", timeout: 30000, env: environment });
+	const result = spawnSync(process.execPath, ["--conditions=react-server", ...(!directory ? ["--import", "tsx"] : []), "--test-reporter=tap", "--test", entry], { encoding: "utf8", timeout: 30000, env: environment });
 	expect(result.error).toBeUndefined();
 	expect(result.stdout + result.stderr).toContain("# fail 0");
 	expect(result.status).toBe(0);
