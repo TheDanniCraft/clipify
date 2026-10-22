@@ -132,7 +132,7 @@ test("PC-4 applies only due captured details, once per destination and occurrenc
 		global.fetch = original;
 	}
 });
-test("PC-5 Twitch test captures only a bandwidth-test key and has a bounded lifetime", async () => {
+test("PC-5 Twitch test captures only a bandwidth-test key and starts its duration after output is streaming", async () => {
 	const { startTwitchConnectionTest } = await import("@/server/runner/provider-test");
 	const runner = (await fixture.pool.query("SELECT id FROM runners WHERE owner_id='provider-owner' LIMIT 1")).rows[0];
 	const connection = (await fixture.pool.query("SELECT id FROM runner_provider_connections WHERE owner_id='provider-owner' LIMIT 1")).rows[0];
@@ -152,15 +152,35 @@ test("PC-5 Twitch test captures only a bandwidth-test key and has a bounded life
 		expect(captured.destinations[0].rtmpUrl).toBe("rtmp://live.twitch.tv/app");
 		expect(captured.destinations[0].streamKey).toBe("live_private?bandwidthtest=true");
 		expect(row.benefits_at_start.runnerPro).toBe(false);
+		expect(row.benefits_at_start.testDurationSeconds).toBe(60);
+		expect(Date.parse(result.test.expiresAt)).toBeGreaterThan(Date.now() + 4 * 60_000);
 		const { generateKeyPairSync, randomUUID } = await import("node:crypto");
 		const { privateKey } = generateKeyPairSync("ed25519");
 		process.env.RUNNER_EXECUTION_SIGNING_PRIVATE_KEY = privateKey.export({ format: "pem", type: "pkcs8" }).toString();
-		const { issueFreeExecutionLease } = await import("@/server/runner/lease");
+		const { issueFreeExecutionLease, acknowledgeFreeExecutions } = await import("@/server/runner/lease");
 		const runnerRow = (await fixture.pool.query("SELECT token FROM runners WHERE id=$1", [runner.id])).rows[0];
 		const lease = await issueFreeExecutionLease({ id: runner.id, ownerId: "provider-owner", token: runnerRow.token }, result.test.id, randomUUID(), fixture.db);
 		expect(lease?.lease).toBeDefined();
 		const claims = JSON.parse(Buffer.from(lease!.lease!.payload, "base64url").toString());
 		expect(claims.expiresAt).toBeLessThanOrEqual(Date.parse(result.test.expiresAt));
+		const streamingAt = Date.now() + 1000;
+		const acknowledgment = {
+			admissionId: lease!.admissionId,
+			sessionId: result.test.id,
+			executionGeneration: lease!.executionGeneration,
+			leaseId: claims.leaseId,
+			configurationRevision: lease!.configurationRevision,
+			state: "active" as const,
+			outputs: [{ id: captured.destinations[0].id, state: "streaming" as const }],
+		};
+		expect(await acknowledgeFreeExecutions({ id: runner.id, ownerId: "provider-owner", token: runnerRow.token }, [acknowledgment], fixture.db, () => streamingAt)).toHaveLength(1);
+		const started = (await fixture.pool.query("SELECT s.test_expires_at,a.scheduled_end,a.benefits_at_start FROM stream_sessions s JOIN runner_broadcast_admissions a ON a.session_id=s.id WHERE s.id=$1", [result.test.id])).rows[0];
+		expect(started.test_expires_at.getTime()).toBe(streamingAt + 60_000);
+		expect(started.scheduled_end.getTime()).toBe(streamingAt + 60_000);
+		expect(started.benefits_at_start.testStartedAt).toBe(streamingAt);
+		await acknowledgeFreeExecutions({ id: runner.id, ownerId: "provider-owner", token: runnerRow.token }, [acknowledgment], fixture.db, () => streamingAt + 10_000);
+		const unchanged = (await fixture.pool.query("SELECT test_expires_at FROM stream_sessions WHERE id=$1", [result.test.id])).rows[0];
+		expect(unchanged.test_expires_at.getTime()).toBe(streamingAt + 60_000);
 	} finally {
 		global.fetch = original;
 	}

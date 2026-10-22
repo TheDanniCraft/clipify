@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { startRunnerConnectionTest, readRunnerConnectionTest, stopRunnerConnectionTest } from "@/app/actions/runner";
 export function useConnectionTest(ownerId: string, runnerId: string, onError: (message: string | null) => void) {
 	const [duration, setDuration] = useState("60");
-	const [test, setTest] = useState<{ id: string; state: string; expiresAt: string; outputs: { id: string; state: string }[] } | null>(null);
+	const [test, setTest] = useState<{ id: string; state: string; expiresAt: string; outputs: { id: string; state: string }[]; successful: boolean } | null>(null);
 	const [pending, setPending] = useState(false);
 	const id = test?.id,
 		state = test?.state;
@@ -14,7 +14,7 @@ export function useConnectionTest(ownerId: string, runnerId: string, onError: (m
 			void readRunnerConnectionTest({ ownerId, id })
 				.then((result) => {
 					if (!current) return;
-					if (result.success) setTest(result.test);
+					if (result.success) setTest((current) => ({ ...result.test, successful: Boolean(current?.successful || result.test.outputs.some((output) => output.state === "streaming")) }));
 					else onError(result.error);
 				})
 				.catch(() => {
@@ -32,7 +32,7 @@ export function useConnectionTest(ownerId: string, runnerId: string, onError: (m
 		onError(null);
 		try {
 			const result = await startRunnerConnectionTest({ ownerId, runnerId, connectionId, durationSeconds: Number(duration) });
-			if (result.success) setTest({ ...result.test, state: "starting", outputs: [] });
+			if (result.success) setTest({ ...result.test, state: "starting", outputs: [], successful: false });
 			else onError(result.error);
 		} catch {
 			onError("Could not start the test. Please try again.");
@@ -47,7 +47,7 @@ export function useConnectionTest(ownerId: string, runnerId: string, onError: (m
 		try {
 			const result = await stopRunnerConnectionTest({ ownerId, id: test.id });
 			if (result.success) {
-				setTest(result.test);
+				setTest((current) => ({ ...result.test, successful: Boolean(current?.successful || result.test.outputs.some((output) => output.state === "streaming")) }));
 				return true;
 			}
 			onError(result.error);

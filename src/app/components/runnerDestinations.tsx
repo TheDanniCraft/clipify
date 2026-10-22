@@ -3,7 +3,7 @@ import { useDeploymentDraft } from "@lib/deploymentDrafts";
 
 import { useEffect, useRef, useState } from "react";
 import { Button, Chip, Input, Link, Label, ListBox, Modal, Select, Table, TextField, Tooltip, Tabs, Spinner, FieldError } from "@heroui/react";
-import { IconPlus, IconPencil, IconTrash, IconBrandTwitch, IconBrandYoutube, IconActivity } from "@tabler/icons-react";
+import { IconPlus, IconPencil, IconTrash, IconBrandTwitch, IconBrandYoutube, IconActivity, IconCircleCheck, IconAlertTriangle } from "@tabler/icons-react";
 import { deleteRunnerDestination, listRunnerDestinations, saveRunnerDestination } from "@/app/actions/runner";
 import { useConnectionTest } from "./runner/useConnectionTest";
 import { useProviderConnection } from "./runner/useProviderConnection";
@@ -341,9 +341,13 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 										</Select>
 									)}
 									{connectionTest.test?.state === "stopped" && (
-										<p role='status' className='text-sm'>
-											Test finished.
-										</p>
+										<div role='status' className={`flex items-start gap-3 rounded-xl p-3 ${connectionTest.test.successful ? "bg-success/10 text-success" : "bg-danger/10 text-danger"}`}>
+											{connectionTest.test.successful ? <IconCircleCheck className='mt-0.5 shrink-0' size={20} /> : <IconAlertTriangle className='mt-0.5 shrink-0' size={20} />}
+											<div>
+												<p className='font-medium'>{connectionTest.test.successful ? "Test successful" : "Test unsuccessful"}</p>
+												<p className='text-sm'>{connectionTest.test.successful ? "Twitch received the test stream." : "Twitch did not report receiving the test stream."}</p>
+											</div>
+										</div>
 									)}
 									{error && (
 										<p role='alert' className='text-sm text-danger'>
