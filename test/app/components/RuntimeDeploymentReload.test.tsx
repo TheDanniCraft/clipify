@@ -96,6 +96,24 @@ describe("RuntimeDeploymentReload", () => {
 		view.unmount();
 	});
 
+	it("queues the update dialog until the active dialog closes", async () => {
+		const activeDialog = document.createElement("div");
+		activeDialog.setAttribute("role", "dialog");
+		activeDialog.setAttribute("aria-label", "Edit destination");
+		document.body.append(activeDialog);
+		fetchMock.mockResolvedValueOnce({ ok: false, headers: { get: (name: string) => (name === "x-nextjs-action-not-found" ? "1" : null) } }).mockResolvedValueOnce({ ok: true, headers: { get: () => "deployment-2" } });
+		const view = render(<RuntimeDeploymentReload deploymentId='deployment-1' />);
+		try {
+			await window.fetch("/dashboard/runners/one", { method: "POST", headers: { "Next-Action": "old-action" } });
+			expect(await screen.findByRole("button", { name: "Refresh required" })).toBeVisible();
+			activeDialog.remove();
+			await waitFor(() => expect(screen.queryByRole("button", { name: "Refresh required" })).not.toBeInTheDocument());
+		} finally {
+			activeDialog.remove();
+			view.unmount();
+		}
+	});
+
 	it("does not treat validation or an external service response as a missing dashboard action", async () => {
 		const view = render(<RuntimeDeploymentReload deploymentId='deployment-1' />);
 		await window.fetch("/dashboard/settings", { method: "POST", headers: { "Next-Action": "valid-action" } });

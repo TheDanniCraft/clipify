@@ -43,6 +43,7 @@ export default function RuntimeDeploymentReload({ deploymentId }: { deploymentId
 	const [promptOpen, setPromptOpen] = useState(false);
 	const [updateId, setUpdateId] = useState<string | null>(null);
 	const [recoveryError, setRecoveryError] = useState<string | null>(null);
+	const anotherDialogIsOpen = useCallback(() => Boolean(document.querySelector('[role="dialog"]')), []);
 
 	const checkDeployment = useCallback(
 		async (missingAction = false) => {
@@ -60,7 +61,7 @@ export default function RuntimeDeploymentReload({ deploymentId }: { deploymentId
 					setUpdateId(currentDeploymentId);
 					if (notifiedDeployment.current !== currentDeploymentId) {
 						notifiedDeployment.current = currentDeploymentId;
-						setPromptOpen(true);
+						if (!anotherDialogIsOpen()) setPromptOpen(true);
 					}
 				}
 			} catch {
@@ -69,8 +70,17 @@ export default function RuntimeDeploymentReload({ deploymentId }: { deploymentId
 				checking.current = false;
 			}
 		},
-		[deploymentId, pathname],
+		[anotherDialogIsOpen, deploymentId, pathname],
 	);
+
+	useEffect(() => {
+		if (!updateId || promptOpen || !anotherDialogIsOpen()) return;
+		const observer = new MutationObserver(() => {
+			if (!anotherDialogIsOpen()) setPromptOpen(true);
+		});
+		observer.observe(document.body, { childList: true, subtree: true });
+		return () => observer.disconnect();
+	}, [anotherDialogIsOpen, promptOpen, updateId]);
 
 	useEffect(() => {
 		const unattended = Boolean(deploymentId) && isLongLivedRuntimePath(pathname);
