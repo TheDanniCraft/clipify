@@ -1,6 +1,6 @@
 "use client";
 
-import { useHeadlessConsentUI } from "@c15t/nextjs/headless";
+import { useHeadlessConsentUI } from "c15t/next/headless";
 import { useState } from "react";
 
 export default function CookiePreferencesLink() {

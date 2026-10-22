@@ -53,7 +53,7 @@
 		"@better-auth/oauth-provider": "1.7.7",
 		"@better-auth/passkey": "1.7.7",
 		"@c15t/backend": "^3.0.0",
-		"@c15t/nextjs": "^3.0.0",
+		"@effect/sql-pg": "4.0.0",
 		"@heroui-pro/react": "^1.0.0-beta.10",
 		"@heroui/react": "^3.2.6",
 		"@heroui/styles": "^3.2.6",
@@ -116,6 +116,7 @@
 	},
 	"devDependencies": {
 		"@electric-sql/pglite": "^0.5.8",
+		"@effect/sql-sqlite-node": "4.0.0",
 		"@fast-check/jest": "^2.3.0",
 		"@modelcontextprotocol/client": "2.3.0",
 		"@playwright/test": "^1.63.0",

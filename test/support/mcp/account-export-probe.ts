@@ -24,7 +24,7 @@ async function main() {
 			await fixture.pool.query("INSERT INTO overlays (owner_id,name,status,type) VALUES ('creator','Export overlay','active','All')");
 			await fixture.pool.query("INSERT INTO playlists (owner_id,name) VALUES ('creator','Export playlist')");
 			await fixture.pool.query("INSERT INTO billing_subscriptions (id,user_id,stripe_customer_id,status) VALUES ('export-subscription','creator','export-customer','active')");
-			await fixture.pool.query("INSERT INTO c15t_subject (id,\"externalId\") VALUES ('export-subject','owner')");
+			await fixture.pool.query("INSERT INTO subject (id,\"externalId\") VALUES ('export-subject','owner')");
 		}
 		if (mode === "expired") await fixture.pool.query("UPDATE mcp_connection_grants SET expires_at=$1 WHERE id=$2", [now, ownId]);
 		if (mode === "unnamed") await fixture.pool.query("UPDATE auth.oauth_client SET name=NULL WHERE client_id='client'");

@@ -4,7 +4,8 @@ import ChatWidget from "@/app/components/chatWidget";
 import { OPEN_CONSENT_PREFERENCES_EVENT } from "@/app/lib/consent/events";
 import { chatwootConsentScript } from "@/app/lib/consent/chatwoot";
 
-const mockUseConsentScript = jest.fn();
+const mockUseScriptLoader = jest.fn();
+let mockFunctionalityAllowed = false;
 const mockOpenDialog = jest.fn();
 let mockPathname = "/";
 let mockIsEmbedded = false;
@@ -25,11 +26,12 @@ jest.mock("@/app/lib/embeddedRoutes", () => ({
 	isEmbeddedRoute: () => mockIsEmbedded,
 }));
 
-jest.mock("@c15t/nextjs", () => ({
-	useConsentScript: (options: unknown) => mockUseConsentScript(options),
+jest.mock("c15t/next", () => ({
+	useConsent: () => mockFunctionalityAllowed,
+	useScriptLoader: (scripts: unknown) => mockUseScriptLoader(scripts),
 }));
 
-jest.mock("@c15t/nextjs/headless", () => ({
+jest.mock("c15t/next/headless", () => ({
 	useHeadlessConsentUI: () => ({ openDialog: mockOpenDialog }),
 }));
 
@@ -53,7 +55,7 @@ describe("components/ChatWidget", () => {
 		delete window.chatwootSDK;
 		delete window.$chatwoot;
 		document.querySelectorAll(".woot--bubble-holder, .woot-widget-holder").forEach((element) => element.remove());
-		mockUseConsentScript.mockReturnValue({ status: "blocked" });
+		mockFunctionalityAllowed = false;
 	});
 
 	it("registers Chatwoot with c15t and offers consent while functionality is denied", () => {
@@ -62,7 +64,7 @@ describe("components/ChatWidget", () => {
 
 		render(<ChatWidget />);
 
-		expect(mockUseConsentScript).toHaveBeenCalledWith(expect.objectContaining({ script: chatwootConsentScript, enabled: true }));
+		expect(mockUseScriptLoader).toHaveBeenCalledWith([chatwootConsentScript]);
 		fireEvent.click(screen.getByRole("button", { name: "Enable support chat" }));
 		expect(mockOpenDialog).toHaveBeenCalledTimes(1);
 		expect(openPreferences).toHaveBeenCalledTimes(1);
@@ -70,8 +72,8 @@ describe("components/ChatWidget", () => {
 		window.removeEventListener(OPEN_CONSENT_PREFERENCES_EVENT, openPreferences);
 	});
 
-	it.each(["idle", "loading", "ready", "error"])("does not compete with Chatwoot while the consent script is %s", (status) => {
-		mockUseConsentScript.mockReturnValue({ status });
+	it("does not compete with Chatwoot while the consent script is loading", () => {
+		mockFunctionalityAllowed = true;
 
 		render(<ChatWidget />);
 
@@ -91,7 +93,7 @@ describe("components/ChatWidget", () => {
 		const toggle = jest.fn();
 		const toggleBubbleVisibility = jest.fn();
 		window.$chatwoot = { toggle, toggleBubbleVisibility } as unknown as NonNullable<Window["$chatwoot"]>;
-		mockUseConsentScript.mockReturnValue({ status: "ready" });
+		mockFunctionalityAllowed = true;
 		const { rerender } = render(<ChatWidget />);
 
 		toggle.mockClear();
@@ -102,13 +104,13 @@ describe("components/ChatWidget", () => {
 
 		expect(toggle).toHaveBeenCalledWith("close");
 		expect(toggleBubbleVisibility).toHaveBeenCalledWith("hide");
-		expect(mockUseConsentScript).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: false }));
+		expect(mockUseScriptLoader).toHaveBeenLastCalledWith([]);
 	});
 
 	it("hides Chatwoot if it becomes ready after an embedded route mounted", () => {
 		mockPathname = "/overlay/overlay-1";
 		mockIsEmbedded = true;
-		mockUseConsentScript.mockReturnValue({ status: "loading" });
+		mockFunctionalityAllowed = true;
 		render(<ChatWidget />);
 		const toggle = jest.fn();
 		const toggleBubbleVisibility = jest.fn();
@@ -125,7 +127,7 @@ describe("components/ChatWidget", () => {
 		mountChatwootWidget();
 		const toggleBubbleVisibility = jest.fn();
 		window.$chatwoot = { toggle: jest.fn(), toggleBubbleVisibility } as unknown as NonNullable<Window["$chatwoot"]>;
-		mockUseConsentScript.mockReturnValue({ status: "ready" });
+		mockFunctionalityAllowed = true;
 		mockPathname = "/gallery/gallery-1/frame";
 		mockIsEmbedded = true;
 		const { rerender } = render(<ChatWidget />);
@@ -141,7 +143,7 @@ describe("components/ChatWidget", () => {
 	it("waits for Chatwoot to mount its DOM before changing bubble visibility", () => {
 		const toggleBubbleVisibility = jest.fn();
 		window.$chatwoot = { toggle: jest.fn(), toggleBubbleVisibility } as unknown as NonNullable<Window["$chatwoot"]>;
-		mockUseConsentScript.mockReturnValue({ status: "ready" });
+		mockFunctionalityAllowed = true;
 
 		render(<ChatWidget />);
 

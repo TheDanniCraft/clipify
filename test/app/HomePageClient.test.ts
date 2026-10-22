@@ -1,7 +1,7 @@
 /** @jest-environment jsdom */
 export {};
 
-jest.mock("@c15t/nextjs/components/consent-dialog-link", () => ({ ConsentDialogLink: () => null }));
+jest.mock("c15t/next/components/consent-dialog-link", () => ({ ConsentDialogLink: () => null }));
 
 import { buildCampaignOfferHref } from "@/app/HomePageClient";
 

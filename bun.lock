@@ -10,7 +10,7 @@
         "@better-auth/oauth-provider": "1.7.7",
         "@better-auth/passkey": "1.7.7",
         "@c15t/backend": "^3.0.0",
-        "@c15t/nextjs": "^3.0.0",
+        "@effect/sql-pg": "4.0.0",
         "@heroui-pro/react": "^1.0.0-beta.10",
         "@heroui/react": "^3.2.6",
         "@heroui/styles": "^3.2.6",
@@ -72,6 +72,7 @@
         "zod": "4.6.5",
       },
       "devDependencies": {
+        "@effect/sql-sqlite-node": "4.0.0",
         "@electric-sql/pglite": "^0.5.8",
         "@fast-check/jest": "^2.3.0",
         "@modelcontextprotocol/client": "2.3.0",
@@ -333,6 +334,10 @@
     "@cucumber/tag-expressions": ["@cucumber/tag-expressions@9.1.0", "", {}, "sha512-bvHjcRFZ+J1TqIa9eFNO1wGHqwx4V9ZKV3hYgkuK/VahHx73uiP4rKV3JVrvWSMrwrFvJG6C8aEwnCWSvbyFdQ=="],
 
     "@drizzle-team/brocli": ["@drizzle-team/brocli@0.10.2", "", {}, "sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w=="],
+
+    "@effect/sql-pg": ["@effect/sql-pg@4.0.0", "", { "peerDependencies": { "effect": "^4.0.0" } }, "sha512-w0sRMA08Tgz73aReYpFSxD+nz2LUKYhH/4zaRpo4G5b5YG+eqiAL7XYhqIjvGZ8MZacazbG71Jhprv6ccz9HDg=="],
+
+    "@effect/sql-sqlite-node": ["@effect/sql-sqlite-node@4.0.0", "", { "peerDependencies": { "effect": "^4.0.0" } }, "sha512-xyUSLY7v55iMgGxrjFrTo5ngixgQ3jLmOQ+AX8CCazO/caxuMM0oq8zb974FAcvQHRrpMEWU7Vnoo+rxct7PAQ=="],
 
     "@electric-sql/pglite": ["@electric-sql/pglite@0.5.8", "", {}, "sha512-n9tsbUOhwx2epK1V0ZG9Ar4SHWUju04dhmzZXiSBXwBoleOvIfals33NAaWgagQVAL4Rbvx/Ptsu3P+pA09f6Q=="],
 
