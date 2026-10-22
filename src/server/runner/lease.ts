@@ -337,13 +337,23 @@ async function acknowledgeActiveOutput(tx: TransactionClient, runner: RunnerIden
 	const observations = observedOutputStates(ack, admission, session.id);
 	if (!observations) return false;
 	const { outputStates } = observations;
+	const testDurationSeconds = admission.benefitsAtStart.testDurationSeconds;
+	const startsConnectionTest = typeof admission.benefitsAtStart.testConnectionId === "string" && admission.benefitsAtStart.testStartedAt === undefined && typeof testDurationSeconds === "number" && [30, 60, 120].includes(testDurationSeconds) && Boolean(outputStates?.some((output) => output.state === "streaming"));
+	const testExpiresAt = startsConnectionTest ? new Date(now.getTime() + testDurationSeconds * 1000) : undefined;
 	await tx
 		.update(runnerBroadcastAdmissionsTable)
-		.set({ state: "active", startedAt: admission.startedAt ?? now, lastObservedAt: now, ...(continuityRootAdmissionId ? { continuityRootAdmissionId } : {}), ...(outputStates ? { outputStates } : {}) })
+		.set({
+			state: "active",
+			startedAt: admission.startedAt ?? now,
+			lastObservedAt: now,
+			...(continuityRootAdmissionId ? { continuityRootAdmissionId } : {}),
+			...(outputStates ? { outputStates } : {}),
+			...(testExpiresAt ? { scheduledEnd: testExpiresAt, benefitsAtStart: { ...admission.benefitsAtStart, testStartedAt: now.getTime() } } : {}),
+		})
 		.where(and(eq(runnerBroadcastAdmissionsTable.id, admission.id), eq(runnerBroadcastAdmissionsTable.ownerId, runner.ownerId)));
 	await tx
 		.update(streamSessionsTable)
-		.set({ actualState: StreamState.Running, ...(session.lastError === PLAYBACK_TIMEOUT_MESSAGE ? { lastError: null } : {}), ...(cachedStart ? { desiredState: StreamState.Running } : {}) })
+		.set({ actualState: StreamState.Running, ...(session.lastError === PLAYBACK_TIMEOUT_MESSAGE ? { lastError: null } : {}), ...(cachedStart ? { desiredState: StreamState.Running } : {}), ...(testExpiresAt ? { testExpiresAt } : {}) })
 		.where(and(eq(streamSessionsTable.id, session.id), eq(streamSessionsTable.ownerId, runner.ownerId)));
 	return true;
 }

@@ -14,6 +14,7 @@ import { isResourceFailure } from "@/server/resources/errors";
 import { StreamMode, StreamState, StatusOptions } from "@types";
 const identity = z.object({ ownerId: z.string().min(1).max(255), runnerId: z.uuid(), connectionId: z.uuid(), durationSeconds: z.union([z.literal(30), z.literal(60), z.literal(120)]) }).strict();
 const fail = (error: string) => ({ success: false as const, error, code: "INVALID_INPUT" as const });
+const CONNECTION_TEST_STARTUP_TIMEOUT_MS = 5 * 60_000;
 export async function startTwitchConnectionTest(principal: TrustedCreatorPrincipal, raw: unknown, client: DatabaseClient = db) {
 	const parsed = identity.safeParse(raw);
 	if (!parsed.success) return fail("Choose a test duration.");
@@ -21,7 +22,7 @@ export async function startTwitchConnectionTest(principal: TrustedCreatorPrincip
 	return client.transaction(async (tx) => {
 		const authority = await authorizeLockedMutation(principal, input.ownerId, "runner:update", tx);
 		const now = Date.now(),
-			expiresAt = new Date(now + input.durationSeconds * 1000);
+			expiresAt = new Date(now + CONNECTION_TEST_STARTUP_TIMEOUT_MS);
 		const [runner] = await tx
 			.select()
 			.from(runners)
@@ -67,7 +68,7 @@ export async function startTwitchConnectionTest(principal: TrustedCreatorPrincip
 		}
 		await tx
 			.update(admissions)
-			.set({ scheduledEnd: expiresAt, benefitsAtStart: { ...admission.benefitsAtStart, runnerPro: false, testConnectionId: input.connectionId, sourceIdAtStart: overlay.id, sourceRevisionAtStart: overlay.configurationRevision } })
+			.set({ scheduledEnd: expiresAt, benefitsAtStart: { ...admission.benefitsAtStart, runnerPro: false, testConnectionId: input.connectionId, testDurationSeconds: input.durationSeconds, sourceIdAtStart: overlay.id, sourceRevisionAtStart: overlay.configurationRevision } })
 			.where(eq(admissions.id, admission.id));
 		await tx.update(sessions).set({ desiredState: StreamState.Running }).where(eq(sessions.id, session.id));
 		authority.assertAuthorityCurrent();
