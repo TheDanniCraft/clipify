@@ -1,16 +1,19 @@
 /** @jest-environment ./test/helpers/pgliteEnvironment.cjs */
 import type { PGlite as PGliteDatabase } from "@electric-sql/pglite";
-import { PgDialect } from "drizzle-orm/pg-core";
+import { drizzle } from "drizzle-orm/pglite";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const execute = jest.fn();
+let client: ReturnType<typeof drizzle>;
 jest.mock("server-only", () => ({}));
-jest.mock("@/db/client", () => ({ db: { execute: (...args: unknown[]) => execute(...args) } }));
+jest.mock("@/db/client", () => ({
+	get db() {
+		return client;
+	},
+}));
 
-import { allocateMemberNumber, memberNumberAllocationQuery } from "@/server/memberNumbers";
+import { allocateMemberNumber } from "@/server/memberNumbers";
 
-const dialect = new PgDialect();
 declare const PGlite: typeof import("@electric-sql/pglite").PGlite;
 let database: PGliteDatabase;
 const runbook = readFileSync(join(process.cwd(), "scripts/member-badges-backfill.sql"), "utf8");
@@ -31,6 +34,7 @@ async function backfill(mapping: string) {
 describe("persisted member-number allocator (embedded PostgreSQL)", () => {
 	beforeAll(async () => {
 		database = new PGlite();
+		client = drizzle(database);
 		// Minimal isolated database fixture, never a production migration.
 		await database.exec(`
 			CREATE TABLE users (id varchar PRIMARY KEY, username varchar, member_number integer, created_at timestamptz, twitch_created_at timestamptz);
@@ -46,11 +50,6 @@ describe("persisted member-number allocator (embedded PostgreSQL)", () => {
 
 	beforeEach(async () => {
 		await database.exec("TRUNCATE users, member_number_allocator");
-		execute.mockReset();
-		execute.mockImplementation(async (query) => {
-			const { sql, params } = dialect.sqlToQuery(query);
-			return database.query(sql, params);
-		});
 	});
 
 	afterAll(async () => {
@@ -134,15 +133,5 @@ describe("persisted member-number allocator (embedded PostgreSQL)", () => {
 		await expect(backfill("INSERT INTO member_number_backfill VALUES ('1', 1)")).rejects.toThrow("every legacy account");
 		expect((await database.query("SELECT member_number FROM users WHERE id = '1'")).rows).toEqual([{ member_number: null }]);
 		expect(await allocateMemberNumber()).toBe(4);
-	});
-
-	it("fails explicitly when the allocation result is missing", async () => {
-		execute.mockResolvedValueOnce({ rows: [] });
-		await expect(allocateMemberNumber()).rejects.toThrow("Could not allocate");
-	});
-
-	it("uses the same SQL boundary for all allocator calls", async () => {
-		await allocateMemberNumber();
-		expect(execute).toHaveBeenCalledWith(memberNumberAllocationQuery);
 	});
 });

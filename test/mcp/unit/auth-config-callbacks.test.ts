@@ -23,7 +23,7 @@ jest.mock("better-auth/api", () => ({
 jest.mock("better-auth/adapters/drizzle", () => ({ drizzleAdapter: jest.fn(() => ({})) }));
 jest.mock("better-auth/plugins", () => ({ magicLink: (options: unknown) => ({ id: "magic-link", options }), emailOTP: (options: unknown) => ({ id: "email-otp", options }), oAuthProxy: (options: unknown) => ({ id: "oauth-proxy", options }), organization: (options: unknown) => ({ id: "organization", options }) }));
 jest.mock("@better-auth/passkey", () => ({ passkey: (options: unknown) => ({ id: "passkey", options }) }));
-jest.mock("@/db/client", () => ({ db: { select: jest.fn(), execute: jest.fn() } }));
+jest.mock("@/db/client", () => ({ db: { select: jest.fn(), update: jest.fn() } }));
 jest.mock("@/auth/organization-access", () => ({ clipifyAccessControl: {}, betterAuthOrganizationRoles: { owner: {}, operations: {}, "content-manager": {}, analyst: {}, "billing-manager": {} } }));
 jest.mock("@/auth/transactional-mail", () => ({ sendAuthOtp: jest.fn(), sendTeamInvitation: jest.fn() }));
 jest.mock("@/auth/providers/twitch-refresh", () => ({ refreshTwitchAccessToken: jest.fn() }));
@@ -54,6 +54,7 @@ afterAll(() => {
 beforeEach(() => {
 	jest.clearAllMocks();
 	rows = [];
+	(db.update as jest.Mock).mockReturnValue({ set: jest.fn().mockReturnValue({ where: jest.fn().mockResolvedValue(undefined) }) });
 	(db.select as jest.Mock).mockImplementation(() => {
 		const result = rows.shift() ?? [];
 		const query: any = { from: () => query, innerJoin: () => query, where: () => query, limit: async () => result, then: (resolve: any, reject: any) => Promise.resolve(result).then(resolve, reject) };
@@ -66,7 +67,8 @@ const context = (body: unknown = { memberId: "target", role: "operations" }, pat
 
 test("session creation records a linked creator's returning login", async () => {
 	await options.databaseHooks.session.create.after({ userId: "returning-identity" });
-	expect(db.execute).toHaveBeenCalledTimes(1);
+	expect(db.update).toHaveBeenCalledWith(require("@/db/schema").usersTable);
+	expect((db.update as jest.Mock).mock.results[0].value.set).toHaveBeenCalledWith({ lastLogin: expect.any(Date) });
 });
 
 test("Twitch account creation completes onboarding; token refresh alone does not", async () => {

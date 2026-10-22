@@ -4,7 +4,8 @@ import { betterAuth } from "better-auth";
 import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { emailOTP, magicLink, oAuthProxy, organization } from "better-auth/plugins";
-import { and, eq, gt, inArray, sql } from "drizzle-orm";
+import { and, eq, gt, inArray } from "drizzle-orm";
+import { creatorIdentityLinksTable, usersTable } from "@/db/schema";
 import { passkey } from "@better-auth/passkey";
 import { db } from "@/db/client";
 import * as schema from "@/db/auth-schema";
@@ -67,9 +68,10 @@ export const auth = betterAuth({
 		session: {
 			create: {
 				after: async (session) => {
-					await db.execute(sql`UPDATE public.users creator SET last_login = now()
-					 FROM public.creator_identity_links link
-					 WHERE link.auth_user_id = ${session.userId} AND creator.id = link.creator_id`);
+					await db
+						.update(usersTable)
+						.set({ lastLogin: new Date() })
+						.where(inArray(usersTable.id, db.select({ creatorId: creatorIdentityLinksTable.creatorId }).from(creatorIdentityLinksTable).where(eq(creatorIdentityLinksTable.authUserId, session.userId))));
 				},
 			},
 		},
