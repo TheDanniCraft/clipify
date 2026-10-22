@@ -204,7 +204,7 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 													<p className='break-words font-medium'>{destination.name}</p>
 													<p className='text-sm text-muted'>{providers.find((row) => row.id === destination.provider)?.name}</p>
 													<p className='mt-1 break-all text-sm text-muted sm:hidden'>{destination.host}</p>
-													<Chip size='sm' variant='soft' className='mt-2'>
+													<Chip size='sm' variant='soft' color={destination.credentialConfigured ? "success" : destination.provider === "custom" ? "warning" : "danger"} className='mt-2'>
 														{destination.credentialConfigured ? "Key saved" : destination.provider === "custom" ? "No key configured" : "Key required"}
 													</Chip>
 												</Table.Cell>

@@ -606,6 +606,15 @@ test.each(["missing_runner", "missing_heartbeat", "stale_heartbeat", "old_protoc
 	if (variant === "old_protocol") await fixture.pool.query("UPDATE runners SET protocol_version=1 WHERE id=$1", [runner.id]);
 	expect(await startTwitchConnectionTest(principal, { ownerId: "provider-owner", runnerId: variant === "missing_runner" ? randomUUID() : runner.id, connectionId: connection.id, durationSeconds: 30 }, fixture.db)).toMatchObject({ success: false, error: expect.stringContaining("Connect your Runner") });
 });
+test("PC-5 an unrelated orphaned admission does not block this Runner's connection test", async () => {
+	const { startTwitchConnectionTest } = await import("@/server/runner/provider-test");
+	const runner = (await fixture.pool.query("SELECT id FROM runners LIMIT 1")).rows[0],
+		connection = (await fixture.pool.query("SELECT id FROM runner_provider_connections LIMIT 1")).rows[0];
+	await fixture.pool.query("UPDATE runners SET status='online',protocol_version=2,last_heartbeat_at=now() WHERE id=$1", [runner.id]);
+	await fixture.pool.query("INSERT INTO runner_broadcast_admissions(owner_id,runner_id,execution_generation,configuration_revision,state,benefits_at_start) VALUES('provider-owner',NULL,$1,1,'uncertain',$2)", [randomUUID(), JSON.stringify({ provenance: "pre_admission_protocol" })]);
+	global.fetch = jest.fn().mockResolvedValue(new Response(JSON.stringify({ data: [{ stream_key: "live_private" }] })));
+	expect(await startTwitchConnectionTest(principal, { ownerId: "provider-owner", runnerId: runner.id, connectionId: connection.id, durationSeconds: 30 }, fixture.db)).toMatchObject({ success: true });
+});
 test.each(["past", "during_test", "unknown_start", "after_test"])("PC-5 scheduled authority %s respects the test window", async (variant) => {
 	const { startTwitchConnectionTest } = await import("@/server/runner/provider-test");
 	const runner = (await fixture.pool.query("SELECT id FROM runners LIMIT 1")).rows[0],
