@@ -86,7 +86,7 @@
 		"marked": ">=18.0.14",
 		"minimatch": "^10.2.6",
 		"motion": "^13.4.6",
-		"next": "16.3.8",
+		"next": "16.4.1",
 		"next-plausible": "^4.0.0",
 		"next-themes": "^0.4.6",
 		"next-ws": "^2.2.16",
@@ -139,7 +139,7 @@
 		"drizzle-kit": "^0.31.11",
 		"esbuild": "0.25.12",
 		"eslint": "^9.39.5",
-		"eslint-config-next": "16.3.8",
+		"eslint-config-next": "16.4.1",
 		"fast-check": "^4.10.2",
 		"husky": "^9.1.7",
 		"istanbul-lib-coverage": "3.2.2",
@@ -154,7 +154,7 @@
 		"typescript": "^6.0.3"
 	},
 	"patchedDependencies": {
-		"next@16.3.8": "patches/next.patch"
+		"next@16.4.1": "patches/next.patch"
 	},
 	"overrides": {
 		"figlet": "1.12.0",
