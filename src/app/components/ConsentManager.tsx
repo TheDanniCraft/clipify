@@ -4,8 +4,9 @@ import type { Key } from "@heroui/react";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import * as Sentry from "@sentry/nextjs";
-import { ConsentManagerProvider, useConsentManager } from "@c15t/nextjs";
-import { useHeadlessConsentUI } from "@c15t/nextjs/headless";
+import { ConsentDraftProvider, ConsentProvider, useConsent, useConsents, useExplicitChoice, useConsentDraft } from "c15t/next";
+import { hosted } from "c15t/react";
+import { useHeadlessConsentUI } from "c15t/next/headless";
 import { Accordion, Button, Card, Modal, Switch } from "@heroui/react";
 import { IconActivity, IconBuilding, IconCheck, IconChevronDown, IconCookie, IconDatabase, IconDeviceFloppy, IconLock, IconSettings, IconShieldCheck, IconWorld, IconX } from "@tabler/icons-react";
 import { usePathname } from "next/navigation";
@@ -13,22 +14,18 @@ import { isEmbeddedRoute } from "@lib/embeddedRoutes";
 import { consentCategoryDetails, consentServices, necessaryConsentServices } from "@lib/consent/registry";
 import { hadMeasurementConsentAtPageLoad, setBrowserMeasurementConsent } from "@lib/consent/browserMeasurement";
 import { applySentryReplayConsent } from "@lib/sentryReplayConsent";
-import { clearExpiredStoredConsent } from "@lib/consent/storageExpiry";
 import { reloadAfterConsentSave } from "@lib/consent/reload";
 import { CONSENT_PREFERENCES_VISIBILITY_EVENT, OPEN_CONSENT_PREFERENCES_EVENT, type ConsentPreferencesVisibilityDetail, type OpenConsentPreferencesDetail } from "@lib/consent/events";
 import { legalDocumentRoutes } from "@lib/legal/documents";
-
-// c15t hydrates from localStorage before /init finishes. Drop expired local proof
-// before its provider can expose optional categories to integrations.
-if (typeof window !== "undefined") clearExpiredStoredConsent();
 
 const subscribeToHydration = () => () => undefined;
 const getHydratedSnapshot = () => true;
 const getServerHydratedSnapshot = () => false;
 
 function ConsentIntegrations() {
-	const { has, hasConsented, consentInfo } = useConsentManager();
-	const measurement = hasConsented() && has("measurement");
+	const measurement = useConsent("measurement");
+	const explicitChoice = useExplicitChoice();
+	const consentTime = explicitChoice ? Math.max(0, ...Object.values(explicitChoice.categories).map((decision) => decision?.confirmedAt ?? 0)) : undefined;
 	const pageLoadTraceStarted = useRef(false);
 
 	useEffect(() => {
@@ -41,11 +38,11 @@ function ConsentIntegrations() {
 	}, [measurement]);
 
 	useEffect(() => {
-		if (!measurement || !consentInfo?.time || pageLoadTraceStarted.current) return;
+		if (!measurement || !consentTime || pageLoadTraceStarted.current) return;
 		pageLoadTraceStarted.current = true;
 		const client = Sentry.getClient();
 		const pageLoadTime = performance.timeOrigin;
-		if (client && hadMeasurementConsentAtPageLoad(consentInfo.time, pageLoadTime, Date.now())) {
+		if (client && hadMeasurementConsentAtPageLoad(consentTime, pageLoadTime, Date.now())) {
 			// Sentry's automatic initial span was sampled out before c15t hydrated.
 			// Restart it only for a return visit whose prior consent covered this load.
 			Sentry.startBrowserTracingPageLoadSpan(client, {
@@ -54,7 +51,7 @@ function ConsentIntegrations() {
 				attributes: { "sentry.op": "pageload", "sentry.source": "custom" },
 			});
 		}
-	}, [measurement, consentInfo?.time]);
+	}, [measurement, consentTime]);
 
 	return null;
 }
@@ -64,7 +61,10 @@ function ConsentInterface() {
 	const pathname = usePathname();
 	const embedded = isEmbeddedRoute(pathname);
 	const { banner, dialog, openBanner, openDialog, closeUI, performBannerAction, performDialogAction, saveCustomPreferences } = useHeadlessConsentUI();
-	const { consents, selectedConsents, setSelectedConsent, getDisplayedConsents, hasConsented } = useConsentManager();
+	const consents = useConsents();
+	const explicitChoice = useExplicitChoice();
+	const { values: selectedConsents, set: setSelectedConsent, displayedCategories } = useConsentDraft();
+	const hasConsented = explicitChoice !== null;
 	const [pendingAction, setPendingAction] = useState<string | null>(null);
 	const [returnToBanner, setReturnToBanner] = useState(false);
 	const [preferencesRequested, setPreferencesRequested] = useState(false);
@@ -76,7 +76,7 @@ function ConsentInterface() {
 	useEffect(() => {
 		function openRequestedPreferences(event: Event) {
 			const detail = (event as CustomEvent<OpenConsentPreferencesDetail>).detail;
-			setReturnToBanner(!hasConsented());
+			setReturnToBanner(!hasConsented);
 			setExpandedCategories(detail?.category ? new Set([detail.category]) : new Set());
 			setPreferencesRequested(true);
 		}
@@ -91,7 +91,7 @@ function ConsentInterface() {
 
 	if (!hydrated || embedded) return null;
 
-	const visibleCategories = getDisplayedConsents();
+	const visibleCategories = displayedCategories.map((name) => ({ name, description: consentCategoryDetails[name as keyof typeof consentCategoryDetails]?.description ?? "", disabled: name === "necessary" }));
 
 	function preferencesAfter(actionName: "accept" | "reject" | "save") {
 		const preferences = { ...consents };
@@ -103,16 +103,16 @@ function ConsentInterface() {
 		return preferences;
 	}
 
-	async function save(actionName: "accept" | "reject" | "save", action: () => Promise<unknown>, surface: "banner" | "dialog") {
+	async function save(actionName: "accept" | "reject" | "save", action: () => void | Promise<unknown>, surface: "banner" | "dialog") {
 		setPendingAction(actionName);
 		setSaveError(null);
 		try {
 			const preferences = preferencesAfter(actionName);
-			await action();
+			await Promise.resolve(action());
 			reloadAfterConsentSave(preferences);
 		} catch {
 			setSaveError("We couldn't save your privacy choices. Please try again.");
-			if (surface === "banner") openBanner({ force: true });
+			if (surface === "banner") openBanner();
 			else {
 				setPreferencesRequested(true);
 				openDialog();
@@ -133,7 +133,7 @@ function ConsentInterface() {
 		setPreferencesRequested(false);
 		if (returnToBanner) {
 			setReturnToBanner(false);
-			openBanner({ force: true });
+			openBanner();
 			return;
 		}
 
@@ -191,7 +191,7 @@ function ConsentInterface() {
 	if (preferencesVisible) {
 		return (
 			<>
-				{returnToBanner && !hasConsented() && renderBanner(true)}
+				{returnToBanner && !hasConsented && renderBanner(true)}
 				<Modal.Backdrop isOpen onOpenChange={(isOpen) => !isOpen && leavePreferences()} variant='blur' className='z-[100] bg-black/65'>
 					<Modal.Container size='lg' placement='center' scroll='inside'>
 						<Modal.Dialog aria-labelledby='consent-dialog-title' aria-describedby='consent-dialog-description' className='relative overflow-hidden border border-default bg-surface shadow-2xl'>
@@ -304,10 +304,12 @@ function ConsentInterface() {
 
 export default function ConsentManager({ children }: { children: ReactNode }) {
 	return (
-		<ConsentManagerProvider options={{ mode: "hosted", backendURL: "/api/c15t", consentCategories: ["necessary", "functionality", "measurement"], store: { reloadOnConsentRevoked: false } }}>
-			<ConsentIntegrations />
-			<ConsentInterface />
-			{children}
-		</ConsentManagerProvider>
+		<ConsentProvider options={{ mode: hosted({ backendURL: "/api/c15t" }), consentCategories: ["necessary", "functionality", "measurement"], reloadOnConsentRevoked: false }}>
+			<ConsentDraftProvider>
+				<ConsentIntegrations />
+				<ConsentInterface />
+				{children}
+			</ConsentDraftProvider>
+		</ConsentProvider>
 	);
 }

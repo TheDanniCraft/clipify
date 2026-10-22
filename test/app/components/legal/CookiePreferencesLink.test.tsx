@@ -5,7 +5,7 @@ import CookiePreferencesLink from "@/app/components/legal/CookiePreferencesLink"
 const mockOpenDialog = jest.fn();
 const mockUseHeadlessConsentUI = jest.fn();
 
-jest.mock("@c15t/nextjs/headless", () => ({
+jest.mock("c15t/next/headless", () => ({
 	useHeadlessConsentUI: () => mockUseHeadlessConsentUI(),
 }));
 

@@ -1,4 +1,4 @@
-import type { Script } from "c15t";
+import type { Script } from "c15t/react/module-hooks";
 
 export const CHATWOOT_BASE_URL = "https://chat.cloud.thedannicraft.de";
 export const CHATWOOT_WEBSITE_TOKEN = "new6uhVJwGhe8PCG8jxRMeiC";

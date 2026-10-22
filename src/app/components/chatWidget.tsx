@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { isEmbeddedRoute } from "@lib/embeddedRoutes";
-import { useConsentScript } from "@c15t/nextjs";
-import { useHeadlessConsentUI } from "@c15t/nextjs/headless";
+import { useConsent, useScriptLoader } from "c15t/next";
+import { useHeadlessConsentUI } from "c15t/next/headless";
 import { Button } from "@heroui/react";
 import { IconMessageCircle } from "@tabler/icons-react";
 import { CONSENT_PREFERENCES_VISIBILITY_EVENT, OPEN_CONSENT_PREFERENCES_EVENT, type ConsentPreferencesVisibilityDetail, type OpenConsentPreferencesDetail } from "@lib/consent/events";
 import { chatwootConsentScript } from "@lib/consent/chatwoot";
 
-type ConsentScriptStatus = ReturnType<typeof useConsentScript>["status"];
+type ConsentScriptStatus = "blocked" | "loading" | "ready";
 
 export function shouldShowChatConsentFallback({ isEmbedded, preferencesVisible, scriptStatus }: { isEmbedded: boolean; preferencesVisible: boolean; scriptStatus: ConsentScriptStatus }) {
 	return !isEmbedded && !preferencesVisible && scriptStatus === "blocked";
@@ -26,14 +26,11 @@ const ChatWidget = () => {
 	const pathname = usePathname();
 	const isEmbedded = isEmbeddedRoute(pathname);
 	const { openDialog } = useHeadlessConsentUI();
+	const functionalityAllowed = useConsent("functionality");
 	const [preferencesVisible, setPreferencesVisible] = useState(false);
 	const [chatwootState, setChatwootState] = useState({ checked: false, available: false });
-	const { status: scriptStatus } = useConsentScript({
-		script: chatwootConsentScript,
-		enabled: !isEmbedded,
-		resolveReady: () => window.chatwootSDK ?? false,
-		unmountBehavior: "keep",
-	});
+	useScriptLoader(isEmbedded ? [] : [chatwootConsentScript]);
+	const scriptStatus: ConsentScriptStatus = !functionalityAllowed ? "blocked" : chatwootState.available ? "ready" : "loading";
 
 	useEffect(() => {
 		function syncChatwootVisibility() {

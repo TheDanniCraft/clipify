@@ -204,6 +204,13 @@
       "when": 1792657177342,
       "tag": "0028_medical_puck",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1792712400000,
+      "tag": "0029_adopt_c15t_v3",
+      "breakpoints": true
     }
   ]
 }

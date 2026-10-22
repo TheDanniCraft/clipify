@@ -23,9 +23,9 @@ export async function pruneConsentProof(now = new Date()) {
 			await client.query("ROLLBACK");
 			return;
 		}
-		await client.query('DELETE FROM "c15t_auditLog" WHERE "createdAt" < $1', [cutoff]);
-		await client.query('DELETE FROM "c15t_consent" WHERE "givenAt" < $1', [cutoff]);
-		await client.query('DELETE FROM "c15t_subject" AS subject WHERE "updatedAt" < $1 AND NOT EXISTS (SELECT 1 FROM "c15t_consent" WHERE "subjectId" = subject."id") AND NOT EXISTS (SELECT 1 FROM "c15t_auditLog" WHERE "subjectId" = subject."id")', [cutoff]);
+		await client.query('DELETE FROM "auditLog" WHERE "createdAt" < $1', [cutoff]);
+		await client.query('DELETE FROM "consent" WHERE "givenAt" < $1', [cutoff]);
+		await client.query('DELETE FROM "subject" AS subject WHERE "updatedAt" < $1 AND NOT EXISTS (SELECT 1 FROM "consent" WHERE "subjectId" = subject."id") AND NOT EXISTS (SELECT 1 FROM "auditLog" WHERE "subjectId" = subject."id")', [cutoff]);
 		await client.query("COMMIT");
 	} catch (error) {
 		await client.query("ROLLBACK");

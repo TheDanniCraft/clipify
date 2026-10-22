@@ -9,24 +9,18 @@ const mockReloadAfterConsentSave = jest.fn();
 
 jest.mock("next/navigation", () => ({ usePathname: () => "/" }));
 
-jest.mock("@c15t/nextjs", () => ({
-	ConsentManagerProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-	useConsentManager: () => ({
-		consents: { necessary: true, functionality: false, measurement: false },
-		selectedConsents: {},
-		setSelectedConsent: jest.fn(),
-		getDisplayedConsents: () => [
-			{ name: "necessary", description: "Required", disabled: true },
-			{ name: "functionality", description: "Functionality", disabled: false },
-			{ name: "measurement", description: "Measurement", disabled: false },
-		],
-		hasConsented: () => false,
-		has: () => false,
-		consentInfo: undefined,
-	}),
+jest.mock("c15t/next", () => ({
+	ConsentProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+	ConsentDraftProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+	useConsent: () => false,
+	useConsents: () => ({ necessary: true, functionality: false, measurement: false }),
+	useExplicitChoice: () => null,
+	useConsentDraft: () => ({ values: {}, set: jest.fn(), displayedCategories: ["necessary", "functionality", "measurement"] }),
 }));
 
-jest.mock("@c15t/nextjs/headless", () => ({
+jest.mock("c15t/react", () => ({ hosted: () => ({ kind: "hosted" }) }));
+
+jest.mock("c15t/next/headless", () => ({
 	useHeadlessConsentUI: () => ({
 		banner: { isVisible: true },
 		dialog: { isVisible: false },
@@ -60,7 +54,7 @@ describe("components/ConsentManager", () => {
 		fireEvent.click(screen.getByRole("button", { name: "Accept all" }));
 
 		expect(await screen.findByRole("alert")).toHaveTextContent("We couldn't save your privacy choices. Please try again.");
-		await waitFor(() => expect(mockOpenBanner).toHaveBeenCalledWith({ force: true }));
+		await waitFor(() => expect(mockOpenBanner).toHaveBeenCalledWith());
 		expect(screen.getByRole("button", { name: "Accept all" })).toBeEnabled();
 		expect(mockReloadAfterConsentSave).not.toHaveBeenCalled();
 	});

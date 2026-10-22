@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
 describe("c15t consent API", () => {
-	it("passes the Bun/PGlite integration contract", () => {
+	it("passes the Bun/SQLite integration contract", () => {
 		const result = spawnSync("bun", [join(process.cwd(), "scripts/verify-consent-api.ts")], {
 			cwd: process.cwd(),
 			encoding: "utf8",

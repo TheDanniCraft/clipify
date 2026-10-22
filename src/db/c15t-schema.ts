@@ -1,9 +1,10 @@
-import { pgTable, varchar, text, timestamp, boolean, json, foreignKey } from "drizzle-orm/pg-core";
+import { pgTable, varchar, text, timestamp, boolean, json, foreignKey, integer } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
-export const c15t_subject = pgTable("c15t_subject", {
+export const c15t_subject = pgTable("subject", {
 	id: varchar("id", { length: 255 }).primaryKey().notNull(),
 	externalId: text("externalId"),
+	verifiedExternalId: text("verifiedExternalId"),
 	identityProvider: text("identityProvider"),
 	createdAt: timestamp("createdAt").notNull().defaultNow(),
 	updatedAt: timestamp("updatedAt").notNull().defaultNow(),
@@ -19,7 +20,7 @@ export const c15t_subjectRelations = relations(c15t_subject, ({ many }) => ({
 	}),
 }));
 
-export const c15t_domain = pgTable("c15t_domain", {
+export const c15t_domain = pgTable("domain", {
 	id: varchar("id", { length: 255 }).primaryKey().notNull(),
 	name: text("name").notNull(),
 	createdAt: timestamp("createdAt").notNull().defaultNow(),
@@ -33,7 +34,7 @@ export const c15t_domainRelations = relations(c15t_domain, ({ many }) => ({
 	}),
 }));
 
-export const c15t_consentPolicy = pgTable("c15t_consentPolicy", {
+export const c15t_consentPolicy = pgTable("consentPolicy", {
 	id: varchar("id", { length: 255 }).primaryKey().notNull(),
 	version: text("version").notNull(),
 	type: text("type").notNull(),
@@ -50,7 +51,7 @@ export const c15t_consentPolicyRelations = relations(c15t_consentPolicy, ({ many
 	}),
 }));
 
-export const c15t_runtimePolicyDecision = pgTable("c15t_runtimePolicyDecision", {
+export const c15t_runtimePolicyDecision = pgTable("runtimePolicyDecision", {
 	id: varchar("id", { length: 255 }).primaryKey().notNull(),
 	tenantId: text("tenantId"),
 	policyId: text("policyId").notNull(),
@@ -58,7 +59,7 @@ export const c15t_runtimePolicyDecision = pgTable("c15t_runtimePolicyDecision", 
 	matchedBy: text("matchedBy").notNull(),
 	countryCode: text("countryCode"),
 	regionCode: text("regionCode"),
-	jurisdiction: text("jurisdiction").notNull(),
+	jurisdiction: text("jurisdiction"),
 	language: text("language"),
 	model: text("model").notNull(),
 	policyI18n: json("policyI18n"),
@@ -78,7 +79,7 @@ export const c15t_runtimePolicyDecisionRelations = relations(c15t_runtimePolicyD
 	}),
 }));
 
-export const c15t_consentPurpose = pgTable("c15t_consentPurpose", {
+export const c15t_consentPurpose = pgTable("consentPurpose", {
 	id: varchar("id", { length: 255 }).primaryKey().notNull(),
 	code: text("code").notNull(),
 	createdAt: timestamp("createdAt").notNull().defaultNow(),
@@ -87,7 +88,7 @@ export const c15t_consentPurpose = pgTable("c15t_consentPurpose", {
 });
 
 export const c15t_consent = pgTable(
-	"c15t_consent",
+	"consent",
 	{
 		id: varchar("id", { length: 255 }).primaryKey().notNull(),
 		subjectId: text("subjectId").notNull(),
@@ -95,6 +96,8 @@ export const c15t_consent = pgTable(
 		policyId: text("policyId"),
 		purposeIds: json("purposeIds").notNull(),
 		metadata: json("metadata"),
+		choice: json("choice"),
+		vendorChoice: json("vendorChoice"),
 		ipAddress: text("ipAddress"),
 		userAgent: text("userAgent"),
 		givenAt: timestamp("givenAt").notNull().defaultNow(),
@@ -106,6 +109,10 @@ export const c15t_consent = pgTable(
 		consentAction: text("consentAction"),
 		runtimePolicyDecisionId: text("runtimePolicyDecisionId"),
 		runtimePolicySource: text("runtimePolicySource"),
+		experimentId: text("experimentId"),
+		experimentArm: text("experimentArm"),
+		timeToDecisionMs: integer("timeToDecisionMs"),
+		addtlConsent: text("addtlConsent"),
 		tenantId: text("tenantId"),
 	},
 	(table) => [
@@ -164,7 +171,7 @@ export const c15t_consentRelations = relations(c15t_consent, ({ one }) => ({
 }));
 
 export const c15t_auditLog = pgTable(
-	"c15t_auditLog",
+	"auditLog",
 	{
 		id: varchar("id", { length: 255 }).primaryKey().notNull(),
 		entityType: text("entityType").notNull(),
