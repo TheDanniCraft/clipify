@@ -165,6 +165,15 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 		}
 	}
 
+	async function closeConnectionTest() {
+		const stopped = await connectionTest.stop();
+		if (!stopped) return;
+		connectionTest.reset();
+		setError(null);
+		setTestOpen(false);
+		setOpen(true);
+	}
+
 	return (
 		<>
 			<section className='space-y-4'>
@@ -284,10 +293,7 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 				isOpen={open}
 				onOpenChange={(next) => {
 					if (testOpen && !next) {
-						if (!connectionTest.pending)
-							void connectionTest.stop().then((stopped) => {
-								if (stopped) setTestOpen(false);
-							});
+						if (!connectionTest.pending) void closeConnectionTest();
 						return;
 					}
 					if (!saving) {
@@ -350,12 +356,7 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 										variant={testRunning ? "danger-soft" : "tertiary"}
 										isPending={connectionTest.pending}
 										onPress={() => {
-											void connectionTest.stop().then((stopped) => {
-												if (stopped) {
-													setTestOpen(false);
-													setOpen(true);
-												}
-											});
+											void closeConnectionTest();
 										}}
 									>
 										{testRunning ? "End test" : "Cancel"}
