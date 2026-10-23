@@ -41,6 +41,13 @@ export function workflowInventory() {
 	return combinedWorkflowInventory([JSON.parse(execFileSync(process.execPath, [require.resolve("@playwright/test/cli"), "test", "--config", "playwright.mcp.config.ts", ...nativeProjectArguments, "mcp-workflows", "--list", "--reporter=json"], { env, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }))]);
 }
 
+export function workflowExecutionCommands(workers, playwright = require.resolve("@playwright/test/cli")) {
+	return [
+		[playwright, "test", "--config", "playwright.mcp.config.ts", ...nativeProjectArguments, "mcp-workflows", `--workers=${workers}`, "--grep-invert", "@mode:serial", "--reporter=line,json"],
+		[playwright, "test", "--config", "playwright.mcp.config.ts", ...nativeProjectArguments, "mcp-workflows", "--workers=1", "--retries=1", "--grep", "@mode:serial", "--reporter=line,json"],
+	];
+}
+
 /** Include the real workflow/feedback journeys in the same fresh source report as Jest. */
 export async function collectMcpWorkflowCoverage({ environment, rawDirectory, outputDirectory }) {
 	const capacity = await databaseBudget.readFixtureDatabaseCapacity();
@@ -51,8 +58,8 @@ export async function collectMcpWorkflowCoverage({ environment, rawDirectory, ou
 	const serialResultFile = join(outputDirectory, "workflow-results-serial.json");
 	for (const [args, resultFile] of [
 		[[generator, "--config", "playwright.mcp.config.ts"], parallelResultFile],
-		[[playwright, "test", "--config", "playwright.mcp.config.ts", ...nativeProjectArguments, "mcp-workflows", `--workers=${workers}`, "--grep-invert", "@mode:serial", "--reporter=line,json"], parallelResultFile],
-		[[playwright, "test", "--config", "playwright.mcp.config.ts", ...nativeProjectArguments, "mcp-workflows", "--workers=1", "--grep", "@mode:serial", "--reporter=line,json"], serialResultFile],
+		[workflowExecutionCommands(workers, playwright)[0], parallelResultFile],
+		[workflowExecutionCommands(workers, playwright)[1], serialResultFile],
 	]) {
 		const result = spawnSync(process.versions.bun ? "node" : process.execPath, args, { env: { ...environment, PLAYWRIGHT_JSON_OUTPUT_NAME: resultFile }, stdio: "inherit" });
 		if (result.error) throw result.error;

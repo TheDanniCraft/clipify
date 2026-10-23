@@ -63,3 +63,17 @@ process.stdout.write(JSON.stringify({native,missingRejected,duplicateRejected,cr
 		browserFiles: [".features-gen/atdd/account.feature.spec.js"],
 	});
 });
+
+test("real-media workflows run serially with one infrastructure retry", () => {
+	const code = `
+import {workflowExecutionCommands} from './scripts/run-mcp-workflow-coverage.mjs';
+process.stdout.write(JSON.stringify(workflowExecutionCommands(4,'playwright')));
+`;
+	const [parallel, serial] = JSON.parse(execFileSync(process.execPath, ["--input-type=module", "--eval", code], { encoding: "utf8", timeout: 20000 }));
+	expect(parallel).toContain("--workers=4");
+	expect(parallel).toContain("--grep-invert");
+	expect(parallel).not.toContain("--retries=1");
+	expect(serial).toContain("--workers=1");
+	expect(serial).toContain("--grep");
+	expect(serial).toContain("--retries=1");
+});
