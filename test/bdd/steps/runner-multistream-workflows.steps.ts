@@ -16,7 +16,7 @@ Then("both destinations receive the complete clip from one capture and encoder",
 	expect(result.authenticated).toBe(true);
 	expect(result.configurationAccepted).toBe(true);
 	expect(result.admitted).toBe(true);
-	expect(result.started).toBe(true);
+	expect(result.started, JSON.stringify(result.startDiagnostics)).toBe(true);
 	expect(result.sourcePrefixPreserved).toBe(true);
 	expect(result.stopAccepted).toBe(true);
 	expect(result.captures).toBe(1);

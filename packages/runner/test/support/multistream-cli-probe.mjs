@@ -92,8 +92,11 @@ try {
 		const rtmpUrl = provider === "youtube" ? "rtmp://a.rtmp.youtube.com/live2" : provider === "twitch" ? "rtmp://live.twitch.tv/app" : transportUrl;
 		const path = join(home, `receiver-${index}.flv`);
 		const child = spawn(ffmpeg, ["-hide_banner", "-loglevel", "error", "-y", "-listen", "1", "-i", streamKey ? `${transportUrl}/${streamKey}` : transportUrl, "-c", "copy", "-flush_packets", "1", "-f", "flv", path], { stdio: ["ignore", "ignore", "pipe"] });
-		child.stderr.resume();
-		receivers.push({ provider, rtmpUrl, transportUrl, streamKey, path, child });
+		const receiver = { provider, rtmpUrl, transportUrl, streamKey, path, child, failure: "" };
+		child.stderr.on("data", (data) => {
+			receiver.failure = (receiver.failure + String(data)).slice(-2000);
+		});
+		receivers.push(receiver);
 	}
 	const { dependencies, os } = prepareNativeTestShims(compiled, { chromePath: chrome, ffmpegPath: ffmpeg, home: home });
 	const logger = join(compiled, "logger.mjs"),
@@ -171,7 +174,17 @@ try {
 				if (clipStarted && receivers.some((receiver) => existsSync(receiver.path) && statSync(receiver.path).size > 1024)) break;
 				await pause(100);
 			}
-			emit({ type: "playing", started: clipStarted && receivers.some((receiver) => existsSync(receiver.path) && statSync(receiver.path).size > 1024) });
+			const receiverStates = receivers.map((receiver) => ({ provider: receiver.provider, bytes: existsSync(receiver.path) ? statSync(receiver.path).size : 0, exitCode: receiver.child.exitCode, signalCode: receiver.child.signalCode, failure: receiver.failure.replace(/rtmps?:\/\/\S+/g, "[redacted]") }));
+			emit({
+				type: "playing",
+				started: clipStarted && receiverStates.some((receiver) => receiver.bytes > 1024),
+				clipStarted,
+				captures,
+				encoders,
+				providerTransportReroutes: mappedProviders.size,
+				receivers: receiverStates,
+				engines: Object.values(cli.activeEngines).map((engine) => ({ isRunning: engine.isRunning, ffmpegStatus: engine.ffmpegStatus, hasPage: Boolean(engine.page) })),
+			});
 		} else if (message.action === "drain") {
 			await cli.pollHeartbeat(message.token, message.apiBase, message.runnerId);
 			const deadline = Date.now() + 35000;

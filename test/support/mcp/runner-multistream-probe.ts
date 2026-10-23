@@ -230,7 +230,7 @@ async function runMediaProbe(input: Input, keys = ephemeralRunnerKeys(), onStart
 		const started = (await call("control_stream_session", { sessionId, expectedRevision: revision, state: "running" })).result?.structuredContent;
 		if (!started?.accepted) return { authenticated: input.authenticated, configurationAccepted: true, admitted: false, error: started?.error };
 		const playing = await media.start(started.executionGeneration, input.runnerId, input.deviceToken, publicKey.export({ type: "spki", format: "pem" }).toString(), started.admissionId);
-		if (!playing.started) return { authenticated: input.authenticated, configurationAccepted: true, admitted: true, started: false };
+		if (!playing.started) return { authenticated: input.authenticated, configurationAccepted: true, admitted: true, started: false, startDiagnostics: playing };
 		await onStarted?.();
 		const stopped = (await call("control_stream_session", { sessionId, expectedRevision: started.configurationRevision, state: "stopped" })).result?.structuredContent;
 		const result = await media.drain();
