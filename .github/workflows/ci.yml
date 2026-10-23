@@ -352,7 +352,7 @@ jobs:
       - name: 🟢 Set up verified Node runtime
         uses: actions/setup-node@v7
         with:
-          node-version: 24.21.0
+          node-version: 24.22.0
 
       - name: 🔎 Verify execution policy and automation
         if: matrix.lane == 'unit'
@@ -455,7 +455,7 @@ jobs:
       - name: 🟢 Set up verified Node runtime
         uses: actions/setup-node@v7
         with:
-          node-version: 24.21.0
+          node-version: 24.22.0
 
       - name: 🗃️ Prepare disposable E2E database
         run: bun run db:push:e2e
