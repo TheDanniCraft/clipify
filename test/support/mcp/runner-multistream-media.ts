@@ -107,11 +107,12 @@ export async function createMultistreamMedia(input: Parameters<typeof runRunnerF
 	});
 	await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
 	const child = spawn(process.execPath, ["packages/runner/test/support/multistream-cli-probe.mjs", JSON.stringify(providers)], { stdio: ["pipe", "pipe", "pipe"], detached: process.platform !== "win32", env: { ...process.env, NODE_V8_COVERAGE: "" } });
-	type Message = Record<string, any>;
+	type Message = Record<string, any> & { started?: boolean; type?: string };
 	const messages: Message[] = [];
 	const pending = new Set<() => void>();
 	let buffer = "",
 		failure = "";
+	const nativeErrors: string[] = [];
 	child.stderr.on("data", (data) => {
 		failure = (failure + String(data)).slice(-4000);
 	});
@@ -119,11 +120,15 @@ export async function createMultistreamMedia(input: Parameters<typeof runRunnerF
 		buffer += String(data);
 		const lines = buffer.split("\n");
 		buffer = lines.pop()!;
-		for (const line of lines)
+		for (const line of lines) {
 			if (line.startsWith("CLIPIFY_MEDIA:")) {
 				messages.push(JSON.parse(line.slice(14)));
 				for (const notify of pending) notify();
+			} else {
+				failure = (failure + line + "\n").slice(-4000);
+				if (/\[(?:Error|FATAL ERROR)\]/.test(line)) nativeErrors.push(line.slice(0, 2000));
 			}
+		}
 	});
 	child.on("exit", () => {
 		for (const notify of pending) notify();
@@ -164,7 +169,9 @@ export async function createMultistreamMedia(input: Parameters<typeof runRunnerF
 			// The child gives Chromium a bounded 100-second startup window under
 			// full-suite CPU pressure. Keep the parent alive long enough to receive
 			// that result instead of timing out while the child is still healthy.
-			return wait("playing", 115000);
+			const playing = await wait("playing", 115000);
+			const redact = (value: string) => value.replace(/rtmps?:\/\/\S+/g, "[redacted]").replace(/Bearer\s+\S+/gi, "Bearer [redacted]");
+			return { ...playing, errors: nativeErrors.slice(-10).map(redact), stderr: redact(failure) };
 		},
 		async drain() {
 			send({ action: "drain" });

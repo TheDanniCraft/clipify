@@ -436,7 +436,7 @@ export class Engine {
 		if (this.executionOptions.presentationSessionId) {
 			this.presentationAbort = new AbortController();
 			const presentation = await requestRunnerPresentation({ apiBase: this.apiBase, runnerToken: this.runnerToken, sessionId: this.executionOptions.presentationSessionId, executionGeneration: this.executionOptions.executionGeneration ?? "", signal: this.presentationAbort.signal });
-			if (!presentation) return this.refusePresentation();
+			if (!presentation) return this.refusePresentation("Runner presentation authorization failed. Reconnect and try again.");
 			await this.page!.setCookie(presentation.cookie);
 			overlayUrl = presentation.url;
 		}
@@ -453,7 +453,7 @@ export class Engine {
 					this.executionOptions.executionGeneration!,
 				);
 			} catch {
-				return this.refusePresentation();
+				return this.refusePresentation("Runner presentation did not become ready. Reconnect and try again.");
 			}
 			const page = this.page;
 			this.presentationRefresh = setInterval(async () => {
@@ -473,6 +473,7 @@ export class Engine {
 	}
 
 	private async refusePresentation(message = "Runner presentation is unavailable. Reconnect and try again.") {
+		console.error(`[Error] ${message}`);
 		if (this.mediaStream) await this.stopCloudLoopStream();
 		this.ffmpegStatus = message;
 		await this.stopChromiumBackground();

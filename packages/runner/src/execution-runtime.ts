@@ -373,10 +373,12 @@ export class FreeExecutionController {
 		this.active.set(job.id, execution);
 		try {
 			if ((await engine.start()) === false) {
+				console.error(`[Error] Execution engine declined startup for admission ${record.admissionId}.`);
 				await this.closeExecution(execution, true);
 				return false;
 			}
-		} catch {
+		} catch (error) {
+			console.error(`[Error] Execution engine failed to start for admission ${record.admissionId}:`, error);
 			await this.closeExecution(execution, true);
 			return false;
 		}

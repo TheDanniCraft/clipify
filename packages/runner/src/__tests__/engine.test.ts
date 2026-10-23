@@ -255,7 +255,7 @@ describe("Engine (Raw Logic Tests)", () => {
 			expect(mockGetStream).not.toHaveBeenCalled();
 			expect(mockSpawn).not.toHaveBeenCalled();
 			expect(engine.isRunning).toBe(false);
-			expect(engine.ffmpegStatus).toBe("Runner presentation is unavailable. Reconnect and try again.");
+			expect(engine.ffmpegStatus).toBe("Runner presentation authorization failed. Reconnect and try again.");
 		} finally {
 			await engine.stop();
 		}

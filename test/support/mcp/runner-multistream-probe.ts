@@ -190,9 +190,11 @@ export async function runRunnerMultistreamProbe(input: Input) {
 }
 
 async function runMediaProbe(input: Input, keys = ephemeralRunnerKeys(), onStarted?: () => Promise<void>) {
+	process.env.JWT_SECRET ??= "isolated-runner-presentation-secret-32-characters";
 	const ownerId = "fixture-creator";
 	const control = input.variant === "multistream_fixture_control";
 	await input.fixture.pool.query("UPDATE users SET plan=$1 WHERE id=$2", [control ? "free" : "pro", ownerId]);
+	if (!control) await input.fixture.pool.query("INSERT INTO entitlement_grants(user_id,entitlement,source,starts_at,ends_at) VALUES($1,'pro_access','support',now()-interval '1 hour',now()+interval '1 day')", [ownerId]);
 	const media = await (await import("./runner-multistream-media")).createMultistreamMedia(input, input.variant.startsWith("multistream_media_") ? [input.variant.replace("multistream_media_", "")] : control || input.variant === "multistream_independent_delivery" ? ["custom"] : ["youtube", "twitch"]);
 	try {
 		const ready = await media.ready();
@@ -230,7 +232,10 @@ async function runMediaProbe(input: Input, keys = ephemeralRunnerKeys(), onStart
 		const started = (await call("control_stream_session", { sessionId, expectedRevision: revision, state: "running" })).result?.structuredContent;
 		if (!started?.accepted) return { authenticated: input.authenticated, configurationAccepted: true, admitted: false, error: started?.error };
 		const playing = await media.start(started.executionGeneration, input.runnerId, input.deviceToken, publicKey.export({ type: "spki", format: "pem" }).toString(), started.admissionId);
-		if (!playing.started) return { authenticated: input.authenticated, configurationAccepted: true, admitted: true, started: false, startDiagnostics: playing };
+		if (!playing.started) {
+			const state = await input.fixture.pool.query("SELECT s.desired_state,s.actual_state,s.configuration_revision,a.state AS admission_state,a.benefits_at_start,a.dispatched_at,a.started_at,a.stopped_at,a.terminal_reason,a.revoked_at FROM stream_sessions s LEFT JOIN runner_broadcast_admissions a ON a.session_id=s.id AND a.id=$2 WHERE s.id=$1", [sessionId, started.admissionId]);
+			return { authenticated: input.authenticated, configurationAccepted: true, admitted: true, started: false, startDiagnostics: { ...playing, database: state.rows[0] } };
+		}
 		await onStarted?.();
 		const stopped = (await call("control_stream_session", { sessionId, expectedRevision: started.configurationRevision, state: "stopped" })).result?.structuredContent;
 		const result = await media.drain();
