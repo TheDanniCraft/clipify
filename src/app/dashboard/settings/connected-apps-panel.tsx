@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Accordion, Alert, Button, Card, Chip, Link, Modal, Spinner, Table } from "@heroui/react";
 import ConfirmModal from "@components/confirmModal";
 import { EmptyState } from "@heroui-pro/react";
-import { IconExternalLink, IconPlugConnected, IconShieldCheck } from "@tabler/icons-react";
+import { IconExternalLink, IconShieldCheck } from "@tabler/icons-react";
 import { getConnectedMcpApps, revokeConnectedMcpApp, purgeInactiveConnectedMcpApps } from "@/app/actions/mcp-connections";
 import { MCP_EXAMPLE_PROMPTS } from "@lib/mcpPrompts";
 import type { McpConnection } from "@lib/mcpConnection";
@@ -96,14 +96,9 @@ export default function ConnectedAppsPanel() {
 	return (
 		<Card className='p-0' aria-labelledby='connected-apps-title'>
 			<Card.Header className='gap-2 p-4'>
-				<div className='flex items-center gap-3'>
-					<span className='flex size-8 items-center justify-center rounded-xl bg-accent-soft text-accent'>
-						<IconPlugConnected size={22} aria-hidden='true' />
-					</span>
-					<h2 id='connected-apps-title' className='text-lg font-semibold'>
-						Connected AI apps
-					</h2>
-				</div>
+				<h2 id='connected-apps-title' className='text-lg font-semibold'>
+					Connected AI apps
+				</h2>
 				<Card.Description>Manage which apps can access your creators. Disconnecting an app stops its access immediately.</Card.Description>
 				<Link className='text-sm text-muted hover:text-foreground hover:underline' href='https://help.clipify.us/hc/clipify/articles/connect-clipify-to-ai-apps' target='_blank' rel='noopener noreferrer'>
 					Connect your AI tools

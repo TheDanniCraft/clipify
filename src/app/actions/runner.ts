@@ -511,6 +511,12 @@ export async function getRunnerStreamingConnections(ownerId: string) {
 		return listStreamingConnections(principal, ownerId);
 	});
 }
+export async function disconnectRunnerStreamingProvider(input: unknown) {
+	return runnerDestinationAction("disconnect-streaming-provider", async (principal) => {
+		const { disconnectStreamingConnection } = await import("@/server/runner/provider-connections");
+		return disconnectStreamingConnection(principal, input);
+	});
+}
 export async function getRunnerYoutubeStreams(input: { ownerId: string; connectionId: string }) {
 	return runnerDestinationAction("list-youtube-streams", async (principal) => {
 		const parsed = z

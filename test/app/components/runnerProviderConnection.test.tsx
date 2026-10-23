@@ -1,10 +1,11 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import { connectRunnerStreamingProvider, getRunnerStreamingConnections, listRunnerDestinations, startRunnerConnectionTest } from "@/app/actions/runner";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { connectRunnerStreamingProvider, disconnectRunnerStreamingProvider, getRunnerStreamingConnections, listRunnerDestinations, startRunnerConnectionTest } from "@/app/actions/runner";
 import RunnerDestinations from "@/app/components/runnerDestinations";
 jest.mock("@/app/actions/runner", () => ({
 	listRunnerDestinations: jest.fn(async () => ({ success: true, destinations: [] })),
 	getRunnerStreamingConnections: jest.fn(async () => ({ success: true, connections: [] })),
 	connectRunnerStreamingProvider: jest.fn(async () => ({ success: false, error: "Account connection is not available yet. You can enter a stream key instead.", code: "INVALID_INPUT" })),
+	disconnectRunnerStreamingProvider: jest.fn(async () => ({ success: true })),
 	getRunnerYoutubeStreams: jest.fn(),
 	startRunnerConnectionTest: jest.fn(),
 	readRunnerConnectionTest: jest.fn(),
@@ -12,6 +13,21 @@ jest.mock("@/app/actions/runner", () => ({
 	saveRunnerDestination: jest.fn(),
 	deleteRunnerDestination: jest.fn(),
 }));
+test("PC-7 a connected channel uses an explicit destructive disconnect confirmation", async () => {
+	jest.mocked(listRunnerDestinations).mockResolvedValueOnce({
+		success: true,
+		destinations: [{ id: "22222222-2222-4222-8222-222222222222", name: "Main Twitch", provider: "twitch", host: "live.twitch.tv", connectionId: "33333333-3333-4333-8333-333333333333", providerStreamId: null, credentialConfigured: true, credentialActions: ["keep", "replace", "clear"], credentialRevision: 1, configurationRevision: 1 }],
+	});
+	jest.mocked(getRunnerStreamingConnections).mockResolvedValueOnce({ success: true, connections: [{ id: "33333333-3333-4333-8333-333333333333", provider: "twitch", channelName: "dannicraft" }] });
+	render(<RunnerDestinations ownerId='owner' runnerId='11111111-1111-4111-8111-111111111111' />);
+	fireEvent.click(await screen.findByRole("button", { name: "Edit Main Twitch" }));
+	fireEvent.click(await screen.findByRole("button", { name: "Disconnect" }));
+	expect(screen.getByText("Disconnect Twitch?")).toBeVisible();
+	expect(screen.getByText(/Destinations and schedules stay in place/)).toBeVisible();
+	const buttons = screen.getAllByRole("button", { name: "Disconnect" });
+	fireEvent.click(buttons[0]);
+	await waitFor(() => expect(disconnectRunnerStreamingProvider).toHaveBeenCalledWith({ ownerId: "owner", connectionId: "33333333-3333-4333-8333-333333333333" }));
+});
 test("PC-5 cancelling a failed connection test clears its error from the destination editor", async () => {
 	jest.mocked(listRunnerDestinations).mockResolvedValueOnce({
 		success: true,

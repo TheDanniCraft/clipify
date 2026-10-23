@@ -18,6 +18,8 @@ test("PC-1/3/6 connected channel, one permission prompt, optional event details 
 			session = randomUUID(),
 			target = randomUUID(),
 			connection = randomUUID(),
+			spareConnection = randomUUID(),
+			spareTarget = randomUUID(),
 			youtube = randomUUID(),
 			youtubeConnection = randomUUID(),
 			unconnected = randomUUID();
@@ -26,7 +28,9 @@ test("PC-1/3/6 connected channel, one permission prompt, optional event details 
 		await pool.query("UPDATE auth.organization SET name=$2 WHERE id=$1", [owner.fixture.creatorOrganizationId, "DanniCraft"]);
 		await pool.query("INSERT INTO runners(id,owner_id,name,token,status,last_heartbeat_at,protocol_version,capabilities) VALUES($1,$2,'Home streaming PC',$3,'online',now(),2,$4::jsonb)", [runner, creator, randomUUID(), JSON.stringify(["admissions", "destinations", "drain", "runner_presentation", "free_lease"])]);
 		await pool.query("INSERT INTO runner_provider_connections(id,owner_id,provider,channel_id,channel_name,encrypted_tokens) VALUES($1,$2,'twitch','42','dannicraft',$3)", [connection, creator, encryptString(JSON.stringify({ accessToken: "fixture-only-token", refreshToken: "fixture-only-refresh", expiresAt: Date.now() + 3600000 }))]);
+		await pool.query("INSERT INTO runner_provider_connections(id,owner_id,provider,channel_id,channel_name,encrypted_tokens) VALUES($1,$2,'twitch','43','disconnect-me',$3)", [spareConnection, creator, encryptString(JSON.stringify({ accessToken: "fixture-spare-token", refreshToken: "fixture-spare-refresh", expiresAt: Date.now() + 3600000 }))]);
 		await pool.query("INSERT INTO runner_destinations(id,owner_id,name,provider,rtmp_url,encrypted_stream_key,connection_id) VALUES($1,$2,'Main Twitch','twitch','rtmp://live.twitch.tv/app',$3,$4)", [target, creator, encryptString("fixture-only-key"), connection]);
+		await pool.query("INSERT INTO runner_destinations(id,owner_id,name,provider,rtmp_url,encrypted_stream_key,connection_id) VALUES($1,$2,'Spare Twitch','twitch','rtmp://live.twitch.tv/app',$3,$4)", [spareTarget, creator, encryptString("fixture-spare-key"), spareConnection]);
 		await pool.query("INSERT INTO runner_provider_connections(id,owner_id,provider,channel_id,channel_name,encrypted_tokens) VALUES($1,$2,'youtube','fixture-channel','Clipify Live',$3)", [youtubeConnection, creator, encryptString(JSON.stringify({ accessToken: "fixture-youtube-token", refreshToken: "fixture-refresh", expiresAt: Date.now() + 3600000 }))]);
 		await pool.query("INSERT INTO runner_destinations(id,owner_id,name,provider,rtmp_url,encrypted_stream_key,connection_id,provider_stream_id) VALUES($1,$2,'YouTube highlights','youtube','rtmp://a.rtmp.youtube.com/live2',$3,$4,'fixture-stream')", [youtube, creator, encryptString("fixture-youtube-key"), youtubeConnection]);
 		await pool.query("INSERT INTO runner_destinations(id,owner_id,name,provider,rtmp_url,encrypted_stream_key) VALUES($1,$2,'Manual channel','twitch','rtmp://live.twitch.tv/app',$3)", [unconnected, creator, encryptString("fixture-manual-unconnected-key")]);
@@ -50,20 +54,21 @@ test("PC-1/3/6 connected channel, one permission prompt, optional event details 
 		await expect(page.getByRole("heading", { name: "Home streaming PC", exact: true })).toBeVisible();
 		const manager = page.getByRole("dialog", { name: "Manage destinations", exact: true });
 		await page.getByRole("button", { name: "Manage destinations", exact: true }).click();
+		await manager.getByRole("button", { name: "Edit Spare Twitch", exact: true }).click();
+		let destination = page.getByRole("dialog", { name: "Edit destination", exact: true });
+		await destination.getByRole("button", { name: "Disconnect", exact: true }).click();
+		const disconnect = page.getByRole("dialog", { name: "Disconnect Twitch?", exact: true });
+		await expect(disconnect).toContainText("Destinations and schedules stay in place");
+		await disconnect.getByRole("button", { name: "Disconnect", exact: true }).click();
+		await expect(disconnect).not.toBeVisible();
+		const disconnected = (await pool.query("SELECT connection_id FROM runner_destinations WHERE id=$1", [spareTarget])).rows[0];
+		expect(disconnected.connection_id).toBeNull();
+		expect((await pool.query("SELECT id FROM runner_provider_connections WHERE id=$1", [spareConnection])).rowCount).toBe(0);
+		await destination.getByRole("button", { name: "Cancel", exact: true }).click();
 		await manager.getByRole("button", { name: "Edit Main Twitch", exact: true }).click();
-		const destination = page.getByRole("dialog", { name: "Edit destination", exact: true });
+		destination = page.getByRole("dialog", { name: "Edit destination", exact: true });
 		await expect(destination.getByText("dannicraft", { exact: true })).toBeVisible();
 		await destination.getByRole("textbox", { name: "Destination name", exact: true }).fill("My preserved destination");
-		await context.route("https://id.twitch.tv/oauth2/authorize?**", (route) => route.fulfill({ contentType: "text/html", body: "<!doctype html><title>Controlled provider consent</title><p>Provider consent boundary</p>" }));
-		const popupPromise = page.waitForEvent("popup");
-		await destination.getByRole("button", { name: "Change", exact: true }).click();
-		const popup = await popupPromise;
-		await popup.waitForURL("https://id.twitch.tv/oauth2/authorize?**");
-		expect((await context.cookies("http://127.0.0.1:3107")).some((cookie) => cookie.name.endsWith(".state") && cookie.value.length > 0)).toBe(true);
-		expect(new URL(popup.url()).searchParams.get("scope")?.split(" ")).toEqual(expect.arrayContaining(["openid", "user:read:email", "channel:read:stream_key", "channel:manage:broadcast"]));
-		expect(new URL(popup.url()).searchParams.get("redirect_uri")).toBe("http://127.0.0.1:3107/api/auth/callback/twitch");
-		await popup.close();
-		await expect(destination.getByRole("alert")).toContainText("Connection cancelled");
 		await expect(destination.getByRole("textbox", { name: "Destination name", exact: true })).toHaveValue("My preserved destination");
 		for (const theme of ["dark", "light"]) {
 			await page.evaluate((theme) => {

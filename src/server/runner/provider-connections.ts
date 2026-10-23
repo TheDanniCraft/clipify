@@ -1,10 +1,10 @@
 import "server-only";
 import { randomBytes, createHash, randomUUID } from "node:crypto";
-import { and, eq, gt, lt } from "drizzle-orm";
+import { and, eq, gt, lt, sql } from "drizzle-orm";
 import { z } from "zod";
 import { withSerializedProviderCredential } from "@/server/provider-credentials";
 import { db, dbPool, type DatabaseClient, type TransactionClient } from "@/db/client";
-import { runnerProviderConnectionsTable as connections, runnerProviderStatesTable as states } from "@/db/schema";
+import { runnerDestinationsTable as destinations, runnerProviderConnectionsTable as connections, runnerProviderStatesTable as states } from "@/db/schema";
 import type { TrustedCreatorPrincipal } from "@/auth/authorize-operation";
 import { authorizeLockedMutation } from "@/server/resources/mutation";
 import { encryptString, decryptString } from "@/app/lib/encryption";
@@ -200,5 +200,27 @@ export async function listStreamingConnections(principal: TrustedCreatorPrincipa
 		const rows = await tx.select({ id: connections.id, provider: connections.provider, channelName: connections.channelName }).from(connections).where(eq(connections.ownerId, ownerId));
 		authority.assertAuthorityCurrent();
 		return { success: true as const, connections: rows };
+	});
+}
+
+export async function disconnectStreamingConnection(principal: TrustedCreatorPrincipal, raw: unknown, client: DatabaseClient = db) {
+	const parsed = z.object({ ownerId: inputSchema.shape.ownerId, connectionId: z.uuid() }).strict().safeParse(raw);
+	if (!parsed.success) return fail("Choose a connected channel.");
+	return client.transaction(async (tx) => {
+		const authority = await authorizeLockedMutation(principal, parsed.data.ownerId, "runner:update", tx);
+		const [connection] = await tx
+			.select({ id: connections.id })
+			.from(connections)
+			.where(and(eq(connections.ownerId, parsed.data.ownerId), eq(connections.id, parsed.data.connectionId)))
+			.limit(1)
+			.for("update");
+		if (!connection) return fail("This channel is already disconnected.");
+		await tx
+			.update(destinations)
+			.set({ connectionId: null, providerStreamId: null, configurationRevision: sql`${destinations.configurationRevision} + 1`, credentialRevision: sql`${destinations.credentialRevision} + 1`, updatedAt: new Date() })
+			.where(and(eq(destinations.ownerId, parsed.data.ownerId), eq(destinations.connectionId, connection.id)));
+		await tx.delete(connections).where(and(eq(connections.ownerId, parsed.data.ownerId), eq(connections.id, connection.id)));
+		authority.assertAuthorityCurrent();
+		return { success: true as const };
 	});
 }

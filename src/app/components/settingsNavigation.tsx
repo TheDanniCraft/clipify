@@ -3,18 +3,18 @@
 import { Tabs } from "@heroui/react";
 import { useRouter } from "next/navigation";
 
-export type SettingsNavigationKey = "settings" | "creator" | "billing" | "team";
+export type SettingsNavigationKey = "settings" | "connections" | "creator" | "billing" | "team";
 
-const ROUTES: Record<Exclude<SettingsNavigationKey, "settings" | "creator" | "billing">, string> = {
+const ROUTES: Record<Exclude<SettingsNavigationKey, "settings" | "connections" | "creator" | "billing">, string> = {
 	team: "/dashboard/settings/team",
 };
 
-export default function SettingsNavigation({ active, onCoreSectionChange }: { active: SettingsNavigationKey; onCoreSectionChange?: (section: "settings" | "creator" | "billing") => void }) {
+export default function SettingsNavigation({ active, onCoreSectionChange }: { active: SettingsNavigationKey; onCoreSectionChange?: (section: "settings" | "connections" | "creator" | "billing") => void }) {
 	const router = useRouter();
 
 	function navigate(key: React.Key) {
 		const section = String(key) as SettingsNavigationKey;
-		if (section === "settings" || section === "creator" || section === "billing") {
+		if (section === "settings" || section === "connections" || section === "creator" || section === "billing") {
 			if (onCoreSectionChange) {
 				onCoreSectionChange(section);
 				return;
@@ -31,6 +31,10 @@ export default function SettingsNavigation({ active, onCoreSectionChange }: { ac
 				<Tabs.List aria-label='Settings sections' className='w-full min-w-[32rem]'>
 					<Tabs.Tab id='settings' className='flex-1'>
 						Settings
+						<Tabs.Indicator />
+					</Tabs.Tab>
+					<Tabs.Tab id='connections' className='flex-1'>
+						Connections
 						<Tabs.Indicator />
 					</Tabs.Tab>
 					<Tabs.Tab id='creator' className='flex-1'>

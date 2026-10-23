@@ -35,6 +35,7 @@ import { IconBrandTwitch } from "@tabler/icons-react";
 import SecuritySettingsPanel from "./security-panel";
 import ConnectedAppsPanel from "./connected-apps-panel";
 import McpActivityPanel from "./mcp-activity-panel";
+import LinkedAccountsPanel from "./linked-accounts-panel";
 import ClipCrawlSchedule, { type ClipCrawlScheduleJob } from "./clip-crawl-schedule";
 
 type ClipCacheStatusState = {
@@ -56,7 +57,7 @@ type ClipForceRefreshStatusState = {
 	canRefresh: boolean;
 } | null;
 
-type SettingsSection = "settings" | "creator" | "billing";
+type SettingsSection = "settings" | "connections" | "creator" | "billing";
 
 export default function SettingsPage() {
 	const [user, setUser] = useState<AuthenticatedUser | null>(null);
@@ -217,7 +218,7 @@ export default function SettingsPage() {
 				router.replace(params.size ? `/dashboard/settings?${params.toString()}` : "/dashboard/settings");
 			}
 			const requestedTab = params.get("tab");
-			if (requestedTab === "creator" || requestedTab === "billing") setSectionTab(requestedTab);
+			if (requestedTab === "creator" || requestedTab === "connections" || requestedTab === "billing") setSectionTab(requestedTab);
 			else if (requestedTab === "badges" || requestedTab === "achievements") router.replace("/dashboard/member-card");
 			else if (params.has("billing") || params.has("checkout") || params.get("addon") === "runner") setSectionTab("billing");
 		});
@@ -372,6 +373,12 @@ export default function SettingsPage() {
 				</div>
 				{sectionTab === "billing" ? (
 					<BillingPanel />
+				) : sectionTab === "connections" ? (
+					<div className='mt-4 space-y-4'>
+						<LinkedAccountsPanel />
+						<ConnectedAppsPanel />
+						<McpActivityPanel />
+					</div>
 				) : sectionTab === "creator" ? (
 					<Card className='mt-4'>
 						<Card.Header>
@@ -659,8 +666,6 @@ export default function SettingsPage() {
 										</Card.Content>
 									</Card>
 									<SecuritySettingsPanel />
-									<ConnectedAppsPanel />
-									<McpActivityPanel />
 									<Card variant='secondary' className='w-full'>
 										<Card.Content>
 											<div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>

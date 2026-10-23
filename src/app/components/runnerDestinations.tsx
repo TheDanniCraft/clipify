@@ -25,6 +25,7 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 	const [open, setOpen] = useState(false);
 	const [editing, setEditing] = useState<RunnerDestinationView | null>(null);
 	const [deleting, setDeleting] = useState<RunnerDestinationView | null>(null);
+	const [disconnectingChannel, setDisconnectingChannel] = useState(false);
 	const addButtonRef = useRef<HTMLButtonElement>(null);
 	const focusAddAfterDelete = useRef(false);
 	const [name, setName] = useState("");
@@ -254,6 +255,17 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 				</div>
 			</section>
 			<ConfirmModal
+				isOpen={disconnectingChannel}
+				isPending={account.disconnecting}
+				onOpenChange={setDisconnectingChannel}
+				title={`Disconnect ${providerName}?`}
+				confirmLabel='Disconnect'
+				description={`Disconnect ${account.connection?.channelName ?? `this ${providerName} channel`} from Clipify. Destinations and schedules stay in place, but they must be reconnected before they can stream.`}
+				onConfirm={async () => {
+					if (await account.disconnect()) setDisconnectingChannel(false);
+				}}
+			/>
+			<ConfirmModal
 				isOpen={deleting !== null}
 				isConfirmDisabled={blockedDeletion}
 				isPending={saving}
@@ -449,15 +461,8 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 															<Chip color='success' variant='soft' size='sm'>
 																Connected
 															</Chip>
-															<Button
-																variant='tertiary'
-																size='sm'
-																onPress={() => {
-																	void account.connect(provider);
-																}}
-																isPending={account.connecting}
-															>
-																Change
+															<Button variant='danger-soft' size='sm' onPress={() => setDisconnectingChannel(true)} isPending={account.disconnecting}>
+																Disconnect
 															</Button>
 														</div>
 													</div>

@@ -786,3 +786,15 @@ test("PC-6 a destination removed before returning to the editor gives a recovera
 	await fixture.pool.query("DELETE FROM runner_provider_connections WHERE channel_id='99'");
 	expect(await completeStreamingConnection(principal, "twitch", nonce, fixture.db)).toMatchObject({ success: false, error: expect.stringContaining("reconnect") });
 });
+
+test("PC-7 disconnect keeps destinations and schedules while removing their channel authorization", async () => {
+	const { disconnectStreamingConnection } = await import("@/server/runner/provider-connections");
+	const connection = (await fixture.pool.query("SELECT id FROM runner_provider_connections LIMIT 1")).rows[0];
+	const result = await disconnectStreamingConnection(principal, { ownerId: "provider-owner", connectionId: connection.id }, fixture.db);
+	expect(result).toEqual({ success: true });
+	expect((await fixture.pool.query("SELECT id FROM runner_provider_connections WHERE id=$1", [connection.id])).rowCount).toBe(0);
+	const destination = (await fixture.pool.query("SELECT connection_id,provider_stream_id,credential_revision,configuration_revision FROM runner_destinations LIMIT 1")).rows[0];
+	expect(destination).toMatchObject({ connection_id: null, provider_stream_id: null, credential_revision: 2, configuration_revision: 2 });
+	expect((await fixture.pool.query("SELECT id FROM runner_schedule_events")).rowCount).toBe(1);
+	expect((await fixture.pool.query("SELECT event_id FROM runner_schedule_event_destinations")).rowCount).toBe(1);
+});

@@ -1,11 +1,12 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { connectRunnerStreamingProvider, getRunnerStreamingConnections, getRunnerYoutubeStreams } from "@/app/actions/runner";
+import { connectRunnerStreamingProvider, disconnectRunnerStreamingProvider, getRunnerStreamingConnections, getRunnerYoutubeStreams } from "@/app/actions/runner";
 type Connection = { id: string; provider: string; channelName: string };
 export function useProviderConnection(ownerId: string, onError: (message: string | null) => void) {
 	const [connections, setConnections] = useState<Connection[]>([]);
 	const [connectionId, setConnectionId] = useState<string | null>(null);
 	const [connecting, setConnecting] = useState(false);
+	const [disconnecting, setDisconnecting] = useState(false);
 	const [streamResult, setStreamResult] = useState<{ connectionId: string; items: { id: string; name: string }[]; error?: string; code?: string } | null>(null);
 	const [streamsRequest, setStreamsRequest] = useState(0);
 	const [streamId, setStreamId] = useState("");
@@ -124,6 +125,28 @@ export function useProviderConnection(ownerId: string, onError: (message: string
 			onError("Could not connect the channel. Please try again.");
 		}
 	}
+	async function disconnect() {
+		if (!connectionId || disconnecting) return false;
+		setDisconnecting(true);
+		onError(null);
+		try {
+			const result = await disconnectRunnerStreamingProvider({ ownerId, connectionId });
+			if (!result.success) {
+				onError(result.error);
+				return false;
+			}
+			setConnections((rows) => rows.filter((row) => row.id !== connectionId));
+			setConnectionId(null);
+			setStreamId("");
+			setStreamResult(null);
+			return true;
+		} catch {
+			onError("Could not disconnect the channel. Please try again.");
+			return false;
+		} finally {
+			setDisconnecting(false);
+		}
+	}
 	return {
 		streamsError: streamResult?.connectionId === connectionId ? streamResult.error : undefined,
 		streamsErrorCode: streamResult?.code,
@@ -136,7 +159,9 @@ export function useProviderConnection(ownerId: string, onError: (message: string
 		setConnectionId,
 		connection,
 		connecting,
+		disconnecting,
 		connect,
+		disconnect,
 		streams: streamResult?.connectionId === connectionId ? streamResult.items : [],
 		streamId,
 		setStreamId,
