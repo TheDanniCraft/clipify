@@ -160,7 +160,10 @@ try {
 			const poll = () => cli.pollHeartbeat(message.token, message.apiBase, message.runnerId);
 			await poll();
 			pollTimer = setInterval(() => void poll(), 10000);
-			const deadline = Date.now() + 35000;
+			// Chromium startup can exceed 35 seconds while the complete browser gate
+			// is running several CPU-heavy workers. This deadline covers preparation;
+			// the media assertions below still require real playback and RTMP output.
+			const deadline = Date.now() + 60000;
 			let clipStarted = false;
 			while (Date.now() < deadline) {
 				const snapshots = await Promise.all(Object.values(cli.activeEngines).map((engine) => engine.page?.evaluate(() => window.clipifyRunnerPresentation?.snapshot().clips.some((clip) => clip.started && !clip.ended) ?? false).catch(() => false)));

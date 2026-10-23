@@ -4,20 +4,20 @@ import { runMcpProbe } from "../../support/mcp/probe";
 const { Given, When, Then } = createBdd(test);
 
 Given("a Pro creator selects saved YouTube and Twitch destinations", async ({ mcpWorld }) => {
-	test.setTimeout(120000);
+	test.setTimeout(180000);
 	mcpWorld.input = { multistreamVariant: "multistream_delivery" };
 });
 When("their Runner broadcasts a clip and they request a graceful stop", async ({ mcpWorld }) => {
-	mcpWorld.result = { status: 200, body: runMcpProbe("flow-probe", [`catalogue:workflow:runner_free_pro:${mcpWorld.input?.multistreamVariant}`], 110000) };
+	mcpWorld.result = { status: 200, body: runMcpProbe("flow-probe", [`catalogue:workflow:runner_free_pro:${mcpWorld.input?.multistreamVariant}`], 170000) };
 });
 Then("both destinations receive the complete clip from one capture and encoder", async ({ mcpWorld }) => {
 	const result = mcpWorld.result?.body;
 	await test.info().attach("multistream-observations", { body: JSON.stringify(result), contentType: "application/json" });
 	expect(result.authenticated).toBe(true);
-	expect(result.sourcePrefixPreserved).toBe(true);
 	expect(result.configurationAccepted).toBe(true);
 	expect(result.admitted).toBe(true);
 	expect(result.started).toBe(true);
+	expect(result.sourcePrefixPreserved).toBe(true);
 	expect(result.stopAccepted).toBe(true);
 	expect(result.captures).toBe(1);
 	expect(result.encoders).toBe(1);
