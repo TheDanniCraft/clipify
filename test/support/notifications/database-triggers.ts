@@ -12,7 +12,7 @@ const startsAt = new Date("2040-01-01T12:00:00Z"),
 	endsAt = new Date("2040-01-08T12:00:00Z");
 before(async () => {
 	fixture = await createMcpPostgresFixture();
-	for (const migration of ["0026_notification_event_triggers", "0031_retire_runner_notification_branch"]) {
+	for (const migration of ["0026_notification_event_triggers", "0032_retire_runner_notification_branch"]) {
 		const sql = await readFile(`drizzle/${migration}.sql`, "utf8");
 		for (const statement of sql.split("--> statement-breakpoint")) await fixture.pool.query(statement);
 	}

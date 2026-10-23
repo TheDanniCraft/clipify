@@ -41,11 +41,11 @@ async function main() {
 				tokenCallback = redirectURI;
 				return { accessToken: "linked-access", refreshToken: "linked-refresh", accessTokenExpiresAt: new Date(Date.now() + 3600000), scopes };
 			};
-			provider.getUserInfo = async () => ({ user: { name: google ? "YouTube Brand" : "Fixture", email: google ? "youtube-owner@example.invalid" : "actor@example.invalid", emailVerified: true }, data: { sub: google ? "google-subject" : "42", preferred_username: google ? "YouTube Brand" : "Fixture", email: google ? "youtube-owner@example.invalid" : "actor@example.invalid", email_verified: true } });
+			provider.getUserInfo = async () => ({ user: { name: google ? "YouTube Brand" : "Fixture", email: google ? "youtube-owner@example.invalid" : "actor@example.invalid", emailVerified: true }, data: { sub: google ? "google-subject" : "42", preferred_username: google ? "YouTube Brand" : "Fixture", email: google ? "youtube-owner@example.invalid" : "actor@example.invalid", email_verified: true, created_at: google ? undefined : "2012-04-15T13:45:00.000Z" } });
 		}
 		globalThis.fetch = (async (value: RequestInfo | URL) => {
 			assert.equal(String(value), google ? "https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true" : "https://api.twitch.tv/helix/users");
-			return new Response(JSON.stringify(google ? { items: [{ id: "UCfixture", snippet: { title: "Fixture" } }] } : { data: [{ id: "42", display_name: "Fixture" }] }));
+			return new Response(JSON.stringify(google ? { items: [{ id: "UCfixture", snippet: { title: "Fixture" } }] } : { data: [{ id: "42", display_name: "Fixture", created_at: "2012-04-15T13:45:00.000Z" }] }));
 		}) as typeof fetch;
 		const { beginStreamingConnection, completeStreamingConnection, withStreamingConnection } = await import("@/server/runner/provider-connections");
 		const principal = { kind: "session" as const, authUserId: "actor", sessionId: session.id, authenticatedAt: session.createdAt, organizationId: "creator-org" };
