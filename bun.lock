@@ -119,7 +119,6 @@
     "@heroui-pro/react",
   ],
   "patchedDependencies": {
-    "next-ws@2.2.19": "patches/next-ws@2.2.19.patch",
     "next@16.4.1": "patches/next.patch",
   },
   "overrides": {

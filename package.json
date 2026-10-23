@@ -156,8 +156,7 @@
 		"typescript": "^6.0.3"
 	},
 	"patchedDependencies": {
-		"next@16.4.1": "patches/next.patch",
-		"next-ws@2.2.19": "patches/next-ws@2.2.19.patch"
+		"next@16.4.1": "patches/next.patch"
 	},
 	"overrides": {
 		"figlet": "1.12.0",
