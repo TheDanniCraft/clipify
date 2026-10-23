@@ -24,9 +24,9 @@ import { withResourceSeedErrorCompatibility } from "./resource-seed-adapter";
 import { toPublicResourceError } from "@/server/resources/errors";
 
 async function recordRunnerAccount(account: { id: string; userId: string; providerId: string; scope?: string | null }, path?: string) {
-	if (!path?.startsWith("/callback/")) return;
+	if (!path?.startsWith("/callback/")) return false;
 	const state = await getOAuthState();
-	if (state?.link?.userId !== account.userId || !state.runnerConnectionIntent) return;
+	if (state?.link?.userId !== account.userId || !state.runnerConnectionIntent) return false;
 	const { recordStreamingAccount } = await import("@/server/runner/provider-connections");
 	const { ProviderRequestError } = await import("@/server/runner/provider-api");
 	try {
@@ -34,6 +34,7 @@ async function recordRunnerAccount(account: { id: string; userId: string; provid
 	} catch (error) {
 		if (!(error instanceof ProviderRequestError) && toPublicResourceError(error).code === "SERVICE_UNAVAILABLE") throw error;
 	}
+	return true;
 }
 
 const resolvedBaseUrl = resolveBaseUrl();
@@ -114,12 +115,12 @@ export const auth = betterAuth({
 		account: {
 			create: {
 				after: async (account, context) => {
-					await recordRunnerAccount(account, context?.path);
-					if (account.providerId === "twitch") {
+					const runnerConnection = await recordRunnerAccount(account, context?.path);
+					if (account.providerId === "twitch" && !runnerConnection) {
 						const { completeTwitchSignIn } = await import("@/server/creator-onboarding");
-						await completeTwitchSignIn(account.accountId);
+						await completeTwitchSignIn(account.accountId, account.userId);
 					}
-					if (account.providerId === "twitch" && (context?.path === "/callback/twitch" || (context?.path === "/callback/:id" && context.params?.id === "twitch"))) {
+					if (!runnerConnection && account.providerId === "twitch" && (context?.path === "/callback/twitch" || (context?.path === "/callback/:id" && context.params?.id === "twitch"))) {
 						const { restoreTwitchAccountAccess } = await import("@/server/notifications/twitch-account-access");
 						await restoreTwitchAccountAccess(account.userId);
 					}
@@ -134,10 +135,10 @@ export const auth = betterAuth({
 					return { data: { ...account, ...preserved } };
 				},
 				after: async (account, context) => {
-					await recordRunnerAccount(account, context?.path);
-					if (account.providerId === "twitch" && (context?.path === "/callback/twitch" || (context?.path === "/callback/:id" && context.params?.id === "twitch"))) {
+					const runnerConnection = await recordRunnerAccount(account, context?.path);
+					if (!runnerConnection && account.providerId === "twitch" && (context?.path === "/callback/twitch" || (context?.path === "/callback/:id" && context.params?.id === "twitch"))) {
 						const { completeTwitchSignIn } = await import("@/server/creator-onboarding");
-						await completeTwitchSignIn(account.accountId);
+						await completeTwitchSignIn(account.accountId, account.userId);
 						const { restoreTwitchAccountAccess } = await import("@/server/notifications/twitch-account-access");
 						await restoreTwitchAccountAccess(account.userId);
 					}
@@ -152,6 +153,8 @@ export const auth = betterAuth({
 			},
 			update: {
 				after: async (user, context) => {
+					const { syncCreatorProfile } = await import("@/server/creator-onboarding");
+					await syncCreatorProfile(user.id);
 					const previousEmail = context?.context.session?.user.email;
 					if (previousEmail && previousEmail !== user.email) {
 						const key = randomUUID();
@@ -297,7 +300,5 @@ export const auth = betterAuth({
 	],
 });
 
-// Better Auth runs database `after` hooks only after its adapter transaction
-// commits. The reviewed PostgreSQL boundary in onboarding-database-boundary.ts
-// provisions creator ownership inside the account insert transaction and is
-// verified by TDD-US2-003.
+// Better Auth owns auth records; its account hook completes Clipify setup in one
+// Drizzle transaction. Failed setup is retried on the next Twitch sign-in.

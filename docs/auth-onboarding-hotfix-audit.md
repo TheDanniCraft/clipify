@@ -1,74 +1,84 @@
-# Twitch onboarding: before and after
+# Twitch signup: application-owned setup
 
-Before the Better Auth migration, `/callback` exchanged the OAuth code and called
-`setAccessToken()`. That fetched the Twitch Helix profile and called `insertUser()`.
-For new users, `insertUser()` allocated a membership number, created the seven-day
-trial and default settings, and synchronized the UseSend contact. The callback
-then recorded the login and redirected to the dashboard.
+Better Auth owns `auth.user`, `auth.account`, OAuth tokens and sessions. Its
+`account.create.after` hook calls `completeTwitchSignIn(creatorId, authUserId)`.
+Returning Twitch callbacks call the same function; token refresh does not.
 
-The replacement account trigger created users and creator ownership, but omitted
-those business initialization steps. Legacy unit tests still exercised
-`insertUser()`. The real Better Auth integration test asserted only identity and
-ownership rows, so it also accepted an incomplete account.
+The function gets the access token through Better Auth, checks the matching Helix
+profile and retrieves its authoritative Twitch creation date. First signup does
+not require an existing Clipify identity link to retrieve that token.
 
-## Simplified fix
+`initializeCreator()` then uses one Drizzle transaction to:
 
-The Better Auth Twitch account hooks call `completeTwitchSignIn()` during account
-creation and returning OAuth callbacks. Better Auth retains responsibility for
-OAuth state, token storage and session handling.
+1. Lock and validate the verified auth identity and its matching Twitch account.
+2. Reject conflicting creator ownership or organization mappings.
+3. Create the Clipify creator, organization, creator account, identity link and
+   owner membership, or preserve their existing identities and status.
+4. For a creator inserted by this transaction, allocate the member number, insert
+   default settings and create the seven-day trial with its notification outbox.
+5. Update the verified profile, genuine Twitch date and login timestamp.
 
-The hook fetches the matching Twitch profile, then runs one database transaction:
+All Clipify writes commit together. If setup fails, the auth records may already
+exist, but the Clipify transaction rolls back. A subsequent Twitch callback uses
+the same function to complete setup. Concurrent calls for one auth identity are
+serialized by its database row lock. Existing paid plans, manual disables, custom
+settings, member numbers and trial history are preserved. The pending field is
+read only for compatibility with accounts left pending by the previous design;
+new signup eligibility comes from the insert result, not a trigger-set flag.
 
-- For a creator awaiting initial setup, allocate a missing membership number,
-  insert settings without replacing existing rows, and grant the trial through
-  the existing helper, including its notification outbox.
-- Save the authoritative Twitch creation date, record the login and clear the
-  pending flag. These writes commit or roll back together.
+Better Auth's `user.update.after` calls `syncCreatorProfile()` to synchronize
+verified identities to their linked creator and organization. Newsletter contact
+synchronization remains best effort after setup and observes recorded consent.
 
-`users.onboarding_pending` defaults to false for existing creators. The account
-trigger sets it to true only when inserting a genuinely new creator; reconnects
-never reset it. It preserves first-signup eligibility if Better Auth commits its
-account before our callback work fails. The next Twitch sign-in retries setup.
-Existing trial history still prevents trial duplication or renewal.
+## Database deployment
 
-There is no onboarding job table, lease, polling loop or scheduler change.
-UseSend synchronization is best effort after database setup, observes the saved
-consent choice and can be retried on a later sign-in. A failed Twitch profile
-lookup or mandatory database setup fails the sign-in instead of silently
-reporting a fully initialized account. Automatic retries while the user is absent
-are intentionally not provided.
+Custom migration `0031_remove_auth_onboarding_triggers.sql` removes the old
+creator-provisioning and profile-sync triggers and their functions. It runs once
+through the existing production migration command before the application starts.
+Fresh databases need no onboarding trigger. There is no startup installer and
+no SQL implementation of onboarding kept as a fallback.
 
-The entitlement and member-allocation helpers accept the current transaction so
-their writes participate in this unit of work. Allocation rules and entitlement
-resolution are unchanged. The Windows test-probe fix and adjacent lazy-settings
-change have been removed from the hotfix.
+The old implementation depended on a manually installed trigger. The first
+hotfix updated that trigger's TypeScript definition but did not deploy it.
+Tests manually installed the desired definition, so they missed the actual
+deployment gap. The revised suite runs committed migrations on empty disposable
+databases, invokes the real Better Auth hooks, and models an upgrade that removes
+old installed triggers before signup and profile update.
 
-## Deployment and existing accounts
+## Other flow findings
 
-The generated migration must add the pending flag before the reviewed trigger
-definition is installed. The repository's migration workflow owns generation;
-changing the TypeScript trigger installer does not replace the installed database
-function. No production migration, trigger installation or repair has been run.
+- Production has three notification triggers for entitlements, badges and account
+  access. They overlap application helpers but are not Better Auth concerns.
+  Removing them requires covering every grant, badge and disable/enable writer,
+  including legacy actions and direct SQL. They are unchanged here.
+- The earlier compensation SQL fires the entitlement trigger and queues a grant
+  announcement. It does not suppress email. Do not use it unchanged if an operator
+  will send the compensation announcement separately.
+- Two production-only demo-overlay protection triggers are absent from migration
+  history. They are unrelated to auth and are unchanged here.
+- Migration 0030's timestamp predates 0029's. Drizzle compares timestamps, so a
+  database already at 0029 can skip 0030. Production currently has its clip-cache
+  index, but read-only DB permissions prevent checking the migration ledger.
+  Published timestamps are unchanged; 0031 is later than both.
 
-Existing affected creators remain a separate reviewed repair. Identify exact IDs
-and missing fields with read-only queries, check paid/agency/granted access and
-trial history, preserve existing settings and member numbers, and agree on a fresh
-seven-day trial start for eligible users. Backfill Twitch dates only from matching
-Helix profiles. Do not infer newsletter consent or automatically enroll accounts.
-Save before-images and repair identifiers; never recycle allocated numbers.
+## Existing affected accounts
 
-## Validation
+No production repair is included or executed. A read-only check on October 23
+found 17 accounts missing member numbers; the old fixed list of 16 is outdated.
+Select the repair cohort from October 2 through the verified effective deployment
+of the working fix, not a GitHub release timestamp. Review missing fields
+independently, preserve paid access and custom settings, and use a stable repair
+identifier so the agreed 30-day compensation cannot be granted twice. Fetch any
+historical Twitch dates from matching Helix profiles. Do not infer newsletter
+consent. Keep the repair outside the application change.
 
-Regression tests cover the real Better Auth account path, seven-day trial and
-notification creation, settings and membership allocation, concurrent signups,
-initialization rollback, retry on the next sign-in, expired-trial preservation,
-and existing paid/manual-disabled identity linking. Twitch HTTP responses are
-controlled fixtures; databases are disposable and loopback-only.
+## Local verification
 
-The revised implementation passed 88 affected unit tests and all 13 disposable
-PostgreSQL integration tests. Scoped lint passes. Local type checking still reports
-the unchanged missing HeroUI Pro artifacts and stale generated route reference.
-Fresh GitHub coverage, browser and build checks are required for this revision;
-the earlier job-based implementation's CI results do not validate the revised code.
-Live Twitch/UseSend behavior, production cohort counts and deployed
-callback/recovery scenarios remain unverified.
+106 affected unit tests and 11 PostgreSQL integration tests pass. The integration
+suite replays migration history and tests hook-driven signup without auth
+triggers, removal of old deployed triggers, rollback/retry, concurrency, profile
+updates, preserved paid/manual-disabled accounts and membership roles, and member
+number 1 on a fresh installation. Scoped lint and formatting pass. Whole-project
+type checking remains blocked by existing consent-package/HeroUI dependency
+errors and a stale generated route reference, outside the changed files. No
+commit, push, production migration or repair has been executed for this revision.

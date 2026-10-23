@@ -10,14 +10,14 @@ const quote = (value: string) => `"${value.replaceAll('"', '""')}"`;
 const literal = (value: unknown): string => (value === null ? "NULL" : Array.isArray(value) ? `ARRAY[${value.map(literal).join(",")}]` : typeof value === "number" || typeof value === "boolean" ? String(value) : value && typeof value === "object" ? literal(JSON.stringify(value)) : `'${String(value).replaceAll("'", "''")}'`);
 
 /** Disposable database per test; never push an application schema or use secrets. */
-export async function createMcpPostgresFixture() {
+export async function createMcpPostgresFixture(options: { empty?: boolean } = {}) {
 	const url = new URL(process.env.MCP_TEST_DATABASE_URL ?? "postgresql://clipify_mcp@127.0.0.1:54419/clipify_mcp_fixture");
 	if (!["127.0.0.1", "localhost", "[::1]"].includes(url.hostname) || !/^\/clipify_(mcp_fixture|e2e)$/.test(url.pathname)) throw new Error("MCP tests require a disposable loopback fixture database");
 	const admin = new Pool({ connectionString: url.href });
 	const name = `mcp_${randomUUID().replaceAll("-", "")}`;
 	let template: string | undefined;
 	try {
-		if (process.env.MCP_TEST_TEMPLATE_ID) template = await ensureTemplate(admin, process.env.MCP_TEST_TEMPLATE_ID, url.href, initializeMcpFixtureSchema);
+		if (!options.empty && process.env.MCP_TEST_TEMPLATE_ID) template = await ensureTemplate(admin, process.env.MCP_TEST_TEMPLATE_ID, url.href, initializeMcpFixtureSchema);
 		await admin.query(`CREATE DATABASE ${quote(name)}${template ? ` TEMPLATE ${quote(template)}` : ""}`);
 	} catch (error) {
 		await admin.end();
@@ -26,7 +26,7 @@ export async function createMcpPostgresFixture() {
 	url.pathname = `/${name}`;
 	const pool = new Pool({ connectionString: url.href, max: 30 });
 	try {
-		if (!template) await initializeMcpFixtureSchema(pool);
+		if (!options.empty && !template) await initializeMcpFixtureSchema(pool);
 		return {
 			pool,
 			url: url.href,

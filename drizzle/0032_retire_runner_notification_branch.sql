@@ -1,3 +1,4 @@
+-- Follows the master-owned onboarding migration.
 CREATE OR REPLACE FUNCTION public.clipify_entitlement_notification()
 RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, public AS $$
 DECLARE

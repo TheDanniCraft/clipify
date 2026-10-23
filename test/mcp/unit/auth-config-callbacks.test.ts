@@ -34,9 +34,9 @@ jest.mock("@/auth/mcp-options", () => ({ createMcpPlugins: jest.fn((options: unk
 jest.mock("@/server/mcp/config", () => ({ getMcpConfiguration: () => ({ valid: true }) }));
 jest.mock("@/server/mcp/grants", () => ({ providerGrantOptions: {} }));
 jest.mock("@/server/notifications/twitch-account-access", () => ({ restoreTwitchAccountAccess: jest.fn() }));
-jest.mock("@/server/creator-onboarding", () => ({ completeTwitchSignIn: jest.fn() }));
+jest.mock("@/server/creator-onboarding", () => ({ completeTwitchSignIn: jest.fn(), syncCreatorProfile: jest.fn() }));
 import { restoreTwitchAccountAccess } from "@/server/notifications/twitch-account-access";
-import { completeTwitchSignIn } from "@/server/creator-onboarding";
+import { completeTwitchSignIn, syncCreatorProfile } from "@/server/creator-onboarding";
 jest.mock("@/server/notifications/identity-events", () => ({ queueIdentityEmail: jest.fn() }));
 import { queueIdentityEmail } from "@/server/notifications/identity-events";
 import { recordStreamingAccount } from "@/server/runner/provider-connections";
@@ -78,7 +78,7 @@ test("session creation records a linked creator's returning login", async () => 
 
 test("Twitch account creation completes onboarding; token refresh alone does not", async () => {
 	await options.databaseHooks.account.create.after({ providerId: "twitch", userId: "identity", accountId: "creator" }, undefined);
-	expect(completeTwitchSignIn).toHaveBeenCalledWith("creator");
+	expect(completeTwitchSignIn).toHaveBeenCalledWith("creator", "identity");
 	(completeTwitchSignIn as jest.Mock).mockClear();
 	await options.databaseHooks.account.create.after({ providerId: "credential", userId: "identity" }, undefined);
 	await options.databaseHooks.account.update.after({ providerId: "twitch", userId: "identity", accountId: "creator" }, undefined);
@@ -87,7 +87,21 @@ test("Twitch account creation completes onboarding; token refresh alone does not
 
 test("returning Twitch callback retries onboarding", async () => {
 	await options.databaseHooks.account.update.after({ providerId: "twitch", userId: "identity", accountId: "creator" }, { path: "/callback/twitch" });
-	expect(completeTwitchSignIn).toHaveBeenCalledWith("creator");
+	expect(completeTwitchSignIn).toHaveBeenCalledWith("creator", "identity");
+});
+
+test("Runner channel linking records the destination without onboarding another creator", async () => {
+	jest.mocked(getOAuthState).mockResolvedValue({ link: { userId: "identity" }, runnerConnectionIntent: { provider: "twitch" } } as never);
+	const account = { id: "runner-account", providerId: "twitch", userId: "identity", accountId: "channel", scope: "channel:read:stream_key" };
+	await options.databaseHooks.account.create.after(account, { path: "/callback/twitch" });
+	expect(recordStreamingAccount).toHaveBeenCalledWith(account, { provider: "twitch" });
+	expect(completeTwitchSignIn).not.toHaveBeenCalled();
+	expect(restoreTwitchAccountAccess).not.toHaveBeenCalled();
+});
+
+test("auth identity updates synchronize the linked creator through our function", async () => {
+	await options.databaseHooks.user.update.after({ id: "identity", email: "current@example.test" }, undefined);
+	expect(syncCreatorProfile).toHaveBeenCalledWith("identity");
 });
 
 test("provider configuration uses native MCP grant options", () => {
