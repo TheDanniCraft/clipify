@@ -101,7 +101,12 @@ try {
 	const { dependencies, os } = prepareNativeTestShims(compiled, { chromePath: chrome, ffmpegPath: ffmpeg, home: home });
 	const logger = join(compiled, "logger.mjs"),
 		keyring = join(compiled, "keyring.mjs");
-	writeFileSync(logger, "export const ConsoleUI=new Proxy({},{get:()=>()=>{}})");
+	writeFileSync(
+		logger,
+		`globalThis.__clipifyNativeLogs=[];
+const record=(...args)=>{const line=args.map(value=>typeof value==='string'?value:JSON.stringify(value)).join(' ').replace(/rtmps?:\\/\\/\\S+/g,'[redacted]').replace(/Bearer\\s+\\S+/gi,'Bearer [redacted]');globalThis.__clipifyNativeLogs.push(line.slice(0,1000));};
+export const ConsoleUI=new Proxy({},{get:()=>record});`,
+	);
 	writeFileSync(keyring, "export class Entry{constructor(){throw new Error('Isolated fixture keyring unavailable')}}");
 	const source = readFileSync(join(root, "src/index.ts"), "utf8"),
 		entry = "main().catch(console.error);";
@@ -184,6 +189,7 @@ try {
 				providerTransportReroutes: mappedProviders.size,
 				receivers: receiverStates,
 				engines: Object.values(cli.activeEngines).map((engine) => ({ isRunning: engine.isRunning, ffmpegStatus: engine.ffmpegStatus, hasPage: Boolean(engine.page) })),
+				logs: (globalThis.__clipifyNativeLogs ?? []).slice(-30),
 			});
 		} else if (message.action === "drain") {
 			await cli.pollHeartbeat(message.token, message.apiBase, message.runnerId);

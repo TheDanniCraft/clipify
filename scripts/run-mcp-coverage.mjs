@@ -33,13 +33,18 @@ try {
 	const environment = { ...process.env, MCP_PROBE_RUNTIME: "node", MCP_PROBE_COVERAGE_PROVIDER: "istanbul", MCP_COVERAGE_PROBE_DIRECTORY: probes, MCP_V8_COVERAGE_DIR: raw };
 	// Capture only application probes, not Jest and its instrumentation machinery.
 	delete environment.NODE_V8_COVERAGE;
-	const suite = spawnSync(process.execPath, ["node_modules/jest/bin/jest.js", "--coverage", ...(partial ? ["--coverageThreshold={}"] : []), ...automaticArguments, ...args, ...(outputArgument < 0 ? [`--coverageDirectory=${outputDirectory}`] : [])], {
-		stdio: "inherit",
-		env: environment,
-	});
-	// Scoped developer checks stay scoped; the complete CI command also includes native BDD workflows.
 	const scoped = args.some((argument) => argument.startsWith("test/") || /^(--testPath|--runTestsByPath|--testNamePattern|-t$)/.test(argument));
-	const workflowsPassed = partial || scoped || (existsSync(finalReport) && (await (await import("./run-mcp-workflow-coverage.mjs")).collectMcpWorkflowCoverage({ environment, rawDirectory: raw, outputDirectory })));
+	const workflowCoverage = partial || scoped ? null : await import("./run-mcp-workflow-coverage.mjs");
+	// Real Chromium/FFmpeg workflows run before the large Jest owner so their
+	// startup is isolated from resources retained by forced-exit test workers.
+	const serialWorkflowsPassed = !workflowCoverage || workflowCoverage.collectSerialMcpWorkflowCoverage({ environment, outputDirectory });
+	const suite = serialWorkflowsPassed
+		? spawnSync(process.execPath, ["node_modules/jest/bin/jest.js", "--coverage", ...(partial ? ["--coverageThreshold={}"] : []), ...automaticArguments, ...args, ...(outputArgument < 0 ? [`--coverageDirectory=${outputDirectory}`] : [])], {
+				stdio: "inherit",
+				env: environment,
+			})
+		: { status: 1 };
+	const workflowsPassed = serialWorkflowsPassed && (!workflowCoverage || (existsSync(finalReport) && (await workflowCoverage.collectMcpWorkflowCoverage({ environment, rawDirectory: raw, outputDirectory, serialPrepared: true }))));
 	// Jest performs a final source remap after per-test reporters. Repair only backwards
 	// mapped endpoints; counters and native threshold failure status stay unchanged.
 	if (existsSync(finalReport)) writeFileSync(finalReport, JSON.stringify(coverageRanges.repairMappedCoverage(JSON.parse(readFileSync(finalReport, "utf8"))), null, 2) + "\n");

@@ -48,23 +48,27 @@ export function workflowExecutionCommands(workers, playwright = require.resolve(
 	];
 }
 
+function runWorkflowCommand(args, environment, resultFile) {
+	const result = spawnSync(process.versions.bun ? "node" : process.execPath, args, { env: { ...environment, PLAYWRIGHT_JSON_OUTPUT_NAME: resultFile }, stdio: "inherit" });
+	if (result.error) throw result.error;
+	return result.status === 0;
+}
+
+export function collectSerialMcpWorkflowCoverage({ environment, outputDirectory }) {
+	const generator = join(dirname(require.resolve("playwright-bdd/package.json")), "dist/cli/index.js");
+	const serialResultFile = join(outputDirectory, "workflow-results-serial.json");
+	if (!runWorkflowCommand([generator, "--config", "playwright.mcp.config.ts"], environment, serialResultFile)) return false;
+	return runWorkflowCommand(workflowExecutionCommands(1)[1], environment, serialResultFile);
+}
+
 /** Include the real workflow/feedback journeys in the same fresh source report as Jest. */
-export async function collectMcpWorkflowCoverage({ environment, rawDirectory, outputDirectory }) {
+export async function collectMcpWorkflowCoverage({ environment, rawDirectory, outputDirectory, serialPrepared = false }) {
 	const capacity = await databaseBudget.readFixtureDatabaseCapacity();
 	const workers = databaseBudget.selectDatabaseWorkers(workerBudget.automaticTestWorkers(), capacity);
-	const generator = join(dirname(require.resolve("playwright-bdd/package.json")), "dist/cli/index.js");
-	const playwright = require.resolve("@playwright/test/cli");
 	const parallelResultFile = join(outputDirectory, "workflow-results-parallel.json");
 	const serialResultFile = join(outputDirectory, "workflow-results-serial.json");
-	for (const [args, resultFile] of [
-		[[generator, "--config", "playwright.mcp.config.ts"], parallelResultFile],
-		[workflowExecutionCommands(workers, playwright)[0], parallelResultFile],
-		[workflowExecutionCommands(workers, playwright)[1], serialResultFile],
-	]) {
-		const result = spawnSync(process.versions.bun ? "node" : process.execPath, args, { env: { ...environment, PLAYWRIGHT_JSON_OUTPUT_NAME: resultFile }, stdio: "inherit" });
-		if (result.error) throw result.error;
-		if (result.status !== 0) return false;
-	}
+	if (!serialPrepared && !collectSerialMcpWorkflowCoverage({ environment, outputDirectory })) return false;
+	if (!runWorkflowCommand(workflowExecutionCommands(workers)[0], environment, parallelResultFile)) return false;
 	const expected = workflowInventory();
 	const executed = [parallelResultFile, serialResultFile].map((file) => JSON.parse(readFileSync(file, "utf8")));
 	if (!expected.length || executed.some((report) => report.stats.skipped || report.stats.unexpected) || JSON.stringify(combinedWorkflowInventory(executed)) !== JSON.stringify(expected)) throw new Error("Workflow coverage did not execute its complete scenario inventory");
