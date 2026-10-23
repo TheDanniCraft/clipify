@@ -185,6 +185,34 @@ test("PC-5 Twitch test captures only a bandwidth-test key and starts its duratio
 		global.fetch = original;
 	}
 });
+test("PC-5 YouTube test uses a temporary private destination and cleans it up when stopped", async () => {
+	const { readRunnerConnectionTest, startRunnerConnectionTest } = await import("@/server/runner/provider-test");
+	const runner = (await fixture.pool.query("SELECT id FROM runners WHERE owner_id='provider-owner' LIMIT 1")).rows[0];
+	const connection = (await fixture.pool.query("SELECT id FROM runner_provider_connections WHERE owner_id='provider-owner' LIMIT 1")).rows[0];
+	process.env.YOUTUBE_CLIENT_ID = "google-client";
+	process.env.YOUTUBE_CLIENT_SECRET = "google-secret";
+	await fixture.pool.query("UPDATE runner_provider_connections SET provider='youtube',channel_id='youtube-channel',channel_name='Clipify' WHERE id=$1", [connection.id]);
+	await fixture.pool.query("UPDATE runner_broadcast_admissions SET state='stopped'");
+	await fixture.pool.query("UPDATE runners SET status='online',last_heartbeat_at=now(),protocol_version=2 WHERE id=$1", [runner.id]);
+	const fetcher = jest
+		.fn()
+		.mockResolvedValueOnce(new Response(JSON.stringify({ id: "stream", cdn: { ingestionInfo: { rtmpsIngestionAddress: "rtmps://a.rtmps.youtube.com/live2", streamName: "temporary-key" } } })))
+		.mockResolvedValueOnce(new Response(JSON.stringify({ id: "broadcast" })))
+		.mockResolvedValueOnce(new Response(JSON.stringify({ id: "broadcast" })))
+		.mockResolvedValue(new Response(null, { status: 204 }));
+	global.fetch = fetcher;
+	const result = await startRunnerConnectionTest(principal, { ownerId: "provider-owner", runnerId: runner.id, connectionId: connection.id, durationSeconds: 30 }, fixture.db);
+	expect(result).toMatchObject({ success: true });
+	if (!result.success) return;
+	const row = (await fixture.pool.query("SELECT encrypted_targets_snapshot,benefits_at_start FROM runner_broadcast_admissions WHERE session_id=$1", [result.test.id])).rows[0];
+	const { decryptString } = await import("@/app/lib/encryption");
+	expect(JSON.parse(decryptString(row.encrypted_targets_snapshot)!).destinations[0]).toMatchObject({ rtmpUrl: "rtmps://a.rtmps.youtube.com/live2", streamKey: "temporary-key" });
+	expect(row.benefits_at_start).toMatchObject({ testProvider: "youtube", youtubeTestBroadcastId: "broadcast", youtubeTestStreamId: "stream" });
+	await readRunnerConnectionTest(principal, { ownerId: "provider-owner", id: result.test.id }, true, fixture.db);
+	expect(fetcher.mock.calls.slice(-2).map(([url]) => String(url))).toEqual([expect.stringContaining("liveBroadcasts?id=broadcast"), expect.stringContaining("liveStreams?id=stream")]);
+	const cleaned = (await fixture.pool.query("SELECT benefits_at_start FROM runner_broadcast_admissions WHERE session_id=$1", [result.test.id])).rows[0].benefits_at_start;
+	expect(cleaned.youtubeTestCleanedAt).toEqual(expect.any(Number));
+});
 test("PC-6 token rotation survives an expected downstream provider denial", async () => {
 	const { runnerProviderConnectionsTable } = await import("@/db/schema");
 	const { encryptString, decryptString } = await import("@/app/lib/encryption");
@@ -650,26 +678,12 @@ test.each(["past", "during_test", "unknown_start", "after_test"])("PC-5 schedule
 	const result = await startTwitchConnectionTest(principal, { ownerId: "provider-owner", runnerId: runner.id, connectionId: connection.id, durationSeconds: 30 }, fixture.db);
 	expect(result.success).toBe(variant === "past" || variant === "after_test");
 });
-test("PC-5 missing and non-Twitch grants cannot start a test output", async () => {
+test("PC-5 a missing provider grant cannot start a test output", async () => {
 	const { startTwitchConnectionTest } = await import("@/server/runner/provider-test");
-	const runner = (await fixture.pool.query("SELECT id FROM runners LIMIT 1")).rows[0],
-		connection = (await fixture.pool.query("SELECT id FROM runner_provider_connections LIMIT 1")).rows[0];
+	const runner = (await fixture.pool.query("SELECT id FROM runners LIMIT 1")).rows[0];
 	await fixture.pool.query("UPDATE runners SET status='online',protocol_version=2,last_heartbeat_at=now() WHERE id=$1", [runner.id]);
 	const input = { ownerId: "provider-owner", runnerId: runner.id, connectionId: randomUUID(), durationSeconds: 30 };
 	expect(await startTwitchConnectionTest(principal, input, fixture.db)).toMatchObject({ success: false, code: "RECONNECT_REQUIRED" });
-	const previousId = process.env.YOUTUBE_CLIENT_ID,
-		previousSecret = process.env.YOUTUBE_CLIENT_SECRET;
-	try {
-		process.env.YOUTUBE_CLIENT_ID = "client";
-		process.env.YOUTUBE_CLIENT_SECRET = "secret";
-		await fixture.pool.query("UPDATE runner_provider_connections SET provider='youtube' WHERE id=$1", [connection.id]);
-		expect(await startTwitchConnectionTest(principal, { ...input, connectionId: connection.id }, fixture.db)).toMatchObject({ success: false, code: "CHANNEL_UNAVAILABLE" });
-	} finally {
-		if (previousId === undefined) delete process.env.YOUTUBE_CLIENT_ID;
-		else process.env.YOUTUBE_CLIENT_ID = previousId;
-		if (previousSecret === undefined) delete process.env.YOUTUBE_CLIENT_SECRET;
-		else process.env.YOUTUBE_CLIENT_SECRET = previousSecret;
-	}
 });
 test("PC-4 provider failure feedback is visible on the owned saved schedule", async () => {
 	const { applyRunnerBroadcastDetails } = await import("@/server/runner/provider-metadata");

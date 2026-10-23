@@ -27,7 +27,10 @@ async function readProviderJson(response: Response): Promise<unknown> {
 		}
 		complete = true;
 	} finally {
-		if (!complete) void reader.cancel().catch(() => {});
+		if (!complete)
+			try {
+				await reader.cancel();
+			} catch {}
 		reader.releaseLock();
 	}
 	return JSON.parse(Buffer.concat(chunks, size).toString("utf8")) as unknown;
@@ -54,15 +57,15 @@ function providerFailureCode(status: number, raw: unknown): ProviderRequestError
 	return status === 401 || status === 403 ? "RECONNECT_REQUIRED" : "PROVIDER_UNAVAILABLE";
 }
 /** Fixed provider endpoints only. Bound the response body as well as the initial request. */
-async function request(url: string, init: RequestInit = {}) {
+async function request(url: string, init: RequestInit = {}, acceptedStatuses: readonly number[] = []) {
 	if (!roots.some((root) => url.startsWith(root))) throw new ProviderRequestError("PROVIDER_UNAVAILABLE");
 	try {
 		const response = await fetch(url, { ...init, redirect: "error", cache: "no-store", signal: init.signal ? AbortSignal.any([init.signal, AbortSignal.timeout(10000)]) : AbortSignal.timeout(10000) });
-		if (!response.ok) {
+		if (!response.ok && !acceptedStatuses.includes(response.status)) {
 			const data = await readProviderJson(response).catch(() => null);
 			throw new ProviderRequestError(providerFailureCode(response.status, data));
 		}
-		return response.status === 204 ? {} : await readProviderJson(response);
+		return response.status === 204 || acceptedStatuses.includes(response.status) ? {} : await readProviderJson(response);
 	} catch (error) {
 		if (error instanceof ProviderRequestError) throw error;
 		throw new ProviderRequestError("PROVIDER_UNAVAILABLE");
@@ -93,6 +96,79 @@ export async function fetchYoutubeStreams(context: ProviderContext) {
 	const parsed = streamList.safeParse(data);
 	if (!parsed.success) throw new ProviderRequestError("CHANNEL_UNAVAILABLE");
 	return parsed.data.items;
+}
+const youtubeTestStream = z.object({
+	id: z.string().min(1).max(128),
+	cdn: z.object({ ingestionInfo: z.object({ ingestionAddress: z.string().url().optional(), rtmpsIngestionAddress: z.string().url().optional(), streamName: z.string().min(1).max(4096) }) }),
+});
+const youtubeTestBroadcast = z.object({ id: z.string().min(1).max(128) });
+export type YoutubeConnectionTest = { broadcastId: string; streamId: string; rtmpUrl: string; streamKey: string };
+function youtubeIngestionUrl(value: string | undefined) {
+	if (!value) return null;
+	try {
+		const url = new URL(value);
+		return ["rtmp:", "rtmps:"].includes(url.protocol) && (url.hostname === "youtube.com" || url.hostname.endsWith(".youtube.com")) ? value : null;
+	} catch {
+		return null;
+	}
+}
+export async function createYoutubeConnectionTest(context: ProviderContext): Promise<YoutubeConnectionTest> {
+	if (context.provider !== "youtube") throw new ProviderRequestError("CHANNEL_UNAVAILABLE");
+	let streamId: string | undefined;
+	let broadcastId: string | undefined;
+	try {
+		const stream = youtubeTestStream.safeParse(
+			await request("https://www.googleapis.com/youtube/v3/liveStreams?part=id,snippet,cdn,contentDetails", {
+				method: "POST",
+				signal: context.signal,
+				headers: { ...headers(context), "Content-Type": "application/json" },
+				body: JSON.stringify({ snippet: { title: "Clipify connection test" }, cdn: { ingestionType: "rtmp", resolution: "variable", frameRate: "variable" }, contentDetails: { isReusable: false } }),
+			}),
+		);
+		if (!stream.success) throw new ProviderRequestError("CHANNEL_UNAVAILABLE");
+		streamId = stream.data.id;
+		const broadcast = youtubeTestBroadcast.safeParse(
+			await request("https://www.googleapis.com/youtube/v3/liveBroadcasts?part=id,snippet,status,contentDetails", {
+				method: "POST",
+				signal: context.signal,
+				headers: { ...headers(context), "Content-Type": "application/json" },
+				body: JSON.stringify({ snippet: { title: "Clipify connection test", scheduledStartTime: new Date(Date.now() + 60_000).toISOString() }, status: { privacyStatus: "private", selfDeclaredMadeForKids: false }, contentDetails: { enableAutoStart: false, enableAutoStop: false, monitorStream: { enableMonitorStream: false } } }),
+			}),
+		);
+		if (!broadcast.success) throw new ProviderRequestError("CHANNEL_UNAVAILABLE");
+		broadcastId = broadcast.data.id;
+		await request(`https://www.googleapis.com/youtube/v3/liveBroadcasts/bind?id=${encodeURIComponent(broadcastId)}&part=id&streamId=${encodeURIComponent(streamId)}`, { method: "POST", signal: context.signal, headers: headers(context) });
+		const rtmpUrl = youtubeIngestionUrl(stream.data.cdn.ingestionInfo.rtmpsIngestionAddress) ?? youtubeIngestionUrl(stream.data.cdn.ingestionInfo.ingestionAddress);
+		if (!rtmpUrl) throw new ProviderRequestError("CHANNEL_UNAVAILABLE");
+		return { broadcastId, streamId, rtmpUrl, streamKey: stream.data.cdn.ingestionInfo.streamName };
+	} catch (error) {
+		try {
+			if (broadcastId) await deleteYoutubeResource(context, "liveBroadcasts", broadcastId);
+		} catch {}
+		try {
+			if (streamId) await deleteYoutubeResource(context, "liveStreams", streamId);
+		} catch {}
+		throw error;
+	}
+}
+async function deleteYoutubeResource(context: ProviderContext, resource: "liveBroadcasts" | "liveStreams", id: string) {
+	await request(`https://www.googleapis.com/youtube/v3/${resource}?id=${encodeURIComponent(id)}`, { method: "DELETE", signal: context.signal, headers: headers(context) }, [404]);
+}
+export async function deleteYoutubeConnectionTest(context: ProviderContext, test: Pick<YoutubeConnectionTest, "broadcastId" | "streamId">) {
+	if (context.provider !== "youtube") return;
+	let broadcast: unknown;
+	let stream: unknown;
+	try {
+		await deleteYoutubeResource(context, "liveBroadcasts", test.broadcastId);
+	} catch (error) {
+		broadcast = error;
+	}
+	try {
+		await deleteYoutubeResource(context, "liveStreams", test.streamId);
+	} catch (error) {
+		stream = error;
+	}
+	if (broadcast || stream) throw broadcast ?? stream;
 }
 export async function fetchStreamingKey(context: ProviderContext, streamId?: string) {
 	if (context.provider === "youtube") {

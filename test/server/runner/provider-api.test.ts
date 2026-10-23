@@ -134,3 +134,53 @@ test("PC-6 provider quota exhaustion is retryable and never requests another log
 	global.fetch = jest.fn().mockResolvedValue(response({ error: { errors: [{ reason: "quotaExceeded" }] } }, 403));
 	await expect(fetchYoutubeStreams({ provider: "youtube", accessToken: "token", clientId: "client", channelId: "channel" })).rejects.toMatchObject({ code: "PROVIDER_UNAVAILABLE" });
 });
+test("YouTube connection tests create a private temporary broadcast without taking it live", async () => {
+	const { createYoutubeConnectionTest } = await import("@/server/runner/provider-api");
+	const fetcher = jest
+		.fn()
+		.mockResolvedValueOnce(response({ id: "stream", cdn: { ingestionInfo: { rtmpsIngestionAddress: "rtmps://a.rtmps.youtube.com/live2", streamName: "temporary-key" } } }))
+		.mockResolvedValueOnce(response({ id: "broadcast" }))
+		.mockResolvedValueOnce(response({ id: "broadcast" }));
+	global.fetch = fetcher;
+	await expect(createYoutubeConnectionTest({ provider: "youtube", accessToken: "token", clientId: "client", channelId: "channel" })).resolves.toEqual({ broadcastId: "broadcast", streamId: "stream", rtmpUrl: "rtmps://a.rtmps.youtube.com/live2", streamKey: "temporary-key" });
+	const streamBody = JSON.parse(fetcher.mock.calls[0][1].body);
+	const broadcastBody = JSON.parse(fetcher.mock.calls[1][1].body);
+	expect(streamBody.contentDetails.isReusable).toBe(false);
+	expect(broadcastBody.status.privacyStatus).toBe("private");
+	expect(broadcastBody.contentDetails).toMatchObject({ enableAutoStart: false, enableAutoStop: false });
+	expect(fetcher.mock.calls.map(([url]) => String(url))).not.toEqual(expect.arrayContaining([expect.stringContaining("/transition")]));
+});
+test("YouTube connection test cleanup removes the temporary broadcast before its stream", async () => {
+	const { deleteYoutubeConnectionTest } = await import("@/server/runner/provider-api");
+	const fetcher = jest.fn().mockResolvedValue(new Response(null, { status: 204 }));
+	global.fetch = fetcher;
+	await deleteYoutubeConnectionTest({ provider: "youtube", accessToken: "token", clientId: "client", channelId: "channel" }, { broadcastId: "broadcast", streamId: "stream" });
+	expect(fetcher.mock.calls.map(([url]) => String(url))).toEqual([expect.stringContaining("liveBroadcasts?id=broadcast"), expect.stringContaining("liveStreams?id=stream")]);
+});
+test("YouTube connection test cleanup is idempotent after resources are already gone", async () => {
+	const { deleteYoutubeConnectionTest } = await import("@/server/runner/provider-api");
+	global.fetch = jest.fn().mockResolvedValue(new Response(null, { status: 404 }));
+	await expect(deleteYoutubeConnectionTest({ provider: "youtube", accessToken: "token", clientId: "client", channelId: "channel" }, { broadcastId: "broadcast", streamId: "stream" })).resolves.toBeUndefined();
+});
+test("a failed YouTube bind removes every temporary resource already created", async () => {
+	const { createYoutubeConnectionTest } = await import("@/server/runner/provider-api");
+	const fetcher = jest
+		.fn()
+		.mockResolvedValueOnce(response({ id: "stream", cdn: { ingestionInfo: { ingestionAddress: "rtmp://a.rtmp.youtube.com/live2", streamName: "temporary-key" } } }))
+		.mockResolvedValueOnce(response({ id: "broadcast" }))
+		.mockResolvedValueOnce(response({ message: "failed" }, 500))
+		.mockResolvedValue(new Response(null, { status: 204 }));
+	global.fetch = fetcher;
+	await expect(createYoutubeConnectionTest({ provider: "youtube", accessToken: "token", clientId: "client", channelId: "channel" })).rejects.toMatchObject({ code: "PROVIDER_UNAVAILABLE" });
+	expect(fetcher.mock.calls.slice(3).map(([url]) => String(url))).toEqual([expect.stringContaining("liveBroadcasts?id=broadcast"), expect.stringContaining("liveStreams?id=stream")]);
+});
+test("YouTube connection tests reject ingestion addresses outside YouTube", async () => {
+	const { createYoutubeConnectionTest } = await import("@/server/runner/provider-api");
+	global.fetch = jest
+		.fn()
+		.mockResolvedValueOnce(response({ id: "stream", cdn: { ingestionInfo: { rtmpsIngestionAddress: "rtmps://private.example/live2", streamName: "temporary-key" } } }))
+		.mockResolvedValueOnce(response({ id: "broadcast" }))
+		.mockResolvedValueOnce(response({ id: "broadcast" }))
+		.mockResolvedValue(new Response(null, { status: 204 }));
+	await expect(createYoutubeConnectionTest({ provider: "youtube", accessToken: "token", clientId: "client", channelId: "channel" })).rejects.toMatchObject({ code: "CHANNEL_UNAVAILABLE" });
+});

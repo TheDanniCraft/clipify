@@ -570,19 +570,19 @@ export async function uploadRunnerScheduleThumbnail(form: FormData) {
 
 export async function startRunnerConnectionTest(input: unknown) {
 	return runnerDestinationAction("start-connection-test", async (principal) => {
-		const { startTwitchConnectionTest } = await import("@/server/runner/provider-test");
-		return startTwitchConnectionTest(principal, input);
+		const { startRunnerConnectionTest } = await import("@/server/runner/provider-test");
+		return startRunnerConnectionTest(principal, input);
 	});
 }
 export async function readRunnerConnectionTest(input: unknown) {
 	return runnerDestinationAction("read-connection-test", async (principal) => {
-		const { readTwitchConnectionTest } = await import("@/server/runner/provider-test");
-		return readTwitchConnectionTest(principal, input);
+		const { readRunnerConnectionTest } = await import("@/server/runner/provider-test");
+		return readRunnerConnectionTest(principal, input);
 	});
 }
 export async function stopRunnerConnectionTest(input: unknown) {
 	return runnerDestinationAction("stop-connection-test", async (principal) => {
-		const { readTwitchConnectionTest } = await import("@/server/runner/provider-test");
-		return readTwitchConnectionTest(principal, input, true);
+		const { readRunnerConnectionTest } = await import("@/server/runner/provider-test");
+		return readRunnerConnectionTest(principal, input, true);
 	});
 }

@@ -320,21 +320,21 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 						{testOpen ? (
 							<>
 								<Modal.Header>
-									<Modal.Heading>Test Twitch connection</Modal.Heading>
+									<Modal.Heading>Test {providerName} connection</Modal.Heading>
 								</Modal.Header>
 								<Modal.Body className='space-y-5'>
 									<div className='flex items-center gap-3'>
-										<IconBrandTwitch size={24} className='text-accent' />
+										<ProviderIcon size={24} className='text-accent' />
 										<div>
 											<p className='font-semibold'>{account.connection?.channelName}</p>
-											<p className='text-sm text-muted'>Your channel stays offline during the test.</p>
+											<p className='text-sm text-muted'>{provider === "youtube" ? "Clipify creates a temporary private broadcast and removes it after the test." : "Your channel stays offline during the test."}</p>
 										</div>
 									</div>
 									{testRunning ? (
 										<div role='status' className='flex flex-col items-center gap-3 py-8'>
 											<Spinner size='lg' />
 											<p className='font-medium'>{connectionTest.test?.state === "running" ? "Testing connection" : connectionTest.test?.state === "stopping" ? "Stopping test" : "Waiting for Runner"}</p>
-											<p className='text-sm text-muted'>{connectionTest.test?.outputs.some((output) => output.state === "streaming") ? "Twitch is receiving the test stream." : "Checking stream health"}</p>
+											<p className='text-sm text-muted'>{connectionTest.test?.outputs.some((output) => output.state === "streaming") ? `${providerName} is receiving the test stream.` : "Checking stream health"}</p>
 										</div>
 									) : (
 										<Select value={connectionTest.duration} onChange={(value) => connectionTest.setDuration(String(value))} variant='secondary'>
@@ -357,7 +357,7 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 											{connectionTest.test.successful ? <IconCircleCheck className='mt-0.5 shrink-0' size={20} /> : <IconAlertTriangle className='mt-0.5 shrink-0' size={20} />}
 											<div>
 												<p className='font-medium'>{connectionTest.test.successful ? "Test successful" : "Test unsuccessful"}</p>
-												<p className='text-sm'>{connectionTest.test.successful ? "Twitch received the test stream." : "Twitch did not report receiving the test stream."}</p>
+												<p className='text-sm'>{connectionTest.test.successful ? `${providerName} received the test stream.` : `${providerName} did not report receiving the test stream.`}</p>
 											</div>
 										</div>
 									)}
@@ -517,10 +517,10 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 															</Select.Popover>
 														</Select>
 														{account.loadingStreams && (
-															<p role='status' className='flex items-center gap-2 text-sm text-muted'>
+															<div role='status' className='flex items-center gap-2 text-sm text-muted'>
 																<Spinner size='sm' />
 																Loading stream keys…
-															</p>
+															</div>
 														)}
 														{account.streamsError && (
 															<div className='space-y-2'>
@@ -577,7 +577,7 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 									)}
 								</Modal.Body>
 								<Modal.Footer className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
-									{provider === "twitch" && accountConnected && connectionMethod === "account" && (
+									{provider !== "custom" && accountConnected && connectionMethod === "account" && (
 										<Button
 											className='w-full sm:w-auto'
 											variant='secondary'

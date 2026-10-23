@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { connectRunnerStreamingProvider, disconnectRunnerStreamingProvider, getRunnerStreamingConnections, listRunnerDestinations, startRunnerConnectionTest } from "@/app/actions/runner";
+import { connectRunnerStreamingProvider, disconnectRunnerStreamingProvider, getRunnerStreamingConnections, getRunnerYoutubeStreams, listRunnerDestinations, startRunnerConnectionTest } from "@/app/actions/runner";
 import RunnerDestinations from "@/app/components/runnerDestinations";
 jest.mock("@/app/actions/runner", () => ({
 	listRunnerDestinations: jest.fn(async () => ({ success: true, destinations: [] })),
@@ -43,6 +43,19 @@ test("PC-5 cancelling a failed connection test clears its error from the destina
 	fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 	expect(await screen.findByRole("button", { name: "Save destination" })).toBeVisible();
 	expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+});
+test("a connected YouTube destination offers a private connection test", async () => {
+	jest.mocked(listRunnerDestinations).mockResolvedValueOnce({
+		success: true,
+		destinations: [{ id: "22222222-2222-4222-8222-222222222222", name: "Main YouTube", provider: "youtube", host: "a.rtmp.youtube.com", connectionId: "33333333-3333-4333-8333-333333333333", providerStreamId: "stream", credentialConfigured: true, credentialActions: ["keep", "replace", "clear"], credentialRevision: 1, configurationRevision: 1 }],
+	});
+	jest.mocked(getRunnerStreamingConnections).mockResolvedValueOnce({ success: true, connections: [{ id: "33333333-3333-4333-8333-333333333333", provider: "youtube", channelName: "Clipify" }] });
+	jest.mocked(getRunnerYoutubeStreams).mockResolvedValueOnce({ success: true, streams: [{ id: "stream", name: "Default" }] });
+	render(<RunnerDestinations ownerId='owner' runnerId='11111111-1111-4111-8111-111111111111' />);
+	fireEvent.click(await screen.findByRole("button", { name: "Edit Main YouTube" }));
+	fireEvent.click(await screen.findByRole("button", { name: "Test connection" }));
+	expect(screen.getByText("Test YouTube connection")).toBeVisible();
+	expect(screen.getByText(/temporary private broadcast/)).toBeVisible();
 });
 test("PC-1/6 one contextual connection action preserves the draft after a configuration failure", async () => {
 	const close = jest.fn();

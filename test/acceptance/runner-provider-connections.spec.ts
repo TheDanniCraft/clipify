@@ -89,6 +89,14 @@ test("PC-1/3/6 connected channel, one permission prompt, optional event details 
 		await testDialog.getByRole("button", { name: "Cancel", exact: true }).click();
 		await destination.getByRole("button", { name: "Cancel", exact: true }).click();
 		await expect(destination).not.toBeVisible();
+		await manager.getByRole("button", { name: "Edit YouTube highlights", exact: true }).click();
+		destination = page.getByRole("dialog", { name: "Edit destination", exact: true });
+		await destination.getByRole("button", { name: "Test connection", exact: true }).click();
+		const youtubeTestDialog = page.getByRole("dialog", { name: "Test YouTube connection", exact: true });
+		await expect(youtubeTestDialog).toContainText("temporary private broadcast");
+		await expect(youtubeTestDialog.getByRole("button", { name: "Start test", exact: true })).toBeVisible();
+		await youtubeTestDialog.getByRole("button", { name: "Cancel", exact: true }).click();
+		await destination.getByRole("button", { name: "Cancel", exact: true }).click();
 		await manager.getByRole("button", { name: "Add destination", exact: true }).click();
 		const manual = page.getByRole("dialog", { name: "Add destination", exact: true });
 		await manual.getByRole("textbox", { name: "Destination name", exact: true }).fill("Manual Twitch");
