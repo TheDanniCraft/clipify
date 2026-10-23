@@ -50,7 +50,8 @@ export async function createMultistreamMedia(input: Parameters<typeof runRunnerF
 		response.end(html(identity.executionGeneration).replace("<body style=", `<body data-runner-presentation-generation="${identity.executionGeneration}" data-runner-layout-status="clean" style=`));
 		return;
 	}
-	const server = createServer(async (request, response) => {
+	const activeRequests = new Set<Promise<void>>();
+	async function handleRequest(request: import("node:http").IncomingMessage, response: import("node:http").ServerResponse) {
 		try {
 			const url = new URL(request.url!, input.origin);
 			if (url.pathname === "/clip.mp4") {
@@ -98,6 +99,11 @@ export async function createMultistreamMedia(input: Parameters<typeof runRunnerF
 			response.writeHead(500);
 			response.end("Fixture request failed");
 		}
+	}
+	const server = createServer((request, response) => {
+		const requestTask = handleRequest(request, response);
+		activeRequests.add(requestTask);
+		void requestTask.finally(() => activeRequests.delete(requestTask));
 	});
 	await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
 	const child = spawn(process.execPath, ["packages/runner/test/support/multistream-cli-probe.mjs", JSON.stringify(providers)], { stdio: ["pipe", "pipe", "pipe"], detached: process.platform !== "win32", env: { ...process.env, NODE_V8_COVERAGE: "" } });
@@ -189,6 +195,7 @@ export async function createMultistreamMedia(input: Parameters<typeof runRunnerF
 			}
 			server.closeAllConnections();
 			await new Promise<void>((resolve) => server.close(() => resolve()));
+			await Promise.allSettled([...activeRequests]);
 			rmSync(directory, { recursive: true, force: true });
 		},
 	};
