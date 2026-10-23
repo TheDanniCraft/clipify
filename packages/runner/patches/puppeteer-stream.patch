@@ -20,7 +20,7 @@ index 52a5541773c54e1dd6153c76a24e6ee36543ca45..fcab9b4058e000bb25df1d6871ebf1fc
      }
 -    (await browser.newPage()).goto(`chrome-extension://${extensionId}/options.html#${port}`);
 +    const extensionOptions = await browser.newPage();
-+    await extensionOptions.goto(`chrome-extension://${extensionId}/options.html#${port}`);
++    void extensionOptions.goto(`chrome-extension://${extensionId}/options.html#${port}`).catch(() => {});
      const old_browser_close = browser.close;
      browser.close = async () => {
          for (const page of await browser.pages()) {
