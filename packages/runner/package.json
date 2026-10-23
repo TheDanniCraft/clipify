@@ -38,6 +38,7 @@
 		"puppeteer-core@24.43.1": "patches/puppeteer-core-24.patch"
 	},
 	"overrides": {
-		"@puppeteer/browsers": "^3.2.3"
+		"@puppeteer/browsers": "^3.2.3",
+		"zod": "4.6.6"
 	}
 }
