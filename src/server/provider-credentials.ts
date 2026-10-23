@@ -75,14 +75,15 @@ export async function withSerializedProviderCredential<T>(pool: Pool, accountId:
 	});
 }
 
-export async function getBetterAuthProviderAccessToken(creatorId: string) {
-	const links = await db.select({ authUserId: creatorIdentityLinksTable.authUserId }).from(creatorIdentityLinksTable).where(eq(creatorIdentityLinksTable.creatorId, creatorId)).limit(1).execute();
-	const authUserId = links[0]?.authUserId;
+export async function getBetterAuthProviderAccessToken(creatorId: string, signInAuthUserId?: string) {
+	// During first sign-in Better Auth exists before Clipify's identity link does.
+	const links = signInAuthUserId ? [] : await db.select({ authUserId: creatorIdentityLinksTable.authUserId }).from(creatorIdentityLinksTable).where(eq(creatorIdentityLinksTable.creatorId, creatorId)).limit(1).execute();
+	const authUserId = signInAuthUserId ?? links[0]?.authUserId;
 	if (!authUserId) return null;
 	const accounts = await db
 		.select({ id: authAccountTable.id })
 		.from(authAccountTable)
-		.where(and(eq(authAccountTable.userId, authUserId), eq(authAccountTable.providerId, "twitch")))
+		.where(and(eq(authAccountTable.userId, authUserId), eq(authAccountTable.providerId, "twitch"), eq(authAccountTable.accountId, creatorId)))
 		.limit(1)
 		.execute();
 	const accountId = accounts[0]?.id;
