@@ -83,7 +83,7 @@ export async function getBetterAuthProviderAccessToken(creatorId: string, signIn
 	const accounts = await db
 		.select({ id: authAccountTable.id })
 		.from(authAccountTable)
-		.where(and(eq(authAccountTable.userId, authUserId), eq(authAccountTable.providerId, "twitch"), eq(authAccountTable.accountId, creatorId)))
+		.where(and(eq(authAccountTable.userId, authUserId), eq(authAccountTable.providerId, "twitch"), signInAuthUserId ? eq(authAccountTable.accountId, creatorId) : undefined))
 		.limit(1)
 		.execute();
 	const accountId = accounts[0]?.id;

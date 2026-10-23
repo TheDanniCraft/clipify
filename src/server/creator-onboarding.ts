@@ -92,7 +92,7 @@ export async function initializeCreator(creatorId: string, twitchCreatedAt: Date
 			.values({
 				id: organizationId,
 				...organizationProfile,
-				slug: `creator-${createHash("md5").update(creatorId).digest("hex").slice(0, 20)}`,
+				slug: `creator-${createHash("sha256").update(creatorId).digest("hex").slice(0, 20)}`,
 				createdAt: identity.createdAt,
 			})
 			.onConflictDoUpdate({ target: organization.id, set: organizationProfile });
