@@ -155,10 +155,10 @@ export async function createMultistreamMedia(input: Parameters<typeof runRunnerF
 			const address = server.address();
 			if (!address || typeof address === "string") throw new Error("Missing fixture listener");
 			send({ action: "start", generation: executionGeneration, admissionId, apiBase: `http://127.0.0.1:${address.port}`, runnerId, token, keys: { [keyId]: publicKey } });
-			// The child gives Chromium a bounded 60-second startup window under
+			// The child gives Chromium a bounded 100-second startup window under
 			// full-suite CPU pressure. Keep the parent alive long enough to receive
 			// that result instead of timing out while the child is still healthy.
-			return wait("playing", 75000);
+			return wait("playing", 115000);
 		},
 		async drain() {
 			send({ action: "drain" });
