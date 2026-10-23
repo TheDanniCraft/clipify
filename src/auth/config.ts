@@ -85,7 +85,7 @@ export const auth = betterAuth({
 				after: async (account, context) => {
 					if (account.providerId === "twitch") {
 						const { completeTwitchSignIn } = await import("@/server/creator-onboarding");
-						await completeTwitchSignIn(account.accountId);
+						await completeTwitchSignIn(account.accountId, account.userId);
 					}
 					if (account.providerId === "twitch" && (context?.path === "/callback/twitch" || (context?.path === "/callback/:id" && context.params?.id === "twitch"))) {
 						const { restoreTwitchAccountAccess } = await import("@/server/notifications/twitch-account-access");
@@ -97,7 +97,7 @@ export const auth = betterAuth({
 				after: async (account, context) => {
 					if (account.providerId === "twitch" && (context?.path === "/callback/twitch" || (context?.path === "/callback/:id" && context.params?.id === "twitch"))) {
 						const { completeTwitchSignIn } = await import("@/server/creator-onboarding");
-						await completeTwitchSignIn(account.accountId);
+						await completeTwitchSignIn(account.accountId, account.userId);
 						const { restoreTwitchAccountAccess } = await import("@/server/notifications/twitch-account-access");
 						await restoreTwitchAccountAccess(account.userId);
 					}
@@ -112,6 +112,8 @@ export const auth = betterAuth({
 			},
 			update: {
 				after: async (user, context) => {
+					const { syncCreatorProfile } = await import("@/server/creator-onboarding");
+					await syncCreatorProfile(user.id);
 					const previousEmail = context?.context.session?.user.email;
 					if (previousEmail && previousEmail !== user.email) {
 						const key = randomUUID();
@@ -256,7 +258,5 @@ export const auth = betterAuth({
 	],
 });
 
-// Better Auth runs database `after` hooks only after its adapter transaction
-// commits. The reviewed PostgreSQL boundary in onboarding-database-boundary.ts
-// provisions creator ownership inside the account insert transaction and is
-// verified by TDD-US2-003.
+// Better Auth owns auth records; its account hook completes Clipify setup in one
+// Drizzle transaction. Failed setup is retried on the next Twitch sign-in.

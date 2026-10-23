@@ -18,17 +18,18 @@ async function main() {
 	if (!email || !creatorId) throw new Error("ONBOARDING_PROBE_INPUT_REQUIRED");
 	try {
 		const context = await auth.$context;
-		if (process.argv[4] === "retry") {
-			await completeTwitchSignIn(creatorId);
+		const mode = process.argv[4];
+		if (["retry", "initialize", "profile"].includes(mode)) {
+			const { rows } = await dbPool.query("SELECT user_id FROM auth.account WHERE provider_id='twitch' AND account_id=$1", [creatorId]);
+			const authUserId = rows[0]?.user_id;
+			if (!authUserId) throw new Error("PROBE_TWITCH_ACCOUNT_MISSING");
+			if (mode === "retry") await completeTwitchSignIn(creatorId, authUserId);
+			if (mode === "initialize") await Promise.all(Array.from({ length: 8 }, () => initializeCreator(creatorId, new Date("2012-04-15T13:45:00Z"), authUserId)));
+			if (mode === "profile") await context.internalAdapter.updateUser(authUserId, { name: "Updated Creator", email: `updated-${email}`, image: "https://example.invalid/updated.png" });
 			process.stdout.write(JSON.stringify({ retried: true }) + "\n");
 			return;
 		}
-		if (process.argv[4] === "initialize") {
-			await Promise.all(Array.from({ length: 8 }, () => initializeCreator(creatorId, new Date("2012-04-15T13:45:00Z"))));
-			process.stdout.write(JSON.stringify({ initialized: true }) + "\n");
-			return;
-		}
-		const create = (subject: string, address: string) => context.internalAdapter.createOAuthUser({ name: "OAuth Creator", email: address, emailVerified: true, image: null }, { accountId: subject, providerId: "twitch", accessToken: `fixture-twitch:${subject}`, accessTokenExpiresAt: new Date(Date.now() + 3600_000) });
+		const create = (subject: string, address: string) => context.internalAdapter.createOAuthUser({ name: "OAuth Creator", email: address, emailVerified: mode !== "unverified", image: null }, { accountId: subject, providerId: mode === "non-twitch" ? "google" : "twitch", accessToken: `fixture-twitch:${subject}`, accessTokenExpiresAt: new Date(Date.now() + 3600_000) });
 		if (process.argv[4] === "concurrent") {
 			const results = await Promise.all(Array.from({ length: 4 }, (_, index) => create(`${creatorId}-${index}`, `${index}-${email}`)));
 			process.stdout.write(JSON.stringify({ creators: results.map((result) => result.account.accountId) }) + "\n");
