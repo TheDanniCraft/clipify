@@ -469,9 +469,12 @@ describe("Engine (Raw Logic Tests)", () => {
 
 	it("TDD-US2-CON005 U247: public startup errors preserve useful failure text without private overlay or Runner credentials", async () => {
 		const engine = new Engine("navigation-diagnostic", "rtmp://127.0.0.1/live", "private-overlay-secret", "private-stream-key", 30, "720p", "24_7", "http://127.0.0.1", "private-runner-token");
-		mockLaunch.mockResolvedValueOnce({ newPage: jest.fn().mockResolvedValue({ goto: jest.fn().mockRejectedValue(new Error("navigation failed: private-overlay-secret private-runner-token")), evaluateOnNewDocument: jest.fn() }), close: jest.fn().mockResolvedValue(undefined) });
+		jest.useFakeTimers();
+		mockLaunch.mockResolvedValue({ newPage: jest.fn().mockResolvedValue({ goto: jest.fn().mockRejectedValue(new Error("navigation failed: private-overlay-secret private-runner-token")), evaluateOnNewDocument: jest.fn() }), close: jest.fn().mockResolvedValue(undefined) });
 		try {
-			const caught = await engine.start().catch((error: unknown) => error);
+			const starting = engine.start().catch((error: unknown) => error);
+			await jest.advanceTimersByTimeAsync(4000);
+			const caught = await starting;
 			expect(caught).toBeInstanceOf(Error);
 			const text = String(caught);
 			expect(text).toContain("navigation failed");
@@ -479,6 +482,7 @@ describe("Engine (Raw Logic Tests)", () => {
 			expect(text).not.toContain("private-runner-token");
 		} finally {
 			await engine.stop();
+			jest.useRealTimers();
 		}
 	});
 
@@ -617,10 +621,34 @@ describe("Engine (Raw Logic Tests)", () => {
 			await expect(starting).resolves.toBeUndefined();
 			expect(mockLaunch).toHaveBeenCalledTimes(2);
 			expect(mockSpawn).toHaveBeenCalled();
-			expect(warning).toHaveBeenCalledWith("[Engine] Chromium launch attempt 1/3 failed; retrying...");
+			expect(warning).toHaveBeenCalledWith("[Engine] Chromium startup attempt 1/3 failed; retrying...");
 		} finally {
 			warning.mockRestore();
 			await engine.stop();
+			jest.useRealTimers();
+		}
+	});
+
+	it("retries Chromium startup with a fresh browser when initial navigation loses its frame", async () => {
+		jest.useFakeTimers();
+		const firstClose = jest.fn().mockResolvedValue(null);
+		const secondClose = jest.fn().mockResolvedValue(null);
+		const readyPage = { goto: jest.fn().mockResolvedValue(null), evaluateOnNewDocument: jest.fn().mockResolvedValue(undefined), evaluate: jest.fn().mockResolvedValue(true) };
+		mockLaunch.mockResolvedValueOnce({ newPage: jest.fn().mockResolvedValue({ ...readyPage, goto: jest.fn().mockRejectedValue(new Error("Navigating frame was detached")) }), close: firstClose }).mockResolvedValueOnce({ newPage: jest.fn().mockResolvedValue(readyPage), close: secondClose });
+		const warning = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+		const engine = new Engine("navigation-retry", "rtmp://fake", "secret", "streamKey", 30, "720p", "24_7", "http://api");
+		try {
+			const starting = engine.start();
+			await jest.advanceTimersByTimeAsync(2000);
+			await expect(starting).resolves.toBeUndefined();
+			expect(mockLaunch).toHaveBeenCalledTimes(2);
+			expect(firstClose).toHaveBeenCalledTimes(1);
+			expect(mockSpawn).toHaveBeenCalled();
+			expect(warning).toHaveBeenCalledWith("[Engine] Chromium startup attempt 1/3 failed; retrying...");
+		} finally {
+			warning.mockRestore();
+			await engine.stop();
+			expect(secondClose).toHaveBeenCalledTimes(1);
 			jest.useRealTimers();
 		}
 	});

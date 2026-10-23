@@ -379,26 +379,33 @@ export class Engine {
 	private async startChromiumBackground() {
 		if (this.browser) return;
 		console.log(`[Engine] Launching Puppeteer...`);
+		let lastError: unknown;
 		for (let attempt = 1; attempt <= BROWSER_LAUNCH_MAX_ATTEMPTS; attempt++) {
 			if (!this.mayOpenOutput()) return false;
 			try {
-				this.browser = (await launch({
-					executablePath: this.chromePath,
-					extensionPath: this.extPath,
-					headless: "new",
-					defaultViewport: {
-						width: 1920,
-						height: 1080,
-					},
-					args: ["--no-sandbox", "--disable-setuid-sandbox", "--autoplay-policy=no-user-gesture-required", "--window-size=1920,1080"],
-				})) as any;
-				break;
+				return await this.startChromiumBackgroundAttempt();
 			} catch (error) {
+				lastError = error;
+				await this.stopChromiumBackground();
 				if (attempt === BROWSER_LAUNCH_MAX_ATTEMPTS) throw error;
-				console.warn(`[Engine] Chromium launch attempt ${attempt}/${BROWSER_LAUNCH_MAX_ATTEMPTS} failed; retrying...`);
+				console.warn(`[Engine] Chromium startup attempt ${attempt}/${BROWSER_LAUNCH_MAX_ATTEMPTS} failed; retrying...`);
 				await new Promise((resolve) => setTimeout(resolve, BROWSER_LAUNCH_RETRY_DELAY_MS));
 			}
 		}
+		throw lastError;
+	}
+
+	private async startChromiumBackgroundAttempt() {
+		this.browser = (await launch({
+			executablePath: this.chromePath,
+			extensionPath: this.extPath,
+			headless: "new",
+			defaultViewport: {
+				width: 1920,
+				height: 1080,
+			},
+			args: ["--no-sandbox", "--disable-setuid-sandbox", "--autoplay-policy=no-user-gesture-required", "--window-size=1920,1080"],
+		})) as any;
 		if (!this.browser) return false;
 		if (!this.mayOpenOutput()) {
 			await this.browser!.close();
