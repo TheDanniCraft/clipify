@@ -213,6 +213,29 @@ test("PC-5 YouTube test uses a temporary private destination and cleans it up wh
 	const cleaned = (await fixture.pool.query("SELECT benefits_at_start FROM runner_broadcast_admissions WHERE session_id=$1", [result.test.id])).rows[0].benefits_at_start;
 	expect(cleaned.youtubeTestCleanedAt).toEqual(expect.any(Number));
 });
+test("PC-5 failed YouTube cleanup remains pending for a later retry", async () => {
+	const { readRunnerConnectionTest, startRunnerConnectionTest } = await import("@/server/runner/provider-test");
+	const runner = (await fixture.pool.query("SELECT id FROM runners WHERE owner_id='provider-owner' LIMIT 1")).rows[0];
+	const connection = (await fixture.pool.query("SELECT id FROM runner_provider_connections WHERE owner_id='provider-owner' LIMIT 1")).rows[0];
+	process.env.YOUTUBE_CLIENT_ID = "google-client";
+	process.env.YOUTUBE_CLIENT_SECRET = "google-secret";
+	await fixture.pool.query("UPDATE runner_provider_connections SET provider='youtube',channel_id='youtube-channel',channel_name='Clipify' WHERE id=$1", [connection.id]);
+	await fixture.pool.query("UPDATE runner_broadcast_admissions SET state='stopped'");
+	await fixture.pool.query("UPDATE runners SET status='online',last_heartbeat_at=now(),protocol_version=2 WHERE id=$1", [runner.id]);
+	const fetcher = jest
+		.fn()
+		.mockResolvedValueOnce(new Response(JSON.stringify({ id: "stream", cdn: { ingestionInfo: { rtmpsIngestionAddress: "rtmps://a.rtmps.youtube.com/live2", streamName: "temporary-key" } } })))
+		.mockResolvedValueOnce(new Response(JSON.stringify({ id: "broadcast" })))
+		.mockResolvedValueOnce(new Response(JSON.stringify({ id: "broadcast" })))
+		.mockResolvedValue(new Response("{}", { status: 503 }));
+	global.fetch = fetcher;
+	const result = await startRunnerConnectionTest(principal, { ownerId: "provider-owner", runnerId: runner.id, connectionId: connection.id, durationSeconds: 30 }, fixture.db);
+	expect(result).toMatchObject({ success: true });
+	if (!result.success) return;
+	await readRunnerConnectionTest(principal, { ownerId: "provider-owner", id: result.test.id }, true, fixture.db);
+	const benefits = (await fixture.pool.query("SELECT benefits_at_start FROM runner_broadcast_admissions WHERE session_id=$1", [result.test.id])).rows[0].benefits_at_start;
+	expect(benefits.youtubeTestCleanedAt).toBeUndefined();
+});
 test("PC-6 token rotation survives an expected downstream provider denial", async () => {
 	const { runnerProviderConnectionsTable } = await import("@/db/schema");
 	const { encryptString, decryptString } = await import("@/app/lib/encryption");

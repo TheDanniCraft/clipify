@@ -162,6 +162,14 @@ test("YouTube connection test cleanup is idempotent after resources are already 
 	global.fetch = jest.fn().mockResolvedValue(new Response(null, { status: 404 }));
 	await expect(deleteYoutubeConnectionTest({ provider: "youtube", accessToken: "token", clientId: "client", channelId: "channel" }, { broadcastId: "broadcast", streamId: "stream" })).resolves.toBeUndefined();
 });
+test("YouTube connection test helpers reject creation and skip cleanup for another provider", async () => {
+	const { createYoutubeConnectionTest, deleteYoutubeConnectionTest } = await import("@/server/runner/provider-api");
+	const context = { provider: "twitch" as const, accessToken: "token", clientId: "client", channelId: "channel" };
+	global.fetch = jest.fn();
+	await expect(createYoutubeConnectionTest(context)).rejects.toMatchObject({ code: "CHANNEL_UNAVAILABLE" });
+	await expect(deleteYoutubeConnectionTest(context, { broadcastId: "broadcast", streamId: "stream" })).resolves.toBeUndefined();
+	expect(global.fetch).not.toHaveBeenCalled();
+});
 test("a failed YouTube bind removes every temporary resource already created", async () => {
 	const { createYoutubeConnectionTest } = await import("@/server/runner/provider-api");
 	const fetcher = jest
