@@ -6,6 +6,7 @@ type UpdateTarget = { osKey: string };
 
 const WINDOWS_CLEANUP_ATTEMPTS = 125;
 const WINDOWS_CLEANUP_MAX_DELAY_MS = 500;
+const MAX_UPDATE_BYTES = 256 * 1024 * 1024;
 
 function getFileHash(filePath: string): string {
 	const fileBuffer = fs.readFileSync(filePath);
@@ -14,7 +15,7 @@ function getFileHash(filePath: string): string {
 	return hashSum.digest("hex");
 }
 
-async function downloadFile(url: string, dest: string, expectedSize?: number): Promise<void> {
+async function downloadFile(url: string, dest: string, expectedSize?: number): Promise<string> {
 	const parsedUrl = new URL(url);
 	if (!["http:", "https:"].includes(parsedUrl.protocol)) throw new Error(`Unsupported update URL protocol: ${parsedUrl.protocol}`);
 	try {
@@ -23,7 +24,10 @@ async function downloadFile(url: string, dest: string, expectedSize?: number): P
 		if (!response.body) throw new Error("Update download has no response body");
 		const length = response.headers.get("content-encoding") ? 0 : Number(response.headers.get("content-length"));
 		const total = expectedSize ?? (Number.isSafeInteger(length) && length > 0 ? length : 0);
-		const chunks: Buffer[] = [];
+		const maximum = expectedSize ?? MAX_UPDATE_BYTES;
+		if (total > maximum || maximum > MAX_UPDATE_BYTES) throw new Error("Update download exceeds the allowed size");
+		const hash = crypto.createHash("sha256");
+		const file = fs.openSync(dest, "w", 0o600);
 		let received = 0;
 		const startedAt = Date.now();
 		let lastReport = startedAt;
@@ -41,8 +45,11 @@ async function downloadFile(url: string, dest: string, expectedSize?: number): P
 			while (true) {
 				const { done, value } = await reader.read();
 				if (done) break;
-				chunks.push(Buffer.from(value));
 				received += value.byteLength;
+				if (received > maximum) throw new Error("Update download exceeds the expected size");
+				const chunk = Buffer.from(value);
+				fs.writeSync(file, chunk);
+				hash.update(chunk);
 				const now = Date.now();
 				if (now - lastReport >= 1000) {
 					report(false, now);
@@ -51,9 +58,11 @@ async function downloadFile(url: string, dest: string, expectedSize?: number): P
 			}
 		} finally {
 			reader.releaseLock();
+			fs.closeSync(file);
 		}
-		fs.writeFileSync(dest, Buffer.concat(chunks));
+		if (expectedSize !== undefined && received !== expectedSize) throw new Error("Update download size does not match the manifest");
 		report(true, Date.now());
+		return hash.digest("hex");
 	} catch (error) {
 		try {
 			fs.unlinkSync(dest);
@@ -87,9 +96,9 @@ async function applyUpdate(apiBase: string, osKey: string, remoteHash: string, e
 	const execPath = process.execPath;
 	const newPath = process.platform === "win32" ? getWindowsUpdatePaths(execPath).staged : `${execPath}.new`;
 	const oldPath = `${execPath}.old`;
-	await downloadFile(`${apiBase}/api/runner/download?os=${encodeURIComponent(osKey)}`, newPath, expectedSize);
+	const downloadedHash = await downloadFile(`${apiBase}/api/runner/download?os=${encodeURIComponent(osKey)}`, newPath, expectedSize);
 
-	if (getFileHash(newPath) !== remoteHash) {
+	if (downloadedHash !== remoteHash) {
 		console.error("[Updater] Downloaded file hash mismatch! Aborting update.");
 		fs.unlinkSync(newPath);
 		return;

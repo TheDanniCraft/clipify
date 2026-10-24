@@ -10,10 +10,15 @@ jest.mock("child_process");
 describe("Updater logic", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
+		(fs.unlinkSync as jest.Mock).mockReset();
+		(fs.writeSync as jest.Mock).mockReset();
+		(fs.closeSync as jest.Mock).mockReset();
+		(fs.openSync as jest.Mock).mockReset();
 		global.fetch = jest.fn();
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		(process as any).pkg = true; // Mock pkg context
 		process.execPath = "/path/to/clipify-runner.exe";
+		(fs.openSync as jest.Mock).mockReturnValue(42);
 	});
 
 	afterEach(() => {
@@ -209,7 +214,9 @@ describe("Updater logic", () => {
 			const progress = log.mock.calls.map(([message]) => String(message)).filter((message) => message.startsWith("[Updater] Download:"));
 			expect(progress).toContain(knownSize ? "[Updater] Download: 50% (1.0 / 2.0 MiB), 1.0 MiB/s, about 1s remaining" : "[Updater] Download: 1.0 MiB (total size and ETA unavailable)");
 			expect(progress.at(-1)).toBe(knownSize ? "[Updater] Download: 100% (2.0 / 2.0 MiB)" : "[Updater] Download: 2.0 MiB (complete)");
-			expect(fs.writeFileSync).toHaveBeenCalledWith(expect.stringContaining(".new"), Buffer.concat(chunks));
+			expect(fs.openSync).toHaveBeenCalledWith(expect.stringContaining(".new"), "w", 0o600);
+			expect(fs.writeSync).toHaveBeenCalledTimes(2);
+			expect(fs.closeSync).toHaveBeenCalledWith(42);
 		} finally {
 			log.mockRestore();
 			time.mockRestore();
@@ -233,11 +240,38 @@ describe("Updater logic", () => {
 			await expect(checkForUpdates("https://clipify.example")).resolves.toBe("old-hash");
 			expect(reader.releaseLock).toHaveBeenCalled();
 			expect(fs.unlinkSync).toHaveBeenCalledWith(expect.stringContaining(".new"));
-			expect(fs.writeFileSync).not.toHaveBeenCalled();
+			expect(fs.writeSync).toHaveBeenCalledTimes(1);
+			expect(fs.closeSync).toHaveBeenCalledWith(42);
 			expect(fs.renameSync).not.toHaveBeenCalled();
 			expect(log.mock.calls.flat().join(" ")).not.toMatch(/100%|\(complete\)|Download verified/);
 		} finally {
 			log.mockRestore();
+			error.mockRestore();
+		}
+	});
+
+	it.each([
+		{ name: "larger than the manifest", expected: 2, chunks: [new Uint8Array([1, 2, 3])] },
+		{ name: "shorter than the manifest", expected: 4, chunks: [new Uint8Array([1, 2, 3])] },
+	])("rejects a download that is $name", async ({ expected, chunks }) => {
+		(fs.existsSync as jest.Mock).mockReturnValue(true);
+		(crypto.createHash as jest.Mock).mockReturnValue({ update: jest.fn(), digest: jest.fn().mockReturnValue("old-hash") });
+		(global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true, json: async () => ({ linux: "new-hash", windows: "new-hash", artifacts: [{ sha256: "new-hash", size: expected }] }) }).mockResolvedValueOnce(
+			new Response(
+				new ReadableStream({
+					start(controller) {
+						for (const chunk of chunks) controller.enqueue(chunk);
+						controller.close();
+					},
+				}),
+			),
+		);
+		const error = jest.spyOn(console, "error").mockImplementation(() => {});
+		try {
+			await expect(checkForUpdates("https://clipify.example")).resolves.toBe("old-hash");
+			expect(fs.unlinkSync).toHaveBeenCalledWith(expect.stringContaining(".new"));
+			expect(fs.renameSync).not.toHaveBeenCalled();
+		} finally {
 			error.mockRestore();
 		}
 	});
