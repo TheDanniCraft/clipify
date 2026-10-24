@@ -39,4 +39,12 @@ describe("container database migrations", () => {
 		expect(contents).not.toContain("drizzle-kit/bin.cjs push");
 		expect(contents).not.toContain("sleep infinity");
 	});
+
+	it("fingerprints preview web and Runner artifacts with the same verification keys", () => {
+		const contents = readFileSync(join(process.cwd(), "Dockerfile-preview"), "utf8");
+
+		expect(contents).toContain("preview-execution-public-keys.json");
+		expect(contents).toContain("export RUNNER_EXECUTION_PUBLIC_KEYS=");
+		expect(contents).toContain("node scripts/fingerprint-runner.mjs --write-context src/app/lib/runnerContext.generated.ts");
+	});
 });

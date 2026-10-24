@@ -150,8 +150,14 @@ Example:
 - The `Generate Migrations` workflow owns ordinary migration generation after a
   completed pull request lands on `master`. It generates one migration from the
   final schema diff.
-- `bun run db:push` is permitted only against the disposable development
-  database through Infisical. Never use it against production.
+- Development and preview databases are synchronized only by an explicit
+  operator-run `bun run db:push` through Infisical. Preview container startup
+  must never run `drizzle-kit push`, `drizzle-kit migrate`, or any equivalent
+  automatic schema mutation.
+- Production releases apply the generated migrations committed after merge.
+  Never use `db:push` against production, and never use production migrations
+  to synchronize a feature branch's preview database before those migrations
+  have been generated from `master`.
 - The sole CI exception is `bun run db:push:e2e`, which is guarded to run only
   in GitHub Actions job `browser-tests` against PostgreSQL on loopback, database
   and user `clipify_e2e`, with `CLIPIFY_E2E_SCHEMA_PUSH=1`. It must never accept
