@@ -65,12 +65,12 @@ test.each(["ok", "retry", "reauth"])("main initializes the native runner and han
 	try {
 		await expect(cli.main()).rejects.toBe(sentinel);
 		expect(init).toHaveBeenCalledTimes(1);
-		expect(ensureDependencies).toHaveBeenCalledTimes(1);
-		expect(ensureDependencies.mock.invocationCallOrder[0]).toBeLessThan(network.mock.invocationCallOrder[0]);
+		expect(ensureDependencies).toHaveBeenCalledTimes(status === "retry" ? 0 : 1);
+		if (status !== "retry") expect(network.mock.invocationCallOrder[0]).toBeLessThan(ensureDependencies.mock.invocationCallOrder[0]);
 		expect(acquireRunnerInstance).toHaveBeenCalledTimes(1);
 		expect(recoverInterruptedExecutions).toHaveBeenCalledTimes(1);
 		expect(recoverInterruptedExecutions.mock.invocationCallOrder[0]).toBeLessThan(loadCredentials.mock.invocationCallOrder[0]);
-		expect(checkForUpdates).toHaveBeenCalledTimes(status === "reauth" ? 2 : 1);
+		expect(checkForUpdates).toHaveBeenCalledTimes(status === "retry" ? 0 : 1);
 		expect(loadCredentials).toHaveBeenCalledTimes(status === "reauth" ? 2 : 1);
 		if (status === "reauth") expect(clearCredentials).toHaveBeenCalledWith("device");
 		timers.mockRestore();

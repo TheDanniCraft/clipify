@@ -117,6 +117,18 @@ describe("Storage Service", () => {
 		expect(loaded.token).toBe("secret-token");
 	});
 
+	it("falls back to the protected config when keyring read-back loses the token", async () => {
+		const setPassword = jest.fn().mockResolvedValue(undefined);
+		const getPassword = jest.fn().mockResolvedValue(null);
+		(Entry as unknown as jest.Mock).mockImplementation(() => ({ setPassword, getPassword }));
+
+		await saveCredentials({ runnerId: "device", apiBase: "https://example.invalid", token: "secret-token" });
+
+		expect(setPassword).toHaveBeenCalledWith("secret-token");
+		expect(getPassword).toHaveBeenCalledTimes(1);
+		expect(fs.writeFileSync).toHaveBeenCalledWith(expect.any(String), expect.stringContaining('"token": "secret-token"'), expect.objectContaining({ mode: 0o600 }));
+	});
+
 	it("should fallback to config.json if keyring fails", async () => {
 		const mockCredentials = {
 			runnerId: "test-runner-123",

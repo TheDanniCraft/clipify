@@ -785,9 +785,6 @@ async function main() {
 	let { apiBase, token, runnerId } = await initializeRunner(process.argv.slice(2));
 	ConsoleUI.init();
 
-	RUNNER_VERSION = await checkForUpdates(apiBase);
-	void ensureDependencies().catch(() => console.warn("[Runner] Dependency preparation failed; the next broadcast start will retry."));
-
 	console.log("==========================================");
 	console.log(`=       Clipify Runner (${RUNNER_VERSION.substring(0, 8)})        =`);
 	console.log("==========================================");
@@ -806,6 +803,7 @@ async function main() {
 
 	const runnerArgs = process.argv.slice(2);
 	let heartbeatFailures = 0;
+	let startupPrepared = false;
 	while (true) {
 		const heartbeatStatus = await pollHeartbeat(token, apiBase, runnerId);
 		connectionStatus = heartbeatStatus === "ok" ? "Connection: Online 🟢" : heartbeatStatus === "reauth" ? "Connection: Reconnecting 🟡" : "Connection: Offline 🔴";
@@ -815,10 +813,14 @@ async function main() {
 			apiBase = reauthenticated.apiBase;
 			token = reauthenticated.token;
 			runnerId = reauthenticated.runnerId;
-			RUNNER_VERSION = await checkForUpdates(apiBase);
 			heartbeatFailures = 0;
 			console.log(`[Info] Re-enrollment complete. API Base URL is ${apiBase}.`);
 			continue;
+		}
+		if (heartbeatStatus === "ok" && !startupPrepared) {
+			startupPrepared = true;
+			RUNNER_VERSION = await checkForUpdates(apiBase);
+			void ensureDependencies().catch(() => console.warn("[Runner] Dependency preparation failed; the next broadcast start will retry."));
 		}
 		if (heartbeatStatus === "retry") {
 			heartbeatFailures += 1;

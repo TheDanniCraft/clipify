@@ -39,7 +39,8 @@ export async function saveCredentials(credentials: RunnerCredentials) {
 		try {
 			const entry = new Entry(SERVICE_NAME, credentials.runnerId);
 			await entry.setPassword(credentials.token);
-			keyringSuccess = true;
+			keyringSuccess = (await entry.getPassword()) === credentials.token;
+			if (!keyringSuccess) console.warn("[Storage] Keyring could not read back the saved token; saving credentials to config.json instead.");
 		} catch {
 			console.warn("[Storage] Keyring unavailable; saving credentials to config.json instead.");
 		}
