@@ -89,7 +89,7 @@ for (const locale of ["en-US", "de-DE"])
 			await expect(editor.getByRole("spinbutton", { name: /^(day|Tag), End date/i })).toHaveAttribute("aria-valuenow", String(Number(dates.finish.slice(8, 10))));
 			await editor.getByRole("button", { name: "Cancel", exact: true }).click();
 			await calendar.getByRole("radio", { name: "Month", exact: true }).click();
-			const spanning = calendar.locator('[data-slot="agenda-month-spanning-event"]').filter({ hasText: "All-day vacation" }).first();
+			const spanning = calendar.locator('[data-slot="agenda-month-event"], [data-slot="agenda-month-spanning-event"]').filter({ hasText: "All-day vacation" }).first();
 			await expect(spanning).toBeVisible();
 			await schedule.getByRole("button", { name: "Add schedule", exact: true }).scrollIntoViewIfNeeded();
 			await schedule.screenshot({ path: testInfo.outputPath(`calendar-${locale}-month.png`), animations: "disabled" });
