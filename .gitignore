@@ -30,6 +30,9 @@
 # misc
 .DS_Store
 *.pem
+__pycache__/
+*.py[cod]
+core.*
 
 # debug
 npm-debug.log*
