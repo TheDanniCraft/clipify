@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Card, Chip, Spinner } from "@heroui/react";
 import { IconBrandGoogle, IconBrandTwitch, IconLink, IconMail } from "@tabler/icons-react";
 import ConfirmModal from "@components/confirmModal";
@@ -9,6 +9,8 @@ import { notify as addToast } from "@lib/toast";
 import { disconnectLinkedAccount } from "@/app/actions/account-security";
 
 type LinkedAccount = { id: string; providerId: string; accountId: string };
+
+const PENDING_DISCONNECT_KEY = "clipify.pending-linked-account-disconnect";
 
 function providerName(providerId: string) {
 	return providerId === "google" ? "Google" : providerId === "twitch" ? "Twitch" : providerId === "credential" ? "Email" : providerId.charAt(0).toUpperCase() + providerId.slice(1);
@@ -21,14 +23,15 @@ export default function LinkedAccountsPanel() {
 	const [unlinking, setUnlinking] = useState<LinkedAccount | null>(null);
 	const [pending, setPending] = useState(false);
 	const requestPending = useRef(false);
+	const resumeAttempted = useRef(false);
 	const [reauthProvider, setReauthProvider] = useState<"twitch" | "google" | null>(null);
 
-	async function refresh() {
+	const refresh = useCallback(async () => {
 		const result = await authClient.listAccounts();
 		if (result.error) throw new Error("ACCOUNTS_NOT_LOADED");
 		setAccounts(((result.data ?? []) as LinkedAccount[]).filter((account) => account.providerId === "google" || account.providerId === "twitch"));
 		setLoadError(false);
-	}
+	}, []);
 
 	useEffect(() => {
 		let active = true;
@@ -50,35 +53,71 @@ export default function LinkedAccountsPanel() {
 		};
 	}, []);
 
-	async function disconnect() {
-		if (!unlinking || requestPending.current) return;
-		requestPending.current = true;
-		setPending(true);
-		try {
-			const result = await disconnectLinkedAccount(unlinking.id);
-			if (!result.success) {
-				if (result.code === "REAUTHENTICATION_REQUIRED" && result.reauthProvider) setReauthProvider(result.reauthProvider);
-				addToast({ title: result.code === "REAUTHENTICATION_REQUIRED" ? "Sign in again to continue" : "Account could not be disconnected", description: result.error, color: result.code === "REAUTHENTICATION_REQUIRED" ? "warning" : "danger" });
-				return;
+	const disconnectAccount = useCallback(
+		async (account: LinkedAccount) => {
+			if (requestPending.current) return;
+			requestPending.current = true;
+			setPending(true);
+			try {
+				const result = await disconnectLinkedAccount(account.id);
+				if (!result.success) {
+					if (result.code === "REAUTHENTICATION_REQUIRED" && result.reauthProvider) {
+						setUnlinking(account);
+						setReauthProvider(result.reauthProvider);
+					}
+					addToast({ title: result.code === "REAUTHENTICATION_REQUIRED" ? "Sign in again to continue" : "Account could not be disconnected", description: result.error, color: result.code === "REAUTHENTICATION_REQUIRED" ? "warning" : "danger" });
+					return;
+				}
+				const disconnectedProvider = account.providerId;
+				window.sessionStorage.removeItem(PENDING_DISCONNECT_KEY);
+				setUnlinking(null);
+				setReauthProvider(null);
+				await refresh();
+				addToast({ title: `${providerName(disconnectedProvider)} disconnected`, description: "Its Clipify access and Runner channel connection were removed.", color: "success" });
+			} catch {
+				addToast({ title: "Account could not be disconnected", description: "Please try again.", color: "danger" });
+			} finally {
+				requestPending.current = false;
+				setPending(false);
 			}
-			const disconnectedProvider = unlinking.providerId;
-			setUnlinking(null);
-			await refresh();
-			addToast({ title: `${providerName(disconnectedProvider)} disconnected`, description: "Its Clipify access and Runner channel connection were removed.", color: "success" });
-		} catch {
-			addToast({ title: "Account could not be disconnected", description: "Please try again.", color: "danger" });
-		} finally {
-			requestPending.current = false;
-			setPending(false);
-		}
+		},
+		[refresh],
+	);
+
+	async function disconnect() {
+		if (unlinking) await disconnectAccount(unlinking);
 	}
 
+	useEffect(() => {
+		if (loading || resumeAttempted.current) return;
+		resumeAttempted.current = true;
+		const search = new URLSearchParams(window.location.search);
+		const outcome = search.get("reauthentication");
+		if (!outcome) return;
+		search.delete("reauthentication");
+		window.history.replaceState(null, "", `${window.location.pathname}${search.size ? `?${search.toString()}` : ""}${window.location.hash}`);
+		const pendingAccountId = window.sessionStorage.getItem(PENDING_DISCONNECT_KEY);
+		if (outcome === "failed") {
+			window.sessionStorage.removeItem(PENDING_DISCONNECT_KEY);
+			addToast({ title: "Sign-in could not be completed", description: "The account was not disconnected.", color: "danger" });
+			return;
+		}
+		const account = accounts.find((candidate) => candidate.id === pendingAccountId);
+		if (!account) {
+			window.sessionStorage.removeItem(PENDING_DISCONNECT_KEY);
+			return;
+		}
+		queueMicrotask(() => void disconnectAccount(account));
+	}, [accounts, disconnectAccount, loading]);
+
 	async function reauthenticate() {
-		if (!reauthProvider || requestPending.current) return;
+		if (!reauthProvider || !unlinking || requestPending.current) return;
 		requestPending.current = true;
 		setPending(true);
-		const result = await authClient.signIn.social({ provider: reauthProvider, callbackURL: "/dashboard/settings?tab=connections", errorCallbackURL: "/dashboard/settings?tab=connections&reauthentication=failed" });
+		window.sessionStorage.setItem(PENDING_DISCONNECT_KEY, unlinking.id);
+		const result = await authClient.signIn.social({ provider: reauthProvider, callbackURL: "/dashboard/settings?tab=connections&reauthentication=complete", errorCallbackURL: "/dashboard/settings?tab=connections&reauthentication=failed" });
 		if (result.error) {
+			window.sessionStorage.removeItem(PENDING_DISCONNECT_KEY);
 			requestPending.current = false;
 			setPending(false);
 			addToast({ title: "Sign-in could not start", description: "Please try again.", color: "danger" });
@@ -150,9 +189,9 @@ export default function LinkedAccountsPanel() {
 						setReauthProvider(null);
 					}
 				}}
-				title={reauthProvider ? "Sign in again to continue" : `Disconnect ${providerName(unlinking?.providerId ?? "account")}?`}
-				confirmLabel={reauthProvider ? `Continue with ${providerName(reauthProvider)}` : "Disconnect"}
-				description={reauthProvider ? "Clipify needs a recent sign-in before removing an account." : "This removes the sign-in method, revokes its Clipify access, and disconnects Runner destinations using the same channel."}
+				title={reauthProvider ? "Verify your identity" : `Disconnect ${providerName(unlinking?.providerId ?? "account")}?`}
+				confirmLabel={reauthProvider ? `Sign in with ${providerName(reauthProvider)}` : "Disconnect"}
+				description={reauthProvider ? "To complete this action, please sign in again." : "This removes the sign-in method, revokes its Clipify access, and disconnects Runner destinations using the same channel."}
 				onConfirm={reauthProvider ? reauthenticate : disconnect}
 			/>
 		</>

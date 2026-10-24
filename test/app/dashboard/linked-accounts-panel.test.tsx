@@ -39,6 +39,8 @@ const accounts = [
 
 beforeEach(() => {
 	jest.clearAllMocks();
+	window.history.replaceState(null, "", "/dashboard/settings?tab=connections");
+	window.sessionStorage.clear();
 	listAccounts.mockResolvedValue({ data: accounts, error: null });
 	signInSocial.mockResolvedValue({ data: null, error: null });
 });
@@ -74,9 +76,31 @@ test("offers provider reauthentication when the session is no longer fresh", asy
 	await screen.findByText("Google");
 	fireEvent.click(screen.getAllByRole("button", { name: "Disconnect" })[0]);
 	fireEvent.click(within(screen.getByRole("heading", { name: "Disconnect Google?" }).closest("section")!).getByRole("button", { name: "Disconnect" }));
-	await screen.findByRole("heading", { name: "Sign in again to continue" });
-	fireEvent.click(screen.getByRole("button", { name: "Continue with Google" }));
-	await waitFor(() => expect(signInSocial).toHaveBeenCalledWith({ provider: "google", callbackURL: "/dashboard/settings?tab=connections", errorCallbackURL: "/dashboard/settings?tab=connections&reauthentication=failed" }));
+	await screen.findByRole("heading", { name: "Verify your identity" });
+	expect(screen.getByText("To complete this action, please sign in again.")).toBeVisible();
+	fireEvent.click(screen.getByRole("button", { name: "Sign in with Google" }));
+	await waitFor(() => expect(signInSocial).toHaveBeenCalledWith({ provider: "google", callbackURL: "/dashboard/settings?tab=connections&reauthentication=complete", errorCallbackURL: "/dashboard/settings?tab=connections&reauthentication=failed" }));
+	expect(window.sessionStorage.getItem("clipify.pending-linked-account-disconnect")).toBe("google-account");
+});
+
+test("finishes the confirmed disconnect after successful reauthentication", async () => {
+	window.history.replaceState(null, "", "/dashboard/settings?tab=connections&reauthentication=complete");
+	window.sessionStorage.setItem("clipify.pending-linked-account-disconnect", "google-account");
+	disconnectLinkedAccount.mockResolvedValue({ success: true, providerId: "google" });
+	render(<LinkedAccountsPanel />);
+	await waitFor(() => expect(disconnectLinkedAccount).toHaveBeenCalledWith("google-account"));
+	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Google disconnected", color: "success" })));
+	expect(window.sessionStorage.getItem("clipify.pending-linked-account-disconnect")).toBeNull();
+	expect(window.location.search).toBe("?tab=connections");
+});
+
+test("does not disconnect after failed reauthentication", async () => {
+	window.history.replaceState(null, "", "/dashboard/settings?tab=connections&reauthentication=failed");
+	window.sessionStorage.setItem("clipify.pending-linked-account-disconnect", "google-account");
+	render(<LinkedAccountsPanel />);
+	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Sign-in could not be completed", color: "danger" })));
+	expect(disconnectLinkedAccount).not.toHaveBeenCalled();
+	expect(window.sessionStorage.getItem("clipify.pending-linked-account-disconnect")).toBeNull();
 });
 
 test("recovers from an unexpected disconnect failure without leaving the action pending", async () => {
