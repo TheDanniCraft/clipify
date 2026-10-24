@@ -8,6 +8,12 @@ const mockRevalidatePath = jest.fn();
 const mockOwnerFindFirst = jest.fn();
 const mockStreamSessionFindFirst = jest.fn();
 const mockCaptureUnexpectedError = jest.fn();
+const mockListAuthorizedCreatorOperations = jest.fn();
+const mockRedirect = jest.fn((url: string) => {
+	const error = new Error(`NEXT_REDIRECT:${url}`);
+	(error as Error & { digest?: string }).digest = "NEXT_REDIRECT";
+	throw error;
+});
 const mockControlStreamSession = jest.fn();
 const mockRunnerFindFirst = jest.fn();
 const mockRunnerFindMany = jest.fn();
@@ -79,7 +85,13 @@ jest.mock("@lib/runnerArtifacts", () => ({
 jest.mock("next/cache", () => ({
 	revalidatePath: (...args: unknown[]) => mockRevalidatePath(...args),
 }));
-jest.mock("@/auth/authorize-operation", () => ({ authorizeCreatorOperation: (input: { creatorId: string }) => mockAuthorizeCreatorOperation(input), listAuthorizedCreatorOperations: jest.fn() }));
+jest.mock("@/auth/authorize-operation", () => ({ authorizeCreatorOperation: (input: { creatorId: string }) => mockAuthorizeCreatorOperation(input), listAuthorizedCreatorOperations: (...args: unknown[]) => mockListAuthorizedCreatorOperations(...args) }));
+jest.mock("next/navigation", () => ({
+	redirect: (...args: unknown[]) => mockRedirect(...(args as [string])),
+	unstable_rethrow: (error: Error & { digest?: string }) => {
+		if (error.digest === "NEXT_REDIRECT") throw error;
+	},
+}));
 
 describe("actions/runner", () => {
 	beforeEach(() => {
@@ -90,6 +102,14 @@ describe("actions/runner", () => {
 		mockHasActiveEntitlement.mockResolvedValue(true);
 		mockRunnerFindFirst.mockResolvedValue({ id: "runner-1", ownerId: "owner-1" });
 		mockOverlayFindFirst.mockResolvedValue({ id: "overlay-1", ownerId: "owner-1" });
+		mockListAuthorizedCreatorOperations.mockResolvedValue([]);
+	});
+
+	it("preserves the framework redirect when no owned creator can enroll a Runner", async () => {
+		const { createOwnRunner } = await import("@/app/actions/runner");
+		await expect(createOwnRunner("Bedroom PC")).rejects.toThrow("NEXT_REDIRECT:/auth?returnUrl=%2Frunner%2Fenroll");
+		expect(mockRedirect).toHaveBeenCalledWith("/auth?returnUrl=%2Frunner%2Fenroll");
+		expect(mockCaptureUnexpectedError).not.toHaveBeenCalled();
 	});
 
 	it("updates an existing stream session for the authorized owner", async () => {

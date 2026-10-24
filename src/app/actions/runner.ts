@@ -8,7 +8,7 @@ import { overlaysTable, runnersTable, usersTable } from "@/db/schema";
 import { revalidatePath } from "next/cache";
 import { randomBytes, randomUUID } from "crypto";
 import { eq, and, sql, inArray, asc, isNull } from "drizzle-orm";
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import { deriveRunnerCapabilities, resolveRunnerBenefits } from "@/server/runner/capabilities";
 import { StreamState } from "@types";
 import { PLAYBACK_TIMEOUT_MESSAGE } from "../../../packages/runner/src/presentation";
@@ -170,6 +170,7 @@ export async function createOwnRunner(name: string) {
 
 		return await createRunner(creator.id, name);
 	} catch (error) {
+		unstable_rethrow(error);
 		console.error("Failed to create own runner:", error);
 		captureUnexpectedError(error, "runner-actions", "create-own-runner");
 		return { success: false, error: "Failed to create runner" };
