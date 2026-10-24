@@ -764,7 +764,6 @@ function installShutdownHandlers() {
 }
 
 async function main() {
-	installShutdownHandlers();
 	if (process.argv.includes("--self-test")) {
 		console.log("Clipify Runner self-test passed");
 		process.exit(0);
@@ -772,6 +771,9 @@ async function main() {
 
 	const directory = join(os.homedir(), ".clipify-runner");
 	await acquireRunnerInstance(directory);
+	// Do not retain signal/console listeners when another instance owns the lock.
+	// A rejected startup must terminate instead of becoming another stale process.
+	installShutdownHandlers();
 	const recovered = await recoverInterruptedExecutions(directory);
 	for (const admissionId of recovered) closedOnRestart.add(admissionId);
 	if (recovered.size) console.log(`[Runner] Closed interrupted outputs; reconciling ${recovered.size} broadcasts.`);

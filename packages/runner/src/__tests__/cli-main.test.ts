@@ -2,6 +2,28 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { compileRunnerCli } from "../../test/support/cli-adapter";
 
+test("a rejected instance lock does not leave Runner shutdown handlers behind", async () => {
+	const lockError = new Error("already running");
+	const fixtureModule = { exports: {} };
+	const source = readFileSync(join(__dirname, "../index.ts"), "utf8").replace("main().catch(console.error);", "");
+	await compileRunnerCli(
+		source,
+		(name: string) => {
+			if (name === "./startup-recovery") return { acquireRunnerInstance: jest.fn().mockRejectedValue(lockError), recoverInterruptedExecutions: jest.fn() };
+			return name.startsWith("./") ? {} : jest.requireActual(name);
+		},
+		fixtureModule,
+	);
+	const initialSignals = new Map(["SIGINT", "SIGTERM", "SIGHUP"].map((event) => [event, process.listeners(event)]));
+	const stdoutListeners = process.stdout.listeners("error"),
+		stderrListeners = process.stderr.listeners("error");
+
+	await expect((fixtureModule.exports as { main: () => Promise<void> }).main()).rejects.toBe(lockError);
+	for (const [event, listeners] of initialSignals) expect(process.listeners(event)).toEqual(listeners);
+	expect(process.stdout.listeners("error")).toEqual(stdoutListeners);
+	expect(process.stderr.listeners("error")).toEqual(stderrListeners);
+});
+
 test.each(["ok", "retry", "reauth"])("main initializes the native runner and handles %s heartbeats before the next polling wait", async (status) => {
 	jest.useFakeTimers();
 	const originalArgv = process.argv;
