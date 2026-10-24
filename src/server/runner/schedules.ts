@@ -12,7 +12,7 @@ import { authorizeLockedMutation } from "@/server/resources/mutation";
 import { resourceFailure, isResourceFailure, toPublicResourceError } from "@/server/resources/errors";
 import { deriveRunnerCapabilities, resolveRunnerBenefits } from "./capabilities";
 import { completedScheduleEnd, resolveCalendarSchedule, type CalendarSchedule } from "./schedule-time";
-import { captureSessionDestinations } from "./destinations";
+import { captureSessionDestinations, parseCapturedDestinationsSnapshot } from "./destinations";
 import { resolveRetainedResourceAccess } from "@/server/entitlements/resource-access";
 import { hashExecutionTargets, hashScheduledExecutionPayload } from "../../../packages/runner/src/protocol";
 import type { FreeExecutionJob } from "../../../packages/runner/src/execution-runtime";
@@ -673,15 +673,7 @@ async function retainedScheduleCapturesAvailable(tx: TransactionClient, ownerId:
 						.for("share")
 				: [];
 		const plaintext = current.encryptedTargetsSnapshot ? decryptString(current.encryptedTargetsSnapshot) : null;
-		let readableTargets = false;
-		if (plaintext) {
-			try {
-				const captured = JSON.parse(plaintext);
-				readableTargets = captured.version === 1 && Array.isArray(captured.destinations) && captured.destinations.length > 0;
-			} catch {
-				/* Invalid retained snapshot cannot authorize a replacement. */
-			}
-		}
+		const readableTargets = parseCapturedDestinationsSnapshot(plaintext) !== null;
 		if (!retainedSource || retainedSource.status !== "active" || !readableTargets || !(await resolveRetainedResourceAccess({ kind: "overlay", ownerId: ownerId, resourceId: retainedSource.id, client: tx })).runtime) {
 			return false;
 		}
@@ -735,9 +727,9 @@ async function prepareScheduledCapture(frame: ScheduleCacheFrame, occurrence: Ca
 	if (!source || source.status !== "active" || !(await resolveRetainedResourceAccess({ kind: "overlay", ownerId: ownerId, resourceId: source.id, client: tx })).runtime) return null;
 	const captured = physical ? (physical.encryptedTargetsSnapshot ? { encryptedTargetsSnapshot: physical.encryptedTargetsSnapshot, targetIdsSnapshot: physical.targetIdsSnapshot } : resourceFailure("RESOURCE_UNAVAILABLE")) : await captureSessionDestinations(tx, session, true, occurrence.eventId);
 	if (isResourceFailure(captured)) return null;
-	const plaintext = captured.encryptedTargetsSnapshot ? decryptString(captured.encryptedTargetsSnapshot) : null;
-	if (!plaintext) return null;
-	const destinations: NonNullable<FreeExecutionJob["destinations"]> = JSON.parse(plaintext).destinations;
+	const snapshot = parseCapturedDestinationsSnapshot(captured.encryptedTargetsSnapshot ? decryptString(captured.encryptedTargetsSnapshot) : null);
+	if (!snapshot) return null;
+	const destinations: NonNullable<FreeExecutionJob["destinations"]> = snapshot.destinations;
 	const targetHash = hashExecutionTargets(destinations);
 	const sourceRevision = typeof physical?.benefitsAtStart.sourceRevisionAtStart === "number" ? physical.benefitsAtStart.sourceRevisionAtStart : source.configurationRevision;
 	const privateJob = { overlayId: source.id, overlaySecret: source.secret, mode: "24/7" as const, fps: session.fps, resolution: session.resolution, targetHash };

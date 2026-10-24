@@ -156,8 +156,8 @@ test.each([
 
 test("TDD-US2-FR006: a paid captured target set receives a signature over its original destinations", async () => {
 	const targets = [
-		{ id: randomUUID(), rtmpUrl: "rtmp://127.0.0.1/first", streamKey: "private-first-key" },
-		{ id: randomUUID(), rtmpUrl: "rtmp://127.0.0.1/second", streamKey: "private-second-key" },
+		{ id: randomUUID(), name: "First", provider: "custom" as const, rtmpUrl: "rtmp://127.0.0.1/first", streamKey: "private-first-key", configurationRevision: 1, credentialRevision: 1 },
+		{ id: randomUUID(), name: "Second", provider: "custom" as const, rtmpUrl: "rtmp://127.0.0.1/second", streamKey: "private-second-key", configurationRevision: 1, credentialRevision: 1 },
 	];
 	const { privateKey, publicKey } = generateKeyPairSync("ed25519");
 	process.env.RUNNER_EXECUTION_SIGNING_PRIVATE_KEY = privateKey.export({ type: "pkcs8", format: "pem" }).toString();

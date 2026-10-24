@@ -9,6 +9,7 @@ import { StreamState } from "@types";
 import { hashExecutionTargets } from "../../../packages/runner/src/protocol";
 import { requestBroadcastDrain } from "./admission";
 import { deriveRunnerCapabilities, resolveRunnerBenefits } from "./capabilities";
+import { parseCapturedDestinationsSnapshot } from "./destinations";
 
 export async function issueRunnerBenefitSnapshot(runner: Pick<typeof runnersTable.$inferSelect, "id" | "ownerId" | "token">, requestId: string, client: DatabaseClient = db) {
 	if (!process.env.RUNNER_EXECUTION_SIGNING_PRIVATE_KEY) return null;
@@ -39,14 +40,9 @@ async function capturedExecutionTargets(admission: AdmissionRow, session: Sessio
 	let destinations: { id: string; name?: string; provider?: string; rtmpUrl: string; streamKey: string | null }[] | undefined;
 	if (admission.encryptedTargetsSnapshot) {
 		const decoded = decryptString(admission.encryptedTargetsSnapshot);
-		if (!decoded) return null;
-		try {
-			const snapshot = JSON.parse(decoded);
-			if (snapshot.version !== 1 || !Array.isArray(snapshot.destinations) || !snapshot.destinations.length) return null;
-			destinations = snapshot.destinations;
-		} catch {
-			return null;
-		}
+		const snapshot = parseCapturedDestinationsSnapshot(decoded);
+		if (!snapshot) return null;
+		destinations = snapshot.destinations;
 	}
 	return { streamKey, destinations };
 }

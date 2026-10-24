@@ -44,6 +44,30 @@ type Destination = typeof runnerDestinationsTable.$inferSelect;
 export type RunnerDestinationView = ReturnType<typeof destinationView>;
 export type RunnerDestinationInput = z.input<typeof destinationInput>;
 
+const capturedDestination = z
+	.object({
+		id: z.uuid(),
+		name: z.string().min(1).max(80),
+		provider: z.enum(["youtube", "twitch", "custom"]),
+		rtmpUrl: z.string().min(1).max(4096),
+		streamKey: z.string().max(4096).nullable(),
+		configurationRevision: revision,
+		credentialRevision: revision,
+	})
+	.strict()
+	.refine((target) => normalizedRtmpUrl(target.rtmpUrl) !== null);
+const capturedDestinationsSnapshot = z.object({ version: z.literal(1), destinations: z.array(capturedDestination).min(1).max(128) }).strict();
+
+export function parseCapturedDestinationsSnapshot(value: string | null) {
+	if (!value) return null;
+	try {
+		const parsed = capturedDestinationsSnapshot.safeParse(JSON.parse(value));
+		return parsed.success ? parsed.data : null;
+	} catch {
+		return null;
+	}
+}
+
 function failure(code: Parameters<typeof resourceFailure>[0]) {
 	const { error } = resourceFailure(code);
 	return { success: false as const, error: error.message, code: error.code };
