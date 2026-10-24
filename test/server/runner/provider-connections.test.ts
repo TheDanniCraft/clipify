@@ -835,6 +835,16 @@ test("PC-7 disconnect keeps destinations and schedules while removing their chan
 	expect((await fixture.pool.query("SELECT id FROM runner_schedule_events")).rowCount).toBe(1);
 	expect((await fixture.pool.query("SELECT event_id FROM runner_schedule_event_destinations")).rowCount).toBe(1);
 });
+test("PC-7 disconnect rejects invalid input without changing destinations", async () => {
+	const { disconnectStreamingConnection } = await import("@/server/runner/provider-connections");
+	expect(await disconnectStreamingConnection(principal, { ownerId: "provider-owner", connectionId: "not-a-uuid" }, fixture.db)).toEqual({ success: false, error: "Choose a connected channel.", code: "INVALID_INPUT" });
+	expect((await fixture.pool.query("SELECT connection_id FROM runner_destinations WHERE connection_id IS NOT NULL")).rowCount).toBe(1);
+});
+test("PC-7 disconnect reports a channel that was already removed", async () => {
+	const { disconnectStreamingConnection } = await import("@/server/runner/provider-connections");
+	expect(await disconnectStreamingConnection(principal, { ownerId: "provider-owner", connectionId: randomUUID() }, fixture.db)).toEqual({ success: false, error: "This channel is already disconnected.", code: "INVALID_INPUT" });
+	expect((await fixture.pool.query("SELECT connection_id FROM runner_destinations WHERE connection_id IS NOT NULL")).rowCount).toBe(1);
+});
 test("Better Auth account removal clears every Runner connection backed by that account", async () => {
 	const { disconnectStreamingConnectionsForAuthAccount } = await import("@/server/runner/provider-connections");
 	const { account: authAccount } = await import("@/db/auth-schema");
@@ -855,6 +865,8 @@ test("Better Auth account removal ignores unrelated and unreadable Runner connec
 	expect(await disconnectStreamingConnectionsForAuthAccount({ id: randomUUID(), userId: "auth-user" }, fixture.db)).toEqual({ disconnected: 0 });
 	expect(await disconnectStreamingConnectionsForAuthAccount({ id: linkedId, userId: "another-user" }, fixture.db)).toEqual({ disconnected: 0 });
 	await fixture.pool.query("UPDATE runner_provider_connections SET encrypted_tokens=$1 WHERE id=$2", [encryptString("not-json"), connection.id]);
+	expect(await disconnectStreamingConnectionsForAuthAccount({ id: randomUUID(), userId: "auth-user" }, fixture.db)).toEqual({ disconnected: 0 });
+	await fixture.pool.query("UPDATE runner_provider_connections SET encrypted_tokens=$1 WHERE id=$2", ["not-encrypted", connection.id]);
 	expect(await disconnectStreamingConnectionsForAuthAccount({ id: randomUUID(), userId: "auth-user" }, fixture.db)).toEqual({ disconnected: 0 });
 	expect((await fixture.pool.query("SELECT id FROM runner_provider_connections WHERE id=$1", [connection.id])).rowCount).toBe(1);
 });
