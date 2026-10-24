@@ -1,0 +1,15 @@
+$ jest --runInBand --forceExit --runTestsByPath src/__tests__/execution-journal.test.ts src/__tests__/execution-runtime.test.ts src/__tests__/heartbeat-protocol.test.ts src/__tests__/schedule-cache-validation.test.ts --coverage "--collectCoverageFrom=src/execution-journal.ts" "--coverageThreshold={\"./src/execution-journal.ts\":{\"statements\":95,\"branches\":90,\"functions\":95,\"lines\":95}}" "--coverageDirectory=/tmp/clipify-review-journal-owners-coverage"
+
+=============================== Coverage summary ===============================
+Statements   : 55.57% ( 364/655 )
+Branches     : 56.17% ( 282/502 )
+Functions    : 64.15% ( 68/106 )
+Lines        : 56.1% ( 308/549 )
+================================================================================
+
+Test Suites: 4 passed, 4 total
+Tests:       183 passed, 183 total
+Snapshots:   0 total
+Time:        6.408 s
+Ran all test suites within paths "src/__tests__/execution-journal.test.ts", "src/__tests__/execution-runtime.test.ts", "src/__tests__/heartbeat-protocol.test.ts", "src/__tests__/schedule-cache-validation.test.ts".
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

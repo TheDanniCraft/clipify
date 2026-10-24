@@ -60,6 +60,7 @@ type PartialUser = { id: string; plan: Plan };
 describe("lib/entitlements", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
+		selectExecute.mockReset();
 		selectExecute.mockResolvedValue([]);
 		updateExecute.mockResolvedValue({ rowCount: 1 });
 		process.env.ENTITLEMENTS_HYBRID_ENABLED = "1";
@@ -71,13 +72,12 @@ describe("lib/entitlements", () => {
 		expect(result).toEqual(
 			expect.objectContaining({
 				effectivePlan: "pro",
-				runnerAccess: false,
 				isBillingPro: true,
 				source: "billing",
 			}),
 		);
-		// Runner access can be owned by a direct entitlement or an agency allocation.
-		expect(db.select).toHaveBeenCalledTimes(2);
+		// Billing Pro requires no retired Runner access reads.
+		expect(db.select).not.toHaveBeenCalled();
 	});
 
 	it("keeps Runner independent from Pro for Free creators", async () => {
@@ -87,7 +87,7 @@ describe("lib/entitlements", () => {
 			.mockResolvedValueOnce([{ id: "runner-grant" }]);
 		const { resolveUserEntitlements } = await loadEntitlements();
 
-		await expect(resolveUserEntitlements({ id: "free-runner-user", plan: Plan.Free } as PartialUser as any)).resolves.toEqual(expect.objectContaining({ effectivePlan: "free", proAccess: false, runnerAccess: true }));
+		await expect(resolveUserEntitlements({ id: "free-runner-user", plan: Plan.Free } as PartialUser as any)).resolves.toEqual(expect.objectContaining({ effectivePlan: "free", proAccess: false }));
 	});
 
 	it("returns free entitlements when hybrid grants are disabled", async () => {
@@ -101,8 +101,7 @@ describe("lib/entitlements", () => {
 				source: "reverse_trial",
 			}),
 		);
-		// Hybrid Pro grants are disabled, but an agency may still fund Runner access.
-		expect(db.select).toHaveBeenCalledTimes(1);
+		expect(db.select).not.toHaveBeenCalled();
 	});
 
 	it("resolves active reverse-trial grants for free users", async () => {
@@ -128,8 +127,6 @@ describe("lib/entitlements", () => {
 	});
 
 	it("resolves entitlements in bulk for mixed users with global grants", async () => {
-		selectExecute.mockResolvedValueOnce([]); // Runner entitlement for the billing-Pro user.
-		selectExecute.mockResolvedValueOnce([]); // Agency Runner allocation for the billing-Pro user.
 		selectExecute.mockResolvedValueOnce([
 			{
 				userId: null,
@@ -139,8 +136,6 @@ describe("lib/entitlements", () => {
 				entitlement: "pro_access",
 			},
 		]);
-		selectExecute.mockResolvedValueOnce([]); // Runner entitlement for the globally granted user.
-		selectExecute.mockResolvedValueOnce([]); // Agency Runner allocation for the globally granted user.
 		const { resolveUserEntitlementsForUsers } = await loadEntitlements();
 		const result = await resolveUserEntitlementsForUsers([
 			{ id: "pro-user", plan: Plan.Pro },
@@ -387,18 +382,18 @@ describe("lib/entitlements", () => {
 		await expect(hasActiveEntitlement("owner", Entitlement.ProAccess)).resolves.toBe(false);
 		expect(db.select).not.toHaveBeenCalled();
 	});
-	it.each(["hasActiveAgencyAllocation", "hasActiveAgencyRunnerAllocation"] as const)("%s recognizes the current owner allocation", async (name) => {
+	it.each(["hasActiveAgencyAllocation"] as const)("%s recognizes the current owner allocation", async (name) => {
 		const policy = await loadEntitlements();
 		selectExecute.mockResolvedValueOnce([]).mockResolvedValueOnce([{ id: "current-allocation" }]);
 		await expect(policy[name]("owner")).resolves.toBe(false);
 		await expect(policy[name]("owner")).resolves.toBe(true);
 	});
-	it("Runner access falls back to its own allocation without granting Pro", async () => {
-		selectExecute.mockResolvedValueOnce([]).mockResolvedValueOnce([{ id: "runner-allocation" }]);
-		const { hasActiveRunnerAccess } = await loadEntitlements();
-		await expect(hasActiveRunnerAccess("owner")).resolves.toBe(true);
-		expect(db.select).toHaveBeenCalledTimes(2);
+	it("retired Runner-only entitlement helpers are absent", async () => {
+		const policy = await loadEntitlements();
+		expect(policy).not.toHaveProperty("hasActiveRunnerAccess");
+		expect(policy).not.toHaveProperty("hasActiveAgencyRunnerAllocation");
 	});
+
 	it.each([
 		[null, null, "later"],
 		[null, "finite", "earlier"],
@@ -425,14 +420,14 @@ describe("lib/entitlements", () => {
 			{ id: "free-owner", plan: Plan.Free },
 			{ id: "pro-owner", plan: Plan.Pro },
 		]);
-		expect(results.get("free-owner")).toMatchObject({ effectivePlan: "free", proAccess: false, runnerAccess: false });
-		expect(results.get("pro-owner")).toMatchObject({ effectivePlan: "pro", isBillingPro: true, runnerAccess: false });
+		expect(results.get("free-owner")).toMatchObject({ effectivePlan: "free", proAccess: false });
+		expect(results.get("pro-owner")).toMatchObject({ effectivePlan: "pro", isBillingPro: true });
 	});
 	it("bulk resolution recognizes Pro-only owners without reading grant candidates", async () => {
 		const { resolveUserEntitlementsForUsers } = await loadEntitlements();
 		const results = await resolveUserEntitlementsForUsers([{ id: "pro-owner", plan: Plan.Pro }]);
 		expect(results.get("pro-owner")).toMatchObject({ effectivePlan: "pro", isBillingPro: true });
-		expect(db.select).toHaveBeenCalledTimes(2);
+		expect(db.select).not.toHaveBeenCalled();
 	});
 	it("suspends owned runner runtime while retaining configuration", async () => {
 		db.transaction.mockImplementation(async (callback) => callback(db));
@@ -476,7 +471,7 @@ describe("lib/entitlements", () => {
 	it("owner agency Pro access remains independent of billing and Runner", async () => {
 		selectExecute.mockResolvedValueOnce([]).mockResolvedValueOnce([{ id: "pro-allocation" }]);
 		const { resolveUserEntitlements } = await loadEntitlements();
-		await expect(resolveUserEntitlements({ id: "owner", plan: Plan.Free })).resolves.toMatchObject({ effectivePlan: "pro", source: "agency", isBillingPro: false, runnerAccess: false, hasActiveGrant: false });
+		await expect(resolveUserEntitlements({ id: "owner", plan: Plan.Free })).resolves.toMatchObject({ effectivePlan: "pro", source: "agency", isBillingPro: false, hasActiveGrant: false });
 	});
 	it("bulk agency allocations elevate only their own creator", async () => {
 		selectExecute.mockResolvedValueOnce([]).mockResolvedValueOnce([{ creatorId: "agency-owner" }]);
@@ -485,7 +480,7 @@ describe("lib/entitlements", () => {
 			{ id: "agency-owner", plan: Plan.Free },
 			{ id: "other-owner", plan: Plan.Free },
 		]);
-		expect(results.get("agency-owner")).toMatchObject({ effectivePlan: "pro", source: "agency", isBillingPro: false, runnerAccess: false });
+		expect(results.get("agency-owner")).toMatchObject({ effectivePlan: "pro", source: "agency", isBillingPro: false });
 		expect(results.get("other-owner")).toMatchObject({ effectivePlan: "free", proAccess: false });
 	});
 	it("disabled grant selection returns no effective grant without a query", async () => {

@@ -8,7 +8,7 @@ export function getDeploymentId() {
 }
 
 export function isLongLivedRuntimePath(pathname: string) {
-	return [/^\/embed\/[^/]+\/?$/, /^\/overlay\/[^/]+\/?$/, /^\/controller\/[^/]+\/?$/, /^\/gallery\/[^/]+\/(?:frame|clip\/[^/]+)\/?$/, /^\/dashboard\/galleries\/[^/]+\/preview\/clip\/[^/]+\/?$/, /^\/demoPlayer\/?$/].some((pattern) => pattern.test(pathname));
+	return !/^\/dashboard(?:\/|$)/.test(pathname) || /^\/dashboard\/galleries\/[^/]+\/preview\/clip\/[^/]+\/?$/.test(pathname);
 }
 
 export function isMissingServerActionError(value: unknown) {

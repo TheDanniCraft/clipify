@@ -52,7 +52,7 @@ describe("checkout intent", () => {
 
 	it("rejects tampered and unsupported payloads", async () => {
 		const { decodeCheckoutIntent, encodeCheckoutIntent } = await import("@/server/checkoutIntent");
-		const encoded = encodeCheckoutIntent({ products: [{ product: BillingProduct.RunnerSelfHosted, billingCycle: "monthly" }], source: "pricing_page", entrypoint: "runner_addon" });
+		const encoded = encodeCheckoutIntent({ products: [{ product: BillingProduct.Pro, billingCycle: "monthly" }], source: "pricing_page", entrypoint: "direct_cta" });
 		expect(decodeCheckoutIntent(`${encoded}x`)).toBeNull();
 		expect(() => encodeCheckoutIntent({ products: [] as never[], source: "pricing_page", entrypoint: "direct_cta" })).toThrow("Invalid checkout intent");
 	});

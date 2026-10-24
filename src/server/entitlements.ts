@@ -8,25 +8,24 @@ export type DowngradeEffects = {
 
 const none = (): CreatorResourceInventory => ({ overlays: [], playlists: [], galleries: [], runners: [] });
 
-export function deriveDowngradeEffects(input: { inventory: CreatorResourceInventory; effectivePlan: "free" | "pro"; runnerAccess: boolean; source?: string }): DowngradeEffects {
+export function deriveDowngradeEffects(input: { inventory: CreatorResourceInventory; effectivePlan: "free" | "pro"; source?: string }): DowngradeEffects {
 	const pro = input.effectivePlan === "pro";
 	const restrictions: string[] = [];
 	if (!pro && input.inventory.overlays.length > 1) restrictions.push("extra-overlays-read-only");
 	if (!pro && input.inventory.playlists.length > 1) restrictions.push("extra-playlists-read-only");
 	if (!pro) restrictions.push("advanced-overlay-settings-read-only");
-	if (!input.runnerAccess && input.inventory.runners.length > 0) restrictions.push("runner-control-disabled");
 	return {
 		retained: structuredClone(input.inventory),
 		deleted: none(),
-		capabilities: { resourceRead: true, advancedOverlayMutation: pro, additionalOverlayMutation: pro, runnerControl: input.runnerAccess },
+		capabilities: { resourceRead: true, advancedOverlayMutation: pro, additionalOverlayMutation: pro, runnerControl: true },
 		restrictions,
 	};
 }
 
 export async function applyDowngradeEffects(effects: DowngradeEffects, operations: { deleteResource: (type: keyof CreatorResourceInventory, id: string) => Promise<void> | void; pauseRuntime: (input: { runners: string[] }) => Promise<void> | void; markReconciled: () => Promise<void> | void }) {
-	// Deletion is intentionally absent: retained data becomes readable but
-	// unsupported mutations and runtime controls are capability-gated.
+	// Retain saved resources and basic Runner control. Paid admission and captured
+	// execution policies own downgrade enforcement without blanket suspension.
 	void operations.deleteResource;
-	if (!effects.capabilities.runnerControl && effects.retained.runners.length > 0) await operations.pauseRuntime({ runners: effects.retained.runners });
+	void operations.pauseRuntime;
 	await operations.markReconciled();
 }

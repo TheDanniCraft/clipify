@@ -1,0 +1,55 @@
+{
+  "ok": true,
+  "scope": "Only exact job-owned disposable loopback templates for final review checks; no broad deletion or production/shared data",
+  "host": "127.0.0.1:54419",
+  "jobs": [
+    {
+      "job": "review-final-probes-20261018",
+      "template": "clipify_fixture_7d4bfa6856a9857d609ad277",
+      "existed": true,
+      "removedOrConfirmedAbsent": true
+    },
+    {
+      "job": "review-final-multi-20261018",
+      "template": "clipify_fixture_b9056d542b5ad55fd0af4cb0",
+      "existed": true,
+      "removedOrConfirmedAbsent": true
+    },
+    {
+      "job": "review-final-free-20261018",
+      "template": "clipify_fixture_3319440e00dfaea1275928fb",
+      "existed": true,
+      "removedOrConfirmedAbsent": true
+    },
+    {
+      "job": "review-final-free-only-20261018",
+      "template": "clipify_fixture_5fa644d5c735c8967f565a04",
+      "existed": true,
+      "removedOrConfirmedAbsent": true
+    },
+    {
+      "job": "review-strength-final-20261018",
+      "template": "clipify_fixture_83e8b5f7a8755ab06bc2fbfc",
+      "existed": true,
+      "removedOrConfirmedAbsent": true
+    },
+    {
+      "job": "review-owner-strength-final-20261018",
+      "template": "clipify_fixture_dcc6bbd1674186428b0b3f18",
+      "existed": true,
+      "removedOrConfirmedAbsent": true
+    },
+    {
+      "job": "review-commit-20261018",
+      "template": "clipify_fixture_2b791b6c651c2afbb3dde507",
+      "existed": false,
+      "removedOrConfirmedAbsent": true
+    },
+    {
+      "job": "review-push-20261018",
+      "template": "clipify_fixture_13c540b5ee8286a07fdee1b5",
+      "existed": true,
+      "removedOrConfirmedAbsent": true
+    }
+  ]
+}

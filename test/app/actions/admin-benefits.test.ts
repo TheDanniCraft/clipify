@@ -54,8 +54,8 @@ test("retrying the same operation does not queue another grant notification", as
 	expect(queue).toHaveBeenCalledTimes(1);
 });
 test("runner access is a distinct entitlement and supports no expiry", async () => {
-	await grantAdminAwards({ ...input, kind: "runner_access", days: null });
-	expect(writes).toHaveBeenCalledWith(expect.objectContaining({ entitlement: "runner_access", endsAt: null }));
+	await grantAdminAwards({ ...input, kind: "pro_access", days: null });
+	expect(writes).toHaveBeenCalledWith(expect.objectContaining({ entitlement: "pro_access", endsAt: null }));
 });
 
 test("admin partnership ending sets its end date and preserves seven days of Pro", async () => {

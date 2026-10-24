@@ -1,4 +1,4 @@
-import { varchar, pgTable, check, timestamp, uuid, integer, bigint, text, uniqueIndex, primaryKey, index, pgEnum, boolean, jsonb } from "drizzle-orm/pg-core";
+import { varchar, pgTable, check, timestamp, uuid, integer, bigint, text, uniqueIndex, unique, primaryKey, foreignKey, index, pgEnum, boolean, jsonb, customType } from "drizzle-orm/pg-core";
 import {
 	type Role,
 	type Plan,
@@ -33,6 +33,7 @@ import {
 } from "@types";
 import { sql } from "drizzle-orm";
 import { badgeSlugs } from "@lib/badgeCatalog";
+import type { StreamDetails } from "@/app/lib/runnerProviderDetails";
 import type { Permission } from "@/auth/permissions";
 import { organization as authOrganizationTable, user as authUserTable } from "./auth-schema";
 
@@ -43,7 +44,9 @@ function enumToPgEnum<T extends Record<string, unknown>>(myEnum: T): [T[keyof T]
 export const roleEnum = pgEnum("role", enumToPgEnum(RoleEnumValues));
 export const planEnum = pgEnum("plan", enumToPgEnum(PlanEnumValues));
 export const runnerStatusEnum = pgEnum("runner_status", enumToPgEnum(RunnerStatusEnumValues));
+export const runnerWatermarkCornerEnum = pgEnum("runner_watermark_corner", ["top_left", "top_right", "bottom_left", "bottom_right"]);
 export const streamModeEnum = pgEnum("stream_mode", enumToPgEnum(StreamModeEnumValues));
+export const streamControlModeEnum = pgEnum("stream_control_mode", ["manual", "scheduled"]);
 export const streamStateEnum = pgEnum("stream_state", enumToPgEnum(StreamStateEnumValues));
 export const statusOptionsEnum = pgEnum("status_options", enumToPgEnum(StatusOptionsEnumValues));
 export const overlayTypeEnum = pgEnum("overlay_type", enumToPgEnum(OverlayTypeEnumValues));
@@ -137,7 +140,7 @@ export const agencyBillingStatusEnum = pgEnum("agency_billing_status", ["pending
 export const agencyBillingCollectionMethodEnum = pgEnum("agency_billing_collection_method", ["charge_automatically", "send_invoice"]);
 export const agencyCreatorLinkStatusEnum = pgEnum("agency_creator_link_status", ["proposed", "accepted", "revoked"]);
 export const agencyLicenseAllocationStatusEnum = pgEnum("agency_license_allocation_status", ["active", "removal_scheduled", "ended", "released_by_deletion"]);
-export const agencyLicenseProductEnum = pgEnum("agency_license_product", ["creator_pro", "runner"]);
+export const agencyLicenseProductEnum = pgEnum("agency_license_product", ["creator_pro"]);
 export const accountDeletionChoiceEnum = pgEnum("account_deletion_choice", ["paid_through", "immediate"]);
 export const accountDeletionStatusEnum = pgEnum("account_deletion_status", ["scheduled", "suspended", "recovered", "purge_eligible", "purged", "cancelled"]);
 export const auditOutcomeEnum = pgEnum("audit_outcome", ["success", "denied", "error"]);
@@ -184,12 +187,11 @@ export const agencyAccountsTable = pgTable(
 		status: agencyAccountStatusEnum("status").notNull().default("provisioned"),
 		commercialReference: varchar("commercial_reference", { length: 160 }),
 		creatorSeatLimit: integer("creator_seat_limit").notNull().default(0),
-		runnerSeatLimit: integer("runner_seat_limit").notNull().default(0),
 		provisionedBy: text("provisioned_by").references(() => authUserTable.id, { onDelete: "set null" }),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 	},
-	(table) => [check("agency_accounts_seat_limit_nonnegative", sql`${table.creatorSeatLimit} >= 0 AND ${table.runnerSeatLimit} >= 0`), check("agency_accounts_commercial_reference_non_secret", sql`${table.commercialReference} IS NULL OR ${table.commercialReference} !~* '(bearer[[:space:]]+|token=|password=|secret=|credential=)'`)],
+	(table) => [check("agency_accounts_seat_limit_nonnegative", sql`${table.creatorSeatLimit} >= 0`), check("agency_accounts_commercial_reference_non_secret", sql`${table.commercialReference} IS NULL OR ${table.commercialReference} !~* '(bearer[[:space:]]+|token=|password=|secret=|credential=)'`)],
 );
 
 export const agencyBillingAccountsTable = pgTable(
@@ -210,25 +212,13 @@ export const agencyBillingAccountsTable = pgTable(
 		creatorSeatMinimum: integer("creator_seat_minimum").notNull(),
 		creatorSeatQuantity: integer("creator_seat_quantity").notNull(),
 		pendingCreatorSeatQuantity: integer("pending_creator_seat_quantity"),
-		runnerSeatPriceId: varchar("runner_seat_price_id"),
-		runnerSeatItemId: varchar("runner_seat_item_id"),
-		runnerSeatMinimum: integer("runner_seat_minimum").notNull().default(0),
-		runnerSeatQuantity: integer("runner_seat_quantity").notNull().default(0),
-		pendingRunnerSeatQuantity: integer("pending_runner_seat_quantity"),
 		currentPeriodStart: timestamp("current_period_start", { withTimezone: true }),
 		currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
 		latestStripeEventCreated: bigint("latest_stripe_event_created", { mode: "number" }).notNull().default(0),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 	},
-	(table) => [
-		index("agency_billing_status_idx").on(table.status),
-		check("agency_billing_creator_minimum_nonnegative", sql`${table.creatorSeatMinimum} >= 0`),
-		check("agency_billing_creator_quantity_nonnegative", sql`${table.creatorSeatQuantity} >= 0`),
-		check("agency_billing_runner_minimum_nonnegative", sql`${table.runnerSeatMinimum} >= 0`),
-		check("agency_billing_runner_quantity_nonnegative", sql`${table.runnerSeatQuantity} >= 0`),
-		check("agency_billing_invoice_terms", sql`(${table.collectionMethod} = 'send_invoice' AND ${table.daysUntilDue} BETWEEN 1 AND 90) OR (${table.collectionMethod} = 'charge_automatically' AND ${table.daysUntilDue} IS NULL)`),
-	],
+	(table) => [index("agency_billing_status_idx").on(table.status), check("agency_billing_creator_minimum_nonnegative", sql`${table.creatorSeatMinimum} >= 0`), check("agency_billing_creator_quantity_nonnegative", sql`${table.creatorSeatQuantity} >= 0`), check("agency_billing_invoice_terms", sql`(${table.collectionMethod} = 'send_invoice' AND ${table.daysUntilDue} BETWEEN 1 AND 90) OR (${table.collectionMethod} = 'charge_automatically' AND ${table.daysUntilDue} IS NULL)`)],
 );
 
 export const agencyCreatorLinksTable = pgTable(
@@ -793,9 +783,75 @@ export const runnersTable = pgTable(
 		lastHeartbeatAt: timestamp("last_heartbeat_at", { withTimezone: true }),
 		osInfo: varchar("os_info"),
 		version: varchar("version"),
+		protocolVersion: integer("protocol_version").notNull().default(1),
+		capabilities: jsonb("capabilities").$type<string[]>().notNull().default([]),
+		lastAcknowledgedConfigRevision: integer("last_acknowledged_config_revision"),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	},
-	(table) => [check("runners_revision_positive", sql`${table.configurationRevision} > 0`)],
+	(table) => [check("runners_revision_positive", sql`${table.configurationRevision} > 0`), unique("runners_owner_id_unique").on(table.ownerId, table.id)],
+);
+
+const runnerAssetBytes = customType<{ data: Buffer; driverData: Buffer }>({
+	dataType() {
+		return "bytea";
+	},
+	toDriver(value) {
+		return value;
+	},
+	fromDriver(value) {
+		return Buffer.from(value);
+	},
+});
+export const runnerBrandingAssetsTable = pgTable(
+	"runner_branding_assets",
+	{
+		id: uuid("id").notNull().defaultRandom().primaryKey(),
+		ownerId: varchar("owner_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		kind: varchar("kind", { length: 10 }).notNull(),
+		normalizedMime: varchar("normalized_mime", { length: 20 }).notNull(),
+		sizeBytes: integer("size_bytes").notNull(),
+		width: integer("width").notNull(),
+		height: integer("height").notNull(),
+		checksum: varchar("checksum", { length: 64 }).notNull(),
+		bytes: runnerAssetBytes("bytes").notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+	},
+	(table) => [
+		unique("runner_branding_assets_owner_id_unique").on(table.ownerId, table.id),
+		check("runner_branding_assets_kind_valid", sql`${table.kind} IN ('logo','background')`),
+		check("runner_branding_assets_mime_valid", sql`${table.normalizedMime} IN ('image/png','image/jpeg','image/webp')`),
+		check("runner_branding_assets_bounds_valid", sql`${table.sizeBytes} > 0 AND ${table.sizeBytes} <= 2097152 AND octet_length(${table.bytes}) = ${table.sizeBytes} AND ${table.width} > 0 AND ${table.width} <= 4096 AND ${table.height} > 0 AND ${table.height} <= 4096 AND ${table.width}::bigint * ${table.height} <= 16000000`),
+	],
+);
+
+export const runnerBrandingProfilesTable = pgTable(
+	"runner_branding_profiles",
+	{
+		id: uuid("id").notNull().defaultRandom().primaryKey(),
+		ownerId: varchar("owner_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		runnerId: uuid("runner_id").notNull(),
+		watermarkCorner: runnerWatermarkCornerEnum("watermark_corner").notNull().default("bottom_right"),
+		proShowAttribution: boolean("pro_show_attribution").notNull().default(false),
+		standbyBackgroundColor: varchar("standby_background_color", { length: 7 }).notNull().default("#000000"),
+		backgroundAssetId: uuid("background_asset_id"),
+		logoAssetId: uuid("logo_asset_id"),
+		message: varchar("message", { length: 160 }).notNull().default(""),
+		showNextBroadcastTime: boolean("show_next_broadcast_time").notNull().default(false),
+		revision: integer("revision").notNull().default(1),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+	},
+	(table) => [
+		foreignKey({ columns: [table.ownerId, table.backgroundAssetId], foreignColumns: [runnerBrandingAssetsTable.ownerId, runnerBrandingAssetsTable.id] }),
+		foreignKey({ columns: [table.ownerId, table.logoAssetId], foreignColumns: [runnerBrandingAssetsTable.ownerId, runnerBrandingAssetsTable.id] }),
+		uniqueIndex("runner_branding_profiles_runner_unique").on(table.runnerId),
+		foreignKey({ columns: [table.ownerId, table.runnerId], foreignColumns: [runnersTable.ownerId, runnersTable.id] }).onDelete("cascade"),
+		check("runner_branding_profiles_revision_positive", sql`${table.revision} > 0`),
+	],
 );
 
 export const runnerEnrollmentsTable = pgTable(
@@ -829,6 +885,10 @@ export const streamSessionsTable = pgTable(
 			.notNull()
 			.references(() => overlaysTable.id, { onDelete: "cascade" }),
 		mode: streamModeEnum("mode").$type<StreamMode>().notNull(),
+		controlMode: streamControlModeEnum("control_mode").notNull().default("manual"),
+		testExpiresAt: timestamp("test_expires_at", { withTimezone: true }),
+		automationPausedAt: timestamp("automation_paused_at", { withTimezone: true }),
+		automationRevision: integer("automation_revision").notNull().default(0),
 		configurationRevision: integer("configuration_revision").notNull().default(1),
 		encryptedStreamKey: text("encrypted_stream_key"),
 		rtmpUrl: varchar("rtmp_url").notNull().default("rtmp://live.twitch.tv/app"),
@@ -839,7 +899,186 @@ export const streamSessionsTable = pgTable(
 		lastError: text("last_error"),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 	},
-	(table) => [check("stream_sessions_revision_positive", sql`${table.configurationRevision} > 0`)],
+	(table) => [unique("stream_sessions_owner_identity").on(table.ownerId, table.id), check("stream_sessions_revision_positive", sql`${table.configurationRevision} > 0`), check("stream_sessions_automation_revision_nonnegative", sql`${table.automationRevision} >= 0`), check("stream_sessions_scheduled_clips_only", sql`${table.controlMode} <> 'scheduled' OR ${table.mode} = '24/7'`)],
+);
+
+export const runnerDestinationProviderEnum = pgEnum("runner_destination_provider", ["youtube", "twitch", "custom"]);
+export const runnerProviderConnectionsTable = pgTable(
+	"runner_provider_connections",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		ownerId: varchar("owner_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		provider: runnerDestinationProviderEnum("provider").notNull(),
+		channelId: varchar("channel_id", { length: 128 }).notNull(),
+		channelName: varchar("channel_name", { length: 120 }).notNull(),
+		encryptedTokens: text("encrypted_tokens").notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(table) => [unique("runner_provider_connections_owner_channel").on(table.ownerId, table.provider, table.channelId), unique("runner_provider_connections_owner_identity").on(table.ownerId, table.id), check("runner_provider_connections_supported", sql`${table.provider} IN ('twitch','youtube')`)],
+);
+export const runnerProviderStatesTable = pgTable(
+	"runner_provider_states",
+	{
+		digest: varchar("digest", { length: 64 }).primaryKey(),
+		ownerId: varchar("owner_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		authUserId: varchar("auth_user_id").notNull(),
+		sessionId: varchar("session_id").notNull(),
+		provider: runnerDestinationProviderEnum("provider").notNull(),
+		expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+	},
+	(table) => [index("runner_provider_states_expiry").on(table.expiresAt)],
+);
+export const runnerDestinationsTable = pgTable(
+	"runner_destinations",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		ownerId: varchar("owner_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		name: varchar("name", { length: 80 }).notNull(),
+		provider: runnerDestinationProviderEnum("provider").notNull(),
+		rtmpUrl: text("rtmp_url").notNull(),
+		encryptedStreamKey: text("encrypted_stream_key"),
+		connectionId: uuid("connection_id"),
+		providerStreamId: varchar("provider_stream_id", { length: 128 }),
+		credentialRevision: integer("credential_revision").notNull().default(1),
+		configurationRevision: integer("configuration_revision").notNull().default(1),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+	},
+	(table) => [
+		foreignKey({ columns: [table.ownerId, table.connectionId], foreignColumns: [runnerProviderConnectionsTable.ownerId, runnerProviderConnectionsTable.id] }),
+		unique("runner_destinations_owner_identity").on(table.ownerId, table.id),
+		index("runner_destinations_owner_created").on(table.ownerId, table.createdAt),
+		check("runner_destinations_name_length", sql`char_length(trim(${table.name})) BETWEEN 1 AND 80`),
+		check("runner_destinations_url_length", sql`char_length(${table.rtmpUrl}) BETWEEN 1 AND 4096`),
+		check("runner_destinations_revisions_positive", sql`${table.credentialRevision} > 0 AND ${table.configurationRevision} > 0`),
+	],
+);
+
+export const streamSessionDestinationsTable = pgTable(
+	"stream_session_destinations",
+	{
+		sessionId: uuid("session_id").notNull(),
+		destinationId: uuid("destination_id").notNull(),
+		ownerId: varchar("owner_id").notNull(),
+		position: integer("position").notNull(),
+	},
+	(table) => [primaryKey({ columns: [table.sessionId, table.destinationId] }), foreignKey({ columns: [table.ownerId, table.sessionId], foreignColumns: [streamSessionsTable.ownerId, streamSessionsTable.id] }).onDelete("cascade"), foreignKey({ columns: [table.ownerId, table.destinationId], foreignColumns: [runnerDestinationsTable.ownerId, runnerDestinationsTable.id] }).onDelete("cascade"), check("stream_session_destinations_position_nonnegative", sql`${table.position} >= 0`)],
+);
+
+export const runnerAdmissionStateEnum = pgEnum("runner_admission_state", ["authorized", "reserved", "starting", "active", "draining", "uncertain", "stopped", "failed_before_output"]);
+export const runnerScheduleRecurrenceEnum = pgEnum("runner_schedule_recurrence", ["once", "weekly"]);
+export const runnerScheduleEventsTable = pgTable(
+	"runner_schedule_events",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		ownerId: varchar("owner_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		runnerId: uuid("runner_id")
+			.notNull()
+			.references(() => runnersTable.id, { onDelete: "cascade" }),
+		sessionId: uuid("session_id").notNull(),
+		overlayId: uuid("overlay_id")
+			.notNull()
+			.references(() => overlaysTable.id, { onDelete: "cascade" }),
+		title: varchar("title", { length: 80 }).notNull(),
+		setStreamDetails: boolean("set_stream_details").notNull().default(false),
+		streamDetails: jsonb("stream_details").$type<StreamDetails[]>().notNull().default([]),
+		timezone: varchar("timezone", { length: 128 }).notNull(),
+		recurrence: runnerScheduleRecurrenceEnum("recurrence").notNull(),
+		recurrenceAnchor: varchar("recurrence_anchor", { length: 80 }).notNull(),
+		weekdayAnchors: jsonb("weekday_anchors").$type<{ weekday: number; anchor: string }[]>().notNull().default([]),
+		excludedDates: jsonb("excluded_dates").$type<string[]>().notNull().default([]),
+		seriesParentId: uuid("series_parent_id"),
+		originalOccurrenceDate: varchar("original_occurrence_date", { length: 10 }),
+		repeatUntilDate: varchar("repeat_until_date", { length: 10 }),
+		localStartDate: varchar("local_start_date", { length: 10 }).notNull(),
+		localEndDate: varchar("local_end_date", { length: 10 }),
+		weekdays: jsonb("weekdays").$type<number[]>().notNull().default([]),
+		localStartTime: varchar("local_start_time", { length: 8 }).notNull(),
+		localEndTime: varchar("local_end_time", { length: 8 }).notNull(),
+		endDayOffset: integer("end_day_offset").notNull().default(0),
+		enabled: boolean("enabled").notNull().default(true),
+		configurationRevision: integer("configuration_revision").notNull().default(1),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+	},
+	(table) => [
+		unique("runner_schedule_events_owner_identity").on(table.ownerId, table.id),
+		foreignKey({ columns: [table.ownerId, table.seriesParentId], foreignColumns: [table.ownerId, table.id] }),
+		index("runner_schedule_events_device").on(table.ownerId, table.runnerId),
+		foreignKey({ columns: [table.ownerId, table.sessionId], foreignColumns: [streamSessionsTable.ownerId, streamSessionsTable.id] }).onDelete("cascade"),
+		check("runner_schedule_events_title_bounds", sql`char_length(trim(${table.title})) BETWEEN 1 AND 80`),
+		check("runner_schedule_events_revision_positive", sql`${table.configurationRevision} > 0`),
+		check("runner_schedule_events_offset_bounds", sql`${table.endDayOffset} BETWEEN 0 AND 7`),
+		check("runner_schedule_events_recurrence_shape", sql`(${table.recurrence}='once' AND ${table.localEndDate} IS NOT NULL) OR (${table.recurrence}='weekly' AND jsonb_typeof(${table.weekdays})='array' AND jsonb_array_length(${table.weekdays}) BETWEEN 1 AND 7)`),
+	],
+);
+export const runnerScheduleEventDestinationsTable = pgTable(
+	"runner_schedule_event_destinations",
+	{
+		eventId: uuid("event_id").notNull(),
+		ownerId: varchar("owner_id").notNull(),
+		destinationId: uuid("destination_id").notNull(),
+		position: integer("position").notNull(),
+	},
+	(table) => [primaryKey({ columns: [table.eventId, table.destinationId] }), foreignKey({ columns: [table.ownerId, table.eventId], foreignColumns: [runnerScheduleEventsTable.ownerId, runnerScheduleEventsTable.id] }).onDelete("cascade"), foreignKey({ columns: [table.ownerId, table.destinationId], foreignColumns: [runnerDestinationsTable.ownerId, runnerDestinationsTable.id] }).onDelete("cascade"), check("runner_schedule_event_destinations_position", sql`${table.position} >= 0`)],
+);
+
+export const runnerBroadcastAdmissionsTable = pgTable(
+	"runner_broadcast_admissions",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		ownerId: varchar("owner_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		runnerId: uuid("runner_id").references(() => runnersTable.id, { onDelete: "set null" }),
+		sessionId: uuid("session_id").references(() => streamSessionsTable.id, { onDelete: "set null" }),
+		executionGeneration: uuid("execution_generation").notNull(),
+		commandId: uuid("command_id").notNull().defaultRandom(),
+		occurrenceId: varchar("occurrence_id"),
+		continuityRootAdmissionId: uuid("continuity_root_admission_id"),
+		state: runnerAdmissionStateEnum("state").notNull().default("reserved"),
+		stopMode: text("stop_mode", { enum: ["graceful", "immediate"] })
+			.notNull()
+			.default("graceful"),
+		dispatchedAt: timestamp("dispatched_at", { withTimezone: true }),
+		startedAt: timestamp("started_at", { withTimezone: true }),
+		lastObservedAt: timestamp("last_observed_at", { withTimezone: true }),
+		stoppedAt: timestamp("stopped_at", { withTimezone: true }),
+		configurationRevision: integer("configuration_revision").notNull(),
+		benefitsAtStart: jsonb("benefits_at_start").$type<Record<string, unknown>>().notNull(),
+		targetIdsSnapshot: uuid("target_ids_snapshot").array(),
+		encryptedTargetsSnapshot: text("encrypted_targets_snapshot"),
+		outputStates: jsonb("output_states").$type<{ id: string; state: "connecting" | "streaming" | "retrying" | "failed" | "stopped" }[]>().notNull().default([]),
+		scheduledEnd: timestamp("scheduled_end", { withTimezone: true }),
+		transitionPolicy: jsonb("transition_policy").$type<{ generatedStop: "finish_clip"; liveStop: "immediate"; noProgressMs: number; maxDrainMs: number }>().notNull().default({ generatedStop: "finish_clip", liveStop: "immediate", noProgressMs: 60000, maxDrainMs: 300000 }),
+		terminalReason: varchar("terminal_reason"),
+		revokedAt: timestamp("revoked_at", { withTimezone: true }),
+		terminalCredentialHash: text("terminal_credential_hash"),
+		leaseId: uuid("lease_id"),
+		leaseExpiresAt: timestamp("lease_expires_at", { withTimezone: true }),
+		protocolSupportsLease: boolean("protocol_supports_lease").notNull().default(false),
+		recoveredAt: timestamp("recovered_at", { withTimezone: true }),
+	},
+	(table) => [
+		unique("runner_admissions_owner_identity_unique").on(table.ownerId, table.id),
+		foreignKey({ columns: [table.ownerId, table.continuityRootAdmissionId], foreignColumns: [table.ownerId, table.id], name: "runner_admissions_continuity_owner_fk" }),
+		check("runner_admissions_continuity_not_self", sql`${table.continuityRootAdmissionId} is null or ${table.continuityRootAdmissionId} <> ${table.id}`),
+		uniqueIndex("runner_admissions_generation_unique").on(table.ownerId, table.executionGeneration),
+		uniqueIndex("runner_admissions_open_session_unique")
+			.on(table.sessionId)
+			.where(sql`${table.state} not in ('authorized','stopped','failed_before_output') and ${table.continuityRootAdmissionId} is null`),
+		index("runner_admissions_owner_state_idx").on(table.ownerId, table.state),
+		check("runner_admissions_revision_positive", sql`${table.configurationRevision} > 0`),
+	],
 );
 
 // Generated from @c15t/backend's current FumaDB schema.

@@ -1,0 +1,25 @@
+$ jest --runInBand "--coverage=false" --runTestsByPath test/server/runner/capability-policy.test.ts
+[tests] Native application probes compiled once for this run
+[tests] database: 1 suites, 1 worker(s)
+FAIL test/server/runner/capability-policy.test.ts
+  ● UX-C2 protocol: a signed retired Runner-only source cannot restore paid capabilities
+
+    expect(received).toBeNull()
+
+    Received: {"capabilities": {"attributionRequired": false, "basicAccess": true, "capabilityRevision": "b36d3265b4c1c7b721ed4da1f3b54ac0a208ff6fd2e054507df9580f096c8b54", "customStandby": true, "evaluatedAt": "1970-01-01T00:16:40.000Z", "maxActiveBroadcasts": null, "maxRegisteredDevices": null, "maxTargets": null, "monthlyUsageLimit": null, "runnerPro": true, "scheduling": true, "source": "legacy", "validUntil": "1970-01-01T00:17:40.000Z"}, "configurationRevision": 1, "expiresAt": 1060000, "issuedAt": 1000000, "issuer": "clipify.us", "kind": "benefits", "ownerId": "owner", "requestId": "a4535cdb-4eee-40fe-9058-3093fc4dc253", "runnerId": "ec00fc0d-c274-44b4-8752-e85dcb29fc95"}
+
+      265 |  const fixture=ownerSnapshotFixture();
+      266 |  const retired=fixture.encode({capabilities:{...fixture.capabilities,source:'legacy'}});
+    > 267 |  expect(executionProtocol.verifyRunnerBenefitSnapshot(retired,fixture.trusted,fixture.identity,fixture.issuedAt+1)).toBeNull();
+          |                                                                                                                     ^
+      268 | });
+      269 |
+
+      at Object.toBeNull (test/server/runner/capability-policy.test.ts:267:117)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 34 passed, 35 total
+Snapshots:   0 total
+Time:        1.073 s
+Ran all test suites within paths "test/server/runner/capability-policy.test.ts".
+error: script "test" exited with code 1

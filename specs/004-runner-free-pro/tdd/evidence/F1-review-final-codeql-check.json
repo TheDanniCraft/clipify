@@ -1,0 +1,15 @@
+{
+  "id": 117659485326,
+  "head_sha": "4be68ca38f0057eb783685894ad7f02e0ae2c091",
+  "status": "completed",
+  "conclusion": "failure",
+  "completed_at": "2026-10-18T11:08:58Z",
+  "html_url": "https://github.com/TheDanniCraft/clipify/runs/117659485326",
+  "output": {
+    "title": "3 new alerts including 3 high severity security vulnerabilities",
+    "summary": "### New alerts in code changed by this pull request\n\nSecurity Alerts:\n * 3 high\n\n\n_Alerts not introduced by this pull request might have been detected because the code changes were too large._\n\nSee annotations below for details.\n\n[View all branch alerts](/TheDanniCraft/clipify/security/code-scanning?query=pr%3A519+tool%3ACodeQL+is%3Aopen).",
+    "text": null,
+    "annotations_count": 3,
+    "annotations_url": "https://api.github.com/repos/TheDanniCraft/clipify/check-runs/117659485326/annotations"
+  }
+}

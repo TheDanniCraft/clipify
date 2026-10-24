@@ -34,3 +34,9 @@ test("opted-in isolated browser runs keep their compiler budget and load the gua
 test("opting into provider fixtures never accepts a persistent database", () => {
 	expect(() => browserProviderEnvironment({ ...environment, DATABASE_URL: "postgresql://fixture:fixture@127.0.0.1/clipify", MCP_BROWSER_PROVIDER_FIXTURE: "true" })).toThrow();
 });
+
+test("controlled browser provider mode includes the guarded Runner media transport", () => {
+	const result = browserProviderEnvironment({ ...environment, MCP_BROWSER_PROVIDER_FIXTURE: "true" }, "--max-old-space-size=2048");
+	expect(result.NODE_OPTIONS).toContain("runner-presentation-provider-preload.mjs");
+	expect(result.NODE_OPTIONS).toContain("browser-provider-preload.mjs");
+});

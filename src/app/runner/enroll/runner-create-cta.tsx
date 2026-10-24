@@ -17,7 +17,7 @@ export default function RunnerCreateCta() {
 		startTransition(async () => {
 			const result = await createOwnRunner("New Hardware Node");
 			if (!result.success || !result.runner) {
-				setError(result.error === "Runner add-on required" ? "The runner add-on is required before creating a runner." : "Failed to create runner.");
+				setError("Failed to create runner.");
 				return;
 			}
 

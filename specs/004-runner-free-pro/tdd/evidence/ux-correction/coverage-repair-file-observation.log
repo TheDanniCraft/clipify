@@ -1,0 +1,19 @@
+[tests] ordinary: 2 suites, 1 worker(s)
+-------------------------------------|---------|----------|---------|---------|-------------------
+File                                 | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------------------------|---------|----------|---------|---------|-------------------
+All files                            |   94.88 |    86.52 |     100 |   99.25 |                   
+ components                          |     100 |      100 |     100 |     100 |                   
+  runnerDestinationSelection.tsx     |     100 |      100 |     100 |     100 |                   
+ dashboard/overlay/[overlayId]/theme |   94.75 |     85.5 |     100 |   99.24 |                   
+  page.tsx                           |   94.75 |     85.5 |     100 |   99.24 | 299-300,911       
+-------------------------------------|---------|----------|---------|---------|-------------------
+Jest: Coverage data for src/app/actions/gallery.ts was not found.
+Jest: Coverage data for src/app/lib/gallery.ts was not found.
+Jest: Coverage data for src/app/components/gallery/**/*.{ts,tsx} was not found.
+
+Test Suites: 2 passed, 2 total
+Tests:       102 passed, 102 total
+Snapshots:   0 total
+Time:        10.457 s, estimated 11 s
+Ran all test suites matching test/app/components/runnerDestinationSelection.test.tsx|test/app/dashboard/overlay.theme.page.test.tsx.

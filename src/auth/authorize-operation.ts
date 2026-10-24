@@ -131,7 +131,7 @@ export async function authorizeTrustedCreatorOperation(input: { creatorId: strin
 	const { access } = await resolveCreatorAccessPath();
 
 	const entitlements = await resolveUserEntitlements(creator, client);
-	const entitlementNames = [entitlements.proAccess ? "pro" : null, entitlements.runnerAccess ? "runner" : null].filter((value): value is string => value !== null);
+	const entitlementNames = [entitlements.proAccess ? "pro" : null].filter((value): value is string => value !== null);
 	const now = input.now ?? new Date();
 	const decisions = permissions.map((permission) =>
 		authorize({

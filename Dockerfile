@@ -21,10 +21,14 @@ ARG COOLIFY_URL
 ARG SOURCE_COMMIT
 ARG SENTRY_RELEASE
 ARG SENTRY_RELEASE_PREFIX=clipify
+ARG RUNNER_EXECUTION_PUBLIC_KEYS
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN node scripts/fingerprint-runner.mjs --write-context src/app/lib/runnerContext.generated.ts
+RUN case "$COOLIFY_URL" in \
+    *beta-*.clipify.cloud.thedannicraft.de*) export RUNNER_EXECUTION_PUBLIC_KEYS="$(node -e 'console.log(JSON.stringify(require("./packages/runner/preview-execution-public-keys.json")))')" ;; \
+    esac; \
+    node scripts/fingerprint-runner.mjs --write-context src/app/lib/runnerContext.generated.ts
 
 RUN --mount=type=secret,id=SENTRY_DSN,env=SENTRY_DSN,required=true \
     --mount=type=secret,id=SENTRY_AUTH_TOKEN,env=SENTRY_AUTH_TOKEN,required=true \

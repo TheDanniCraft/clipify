@@ -68,3 +68,35 @@ test("self-test children cannot consume the ref input needed for scoped checks",
 		rmSync(directory, { recursive: true, force: true });
 	}
 });
+
+test("push execution honors coverage ownership and blocks failures", () => {
+	const { mkdtempSync, writeFileSync, rmSync } = require("node:fs");
+	const { tmpdir } = require("node:os");
+	const { join } = require("node:path");
+	const { spawnSync } = require("node:child_process");
+	const directory = mkdtempSync(join(tmpdir(), "clipify-push-owners-"));
+	try {
+		for (const [paths, expected, status] of [
+			["package.json", "application-coverage", 1],
+			["packages/runner/src/engine.ts", "native-coverage", 1],
+			["packages/runner/src/engine.ts", "native-policy", 1],
+			["src/app/components/example.tsx", "related-tests", 1],
+			["packages/runner/src/engine.ts", "native-coverage", 0],
+		]) {
+			const preload = join(directory, "child-boundary.cjs");
+			writeFileSync(
+				preload,
+				`const child=require('node:child_process');child.execFileSync=()=>${JSON.stringify(paths)};child.spawnSync=(command,args,options)=>{if(args[0].endsWith('pre-push-tests.test.cjs'))return {status:0};const owner=args[0].endsWith('runner-ci-policy.test.mjs')?'native-policy':options.cwd==='packages/runner'?'native-coverage':command==='bun'&&args.join(' ')==='run test:coverage'?'application-coverage':args[0].endsWith('run-scoped-tests.mjs')?'related-tests':'unexpected';console.log(owner);return {status:owner===${JSON.stringify(expected)}?${status}:0};};`,
+			);
+			const result = spawnSync(process.execPath, ["--require", preload, join(__dirname, "pre-push-tests.cjs")], { input: "refs/heads/a abc refs/heads/a def\n", encoding: "utf8" });
+			assert.equal(result.status, status, result.stderr);
+			assert.match(result.stdout, new RegExp(expected));
+			assert.doesNotMatch(result.stdout, /unexpected/);
+			if (expected === "native-policy") assert.doesNotMatch(result.stdout, /native-coverage/);
+			if (expected === "native-coverage") assert.match(result.stdout, /native-policy[\s\S]*native-coverage/);
+			if (paths.startsWith("packages/runner/")) assert.doesNotMatch(result.stdout, /application-coverage|related-tests/);
+		}
+	} finally {
+		rmSync(directory, { recursive: true, force: true });
+	}
+});

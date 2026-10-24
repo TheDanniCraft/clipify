@@ -18,7 +18,7 @@ describe("MemberCard", () => {
 
 	it("shows the stored join date and avatar while the number is pending", () => {
 		render(<MemberCard profile={profile} />);
-		expect(screen.getByText("Jan 2, 2026")).toBeInTheDocument();
+		expect(screen.getByText("01/02/2026")).toBeInTheDocument();
 		expect(screen.getByText("Pending")).toBeInTheDocument();
 		expect(screen.queryByText("Pending backfill")).not.toBeInTheDocument();
 		expect(screen.getByRole("img", { name: "clipper's avatar" })).toHaveAttribute("src", profile.avatar);
@@ -35,7 +35,7 @@ describe("MemberCard", () => {
 		render(<MemberCard profile={{ ...profile, memberNumber: 0, badges: [{ slug: "founder", name: "Founder", description: "", icon: "crown", priority: 100, awardedAt: new Date() }] }} />);
 		expect(screen.getByText("Founder")).toBeInTheDocument();
 		expect(screen.getByText("Early member")).toBeInTheDocument();
-		expect(screen.getByText("Jan 2, 2026")).toBeInTheDocument();
+		expect(screen.getByText("01/02/2026")).toBeInTheDocument();
 	});
 
 	it("updates the foil position and tilt, then resets when the pointer leaves", () => {

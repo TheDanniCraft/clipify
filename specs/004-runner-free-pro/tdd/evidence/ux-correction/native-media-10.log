@@ -1,0 +1,7 @@
+$ jest --runInBand --forceExit --runTestsByPath test/bdd/runner-free-pro.test.ts "--coverage=false"
+Test Suites: 1 passed, 1 total
+Tests:       10 passed, 10 total
+Snapshots:   0 total
+Time:        147.715 s, estimated 149 s
+Ran all test suites within paths "test/bdd/runner-free-pro.test.ts".
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

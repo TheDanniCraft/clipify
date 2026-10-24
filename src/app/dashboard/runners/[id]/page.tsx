@@ -1,24 +1,37 @@
 "use client";
+import { useDeploymentDraft } from "@lib/deploymentDrafts";
 
-import { useEffect, useState, useRef } from "react";
+import LocalizedDate from "@components/localizedDate";
+import DashboardEditorLayout from "@components/dashboardEditorLayout";
+
+import { useEffect, useState, useCallback } from "react";
+import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { validateAuth } from "@actions/auth";
-import { getRunner, getRunnerToken, getRunnerVersionManifest, getStreamSessionsForRunner, upsertStreamSession, setStreamDesiredState, unlinkRunner } from "@actions/runner";
+import { getRunner, getRunnerLivePreview, getRunnerToken, getRunnerVersionManifest, getStreamSessionsForRunner, upsertStreamSession, setStreamDesiredState, unlinkRunner, listRunnerDestinations, listRunnerScheduleEvents } from "@actions/runner";
 import { getAllOverlays } from "@actions/database";
-import { Accordion, Button, Card, Label, Select, Spinner, TextField, ListBox, Input, Chip, Separator, Modal, Dropdown, Tooltip } from "@heroui/react";
-import { IconCopy, IconCheck, IconEye, IconChevronDown, IconDownload, IconPlayerPlay, IconPlayerStop, IconArrowLeft, IconTrash, IconBrandWindows, IconTerminal2, IconBrandApple, IconAlertTriangle, IconCircleCheck, IconUnlink } from "@tabler/icons-react";
+import { Accordion, Button, Card, Label, Select, Spinner, ListBox, Chip, Link, Modal, Dropdown, Tooltip, Separator } from "@heroui/react";
+import { IconArrowLeft, IconBrandWindows, IconTerminal2, IconBrandApple, IconUnlink, IconAlertTriangle, IconCircleCheck, IconRefresh, IconPaint, IconCalendarEvent, IconCrown } from "@tabler/icons-react";
 import { notify } from "@lib/toast";
 import FullscreenLoadingState from "@components/fullscreenLoadingState";
 import ConfirmModal from "@components/confirmModal";
-import { streamSessionsTable } from "@/db/schema";
-import { InferSelectModel } from "drizzle-orm";
+import AdvancedRunnerSetup from "@components/runner/AdvancedSetup";
+import { formatRunnerVersion, getRunnerPlatformFromOs, getRunnerVersionState, type RunnerPlatform } from "@lib/runnerInstallation";
+import RunnerPreviewRefresh from "@components/runnerPreviewRefresh";
+import RunnerBroadcastControls from "@components/runnerBroadcastControls";
+import RunnerDestinations from "@components/runnerDestinations";
+import RunnerBrandingPreview from "@components/runner/RunnerBrandingPreview";
+import RunnerSchedule from "@components/runnerSchedule";
+import RunnerDestinationSelection, { canStartWithDestinations } from "@components/runnerDestinationSelection";
+import RunnerControlSelection from "@components/runnerControlSelection";
+import UpgradeModal from "@components/upgradeModal";
 import DashboardNavbar from "@components/dashboardNavbar";
-import { AuthenticatedUser, Overlay, StreamMode, StreamState, RunnerStatus } from "@types";
+import { AuthenticatedUser, Overlay, StreamMode, StreamState, RunnerStatus, type StreamControlMode } from "@types";
 
 type Runner = NonNullable<Awaited<ReturnType<typeof getRunner>>>;
-type StreamSession = InferSelectModel<typeof streamSessionsTable>;
-type RunnerPlatform = "windows" | "linux" | "linux-arm64" | "macos" | "macos-arm64";
-type RunnerVersionManifest = Awaited<ReturnType<typeof getRunnerVersionManifest>>;
+type StreamSession = Awaited<ReturnType<typeof getStreamSessionsForRunner>>[number];
+type RunnerPolicy = Extract<Awaited<ReturnType<typeof listRunnerScheduleEvents>>, { success: true }>["policy"];
+type DestinationView = Extract<Awaited<ReturnType<typeof listRunnerDestinations>>, { success: true }>["destinations"][number];
 
 const runnerPlatformLabels: Record<RunnerPlatform, string> = {
 	windows: "Windows",
@@ -28,90 +41,64 @@ const runnerPlatformLabels: Record<RunnerPlatform, string> = {
 	"macos-arm64": "macOS Apple Silicon",
 };
 
-function formatRunnerVersion(version: string | null | undefined) {
-	if (!version) return "Unknown";
-	const normalized = normalizeRunnerVersion(version);
-	return normalized.slice(0, 8);
-}
-
-function normalizeRunnerVersion(version: string | null | undefined) {
-	return (version ?? "").trim().replace(/^v/i, "");
-}
-
-function getRunnerVersionHashes(osInfo: string | null | undefined, manifest: RunnerVersionManifest) {
-	if (!manifest) return [];
-
-	const normalizedOs = osInfo?.toLowerCase() ?? "";
-	if (normalizedOs.includes("windows")) return manifest.windows ? [normalizeRunnerVersion(manifest.windows)] : [];
-	if (normalizedOs.includes("linux")) {
-		if (normalizedOs.includes("arm64") || normalizedOs.includes("aarch64")) return manifest.linuxArm ? [normalizeRunnerVersion(manifest.linuxArm)] : [];
-		return manifest.linux ? [normalizeRunnerVersion(manifest.linux)] : [];
-	}
-	if (normalizedOs.includes("darwin") || normalizedOs.includes("mac")) {
-		if (normalizedOs.includes("arm64") || normalizedOs.includes("aarch64")) return manifest.macosArm ? [normalizeRunnerVersion(manifest.macosArm)] : [];
-		if (normalizedOs.includes("x64") || normalizedOs.includes("x86_64")) return manifest.macos ? [normalizeRunnerVersion(manifest.macos)] : [];
-		return [manifest.macos, manifest.macosArm].filter((hash): hash is string => Boolean(hash)).map(normalizeRunnerVersion);
-	}
-
-	return [manifest.windows, manifest.linux, manifest.linuxArm, manifest.macos, manifest.macosArm].filter((hash): hash is string => Boolean(hash)).map(normalizeRunnerVersion);
-}
-
-function getRunnerVersionState(runner: Runner, manifest: RunnerVersionManifest) {
-	if (!runner.version) return "unknown";
-
-	const latestHashes = getRunnerVersionHashes(runner.osInfo, manifest);
-	if (!latestHashes.length) return "unknown";
-
-	return latestHashes.includes(normalizeRunnerVersion(runner.version)) ? "latest" : "outdated";
-}
-
-function getRunnerPlatformFromOs(osInfo: string | null | undefined) {
-	const normalizedOs = osInfo?.toLowerCase() ?? "";
-	if (normalizedOs.includes("windows")) return "windows" as const;
-	if (normalizedOs.includes("linux")) return normalizedOs.includes("arm64") || normalizedOs.includes("aarch64") ? ("linux-arm64" as const) : ("linux" as const);
-	if (normalizedOs.includes("darwin") || normalizedOs.includes("mac")) {
-		if (normalizedOs.includes("arm64") || normalizedOs.includes("aarch64")) return "macos-arm64" as const;
-		if (normalizedOs.includes("x64") || normalizedOs.includes("x86_64")) return "macos" as const;
-		return null;
-	}
-	return null;
-}
-
-function requiresStreamKey(rtmpUrl: string) {
-	return rtmpUrl === "rtmp://live.twitch.tv/app" || rtmpUrl === "rtmp://a.rtmp.youtube.com/live2";
-}
-
 export default function RunnerPage() {
 	const params = useParams() as { id: string };
 	const router = useRouter();
 
 	const [user, setUser] = useState<AuthenticatedUser | null>(null);
 	const [runner, setRunner] = useState<Runner | null>(null);
-	const [runnerVersionManifest, setRunnerVersionManifest] = useState<RunnerVersionManifest>(null);
+
 	const [streamSessions, setStreamSessions] = useState<StreamSession[]>([]);
 	const [overlays, setOverlays] = useState<Overlay[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 
-	const [clearStreamKey, setClearStreamKey] = useState<boolean>(false);
-	const [copied, setCopied] = useState(false);
+	const [runnerPolicy, setRunnerPolicy] = useState<RunnerPolicy | null>(null);
+	const [destinationOptions, setDestinationOptions] = useState<DestinationView[]>([]);
+	const [selectedDestinationIds, setSelectedDestinationIds] = useState<string[]>([]);
+	const [versionManifest, setVersionManifest] = useState<Awaited<ReturnType<typeof getRunnerVersionManifest>>>(null);
+	const [versionPending, setVersionPending] = useState(false);
+	const [tokenPending, setTokenPending] = useState(false);
 	const [manualToken, setManualToken] = useState<string | null>(null);
-	const [isTokenVisible, setIsTokenVisible] = useState(false);
 	const [tokenError, setTokenError] = useState<string | null>(null);
-	const [isLoadingToken, setIsLoadingToken] = useState(false);
+
 	const [isSaving, setIsSaving] = useState(false);
 
+	const [previewRefreshedAt, setPreviewRefreshedAt] = useState(Date.now);
 	const [previewImage, setPreviewImage] = useState<string | null>(null);
-	const [previewLoading, setPreviewLoading] = useState(true);
+	const [previewState, setPreviewState] = useState<"loading" | "waiting" | "ready" | "unavailable">("loading");
+	const readPreview = useCallback(async (runnerId: string, ownerId: string) => {
+		try {
+			const result = await getRunnerLivePreview(runnerId, ownerId);
+			if (result.success) {
+				setPreviewImage(result.image);
+				setPreviewState(result.image ? "ready" : "waiting");
+				setPreviewRefreshedAt(Date.now());
+			} else {
+				setPreviewImage(null);
+				setPreviewState("unavailable");
+			}
+		} catch {
+			setPreviewImage(null);
+			setPreviewState("unavailable");
+		}
+	}, []);
+
 	const [installPlatform, setInstallPlatform] = useState<RunnerPlatform | null>(null);
 	const [downloadCountdown, setDownloadCountdown] = useState(0);
 
-	const [preset, setPreset] = useState<string>("custom");
-	const [rtmpUrl, setRtmpUrl] = useState("");
-	const [streamKey, setStreamKey] = useState("");
 	const [overlayId, setOverlayId] = useState("");
 	const [mode, setMode] = useState<StreamMode>(StreamMode.AlwaysOn);
+	const [controlMode, setControlMode] = useState<StreamControlMode>("manual");
 	const [isUnlinkConfirmOpen, setIsUnlinkConfirmOpen] = useState(false);
-	const hasMounted = useRef(false);
+	const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
+	const [appearanceOpen, setAppearanceOpen] = useState(false);
+	const [scheduleOpen, setScheduleOpen] = useState(false);
+	const [destinationsOpen, setDestinationsOpen] = useState(false);
+	const [recoveredRevision, setRecoveredRevision] = useState<number | undefined>();
+	const [configurationError, setConfigurationError] = useState<string | null>(null);
+	const [loadError, setLoadError] = useState<string | null>(null);
+	const [loadAttempt, setLoadAttempt] = useState(0);
+	const [actionPending, setActionPending] = useState(false);
 	useEffect(() => {
 		if (!installPlatform) return;
 		const timer = window.setInterval(() => setDownloadCountdown((value) => Math.max(0, value - 1)), 1000);
@@ -121,28 +108,32 @@ export default function RunnerPage() {
 	useEffect(() => {
 		if (!user) return;
 
+		let polling = false;
 		const pollData = async () => {
+			if (polling) return;
+			polling = true;
 			try {
-				const [fetchedRunner, fetchedSessions, fetchedVersionManifest] = await Promise.all([getRunner(params.id, user.id), getStreamSessionsForRunner(params.id, user.id), getRunnerVersionManifest()]);
-
-				if (fetchedRunner) setRunner(fetchedRunner);
-				if (fetchedSessions) setStreamSessions(fetchedSessions);
-				setRunnerVersionManifest(fetchedVersionManifest);
+				const [fetchedRunner, fetchedSessions] = await Promise.all([
+					getRunner(params.id, user.id).then((current) => {
+						if (current) setRunner(current);
+						return current;
+					}),
+					getStreamSessionsForRunner(params.id, user.id).then((sessions) => {
+						if (sessions) setStreamSessions(sessions);
+						return sessions;
+					}),
+				]);
 
 				if (fetchedRunner?.status === "online" && fetchedSessions[0]?.actualState === "running") {
-					const res = await fetch(`/api/runner/preview?runnerId=${params.id}`);
-					if (res.ok) {
-						const data = await res.json();
-						if (data.image) setPreviewImage(data.image);
-						else setPreviewImage(null);
-					}
-					setPreviewLoading(false);
+					await readPreview(params.id, user.id);
 				} else {
 					setPreviewImage(null);
-					setPreviewLoading(false);
+					setPreviewState("loading");
 				}
 			} catch (e) {
 				console.error("Polling error", e);
+			} finally {
+				polling = false;
 			}
 		};
 
@@ -153,142 +144,237 @@ export default function RunnerPage() {
 		return () => {
 			clearInterval(interval);
 		};
-	}, [params.id, user]);
+	}, [params.id, user, readPreview]);
 
 	useEffect(() => {
+		let active = true;
 		async function init() {
-			const authUser = await validateAuth();
-			if (!authUser) {
-				router.push("/login");
-				return;
+			try {
+				const authUser = await validateAuth();
+				if (!active) return;
+				setIsLoading(true);
+				setLoadError(null);
+				if (!authUser) {
+					router.push("/login");
+					return;
+				}
+				if (!active) return;
+				setUser(authUser);
+
+				const [fetchedRunner, fetchedSessions, fetchedOverlays, fetchedToken, fetchedDestinations, fetchedSchedule, manifest] = await Promise.all([getRunner(params.id, authUser.id), getStreamSessionsForRunner(params.id, authUser.id), getAllOverlays(authUser.id), getRunnerToken(params.id, authUser.id), listRunnerDestinations(authUser.id, params.id), listRunnerScheduleEvents(authUser.id, params.id), getRunnerVersionManifest().catch(() => null)]);
+
+				if (!active) return;
+				if (!fetchedRunner) {
+					router.push("/dashboard");
+					return;
+				}
+
+				setRunner(fetchedRunner);
+				setVersionManifest(manifest);
+				setStreamSessions(fetchedSessions);
+				setOverlays(fetchedOverlays || []);
+
+				if (fetchedToken.success && fetchedToken.token) setManualToken(fetchedToken.token);
+				else setTokenError("Runner token could not be loaded.");
+
+				if (fetchedDestinations.success) setDestinationOptions(fetchedDestinations.destinations);
+				if (fetchedSchedule?.success) {
+					setRunnerPolicy(fetchedSchedule.policy);
+					if (fetchedSchedule.policy.scheduling && new URLSearchParams(window.location.search).has("schedule")) setScheduleOpen(true);
+				}
+				const session = fetchedSessions[0];
+				if (session) {
+					setSelectedDestinationIds(session.destinationIds);
+					setOverlayId(session.overlayId);
+					setMode(session.mode as StreamMode);
+					setControlMode(session.controlMode ?? "manual");
+				} else if (fetchedOverlays?.length) setOverlayId(fetchedOverlays[0].id);
+			} catch {
+				if (active) setLoadError("Could not load this runner. Please try again.");
+			} finally {
+				if (active) setIsLoading(false);
 			}
-			setUser(authUser);
-
-			const [fetchedRunner, fetchedSessions, fetchedOverlays, fetchedVersionManifest, fetchedToken] = await Promise.all([getRunner(params.id, authUser.id), getStreamSessionsForRunner(params.id, authUser.id), getAllOverlays(authUser.id), getRunnerVersionManifest(), getRunnerToken(params.id, authUser.id)]);
-
-			if (!fetchedRunner) {
-				router.push("/dashboard");
-				return;
-			}
-
-			setRunner(fetchedRunner);
-			setRunnerVersionManifest(fetchedVersionManifest);
-			setStreamSessions(fetchedSessions);
-			setOverlays(fetchedOverlays || []);
-
-			if (fetchedToken.success && fetchedToken.token) setManualToken(fetchedToken.token);
-			else setTokenError("Runner token could not be loaded.");
-			setIsLoadingToken(false);
-
-			const session = fetchedSessions[0];
-			if (session) {
-				setRtmpUrl(session.rtmpUrl);
-				setOverlayId(session.overlayId);
-				setMode(session.mode as StreamMode);
-
-				if (session.rtmpUrl === "rtmp://live.twitch.tv/app") setPreset("twitch");
-				else if (session.rtmpUrl === "rtmp://a.rtmp.youtube.com/live2") setPreset("youtube");
-				else setPreset("custom");
-			} else if (fetchedOverlays && fetchedOverlays.length > 0) {
-				setOverlayId(fetchedOverlays[0].id);
-				setRtmpUrl("rtmp://live.twitch.tv/app");
-				setPreset("twitch");
-			}
-
-			setIsLoading(false);
 		}
+		void init();
+		return () => {
+			active = false;
+		};
+	}, [params.id, router, loadAttempt]);
 
-		if (!hasMounted.current) {
-			hasMounted.current = true;
-			init();
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [params.id]);
+	useEffect(() => {
+		if (!runnerPolicy?.validUntil || !runner || !user) return;
+		const delay = Math.max(0, Date.parse(runnerPolicy.validUntil) - Date.now());
+		const timer = window.setTimeout(
+			() => {
+				void listRunnerScheduleEvents(runner.ownerId, runner.id)
+					.then((result) => {
+						if (result.success) setRunnerPolicy(result.policy);
+					})
+					.catch(() => {
+						setRunnerPolicy(null);
+					});
+			},
+			Math.min(delay + 100, 2147483647),
+		);
+		return () => window.clearTimeout(timer);
+	}, [runnerPolicy?.validUntil, runner, user]);
 
+	const savedSession = streamSessions[0];
+	useDeploymentDraft(
+		user && runner && !isLoading ? `runner:${user.id}:${runner.id}` : null,
+		{ overlayId, mode, controlMode, selectedDestinationIds, appearanceOpen, scheduleOpen, destinationsOpen, configurationRevision: recoveredRevision ?? savedSession?.configurationRevision },
+		{ overlayId: savedSession?.overlayId ?? "", mode: (savedSession?.mode as StreamMode) ?? StreamMode.AlwaysOn, controlMode: savedSession?.controlMode ?? "manual", selectedDestinationIds: savedSession?.destinationIds ?? [], appearanceOpen: false, scheduleOpen: false, destinationsOpen: false, configurationRevision: savedSession?.configurationRevision },
+		(draft) => {
+			setOverlayId(draft.overlayId);
+			setMode(draft.mode);
+			setControlMode(draft.controlMode);
+			setSelectedDestinationIds(draft.selectedDestinationIds);
+			setAppearanceOpen(draft.appearanceOpen);
+			setScheduleOpen(draft.scheduleOpen);
+			setDestinationsOpen(draft.destinationsOpen);
+			setRecoveredRevision(draft.configurationRevision);
+		},
+	);
+
+	if (loadError)
+		return (
+			<div className='mx-auto max-w-xl space-y-4 p-6'>
+				<p role='alert'>{loadError}</p>
+				<Button variant='secondary' onPress={() => setLoadAttempt((value) => value + 1)}>
+					Try again
+				</Button>
+			</div>
+		);
 	if (isLoading || !runner || !user) {
 		return <FullscreenLoadingState message='Loading runner configuration' />;
 	}
 
-	const revealToken = () => {
-		if (!manualToken) return;
-		setIsTokenVisible((visible) => !visible);
+	const reloadToken = async () => {
+		setTokenPending(true);
+		try {
+			const result = await getRunnerToken(runner.id, runner.ownerId);
+			if (result.success && result.token) {
+				setManualToken(result.token);
+				setTokenError(null);
+			} else setTokenError("Runner token could not be loaded. Please try again.");
+		} catch {
+			setTokenError("Runner token could not be loaded. Please try again.");
+		} finally {
+			setTokenPending(false);
+		}
 	};
-
-	const copyToken = async () => {
-		if (!manualToken) return;
-		await navigator.clipboard.writeText(manualToken);
-		setCopied(true);
-		setTimeout(() => setCopied(false), 2000);
-	};
-
-	const handlePresetChange = (value: string) => {
-		setPreset(value);
-		setStreamKey(""); // Clear stream key when preset changes for security
-		setClearStreamKey(true);
-		if (value === "twitch") {
-			setRtmpUrl("rtmp://live.twitch.tv/app");
-		} else if (value === "youtube") {
-			setRtmpUrl("rtmp://a.rtmp.youtube.com/live2");
-		} else {
-			setRtmpUrl("");
+	const refreshVersion = async () => {
+		setVersionPending(true);
+		try {
+			setVersionManifest(await getRunnerVersionManifest());
+		} catch {
+			setVersionManifest(null);
+		} finally {
+			setVersionPending(false);
 		}
 	};
 
-	const streamKeyRequired = requiresStreamKey(rtmpUrl);
-	const streamConfigValid = Boolean(overlayId && rtmpUrl.trim() && (!streamKeyRequired || streamKey.trim() || (streamSessions[0]?.encryptedStreamKey && !clearStreamKey)));
+	const dirty = !savedSession || overlayId !== savedSession.overlayId || mode !== savedSession.mode || controlMode !== savedSession.controlMode || [...selectedDestinationIds].sort().join() !== [...savedSession.destinationIds].sort().join();
+	const scheduleNeedsSave = !!runnerPolicy?.scheduling && controlMode === "scheduled" && dirty;
+	const streamConfigValid = Boolean(overlayId && selectedDestinationIds.length && (runnerPolicy?.runnerPro || selectedDestinationIds.length === 1));
+	const streamReadyToStart = !dirty && streamConfigValid && canStartWithDestinations(destinationOptions, selectedDestinationIds);
+	const refreshDestinationOptions = async (change?: { deletedId: string }) => {
+		if (!user || !runner) return;
+		try {
+			const result = await listRunnerDestinations(user.id, runner.id);
+			if (result.success) {
+				setDestinationOptions(result.destinations);
+				setSelectedDestinationIds((current) => {
+					const retained = current.filter((id) => result.destinations.some((target) => target.id === id));
+					if (change?.deletedId) return retained;
+					return retained.length ? retained : result.destinations.slice(0, 1).map((target) => target.id);
+				});
+				if (change?.deletedId) setStreamSessions(await getStreamSessionsForRunner(runner.id, user.id));
+			}
+		} catch {
+			setConfigurationError("Could not refresh destinations. Please try again.");
+		}
+	};
 
-	const handleSave = async () => {
-		if (!streamConfigValid) {
-			notify({ title: "Incomplete stream configuration", description: streamKeyRequired ? "Enter a stream key before saving." : "Select an overlay and enter an RTMP URL before saving.", color: "warning" });
-			return;
+	const handleSave = async (savedControlMode = controlMode) => {
+		if (isSaving) return false;
+		setConfigurationError(null);
+		if (!overlayId) {
+			setConfigurationError("Choose an overlay before saving.");
+			return false;
+		}
+		if (!selectedDestinationIds.length) {
+			setConfigurationError("Add and select a broadcast destination.");
+			setDestinationsOpen(true);
+			return false;
+		}
+		if (!runnerPolicy?.runnerPro && selectedDestinationIds.length > 1) {
+			setConfigurationError("Select one broadcast destination before saving.");
+			return false;
 		}
 		setIsSaving(true);
-		const res = await upsertStreamSession({
-			id: streamSessions[0]?.id,
-			expectedRevision: streamSessions[0]?.configurationRevision,
-			ownerId: runner.ownerId,
-			runnerId: runner.id,
-			overlayId,
-			mode,
-			rtmpUrl,
-			streamKey,
-			clearStreamKey,
-		});
-
-		setIsSaving(false);
-		if (res.success) {
+		try {
+			const res = await upsertStreamSession({ id: savedSession?.id, expectedRevision: recoveredRevision ?? savedSession?.configurationRevision, ownerId: runner.ownerId, runnerId: runner.id, overlayId, mode, controlMode: savedControlMode, rtmpUrl: "", streamKey: "", destinationIds: selectedDestinationIds });
+			if (!res.success) {
+				setConfigurationError(res.error || "Could not save this broadcast. Please try again.");
+				const current = await listRunnerScheduleEvents(runner.ownerId, runner.id);
+				if (current.success) setRunnerPolicy(current.policy);
+				return false;
+			}
+			const sessions = await getStreamSessionsForRunner(runner.id, runner.ownerId);
+			setStreamSessions(sessions);
+			setSelectedDestinationIds(sessions[0]?.destinationIds ?? selectedDestinationIds);
+			setRecoveredRevision(undefined);
+			setControlMode(savedControlMode);
 			notify({ title: "Saved", description: "Stream session configuration saved.", color: "success" });
-			const fetchedSessions = await getStreamSessionsForRunner(params.id, user.id);
-			setStreamSessions(fetchedSessions);
-		} else {
-			notify({ title: "Error", description: "Failed to save stream session.", color: "danger" });
+			return true;
+		} catch {
+			setConfigurationError("Could not save this broadcast. Your changes are kept. Please try again.");
+			return false;
+		} finally {
+			setIsSaving(false);
 		}
 	};
 
-	const handleAction = async (state: "started" | "stopped") => {
-		if (state === "started" && !streamConfigValid) {
-			notify({ title: "Incomplete stream configuration", description: streamKeyRequired ? "Enter a stream key before starting." : "Select an overlay and enter an RTMP URL before starting.", color: "warning" });
+	const handleAction = async (state: "started" | "stopped", stopMode: "graceful" | "immediate" = "graceful") => {
+		if (state === "started" && !streamReadyToStart) {
+			notify({ title: "Incomplete stream configuration", description: "Select an overlay and a configured destination before starting.", color: "warning" });
 			return;
 		}
-		if (!streamSessions[0]?.id) return;
-		const res = await setStreamDesiredState(streamSessions[0].id, state === "started" ? StreamState.Running : StreamState.Stopped, streamSessions[0].configurationRevision);
-		if (res.success) {
-			notify({ title: "Action sent", description: `Stream state set to ${state}.`, color: "success" });
-			const fetchedSessions = await getStreamSessionsForRunner(params.id, user.id);
-			setStreamSessions(fetchedSessions);
+		if (!streamSessions[0]?.id || actionPending) return;
+		setActionPending(true);
+		try {
+			const res = await setStreamDesiredState(streamSessions[0].id, state === "started" ? StreamState.Running : StreamState.Stopped, streamSessions[0].configurationRevision, stopMode);
+			if (res.success) {
+				notify({ title: state === "started" ? "Start requested" : stopMode === "immediate" ? "Stop now requested" : "Stop requested", description: state === "started" ? "Waiting for the runner to confirm it is live." : "Waiting for the runner to close its outputs.", color: "success" });
+				const fetchedSessions = await getStreamSessionsForRunner(params.id, user.id);
+				setStreamSessions(fetchedSessions);
+				if (state === "stopped") setControlMode("manual");
+			} else {
+				notify({ title: state === "started" ? "Cannot start broadcast" : "Cannot stop broadcast", description: res.error || "Please try again.", color: "danger" });
+			}
+		} catch {
+			notify({ title: "Could not update broadcast", description: "Please try again.", color: "danger" });
+		} finally {
+			setActionPending(false);
 		}
 	};
 
 	const handleUnlinkRunner = async () => {
-		const res = await unlinkRunner(runner.id, runner.ownerId);
-		if (res.success) {
-			setManualToken(null);
-			notify({ title: "Runner unlinked", description: "The runner token was revoked.", color: "success" });
-			router.refresh();
-			return;
-		}
+		try {
+			const res = await unlinkRunner(runner.id, runner.ownerId);
+			if (res.success) {
+				setManualToken(null);
+				notify({ title: "Runner unlinked", description: "The runner token was revoked.", color: "success" });
+				router.refresh();
+				return true;
+			}
 
-		notify({ title: "Error", description: res.error || "Failed to unlink runner.", color: "danger" });
+			notify({ title: "Could not unlink runner", description: res.error || "Please try again.", color: "danger" });
+		} catch {
+			notify({ title: "Could not unlink runner", description: "Please try again.", color: "danger" });
+		}
+		return false;
 	};
 
 	const getRunnerDownloadUrl = (platform: RunnerPlatform) => `/api/runner/download?os=${platform}`;
@@ -303,12 +389,6 @@ export default function RunnerPage() {
 		document.body.appendChild(link);
 		link.click();
 		link.remove();
-	};
-
-	const renderPlatformIcon = (platform: RunnerPlatform) => {
-		if (platform === "windows") return <IconBrandWindows size={18} />;
-		if (platform === "linux" || platform === "linux-arm64") return <IconTerminal2 size={18} />;
-		return <IconBrandApple size={18} />;
 	};
 
 	const renderLinuxDownloadDropdown = (label: string, isDisabled = false, variant: "secondary" | "primary" = "secondary", className?: string) => (
@@ -349,39 +429,12 @@ export default function RunnerPage() {
 		</Dropdown>
 	);
 
-	const renderLatestRunnerDownload = () => {
-		const platform = getRunnerPlatformFromOs(runner.osInfo);
-		const isLatest = runnerVersionState === "latest";
-		const label = isLatest ? "Runner up to date" : "Download latest runner";
-		const variant = isLatest ? "secondary" : "primary";
-
-		if (!platform) {
-			return renderMacOSDownloadDropdown(label, isLatest, variant, "w-full justify-center");
-		}
-
-		if (platform === "macos" || platform === "macos-arm64") {
-			return (
-				<Button variant={variant} isDisabled={isLatest} onPress={() => handleRunnerDownload(platform)} className='w-full justify-center'>
-					{renderPlatformIcon(platform)}
-					{label}
-				</Button>
-			);
-		}
-
-		return (
-			<Button variant={variant} isDisabled={isLatest} onPress={() => handleRunnerDownload(platform)} className='w-full justify-center'>
-				{renderPlatformIcon(platform)}
-				{label}
-			</Button>
-		);
-	};
-
 	const renderInstallSteps = () => {
 		if (!installPlatform) return null;
 
 		if (installPlatform === "windows") {
 			return (
-				<ol className='list-decimal space-y-2 pl-5 text-sm text-muted-foreground'>
+				<ol className='list-decimal space-y-2 pl-5 text-sm text-muted'>
 					<li>Open the downloaded Clipify Runner file.</li>
 					<li>Approve the runner enrollment in your browser. If the browser does not open automatically, use the URL and code shown by the runner.</li>
 					<li>Return to this page after the runner shows as online.</li>
@@ -392,7 +445,7 @@ export default function RunnerPage() {
 		if (installPlatform === "linux" || installPlatform === "linux-arm64") {
 			const linuxBinaryName = installPlatform === "linux-arm64" ? "clipify-runner-linux-arm64" : "clipify-runner-linux";
 			return (
-				<ol className='list-decimal space-y-2 pl-5 text-sm text-muted-foreground'>
+				<ol className='list-decimal space-y-2 pl-5 text-sm text-muted'>
 					<li>Open a terminal in your Downloads folder.</li>
 					<li>
 						Run <code className='rounded bg-secondary px-1.5 py-0.5 text-foreground'>chmod +x {linuxBinaryName}</code>.
@@ -407,202 +460,79 @@ export default function RunnerPage() {
 
 		return (
 			<div className='space-y-4'>
-				<ol className='list-decimal space-y-2 pl-5 text-sm text-muted-foreground'>
+				<ol className='list-decimal space-y-2 pl-5 text-sm text-muted'>
 					<li>Open your Downloads folder.</li>
 					<li>Control-click Clipify Runner, then choose Open.</li>
 					<li>If macOS blocks it, open System Settings.</li>
 					<li>Go to Privacy &amp; Security and click Open Anyway.</li>
 					<li>Click Open, then approve the runner enrollment in your browser. If the browser does not open automatically, use the URL and code shown by the runner.</li>
 				</ol>
-				<p className='rounded-lg bg-secondary/50 p-3 text-sm text-muted-foreground'>Apple adds this extra step for apps from developers who are not yet in the Apple Developer Program. You only need to approve this runner once.</p>
+				<p className='rounded-lg bg-secondary/50 p-3 text-sm text-muted'>Apple adds this extra step for apps from developers who are not yet in the Apple Developer Program. You only need to approve this runner once.</p>
 			</div>
 		);
 	};
 
-	const runnerVersionState = getRunnerVersionState(runner, runnerVersionManifest);
 	const runnerVersionLabel = formatRunnerVersion(runner.version);
+	const runnerVersionState = getRunnerVersionState(runner, versionManifest);
+	const runnerPlatform = getRunnerPlatformFromOs(runner.osInfo);
 	const isRunnerStreaming = runner.status === "online" && streamSessions[0]?.actualState === "running";
 	const canUnlinkRunner = !isRunnerStreaming;
 	const runnerConnectionLabel = runner.lastHeartbeatAt ? "Offline" : "Not connected";
 
 	return (
-		<DashboardNavbar user={user} title='Runner Settings' tagline='Configure hardware streaming'>
-			<div className='flex flex-col items-center justify-center w-full p-4'>
-				<Card className='w-full max-w-5xl'>
-					<Card.Header className='flex w-full flex-row items-center justify-between gap-4 p-6'>
-						<div className='flex min-w-0 items-center gap-3'>
-							<Button isIconOnly variant='tertiary' onPress={() => router.push("/dashboard")}>
+		<DashboardNavbar user={user} title='Runner Settings' tagline='Manage your runner'>
+			<DashboardEditorLayout>
+				<Card>
+					<Card.Header className='flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between'>
+						<div className='flex min-w-0 flex-1 items-center gap-3'>
+							<Button isIconOnly className='shrink-0' variant='tertiary' aria-label='Back to runners' onPress={() => router.push("/dashboard?tab=runners")}>
 								<IconArrowLeft />
 							</Button>
-							<h1 className='text-xl font-bold'>Runner Settings</h1>
+							<h2 className='min-w-0 break-words text-xl font-bold'>{runner.name}</h2>
 						</div>
-						<div className='flex items-center gap-1.5'>
-							{runner.status === "online" ? (
-								<div className='flex items-center gap-1.5'>
-									{isRunnerStreaming ? (
-										<Chip color='danger' variant='soft'>
-											Streaming (LIVE)
-										</Chip>
-									) : (
-										<Chip color='success' variant='soft'>
-											Online
-										</Chip>
-									)}
-									<Tooltip delay={0}>
-										<Button size='sm' variant='ghost' className='h-6 min-w-6 px-1.5 text-danger' onPress={() => setIsUnlinkConfirmOpen(true)} aria-label='Unlink runner' isDisabled={!canUnlinkRunner}>
-											<IconUnlink size={13} />
-										</Button>
-										<Tooltip.Content>{canUnlinkRunner ? "Unlink runner and revoke its token" : "Stop this runner to unlink"}</Tooltip.Content>
-									</Tooltip>
-								</div>
-							) : (
-								<div className='flex items-center gap-1.5 rounded-full border border-warning/20 bg-warning/10 px-2.5 py-1 text-warning'>
-									<span className='h-2.5 w-2.5 rounded-full bg-warning' />
-									<span className='text-sm font-medium leading-none'>{runnerConnectionLabel}</span>
-									<Tooltip delay={0}>
-										<Button size='sm' variant='ghost' className='h-6 min-w-6 px-1.5 text-danger' onPress={() => setIsUnlinkConfirmOpen(true)} aria-label='Unlink runner' isDisabled={!canUnlinkRunner}>
-											<IconUnlink size={13} />
-										</Button>
-										<Tooltip.Content>{canUnlinkRunner ? "Unlink runner and revoke its token" : "Stop this runner to unlink"}</Tooltip.Content>
-									</Tooltip>
-								</div>
-							)}
+						<div className='flex shrink-0 items-center justify-end gap-2'>
+							<Chip size='sm' variant='soft' color={runner.status === "online" ? "success" : "default"}>
+								{runner.status === "online" ? "Online" : runnerConnectionLabel}
+							</Chip>
+							<Tooltip delay={0}>
+								<Button isIconOnly variant='danger-soft' aria-label='Unlink runner' onPress={() => setIsUnlinkConfirmOpen(true)} isDisabled={!canUnlinkRunner}>
+									<IconUnlink />
+								</Button>
+								<Tooltip.Content>Unlink runner</Tooltip.Content>
+							</Tooltip>
 						</div>
 					</Card.Header>
 					<Separator />
-
-					<Card.Content className='grid grid-cols-1 md:grid-cols-2 gap-8 p-6'>
-						{/* Installation Instructions for New Runners */}
+					<Card.Content className='space-y-6'>
 						{!runner.lastHeartbeatAt && (
-							<div className='col-span-1 md:col-span-2 flex flex-col items-center justify-center p-8 mt-4 gap-6'>
-								<h2 className='text-3xl font-bold text-primary'>Setup Your Runner</h2>
-								<p className='text-muted-foreground max-w-2xl text-center text-base'>This runner is linked to your account but is not connected yet. Download the runner for your operating system, run it, and approve the browser enrollment prompt. It will connect to this Clipify environment automatically.</p>
-								<div className='flex flex-col sm:flex-row gap-4 mt-6'>
-									<Button
-										variant='secondary'
-										onPress={() => {
-											handleRunnerDownload("windows");
-										}}
-									>
-										<IconBrandWindows size={20} /> Download for Windows
-									</Button>
-									{renderLinuxDownloadDropdown("Download for Linux")}
-									{renderMacOSDownloadDropdown("Download for macOS")}
+							<section className='flex flex-col items-center gap-8 px-2 py-8 sm:px-8 sm:py-12' aria-label='Connect runner'>
+								<div className='flex w-full max-w-2xl flex-col items-center gap-5 text-center'>
+									<h3 className='text-3xl font-bold text-primary'>Setup Your Runner</h3>
+									<p className='text-base text-muted'>Download Runner for your computer, open it, and approve the browser enrollment prompt to connect your account.</p>
+									<div className='mt-2 flex w-full flex-col items-stretch justify-center gap-4 sm:w-auto sm:flex-row sm:items-center'>
+										<Button className='w-full sm:w-auto' variant='secondary' onPress={() => handleRunnerDownload("windows")}>
+											<IconBrandWindows size={20} />
+											Download for Windows
+										</Button>
+										{renderLinuxDownloadDropdown("Download for Linux", false, "secondary", "w-full sm:w-auto")}
+										{renderMacOSDownloadDropdown("Download for macOS", false, "secondary", "w-full sm:w-auto")}
+									</div>
+									<div role='status' className='mt-3 flex flex-col items-center justify-center gap-3 text-sm text-muted'>
+										<Spinner size='md' aria-label='Waiting for first Runner connection' />
+										Waiting for Runner to connect
+									</div>
 								</div>
-							</div>
+								<div className='w-full max-w-2xl border-t border-separator pt-4'>
+									<AdvancedRunnerSetup token={manualToken} error={tokenError} pending={tokenPending} onRetry={reloadToken} />
+								</div>
+							</section>
 						)}
-
-						{/* Only show configuration and telemetry if the runner is active */}
 						{runner.lastHeartbeatAt && (
 							<>
-								{/* Left Column: Status Details */}
-								<div className='flex flex-col gap-6'>
-									<div className='flex flex-col gap-2'>
-										<div className='flex items-center justify-between'>
-											<h2 className='text-lg font-semibold'>Runner Telemetry</h2>
-											<span className='text-xs text-muted font-mono'>Refreshing every 2s</span>
-										</div>
-
-										<div className='flex flex-col gap-2 text-sm mt-2'>
-											<div className='flex justify-between border-b border-divider pb-2'>
-												<span className='text-muted'>Hardware Node</span>
-												<span className='font-medium'>{runner.name}</span>
-											</div>
-											<div className='flex justify-between border-b border-divider pb-2'>
-												<span className='text-muted'>Runner Version</span>
-												<span className='flex min-w-0 items-center justify-end gap-2'>
-													<span className='max-w-[120px] truncate font-mono' title={runner.version || undefined}>
-														{runnerVersionLabel}
-													</span>
-													{runnerVersionState === "latest" ? <IconCircleCheck size={16} className='shrink-0 text-success' aria-label='Latest runner version' /> : runnerVersionState === "outdated" ? <IconAlertTriangle size={16} className='shrink-0 text-warning' aria-label='Runner update available' /> : null}
-												</span>
-											</div>
-											<div className='flex justify-between border-b border-divider pb-2'>
-												<span className='text-muted'>OS</span>
-												<span>{runner.osInfo || "Unknown"}</span>
-											</div>
-											<div className='flex justify-between border-b border-divider pb-2'>
-												<span className='text-muted'>Last Ping</span>
-												<span>{runner.lastHeartbeatAt ? new Date(runner.lastHeartbeatAt).toLocaleTimeString() : "Never"}</span>
-											</div>
-											{streamSessions[0] && (
-												<div className='flex justify-between border-b border-divider pb-2'>
-													<span className='text-muted'>Quality</span>
-													<span>
-														{streamSessions[0].resolution} @ {streamSessions[0].fps} FPS
-													</span>
-												</div>
-											)}
-											{streamSessions[0]?.lastError && (
-												<div className='bg-danger/10 border border-danger/20 p-3 rounded-md mt-2 text-danger'>
-													<strong>Error:</strong> {streamSessions[0].lastError}
-												</div>
-											)}
-										</div>
-									</div>
-
-									{renderLatestRunnerDownload()}
-
-									<Accordion variant='default'>
-										<Accordion.Item id='advanced-runner-setup'>
-											<Accordion.Heading>
-												<Accordion.Trigger className='px-4 py-4 text-sm font-semibold'>
-													Advanced / Docker Setup
-													<Accordion.Indicator>
-														<IconChevronDown size={18} />
-													</Accordion.Indicator>
-												</Accordion.Trigger>
-											</Accordion.Heading>
-											<Accordion.Panel>
-												<Accordion.Body className='px-4 pb-4'>
-													<TextField variant='secondary'>
-														<Label>Manual Runner Token</Label>
-														<div className='flex gap-2'>
-															<Input readOnly value={manualToken ? (isTokenVisible ? manualToken : "••••••••••••••••") : tokenError ? "Token unavailable" : "Loading token…"} placeholder='Loading runner token…' type='text' className='font-mono text-sm flex-1' />
-															<Tooltip delay={0}>
-																<Button isIconOnly variant='secondary' onPress={revealToken} isDisabled={!manualToken || isLoadingToken} aria-label={isTokenVisible ? "Hide runner token" : "Reveal runner token"}>
-																	<IconEye size={18} />
-																</Button>
-																<Tooltip.Content>{isTokenVisible ? "Hide runner token" : "Reveal runner token"}</Tooltip.Content>
-															</Tooltip>
-															<Button isIconOnly variant='secondary' onPress={copyToken} isDisabled={!manualToken || isLoadingToken} aria-label='Copy runner token'>
-																{copied ? <IconCheck size={18} className='text-success' /> : <IconCopy size={18} />}
-															</Button>
-														</div>
-													</TextField>
-													<p className='text-xs text-muted mt-1'>
-														If you run this via Docker or in a headless CI environment, use this token as the <code>CLIPIFY_TOKEN</code> environment variable.
-													</p>
-												</Accordion.Body>
-											</Accordion.Panel>
-										</Accordion.Item>
-									</Accordion>
-
-									<div className='flex flex-col gap-2 mt-4'>
-										<h2 className='text-lg font-semibold'>Live Stream Preview</h2>
-
-										<div className='w-full aspect-video bg-neutral-900 rounded-lg border border-divider overflow-hidden flex items-center justify-center'>
-											{streamSessions[0]?.actualState !== "running" ? (
-												<span className='text-muted text-sm'>Stream is offline</span>
-											) : previewLoading ? (
-												<Spinner size='md' />
-											) : previewImage ? (
-												/* eslint-disable-next-line @next/next/no-img-element */
-												<img src={previewImage} alt='Live Stream Preview' className='w-full h-full object-contain' />
-											) : (
-												<span className='text-muted text-sm'>Waiting for first frame...</span>
-											)}
-										</div>
-										<p className='text-xs text-muted text-center mt-1'>Livestream Preview Snapshot</p>
-									</div>
-								</div>
-
-								{/* Right Column: Configuration */}
-								<div className='flex flex-col gap-8 h-full'>
-									<div className='flex flex-col gap-5 flex-1'>
-										<h3 className='text-lg font-semibold'>Stream Configuration</h3>
-
-										<Select value={overlayId || null} onChange={(selected) => setOverlayId(String(selected ?? ""))} variant='secondary'>
+								<h3 className='text-lg font-semibold'>Stream Configuration</h3>
+								<div className='grid grid-cols-1 gap-6 lg:grid-cols-2'>
+									<div className='space-y-5'>
+										<Select value={overlayId || null} onChange={(value) => setOverlayId(String(value ?? ""))} variant='secondary'>
 											<Label>Target Overlay</Label>
 											<Select.Trigger>
 												<Select.Value />
@@ -619,37 +549,26 @@ export default function RunnerPage() {
 												</ListBox>
 											</Select.Popover>
 										</Select>
-
-										<Select value={mode || null} onChange={(selected) => setMode(String(selected ?? "") as StreamMode)} variant='secondary'>
-											<Label>Engine Mode</Label>
-											<Select.Trigger>
-												<Select.Value />
-												<Select.Indicator />
-											</Select.Trigger>
-											<Select.Popover>
-												<ListBox>
-													{[
-														{ id: StreamMode.AlwaysOn, name: "24/7 Cloud Loop (Puppeteer)" },
-														{ id: StreamMode.Failsafe, name: "Failsafe Mode (Local OBS Fallback)" },
-													].map((item) => (
-														<ListBox.Item id={item.id} key={item.id} textValue={item.name}>
-															<ListBox.ItemIndicator />
-															<Label>{item.name}</Label>
-														</ListBox.Item>
-													))}
-												</ListBox>
-											</Select.Popover>
-										</Select>
-
-										{mode === StreamMode.Failsafe && (
-											<div className='bg-warning/10 border border-warning/20 p-4 rounded-md text-sm text-warning-600 dark:text-warning-400 leading-relaxed'>
-												<strong>Failsafe Mode Active:</strong> Direct your local OBS to stream to <code>rtmp://localhost:1935/live</code> (the Stream Key in OBS can be left empty). If your OBS connection drops, the local Runner will instantly fallback to the 24/7 Cloud Loop.
-											</div>
+										{!overlays.length && (
+											<p className='text-sm text-muted'>
+												Create an overlay in{" "}
+												<a className='text-accent underline' href='/dashboard'>
+													your dashboard
+												</a>{" "}
+												to choose the clips for this broadcast.
+											</p>
 										)}
-
-										<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-											<Select value={preset || null} onChange={(selected) => handlePresetChange(String(selected ?? ""))} variant='secondary'>
-												<Label>Stream Target Preset</Label>
+										<div className='grid gap-4 sm:grid-cols-2'>
+											<Select
+												value={mode}
+												onChange={(value) => {
+													const next = String(value) as StreamMode;
+													setMode(next);
+													if (next === StreamMode.Failsafe) setControlMode("manual");
+												}}
+												variant='secondary'
+											>
+												<Label>Broadcast behavior</Label>
 												<Select.Trigger>
 													<Select.Value />
 													<Select.Indicator />
@@ -657,9 +576,8 @@ export default function RunnerPage() {
 												<Select.Popover>
 													<ListBox>
 														{[
-															{ id: "twitch", name: "Twitch" },
-															{ id: "youtube", name: "YouTube" },
-															{ id: "custom", name: "Custom RTMP" },
+															{ id: StreamMode.AlwaysOn, name: "Clip playback" },
+															{ id: StreamMode.Failsafe, name: "Live fallback" },
 														].map((item) => (
 															<ListBox.Item id={item.id} key={item.id} textValue={item.name}>
 																<ListBox.ItemIndicator />
@@ -669,109 +587,277 @@ export default function RunnerPage() {
 													</ListBox>
 												</Select.Popover>
 											</Select>
+											<RunnerControlSelection value={controlMode} clipPlayback={mode === StreamMode.AlwaysOn} scheduling={runnerPolicy?.scheduling ?? null} onChange={setControlMode} onUpgrade={() => setIsUpgradeOpen(true)} />
 										</div>
-
-										<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-											<TextField variant='secondary'>
-												<Label>RTMP URL</Label>
-												<Input value={rtmpUrl} onChange={(e) => setRtmpUrl(e.target.value)} disabled={preset !== "custom"} />
-											</TextField>
-
-											<TextField variant='secondary'>
-												<Label>Stream Key {streamKeyRequired ? "(Required)" : "(Optional)"}</Label>
-												<div className='relative w-full'>
-													<Input
-														type='password'
-														value={streamKey}
-														onChange={(e) => {
-															setStreamKey(e.target.value);
-															setClearStreamKey(e.target.value === "");
-														}}
-														placeholder={streamSessions[0]?.encryptedStreamKey && !clearStreamKey ? "******** (Saved)" : "live_xxx_..."}
-														className='w-full pr-10'
-													/>
-													{streamSessions[0]?.encryptedStreamKey && !clearStreamKey && (
-														<Button
-															isIconOnly
-															variant='ghost'
-															size='sm'
-															className='absolute right-1 top-1/2 -translate-y-1/2 min-w-8 w-8 h-8'
-															onPress={() => {
-																setStreamKey("");
-																setClearStreamKey(true);
-															}}
-														>
-															<IconTrash size={16} className='text-danger' />
-														</Button>
-													)}
-												</div>
-												<p className='text-xs text-muted mt-1'>{preset === "custom" ? "Custom RTMP targets may not require a stream key. Leave blank if embedded in the custom RTMP URL." : "A stream key is required for this platform."}</p>
-											</TextField>
-										</div>
-
-										<div className='flex flex-col sm:flex-row gap-3 mt-auto pb-6 pt-6 border-t border-divider'>
-											<Button variant='primary' onPress={handleSave} isDisabled={!streamConfigValid} isPending={isSaving} className='sm:w-auto w-full'>
-												{isSaving ? <Spinner size='sm' color='current' /> : "Save Configuration"}
-											</Button>
-
-											{streamSessions[0]?.id && (
-												<div className='flex gap-3 sm:ml-auto w-full sm:w-auto'>
-													<Button className='bg-success text-success-foreground' onPress={() => handleAction("started")} isDisabled={runner?.status !== RunnerStatus.Online || streamSessions[0]?.desiredState === StreamState.Running || !streamConfigValid}>
-														<IconPlayerPlay size={18} /> Start
-													</Button>
-													<Button className='bg-danger text-danger-foreground' onPress={() => handleAction("stopped")} isDisabled={streamSessions[0]?.desiredState === StreamState.Stopped}>
-														<IconPlayerStop size={18} /> Stop
-													</Button>
-												</div>
-											)}
-										</div>
+										{mode === StreamMode.Failsafe && (
+											<p className='text-sm text-muted'>
+												Send OBS to <code>rtmp://localhost:1935/live</code> with an empty stream key. Clips play when your live feed goes offline.
+											</p>
+										)}
+									</div>
+									<div className='min-w-0 space-y-4'>
+										<RunnerDestinationSelection destinations={destinationOptions} selectedIds={selectedDestinationIds} runnerPro={Boolean(runnerPolicy?.runnerPro)} onChange={setSelectedDestinationIds} onManage={() => setDestinationsOpen(true)} outputs={savedSession && (savedSession.desiredState !== StreamState.Stopped || savedSession.outputs.length > 0) ? savedSession.outputs : undefined} online={runner.status === RunnerStatus.Online} />
 									</div>
 								</div>
+								{configurationError && (
+									<p role='alert' className='text-sm text-danger'>
+										{configurationError}
+									</p>
+								)}
+								{savedSession?.hasError && !savedSession.playbackTimedOut && (
+									<p role='alert' className='text-sm text-danger'>
+										The Runner reported a broadcast error. Check its logs before retrying.
+									</p>
+								)}
+								<div className={mode === StreamMode.AlwaysOn ? "grid items-start gap-3 sm:grid-cols-2" : "grid gap-3"}>
+									<Button variant='outline' className='w-full' onPress={() => setAppearanceOpen(true)} isDisabled={!overlayId}>
+										<IconPaint size={18} aria-hidden='true' />
+										Appearance
+									</Button>
+									{mode === StreamMode.AlwaysOn && (
+										<div className='space-y-2'>
+											<Button aria-label='Schedule' aria-describedby={scheduleNeedsSave ? "schedule-save-hint" : undefined} aria-description={runnerPolicy?.scheduling === false ? "Requires Pro" : undefined} className='w-full' variant='outline' isDisabled={isSaving || !runnerPolicy || scheduleNeedsSave} onPress={() => (runnerPolicy?.scheduling ? setScheduleOpen(true) : setIsUpgradeOpen(true))}>
+												<IconCalendarEvent size={18} aria-hidden='true' />
+												Schedule
+												{runnerPolicy?.scheduling === false && <IconCrown size={16} aria-hidden='true' />}
+											</Button>
+											{scheduleNeedsSave && (
+												<p id='schedule-save-hint' className='text-xs text-muted'>
+													Save configuration to edit the schedule.
+												</p>
+											)}
+										</div>
+									)}
+								</div>
+
+								<div className='flex flex-wrap items-center justify-between gap-4 border-t border-separator pt-4'>
+									<Button variant='primary' onPress={() => void handleSave()} isDisabled={isSaving || !dirty} isPending={isSaving}>
+										Save Configuration
+									</Button>
+									{savedSession && (
+										<RunnerBroadcastControls
+											online={runner.status === RunnerStatus.Online}
+											playbackTimedOut={savedSession.playbackTimedOut}
+											desiredState={savedSession.desiredState}
+											actualState={savedSession.actualState}
+											canStart={savedSession.controlMode !== "scheduled" && !actionPending && runner.status === RunnerStatus.Online && streamReadyToStart}
+											requiresConnection={!runnerPolicy?.runnerPro}
+											clipPlayback={savedSession.mode === "24/7"}
+											onStart={() => handleAction("started")}
+											onStop={(stopMode) => handleAction("stopped", stopMode)}
+										/>
+									)}
+								</div>
+								{savedSession && dirty && <p className='text-sm text-muted'>Save your changes before starting this broadcast.</p>}
 							</>
 						)}
 					</Card.Content>
 				</Card>
+				{isRunnerStreaming && (
+					<Card>
+						<Card.Header className='flex flex-wrap items-center justify-between gap-3'>
+							<h2 className='text-lg font-semibold'>Stream preview</h2>
+							<div className='flex items-center gap-3'>
+								<Chip size='sm' variant='soft'>
+									Snapshots
+								</Chip>
+								{previewState === "ready" && <RunnerPreviewRefresh refreshedAt={previewRefreshedAt} />}
+							</div>
+						</Card.Header>
+						<Card.Content>
+							<div className='aspect-video overflow-hidden rounded-xl bg-black'>
+								{previewImage ? (
+									<Image src={previewImage} alt='Broadcast snapshot' width={1280} height={720} unoptimized className='h-full w-full object-contain' />
+								) : (
+									<div className='flex h-full items-center justify-center'>
+										{previewState === "loading" ? (
+											<Spinner aria-label='Loading snapshot' />
+										) : previewState === "unavailable" ? (
+											<div className='space-y-3 text-center'>
+												<p role='alert' className='text-sm text-muted'>
+													Preview unavailable.
+												</p>
+												<Button
+													variant='secondary'
+													onPress={() => {
+														setPreviewState("loading");
+														void readPreview(runner.id, runner.ownerId);
+													}}
+												>
+													Retry preview
+												</Button>
+											</div>
+										) : (
+											<p role='status' className='text-sm text-muted'>
+												Waiting for first frame...
+											</p>
+										)}
+									</div>
+								)}
+							</div>
+						</Card.Content>
+					</Card>
+				)}
+				{runner.lastHeartbeatAt && (
+					<Accordion>
+						<Accordion.Item>
+							<Accordion.Heading>
+								<Accordion.Trigger>
+									Runner details
+									{runnerVersionState === "outdated" && (
+										<Chip size='sm' color='warning' variant='soft'>
+											Update available
+										</Chip>
+									)}
+									<Accordion.Indicator />
+								</Accordion.Trigger>
+							</Accordion.Heading>
+							<Accordion.Panel>
+								<Accordion.Body className='space-y-5'>
+									<dl className='grid gap-4 text-sm sm:grid-cols-3'>
+										<div>
+											<dt className='text-muted'>Computer</dt>
+											<dd>{runner.osInfo || "Unknown"}</dd>
+										</div>
+										<div>
+											<dt className='text-muted'>Runner version</dt>
+											<dd className='flex items-center gap-2'>
+												<span title={runner.version ?? undefined}>{runnerVersionLabel}</span>
+												{runnerVersionState === "latest" ? <IconCircleCheck size={16} className='text-success' aria-label='Latest runner version' /> : runnerVersionState === "outdated" ? <IconAlertTriangle size={16} className='text-warning' aria-label='Runner update available' /> : <span className='text-muted'>Update status unavailable</span>}
+												<Button isIconOnly size='sm' variant='tertiary' aria-label='Check for Runner updates' isPending={versionPending} onPress={refreshVersion}>
+													<IconRefresh size={16} />
+												</Button>
+											</dd>
+										</div>
+										<div>
+											<dt className='text-muted'>Last connection</dt>
+											<dd>{runner.lastHeartbeatAt ? <LocalizedDate value={runner.lastHeartbeatAt} showTime /> : "Not connected"}</dd>
+										</div>
+										{savedSession && (
+											<div>
+												<dt className='text-muted'>Video quality</dt>
+												<dd>
+													{savedSession.resolution} at {savedSession.fps} FPS
+												</dd>
+											</div>
+										)}
+									</dl>
+									{runnerPlatform && (
+										<Button className='w-full' variant={runnerVersionState === "outdated" ? "primary" : "secondary"} isDisabled={runnerVersionState === "latest"} onPress={() => handleRunnerDownload(runnerPlatform)}>
+											{runnerVersionState === "latest" ? "Runner up to date" : "Download latest runner"}
+										</Button>
+									)}
+									<div className='flex flex-wrap gap-3'>
+										<Button variant='secondary' onPress={() => handleRunnerDownload("windows")}>
+											<IconBrandWindows size={20} aria-hidden='true' />
+											Download for Windows
+										</Button>
+										{renderLinuxDownloadDropdown("Download for Linux")}
+										{renderMacOSDownloadDropdown("Download for macOS")}
+									</div>
+									<AdvancedRunnerSetup token={manualToken} error={tokenError} pending={tokenPending} onRetry={reloadToken} />
+								</Accordion.Body>
+							</Accordion.Panel>
+						</Accordion.Item>
+					</Accordion>
+				)}
+				{destinationsOpen && (
+					<Modal.Backdrop isOpen={destinationsOpen} onOpenChange={setDestinationsOpen}>
+						<Modal.Container size='lg' placement='center' scroll='inside'>
+							<Modal.Dialog>
+								<Modal.CloseTrigger />
+								<Modal.Header>
+									<Modal.Heading>Manage destinations</Modal.Heading>
+								</Modal.Header>
+								<Modal.Body>
+									<RunnerDestinations ownerId={runner.ownerId} runnerId={runner.id} onChange={refreshDestinationOptions} />
+								</Modal.Body>
+							</Modal.Dialog>
+						</Modal.Container>
+					</Modal.Backdrop>
+				)}
+				<Modal.Backdrop isOpen={appearanceOpen} onOpenChange={setAppearanceOpen}>
+					<Modal.Container size='lg' placement='center' scroll='inside' className='px-0 sm:w-full sm:px-10'>
+						<Modal.Dialog className='max-w-6xl rounded-none px-0 sm:rounded-3xl sm:px-6'>
+							<Modal.CloseTrigger />
+							<Modal.Header className='px-6 sm:px-0'>
+								<Modal.Heading>Appearance</Modal.Heading>
+							</Modal.Header>
+							<Modal.Body className='mx-0 px-0 sm:-mx-[3px] sm:px-[3px]'>
+								{appearanceOpen && (
+									<RunnerBrandingPreview
+										onPolicyInvalidated={() => {
+											void listRunnerScheduleEvents(runner.ownerId, runner.id)
+												.then((result) => setRunnerPolicy(result.success ? result.policy : null))
+												.catch(() => setRunnerPolicy(null));
+										}}
+										ownerId={runner.ownerId}
+										runnerId={runner.id}
+										overlayId={overlayId}
+										runnerPro={runnerPolicy?.runnerPro ?? false}
+										resolution={savedSession?.resolution === "1080p" ? "1080p" : "720p"}
+									/>
+								)}
+							</Modal.Body>
+						</Modal.Dialog>
+					</Modal.Container>
+				</Modal.Backdrop>
+				<Modal.Backdrop isOpen={scheduleOpen} onOpenChange={setScheduleOpen}>
+					<Modal.Container size='cover'>
+						<Modal.Dialog>
+							<Modal.CloseTrigger />
+							<Modal.Header>
+								<Modal.Heading>Broadcast schedule</Modal.Heading>
+							</Modal.Header>
+							<Modal.Body>{scheduleOpen && <RunnerSchedule ownerId={runner.ownerId} runnerId={runner.id} sessionId={savedSession?.id} overlayId={overlayId} overlays={overlays} destinations={destinationOptions} selectedDestinationIds={selectedDestinationIds} clipPlayback={mode === StreamMode.AlwaysOn} onPolicyChange={setRunnerPolicy} onDestinationsChange={refreshDestinationOptions} />}</Modal.Body>
+						</Modal.Dialog>
+					</Modal.Container>
+				</Modal.Backdrop>
 				<Modal.Backdrop
 					isOpen={!!installPlatform}
-					onOpenChange={(isOpen) => {
-						if (!isOpen) {
-							setInstallPlatform(null);
-							setDownloadCountdown(0);
-						}
+					onOpenChange={(open) => {
+						if (!open) setInstallPlatform(null);
 					}}
 				>
 					<Modal.Container size='lg'>
 						<Modal.Dialog>
 							<Modal.CloseTrigger />
-							<Modal.Header className='flex flex-col gap-2 pr-10'>
-								<Modal.Heading>Install Clipify Runner for {installPlatform ? runnerPlatformLabels[installPlatform] : ""}</Modal.Heading>
-								<p className='text-sm text-muted-foreground'>Download starting. If it does not start, click the button below.</p>
+							<Modal.Header className='flex-row items-center gap-3'>
+								<span className='flex size-11 shrink-0 items-center justify-center rounded-full bg-success/10 text-success'>
+									<IconCircleCheck size={26} aria-hidden='true' />
+								</span>
+								<div className='space-y-1'>
+									<Modal.Heading>Your download is starting</Modal.Heading>
+									<p className='text-sm text-muted'>Clipify Runner for {installPlatform ? runnerPlatformLabels[installPlatform] : ""}</p>
+								</div>
 							</Modal.Header>
-							<Modal.Body className='flex flex-col gap-5'>
+							<Modal.Body className='space-y-5'>
 								{installPlatform && (
-									<Button isDisabled={downloadCountdown > 0} variant='primary' onPress={() => handleRunnerDownload(installPlatform)} className='self-center inline-flex w-fit items-center justify-center gap-2'>
-										<IconDownload size={18} />
-										Download again{downloadCountdown > 0 ? ` (${downloadCountdown})` : ""}
-									</Button>
+									<p className='text-sm text-muted'>
+										If it doesn’t start,{" "}
+										<Link href={getRunnerDownloadUrl(installPlatform)} download='' isDisabled={downloadCountdown > 0} onPress={() => setDownloadCountdown(5)} className='inline text-sm underline underline-offset-4'>
+											download again{downloadCountdown > 0 ? ` (${downloadCountdown}s)` : ""}
+										</Link>
+										.
+									</p>
 								)}
 								{renderInstallSteps()}
 							</Modal.Body>
 						</Modal.Dialog>
 					</Modal.Container>
 				</Modal.Backdrop>
+				<UpgradeModal isOpen={isUpgradeOpen} onOpenChange={setIsUpgradeOpen} user={user} source='upgrade_modal' feature='runner_scheduling' mode='plan' />
 				<ConfirmModal
 					isOpen={isUnlinkConfirmOpen}
 					onOpenChange={setIsUnlinkConfirmOpen}
 					title='Unlink runner'
-					description='This will disconnect the runner from this account and revoke its access.'
+					description='Disconnect this computer from your account?'
 					confirmLabel='Unlink'
-					cancelLabel='Cancel'
 					onConfirm={async () => {
-						await handleUnlinkRunner();
-						setIsUnlinkConfirmOpen(false);
+						if (await handleUnlinkRunner()) setIsUnlinkConfirmOpen(false);
 					}}
 				/>
-			</div>
+			</DashboardEditorLayout>
 		</DashboardNavbar>
 	);
 }

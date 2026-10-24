@@ -3,7 +3,7 @@ const { resolve, relative } = require("node:path");
 const durations = require("./test-duration-baseline.json");
 const normalize = (path) => relative(process.cwd(), resolve(path)).replaceAll("\\", "/");
 const quiet = /(runtime-boundaries|database-(abort|deadline)|provider-(abort|concurrency|deadline|queue|unlock)|request-(cancellation|pool-lifecycle)|cimd-deadline|refresh-boundaries|creation-quotas|authorization-entitlements|policy.*serialization|(create|resource|playlist(-add|-item)?)(-delete)?-expiry|auth-performance)\.test\./;
-const database = /(?:^|\/)test\/mcp\/(integration|contract|workflows)\/|test\/auth-engine-rewrite\/integration\/(creator-onboarding-trigger|provider-credential-switch)\.test\.|coverage-(collector|parallel|next-entries)\.test\./;
+const database = /(?:^|\/)test\/mcp\/(integration|contract|workflows)\/|test\/auth-engine-rewrite\/integration\/(creator-onboarding-trigger|provider-credential-switch)\.test\.|coverage-(collector|parallel|next-entries)\.test\.|test\/server\/runner\/|test\/app\/lib\/runnerScheduler\.test\./;
 function balance(paths, count) {
 	const bins = Array.from({ length: count }, () => ({ weight: 0, paths: [] }));
 	const weight = (path) => durations[normalize(path).replace(/^\.features-gen\//, "")] ?? 1;

@@ -141,10 +141,15 @@ export const workflowInputSchemas = {
 	list_stream_sessions: z.object({ ...target, ...page }).strict(),
 	get_stream_session: z.object(session).strict(),
 	configure_stream_session: z
-		.object({ ...target, sessionId: id.optional(), expectedRevision: revision.optional(), runnerId: id, overlayId: id, mode: z.enum(["24/7", "failsafe"]), resolution: z.enum(["720p", "1080p"]).default("1080p"), fps: z.union([z.literal(30), z.literal(60)]).default(60), destination: z.enum(["twitch", "youtube"]).optional(), retryKey: z.string().min(1).max(128).optional() })
+		.object({ ...target, sessionId: id.optional(), expectedRevision: revision.optional(), runnerId: id, overlayId: id, mode: z.enum(["24/7", "failsafe"]), controlMode: z.enum(["manual", "scheduled"]).optional(), resolution: z.enum(["720p", "1080p"]).default("1080p"), fps: z.union([z.literal(30), z.literal(60)]).default(60), destination: z.enum(["twitch", "youtube"]).optional(), destinationIds: z.array(z.uuid()).min(1).optional(), retryKey: z.string().min(1).max(128).optional() })
 		.strict()
-		.refine((v) => (v.sessionId ? Boolean(v.expectedRevision) : Boolean(v.retryKey)), "Existing sessions need a revision; new sessions need a retry key"),
-	control_stream_session: z.object({ ...session, expectedRevision: revision, state: z.enum(["running", "stopped"]) }).strict(),
+		.refine((v) => (v.sessionId ? Boolean(v.expectedRevision) : Boolean(v.retryKey)), "Existing sessions need a revision; new sessions need a retry key")
+		.refine((v) => v.controlMode !== "scheduled" || v.mode === "24/7", "Live fallback uses Manual control")
+		.refine((v) => v.destination === undefined || v.destinationIds === undefined, "Choose a saved selection or a legacy preset"),
+	control_stream_session: z
+		.object({ ...session, expectedRevision: revision, executionGeneration: z.uuid().optional(), occurrenceId: z.string().min(1).max(512).optional(), state: z.enum(["running", "stopped"]), stopMode: z.enum(["graceful", "immediate"]).optional() })
+		.strict()
+		.refine((input) => input.state === "stopped" || input.stopMode === undefined, { message: "Stop mode applies only to stopping a broadcast" }),
 	get_runner_snapshot: z.object(runner).strict(),
 	submit_feedback: z.object({ ...target, kind: z.enum(["bug", "suggestion"]), message: z.string().trim().min(1).max(2000), confirmed: z.literal(true), retryKey: z.string().min(1).max(128) }).strict(),
 };

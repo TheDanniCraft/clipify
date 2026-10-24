@@ -55,22 +55,6 @@ export async function hasActiveAgencyAllocation(userId: string, now = new Date()
 	return rows.length > 0;
 }
 
-export async function hasActiveAgencyRunnerAllocation(userId: string, now = new Date(), client: QueryClient = db) {
-	const agencyLicenseAllocationsTable = databaseSchema.agencyLicenseAllocationsTable as typeof databaseSchema.agencyLicenseAllocationsTable | undefined;
-	if (!agencyLicenseAllocationsTable) return false;
-	const rows = await client
-		.select({ id: agencyLicenseAllocationsTable.id })
-		.from(agencyLicenseAllocationsTable)
-		.where(and(eq(agencyLicenseAllocationsTable.creatorId, userId), eq(agencyLicenseAllocationsTable.product, "runner"), lte(agencyLicenseAllocationsTable.effectiveAt, now), inArray(agencyLicenseAllocationsTable.status, ["active", "removal_scheduled"]), or(isNull(agencyLicenseAllocationsTable.endsAt), gt(agencyLicenseAllocationsTable.endsAt, now))))
-		.limit(1)
-		.execute();
-	return rows.length > 0;
-}
-
-export async function hasActiveRunnerAccess(userId: string, now = new Date(), client: QueryClient = db) {
-	return (await hasActiveEntitlement(userId, Entitlement.RunnerAccess, now, client)) || (await hasActiveAgencyRunnerAllocation(userId, now, client));
-}
-
 export async function createProAccessGrant(input: CreateGrantInput) {
 	const now = new Date();
 	const persist = async (client: QueryClient) => {
@@ -195,7 +179,6 @@ export async function resolveUserEntitlements(user: EntitlementUserRef, client: 
 		return {
 			effectivePlan: "pro",
 			proAccess: true,
-			runnerAccess: await hasActiveRunnerAccess(user.id, now, client),
 			isBillingPro: true,
 			reverseTrialActive: false,
 			trialEndsAt: null,
@@ -209,7 +192,6 @@ export async function resolveUserEntitlements(user: EntitlementUserRef, client: 
 		return {
 			effectivePlan: "free",
 			proAccess: false,
-			runnerAccess: await hasActiveRunnerAccess(user.id, now, client),
 			isBillingPro: false,
 			reverseTrialActive: false,
 			trialEndsAt: null,
@@ -224,7 +206,6 @@ export async function resolveUserEntitlements(user: EntitlementUserRef, client: 
 		return {
 			effectivePlan: "pro",
 			proAccess: true,
-			runnerAccess: await hasActiveRunnerAccess(user.id, now, client),
 			isBillingPro: false,
 			reverseTrialActive: isReverseTrialGrant,
 			trialEndsAt: grantAccessEndsAt(grant),
@@ -240,7 +221,6 @@ export async function resolveUserEntitlements(user: EntitlementUserRef, client: 
 		return {
 			effectivePlan: "pro",
 			proAccess: true,
-			runnerAccess: await hasActiveRunnerAccess(user.id, now, client),
 			isBillingPro: false,
 			reverseTrialActive: false,
 			trialEndsAt: null,
@@ -253,7 +233,6 @@ export async function resolveUserEntitlements(user: EntitlementUserRef, client: 
 	return {
 		effectivePlan: "free",
 		proAccess: false,
-		runnerAccess: await hasActiveRunnerAccess(user.id, now, client),
 		isBillingPro: false,
 		reverseTrialActive: false,
 		trialEndsAt: null,
@@ -274,7 +253,6 @@ export async function resolveUserEntitlementsForUsers(users: EntitlementUserRef[
 			result.set(user.id, {
 				effectivePlan: "pro",
 				proAccess: true,
-				runnerAccess: await hasActiveRunnerAccess(user.id, now),
 				isBillingPro: true,
 				reverseTrialActive: false,
 				trialEndsAt: null,
@@ -292,7 +270,6 @@ export async function resolveUserEntitlementsForUsers(users: EntitlementUserRef[
 			result.set(user.id, {
 				effectivePlan: "free",
 				proAccess: false,
-				runnerAccess: await hasActiveRunnerAccess(user.id, now),
 				isBillingPro: false,
 				reverseTrialActive: false,
 				trialEndsAt: null,
@@ -353,7 +330,6 @@ export async function resolveUserEntitlementsForUsers(users: EntitlementUserRef[
 			result.set(user.id, {
 				effectivePlan: "pro",
 				proAccess: true,
-				runnerAccess: await hasActiveRunnerAccess(user.id, now),
 				isBillingPro: false,
 				reverseTrialActive: isReverseTrialGrant,
 				trialEndsAt: grantAccessEndsAt(grant),
@@ -369,7 +345,6 @@ export async function resolveUserEntitlementsForUsers(users: EntitlementUserRef[
 			result.set(user.id, {
 				effectivePlan: "pro",
 				proAccess: true,
-				runnerAccess: await hasActiveRunnerAccess(user.id, now),
 				isBillingPro: false,
 				reverseTrialActive: false,
 				trialEndsAt: null,
@@ -383,7 +358,6 @@ export async function resolveUserEntitlementsForUsers(users: EntitlementUserRef[
 		result.set(user.id, {
 			effectivePlan: "free",
 			proAccess: false,
-			runnerAccess: await hasActiveRunnerAccess(user.id, now),
 			isBillingPro: false,
 			reverseTrialActive: false,
 			trialEndsAt: null,
@@ -429,7 +403,9 @@ export async function suspendRunnersForOwner(ownerId: string, reason = "runner_e
 }
 
 async function reconcileResolvedUserEntitlements(user: EntitlementUserRef, entitlements: UserEntitlements) {
-	const runnerResult = entitlements.runnerAccess ? { runners: 0, sessions: 0 } : await suspendRunnersForOwner(user.id);
+	// Basic Runner access survives a downgrade. Accepted broadcasts retain their
+	// captured admission; new Starts resolve current benefits and owner occupancy.
+	const runnerResult = { runners: 0, sessions: 0 };
 	let resources = null;
 	if (entitlements.effectivePlan === "free") resources = await recordFreeCapabilityReconciliation(user, entitlements);
 	else await db.update(usersTable).set({ updatedAt: new Date(), lastEntitlementReconciledAt: new Date() }).where(eq(usersTable.id, user.id)).execute();

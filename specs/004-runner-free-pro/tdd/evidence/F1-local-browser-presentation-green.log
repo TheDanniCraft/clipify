@@ -1,0 +1,39 @@
+[WebServer] (node:65867) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:65867) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+(node:65978) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-e98ef155-0d25-44f2-857e-c5b4134567a9
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+  ✓  1 [bdd-chromium] › .features-gen/bdd/runner-presentation.feature.spec.js:6:7 › Runner-generated presentation › Free generated standby retains Clipify attribution @BDD @US4 @runner-presentation-browser @FR-016 @BDD-US4-OPT056 (1.4s)
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-e98ef155-0d25-44f2-857e-c5b4134567a9
+  ✓  2 [bdd-chromium] › .features-gen/bdd/runner-presentation.feature.spec.js:12:7 › Runner-generated presentation › Ordinary overlay remains free of Runner attribution @BDD @US4 @runner-presentation-browser @FR-016 @BDD-US4-OPT058 (596ms)
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-3d18b81a-fda3-4232-bb42-622473796370
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-0474b03d-ac83-4474-b3a9-135e52e0fa8e
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-0474b03d-ac83-4474-b3a9-135e52e0fa8e
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-0474b03d-ac83-4474-b3a9-135e52e0fa8e
+  ✓  3 [bdd-chromium] › .features-gen/bdd/runner-presentation.feature.spec.js:18:7 › Runner-generated presentation › Free generated clip playback retains Clipify attribution @BDD @US4 @runner-presentation-browser @FR-016 @BDD-US4-OPT054 (2.1s)
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-a09d975a-a60e-496b-aad1-cb2b9a2950fa
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-a09d975a-a60e-496b-aad1-cb2b9a2950fa
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-a09d975a-a60e-496b-aad1-cb2b9a2950fa
+  ✓  4 [bdd-chromium] › .features-gen/bdd/runner-presentation.feature.spec.js:24:7 › Runner-generated presentation › Live forwarding bypasses attribution across generated fallback and return @BDD @US4 @runner-presentation-browser @FR-016 @BDD-US4-FR016 @BDD-US4-OPT055 @BDD-US4-OPT057 (21.8s)
+
+  4 passed (36.1s)

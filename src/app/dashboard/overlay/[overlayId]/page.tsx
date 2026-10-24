@@ -1,4 +1,8 @@
 "use client";
+import { useDeploymentDraft } from "@lib/deploymentDrafts";
+
+import LocalizedDate from "@components/localizedDate";
+import DashboardEditorLayout from "@components/dashboardEditorLayout";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -119,8 +123,18 @@ export default function OverlaySettings() {
 	const { isOpen: isImportOpen, open: onImportOpen, close: onImportClose, setOpen: onImportOpenChange } = useOverlayState();
 	const { isOpen: isAddClipsOpen, open: onAddClipsOpen, close: onAddClipsClose, setOpen: onAddClipsOpenChange } = useOverlayState();
 	const { isOpen: isUpgradeOpen, open: onUpgradeOpen, setOpen: onUpgradeOpenChange } = useOverlayState();
+	const [upgradeFeature, setUpgradeFeature] = useState("advanced_filters");
+	const openFeatureUpgrade = (feature = "advanced_filters") => {
+		setUpgradeFeature(feature);
+		onUpgradeOpen();
+	};
 	const { isOpen: isAutoImportLockedOpen, open: onAutoImportLockedOpen, close: onAutoImportLockedClose, setOpen: onAutoImportLockedOpenChange } = useOverlayState();
 	const plausible = usePlausible();
+
+	useDeploymentDraft(user && overlay && baseOverlay ? `overlay:${user.id}:${overlay.id}` : null, overlay ?? {}, baseOverlay ?? {}, (draft, saved) => {
+		setOverlay(draft as Overlay);
+		setBaseOverlay(saved as Overlay);
+	});
 
 	const navGuard = useNavigationGuard({ enabled: isFormDirty() });
 
@@ -787,12 +801,13 @@ export default function OverlaySettings() {
 			<ChatwootData user={user} overlay={overlay} />
 
 			<DashboardNavbar user={user!} title='Overlay Settings' tagline='Manage your overlays'>
-				<div className='flex flex-col items-center justify-center w-full p-4'>
+				<DashboardEditorLayout>
 					<Card className='w-full max-w-4xl'>
 						<Card.Header className='flex w-full flex-row items-center justify-between gap-4'>
 							<div className='flex min-w-0 items-center gap-3'>
 								<Button
 									isIconOnly
+									aria-label='Back to dashboard'
 									variant='tertiary'
 									onPress={() => {
 										router.push(`${baseUrl}/dashboard`);
@@ -802,7 +817,7 @@ export default function OverlaySettings() {
 								</Button>
 								<h1 className='text-xl font-bold'>Overlay Settings</h1>
 							</div>
-							<span className='shrink-0 text-sm text-muted'>ID: {overlayId}</span>
+							<span className='hidden shrink-0 text-sm text-muted sm:inline'>ID: {overlayId}</span>
 						</Card.Header>
 						<Separator />
 						<Card.Content>
@@ -959,7 +974,7 @@ export default function OverlaySettings() {
 																feature: "advanced_filters",
 																plan: user?.plan ?? "free",
 															});
-															onUpgradeOpen();
+															openFeatureUpgrade();
 														}}
 														className='mt-3 w-full font-semibold'
 													>
@@ -970,7 +985,7 @@ export default function OverlaySettings() {
 													) : (
 														<div className='mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning bg-warning-soft px-3 py-2'>
 															<p className='text-xs'>{inTrial ? `Trial active: ${trialDaysLeft <= 1 ? "ends today." : `${trialDaysLeft} days left.`}` : "Start Pro now. Cancel anytime."}</p>
-															<Button size='sm' variant='tertiary' onPress={onUpgradeOpen}>
+															<Button size='sm' variant='tertiary' onPress={() => openFeatureUpgrade()}>
 																Upgrade now
 															</Button>
 														</div>
@@ -1004,6 +1019,7 @@ export default function OverlaySettings() {
 											<TextField fullWidth className='min-w-0 flex-1'>
 												<InputGroup fullWidth variant='secondary'>
 													<InputGroup.Input
+														className='min-w-0'
 														onChange={(event) => {
 															event.preventDefault();
 														}}
@@ -1321,7 +1337,7 @@ export default function OverlaySettings() {
 							</div>
 						</Card.Content>
 					</Card>
-				</div>
+				</DashboardEditorLayout>
 
 				<ControlledModal isOpen={isCliplistOpen} onOpenChange={onCliplistOpenChange} dialogClassName='flex max-h-[80vh] flex-col overflow-hidden'>
 					<Modal.Header className='flex w-full flex-row items-center justify-between gap-3 pt-10'>
@@ -1628,7 +1644,7 @@ export default function OverlaySettings() {
 												<Table.Cell>{item.creator_name}</Table.Cell>
 												<Table.Cell>{getGameName(item.game_id)}</Table.Cell>
 												<Table.Cell>{item.view_count}</Table.Cell>
-												<Table.Cell>{new Date(item.created_at).toLocaleDateString()}</Table.Cell>
+												<Table.Cell>{<LocalizedDate value={item.created_at} />}</Table.Cell>
 											</Table.Row>
 										))}
 									</Table.Body>
@@ -1819,7 +1835,13 @@ export default function OverlaySettings() {
 						<Button variant='tertiary' onPress={onAutoImportLockedClose}>
 							Close
 						</Button>
-						<Button onPress={onUpgradeOpen} variant='primary'>
+						<Button
+							onPress={() => {
+								onAutoImportLockedClose();
+								openFeatureUpgrade("playlist_import");
+							}}
+							variant='primary'
+						>
 							Upgrade
 						</Button>
 					</Modal.Footer>
@@ -1851,7 +1873,7 @@ export default function OverlaySettings() {
 				</ControlledModal>
 			</DashboardNavbar>
 
-			{user && <UpgradeModal isOpen={isUpgradeOpen} onOpenChange={onUpgradeOpenChange} user={user} title='Upgrade to unlock Pro overlay features' source='upgrade_modal' feature='advanced_filters' />}
+			{user && <UpgradeModal isOpen={isUpgradeOpen} onOpenChange={onUpgradeOpenChange} user={user} source='upgrade_modal' feature={upgradeFeature} />}
 		</>
 	);
 }

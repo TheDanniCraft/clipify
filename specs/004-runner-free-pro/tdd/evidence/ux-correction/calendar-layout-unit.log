@@ -1,0 +1,10 @@
+[tests] Native application probes compiled once for this run
+[tests] ordinary: 31 suites, 8 worker(s)
+[tests] database: 1 suites, 1 worker(s)
+
+Test Suites: 32 passed, 32 total
+Tests:       441 passed, 441 total
+Snapshots:   0 total
+Time:        66.512 s
+Ran all test suites related to files matching src/app/admin/page.tsx|src/app/components/adminAwardsControl.tsx|src/app/components/adminUserExplorer.tsx|src/app/components/creator/CreatorAnalyticsCard.tsx|src/app/components/creator/CreatorPageClient.tsx|src/app/components/dashboardContentHost.tsx|src/app/components/gallery/GalleryFrame.tsx|src/app/components/legal/LegalDocumentLayout.tsx|src/app/components/membership/MemberCard.tsx|src/app/components/runnerGeneratedPresentation.tsx|src/app/components/runnerSchedule.tsx|src/app/components/runnerScheduleAgenda.tsx|src/app/components/runnerSchedulePlanner.ts|src/app/dashboard/agency/allocations/page.tsx|src/app/dashboard/overlay/[overlayId]/page.tsx|src/app/dashboard/playlist/[playlistId]/page.tsx|src/app/dashboard/runners/[id]/page.tsx|src/app/dashboard/settings/account/recovery/page.tsx|src/app/dashboard/settings/billing-panel.tsx|src/app/dashboard/settings/connected-apps-panel.tsx|src/app/dashboard/settings/mcp-activity-panel.tsx|src/app/dashboard/settings/page.tsx|src/app/dashboard/settings/security-panel.tsx|src/app/dashboard/settings/subscription-change-summary.tsx|src/app/dashboard/settings/team/page.tsx|test/app/components/MemberCard.test.tsx|test/app/components/gallery/GalleryFrame.test.tsx|test/app/components/legal/LegalDocumentLayout.test.tsx|test/app/components/runnerGeneratedPresentation.client.test.tsx|test/app/components/runnerScheduleAgenda.test.tsx|test/app/components/runnerSchedulePlanner.test.ts|src/app/components/localizedDate.tsx|src/app/lib/dateFormat.ts|test/app/lib/dateFormat.test.ts.
+Scoped feedback complete. Full merge validation remains required.

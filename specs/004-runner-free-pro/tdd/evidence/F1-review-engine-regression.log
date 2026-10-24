@@ -1,0 +1,1692 @@
+$ jest --runInBand --forceExit --runTestsByPath src/__tests__/capture-startup.test.ts src/__tests__/engine.test.ts src/__tests__/presentation-bootstrap.test.ts src/__tests__/controller-drain.test.ts src/__tests__/drain.test.ts "--coverage=false"
+FAIL src/__tests__/engine.test.ts
+  ● Console
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay source in 24_7 mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [Engine] Capture startup attempt 1/3...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:528:12)
+
+    console.log
+      [Engine] Capturing media stream from Puppeteer...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:610:12)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay source in 24_7 mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [Engine] Capture startup attempt 1/3...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:528:12)
+
+    console.log
+      [Engine] Capturing media stream from Puppeteer...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:610:12)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay source in 24_7 mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [Engine] Capture startup attempt 1/3...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:528:12)
+
+    console.log
+      [Engine] Capturing media stream from Puppeteer...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:610:12)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay source in 24_7 mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [Engine] Capture startup attempt 1/3...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:528:12)
+
+    console.log
+      [Engine] Capturing media stream from Puppeteer...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:610:12)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay source in 24_7 mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [Engine] Capture startup attempt 1/3...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:528:12)
+
+    console.log
+      [Engine] Capturing media stream from Puppeteer...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:610:12)
+
+    console.log
+      [Engine] Spawning Cloud Loop FFmpeg...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:638:12)
+
+    console.log
+      [Engine] Cloud Loop successfully started to the configured destination
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:669:12)
+
+    console.log
+      [Engine] Stopping stream for overlay source...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay source in 24_7 mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [Engine] Capture startup attempt 1/3...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:528:12)
+
+    console.log
+      [Engine] Capturing media stream from Puppeteer...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:610:12)
+
+    console.log
+      [Engine] Spawning Cloud Loop FFmpeg...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:638:12)
+
+    console.log
+      [Engine] Cloud Loop successfully started to the configured destination
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:669:12)
+
+    console.log
+      [Engine] Stopping stream for overlay source...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay source in 24_7 mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [Engine] Capture startup attempt 1/3...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:528:12)
+
+    console.log
+      [Engine] Capturing media stream from Puppeteer...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:610:12)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay source in 24_7 mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [Engine] Capture startup attempt 1/3...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:528:12)
+
+    console.log
+      [Engine] Capturing media stream from Puppeteer...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:610:12)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay source in 24_7 mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [Engine] Capture startup attempt 1/3...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:528:12)
+
+    console.log
+      [Engine] Capturing media stream from Puppeteer...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:610:12)
+
+    console.log
+      [Engine] Stopping stream for overlay source...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay source in 24_7 mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay source in 24_7 mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Navigating to the configured overlay
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:423:11)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Navigating to the configured overlay
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:423:11)
+
+    console.log
+      [Engine] Stopping stream for overlay source...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Navigating to the configured overlay
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:423:11)
+
+    console.log
+      [Engine] Stopping stream for overlay source...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Destination output] Exited with code 1
+
+      at EventEmitter.log (src/engine.ts:502:12)
+
+    console.error
+      [Destination output] 🔴 Stopped unexpectedly. Last log: frame=1 fps=15 bitrate=500 kbits/s time=00:00:01
+
+      502 | 			console.log(`[${name}] Exited with code ${code}`);
+      503 | 			if (code !== 0 && code !== null) {
+    > 504 | 				console.error(`[${name}] 🔴 Stopped unexpectedly. Last log: ${lastErrorLine}`);
+          | 				        ^
+      505 | 			}
+      506 | 		});
+      507 | 	}
+
+      at EventEmitter.error (src/engine.ts:504:13)
+      at Object.emit (src/__tests__/engine.test.ts:352:9)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay fenced-recovery in 24_7 mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Navigating to the configured overlay
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:423:11)
+
+    console.log
+      [Engine] Capture startup attempt 1/3...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:528:12)
+
+    console.log
+      [Engine] Capturing media stream from Puppeteer...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:610:12)
+
+    console.log
+      [Engine] Spawning Cloud Loop FFmpeg...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:638:12)
+
+    console.log
+      [Engine] Cloud Loop successfully started to the configured destination
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:669:12)
+
+    console.log
+      [Destination output] Exited with code 1
+
+      at EventEmitter.log (src/engine.ts:502:12)
+
+    console.error
+      [Destination output] 🔴 Stopped unexpectedly. Last log:
+
+      502 | 			console.log(`[${name}] Exited with code ${code}`);
+      503 | 			if (code !== 0 && code !== null) {
+    > 504 | 				console.error(`[${name}] 🔴 Stopped unexpectedly. Last log: ${lastErrorLine}`);
+          | 				        ^
+      505 | 			}
+      506 | 		});
+      507 | 	}
+
+      at EventEmitter.error (src/engine.ts:504:13)
+      at Object.emit (src/__tests__/engine.test.ts:381:11)
+
+    console.log
+      [Engine] Stopping stream for overlay fenced-recovery...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Cloud Loop FFmpeg] Exited with code 0
+
+      at EventEmitter.log (src/engine.ts:502:12)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay multistream in 24_7 mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Navigating to the configured overlay
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:423:11)
+
+    console.log
+      [Engine] Capture startup attempt 1/3...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:528:12)
+
+    console.log
+      [Engine] Capturing media stream from Puppeteer...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:610:12)
+
+    console.log
+      [Engine] Spawning Cloud Loop FFmpeg...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:638:12)
+
+    console.log
+      [Engine] Cloud Loop successfully started to the configured destination
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:669:12)
+
+    console.log
+      [Engine] Stopping stream for overlay multistream...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Cloud Loop FFmpeg] Exited with code 0
+
+      at EventEmitter.log (src/engine.ts:502:12)
+
+    console.log
+      [Destination output] Exited with code 0
+
+      at EventEmitter.log (src/engine.ts:502:12)
+          at Array.map (<anonymous>)
+
+    console.log
+      [Destination output] Exited with code 0
+
+      at EventEmitter.log (src/engine.ts:502:12)
+          at Array.map (<anonymous>)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Destination] Exited with code 1
+
+      at EventEmitter.log (src/engine.ts:502:12)
+
+    console.log
+      [Engine] Capturing media stream from Puppeteer...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:610:12)
+
+    console.log
+      [Engine] Stopping stream for overlay capture-diagnostic...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay navigation-diagnostic in 24_7 mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Navigating to the configured overlay
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:423:11)
+
+    console.log
+      [Engine] Stopping stream for overlay navigation-diagnostic...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay overlay-123 in 24_7 mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Navigating to the configured overlay
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:423:11)
+
+    console.log
+      [Engine] Capture startup attempt 1/3...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:528:12)
+
+    console.log
+      [Engine] Capturing media stream from Puppeteer...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:610:12)
+
+    console.log
+      [Engine] Spawning Cloud Loop FFmpeg...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:638:12)
+
+    console.log
+      [Engine] Cloud Loop successfully started to the configured destination
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:669:12)
+
+    console.log
+      [Engine] Stopping stream for overlay overlay-123...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay health in 24_7 mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Navigating to the configured overlay
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:423:11)
+
+    console.log
+      [Engine] Capture startup attempt 1/3...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:528:12)
+
+    console.log
+      [Engine] Capturing media stream from Puppeteer...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:610:12)
+
+    console.log
+      [Engine] Spawning Cloud Loop FFmpeg...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:638:12)
+
+    console.log
+      [Engine] Cloud Loop successfully started to the configured destination
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:669:12)
+
+    console.error
+      [Engine] FFmpeg stdin error: failed
+
+      663 | 				const error = err as NodeJS.ErrnoException;
+      664 | 				if (error.code !== "EPIPE") {
+    > 665 | 					console.error("[Engine] FFmpeg stdin error:", this.safeDiagnostic(err));
+          | 					        ^
+      666 | 				}
+      667 | 			});
+      668 | 			this.mediaStream.pipe(this.ffmpeg.stdin!);
+
+      at EventEmitter.error (src/engine.ts:665:14)
+      at Object.emit (src/__tests__/engine.test.ts:526:16)
+
+    console.log
+      [Cloud Loop FFmpeg] Exited with code 1
+
+      at EventEmitter.log (src/engine.ts:502:12)
+
+    console.error
+      [Cloud Loop FFmpeg] 🔴 Stopped unexpectedly. Last log: fatal encoder failure
+
+      502 | 			console.log(`[${name}] Exited with code ${code}`);
+      503 | 			if (code !== 0 && code !== null) {
+    > 504 | 				console.error(`[${name}] 🔴 Stopped unexpectedly. Last log: ${lastErrorLine}`);
+          | 				        ^
+      505 | 			}
+      506 | 		});
+      507 | 	}
+
+      at EventEmitter.error (src/engine.ts:504:13)
+      at Object.emit (src/__tests__/engine.test.ts:528:10)
+
+    console.log
+      [Engine] Stopping stream for overlay health...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Cloud Loop FFmpeg] Exited with code 0
+
+      at EventEmitter.log (src/engine.ts:502:12)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay playback in 24_7 mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Navigating to the configured overlay
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:423:11)
+
+    console.log
+      [Engine] Capture startup attempt 1/3...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:528:12)
+
+    console.log
+      [Engine] Capturing media stream from Puppeteer...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:610:12)
+
+    console.log
+      [Engine] Spawning Cloud Loop FFmpeg...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:638:12)
+
+    console.log
+      [Engine] Cloud Loop successfully started to the configured destination
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:669:12)
+
+    console.log
+      [Engine] Stopping stream for overlay playback...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay fallback in failsafe mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [TCP Proxy] Starting on port 1935...
+
+      at log (src/engine.ts:83:10)
+
+    console.log
+      [TCP Proxy] Listening on port 1935
+
+      at log (src/engine.ts:199:12)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Navigating to the configured overlay
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:423:11)
+
+    console.log
+      [Engine] Deferred Initialization: Failsafe is standing by. Waiting for first OBS connection...
+
+      at Engine.log [as startInternal] (src/engine.ts:367:12)
+
+    console.log
+      [Engine] OBS Connected to TCP Proxy. Switching to OBS Forwarder...
+
+      at log (src/engine.ts:278:13)
+
+    console.log
+      [Engine] Spawning FFmpeg to forward local OBS (port 1936) to the configured destination...
+
+      at Engine.log [as startObsForwarder] (src/engine.ts:681:11)
+
+    console.log
+      [Engine] OBS Disconnected. Falling back to Cloud Loop...
+
+      at log (src/engine.ts:315:13)
+
+    console.log
+      [Engine] Capture startup attempt 1/3...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:528:12)
+
+    console.log
+      [Engine] Capturing media stream from Puppeteer...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:610:12)
+
+    console.log
+      [Engine] Spawning Cloud Loop FFmpeg...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:638:12)
+
+    console.log
+      [Engine] Cloud Loop successfully started to the configured destination
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:669:12)
+
+    console.log
+      [Engine] Stopping stream for overlay fallback...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay overlay-failsafe in failsafe mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Navigating to the configured overlay
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:423:11)
+
+    console.log
+      [Engine] Deferred Initialization: Failsafe is standing by. Waiting for first OBS connection...
+
+      at Engine.log [as startInternal] (src/engine.ts:367:12)
+
+    console.log
+      [Engine] Stopping stream for overlay overlay-failsafe...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay capture-retry in 24_7 mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Navigating to the configured overlay
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:423:11)
+
+    console.log
+      [Engine] Capture startup attempt 1/3...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:528:12)
+
+    console.log
+      [Engine] Capturing media stream from Puppeteer...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:610:12)
+
+    console.error
+      [Engine] Failed to start cloud loop stream: capture unavailable
+
+      670 | 		} catch (error) {
+      671 | 			const message = this.safeDiagnostic(error);
+    > 672 | 			console.error(`[Engine] Failed to start cloud loop stream:`, message);
+          | 			        ^
+      673 | 			throw new Error(message);
+      674 | 		}
+      675 | 	}
+
+      at Engine.error [as startCloudLoopStream] (src/engine.ts:672:12)
+      at Engine.startCloudLoopStreamWithTimeout (src/engine.ts:512:11)
+      at Engine.startCloudLoopStreamWithRetry (src/engine.ts:531:12)
+      at Engine.startInternal (src/engine.ts:365:11)
+      at Engine.start (src/engine.ts:332:11)
+
+    console.error
+      [Engine] Capture startup failed on attempt 1/3: capture unavailable
+
+      533 | 				lastError = error;
+      534 | 				this.ffmpegStatus = "Capture startup failed 🔴";
+    > 535 | 				console.error(`[Engine] Capture startup failed on attempt ${attempt}/${CAPTURE_MAX_ATTEMPTS}:`, this.safeDiagnostic(error));
+          | 				        ^
+      536 | 				await this.stopCloudLoopStream();
+      537 | 				await this.stopChromiumBackground();
+      538 |
+
+      at Engine.error [as startCloudLoopStreamWithRetry] (src/engine.ts:535:13)
+      at Engine.startInternal (src/engine.ts:365:11)
+      at Engine.start (src/engine.ts:332:11)
+
+    console.log
+      [Engine] Retrying capture startup in 5s...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:540:13)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Navigating to the configured overlay
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:423:11)
+
+    console.log
+      [Engine] Capture startup attempt 2/3...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:528:12)
+
+    console.log
+      [Engine] Capturing media stream from Puppeteer...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:610:12)
+
+    console.error
+      [Engine] Failed to start cloud loop stream: capture unavailable
+
+      670 | 		} catch (error) {
+      671 | 			const message = this.safeDiagnostic(error);
+    > 672 | 			console.error(`[Engine] Failed to start cloud loop stream:`, message);
+          | 			        ^
+      673 | 			throw new Error(message);
+      674 | 		}
+      675 | 	}
+
+      at Engine.error [as startCloudLoopStream] (src/engine.ts:672:12)
+      at Engine.startCloudLoopStreamWithTimeout (src/engine.ts:512:11)
+      at Engine.startCloudLoopStreamWithRetry (src/engine.ts:531:12)
+      at Engine.startInternal (src/engine.ts:365:11)
+      at Engine.start (src/engine.ts:332:11)
+
+    console.error
+      [Engine] Capture startup failed on attempt 2/3: capture unavailable
+
+      533 | 				lastError = error;
+      534 | 				this.ffmpegStatus = "Capture startup failed 🔴";
+    > 535 | 				console.error(`[Engine] Capture startup failed on attempt ${attempt}/${CAPTURE_MAX_ATTEMPTS}:`, this.safeDiagnostic(error));
+          | 				        ^
+      536 | 				await this.stopCloudLoopStream();
+      537 | 				await this.stopChromiumBackground();
+      538 |
+
+      at Engine.error [as startCloudLoopStreamWithRetry] (src/engine.ts:535:13)
+      at Engine.startInternal (src/engine.ts:365:11)
+      at Engine.start (src/engine.ts:332:11)
+
+    console.log
+      [Engine] Retrying capture startup in 5s...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:540:13)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Navigating to the configured overlay
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:423:11)
+
+    console.log
+      [Engine] Capture startup attempt 3/3...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:528:12)
+
+    console.log
+      [Engine] Capturing media stream from Puppeteer...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:610:12)
+
+    console.error
+      [Engine] Failed to start cloud loop stream: capture unavailable
+
+      670 | 		} catch (error) {
+      671 | 			const message = this.safeDiagnostic(error);
+    > 672 | 			console.error(`[Engine] Failed to start cloud loop stream:`, message);
+          | 			        ^
+      673 | 			throw new Error(message);
+      674 | 		}
+      675 | 	}
+
+      at Engine.error [as startCloudLoopStream] (src/engine.ts:672:12)
+      at Engine.startCloudLoopStreamWithTimeout (src/engine.ts:512:11)
+      at Engine.startCloudLoopStreamWithRetry (src/engine.ts:531:12)
+      at Engine.startInternal (src/engine.ts:365:11)
+      at Engine.start (src/engine.ts:332:11)
+
+    console.error
+      [Engine] Capture startup failed on attempt 3/3: capture unavailable
+
+      533 | 				lastError = error;
+      534 | 				this.ffmpegStatus = "Capture startup failed 🔴";
+    > 535 | 				console.error(`[Engine] Capture startup failed on attempt ${attempt}/${CAPTURE_MAX_ATTEMPTS}:`, this.safeDiagnostic(error));
+          | 				        ^
+      536 | 				await this.stopCloudLoopStream();
+      537 | 				await this.stopChromiumBackground();
+      538 |
+
+      at Engine.error [as startCloudLoopStreamWithRetry] (src/engine.ts:535:13)
+      at Engine.startInternal (src/engine.ts:365:11)
+      at Engine.start (src/engine.ts:332:11)
+
+    console.log
+      [Engine] Stopping stream for overlay capture-retry...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay capture-timeout in 24_7 mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Navigating to the configured overlay
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:423:11)
+
+    console.log
+      [Engine] Capture startup attempt 1/3...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:528:12)
+
+    console.log
+      [Engine] Capturing media stream from Puppeteer...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:610:12)
+
+    console.error
+      [Engine] Capture startup failed on attempt 1/3: Capture startup timed out after 15s
+
+      533 | 				lastError = error;
+      534 | 				this.ffmpegStatus = "Capture startup failed 🔴";
+    > 535 | 				console.error(`[Engine] Capture startup failed on attempt ${attempt}/${CAPTURE_MAX_ATTEMPTS}:`, this.safeDiagnostic(error));
+          | 				        ^
+      536 | 				await this.stopCloudLoopStream();
+      537 | 				await this.stopChromiumBackground();
+      538 |
+
+      at Engine.error [as startCloudLoopStreamWithRetry] (src/engine.ts:535:13)
+      at Engine.startInternal (src/engine.ts:365:11)
+      at Engine.start (src/engine.ts:332:11)
+
+    console.log
+      [Engine] Retrying capture startup in 5s...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:540:13)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Navigating to the configured overlay
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:423:11)
+
+    console.log
+      [Engine] Capture startup attempt 2/3...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:528:12)
+
+    console.log
+      [Engine] Capturing media stream from Puppeteer...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:610:12)
+
+    console.log
+      [Engine] Spawning Cloud Loop FFmpeg...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:638:12)
+
+    console.log
+      [Engine] Cloud Loop successfully started to the configured destination
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:669:12)
+
+    console.log
+      [Engine] Stopping stream for overlay capture-timeout...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay overlay-failsafe in failsafe mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Navigating to the configured overlay
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:423:11)
+
+    console.log
+      [Engine] Deferred Initialization: Failsafe is standing by. Waiting for first OBS connection...
+
+      at Engine.log [as startInternal] (src/engine.ts:367:12)
+
+    console.log
+      [Engine] OBS Connected to TCP Proxy. Switching to OBS Forwarder...
+
+      at log (src/engine.ts:278:13)
+
+    console.log
+      [Engine] Spawning FFmpeg to forward local OBS (port 1936) to the configured destination...
+
+      at Engine.log [as startObsForwarder] (src/engine.ts:681:11)
+
+    console.log
+      [Engine] Stopping stream for overlay overlay-failsafe...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay overlay-failsafe in failsafe mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Navigating to the configured overlay
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:423:11)
+
+    console.log
+      [Engine] Deferred Initialization: Failsafe is standing by. Waiting for first OBS connection...
+
+      at Engine.log [as startInternal] (src/engine.ts:367:12)
+
+    console.log
+      [Engine] OBS Connected to TCP Proxy. Switching to OBS Forwarder...
+
+      at log (src/engine.ts:278:13)
+
+    console.log
+      [Engine] Spawning FFmpeg to forward local OBS (port 1936) to the configured destination...
+
+      at Engine.log [as startObsForwarder] (src/engine.ts:681:11)
+
+    console.log
+      [Engine] OBS Disconnected. Falling back to Cloud Loop...
+
+      at log (src/engine.ts:315:13)
+
+    console.log
+      [Engine] Capture startup attempt 1/3...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:528:12)
+
+    console.log
+      [Engine] Capturing media stream from Puppeteer...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:610:12)
+
+    console.log
+      [Engine] Spawning Cloud Loop FFmpeg...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:638:12)
+
+    console.log
+      [Engine] Cloud Loop successfully started to the configured destination
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:669:12)
+
+    console.log
+      [Engine] Stopping stream for overlay overlay-failsafe...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay generation-source in 24_7 mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Navigating to the configured overlay
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:423:11)
+
+    console.log
+      [Engine] Capture startup attempt 1/3...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:528:12)
+
+    console.log
+      [Engine] Capturing media stream from Puppeteer...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:610:12)
+
+    console.log
+      [Engine] Spawning Cloud Loop FFmpeg...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:638:12)
+
+    console.log
+      [Engine] Cloud Loop successfully started to the configured destination
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:669:12)
+
+    console.log
+      [Engine] Stopping stream for overlay generation-source...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Stopping stream for overlay pending...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay pending-browser in 24_7 mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Stopping stream for overlay pending-browser...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Engine] Capture startup attempt 1/3...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:528:12)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay terminal in 24_7 mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Navigating to the configured overlay
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:423:11)
+
+    console.log
+      [Engine] Capture startup attempt 1/3...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:528:12)
+
+    console.log
+      [Engine] Capturing media stream from Puppeteer...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:610:12)
+
+    console.log
+      [Engine] Spawning Cloud Loop FFmpeg...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:638:12)
+
+    console.log
+      [Engine] Cloud Loop successfully started to the configured destination
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:669:12)
+
+    console.log
+      [Engine] Stopping stream for overlay terminal...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay late-capture in 24_7 mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Navigating to the configured overlay
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:423:11)
+
+    console.log
+      [Engine] Capture startup attempt 1/3...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:528:12)
+
+    console.log
+      [Engine] Capturing media stream from Puppeteer...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:610:12)
+
+    console.log
+      [Engine] Stopping stream for overlay late-capture...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay late-playback in 24_7 mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Navigating to the configured overlay
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:423:11)
+
+    console.log
+      [Engine] Capture startup attempt 1/3...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:528:12)
+
+    console.log
+      [Engine] Capturing media stream from Puppeteer...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:610:12)
+
+    console.log
+      [Engine] Stopping stream for overlay late-playback...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Engine] Ensuring dependencies are ready...
+
+      at Engine.log [as startInternal] (src/engine.ts:343:11)
+
+    console.log
+      [Engine] Starting stream for overlay lease-gate in 24_7 mode...
+
+      at Engine.log [as startInternal] (src/engine.ts:352:11)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Navigating to the configured overlay
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:423:11)
+
+    console.log
+      [Engine] Capture startup attempt 1/3...
+
+      at Engine.log [as startCloudLoopStreamWithRetry] (src/engine.ts:528:12)
+
+    console.log
+      [Engine] Capturing media stream from Puppeteer...
+
+      at Engine.log [as startCloudLoopStream] (src/engine.ts:610:12)
+
+    console.log
+      [Engine] Stopping stream for overlay lease-gate...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Navigating to the configured overlay
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:423:11)
+
+    console.log
+      [Engine] Stopping stream for overlay source...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Navigating to the configured overlay
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:423:11)
+
+    console.log
+      [Engine] Stopping stream for overlay source...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Navigating to the configured overlay
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:423:11)
+
+    console.log
+      [Engine] Stopping stream for overlay source...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Navigating to the configured overlay
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:423:11)
+
+    console.log
+      [Engine] Stopping stream for overlay source...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+    console.log
+      [Engine] Launching Puppeteer...
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:379:11)
+
+    console.log
+      [Engine] Navigating to the configured overlay
+
+      at Engine.log [as startChromiumBackground] (src/engine.ts:423:11)
+
+    console.log
+      [Engine] Stopping stream for overlay source...
+
+      at Engine.log [as closeOutputs] (src/engine.ts:920:11)
+
+    console.log
+      [Engine] Stream stopped.
+
+      at Engine.log [as closeOutputs] (src/engine.ts:932:11)
+
+  ● Engine (Raw Logic Tests) › TDD-US4-DEC012 U290: a blocked playing layout refuses output normally and destroys capture
+
+    expect(received).resolves.toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: undefined
+
+      114 | 		Reflect.set(engine, "browser", { close });
+      115 | 		try {
+    > 116 | 			await expect(engine.start()).resolves.toBe(false);
+          | 			                                      ^
+      117 | 			expect(startPlayback).toHaveBeenCalledTimes(1);
+      118 | 			expect(mockGetStream.mock.invocationCallOrder[0]).toBeLessThan(startPlayback.mock.invocationCallOrder[0]);
+      119 | 			expect(mockSpawn).not.toHaveBeenCalled();
+
+      at Object.toBe (node_modules/@jest/expect/node_modules/expect/build/index.js:2140:20)
+      at Object.toBe (src/__tests__/engine.test.ts:116:42)
+
+  ● Engine (Raw Logic Tests) › TDD-US4-DEC012 U290 baseline: missing or invalid initial content epoch null refuses before playback
+
+    expect(received).resolves.toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: undefined
+
+      174 | 		Reflect.set(engine, "browser", { close: jest.fn().mockResolvedValue(undefined) });
+      175 | 		try {
+    > 176 | 			await expect(engine.start()).resolves.toBe(false);
+          | 			                                      ^
+      177 | 			expect(startPlayback).not.toHaveBeenCalled();
+      178 | 			expect(page.waitForFunction).not.toHaveBeenCalled();
+      179 | 			expect(mockSpawn).not.toHaveBeenCalled();
+
+      at Object.toBe (node_modules/@jest/expect/node_modules/expect/build/index.js:2140:20)
+      at toBe (src/__tests__/engine.test.ts:176:42)
+
+  ● Engine (Raw Logic Tests) › TDD-US4-DEC012 U290 baseline: missing or invalid initial content epoch not-a-number refuses before playback
+
+    expect(received).resolves.toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: undefined
+
+      174 | 		Reflect.set(engine, "browser", { close: jest.fn().mockResolvedValue(undefined) });
+      175 | 		try {
+    > 176 | 			await expect(engine.start()).resolves.toBe(false);
+          | 			                                      ^
+      177 | 			expect(startPlayback).not.toHaveBeenCalled();
+      178 | 			expect(page.waitForFunction).not.toHaveBeenCalled();
+      179 | 			expect(mockSpawn).not.toHaveBeenCalled();
+
+      at Object.toBe (node_modules/@jest/expect/node_modules/expect/build/index.js:2140:20)
+      at toBe (src/__tests__/engine.test.ts:176:42)
+
+  ● Engine (Raw Logic Tests) › TDD-US4-DEC012 U290 baseline: missing or invalid initial content epoch -1 refuses before playback
+
+    expect(received).resolves.toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: undefined
+
+      174 | 		Reflect.set(engine, "browser", { close: jest.fn().mockResolvedValue(undefined) });
+      175 | 		try {
+    > 176 | 			await expect(engine.start()).resolves.toBe(false);
+          | 			                                      ^
+      177 | 			expect(startPlayback).not.toHaveBeenCalled();
+      178 | 			expect(page.waitForFunction).not.toHaveBeenCalled();
+      179 | 			expect(mockSpawn).not.toHaveBeenCalled();
+
+      at Object.toBe (node_modules/@jest/expect/node_modules/expect/build/index.js:2140:20)
+      at toBe (src/__tests__/engine.test.ts:176:42)
+
+  ● Engine (Raw Logic Tests) › TDD-US4-DEC012 U290 baseline: deferred startup readiness pending fences encoder publication
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: undefined
+
+      231 | 				expect(mockSpawn).not.toHaveBeenCalled();
+      232 | 				if (terminal !== "permission-revoked") {
+    > 233 | 					expect(result).toBe(false);
+          | 					               ^
+      234 | 					expect(captured.destroy).toHaveBeenCalledTimes(1);
+      235 | 					expect(engine.isRunning).toBe(false);
+      236 | 				}
+
+      at toBe (src/__tests__/engine.test.ts:233:21)
+
+  ● Engine (Raw Logic Tests) › TDD-US4-DEC012 U290 baseline: deferred startup readiness timeout fences encoder publication
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: undefined
+
+      231 | 				expect(mockSpawn).not.toHaveBeenCalled();
+      232 | 				if (terminal !== "permission-revoked") {
+    > 233 | 					expect(result).toBe(false);
+          | 					               ^
+      234 | 					expect(captured.destroy).toHaveBeenCalledTimes(1);
+      235 | 					expect(engine.isRunning).toBe(false);
+      236 | 				}
+
+      at toBe (src/__tests__/engine.test.ts:233:21)
+
+
+Test Suites: 1 failed, 4 passed, 5 total
+Tests:       6 failed, 85 passed, 91 total
+Snapshots:   0 total
+Time:        0.825 s
+Ran all test suites within paths "src/__tests__/capture-startup.test.ts", "src/__tests__/engine.test.ts", "src/__tests__/presentation-bootstrap.test.ts", "src/__tests__/controller-drain.test.ts", "src/__tests__/drain.test.ts".
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?
+error: script "test" exited with code 1

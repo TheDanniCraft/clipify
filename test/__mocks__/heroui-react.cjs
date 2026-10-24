@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const React = require("react");
 
-const Component = React.forwardRef(function HeroUIComponent({ children, onPress, className, id, style, "aria-label": ariaLabel }, ref) {
-	return React.createElement("div", { className, id, style, ref, "aria-label": ariaLabel, onClick: onPress }, children);
+const Component = React.forwardRef(function HeroUIComponent({ children, onPress, className, id, style, "aria-label": ariaLabel, "aria-pressed": ariaPressed }, ref) {
+	return React.createElement("div", { className, id, style, ref, "aria-label": ariaLabel, "aria-pressed": ariaPressed, onClick: onPress }, children);
 });
 
 const CompoundComponent = new Proxy(Component, {
@@ -19,9 +19,13 @@ const toast = Object.assign(() => undefined, {
 	info: () => undefined,
 });
 
-const Button = React.forwardRef(function HeroUIButton({ children, onPress, isDisabled, className, type, "aria-label": ariaLabel }, ref) {
-	return React.createElement("button", { className, disabled: isDisabled, ref, type, "aria-label": ariaLabel, onClick: onPress }, children);
+const Button = React.forwardRef(function HeroUIButton({ children, onPress, isDisabled, className, type, "aria-label": ariaLabel, "aria-pressed": ariaPressed }, ref) {
+	return React.createElement("button", { className, disabled: isDisabled, ref, type, "aria-label": ariaLabel, "aria-pressed": ariaPressed, onClick: onPress }, children);
 });
+
+const Switch = Object.assign(React.forwardRef(function HeroUISwitch({ children, isSelected, onChange, isDisabled, "aria-label": ariaLabel }, ref) {
+	return React.createElement("div", null, React.createElement("input", { type: "checkbox", role: "switch", checked: isSelected, disabled: isDisabled, ref, "aria-label": ariaLabel, onChange: event => onChange?.(event.currentTarget.checked) }), children);
+}), { Content: Component, Control: Component, Thumb: Component, Icon: Component });
 
 const Input = React.forwardRef(function HeroUIInput(props, ref) {
 	return React.createElement("input", { ...props, ref });
@@ -75,6 +79,7 @@ function useOverlayState(options = {}) {
 module.exports = new Proxy(
 	{
 		Button,
+		Switch,
 		Card,
 		CloseButton: Button,
 		Form: React.forwardRef(function HeroUIForm(props, ref) {

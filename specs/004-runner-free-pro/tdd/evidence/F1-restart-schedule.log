@@ -1,0 +1,154 @@
+$ jest --runInBand --runTestsByPath test/server/runner/schedules.test.ts "--coverage=false"
+[tests] Native application probes compiled once for this run
+[tests] database: 1 suites, 1 worker(s)
+Error: FUTURE_RECOVERY_FIXTURE_MISSING
+    at file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20779:26
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NodePgSession.transaction (file:///home/coder/clipify/node_modules/drizzle-orm/node-postgres/session.js:186:22)
+    at async Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20775:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:21652:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:24913:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25031:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25034:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25516:12)
+Error: FUTURE_RECOVERY_FIXTURE_MISSING
+    at file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20779:26
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NodePgSession.transaction (file:///home/coder/clipify/node_modules/drizzle-orm/node-postgres/session.js:186:22)
+    at async Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20775:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:21652:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:24913:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25031:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25034:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25516:12)
+Error: FUTURE_RECOVERY_FIXTURE_MISSING
+    at file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20779:26
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NodePgSession.transaction (file:///home/coder/clipify/node_modules/drizzle-orm/node-postgres/session.js:186:22)
+    at async Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20775:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:21652:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:24913:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25031:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25034:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25516:12)
+Error: FUTURE_RECOVERY_FIXTURE_MISSING
+    at file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20779:26
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NodePgSession.transaction (file:///home/coder/clipify/node_modules/drizzle-orm/node-postgres/session.js:186:22)
+    at async Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20775:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:21652:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:24913:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25031:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25034:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25516:12)
+Error: FUTURE_RECOVERY_FIXTURE_MISSING
+    at file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20779:26
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NodePgSession.transaction (file:///home/coder/clipify/node_modules/drizzle-orm/node-postgres/session.js:186:22)
+    at async Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20775:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:21652:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:24913:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25031:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25034:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25516:12)
+Error: FUTURE_RECOVERY_FIXTURE_MISSING
+    at file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20779:26
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NodePgSession.transaction (file:///home/coder/clipify/node_modules/drizzle-orm/node-postgres/session.js:186:22)
+    at async Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20775:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:21652:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:24913:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25031:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25034:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25516:12)
+Error: FUTURE_RECOVERY_FIXTURE_MISSING
+    at file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20779:26
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NodePgSession.transaction (file:///home/coder/clipify/node_modules/drizzle-orm/node-postgres/session.js:186:22)
+    at async Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20775:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:21652:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:24913:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25031:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25034:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25516:12)
+Error: FUTURE_RECOVERY_FIXTURE_MISSING
+    at file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20779:26
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NodePgSession.transaction (file:///home/coder/clipify/node_modules/drizzle-orm/node-postgres/session.js:186:22)
+    at async Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20775:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:21652:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:24913:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25031:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25034:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25516:12)
+Error: FUTURE_RECOVERY_FIXTURE_MISSING
+    at file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20779:26
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NodePgSession.transaction (file:///home/coder/clipify/node_modules/drizzle-orm/node-postgres/session.js:186:22)
+    at async Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20775:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:21652:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:24913:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25031:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25034:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25516:12)
+Error: FUTURE_RECOVERY_FIXTURE_MISSING
+    at file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20779:26
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NodePgSession.transaction (file:///home/coder/clipify/node_modules/drizzle-orm/node-postgres/session.js:186:22)
+    at async Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20775:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:21652:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:24913:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25031:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25034:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25516:12)
+Error: FUTURE_RECOVERY_FIXTURE_MISSING
+    at file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20779:26
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NodePgSession.transaction (file:///home/coder/clipify/node_modules/drizzle-orm/node-postgres/session.js:186:22)
+    at async Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20775:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:21652:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:24913:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25031:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25034:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25516:12)
+Error: FUTURE_RECOVERY_FIXTURE_MISSING
+    at file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20779:26
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NodePgSession.transaction (file:///home/coder/clipify/node_modules/drizzle-orm/node-postgres/session.js:186:22)
+    at async Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20775:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:21652:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:24913:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25031:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25034:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25516:12)
+Error: FUTURE_RECOVERY_FIXTURE_MISSING
+    at file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20779:26
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NodePgSession.transaction (file:///home/coder/clipify/node_modules/drizzle-orm/node-postgres/session.js:186:22)
+    at async Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20775:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:21652:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:24913:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25031:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25034:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25516:12)
+Error: FUTURE_RECOVERY_FIXTURE_MISSING
+    at file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20779:26
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NodePgSession.transaction (file:///home/coder/clipify/node_modules/drizzle-orm/node-postgres/session.js:186:22)
+    at async Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20775:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:21652:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:24913:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25031:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25034:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25516:12)
+Error: FUTURE_RECOVERY_FIXTURE_MISSING
+    at file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20779:26
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NodePgSession.transaction (file:///home/coder/clipify/node_modules/drizzle-orm/node-postgres/session.js:186:22)
+    at async Object.runRunnerScheduleContractProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:20775:5)
+    at async Object.runRunnerDestinationsProbe (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:21652:12)
+    at async Object.run (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:24913:46)
+    at async dispatchProbeCatalogue (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25031:13)
+    at async exerciseAuthorizationJourney (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25034:15)
+    at async main (file:///home/coder/clipify/test-results/mcp/compiled-tests-ptH1D7/flow-probe.mjs:25516:12)
+error: script "test" was terminated by signal SIGTERM (Polite quit request)

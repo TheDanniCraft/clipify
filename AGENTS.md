@@ -89,6 +89,19 @@ Example:
 💄 Refine team and authorization management
 ```
 
+## Local test prerequisites
+
+- Before a local full-suite, native MCP workflow or browser baseline, follow
+  [docs/local-testing.md](docs/local-testing.md). Verify disposable loopback
+  PostgreSQL is accepting connections, set a job-owned `MCP_TEST_TEMPLATE_ID`,
+  and install Chromium with its operating-system dependencies.
+- Environment exports do not persist between terminals or agent shell calls.
+  Reapply the documented test environment for each execution; never substitute
+  production or shared development credentials.
+- Compare the exact owning CI job and environment before treating a local
+  prerequisite failure as a code regression. Missing services or browser
+  libraries are blocked setup evidence, not an intended product-test Red.
+
 ## Test execution and pull requests
 
 - Open new pull requests as drafts by default. Draft CI provides scoped feedback;
@@ -109,6 +122,26 @@ Example:
 - Master keeps complete validation unless identical tested source and execution
   inputs are verified. A prior successful head SHA alone is insufficient evidence.
 
+## Push checkpoints
+
+- Do not push an intentionally failing TDD Red. Keep Red/Green cycles local and
+  push only after the affected whole-file tests pass.
+- Before pushing a completed slice, run affected coverage with the existing CI
+  thresholds, including files exercised by changed tests. Passing assertions alone
+  do not establish that coverage passed. Run the relevant real browser journeys
+  with CI's build/runtime configuration; do not add local-only environment values
+  that hide an absent-configuration failure.
+- The pre-push hook runs related tests for ordinary application changes, the full
+  application coverage owner for shared/configuration changes, and the native
+  Runner coverage owner for Runner changes. It is a safety net, not evidence that
+  browser acceptance, packaging or another operating system has passed.
+- Never bypass a failed hook or lower thresholds to push. Fix the failure or report
+  the specific unavailable prerequisite. Do not repeatedly push speculative fixes
+  and cancel the validation checkpoint before its final gate finishes.
+- Report local checks, platform-specific checks and the final CI gate separately.
+  Windows process/update/capture changes need real Windows validation; a Linux
+  test run or Linux Docker host cannot establish Windows behavior.
+
 ## Drizzle migration ownership (non-negotiable)
 
 - On feature branches, edit `src/db/schema.ts`, `src/db/auth-schema.ts`, and
@@ -117,8 +150,14 @@ Example:
 - The `Generate Migrations` workflow owns ordinary migration generation after a
   completed pull request lands on `master`. It generates one migration from the
   final schema diff.
-- `bun run db:push` is permitted only against the disposable development
-  database through Infisical. Never use it against production.
+- Development and preview databases are synchronized only by an explicit
+  operator-run `bun run db:push` through Infisical. Preview container startup
+  must never run `drizzle-kit push`, `drizzle-kit migrate`, or any equivalent
+  automatic schema mutation.
+- Production releases apply the generated migrations committed after merge.
+  Never use `db:push` against production, and never use production migrations
+  to synchronize a feature branch's preview database before those migrations
+  have been generated from `master`.
 - The sole CI exception is `bun run db:push:e2e`, which is guarded to run only
   in GitHub Actions job `browser-tests` against PostgreSQL on loopback, database
   and user `clipify_e2e`, with `CLIPIFY_E2E_SCHEMA_PUSH=1`. It must never accept
@@ -140,3 +179,17 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## Product UI and UX
+
+- Use the installed HeroUI and HeroUI Pro components for visible controls. Read their installed API and official examples before composing them. Prefer the library's date/time pickers, select/multiselect, DropZone, color controls and Agenda compound components over hand-styled native substitutes. Native elements inside library components and hidden form inputs are expected.
+- Reuse Clipify's existing editor, dialog, preview, color-picker and layout patterns. Extract shared components from established screens when necessary; do not create a separate visual language for each feature.
+- Standard resource editors use `DashboardEditorLayout`, matching the overlay/gallery width and gutters. Keep Back, the resource heading and contextual actions together in `Card.Header`; use the full available header width on mobile.
+- Use `variant='secondary'` on supported field controls placed on cards or equivalent surfaces. Follow current theme tokens, consistent widths, spacing and responsive layout. Review light and dark themes.
+- Keep controls close to their prerequisites: provide inline create/manage actions for empty selectors, explain a missing prerequisite at the relevant field, and preserve drafts after failures. Disable actions only for a clear temporary or incompatible state. Paid locks should open the existing upgrade flow without changing or saving an unavailable value.
+- Use coherent editor sections or modes, with focused modals for secondary editing. Avoid long stacks of unrelated cards, duplicate headings, scattered save buttons, and permanent empty previews. Keep previews stable while editing; do not reload an iframe on every keystroke.
+- Write UI copy for the user's action or outcome. Keep internal policy, storage, architecture and implementation rationale out of normal screens. Put plan comparisons on pricing surfaces. Do not use middle-dot separators as decorative copy formatting.
+- Default dates and schedules to the user's local or saved timezone and use that selection consistently in calendar views and event forms. Provide accessible names, keyboard operation, visible focus, loading, empty, error and retry states.
+- Format browser-visible dates through the shared LocalizedDate component and dateFormat utilities, using the user's browser locale consistently with HeroUI date pickers. Preserve date-only calendar days and explicit saved timezones. Keep ISO values for storage, APIs and form transport; do not hard-code US/UK display formats.
+- Return expected validation, plan restrictions, conflicts and missing prerequisites as typed action results with local actionable feedback. Do not report ordinary user denials as Sentry incidents. Internal transaction rollback exceptions must be translated at the action/API boundary.
+- Acceptance for a changed user flow includes real installed components in a browser: first-run setup, success and failure recovery, permissions/upgrade behavior, keyboard/focus, and desktop/mobile layout. Inspect screenshots against the existing Clipify design in both themes. Mocked component tests, screenshot capture alone, and a no-overflow assertion do not establish acceptable UX.

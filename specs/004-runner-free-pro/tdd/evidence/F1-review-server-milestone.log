@@ -1,0 +1,9 @@
+$ jest --runTestsByPath test/server/runner/admission.test.ts test/server/runner/admission-acceptance.test.ts test/server/runner/destinations.test.ts test/server/runner/schedules.test.ts test/server/runner/schedule-continuity.test.ts "--coverage=false"
+[tests] Native application probes compiled once for this run
+[tests] database: 5 suites, 4 worker(s)
+
+Test Suites: 5 passed, 5 total
+Tests:       207 passed, 207 total
+Snapshots:   0 total
+Time:        197.387 s
+Ran all test suites within paths "test/server/runner/admission.test.ts", "test/server/runner/admission-acceptance.test.ts", "test/server/runner/destinations.test.ts", "test/server/runner/schedules.test.ts", "test/server/runner/schedule-continuity.test.ts".

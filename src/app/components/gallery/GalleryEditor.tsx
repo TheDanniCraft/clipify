@@ -1,4 +1,7 @@
 "use client";
+import { useDeploymentDraft } from "@lib/deploymentDrafts";
+
+import DashboardEditorLayout from "@components/dashboardEditorLayout";
 
 import { getGalleryDraftPreview, saveGallery } from "@actions/gallery";
 import AppDateRangePicker from "@components/appDateRangePicker";
@@ -167,6 +170,11 @@ function GalleryEditorContent({ initialGallery, playlists, canUseAdvanced, canUs
 	const router = useRouter();
 	const [gallery, setGallery] = useState(initialGallery);
 	const [savedGallery, setSavedGallery] = useState(initialGallery);
+	useDeploymentDraft(`gallery:${gallery.ownerId}:${gallery.id}`, gallery, savedGallery, (draft, saved) => {
+		setGallery({ ...draft, liveCustomStart: draft.liveCustomStart ? new Date(draft.liveCustomStart) : null, liveCustomEnd: draft.liveCustomEnd ? new Date(draft.liveCustomEnd) : null });
+		setSavedGallery({ ...saved, liveCustomStart: saved.liveCustomStart ? new Date(saved.liveCustomStart) : null, liveCustomEnd: saved.liveCustomEnd ? new Date(saved.liveCustomEnd) : null });
+	});
+
 	const [saving, setSaving] = useState(false);
 	const [livePreviewClips, setLivePreviewClips] = useState(previewClips);
 	const [previewUpdating, setPreviewUpdating] = useState(false);
@@ -270,7 +278,7 @@ function GalleryEditorContent({ initialGallery, playlists, canUseAdvanced, canUs
 		}));
 
 	return (
-		<div className='flex w-full flex-col items-center justify-center p-4'>
+		<DashboardEditorLayout>
 			<Card className='w-full max-w-4xl'>
 				<Card.Header className='flex w-full flex-row items-center justify-between gap-4'>
 					<div className='flex min-w-0 items-center gap-3'>
@@ -424,7 +432,7 @@ function GalleryEditorContent({ initialGallery, playlists, canUseAdvanced, canUs
 
 						<Separator />
 
-						<SettingsSection title='Advanced Live Filters' description={canUseAdvanced ? "Apply precise filters to live galleries." : "Available with Pro. Free galleries keep broad discovery useful."}>
+						<SettingsSection title='Advanced Live Filters' description={canUseAdvanced ? "Apply precise filters to live galleries." : "Available with Pro."}>
 							{!canUseAdvanced ? (
 								<Alert status='warning'>
 									<Alert.Indicator>
@@ -433,8 +441,8 @@ function GalleryEditorContent({ initialGallery, playlists, canUseAdvanced, canUs
 									<Alert.Content>
 										<Alert.Title>Advanced live filters require Pro</Alert.Title>
 										<Alert.Description>Upgrade to filter by categories, views, duration, title, and creators.</Alert.Description>
-										<Button size='sm' variant='secondary' onPress={() => router.push("/pricing")}>
-											View Pro
+										<Button size='sm' variant='secondary' onPress={() => router.push("/dashboard/settings?upgrade&source=upgrade_modal&feature=gallery_filters")}>
+											Upgrade gallery filters
 										</Button>
 									</Alert.Content>
 								</Alert>
@@ -455,7 +463,7 @@ function GalleryEditorContent({ initialGallery, playlists, canUseAdvanced, canUs
 
 						<Separator />
 
-						<SettingsSection title='Pro Styling' description={canUseStyling ? "Saved defaults for the gallery and website modal." : "Free galleries use Clipify defaults and attribution."}>
+						<SettingsSection title='Pro Styling' description={canUseStyling ? "Saved defaults for the gallery and website modal." : "Customize gallery colors and branding with Pro."}>
 							<div className='grid w-full gap-4 sm:grid-cols-2'>
 								<GallerySelect
 									label='Theme'
@@ -540,6 +548,6 @@ function GalleryEditorContent({ initialGallery, playlists, canUseAdvanced, canUs
 					</Button>
 				</Modal.Footer>
 			</ControlledModal>
-		</div>
+		</DashboardEditorLayout>
 	);
 }

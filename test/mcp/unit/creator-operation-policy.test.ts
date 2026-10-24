@@ -67,12 +67,12 @@ test.each([
 });
 test("direct team permission still requires effective creator Pro", async () => {
 	enqueue([account], [creator], [{ role: "operations" }], []);
-	(resolveUserEntitlements as jest.Mock).mockResolvedValue({ proAccess: false, runnerAccess: false });
+	(resolveUserEntitlements as jest.Mock).mockResolvedValue({ proAccess: false });
 	expect(await authorizeTrustedCreatorOperation({ principal, creatorId: "creator", permission: "overlay:read" })).toEqual({ allowed: false, code: "ENTITLEMENT_REQUIRED" });
 });
 test("owner retains basic reads without Pro or Runner access", async () => {
 	enqueue(...ownerRows());
-	(resolveUserEntitlements as jest.Mock).mockResolvedValue({ proAccess: false, runnerAccess: false });
+	(resolveUserEntitlements as jest.Mock).mockResolvedValue({ proAccess: false });
 	expect(await authorizeTrustedCreatorOperation({ principal, creatorId: "creator", permission: "overlay:read" })).toMatchObject({ allowed: true, accessPath: "owner" });
 });
 test.each([{}, { creators: [{ creatorId: "foreign", agencyOrganizationId: null }] }])("OAuth unapproved creator %p is rejected before database lookup", async (patch) => {
@@ -123,7 +123,7 @@ test("OAuth agency context comes from stored target approval rather than session
 });
 test("an explicit required Runner entitlement remains authoritative for owner access", async () => {
 	enqueue(...ownerRows());
-	(resolveUserEntitlements as jest.Mock).mockResolvedValue({ proAccess: true, runnerAccess: false });
+	(resolveUserEntitlements as jest.Mock).mockResolvedValue({ proAccess: true });
 	expect(await authorizeTrustedCreatorOperation({ principal, creatorId: "creator", permission: "overlay:read", requiredEntitlement: "runner" })).toEqual({ allowed: false, code: "ENTITLEMENT_REQUIRED" });
 });
 

@@ -12,6 +12,7 @@
 
 # testing
 /coverage
+**/coverage/
 /playwright-report/
 /test-results/
 /compliance-results/
@@ -29,6 +30,9 @@
 # misc
 .DS_Store
 *.pem
+__pycache__/
+*.py[cod]
+core.*
 
 # debug
 npm-debug.log*
@@ -65,3 +69,6 @@ runner.log
 
 # Isolated Runner dependencies
 /packages/runner/node_modules/
+
+# Generated native Runner bundles and executables
+/packages/runner/build/

@@ -14,8 +14,9 @@ test("stale browser stream configuration cannot overwrite a newer revision", () 
 
 test("browser start requests advance the stream configuration revision", () => {
 	const row = runMcpProbe("browser-playlist-delete-probe", ["runner-browser-control"]);
-	expect(row.runnerOutcome).toEqual({ success: true });
-	expect(row.runnerSession).toMatchObject({ configuration_revision: 2, desired_state: "running" });
+	expect(row.runnerOutcome).toEqual({ success: true, accepted: true, applied: false, admissionId: expect.any(String), configurationRevision: 2 });
+	expect(row.runnerAdmission).toMatchObject({ id: row.runnerOutcome.admissionId, state: "reserved", configuration_revision: 2, dispatched_at: null });
+	expect(row.runnerSession).toMatchObject({ configuration_revision: 2, desired_state: "running", actual_state: "stopped" });
 });
 
 test("stale browser start cannot act on newer stream configuration", () => {
@@ -54,10 +55,10 @@ test("entitlement suspension versions shutdown intent without inventing a device
 	expect(row.runnerRecord.status).toBe("offline");
 });
 
-test("expired-access heartbeats version shutdown intent once and never claim it was applied", () => {
+test("legacy clients without paid access must update without inventing shutdown or changing intent", () => {
 	const row = runMcpProbe("browser-playlist-delete-probe", ["runner-browser-heartbeat-expired"]);
-	expect(row.firstHeartbeatStatus).toBe(403);
-	expect(row.secondHeartbeatStatus).toBe(403);
-	expect(row.firstHeartbeatSessionRevision).toBe(2);
-	expect(row.runnerSession).toMatchObject({ configuration_revision: 2, desired_state: "stopped", actual_state: "running" });
+	expect(row.firstHeartbeatStatus).toBe(426);
+	expect(row.secondHeartbeatStatus).toBe(426);
+	expect(row.firstHeartbeatSessionRevision).toBe(1);
+	expect(row.runnerSession).toMatchObject({ configuration_revision: 1, desired_state: "running", actual_state: "running" });
 });

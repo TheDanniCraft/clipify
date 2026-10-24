@@ -1,7 +1,7 @@
 /** @jest-environment node */
 jest.mock("server-only", () => ({}));
 jest.mock("@/auth/session", () => ({ getAuthSession: jest.fn() }));
-jest.mock("@lib/entitlements", () => ({ resolveUserEntitlements: jest.fn(async () => ({ proAccess: true, runnerAccess: false })) }));
+jest.mock("@lib/entitlements", () => ({ resolveUserEntitlements: jest.fn(async () => ({ proAccess: true })) }));
 jest.mock("@/db/client", () => {
 	const rows: unknown[][] = [];
 	const db = {

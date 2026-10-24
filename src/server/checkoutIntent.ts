@@ -11,7 +11,7 @@ export const CHECKOUT_INTENT_COOKIE = "clipify_checkout_intent";
 const CHECKOUT_INTENT_ISSUER = "clipify-checkout";
 const CHECKOUT_INTENT_AUDIENCE = "clipify-checkout";
 
-export type CheckoutIntentEntrypoint = "direct_cta" | "plan_builder" | "pricing_comparison" | "runner_addon";
+export type CheckoutIntentEntrypoint = "direct_cta" | "plan_builder" | "pricing_comparison";
 export type CheckoutIntentProduct = { product: BillingProduct; billingCycle: BillingCycle };
 export type CheckoutIntent = {
 	v: 1;
@@ -26,13 +26,13 @@ function isCycle(value: unknown): value is BillingCycle {
 }
 
 function isProduct(value: unknown): value is BillingProduct {
-	return value === BillingProduct.Pro || value === BillingProduct.RunnerSelfHosted;
+	return value === BillingProduct.Pro;
 }
 
 function isIntent(value: string | JwtPayload): value is JwtPayload & CheckoutIntent {
 	if (typeof value === "string" || value.v !== 1 || value.source !== "pricing_page" || typeof value.nonce !== "string") return false;
 	if (!Array.isArray(value.products) || value.products.length < 1 || value.products.length > 2) return false;
-	if (!["direct_cta", "plan_builder", "pricing_comparison", "runner_addon"].includes(String(value.entrypoint))) return false;
+	if (!["direct_cta", "plan_builder", "pricing_comparison"].includes(String(value.entrypoint))) return false;
 	const products = value.products as unknown[];
 	return (
 		products.every((entry) => {

@@ -80,32 +80,32 @@ Feature: MCP runners workflows
       | get_runner_snapshot | revoked |
 
   @BDD-US5-003 @EC-002
-  Scenario Outline: Setup and streaming require separate Runner access
-    Given a workflow tool "<tool>" under case "no_runner_access"
-    When the approved client executes the workflow through MCP
-    Then the workflow result is "denied" and has a safe projection
-
-    Examples:
-      | tool |
-      | get_runner_setup |
-      | create_runner |
-      | configure_stream_session |
-      | control_stream_session |
-
-  @BDD-US5-004 @EC-002
-  Scenario Outline: Existing runner records remain readable and removable after access expires
+  Scenario Outline: Manual stream configuration remains available without a Runner grant
     Given a workflow tool "<tool>" under case "no_runner_access"
     When the approved client executes the workflow through MCP
     Then the workflow result is "success" and has a safe projection
 
     Examples:
       | tool |
+      | configure_stream_session |
+
+  @BDD-US5-004 @EC-002
+  Scenario Outline: Basic setup registration manual control and cleanup remain available without a Runner grant
+    Given a workflow tool "<tool>" under case "no_runner_access"
+    When the approved client executes the workflow through MCP
+    Then the workflow result is "success" and has a safe projection
+
+    Examples:
+      | tool |
+      | get_runner_setup |
+      | create_runner |
       | list_runners |
       | get_runner |
       | delete_runner |
       | unlink_runner |
       | list_stream_sessions |
       | get_stream_session |
+      | control_stream_session |
 
   @BDD-US5-005 @FR-011 @EC-008
   Scenario Outline: Unavailable runner frames are explicit and contain no image

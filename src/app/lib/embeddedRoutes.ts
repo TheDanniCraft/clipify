@@ -1,4 +1,4 @@
-export const EMBEDDED_ROUTE_PREFIXES = ["/embed", "/overlay", "/demoPlayer", "/gallery/"] as const;
+const EMBEDDED_ROUTE_PREFIXES = ["/runner/preview/", "/runner/presentation/", "/embed", "/overlay", "/demoPlayer", "/gallery/"] as const;
 
 const GALLERY_PREVIEW_ROUTE = /^\/dashboard\/galleries\/[^/]+\/preview(?:\/|$)/;
 

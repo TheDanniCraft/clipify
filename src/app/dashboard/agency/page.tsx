@@ -113,12 +113,6 @@ export default async function AgencyDashboardPage({ searchParams }: { searchPara
 											{overview.billing.creatorSeatQuantity} <span className='text-xs font-normal text-muted'>(minimum {overview.billing.creatorSeatMinimum})</span>
 										</p>
 									</div>
-									<div className='rounded-xl bg-surface-secondary p-4'>
-										<p className='text-xs text-muted'>Runner seats</p>
-										<p className='font-semibold tabular-nums'>
-											{overview.billing.runnerSeatQuantity} <span className='text-xs font-normal text-muted'>(minimum {overview.billing.runnerSeatMinimum})</span>
-										</p>
-									</div>
 								</div>
 								<div className='grid gap-3 lg:grid-cols-2'>
 									<form action={changeAgencySeatQuantityFormAction} className='flex items-end gap-2 rounded-xl bg-surface-secondary p-4'>
@@ -126,16 +120,6 @@ export default async function AgencyDashboardPage({ searchParams }: { searchPara
 										<TextField name='quantity' type='number' className='flex-1'>
 											<Label>Creator-seat quantity</Label>
 											<Input variant='secondary' min={Math.max(overview.billing.creatorSeatMinimum, overview.occupiedSeats)} defaultValue={String(overview.billing.pendingCreatorSeatQuantity ?? overview.billing.creatorSeatQuantity)} />
-										</TextField>
-										<Button type='submit' variant='secondary'>
-											Update
-										</Button>
-									</form>
-									<form action={changeAgencySeatQuantityFormAction} className='flex items-end gap-2 rounded-xl bg-surface-secondary p-4'>
-										<input type='hidden' name='kind' value='runner' />
-										<TextField name='quantity' type='number' className='flex-1'>
-											<Label>Runner-seat quantity</Label>
-											<Input variant='secondary' min={Math.max(overview.billing.runnerSeatMinimum, overview.occupiedRunnerSeats)} defaultValue={String(overview.billing.pendingRunnerSeatQuantity ?? overview.billing.runnerSeatQuantity)} />
 										</TextField>
 										<Button type='submit' variant='secondary'>
 											Update
@@ -305,8 +289,7 @@ export default async function AgencyDashboardPage({ searchParams }: { searchPara
 							<div className='rounded-2xl bg-surface-secondary p-5 text-center text-sm text-muted'>No creator relationships yet.</div>
 						) : (
 							overview.links.map((link) => {
-								const hasCreatorAllocation = overview.allocations.some((allocation) => allocation.linkId === link.id && allocation.product !== "runner" && ["active", "removal_scheduled"].includes(allocation.status));
-								const hasRunnerAllocation = overview.allocations.some((allocation) => allocation.linkId === link.id && allocation.product === "runner" && ["active", "removal_scheduled"].includes(allocation.status));
+								const hasCreatorAllocation = overview.allocations.some((allocation) => allocation.linkId === link.id && ["active", "removal_scheduled"].includes(allocation.status));
 								return (
 									<div key={link.id} className='rounded-2xl bg-surface-secondary p-4'>
 										<div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
@@ -321,19 +304,11 @@ export default async function AgencyDashboardPage({ searchParams }: { searchPara
 															Pro allocated
 														</Chip>
 													) : null}
-													{hasRunnerAllocation ? (
-														<Chip size='sm' color='accent' variant='soft'>
-															Runner allocated
-														</Chip>
-													) : null}
 												</div>
 											</div>
-											{link.status === "accepted" && (!hasCreatorAllocation || !hasRunnerAllocation) ? (
+											{link.status === "accepted" && !hasCreatorAllocation ? (
 												<div className='flex w-full flex-col gap-2 sm:max-w-xl'>
-													{[
-														{ product: "creator_pro", actionLabel: "Allocate Pro seat", allocated: hasCreatorAllocation },
-														{ product: "runner", actionLabel: "Allocate Runner seat", allocated: hasRunnerAllocation },
-													]
+													{[{ product: "creator_pro", actionLabel: "Allocate Pro seat", allocated: hasCreatorAllocation }]
 														.filter((entry) => !entry.allocated)
 														.map(({ product, actionLabel }) => (
 															<form key={product} action={allocateAgencyLicenseFormAction} className='flex flex-col gap-2 sm:flex-row'>

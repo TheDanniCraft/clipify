@@ -1,4 +1,9 @@
 "use client";
+import { useDeploymentDraft } from "@lib/deploymentDrafts";
+
+import LocalizedDate from "@components/localizedDate";
+import { buttonVariants } from "@heroui/styles";
+import DashboardEditorLayout from "@components/dashboardEditorLayout";
 
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -239,6 +244,18 @@ export default function PlaylistPage() {
 	const selectedIds = Array.from(selectedCachedClipIds as Set<string>);
 	const selectedNewClipCount = (cachedClips ?? []).filter((clip) => selectedIds.includes(clip.id) && !playlistClips.some((existing) => existing.id === clip.id)).length;
 	const wouldExceedFreeLimit = isFreePlaylistLimitActive && playlistClipUsage + selectedNewClipCount > FREE_PLAYLIST_CLIP_LIMIT;
+	useDeploymentDraft(
+		user && playlist && isPlaylistResolved ? `playlist:${user.id}:${playlist.id}` : null,
+		{ name: playlistNameDraft, clips: playlistClips, savedIds: savedPlaylistClipIds, configurationRevision: playlist?.configurationRevision },
+		{ name: playlist?.name ?? "", clips: savedPlaylistClipIds.map((id) => playlistClips.find((clip) => clip.id === id)).filter((clip): clip is TwitchClip => Boolean(clip)), savedIds: savedPlaylistClipIds, configurationRevision: playlist?.configurationRevision },
+		(draft, saved) => {
+			setPlaylistNameDraft(draft.name);
+			setPlaylistClips(draft.clips);
+			setSavedPlaylistClipIds(saved.savedIds);
+			setPlaylist((current) => (current ? { ...current, name: saved.name, configurationRevision: saved.configurationRevision ?? current.configurationRevision } : current));
+		},
+	);
+
 	const isPlaylistDirty = playlistClips.map((clip) => clip.id).join(",") !== savedPlaylistClipIds.join(",");
 	const isPlaylistNameDirty = playlist ? playlistNameDraft.trim() !== playlist.name : false;
 	const canSavePlaylist = isPlaylistDirty || isPlaylistNameDirty;
@@ -378,15 +395,15 @@ export default function PlaylistPage() {
 
 	return (
 		<DashboardNavbar user={user!} title='Playlist Management' tagline='Manage your curated clip sets'>
-			<div className='flex flex-col items-center justify-center w-full p-4'>
+			<DashboardEditorLayout>
 				<Card className='w-full max-w-4xl'>
 					<Card.Header className='flex flex-col items-stretch gap-3'>
 						<div className='flex items-center gap-2'>
-							<Button isIconOnly variant='tertiary' onPress={() => router.push("/dashboard")}>
+							<Button isIconOnly variant='tertiary' aria-label='Back to dashboard' onPress={() => router.push("/dashboard")}>
 								<IconArrowLeft />
 							</Button>
-							<TextField className='min-w-[260px]'>
-								<Input value={playlistNameDraft} onChange={(event) => setPlaylistNameDraft(event.target.value)} placeholder='Playlist name' className='h-8 text-sm' />
+							<TextField className='min-w-0 flex-1'>
+								<Input variant='secondary' aria-label='Playlist name' value={playlistNameDraft} onChange={(event) => setPlaylistNameDraft(event.target.value)} placeholder='Playlist name' className='h-8 text-sm' />
 							</TextField>
 						</div>
 						<div className='flex flex-wrap items-center gap-2 pt-1'>
@@ -569,7 +586,7 @@ export default function PlaylistPage() {
 						</ul>
 					</Card.Content>
 				</Card>
-			</div>
+			</DashboardEditorLayout>
 
 			<ControlledModal isOpen={isAddClipsOpen} onOpenChange={onAddClipsOpenChange} size='lg' containerClassName='max-w-5xl' dialogClassName='max-h-[80vh]'>
 				<Modal.Header className='flex flex-col gap-1'>
@@ -644,7 +661,7 @@ export default function PlaylistPage() {
 											<Table.Cell>{item.creator_name}</Table.Cell>
 											<Table.Cell>{getGameName(item.game_id)}</Table.Cell>
 											<Table.Cell>{item.view_count}</Table.Cell>
-											<Table.Cell>{new Date(item.created_at).toLocaleDateString()}</Table.Cell>
+											<Table.Cell>{<LocalizedDate value={item.created_at} />}</Table.Cell>
 										</Table.Row>
 									))}
 								</Table.Body>
@@ -812,7 +829,7 @@ export default function PlaylistPage() {
 					<Button variant='tertiary' onPress={onAutoImportLockedClose}>
 						Close
 					</Button>
-					<Link href='/dashboard/settings' className='inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-accent text-accent-foreground hover:bg-accent-hover'>
+					<Link href='/dashboard/settings?upgrade&source=upgrade_modal&feature=playlist_import' className={buttonVariants({ variant: "primary", className: "no-underline" })}>
 						Upgrade
 					</Link>
 				</Modal.Footer>

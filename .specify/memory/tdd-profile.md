@@ -1,166 +1,363 @@
-# Current execution policy — approved 2026-10-13
-
-This section supersedes the historical baseline and proposed-principle notes below.
-The constitution is active; its fast inner-loop and completed-slice gates apply.
-
-- Inner loop: `bun run test --runInBand <whole-test-file>` without coverage.
-- Broader feedback: `bun run test:affected <verified-base-commit>`; unknown or
-  uncovered application boundaries require a broader explicit check.
-- Final full gate: independent unit, database and quiet/race coverage lanes, plus
-  the single native-workflow owner; merge all reports and enforce existing Jest
-  and MCP thresholds. Browser acceptance/ATDD/compliance and balanced BDD shards
-  must pass. The full local command `bun run test:coverage` remains available.
-- Draft PRs provide scoped checks. Ready PRs trigger the complete required gate.
-- Historical v4.1.8 CI: 459 passing Jest suites / 4,828 passing tests, 24m37s Jest
-  plus 8.4m workflow coverage; combined coverage 33m31s. These are measurements of
-  the old pipeline, not promises about the optimized pipeline.
-- Keep red evidence and one owning scenario per behavior. Do not reduce thresholds
-  or skip scenarios for speed. Test catalogs and fingerprints protect aggregation.
-
 ---
-
----
-
-detected_at: 218692f6
-ecosystems: [typescript-app, typescript-browser, typescript-runner]
+detected_at: 2786b3f8
+refreshed_on: 2026-10-14
+ecosystems:
+  - typescript-app
+  - typescript-native-workflows
+  - typescript-browser
+  - typescript-runner
 default: typescript-app
 stacks:
-typescript-app:
-cwd: .
-runner: jest
-single: null
-file: "bunx jest {file} --runInBand"
-suite: "bun run test:coverage"
-watch: null
-coverage: "bun run test:coverage"
-mutation: null
-acceptance: null
-property: "fast-check with @fast-check/jest"
-approval: null
-contract: null
-test_glob: "test/**/\*.test.{ts,tsx}"
-exemplar:
-unit: test/app/lib/consentOrigins.test.ts
-component: test/app/components/chatWidget.test.tsx
-database-integration: test/server/memberNumbers.test.ts
-helpers: - jest.setup.ts - test/helpers/pgliteEnvironment.cjs - test/app/gallery/fixtures.ts
-typescript-browser:
-cwd: .
-runner: "playwright with playwright-bdd"
-single: 'bunx playwright test {file} --project=acceptance-chromium -g "{name}"'
-file: "bunx playwright test {file} --project=acceptance-chromium"
-suite: "bun run test:e2e"
-watch: null
-coverage: null
-mutation: null
-acceptance: "bun run test:acceptance"
-property: null
-approval: null
-contract: null
-test_glob: "{test/acceptance/**/_.spec.ts,test/bdd/features/\**/_.feature}"
-exemplar:
-acceptance: test/acceptance/login.spec.ts
-bdd-feature: test/bdd/features/login-smoke.feature
-bdd-steps: test/bdd/steps/login-smoke.steps.ts
-helpers: []
-typescript-runner:
-cwd: packages/runner
-runner: jest
-single: null
-file: "bunx jest {file} --runInBand --forceExit"
-suite: "bun run test"
-watch: null
-coverage: "bunx jest --coverage --runInBand --forceExit"
-mutation: null
-acceptance: null
-property: null
-approval: null
-contract: null
-test_glob: "{src/**/**tests**/**/_.test.ts,test/\**/_.test.ts}"
-exemplar:
-unit: src/**tests**/engine.test.ts
-storage-boundary: test/storage.test.ts
-helpers: []
-verified: [single, file, suite, coverage, acceptance]
+  typescript-app:
+    cwd: .
+    runner: jest
+    single: null
+    file: bun run test --runInBand --runTestsByPath {file} --coverage=false
+    suite: bun run test:coverage
+    watch: null
+    coverage: bun run test:coverage
+    mutation: null
+    acceptance: null
+    property: fast-check
+    approval: null
+    contract: null
+    test_glob: "{test/**/*.test.{ts,tsx},src/**/__tests__/**/*.test.{ts,tsx}}"
+    exemplar:
+      unit: test/app/lib/consentOrigins.test.ts
+      component: test/app/components/chatWidget.test.tsx
+      database-integration: test/server/memberNumbers.test.ts
+      property: test/app/lib/consentRegistry.test.ts
+    helpers:
+      - jest.setup.ts
+      - test/helpers/pgliteEnvironment.cjs
+      - test/app/gallery/fixtures.ts
+      - test/support/auth-engine-rewrite/database.ts
+    verified:
+      - file
+      - suite
+      - coverage
+      - property
+    suite_baseline: green
+    suite_seconds: 1596
+  typescript-native-workflows:
+    cwd: .
+    runner: playwright-bdd with native MCP probes
+    single: null
+    file: bunx bddgen --config playwright.mcp.config.ts && bunx playwright test
+      --config playwright.mcp.config.ts --project=bdd-chromium {file}
+      --workers=1
+    suite: bun run test:coverage
+    watch: null
+    coverage: bun run test:coverage
+    mutation: null
+    acceptance: bunx bddgen --config playwright.mcp.config.ts && bunx playwright
+      test --config playwright.mcp.config.ts --project=bdd-chromium {file}
+      --workers=1
+    property: null
+    approval: null
+    contract: null
+    test_glob: test/bdd/features/mcp-workflows/**/*.feature
+    exemplar:
+      bdd-feature: test/bdd/features/mcp-workflows/runners.feature
+      bdd-steps: test/bdd/steps/mcp-workflows.steps.ts
+    helpers:
+      - test/bdd/support/mcp-support.ts
+      - test/support/mcp/probe.ts
+      - test/support/mcp/postgres.ts
+      - test/support/mcp/fixtures.ts
+    verified:
+      - file
+      - suite
+      - coverage
+      - acceptance
+    suite_baseline: green
+    suite_seconds: 1596
+  typescript-browser:
+    cwd: .
+    runner: playwright with playwright-bdd
+    single: null
+    file: bunx playwright test {file} --project=acceptance-chromium --workers=1
+    suite: null
+    watch: null
+    coverage: null
+    mutation: null
+    acceptance: bun run test:acceptance
+    property: null
+    approval: null
+    contract: null
+    test_glob: "{test/acceptance/**/*.spec.ts,test/bdd/features/**/*.feature,test/a\
+      tdd/features/**/*.feature,test/compliance/**/*.spec.ts}"
+    exemplar:
+      acceptance: test/acceptance/login.spec.ts
+      bdd-feature: test/bdd/features/login-smoke.feature
+      bdd-steps: test/bdd/steps/login-smoke.steps.ts
+      atdd-steps: test/atdd/steps/harness.steps.ts
+    helpers:
+      - test/bdd/support/fixtures.ts
+      - test/bdd/support/auth-engine-rewrite.ts
+      - test/atdd/support/auth-engine-rewrite.ts
+      - test/support/mcp/browser-database.cjs
+    verified:
+      - file
+      - acceptance
+    suite_baseline: green
+    suite_seconds: null
+  typescript-runner:
+    cwd: packages/runner
+    runner: jest
+    single: null
+    file: bun run test --runTestsByPath {file} --coverage=false
+    suite: bun run test --coverage
+    watch: null
+    coverage: bun run test --coverage
+    mutation: null
+    acceptance: null
+    property: null
+    approval: null
+    contract: null
+    test_glob: "{src/**/__tests__/**/*.test.ts,test/**/*.test.ts}"
+    exemplar:
+      unit: src/__tests__/engine.test.ts
+      storage-boundary: test/storage.test.ts
+      real-media: test/bdd/runner-free-pro.test.ts
+    helpers:
+      - test/support/prepare-media.mjs
+      - test/support/native-media.mjs
+      - test/support/drain-probe.mjs
+    verified:
+      - file
+      - suite
+      - coverage
+    suite_baseline: green
+    suite_seconds: 1.306
+verified:
+  - file
+  - suite
+  - coverage
+  - property
+  - acceptance
 suite_baseline: green
-suite_seconds: 153.489
+suite_seconds: 1596
 ---
 
 # TDD Stack Profile
 
-## Conventions to match
+## Current baseline after localhost setup
+
+Local prerequisites were installed/configured on 2026-10-14 at the user's request:
+PostgreSQL 18 in a disposable /tmp cluster bound to 127.0.0.1:54419, a uniquely
+named browser fixture initialized using the existing schema helper, Chromium's
+OS libraries, and separate native/browser environment files. Follow
+[docs/local-testing.md](../../docs/local-testing.md) before executing these
+commands in another workspace or shell. No production database or application
+source/test changes were needed.
+
+- Complete application Jest: 461 suites / 4844 tests passed; 0 failed.
+  Existing skips: 2 suites / 11 tests
+  in the auth creator-onboarding-trigger/provider-credential-switch suites.
+  No test or skip condition was changed by this setup.
+- Complete native workflow inventory integrated into the same coverage command:
+  343 passed / 0 failed / 0 skipped.
+- Complete `bun run test:coverage` command exited 0; final merged coverage report
+  and the repository's existing thresholds passed. Observed duration approximately
+  1596 seconds, measured from the parent process start through result collection.
+- Previously unexplained database-budget/mixed-source checks: 2 suites / 3 tests
+  passed unchanged after setting the CI fixture environment.
+- Focused native Runner workflows: 73 passed / 0 failed / 0 skipped.
+- Browser acceptance: 4 passed; isolated login file: 1 passed. Browser full
+  BDD/ATDD/compliance release suites were not rerun by this setup task.
+- Runner package: existing verified 5 suites / 20 passed / 1 TODO remains unchanged.
+
+Native full-suite/coverage commands intentionally refer to the same complete app
+coverage owner. Execute that shared command once at its applicable completion
+gate, not once per evidence label or stack. Browser `suite` remains null because
+only acceptance and its isolated file command were verified here. Its
+`suite_baseline: green` denotes those verified browser checks, not a claim of
+complete release validation. Jest name filters remain null because zero-match
+runs can falsely succeed; use the verified whole-file commands.
+
+Current temporary setup: source /tmp/clipify-local-test-env.sh for native/Jest
+checks; source /tmp/clipify-local-browser-env.sh for browser checks in a separate
+shell. Browser-only URL/settings must not leak into Jest tests. The first broad
+retry inherited NEXT_PUBLIC_BASE_URL from browser setup and was stopped after
+that override changed a request-origin fixture; the complete successful retry
+used the native-only CI environment. No assertion was changed.
+
+Read-only comparison confirmed yesterday's successful CI on the exact HEAD:
+https://github.com/TheDanniCraft/clipify/actions/runs/38401644930. CI provides
+PostgreSQL, template IDs and Chromium dependencies; those were absent from the
+original local environment. Raw current results are /tmp/clipify-local-test-*,
+plus coverage/coverage-final.json and coverage/workflow-results.json.
+
+## Initial refresh before local prerequisites
+
+This profile was re-detected and tested on 2026-10-14 at HEAD 2786b3f8. The
+existing planning documents are uncommitted; the HEAD alone is not tested-source
+or release-gate evidence. `verified` at the root is the union of the stack-local
+lists, not a claim that every stack supports every capability. Null means not
+successfully verified in this workspace; failed candidate commands appear below
+for diagnosis, not as executable verified entries.
+
+The initial application attempt below was failing and incomplete because its
+local prerequisites/environment were missing. It is historical diagnostic evidence,
+not the current baseline. The corrected current results appear above.
+
+| Check                              | Observed result                                                                                                                                                                      |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| App whole file, consentOrigins     | 1 suite / 3 tests passed; 0.381s measured from Jest JSON timestamps                                                                                                                  |
+| App known name                     | Exactly 1 passed / 2 skipped; 0.351s                                                                                                                                                 |
+| App nonexistent name               | Exit 0 with 0 tests run / 3 skipped: unsafe; single remains null                                                                                                                     |
+| App full coverage attempt          | 303 passed suites and 4 failed suites observed before stopping repeated unavailable-database failures; partial counts only, no complete test count/duration or final coverage report |
+| Database-budget focused diagnostic | 1 suite / 2 tests failed without coverage; not explained solely by outer coverage instrumentation                                                                                    |
+| Native Runner workflow feature     | 73 failed / 0 passed / 0 skipped examples in 154.088s; every failure includes ECONNREFUSED to disposable PostgreSQL                                                                  |
+| Browser acceptance                 | 2 tests failed; Chromium headless-shell cannot load libnspr4.so. Test build compilation and type checking completed, with additional loopback database connection errors             |
+| Runner full suite + coverage       | 5 suites / 20 tests passed / 1 existing TODO; 1.306s; coverage-final.json generated                                                                                                  |
+| Runner engine whole file           | 1 suite / 4 tests passed; 0.513s                                                                                                                                                     |
+| Runner known name                  | Exactly 1 passed / 1 skipped                                                                                                                                                         |
+| Runner nonexistent name            | Exit 0 with 0 tests run / 2 skipped: unsafe; single remains null                                                                                                                     |
+
+The application command attempted was `bun run test:coverage --maxWorkers=2
+--json --outputFile=/tmp/clipify-tdd-refresh-app.json`. The command did not finish:
+only its own process tree was stopped after database failures, so no full-suite
+or full-coverage verification is credited. Failed suite names observed:
+
+- `test/mcp/unit/test-runner-database-budget.test.ts`: nested Jest expected exit 0
+  but returned 1; also fails its complete file without coverage. Root cause remains
+  unresolved; do not automatically classify this mocked-Pool test as missing DB.
+- `test/mcp/unit/coverage-mixed-source.test.ts`: nested run expected zero failures
+  but reported three. Root cause remains unresolved pending a working fixture.
+- `test/mcp/workflows/galleries.test.ts` and
+  `test/mcp/workflows/clip-cache-tools.test.ts`: native probe output contains
+  ECONNREFUSED 127.0.0.1:54419.
+
+There is no PostgreSQL listener on fixture ports 54419 or 5432, no installed
+PostgreSQL command-line server found, and no Docker daemon socket. Browser files
+are installed, but the required operating-system Chromium library is missing.
+No dependencies, OS packages, source, test files or configurations were changed
+by this refresh. Installing prerequisites or fixing the existing failures is
+separate work; no application/production database was used as a fixture.
+
+## Current execution policy
+
+The active constitution already mandates Test-First Delivery and deterministic,
+traceable evidence. No constitution amendment is needed or made.
+
+- During development, execute the changed behavior's whole-file tests without
+  coverage. Name filtering is not a valid Jest Red proof because zero matches
+  can exit successfully. Record the intended failing assertion, not setup errors.
+- Complete each slice with affected suites and relevant owning browser/runtime
+  scenarios and applicable coverage/static gates. Do not repeat unchanged
+  successful checks without changed source, inputs or an unresolved concern.
+- Full coverage, all owning scenarios, lint, formatting, types and build remain
+  required before merge. Draft scoped CI feedback does not satisfy the full gate.
+- Native MCP BDD/coverage evidence has one execution owner. Genuine browser
+  journeys remain browser-owned; do not duplicate execution for BDD/ATDD labels.
+- Tests use disposable loopback databases; every case owns its database and
+  job-owned schema templates are cleaned up. Never use shared development or
+  production data. Feature branches do not generate Drizzle migrations.
+
+## Initial failed and remaining unverified command candidates
+
+This table preserves the initial missing-prerequisite observations. Current
+frontmatter and the current-baseline section supersede resolved entries; remaining
+unexecuted browser release commands are still not credited as verified.
+
+| Stack/capability                  | Existing candidate                                                                                                                                                     | Current obstacle                                                                                         |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| App complete suite/coverage       | `bun run test:coverage`                                                                                                                                                | Missing PostgreSQL and unresolved pre-existing baseline failures                                         |
+| Native workflow whole feature     | `bunx bddgen --config playwright.mcp.config.ts` then `bunx playwright test --config playwright.mcp.config.ts --project=bdd-chromium mcp-workflows/runners --workers=1` | 73 fixture connection failures; generation itself succeeded                                              |
+| Native workflow complete coverage | `node scripts/run-coverage-lane.mjs workflows`                                                                                                                         | Needs the same disposable PostgreSQL; not separately executed because the fixture prerequisite is absent |
+| Browser complete acceptance       | `bun run test:acceptance`                                                                                                                                              | Attempted; missing libnspr4.so and loopback fixture                                                      |
+| Browser BDD / ATDD                | `bun run test:bdd` / `bun run test:atdd`                                                                                                                               | Not separately executed; same browser/DB prerequisites unresolved                                        |
+| Browser full suite                | `bun run test:e2e`                                                                                                                                                     | Not executed; same browser/DB prerequisites unresolved                                                   |
+| Broader app feedback              | `bun run test:affected` with the verified comparison commit                                                                                                            | Available script, not verified by this refresh                                                           |
+
+## Conventions and shared utilities
 
 ### TypeScript application
 
-- The application uses Jest 30 through Next.js' Jest adapter. Tests live under `test/` as `*.test.ts` or `*.test.tsx`; Jest also permits `src/**/__tests__/**/*.test.ts(x)`.
-- The default environment is `jsdom`. Node-focused tests declare `/** @jest-environment node */`; embedded PostgreSQL tests declare `/** @jest-environment ./test/helpers/pgliteEnvironment.cjs */`.
-- Assertions use Jest's global `expect`. Doubles use `jest.fn()`, `jest.mock()`, and `jest.spyOn()`; there is no separate mocking library.
-- React component tests use Testing Library (`render`, `screen`, `fireEvent`, `userEvent`, and `waitFor`) and the matchers installed by `jest.setup.ts`.
-- `jest.setup.ts` installs `@testing-library/jest-dom` and supplies `TextEncoder`/`TextDecoder` where needed.
-- `test/helpers/pgliteEnvironment.cjs` provides an isolated in-memory PostgreSQL-compatible environment. Use it instead of a shared or production database when PostgreSQL semantics are required.
-- `test/app/gallery/fixtures.ts` contains the existing gallery and clip builders. Reuse them for gallery tests rather than duplicating fixtures.
-- `fast-check` and `@fast-check/jest` are installed for invariants and generated-input tests. No property-test exemplar exists yet, so the first real property test must establish the project pattern without adding a demonstration-only property.
-- Exemplars to imitate: `test/app/lib/consentOrigins.test.ts` for a pure Node unit test, `test/app/components/chatWidget.test.tsx` for a consent-aware React component test, and `test/server/memberNumbers.test.ts` for an embedded-database integration test.
+Jest 30 uses Next's Jest adapter, jsdom by default, and a custom MCP test runner.
+Node tests declare `@jest-environment node`; embedded-database cases use
+`test/helpers/pgliteEnvironment.cjs`. Jest expect/jest.fn/mock/spyOn are the native
+assertion and double APIs. React components use Testing Library; `jest.setup.ts`
+loads jest-dom and TextEncoder/TextDecoder. Reuse gallery buildGallery/buildClip
+fixtures and the auth test database/FixtureBuilder helpers. The helper named
+`pgliteEnvironment` only exposes the PGlite constructor; each test still creates
+and closes its own instance.
 
-### TypeScript browser acceptance and BDD
+Use consentOrigins as the pure unit exemplar, chatWidget for React component
+behavior, memberNumbers for embedded PostgreSQL boundaries, and consentRegistry
+for a genuine fast-check invariant rejecting unrelated storage keys. All four
+files were opened; consentRegistry, chatWidget and memberNumbers passed during
+the partial app run. The consentOrigins whole-file command was verified
+separately. Property testing is now established rather than merely installed.
 
-- Browser acceptance tests use Playwright with Chromium only and live under `test/acceptance/` as `*.spec.ts`. They exercise the actual Next.js application through its public browser entry points.
-- BDD features live under `test/bdd/features/`; their executable `playwright-bdd` bindings live under `test/bdd/steps/`. Run `bun run test:bdd` so `bddgen` regenerates the executable tests before Playwright starts.
-- Follow the installed `test-first-governance` convention: use one owning-suite tag, put a stable scenario ID immediately above one `Scenario` or `Scenario Outline`, reuse real US/FR/SC/EC identifiers when a feature specification supplies them, and do not invent traceability identifiers merely for tooling smoke coverage.
-- `playwright.config.ts` starts an isolated application at `http://127.0.0.1:3107`, uses `.next-playwright`, disables schedulers and external analytics, and supplies fixed non-production configuration. Browser tests must not require Infisical, developer credentials, a shared database, or production state.
-- Assertions use Playwright's `expect`; browser locators should prefer roles and accessible names. The BDD layer uses `createBdd()` and the same Playwright fixtures and assertions.
-- Exemplars to imitate: `test/acceptance/login.spec.ts` for direct acceptance tests, `test/bdd/features/login-smoke.feature` for Gherkin, and `test/bdd/steps/login-smoke.steps.ts` for bindings.
+### Native MCP workflows
 
-### TypeScript runner
+playwright-bdd under `playwright.mcp.config.ts` executes native HTTP/protocol
+probes, often without launching a browser. Reuse mcp-support's mcpWorld and
+`test/support/mcp/probe.ts`, which runs the real composed entry point. Runner
+workflow scenarios live in runners.feature with bindings in
+mcp-workflows.steps.ts. `createMcpPostgresFixture` creates a unique database per
+case and rejects remote/persistent fixture URLs. Do not confuse these checks
+with browser journeys or turn their failures into passing unit substitutes.
 
-- The Runner is a separate Jest 30 stack rooted at `packages/runner`, using `@swc/jest`, a Node environment, and tests under `src/**/__tests__/` or `test/`.
-- Assertions and doubles use Jest globals. Native, filesystem, process, Puppeteer, and network boundaries are mocked explicitly.
-- Exemplars to imitate: `src/__tests__/engine.test.ts` for process and browser orchestration and `test/storage.test.ts` for native keyring and filesystem boundaries.
-- The Runner currently needs `--forceExit`; Jest reports remaining asynchronous handles after the suite. New tests must still clean up timers, processes, sockets, and browser doubles instead of relying on forced termination.
+### Browser acceptance, BDD and ATDD
 
-## Verified baseline
+Direct acceptance specs exercise the running application. Gherkin features and
+bindings are generated by bddgen before Playwright runs. Reuse existing BDD and
+ATDD auth fixtures/controlled clocks; authenticated browser fixtures are gated
+by test mode, loopback URLs and opaque test credentials. No production secrets.
+Keep OAuth traces off where the established fixture requires it. The public
+login spec/feature/steps are the browser entry-point exemplars; harness.steps.ts
+shows ATDD binding conventions, not a replacement for user acceptance.
 
-- Application suite and coverage: `bun run test:coverage` completed with 140/140 suites and 1,148/1,148 tests passing, zero snapshots, and a Jest-reported runtime of 153.489 seconds. The configured coverage thresholds remained green.
-- Application file command: `bunx jest test/app/lib/consentOrigins.test.ts --runInBand` completed with 1/1 suite and 3/3 tests passing.
-- Application Jest name filtering is unsafe for Red-phase isolation: a real `-t` match ran exactly one test, but a nonexistent name skipped the file and still exited 0. Therefore `single` remains `null` and the loop must use the verified whole-file command.
-- Browser acceptance: `bun run test:acceptance` completed with 1/1 Chromium test passing against the real application.
-- Browser BDD: `bun run test:bdd` regenerated its bindings and completed with 1/1 Chromium scenario passing.
-- Combined browser suite: `bun run test:e2e` completed with both the direct acceptance test and generated BDD scenario passing, 2/2 total.
-- Browser single-test command: the known login test passed; the same command with a nonexistent name exited 1 with `No tests found`, so it is safe for isolated outer-loop Red/Green cycles. The exact whole-file command also passed 1/1 test in 63.026 seconds.
-- Runner file command: `bunx jest src/__tests__/engine.test.ts --runInBand --forceExit` completed with 1/1 suite and 4/4 tests passing in 1.798 seconds.
-- Runner suite: `bun run test` completed with 5/5 suites, 20 passing tests, and 1 todo in 2.220 seconds.
-- Runner coverage: `bunx jest --coverage --runInBand --forceExit` completed with 5/5 suites, 20 passing tests, and 1 todo in 2.224 seconds.
-- Runner Jest name filtering has the same false-green behavior as the application stack, so its `single` command also remains `null` and the loop must run the whole file.
+### Self-hosted Runner
 
-## Missing or deliberately unverified capabilities
+Independent Jest 30 stack in packages/runner with SWC and Node environment.
+Use engine.test.ts for Puppeteer/process/live-input boundaries and storage.test.ts
+for keyring/filesystem boundaries; both files were opened. Existing tests mock
+these boundaries with Jest. The package test script already supplies runInBand
+and forceExit; the verified file command need not repeat them. The suite still
+reports one existing TODO and a forced-exit warning. New tests must clean owned
+timers/processes/sockets rather than rely on forced exit. It has no existing
+coverage threshold: generated percentages do not establish a new accepted gate.
 
-- **Mutation testing is absent.** StrykerJS is intentionally not installed yet. Verification must use recorded deliberate-mutant spot checks for the highest-risk changed behaviors until the separate mutation bootstrap is complete.
-- **Property-based testing is available but has no repository exemplar.** `fast-check` and `@fast-check/jest` are present in the manifest and lockfile, but no artificial property test was created merely to verify the dependency. The first requirement with a genuine invariant should add the first exemplar through the normal Red-Green-Refactor loop.
-- **Watch and Playwright UI modes were not verified.** `bun run test:watch` and `bun run test:e2e:ui` are interactive human workflows and were not recorded as non-interactive profile commands.
-- **Approval and assertion-snapshot testing are not established.** Jest supports snapshots and Playwright can support visual snapshots, but the verified suites contain no snapshot exemplar. Failure screenshots and traces are diagnostic artifacts, not approval tests.
-- **No dedicated contract-test tool is configured.** HTTP route and module contracts continue to use Jest, while browser contracts use Playwright.
-- **Browser coverage instrumentation is not configured.** Jest coverage remains the code-coverage gate; Playwright supplies entry-point acceptance evidence rather than a second coverage percentage.
+## CI ownership, safety and retained evidence
 
-## Notes and constraints
+CI owns six complete coverage lanes: unit, database-1, database-2, database-3,
+quiet and workflows. It merges reports with `scripts/merge-test-coverage.mjs`;
+missing/foreign inventory fails. Keep existing Jest global B50/F65/L60/S60 and
+stricter per-path/MCP thresholds. Coverage artifacts and browser results are
+retained 30 days; the shared browser build is retained 2 days. The complete
+Runner suite also gates its owning CI job. This refresh is local diagnostic
+verification and does not substitute for current-source CI fingerprints.
 
-- The default application coverage suite takes about 153 seconds, so it is too slow for every inner-loop iteration. Use the verified whole-file Jest command for Red/Green cycles, then run `bun run test:coverage` before completing each slice or commit.
-- Browser cold starts take about one minute. Use the safe Playwright name or file command while developing one acceptance behavior, `bun run test:bdd` for Gherkin changes, and `bun run test:e2e` at the completed-slice and CI gates.
-- The authoritative CI gates are Jest coverage, the complete Playwright/BDD browser suite, lint, typecheck, incremental Prettier checking, build verification, and the conditional Runner suite.
-- Neither the application Jest suite nor Playwright requires credentials or a shared database. Tests use mocks, local PGlite, and the isolated Playwright environment; never inject production secrets into test commands or this profile.
-- In this managed Windows workspace, Playwright and Runner Jest verification had to run outside the filesystem sandbox because sandboxed reads of installed modules returned `EPERM`. The same commands completed successfully outside the sandbox; this is an execution-environment restriction, not a repository test failure.
-- The Playwright-managed Next.js process intentionally uses Node internally because the application's native Sentry dependencies do not support Bun reliably. Bun remains the package manager and command runner for the test workflows.
+Raw refresh logs/JSON are `/tmp/clipify-tdd-refresh-*`. Runner coverage was moved
+to `/tmp/clipify-tdd-refresh-runner-coverage` after verification to keep generated
+artifacts out of the tracked worktree. These temporary diagnostics do not imply
+30-day CI retention. The exact old-to-new profile diff is available from git.
 
-## Proposed constitution principle (not yet applied)
+## Initial limitations and current remaining capabilities
 
-The repository constitution remains an unfilled template and has no active testing principle. Applying a principle requires explicit approval through the constitution-management flow. Proposed text:
+- Mutation tooling is absent in manifests/locks and installed modules. No Stryker
+  dependency was added. Use recorded deliberate-mutant checks on the highest-risk
+  changed behaviors during TDD verification until a separately approved tool exists.
+- Initial app coverage was interrupted. Current complete app/native coverage now
+  passes; genuine browser coverage is not configured. Runner coverage remains
+  successfully verified.
+- Interactive watch/UI workflows were inspected in package scripts but not
+  exercised; watch remains null. No approval/snapshot command was verified.
+- No separate contract-test framework is configured. Use existing composed
+  route/protocol tests, with one declared artifact owner.
+- Complete app/native verification now passes after setup. Full browser
+  BDD/ATDD/compliance validation remains a later release gate. Historical counts
+  from other commits are not evidence for this checkout.
 
-### Test-Driven Development (NON-NEGOTIABLE)
+## Native media lifecycle checkpoint (2026-10-15)
 
-Every behavior change is driven by a test that failed first.
+The complete native no-coverage checkpoint A5-native-lifecycle-complete-checkpoint-restored.log passes39 tests with1 pre-existing TODO in46.574seconds. This is scoped native lifecycle evidence, not a final feature/application coverage gate. Native browser setup follows docs/local-testing.md and the capture dependency revision; the real media owner requires FFmpeg and Chrome libraries. Package patch validation verifies3 dependencies/4 files, including both CJS/ESM extension-install ordering fixes in the capture dependency's nested Puppeteer24. Exact-version resolution checks every matching installed copy beside a different direct version. No timeout, assertion or coverage threshold was relaxed.
 
-- A test exists and has been observed failing for the right reason before the code that makes it pass. The failure output is recorded in `specs/<feature>/tdd/cycle-log.md`.
-- Test tasks are mandatory. `tasks.md` places each behavior's test task before its implementation task, and implementation does not start until that test is Red.
-- Tests are never weakened, skipped, deleted, or filtered out merely to reach Green. When a test and the implementation disagree, `spec.md` determines which must change.
-- Every acceptance criterion in `spec.md` has an acceptance test against the highest verified real entry point.
-- Refactoring occurs only while the relevant suite is Green and does not silently change expected behavior.
-- Test strength is verified through changed-file mutation testing where available, or recorded deliberate-mutant spot checks where it is not.
+### Runner presentation prerequisite — 2026-10-17
+
+Native/Jest workflows now also use `JWT_SECRET=clipify-e2e-jwt-secret-not-for-production` from the isolated test profile. The real private Runner presentation endpoint signs a scoped cookie; missing signing configuration is setup failure, not product Red. The three disposable-database CI jobs and [local testing guide](../../docs/local-testing.md) supply this fixed non-production value. Keep browser-only exports separate. Verified by the complete five-scenario native multistream owner in `specs/004-runner-free-pro/tdd/evidence/E1-private-multistream-keyed-workflows.log`.

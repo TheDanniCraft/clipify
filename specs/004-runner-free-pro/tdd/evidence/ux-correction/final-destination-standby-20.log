@@ -1,0 +1,60 @@
+[WebServer] (node:601108) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:601108) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 20 tests using 1 worker
+
+(node:601207) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] Unauthenticated request
+[WebServer] Unauthorized "getAllOverlays" API request for user id: e2e-creator-6db99ed7-9c38-4c64-8971-fa8a8060ec37
+  ✓   1 [bdd-chromium] › .features-gen/bdd/runner-boundaries.feature.spec.js:6:7 › Runner destination input boundaries › Deleting a saved destination requires confirmation @BDD @US2 @FR-009 @BDD-US2-FR009 @runner-manual-browser (7.4s)
+  ✓   2 [bdd-chromium] › .features-gen/bdd/runner-boundaries.feature.spec.js:16:9 › Runner destination input boundaries › Destination names have explicit length boundaries › Example #1 @BDD @US2 @FR-009 @runner-manual-browser @BDD-US2-BND001 (3.3s)
+  ✓   3 [bdd-chromium] › .features-gen/bdd/runner-boundaries.feature.spec.js:22:9 › Runner destination input boundaries › Destination names have explicit length boundaries › Example #2 @BDD @US2 @FR-009 @runner-manual-browser @BDD-US2-BND002 (4.7s)
+  ✓   4 [bdd-chromium] › .features-gen/bdd/runner-boundaries.feature.spec.js:28:9 › Runner destination input boundaries › Destination names have explicit length boundaries › Example #3 @BDD @US2 @FR-009 @runner-manual-browser @BDD-US2-BND003 (4.4s)
+  ✓   5 [bdd-chromium] › .features-gen/bdd/runner-boundaries.feature.spec.js:34:9 › Runner destination input boundaries › Destination names have explicit length boundaries › Example #4 @BDD @US2 @FR-009 @runner-manual-browser @BDD-US2-BND004 (3.3s)
+  ✓   6 [bdd-chromium] › .features-gen/bdd/runner-boundaries.feature.spec.js:42:7 › Runner destination input boundaries › Existing broadcasts gain one reusable destination when saved @BDD @US2 @FR-009 @BDD-US2-FR009 @runner-manual-browser (8.6s)
+  ✓   7 [bdd-chromium] › .features-gen/bdd/runner-boundaries.feature.spec.js:49:7 › Runner destination input boundaries › Schedule title length 0 is rejected @BDD @US3 @FR-011 @BDD-US3-BND005 @runner-schedule-browser (7.4s)
+  ✓   8 [bdd-chromium] › .features-gen/bdd/runner-boundaries.feature.spec.js:55:7 › Runner destination input boundaries › Schedule title length 1 is accepted @BDD @US3 @FR-011 @BDD-US3-BND006 @runner-schedule-browser (8.5s)
+  ✓   9 [bdd-chromium] › .features-gen/bdd/runner-boundaries.feature.spec.js:61:7 › Runner destination input boundaries › Schedule title length 80 is accepted @BDD @US3 @FR-011 @BDD-US3-BND007 @runner-schedule-browser (8.9s)
+  ✓  10 [bdd-chromium] › .features-gen/bdd/runner-boundaries.feature.spec.js:67:7 › Runner destination input boundaries › Schedule title length 81 is rejected @BDD @US3 @FR-011 @BDD-US3-BND008 @runner-schedule-browser (7.4s)
+  ✓  11 [bdd-chromium] › .features-gen/bdd/runner-boundaries.feature.spec.js:73:7 › Runner destination input boundaries › Schedule duration 0 minutes is rejected @BDD @US3 @FR-011 @BDD-US3-BND009 @runner-schedule-browser (7.8s)
+  ✓  12 [bdd-chromium] › .features-gen/bdd/runner-boundaries.feature.spec.js:79:7 › Runner destination input boundaries › Schedule duration 1440 minutes is accepted @BDD @US3 @FR-011 @BDD-US3-BND010 @runner-schedule-browser (8.6s)
+  ✓  13 [bdd-chromium] › .features-gen/bdd/runner-boundaries.feature.spec.js:85:7 › Runner destination input boundaries › Schedule duration 1441 minutes is accepted @BDD @US3 @FR-011 @BDD-US3-BND011 @runner-schedule-browser (7.9s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Overlay runtime access denied for overlay id: e6db9ff0-76cb-47e7-b61d-2268b06d58a4; reason: not-found
+  ✓  14 [bdd-chromium] › .features-gen/bdd/runner-standby.feature.spec.js:6:7 › Runner standby customization › An image upload storage failure preserves the saved standby screen @BDD @US1 @runner-manual-browser @US4 @FR-019 @BDD-US4-OPT081 @runner-presentation-browser @runner-custom-standby-browser (3.1s)
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-6271e45f-21cf-4d25-b814-f5764a1ad124
+  ✓  15 [bdd-chromium] › .features-gen/bdd/runner-standby.feature.spec.js:14:7 › Runner standby customization › An active Pro broadcast with no playable clips shows its saved standby @BDD @US1 @runner-manual-browser @US4 @FR-019 @BDD-US4-FR019 @runner-presentation-browser @runner-custom-standby-browser (788ms)
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  16 [bdd-chromium] › .features-gen/bdd/runner-standby.feature.spec.js:21:7 › Runner standby customization › A Pro owner previews and saves a standby background color @BDD @US1 @runner-manual-browser @US4 @FR-019 @BDD-US4-OPT059 @runner-presentation-browser @runner-custom-standby-browser (3.7s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  17 [bdd-chromium] › .features-gen/bdd/runner-standby.feature.spec.js:27:7 › Runner standby customization › A Pro owner previews and saves a standby background image @BDD @US1 @runner-manual-browser @US4 @FR-019 @BDD-US4-OPT060 @runner-presentation-browser @runner-custom-standby-browser (3.5s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Overlay runtime access denied for overlay id: 3c3e515e-272b-4c00-b4b8-048e5cbbf1dc; reason: not-found
+  ✓  18 [bdd-chromium] › .features-gen/bdd/runner-standby.feature.spec.js:33:7 › Runner standby customization › A Pro owner previews and saves a standby logo @BDD @US1 @runner-manual-browser @US4 @FR-019 @BDD-US4-OPT061 @runner-presentation-browser @runner-custom-standby-browser (3.9s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  19 [bdd-chromium] › .features-gen/bdd/runner-standby.feature.spec.js:39:7 › Runner standby customization › A Pro owner previews and saves a plain-text standby message @BDD @US1 @runner-manual-browser @US4 @FR-019 @BDD-US4-OPT062 @runner-presentation-browser @runner-custom-standby-browser (4.5s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  20 [bdd-chromium] › .features-gen/bdd/runner-standby.feature.spec.js:45:7 › Runner standby customization › A Pro owner previews the next broadcast in its saved timezone @BDD @US1 @runner-manual-browser @US4 @FR-019 @BDD-US4-OPT063 @runner-presentation-browser @runner-custom-standby-browser (3.6s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+
+  20 passed (2.0m)

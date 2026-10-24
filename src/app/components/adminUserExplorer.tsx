@@ -1,5 +1,6 @@
 "use client";
 
+import LocalizedDate from "@components/localizedDate";
 import AdminAwardsControl from "./adminAwardsControl";
 import AdminAccountAccessControl from "./adminAccountAccessControl";
 import { getAdminExplorerPage } from "@actions/adminView";
@@ -16,7 +17,7 @@ type AdminExplorerRow = {
 	email: string;
 	role: string;
 	plan: string;
-	lastLoginLabel: string;
+	lastLoginLabel: React.ReactNode;
 	disabled?: boolean;
 	disabledReason?: string | null;
 };
@@ -33,7 +34,7 @@ const PAGE_SIZE = 25;
 
 function formatLastLoginLabel(value: Date | string | null) {
 	if (!value) return "never";
-	return new Date(value).toLocaleString();
+	return <LocalizedDate value={value} showTime />;
 }
 
 export default function AdminUserExplorer({ users, initialPage, initialTotalPages, initialTotalRows, initialQuery }: AdminUserExplorerProps) {

@@ -1,0 +1,134 @@
+$ bun scripts/build-e2e-app.ts
+$ node scripts/build-app.mjs
+Legal publication validation passed for 5 documents and 6 services.
+▲ Next.js 16.3.8 (Turbopack)
+✓ Running next.config.ts took 6.3s
+- Experiments (use with caution):
+  · clientTraceMetadata
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 13.9s
+  Running next.config.js provided runAfterProductionCompile ...
+[@sentry/nextjs - After Production Compile] Info: Sending telemetry data on issues and performance to Sentry. To disable telemetry, set `options.telemetry` to `false`.
+[@sentry/nextjs - After Production Compile] Warning: No auth token provided. Will not upload source maps. Please set the `authToken` option. You can find information on how to generate a Sentry auth token here: https://docs.sentry.io/api/auth/
+✓ Completed runAfterProductionCompile in 2.5s
+  Running TypeScript ...
+  Finished TypeScript in 52s ...
+  Collecting page data using 15 workers ...
+  Generating static pages using 15 workers (0/65) ...
+  Generating static pages using 15 workers (16/65) 
+  Generating static pages using 15 workers (32/65) 
+  Generating static pages using 15 workers (48/65) 
+✓ Generating static pages using 15 workers (65/65) in 1657ms
+  Finalizing page optimization ...
+
+Route (app)                                                 Revalidate  Expire
+┌ ƒ /
+├ ○ /_not-found
+├ ƒ /.well-known/oauth-authorization-server/api/auth
+├ ƒ /.well-known/oauth-protected-resource
+├ ƒ /.well-known/oauth-protected-resource/mcp
+├ ƒ /accept-invitation
+├ ƒ /admin
+├ ƒ /admin/agencies
+├ ƒ /admin/view-as/[targetUserId]
+├ ƒ /api/account/export
+├ ƒ /api/agencies/activate
+├ ƒ /api/auth/[...all]
+├ ƒ /api/c15t/[[...path]]
+├ ƒ /api/deployment
+├ ƒ /api/gallery/[galleryId]/clip/[clipId]
+├ ƒ /api/member-card
+├ ƒ /api/member-card/public/[cardId]
+├ ƒ /api/runner/branding-assets
+├ ƒ /api/runner/download
+├ ƒ /api/runner/enroll/poll
+├ ƒ /api/runner/enroll/start
+├ ƒ /api/runner/heartbeat
+├ ƒ /api/runner/presentation
+├ ƒ /api/runner/preview
+├ ƒ /api/runner/reachability/execute
+├ ƒ /api/runner/reachability/start
+├ ƒ /api/runner/terminal
+├ ƒ /api/runner/version
+├ ƒ /api/team/invitations
+├ ƒ /api/test/auth-fixture
+├ ○ /apple-icon.png
+├ ƒ /auth
+├ ƒ /auth/bot
+├ ƒ /auth/mcp/consent
+├ ƒ /callback
+├ ○ /changelog
+├ ƒ /checkout/clear
+├ ƒ /checkout/continue
+├ ƒ /checkout/start
+├ ƒ /checkout/success
+├ ƒ /community
+├ ƒ /controller/[overlayId]
+├ ƒ /creators/[twitchUsername]
+├ ƒ /dashboard
+├ ƒ /dashboard/agency
+├ ƒ /dashboard/agency/allocations
+├ ƒ /dashboard/embed
+├ ƒ /dashboard/galleries/[galleryId]
+├ ƒ /dashboard/galleries/[galleryId]/preview/clip/[clipId]
+├ ƒ /dashboard/member-card
+├ ƒ /dashboard/overlay/[overlayId]
+├ ƒ /dashboard/overlay/[overlayId]/theme
+├ ƒ /dashboard/playlist/[playlistId]
+├ ƒ /dashboard/runners/[id]
+├ ƒ /dashboard/settings
+├ ƒ /dashboard/settings/account/recovery
+├ ƒ /dashboard/settings/agencies
+├ ƒ /dashboard/settings/roles
+├ ƒ /dashboard/settings/security
+├ ƒ /dashboard/settings/team
+├ ƒ /dashboard/tools
+├ ƒ /demoPlayer
+├ ƒ /embed/[overlayId]
+├ ƒ /eventsub
+├ ○ /gallery
+├ ƒ /gallery/[galleryId]
+├ ƒ /gallery/[galleryId]/clip/[clipId]
+├ ƒ /gallery/[galleryId]/frame
+├ ○ /icon0.svg
+├ ○ /icon1.png
+├ ○ /imprint
+├ ƒ /internal/health/instance
+├ ƒ /internal/sentry-test
+├ ○ /legal/cookies
+├ ○ /legal/imprint
+├ ○ /legal/privacy
+├ ○ /legal/privacy-requests
+├ ○ /legal/terms
+├ ƒ /llms-full.txt
+├ ƒ /llms.txt
+├ ƒ /login
+├ ƒ /login/editor
+├ ƒ /logout
+├ ○ /manifest.webmanifest
+├ ƒ /mcp
+├ ƒ /members/[cardId]
+├ ƒ /overlay/[overlayId]
+├ ƒ /payment/webhook
+├ ƒ /pricing
+├ ƒ /redeem
+├ ○ /roadmap                                                        1m      1y
+├ ○ /robots.txt
+├ ƒ /runner/enroll
+├ ƒ /runner/enroll/select
+├ ƒ /runner/presentation/[sessionId]
+├ ƒ /runner/presentation/[sessionId]/assets/[assetId]
+├ ƒ /runner/presentation/[sessionId]/policy
+├ ƒ /runner/preview/[runnerId]
+├ ƒ /runner/preview/[runnerId]/assets/[assetId]
+├ ƒ /sitemap.xml
+└ ƒ /ws
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+Verified 2 patched dependencies, 2 patched files, and 2 type-checked files in /home/coder/clipify/node_modules

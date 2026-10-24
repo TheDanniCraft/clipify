@@ -110,9 +110,6 @@ export async function provisionDatabaseAgency(input: {
 		creatorSeatPriceId: string;
 		creatorSeatMinimum: number;
 		creatorSeatQuantity: number;
-		runnerSeatPriceId?: string | null;
-		runnerSeatMinimum: number;
-		runnerSeatQuantity: number;
 	};
 	now?: Date;
 }) {
@@ -129,17 +126,8 @@ export async function provisionDatabaseAgency(input: {
 	if (!name || !ownerEmail.includes("@") || !Number.isInteger(input.creatorSeatLimit) || input.creatorSeatLimit < 0) throw new Error("INVALID_AGENCY_PROVISIONING_INPUT");
 	if (input.billing) {
 		const billing = input.billing;
-		const quantities = [billing.creatorSeatMinimum, billing.creatorSeatQuantity, billing.runnerSeatMinimum, billing.runnerSeatQuantity];
-		if (
-			!billing.billingEmail.includes("@") ||
-			!billing.creatorSeatPriceId.startsWith("price_") ||
-			quantities.some((quantity) => !Number.isSafeInteger(quantity) || quantity < 0) ||
-			billing.creatorSeatQuantity < billing.creatorSeatMinimum ||
-			billing.runnerSeatQuantity < billing.runnerSeatMinimum ||
-			(billing.runnerSeatQuantity > 0 && !billing.runnerSeatPriceId?.startsWith("price_")) ||
-			(billing.collectionMethod === "send_invoice" && (!billing.daysUntilDue || billing.daysUntilDue < 1 || billing.daysUntilDue > 90))
-		)
-			throw new Error("INVALID_AGENCY_BILLING_TERMS");
+		const quantities = [billing.creatorSeatMinimum, billing.creatorSeatQuantity];
+		if (!billing.billingEmail.includes("@") || !billing.creatorSeatPriceId.startsWith("price_") || quantities.some((quantity) => !Number.isSafeInteger(quantity) || quantity < 0) || billing.creatorSeatQuantity < billing.creatorSeatMinimum || (billing.collectionMethod === "send_invoice" && (!billing.daysUntilDue || billing.daysUntilDue < 1 || billing.daysUntilDue > 90))) throw new Error("INVALID_AGENCY_BILLING_TERMS");
 	}
 	const slug = `${
 		name
@@ -162,10 +150,6 @@ export async function provisionDatabaseAgency(input: {
 				creatorSeatMinimum: input.billing.creatorSeatMinimum,
 				creatorSeatQuantity: 0,
 				pendingCreatorSeatQuantity: input.billing.creatorSeatQuantity,
-				runnerSeatPriceId: input.billing.runnerSeatPriceId || null,
-				runnerSeatMinimum: input.billing.runnerSeatMinimum,
-				runnerSeatQuantity: 0,
-				pendingRunnerSeatQuantity: input.billing.runnerSeatQuantity || null,
 				createdAt: now,
 				updatedAt: now,
 			});
@@ -331,10 +315,11 @@ export async function resolveDatabaseAgencyPermissions(input: { authUserId: stri
 	return resolveAgencyAccess({ membershipActive: true, linkStatus: link[0]?.status ?? null, rolePermissions: parseRolePermissions(membership[0].role, role[0]?.permission), permissionCeiling: link[0]?.permissionCeiling ?? [] });
 }
 
-export async function allocateDatabaseAgencyLicense(input: { linkId: string; sourceReference: string; product?: "creator_pro" | "runner"; now?: Date }) {
+export async function allocateDatabaseAgencyLicense(input: { linkId: string; sourceReference: string; product?: "creator_pro"; now?: Date }) {
 	const actor = await requireAgencyMember("agency:allocate-license");
 	const now = input.now ?? new Date();
 	const product = input.product ?? "creator_pro";
+	if (product !== "creator_pro") throw new Error("INVALID_AGENCY_PRODUCT");
 	return db.transaction(async (tx) => {
 		await tx.execute(sql`SELECT ${agencyAccountsTable.organizationId} FROM ${agencyAccountsTable} WHERE ${agencyAccountsTable.organizationId} = ${actor.account.organizationId} FOR UPDATE`);
 		const link = await tx
@@ -348,8 +333,7 @@ export async function allocateDatabaseAgencyLicense(input: { linkId: string; sou
 			.from(agencyLicenseAllocationsTable)
 			.innerJoin(agencyCreatorLinksTable, eq(agencyLicenseAllocationsTable.linkId, agencyCreatorLinksTable.id))
 			.where(and(eq(agencyCreatorLinksTable.agencyOrganizationId, actor.account.organizationId), eq(agencyLicenseAllocationsTable.product, product), inArray(agencyLicenseAllocationsTable.status, ["active", "removal_scheduled"])));
-		const seatLimit = product === "runner" ? actor.account.runnerSeatLimit : actor.account.creatorSeatLimit;
-		if (occupied.length >= seatLimit) throw new Error(product === "runner" ? "NO_AGENCY_RUNNER_SEAT_AVAILABLE" : "NO_AGENCY_SEAT_AVAILABLE");
+		if (occupied.length >= actor.account.creatorSeatLimit) throw new Error("NO_AGENCY_SEAT_AVAILABLE");
 		const creator = await tx.select({ creatorId: creatorAccountsTable.creatorId }).from(creatorAccountsTable).where(eq(creatorAccountsTable.organizationId, link[0].creatorOrganizationId)).limit(1);
 		if (!creator[0]) throw new Error("CREATOR_ACCOUNT_NOT_FOUND");
 		const id = randomUUID();
@@ -410,7 +394,7 @@ export async function listDatabaseAgencyOverview() {
 		: [];
 	const billing = await db.select().from(agencyBillingAccountsTable).where(eq(agencyBillingAccountsTable.organizationId, actor.account.organizationId)).limit(1);
 	const occupied = allocations.filter((allocation) => allocation.status === "active" || allocation.status === "removal_scheduled");
-	return { account: actor.account, billing: billing[0] ?? null, links, allocations, occupiedSeats: occupied.filter((allocation) => allocation.product !== "runner").length, occupiedRunnerSeats: occupied.filter((allocation) => allocation.product === "runner").length };
+	return { account: actor.account, billing: billing[0] ?? null, links, allocations, occupiedSeats: occupied.length };
 }
 
 export async function listDatabaseCreatorAgencyLinks() {

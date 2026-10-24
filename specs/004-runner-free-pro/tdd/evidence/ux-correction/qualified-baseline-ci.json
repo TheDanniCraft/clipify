@@ -1,0 +1,140 @@
+{
+  "scope": "Qualified correction before the 2026-10-19 UI review; later UI changes require fresh CI",
+  "run": 39175629536,
+  "url": "https://github.com/TheDanniCraft/clipify/actions/runs/39175629536",
+  "head": "5738f61678b4d80f2185f649979eaeac06c95aff",
+  "sourceFingerprint": "815795f23330ca6d45da85eecbfd7b9c7cb6988d533ae2377a444041706f789e",
+  "jobs": [
+    {
+      "name": "\u267b\ufe0f Prepare dependency cache",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83d\udd0e Detect changed areas",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83d\udccb Verify Runner manifest extraction",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83c\udfa8 Format",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83e\uddea Coverage (unit)",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83d\udd0e Typecheck",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83e\uddea Coverage (database-1)",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83e\uddea Coverage (quiet)",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83c\udfd7\ufe0f Build",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83c\udfd7\ufe0f Shared browser build",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83e\uddea Coverage (database-3)",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83e\uddf9 Lint",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83c\udfc3 Runner typecheck and tests",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83e\uddea Coverage (workflows)",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83e\uddea Coverage (database-2)",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83e\uddea Scoped draft checks",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "\ud83c\udf10 Browser tests (bdd-1)",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83c\udf10 Browser tests (bdd-2)",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83c\udf10 Browser tests (compliance)",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83c\udf10 Browser tests (atdd)",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83c\udf10 Browser tests (acceptance)",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83c\udf10 Browser tests (bdd-3)",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83e\uddea Test",
+      "conclusion": "success"
+    }
+  ],
+  "rootCoverage": {
+    "lines": {
+      "total": 14921,
+      "covered": 13257,
+      "skipped": 0,
+      "pct": 88.84
+    },
+    "statements": {
+      "total": 17750,
+      "covered": 15365,
+      "skipped": 0,
+      "pct": 86.56
+    },
+    "functions": {
+      "total": 3542,
+      "covered": 2977,
+      "skipped": 0,
+      "pct": 84.04
+    },
+    "branches": {
+      "total": 12878,
+      "covered": 10499,
+      "skipped": 0,
+      "pct": 81.52
+    },
+    "branchesTrue": {
+      "total": 0,
+      "covered": 0,
+      "skipped": 0,
+      "pct": "Unknown"
+    }
+  },
+  "native": {
+    "tests": 450,
+    "suites": 52,
+    "pending": 0,
+    "sourceFingerprint": "815795f23330ca6d45da85eecbfd7b9c7cb6988d533ae2377a444041706f789e",
+    "todo": 1
+  }
+}

@@ -6,6 +6,7 @@ type UpdateTarget = { osKey: string };
 
 const WINDOWS_CLEANUP_ATTEMPTS = 125;
 const WINDOWS_CLEANUP_MAX_DELAY_MS = 500;
+const MAX_UPDATE_BYTES = 256 * 1024 * 1024;
 
 function getFileHash(filePath: string): string {
 	const fileBuffer = fs.readFileSync(filePath);
@@ -14,13 +15,54 @@ function getFileHash(filePath: string): string {
 	return hashSum.digest("hex");
 }
 
-async function downloadFile(url: string, dest: string): Promise<void> {
+async function downloadFile(url: string, dest: string, expectedSize?: number): Promise<string> {
 	const parsedUrl = new URL(url);
 	if (!["http:", "https:"].includes(parsedUrl.protocol)) throw new Error(`Unsupported update URL protocol: ${parsedUrl.protocol}`);
 	try {
 		const response = await fetch(parsedUrl, { signal: AbortSignal.timeout(5 * 60 * 1000) });
 		if (!response.ok) throw new Error(`Failed to download file: ${response.status}`);
-		fs.writeFileSync(dest, Buffer.from(await response.arrayBuffer()));
+		if (!response.body) throw new Error("Update download has no response body");
+		const length = response.headers.get("content-encoding") ? 0 : Number(response.headers.get("content-length"));
+		const total = expectedSize ?? (Number.isSafeInteger(length) && length > 0 ? length : 0);
+		const maximum = expectedSize ?? MAX_UPDATE_BYTES;
+		if (total > maximum || maximum > MAX_UPDATE_BYTES) throw new Error("Update download exceeds the allowed size");
+		const hash = crypto.createHash("sha256");
+		const file = fs.openSync(dest, "w", 0o600);
+		let received = 0;
+		const startedAt = Date.now();
+		let lastReport = startedAt;
+		const report = (complete: boolean, now: number) => {
+			const size = (received / 1024 / 1024).toFixed(1);
+			const elapsed = now - startedAt;
+			const speed = elapsed > 0 ? received / elapsed : 0;
+			const seconds = speed > 0 ? Math.ceil(Math.max(0, total - received) / speed / 1000) : null;
+			const eta = seconds === null ? "calculating time remaining" : `about ${seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`} remaining`;
+			const rate = speed > 0 ? `${((speed * 1000) / 1024 / 1024).toFixed(1)} MiB/s, ` : "";
+			console.log(total ? `[Updater] Download: ${Math.min(complete ? 100 : 99, Math.floor((received / total) * 100))}% (${size} / ${(total / 1024 / 1024).toFixed(1)} MiB)${complete ? "" : `, ${rate}${eta}`}` : `[Updater] Download: ${size} MiB (${complete ? "complete" : "total size and ETA unavailable"})`);
+		};
+		const reader = response.body.getReader();
+		try {
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+				received += value.byteLength;
+				if (received > maximum) throw new Error("Update download exceeds the expected size");
+				const chunk = Buffer.from(value);
+				fs.writeSync(file, chunk);
+				hash.update(chunk);
+				const now = Date.now();
+				if (now - lastReport >= 1000) {
+					report(false, now);
+					lastReport = now;
+				}
+			}
+		} finally {
+			reader.releaseLock();
+			fs.closeSync(file);
+		}
+		if (expectedSize !== undefined && received !== expectedSize) throw new Error("Update download size does not match the manifest");
+		report(true, Date.now());
+		return hash.digest("hex");
 	} catch (error) {
 		try {
 			fs.unlinkSync(dest);
@@ -37,23 +79,26 @@ function getUpdateTarget(): UpdateTarget {
 		osKey: isWindows ? "windows" : isLinuxArm64 ? "linuxArm" : isMacOS && process.arch === "arm64" ? "macosArm" : isMacOS ? "macos" : "linux",
 	};
 }
-async function fetchRemoteHash(apiBase: string, osKey: string): Promise<string | undefined> {
+async function fetchRemoteUpdate(apiBase: string, osKey: string): Promise<{ hash: string; size?: number } | undefined> {
 	const res = await fetch(`${apiBase}/api/runner/version`);
 	if (!res.ok) {
 		console.warn(`[Updater] Failed to check for updates: HTTP ${res.status}`);
 		return undefined;
 	}
-	const data = (await res.json()) as Partial<Record<string, string>>;
-	return data[osKey];
+	const data = (await res.json()) as Partial<Record<string, string>> & { artifacts?: { sha256: string; size: number }[] };
+	const hash = data[osKey];
+	if (typeof hash !== "string" || !hash) return undefined;
+	const artifact = Array.isArray(data.artifacts) ? data.artifacts.find((candidate) => candidate?.sha256 === hash) : undefined;
+	return { hash, ...(artifact && Number.isSafeInteger(artifact.size) && artifact.size > 0 ? { size: artifact.size } : {}) };
 }
 
-async function applyUpdate(apiBase: string, osKey: string, remoteHash: string): Promise<void> {
+async function applyUpdate(apiBase: string, osKey: string, remoteHash: string, expectedSize?: number): Promise<void> {
 	const execPath = process.execPath;
-	const newPath = `${execPath}.new`;
+	const newPath = process.platform === "win32" ? getWindowsUpdatePaths(execPath).staged : `${execPath}.new`;
 	const oldPath = `${execPath}.old`;
-	await downloadFile(`${apiBase}/api/runner/download?os=${encodeURIComponent(osKey)}`, newPath);
+	const downloadedHash = await downloadFile(`${apiBase}/api/runner/download?os=${encodeURIComponent(osKey)}`, newPath, expectedSize);
 
-	if (getFileHash(newPath) !== remoteHash) {
+	if (downloadedHash !== remoteHash) {
 		console.error("[Updater] Downloaded file hash mismatch! Aborting update.");
 		fs.unlinkSync(newPath);
 		return;
@@ -62,7 +107,7 @@ async function applyUpdate(apiBase: string, osKey: string, remoteHash: string): 
 	console.log("[Updater] Download verified. Applying update...");
 	if (process.platform === "win32") {
 		console.log("[Updater] Scheduling update for after the runner exits...");
-		launchWindowsUpdateHelper(execPath, newPath, oldPath, process.argv.slice(2), process.pid);
+		await launchWindowsUpdateHelper(execPath, newPath, oldPath, process.argv.slice(2), process.pid);
 		process.exit(0);
 	}
 
@@ -104,17 +149,80 @@ function quoteWindowsArgument(value: string): string {
 	return quoted + "\\".repeat(backslashes * 2) + '"';
 }
 
-export function launchWindowsUpdateHelper(execPath: string, newPath: string, oldPath: string, args: string[], pid: number) {
+export function getWindowsUpdatePaths(path: string) {
+	const executable = path.replace(/\.exe\.new$/i, ".exe").replace(/\.new\.exe$/i, ".exe");
+	return { executable, staged: executable.replace(/\.exe$/i, ".new.exe") };
+}
+
+export async function launchWindowsUpdateHelper(execPath: string, newPath: string, oldPath: string, args: string[], pid: number) {
 	const argumentLine = args.map(quoteWindowsArgument).join(" ");
 	const restart = argumentLine ? `Start-Process -FilePath ${quotePowerShell(execPath)} -ArgumentList ${quotePowerShell(argumentLine)}` : `Start-Process -FilePath ${quotePowerShell(execPath)}`;
-	const script = [`Wait-Process -Id ${pid} -ErrorAction SilentlyContinue`, `Remove-Item -LiteralPath ${quotePowerShell(oldPath)} -Force -ErrorAction SilentlyContinue`, `Move-Item -LiteralPath ${quotePowerShell(execPath)} -Destination ${quotePowerShell(oldPath)} -Force`, `Move-Item -LiteralPath ${quotePowerShell(newPath)} -Destination ${quotePowerShell(execPath)} -Force`, restart].join("; ");
+	const script = [
+		"$ErrorActionPreference = 'Stop'",
+		"$ProgressPreference = 'SilentlyContinue'",
+		"[Console]::Out.WriteLine('CLIPIFY_UPDATE_READY')",
+		"function Move-WithRetry($source, $destination) { for ($attempt = 0; $attempt -lt 120; $attempt++) { try { Move-Item -LiteralPath $source -Destination $destination -Force; return } catch { if ($attempt -eq 119) { throw }; Start-Sleep -Milliseconds 500 } } }",
+		`Wait-Process -Id ${pid} -ErrorAction SilentlyContinue`,
+		`try {
+			Remove-Item -LiteralPath ${quotePowerShell(oldPath)} -Force -ErrorAction SilentlyContinue
+			if (Test-Path -LiteralPath ${quotePowerShell(execPath)}) { Move-WithRetry ${quotePowerShell(execPath)} ${quotePowerShell(oldPath)} }
+			try { Move-WithRetry ${quotePowerShell(newPath)} ${quotePowerShell(execPath)} } catch {
+				if (Test-Path -LiteralPath ${quotePowerShell(oldPath)}) { Move-WithRetry ${quotePowerShell(oldPath)} ${quotePowerShell(execPath)} }
+				throw
+			}
+			${restart}
+		} catch {
+			$_ | Out-String | Set-Content -LiteralPath ${quotePowerShell(`${execPath}.update-error.log`)}
+		}`,
+	].join("\n");
 	const encodedCommand = Buffer.from(script, "utf16le").toString("base64");
-	const helper = spawn("powershell.exe", ["-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encodedCommand], {
-		detached: true,
-		stdio: "ignore",
+	// A detached, hidden Windows PowerShell can exit successfully before running
+	// any script. CMD supplies its hidden console; unref releases the Node parent.
+	// Only constant flags and base64 enter CMD. Paths/arguments stay inside the
+	// encoded PowerShell script and never become CMD syntax.
+	const helper = spawn("cmd.exe", ["/d", "/s", "/c", `powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand ${encodedCommand}`], {
+		detached: false,
+		stdio: ["ignore", "pipe", "pipe"],
 		windowsHide: true,
+		windowsVerbatimArguments: true,
 	});
-	helper.unref();
+	await new Promise<void>((resolve, reject) => {
+		let ready = false;
+		let output = "";
+		let diagnostics = "";
+		const timer = setTimeout(() => fail(new Error("Windows update helper did not become ready within 15 seconds.")), 15_000);
+		function fail(error: Error) {
+			if (ready) return;
+			clearTimeout(timer);
+			if (diagnostics) {
+				try {
+					fs.writeFileSync(`${execPath}.update-error.log`, diagnostics, { mode: 0o600 });
+				} catch {}
+			}
+			helper.kill();
+			helper.stdout?.destroy();
+			helper.stderr?.destroy();
+			reject(error);
+		}
+		helper.once("error", fail);
+		helper.once("exit", (code) => fail(new Error(`Windows update helper exited before becoming ready (exit ${code}).`)));
+		helper.stderr?.on("data", (data: Buffer) => {
+			diagnostics = (diagnostics + data.toString("utf8")).slice(-16_384);
+		});
+		helper.stdout?.on("data", (data: Buffer) => {
+			output = (output + data.toString("utf8").replaceAll("\0", "")).slice(-1024);
+			if (!output.includes("CLIPIFY_UPDATE_READY")) return;
+			ready = true;
+			clearTimeout(timer);
+			// Keep draining the pipes until exit: closing them while PowerShell is
+			// initializing can break its console writer. Unref their handles instead.
+			for (const stream of [helper.stdout, helper.stderr]) {
+				if (stream && "unref" in stream && typeof stream.unref === "function") stream.unref();
+			}
+			helper.unref();
+			resolve();
+		});
+	});
 	return helper;
 }
 
@@ -156,15 +264,23 @@ export async function checkForUpdates(apiBase: string): Promise<string> {
 
 	const { osKey } = getUpdateTarget();
 	try {
-		const remoteHash = await fetchRemoteHash(apiBase, osKey);
-		if (!remoteHash) {
+		if (process.platform === "win32") {
+			const { executable } = getWindowsUpdatePaths(process.execPath);
+			if (executable !== process.execPath) {
+				console.log("[Updater] Finishing the staged update and restoring the original filename...");
+				await launchWindowsUpdateHelper(executable, process.execPath, `${executable}.old`, process.argv.slice(2), process.pid);
+				process.exit(0);
+			}
+		}
+		const remote = await fetchRemoteUpdate(apiBase, osKey);
+		if (!remote) {
 			console.warn(`[Updater] No remote hash found for OS: ${osKey}`);
 			return localVersion;
 		}
-		if (localVersion !== remoteHash) {
-			console.log(`[Updater] Update found! Local: ${localVersion}, Remote: ${remoteHash}`);
+		if (localVersion !== remote.hash) {
+			console.log(`[Updater] Update found! Local: ${localVersion}, Remote: ${remote.hash}`);
 			console.log("[Updater] Downloading new version...");
-			await applyUpdate(apiBase, osKey, remoteHash);
+			await applyUpdate(apiBase, osKey, remote.hash, remote.size);
 		} else {
 			console.log("[Updater] Runner is up to date.");
 		}

@@ -8,40 +8,70 @@ import coverageRanges from "./mcp-coverage-ranges.cjs";
 import McpCoverageReporter from "./mcp-coverage-reporter.cjs";
 
 const require = createRequire(import.meta.url);
+const nativeProjects = ["bdd-chromium", "atdd-chromium"];
+const nativeProjectArguments = nativeProjects.map((project) => `--project=${project}`);
 
 function scenarioIds(report) {
 	const ids = [];
+	const owned = new Set();
 	const visit = (suite) => {
-		for (const spec of suite.specs ?? []) for (const test of spec.tests) ids.push(`${spec.id}:${test.projectName}`);
+		for (const spec of suite.specs ?? []) {
+			for (const test of spec.tests) {
+				if (typeof spec.id !== "string" || !spec.id || !nativeProjects.includes(test.projectName) || owned.has(spec.id)) throw new Error("Workflow scenarios must have exactly one execution owner");
+				owned.add(spec.id);
+				ids.push(`${spec.id}:${test.projectName}`);
+			}
+		}
 		for (const child of suite.suites ?? []) visit(child);
 	};
 	for (const suite of report.suites) visit(suite);
+	if (!ids.length) throw new Error("Workflow scenario inventory is empty");
 	return ids.sort();
 }
+
+export function combinedWorkflowInventory(reports) {
+	const ids = reports.flatMap((report) => scenarioIds(report));
+	if (new Set(ids).size !== ids.length) throw new Error("Workflow scenarios must have exactly one execution owner");
+	return ids.sort();
+}
+
 export function workflowInventory() {
 	const env = { ...process.env };
 	delete env.PLAYWRIGHT_JSON_OUTPUT_NAME;
-	return scenarioIds(JSON.parse(execFileSync(process.execPath, [require.resolve("@playwright/test/cli"), "test", "--config", "playwright.mcp.config.ts", "--project=bdd-chromium", "mcp-workflows", "--list", "--reporter=json"], { env, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 })));
+	return combinedWorkflowInventory([JSON.parse(execFileSync(process.execPath, [require.resolve("@playwright/test/cli"), "test", "--config", "playwright.mcp.config.ts", ...nativeProjectArguments, "mcp-workflows", "--list", "--reporter=json"], { env, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }))]);
+}
+
+export function workflowExecutionCommands(workers, playwright = require.resolve("@playwright/test/cli")) {
+	return [
+		[playwright, "test", "--config", "playwright.mcp.config.ts", ...nativeProjectArguments, "mcp-workflows", `--workers=${workers}`, "--grep-invert", "@mode:serial", "--reporter=line,json"],
+		[playwright, "test", "--config", "playwright.mcp.config.ts", ...nativeProjectArguments, "mcp-workflows", "--workers=1", "--retries=1", "--grep", "@mode:serial", "--reporter=line,json"],
+	];
+}
+
+function runWorkflowCommand(args, environment, resultFile) {
+	const result = spawnSync(process.versions.bun ? "node" : process.execPath, args, { env: { ...environment, PLAYWRIGHT_JSON_OUTPUT_NAME: resultFile }, stdio: "inherit" });
+	if (result.error) throw result.error;
+	return result.status === 0;
+}
+
+export function collectSerialMcpWorkflowCoverage({ environment, outputDirectory }) {
+	const generator = join(dirname(require.resolve("playwright-bdd/package.json")), "dist/cli/index.js");
+	const serialResultFile = join(outputDirectory, "workflow-results-serial.json");
+	if (!runWorkflowCommand([generator, "--config", "playwright.mcp.config.ts"], environment, serialResultFile)) return false;
+	return runWorkflowCommand(workflowExecutionCommands(1)[1], environment, serialResultFile);
 }
 
 /** Include the real workflow/feedback journeys in the same fresh source report as Jest. */
-export async function collectMcpWorkflowCoverage({ environment, rawDirectory, outputDirectory }) {
+export async function collectMcpWorkflowCoverage({ environment, rawDirectory, outputDirectory, serialPrepared = false }) {
 	const capacity = await databaseBudget.readFixtureDatabaseCapacity();
 	const workers = databaseBudget.selectDatabaseWorkers(workerBudget.automaticTestWorkers(), capacity);
-	const generator = join(dirname(require.resolve("playwright-bdd/package.json")), "dist/cli/index.js");
-	const playwright = require.resolve("@playwright/test/cli");
-	const resultFile = join(outputDirectory, "workflow-results.json");
-	for (const args of [
-		[generator, "--config", "playwright.mcp.config.ts"],
-		[playwright, "test", "--config", "playwright.mcp.config.ts", "--project=bdd-chromium", "mcp-workflows", `--workers=${workers}`, "--reporter=line,json"],
-	]) {
-		const result = spawnSync(process.versions.bun ? "node" : process.execPath, args, { env: { ...environment, PLAYWRIGHT_JSON_OUTPUT_NAME: resultFile }, stdio: "inherit" });
-		if (result.error) throw result.error;
-		if (result.status !== 0) return false;
-	}
+	const parallelResultFile = join(outputDirectory, "workflow-results-parallel.json");
+	const serialResultFile = join(outputDirectory, "workflow-results-serial.json");
+	if (!serialPrepared && !collectSerialMcpWorkflowCoverage({ environment, outputDirectory })) return false;
+	if (!runWorkflowCommand(workflowExecutionCommands(workers)[0], environment, parallelResultFile)) return false;
 	const expected = workflowInventory();
-	const executed = JSON.parse(readFileSync(resultFile, "utf8"));
-	if (!expected.length || executed.stats.skipped || executed.stats.unexpected || JSON.stringify(scenarioIds(executed)) !== JSON.stringify(expected)) throw new Error("Workflow coverage did not execute its complete scenario inventory");
+	const executed = [parallelResultFile, serialResultFile].map((file) => JSON.parse(readFileSync(file, "utf8")));
+	if (!expected.length || executed.some((report) => report.stats.skipped || report.stats.unexpected) || JSON.stringify(combinedWorkflowInventory(executed)) !== JSON.stringify(expected)) throw new Error("Workflow coverage did not execute its complete scenario inventory");
 	writeFileSync(join(outputDirectory, "workflow-inventory.json"), JSON.stringify(expected));
 	const reporter = new McpCoverageReporter({ collectCoverage: true }, { rawDirectory, outputDirectory: join(outputDirectory, "mcp-workflows") });
 	const result = { coverage: {} };

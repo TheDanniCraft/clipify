@@ -128,18 +128,25 @@ The badge catalog is generated below from Clipify's authoritative TypeScript reg
 
 ## Self-hosted Runner
 
-- The optional self-hosted Runner can play clips continuously or act as a failsafe when the normal OBS setup is offline.
-- Runner binaries are available for Windows, Linux, and macOS.
-- A Runner is enrolled and managed from the Clipify dashboard.
-- It uses hardware, network bandwidth, hosting, and electricity supplied by the creator.
-- Runner access is a separate optional product available alongside Free or Pro.
-- Creators who need a managed Runner can contact Clipify.
+Runner is included with Free and Pro, with unlimited streaming hours and no separate Runner subscription.
+
+- Runner plays clips manually or provides live fallback when the creator's normal live input is offline.
+- It runs on the creator's own Windows, Linux, or macOS computer. The creator supplies hardware, upload bandwidth and electricity; Clipify does not host the broadcast.
+- Free supports unlimited registered devices, one active broadcast across those devices, and one destination. Free requires connectivity to Clipify to renew broadcast permission; loss of connectivity eventually stops generated playback safely.
+- Free generated clips and standby include readable Clipify attribution. The normal live feed is not watermarked by Runner.
+- Pro adds scheduling, multiple destinations per broadcast, multiple independent active broadcasts, custom standby screens, and watermark removal. Additional destinations use the creator's upload bandwidth; they do not require separate quality encodes.
+- Schedule blocks can span days and weeks in the configured timezone. The computer and Runner must stay online. New starts and schedule changes require Clipify connectivity. Scheduled stops finish the current clip before going offline.
+- Past and current occurrences open read-only broadcast details; their titles can still be renamed. Future recurring edits and deletion offer This occurrence or This and following, preserving earlier broadcasts.
+- Advanced Runner features require effective Pro, including valid Pro grants, trials, and agency creator seats. The standalone Runner entitlement, purchase and agency Runner seats are retired.
+- Saved destinations belong to the creator account and can be reused across its Runners without re-entering stream keys. Manage destinations alongside broadcast configuration. Appearance and schedules open in dedicated editors; the calendar supports day, week, and month views with local timezone date/time controls.
+- First-time Runner setup includes platform downloads, installation instructions and a manual token for Docker or headless use. Configuration appears after the first heartbeat. Connected details include update status and video quality; running previews support first-frame waiting and retry.
+- Enroll and manage devices from the dashboard. Streaming keys stay protected and are delivered only to the authorized assigned Runner; public setup/status responses do not reveal them.
 
 ## Free, Pro, trials, and pricing
 
 New Free accounts receive seven days of temporary Pro feature access. When that trial expires, Free limits apply unless the creator purchases Pro or receives another qualifying entitlement.
 
-Exact Pro and Runner prices are resolved from Clipify's live billing catalog and can be affected by active campaigns. The authoritative current amounts are on https://clipify.us/pricing. Static price amounts are intentionally not duplicated here.
+Exact Pro prices are resolved from Clipify's live billing catalog and can be affected by active campaigns. The authoritative current amounts are on https://clipify.us/pricing. Static price amounts are intentionally not duplicated here.
 
 The feature comparison below is generated from the same TypeScript catalog used by Clipify's pricing interface:
 
@@ -168,7 +175,7 @@ The server exposes 66 tools across creator capabilities, overlay configuration a
 - Pro remote control can inspect reported current playback, read queues, enqueue a creator clip, and send play/pause/skip/show/hide/volume/mute commands. Reports and command delivery can be stale or unavailable; accepted commands do not prove the player applied them.
 - Create and edit galleries within plan limits, publish with explicit authority, and generate supported Clipify Elements gallery snippets. Public player embeds use Elements or `/embed/` iframes; private OBS sources use a separate permission and are unsuitable for public websites.
 - Read and edit supported Creator Page settings and publication state. Social-preview customization requires Pro.
-- Runner setup and stream creation/control require separate Runner access. Get official download/enrollment instructions, manage runner records and stream assignments, request start/stop, and inspect a fresh JPEG snapshot when available. Device installation/enrollment and missing stream credentials are completed through the normal user/dashboard flow. Read and cleanup access to existing records remains available after Runner access expires.
+- Basic Runner setup and stream creation/control are included with Free and Pro, subject to creator permissions and the plan’s active-broadcast and destination limits. Get official download/enrollment instructions, manage runner records and stream assignments, request start/stop, and inspect a fresh JPEG snapshot when available. Device installation/enrollment and missing stream credentials are completed through the normal user/dashboard flow. Read and cleanup access to existing records remains available after Runner access expires.
 
 Team administration, billing changes, account-security settings, and AI marketplace submissions are outside this tool set.
 

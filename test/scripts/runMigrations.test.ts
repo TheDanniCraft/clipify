@@ -25,17 +25,26 @@ describe("container database migrations", () => {
 		expect(contents).not.toContain("sleep infinity");
 	});
 
-	it("reconciles the schema directly for preview deployments", () => {
+	it("keeps schema changes out of preview container startup", () => {
 		const contents = readFileSync(join(process.cwd(), "Dockerfile-preview"), "utf8");
 
 		expect(contents).toContain("ENV NODE_ENV=production");
 		expect(contents).not.toContain("ENV NODE_ENV=development");
-		expect(contents).toContain("node node_modules/drizzle-kit/bin.cjs push && node server.js");
+		expect(contents).toContain('\"--command\", \"node server.js\"');
 		expect(contents).toContain("/app/drizzle.config.ts ./drizzle.config.ts");
 		expect(contents).toContain("/app/tsconfig.json ./tsconfig.json");
 		expect(contents).toContain("/app/src ./src");
 		expect(contents).not.toContain("node scripts/run-migrations.mjs");
 		expect(contents).not.toContain("drizzle-kit/bin.cjs migrate");
+		expect(contents).not.toContain("drizzle-kit/bin.cjs push");
 		expect(contents).not.toContain("sleep infinity");
+	});
+
+	it("fingerprints preview web and Runner artifacts with the same verification keys", () => {
+		const contents = readFileSync(join(process.cwd(), "Dockerfile-preview"), "utf8");
+
+		expect(contents).toContain("preview-execution-public-keys.json");
+		expect(contents).toContain("export RUNNER_EXECUTION_PUBLIC_KEYS=");
+		expect(contents).toContain("node scripts/fingerprint-runner.mjs --write-context src/app/lib/runnerContext.generated.ts");
 	});
 });

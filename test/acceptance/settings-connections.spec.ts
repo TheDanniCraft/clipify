@@ -1,0 +1,46 @@
+import { test, expect } from "@playwright/test";
+import { Pool } from "pg";
+import { createAuthenticatedFixture, type AuthFixture } from "../atdd/support/auth-engine-rewrite";
+import { browserDatabaseUrl } from "../support/mcp/browser-database.cjs";
+
+test("linked accounts and AI access share the Connections settings tab", async ({ page, context, request }, info) => {
+	test.setTimeout(120000);
+	const pool = new Pool({ connectionString: browserDatabaseUrl(), max: 1 });
+	let owner: AuthFixture | undefined;
+	try {
+		owner = await createAuthenticatedFixture(request, context, { withProviderCredentials: true });
+		await page.goto("/dashboard/settings?tab=connections");
+		await expect(page.getByRole("tab", { name: "Connections", exact: true })).toHaveAttribute("aria-selected", "true");
+		await expect(page.getByRole("heading", { name: "Linked accounts", exact: true })).toBeVisible();
+		await expect(page.getByRole("heading", { name: "Connected AI apps", exact: true })).toBeVisible();
+		await expect(page.getByRole("heading", { name: "AI app activity", exact: true })).toBeVisible();
+		await expect(page.getByRole("button", { name: "Disconnect", exact: true }).first()).toBeVisible();
+		for (const theme of ["dark", "light"]) {
+			await page.evaluate((nextTheme) => {
+				document.documentElement.classList.remove("dark", "light");
+				document.documentElement.classList.add(nextTheme);
+				document.documentElement.style.colorScheme = nextTheme;
+			}, theme);
+			for (const width of [1280, 390]) {
+				await page.setViewportSize({ width, height: 960 });
+				await expect(page.getByRole("heading", { name: "Linked accounts", exact: true })).toBeVisible();
+				await page.screenshot({ path: info.outputPath(`connections-${theme}-${width}.png`), fullPage: true });
+			}
+		}
+		await pool.query(`UPDATE auth.session SET created_at = now() - interval '10 minutes' WHERE user_id = $1`, [owner.fixture.authUserId]);
+		await page.getByRole("button", { name: "Disconnect", exact: true }).first().click();
+		const disconnect = page.getByRole("dialog", { name: /^Disconnect (Google|Twitch)\?$/ });
+		await disconnect.getByRole("button", { name: "Disconnect", exact: true }).click();
+		const verification = page.getByRole("dialog", { name: "Verify your identity", exact: true });
+		await expect(verification).toContainText("To complete this action, please sign in again.");
+		await expect(verification.getByRole("button", { name: /^Sign in with (Google|Twitch)$/ })).toBeVisible();
+		const linkedAccounts = await pool.query("SELECT id FROM auth.account WHERE user_id=$1 AND provider_id IN ($2,$3)", [owner.fixture.authUserId, "google", "twitch"]);
+		expect(linkedAccounts.rowCount).toBeGreaterThan(0);
+	} finally {
+		await pool.end();
+		if (owner) {
+			const result = await request.delete("/api/test/auth-fixture", { headers: { Authorization: "Bearer clipify-playwright-auth-fixture" }, data: { authUserId: owner.fixture.authUserId, creatorId: owner.fixture.creatorId, organizationIds: [owner.fixture.creatorOrganizationId, owner.fixture.agencyOrganizationId] } });
+			expect(result.status()).toBe(204);
+		}
+	}
+});

@@ -1,8 +1,9 @@
 "use client";
 
+import LocalizedDate from "@components/localizedDate";
 import { useEffect, useState } from "react";
 import { Button, Card, Chip, Input, InputOTP, Label, Modal, REGEXP_ONLY_DIGITS, TextField, Tooltip } from "@heroui/react";
-import { IconAt, IconDeviceLaptop, IconInfoCircle, IconKey, IconMailCheck, IconPlus, IconTrash } from "@tabler/icons-react";
+import { IconAt, IconDeviceLaptop, IconInfoCircle, IconPlus, IconTrash } from "@tabler/icons-react";
 import ControlledModal from "@components/controlledModal";
 import { notify as addToast } from "@lib/toast";
 import { authClient } from "@/auth/client";
@@ -13,9 +14,7 @@ type EmailChangeStep = "idle" | "verify-current" | "verify-new";
 const PENDING_EMAIL_STORAGE_KEY = "clipify:pending-email-change";
 
 function formatDate(value: Date | string | null) {
-	if (!value) return "Date unavailable";
-	const date = new Date(value);
-	return Number.isNaN(date.getTime()) ? "Date unavailable" : new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
+	return value ? <LocalizedDate value={value} /> : "Date unavailable";
 }
 
 export default function SecuritySettingsPanel() {
@@ -202,9 +201,6 @@ export default function SecuritySettingsPanel() {
 
 			<ControlledModal variant='blur' isOpen={emailModalOpen} onClose={() => setEmailModalOpen(false)}>
 				<Modal.Header>
-					<Modal.Icon className='bg-accent-soft text-accent-soft-foreground'>
-						<IconMailCheck aria-hidden='true' />
-					</Modal.Icon>
 					<Modal.Heading>Change your email</Modal.Heading>
 				</Modal.Header>
 				<Modal.Body className='space-y-5'>
@@ -285,15 +281,13 @@ export default function SecuritySettingsPanel() {
 
 			<ControlledModal variant='blur' isOpen={passkeyModalOpen} onClose={() => setPasskeyModalOpen(false)}>
 				<Modal.Header>
-					<Modal.Icon className='bg-accent-soft text-accent-soft-foreground'>
-						<IconKey aria-hidden='true' />
-					</Modal.Icon>
 					<Modal.Heading>Manage passkeys</Modal.Heading>
+					<p className='text-sm text-muted'>Use a passkey to sign in with your device instead of an email code.</p>
 				</Modal.Header>
 				<Modal.Body>
 					<div className='space-y-3'>
 						{passkeys.length === 0 ? (
-							<div className='rounded-xl bg-surface-secondary p-6 text-center text-sm text-muted'>{isLoadingPasskeys ? "Loading passkeys…" : "No passkeys registered yet."}</div>
+							<p className='py-2 text-sm text-muted'>{isLoadingPasskeys ? "Loading passkeys…" : "You have not added a passkey yet."}</p>
 						) : (
 							passkeys.map((passkey) => (
 								<div key={passkey.id} className='flex items-center gap-3 rounded-xl bg-surface-secondary p-4'>

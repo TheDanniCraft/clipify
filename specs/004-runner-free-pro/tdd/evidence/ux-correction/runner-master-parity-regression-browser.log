@@ -1,0 +1,86 @@
+[WebServer] (node:310079) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:310079) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 7 tests using 1 worker
+
+(node:310140) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [acceptance-chromium] › test/acceptance/calendar-localization.spec.ts:20:6 › calendar all-day setup and displayed dates follow en-US (15.1s)
+  ✓  2 [acceptance-chromium] › test/acceptance/calendar-localization.spec.ts:20:6 › calendar all-day setup and displayed dates follow de-DE (16.2s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching incremental clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching backfill clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching incremental clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching backfill clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  3 [acceptance-chromium] › test/acceptance/runner-editor-ux.spec.ts:41:6 › free Runner setup and appearance follow the Clipify editor flow (35.9s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching incremental clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching backfill clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching incremental clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching backfill clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching incremental clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching backfill clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching incremental clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching backfill clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching incremental clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching backfill clip sync page: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  4 [acceptance-chromium] › test/acceptance/runner-editor-ux.spec.ts:41:6 › pro Runner setup and appearance follow the Clipify editor flow (53.8s)
+  ✓  5 [acceptance-chromium] › test/acceptance/runner-editor-ux.spec.ts:532:5 › Runner setup without an overlay offers a source action and recoverable validation (4.9s)
+  ✘  6 [acceptance-chromium] › test/acceptance/runner-master-parity.spec.ts:14:5 › Runner preserves first connection, headless setup, updates, quality and recoverable preview (10.7s)
+(node:315313) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  7 [acceptance-chromium] › test/acceptance/runner-schedule-history.spec.ts:7:5 › past broadcasts remain read-only and future recurring changes have explicit scope (21.6s)
+
+
+  1) [acceptance-chromium] › test/acceptance/runner-master-parity.spec.ts:14:5 › Runner preserves first connection, headless setup, updates, quality and recoverable preview
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 7
+    + Received  + 1
+
+    - Array [
+    -   "windows",
+    -   "linux",
+    -   "linux-arm64",
+    -   "macos",
+    -   "macos-arm64",
+    - ]
+    + Array []
+
+       98 | 			await expect(install).not.toBeVisible();
+       99 | 		}
+    > 100 | 		expect(downloads).toEqual(["windows", "linux", "linux-arm64", "macos", "macos-arm64"]);
+          | 		                  ^
+      101 | 		for (const theme of ["dark", "light"]) {
+      102 | 			if (theme === "light") await page.getByRole("button", { name: "Toggle Theme", exact: true }).click();
+      103 | 			for (const viewport of [
+        at /home/coder/clipify/test/acceptance/runner-master-parity.spec.ts:100:21
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/runner-parity-review/runner-master-parity-Runne-d7198-ity-and-recoverable-preview-acceptance-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/runner-parity-review/runner-master-parity-Runne-d7198-ity-and-recoverable-preview-acceptance-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/runner-parity-review/runner-master-parity-Runne-d7198-ity-and-recoverable-preview-acceptance-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/runner-parity-review/runner-master-parity-Runne-d7198-ity-and-recoverable-preview-acceptance-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/runner-parity-review/runner-master-parity-Runne-d7198-ity-and-recoverable-preview-acceptance-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [acceptance-chromium] › test/acceptance/runner-master-parity.spec.ts:14:5 › Runner preserves first connection, headless setup, updates, quality and recoverable preview
+  6 passed (2.8m)

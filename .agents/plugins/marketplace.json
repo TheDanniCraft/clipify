@@ -1,0 +1,21 @@
+{
+	"name": "clipify",
+	"interface": {
+		"displayName": "Clipify development tools"
+	},
+	"plugins": [
+		{
+			"name": "ponytail",
+			"source": {
+				"source": "url",
+				"url": "https://github.com/DietrichGebert/ponytail.git",
+				"ref": "09c434ab73ca43761c5d8b0c5d341926c2fba710"
+			},
+			"policy": {
+				"installation": "INSTALLED_BY_DEFAULT",
+				"authentication": "ON_INSTALL"
+			},
+			"category": "Productivity"
+		}
+	]
+}

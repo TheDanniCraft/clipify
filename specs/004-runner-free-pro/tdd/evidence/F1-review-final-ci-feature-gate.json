@@ -1,0 +1,144 @@
+{
+  "ok": true,
+  "sourceFingerprint": "be699c61e99437437c1721d70ffde7e259442f68eebece586bc421012d2be43d",
+  "sources": [
+    "packages/runner/src/protocol.ts",
+    "src/app/api/runner/branding-assets/route.ts",
+    "src/app/api/runner/heartbeat/route.ts",
+    "src/app/api/runner/presentation/route.ts",
+    "src/app/api/runner/terminal/route.ts",
+    "src/app/components/overlayPlayer.tsx",
+    "src/app/components/playerOverlay.tsx",
+    "src/app/components/runner/RunnerBrandingPreview.tsx",
+    "src/app/components/runner/StandbyEditor.tsx",
+    "src/app/components/runnerGeneratedPresentation.tsx",
+    "src/app/lib/deployment.ts",
+    "src/app/lib/embeddedRoutes.ts",
+    "src/app/lib/entitlements.ts",
+    "src/app/lib/runnerBrandingLayout.ts",
+    "src/app/lib/runnerStandby.ts",
+    "src/app/runner/presentation/[sessionId]/assets/[assetId]/route.ts",
+    "src/app/runner/presentation/[sessionId]/page.tsx",
+    "src/app/runner/presentation/[sessionId]/policy/route.ts",
+    "src/app/runner/preview/[runnerId]/assets/[assetId]/route.ts",
+    "src/app/runner/preview/[runnerId]/page.tsx",
+    "src/server/entitlements.ts",
+    "src/server/mcp/creators.ts",
+    "src/server/resources/errors.ts",
+    "src/server/resources/runners.ts",
+    "src/server/resources/workflow.ts",
+    "src/server/runner/admission.ts",
+    "src/server/runner/benefits.ts",
+    "src/server/runner/branding-assets.ts",
+    "src/server/runner/branding-profiles.ts",
+    "src/server/runner/branding.ts",
+    "src/server/runner/capabilities.ts",
+    "src/server/runner/destinations.ts",
+    "src/server/runner/lease.ts",
+    "src/server/runner/presentation.ts",
+    "src/server/runner/schedule-time.ts",
+    "src/server/runner/schedules.ts",
+    "src/server/runner/signing.ts",
+    "src/server/runner/standby-next-broadcast.ts",
+    "src/server/runner/terminal.ts"
+  ],
+  "strictCritical": [
+    "packages/runner/src/protocol.ts",
+    "src/app/api/runner/heartbeat/route.ts",
+    "src/app/api/runner/terminal/route.ts",
+    "src/app/lib/entitlements.ts",
+    "src/server/entitlements.ts",
+    "src/server/mcp/creators.ts",
+    "src/server/resources/errors.ts",
+    "src/server/resources/runners.ts",
+    "src/server/resources/workflow.ts",
+    "src/server/runner/admission.ts",
+    "src/server/runner/benefits.ts",
+    "src/server/runner/branding.ts",
+    "src/server/runner/capabilities.ts",
+    "src/server/runner/destinations.ts",
+    "src/server/runner/lease.ts",
+    "src/server/runner/presentation.ts",
+    "src/server/runner/schedule-time.ts",
+    "src/server/runner/schedules.ts",
+    "src/server/runner/signing.ts",
+    "src/server/runner/terminal.ts",
+    "src/app/api/runner/presentation/route.ts",
+    "src/app/runner/presentation/[sessionId]/page.tsx",
+    "src/app/components/runnerGeneratedPresentation.tsx",
+    "src/server/runner/branding-profiles.ts",
+    "src/app/lib/runnerBrandingLayout.ts",
+    "src/app/runner/preview/[runnerId]/page.tsx",
+    "src/app/runner/presentation/[sessionId]/policy/route.ts",
+    "src/server/runner/branding-assets.ts",
+    "src/server/runner/standby-next-broadcast.ts",
+    "src/app/api/runner/branding-assets/route.ts",
+    "src/app/runner/preview/[runnerId]/assets/[assetId]/route.ts",
+    "src/app/runner/presentation/[sessionId]/assets/[assetId]/route.ts",
+    "src/app/lib/runnerStandby.ts"
+  ],
+  "criticalFloors": {
+    "statements": 95,
+    "functions": 95,
+    "lines": 95,
+    "branches": 90
+  },
+  "ordinaryFloors": {
+    "statements": 90,
+    "functions": 90,
+    "lines": 90,
+    "branches": 85
+  },
+  "legacy": {
+    "ok": true,
+    "errors": [],
+    "summary": {
+      "lines": {
+        "total": 1079,
+        "covered": 1014,
+        "skipped": 0,
+        "pct": 93.97
+      },
+      "functions": {
+        "total": 198,
+        "covered": 175,
+        "skipped": 0,
+        "pct": 88.38
+      },
+      "statements": {
+        "total": 1260,
+        "covered": 1123,
+        "skipped": 0,
+        "pct": 89.12
+      },
+      "branches": {
+        "total": 964,
+        "covered": 754,
+        "skipped": 0,
+        "pct": 78.21
+      }
+    },
+    "runner": {
+      "statements": {
+        "covered": 21,
+        "total": 21,
+        "pct": 100
+      },
+      "functions": {
+        "covered": 9,
+        "total": 9,
+        "pct": 100
+      },
+      "branches": {
+        "covered": 35,
+        "total": 35,
+        "pct": 100
+      },
+      "lines": {
+        "covered": 9,
+        "total": 9,
+        "pct": 100
+      }
+    }
+  }
+}

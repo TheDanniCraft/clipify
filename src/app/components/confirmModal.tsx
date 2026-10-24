@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 type ConfirmModalProps = {
 	isOpen: boolean;
 	isPending?: boolean;
+	isConfirmDisabled?: boolean;
 	onOpenChange: (isOpen: boolean) => void;
 	title?: string;
 	description?: ReactNode;
@@ -20,7 +21,7 @@ type ConfirmModalProps = {
 	onConfirm: () => void | Promise<void>;
 };
 
-export default function ConfirmModal({ isOpen, isPending = false, onOpenChange, keyword, content, confirmVariant = "danger", cancelVariant = "secondary", onConfirm, title = "Confirm Action", description, confirmLabel = "Confirm", cancelLabel = "Cancel" }: ConfirmModalProps) {
+export default function ConfirmModal({ isOpen, isPending = false, isConfirmDisabled = false, onOpenChange, keyword, content, confirmVariant = "danger", cancelVariant = "secondary", onConfirm, title = "Confirm Action", description, confirmLabel = "Confirm", cancelLabel = "Cancel" }: ConfirmModalProps) {
 	const [confirmed, setConfirmed] = useState(false);
 	const requiresKeyword = Boolean(keyword);
 	if (!isOpen) return null;
@@ -59,7 +60,7 @@ export default function ConfirmModal({ isOpen, isPending = false, onOpenChange, 
 							<Button isDisabled={isPending} onPress={() => onOpenChange(false)} variant={cancelVariant}>
 								{cancelLabel}
 							</Button>
-							<Button isPending={isPending} isDisabled={isPending || (requiresKeyword && !confirmed)} onPress={onConfirm} variant={confirmVariant}>
+							<Button isPending={isPending} isDisabled={isPending || isConfirmDisabled || (requiresKeyword && !confirmed)} onPress={onConfirm} variant={confirmVariant}>
 								{effectiveConfirmLabel}
 							</Button>
 						</div>

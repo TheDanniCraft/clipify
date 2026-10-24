@@ -107,7 +107,7 @@ Given("a connected AI app has successful and denied playlist activity", async ({
 	expect(denied.error.code).toBe("CONFLICT");
 });
 When("the creator owner inspects AI app activity in settings", async ({ page }) => {
-	await page.goto(`${origin}/dashboard/settings`);
+	await page.goto(`${origin}/dashboard/settings?tab=connections`);
 	await expect(page.getByRole("heading", { name: "AI app activity", exact: true })).toBeVisible();
 });
 Then("the activity shows safe actor app creator operation time and outcome", async ({ page, mcpWorld }) => {
@@ -296,7 +296,7 @@ When("a different creator inspects AI app activity in settings", async ({ page, 
 	state.foreignOwner = await response.json();
 	await page.context().clearCookies();
 	await page.context().addCookies([state.foreignOwner.cookie]);
-	await page.goto(`${origin}/dashboard/settings`, { waitUntil: "domcontentloaded", timeout: 60000 });
+	await page.goto(`${origin}/dashboard/settings?tab=connections`, { waitUntil: "domcontentloaded", timeout: 60000 });
 });
 Then("the owner's creator and AI app activity are unavailable to that creator", async ({ page, mcpWorld }) => {
 	const state = mcpWorld.input?.browserRevisionState as any;

@@ -16,18 +16,18 @@ describe("current owner entitlement reads stay inside caller transaction", () =>
 		jest.clearAllMocks();
 		process.env.ENTITLEMENTS_HYBRID_ENABLED = "true";
 	});
-	test("billing Pro resolves runner access in the transaction", async () => {
-		const tx = transaction([[], []]);
+	test("billing Pro requires no retired Runner entitlement lookup", async () => {
+		const tx = transaction([]);
 		const result = await (resolveUserEntitlements as any)({ id: "owner", plan: Plan.Pro }, tx);
 		expect(result.effectivePlan).toBe("pro");
-		expect(tx.select).toHaveBeenCalledTimes(2);
+		expect(tx.select).not.toHaveBeenCalled();
 		expect(globalSelect).not.toHaveBeenCalled();
 	});
-	test("Free owner reads grants, agency Pro and runner allocations in the transaction", async () => {
-		const tx = transaction([[], [], [], []]);
+	test("Free owner reads Pro grants and creator seats inside the transaction", async () => {
+		const tx = transaction([[], []]);
 		const result = await (resolveUserEntitlements as any)({ id: "owner", plan: Plan.Free }, tx);
 		expect(result.effectivePlan).toBe("free");
-		expect(tx.select).toHaveBeenCalledTimes(4);
+		expect(tx.select).toHaveBeenCalledTimes(2);
 		expect(globalSelect).not.toHaveBeenCalled();
 	});
 	test("active partner grant is authoritative inside the transaction", async () => {
@@ -67,9 +67,9 @@ describe("current owner entitlement reads stay inside caller transaction", () =>
 		expect(globalSelect).not.toHaveBeenCalled();
 	});
 	test("Free owner entitlement resolution and retained selection use the supplied transaction", async () => {
-		const tx = transaction([[{ id: "owner", plan: Plan.Free }], [], [], [], [], [{ id: "first-resource" }]]);
+		const tx = transaction([[{ id: "owner", plan: Plan.Free }], [], [], [{ id: "first-resource" }]]);
 		expect(await resolveRetainedResourceAccess({ kind: "overlay", ownerId: "owner", resourceId: "first-resource", client: tx as any })).toMatchObject({ effectivePlan: "free", update: true, runtime: true });
-		expect(tx.select).toHaveBeenCalledTimes(6);
+		expect(tx.select).toHaveBeenCalledTimes(4);
 		expect(globalSelect).not.toHaveBeenCalled();
 	});
 });
