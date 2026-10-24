@@ -40,6 +40,7 @@ export default function RuntimeDeploymentReload({ deploymentId }: { deploymentId
 	const checking = useRef(false);
 	const sensitiveEdits = useRef(new Set<HTMLInputElement>());
 	const notifiedDeployment = useRef<string | null>(null);
+	const dismissedDeployment = useRef<string | null>(null);
 	const [promptOpen, setPromptOpen] = useState(false);
 	const [updateId, setUpdateId] = useState<string | null>(null);
 	const [recoveryError, setRecoveryError] = useState<string | null>(null);
@@ -61,6 +62,7 @@ export default function RuntimeDeploymentReload({ deploymentId }: { deploymentId
 					setUpdateId(currentDeploymentId);
 					if (notifiedDeployment.current !== currentDeploymentId) {
 						notifiedDeployment.current = currentDeploymentId;
+						dismissedDeployment.current = null;
 						if (!anotherDialogIsOpen()) setPromptOpen(true);
 					}
 				}
@@ -74,9 +76,9 @@ export default function RuntimeDeploymentReload({ deploymentId }: { deploymentId
 	);
 
 	useEffect(() => {
-		if (!updateId || promptOpen || !anotherDialogIsOpen()) return;
+		if (!updateId || promptOpen || dismissedDeployment.current === updateId || !anotherDialogIsOpen()) return;
 		const observer = new MutationObserver(() => {
-			if (!anotherDialogIsOpen()) setPromptOpen(true);
+			if (!anotherDialogIsOpen() && dismissedDeployment.current !== updateId) setPromptOpen(true);
 		});
 		observer.observe(document.body, { childList: true, subtree: true });
 		return () => observer.disconnect();
@@ -164,7 +166,14 @@ export default function RuntimeDeploymentReload({ deploymentId }: { deploymentId
 	return (
 		<>
 			{updateId && !promptOpen && (
-				<Button variant='secondary' className='fixed bottom-4 left-1/2 z-50 -translate-x-1/2 shadow-lg' onPress={() => setPromptOpen(true)}>
+				<Button
+					variant='secondary'
+					className='fixed bottom-4 left-1/2 z-50 -translate-x-1/2 shadow-lg'
+					onPress={() => {
+						dismissedDeployment.current = null;
+						setPromptOpen(true);
+					}}
+				>
 					<IconRefresh size={18} />
 					Refresh required
 				</Button>
@@ -172,6 +181,7 @@ export default function RuntimeDeploymentReload({ deploymentId }: { deploymentId
 			<Modal.Backdrop
 				isOpen={Boolean(updateId) && promptOpen}
 				onOpenChange={(open) => {
+					if (!open) dismissedDeployment.current = updateId;
 					setPromptOpen(open);
 				}}
 			>

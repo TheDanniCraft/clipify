@@ -123,6 +123,7 @@ test("an overlay draft survives deployment recovery without overwriting a concur
 		await expect(name).toHaveValue("Unsaved recovery overlay");
 		await pool.query("UPDATE overlays SET name='Concurrent saved overlay', configuration_revision=configuration_revision+1 WHERE id=$1", [owner.fixture.overlayId]);
 		await update.getByRole("button", { name: "Close update dialog", exact: true }).click();
+		await expect(update).not.toBeVisible();
 		await expect(name).toHaveValue("Unsaved recovery overlay");
 		await page.getByRole("button", { name: "Toggle Theme", exact: true }).click();
 		await expect(name).toHaveValue("Unsaved recovery overlay");
