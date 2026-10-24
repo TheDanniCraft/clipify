@@ -98,7 +98,8 @@ export const auth = betterAuth({
 			disableImplicitLinking: true,
 			allowDifferentEmails: true,
 			updateUserInfoOnLink: false,
-			allowUnlinkingAll: false,
+			// Email OTP remains available even when every social account is unlinked.
+			allowUnlinkingAll: true,
 		},
 	},
 	databaseHooks: {
@@ -142,6 +143,12 @@ export const auth = betterAuth({
 						const { restoreTwitchAccountAccess } = await import("@/server/notifications/twitch-account-access");
 						await restoreTwitchAccountAccess(account.userId);
 					}
+				},
+			},
+			delete: {
+				after: async (account) => {
+					const { disconnectStreamingConnectionsForAuthAccount } = await import("@/server/runner/provider-connections");
+					await disconnectStreamingConnectionsForAuthAccount({ id: account.id, userId: account.userId });
 				},
 			},
 		},

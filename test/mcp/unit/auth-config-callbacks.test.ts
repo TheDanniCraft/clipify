@@ -22,7 +22,7 @@ jest.mock("better-auth/api", () => ({
 	},
 }));
 jest.mock("better-auth/next-js", () => ({ nextCookies: () => ({ id: "next-cookies" }) }));
-jest.mock("@/server/runner/provider-connections", () => ({ recordStreamingAccount: jest.fn() }));
+jest.mock("@/server/runner/provider-connections", () => ({ recordStreamingAccount: jest.fn(), disconnectStreamingConnectionsForAuthAccount: jest.fn() }));
 jest.mock("better-auth/adapters/drizzle", () => ({ drizzleAdapter: jest.fn(() => ({})) }));
 jest.mock("better-auth/plugins", () => ({ magicLink: (options: unknown) => ({ id: "magic-link", options }), emailOTP: (options: unknown) => ({ id: "email-otp", options }), oAuthProxy: (options: unknown) => ({ id: "oauth-proxy", options }), organization: (options: unknown) => ({ id: "organization", options }) }));
 jest.mock("@better-auth/passkey", () => ({ passkey: (options: unknown) => ({ id: "passkey", options }) }));
@@ -39,7 +39,7 @@ import { restoreTwitchAccountAccess } from "@/server/notifications/twitch-accoun
 import { completeTwitchSignIn, syncCreatorProfile } from "@/server/creator-onboarding";
 jest.mock("@/server/notifications/identity-events", () => ({ queueIdentityEmail: jest.fn() }));
 import { queueIdentityEmail } from "@/server/notifications/identity-events";
-import { recordStreamingAccount } from "@/server/runner/provider-connections";
+import { disconnectStreamingConnectionsForAuthAccount, recordStreamingAccount } from "@/server/runner/provider-connections";
 import { getSessionFromCtx, getOAuthState } from "better-auth/api";
 import { db } from "@/db/client";
 import { sendAuthOtp, sendTeamInvitation } from "@/auth/transactional-mail";
@@ -97,6 +97,13 @@ test("Runner channel linking records the destination without onboarding another 
 	expect(recordStreamingAccount).toHaveBeenCalledWith(account, { provider: "twitch" });
 	expect(completeTwitchSignIn).not.toHaveBeenCalled();
 	expect(restoreTwitchAccountAccess).not.toHaveBeenCalled();
+});
+
+test("account deletion cleans up Runner channel references after the account is deleted", async () => {
+	const account = { id: "runner-account", providerId: "google", userId: "identity", accountId: "channel" };
+	expect(options.databaseHooks.account.delete.before).toBeUndefined();
+	await options.databaseHooks.account.delete.after(account, undefined);
+	expect(disconnectStreamingConnectionsForAuthAccount).toHaveBeenCalledWith({ id: "runner-account", userId: "identity" });
 });
 
 test("auth identity updates synchronize the linked creator through our function", async () => {

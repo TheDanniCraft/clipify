@@ -1,6 +1,6 @@
 import "server-only";
 import { randomBytes, createHash, randomUUID } from "node:crypto";
-import { and, eq, gt, lt, sql } from "drizzle-orm";
+import { and, eq, gt, inArray, lt, sql } from "drizzle-orm";
 import { z } from "zod";
 import { withSerializedProviderCredential } from "@/server/provider-credentials";
 import { db, dbPool, type DatabaseClient, type TransactionClient } from "@/db/client";
@@ -200,6 +200,31 @@ export async function listStreamingConnections(principal: TrustedCreatorPrincipa
 		const rows = await tx.select({ id: connections.id, provider: connections.provider, channelName: connections.channelName }).from(connections).where(eq(connections.ownerId, ownerId));
 		authority.assertAuthorityCurrent();
 		return { success: true as const, connections: rows };
+	});
+}
+
+/** Remove Runner references after Better Auth deletes the OAuth account they depended on. */
+export async function disconnectStreamingConnectionsForAuthAccount(account: { id: string; userId: string }, client: DatabaseClient = db) {
+	return client.transaction(async (tx) => {
+		const rows = await tx
+			.select({ id: connections.id, encryptedTokens: connections.encryptedTokens })
+			.from(connections)
+			.where(inArray(connections.provider, ["twitch", "youtube"]));
+		const connectionIds = rows.flatMap((row) => {
+			try {
+				const reference = linkedAccount.safeParse(JSON.parse(decryptString(row.encryptedTokens) ?? "null"));
+				return reference.success && reference.data.authAccountId === account.id && reference.data.authUserId === account.userId ? [row.id] : [];
+			} catch {
+				return [];
+			}
+		});
+		if (!connectionIds.length) return { disconnected: 0 };
+		await tx
+			.update(destinations)
+			.set({ connectionId: null, providerStreamId: null, configurationRevision: sql`${destinations.configurationRevision} + 1`, credentialRevision: sql`${destinations.credentialRevision} + 1`, updatedAt: new Date() })
+			.where(inArray(destinations.connectionId, connectionIds));
+		await tx.delete(connections).where(inArray(connections.id, connectionIds));
+		return { disconnected: connectionIds.length };
 	});
 }
 

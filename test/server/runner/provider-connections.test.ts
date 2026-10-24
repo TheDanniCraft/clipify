@@ -835,3 +835,35 @@ test("PC-7 disconnect keeps destinations and schedules while removing their chan
 	expect((await fixture.pool.query("SELECT id FROM runner_schedule_events")).rowCount).toBe(1);
 	expect((await fixture.pool.query("SELECT event_id FROM runner_schedule_event_destinations")).rowCount).toBe(1);
 });
+test("Better Auth account removal clears every Runner connection backed by that account", async () => {
+	const { disconnectStreamingConnectionsForAuthAccount } = await import("@/server/runner/provider-connections");
+	const { account: authAccount } = await import("@/db/auth-schema");
+	const authAccountId = randomUUID();
+	await fixture.db.insert(authAccount).values({ id: authAccountId, userId: "auth-user", accountId: "provider-channel", providerId: "twitch" });
+	const connection = (await fixture.pool.query("SELECT id FROM runner_provider_connections LIMIT 1")).rows[0];
+	await fixture.pool.query("UPDATE runner_provider_connections SET encrypted_tokens=$1 WHERE id=$2", [encryptString(JSON.stringify({ authAccountId, authUserId: "auth-user" })), connection.id]);
+	expect(await disconnectStreamingConnectionsForAuthAccount({ id: authAccountId, userId: "auth-user" }, fixture.db)).toEqual({ disconnected: 1 });
+	expect((await fixture.pool.query("SELECT id FROM runner_provider_connections WHERE id=$1", [connection.id])).rowCount).toBe(0);
+	expect((await fixture.pool.query("SELECT connection_id FROM runner_destinations WHERE connection_id IS NOT NULL")).rowCount).toBe(0);
+	expect((await fixture.pool.query("SELECT id FROM runner_schedule_events")).rowCount).toBe(1);
+});
+test("Better Auth account removal ignores unrelated and unreadable Runner connections", async () => {
+	const { disconnectStreamingConnectionsForAuthAccount } = await import("@/server/runner/provider-connections");
+	const connection = (await fixture.pool.query("SELECT id FROM runner_provider_connections LIMIT 1")).rows[0];
+	const linkedId = randomUUID();
+	await fixture.pool.query("UPDATE runner_provider_connections SET encrypted_tokens=$1 WHERE id=$2", [encryptString(JSON.stringify({ authAccountId: linkedId, authUserId: "auth-user" })), connection.id]);
+	expect(await disconnectStreamingConnectionsForAuthAccount({ id: randomUUID(), userId: "auth-user" }, fixture.db)).toEqual({ disconnected: 0 });
+	expect(await disconnectStreamingConnectionsForAuthAccount({ id: linkedId, userId: "another-user" }, fixture.db)).toEqual({ disconnected: 0 });
+	await fixture.pool.query("UPDATE runner_provider_connections SET encrypted_tokens=$1 WHERE id=$2", [encryptString("not-json"), connection.id]);
+	expect(await disconnectStreamingConnectionsForAuthAccount({ id: randomUUID(), userId: "auth-user" }, fixture.db)).toEqual({ disconnected: 0 });
+	expect((await fixture.pool.query("SELECT id FROM runner_provider_connections WHERE id=$1", [connection.id])).rowCount).toBe(1);
+});
+test.each([
+	"not-json",
+	JSON.stringify({ version: 1, destinations: [{ id: randomUUID(), rtmpUrl: "rtmp://example.invalid/live", streamKey: null }] }),
+	JSON.stringify({ version: 1, destinations: [{ id: randomUUID(), name: "Invalid", provider: "custom", rtmpUrl: "javascript:alert(1)", streamKey: null, configurationRevision: 1, credentialRevision: 1 }] }),
+	JSON.stringify({ version: 1, destinations: [{ id: randomUUID(), name: "Invalid", provider: "custom", rtmpUrl: "rtmp://example.invalid/live", streamKey: { secret: true }, configurationRevision: 1, credentialRevision: 1 }] }),
+])("retained destination snapshots fail closed when malformed", async (snapshot) => {
+	const { parseCapturedDestinationsSnapshot } = await import("@/server/runner/destinations");
+	expect(parseCapturedDestinationsSnapshot(snapshot)).toBeNull();
+});

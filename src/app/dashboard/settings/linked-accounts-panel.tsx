@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button, Card, Chip, Spinner } from "@heroui/react";
 import { IconBrandGoogle, IconBrandTwitch, IconLink, IconMail } from "@tabler/icons-react";
 import ConfirmModal from "@components/confirmModal";
 import { authClient } from "@/auth/client";
 import { notify as addToast } from "@lib/toast";
+import { disconnectLinkedAccount } from "@/app/actions/account-security";
 
 type LinkedAccount = { id: string; providerId: string; accountId: string };
 
@@ -16,13 +17,17 @@ function providerName(providerId: string) {
 export default function LinkedAccountsPanel() {
 	const [accounts, setAccounts] = useState<LinkedAccount[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [loadError, setLoadError] = useState(false);
 	const [unlinking, setUnlinking] = useState<LinkedAccount | null>(null);
 	const [pending, setPending] = useState(false);
+	const requestPending = useRef(false);
+	const [reauthProvider, setReauthProvider] = useState<"twitch" | "google" | null>(null);
 
 	async function refresh() {
 		const result = await authClient.listAccounts();
 		if (result.error) throw new Error("ACCOUNTS_NOT_LOADED");
-		setAccounts((result.data ?? []) as LinkedAccount[]);
+		setAccounts(((result.data ?? []) as LinkedAccount[]).filter((account) => account.providerId === "google" || account.providerId === "twitch"));
+		setLoadError(false);
 	}
 
 	useEffect(() => {
@@ -32,9 +37,13 @@ export default function LinkedAccountsPanel() {
 			.then((result) => {
 				if (!active) return;
 				if (result.error) throw new Error("ACCOUNTS_NOT_LOADED");
-				setAccounts((result.data ?? []) as LinkedAccount[]);
+				setAccounts(((result.data ?? []) as LinkedAccount[]).filter((account) => account.providerId === "google" || account.providerId === "twitch"));
 			})
-			.catch(() => active && addToast({ title: "Linked accounts could not be loaded", color: "danger" }))
+			.catch(() => {
+				if (!active) return;
+				setLoadError(true);
+				addToast({ title: "Linked accounts could not be loaded", color: "danger" });
+			})
 			.finally(() => active && setLoading(false));
 		return () => {
 			active = false;
@@ -42,17 +51,38 @@ export default function LinkedAccountsPanel() {
 	}, []);
 
 	async function disconnect() {
-		if (!unlinking) return;
+		if (!unlinking || requestPending.current) return;
+		requestPending.current = true;
 		setPending(true);
-		const result = await authClient.unlinkAccount({ accountId: unlinking.id });
-		setPending(false);
-		if (result.error) {
-			addToast({ title: "Account could not be disconnected", description: accounts.length <= 1 ? "Add another sign-in method before disconnecting your only linked account." : result.error.message, color: "danger" });
-			return;
+		try {
+			const result = await disconnectLinkedAccount(unlinking.id);
+			if (!result.success) {
+				if (result.code === "REAUTHENTICATION_REQUIRED" && result.reauthProvider) setReauthProvider(result.reauthProvider);
+				addToast({ title: result.code === "REAUTHENTICATION_REQUIRED" ? "Sign in again to continue" : "Account could not be disconnected", description: result.error, color: result.code === "REAUTHENTICATION_REQUIRED" ? "warning" : "danger" });
+				return;
+			}
+			const disconnectedProvider = unlinking.providerId;
+			setUnlinking(null);
+			await refresh();
+			addToast({ title: `${providerName(disconnectedProvider)} disconnected`, description: "Its Clipify access and Runner channel connection were removed.", color: "success" });
+		} catch {
+			addToast({ title: "Account could not be disconnected", description: "Please try again.", color: "danger" });
+		} finally {
+			requestPending.current = false;
+			setPending(false);
 		}
-		setUnlinking(null);
-		await refresh();
-		addToast({ title: `${providerName(unlinking.providerId)} disconnected`, color: "success" });
+	}
+
+	async function reauthenticate() {
+		if (!reauthProvider || requestPending.current) return;
+		requestPending.current = true;
+		setPending(true);
+		const result = await authClient.signIn.social({ provider: reauthProvider, callbackURL: "/dashboard/settings?tab=connections", errorCallbackURL: "/dashboard/settings?tab=connections&reauthentication=failed" });
+		if (result.error) {
+			requestPending.current = false;
+			setPending(false);
+			addToast({ title: "Sign-in could not start", description: "Please try again.", color: "danger" });
+		}
 	}
 
 	return (
@@ -67,6 +97,24 @@ export default function LinkedAccountsPanel() {
 						<div className='flex items-center gap-2 p-5 text-sm text-muted'>
 							<Spinner size='sm' /> Loading accounts…
 						</div>
+					) : loadError ? (
+						<div className='flex flex-col items-start gap-3 p-5'>
+							<p className='text-sm text-muted'>Linked accounts could not be loaded.</p>
+							<Button
+								size='sm'
+								variant='secondary'
+								onPress={() => {
+									setLoading(true);
+									void refresh()
+										.catch(() => addToast({ title: "Linked accounts could not be loaded", color: "danger" }))
+										.finally(() => setLoading(false));
+								}}
+							>
+								Try again
+							</Button>
+						</div>
+					) : accounts.length === 0 ? (
+						<p className='p-5 text-sm text-muted'>No Twitch or YouTube accounts are linked.</p>
 					) : (
 						accounts.map((account) => {
 							const Icon = account.providerId === "google" ? IconBrandGoogle : account.providerId === "twitch" ? IconBrandTwitch : account.providerId === "credential" ? IconMail : IconLink;
@@ -93,7 +141,20 @@ export default function LinkedAccountsPanel() {
 					)}
 				</Card.Content>
 			</Card>
-			<ConfirmModal isOpen={unlinking !== null} isPending={pending} onOpenChange={(open) => !open && setUnlinking(null)} title={`Disconnect ${providerName(unlinking?.providerId ?? "account")}?`} confirmLabel='Disconnect' description='You will no longer be able to sign in with this account. Connected streaming channels are managed separately in Runner destinations.' onConfirm={disconnect} />
+			<ConfirmModal
+				isOpen={unlinking !== null}
+				isPending={pending}
+				onOpenChange={(open) => {
+					if (!open) {
+						setUnlinking(null);
+						setReauthProvider(null);
+					}
+				}}
+				title={reauthProvider ? "Sign in again to continue" : `Disconnect ${providerName(unlinking?.providerId ?? "account")}?`}
+				confirmLabel={reauthProvider ? `Continue with ${providerName(reauthProvider)}` : "Disconnect"}
+				description={reauthProvider ? "Clipify needs a recent sign-in before removing an account." : "This removes the sign-in method, revokes its Clipify access, and disconnects Runner destinations using the same channel."}
+				onConfirm={reauthProvider ? reauthenticate : disconnect}
+			/>
 		</>
 	);
 }
