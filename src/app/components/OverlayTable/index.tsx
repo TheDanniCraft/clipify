@@ -1,4 +1,5 @@
 "use client";
+import { useUserTour } from "@components/user-tour/provider";
 import { Dropdown, Table, Checkbox, Button, RadioGroup, Radio, Chip, Separator, Tooltip, Popover, Spinner, Link, Avatar, Skeleton, Tabs, useOverlayState, TextField, InputGroup, Label, cn } from "@heroui/react";
 import { notify as addToast } from "@lib/toast";
 import type { Selection, SortDescriptor } from "@heroui/react";
@@ -38,6 +39,7 @@ function TableEmptyState({ children }: { children: React.ReactNode }) {
 
 export default function OverlayTable({ userId }: { userId: string }) {
 	const router = useRouter();
+	const { report: reportTour } = useUserTour();
 	type LocalOverlay = Overlay & { accessType?: "owner" | "editor" };
 	type LocalPlaylist = { id: string; ownerId: string; name: string; clipCount: number; configurationRevision: number; accessType?: "owner" | "editor" };
 	type LocalGallery = Gallery & { accessType?: "owner" | "editor" };
@@ -118,6 +120,8 @@ export default function OverlayTable({ userId }: { userId: string }) {
 				});
 
 				setOverlays(combinedOverlays);
+				if (combinedOverlays[0]) reportTour({ type: "overlay.ready", ownerId: combinedOverlays[0].ownerId, id: combinedOverlays[0].id });
+				if (combinedPlaylists[0]) reportTour({ type: "playlist.ready", ownerId: combinedPlaylists[0].ownerId, id: combinedPlaylists[0].id });
 				setPlaylists(combinedPlaylists);
 				setGalleries(combinedGalleries);
 				setRunners(combinedRunners);
@@ -127,7 +131,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 		}
 
 		fetchOverlays();
-	}, [userId]);
+	}, [userId, reportTour]);
 
 	useEffect(() => {
 		async function fetchUser() {
@@ -904,6 +908,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 					</div>
 
 					<Button
+						data-tour={activeTab === "overlays" ? "create-overlay" : activeTab === "playlists" ? "create-playlist" : undefined}
 						isPending={isLoading}
 						isDisabled={overlays === undefined}
 						onPress={async () => {
@@ -1006,6 +1011,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 										if (error?.code === "PLAN_LIMIT_REACHED") onUpgradeOpen();
 										return;
 									}
+									reportTour({ type: "overlay.created", ownerId: userId, id: overlay.id });
 									router.push(`/dashboard/overlay/${overlay.id}`);
 								} catch {
 									addToast({ title: "Error", description: "Failed to create overlay. Please try again.", color: "danger" });
@@ -1045,6 +1051,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 										setIsLoading(false);
 										return;
 									}
+									reportTour({ type: "playlist.created", ownerId: userId, id: playlist.id });
 									router.push(`/dashboard/playlist/${playlist.id}`);
 								})
 								.catch(() => {
@@ -1091,7 +1098,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 				)}
 			</div>
 		);
-	}, [activeTab, overlays, playlists, galleries, runners, userId, currentUser, reloadOverlays, isLoading, plausible, onUpgradeOpen, router]);
+	}, [activeTab, overlays, playlists, galleries, runners, userId, currentUser, reloadOverlays, isLoading, plausible, onUpgradeOpen, router, reportTour]);
 
 	const bottomContent = useMemo(() => {
 		return (
@@ -1122,7 +1129,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 							<Label>Overlays</Label>
 							<Tabs.Indicator />
 						</Tabs.Tab>
-						<Tabs.Tab id='playlists' className='flex-none'>
+						<Tabs.Tab data-tour='playlists-tab' id='playlists' className='flex-none'>
 							<Label>Playlists</Label>
 							<Tabs.Indicator />
 						</Tabs.Tab>

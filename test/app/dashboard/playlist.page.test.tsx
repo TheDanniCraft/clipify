@@ -1,3 +1,6 @@
+const reportTour = jest.fn();
+let activeGuideTask: string | null = null;
+jest.mock("@components/user-tour/provider", () => ({ useUserTour: () => ({ report: reportTour, activeTask: activeGuideTask }) }));
 import React from "react";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { parseDate } from "@internationalized/date";
@@ -268,6 +271,14 @@ describe("dashboard playlist page", () => {
 		expect(screen.getByText("Playlist not found")).toBeInTheDocument();
 		expect(getPlaylistClips).not.toHaveBeenCalled();
 	});
+
+	it("accepts an unchanged persisted playlist during a replay without a write", async () => {
+		activeGuideTask = "playlist.name";
+		await openPage();
+		await press("Keep saved playlist");
+		expect(reportTour).toHaveBeenCalledWith(expect.objectContaining({ type: "playlist.saved", id: "playlist-1", named: true }));
+		expect(savePlaylist).not.toHaveBeenCalled();
+	});
 	it("saves a trimmed name and remembers the returned revision", async () => {
 		savePlaylist.mockResolvedValue({ name: "Renamed", configurationRevision: 2 });
 		const input = await openPage();
@@ -277,6 +288,7 @@ describe("dashboard playlist page", () => {
 		expect(input).toHaveValue("Renamed");
 		expect(screen.getByRole("button", { name: "Save Playlist" })).toBeDisabled();
 		expect(notify).toHaveBeenCalledWith({ title: "Playlist saved", color: "success" });
+		expect(reportTour).toHaveBeenCalledWith(expect.objectContaining({ type: "playlist.saved", id: "playlist-1", named: true }));
 	});
 
 	it("restores clip order and name with the original revision and preserves them after a conflict", async () => {
@@ -642,6 +654,7 @@ describe("dashboard playlist page", () => {
 	});
 	beforeEach(() => {
 		jest.clearAllMocks();
+		activeGuideTask = null;
 		navigationGuard.active = false;
 		featureAccess.mockReturnValue({ allowed: true });
 		validateAuth.mockResolvedValue({ id: "editor-1", plan: "pro" });

@@ -1,3 +1,5 @@
+const reportTour = jest.fn();
+jest.mock("@components/user-tour/provider", () => ({ useUserTour: () => ({ report: reportTour, activeTask: null }) }));
 import React from "react";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 const validateAuth = jest.fn();
@@ -307,6 +309,7 @@ test.each([0, 100])("volume %s remains bounded in the saved style patch", async 
 	fireEvent.change(screen.getByRole("slider", { name: "Player Volume" }), { target: { value: String(value) } });
 	fireEvent.click(screen.getByRole("button", { name: "Save Style" }));
 	await waitFor(() => expect(saveOverlay).toHaveBeenCalledWith("overlay-1", expect.objectContaining({ playerVolume: value }), 7));
+	await waitFor(() => expect(reportTour).toHaveBeenCalledWith(expect.objectContaining({ type: "theme.saved", changed: false })));
 });
 test("fade duration saves without changing the player volume", async () => {
 	await ready();
@@ -691,4 +694,11 @@ test.each([
 	expect(await screen.findByText(label)).toBeInTheDocument();
 	expect(screen.getByRole("button", { name: "Upgrade to Pro" })).toBeInTheDocument();
 	expect(screen.getByRole("button", { name: "Save Style" })).toBeDisabled();
+});
+
+test("reports saved appearance only after successful persistence", async () => {
+	await ready();
+	fireEvent.click(screen.getByRole("button", { name: "Reset Theme" }));
+	fireEvent.click(screen.getByRole("button", { name: "Save Style" }));
+	await waitFor(() => expect(reportTour).toHaveBeenCalledWith(expect.objectContaining({ type: "theme.saved", id: "overlay-1", changed: true })));
 });

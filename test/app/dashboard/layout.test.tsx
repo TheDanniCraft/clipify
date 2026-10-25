@@ -1,3 +1,10 @@
+jest.mock("@components/user-tour/provider", () => ({
+	UserTourProvider: ({ children, accountId }: { children: React.ReactNode; accountId: string }) => (
+		<div data-testid='user-tour' data-account={accountId}>
+			{children}
+		</div>
+	),
+}));
 import React from "react";
 import { render, screen } from "@testing-library/react";
 

@@ -3,6 +3,7 @@ import { useDeploymentDraft } from "@lib/deploymentDrafts";
 
 import LocalizedDate from "@components/localizedDate";
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
+import { PreviewTourCheckpoint, useUserTour } from "@components/user-tour/provider";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -72,12 +73,17 @@ const playbackModeHelpText: Record<PlaybackMode, string> = {
 
 export default function OverlaySettings() {
 	const router = useRouter();
+	const { report: reportTour, activeTask } = useUserTour();
 	const { overlayId } = useParams() as { overlayId: string };
 
 	const [overlay, setOverlay] = useState<Overlay | null>(null);
 	const [baseOverlay, setBaseOverlay] = useState<Overlay | null>(null);
 	const [baseUrl, setBaseUrl] = useState<string | null>(null);
 	const [user, setUser] = useState<AuthenticatedUser>();
+	useEffect(() => {
+		if (overlay) reportTour({ type: "overlay.ready", ownerId: overlay.ownerId, id: overlay.id, select: true });
+	}, [overlay, reportTour]);
+
 	const [reward, setReward] = useState<TwitchReward | null>(null);
 	const [ownerPlan, setOwnerPlan] = useState<Plan | null>(null);
 	const [previewClips, setPreviewClips] = useState<TwitchClip[]>([]);
@@ -786,6 +792,7 @@ export default function OverlaySettings() {
 			}
 			setOverlay(saved);
 			setBaseOverlay(saved);
+			reportTour({ type: "overlay.saved", ownerId: saved.ownerId, id: saved.id, named: Boolean(saved.name.trim()), source: true, playlistId: saved.type === OverlayType.Playlist ? saved.playlistId : null });
 			addToast({
 				title: "Overlay settings saved",
 				description: "Your overlay settings have been saved successfully.",
@@ -839,8 +846,8 @@ export default function OverlaySettings() {
 												</Switch.Control>
 											</Switch.Content>
 										</Switch>
-										<div className='flex-1 overflow-hidden'>
-											<CodeSnippet className='w-full max-w-full' symbol='' preClassName='overflow-hidden whitespace-nowrap'>
+										<div data-tour='overlay-url' className='flex-1 overflow-hidden'>
+											<CodeSnippet onCopied={() => reportTour({ type: "overlay.copied", ownerId: overlay.ownerId, id: overlay.id })} className='w-full max-w-full' symbol='' preClassName='overflow-hidden whitespace-nowrap'>
 												{overlayUrl ?? "Missing secret. Refresh this page to generate one."}
 											</CodeSnippet>
 										</div>
@@ -859,9 +866,15 @@ export default function OverlaySettings() {
 											</Button>
 											<Tooltip.Content>{ownerPlan === Plan.Pro ? "Open remote controller" : "Remote controller is a Pro feature"}</Tooltip.Content>
 										</Tooltip>
-										<Button type='submit' isIconOnly isDisabled={!isFormDirty()} aria-label='Save Overlay Settings' variant='primary'>
-											<IconDeviceFloppy />
-										</Button>
+										{!isFormDirty() && (activeTask === "overlay.name" || activeTask === "overlay.source" || activeTask === "playlist.use") ? (
+											<Button data-tour='overlay-save' variant='primary' onPress={() => reportTour({ type: "overlay.saved", ownerId: overlay.ownerId, id: overlay.id, named: Boolean(overlay.name.trim()), source: true, playlistId: overlay.type === OverlayType.Playlist ? overlay.playlistId : null })}>
+												Keep saved settings
+											</Button>
+										) : (
+											<Button data-tour='overlay-save' type='submit' isIconOnly isDisabled={!isFormDirty()} aria-label='Save Overlay Settings' variant='primary'>
+												<IconDeviceFloppy />
+											</Button>
+										)}
 									</div>
 									<div className='flex w-full flex-col gap-2'>
 										<div className='w-full flex justify-center items-center text-xs text-warning p-2 border border-warning rounded bg-warning-soft max-w-full'>
@@ -878,7 +891,7 @@ export default function OverlaySettings() {
 											For OBS/Streamlabs browser sources, use <span className='font-semibold'>1920x1080</span> for best scaling.
 										</p>
 									</div>
-									<TextField fullWidth variant='secondary' isRequired>
+									<TextField data-tour='overlay-name' fullWidth variant='secondary' isRequired>
 										<Label>Overlay Name</Label>
 										<Input
 											className='w-full'
@@ -893,6 +906,7 @@ export default function OverlaySettings() {
 									</TextField>
 									<div className='flex w-full items-end gap-2'>
 										<Select
+											data-tour='overlay-source'
 											fullWidth
 											isRequired
 											variant='secondary'
@@ -928,7 +942,17 @@ export default function OverlaySettings() {
 												</ListBox>
 											</Select.Popover>
 										</Select>
-										<Button isIconOnly variant='secondary' onPress={onCliplistOpen} size='lg'>
+										<Button
+											data-tour='overlay-preview'
+											aria-label='Preview Clips'
+											isIconOnly
+											variant='secondary'
+											onPress={() => {
+												reportTour({ type: "overlay.previewed", ownerId: overlay.ownerId, id: overlay.id, count: filteredPreviewClips.length });
+												onCliplistOpen();
+											}}
+											size='lg'
+										>
 											<span>{filteredPreviewClips.length}</span>
 										</Button>
 									</div>
@@ -1082,6 +1106,7 @@ export default function OverlaySettings() {
 											<div className='px-2 py-2 space-y-2'>
 												<div className='flex w-full items-center gap-2'>
 													<Select
+														data-tour='overlay-playlist'
 														fullWidth
 														variant='secondary'
 														value={overlay.playlistId}
@@ -1339,6 +1364,7 @@ export default function OverlaySettings() {
 					</Card>
 				</DashboardEditorLayout>
 
+				<PreviewTourCheckpoint ownerId={overlay.ownerId} overlayId={overlay.id} count={filteredPreviewClips.length} isOpen={isCliplistOpen} />
 				<ControlledModal isOpen={isCliplistOpen} onOpenChange={onCliplistOpenChange} dialogClassName='flex max-h-[80vh] flex-col overflow-hidden'>
 					<Modal.Header className='flex w-full flex-row items-center justify-between gap-3 pt-10'>
 						<Modal.Heading>Preview Clips</Modal.Heading>

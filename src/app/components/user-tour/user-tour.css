@@ -1,0 +1,64 @@
+.clipify-tour-popover {
+	font-family: inherit;
+	color: var(--color-foreground);
+	background: var(--color-surface);
+	border: 1px solid var(--color-separator);
+	border-radius: 16px;
+	padding: 20px;
+	max-width: min(340px, calc(100vw - 24px));
+}
+.clipify-tour-popover .driver-popover-title {
+	padding-right: 20px;
+	font-size: 16px;
+}
+.clipify-tour-popover .driver-popover-description {
+	font-size: 14px;
+	line-height: 1.6;
+}
+.clipify-tour-popover .driver-popover-next-btn {
+	background: var(--color-accent);
+	color: var(--color-accent-foreground);
+	border: 0;
+	border-radius: 8px;
+	padding: 8px 12px;
+	font-size: 13px;
+}
+.clipify-tour-popover .driver-popover-close-btn {
+	color: var(--color-muted);
+}
+.clipify-tour-popover button:focus-visible {
+	outline: 2px solid var(--color-accent);
+	outline-offset: 3px;
+}
+/* React Aria select options are portalled outside the highlighted field. */
+.driver-active [role="listbox"],
+.driver-active [role="listbox"] *,
+.driver-active .user-tour-launcher,
+.driver-active .user-tour-launcher * {
+	pointer-events: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+	.clipify-tour-popover {
+		animation: none;
+	}
+}
+
+.driver-active-element {
+	outline: 2px solid var(--color-accent);
+	outline-offset: 4px;
+}
+
+/* Portalled controls temporarily own interaction; keep the journey active. */
+.driver-active :is([data-slot="select-popover"], [data-slot="color-picker-popover"], [data-slot="popover-dialog"]),
+.driver-active :is([data-slot="select-popover"], [data-slot="color-picker-popover"], [data-slot="popover-dialog"]) * {
+	pointer-events: auto;
+}
+.driver-active:has([data-slot="select-popover"], [data-slot="color-picker-popover"], [data-slot="popover-dialog"]) .driver-overlay path {
+	pointer-events: none !important;
+}
+.driver-active:has([data-slot="select-popover"], [data-slot="color-picker-popover"], [data-slot="popover-dialog"]) .driver-overlay {
+	opacity: 0 !important;
+}
+.driver-active:has([data-slot="select-popover"], [data-slot="color-picker-popover"], [data-slot="popover-dialog"]) .clipify-tour-popover {
+	visibility: hidden;
+}

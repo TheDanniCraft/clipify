@@ -4,6 +4,7 @@ import { useDeploymentDraft } from "@lib/deploymentDrafts";
 import LocalizedDate from "@components/localizedDate";
 import { buttonVariants } from "@heroui/styles";
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
+import { useUserTour } from "@components/user-tour/provider";
 
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -39,10 +40,15 @@ const normalizeCategorySearch = (value: string) => value.toLowerCase().replace(/
 
 export default function PlaylistPage() {
 	const router = useRouter();
+	const { report: reportTour, activeTask } = useUserTour();
 	const { playlistId } = useParams() as { playlistId: string };
 
 	const [user, setUser] = useState<AuthenticatedUser>();
 	const [playlist, setPlaylist] = useState<{ id: string; ownerId: string; name: string; clipCount: number; configurationRevision: number } | null>(null);
+	useEffect(() => {
+		if (playlist) reportTour({ type: "playlist.ready", ownerId: playlist.ownerId, id: playlist.id, select: true });
+	}, [playlist, reportTour]);
+
 	const [isPlaylistResolved, setIsPlaylistResolved] = useState(false);
 	const [playlistNameDraft, setPlaylistNameDraft] = useState("");
 	const [playlistClips, setPlaylistClips] = useState<TwitchClip[]>([]);
@@ -403,11 +409,11 @@ export default function PlaylistPage() {
 								<IconArrowLeft />
 							</Button>
 							<TextField className='min-w-0 flex-1'>
-								<Input variant='secondary' aria-label='Playlist name' value={playlistNameDraft} onChange={(event) => setPlaylistNameDraft(event.target.value)} placeholder='Playlist name' className='h-8 text-sm' />
+								<Input data-tour='playlist-name' variant='secondary' aria-label='Playlist name' value={playlistNameDraft} onChange={(event) => setPlaylistNameDraft(event.target.value)} placeholder='Playlist name' className='h-8 text-sm' />
 							</TextField>
 						</div>
 						<div className='flex flex-wrap items-center gap-2 pt-1'>
-							<Button variant='primary' className='font-semibold px-4' onPress={handleOpenAddClips}>
+							<Button data-tour='playlist-add' variant='primary' className='font-semibold px-4' onPress={handleOpenAddClips}>
 								{<IconPlus size={18} />}
 								Add Clips
 							</Button>
@@ -424,48 +430,57 @@ export default function PlaylistPage() {
 								{<IconDownload size={16} />}
 								Auto Import
 							</Button>
-							<Button
-								onPress={async () => {
-									if (!playlistId) return;
-									const nextName = playlistNameDraft.trim();
-									if (!nextName) {
-										addToast({ title: "Playlist name is required", color: "danger" });
-										return;
-									}
-
-									try {
-										if (isPlaylistDirty) {
-											const saved = await upsertPlaylistClips(playlistId, playlistClips, "replace", playlist?.configurationRevision, isPlaylistNameDirty ? nextName : undefined);
-											if (!saved) {
-												addToast({ title: "Playlist changed or access was updated. Reload and try again.", color: "danger" });
-												return;
-											}
-											setPlaylistClips(saved.clips);
-											setSavedPlaylistClipIds(saved.clips.map((clip) => clip.id));
-											setPlaylist((prev) => (prev ? { ...prev, name: saved.name, configurationRevision: saved.configurationRevision, clipCount: saved.clips.length } : prev));
-											setPlaylistNameDraft(saved.name);
-										} else if (isPlaylistNameDirty) {
-											const updated = await savePlaylist(playlistId, { name: nextName }, playlist?.configurationRevision);
-											if (!updated) {
-												addToast({ title: "Playlist changed or access was updated. Reload and try again.", color: "danger" });
-												return;
-											}
-											setPlaylist((prev) => (prev ? { ...prev, name: updated.name, configurationRevision: updated.configurationRevision } : prev));
-											setPlaylistNameDraft(updated.name);
+							{!canSavePlaylist && (activeTask === "playlist.name" || activeTask === "playlist.clips") ? (
+								<Button data-tour='playlist-save' variant='primary' onPress={() => reportTour({ type: "playlist.saved", ownerId: playlist.ownerId, id: playlist.id, named: Boolean(playlist.name.trim()), count: savedPlaylistClipIds.length })}>
+									Keep saved playlist
+								</Button>
+							) : (
+								<Button
+									data-tour='playlist-save'
+									onPress={async () => {
+										if (!playlistId) return;
+										const nextName = playlistNameDraft.trim();
+										if (!nextName) {
+											addToast({ title: "Playlist name is required", color: "danger" });
+											return;
 										}
-									} catch {
-										addToast({ title: "Playlist could not be saved. Try again.", color: "danger" });
-										return;
-									}
 
-									addToast({ title: "Playlist saved", color: "success" });
-								}}
-								isDisabled={!canSavePlaylist || !playlistNameDraft.trim()}
-								variant='primary'
-							>
-								{<IconDeviceFloppy size={16} />}
-								Save Playlist
-							</Button>
+										try {
+											if (isPlaylistDirty) {
+												const saved = await upsertPlaylistClips(playlistId, playlistClips, "replace", playlist?.configurationRevision, isPlaylistNameDirty ? nextName : undefined);
+												if (!saved) {
+													addToast({ title: "Playlist changed or access was updated. Reload and try again.", color: "danger" });
+													return;
+												}
+												setPlaylistClips(saved.clips);
+												setSavedPlaylistClipIds(saved.clips.map((clip) => clip.id));
+												setPlaylist((prev) => (prev ? { ...prev, name: saved.name, configurationRevision: saved.configurationRevision, clipCount: saved.clips.length } : prev));
+												setPlaylistNameDraft(saved.name);
+												if (playlist) reportTour({ type: "playlist.saved", ownerId: playlist.ownerId, id: playlistId, named: Boolean(saved.name.trim()), count: saved.clips.length });
+											} else if (isPlaylistNameDirty) {
+												const updated = await savePlaylist(playlistId, { name: nextName }, playlist?.configurationRevision);
+												if (!updated) {
+													addToast({ title: "Playlist changed or access was updated. Reload and try again.", color: "danger" });
+													return;
+												}
+												setPlaylist((prev) => (prev ? { ...prev, name: updated.name, configurationRevision: updated.configurationRevision } : prev));
+												setPlaylistNameDraft(updated.name);
+												if (playlist) reportTour({ type: "playlist.saved", ownerId: playlist.ownerId, id: playlistId, named: Boolean(updated.name.trim()), count: savedPlaylistClipIds.length });
+											}
+										} catch {
+											addToast({ title: "Playlist could not be saved. Try again.", color: "danger" });
+											return;
+										}
+
+										addToast({ title: "Playlist saved", color: "success" });
+									}}
+									isDisabled={!canSavePlaylist || !playlistNameDraft.trim()}
+									variant='primary'
+								>
+									{<IconDeviceFloppy size={16} />}
+									Save Playlist
+								</Button>
+							)}
 						</div>
 					</Card.Header>
 					<Separator />
@@ -512,7 +527,7 @@ export default function PlaylistPage() {
 								Remove selected ({selectedPlaylistClipIds.size})
 							</Button>
 						</div>
-						<ul className='space-y-2'>
+						<ul data-tour='playlist-order' aria-label='Playlist clips' className='space-y-2'>
 							{playlistClips.map((clip) => (
 								<li
 									key={clip.id}

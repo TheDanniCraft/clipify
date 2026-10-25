@@ -1,0 +1,22 @@
+# TDD Test List
+
+- [x] TDD-001: Default catalog contains exactly three journeys with independent task progress.
+- [x] TDD-002: Strict parser rejects invalid JSON, primitive roots, unknown version, invalid step and malformed completed arrays.
+- [x] TDD-003: Allowlist and deduplicate completion IDs; bound resource identifiers; reject unsafe routes.
+- [x] TDD-004: Account-specific storage keys; unavailable reads/writes retain memory state.
+- [x] TDD-005: Owned overlay snapshot selects existing resource without granting saved-action completion.
+- [x] TDD-006: Successful overlay save completes named/source tasks; failed and foreign saves do not.
+- [x] TDD-007: Nonempty preview completes preview; zero clips does not.
+- [x] TDD-008: Successful copy enables explicit setup confirmation; copy alone and failed copy do not complete setup.
+- [x] TDD-009: Successful visible theme save completes customization; unchanged defaults do not.
+- [x] TDD-010: Playlist save requires valid name and nonempty clips; saved order and association are tracked.
+- [x] TDD-011: Start/pause/resume/replay preserves progress and never initiates resource creation.
+- [x] TDD-012: Unknown events and stale/unrelated resource events do not affect active task.
+- [x] TDD-013: Launcher expand/minimize, optional sections, core count and completed label.
+- [x] TDD-014: Keyboard start, Escape pause and focus restoration.
+- [x] TDD-015: Spotlight waits for real target, positions with Driver, permits real interaction and cleans up on unmount.
+- [x] TDD-016: Action-step advancement waits for success; informational Next cannot complete a domain task.
+- [x] TDD-017: Missing target/modal interference/unrelated navigation pauses with recovery.
+- [x] TDD-018: Storage reload restores active task paused, account switching cannot leak state.
+- [x] TDD-019: Analytics include only allowed journey/task identifiers.
+- [x] TDD-020: Existing page integration reports only successful owner-scoped mutations and clipboard outcomes.

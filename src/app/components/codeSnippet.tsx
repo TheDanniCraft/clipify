@@ -10,6 +10,7 @@ type CodeSnippetProps = {
 	size?: "sm" | "md" | "lg";
 	className?: string;
 	preClassName?: string;
+	onCopied?: () => void;
 };
 
 const sizeClasses = {
@@ -18,13 +19,14 @@ const sizeClasses = {
 	lg: "px-4 py-2 text-base",
 };
 
-export default function CodeSnippet({ children, symbol = "$", size = "md", className, preClassName }: CodeSnippetProps) {
+export default function CodeSnippet({ children, symbol = "$", size = "md", className, preClassName, onCopied }: CodeSnippetProps) {
 	const [copied, setCopied] = useState(false);
 
 	const copy = async () => {
 		try {
 			await navigator.clipboard.writeText(children);
 			setCopied(true);
+			onCopied?.();
 			window.setTimeout(() => setCopied(false), 2000);
 		} catch {
 			setCopied(false);

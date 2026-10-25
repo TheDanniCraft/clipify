@@ -1,3 +1,5 @@
+const reportTour = jest.fn();
+jest.mock("@components/user-tour/provider", () => ({ useUserTour: () => ({ report: reportTour, activeTask: null }), PreviewTourCheckpoint: () => null }));
 import React from "react";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 
@@ -487,6 +489,7 @@ describe("dashboard overlay settings playlist mode", () => {
 		});
 		await submit();
 		expect(saveOverlay).toHaveBeenCalledWith("overlay-1", expect.objectContaining({ status: "paused" }), 4);
+		expect(reportTour).toHaveBeenCalledWith(expect.objectContaining({ type: "overlay.saved", id: "overlay-1", named: true, source: true }));
 	});
 	it("navigates to the theme studio and owned playlist editor", async () => {
 		await openPage();
@@ -539,7 +542,7 @@ describe("dashboard overlay settings playlist mode", () => {
 		getOverlay.mockResolvedValue({ ...buildOverlay(), playbackMode: mode });
 		getTwitchClips.mockResolvedValue(clips);
 		await openPage();
-		await press("15");
+		await press("Preview Clips");
 		const items = within(screen.getByRole("dialog")).getAllByRole("listitem");
 		expect(items).toHaveLength(mode === "smart_shuffle" ? 12 : 15);
 		if (mode === "top") expect(items[0]).toHaveTextContent("Clip 14");
@@ -564,7 +567,7 @@ describe("dashboard overlay settings playlist mode", () => {
 		getTwitchClips.mockResolvedValue([clip("filtered", { game_id: "game", ...clipPatch })]);
 		titleBlocked.mockReturnValue(blocked === true);
 		await openPage();
-		await press(String(expected));
+		await press("Preview Clips");
 		const dialog = screen.getByRole("dialog");
 		expect(within(dialog).queryAllByRole("listitem")).toHaveLength(expected);
 	});
@@ -882,11 +885,13 @@ describe("dashboard overlay settings playlist mode", () => {
 	});
 
 	it("reports a rejected overlay save without a success notification", async () => {
+		reportTour.mockClear();
 		saveOverlay.mockRejectedValue(new Error("denied"));
 		await openPage();
 		await submit();
 		expect(jest.requireMock("@lib/toast").notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Could not save overlay", color: "danger" }));
 		expect(jest.requireMock("@lib/toast").notify).not.toHaveBeenCalledWith(expect.objectContaining({ title: "Overlay settings saved" }));
+		expect(reportTour).not.toHaveBeenCalledWith(expect.objectContaining({ type: "overlay.saved" }));
 	});
 
 	it("keeps or discards a dirty draft through the navigation guard", async () => {
@@ -993,7 +998,7 @@ describe("dashboard overlay settings playlist mode", () => {
 		getOverlay.mockResolvedValue({ ...buildOverlay(), playbackMode: "smart_shuffle" });
 		getTwitchClips.mockResolvedValue(Array.from({ length: 14 }, (_, index) => clip(String(index), { view_count: 1, creator_id: "", game_id: index % 2 ? "" : "game", created_at: `2026-09-${String(index + 1).padStart(2, "0")}T00:00:00Z` })));
 		await openPage();
-		await press("14");
+		await press("Preview Clips");
 		const dialog = screen.getByText("Preview Clips").closest("[role='dialog']") as HTMLElement;
 		expect(within(dialog).getAllByRole("listitem")).toHaveLength(12);
 	});
@@ -1017,7 +1022,7 @@ describe("dashboard overlay settings playlist mode", () => {
 		getOverlay.mockResolvedValue({ ...buildOverlay(), type: "All", playlistId: null, categoriesOnly: undefined, categoriesBlocked: undefined, clipCreatorsOnly: undefined, clipCreatorsBlocked: undefined });
 		getTwitchClips.mockResolvedValue([clip("a")]);
 		await openPage();
-		await press("1");
+		await press("Preview Clips");
 		expect(screen.getByText("Clip a")).toBeInTheDocument();
 	});
 
