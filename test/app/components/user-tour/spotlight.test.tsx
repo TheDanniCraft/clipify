@@ -145,3 +145,72 @@ it("keeps a portalled select open without pausing the guide", async () => {
 	});
 	expect(pause).not.toHaveBeenCalled();
 });
+it("keeps an access-locked filter region read-only during a spotlight", () => {
+	render(
+		<>
+			<div data-tour='control' data-tour-readonly='true'>
+				Locked filters
+			</div>
+			<Spotlight step={step} onPause={jest.fn()} onMissing={jest.fn()} onNext={jest.fn()} />
+		</>,
+	);
+	expect(highlight).toHaveBeenCalledWith(expect.objectContaining({ disableActiveInteraction: true }));
+});
+it("hands focus to an expected clip dialog and resumes the same pointer after it closes", async () => {
+	const pause = jest.fn();
+	const pointer = <Spotlight step={{ ...step, allowDialog: true }} onPause={pause} onMissing={jest.fn()} onNext={jest.fn()} />;
+	const view = render(
+		<>
+			<button data-tour='control'>Add clips</button>
+			{pointer}
+		</>,
+	);
+	view.rerender(
+		<>
+			<button data-tour='control'>Add clips</button>
+			<div data-slot='modal-dialog' role='dialog'>
+				Choose clips
+			</div>
+			{pointer}
+		</>,
+	);
+	await act(async () => {
+		await Promise.resolve();
+	});
+	expect(destroy).toHaveBeenCalled();
+	expect(pause).not.toHaveBeenCalled();
+	view.rerender(
+		<>
+			<button data-tour='control'>Add clips</button>
+			{pointer}
+		</>,
+	);
+	await act(async () => {
+		await Promise.resolve();
+	});
+	expect(highlight).toHaveBeenCalledTimes(2);
+});
+it("advances a tab step only when the real tab becomes selected", async () => {
+	const next = jest.fn();
+	const view = render(
+		<>
+			<button role='tab' aria-selected='false' data-tour='control'>
+				Playlists
+			</button>
+			<Spotlight step={{ ...step, action: true }} onPause={jest.fn()} onMissing={jest.fn()} onNext={next} />
+		</>,
+	);
+	expect(next).not.toHaveBeenCalled();
+	view.rerender(
+		<>
+			<button role='tab' aria-selected='true' data-tour='control'>
+				Playlists
+			</button>
+			<Spotlight step={{ ...step, action: true }} onPause={jest.fn()} onMissing={jest.fn()} onNext={next} />
+		</>,
+	);
+	await act(async () => {
+		await Promise.resolve();
+	});
+	expect(next).toHaveBeenCalledTimes(1);
+});

@@ -2,8 +2,8 @@ import { defaultProgress, journeys, parseProgress, routeForTask, storageKey, tra
 
 describe("user tour progress", () => {
 	const apply = (event: GuideEvent, progress = defaultProgress()) => transition(progress, event, "owner");
-	it("offers exactly three journeys and a four-task activation path", () => {
-		expect(journeys.map((journey) => journey.id)).toEqual(["overlay", "appearance", "playlist"]);
+	it("offers five bounded sections and a four-task activation path", () => {
+		expect(journeys.map((journey) => journey.id)).toEqual(["overlay", "appearance", "playlist", "website", "explore"]);
 		expect(journeys[0].tasks).toHaveLength(4);
 		expect(defaultProgress().completed).toEqual([]);
 	});
@@ -71,11 +71,11 @@ describe("user tour progress", () => {
 	});
 	it("finishes the active task only when its actual completion condition occurs", () => {
 		const next = apply({ type: "start", task: "overlay.name" });
-		expect(apply({ type: "overlay.saved", ownerId: "owner", id: "overlay-1", named: true, source: true }, next).active).toBeNull();
+		expect(apply({ type: "overlay.saved", ownerId: "owner", id: "overlay-1", named: true, source: true }, next).active).toMatchObject({ done: true });
 	});
 	it("routes tasks to existing resources and missing prerequisites to the dashboard", () => {
 		const next = { ...defaultProgress(), overlayId: "overlay-1", playlistId: "playlist-1" };
-		expect(routeForTask("appearance.style", next)).toBe("/dashboard/overlay/overlay-1/theme");
+		expect(routeForTask("appearance.style", next)).toBe("/dashboard/overlay/overlay-1");
 		expect(routeForTask("playlist.clips", next)).toBe("/dashboard/playlist/playlist-1");
 		expect(routeForTask("playlist.use", next)).toBe("/dashboard/overlay/overlay-1");
 		expect(routeForTask("overlay.name", defaultProgress())).toBe("/dashboard");

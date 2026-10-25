@@ -59,3 +59,11 @@ Severity High, priority High. BDD-TOUR-US3-020 found Driver overlay intercepting
 BDD-TOUR-US1-007 now waits for the dashboard create control to finish loading before injecting its controlled failed action. BDD-TOUR-US1-016 now waits for the lazy spotlight before pausing. BDD-TOUR-US3-022 uses the real accessible Overlay Type button name, which includes selected value. These were fixture/selector races rather than application defects.
 
 Native select handoff: distinguished React Aria popovers from full modal dialogs, preserved menu pointer/keyboard interaction and paused only full dialogs. Playlist browser timing: await the mounted spotlight before opening its menu and await saved progress after the second mutation. Both final playlist scenarios pass. Audio-only theme saves no longer count as visual customization; existing volume-boundary tests prove the guard.
+
+## UX revision regressions
+
+The prior guide-only Save replacements have been removed by product request; the earlier syntax defect is historical and the current controls compile. Checklist default visibility, direct in-progress resume, separate skip state, next-task handoff and actual style/copy/filter anchors have regression coverage. Access-locked filter spotlight red failed 1/8 adapter tests; the guard now preserves disabled interaction. Revised affected suites pass 17/17 and 443/443 tests.
+
+The first revised browser attempt exposed a test setup race with the delayed privacy banner: 1 passed, 2 failed, 1 interrupted, 28 unrun. The guide correctly yielded. Browser setup now rejects optional services through the installed consent UI and waits for its reload before beginning task actions. No application consent policy was weakened.
+
+The complete revised sweep found welcome-panel overlap on normal editors (three failures), an initial Playlists tab timing race, and an optional-section test helper treating an empty open attribute as closed. The welcome panel now minimizes on inactive editor entry/navigation; task rows preserve direct resume and completed handoffs. The adapter observes actual selected-tab state and restores guidance after expected clip dialogs. Checkbox controls also have an explicit visible border for dark-mode affordance. Final source unit evidence: 17 suites / 448 tests pass.

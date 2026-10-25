@@ -1125,7 +1125,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 			<Tabs selectedKey={activeTab} onSelectionChange={onTabChange} className='mb-4 w-fit max-w-full'>
 				<Tabs.ListContainer className='w-fit max-w-full'>
 					<Tabs.List aria-label='Resource type' className='w-fit max-w-full *:w-fit'>
-						<Tabs.Tab id='overlays' className='flex-none'>
+						<Tabs.Tab data-tour='overlays-tab' id='overlays' className='flex-none'>
 							<Label>Overlays</Label>
 							<Tabs.Indicator />
 						</Tabs.Tab>
@@ -1133,7 +1133,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 							<Label>Playlists</Label>
 							<Tabs.Indicator />
 						</Tabs.Tab>
-						<Tabs.Tab id='galleries' className='flex-none'>
+						<Tabs.Tab data-tour='galleries-tab' id='galleries' className='flex-none'>
 							<Label>Galleries</Label>
 							<Tabs.Indicator />
 						</Tabs.Tab>
@@ -1187,7 +1187,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 				</div>
 			)}
 			{topContent}
-			<Table>
+			<Table data-tour={activeTab === "galleries" ? "gallery-list" : undefined}>
 				<Table.ScrollContainer>
 					<Table.Content
 						aria-label='Management table'

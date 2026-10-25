@@ -1,6 +1,6 @@
 # TDD Test List
 
-- [x] TDD-001: Default catalog contains exactly three journeys with independent task progress.
+- [x] TDD-001: Default catalog contains five bounded sections with independent task progress.
 - [x] TDD-002: Strict parser rejects invalid JSON, primitive roots, unknown version, invalid step and malformed completed arrays.
 - [x] TDD-003: Allowlist and deduplicate completion IDs; bound resource identifiers; reject unsafe routes.
 - [x] TDD-004: Account-specific storage keys; unavailable reads/writes retain memory state.

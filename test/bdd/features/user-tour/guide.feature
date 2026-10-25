@@ -101,7 +101,7 @@ Feature: Clipify guided onboarding
   Scenario: Keep initial scope bounded
     Given an isolated authenticated Clipify guide account
     When the guide sections are inspected
-    Then only the three supported journeys are offered
+    Then the supported journeys are offered
 
   @US2 @FR-004 @SC-004 @BDD-TOUR-US2-018
   Scenario: Save an appearance change
@@ -156,3 +156,38 @@ Feature: Clipify guided onboarding
     Given an isolated authenticated Clipify guide account
     When a Free account selects the optional theme journey
     Then the guide explains Pro availability without starting a paywall
+
+  @US1 @FR-001 @SC-001 @BDD-TOUR-US1-027
+  Scenario: Show the checklist in the corner by default
+    Given an isolated authenticated Clipify guide account
+    Then the checklist is open in the corner with progress and no automatic spotlight
+
+  @US1 @FR-006 @SC-002 @BDD-TOUR-US1-028
+  Scenario: Skip and restore a task with the real checkbox
+    Given an isolated authenticated Clipify guide account
+    When a task is manually skipped and the page reloaded
+    Then it is marked skipped and can be restored
+
+  @US1 @FR-002 @SC-001 @BDD-TOUR-US1-029
+  Scenario: Continue from creation through source and filters
+    Given an isolated authenticated Clipify guide account
+    When the first overlay journey is followed
+    Then the next task guides source and filters without changing Save behavior
+
+  @US4 @FR-012 @SC-004 @BDD-TOUR-US4-030
+  Scenario: Install the public website player
+    Given an isolated authenticated Clipify guide account
+    When the website player guide is followed
+    Then the website guide completes after copying public installation code
+
+  @US4 @FR-012 @SC-004 @BDD-TOUR-US4-031
+  Scenario: Discover galleries through the real tab
+    Given an isolated authenticated Clipify guide account
+    When the gallery introduction is followed
+    Then the gallery introduction is complete
+
+  @US4 @FR-012 @SC-004 @BDD-TOUR-US4-032
+  Scenario: Find tools and support without changing consent
+    Given an isolated authenticated Clipify guide account
+    When the tools and support introductions are followed
+    Then the introductions finish with consent choices unchanged

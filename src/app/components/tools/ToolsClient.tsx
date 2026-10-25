@@ -2,6 +2,7 @@
 
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
 
+import { useUserTour } from "@components/user-tour/provider";
 import { getGalleryPreview } from "@actions/gallery";
 import ClipifyElementPreview from "@components/clipifyElementPreview";
 import CodeSnippet from "@components/codeSnippet";
@@ -14,11 +15,11 @@ import type { Gallery, Overlay } from "@types";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
-function CopyField({ label, value, description }: { label: string; value: string; description?: string }) {
+function CopyField({ label, value, description, onCopied, copyTourTarget }: { label: string; value: string; description?: string; onCopied?: () => void; copyTourTarget?: string }) {
 	return (
 		<div className='flex flex-col gap-1.5'>
 			<Label>{label}</Label>
-			<CodeSnippet symbol='' className='w-full' preClassName='overflow-x-auto whitespace-pre'>
+			<CodeSnippet copyTourTarget={copyTourTarget} onCopied={onCopied} symbol='' className='w-full' preClassName='overflow-x-auto whitespace-pre'>
 				{value}
 			</CodeSnippet>
 			{description ? <p className='text-xs text-muted'>{description}</p> : null}
@@ -63,6 +64,7 @@ function OptionSwitch({ children, isSelected, onChange }: { children: string; is
 
 export default function ToolsClient({ overlays, galleries, initialTool, initialGalleryId, origin }: { overlays: Overlay[]; galleries: Gallery[]; initialTool: "player" | "gallery"; initialGalleryId?: string; origin: string }) {
 	const router = useRouter();
+	const { report } = useUserTour();
 	const [tool, setTool] = useState<"player" | "gallery">(initialTool);
 	const [overlayId, setOverlayId] = useState(overlays[0]?.id ?? "");
 	const [galleryId, setGalleryId] = useState(initialGalleryId && galleries.some((item) => item.id === initialGalleryId) ? initialGalleryId : (galleries[0]?.id ?? ""));
@@ -98,7 +100,7 @@ export default function ToolsClient({ overlays, galleries, initialTool, initialG
 
 	return (
 		<DashboardEditorLayout>
-			<Tabs selectedKey={tool} onSelectionChange={(key) => setTool(key === "gallery" ? "gallery" : "player")} className='w-fit max-w-full'>
+			<Tabs data-tour='tools-tabs' selectedKey={tool} onSelectionChange={(key) => setTool(key === "gallery" ? "gallery" : "player")} className='w-fit max-w-full'>
 				<Tabs.ListContainer className='w-fit max-w-full'>
 					<Tabs.List aria-label='Integration tool' className='w-fit max-w-full *:w-fit'>
 						<Tabs.Tab id='player' className='flex-none'>
@@ -130,7 +132,9 @@ export default function ToolsClient({ overlays, galleries, initialTool, initialG
 					<Card.Content className='flex flex-col gap-5'>
 						{tool === "player" ? (
 							<>
-								<ResourceSelect label='Player' value={overlayId} items={overlays} onChange={setOverlayId} />
+								<div data-tour='tools-player'>
+									<ResourceSelect label='Player' value={overlayId} items={overlays} onChange={setOverlayId} />
+								</div>
 								{overlay ? (
 									<p className='text-sm text-muted'>
 										<span className='font-semibold text-foreground'>{overlay.name}</span>
@@ -154,7 +158,16 @@ export default function ToolsClient({ overlays, galleries, initialTool, initialG
 									</OptionSwitch>
 								</div>
 								<CopyField label='Player URL' value={playerUrl} />
-								<CopyField label='Iframe code' value={playerIframe} />
+								<div data-tour='website-code'>
+									<CopyField
+										label='Iframe code'
+										value={playerIframe}
+										copyTourTarget={overlay ? "website-copy" : undefined}
+										onCopied={() => {
+											if (overlay) report({ type: "website.copied", ownerId: overlay.ownerId, id: overlay.id });
+										}}
+									/>
+								</div>
 								<CopyField label='Clipify Player element' value={playerElement} />
 							</>
 						) : (

@@ -18,3 +18,11 @@ Tests precede their implementation. US2 and US3 depend on the US1 guide infrastr
 - [x] T014 [GATE] Update traceability, defects and summary in specs/005-user-tour/ and prepare draft PR
 
 T013: affected tests, all feature browser examples, lint, formatting, types and builds verified locally; full merge coverage/Test and baseline security remediation remain pending. T014: reports and draft PR description prepared.
+
+## UX revision
+
+- [x] R001 Record revised first-use, corner, skip/resume, normal-control and discovery requirements.
+- [x] R002 Observe six failing state tests, implement step routing, handoffs and separate skips.
+- [x] R003 Replace guide controls with HeroUI checkboxes/buttons/progress; remove application Save replacements.
+- [x] R004 Add website code-copy and optional gallery/tools/support introductions, consent handoff and locked-filter protection.
+- [x] R005 Verify affected tests, all 32 owning browser examples, visuals, lint/format/types/build and record draft review evidence.

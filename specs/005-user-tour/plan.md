@@ -4,7 +4,7 @@
 
 ## Summary
 
-Add a native floating guide panel with three expandable journeys and Driver.js spotlights. Mount an account-keyed client provider in the authenticated dashboard layout. Keep tour state separate from successful domain outcomes. Existing create/save handlers report owned-resource outcomes through a typed context; no tour initiates a mutation itself. Stable data-tour attributes anchor guidance. Persist versioned progress locally with guarded parsing and writes. No schema changes or generated migrations.
+Add a native floating guide panel with five expandable sections and Driver.js spotlights. Mount an account-keyed client provider in the authenticated dashboard layout. Keep tour state separate from successful domain outcomes. Existing create/save handlers report owned-resource outcomes through a typed context; no tour initiates a mutation itself. Stable data-tour attributes anchor guidance. Persist versioned progress locally with guarded parsing and writes. No schema changes or generated migrations.
 
 ## Technical Context
 
@@ -41,3 +41,11 @@ For each slice: add the whole-file test, run without coverage, record intended r
 | Runtime smoke   | browser journeys above                                                                                                                 | Required; real targets/popovers and keyboard/Escape verified                                           |
 
 Block merge for missing or failed gates. Keep runner reports as raw evidence and record commands/status in test-traceability.md; no inferred passes. No threshold exceptions. Overall summary destination: rolling, `reports/test-summary.md`, no release ID. Convergence will update that aggregate; this feature retains its own reports.
+
+## UX revision
+
+Retain the native guide state and lazy Driver adapter. Add validated per-account skipped task IDs and a completed-task handoff; preserve existing persisted completions. First-use checklist visibility is on; spotlights stay opt-in. Use installed HeroUI Button, Checkbox, Chip, Link and ProgressBar. Do not replace domain controls for guide purposes.
+
+Remove discovery-driven routing; actual Add/create and navigation buttons own navigation during tours. Initial task selection can return to the task's starting page. Teach source, filters and saving separately. Existing access gates remain authoritative, including read-only highlighting of locked controls. Website code-copy reports from ToolsClient only after clipboard success. Public website instructions and optional galleries/tools/support introductions extend the catalog to five sections, with 24/7 still excluded. Consent preference events suspend guide UI and pause active tasks. Reserve the bottom-right corner for the progress launcher and move feedback within that same dock.
+
+Validation: nine revision-state cases, provider skip/resume/consent/handoff cases and locked-control adapter coverage, all affected whole-file suites, 32 owning browser scenarios, lint/format/type/build. Full merge coverage/Test and the existing dependency-security requirements remain unchanged.

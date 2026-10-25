@@ -40,7 +40,7 @@ const normalizeCategorySearch = (value: string) => value.toLowerCase().replace(/
 
 export default function PlaylistPage() {
 	const router = useRouter();
-	const { report: reportTour, activeTask } = useUserTour();
+	const { report: reportTour } = useUserTour();
 	const { playlistId } = useParams() as { playlistId: string };
 
 	const [user, setUser] = useState<AuthenticatedUser>();
@@ -430,57 +430,51 @@ export default function PlaylistPage() {
 								{<IconDownload size={16} />}
 								Auto Import
 							</Button>
-							{!canSavePlaylist && (activeTask === "playlist.name" || activeTask === "playlist.clips") ? (
-								<Button data-tour='playlist-save' variant='primary' onPress={() => reportTour({ type: "playlist.saved", ownerId: playlist.ownerId, id: playlist.id, named: Boolean(playlist.name.trim()), count: savedPlaylistClipIds.length })}>
-									Keep saved playlist
-								</Button>
-							) : (
-								<Button
-									data-tour='playlist-save'
-									onPress={async () => {
-										if (!playlistId) return;
-										const nextName = playlistNameDraft.trim();
-										if (!nextName) {
-											addToast({ title: "Playlist name is required", color: "danger" });
-											return;
-										}
+							<Button
+								data-tour='playlist-save'
+								onPress={async () => {
+									if (!playlistId) return;
+									const nextName = playlistNameDraft.trim();
+									if (!nextName) {
+										addToast({ title: "Playlist name is required", color: "danger" });
+										return;
+									}
 
-										try {
-											if (isPlaylistDirty) {
-												const saved = await upsertPlaylistClips(playlistId, playlistClips, "replace", playlist?.configurationRevision, isPlaylistNameDirty ? nextName : undefined);
-												if (!saved) {
-													addToast({ title: "Playlist changed or access was updated. Reload and try again.", color: "danger" });
-													return;
-												}
-												setPlaylistClips(saved.clips);
-												setSavedPlaylistClipIds(saved.clips.map((clip) => clip.id));
-												setPlaylist((prev) => (prev ? { ...prev, name: saved.name, configurationRevision: saved.configurationRevision, clipCount: saved.clips.length } : prev));
-												setPlaylistNameDraft(saved.name);
-												if (playlist) reportTour({ type: "playlist.saved", ownerId: playlist.ownerId, id: playlistId, named: Boolean(saved.name.trim()), count: saved.clips.length });
-											} else if (isPlaylistNameDirty) {
-												const updated = await savePlaylist(playlistId, { name: nextName }, playlist?.configurationRevision);
-												if (!updated) {
-													addToast({ title: "Playlist changed or access was updated. Reload and try again.", color: "danger" });
-													return;
-												}
-												setPlaylist((prev) => (prev ? { ...prev, name: updated.name, configurationRevision: updated.configurationRevision } : prev));
-												setPlaylistNameDraft(updated.name);
-												if (playlist) reportTour({ type: "playlist.saved", ownerId: playlist.ownerId, id: playlistId, named: Boolean(updated.name.trim()), count: savedPlaylistClipIds.length });
+									try {
+										if (isPlaylistDirty) {
+											const saved = await upsertPlaylistClips(playlistId, playlistClips, "replace", playlist?.configurationRevision, isPlaylistNameDirty ? nextName : undefined);
+											if (!saved) {
+												addToast({ title: "Playlist changed or access was updated. Reload and try again.", color: "danger" });
+												return;
 											}
-										} catch {
-											addToast({ title: "Playlist could not be saved. Try again.", color: "danger" });
-											return;
+											setPlaylistClips(saved.clips);
+											setSavedPlaylistClipIds(saved.clips.map((clip) => clip.id));
+											setPlaylist((prev) => (prev ? { ...prev, name: saved.name, configurationRevision: saved.configurationRevision, clipCount: saved.clips.length } : prev));
+											setPlaylistNameDraft(saved.name);
+											if (playlist) reportTour({ type: "playlist.saved", ownerId: playlist.ownerId, id: playlistId, named: Boolean(saved.name.trim()), count: saved.clips.length });
+										} else if (isPlaylistNameDirty) {
+											const updated = await savePlaylist(playlistId, { name: nextName }, playlist?.configurationRevision);
+											if (!updated) {
+												addToast({ title: "Playlist changed or access was updated. Reload and try again.", color: "danger" });
+												return;
+											}
+											setPlaylist((prev) => (prev ? { ...prev, name: updated.name, configurationRevision: updated.configurationRevision } : prev));
+											setPlaylistNameDraft(updated.name);
+											if (playlist) reportTour({ type: "playlist.saved", ownerId: playlist.ownerId, id: playlistId, named: Boolean(updated.name.trim()), count: savedPlaylistClipIds.length });
 										}
+									} catch {
+										addToast({ title: "Playlist could not be saved. Try again.", color: "danger" });
+										return;
+									}
 
-										addToast({ title: "Playlist saved", color: "success" });
-									}}
-									isDisabled={!canSavePlaylist || !playlistNameDraft.trim()}
-									variant='primary'
-								>
-									{<IconDeviceFloppy size={16} />}
-									Save Playlist
-								</Button>
-							)}
+									addToast({ title: "Playlist saved", color: "success" });
+								}}
+								isDisabled={!canSavePlaylist || !playlistNameDraft.trim()}
+								variant='primary'
+							>
+								{<IconDeviceFloppy size={16} />}
+								Save Playlist
+							</Button>
 						</div>
 					</Card.Header>
 					<Separator />

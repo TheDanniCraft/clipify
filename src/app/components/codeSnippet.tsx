@@ -11,6 +11,7 @@ type CodeSnippetProps = {
 	className?: string;
 	preClassName?: string;
 	onCopied?: () => void;
+	copyTourTarget?: string;
 };
 
 const sizeClasses = {
@@ -19,7 +20,7 @@ const sizeClasses = {
 	lg: "px-4 py-2 text-base",
 };
 
-export default function CodeSnippet({ children, symbol = "$", size = "md", className, preClassName, onCopied }: CodeSnippetProps) {
+export default function CodeSnippet({ children, symbol = "$", size = "md", className, preClassName, onCopied, copyTourTarget }: CodeSnippetProps) {
 	const [copied, setCopied] = useState(false);
 
 	const copy = async () => {
@@ -39,7 +40,7 @@ export default function CodeSnippet({ children, symbol = "$", size = "md", class
 				{symbol ? <span className='text-muted'>{symbol} </span> : null}
 				<code>{children}</code>
 			</pre>
-			<Button isIconOnly size='sm' type='button' variant='ghost' className='shrink-0' onPress={copy} aria-label={copied ? "Copied" : "Copy to clipboard"}>
+			<Button data-tour={copyTourTarget} isIconOnly size='sm' type='button' variant='ghost' className='shrink-0' onPress={copy} aria-label={copied ? "Copied" : "Copy to clipboard"}>
 				{copied ? <IconChecks className='size-4' /> : <IconClipboard className='size-4' />}
 			</Button>
 		</div>

@@ -3,8 +3,10 @@
 import { createContext, lazy, Suspense, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { usePlausible } from "next-plausible";
-import { IconCheck, IconChevronDown, IconCompass, IconMinus, IconPlayerPlay } from "@tabler/icons-react";
+import { IconChevronDown, IconMinus } from "@tabler/icons-react";
 import { defaultProgress, tourModalSelector, journeys, parseProgress, routeForTask, stepsForTask, storageKey, transition, type GuideEvent, type GuideProgress, type TaskId } from "@lib/userTour";
+import { Button, Checkbox, Chip, ProgressBar, Link } from "@heroui/react";
+import { CONSENT_PREFERENCES_VISIBILITY_EVENT, type ConsentPreferencesVisibilityDetail } from "@lib/consent/events";
 import "driver.js/dist/driver.css";
 import "./user-tour.css";
 
@@ -29,10 +31,12 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 	const [progress, setProgress] = useState<GuideProgress>(defaultProgress);
 	const [hydrated, setHydrated] = useState(false);
 	const [message, setMessage] = useState("");
-	const [bottom, setBottom] = useState(96);
+	const [bottom, setBottom] = useState(16);
+	const [consentOpen, setConsentOpen] = useState(false);
+	const [consentBanner, setConsentBanner] = useState(false);
+	const [skipTask, setSkipTask] = useState<TaskId | null>(null);
 	const launcher = useRef<HTMLButtonElement>(null);
 	const previousPath = useRef(pathname);
-	const discoveredResource = useRef(false);
 	const seenCompletions = useRef<TaskId[]>([]);
 	const active = progress.active;
 	const activeTask = active?.task ?? null;
@@ -50,7 +54,8 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 					banner = current;
 					if (banner) resize?.observe(banner);
 				}
-				setBottom(banner ? Math.max(96, window.innerHeight - banner.getBoundingClientRect().top + 16) : 96);
+				setConsentBanner(Boolean(banner));
+				setBottom(banner ? Math.max(16, window.innerHeight - banner.getBoundingClientRect().top + 16) : 16);
 			});
 		};
 		const observer = new MutationObserver(measure);
@@ -72,6 +77,7 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 		} catch {
 			/* Keep the guide usable when storage is blocked. */
 		}
+		if (previousPath.current !== "/dashboard" && !loaded.active) loaded.minimized = true;
 		seenCompletions.current = loaded.completed;
 		// Hydrate browser-only preferences before child passive action reports run.
 		// eslint-disable-next-line react-hooks/set-state-in-effect
@@ -81,7 +87,6 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 
 	const report = useCallback(
 		(event: GuideEvent) => {
-			if (["overlay.ready", "overlay.created", "playlist.ready", "playlist.created"].includes(event.type)) discoveredResource.current = true;
 			setProgress((current) => transition(current, event, accountId));
 		},
 		[accountId],
@@ -113,21 +118,17 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 	useEffect(() => {
 		if (previousPath.current === pathname) return;
 		previousPath.current = pathname;
+		if (!active || active.done) {
+			// Navigation hides the welcome panel; active tours retain their handoff state.
+			// eslint-disable-next-line react-hooks/set-state-in-effect
+			report({ type: "panel", minimized: true });
+			return;
+		}
 		if (active && !active.paused && pathname !== routeForTask(active.task, progress)) {
 			// A user leaving a journey keeps their completed work and can resume explicitly.
-			// eslint-disable-next-line react-hooks/set-state-in-effect
 			pause("You left this guide’s page. Resume to return to your saved work.");
 		}
-	}, [pathname, active, progress, pause]);
-
-	useEffect(() => {
-		if (!discoveredResource.current) return;
-		discoveredResource.current = false;
-		if (active && !active.paused && pathname === "/dashboard") {
-			const destination = routeForTask(active.task, progress);
-			if (destination !== pathname) router.push(destination);
-		}
-	}, [active, pathname, progress, router]);
+	}, [pathname, active, progress, pause, report]);
 
 	const start = (task: TaskId) => {
 		if (task === "appearance.style" && !appearanceAvailable) {
@@ -138,10 +139,15 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 		setMessage("");
 		report({ type: "start", task });
 		track("guide_started", { props: { journey: task.split(".")[0], task } });
-		const route = routeForTask(task, progress);
+		const route = routeForTask(task, transition(progress, { type: "start", task }, accountId));
 		if (pathname !== route) router.push(route);
 	};
-	const coreDone = journeys[0].tasks.filter((task) => progress.completed.includes(task.id)).length;
+	const isFinished = (task: TaskId) => progress.completed.includes(task) || progress.skipped.includes(task);
+	const coreDone = journeys[0].tasks.filter((task) => isFinished(task.id)).length;
+	const activeSteps = active ? stepsForTask(active.task, progress) : [];
+	const activeTitle = journeys.map((journey) => journey.tasks.find((task) => task.id === active?.task)?.title).find(Boolean);
+	const journey = journeys.find((journey) => journey.tasks.some((task) => task.id === active?.task));
+	const nextTask = journey?.tasks.find((task) => !isFinished(task.id));
 	const step = active ? stepsForTask(active.task, progress)[active.index] : undefined;
 	const onPause = useCallback(() => {
 		pause();
@@ -152,65 +158,93 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 	const onNext = useCallback(() => {
 		report({ type: "next" });
 	}, [report]);
-	const onConfirm = useCallback(() => report({ type: "setup.confirmed" }), [report]);
+
+	useEffect(() => {
+		const change = (event: Event) => {
+			const visible = (event as CustomEvent<ConsentPreferencesVisibilityDetail>).detail.visible;
+			setConsentOpen(visible);
+			if (visible && active && !active.paused && !active.done) pause("Your guide is paused while you choose your consent settings.");
+		};
+		window.addEventListener(CONSENT_PREFERENCES_VISIBILITY_EVENT, change);
+		return () => window.removeEventListener(CONSENT_PREFERENCES_VISIBILITY_EVENT, change);
+	}, [active, pause]);
+	useEffect(() => {
+		document.body.classList.add("clipify-guide-mounted");
+		document.body.style.setProperty("--clipify-guide-bottom", `${bottom}px`);
+		return () => {
+			document.body.classList.remove("clipify-guide-mounted");
+			document.body.style.removeProperty("--clipify-guide-bottom");
+		};
+	}, [bottom]);
+	const resume = () => {
+		if (!active) return;
+		if (active.task === "appearance.style" && !appearanceAvailable) {
+			setMessage("Theme Studio requires Pro. You can finish your first overlay with the default look.");
+			return;
+		}
+		setMessage("");
+		const route = routeForTask(active.task, progress);
+		if (pathname !== route) router.push(route);
+		report({ type: "resume" });
+	};
+	const progressBar = (value: number, label: string) => (
+		<ProgressBar aria-label={label} value={value} className='w-full' size='sm'>
+			<ProgressBar.Track>
+				<ProgressBar.Fill />
+			</ProgressBar.Track>
+		</ProgressBar>
+	);
 
 	return (
 		<GuideContext.Provider value={{ report, activeTask }}>
 			{children}
-			{hydrated && (
-				<aside aria-label='Clipify guide' style={{ bottom }} className='user-tour-launcher fixed right-5 z-40 max-w-[calc(100vw-2.5rem)]'>
+			{hydrated && !consentOpen && !consentBanner && (
+				<aside aria-label='Clipify guide' style={{ bottom }} className='user-tour-launcher fixed right-4 z-40 max-w-[calc(100vw-2rem)]'>
 					{!progress.minimized && (
-						<section id='clipify-guide-panel' aria-label='Your Clipify guide' style={{ maxHeight: `max(10rem, calc(100dvh - ${bottom + 88}px))` }} className='mb-3 w-80 overflow-y-auto rounded-2xl border border-separator bg-surface p-4 text-foreground shadow-xl'>
-							<div className='mb-1 flex items-center justify-between gap-3'>
+						<section id='clipify-guide-panel' aria-label='Your Clipify guide' style={{ maxHeight: `max(8rem, calc(100dvh - ${bottom + 168}px))` }} className='mb-24 w-80 overflow-y-auto rounded-2xl border border-separator bg-surface p-4 text-foreground shadow-xl'>
+							<div className='flex items-center justify-between gap-3'>
 								<h2 className='text-base font-semibold'>Your Clipify guide</h2>
-								<button type='button' aria-label='Minimize guide' className='rounded-lg p-2 hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-accent' onClick={() => report({ type: "panel", minimized: true })}>
+								<Button isIconOnly size='sm' variant='ghost' aria-label='Minimize guide' onPress={() => report({ type: "panel", minimized: true })}>
 									<IconMinus size={18} />
-								</button>
+								</Button>
 							</div>
-							<p className='mb-4 text-xs text-muted'>Learn by doing. Pick a task for step-by-step help.</p>
+							<p className='mb-4 text-xs text-muted'>Pick a task to learn by doing. Check a box to skip it.</p>
 							{message && (
 								<p role='status' className='mb-3 rounded-lg bg-surface-secondary p-3 text-xs'>
 									{message}
 								</p>
 							)}
-							{active?.paused && (
-								<button
-									type='button'
-									className='mb-3 flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-foreground'
-									onClick={() => {
-										setMessage("");
-										if (active.task === "appearance.style" && !appearanceAvailable) {
-											setMessage("Theme Studio requires Pro. You can finish your first overlay with the default look.");
-											return;
-										}
-										const route = routeForTask(active.task, progress);
-										if (pathname !== route) router.push(route);
-										report({ type: "resume" });
-									}}
-								>
-									<IconPlayerPlay size={16} />
-									Resume guide
-								</button>
+							{active?.done && (
+								<div role='status' className='mb-3 space-y-2 rounded-lg bg-success-soft p-3 text-sm'>
+									<p>{activeTitle} — done.</p>
+									{nextTask ? (
+										<Button size='sm' variant='primary' onPress={() => start(nextTask.id)}>
+											Continue: {nextTask.title}
+										</Button>
+									) : (
+										<p>You’re ready. Explore another guide whenever you like.</p>
+									)}
+								</div>
 							)}
-
-							{active?.paused && (
-								<button
-									type='button'
-									className='mb-3 w-full rounded-lg border border-separator px-3 py-2 text-sm hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-accent'
-									onClick={() => {
+							{active?.paused && !active.done && (
+								<Button
+									size='sm'
+									variant='tertiary'
+									className='mb-3 w-full'
+									onPress={() => {
 										const resource = active.task === "playlist.name" || active.task === "playlist.clips" ? "playlist" : "overlay";
 										report({ type: "resource.reset", resource });
-										setMessage("Open an existing resource from the dashboard or create one, then resume your guide. Your completed tasks are kept.");
+										setMessage("Open another resource, then click the in-progress task to continue. Your completed tasks are kept.");
 										router.push("/dashboard");
 									}}
 								>
-									Choose another {active.task === "playlist.name" || active.task === "playlist.clips" ? "playlist" : "overlay"}
-								</button>
+									Choose another {active.task.startsWith("playlist.") ? "playlist" : "overlay"}
+								</Button>
 							)}
 							{journeys.map((journey) => {
-								const count = journey.tasks.filter((task) => progress.completed.includes(task.id)).length;
+								const count = journey.tasks.filter((task) => isFinished(task.id)).length;
 								return (
-									<details key={journey.id} open={journey.id === "overlay" ? true : undefined} className='border-t border-separator py-3'>
+									<details key={journey.id} open={journey.id === "overlay" || journey.tasks.some((task) => task.id === active?.task) ? true : undefined} className='border-t border-separator py-3'>
 										<summary className='flex cursor-pointer list-none items-center gap-2 rounded text-sm font-medium focus-visible:outline-2 focus-visible:outline-accent'>
 											<IconChevronDown size={14} className='shrink-0' />
 											<span className='flex-1'>{journey.title}</span>
@@ -220,31 +254,92 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 										</summary>
 										{journey.optional && <p className='ml-6 mt-1 text-xs text-muted'>{journey.id === "appearance" ? "Optional · Theme Studio requires Pro" : "Optional · explore when you’re ready"}</p>}
 										<ul className='mt-2 space-y-1'>
-											{journey.tasks.map((task) => (
-												<li key={task.id}>
-													<button type='button' aria-label={task.title} className='flex w-full items-start gap-2 rounded-lg px-2 py-2 text-left text-sm hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-accent' onClick={() => start(task.id)}>
-														<span className='mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border border-separator'>{progress.completed.includes(task.id) && <IconCheck size={12} className='text-success' />}</span>
-														<span className='flex-1'>{task.title}</span>
-														{progress.completed.includes(task.id) && <span className='text-xs text-muted'>Replay</span>}
-													</button>
-												</li>
-											))}
+											{journey.tasks.map((task) => {
+												const current = active?.task === task.id && !active.done;
+												return (
+													<li key={task.id} className='rounded-lg px-1 py-1'>
+														<div className='flex items-start gap-2'>
+															<Checkbox
+																className='mt-0.5 shrink-0'
+																variant='secondary'
+																aria-label={`Mark ${task.title} as done`}
+																isSelected={isFinished(task.id)}
+																onChange={() => {
+																	if (isFinished(task.id)) report({ type: "task.restore", task: task.id });
+																	else {
+																		setSkipTask(task.id);
+																		if (active && !active.paused && !active.done) pause();
+																		report({ type: "panel", minimized: false });
+																	}
+																}}
+															>
+																<Checkbox.Content>
+																	<Checkbox.Control className='border border-muted'>
+																		<Checkbox.Indicator />
+																	</Checkbox.Control>
+																</Checkbox.Content>
+															</Checkbox>
+															<div className='min-w-0 flex-1'>
+																<Button aria-label={task.title} variant='ghost' className='h-auto w-full justify-start whitespace-normal px-1 py-0 text-left text-sm' onPress={() => (current ? resume() : start(task.id))}>
+																	{task.title}
+																</Button>
+																{current ? (
+																	<div className='mt-1 space-y-1'>
+																		<Chip size='sm' variant='soft'>
+																			{active.paused ? "In progress · click to continue" : `Step ${active.index + 1} of ${activeSteps.length}`}
+																		</Chip>
+																		{progressBar((active.index / activeSteps.length) * 100, `${task.title} progress`)}
+																	</div>
+																) : (
+																	isFinished(task.id) && <span className='text-xs text-muted'>{progress.skipped.includes(task.id) ? "Skipped · click to explore" : "Completed · click to replay"}</span>
+																)}
+															</div>
+														</div>
+														{skipTask === task.id && (
+															<div role='group' aria-label='Skip this task?' className='mt-2 rounded-lg bg-surface-secondary p-3 text-xs'>
+																<p>Skip this task? You can uncheck it and return anytime.</p>
+																<div className='mt-2 flex gap-2'>
+																	<Button
+																		size='sm'
+																		variant='primary'
+																		onPress={() => {
+																			report({ type: "task.skip", task: task.id });
+																			setSkipTask(null);
+																		}}
+																	>
+																		Skip task
+																	</Button>
+																	<Button size='sm' variant='tertiary' onPress={() => setSkipTask(null)}>
+																		Cancel
+																	</Button>
+																</div>
+															</div>
+														)}
+													</li>
+												);
+											})}
 										</ul>
 									</details>
 								);
 							})}
-							<p className='mt-2 text-xs text-muted'>Progress is saved in this browser for your account.</p>
+							<div data-tour='guide-support' className='mt-2 rounded-lg bg-surface-secondary p-3 text-xs'>
+								<p>Need a hand? Report a problem at the bottom right, or use support chat at the bottom left. Chat follows your consent settings.</p>
+								<Link href='https://help.clipify.us/' target='_blank' rel='noopener noreferrer' className='mt-2 text-xs'>
+									Open help center
+								</Link>
+							</div>
+							<p className='mt-3 text-xs text-muted'>Progress is saved in this browser for your account.</p>
 						</section>
 					)}
-					<button ref={launcher} type='button' aria-expanded={!progress.minimized} aria-controls='clipify-guide-panel' className='ml-auto flex items-center gap-2 rounded-full border border-separator bg-surface px-4 py-3 text-sm font-semibold text-foreground shadow-lg hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-accent' onClick={() => report({ type: "panel", minimized: !progress.minimized })}>
-						<IconCompass size={18} className='text-accent' />
-						{coreDone === 4 ? "Guides" : `Get started · ${coreDone}/4`}
-					</button>
+					<Button ref={launcher} aria-expanded={!progress.minimized} aria-controls='clipify-guide-panel' variant='secondary' className='ml-auto flex h-auto w-56 max-w-full flex-col items-stretch gap-2 rounded-2xl border border-separator bg-surface px-4 py-3 text-foreground shadow-lg' onPress={() => report({ type: "panel", minimized: !progress.minimized })}>
+						<span className='text-sm font-semibold'>{coreDone === 4 ? "Guides" : `Get started · ${coreDone}/4`}</span>
+						{progressBar(active && !active.done ? (active.index / activeSteps.length) * 100 : (coreDone / 4) * 100, active && !active.done ? "Current task progress" : "Getting started progress")}
+					</Button>
 				</aside>
 			)}
-			{hydrated && active && !active.paused && step && pathname === routeForTask(active.task, progress) && (
+			{hydrated && !consentOpen && !consentBanner && active && !active.paused && !active.done && step && pathname === routeForTask(active.task, progress) && (
 				<Suspense fallback={null}>
-					<Spotlight key={`${active.task}:${active.index}:${step.target}`} step={step} onPause={onPause} onMissing={onMissing} onNext={onNext} onConfirm={active.task === "overlay.setup" && progress.copiedOverlayId === progress.overlayId ? onConfirm : undefined} />
+					<Spotlight key={`${active.task}:${active.index}:${step.target}`} step={step} onPause={onPause} onMissing={onMissing} onNext={onNext} />
 				</Suspense>
 			)}
 		</GuideContext.Provider>

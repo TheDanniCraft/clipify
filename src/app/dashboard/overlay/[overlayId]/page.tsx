@@ -73,7 +73,7 @@ const playbackModeHelpText: Record<PlaybackMode, string> = {
 
 export default function OverlaySettings() {
 	const router = useRouter();
-	const { report: reportTour, activeTask } = useUserTour();
+	const { report: reportTour } = useUserTour();
 	const { overlayId } = useParams() as { overlayId: string };
 
 	const [overlay, setOverlay] = useState<Overlay | null>(null);
@@ -847,7 +847,7 @@ export default function OverlaySettings() {
 											</Switch.Content>
 										</Switch>
 										<div data-tour='overlay-url' className='flex-1 overflow-hidden'>
-											<CodeSnippet onCopied={() => reportTour({ type: "overlay.copied", ownerId: overlay.ownerId, id: overlay.id })} className='w-full max-w-full' symbol='' preClassName='overflow-hidden whitespace-nowrap'>
+											<CodeSnippet copyTourTarget='overlay-copy' onCopied={() => reportTour({ type: "overlay.copied", ownerId: overlay.ownerId, id: overlay.id })} className='w-full max-w-full' symbol='' preClassName='overflow-hidden whitespace-nowrap'>
 												{overlayUrl ?? "Missing secret. Refresh this page to generate one."}
 											</CodeSnippet>
 										</div>
@@ -866,22 +866,16 @@ export default function OverlaySettings() {
 											</Button>
 											<Tooltip.Content>{ownerPlan === Plan.Pro ? "Open remote controller" : "Remote controller is a Pro feature"}</Tooltip.Content>
 										</Tooltip>
-										{!isFormDirty() && (activeTask === "overlay.name" || activeTask === "overlay.source" || activeTask === "playlist.use") ? (
-											<Button data-tour='overlay-save' variant='primary' onPress={() => reportTour({ type: "overlay.saved", ownerId: overlay.ownerId, id: overlay.id, named: Boolean(overlay.name.trim()), source: true, playlistId: overlay.type === OverlayType.Playlist ? overlay.playlistId : null })}>
-												Keep saved settings
-											</Button>
-										) : (
-											<Button data-tour='overlay-save' type='submit' isIconOnly isDisabled={!isFormDirty()} aria-label='Save Overlay Settings' variant='primary'>
-												<IconDeviceFloppy />
-											</Button>
-										)}
+										<Button data-tour='overlay-save' type='submit' isIconOnly isDisabled={!isFormDirty()} aria-label='Save Overlay Settings' variant='primary'>
+											<IconDeviceFloppy />
+										</Button>
 									</div>
 									<div className='flex w-full flex-col gap-2'>
 										<div className='w-full flex justify-center items-center text-xs text-warning p-2 border border-warning rounded bg-warning-soft max-w-full'>
 											<IconAlertTriangle size={16} className='mr-2 flex-shrink-0' />
 											<span className='text-center'>
 												Do not share this URL publicly. For embedding on websites, use the{" "}
-												<Link className='text-xs text-warning underline underline-offset-2' href={`${baseUrl}/dashboard/embed?oid=${overlayId}`}>
+												<Link data-tour='overlay-embed' className='text-xs text-warning underline underline-offset-2' href={`${baseUrl}/dashboard/embed?oid=${overlayId}`}>
 													embed widget tool
 												</Link>
 												.
@@ -969,6 +963,7 @@ export default function OverlaySettings() {
 									)}
 
 									<Separator className='my-4' />
+
 									{ownerPlan === Plan.Free && !ownerHasAdvancedAccess && (
 										<div className='w-full mb-4'>
 											<Alert status='warning'>
@@ -1019,6 +1014,8 @@ export default function OverlaySettings() {
 										</div>
 									)}
 									<div
+										data-tour='overlay-filters'
+										data-tour-readonly={ownerPlan === Plan.Free && !ownerHasAdvancedAccess && !isPlaylistOverlay ? "true" : undefined}
 										className='flex w-full flex-col gap-4'
 										style={{
 											filter: ownerPlan === Plan.Free && !ownerHasAdvancedAccess && !isPlaylistOverlay ? "blur(1.5px)" : "none",
@@ -1352,7 +1349,7 @@ export default function OverlaySettings() {
 										)}
 										<Separator className='my-2' />
 										<div className='px-2 pb-2'>
-											<Button variant='primary' onPress={() => router.push(`/dashboard/overlay/${overlay.id}/theme`)} className='w-full'>
+											<Button data-tour='overlay-customize' variant='primary' onPress={() => router.push(`/dashboard/overlay/${overlay.id}/theme`)} className='w-full'>
 												{<IconPaint size={16} />}
 												Customize Overlay Style
 											</Button>

@@ -272,11 +272,12 @@ describe("dashboard playlist page", () => {
 		expect(getPlaylistClips).not.toHaveBeenCalled();
 	});
 
-	it("accepts an unchanged persisted playlist during a replay without a write", async () => {
+	it("preserves the normal disabled save during a guide replay", async () => {
 		activeGuideTask = "playlist.name";
 		await openPage();
-		await press("Keep saved playlist");
-		expect(reportTour).toHaveBeenCalledWith(expect.objectContaining({ type: "playlist.saved", id: "playlist-1", named: true }));
+		expect(screen.queryByText("Keep saved playlist")).not.toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Save Playlist" })).toBeDisabled();
+		expect(reportTour).not.toHaveBeenCalledWith(expect.objectContaining({ type: "playlist.saved" }));
 		expect(savePlaylist).not.toHaveBeenCalled();
 	});
 	it("saves a trimmed name and remembers the returned revision", async () => {
