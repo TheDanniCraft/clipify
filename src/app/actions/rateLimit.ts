@@ -77,7 +77,22 @@ export async function canResolvePublicClipPlayback(ownerId: string) {
 	const visitorLimit = await tryRateLimit({ key: "public-clip-playback-visitor", points: 30, duration: 60 });
 	if (!visitorLimit.success) return false;
 	const ownerLimit = await tryRateLimit({ key: "public-clip-playback-owner", points: 60, duration: 60, identifier: ownerId });
-	return ownerLimit.success;
+	if (!ownerLimit.success) return false;
+	return (await tryRateLimit({ key: "clip-playback-total-owner", points: 150, duration: 60, identifier: ownerId })).success;
+}
+
+export async function canResolveTrustedClipPlayback(ownerId: string) {
+	const runtimeLimit = await tryRateLimit({ key: "clip-playback-runtime-owner", points: 60, duration: 60, identifier: ownerId });
+	if (!runtimeLimit.success) return false;
+	return (await tryRateLimit({ key: "clip-playback-total-owner", points: 150, duration: 60, identifier: ownerId })).success;
+}
+
+export async function canResolveDemoClipPlayback(ownerId: string) {
+	const visitorLimit = await tryRateLimit({ key: "demo-clip-playback-visitor", points: 10, duration: 60 });
+	if (!visitorLimit.success) return false;
+	const demoLimit = await tryRateLimit({ key: "demo-clip-playback-global", points: 30, duration: 60, identifier: "demo" });
+	if (!demoLimit.success) return false;
+	return (await tryRateLimit({ key: "clip-playback-total-owner", points: 150, duration: 60, identifier: ownerId })).success;
 }
 
 export async function isRatelimitError(error: unknown) {

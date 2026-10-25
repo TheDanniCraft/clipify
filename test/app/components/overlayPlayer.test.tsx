@@ -287,7 +287,7 @@ describe("components/overlayPlayer", () => {
 
 		await screen.findByText("top-clip");
 		expect(getTwitchClipBatch).toHaveBeenCalledWith("overlay-1", undefined, "All", expect.any(Array), 50);
-		expect(resolvePlayableClip).toHaveBeenCalledWith("overlay-1", expect.objectContaining({ id: "top-1" }), undefined);
+		expect(resolvePlayableClip).toHaveBeenCalledWith("overlay-1", expect.objectContaining({ id: "top-1" }), undefined, undefined);
 	});
 
 	it("handles embed click-to-play, pause, and mute controls", async () => {
@@ -396,6 +396,15 @@ describe("components/overlayPlayer", () => {
 		expect(getDemoClip).toHaveBeenCalledWith("demo-first");
 	});
 
+	it("requests demo playback authority for a submitted foreign broadcaster clip", async () => {
+		getTwitchClipBatch.mockResolvedValue([]);
+		getDemoClip.mockResolvedValue(buildClip("foreign-demo", { broadcaster_id: "other-broadcaster", title: "foreign-demo-clip" }));
+		render(<OverlayPlayer overlay={buildOverlay()} isDemoPlayer />);
+		await sendDemoCommand("play", "https://clips.twitch.tv/foreign-demo");
+		await screen.findByText("foreign-demo-clip");
+		expect(getTwitchClipPlaybackUrl).toHaveBeenCalledWith("foreign-demo", "other-broadcaster", { kind: "demo", overlayId: "overlay-1" });
+	});
+
 	it("wires websocket subscription and handles command messages", async () => {
 		getTwitchClipBatch.mockResolvedValue([buildClip("ws-clip")]);
 
@@ -440,8 +449,8 @@ describe("components/overlayPlayer", () => {
 		render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
 
 		await screen.findByText("top-mid");
-		expect(resolvePlayableClip).toHaveBeenCalledWith("overlay-1", expect.objectContaining({ id: "top-high" }), undefined);
-		expect(resolvePlayableClip).toHaveBeenCalledWith("overlay-1", expect.objectContaining({ id: "top-mid" }), undefined);
+		expect(resolvePlayableClip).toHaveBeenCalledWith("overlay-1", expect.objectContaining({ id: "top-high" }), undefined, undefined);
+		expect(resolvePlayableClip).toHaveBeenCalledWith("overlay-1", expect.objectContaining({ id: "top-mid" }), undefined, undefined);
 	});
 
 	it("returns no clip when smart-shuffle cannot resolve any playable candidates", async () => {
@@ -494,8 +503,8 @@ describe("components/overlayPlayer", () => {
 		render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "order", type: "Playlist", playlistId: "playlist-1" })} />);
 
 		await screen.findByText("order-title-2");
-		expect(resolvePlayableClip).toHaveBeenNthCalledWith(1, "overlay-1", expect.objectContaining({ id: "order-1" }), undefined);
-		expect(resolvePlayableClip).toHaveBeenNthCalledWith(2, "overlay-1", expect.objectContaining({ id: "order-2" }), undefined);
+		expect(resolvePlayableClip).toHaveBeenNthCalledWith(1, "overlay-1", expect.objectContaining({ id: "order-1" }), undefined, undefined);
+		expect(resolvePlayableClip).toHaveBeenNthCalledWith(2, "overlay-1", expect.objectContaining({ id: "order-2" }), undefined, undefined);
 	});
 
 	it("retries smart-shuffle candidates until a playable clip is found", async () => {
@@ -517,8 +526,8 @@ describe("components/overlayPlayer", () => {
 			render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "smart_shuffle" })} />);
 			await screen.findByText("smart-title-2");
 			expect(resolvePlayableClip.mock.calls.length).toBeGreaterThanOrEqual(2);
-			expect(resolvePlayableClip).toHaveBeenNthCalledWith(1, "overlay-1", expect.objectContaining({ id: "smart-1" }), undefined);
-			expect(resolvePlayableClip).toHaveBeenNthCalledWith(2, "overlay-1", expect.objectContaining({ id: "smart-2" }), undefined);
+			expect(resolvePlayableClip).toHaveBeenNthCalledWith(1, "overlay-1", expect.objectContaining({ id: "smart-1" }), undefined, undefined);
+			expect(resolvePlayableClip).toHaveBeenNthCalledWith(2, "overlay-1", expect.objectContaining({ id: "smart-2" }), undefined, undefined);
 		} finally {
 			randomSpy.mockRestore();
 		}

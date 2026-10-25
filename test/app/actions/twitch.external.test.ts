@@ -20,6 +20,8 @@ const getBaseUrl = jest.fn();
 const isPreview = jest.fn();
 const validateAuth = jest.fn();
 const canResolvePublicClipPlayback = jest.fn();
+const canResolveTrustedClipPlayback = jest.fn();
+const canResolveDemoClipPlayback = jest.fn();
 const tryRateLimit = jest.fn();
 const getOverlayBySecret = jest.fn();
 const getOverlayPublic = jest.fn();
@@ -28,7 +30,7 @@ const authorizeCreatorOperation = jest.fn();
 
 jest.mock("@/auth/authorize-operation", () => ({ authorizeCreatorOperation: (...args: unknown[]) => authorizeCreatorOperation(...args) }));
 
-jest.mock("@actions/rateLimit", () => ({ canResolvePublicClipPlayback: (...args: unknown[]) => canResolvePublicClipPlayback(...args), tryRateLimit: (...args: unknown[]) => tryRateLimit(...args) }));
+jest.mock("@actions/rateLimit", () => ({ canResolvePublicClipPlayback: (...args: unknown[]) => canResolvePublicClipPlayback(...args), canResolveTrustedClipPlayback: (...args: unknown[]) => canResolveTrustedClipPlayback(...args), canResolveDemoClipPlayback: (...args: unknown[]) => canResolveDemoClipPlayback(...args), tryRateLimit: (...args: unknown[]) => tryRateLimit(...args) }));
 
 jest.mock("@actions/database", () => ({
 	deleteTwitchCacheByPrefix: jest.fn(),
@@ -167,6 +169,8 @@ describe("actions/twitch external API and failure handling", () => {
 		getBaseUrl.mockResolvedValue("https://clipify.us");
 		isPreview.mockResolvedValue(false);
 		canResolvePublicClipPlayback.mockResolvedValue(true);
+		canResolveTrustedClipPlayback.mockResolvedValue(true);
+		canResolveDemoClipPlayback.mockResolvedValue(true);
 		tryRateLimit.mockResolvedValue({ success: true });
 		getOverlayBySecret.mockResolvedValue({ id: "overlay-1", ownerId: "owner-1", status: "active", type: "All", minClipDuration: 0, maxClipDuration: 60, minClipViews: 0, blacklistWords: [] });
 		getOverlayPublic.mockResolvedValue({ id: "overlay-1", ownerId: "owner-1", status: "active", type: "Queue" });
@@ -610,13 +614,50 @@ describe("actions/twitch external API and failure handling", () => {
 	it("does not contact Twitch when a public playback budget rejects the lookup", async () => {
 		const getSpy = jest.spyOn(axios, "get");
 		const postSpy = jest.spyOn(axios, "post");
-		canResolvePublicClipPlayback.mockResolvedValueOnce(false);
+		canResolveTrustedClipPlayback.mockResolvedValueOnce(false);
 		const { getTwitchClipPlaybackUrl } = await loadTwitch();
 
 		await expect(getTwitchClipPlaybackUrl("clip-limited", "owner-1", { kind: "overlay", overlayId: "overlay-1", secret: "secret" })).resolves.toBeUndefined();
-		expect(canResolvePublicClipPlayback).toHaveBeenCalledWith("owner-1");
+		expect(canResolveTrustedClipPlayback).toHaveBeenCalledWith("owner-1");
 		expect(getSpy).not.toHaveBeenCalled();
 		expect(postSpy).not.toHaveBeenCalled();
+	});
+
+	it("keeps a valid live overlay lookup available when public playback is exhausted", async () => {
+		getTwitchCacheByPrefixEntries.mockResolvedValue([{ key: "clip:owner-1:clip-runtime-reserved", value: buildClip("clip-runtime-reserved") }]);
+		getOverlayPublic.mockResolvedValue({ id: "overlay-1", ownerId: "owner-1", status: "active", type: "All", minClipDuration: 0, maxClipDuration: 60, minClipViews: 0, blacklistWords: [] });
+		canResolvePublicClipPlayback.mockResolvedValue(false);
+		jest.spyOn(axios, "get").mockResolvedValue({ status: 200, headers: {}, data: { data: [{ clip_id: "clip-runtime-reserved", landscape_download_url: "https://download.example/live.mp4" }] } } as never);
+		const { getTwitchClipPlaybackUrl } = await loadTwitch();
+		await expect(getTwitchClipPlaybackUrl("clip-runtime-reserved", "owner-1", { kind: "overlay", overlayId: "overlay-1" })).resolves.toBeUndefined();
+		await expect(getTwitchClipPlaybackUrl("clip-runtime-reserved", "owner-1", { kind: "overlay", overlayId: "overlay-1", secret: "secret" })).resolves.toBe("https://download.example/live.mp4");
+		expect(canResolveTrustedClipPlayback).toHaveBeenCalledWith("owner-1");
+	});
+
+	it("resolves a valid foreign broadcaster clip through the configured public demo", async () => {
+		process.env.DEMO_OVERLAY_ID = "overlay-1";
+		jest.spyOn(axios, "post").mockResolvedValue({ data: { access_token: "app-token" } } as never);
+		jest.spyOn(axios, "get").mockImplementation(async (url) => {
+			if (url === "https://api.twitch.tv/helix/clips") return { data: { data: [buildClip("foreign-demo", { broadcaster_id: "foreign-owner" })] } } as never;
+			return { status: 200, headers: {}, data: { data: [{ clip_id: "foreign-demo", landscape_download_url: "https://download.example/demo.mp4" }] } } as never;
+		});
+		const { getTwitchClipPlaybackUrl, resolvePlayableClip } = await loadTwitch();
+		await expect(resolvePlayableClip("overlay-1", buildClip("foreign-demo", { broadcaster_id: "foreign-owner" }) as never, undefined, true)).resolves.toMatchObject({ id: "foreign-demo", broadcaster_id: "foreign-owner" });
+		await expect(getTwitchClipPlaybackUrl("foreign-demo", "foreign-owner", { kind: "demo", overlayId: "overlay-1" })).resolves.toBe("https://download.example/demo.mp4");
+		await expect(getTwitchClipPlaybackUrl("foreign-demo", "foreign-owner", { kind: "demo", overlayId: "overlay-1" })).resolves.toBe("https://download.example/demo.mp4");
+		expect(canResolveDemoClipPlayback).toHaveBeenCalledWith("foreign-owner");
+		expect(canResolveDemoClipPlayback).toHaveBeenCalledTimes(1);
+		expect(canResolvePublicClipPlayback).not.toHaveBeenCalled();
+		delete process.env.DEMO_OVERLAY_ID;
+	});
+
+	it("rejects a forged demo context before a Twitch lookup", async () => {
+		process.env.DEMO_OVERLAY_ID = "overlay-1";
+		const getSpy = jest.spyOn(axios, "get");
+		const { getTwitchClipPlaybackUrl } = await loadTwitch();
+		await expect(getTwitchClipPlaybackUrl("foreign-demo", "foreign-owner", { kind: "demo", overlayId: "other-overlay" })).resolves.toBeUndefined();
+		expect(getSpy).not.toHaveBeenCalled();
+		delete process.env.DEMO_OVERLAY_ID;
 	});
 
 	it("falls back to GraphQL when clip download lookup is rate limited", async () => {

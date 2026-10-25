@@ -15,7 +15,7 @@ import { isTitleBlocked } from "@/app/utils/regexFilter";
 import { dbPool } from "@/db/client";
 import { REWARD_NOT_FOUND } from "@lib/twitchErrors";
 import { validateAuth } from "@actions/auth";
-import { canResolvePublicClipPlayback, tryRateLimit } from "@actions/rateLimit";
+import { canResolveDemoClipPlayback, canResolvePublicClipPlayback, canResolveTrustedClipPlayback, tryRateLimit } from "@actions/rateLimit";
 import { TWITCH_CLIPS_LAUNCH_MS } from "@lib/constants";
 import { operationalCount, operationalDuration } from "@lib/operationalHealth";
 import { authorizeCreatorOperation } from "@/auth/authorize-operation";
@@ -368,10 +368,17 @@ const MAX_CLIP_PLAYBACK_URLS = 1_000;
 const clipPlaybackUrlCache = new Map<string, { url: string; expiresAt: number }>();
 const clipPlaybackUrlRequests = new Map<string, Promise<string | undefined>>();
 
-export type ClipPlaybackContext = { kind: "overlay"; overlayId: string; secret?: string } | { kind: "gallery"; galleryId: string; preview?: boolean } | { kind: "creator"; username: string };
+export type ClipPlaybackContext = { kind: "overlay"; overlayId: string; secret?: string } | { kind: "demo"; overlayId: string } | { kind: "gallery"; galleryId: string; preview?: boolean } | { kind: "creator"; username: string };
 
 async function canPlayClipInContext(clipId: string, broadcasterId: string, context: ClipPlaybackContext | undefined) {
 	if (!clipId || !broadcasterId || !context || typeof context !== "object") return false;
+	if (context.kind === "demo") {
+		if (!process.env.DEMO_OVERLAY_ID || context.overlayId !== process.env.DEMO_OVERLAY_ID) return false;
+		const overlay = await getOverlayPublic(context.overlayId).catch(() => null);
+		if (!overlay || overlay.status === "paused" || ("ownerDisabled" in overlay && overlay.ownerDisabled)) return false;
+		const clip = await getDemoClip(clipId);
+		return clip?.id === clipId && clip.broadcaster_id === broadcasterId;
+	}
 	if (context.kind === "overlay") {
 		if (typeof context.overlayId !== "string") return false;
 		const overlay = context.secret ? await getOverlayBySecret(context.overlayId, context.secret).catch(() => null) : await getOverlayPublic(context.overlayId).catch(() => null);
@@ -429,7 +436,8 @@ export async function getTwitchClipPlaybackUrl(clipId: string, broadcasterId: st
 		operationalCount("clipify.clip_fetch.requests", 1, { outcome: "coalesced" });
 		return pending;
 	}
-	if (!(await canResolvePublicClipPlayback(broadcasterId))) {
+	const allowed = context.kind === "demo" ? await canResolveDemoClipPlayback(broadcasterId) : context.kind === "overlay" && context.secret ? await canResolveTrustedClipPlayback(broadcasterId) : await canResolvePublicClipPlayback(broadcasterId);
+	if (!allowed) {
 		operationalCount("clipify.clip_fetch.requests", 1, { outcome: "not_authorized" });
 		return undefined;
 	}
@@ -613,8 +621,15 @@ async function upsertClipsByOwner(ownerId: string, clips: TwitchClip[], durable 
 	);
 }
 
-export async function resolvePlayableClip(overlayId: string, clip: TwitchClip, overlaySecret?: string): Promise<TwitchClip | null> {
+export async function resolvePlayableClip(overlayId: string, clip: TwitchClip, overlaySecret?: string, demo = false): Promise<TwitchClip | null> {
 	if (!overlayId || !clip || typeof clip.id !== "string" || !clip.id) return null;
+	if (demo) {
+		if (!process.env.DEMO_OVERLAY_ID || overlayId !== process.env.DEMO_OVERLAY_ID) return null;
+		const demoOverlay = await getOverlayPublic(overlayId);
+		if (!demoOverlay || demoOverlay.status === "paused" || ("ownerDisabled" in demoOverlay && demoOverlay.ownerDisabled)) return null;
+		const demoClip = await getDemoClip(clip.id);
+		return demoClip?.id === clip.id && demoClip.broadcaster_id === clip.broadcaster_id ? demoClip : null;
+	}
 	const overlay = overlaySecret ? await getOverlayBySecret(overlayId, overlaySecret) : await getOverlayPublic(overlayId);
 	if (!overlay || overlay.status === "paused" || ("ownerDisabled" in overlay && overlay.ownerDisabled)) return null;
 	const ownerId = overlay.ownerId;

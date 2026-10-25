@@ -149,6 +149,16 @@ describe("actions/rateLimit", () => {
 		expect(consume).toHaveBeenCalledTimes(1);
 	});
 
+	it("keeps a runtime allowance after the public owner allowance is exhausted", async () => {
+		RateLimiterMemory.mockImplementationOnce(() => ({ consume: jest.fn().mockResolvedValue({ remainingPoints: 0 }) }));
+		RateLimiterMemory.mockImplementationOnce(() => ({ consume: jest.fn().mockRejectedValue({ msBeforeNext: 60_000 }) }));
+		RateLimiterMemory.mockImplementationOnce(() => ({ consume: jest.fn().mockResolvedValue({ remainingPoints: 59 }) }));
+		RateLimiterMemory.mockImplementationOnce(() => ({ consume: jest.fn().mockResolvedValue({ remainingPoints: 149 }) }));
+		const { canResolvePublicClipPlayback, canResolveTrustedClipPlayback } = await loadRateLimit();
+		await expect(canResolvePublicClipPlayback("owner-1")).resolves.toBe(false);
+		await expect(canResolveTrustedClipPlayback("owner-1")).resolves.toBe(true);
+	});
+
 	it("detects rate-limit errors by error name", async () => {
 		const { isRatelimitError } = await loadRateLimit();
 		const rateError = new Error("too many");

@@ -644,7 +644,8 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 			const inflight = mediaUrlInFlightRef.current.get(clipId);
 			if (inflight) return inflight;
 
-			const promise = getTwitchClipPlaybackUrl(clipId, broadcasterId, { kind: "overlay", overlayId: overlay.id, secret: overlaySecret })
+			const context = isDemoPlayer ? ({ kind: "demo", overlayId: overlay.id } as const) : ({ kind: "overlay", overlayId: overlay.id, secret: overlaySecret } as const);
+			const promise = getTwitchClipPlaybackUrl(clipId, broadcasterId, context)
 				.then((url) => {
 					if (url) {
 						mediaUrlCacheRef.current.set(clipId, url);
@@ -663,7 +664,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 			mediaUrlInFlightRef.current.set(clipId, promise);
 			return promise;
 		},
-		[overlay.id, overlaySecret],
+		[isDemoPlayer, overlay.id, overlaySecret],
 	);
 
 	const getAvatarCached = useCallback(async (broadcasterId: string) => {
@@ -740,7 +741,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 		async (randomClip: TwitchClip): Promise<VideoClip | null> => {
 			prefetchMetadata(randomClip);
 
-			const mediaUrl = await getMediaUrlCached(randomClip.id, overlay.ownerId);
+			const mediaUrl = await getMediaUrlCached(randomClip.id, isDemoPlayer ? randomClip.broadcaster_id : overlay.ownerId);
 			if (!mediaUrl) return null;
 
 			const baseGame = isDemoPlayer
@@ -879,7 +880,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 		if (playbackMode === "top") {
 			const sorted = [...candidates].sort((a, b) => b.view_count - a.view_count || b.created_at.localeCompare(a.created_at));
 			for (const clip of sorted) {
-				const playable = await resolvePlayableClip(overlay.id, clip, overlaySecret);
+				const playable = await resolvePlayableClip(overlay.id, clip, overlaySecret, isDemoPlayer);
 				if (playable) return { clip: playable };
 			}
 			return null;
@@ -936,7 +937,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 				}
 				const [picked] = remaining.splice(pickedIndex, 1);
 				if (!picked) continue;
-				const playable = await resolvePlayableClip(overlay.id, picked.clip, overlaySecret);
+				const playable = await resolvePlayableClip(overlay.id, picked.clip, overlaySecret, isDemoPlayer);
 				if (playable) return { clip: playable };
 			}
 			return null;
@@ -944,7 +945,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 
 		if (playbackMode === PlaybackMode.Order) {
 			for (const clip of candidates) {
-				const playable = await resolvePlayableClip(overlay.id, clip, overlaySecret);
+				const playable = await resolvePlayableClip(overlay.id, clip, overlaySecret, isDemoPlayer);
 				if (playable) return { clip: playable };
 			}
 			return null;
@@ -952,7 +953,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 
 		const shuffled = [...candidates].sort(() => Math.random() - 0.5);
 		for (const clip of shuffled) {
-			const playable = await resolvePlayableClip(overlay.id, clip, overlaySecret);
+			const playable = await resolvePlayableClip(overlay.id, clip, overlaySecret, isDemoPlayer);
 			if (playable) return { clip: playable };
 		}
 		return null;
