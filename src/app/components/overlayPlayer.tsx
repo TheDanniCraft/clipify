@@ -636,32 +636,35 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 		};
 	}, []);
 
-	const getMediaUrlCached = useCallback(async (clipId: string, broadcasterId: string) => {
-		const cached = mediaUrlCacheRef.current.get(clipId);
-		if (cached) return cached;
+	const getMediaUrlCached = useCallback(
+		async (clipId: string, broadcasterId: string) => {
+			const cached = mediaUrlCacheRef.current.get(clipId);
+			if (cached) return cached;
 
-		const inflight = mediaUrlInFlightRef.current.get(clipId);
-		if (inflight) return inflight;
+			const inflight = mediaUrlInFlightRef.current.get(clipId);
+			if (inflight) return inflight;
 
-		const promise = getTwitchClipPlaybackUrl(clipId, broadcasterId)
-			.then((url) => {
-				if (url) {
-					mediaUrlCacheRef.current.set(clipId, url);
-					trimCache(mediaUrlCacheRef.current);
-				}
-				return url;
-			})
-			.catch(() => {
-				requestDeploymentCheck();
-				return undefined;
-			})
-			.finally(() => {
-				mediaUrlInFlightRef.current.delete(clipId);
-			});
+			const promise = getTwitchClipPlaybackUrl(clipId, broadcasterId, { kind: "overlay", overlayId: overlay.id, secret: overlaySecret })
+				.then((url) => {
+					if (url) {
+						mediaUrlCacheRef.current.set(clipId, url);
+						trimCache(mediaUrlCacheRef.current);
+					}
+					return url;
+				})
+				.catch(() => {
+					requestDeploymentCheck();
+					return undefined;
+				})
+				.finally(() => {
+					mediaUrlInFlightRef.current.delete(clipId);
+				});
 
-		mediaUrlInFlightRef.current.set(clipId, promise);
-		return promise;
-	}, []);
+			mediaUrlInFlightRef.current.set(clipId, promise);
+			return promise;
+		},
+		[overlay.id, overlaySecret],
+	);
 
 	const getAvatarCached = useCallback(async (broadcasterId: string) => {
 		if (avatarCacheRef.current.has(broadcasterId)) {
@@ -1514,9 +1517,9 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 	 */
 	useEffect(() => {
 		async function setupChat() {
-			if (!overlay.ownerId) return;
+			if (!overlaySecret) return;
 			try {
-				await subscribeToChat(overlay.ownerId);
+				await subscribeToChat(overlay.id, overlaySecret);
 			} catch (error) {
 				requestDeploymentCheck();
 				console.error("Error subscribing to EventSub", error);
@@ -1524,7 +1527,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 		}
 
 		if (!isEmbed && !isDemoPlayer) setupChat();
-	}, [isDemoPlayer, isEmbed, overlay.ownerId]);
+	}, [isDemoPlayer, isEmbed, overlay.id, overlaySecret]);
 
 	useEffect(() => {
 		let cancelled = false;

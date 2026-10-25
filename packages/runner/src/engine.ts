@@ -190,7 +190,7 @@ export async function startTCPProxy() {
 			reject(error);
 		};
 		server.once("error", handleListenError);
-		server.listen(RTMP_PROXY_PORT, () => {
+		server.listen(RTMP_PROXY_PORT, "127.0.0.1", () => {
 			server.off("error", handleListenError);
 			console.log(`[TCP Proxy] Listening on port ${RTMP_PROXY_PORT}`);
 			resolve(true);
@@ -525,7 +525,7 @@ export class Engine {
 	private startObsForwarder() {
 		const fullRtmpUrl = this.streamKey ? `${this.rtmpUrl}/${this.streamKey}` : this.rtmpUrl;
 
-		console.log(`[Engine] Spawning FFmpeg to forward local OBS (port 1936) -> ${fullRtmpUrl}...`);
+		console.log(`[Engine] Spawning FFmpeg to forward local OBS (port 1936) -> ${this.rtmpUrl}...`);
 
 		const previewPath = path.join(os.tmpdir(), `clipify-preview-${this.overlayId}.jpg`);
 		// FFmpeg acts as the RTMP server on port 1936. TCP Proxy connects to it.

@@ -1,6 +1,6 @@
 import { Plan } from "@/app/lib/types";
 
-const getOverlayWithEditAccess = jest.fn();
+const getOverlayWithControlAccess = jest.fn();
 const getOverlayOwnerPlanPublic = jest.fn();
 const getClipQueueByOverlayId = jest.fn();
 const getModQueue = jest.fn();
@@ -14,7 +14,7 @@ const handleClip = jest.fn();
 const sendMessage = jest.fn();
 
 jest.mock("@actions/database", () => ({
-	getOverlayWithEditAccess: (...args: unknown[]) => getOverlayWithEditAccess(...args),
+	getOverlayWithControlAccess: (...args: unknown[]) => getOverlayWithControlAccess(...args),
 	getOverlayOwnerPlanPublic: (...args: unknown[]) => getOverlayOwnerPlanPublic(...args),
 	getClipQueueByOverlayId: (...args: unknown[]) => getClipQueueByOverlayId(...args),
 	getModQueue: (...args: unknown[]) => getModQueue(...args),
@@ -37,7 +37,7 @@ jest.mock("@actions/websocket", () => ({
 describe("actions/controller", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
-		getOverlayWithEditAccess.mockResolvedValue({ id: "ov-1", ownerId: "owner-1" });
+		getOverlayWithControlAccess.mockResolvedValue({ id: "ov-1", ownerId: "owner-1" });
 		getOverlayOwnerPlanPublic.mockResolvedValue(Plan.Pro);
 		getClipQueueByOverlayId.mockResolvedValue([]);
 		getModQueue.mockResolvedValue([]);
@@ -47,7 +47,7 @@ describe("actions/controller", () => {
 	});
 
 	it("returns unauthorized when overlay edit access is missing", async () => {
-		getOverlayWithEditAccess.mockResolvedValue(null);
+		getOverlayWithControlAccess.mockResolvedValue(null);
 		const { getControllerQueuesAction } = await import("@/app/actions/controller");
 
 		await expect(getControllerQueuesAction("ov-1")).resolves.toEqual({

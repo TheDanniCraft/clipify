@@ -6,7 +6,9 @@ import { Plan } from "@/app/lib/types";
 
 const getOverlayBySecret = jest.fn();
 const revalidateOverlaySource = jest.fn().mockResolvedValue(true);
+const hasCurrentControllerAccess = jest.fn().mockResolvedValue(true);
 jest.mock("@/server/resources/overlay-source-runtime", () => ({ revalidateOverlaySource: (...args: unknown[]) => revalidateOverlaySource(...args) }));
+jest.mock("@/server/controller-access", () => ({ hasCurrentControllerAccess: (...args: unknown[]) => hasCurrentControllerAccess(...args) }));
 const getOverlayPublic = jest.fn();
 const getOverlayOwnerPlanPublic = jest.fn();
 const addSubscriber = jest.fn();
@@ -69,6 +71,8 @@ describe("actions/websocket", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 		revalidateOverlaySource.mockReset().mockResolvedValue(true);
+		hasCurrentControllerAccess.mockReset().mockResolvedValue(true);
+		jwtVerify.mockReset().mockReturnValue({ overlayId: "ov-1", authUserId: "editor-1", sessionId: "session-1", exp: Math.floor(Date.now() / 1000) + 3600 });
 		ownerSubscribers.clear();
 		overlaySubscribers.clear();
 	});
@@ -107,7 +111,7 @@ describe("actions/websocket", () => {
 	});
 
 	it("subscribes valid controller clients with a signed controller token", async () => {
-		jwtVerify.mockReturnValue({ overlayId: "ov-1", userId: "editor-1" });
+		jwtVerify.mockReturnValue({ overlayId: "ov-1", authUserId: "editor-1", sessionId: "session-1", exp: Math.floor(Date.now() / 1000) + 3600 });
 		getOverlayPublic.mockResolvedValue({ ownerId: "owner-1", id: "ov-1" });
 		getOverlayOwnerPlanPublic.mockResolvedValue(Plan.Pro);
 		const clearTimeoutSpy = jest.spyOn(global, "clearTimeout");
@@ -119,12 +123,24 @@ describe("actions/websocket", () => {
 		expect(jwtVerify).toHaveBeenCalledWith("signed-token", process.env.JWT_SECRET, expect.objectContaining({ issuer: "clipify-controller" }));
 		expect(getOverlayPublic).toHaveBeenCalledWith("ov-1");
 		expect(getOverlayOwnerPlanPublic).toHaveBeenCalledWith("ov-1");
+		expect(hasCurrentControllerAccess).toHaveBeenCalledWith("owner-1", expect.objectContaining({ authUserId: "editor-1", sessionId: "session-1" }));
 		expect(clearTimeoutSpy).toHaveBeenCalledWith(client.subscribeDeadline);
 		expect(client.ownerId).toBe("owner-1");
 		expect(client.overlayId).toBe("ov-1");
 		expect(client.role).toBe("controller");
 		expect(addSubscriber).toHaveBeenCalledWith("owner-1", "ov-1", client);
 		expect(client.send).toHaveBeenCalledWith("subscribed ov-1");
+	});
+
+	it("rejects a controller token after its current access is revoked", async () => {
+		getOverlayPublic.mockResolvedValue({ ownerId: "owner-1", id: "ov-1" });
+		getOverlayOwnerPlanPublic.mockResolvedValue(Plan.Pro);
+		hasCurrentControllerAccess.mockResolvedValue(false);
+		const { handleMessage } = await loadWebsocketActions();
+		const client = createClient();
+		await handleMessage(Buffer.from(JSON.stringify({ type: "subscribe", data: { overlayId: "ov-1", controllerToken: "signed-token", role: "controller" } })), client as never);
+		expect(client.close).toHaveBeenCalledWith(4002);
+		expect(addSubscriber).not.toHaveBeenCalled();
 	});
 
 	it("rejects controller subscriptions with invalid tokens", async () => {
@@ -172,6 +188,17 @@ describe("actions/websocket", () => {
 		expect(ownerAOpen.send).toHaveBeenCalledWith(JSON.stringify({ type: "refresh", data: { full: true } }));
 		expect(ownerBOpen.send).toHaveBeenCalledWith(JSON.stringify({ type: "refresh", data: { full: true } }));
 		expect(ownerAClosed.send).not.toHaveBeenCalled();
+	});
+
+	it("does not deliver outbound updates to a revoked controller", async () => {
+		const { sendMessage } = await loadWebsocketActions();
+		const controller = createClient({ role: "controller", ownerId: "owner-1", overlayId: "ov-1", controllerIdentity: { authUserId: "editor", sessionId: "session-1", expiresAt: Date.now() + 60_000 } });
+		hasCurrentControllerAccess.mockResolvedValue(false);
+		overlaySubscribers.set("ov-1", new Set([controller]));
+
+		await sendMessage("overlay_state", { clipId: "clip" }, undefined, "ov-1");
+		expect(controller.close).toHaveBeenCalledWith(4002);
+		expect(controller.send).not.toHaveBeenCalled();
 	});
 });
 
@@ -241,7 +268,8 @@ describe("WebSocket message and broadcast boundaries", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 		revalidateOverlaySource.mockReset().mockResolvedValue(true);
-		jwtVerify.mockReset().mockReturnValue({ overlayId: "ov-1", userId: "editor" });
+		hasCurrentControllerAccess.mockReset().mockResolvedValue(true);
+		jwtVerify.mockReset().mockReturnValue({ overlayId: "ov-1", authUserId: "editor", sessionId: "session-1", exp: Math.floor(Date.now() / 1000) + 3600 });
 		getOverlayPublic.mockReset().mockResolvedValue({ id: "ov-1", ownerId: "owner" });
 		getOverlayOwnerPlanPublic.mockReset().mockResolvedValue(Plan.Pro);
 		overlaySubscribers.clear();
@@ -287,7 +315,7 @@ describe("WebSocket message and broadcast boundaries", () => {
 	});
 	it("controller commands cannot redirect to a different overlay", async () => {
 		const { handleMessage } = await loadWebsocketActions();
-		const controller = createClient({ role: "controller", ownerId: "owner", overlayId: "ov-1" });
+		const controller = createClient({ role: "controller", ownerId: "owner", overlayId: "ov-1", controllerIdentity: { authUserId: "editor-1", sessionId: "session-1", expiresAt: Date.now() + 60000 } });
 		const own = createClient(),
 			foreign = createClient();
 		overlaySubscribers.set("ov-1", new Set([own]));
@@ -345,14 +373,14 @@ describe("WebSocket message and broadcast boundaries", () => {
 
 	it.each([undefined, { name: 42 }, { name: "" }])("invalid controller command %j is rejected without delivery", async (data) => {
 		const { handleMessage } = await loadWebsocketActions();
-		const client = createClient({ ownerId: "owner", overlayId: "ov-1", role: "controller" });
+		const client = createClient({ ownerId: "owner", overlayId: "ov-1", role: "controller", controllerIdentity: { authUserId: "editor-1", sessionId: "session-1", expiresAt: Date.now() + 60000 } });
 		await handleMessage(Buffer.from(JSON.stringify({ type: "command", data })), client as never);
 		expect(client.close).toHaveBeenCalledWith(4003);
 	});
 
 	it("an explicitly bound controller target preserves its command data", async () => {
 		const { handleMessage } = await loadWebsocketActions();
-		const client = createClient({ ownerId: "owner", overlayId: "ov-1", role: "controller" });
+		const client = createClient({ ownerId: "owner", overlayId: "ov-1", role: "controller", controllerIdentity: { authUserId: "editor-1", sessionId: "session-1", expiresAt: Date.now() + 60000 } });
 		const receiver = createClient();
 		overlaySubscribers.set("ov-1", new Set([receiver]));
 		await handleMessage(Buffer.from(JSON.stringify({ type: "command", data: { name: "volume", overlayId: "ov-1", data: { volume: 30 } } })), client as never);

@@ -48,10 +48,10 @@ jest.mock("drizzle-orm", () => ({
 }));
 
 const getAuthSession = jest.fn();
-const validateAuth = jest.fn();
+const validateAdminAuth = jest.fn();
 const sendPersistedInvitationEmail = jest.fn();
 jest.mock("@/auth/session", () => ({ getAuthSession: (...args: unknown[]) => getAuthSession(...args) }));
-jest.mock("@actions/auth", () => ({ validateAuth: (...args: unknown[]) => validateAuth(...args) }));
+jest.mock("@actions/auth", () => ({ validateAdminAuth: (...args: unknown[]) => validateAdminAuth(...args) }));
 jest.mock("@/auth/invitations", () => ({ sendPersistedInvitationEmail: (...args: unknown[]) => sendPersistedInvitationEmail(...args) }));
 
 import { acceptDatabaseAgencyLink, activateCurrentInvitedAgency, activateDatabaseAgencyOwner, allocateDatabaseAgencyLicense, endDueDatabaseAgencyAllocations, listDatabaseAdminAgencies, listDatabaseAgencyOverview, listDatabaseCreatorAgencyLinks, proposeDatabaseAgencyLink, provisionDatabaseAgency, reduceDatabaseAgencyLinkCeiling, resolveDatabaseAgencyPermissions, revokeDatabaseAgencyLink, scheduleDatabaseAgencyLicenseRemoval } from "@/server/agencies/database";
@@ -82,7 +82,7 @@ describe("TDD-US4-004 agency database adapter", () => {
 		state.inserts.length = 0;
 		state.executes.length = 0;
 		getAuthSession.mockResolvedValue(ownerSession);
-		validateAuth.mockResolvedValue({ id: "admin-creator" });
+		validateAdminAuth.mockResolvedValue({ id: "admin-creator" });
 		sendPersistedInvitationEmail.mockResolvedValue(undefined);
 	});
 
@@ -127,7 +127,7 @@ describe("TDD-US4-004 agency database adapter", () => {
 		{ admin: { id: "admin" }, identity: [], input: { name: "Agency", ownerEmail: "owner@example.test", creatorSeatLimit: 1 }, error: "ADMIN_IDENTITY_REQUIRED" },
 		{ admin: { id: "admin" }, identity: [{ authUserId: "auth-admin" }], input: { name: " ", ownerEmail: "invalid", creatorSeatLimit: -1 }, error: "INVALID_AGENCY_PROVISIONING_INPUT" },
 	])("rejects invalid provisioning with $error", async ({ admin, identity, input, error }) => {
-		validateAuth.mockResolvedValueOnce(admin);
+		validateAdminAuth.mockResolvedValueOnce(admin);
 		if (identity) state.selects.push(identity);
 		await expect(provisionDatabaseAgency({ ...input, now })).rejects.toThrow(error);
 	});
@@ -303,7 +303,7 @@ describe("TDD-US4-004 agency database adapter", () => {
 		state.selects.push([{ organizationId: "creator-org-1" }], [{ link: { id: "link-1" }, agencyName: "Agency" }]);
 		await expect(listDatabaseCreatorAgencyLinks()).resolves.toHaveLength(1);
 
-		validateAuth.mockResolvedValueOnce(null);
+		validateAdminAuth.mockResolvedValueOnce(null);
 		await expect(listDatabaseAdminAgencies()).rejects.toThrow("ADMIN_REQUIRED");
 		state.selects.push([{ account: agency, name: "Agency", slug: "agency" }]);
 		await expect(listDatabaseAdminAgencies()).resolves.toHaveLength(1);

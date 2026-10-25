@@ -5,7 +5,7 @@ import axios from "axios";
 import { crawlRecentClips, type RecentCrawlState } from "@/server/clip-crawler/recent";
 import type { ClipCrawlOptions, ClipCrawlResult } from "@/server/clip-crawler/types";
 import { AuthenticatedUser, Game, Overlay, OverlayType, PlaybackMode, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchCacheType, TwitchClip, TwitchClipDownloadResponse, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipResponse, TwitchClipVideoQuality, TwitchReward, TwitchRewardResponse, TwitchUserResponse } from "@types";
-import { getAccessToken, getAccessTokenServer, getOverlayBySecret, getOverlayPublic, getPlaylistRuntimeClipsForOwnerServer, getTwitchCache, getTwitchCacheBatch, getTwitchCacheByPrefixEntries, getTwitchCacheEntry, getTwitchCacheStale, getTwitchCacheStaleBatch, setTwitchCache, setTwitchCacheBatch } from "@actions/database";
+import { getAccessToken, getAccessTokenServer, getClipQueueByOverlayId, getModQueueByBroadcasterId, getOverlayBySecret, getOverlayPublic, getPlaylistRuntimeClipsForOwnerServer, getTwitchCache, getTwitchCacheBatch, getTwitchCacheByPrefixEntries, getTwitchCacheEntry, getTwitchCacheStale, getTwitchCacheStaleBatch, setTwitchCache, setTwitchCacheBatch } from "@actions/database";
 import { type TwitchRateLimitLog, incrementClipFetchFallback, incrementClipFetchFallbackReason, incrementClipFetchRateLimited, incrementClipFetchV1, incrementClipFetchV2, recordTwitchRateLimit } from "@lib/instanceHealth";
 import { promises as fs } from "fs";
 import path from "path";
@@ -15,6 +15,7 @@ import { isTitleBlocked } from "@/app/utils/regexFilter";
 import { dbPool } from "@/db/client";
 import { REWARD_NOT_FOUND } from "@lib/twitchErrors";
 import { validateAuth } from "@actions/auth";
+import { canResolvePublicClipPlayback, tryRateLimit } from "@actions/rateLimit";
 import { TWITCH_CLIPS_LAUNCH_MS } from "@lib/constants";
 import { operationalCount, operationalDuration } from "@lib/operationalHealth";
 
@@ -365,9 +366,36 @@ const MAX_CLIP_PLAYBACK_URLS = 1_000;
 const clipPlaybackUrlCache = new Map<string, { url: string; expiresAt: number }>();
 const clipPlaybackUrlRequests = new Map<string, Promise<string | undefined>>();
 
-type ClipPlaybackUrlOptions = {
-	authorizeFetch?: () => boolean | Promise<boolean>;
-};
+export type ClipPlaybackContext = { kind: "overlay"; overlayId: string; secret?: string } | { kind: "gallery"; galleryId: string; preview?: boolean } | { kind: "creator"; username: string };
+
+async function canPlayClipInContext(clipId: string, broadcasterId: string, context: ClipPlaybackContext | undefined) {
+	if (!clipId || !broadcasterId || !context || typeof context !== "object") return false;
+	if (context.kind === "overlay") {
+		if (typeof context.overlayId !== "string") return false;
+		const overlay = context.secret ? await getOverlayBySecret(context.overlayId, context.secret).catch(() => null) : await getOverlayPublic(context.overlayId).catch(() => null);
+		if (!overlay || overlay.ownerId !== broadcasterId || overlay.status === "paused" || ("ownerDisabled" in overlay && overlay.ownerDisabled)) return false;
+		if (!context.secret) return (await getTwitchClips(overlay)).some((entry) => entry.id === clipId && entry.broadcaster_id === broadcasterId);
+		const clip = await getCachedClipByOwner(broadcasterId, clipId);
+		if (clip?.id === clipId && clip.broadcaster_id === broadcasterId) return true;
+		if (overlay.playlistId && (await getPlaylistRuntimeClipsForOwnerServer(broadcasterId, overlay.playlistId)).some((entry) => entry.id === clipId && entry.broadcaster_id === broadcasterId)) return true;
+		const [viewerQueue, modQueue] = await Promise.all([getClipQueueByOverlayId(overlay.id), getModQueueByBroadcasterId(broadcasterId)]);
+		return viewerQueue.some((entry) => entry.clipId === clipId) || modQueue.some((entry) => entry.clipId === clipId);
+	}
+	if (context.kind === "gallery") {
+		if (typeof context.galleryId !== "string") return false;
+		const { getGalleryPreview, getPublicGallery } = await import("@actions/gallery");
+		const bundle = context.preview === true ? await getGalleryPreview(context.galleryId) : await getPublicGallery(context.galleryId);
+		if (!bundle || bundle.gallery.ownerId !== broadcasterId) return false;
+		const clip = bundle.clips.find((entry) => entry.id === clipId) ?? (context.preview === true ? await getCachedClipByOwner(broadcasterId, clipId) : null);
+		return clip?.id === clipId && clip.broadcaster_id === broadcasterId;
+	}
+	if (context.kind === "creator") {
+		if (typeof context.username !== "string") return false;
+		const { canPlayPublicCreatorClip } = await import("@actions/creatorPage");
+		return canPlayPublicCreatorClip(context.username, clipId, broadcasterId);
+	}
+	return false;
+}
 
 function cacheClipPlaybackUrl(key: string, url: string) {
 	const now = Date.now();
@@ -382,8 +410,12 @@ function cacheClipPlaybackUrl(key: string, url: string) {
 	clipPlaybackUrlCache.set(key, { url, expiresAt: now + CLIP_PLAYBACK_URL_TTL_MS });
 }
 
-export async function getTwitchClipPlaybackUrl(clipId: string, broadcasterId: string, options: ClipPlaybackUrlOptions = {}): Promise<string | undefined> {
+export async function getTwitchClipPlaybackUrl(clipId: string, broadcasterId: string, context: ClipPlaybackContext): Promise<string | undefined> {
 	const started = Date.now();
+	if (!(await canPlayClipInContext(clipId, broadcasterId, context))) {
+		operationalCount("clipify.clip_fetch.requests", 1, { outcome: "not_authorized" });
+		return undefined;
+	}
 	const key = `${broadcasterId}:${clipId}`;
 	const cached = clipPlaybackUrlCache.get(key);
 	if (cached && cached.expiresAt > Date.now()) {
@@ -397,11 +429,14 @@ export async function getTwitchClipPlaybackUrl(clipId: string, broadcasterId: st
 		operationalCount("clipify.clip_fetch.requests", 1, { outcome: "coalesced" });
 		return pending;
 	}
-	if (options.authorizeFetch && !(await options.authorizeFetch())) {
+	if (!(await canResolvePublicClipPlayback(broadcasterId))) {
 		operationalCount("clipify.clip_fetch.requests", 1, { outcome: "not_authorized" });
 		return undefined;
 	}
-
+	const authorizedCached = clipPlaybackUrlCache.get(key);
+	if (authorizedCached && authorizedCached.expiresAt > Date.now()) return authorizedCached.url;
+	const authorizedPending = clipPlaybackUrlRequests.get(key);
+	if (authorizedPending) return authorizedPending;
 	const request = resolveTwitchClipPlaybackUrl(clipId, broadcasterId);
 	clipPlaybackUrlRequests.set(key, request);
 	try {
@@ -1923,7 +1958,12 @@ export async function updateRedemptionStatus(userId: string, redemptionId: strin
 	}
 }
 
-export async function subscribeToChat(userId: string) {
+export async function subscribeToChat(overlayId: string, overlaySecret: string) {
+	const overlay = await getOverlayBySecret(overlayId, overlaySecret);
+	if (!overlay || overlay.status === "paused") return;
+	const userId = overlay.ownerId;
+	const limit = await tryRateLimit({ key: "twitch-eventsub-subscribe", points: 2, duration: 60, identifier: userId });
+	if (!limit.success) return;
 	const url = "https://api.twitch.tv/helix/eventsub/subscriptions";
 	const token = await getAppAccessToken();
 

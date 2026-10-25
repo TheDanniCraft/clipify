@@ -399,7 +399,7 @@ describe("components/overlayPlayer", () => {
 	it("wires websocket subscription and handles command messages", async () => {
 		getTwitchClipBatch.mockResolvedValue([buildClip("ws-clip")]);
 
-		render(<OverlayPlayer overlay={buildOverlay()} />);
+		render(<OverlayPlayer overlay={buildOverlay()} overlaySecret='secret' />);
 		await screen.findByText("clip-ws-clip");
 
 		const ws = MockWebSocket.instances[0];
@@ -411,7 +411,7 @@ describe("components/overlayPlayer", () => {
 		expect(ws?.send).toHaveBeenCalledWith(
 			JSON.stringify({
 				type: "subscribe",
-				data: { overlayId: "overlay-1", secret: undefined, role: "overlay" },
+				data: { overlayId: "overlay-1", secret: "secret", role: "overlay" },
 			}),
 		);
 
@@ -425,7 +425,7 @@ describe("components/overlayPlayer", () => {
 		});
 
 		expect(pauseMock).toHaveBeenCalled();
-		expect(subscribeToChat).toHaveBeenCalledWith("owner-1");
+		expect(subscribeToChat).toHaveBeenCalledWith("overlay-1", "secret");
 	});
 
 	it("falls back to the next top clip when the highest-view clip is not playable", async () => {
@@ -670,7 +670,7 @@ describe("components/overlayPlayer", () => {
 		const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
 
 		try {
-			render(<OverlayPlayer overlay={buildOverlay()} />);
+			render(<OverlayPlayer overlay={buildOverlay()} overlaySecret='secret' />);
 			await screen.findByText("chat-failure-clip");
 			await waitFor(() => {
 				expect(consoleSpy).toHaveBeenCalledWith("Error subscribing to EventSub", expect.any(Error));
@@ -1350,7 +1350,7 @@ describe("components/overlayPlayer", () => {
 
 		render(<OverlayPlayer overlay={buildOverlay()} />);
 		await waitFor(() => {
-			expect(getTwitchClipPlaybackUrl).toHaveBeenCalledWith("invalid-media", "owner-1");
+			expect(getTwitchClipPlaybackUrl).toHaveBeenCalledWith("invalid-media", "owner-1", expect.objectContaining({ kind: "overlay", overlayId: "overlay-1" }));
 		});
 		expect(screen.queryByText("invalid-media-clip")).not.toBeInTheDocument();
 	});
@@ -1410,7 +1410,7 @@ describe("components/overlayPlayer", () => {
 		getTwitchClipBatch.mockResolvedValue([buildClip("prepare-a"), buildClip("prepare-b")]);
 		render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
 		await screen.findByText("clip-prepare-a");
-		await waitFor(() => expect(getTwitchClipPlaybackUrl).toHaveBeenCalledWith("prepare-b", "owner-1"));
+		await waitFor(() => expect(getTwitchClipPlaybackUrl).toHaveBeenCalledWith("prepare-b", "owner-1", expect.objectContaining({ kind: "overlay", overlayId: "overlay-1" })));
 		await act(async () => {
 			await Promise.resolve();
 			await Promise.resolve();
@@ -1562,7 +1562,7 @@ describe("components/overlayPlayer", () => {
 
 		render(<OverlayPlayer overlay={buildOverlay()} />);
 		await waitFor(() => {
-			expect(getTwitchClipPlaybackUrl).toHaveBeenCalledWith("axios-fail", "owner-1");
+			expect(getTwitchClipPlaybackUrl).toHaveBeenCalledWith("axios-fail", "owner-1", expect.objectContaining({ kind: "overlay", overlayId: "overlay-1" }));
 		});
 		expect(screen.queryByText("clip-axios-fail")).not.toBeInTheDocument();
 	});
@@ -1573,7 +1573,7 @@ describe("components/overlayPlayer", () => {
 
 		render(<OverlayPlayer overlay={buildOverlay()} />);
 		await waitFor(() => {
-			expect(getTwitchClipPlaybackUrl).toHaveBeenCalledWith("no-quality", "owner-1");
+			expect(getTwitchClipPlaybackUrl).toHaveBeenCalledWith("no-quality", "owner-1", expect.objectContaining({ kind: "overlay", overlayId: "overlay-1" }));
 		});
 		expect(screen.queryByText("clip-no-quality")).not.toBeInTheDocument();
 	});

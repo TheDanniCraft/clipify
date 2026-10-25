@@ -8,7 +8,6 @@ import { resolveUserEntitlements } from "@lib/entitlements";
 import { getFeatureAccess } from "@lib/featureAccess";
 import { getMemberBadges } from "@lib/membership";
 import { memberCardIdForUser } from "@/server/memberCardId";
-import { canResolvePublicClipPlayback } from "@actions/rateLimit";
 import { getCachedClipPageByOwner } from "@actions/database";
 import { eq, sql } from "drizzle-orm";
 import { cache } from "react";
@@ -84,6 +83,13 @@ export async function getCreatorClipPage(username: string, query: CreatorClipQue
 	return getCachedClipPageByOwner(creator.user.id, query);
 }
 
+export async function canPlayPublicCreatorClip(username: string, clipId: string, broadcasterId: string) {
+	const creator = await getCreator(username);
+	if (!creator || creator.user.id !== broadcasterId) return false;
+	const clip = await getCachedClipByOwner(broadcasterId, clipId);
+	return clip?.id === clipId && clip.broadcaster_id === broadcasterId;
+}
+
 export async function getCreatorClipPlayback(username: string, clipId: string) {
 	const creator = await getCreator(username);
 	if (!creator) return null;
@@ -91,7 +97,7 @@ export async function getCreatorClipPlayback(username: string, clipId: string) {
 	if (!clip) return null;
 	let playbackUrl: string | null = null;
 	try {
-		playbackUrl = (await getTwitchClipPlaybackUrl(clip.id, clip.broadcaster_id, { authorizeFetch: () => canResolvePublicClipPlayback(creator.user.id) })) ?? null;
+		playbackUrl = (await getTwitchClipPlaybackUrl(clip.id, clip.broadcaster_id, { kind: "creator", username })) ?? null;
 	} catch {
 		playbackUrl = null;
 	}

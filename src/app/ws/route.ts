@@ -1,7 +1,8 @@
 import { revalidateOverlaySource } from "@/server/resources/overlay-source-runtime";
 import { WebSocket, WebSocketServer } from "ws";
 import { removeSubscriber } from "@store/overlaySubscribers";
-import { handleMessage } from "@actions/websocket";
+import { handleMessage, revalidateController } from "@actions/websocket";
+import type { ControllerIdentity } from "@/server/controller-access";
 import { recordWebSocketDisconnected, recordWebSocketRejected } from "@lib/operationalHealth";
 
 let heartbeatInterval: NodeJS.Timeout | null = null;
@@ -15,6 +16,7 @@ declare module "ws" {
 		role?: "overlay" | "controller";
 		sourceActive?: boolean;
 		sourceSecret?: string;
+		controllerIdentity?: ControllerIdentity;
 		subscribeDeadline?: NodeJS.Timeout;
 	}
 }
@@ -42,6 +44,10 @@ export function UPGRADE(client: WebSocket, server: WebSocketServer) {
 				const sources = [...server.clients].filter((ws) => ws.readyState === WebSocket.OPEN && ws.role === "overlay" && ws.ownerId && ws.overlayId);
 				for (let offset = 0; offset < sources.length; offset += 4) {
 					await Promise.allSettled(sources.slice(offset, offset + 4).map(revalidateOverlaySource));
+				}
+				const controllers = [...server.clients].filter((ws) => ws.readyState === WebSocket.OPEN && ws.role === "controller" && ws.ownerId && ws.overlayId);
+				for (let offset = 0; offset < controllers.length; offset += 4) {
+					await Promise.allSettled(controllers.slice(offset, offset + 4).map((ws) => revalidateController(ws)));
 				}
 			} finally {
 				checkingRuntime = false;

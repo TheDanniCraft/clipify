@@ -3,12 +3,13 @@ import { EventEmitter } from "node:events";
 import { WebSocket, type WebSocketServer } from "ws";
 
 const revalidate = jest.fn();
+const revalidateController = jest.fn();
 const message = jest.fn();
 const remove = jest.fn();
 const disconnected = jest.fn();
 const rejected = jest.fn();
 jest.mock("@/server/resources/overlay-source-runtime", () => ({ revalidateOverlaySource: (...args: unknown[]) => revalidate(...args) }));
-jest.mock("@actions/websocket", () => ({ handleMessage: (...args: unknown[]) => message(...args) }));
+jest.mock("@actions/websocket", () => ({ handleMessage: (...args: unknown[]) => message(...args), revalidateController: (...args: unknown[]) => revalidateController(...args) }));
 jest.mock("@store/overlaySubscribers", () => ({ removeSubscriber: (...args: unknown[]) => remove(...args) }));
 jest.mock("@lib/operationalHealth", () => ({ recordWebSocketDisconnected: (...args: unknown[]) => disconnected(...args), recordWebSocketRejected: (...args: unknown[]) => rejected(...args) }));
 
@@ -40,6 +41,7 @@ describe("websocket upgrade lifecycle", () => {
 		jest.useFakeTimers();
 		jest.clearAllMocks();
 		revalidate.mockReset().mockResolvedValue(true);
+		revalidateController.mockReset().mockResolvedValue(true);
 		message.mockResolvedValue(undefined);
 	});
 	afterEach(() => {
@@ -100,6 +102,7 @@ describe("websocket upgrade lifecycle", () => {
 		await jest.advanceTimersByTimeAsync(30000);
 		expect(revalidate).toHaveBeenCalledTimes(1);
 		expect(revalidate.mock.calls[0][0]).toBe(clients[0]);
+		expect(revalidateController).toHaveBeenCalledWith(clients[1]);
 	});
 	test("bounds authority checks to four and avoids overlapping heartbeat checks", async () => {
 		const pending: Array<() => void> = [];

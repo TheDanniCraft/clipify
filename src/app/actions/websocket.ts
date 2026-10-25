@@ -8,23 +8,42 @@ import { getOverlayBySecret, getOverlayOwnerPlanPublic, getOverlayPublic } from 
 import { RawData } from "ws";
 import { ownerSubscribers, overlaySubscribers, addSubscriber, removeSubscriber } from "@store/overlaySubscribers";
 import { Plan } from "@types";
+import { hasCurrentControllerAccess, type ControllerIdentity } from "@/server/controller-access";
 import { recordOverlayStateUpdate, recordWebSocketRejected, recordWebSocketSubscribed } from "@lib/operationalHealth";
 
 type ControllerTokenPayload = {
 	overlayId: string;
-	userId: string;
+	authUserId: string;
+	sessionId: string;
 	iat?: number;
 	exp?: number;
 };
 
-function broadcastToClients(type: string, data: object, clients: Set<WebSocket> | undefined, except?: WebSocket) {
-	if (!clients) return;
-	for (const client of clients) {
-		if (client === except) continue;
-		if (client.readyState === WebSocket.OPEN) {
-			client.send(JSON.stringify({ type, data }));
-		}
+export async function revalidateController(client: WebSocket) {
+	let allowed = false;
+	try {
+		allowed = !!client.ownerId && !!client.controllerIdentity && (await hasCurrentControllerAccess(client.ownerId, client.controllerIdentity));
+	} catch {
+		allowed = false;
 	}
+	if (!allowed) {
+		client.close(4002);
+		return false;
+	}
+	return true;
+}
+
+async function broadcastToClients(type: string, data: object, clients: Set<WebSocket> | undefined, except?: WebSocket) {
+	if (!clients) return;
+	const message = JSON.stringify({ type, data });
+	await Promise.all(
+		[...clients].map(async (client) => {
+			if (client === except) return;
+			if (client.readyState !== WebSocket.OPEN) return;
+			if (client.role === "controller" && !(await revalidateController(client))) return;
+			if (client.readyState === WebSocket.OPEN) client.send(message);
+		}),
+	);
 }
 
 export async function handleMessage(buffer: RawData, client: WebSocket) {
@@ -73,6 +92,7 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 			}
 
 			let overlay: Awaited<ReturnType<typeof getOverlayBySecret>> | null = null;
+			let controllerIdentity: ControllerIdentity | undefined;
 			if (role === "controller") {
 				if (!controllerToken) {
 					recordWebSocketRejected("unauthorized");
@@ -90,7 +110,7 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 					client.close(4002);
 					return;
 				}
-				if (!decoded?.overlayId || decoded.overlayId !== overlayId || !decoded.userId) {
+				if (!decoded?.overlayId || decoded.overlayId !== overlayId || !decoded.authUserId || !decoded.sessionId || !decoded.exp) {
 					recordWebSocketRejected("unauthorized");
 					client.close(4002);
 					return;
@@ -103,6 +123,12 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 				}
 				const ownerPlan = await getOverlayOwnerPlanPublic(overlay.id).catch(() => null);
 				if (ownerPlan !== Plan.Pro) {
+					recordWebSocketRejected("unauthorized");
+					client.close(4002);
+					return;
+				}
+				controllerIdentity = { authUserId: decoded.authUserId, sessionId: decoded.sessionId, expiresAt: decoded.exp * 1000 };
+				if (!(await hasCurrentControllerAccess(overlay.ownerId, controllerIdentity))) {
 					recordWebSocketRejected("unauthorized");
 					client.close(4002);
 					return;
@@ -132,6 +158,7 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 			client.overlayId = overlay.id;
 			client.role = role;
 			client.sourceSecret = role === "overlay" ? secret : undefined;
+			client.controllerIdentity = controllerIdentity;
 			clearTimeout(client.subscribeDeadline);
 			addSubscriber(overlay.ownerId, overlay.id, client);
 			recordWebSocketSubscribed(client, overlay.id, overlay.ownerId, role);
@@ -159,6 +186,7 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 				client.close(4002);
 				return;
 			}
+			if (!(await revalidateController(client))) return;
 			const payload = messageObj.data as { name?: string; data?: unknown; overlayId?: string } | undefined;
 			const name = payload?.name;
 			if (!name || typeof name !== "string") {
@@ -166,7 +194,7 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 				return;
 			}
 			const targetOverlayId = payload?.overlayId && payload.overlayId === client.overlayId ? payload.overlayId : client.overlayId;
-			broadcastToClients("command", { name, data: payload?.data ?? null }, overlaySubscribers.get(targetOverlayId));
+			await broadcastToClients("command", { name, data: payload?.data ?? null }, overlaySubscribers.get(targetOverlayId));
 			return;
 		}
 		case "state_update": {
@@ -190,7 +218,7 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 					ownerId: client.ownerId,
 				});
 			}
-			broadcastToClients("overlay_state", payload as object, overlaySubscribers.get(client.overlayId), client);
+			await broadcastToClients("overlay_state", payload as object, overlaySubscribers.get(client.overlayId), client);
 			return;
 		}
 		default:
@@ -203,16 +231,16 @@ export async function sendMessage(type: string, data: object, broadcasterId?: st
 	if (overlayId) {
 		const clients = overlaySubscribers.get(overlayId);
 		/* istanbul ignore next */
-		broadcastToClients(type, data, clients);
+		await broadcastToClients(type, data, clients);
 		return;
 	}
 	if (broadcasterId) {
 		const clients = ownerSubscribers.get(broadcasterId);
 		/* istanbul ignore next */
-		broadcastToClients(type, data, clients);
+		await broadcastToClients(type, data, clients);
 	} else {
 		for (const clients of overlaySubscribers.values()) {
-			broadcastToClients(type, data, clients);
+			await broadcastToClients(type, data, clients);
 		}
 	}
 }

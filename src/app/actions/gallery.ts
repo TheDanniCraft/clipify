@@ -5,7 +5,6 @@ import { getCachedClipByOwner, getCachedClipsByOwner, getTwitchClipPlaybackUrl }
 import { db } from "@/db/client";
 import { galleriesTable, playlistsTable, usersTable } from "@/db/schema";
 import { FREE_GALLERY_LIMIT, downgradeGalleryPatch, normalizeGalleryPatch, normalizeGalleryUpdatePatch, resolveLiveGalleryClips, type GalleryPatch } from "@lib/gallery";
-import { canResolvePublicClipPlayback } from "@actions/rateLimit";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import type { Gallery, TwitchClip } from "@types";
@@ -105,7 +104,7 @@ export async function getGalleryPreviewPlayer(galleryId: string, clipId: string)
 	let playbackUrl: string | null = null;
 	try {
 		const clip = clips[selectedIndex];
-		playbackUrl = (await getTwitchClipPlaybackUrl(clip.id, clip.broadcaster_id)) ?? null;
+		playbackUrl = (await getTwitchClipPlaybackUrl(clip.id, clip.broadcaster_id, { kind: "gallery", galleryId, preview: true })) ?? null;
 	} catch {
 		playbackUrl = null;
 	}
@@ -188,7 +187,7 @@ export async function getPublicGalleryPlayer(galleryId: string, clipId: string) 
 	const clip = bundle.clips[index];
 	let playbackUrl: string | null = null;
 	try {
-		playbackUrl = (await getTwitchClipPlaybackUrl(clip.id, clip.broadcaster_id, { authorizeFetch: () => canResolvePublicClipPlayback(bundle.owner.id) })) ?? null;
+		playbackUrl = (await getTwitchClipPlaybackUrl(clip.id, clip.broadcaster_id, { kind: "gallery", galleryId })) ?? null;
 	} catch {
 		playbackUrl = null;
 	}

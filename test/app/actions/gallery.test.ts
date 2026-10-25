@@ -405,17 +405,14 @@ describe("gallery actions", () => {
 		await expect(getPublicGalleryPlayer("gallery-1", "a")).resolves.toBeNull();
 	});
 
-	it("authorizes uncached public playback against the gallery owner's budget", async () => {
+	it("resolves published gallery playback through the shared budgeted resolver", async () => {
 		const { getPublicGalleryPlayer } = await loadActions();
 		const owner = { id: "owner", username: "Alice", avatar: null, disabled: false, plan: "pro" };
 		queueSelect([{ gallery: gallery(), owner }]);
 		resolveUserEntitlements.mockResolvedValueOnce({ effectivePlan: "pro" });
-		getTwitchClipPlaybackUrl.mockImplementationOnce(async (_clipId: string, _broadcasterId: string, options: { authorizeFetch: () => Promise<boolean> }) => {
-			await options.authorizeFetch();
-			return "https://video.example/clip.mp4";
-		});
+		getTwitchClipPlaybackUrl.mockResolvedValueOnce("https://video.example/clip.mp4");
 
 		await expect(getPublicGalleryPlayer("gallery-1", "a")).resolves.toMatchObject({ playbackUrl: "https://video.example/clip.mp4" });
-		expect(canResolvePublicClipPlayback).toHaveBeenCalledWith("owner");
+		expect(getTwitchClipPlaybackUrl).toHaveBeenCalledWith("a", "owner", { kind: "gallery", galleryId: "gallery-1" });
 	});
 });

@@ -25,4 +25,14 @@ describe("gallery clip page", () => {
 		render(await Page({ params: Promise.resolve({ galleryId: "missing", clipId: "clip" }) }));
 		expect(screen.getByText("Clip unavailable")).toBeInTheDocument();
 	});
+
+	it("escapes script delimiters in route identifiers", async () => {
+		getPublicGalleryPlayer.mockResolvedValue(null);
+		const Page = (await import("@/app/gallery/[galleryId]/clip/[clipId]/page")).default;
+		const { container } = render(await Page({ params: Promise.resolve({ galleryId: "gallery", clipId: "</script><script>alert(1)</script>" }) }));
+		const script = container.querySelector("script");
+		expect(script?.innerHTML).toContain("\\u003c/script>");
+		expect(script?.innerHTML).not.toContain("</script><script>");
+		expect(container.querySelectorAll("script")).toHaveLength(2);
+	});
 });

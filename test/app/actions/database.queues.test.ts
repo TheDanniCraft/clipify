@@ -142,10 +142,10 @@ describe("actions/database queue logic", () => {
 		authorizeCreatorOperation.mockResolvedValue({ allowed: true, accessPath: "owner", creator: { id: "user-1" }, creatorOrganizationId: "creator:user-1", authUserId: "auth-user-1", sessionId: "session-1" });
 	});
 
-	it("adds to clip queue", async () => {
+	it("rejects direct clip queue writes without overlay control access", async () => {
 		const { addToClipQueue } = await loadDatabaseActions();
-		await addToClipQueue("overlay-1", "clip-1");
-		expect(insertCalls.some((call) => call.table === queueTable)).toBe(true);
+		await expect(addToClipQueue("overlay-1", "clip-1")).rejects.toThrow("Failed to add clip to queue");
+		expect(insertCalls.some((call) => call.table === queueTable)).toBe(false);
 	});
 
 	it("gets clip queue by overlay id", async () => {
@@ -218,6 +218,13 @@ describe("actions/database queue logic", () => {
 		const { addToModQueue } = await loadDatabaseActions();
 		await addToModQueue("broadcaster-1", "clip-1");
 		expect(insertCalls.some((call) => call.table === modQueueTable)).toBe(true);
+	});
+
+	it("rejects direct mod queue writes without overlay control access", async () => {
+		authorizeCreatorOperation.mockResolvedValueOnce({ allowed: false });
+		const { addToModQueue } = await loadDatabaseActions();
+		await expect(addToModQueue("broadcaster-1", "clip-1")).rejects.toThrow("Failed to add clip to mod queue");
+		expect(insertCalls.some((call) => call.table === modQueueTable)).toBe(false);
 	});
 
 	it("gets mod queue by broadcaster id", async () => {
