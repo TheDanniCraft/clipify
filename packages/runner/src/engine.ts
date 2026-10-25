@@ -368,24 +368,19 @@ export class Engine {
 			overlayUrl += "&standby=true";
 		}
 
-		console.log(`[Engine] Navigating to ${overlayUrl}`);
-		await this.page.goto(overlayUrl, { waitUntil: "networkidle2" });
+		console.log(`[Engine] Navigating to overlay ${this.overlayId}`);
+		try {
+			await this.page.goto(overlayUrl, { waitUntil: "networkidle2" });
+		} catch {
+			throw new Error("Failed to load overlay page");
+		}
 	}
 
 	private monitorFFmpeg(child: any, name: string) {
 		let lastLogTime = 0;
-		let lastErrorLine = "";
 
 		child.stderr.on("data", (data: Buffer) => {
 			const text = data.toString();
-
-			const lines = text
-				.split("\n")
-				.map((l) => l.trim())
-				.filter((l) => l.length > 0);
-			if (lines.length > 0) {
-				lastErrorLine = lines[lines.length - 1];
-			}
 
 			if (text.includes("bitrate=")) {
 				const now = Date.now();
@@ -405,9 +400,7 @@ export class Engine {
 		child.on("close", (code: number) => {
 			this.ffmpegStatus = `Stopped 🔴 (Code: ${code})`;
 			console.log(`[${name}] Exited with code ${code}`);
-			if (code !== 0 && code !== null) {
-				console.error(`[${name}] 🔴 Stopped unexpectedly. Last log: ${lastErrorLine}`);
-			}
+			if (code !== 0 && code !== null) console.error(`[${name}] 🔴 Stopped unexpectedly (code ${code})`);
 		});
 	}
 
@@ -515,7 +508,7 @@ export class Engine {
 				}
 			});
 			this.mediaStream.pipe(this.ffmpeg.stdin!);
-			console.log(`[Engine] Cloud Loop successfully started to ${this.rtmpUrl}`);
+			console.log("[Engine] Cloud Loop successfully started");
 		} catch (error) {
 			console.error(`[Engine] Failed to start cloud loop stream:`, error);
 			throw error;
@@ -525,7 +518,7 @@ export class Engine {
 	private startObsForwarder() {
 		const fullRtmpUrl = this.streamKey ? `${this.rtmpUrl}/${this.streamKey}` : this.rtmpUrl;
 
-		console.log(`[Engine] Spawning FFmpeg to forward local OBS (port 1936) -> ${this.rtmpUrl}...`);
+		console.log("[Engine] Spawning FFmpeg to forward local OBS (port 1936)...");
 
 		const previewPath = path.join(os.tmpdir(), `clipify-preview-${this.overlayId}.jpg`);
 		// FFmpeg acts as the RTMP server on port 1936. TCP Proxy connects to it.
