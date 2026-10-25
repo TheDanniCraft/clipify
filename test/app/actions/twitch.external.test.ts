@@ -790,6 +790,64 @@ describe("actions/twitch external API and failure handling", () => {
 		expect(failed).toBeNull();
 	});
 
+	it("rejects demo metadata lookups before requesting an app token or Twitch", async () => {
+		tryRateLimit.mockResolvedValueOnce({ success: false });
+		const tokenSpy = jest.spyOn(axios, "post");
+		const clipSpy = jest.spyOn(axios, "get");
+		const { getDemoClip } = await loadTwitch();
+		await expect(getDemoClip("demo-lookup-blocked")).resolves.toBeNull();
+		expect(tokenSpy).not.toHaveBeenCalled();
+		expect(clipSpy).not.toHaveBeenCalled();
+	});
+
+	it("stops external demo lookups after the visitor allowance is exhausted", async () => {
+		const { consumeAppRateLimit } = await import("@/server/rate-limit");
+		tryRateLimit.mockImplementation(({ key, points, duration, identifier }: { key: string; points: number; duration: number; identifier?: string }) => consumeAppRateLimit({ key: `test-demo-lookup:${key}`, points, duration, identifier: identifier ?? "test-visitor" }));
+		const tokenSpy = jest.spyOn(axios, "post").mockResolvedValue({ data: { access_token: "app-token" } } as never);
+		const clipSpy = jest.spyOn(axios, "get").mockImplementation(async (_url, options) => {
+			const params = options?.params as { id?: string } | undefined;
+			return { data: { data: [buildClip(String(params?.id))] } } as never;
+		});
+		const { getDemoClip } = await loadTwitch();
+		for (let index = 0; index < 30; index++) await expect(getDemoClip(`demo-lookup-allow-${index}`)).resolves.toMatchObject({ id: `demo-lookup-allow-${index}` });
+		await expect(getDemoClip("demo-lookup-over-limit")).resolves.toBeNull();
+		expect(tokenSpy).toHaveBeenCalledTimes(30);
+		expect(clipSpy).toHaveBeenCalledTimes(30);
+	});
+
+	it("reuses validated and missing demo metadata without another Twitch request", async () => {
+		jest.spyOn(axios, "post").mockResolvedValue({ data: { access_token: "app-token" } } as never);
+		const clipSpy = jest
+			.spyOn(axios, "get")
+			.mockResolvedValueOnce({ data: { data: [buildClip("demo-cache-valid")] } } as never)
+			.mockResolvedValueOnce({ data: { data: [] } } as never);
+		const { getDemoClip } = await loadTwitch();
+		await expect(getDemoClip("demo-cache-valid")).resolves.toMatchObject({ id: "demo-cache-valid" });
+		await expect(getDemoClip("demo-cache-valid")).resolves.toMatchObject({ id: "demo-cache-valid" });
+		await expect(getDemoClip("demo-cache-missing")).resolves.toBeNull();
+		await expect(getDemoClip("demo-cache-missing")).resolves.toBeNull();
+		expect(clipSpy).toHaveBeenCalledTimes(2);
+		expect(tryRateLimit).toHaveBeenCalledTimes(4);
+	});
+
+	it("coalesces simultaneous demo metadata lookups", async () => {
+		let releaseLookup!: (value: unknown) => void;
+		jest.spyOn(axios, "post").mockResolvedValue({ data: { access_token: "app-token" } } as never);
+		const clipSpy = jest.spyOn(axios, "get").mockImplementation(
+			() =>
+				new Promise((resolve) => {
+					releaseLookup = resolve;
+				}) as never,
+		);
+		const { getDemoClip } = await loadTwitch();
+		const first = getDemoClip("demo-coalesced");
+		const second = getDemoClip("demo-coalesced");
+		await new Promise<void>((resolve) => setImmediate(resolve));
+		releaseLookup({ data: { data: [buildClip("demo-coalesced")] } });
+		await expect(Promise.all([first, second])).resolves.toEqual([expect.objectContaining({ id: "demo-coalesced" }), expect.objectContaining({ id: "demo-coalesced" })]);
+		expect(clipSpy).toHaveBeenCalledTimes(1);
+	});
+
 	it("fetches avatar via app-token fallback and logs when avatar fetch has no stale fallback", async () => {
 		getTwitchCache.mockResolvedValue(null);
 		getTwitchCacheStale.mockResolvedValueOnce(null);

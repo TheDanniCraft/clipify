@@ -1624,35 +1624,60 @@ export async function getTwitchClipBatch(overlayId: string, overlaySecret?: stri
 		.slice(0, batchSize);
 }
 
+const demoClipCache = new Map<string, { clip: TwitchClip | null; expiresAt: number }>();
+const demoClipRequests = new Map<string, Promise<{ clip: TwitchClip | null; cacheable: boolean }>>();
+
 export async function getDemoClip(clipId: string): Promise<TwitchClip | null> {
-	const url = "https://api.twitch.tv/helix/clips";
-	const token = await getAppAccessToken();
+	if (typeof clipId !== "string" || clipId.length > 200 || !/^[A-Za-z0-9_-]+$/.test(clipId)) return null;
+	const cached = demoClipCache.get(clipId);
+	if (cached && cached.expiresAt > Date.now()) return cached.clip;
+	if (cached) demoClipCache.delete(clipId);
+	const pending = demoClipRequests.get(clipId);
+	if (pending) return (await pending).clip;
 
-	if (!token) {
-		console.error("No app access token found");
-		return null;
-	}
+	const request = (async () => {
+		const visitorLimit = await tryRateLimit({ key: "demo-clip-lookup-visitor", points: 30, duration: 60 });
+		if (!visitorLimit.success) return { clip: null, cacheable: false };
+		const globalLimit = await tryRateLimit({ key: "demo-clip-lookup-global", points: 120, duration: 60, identifier: "demo" });
+		if (!globalLimit.success) return { clip: null, cacheable: false };
 
-	try {
-		const response = await axios.get<TwitchApiResponse<TwitchClipResponse>>(url, {
-			headers: {
-				Authorization: `Bearer ${token.access_token}`,
-				/* istanbul ignore next */
-				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
-			},
-			params: {
-				id: clipId,
-			},
-		});
-		const clip = response.data.data[0];
-		if (!clip) {
-			console.error("Clip not found for ID:", clipId);
-			return null;
+		const token = await getAppAccessToken();
+		if (!token) {
+			console.error("No app access token found");
+			return { clip: null, cacheable: false };
 		}
-		return clip;
-	} catch (error) {
-		logTwitchError("Error fetching demo Twitch clip", error);
-		return null;
+
+		try {
+			const response = await axios.get<TwitchApiResponse<TwitchClipResponse>>("https://api.twitch.tv/helix/clips", {
+				headers: {
+					Authorization: `Bearer ${token.access_token}`,
+					/* istanbul ignore next */
+					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+				},
+				params: { id: clipId },
+			});
+			const clip = response.data.data[0];
+			if (!clip || clip.id !== clipId) {
+				console.error("Clip not found for ID:", clipId);
+				return { clip: null, cacheable: true };
+			}
+			return { clip, cacheable: true };
+		} catch (error) {
+			logTwitchError("Error fetching demo Twitch clip", error);
+			return { clip: null, cacheable: false };
+		}
+	})();
+	demoClipRequests.set(clipId, request);
+	try {
+		const result = await request;
+		if (result.cacheable) {
+			for (const [id, entry] of demoClipCache) if (entry.expiresAt <= Date.now()) demoClipCache.delete(id);
+			while (demoClipCache.size >= 500) demoClipCache.delete(demoClipCache.keys().next().value!);
+			demoClipCache.set(clipId, { clip: result.clip, expiresAt: Date.now() + (result.clip ? 60_000 : 15_000) });
+		}
+		return result.clip;
+	} finally {
+		demoClipRequests.delete(clipId);
 	}
 }
 

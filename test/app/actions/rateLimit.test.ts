@@ -131,14 +131,14 @@ describe("actions/rateLimit", () => {
 		expect(blocked.success).toBe(false);
 	});
 
-	it("reserves a shared owner budget for public clip playback", async () => {
+	it("applies the public visitor limit before owner playback capacity", async () => {
 		consume.mockResolvedValue({ remainingPoints: 10 });
 		const { canResolvePublicClipPlayback } = await loadRateLimit();
 
 		await expect(canResolvePublicClipPlayback("owner-1")).resolves.toBe(true);
 		expect(RateLimiterMemory).toHaveBeenNthCalledWith(1, { points: 30, duration: 60 });
-		expect(RateLimiterMemory).toHaveBeenNthCalledWith(2, { points: 60, duration: 60 });
-		expect(consume).toHaveBeenNthCalledWith(2, "owner-1", 1);
+		expect(RateLimiterMemory).toHaveBeenCalledTimes(1);
+		expect(consume).toHaveBeenCalledWith("127.0.0.1", 1);
 	});
 
 	it("does not consume the owner budget after a visitor is blocked", async () => {
@@ -149,11 +149,8 @@ describe("actions/rateLimit", () => {
 		expect(consume).toHaveBeenCalledTimes(1);
 	});
 
-	it("keeps a runtime allowance after the public owner allowance is exhausted", async () => {
-		RateLimiterMemory.mockImplementationOnce(() => ({ consume: jest.fn().mockResolvedValue({ remainingPoints: 0 }) }));
-		RateLimiterMemory.mockImplementationOnce(() => ({ consume: jest.fn().mockRejectedValue({ msBeforeNext: 60_000 }) }));
-		RateLimiterMemory.mockImplementationOnce(() => ({ consume: jest.fn().mockResolvedValue({ remainingPoints: 59 }) }));
-		RateLimiterMemory.mockImplementationOnce(() => ({ consume: jest.fn().mockResolvedValue({ remainingPoints: 149 }) }));
+	it("keeps runtime capacity independent of the public visitor limit", async () => {
+		consume.mockRejectedValueOnce({ msBeforeNext: 60_000 });
 		const { canResolvePublicClipPlayback, canResolveTrustedClipPlayback } = await loadRateLimit();
 		await expect(canResolvePublicClipPlayback("owner-1")).resolves.toBe(false);
 		await expect(canResolveTrustedClipPlayback("owner-1")).resolves.toBe(true);
