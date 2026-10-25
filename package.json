@@ -112,7 +112,7 @@
 		"usesend-js": "^1.6.3",
 		"ws": "^8.22.0",
 		"xss": "^1.0.15",
-		"zod": "4.6.5"
+		"zod": "4.6.6"
 	},
 	"devDependencies": {
 		"@electric-sql/pglite": "^0.5.8",
