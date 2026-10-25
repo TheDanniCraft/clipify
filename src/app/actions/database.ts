@@ -1193,6 +1193,11 @@ export async function getOverlayWithEditAccess(overlayId: string) {
 	}
 }
 
+export async function getOverlayWithControlAccess(overlayId: string) {
+	const ctx = await requireOverlayAccess(overlayId, "overlay:control");
+	return ctx?.overlay ?? null;
+}
+
 export async function createOverlay(userId: string) {
 	try {
 		const { createBrowserOverlay } = await import("@/server/resources/browser-overlays");
@@ -1272,6 +1277,8 @@ export async function getOverlayByRewardId(rewardId: string) {
 
 export async function addToClipQueue(overlayId: string, clipId: string) {
 	try {
+		const context = await requireOverlayAccess(overlayId, "overlay:control");
+		if (!context) throw new Error("Unauthorized");
 		await db.insert(queueTable).values({ overlayId, clipId }).execute();
 	} catch (error) {
 		console.error("Error adding clip to queue:", error);
@@ -1390,6 +1397,8 @@ export async function clearClipQueue(overlayId: string, secret?: string) {
 
 export async function addToModQueue(broadcasterId: string, clipId: string) {
 	try {
+		const access = await authorizeCreatorOperation({ creatorId: broadcasterId, resourceOwnerId: broadcasterId, permission: "overlay:control" });
+		if (!access.allowed) throw new Error("Unauthorized");
 		await db.insert(modQueueTable).values({ broadcasterId, clipId }).execute();
 	} catch (error) {
 		console.error("Error adding clip to mod queue:", error);

@@ -636,32 +636,36 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 		};
 	}, []);
 
-	const getMediaUrlCached = useCallback(async (clipId: string, broadcasterId: string) => {
-		const cached = mediaUrlCacheRef.current.get(clipId);
-		if (cached) return cached;
+	const getMediaUrlCached = useCallback(
+		async (clipId: string, broadcasterId: string) => {
+			const cached = mediaUrlCacheRef.current.get(clipId);
+			if (cached) return cached;
 
-		const inflight = mediaUrlInFlightRef.current.get(clipId);
-		if (inflight) return inflight;
+			const inflight = mediaUrlInFlightRef.current.get(clipId);
+			if (inflight) return inflight;
 
-		const promise = getTwitchClipPlaybackUrl(clipId, broadcasterId)
-			.then((url) => {
-				if (url) {
-					mediaUrlCacheRef.current.set(clipId, url);
-					trimCache(mediaUrlCacheRef.current);
-				}
-				return url;
-			})
-			.catch(() => {
-				requestDeploymentCheck();
-				return undefined;
-			})
-			.finally(() => {
-				mediaUrlInFlightRef.current.delete(clipId);
-			});
+			const context = isDemoPlayer ? ({ kind: "demo", overlayId: overlay.id } as const) : ({ kind: "overlay", overlayId: overlay.id, secret: overlaySecret } as const);
+			const promise = getTwitchClipPlaybackUrl(clipId, broadcasterId, context)
+				.then((url) => {
+					if (url) {
+						mediaUrlCacheRef.current.set(clipId, url);
+						trimCache(mediaUrlCacheRef.current);
+					}
+					return url;
+				})
+				.catch(() => {
+					requestDeploymentCheck();
+					return undefined;
+				})
+				.finally(() => {
+					mediaUrlInFlightRef.current.delete(clipId);
+				});
 
-		mediaUrlInFlightRef.current.set(clipId, promise);
-		return promise;
-	}, []);
+			mediaUrlInFlightRef.current.set(clipId, promise);
+			return promise;
+		},
+		[isDemoPlayer, overlay.id, overlaySecret],
+	);
 
 	const getAvatarCached = useCallback(async (broadcasterId: string) => {
 		if (avatarCacheRef.current.has(broadcasterId)) {
@@ -737,7 +741,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 		async (randomClip: TwitchClip): Promise<VideoClip | null> => {
 			prefetchMetadata(randomClip);
 
-			const mediaUrl = await getMediaUrlCached(randomClip.id, overlay.ownerId);
+			const mediaUrl = await getMediaUrlCached(randomClip.id, isDemoPlayer ? randomClip.broadcaster_id : overlay.ownerId);
 			if (!mediaUrl) return null;
 
 			const baseGame = isDemoPlayer
@@ -876,7 +880,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 		if (playbackMode === "top") {
 			const sorted = [...candidates].sort((a, b) => b.view_count - a.view_count || b.created_at.localeCompare(a.created_at));
 			for (const clip of sorted) {
-				const playable = await resolvePlayableClip(overlay.ownerId, clip);
+				const playable = await resolvePlayableClip(overlay.id, clip, overlaySecret, isDemoPlayer);
 				if (playable) return { clip: playable };
 			}
 			return null;
@@ -933,7 +937,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 				}
 				const [picked] = remaining.splice(pickedIndex, 1);
 				if (!picked) continue;
-				const playable = await resolvePlayableClip(overlay.ownerId, picked.clip);
+				const playable = await resolvePlayableClip(overlay.id, picked.clip, overlaySecret, isDemoPlayer);
 				if (playable) return { clip: playable };
 			}
 			return null;
@@ -941,7 +945,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 
 		if (playbackMode === PlaybackMode.Order) {
 			for (const clip of candidates) {
-				const playable = await resolvePlayableClip(overlay.ownerId, clip);
+				const playable = await resolvePlayableClip(overlay.id, clip, overlaySecret, isDemoPlayer);
 				if (playable) return { clip: playable };
 			}
 			return null;
@@ -949,11 +953,11 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 
 		const shuffled = [...candidates].sort(() => Math.random() - 0.5);
 		for (const clip of shuffled) {
-			const playable = await resolvePlayableClip(overlay.ownerId, clip);
+			const playable = await resolvePlayableClip(overlay.id, clip, overlaySecret, isDemoPlayer);
 			if (playable) return { clip: playable };
 		}
 		return null;
-	}, [getFirstFromDemoQueue, isDemoPlayer, isEmbed, overlay.id, overlay.ownerId, overlaySecret, playbackMode, refreshClipPool]);
+	}, [getFirstFromDemoQueue, isDemoPlayer, isEmbed, overlay.id, overlaySecret, playbackMode, refreshClipPool]);
 
 	const consumeQueueItem = useCallback(
 		async (queueItem: ModQueueItem | ClipQueueItem | null | undefined) => {
@@ -1514,9 +1518,9 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 	 */
 	useEffect(() => {
 		async function setupChat() {
-			if (!overlay.ownerId) return;
+			if (!overlaySecret) return;
 			try {
-				await subscribeToChat(overlay.ownerId);
+				await subscribeToChat(overlay.id, overlaySecret);
 			} catch (error) {
 				requestDeploymentCheck();
 				console.error("Error subscribing to EventSub", error);
@@ -1524,7 +1528,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 		}
 
 		if (!isEmbed && !isDemoPlayer) setupChat();
-	}, [isDemoPlayer, isEmbed, overlay.ownerId]);
+	}, [isDemoPlayer, isEmbed, overlay.id, overlaySecret]);
 
 	useEffect(() => {
 		let cancelled = false;

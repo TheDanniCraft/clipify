@@ -4,7 +4,8 @@ import { Plan } from "@/app/lib/types";
 
 const validateAuth = jest.fn();
 const redirect = jest.fn();
-const getOverlayWithEditAccess = jest.fn();
+const getOverlayWithControlAccess = jest.fn();
+const getVerifiedSessionPrincipal = jest.fn();
 const getOverlayOwnerPlanPublic = jest.fn();
 const jwtSign = jest.fn();
 
@@ -19,9 +20,10 @@ jest.mock("jsonwebtoken", () => ({
 jest.mock("@actions/auth", () => ({
 	validateAuth: (...args: unknown[]) => validateAuth(...args),
 }));
+jest.mock("@/auth/session-principal", () => ({ getVerifiedSessionPrincipal: (...args: unknown[]) => getVerifiedSessionPrincipal(...args) }));
 
 jest.mock("@actions/database", () => ({
-	getOverlayWithEditAccess: (...args: unknown[]) => getOverlayWithEditAccess(...args),
+	getOverlayWithControlAccess: (...args: unknown[]) => getOverlayWithControlAccess(...args),
 	getOverlayOwnerPlanPublic: (...args: unknown[]) => getOverlayOwnerPlanPublic(...args),
 }));
 
@@ -37,7 +39,8 @@ describe("app/controller/[overlayId]/page", () => {
 			throw new Error("NEXT_REDIRECT");
 		});
 		validateAuth.mockResolvedValue({ id: "user-1" });
-		getOverlayWithEditAccess.mockResolvedValue({ id: "ov-1", ownerId: "owner-1" });
+		getOverlayWithControlAccess.mockResolvedValue({ id: "ov-1", ownerId: "owner-1" });
+		getVerifiedSessionPrincipal.mockResolvedValue({ authUserId: "auth-user-1", sessionId: "session-1" });
 		getOverlayOwnerPlanPublic.mockResolvedValue(Plan.Pro);
 		jwtSign.mockReturnValue("signed-controller-token");
 	});
@@ -51,7 +54,7 @@ describe("app/controller/[overlayId]/page", () => {
 	});
 
 	it("renders access denied when the user cannot edit the overlay", async () => {
-		getOverlayWithEditAccess.mockResolvedValue(null);
+		getOverlayWithControlAccess.mockResolvedValue(null);
 		const Page = (await import("@/app/controller/[overlayId]/page")).default;
 
 		render(await Page({ params: Promise.resolve({ overlayId: "ov-1" }), searchParams: Promise.resolve({}) }));
@@ -75,7 +78,7 @@ describe("app/controller/[overlayId]/page", () => {
 
 		render(await Page({ params: Promise.resolve({ overlayId: "ov-1" }), searchParams: Promise.resolve({}) }));
 
-		expect(jwtSign).toHaveBeenCalledWith({ overlayId: "ov-1", userId: "user-1" }, process.env.JWT_SECRET, expect.objectContaining({ issuer: "clipify-controller", expiresIn: "12h" }));
+		expect(jwtSign).toHaveBeenCalledWith({ overlayId: "ov-1", authUserId: "auth-user-1", sessionId: "session-1" }, process.env.JWT_SECRET, expect.objectContaining({ issuer: "clipify-controller", expiresIn: "12h" }));
 		expect(screen.getByText("controller-client:ov-1:signed-controller-token")).toBeInTheDocument();
 	});
 });

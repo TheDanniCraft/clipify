@@ -240,10 +240,10 @@ describe("database.ts coverage tests", () => {
 		createBrowserPlaylist.mockReset().mockResolvedValue(null);
 		jest.clearAllMocks();
 		selectQueue.length = 0;
-		dbSelect.mockImplementation(() => makeSelectChain());
-		dbInsert.mockImplementation(() => makeInsertChain());
-		dbUpdate.mockImplementation(() => makeUpdateChain());
-		dbDelete.mockImplementation(() => makeDeleteChain());
+		dbSelect.mockReset().mockImplementation(() => makeSelectChain());
+		dbInsert.mockReset().mockImplementation(() => makeInsertChain());
+		dbUpdate.mockReset().mockImplementation(() => makeUpdateChain());
+		dbDelete.mockReset().mockImplementation(() => makeDeleteChain());
 		validateAuth.mockResolvedValue({ id: "user-1", email: "e", username: "u" });
 		authorizeCreatorOperation.mockResolvedValue({ allowed: true, accessPath: "owner", creator: { id: "user-1", plan: "pro" }, creatorOrganizationId: "creator:user-1", authUserId: "auth-user-1", sessionId: "session-1" });
 		listAuthorizedCreatorOperations.mockResolvedValue([{ allowed: true, accessPath: "owner", creator: { id: "user-1", plan: "pro" }, creatorOrganizationId: "creator:user-1", authUserId: "auth-user-1", sessionId: "session-1" }]);

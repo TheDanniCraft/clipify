@@ -3,7 +3,8 @@ import "server-only";
 import { TwitchBadge, TwitchMessage } from "@types";
 import { sendMessage } from "@actions/websocket";
 import { getTwitchClip, handleClip, sendChatMessage } from "@actions/twitch";
-import { addToModQueue, clearClipQueueByOverlayIdServer, clearModQueueByBroadcasterId, getClipQueueByOverlayId, getModQueue, getSettingsServer, getUserByIdServer } from "@actions/database";
+import { clearClipQueueByOverlayIdServer, clearModQueueByBroadcasterId, getClipQueueByOverlayId, getModQueue, getSettingsServer, getUserByIdServer } from "@actions/database";
+import { addVerifiedChatClipToModQueue } from "@/server/clip-queue";
 import { getAllOverlayIdsByOwnerInternal, getAllOverlaysByOwnerInternal } from "@/server/overlays";
 import { getFeatureAccess } from "@lib/featureAccess";
 import { getBaseUrl } from "@actions/utils";
@@ -152,7 +153,7 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 				/* ignore: command processing edge case */
 				if (!("errorCode" in clip)) {
 					await sendMessage("command", { name: "play", data: { clip } }, message.broadcaster_user_id);
-					await addToModQueue(message.broadcaster_user_id, clip.id);
+					await addVerifiedChatClipToModQueue(message.broadcaster_user_id, clip.id);
 
 					await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} the clip (${clip.title}) has been added to the queue!`);
 				}

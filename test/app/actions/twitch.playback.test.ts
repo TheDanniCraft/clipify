@@ -7,6 +7,8 @@ const getAccessToken = jest.fn();
 const getAccessTokenServer = jest.fn();
 const getOverlayBySecret = jest.fn();
 const getOverlayPublic = jest.fn();
+const getClipQueueByOverlayId = jest.fn();
+const getModQueueByBroadcasterId = jest.fn();
 const getPlaylistRuntimeClipsForOwnerServer = jest.fn();
 const getTwitchCache = jest.fn();
 const getTwitchCacheByPrefixEntries = jest.fn();
@@ -14,6 +16,7 @@ const setTwitchCache = jest.fn();
 const setTwitchCacheBatch = jest.fn();
 const getAccessTokenInternal = jest.fn();
 const connect = jest.fn();
+const authorizeCreatorOperation = jest.fn();
 
 jest.mock("@actions/database", () => ({
 	deleteTwitchCacheByPrefix: jest.fn(),
@@ -23,6 +26,8 @@ jest.mock("@actions/database", () => ({
 	getAccessTokenResultServer: jest.fn(),
 	getOverlayBySecret: (...args: unknown[]) => getOverlayBySecret(...args),
 	getOverlayPublic: (...args: unknown[]) => getOverlayPublic(...args),
+	getClipQueueByOverlayId: (...args: unknown[]) => getClipQueueByOverlayId(...args),
+	getModQueueByBroadcasterId: (...args: unknown[]) => getModQueueByBroadcasterId(...args),
 	getPlaylistRuntimeClipsForOwnerServer: (...args: unknown[]) => getPlaylistRuntimeClipsForOwnerServer(...args),
 	getTwitchCache: (...args: unknown[]) => getTwitchCache(...args),
 	getTwitchCacheBatch: jest.fn(),
@@ -42,6 +47,10 @@ jest.mock("@/db/client", () => ({
 
 jest.mock("@/server/tokens", () => ({
 	getAccessTokenInternal: (...args: unknown[]) => getAccessTokenInternal(...args),
+}));
+
+jest.mock("@/auth/authorize-operation", () => ({
+	authorizeCreatorOperation: (...args: unknown[]) => authorizeCreatorOperation(...args),
 }));
 
 function buildClip(id: string, overrides: Partial<Record<string, unknown>> = {}) {
@@ -146,9 +155,31 @@ describe("actions/twitch playback and cache behavior", () => {
 		getAccessTokenInternal.mockResolvedValue({ accessToken: "token" });
 		getOverlayBySecret.mockResolvedValue(buildOverlay());
 		getOverlayPublic.mockResolvedValue(buildOverlay());
+		getClipQueueByOverlayId.mockResolvedValue([]);
+		getModQueueByBroadcasterId.mockResolvedValue([]);
+		authorizeCreatorOperation.mockResolvedValue({ allowed: true });
 		getPlaylistRuntimeClipsForOwnerServer.mockResolvedValue([]);
 		getTwitchCache.mockResolvedValue({});
 		getTwitchCacheByPrefixEntries.mockResolvedValue([]);
+	});
+
+	it("does not expose another owner's cached clips without access", async () => {
+		authorizeCreatorOperation.mockResolvedValue({ allowed: false, code: "ACCESS_PATH_REQUIRED" });
+		getTwitchCacheByPrefixEntries.mockResolvedValue(cacheEntriesFromClips([buildClip("private-selection")]));
+		const { getCachedClipsByOwner, getTwitchClips } = await loadTwitch();
+
+		await expect(getCachedClipsByOwner("owner-1")).resolves.toEqual([]);
+		await expect(getTwitchClips(buildOverlay(), "All" as never, true)).resolves.toEqual([]);
+		expect(getTwitchCacheByPrefixEntries).not.toHaveBeenCalled();
+	});
+
+	it("allows an authorized playlist reader to list cached clips", async () => {
+		authorizeCreatorOperation.mockResolvedValueOnce({ allowed: false, code: "PERMISSION_DENIED" }).mockResolvedValueOnce({ allowed: true });
+		getTwitchCacheByPrefixEntries.mockResolvedValue(cacheEntriesFromClips([buildClip("owned-clip"), buildClip("foreign-clip", { broadcaster_id: "other-owner" })]));
+		const { getCachedClipsByOwner } = await loadTwitch();
+
+		await expect(getCachedClipsByOwner("owner-1")).resolves.toEqual([buildClip("owned-clip")]);
+		expect(authorizeCreatorOperation).toHaveBeenNthCalledWith(2, { creatorId: "owner-1", resourceOwnerId: "owner-1", permission: "playlist:read" });
 	});
 
 	it("filters clips using duration, blacklist, creator and view constraints, then sorts by top mode", async () => {
@@ -376,6 +407,35 @@ describe("actions/twitch playback and cache behavior", () => {
 		expect(fallbackAll.map((clip) => clip.id)).toEqual(["clip-c", "clip-b"]);
 	});
 
+	it("keeps public batch requests within the stored overlay type and filters", async () => {
+		getOverlayPublic.mockResolvedValue(buildOverlay({ type: "All", playlistId: "playlist-1", minClipViews: 100 }));
+		getPlaylistRuntimeClipsForOwnerServer.mockResolvedValue([buildClip("curated")]);
+		getTwitchCacheByPrefixEntries.mockResolvedValue(cacheEntriesFromClips([buildClip("filtered-out", { view_count: 10 })]));
+		const { getTwitchClipBatch } = await loadTwitch();
+
+		await expect(getTwitchClipBatch("overlay-1", undefined, "Playlist" as never, [], 50, true)).resolves.toEqual([]);
+		expect(getPlaylistRuntimeClipsForOwnerServer).not.toHaveBeenCalled();
+	});
+
+	it("does not let an overlay secret broaden a Queue overlay into the full cache", async () => {
+		getOverlayBySecret.mockResolvedValue(buildOverlay({ type: "Queue" }));
+		getTwitchCacheByPrefixEntries.mockResolvedValue(cacheEntriesFromClips([buildClip("not-queued")]));
+		const { getTwitchClipBatch } = await loadTwitch();
+
+		await expect(getTwitchClipBatch("overlay-1", "secret", "All" as never, [], 50, true)).resolves.toEqual([]);
+		expect(getTwitchCacheByPrefixEntries).not.toHaveBeenCalled();
+	});
+
+	it("does not return clips for a paused or disabled public overlay", async () => {
+		getTwitchCacheByPrefixEntries.mockResolvedValue(cacheEntriesFromClips([buildClip("hidden")]));
+		const { getTwitchClipBatch } = await loadTwitch();
+		getOverlayPublic.mockResolvedValueOnce(buildOverlay({ status: "paused" })).mockResolvedValueOnce(buildOverlay({ ownerDisabled: true }));
+
+		await expect(getTwitchClipBatch("overlay-1")).resolves.toEqual([]);
+		await expect(getTwitchClipBatch("overlay-1")).resolves.toEqual([]);
+		expect(getTwitchCacheByPrefixEntries).not.toHaveBeenCalled();
+	});
+
 	it("uses created_at as top-mode tie-breaker when view counts are equal", async () => {
 		getOverlayPublic.mockResolvedValue(buildOverlay({ playbackMode: "top" }));
 		getTwitchCacheByPrefixEntries.mockResolvedValue(cacheEntriesFromClips([buildClip("older", { view_count: 100, created_at: "2026-03-01T00:00:00.000Z" }), buildClip("newer", { view_count: 100, created_at: "2026-03-09T00:00:00.000Z" }), buildClip("lower", { view_count: 10, created_at: "2026-03-10T00:00:00.000Z" })]));
@@ -495,7 +555,7 @@ describe("actions/twitch playback and cache behavior", () => {
 		const axiosSpy = jest.spyOn(axios, "get");
 
 		const { resolvePlayableClip } = await loadTwitch();
-		const resolved = await resolvePlayableClip("owner-1", clip);
+		const resolved = await resolvePlayableClip("overlay-1", clip, "secret");
 
 		expect(resolved).toBeNull();
 		expect(axiosSpy).not.toHaveBeenCalled();
@@ -504,6 +564,7 @@ describe("actions/twitch playback and cache behavior", () => {
 
 	it("revalidates stale clips and updates cache when clip is still available", async () => {
 		const staleClip = buildClip("stale-clip", { title: "Old title" });
+		getTwitchCacheByPrefixEntries.mockResolvedValue(cacheEntriesFromClips([staleClip]));
 		getTwitchCache.mockResolvedValue({
 			clip: staleClip,
 			lastValidatedAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
@@ -515,7 +576,7 @@ describe("actions/twitch playback and cache behavior", () => {
 		} as never);
 
 		const { resolvePlayableClip } = await loadTwitch();
-		const resolved = await resolvePlayableClip("owner-1", staleClip);
+		const resolved = await resolvePlayableClip("overlay-1", staleClip, "secret");
 
 		expect(resolved?.title).toBe("Fresh title");
 		expect(setTwitchCache).toHaveBeenCalledWith(
@@ -530,6 +591,7 @@ describe("actions/twitch playback and cache behavior", () => {
 
 	it("marks stale clips unavailable when Twitch no longer returns them", async () => {
 		const staleClip = buildClip("missing-clip");
+		getTwitchCacheByPrefixEntries.mockResolvedValue(cacheEntriesFromClips([staleClip]));
 		getTwitchCache.mockResolvedValue({
 			clip: staleClip,
 			lastValidatedAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
@@ -541,7 +603,7 @@ describe("actions/twitch playback and cache behavior", () => {
 		} as never);
 
 		const { resolvePlayableClip } = await loadTwitch();
-		const resolved = await resolvePlayableClip("owner-1", staleClip);
+		const resolved = await resolvePlayableClip("overlay-1", staleClip, "secret");
 
 		expect(resolved).toBeNull();
 		expect(setTwitchCache).toHaveBeenCalledWith(
@@ -556,6 +618,7 @@ describe("actions/twitch playback and cache behavior", () => {
 
 	it("returns fresh cached clip immediately without revalidating", async () => {
 		const fallback = buildClip("fresh-cache", { title: "fallback-title" });
+		getTwitchCacheByPrefixEntries.mockResolvedValue(cacheEntriesFromClips([fallback]));
 		getTwitchCache.mockResolvedValue({
 			clip: buildClip("fresh-cache", { title: "cached-title" }),
 			lastValidatedAt: new Date().toISOString(),
@@ -563,10 +626,66 @@ describe("actions/twitch playback and cache behavior", () => {
 		const axiosSpy = jest.spyOn(axios, "get");
 
 		const { resolvePlayableClip } = await loadTwitch();
-		const resolved = await resolvePlayableClip("owner-1", fallback);
+		const resolved = await resolvePlayableClip("overlay-1", fallback, "secret");
 
 		expect(resolved?.title).toBe("cached-title");
 		expect(axiosSpy).not.toHaveBeenCalled();
+		expect(setTwitchCache).not.toHaveBeenCalled();
+	});
+
+	it("keeps public overlay playback working for a selected owner clip", async () => {
+		const clip = buildClip("public-selected");
+		getTwitchCacheByPrefixEntries.mockResolvedValue(cacheEntriesFromClips([clip]));
+		getTwitchCache.mockResolvedValue({ clip, lastValidatedAt: new Date().toISOString() });
+		const { resolvePlayableClip } = await loadTwitch();
+
+		await expect(resolvePlayableClip("overlay-1", clip)).resolves.toEqual(clip);
+		expect(setTwitchCache).not.toHaveBeenCalled();
+	});
+
+	it("rejects a clip outside the authorized overlay before writing cache state", async () => {
+		getOverlayPublic.mockResolvedValue(buildOverlay());
+		getTwitchCache.mockResolvedValue(null);
+		getTwitchCacheByPrefixEntries.mockResolvedValue(cacheEntriesFromClips([buildClip("foreign", { broadcaster_id: "other-owner" })]));
+		const axiosSpy = jest.spyOn(axios, "get");
+		const { resolvePlayableClip } = await loadTwitch();
+
+		await expect(resolvePlayableClip("overlay-1", buildClip("foreign", { broadcaster_id: "other-owner" }))).resolves.toBeNull();
+		expect(axiosSpy).not.toHaveBeenCalled();
+		expect(setTwitchCache).not.toHaveBeenCalled();
+	});
+
+	it("does not resolve a filtered-out cached clip with an overlay secret", async () => {
+		const excluded = buildClip("filtered-out", { view_count: 10 });
+		getOverlayBySecret.mockResolvedValue(buildOverlay({ minClipViews: 100 }));
+		getTwitchCacheByPrefixEntries.mockResolvedValue(cacheEntriesFromClips([excluded]));
+		getTwitchCache.mockResolvedValue(excluded);
+		const { resolvePlayableClip } = await loadTwitch();
+
+		await expect(resolvePlayableClip("overlay-1", excluded, "secret")).resolves.toBeNull();
+		expect(setTwitchCache).not.toHaveBeenCalled();
+	});
+
+	it("plays an authorized queued foreign clip without storing it under the owner", async () => {
+		const foreign = buildClip("queued-foreign", { broadcaster_id: "other-owner" });
+		getTwitchCache.mockResolvedValue(null);
+		getClipQueueByOverlayId.mockResolvedValue([{ clipId: foreign.id }]);
+		jest.spyOn(axios, "get").mockResolvedValue({ data: { data: [foreign] } } as never);
+		const { resolvePlayableClip } = await loadTwitch();
+
+		await expect(resolvePlayableClip("overlay-1", foreign, "secret")).resolves.toEqual(foreign);
+		expect(setTwitchCache).not.toHaveBeenCalled();
+	});
+
+	it("does not mark a cached clip unavailable on a transient Twitch failure", async () => {
+		const clip = buildClip("retry-later");
+		getTwitchCacheByPrefixEntries.mockResolvedValue(cacheEntriesFromClips([clip]));
+		getTwitchCache.mockResolvedValue({ clip, lastValidatedAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString() });
+		jest.spyOn(axios, "get").mockRejectedValue(new Error("temporary network failure"));
+		jest.spyOn(console, "error").mockImplementation(() => undefined);
+		const { resolvePlayableClip } = await loadTwitch();
+
+		await expect(resolvePlayableClip("overlay-1", clip, "secret")).resolves.toBeNull();
 		expect(setTwitchCache).not.toHaveBeenCalled();
 	});
 

@@ -2,7 +2,8 @@ import "server-only";
 import { withoutDatabaseRequest } from "@/db/request-scope";
 import { dbPool, type TransactionClient } from "@/db/client";
 import { getTwitchCache } from "@/app/actions/database";
-import { getCachedClipsByOwner, getCreatorSyncProgress, logTwitchError } from "@/app/actions/twitch";
+import { getCreatorSyncProgress, logTwitchError } from "@/app/actions/twitch";
+import { readCachedClipsByOwner } from "@/server/clip-cache-read";
 import { crawlTransactionConnection } from "./clip-crawler/transaction";
 import { enqueueManualClipCrawl } from "./clip-crawler/queue";
 import { runClipCrawlerBatch } from "./clip-crawler/worker";
@@ -20,7 +21,7 @@ export async function clipCrawlerStatus(creatorId: string) {
 		getTwitchCache<{ lastForcedAt?: string }>(TwitchCacheType.Clip, `clip-sync-force:${creatorId}`),
 		getCreatorSyncProgress(creatorId),
 		getTwitchCache<SyncState>(TwitchCacheType.Clip, `clip-sync:${creatorId}`),
-		getCachedClipsByOwner(creatorId),
+		readCachedClipsByOwner(creatorId),
 		dbPool.query(
 			`SELECT kind,
  CASE WHEN lease_expires_at>now() THEN 'running' WHEN next_run_at IS NULL THEN 'complete'

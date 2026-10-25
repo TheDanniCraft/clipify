@@ -188,6 +188,14 @@ describe("actions/subscription", () => {
 		expect(result).toBe("https://checkout.stripe.test/session-1");
 	});
 
+	it("keeps caller supplied checkout redirects on the Clipify origin", async () => {
+		validateAuth.mockResolvedValue({ id: "user-1", email: "alice@example.com", stripeCustomerId: "cus_123" });
+		checkoutCreate.mockResolvedValue({ url: "https://checkout.stripe.test/session-1" });
+		const { generateCheckout } = await loadSubscription();
+		await generateCheckout(["pro" as never], "yearly", undefined, undefined, undefined, { successUrl: "https://evil.example/success", cancelUrl: "//evil.example/cancel" });
+		expect(checkoutCreate).toHaveBeenCalledWith(expect.objectContaining({ success_url: "https://clipify.us/dashboard/settings", cancel_url: "https://clipify.us/dashboard/settings" }));
+	});
+
 	it("allows purchasing paid Pro while a reverse trial is active", async () => {
 		resolveUserEntitlements.mockResolvedValue({
 			proAccess: true,

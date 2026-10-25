@@ -14,6 +14,9 @@ async function main() {
 		overlayId = randomUUID();
 	try {
 		await fixture.pool.query(`INSERT INTO auth.organization(id,name,slug,created_at) VALUES('runtime-org','Runtime','runtime-org',now()); INSERT INTO users(id,email,username,avatar,role,plan) VALUES('runtime-owner','runtime@example.invalid','Runtime','','user','pro'); INSERT INTO creator_accounts(creator_id,organization_id,status) VALUES('runtime-owner','runtime-org','active')`);
+		await fixture.pool.query(
+			"INSERT INTO auth.user(id,name,email,created_at,updated_at) VALUES('runtime-auth-owner','Runtime owner','runtime-auth@example.invalid',now(),now()); INSERT INTO auth.member(id,organization_id,user_id,role,created_at) VALUES('runtime-member','runtime-org','runtime-auth-owner','owner',now()); INSERT INTO auth.session(id,expires_at,token,user_id,created_at,updated_at) VALUES('runtime-session',now()+interval '1 hour','runtime-session-token','runtime-auth-owner',now(),now())",
+		);
 		await fixture.pool.query("INSERT INTO overlays(id,owner_id,secret,name,status,type) VALUES($1,'runtime-owner','isolated-runtime-secret','Runtime','active','Featured')", [overlayId]);
 		const { handleMessage } = await import("@/app/actions/websocket");
 		const { addSubscriber, overlaySubscribers, getActiveOverlayOwnerIds } = await import("@/app/store/overlaySubscribers");
@@ -47,7 +50,12 @@ async function main() {
 		source.sourceActive = true;
 		const controller: any = {
 			role: "controller",
+			ownerId: "runtime-owner",
+			controllerIdentity: { authUserId: "runtime-auth-owner", sessionId: "runtime-session", expiresAt: Date.now() + 60_000 },
 			readyState: 1,
+			close(code: number) {
+				closes.push(code);
+			},
 			send(message: string) {
 				messages.push(message);
 			},

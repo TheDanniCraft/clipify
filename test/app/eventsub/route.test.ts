@@ -40,9 +40,10 @@ jest.mock("@actions/twitch", () => ({
 }));
 
 jest.mock("@actions/database", () => ({
-	addToClipQueue: (...args: unknown[]) => addToClipQueue(...args),
 	getOverlayByRewardId: (...args: unknown[]) => getOverlayByRewardId(...args),
 }));
+
+jest.mock("@/server/clip-queue", () => ({ addVerifiedRewardClipToQueue: (...args: unknown[]) => addToClipQueue(...args) }));
 
 jest.mock("@actions/websocket", () => ({
 	sendMessage: (...args: unknown[]) => sendMessage(...args),
