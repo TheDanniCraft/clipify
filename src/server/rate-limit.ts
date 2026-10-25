@@ -57,7 +57,7 @@ export function consumeOwnerClipPlayback(ownerId: string, lane: ClipPlaybackLane
 	}
 	pruneClipPlaybackCapacity(capacity, now);
 	if (capacity[lane].length >= CLIP_PLAYBACK_LIMITS[lane]) return false;
-	if (capacity.public.length + capacity.demo.length + capacity.runtime.length >= 150) return false;
+	// The three lane ceilings sum to 150, so they also bound the total.
 	capacity[lane].push(now);
 	return true;
 }

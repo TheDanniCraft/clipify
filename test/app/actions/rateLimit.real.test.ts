@@ -56,4 +56,9 @@ describe("clip playback capacity with the installed rate limiter", () => {
 		await jest.advanceTimersByTimeAsync(59_801);
 		await expect(canResolveTrustedClipPlayback(ownerId)).resolves.toBe(true);
 	});
+
+	it("rejects playback without an owner identity", async () => {
+		const { canResolveTrustedClipPlayback } = await import("@actions/rateLimit");
+		await expect(canResolveTrustedClipPlayback("")).resolves.toBe(false);
+	});
 });
