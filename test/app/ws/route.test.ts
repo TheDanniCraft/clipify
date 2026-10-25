@@ -146,6 +146,38 @@ describe("websocket upgrade lifecycle", () => {
 		await Promise.resolve();
 		expect(message).toHaveBeenCalledWith(bytes, socket);
 	});
+	test("processes commands in arrival order while the first authorization is delayed", async () => {
+		let releaseFirst!: () => void;
+		const first = new Promise<void>((resolve) => {
+			releaseFirst = resolve;
+		});
+		const delivered: string[] = [];
+		message.mockImplementationOnce(async (bytes: Buffer) => {
+			await first;
+			delivered.push(JSON.parse(bytes.toString()).data.name);
+		});
+		message.mockImplementationOnce(async (bytes: Buffer) => {
+			delivered.push(JSON.parse(bytes.toString()).data.name);
+		});
+		const {
+			clients: [socket],
+		} = await setup();
+		socket.emit("message", Buffer.from('{"type":"command","data":{"name":"pause"}}'));
+		socket.emit("message", Buffer.from('{"type":"command","data":{"name":"play"}}'));
+		await Promise.resolve();
+		expect(message).toHaveBeenCalledTimes(1);
+		releaseFirst();
+		await jest.advanceTimersByTimeAsync(0);
+		expect(delivered).toEqual(["pause", "play"]);
+	});
+	test("closes a connection whose pending message queue exceeds its bound", async () => {
+		message.mockImplementation(() => new Promise(() => {}));
+		const {
+			clients: [socket],
+		} = await setup();
+		for (let index = 0; index < 33; index++) socket.emit("message", Buffer.from('{"type":"command"}'));
+		expect(socket.close).toHaveBeenCalledWith(1013);
+	});
 	test.each(["close", "error"])("cleans a bound subscription on %s and cancels its deadline", async (event) => {
 		const {
 			clients: [socket],

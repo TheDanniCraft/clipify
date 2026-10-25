@@ -23,6 +23,8 @@ declare module "ws" {
 
 export function UPGRADE(client: WebSocket, server: WebSocketServer) {
 	client.isAlive = true;
+	let pendingMessages = 0;
+	let messageQueue = Promise.resolve();
 	client.on("pong", () => {
 		client.isAlive = true;
 	});
@@ -65,8 +67,23 @@ export function UPGRADE(client: WebSocket, server: WebSocketServer) {
 		}
 	}, 10 * 1000);
 
-	client.on("message", async (buffer) => {
-		await handleMessage(buffer, client);
+	client.on("message", (buffer) => {
+		if (pendingMessages >= 32) {
+			client.close(1013);
+			return;
+		}
+		pendingMessages += 1;
+		messageQueue = messageQueue
+			.then(async () => {
+				if (client.readyState === WebSocket.OPEN) await handleMessage(buffer, client);
+			})
+			.catch((error) => {
+				console.error("Failed to process WebSocket message:", error);
+				client.close(1011);
+			})
+			.finally(() => {
+				pendingMessages -= 1;
+			});
 	});
 
 	const cleanup = async () => {
