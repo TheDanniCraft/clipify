@@ -179,7 +179,7 @@ export function getGalleryEmbed(principal: TrustedCreatorPrincipal, input: unkno
 
 import { normalizeGalleryPatch, downgradeGalleryPatch, resolveLiveGalleryClips } from "@lib/gallery";
 import { getPlaylistRuntimeClipsForOwnerServer } from "@actions/database";
-import { getCachedClipsByOwner } from "@actions/twitch";
+import { readCachedClipsByOwner } from "@/server/clip-cache-read";
 import { publicClip } from "./clip-discovery";
 import { providerClipSchema } from "./clip-validation";
 import type { Gallery } from "@types";
@@ -192,7 +192,7 @@ export function getGalleryPreviewForPrincipal(principal: TrustedCreatorPrincipal
 			const row = await galleryRecord(context, input.galleryId);
 			const access = await resolveRetainedResourceAccess({ kind: "gallery", ownerId: input.creatorId, resourceId: row.id, client: context.tx });
 			const effective: Gallery = context.pro ? row : { ...row, ...normalizeGalleryPatch(row, {}, false), ...downgradeGalleryPatch(row, true) };
-			const clips = !access.runtime ? [] : effective.source === "curated" ? (effective.playlistId ? await getPlaylistRuntimeClipsForOwnerServer(input.creatorId, effective.playlistId) : []) : resolveLiveGalleryClips(effective, await getCachedClipsByOwner(input.creatorId));
+			const clips = !access.runtime ? [] : effective.source === "curated" ? (effective.playlistId ? await getPlaylistRuntimeClipsForOwnerServer(input.creatorId, effective.playlistId) : []) : resolveLiveGalleryClips(effective, await readCachedClipsByOwner(input.creatorId));
 			const key = `${principal.grantId}:${principal.generation}:gallery-preview:${row.id}:${row.configurationRevision}`;
 			const offset = input.cursor ? Number(decodePageCursor(input.cursor, key)) : 0;
 			if (!Number.isSafeInteger(offset) || offset < 0 || offset > 100_000) throw new Error("INVALID_INPUT");

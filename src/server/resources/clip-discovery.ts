@@ -44,11 +44,12 @@ export function publicClip(clip: schema.infer<typeof providerClipSchema>) {
 	};
 }
 export async function fetchClipDiscovery(creatorId: string, filters: ClipFilters) {
-	const { getCachedClipsByOwner, getCreatorSyncProgress } = await import("@/app/actions/twitch");
+	const { getCreatorSyncProgress } = await import("@/app/actions/twitch");
+	const { readCachedClipsByOwner } = await import("@/server/clip-cache-read");
 	const { getTwitchCacheBatch } = await import("@/app/actions/database");
 	const { TwitchCacheType } = await import("@/app/lib/types");
 	try {
-		const [cached, progress] = await Promise.all([getCachedClipsByOwner(creatorId), getCreatorSyncProgress(creatorId)]);
+		const [cached, progress] = await Promise.all([readCachedClipsByOwner(creatorId), getCreatorSyncProgress(creatorId)]);
 		const parsed = schema.array(providerClipSchema).safeParse(cached);
 		if (!parsed.success || parsed.data.some((clip) => clip.broadcaster_id !== creatorId)) throw new Error("SERVICE_UNAVAILABLE");
 		const clips = Array.from(new Map(parsed.data.map((clip) => [clip.id, clip])).values());

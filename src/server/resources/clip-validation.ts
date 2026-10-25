@@ -24,10 +24,10 @@ export const providerClipSchema = z.object({
 
 /** Reuse validated creator cache entries; resolve only uncached explicit IDs through Twitch. */
 export async function resolveValidatedPlaylistClips(creatorId: string, clipIds: string[]) {
-	const { getCachedClipsByOwner } = await import("@/app/actions/twitch");
+	const { readCachedClipsByOwner } = await import("@/server/clip-cache-read");
 	const requestedIds = new Set(clipIds);
 	const resolved = new Map<string, z.infer<typeof providerClipSchema>>();
-	for (const clip of await getCachedClipsByOwner(creatorId)) {
+	for (const clip of await readCachedClipsByOwner(creatorId)) {
 		if (!requestedIds.has(clip.id)) continue;
 		const parsed = providerClipSchema.safeParse(clip);
 		if (!parsed.success || parsed.data.broadcaster_id !== creatorId) throw new Error("INVALID_INPUT");

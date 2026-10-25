@@ -879,7 +879,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 		if (playbackMode === "top") {
 			const sorted = [...candidates].sort((a, b) => b.view_count - a.view_count || b.created_at.localeCompare(a.created_at));
 			for (const clip of sorted) {
-				const playable = await resolvePlayableClip(overlay.ownerId, clip);
+				const playable = await resolvePlayableClip(overlay.id, clip, overlaySecret);
 				if (playable) return { clip: playable };
 			}
 			return null;
@@ -936,7 +936,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 				}
 				const [picked] = remaining.splice(pickedIndex, 1);
 				if (!picked) continue;
-				const playable = await resolvePlayableClip(overlay.ownerId, picked.clip);
+				const playable = await resolvePlayableClip(overlay.id, picked.clip, overlaySecret);
 				if (playable) return { clip: playable };
 			}
 			return null;
@@ -944,7 +944,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 
 		if (playbackMode === PlaybackMode.Order) {
 			for (const clip of candidates) {
-				const playable = await resolvePlayableClip(overlay.ownerId, clip);
+				const playable = await resolvePlayableClip(overlay.id, clip, overlaySecret);
 				if (playable) return { clip: playable };
 			}
 			return null;
@@ -952,11 +952,11 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 
 		const shuffled = [...candidates].sort(() => Math.random() - 0.5);
 		for (const clip of shuffled) {
-			const playable = await resolvePlayableClip(overlay.ownerId, clip);
+			const playable = await resolvePlayableClip(overlay.id, clip, overlaySecret);
 			if (playable) return { clip: playable };
 		}
 		return null;
-	}, [getFirstFromDemoQueue, isDemoPlayer, isEmbed, overlay.id, overlay.ownerId, overlaySecret, playbackMode, refreshClipPool]);
+	}, [getFirstFromDemoQueue, isDemoPlayer, isEmbed, overlay.id, overlaySecret, playbackMode, refreshClipPool]);
 
 	const consumeQueueItem = useCallback(
 		async (queueItem: ModQueueItem | ClipQueueItem | null | undefined) => {

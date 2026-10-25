@@ -1,7 +1,8 @@
 "use server";
 
 import { getPlaylistRuntimeClipsForOwnerServer } from "@actions/database";
-import { getCachedClipByOwner, getCachedClipsByOwner, getTwitchClipPlaybackUrl } from "@actions/twitch";
+import { getCachedClipByOwner, getTwitchClipPlaybackUrl } from "@actions/twitch";
+import { readCachedClipsByOwner } from "@/server/clip-cache-read";
 import { db } from "@/db/client";
 import { galleriesTable, playlistsTable, usersTable } from "@/db/schema";
 import { FREE_GALLERY_LIMIT, downgradeGalleryPatch, normalizeGalleryPatch, normalizeGalleryUpdatePatch, resolveLiveGalleryClips, type GalleryPatch } from "@lib/gallery";
@@ -52,7 +53,7 @@ async function resolveClips(gallery: Gallery): Promise<TwitchClip[]> {
 		if (!gallery.playlistId) return [];
 		return getPlaylistRuntimeClipsForOwnerServer(gallery.ownerId, gallery.playlistId);
 	}
-	return resolveLiveGalleryClips(gallery, await getCachedClipsByOwner(gallery.ownerId));
+	return resolveLiveGalleryClips(gallery, await readCachedClipsByOwner(gallery.ownerId));
 }
 
 export async function getAllGalleries(userId: string) {

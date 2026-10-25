@@ -61,7 +61,8 @@ dbTransaction.mockImplementation(async (callback: (tx: DbMock) => unknown) => ca
 
 jest.mock("@actions/auth", () => ({ validateAuth: (...args: unknown[]) => validateAuth(...args) }));
 jest.mock("@actions/database", () => ({ getPlaylistRuntimeClipsForOwnerServer: (...args: unknown[]) => getPlaylistRuntimeClipsForOwnerServer(...args) }));
-jest.mock("@actions/twitch", () => ({ getCachedClipsByOwner: (...args: unknown[]) => getCachedClipsByOwner(...args), getCachedClipByOwner: (...args: unknown[]) => getCachedClipByOwner(...args), getTwitchClipPlaybackUrl: (...args: unknown[]) => getTwitchClipPlaybackUrl(...args) }));
+jest.mock("@actions/twitch", () => ({ getCachedClipByOwner: (...args: unknown[]) => getCachedClipByOwner(...args), getTwitchClipPlaybackUrl: (...args: unknown[]) => getTwitchClipPlaybackUrl(...args) }));
+jest.mock("@/server/clip-cache-read", () => ({ readCachedClipsByOwner: (...args: unknown[]) => getCachedClipsByOwner(...args) }));
 jest.mock("@/db/client", () => ({ db }));
 jest.mock("@lib/entitlements", () => ({ resolveUserEntitlements: (...args: unknown[]) => resolveUserEntitlements(...args) }));
 jest.mock("@lib/featureAccess", () => ({ getFeatureAccess: (...args: unknown[]) => getFeatureAccess(...args) }));

@@ -10,6 +10,7 @@ const getTwitchCacheBatch = jest.fn();
 const getTwitchCacheEntry = jest.fn();
 const getTwitchCacheStale = jest.fn();
 const getTwitchCacheStaleBatch = jest.fn();
+const getTwitchCacheByPrefixEntries = jest.fn();
 const setTwitchCache = jest.fn();
 const setTwitchCacheBatch = jest.fn();
 const getAccessTokenInternal = jest.fn();
@@ -22,6 +23,10 @@ const canResolvePublicClipPlayback = jest.fn();
 const tryRateLimit = jest.fn();
 const getOverlayBySecret = jest.fn();
 const getOverlayPublic = jest.fn();
+const getClipQueueByOverlayId = jest.fn();
+const authorizeCreatorOperation = jest.fn();
+
+jest.mock("@/auth/authorize-operation", () => ({ authorizeCreatorOperation: (...args: unknown[]) => authorizeCreatorOperation(...args) }));
 
 jest.mock("@actions/rateLimit", () => ({ canResolvePublicClipPlayback: (...args: unknown[]) => canResolvePublicClipPlayback(...args), tryRateLimit: (...args: unknown[]) => tryRateLimit(...args) }));
 
@@ -32,12 +37,12 @@ jest.mock("@actions/database", () => ({
 	getAccessTokenServer: (...args: unknown[]) => getAccessToken(...args),
 	getOverlayBySecret: (...args: unknown[]) => getOverlayBySecret(...args),
 	getOverlayPublic: (...args: unknown[]) => getOverlayPublic(...args),
-	getClipQueueByOverlayId: jest.fn().mockResolvedValue([]),
+	getClipQueueByOverlayId: (...args: unknown[]) => getClipQueueByOverlayId(...args),
 	getModQueueByBroadcasterId: jest.fn().mockResolvedValue([]),
 	getPlaylistRuntimeClipsForOwnerServer: jest.fn(),
 	getTwitchCache: (...args: unknown[]) => getTwitchCache(...args),
 	getTwitchCacheBatch: (...args: unknown[]) => getTwitchCacheBatch(...args),
-	getTwitchCacheByPrefixEntries: jest.fn(async () => []),
+	getTwitchCacheByPrefixEntries: (...args: unknown[]) => getTwitchCacheByPrefixEntries(...args),
 	getTwitchCacheEntry: (...args: unknown[]) => getTwitchCacheEntry(...args),
 	getTwitchCacheStale: (...args: unknown[]) => getTwitchCacheStale(...args),
 	getTwitchCacheStaleBatch: (...args: unknown[]) => getTwitchCacheStaleBatch(...args),
@@ -163,8 +168,11 @@ describe("actions/twitch external API and failure handling", () => {
 		isPreview.mockResolvedValue(false);
 		canResolvePublicClipPlayback.mockResolvedValue(true);
 		tryRateLimit.mockResolvedValue({ success: true });
-		getOverlayBySecret.mockResolvedValue({ id: "overlay-1", ownerId: "owner-1", status: "active" });
+		getOverlayBySecret.mockResolvedValue({ id: "overlay-1", ownerId: "owner-1", status: "active", type: "All", minClipDuration: 0, maxClipDuration: 60, minClipViews: 0, blacklistWords: [] });
 		getOverlayPublic.mockResolvedValue({ id: "overlay-1", ownerId: "owner-1", status: "active", type: "Queue" });
+		getTwitchCacheByPrefixEntries.mockResolvedValue(["clip-a", "clip-b", "clip-cache", "clip-limited", "clip-c", "clip-d", "clip-e"].map((id) => ({ key: `clip:owner-1:${id}`, value: buildClip(id) })));
+		getClipQueueByOverlayId.mockResolvedValue([]);
+		authorizeCreatorOperation.mockResolvedValue({ allowed: true });
 		getAccessTokenResultInternal.mockResolvedValue({
 			token: { accessToken: "user-access", scope: ["channel:manage:clips"] },
 			reason: undefined,
@@ -1029,13 +1037,14 @@ describe("actions/twitch external API and failure handling", () => {
 
 	it("handles malformed cached clip entries by falling back to provided clip", async () => {
 		const clip = buildClip("malformed-fallback");
+		getClipQueueByOverlayId.mockResolvedValue([{ clipId: clip.id }]);
 		getTwitchCache.mockResolvedValue({
 			foo: "bar",
 			lastValidatedAt: new Date().toISOString(),
 		});
 
 		const { resolvePlayableClip } = await loadTwitch();
-		const resolved = await resolvePlayableClip("owner-1", clip);
+		const resolved = await resolvePlayableClip("overlay-1", clip, "secret");
 
 		expect(resolved).toEqual(clip);
 	});

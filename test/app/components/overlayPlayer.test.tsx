@@ -287,7 +287,7 @@ describe("components/overlayPlayer", () => {
 
 		await screen.findByText("top-clip");
 		expect(getTwitchClipBatch).toHaveBeenCalledWith("overlay-1", undefined, "All", expect.any(Array), 50);
-		expect(resolvePlayableClip).toHaveBeenCalledWith("owner-1", expect.objectContaining({ id: "top-1" }));
+		expect(resolvePlayableClip).toHaveBeenCalledWith("overlay-1", expect.objectContaining({ id: "top-1" }), undefined);
 	});
 
 	it("handles embed click-to-play, pause, and mute controls", async () => {
@@ -440,8 +440,8 @@ describe("components/overlayPlayer", () => {
 		render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
 
 		await screen.findByText("top-mid");
-		expect(resolvePlayableClip).toHaveBeenCalledWith("owner-1", expect.objectContaining({ id: "top-high" }));
-		expect(resolvePlayableClip).toHaveBeenCalledWith("owner-1", expect.objectContaining({ id: "top-mid" }));
+		expect(resolvePlayableClip).toHaveBeenCalledWith("overlay-1", expect.objectContaining({ id: "top-high" }), undefined);
+		expect(resolvePlayableClip).toHaveBeenCalledWith("overlay-1", expect.objectContaining({ id: "top-mid" }), undefined);
 	});
 
 	it("returns no clip when smart-shuffle cannot resolve any playable candidates", async () => {
@@ -494,8 +494,8 @@ describe("components/overlayPlayer", () => {
 		render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "order", type: "Playlist", playlistId: "playlist-1" })} />);
 
 		await screen.findByText("order-title-2");
-		expect(resolvePlayableClip).toHaveBeenNthCalledWith(1, "owner-1", expect.objectContaining({ id: "order-1" }));
-		expect(resolvePlayableClip).toHaveBeenNthCalledWith(2, "owner-1", expect.objectContaining({ id: "order-2" }));
+		expect(resolvePlayableClip).toHaveBeenNthCalledWith(1, "overlay-1", expect.objectContaining({ id: "order-1" }), undefined);
+		expect(resolvePlayableClip).toHaveBeenNthCalledWith(2, "overlay-1", expect.objectContaining({ id: "order-2" }), undefined);
 	});
 
 	it("retries smart-shuffle candidates until a playable clip is found", async () => {
@@ -517,8 +517,8 @@ describe("components/overlayPlayer", () => {
 			render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "smart_shuffle" })} />);
 			await screen.findByText("smart-title-2");
 			expect(resolvePlayableClip.mock.calls.length).toBeGreaterThanOrEqual(2);
-			expect(resolvePlayableClip).toHaveBeenNthCalledWith(1, "owner-1", expect.objectContaining({ id: "smart-1" }));
-			expect(resolvePlayableClip).toHaveBeenNthCalledWith(2, "owner-1", expect.objectContaining({ id: "smart-2" }));
+			expect(resolvePlayableClip).toHaveBeenNthCalledWith(1, "overlay-1", expect.objectContaining({ id: "smart-1" }), undefined);
+			expect(resolvePlayableClip).toHaveBeenNthCalledWith(2, "overlay-1", expect.objectContaining({ id: "smart-2" }), undefined);
 		} finally {
 			randomSpy.mockRestore();
 		}
