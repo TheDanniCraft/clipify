@@ -119,7 +119,7 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 					seenExpertAward.current = result.expertAwardedAt;
 					if (mounted.current) {
 						setProgress((current) => ({ ...current, expertAwardedAt: result.expertAwardedAt, expertAwardVersion: 2 }));
-						addToast({ title: "Clipify Expert unlocked!", description: "You completed every guide. Your expert badge is now on your member profile.", color: "success" });
+						addToast({ title: "Clipify Expert unlocked!", color: "success" });
 					}
 				}
 			}
@@ -305,7 +305,7 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 																	<span className='min-w-0'>
 																		<span>{task.title}</span>
 																		{skipped && !current && (
-																			<span id={`guide-task-${task.id}-status`} className='ml-2 text-xs text-muted'>
+																			<span id={`guide-task-${task.id}-status`} className='ml-2 whitespace-nowrap text-sm font-medium text-foreground'>
 																				Skipped
 																			</span>
 																		)}

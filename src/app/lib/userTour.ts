@@ -454,7 +454,7 @@ export function stepsForTask(task: TaskId, progress: GuideProgress): GuideStep[]
 				: stepsForTask("playlist.name", progress);
 		case "playlist.use":
 			return [
-				{ target: "overlay-source", title: "Use a playlist", description: "Set Overlay Type to Playlist. The guide continues when you select it.", next: true, nextDisabled: !progress.playlistSource },
+				{ target: "overlay-source", title: "Use a playlist", description: "Select Playlist as the overlay type.", next: true, nextDisabled: !progress.playlistSource },
 				{ target: "overlay-playlist", title: "Select your playlist", description: "Choose your saved playlist.", next: true },
 				{ target: "overlay-save", title: "Save the overlay", description: "Click Save to use this playlist, or continue with the current settings.", next: true, finish: true, nextLabel: "Use current settings" },
 			];
