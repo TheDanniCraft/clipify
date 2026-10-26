@@ -128,6 +128,15 @@ export function activeGuidePercent(progress: GuideProgress) {
 	const total = (progress.active.navigationTotal ?? 0) + stepsForTask(progress.active.task, progress).length;
 	return Math.round((((progress.active.navigationTotal ?? 0) - (progress.active.navigation?.length ?? 0) + progress.active.index) / total) * 100);
 }
+/** Equal task weights, with partial credit for an active task until it is saved/confirmed. */
+export function journeyGuidePercent(progress: GuideProgress) {
+	const journey = journeys.find((item) => item.id === (progress.active?.task.split(".")[0] ?? progress.journeyId)) ?? journeys[0];
+	const finished = new Set([...progress.completed, ...progress.skipped]);
+	const completed = journey.tasks.filter((task) => finished.has(task.id)).length;
+	const partial = progress.active && !finished.has(progress.active.task) ? Math.min(0.95, 0.5 + activeGuidePercent(progress) / 200) : 0;
+	return Math.round(((completed + partial) / journey.tasks.length) * 100);
+}
+
 type Owned = { ownerId: string; id: string; select?: boolean };
 export type GuideEvent =
 	| ({ type: "overlay.ready" | "overlay.created" | "overlay.copied" | "website.copied" } & Owned)

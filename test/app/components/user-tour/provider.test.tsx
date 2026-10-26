@@ -66,7 +66,7 @@ beforeEach(() => {
 it("opens a first-use checklist with a ring and four concise sections", () => {
 	mount();
 	expect(screen.getByRole("region", { name: "Your Clipify guide" })).toBeVisible();
-	expect(screen.getByRole("progressbar", { name: "Getting started progress" })).toHaveAttribute("aria-valuenow", "0");
+	expect(screen.getByRole("progressbar", { name: "Get your first overlay running progress" })).toHaveAttribute("aria-valuenow", "0");
 	expect(screen.getByText("Explore Clipify")).toBeVisible();
 	expect(screen.queryByText(/Progress is saved|Need a hand|click to replay|click to continue/)).not.toBeInTheDocument();
 });
@@ -211,4 +211,10 @@ it("shows the last section's own count after reload instead of Guides or core pr
 	expect(launcher).toHaveTextContent("1/2");
 	expect(screen.queryByText("Guides")).not.toBeInTheDocument();
 	expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "50");
+});
+
+it("retains completed task credit while the next task is in progress", () => {
+	mount({ ...defaultProgress(), overlayId: "overlay-1", completed: ["overlay.name"], active: { task: "overlay.source", index: 0, paused: true } });
+	expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "38");
+	expect(screen.getByRole("button", { name: "Get started · 1/4" })).toHaveTextContent("38%");
 });

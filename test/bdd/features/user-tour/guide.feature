@@ -245,3 +245,9 @@ Feature: Clipify guided onboarding
     Given an isolated authenticated Clipify guide account
     When current filters and the default look are kept in the personalization section
     Then the launcher retains personalization progress after reload
+
+  @US1 @FR-009 @SC-003 @BDD-TOUR-US1-042
+  Scenario: Keep dropdowns above a continuously dimmed tour
+    Given an isolated authenticated Clipify guide account
+    When the clip source dropdown is opened during the guide
+    Then its options stay usable above the dimming and section progress survives reload

@@ -684,3 +684,40 @@ Then("the launcher retains personalization progress after reload", async ({ page
 	expect((await progress(page, tourWorld)).journeyId).toBe("appearance");
 	expect((await progress(page, tourWorld)).skipped).toEqual(expect.arrayContaining(["appearance.filters", "appearance.style"]));
 });
+
+When("the clip source dropdown is opened during the guide", async ({ page, tourWorld }) => {
+	await progress(page, tourWorld);
+	await seedProgress(tourWorld, { overlayId: tourWorld.owner!.overlayId, playlistId: tourWorld.owner!.playlistId, completed: ["overlay.name"] });
+	await overlay(page, tourWorld);
+	await start(page, "Choose your clips");
+	await expect(page.locator(".driver-popover-title")).toHaveText("Choose your clips");
+	await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "38");
+	await page.getByRole("button", { name: /Overlay Type/ }).click();
+	await expect(page.getByRole("option", { name: "Top Clips - Last 7 Days", exact: true })).toBeVisible();
+});
+Then("its options stay usable above the dimming and section progress survives reload", async ({ page, tourWorld }) => {
+	await expect(page.locator(".driver-overlay")).toHaveCSS("opacity", "1");
+	const option = page.getByRole("option", { name: "Top Clips - Last 7 Days", exact: true });
+	await expect
+		.poll(() =>
+			option.evaluate((element) => {
+				const box = element.getBoundingClientRect();
+				const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+				return Boolean(hit && element.contains(hit));
+			}),
+		)
+		.toBe(true);
+	await page.screenshot({ path: "/tmp/clipify-tour-dropdown.png", animations: "disabled" });
+	await page.mouse.click(40, 150);
+	await expect(option).toBeHidden();
+	await expect(page.locator(".driver-overlay")).toHaveCSS("opacity", "1");
+	await expect(page.locator(".driver-popover-title")).toBeVisible();
+	await page.getByRole("button", { name: /Overlay Type/ }).click();
+	await option.click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Choose your clips");
+	await pause(page);
+	await progress(page, tourWorld);
+	await page.reload();
+	await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "38");
+	expect((await progress(page, tourWorld)).completed).toContain("overlay.name");
+});

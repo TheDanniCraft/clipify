@@ -1,4 +1,4 @@
-import { currentGuideStep, defaultProgress, transition, stepsForTask, navigationForTask, parseProgress, type GuideProgress } from "@lib/userTour";
+import { journeyGuidePercent, currentGuideStep, defaultProgress, transition, stepsForTask, navigationForTask, parseProgress, type GuideProgress } from "@lib/userTour";
 const apply = (state: ReturnType<typeof defaultProgress>, event: Parameters<typeof transition>[1]) => transition(state, event, "owner");
 it("replays creation at Add Overlay even when it was completed before", () => {
 	let state: GuideProgress = { ...defaultProgress(), overlayId: "existing", completed: ["overlay.name" as const] };
@@ -90,4 +90,14 @@ it("offers filters before styling and advances after an acknowledged save", () =
 	state = apply(state, { type: "overlay.saved", ownerId: "owner", id: "overlay", named: true, source: true });
 	expect(state.completed).toContain("appearance.filters");
 	expect(currentGuideStep(state)?.target).toBe("overlay-customize");
+});
+
+it("adds partial section credit without losing completed tasks or double counting replays", () => {
+	const state: GuideProgress = { ...defaultProgress(), completed: ["overlay.name"], overlayId: "overlay", active: { task: "overlay.source", index: 0, paused: false } };
+	expect(journeyGuidePercent(state)).toBe(38);
+	expect(journeyGuidePercent({ ...state, active: { ...state.active!, index: 1 } })).toBeGreaterThan(38);
+	expect(journeyGuidePercent({ ...state, active: { ...state.active!, paused: true } })).toBe(38);
+	expect(journeyGuidePercent({ ...state, active: { task: "overlay.name", index: 1, paused: false } })).toBe(25);
+	expect(journeyGuidePercent({ ...state, active: null })).toBe(25);
+	expect(journeyGuidePercent({ ...state, completed: ["overlay.name", "overlay.source", "overlay.preview", "overlay.setup"], active: null })).toBe(100);
 });

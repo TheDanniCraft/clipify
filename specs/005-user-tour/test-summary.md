@@ -16,6 +16,12 @@ Customization starts in place inside Theme Studio, resumes via its real entry bu
 
 The initial affected run passed 16 suites / 414 tests. The final model/provider/adapter whole-file run passed 43 tests in three suites, including section-count and Back callback assertions. Changed-source lint, browser production build/type checking, and standalone production build passed. Six owning browser examples were exercised: five passed initially, and the remaining resume case passed after waiting for editor readiness in its binding. Cases 040 and 041 extend the canonical registry to 41. A settled-animation screenshot is recorded for the full styling workspace.
 
+## Dropdown and section-progress correction
+
+Removed the CSS that made Driver's mask transparent while native Select/color popovers were open. Elevate portalled native controls above the mask; retain native outside dismissal and keyboard behavior. The ring now counts finished section tasks plus partial credit for the active unfinished task, without double counting replay. One of four completed plus a newly active next task displays 38%, retained after acknowledged database writes and reload.
+
+Validation: 16 affected suites / 416 tests passed, source lint and browser/standalone production builds passed. All four affected Chromium examples (002, 018, 022, 042) passed. New case 042 checks visible mask opacity, actual option hit testing, outside dismissal, reopening/selection and database-backed progress after reload. Inspected /tmp/clipify-tour-dropdown.png. The canonical registry now has 42 examples. No schema or generated migration change is involved.
+
 ## Limits and merge requirements
 
 External OBS/website setup is instructional and self-reported. No schema or generated migrations changed; the existing account content-state table stores the guide. Server write failure keeps ordered retryable events and optimistic session state. Complete account persistence is verified after acknowledged writes.

@@ -43,3 +43,9 @@ T013: affected tests, all feature browser examples, lint, formatting, types and 
 - [x] P003 Start styling in place and resume the checkpoint through normal Theme Studio navigation.
 - [x] P004 Highlight the full styling workspace and explain its groups without nested subtasks.
 - [x] P005 Verify affected suites, owning browser cases, presentation, lint/types/build and push the draft update.
+
+## Dropdown and progress consistency
+
+- [x] D001 Preserve the spotlight mask and elevate native portal controls.
+- [x] D002 Show section progress with partial active-task credit and no replay double count.
+- [x] D003 Verify the real dropdown, outside dismissal, selection and database reload in browser case 042; run affected suites and checks.

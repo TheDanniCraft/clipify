@@ -48,7 +48,7 @@
 	outline-offset: 4px;
 }
 
-/* Portalled controls temporarily own interaction; keep the journey active. */
+/* Keep native portalled controls above the spotlight while preserving its dimming. */
 .driver-active :is([data-slot="select-popover"], [data-slot="color-picker-popover"], [data-slot="popover-dialog"]),
 .driver-active :is([data-slot="select-popover"], [data-slot="color-picker-popover"], [data-slot="popover-dialog"]) * {
 	pointer-events: auto;
@@ -56,9 +56,7 @@
 .driver-active:has([data-slot="select-popover"], [data-slot="color-picker-popover"], [data-slot="popover-dialog"]) .driver-overlay path {
 	pointer-events: none !important;
 }
-.driver-active:has([data-slot="select-popover"], [data-slot="color-picker-popover"], [data-slot="popover-dialog"]) .driver-overlay {
-	opacity: 0 !important;
-}
+
 .driver-active:has([data-slot="select-popover"], [data-slot="color-picker-popover"], [data-slot="popover-dialog"]) .clipify-tour-popover {
 	visibility: hidden;
 }
@@ -84,4 +82,9 @@
 .driver-active .woot--bubble-holder,
 .driver-active .woot--bubble-holder * {
 	pointer-events: auto;
+}
+
+/* React Aria popovers are body portals outside Driver’s highlighted stacking context. */
+.driver-active :is([data-slot="select-popover"], [data-slot="color-picker-popover"], [data-slot="dropdown-popover"], [data-slot="popover-dialog"]) {
+	z-index: 1000000002 !important;
 }

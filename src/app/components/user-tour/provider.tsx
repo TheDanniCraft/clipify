@@ -5,7 +5,7 @@ import { usePlausible } from "next-plausible";
 import { Accordion, Button, Checkbox, Popover, ProgressCircle } from "@heroui/react";
 import { IconChevronRight, IconMinus, IconRotateClockwise } from "@tabler/icons-react";
 import { saveUserTourEvent } from "@actions/userTour";
-import { activeGuidePercent, currentGuideStep, defaultProgress, guideLocation, journeys, parseProgress, storageKey, transition, tourModalSelector, tourPopoverSelector, type GuideEvent, type GuideProgress, type TaskId } from "@lib/userTour";
+import { journeyGuidePercent, currentGuideStep, defaultProgress, guideLocation, journeys, parseProgress, storageKey, transition, tourModalSelector, tourPopoverSelector, type GuideEvent, type GuideProgress, type TaskId } from "@lib/userTour";
 import { CONSENT_PREFERENCES_VISIBILITY_EVENT, type ConsentPreferencesVisibilityDetail } from "@lib/consent/events";
 import "driver.js/dist/driver.css";
 import "./user-tour.css";
@@ -224,7 +224,7 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 	const currentJourney = journeys.find((journey) => journey.id === (active?.task.split(".")[0] ?? progress.journeyId)) ?? journeys[0];
 	const journeyDone = currentJourney.tasks.filter((task) => isFinished(task.id)).length;
 	const launcherTitle = currentJourney.id === "overlay" ? "Get started" : currentJourney.title;
-	const percentage = active ? activeGuidePercent(progress) : (journeyDone / currentJourney.tasks.length) * 100;
+	const percentage = journeyGuidePercent(progress);
 	return (
 		<GuideContext.Provider value={{ report, activeTask, resourceIds: { overlayId: progress.overlayId, playlistId: progress.playlistId } }}>
 			{children}
@@ -298,7 +298,7 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 						</section>
 					)}
 					<Button ref={launcher} data-tour='guide-launcher' aria-label={`${launcherTitle} · ${journeyDone}/${currentJourney.tasks.length}`} aria-expanded={!progress.minimized} aria-controls='clipify-guide-panel' variant='secondary' className='ml-auto h-12 gap-3 rounded-full border border-separator bg-surface pl-2 pr-4 text-foreground shadow-lg' onPress={() => report({ type: "panel", minimized: !progress.minimized })}>
-						<ProgressCircle aria-label={active ? "Current task progress" : "Getting started progress"} value={percentage} size='lg' className='relative size-9 shrink-0'>
+						<ProgressCircle aria-label={`${currentJourney.title} progress`} value={percentage} size='lg' className='relative size-9 shrink-0'>
 							<ProgressCircle.Track style={{ width: 36, height: 36 }}>
 								<ProgressCircle.TrackCircle style={{ stroke: "var(--color-muted)", opacity: 0.45 }} />
 								<ProgressCircle.FillCircle />
