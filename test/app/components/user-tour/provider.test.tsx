@@ -207,10 +207,10 @@ it("does not restore launcher focus over a newly opened skip popover", () => {
 });
 it("shows the last section's own count after reload instead of Guides or core progress", () => {
 	mount({ ...defaultProgress(), journeyId: "appearance", completed: ["overlay.name", "overlay.source", "overlay.preview", "overlay.setup", "appearance.style"], minimized: true });
-	const launcher = screen.getByRole("button", { name: "Make your overlay yours · 50%" });
-	expect(launcher).toHaveTextContent("50%");
+	const launcher = screen.getByRole("button", { name: "Make your overlay yours · 100%" });
+	expect(launcher).toHaveTextContent("100%");
 	expect(screen.queryByText("Guides")).not.toBeInTheDocument();
-	expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "50");
+	expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "100");
 });
 
 it("retains completed task credit while the next task is in progress", () => {

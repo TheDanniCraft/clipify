@@ -241,9 +241,9 @@ Feature: Clipify guided onboarding
     Then resuming teaches the route back to Theme Studio and allows reviewing the look
 
   @US2 @FR-004 @SC-001 @BDD-TOUR-US2-041
-  Scenario: Personalize filters before styling with section progress
+  Scenario: Keep personalization focused on appearance
     Given an isolated authenticated Clipify guide account
-    When current filters and the default look are kept in the personalization section
+    When the appearance-only personalization task keeps its default look
     Then the launcher retains personalization progress after reload
 
   @US1 @FR-009 @SC-003 @BDD-TOUR-US1-042

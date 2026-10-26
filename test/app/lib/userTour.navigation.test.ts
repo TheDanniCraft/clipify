@@ -1,4 +1,4 @@
-import { journeyGuidePercent, currentGuideStep, defaultProgress, transition, stepsForTask, navigationForTask, parseProgress, type GuideProgress } from "@lib/userTour";
+import { journeys, journeyGuidePercent, currentGuideStep, defaultProgress, transition, stepsForTask, navigationForTask, parseProgress, type GuideProgress } from "@lib/userTour";
 const apply = (state: ReturnType<typeof defaultProgress>, event: Parameters<typeof transition>[1]) => transition(state, event, "owner");
 it("replays creation at Add Overlay even when it was completed before", () => {
 	let state: GuideProgress = { ...defaultProgress(), overlayId: "existing", completed: ["overlay.name" as const] };
@@ -86,12 +86,16 @@ it("keeps the last section after completion and reload instead of showing core p
 	expect(state.active).toBeNull();
 	expect(parseProgress(JSON.stringify(state)).journeyId).toBe("appearance");
 });
-it("offers filters before styling and advances after an acknowledged save", () => {
-	let state = apply({ ...defaultProgress(), overlayId: "overlay" }, { type: "start", task: "appearance.filters", location: "overlay" });
-	expect(currentGuideStep(state)?.target).toBe("overlay-filters");
-	state = apply(state, { type: "overlay.saved", ownerId: "owner", id: "overlay", named: true, source: true });
-	expect(state.completed).toContain("appearance.filters");
-	expect(currentGuideStep(state)?.target).toBe("overlay-customize");
+it("keeps filters only in the clip task and resumes a retired filter checkpoint there", () => {
+	expect(journeys.find((journey) => journey.id === "appearance")!.tasks.map((task) => task.id)).toEqual(["appearance.style"]);
+	expect(stepsForTask("overlay.source", { ...defaultProgress(), overlayId: "overlay" }).map((step) => step.target)).toContain("overlay-filters");
+	const old = { ...defaultProgress(), overlayId: "overlay", completed: ["overlay.name", "appearance.filters"], skipped: ["appearance.filters"], active: { task: "appearance.filters", index: 0, paused: true } };
+	const migrated = parseProgress(JSON.stringify(old));
+	expect(migrated.completed).toEqual(["overlay.name", "overlay.source"]);
+	expect(migrated.skipped).toEqual([]);
+	expect(migrated.active).toMatchObject({ task: "overlay.source", index: 1, paused: true });
+	expect(currentGuideStep(migrated)?.target).toBe("overlay-filters");
+	expect(parseProgress(JSON.stringify({ ...old, active: { ...old.active, index: 1 } })).active?.index).toBe(2);
 });
 
 it("adds partial section credit without losing completed tasks or double counting replays", () => {

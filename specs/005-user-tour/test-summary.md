@@ -28,6 +28,12 @@ The launcher and its accessible name consistently use section percent, while the
 
 The initial affected run passed 16 suites / 418 tests. The final spotlight whole-file suite passed 15 tests, including post-animation position refresh. The first browser sweep passed 6/11 and exposed Driver’s reserved-class event interception and portal-size positioning. With isolated data attributes and size/DOM observation, the next sweep passed 10/11. Driver sets its internal active target after the highlight animation, so a final onHighlighted refresh fixes the small edit-button overlap. Targeted cases 040, 043 and 044 then passed 3/3. All 11 unique affected browser examples have green evidence across these runs, not one clean 11-case sweep. Cases 043 and 044 extend the registry to 44 examples. Final browser and standalone production builds/type checks pass. Reviewed the settled HeroUI Back/Continue screenshot at /tmp/clipify-tour-hero-back.png; source lint is clean. Full merge coverage/owning-scenario gates remain pending.
 
+## Remove duplicate filter onboarding
+
+Filters belong only to Choose your clips in the first-overlay flow. Personalization now contains only Customize your look. Case 041 now checks the appearance-only section and its progress after reload. Older appearance.filters completions migrate to overlay.source; optional skips are discarded, and active filter/save checkpoints map to the corresponding core steps. Styling completion is retained.
+
+Validation: all 16 affected suites / 419 tests passed, including saved-checkpoint compatibility. All four affected browser examples (018, 019, 041, 043) passed in one run, covering style save/defaults, no duplicate checklist task, persisted appearance progress and the canonical filter/Back flow. Browser production build/type checks, source lint and formatting pass. No schema change or generated migration is needed.
+
 ## Limits and merge requirements
 
 External OBS/website setup is instructional and self-reported. No schema or generated migrations changed; the existing account content-state table stores the guide. Server write failure keeps ordered retryable events and optimistic session state. Complete account persistence is verified after acknowledged writes.

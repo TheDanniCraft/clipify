@@ -661,15 +661,12 @@ Then("resuming teaches the route back to Theme Studio and allows reviewing the l
 	await expect(page.locator(".driver-popover")).toHaveCSS("opacity", "1");
 	await page.screenshot({ path: "/tmp/clipify-tour-theme-workspace.png", animations: "disabled" });
 });
-When("current filters and the default look are kept in the personalization section", async ({ page, tourWorld }) => {
+When("the appearance-only personalization task keeps its default look", async ({ page, tourWorld }) => {
 	await overlay(page, tourWorld);
-	await start(page, "Adjust your filters", "Make your overlay yours");
-	await expect(page.locator(".driver-popover-title")).toHaveText("Adjust your filters");
-	await page.locator('[data-tour-action="next"]').click();
-	await page.getByRole("button", { name: "Back", exact: true }).click();
-	await expect(page.locator(".driver-popover-title")).toHaveText("Adjust your filters");
-	await page.locator('[data-tour-action="next"]').click();
-	await page.getByRole("button", { name: "Use current filters", exact: true }).click();
+	await panel(page);
+	await page.getByRole("button", { name: /^Make your overlay yours/ }).click();
+	await expect(page.getByRole("button", { name: "Adjust your filters", exact: true })).toHaveCount(0);
+	await page.getByRole("button", { name: "Customize your look", exact: true }).click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Open Theme Studio");
 	await page.getByRole("button", { name: "Customize Overlay Style", exact: true }).click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Make it yours");
@@ -682,7 +679,7 @@ Then("the launcher retains personalization progress after reload", async ({ page
 	await expect(page.locator('[data-tour="guide-launcher"]')).toHaveAccessibleName("Make your overlay yours · 100%");
 	await expect(page.locator('[data-tour="guide-launcher"]')).toContainText("100%");
 	expect((await progress(page, tourWorld)).journeyId).toBe("appearance");
-	expect((await progress(page, tourWorld)).skipped).toEqual(expect.arrayContaining(["appearance.filters", "appearance.style"]));
+	expect((await progress(page, tourWorld)).skipped).toEqual(["appearance.style"]);
 });
 
 When("the clip source dropdown is opened during the guide", async ({ page, tourWorld }) => {

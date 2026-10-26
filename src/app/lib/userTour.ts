@@ -17,10 +17,7 @@ export const journeys = [
 		id: "appearance",
 		title: "Make your overlay yours",
 		optional: true,
-		tasks: [
-			{ id: "appearance.filters", title: "Adjust your filters" },
-			{ id: "appearance.style", title: "Customize your look" },
-		],
+		tasks: [{ id: "appearance.style", title: "Customize your look" }],
 	},
 	{
 		id: "playlist",
@@ -72,10 +69,11 @@ export function parseProgress(raw: string | null, restorePaused = true): GuidePr
 	try {
 		const data = JSON.parse(raw ?? "null");
 		if (!data || Array.isArray(data) || ![1, 2].includes(data.version) || !Array.isArray(data.completed)) return defaultProgress();
-		const completed = [...new Set<TaskId>(data.completed.map(migrateTask).filter(isTaskId))];
+		const completed = [...new Set<TaskId>(data.completed.map((id: unknown) => (id === "appearance.filters" ? "overlay.source" : migrateTask(id))).filter(isTaskId))];
 		const progress: GuideProgress = { ...defaultProgress(), completed, skipped: Array.isArray(data.skipped) ? [...new Set<TaskId>(data.skipped.map(migrateTask).filter(isTaskId))].filter((id) => !completed.includes(id)) : [], overlayId: validId(data.overlayId) ? data.overlayId : null, playlistId: validId(data.playlistId) ? data.playlistId : null, minimized: data.minimized !== false };
 		if (validId(data.copiedOverlayId) && data.copiedOverlayId === progress.overlayId) progress.copiedOverlayId = data.copiedOverlayId;
-		const active = data.active;
+		// Retired duplicate filter guidance resumes at its canonical core-task checkpoint.
+		const active = data.active?.task === "appearance.filters" ? { ...data.active, task: "overlay.source", index: [0, 1].includes(data.active.index) ? data.active.index + 1 : -1 } : data.active;
 		if (data.version === 2 && active && isTaskId(active.task) && Number.isInteger(active.index) && active.index >= 0 && active.index < stepsForTask(active.task, progress).length) {
 			const navigation: NavigationTarget[] = Array.isArray(active.navigation) ? active.navigation.filter((id: unknown): id is NavigationTarget => typeof id === "string" && navigationIds.has(id)).slice(0, 5) : [];
 			progress.active = { task: active.task, index: active.index, paused: restorePaused || active.paused !== false, navigation, navigationTotal: Math.max(navigation.length, Math.min(5, Number.isInteger(active.navigationTotal) ? active.navigationTotal : navigation.length)) };
@@ -294,7 +292,6 @@ export function transition(progress: GuideProgress, event: GuideEvent, accountId
 			next.overlayId = event.id;
 			if (event.named) finish("overlay.name");
 			if (event.source && (!startedTask || startedTask === "overlay.source")) finish("overlay.source");
-			if (event.source && startedTask === "appearance.filters") finish("appearance.filters");
 			if (event.playlistId && event.playlistId === next.playlistId) finish("playlist.use");
 			break;
 		case "overlay.previewed":
@@ -347,11 +344,6 @@ export function stepsForTask(task: TaskId, progress: GuideProgress): GuideStep[]
 	switch (task) {
 		case "overlay.name":
 			return [createOverlay, { target: "overlay-name", title: "Give it a name", description: "Choose a name you'll recognize.", next: true }, { target: "overlay-save", title: "Save your overlay", description: "Click Save to keep the name." }];
-		case "appearance.filters":
-			return [
-				{ target: "overlay-filters", title: "Adjust your filters", description: "Choose which clips appear using duration, games and creators. Advanced filters require Pro. Keep the defaults if they suit your stream.", next: true },
-				{ target: "overlay-save", title: "Save your filters", description: "Save your changes, or keep your current filters. Use Back to review them.", next: true, finish: true, skipOnFinish: true, nextLabel: "Use current filters" },
-			];
 		case "overlay.source":
 			return [
 				{ target: "overlay-source", title: "Choose your clips", description: "Choose the clip source or time range you want to play.", next: true },

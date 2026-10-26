@@ -56,3 +56,9 @@ T013: affected tests, all feature browser examples, lint, formatting, types and 
 - [x] H002 Replace Driver’s visible native buttons with React/HeroUI actions.
 - [x] H003 Permit Back after the first action in every task and replan real navigation across pages.
 - [x] H004 Verify model, portal controls, relevant browser journeys, visual presentation and required checks before pushing.
+
+## Remove duplicate filter onboarding
+
+- [x] F001 Keep filters only in Choose your clips; appearance has one styling task.
+- [x] F002 Preserve completed filter work and map old active checkpoints to the core flow.
+- [x] F003 Verify affected suites, owning styling/filter browser cases and checks; push the draft update.
