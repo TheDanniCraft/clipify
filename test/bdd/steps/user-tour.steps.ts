@@ -654,6 +654,8 @@ When("customization is started inside Theme Studio and left at its save step", a
 	await expect(page.locator(".driver-popover-title")).toHaveText("Save your look");
 	await pause(page);
 	await page.locator('[data-tour="dashboard-home"]').click();
+	await expect(page).toHaveURL(`${tourWorld.origin}/dashboard`);
+	await expect(page.getByRole("heading", { name: "Dashboard", exact: true })).toBeVisible();
 	await expect(page.getByRole("region", { name: "Your Clipify guide" })).toBeVisible();
 });
 Then("resuming teaches the route back to Theme Studio and allows reviewing the look", async ({ page, tourWorld }) => {
@@ -884,6 +886,10 @@ Then("it stays in the flow and advances again when Playlist is selected", async 
 When("the fresh welcome offers the guided journey", async ({ page, tourWorld }) => {
 	await seedProgress(tourWorld, { welcomeSeen: false });
 	// Use a reverse trial to exercise the existing welcome rather than a second modal.
+	await page.evaluate(() => {
+		localStorage.clear();
+		sessionStorage.clear();
+	});
 	await tourWorld.fixture.pool.query("UPDATE users SET plan='free' WHERE id=$1", [tourWorld.owner!.creatorId]);
 	await tourWorld.fixture.pool.query("DELETE FROM billing_subscriptions WHERE user_id=$1", [tourWorld.owner!.creatorId]);
 	await tourWorld.fixture.pool.query("INSERT INTO entitlement_grants (user_id,entitlement,source,reason,starts_at,ends_at) VALUES ($1,'pro_access','reverse_trial','free_signup_trial',NOW() - INTERVAL '1 minute',NOW() + INTERVAL '7 days')", [tourWorld.owner!.creatorId]);

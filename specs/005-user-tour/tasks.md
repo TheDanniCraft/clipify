@@ -81,4 +81,4 @@ T013: affected tests, all feature browser examples, lint, formatting, types and 
 - [x] W002 Begin the first unfinished core task through the real UI; preserve consent and native modal priority.
 - [x] W003 Register the automatic Clipify Expert balloon badge, persist a one-time server award and keep it across replay.
 - [x] W004 Cover welcome, award eligibility, reload, account isolation and badge display in model/component/database tests and canonical browser cases 048–050.
-- [ ] W005 Complete affected suites, all tour browser cases, visual inspection, lint, formatting, types, builds and push.
+- [x] W005 Complete affected suites, all tour browser cases, visual inspection, lint, formatting, types, builds and push.

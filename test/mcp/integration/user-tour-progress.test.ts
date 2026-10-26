@@ -5,13 +5,14 @@ import { createMcpPostgresFixture } from "../../support/mcp/postgres";
 import { applyUserTourEvent, loadUserTourProgress } from "@/server/user-tour/progress";
 import { guideContentKey } from "@lib/userTour";
 let fixture: Awaited<ReturnType<typeof createMcpPostgresFixture>>;
+// Cold disposable schema/template provisioning uses the same budget as other database suites.
 beforeEach(async () => {
 	fixture = await createMcpPostgresFixture();
 	await fixture.pool.query("INSERT INTO users (id,email,username,avatar,role,plan) VALUES ('owner','owner@example.invalid','Owner','','user','free'),('other','other@example.invalid','Other','','user','free')");
-});
+}, 35000);
 afterEach(async () => {
 	await fixture?.close();
-});
+}, 35000);
 it("remembers completed and skipped tasks and minimization on a fresh server read", async () => {
 	await loadUserTourProgress("owner", fixture.db);
 	await applyUserTourEvent("owner", { type: "overlay.saved", ownerId: "owner", id: "overlay", named: true, source: true }, fixture.db);

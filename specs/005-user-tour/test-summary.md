@@ -44,6 +44,16 @@ Playlist-use observes the actual overlay type: selecting Playlist advances autom
 
 Validation: the final complete affected run passed 16 suites / 428 tests; the targeted model/adapter/editor whole-file run passed 138 tests. All seven current owning Chromium examples (005, 020, 021, 022, 045, 046, 047) passed in one final run. Case 045 selects and saves 52 clips across pages; case 046 covers Back/cancel/reopen; case 047 covers automatic source advance and changing away without leaving the flow. The final outline-only visual rerun of 045 also passed, and its screenshot was inspected. Browser and standalone production builds/type checks, source lint and formatting pass. The push hook repeats the complete affected-suite check. Canonical browser registry: 47 examples. No database schema or generated migration changes.
 
+## Welcome journey and Clipify Expert badge
+
+The welcome offers Start guided tour and Maybe later while retaining the Pro trial message. Accounts without trial content receive one generic welcome. Decisions persist across reload and browser clearing; consent takes priority. Existing owned setup retains the minimized checklist. Starting teaches the first unfinished core task through native controls.
+
+The server latches a durable completion timestamp when all four core tasks are completed. Skips do not qualify; optional sections are excluded. Clipify Expert uses a balloon icon in the existing automatic badge/member-card system and is retained during replay. A successful award acknowledgement shows one toast. The catalog adds one enum value; the post-merge migration workflow now watches catalog changes. Infisical development db:push applied the current schema; generated migrations remain untouched.
+
+Affected validation covers 159 passing suites / 2329 tests across the complete affected run and final eight-case persistence rerun. Cold database setup exposed a five-second hook limit during pre-push; fixture setup/cleanup now use the existing database-suite convention of 35 seconds. Application assertion budgets and coverage thresholds are unchanged.
+
+The final-source browser sweep passed 48/50 cases. The other two required browser setup corrections: await completed navigation in styling case 040, and clear consent local storage as well as cookies in welcome case 048. Both corrected cases passed in the targeted rerun on the same application build, so all 50 canonical browser behaviors are verified. Trial welcome and member-card badge screenshots were inspected. Both production builds/type checks, source lint and owned formatting pass. Full merge coverage/Test and final security gates remain pending.
+
 ## Limits and merge requirements
 
 External OBS/website setup is instructional and self-reported. No new table or generated migration is introduced; the existing account content-state table stores the guide and earned timestamp. The catalog adds one badge enum value, with migration generation owned by the post-merge workflow. Server write failure keeps ordered retryable events and optimistic session state. Complete account persistence is verified after acknowledged writes.
