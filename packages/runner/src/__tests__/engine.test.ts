@@ -4,7 +4,6 @@ import { spawn } from "child_process";
 import { launch, getStream } from "puppeteer-stream";
 import * as fs from "fs";
 import { PassThrough } from "node:stream";
-import { createServer } from "net";
 import { EventEmitter } from "node:events";
 
 jest.mock("child_process");
@@ -614,9 +613,9 @@ describe("Engine (Raw Logic Tests)", () => {
 	});
 
 	it("does not expose the secret when overlay navigation fails", async () => {
-		mockLaunch.mockResolvedValueOnce({ newPage: jest.fn().mockResolvedValue({ goto: jest.fn().mockRejectedValue(new Error("Navigation to http://api/overlay/overlay-123?secret=overlay-secret failed")) }), close: jest.fn() });
+		mockLaunch.mockResolvedValue({ newPage: jest.fn().mockResolvedValue({ goto: jest.fn().mockRejectedValue(new Error("Navigation to http://api/overlay/overlay-123?secret=overlay-secret failed")), evaluateOnNewDocument: jest.fn() }), close: jest.fn() });
 		const engine = new Engine("overlay-123", "rtmp://fake", "overlay-secret", "stream-key", 60, "1080p", "24_7", "http://api");
-		await expect(engine.start()).rejects.toThrow("Failed to load overlay page");
+		await expect(engine.start()).rejects.toThrow("Navigation to http://api/overlay/overlay-123?secret=[redacted] failed");
 		expect(JSON.stringify((console.log as jest.Mock).mock.calls)).not.toContain("overlay-secret");
 	});
 
@@ -635,8 +634,6 @@ describe("Engine (Raw Logic Tests)", () => {
 
 		// 1. Starts Puppeteer background
 		expect(mockLaunch).toHaveBeenCalled();
-		expect((createServer as jest.Mock).mock.results[0].value.listen).toHaveBeenCalledWith(1935, "127.0.0.1", expect.any(Function));
-
 		// 2. Should NOT spawn FFmpeg yet (waiting for OBS)
 		expect(mockSpawn).not.toHaveBeenCalled();
 

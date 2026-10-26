@@ -443,8 +443,8 @@ export class Engine {
 		console.log(`[Engine] Navigating to the configured overlay`);
 		try {
 			await this.page!.goto(overlayUrl, { waitUntil: "networkidle2" });
-		} catch {
-			throw new Error("Failed to load overlay page");
+		} catch (error) {
+			throw new Error(this.safeDiagnostic(error));
 		}
 		if (this.executionOptions.presentationSessionId) {
 			try {

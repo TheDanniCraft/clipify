@@ -29,7 +29,7 @@ beforeEach(() => {
 	jest.useFakeTimers();
 	jest.clearAllMocks();
 	forwards = [];
-	server = Object.assign(new EventEmitter(), { listen: jest.fn((_port, ready) => ready()), close: jest.fn((closed) => closed()) });
+	server = Object.assign(new EventEmitter(), { listen: jest.fn((_port, _host, ready) => ready()), close: jest.fn((closed) => closed()) });
 	(net.createServer as jest.Mock).mockImplementation((callback) => {
 		accept = callback;
 		return server;
