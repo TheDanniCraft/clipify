@@ -84,6 +84,12 @@ export default function OverlaySettings() {
 	useEffect(() => {
 		if (overlay) reportTour({ type: "overlay.ready", ownerId: overlay.ownerId, id: overlay.id, select: true });
 	}, [overlay, reportTour]);
+	const draftOverlayId = overlay?.id,
+		draftOverlayOwner = overlay?.ownerId,
+		draftOverlayType = overlay?.type;
+	useEffect(() => {
+		if (draftOverlayId && draftOverlayOwner) reportTour({ type: "overlay.type-selected", ownerId: draftOverlayOwner, id: draftOverlayId, playlist: draftOverlayType === OverlayType.Playlist });
+	}, [draftOverlayId, draftOverlayOwner, draftOverlayType, reportTour]);
 
 	const [reward, setReward] = useState<TwitchReward | null>(null);
 	const [ownerPlan, setOwnerPlan] = useState<Plan | null>(null);
@@ -469,13 +475,18 @@ export default function OverlaySettings() {
 	}, [overlay?.ownerId]);
 
 	useEffect(() => {
+		let active = true;
 		async function getClipsForType() {
 			if (!overlay) return;
 			const clips = await getTwitchClips(overlay, overlay.type, true);
+			if (!active) return;
 			setPreviewClips(clips);
 			await resolveGameDetails(clips);
 		}
 		getClipsForType();
+		return () => {
+			active = false;
+		};
 	}, [overlay, resolveGameDetails]);
 
 	useEffect(() => {
@@ -620,8 +631,8 @@ export default function OverlaySettings() {
 		if (isTitleBlocked(clip.title, overlay.blacklistWords)) return false;
 		if (clip.view_count < overlay.minClipViews) return false;
 
-		const creatorName = clip.creator_name.toLowerCase();
-		const creatorId = clip.creator_id.toLowerCase();
+		const creatorName = (clip.creator_name ?? "").toLowerCase();
+		const creatorId = (clip.creator_id ?? "").toLowerCase();
 		const allowed = (overlay.clipCreatorsOnly ?? []).map((name) => name.toLowerCase());
 		const blocked = (overlay.clipCreatorsBlocked ?? []).map((name) => name.toLowerCase());
 
@@ -633,12 +644,12 @@ export default function OverlaySettings() {
 		}
 
 		const allowedCategories = (overlay.categoriesOnly ?? []).map((id) => id.toLowerCase());
-		if (allowedCategories.length > 0 && !allowedCategories.includes(clip.game_id.toLowerCase())) {
+		if (allowedCategories.length > 0 && !allowedCategories.includes((clip.game_id ?? "").toLowerCase())) {
 			return false;
 		}
 
 		const blockedCategories = (overlay.categoriesBlocked ?? []).map((id) => id.toLowerCase());
-		if (blockedCategories.length > 0 && blockedCategories.includes(clip.game_id.toLowerCase())) {
+		if (blockedCategories.length > 0 && blockedCategories.includes((clip.game_id ?? "").toLowerCase())) {
 			return false;
 		}
 
@@ -929,6 +940,7 @@ export default function OverlaySettings() {
 													playlistId: nextType === OverlayType.Playlist ? (overlay.playlistId ?? fallbackPlaylistId) : null,
 													playbackMode: nextPlaybackMode,
 												});
+												reportTour({ type: "overlay.type-selected", ownerId: overlay.ownerId, id: overlay.id, playlist: nextType === OverlayType.Playlist });
 											}}
 										>
 											<Label>Overlay Type</Label>
@@ -1619,7 +1631,7 @@ export default function OverlaySettings() {
 					<Modal.Body className='overflow-y-auto'>
 						<Table>
 							<Table.ScrollContainer className='max-h-[56vh]'>
-								<Table.Content aria-label='Cached clips table' selectionMode='multiple' selectedKeys={selectedCachedClipIds} onSelectionChange={setSelectedCachedClipIds} sortDescriptor={cachedClipsSortDescriptor} onSortChange={setCachedClipsSortDescriptor}>
+								<Table.Content aria-label='Cached clips table' selectionMode='multiple' selectedKeys={selectedCachedClipIds} onSelectionChange={(keys) => setSelectedCachedClipIds(keys === "all" ? new Set([...(selectedCachedClipIds === "all" ? [] : selectedCachedClipIds), ...sortedCachedClips.map((clip) => clip.id)]) : keys)} sortDescriptor={cachedClipsSortDescriptor} onSortChange={setCachedClipsSortDescriptor}>
 									<Table.Header>
 										<Table.Column className='pr-0'>
 											<Checkbox aria-label='Select all clips' slot='selection' variant='primary'>

@@ -19,7 +19,7 @@ async function panel(page: Page) {
 async function start(page: Page, name: string, section?: string) {
 	await panel(page);
 	if (section) {
-		const trigger = page.getByRole("button", { name: new RegExp(`^${section}`) });
+		const trigger = page.getByRole("region", { name: "Your Clipify guide" }).getByRole("button", { name: new RegExp(`^${section}`) });
 		if ((await trigger.getAttribute("aria-expanded")) !== "true") await trigger.click();
 	}
 	await page.getByRole("button", { name, exact: true }).click();
@@ -143,6 +143,8 @@ Then("setup stays incomplete until confirmation", async ({ page, tourWorld }) =>
 	expect((await progress(page, tourWorld)).completed).not.toContain("overlay.setup");
 	await page.getByRole("button", { name: "Finish guide", exact: true }).click();
 	expect((await progress(page, tourWorld)).completed).toContain("overlay.setup");
+	expect((await progress(page, tourWorld)).active).toBeNull();
+	await expect(page.locator(".driver-popover")).toHaveCount(0);
 });
 When("the clipboard write is denied", async ({ page, tourWorld }) => {
 	await overlay(page, tourWorld);
@@ -334,14 +336,17 @@ When("the playlist guide creates names and saves clips", async ({ page, tourWorl
 	await page.getByRole("button", { name: "Save Playlist", exact: true }).click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Choose your clips");
 	await page.getByRole("button", { name: "Add Clips", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Find your clips");
+	await page.locator('[data-tour-action="next"]').click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Select clips");
 	await page
 		.getByRole("dialog")
 		.locator("label")
 		.filter({ has: page.getByRole("checkbox", { name: "Select GuideFirst" }) })
 		.click();
-	await page.getByRole("button", { name: "Add selected clips", exact: true }).click();
-	await expect(page.locator(".driver-popover-title")).toHaveText("Choose your clips");
 	await page.locator('[data-tour-action="next"]').click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Add selected clips");
+	await page.getByRole("button", { name: "Add selected clips", exact: true }).click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Arrange your clips");
 	await page.locator('[data-tour-action="next"]').click();
 	await page.getByRole("button", { name: "Save Playlist", exact: true }).click();
@@ -354,10 +359,12 @@ Then("the saved playlist tasks complete", async ({ page, tourWorld }) => {
 	await expect(page.locator(".driver-popover-title")).toHaveText("Open your Dashboard");
 });
 When("playlist clips are arranged and saved", async ({ page, tourWorld }) => {
+	await progress(page, tourWorld);
+	await seedProgress(tourWorld, { playlistId: tourWorld.owner!.playlistId, active: { task: "playlist.clips", index: 4, paused: true } });
 	await page.goto(`${tourWorld.origin}/dashboard/playlist/${tourWorld.owner!.playlistId}`);
 	await expect(page.getByPlaceholder("Playlist name")).toBeVisible();
 	await start(page, "Add and arrange clips", "Build a playlist");
-	await page.locator('[data-tour-action="next"]').click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Arrange your clips");
 	const clips = page.getByRole("list", { name: "Playlist clips" }).locator("li");
 	await clips.nth(0).dragTo(clips.nth(1));
 	await page.locator('[data-tour-action="next"]').click();
@@ -375,7 +382,7 @@ When("the guided playlist is selected and the overlay saved", async ({ page, tou
 	await expect(page.locator(".driver-popover-title")).toHaveText("Use a playlist");
 	await page.getByRole("button", { name: /Overlay Type/ }).click();
 	await page.getByRole("option", { name: "Playlist", exact: true }).click();
-	await page.locator('[data-tour-action="next"]').click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Select your playlist");
 	await page.locator('[data-tour-action="next"]').click();
 	await page.getByRole("button", { name: "Save Overlay Settings", exact: true }).click();
 	await expect(page.getByText("Overlay settings saved", { exact: true })).toBeVisible();
@@ -773,4 +780,104 @@ Then("normal app navigation returns to the first styling step", async ({ page, t
 	await expect(page).toHaveURL(`${tourWorld.origin}/dashboard/overlay/${tourWorld.owner!.overlayId}`);
 	await expect(page.locator(".driver-popover-title")).toHaveText("Open Theme Studio");
 	await expect(page.getByRole("button", { name: "Back", exact: true })).toHaveCount(0);
+});
+
+When("clips are selected across pages through the guided picker", async ({ page, tourWorld }) => {
+	await progress(page, tourWorld);
+	await tourWorld.fixture.pool.query('DELETE FROM "twitchCache" WHERE type=$1', ["clip"]);
+	await tourWorld.fixture.pool.query("DELETE FROM playlist_clips WHERE playlist_id=$1", [tourWorld.owner!.playlistId]);
+	for (let index = 0; index < 52; index++) {
+		const id = `Paged${String(index).padStart(3, "0")}`;
+		const clip = { id, title: id, broadcaster_id: tourWorld.owner!.creatorId, creator_id: "maker", creator_name: "Guide maker", view_count: 10, duration: 10, created_at: new Date(Date.now() - index * 1000).toISOString(), thumbnail_url: "https://example.invalid/clip.png", game_id: "", url: `https://clips.twitch.tv/${id}` };
+		await tourWorld.fixture.pool.query('INSERT INTO "twitchCache" (type,key,value,expires_at) VALUES ($1,$2,$3,$4)', ["clip", `clip:${tourWorld.owner!.creatorId}:${id}`, JSON.stringify({ clip, lastValidatedAt: new Date().toISOString() }), new Date(Date.now() + 3600000)]);
+	}
+	await seedProgress(tourWorld, { playlistId: tourWorld.owner!.playlistId, completed: ["playlist.name"] });
+	await page.goto(`${tourWorld.origin}/dashboard/playlist/${tourWorld.owner!.playlistId}`);
+	await expect(page.getByPlaceholder("Playlist name")).toBeVisible();
+	await start(page, "Add and arrange clips", "Build a playlist");
+	await page.getByRole("button", { name: "Add Clips", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Find your clips");
+	await page.getByPlaceholder("Search by title or creator...").fill("Paged");
+	await page.locator('[data-tour-action="next"]').click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Select clips");
+	const modal = page.locator('[data-slot="modal-dialog"]').filter({ has: page.getByRole("heading", { name: "Select clips to add", exact: true }) });
+	await expect(modal.getByText("Paged000", { exact: true })).toBeVisible();
+	await modal
+		.locator("label")
+		.filter({ has: page.getByRole("checkbox", { name: "Select all clips", exact: true }) })
+		.click();
+	await modal.getByRole("button", { name: "Next", exact: true }).click();
+	await expect(modal.getByText("Paged051", { exact: true })).toBeVisible();
+	await modal
+		.locator("label")
+		.filter({ has: page.getByRole("checkbox", { name: "Select all clips", exact: true }) })
+		.click();
+	await expect(page.locator(".driver-popover")).toHaveCSS("opacity", "1");
+	await page.screenshot({ path: "/tmp/clipify-guided-clip-picker.png", animations: "disabled" });
+	await page.locator('[data-tour-action="next"]').click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Add selected clips");
+	await expect(page.locator('[data-tour="playlist-clip-confirm"]')).toHaveClass(/driver-active-element/);
+	await page.getByRole("button", { name: "Add selected clips", exact: true }).click();
+});
+Then("adding advances automatically to arrangement and saving keeps all selected clips", async ({ page, tourWorld }) => {
+	await expect(page.locator(".driver-popover-title")).toHaveText("Arrange your clips");
+	expect((await progress(page, tourWorld)).completed).not.toContain("playlist.clips");
+	await expect(page.getByRole("list", { name: "Playlist clips" }).locator("li")).toHaveCount(52);
+	await page.locator('[data-tour-action="next"]').click();
+	await page.getByRole("button", { name: "Save Playlist", exact: true }).click();
+	await expect.poll(async () => (await progress(page, tourWorld)).completed).toContain("playlist.clips");
+	expect(Number((await tourWorld.fixture.pool.query("SELECT count(*) FROM playlist_clips WHERE playlist_id=$1", [tourWorld.owner!.playlistId])).rows[0].count)).toBe(52);
+});
+When("the guided picker is cancelled during selection", async ({ page, tourWorld }) => {
+	await progress(page, tourWorld);
+	await seedProgress(tourWorld, { playlistId: tourWorld.owner!.playlistId });
+	await page.goto(`${tourWorld.origin}/dashboard/playlist/${tourWorld.owner!.playlistId}`);
+	await expect(page.getByPlaceholder("Playlist name")).toBeVisible();
+	await start(page, "Add and arrange clips", "Build a playlist");
+	await page.getByRole("button", { name: "Add Clips", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Find your clips");
+	await page.getByRole("button", { name: "Back", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Return to Add Clips");
+	await page.getByRole("button", { name: "Cancel", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Choose your clips");
+	await page.getByRole("button", { name: "Add Clips", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Find your clips");
+	await page.locator('[data-tour-action="next"]').click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Select clips");
+	await page.getByRole("button", { name: "Cancel", exact: true }).click();
+	await expect.poll(async () => (await progress(page, tourWorld)).active?.paused).toBe(true);
+});
+Then("resuming reopens the picker through Add Clips and continues from selection", async ({ page, tourWorld }) => {
+	await resumeTask(page, tourWorld);
+	await expect(page.locator(".driver-popover-title")).toHaveText("Open the clip picker");
+	await page.getByRole("button", { name: "Add Clips", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Select clips");
+	expect((await progress(page, tourWorld)).active).toMatchObject({ task: "playlist.clips", index: 2, paused: false });
+});
+
+When("playlist source guidance changes to Playlist and back to another type", async ({ page, tourWorld }) => {
+	await overlay(page, tourWorld);
+	await start(page, "Use your playlist in an overlay", "Build a playlist");
+	await expect(page.locator(".driver-popover-title")).toHaveText("Use a playlist");
+	await expect(page.locator('[data-tour-action="next"]')).toBeDisabled();
+	await page.getByRole("button", { name: /Overlay Type/ }).click();
+	await page.getByRole("option", { name: "Playlist", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Select your playlist");
+	await page.getByRole("button", { name: "Back", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Use a playlist");
+	await page.getByRole("button", { name: /Overlay Type/ }).click();
+	await page.getByRole("option", { name: "All Clips", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Use a playlist");
+	await expect(page.locator('[data-tour-action="next"]')).toBeDisabled();
+	expect((await progress(page, tourWorld)).active).toMatchObject({ task: "playlist.use", index: 0, paused: false });
+});
+Then("it stays in the flow and advances again when Playlist is selected", async ({ page, tourWorld }) => {
+	await page.getByRole("button", { name: /Overlay Type/ }).click();
+	await page.getByRole("option", { name: "Playlist", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Select your playlist");
+	await page.locator('[data-tour-action="next"]').click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Save the overlay");
+	await page.getByRole("button", { name: "Save Overlay Settings", exact: true }).click();
+	await expect.poll(async () => (await progress(page, tourWorld)).completed).toContain("playlist.use");
+	expect((await progress(page, tourWorld)).active).toBeNull();
 });

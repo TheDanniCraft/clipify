@@ -26,6 +26,14 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 		let suspended = false;
 		let advanced = false;
 		let missingTimer: ReturnType<typeof setTimeout> | undefined;
+		let guidedModal: HTMLElement | null = null;
+		let guidedPopover: HTMLElement | null = null;
+		const restorePopoverScope = () => {
+			// React Aria may inert the newly body-portalled wrapper before it is moved into its modal.
+			if (!step.inDialog || !guidedModal || !guidedPopover || !guidedModal.contains(guidedPopover)) return;
+			if (guidedPopover.hasAttribute("inert")) guidedPopover.removeAttribute("inert");
+			if (guidedPopover.getAttribute("aria-hidden") === "true") guidedPopover.removeAttribute("aria-hidden");
+		};
 		const preserveAria = (element: HTMLElement | null, action: () => void) => {
 			const values = ["aria-expanded", "aria-haspopup", "aria-controls"].map((name) => [name, element?.getAttribute(name)] as const);
 			action();
@@ -49,7 +57,10 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 			allowKeyboardControl: false,
 			overlayClickBehavior: "none",
 			popoverClass: "clipify-tour-popover",
-			onHighlighted: () => spotlight.refresh(),
+			onHighlighted: () => {
+				restorePopoverScope();
+				spotlight.refresh();
+			},
 			onDestroyed: () => {
 				if (!disposed && !suspended) onPause();
 			},
@@ -61,7 +72,25 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 				onPause();
 				return;
 			}
-			if (document.querySelector(tourModalSelector)) {
+			const element = target();
+			if (step.dialogClosed && !element) {
+				if (!advanced) {
+					advanced = true;
+					onNext();
+				}
+				return;
+			}
+			const revealed = step.reveals ? document.querySelector(`[data-tour="${step.reveals}"]`) : null;
+			if (revealed && !revealed.closest('[data-exiting="true"]')) {
+				if (!advanced) {
+					advanced = true;
+					onNext();
+				}
+				return;
+			}
+			const modal = document.querySelector<HTMLElement>(tourModalSelector);
+			const ownsDialog = Boolean(step.inDialog && modal && element && modal.contains(element));
+			if (modal && !ownsDialog) {
 				if (!step.allowDialog) {
 					onPause();
 					return;
@@ -73,14 +102,11 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 				}
 				return;
 			}
+			if (step.inDialog && (!ownsDialog || element?.closest('[data-entering="true"], [data-exiting="true"]'))) return;
 			suspended = false;
-			const element = target();
-			if (step.reveals && document.querySelector(`[data-tour="${step.reveals}"]`)) {
-				if (!advanced) {
-					advanced = true;
-					onNext();
-				}
-				return;
+			if (ownsDialog && modal) {
+				guidedModal = modal;
+				modal.dataset.tourGuidedDialog = "true";
 			}
 			if (step.action && element?.getAttribute("role") === "tab" && element.getAttribute("aria-selected") === "true") {
 				if (!advanced) {
@@ -97,6 +123,7 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 					element,
 					disableActiveInteraction: element.dataset.tourReadonly === "true",
 					popover: {
+						side: step.inDialog ? "right" : undefined,
 						title: step.title,
 						description: step.description,
 						showButtons: [],
@@ -105,6 +132,11 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 						onCloseClick: onPause,
 						onNextClick: onConfirm ?? onNext,
 						onPopoverRender: ({ wrapper, closeButton }) => {
+							if (step.inDialog && guidedModal) {
+								guidedPopover = wrapper;
+								guidedModal.appendChild(wrapper);
+								restorePopoverScope();
+							}
 							wrapper.setAttribute("aria-label", step.title);
 							closeButton.setAttribute("aria-label", "Pause guide");
 							const host = document.createElement("div");
@@ -121,13 +153,22 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 				onPause();
 				return;
 			}
-			if (step.action && !step.reveals && !advanced && target()?.getAttribute("role") !== "tab" && event.target instanceof Node && target()?.contains(event.target)) {
+			if (step.action && !step.reveals && !step.dialogClosed && !advanced && target()?.getAttribute("role") !== "tab" && event.target instanceof Node && target()?.contains(event.target)) {
 				advanced = true;
 				onNext();
 			}
 		};
 		document.addEventListener("click", click, true);
+		const scroll = () => {
+			if (step.inDialog && shown) spotlight.refresh();
+		};
+		document.addEventListener("scroll", scroll, true);
 		const keydown = (event: KeyboardEvent) => {
+			if (step.inDialog && event.key === "Tab") {
+				// Keep Driver’s window-level Tab trap out of React Aria’s modal/grid navigation.
+				event.stopPropagation();
+				return;
+			}
 			if (document.querySelector(tourPopoverSelector)) {
 				// Let native popover controls own Escape and Tab while they are open.
 				if (event.key === "Tab") event.stopPropagation();
@@ -142,6 +183,10 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 
 		const observer = new MutationObserver(() => {
 			if (shown && !target()) {
+				if (step.dialogClosed) {
+					show();
+					return;
+				}
 				if (step.destination) {
 					missingTimer ??= setTimeout(() => {
 						if (!disposed && !target()) onMissing();
@@ -151,9 +196,10 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 			}
 
 			show();
+			restorePopoverScope();
 			if (shown) spotlight.refresh();
 		});
-		observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-tour", "aria-modal", "role", "aria-selected"] });
+		observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-tour", "aria-modal", "role", "aria-selected", "data-entering", "data-exiting", "inert", "aria-hidden"] });
 		show();
 		const timeout = window.setTimeout(() => {
 			if (!shown && !suspended && !advanced) {
@@ -165,12 +211,14 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 			disposed = true;
 			document.removeEventListener("keydown", keydown, true);
 			document.removeEventListener("click", click, true);
+			document.removeEventListener("scroll", scroll, true);
+			if (guidedModal) delete guidedModal.dataset.tourGuidedDialog;
 			observer.disconnect();
 			window.clearTimeout(timeout);
 			clearTimeout(missingTimer);
 			preserveAria(target(), () => spotlight.destroy());
 		};
-	}, [step.target, step.title, step.description, step.next, step.action, step.allowDialog, step.preserveFocus, step.destination, step.reveals, step.pauseOnInteract, step.nextLabel, onPause, onMissing, onNext, onPrevious, onConfirm]);
+	}, [step.target, step.title, step.description, step.next, step.action, step.allowDialog, step.inDialog, step.dialogClosed, step.preserveFocus, step.destination, step.reveals, step.pauseOnInteract, step.nextLabel, onPause, onMissing, onNext, onPrevious, onConfirm]);
 	return popoverHost && !step.preserveFocus
 		? createPortal(
 				<>
@@ -187,7 +235,7 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 								<span />
 							)}
 							{((step.next && !step.action) || onConfirm) && (
-								<Button size='sm' variant='primary' data-tour-action='next' onPress={onConfirm ?? onNext}>
+								<Button size='sm' variant='primary' data-tour-action='next' isDisabled={step.nextDisabled} onPress={onConfirm ?? onNext}>
 									{step.nextLabel ?? "Continue"}
 								</Button>
 							)}

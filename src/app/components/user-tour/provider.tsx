@@ -212,14 +212,14 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 		setMessage("");
 		const section = journeys.find((journey) => journey.tasks.some((item) => item.id === task));
 		setExpanded(section?.id ?? "overlay");
-		if (active?.task === task) report({ type: "resume", location });
-		else report({ type: "start", task, location });
+		if (active?.task === task) report({ type: "resume", location, pickerOpen: Boolean(document.querySelector('[data-tour="playlist-clip-search"]')) });
+		else report({ type: "start", task, location, pickerOpen: Boolean(document.querySelector('[data-tour="playlist-clip-search"]')) });
 		track("guide_started", { props: { journey: task.split(".")[0], task } });
 	};
 	const onPause = useCallback(() => pause(), [pause]);
-	const onMissing = useCallback(() => pause("That control isn't available here. Close any open dialog and try the task again."), [pause]);
+	const onMissing = useCallback(() => pause(step?.inDialog ? "Clip selection closed. Click the task to reopen it." : "That control isn't available here. Close any open dialog and try the task again."), [pause, step?.inDialog]);
 	const onNext = useCallback(() => report({ type: "next" }), [report]);
-	const onPrevious = useCallback(() => report({ type: "previous", location }), [report, location]);
+	const onPrevious = useCallback(() => report({ type: "previous", location, pickerOpen: Boolean(document.querySelector('[data-tour="playlist-clip-search"]')) }), [report, location]);
 	const isFinished = (task: TaskId) => progress.completed.includes(task) || progress.skipped.includes(task);
 	const currentJourney = journeys.find((journey) => journey.id === (active?.task.split(".")[0] ?? progress.journeyId)) ?? journeys[0];
 	const launcherTitle = currentJourney.id === "overlay" ? "Get started" : currentJourney.title;

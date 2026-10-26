@@ -34,6 +34,16 @@ Filters belong only to Choose your clips in the first-overlay flow. Personalizat
 
 Validation: all 16 affected suites / 419 tests passed, including saved-checkpoint compatibility. All four affected browser examples (018, 019, 041, 043) passed in one run, covering style save/defaults, no duplicate checklist task, persisted appearance progress and the canonical filter/Back flow. Browser production build/type checks, source lint and formatting pass. No schema change or generated migration is needed.
 
+## Guided clip picker and observed playlist source
+
+The clip task now follows Add Clips, search, full table/pagination selection, native confirmation, arrangement and save. Adding a valid selection advances automatically to arrangement without completing the task. Native Save remains authoritative. Guided modal controls stay in the owning React Aria focus scope, preserve grid/modal Tab behavior and scrolling, use side placement, and repair only the guide wrapper’s transient outside-modal inert state. The selection outline is inset so the modal’s scrolling does not clip it. Search uses secondary styling in both pickers; selection normalizes React Aria’s all token to actual page IDs.
+
+Existing three-step arrangement/save checkpoints migrate to new indices. Closed modal checkpoints reopen through Add Clips; Back from search teaches Cancel before returning to entry. Section endings never launch another optional section.
+
+Playlist-use observes the actual overlay type: selecting Playlist advances automatically, while a non-playlist type restores the source step without pausing. Invalid forward acknowledgement is disabled and guarded. Saved reads refresh the source observation from the owned overlay. The browser investigation also found a native editor crash from legacy preview clips missing creator fields during type changes; optional fields are normalized and stale preview responses are ignored.
+
+Validation: the final complete affected run passed 16 suites / 428 tests; the targeted model/adapter/editor whole-file run passed 138 tests. All seven current owning Chromium examples (005, 020, 021, 022, 045, 046, 047) passed in one final run. Case 045 selects and saves 52 clips across pages; case 046 covers Back/cancel/reopen; case 047 covers automatic source advance and changing away without leaving the flow. The final outline-only visual rerun of 045 also passed, and its screenshot was inspected. Browser and standalone production builds/type checks, source lint and formatting pass. The push hook repeats the complete affected-suite check. Canonical browser registry: 47 examples. No database schema or generated migration changes.
+
 ## Limits and merge requirements
 
 External OBS/website setup is instructional and self-reported. No schema or generated migrations changed; the existing account content-state table stores the guide. Server write failure keeps ordered retryable events and optimistic session state. Complete account persistence is verified after acknowledged writes.

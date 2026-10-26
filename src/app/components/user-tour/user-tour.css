@@ -81,3 +81,23 @@
 .driver-active :is([data-slot="select-popover"], [data-slot="color-picker-popover"], [data-slot="dropdown-popover"], [data-slot="popover-dialog"]) {
 	z-index: 1000000002 !important;
 }
+
+/* Guided clip-picker steps stay in React Aria’s modal focus scope. */
+.driver-active [data-slot="modal-backdrop"]:has([data-tour-guided-dialog="true"]) {
+	z-index: 1000000002 !important;
+}
+.driver-active [data-tour-guided-dialog="true"] .driver-active-element-parent-no-scroll {
+	overflow-y: auto !important;
+}
+.driver-active [data-tour-guided-dialog="true"] :is([aria-label="Close dialog"], [data-tour="playlist-clip-cancel"]),
+.driver-active [data-tour-guided-dialog="true"] :is([aria-label="Close dialog"], [data-tour="playlist-clip-cancel"]) * {
+	pointer-events: auto;
+}
+
+.driver-active:has([data-tour-guided-dialog="true"]) .driver-overlay path {
+	pointer-events: none !important;
+}
+/* Keep the whole selection region visibly outlined inside the modal's scroll clipping. */
+.driver-active [data-tour-guided-dialog="true"] .driver-active-element {
+	outline-offset: -2px;
+}

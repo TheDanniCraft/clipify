@@ -524,6 +524,32 @@ describe("dashboard overlay settings playlist mode", () => {
 			popup.mockRestore();
 		}
 	});
+	it("keeps the editor usable when leaving Playlist with incomplete legacy preview metadata", async () => {
+		getTwitchClips.mockResolvedValue([clip("legacy", { creator_name: undefined, creator_id: undefined, game_id: undefined })]);
+		await openPage();
+		await press("Overlay Type");
+		await act(async () => {
+			fireEvent.click(screen.getByRole("option", { name: "All Clips" }));
+		});
+		expect(screen.getByRole("button", { name: "Overlay Type" })).toBeEnabled();
+		expect(reportTour).toHaveBeenCalledWith(expect.objectContaining({ type: "overlay.type-selected", playlist: false }));
+	});
+	it("ignores a stale playlist preview response after choosing another source", async () => {
+		let release!: (clips: unknown[]) => void;
+		const pending = new Promise<unknown[]>((resolve) => {
+			release = resolve;
+		});
+		getTwitchClips.mockImplementation((_overlay, type) => (type === "Playlist" ? pending : Promise.resolve([])));
+		await openPage();
+		await press("Overlay Type");
+		await act(async () => {
+			fireEvent.click(screen.getByRole("option", { name: "All Clips" }));
+		});
+		await act(async () => {
+			release([clip("stale")]);
+		});
+		expect(screen.getByRole("button", { name: "Preview Clips" })).toHaveTextContent("0");
+	});
 	it.each(["1", "7", "30", "90", "180", "365", "Featured", "All", "Queue"])("source %s clears playlist binding and normalizes ordered playback", async (type) => {
 		getOverlay.mockResolvedValue({ ...buildOverlay(), playbackMode: "order" });
 		await openPage();

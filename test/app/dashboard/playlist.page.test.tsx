@@ -343,6 +343,7 @@ describe("dashboard playlist page", () => {
 		await press("Add selected clips");
 		expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 		expect(upsertPlaylistClips).not.toHaveBeenCalled();
+		expect(reportTour).toHaveBeenCalledWith(expect.objectContaining({ type: "playlist.clips-added", id: "playlist-1", count: 1 }));
 		await press("Save Playlist");
 		expect(upsertPlaylistClips).toHaveBeenCalledWith("playlist-1", [expect.objectContaining({ id: "new" })], "replace", 1, undefined);
 	});

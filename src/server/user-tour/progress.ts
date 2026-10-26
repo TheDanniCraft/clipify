@@ -20,7 +20,7 @@ async function transactProgress(userId: string, event?: GuideEvent, client: Data
 		let progress = parseProgress(row.state, false);
 		if (inserted.length || !event) {
 			const [overlay] = await tx
-				.select({ id: overlaysTable.id, name: overlaysTable.name })
+				.select({ id: overlaysTable.id, name: overlaysTable.name, type: overlaysTable.type })
 				.from(overlaysTable)
 				.where(eq(overlaysTable.ownerId, userId))
 				.orderBy(sql`${overlaysTable.id}::text = ${progress.overlayId ?? ""} DESC`, overlaysTable.createdAt)
@@ -33,6 +33,7 @@ async function transactProgress(userId: string, event?: GuideEvent, client: Data
 				.limit(1);
 			if (progress.overlayId !== (overlay?.id ?? null)) progress.copiedOverlayId = null;
 			progress.overlayId = overlay?.id ?? null;
+			progress.playlistSource = overlay?.type === "Playlist";
 			progress.playlistId = playlist?.id ?? null;
 			if (progress.active && ((!overlay && (progress.active.task.startsWith("overlay.") || progress.active.task.startsWith("appearance.") || progress.active.task === "playlist.use")) || (!playlist && progress.active.task.startsWith("playlist.")))) {
 				progress.active = { ...progress.active, index: 0, navigation: [], navigationTotal: 0, paused: true };

@@ -116,7 +116,7 @@ it("represents a paused task with an indeterminate checkbox instead of status ch
 	expect(screen.queryByText(/In progress|Choose another/)).not.toBeInTheDocument();
 	fireEvent.click(screen.getByRole("button", { name: "Choose your clips" }));
 	expect(push).not.toHaveBeenCalled();
-	await waitFor(() => expect(save).toHaveBeenCalledWith("owner", { type: "resume", location: "dashboard" }));
+	await waitFor(() => expect(save).toHaveBeenCalledWith("owner", { type: "resume", location: "dashboard", pickerOpen: false }));
 });
 it("continues from a saved name into clip selection without a completion card", async () => {
 	currentPath = "/dashboard/overlay/overlay-1";

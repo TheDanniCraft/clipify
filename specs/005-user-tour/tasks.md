@@ -62,3 +62,15 @@ T013: affected tests, all feature browser examples, lint, formatting, types and 
 - [x] F001 Keep filters only in Choose your clips; appearance has one styling task.
 - [x] F002 Preserve completed filter work and map old active checkpoints to the core flow.
 - [x] F003 Verify affected suites, owning styling/filter browser cases and checks; push the draft update.
+
+## Guide the native clip picker
+
+- [x] M001 Add search, full selection/pagination and native confirmation steps inside the owning modal.
+- [x] M002 Advance after an acknowledged draft addition; finish only after save/default confirmation.
+- [x] M003 Preserve old arrangement/save checkpoints and teach reopening/closing through real controls.
+- [x] M004 Use secondary search styling and normalize selection IDs across pages.
+- [x] M005 Assert that section completion never starts another optional section.
+- [x] M006 Complete model/component, persistence and real-browser checks, visuals, builds and push the draft update.
+
+- [x] M007 Observe playlist source choices, automatically advance, and recover without leaving the task when another source is selected.
+- [x] M008 Keep legacy preview metadata and stale source responses from crashing or overriding the new source.

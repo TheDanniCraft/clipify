@@ -46,9 +46,11 @@ const taskIds = new Set<string>(journeys.flatMap((journey) => journey.tasks.map(
 export const isTaskId = (value: unknown): value is TaskId => typeof value === "string" && taskIds.has(value);
 const validId = (value: unknown): value is string => typeof value === "string" && /^[a-zA-Z0-9_-]{1,128}$/.test(value);
 export type GuideLocation = "dashboard" | "overlay" | "theme" | "playlist" | "tools" | "other";
-export type NavigationTarget = "home" | "overlays" | "overlay" | "playlists" | "playlist" | "profile" | "tools" | "theme" | "settings";
+export type NavigationTarget = "home" | "overlays" | "overlay" | "playlists" | "playlist" | "profile" | "tools" | "theme" | "settings" | "clip-picker" | "close-picker";
 export type GuideProgress = {
 	version: 2;
+	playlistClipsVersion?: 2;
+	playlistSource?: boolean;
 	journeyId?: JourneyId;
 	completed: TaskId[];
 	skipped: TaskId[];
@@ -58,11 +60,11 @@ export type GuideProgress = {
 	active: { task: TaskId; index: number; paused: boolean; navigation?: NavigationTarget[]; navigationTotal?: number; done?: boolean } | null;
 	minimized: boolean;
 };
-export const defaultProgress = (): GuideProgress => ({ version: 2, journeyId: "overlay", completed: [], skipped: [], overlayId: null, playlistId: null, copiedOverlayId: null, active: null, minimized: false });
+export const defaultProgress = (): GuideProgress => ({ version: 2, playlistClipsVersion: 2, playlistSource: false, journeyId: "overlay", completed: [], skipped: [], overlayId: null, playlistId: null, copiedOverlayId: null, active: null, minimized: false });
 /** Legacy browser cache, read once when importing an account's old guide progress. */
 export const storageKey = (accountId: string) => `clipify:user-tour:v1:${accountId}`;
 export const guideContentKey = "clipify-user-tour:v2";
-const navigationIds = new Set<string>(["home", "overlays", "overlay", "playlists", "playlist", "profile", "tools", "theme", "settings"]);
+const navigationIds = new Set<string>(["home", "overlays", "overlay", "playlists", "playlist", "profile", "tools", "theme", "settings", "clip-picker", "close-picker"]);
 const locations = new Set<string>(["dashboard", "overlay", "theme", "playlist", "tools", "other"]);
 const migrateTask = (id: unknown) => (id === "website.embed" ? "explore.tools" : id);
 export function parseProgress(raw: string | null, restorePaused = true): GuideProgress {
@@ -70,10 +72,11 @@ export function parseProgress(raw: string | null, restorePaused = true): GuidePr
 		const data = JSON.parse(raw ?? "null");
 		if (!data || Array.isArray(data) || ![1, 2].includes(data.version) || !Array.isArray(data.completed)) return defaultProgress();
 		const completed = [...new Set<TaskId>(data.completed.map((id: unknown) => (id === "appearance.filters" ? "overlay.source" : migrateTask(id))).filter(isTaskId))];
-		const progress: GuideProgress = { ...defaultProgress(), completed, skipped: Array.isArray(data.skipped) ? [...new Set<TaskId>(data.skipped.map(migrateTask).filter(isTaskId))].filter((id) => !completed.includes(id)) : [], overlayId: validId(data.overlayId) ? data.overlayId : null, playlistId: validId(data.playlistId) ? data.playlistId : null, minimized: data.minimized !== false };
+		const progress: GuideProgress = { ...defaultProgress(), completed, playlistSource: data.playlistSource === true && validId(data.overlayId), skipped: Array.isArray(data.skipped) ? [...new Set<TaskId>(data.skipped.map(migrateTask).filter(isTaskId))].filter((id) => !completed.includes(id)) : [], overlayId: validId(data.overlayId) ? data.overlayId : null, playlistId: validId(data.playlistId) ? data.playlistId : null, minimized: data.minimized !== false };
 		if (validId(data.copiedOverlayId) && data.copiedOverlayId === progress.overlayId) progress.copiedOverlayId = data.copiedOverlayId;
 		// Retired duplicate filter guidance resumes at its canonical core-task checkpoint.
-		const active = data.active?.task === "appearance.filters" ? { ...data.active, task: "overlay.source", index: [0, 1].includes(data.active.index) ? data.active.index + 1 : -1 } : data.active;
+		let active = data.active?.task === "appearance.filters" ? { ...data.active, task: "overlay.source", index: [0, 1].includes(data.active.index) ? data.active.index + 1 : -1 } : data.active;
+		if (active?.task === "playlist.clips" && data.playlistClipsVersion !== 2) active = { ...active, index: [0, 1, 2].includes(active.index) ? [0, 4, 5][active.index] : -1 };
 		if (data.version === 2 && active && isTaskId(active.task) && Number.isInteger(active.index) && active.index >= 0 && active.index < stepsForTask(active.task, progress).length) {
 			const navigation: NavigationTarget[] = Array.isArray(active.navigation) ? active.navigation.filter((id: unknown): id is NavigationTarget => typeof id === "string" && navigationIds.has(id)).slice(0, 5) : [];
 			progress.active = { task: active.task, index: active.index, paused: restorePaused || active.paused !== false, navigation, navigationTotal: Math.max(navigation.length, Math.min(5, Number.isInteger(active.navigationTotal) ? active.navigationTotal : navigation.length)) };
@@ -105,8 +108,10 @@ export function navigationForTask(task: TaskId, location: GuideLocation, progres
 	if (location === "overlay" && progress.overlayId) return [];
 	return [...home, "overlays", ...(progress.overlayId ? ["overlay" as const] : [])];
 }
-export type GuideStep = { target: string; title: string; description: string; next?: boolean; action?: boolean; finish?: boolean; nextLabel?: string; skipOnFinish?: boolean; allowDialog?: boolean; destination?: GuideLocation; preserveFocus?: boolean; reveals?: string; pauseOnInteract?: boolean };
+export type GuideStep = { target: string; title: string; description: string; next?: boolean; nextDisabled?: boolean; action?: boolean; finish?: boolean; nextLabel?: string; skipOnFinish?: boolean; allowDialog?: boolean; inDialog?: boolean; dialogClosed?: boolean; destination?: GuideLocation; preserveFocus?: boolean; reveals?: string; pauseOnInteract?: boolean };
 const navigationSteps: Record<NavigationTarget, GuideStep> = {
+	"close-picker": { target: "playlist-clip-cancel", title: "Return to Add Clips", description: "Click Cancel to return to the playlist and its Add Clips button.", action: true, next: true, inDialog: true, dialogClosed: true },
+	"clip-picker": { target: "playlist-add", title: "Open the clip picker", description: "Click Add Clips to return to your clip selection.", action: true, next: true, reveals: "playlist-clip-search", allowDialog: true },
 	settings: { target: "theme-back", title: "Return to overlay settings", description: "Use the back button to return to your overlay settings.", destination: "overlay" },
 	theme: { target: "overlay-customize", title: "Open Theme Studio", description: "Click Customize Overlay Style to return to your look.", destination: "theme" },
 	home: { target: "dashboard-home", title: "Open your Dashboard", description: "Click the Clipify logo to find your overlays and playlists.", destination: "dashboard" },
@@ -141,12 +146,14 @@ export type GuideEvent =
 	| ({ type: "overlay.ready" | "overlay.created" | "overlay.copied" | "website.copied" } & Owned)
 	| ({ type: "overlay.saved"; named: boolean; source: boolean; playlistId?: string | null } & Owned)
 	| ({ type: "overlay.previewed"; count: number } & Owned)
+	| ({ type: "overlay.type-selected"; playlist: boolean } & Owned)
 	| ({ type: "theme.saved"; changed: boolean } & Owned)
 	| ({ type: "playlist.ready" | "playlist.created" } & Owned)
 	| ({ type: "playlist.saved"; named: boolean; count: number } & Owned)
-	| { type: "start"; task: TaskId; location?: GuideLocation }
+	| ({ type: "playlist.clips-added"; count: number } & Owned)
+	| { type: "start"; task: TaskId; location?: GuideLocation; pickerOpen?: boolean }
 	| { type: "task.skip" | "task.restore"; task: TaskId }
-	| { type: "resume" | "previous"; location?: GuideLocation }
+	| { type: "resume" | "previous"; location?: GuideLocation; pickerOpen?: boolean }
 	| { type: "location"; location: GuideLocation }
 	| { type: "pause" | "next" | "setup.confirmed" }
 	| { type: "panel"; minimized: boolean }
@@ -156,6 +163,7 @@ export function isGuideEvent(value: unknown): value is GuideEvent {
 	if (!value || typeof value !== "object" || Array.isArray(value)) return false;
 	const event = value as Record<string, unknown>;
 	if ("ownerId" in event && (!validId(event.ownerId) || !validId(event.id))) return false;
+	if ("pickerOpen" in event && typeof event.pickerOpen !== "boolean") return false;
 	if ("location" in event && (typeof event.location !== "string" || !locations.has(event.location))) return false;
 	switch (event.type) {
 		case "overlay.ready":
@@ -169,8 +177,11 @@ export function isGuideEvent(value: unknown): value is GuideEvent {
 			return "ownerId" in event && typeof event.named === "boolean" && typeof event.source === "boolean" && (event.playlistId == null || validId(event.playlistId));
 		case "playlist.saved":
 			return "ownerId" in event && typeof event.named === "boolean" && Number.isInteger(event.count) && Number(event.count) >= 0 && Number(event.count) <= 1000000;
+		case "playlist.clips-added":
 		case "overlay.previewed":
 			return "ownerId" in event && Number.isInteger(event.count) && Number(event.count) >= 0 && Number(event.count) <= 1000000;
+		case "overlay.type-selected":
+			return "ownerId" in event && typeof event.playlist === "boolean";
 		case "theme.saved":
 			return "ownerId" in event && typeof event.changed === "boolean";
 		case "start":
@@ -198,11 +209,16 @@ export function isGuideEvent(value: unknown): value is GuideEvent {
 export function transition(progress: GuideProgress, event: GuideEvent, accountId: string): GuideProgress {
 	if (!isGuideEvent(event) || ("ownerId" in event && event.ownerId !== accountId)) return progress;
 	const next: GuideProgress = { ...progress, completed: [...progress.completed], skipped: [...progress.skipped] };
-	const begin = (task: TaskId, location: GuideLocation, index = 0, startInPlace = true) => {
+	const begin = (task: TaskId, location: GuideLocation, index = 0, startInPlace = true, pickerOpen = false) => {
+		if (task === "playlist.use" && location === "overlay" && next.playlistId && !next.playlistSource) index = 0;
+		if (startInPlace && task === "playlist.use" && index === 0 && location === "overlay" && next.playlistId && next.playlistSource) index = 1;
 		if (startInPlace && task === "appearance.style" && location === "theme" && next.overlayId) index = Math.max(1, index);
+		if (startInPlace && task === "playlist.clips" && index === 0 && pickerOpen && next.playlistId) index = 1;
 		next.journeyId = journeys.find((journey) => journey.tasks.some((item) => item.id === task))!.id;
 		const navigationTask = index > 0 && task === "overlay.name" ? "overlay.source" : index > 0 && task === "playlist.name" ? "playlist.clips" : task;
 		const navigation = navigationForTask(navigationTask, location, next, index);
+		if (task === "playlist.clips" && index === 0 && pickerOpen && next.playlistId) navigation.push("close-picker");
+		if (task === "playlist.clips" && index > 0 && index < 4 && !pickerOpen && next.playlistId) navigation.push("clip-picker");
 		next.active = { task, index, paused: false, navigation, navigationTotal: navigation.length };
 		next.minimized = true;
 	};
@@ -225,10 +241,10 @@ export function transition(progress: GuideProgress, event: GuideEvent, accountId
 	const startedTask = progress.active?.task;
 	switch (event.type) {
 		case "start":
-			begin(event.task, event.location ?? "dashboard");
+			begin(event.task, event.location ?? "dashboard", 0, true, event.pickerOpen);
 			return next;
 		case "resume":
-			if (next.active) begin(next.active.task, event.location ?? "dashboard", next.active.index);
+			if (next.active) begin(next.active.task, event.location ?? "dashboard", next.active.index, true, event.pickerOpen);
 			return next;
 		case "pause":
 			return { ...next, active: next.active ? { ...next.active, paused: true } : null, minimized: false };
@@ -245,12 +261,12 @@ export function transition(progress: GuideProgress, event: GuideEvent, accountId
 			return next;
 		case "previous":
 			if (!next.active || next.active.paused || next.active.index < 1) return progress;
-			begin(next.active.task, event.location ?? guideLocation(routeForTask(next.active.task, next)), next.active.index - 1, false);
+			begin(next.active.task, event.location ?? guideLocation(routeForTask(next.active.task, next)), next.active.index - 1, false, event.pickerOpen);
 			return next;
 		case "next": {
 			if (!next.active || next.active.paused) return progress;
 			const step = currentGuideStep(next);
-			if (!step?.next) return progress;
+			if (!step?.next || step.nextDisabled) return progress;
 			if (next.active.navigation?.length) return { ...next, active: { ...next.active, navigation: next.active.navigation.slice(1) } };
 			if (step.finish) {
 				finish(next.active.task, step.skipOnFinish);
@@ -264,6 +280,7 @@ export function transition(progress: GuideProgress, event: GuideEvent, accountId
 			const step = currentGuideStep(next);
 			if (step?.destination === event.location) {
 				next.active = next.active.navigation?.length ? { ...next.active, navigation: next.active.navigation.slice(1) } : { ...next.active, index: next.active.index + 1 };
+				if (next.active.task === "playlist.use" && !next.active.navigation?.length && event.location === "overlay" && next.playlistId) next.active = { ...next.active, index: next.playlistSource ? Math.max(1, next.active.index) : 0 };
 				return next;
 			}
 			if (next.active.task !== "explore.support" && event.location !== guideLocation(routeForTask(next.active.task, next))) {
@@ -274,22 +291,36 @@ export function transition(progress: GuideProgress, event: GuideEvent, accountId
 		case "resource.reset":
 			if (event.resource === "overlay") {
 				next.overlayId = null;
+				next.playlistSource = false;
 				next.copiedOverlayId = null;
 			} else next.playlistId = null;
 			return { ...next, active: next.active ? { ...next.active, index: 0, paused: true } : null };
 		case "overlay.ready":
 			if (event.select || !next.overlayId) {
-				if (event.id !== next.overlayId) next.copiedOverlayId = null;
+				if (event.id !== next.overlayId) {
+					next.copiedOverlayId = null;
+					next.playlistSource = false;
+				}
 				next.overlayId = event.id;
 			}
 			break;
 		case "overlay.created":
 			next.overlayId = event.id;
+			next.playlistSource = false;
 			next.copiedOverlayId = null;
 			if (next.active) next.active = { ...next.active, index: next.active.task === "overlay.name" ? 1 : 0, navigation: [] };
 			break;
+		case "overlay.type-selected":
+			if (event.id !== next.overlayId) return progress;
+			next.playlistSource = event.playlist;
+			if (next.active?.task === "playlist.use" && !next.active.navigation?.length && next.playlistId) {
+				if (!event.playlist) next.active = { ...next.active, index: 0 };
+				else if (next.active.index === 0) next.active = { ...next.active, index: 1 };
+			}
+			break;
 		case "overlay.saved":
 			next.overlayId = event.id;
+			if (event.playlistId !== undefined) next.playlistSource = Boolean(event.playlistId);
 			if (event.named) finish("overlay.name");
 			if (event.source && (!startedTask || startedTask === "overlay.source")) finish("overlay.source");
 			if (event.playlistId && event.playlistId === next.playlistId) finish("playlist.use");
@@ -314,6 +345,9 @@ export function transition(progress: GuideProgress, event: GuideEvent, accountId
 		case "playlist.created":
 			next.playlistId = event.id;
 			if (next.active) next.active = { ...next.active, index: next.active.task === "playlist.name" ? 1 : 0, navigation: [] };
+			break;
+		case "playlist.clips-added":
+			if (event.id === next.playlistId && event.count > 0 && next.active?.task === "playlist.clips" && next.active.index < 4) next.active = { ...next.active, index: 4, navigation: [] };
 			break;
 		case "playlist.saved":
 			next.playlistId = event.id;
@@ -372,14 +406,17 @@ export function stepsForTask(task: TaskId, progress: GuideProgress): GuideStep[]
 		case "playlist.clips":
 			return progress.playlistId
 				? [
-						{ target: "playlist-add", title: "Choose your clips", description: "Click Add Clips, select clips, then add them to this playlist.", next: true, allowDialog: true },
-						{ target: "playlist-order", title: "Arrange your clips", description: "Drag the clips into the order you want.", next: true },
+						{ target: "playlist-add", title: "Choose your clips", description: "Click Add Clips to open your cached clips.", action: true, next: true, reveals: "playlist-clip-search", allowDialog: true },
+						{ target: "playlist-clip-search", title: "Find your clips", description: "Search by title or creator, or continue to browse all clips.", next: true, inDialog: true },
+						{ target: "playlist-clip-selection", title: "Select clips", description: "Select the clips you want. You can use Select all and move between pages; your selection stays available.", next: true, inDialog: true },
+						{ target: "playlist-clip-confirm", title: "Add selected clips", description: "Click Add selected clips to add your selection. Use Back if you want to change it.", inDialog: true },
+						{ target: "playlist-order", title: "Arrange your clips", description: "Drag the clips into the order you want.", next: true, allowDialog: true },
 						{ target: "playlist-save", title: "Save your playlist", description: "Click Save Playlist to keep the clips and order.", next: true, finish: true, skipOnFinish: true, nextLabel: "Keep current playlist" },
 					]
 				: stepsForTask("playlist.name", progress);
 		case "playlist.use":
 			return [
-				{ target: "overlay-source", title: "Use a playlist", description: "Set Overlay Type to Playlist.", next: true },
+				{ target: "overlay-source", title: "Use a playlist", description: "Set Overlay Type to Playlist. The guide continues when you select it.", next: true, nextDisabled: !progress.playlistSource },
 				{ target: "overlay-playlist", title: "Select your playlist", description: "Choose your saved playlist.", next: true },
 				{ target: "overlay-save", title: "Save the overlay", description: "Click Save to use this playlist." },
 			];

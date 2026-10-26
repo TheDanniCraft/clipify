@@ -263,3 +263,21 @@ Feature: Clipify guided onboarding
     Given an isolated authenticated Clipify guide account
     When Back is used from the styling workspace
     Then normal app navigation returns to the first styling step
+
+  @US3 @FR-005 @SC-004 @BDD-TOUR-US3-045
+  Scenario: Guide selection across clip picker pages
+    Given an isolated authenticated Clipify guide account
+    When clips are selected across pages through the guided picker
+    Then adding advances automatically to arrangement and saving keeps all selected clips
+
+  @US3 @FR-006 @SC-002 @BDD-TOUR-US3-046
+  Scenario: Resume a cancelled clip picker checkpoint
+    Given an isolated authenticated Clipify guide account
+    When the guided picker is cancelled during selection
+    Then resuming reopens the picker through Add Clips and continues from selection
+
+  @US3 @FR-005 @SC-002 @BDD-TOUR-US3-047
+  Scenario: Follow the actual overlay source type in playlist guidance
+    Given an isolated authenticated Clipify guide account
+    When playlist source guidance changes to Playlist and back to another type
+    Then it stays in the flow and advances again when Playlist is selected

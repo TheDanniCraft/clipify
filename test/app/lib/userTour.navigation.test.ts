@@ -117,3 +117,64 @@ it("allows Back from every action step after the first, including filters", () =
 	expect(apply(state, { type: "previous", location: "overlay" })).toEqual(state);
 	expect(state.completed).toEqual([]);
 });
+it("guides search, selection and confirmation before advancing to arrangement on add", () => {
+	const state: GuideProgress = { ...defaultProgress(), playlistId: "playlist", active: { task: "playlist.clips", index: 3, paused: false } };
+	const steps = stepsForTask("playlist.clips", state);
+	expect(steps.map((step) => step.target)).toEqual(["playlist-add", "playlist-clip-search", "playlist-clip-selection", "playlist-clip-confirm", "playlist-order", "playlist-save"]);
+	expect(steps.slice(1, 4).every((step) => step.inDialog)).toBe(true);
+	const added = apply(state, { type: "playlist.clips-added", ownerId: "owner", id: "playlist", count: 2 });
+	expect(currentGuideStep(added)?.target).toBe("playlist-order");
+	expect(added.completed).not.toContain("playlist.clips");
+	for (const event of [
+		{ ownerId: "foreign", id: "playlist", count: 2 },
+		{ ownerId: "owner", id: "other", count: 2 },
+		{ ownerId: "owner", id: "playlist", count: 0 },
+	])
+		expect(apply(state, { type: "playlist.clips-added", ...event }).active?.index).toBe(3);
+});
+it("reopens a saved picker checkpoint through Add Clips and keeps Back inside an open picker", () => {
+	const state: GuideProgress = { ...defaultProgress(), playlistId: "playlist", active: { task: "playlist.clips", index: 3, paused: true } };
+	const resumed = apply(state, { type: "resume", location: "playlist", pickerOpen: false });
+	expect(resumed.active?.navigation).toEqual(["clip-picker"]);
+	expect(currentGuideStep(apply(resumed, { type: "next" }))?.target).toBe("playlist-clip-confirm");
+	const back = apply({ ...state, active: { ...state.active!, paused: false } }, { type: "previous", location: "playlist", pickerOpen: true });
+	expect(back.active?.navigation).toEqual([]);
+	expect(currentGuideStep(back)?.target).toBe("playlist-clip-selection");
+});
+it("migrates old arrangement/save checkpoints without interpreting them as modal steps", () => {
+	const old = { ...defaultProgress(), playlistClipsVersion: undefined, playlistId: "playlist", active: { task: "playlist.clips", index: 1, paused: true } };
+	expect(parseProgress(JSON.stringify(old)).active?.index).toBe(4);
+	expect(parseProgress(JSON.stringify({ ...old, active: { ...old.active, index: 2 } })).active?.index).toBe(5);
+	expect(parseProgress(JSON.stringify({ ...old, playlistClipsVersion: 2 })).active?.index).toBe(1);
+});
+it("ends optional sections without starting a different section", () => {
+	const styled = apply({ ...defaultProgress(), overlayId: "overlay", active: { task: "appearance.style", index: 2, paused: false } }, { type: "theme.saved", ownerId: "owner", id: "overlay", changed: true });
+	expect(styled.active).toBeNull();
+	const installed = apply({ ...defaultProgress(), overlayId: "overlay", playlistId: "playlist", active: { task: "playlist.use", index: 2, paused: false } }, { type: "overlay.saved", ownerId: "owner", id: "overlay", named: true, source: false, playlistId: "playlist" });
+	expect(installed.active).toBeNull();
+});
+
+it("returns from modal search to the real Add Clips entry instead of trapping Back", () => {
+	const state: GuideProgress = { ...defaultProgress(), playlistId: "playlist", active: { task: "playlist.clips", index: 1, paused: false } };
+	const back = apply(state, { type: "previous", location: "playlist", pickerOpen: true });
+	expect(back.active).toMatchObject({ index: 0, navigation: ["close-picker"] });
+	expect(currentGuideStep(back)?.dialogClosed).toBe(true);
+	expect(currentGuideStep(apply(back, { type: "next" }))?.target).toBe("playlist-add");
+});
+
+it("advances playlist source selection automatically and recovers when its type changes away", () => {
+	let state: GuideProgress = { ...defaultProgress(), overlayId: "overlay", playlistId: "playlist", active: { task: "playlist.use", index: 0, paused: false } };
+	expect(currentGuideStep(state)?.nextDisabled).toBe(true);
+	expect(apply(state, { type: "next" }).active?.index).toBe(0);
+	state = apply(state, { type: "overlay.type-selected", ownerId: "owner", id: "overlay", playlist: true });
+	expect(state.active).toMatchObject({ index: 1, paused: false });
+	state = apply(state, { type: "previous", location: "overlay" });
+	expect(state.active?.index).toBe(0);
+	expect(currentGuideStep(state)?.nextDisabled).toBe(false);
+	state = apply(state, { type: "overlay.type-selected", ownerId: "owner", id: "overlay", playlist: false });
+	expect(state.active).toMatchObject({ index: 0, paused: false });
+	expect(state.completed).not.toContain("playlist.use");
+	const stale = { ...state, active: { task: "playlist.use" as const, index: 1, paused: true } };
+	expect(apply(stale, { type: "resume", location: "overlay" }).active).toMatchObject({ index: 0, paused: false });
+	expect(apply(state, { type: "overlay.type-selected", ownerId: "foreign", id: "overlay", playlist: true })).toEqual(state);
+});

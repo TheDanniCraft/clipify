@@ -305,3 +305,40 @@ it("refreshes portal geometry after Driver finishes its highlight animation", ()
 	act(() => config.onHighlighted());
 	expect(refresh).toHaveBeenCalledTimes(1);
 });
+it("keeps guided picker controls inside the owning modal focus scope", () => {
+	const pause = jest.fn(),
+		next = jest.fn();
+	const view = render(
+		<>
+			<div role='dialog' data-slot='modal-dialog'>
+				<input data-tour='control' />
+			</div>
+			<Spotlight step={{ ...step, inDialog: true }} onPause={pause} onMissing={jest.fn()} onNext={next} />
+		</>,
+	);
+	const modal = screen.getByRole("dialog");
+	expect(pause).not.toHaveBeenCalled();
+	expect(modal).toHaveAttribute("data-tour-guided-dialog", "true");
+	const wrapper = document.createElement("div"),
+		closeButton = document.createElement("button");
+	closeButton.style.display = "none";
+	wrapper.appendChild(closeButton);
+	wrapper.setAttribute("inert", "");
+	wrapper.setAttribute("aria-hidden", "true");
+	document.body.appendChild(wrapper);
+	act(() => highlight.mock.calls[0][0].popover.onPopoverRender({ wrapper, closeButton }));
+	expect(modal).toContainElement(wrapper);
+	expect(wrapper).not.toHaveAttribute("inert");
+	expect(wrapper).not.toHaveAttribute("aria-hidden");
+	const windowTab = jest.fn();
+	window.addEventListener("keydown", windowTab);
+	const tab = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true });
+	act(() => modal.querySelector("input")!.dispatchEvent(tab));
+	expect(tab.defaultPrevented).toBe(false);
+	expect(windowTab).not.toHaveBeenCalled();
+	window.removeEventListener("keydown", windowTab);
+	fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+	expect(next).toHaveBeenCalledTimes(1);
+	view.unmount();
+	expect(modal).not.toHaveAttribute("data-tour-guided-dialog");
+});
