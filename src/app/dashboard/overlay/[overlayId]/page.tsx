@@ -1622,7 +1622,7 @@ export default function OverlaySettings() {
 								<Table.Content aria-label='Cached clips table' selectionMode='multiple' selectedKeys={selectedCachedClipIds} onSelectionChange={setSelectedCachedClipIds} sortDescriptor={cachedClipsSortDescriptor} onSortChange={setCachedClipsSortDescriptor}>
 									<Table.Header>
 										<Table.Column className='pr-0'>
-											<Checkbox aria-label='Select all clips' slot='selection'>
+											<Checkbox aria-label='Select all clips' slot='selection' variant='primary'>
 												<Checkbox.Content>
 													<Checkbox.Control>
 														<Checkbox.Indicator />
@@ -1661,7 +1661,7 @@ export default function OverlaySettings() {
 										{sortedCachedClips.map((item) => (
 											<Table.Row key={item.id} id={item.id} textValue={item.title}>
 												<Table.Cell className='pr-0'>
-													<Checkbox aria-label={`Select ${item.title}`} slot='selection'>
+													<Checkbox aria-label={`Select ${item.title}`} slot='selection' variant='secondary'>
 														<Checkbox.Content>
 															<Checkbox.Control>
 																<Checkbox.Indicator />
