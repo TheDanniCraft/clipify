@@ -522,7 +522,7 @@ export default function SettingsPage() {
 							</div>
 						</Card.Header>
 						<Card.Content className='px-6 pt-0 pb-6'>
-							<div className='mb-5 flex items-center gap-3'>
+							<div data-tour='settings-overview' className='mb-5 flex items-center gap-3'>
 								<DashboardUserAvatar username={user.username} avatar={user.avatar} />
 								<div>
 									<p className='text-2xl font-bold'>{user.username}</p>

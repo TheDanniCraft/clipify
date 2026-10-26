@@ -243,7 +243,7 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 												<Label>Upgrade to Pro</Label>
 											</Dropdown.Item>
 										) : null}
-										<Dropdown.Item id='settings' textValue={user.plan ? "My Settings" : "Agency dashboard"} onAction={() => router.push(user.plan ? "/dashboard/settings" : "/dashboard/agency")}>
+										<Dropdown.Item data-tour='nav-settings' id='settings' textValue={user.plan ? "My Settings" : "Agency dashboard"} onAction={() => router.push(user.plan ? "/dashboard/settings" : "/dashboard/agency")}>
 											<Label>{user.plan ? "My Settings" : "Agency dashboard"}</Label>
 										</Dropdown.Item>
 										<Dropdown.Item id='member_card' textValue='Badges' onAction={() => router.push("/dashboard/member-card")}>

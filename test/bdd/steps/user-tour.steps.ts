@@ -966,7 +966,7 @@ When("three remaining guides confirm the existing settings", async ({ page, tour
 	await seedProgress(tourWorld, { overlayId: tourWorld.owner!.overlayId, playlistId: tourWorld.owner!.playlistId, completed: journeys.flatMap((journey) => journey.tasks.map((task) => task.id)).filter((task) => !(skipped as readonly string[]).includes(task)), skipped: [...skipped] });
 	await overlay(page, tourWorld);
 	await panel(page);
-	await expect(page.getByLabel("Clipify Expert progress")).toHaveText("Clipify Expert: 8/11");
+	await expect(page.getByLabel("Clipify Expert progress")).toHaveText("Clipify Expert: 12/15");
 	await expect(page.getByRole("button", { name: "Choose your clips", exact: true }).getByText("Skipped", { exact: true })).toBeVisible();
 	await expect(page.getByRole("button", { name: "Choose your clips", exact: true })).toHaveAccessibleDescription("Skipped");
 	await start(page, "Choose your clips");
@@ -990,11 +990,11 @@ When("three remaining guides confirm the existing settings", async ({ page, tour
 Then("all guides are completed and the Expert badge is awarded", async ({ page, tourWorld }) => {
 	await expect(page.getByText("Clipify Expert unlocked!", { exact: true })).toBeVisible();
 	const saved = await progress(page, tourWorld);
-	expect(saved.completed).toHaveLength(11);
+	expect(saved.completed).toHaveLength(15);
 	expect(saved.skipped).toEqual([]);
 	expect(saved.expertAwardedAt).toEqual(expect.any(String));
 	await panel(page);
-	await expect(page.getByLabel("Clipify Expert progress")).toHaveText("Clipify Expert: 11/11");
+	await expect(page.getByLabel("Clipify Expert progress")).toHaveText("Clipify Expert: 15/15");
 	await page.screenshot({ path: "/tmp/clipify-expert-confirmations.png", animations: "disabled" });
 });
 When("the editor preselects a different playlist during overlay guidance", async ({ page, tourWorld }) => {
@@ -1026,4 +1026,71 @@ Then("saving the overlay completes the guide with the actual playlist", async ({
 	await expect(page.locator(".driver-popover")).toHaveCount(0);
 	await page.reload();
 	expect((await progress(page, tourWorld)).completed).toContain("playlist.use");
+});
+async function openSettingsFromGuide(page: Page) {
+	await expect(page.locator(".driver-popover-title")).toHaveText("Open the app menu");
+	await page.locator('[data-tour="nav-menu"]').click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Open Settings");
+	await page.getByRole("menuitem", { name: "My Settings", exact: true }).click();
+}
+When("the runner discovery guide is followed", async ({ page }) => {
+	await start(page, "Discover runners", "Explore Clipify");
+	await expect(page.locator(".driver-popover-title")).toHaveText("Open Runners");
+	await page.getByRole("tab", { name: "Runners", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Discover runners");
+	await expect(page.locator('[data-tour="runner-list"]')).toHaveClass(/driver-active-element/);
+	await page.getByRole("button", { name: "Done", exact: true }).click();
+});
+Then("runner discovery completes without creating a runner", async ({ page, tourWorld }) => {
+	expect((await progress(page, tourWorld)).completed).toContain("explore.runners");
+	expect(Number((await tourWorld.fixture.pool.query("SELECT count(*) FROM runners WHERE owner_id=$1", [tourWorld.owner!.creatorId])).rows[0].count)).toBe(0);
+	expect((await progress(page, tourWorld)).active).toBeNull();
+});
+When("the settings discovery guide is followed", async ({ page }) => {
+	await start(page, "Find your settings", "Explore Clipify");
+	await openSettingsFromGuide(page);
+	await expect(page.locator(".driver-popover-title")).toHaveText("Your account settings");
+	await page.getByRole("button", { name: "Continue", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Sign-in and security");
+	await page.getByRole("button", { name: "Back", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Your account settings");
+	await page.getByRole("button", { name: "Continue", exact: true }).click();
+	await page.getByRole("button", { name: "Done", exact: true }).click();
+});
+Then("settings discovery completes without changing account settings", async ({ page, tourWorld }) => {
+	const saved = await progress(page, tourWorld);
+	expect(saved.completed).toContain("explore.settings");
+	expect(saved.active).toBeNull();
+	await expect(page.getByRole("dialog", { name: /Change your email|Manage passkeys/ })).toHaveCount(0);
+	await page.reload();
+	expect((await progress(page, tourWorld)).completed).toContain("explore.settings");
+});
+When("the AI discovery guide is followed", async ({ page }) => {
+	await start(page, "Discover AI connections", "Explore Clipify");
+	await openSettingsFromGuide(page);
+	await expect(page.locator(".driver-popover-title")).toHaveText("Connected AI apps");
+	await page.getByRole("button", { name: "Continue", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Connect an AI app");
+	await expect(page.locator('[data-tour="ai-connection-help"]')).toHaveClass(/driver-active-element/);
+	await page.getByRole("button", { name: "Done", exact: true }).click();
+});
+Then("AI discovery completes without connecting an app", async ({ page, tourWorld }) => {
+	expect((await progress(page, tourWorld)).completed).toContain("explore.ai");
+	expect((await progress(page, tourWorld)).active).toBeNull();
+	await expect(page.getByText("No connected apps.", { exact: true })).toBeVisible();
+});
+When("the editor discovery guide is followed", async ({ page }) => {
+	await start(page, "Find your editors and team", "Explore Clipify");
+	await openSettingsFromGuide(page);
+	await expect(page.locator(".driver-popover-title")).toHaveText("Open Team");
+	await page.getByRole("tab", { name: "Team", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Your editors and team");
+	await expect(page.getByRole("button", { name: "Invite member", exact: true })).toBeVisible();
+	await page.getByRole("button", { name: "Done", exact: true }).click();
+});
+Then("editor discovery completes without inviting anyone", async ({ page, tourWorld }) => {
+	expect((await progress(page, tourWorld)).completed).toContain("explore.editors");
+	expect((await progress(page, tourWorld)).active).toBeNull();
+	expect(Number((await tourWorld.fixture.pool.query("SELECT count(*) FROM auth.invitation WHERE organization_id=$1", [tourWorld.owner!.creatorOrganizationId])).rows[0].count)).toBe(0);
+	await expect(page.getByRole("dialog", { name: "Invite a team member", exact: true })).toHaveCount(0);
 });

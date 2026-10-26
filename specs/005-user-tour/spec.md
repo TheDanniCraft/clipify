@@ -9,7 +9,7 @@ Branch: `feat/user-tour`. Current scope includes the user's final checklist, nav
 3. **US3, P2: Build and use a playlist.** The user creates/names a playlist, selects/orders clips, saves and learns normal navigation back to an overlay to select the playlist.
 4. **US4, P2: Explore Clipify.** A single optional section introduces galleries, public website installation through the actual avatar menu and Tools action, and existing report/chat controls.
 
-BDD and ATDD share one browser execution owner per example. The 52 individually tagged examples in `test/bdd/features/user-tour/guide.feature` are canonical. Database concurrency/integrity has separate service-integration ownership; browser journeys are not duplicated as MCP workflows.
+BDD and ATDD share one browser execution owner per example. The 56 individually tagged examples in `test/bdd/features/user-tour/guide.feature` are canonical. Database concurrency/integrity has separate service-integration ownership; browser journeys are not duplicated as MCP workflows.
 
 ## Requirements
 
@@ -27,7 +27,7 @@ BDD and ATDD share one browser execution owner per example. The 52 individually 
 - **FR-012:** Website setup teaches opening the app menu, choosing Tools, selecting a player and copying public iframe code. Galleries and support remain short, optional introductions.
 
 - **FR-013:** Automatically offer the guided journey from the welcome dialog once per account. Preserve the existing Pro trial message, offer Start guided tour and Maybe later, and never launch a spotlight over consent or the welcome dialog. Existing owned setup keeps its minimized checklist instead of receiving a first-use welcome. Start the first unfinished core task through normal navigation. Remember dismissal and manual start; do not repeatedly prompt returning or completed accounts.
-- **FR-014:** Award one automatic Clipify Expert graduation-cap badge when all 11 tasks across all four guide sections are completed. Every guide is required for Expert, including appearance, playlists and discovery. Only explicit Skip task/checklist skips are excluded; confirming current/default settings after following the guide counts as completion. Sections remain optional for ordinary app use. Persist the first server-issued all-guides award timestamp with expertAwardVersion=2; discard earlier core-only awards. replay or checkbox restore never revokes the badge. Display it in existing member badges and celebrate once after an acknowledged award.
+- **FR-014:** Award one automatic Clipify Expert graduation-cap badge when all 15 tasks across all four guide sections are completed. Every guide is required for Expert, including appearance, playlists, runners, settings, AI connections, editors and discovery. Only explicit Skip task/checklist skips are excluded; confirming current/default settings after following the guide counts as completion. Sections remain optional for ordinary app use. Persist the first server-issued all-guides award timestamp with expertAwardVersion=2; discard earlier core-only awards. replay or checkbox restore never revokes the badge. Display it in existing member badges and celebrate once after an acknowledged award.
 
 ## Edge cases
 
@@ -45,3 +45,5 @@ BDD and ATDD share one browser execution owner per example. The 52 individually 
 - **SC-002:** Account completion/skips/minimization survive browser clearing and reauthentication; existing users do not receive a fresh welcome popup just because they have no legacy guide record.
 - **SC-003:** Ring/checklist/popover controls work on desktop, narrow screens and keyboard. Only one section expands at a time, and normal feedback/chat remain reachable.
 - **SC-004:** Every guide completion maps to a successful action, explicit informational finish or confirmation of current/default settings; skips stay distinct. All owning examples and required quality gates must pass before merge.
+
+- **FR-015:** Add short discovery guides for Runners, account Settings, Connected AI apps and editors in Team. Teach the actual avatar menu, Settings tab and Team tab rather than navigating automatically. Completing discovery never requires creating a runner, buying an add-on, authorizing an AI app, changing security settings or sending an invitation. The four tasks count toward new Expert awards; previously earned badges stay earned.

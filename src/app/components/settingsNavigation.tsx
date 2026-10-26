@@ -29,7 +29,7 @@ export default function SettingsNavigation({ active, onCoreSectionChange }: { ac
 		<Tabs selectedKey={active} onSelectionChange={navigate} className='w-full' variant='primary'>
 			<Tabs.ListContainer className='w-full overflow-x-auto'>
 				<Tabs.List aria-label='Settings sections' className='w-full min-w-[32rem]'>
-					<Tabs.Tab id='settings' className='flex-1'>
+					<Tabs.Tab data-tour='settings-core-tab' id='settings' className='flex-1'>
 						Settings
 						<Tabs.Indicator />
 					</Tabs.Tab>
@@ -45,7 +45,7 @@ export default function SettingsNavigation({ active, onCoreSectionChange }: { ac
 						Billing
 						<Tabs.Indicator />
 					</Tabs.Tab>
-					<Tabs.Tab id='team' className='flex-1'>
+					<Tabs.Tab data-tour='settings-team-tab' id='team' className='flex-1'>
 						Team
 						<Tabs.Indicator />
 					</Tabs.Tab>

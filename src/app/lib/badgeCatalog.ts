@@ -15,7 +15,7 @@ type BadgeDefinition = {
 export const badgeCatalog = {
 	"clipify-expert": {
 		name: "Clipify Expert",
-		description: "Completed every Clipify guide and explored overlays, styling, playlists, website tools and support.",
+		description: "Completed every Clipify guide and explored the app's features.",
 		icon: "graduation-cap",
 		priority: 60,
 		condition: "completed-all-guides",

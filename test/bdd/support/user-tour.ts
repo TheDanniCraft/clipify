@@ -4,7 +4,7 @@ import { test as base } from "playwright-bdd";
 import { createMcpPostgresFixture } from "../../support/mcp/postgres";
 import { browserProviderEnvironment } from "../../support/mcp/browser-database.cjs";
 export { expect } from "@playwright/test";
-export type TourWorld = { origin: string; fixture: Awaited<ReturnType<typeof createMcpPostgresFixture>>; owner?: { creatorId: string; overlayId: string; playlistId: string }; result?: unknown };
+export type TourWorld = { origin: string; fixture: Awaited<ReturnType<typeof createMcpPostgresFixture>>; owner?: { creatorId: string; creatorOrganizationId: string; overlayId: string; playlistId: string }; result?: unknown };
 export const test = base.extend<{ tourWorld: TourWorld }>({
 	trace: "off",
 	tourWorld: async ({}, provideWorld) => {

@@ -256,7 +256,7 @@ it("remembers Maybe later and does not offer the welcome to returning accounts",
 
 it("shows actual Expert completion separately from checked skipped tasks", () => {
 	mount({ ...defaultProgress(), welcomeSeen: true, completed: ["overlay.name"], skipped: ["overlay.source"] });
-	expect(screen.getByLabelText("Clipify Expert progress")).toHaveTextContent("Clipify Expert: 1/11");
+	expect(screen.getByLabelText("Clipify Expert progress")).toHaveTextContent("Clipify Expert: 1/15");
 	expect(screen.getByText("Skipped")).toBeVisible();
 	expect(screen.getByRole("button", { name: "Choose your clips" })).toHaveTextContent("Skipped");
 });

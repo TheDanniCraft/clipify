@@ -89,7 +89,7 @@ it("does not count skipped guides and invalidates the previous core-only award",
 	expect(loaded.progress.expertAwardedAt).toBeUndefined();
 	expect(loaded.progress.skipped).toContain("explore.support");
 });
-it("awards Expert after guided confirmations repair the reported eight-complete three-skipped state", async () => {
+it("awards Expert after guided confirmations repair the reported twelve-complete three-skipped state", async () => {
 	const skipped = ["overlay.source", "appearance.style", "playlist.use"] as const;
 	const completed = journeys.flatMap((journey) => journey.tasks.map((task) => task.id)).filter((task) => !(skipped as readonly string[]).includes(task));
 	let state: GuideProgress = { ...defaultProgress(), overlayId: "overlay", playlistId: "playlist", completed, skipped: [...skipped] };
@@ -101,7 +101,7 @@ it("awards Expert after guided confirmations repair the reported eight-complete 
 		expect(state.skipped).not.toContain(task);
 		if (task !== "playlist.use") expect(state.expertAwardedAt).toBeUndefined();
 	}
-	expect(state.completed).toHaveLength(11);
+	expect(state.completed).toHaveLength(15);
 	expect(state.skipped).toEqual([]);
 	expect(state.expertAwardedAt).toEqual(expect.any(String));
 });

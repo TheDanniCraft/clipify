@@ -104,3 +104,13 @@ T013: affected tests, all feature browser examples, lint, formatting, types and 
 - [x] S002 Complete active playlist association on acknowledged Save of the matching overlay and adopt the actual saved playlist.
 - [x] S003 Guard foreign owners, other overlays and non-playlist saves; add model, persistence and native browser regressions with two playlists.
 - [x] S004 Complete affected suites, owning browser cases, builds and push.
+
+## Discover the remaining app areas
+
+- [x] X001 Register Runner, Settings, AI and Editor discovery tasks in the central guide catalog.
+- [x] X002 Teach native avatar/menu/tab navigation, with settings-panel recovery, Back and reload support.
+- [x] X003 Add bounded highlights and descriptions without creating resources or changing permissions/settings.
+- [x] X004 Require the current 15 tasks for new Expert awards and preserve already-earned badges.
+- [x] X005 Verify the four browser journeys and updated Expert flows; update canonical inventory to 56 examples.
+- [x] X006 Add meaningful playlist editor coverage for native Select all, category matching and clearing minimum views; retain the 85% requirement.
+- [ ] X007 Push, wait for complete CI, fix failures and leave ready for user walkthrough. Do not merge.

@@ -95,12 +95,12 @@ export default function ConnectedAppsPanel() {
 	const selectedConnection = connections.find((connection) => connection.id === detailsId);
 	return (
 		<Card className='p-0' aria-labelledby='connected-apps-title'>
-			<Card.Header className='gap-2 p-4'>
+			<Card.Header data-tour='connected-ai-apps' className='gap-2 p-4'>
 				<h2 id='connected-apps-title' className='text-lg font-semibold'>
 					Connected AI apps
 				</h2>
 				<Card.Description>Manage which apps can access your creators. Disconnecting an app stops its access immediately.</Card.Description>
-				<Link className='text-sm text-muted hover:text-foreground hover:underline' href='https://help.clipify.us/hc/clipify/articles/connect-clipify-to-ai-apps' target='_blank' rel='noopener noreferrer'>
+				<Link data-tour='ai-connection-help' className='text-sm text-muted hover:text-foreground hover:underline' href='https://help.clipify.us/hc/clipify/articles/connect-clipify-to-ai-apps' target='_blank' rel='noopener noreferrer'>
 					Connect your AI tools
 					<IconExternalLink size={16} aria-hidden='true' />
 				</Link>

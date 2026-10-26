@@ -77,3 +77,13 @@ Explicit current/default confirmations now finish guides without changing native
 Final owning browser result: 051 passed, including the supported accessible skip description and the exact 8/11 → 11/11 award path. Combined with the six passing owning examples, all seven behaviors are verified. The final Expert-progress screenshot was inspected. The affected run passed 128 suites / 2013 tests; source lint, formatting, diff checks and browser production build/type checks pass. Account state was left untouched because historical skip origin is ambiguous.
 
 Native playlist Save regression verified: active association now adopts the playlist actually saved on the matching guided overlay, even when the editor preselected a different playlist. Model/persistence tests include stale ID, wrong owner, other overlay and no-playlist cases. The affected run passed 128 suites / 2015 tests (one existing skipped suite, three skipped tests); owning browser cases 022, 047 and new 052 passed 3/3. Both production builds/type checks, lint, formatting and diff checks pass. No native selection/Save behavior or database schema changed. Development account state was inspected read-only and left untouched.
+
+## Expanded discovery and full-CI coverage fix
+
+The four new discovery tasks bring the catalog to 15 tasks across the same four sections. Runner, Settings, AI and Team/Editor guides use native tabs/menu entries and informational Done controls. No runner is created, no AI app is authorized, no settings are saved and no invitation is sent. Prior valid Expert awards remain permanent; new awards require all 15 tasks.
+
+The four owning browser examples 053–056 and updated Expert examples 050–051 passed together (6/6). The broad affected run passed 158 suites / 2335 tests before the playlist coverage additions, with one pre-existing skipped suite and three skipped tests. Browser/standalone production builds and type checks pass.
+
+The first ready-for-review full CI run passed every coverage producer and browser shard, but the final Test gate rejected playlist editor branch coverage of 83.94% against the existing 85% threshold. Added meaningful tests for native Select all across cache pages, middle/suffix category search and clearing the minimum-view filter. The playlist whole-file suite passes 48 tests; scoped coverage is now 187/218 branches (85.78%). Thresholds and CI gates are unchanged. Full CI must be rerun on the pushed source; the scoped collector is diagnostic evidence only.
+
+The user explicitly requested not to merge yet. Keep the PR ready for full CI and user flow testing, with auto-merge disabled.

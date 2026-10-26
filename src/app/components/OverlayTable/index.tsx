@@ -1145,7 +1145,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 							<Label>Galleries</Label>
 							<Tabs.Indicator />
 						</Tabs.Tab>
-						<Tabs.Tab id='runners' className='flex-none'>
+						<Tabs.Tab data-tour='runners-tab' id='runners' className='flex-none'>
 							<Label>Runners</Label>
 							<Tabs.Indicator />
 						</Tabs.Tab>
@@ -1195,7 +1195,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 				</div>
 			)}
 			{topContent}
-			<Table data-tour={activeTab === "galleries" ? "gallery-list" : undefined}>
+			<Table data-tour={activeTab === "galleries" ? "gallery-list" : activeTab === "runners" ? "runner-list" : undefined}>
 				<Table.ScrollContainer>
 					<Table.Content
 						aria-label='Management table'

@@ -35,6 +35,10 @@ export const journeys = [
 		optional: true,
 		tasks: [
 			{ id: "explore.galleries", title: "Discover clip galleries" },
+			{ id: "explore.runners", title: "Discover runners" },
+			{ id: "explore.settings", title: "Find your settings" },
+			{ id: "explore.ai", title: "Discover AI connections" },
+			{ id: "explore.editors", title: "Find your editors and team" },
 			{ id: "explore.tools", title: "Add Clipify to your website" },
 			{ id: "explore.support", title: "Find help and report a problem" },
 		],
@@ -45,8 +49,8 @@ export type TaskId = (typeof journeys)[number]["tasks"][number]["id"];
 const taskIds = new Set<string>(journeys.flatMap((journey) => journey.tasks.map((task) => task.id)));
 export const isTaskId = (value: unknown): value is TaskId => typeof value === "string" && taskIds.has(value);
 const validId = (value: unknown): value is string => typeof value === "string" && /^[a-zA-Z0-9_-]{1,128}$/.test(value);
-export type GuideLocation = "dashboard" | "overlay" | "theme" | "playlist" | "tools" | "other";
-export type NavigationTarget = "home" | "overlays" | "overlay" | "playlists" | "playlist" | "profile" | "tools" | "theme" | "settings" | "clip-picker" | "close-picker";
+export type GuideLocation = "dashboard" | "overlay" | "theme" | "playlist" | "tools" | "settings" | "team" | "other";
+export type NavigationTarget = "home" | "overlays" | "overlay" | "playlists" | "playlist" | "profile" | "tools" | "theme" | "settings" | "clip-picker" | "close-picker" | "account-settings" | "core-settings" | "settings-panel" | "team";
 export type GuideProgress = {
 	version: 2;
 	playlistClipsVersion?: 2;
@@ -67,8 +71,8 @@ export const defaultProgress = (): GuideProgress => ({ version: 2, playlistClips
 /** Legacy browser cache, read once when importing an account's old guide progress. */
 export const storageKey = (accountId: string) => `clipify:user-tour:v1:${accountId}`;
 export const guideContentKey = "clipify-user-tour:v2";
-const navigationIds = new Set<string>(["home", "overlays", "overlay", "playlists", "playlist", "profile", "tools", "theme", "settings", "clip-picker", "close-picker"]);
-const locations = new Set<string>(["dashboard", "overlay", "theme", "playlist", "tools", "other"]);
+const navigationIds = new Set<string>(["home", "overlays", "overlay", "playlists", "playlist", "profile", "tools", "theme", "settings", "clip-picker", "close-picker", "account-settings", "core-settings", "settings-panel", "team"]);
+const locations = new Set<string>(["dashboard", "overlay", "theme", "playlist", "tools", "settings", "team", "other"]);
 const migrateTask = (id: unknown) => (id === "website.embed" ? "explore.tools" : id);
 export function parseProgress(raw: string | null, restorePaused = true): GuideProgress {
 	try {
@@ -103,6 +107,8 @@ export function shouldOfferGuideWelcome(progress: GuideProgress): boolean {
 }
 export function guideLocation(pathname: string): GuideLocation {
 	if (pathname === "/dashboard") return "dashboard";
+	if (pathname === "/dashboard/settings") return "settings";
+	if (pathname === "/dashboard/settings/team") return "team";
 	if (/^\/dashboard\/overlay\/[a-zA-Z0-9_-]+\/theme$/.test(pathname)) return "theme";
 	if (/^\/dashboard\/overlay\/[a-zA-Z0-9_-]+$/.test(pathname)) return "overlay";
 	if (/^\/dashboard\/playlist\/[a-zA-Z0-9_-]+$/.test(pathname)) return "playlist";
@@ -110,9 +116,14 @@ export function guideLocation(pathname: string): GuideLocation {
 }
 export function navigationForTask(task: TaskId, location: GuideLocation, progress: GuideProgress, index = 0): NavigationTarget[] {
 	if (task === "explore.support") return [];
+	if (["explore.settings", "explore.ai", "explore.editors"].includes(task)) {
+		if (task === "explore.editors" && location === "team") return [];
+		const settings: NavigationTarget[] = location === "settings" ? (index > 0 ? ["settings-panel"] : []) : location === "team" ? ["core-settings"] : ["profile", "account-settings"];
+		return task === "explore.editors" ? [...settings, "team"] : settings;
+	}
 	if (task === "explore.tools") return location === "tools" ? [] : ["profile", "tools"];
 	const home: NavigationTarget[] = location === "dashboard" ? [] : ["home"];
-	if (task === "explore.galleries") return home;
+	if (task === "explore.galleries" || task === "explore.runners") return home;
 	if (task === "playlist.name") return [...home, "playlists"];
 	if (task === "playlist.clips") return location === "playlist" && progress.playlistId ? [] : [...home, "playlists", ...(progress.playlistId ? ["playlist" as const] : [])];
 	if (task === "playlist.use" && !progress.playlistId) return [...home, "playlists"];
@@ -124,6 +135,10 @@ export function navigationForTask(task: TaskId, location: GuideLocation, progres
 }
 export type GuideStep = { target: string; title: string; description: string; next?: boolean; nextDisabled?: boolean; action?: boolean; finish?: boolean; nextLabel?: string; allowDialog?: boolean; inDialog?: boolean; dialogClosed?: boolean; destination?: GuideLocation; preserveFocus?: boolean; reveals?: string; pauseOnInteract?: boolean };
 const navigationSteps: Record<NavigationTarget, GuideStep> = {
+	"settings-panel": { target: "settings-core-tab", title: "Choose Settings", description: "Choose Settings to return to this guide.", action: true, next: true, reveals: "settings-overview" },
+	"account-settings": { target: "nav-settings", title: "Open Settings", description: "Choose My Settings.", destination: "settings", preserveFocus: true },
+	"core-settings": { target: "settings-core-tab", title: "Open Settings", description: "Choose Settings to return to your account preferences.", destination: "settings" },
+	team: { target: "settings-team-tab", title: "Open Team", description: "Choose Team to find editors and account members.", destination: "team" },
 	"close-picker": { target: "playlist-clip-cancel", title: "Return to Add Clips", description: "Click Cancel to return to the playlist and its Add Clips button.", action: true, next: true, inDialog: true, dialogClosed: true },
 	"clip-picker": { target: "playlist-add", title: "Open the clip picker", description: "Click Add Clips to return to your clip selection.", action: true, next: true, reveals: "playlist-clip-search", allowDialog: true },
 	settings: { target: "theme-back", title: "Return to overlay settings", description: "Use the back button to return to your overlay settings.", destination: "overlay" },
@@ -133,7 +148,7 @@ const navigationSteps: Record<NavigationTarget, GuideStep> = {
 	overlay: { target: "open-overlay", title: "Open your overlay", description: "Click your overlay's row to open its settings.", destination: "overlay" },
 	playlists: { target: "playlists-tab", title: "Open Playlists", description: "Choose the Playlists tab.", action: true, next: true },
 	playlist: { target: "open-playlist", title: "Open your playlist", description: "Click your playlist's row to edit its clips.", destination: "playlist" },
-	profile: { target: "nav-menu", reveals: "nav-tools", title: "Open the app menu", description: "Click your avatar to find Tools.", action: true, next: true },
+	profile: { target: "nav-menu", reveals: "nav-tools", title: "Open the app menu", description: "Click your avatar.", action: true, next: true },
 	tools: { target: "nav-tools", title: "Open Tools", description: "Choose Tools for website players and galleries.", destination: "tools", preserveFocus: true },
 };
 export function currentGuideStep(progress: GuideProgress): GuideStep | undefined {
@@ -409,6 +424,8 @@ export function routeForTask(task: TaskId, progress: GuideProgress): string {
 	const nav = progress.active?.task === task ? progress.active.navigation?.[0] : undefined;
 	if (nav === "home" || nav === "overlays" || nav === "overlay" || nav === "playlists" || nav === "playlist") return "/dashboard";
 	if (task === "explore.tools") return "/dashboard/tools";
+	if (task === "explore.settings" || task === "explore.ai") return "/dashboard/settings";
+	if (task === "explore.editors") return "/dashboard/settings/team";
 	if (task.startsWith("explore.")) return "/dashboard";
 	if (task === "playlist.name" || task === "playlist.clips") return progress.playlistId ? `/dashboard/playlist/${progress.playlistId}` : "/dashboard";
 	if (!progress.overlayId || (task === "overlay.name" && !progress.active?.index)) return "/dashboard";
@@ -468,6 +485,25 @@ export function stepsForTask(task: TaskId, progress: GuideProgress): GuideStep[]
 				{ target: "galleries-tab", title: "Open Galleries", description: "Choose Galleries to see your clip collections.", next: true, action: true },
 				{ target: "gallery-list", title: "Discover galleries", description: "Open a gallery or use Add Gallery to build a browsable clip collection for your website.", next: true, finish: true, nextLabel: "Done" },
 			];
+		case "explore.runners":
+			return [
+				{ target: "runners-tab", title: "Open Runners", description: "Choose Runners to find your streaming devices.", action: true, next: true },
+				{ target: "runner-list", title: "Discover runners", description: "Manage devices that run Clipify streams here. Runner setup is an optional add-on; you can explore this tab without creating or buying anything.", next: true, finish: true, nextLabel: "Done" },
+			];
+		case "explore.settings":
+			return [
+				{ target: "settings-core-tab", title: "Choose Settings", description: "Open the Settings tab for your account preferences.", action: true, next: true, reveals: "settings-overview" },
+				{ target: "settings-overview", title: "Your account settings", description: "Find your profile, plan and preferences here. The tabs above also lead to your creator page, billing and team.", next: true },
+				{ target: "account-security", title: "Sign-in and security", description: "Manage your sign-in email and passkeys here. You can review these options without changing anything.", next: true, finish: true, nextLabel: "Done" },
+			];
+		case "explore.ai":
+			return [
+				{ target: "settings-core-tab", title: "Choose Settings", description: "Open Settings to find your connected AI apps.", action: true, next: true, reveals: "connected-ai-apps" },
+				{ target: "connected-ai-apps", title: "Connected AI apps", description: "Review the AI apps you have authorized, their permissions and recent activity. Connecting an app is optional.", next: true },
+				{ target: "ai-connection-help", title: "Connect an AI app", description: "Open this setup guide when you are ready to connect an AI app. You choose which permissions to approve; this tour does not connect one for you.", next: true, finish: true, nextLabel: "Done" },
+			];
+		case "explore.editors":
+			return [{ target: "team-overview", title: "Your editors and team", description: "Editors are managed as team members. Account owners can invite people and choose what they can manage. You can explore this page without sending an invitation.", next: true, finish: true, nextLabel: "Done" }];
 		case "explore.tools":
 			return [
 				{ target: "tools-player", title: "Choose a player", description: "Choose the overlay you want on your website. Create an overlay first if the list is empty.", next: true },

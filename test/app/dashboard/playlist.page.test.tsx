@@ -18,7 +18,7 @@ const featureAccess = jest.fn();
 const router = { push: jest.fn() };
 const notify = jest.fn();
 const navigationGuard = { active: false, reject: jest.fn(), accept: jest.fn() };
-const mockSelectionContext = React.createContext<{ selected: Set<string>; change?: (keys: Set<string>) => void }>({ selected: new Set() });
+const mockSelectionContext = React.createContext<{ selected: Set<string>; change?: (keys: Set<string> | "all") => void }>({ selected: new Set() });
 const mockRowContext = React.createContext("");
 const mockTabContext = React.createContext<((key: string) => void) | undefined>(undefined);
 const mockComboContext = React.createContext<{ value?: string; input?: (value: string) => void; select?: (key: string) => void }>({});
@@ -136,6 +136,8 @@ jest.mock("@heroui/react", () => ({
 								if (event.target.checked) next.add(row);
 								else next.delete(row);
 								context.change(next);
+							} else if (context.change) {
+								context.change(event.target.checked ? "all" : new Set());
 							}
 						}}
 					/>
@@ -203,7 +205,7 @@ jest.mock("@heroui/react", () => ({
 	Spinner: ({ label }: { label?: string }) => <div>{label}</div>,
 	Table: Object.assign(({ children }: { children?: React.ReactNode }) => <div>{children}</div>, {
 		ScrollContainer: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-		Content: ({ children, selectedKeys, onSelectionChange, onSortChange }: { children?: React.ReactNode; selectedKeys?: Set<string>; onSelectionChange?: (keys: Set<string>) => void; onSortChange?: (sort: { column: string; direction: "ascending" | "descending" }) => void }) => (
+		Content: ({ children, selectedKeys, onSelectionChange, onSortChange }: { children?: React.ReactNode; selectedKeys?: Set<string>; onSelectionChange?: (keys: Set<string> | "all") => void; onSortChange?: (sort: { column: string; direction: "ascending" | "descending" }) => void }) => (
 			<mockSelectionContext.Provider value={{ selected: selectedKeys ?? new Set(), change: onSelectionChange }}>
 				<mockSortContext.Provider value={onSortChange}>{children}</mockSortContext.Provider>
 			</mockSelectionContext.Provider>
@@ -703,5 +705,44 @@ describe("dashboard playlist page", () => {
 		fireEvent.click(screen.getByRole("button", { name: "Save Playlist" }));
 		await waitFor(() => expect(upsertPlaylistClips).toHaveBeenCalledWith("playlist-1", [], "replace", 1, rename ? "New name" : undefined));
 		expect(savePlaylist).not.toHaveBeenCalled();
+	});
+	it("normalizes native Select all and preserves selection when adding a clip from another page", async () => {
+		getCachedClipsByOwner.mockResolvedValue(Array.from({ length: 51 }, (_, index) => ({ ...clip(String(index)), created_at: new Date(Date.UTC(2026, 0, index + 1)).toISOString() })));
+		await openPage();
+		await press("Add Clips");
+		fireEvent.click(screen.getByRole("checkbox", { name: "Select all clips" }));
+		await press("Next page");
+		fireEvent.click(screen.getByRole("checkbox", { name: "Select Clip 0" }));
+		await press("Add selected clips");
+		expect(screen.getAllByRole("listitem")).toHaveLength(51);
+		expect(reportTour).toHaveBeenCalledWith(expect.objectContaining({ type: "playlist.clips-added", count: 51 }));
+		expect(upsertPlaylistClips).not.toHaveBeenCalled();
+	});
+	it("finds category names with a middle or suffix match and previews the chosen category", async () => {
+		getTwitchGames.mockResolvedValue([
+			{ id: "exact", name: "Game", box_art_url: "" },
+			{ id: "prefix", name: "Game Two", box_art_url: "" },
+			{ id: "middle", name: "My Game", box_art_url: "" },
+			{ id: "suffix", name: "Z Game", box_art_url: "" },
+		]);
+		previewImportPlaylistClips.mockResolvedValue([]);
+		await openPage();
+		await press("Auto Import");
+		fireEvent.change(screen.getByPlaceholderText("Search and add a game..."), { target: { value: "game" } });
+		await screen.findByRole("button", { name: "My Game" });
+		expect(screen.getByRole("button", { name: "Z Game" })).toBeVisible();
+		await press("My Game");
+		await press("Import");
+		expect(previewImportPlaylistClips).toHaveBeenCalledWith("playlist-1", expect.objectContaining({ categoryId: "middle" }));
+	});
+	it("clears the minimum-view filter back to zero before previewing an import", async () => {
+		previewImportPlaylistClips.mockResolvedValue([]);
+		await openPage();
+		await press("Auto Import");
+		const minimum = screen.getByRole("spinbutton", { name: "Minimum Views" });
+		fireEvent.change(minimum, { target: { value: "20" } });
+		fireEvent.change(minimum, { target: { value: "" } });
+		await press("Import");
+		expect(previewImportPlaylistClips).toHaveBeenCalledWith("playlist-1", expect.objectContaining({ minViews: 0 }));
 	});
 });

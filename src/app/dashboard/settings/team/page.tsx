@@ -399,14 +399,14 @@ export default function TeamSettingsPage() {
 				{isAgencyOrganization ? null : <SettingsNavigation active='team' />}
 				{!organization ? (
 					<Card>
-						<Card.Header>
+						<Card.Header data-tour='team-overview'>
 							<Card.Title>No creator account available</Card.Title>
 							<Card.Description>This identity is not connected to a creator account that has Team management.</Card.Description>
 						</Card.Header>
 					</Card>
 				) : (
 					<Card>
-						<Card.Header className='flex-col items-stretch gap-4 sm:flex-row sm:items-center sm:justify-between'>
+						<Card.Header data-tour='team-overview' className='flex-col items-stretch gap-4 sm:flex-row sm:items-center sm:justify-between'>
 							<div className='flex items-center gap-3'>
 								<div className='flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent'>
 									<IconUsersGroup aria-hidden='true' size={20} />

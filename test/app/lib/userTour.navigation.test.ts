@@ -1,4 +1,4 @@
-import { hasCompletedAllGuides, journeys, journeyGuidePercent, currentGuideStep, defaultProgress, transition, stepsForTask, navigationForTask, parseProgress, type GuideProgress } from "@lib/userTour";
+import { hasCompletedAllGuides, guideLocation, routeForTask, journeys, journeyGuidePercent, currentGuideStep, defaultProgress, transition, stepsForTask, navigationForTask, parseProgress, type GuideProgress } from "@lib/userTour";
 const apply = (state: ReturnType<typeof defaultProgress>, event: Parameters<typeof transition>[1]) => transition(state, event, "owner");
 it("replays creation at Add Overlay even when it was completed before", () => {
 	let state: GuideProgress = { ...defaultProgress(), overlayId: "existing", completed: ["overlay.name" as const] };
@@ -207,7 +207,7 @@ it("starts welcome guidance at the first unfinished core task and remembers the 
 });
 it("requires every guide task for Expert, with no credit for skipped tasks", () => {
 	const tasks = journeys.flatMap((journey) => journey.tasks.map((task) => task.id));
-	expect(tasks).toHaveLength(11);
+	expect(tasks).toHaveLength(15);
 	expect(hasCompletedAllGuides({ ...defaultProgress(), completed: tasks })).toBe(true);
 	for (const missing of tasks) {
 		expect(hasCompletedAllGuides({ ...defaultProgress(), completed: tasks.filter((task) => task !== missing), skipped: [missing] })).toBe(false);
@@ -239,4 +239,62 @@ it("finishes the guided overlay save using the editor's actual playlist rather t
 	expect(apply(state, { ...saved, ownerId: "other" })).toEqual(state);
 	expect(apply(state, { ...saved, id: "another-overlay", playlistId: "tutorial-playlist" }).completed).not.toContain("playlist.use");
 	expect(apply(state, { ...saved, playlistId: null }).completed).not.toContain("playlist.use");
+});
+it("teaches Settings, AI and Team through the avatar menu and native tabs", () => {
+	for (const task of ["explore.settings", "explore.ai", "explore.editors"] as const) {
+		const state = apply(defaultProgress(), { type: "start", task, location: "dashboard" });
+		expect(state.active?.navigation).toEqual(task === "explore.editors" ? ["profile", "account-settings", "team"] : ["profile", "account-settings"]);
+		const menu = apply(state, { type: "next" });
+		expect(currentGuideStep(menu)).toMatchObject({ target: "nav-settings", destination: "settings" });
+		const settings = apply(menu, { type: "location", location: "settings" });
+		expect(currentGuideStep(settings)?.target).toBe(task === "explore.editors" ? "settings-team-tab" : "settings-core-tab");
+		if (task === "explore.editors") expect(currentGuideStep(apply(settings, { type: "location", location: "team" }))?.target).toBe("team-overview");
+	}
+});
+it("returns from Team to account settings using the real Settings tab", () => {
+	for (const task of ["explore.settings", "explore.ai"] as const) {
+		const state = apply(defaultProgress(), { type: "start", task, location: "team" });
+		expect(state.active?.navigation).toEqual(["core-settings"]);
+		expect(currentGuideStep(state)?.target).toBe("settings-core-tab");
+		expect(apply(state, { type: "location", location: "settings" }).active?.navigation).toEqual([]);
+	}
+});
+it("keeps discovery guides informational and separately started", () => {
+	for (const task of ["explore.runners", "explore.settings", "explore.ai", "explore.editors"] as const) {
+		const steps = stepsForTask(task, defaultProgress());
+		expect(steps.at(-1)).toMatchObject({ next: true, finish: true, nextLabel: "Done" });
+		const state: GuideProgress = { ...defaultProgress(), active: { task, index: steps.length - 1, paused: false } };
+		const done = apply(state, { type: "next" });
+		expect(done.completed).toContain(task);
+		expect(done.active).toBeNull();
+	}
+});
+it("restores discovery checkpoints with validated new locations and navigation", () => {
+	const state = apply(defaultProgress(), { type: "start", task: "explore.ai", location: "settings" });
+	const next = apply(state, { type: "next" });
+	expect(currentGuideStep(next)?.target).toBe("connected-ai-apps");
+	expect(currentGuideStep(apply(next, { type: "previous", location: "settings" }))?.target).toBe("settings-core-tab");
+	expect(parseProgress(JSON.stringify(next)).active).toMatchObject({ task: "explore.ai", index: 1, paused: true });
+	expect(apply(defaultProgress(), { type: "start", task: "explore.runners", location: "tools" }).active?.navigation).toEqual(["home"]);
+});
+it("reopens the Settings panel when resuming a discovery checkpoint on another local settings tab", () => {
+	const state: GuideProgress = { ...defaultProgress(), active: { task: "explore.ai", index: 2, paused: true } };
+	const resumed = apply(state, { type: "resume", location: "settings" });
+	expect(resumed.active?.navigation).toEqual(["settings-panel"]);
+	expect(currentGuideStep(resumed)?.target).toBe("settings-core-tab");
+	expect(currentGuideStep(apply(resumed, { type: "next" }))?.target).toBe("ai-connection-help");
+});
+
+it("recognizes settings routes and teaches every discovery entry point", () => {
+	expect(guideLocation("/dashboard/settings")).toBe("settings");
+	expect(guideLocation("/dashboard/settings/team")).toBe("team");
+	expect(navigationForTask("explore.editors", "team", defaultProgress())).toEqual([]);
+	expect(navigationForTask("explore.editors", "settings", defaultProgress())).toEqual(["team"]);
+	expect(navigationForTask("explore.settings", "settings", defaultProgress())).toEqual([]);
+	expect(navigationForTask("explore.ai", "settings", defaultProgress(), 2)).toEqual(["settings-panel"]);
+	for (const task of ["explore.settings", "explore.ai"] as const) expect(routeForTask(task, defaultProgress())).toBe("/dashboard/settings");
+	expect(routeForTask("explore.editors", defaultProgress())).toBe("/dashboard/settings/team");
+	expect(routeForTask("explore.runners", defaultProgress())).toBe("/dashboard");
+	const state = apply({ ...defaultProgress(), active: { task: "explore.ai", index: 2, paused: true } }, { type: "resume", location: "settings" });
+	expect(parseProgress(JSON.stringify(state)).active?.navigation).toEqual(["settings-panel"]);
 });

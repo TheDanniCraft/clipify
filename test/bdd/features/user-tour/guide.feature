@@ -311,3 +311,27 @@ Feature: Clipify guided onboarding
     Given an isolated authenticated Clipify guide account
     When the editor preselects a different playlist during overlay guidance
     Then saving the overlay completes the guide with the actual playlist
+
+  @US4 @FR-015 @SC-004 @BDD-TOUR-US4-053
+  Scenario: Discover runners without setting up a device
+    Given an isolated authenticated Clipify guide account
+    When the runner discovery guide is followed
+    Then runner discovery completes without creating a runner
+
+  @US4 @FR-015 @SC-004 @BDD-TOUR-US4-054
+  Scenario: Find account settings and review security
+    Given an isolated authenticated Clipify guide account
+    When the settings discovery guide is followed
+    Then settings discovery completes without changing account settings
+
+  @US4 @FR-015 @SC-004 @BDD-TOUR-US4-055
+  Scenario: Find AI connections without authorizing an app
+    Given an isolated authenticated Clipify guide account
+    When the AI discovery guide is followed
+    Then AI discovery completes without connecting an app
+
+  @US4 @FR-015 @SC-004 @BDD-TOUR-US4-056
+  Scenario: Find editors in Team without sending invitations
+    Given an isolated authenticated Clipify guide account
+    When the editor discovery guide is followed
+    Then editor discovery completes without inviting anyone
