@@ -196,3 +196,12 @@ it("offers an explicit way past unchanged overlay save steps", () => {
 		expect(apply(state, { type: "next" }).skipped).toContain(task);
 	}
 });
+it("starts welcome guidance at the first unfinished core task and remembers the decision", () => {
+	const state = { ...defaultProgress(), completed: ["overlay.name" as const] };
+	const started = apply(state, { type: "welcome.start", location: "dashboard" });
+	expect(started.welcomeSeen).toBe(true);
+	expect(started.active?.task).toBe("overlay.source");
+	const dismissed = apply(defaultProgress(), { type: "welcome.dismiss" });
+	expect(dismissed).toMatchObject({ welcomeSeen: true, minimized: true, active: null });
+	expect(parseProgress(JSON.stringify(dismissed)).welcomeSeen).toBe(true);
+});

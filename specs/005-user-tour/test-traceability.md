@@ -1,6 +1,6 @@
 # Test traceability
 
-Each scenario has one browser execution owner and a disposable loopback database. The current registry contains 47 examples. See [validation evidence](test-summary.md) for full-run and targeted rerun results.
+Each scenario has one browser execution owner and a disposable loopback database. The current registry contains 50 examples. See [validation evidence](test-summary.md) for full-run and targeted rerun results.
 
 | ID               | Behavior                                                   | Owner       | Scope                         |
 | ---------------- | ---------------------------------------------------------- | ----------- | ----------------------------- |
@@ -52,4 +52,8 @@ Each scenario has one browser execution owner and a disposable loopback database
 | BDD-TOUR-US3-046 | Resume a cancelled clip picker checkpoint                  | Browser BDD | Guided modal                  |
 | BDD-TOUR-US3-047 | Follow the actual overlay source type in playlist guidance | Browser BDD | Source-type recovery          |
 
-Unit and component suites cover the reducer, authenticated event boundary, native spotlight integration, rendering, focus and retry. Five PostgreSQL integration cases cover durable state, concurrent writes, ownership, paused checkpoints and existing accounts.
+| BDD-TOUR-US1-048 | Start the journey from the existing trial welcome | Browser BDD | Welcome integration |
+| BDD-TOUR-US1-049 | Defer the welcome without repeat prompts | Browser BDD | Account preference |
+| BDD-TOUR-US1-050 | Earn and retain the Clipify Expert balloon badge | Browser BDD | Core completion |
+
+Unit and component suites cover the reducer, authenticated event boundary, native spotlight integration, rendering, focus and retry. Eight PostgreSQL integration cases cover durable state, concurrent writes, ownership, paused checkpoints and existing accounts.

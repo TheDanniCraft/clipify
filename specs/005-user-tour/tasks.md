@@ -74,3 +74,11 @@ T013: affected tests, all feature browser examples, lint, formatting, types and 
 
 - [x] M007 Observe playlist source choices, automatically advance, and recover without leaving the task when another source is selected.
 - [x] M008 Keep legacy preview metadata and stale source responses from crashing or overriding the new source.
+
+## Welcome journey and completion badge
+
+- [x] W001 Combine the guided journey with the existing trial welcome, with a generic welcome fallback and account-persisted Start/Maybe later decisions.
+- [x] W002 Begin the first unfinished core task through the real UI; preserve consent and native modal priority.
+- [x] W003 Register the automatic Clipify Expert balloon badge, persist a one-time server award and keep it across replay.
+- [x] W004 Cover welcome, award eligibility, reload, account isolation and badge display in model/component/database tests and canonical browser cases 048–050.
+- [ ] W005 Complete affected suites, all tour browser cases, visual inspection, lint, formatting, types, builds and push.

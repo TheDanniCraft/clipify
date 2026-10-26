@@ -1,6 +1,6 @@
-export const badgeIconKeys = ["badge", "crown", "flask", "heart", "shield", "sparkles", "star"] as const;
+export const badgeIconKeys = ["badge", "crown", "flask", "heart", "shield", "sparkles", "star", "balloon"] as const;
 export type BadgeIconKey = (typeof badgeIconKeys)[number];
-export const badgeConditionKeys = ["active-partner-grant"] as const;
+export const badgeConditionKeys = ["active-partner-grant", "completed-core-guide"] as const;
 export type BadgeCondition = (typeof badgeConditionKeys)[number];
 
 type BadgeDefinition = {
@@ -13,6 +13,13 @@ type BadgeDefinition = {
 
 /** Authoritative badge registry. A badge cannot be awarded unless it exists here. */
 export const badgeCatalog = {
+	"clipify-expert": {
+		name: "Clipify Expert",
+		description: "Completed the core Clipify guide and set up an overlay for streaming.",
+		icon: "balloon",
+		priority: 60,
+		condition: "completed-core-guide",
+	},
 	founder: {
 		name: "Founder",
 		description: "One of the first 100 registered Clipify accounts.",

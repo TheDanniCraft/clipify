@@ -13,10 +13,16 @@ Use a native React/HeroUI checklist and a lazy Driver.js adapter. The checklist 
 
 ## Data and migrations
 
-No schema, Drizzle configuration or generated migration changes. Reuse the existing `user_content_states` table, whose account/key primary key and user foreign key already cover this preference. Browser storage is a one-time legacy import source, not durable authority. Store only allowed task/navigation IDs, resource IDs and UI/checkpoint state. Never store URLs, secrets or clip contents.
+The badge catalog adds an automatic `clipify-expert` enum value. Include the catalog in the existing post-merge migration workflow’s path filter; do not generate migrations on this branch. No new table or Drizzle configuration is required. Reuse the existing `user_content_states` table, whose account/key primary key and user foreign key already cover this preference. Browser storage is a one-time legacy import source, not durable authority. Store only allowed task/navigation IDs, resource IDs and UI/checkpoint state. Never store URLs, secrets or clip contents.
 
 ## Verification
 
-Run affected whole-file Jest suites without coverage. Database integration belongs in the existing database lane at `test/mcp/integration/user-tour-progress.test.ts`, using a separate disposable loopback database per case. Genuine browser flows have one BDD/ATDD owner and their own application server/database. Run all 47 examples and inspect desktop/mobile screenshots, ring placement, native widgets, actual navigation and popover focus. Then verify full lint, explicit feature-owned formatting, types and both builds.
+Run affected whole-file Jest suites without coverage. Database integration belongs in the existing database lane at `test/mcp/integration/user-tour-progress.test.ts`, using a separate disposable loopback database per case. Genuine browser flows have one BDD/ATDD owner and their own application server/database. Run all 50 examples and inspect desktop/mobile screenshots, ring placement, native widgets, actual navigation and popover focus. Then verify full lint, explicit feature-owned formatting, types and both builds.
 
 Complete merge coverage/Test and dependency-security gates remain mandatory. Draft CI is scoped feedback, not merge evidence. Do not generate migrations or alter thresholds, hooks or the user's untracked configuration.
+
+## Welcome and earned badge
+
+DashboardContentHost is rendered within the guide provider so the trial welcome can offer Start guided tour and Maybe later. A generic welcome covers accounts without a pending trial message. Preserve modal state while consent temporarily takes priority. The welcome decision is stored with account progress, and starting selects the first unfinished core task without routing programmatically.
+
+The server latches expertAwardedAt when every core task is completed. The automatic badge resolver reads this timestamp from the existing content-state row, so the member card, public profile and creator page share the ordinary badge registry. No separate badge table write or email is required. Successful server acknowledgement triggers a single toast in the current session.

@@ -6,7 +6,7 @@ import { saveUserTourEvent } from "@actions/userTour";
 beforeEach(() => {
 	jest.clearAllMocks();
 	authenticate.mockResolvedValue({ id: "owner" });
-	save.mockResolvedValue(undefined);
+	save.mockResolvedValue({});
 });
 it("requires the current authenticated account and rejects stale-account requests", async () => {
 	authenticate.mockResolvedValue(null);
@@ -22,6 +22,6 @@ it("validates persisted events and never accepts another owner's resource event"
 });
 it("saves a valid event in the authenticated account scope", async () => {
 	const event = { type: "task.skip", task: "overlay.preview" } as const;
-	expect(await saveUserTourEvent("owner", event)).toEqual({ ok: true, accountId: "owner" });
+	expect(await saveUserTourEvent("owner", event)).toEqual({ ok: true, accountId: "owner", expertAwardedAt: undefined });
 	expect(save).toHaveBeenCalledWith("owner", event);
 });

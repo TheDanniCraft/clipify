@@ -2,7 +2,7 @@ import "server-only";
 import { and, eq, sql } from "drizzle-orm";
 import { db, type DatabaseClient } from "@/db/client";
 import { userContentStatesTable, overlaysTable, playlistsTable, playlistClipsTable } from "@/db/schema";
-import { defaultProgress, guideContentKey, parseProgress, transition, type GuideEvent, type GuideProgress } from "@lib/userTour";
+import { defaultProgress, hasCompletedCoreGuide, guideContentKey, parseProgress, transition, type GuideEvent, type GuideProgress } from "@lib/userTour";
 
 /** Reuse account content state; no onboarding schema or generated migration is needed. */
 async function transactProgress(userId: string, event?: GuideEvent, client: DatabaseClient = db) {
@@ -49,9 +49,12 @@ async function transactProgress(userId: string, event?: GuideEvent, client: Data
 					if (clip) progress.completed.push("playlist.clips");
 				}
 				progress.minimized = Boolean(overlay || playlist);
+				progress.welcomeSeen = Boolean(overlay || playlist);
 			}
 		}
 		if (event) progress = transition(progress, event, userId);
+		// Award once, independently of replay, restored checkboxes or later optional tasks.
+		if (!progress.expertAwardedAt && hasCompletedCoreGuide(progress)) progress.expertAwardedAt = new Date().toISOString();
 		const serialized = JSON.stringify(progress);
 		if (serialized !== row.state)
 			await tx
@@ -66,5 +69,5 @@ export async function loadUserTourProgress(userId: string, client: DatabaseClien
 	return { ...result, progress: { ...result.progress, active: result.progress.active ? { ...result.progress.active, paused: true } : null } satisfies GuideProgress };
 }
 export async function applyUserTourEvent(userId: string, event: GuideEvent, client: DatabaseClient = db) {
-	await transactProgress(userId, event, client);
+	return (await transactProgress(userId, event, client)).progress;
 }

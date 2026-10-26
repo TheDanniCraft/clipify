@@ -46,6 +46,6 @@ Validation: the final complete affected run passed 16 suites / 428 tests; the ta
 
 ## Limits and merge requirements
 
-External OBS/website setup is instructional and self-reported. No schema or generated migrations changed; the existing account content-state table stores the guide. Server write failure keeps ordered retryable events and optimistic session state. Complete account persistence is verified after acknowledged writes.
+External OBS/website setup is instructional and self-reported. No new table or generated migration is introduced; the existing account content-state table stores the guide and earned timestamp. The catalog adds one badge enum value, with migration generation owned by the post-merge workflow. Server write failure keeps ordered retryable events and optimistic session state. Complete account persistence is verified after acknowledged writes.
 
 Keep the PR draft pending the complete merge coverage/Test and dependency-security gates. The baseline audit reproduces the original three high advisories in follow-redirects and transitive zod. No dependency changes, accepted risk exception or release approval is claimed for this revision.

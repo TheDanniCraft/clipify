@@ -69,3 +69,15 @@ The next browser sweep passed core picker, pagination/save and ordinary playlist
 Final seven-case browser sweep passed 7/7 after side-positioning the modal hints and fixing missing legacy creator metadata plus stale preview responses. The outline-only rerun of 045 passed with a visibly outlined table/pagination region; inspected its screenshot. Native editor/model/adapter whole-file tests passed 138/138. Both production builds/type checks and source lint pass. No cross-section automatic start was introduced, and addition still requires a native save for completion.
 
 Final completion evidence: all 16 affected suites / 428 tests passed. All seven owning browser examples passed in one final run, with an additional successful inset-outline visual rerun. Existing saved checkpoints, section boundaries and native save semantics remain covered. Full merge validation remains pending; keep the PR draft.
+
+## Welcome journey and Clipify Expert badge
+
+Implemented a single welcome entry point inside the guide provider: retain Pro trial content, offer Start guided tour / Maybe later, and provide a generic welcome when trial content is absent. Account progress remembers the decision; consent keeps priority. Added core-completion timestamp latching and an automatic balloon badge shared by member/profile presentation. Replay never revokes an earned badge; skips do not qualify. Added catalog path ownership to the existing post-merge migration workflow.
+
+Focused component/action/catalog suites passed (31 tests). The complete affected run passed 159 suites / 2329 tests; one pre-existing suite and three tests were skipped. The first browser batch passed defer and badge/member-card persistence; the trial-welcome example exposed an incorrect paid-plan fixture, which was corrected to a free account with a reverse-trial grant. The initial type check caught a HeroUI toast API mismatch; corrected to the established application toast adapter before the passing browser build. Full browser sweep and standalone build are tracked below when complete.
+
+The first development db:push attempt found no Infisical CLI on PATH. Reused the already-installed temporary CLI; Infisical dev-only db:push completed with Changes applied. No generated migration files were created or edited.
+
+Review while the full browser sweep was running found a first-read bootstrap edge: existing resources were recognized as completed, but welcomeSeen had not yet been set on the newly inserted guide row. Preserve the existing-account minimized behavior by recording that the welcome is already seen when owned setup is bootstrapped. Added the assertion to the existing database integration case. Stopped the old browser sweep after its first 25 passing examples so the final run can use the corrected source. The welcome example also now checks consent priority after clearing consent cookies.
+
+The manually started full suite was superseded while in its database lane after the existing-account bootstrap correction. The required pre-push full run will provide the final-source full-suite evidence; no successful full-run result is claimed for the interrupted run.

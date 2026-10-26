@@ -2,6 +2,16 @@ import React from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { UserTourProvider, useUserTour, PreviewTourCheckpoint } from "@components/user-tour/provider";
 import { defaultProgress, type GuideProgress } from "@lib/userTour";
+jest.mock("@components/dashboardContentHost", () => ({
+	__esModule: true,
+	default: ({ items, onStartGuide, onDismissGuide, isVisible }: any) =>
+		items.length && isVisible && onStartGuide ? (
+			<div role='dialog' aria-label='Welcome'>
+				<button onClick={onStartGuide}>Start guided tour</button>
+				<button onClick={onDismissGuide}>Maybe later</button>
+			</div>
+		) : null,
+}));
 const save = jest.fn();
 jest.mock("@actions/userTour", () => ({ saveUserTourEvent: (...args: unknown[]) => save(...args) }));
 jest.mock("@heroui/react", () => {
@@ -225,4 +235,21 @@ it("keeps the ring percentage format when a task finishes", () => {
 	view.unmount();
 	mount({ ...defaultProgress(), completed: ["overlay.name", "overlay.source"], minimized: true });
 	expect(screen.getByRole("button", { name: "Get started · 50%" })).toHaveTextContent("50%");
+});
+
+it("starts the first unfinished task from the welcome dialog without routing the user", async () => {
+	mount();
+	fireEvent.click(screen.getByRole("button", { name: "Start guided tour" }));
+	await waitFor(() => expect(save).toHaveBeenCalledWith("owner", { type: "welcome.start", location: "dashboard" }));
+	expect(screen.queryByRole("dialog", { name: "Welcome" })).not.toBeInTheDocument();
+	expect(push).not.toHaveBeenCalled();
+});
+it("remembers Maybe later and does not offer the welcome to returning accounts", async () => {
+	const view = mount();
+	fireEvent.click(screen.getByRole("button", { name: "Maybe later" }));
+	await waitFor(() => expect(save).toHaveBeenCalledWith("owner", { type: "welcome.dismiss" }));
+	expect(screen.queryByRole("dialog", { name: "Welcome" })).not.toBeInTheDocument();
+	view.unmount();
+	mount({ ...defaultProgress(), welcomeSeen: true });
+	expect(screen.queryByRole("dialog", { name: "Welcome" })).not.toBeInTheDocument();
 });

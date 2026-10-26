@@ -46,5 +46,32 @@ it("recognizes existing owned resources without reopening onboarding", async () 
 	const saved = await loadUserTourProgress("owner", fixture.db);
 	expect(saved.progress.completed).toEqual(["overlay.name", "overlay.source"]);
 	expect(saved.progress.minimized).toBe(true);
+	expect(saved.progress.welcomeSeen).toBe(true);
 	expect(saved.progress.active).toBeNull();
+});
+it("persists welcome dismissal and starts only the unfinished core tasks on request", async () => {
+	await applyUserTourEvent("owner", { type: "welcome.dismiss" }, fixture.db);
+	expect((await loadUserTourProgress("owner", fixture.db)).progress).toMatchObject({ welcomeSeen: true, minimized: true, active: null });
+	await applyUserTourEvent("owner", { type: "task.skip", task: "overlay.name" }, fixture.db);
+	const started = await applyUserTourEvent("owner", { type: "welcome.start", location: "dashboard" }, fixture.db);
+	expect(started.active).toMatchObject({ task: "overlay.source", paused: false });
+});
+it("awards the core badge once and keeps it across replay and reload", async () => {
+	const {
+		rows: [overlay],
+	} = await fixture.pool.query("INSERT INTO overlays (owner_id,name,status,type) VALUES ('owner','Badge overlay','active','All') RETURNING id");
+	await loadUserTourProgress("owner", fixture.db);
+	await applyUserTourEvent("owner", { type: "overlay.previewed", ownerId: "owner", id: overlay.id, count: 1 }, fixture.db);
+	await applyUserTourEvent("owner", { type: "overlay.copied", ownerId: "owner", id: overlay.id }, fixture.db);
+	const awarded = await applyUserTourEvent("owner", { type: "setup.confirmed" }, fixture.db);
+	expect(awarded.expertAwardedAt).toEqual(expect.any(String));
+	expect(awarded.skipped).toEqual([]);
+	await applyUserTourEvent("owner", { type: "task.restore", task: "overlay.name" }, fixture.db);
+	const reloaded = await loadUserTourProgress("owner", fixture.db);
+	expect(reloaded.progress.expertAwardedAt).toBe(awarded.expertAwardedAt);
+	expect((await loadUserTourProgress("other", fixture.db)).progress.expertAwardedAt).toBeUndefined();
+});
+it("does not award a badge for skipping every core task", async () => {
+	for (const task of ["overlay.name", "overlay.source", "overlay.preview", "overlay.setup"] as const) await applyUserTourEvent("owner", { type: "task.skip", task }, fixture.db);
+	expect((await loadUserTourProgress("owner", fixture.db)).progress.expertAwardedAt).toBeUndefined();
 });

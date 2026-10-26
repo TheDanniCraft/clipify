@@ -1,14 +1,18 @@
 "use client";
 import { createContext, lazy, Suspense, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
+import { notify as addToast } from "@lib/toast";
 import { usePlausible } from "next-plausible";
 import { Accordion, Button, Checkbox, Popover, ProgressCircle } from "@heroui/react";
 import { IconChevronRight, IconMinus, IconRotateClockwise } from "@tabler/icons-react";
 import { saveUserTourEvent } from "@actions/userTour";
-import { journeyGuidePercent, currentGuideStep, defaultProgress, guideLocation, journeys, parseProgress, storageKey, transition, tourModalSelector, tourPopoverSelector, type GuideEvent, type GuideProgress, type TaskId } from "@lib/userTour";
+import { journeyGuidePercent, currentGuideStep, defaultProgress, shouldOfferGuideWelcome, guideLocation, journeys, parseProgress, storageKey, transition, tourModalSelector, tourPopoverSelector, type GuideEvent, type GuideProgress, type TaskId } from "@lib/userTour";
 import { CONSENT_PREFERENCES_VISIBILITY_EVENT, type ConsentPreferencesVisibilityDetail } from "@lib/consent/events";
 import "driver.js/dist/driver.css";
 import "./user-tour.css";
+import DashboardContentHost from "@components/dashboardContentHost";
+import type { DashboardContentItem } from "@lib/dashboardContent";
+const guidedWelcome: DashboardContentItem = { key: "guided-welcome", title: "Welcome", headline: "Welcome to Clipify!", intro: "Let’s get your first overlay running.", highlight: { title: "Learn by doing", text: "Follow the real controls to create, configure and use your overlay." }, image: { src: "/clippy/Clippy.svg", alt: "Clippy, the Clipify mascot" }, actionLabel: "Start guided tour" };
 const Spotlight = lazy(() => import("./spotlight"));
 type GuideContextValue = { report: (event: GuideEvent) => void; activeTask: TaskId | null; resourceIds: { overlayId: string | null; playlistId: string | null } };
 const GuideContext = createContext<GuideContextValue>({ report: () => undefined, activeTask: null, resourceIds: { overlayId: null, playlistId: null } });
@@ -76,7 +80,7 @@ function TaskCheckbox({ task, selected, current, onRequest, onConfirm, onRestore
 	);
 }
 /** Server state is authoritative. Browser storage is only imported once for older accounts. */
-export function UserTourProvider({ accountId, children, appearanceAvailable = true, initialProgress = defaultProgress(), importLegacy = false }: { accountId: string; children: ReactNode; appearanceAvailable?: boolean; initialProgress?: GuideProgress; importLegacy?: boolean }) {
+export function UserTourProvider({ accountId, children, appearanceAvailable = true, initialProgress = defaultProgress(), importLegacy = false, dashboardContent = [] }: { accountId: string; children: ReactNode; appearanceAvailable?: boolean; initialProgress?: GuideProgress; importLegacy?: boolean; dashboardContent?: DashboardContentItem[] }) {
 	const pathname = usePathname();
 	const track = usePlausible();
 	const [progress, setProgress] = useState(() => (pathname !== "/dashboard" && !initialProgress.active ? { ...initialProgress, minimized: true } : initialProgress));
@@ -95,6 +99,8 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 	const pending = useRef<GuideEvent[]>([]);
 	const processing = useRef(false);
 	const mounted = useRef(true);
+	const seenExpertAward = useRef(initialProgress.expertAwardedAt);
+	const offerWelcome = shouldOfferGuideWelcome(progress);
 	const seenCompletions = useRef(initialProgress.completed);
 	const bottom = 96;
 	const active = progress.active;
@@ -109,6 +115,13 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 				const result = await saveUserTourEvent(accountId, pending.current[0]);
 				if (!result.ok || result.accountId !== accountId) throw new Error("Guide progress was not saved");
 				pending.current.shift();
+				if (result.expertAwardedAt && !seenExpertAward.current) {
+					seenExpertAward.current = result.expertAwardedAt;
+					if (mounted.current) {
+						setProgress((current) => ({ ...current, expertAwardedAt: result.expertAwardedAt }));
+						addToast({ title: "Clipify Expert unlocked!", description: "Your balloon badge is now on your member profile.", color: "success" });
+					}
+				}
 			}
 			if (mounted.current) setSyncState("idle");
 		} catch {
@@ -227,6 +240,7 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 	return (
 		<GuideContext.Provider value={{ report, activeTask, resourceIds: { overlayId: progress.overlayId, playlistId: progress.playlistId } }}>
 			{children}
+			{hydrated && <DashboardContentHost isVisible={!consentOpen && !consentBanner} items={dashboardContent.length ? dashboardContent : offerWelcome ? [guidedWelcome] : []} onStartGuide={offerWelcome ? () => report({ type: "welcome.start", location: rawLocation }) : undefined} onDismissGuide={offerWelcome ? () => report({ type: "welcome.dismiss" }) : undefined} />}
 			<span hidden data-guide-sync={syncState} />
 			{hydrated && !consentOpen && !consentBanner && (
 				<aside aria-label='Clipify guide' style={{ bottom }} className='user-tour-launcher fixed right-4 flex flex-col items-end z-40 max-w-[calc(100vw-2rem)]'>

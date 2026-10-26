@@ -281,3 +281,21 @@ Feature: Clipify guided onboarding
     Given an isolated authenticated Clipify guide account
     When playlist source guidance changes to Playlist and back to another type
     Then it stays in the flow and advances again when Playlist is selected
+
+  @US1 @FR-001 @SC-001 @BDD-TOUR-US1-048
+  Scenario: Start the guided journey from the welcome modal
+    Given an isolated authenticated Clipify guide account
+    When the fresh welcome offers the guided journey
+    Then starting the welcome teaches the real Add Overlay control
+
+  @US1 @FR-001 @SC-004 @BDD-TOUR-US1-049
+  Scenario: Defer the welcome without repeated prompts
+    Given an isolated authenticated Clipify guide account
+    When the fresh welcome is deferred
+    Then a new browser session keeps the guide available without the welcome
+
+  @US1 @FR-002 @SC-001 @BDD-TOUR-US1-050
+  Scenario: Earn the Clipify Expert badge after the core journey
+    Given an isolated authenticated Clipify guide account
+    When the final core guide step is completed
+    Then the Clipify Expert balloon badge persists on the member card

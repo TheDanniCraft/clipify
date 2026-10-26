@@ -11,7 +11,7 @@ async function progress(page: Page, world: TourWorld): Promise<GuideProgress> {
 	return JSON.parse(result.rows[0].state);
 }
 async function seedProgress(world: TourWorld, patch: Partial<GuideProgress> = {}) {
-	await world.fixture.pool.query("INSERT INTO user_content_states (user_id,content_key,state) VALUES ($1,$2,$3) ON CONFLICT (user_id,content_key) DO UPDATE SET state=EXCLUDED.state", [world.owner!.creatorId, guideContentKey, JSON.stringify({ ...defaultProgress(), ...patch })]);
+	await world.fixture.pool.query("INSERT INTO user_content_states (user_id,content_key,state) VALUES ($1,$2,$3) ON CONFLICT (user_id,content_key) DO UPDATE SET state=EXCLUDED.state", [world.owner!.creatorId, guideContentKey, JSON.stringify({ ...defaultProgress(), welcomeSeen: true, ...patch })]);
 }
 async function panel(page: Page) {
 	if (!(await page.getByRole("region", { name: "Your Clipify guide" }).isVisible())) await page.locator('[data-tour="guide-launcher"]').click();
@@ -880,4 +880,68 @@ Then("it stays in the flow and advances again when Playlist is selected", async 
 	await page.getByRole("button", { name: "Save Overlay Settings", exact: true }).click();
 	await expect.poll(async () => (await progress(page, tourWorld)).completed).toContain("playlist.use");
 	expect((await progress(page, tourWorld)).active).toBeNull();
+});
+When("the fresh welcome offers the guided journey", async ({ page, tourWorld }) => {
+	await seedProgress(tourWorld, { welcomeSeen: false });
+	// Use a reverse trial to exercise the existing welcome rather than a second modal.
+	await tourWorld.fixture.pool.query("UPDATE users SET plan='free' WHERE id=$1", [tourWorld.owner!.creatorId]);
+	await tourWorld.fixture.pool.query("DELETE FROM billing_subscriptions WHERE user_id=$1", [tourWorld.owner!.creatorId]);
+	await tourWorld.fixture.pool.query("INSERT INTO entitlement_grants (user_id,entitlement,source,reason,starts_at,ends_at) VALUES ($1,'pro_access','reverse_trial','free_signup_trial',NOW() - INTERVAL '1 minute',NOW() + INTERVAL '7 days')", [tourWorld.owner!.creatorId]);
+	const authentication = (await page.context().cookies()).filter((cookie) => !/consent|c15t/i.test(cookie.name));
+	await page.context().clearCookies();
+	await page.context().addCookies(authentication);
+	await page.reload();
+	await expect(page.getByRole("button", { name: "Reject optional", exact: true })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Start guided tour", exact: true })).toHaveCount(0);
+	await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
+	await expect(page.getByRole("button", { name: "Start guided tour", exact: true })).toBeVisible();
+	await expect(page.getByText("7 days of Pro, on us.", { exact: true })).toBeVisible();
+	await expect(page.locator(".driver-popover")).toHaveCount(0);
+	await page.screenshot({ path: "/tmp/clipify-welcome-tour.png" });
+});
+Then("starting the welcome teaches the real Add Overlay control", async ({ page, tourWorld }) => {
+	await page.getByRole("button", { name: "Start guided tour", exact: true }).click();
+	await expect(page.getByRole("button", { name: "Start guided tour", exact: true })).toHaveCount(0);
+	await expect(page.locator(".driver-popover-title")).toHaveText("Create an overlay");
+	await expect(page.locator('[data-tour="create-overlay"]')).toHaveClass(/driver-active-element/);
+	expect((await progress(page, tourWorld)).welcomeSeen).toBe(true);
+	await pause(page);
+	await page.reload();
+	await expect(page.getByRole("button", { name: "Start guided tour", exact: true })).toHaveCount(0);
+});
+When("the fresh welcome is deferred", async ({ page, tourWorld }) => {
+	await seedProgress(tourWorld, { welcomeSeen: false });
+	await page.reload();
+	await expect(page.getByRole("button", { name: "Start guided tour", exact: true })).toBeVisible();
+	await page.getByRole("button", { name: "Maybe later", exact: true }).click();
+	expect((await progress(page, tourWorld)).welcomeSeen).toBe(true);
+});
+Then("a new browser session keeps the guide available without the welcome", async ({ page, tourWorld }) => {
+	await page.evaluate(() => {
+		localStorage.clear();
+		sessionStorage.clear();
+	});
+	await page.reload();
+	await expect(page.getByRole("button", { name: "Start guided tour", exact: true })).toHaveCount(0);
+	await expect(page.locator('[data-tour="guide-launcher"]')).toBeVisible();
+	expect((await progress(page, tourWorld)).active).toBeNull();
+});
+When("the final core guide step is completed", async ({ page, tourWorld }) => {
+	await seedProgress(tourWorld, { overlayId: tourWorld.owner!.overlayId, copiedOverlayId: tourWorld.owner!.overlayId, completed: ["overlay.name", "overlay.source", "overlay.preview"], active: { task: "overlay.setup", index: 1, paused: true } });
+	await overlay(page, tourWorld);
+	await resumeTask(page, tourWorld);
+	await page.getByRole("button", { name: "Finish guide", exact: true }).click();
+	await expect(page.getByText("Clipify Expert unlocked!", { exact: true })).toBeVisible();
+	expect((await progress(page, tourWorld)).expertAwardedAt).toEqual(expect.any(String));
+});
+Then("the Clipify Expert balloon badge persists on the member card", async ({ page, tourWorld }) => {
+	const awardedAt = (await progress(page, tourWorld)).expertAwardedAt;
+	await page.goto(`${tourWorld.origin}/dashboard/member-card`);
+	await expect(page.getByText("Clipify Expert", { exact: true }).first()).toBeVisible();
+	await expect(page.locator('[data-badge-icon="balloon"]').first()).toBeVisible();
+	await page.screenshot({ path: "/tmp/clipify-expert-badge.png" });
+	await page.reload();
+	await expect(page.getByText("Clipify Expert", { exact: true }).first()).toBeVisible();
+	expect((await progress(page, tourWorld)).expertAwardedAt).toBe(awardedAt);
+	await expect(page.getByRole("button", { name: "Start guided tour", exact: true })).toHaveCount(0);
 });

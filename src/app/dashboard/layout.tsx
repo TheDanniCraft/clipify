@@ -14,15 +14,17 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 	return (
 		<>
 			<SentryFeedbackWidget />
-			<DashboardContentHost items={items} />
 			{user && guide ? (
 				<Suspense fallback={children}>
-					<UserTourProvider key={user.id} accountId={user.id} initialProgress={guide.progress} importLegacy={guide.importLegacy} appearanceAvailable={(user.entitlements?.effectivePlan ?? user.plan) === "pro"}>
+					<UserTourProvider key={user.id} accountId={user.id} initialProgress={guide.progress} importLegacy={guide.importLegacy} dashboardContent={items} appearanceAvailable={(user.entitlements?.effectivePlan ?? user.plan) === "pro"}>
 						{children}
 					</UserTourProvider>
 				</Suspense>
 			) : (
-				children
+				<>
+					<DashboardContentHost items={items} />
+					{children}
+				</>
 			)}
 		</>
 	);

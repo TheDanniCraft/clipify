@@ -6,8 +6,8 @@ import { applyUserTourEvent, loadUserTourProgress } from "@/server/user-tour/pro
 export async function saveUserTourEvent(expectedAccountId: string, event: unknown) {
 	const user = await validateAuth(true);
 	if (!user || user.id !== expectedAccountId || !isGuideEvent(event) || ("ownerId" in event && event.ownerId !== user.id)) return { ok: false as const };
-	await applyUserTourEvent(user.id, event);
-	return { ok: true as const, accountId: user.id };
+	const progress = await applyUserTourEvent(user.id, event);
+	return { ok: true as const, accountId: user.id, expertAwardedAt: progress.expertAwardedAt };
 }
 
 export async function getUserTourProgress(expectedAccountId: string) {

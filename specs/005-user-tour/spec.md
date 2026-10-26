@@ -9,7 +9,7 @@ Branch: `feat/user-tour`. Current scope includes the user's final checklist, nav
 3. **US3, P2: Build and use a playlist.** The user creates/names a playlist, selects/orders clips, saves and learns normal navigation back to an overlay to select the playlist.
 4. **US4, P2: Explore Clipify.** A single optional section introduces galleries, public website installation through the actual avatar menu and Tools action, and existing report/chat controls.
 
-BDD and ATDD share one browser execution owner per example. The 47 individually tagged examples in `test/bdd/features/user-tour/guide.feature` are canonical. Database concurrency/integrity has separate service-integration ownership; browser journeys are not duplicated as MCP workflows.
+BDD and ATDD share one browser execution owner per example. The 50 individually tagged examples in `test/bdd/features/user-tour/guide.feature` are canonical. Database concurrency/integrity has separate service-integration ownership; browser journeys are not duplicated as MCP workflows.
 
 ## Requirements
 
@@ -25,6 +25,9 @@ BDD and ATDD share one browser execution owner per example. The 47 individually 
 - **FR-010:** Consent UI takes priority. Keep analytics limited to allowed journey/task identifiers. Support introductions point to existing widgets; clicking a support control pauses the spotlight so the normal UI can open and own focus.
 - **FR-011:** Keep four sections: first overlay, appearance, playlist and Explore Clipify. Merge website/tools discovery into one task under Explore. Defer 24/7 onboarding.
 - **FR-012:** Website setup teaches opening the app menu, choosing Tools, selecting a player and copying public iframe code. Galleries and support remain short, optional introductions.
+
+- **FR-013:** Automatically offer the guided journey from the welcome dialog once per account. Preserve the existing Pro trial message, offer Start guided tour and Maybe later, and never launch a spotlight over consent or the welcome dialog. Existing owned setup keeps its minimized checklist instead of receiving a first-use welcome. Start the first unfinished core task through normal navigation. Remember dismissal and manual start; do not repeatedly prompt returning or completed accounts.
+- **FR-014:** Award one automatic Clipify Expert balloon badge when all four core tasks are completed. Optional sections are not required and skips alone do not qualify. Persist the first server-issued award timestamp; replay or checkbox restore never revokes the badge. Display it in existing member badges and celebrate once after an acknowledged award.
 
 ## Edge cases
 
