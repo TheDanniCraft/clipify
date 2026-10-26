@@ -4,8 +4,8 @@ import { useEffect } from "react";
 import { driver } from "driver.js";
 import { tourModalSelector, tourPopoverSelector, type GuideStep } from "@lib/userTour";
 
-export type SpotlightProps = { step: GuideStep; onPause: () => void; onMissing: () => void; onNext: () => void; onConfirm?: () => void };
-export default function Spotlight({ step, onPause, onMissing, onNext, onConfirm }: SpotlightProps) {
+export type SpotlightProps = { step: GuideStep; onPause: () => void; onMissing: () => void; onNext: () => void; onPrevious?: () => void; onConfirm?: () => void };
+export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious, onConfirm }: SpotlightProps) {
 	useEffect(() => {
 		let disposed = false;
 		let shown = false;
@@ -83,7 +83,9 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onConfirm 
 					popover: {
 						title: step.title,
 						description: step.description,
-						showButtons: step.preserveFocus ? [] : (step.next && !step.action) || onConfirm ? ["next", "close"] : ["close"],
+						showButtons: step.preserveFocus ? [] : [...(onPrevious ? ["previous" as const] : []), ...((step.next && !step.action) || onConfirm ? ["next" as const, "close" as const] : ["close" as const])],
+						prevBtnText: "Back",
+						onPrevClick: onPrevious,
 						nextBtnText: step.nextLabel ?? "Continue",
 						closeBtnLabel: "Pause guide",
 						onCloseClick: onPause,
@@ -150,6 +152,6 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onConfirm 
 			clearTimeout(missingTimer);
 			preserveAria(target(), () => spotlight.destroy());
 		};
-	}, [step.target, step.title, step.description, step.next, step.action, step.allowDialog, step.preserveFocus, step.destination, step.reveals, step.pauseOnInteract, step.nextLabel, onPause, onMissing, onNext, onConfirm]);
+	}, [step.target, step.title, step.description, step.next, step.action, step.allowDialog, step.preserveFocus, step.destination, step.reveals, step.pauseOnInteract, step.nextLabel, onPause, onMissing, onNext, onPrevious, onConfirm]);
 	return null;
 }

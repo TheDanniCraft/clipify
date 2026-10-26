@@ -265,3 +265,17 @@ it("lets support controls open their normal UI by pausing on the user's click", 
 	act(() => document.querySelector('[data-tour="control"]')!.dispatchEvent(new MouseEvent("click", { bubbles: true, composed: true })));
 	expect(pause).toHaveBeenCalledTimes(1);
 });
+it("connects the review Back action without changing the normal save control", () => {
+	const previous = jest.fn();
+	render(
+		<>
+			<button data-tour='control'>Save</button>
+			<Spotlight step={step} onPause={jest.fn()} onMissing={jest.fn()} onNext={jest.fn()} onPrevious={previous} />
+		</>,
+	);
+	const popover = highlight.mock.calls[0][0].popover;
+	expect(popover.showButtons).toEqual(["previous", "next", "close"]);
+	expect(popover.prevBtnText).toBe("Back");
+	act(() => popover.onPrevClick());
+	expect(previous).toHaveBeenCalledTimes(1);
+});

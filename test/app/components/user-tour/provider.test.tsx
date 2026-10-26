@@ -205,3 +205,10 @@ it("does not restore launcher focus over a newly opened skip popover", () => {
 	focus.mockRestore();
 	jest.useRealTimers();
 });
+it("shows the last section's own count after reload instead of Guides or core progress", () => {
+	mount({ ...defaultProgress(), journeyId: "appearance", completed: ["overlay.name", "overlay.source", "overlay.preview", "overlay.setup", "appearance.style"], minimized: true });
+	const launcher = screen.getByRole("button", { name: "Make your overlay yours · 1/2" });
+	expect(launcher).toHaveTextContent("1/2");
+	expect(screen.queryByText("Guides")).not.toBeInTheDocument();
+	expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "50");
+});

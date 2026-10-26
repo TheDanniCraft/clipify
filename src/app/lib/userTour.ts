@@ -13,7 +13,15 @@ export const journeys = [
 			{ id: "overlay.setup", title: "Add it to OBS or Streamlabs" },
 		],
 	},
-	{ id: "appearance", title: "Make your overlay yours", optional: true, tasks: [{ id: "appearance.style", title: "Customize your look" }] },
+	{
+		id: "appearance",
+		title: "Make your overlay yours",
+		optional: true,
+		tasks: [
+			{ id: "appearance.filters", title: "Adjust your filters" },
+			{ id: "appearance.style", title: "Customize your look" },
+		],
+	},
 	{
 		id: "playlist",
 		title: "Build a playlist",
@@ -35,14 +43,16 @@ export const journeys = [
 		],
 	},
 ] as const;
+export type JourneyId = (typeof journeys)[number]["id"];
 export type TaskId = (typeof journeys)[number]["tasks"][number]["id"];
 const taskIds = new Set<string>(journeys.flatMap((journey) => journey.tasks.map((task) => task.id)));
 export const isTaskId = (value: unknown): value is TaskId => typeof value === "string" && taskIds.has(value);
 const validId = (value: unknown): value is string => typeof value === "string" && /^[a-zA-Z0-9_-]{1,128}$/.test(value);
 export type GuideLocation = "dashboard" | "overlay" | "theme" | "playlist" | "tools" | "other";
-export type NavigationTarget = "home" | "overlays" | "overlay" | "playlists" | "playlist" | "profile" | "tools";
+export type NavigationTarget = "home" | "overlays" | "overlay" | "playlists" | "playlist" | "profile" | "tools" | "theme";
 export type GuideProgress = {
 	version: 2;
+	journeyId?: JourneyId;
 	completed: TaskId[];
 	skipped: TaskId[];
 	overlayId: string | null;
@@ -51,11 +61,11 @@ export type GuideProgress = {
 	active: { task: TaskId; index: number; paused: boolean; navigation?: NavigationTarget[]; navigationTotal?: number; done?: boolean } | null;
 	minimized: boolean;
 };
-export const defaultProgress = (): GuideProgress => ({ version: 2, completed: [], skipped: [], overlayId: null, playlistId: null, copiedOverlayId: null, active: null, minimized: false });
+export const defaultProgress = (): GuideProgress => ({ version: 2, journeyId: "overlay", completed: [], skipped: [], overlayId: null, playlistId: null, copiedOverlayId: null, active: null, minimized: false });
 /** Legacy browser cache, read once when importing an account's old guide progress. */
 export const storageKey = (accountId: string) => `clipify:user-tour:v1:${accountId}`;
 export const guideContentKey = "clipify-user-tour:v2";
-const navigationIds = new Set<string>(["home", "overlays", "overlay", "playlists", "playlist", "profile", "tools"]);
+const navigationIds = new Set<string>(["home", "overlays", "overlay", "playlists", "playlist", "profile", "tools", "theme"]);
 const locations = new Set<string>(["dashboard", "overlay", "theme", "playlist", "tools", "other"]);
 const migrateTask = (id: unknown) => (id === "website.embed" ? "explore.tools" : id);
 export function parseProgress(raw: string | null, restorePaused = true): GuideProgress {
@@ -70,6 +80,7 @@ export function parseProgress(raw: string | null, restorePaused = true): GuidePr
 			const navigation: NavigationTarget[] = Array.isArray(active.navigation) ? active.navigation.filter((id: unknown): id is NavigationTarget => typeof id === "string" && navigationIds.has(id)).slice(0, 5) : [];
 			progress.active = { task: active.task, index: active.index, paused: restorePaused || active.paused !== false, navigation, navigationTotal: Math.max(navigation.length, Math.min(5, Number.isInteger(active.navigationTotal) ? active.navigationTotal : navigation.length)) };
 		}
+		progress.journeyId = journeys.find((journey) => journey.id === (progress.active?.task.split(".")[0] ?? data.journeyId ?? [...progress.completed, ...progress.skipped].at(-1)?.split(".")[0]))?.id ?? "overlay";
 		return progress;
 	} catch {
 		return defaultProgress();
@@ -82,7 +93,7 @@ export function guideLocation(pathname: string): GuideLocation {
 	if (/^\/dashboard\/playlist\/[a-zA-Z0-9_-]+$/.test(pathname)) return "playlist";
 	return pathname === "/dashboard/tools" ? "tools" : "other";
 }
-export function navigationForTask(task: TaskId, location: GuideLocation, progress: GuideProgress): NavigationTarget[] {
+export function navigationForTask(task: TaskId, location: GuideLocation, progress: GuideProgress, index = 0): NavigationTarget[] {
 	if (task === "explore.support") return [];
 	if (task === "explore.tools") return location === "tools" ? [] : ["profile", "tools"];
 	const home: NavigationTarget[] = location === "dashboard" ? [] : ["home"];
@@ -91,11 +102,14 @@ export function navigationForTask(task: TaskId, location: GuideLocation, progres
 	if (task === "playlist.clips") return location === "playlist" && progress.playlistId ? [] : [...home, "playlists", ...(progress.playlistId ? ["playlist" as const] : [])];
 	if (task === "playlist.use" && !progress.playlistId) return [...home, "playlists"];
 	if (task === "overlay.name") return [...home, "overlays"];
+	if (task === "appearance.style" && location === "theme" && progress.overlayId) return [];
+	if (task === "appearance.style" && index > 0 && progress.overlayId) return [...navigationForTask("overlay.source", location, progress), "theme"];
 	if (location === "overlay" && progress.overlayId) return [];
 	return [...home, "overlays", ...(progress.overlayId ? ["overlay" as const] : [])];
 }
-export type GuideStep = { target: string; title: string; description: string; next?: boolean; action?: boolean; finish?: boolean; nextLabel?: string; skipOnFinish?: boolean; allowDialog?: boolean; destination?: GuideLocation; preserveFocus?: boolean; reveals?: string; pauseOnInteract?: boolean };
+export type GuideStep = { target: string; title: string; description: string; next?: boolean; back?: boolean; action?: boolean; finish?: boolean; nextLabel?: string; skipOnFinish?: boolean; allowDialog?: boolean; destination?: GuideLocation; preserveFocus?: boolean; reveals?: string; pauseOnInteract?: boolean };
 const navigationSteps: Record<NavigationTarget, GuideStep> = {
+	theme: { target: "overlay-customize", title: "Open Theme Studio", description: "Click Customize Overlay Style to return to your look.", destination: "theme" },
 	home: { target: "dashboard-home", title: "Open your Dashboard", description: "Click the Clipify logo to find your overlays and playlists.", destination: "dashboard" },
 	overlays: { target: "overlays-tab", title: "Open Overlays", description: "Choose the Overlays tab.", action: true, next: true },
 	overlay: { target: "open-overlay", title: "Open your overlay", description: "Click your overlay's row to open its settings.", destination: "overlay" },
@@ -126,7 +140,7 @@ export type GuideEvent =
 	| { type: "task.skip" | "task.restore"; task: TaskId }
 	| { type: "resume"; location?: GuideLocation }
 	| { type: "location"; location: GuideLocation }
-	| { type: "pause" | "next" | "setup.confirmed" }
+	| { type: "pause" | "next" | "previous" | "setup.confirmed" }
 	| { type: "panel"; minimized: boolean }
 	| { type: "resource.reset"; resource: "overlay" | "playlist" }
 	| { type: "legacy.import"; completed: TaskId[]; skipped: TaskId[] };
@@ -156,6 +170,7 @@ export function isGuideEvent(value: unknown): value is GuideEvent {
 		case "task.restore":
 			return isTaskId(event.task);
 		case "pause":
+		case "previous":
 		case "next":
 		case "setup.confirmed":
 		case "resume":
@@ -176,8 +191,10 @@ export function transition(progress: GuideProgress, event: GuideEvent, accountId
 	if (!isGuideEvent(event) || ("ownerId" in event && event.ownerId !== accountId)) return progress;
 	const next: GuideProgress = { ...progress, completed: [...progress.completed], skipped: [...progress.skipped] };
 	const begin = (task: TaskId, location: GuideLocation, index = 0) => {
+		if (task === "appearance.style" && location === "theme" && next.overlayId) index = Math.max(1, index);
+		next.journeyId = journeys.find((journey) => journey.tasks.some((item) => item.id === task))!.id;
 		const navigationTask = index > 0 && task === "overlay.name" ? "overlay.source" : index > 0 && task === "playlist.name" ? "playlist.clips" : task;
-		const navigation = navigationForTask(navigationTask, location, next);
+		const navigation = navigationForTask(navigationTask, location, next, index);
 		next.active = { task, index, paused: false, navigation, navigationTotal: navigation.length };
 		next.minimized = true;
 	};
@@ -189,7 +206,7 @@ export function transition(progress: GuideProgress, event: GuideEvent, accountId
 			next.skipped = next.skipped.filter((id) => id !== task);
 		}
 		if (next.active?.task !== task) return;
-		const sequence = task.startsWith("overlay.") ? journeys[0].tasks : task.startsWith("playlist.") ? journeys[2].tasks : [];
+		const sequence = task.startsWith("overlay.") ? journeys[0].tasks : task.startsWith("playlist.") ? journeys[2].tasks : task.startsWith("appearance.") ? journeys[1].tasks : [];
 		const following = sequence.slice(sequence.findIndex((item) => item.id === task) + 1).find((item) => !next.completed.includes(item.id) && !next.skipped.includes(item.id));
 		if (following && !next.active.paused) begin(following.id, task.startsWith("playlist.") && task !== "playlist.use" ? "playlist" : "overlay");
 		else {
@@ -218,6 +235,9 @@ export function transition(progress: GuideProgress, event: GuideEvent, accountId
 			next.completed = [...new Set([...next.completed, ...event.completed])];
 			next.skipped = [...new Set([...next.skipped, ...event.skipped])].filter((id) => !next.completed.includes(id));
 			return next;
+		case "previous":
+			if (!next.active || next.active.paused || next.active.navigation?.length || !currentGuideStep(next)?.back || next.active.index < 1) return progress;
+			return { ...next, active: { ...next.active, index: next.active.index - 1 } };
 		case "next": {
 			if (!next.active || next.active.paused) return progress;
 			const step = currentGuideStep(next);
@@ -263,6 +283,7 @@ export function transition(progress: GuideProgress, event: GuideEvent, accountId
 			next.overlayId = event.id;
 			if (event.named) finish("overlay.name");
 			if (event.source && (!startedTask || startedTask === "overlay.source")) finish("overlay.source");
+			if (event.source && startedTask === "appearance.filters") finish("appearance.filters");
 			if (event.playlistId && event.playlistId === next.playlistId) finish("playlist.use");
 			break;
 		case "overlay.previewed":
@@ -311,15 +332,20 @@ export function routeForTask(task: TaskId, progress: GuideProgress): string {
 const createOverlay: GuideStep = { target: "create-overlay", title: "Create an overlay", description: "Click Add Overlay to create one. This opens its settings." };
 export function stepsForTask(task: TaskId, progress: GuideProgress): GuideStep[] {
 	if (task === "playlist.use" && !progress.playlistId) return stepsForTask("playlist.name", progress);
-	if ((task.startsWith("overlay.") || task === "appearance.style" || task === "playlist.use") && task !== "overlay.name" && !progress.overlayId) return [createOverlay];
+	if ((task.startsWith("overlay.") || task.startsWith("appearance.") || task === "playlist.use") && task !== "overlay.name" && !progress.overlayId) return [createOverlay];
 	switch (task) {
 		case "overlay.name":
 			return [createOverlay, { target: "overlay-name", title: "Give it a name", description: "Choose a name you'll recognize.", next: true }, { target: "overlay-save", title: "Save your overlay", description: "Click Save to keep the name." }];
+		case "appearance.filters":
+			return [
+				{ target: "overlay-filters", title: "Adjust your filters", description: "Choose which clips appear using duration, games and creators. Advanced filters require Pro. Keep the defaults if they suit your stream.", next: true },
+				{ target: "overlay-save", title: "Save your filters", description: "Save your changes, or keep your current filters. Use Back to review them.", back: true, next: true, finish: true, skipOnFinish: true, nextLabel: "Use current filters" },
+			];
 		case "overlay.source":
 			return [
 				{ target: "overlay-source", title: "Choose your clips", description: "Choose the clip source or time range you want to play.", next: true },
 				{ target: "overlay-filters", title: "Adjust the filters", description: "Review duration, games and creators. Advanced filters require Pro. You can keep the defaults.", next: true },
-				{ target: "overlay-save", title: "Save your clip settings", description: "Save your changes, or continue with the current settings.", next: true, finish: true, skipOnFinish: true, nextLabel: "Use current settings" },
+				{ target: "overlay-save", title: "Save your clip settings", back: true, description: "Save your changes, or continue with the current settings.", next: true, finish: true, skipOnFinish: true, nextLabel: "Use current settings" },
 			];
 		case "overlay.preview":
 			return [{ target: "overlay-preview", title: "Preview your overlay", description: "Open Preview Clips to check what will play. If it's empty, broaden the time range or filters.", allowDialog: true }];
@@ -331,8 +357,8 @@ export function stepsForTask(task: TaskId, progress: GuideProgress): GuideStep[]
 		case "appearance.style":
 			return [
 				{ target: "overlay-customize", title: "Open Theme Studio", description: "Click Customize Overlay Style.", destination: "theme" },
-				{ target: "theme-controls", title: "Make it yours", description: "Adjust a style setting and check the preview.", next: true },
-				{ target: "theme-save", title: "Save your look", description: "Click Save Style, or keep the default look.", next: true, finish: true, skipOnFinish: true, nextLabel: "Keep default look" },
+				{ target: "theme-controls", title: "Make it yours", description: "Make this look like your stream. Change text and background colors, the progress gradient and fonts. Enable components, adjust visual effects and use the live preview to check your changes. You can keep the defaults.", next: true },
+				{ target: "theme-save", title: "Save your look", back: true, description: "Click Save Style, or keep the default look.", next: true, finish: true, skipOnFinish: true, nextLabel: "Keep default look" },
 			];
 		case "playlist.name":
 			return [

@@ -35,3 +35,11 @@ T013: affected tests, all feature browser examples, lint, formatting, types and 
 - [x] Q004 Replace guide-driven page changes with normal links, tabs, edit controls and menu actions; replay creation at Add Overlay.
 - [x] Q005 Add account, concurrency, navigation, native ARIA and focus regression coverage.
 - [x] Q006 Complete current affected tests, all 39 browser examples, visual review, lint/format/types/build and evidence update.
+
+## Personalization and checkpoint refinement
+
+- [x] P001 Keep section label and progress with persisted account state.
+- [x] P002 Add filters before styling and Back for review from save steps.
+- [x] P003 Start styling in place and resume the checkpoint through normal Theme Studio navigation.
+- [x] P004 Highlight the full styling workspace and explain its groups without nested subtasks.
+- [x] P005 Verify affected suites, owning browser cases, presentation, lint/types/build and push the draft update.

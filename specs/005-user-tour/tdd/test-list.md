@@ -26,3 +26,8 @@
 - [x] TDD-023: Skip uses a portal popover, cancellation preserves state and confirmation remains distinct from domain completion.
 - [x] TDD-024: Account writes validate ownership and serialize concurrent events with row locking.
 - [x] TDD-025: Native menu ARIA, report-widget focus and expected dialogs survive spotlight cleanup.
+
+- [x] TDD-026: Starting in Theme Studio stays there; resuming Save from elsewhere teaches Customize then restores the same action.
+- [x] TDD-027: Save-step Back reviews settings without resetting or completing the task.
+- [x] TDD-028: Persist the current section and display its count after completion/reload.
+- [x] TDD-029: Optional filters precede styling and defaults remain a skip.

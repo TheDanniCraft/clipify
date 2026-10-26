@@ -742,7 +742,7 @@ export default function OverlayStylePage() {
 								</Button>
 							</div>
 						</Card.Header>
-						<Card.Content className='flex flex-col gap-4'>
+						<Card.Content data-tour={ownerHasAdvancedAccess ? "theme-controls" : undefined} className='flex flex-col gap-4'>
 							<div>
 								{!dragSupported && (
 									<Alert status='warning' className='mb-3'>
@@ -986,7 +986,7 @@ export default function OverlayStylePage() {
 										)}
 									</Card.Content>
 								</Card>
-								<div data-tour={ownerHasAdvancedAccess ? "theme-controls" : undefined}>
+								<div>
 									<ThemeColorInput label='Text Color' value={overlay.themeTextColor} defaultValue='#FFFFFF' onChange={(value) => setOverlay({ ...overlay, themeTextColor: value })} />
 								</div>
 								<ThemeColorInput label='Background Color' value={overlay.themeBackgroundColor} defaultValue='rgba(10,10,10,0.65)' allowAlpha onChange={(value) => setOverlay({ ...overlay, themeBackgroundColor: value })} />

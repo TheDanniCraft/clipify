@@ -233,3 +233,15 @@ Feature: Clipify guided onboarding
     Given an isolated authenticated Clipify guide account
     When the report button is clicked during its introduction
     Then the normal report form opens with the guide paused
+
+  @US2 @FR-004 @SC-002 @BDD-TOUR-US2-040
+  Scenario: Resume styling through its real entry point
+    Given an isolated authenticated Clipify guide account
+    When customization is started inside Theme Studio and left at its save step
+    Then resuming teaches the route back to Theme Studio and allows reviewing the look
+
+  @US2 @FR-004 @SC-001 @BDD-TOUR-US2-041
+  Scenario: Personalize filters before styling with section progress
+    Given an isolated authenticated Clipify guide account
+    When current filters and the default look are kept in the personalization section
+    Then the launcher retains personalization progress after reload

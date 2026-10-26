@@ -83,7 +83,7 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 	const rawLocation = guideLocation(pathname);
 	const location = rawLocation === "overlay" && pathname !== `/dashboard/overlay/${progress.overlayId}` ? "other" : rawLocation === "playlist" && pathname !== `/dashboard/playlist/${progress.playlistId}` ? "other" : rawLocation;
 	const [hydrated, setHydrated] = useState(false);
-	const [expanded, setExpanded] = useState<string | null>("overlay");
+	const [expanded, setExpanded] = useState<string | null>(initialProgress.active?.task.split(".")[0] ?? initialProgress.journeyId ?? "overlay");
 	const [message, setMessage] = useState("");
 	const [consentOpen, setConsentOpen] = useState(false);
 	const [consentBanner, setConsentBanner] = useState(false);
@@ -219,9 +219,12 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 	const onPause = useCallback(() => pause(), [pause]);
 	const onMissing = useCallback(() => pause("That control isn't available here. Close any open dialog and try the task again."), [pause]);
 	const onNext = useCallback(() => report({ type: "next" }), [report]);
+	const onPrevious = useCallback(() => report({ type: "previous" }), [report]);
 	const isFinished = (task: TaskId) => progress.completed.includes(task) || progress.skipped.includes(task);
-	const coreDone = journeys[0].tasks.filter((task) => isFinished(task.id)).length;
-	const percentage = active ? activeGuidePercent(progress) : (coreDone / journeys[0].tasks.length) * 100;
+	const currentJourney = journeys.find((journey) => journey.id === (active?.task.split(".")[0] ?? progress.journeyId)) ?? journeys[0];
+	const journeyDone = currentJourney.tasks.filter((task) => isFinished(task.id)).length;
+	const launcherTitle = currentJourney.id === "overlay" ? "Get started" : currentJourney.title;
+	const percentage = active ? activeGuidePercent(progress) : (journeyDone / currentJourney.tasks.length) * 100;
 	return (
 		<GuideContext.Provider value={{ report, activeTask, resourceIds: { overlayId: progress.overlayId, playlistId: progress.playlistId } }}>
 			{children}
@@ -294,21 +297,21 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 							</Accordion>
 						</section>
 					)}
-					<Button ref={launcher} aria-label={coreDone === 4 ? "Guides" : `Get started · ${coreDone}/4`} aria-expanded={!progress.minimized} aria-controls='clipify-guide-panel' variant='secondary' className='ml-auto h-12 gap-3 rounded-full border border-separator bg-surface pl-2 pr-4 text-foreground shadow-lg' onPress={() => report({ type: "panel", minimized: !progress.minimized })}>
+					<Button ref={launcher} data-tour='guide-launcher' aria-label={`${launcherTitle} · ${journeyDone}/${currentJourney.tasks.length}`} aria-expanded={!progress.minimized} aria-controls='clipify-guide-panel' variant='secondary' className='ml-auto h-12 gap-3 rounded-full border border-separator bg-surface pl-2 pr-4 text-foreground shadow-lg' onPress={() => report({ type: "panel", minimized: !progress.minimized })}>
 						<ProgressCircle aria-label={active ? "Current task progress" : "Getting started progress"} value={percentage} size='lg' className='relative size-9 shrink-0'>
 							<ProgressCircle.Track style={{ width: 36, height: 36 }}>
 								<ProgressCircle.TrackCircle style={{ stroke: "var(--color-muted)", opacity: 0.45 }} />
 								<ProgressCircle.FillCircle />
 							</ProgressCircle.Track>
-							<span className='absolute inset-0 grid place-items-center text-[10px] font-semibold'>{active ? `${percentage}%` : `${coreDone}/4`}</span>
+							<span className='absolute inset-0 grid place-items-center text-[10px] font-semibold'>{active ? `${percentage}%` : `${journeyDone}/${currentJourney.tasks.length}`}</span>
 						</ProgressCircle>
-						<span className='text-sm font-semibold'>{coreDone === 4 ? "Guides" : "Get started"}</span>
+						<span className='text-sm font-semibold'>{launcherTitle}</span>
 					</Button>
 				</aside>
 			)}
 			{hydrated && !consentOpen && !consentBanner && active && !active.paused && step && (
 				<Suspense fallback={null}>
-					<Spotlight key={`${active.task}:${active.index}:${active.navigation?.join(",")}:${step.target}`} step={step} onPause={onPause} onMissing={onMissing} onNext={onNext} />
+					<Spotlight key={`${active.task}:${active.index}:${active.navigation?.join(",")}:${step.target}`} step={step} onPause={onPause} onMissing={onMissing} onNext={onNext} onPrevious={step.back ? onPrevious : undefined} />
 				</Suspense>
 			)}
 		</GuideContext.Provider>

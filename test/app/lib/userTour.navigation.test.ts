@@ -55,3 +55,39 @@ it("resumes a creation action checkpoint without replaying Add Overlay", () => {
 	const replay = apply({ ...state, active: null, completed: ["overlay.name"] }, { type: "start", task: "overlay.name", location: "overlay" });
 	expect(replay.active).toMatchObject({ index: 0, navigation: ["home", "overlays"] });
 });
+it("starts customization inside the existing theme editor without a Dashboard detour", () => {
+	const state = apply({ ...defaultProgress(), overlayId: "overlay" }, { type: "start", task: "appearance.style", location: "theme" });
+	expect(state.active).toMatchObject({ index: 1, navigation: [] });
+	expect(currentGuideStep(state)?.target).toBe("theme-controls");
+});
+it("resumes the saved-look checkpoint through Theme Studio without losing its index", () => {
+	const state: GuideProgress = { ...defaultProgress(), overlayId: "overlay", active: { task: "appearance.style", index: 2, paused: true } };
+	let resumed = apply(state, { type: "resume", location: "dashboard" });
+	expect(resumed.active?.navigation).toEqual(["overlays", "overlay", "theme"]);
+	resumed = apply(resumed, { type: "next" });
+	resumed = apply(resumed, { type: "location", location: "overlay" });
+	expect(currentGuideStep(resumed)?.target).toBe("overlay-customize");
+	resumed = apply(resumed, { type: "location", location: "theme" });
+	expect(currentGuideStep(resumed)?.target).toBe("theme-save");
+	expect(apply(state, { type: "resume", location: "theme" }).active?.navigation).toEqual([]);
+});
+it("allows review from Save your look without resetting the task", () => {
+	const state: GuideProgress = { ...defaultProgress(), overlayId: "overlay", active: { task: "appearance.style", index: 2, paused: false } };
+	const reviewed = apply(state, { type: "previous" });
+	expect(currentGuideStep(reviewed)?.target).toBe("theme-controls");
+	expect(reviewed.completed).toEqual([]);
+	expect(currentGuideStep(apply(reviewed, { type: "previous" }))?.target).toBe("theme-controls");
+});
+it("keeps the last section after completion and reload instead of showing core progress", () => {
+	let state = apply({ ...defaultProgress(), overlayId: "overlay" }, { type: "start", task: "appearance.style", location: "theme" });
+	state = apply(state, { type: "theme.saved", ownerId: "owner", id: "overlay", changed: true });
+	expect(state.active).toBeNull();
+	expect(parseProgress(JSON.stringify(state)).journeyId).toBe("appearance");
+});
+it("offers filters before styling and advances after an acknowledged save", () => {
+	let state = apply({ ...defaultProgress(), overlayId: "overlay" }, { type: "start", task: "appearance.filters", location: "overlay" });
+	expect(currentGuideStep(state)?.target).toBe("overlay-filters");
+	state = apply(state, { type: "overlay.saved", ownerId: "owner", id: "overlay", named: true, source: true });
+	expect(state.completed).toContain("appearance.filters");
+	expect(currentGuideStep(state)?.target).toBe("overlay-customize");
+});

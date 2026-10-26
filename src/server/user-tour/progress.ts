@@ -34,7 +34,7 @@ async function transactProgress(userId: string, event?: GuideEvent, client: Data
 			if (progress.overlayId !== (overlay?.id ?? null)) progress.copiedOverlayId = null;
 			progress.overlayId = overlay?.id ?? null;
 			progress.playlistId = playlist?.id ?? null;
-			if (progress.active && ((!overlay && (progress.active.task.startsWith("overlay.") || progress.active.task === "appearance.style" || progress.active.task === "playlist.use")) || (!playlist && progress.active.task.startsWith("playlist.")))) {
+			if (progress.active && ((!overlay && (progress.active.task.startsWith("overlay.") || progress.active.task.startsWith("appearance.") || progress.active.task === "playlist.use")) || (!playlist && progress.active.task.startsWith("playlist.")))) {
 				progress.active = { ...progress.active, index: 0, navigation: [], navigationTotal: 0, paused: true };
 			}
 			if (inserted.length) {
