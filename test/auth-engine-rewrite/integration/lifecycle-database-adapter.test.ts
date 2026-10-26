@@ -193,7 +193,9 @@ describe("TDD-US5-004 account lifecycle database adapter", () => {
 		await expect(downloadDatabaseAccountDataExport({ authUserId: "other", creatorId: "creator-1", organizationId: "creator-org-1", now })).rejects.toThrow("EXPORT_IDENTITY_MISMATCH");
 		state.selects.push([]);
 		await expect(downloadDatabaseAccountDataExport({ authUserId: "auth-user-1", creatorId: "creator-1", organizationId: "creator-org-1", now })).rejects.toThrow("EXPORT_IDENTITY_MISMATCH");
-		state.selects.push([{ id: "membership-1" }]);
+		state.selects.push([{ role: "member" }]);
+		await expect(downloadDatabaseAccountDataExport({ authUserId: "auth-user-1", creatorId: "creator-1", organizationId: "creator-org-1", now })).rejects.toThrow("EXPORT_IDENTITY_MISMATCH");
+		state.selects.push([{ role: "owner" }]);
 		await expect(downloadDatabaseAccountDataExport({ authUserId: "auth-user-1", creatorId: "creator-1", organizationId: "creator-org-1", now })).resolves.toEqual({ exportFormat: "clipify-account-data-v2" });
 		expect(collectComprehensiveAccountData).toHaveBeenCalledWith(expect.objectContaining({ authUserId: "auth-user-1", creatorId: "creator-1", organizationId: "creator-org-1" }));
 	});

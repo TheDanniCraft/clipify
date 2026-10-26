@@ -3,12 +3,13 @@ import { EventEmitter } from "node:events";
 import { WebSocket, type WebSocketServer } from "ws";
 
 const revalidate = jest.fn();
+const revalidateController = jest.fn();
 const message = jest.fn();
 const remove = jest.fn();
 const disconnected = jest.fn();
 const rejected = jest.fn();
 jest.mock("@/server/resources/overlay-source-runtime", () => ({ revalidateOverlaySource: (...args: unknown[]) => revalidate(...args) }));
-jest.mock("@actions/websocket", () => ({ handleMessage: (...args: unknown[]) => message(...args) }));
+jest.mock("@actions/websocket", () => ({ handleMessage: (...args: unknown[]) => message(...args), revalidateController: (...args: unknown[]) => revalidateController(...args) }));
 jest.mock("@store/overlaySubscribers", () => ({ removeSubscriber: (...args: unknown[]) => remove(...args) }));
 jest.mock("@lib/operationalHealth", () => ({ recordWebSocketDisconnected: (...args: unknown[]) => disconnected(...args), recordWebSocketRejected: (...args: unknown[]) => rejected(...args) }));
 
@@ -40,6 +41,7 @@ describe("websocket upgrade lifecycle", () => {
 		jest.useFakeTimers();
 		jest.clearAllMocks();
 		revalidate.mockReset().mockResolvedValue(true);
+		revalidateController.mockReset().mockResolvedValue(true);
 		message.mockResolvedValue(undefined);
 	});
 	afterEach(() => {
@@ -100,6 +102,7 @@ describe("websocket upgrade lifecycle", () => {
 		await jest.advanceTimersByTimeAsync(30000);
 		expect(revalidate).toHaveBeenCalledTimes(1);
 		expect(revalidate.mock.calls[0][0]).toBe(clients[0]);
+		expect(revalidateController).toHaveBeenCalledWith(clients[1]);
 	});
 	test("bounds authority checks to four and avoids overlapping heartbeat checks", async () => {
 		const pending: Array<() => void> = [];
@@ -142,6 +145,38 @@ describe("websocket upgrade lifecycle", () => {
 		socket.emit("message", bytes);
 		await Promise.resolve();
 		expect(message).toHaveBeenCalledWith(bytes, socket);
+	});
+	test("processes commands in arrival order while the first authorization is delayed", async () => {
+		let releaseFirst!: () => void;
+		const first = new Promise<void>((resolve) => {
+			releaseFirst = resolve;
+		});
+		const delivered: string[] = [];
+		message.mockImplementationOnce(async (bytes: Buffer) => {
+			await first;
+			delivered.push(JSON.parse(bytes.toString()).data.name);
+		});
+		message.mockImplementationOnce(async (bytes: Buffer) => {
+			delivered.push(JSON.parse(bytes.toString()).data.name);
+		});
+		const {
+			clients: [socket],
+		} = await setup();
+		socket.emit("message", Buffer.from('{"type":"command","data":{"name":"pause"}}'));
+		socket.emit("message", Buffer.from('{"type":"command","data":{"name":"play"}}'));
+		await Promise.resolve();
+		expect(message).toHaveBeenCalledTimes(1);
+		releaseFirst();
+		await jest.advanceTimersByTimeAsync(0);
+		expect(delivered).toEqual(["pause", "play"]);
+	});
+	test("closes a connection whose pending message queue exceeds its bound", async () => {
+		message.mockImplementation(() => new Promise(() => {}));
+		const {
+			clients: [socket],
+		} = await setup();
+		for (let index = 0; index < 33; index++) socket.emit("message", Buffer.from('{"type":"command"}'));
+		expect(socket.close).toHaveBeenCalledWith(1013);
 	});
 	test.each(["close", "error"])("cleans a bound subscription on %s and cancels its deadline", async (event) => {
 		const {

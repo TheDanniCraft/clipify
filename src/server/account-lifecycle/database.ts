@@ -246,11 +246,11 @@ export async function downloadDatabaseAccountDataExport(input: { authUserId: str
 	if (!actor) throw new Error("AUTHENTICATION_REQUIRED");
 	if (actor.authUserId !== input.authUserId || actor.creatorId !== input.creatorId) throw new Error("EXPORT_IDENTITY_MISMATCH");
 	const membership = await db
-		.select({ id: authMemberTable.id })
+		.select({ role: authMemberTable.role })
 		.from(authMemberTable)
 		.where(and(eq(authMemberTable.organizationId, input.organizationId), eq(authMemberTable.userId, actor.authUserId)))
 		.limit(1);
-	if (!membership[0]) throw new Error("EXPORT_IDENTITY_MISMATCH");
+	if (membership[0]?.role !== "owner") throw new Error("EXPORT_IDENTITY_MISMATCH");
 	const { collectComprehensiveAccountData } = await import("./account-data-export");
 	return collectComprehensiveAccountData(input);
 }

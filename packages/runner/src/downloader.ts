@@ -2,9 +2,47 @@ import os from "os";
 import path from "path";
 import fs from "fs";
 import { install, resolveBuildId, computeExecutablePath, Browser } from "@puppeteer/browsers";
-import { execSync } from "child_process";
+import { execFileSync, execSync } from "child_process";
+import { createHash } from "node:crypto";
+import { createGunzip } from "node:zlib";
+import { pipeline } from "node:stream/promises";
 
 const CACHE_DIR = path.join(os.homedir(), ".clipify-runner", "bin");
+
+const MAC_FFMPEG_RELEASE = {
+	x64: { file: "ffmpeg-darwin-x64.gz", sha256: "929b375c1182d956c51f7ac25e0b2b0411fb01f6f407aa15c9758efeb4242106", binarySha256: "ebdddc936f61e14049a2d4b549a412b8a40deeff6540e58a9f2a2da9e6b18894" },
+	arm64: { file: "ffmpeg-darwin-arm64.gz", sha256: "8923876afa8db5585022d7860ec7e589af192f441c56793971276d450ed3bbfa", binarySha256: "a90e3db6a3fd35f6074b013f948b1aa45b31c6375489d39e572bea3f18336584" },
+} as const;
+
+export function getMacFfmpegRelease(arch: string) {
+	if (arch !== "x64" && arch !== "arm64") throw new Error(`Unsupported macOS architecture: ${arch}`);
+	const release = MAC_FFMPEG_RELEASE[arch];
+	return { ...release, url: `https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/${release.file}` };
+}
+
+async function isVerifiedFfmpegCache(binaryPath: string, marker: string, macMarker: string | null, macBinarySha: string | undefined) {
+	if (!fs.existsSync(binaryPath)) return false;
+	if (macMarker) return marker === macMarker && (await sha256File(binaryPath)) === macBinarySha;
+	const match = marker.match(/^verified:([a-f0-9]{64}):([a-f0-9]{64})$/);
+	return !!match && (await sha256File(binaryPath)) === match[2];
+}
+
+async function sha256File(filePath: string) {
+	const hash = createHash("sha256");
+	for await (const chunk of fs.createReadStream(filePath)) hash.update(chunk);
+	return hash.digest("hex");
+}
+
+export async function verifyArchiveChecksum(filePath: string, expectedSha: string) {
+	if (!/^[a-f0-9]{64}$/.test(expectedSha) || (await sha256File(filePath)) !== expectedSha) throw new Error("FFmpeg archive checksum mismatch");
+}
+
+export async function extractVerifiedMacFfmpeg(archivePath: string, outputPath: string, archiveSha: string, binarySha: string) {
+	await verifyArchiveChecksum(archivePath, archiveSha);
+	await pipeline(fs.createReadStream(archivePath), createGunzip(), fs.createWriteStream(outputPath));
+	await verifyArchiveChecksum(outputPath, binarySha);
+	fs.chmodSync(outputPath, 0o755);
+}
 
 async function ensureChromeDependencies(): Promise<string> {
 	if (!fs.existsSync(CACHE_DIR)) {
@@ -241,78 +279,88 @@ async function ensureChromeDependencies(): Promise<string> {
 	return executablePath;
 }
 
-async function ensureFfmpegDependencies(): Promise<string> {
+export async function ensureFfmpegDependencies(): Promise<string> {
 	console.log(`[Downloader] Checking FFmpeg...`);
-
+	const macRelease = process.platform === "darwin" ? getMacFfmpegRelease(process.arch) : null;
 	const ext = process.platform === "win32" ? ".exe" : "";
 	const ffmpegDest = path.join(CACHE_DIR, `ffmpeg${ext}`);
 	const checksumFile = path.join(CACHE_DIR, "ffmpeg.sha256");
+	const macMarker = macRelease ? `verified:macos-${process.arch}:${macRelease.sha256}` : null;
+	let localSha = fs.existsSync(checksumFile) ? fs.readFileSync(checksumFile, "utf8").trim() : "";
+	let verifiedCached = await isVerifiedFfmpegCache(ffmpegDest, localSha, macMarker, macRelease?.binarySha256);
 
 	try {
-		let targetFile = "ffmpeg-master-latest-linux64-gpl.tar.xz";
+		let targetFile = macRelease?.file ?? "ffmpeg-master-latest-linux64-gpl.tar.xz";
 		if (process.platform === "win32") targetFile = "ffmpeg-master-latest-win64-gpl.zip";
-		if (process.platform === "darwin") targetFile = "ffmpeg-master-latest-osx64-gpl.zip"; // BtbN added osx recently or we can use another. Wait, does BtbN have osx?
-		// Actually BtbN does NOT have macOS. We will use evermeet.cx or github.com/eugeneware/ffmpeg-static for macOS.
 
-		let downloadUrl = "";
-		let remoteSha = "";
-		const isMacOS = process.platform === "darwin";
-
-		if (isMacOS) {
-			// Using evermeet.cx static build
-			downloadUrl = "https://evermeet.cx/ffmpeg/ffmpeg-6.0.zip";
-			// evermeet.cx provides hashes at /ffmpeg/info/ffmpeg/6.0
-			remoteSha = "macos-static-6.0"; // hardcoded for evermeet
-		} else {
-			const checksumsUrl = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/checksums.sha256";
-			const res = await fetch(checksumsUrl);
+		let remoteSha = macRelease?.sha256 ?? "unknown";
+		let downloadUrl = macRelease?.url ?? "";
+		if (!macRelease) {
+			const res = await fetch("https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/checksums.sha256");
+			if (!res.ok) throw new Error("FFmpeg checksum request failed");
 			const checksumsList = await res.text();
-			const line = checksumsList.split("\n").find((l) => l.includes(targetFile));
-			remoteSha = line ? line.split(/\s+/)[0] : "unknown";
+			const line = checksumsList
+				.split(/\r?\n/)
+				.map((entry) => entry.trim().match(/^([a-f0-9]{64})\s+\*?(.+)$/i))
+				.find((entry) => entry?.[2] === targetFile);
+			remoteSha = line?.[1]?.toLowerCase() ?? "unknown";
 			downloadUrl = `https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/${targetFile}`;
 		}
-
-		let localSha = "";
-		if (fs.existsSync(checksumFile)) {
-			localSha = fs.readFileSync(checksumFile, "utf8").trim();
-		}
+		const expectedMarker = macMarker ?? `verified:${remoteSha}:`;
 
 		if (!remoteSha || remoteSha === "unknown") {
 			console.warn(`[Downloader] Warning: Could not find remote SHA for ${targetFile}. Skipping auto-update check.`);
-			if (!fs.existsSync(ffmpegDest)) {
+			if (!verifiedCached) {
 				throw new Error("Missing binary and no checksums available");
 			} else {
 				console.log(`[Downloader] FFmpeg is ready.`);
 			}
-		} else if (localSha === remoteSha && fs.existsSync(ffmpegDest)) {
+		} else if (verifiedCached && (macMarker ? localSha === expectedMarker : localSha.startsWith(expectedMarker))) {
 			console.log(`[Downloader] FFmpeg is ready and up to date.`);
 		} else {
 			console.log(`[Downloader] FFmpeg update found (or missing). Downloading...`);
-			if (process.platform === "win32") {
-				const tempZip = path.join(os.tmpdir(), "ffmpeg.zip");
-				execSync(`curl.exe -L -o "${tempZip}" "${downloadUrl}"`, { stdio: "inherit" });
-				execSync(`powershell -Command "Expand-Archive -Path '${tempZip}' -DestinationPath '${CACHE_DIR}' -Force"`, { stdio: "inherit" });
-				fs.copyFileSync(path.join(CACHE_DIR, "ffmpeg-master-latest-win64-gpl", "bin", "ffmpeg.exe"), ffmpegDest);
-			} else if (process.platform === "darwin") {
-				const tempZip = path.join(os.tmpdir(), "ffmpeg.zip");
-				execSync(`curl -sL -o "${tempZip}" "${downloadUrl}"`, { stdio: "inherit" });
-				execSync(`unzip -o "${tempZip}" -d "${CACHE_DIR}"`, { stdio: "inherit" });
-				// evermeet zip directly contains the 'ffmpeg' binary at the root
-			} else {
-				const tempTar = path.join(os.tmpdir(), "ffmpeg.tar.xz");
-				execSync(`curl -sL -o "${tempTar}" "${downloadUrl}"`, { stdio: "inherit" });
-				execSync(`tar -xf "${tempTar}" --strip-components=2 -C "${CACHE_DIR}" ffmpeg-master-latest-linux64-gpl/bin/ffmpeg`, { stdio: "inherit" });
+			const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "clipify-ffmpeg-"));
+			const archivePath = path.join(tempDir, macRelease ? macRelease.file : process.platform === "win32" ? "ffmpeg.zip" : "ffmpeg.tar.xz");
+			try {
+				execFileSync(process.platform === "win32" ? "curl.exe" : "curl", ["-fsSL", "-o", archivePath, downloadUrl]);
+				let extracted: string;
+				if (macRelease) {
+					extracted = path.join(tempDir, "ffmpeg");
+					await extractVerifiedMacFfmpeg(archivePath, extracted, remoteSha, macRelease.binarySha256);
+				} else if (process.platform === "win32") {
+					await verifyArchiveChecksum(archivePath, remoteSha);
+					execFileSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", `Expand-Archive -LiteralPath '${archivePath.replace(/'/g, "''")}' -DestinationPath '${tempDir.replace(/'/g, "''")}' -Force`]);
+					extracted = path.join(tempDir, "ffmpeg-master-latest-win64-gpl", "bin", "ffmpeg.exe");
+				} else {
+					await verifyArchiveChecksum(archivePath, remoteSha);
+					execFileSync("tar", ["-xf", archivePath, "--strip-components=2", "-C", tempDir, "ffmpeg-master-latest-linux64-gpl/bin/ffmpeg"]);
+					extracted = path.join(tempDir, "ffmpeg");
+				}
+				fs.mkdirSync(CACHE_DIR, { recursive: true });
+				const staged = path.join(CACHE_DIR, `ffmpeg-${process.pid}-${Date.now()}.tmp`);
+				try {
+					fs.copyFileSync(extracted, staged);
+					fs.chmodSync(staged, 0o755);
+					const binarySha = await sha256File(staged);
+					if (macRelease && binarySha !== macRelease.binarySha256) throw new Error("FFmpeg binary checksum mismatch");
+					fs.renameSync(staged, ffmpegDest);
+					localSha = macMarker ?? `verified:${remoteSha}:${binarySha}`;
+				} finally {
+					fs.rmSync(staged, { force: true });
+				}
+			} finally {
+				fs.rmSync(tempDir, { recursive: true, force: true });
 			}
-			fs.writeFileSync(checksumFile, remoteSha, "utf8");
+			fs.writeFileSync(checksumFile, localSha, "utf8");
+			verifiedCached = true;
 			console.log(`[Downloader] FFmpeg downloaded and updated to ${ffmpegDest}`);
 		}
 	} catch (err) {
 		console.warn(`[Downloader] Warning: FFmpeg auto-updater failed:`, err);
-		if (!fs.existsSync(ffmpegDest)) {
-			console.error(`[Downloader] FFmpeg does not exist locally and download failed!`);
-		} else {
+		const fallbackMarker = fs.existsSync(checksumFile) ? fs.readFileSync(checksumFile, "utf8").trim() : "";
+		if (await isVerifiedFfmpegCache(ffmpegDest, fallbackMarker, macMarker, macRelease?.binarySha256)) {
 			console.log(`[Downloader] Continuing with existing FFmpeg binary.`);
-		}
+		} else throw err;
 	}
 
 	try {

@@ -255,20 +255,16 @@ export async function generateCheckout(productKeys: BillingProduct[] | Array<{ p
 	const stripe = getServerStripe();
 	const baseUrl = await getBaseUrl();
 	const defaultReturnUrl = new URL("/dashboard/settings", baseUrl).toString();
-	const cancelUrl =
-		checkoutOptions?.cancelUrl ??
-		(() => {
-			if (!returnUrl) return defaultReturnUrl;
-			try {
-				const resolved = new URL(returnUrl, baseUrl);
-				/* istanbul ignore next */
-				if (resolved.origin !== baseUrl.origin) return defaultReturnUrl;
-				return resolved.toString();
-			} catch {
-				/* istanbul ignore next */
-				return defaultReturnUrl;
-			}
-		})();
+	const safeReturnUrl = (value?: string) => {
+		if (!value) return defaultReturnUrl;
+		try {
+			const resolved = new URL(value, baseUrl);
+			return resolved.origin === baseUrl.origin ? resolved.toString() : defaultReturnUrl;
+		} catch {
+			return defaultReturnUrl;
+		}
+	};
+	const cancelUrl = safeReturnUrl(checkoutOptions?.cancelUrl ?? returnUrl);
 	let stripeCustomerId = authUser.stripeCustomerId ?? null;
 
 	if (!stripeCustomerId) {
@@ -311,7 +307,7 @@ export async function generateCheckout(productKeys: BillingProduct[] | Array<{ p
 		client_reference_id: authUser.id,
 		mode: "subscription",
 		subscription_data: { metadata: { userId: authUser.id, products: productsToBuy.join(",") } },
-		success_url: checkoutOptions?.successUrl ?? defaultReturnUrl,
+		success_url: safeReturnUrl(checkoutOptions?.successUrl),
 		cancel_url: cancelUrl,
 		customer: stripeCustomerId,
 		metadata: {

@@ -10,20 +10,20 @@
 		"test:coverage": "node run-coverage.mjs"
 	},
 	"dependencies": {
-		"@napi-rs/keyring": "^2.1.0",
-		"@puppeteer/browsers": "^3.2.3",
-		"puppeteer-core": "^25.12.0",
-		"puppeteer-stream": "^3.0.23",
-		"@internationalized/date": "3.12.4"
+		"@napi-rs/keyring": "^2.1.1",
+		"@puppeteer/browsers": "^3.2.5",
+		"@internationalized/date": "3.12.4",
+		"puppeteer-core": "^25.14.0",
+		"puppeteer-stream": "^3.0.23"
 	},
 	"devDependencies": {
 		"@yao-pkg/pkg": "6.23.0",
 		"esbuild": "^0.28.2",
 		"resedit": "^3.1.0",
-		"@swc/core": "^1.16.13",
+		"@swc/core": "^1.16.18",
 		"@swc/jest": "^0.2.39",
 		"@types/jest": "^30.0.0",
-		"@types/node": "^26.6.3",
+		"@types/node": "^26.6.5",
 		"jest": "^30.5.2",
 		"typescript": "^6.0.3"
 	},

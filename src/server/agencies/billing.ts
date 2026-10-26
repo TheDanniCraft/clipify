@@ -33,9 +33,13 @@ async function requireBillingContext(permission: "billing:read" | "billing:manag
 }
 
 async function ensureStripeCustomer(stripe: Stripe, billing: typeof agencyBillingAccountsTable.$inferSelect) {
-	if (billing.stripeCustomerId) return billing.stripeCustomerId;
+	if (billing.stripeCustomerId) {
+		const customer = await stripe.customers.retrieve(billing.stripeCustomerId);
+		if (customer.deleted || customer.metadata.clipifyAgencyOrganizationId !== billing.organizationId) throw new Error("AGENCY_STRIPE_CUSTOMER_MISMATCH");
+		return customer.id;
+	}
 	const listed = await stripe.customers.list({ email: billing.billingEmail, limit: 10 });
-	const existing = listed.data.find((customer) => !customer.deleted && customer.metadata.clipifyAgencyOrganizationId === billing.organizationId) ?? listed.data.find((customer) => !customer.deleted);
+	const existing = listed.data.find((customer) => !customer.deleted && customer.metadata.clipifyAgencyOrganizationId === billing.organizationId);
 	const customer = existing ? await stripe.customers.update(existing.id, { metadata: { ...existing.metadata, clipifyAccountType: "agency", clipifyAgencyOrganizationId: billing.organizationId } }) : await stripe.customers.create({ email: billing.billingEmail, metadata: { clipifyAccountType: "agency", clipifyAgencyOrganizationId: billing.organizationId } }, { idempotencyKey: `clipify-agency-customer:${billing.organizationId}` });
 	await db
 		.update(agencyBillingAccountsTable)

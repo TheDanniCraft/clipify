@@ -4,6 +4,7 @@ import { spawn } from "child_process";
 import { launch, getStream } from "puppeteer-stream";
 import * as fs from "fs";
 import { PassThrough } from "node:stream";
+import { createServer } from "net";
 import { EventEmitter } from "node:events";
 
 jest.mock("child_process");
@@ -13,7 +14,7 @@ jest.mock("net", () => ({
 	createServer: jest.fn().mockReturnValue({
 		once: jest.fn(),
 		off: jest.fn(),
-		listen: jest.fn((port, cb) => cb && cb()),
+		listen: jest.fn((port, host, cb) => cb && cb()),
 		close: jest.fn((cb) => cb && cb()),
 	}),
 }));
@@ -34,6 +35,7 @@ describe("Engine (Raw Logic Tests)", () => {
 
 	beforeEach(() => {
 		jest.clearAllMocks();
+		jest.spyOn(console, "log").mockImplementation(() => {});
 
 		mockSpawn = spawn as jest.Mock;
 		mockSpawn.mockReturnValue({
@@ -71,6 +73,7 @@ describe("Engine (Raw Logic Tests)", () => {
 
 	afterEach(() => {
 		jest.clearAllTimers();
+		jest.restoreAllMocks();
 	});
 
 	it("TDD-US4-DEC012 U290: a blocked playing layout refuses output normally and destroys capture", async () => {
@@ -504,6 +507,8 @@ describe("Engine (Raw Logic Tests)", () => {
 
 		// 3. Spawns Cloud Loop FFmpeg immediately
 		expect(mockSpawn).toHaveBeenCalledWith("/mock/ffmpeg", expect.arrayContaining(["-i", "-", "-c:v", "libx264"]), expect.any(Object));
+		expect(JSON.stringify((console.log as jest.Mock).mock.calls)).not.toContain("streamKey");
+		expect(JSON.stringify((console.log as jest.Mock).mock.calls)).not.toContain("secret");
 	});
 
 	it("preserves the FFmpeg cause before the final generic line and redacts chunked credentials", () => {
@@ -595,12 +600,42 @@ describe("Engine (Raw Logic Tests)", () => {
 		}
 	});
 
+	it("does not echo FFmpeg stderr credentials on abnormal exit", async () => {
+		const stderr = new EventEmitter();
+		const child = new EventEmitter() as EventEmitter & { stderr: EventEmitter };
+		child.stderr = stderr;
+		const error = jest.spyOn(console, "error").mockImplementation(() => {});
+		const engine = new Engine("overlay-123", "rtmp://fake", "overlay-secret", "stream-key", 60, "1080p", "24_7", "http://api");
+		(engine as unknown as { monitorFFmpeg: (child: unknown, name: string) => void }).monitorFFmpeg(child, "FFmpeg");
+		stderr.emit("data", Buffer.from("Failed with secret=overlay-secret stream-key\n"));
+		child.emit("close", 1);
+		expect(JSON.stringify(error.mock.calls)).not.toContain("overlay-secret");
+		expect(JSON.stringify(error.mock.calls)).not.toContain("stream-key");
+	});
+
+	it("does not expose the secret when overlay navigation fails", async () => {
+		mockLaunch.mockResolvedValueOnce({ newPage: jest.fn().mockResolvedValue({ goto: jest.fn().mockRejectedValue(new Error("Navigation to http://api/overlay/overlay-123?secret=overlay-secret failed")) }), close: jest.fn() });
+		const engine = new Engine("overlay-123", "rtmp://fake", "overlay-secret", "stream-key", 60, "1080p", "24_7", "http://api");
+		await expect(engine.start()).rejects.toThrow("Failed to load overlay page");
+		expect(JSON.stringify((console.log as jest.Mock).mock.calls)).not.toContain("overlay-secret");
+	});
+
+	it("does not spawn a stream when dependency installation fails", async () => {
+		(downloader.ensureDependencies as jest.Mock).mockRejectedValueOnce(new Error("FFmpeg download failed"));
+		const engine = new Engine("overlay-123", "rtmp://fake", "secret", "streamKey", 60, "1080p", "24_7", "http://api");
+
+		await expect(engine.start()).rejects.toThrow("FFmpeg download failed");
+		expect(mockLaunch).not.toHaveBeenCalled();
+		expect(mockSpawn).not.toHaveBeenCalled();
+	});
+
 	it("Failsafe mode should start Puppeteer but NOT FFmpeg immediately", async () => {
 		const engine = new Engine("overlay-failsafe", "rtmp://fake", "secret", "streamKey", 60, "1080p", "failsafe", "http://api");
 		await engine.start();
 
 		// 1. Starts Puppeteer background
 		expect(mockLaunch).toHaveBeenCalled();
+		expect((createServer as jest.Mock).mock.results[0].value.listen).toHaveBeenCalledWith(1935, "127.0.0.1", expect.any(Function));
 
 		// 2. Should NOT spawn FFmpeg yet (waiting for OBS)
 		expect(mockSpawn).not.toHaveBeenCalled();

@@ -1,6 +1,6 @@
 "use server";
 
-import { addToModQueue, clearClipQueueByOverlayIdServer, clearModQueueByBroadcasterId, getClipQueueByOverlayId, getModQueue, getOverlayOwnerPlanPublic, getOverlayWithEditAccess, getTwitchCache, setPlayerVolumeForOwner } from "@actions/database";
+import { addToModQueue, clearClipQueueByOverlayIdServer, clearModQueueByBroadcasterId, getClipQueueByOverlayId, getModQueue, getOverlayOwnerPlanPublic, getOverlayWithControlAccess, getTwitchCache, setPlayerVolumeForOwner } from "@actions/database";
 import { getTwitchClip, handleClip } from "@actions/twitch";
 import { sendMessage } from "@actions/websocket";
 import { Plan, TwitchCacheType, type TwitchClip } from "@types";
@@ -23,7 +23,7 @@ export type ControllerQueueResponse = {
 export type ControllerActionResult = { ok: true; volume?: number; clip?: Omit<QueueItem, "id"> } | { ok: false; error: string; status: number };
 
 async function requireProOverlay(overlayId: string) {
-	const overlay = await getOverlayWithEditAccess(overlayId);
+	const overlay = await getOverlayWithControlAccess(overlayId);
 	if (!overlay) return { error: { ok: false as const, error: "Unauthorized", status: 403 } };
 
 	const ownerPlan = await getOverlayOwnerPlanPublic(overlayId);

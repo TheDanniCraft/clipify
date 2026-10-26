@@ -196,7 +196,7 @@ export async function startTCPProxy() {
 			reject(error);
 		};
 		server.once("error", handleListenError);
-		server.listen(RTMP_PROXY_PORT, () => {
+		server.listen(RTMP_PROXY_PORT, "127.0.0.1", () => {
 			server.off("error", handleListenError);
 			console.log(`[TCP Proxy] Listening on port ${RTMP_PROXY_PORT}`);
 			resolve(true);
@@ -441,7 +441,11 @@ export class Engine {
 			overlayUrl = presentation.url;
 		}
 		console.log(`[Engine] Navigating to the configured overlay`);
-		await this.page!.goto(overlayUrl, { waitUntil: "networkidle2" });
+		try {
+			await this.page!.goto(overlayUrl, { waitUntil: "networkidle2" });
+		} catch {
+			throw new Error("Failed to load overlay page");
+		}
 		if (this.executionOptions.presentationSessionId) {
 			try {
 				await this.page!.waitForFunction(
@@ -494,7 +498,6 @@ export class Engine {
 
 		child.stderr.on("data", (data: Buffer) => {
 			const text = this.safeDiagnostic(data.toString());
-
 			diagnosticTail = (diagnosticTail + data.toString()).slice(-8192);
 
 			if (aggregateStatus && text.includes("bitrate=")) {
@@ -700,7 +703,6 @@ export class Engine {
 	private startObsForwarder() {
 		if (!this.mayOpenOutput()) return;
 		const fullRtmpUrl = this.streamKey ? `${this.rtmpUrl}/${this.streamKey}` : this.rtmpUrl;
-
 		console.log(`[Engine] Spawning FFmpeg to forward local OBS (port 1936) to the configured destination...`);
 
 		const previewPath = path.join(os.tmpdir(), `clipify-preview-${this.overlayId}.jpg`);

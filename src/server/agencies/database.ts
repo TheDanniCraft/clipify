@@ -113,8 +113,8 @@ export async function provisionDatabaseAgency(input: {
 	};
 	now?: Date;
 }) {
-	const { validateAuth } = await import("@actions/auth");
-	const administrator = await validateAuth(true);
+	const { validateAdminAuth } = await import("@actions/auth");
+	const administrator = await validateAdminAuth(true);
 	if (!administrator) throw new Error("ADMIN_REQUIRED");
 	const identity = await db.select({ authUserId: creatorIdentityLinksTable.authUserId }).from(creatorIdentityLinksTable).where(eq(creatorIdentityLinksTable.creatorId, administrator.id)).limit(1);
 	if (!identity[0]) throw new Error("ADMIN_IDENTITY_REQUIRED");
@@ -418,8 +418,8 @@ export async function listDatabaseCreatorAgencyLinks() {
 }
 
 export async function listDatabaseAdminAgencies() {
-	const { validateAuth } = await import("@actions/auth");
-	if (!(await validateAuth(true))) throw new Error("ADMIN_REQUIRED");
+	const { validateAdminAuth } = await import("@actions/auth");
+	if (!(await validateAdminAuth(true))) throw new Error("ADMIN_REQUIRED");
 	return db.select({ account: agencyAccountsTable, name: authOrganizationTable.name, slug: authOrganizationTable.slug }).from(agencyAccountsTable).innerJoin(authOrganizationTable, eq(agencyAccountsTable.organizationId, authOrganizationTable.id));
 }
 

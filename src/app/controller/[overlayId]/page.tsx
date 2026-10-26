@@ -1,7 +1,8 @@
 import Link from "next/link";
 import jwt from "jsonwebtoken";
-import { getOverlayOwnerPlanPublic, getOverlayWithEditAccess } from "@actions/database";
+import { getOverlayOwnerPlanPublic, getOverlayWithControlAccess } from "@actions/database";
 import { validateAuth } from "@actions/auth";
+import { getVerifiedSessionPrincipal } from "@/auth/session-principal";
 import { Plan } from "@types";
 import ControllerClient from "./controllerClient";
 import { redirect } from "next/navigation";
@@ -37,7 +38,7 @@ export default async function ControllerPage({ params }: { params: Promise<{ ove
 		redirect(`/login?returnUrl=${encodeURIComponent(`/controller/${overlayId}`)}`);
 	}
 
-	const overlay = await getOverlayWithEditAccess(overlayId);
+	const overlay = await getOverlayWithControlAccess(overlayId);
 	if (!overlay) {
 		return <AccessSurface eyebrow='Controller Access' title='Access denied' description='Only the streamer or editors with access to this overlay can use the remote controller.' />;
 	}
@@ -47,7 +48,9 @@ export default async function ControllerPage({ params }: { params: Promise<{ ove
 		return <AccessSurface eyebrow='Pro Feature' title='This feature is Pro only' description='The remote control panel is available on Clipify Pro. Upgrade the overlay owner account to unlock live playback controls.' ctaLabel='Upgrade now' ctaHref='/dashboard/settings' />;
 	}
 
-	const controllerToken = jwt.sign({ overlayId, userId: user.id }, process.env.JWT_SECRET!, { algorithm: "HS256", issuer: "clipify-controller", expiresIn: "12h" });
+	const principal = await getVerifiedSessionPrincipal();
+	if (!principal?.sessionId) redirect(`/login?returnUrl=${encodeURIComponent(`/controller/${overlayId}`)}`);
+	const controllerToken = jwt.sign({ overlayId, authUserId: principal.authUserId, sessionId: principal.sessionId }, process.env.JWT_SECRET!, { algorithm: "HS256", issuer: "clipify-controller", expiresIn: "12h" });
 
 	return <ControllerClient overlayId={overlayId} controllerToken={controllerToken} />;
 }

@@ -4,7 +4,7 @@ const token = jest.fn(),
 	request = jest.fn();
 jest.mock("@/server/tokens", () => ({ getAccessTokenInternal: (...args: unknown[]) => token(...args) }));
 const cachedClips = jest.fn();
-jest.mock("@/app/actions/twitch", () => ({ getCachedClipsByOwner: (...args: unknown[]) => cachedClips(...args) }));
+jest.mock("@/server/clip-cache-read", () => ({ readCachedClipsByOwner: (...args: unknown[]) => cachedClips(...args) }));
 let clipValidation: any;
 try {
 	clipValidation = require("@/server/resources/clip-validation");

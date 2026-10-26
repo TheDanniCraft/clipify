@@ -29,7 +29,6 @@ jest.mock("@actions/twitch", () => ({
 }));
 
 jest.mock("@actions/database", () => ({
-	addToModQueue: (...args: unknown[]) => addToModQueue(...args),
 	clearClipQueueByOverlayIdServer: (...args: unknown[]) => clearClipQueueByOverlayIdServer(...args),
 	clearModQueueByBroadcasterId: (...args: unknown[]) => clearModQueueByBroadcasterId(...args),
 	getClipQueueByOverlayId: (...args: unknown[]) => getClipQueueByOverlayId(...args),
@@ -38,6 +37,8 @@ jest.mock("@actions/database", () => ({
 	getSettingsServer: (...args: unknown[]) => getSettings(...args),
 	getUserByIdServer: (...args: unknown[]) => getUserByIdServer(...args),
 }));
+
+jest.mock("@/server/clip-queue", () => ({ addVerifiedChatClipToModQueue: (...args: unknown[]) => addToModQueue(...args) }));
 
 jest.mock("@/server/resources/overlays", () => ({ updateTrustedChatOverlayVolume: (...args: unknown[]) => updateTrustedChatOverlayVolume(...args) }));
 

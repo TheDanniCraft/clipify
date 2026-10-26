@@ -61,7 +61,8 @@ dbTransaction.mockImplementation(async (callback: (tx: DbMock) => unknown) => ca
 
 jest.mock("@actions/auth", () => ({ validateAuth: (...args: unknown[]) => validateAuth(...args) }));
 jest.mock("@actions/database", () => ({ getPlaylistRuntimeClipsForOwnerServer: (...args: unknown[]) => getPlaylistRuntimeClipsForOwnerServer(...args) }));
-jest.mock("@actions/twitch", () => ({ getCachedClipsByOwner: (...args: unknown[]) => getCachedClipsByOwner(...args), getCachedClipByOwner: (...args: unknown[]) => getCachedClipByOwner(...args), getTwitchClipPlaybackUrl: (...args: unknown[]) => getTwitchClipPlaybackUrl(...args) }));
+jest.mock("@actions/twitch", () => ({ getCachedClipByOwner: (...args: unknown[]) => getCachedClipByOwner(...args), getTwitchClipPlaybackUrl: (...args: unknown[]) => getTwitchClipPlaybackUrl(...args) }));
+jest.mock("@/server/clip-cache-read", () => ({ readCachedClipsByOwner: (...args: unknown[]) => getCachedClipsByOwner(...args) }));
 jest.mock("@/db/client", () => ({ db }));
 jest.mock("@lib/entitlements", () => ({ resolveUserEntitlements: (...args: unknown[]) => resolveUserEntitlements(...args) }));
 jest.mock("@lib/featureAccess", () => ({ getFeatureAccess: (...args: unknown[]) => getFeatureAccess(...args) }));
@@ -405,17 +406,14 @@ describe("gallery actions", () => {
 		await expect(getPublicGalleryPlayer("gallery-1", "a")).resolves.toBeNull();
 	});
 
-	it("authorizes uncached public playback against the gallery owner's budget", async () => {
+	it("resolves published gallery playback through the shared budgeted resolver", async () => {
 		const { getPublicGalleryPlayer } = await loadActions();
 		const owner = { id: "owner", username: "Alice", avatar: null, disabled: false, plan: "pro" };
 		queueSelect([{ gallery: gallery(), owner }]);
 		resolveUserEntitlements.mockResolvedValueOnce({ effectivePlan: "pro" });
-		getTwitchClipPlaybackUrl.mockImplementationOnce(async (_clipId: string, _broadcasterId: string, options: { authorizeFetch: () => Promise<boolean> }) => {
-			await options.authorizeFetch();
-			return "https://video.example/clip.mp4";
-		});
+		getTwitchClipPlaybackUrl.mockResolvedValueOnce("https://video.example/clip.mp4");
 
 		await expect(getPublicGalleryPlayer("gallery-1", "a")).resolves.toMatchObject({ playbackUrl: "https://video.example/clip.mp4" });
-		expect(canResolvePublicClipPlayback).toHaveBeenCalledWith("owner");
+		expect(getTwitchClipPlaybackUrl).toHaveBeenCalledWith("a", "owner", { kind: "gallery", galleryId: "gallery-1" });
 	});
 });

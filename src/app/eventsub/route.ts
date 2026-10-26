@@ -3,7 +3,8 @@ import { after, NextRequest } from "next/server";
 import crypto from "crypto";
 import * as Sentry from "@sentry/nextjs";
 import { handleClip, sendChatMessage, updateRedemptionStatus } from "@actions/twitch";
-import { addToClipQueue, getOverlayByRewardId } from "@actions/database";
+import { getOverlayByRewardId } from "@actions/database";
+import { addVerifiedRewardClipToQueue } from "@/server/clip-queue";
 import { RewardStatus, EventSubNotification, RewardRedemptionEvent, TwitchMessage } from "@types";
 import { sendMessage } from "@actions/websocket";
 import { handleCommand } from "@actions/commands";
@@ -81,7 +82,7 @@ async function handleRewardRedemption(notification: EventSubNotification<RewardR
 			}
 
 			if (!("errorCode" in clip)) {
-				await addToClipQueue(overlay.id, clip.id);
+				await addVerifiedRewardClipToQueue(overlay.id, clip.id);
 				await sendMessage("new_clip_redemption", { clipId: clip.id }, overlay.ownerId);
 
 				await sendChatMessage(reward.broadcaster_user_id, `@${reward.user_name} your clip (${clip.title}) has been added to the queue!`);

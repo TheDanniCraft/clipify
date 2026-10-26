@@ -1,6 +1,8 @@
 import { getPublicGalleryPlayer } from "@actions/gallery";
 import GalleryPlayerClientOnly from "@components/gallery/GalleryPlayerClientOnly";
 
+const scriptString = (value: string) => JSON.stringify(value).replace(/</g, "\\u003c");
+
 export default async function GalleryClipPage({ params }: { params: Promise<{ galleryId: string; clipId: string }> }) {
 	const { galleryId, clipId } = await params;
 	const data = await getPublicGalleryPlayer(galleryId, clipId);
@@ -12,14 +14,14 @@ export default async function GalleryClipPage({ params }: { params: Promise<{ ga
 				if (!state.listenerInstalled) {
 					window.addEventListener("message", (event) => {
 						const message = event.data;
-						if (!message || message.version !== 1 || message.type !== "clipify:init" || message.elementType !== "player" || message.resourceId !== ${JSON.stringify(galleryId)} || message.clipId !== ${JSON.stringify(clipId)} || !event.ports[0]) return;
+						if (!message || message.version !== 1 || message.type !== "clipify:init" || message.elementType !== "player" || message.resourceId !== ${scriptString(galleryId)} || message.clipId !== ${scriptString(clipId)} || !event.ports[0]) return;
 						state.pendingInit = { data: message, port: event.ports[0] };
 						event.stopImmediatePropagation();
 						window.dispatchEvent(new Event("clipify:player-init"));
 					});
 					state.listenerInstalled = true;
 				}
-				window.parent.postMessage({ version: 1, type: "clipify:hello", elementType: "player", resourceId: ${JSON.stringify(galleryId)}, clipId: ${JSON.stringify(clipId)} }, "*");
+				window.parent.postMessage({ version: 1, type: "clipify:hello", elementType: "player", resourceId: ${scriptString(galleryId)}, clipId: ${scriptString(clipId)} }, "*");
 			} catch {}
 		})();
 	`;
