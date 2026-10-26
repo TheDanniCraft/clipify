@@ -66,6 +66,7 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 			},
 		});
 		driverRef.current = spotlight;
+		const currentModal = () => Array.from(document.querySelectorAll<HTMLElement>(tourModalSelector)).findLast((modal) => !modal.closest('[data-exiting="true"]'));
 		const show = () => {
 			if (disposed) return;
 			if (document.querySelector("#consent-banner-title")) {
@@ -73,6 +74,19 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 				return;
 			}
 			const element = target();
+			const modal = currentModal();
+			const ownsDialog = Boolean(step.inDialog && modal && element && modal.contains(element));
+			const revealed = step.reveals ? document.querySelector(`[data-tour="${step.reveals}"]`) : null;
+			const revealsExpectedDialog = Boolean(step.allowDialog && revealed && modal?.contains(revealed) && !revealed.closest('[data-exiting="true"]'));
+			if (modal && !ownsDialog && !revealsExpectedDialog) {
+				if (!suspended) {
+					suspended = true;
+					if (shown) preserveAria(element, () => spotlight.destroy());
+					setPopoverHost(null);
+					shown = false;
+				}
+				return;
+			}
 			if (step.dialogClosed && !element) {
 				if (!advanced) {
 					advanced = true;
@@ -80,25 +94,10 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 				}
 				return;
 			}
-			const revealed = step.reveals ? document.querySelector(`[data-tour="${step.reveals}"]`) : null;
 			if (revealed && !revealed.closest('[data-exiting="true"]')) {
 				if (!advanced) {
 					advanced = true;
 					onNext();
-				}
-				return;
-			}
-			const modal = document.querySelector<HTMLElement>(tourModalSelector);
-			const ownsDialog = Boolean(step.inDialog && modal && element && modal.contains(element));
-			if (modal && !ownsDialog) {
-				if (!step.allowDialog) {
-					onPause();
-					return;
-				}
-				if (!suspended) {
-					suspended = true;
-					if (shown) preserveAria(target(), () => spotlight.destroy());
-					shown = false;
 				}
 				return;
 			}
@@ -149,6 +148,7 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 		};
 		const click = (event: MouseEvent) => {
 			const control = target();
+			if (suspended) return;
 			if (step.pauseOnInteract && control && event.composedPath().includes(control)) {
 				onPause();
 				return;
@@ -164,6 +164,7 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 		};
 		document.addEventListener("scroll", scroll, true);
 		const keydown = (event: KeyboardEvent) => {
+			if (suspended) return;
 			if (step.inDialog && event.key === "Tab") {
 				// Keep Driver’s window-level Tab trap out of React Aria’s modal/grid navigation.
 				event.stopPropagation();
@@ -182,6 +183,11 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 		document.addEventListener("keydown", keydown, true);
 
 		const observer = new MutationObserver(() => {
+			const modal = currentModal();
+			if (modal && !(step.inDialog && target() && modal.contains(target()))) {
+				show();
+				return;
+			}
 			if (shown && !target()) {
 				if (step.dialogClosed) {
 					show();

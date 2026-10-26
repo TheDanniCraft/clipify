@@ -768,6 +768,7 @@ export default function OverlayStylePage() {
 								) : null}
 
 								<div
+									data-tour={ownerHasAdvancedAccess ? "theme-preview" : undefined}
 									style={{
 										filter: ownerPlan === Plan.Free && !ownerHasAdvancedAccess ? "blur(1.5px)" : "none",
 										pointerEvents: ownerPlan === Plan.Free && !ownerHasAdvancedAccess ? "none" : "auto",
@@ -818,6 +819,7 @@ export default function OverlayStylePage() {
 									</Slider.Track>
 								</Slider>
 								<Select
+									data-tour={ownerHasAdvancedAccess ? "theme-components" : undefined}
 									variant='secondary'
 									selectionMode='multiple'
 									value={Array.from(selectedComponents)}
@@ -859,6 +861,7 @@ export default function OverlayStylePage() {
 									</Select.Popover>
 								</Select>
 								<Select
+									data-tour={ownerHasAdvancedAccess ? "theme-effects" : undefined}
 									variant='secondary'
 									selectionMode='multiple'
 									value={Array.from(selectedEffects)}

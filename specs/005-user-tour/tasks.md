@@ -110,13 +110,24 @@ T013: affected tests, all feature browser examples, lint, formatting, types and 
 - [x] X001 Register Runner, Settings, AI and Editor discovery tasks in the central guide catalog.
 - [x] X002 Teach native avatar/menu/tab navigation, with settings-panel recovery, Back and reload support.
 - [x] X003 Add bounded highlights and descriptions without creating resources or changing permissions/settings.
-- [x] X004 Require the current 15 tasks for new Expert awards and preserve already-earned badges.
+- [x] X004 Require every current task for new Expert awards and preserve already-earned badges.
 - [x] X005 Verify the four browser journeys and updated Expert flows; update canonical inventory to 56 examples.
 - [x] X006 Add meaningful playlist editor coverage for native Select all, category matching and clearing minimum views; retain the 85% requirement.
-- [ ] X007 Push, wait for complete CI, fix failures and leave ready for user walkthrough. Do not merge.
+- [x] X007 Push, wait for complete CI, fix failures and leave ready for user walkthrough. Do not merge. (bcbfa044, full CI green before the next UX revision.)
 
 ### Integration with Free Runner
 
 - [x] Rebase onto merged Free Runner master while retaining shared editor layouts, native controls and localized dates.
 - [x] Move AI discovery and resumed checkpoints to the native Connections tab; retain existing account progress.
-- [ ] Verify discovery browser flows and complete CI on the integrated branch before the user walkthrough.
+- [x] Verify discovery browser flows and complete CI on the integrated branch before the user walkthrough. (bcbfa044.)
+
+## Chapter, personalization and dialog follow-up
+
+- [x] Y001 Add consistent skip-popover inner spacing and move Expert explanation into the welcome, removing checklist counters and skip reward copy.
+- [x] Y002 Open the checklist on chapter completion, expand only the next unfinished chapter, and retain explicit optional chapter starts.
+- [x] Y003 Expand personalization to filters, colors/style, components/effects and preview; remove duplicate core filter guidance and preserve legacy checkpoints/awards.
+- [x] Y004 Suspend spotlight interaction for native dialogs and resume the same checkpoint on Cancel without altering dialog behavior.
+- [x] Y007 Keep native clip selection and confirmation usable before Continue; consume the successful add before closing the picker.
+- [x] Y008 Embed Team in the normal Settings tabs, preserve draft state and legacy agency links, and guide directly to Connections from Team.
+- [x] Y005 Pass updated whole-file suites, persistence checks, all 61 owning browser scenarios and required local checks; review actual spacing and chapter handoff.
+      Final checkpoint: commit/push through normal hooks, get full CI green and leave the PR unmerged for the user's walkthrough. The PR records the final tested SHA and CI result.

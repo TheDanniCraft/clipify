@@ -37,11 +37,12 @@ it("keeps only one optional exploration section and migrates the old website tas
 	expect(stored.completed).toContain("explore.tools");
 	expect(stepsForTask("explore.tools", { ...defaultProgress(), overlayId: "overlay" }).some((step) => step.target === "website-copy")).toBe(true);
 });
-it("finishes all core tasks quietly without re-opening the checklist", () => {
+it("opens the next chapter after the core tasks without starting its tour", () => {
 	const state = { ...defaultProgress(), overlayId: "overlay", copiedOverlayId: "overlay", completed: ["overlay.name", "overlay.source", "overlay.preview"] as const, active: { task: "overlay.setup" as const, index: 1, paused: false, navigation: [] } };
 	const done = apply({ ...state, completed: [...state.completed] }, { type: "next" });
 	expect(done.active).toBeNull();
-	expect(done.minimized).toBe(true);
+	expect(done.minimized).toBe(false);
+	expect(done.journeyId).toBe("appearance");
 	expect(done.completed).toContain("overlay.setup");
 });
 it("pauses when the user leaves the expected page instead of moving them back", () => {
@@ -80,22 +81,22 @@ it("allows review from Save your look without resetting the task", () => {
 	expect(currentGuideStep(entry)?.target).toBe("theme-back");
 	expect(currentGuideStep(apply(entry, { type: "location", location: "overlay" }))?.target).toBe("overlay-customize");
 });
-it("keeps the last section after completion and reload instead of showing core progress", () => {
-	let state = apply({ ...defaultProgress(), overlayId: "overlay" }, { type: "start", task: "appearance.style", location: "theme" });
-	state = apply(state, { type: "theme.saved", ownerId: "owner", id: "overlay", changed: true });
-	expect(state.active).toBeNull();
-	expect(parseProgress(JSON.stringify(state)).journeyId).toBe("appearance");
+it("reveals the next chapter after the last personalization task and preserves it on reload", () => {
+	const state: GuideProgress = { ...defaultProgress(), overlayId: "overlay", completed: ["appearance.clip-filters", "appearance.style", "appearance.components"], active: { task: "appearance.preview", index: 2, paused: false } };
+	const done = apply(state, { type: "next" });
+	expect(done.active).toBeNull();
+	expect(done.minimized).toBe(false);
+	expect(parseProgress(JSON.stringify(done)).journeyId).toBe("playlist");
 });
-it("keeps filters only in the clip task and resumes a retired filter checkpoint there", () => {
-	expect(journeys.find((journey) => journey.id === "appearance")!.tasks.map((task) => task.id)).toEqual(["appearance.style"]);
-	expect(stepsForTask("overlay.source", { ...defaultProgress(), overlayId: "overlay" }).map((step) => step.target)).toContain("overlay-filters");
-	const old = { ...defaultProgress(), overlayId: "overlay", completed: ["overlay.name", "appearance.filters"], skipped: ["appearance.filters"], active: { task: "appearance.filters", index: 0, paused: true } };
+it("teaches filters once in personalization and resumes retired filter checkpoints there", () => {
+	expect(journeys.find((journey) => journey.id === "appearance")!.tasks.map((task) => task.id)).toEqual(["appearance.clip-filters", "appearance.style", "appearance.components", "appearance.preview"]);
+	expect(stepsForTask("overlay.source", { ...defaultProgress(), overlayId: "overlay" }).map((step) => step.target)).not.toContain("overlay-filters");
+	const old = { ...defaultProgress(), overlayId: "overlay", completed: ["overlay.name", "appearance.filters"], skipped: [], active: { task: "appearance.filters", index: 0, paused: true } };
 	const migrated = parseProgress(JSON.stringify(old));
-	expect(migrated.completed).toEqual(["overlay.name", "overlay.source"]);
-	expect(migrated.skipped).toEqual([]);
-	expect(migrated.active).toMatchObject({ task: "overlay.source", index: 1, paused: true });
+	expect(migrated.completed).toEqual(["overlay.name", "appearance.clip-filters"]);
+	expect(migrated.active).toMatchObject({ task: "appearance.clip-filters", index: 0, paused: true });
 	expect(currentGuideStep(migrated)?.target).toBe("overlay-filters");
-	expect(parseProgress(JSON.stringify({ ...old, active: { ...old.active, index: 1 } })).active?.index).toBe(2);
+	expect(parseProgress(JSON.stringify({ ...old, active: { ...old.active, index: 1 } })).active?.index).toBe(1);
 });
 
 it("adds partial section credit without losing completed tasks or double counting replays", () => {
@@ -108,12 +109,10 @@ it("adds partial section credit without losing completed tasks or double countin
 	expect(journeyGuidePercent({ ...state, completed: ["overlay.name", "overlay.source", "overlay.preview", "overlay.setup"], active: null })).toBe(100);
 });
 
-it("allows Back from every action step after the first, including filters", () => {
-	let state: GuideProgress = { ...defaultProgress(), overlayId: "overlay", active: { task: "overlay.source", index: 2, paused: false } };
+it.each(["overlay.source", "appearance.clip-filters"] as const)("allows Back from the Save step in %s", (task) => {
+	let state: GuideProgress = { ...defaultProgress(), overlayId: "overlay", active: { task, index: 1, paused: false } };
 	state = apply(state, { type: "previous", location: "overlay" });
-	expect(currentGuideStep(state)?.target).toBe("overlay-filters");
-	state = apply(state, { type: "previous", location: "overlay" });
-	expect(currentGuideStep(state)?.target).toBe("overlay-source");
+	expect(currentGuideStep(state)?.target).toBe(task === "overlay.source" ? "overlay-source" : "overlay-filters");
 	expect(apply(state, { type: "previous", location: "overlay" })).toEqual(state);
 	expect(state.completed).toEqual([]);
 });
@@ -147,11 +146,13 @@ it("migrates old arrangement/save checkpoints without interpreting them as modal
 	expect(parseProgress(JSON.stringify({ ...old, active: { ...old.active, index: 2 } })).active?.index).toBe(5);
 	expect(parseProgress(JSON.stringify({ ...old, playlistClipsVersion: 2 })).active?.index).toBe(1);
 });
-it("ends optional sections without starting a different section", () => {
+it("continues personalization in place and does not start a different chapter automatically", () => {
 	const styled = apply({ ...defaultProgress(), overlayId: "overlay", active: { task: "appearance.style", index: 2, paused: false } }, { type: "theme.saved", ownerId: "owner", id: "overlay", changed: true });
-	expect(styled.active).toBeNull();
-	const installed = apply({ ...defaultProgress(), overlayId: "overlay", playlistId: "playlist", active: { task: "playlist.use", index: 2, paused: false } }, { type: "overlay.saved", ownerId: "owner", id: "overlay", named: true, source: false, playlistId: "playlist" });
+	expect(styled.active).toMatchObject({ task: "appearance.components", index: 1, navigation: [] });
+	const installed = apply({ ...defaultProgress(), overlayId: "overlay", playlistId: "playlist", completed: ["playlist.name", "playlist.clips"], active: { task: "playlist.use", index: 2, paused: false } }, { type: "overlay.saved", ownerId: "owner", id: "overlay", named: true, source: false, playlistId: "playlist" });
 	expect(installed.active).toBeNull();
+	expect(installed.journeyId).toBe("explore");
+	expect(installed.minimized).toBe(false);
 });
 
 it("returns from modal search to the real Add Clips entry instead of trapping Back", () => {
@@ -207,7 +208,7 @@ it("starts welcome guidance at the first unfinished core task and remembers the 
 });
 it("requires every guide task for Expert, with no credit for skipped tasks", () => {
 	const tasks = journeys.flatMap((journey) => journey.tasks.map((task) => task.id));
-	expect(tasks).toHaveLength(15);
+	expect(tasks).toHaveLength(18);
 	expect(hasCompletedAllGuides({ ...defaultProgress(), completed: tasks })).toBe(true);
 	for (const missing of tasks) {
 		expect(hasCompletedAllGuides({ ...defaultProgress(), completed: tasks.filter((task) => task !== missing), skipped: [missing] })).toBe(false);
@@ -248,14 +249,14 @@ it("teaches Settings, AI and Team through the avatar menu and native tabs", () =
 		expect(currentGuideStep(menu)).toMatchObject({ target: "nav-settings", destination: "settings" });
 		const settings = apply(menu, { type: "location", location: "settings" });
 		expect(currentGuideStep(settings)?.target).toBe(task === "explore.editors" ? "settings-team-tab" : task === "explore.ai" ? "settings-connections-tab" : "settings-core-tab");
-		if (task === "explore.editors") expect(currentGuideStep(apply(settings, { type: "location", location: "team" }))?.target).toBe("team-overview");
+		if (task === "explore.editors") expect(currentGuideStep(apply(settings, { type: "next" }))?.target).toBe("team-overview");
 	}
 });
-it("returns from Team to account settings using the real Settings tab", () => {
+it("switches directly from Team to account settings or connections", () => {
 	for (const task of ["explore.settings", "explore.ai"] as const) {
 		const state = apply(defaultProgress(), { type: "start", task, location: "team" });
-		expect(state.active?.navigation).toEqual(["core-settings"]);
-		expect(currentGuideStep(state)?.target).toBe("settings-core-tab");
+		expect(state.active?.navigation).toEqual([]);
+		expect(currentGuideStep(state)?.target).toBe(task === "explore.ai" ? "settings-connections-tab" : "settings-core-tab");
 		expect(apply(state, { type: "location", location: "settings" }).active?.navigation).toEqual([]);
 	}
 });
@@ -287,13 +288,13 @@ it("reopens the Settings panel when resuming a discovery checkpoint on another l
 
 it("recognizes settings routes and teaches every discovery entry point", () => {
 	expect(guideLocation("/dashboard/settings")).toBe("settings");
-	expect(guideLocation("/dashboard/settings/team")).toBe("team");
-	expect(navigationForTask("explore.editors", "team", defaultProgress())).toEqual([]);
+	expect(guideLocation("/dashboard/settings/team")).toBe("settings");
+	expect(navigationForTask("explore.editors", "team", defaultProgress())).toEqual(["team"]);
 	expect(navigationForTask("explore.editors", "settings", defaultProgress())).toEqual(["team"]);
 	expect(navigationForTask("explore.settings", "settings", defaultProgress())).toEqual([]);
 	expect(navigationForTask("explore.ai", "settings", defaultProgress(), 2)).toEqual(["connections-panel"]);
 	for (const task of ["explore.settings", "explore.ai"] as const) expect(routeForTask(task, defaultProgress())).toBe("/dashboard/settings");
-	expect(routeForTask("explore.editors", defaultProgress())).toBe("/dashboard/settings/team");
+	expect(routeForTask("explore.editors", defaultProgress())).toBe("/dashboard/settings");
 	expect(routeForTask("explore.runners", defaultProgress())).toBe("/dashboard");
 	const state = apply({ ...defaultProgress(), active: { task: "explore.ai", index: 2, paused: true } }, { type: "resume", location: "settings" });
 	expect(parseProgress(JSON.stringify(state)).active?.navigation).toEqual(["connections-panel"]);
@@ -304,4 +305,59 @@ it("migrates saved AI checkpoints to the Connections panel without losing progre
 	const restored = parseProgress(JSON.stringify(state));
 	expect(restored.active).toMatchObject({ task: "explore.ai", index: 2, navigation: ["connections-panel"] });
 	expect(currentGuideStep(restored)).toMatchObject({ target: "settings-connections-tab", reveals: "connected-ai-apps" });
+});
+
+it("preserves old source completion as filter credit and clamps the old save checkpoint", () => {
+	const old = { ...defaultProgress(), overlaySourceVersion: undefined, overlayId: "overlay", completed: ["overlay.source"], active: { task: "overlay.source", index: 2, paused: true } };
+	const migrated = parseProgress(JSON.stringify(old));
+	expect(migrated.completed).toEqual(["overlay.source", "appearance.clip-filters"]);
+	expect(migrated.active).toMatchObject({ task: "overlay.source", index: 1 });
+	expect(currentGuideStep(migrated)?.target).toBe("overlay-save");
+	expect(parseProgress(JSON.stringify(migrated))).toEqual(migrated);
+});
+it("finishes native filter Save without starting optional Theme Studio", () => {
+	const state: GuideProgress = { ...defaultProgress(), journeyId: "appearance", overlayId: "overlay", active: { task: "appearance.clip-filters", index: 1, paused: false } };
+	expect(apply(state, { type: "overlay.saved", ownerId: "other", id: "overlay", named: true, source: true })).toEqual(state);
+	const saved = apply(state, { type: "overlay.saved", ownerId: "owner", id: "overlay", named: true, source: true });
+	expect(saved.completed).toContain("appearance.clip-filters");
+	expect(saved.active).toBeNull();
+	expect(saved.minimized).toBe(false);
+	expect(saved.journeyId).toBe("appearance");
+});
+it("requires review before saving components and advances to preview in place", () => {
+	const state: GuideProgress = { ...defaultProgress(), overlayId: "overlay", active: { task: "appearance.components", index: 1, paused: false } };
+	const early = apply(state, { type: "theme.saved", ownerId: "owner", id: "overlay", changed: true });
+	expect(early.completed).not.toContain("appearance.components");
+	const saved = apply({ ...state, active: { ...state.active!, index: 3 } }, { type: "theme.saved", ownerId: "owner", id: "overlay", changed: true });
+	expect(saved.completed).toContain("appearance.components");
+	expect(saved.active).toMatchObject({ task: "appearance.preview", index: 1, navigation: [] });
+	expect(currentGuideStep(saved)?.target).toBe("theme-preview");
+});
+it("reveals the next unfinished chapter on the last checkbox skip without starting it", () => {
+	const state: GuideProgress = { ...defaultProgress(), minimized: true, completed: ["overlay.name", "overlay.source", "overlay.preview"] };
+	const skipped = apply(state, { type: "task.skip", task: "overlay.setup" });
+	expect(skipped.active).toBeNull();
+	expect(skipped.minimized).toBe(false);
+	expect(skipped.journeyId).toBe("appearance");
+});
+it("preserves a retired filter skip without treating it as completion", () => {
+	const migrated = parseProgress(JSON.stringify({ ...defaultProgress(), skipped: ["appearance.filters"] }));
+	expect(migrated.skipped).toEqual(["appearance.clip-filters"]);
+	expect(migrated.completed).not.toContain("appearance.clip-filters");
+	expect(parseProgress(JSON.stringify(migrated))).toEqual(migrated);
+});
+
+it("opens AI connections directly from Team and migrates its old settings detour", () => {
+	expect(navigationForTask("explore.ai", "team", defaultProgress())).toEqual([]);
+	const resumed = apply({ ...defaultProgress(), active: { task: "explore.ai", index: 2, paused: true } }, { type: "resume", location: "team" });
+	expect(resumed.active?.navigation).toEqual(["connections-panel"]);
+	expect(currentGuideStep(resumed)?.target).toBe("settings-connections-tab");
+	const migrated = parseProgress(JSON.stringify({ ...resumed, active: { ...resumed.active!, navigation: ["core-settings"] } }));
+	expect(migrated.active?.navigation).toEqual(["connections-panel"]);
+});
+it.each([1, 2, 3])("accepts successful native clip additions before Continue at picker step %s", (index) => {
+	const state: GuideProgress = { ...defaultProgress(), playlistId: "playlist", active: { task: "playlist.clips", index, paused: false } };
+	const added = apply(state, { type: "playlist.clips-added", ownerId: "owner", id: "playlist", count: 2 });
+	expect(added.active).toMatchObject({ task: "playlist.clips", index: 4, paused: false, navigation: [] });
+	expect(currentGuideStep(added)?.target).toBe("playlist-order");
 });

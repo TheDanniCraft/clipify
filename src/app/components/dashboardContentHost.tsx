@@ -58,7 +58,7 @@ export default function DashboardContentHost({ items, onStartGuide, onDismissGui
 								</p>
 							) : null}
 						</section>
-						{onStartGuide && <p className='mt-3 text-sm'>Create your first overlay with a guided tour. Complete every guide to earn your Clipify Expert badge. You can pause anytime.</p>}
+						{onStartGuide && <p className='mt-3 text-sm'>Complete every guide to earn Clipify Expert, a badge on your profile showing you know your way around Clipify. You can pause anytime.</p>}
 						{current.helpText ? <p className='mt-3 text-sm text-muted'>{current.helpText}</p> : null}
 					</Modal.Body>
 					<Modal.Footer>

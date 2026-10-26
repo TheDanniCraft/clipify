@@ -56,23 +56,25 @@ function TaskCheckbox({ task, selected, current, onRequest, onConfirm, onRestore
 				</Checkbox>
 			</span>
 			<Popover.Content triggerRef={anchor} placement='left' className='z-[1000000002] max-w-64'>
-				<Popover.Dialog aria-label={`Skip ${task.title}?`} className='space-y-3 p-2'>
-					<Popover.Heading className='text-sm font-semibold'>Skip this task?</Popover.Heading>
-					<p className='text-xs text-muted'>Skipped tasks do not count toward Clipify Expert. You can complete this guide later.</p>
-					<div className='flex justify-end gap-2'>
-						<Button size='sm' variant='tertiary' onPress={() => setOpen(false)}>
-							Cancel
-						</Button>
-						<Button
-							size='sm'
-							onPress={() => {
-								onConfirm();
-								setOpen(false);
-							}}
-							data-tour-skip-confirm={task.id}
-						>
-							Skip task
-						</Button>
+				<Popover.Dialog aria-label={`Skip ${task.title}?`} className='p-0'>
+					<div className='space-y-3 p-4'>
+						<Popover.Heading className='text-sm font-semibold'>Skip this task?</Popover.Heading>
+						<p className='text-xs text-muted'>You can come back to this task whenever you like.</p>
+						<div className='flex justify-end gap-2'>
+							<Button size='sm' variant='tertiary' onPress={() => setOpen(false)}>
+								Cancel
+							</Button>
+							<Button
+								size='sm'
+								onPress={() => {
+									onConfirm();
+									setOpen(false);
+								}}
+								data-tour-skip-confirm={task.id}
+							>
+								Skip task
+							</Button>
+						</div>
 					</div>
 				</Popover.Dialog>
 			</Popover.Content>
@@ -106,6 +108,7 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 	const active = progress.active;
 	const activeTask = active?.task ?? null;
 	const step = currentGuideStep(progress);
+	const allChaptersFinished = journeys.every((journey) => journey.tasks.every((task) => progress.completed.includes(task.id) || progress.skipped.includes(task.id)));
 	const drain = useCallback(async () => {
 		if (processing.current) return;
 		processing.current = true;
@@ -203,11 +206,11 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 		report({ type: "location", location: guideLocation(pathname) });
 	}, [pathname, active, report]);
 	useEffect(() => {
-		const section = journeys.find((journey) => journey.tasks.some((task) => task.id === activeTask));
-		// Keep an automatically continuing flow in its single expanded section.
+		const section = journeys.find((journey) => journey.tasks.some((task) => task.id === activeTask)) ?? journeys.find((journey) => journey.id === progress.journeyId);
+		// Show the next chapter without starting its optional tour.
 		// eslint-disable-next-line react-hooks/set-state-in-effect
-		if (section) setExpanded(section.id);
-	}, [activeTask]);
+		setExpanded(allChaptersFinished && !activeTask ? null : (section?.id ?? "overlay"));
+	}, [activeTask, progress.journeyId, allChaptersFinished]);
 	useEffect(() => {
 		const change = (event: Event) => {
 			const visible = (event as CustomEvent<ConsentPreferencesVisibilityDetail>).detail.visible;
@@ -218,7 +221,7 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 		return () => window.removeEventListener(CONSENT_PREFERENCES_VISIBILITY_EVENT, change);
 	}, [active, pause]);
 	const start = (task: TaskId) => {
-		if (task === "appearance.style" && !appearanceAvailable) {
+		if (task.startsWith("appearance.") && task !== "appearance.clip-filters" && !appearanceAvailable) {
 			setMessage("Theme Studio requires Pro.");
 			return;
 		}
@@ -237,8 +240,6 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 	const currentJourney = journeys.find((journey) => journey.id === (active?.task.split(".")[0] ?? progress.journeyId)) ?? journeys[0];
 	const launcherTitle = currentJourney.id === "overlay" ? "Get started" : currentJourney.title;
 	const percentage = journeyGuidePercent(progress);
-	const allTasks = journeys.flatMap((journey) => journey.tasks.map((task) => task.id));
-	const expertCompleted = allTasks.filter((task) => progress.completed.includes(task)).length;
 	return (
 		<GuideContext.Provider value={{ report, activeTask, resourceIds: { overlayId: progress.overlayId, playlistId: progress.playlistId } }}>
 			{children}
@@ -254,9 +255,6 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 									<IconMinus size={16} />
 								</Button>
 							</div>
-							<p role='status' aria-label='Clipify Expert progress' className='mb-3 text-xs text-muted'>
-								Clipify Expert: {expertCompleted}/{allTasks.length}
-							</p>
 							{message && (
 								<p role='status' className='mb-3 text-xs text-muted'>
 									{message}

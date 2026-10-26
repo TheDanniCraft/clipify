@@ -325,8 +325,8 @@ export default function PlaylistPage() {
 				return Array.from(nextById.values());
 			});
 			setSelectedCachedClipIds(new Set([]));
-			onAddClipsClose();
 			if (playlist) reportTour({ type: "playlist.clips-added", ownerId: playlist.ownerId, id: playlist.id, count: clipsToAdd.length });
+			onAddClipsClose();
 		} catch {
 			addToast({ title: "Failed to add clips", color: "danger" });
 		}

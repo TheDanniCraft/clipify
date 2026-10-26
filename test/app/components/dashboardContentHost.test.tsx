@@ -13,6 +13,7 @@ it("combines the trial message with the tour and starts only after successful di
 	const start = jest.fn();
 	render(<DashboardContentHost items={[welcome]} onStartGuide={start} />);
 	expect(screen.getByText("7 days of Pro, on us.")).toBeVisible();
+	expect(screen.getByText(/badge on your profile showing you know your way around Clipify/)).toBeVisible();
 	fireEvent.click(screen.getByRole("button", { name: "Start guided tour" }));
 	await waitFor(() => expect(start).toHaveBeenCalledTimes(1));
 	expect(dismiss).toHaveBeenCalledWith(welcome.key);

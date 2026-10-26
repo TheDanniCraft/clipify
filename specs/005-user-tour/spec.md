@@ -4,12 +4,12 @@ Branch: `feat/user-tour`. Current scope includes the user's final checklist, nav
 
 ## User stories
 
-1. **US1, P1: Learn the normal overlay workflow.** A new user creates and names an overlay, chooses clips and filters, previews it and follows OBS/Streamlabs setup instructions. A returning user can replay creation from Add Overlay. From another page, the guide teaches the Dashboard link, Overlays tab and real edit control. Starting a task never changes pages for the user.
-2. **US2, P2: Customize an overlay.** The user opens the overlay, clicks Customize Overlay Style, edits a visible setting and uses the normal Save Style control. Explicitly confirming the current/default look completes the guide without changing the saved style.
+1. **US1, P1: Learn the normal overlay workflow.** A new user creates and names an overlay, chooses a clip source, previews it and follows OBS/Streamlabs setup instructions. A returning user can replay creation from Add Overlay. From another page, the guide teaches the Dashboard link, Overlays tab and real edit control. Starting a task never changes pages for the user.
+2. **US2, P2: Customize an overlay.** Four tasks teach filters, colors and style, what to display (components/effects), and preview. Filters are taught only here, using normal Overlay Settings and Save. Styling, components/effects and preview follow the real Theme Studio entry and Save Style controls. Explicit current/default confirmations complete the corresponding task without changing saved settings.
 3. **US3, P2: Build and use a playlist.** The user creates/names a playlist, selects/orders clips, saves and learns normal navigation back to an overlay to select the playlist.
 4. **US4, P2: Explore Clipify.** A single optional section introduces galleries, public website installation through the actual avatar menu and Tools action, and existing report/chat controls.
 
-BDD and ATDD share one browser execution owner per example. The 56 individually tagged examples in `test/bdd/features/user-tour/guide.feature` are canonical. Database concurrency/integrity has separate service-integration ownership; browser journeys are not duplicated as MCP workflows.
+BDD and ATDD share one browser execution owner per example. The 61 individually tagged examples in `test/bdd/features/user-tour/guide.feature` are canonical. Database concurrency/integrity has separate service-integration ownership; browser journeys are not duplicated as MCP workflows.
 
 ## Requirements
 
@@ -27,7 +27,7 @@ BDD and ATDD share one browser execution owner per example. The 56 individually 
 - **FR-012:** Website setup teaches opening the app menu, choosing Tools, selecting a player and copying public iframe code. Galleries and support remain short, optional introductions.
 
 - **FR-013:** Automatically offer the guided journey from the welcome dialog once per account. Preserve the existing Pro trial message, offer Start guided tour and Maybe later, and never launch a spotlight over consent or the welcome dialog. Existing owned setup keeps its minimized checklist instead of receiving a first-use welcome. Start the first unfinished core task through normal navigation. Remember dismissal and manual start; do not repeatedly prompt returning or completed accounts.
-- **FR-014:** Award one automatic Clipify Expert graduation-cap badge when all 15 tasks across all four guide sections are completed. Every guide is required for Expert, including appearance, playlists, runners, settings, AI connections, editors and discovery. Only explicit Skip task/checklist skips are excluded; confirming current/default settings after following the guide counts as completion. Sections remain optional for ordinary app use. Persist the first server-issued all-guides award timestamp with expertAwardVersion=2; discard earlier core-only awards. replay or checkbox restore never revokes the badge. Display it in existing member badges and celebrate once after an acknowledged award.
+- **FR-014:** Award one automatic Clipify Expert graduation-cap badge when all 18 tasks across all four guide sections are completed. Every guide is required for Expert, including appearance, playlists, runners, settings, AI connections, editors and discovery. Only explicit Skip task/checklist skips are excluded; confirming current/default settings after following the guide counts as completion. Sections remain optional for ordinary app use. Persist the first server-issued all-guides award timestamp with expertAwardVersion=2; discard earlier core-only awards. replay or checkbox restore never revokes the badge. Display it in existing member badges and celebrate once after an acknowledged award.
 
 ## Edge cases
 
@@ -47,3 +47,13 @@ BDD and ATDD share one browser execution owner per example. The 56 individually 
 - **SC-004:** Every guide completion maps to a successful action, explicit informational finish or confirmation of current/default settings; skips stay distinct. All owning examples and required quality gates must pass before merge.
 
 - **FR-015:** Add short discovery guides for Runners, account Settings, Connected AI apps and editors in Team. Teach the actual avatar menu, Settings tab and Team tab rather than navigating automatically. Completing discovery never requires creating a runner, buying an add-on, authorizing an AI app, changing security settings or sending an invitation. The four tasks count toward new Expert awards; previously earned badges stay earned.
+
+## Chapter and dialog refinement
+
+- Completing or skipping the last task in a chapter opens the checklist, collapses the completed chapter and expands the next unfinished chapter. It does not start that chapter's optional tour. After the final chapter, all sections collapse. User minimization remains account-backed.
+- The welcome explains the Expert badge as recognition on the member profile. The checklist and skip confirmation contain no Expert counters or reward conditions. Keep the once-only unlock toast and existing award policy.
+- Skip popovers provide consistent inner spacing around both heading and body.
+- Application dialogs, including unsaved-changes navigation guards, temporarily suspend the spotlight and own native focus/keyboard handling. Cancel restores the same checkpoint without marking the guide paused or advancing it. Discard follows the normal navigation and its guide checkpoint. Consent and explicit support interactions retain their existing pause behavior.
+- Preserve retired filter IDs, existing completion credit, source-save checkpoints and previously valid Expert awards when moving filter guidance into personalization.
+
+Settings discovery uses the native Team tab in `/dashboard/settings?tab=team`, alongside Connections, Creator Page and Billing. Tab changes retain unsaved account/creator drafts. Existing standalone Team links remain compatible for agency management. Starting AI discovery from Team highlights Connections directly. Clip-picker search, table selection and Add selected clips remain usable throughout guided selection; a successful add advances directly to arrangement without requiring guide Continue. Completing a discovery task keeps the Explore chapter visible without starting another task.

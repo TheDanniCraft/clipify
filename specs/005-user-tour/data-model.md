@@ -10,7 +10,7 @@ The authenticated action receives an expected account ID and a validated event, 
 
 The provider applies events optimistically and sends them in order. Failed writes remain queued with Retry. Server state wins on a new session; browser storage clearing cannot restart onboarding. In-flight old-account events are rejected after account switching.
 
-Retired duplicate task appearance.filters is no longer in the catalog. Its acknowledged completions migrate to overlay.source, while its optional skips are dropped. An active old filter checkpoint resumes as overlay.source at filter index 1 or save index 2. Preserve styling progress and keep section counts derived from the current catalog.
+Personalization now owns the single filter task, appearance.clip-filters. Retired appearance.filters completions, skips and active checkpoints migrate to it. The overlaySourceVersion=2 marker distinguishes the shorter source/save flow: older completed source guides retain filter credit, and their old filter/save checkpoints map to the current source Save step. Keep existing styling progress, validated Expert awards and catalog-derived section counts.
 
 playlistClipsVersion=2 marks the expanded six-step clip flow. Older three-step indices 0/1/2 migrate to entry/arrangement/save indices 0/4/5. Modal checkpoints 1–3 reopen through clip-picker navigation when the picker is physically closed; Back to entry uses close-picker and observes actual closure. pickerOpen is a validated UI observation on start/resume/previous events, not an authorization flag. playlist.clips-added carries owner, playlist and bounded count and advances only the matching active task without completing it. This clip-picker expansion needs no database schema change.
 
@@ -20,7 +20,7 @@ playlistSource is a validated boolean observation associated with the selected o
 
 Progress adds optional `welcomeSeen` and `expertAwardedAt` fields. Welcome start/dismiss events persist the account preference; existing active/completed/skipped progress migrates as already introduced. `welcome.start` begins the first unfinished core task.
 
-Only the server persistence layer creates the first completion timestamp after every task ID from every journey is present in completed (currently 15 tasks). Skipped IDs do not count. The timestamp survives replay/restore and powers the automatic `completed-all-guides` badge condition. The catalog-derived PostgreSQL badge enum includes `clipify-expert`; the post-merge Generate Migrations workflow owns the enum migration. No generated migration is created in this branch.
+Only the server persistence layer creates the first completion timestamp after every task ID from every journey is present in completed (currently 18 tasks). Skipped IDs do not count. The timestamp survives replay/restore and powers the automatic `completed-all-guides` badge condition. The catalog-derived PostgreSQL badge enum includes `clipify-expert`; the post-merge Generate Migrations workflow owns the enum migration. No generated migration is created in this branch.
 
 The award policy is versioned independently as `expertAwardVersion=2`. Ignore unversioned core-only timestamps when reading progress or resolving member badges. Valid all-guides awards remain permanent during replay even if completion checkboxes are later restored. Icon changes do not alter the badge slug or PostgreSQL enum.
 

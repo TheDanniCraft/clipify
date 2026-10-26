@@ -169,10 +169,10 @@ Feature: Clipify guided onboarding
     Then it is marked skipped and can be restored
 
   @US1 @FR-002 @SC-001 @BDD-TOUR-US1-029
-  Scenario: Continue from creation through source and filters
+  Scenario: Continue from creation through source settings
     Given an isolated authenticated Clipify guide account
     When the first overlay journey is followed
-    Then the next task guides source and filters without changing Save behavior
+    Then the next task guides source without changing Save behavior
 
   @US4 @FR-012 @SC-004 @BDD-TOUR-US4-030
   Scenario: Install the public website player
@@ -241,9 +241,9 @@ Feature: Clipify guided onboarding
     Then resuming teaches the route back to Theme Studio and allows reviewing the look
 
   @US2 @FR-004 @SC-001 @BDD-TOUR-US2-041
-  Scenario: Keep personalization focused on appearance
+  Scenario: Keep the color-and-style task focused on appearance
     Given an isolated authenticated Clipify guide account
-    When the appearance-only personalization task keeps its default look
+    When the color-and-style task keeps its default look
     Then the launcher retains personalization progress after reload
 
   @US1 @FR-009 @SC-003 @BDD-TOUR-US1-042
@@ -255,7 +255,7 @@ Feature: Clipify guided onboarding
   @US1 @FR-009 @SC-003 @BDD-TOUR-US1-043
   Scenario: Review clip settings with HeroUI guide controls
     Given an isolated authenticated Clipify guide account
-    When the clip task is reviewed backward from save through filters to source
+    When the clip task is reviewed backward from save to source
     Then every later action has a HeroUI Back button and the ring always shows percent
 
   @US2 @FR-004 @SC-002 @BDD-TOUR-US2-044
@@ -331,7 +331,37 @@ Feature: Clipify guided onboarding
     Then AI discovery completes without connecting an app
 
   @US4 @FR-015 @SC-004 @BDD-TOUR-US4-056
-  Scenario: Find editors in Team without sending invitations
+  Scenario: Find team members without sending invitations
     Given an isolated authenticated Clipify guide account
     When the editor discovery guide is followed
     Then editor discovery completes without inviting anyone
+
+  @US1 @FR-001 @SC-004 @BDD-TOUR-US1-057
+  Scenario: Reveal the next chapter without starting its optional tour
+    Given an isolated authenticated Clipify guide account
+    When the final first-overlay task is completed
+    Then the checklist opens with personalization expanded and the finished chapter collapsed
+
+  @US2 @FR-004 @SC-004 @BDD-TOUR-US2-058
+  Scenario: Personalize filters style components and preview through native controls
+    Given an isolated authenticated Clipify guide account
+    When the complete personalization chapter is followed
+    Then the playlist chapter is revealed without starting its tour
+
+  @US1 @FR-009 @SC-004 @BDD-TOUR-US1-059
+  Scenario: Keep the guide checkpoint while handling unsaved changes
+    Given an isolated authenticated Clipify guide account
+    When guided navigation opens the unsaved changes dialog
+    Then Cancel restores the guide and Discard continues through normal navigation
+
+  @US3 @FR-005 @SC-004 @BDD-TOUR-US3-060
+  Scenario: Add selected clips directly without guide Continue
+    Given an isolated authenticated Clipify guide account
+    When selected clips are added directly from the search checkpoint
+    Then the guide advances to arrangement and the playlist saves normally
+
+  @US4 @FR-015 @SC-004 @BDD-TOUR-US4-061
+  Scenario: Discover AI directly from the Team settings tab
+    Given an isolated authenticated Clipify guide account
+    When AI discovery starts from Team with a creator settings draft
+    Then Connections opens directly and the creator draft is retained

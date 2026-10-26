@@ -156,7 +156,7 @@ it("honors unavailable Theme Studio without navigating or forcing an upgrade", (
 			<Harness />
 		</UserTourProvider>,
 	);
-	fireEvent.click(screen.getByRole("button", { name: "Customize your look" }));
+	fireEvent.click(screen.getByRole("button", { name: "Choose colors and style" }));
 	expect(screen.getByText("Theme Studio requires Pro.")).toHaveAttribute("role", "status");
 	expect(push).not.toHaveBeenCalled();
 });
@@ -216,7 +216,7 @@ it("does not restore launcher focus over a newly opened skip popover", () => {
 	jest.useRealTimers();
 });
 it("shows the last section's own count after reload instead of Guides or core progress", () => {
-	mount({ ...defaultProgress(), journeyId: "appearance", completed: ["overlay.name", "overlay.source", "overlay.preview", "overlay.setup", "appearance.style"], minimized: true });
+	mount({ ...defaultProgress(), journeyId: "appearance", completed: ["overlay.name", "overlay.source", "overlay.preview", "overlay.setup", "appearance.clip-filters", "appearance.style", "appearance.components", "appearance.preview"], minimized: true });
 	const launcher = screen.getByRole("button", { name: "Make your overlay yours · 100%" });
 	expect(launcher).toHaveTextContent("100%");
 	expect(screen.queryByText("Guides")).not.toBeInTheDocument();
@@ -267,9 +267,20 @@ it("remembers Maybe later and does not offer the welcome to returning accounts",
 	expect(screen.queryByRole("dialog", { name: "Welcome" })).not.toBeInTheDocument();
 });
 
-it("shows actual Expert completion separately from checked skipped tasks", () => {
+it("keeps badge counters out of the checklist while preserving skipped task status", () => {
 	mount({ ...defaultProgress(), welcomeSeen: true, completed: ["overlay.name"], skipped: ["overlay.source"] });
-	expect(screen.getByLabelText("Clipify Expert progress")).toHaveTextContent("Clipify Expert: 1/15");
+	expect(screen.queryByLabelText("Clipify Expert progress")).not.toBeInTheDocument();
 	expect(screen.getByText("Skipped")).toBeVisible();
 	expect(screen.getByRole("button", { name: "Choose your clips" })).toHaveTextContent("Skipped");
+});
+
+it("opens the next chapter when the current chapter finishes without starting it", async () => {
+	mount({ ...defaultProgress(), welcomeSeen: true, minimized: true, overlayId: "overlay-1", copiedOverlayId: "overlay-1", completed: ["overlay.name", "overlay.source", "overlay.preview"], active: { task: "overlay.setup", index: 1, paused: false } });
+	await act(async () => {
+		fireEvent.click(screen.getByRole("button", { name: "Pointer next" }));
+	});
+	expect(screen.getByRole("region", { name: "Your Clipify guide" })).toBeVisible();
+	expect(screen.getByRole("button", { name: "Make your overlay yours · 0%" })).toBeVisible();
+	expect(screen.queryByRole("button", { name: "Pointer next" })).not.toBeInTheDocument();
+	expect(save).toHaveBeenCalledWith("owner", { type: "next" });
 });

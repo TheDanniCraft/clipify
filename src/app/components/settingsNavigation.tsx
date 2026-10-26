@@ -5,24 +5,16 @@ import { useRouter } from "next/navigation";
 
 export type SettingsNavigationKey = "settings" | "connections" | "creator" | "billing" | "team";
 
-const ROUTES: Record<Exclude<SettingsNavigationKey, "settings" | "connections" | "creator" | "billing">, string> = {
-	team: "/dashboard/settings/team",
-};
-
-export default function SettingsNavigation({ active, onCoreSectionChange }: { active: SettingsNavigationKey; onCoreSectionChange?: (section: "settings" | "connections" | "creator" | "billing") => void }) {
+export default function SettingsNavigation({ active, onCoreSectionChange }: { active: SettingsNavigationKey; onCoreSectionChange?: (section: SettingsNavigationKey) => void }) {
 	const router = useRouter();
 
 	function navigate(key: React.Key) {
 		const section = String(key) as SettingsNavigationKey;
-		if (section === "settings" || section === "connections" || section === "creator" || section === "billing") {
-			if (onCoreSectionChange) {
-				onCoreSectionChange(section);
-				return;
-			}
-			router.push(section === "settings" ? "/dashboard/settings" : `/dashboard/settings?tab=${section}`);
+		if (onCoreSectionChange) {
+			onCoreSectionChange(section);
 			return;
 		}
-		router.push(ROUTES[section]);
+		router.push(section === "settings" ? "/dashboard/settings" : `/dashboard/settings?tab=${section}`);
 	}
 
 	return (

@@ -95,13 +95,13 @@ it("awards Expert after guided confirmations repair the reported twelve-complete
 	let state: GuideProgress = { ...defaultProgress(), overlayId: "overlay", playlistId: "playlist", completed, skipped: [...skipped] };
 	await fixture.pool.query("INSERT INTO user_content_states (user_id,content_key,state) VALUES ('owner',$1,$2)", [guideContentKey, JSON.stringify(state)]);
 	for (const task of skipped) {
-		await fixture.pool.query("UPDATE user_content_states SET state=$1 WHERE user_id='owner' AND content_key=$2", [JSON.stringify({ ...state, active: { task, index: 2, paused: false } }), guideContentKey]);
+		await fixture.pool.query("UPDATE user_content_states SET state=$1 WHERE user_id='owner' AND content_key=$2", [JSON.stringify({ ...state, active: { task, index: task === "overlay.source" ? 1 : 2, paused: false } }), guideContentKey]);
 		state = await applyUserTourEvent("owner", { type: "next" }, fixture.db);
 		expect(state.completed).toContain(task);
 		expect(state.skipped).not.toContain(task);
 		if (task !== "playlist.use") expect(state.expertAwardedAt).toBeUndefined();
 	}
-	expect(state.completed).toHaveLength(15);
+	expect(state.completed).toHaveLength(journeys.reduce((total, journey) => total + journey.tasks.length, 0));
 	expect(state.skipped).toEqual([]);
 	expect(state.expertAwardedAt).toEqual(expect.any(String));
 });

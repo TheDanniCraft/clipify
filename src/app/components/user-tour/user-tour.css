@@ -89,8 +89,8 @@
 .driver-active [data-tour-guided-dialog="true"] .driver-active-element-parent-no-scroll {
 	overflow-y: auto !important;
 }
-.driver-active [data-tour-guided-dialog="true"] :is([aria-label="Close dialog"], [data-tour="playlist-clip-cancel"]),
-.driver-active [data-tour-guided-dialog="true"] :is([aria-label="Close dialog"], [data-tour="playlist-clip-cancel"]) * {
+.driver-active [data-tour-guided-dialog="true"] :is([aria-label="Close dialog"], [data-tour="playlist-clip-cancel"], [data-tour="playlist-clip-search"], [data-tour="playlist-clip-selection"], [data-tour="playlist-clip-confirm"]),
+.driver-active [data-tour-guided-dialog="true"] :is([aria-label="Close dialog"], [data-tour="playlist-clip-cancel"], [data-tour="playlist-clip-search"], [data-tour="playlist-clip-selection"], [data-tour="playlist-clip-confirm"]) * {
 	pointer-events: auto;
 }
 

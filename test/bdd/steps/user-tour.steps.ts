@@ -59,6 +59,10 @@ async function chooseSkip(page: Page, title: string) {
 	await page.locator("label").filter({ has: checkbox }).click();
 	const confirmation = page.getByRole("dialog", { name: `Skip ${title}?`, exact: true });
 	await expect(confirmation).toBeVisible();
+	for (const text of ["Skip this task?", "You can come back to this task whenever you like."]) {
+		// Measure both rectangles in the same frame after the popover settles.
+		await expect.poll(() => confirmation.getByText(text, { exact: true }).evaluate((element) => element.getBoundingClientRect().left - element.closest('[role="dialog"]')!.getBoundingClientRect().left)).toBeGreaterThanOrEqual(12);
+	}
 	await confirmation.getByRole("button", { name: "Skip task", exact: true }).click();
 	await expect(confirmation).toBeHidden();
 }
@@ -298,7 +302,7 @@ Then("the supported journeys are offered", async ({ page }) => {
 });
 When("a visible theme change is saved through its guide", async ({ page, tourWorld }) => {
 	await overlay(page, tourWorld);
-	await start(page, "Customize your look", "Make your overlay yours");
+	await start(page, "Choose colors and style", "Make your overlay yours");
 	await expect(page.locator(".driver-popover-title")).toHaveText("Open Theme Studio");
 	await page.getByRole("button", { name: "Customize Overlay Style", exact: true }).click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Make it yours");
@@ -315,7 +319,7 @@ Then("the appearance task completes", async ({ page, tourWorld }) => {
 When("the default appearance is kept", async ({ page, tourWorld }) => {
 	tourWorld.result = (await tourWorld.fixture.pool.query("SELECT theme_text_color, theme_background_color FROM overlays WHERE id=$1", [tourWorld.owner!.overlayId])).rows[0];
 	await overlay(page, tourWorld);
-	await start(page, "Customize your look", "Make your overlay yours");
+	await start(page, "Choose colors and style", "Make your overlay yours");
 	await page.getByRole("button", { name: "Customize Overlay Style", exact: true }).click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Make it yours");
 	await page.locator('[data-tour-action="next"]').click();
@@ -447,7 +451,7 @@ When("a Free account selects the optional theme journey", async ({ page, tourWor
 	await tourWorld.fixture.pool.query("UPDATE billing_subscriptions SET status='canceled' WHERE user_id=$1", [tourWorld.owner!.creatorId]);
 	await tourWorld.fixture.pool.query("DELETE FROM entitlement_grants WHERE user_id=$1", [tourWorld.owner!.creatorId]);
 	await page.reload();
-	await start(page, "Customize your look", "Make your overlay yours");
+	await start(page, "Choose colors and style", "Make your overlay yours");
 });
 Then("the guide explains Pro availability without starting a paywall", async ({ page, tourWorld }) => {
 	await expect(page.getByRole("status").filter({ hasText: "Theme Studio requires Pro" })).toBeVisible();
@@ -483,12 +487,9 @@ Then("it is marked skipped and can be restored", async ({ page, tourWorld }) => 
 	await page.locator("label").filter({ has: checkbox }).click();
 	expect((await progress(page, tourWorld)).skipped).toEqual([]);
 });
-Then("the next task guides source and filters without changing Save behavior", async ({ page, tourWorld }) => {
+Then("the next task guides source without changing Save behavior", async ({ page, tourWorld }) => {
 	await expect(page.locator(".driver-popover-title")).toHaveText("Choose your clips");
 	await expect(page.getByText(/Continue:|done\./)).toHaveCount(0);
-	await page.locator('[data-tour-action="next"]').click();
-	await expect(page.locator(".driver-popover-title")).toHaveText("Adjust the filters");
-	await expect(page.locator('[data-tour="overlay-filters"]')).toHaveClass(/driver-active-element/);
 	await page.locator('[data-tour-action="next"]').click();
 	await expect(page.getByRole("button", { name: "Save Overlay Settings", exact: true })).toBeDisabled();
 	await page.getByRole("button", { name: "Use current settings", exact: true }).click();
@@ -557,21 +558,27 @@ When("the first section is finished and browser data is cleared", async ({ page,
 	await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 });
 Then("the same account keeps its progress without reopening onboarding", async ({ page, tourWorld }) => {
-	await expect(page.getByRole("button", { name: "Get started · 100%", exact: true })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Make your overlay yours · 0%", exact: true })).toBeVisible();
 	await expect(page.getByRole("region", { name: "Your Clipify guide" })).toHaveCount(0);
 	expect((await progress(page, tourWorld)).skipped).toHaveLength(4);
 });
 When("different checklist sections are expanded", async ({ page }) => {
 	await panel(page);
-	await page.getByRole("button", { name: /^Build a playlist/ }).click();
-	await expect(page.getByRole("button", { name: /^Get your first overlay running/ })).toHaveAttribute("aria-expanded", "false");
-	await page.getByRole("button", { name: /^Explore Clipify/ }).click();
+	await page
+		.getByRole("region", { name: "Your Clipify guide" })
+		.getByRole("button", { name: /^Build a playlist/ })
+		.click();
+	await expect(page.getByRole("region", { name: "Your Clipify guide" }).getByRole("button", { name: /^Get your first overlay running/ })).toHaveAttribute("aria-expanded", "false");
+	await page
+		.getByRole("region", { name: "Your Clipify guide" })
+		.getByRole("button", { name: /^Explore Clipify/ })
+		.click();
 });
 Then("only the last selected section remains expanded", async ({ page }) => {
 	const sections = page.locator('[data-slot="accordion-trigger"][aria-expanded="true"]');
 	await expect(sections).toHaveCount(1);
 	await expect(sections).toContainText("Explore Clipify");
-	await expect(page.getByRole("button", { name: /^Build a playlist/ })).toHaveAttribute("aria-expanded", "false");
+	await expect(page.getByRole("region", { name: "Your Clipify guide" }).getByRole("button", { name: /^Build a playlist/ })).toHaveAttribute("aria-expanded", "false");
 });
 When("completed overlay creation is replayed from the editor", async ({ page, tourWorld }) => {
 	await progress(page, tourWorld);
@@ -651,7 +658,7 @@ When("customization is started inside Theme Studio and left at its save step", a
 	await expect(page.getByRole("heading", { name: "Overlay Style", exact: true })).toBeVisible();
 	await expect(page.getByRole("textbox", { name: "Text Color", exact: true })).toBeVisible();
 	await progress(page, tourWorld);
-	await start(page, "Customize your look", "Make your overlay yours");
+	await start(page, "Choose colors and style", "Make your overlay yours");
 	await expect(page.locator(".driver-popover-title")).toHaveText("Make it yours");
 	await expect(page).toHaveURL(`${tourWorld.origin}/dashboard/overlay/${tourWorld.owner!.overlayId}/theme`);
 	await expect(page.locator('[data-tour="theme-controls"]')).toContainText("Text Color");
@@ -676,12 +683,15 @@ Then("resuming teaches the route back to Theme Studio and allows reviewing the l
 	await expect(page.locator(".driver-popover")).toHaveCSS("opacity", "1");
 	await page.screenshot({ path: "/tmp/clipify-tour-theme-workspace.png", animations: "disabled" });
 });
-When("the appearance-only personalization task keeps its default look", async ({ page, tourWorld }) => {
+When("the color-and-style task keeps its default look", async ({ page, tourWorld }) => {
 	await overlay(page, tourWorld);
 	await panel(page);
-	await page.getByRole("button", { name: /^Make your overlay yours/ }).click();
-	await expect(page.getByRole("button", { name: "Adjust your filters", exact: true })).toHaveCount(0);
-	await page.getByRole("button", { name: "Customize your look", exact: true }).click();
+	await page
+		.getByRole("region", { name: "Your Clipify guide" })
+		.getByRole("button", { name: /^Make your overlay yours/ })
+		.click();
+	await expect(page.getByRole("button", { name: "Choose your filters", exact: true })).toBeVisible();
+	await page.getByRole("button", { name: "Choose colors and style", exact: true }).click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Open Theme Studio");
 	await page.getByRole("button", { name: "Customize Overlay Style", exact: true }).click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Make it yours");
@@ -691,8 +701,8 @@ When("the appearance-only personalization task keeps its default look", async ({
 	await page.reload();
 });
 Then("the launcher retains personalization progress after reload", async ({ page, tourWorld }) => {
-	await expect(page.locator('[data-tour="guide-launcher"]')).toHaveAccessibleName("Make your overlay yours · 100%");
-	await expect(page.locator('[data-tour="guide-launcher"]')).toContainText("100%");
+	await expect(page.locator('[data-tour="guide-launcher"]')).toHaveAccessibleName("Make your overlay yours · 41%");
+	await expect(page.locator('[data-tour="guide-launcher"]')).toContainText("41%");
 	expect((await progress(page, tourWorld)).journeyId).toBe("appearance");
 	expect((await progress(page, tourWorld)).completed).toContain("appearance.style");
 });
@@ -734,7 +744,7 @@ Then("its options stay usable above the dimming and section progress survives re
 	expect((await progress(page, tourWorld)).completed).toContain("overlay.name");
 });
 
-When("the clip task is reviewed backward from save through filters to source", async ({ page, tourWorld }) => {
+When("the clip task is reviewed backward from save to source", async ({ page, tourWorld }) => {
 	await progress(page, tourWorld);
 	await seedProgress(tourWorld, { overlayId: tourWorld.owner!.overlayId, completed: ["overlay.name"] });
 	await overlay(page, tourWorld);
@@ -743,21 +753,16 @@ When("the clip task is reviewed backward from save through filters to source", a
 	const next = page.getByRole("button", { name: "Continue", exact: true });
 	await expect(next).toHaveAttribute("data-slot", "button");
 	await next.click();
-	await expect(page.locator(".driver-popover-title")).toHaveText("Adjust the filters");
+	await expect(page.locator(".driver-popover-title")).toHaveText("Save your clip settings");
 	await expect(page.getByRole("button", { name: "Back", exact: true })).toHaveAttribute("data-slot", "button");
 	await expect(page.locator(".driver-popover")).toHaveCSS("opacity", "1");
 	await page.screenshot({ path: "/tmp/clipify-tour-hero-back.png", animations: "disabled" });
-	await next.click();
-	await expect(page.locator(".driver-popover-title")).toHaveText("Save your clip settings");
-	await expect(page.getByRole("button", { name: "Back", exact: true })).toHaveAttribute("data-slot", "button");
-	await page.getByRole("button", { name: "Back", exact: true }).click();
-	await expect(page.locator(".driver-popover-title")).toHaveText("Adjust the filters");
 	await page.getByRole("button", { name: "Back", exact: true }).click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Choose your clips");
 	await page.getByRole("button", { name: /Overlay Type/ }).click();
 	await page.getByRole("option", { name: "Top Clips - Last 7 Days", exact: true }).click();
 	await next.click();
-	await expect(page.locator(".driver-popover-title")).toHaveText("Adjust the filters");
+	await expect(page.locator(".driver-popover-title")).toHaveText("Save your clip settings");
 	await page.getByRole("button", { name: "Back", exact: true }).click();
 	await expect(page.getByRole("button", { name: /Overlay Type/ })).toContainText("Top Clips - Last 7 Days");
 });
@@ -777,7 +782,7 @@ When("Back is used from the styling workspace", async ({ page, tourWorld }) => {
 	await expect(page.getByRole("heading", { name: "Overlay Style", exact: true })).toBeVisible();
 	await expect(page.getByRole("textbox", { name: "Text Color", exact: true })).toBeVisible();
 	await progress(page, tourWorld);
-	await start(page, "Customize your look", "Make your overlay yours");
+	await start(page, "Choose colors and style", "Make your overlay yours");
 	await expect(page.locator(".driver-popover-title")).toHaveText("Make it yours");
 	await page.getByRole("button", { name: "Back", exact: true }).click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Return to overlay settings");
@@ -909,7 +914,7 @@ When("the fresh welcome offers the guided journey", async ({ page, tourWorld }) 
 	await expect(page.getByRole("button", { name: "Start guided tour", exact: true })).toBeVisible();
 	await expect(page.getByText("7 days of Pro, on us.", { exact: true })).toBeVisible();
 	await expect(page.locator(".driver-popover")).toHaveCount(0);
-	await expect(page.getByText(/Complete every guide to earn your Clipify Expert badge/)).toBeVisible();
+	await expect(page.getByText(/Complete every guide to earn Clipify Expert/)).toBeVisible();
 	await page.screenshot({ path: "/tmp/clipify-welcome-tour.png" });
 });
 Then("starting the welcome teaches the real Add Overlay control", async ({ page, tourWorld }) => {
@@ -964,20 +969,28 @@ Then("the Clipify Expert graduation badge persists on the member card", async ({
 	await expect(page.getByText("Clipify Expert", { exact: true }).first()).toBeVisible();
 	expect((await progress(page, tourWorld)).expertAwardedAt).toBe(awardedAt);
 	await expect(page.getByRole("button", { name: "Start guided tour", exact: true })).toHaveCount(0);
+	await start(page, "Find help and report a problem", "Explore Clipify");
+	await expect(page.locator(".driver-popover-title")).toHaveText("Report a problem");
+	await pause(page);
+	await expect(page.getByRole("region", { name: "Your Clipify guide" }).getByRole("button", { name: /^Explore Clipify/ })).toHaveAttribute("aria-expanded", "true");
+	await expect(page.getByRole("checkbox", { name: "Mark Find help and report a problem as done", exact: true })).toBeVisible();
+	expect((await progress(page, tourWorld)).expertAwardedAt).toBe(awardedAt);
 });
 When("three remaining guides confirm the existing settings", async ({ page, tourWorld }) => {
 	const skipped = ["overlay.source", "appearance.style", "playlist.use"] as const;
 	await seedProgress(tourWorld, { overlayId: tourWorld.owner!.overlayId, playlistId: tourWorld.owner!.playlistId, completed: journeys.flatMap((journey) => journey.tasks.map((task) => task.id)).filter((task) => !(skipped as readonly string[]).includes(task)), skipped: [...skipped] });
 	await overlay(page, tourWorld);
 	await panel(page);
-	await expect(page.getByLabel("Clipify Expert progress")).toHaveText("Clipify Expert: 12/15");
+	await expect(page.getByLabel("Clipify Expert progress")).toHaveCount(0);
+	const coreSection = page.getByRole("region", { name: "Your Clipify guide" }).getByRole("button", { name: /^Get your first overlay running/ });
+	await expect(coreSection).toHaveAttribute("aria-expanded", "false");
+	await coreSection.click();
 	await expect(page.getByRole("button", { name: "Choose your clips", exact: true }).getByText("Skipped", { exact: true })).toBeVisible();
 	await expect(page.getByRole("button", { name: "Choose your clips", exact: true })).toHaveAccessibleDescription("Skipped");
 	await start(page, "Choose your clips");
 	await page.getByRole("button", { name: "Continue", exact: true }).click();
-	await page.getByRole("button", { name: "Continue", exact: true }).click();
 	await page.getByRole("button", { name: "Use current settings", exact: true }).click();
-	await start(page, "Customize your look", "Make your overlay yours");
+	await start(page, "Choose colors and style", "Make your overlay yours");
 	await page.getByRole("button", { name: "Customize Overlay Style", exact: true }).click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Make it yours");
 	await page.getByRole("button", { name: "Continue", exact: true }).click();
@@ -994,11 +1007,11 @@ When("three remaining guides confirm the existing settings", async ({ page, tour
 Then("all guides are completed and the Expert badge is awarded", async ({ page, tourWorld }) => {
 	await expect(page.getByText("Clipify Expert unlocked!", { exact: true })).toBeVisible();
 	const saved = await progress(page, tourWorld);
-	expect(saved.completed).toHaveLength(15);
+	expect(saved.completed).toHaveLength(journeys.reduce((total, journey) => total + journey.tasks.length, 0));
 	expect(saved.skipped).toEqual([]);
 	expect(saved.expertAwardedAt).toEqual(expect.any(String));
 	await panel(page);
-	await expect(page.getByLabel("Clipify Expert progress")).toHaveText("Clipify Expert: 15/15");
+	await expect(page.getByLabel("Clipify Expert progress")).toHaveCount(0);
 	await page.screenshot({ path: "/tmp/clipify-expert-confirmations.png", animations: "disabled" });
 });
 When("the editor preselects a different playlist during overlay guidance", async ({ page, tourWorld }) => {
@@ -1046,6 +1059,10 @@ When("the runner discovery guide is followed", async ({ page }) => {
 	await page.getByRole("button", { name: "Done", exact: true }).click();
 });
 Then("runner discovery completes without creating a runner", async ({ page, tourWorld }) => {
+	const panel = page.getByRole("region", { name: "Your Clipify guide" });
+	await expect(panel).toBeVisible();
+	await expect(panel.getByRole("button", { name: /^Explore Clipify/ })).toHaveAttribute("aria-expanded", "true");
+	await expect(panel.getByRole("button", { name: "Add Clipify to your website", exact: true })).toBeVisible();
 	expect((await progress(page, tourWorld)).completed).toContain("explore.runners");
 	expect(Number((await tourWorld.fixture.pool.query("SELECT count(*) FROM runners WHERE owner_id=$1", [tourWorld.owner!.creatorId])).rows[0].count)).toBe(0);
 	expect((await progress(page, tourWorld)).active).toBeNull();
@@ -1097,11 +1114,11 @@ Then("AI discovery completes without connecting an app", async ({ page, tourWorl
 	await expect(page.getByText("No connected apps.", { exact: true })).toBeVisible();
 });
 When("the editor discovery guide is followed", async ({ page }) => {
-	await start(page, "Find your editors and team", "Explore Clipify");
+	await start(page, "Find your team members", "Explore Clipify");
 	await openSettingsFromGuide(page);
 	await expect(page.locator(".driver-popover-title")).toHaveText("Open Team");
 	await page.getByRole("tab", { name: "Team", exact: true }).click();
-	await expect(page.locator(".driver-popover-title")).toHaveText("Your editors and team");
+	await expect(page.locator(".driver-popover-title")).toHaveText("Your team members");
 	await expect(page.getByRole("button", { name: "Invite member", exact: true })).toBeVisible();
 	await page.getByRole("button", { name: "Done", exact: true }).click();
 });
@@ -1110,4 +1127,150 @@ Then("editor discovery completes without inviting anyone", async ({ page, tourWo
 	expect((await progress(page, tourWorld)).active).toBeNull();
 	expect(Number((await tourWorld.fixture.pool.query("SELECT count(*) FROM auth.invitation WHERE organization_id=$1", [tourWorld.owner!.creatorOrganizationId])).rows[0].count)).toBe(0);
 	await expect(page.getByRole("dialog", { name: "Invite a team member", exact: true })).toHaveCount(0);
+});
+
+When("the final first-overlay task is completed", async ({ page, tourWorld }) => {
+	await progress(page, tourWorld);
+	await seedProgress(tourWorld, { overlayId: tourWorld.owner!.overlayId, copiedOverlayId: tourWorld.owner!.overlayId, completed: ["overlay.name", "overlay.source", "overlay.preview"], active: { task: "overlay.setup", index: 1, paused: false }, minimized: true });
+	await overlay(page, tourWorld);
+	await resumeTask(page, tourWorld);
+	await page.getByRole("button", { name: "Finish guide", exact: true }).click();
+});
+Then("the checklist opens with personalization expanded and the finished chapter collapsed", async ({ page, tourWorld }) => {
+	await expect(page.getByRole("region", { name: "Your Clipify guide" })).toBeVisible();
+	await expect(page.getByRole("region", { name: "Your Clipify guide" }).getByRole("button", { name: /^Get your first overlay running/ })).toHaveAttribute("aria-expanded", "false");
+	await expect(page.getByRole("region", { name: "Your Clipify guide" }).getByRole("button", { name: /^Make your overlay yours/ })).toHaveAttribute("aria-expanded", "true");
+	await expect(page.getByRole("region", { name: "Your Clipify guide" }).getByRole("button", { name: /^Build a playlist/ })).toHaveAttribute("aria-expanded", "false");
+	for (const name of ["Choose your filters", "Choose colors and style", "Choose what to display", "Preview your look"]) await expect(page.getByRole("button", { name, exact: true })).toBeVisible();
+	await expect(page.getByLabel("Clipify Expert progress")).toHaveCount(0);
+	await expect(page.locator(".driver-popover")).toHaveCount(0);
+	expect((await progress(page, tourWorld)).active).toBeNull();
+	await page.screenshot({ path: "/tmp/clipify-tour-chapter-handoff.png", animations: "disabled" });
+});
+When("the complete personalization chapter is followed", async ({ page, tourWorld }) => {
+	await progress(page, tourWorld);
+	await seedProgress(tourWorld, { overlayId: tourWorld.owner!.overlayId, completed: ["overlay.name", "overlay.source", "overlay.preview", "overlay.setup"] });
+	await overlay(page, tourWorld);
+	await start(page, "Choose your filters", "Make your overlay yours");
+	await expect(page.locator('[data-tour="overlay-filters"]')).toHaveClass(/driver-active-element/);
+	await page.getByRole("textbox", { name: "Minimum Clip Views", exact: true }).fill("2");
+	await page.getByRole("textbox", { name: "Minimum Clip Views", exact: true }).press("Tab");
+	await page.getByRole("button", { name: "Continue", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Save your filters");
+	await page.getByRole("button", { name: "Back", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Choose your filters");
+	await page.getByRole("button", { name: "Continue", exact: true }).click();
+	await page.getByRole("button", { name: "Save Overlay Settings", exact: true }).click();
+	await expect(page.getByRole("region", { name: "Your Clipify guide" })).toBeVisible();
+	expect((await progress(page, tourWorld)).active).toBeNull();
+	await start(page, "Choose colors and style", "Make your overlay yours");
+	await expect(page.locator(".driver-popover-title")).toHaveText("Open Theme Studio");
+	await page.getByRole("button", { name: "Customize Overlay Style", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Make it yours");
+	await page.getByRole("textbox", { name: "Text Color", exact: true }).fill("#FF0000");
+	await page.getByRole("textbox", { name: "Text Color", exact: true }).press("Tab");
+	await page.getByRole("button", { name: "Continue", exact: true }).click();
+	await page.getByRole("button", { name: "Save Style", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Choose what to display");
+	await page.locator('[data-tour="theme-components"]').getByRole("button").click();
+	await page.getByRole("option", { name: "Timer", exact: true }).click();
+	await page.keyboard.press("Escape");
+	await page.getByRole("button", { name: "Continue", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Try visual effects");
+	await page.locator('[data-tour="theme-effects"]').getByRole("button").click();
+	await page.getByRole("option", { name: "Scanlines", exact: true }).click();
+	await page.keyboard.press("Escape");
+	await page.getByRole("button", { name: "Continue", exact: true }).click();
+	await page.getByRole("button", { name: "Save Style", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Preview your look");
+	await expect(page.locator('[data-tour="theme-preview"]')).toHaveClass(/driver-active-element/);
+	await page.getByRole("button", { name: "Continue", exact: true }).click();
+	await page.getByRole("button", { name: "Keep current look", exact: true }).click();
+});
+Then("the playlist chapter is revealed without starting its tour", async ({ page, tourWorld }) => {
+	const saved = await progress(page, tourWorld);
+	for (const task of journeys.find((journey) => journey.id === "appearance")!.tasks) expect(saved.completed).toContain(task.id);
+	expect(saved.active).toBeNull();
+	expect(saved.journeyId).toBe("playlist");
+	await expect(page.getByRole("region", { name: "Your Clipify guide" })).toBeVisible();
+	await expect(page.getByRole("region", { name: "Your Clipify guide" }).getByRole("button", { name: /^Make your overlay yours/ })).toHaveAttribute("aria-expanded", "false");
+	await expect(page.getByRole("region", { name: "Your Clipify guide" }).getByRole("button", { name: /^Build a playlist/ })).toHaveAttribute("aria-expanded", "true");
+	await expect(page.locator(".driver-popover")).toHaveCount(0);
+});
+When("guided navigation opens the unsaved changes dialog", async ({ page, tourWorld }) => {
+	await progress(page, tourWorld);
+	await seedProgress(tourWorld, { overlayId: tourWorld.owner!.overlayId });
+	await overlay(page, tourWorld);
+	await start(page, "Choose your filters", "Make your overlay yours");
+	await page.getByRole("textbox", { name: "Minimum Clip Views", exact: true }).fill("2");
+	await page.getByRole("textbox", { name: "Minimum Clip Views", exact: true }).press("Tab");
+	await start(page, "Create and name your overlay", "Get your first overlay running");
+	await expect(page.locator(".driver-popover-title")).toHaveText("Open your Dashboard");
+	await page.locator('[data-tour="dashboard-home"]').click();
+	await expect(page.getByRole("dialog", { name: "Unsaved Changes", exact: true })).toBeVisible();
+});
+Then("Cancel restores the guide and Discard continues through normal navigation", async ({ page, tourWorld }) => {
+	const before = (await progress(page, tourWorld)).active;
+	await expect(page.locator(".driver-popover")).toHaveCount(0);
+	expect(before).toMatchObject({ task: "overlay.name", paused: false, navigation: ["home", "overlays"] });
+	const dialog = page.getByRole("dialog", { name: "Unsaved Changes", exact: true });
+	await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+	await expect(dialog).toBeHidden();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Open your Dashboard");
+	expect((await progress(page, tourWorld)).active).toEqual(before);
+	await page.locator('[data-tour="dashboard-home"]').click();
+	await expect(dialog).toBeVisible();
+	await dialog.getByRole("button", { name: "Discard Changes", exact: true }).click();
+	await expect(page).toHaveURL(`${tourWorld.origin}/dashboard`);
+	await expect(page.locator(".driver-popover-title")).toHaveText("Create an overlay");
+	expect((await progress(page, tourWorld)).active).toMatchObject({ task: "overlay.name", paused: false, navigation: [] });
+});
+
+When("selected clips are added directly from the search checkpoint", async ({ page, tourWorld }) => {
+	await progress(page, tourWorld);
+	await tourWorld.fixture.pool.query("DELETE FROM playlist_clips WHERE playlist_id=$1", [tourWorld.owner!.playlistId]);
+	await seedProgress(tourWorld, { playlistId: tourWorld.owner!.playlistId, completed: ["playlist.name"] });
+	await page.goto(`${tourWorld.origin}/dashboard/playlist/${tourWorld.owner!.playlistId}`);
+	await expect(page.getByPlaceholder("Playlist name")).toBeVisible();
+	await start(page, "Add and arrange clips", "Build a playlist");
+	await page.getByRole("button", { name: "Add Clips", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Find your clips");
+	await page
+		.getByRole("dialog")
+		.locator("label")
+		.filter({ has: page.getByRole("checkbox", { name: "Select GuideFirst" }) })
+		.click();
+	await page.getByRole("button", { name: "Add selected clips", exact: true }).click();
+});
+Then("the guide advances to arrangement and the playlist saves normally", async ({ page, tourWorld }) => {
+	await expect(page.locator(".driver-popover-title")).toHaveText("Arrange your clips");
+	expect((await progress(page, tourWorld)).active).toMatchObject({ task: "playlist.clips", index: 4, paused: false });
+	await page.getByRole("button", { name: "Continue", exact: true }).click();
+	await page.getByRole("button", { name: "Save Playlist", exact: true }).click();
+	await expect.poll(async () => (await progress(page, tourWorld)).completed).toContain("playlist.clips");
+	expect(Number((await tourWorld.fixture.pool.query("SELECT count(*) FROM playlist_clips WHERE playlist_id=$1", [tourWorld.owner!.playlistId])).rows[0].count)).toBe(1);
+});
+When("AI discovery starts from Team with a creator settings draft", async ({ page, tourWorld }) => {
+	await page.goto(`${tourWorld.origin}/dashboard/settings?tab=creator`);
+	await page.getByRole("textbox", { name: "Preview title", exact: true }).fill("My unsaved creator title");
+	tourWorld.result = { timeOrigin: await page.evaluate(() => performance.timeOrigin) };
+	await page.getByRole("tab", { name: "Team", exact: true }).click();
+	await expect(page).toHaveURL(`${tourWorld.origin}/dashboard/settings?tab=team`);
+	await expect(page.getByRole("tablist", { name: "Settings sections", exact: true })).toHaveCount(1);
+	await expect(page.locator('[data-tour="team-overview"]')).toBeVisible();
+	await expect(page.getByRole("dialog", { name: "Unsaved Changes", exact: true })).toHaveCount(0);
+	await start(page, "Discover AI connections", "Explore Clipify");
+	await expect(page.locator(".driver-popover-title")).toHaveText("Choose Connections");
+	await page.getByRole("tab", { name: "Connections", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Connected AI apps");
+	await page.getByRole("button", { name: "Continue", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Connect an AI app");
+	await page.getByRole("button", { name: "Done", exact: true }).click();
+});
+Then("Connections opens directly and the creator draft is retained", async ({ page, tourWorld }) => {
+	expect((await progress(page, tourWorld)).completed).toContain("explore.ai");
+	await page.getByRole("tab", { name: "Creator Page", exact: true }).click();
+	await expect(page.getByRole("textbox", { name: "Preview title", exact: true })).toHaveValue("My unsaved creator title");
+	expect(await page.evaluate(() => performance.timeOrigin)).toBe((tourWorld.result as { timeOrigin: number }).timeOrigin);
+	await expect(page.getByRole("dialog", { name: "Unsaved Changes", exact: true })).toHaveCount(0);
 });

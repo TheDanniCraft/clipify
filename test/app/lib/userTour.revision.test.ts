@@ -32,7 +32,7 @@ it("teaches the actual style button before arriving at Theme Studio", () => {
 });
 it("highlights filters and the copy action, with setup instructions as their own step", () => {
 	const state = { ...defaultProgress(), overlayId: "overlay" };
-	expect(stepsForTask("overlay.source", state).map((step) => step.target)).toContain("overlay-filters");
+	expect(stepsForTask("appearance.clip-filters", state).map((step) => step.target)).toContain("overlay-filters");
 	expect(stepsForTask("overlay.setup", state)[0].target).toBe("overlay-copy");
 	const copying = apply(state, { type: "start", task: "overlay.setup" });
 	const copied = apply(copying, { type: "overlay.copied", ownerId: "owner", id: "overlay" });
@@ -44,7 +44,7 @@ it("completes the appearance guide when the user confirms the default look", () 
 	const next = apply(state, { type: "next" });
 	expect(next.completed).toContain("appearance.style");
 	expect(next.skipped).not.toContain("appearance.style");
-	expect(next.active).toBeNull();
+	expect(next.active).toMatchObject({ task: "appearance.components", index: 1, navigation: [] });
 });
 it("does not let a foreign website copy advance the active instruction", () => {
 	const state = { ...defaultProgress(), active: { task: "explore.tools" as const, index: 1, paused: false } };

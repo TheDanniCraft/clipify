@@ -97,7 +97,7 @@ it("finds a target whose anchor appears after asynchronous access loading", asyn
 	expect(highlight).toHaveBeenCalled();
 });
 
-it("pauses for an application dialog even when aria-modal is omitted", async () => {
+it("suspends for an application dialog even when aria-modal is omitted", async () => {
 	const pause = jest.fn(),
 		missing = jest.fn(),
 		next = jest.fn();
@@ -119,7 +119,19 @@ it("pauses for an application dialog even when aria-modal is omitted", async () 
 	await act(async () => {
 		await Promise.resolve();
 	});
-	expect(pause).toHaveBeenCalled();
+	expect(pause).not.toHaveBeenCalled();
+	expect(destroy).toHaveBeenCalled();
+	view.rerender(
+		<>
+			<button data-tour='control'>Open clips</button>
+			<Spotlight step={step} onPause={pause} onMissing={missing} onNext={next} />
+		</>,
+	);
+	await act(async () => {
+		await Promise.resolve();
+	});
+	expect(highlight).toHaveBeenCalledTimes(2);
+	expect(next).not.toHaveBeenCalled();
 });
 
 it("keeps a portalled select open without pausing the guide", async () => {
@@ -341,4 +353,58 @@ it("keeps guided picker controls inside the owning modal focus scope", () => {
 	expect(next).toHaveBeenCalledTimes(1);
 	view.unmount();
 	expect(modal).not.toHaveAttribute("data-tour-guided-dialog");
+});
+
+it("advances into the expected clip dialog when its guided search appears", async () => {
+	const next = jest.fn();
+	const pause = jest.fn();
+	const pointer = <Spotlight step={{ ...step, action: true, allowDialog: true, reveals: "clip-search" }} onPause={pause} onMissing={jest.fn()} onNext={next} />;
+	const view = render(
+		<>
+			<button data-tour='control'>Add clips</button>
+			{pointer}
+		</>,
+	);
+	view.rerender(
+		<>
+			<button data-tour='control'>Add clips</button>
+			<div data-slot='modal-dialog' role='dialog'>
+				<input data-tour='clip-search' />
+			</div>
+			{pointer}
+		</>,
+	);
+	await act(async () => {
+		await Promise.resolve();
+	});
+	expect(next).toHaveBeenCalledTimes(1);
+	expect(pause).not.toHaveBeenCalled();
+});
+it("holds a reveal checkpoint while an unrelated navigation dialog owns focus", async () => {
+	const next = jest.fn();
+	const pause = jest.fn();
+	const pointer = <Spotlight step={{ ...step, action: true, allowDialog: true, reveals: "clip-search" }} onPause={pause} onMissing={jest.fn()} onNext={next} />;
+	const view = render(
+		<>
+			<button data-tour='control'>Add clips</button>
+			<input data-tour='clip-search' />
+			<div data-slot='modal-dialog' role='dialog'>
+				Unsaved changes
+			</div>
+			{pointer}
+		</>,
+	);
+	expect(next).not.toHaveBeenCalled();
+	view.rerender(
+		<>
+			<button data-tour='control'>Add clips</button>
+			<input data-tour='clip-search' />
+			{pointer}
+		</>,
+	);
+	await act(async () => {
+		await Promise.resolve();
+	});
+	expect(next).toHaveBeenCalledTimes(1);
+	expect(pause).not.toHaveBeenCalled();
 });

@@ -17,7 +17,7 @@ import { notify as addToast } from "@lib/toast";
 import { IconAlertTriangle, IconClock, IconDatabase, IconDeviceFloppy, IconInfoCircle, IconMail, IconRefresh, IconShieldLock, IconTrash } from "@tabler/icons-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { requestAccountDataExport, requestAccountDeletion } from "@actions/subscription";
 import { forceRefreshOwnClipCache, getOwnClipForceRefreshStatus } from "@actions/twitch";
 import { useNavigationGuard } from "nextjs-nav-guard";
@@ -27,7 +27,8 @@ import BillingPanel from "./billing-panel";
 import ChatwootData from "@components/chatwootData";
 import ControlledModal from "@components/controlledModal";
 import CreatorAnalyticsCard from "@components/creator/CreatorAnalyticsCard";
-import SettingsNavigation from "@components/settingsNavigation";
+import SettingsNavigation, { type SettingsNavigationKey } from "@components/settingsNavigation";
+import TeamSettingsPanel from "@components/settings/TeamSettingsPanel";
 import { getFeatureAccess, getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
 import type { BillingCycle, PaywallSource } from "@actions/subscription";
 import { authClient } from "@/auth/client";
@@ -57,7 +58,7 @@ type ClipForceRefreshStatusState = {
 	canRefresh: boolean;
 } | null;
 
-type SettingsSection = "settings" | "connections" | "creator" | "billing";
+type SettingsSection = SettingsNavigationKey;
 
 export default function SettingsPage() {
 	const [user, setUser] = useState<AuthenticatedUser | null>(null);
@@ -84,7 +85,8 @@ export default function SettingsPage() {
 	const [recentAuthRemainingMs, setRecentAuthRemainingMs] = useState(0);
 
 	const router = useRouter();
-	const navGuard = useNavigationGuard({ enabled: isFormDirty() });
+	const navigationGuardEnabled = useCallback(() => JSON.stringify(settings) !== JSON.stringify(baseSettings), [settings, baseSettings]);
+	const navGuard = useNavigationGuard({ enabled: navigationGuardEnabled });
 
 	useEffect(() => {
 		async function validateUser() {
@@ -218,7 +220,7 @@ export default function SettingsPage() {
 				router.replace(params.size ? `/dashboard/settings?${params.toString()}` : "/dashboard/settings");
 			}
 			const requestedTab = params.get("tab");
-			if (requestedTab === "creator" || requestedTab === "connections" || requestedTab === "billing") setSectionTab(requestedTab);
+			if (requestedTab === "creator" || requestedTab === "connections" || requestedTab === "billing" || requestedTab === "team") setSectionTab(requestedTab);
 			else if (requestedTab === "badges" || requestedTab === "achievements") router.replace("/dashboard/member-card");
 			else if (params.has("billing") || params.has("checkout") || params.get("addon") === "runner") setSectionTab("billing");
 		});
@@ -353,6 +355,14 @@ export default function SettingsPage() {
 		}
 	}
 
+	function selectSection(section: SettingsSection) {
+		setSectionTab(section);
+		const params = new URLSearchParams(window.location.search);
+		if (section === "settings") params.delete("tab");
+		else params.set("tab", section);
+		window.history.replaceState(window.history.state, "", params.size ? `/dashboard/settings?${params.toString()}` : "/dashboard/settings");
+	}
+
 	async function reauthenticateWithTwitch() {
 		setIsReauthenticating(true);
 		const callbackURL = `/dashboard/settings?reauthenticated=${recentAuthAction ?? "sensitive-action"}`;
@@ -369,9 +379,11 @@ export default function SettingsPage() {
 
 			<DashboardNavbar user={user} title='Settings' tagline='Manage your settings'>
 				<div className='mt-4 flex w-full flex-col gap-2'>
-					<SettingsNavigation active={sectionTab} onCoreSectionChange={setSectionTab} />
+					<SettingsNavigation active={sectionTab} onCoreSectionChange={selectSection} />
 				</div>
-				{sectionTab === "billing" ? (
+				{sectionTab === "team" ? (
+					<TeamSettingsPanel embedded />
+				) : sectionTab === "billing" ? (
 					<BillingPanel />
 				) : sectionTab === "connections" ? (
 					<div className='mt-4 space-y-4'>
@@ -673,7 +685,7 @@ export default function SettingsPage() {
 													<p className='text-sm font-semibold'>Team access</p>
 													<p className='text-xs text-muted'>Invite team members and assign preset or custom permissions.</p>
 												</div>
-												<Button variant='secondary' onPress={() => router.push("/dashboard/settings/team")}>
+												<Button variant='secondary' onPress={() => selectSection("team")}>
 													Manage team
 												</Button>
 											</div>
