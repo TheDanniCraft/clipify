@@ -14,7 +14,11 @@ async function seedProgress(world: TourWorld, patch: Partial<GuideProgress> = {}
 	await world.fixture.pool.query("INSERT INTO user_content_states (user_id,content_key,state) VALUES ($1,$2,$3) ON CONFLICT (user_id,content_key) DO UPDATE SET state=EXCLUDED.state", [world.owner!.creatorId, guideContentKey, JSON.stringify({ ...defaultProgress(), welcomeSeen: true, ...patch })]);
 }
 async function panel(page: Page) {
-	if (!(await page.getByRole("region", { name: "Your Clipify guide" }).isVisible())) await page.locator('[data-tour="guide-launcher"]').click();
+	const launcher = page.locator('[data-tour="guide-launcher"]');
+	const checklist = page.getByRole("region", { name: "Your Clipify guide" });
+	await expect(launcher).toBeVisible();
+	if (!(await checklist.isVisible())) await launcher.click();
+	await expect(checklist).toBeVisible();
 }
 async function start(page: Page, name: string, section?: string) {
 	await panel(page);
