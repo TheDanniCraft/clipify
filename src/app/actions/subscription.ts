@@ -13,8 +13,8 @@ import { billingSubscriptionItemsTable, billingSubscriptionsTable, usersTable } 
 import { eq } from "drizzle-orm";
 import { getActiveCampaignOffer } from "@lib/campaignOffers";
 import { tryRateLimit } from "@actions/rateLimit";
-import { getActiveEntitlementGrant, resolveUserEntitlements } from "@lib/entitlements";
-import { Entitlement, EntitlementGrantSource } from "@types";
+import { resolveUserEntitlements } from "@lib/entitlements";
+import { EntitlementGrantSource } from "@types";
 import { isProductOwnedByEntitlement } from "@lib/billingOwnership";
 import type { DeletionChoice } from "@/server/account-lifecycle/service";
 import { ACCOUNT_DATA_EXPORT_TTL_MS, createAccountDataExportToken } from "@/auth/account-data-export-token";
@@ -59,7 +59,6 @@ export type BillingOverview = {
 
 const BILLING_PRODUCT_INFO: Record<BillingProduct, { label: string; description: string; category: "plan" | "addon" }> = {
 	[BillingProduct.Pro]: { label: "Pro", description: "Unlock multiple overlays, unlimited playlists, advanced filters, and Pro features.", category: "plan" },
-	[BillingProduct.RunnerSelfHosted]: { label: "Self-hosted Runner", description: "Run Clipify overlays from your own computer or server.", category: "addon" },
 };
 
 export async function getPlans() {
@@ -159,21 +158,17 @@ export async function getBillingProductOptions(primaryProduct: BillingProduct) {
 export async function getBillingOverview(): Promise<BillingOverview> {
 	const authUser = await getAuthorizedUser();
 	const rows = await db.select({ subscription: billingSubscriptionsTable, item: billingSubscriptionItemsTable }).from(billingSubscriptionsTable).leftJoin(billingSubscriptionItemsTable, eq(billingSubscriptionItemsTable.subscriptionId, billingSubscriptionsTable.id)).where(eq(billingSubscriptionsTable.userId, authUser.id)).execute();
-	const activeRows = rows.filter(({ subscription }) => ["active", "trialing", "past_due", "unpaid"].includes(subscription.status));
+	const activeRows = rows.filter(({ subscription, item }) => item?.productKey === BillingProduct.Pro && ["active", "trialing", "past_due", "unpaid"].includes(subscription.status));
 	const subscription = activeRows[0]?.subscription;
 	const products: BillingOverview["products"] = activeRows.flatMap(({ item, subscription: rowSubscription }) =>
 		item ? [{ key: item.productKey, label: BILLING_PRODUCT_INFO[item.productKey]?.label ?? item.productKey, active: true, billingInterval: item.billingInterval === "year" ? ("yearly" as const) : ("monthly" as const), unitAmount: item.unitAmount, currency: item.currency.toUpperCase(), currentPeriodEnd: rowSubscription.currentPeriodEnd?.toISOString() ?? null, cancelAtPeriodEnd: Boolean(rowSubscription.cancelAtPeriodEnd), source: "billing" as const, grantSource: null }] : [],
 	);
 	const entitlements = await resolveUserEntitlements(authUser);
-	const runnerGrant = entitlements.runnerAccess ? await getActiveEntitlementGrant(authUser.id, Entitlement.RunnerAccess) : null;
 	if (entitlements.proAccess && !products.some((product) => product.key === BillingProduct.Pro)) {
 		products.push({ key: BillingProduct.Pro, label: BILLING_PRODUCT_INFO[BillingProduct.Pro].label, active: true, billingInterval: null, unitAmount: null, currency: "EUR", currentPeriodEnd: entitlements.trialEndsAt ? new Date(entitlements.trialEndsAt).toISOString() : null, cancelAtPeriodEnd: false, source: "grant", grantSource: entitlements.grantSource ?? null });
 	}
-	if (entitlements.runnerAccess && !products.some((product) => product.key === BillingProduct.RunnerSelfHosted)) {
-		products.push({ key: BillingProduct.RunnerSelfHosted, label: BILLING_PRODUCT_INFO[BillingProduct.RunnerSelfHosted].label, active: true, billingInterval: null, unitAmount: null, currency: "EUR", currentPeriodEnd: runnerGrant?.endsAt?.toISOString() ?? null, cancelAtPeriodEnd: false, source: "grant", grantSource: runnerGrant?.source ?? null });
-	}
 	return {
-		status: subscription?.status ?? (entitlements.proAccess || entitlements.runnerAccess ? "active" : "inactive"),
+		status: subscription?.status ?? (entitlements.proAccess ? "active" : "inactive"),
 		currentPeriodEnd: subscription?.currentPeriodEnd?.toISOString() ?? null,
 		cancelAtPeriodEnd: Boolean(subscription?.cancelAtPeriodEnd),
 		products,
@@ -244,6 +239,7 @@ async function persistStripeCustomerId(userId: string, customerId: string) {
 }
 
 export async function generateCheckout(productKeys: BillingProduct[] | Array<{ product: BillingProduct; billingCycle: BillingCycle }>, billingCycle: BillingCycle = "yearly", returnUrl?: string, numokMetadata?: NumokStripeMetadata, source?: PaywallSource, checkoutOptions?: { idempotencyKey?: string; successUrl?: string; cancelUrl?: string }) {
+	if (!productKeys.length || productKeys.some((entry) => (typeof entry === "string" ? entry : entry.product) !== BillingProduct.Pro)) return { success: false as const, code: "INVALID_PRODUCT" as const, error: "Choose a supported plan." };
 	const authUser = await getAuthorizedUser();
 	const selectedProducts = Array.from(new Map(productKeys.map((entry) => (typeof entry === "string" ? [entry, { product: entry, billingCycle }] : [`${entry.product}:${entry.billingCycle}`, entry]))).values());
 	if (selectedProducts.length === 0) throw new Error("Select at least one product");
@@ -368,10 +364,6 @@ export async function generateCheckout(productKeys: BillingProduct[] | Array<{ p
 
 export async function generatePaymentLink(billingCycle: BillingCycle, returnUrl?: string, numokMetadata?: NumokStripeMetadata, source?: PaywallSource) {
 	return generateCheckout([BillingProduct.Pro], billingCycle, returnUrl, numokMetadata, source);
-}
-
-export async function generateRunnerPaymentLink(billingCycle: BillingCycle, returnUrl?: string, source?: PaywallSource) {
-	return generateCheckout([BillingProduct.RunnerSelfHosted], billingCycle, returnUrl, undefined, source);
 }
 
 export async function getPortalLink() {

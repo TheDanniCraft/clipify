@@ -22,12 +22,12 @@ const faqs: Faq[] = [
 		content: "Normally, Clipify automatically selects clips based on your filters (e.g. last week). But with Playlists, you can handpick specific clips to play, even in a custom order. This gives you full control over the content that gets showcased on your stream.",
 	},
 	{
-		title: "What is the self-hosted Runner and what does it cost?",
-		content: "The self-hosted Runner automatically plays your clips 24/7 or acts as a failsafe when your OBS setup goes offline. It runs on your own Windows, Linux, or macOS computer and is available with Free or Pro for 3 EUR per month or 30 EUR per year.",
+		title: "What is the self-hosted Runner?",
+		content: "Runner broadcasts clips from your Windows, Linux, or macOS computer. You can also use it to play clips automatically when your live feed goes offline.",
 	},
 	{
 		title: "Is there a free version of Clipify?",
-		content: "Yes, Clipify offers a free version with basic features. You can upgrade to Pro for additional features, or add the optional self-hosted Runner to either plan.",
+		content: "Yes. You can start using overlays, playlists, galleries, and Runner for free.",
 	},
 	{
 		title: "What is a Clipify Creator Page?",
@@ -59,7 +59,7 @@ const faqs: Faq[] = [
 	},
 	{
 		title: "What are the benefits of the Pro version?",
-		content: "The Pro version includes Theme Studio, advanced playback filters, multiple active overlays, channel points integration, the remote control panel, editor access for teammates, and priority support.",
+		content: "The Pro version includes Theme Studio, advanced playback filters, multiple active overlays, channel points integration, the remote control panel, editor access for teammates, priority support, and advanced Runner broadcasting with scheduling, multiple destinations and broadcasts, custom standby screens, and watermark removal.",
 	},
 	{
 		title: "What happens if I cancel Pro?",

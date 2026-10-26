@@ -27,6 +27,7 @@ describe("RunnerEnrollForm", () => {
 
 		const continueButton = screen.getByRole("button", { name: "Continue" });
 		expect(continueButton).toBeEnabled();
+		expect(screen.getByText("Enter the device code shown in your runner terminal.")).toBeInTheDocument();
 		expect(mockSubmitRunnerEnrollCode).not.toHaveBeenCalled();
 
 		fireEvent.click(continueButton);
@@ -35,4 +36,12 @@ describe("RunnerEnrollForm", () => {
 		const formData = mockSubmitRunnerEnrollCode.mock.calls[0][1] as FormData;
 		expect(formData.get("code")).toBe("ABCD-2345");
 	});
+});
+
+test("TDD-US5-DEC013: an old entitlement response offers enrollment recovery without a new purchase", async () => {
+	const Result = (await import("@/app/runner/enroll/runner-enroll-result")).default;
+	render(<Result state={{ status: "entitlement-required" }} />);
+	expect(screen.getByRole("heading", { name: "Refresh Runner access" })).toBeInTheDocument();
+	expect(screen.getByRole("link", { name: "Back to enrollment" })).toHaveAttribute("href", "/runner/enroll");
+	expect(screen.queryByRole("link", { name: "View Runner add-on" })).not.toBeInTheDocument();
 });

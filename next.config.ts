@@ -19,6 +19,7 @@ const nextConfigPromise = Promise.resolve(drizzle).then(
 			output: process.env.E2E_TEST_MODE === "true" ? undefined : "standalone",
 			serverExternalPackages: ["@c15t/backend"],
 			deploymentId,
+			experimental: { serverActions: { bodySizeLimit: "3mb" } },
 			distDir: process.env.E2E_TEST_MODE === "true" ? ".next-playwright" : ".next",
 			outputFileTracingIncludes: {
 				"**": [...drizzle, "./node_modules/@sentry/profiling-node/**", "./node_modules/@sentry/node-cpu-profiler/**"],
@@ -40,6 +41,10 @@ const nextConfigPromise = Promise.resolve(drizzle).then(
 				];
 
 				return [
+					{
+						source: "/runner/preview/:runnerId",
+						headers: [...baseSecurityHeaders, { key: "X-Frame-Options", value: "SAMEORIGIN" }, { key: "Content-Security-Policy", value: replayContentSecurityPolicy("'self'") }],
+					},
 					{
 						source: "/demoPlayer",
 						headers: [...baseSecurityHeaders, { key: "X-Frame-Options", value: "SAMEORIGIN" }, { key: "Content-Security-Policy", value: replayContentSecurityPolicy("'self'") }],
@@ -65,7 +70,7 @@ const nextConfigPromise = Promise.resolve(drizzle).then(
 						headers: [...baseSecurityHeaders, { key: "Access-Control-Allow-Origin", value: "*" }, { key: "Cache-Control", value: "public, max-age=300, s-maxage=86400" }],
 					},
 					{
-						source: "/:path((?!demoPlayer$|embed/[^/]+/?$|gallery/[^/]+/frame/?$|gallery/[^/]+/clip/[^/]+/?$|dashboard/galleries/[^/]+/preview/clip/[^/]+/?$).*)",
+						source: "/:path((?!runner/preview/[^/]+/?$|demoPlayer$|embed/[^/]+/?$|gallery/[^/]+/frame/?$|gallery/[^/]+/clip/[^/]+/?$|dashboard/galleries/[^/]+/preview/clip/[^/]+/?$).*)",
 						headers: [...baseSecurityHeaders, { key: "X-Frame-Options", value: "DENY" }, { key: "Content-Security-Policy", value: replayContentSecurityPolicy("'none'") }],
 					},
 				];

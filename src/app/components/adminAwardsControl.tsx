@@ -1,4 +1,5 @@
 "use client";
+import LocalizedDate from "@components/localizedDate";
 import { useState, useTransition } from "react";
 import { Button, Modal, TextField, TextArea, Input, Label, Select, ListBox, Checkbox } from "@heroui/react";
 import { grantAdminAwards, getAdminUserAwards, revokeAdminAward, type AdminAwardInput } from "@/app/actions/admin-benefits";
@@ -115,7 +116,7 @@ export default function AdminAwardsControl({ recipients, onChanged, label = "Man
 								</p>
 								{review ? (
 									<div className='space-y-2 rounded-xl bg-surface-secondary p-4'>
-										<p className='font-semibold'>{kind === "badge" ? badgeCatalog[badge as keyof typeof badgeCatalog]?.name : kind === "runner_access" ? "Runner access" : "Clipify Pro"}</p>
+										<p className='font-semibold'>{kind === "badge" ? badgeCatalog[badge as keyof typeof badgeCatalog]?.name : "Clipify Pro"}</p>
 										{kind !== "badge" && <p>{unlimited ? "No expiry" : `${days} days`}</p>}
 										<p>
 											{kind === "badge" ? "Audit reason" : "Customer-facing reason"}: {reason}
@@ -130,7 +131,6 @@ export default function AdminAwardsControl({ recipients, onChanged, label = "Man
 											onChange={(value) => setKind(value as AdminAwardInput["kind"])}
 											options={[
 												{ id: "pro_access", label: "Clipify Pro" },
-												{ id: "runner_access", label: "Runner access" },
 												{ id: "badge", label: "Badge" },
 											]}
 										/>
@@ -177,7 +177,7 @@ export default function AdminAwardsControl({ recipients, onChanged, label = "Man
 										{awards.grants.map((grant) => (
 											<div key={grant.id} className='flex items-center justify-between gap-2'>
 												<span>
-													{grant.source === "partner" && grant.entitlement === "pro_access" ? "Partnership" : grant.entitlement === "runner_access" ? "Runner access" : "Clipify Pro"} · {grant.endsAt ? new Date(grant.endsAt).toLocaleDateString("en-US") : "No expiry"}
+													{grant.source === "partner" && grant.entitlement === "pro_access" ? "Partnership" : "Clipify Pro"} · {grant.endsAt ? <LocalizedDate value={grant.endsAt} /> : "No expiry"}
 												</span>
 												<Button size='sm' variant='danger-soft' isPending={pending} isDisabled={grant.partnershipEnded} onPress={() => setRemoval({ grantId: grant.id })}>
 													{grant.partnershipEnded ? "Partnership ended" : grant.source === "partner" && grant.entitlement === "pro_access" ? "End partnership" : "Remove access"}

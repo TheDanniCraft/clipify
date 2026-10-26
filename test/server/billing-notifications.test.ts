@@ -26,8 +26,8 @@ beforeEach(() => {
 	applied = true;
 });
 test("a confirmed cancellation queues the correct product after the state update", async () => {
-	await syncStripeSubscription(subscription(BillingProduct.RunnerSelfHosted), null, 123);
-	expect(queue).toHaveBeenCalledWith(expect.objectContaining({ subscriptionId: "sub-1", eventCreated: 123, benefit: "runner", endsAt: new Date(200000) }), expect.anything());
+	await syncStripeSubscription(subscription(BillingProduct.Pro), null, 123);
+	expect(queue).toHaveBeenCalledWith(expect.objectContaining({ subscriptionId: "sub-1", eventCreated: 123, benefit: "pro", endsAt: new Date(200000) }), expect.anything());
 });
 test("repeat cancellation snapshots do not enqueue another email", async () => {
 	previous = { status: "active", cancelAtPeriodEnd: true };

@@ -12,8 +12,10 @@ const startsAt = new Date("2040-01-01T12:00:00Z"),
 	endsAt = new Date("2040-01-08T12:00:00Z");
 before(async () => {
 	fixture = await createMcpPostgresFixture();
-	const sql = await readFile("drizzle/0026_notification_event_triggers.sql", "utf8");
-	for (const statement of sql.split("--> statement-breakpoint")) await fixture.pool.query(statement);
+	for (const migration of ["0026_notification_event_triggers", "0032_retire_runner_notification_branch"]) {
+		const sql = await readFile(`drizzle/${migration}.sql`, "utf8");
+		for (const statement of sql.split("--> statement-breakpoint")) await fixture.pool.query(statement);
+	}
 });
 after(async () => {
 	await fixture?.close();
@@ -67,7 +69,7 @@ test("manual revocation and application queuing cannot double-send", async () =>
 test("rolled-back grants also roll back their notifications", async () => {
 	await assert.rejects(
 		fixture.db.transaction(async (tx) => {
-			await tx.insert(entitlementGrantsTable).values({ userId: "notification-user", entitlement: Entitlement.RunnerAccess, source: EntitlementGrantSource.Support, startsAt, endsAt });
+			await tx.insert(entitlementGrantsTable).values({ userId: "notification-user", entitlement: Entitlement.ProAccess, source: EntitlementGrantSource.Support, startsAt, endsAt });
 			throw new Error("rollback");
 		}),
 	);
@@ -160,7 +162,7 @@ test("actual entitlement queries retain Partner Pro for exactly seven days, neve
 		.values({ userId: "notification-user", entitlement: Entitlement.ProAccess, source: EntitlementGrantSource.Partner, startsAt: new Date(now.getTime() - 20 * 86400000), endsAt: new Date(now.getTime() - 86400000) })
 		.returning();
 	assert.equal((await resolveUserEntitlements({ id: "notification-user", plan: Plan.Free }, fixture.db)).proAccess, true);
-	assert.equal((await resolveUserEntitlements({ id: "notification-user", plan: Plan.Free }, fixture.db)).runnerAccess, false);
+	assert.equal("runnerAccess" in (await resolveUserEntitlements({ id: "notification-user", plan: Plan.Free }, fixture.db)), false);
 	assert.ok(await getActiveEntitlementGrant("notification-user", Entitlement.ProAccess, new Date(partner.endsAt!.getTime() + 7 * 86400000 - 1), fixture.db));
 	assert.equal(await getActiveEntitlementGrant("notification-user", Entitlement.ProAccess, new Date(partner.endsAt!.getTime() + 7 * 86400000), fixture.db), null);
 	await fixture.db
@@ -300,7 +302,7 @@ test("long partnerships queue thirty, seven, three and one day warnings and seve
 });
 
 test("long Pro and Runner awards and trials share all reminder keys between PostgreSQL and the app", async () => {
-	for (const entitlement of [Entitlement.ProAccess, Entitlement.RunnerAccess])
+	for (const entitlement of [Entitlement.ProAccess])
 		for (const source of [EntitlementGrantSource.Support, EntitlementGrantSource.ReverseTrial]) {
 			await fixture.pool.query("TRUNCATE notification_outbox, entitlement_grants CASCADE");
 			const [row] = await fixture.db
@@ -313,13 +315,10 @@ test("long Pro and Runner awards and trials share all reminder keys between Post
 			for (const days of [30, 7, 3, 1]) assert.equal(rows.filter((r) => r.payload.event === `${source === EntitlementGrantSource.ReverseTrial ? "trial" : "access"}-${days}d`).length, 1);
 		}
 });
-test("Runner continuation does not infer Runner access from Pro", async () => {
-	const { hasContinuingRunner } = await import("@/server/notifications/access-context");
+test("retired Runner continuation cannot revive a standalone benefit", async () => {
+	const { hasContinuingBenefit } = await import("@/server/notifications/access-context");
 	await grant(EntitlementGrantSource.Partner);
-	assert.equal(await hasContinuingRunner("notification-user", startsAt, null, fixture.db), false);
-	await fixture.db.insert(entitlementGrantsTable).values({ userId: "notification-user", entitlement: Entitlement.RunnerAccess, source: EntitlementGrantSource.Support, startsAt, endsAt });
-	assert.equal(await hasContinuingRunner("notification-user", startsAt, null, fixture.db), true);
-	assert.equal(await hasContinuingRunner("notification-user", endsAt, null, fixture.db), false);
+	assert.equal(await hasContinuingBenefit("runner", "notification-user", startsAt), false);
 });
 
 test("each distinct revoke-and-restore cycle sends a restoration once", async () => {

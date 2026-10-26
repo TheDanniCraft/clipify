@@ -34,20 +34,20 @@ test("reverse trials queue start, three-day, one-day and expiry notices", async 
 });
 test("runner gifts are not labeled Pro, and billing or global grants do not generate generic gift emails", async () => {
 	await queueGrantEmails({ ...grant, entitlement: "runner_access" });
-	expect(values.mock.calls[0][0].payload.benefit).toBe("runner");
+	expect(values).not.toHaveBeenCalled();
 	values.mockClear();
 	await queueGrantEmails({ ...grant, source: "billing" });
 	await queueGrantEmails({ ...grant, userId: null });
 	expect(values).not.toHaveBeenCalled();
 });
-test("confirmed runner cancellation has its own product and subscription dedupe key", async () => {
+test("retired Runner cancellation never queues a subscription notice", async () => {
 	await queueCancellationEmail({ subscriptionId: "sub-1", userId: "alex", eventCreated: 123, benefit: "runner", endsAt });
-	expect(values).toHaveBeenCalledWith(expect.objectContaining({ dedupeKey: "cancellation:sub-1:123:runner", payload: expect.objectContaining({ event: "cancellation", benefit: "runner", subscriptionId: "sub-1" }) }));
+	expect(values).not.toHaveBeenCalled();
 });
 test("explicit revocations retain the entitlement type and are queued idempotently", async () => {
-	execute.mockResolvedValue({ rows: [{ id: "grant-2", entitlement: "runner_access", email: "alex@example.test", revoked_at: startsAt }] });
+	execute.mockResolvedValue({ rows: [{ id: "grant-2", entitlement: "pro_access", email: "alex@example.test", revoked_at: startsAt }] });
 	await queueRevokedGrantEmails(startsAt);
-	expect(values).toHaveBeenCalledWith(expect.objectContaining({ dedupeKey: `benefit:grant-2:revoked:${startsAt.getTime()}`, payload: expect.objectContaining({ benefit: "runner", event: "revoked" }) }));
+	expect(values).toHaveBeenCalledWith(expect.objectContaining({ dedupeKey: `benefit:grant-2:revoked:${startsAt.getTime()}`, payload: expect.objectContaining({ benefit: "pro", event: "revoked" }) }));
 });
 
 test("backfilled trial reminders do not replay the original trial-start email", async () => {
@@ -64,7 +64,7 @@ test("paid cancellation countdowns use the Stripe period end and stable subscrip
 	expect(values.mock.calls[3][0].dedupeKey).toBe(`pro-cancellation:sub:${endsAt.getTime()}:1d`);
 });
 
-test.each(["pro_access", "runner_access"])("long %s awards and trials use every shared boundary", async (entitlement) => {
+test.each(["pro_access"])("long %s awards and trials use every shared boundary", async (entitlement) => {
 	const end = new Date("2030-03-01T12:00:00Z");
 	for (const source of ["support", "reverse_trial"]) {
 		values.mockClear();
@@ -72,9 +72,8 @@ test.each(["pro_access", "runner_access"])("long %s awards and trials use every 
 		expect(values.mock.calls.map(([v]) => v.payload.event)).toEqual(["granted", ...[30, 7, 3, 1].map((d) => `${source === "reverse_trial" ? "trial" : "access"}-${d}d`), "ended"]);
 	}
 });
-test("Runner subscription countdowns have distinct product keys and every shared boundary", async () => {
+test("retired Runner subscriptions never queue countdown notices", async () => {
 	const { queueSubscriptionCancellationReminders } = await import("@/server/notifications/benefit-events");
 	await queueSubscriptionCancellationReminders({ subscriptionId: "sub", userId: "alex", endsAt, benefit: "runner" });
-	expect(values.mock.calls.map(([v]) => v.payload.event)).toEqual(["cancellation-30d", "cancellation-7d", "cancellation-3d", "cancellation-1d"]);
-	expect(values.mock.calls.every(([v]) => v.payload.benefit === "runner" && v.dedupeKey.startsWith("runner-cancellation:"))).toBe(true);
+	expect(values).not.toHaveBeenCalled();
 });

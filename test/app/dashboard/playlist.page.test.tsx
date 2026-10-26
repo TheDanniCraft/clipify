@@ -278,6 +278,25 @@ describe("dashboard playlist page", () => {
 		expect(screen.getByRole("button", { name: "Save Playlist" })).toBeDisabled();
 		expect(notify).toHaveBeenCalledWith({ title: "Playlist saved", color: "success" });
 	});
+
+	it("restores clip order and name with the original revision and preserves them after a conflict", async () => {
+		getAllPlaylists.mockResolvedValue([{ id: "playlist-1", ownerId: "owner-1", name: "Concurrent", clipCount: 2, accessType: "editor", configurationRevision: 9 }]);
+		getPlaylistClips.mockResolvedValue([clip("first"), clip("second")]);
+		upsertPlaylistClips.mockResolvedValueOnce(null);
+		sessionStorage.setItem("clipify:deployment-drafts", JSON.stringify({ pathname: location.pathname, expiresAt: Date.now() + 60000, drafts: { "playlist:editor-1:playlist-1": { changes: { name: "Recovered", clips: [clip("second"), clip("first")], configurationRevision: 3 }, baseline: { name: "Original", clips: [clip("first"), clip("second")], savedIds: ["first", "second"], configurationRevision: 3 } } } }));
+		try {
+			const input = await openPage();
+			await waitFor(() => expect(input).toHaveValue("Recovered"));
+			expect(upsertPlaylistClips).not.toHaveBeenCalled();
+			await press("Save Playlist");
+			expect(upsertPlaylistClips).toHaveBeenCalledWith("playlist-1", [clip("second"), clip("first")], "replace", 3, "Recovered");
+			expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Playlist changed or access was updated. Reload and try again.", color: "danger" }));
+			expect(input).toHaveValue("Recovered");
+			expect(screen.getByRole("button", { name: "Save Playlist" })).toBeEnabled();
+		} finally {
+			sessionStorage.removeItem("clipify:deployment-drafts");
+		}
+	});
 	it("preserves the unsaved name after a rejected backend save", async () => {
 		savePlaylist.mockRejectedValueOnce(new Error("private database diagnostic"));
 		const input = await openPage();

@@ -108,7 +108,7 @@ describe("actions/subscription", () => {
 			stripeCustomerId: null,
 		});
 		getActiveCampaignOffer.mockResolvedValue(null);
-		resolveUserEntitlements.mockResolvedValue({ proAccess: false, runnerAccess: false, reverseTrialActive: false });
+		resolveUserEntitlements.mockResolvedValue({ proAccess: false, reverseTrialActive: false });
 		tryRateLimit.mockResolvedValue({ success: true });
 		prepareDatabaseAccountDataExport.mockResolvedValue({ authUserId: "auth-1", creatorId: "user-1", organizationId: "org-1", email: "alice@example.com" });
 		createAccountDataExportToken.mockReturnValue("signed-export-token");
@@ -199,7 +199,6 @@ describe("actions/subscription", () => {
 	it("allows purchasing paid Pro while a reverse trial is active", async () => {
 		resolveUserEntitlements.mockResolvedValue({
 			proAccess: true,
-			runnerAccess: false,
 			reverseTrialActive: true,
 			source: "reverse_trial",
 		});
@@ -215,7 +214,6 @@ describe("actions/subscription", () => {
 	it("does not sell a duplicate Pro subscription over a non-trial grant", async () => {
 		resolveUserEntitlements.mockResolvedValue({
 			proAccess: true,
-			runnerAccess: false,
 			reverseTrialActive: false,
 			hasActiveGrant: true,
 			source: "grant",

@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
 	title: "Pricing | Clipify",
-	description: "Compare Clipify Free and Pro, explore every feature, and add a self-hosted Runner when you need one.",
+	description: "Compare Clipify Free and Pro, including self-hosted Runner broadcasting with unlimited streaming hours.",
 };
 
 const pricingFaq = [
@@ -22,16 +22,16 @@ const pricingFaq = [
 		content: "Yes. Free includes unlimited Twitch clips, one overlay, one 50-clip playlist, a branded gallery, a Creator Page, and essential playback tools.",
 	},
 	{
-		title: "Is the Self-hosted Runner a separate plan?",
-		content: "No. The Runner is an optional add-on that works with either Free or Pro and runs on your own hardware.",
+		title: "Do I need to keep my computer running?",
+		content: "Yes. Runner broadcasts from your computer, so it must stay on and connected to the internet.",
 	},
 	{
 		title: "Can I switch between monthly and yearly billing?",
-		content: "Yes. Pro and the Runner support monthly and yearly billing. Yearly billing includes two months free compared with monthly billing.",
+		content: "Yes. Pro supports monthly and yearly billing. Yearly billing includes two months free compared with monthly billing.",
 	},
 	{
 		title: "What happens if I stop using Pro?",
-		content: "Your account returns to the Free limits. Clipify preserves supported data according to the downgrade rules shown in the relevant feature settings.",
+		content: "Your account returns to Free. Your saved settings and content are kept, and you can use Pro features again by resubscribing.",
 	},
 ];
 
@@ -41,10 +41,6 @@ export default async function PricingPage() {
 		pro: {
 			[FrequencyEnum.Monthly]: catalog[BillingProduct.Pro].monthly,
 			[FrequencyEnum.Yearly]: catalog[BillingProduct.Pro].yearly,
-		},
-		runner: {
-			[FrequencyEnum.Monthly]: catalog[BillingProduct.RunnerSelfHosted].monthly,
-			[FrequencyEnum.Yearly]: catalog[BillingProduct.RunnerSelfHosted].yearly,
 		},
 	};
 

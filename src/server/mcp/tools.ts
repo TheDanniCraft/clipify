@@ -5,6 +5,7 @@ import "server-only";
 import { listPlaylists, getPlaylist, createPlaylistForPrincipal, updatePlaylist, deletePlaylist, removePlaylistItems, reorderPlaylistItems, addPlaylistItems } from "@/server/resources/playlists";
 import { recordMcpCallActivity } from "./activity";
 import { toolFailure } from "./errors";
+import { isResourceFailure } from "@/server/resources/errors";
 import { ProtocolError, ProtocolErrorCode, type McpServer } from "@modelcontextprotocol/server";
 import type { TrustedCreatorPrincipal } from "@/auth/authorize-operation";
 import { listCreators, getCapabilities } from "./creators";
@@ -20,6 +21,26 @@ function measuredFailure(cause: unknown) {
 	return failure;
 }
 
+function readActivityTarget(input: unknown) {
+	const selectors = input as { creatorId?: string; overlayId?: string; playlistId?: string; galleryId?: string; runnerId?: string; sessionId?: string } | undefined;
+	const targetFields = [
+		["overlayId", "overlay"],
+		["playlistId", "playlist"],
+		["galleryId", "gallery"],
+		["runnerId", "runner"],
+		["sessionId", "stream_session"],
+		["creatorId", "creator"],
+	] as const;
+	const targets = targetFields.map(([field, type]) => ({ id: selectors?.[field], type }));
+	return { creatorId: selectors?.creatorId, targetType: targets.find((target) => !!target.id)?.type ?? "mcp_connection", targetId: targets.find((target) => target.id !== undefined && target.id !== null)?.id };
+}
+function readResultContent(name: ToolName, result: Record<string, unknown>) {
+	const { imageData, ...snapshotMetadata } = result;
+	const metadata = name === "get_runner_snapshot" ? snapshotMetadata : result;
+	const images = name === "get_runner_snapshot" && typeof imageData === "string" ? [{ type: "image" as const, data: imageData, mimeType: "image/jpeg" }] : [];
+	return { content: [{ type: "text" as const, text: JSON.stringify(metadata) }, ...images], structuredContent: metadata };
+}
+
 async function readResult(operation: () => Promise<Record<string, unknown>>, principal: TrustedCreatorPrincipal, name: ToolName, input: unknown) {
 	let result: Record<string, unknown>;
 	try {
@@ -33,15 +54,21 @@ async function readResult(operation: () => Promise<Record<string, unknown>>, pri
 		}
 		return measuredFailure(cause);
 	}
+	if (isResourceFailure(result)) {
+		try {
+			await recordMcpCallActivity(principal, { tool: name, outcome: "denied", reason: result.error.code });
+		} catch (error) {
+			return measuredFailure(error);
+		}
+		reportMcpToolOutcome("denied", result.error.code);
+		return { isError: true, content: [{ type: "text" as const, text: JSON.stringify(result.error) }], structuredContent: { error: result.error } };
+	}
 	if (toolAnnotations(name).readOnlyHint) {
-		const selectors = input as { creatorId?: string; overlayId?: string; playlistId?: string; galleryId?: string; runnerId?: string; sessionId?: string } | undefined;
 		try {
 			await recordMcpCallActivity(principal, {
 				tool: name,
 				outcome: "success",
-				creatorId: selectors?.creatorId,
-				targetType: selectors?.overlayId ? "overlay" : selectors?.playlistId ? "playlist" : selectors?.galleryId ? "gallery" : selectors?.runnerId ? "runner" : selectors?.sessionId ? "stream_session" : selectors?.creatorId ? "creator" : "mcp_connection",
-				targetId: selectors?.overlayId ?? selectors?.playlistId ?? selectors?.galleryId ?? selectors?.runnerId ?? selectors?.sessionId ?? selectors?.creatorId,
+				...readActivityTarget(input),
 			});
 		} catch (error) {
 			return measuredFailure(error);
@@ -49,10 +76,7 @@ async function readResult(operation: () => Promise<Record<string, unknown>>, pri
 	}
 
 	reportMcpToolOutcome("success");
-	const { imageData, ...snapshotMetadata } = result;
-	const metadata = name === "get_runner_snapshot" ? snapshotMetadata : result;
-	const images = name === "get_runner_snapshot" && typeof imageData === "string" ? [{ type: "image" as const, data: imageData, mimeType: "image/jpeg" }] : [];
-	return { content: [{ type: "text" as const, text: JSON.stringify(metadata) }, ...images], structuredContent: metadata };
+	return readResultContent(name, result);
 }
 
 export function registerMcpTools(server: McpServer, principal: TrustedCreatorPrincipal) {

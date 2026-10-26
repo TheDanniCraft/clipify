@@ -100,8 +100,8 @@ describe("TDD-US4-004 agency database adapter", () => {
 
 	it("persists validated negotiated card and invoice billing terms", async () => {
 		for (const billing of [
-			{ billingEmail: "billing@example.test", collectionMethod: "charge_automatically" as const, creatorSeatPriceId: "price_creator", creatorSeatMinimum: 5, creatorSeatQuantity: 10, runnerSeatPriceId: "price_runner", runnerSeatMinimum: 1, runnerSeatQuantity: 2 },
-			{ billingEmail: "invoice@example.test", collectionMethod: "send_invoice" as const, daysUntilDue: 30, creatorSeatPriceId: "price_creator", creatorSeatMinimum: 5, creatorSeatQuantity: 5, runnerSeatMinimum: 0, runnerSeatQuantity: 0 },
+			{ billingEmail: "billing@example.test", collectionMethod: "charge_automatically" as const, creatorSeatPriceId: "price_creator", creatorSeatMinimum: 5, creatorSeatQuantity: 10 },
+			{ billingEmail: "invoice@example.test", collectionMethod: "send_invoice" as const, daysUntilDue: 30, creatorSeatPriceId: "price_creator", creatorSeatMinimum: 5, creatorSeatQuantity: 5 },
 		]) {
 			state.selects.push([{ authUserId: "admin-auth-user" }]);
 			await expect(provisionDatabaseAgency({ name: "Billed Agency", ownerEmail: "owner@example.test", creatorSeatLimit: 10, billing, now })).resolves.toMatchObject({ status: "owner_invited" });
@@ -110,13 +110,11 @@ describe("TDD-US4-004 agency database adapter", () => {
 	});
 
 	it.each([
-		{ billingEmail: "invalid", creatorSeatPriceId: "price_creator", creatorSeatMinimum: 1, creatorSeatQuantity: 1, runnerSeatMinimum: 0, runnerSeatQuantity: 0, collectionMethod: "charge_automatically" as const },
-		{ billingEmail: "billing@example.test", creatorSeatPriceId: "invalid", creatorSeatMinimum: 1, creatorSeatQuantity: 1, runnerSeatMinimum: 0, runnerSeatQuantity: 0, collectionMethod: "charge_automatically" as const },
-		{ billingEmail: "billing@example.test", creatorSeatPriceId: "price_creator", creatorSeatMinimum: -1, creatorSeatQuantity: 1, runnerSeatMinimum: 0, runnerSeatQuantity: 0, collectionMethod: "charge_automatically" as const },
-		{ billingEmail: "billing@example.test", creatorSeatPriceId: "price_creator", creatorSeatMinimum: 5, creatorSeatQuantity: 4, runnerSeatMinimum: 0, runnerSeatQuantity: 0, collectionMethod: "charge_automatically" as const },
-		{ billingEmail: "billing@example.test", creatorSeatPriceId: "price_creator", creatorSeatMinimum: 1, creatorSeatQuantity: 1, runnerSeatMinimum: 2, runnerSeatQuantity: 1, collectionMethod: "charge_automatically" as const },
-		{ billingEmail: "billing@example.test", creatorSeatPriceId: "price_creator", creatorSeatMinimum: 1, creatorSeatQuantity: 1, runnerSeatMinimum: 0, runnerSeatQuantity: 1, collectionMethod: "charge_automatically" as const },
-		{ billingEmail: "billing@example.test", creatorSeatPriceId: "price_creator", creatorSeatMinimum: 1, creatorSeatQuantity: 1, runnerSeatMinimum: 0, runnerSeatQuantity: 0, collectionMethod: "send_invoice" as const, daysUntilDue: 0 },
+		{ billingEmail: "invalid", creatorSeatPriceId: "price_creator", creatorSeatMinimum: 1, creatorSeatQuantity: 1, collectionMethod: "charge_automatically" as const },
+		{ billingEmail: "billing@example.test", creatorSeatPriceId: "invalid", creatorSeatMinimum: 1, creatorSeatQuantity: 1, collectionMethod: "charge_automatically" as const },
+		{ billingEmail: "billing@example.test", creatorSeatPriceId: "price_creator", creatorSeatMinimum: -1, creatorSeatQuantity: 1, collectionMethod: "charge_automatically" as const },
+		{ billingEmail: "billing@example.test", creatorSeatPriceId: "price_creator", creatorSeatMinimum: 5, creatorSeatQuantity: 4, collectionMethod: "charge_automatically" as const },
+		{ billingEmail: "billing@example.test", creatorSeatPriceId: "price_creator", creatorSeatMinimum: 1, creatorSeatQuantity: 1, collectionMethod: "send_invoice" as const, daysUntilDue: 0 },
 	])("rejects an invalid negotiated billing boundary", async (billing) => {
 		state.selects.push([{ authUserId: "admin-auth-user" }]);
 		await expect(provisionDatabaseAgency({ name: "Agency", ownerEmail: "owner@example.test", creatorSeatLimit: 1, billing, now })).rejects.toThrow("INVALID_AGENCY_BILLING_TERMS");

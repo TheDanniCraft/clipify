@@ -1,0 +1,35 @@
+{
+  "ok": true,
+  "method": "Drizzle export to stdout applied directly to isolated fresh local databases; no migration files or schema-push guard override",
+  "postgresMajor": 18,
+  "results": [
+    {
+      "phase": "before",
+      "sqlSha256": "d313eb1cd438e16267a152402d80c122ac1ff2c93bcf11eab85b63e29d726a93",
+      "sqlBytes": 78350,
+      "database": "mcp_310c5fb930a949bcb600a1b5a32ea347",
+      "applied": false,
+      "code": "42830",
+      "error": "there is no unique constraint matching given keys for referenced table \"runner_branding_assets\"",
+      "databaseRemoved": true
+    },
+    {
+      "phase": "after",
+      "sqlSha256": "d1e36d881d7c66abe39c13cc83dfb13b774b444f1271d51fa241474defe24efb",
+      "sqlBytes": 78118,
+      "database": "mcp_ebd766025e1e4570b434dada39751f56",
+      "applied": true,
+      "compositeUniqueConstraints": [
+        "runner_admissions_owner_identity_unique",
+        "runner_branding_assets_owner_id_unique",
+        "runner_destinations_owner_identity",
+        "runner_schedule_events_owner_identity",
+        "runners_owner_id_unique",
+        "stream_sessions_owner_identity"
+      ],
+      "rateLimitConflictUpdate": true,
+      "tableCount": 69,
+      "databaseRemoved": true
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import LocalizedDate from "@components/localizedDate";
 import { generateCheckout, getBillingOverview, getBillingProductOptions, getPortalLink, scheduleProductCancellation } from "@actions/subscription";
 import type { BillingCycle, BillingOverview, BillingProductOption } from "@actions/subscription";
 import ConfirmModal from "@components/confirmModal";
@@ -12,15 +13,13 @@ import { notify as addToast } from "@lib/toast";
 import TiersComponent from "@components/Pricing";
 import type { RuntimePricing } from "@components/Pricing/pricing-types";
 
-function formatDate(value: string | null) {
-	if (!value) return "—";
-	return new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
-}
-
 function productAccessLabel(product: BillingOverview["products"][number]) {
-	if (product.source === "billing") return `${product.cancelAtPeriodEnd ? "Ends" : "Renews"} ${formatDate(product.currentPeriodEnd)}`;
 	if (!product.currentPeriodEnd) return "Included";
-	return `${product.grantSource === "reverse_trial" ? "Included until" : "Available until"} ${formatDate(product.currentPeriodEnd)}`;
+	return (
+		<>
+			{product.source === "billing" ? (product.cancelAtPeriodEnd ? "Ends" : "Renews") : product.grantSource === "reverse_trial" ? "Included until" : "Available until"} <LocalizedDate value={product.currentPeriodEnd} />
+		</>
+	);
 }
 
 export default function BillingPanel() {
@@ -65,8 +64,7 @@ export default function BillingPanel() {
 	const hasChanges = additions.length > 0 || removals.some((option) => !overview?.products.some((product) => product.key === option.key && product.cancelAtPeriodEnd)) || reactivations.length > 0;
 	const actualRemovals = removals.filter((option) => !overview?.products.some((product) => product.key === option.key && product.cancelAtPeriodEnd));
 	const proPricing = options.find((option) => option.key === BillingProduct.Pro)?.prices;
-	const runnerPricing = options.find((option) => option.key === BillingProduct.RunnerSelfHosted)?.prices;
-	const pricing: RuntimePricing | null = proPricing && runnerPricing ? { pro: proPricing, runner: runnerPricing } : null;
+	const pricing: RuntimePricing | null = proPricing ? { pro: proPricing } : null;
 	const planProduct = overview?.products.find((product) => product.key === BillingProduct.Pro);
 	const addOnProducts = overview?.products.filter((product) => product.key !== BillingProduct.Pro) ?? [];
 	const planLabel = planProduct?.grantSource === "reverse_trial" ? "Pro trial" : (planProduct?.label ?? "Free");
@@ -100,7 +98,7 @@ export default function BillingPanel() {
 									variant='secondary'
 									onPress={async () => {
 										const link = await getPortalLink();
-										if (link) window.location.href = link;
+										if (typeof link === "string" && link) window.location.href = link;
 									}}
 								>
 									<IconCreditCardFilled />
@@ -178,7 +176,7 @@ export default function BillingPanel() {
 										<div className='flex items-center gap-3'>
 											{option.owned ? (
 												<Chip color={canceling ? "warning" : "success"} variant='soft'>
-													{product ? (product.source === "billing" ? (product.cancelAtPeriodEnd ? "Ends " : "Renews ") + formatDate(product.currentPeriodEnd) : product.currentPeriodEnd ? (product.grantSource === "reverse_trial" ? "Included until " : "Available until ") + formatDate(product.currentPeriodEnd) : "Included") : "Included"}
+													{product ? productAccessLabel(product) : "Included"}
 												</Chip>
 											) : (
 												<Tabs
@@ -237,7 +235,8 @@ export default function BillingPanel() {
 									undefined,
 									"upgrade_modal",
 								);
-								if (link) window.location.href = link;
+								if (typeof link === "string" && link) window.location.href = link;
+								else if (link && typeof link === "object") addToast({ title: "Could not open checkout", description: link.error, color: "danger" });
 								return;
 							}
 							for (const product of actualRemovals) await scheduleProductCancellation(product.key, true);

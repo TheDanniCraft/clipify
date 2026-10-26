@@ -1,0 +1,26 @@
+{
+  "ok": true,
+  "errors": [],
+  "sourceFingerprint": "5bcb13275c521475a2f04a15832de856fb2f0440575ff02f1f3d96a20cc3dd78",
+  "root": {
+    "owners": 517,
+    "normalLanePasses": 5766,
+    "conditionalCasesOriginallySkipped": 11,
+    "supplementalPasses": 11,
+    "qualifiedCases": 5777
+  },
+  "native": {
+    "owners": 52,
+    "passed": 450,
+    "inheritedUpdaterTodo": 1
+  },
+  "workflows": {
+    "passed": 434
+  },
+  "browserProjects": {
+    "passed": 913,
+    "uniqueCaseIds": 913
+  },
+  "totalPassed": 7574,
+  "scope": "Physical executed cases per owning test framework. Supplemental results resolve exactly the original11 conditional cases; they add no duplicate test count. Artifact aliases and BDD/ATDD labels are never extra cases. Sole inherited native updater TODO is not a pass."
+}

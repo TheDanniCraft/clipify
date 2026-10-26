@@ -9,31 +9,32 @@ const inventories: CreatorResourceInventory[] = [
 
 describe("TDD-US5-003 non-destructive downgrade", () => {
 	it.each(inventories)("retains every resource for free plan inventory %#", (inventory) => {
-		const effects = deriveDowngradeEffects({ inventory, effectivePlan: "free", runnerAccess: false });
+		const effects = deriveDowngradeEffects({ inventory, effectivePlan: "free" });
 		expect(effects.retained).toEqual(inventory);
 		expect(effects.deleted).toEqual({ overlays: [], playlists: [], galleries: [], runners: [] });
-		expect(effects.capabilities).toMatchObject({ advancedOverlayMutation: false, additionalOverlayMutation: false, runnerControl: false, resourceRead: true });
+		expect(effects.capabilities).toMatchObject({ advancedOverlayMutation: false, additionalOverlayMutation: false, runnerControl: true, resourceRead: true });
 	});
 
 	it.each(["billing", "grant", "agency"] as const)("keeps Pro capabilities for %s entitlement source", (source) => {
-		const effects = deriveDowngradeEffects({ inventory: inventories[2]!, effectivePlan: "pro", runnerAccess: true, source });
+		const effects = deriveDowngradeEffects({ inventory: inventories[2]!, effectivePlan: "pro", source });
 		expect(effects.capabilities).toMatchObject({ advancedOverlayMutation: true, additionalOverlayMutation: true, runnerControl: true, resourceRead: true });
 		expect(effects.deleted.overlays).toEqual([]);
 	});
 
 	it("blocks unsupported mutations while leaving data readable", () => {
-		const effects = deriveDowngradeEffects({ inventory: inventories[2]!, effectivePlan: "free", runnerAccess: false });
-		expect(effects.restrictions).toEqual(expect.arrayContaining(["extra-overlays-read-only", "extra-playlists-read-only", "runner-control-disabled", "advanced-overlay-settings-read-only"]));
+		const effects = deriveDowngradeEffects({ inventory: inventories[2]!, effectivePlan: "free" });
+		expect(effects.restrictions).toEqual(expect.arrayContaining(["extra-overlays-read-only", "extra-playlists-read-only", "advanced-overlay-settings-read-only"]));
 		expect(effects.capabilities.resourceRead).toBe(true);
+		expect(effects.restrictions).not.toContain("runner-control-disabled");
 	});
 
 	it("performs zero delete calls when applying a downgrade", async () => {
 		const deleteResource = jest.fn();
 		const pauseRuntime = jest.fn();
 		const markReconciled = jest.fn();
-		await applyDowngradeEffects(deriveDowngradeEffects({ inventory: inventories[2]!, effectivePlan: "free", runnerAccess: false }), { deleteResource, pauseRuntime, markReconciled });
+		await applyDowngradeEffects(deriveDowngradeEffects({ inventory: inventories[2]!, effectivePlan: "free" }), { deleteResource, pauseRuntime, markReconciled });
 		expect(deleteResource).not.toHaveBeenCalled();
-		expect(pauseRuntime).toHaveBeenCalledWith({ runners: ["r1", "r2"] });
+		expect(pauseRuntime).not.toHaveBeenCalled();
 		expect(markReconciled).toHaveBeenCalledTimes(1);
 	});
 
@@ -42,7 +43,7 @@ describe("TDD-US5-003 non-destructive downgrade", () => {
 		const sources = ["agency", "billing", "grant"] as const;
 		for (const reordered of [sources, [...sources].reverse()]) {
 			const effectivePlan = reordered.length > 0 ? "pro" : "free";
-			expect(deriveDowngradeEffects({ inventory, effectivePlan, runnerAccess: true }).retained).toEqual(inventory);
+			expect(deriveDowngradeEffects({ inventory, effectivePlan }).retained).toEqual(inventory);
 		}
 	});
 });

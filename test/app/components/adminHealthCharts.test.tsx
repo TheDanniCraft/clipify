@@ -146,11 +146,6 @@ const healthSnapshot: InstanceHealthSnapshot = {
 	},
 	billing: {
 		activeSubscriptions: 4,
-		runnerSubscriptionsActive: 2,
-		runnerSubscriptionsPastDue: 0,
-		runnerSubscriptionsCanceling: 1,
-		runnerMonthlyRecurringRevenueCents: 600,
-		runnerAnnualRecurringRevenueCents: 6000,
 	},
 	runners: {
 		total: 3,

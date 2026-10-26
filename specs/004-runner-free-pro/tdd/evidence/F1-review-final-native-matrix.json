@@ -1,0 +1,124 @@
+{
+  "ok": true,
+  "scope": "Official current-source five-platform matrix, executable self-tests, validation and published preview manifest; no deployment approval implied",
+  "workflow": "https://github.com/TheDanniCraft/clipify/actions/runs/39122022382",
+  "sourceCommit": "4be68ca38f0057eb783685894ad7f02e0ae2c091",
+  "sourceFingerprint": "54ff2834fbd8a9b6def81fe791c3ff6ee28e3118445410423683dee190c8daba",
+  "manifestArtifactId": 12135056106,
+  "manifestSha256": "3e75e9b10c002f5fafc410855a1f287d805fb4e4aeb688e9c7cfcb79fa742065",
+  "jobs": [
+    {
+      "name": "\ud83e\udded Prepare Runner context",
+      "databaseId": 117659370038,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83c\udfd7\ufe0f Build Runner (linux-x64, node24-linux-x64, ubuntu-latest, clipify-runner-linux)",
+      "databaseId": 117659398360,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83c\udfd7\ufe0f Build Runner (windows-x64, node24-win-x64, windows-latest, clipify-runner-windows.exe)",
+      "databaseId": 117659398432,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83c\udfd7\ufe0f Build Runner (linux-arm64, node24-linux-arm64, ubuntu-24.04-arm, clipify-runner-linux-arm64)",
+      "databaseId": 117659398440,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83c\udfd7\ufe0f Build Runner (macos-x64, node24-macos-x64, macos-15-intel, clipify-runner-macos)",
+      "databaseId": 117659398454,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83c\udfd7\ufe0f Build Runner (macos-arm64, node24-macos-arm64, macos-14, clipify-runner-macos-arm64)",
+      "databaseId": 117659398489,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "\u2705 Validate Runner matrix",
+      "databaseId": 117659738241,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "\ud83d\udce6 Publish Runner OCI artifacts",
+      "databaseId": 117659785067,
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "manifest": {
+    "schemaVersion": 1,
+    "sourceFingerprint": "54ff2834fbd8a9b6def81fe791c3ff6ee28e3118445410423683dee190c8daba",
+    "sourceCommit": "4be68ca38f0057eb783685894ad7f02e0ae2c091",
+    "repository": "ghcr.io/thedannicraft/clipify-runner",
+    "artifacts": [
+      {
+        "platform": "linux-arm64",
+        "target": "node24-linux-arm64",
+        "filename": "clipify-runner-linux-arm64",
+        "sha256": "d9b7df1c246feef2980bf2f8e6e2526488f9342abf303e8795b4e8429ad5ad4a",
+        "size": 111859177,
+        "oci": {
+          "reference": "ghcr.io/thedannicraft/clipify-runner:pr-519-fp-54ff2834fbd8a9b6def81fe791c3ff6ee28e3118445410423683dee190c8daba-linux-arm64",
+          "digest": "sha256:5372faa2df80c2bafa703697191fbaf7ef6cbeff4d1728d881197f391ab4222f"
+        }
+      },
+      {
+        "platform": "linux-x64",
+        "target": "node24-linux-x64",
+        "filename": "clipify-runner-linux",
+        "sha256": "fc129ccb4a7c089348373038e419175d7383d05faedfc26317fc1421a5f0af0a",
+        "size": 118288309,
+        "oci": {
+          "reference": "ghcr.io/thedannicraft/clipify-runner:pr-519-fp-54ff2834fbd8a9b6def81fe791c3ff6ee28e3118445410423683dee190c8daba-linux-x64",
+          "digest": "sha256:5f3e2d0741d0ded716b50d403a0a4fa92d79185962a4e634958f9dcb5402435e"
+        }
+      },
+      {
+        "platform": "macos-arm64",
+        "target": "node24-macos-arm64",
+        "filename": "clipify-runner-macos-arm64",
+        "sha256": "e373ffeddc51746e5d115bc922b2f40885d858e02a944f0d7e93a748b7d885f3",
+        "size": 105672592,
+        "oci": {
+          "reference": "ghcr.io/thedannicraft/clipify-runner:pr-519-fp-54ff2834fbd8a9b6def81fe791c3ff6ee28e3118445410423683dee190c8daba-macos-arm64",
+          "digest": "sha256:8975570825ae5ccfdb2cf32ade1e2e604775079349b80acab6359d0da0361f11"
+        }
+      },
+      {
+        "platform": "macos-x64",
+        "target": "node24-macos-x64",
+        "filename": "clipify-runner-macos",
+        "sha256": "1661645c88b5ba036e275462349ea9fb6fffd298646b94a5f38c33729921a431",
+        "size": 108072976,
+        "oci": {
+          "reference": "ghcr.io/thedannicraft/clipify-runner:pr-519-fp-54ff2834fbd8a9b6def81fe791c3ff6ee28e3118445410423683dee190c8daba-macos-x64",
+          "digest": "sha256:e3f62f6ef9a2651cce0f11e984ab089203794f241fd6c567ab01d6afd06429d1"
+        }
+      },
+      {
+        "platform": "windows-x64",
+        "target": "node24-win-x64",
+        "filename": "clipify-runner-windows.exe",
+        "sha256": "ef531f97e96de00d947ff2fbc2cd9ebafabe41453077afaf9211fb1bde17fe0e",
+        "size": 132344649,
+        "oci": {
+          "reference": "ghcr.io/thedannicraft/clipify-runner:pr-519-fp-54ff2834fbd8a9b6def81fe791c3ff6ee28e3118445410423683dee190c8daba-windows-x64",
+          "digest": "sha256:7270f4742d228c0b39040701a9c40487357836a289527bbcd8b11d80b804fc11"
+        }
+      }
+    ]
+  },
+  "localManifestVerifier": "scripts/verify-runner-manifest.mjs --artifact-tag-prefix pr-519-fp- passed",
+  "deploymentPrerequisite": "Validation uses an empty public execution-key mapping; configure production signing/public trust through the deployment-owned process in docs/runner-signing.md before rollout."
+}

@@ -1,0 +1,42 @@
+{
+  "run": 39166929160,
+  "head": "cd5a522c5c28ddf1e0e0e818d57e2a8e945002a3",
+  "ok": true,
+  "sourceFingerprint": "a97b20fa9b7ba1dc8322ecfcc0b57f255fc27be83fca77f8f1727b4bb1bb7b2e",
+  "node": "v22.23.3",
+  "passed": 450,
+  "inheritedTodo": 1,
+  "suites": 52,
+  "coverage": {
+    "lines": {
+      "total": 1827,
+      "covered": 1782,
+      "skipped": 0,
+      "pct": 97.53
+    },
+    "statements": {
+      "total": 2204,
+      "covered": 2088,
+      "skipped": 0,
+      "pct": 94.73
+    },
+    "functions": {
+      "total": 342,
+      "covered": 327,
+      "skipped": 0,
+      "pct": 95.61
+    },
+    "branches": {
+      "total": 1691,
+      "covered": 1529,
+      "skipped": 0,
+      "pct": 90.41
+    },
+    "branchesTrue": {
+      "total": 0,
+      "covered": 0,
+      "skipped": 0,
+      "pct": "Unknown"
+    }
+  }
+}

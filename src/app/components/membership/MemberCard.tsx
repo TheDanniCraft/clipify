@@ -1,8 +1,9 @@
 "use client";
 
+import LocalizedDate from "@components/localizedDate";
 import Logo from "@components/logo";
 import type { MemberProfile } from "@lib/membership";
-import { formatMemberNumber, formatMemberSince } from "@lib/membershipFormat";
+import { formatMemberNumber } from "@lib/membershipFormat";
 import { memberAvatarUrl } from "@lib/memberCardLinks";
 import { useRef, useState, type PointerEvent } from "react";
 import styles from "./MemberCard.module.css";
@@ -74,7 +75,7 @@ export default function MemberCard({ profile }: { profile: MemberProfile }) {
 						<dl className='grid grid-cols-2 gap-3'>
 							<div>
 								<dt className={styles.label}>Joined</dt>
-								<dd className={styles.value}>{formatMemberSince(profile.joinedAt)}</dd>
+								<dd className={styles.value}>{<LocalizedDate value={profile.joinedAt} timeZone='UTC' />}</dd>
 							</div>
 							<div className='text-right'>
 								<dt className={styles.label}>Member</dt>

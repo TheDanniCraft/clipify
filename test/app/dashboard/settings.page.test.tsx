@@ -85,7 +85,7 @@ jest.mock("@components/settingsNavigation", () => ({
 	__esModule: true,
 	default: ({ onCoreSectionChange }: any) => (
 		<nav>
-			{["settings", "creator", "billing"].map((section) => (
+			{["settings", "connections", "creator", "billing"].map((section) => (
 				<button key={section} onClick={() => onCoreSectionChange(section)}>
 					{section} section
 				</button>
@@ -97,6 +97,7 @@ jest.mock("@/app/dashboard/settings/billing-panel", () => ({ __esModule: true, d
 jest.mock("@/app/dashboard/settings/security-panel", () => ({ __esModule: true, default: () => <p>Security panel</p> }));
 jest.mock("@/app/dashboard/settings/connected-apps-panel", () => ({ __esModule: true, default: () => <p>Connected AI apps panel</p> }));
 jest.mock("@/app/dashboard/settings/mcp-activity-panel", () => ({ __esModule: true, default: () => <p>AI app activity panel</p> }));
+jest.mock("@/app/dashboard/settings/linked-accounts-panel", () => ({ __esModule: true, default: () => <p>Linked accounts panel</p> }));
 import SettingsPage from "@/app/dashboard/settings/page";
 import { requestAccountDataExport, requestAccountDeletion } from "@actions/subscription";
 import { authClient } from "@/auth/client";
@@ -127,26 +128,31 @@ test("anonymous settings route redirects without querying saved settings", async
 	await waitFor(() => expect(router.push).toHaveBeenCalledWith("/logout"));
 	expect(getSettings).not.toHaveBeenCalled();
 });
-test("authenticated settings compose security connected apps and activity", async () => {
+test("authenticated settings separates security from account and AI connections", async () => {
 	render(<SettingsPage />);
-	expect(await screen.findByText("Connected AI apps panel")).toBeVisible();
-	expect(screen.getByText("AI app activity panel")).toBeVisible();
-	expect(screen.getByText("Security panel")).toBeVisible();
-	await waitFor(() => expect(getSettings).toHaveBeenCalledWith("owner", true));
+	expect(await screen.findByText("Security panel")).toBeVisible();
+	expect(screen.queryByText("Connected AI apps panel")).not.toBeInTheDocument();
 	expect(await screen.findByRole("button", { name: "Save Settings" })).toBeDisabled();
+	fireEvent.click(screen.getByRole("button", { name: "connections section" }));
+	expect(screen.getByText("Linked accounts panel")).toBeVisible();
+	expect(screen.getByText("Connected AI apps panel")).toBeVisible();
+	expect(screen.getByText("AI app activity panel")).toBeVisible();
+	await waitFor(() => expect(getSettings).toHaveBeenCalledWith("owner", true));
 });
-test.each(["billing", "creator"])("requested %s section renders its own content", async (section) => {
+test.each(["billing", "creator", "connections"])("requested %s section renders its own content", async (section) => {
 	window.history.replaceState({}, "", `/dashboard/settings?tab=${section}`);
 	render(<SettingsPage />);
-	expect(await screen.findByText(section === "billing" ? "Billing panel" : "Creator analytics panel")).toBeVisible();
-	expect(screen.queryByText("Connected AI apps panel")).not.toBeInTheDocument();
+	expect(await screen.findByText(section === "billing" ? "Billing panel" : section === "creator" ? "Creator analytics panel" : "Connected AI apps panel")).toBeVisible();
+	if (section !== "connections") expect(screen.queryByText("Connected AI apps panel")).not.toBeInTheDocument();
 });
 test("section navigation restores connected-app controls", async () => {
 	render(<SettingsPage />);
-	await screen.findByText("Connected AI apps panel");
+	await screen.findByText("Security panel");
+	fireEvent.click(screen.getByRole("button", { name: "connections section" }));
+	expect(screen.getByText("Connected AI apps panel")).toBeVisible();
 	fireEvent.click(screen.getByRole("button", { name: "billing section" }));
 	expect(screen.getByText("Billing panel")).toBeVisible();
-	fireEvent.click(screen.getByRole("button", { name: "settings section" }));
+	fireEvent.click(screen.getByRole("button", { name: "connections section" }));
 	expect(screen.getByText("Connected AI apps panel")).toBeVisible();
 });
 test("settings load failure gives safe feedback", async () => {
@@ -318,13 +324,14 @@ test("upgrade request preserves chosen billing cycle and feature", async () => {
 	fireEvent.click(screen.getByRole("button", { name: "Close upgrade" }));
 	expect(screen.queryByText("Upgrade Account")).not.toBeInTheDocument();
 });
-test.each(["free", "pro"])("Runner add-on request chooses the %s account presentation", async (plan) => {
-	validateAuth.mockResolvedValue({ id: "owner", username: "Owner", plan, entitlements: { effectivePlan: plan, runnerAccess: false } });
+test.each(["free", "pro"])("old Runner add-on request opens normal %s billing without a purchase modal", async (plan) => {
+	validateAuth.mockResolvedValue({ id: "owner", username: "Owner", plan, entitlements: { effectivePlan: plan } });
 	window.history.replaceState({}, "", "/dashboard/settings?addon=runner");
 	render(<SettingsPage />);
-	expect(await screen.findByText(plan === "pro" ? "Add the Runner add-on" : "Upgrade with Runner")).toBeVisible();
-	expect(screen.getByText("Upgrade runner_access yearly")).toBeVisible();
-	expect(screen.getByText("Billing panel")).toBeVisible();
+	expect(await screen.findByText("Billing panel")).toBeVisible();
+	expect(screen.queryByText("Add the Runner add-on")).not.toBeInTheDocument();
+	expect(screen.queryByText("Upgrade with Runner")).not.toBeInTheDocument();
+	expect(screen.queryByText("Upgrade runner_access yearly")).not.toBeInTheDocument();
 });
 test("return from recent export sign-in stores a bounded window and removes return marker", async () => {
 	window.history.replaceState({}, "", "/dashboard/settings?reauthenticated=export&tab=settings");
@@ -365,7 +372,7 @@ test("inline settings and creator links preserve navigation between sections", a
 	fireEvent.click(await screen.findByText("Creator Page tab"));
 	expect(screen.getByText("Creator analytics panel")).toBeVisible();
 	fireEvent.click(screen.getByText("Settings", { selector: "a" }));
-	expect(screen.getByText("Connected AI apps panel")).toBeVisible();
+	expect(screen.getByText("Security panel")).toBeVisible();
 });
 test("deletion timing choices are explicit and only confirmation reaches the action", async () => {
 	(requestAccountDeletion as jest.Mock).mockResolvedValue({ status: "scheduled", suspensionAt: "2026-10-09T00:00:00Z" });

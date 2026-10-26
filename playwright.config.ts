@@ -61,12 +61,14 @@ export default defineConfig({
 		{
 			name: "atdd-chromium",
 			testDir: atddTestDir,
+			testIgnore: ["**/mcp-workflows/**"],
 			timeout: 180_000,
 			use: { ...chromium, trace: "off" },
 		},
 		{
 			name: "bdd-chromium",
 			testDir: bddTestDir,
+			testIgnore: ["**/mcp-workflows/**"],
 			use: { ...chromium, trace: "off" },
 		},
 		{

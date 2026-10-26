@@ -38,8 +38,15 @@ test("CI keeps a mandatory complete gate and triggers when a draft becomes ready
 	assert.ok(workflow.on.pull_request.types.includes("ready_for_review"));
 	assert.ok(workflow.jobs.test.needs.includes("coverage-lanes"));
 	assert.ok(workflow.jobs.test.needs.includes("browser-tests"));
-	assert.equal(workflow.jobs.test.if, "always()");
+	assert.equal(workflow.jobs.test.if, "${{ !cancelled() }}");
 	assert.deepEqual(workflow.jobs["coverage-lanes"].strategy.matrix.lane, ["unit", "database-1", "database-2", "database-3", "quiet", "workflows"]);
 	assert.ok(workflow.jobs["browser-tests"].needs.includes("browser-build"));
 	assert.match(workflow.jobs.changes.steps.find((step) => step.id === "mode").run, /fullValidationRequired/);
+});
+
+test("Runner database-backed contracts and health sweeps use a database coverage lane", () => {
+	const paths = ["test/server/runner/admission.test.ts", "test/app/lib/runnerScheduler.test.ts"];
+	const lanes = partitionTests(paths);
+	assert.deepEqual(lanes.unit, []);
+	assert.deepEqual([lanes["database-1"], lanes["database-2"], lanes["database-3"]].flat().sort(), paths.sort());
 });

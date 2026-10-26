@@ -3,12 +3,15 @@ import { mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import { resolve, relative, join } from "node:path";
 import { buildMcpCoverageProbes } from "./build-mcp-coverage-probes.mjs";
 import execution from "./test-execution.cjs";
+import { resetWorkflowCoverageArtifacts } from "./workflow-coverage-state.mjs";
+import { coverageSourceFingerprint } from "./coverage-source-fingerprint.mjs";
 
 const lane = process.argv[2];
 const outputDirectory = resolve("coverage", lane);
 mkdirSync(outputDirectory, { recursive: true });
 rmSync(join(outputDirectory, "lane.json"), { force: true });
 const tree = execFileSync("git", ["rev-parse", "HEAD^{tree}"], { encoding: "utf8" }).trim();
+const sourceFingerprint = coverageSourceFingerprint();
 const run = (args, env) => {
 	const result = spawnSync(process.execPath, args, { env, stdio: "inherit" });
 	if (result.error) throw result.error;
@@ -16,6 +19,7 @@ const run = (args, env) => {
 };
 let tests;
 if (lane === "workflows") {
+	resetWorkflowCoverageArtifacts(outputDirectory);
 	const probes = join(outputDirectory, "probes"),
 		raw = join(outputDirectory, "raw");
 	await buildMcpCoverageProbes({ outputDirectory: probes, instrument: true });
@@ -38,4 +42,5 @@ if (lane === "workflows") {
 		.sort();
 	if (JSON.stringify(executed) !== JSON.stringify([...tests].sort())) throw new Error("Coverage lane did not execute its complete inventory");
 }
-writeFileSync(join(outputDirectory, "lane.json"), JSON.stringify({ lane, tree, tests }, null, 2) + "\n");
+if (coverageSourceFingerprint() !== sourceFingerprint) throw new Error("Coverage execution inputs changed while the lane was running");
+writeFileSync(join(outputDirectory, "lane.json"), JSON.stringify({ lane, tree, sourceFingerprint, tests }, null, 2) + "\n");

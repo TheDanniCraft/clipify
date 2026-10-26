@@ -10,13 +10,13 @@ import { badgeCatalog, isBadgeSlug } from "@lib/badgeCatalog";
 import { queueGrantEmails } from "@/server/notifications/benefit-events";
 import { queueBadgeEmail } from "@/server/notifications/badge-events";
 
-export type AdminAwardInput = { userIds: string[]; operationId: string; kind: "pro_access" | "runner_access" | "badge"; days: number | null; badge?: string; reason: string };
+export type AdminAwardInput = { userIds: string[]; operationId: string; kind: "pro_access" | "badge"; days: number | null; badge?: string; reason: string };
 export async function grantAdminAwards(input: AdminAwardInput) {
 	const admin = await validateAdminAuth(true);
 	if (!admin) throw new Error("ADMIN_REQUIRED");
 	if (!input || !Array.isArray(input.userIds) || input.userIds.length < 1 || input.userIds.length > 100 || input.userIds.some((id) => typeof id !== "string" || !id) || new Set(input.userIds).size !== input.userIds.length) throw new Error("INVALID_RECIPIENTS");
 	if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.operationId)) throw new Error("INVALID_OPERATION_ID");
-	if (!["pro_access", "runner_access", "badge"].includes(input.kind)) throw new Error("INVALID_AWARD");
+	if (!["pro_access", "badge"].includes(input.kind)) throw new Error("INVALID_AWARD");
 	const reason = typeof input.reason === "string" ? input.reason.trim() : "";
 	if (!reason || reason.length > 500) throw new Error("PUBLIC_REASON_REQUIRED");
 	if (input.kind === "badge") {
@@ -40,7 +40,7 @@ export async function grantAdminAwards(input: AdminAwardInput) {
 				} else {
 					const [grant] = await tx
 						.insert(entitlementGrantsTable)
-						.values({ userId, entitlement: input.kind === "pro_access" ? Entitlement.ProAccess : Entitlement.RunnerAccess, source: EntitlementGrantSource.Support, reason, startsAt: now, endsAt: input.days === null ? null : new Date(now.getTime() + input.days * 86400000), externalReference: `admin:${admin.id}:${input.operationId}:${userId}` })
+						.values({ userId, entitlement: Entitlement.ProAccess, source: EntitlementGrantSource.Support, reason, startsAt: now, endsAt: input.days === null ? null : new Date(now.getTime() + input.days * 86400000), externalReference: `admin:${admin.id}:${input.operationId}:${userId}` })
 						.onConflictDoNothing({ target: [entitlementGrantsTable.source, entitlementGrantsTable.externalReference, entitlementGrantsTable.entitlement] })
 						.returning();
 					if (!grant) return false;

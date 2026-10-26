@@ -7,11 +7,13 @@ const saveOverlay = jest.fn();
 const notify = jest.fn();
 const push = jest.fn();
 const router = { push };
+const trialActive = jest.fn(() => false);
+const trialDays = jest.fn(() => 0);
 jest.mock("next/navigation", () => ({ useRouter: () => router, useParams: () => ({ overlayId: "overlay-1" }) }));
 jest.mock("@actions/auth", () => ({ validateAuth: (...args: unknown[]) => validateAuth(...args) }));
 jest.mock("@actions/database", () => ({ getOverlay: (...args: unknown[]) => getOverlay(...args), getOverlayOwnerPlan: (...args: unknown[]) => getOverlayOwnerPlan(...args), saveOverlay: (...args: unknown[]) => saveOverlay(...args) }));
 jest.mock("@lib/toast", () => ({ notify: (...args: unknown[]) => notify(...args) }));
-jest.mock("@lib/featureAccess", () => ({ getFeatureAccess: (user: { plan: string }) => ({ allowed: user.plan === "pro" }), getTrialDaysLeft: () => 0, isReverseTrialActive: () => false }));
+jest.mock("@lib/featureAccess", () => ({ getFeatureAccess: (user: { plan: string }) => ({ allowed: user.plan === "pro" }), getTrialDaysLeft: () => trialDays(), isReverseTrialActive: () => trialActive() }));
 jest.mock("@components/dashboardNavbar", () => ({ __esModule: true, default: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }));
 jest.mock("@components/chatwootData", () => ({ __esModule: true, default: () => null }));
 jest.mock("@components/upgradeModal", () => ({ __esModule: true, default: () => null }));
@@ -242,6 +244,8 @@ beforeEach(() => {
 	Object.defineProperty(window, "innerWidth", { value: 1440, writable: true, configurable: true });
 	window.matchMedia = jest.fn((query: string) => ({ matches: true, media: query, onchange: null, addListener: jest.fn(), removeListener: jest.fn(), addEventListener: jest.fn(), removeEventListener: jest.fn(), dispatchEvent: jest.fn(() => true) }));
 	jest.clearAllMocks();
+	trialActive.mockReturnValue(false);
+	trialDays.mockReturnValue(0);
 	window.localStorage.clear();
 	document.head.querySelectorAll('link[id^="theme-font-"]').forEach((link) => link.remove());
 	validateAuth.mockResolvedValue({ id: "actor", plan: "pro", avatar: "" });
@@ -654,4 +658,37 @@ test("quoted font family preserves the saved complete font stack", async () => {
 	fireEvent.change(screen.getByRole("textbox", { name: "Google Font Family" }), { target: { value: "''" } });
 	fireEvent.click(screen.getByRole("button", { name: "Save Style" }));
 	await waitFor(() => expect(saveOverlay).toHaveBeenCalledWith("overlay-1", expect.objectContaining({ themeFontFamily: "'', sans-serif" }), 7));
+});
+
+test("system typography selection persists the chosen complete font stack", async () => {
+	await ready();
+	fireEvent.click(screen.getByRole("tab", { name: "System" }));
+	const fonts = screen.getByRole("group", { name: "System Font" });
+	fireEvent.click(within(fonts).getByRole("button", { name: "Windows UI" }));
+	fireEvent.click(screen.getByRole("button", { name: "Save Style" }));
+	await waitFor(() => expect(saveOverlay).toHaveBeenCalledWith("overlay-1", expect.objectContaining({ themeFontFamily: "Segoe UI, Arial, sans-serif" }), 7));
+	await waitFor(() => expect(screen.getByRole("button", { name: "Save Style" })).toBeDisabled());
+});
+
+test("legacy missing visibility flags and fade duration render defaults without dirtying saved style", async () => {
+	getOverlay.mockResolvedValue({ ...saved, showChannelInfo: null, showClipInfo: null, showTimer: null, showProgressBar: null, overlayInfoFadeOutSeconds: null });
+	await ready();
+	expect(screen.getByRole("slider", { name: "Overlay Fade Out (seconds)" })).toHaveValue("6");
+	expect(screen.getByRole("button", { name: "Save Style" })).toBeDisabled();
+	fireEvent.change(screen.getByRole("slider", { name: "Overlay Fade Out (seconds)" }), { target: { value: "9" } });
+	fireEvent.click(screen.getByRole("button", { name: "Save Style" }));
+	await waitFor(() => expect(saveOverlay).toHaveBeenCalledWith("overlay-1", expect.objectContaining({ overlayInfoFadeOutSeconds: 9, playerVolume: 83 }), 7));
+});
+
+test.each([
+	{ days: 1, label: "Trial active: ends today." },
+	{ days: 4, label: "Trial active: 4 days left." },
+])("locked creator editor describes the actor trial boundary accurately ($days days)", async ({ days, label }) => {
+	trialActive.mockReturnValue(true);
+	trialDays.mockReturnValue(days);
+	getOverlayOwnerPlan.mockResolvedValue("free");
+	await ready();
+	expect(await screen.findByText(label)).toBeInTheDocument();
+	expect(screen.getByRole("button", { name: "Upgrade to Pro" })).toBeInTheDocument();
+	expect(screen.getByRole("button", { name: "Save Style" })).toBeDisabled();
 });

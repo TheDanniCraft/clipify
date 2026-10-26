@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "errors": [],
+  "primaryArtifacts": 376,
+  "uniquePrimary": 376,
+  "primaryStates": {
+    "Green": 376
+  },
+  "taskCount": 1046,
+  "uniqueTasks": 1046,
+  "tasksComplete": 1040,
+  "coreSourceIDs": 47,
+  "mappedPrimaryArtifacts": 376,
+  "physicalOwnerReferences": 683,
+  "scope": "Relationship and physical-path integrity only. Current execution results remain in the canonical registry and quality gates; this audit does not qualify pending browser/platform execution."
+}

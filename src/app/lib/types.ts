@@ -189,6 +189,8 @@ export enum StreamMode {
 	Failsafe = "failsafe",
 }
 
+export type StreamControlMode = "manual" | "scheduled";
+
 export enum StreamState {
 	Stopped = "stopped",
 	Starting = "starting",
@@ -198,7 +200,6 @@ export enum StreamState {
 
 export enum Entitlement {
 	ProAccess = "pro_access",
-	RunnerAccess = "runner_access",
 }
 
 export enum EntitlementGrantSource {
@@ -213,7 +214,6 @@ export enum EntitlementGrantSource {
 
 export enum BillingProduct {
 	Pro = "pro",
-	RunnerSelfHosted = "runner_self_hosted",
 }
 
 export type EffectivePlan = "free" | "pro";
@@ -221,7 +221,6 @@ export type EntitlementSource = "billing" | "reverse_trial" | "grant" | "agency"
 export type UserEntitlements = {
 	effectivePlan: EffectivePlan;
 	proAccess: boolean;
-	runnerAccess: boolean;
 	isBillingPro: boolean;
 	reverseTrialActive: boolean;
 	trialEndsAt: Date | string | null;

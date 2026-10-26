@@ -1,0 +1,41 @@
+{
+  "ok": true,
+  "errors": [],
+  "scope": "Complete local qualification of actual current working bytes. This is not an official CI or release Go.",
+  "sourceFingerprint": "5bcb13275c521475a2f04a15832de856fb2f0440575ff02f1f3d96a20cc3dd78",
+  "qualifiedDeliverySlices": 23,
+  "totalDeliverySlices": 23,
+  "primaryArtifacts": 376,
+  "passedCases": 7574,
+  "inheritedNativeUpdaterTodo": 1,
+  "appWorkflowSources": 39,
+  "nativeSources": 13,
+  "completeBrowserCaseIds": 913,
+  "completeWorkflowCases": 434,
+  "completedTasks": 1040,
+  "totalTasks": 1046,
+  "openRequiredTasks": [
+    "T149",
+    "T235",
+    "T316",
+    "T521",
+    "T639",
+    "T651"
+  ],
+  "canonicalDefects": 242,
+  "verifiedDefects": 242,
+  "approvedNewExceptions": [],
+  "localLinuxBinarySelfTest": true,
+  "configuredPublicKeyVerifiedInBinary": true,
+  "pricingDesktopMobileReviewed": true,
+  "ownedFixtureCleanup": true,
+  "officialFullCiRunClaimed": false,
+  "officialNativeMatrixRunClaimed": false,
+  "pushOrPrCreated": false,
+  "releaseRecommendation": "No-Go",
+  "releaseBlockers": [
+    "Required full CI on the published candidate",
+    "Official supported five-platform native build/self-test/manifest workflow"
+  ],
+  "nextPublicationScope": "T660: if a PR is later requested, open draft; ready-for-review triggers full validation at the final review checkpoint."
+}

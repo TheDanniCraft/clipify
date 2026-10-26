@@ -1,0 +1,32 @@
+$ jest --runInBand --runTestsByPath test/server/runner/destination-editor.test.ts "--coverage=false"
+[tests] Native application probes compiled once for this run
+[tests] database: 1 suites, 1 worker(s)
+FAIL test/server/runner/destination-editor.test.ts (121.506 s)
+  ● confirmed deletion detaches a stopped saved broadcast and clears its legacy endpoint
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+    -   "success": true,
+    +   "success": false,
+      }
+
+      291 | test("confirmed deletion detaches a stopped saved broadcast and clears its legacy endpoint", () => {
+      292 | 	const result = flowProbe("catalogue:workflow:runner_free_pro:destinations_delete_detach");
+    > 293 | 	expect(result.attempted).toMatchObject({ success: true });
+          | 	                         ^
+      294 | 	expect(result.stored).toHaveLength(0);
+      295 | 	expect(result.reopened.destinations).toHaveLength(0);
+      296 | 	expect(result.sessionReferences).toBe(0);
+
+      at Object.toMatchObject (test/server/runner/destination-editor.test.ts:293:27)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 37 passed, 38 total
+Snapshots:   0 total
+Time:        122.072 s
+Ran all test suites within paths "test/server/runner/destination-editor.test.ts".
+error: script "test" exited with code 1

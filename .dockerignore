@@ -1,6 +1,5 @@
 node_modules/
 .git/
-.github/
 .next/
 .next-playwright/
 coverage/

@@ -1,0 +1,91 @@
+[WebServer] (node:550082) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:550082) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 42 tests using 1 worker
+
+(node:550172) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:6:7 › Manual Runner configuration › A Free creator configures manual live fallback without scheduling @BDD @US1 @runner-manual-browser @FR-005 @BDD-US1-FR005 (6.3s)
+  ✓   2 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:12:7 › Manual Runner configuration › A denied second Start explains the occupied Free slot @BDD @US1 @runner-manual-browser @FR-002 @BDD-US1-FR002 (4.5s)
+  ✓   3 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:20:7 › Manual Runner configuration › Destination status remains independent in the browser @BDD @US1 @runner-manual-browser @US2 @FR-008 @BDD-US2-FR008 (4.6s)
+  ✓   4 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:27:7 › Manual Runner configuration › A moved one-time event keeps its logical occurrence identity @BDD @US1 @runner-manual-browser @US3 @FR-011 @BDD-US3-DEC004 @runner-schedule-browser (5.7s)
+  ✓   5 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:33:7 › Manual Runner configuration › A vacation event spans weeks without clipping its saved end @BDD @US1 @runner-manual-browser @US3 @FR-011 @BDD-US3-DEC005 @runner-schedule-browser (6.2s)
+  ✓   6 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:41:9 › Manual Runner configuration › All-day events respect actual local calendar-day duration › Example #1 @BDD @US1 @runner-manual-browser @US3 @FR-011 @BDD-US3-DEC006 @runner-schedule-browser (5.1s)
+  ✓   7 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:47:9 › Manual Runner configuration › All-day events respect actual local calendar-day duration › Example #2 @BDD @US1 @runner-manual-browser @US3 @FR-011 @BDD-US3-DEC006 @runner-schedule-browser (5.1s)
+  ✓   8 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:57:9 › Manual Runner configuration › Schedule choices persist at the browser boundary › Example #1 @BDD @US1 @runner-manual-browser @US3 @FR-011 @BDD-US3-FR011 @runner-schedule-browser @BDD-US3-OPT030 (5.9s)
+  ✓   9 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:63:9 › Manual Runner configuration › Schedule choices persist at the browser boundary › Example #2 @BDD @US1 @runner-manual-browser @US3 @FR-011 @BDD-US3-FR011 @runner-schedule-browser @BDD-US3-OPT031 (6.6s)
+  ✓  10 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:73:9 › Manual Runner configuration › Invalid edits preserve the saved schedule › Example #1 @BDD @US1 @runner-manual-browser @US3 @FR-011 @EC-006 @BDD-US3-EC006 @runner-schedule-browser @BDD-US3-OPT032 (6.7s)
+  ✓  11 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:79:9 › Manual Runner configuration › Invalid edits preserve the saved schedule › Example #2 @BDD @US1 @runner-manual-browser @US3 @FR-011 @EC-006 @BDD-US3-EC006 @runner-schedule-browser @BDD-US3-OPT033 (6.9s)
+  ✓  12 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:85:9 › Manual Runner configuration › Invalid edits preserve the saved schedule › Example #3 @BDD @US1 @runner-manual-browser @US3 @FR-011 @EC-006 @BDD-US3-EC006 @runner-schedule-browser @BDD-US3-OPT034 (6.9s)
+  ✓  13 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:91:9 › Manual Runner configuration › Invalid edits preserve the saved schedule › Example #4 @BDD @US1 @runner-manual-browser @US3 @FR-011 @EC-006 @BDD-US3-EC006 @runner-schedule-browser @BDD-US3-OPT035 (6.7s)
+  ✓  14 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:97:9 › Manual Runner configuration › Invalid edits preserve the saved schedule › Example #5 @BDD @US1 @runner-manual-browser @US3 @FR-011 @EC-006 @BDD-US3-EC006 @runner-schedule-browser @BDD-US3-OPT036 (5.6s)
+  ✓  15 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:105:7 › Manual Runner configuration › A saved timed event crosses midnight in its declared timezone @BDD @US1 @runner-manual-browser @US3 @FR-011 @BDD-US3-OPT090 @runner-schedule-browser (5.2s)
+  ✓  16 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:111:7 › Manual Runner configuration › A future weekly event can change timezone without changing logical identity @BDD @US1 @runner-manual-browser @US3 @FR-011 @BDD-US3-OPT091 @runner-schedule-browser (7.7s)
+  ✓  17 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:117:7 › Manual Runner configuration › A failed database save keeps the previously saved schedule authoritative @BDD @US1 @runner-manual-browser @US3 @FR-011 @EC-011 @BDD-US3-EC011 @runner-schedule-browser (6.2s)
+  ✓  18 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:123:7 › Manual Runner configuration › Mobile day navigation preserves a multi-week event's true dates @BDD @US1 @runner-manual-browser @US3 @FR-010 @FR-011 @BDD-US3-DEC009 @runner-agenda-browser (5.5s)
+  ✓  19 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:129:7 › Manual Runner configuration › Desktop week segments follow the installed calendar locale @BDD @US1 @runner-manual-browser @US3 @FR-010 @FR-011 @BDD-US3-DEC009 @runner-agenda-browser (5.2s)
+  ✓  20 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:135:7 › Manual Runner configuration › Pointer creation opens equivalent explicit schedule controls @BDD @US1 @runner-manual-browser @US3 @FR-010 @BDD-US3-FR010 @BDD-US3-OPT020 @runner-agenda-browser (3.4s)
+  ✓  21 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:141:7 › Manual Runner configuration › An active scheduled occurrence is visibly locked for editing @BDD @US1 @runner-manual-browser @US3 @FR-010 @FR-011 @FR-015 @BDD-US3-DEC007 @runner-agenda-browser (2.6s)
+  ✓  22 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:147:7 › Manual Runner configuration › Output drain keeps an ended occurrence locked @BDD @US1 @runner-manual-browser @US3 @FR-010 @FR-011 @FR-015 @BDD-US3-DEC007 @runner-agenda-browser (3.2s)
+  ✓  23 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:156:9 › Manual Runner configuration › A future schedule can be deleted with an explicit confirmation › Example #1 @BDD @US1 @runner-manual-browser @US3 @FR-010 @runner-agenda-browser @BDD-US3-OPT028 (5.9s)
+  ✓  24 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:162:9 › Manual Runner configuration › A future schedule can be deleted with an explicit confirmation › Example #2 @BDD @US1 @runner-manual-browser @US3 @FR-010 @runner-agenda-browser @BDD-US3-OPT029 (5.0s)
+  ✓  25 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:172:9 › Manual Runner configuration › Moving a schedule retains its logical identity › Example #1 @BDD @US1 @runner-manual-browser @US3 @FR-010 @runner-agenda-browser @BDD-US3-OPT022 (5.5s)
+  ✓  26 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:178:9 › Manual Runner configuration › Moving a schedule retains its logical identity › Example #2 @BDD @US1 @runner-manual-browser @US3 @FR-010 @runner-agenda-browser @BDD-US3-OPT023 (5.1s)
+  ✓  27 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:188:9 › Manual Runner configuration › Resizing a schedule preserves its real start › Example #1 @BDD @US1 @runner-manual-browser @US3 @FR-010 @runner-agenda-browser @BDD-US3-OPT024 (5.7s)
+  ✓  28 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:194:9 › Manual Runner configuration › Resizing a schedule preserves its real start › Example #2 @BDD @US1 @runner-manual-browser @US3 @FR-010 @runner-agenda-browser @BDD-US3-OPT025 (5.7s)
+  ✓  29 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:202:7 › Manual Runner configuration › A continuation segment exposes full dates instead of a clipped resize end @BDD @US1 @runner-manual-browser @US3 @FR-010 @FR-011 @BDD-US3-DEC009 @runner-agenda-browser (6.2s)
+  ✓  30 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:208:7 › Manual Runner configuration › A schedule can be created with keyboard activation of the explicit editor @BDD @US1 @runner-manual-browser @US3 @FR-010 @BDD-US3-OPT021 @runner-agenda-browser (4.9s)
+  ✓  31 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:216:9 › Manual Runner configuration › Metadata editing retains the event interval › Example #1 @BDD @US1 @runner-manual-browser @US3 @FR-010 @runner-agenda-browser @BDD-US3-OPT026 (5.4s)
+  ✓  32 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:222:9 › Manual Runner configuration › Metadata editing retains the event interval › Example #2 @BDD @US1 @runner-manual-browser @US3 @FR-010 @runner-agenda-browser @BDD-US3-OPT027 (5.4s)
+  ✓  33 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:232:9 › Manual Runner configuration › An ambiguous gesture explains the explicit full-event editor › Example #1 @BDD @US1 @runner-manual-browser @US3 @FR-010 @BDD-US3-DEC009 @runner-agenda-browser (5.7s)
+  ✓  34 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:238:9 › Manual Runner configuration › An ambiguous gesture explains the explicit full-event editor › Example #2 @BDD @US1 @runner-manual-browser @US3 @FR-010 @BDD-US3-DEC009 @runner-agenda-browser (6.0s)
+  ✓  35 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:246:7 › Manual Runner configuration › A stopped occurrence can explicitly resume within its original window @BDD @US1 @runner-manual-browser @US3 @FR-010 @FR-011 @FR-015 @BDD-US3-DEC008 @runner-agenda-browser (3.2s)
+  ✓  36 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:256:9 › Manual Runner configuration › Stop suppresses the captured occurrence while preserving Scheduled control › Example #1 @BDD @US1 @runner-manual-browser @US3 @FR-010 @FR-011 @FR-015 @BDD-US3-DEC008 @runner-agenda-browser @runner-schedule-stop-browser (4.1s)
+  ✓  37 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:265:9 › Manual Runner configuration › Stop suppresses the captured occurrence while preserving Scheduled control › Example #2 @BDD @US1 @runner-manual-browser @US3 @FR-010 @FR-011 @FR-015 @BDD-US3-DEC008 @runner-agenda-browser @runner-schedule-stop-browser (4.0s)
+  ✓  38 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:276:7 › Manual Runner configuration › Overlapping schedule changes preserve the existing event @BDD @US1 @runner-manual-browser @US3 @FR-014 @BDD-US3-OPT037 @runner-schedule-browser (7.2s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  39 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:282:7 › Manual Runner configuration › A Pro owner chooses a clean generated presentation @BDD @US1 @runner-manual-browser @US4 @FR-018 @BDD-US4-FR018 @runner-presentation-browser @runner-pro-appearance-browser (6.3s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓  40 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:288:7 › Manual Runner configuration › A Pro owner voluntarily shows Clipify branding @BDD @US1 @runner-manual-browser @US4 @FR-018 @BDD-US4-OPT093 @runner-presentation-browser @runner-pro-appearance-browser (6.0s)
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-35a6942c-1688-4eac-979d-5cb4376818b5
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-35a6942c-1688-4eac-979d-5cb4376818b5
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-35a6942c-1688-4eac-979d-5cb4376818b5
+  ✓  41 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:294:7 › Manual Runner configuration › Known Pro expiry restores branding without interrupting the playing clip @BDD @US1 @runner-manual-browser @US4 @FR-018 @FR-022 @BDD-US4-EXP001 @runner-presentation-browser @runner-pro-appearance-expiry-browser (20.7s)
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-ba9d51cf-4ca3-4063-a925-ad7f59458d03
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-ba9d51cf-4ca3-4063-a925-ad7f59458d03
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-ba9d51cf-4ca3-4063-a925-ad7f59458d03
+  ✓  42 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:300:7 › Manual Runner configuration › Renewed Pro stays clean beyond its former appearance deadline @BDD @US1 @runner-manual-browser @US4 @FR-018 @FR-022 @BDD-US4-EXP001 @runner-presentation-browser @runner-pro-appearance-expiry-browser (20.8s)
+
+  42 passed (4.5m)

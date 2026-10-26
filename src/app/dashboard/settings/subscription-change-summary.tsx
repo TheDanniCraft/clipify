@@ -1,5 +1,6 @@
 "use client";
 
+import LocalizedDate from "@components/localizedDate";
 import { IconMinus, IconPlus, IconRefresh } from "@tabler/icons-react";
 
 type Addition = { label: string; billingCycle: "monthly" | "yearly"; price: string };
@@ -7,8 +8,13 @@ type Removal = { label: string; currentPeriodEnd: string | null };
 type Reactivation = { label: string };
 
 function formatDate(value: string | null) {
-	if (!value) return "at the end of the current billing period";
-	return `at renewal on ${new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}`;
+	return value ? (
+		<>
+			at renewal on <LocalizedDate value={value} />
+		</>
+	) : (
+		"at the end of the current billing period"
+	);
 }
 
 export default function SubscriptionChangeSummary({ additions, removals, reactivations }: { additions: Addition[]; removals: Removal[]; reactivations: Reactivation[] }) {

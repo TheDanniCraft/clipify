@@ -1,0 +1,703 @@
+[tests] ordinary: 1 suites, 1 worker(s)
+FAIL test/app/components/runnerBrandingPreview.test.tsx
+  ● visual top_left placement updates the stable preview without saving
+
+    TestingLibraryElementError: Unable to find an accessible element with the role "radio" and name "Top left"
+
+    Here are the accessible roles:
+
+      heading:
+
+      Name "Standby and branding":
+      [36m<h3[39m
+        [33mclass[39m=[32m"text-lg font-semibold"[39m
+      [36m/>[39m
+
+      --------------------------------------------------
+      paragraph:
+
+      Name "":
+      [36m<p[39m
+        [33mclass[39m=[32m"text-sm text-muted"[39m
+      [36m/>[39m
+
+      --------------------------------------------------
+      button:
+
+      Name "Save appearance":
+      [36m<button />[39m
+
+      --------------------------------------------------
+      tablist:
+
+      Name "Appearance preview mode":
+      [36m<div[39m
+        [33maria-label[39m=[32m"Appearance preview mode"[39m
+        [33mrole[39m=[32m"tablist"[39m
+      [36m/>[39m
+
+      --------------------------------------------------
+      tab:
+
+      Name "Preview standby":
+      [36m<button[39m
+        [33maria-selected[39m=[32m"true"[39m
+        [33mrole[39m=[32m"tab"[39m
+      [36m/>[39m
+
+      Name "Preview clips":
+      [36m<button[39m
+        [33maria-selected[39m=[32m"false"[39m
+        [33mrole[39m=[32m"tab"[39m
+      [36m/>[39m
+
+      --------------------------------------------------
+
+    Ignored nodes: comments, script, style
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"grid gap-6 xl:grid-cols-[minmax(18rem,1fr)_minmax(0,2fr)]"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"space-y-5 px-6 sm:px-0"[39m
+          [36m>[39m
+            [36m<h3[39m
+              [33mclass[39m=[32m"text-lg font-semibold"[39m
+            [36m>[39m
+              [0mStandby and branding[0m
+            [36m</h3>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-sm text-muted"[39m
+            [36m>[39m
+              [0mChoose where Clipify attribution appears on generated content.[0m
+            [36m</p>[39m
+            [36m<div>[39m
+              [36m<label>[39m
+                [0mAttribution corner[0m
+              [36m</label>[39m
+              [36m<div>[39m
+                [36m<div />[39m
+                [36m<div />[39m
+              [36m</div>[39m
+              [36m<div>[39m
+                [36m<div>[39m
+                  [36m<div[39m
+                    [33mid[39m=[32m"top_left"[39m
+                  [36m>[39m
+                    [36m<div />[39m
+                    [36m<label>[39m
+                      [0mTop left[0m
+                    [36m</label>[39m
+                  [36m</div>[39m
+                  [36m<div[39m
+                    [33mid[39m=[32m"top_right"[39m
+                  [36m>[39m
+                    [36m<div />[39m
+                    [36m<label>[39m
+                      [0mTop right[0m
+                    [36m</label>[39m
+                  [36m</div>[39m
+                  [36m<div[39m
+                    [33mid[39m=[32m"bottom_left"[39m
+                  [36m>[39m
+                    [36m<div />[39m
+                    [36m<label>[39m
+                      [0mBottom left[0m
+                    [36m</label>[39m
+                  [36m</div>[39m
+                  [36m<div[39m
+                    [33mid[39m=[32m"bottom_right"[39m
+                  [36m>[39m
+                    [36m<div />[39m
+                    [36m<label>[39m
+                      [0mBottom right[0m
+                    [36m</label>[39m
+                  [36m</div>[39m
+                [36m</div>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<button>[39m
+              [0mSave appearance[0m
+            [36m</button>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"space-y-4 xl:sticky xl:top-0 xl:self-start"[39m
+          [36m>[39m
+            [36m<div>[39m
+              [36m<div[39m
+                [33maria-label[39m=[32m"Appearance preview mode"[39m
+                [33mrole[39m=[32m"tablist"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"true"[39m
+                  [33mrole[39m=[32m"tab"[39m
+                [36m>[39m
+                  [0mPreview standby[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mrole[39m=[32m"tab"[39m
+                [36m>[39m
+                  [0mPreview clips[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"relative aspect-video w-full overflow-hidden bg-black ring-1 ring-separator sm:rounded-xl"[39m
+              [36m>[39m
+                [36m<iframe[39m
+                  [33mclass[39m=[32m"absolute left-0 top-0 max-w-none border-0"[39m
+                  [33msrc[39m=[32m"/runner/preview/11111111-1111-4111-8111-111111111111?overlayId=22222222-2222-4222-8222-222222222222"[39m
+                  [33mstyle[39m=[32m"width: 1280px; height: 720px; transform: scale(0); transform-origin: top left;"[39m
+                  [33mtitle[39m=[32m"Runner appearance preview"[39m
+                [36m/>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</body>[39m
+
+      340 |  render(<RunnerBrandingPreview ownerId='fixture-owner' runnerId='11111111-1111-4111-8111-111111111111' overlayId='22222222-2222-4222-8222-222222222222' />);
+      341 |  const frame = await observeDraftPreview();
+    > 342 |  fireEvent.click(screen.getByRole("radio", { name }));
+          |                         ^
+      343 |  expect(screen.getByRole("radio", { name })).toHaveAttribute("aria-checked", "true");
+      344 |  expect(draftQuery(frame).get("watermarkCorner")).toBe(corner);
+      345 |  expect(screen.getByTitle("Runner appearance preview")).toBe(frame);
+
+      at Object.getElementError (node_modules/@testing-library/dom/dist/config.js:37:19)
+      at node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+      at node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+      at node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+      at getByRole (test/app/components/runnerBrandingPreview.test.tsx:342:25)
+
+  ● visual top_right placement updates the stable preview without saving
+
+    TestingLibraryElementError: Unable to find an accessible element with the role "radio" and name "Top right"
+
+    Here are the accessible roles:
+
+      heading:
+
+      Name "Standby and branding":
+      [36m<h3[39m
+        [33mclass[39m=[32m"text-lg font-semibold"[39m
+      [36m/>[39m
+
+      --------------------------------------------------
+      paragraph:
+
+      Name "":
+      [36m<p[39m
+        [33mclass[39m=[32m"text-sm text-muted"[39m
+      [36m/>[39m
+
+      --------------------------------------------------
+      button:
+
+      Name "Save appearance":
+      [36m<button />[39m
+
+      --------------------------------------------------
+      tablist:
+
+      Name "Appearance preview mode":
+      [36m<div[39m
+        [33maria-label[39m=[32m"Appearance preview mode"[39m
+        [33mrole[39m=[32m"tablist"[39m
+      [36m/>[39m
+
+      --------------------------------------------------
+      tab:
+
+      Name "Preview standby":
+      [36m<button[39m
+        [33maria-selected[39m=[32m"true"[39m
+        [33mrole[39m=[32m"tab"[39m
+      [36m/>[39m
+
+      Name "Preview clips":
+      [36m<button[39m
+        [33maria-selected[39m=[32m"false"[39m
+        [33mrole[39m=[32m"tab"[39m
+      [36m/>[39m
+
+      --------------------------------------------------
+
+    Ignored nodes: comments, script, style
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"grid gap-6 xl:grid-cols-[minmax(18rem,1fr)_minmax(0,2fr)]"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"space-y-5 px-6 sm:px-0"[39m
+          [36m>[39m
+            [36m<h3[39m
+              [33mclass[39m=[32m"text-lg font-semibold"[39m
+            [36m>[39m
+              [0mStandby and branding[0m
+            [36m</h3>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-sm text-muted"[39m
+            [36m>[39m
+              [0mChoose where Clipify attribution appears on generated content.[0m
+            [36m</p>[39m
+            [36m<div>[39m
+              [36m<label>[39m
+                [0mAttribution corner[0m
+              [36m</label>[39m
+              [36m<div>[39m
+                [36m<div />[39m
+                [36m<div />[39m
+              [36m</div>[39m
+              [36m<div>[39m
+                [36m<div>[39m
+                  [36m<div[39m
+                    [33mid[39m=[32m"top_left"[39m
+                  [36m>[39m
+                    [36m<div />[39m
+                    [36m<label>[39m
+                      [0mTop left[0m
+                    [36m</label>[39m
+                  [36m</div>[39m
+                  [36m<div[39m
+                    [33mid[39m=[32m"top_right"[39m
+                  [36m>[39m
+                    [36m<div />[39m
+                    [36m<label>[39m
+                      [0mTop right[0m
+                    [36m</label>[39m
+                  [36m</div>[39m
+                  [36m<div[39m
+                    [33mid[39m=[32m"bottom_left"[39m
+                  [36m>[39m
+                    [36m<div />[39m
+                    [36m<label>[39m
+                      [0mBottom left[0m
+                    [36m</label>[39m
+                  [36m</div>[39m
+                  [36m<div[39m
+                    [33mid[39m=[32m"bottom_right"[39m
+                  [36m>[39m
+                    [36m<div />[39m
+                    [36m<label>[39m
+                      [0mBottom right[0m
+                    [36m</label>[39m
+                  [36m</div>[39m
+                [36m</div>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<button>[39m
+              [0mSave appearance[0m
+            [36m</button>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"space-y-4 xl:sticky xl:top-0 xl:self-start"[39m
+          [36m>[39m
+            [36m<div>[39m
+              [36m<div[39m
+                [33maria-label[39m=[32m"Appearance preview mode"[39m
+                [33mrole[39m=[32m"tablist"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"true"[39m
+                  [33mrole[39m=[32m"tab"[39m
+                [36m>[39m
+                  [0mPreview standby[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mrole[39m=[32m"tab"[39m
+                [36m>[39m
+                  [0mPreview clips[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"relative aspect-video w-full overflow-hidden bg-black ring-1 ring-separator sm:rounded-xl"[39m
+              [36m>[39m
+                [36m<iframe[39m
+                  [33mclass[39m=[32m"absolute left-0 top-0 max-w-none border-0"[39m
+                  [33msrc[39m=[32m"/runner/preview/11111111-1111-4111-8111-111111111111?overlayId=22222222-2222-4222-8222-222222222222"[39m
+                  [33mstyle[39m=[32m"width: 1280px; height: 720px; transform: scale(0); transform-origin: top left;"[39m
+                  [33mtitle[39m=[32m"Runner appearance preview"[39m
+                [36m/>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</body>[39m
+
+      340 |  render(<RunnerBrandingPreview ownerId='fixture-owner' runnerId='11111111-1111-4111-8111-111111111111' overlayId='22222222-2222-4222-8222-222222222222' />);
+      341 |  const frame = await observeDraftPreview();
+    > 342 |  fireEvent.click(screen.getByRole("radio", { name }));
+          |                         ^
+      343 |  expect(screen.getByRole("radio", { name })).toHaveAttribute("aria-checked", "true");
+      344 |  expect(draftQuery(frame).get("watermarkCorner")).toBe(corner);
+      345 |  expect(screen.getByTitle("Runner appearance preview")).toBe(frame);
+
+      at Object.getElementError (node_modules/@testing-library/dom/dist/config.js:37:19)
+      at node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+      at node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+      at node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+      at getByRole (test/app/components/runnerBrandingPreview.test.tsx:342:25)
+
+  ● visual bottom_left placement updates the stable preview without saving
+
+    TestingLibraryElementError: Unable to find an accessible element with the role "radio" and name "Bottom left"
+
+    Here are the accessible roles:
+
+      heading:
+
+      Name "Standby and branding":
+      [36m<h3[39m
+        [33mclass[39m=[32m"text-lg font-semibold"[39m
+      [36m/>[39m
+
+      --------------------------------------------------
+      paragraph:
+
+      Name "":
+      [36m<p[39m
+        [33mclass[39m=[32m"text-sm text-muted"[39m
+      [36m/>[39m
+
+      --------------------------------------------------
+      button:
+
+      Name "Save appearance":
+      [36m<button />[39m
+
+      --------------------------------------------------
+      tablist:
+
+      Name "Appearance preview mode":
+      [36m<div[39m
+        [33maria-label[39m=[32m"Appearance preview mode"[39m
+        [33mrole[39m=[32m"tablist"[39m
+      [36m/>[39m
+
+      --------------------------------------------------
+      tab:
+
+      Name "Preview standby":
+      [36m<button[39m
+        [33maria-selected[39m=[32m"true"[39m
+        [33mrole[39m=[32m"tab"[39m
+      [36m/>[39m
+
+      Name "Preview clips":
+      [36m<button[39m
+        [33maria-selected[39m=[32m"false"[39m
+        [33mrole[39m=[32m"tab"[39m
+      [36m/>[39m
+
+      --------------------------------------------------
+
+    Ignored nodes: comments, script, style
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"grid gap-6 xl:grid-cols-[minmax(18rem,1fr)_minmax(0,2fr)]"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"space-y-5 px-6 sm:px-0"[39m
+          [36m>[39m
+            [36m<h3[39m
+              [33mclass[39m=[32m"text-lg font-semibold"[39m
+            [36m>[39m
+              [0mStandby and branding[0m
+            [36m</h3>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-sm text-muted"[39m
+            [36m>[39m
+              [0mChoose where Clipify attribution appears on generated content.[0m
+            [36m</p>[39m
+            [36m<div>[39m
+              [36m<label>[39m
+                [0mAttribution corner[0m
+              [36m</label>[39m
+              [36m<div>[39m
+                [36m<div />[39m
+                [36m<div />[39m
+              [36m</div>[39m
+              [36m<div>[39m
+                [36m<div>[39m
+                  [36m<div[39m
+                    [33mid[39m=[32m"top_left"[39m
+                  [36m>[39m
+                    [36m<div />[39m
+                    [36m<label>[39m
+                      [0mTop left[0m
+                    [36m</label>[39m
+                  [36m</div>[39m
+                  [36m<div[39m
+                    [33mid[39m=[32m"top_right"[39m
+                  [36m>[39m
+                    [36m<div />[39m
+                    [36m<label>[39m
+                      [0mTop right[0m
+                    [36m</label>[39m
+                  [36m</div>[39m
+                  [36m<div[39m
+                    [33mid[39m=[32m"bottom_left"[39m
+                  [36m>[39m
+                    [36m<div />[39m
+                    [36m<label>[39m
+                      [0mBottom left[0m
+                    [36m</label>[39m
+                  [36m</div>[39m
+                  [36m<div[39m
+                    [33mid[39m=[32m"bottom_right"[39m
+                  [36m>[39m
+                    [36m<div />[39m
+                    [36m<label>[39m
+                      [0mBottom right[0m
+                    [36m</label>[39m
+                  [36m</div>[39m
+                [36m</div>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<button>[39m
+              [0mSave appearance[0m
+            [36m</button>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"space-y-4 xl:sticky xl:top-0 xl:self-start"[39m
+          [36m>[39m
+            [36m<div>[39m
+              [36m<div[39m
+                [33maria-label[39m=[32m"Appearance preview mode"[39m
+                [33mrole[39m=[32m"tablist"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"true"[39m
+                  [33mrole[39m=[32m"tab"[39m
+                [36m>[39m
+                  [0mPreview standby[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mrole[39m=[32m"tab"[39m
+                [36m>[39m
+                  [0mPreview clips[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"relative aspect-video w-full overflow-hidden bg-black ring-1 ring-separator sm:rounded-xl"[39m
+              [36m>[39m
+                [36m<iframe[39m
+                  [33mclass[39m=[32m"absolute left-0 top-0 max-w-none border-0"[39m
+                  [33msrc[39m=[32m"/runner/preview/11111111-1111-4111-8111-111111111111?overlayId=22222222-2222-4222-8222-222222222222"[39m
+                  [33mstyle[39m=[32m"width: 1280px; height: 720px; transform: scale(0); transform-origin: top left;"[39m
+                  [33mtitle[39m=[32m"Runner appearance preview"[39m
+                [36m/>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</body>[39m
+
+      340 |  render(<RunnerBrandingPreview ownerId='fixture-owner' runnerId='11111111-1111-4111-8111-111111111111' overlayId='22222222-2222-4222-8222-222222222222' />);
+      341 |  const frame = await observeDraftPreview();
+    > 342 |  fireEvent.click(screen.getByRole("radio", { name }));
+          |                         ^
+      343 |  expect(screen.getByRole("radio", { name })).toHaveAttribute("aria-checked", "true");
+      344 |  expect(draftQuery(frame).get("watermarkCorner")).toBe(corner);
+      345 |  expect(screen.getByTitle("Runner appearance preview")).toBe(frame);
+
+      at Object.getElementError (node_modules/@testing-library/dom/dist/config.js:37:19)
+      at node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+      at node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+      at node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+      at getByRole (test/app/components/runnerBrandingPreview.test.tsx:342:25)
+
+  ● visual bottom_right placement updates the stable preview without saving
+
+    TestingLibraryElementError: Unable to find an accessible element with the role "radio" and name "Bottom right"
+
+    Here are the accessible roles:
+
+      heading:
+
+      Name "Standby and branding":
+      [36m<h3[39m
+        [33mclass[39m=[32m"text-lg font-semibold"[39m
+      [36m/>[39m
+
+      --------------------------------------------------
+      paragraph:
+
+      Name "":
+      [36m<p[39m
+        [33mclass[39m=[32m"text-sm text-muted"[39m
+      [36m/>[39m
+
+      --------------------------------------------------
+      button:
+
+      Name "Save appearance":
+      [36m<button />[39m
+
+      --------------------------------------------------
+      tablist:
+
+      Name "Appearance preview mode":
+      [36m<div[39m
+        [33maria-label[39m=[32m"Appearance preview mode"[39m
+        [33mrole[39m=[32m"tablist"[39m
+      [36m/>[39m
+
+      --------------------------------------------------
+      tab:
+
+      Name "Preview standby":
+      [36m<button[39m
+        [33maria-selected[39m=[32m"true"[39m
+        [33mrole[39m=[32m"tab"[39m
+      [36m/>[39m
+
+      Name "Preview clips":
+      [36m<button[39m
+        [33maria-selected[39m=[32m"false"[39m
+        [33mrole[39m=[32m"tab"[39m
+      [36m/>[39m
+
+      --------------------------------------------------
+
+    Ignored nodes: comments, script, style
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"grid gap-6 xl:grid-cols-[minmax(18rem,1fr)_minmax(0,2fr)]"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"space-y-5 px-6 sm:px-0"[39m
+          [36m>[39m
+            [36m<h3[39m
+              [33mclass[39m=[32m"text-lg font-semibold"[39m
+            [36m>[39m
+              [0mStandby and branding[0m
+            [36m</h3>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-sm text-muted"[39m
+            [36m>[39m
+              [0mChoose where Clipify attribution appears on generated content.[0m
+            [36m</p>[39m
+            [36m<div>[39m
+              [36m<label>[39m
+                [0mAttribution corner[0m
+              [36m</label>[39m
+              [36m<div>[39m
+                [36m<div />[39m
+                [36m<div />[39m
+              [36m</div>[39m
+              [36m<div>[39m
+                [36m<div>[39m
+                  [36m<div[39m
+                    [33mid[39m=[32m"top_left"[39m
+                  [36m>[39m
+                    [36m<div />[39m
+                    [36m<label>[39m
+                      [0mTop left[0m
+                    [36m</label>[39m
+                  [36m</div>[39m
+                  [36m<div[39m
+                    [33mid[39m=[32m"top_right"[39m
+                  [36m>[39m
+                    [36m<div />[39m
+                    [36m<label>[39m
+                      [0mTop right[0m
+                    [36m</label>[39m
+                  [36m</div>[39m
+                  [36m<div[39m
+                    [33mid[39m=[32m"bottom_left"[39m
+                  [36m>[39m
+                    [36m<div />[39m
+                    [36m<label>[39m
+                      [0mBottom left[0m
+                    [36m</label>[39m
+                  [36m</div>[39m
+                  [36m<div[39m
+                    [33mid[39m=[32m"bottom_right"[39m
+                  [36m>[39m
+                    [36m<div />[39m
+                    [36m<label>[39m
+                      [0mBottom right[0m
+                    [36m</label>[39m
+                  [36m</div>[39m
+                [36m</div>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<button>[39m
+              [0mSave appearance[0m
+            [36m</button>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"space-y-4 xl:sticky xl:top-0 xl:self-start"[39m
+          [36m>[39m
+            [36m<div>[39m
+              [36m<div[39m
+                [33maria-label[39m=[32m"Appearance preview mode"[39m
+                [33mrole[39m=[32m"tablist"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"true"[39m
+                  [33mrole[39m=[32m"tab"[39m
+                [36m>[39m
+                  [0mPreview standby[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mrole[39m=[32m"tab"[39m
+                [36m>[39m
+                  [0mPreview clips[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"relative aspect-video w-full overflow-hidden bg-black ring-1 ring-separator sm:rounded-xl"[39m
+              [36m>[39m
+                [36m<iframe[39m
+                  [33mclass[39m=[32m"absolute left-0 top-0 max-w-none border-0"[39m
+                  [33msrc[39m=[32m"/runner/preview/11111111-1111-4111-8111-111111111111?overlayId=22222222-2222-4222-8222-222222222222"[39m
+                  [33mstyle[39m=[32m"width: 1280px; height: 720px; transform: scale(0); transform-origin: top left;"[39m
+                  [33mtitle[39m=[32m"Runner appearance preview"[39m
+                [36m/>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</body>[39m
+
+      340 |  render(<RunnerBrandingPreview ownerId='fixture-owner' runnerId='11111111-1111-4111-8111-111111111111' overlayId='22222222-2222-4222-8222-222222222222' />);
+      341 |  const frame = await observeDraftPreview();
+    > 342 |  fireEvent.click(screen.getByRole("radio", { name }));
+          |                         ^
+      343 |  expect(screen.getByRole("radio", { name })).toHaveAttribute("aria-checked", "true");
+      344 |  expect(draftQuery(frame).get("watermarkCorner")).toBe(corner);
+      345 |  expect(screen.getByTitle("Runner appearance preview")).toBe(frame);
+
+      at Object.getElementError (node_modules/@testing-library/dom/dist/config.js:37:19)
+      at node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+      at node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+      at node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+      at getByRole (test/app/components/runnerBrandingPreview.test.tsx:342:25)
+
+Test Suites: 1 failed, 1 total
+Tests:       4 failed, 21 passed, 25 total
+Snapshots:   0 total
+Time:        1.994 s, estimated 2 s
+Ran all test suites matching test/app/components/runnerBrandingPreview.test.tsx.

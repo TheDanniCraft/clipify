@@ -1,5 +1,6 @@
 "use client";
 
+import LocalizedDate from "@components/localizedDate";
 import { getCreatorClipPage, getCreatorClipPlayback } from "@actions/creatorPage";
 import AppDateRangePicker from "@components/appDateRangePicker";
 import { Button, Card, Chip, Label, ListBox, Select } from "@heroui/react";
@@ -31,7 +32,6 @@ type Creator = {
 };
 
 const numberFormatter = new Intl.NumberFormat("en-US");
-const clipDateFormatter = new Intl.DateTimeFormat("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
 
 function ClipDialog({ username, clips, index, total, hasMore, loadingMore, onIndexChange, onNext, onClose }: { username: string; clips: TwitchClip[]; index: number; total: number; hasMore: boolean; loadingMore: boolean; onIndexChange: (index: number) => void; onNext: () => void; onClose: () => void }) {
 	const dialogRef = useRef<HTMLDialogElement>(null);
@@ -75,7 +75,7 @@ function ClipDialog({ username, clips, index, total, hasMore, loadingMore, onInd
 					<div className='min-w-0'>
 						<h1 className='truncate font-semibold'>{clip.title}</h1>
 						<p className='text-sm text-zinc-400'>
-							{clip.creator_name} · {numberFormatter.format(clip.view_count)} views · {clipDateFormatter.format(new Date(clip.created_at))}
+							{clip.creator_name} · {numberFormatter.format(clip.view_count)} views · {<LocalizedDate value={clip.created_at} timeZone='UTC' />}
 						</p>
 					</div>
 					<Button isIconOnly variant='tertiary' aria-label='Close clip' onPress={onClose}>
@@ -298,7 +298,7 @@ export default function CreatorPageClient({ creator, initialItems, initialCursor
 									<div className='p-4'>
 										<h2 className='line-clamp-2 font-semibold'>{clip.title}</h2>
 										<p className='mt-2 text-xs text-muted'>
-											{numberFormatter.format(clip.view_count)} views · {clipDateFormatter.format(new Date(clip.created_at))}
+											{numberFormatter.format(clip.view_count)} views · {<LocalizedDate value={clip.created_at} timeZone='UTC' />}
 										</p>
 									</div>
 								</button>

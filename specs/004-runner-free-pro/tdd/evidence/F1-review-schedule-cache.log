@@ -1,0 +1,8 @@
+$ jest --runInBand --forceExit --runTestsByPath src/__tests__/execution-runtime.test.ts src/__tests__/heartbeat-protocol.test.ts src/__tests__/schedule-cache-validation.test.ts "--coverage=false"
+
+Test Suites: 3 passed, 3 total
+Tests:       146 passed, 146 total
+Snapshots:   0 total
+Time:        5.321 s
+Ran all test suites within paths "src/__tests__/execution-runtime.test.ts", "src/__tests__/heartbeat-protocol.test.ts", "src/__tests__/schedule-cache-validation.test.ts".
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

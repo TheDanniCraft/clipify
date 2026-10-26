@@ -1,5 +1,8 @@
 import { grantAccessNotExpired } from "@/server/entitlements/grant-period";
 /* istanbul ignore file */
+/* istanbul ignore file */
+/* istanbul ignore file */
+/* istanbul ignore file */
 import { userHealthCounts, overlayHealthCounts, settingsHealthCounts, tokenHealthCounts, runnerHealthCounts, streamHealthCounts, crawlerHealthCounts, notificationHealthCounts } from "./health-counts";
 import { db as database, type QueryClient } from "@/db/client";
 import { billingSubscriptionItemsTable, billingSubscriptionsTable, entitlementGrantsTable, galleriesTable, modQueueTable, overlaysTable, plausibleStatsCacheTable, playlistClipsTable, playlistsTable, queueTable, runnersTable, settingsTable, streamSessionsTable, twitchCacheTable, usersTable, clipCrawlJobsTable, notificationOutboxTable } from "@/db/schema";
@@ -7,7 +10,7 @@ import { account as authAccountTable } from "@/db/auth-schema";
 import { getTwitchCacheReadMetricsSnapshot } from "@actions/database";
 import { getClipCacheSchedulerStats } from "@lib/clipCacheScheduler";
 import { and, count, countDistinct, eq, isNotNull, isNull, like, lt, lte, sql, inArray } from "drizzle-orm";
-import { BillingProduct, Entitlement, EntitlementGrantSource, OverlayType, PlaybackMode, Plan, StatusOptions, StreamMode, TwitchCacheType } from "@types";
+import { Entitlement, EntitlementGrantSource, OverlayType, PlaybackMode, Plan, StatusOptions, StreamMode, TwitchCacheType } from "@types";
 import { getCreatorAnalyticsRuntimeMetrics } from "@lib/plausibleCreatorAnalytics";
 
 import { getMcpMetricsSnapshot, type McpMetricsSnapshot } from "@/server/mcp/metrics";
@@ -209,11 +212,6 @@ export type InstanceHealthSnapshot = {
 	};
 	billing: {
 		activeSubscriptions: number;
-		runnerSubscriptionsActive: number;
-		runnerSubscriptionsPastDue: number;
-		runnerSubscriptionsCanceling: number;
-		runnerMonthlyRecurringRevenueCents: number;
-		runnerAnnualRecurringRevenueCents: number;
 	};
 	runners: {
 		total: number;
@@ -478,7 +476,6 @@ async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealth
 		db.select({ mode: streamSessionsTable.mode, destination: streamDestination, count: count() }).from(streamSessionsTable).groupBy(streamSessionsTable.mode, streamDestination),
 	]);
 	const activeBillingStatuses = new Set(["active", "trialing", "past_due"]);
-	const runnerBillingItems = billingItems.filter((item) => item.productKey === BillingProduct.RunnerSelfHosted);
 	const byOs = Object.fromEntries(runnersByOsRows.map((row) => [row.value ?? "unknown", Number(row.count ?? 0)]));
 	const byVersion = Object.fromEntries(runnersByVersionRows.map((row) => [row.value ?? "unknown", Number(row.count ?? 0)]));
 	const byMode: Record<StreamMode, number> = { [StreamMode.AlwaysOn]: 0, [StreamMode.Failsafe]: 0 };
@@ -710,11 +707,6 @@ async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealth
 		},
 		billing: {
 			activeSubscriptions: new Set(billingItems.filter((item) => activeBillingStatuses.has(item.status)).map((item) => item.subscriptionId)).size,
-			runnerSubscriptionsActive: runnerBillingItems.filter((item) => activeBillingStatuses.has(item.status)).length,
-			runnerSubscriptionsPastDue: runnerBillingItems.filter((item) => item.status === "past_due").length,
-			runnerSubscriptionsCanceling: runnerBillingItems.filter((item) => item.cancelAtPeriodEnd).length,
-			runnerMonthlyRecurringRevenueCents: runnerBillingItems.filter((item) => activeBillingStatuses.has(item.status) && item.interval === "month").reduce((sum, item) => sum + Number(item.unitAmount ?? 0), 0),
-			runnerAnnualRecurringRevenueCents: runnerBillingItems.filter((item) => activeBillingStatuses.has(item.status)).reduce((sum, item) => sum + Number(item.unitAmount ?? 0) * (item.interval === "month" ? 12 : 1), 0),
 		},
 		runners: {
 			total: Number(runnerCountRows[0]?.count ?? 0),

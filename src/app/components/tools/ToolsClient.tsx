@@ -1,5 +1,7 @@
 "use client";
 
+import DashboardEditorLayout from "@components/dashboardEditorLayout";
+
 import { getGalleryPreview } from "@actions/gallery";
 import ClipifyElementPreview from "@components/clipifyElementPreview";
 import CodeSnippet from "@components/codeSnippet";
@@ -95,8 +97,8 @@ export default function ToolsClient({ overlays, galleries, initialTool, initialG
 	}, [galleryId]);
 
 	return (
-		<div className='mx-auto w-full max-w-7xl px-6 py-8 md:px-12 lg:px-16'>
-			<Tabs selectedKey={tool} onSelectionChange={(key) => setTool(key === "gallery" ? "gallery" : "player")} className='mb-6 w-fit max-w-full'>
+		<DashboardEditorLayout>
+			<Tabs selectedKey={tool} onSelectionChange={(key) => setTool(key === "gallery" ? "gallery" : "player")} className='w-fit max-w-full'>
 				<Tabs.ListContainer className='w-fit max-w-full'>
 					<Tabs.List aria-label='Integration tool' className='w-fit max-w-full *:w-fit'>
 						<Tabs.Tab id='player' className='flex-none'>
@@ -131,7 +133,7 @@ export default function ToolsClient({ overlays, galleries, initialTool, initialG
 								<ResourceSelect label='Player' value={overlayId} items={overlays} onChange={setOverlayId} />
 								{overlay ? (
 									<p className='text-sm text-muted'>
-										<span className='font-semibold text-foreground'>{overlay.name}</span> · backed by your overlay configuration
+										<span className='font-semibold text-foreground'>{overlay.name}</span>
 									</p>
 								) : (
 									<p className='text-sm text-muted'>Create an overlay before installing a Clip Player.</p>
@@ -198,6 +200,6 @@ export default function ToolsClient({ overlays, galleries, initialTool, initialG
 					</Card.Content>
 				</Card>
 			</div>
-		</div>
+		</DashboardEditorLayout>
 	);
 }

@@ -252,7 +252,7 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 						)}
 					</MeasuredChart>
 				</ChartPanel>
-				<ChartPanel title={`Runner subscriptions (${health.billing.runnerSubscriptionsActive} active)`}>
+				<ChartPanel title='Broadcast state'>
 					<MeasuredChart className='h-56 min-w-0'>
 						{(width) => (
 							<BarChart width={width} height={224} data={runnerStreamData} margin={{ top: 10, right: 8, left: -18, bottom: 20 }}>

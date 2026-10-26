@@ -6,9 +6,9 @@ import Stripe from "stripe";
 import { and, eq, inArray, sql } from "drizzle-orm";
 
 import { db, type QueryClient } from "@/db/client";
-import { billingSubscriptionItemsTable, billingSubscriptionsTable, entitlementGrantsTable, usersTable } from "@/db/schema";
+import { billingSubscriptionItemsTable, billingSubscriptionsTable, usersTable } from "@/db/schema";
 import { resolveBillingProductForPrice } from "@/server/billingCatalog";
-import { BillingProduct, Entitlement, EntitlementGrantSource, Plan } from "@types";
+import { BillingProduct, Plan } from "@types";
 import { reconcileUserEntitlements } from "@lib/entitlements";
 
 const ENTITLED_STATUSES: Stripe.Subscription.Status[] = ["active", "trialing", "past_due"];
@@ -48,7 +48,7 @@ async function queueNewCancellation(input: BillingTransition, recoveryFailed: bo
 	if (!newlyCanceled) return;
 	for (const product of products) {
 		if (recoveryFailed && product === BillingProduct.Pro) continue;
-		await queueCancellationEmail({ subscriptionId: subscription.id, userId, eventCreated: stripeEventCreated, benefit: product === BillingProduct.RunnerSelfHosted ? "runner" : "pro", endsAt: subscription.status === "canceled" ? null : period.end }, tx);
+		await queueCancellationEmail({ subscriptionId: subscription.id, userId, eventCreated: stripeEventCreated, benefit: "pro", endsAt: subscription.status === "canceled" ? null : period.end }, tx);
 	}
 }
 function cancellationHasEnded(subscription: Stripe.Subscription, previous: BillingTransition["previous"], recoveryFailed: boolean) {
@@ -58,9 +58,8 @@ async function queueCancellationCountdowns(input: BillingTransition, recoveryFai
 	const { subscription, previous, products, userId, period } = input;
 	if (!period.end) return;
 	for (const product of products) {
-		if (![BillingProduct.Pro, BillingProduct.RunnerSelfHosted].includes(product)) continue;
-		const benefit = product === BillingProduct.RunnerSelfHosted ? "runner" : "pro";
-		const details = { subscriptionId: subscription.id, userId, endsAt: period.end, ...(benefit === "runner" ? { benefit: "runner" as const } : {}) };
+		if (product !== BillingProduct.Pro) continue;
+		const details = { subscriptionId: subscription.id, userId, endsAt: period.end };
 		if (subscription.cancel_at_period_end && ENTITLED_STATUSES.includes(subscription.status)) await queueSubscriptionCancellationReminders(details, tx);
 		if (cancellationHasEnded(subscription, previous, recoveryFailed)) await queueSubscriptionCancellationReminders({ ...details, ended: true }, tx);
 	}
@@ -156,32 +155,12 @@ export async function recomputeBillingEntitlements(userId: string, customerId: s
 
 	const products = new Set(activeItems.map((item) => item.productKey));
 	const hasPro = products.has(BillingProduct.Pro);
-	const hasRunner = products.has(BillingProduct.RunnerSelfHosted);
 	const now = new Date();
 
 	await db
 		.update(usersTable)
 		.set({ plan: hasPro ? Plan.Pro : Plan.Free, stripeCustomerId: customerId, updatedAt: now })
 		.where(eq(usersTable.id, userId));
-
-	const externalReference = `stripe_customer:${customerId}`;
-	await db
-		.insert(entitlementGrantsTable)
-		.values({
-			userId,
-			entitlement: Entitlement.RunnerAccess,
-			source: EntitlementGrantSource.Billing,
-			reason: "stripe_subscription",
-			externalReference,
-			startsAt: now,
-			revokedAt: hasRunner ? null : now,
-			createdAt: now,
-			updatedAt: now,
-		})
-		.onConflictDoUpdate({
-			target: [entitlementGrantsTable.source, entitlementGrantsTable.externalReference, entitlementGrantsTable.entitlement],
-			set: { userId, revokedAt: hasRunner ? null : now, endsAt: null, updatedAt: now },
-		});
 
 	await reconcileUserEntitlements(userId);
 }

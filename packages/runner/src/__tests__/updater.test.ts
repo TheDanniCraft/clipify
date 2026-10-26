@@ -1,4 +1,4 @@
-import { checkForUpdates, cleanupOldVersions, launchUpdatedRunner, launchWindowsUpdateHelper } from "../updater";
+import { checkForUpdates, cleanupOldVersions, launchUpdatedRunner, launchWindowsUpdateHelper, getWindowsUpdatePaths } from "../updater";
 import fs from "fs";
 import crypto from "crypto";
 import { spawn } from "child_process";
@@ -10,10 +10,15 @@ jest.mock("child_process");
 describe("Updater logic", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
+		(fs.unlinkSync as jest.Mock).mockReset();
+		(fs.writeSync as jest.Mock).mockReset();
+		(fs.closeSync as jest.Mock).mockReset();
+		(fs.openSync as jest.Mock).mockReset();
 		global.fetch = jest.fn();
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		(process as any).pkg = true; // Mock pkg context
 		process.execPath = "/path/to/clipify-runner.exe";
+		(fs.openSync as jest.Mock).mockReturnValue(42);
 	});
 
 	afterEach(() => {
@@ -110,20 +115,165 @@ describe("Updater logic", () => {
 		});
 	});
 
-	it("should schedule a detached Windows update after the current process exits", () => {
+	it("runs the Windows helper in a hidden console and waits for readiness", async () => {
 		const unref = jest.fn();
-		(spawn as jest.Mock).mockReturnValue({ unref });
+		const { EventEmitter } = await import("events");
+		const child = Object.assign(new EventEmitter(), { unref, kill: jest.fn(), stdout: Object.assign(new EventEmitter(), { destroy: jest.fn() }), stderr: Object.assign(new EventEmitter(), { destroy: jest.fn() }) });
+		(spawn as jest.Mock).mockReturnValue(child);
 
-		launchWindowsUpdateHelper("C:\\Program Files\\Clipify\\runner.exe", "C:\\Program Files\\Clipify\\runner.exe.new", "C:\\Program Files\\Clipify\\runner.exe.old", ["--api-url", "https://clipify.example/a path", "--name", 'runner "one"'], 1234);
+		const handoff = launchWindowsUpdateHelper("C:\\Program Files\\Clipify\\runner.exe", "C:\\Program Files\\Clipify\\runner.exe.new", "C:\\Program Files\\Clipify\\runner.exe.old", ["--api-url", "https://clipify.example/a path", "--name", 'runner "one"'], 1234);
 
-		expect(spawn).toHaveBeenCalledWith("powershell.exe", expect.arrayContaining(["-EncodedCommand", expect.any(String)]), { detached: true, stdio: "ignore", windowsHide: true });
+		child.emit("spawn");
+		expect(unref).not.toHaveBeenCalled();
+		child.stdout.emit("data", Buffer.from("CLIPIFY_UPDATE_READY\r\n"));
+		await handoff;
+		expect(spawn).toHaveBeenCalledWith("cmd.exe", ["/d", "/s", "/c", expect.stringMatching(/^powershell\.exe .* -EncodedCommand [A-Za-z0-9+/=]+$/)], { detached: false, stdio: ["ignore", "pipe", "pipe"], windowsHide: true, windowsVerbatimArguments: true });
 		const spawnArgs = (spawn as jest.Mock).mock.calls[0][1] as string[];
-		const script = Buffer.from(spawnArgs.at(-1)!, "base64").toString("utf16le");
+		const script = Buffer.from(spawnArgs.at(-1)!.split(" ").at(-1)!, "base64").toString("utf16le");
+		expect(script).toContain("$ErrorActionPreference = 'Stop'");
+		expect(script).toContain("Start-Sleep -Milliseconds 500");
 		expect(script).toContain("Wait-Process -Id 1234");
-		expect(script).toContain("Move-Item -LiteralPath 'C:\\Program Files\\Clipify\\runner.exe.new'");
+		expect(script).toContain("Move-WithRetry 'C:\\Program Files\\Clipify\\runner.exe.new'");
 		expect(script).toContain("Start-Process -FilePath 'C:\\Program Files\\Clipify\\runner.exe'");
 		expect(script).toContain('runner \\\"one\\\"');
 		expect(unref).toHaveBeenCalled();
+	});
+
+	it("keeps staged Windows downloads executable and recognizes manually launched stages", () => {
+		expect(getWindowsUpdatePaths("C:\\Clipify\\runner.exe")).toEqual({ executable: "C:\\Clipify\\runner.exe", staged: "C:\\Clipify\\runner.new.exe" });
+		expect(getWindowsUpdatePaths("C:\\Clipify\\runner.new.exe").executable).toBe("C:\\Clipify\\runner.exe");
+		expect(getWindowsUpdatePaths("C:\\Clipify\\runner.exe.new").executable).toBe("C:\\Clipify\\runner.exe");
+	});
+
+	it("does not hand off when Windows cannot start the update helper", async () => {
+		const { EventEmitter } = await import("events");
+		const child = Object.assign(new EventEmitter(), { unref: jest.fn(), kill: jest.fn(), stdout: Object.assign(new EventEmitter(), { destroy: jest.fn() }), stderr: Object.assign(new EventEmitter(), { destroy: jest.fn() }) });
+		(spawn as jest.Mock).mockReturnValue(child);
+		const handoff = launchWindowsUpdateHelper("runner.exe", "runner.new.exe", "runner.exe.old", [], 1234);
+		child.emit("error", new Error("PowerShell unavailable"));
+		await expect(handoff).rejects.toThrow("PowerShell unavailable");
+		expect(child.unref).not.toHaveBeenCalled();
+	});
+
+	it("keeps the Runner alive if PowerShell exits before its readiness signal", async () => {
+		const { EventEmitter } = await import("events");
+		const child = Object.assign(new EventEmitter(), { unref: jest.fn(), kill: jest.fn(), stdout: Object.assign(new EventEmitter(), { destroy: jest.fn() }), stderr: Object.assign(new EventEmitter(), { destroy: jest.fn() }) });
+		(spawn as jest.Mock).mockReturnValue(child);
+		const handoff = launchWindowsUpdateHelper("runner.exe", "runner.new.exe", "runner.exe.old", [], 1234);
+		child.stderr.emit("data", Buffer.from("controlled PowerShell startup failure"));
+		child.emit("exit", 1);
+		await expect(handoff).rejects.toThrow("exited before becoming ready");
+		expect(child.unref).not.toHaveBeenCalled();
+		expect(fs.writeFileSync).toHaveBeenCalledWith("runner.exe.update-error.log", "controlled PowerShell startup failure", { mode: 0o600 });
+	});
+
+	it.each<{ source: string; knownSize: boolean; manifestSize: boolean; headers: Headers; invalidSize?: boolean }>([
+		{ source: "response header", knownSize: true, manifestSize: false, headers: new Headers({ "content-length": String(2 * 1024 * 1024) }) },
+		{ source: "manifest for a chunked response", knownSize: true, manifestSize: true, headers: new Headers() },
+		{ source: "manifest for a compressed response", knownSize: true, manifestSize: true, headers: new Headers({ "content-encoding": "gzip", "content-length": "123" }) },
+		{ source: "unknown total", knownSize: false, manifestSize: false, headers: new Headers() },
+		{ source: "invalid manifest size", knownSize: false, manifestSize: true, invalidSize: true, headers: new Headers() },
+		{ source: "compressed size without manifest", knownSize: false, manifestSize: false, headers: new Headers({ "content-encoding": "gzip", "content-length": "123" }) },
+	])("reports download percentage, total and ETA using $source", async ({ knownSize, manifestSize, headers, invalidSize }) => {
+		(fs.existsSync as jest.Mock).mockReturnValue(true);
+		(crypto.createHash as jest.Mock).mockReturnValue({ update: jest.fn(), digest: jest.fn().mockReturnValue("old-hash") });
+		const chunks = [new Uint8Array(1024 * 1024), new Uint8Array(1024 * 1024)];
+		(global.fetch as jest.Mock)
+			.mockResolvedValueOnce({
+				ok: true,
+				json: async () => ({
+					linux: "new-hash",
+					windows: "new-hash",
+					...(manifestSize
+						? {
+								artifacts: [
+									{ sha256: "other-hash", size: 99 },
+									{ sha256: "new-hash", size: invalidSize ? -1 : 2 * 1024 * 1024 },
+								],
+							}
+						: {}),
+				}),
+			})
+			.mockResolvedValueOnce(
+				new Response(
+					new ReadableStream({
+						start(controller) {
+							for (const chunk of chunks) controller.enqueue(chunk);
+							controller.close();
+						},
+					}),
+					{ headers },
+				),
+			);
+		const log = jest.spyOn(console, "log").mockImplementation(() => {});
+		const time = jest.spyOn(Date, "now");
+		let now = 1000;
+		time.mockImplementation(() => (now += 1000));
+		try {
+			await checkForUpdates("https://clipify.example");
+			const progress = log.mock.calls.map(([message]) => String(message)).filter((message) => message.startsWith("[Updater] Download:"));
+			expect(progress).toContain(knownSize ? "[Updater] Download: 50% (1.0 / 2.0 MiB), 1.0 MiB/s, about 1s remaining" : "[Updater] Download: 1.0 MiB (total size and ETA unavailable)");
+			expect(progress.at(-1)).toBe(knownSize ? "[Updater] Download: 100% (2.0 / 2.0 MiB)" : "[Updater] Download: 2.0 MiB (complete)");
+			expect(fs.openSync).toHaveBeenCalledWith(expect.stringContaining(".new"), "w", 0o600);
+			expect(fs.writeSync).toHaveBeenCalledTimes(2);
+			expect(fs.closeSync).toHaveBeenCalledWith(42);
+		} finally {
+			log.mockRestore();
+			time.mockRestore();
+		}
+	});
+
+	it("cleans up an interrupted download without claiming completion or replacing the Runner", async () => {
+		(fs.existsSync as jest.Mock).mockReturnValue(true);
+		(crypto.createHash as jest.Mock).mockReturnValue({ update: jest.fn(), digest: jest.fn().mockReturnValue("old-hash") });
+		const reader = {
+			read: jest
+				.fn()
+				.mockResolvedValueOnce({ done: false, value: new Uint8Array([1, 2, 3]) })
+				.mockRejectedValueOnce(new Error("Connection lost")),
+			releaseLock: jest.fn(),
+		};
+		(global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true, json: async () => ({ linux: "new-hash", windows: "new-hash" }) }).mockResolvedValueOnce({ ok: true, headers: new Headers(), body: { getReader: () => reader } });
+		const log = jest.spyOn(console, "log").mockImplementation(() => {});
+		const error = jest.spyOn(console, "error").mockImplementation(() => {});
+		try {
+			await expect(checkForUpdates("https://clipify.example")).resolves.toBe("old-hash");
+			expect(reader.releaseLock).toHaveBeenCalled();
+			expect(fs.unlinkSync).toHaveBeenCalledWith(expect.stringContaining(".new"));
+			expect(fs.writeSync).toHaveBeenCalledTimes(1);
+			expect(fs.closeSync).toHaveBeenCalledWith(42);
+			expect(fs.renameSync).not.toHaveBeenCalled();
+			expect(log.mock.calls.flat().join(" ")).not.toMatch(/100%|\(complete\)|Download verified/);
+		} finally {
+			log.mockRestore();
+			error.mockRestore();
+		}
+	});
+
+	it.each([
+		{ name: "larger than the manifest", expected: 2, chunks: [new Uint8Array([1, 2, 3])] },
+		{ name: "shorter than the manifest", expected: 4, chunks: [new Uint8Array([1, 2, 3])] },
+	])("rejects a download that is $name", async ({ expected, chunks }) => {
+		(fs.existsSync as jest.Mock).mockReturnValue(true);
+		(crypto.createHash as jest.Mock).mockReturnValue({ update: jest.fn(), digest: jest.fn().mockReturnValue("old-hash") });
+		(global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true, json: async () => ({ linux: "new-hash", windows: "new-hash", artifacts: [{ sha256: "new-hash", size: expected }] }) }).mockResolvedValueOnce(
+			new Response(
+				new ReadableStream({
+					start(controller) {
+						for (const chunk of chunks) controller.enqueue(chunk);
+						controller.close();
+					},
+				}),
+			),
+		);
+		const error = jest.spyOn(console, "error").mockImplementation(() => {});
+		try {
+			await expect(checkForUpdates("https://clipify.example")).resolves.toBe("old-hash");
+			expect(fs.unlinkSync).toHaveBeenCalledWith(expect.stringContaining(".new"));
+			expect(fs.renameSync).not.toHaveBeenCalled();
+		} finally {
+			error.mockRestore();
+		}
 	});
 
 	it.todo("should apply an update after a verified hash mismatch");

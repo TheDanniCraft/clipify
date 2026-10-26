@@ -58,18 +58,6 @@ export default function AgencyProvisionForm() {
 				<Label>Initial creator seats</Label>
 				<Input variant='secondary' min={0} placeholder='20' />
 			</TextField>
-			<TextField name='runnerSeatPriceId'>
-				<Label>Negotiated Runner-seat Price ID</Label>
-				<Input variant='secondary' placeholder='price_… (optional)' />
-			</TextField>
-			<TextField name='runnerSeatMinimum' type='number'>
-				<Label>Runner-seat minimum</Label>
-				<Input variant='secondary' min={0} placeholder='0' />
-			</TextField>
-			<TextField name='runnerSeatQuantity' type='number'>
-				<Label>Initial Runner seats</Label>
-				<Input variant='secondary' min={0} placeholder='0' />
-			</TextField>
 			<div className='md:col-span-2 flex justify-end border-t border-default pt-4'>
 				<Button type='submit' variant='primary'>
 					<IconMail aria-hidden='true' size={18} />

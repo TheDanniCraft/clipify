@@ -1,0 +1,27 @@
+$ jest --runInBand --runTestsByPath test/app/components/runnerSchedulePlanner.test.ts "--coverage=false"
+[tests] ordinary: 1 suites, 1 worker(s)
+FAIL test/app/components/runnerSchedulePlanner.test.ts
+  ● a window offset from midnight by seconds remains timed
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 2
+    Received length: 1
+    Received array:  [{"canResizeEnd": true, "canResizeStart": true, "end": {"calendar": {"identifier": "gregory"}, "day": 5, "era": "AD", "hour": 0, "millisecond": 999, "minute": 0, "month": 1, "second": 29, "year": 2027}, "eventId": "vacation", "id": "[\"[\\\"vacation\\\",\\\"original-window\\\"]\",\"all-day\"]", "isAllDay": true, "occurrenceId": "[\"vacation\",\"original-window\"]", "start": {"calendar": {"identifier": "gregory"}, "day": 4, "era": "AD", "hour": 0, "millisecond": 0, "minute": 0, "month": 1, "second": 30, "year": 2027}, "title": "Vacation broadcast", "trueEndUtc": "2027-01-04T23:00:30.000Z", "trueStartUtc": "2027-01-03T23:00:30.000Z"}]
+
+      83 | test("a window offset from midnight by seconds remains timed", () => {
+      84 | 	const rows = projectScheduleViewport([{ ...vacation, localStartDate: "2027-01-04", localEndDate: "2027-01-05", localStartTime: "00:00:30", localEndTime: "00:00:30" }], parseDate("2027-01-04"), 7, "Europe/Berlin");
+    > 85 | 	expect(rows).toHaveLength(2);
+         | 	             ^
+      86 | 	expect(rows.every((row) => !row.isAllDay)).toBe(true);
+      87 | });
+      88 |
+
+      at Object.toHaveLength (test/app/components/runnerSchedulePlanner.test.ts:85:15)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 15 passed, 16 total
+Snapshots:   0 total
+Time:        0.778 s, estimated 1 s
+Ran all test suites within paths "test/app/components/runnerSchedulePlanner.test.ts".
+error: script "test" exited with code 1

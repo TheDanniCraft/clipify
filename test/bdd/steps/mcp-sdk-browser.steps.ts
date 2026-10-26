@@ -145,7 +145,7 @@ When("the official SDK completes {word} approval edit abandoned consent and revo
 		await expect(page.getByRole("button", { name: /Deny|Cancel connection/ })).toHaveCount(0);
 		// Leaving the consent page does not submit an approval or callback code.
 		expect(new URL(page.url()).searchParams.has("code")).toBe(false);
-		await page.goto(`${origin}/dashboard/settings`);
+		await page.goto(`${origin}/dashboard/settings?tab=connections`);
 		const suggestions = page.getByRole("button", { name: "Ideas to try with your AI app" });
 		await expect(suggestions).toBeVisible();
 		await suggestions.click();

@@ -1,8 +1,9 @@
 "use client";
+import LocalizedDate from "@components/localizedDate";
 import { useEffect, useRef, useState } from "react";
 import { Alert, Button, Card, Chip, Label, ListBox, Select, Spinner, Table } from "@heroui/react";
 import { EmptyState } from "@heroui-pro/react";
-import { IconActivity, IconHistory, IconRefresh } from "@tabler/icons-react";
+import { IconHistory, IconRefresh } from "@tabler/icons-react";
 import { getConnectedMcpActivityPage, getMcpActivityCreators } from "@/app/actions/mcp-connections";
 import { mcpOperationLabels as operationLabels } from "@lib/mcpOperationLabels";
 import type { McpActivityItem } from "@lib/mcpConnection";
@@ -98,14 +99,9 @@ export default function McpActivityPanel() {
 	return (
 		<Card className='p-0' role='region' aria-labelledby='mcp-activity-title'>
 			<Card.Header className='gap-2 p-4'>
-				<div className='flex items-center gap-3'>
-					<span className='flex size-8 items-center justify-center rounded-xl bg-accent-soft text-accent'>
-						<IconActivity size={22} aria-hidden='true' />
-					</span>
-					<h2 id='mcp-activity-title' className='text-lg font-semibold'>
-						AI app activity
-					</h2>
-				</div>
+				<h2 id='mcp-activity-title' className='text-lg font-semibold'>
+					AI app activity
+				</h2>
 				<Card.Description>Review what connected apps did and which requests were blocked. Activity follows your current creator access.</Card.Description>
 			</Card.Header>
 			<Card.Content className='flex flex-col gap-3 px-4 pb-4'>
@@ -217,9 +213,7 @@ export default function McpActivityPanel() {
 												</Chip>
 											</Table.Cell>
 											<Table.Cell>
-												<time className='text-xs text-muted' dateTime={item.occurredAt}>
-													{new Date(item.occurredAt).toLocaleString()}
-												</time>
+												<LocalizedDate className='text-xs text-muted' value={item.occurredAt} showTime />
 											</Table.Cell>
 										</Table.Row>
 									))}

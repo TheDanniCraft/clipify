@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "errors": [],
+  "primaryArtifacts": 376,
+  "uniquePrimary": 376,
+  "primaryStates": {
+    "Green": 376
+  },
+  "taskCount": 1046,
+  "uniqueTasks": 1046,
+  "tasksComplete": 1046,
+  "mappedPrimaryArtifacts": 376,
+  "physicalOwnerReferences": 687,
+  "scope": "Current relationship and physical-path integrity only. Historical Green artifact records do not replace current-source CI qualification."
+}

@@ -1,0 +1,42 @@
+{
+  "ok": true,
+  "scope": "Review retained deliberate owner-race/expiry/drain/signature fault detections and exact restoration; do not manufacture new feature Red or rerun unchanged mutants while frozen validation is active. Current complete owning suites re-executed in F1.",
+  "unchangedSinceE4": {
+    "packages/runner/src/protocol.ts": "7825f8d54897a93998f495d2d54b78a576fa4795f58d28a41e2dcbf2c1aca6ea",
+    "packages/runner/src/execution-runtime.ts": "62fc943cbea72f770bc551aa03f0c1d8bb4a1a80fd3fea0a7d3036c59458fb05",
+    "packages/runner/src/execution-journal.ts": "c49ba95b7ec92c45870509314e74ce6ba4e5347205a599e7e77e86f7e3b05693",
+    "packages/runner/src/engine.ts": "c9c7cb184ade2fa123d025bae50dd64fe2b4dd357946584473f11666b274b151",
+    "packages/runner/src/schedule-cache.ts": "a5e533a22848858ef58d45c58e690284a47b0e754c776ac4e12fb2222ac2385d",
+    "packages/runner/src/execution-keys.ts": "5a15d09ee7afec18c30b07d9a5fe402a650a4eeb453e3d5b69da44da266610c6",
+    "src/server/runner/capabilities.ts": "7e187cfff4fac212bcb3fa0b26770fc6769864a9164da49065ef630f8bee1c5d"
+  },
+  "admissionFunctionsByteIdentical": {
+    "recognizeLegacyBroadcasts": "368c857fff992cd28b4ee3bd28e037b1ef071a57d5991d5291c9edc64f61d53d",
+    "reserveBroadcastAdmission": "4c169e00e191747629d7e4fee1638a2cd55af0dc1db99711015ad4aaf2d24378",
+    "cancelReservedAdmission": "e6d2c978e0ce4c04d7b749d0ad23ed598eaf68b4db30a4337b5dfd5d97fba322",
+    "requestBroadcastDrain": "8700e0d5e75388019243857b3a63e2464550bb7682a5693e563b48bb0a28d74c",
+    "revokeDeviceAdmissions": "aa8354c623f1c3a4cd0520209f52dc44ec6c939af319ba631aa56f60971530cb",
+    "broadcastAssignmentIsLocked": "4d9c7fb602702d5abdd4c39b599ed0e99d2e914c343d9398d850359c9216d4ca"
+  },
+  "evidence": [
+    "A3-owner-race-inner-limit-mutant.log",
+    "A3-owner-race-inner-restored.log",
+    "A3-service-mutex-mutant.log",
+    "A3-service-mutex-restored.log",
+    "U242-signature-mutant.log",
+    "U242-identity-mutant.log",
+    "U242-expiry-mutant.log",
+    "U242-restored.log",
+    "A7-free-boundary-mutant-check.json",
+    "A7-native-continuation-mutant-check.json",
+    "D3-mutation-results.json"
+  ],
+  "currentOwningResults": [
+    "F1-v2-full-native.log",
+    "F1-v2-full-database-1.log",
+    "F1-v2-full-database-2.log",
+    "F1-v2-full-database-3.log",
+    "F1-v2-full-workflows.log"
+  ],
+  "subsequentProductionChange": "Only canonical recovery signal relocation and lazy credential-module initialization (DEF237); complete92-case scoped and full owning regressions qualify it. No owner/expiry/drain/signature invariant change."
+}

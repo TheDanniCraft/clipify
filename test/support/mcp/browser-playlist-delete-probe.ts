@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
 import { AsyncLocalStorage } from "node:async_hooks";
-import { createHmac, randomUUID } from "node:crypto";
+import { createHmac, createHash, randomUUID } from "node:crypto";
 import { createMcpPostgresFixture } from "./postgres";
 async function main() {
 	const fixture = await createMcpPostgresFixture();
@@ -48,7 +48,13 @@ async function main() {
 							sessionId = randomUUID();
 						await fixture.pool.query("INSERT INTO runners(id,owner_id,name,token) VALUES($1,'creator','Browser runner','private-browser-runner')", [runnerId]);
 						await fixture.pool.query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,rtmp_url) VALUES($1,'creator',$2,$3,'24/7','rtmp://custom.example/live')", [sessionId, runnerId, overlayId]);
-						await fixture.pool.query("INSERT INTO entitlement_grants(user_id,entitlement,source,starts_at) VALUES('creator','runner_access','partner',now()-interval '1 hour')");
+
+						const admissionGeneration = randomUUID();
+						if (mode.endsWith("-admission")) {
+							const { deriveRunnerCapabilities } = await import("@/server/runner/capabilities");
+							await fixture.pool.query("INSERT INTO runner_broadcast_admissions(owner_id,runner_id,session_id,execution_generation,state,dispatched_at,started_at,configuration_revision,benefits_at_start) VALUES('creator',$1,$2,$3,'active',now(),now(),1,$4)", [runnerId, sessionId, admissionGeneration, JSON.stringify(deriveRunnerCapabilities({ proAccess: false }))]);
+							await fixture.pool.query("UPDATE stream_sessions SET desired_state='running',actual_state='running' WHERE id=$1", [sessionId]);
+						}
 						const action = await import("@/app/actions/runner");
 						const storage = new AsyncLocalStorage<{ headers: Headers }>();
 						Reflect.set(globalThis, Symbol.for("next-ws.request-store"), storage);
@@ -78,16 +84,25 @@ async function main() {
 								await fixture.pool.query("UPDATE stream_sessions SET desired_state='running',actual_state='running' WHERE id=$1", [sessionId]);
 							}
 							const heartbeat = await import("@/app/api/runner/heartbeat/route");
-							const request = () => new Request("http://127.0.0.1:3107/api/runner/heartbeat", { method: "POST", headers: { Authorization: "Bearer private-browser-runner", "Content-Type": "application/json" }, body: JSON.stringify({ hostname: "Native runner", os: "Linux", version: "fixture" }) });
+							const request = () => new Request("http://127.0.0.1:3107/api/runner/heartbeat", { method: "POST", headers: { Authorization: "Bearer private-browser-runner", "Content-Type": "application/json" }, body: JSON.stringify({ ...(!mode.endsWith("expired") ? { protocolVersion: 2, capabilities: ["admissions", "drain", "runner_presentation", "free_lease"], requestId: randomUUID() } : {}), hostname: "Native runner", os: "Linux", version: "fixture" }) });
 							stateExtras.firstHeartbeatStatus = (await heartbeat.POST(request())).status;
 							stateExtras.firstHeartbeatRecord = (await fixture.pool.query("SELECT name,configuration_revision FROM runners WHERE id=$1", [runnerId])).rows[0];
 							stateExtras.firstHeartbeatSessionRevision = (await fixture.pool.query("SELECT configuration_revision FROM stream_sessions WHERE id=$1", [sessionId])).rows[0].configuration_revision;
 							stateExtras.secondHeartbeatStatus = (await heartbeat.POST(request())).status;
-						} else if (mode.includes("-unlink")) stateExtras.runnerOutcome = await run(() => action.unlinkRunner(runnerId, "creator"));
+						} else if (mode.includes("-delete")) stateExtras.runnerOutcome = await run(() => action.deleteRunner(runnerId, "creator"));
+						else if (mode.includes("-unlink")) stateExtras.runnerOutcome = await run(() => action.unlinkRunner(runnerId, "creator"));
+						else if (mode.includes("-stop")) stateExtras.runnerOutcome = await run(() => (action.setStreamDesiredState as any)(sessionId, "stopped", mode.includes("-stale") ? 99 : 1, mode.includes("-immediate") ? "immediate" : "graceful"));
 						else if (mode.includes("-control")) stateExtras.runnerOutcome = await run(() => (action.setStreamDesiredState as any)(sessionId, "running", mode.endsWith("stale") ? 99 : 1));
 						else stateExtras.runnerOutcome = await run(() => (action.upsertStreamSession as any)({ id: sessionId, ownerId: "creator", runnerId, overlayId, mode: "24/7", rtmpUrl: "rtmp://custom.example/live", streamKey: "", resolution: "720p", fps: 30, expectedRevision: mode.endsWith("stale") ? 99 : 1 }));
 						stateExtras.runnerRecord = (await fixture.pool.query("SELECT name,configuration_revision,status,last_heartbeat_at,token <> $2 AS credential_rotated FROM runners WHERE id=$1", [runnerId, "private-browser-runner"])).rows[0];
 						stateExtras.runnerSession = (await fixture.pool.query("SELECT configuration_revision,resolution,fps,desired_state,actual_state FROM stream_sessions WHERE id=$1", [sessionId])).rows[0];
+						if (mode.endsWith("-admission")) {
+							const record = (await fixture.pool.query("SELECT to_jsonb(a) AS record FROM runner_broadcast_admissions a WHERE session_id=$1", [sessionId])).rows[0].record;
+							stateExtras.runnerStop = { state: record.state, stopMode: record.stop_mode, generationRetained: record.execution_generation === admissionGeneration, stoppedAt: record.stopped_at };
+							stateExtras.runnerTerminal = { state: record.state, hashMatches: record.terminal_credential_hash === createHash("sha256").update("private-browser-runner").digest("hex"), revokedAtRecorded: typeof record.revoked_at === "string", generationRetained: record.execution_generation === admissionGeneration, runnerReference: record.runner_id, stoppedAt: record.stopped_at, plaintextStored: JSON.stringify(record).includes("private-browser-runner") };
+						}
+
+						if (mode.includes("-control") && !mode.endsWith("stale")) stateExtras.runnerAdmission = (await fixture.pool.query("SELECT id,session_id,state,configuration_revision,dispatched_at FROM runner_broadcast_admissions WHERE session_id=$1", [sessionId])).rows[0];
 					}
 					await exerciseRunnerBrowserScenario();
 				} else if (mode.startsWith("settings-save")) {

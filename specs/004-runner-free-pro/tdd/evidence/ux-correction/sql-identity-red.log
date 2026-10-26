@@ -1,0 +1,23 @@
+[tests] ordinary: 1 suites, 1 worker(s)
+FAIL test/mcp/unit/coverage-sql-inputs.test.ts
+  ● coverage identity changes when a database fixture's SQL migration changes
+
+    expect(received).not.toBe(expected) // Object.is equality
+
+    Expected: not "f1a23c491dc9368a2b05e43fffe54bb6b39c0a85e9e9d1238d1edca19fccc5a4"
+
+      17 | 		const original = fingerprint();
+      18 | 		writeFileSync(sql, "SELECT 'changed trigger';\n");
+    > 19 | 		expect(fingerprint()).not.toBe(original);
+         | 		                          ^
+      20 | 	} finally {
+      21 | 		rmSync(directory, { recursive: true, force: true });
+      22 | 	}
+
+      at Object.toBe (test/mcp/unit/coverage-sql-inputs.test.ts:19:29)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 total
+Snapshots:   0 total
+Time:        0.45 s
+Ran all test suites matching test/mcp/unit/coverage-sql-inputs.test.ts.

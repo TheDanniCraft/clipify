@@ -42,6 +42,9 @@ jobs:
               - "scripts/validate-runner-matrix.mjs"
               - "scripts/create-runner-manifest.mjs"
               - "scripts/runner-package-cleanup.mjs"
+              - "scripts/coverage-counters.mjs"
+              - "scripts/coverage-source-fingerprint.mjs"
+              - ".github/workflows/ci.yml"
               - ".github/workflows/runner-native.yml"
 
   deps:
@@ -102,6 +105,7 @@ jobs:
     env:
       MCP_PROBE_RUNTIME: node
       MCP_TEST_DATABASE_URL: postgresql://clipify_e2e:clipify_e2e@127.0.0.1:5432/clipify_e2e
+      JWT_SECRET: clipify-e2e-jwt-secret-not-for-production
     services:
       postgres:
         image: postgres:18
@@ -178,9 +182,9 @@ jobs:
 
   test:
     name: 🧪 Test
-    if: always()
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
-    needs: [deps, changes, coverage-lanes, browser-tests, draft-tests]
+    needs: [deps, changes, coverage-lanes, browser-tests, draft-tests, runner]
     steps:
       - name: 📥 Check out repository
         uses: actions/checkout@v7
@@ -189,6 +193,11 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
+      - name: 🟢 Match coverage producer Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.21.0
 
       - name: ♻️ Restore deps cache
         uses: actions/cache/restore@v6
@@ -204,9 +213,13 @@ jobs:
           FULL: ${{ needs.changes.outputs.full }}
           COVERAGE: ${{ needs.coverage-lanes.result }}
           BROWSER: ${{ needs.browser-tests.result }}
+          RUNNER_REQUIRED: ${{ needs.changes.outputs.runner }}
+          RUNNER: ${{ needs.runner.result }}
         run: |
           test "$FULL" = "true" || { echo "Draft feedback is scoped. Mark ready for the mandatory full gate."; exit 1; }
-          test "$COVERAGE" = "success" && test "$BROWSER" = "success"
+          test "$COVERAGE" = "success"
+          test "$BROWSER" = "success"
+          if [ "$RUNNER_REQUIRED" = "true" ]; then test "$RUNNER" = "success"; fi
       - name: 📥 Download all coverage lanes
         uses: actions/download-artifact@v8
         with:
@@ -317,6 +330,7 @@ jobs:
       MCP_PROBE_RUNTIME: node
       MCP_TEST_TEMPLATE_ID: coverage-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.lane }}
       MCP_TEST_DATABASE_URL: postgresql://clipify_e2e:clipify_e2e@127.0.0.1:5432/clipify_e2e
+      JWT_SECRET: clipify-e2e-jwt-secret-not-for-production
     services:
       postgres:
         image: postgres:18
@@ -358,6 +372,24 @@ jobs:
         if: matrix.lane == 'unit'
         run: node --test scripts/*.test.cjs scripts/*.test.mjs
 
+      - name: 📦 Install workflow Runner dependencies
+        if: matrix.lane == 'workflows'
+        working-directory: packages/runner
+        run: |
+          bun install --frozen-lockfile
+          bun run patches:validate
+          node check-native.mjs
+      - name: 🌐 Prepare workflow media browser
+        if: matrix.lane == 'workflows'
+        working-directory: packages/runner
+        run: node test/support/prepare-media.mjs
+      - name: 🎞️ Install workflow media dependencies
+        if: matrix.lane == 'workflows'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          sudo apt-get satisfy -y --no-install-recommends "$(paste -sd, "$(dirname "$RUNNER_CHROME_PATH")/deb.deps")"
+          ffmpeg -version
       - name: 🧪 Run owning coverage lane
         run: node scripts/run-coverage-lane.mjs ${{ matrix.lane }}
 
@@ -417,6 +449,7 @@ jobs:
       MCP_COVERAGE_PROBE_DIRECTORY: ${{ github.workspace }}/test-results/mcp/browser-native-probes
       DATABASE_URL: postgresql://clipify_e2e:clipify_e2e@127.0.0.1:5432/clipify_e2e
       MCP_TEST_DATABASE_URL: postgresql://clipify_e2e:clipify_e2e@127.0.0.1:5432/clipify_e2e
+      JWT_SECRET: clipify-e2e-jwt-secret-not-for-production
       MCP_BROWSER_DATABASE_URL: postgresql://clipify_e2e:clipify_e2e@127.0.0.1:5432/clipify_e2e
       MCP_PROBE_RUNTIME: node
       MCP_TEST_TEMPLATE_ID: browser-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.label }}
@@ -463,6 +496,23 @@ jobs:
       - name: 🌐 Install Playwright Chromium
         run: bunx playwright install --with-deps chromium
 
+      - name: 📦 Install BDD native presentation dependencies
+        if: matrix.project == 'bdd-chromium'
+        working-directory: packages/runner
+        run: |
+          bun install --frozen-lockfile
+          bun run patches:validate
+          node check-native.mjs
+      - name: 🌐 Prepare BDD native presentation browser
+        if: matrix.project == 'bdd-chromium'
+        working-directory: packages/runner
+        run: node test/support/prepare-media.mjs
+      - name: 🎞️ Install BDD native media system dependencies
+        if: matrix.project == 'bdd-chromium'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          sudo apt-get satisfy -y --no-install-recommends "$(paste -sd, "$(dirname "$RUNNER_CHROME_PATH")/deb.deps")"
       - name: 🧩 Compile native application probes once
         run: |
           node --input-type=module -e "import { buildMcpCoverageProbes } from './scripts/build-mcp-coverage-probes.mjs'; await buildMcpCoverageProbes({ outputDirectory: 'test-results/mcp/browser-native-probes' });"
@@ -552,18 +602,34 @@ jobs:
   runner:
     name: 🏃 Runner typecheck and tests
     runs-on: ubuntu-latest
-    needs: changes
+    needs: [changes, deps]
     if: needs.changes.outputs.runner == 'true'
     steps:
       - name: 📥 Check out repository
         uses: actions/checkout@v7
+      - name: 🟢 Match native test Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.21.0
       - name: 🟢 Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.3
+      - name: ♻️ Restore shared test dependencies
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            ~/.bun/install/cache
+            ~/.bun/install/global
+            **/node_modules
+          key: ${{ needs.deps.outputs.cache-key }}
+          fail-on-cache-miss: true
       - name: 📦 Install Runner dependencies
         working-directory: packages/runner
         run: bun install --frozen-lockfile
+      - name: 🛡️ Audit Runner dependencies
+        working-directory: packages/runner
+        run: bun audit --audit-level=high
       - name: 🩹 Verify Runner patched dependencies
         working-directory: packages/runner
         run: bun run patches:validate
@@ -573,9 +639,23 @@ jobs:
       - name: 🧭 Typecheck Runner
         working-directory: packages/runner
         run: bun run typecheck
+      - name: 🌐 Prepare native media test browser
+        working-directory: packages/runner
+        run: node test/support/prepare-media.mjs
+      - name: 🎞️ Install native media test system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          sudo apt-get satisfy -y --no-install-recommends "$(paste -sd, "$(dirname "$RUNNER_CHROME_PATH")/deb.deps")"
       - name: 🧪 Test Runner
         working-directory: packages/runner
-        run: bun run test
+        run: bun run test:coverage
+      - name: 📦 Retain native coverage evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: runner-native-coverage
+          path: packages/runner/coverage/runner-feature/
+          if-no-files-found: error
 
   runner-manifest:
     name: 📋 Verify Runner manifest extraction

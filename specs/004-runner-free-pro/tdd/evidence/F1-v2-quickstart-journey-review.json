@@ -1,0 +1,56 @@
+{
+  "ok": true,
+  "scope": "Review the nine documented journeys against actual complete local owning evidence. Official platform workflow remains a separate blocker; no live account/billing rollout or email is implied.",
+  "journeys": [
+    {
+      "number": "1",
+      "behavior": "Free/manual/unlimited hours, one owner broadcast/destination, generated-only attribution",
+      "owningEvidence": "Complete root admission/capability/action owners, native free/pro output owners, browser manual/presentation owners."
+    },
+    {
+      "number": "2",
+      "behavior": "Races, uncertain disconnected slot, terminal tombstone acknowledgment and bounded final-lease recovery",
+      "owningEvidence": "Complete root admission/lease/recovery and private API owners; native execution/journal/control owners."
+    },
+    {
+      "number": "3",
+      "behavior": "Three local targets, independent receiver recovery, credentials and resource cleanup",
+      "owningEvidence": "Native complete test/output.integration.test.ts; destination/status/redaction owners in all root lanes."
+    },
+    {
+      "number": "4",
+      "behavior": "Agenda create/move/resize/form/keyboard, timezone, all-day/DST and invalid-edit persistence",
+      "owningEvidence": "Fresh full BDD runner-free-pro/runner-boundaries Agenda scenarios; complete root scheduler and native calendar owners."
+    },
+    {
+      "number": "5",
+      "behavior": "Cached local starts, clip-completing shutdown, stalled-media safety and adjacency",
+      "owningEvidence": "Complete native signed-cache/runtime/transition/real-media owners, including source/target handoff."
+    },
+    {
+      "number": "6",
+      "behavior": "Fresh-process active/ended restart, durable Stop/Resume and automation Pause",
+      "owningEvidence": "Complete native recovery/owner-resume/journal owners; fresh browser schedule-control and active-lock scenarios."
+    },
+    {
+      "number": "7",
+      "behavior": "Four corners, collision/readability, valid/invalid custom standby and outside-window refusal",
+      "owningEvidence": "Fresh full browser presentation/readability/collision/standby families; complete API asset and native outside-window owners."
+    },
+    {
+      "number": "8",
+      "behavior": "Pro/legacy expiry, retained settings, scoped grants and retired standalone checkout",
+      "owningEvidence": "Complete root commercial/entitlement/agency owners,434 native workflows and fresh browser known-expiry ATDD."
+    },
+    {
+      "number": "9",
+      "behavior": "Unsupported old-client refusal, v2 dispatch and old scalar/storage compatibility",
+      "owningEvidence": "Complete root protocol/control owners; native CLI configuration/enrollment/storage owners; fresh Linux binary/self-test."
+    }
+  ],
+  "completeResults": "F1-v2-complete-test-inventory-gate.json",
+  "coverage": "F1-v2-merged-coverage.log",
+  "linuxBinary": "F1-v2-linux-native-artifact.json",
+  "visualReview": "F1-v2-pricing-preview.json",
+  "cleanup": "F1-v2-fixture-cleanup.json"
+}

@@ -142,16 +142,11 @@ test.each([30, 7, 3, 1])("Partner %s-day reminders use the partnership end, not 
 	expect(await notificationStillApplies(notice, now)).toBe(false);
 });
 
-test("Runner countdowns and expiry honor other Runner access without referring to Pro", async () => {
-	row = { userId: "alex", status: "active", cancelAtPeriodEnd: true, currentPeriodEnd: new Date(now.getTime() + 7 * 86400000) };
-	const reminder: DeliveryRecord = { ...record("runner"), event_type: "billing", payload: { event: "cancellation-7d", benefit: "runner", subscriptionId: "runner", endsAt: (row.currentPeriodEnd as Date).toISOString() } };
-	expect(await notificationStillApplies(reminder, now)).toBe(true);
-	continuingPro.mockResolvedValue(true);
+test("retired Runner notices are discarded instead of advertising removed subscriptions", async () => {
+	const reminder: DeliveryRecord = { ...record("runner"), event_type: "billing", payload: { event: "cancellation-7d", benefit: "runner", subscriptionId: "runner" } };
 	expect(await notificationStillApplies(reminder, now)).toBe(false);
-	row = { id: "grant", userId: "alex", entitlement: "runner_access", source: "support", revokedAt: null, startsAt: new Date(now.getTime() - 86400000), endsAt: now };
-	const ended: DeliveryRecord = { ...benefitRecord("ended"), payload: { event: "ended", benefit: "runner", grantId: "grant", endsAt: now.toISOString() } };
-	expect(await notificationStillApplies(ended, now)).toBe(true);
-	expect(ended.payload.runnerContinues).toBe(true);
+	const ended: DeliveryRecord = { ...benefitRecord("ended"), payload: { event: "ended", benefit: "runner", grantId: "grant" } };
+	expect(await notificationStillApplies(ended, now)).toBe(false);
 });
 
 test.each([true, false])("account-access notices only describe the current disabled state (%s)", async (disabled) => {

@@ -1,5 +1,8 @@
 "use client";
+import { useDeploymentDraft } from "@lib/deploymentDrafts";
 
+import { formatDisplayDate } from "@lib/dateFormat";
+import LocalizedDate from "@components/localizedDate";
 import { validateAuth } from "@actions/auth";
 import { getClipCacheStatus, getSettings, saveSettings } from "@actions/database";
 import ConfirmModal from "@components/confirmModal";
@@ -18,6 +21,7 @@ import { useEffect, useMemo, useState } from "react";
 import { requestAccountDataExport, requestAccountDeletion } from "@actions/subscription";
 import { forceRefreshOwnClipCache, getOwnClipForceRefreshStatus } from "@actions/twitch";
 import { useNavigationGuard } from "nextjs-nav-guard";
+import { getUpgradeCopy } from "@lib/upgradeCopy";
 import UpgradeModal from "@components/upgradeModal";
 import BillingPanel from "./billing-panel";
 import ChatwootData from "@components/chatwootData";
@@ -31,6 +35,7 @@ import { IconBrandTwitch } from "@tabler/icons-react";
 import SecuritySettingsPanel from "./security-panel";
 import ConnectedAppsPanel from "./connected-apps-panel";
 import McpActivityPanel from "./mcp-activity-panel";
+import LinkedAccountsPanel from "./linked-accounts-panel";
 import ClipCrawlSchedule, { type ClipCrawlScheduleJob } from "./clip-crawl-schedule";
 
 type ClipCacheStatusState = {
@@ -52,22 +57,23 @@ type ClipForceRefreshStatusState = {
 	canRefresh: boolean;
 } | null;
 
-type SettingsSection = "settings" | "creator" | "billing";
+type SettingsSection = "settings" | "connections" | "creator" | "billing";
 
 export default function SettingsPage() {
 	const [user, setUser] = useState<AuthenticatedUser | null>(null);
 	const { isOpen: upgradeModalIsOpen, open: upgradeModalOnOpen, setOpen: upgradeModalOnOpenChange } = useOverlayState();
-	const [upgradeMode] = useState<"plan" | "runner_addon">(() => {
-		if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("addon") === "runner") return "runner_addon";
-		return "plan";
-	});
+
 	const [sectionTab, setSectionTab] = useState<SettingsSection>("settings");
 	const { isOpen: deleteModalIsOpen, open: deleteModalOnOpen, setOpen: deleteModalOnOpenChange } = useOverlayState();
 	const { isOpen: exportModalIsOpen, open: exportModalOnOpen, setOpen: exportModalOnOpenChange } = useOverlayState();
 	const [deletionChoice, setDeletionChoice] = useState<"paid_through" | "immediate">("paid_through");
-	const [timer, setTimer] = useState<number>(0);
 	const [settings, setSettings] = useState<UserSettings | null>(null);
 	const [baseSettings, setBaseSettings] = useState<UserSettings | null>(null);
+	useDeploymentDraft(user && settings && baseSettings ? `settings:${user.id}` : null, settings ?? {}, baseSettings ?? {}, (draft, saved) => {
+		setSettings(draft as UserSettings);
+		setBaseSettings(saved as UserSettings);
+	});
+
 	const [clipCacheStatus, setClipCacheStatus] = useState<ClipCacheStatusState | null>(null);
 	const [clipForceRefreshStatus, setClipForceRefreshStatus] = useState<ClipForceRefreshStatusState>(null);
 	const [isForceRefreshing, setIsForceRefreshing] = useState(false);
@@ -93,15 +99,6 @@ export default function SettingsPage() {
 
 		validateUser();
 	}, [router]);
-
-	useEffect(() => {
-		if (timer > 0) {
-			const interval = setInterval(() => {
-				setTimer((prev) => prev - 1);
-			}, 1000);
-			return () => clearInterval(interval);
-		}
-	}, [timer]);
 
 	useEffect(() => {
 		function updateRecentAuthWindow() {
@@ -183,6 +180,7 @@ export default function SettingsPage() {
 		};
 	}, [user, sectionTab]);
 
+	const [upgradeFeature, setUpgradeFeature] = useState<string | null>(null);
 	const upgradeIntent = useMemo<{ cycle: BillingCycle; source: PaywallSource; feature: string }>(() => {
 		if (typeof window === "undefined") {
 			return { cycle: "yearly", source: "upgrade_modal", feature: "account" };
@@ -220,7 +218,7 @@ export default function SettingsPage() {
 				router.replace(params.size ? `/dashboard/settings?${params.toString()}` : "/dashboard/settings");
 			}
 			const requestedTab = params.get("tab");
-			if (requestedTab === "creator" || requestedTab === "billing") setSectionTab(requestedTab);
+			if (requestedTab === "creator" || requestedTab === "connections" || requestedTab === "billing") setSectionTab(requestedTab);
 			else if (requestedTab === "badges" || requestedTab === "achievements") router.replace("/dashboard/member-card");
 			else if (params.has("billing") || params.has("checkout") || params.get("addon") === "runner") setSectionTab("billing");
 		});
@@ -235,13 +233,6 @@ export default function SettingsPage() {
 		if (!params.has("upgrade") || !canUpgradeFromBilling) return;
 		upgradeModalOnOpen();
 	}, [canUpgradeFromBilling, upgradeModalOnOpen, user]);
-
-	useEffect(() => {
-		if (!user || user.entitlements?.runnerAccess || typeof window === "undefined") return;
-		const params = new URLSearchParams(window.location.search);
-		if (params.get("addon") !== "runner") return;
-		upgradeModalOnOpen();
-	}, [upgradeModalOnOpen, user]);
 
 	const creatorAnalyticsAccess = user ? getFeatureAccess(user, "creator_page_analytics") : { allowed: false as const };
 	const creatorSocialPreviewAccess = user ? getFeatureAccess(user, "creator_page_social_preview") : { allowed: false as const };
@@ -262,7 +253,7 @@ export default function SettingsPage() {
 		if (!value) return "Never";
 		const parsed = new Date(value);
 		if (Number.isNaN(parsed.getTime())) return "Unknown";
-		return parsed.toLocaleString();
+		return <LocalizedDate value={parsed} showTime />;
 	}
 
 	function formatDurationMs(value: number) {
@@ -382,6 +373,12 @@ export default function SettingsPage() {
 				</div>
 				{sectionTab === "billing" ? (
 					<BillingPanel />
+				) : sectionTab === "connections" ? (
+					<div className='mt-4 space-y-4'>
+						<LinkedAccountsPanel />
+						<ConnectedAppsPanel />
+						<McpActivityPanel />
+					</div>
 				) : sectionTab === "creator" ? (
 					<Card className='mt-4'>
 						<Card.Header>
@@ -460,7 +457,14 @@ export default function SettingsPage() {
 													<Alert.Title>Custom social previews are a Pro feature</Alert.Title>
 													<Alert.Description>Upgrade to control the title and description shown when people share your Creator Page.</Alert.Description>
 												</Alert.Content>
-												<Button size='sm' variant='tertiary' onPress={upgradeModalOnOpen}>
+												<Button
+													size='sm'
+													variant='tertiary'
+													onPress={() => {
+														setUpgradeFeature("creator_social_preview");
+														upgradeModalOnOpen();
+													}}
+												>
 													Upgrade to Pro
 												</Button>
 											</Alert>
@@ -488,7 +492,13 @@ export default function SettingsPage() {
 							<Separator />
 							<div>
 								<h3 className='mb-3 text-base font-semibold'>Creator Page Analytics</h3>
-								<CreatorAnalyticsCard allowed={creatorAnalyticsAccess.allowed} onUpgrade={upgradeModalOnOpen} />
+								<CreatorAnalyticsCard
+									allowed={creatorAnalyticsAccess.allowed}
+									onUpgrade={() => {
+										setUpgradeFeature("creator_analytics");
+										upgradeModalOnOpen();
+									}}
+								/>
 							</div>
 						</Card.Content>
 					</Card>
@@ -632,7 +642,7 @@ export default function SettingsPage() {
 												</Switch>
 											</div>
 											<p className='mt-2 text-xs text-muted'>Opt out anytime here or by using the unsubscribe link in any email.</p>
-											{settings?.marketingOptInAt && <p className='mt-1 text-xs text-muted'>Consent recorded on {new Date(settings.marketingOptInAt).toLocaleString()}.</p>}
+											{settings?.marketingOptInAt && <p className='mt-1 text-xs text-muted'>Consent recorded on {<LocalizedDate value={settings.marketingOptInAt} showTime />}.</p>}
 										</Card.Content>
 									</Card>
 									<Card variant='secondary' className='w-full'>
@@ -656,8 +666,6 @@ export default function SettingsPage() {
 										</Card.Content>
 									</Card>
 									<SecuritySettingsPanel />
-									<ConnectedAppsPanel />
-									<McpActivityPanel />
 									<Card variant='secondary' className='w-full'>
 										<Card.Content>
 											<div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
@@ -725,17 +733,7 @@ export default function SettingsPage() {
 				</Modal.Footer>
 			</ControlledModal>
 
-			<UpgradeModal
-				key={`${upgradeMode}-${upgradeIntent.source}-${upgradeIntent.feature}-${upgradeIntent.cycle}`}
-				isOpen={upgradeModalIsOpen}
-				onOpenChange={upgradeModalOnOpenChange}
-				user={user}
-				title={upgradeMode === "runner_addon" ? (user.entitlements?.effectivePlan === "pro" ? "Add the Runner add-on" : "Upgrade with Runner") : "Upgrade Account"}
-				source={upgradeIntent.source}
-				feature={upgradeMode === "runner_addon" ? "runner_access" : upgradeIntent.feature}
-				initialBillingCycle={upgradeIntent.cycle}
-				mode={upgradeMode}
-			/>
+			<UpgradeModal key={`plan-${upgradeIntent.source}-${upgradeFeature ?? upgradeIntent.feature}-${upgradeIntent.cycle}`} isOpen={upgradeModalIsOpen} onOpenChange={upgradeModalOnOpenChange} user={user} title={getUpgradeCopy(upgradeFeature ?? upgradeIntent.feature)?.title ?? "Upgrade Account"} source={upgradeIntent.source} feature={upgradeFeature ?? upgradeIntent.feature} initialBillingCycle={upgradeIntent.cycle} mode='plan' />
 
 			<ConfirmModal
 				isOpen={deleteModalIsOpen}
@@ -771,7 +769,7 @@ export default function SettingsPage() {
 							return;
 						}
 						deleteModalOnOpenChange(false);
-						addToast({ title: "Deletion scheduled", description: `Access remains available until ${new Date(result.suspensionAt).toLocaleString()}.`, color: "success" });
+						addToast({ title: "Deletion scheduled", description: `Access remains available until ${formatDisplayDate(result.suspensionAt, undefined, { hour: "2-digit", minute: "2-digit" })}.`, color: "success" });
 					} catch (error) {
 						if (error instanceof Error && error.message === "RECENT_AUTH_REQUIRED") {
 							deleteModalOnOpenChange(false);
@@ -811,7 +809,7 @@ export default function SettingsPage() {
 							try {
 								const result = await requestAccountDataExport();
 								exportModalOnOpenChange(false);
-								addToast({ title: "Data export requested", description: `We sent the download link to ${result.email}. It expires ${new Date(result.expiresAt).toLocaleString()}.`, color: "success" });
+								addToast({ title: "Data export requested", description: `We sent the download link to ${result.email}. It expires ${formatDisplayDate(result.expiresAt, undefined, { hour: "2-digit", minute: "2-digit" })}.`, color: "success" });
 							} catch (error) {
 								if (error instanceof Error && error.message === "RECENT_AUTH_REQUIRED") {
 									exportModalOnOpenChange(false);

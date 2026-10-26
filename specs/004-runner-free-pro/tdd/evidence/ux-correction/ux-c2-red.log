@@ -1,0 +1,32 @@
+$ jest --runInBand "--coverage=false" --runTestsByPath test/server/runner/retired-access.test.ts
+[tests] Native application probes compiled once for this run
+[tests] database: 1 suites, 1 worker(s)
+FAIL test/server/runner/retired-access.test.ts
+  ● UX-C2: the public entitlement and billing catalogs expose only Pro
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 1
+
+      Array [
+        "pro_access",
+    +   "runner_access",
+      ]
+
+       8 | test("UX-C2: the public entitlement and billing catalogs expose only Pro", async () => {
+       9 | 	const { Entitlement, BillingProduct } = await import("@types");
+    > 10 | 	expect(Object.values(Entitlement)).toEqual(["pro_access"]);
+         | 	                                   ^
+      11 | 	expect(Object.values(BillingProduct)).toEqual(["pro"]);
+      12 | });
+      13 |
+
+      at Object.toEqual (test/server/runner/retired-access.test.ts:10:37)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 passed, 2 total
+Snapshots:   0 total
+Time:        0.973 s, estimated 1 s
+Ran all test suites within paths "test/server/runner/retired-access.test.ts".
+error: script "test" exited with code 1

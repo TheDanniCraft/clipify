@@ -12,7 +12,7 @@ function isQuietTest(path) {
 
 function isDatabaseTest(path) {
 	const normalized = path.replaceAll("\\", "/");
-	return /\/test\/mcp\/(integration|contract|workflows)\//.test(normalized) || /\/test\/auth-engine-rewrite\/integration\/(creator-onboarding-trigger|provider-credential-switch)\.test\./.test(normalized) || /coverage-(collector|parallel|next-entries)\.test\./.test(normalized);
+	return /\/test\/server\/runner\//.test(normalized) || /\/test\/app\/lib\/runnerScheduler\.test\./.test(normalized) || /\/test\/mcp\/(integration|contract|workflows)\//.test(normalized) || /\/test\/auth-engine-rewrite\/integration\/(creator-onboarding-trigger|provider-credential-switch)\.test\./.test(normalized) || /coverage-(collector|parallel|next-entries)\.test\./.test(normalized);
 }
 
 /** Uses the installed Jest runner and its events/results for every suite. */
