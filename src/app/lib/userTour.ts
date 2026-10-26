@@ -488,7 +488,7 @@ export function stepsForTask(task: TaskId, progress: GuideProgress): GuideStep[]
 		case "explore.runners":
 			return [
 				{ target: "runners-tab", title: "Open Runners", description: "Choose Runners to find your streaming devices.", action: true, next: true },
-				{ target: "runner-list", title: "Discover runners", description: "Manage devices that run Clipify streams here. Runner setup is an optional add-on; you can explore this tab without creating or buying anything.", next: true, finish: true, nextLabel: "Done" },
+				{ target: "runner-list", title: "Discover runners", description: "Manage the computers that broadcast your Clipify streams here. Open a runner to see its setup and broadcast controls. You can finish this guide without setting one up.", next: true, finish: true, nextLabel: "Done" },
 			];
 		case "explore.settings":
 			return [
