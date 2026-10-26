@@ -157,7 +157,7 @@ it("honors unavailable Theme Studio without navigating or forcing an upgrade", (
 		</UserTourProvider>,
 	);
 	fireEvent.click(screen.getByRole("button", { name: "Customize your look" }));
-	expect(screen.getByRole("status")).toHaveTextContent("Theme Studio requires Pro.");
+	expect(screen.getByText("Theme Studio requires Pro.")).toHaveAttribute("role", "status");
 	expect(push).not.toHaveBeenCalled();
 });
 it("yields to consent preferences and leaves the pointer paused", async () => {
