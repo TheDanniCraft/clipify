@@ -251,3 +251,15 @@ Feature: Clipify guided onboarding
     Given an isolated authenticated Clipify guide account
     When the clip source dropdown is opened during the guide
     Then its options stay usable above the dimming and section progress survives reload
+
+  @US1 @FR-009 @SC-003 @BDD-TOUR-US1-043
+  Scenario: Review clip settings with HeroUI guide controls
+    Given an isolated authenticated Clipify guide account
+    When the clip task is reviewed backward from save through filters to source
+    Then every later action has a HeroUI Back button and the ring always shows percent
+
+  @US2 @FR-004 @SC-002 @BDD-TOUR-US2-044
+  Scenario: Go back across the Theme Studio entry
+    Given an isolated authenticated Clipify guide account
+    When Back is used from the styling workspace
+    Then normal app navigation returns to the first styling step

@@ -219,10 +219,9 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 	const onPause = useCallback(() => pause(), [pause]);
 	const onMissing = useCallback(() => pause("That control isn't available here. Close any open dialog and try the task again."), [pause]);
 	const onNext = useCallback(() => report({ type: "next" }), [report]);
-	const onPrevious = useCallback(() => report({ type: "previous" }), [report]);
+	const onPrevious = useCallback(() => report({ type: "previous", location }), [report, location]);
 	const isFinished = (task: TaskId) => progress.completed.includes(task) || progress.skipped.includes(task);
 	const currentJourney = journeys.find((journey) => journey.id === (active?.task.split(".")[0] ?? progress.journeyId)) ?? journeys[0];
-	const journeyDone = currentJourney.tasks.filter((task) => isFinished(task.id)).length;
 	const launcherTitle = currentJourney.id === "overlay" ? "Get started" : currentJourney.title;
 	const percentage = journeyGuidePercent(progress);
 	return (
@@ -297,13 +296,13 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 							</Accordion>
 						</section>
 					)}
-					<Button ref={launcher} data-tour='guide-launcher' aria-label={`${launcherTitle} · ${journeyDone}/${currentJourney.tasks.length}`} aria-expanded={!progress.minimized} aria-controls='clipify-guide-panel' variant='secondary' className='ml-auto h-12 gap-3 rounded-full border border-separator bg-surface pl-2 pr-4 text-foreground shadow-lg' onPress={() => report({ type: "panel", minimized: !progress.minimized })}>
+					<Button ref={launcher} data-tour='guide-launcher' aria-label={`${launcherTitle} · ${percentage}%`} aria-expanded={!progress.minimized} aria-controls='clipify-guide-panel' variant='secondary' className='ml-auto h-12 gap-3 rounded-full border border-separator bg-surface pl-2 pr-4 text-foreground shadow-lg' onPress={() => report({ type: "panel", minimized: !progress.minimized })}>
 						<ProgressCircle aria-label={`${currentJourney.title} progress`} value={percentage} size='lg' className='relative size-9 shrink-0'>
 							<ProgressCircle.Track style={{ width: 36, height: 36 }}>
 								<ProgressCircle.TrackCircle style={{ stroke: "var(--color-muted)", opacity: 0.45 }} />
 								<ProgressCircle.FillCircle />
 							</ProgressCircle.Track>
-							<span className='absolute inset-0 grid place-items-center text-[10px] font-semibold'>{active ? `${percentage}%` : `${journeyDone}/${currentJourney.tasks.length}`}</span>
+							<span className='absolute inset-0 grid place-items-center text-[10px] font-semibold'>{`${percentage}%`}</span>
 						</ProgressCircle>
 						<span className='text-sm font-semibold'>{launcherTitle}</span>
 					</Button>
@@ -311,7 +310,7 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 			)}
 			{hydrated && !consentOpen && !consentBanner && active && !active.paused && step && (
 				<Suspense fallback={null}>
-					<Spotlight key={`${active.task}:${active.index}:${active.navigation?.join(",")}:${step.target}`} step={step} onPause={onPause} onMissing={onMissing} onNext={onNext} onPrevious={step.back ? onPrevious : undefined} />
+					<Spotlight key={`${active.task}:${active.index}:${active.navigation?.join(",")}:${step.target}`} step={step} onPause={onPause} onMissing={onMissing} onNext={onNext} onPrevious={active.index > 0 ? onPrevious : undefined} />
 				</Suspense>
 			)}
 		</GuideContext.Provider>

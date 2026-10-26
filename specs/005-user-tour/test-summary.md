@@ -22,6 +22,12 @@ Removed the CSS that made Driver's mask transparent while native Select/color po
 
 Validation: 16 affected suites / 416 tests passed, source lint and browser/standalone production builds passed. All four affected Chromium examples (002, 018, 022, 042) passed. New case 042 checks visible mask opacity, actual option hit testing, outside dismissal, reopening/selection and database-backed progress after reload. Inspected /tmp/clipify-tour-dropdown.png. The canonical registry now has 42 examples. No schema or generated migration change is involved.
 
+## HeroUI controls and universal Back
+
+The launcher and its accessible name consistently use section percent, while the accordion keeps task counts. Driver’s native controls are disabled; actual HeroUI Buttons render via a React portal. Back is available at every action index after zero, including filters back to source. The previous event replans normal app navigation when reviewing a step on another page, including Theme Studio’s real back control.
+
+The initial affected run passed 16 suites / 418 tests. The final spotlight whole-file suite passed 15 tests, including post-animation position refresh. The first browser sweep passed 6/11 and exposed Driver’s reserved-class event interception and portal-size positioning. With isolated data attributes and size/DOM observation, the next sweep passed 10/11. Driver sets its internal active target after the highlight animation, so a final onHighlighted refresh fixes the small edit-button overlap. Targeted cases 040, 043 and 044 then passed 3/3. All 11 unique affected browser examples have green evidence across these runs, not one clean 11-case sweep. Cases 043 and 044 extend the registry to 44 examples. Final browser and standalone production builds/type checks pass. Reviewed the settled HeroUI Back/Continue screenshot at /tmp/clipify-tour-hero-back.png; source lint is clean. Full merge coverage/owning-scenario gates remain pending.
+
 ## Limits and merge requirements
 
 External OBS/website setup is instructional and self-reported. No schema or generated migrations changed; the existing account content-state table stores the guide. Server write failure keeps ordered retryable events and optimistic session state. Complete account persistence is verified after acknowledged writes.

@@ -729,7 +729,7 @@ export default function OverlayStylePage() {
 				<div className='w-full p-4 md:p-6'>
 					<Card>
 						<Card.Header className='flex w-full flex-row items-center justify-between gap-2'>
-							<Button isIconOnly variant='tertiary' aria-label='Back to Overlay Settings' onPress={() => router.push(`/dashboard/overlay/${overlay.id}`)}>
+							<Button data-tour='theme-back' isIconOnly variant='tertiary' aria-label='Back to Overlay Settings' onPress={() => router.push(`/dashboard/overlay/${overlay.id}`)}>
 								<IconArrowLeft />
 							</Button>
 							<div className='flex items-center gap-2'>

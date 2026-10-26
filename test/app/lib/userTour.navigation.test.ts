@@ -76,7 +76,9 @@ it("allows review from Save your look without resetting the task", () => {
 	const reviewed = apply(state, { type: "previous" });
 	expect(currentGuideStep(reviewed)?.target).toBe("theme-controls");
 	expect(reviewed.completed).toEqual([]);
-	expect(currentGuideStep(apply(reviewed, { type: "previous" }))?.target).toBe("theme-controls");
+	const entry = apply(reviewed, { type: "previous", location: "theme" });
+	expect(currentGuideStep(entry)?.target).toBe("theme-back");
+	expect(currentGuideStep(apply(entry, { type: "location", location: "overlay" }))?.target).toBe("overlay-customize");
 });
 it("keeps the last section after completion and reload instead of showing core progress", () => {
 	let state = apply({ ...defaultProgress(), overlayId: "overlay" }, { type: "start", task: "appearance.style", location: "theme" });
@@ -100,4 +102,14 @@ it("adds partial section credit without losing completed tasks or double countin
 	expect(journeyGuidePercent({ ...state, active: { task: "overlay.name", index: 1, paused: false } })).toBe(25);
 	expect(journeyGuidePercent({ ...state, active: null })).toBe(25);
 	expect(journeyGuidePercent({ ...state, completed: ["overlay.name", "overlay.source", "overlay.preview", "overlay.setup"], active: null })).toBe(100);
+});
+
+it("allows Back from every action step after the first, including filters", () => {
+	let state: GuideProgress = { ...defaultProgress(), overlayId: "overlay", active: { task: "overlay.source", index: 2, paused: false } };
+	state = apply(state, { type: "previous", location: "overlay" });
+	expect(currentGuideStep(state)?.target).toBe("overlay-filters");
+	state = apply(state, { type: "previous", location: "overlay" });
+	expect(currentGuideStep(state)?.target).toBe("overlay-source");
+	expect(apply(state, { type: "previous", location: "overlay" })).toEqual(state);
+	expect(state.completed).toEqual([]);
 });

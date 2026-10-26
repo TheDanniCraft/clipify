@@ -1,13 +1,14 @@
 import React from "react";
-import { act, render } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import Spotlight from "@components/user-tour/spotlight";
 const highlight = jest.fn();
 const destroy = jest.fn();
+const refresh = jest.fn();
 let config: any;
 jest.mock("driver.js", () => ({
 	driver: (value: unknown) => {
 		config = value;
-		return { highlight, destroy };
+		return { highlight, destroy, refresh };
 	},
 }));
 beforeEach(() => {
@@ -58,7 +59,7 @@ it("action steps have no Continue escape hatch and setup confirmation is explici
 			<Spotlight step={{ ...step, next: false }} onPause={jest.fn()} onMissing={jest.fn()} onNext={jest.fn()} />
 		</>,
 	);
-	expect(highlight.mock.calls[0][0].popover.showButtons).toEqual(["close"]);
+	expect(highlight.mock.calls[0][0].popover.showButtons).toEqual([]);
 });
 
 it("pauses on Escape independently of native popover dismissal", () => {
@@ -265,17 +266,42 @@ it("lets support controls open their normal UI by pausing on the user's click", 
 	act(() => document.querySelector('[data-tour="control"]')!.dispatchEvent(new MouseEvent("click", { bubbles: true, composed: true })));
 	expect(pause).toHaveBeenCalledTimes(1);
 });
-it("connects the review Back action without changing the normal save control", () => {
-	const previous = jest.fn();
+it("renders the guide actions through HeroUI instead of Driver buttons", () => {
+	const previous = jest.fn(),
+		next = jest.fn(),
+		pause = jest.fn();
+	const view = render(
+		<>
+			<button data-tour='control'>Save</button>
+			<Spotlight step={step} onPause={pause} onMissing={jest.fn()} onNext={next} onPrevious={previous} />
+		</>,
+	);
+	const wrapper = document.createElement("div"),
+		closeButton = document.createElement("button");
+	closeButton.style.display = "none";
+	wrapper.appendChild(closeButton);
+	document.body.appendChild(wrapper);
+	const popover = highlight.mock.calls[0][0].popover;
+	expect(popover.showButtons).toEqual([]);
+	act(() => popover.onPopoverRender({ wrapper, closeButton }));
+	expect(screen.getByRole("button", { name: "Back" })).not.toHaveClass("driver-popover-prev-btn");
+	fireEvent.click(screen.getByRole("button", { name: "Back" }));
+	fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+	fireEvent.click(screen.getByRole("button", { name: "Pause guide" }));
+	expect(previous).toHaveBeenCalledTimes(1);
+	expect(next).toHaveBeenCalledTimes(1);
+	expect(pause).toHaveBeenCalledTimes(1);
+	view.unmount();
+	wrapper.remove();
+});
+
+it("refreshes portal geometry after Driver finishes its highlight animation", () => {
 	render(
 		<>
 			<button data-tour='control'>Save</button>
-			<Spotlight step={step} onPause={jest.fn()} onMissing={jest.fn()} onNext={jest.fn()} onPrevious={previous} />
+			<Spotlight step={step} onPause={jest.fn()} onMissing={jest.fn()} onNext={jest.fn()} />
 		</>,
 	);
-	const popover = highlight.mock.calls[0][0].popover;
-	expect(popover.showButtons).toEqual(["previous", "next", "close"]);
-	expect(popover.prevBtnText).toBe("Back");
-	act(() => popover.onPrevClick());
-	expect(previous).toHaveBeenCalledTimes(1);
+	act(() => config.onHighlighted());
+	expect(refresh).toHaveBeenCalledTimes(1);
 });

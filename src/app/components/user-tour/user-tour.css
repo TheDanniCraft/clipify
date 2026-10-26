@@ -15,14 +15,7 @@
 	font-size: 14px;
 	line-height: 1.6;
 }
-.clipify-tour-popover .driver-popover-next-btn {
-	background: var(--color-accent);
-	color: var(--color-accent-foreground);
-	border: 0;
-	border-radius: 8px;
-	padding: 8px 12px;
-	font-size: 13px;
-}
+
 .clipify-tour-popover .driver-popover-close-btn {
 	color: var(--color-muted);
 }

@@ -76,7 +76,7 @@ it("uses the server snapshot after browser storage is cleared", () => {
 	view.unmount();
 	localStorage.clear();
 	mount(state);
-	expect(screen.getByRole("button", { name: /Get started.*2\/4/ })).toBeVisible();
+	expect(screen.getByRole("button", { name: /Get started.*50%/ })).toBeVisible();
 	expect(screen.queryByRole("region", { name: "Your Clipify guide" })).not.toBeInTheDocument();
 });
 it("starts replay at the navigation control without calling router.push", async () => {
@@ -138,7 +138,7 @@ it("keeps another account's snapshot isolated", () => {
 	const view = mount({ ...defaultProgress(), completed: ["overlay.name"], minimized: true });
 	view.unmount();
 	mount(defaultProgress(), "other");
-	expect(screen.getByRole("button", { name: /Get started.*0\/4/ })).toBeVisible();
+	expect(screen.getByRole("button", { name: /Get started.*0%/ })).toBeVisible();
 });
 it("honors unavailable Theme Studio without navigating or forcing an upgrade", () => {
 	render(
@@ -207,8 +207,8 @@ it("does not restore launcher focus over a newly opened skip popover", () => {
 });
 it("shows the last section's own count after reload instead of Guides or core progress", () => {
 	mount({ ...defaultProgress(), journeyId: "appearance", completed: ["overlay.name", "overlay.source", "overlay.preview", "overlay.setup", "appearance.style"], minimized: true });
-	const launcher = screen.getByRole("button", { name: "Make your overlay yours · 1/2" });
-	expect(launcher).toHaveTextContent("1/2");
+	const launcher = screen.getByRole("button", { name: "Make your overlay yours · 50%" });
+	expect(launcher).toHaveTextContent("50%");
 	expect(screen.queryByText("Guides")).not.toBeInTheDocument();
 	expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "50");
 });
@@ -216,5 +216,13 @@ it("shows the last section's own count after reload instead of Guides or core pr
 it("retains completed task credit while the next task is in progress", () => {
 	mount({ ...defaultProgress(), overlayId: "overlay-1", completed: ["overlay.name"], active: { task: "overlay.source", index: 0, paused: true } });
 	expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "38");
-	expect(screen.getByRole("button", { name: "Get started · 1/4" })).toHaveTextContent("38%");
+	expect(screen.getByRole("button", { name: "Get started · 38%" })).toHaveTextContent("38%");
+});
+
+it("keeps the ring percentage format when a task finishes", () => {
+	const view = mount({ ...defaultProgress(), completed: ["overlay.name"], minimized: true });
+	expect(screen.getByRole("button", { name: "Get started · 25%" })).toHaveTextContent("25%");
+	view.unmount();
+	mount({ ...defaultProgress(), completed: ["overlay.name", "overlay.source"], minimized: true });
+	expect(screen.getByRole("button", { name: "Get started · 50%" })).toHaveTextContent("50%");
 });

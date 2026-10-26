@@ -49,3 +49,10 @@ T013: affected tests, all feature browser examples, lint, formatting, types and 
 - [x] D001 Preserve the spotlight mask and elevate native portal controls.
 - [x] D002 Show section progress with partial active-task credit and no replay double count.
 - [x] D003 Verify the real dropdown, outside dismissal, selection and database reload in browser case 042; run affected suites and checks.
+
+## Universal HeroUI navigation and consistent progress format
+
+- [x] H001 Keep the ring and launcher accessible name in section percent in all states.
+- [x] H002 Replace Driver’s visible native buttons with React/HeroUI actions.
+- [x] H003 Permit Back after the first action in every task and replan real navigation across pages.
+- [x] H004 Verify model, portal controls, relevant browser journeys, visual presentation and required checks before pushing.

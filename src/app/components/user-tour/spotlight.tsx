@@ -1,11 +1,25 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { Button } from "@heroui/react";
+import { IconX } from "@tabler/icons-react";
 import { driver } from "driver.js";
 import { tourModalSelector, tourPopoverSelector, type GuideStep } from "@lib/userTour";
 
 export type SpotlightProps = { step: GuideStep; onPause: () => void; onMissing: () => void; onNext: () => void; onPrevious?: () => void; onConfirm?: () => void };
 export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious, onConfirm }: SpotlightProps) {
+	const [popoverHost, setPopoverHost] = useState<HTMLElement | null>(null);
+	const driverRef = useRef<ReturnType<typeof driver> | null>(null);
+	useLayoutEffect(() => {
+		const wrapper = popoverHost?.parentElement;
+		if (!wrapper) return;
+		const refresh = () => driverRef.current?.refresh();
+		const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(refresh);
+		observer?.observe(wrapper);
+		refresh();
+		return () => observer?.disconnect();
+	}, [popoverHost]);
 	useEffect(() => {
 		let disposed = false;
 		let shown = false;
@@ -35,10 +49,12 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 			allowKeyboardControl: false,
 			overlayClickBehavior: "none",
 			popoverClass: "clipify-tour-popover",
+			onHighlighted: () => spotlight.refresh(),
 			onDestroyed: () => {
 				if (!disposed && !suspended) onPause();
 			},
 		});
+		driverRef.current = spotlight;
 		const show = () => {
 			if (disposed) return;
 			if (document.querySelector("#consent-banner-title")) {
@@ -83,9 +99,7 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 					popover: {
 						title: step.title,
 						description: step.description,
-						showButtons: step.preserveFocus ? [] : [...(onPrevious ? ["previous" as const] : []), ...((step.next && !step.action) || onConfirm ? ["next" as const, "close" as const] : ["close" as const])],
-						prevBtnText: "Back",
-						onPrevClick: onPrevious,
+						showButtons: [],
 						nextBtnText: step.nextLabel ?? "Continue",
 						closeBtnLabel: "Pause guide",
 						onCloseClick: onPause,
@@ -93,6 +107,9 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 						onPopoverRender: ({ wrapper, closeButton }) => {
 							wrapper.setAttribute("aria-label", step.title);
 							closeButton.setAttribute("aria-label", "Pause guide");
+							const host = document.createElement("div");
+							wrapper.appendChild(host);
+							setPopoverHost(host);
 						},
 					},
 				}),
@@ -134,6 +151,7 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 			}
 
 			show();
+			if (shown) spotlight.refresh();
 		});
 		observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-tour", "aria-modal", "role", "aria-selected"] });
 		show();
@@ -153,5 +171,30 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 			preserveAria(target(), () => spotlight.destroy());
 		};
 	}, [step.target, step.title, step.description, step.next, step.action, step.allowDialog, step.preserveFocus, step.destination, step.reveals, step.pauseOnInteract, step.nextLabel, onPause, onMissing, onNext, onPrevious, onConfirm]);
-	return null;
+	return popoverHost && !step.preserveFocus
+		? createPortal(
+				<>
+					<Button isIconOnly size='sm' variant='ghost' aria-label='Pause guide' className='absolute right-2 top-2' onPress={onPause}>
+						<IconX size={16} />
+					</Button>
+					{(onPrevious || (step.next && !step.action) || onConfirm) && (
+						<div className='mt-4 flex items-center justify-between gap-2'>
+							{onPrevious ? (
+								<Button size='sm' variant='secondary' data-tour-action='back' onPress={onPrevious}>
+									Back
+								</Button>
+							) : (
+								<span />
+							)}
+							{((step.next && !step.action) || onConfirm) && (
+								<Button size='sm' variant='primary' data-tour-action='next' onPress={onConfirm ?? onNext}>
+									{step.nextLabel ?? "Continue"}
+								</Button>
+							)}
+						</div>
+					)}
+				</>,
+				popoverHost,
+			)
+		: null;
 }

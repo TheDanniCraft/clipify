@@ -1,6 +1,6 @@
 # Test traceability
 
-Each scenario has one browser execution owner and a disposable loopback database. The current registry contains 42 examples. See [validation evidence](test-summary.md) for full-run and targeted rerun results.
+Each scenario has one browser execution owner and a disposable loopback database. The current registry contains 44 examples. See [validation evidence](test-summary.md) for full-run and targeted rerun results.
 
 | ID               | Behavior                                                 | Owner       | Scope                         |
 | ---------------- | -------------------------------------------------------- | ----------- | ----------------------------- |
@@ -46,5 +46,7 @@ Each scenario has one browser execution owner and a disposable loopback database
 | BDD-TOUR-US2-040 | Resume styling through its real entry point              | Browser BDD | Personalization refinement    |
 | BDD-TOUR-US2-041 | Personalize filters before styling with section progress | Browser BDD | Personalization refinement    |
 | BDD-TOUR-US1-042 | Keep dropdowns above a continuously dimmed tour          | Browser BDD | Layering and section progress |
+| BDD-TOUR-US1-043 | Review clip settings with HeroUI guide controls          | Browser BDD | Universal Back and percent    |
+| BDD-TOUR-US2-044 | Go back across the Theme Studio entry                    | Browser BDD | Universal Back and percent    |
 
 Unit and component suites cover the reducer, authenticated event boundary, native spotlight integration, rendering, focus and retry. Five PostgreSQL integration cases cover durable state, concurrent writes, ownership, paused checkpoints and existing accounts.
