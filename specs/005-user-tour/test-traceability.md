@@ -1,6 +1,6 @@
 # Test traceability
 
-Each scenario has one browser execution owner and a disposable loopback database. The current registry contains 51 examples. See [validation evidence](test-summary.md) for full-run and targeted rerun results.
+Each scenario has one browser execution owner and a disposable loopback database. The current registry contains 52 examples. See [validation evidence](test-summary.md) for full-run and targeted rerun results.
 
 | ID               | Behavior                                                   | Owner       | Scope                         |
 | ---------------- | ---------------------------------------------------------- | ----------- | ----------------------------- |
@@ -58,4 +58,6 @@ Each scenario has one browser execution owner and a disposable loopback database
 
 | BDD-TOUR-US1-051 | Complete guided defaults from eight-completed/three-skipped state | Browser BDD | Confirmation and skip semantics |
 
-Unit and component suites cover the reducer, authenticated event boundary, native spotlight integration, rendering, focus and retry. Ten PostgreSQL integration cases cover durable state, concurrent writes, ownership, paused checkpoints and existing accounts.
+| BDD-TOUR-US3-052 | Save the actual preselected playlist despite a stale tutorial playlist | Browser BDD | Native Save completion |
+
+Unit and component suites cover the reducer, authenticated event boundary, native spotlight integration, rendering, focus and retry. Eleven PostgreSQL integration cases cover durable state, concurrent writes, ownership, paused checkpoints and existing accounts.

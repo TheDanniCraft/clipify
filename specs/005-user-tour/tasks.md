@@ -97,3 +97,10 @@ T013: affected tests, all feature browser examples, lint, formatting, types and 
 - [x] C003 Label real skips and show the actual Expert completed/total count.
 - [x] C004 Reproduce the exact eight-completed/three-skipped state in persistence and browser regressions.
 - [x] C005 Complete affected suites, owning browser cases, visual checks, builds and push.
+
+## Observe the playlist actually saved
+
+- [x] S001 Confirm the reported stale guide playlist versus saved overlay playlist using a read-only development query.
+- [x] S002 Complete active playlist association on acknowledged Save of the matching overlay and adopt the actual saved playlist.
+- [x] S003 Guard foreign owners, other overlays and non-playlist saves; add model, persistence and native browser regressions with two playlists.
+- [x] S004 Complete affected suites, owning browser cases, builds and push.

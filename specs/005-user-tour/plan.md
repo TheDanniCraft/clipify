@@ -17,7 +17,7 @@ The badge catalog adds an automatic `clipify-expert` enum value. Include the cat
 
 ## Verification
 
-Run affected whole-file Jest suites without coverage. Database integration belongs in the existing database lane at `test/mcp/integration/user-tour-progress.test.ts`, using a separate disposable loopback database per case. Genuine browser flows have one BDD/ATDD owner and their own application server/database. Run all 51 examples and inspect desktop/mobile screenshots, ring placement, native widgets, actual navigation and popover focus. Then verify full lint, explicit feature-owned formatting, types and both builds.
+Run affected whole-file Jest suites without coverage. Database integration belongs in the existing database lane at `test/mcp/integration/user-tour-progress.test.ts`, using a separate disposable loopback database per case. Genuine browser flows have one BDD/ATDD owner and their own application server/database. Run all 52 examples and inspect desktop/mobile screenshots, ring placement, native widgets, actual navigation and popover focus. Then verify full lint, explicit feature-owned formatting, types and both builds.
 
 Complete merge coverage/Test and dependency-security gates remain mandatory. Draft CI is scoped feedback, not merge evidence. Do not generate migrations or alter thresholds, hooks or the user's untracked configuration.
 

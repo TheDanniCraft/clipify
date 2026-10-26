@@ -105,3 +105,23 @@ it("awards Expert after guided confirmations repair the reported eight-complete 
 	expect(state.skipped).toEqual([]);
 	expect(state.expertAwardedAt).toEqual(expect.any(String));
 });
+it("completes and persists the guided save when the editor preselected a different owned playlist", async () => {
+	const {
+		rows: [tutorial],
+	} = await fixture.pool.query("INSERT INTO playlists (owner_id,name) VALUES ('owner','Tutorial playlist') RETURNING id");
+	const {
+		rows: [selected],
+	} = await fixture.pool.query("INSERT INTO playlists (owner_id,name) VALUES ('owner','Editor playlist') RETURNING id");
+	const {
+		rows: [overlay],
+	} = await fixture.pool.query("INSERT INTO overlays (owner_id,name,status,type,playlist_id) VALUES ('owner','Saved overlay','active','Playlist',$1) RETURNING id", [selected.id]);
+	const progress = { ...defaultProgress(), overlayId: overlay.id, playlistId: tutorial.id, active: { task: "playlist.use", index: 2, paused: false } };
+	await fixture.pool.query("INSERT INTO user_content_states (user_id,content_key,state) VALUES ('owner',$1,$2)", [guideContentKey, JSON.stringify(progress)]);
+	const saved = await applyUserTourEvent("owner", { type: "overlay.saved", ownerId: "owner", id: overlay.id, named: true, source: true, playlistId: selected.id }, fixture.db);
+	expect(saved.completed).toContain("playlist.use");
+	expect(saved.active).toBeNull();
+	expect(saved.playlistId).toBe(selected.id);
+	const reloaded = await loadUserTourProgress("owner", fixture.db);
+	expect(reloaded.progress.completed).toContain("playlist.use");
+	expect(reloaded.progress.playlistId).toBe(selected.id);
+});

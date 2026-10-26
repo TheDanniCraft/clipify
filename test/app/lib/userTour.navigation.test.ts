@@ -229,3 +229,14 @@ it("counts guided confirmations as completion and clears a prior skip for every 
 		expect(completed.skipped).not.toContain(task);
 	}
 });
+it("finishes the guided overlay save using the editor's actual playlist rather than a stale tutorial ID", () => {
+	const state: GuideProgress = { ...defaultProgress(), overlayId: "overlay", playlistId: "tutorial-playlist", active: { task: "playlist.use", index: 2, paused: false } };
+	const saved = { type: "overlay.saved" as const, ownerId: "owner", id: "overlay", named: true, source: true, playlistId: "preselected-playlist" };
+	const completed = apply(state, saved);
+	expect(completed.completed).toContain("playlist.use");
+	expect(completed.playlistId).toBe("preselected-playlist");
+	expect(completed.active).toBeNull();
+	expect(apply(state, { ...saved, ownerId: "other" })).toEqual(state);
+	expect(apply(state, { ...saved, id: "another-overlay", playlistId: "tutorial-playlist" }).completed).not.toContain("playlist.use");
+	expect(apply(state, { ...saved, playlistId: null }).completed).not.toContain("playlist.use");
+});

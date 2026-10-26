@@ -997,3 +997,33 @@ Then("all guides are completed and the Expert badge is awarded", async ({ page, 
 	await expect(page.getByLabel("Clipify Expert progress")).toHaveText("Clipify Expert: 11/11");
 	await page.screenshot({ path: "/tmp/clipify-expert-confirmations.png", animations: "disabled" });
 });
+When("the editor preselects a different playlist during overlay guidance", async ({ page, tourWorld }) => {
+	const {
+		rows: [tutorial],
+	} = await tourWorld.fixture.pool.query("INSERT INTO playlists (owner_id,name) VALUES ($1,'Another tutorial playlist') RETURNING id", [tourWorld.owner!.creatorId]);
+	await tourWorld.fixture.pool.query("UPDATE overlays SET type='Playlist',playlist_id=$1 WHERE id=$2", [tourWorld.owner!.playlistId, tourWorld.owner!.overlayId]);
+	await seedProgress(tourWorld, { overlayId: tourWorld.owner!.overlayId, playlistId: tutorial.id });
+	await overlay(page, tourWorld);
+	await progress(page, tourWorld);
+	await page.getByLabel("Overlay Name", { exact: true }).fill("Saved preselected playlist");
+	await start(page, "Use your playlist in an overlay", "Build a playlist");
+	await expect(page.locator(".driver-popover-title")).toHaveText("Select your playlist");
+	await expect(page.locator('[data-tour="overlay-playlist"]')).toContainText("Browser playlist");
+	await page.getByRole("button", { name: "Continue", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Save the overlay");
+	expect((await progress(page, tourWorld)).playlistId).toBe(tutorial.id);
+});
+Then("saving the overlay completes the guide with the actual playlist", async ({ page, tourWorld }) => {
+	await page.getByRole("button", { name: "Save Overlay Settings", exact: true }).click();
+	await expect(page.getByText("Overlay settings saved", { exact: true })).toBeVisible();
+	await expect.poll(async () => (await progress(page, tourWorld)).completed).toContain("playlist.use");
+	const saved = await progress(page, tourWorld);
+	const {
+		rows: [overlay],
+	} = await tourWorld.fixture.pool.query("SELECT playlist_id FROM overlays WHERE id=$1", [tourWorld.owner!.overlayId]);
+	expect(saved.playlistId).toBe(overlay.playlist_id);
+	expect(saved.active).toBeNull();
+	await expect(page.locator(".driver-popover")).toHaveCount(0);
+	await page.reload();
+	expect((await progress(page, tourWorld)).completed).toContain("playlist.use");
+});

@@ -356,13 +356,18 @@ export function transition(progress: GuideProgress, event: GuideEvent, accountId
 				if (next.active.index === 1) next.active = { ...next.active, index: 2 };
 			}
 			break;
-		case "overlay.saved":
+		case "overlay.saved": {
+			const playlistMatches = startedTask === "playlist.use" ? event.id === progress.overlayId : event.playlistId === next.playlistId;
 			next.overlayId = event.id;
 			if (event.playlistId !== undefined) next.playlistSource = Boolean(event.playlistId);
 			if (event.named) finish("overlay.name");
 			if (event.source && (!startedTask || startedTask === "overlay.source")) finish("overlay.source");
-			if (event.playlistId && event.playlistId === next.playlistId) finish("playlist.use");
+			if (event.playlistId && playlistMatches) {
+				next.playlistId = event.playlistId;
+				finish("playlist.use");
+			}
 			break;
+		}
 		case "overlay.previewed":
 			if (event.id === next.overlayId && event.count > 0) finish("overlay.preview");
 			break;

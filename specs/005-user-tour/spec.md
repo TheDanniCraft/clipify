@@ -9,7 +9,7 @@ Branch: `feat/user-tour`. Current scope includes the user's final checklist, nav
 3. **US3, P2: Build and use a playlist.** The user creates/names a playlist, selects/orders clips, saves and learns normal navigation back to an overlay to select the playlist.
 4. **US4, P2: Explore Clipify.** A single optional section introduces galleries, public website installation through the actual avatar menu and Tools action, and existing report/chat controls.
 
-BDD and ATDD share one browser execution owner per example. The 51 individually tagged examples in `test/bdd/features/user-tour/guide.feature` are canonical. Database concurrency/integrity has separate service-integration ownership; browser journeys are not duplicated as MCP workflows.
+BDD and ATDD share one browser execution owner per example. The 52 individually tagged examples in `test/bdd/features/user-tour/guide.feature` are canonical. Database concurrency/integrity has separate service-integration ownership; browser journeys are not duplicated as MCP workflows.
 
 ## Requirements
 
@@ -17,7 +17,7 @@ BDD and ATDD share one browser execution owner per example. The 51 individually 
 - **FR-002:** Guide navigation through user clicks on normal controls. Replay of overlay creation highlights Add Overlay even when an overlay already exists. Never create a resource automatically. An edit icon is a normal, accessible app control outside the guide too.
 - **FR-003:** Keep the four core tasks as one coherent flow. Successful actions advance to the next relevant task without a completion card or an extra Continue summary. Expected preview/clip dialogs temporarily own focus, then restore the pointer.
 - **FR-004:** Appearance uses the real Customize Overlay Style entry point and normal Save control. Respect Pro availability and access locks.
-- **FR-005:** Playlist creation, selection, order, save and overlay association follow successful owned-resource outcomes. Teach navigation between the playlist and overlay rather than moving pages for the user.
+- **FR-005:** Playlist creation, selection, order, save and overlay association follow successful owned-resource outcomes. Teach navigation between the playlist and overlay rather than moving pages for the user. Successful Save on the guided overlay completes playlist association using the actual saved playlist, including a preselected playlist different from the one remembered by the guide.
 - **FR-006:** Store versioned account progress in PostgreSQL using `user_content_states` under an isolated key. Authenticate reads/writes, require the expected active account on writes, serialize events transactionally and retain queued events on transient failure. Browser clearing must not reset completion, skips or minimization. Import an account's old local state only once. Recognize existing owned setup and keep the welcome checklist minimized for existing accounts.
 - **FR-007:** Recognize successful actions outside tours. Separate actual completions from manual skips. Do not infer preview, external installation or customization from resource existence alone.
 - **FR-008:** Highlight the actual copy button. Clipboard success advances to external setup instructions; finishing instructions is self-reported guide completion, not verified OBS/website playback. Never put an OBS secret in public website installation code.

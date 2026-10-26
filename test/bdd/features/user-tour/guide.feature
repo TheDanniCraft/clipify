@@ -305,3 +305,9 @@ Feature: Clipify guided onboarding
     Given an isolated authenticated Clipify guide account
     When three remaining guides confirm the existing settings
     Then all guides are completed and the Expert badge is awarded
+
+  @US3 @FR-005 @SC-004 @BDD-TOUR-US3-052
+  Scenario: Save a preselected playlist instead of the tutorial playlist
+    Given an isolated authenticated Clipify guide account
+    When the editor preselects a different playlist during overlay guidance
+    Then saving the overlay completes the guide with the actual playlist
