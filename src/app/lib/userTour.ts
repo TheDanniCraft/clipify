@@ -394,7 +394,7 @@ export function stepsForTask(task: TaskId, progress: GuideProgress): GuideStep[]
 		case "explore.support":
 			return [
 				{ target: "support-report", pauseOnInteract: true, title: "Report a problem", description: "Use this button to send a bug report.", next: true },
-				{ target: "support-chat", pauseOnInteract: true, title: "Get help", description: "Use chat for questions. It may ask for functionality consent first. You can also visit the <a href='https://help.clipify.us/' target='_blank' rel='noopener noreferrer'>help center</a>.", next: true, finish: true, nextLabel: "Done" },
+				{ target: "support-chat", pauseOnInteract: true, title: "Get help", description: "Use chat for questions. You can also visit the <a href='https://help.clipify.us/' target='_blank' rel='noopener noreferrer'>help center</a>.", next: true, finish: true, nextLabel: "Done" },
 			];
 	}
 }

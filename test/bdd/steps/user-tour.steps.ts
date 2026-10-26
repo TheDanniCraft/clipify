@@ -518,7 +518,7 @@ When("the tools and support introductions are followed", async ({ page, tourWorl
 	await expect(page.locator(".driver-popover-title")).toHaveText("Report a problem");
 	await page.locator(".driver-popover-next-btn").click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Get help");
-	await expect(page.locator(".driver-popover-description")).toContainText("functionality consent");
+	await expect(page.locator(".driver-popover-description")).toContainText("Use chat for questions.");
 	await page.getByRole("button", { name: "Done", exact: true }).click();
 });
 Then("the introductions finish with consent choices unchanged", async ({ page, tourWorld }) => {
