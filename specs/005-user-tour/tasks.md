@@ -114,3 +114,9 @@ T013: affected tests, all feature browser examples, lint, formatting, types and 
 - [x] X005 Verify the four browser journeys and updated Expert flows; update canonical inventory to 56 examples.
 - [x] X006 Add meaningful playlist editor coverage for native Select all, category matching and clearing minimum views; retain the 85% requirement.
 - [ ] X007 Push, wait for complete CI, fix failures and leave ready for user walkthrough. Do not merge.
+
+### Integration with Free Runner
+
+- [x] Rebase onto merged Free Runner master while retaining shared editor layouts, native controls and localized dates.
+- [x] Move AI discovery and resumed checkpoints to the native Connections tab; retain existing account progress.
+- [ ] Verify discovery browser flows and complete CI on the integrated branch before the user walkthrough.

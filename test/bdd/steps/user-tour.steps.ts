@@ -1068,6 +1068,19 @@ Then("settings discovery completes without changing account settings", async ({ 
 When("the AI discovery guide is followed", async ({ page }) => {
 	await start(page, "Discover AI connections", "Explore Clipify");
 	await openSettingsFromGuide(page);
+	await expect(page.locator(".driver-popover-title")).toHaveText("Choose Connections");
+	await expect(page.locator('[data-tour="settings-connections-tab"]')).toHaveClass(/driver-active-element/);
+	await page.getByRole("tab", { name: "Connections", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Connected AI apps");
+	await page.getByRole("button", { name: "Continue", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Connect an AI app");
+	await page.getByRole("button", { name: "Back", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Connected AI apps");
+	await pause(page);
+	await page.getByRole("tab", { name: "Settings", exact: true }).click();
+	await start(page, "Discover AI connections", "Explore Clipify");
+	await expect(page.locator(".driver-popover-title")).toHaveText("Choose Connections");
+	await page.getByRole("tab", { name: "Connections", exact: true }).click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Connected AI apps");
 	await page.getByRole("button", { name: "Continue", exact: true }).click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Connect an AI app");

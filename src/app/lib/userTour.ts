@@ -50,7 +50,7 @@ const taskIds = new Set<string>(journeys.flatMap((journey) => journey.tasks.map(
 export const isTaskId = (value: unknown): value is TaskId => typeof value === "string" && taskIds.has(value);
 const validId = (value: unknown): value is string => typeof value === "string" && /^[a-zA-Z0-9_-]{1,128}$/.test(value);
 export type GuideLocation = "dashboard" | "overlay" | "theme" | "playlist" | "tools" | "settings" | "team" | "other";
-export type NavigationTarget = "home" | "overlays" | "overlay" | "playlists" | "playlist" | "profile" | "tools" | "theme" | "settings" | "clip-picker" | "close-picker" | "account-settings" | "core-settings" | "settings-panel" | "team";
+export type NavigationTarget = "home" | "overlays" | "overlay" | "playlists" | "playlist" | "profile" | "tools" | "theme" | "settings" | "clip-picker" | "close-picker" | "account-settings" | "core-settings" | "settings-panel" | "connections-panel" | "team";
 export type GuideProgress = {
 	version: 2;
 	playlistClipsVersion?: 2;
@@ -71,7 +71,7 @@ export const defaultProgress = (): GuideProgress => ({ version: 2, playlistClips
 /** Legacy browser cache, read once when importing an account's old guide progress. */
 export const storageKey = (accountId: string) => `clipify:user-tour:v1:${accountId}`;
 export const guideContentKey = "clipify-user-tour:v2";
-const navigationIds = new Set<string>(["home", "overlays", "overlay", "playlists", "playlist", "profile", "tools", "theme", "settings", "clip-picker", "close-picker", "account-settings", "core-settings", "settings-panel", "team"]);
+const navigationIds = new Set<string>(["home", "overlays", "overlay", "playlists", "playlist", "profile", "tools", "theme", "settings", "clip-picker", "close-picker", "account-settings", "core-settings", "settings-panel", "connections-panel", "team"]);
 const locations = new Set<string>(["dashboard", "overlay", "theme", "playlist", "tools", "settings", "team", "other"]);
 const migrateTask = (id: unknown) => (id === "website.embed" ? "explore.tools" : id);
 export function parseProgress(raw: string | null, restorePaused = true): GuideProgress {
@@ -90,7 +90,12 @@ export function parseProgress(raw: string | null, restorePaused = true): GuidePr
 		let active = data.active?.task === "appearance.filters" ? { ...data.active, task: "overlay.source", index: [0, 1].includes(data.active.index) ? data.active.index + 1 : -1 } : data.active;
 		if (active?.task === "playlist.clips" && data.playlistClipsVersion !== 2) active = { ...active, index: [0, 1, 2].includes(active.index) ? [0, 4, 5][active.index] : -1 };
 		if (data.version === 2 && active && isTaskId(active.task) && Number.isInteger(active.index) && active.index >= 0 && active.index < stepsForTask(active.task, progress).length) {
-			const navigation: NavigationTarget[] = Array.isArray(active.navigation) ? active.navigation.filter((id: unknown): id is NavigationTarget => typeof id === "string" && navigationIds.has(id)).slice(0, 5) : [];
+			const navigation: NavigationTarget[] = Array.isArray(active.navigation)
+				? active.navigation
+						.filter((id: unknown): id is NavigationTarget => typeof id === "string" && navigationIds.has(id))
+						.map((id: NavigationTarget) => (active.task === "explore.ai" && id === "settings-panel" ? ("connections-panel" as const) : id))
+						.slice(0, 5)
+				: [];
 			progress.active = { task: active.task, index: active.index, paused: restorePaused || active.paused !== false, navigation, navigationTotal: Math.max(navigation.length, Math.min(5, Number.isInteger(active.navigationTotal) ? active.navigationTotal : navigation.length)) };
 		}
 		progress.journeyId = journeys.find((journey) => journey.id === (progress.active?.task.split(".")[0] ?? data.journeyId ?? [...progress.completed, ...progress.skipped].at(-1)?.split(".")[0]))?.id ?? "overlay";
@@ -118,7 +123,7 @@ export function navigationForTask(task: TaskId, location: GuideLocation, progres
 	if (task === "explore.support") return [];
 	if (["explore.settings", "explore.ai", "explore.editors"].includes(task)) {
 		if (task === "explore.editors" && location === "team") return [];
-		const settings: NavigationTarget[] = location === "settings" ? (index > 0 ? ["settings-panel"] : []) : location === "team" ? ["core-settings"] : ["profile", "account-settings"];
+		const settings: NavigationTarget[] = location === "settings" ? (index > 0 ? [task === "explore.ai" ? "connections-panel" : "settings-panel"] : []) : location === "team" ? ["core-settings"] : ["profile", "account-settings"];
 		return task === "explore.editors" ? [...settings, "team"] : settings;
 	}
 	if (task === "explore.tools") return location === "tools" ? [] : ["profile", "tools"];
@@ -135,6 +140,7 @@ export function navigationForTask(task: TaskId, location: GuideLocation, progres
 }
 export type GuideStep = { target: string; title: string; description: string; next?: boolean; nextDisabled?: boolean; action?: boolean; finish?: boolean; nextLabel?: string; allowDialog?: boolean; inDialog?: boolean; dialogClosed?: boolean; destination?: GuideLocation; preserveFocus?: boolean; reveals?: string; pauseOnInteract?: boolean };
 const navigationSteps: Record<NavigationTarget, GuideStep> = {
+	"connections-panel": { target: "settings-connections-tab", title: "Choose Connections", description: "Choose Connections to return to your connected AI apps.", action: true, next: true, reveals: "connected-ai-apps" },
 	"settings-panel": { target: "settings-core-tab", title: "Choose Settings", description: "Choose Settings to return to this guide.", action: true, next: true, reveals: "settings-overview" },
 	"account-settings": { target: "nav-settings", title: "Open Settings", description: "Choose My Settings.", destination: "settings", preserveFocus: true },
 	"core-settings": { target: "settings-core-tab", title: "Open Settings", description: "Choose Settings to return to your account preferences.", destination: "settings" },
@@ -488,17 +494,17 @@ export function stepsForTask(task: TaskId, progress: GuideProgress): GuideStep[]
 		case "explore.runners":
 			return [
 				{ target: "runners-tab", title: "Open Runners", description: "Choose Runners to find your streaming devices.", action: true, next: true },
-				{ target: "runner-list", title: "Discover runners", description: "Manage the computers that broadcast your Clipify streams here. Open a runner to see its setup and broadcast controls. You can finish this guide without setting one up.", next: true, finish: true, nextLabel: "Done" },
+				{ target: "runner-list", title: "Discover runners", description: "Broadcast Clipify streams from your computer, including on Free. Manage your runners and open their setup and broadcast controls here. You can finish this guide without setting one up.", next: true, finish: true, nextLabel: "Done" },
 			];
 		case "explore.settings":
 			return [
 				{ target: "settings-core-tab", title: "Choose Settings", description: "Open the Settings tab for your account preferences.", action: true, next: true, reveals: "settings-overview" },
-				{ target: "settings-overview", title: "Your account settings", description: "Find your profile, plan and preferences here. The tabs above also lead to your creator page, billing and team.", next: true },
+				{ target: "settings-overview", title: "Your account settings", description: "Find your profile, plan and preferences here. The tabs above also lead to connections, your creator page, billing and team.", next: true },
 				{ target: "account-security", title: "Sign-in and security", description: "Manage your sign-in email and passkeys here. You can review these options without changing anything.", next: true, finish: true, nextLabel: "Done" },
 			];
 		case "explore.ai":
 			return [
-				{ target: "settings-core-tab", title: "Choose Settings", description: "Open Settings to find your connected AI apps.", action: true, next: true, reveals: "connected-ai-apps" },
+				{ target: "settings-connections-tab", title: "Choose Connections", description: "Open Connections to find your connected AI apps and linked accounts.", action: true, next: true, reveals: "connected-ai-apps" },
 				{ target: "connected-ai-apps", title: "Connected AI apps", description: "Review the AI apps you have authorized, their permissions and recent activity. Connecting an app is optional.", next: true },
 				{ target: "ai-connection-help", title: "Connect an AI app", description: "Open this setup guide when you are ready to connect an AI app. You choose which permissions to approve; this tour does not connect one for you.", next: true, finish: true, nextLabel: "Done" },
 			];

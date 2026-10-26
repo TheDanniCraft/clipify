@@ -247,7 +247,7 @@ it("teaches Settings, AI and Team through the avatar menu and native tabs", () =
 		const menu = apply(state, { type: "next" });
 		expect(currentGuideStep(menu)).toMatchObject({ target: "nav-settings", destination: "settings" });
 		const settings = apply(menu, { type: "location", location: "settings" });
-		expect(currentGuideStep(settings)?.target).toBe(task === "explore.editors" ? "settings-team-tab" : "settings-core-tab");
+		expect(currentGuideStep(settings)?.target).toBe(task === "explore.editors" ? "settings-team-tab" : task === "explore.ai" ? "settings-connections-tab" : "settings-core-tab");
 		if (task === "explore.editors") expect(currentGuideStep(apply(settings, { type: "location", location: "team" }))?.target).toBe("team-overview");
 	}
 });
@@ -273,15 +273,15 @@ it("restores discovery checkpoints with validated new locations and navigation",
 	const state = apply(defaultProgress(), { type: "start", task: "explore.ai", location: "settings" });
 	const next = apply(state, { type: "next" });
 	expect(currentGuideStep(next)?.target).toBe("connected-ai-apps");
-	expect(currentGuideStep(apply(next, { type: "previous", location: "settings" }))?.target).toBe("settings-core-tab");
+	expect(currentGuideStep(apply(next, { type: "previous", location: "settings" }))?.target).toBe("settings-connections-tab");
 	expect(parseProgress(JSON.stringify(next)).active).toMatchObject({ task: "explore.ai", index: 1, paused: true });
 	expect(apply(defaultProgress(), { type: "start", task: "explore.runners", location: "tools" }).active?.navigation).toEqual(["home"]);
 });
 it("reopens the Settings panel when resuming a discovery checkpoint on another local settings tab", () => {
 	const state: GuideProgress = { ...defaultProgress(), active: { task: "explore.ai", index: 2, paused: true } };
 	const resumed = apply(state, { type: "resume", location: "settings" });
-	expect(resumed.active?.navigation).toEqual(["settings-panel"]);
-	expect(currentGuideStep(resumed)?.target).toBe("settings-core-tab");
+	expect(resumed.active?.navigation).toEqual(["connections-panel"]);
+	expect(currentGuideStep(resumed)?.target).toBe("settings-connections-tab");
 	expect(currentGuideStep(apply(resumed, { type: "next" }))?.target).toBe("ai-connection-help");
 });
 
@@ -291,10 +291,17 @@ it("recognizes settings routes and teaches every discovery entry point", () => {
 	expect(navigationForTask("explore.editors", "team", defaultProgress())).toEqual([]);
 	expect(navigationForTask("explore.editors", "settings", defaultProgress())).toEqual(["team"]);
 	expect(navigationForTask("explore.settings", "settings", defaultProgress())).toEqual([]);
-	expect(navigationForTask("explore.ai", "settings", defaultProgress(), 2)).toEqual(["settings-panel"]);
+	expect(navigationForTask("explore.ai", "settings", defaultProgress(), 2)).toEqual(["connections-panel"]);
 	for (const task of ["explore.settings", "explore.ai"] as const) expect(routeForTask(task, defaultProgress())).toBe("/dashboard/settings");
 	expect(routeForTask("explore.editors", defaultProgress())).toBe("/dashboard/settings/team");
 	expect(routeForTask("explore.runners", defaultProgress())).toBe("/dashboard");
 	const state = apply({ ...defaultProgress(), active: { task: "explore.ai", index: 2, paused: true } }, { type: "resume", location: "settings" });
-	expect(parseProgress(JSON.stringify(state)).active?.navigation).toEqual(["settings-panel"]);
+	expect(parseProgress(JSON.stringify(state)).active?.navigation).toEqual(["connections-panel"]);
+});
+
+it("migrates saved AI checkpoints to the Connections panel without losing progress", () => {
+	const state: GuideProgress = { ...defaultProgress(), active: { task: "explore.ai", index: 2, paused: true, navigation: ["settings-panel"] } };
+	const restored = parseProgress(JSON.stringify(state));
+	expect(restored.active).toMatchObject({ task: "explore.ai", index: 2, navigation: ["connections-panel"] });
+	expect(currentGuideStep(restored)).toMatchObject({ target: "settings-connections-tab", reveals: "connected-ai-apps" });
 });

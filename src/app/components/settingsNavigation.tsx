@@ -33,7 +33,7 @@ export default function SettingsNavigation({ active, onCoreSectionChange }: { ac
 						Settings
 						<Tabs.Indicator />
 					</Tabs.Tab>
-					<Tabs.Tab id='connections' className='flex-1'>
+					<Tabs.Tab data-tour='settings-connections-tab' id='connections' className='flex-1'>
 						Connections
 						<Tabs.Indicator />
 					</Tabs.Tab>
