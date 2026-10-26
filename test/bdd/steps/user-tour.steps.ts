@@ -309,6 +309,7 @@ Then("the appearance task completes", async ({ page, tourWorld }) => {
 	expect((await tourWorld.fixture.pool.query("SELECT theme_text_color FROM overlays WHERE id=$1", [tourWorld.owner!.overlayId])).rows[0].theme_text_color.toLowerCase()).toBe("#ff0000");
 });
 When("the default appearance is kept", async ({ page, tourWorld }) => {
+	tourWorld.result = (await tourWorld.fixture.pool.query("SELECT theme_text_color, theme_background_color FROM overlays WHERE id=$1", [tourWorld.owner!.overlayId])).rows[0];
 	await overlay(page, tourWorld);
 	await start(page, "Customize your look", "Make your overlay yours");
 	await page.getByRole("button", { name: "Customize Overlay Style", exact: true }).click();
@@ -316,10 +317,11 @@ When("the default appearance is kept", async ({ page, tourWorld }) => {
 	await page.locator('[data-tour-action="next"]').click();
 	await page.getByRole("button", { name: "Keep default look" }).click();
 });
-Then("customization is not falsely marked complete", async ({ page, tourWorld }) => {
+Then("the appearance guide completes without changing the saved style", async ({ page, tourWorld }) => {
 	const saved = await progress(page, tourWorld);
-	expect(saved.completed).not.toContain("appearance.style");
-	expect(saved.skipped).toContain("appearance.style");
+	expect(saved.completed).toContain("appearance.style");
+	expect(saved.skipped).not.toContain("appearance.style");
+	expect((await tourWorld.fixture.pool.query("SELECT theme_text_color, theme_background_color FROM overlays WHERE id=$1", [tourWorld.owner!.overlayId])).rows[0]).toEqual(tourWorld.result);
 });
 When("the playlist guide creates names and saves clips", async ({ page, tourWorld }) => {
 	await progress(page, tourWorld);
@@ -486,7 +488,7 @@ Then("the next task guides source and filters without changing Save behavior", a
 	await page.locator('[data-tour-action="next"]').click();
 	await expect(page.getByRole("button", { name: "Save Overlay Settings", exact: true })).toBeDisabled();
 	await page.getByRole("button", { name: "Use current settings", exact: true }).click();
-	expect((await progress(page, tourWorld)).skipped).toContain("overlay.source");
+	expect((await progress(page, tourWorld)).completed).toContain("overlay.source");
 	await expect(page.locator(".driver-popover-title")).toHaveText("Preview your overlay");
 });
 When("the website player guide is followed", async ({ page }) => {
@@ -688,7 +690,7 @@ Then("the launcher retains personalization progress after reload", async ({ page
 	await expect(page.locator('[data-tour="guide-launcher"]')).toHaveAccessibleName("Make your overlay yours · 100%");
 	await expect(page.locator('[data-tour="guide-launcher"]')).toContainText("100%");
 	expect((await progress(page, tourWorld)).journeyId).toBe("appearance");
-	expect((await progress(page, tourWorld)).skipped).toEqual(["appearance.style"]);
+	expect((await progress(page, tourWorld)).completed).toContain("appearance.style");
 });
 
 When("the clip source dropdown is opened during the guide", async ({ page, tourWorld }) => {
@@ -958,4 +960,40 @@ Then("the Clipify Expert graduation badge persists on the member card", async ({
 	await expect(page.getByText("Clipify Expert", { exact: true }).first()).toBeVisible();
 	expect((await progress(page, tourWorld)).expertAwardedAt).toBe(awardedAt);
 	await expect(page.getByRole("button", { name: "Start guided tour", exact: true })).toHaveCount(0);
+});
+When("three remaining guides confirm the existing settings", async ({ page, tourWorld }) => {
+	const skipped = ["overlay.source", "appearance.style", "playlist.use"] as const;
+	await seedProgress(tourWorld, { overlayId: tourWorld.owner!.overlayId, playlistId: tourWorld.owner!.playlistId, completed: journeys.flatMap((journey) => journey.tasks.map((task) => task.id)).filter((task) => !(skipped as readonly string[]).includes(task)), skipped: [...skipped] });
+	await overlay(page, tourWorld);
+	await panel(page);
+	await expect(page.getByLabel("Clipify Expert progress")).toHaveText("Clipify Expert: 8/11");
+	await expect(page.getByRole("button", { name: "Choose your clips", exact: true }).getByText("Skipped", { exact: true })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Choose your clips", exact: true })).toHaveAccessibleDescription("Skipped");
+	await start(page, "Choose your clips");
+	await page.getByRole("button", { name: "Continue", exact: true }).click();
+	await page.getByRole("button", { name: "Continue", exact: true }).click();
+	await page.getByRole("button", { name: "Use current settings", exact: true }).click();
+	await start(page, "Customize your look", "Make your overlay yours");
+	await page.getByRole("button", { name: "Customize Overlay Style", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Make it yours");
+	await page.getByRole("button", { name: "Continue", exact: true }).click();
+	await page.getByRole("button", { name: "Keep default look", exact: true }).click();
+	await page.locator('[data-tour="theme-back"]').click();
+	await expect(page).toHaveURL(`${tourWorld.origin}/dashboard/overlay/${tourWorld.owner!.overlayId}`);
+	await start(page, "Use your playlist in an overlay", "Build a playlist");
+	await page.getByRole("button", { name: /Overlay Type/ }).click();
+	await page.getByRole("option", { name: "Playlist", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Select your playlist");
+	await page.getByRole("button", { name: "Continue", exact: true }).click();
+	await page.getByRole("button", { name: "Use current settings", exact: true }).click();
+});
+Then("all guides are completed and the Expert badge is awarded", async ({ page, tourWorld }) => {
+	await expect(page.getByText("Clipify Expert unlocked!", { exact: true })).toBeVisible();
+	const saved = await progress(page, tourWorld);
+	expect(saved.completed).toHaveLength(11);
+	expect(saved.skipped).toEqual([]);
+	expect(saved.expertAwardedAt).toEqual(expect.any(String));
+	await panel(page);
+	await expect(page.getByLabel("Clipify Expert progress")).toHaveText("Clipify Expert: 11/11");
+	await page.screenshot({ path: "/tmp/clipify-expert-confirmations.png", animations: "disabled" });
 });

@@ -122,7 +122,7 @@ export function navigationForTask(task: TaskId, location: GuideLocation, progres
 	if (location === "overlay" && progress.overlayId) return [];
 	return [...home, "overlays", ...(progress.overlayId ? ["overlay" as const] : [])];
 }
-export type GuideStep = { target: string; title: string; description: string; next?: boolean; nextDisabled?: boolean; action?: boolean; finish?: boolean; nextLabel?: string; skipOnFinish?: boolean; allowDialog?: boolean; inDialog?: boolean; dialogClosed?: boolean; destination?: GuideLocation; preserveFocus?: boolean; reveals?: string; pauseOnInteract?: boolean };
+export type GuideStep = { target: string; title: string; description: string; next?: boolean; nextDisabled?: boolean; action?: boolean; finish?: boolean; nextLabel?: string; allowDialog?: boolean; inDialog?: boolean; dialogClosed?: boolean; destination?: GuideLocation; preserveFocus?: boolean; reveals?: string; pauseOnInteract?: boolean };
 const navigationSteps: Record<NavigationTarget, GuideStep> = {
 	"close-picker": { target: "playlist-clip-cancel", title: "Return to Add Clips", description: "Click Cancel to return to the playlist and its Add Clips button.", action: true, next: true, inDialog: true, dialogClosed: true },
 	"clip-picker": { target: "playlist-add", title: "Open the clip picker", description: "Click Add Clips to return to your clip selection.", action: true, next: true, reveals: "playlist-clip-search", allowDialog: true },
@@ -300,7 +300,7 @@ export function transition(progress: GuideProgress, event: GuideEvent, accountId
 			if (!step?.next || step.nextDisabled) return progress;
 			if (next.active.navigation?.length) return { ...next, active: { ...next.active, navigation: next.active.navigation.slice(1) } };
 			if (step.finish) {
-				finish(next.active.task, step.skipOnFinish);
+				finish(next.active.task);
 				return next;
 			}
 			return { ...next, active: { ...next.active, index: next.active.index + 1 } };
@@ -415,12 +415,12 @@ export function stepsForTask(task: TaskId, progress: GuideProgress): GuideStep[]
 	if ((task.startsWith("overlay.") || task.startsWith("appearance.") || task === "playlist.use") && task !== "overlay.name" && !progress.overlayId) return [createOverlay];
 	switch (task) {
 		case "overlay.name":
-			return [createOverlay, { target: "overlay-name", title: "Give it a name", description: "Choose a name you'll recognize.", next: true }, { target: "overlay-save", title: "Save your overlay", description: "Click Save to keep the name, or continue with the current settings.", next: true, finish: true, skipOnFinish: true, nextLabel: "Use current settings" }];
+			return [createOverlay, { target: "overlay-name", title: "Give it a name", description: "Choose a name you'll recognize.", next: true }, { target: "overlay-save", title: "Save your overlay", description: "Click Save to keep the name, or continue with the current settings.", next: true, finish: true, nextLabel: "Use current settings" }];
 		case "overlay.source":
 			return [
 				{ target: "overlay-source", title: "Choose your clips", description: "Choose the clip source or time range you want to play.", next: true },
 				{ target: "overlay-filters", title: "Adjust the filters", description: "Review duration, games and creators. Advanced filters require Pro. You can keep the defaults.", next: true },
-				{ target: "overlay-save", title: "Save your clip settings", description: "Save your changes, or continue with the current settings.", next: true, finish: true, skipOnFinish: true, nextLabel: "Use current settings" },
+				{ target: "overlay-save", title: "Save your clip settings", description: "Save your changes, or continue with the current settings.", next: true, finish: true, nextLabel: "Use current settings" },
 			];
 		case "overlay.preview":
 			return [{ target: "overlay-preview", title: "Preview your overlay", description: "Open Preview Clips to check what will play. If it's empty, broaden the time range or filters.", allowDialog: true }];
@@ -433,13 +433,13 @@ export function stepsForTask(task: TaskId, progress: GuideProgress): GuideStep[]
 			return [
 				{ target: "overlay-customize", title: "Open Theme Studio", description: "Click Customize Overlay Style.", destination: "theme" },
 				{ target: "theme-controls", title: "Make it yours", description: "Make this look like your stream. Change text and background colors, the progress gradient and fonts. Enable components, adjust visual effects and use the live preview to check your changes. You can keep the defaults.", next: true },
-				{ target: "theme-save", title: "Save your look", description: "Click Save Style, or keep the default look.", next: true, finish: true, skipOnFinish: true, nextLabel: "Keep default look" },
+				{ target: "theme-save", title: "Save your look", description: "Click Save Style, or keep the default look.", next: true, finish: true, nextLabel: "Keep default look" },
 			];
 		case "playlist.name":
 			return [
 				{ target: "create-playlist", title: "Create a playlist", description: "Click Add Playlist to create a collection." },
 				{ target: "playlist-name", title: "Name your playlist", description: "Give your collection a useful name.", next: true },
-				{ target: "playlist-save", title: "Save your playlist", description: "Click Save Playlist after naming it.", next: true, finish: true, skipOnFinish: true, nextLabel: "Keep current name" },
+				{ target: "playlist-save", title: "Save your playlist", description: "Click Save Playlist after naming it.", next: true, finish: true, nextLabel: "Keep current name" },
 			];
 		case "playlist.clips":
 			return progress.playlistId
@@ -449,14 +449,14 @@ export function stepsForTask(task: TaskId, progress: GuideProgress): GuideStep[]
 						{ target: "playlist-clip-selection", title: "Select clips", description: "Select the clips you want. You can use Select all and move between pages; your selection stays available.", next: true, inDialog: true },
 						{ target: "playlist-clip-confirm", title: "Add selected clips", description: "Click Add selected clips to add your selection. Use Back if you want to change it.", inDialog: true },
 						{ target: "playlist-order", title: "Arrange your clips", description: "Drag the clips into the order you want.", next: true, allowDialog: true },
-						{ target: "playlist-save", title: "Save your playlist", description: "Click Save Playlist to keep the clips and order.", next: true, finish: true, skipOnFinish: true, nextLabel: "Keep current playlist" },
+						{ target: "playlist-save", title: "Save your playlist", description: "Click Save Playlist to keep the clips and order.", next: true, finish: true, nextLabel: "Keep current playlist" },
 					]
 				: stepsForTask("playlist.name", progress);
 		case "playlist.use":
 			return [
 				{ target: "overlay-source", title: "Use a playlist", description: "Set Overlay Type to Playlist. The guide continues when you select it.", next: true, nextDisabled: !progress.playlistSource },
 				{ target: "overlay-playlist", title: "Select your playlist", description: "Choose your saved playlist.", next: true },
-				{ target: "overlay-save", title: "Save the overlay", description: "Click Save to use this playlist, or continue with the current settings.", next: true, finish: true, skipOnFinish: true, nextLabel: "Use current settings" },
+				{ target: "overlay-save", title: "Save the overlay", description: "Click Save to use this playlist, or continue with the current settings.", next: true, finish: true, nextLabel: "Use current settings" },
 			];
 		case "explore.galleries":
 			return [

@@ -67,3 +67,11 @@ The Expert policy now requires all 11 tasks from the central journey catalog, in
 The affected run passed 159 suites / 2333 tests with the existing one-suite/three-test skips. It covers each missing task, skipped-task rejection, previous award invalidation, the final task in a different section, account isolation and replay persistence.
 
 Final verification: browser cases 048, 049 and revised 050 passed 3/3. The graduation-cap member-card screenshot was inspected. Browser and standalone production builds/type checks, affected-source lint, formatting and diff checks pass. No schema push is needed because the badge slug/enum is unchanged.
+
+## Guided confirmations and honest Expert progress
+
+A read-only development-state audit diagnosed the missing badge: eight completed tasks and three skips, while checklist checkboxes treated both as handled. The user clarified they had reset tasks for testing and may have skipped some. Historical skips are not rewritten because their originating action is unknown.
+
+Explicit current/default confirmations now finish guides without changing native resource Save behavior. Manual Skip task remains excluded from Expert. The checklist labels skipped rows and shows the actual Expert completed/total count separately from section progress. Regression case 051 follows the exact eight-completed/three-skipped state through the three guided confirmations. Existing appearance/source cases now distinguish guide completion from a saved customization.
+
+Final owning browser result: 051 passed, including the supported accessible skip description and the exact 8/11 → 11/11 award path. Combined with the six passing owning examples, all seven behaviors are verified. The final Expert-progress screenshot was inspected. The affected run passed 128 suites / 2013 tests; source lint, formatting, diff checks and browser production build/type checks pass. Account state was left untouched because historical skip origin is ambiguous.

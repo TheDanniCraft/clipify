@@ -3,7 +3,7 @@ jest.mock("server-only", () => ({}), { virtual: true });
 jest.mock("@/db/client", () => ({ db: {} }));
 import { createMcpPostgresFixture } from "../../support/mcp/postgres";
 import { applyUserTourEvent, loadUserTourProgress } from "@/server/user-tour/progress";
-import { guideContentKey, defaultProgress, journeys } from "@lib/userTour";
+import { guideContentKey, defaultProgress, journeys, type GuideProgress } from "@lib/userTour";
 let fixture: Awaited<ReturnType<typeof createMcpPostgresFixture>>;
 // Cold disposable schema/template provisioning uses the same budget as other database suites.
 beforeEach(async () => {
@@ -88,4 +88,20 @@ it("does not count skipped guides and invalidates the previous core-only award",
 	const loaded = await loadUserTourProgress("owner", fixture.db);
 	expect(loaded.progress.expertAwardedAt).toBeUndefined();
 	expect(loaded.progress.skipped).toContain("explore.support");
+});
+it("awards Expert after guided confirmations repair the reported eight-complete three-skipped state", async () => {
+	const skipped = ["overlay.source", "appearance.style", "playlist.use"] as const;
+	const completed = journeys.flatMap((journey) => journey.tasks.map((task) => task.id)).filter((task) => !(skipped as readonly string[]).includes(task));
+	let state: GuideProgress = { ...defaultProgress(), overlayId: "overlay", playlistId: "playlist", completed, skipped: [...skipped] };
+	await fixture.pool.query("INSERT INTO user_content_states (user_id,content_key,state) VALUES ('owner',$1,$2)", [guideContentKey, JSON.stringify(state)]);
+	for (const task of skipped) {
+		await fixture.pool.query("UPDATE user_content_states SET state=$1 WHERE user_id='owner' AND content_key=$2", [JSON.stringify({ ...state, active: { task, index: 2, paused: false } }), guideContentKey]);
+		state = await applyUserTourEvent("owner", { type: "next" }, fixture.db);
+		expect(state.completed).toContain(task);
+		expect(state.skipped).not.toContain(task);
+		if (task !== "playlist.use") expect(state.expertAwardedAt).toBeUndefined();
+	}
+	expect(state.completed).toHaveLength(11);
+	expect(state.skipped).toEqual([]);
+	expect(state.expertAwardedAt).toEqual(expect.any(String));
 });

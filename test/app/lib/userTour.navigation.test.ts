@@ -193,7 +193,7 @@ it("offers an explicit way past unchanged overlay save steps", () => {
 	for (const task of ["overlay.name", "playlist.use"] as const) {
 		const state: GuideProgress = { ...defaultProgress(), overlayId: "overlay", playlistId: "playlist", active: { task, index: 2, paused: false } };
 		expect(currentGuideStep(state)).toMatchObject({ next: true, nextLabel: "Use current settings" });
-		expect(apply(state, { type: "next" }).skipped).toContain(task);
+		expect(apply(state, { type: "next" }).completed).toContain(task);
 	}
 });
 it("starts welcome guidance at the first unfinished core task and remembers the decision", () => {
@@ -218,4 +218,14 @@ it("discards old core-only awards but preserves a versioned Expert award during 
 	const expertAwardedAt = "2026-10-26T12:00:00.000Z";
 	expect(parseProgress(JSON.stringify({ ...defaultProgress(), expertAwardedAt })).expertAwardedAt).toBeUndefined();
 	expect(parseProgress(JSON.stringify({ ...defaultProgress(), expertAwardedAt, expertAwardVersion: 2 }))).toMatchObject({ expertAwardedAt, expertAwardVersion: 2 });
+});
+
+it("counts guided confirmations as completion and clears a prior skip for every settings flow", () => {
+	for (const task of ["overlay.name", "overlay.source", "appearance.style", "playlist.name", "playlist.clips", "playlist.use"] as const) {
+		const progress = { ...defaultProgress(), overlayId: "overlay", playlistId: "playlist", skipped: [task] };
+		const index = stepsForTask(task, progress).length - 1;
+		const completed = apply({ ...progress, active: { task, index, paused: false } }, { type: "next" });
+		expect(completed.completed).toContain(task);
+		expect(completed.skipped).not.toContain(task);
+	}
 });

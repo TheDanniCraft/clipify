@@ -89,3 +89,11 @@ T013: affected tests, all feature browser examples, lint, formatting, types and 
 - [x] E002 Version the award policy to invalidate premature core-only awards while preserving earned all-guide awards during replay.
 - [x] E003 Replace the balloon with a graduation cap and update welcome, notification and badge descriptions.
 - [x] E004 Verify affected suites, all-guide completion browser case, welcome copy and badge display; push the update.
+
+## Distinguish guided confirmation from skipping
+
+- [x] C001 Diagnose the reported development account with a read-only completion-state query; do not alter ambiguous historical skips.
+- [x] C002 Count terminal current/default confirmations as guide completion while preserving native Save behavior.
+- [x] C003 Label real skips and show the actual Expert completed/total count.
+- [x] C004 Reproduce the exact eight-completed/three-skipped state in persistence and browser regressions.
+- [x] C005 Complete affected suites, owning browser cases, visual checks, builds and push.

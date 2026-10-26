@@ -95,3 +95,17 @@ User correction: Expert recognizes exploring every available guide, rather than 
 The complete affected run passed 159 suites / 2333 tests with one existing skipped suite and three skipped tests. Browser case 050 now checks no award after the core section, then finishes the last remaining discovery task and verifies the member-card graduation cap after reload. Welcome case 048 verifies the all-guides promise.
 
 Final verification: browser cases 048, 049 and revised 050 passed 3/3. The graduation-cap member-card screenshot was inspected. Browser and standalone production builds/type checks, affected-source lint, formatting and diff checks pass. No schema push is needed because the badge slug/enum is unchanged.
+
+## Missing badge after replay and ambiguous skips
+
+Read-only Infisical development-state audit found eight completed tasks and three skipped (overlay.source, appearance.style, playlist.use), with no award timestamp. The user clarified that completion had been reset for testing and some tasks may have been manually skipped. No development account data was modified.
+
+The UI hid the distinction by checking completed and skipped tasks alike. It now labels explicit skips, explains their Expert exclusion and shows real Expert completion out of 11. Guided current/default confirmations now complete their guides instead of recording a skip. Native Save handlers remain unchanged. Added model coverage for all six confirmation flows, a persistence case for the exact eight/three state, and browser case 051.
+
+The first affected run exposed a new unit assertion against an ARIA attribute omitted by the HeroUI test mock, plus an unsupported Testing Library exact option caught by the build. Replaced that unit assertion with visible skip text and moved the ARIA assertion to the real browser. The corrected affected run passed 128 suites / 2013 tests (one pre-existing skipped suite, three skipped tests). Browser runs and final build evidence follow below.
+
+The owning browser sweep passed six existing cases (019, 028, 029, 038, 041, 050). New case 051 initially counted skipped labels across all mounted accordion panels instead of checking the visible task; scoped its assertion to the Choose your clips button. The application correctly rendered all three historical skipped labels. The targeted 051 rerun verifies the actual three-guide completion path below.
+
+The next real-browser assertion showed that HeroUI also filters aria-description in production. Switched the skipped row to a supported aria-describedby reference to its visible Skipped label, and rebuilt. This preserves the original button name while exposing the actual state to assistive technology. The final 051 run checks the accessible description and the complete three-guide replay path.
+
+Final owning browser result: 051 passed, including the supported accessible skip description and the exact 8/11 → 11/11 award path. Combined with the six passing owning examples, all seven behaviors are verified. The final Expert-progress screenshot was inspected. The affected run passed 128 suites / 2013 tests; source lint, formatting, diff checks and browser production build/type checks pass. Account state was left untouched because historical skip origin is ambiguous.

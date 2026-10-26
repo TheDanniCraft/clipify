@@ -58,7 +58,7 @@ function TaskCheckbox({ task, selected, current, onRequest, onConfirm, onRestore
 			<Popover.Content triggerRef={anchor} placement='left' className='z-[1000000002] max-w-64'>
 				<Popover.Dialog aria-label={`Skip ${task.title}?`} className='space-y-3 p-2'>
 					<Popover.Heading className='text-sm font-semibold'>Skip this task?</Popover.Heading>
-					<p className='text-xs text-muted'>You can come back to it anytime.</p>
+					<p className='text-xs text-muted'>Skipped tasks do not count toward Clipify Expert. You can complete this guide later.</p>
 					<div className='flex justify-end gap-2'>
 						<Button size='sm' variant='tertiary' onPress={() => setOpen(false)}>
 							Cancel
@@ -237,6 +237,8 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 	const currentJourney = journeys.find((journey) => journey.id === (active?.task.split(".")[0] ?? progress.journeyId)) ?? journeys[0];
 	const launcherTitle = currentJourney.id === "overlay" ? "Get started" : currentJourney.title;
 	const percentage = journeyGuidePercent(progress);
+	const allTasks = journeys.flatMap((journey) => journey.tasks.map((task) => task.id));
+	const expertCompleted = allTasks.filter((task) => progress.completed.includes(task)).length;
 	return (
 		<GuideContext.Provider value={{ report, activeTask, resourceIds: { overlayId: progress.overlayId, playlistId: progress.playlistId } }}>
 			{children}
@@ -252,6 +254,9 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 									<IconMinus size={16} />
 								</Button>
 							</div>
+							<p role='status' aria-label='Clipify Expert progress' className='mb-3 text-xs text-muted'>
+								Clipify Expert: {expertCompleted}/{allTasks.length}
+							</p>
 							{message && (
 								<p role='status' className='mb-3 text-xs text-muted'>
 									{message}
@@ -283,6 +288,7 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 													{journey.tasks.map((task) => {
 														const current = activeTask === task.id;
 														const finished = isFinished(task.id);
+														const skipped = progress.skipped.includes(task.id);
 														return (
 															<li key={task.id} className={`flex items-start gap-3 rounded-lg px-2 py-2 ${current ? "bg-accent-soft" : ""}`}>
 																<TaskCheckbox
@@ -295,8 +301,15 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 																	}}
 																	onConfirm={() => report({ type: "task.skip", task: task.id })}
 																/>
-																<Button aria-label={task.title} aria-description={current ? "Continue guide" : finished ? "Replay guide" : "Start guide"} variant='ghost' className={`group h-auto min-w-0 flex-1 justify-between gap-2 whitespace-normal px-0 py-0.5 text-left text-sm ${finished && !current ? "text-muted" : ""}`} onPress={() => start(task.id)}>
-																	<span>{task.title}</span>
+																<Button aria-label={task.title} aria-describedby={skipped && !current ? `guide-task-${task.id}-status` : undefined} variant='ghost' className={`group h-auto min-w-0 flex-1 justify-between gap-2 whitespace-normal px-0 py-0.5 text-left text-sm ${finished && !current ? "text-muted" : ""}`} onPress={() => start(task.id)}>
+																	<span className='min-w-0'>
+																		<span>{task.title}</span>
+																		{skipped && !current && (
+																			<span id={`guide-task-${task.id}-status`} className='ml-2 text-xs text-muted'>
+																				Skipped
+																			</span>
+																		)}
+																	</span>
 																	{finished && !current ? <IconRotateClockwise size={14} className='shrink-0 opacity-50 group-hover:opacity-100' /> : <IconChevronRight size={14} className='shrink-0 opacity-50 group-hover:opacity-100' />}
 																</Button>
 															</li>

@@ -17,7 +17,7 @@ The badge catalog adds an automatic `clipify-expert` enum value. Include the cat
 
 ## Verification
 
-Run affected whole-file Jest suites without coverage. Database integration belongs in the existing database lane at `test/mcp/integration/user-tour-progress.test.ts`, using a separate disposable loopback database per case. Genuine browser flows have one BDD/ATDD owner and their own application server/database. Run all 50 examples and inspect desktop/mobile screenshots, ring placement, native widgets, actual navigation and popover focus. Then verify full lint, explicit feature-owned formatting, types and both builds.
+Run affected whole-file Jest suites without coverage. Database integration belongs in the existing database lane at `test/mcp/integration/user-tour-progress.test.ts`, using a separate disposable loopback database per case. Genuine browser flows have one BDD/ATDD owner and their own application server/database. Run all 51 examples and inspect desktop/mobile screenshots, ring placement, native widgets, actual navigation and popover focus. Then verify full lint, explicit feature-owned formatting, types and both builds.
 
 Complete merge coverage/Test and dependency-security gates remain mandatory. Draft CI is scoped feedback, not merge evidence. Do not generate migrations or alter thresholds, hooks or the user's untracked configuration.
 
@@ -26,3 +26,5 @@ Complete merge coverage/Test and dependency-security gates remain mandatory. Dra
 DashboardContentHost is rendered within the guide provider so the trial welcome can offer Start guided tour and Maybe later. A generic welcome covers accounts without a pending trial message. Preserve modal state while consent temporarily takes priority. The welcome decision is stored with account progress, and starting selects the first unfinished core task without routing programmatically.
 
 The server latches expertAwardedAt when every task in every guide section is completed. Version the award policy with expertAwardVersion=2 so old core-only timestamps cannot grant Expert. The automatic badge resolver reads this timestamp from the existing content-state row, so the member card, public profile and creator page share the ordinary badge registry with a graduation-cap icon. No separate badge table write or email is required. Successful server acknowledgement triggers a single toast in the current session.
+
+Guided current/default confirmations finish a guide without claiming native settings were saved. Explicit checklist skips remain excluded from Expert. Show real Expert completion separately from handled section counts and label skipped rows. Preserve legacy skipped records until replay; there is no evidence to distinguish historical explicit skips from the earlier confirmation bug.

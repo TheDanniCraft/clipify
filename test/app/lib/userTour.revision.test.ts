@@ -39,11 +39,11 @@ it("highlights filters and the copy action, with setup instructions as their own
 	expect(copied.active?.index).toBe(1);
 	expect(copied.completed).not.toContain("overlay.setup");
 });
-it("keeps unchanged appearance as skipped, without claiming a saved customization", () => {
+it("completes the appearance guide when the user confirms the default look", () => {
 	const state = { ...defaultProgress(), overlayId: "overlay", active: { task: "appearance.style" as const, index: 2, paused: false } };
 	const next = apply(state, { type: "next" });
-	expect(next.completed).not.toContain("appearance.style");
-	expect(next.skipped).toContain("appearance.style");
+	expect(next.completed).toContain("appearance.style");
+	expect(next.skipped).not.toContain("appearance.style");
 	expect(next.active).toBeNull();
 });
 it("does not let a foreign website copy advance the active instruction", () => {

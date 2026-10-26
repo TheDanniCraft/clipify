@@ -113,7 +113,7 @@ Feature: Clipify guided onboarding
   Scenario: Keep the default appearance
     Given an isolated authenticated Clipify guide account
     When the default appearance is kept
-    Then customization is not falsely marked complete
+    Then the appearance guide completes without changing the saved style
 
   @US3 @FR-005 @SC-004 @BDD-TOUR-US3-020
   Scenario: Create and populate a playlist
@@ -299,3 +299,9 @@ Feature: Clipify guided onboarding
     Given an isolated authenticated Clipify guide account
     When every guide including the final discovery step is completed
     Then the Clipify Expert graduation badge persists on the member card
+
+  @US1 @FR-014 @SC-004 @BDD-TOUR-US1-051
+  Scenario: Finish guides with existing settings to earn Expert
+    Given an isolated authenticated Clipify guide account
+    When three remaining guides confirm the existing settings
+    Then all guides are completed and the Expert badge is awarded
