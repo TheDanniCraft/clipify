@@ -1152,6 +1152,7 @@ export default function OverlaySettings() {
 																return;
 															}
 															setOverlay({ ...overlay, playlistId: selected ?? null });
+															if (selected) reportTour({ type: "overlay.playlist-selected", ownerId: overlay.ownerId, id: overlay.id, playlistId: String(selected) });
 														}}
 														className='flex-1'
 													>

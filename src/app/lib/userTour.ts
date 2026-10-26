@@ -147,6 +147,7 @@ export type GuideEvent =
 	| ({ type: "overlay.saved"; named: boolean; source: boolean; playlistId?: string | null } & Owned)
 	| ({ type: "overlay.previewed"; count: number } & Owned)
 	| ({ type: "overlay.type-selected"; playlist: boolean } & Owned)
+	| ({ type: "overlay.playlist-selected"; playlistId: string } & Owned)
 	| ({ type: "theme.saved"; changed: boolean } & Owned)
 	| ({ type: "playlist.ready" | "playlist.created" } & Owned)
 	| ({ type: "playlist.saved"; named: boolean; count: number } & Owned)
@@ -180,6 +181,8 @@ export function isGuideEvent(value: unknown): value is GuideEvent {
 		case "playlist.clips-added":
 		case "overlay.previewed":
 			return "ownerId" in event && Number.isInteger(event.count) && Number(event.count) >= 0 && Number(event.count) <= 1000000;
+		case "overlay.playlist-selected":
+			return "ownerId" in event && validId(event.playlistId);
 		case "overlay.type-selected":
 			return "ownerId" in event && typeof event.playlist === "boolean";
 		case "theme.saved":
@@ -318,6 +321,13 @@ export function transition(progress: GuideProgress, event: GuideEvent, accountId
 				else if (next.active.index === 0) next.active = { ...next.active, index: 1 };
 			}
 			break;
+		case "overlay.playlist-selected":
+			if (event.id !== next.overlayId) return progress;
+			if (next.active?.task === "playlist.use" && !next.active.navigation?.length) {
+				next.playlistId = event.playlistId;
+				if (next.active.index === 1) next.active = { ...next.active, index: 2 };
+			}
+			break;
 		case "overlay.saved":
 			next.overlayId = event.id;
 			if (event.playlistId !== undefined) next.playlistSource = Boolean(event.playlistId);
@@ -377,7 +387,7 @@ export function stepsForTask(task: TaskId, progress: GuideProgress): GuideStep[]
 	if ((task.startsWith("overlay.") || task.startsWith("appearance.") || task === "playlist.use") && task !== "overlay.name" && !progress.overlayId) return [createOverlay];
 	switch (task) {
 		case "overlay.name":
-			return [createOverlay, { target: "overlay-name", title: "Give it a name", description: "Choose a name you'll recognize.", next: true }, { target: "overlay-save", title: "Save your overlay", description: "Click Save to keep the name." }];
+			return [createOverlay, { target: "overlay-name", title: "Give it a name", description: "Choose a name you'll recognize.", next: true }, { target: "overlay-save", title: "Save your overlay", description: "Click Save to keep the name, or continue with the current settings.", next: true, finish: true, skipOnFinish: true, nextLabel: "Use current settings" }];
 		case "overlay.source":
 			return [
 				{ target: "overlay-source", title: "Choose your clips", description: "Choose the clip source or time range you want to play.", next: true },
@@ -418,7 +428,7 @@ export function stepsForTask(task: TaskId, progress: GuideProgress): GuideStep[]
 			return [
 				{ target: "overlay-source", title: "Use a playlist", description: "Set Overlay Type to Playlist. The guide continues when you select it.", next: true, nextDisabled: !progress.playlistSource },
 				{ target: "overlay-playlist", title: "Select your playlist", description: "Choose your saved playlist.", next: true },
-				{ target: "overlay-save", title: "Save the overlay", description: "Click Save to use this playlist." },
+				{ target: "overlay-save", title: "Save the overlay", description: "Click Save to use this playlist, or continue with the current settings.", next: true, finish: true, skipOnFinish: true, nextLabel: "Use current settings" },
 			];
 		case "explore.galleries":
 			return [

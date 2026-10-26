@@ -178,3 +178,21 @@ it("advances playlist source selection automatically and recovers when its type 
 	expect(apply(stale, { type: "resume", location: "overlay" }).active).toMatchObject({ index: 0, paused: false });
 	expect(apply(state, { type: "overlay.type-selected", ownerId: "foreign", id: "overlay", playlist: true })).toEqual(state);
 });
+it("advances on playlist selection and completes when that selected playlist is saved", () => {
+	const initial: GuideProgress = { ...defaultProgress(), overlayId: "overlay", playlistId: "old", playlistSource: true, active: { task: "playlist.use", index: 1, paused: false } };
+	const event = { type: "overlay.playlist-selected" as const, ownerId: "owner", id: "overlay", playlistId: "chosen" };
+	expect(apply(initial, { ...event, ownerId: "other" })).toEqual(initial);
+	expect(apply(initial, { ...event, id: "other" })).toEqual(initial);
+	const selected = apply(initial, event);
+	expect(selected.active?.index).toBe(2);
+	expect(selected.playlistId).toBe("chosen");
+	const saved = apply(selected, { type: "overlay.saved", ownerId: "owner", id: "overlay", named: true, source: true, playlistId: "chosen" });
+	expect(saved.completed).toContain("playlist.use");
+});
+it("offers an explicit way past unchanged overlay save steps", () => {
+	for (const task of ["overlay.name", "playlist.use"] as const) {
+		const state: GuideProgress = { ...defaultProgress(), overlayId: "overlay", playlistId: "playlist", active: { task, index: 2, paused: false } };
+		expect(currentGuideStep(state)).toMatchObject({ next: true, nextLabel: "Use current settings" });
+		expect(apply(state, { type: "next" }).skipped).toContain(task);
+	}
+});
