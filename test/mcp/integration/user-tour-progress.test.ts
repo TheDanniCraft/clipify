@@ -3,7 +3,7 @@ jest.mock("server-only", () => ({}), { virtual: true });
 jest.mock("@/db/client", () => ({ db: {} }));
 import { createMcpPostgresFixture } from "../../support/mcp/postgres";
 import { applyUserTourEvent, loadUserTourProgress } from "@/server/user-tour/progress";
-import { guideContentKey } from "@lib/userTour";
+import { guideContentKey, defaultProgress, journeys } from "@lib/userTour";
 let fixture: Awaited<ReturnType<typeof createMcpPostgresFixture>>;
 // Cold disposable schema/template provisioning uses the same budget as other database suites.
 beforeEach(async () => {
@@ -57,14 +57,18 @@ it("persists welcome dismissal and starts only the unfinished core tasks on requ
 	const started = await applyUserTourEvent("owner", { type: "welcome.start", location: "dashboard" }, fixture.db);
 	expect(started.active).toMatchObject({ task: "overlay.source", paused: false });
 });
-it("awards the core badge once and keeps it across replay and reload", async () => {
+it("awards only after every guide and keeps the badge across replay and reload", async () => {
 	const {
 		rows: [overlay],
 	} = await fixture.pool.query("INSERT INTO overlays (owner_id,name,status,type) VALUES ('owner','Badge overlay','active','All') RETURNING id");
 	await loadUserTourProgress("owner", fixture.db);
 	await applyUserTourEvent("owner", { type: "overlay.previewed", ownerId: "owner", id: overlay.id, count: 1 }, fixture.db);
 	await applyUserTourEvent("owner", { type: "overlay.copied", ownerId: "owner", id: overlay.id }, fixture.db);
-	const awarded = await applyUserTourEvent("owner", { type: "setup.confirmed" }, fixture.db);
+	const core = await applyUserTourEvent("owner", { type: "setup.confirmed" }, fixture.db);
+	expect(core.expertAwardedAt).toBeUndefined();
+	const allTasks = journeys.flatMap((journey) => journey.tasks.map((task) => task.id));
+	await fixture.pool.query("UPDATE user_content_states SET state=$1 WHERE user_id='owner' AND content_key=$2", [JSON.stringify({ ...core, completed: allTasks.filter((task) => task !== "appearance.style") }), guideContentKey]);
+	const awarded = await applyUserTourEvent("owner", { type: "theme.saved", ownerId: "owner", id: overlay.id, changed: true }, fixture.db);
 	expect(awarded.expertAwardedAt).toEqual(expect.any(String));
 	expect(awarded.skipped).toEqual([]);
 	await applyUserTourEvent("owner", { type: "task.restore", task: "overlay.name" }, fixture.db);
@@ -75,4 +79,13 @@ it("awards the core badge once and keeps it across replay and reload", async () 
 it("does not award a badge for skipping every core task", async () => {
 	for (const task of ["overlay.name", "overlay.source", "overlay.preview", "overlay.setup"] as const) await applyUserTourEvent("owner", { type: "task.skip", task }, fixture.db);
 	expect((await loadUserTourProgress("owner", fixture.db)).progress.expertAwardedAt).toBeUndefined();
+});
+
+it("does not count skipped guides and invalidates the previous core-only award", async () => {
+	const completed = journeys.flatMap((journey) => journey.tasks.map((task) => task.id)).filter((task) => task !== "explore.support");
+	const state = { ...defaultProgress(), completed, skipped: ["explore.support"], expertAwardedAt: "2026-01-01T00:00:00.000Z" };
+	await fixture.pool.query("INSERT INTO user_content_states (user_id,content_key,state) VALUES ('owner',$1,$2)", [guideContentKey, JSON.stringify(state)]);
+	const loaded = await loadUserTourProgress("owner", fixture.db);
+	expect(loaded.progress.expertAwardedAt).toBeUndefined();
+	expect(loaded.progress.skipped).toContain("explore.support");
 });

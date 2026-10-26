@@ -12,7 +12,7 @@ import { guideContentKey, parseProgress } from "@lib/userTour";
 type AutomaticBadgeResolver = (userId: string) => Promise<Date | null>;
 
 const automaticBadgeResolvers: Record<BadgeCondition, AutomaticBadgeResolver> = {
-	"completed-core-guide": async (userId) => {
+	"completed-all-guides": async (userId) => {
 		const [row] = await db
 			.select({ state: userContentStatesTable.state })
 			.from(userContentStatesTable)

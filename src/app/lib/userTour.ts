@@ -53,6 +53,7 @@ export type GuideProgress = {
 	playlistSource?: boolean;
 	welcomeSeen?: boolean;
 	expertAwardedAt?: string;
+	expertAwardVersion?: 2;
 	journeyId?: JourneyId;
 	completed: TaskId[];
 	skipped: TaskId[];
@@ -76,7 +77,10 @@ export function parseProgress(raw: string | null, restorePaused = true): GuidePr
 		const completed = [...new Set<TaskId>(data.completed.map((id: unknown) => (id === "appearance.filters" ? "overlay.source" : migrateTask(id))).filter(isTaskId))];
 		const progress: GuideProgress = { ...defaultProgress(), completed, playlistSource: data.playlistSource === true && validId(data.overlayId), skipped: Array.isArray(data.skipped) ? [...new Set<TaskId>(data.skipped.map(migrateTask).filter(isTaskId))].filter((id) => !completed.includes(id)) : [], overlayId: validId(data.overlayId) ? data.overlayId : null, playlistId: validId(data.playlistId) ? data.playlistId : null, minimized: data.minimized !== false };
 		progress.welcomeSeen = data.welcomeSeen === true || Boolean(data.active) || completed.length > 0 || progress.skipped.length > 0;
-		if (typeof data.expertAwardedAt === "string" && Number.isFinite(Date.parse(data.expertAwardedAt))) progress.expertAwardedAt = new Date(data.expertAwardedAt).toISOString();
+		if (data.expertAwardVersion === 2 && typeof data.expertAwardedAt === "string" && Number.isFinite(Date.parse(data.expertAwardedAt))) {
+			progress.expertAwardedAt = new Date(data.expertAwardedAt).toISOString();
+			progress.expertAwardVersion = 2;
+		}
 		if (validId(data.copiedOverlayId) && data.copiedOverlayId === progress.overlayId) progress.copiedOverlayId = data.copiedOverlayId;
 		// Retired duplicate filter guidance resumes at its canonical core-task checkpoint.
 		let active = data.active?.task === "appearance.filters" ? { ...data.active, task: "overlay.source", index: [0, 1].includes(data.active.index) ? data.active.index + 1 : -1 } : data.active;
@@ -91,8 +95,8 @@ export function parseProgress(raw: string | null, restorePaused = true): GuidePr
 		return defaultProgress();
 	}
 }
-export function hasCompletedCoreGuide(progress: GuideProgress): boolean {
-	return journeys[0].tasks.every((task) => progress.completed.includes(task.id));
+export function hasCompletedAllGuides(progress: GuideProgress): boolean {
+	return journeys.every((journey) => journey.tasks.every((task) => progress.completed.includes(task.id)));
 }
 export function shouldOfferGuideWelcome(progress: GuideProgress): boolean {
 	return !progress.welcomeSeen && !progress.active && !journeys[0].tasks.every((task) => progress.completed.includes(task.id) || progress.skipped.includes(task.id));

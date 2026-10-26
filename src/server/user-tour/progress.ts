@@ -2,7 +2,7 @@ import "server-only";
 import { and, eq, sql } from "drizzle-orm";
 import { db, type DatabaseClient } from "@/db/client";
 import { userContentStatesTable, overlaysTable, playlistsTable, playlistClipsTable } from "@/db/schema";
-import { defaultProgress, hasCompletedCoreGuide, guideContentKey, parseProgress, transition, type GuideEvent, type GuideProgress } from "@lib/userTour";
+import { defaultProgress, hasCompletedAllGuides, guideContentKey, parseProgress, transition, type GuideEvent, type GuideProgress } from "@lib/userTour";
 
 /** Reuse account content state; no onboarding schema or generated migration is needed. */
 async function transactProgress(userId: string, event?: GuideEvent, client: DatabaseClient = db) {
@@ -54,7 +54,10 @@ async function transactProgress(userId: string, event?: GuideEvent, client: Data
 		}
 		if (event) progress = transition(progress, event, userId);
 		// Award once, independently of replay, restored checkboxes or later optional tasks.
-		if (!progress.expertAwardedAt && hasCompletedCoreGuide(progress)) progress.expertAwardedAt = new Date().toISOString();
+		if (!progress.expertAwardedAt && hasCompletedAllGuides(progress)) {
+			progress.expertAwardedAt = new Date().toISOString();
+			progress.expertAwardVersion = 2;
+		}
 		const serialized = JSON.stringify(progress);
 		if (serialized !== row.state)
 			await tx

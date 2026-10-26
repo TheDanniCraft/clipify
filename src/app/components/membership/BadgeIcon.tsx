@@ -1,13 +1,13 @@
 "use client";
 
 import { Button, Tooltip } from "@heroui/react";
-import { IconBalloon, IconCrown, IconFlask, IconHeart, IconRosetteDiscountCheck, IconShieldCheck, IconSparkles, IconStar } from "@tabler/icons-react";
+import { IconSchool, IconCrown, IconFlask, IconHeart, IconRosetteDiscountCheck, IconShieldCheck, IconSparkles, IconStar } from "@tabler/icons-react";
 import type { MemberBadgeView } from "@lib/membership";
 import type { BadgeIconKey } from "@lib/badgeCatalog";
 import { useState } from "react";
 
 // The catalog's icon field selects a known glyph, never arbitrary markup or URLs.
-const icons: Record<BadgeIconKey, typeof IconCrown> = { balloon: IconBalloon, crown: IconCrown, flask: IconFlask, heart: IconHeart, shield: IconShieldCheck, sparkles: IconSparkles, star: IconStar, badge: IconRosetteDiscountCheck };
+const icons: Record<BadgeIconKey, typeof IconCrown> = { "graduation-cap": IconSchool, crown: IconCrown, flask: IconFlask, heart: IconHeart, shield: IconShieldCheck, sparkles: IconSparkles, star: IconStar, badge: IconRosetteDiscountCheck };
 
 export default function BadgeIcon({ badge }: { badge: Pick<MemberBadgeView, "slug" | "name" | "description" | "icon"> }) {
 	const [isOpen, setIsOpen] = useState(false);

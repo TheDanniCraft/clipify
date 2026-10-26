@@ -118,8 +118,8 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 				if (result.expertAwardedAt && !seenExpertAward.current) {
 					seenExpertAward.current = result.expertAwardedAt;
 					if (mounted.current) {
-						setProgress((current) => ({ ...current, expertAwardedAt: result.expertAwardedAt }));
-						addToast({ title: "Clipify Expert unlocked!", description: "Your balloon badge is now on your member profile.", color: "success" });
+						setProgress((current) => ({ ...current, expertAwardedAt: result.expertAwardedAt, expertAwardVersion: 2 }));
+						addToast({ title: "Clipify Expert unlocked!", description: "You completed every guide. Your expert badge is now on your member profile.", color: "success" });
 					}
 				}
 			}

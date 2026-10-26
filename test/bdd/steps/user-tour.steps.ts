@@ -903,6 +903,7 @@ When("the fresh welcome offers the guided journey", async ({ page, tourWorld }) 
 	await expect(page.getByRole("button", { name: "Start guided tour", exact: true })).toBeVisible();
 	await expect(page.getByText("7 days of Pro, on us.", { exact: true })).toBeVisible();
 	await expect(page.locator(".driver-popover")).toHaveCount(0);
+	await expect(page.getByText(/Complete every guide to earn your Clipify Expert badge/)).toBeVisible();
 	await page.screenshot({ path: "/tmp/clipify-welcome-tour.png" });
 });
 Then("starting the welcome teaches the real Add Overlay control", async ({ page, tourWorld }) => {
@@ -932,19 +933,26 @@ Then("a new browser session keeps the guide available without the welcome", asyn
 	await expect(page.locator('[data-tour="guide-launcher"]')).toBeVisible();
 	expect((await progress(page, tourWorld)).active).toBeNull();
 });
-When("the final core guide step is completed", async ({ page, tourWorld }) => {
+When("every guide including the final discovery step is completed", async ({ page, tourWorld }) => {
 	await seedProgress(tourWorld, { overlayId: tourWorld.owner!.overlayId, copiedOverlayId: tourWorld.owner!.overlayId, completed: ["overlay.name", "overlay.source", "overlay.preview"], active: { task: "overlay.setup", index: 1, paused: true } });
 	await overlay(page, tourWorld);
 	await resumeTask(page, tourWorld);
 	await page.getByRole("button", { name: "Finish guide", exact: true }).click();
+	const core = await progress(page, tourWorld);
+	expect(core.expertAwardedAt).toBeUndefined();
+	await expect(page.getByText("Clipify Expert unlocked!", { exact: true })).toHaveCount(0);
+	await seedProgress(tourWorld, { ...core, completed: journeys.flatMap((journey) => journey.tasks.map((task) => task.id)).filter((task) => task !== "explore.support"), active: { task: "explore.support", index: 1, paused: true } });
+	await page.reload();
+	await resumeTask(page, tourWorld);
+	await page.getByRole("button", { name: "Done", exact: true }).click();
 	await expect(page.getByText("Clipify Expert unlocked!", { exact: true })).toBeVisible();
 	expect((await progress(page, tourWorld)).expertAwardedAt).toEqual(expect.any(String));
 });
-Then("the Clipify Expert balloon badge persists on the member card", async ({ page, tourWorld }) => {
+Then("the Clipify Expert graduation badge persists on the member card", async ({ page, tourWorld }) => {
 	const awardedAt = (await progress(page, tourWorld)).expertAwardedAt;
 	await page.goto(`${tourWorld.origin}/dashboard/member-card`);
 	await expect(page.getByText("Clipify Expert", { exact: true }).first()).toBeVisible();
-	await expect(page.locator('[data-badge-icon="balloon"]').first()).toBeVisible();
+	await expect(page.locator('[data-badge-icon="graduation-cap"]').first()).toBeVisible();
 	await page.screenshot({ path: "/tmp/clipify-expert-badge.png" });
 	await page.reload();
 	await expect(page.getByText("Clipify Expert", { exact: true }).first()).toBeVisible();

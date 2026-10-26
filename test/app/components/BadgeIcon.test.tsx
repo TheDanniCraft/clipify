@@ -70,3 +70,8 @@ describe("compact badge icons", () => {
 		expect(container.querySelector('[data-badge-icon="star"]')).toBeInTheDocument();
 	});
 });
+
+it("renders the Expert graduation cap from the shared catalog", () => {
+	const { container } = render(<BadgeIcon badge={{ slug: "clipify-expert", name: "Clipify Expert", description: "Completed every guide", icon: "graduation-cap" }} />);
+	expect(container.querySelector('[data-badge-icon="graduation-cap"]')).toBeInTheDocument();
+});

@@ -295,7 +295,7 @@ Feature: Clipify guided onboarding
     Then a new browser session keeps the guide available without the welcome
 
   @US1 @FR-002 @SC-001 @BDD-TOUR-US1-050
-  Scenario: Earn the Clipify Expert badge after the core journey
+  Scenario: Earn the Clipify Expert badge after every guide
     Given an isolated authenticated Clipify guide account
-    When the final core guide step is completed
-    Then the Clipify Expert balloon badge persists on the member card
+    When every guide including the final discovery step is completed
+    Then the Clipify Expert graduation badge persists on the member card

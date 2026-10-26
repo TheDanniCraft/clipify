@@ -59,6 +59,6 @@ describe("badge registry writes", () => {
 
 it("resolves Clipify Expert from the durable completion timestamp", async () => {
 	const awardedAt = "2026-10-26T12:00:00.000Z";
-	mockGuideRows.mockResolvedValue([{ state: JSON.stringify({ version: 2, completed: [], expertAwardedAt: awardedAt }) }]);
+	mockGuideRows.mockResolvedValue([{ state: JSON.stringify({ version: 2, completed: [], expertAwardVersion: 2, expertAwardedAt: awardedAt }) }]);
 	await expect(resolveAutomaticBadgeAwards("expert")).resolves.toEqual([{ slug: "clipify-expert", awardedAt: new Date(awardedAt) }]);
 });

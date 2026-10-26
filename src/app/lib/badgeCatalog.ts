@@ -1,6 +1,6 @@
-export const badgeIconKeys = ["badge", "crown", "flask", "heart", "shield", "sparkles", "star", "balloon"] as const;
+export const badgeIconKeys = ["badge", "crown", "flask", "heart", "shield", "sparkles", "star", "graduation-cap"] as const;
 export type BadgeIconKey = (typeof badgeIconKeys)[number];
-export const badgeConditionKeys = ["active-partner-grant", "completed-core-guide"] as const;
+export const badgeConditionKeys = ["active-partner-grant", "completed-all-guides"] as const;
 export type BadgeCondition = (typeof badgeConditionKeys)[number];
 
 type BadgeDefinition = {
@@ -15,10 +15,10 @@ type BadgeDefinition = {
 export const badgeCatalog = {
 	"clipify-expert": {
 		name: "Clipify Expert",
-		description: "Completed the core Clipify guide and set up an overlay for streaming.",
-		icon: "balloon",
+		description: "Completed every Clipify guide and explored overlays, styling, playlists, website tools and support.",
+		icon: "graduation-cap",
 		priority: 60,
-		condition: "completed-core-guide",
+		condition: "completed-all-guides",
 	},
 	founder: {
 		name: "Founder",

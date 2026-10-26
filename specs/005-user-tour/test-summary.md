@@ -48,7 +48,7 @@ Validation: the final complete affected run passed 16 suites / 428 tests; the ta
 
 The welcome offers Start guided tour and Maybe later while retaining the Pro trial message. Accounts without trial content receive one generic welcome. Decisions persist across reload and browser clearing; consent takes priority. Existing owned setup retains the minimized checklist. Starting teaches the first unfinished core task through native controls.
 
-The server latches a durable completion timestamp when all four core tasks are completed. Skips do not qualify; optional sections are excluded. Clipify Expert uses a balloon icon in the existing automatic badge/member-card system and is retained during replay. A successful award acknowledgement shows one toast. The catalog adds one enum value; the post-merge migration workflow now watches catalog changes. Infisical development db:push applied the current schema; generated migrations remain untouched.
+The server latches a durable, versioned completion timestamp only when every task across all four guide sections is completed. Skips do not qualify; optional sections are required for the Expert achievement while remaining optional for normal app use. Clipify Expert uses a graduation-cap icon in the existing automatic badge/member-card system and is retained during replay. A successful award acknowledgement shows one toast. The catalog adds one enum value; the post-merge migration workflow now watches catalog changes. Infisical development db:push applied the current schema; generated migrations remain untouched.
 
 Affected validation covers 159 passing suites / 2329 tests across the complete affected run and final eight-case persistence rerun. Cold database setup exposed a five-second hook limit during pre-push; fixture setup/cleanup now use the existing database-suite convention of 35 seconds. Application assertion budgets and coverage thresholds are unchanged.
 
@@ -59,3 +59,11 @@ The final-source browser sweep passed 48/50 cases. The other two required browse
 External OBS/website setup is instructional and self-reported. No new table or generated migration is introduced; the existing account content-state table stores the guide and earned timestamp. The catalog adds one badge enum value, with migration generation owned by the post-merge workflow. Server write failure keeps ordered retryable events and optimistic session state. Complete account persistence is verified after acknowledged writes.
 
 Keep the PR draft pending the complete merge coverage/Test and dependency-security gates. The baseline audit reproduces the original three high advisories in follow-redirects and transitive zod. No dependency changes, accepted risk exception or release approval is claimed for this revision.
+
+## Expert requires every guide
+
+The Expert policy now requires all 11 tasks from the central journey catalog, including appearance, playlists, website tools and support. The server marks new awards with expertAwardVersion=2. Unversioned core-only timestamps are discarded; valid all-guide awards remain permanent through replay. Welcome, badge and toast copy describe the same requirement. The glyph is Tabler IconSchool (graduation cap). The badge slug and database enum are unchanged, so this refinement needs no schema push or generated migration.
+
+The affected run passed 159 suites / 2333 tests with the existing one-suite/three-test skips. It covers each missing task, skipped-task rejection, previous award invalidation, the final task in a different section, account isolation and replay persistence.
+
+Final verification: browser cases 048, 049 and revised 050 passed 3/3. The graduation-cap member-card screenshot was inspected. Browser and standalone production builds/type checks, affected-source lint, formatting and diff checks pass. No schema push is needed because the badge slug/enum is unchanged.

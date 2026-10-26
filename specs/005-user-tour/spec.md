@@ -27,7 +27,7 @@ BDD and ATDD share one browser execution owner per example. The 50 individually 
 - **FR-012:** Website setup teaches opening the app menu, choosing Tools, selecting a player and copying public iframe code. Galleries and support remain short, optional introductions.
 
 - **FR-013:** Automatically offer the guided journey from the welcome dialog once per account. Preserve the existing Pro trial message, offer Start guided tour and Maybe later, and never launch a spotlight over consent or the welcome dialog. Existing owned setup keeps its minimized checklist instead of receiving a first-use welcome. Start the first unfinished core task through normal navigation. Remember dismissal and manual start; do not repeatedly prompt returning or completed accounts.
-- **FR-014:** Award one automatic Clipify Expert balloon badge when all four core tasks are completed. Optional sections are not required and skips alone do not qualify. Persist the first server-issued award timestamp; replay or checkbox restore never revokes the badge. Display it in existing member badges and celebrate once after an acknowledged award.
+- **FR-014:** Award one automatic Clipify Expert graduation-cap badge when all 11 tasks across all four guide sections are completed. Every guide is required for Expert, including appearance, playlists and discovery. Skipped tasks do not qualify; sections remain optional for ordinary app use. Persist the first server-issued all-guides award timestamp with expertAwardVersion=2; discard earlier core-only awards. replay or checkbox restore never revokes the badge. Display it in existing member badges and celebrate once after an acknowledged award.
 
 ## Edge cases
 

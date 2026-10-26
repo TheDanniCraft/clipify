@@ -1,4 +1,4 @@
-import { journeys, journeyGuidePercent, currentGuideStep, defaultProgress, transition, stepsForTask, navigationForTask, parseProgress, type GuideProgress } from "@lib/userTour";
+import { hasCompletedAllGuides, journeys, journeyGuidePercent, currentGuideStep, defaultProgress, transition, stepsForTask, navigationForTask, parseProgress, type GuideProgress } from "@lib/userTour";
 const apply = (state: ReturnType<typeof defaultProgress>, event: Parameters<typeof transition>[1]) => transition(state, event, "owner");
 it("replays creation at Add Overlay even when it was completed before", () => {
 	let state: GuideProgress = { ...defaultProgress(), overlayId: "existing", completed: ["overlay.name" as const] };
@@ -204,4 +204,18 @@ it("starts welcome guidance at the first unfinished core task and remembers the 
 	const dismissed = apply(defaultProgress(), { type: "welcome.dismiss" });
 	expect(dismissed).toMatchObject({ welcomeSeen: true, minimized: true, active: null });
 	expect(parseProgress(JSON.stringify(dismissed)).welcomeSeen).toBe(true);
+});
+it("requires every guide task for Expert, with no credit for skipped tasks", () => {
+	const tasks = journeys.flatMap((journey) => journey.tasks.map((task) => task.id));
+	expect(tasks).toHaveLength(11);
+	expect(hasCompletedAllGuides({ ...defaultProgress(), completed: tasks })).toBe(true);
+	for (const missing of tasks) {
+		expect(hasCompletedAllGuides({ ...defaultProgress(), completed: tasks.filter((task) => task !== missing), skipped: [missing] })).toBe(false);
+	}
+	expect(hasCompletedAllGuides({ ...defaultProgress(), completed: journeys[0].tasks.map((task) => task.id) })).toBe(false);
+});
+it("discards old core-only awards but preserves a versioned Expert award during replay", () => {
+	const expertAwardedAt = "2026-10-26T12:00:00.000Z";
+	expect(parseProgress(JSON.stringify({ ...defaultProgress(), expertAwardedAt })).expertAwardedAt).toBeUndefined();
+	expect(parseProgress(JSON.stringify({ ...defaultProgress(), expertAwardedAt, expertAwardVersion: 2 }))).toMatchObject({ expertAwardedAt, expertAwardVersion: 2 });
 });
