@@ -31,12 +31,13 @@ const cookieGet = jest.fn();
 const cookieSet = jest.fn();
 const checkoutCreate = jest.fn();
 const customerCreate = jest.fn();
+const customerRetrieve = jest.fn();
 const stripe = {
 	prices: { list: jest.fn(), retrieve: jest.fn() },
 	subscriptions: { list: jest.fn(), update: jest.fn(), create: jest.fn(), retrieve: jest.fn() },
 	subscriptionSchedules: { update: jest.fn(), create: jest.fn() },
 	checkout: { sessions: { create: checkoutCreate } },
-	customers: { create: customerCreate },
+	customers: { create: customerCreate, retrieve: customerRetrieve },
 	promotionCodes: { list: jest.fn() },
 };
 
@@ -74,6 +75,7 @@ beforeEach(async () => {
 	});
 	stripe.subscriptions.list.mockResolvedValue({ data: [] });
 	checkoutCreate.mockResolvedValue({ url: "https://checkout.example.invalid/fixture" });
+	customerRetrieve.mockResolvedValue({ id: "cus_fixture_agency", deleted: false, metadata: { clipifyAgencyOrganizationId: "org_fixture_agency" } });
 });
 afterAll(() => {
 	if (previousStripeKey === undefined) delete process.env.STRIPE_SECRET_KEY;
