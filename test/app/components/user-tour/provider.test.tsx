@@ -244,6 +244,19 @@ it("starts the first unfinished task from the welcome dialog without routing the
 	expect(screen.queryByRole("dialog", { name: "Welcome" })).not.toBeInTheDocument();
 	expect(push).not.toHaveBeenCalled();
 });
+it.each(["/dashboard/runners/runner-1", "/dashboard/settings", "/dashboard/overlay/overlay-1"])("defers the welcome on %s until the user opens the Dashboard", (path) => {
+	currentPath = path;
+	const view = mount();
+	expect(screen.queryByRole("dialog", { name: "Welcome" })).not.toBeInTheDocument();
+	expect(save).not.toHaveBeenCalledWith("owner", { type: "welcome.dismiss" });
+	currentPath = "/dashboard";
+	view.rerender(
+		<UserTourProvider accountId='owner'>
+			<Harness />
+		</UserTourProvider>,
+	);
+	expect(screen.getByRole("dialog", { name: "Welcome" })).toBeVisible();
+});
 it("remembers Maybe later and does not offer the welcome to returning accounts", async () => {
 	const view = mount();
 	fireEvent.click(screen.getByRole("button", { name: "Maybe later" }));

@@ -265,7 +265,8 @@ export default function PlaylistPage() {
 	const isPlaylistDirty = playlistClips.map((clip) => clip.id).join(",") !== savedPlaylistClipIds.join(",");
 	const isPlaylistNameDirty = playlist ? playlistNameDraft.trim() !== playlist.name : false;
 	const canSavePlaylist = isPlaylistDirty || isPlaylistNameDirty;
-	const navGuard = useNavigationGuard({ enabled: canSavePlaylist });
+	const navigationGuardEnabled = useCallback(() => canSavePlaylist, [canSavePlaylist]);
+	const navGuard = useNavigationGuard({ enabled: navigationGuardEnabled });
 
 	useEffect(() => {
 		// eslint-disable-next-line react-hooks/set-state-in-effect

@@ -23,6 +23,7 @@ const createChannelReward = jest.fn();
 const removeChannelReward = jest.fn();
 const titleBlocked = jest.fn();
 const navigationGuard = { active: false, reject: jest.fn(), accept: jest.fn() };
+const navigationGuardOptions = jest.fn();
 const mockFieldContext = React.createContext<{ label: string; value?: string; input?: (value: string) => void; select?: (value: string) => void; open: boolean; setOpen: (open: boolean) => void }>({ label: "", open: false, setOpen: () => undefined });
 const mockNumberContext = React.createContext<{ label: string; value: number; change?: (value: number) => void }>({ label: "", value: 0 });
 const mockSliderContext = React.createContext<number[]>([]);
@@ -41,7 +42,10 @@ jest.mock("next/navigation", () => ({
 }));
 
 jest.mock("nextjs-nav-guard", () => ({
-	useNavigationGuard: () => navigationGuard,
+	useNavigationGuard: (options: unknown) => {
+		navigationGuardOptions(options);
+		return navigationGuard;
+	},
 }));
 
 jest.mock("@actions/database", () => ({
@@ -474,6 +478,15 @@ describe("dashboard overlay settings playlist mode", () => {
 			fireEvent.change(input, { target: { value } });
 		});
 	}
+	it("checks the current dirty state when navigation is requested", async () => {
+		const name = await openPage();
+		const enabled = () => navigationGuardOptions.mock.calls.at(-1)![0].enabled();
+		expect(enabled()).toBe(false);
+		await change(name, "Edited overlay");
+		expect(enabled()).toBe(true);
+		await change(name, "Playlist Overlay");
+		expect(enabled()).toBe(false);
+	});
 	it("shows recovery navigation instead of loading a deleted overlay forever", async () => {
 		getOverlay.mockResolvedValue(null);
 		const Page = (await import("@/app/dashboard/overlay/[overlayId]/page")).default;

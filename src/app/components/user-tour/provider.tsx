@@ -100,7 +100,7 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 	const processing = useRef(false);
 	const mounted = useRef(true);
 	const seenExpertAward = useRef(initialProgress.expertAwardedAt);
-	const offerWelcome = shouldOfferGuideWelcome(progress);
+	const offerWelcome = pathname === "/dashboard" && shouldOfferGuideWelcome(progress);
 	const seenCompletions = useRef(initialProgress.completed);
 	const bottom = 96;
 	const active = progress.active;

@@ -149,7 +149,9 @@ export default function OverlaySettings() {
 		setBaseOverlay(saved as Overlay);
 	});
 
-	const navGuard = useNavigationGuard({ enabled: isFormDirty() });
+	// Evaluate at navigation time without resetting guard state on every clean render.
+	const navigationGuardEnabled = useCallback(() => JSON.stringify(overlay) !== JSON.stringify(baseOverlay), [overlay, baseOverlay]);
+	const navGuard = useNavigationGuard({ enabled: navigationGuardEnabled });
 
 	useEffect(() => {
 		// eslint-disable-next-line react-hooks/set-state-in-effect
