@@ -36,10 +36,10 @@ export const journeys = [
 		tasks: [
 			{ id: "explore.galleries", title: "Discover clip galleries" },
 			{ id: "explore.runners", title: "Discover runners" },
-			{ id: "explore.settings", title: "Find your settings" },
-			{ id: "explore.ai", title: "Discover AI connections" },
-			{ id: "explore.editors", title: "Find your editors and team" },
 			{ id: "explore.tools", title: "Add Clipify to your website" },
+			{ id: "explore.settings", title: "Find your settings" },
+			{ id: "explore.editors", title: "Find your editors and team" },
+			{ id: "explore.ai", title: "Discover AI connections" },
 			{ id: "explore.support", title: "Find help and report a problem" },
 		],
 	},
