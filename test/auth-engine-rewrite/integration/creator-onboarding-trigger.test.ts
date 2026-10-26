@@ -1,8 +1,10 @@
 /** @jest-environment node */
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
+import { migrate as migrateToCheckpoint } from "drizzle-orm/node-postgres/migrator";
 import { runMcpProbe } from "../../support/mcp/probe";
 import { createMcpPostgresFixture } from "../../support/mcp/postgres";
 
@@ -59,15 +61,27 @@ describe("Better Auth hooks own Clipify creator setup", () => {
 	});
 
 	it("removes old deployed auth triggers when the production migration command runs", async () => {
+		await fixture.close();
+		fixture = await createMcpPostgresFixture({ empty: true });
+		process.env.DATABASE_URL = fixture.url;
+		const journal = JSON.parse(readFileSync("drizzle/meta/_journal.json", "utf8"));
+		const entry = journal.entries.find((entry: { tag: string }) => entry.tag === "0031_remove_auth_onboarding_triggers");
+		const previous = journal.entries.filter((item: { when: number }) => item.when < entry.when);
+		const checkpoint = mkdtempSync(resolve(tmpdir(), "clipify-onboarding-migrations-"));
+		try {
+			mkdirSync(resolve(checkpoint, "meta"));
+			writeFileSync(resolve(checkpoint, "meta/_journal.json"), JSON.stringify({ ...journal, entries: previous }));
+			for (const item of previous) copyFileSync(resolve("drizzle", `${item.tag}.sql`), resolve(checkpoint, `${item.tag}.sql`));
+			await migrateToCheckpoint(fixture.db, { migrationsFolder: checkpoint });
+		} finally {
+			rmSync(checkpoint, { recursive: true, force: true });
+		}
 		await fixture.pool.query(`CREATE FUNCTION public.clipify_provision_twitch_creator() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'OLD_TRIGGER_RAN'; END $$;
 			CREATE TRIGGER clipify_twitch_creator_on_account_insert AFTER INSERT ON auth.account FOR EACH ROW EXECUTE FUNCTION public.clipify_provision_twitch_creator();
 			CREATE FUNCTION public.clipify_sync_twitch_creator_profile() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'OLD_PROFILE_TRIGGER_RAN'; END $$;
 			CREATE TRIGGER clipify_twitch_creator_profile_sync AFTER UPDATE ON auth."user" FOR EACH ROW EXECUTE FUNCTION public.clipify_sync_twitch_creator_profile();`);
-		const journal = JSON.parse(readFileSync("drizzle/meta/_journal.json", "utf8"));
-		const entry = journal.entries.find((entry: { tag: string }) => entry.tag === "0031_remove_auth_onboarding_triggers");
-		// Recreate the production ordering: master migration 0031 lands before this
-		// branch's later 0032 migration, so both are pending together.
-		await fixture.pool.query("DELETE FROM drizzle.__drizzle_migrations WHERE created_at >= $1", [entry.when]);
+		// Upgrade the actual pre-0031 schema with all subsequent migrations pending.
+		// Deleting journal rows on the latest schema would reapply CREATE TYPE/TABLE.
 		migrate();
 		const id = randomUUID();
 		probe(id);

@@ -87,3 +87,9 @@ The four owning browser examples 053–056 and updated Expert examples 050–051
 The first ready-for-review full CI run passed every coverage producer and browser shard, but the final Test gate rejected playlist editor branch coverage of 83.94% against the existing 85% threshold. Added meaningful tests for native Select all across cache pages, middle/suffix category search and clearing the minimum-view filter. The playlist whole-file suite passes 48 tests; scoped coverage is now 187/218 branches (85.78%). Thresholds and CI gates are unchanged. Full CI must be rerun on the pushed source; the scoped collector is diagnostic evidence only.
 
 The user explicitly requested not to merge yet. Keep the PR ready for full CI and user flow testing, with auto-merge disabled.
+
+## Integration with merged Free Runner
+
+Rebased onto master deb91a85, preserving the shared editor layouts and localized dates. AI discovery now teaches the Connections tab; Back/resume restores that panel and saved legacy AI navigation checkpoints migrate without losing progress. Runner discovery describes Free availability. All 56 owning browser journeys passed in one sweep (8.2 minutes), including all four discovery guides. Guide/editor whole-file checks passed 209 tests, and type checking, lint and the browser production build passed.
+
+The affected run passed 187 suites / 2,979 tests but exposed a master-generated migration ordering error in all 11 fresh-migration onboarding cases. The prepared correction moves the two existing Runner/session composite unique constraints before dependent foreign keys, without changing the journal or schema. The upgrade fixture now starts from the actual pre-0031 schema instead of deleting journal rows on an already upgraded schema. The complete migration integration file then passed all 11 tests. Committing the generated SQL remains subject to the repository's explicit human-approval override; full CI remains pending.
