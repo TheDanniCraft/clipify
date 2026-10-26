@@ -1,9 +1,11 @@
-# Data model
+# Guide state
 
-GuideProgress version 1: completed task IDs (allowlisted, unique), chosen owned overlay/playlist IDs (nonempty bounded strings), active task and pointer index, panel minimized preference. Key `clipify:user-tour:v1:<accountId>`. Unknown version/invalid shapes reset safely. Unknown task IDs ignored. No credentials or URLs persisted. State only grants instructional progress, never authorization.
+`GuideProgress.version` is 2. Persist it as JSON in `user_content_states.state` with content key `clipify-user-tour:v2`, scoped by the existing `user_id` primary-key component. `state_until` stays null; account deletion removes the row through the existing foreign key. No schema migration is required.
 
-Transitions: idle -> active on user start; active -> paused on close/Escape/navigation/missing target; paused -> active on resume; task -> complete only on matching successful event. Replay starts guidance against an existing resource, preserving completed tasks. Independent successful actions also complete matching tasks. Setup requires a successful copy plus explicit confirmation. Theme skip pauses without completing customization. Playlist steps require saved clips/order and an overlay association.
+Fields: allowed `completed` and `skipped` task IDs, selected overlay/playlist IDs, copied overlay ID, `minimized`, and an optional active checkpoint. An active checkpoint has task, action index, paused flag, a bounded queue of navigation target IDs and its initial navigation count. Navigation and action progress are independent. Reads restore a checkpoint paused; explicit task activation resumes from the user's current page.
 
-## UX revision fields
+Version 1 completed/skipped IDs import once from the account's old browser key. `website.embed` migrates to the merged `explore.tools` task. Drop incompatible old action pointers. Allowlist and deduplicate IDs; completed tasks take precedence over skips. Bound resource IDs and navigation length. No names, URLs, secrets or media enter this state.
 
-GuideProgress remains version 1 and accepts existing completion arrays. Missing skipped arrays parse to empty; valid skipped IDs are deduplicated and completed IDs take precedence. Active tasks add optional done=true for the explicit completion handoff. New storage defaults show the checklist while keeping active=null. Existing minimized preferences remain respected. A skip does not call domain mutations or emit a successful save outcome. Resource IDs and route construction retain their existing bounds and ownership rules.
+The authenticated action receives an expected account ID and a validated event, not a replacement snapshot. The repository initializes the account row if needed, locks it, applies the reducer and writes the result in one transaction. This preserves simultaneous updates. First-time records infer only known owned setup facts; they never infer preview, customization or external playback. Existing resources minimize the welcome panel. Later reads refresh owned IDs and recover deleted-resource pointers.
+
+The provider applies events optimistically and sends them in order. Failed writes remain queued with Retry. Server state wins on a new session; browser storage clearing cannot restart onboarding. In-flight old-account events are rejected after account switching.

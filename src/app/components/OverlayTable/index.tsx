@@ -39,7 +39,7 @@ function TableEmptyState({ children }: { children: React.ReactNode }) {
 
 export default function OverlayTable({ userId }: { userId: string }) {
 	const router = useRouter();
-	const { report: reportTour } = useUserTour();
+	const { report: reportTour, resourceIds } = useUserTour();
 	type LocalOverlay = Overlay & { accessType?: "owner" | "editor" };
 	type LocalPlaylist = { id: string; ownerId: string; name: string; clipCount: number; configurationRevision: number; accessType?: "owner" | "editor" };
 	type LocalGallery = Gallery & { accessType?: "owner" | "editor" };
@@ -273,6 +273,9 @@ export default function OverlayTable({ userId }: { userId: string }) {
 		return resultKeys;
 	}, [selectedKeys, filteredItems, filterValue]);
 
+	const tourOverlayId = overlays?.find((item) => item.ownerId === userId && item.id === resourceIds?.overlayId)?.id ?? overlays?.find((item) => item.ownerId === userId)?.id;
+	const tourPlaylistId = playlists?.find((item) => item.ownerId === userId && item.id === resourceIds?.playlistId)?.id ?? playlists?.find((item) => item.ownerId === userId)?.id;
+
 	const renderCell = useCallback(
 		(item: LocalOverlay | LocalPlaylist | LocalGallery | LocalRunner, columnKey: React.Key) => {
 			const key = columnKey as ColumnsKey;
@@ -293,7 +296,9 @@ export default function OverlayTable({ userId }: { userId: string }) {
 					case "actions":
 						return (
 							<div className='flex items-center justify-end gap-2'>
-								<IconPencil className='cursor-pointer text-muted' height={18} width={18} />
+								<Button data-tour={overlay.id === tourOverlayId ? "open-overlay" : undefined} isIconOnly size='sm' variant='tertiary' aria-label={`Edit ${overlay.name}`} onPress={() => router.push(`/dashboard/overlay/${overlay.id}`)}>
+									<IconPencil size={18} />
+								</Button>
 								<Button isIconOnly size='sm' variant='tertiary' aria-label={`Delete ${overlay.name}`} onPress={() => setDeleteRequest({ kind: "overlay", id: overlay.id, name: overlay.name, configurationRevision: overlay.configurationRevision })}>
 									<IconTrash size={18} />
 								</Button>
@@ -316,6 +321,9 @@ export default function OverlayTable({ userId }: { userId: string }) {
 					case "actions":
 						return (
 							<div className='flex items-center justify-end gap-2'>
+								<Button data-tour={playlist.id === tourPlaylistId ? "open-playlist" : undefined} isIconOnly size='sm' variant='tertiary' aria-label={`Edit ${playlist.name}`} onPress={() => router.push(`/dashboard/playlist/${playlist.id}`)}>
+									<IconPencil size={18} />
+								</Button>
 								<Button isIconOnly size='sm' variant='tertiary' aria-label={`Delete ${playlist.name}`} onPress={() => setDeleteRequest({ kind: "playlist", id: playlist.id, name: playlist.name, configurationRevision: playlist.configurationRevision })}>
 									<IconTrash size={18} aria-hidden='true' />
 								</Button>
@@ -423,7 +431,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 				}
 			}
 		},
-		[activeTab, userId],
+		[activeTab, userId, router, tourOverlayId, tourPlaylistId],
 	);
 
 	const onNextPage = useMemoizedCallback(() => {

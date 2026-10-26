@@ -2,8 +2,8 @@ import { defaultProgress, journeys, parseProgress, routeForTask, storageKey, tra
 
 describe("user tour progress", () => {
 	const apply = (event: GuideEvent, progress = defaultProgress()) => transition(progress, event, "owner");
-	it("offers five bounded sections and a four-task activation path", () => {
-		expect(journeys.map((journey) => journey.id)).toEqual(["overlay", "appearance", "playlist", "website", "explore"]);
+	it("offers four bounded sections and a four-task activation path", () => {
+		expect(journeys.map((journey) => journey.id)).toEqual(["overlay", "appearance", "playlist", "explore"]);
 		expect(journeys[0].tasks).toHaveLength(4);
 		expect(defaultProgress().completed).toEqual([]);
 	});
@@ -47,7 +47,7 @@ describe("user tour progress", () => {
 	});
 	it("requires a successful visible style change", () => {
 		expect(apply({ type: "theme.saved", ownerId: "owner", id: "overlay-1", changed: false }).completed).toEqual([]);
-		expect(apply({ type: "theme.saved", ownerId: "owner", id: "overlay-1", changed: true }).completed).toContain("appearance.style");
+		expect(apply({ type: "theme.saved", ownerId: "owner", id: "overlay-1", changed: true }, { ...defaultProgress(), overlayId: "overlay-1" }).completed).toContain("appearance.style");
 	});
 	it("tracks playlist name, populated saved order, and the selected association", () => {
 		let next = apply({ type: "playlist.saved", ownerId: "owner", id: "playlist-1", named: true, count: 0 });
@@ -60,7 +60,7 @@ describe("user tour progress", () => {
 	it("starts, pauses, resumes and replays without changing resource identities", () => {
 		let next = apply({ type: "overlay.ready", ownerId: "owner", id: "overlay-1" });
 		next = apply({ type: "start", task: "overlay.name" }, next);
-		expect(next.active).toEqual({ task: "overlay.name", index: 0, paused: false });
+		expect(next.active).toMatchObject({ task: "overlay.name", index: 0, paused: false });
 		next = apply({ type: "pause" }, next);
 		expect(next.active?.paused).toBe(true);
 		next = apply({ type: "resume" }, next);
@@ -71,7 +71,7 @@ describe("user tour progress", () => {
 	});
 	it("finishes the active task only when its actual completion condition occurs", () => {
 		const next = apply({ type: "start", task: "overlay.name" });
-		expect(apply({ type: "overlay.saved", ownerId: "owner", id: "overlay-1", named: true, source: true }, next).active).toMatchObject({ done: true });
+		expect(apply({ type: "overlay.saved", ownerId: "owner", id: "overlay-1", named: true, source: true }, next).active).toMatchObject({ task: "overlay.source", paused: false });
 	});
 	it("routes tasks to existing resources and missing prerequisites to the dashboard", () => {
 		const next = { ...defaultProgress(), overlayId: "overlay-1", playlistId: "playlist-1" };

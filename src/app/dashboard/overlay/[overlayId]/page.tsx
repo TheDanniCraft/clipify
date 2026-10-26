@@ -77,6 +77,7 @@ export default function OverlaySettings() {
 	const { overlayId } = useParams() as { overlayId: string };
 
 	const [overlay, setOverlay] = useState<Overlay | null>(null);
+	const [overlayMissing, setOverlayMissing] = useState(false);
 	const [baseOverlay, setBaseOverlay] = useState<Overlay | null>(null);
 	const [baseUrl, setBaseUrl] = useState<string | null>(null);
 	const [user, setUser] = useState<AuthenticatedUser>();
@@ -436,7 +437,9 @@ export default function OverlaySettings() {
 		let active = true;
 		async function fetchOverlay() {
 			const fetchedOverlay = await getOverlay(overlayId);
-			if (!active || !fetchedOverlay) return;
+			if (!active) return;
+			setOverlayMissing(!fetchedOverlay);
+			if (!fetchedOverlay) return;
 
 			setOverlay(fetchedOverlay);
 			setBaseOverlay(fetchedOverlay);
@@ -531,6 +534,14 @@ export default function OverlaySettings() {
 			plan: user.plan,
 		});
 	}, [ownerPlan, overlay, plausible, user]);
+
+	if (overlayMissing && user) {
+		return (
+			<DashboardNavbar user={user} title='Overlay unavailable' tagline='This overlay was removed or is no longer available.'>
+				<p>Open the Dashboard using the Clipify logo to choose or create an overlay.</p>
+			</DashboardNavbar>
+		);
+	}
 
 	if (!overlayId || !overlay) {
 		return <FullscreenLoadingState message='Loading overlay' />;

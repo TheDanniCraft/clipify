@@ -1,3 +1,4 @@
+jest.mock("@actions/userTour", () => ({ getUserTourProgress: async () => ({ progress: { version: 2, completed: [], skipped: [], active: null, minimized: false }, importLegacy: false }) }));
 jest.mock("@components/user-tour/provider", () => ({
 	UserTourProvider: ({ children, accountId }: { children: React.ReactNode; accountId: string }) => (
 		<div data-testid='user-tour' data-account={accountId}>

@@ -11,7 +11,21 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onConfirm 
 		let shown = false;
 		let suspended = false;
 		let advanced = false;
-		const target = () => document.querySelector<HTMLElement>(`[data-tour="${step.target}"]`);
+		let missingTimer: ReturnType<typeof setTimeout> | undefined;
+		const preserveAria = (element: HTMLElement | null, action: () => void) => {
+			const values = ["aria-expanded", "aria-haspopup", "aria-controls"].map((name) => [name, element?.getAttribute(name)] as const);
+			action();
+			if (element)
+				for (const [name, value] of values) {
+					if (value == null) element.removeAttribute(name);
+					else element.setAttribute(name, value);
+				}
+		};
+		const target = () => {
+			if (step.target === "support-report") return document.querySelector("#sentry-feedback")?.shadowRoot?.querySelector<HTMLElement>(".widget__actor") ?? null;
+			if (step.target === "support-chat") return document.querySelector<HTMLElement>('[aria-label="Enable support chat"], .woot--bubble-holder');
+			return document.querySelector<HTMLElement>(`[data-tour="${step.target}"]`);
+		};
 		const spotlight = driver({
 			animate: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
 			overlayOpacity: 0.55,
@@ -38,13 +52,20 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onConfirm 
 				}
 				if (!suspended) {
 					suspended = true;
-					if (shown) spotlight.destroy();
+					if (shown) preserveAria(target(), () => spotlight.destroy());
 					shown = false;
 				}
 				return;
 			}
 			suspended = false;
 			const element = target();
+			if (step.reveals && document.querySelector(`[data-tour="${step.reveals}"]`)) {
+				if (!advanced) {
+					advanced = true;
+					onNext();
+				}
+				return;
+			}
 			if (step.action && element?.getAttribute("role") === "tab" && element.getAttribute("aria-selected") === "true") {
 				if (!advanced) {
 					advanced = true;
@@ -55,26 +76,33 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onConfirm 
 			if (shown || disposed || !element) return;
 			shown = true;
 			element.scrollIntoView?.({ block: "center", behavior: "instant" });
-			spotlight.highlight({
-				element,
-				disableActiveInteraction: element.dataset.tourReadonly === "true",
-				popover: {
-					title: step.title,
-					description: step.description,
-					showButtons: (step.next && !step.action) || onConfirm ? ["next", "close"] : ["close"],
-					nextBtnText: step.nextLabel ?? "Continue",
-					closeBtnLabel: "Pause guide",
-					onCloseClick: onPause,
-					onNextClick: onConfirm ?? onNext,
-					onPopoverRender: ({ wrapper, closeButton }) => {
-						wrapper.setAttribute("aria-label", step.title);
-						closeButton.setAttribute("aria-label", "Pause guide");
+			preserveAria(element, () =>
+				spotlight.highlight({
+					element,
+					disableActiveInteraction: element.dataset.tourReadonly === "true",
+					popover: {
+						title: step.title,
+						description: step.description,
+						showButtons: step.preserveFocus ? [] : (step.next && !step.action) || onConfirm ? ["next", "close"] : ["close"],
+						nextBtnText: step.nextLabel ?? "Continue",
+						closeBtnLabel: "Pause guide",
+						onCloseClick: onPause,
+						onNextClick: onConfirm ?? onNext,
+						onPopoverRender: ({ wrapper, closeButton }) => {
+							wrapper.setAttribute("aria-label", step.title);
+							closeButton.setAttribute("aria-label", "Pause guide");
+						},
 					},
-				},
-			});
+				}),
+			);
 		};
 		const click = (event: MouseEvent) => {
-			if (step.action && !advanced && target()?.getAttribute("role") !== "tab" && event.target instanceof Node && target()?.contains(event.target)) {
+			const control = target();
+			if (step.pauseOnInteract && control && event.composedPath().includes(control)) {
+				onPause();
+				return;
+			}
+			if (step.action && !step.reveals && !advanced && target()?.getAttribute("role") !== "tab" && event.target instanceof Node && target()?.contains(event.target)) {
 				advanced = true;
 				onNext();
 			}
@@ -95,7 +123,11 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onConfirm 
 
 		const observer = new MutationObserver(() => {
 			if (shown && !target()) {
-				onMissing();
+				if (step.destination) {
+					missingTimer ??= setTimeout(() => {
+						if (!disposed && !target()) onMissing();
+					}, 8000);
+				} else onMissing();
 				return;
 			}
 
@@ -115,8 +147,9 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onConfirm 
 			document.removeEventListener("click", click, true);
 			observer.disconnect();
 			window.clearTimeout(timeout);
-			spotlight.destroy();
+			clearTimeout(missingTimer);
+			preserveAria(target(), () => spotlight.destroy());
 		};
-	}, [step.target, step.title, step.description, step.next, step.action, step.allowDialog, step.nextLabel, onPause, onMissing, onNext, onConfirm]);
+	}, [step.target, step.title, step.description, step.next, step.action, step.allowDialog, step.preserveFocus, step.destination, step.reveals, step.pauseOnInteract, step.nextLabel, onPause, onMissing, onNext, onConfirm]);
 	return null;
 }

@@ -26,3 +26,12 @@ T013: affected tests, all feature browser examples, lint, formatting, types and 
 - [x] R003 Replace guide controls with HeroUI checkboxes/buttons/progress; remove application Save replacements.
 - [x] R004 Add website code-copy and optional gallery/tools/support introductions, consent handoff and locked-filter protection.
 - [x] R005 Verify affected tests, all 32 owning browser examples, visuals, lint/format/types/build and record draft review evidence.
+
+## Quiet checklist and account-persistence revision
+
+- [x] Q001 Inspect Usertour source, Userflow and comparable primary documentation; record decisions.
+- [x] Q002 Replace chips/cards/footer with a ring, single HeroUI accordion and skip popover.
+- [x] Q003 Persist validated account events in the existing content-state table with authenticated writes, row locking, retry and legacy migration.
+- [x] Q004 Replace guide-driven page changes with normal links, tabs, edit controls and menu actions; replay creation at Add Overlay.
+- [x] Q005 Add account, concurrency, navigation, native ARIA and focus regression coverage.
+- [x] Q006 Complete current affected tests, all 39 browser examples, visual review, lint/format/types/build and evidence update.

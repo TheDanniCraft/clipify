@@ -214,3 +214,54 @@ it("advances a tab step only when the real tab becomes selected", async () => {
 	});
 	expect(next).toHaveBeenCalledTimes(1);
 });
+it("preserves the application's expanded state when Driver annotates a control", () => {
+	highlight.mockImplementationOnce(({ element }) => {
+		element.setAttribute("aria-expanded", "true");
+		element.setAttribute("aria-haspopup", "dialog");
+	});
+	render(
+		<>
+			<button data-tour='control' aria-expanded='false' aria-haspopup='menu'>
+				Open menu
+			</button>
+			<Spotlight step={step} onPause={jest.fn()} onMissing={jest.fn()} onNext={jest.fn()} />
+		</>,
+	);
+	expect(document.querySelector('[data-tour="control"]')).toHaveAttribute("aria-expanded", "false");
+	expect(document.querySelector('[data-tour="control"]')).toHaveAttribute("aria-haspopup", "menu");
+});
+it("advances after a real menu reveals its next control", async () => {
+	const next = jest.fn();
+	const pointer = <Spotlight step={{ ...step, action: true, reveals: "menu-tools" }} onPause={jest.fn()} onMissing={jest.fn()} onNext={next} />;
+	const view = render(
+		<>
+			<button data-tour='control'>Open menu</button>
+			{pointer}
+		</>,
+	);
+	expect(next).not.toHaveBeenCalled();
+	view.rerender(
+		<>
+			<button data-tour='control'>Open menu</button>
+			<div role='menuitem' data-tour='menu-tools'>
+				Tools
+			</div>
+			{pointer}
+		</>,
+	);
+	await act(async () => {
+		await Promise.resolve();
+	});
+	expect(next).toHaveBeenCalledTimes(1);
+});
+it("lets support controls open their normal UI by pausing on the user's click", () => {
+	const pause = jest.fn();
+	render(
+		<>
+			<button data-tour='control'>Report a problem</button>
+			<Spotlight step={{ ...step, pauseOnInteract: true }} onPause={pause} onMissing={jest.fn()} onNext={jest.fn()} />
+		</>,
+	);
+	act(() => document.querySelector('[data-tour="control"]')!.dispatchEvent(new MouseEvent("click", { bubbles: true, composed: true })));
+	expect(pause).toHaveBeenCalledTimes(1);
+});

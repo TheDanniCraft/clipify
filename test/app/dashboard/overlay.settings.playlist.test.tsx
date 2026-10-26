@@ -474,6 +474,15 @@ describe("dashboard overlay settings playlist mode", () => {
 			fireEvent.change(input, { target: { value } });
 		});
 	}
+	it("shows recovery navigation instead of loading a deleted overlay forever", async () => {
+		getOverlay.mockResolvedValue(null);
+		const Page = (await import("@/app/dashboard/overlay/[overlayId]/page")).default;
+		await act(async () => {
+			render(<Page />);
+		});
+		expect(await screen.findByText("Open the Dashboard using the Clipify logo to choose or create an overlay.")).toBeVisible();
+		expect(screen.queryByText("Loading overlay")).not.toBeInTheDocument();
+	});
 	it("redirects an unauthenticated user to logout", async () => {
 		validateAuth.mockResolvedValue(null);
 		const Page = (await import("@/app/dashboard/overlay/[overlayId]/page")).default;

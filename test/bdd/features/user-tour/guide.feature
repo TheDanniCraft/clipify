@@ -191,3 +191,45 @@ Feature: Clipify guided onboarding
     Given an isolated authenticated Clipify guide account
     When the tools and support introductions are followed
     Then the introductions finish with consent choices unchanged
+
+  @US1 @FR-006 @SC-002 @BDD-TOUR-US1-033
+  Scenario: Keep account progress after browser data is cleared
+    Given an isolated authenticated Clipify guide account
+    When the first section is finished and browser data is cleared
+    Then the same account keeps its progress without reopening onboarding
+
+  @US1 @FR-001 @SC-003 @BDD-TOUR-US1-034
+  Scenario: Expand only one section at a time
+    Given an isolated authenticated Clipify guide account
+    When different checklist sections are expanded
+    Then only the last selected section remains expanded
+
+  @US1 @FR-002 @SC-001 @BDD-TOUR-US1-035
+  Scenario: Replay overlay creation from its real entry point
+    Given an isolated authenticated Clipify guide account
+    When completed overlay creation is replayed from the editor
+    Then Add Overlay is highlighted without opening or creating an overlay
+
+  @US1 @FR-006 @SC-002 @BDD-TOUR-US1-036
+  Scenario: Recognize an existing account without nagging
+    Given an isolated authenticated Clipify guide account
+    When an account with existing resources has no guide record
+    Then existing setup is recognized with the checklist minimized
+
+  @US1 @FR-002 @SC-001 @BDD-TOUR-US1-037
+  Scenario: Learn how to access an overlay from another page
+    Given an isolated authenticated Clipify guide account
+    When an overlay task is started from Tools
+    Then normal Dashboard navigation opens the overlay through its edit control
+
+  @US1 @FR-006 @SC-003 @BDD-TOUR-US1-038
+  Scenario: Confirm skipping an active task in a popover
+    Given an isolated authenticated Clipify guide account
+    When a running task's checkbox is opened and cancellation is retried
+    Then the task is skipped only after its popover confirmation
+
+  @US4 @FR-012 @SC-004 @BDD-TOUR-US4-039
+  Scenario: Keep the report widget usable from its introduction
+    Given an isolated authenticated Clipify guide account
+    When the report button is clicked during its introduction
+    Then the normal report form opens with the guide paused

@@ -10,9 +10,9 @@ it("starts creation at Add Overlay even when the dashboard discovered an existin
 	const created = apply(state, { type: "overlay.created", ownerId: "owner", id: "new" });
 	expect(stepsForTask("overlay.name", created)[created.active!.index].target).toBe("overlay-name");
 });
-it("keeps a completed-task handoff instead of silently ending the guide", () => {
+it("continues the next core task without a completion card", () => {
 	const state = apply({ ...defaultProgress(), overlayId: "overlay", active: { task: "overlay.name", index: 2, paused: false } }, { type: "overlay.saved", ownerId: "owner", id: "overlay", named: true, source: true });
-	expect(state.active).toMatchObject({ task: "overlay.name", done: true });
+	expect(state.active).toMatchObject({ task: "overlay.source", paused: false });
 	expect(state.completed).toEqual(["overlay.name"]);
 });
 it("records a manual skip separately, pauses its spotlight and allows undo", () => {
@@ -25,10 +25,10 @@ it("records a manual skip separately, pauses its spotlight and allows undo", () 
 	expect(apply(skipped, { type: "task.restore", task: "overlay.source" }).skipped).toEqual([]);
 });
 it("teaches the actual style button before arriving at Theme Studio", () => {
-	const state = apply({ ...defaultProgress(), overlayId: "overlay" }, { type: "start", task: "appearance.style" });
+	const state = apply({ ...defaultProgress(), overlayId: "overlay" }, { type: "start", task: "appearance.style", location: "overlay" });
 	expect(routeForTask("appearance.style", state)).toBe("/dashboard/overlay/overlay");
 	expect(stepsForTask("appearance.style", state)[0].target).toBe("overlay-customize");
-	expect(routeForTask("appearance.style", apply(state, { type: "next" }))).toBe("/dashboard/overlay/overlay/theme");
+	expect(routeForTask("appearance.style", apply(state, { type: "location", location: "theme" }))).toBe("/dashboard/overlay/overlay/theme");
 });
 it("highlights filters and the copy action, with setup instructions as their own step", () => {
 	const state = { ...defaultProgress(), overlayId: "overlay" };
@@ -44,10 +44,10 @@ it("keeps unchanged appearance as skipped, without claiming a saved customizatio
 	const next = apply(state, { type: "next" });
 	expect(next.completed).not.toContain("appearance.style");
 	expect(next.skipped).toContain("appearance.style");
-	expect(next.active?.done).toBe(true);
+	expect(next.active).toBeNull();
 });
 it("does not let a foreign website copy advance the active instruction", () => {
-	const state = { ...defaultProgress(), active: { task: "website.embed" as const, index: 1, paused: false } };
+	const state = { ...defaultProgress(), active: { task: "explore.tools" as const, index: 1, paused: false } };
 	expect(apply(state, { type: "website.copied", ownerId: "other", id: "foreign" })).toEqual(state);
 	expect(apply(state, { type: "website.copied", ownerId: "owner", id: "owned" }).active?.index).toBe(2);
 });

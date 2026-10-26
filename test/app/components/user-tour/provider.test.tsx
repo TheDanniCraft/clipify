@@ -1,15 +1,35 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { UserTourProvider, useUserTour, PreviewTourCheckpoint } from "@components/user-tour/provider";
-import { defaultProgress, storageKey } from "@lib/userTour";
+import { defaultProgress, type GuideProgress } from "@lib/userTour";
+const save = jest.fn();
+jest.mock("@actions/userTour", () => ({ saveUserTourEvent: (...args: unknown[]) => save(...args) }));
 jest.mock("@heroui/react", () => {
 	const base = jest.requireActual("../../../__mocks__/heroui-react.cjs");
-	const Checkbox = Object.assign(({ isSelected, onChange, "aria-label": label }: any) => <input type='checkbox' aria-label={label} checked={isSelected} onChange={onChange} />, { Content: base.Checkbox.Content, Control: base.Checkbox.Control, Indicator: base.Checkbox.Indicator });
-	return new Proxy({ Checkbox }, { get: (target, key) => (key === "Checkbox" ? target.Checkbox : base[key]) });
+	const Checkbox = Object.assign(({ isSelected, isIndeterminate, onChange, "aria-label": label }: any) => <input type='checkbox' aria-label={label} aria-checked={isIndeterminate ? "mixed" : isSelected} checked={Boolean(isSelected)} onChange={onChange} />, { Content: base.Checkbox.Content, Control: base.Checkbox.Control, Indicator: base.Checkbox.Indicator });
+	const Open = React.createContext(false);
+	const Popover = Object.assign(({ isOpen, children }: any) => <Open.Provider value={isOpen}>{children}</Open.Provider>, {
+		Content: ({ children }: any) => (React.useContext(Open) ? <div>{children}</div> : null),
+		Dialog: ({ children, ...props }: any) => (
+			<div role='dialog' data-slot='popover-dialog' {...props}>
+				{children}
+			</div>
+		),
+		Heading: base.Label,
+	});
+	const Circle = Object.assign(
+		({ children, value, "aria-label": label }: any) => (
+			<div role='progressbar' aria-label={label} aria-valuenow={value}>
+				{children}
+			</div>
+		),
+		{ Track: base.ProgressCircle.Track, TrackCircle: base.ProgressCircle.TrackCircle, FillCircle: base.ProgressCircle.FillCircle },
+	);
+	return new Proxy({ Checkbox, Popover, ProgressCircle: Circle }, { get: (target: any, key) => (key in target ? target[key] : base[key]) });
 });
 let currentPath = "/dashboard";
-const push = jest.fn();
-const track = jest.fn();
+const push = jest.fn(),
+	track = jest.fn();
 jest.mock("next/navigation", () => ({ usePathname: () => currentPath, useRouter: () => ({ push }) }));
 jest.mock("next-plausible", () => ({ usePlausible: () => track }));
 jest.mock("@components/user-tour/spotlight", () => ({
@@ -31,96 +51,122 @@ function Harness() {
 		</>
 	);
 }
-const mount = (accountId = "owner") =>
+const mount = (initialProgress = defaultProgress(), accountId = "owner") =>
 	render(
-		<UserTourProvider accountId={accountId}>
+		<UserTourProvider accountId={accountId} initialProgress={initialProgress}>
 			<Harness />
 		</UserTourProvider>,
 	);
 beforeEach(() => {
-	localStorage.clear();
-	currentPath = "/dashboard";
 	jest.clearAllMocks();
+	currentPath = "/dashboard";
+	localStorage.clear();
+	save.mockImplementation(async (accountId: string) => ({ ok: true, accountId }));
 });
-it("opens the checklist by default, minimizes and remembers independent successful actions", async () => {
+it("opens a first-use checklist with a ring and four concise sections", () => {
 	mount();
-	expect(screen.getByText("Get your first overlay running")).toBeVisible();
-	expect(screen.getByText("Make your overlay yours")).toBeVisible();
-	expect(screen.getByText("Build a playlist")).toBeVisible();
-	fireEvent.click(screen.getByText("Save successfully"));
-	await waitFor(() => expect(JSON.parse(localStorage.getItem(storageKey("owner"))!).completed).toEqual(["overlay.name", "overlay.source"]));
-	fireEvent.click(screen.getByRole("button", { name: "Minimize guide" }));
-	expect(screen.getByRole("button", { name: /Get started.*2\/4/ })).toBeVisible();
+	expect(screen.getByRole("region", { name: "Your Clipify guide" })).toBeVisible();
+	expect(screen.getByRole("progressbar", { name: "Getting started progress" })).toHaveAttribute("aria-valuenow", "0");
+	expect(screen.getByText("Explore Clipify")).toBeVisible();
+	expect(screen.queryByText(/Progress is saved|Need a hand|click to replay|click to continue/)).not.toBeInTheDocument();
 });
-it("starts only on request, pauses and exposes an in-progress task without claiming completion", async () => {
-	mount();
-	expect(screen.queryByText("Create your first overlay")).not.toBeInTheDocument();
-	fireEvent.click(screen.getByRole("button", { name: "Create and name your overlay" }));
-	expect(await screen.findByText("Create your first overlay")).toBeVisible();
-	fireEvent.click(screen.getByText("Pause spotlight"));
-	expect(screen.getByText("In progress · click to continue")).toBeVisible();
-	expect(JSON.parse(localStorage.getItem(storageKey("owner"))!).completed).toEqual([]);
-});
-it("loads saved progress with paused resume and keeps other accounts separate", () => {
-	localStorage.setItem(storageKey("owner"), JSON.stringify({ ...defaultProgress(), completed: ["overlay.name"], active: { task: "overlay.preview", index: 0, paused: false }, overlayId: "overlay-1", minimized: false }));
-	const view = mount();
-	expect(screen.getByText("In progress · click to continue")).toBeVisible();
+it("uses the server snapshot after browser storage is cleared", () => {
+	const state: GuideProgress = { ...defaultProgress(), completed: ["overlay.name", "overlay.source"], minimized: true };
+	const view = mount(state);
 	view.unmount();
-	mount("other");
-	expect(screen.getByRole("button", { name: /Get started.*0\/4/ })).toBeVisible();
-	expect(screen.queryByText("In progress · click to continue")).not.toBeInTheDocument();
-});
-it("keeps memory progress usable when storage is denied", () => {
-	const read = jest.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
-		throw new Error("denied");
-	});
-	const write = jest.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
-		throw new Error("denied");
-	});
-	mount();
-	fireEvent.click(screen.getByText("Save successfully"));
+	localStorage.clear();
+	mount(state);
 	expect(screen.getByRole("button", { name: /Get started.*2\/4/ })).toBeVisible();
-	read.mockRestore();
-	write.mockRestore();
+	expect(screen.queryByRole("region", { name: "Your Clipify guide" })).not.toBeInTheDocument();
 });
-it("emits only safe identifiers for starts and completions", async () => {
+it("starts replay at the navigation control without calling router.push", async () => {
+	currentPath = "/dashboard/overlay/overlay-1";
+	mount({ ...defaultProgress(), overlayId: "overlay-1", completed: ["overlay.name"] });
+	fireEvent.click(screen.getByRole("button", { name: /Get started/ }));
+	fireEvent.click(screen.getByRole("button", { name: "Create and name your overlay" }));
+	expect(await screen.findByText("Open your Dashboard")).toBeVisible();
+	expect(push).not.toHaveBeenCalled();
+});
+it("persists successful owned events through an ordered account-scoped action queue", async () => {
+	mount();
+	fireEvent.click(screen.getByText("Load existing overlay"));
+	fireEvent.click(screen.getByText("Save successfully"));
+	await waitFor(() => expect(save).toHaveBeenCalledWith("owner", expect.objectContaining({ type: "overlay.saved" })));
+	expect(save.mock.calls[0][1].type).toBe("overlay.ready");
+	expect(save.mock.calls[1][1].type).toBe("overlay.saved");
+});
+it("opens a popover for skipping and does not skip on cancel or a second request", async () => {
+	mount();
+	const checkbox = screen.getByRole("checkbox", { name: "Mark Choose your clips as done" });
+	fireEvent.click(checkbox);
+	expect(screen.getByRole("dialog", { name: "Skip Choose your clips?" })).toBeVisible();
+	fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+	expect(checkbox).not.toBeChecked();
+	fireEvent.click(checkbox);
+	expect(checkbox).not.toBeChecked();
+	fireEvent.click(screen.getByRole("button", { name: "Skip task" }));
+	await waitFor(() => expect(save).toHaveBeenCalledWith("owner", { type: "task.skip", task: "overlay.source" }));
+	expect(checkbox).toBeChecked();
+	fireEvent.click(checkbox);
+	await waitFor(() => expect(save).toHaveBeenCalledWith("owner", { type: "task.restore", task: "overlay.source" }));
+});
+it("represents a paused task with an indeterminate checkbox instead of status chips", async () => {
+	mount({ ...defaultProgress(), overlayId: "overlay-1", active: { task: "overlay.source", index: 1, paused: true, navigation: [] } });
+	expect(screen.getByRole("checkbox", { name: "Mark Choose your clips as done" })).toBePartiallyChecked();
+	expect(screen.queryByText(/In progress|Choose another/)).not.toBeInTheDocument();
+	fireEvent.click(screen.getByRole("button", { name: "Choose your clips" }));
+	expect(push).not.toHaveBeenCalled();
+	await waitFor(() => expect(save).toHaveBeenCalledWith("owner", { type: "resume", location: "dashboard" }));
+});
+it("continues from a saved name into clip selection without a completion card", async () => {
+	currentPath = "/dashboard/overlay/overlay-1";
+	mount({ ...defaultProgress(), overlayId: "overlay-1", active: { task: "overlay.name", index: 2, paused: false, navigation: [] } });
+	fireEvent.click(screen.getByText("Save successfully"));
+	expect(await screen.findByText("Choose your clips")).toBeVisible();
+	expect(screen.queryByText(/done\.|Continue:/)).not.toBeInTheDocument();
+});
+it("keeps save failures visible and allows retry without losing queued events", async () => {
+	save.mockRejectedValueOnce(new Error("offline"));
 	mount();
 	fireEvent.click(screen.getByText("Save successfully"));
-	await waitFor(() => expect(track).toHaveBeenCalledWith("guide_task_completed", { props: { journey: "overlay", task: "overlay.name" } }));
-	expect(JSON.stringify(track.mock.calls)).not.toContain("overlay-1");
-	expect(JSON.stringify(track.mock.calls)).not.toContain("owner");
+	expect(await screen.findByText("Could not save progress.")).toBeVisible();
+	fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+	await waitFor(() => expect(screen.queryByText("Could not save progress.")).not.toBeInTheDocument());
+	expect(save).toHaveBeenCalledTimes(2);
 });
-
-it("records a pause without including resource identifiers", async () => {
-	mount();
-	fireEvent.click(screen.getByRole("button", { name: "Create and name your overlay" }));
-	fireEvent.click(await screen.findByText("Pause spotlight"));
-	expect(track).toHaveBeenCalledWith("guide_paused", { props: { journey: "overlay", task: "overlay.name" } });
+it("keeps another account's snapshot isolated", () => {
+	const view = mount({ ...defaultProgress(), completed: ["overlay.name"], minimized: true });
+	view.unmount();
+	mount(defaultProgress(), "other");
+	expect(screen.getByRole("button", { name: /Get started.*0\/4/ })).toBeVisible();
 });
-
-it("keeps creation at Add Overlay when an existing resource is discovered", async () => {
-	mount();
-	fireEvent.click(screen.getByRole("button", { name: "Create and name your overlay" }));
-	fireEvent.click(screen.getByText("Load existing overlay"));
-	expect(push).not.toHaveBeenCalled();
-	expect(await screen.findByText("Create your first overlay")).toBeVisible();
-});
-
-it("explains unavailable Theme Studio without starting a tour or paywall", () => {
+it("honors unavailable Theme Studio without navigating or forcing an upgrade", () => {
 	render(
 		<UserTourProvider accountId='owner' appearanceAvailable={false}>
 			<Harness />
 		</UserTourProvider>,
 	);
-	fireEvent.click(screen.getByText("Make your overlay yours"));
-	fireEvent.click(screen.getByRole("button", { name: "Customize and save your look" }));
-	expect(screen.getByRole("status")).toHaveTextContent("Theme Studio requires Pro");
+	fireEvent.click(screen.getByRole("button", { name: "Customize your look" }));
+	expect(screen.getByRole("status")).toHaveTextContent("Theme Studio requires Pro.");
 	expect(push).not.toHaveBeenCalled();
-	expect(track).not.toHaveBeenCalledWith("guide_started", expect.anything());
 });
-
-it("completes a visible preview when matching clips finish loading", async () => {
-	function PreviewHarness() {
+it("yields to consent preferences and leaves the pointer paused", async () => {
+	mount();
+	fireEvent.click(screen.getByRole("button", { name: "Create and name your overlay" }));
+	await screen.findByText("Open Overlays");
+	fireEvent(window, new CustomEvent("clipify:consent-preferences-visibility", { detail: { visible: true } }));
+	expect(screen.queryByRole("complementary", { name: "Clipify guide" })).not.toBeInTheDocument();
+	fireEvent(window, new CustomEvent("clipify:consent-preferences-visibility", { detail: { visible: false } }));
+	expect(screen.getByRole("checkbox", { name: "Mark Create and name your overlay as done" })).toBePartiallyChecked();
+});
+it("emits only safe task identifiers for successful actions", async () => {
+	mount();
+	fireEvent.click(screen.getByText("Save successfully"));
+	await waitFor(() => expect(track).toHaveBeenCalledWith("guide_task_completed", { props: { journey: "overlay", task: "overlay.name" } }));
+	expect(JSON.stringify(track.mock.calls)).not.toContain("overlay-1");
+});
+it("recognizes a nonempty preview after asynchronous loading", async () => {
+	function Preview() {
 		const { report } = useUserTour();
 		const [count, setCount] = React.useState(0);
 		return (
@@ -131,7 +177,7 @@ it("completes a visible preview when matching clips finish loading", async () =>
 						setCount(2);
 					}}
 				>
-					Finish loading clips
+					Load clips
 				</button>
 				<PreviewTourCheckpoint ownerId='owner' overlayId='overlay-1' count={count} isOpen />
 			</>
@@ -139,69 +185,23 @@ it("completes a visible preview when matching clips finish loading", async () =>
 	}
 	render(
 		<UserTourProvider accountId='owner'>
-			<PreviewHarness />
+			<Preview />
 		</UserTourProvider>,
 	);
-	fireEvent.click(screen.getByText("Finish loading clips"));
-	await waitFor(() => expect(JSON.parse(localStorage.getItem(storageKey("owner"))!).completed).toContain("overlay.preview"));
+	fireEvent.click(screen.getByText("Load clips"));
+	await waitFor(() => expect(save).toHaveBeenCalledWith("owner", expect.objectContaining({ type: "overlay.previewed", count: 2 })));
 });
 
-it("offers an explicit way to choose a replacement for a missing overlay", async () => {
-	localStorage.setItem(storageKey("owner"), JSON.stringify({ ...defaultProgress(), overlayId: "deleted", active: { task: "overlay.source", index: 1, paused: true }, minimized: false }));
-	mount();
-	fireEvent.click(screen.getByRole("button", { name: "Choose another overlay" }));
-	await waitFor(() => expect(JSON.parse(localStorage.getItem(storageKey("owner"))!).overlayId).toBeNull());
-	expect(push).toHaveBeenCalledWith("/dashboard");
-});
-
-it("confirms a checkbox skip, distinguishes it from completion and supports undo", async () => {
-	mount();
-	const checkbox = screen.getByRole("checkbox", { name: "Mark Choose your clips as done" });
-	fireEvent.click(checkbox);
-	expect(screen.getByRole("group", { name: "Skip this task?" })).toBeVisible();
-	expect(JSON.parse(localStorage.getItem(storageKey("owner"))!).skipped).toEqual([]);
-	fireEvent.click(screen.getByRole("button", { name: "Skip task" }));
-	await waitFor(() => expect(JSON.parse(localStorage.getItem(storageKey("owner"))!).skipped).toEqual(["overlay.source"]));
-	expect(JSON.parse(localStorage.getItem(storageKey("owner"))!).completed).toEqual([]);
-	fireEvent.click(checkbox);
-	await waitFor(() => expect(JSON.parse(localStorage.getItem(storageKey("owner"))!).skipped).toEqual([]));
-});
-it("offers a next task after saving rather than dropping the user out of the flow", async () => {
-	mount();
-	fireEvent.click(screen.getByRole("button", { name: "Create and name your overlay" }));
-	fireEvent.click(screen.getByText("Save successfully"));
-	expect(await screen.findByRole("button", { name: "Continue: Choose your clips" })).toBeVisible();
-});
-it("resumes by clicking the in-progress task without resetting its step", async () => {
-	localStorage.setItem(storageKey("owner"), JSON.stringify({ ...defaultProgress(), overlayId: "overlay-1", active: { task: "overlay.source", index: 1, paused: true }, minimized: false }));
-	mount();
-	fireEvent.click(screen.getByRole("button", { name: "Choose your clips" }));
-	await waitFor(() => expect(JSON.parse(localStorage.getItem(storageKey("owner"))!).active).toMatchObject({ index: 1, paused: false }));
-});
-it("yields to consent preferences and leaves the guide paused afterwards", async () => {
-	mount();
-	fireEvent.click(screen.getByRole("button", { name: "Create and name your overlay" }));
-	await screen.findByText("Create your first overlay");
-	fireEvent(window, new CustomEvent("clipify:consent-preferences-visibility", { detail: { visible: true } }));
-	expect(screen.queryByRole("complementary", { name: "Clipify guide" })).not.toBeInTheDocument();
-	fireEvent(window, new CustomEvent("clipify:consent-preferences-visibility", { detail: { visible: false } }));
-	expect(await screen.findByText("In progress · click to continue")).toBeVisible();
-	expect(JSON.parse(localStorage.getItem(storageKey("owner"))!).active.paused).toBe(true);
-});
-
-it("keeps a default checklist from covering normal controls on direct editor entry", () => {
+it("does not restore launcher focus over a newly opened skip popover", () => {
+	jest.useFakeTimers();
 	currentPath = "/dashboard/overlay/overlay-1";
-	mount();
-	expect(screen.queryByRole("region", { name: "Your Clipify guide" })).not.toBeInTheDocument();
-	expect(screen.getByRole("button", { name: /Get started/ })).toBeVisible();
-});
-it("minimizes the checklist when entering an editor without an active guide", async () => {
-	const view = mount();
-	currentPath = "/dashboard/overlay/overlay-1";
-	view.rerender(
-		<UserTourProvider accountId='owner'>
-			<Harness />
-		</UserTourProvider>,
-	);
-	await waitFor(() => expect(screen.queryByRole("region", { name: "Your Clipify guide" })).not.toBeInTheDocument());
+	mount({ ...defaultProgress(), overlayId: "overlay-1", minimized: false, active: { task: "overlay.source", index: 0, paused: false, navigation: [] } });
+	const launcher = screen.getByRole("button", { name: /Get started/ });
+	const focus = jest.spyOn(launcher, "focus");
+	fireEvent.click(screen.getByText("Pause spotlight"));
+	fireEvent.click(screen.getByRole("checkbox", { name: "Mark Choose your clips as done" }));
+	act(() => jest.runOnlyPendingTimers());
+	expect(focus).not.toHaveBeenCalled();
+	focus.mockRestore();
+	jest.useRealTimers();
 });

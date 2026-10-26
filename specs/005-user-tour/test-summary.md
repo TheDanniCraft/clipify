@@ -1,21 +1,17 @@
-# Test Summary: User tours UX revision
+# Test summary: quiet account-backed onboarding
 
-The revision follows the latest user feedback: first-use checklist visibility, corner progress launcher, HeroUI controls, manual skip/undo, direct task resume, completed-task handoffs and unchanged domain Save controls. Real controls now own style navigation; source and filters are separate steps; the copy target is the actual button. Optional public website installation and gallery/tools/support introductions extend the catalog to five sections. 24/7 stays deferred.
+Current scope follows the latest user requirements: HeroUI ring, original support-widget positions, one accordion section, portal skip confirmation, indeterminate active checkboxes, no status clutter/completion cards, replay from Add Overlay and real navigation through app controls. Website/tools are merged into Explore. Account progress lives in PostgreSQL, with existing-user recognition and a one-time legacy import.
 
 ## Current validation
 
-- Affected suites: 17 suites / 448 tests passed, without coverage.
-- Final browser sweep: all 32 scenarios passed in one complete run (5.5 minutes, two workers), with a separate disposable database and server for each case. This supersedes the earlier 27/32 run.
-- Visual review: desktop and 360×640 mobile; visible HeroUI checkboxes, corner progress launcher, separate feedback/chat targets, scrollable panel and real action anchors.
-- Full lint: zero errors, five existing warnings. Feature-owned formatting and diff checks pass.
-- TypeScript, E2E build and standalone production build pass. Build-time fixture database refusal logs do not indicate a production connection.
+The current affected run passed 20/20 suites and 470/470 tests, including five disposable PostgreSQL integration cases. The final ring slice passed its entire provider suite (14 tests); deleted-overlay recovery passed the entire overlay settings suite (98 tests, including one new regression).
 
-Current browser output is in test-results/browser and playwright-report. The previous complete revised sweep is preserved under test-results/user-tour/revision-sweep. No full coverage result is inferred from browser completion.
+The 39-example browser sweep passed 32 initially. After checkpoint and binding fixes, a targeted ten-example run passed nine, covering all initial failures except deleted-editor recovery. That last case exposed an existing infinite loader; the recovery state retains normal Dashboard navigation. The final recovery and explicit ring-size browser checks both passed (2/2). All 39 unique examples have green evidence across the full run and targeted reruns; this is not a single clean 39/39 sweep. Across these runs, each example retains one browser execution owner.
+
+Changed TypeScript lint is clean. Full lint has five existing unrelated warnings. Standalone production build passed after the checkpoint fix. Browser production build and type checking passed for the final presentation/recovery slice. Desktop visual review confirms the 36px ring and original Sentry placement. Earlier 448-test/32-example evidence belongs to the previous candidate.
 
 ## Limits and merge requirements
 
-Progress and skips are per account in this browser. OBS and website installation are instructional/self-reported; copying alone does not verify installation. No schema or generated migrations were changed. Existing plan permissions and consent choices remain authoritative.
+External OBS/website setup is instructional and self-reported. No schema or generated migrations changed; the existing account content-state table stores the guide. Server write failure keeps ordered retryable events and optimistic session state. Complete account persistence is verified after acknowledged writes.
 
-Keep the PR draft until the required complete coverage/Test gate passes and the existing dependency advisories are resolved or explicitly accepted. The baseline audit found the same three high advisories in the original lockfile; this revision changes no dependencies. No risk exception or release approval is claimed.
-
-See [traceability](test-traceability.md), [cycle log](tdd/cycle-log.md) and [defects](defect-log.md).
+Keep the PR draft pending the complete merge coverage/Test and dependency-security gates. The baseline audit reproduces the original three high advisories in follow-redirects and transitive zod. No dependency changes, accepted risk exception or release approval is claimed for this revision.

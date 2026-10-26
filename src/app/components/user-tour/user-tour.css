@@ -63,10 +63,6 @@
 	visibility: hidden;
 }
 
-/* Reserve the screen corner for the guide; feedback sits in the same dock above it. */
-.clipify-guide-mounted #sentry-feedback {
-	--actor-inset: auto 0 calc(var(--clipify-guide-bottom, 16px) + 64px) auto;
-}
 /* Consent always owns interaction until the user has made their choice. */
 .driver-active:has(#consent-banner-title) .driver-overlay,
 .driver-active:has(#consent-banner-title) .clipify-tour-popover {
@@ -79,4 +75,13 @@
 .driver-active [data-tour-readonly="true"],
 .driver-active [data-tour-readonly="true"] * {
 	pointer-events: none !important;
+}
+
+/* Native menu items and support widgets retain their normal hit targets. */
+.driver-active [data-slot="dropdown-popover"],
+.driver-active [data-slot="dropdown-popover"] *,
+.driver-active #sentry-feedback,
+.driver-active .woot--bubble-holder,
+.driver-active .woot--bubble-holder * {
+	pointer-events: auto;
 }

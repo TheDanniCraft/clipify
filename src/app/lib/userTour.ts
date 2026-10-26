@@ -1,7 +1,6 @@
 export const tourModalSelector = '[data-slot="modal-dialog"], dialog[open], [role="dialog"][aria-modal="true"]:not(.driver-popover):not([data-slot$="-popover"])';
-export const tourPopoverSelector = '[data-slot="select-popover"], [data-slot="color-picker-popover"], [data-slot="popover-dialog"]';
+export const tourPopoverSelector = '[data-slot="select-popover"], [data-slot="color-picker-popover"], [data-slot="popover-dialog"], [data-slot="dropdown-popover"]';
 
-/** Instructional state only: this module never grants access or mutates resources. */
 export const journeys = [
 	{
 		id: "overlay",
@@ -14,249 +13,362 @@ export const journeys = [
 			{ id: "overlay.setup", title: "Add it to OBS or Streamlabs" },
 		],
 	},
-	{ id: "appearance", title: "Make your overlay yours", optional: true, tasks: [{ id: "appearance.style", title: "Customize and save your look" }] },
+	{ id: "appearance", title: "Make your overlay yours", optional: true, tasks: [{ id: "appearance.style", title: "Customize your look" }] },
 	{
 		id: "playlist",
 		title: "Build a playlist",
 		optional: true,
 		tasks: [
 			{ id: "playlist.name", title: "Create and name a playlist" },
-			{ id: "playlist.clips", title: "Add, arrange and save clips" },
+			{ id: "playlist.clips", title: "Add and arrange clips" },
 			{ id: "playlist.use", title: "Use your playlist in an overlay" },
 		],
 	},
-	{ id: "website", title: "Bring Clipify to your website", optional: true, tasks: [{ id: "website.embed", title: "Install a Clip Player on your website" }] },
 	{
 		id: "explore",
 		title: "Explore Clipify",
 		optional: true,
 		tasks: [
 			{ id: "explore.galleries", title: "Discover clip galleries" },
-			{ id: "explore.tools", title: "Explore website tools" },
+			{ id: "explore.tools", title: "Add Clipify to your website" },
 			{ id: "explore.support", title: "Find help and report a problem" },
 		],
 	},
 ] as const;
 export type TaskId = (typeof journeys)[number]["tasks"][number]["id"];
-const tasks = new Set<string>(journeys.flatMap((journey) => journey.tasks.map((task) => task.id)));
-export const isTaskId = (value: unknown): value is TaskId => typeof value === "string" && tasks.has(value);
+const taskIds = new Set<string>(journeys.flatMap((journey) => journey.tasks.map((task) => task.id)));
+export const isTaskId = (value: unknown): value is TaskId => typeof value === "string" && taskIds.has(value);
 const validId = (value: unknown): value is string => typeof value === "string" && /^[a-zA-Z0-9_-]{1,128}$/.test(value);
+export type GuideLocation = "dashboard" | "overlay" | "theme" | "playlist" | "tools" | "other";
+export type NavigationTarget = "home" | "overlays" | "overlay" | "playlists" | "playlist" | "profile" | "tools";
 export type GuideProgress = {
-	version: 1;
+	version: 2;
 	completed: TaskId[];
 	skipped: TaskId[];
 	overlayId: string | null;
 	playlistId: string | null;
 	copiedOverlayId: string | null;
-	active: { task: TaskId; index: number; paused: boolean; done?: boolean } | null;
+	active: { task: TaskId; index: number; paused: boolean; navigation?: NavigationTarget[]; navigationTotal?: number; done?: boolean } | null;
 	minimized: boolean;
 };
-export const defaultProgress = (): GuideProgress => ({ version: 1, completed: [], skipped: [], overlayId: null, playlistId: null, copiedOverlayId: null, active: null, minimized: false });
+export const defaultProgress = (): GuideProgress => ({ version: 2, completed: [], skipped: [], overlayId: null, playlistId: null, copiedOverlayId: null, active: null, minimized: false });
+/** Legacy browser cache, read once when importing an account's old guide progress. */
 export const storageKey = (accountId: string) => `clipify:user-tour:v1:${accountId}`;
-export function parseProgress(raw: string | null): GuideProgress {
+export const guideContentKey = "clipify-user-tour:v2";
+const navigationIds = new Set<string>(["home", "overlays", "overlay", "playlists", "playlist", "profile", "tools"]);
+const locations = new Set<string>(["dashboard", "overlay", "theme", "playlist", "tools", "other"]);
+const migrateTask = (id: unknown) => (id === "website.embed" ? "explore.tools" : id);
+export function parseProgress(raw: string | null, restorePaused = true): GuideProgress {
 	try {
 		const data = JSON.parse(raw ?? "null");
-		if (!data || Array.isArray(data) || data.version !== 1 || !Array.isArray(data.completed)) return defaultProgress();
-		const progress: GuideProgress = { ...defaultProgress(), completed: [...new Set<TaskId>(data.completed.filter(isTaskId))], skipped: Array.isArray(data.skipped) ? [...new Set<TaskId>(data.skipped.filter(isTaskId))].filter((task) => !data.completed.includes(task)) : [], overlayId: validId(data.overlayId) ? data.overlayId : null, playlistId: validId(data.playlistId) ? data.playlistId : null, minimized: data.minimized !== false };
+		if (!data || Array.isArray(data) || ![1, 2].includes(data.version) || !Array.isArray(data.completed)) return defaultProgress();
+		const completed = [...new Set<TaskId>(data.completed.map(migrateTask).filter(isTaskId))];
+		const progress: GuideProgress = { ...defaultProgress(), completed, skipped: Array.isArray(data.skipped) ? [...new Set<TaskId>(data.skipped.map(migrateTask).filter(isTaskId))].filter((id) => !completed.includes(id)) : [], overlayId: validId(data.overlayId) ? data.overlayId : null, playlistId: validId(data.playlistId) ? data.playlistId : null, minimized: data.minimized !== false };
 		if (validId(data.copiedOverlayId) && data.copiedOverlayId === progress.overlayId) progress.copiedOverlayId = data.copiedOverlayId;
-		if (data.active && isTaskId(data.active.task) && Number.isInteger(data.active.index) && data.active.index >= 0 && data.active.index < stepsForTask(data.active.task, progress).length) progress.active = { task: data.active.task, index: data.active.index, paused: true, ...(data.active.done === true ? { done: true } : {}) };
+		const active = data.active;
+		if (data.version === 2 && active && isTaskId(active.task) && Number.isInteger(active.index) && active.index >= 0 && active.index < stepsForTask(active.task, progress).length) {
+			const navigation: NavigationTarget[] = Array.isArray(active.navigation) ? active.navigation.filter((id: unknown): id is NavigationTarget => typeof id === "string" && navigationIds.has(id)).slice(0, 5) : [];
+			progress.active = { task: active.task, index: active.index, paused: restorePaused || active.paused !== false, navigation, navigationTotal: Math.max(navigation.length, Math.min(5, Number.isInteger(active.navigationTotal) ? active.navigationTotal : navigation.length)) };
+		}
 		return progress;
 	} catch {
 		return defaultProgress();
 	}
 }
-
+export function guideLocation(pathname: string): GuideLocation {
+	if (pathname === "/dashboard") return "dashboard";
+	if (/^\/dashboard\/overlay\/[a-zA-Z0-9_-]+\/theme$/.test(pathname)) return "theme";
+	if (/^\/dashboard\/overlay\/[a-zA-Z0-9_-]+$/.test(pathname)) return "overlay";
+	if (/^\/dashboard\/playlist\/[a-zA-Z0-9_-]+$/.test(pathname)) return "playlist";
+	return pathname === "/dashboard/tools" ? "tools" : "other";
+}
+export function navigationForTask(task: TaskId, location: GuideLocation, progress: GuideProgress): NavigationTarget[] {
+	if (task === "explore.support") return [];
+	if (task === "explore.tools") return location === "tools" ? [] : ["profile", "tools"];
+	const home: NavigationTarget[] = location === "dashboard" ? [] : ["home"];
+	if (task === "explore.galleries") return home;
+	if (task === "playlist.name") return [...home, "playlists"];
+	if (task === "playlist.clips") return location === "playlist" && progress.playlistId ? [] : [...home, "playlists", ...(progress.playlistId ? ["playlist" as const] : [])];
+	if (task === "playlist.use" && !progress.playlistId) return [...home, "playlists"];
+	if (task === "overlay.name") return [...home, "overlays"];
+	if (location === "overlay" && progress.overlayId) return [];
+	return [...home, "overlays", ...(progress.overlayId ? ["overlay" as const] : [])];
+}
+export type GuideStep = { target: string; title: string; description: string; next?: boolean; action?: boolean; finish?: boolean; nextLabel?: string; skipOnFinish?: boolean; allowDialog?: boolean; destination?: GuideLocation; preserveFocus?: boolean; reveals?: string; pauseOnInteract?: boolean };
+const navigationSteps: Record<NavigationTarget, GuideStep> = {
+	home: { target: "dashboard-home", title: "Open your Dashboard", description: "Click the Clipify logo to find your overlays and playlists.", destination: "dashboard" },
+	overlays: { target: "overlays-tab", title: "Open Overlays", description: "Choose the Overlays tab.", action: true, next: true },
+	overlay: { target: "open-overlay", title: "Open your overlay", description: "Click your overlay's row to open its settings.", destination: "overlay" },
+	playlists: { target: "playlists-tab", title: "Open Playlists", description: "Choose the Playlists tab.", action: true, next: true },
+	playlist: { target: "open-playlist", title: "Open your playlist", description: "Click your playlist's row to edit its clips.", destination: "playlist" },
+	profile: { target: "nav-menu", reveals: "nav-tools", title: "Open the app menu", description: "Click your avatar to find Tools.", action: true, next: true },
+	tools: { target: "nav-tools", title: "Open Tools", description: "Choose Tools for website players and galleries.", destination: "tools", preserveFocus: true },
+};
+export function currentGuideStep(progress: GuideProgress): GuideStep | undefined {
+	if (!progress.active) return;
+	const navigation = progress.active.navigation?.[0];
+	return navigation ? navigationSteps[navigation] : stepsForTask(progress.active.task, progress)[progress.active.index];
+}
+export function activeGuidePercent(progress: GuideProgress) {
+	if (!progress.active) return 0;
+	const total = (progress.active.navigationTotal ?? 0) + stepsForTask(progress.active.task, progress).length;
+	return Math.round((((progress.active.navigationTotal ?? 0) - (progress.active.navigation?.length ?? 0) + progress.active.index) / total) * 100);
+}
 type Owned = { ownerId: string; id: string; select?: boolean };
 export type GuideEvent =
-	| ({ type: "overlay.ready" | "overlay.created" | "overlay.copied" } & Owned)
+	| ({ type: "overlay.ready" | "overlay.created" | "overlay.copied" | "website.copied" } & Owned)
 	| ({ type: "overlay.saved"; named: boolean; source: boolean; playlistId?: string | null } & Owned)
 	| ({ type: "overlay.previewed"; count: number } & Owned)
 	| ({ type: "theme.saved"; changed: boolean } & Owned)
 	| ({ type: "playlist.ready" | "playlist.created" } & Owned)
 	| ({ type: "playlist.saved"; named: boolean; count: number } & Owned)
-	| { type: "start" | "task.skip" | "task.restore"; task: TaskId }
-	| ({ type: "website.copied" } & Owned)
-	| { type: "pause" | "resume" | "next" | "setup.confirmed" }
+	| { type: "start"; task: TaskId; location?: GuideLocation }
+	| { type: "task.skip" | "task.restore"; task: TaskId }
+	| { type: "resume"; location?: GuideLocation }
+	| { type: "location"; location: GuideLocation }
+	| { type: "pause" | "next" | "setup.confirmed" }
 	| { type: "panel"; minimized: boolean }
-	| { type: "resource.reset"; resource: "overlay" | "playlist" };
-
-export function transition(progress: GuideProgress, event: GuideEvent, accountId: string): GuideProgress {
-	if ("ownerId" in event && (event.ownerId !== accountId || !validId(event.id))) return progress;
-	let next: GuideProgress = { ...progress, completed: [...progress.completed], skipped: [...progress.skipped] };
-	const complete = (task: TaskId) => {
-		if (!next.completed.includes(task)) next.completed.push(task);
-		next.skipped = next.skipped.filter((id) => id !== task);
-		if (next.active?.task === task) next = { ...next, active: { ...next.active, done: true }, minimized: false };
-	};
+	| { type: "resource.reset"; resource: "overlay" | "playlist" }
+	| { type: "legacy.import"; completed: TaskId[]; skipped: TaskId[] };
+export function isGuideEvent(value: unknown): value is GuideEvent {
+	if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+	const event = value as Record<string, unknown>;
+	if ("ownerId" in event && (!validId(event.ownerId) || !validId(event.id))) return false;
+	if ("location" in event && (typeof event.location !== "string" || !locations.has(event.location))) return false;
 	switch (event.type) {
-		case "task.skip":
-			if (!next.skipped.includes(event.task) && !next.completed.includes(event.task)) next.skipped.push(event.task);
-			return { ...next, active: next.active?.task === event.task ? null : next.active, minimized: false };
-		case "task.restore":
-			return { ...next, completed: next.completed.filter((id) => id !== event.task), skipped: next.skipped.filter((id) => id !== event.task), active: next.active?.task === event.task && next.active.done ? null : next.active };
+		case "overlay.ready":
+		case "overlay.created":
+		case "overlay.copied":
+		case "website.copied":
+		case "playlist.ready":
+		case "playlist.created":
+			return "ownerId" in event && (event.select === undefined || typeof event.select === "boolean");
+		case "overlay.saved":
+			return "ownerId" in event && typeof event.named === "boolean" && typeof event.source === "boolean" && (event.playlistId == null || validId(event.playlistId));
+		case "playlist.saved":
+			return "ownerId" in event && typeof event.named === "boolean" && Number.isInteger(event.count) && Number(event.count) >= 0 && Number(event.count) <= 1000000;
+		case "overlay.previewed":
+			return "ownerId" in event && Number.isInteger(event.count) && Number(event.count) >= 0 && Number(event.count) <= 1000000;
+		case "theme.saved":
+			return "ownerId" in event && typeof event.changed === "boolean";
 		case "start":
-			return { ...next, active: { task: event.task, index: event.task === "overlay.name" && next.completed.includes(event.task) && next.overlayId ? 1 : 0, paused: false }, minimized: event.task !== "explore.support" };
+		case "task.skip":
+		case "task.restore":
+			return isTaskId(event.task);
+		case "pause":
+		case "next":
+		case "setup.confirmed":
+		case "resume":
+			return true;
+		case "location":
+			return typeof event.location === "string" && locations.has(event.location);
+		case "panel":
+			return typeof event.minimized === "boolean";
+		case "resource.reset":
+			return event.resource === "overlay" || event.resource === "playlist";
+		case "legacy.import":
+			return [event.completed, event.skipped].every((ids) => Array.isArray(ids) && ids.length <= 20 && ids.every(isTaskId));
+		default:
+			return false;
+	}
+}
+export function transition(progress: GuideProgress, event: GuideEvent, accountId: string): GuideProgress {
+	if (!isGuideEvent(event) || ("ownerId" in event && event.ownerId !== accountId)) return progress;
+	const next: GuideProgress = { ...progress, completed: [...progress.completed], skipped: [...progress.skipped] };
+	const begin = (task: TaskId, location: GuideLocation, index = 0) => {
+		const navigationTask = index > 0 && task === "overlay.name" ? "overlay.source" : index > 0 && task === "playlist.name" ? "playlist.clips" : task;
+		const navigation = navigationForTask(navigationTask, location, next);
+		next.active = { task, index, paused: false, navigation, navigationTotal: navigation.length };
+		next.minimized = true;
+	};
+	const finish = (task: TaskId, skipped = false) => {
+		if (skipped) {
+			if (!next.completed.includes(task) && !next.skipped.includes(task)) next.skipped.push(task);
+		} else {
+			if (!next.completed.includes(task)) next.completed.push(task);
+			next.skipped = next.skipped.filter((id) => id !== task);
+		}
+		if (next.active?.task !== task) return;
+		const sequence = task.startsWith("overlay.") ? journeys[0].tasks : task.startsWith("playlist.") ? journeys[2].tasks : [];
+		const following = sequence.slice(sequence.findIndex((item) => item.id === task) + 1).find((item) => !next.completed.includes(item.id) && !next.skipped.includes(item.id));
+		if (following && !next.active.paused) begin(following.id, task.startsWith("playlist.") && task !== "playlist.use" ? "playlist" : "overlay");
+		else {
+			next.active = null;
+			next.minimized = journeys[0].tasks.every((item) => next.completed.includes(item.id) || next.skipped.includes(item.id));
+		}
+	};
+	const startedTask = progress.active?.task;
+	switch (event.type) {
+		case "start":
+			begin(event.task, event.location ?? "dashboard");
+			return next;
+		case "resume":
+			if (next.active) begin(next.active.task, event.location ?? "dashboard", next.active.index);
+			return next;
 		case "pause":
 			return { ...next, active: next.active ? { ...next.active, paused: true } : null, minimized: false };
-		case "resume":
-			return { ...next, active: next.active ? { ...next.active, paused: false } : null, minimized: next.active?.task !== "explore.support" };
+		case "panel":
+			return { ...next, minimized: event.minimized };
+		case "task.skip":
+			if (!next.completed.includes(event.task) && !next.skipped.includes(event.task)) next.skipped.push(event.task);
+			return { ...next, active: next.active?.task === event.task ? null : next.active, minimized: false };
+		case "task.restore":
+			return { ...next, active: next.active?.task === event.task && next.active.done ? null : next.active, completed: next.completed.filter((id) => id !== event.task), skipped: next.skipped.filter((id) => id !== event.task) };
+		case "legacy.import":
+			next.completed = [...new Set([...next.completed, ...event.completed])];
+			next.skipped = [...new Set([...next.skipped, ...event.skipped])].filter((id) => !next.completed.includes(id));
+			return next;
 		case "next": {
-			if (!next.active || next.active.done) return progress;
-			const steps = stepsForTask(next.active.task, next);
-			if (steps[next.active.index]?.finish) {
-				if (steps[next.active.index]?.skipOnFinish) {
-					if (!next.completed.includes(next.active.task) && !next.skipped.includes(next.active.task)) next.skipped.push(next.active.task);
-					return { ...next, active: { ...next.active, done: true }, minimized: false };
-				}
-				complete(next.active.task);
+			if (!next.active || next.active.paused) return progress;
+			const step = currentGuideStep(next);
+			if (!step?.next) return progress;
+			if (next.active.navigation?.length) return { ...next, active: { ...next.active, navigation: next.active.navigation.slice(1) } };
+			if (step.finish) {
+				finish(next.active.task, step.skipOnFinish);
 				return next;
 			}
-			if (next.active.index >= steps.length - 1 || !steps[next.active.index]?.next) return progress;
 			return { ...next, active: { ...next.active, index: next.active.index + 1 } };
+		}
+		case "location": {
+			if (!next.active) return { ...next, minimized: true };
+			if (next.active.paused) return progress;
+			const step = currentGuideStep(next);
+			if (step?.destination === event.location) {
+				next.active = next.active.navigation?.length ? { ...next.active, navigation: next.active.navigation.slice(1) } : { ...next.active, index: next.active.index + 1 };
+				return next;
+			}
+			if (next.active.task !== "explore.support" && event.location !== guideLocation(routeForTask(next.active.task, next))) {
+				return { ...next, active: { ...next.active, paused: true }, minimized: false };
+			}
+			return next;
 		}
 		case "resource.reset":
 			if (event.resource === "overlay") {
 				next.overlayId = null;
 				next.copiedOverlayId = null;
 			} else next.playlistId = null;
-			return { ...next, active: next.active ? { ...next.active, index: 0, paused: true } : null, minimized: false };
-		case "panel":
-			return { ...next, minimized: event.minimized };
+			return { ...next, active: next.active ? { ...next.active, index: 0, paused: true } : null };
 		case "overlay.ready":
-			if (next.active?.task === "overlay.name" && next.active.index === 0) {
-				if (!event.select) break;
-				next.active = { ...next.active, index: 1 };
-			}
 			if (event.select || !next.overlayId) {
-				if (next.overlayId !== event.id) next.copiedOverlayId = null;
+				if (event.id !== next.overlayId) next.copiedOverlayId = null;
 				next.overlayId = event.id;
 			}
 			break;
 		case "overlay.created":
 			next.overlayId = event.id;
-			if (next.active) next.active = { ...next.active, index: next.active.task === "overlay.name" ? 1 : 0 };
 			next.copiedOverlayId = null;
+			if (next.active) next.active = { ...next.active, index: next.active.task === "overlay.name" ? 1 : 0, navigation: [] };
 			break;
 		case "overlay.saved":
 			next.overlayId = event.id;
-			if (event.named) complete("overlay.name");
-			if (event.source && (!next.active || next.active.task === "overlay.source")) complete("overlay.source");
-			if (event.playlistId && event.playlistId === next.playlistId) complete("playlist.use");
+			if (event.named) finish("overlay.name");
+			if (event.source && (!startedTask || startedTask === "overlay.source")) finish("overlay.source");
+			if (event.playlistId && event.playlistId === next.playlistId) finish("playlist.use");
 			break;
 		case "overlay.previewed":
-			if (event.id === next.overlayId && event.count > 0) complete("overlay.preview");
+			if (event.id === next.overlayId && event.count > 0) finish("overlay.preview");
 			break;
 		case "overlay.copied":
 			if (event.id !== next.overlayId) return progress;
 			next.copiedOverlayId = event.id;
-			if (next.active?.task === "overlay.setup" && !next.active.done) next.active = { ...next.active, index: 1 };
+			if (next.active?.task === "overlay.setup") next.active = { ...next.active, index: 1 };
 			break;
 		case "setup.confirmed":
-			if (next.overlayId && next.copiedOverlayId === next.overlayId) complete("overlay.setup");
-			break;
-		case "website.copied":
-			if (next.active?.task === "website.embed" && next.active.index === 1) next.active = { ...next.active, index: 2 };
+			if (next.overlayId && next.copiedOverlayId === next.overlayId) finish("overlay.setup");
 			break;
 		case "theme.saved":
-			if (event.changed) complete("appearance.style");
+			if (event.changed && event.id === next.overlayId) finish("appearance.style");
 			break;
 		case "playlist.ready":
 			if (event.select || !next.playlistId) next.playlistId = event.id;
 			break;
 		case "playlist.created":
 			next.playlistId = event.id;
-			if (next.active) next.active = { ...next.active, index: 0 };
+			if (next.active) next.active = { ...next.active, index: next.active.task === "playlist.name" ? 1 : 0, navigation: [] };
 			break;
 		case "playlist.saved":
 			next.playlistId = event.id;
-			if (event.named) complete("playlist.name");
-			if (event.count > 0) complete("playlist.clips");
+			if (event.named) finish("playlist.name");
+			if (event.count > 0 && (!startedTask || startedTask === "playlist.clips")) finish("playlist.clips");
+			break;
+		case "website.copied":
+			if (next.active?.task === "explore.tools" && next.active.index === 1) next.active = { ...next.active, index: 2 };
 			break;
 	}
 	return next;
 }
-
+/** Expected page only, never a command to navigate. */
 export function routeForTask(task: TaskId, progress: GuideProgress): string {
-	const index = progress.active?.task === task ? progress.active.index : 0;
-	if (task === "overlay.name" && index === 0) return "/dashboard";
-	if (task === "website.embed" || task === "explore.tools") return "/dashboard/tools";
-	if (task.startsWith("explore.")) return "/dashboard";
 	if (task === "playlist.use" && !progress.playlistId) return "/dashboard";
+	const nav = progress.active?.task === task ? progress.active.navigation?.[0] : undefined;
+	if (nav === "home" || nav === "overlays" || nav === "overlay" || nav === "playlists" || nav === "playlist") return "/dashboard";
+	if (task === "explore.tools") return "/dashboard/tools";
+	if (task.startsWith("explore.")) return "/dashboard";
 	if (task === "playlist.name" || task === "playlist.clips") return progress.playlistId ? `/dashboard/playlist/${progress.playlistId}` : "/dashboard";
-	if (!progress.overlayId) return "/dashboard";
-	return `/dashboard/overlay/${progress.overlayId}${task === "appearance.style" && index > 0 ? "/theme" : ""}`;
+	if (!progress.overlayId || (task === "overlay.name" && !progress.active?.index)) return "/dashboard";
+	return `/dashboard/overlay/${progress.overlayId}${task === "appearance.style" && (progress.active?.index ?? 0) > 0 ? "/theme" : ""}`;
 }
-export type GuideStep = { target: string; title: string; description: string; next?: boolean; action?: boolean; finish?: boolean; nextLabel?: string; skipOnFinish?: boolean; allowDialog?: boolean };
+const createOverlay: GuideStep = { target: "create-overlay", title: "Create an overlay", description: "Click Add Overlay to create one. This opens its settings." };
 export function stepsForTask(task: TaskId, progress: GuideProgress): GuideStep[] {
 	if (task === "playlist.use" && !progress.playlistId) return stepsForTask("playlist.name", progress);
-	const createOverlay: GuideStep = { target: "create-overlay", title: "Create your first overlay", description: "Click Add Overlay. Your overlay will use your channel’s clips. Already have one? Open it from the dashboard, then resume this guide." };
-	if (task.startsWith("overlay.") || task === "appearance.style" || task === "playlist.use") {
-		if (!progress.overlayId && task !== "overlay.name") return [createOverlay];
-	}
+	if ((task.startsWith("overlay.") || task === "appearance.style" || task === "playlist.use") && task !== "overlay.name" && !progress.overlayId) return [createOverlay];
 	switch (task) {
 		case "overlay.name":
-			return [createOverlay, { target: "overlay-name", title: "Give it a name", description: "Choose a name you’ll recognize, such as BRB clips. Then continue to save it.", next: true }, { target: "overlay-save", title: "Save your overlay", description: "Click Save to keep your name and clip settings. The checklist updates after the save succeeds." }];
+			return [createOverlay, { target: "overlay-name", title: "Give it a name", description: "Choose a name you'll recognize.", next: true }, { target: "overlay-save", title: "Save your overlay", description: "Click Save to keep the name." }];
 		case "overlay.source":
 			return [
-				{ target: "overlay-source", title: "Choose which clips play", description: "Choose a time range, such as Top Clips — Last 30 Days. You can fine-tune filters in the next step. If no clips match, try a broader range.", next: true },
-				{ target: "overlay-filters", title: "Fine-tune your clip selection", description: "Review duration, game and creator filters here. Advanced filters require Pro. Keep the defaults if they suit you; nothing changes until you save.", next: true },
-				{ target: "overlay-save", title: "Save your clip settings", next: true, finish: true, skipOnFinish: true, nextLabel: "Use current settings", description: "Save if you changed anything. Keeping the defaults? Choose Use current settings here in the guide; the app’s Save button stays unchanged." },
+				{ target: "overlay-source", title: "Choose your clips", description: "Choose the clip source or time range you want to play.", next: true },
+				{ target: "overlay-filters", title: "Adjust the filters", description: "Review duration, games and creators. Advanced filters require Pro. You can keep the defaults.", next: true },
+				{ target: "overlay-save", title: "Save your clip settings", description: "Save your changes, or continue with the current settings.", next: true, finish: true, skipOnFinish: true, nextLabel: "Use current settings" },
 			];
 		case "overlay.preview":
-			return [{ target: "overlay-preview", allowDialog: true, title: "Check your clips", description: "Open Preview Clips. If no clips match, choose a broader time range or check crawl status in Settings. A nonempty preview completes this task." }];
+			return [{ target: "overlay-preview", title: "Preview your overlay", description: "Open Preview Clips to check what will play. If it's empty, broaden the time range or filters.", allowDialog: true }];
 		case "overlay.setup":
 			return [
-				{ target: "overlay-copy", title: "Copy your overlay URL", description: "Click this copy button for your private OBS / Streamlabs browser source URL. Keep this URL private." },
-				{ target: "overlay-copy", title: "Add a Browser Source", description: "In OBS or Streamlabs, add Sources → + → Browser. Paste the copied URL, set width 1920 and height 1080, then save. Clips not appearing? Check that the source is visible and your overlay has matching clips. Help is available from the guide.", next: true, finish: true, nextLabel: "Finish setup guide" },
+				{ target: "overlay-copy", title: "Copy the overlay URL", description: "Click Copy for your private OBS or Streamlabs browser source URL.", allowDialog: true },
+				{ target: "overlay-copy", title: "Add a Browser Source", description: "In OBS or Streamlabs, add a Browser Source, paste the URL and set 1920 by 1080. Check that the source is visible and playing clips.", next: true, finish: true, nextLabel: "Finish guide", allowDialog: true },
 			];
 		case "appearance.style":
 			return [
-				{ target: "overlay-customize", title: "Open Theme Studio", description: "Click Customize Overlay Style to open the editor.", next: true, action: true },
-				{ target: "theme-controls", title: "Make it yours", description: "Change a visible setting and check the live preview. You can keep the default look and finish the guide without changing it.", next: true },
-				{ target: "theme-save", title: "Save your look", description: "Click Save Style after making a change, or choose Keep default look here in the guide.", next: true, finish: true, skipOnFinish: true, nextLabel: "Keep default look" },
+				{ target: "overlay-customize", title: "Open Theme Studio", description: "Click Customize Overlay Style.", destination: "theme" },
+				{ target: "theme-controls", title: "Make it yours", description: "Adjust a style setting and check the preview.", next: true },
+				{ target: "theme-save", title: "Save your look", description: "Click Save Style, or keep the default look.", next: true, finish: true, skipOnFinish: true, nextLabel: "Keep default look" },
 			];
-		case "website.embed":
-			return [
-				{ target: "tools-player", title: "Choose your website player", description: "Choose an existing overlay as your player. If this list is empty, create your first overlay from the checklist first.", next: true },
-				{ target: "website-copy", title: "Copy website embed code", description: "Copy the iframe code using this button. This is the public website embed, separate from your private OBS URL." },
-				{ target: "website-code", title: "Install on your website", description: "Paste this code into a Custom HTML or Embed block on your website, publish the page and check playback. Browser autoplay may require muted playback. Clipify cannot verify your external website; finish when you are ready.", next: true, finish: true, nextLabel: "Finish website guide" },
-			];
-		case "explore.galleries":
-			return [
-				{ target: "galleries-tab", title: "Open Galleries", description: "Click Galleries to see your collections. Galleries display a browsable collection of clips on your website.", next: true, action: true },
-				{ target: "gallery-list", title: "Your clip galleries", description: "Open an existing gallery or use Add Gallery to build one. Configure its clips and appearance, then publish it before installing it with the Clip Gallery website tool.", next: true, finish: true, nextLabel: "Finish introduction" },
-			];
-		case "explore.tools":
-			return [{ target: "tools-tabs", title: "Website tools", description: "Clip Player embeds a playing overlay. Clip Gallery installs a browsable collection with Clipify Elements. Choose a tool, configure it and copy its installation code. The website guide walks through Clip Player installation.", next: true, finish: true, nextLabel: "Finish introduction" }];
-		case "explore.support":
-			return [{ target: "guide-support", title: "We are here to help", description: "Use Report a problem in the bottom-right corner for a bug, or the chat icon in the bottom-left for help. Chat may ask for functionality consent first; your choice is respected. The help center is always available below.", next: true, finish: true, nextLabel: "Got it" }];
-
 		case "playlist.name":
-			return progress.playlistId
-				? [
-						{ target: "playlist-name", title: "Name your playlist", description: "Give this collection a useful name, such as Favorite moments.", next: true },
-						{ target: "playlist-save", title: "Save your playlist", next: true, finish: true, skipOnFinish: true, nextLabel: "Keep current playlist", description: "Click Save Playlist after changing its name. Keeping the name? Use Keep current playlist here in the guide." },
-					]
-				: [
-						{ target: "playlists-tab", title: "Open Playlists", description: "Switch to Playlists to create your clip collection.", next: true, action: true },
-						{ target: "create-playlist", title: "Create a playlist", description: "Click Add Playlist. If you already have one, open it and resume this guide." },
-					];
+			return [
+				{ target: "create-playlist", title: "Create a playlist", description: "Click Add Playlist to create a collection." },
+				{ target: "playlist-name", title: "Name your playlist", description: "Give your collection a useful name.", next: true },
+				{ target: "playlist-save", title: "Save your playlist", description: "Click Save Playlist after naming it.", next: true, finish: true, skipOnFinish: true, nextLabel: "Keep current name" },
+			];
 		case "playlist.clips":
 			return progress.playlistId
 				? [
-						{ target: "playlist-add", allowDialog: true, title: "Choose your clips", description: "Click Add Clips, select clips and add them to your playlist. Close the selector when you’re ready, then continue.", next: true },
-						{ target: "playlist-order", title: "Arrange your clips", description: "Drag clips into your preferred order, or keep the current order. Changes are saved in the next step.", next: true },
-						{ target: "playlist-save", title: "Save the clips and order", next: true, finish: true, skipOnFinish: true, nextLabel: "Keep current playlist", description: "Click Save Playlist to keep the selected clips in this order, Use Keep current playlist in the guide if you made no changes." },
+						{ target: "playlist-add", title: "Choose your clips", description: "Click Add Clips, select clips, then add them to this playlist.", next: true, allowDialog: true },
+						{ target: "playlist-order", title: "Arrange your clips", description: "Drag the clips into the order you want.", next: true },
+						{ target: "playlist-save", title: "Save your playlist", description: "Click Save Playlist to keep the clips and order.", next: true, finish: true, skipOnFinish: true, nextLabel: "Keep current playlist" },
 					]
-				: [
-						{ target: "playlists-tab", title: "Create a playlist first", description: "Open Playlists, create or open a playlist, then resume the guide.", next: true },
-						{ target: "create-playlist", title: "Create a playlist", description: "Click Add Playlist to start." },
-					];
+				: stepsForTask("playlist.name", progress);
 		case "playlist.use":
 			return [
-				{ target: "overlay-source", title: "Use a curated playlist", description: "Set Overlay Type to Playlist. Then select your saved playlist below.", next: true },
-				{ target: "overlay-playlist", title: "Select your playlist", description: "Choose the playlist you just created.", next: true },
-				{ target: "overlay-save", title: "Save the association", description: "Save the overlay to use this playlist. The task completes when your selected playlist is saved." },
+				{ target: "overlay-source", title: "Use a playlist", description: "Set Overlay Type to Playlist.", next: true },
+				{ target: "overlay-playlist", title: "Select your playlist", description: "Choose your saved playlist.", next: true },
+				{ target: "overlay-save", title: "Save the overlay", description: "Click Save to use this playlist." },
+			];
+		case "explore.galleries":
+			return [
+				{ target: "galleries-tab", title: "Open Galleries", description: "Choose Galleries to see your clip collections.", next: true, action: true },
+				{ target: "gallery-list", title: "Discover galleries", description: "Open a gallery or use Add Gallery to build a browsable clip collection for your website.", next: true, finish: true, nextLabel: "Done" },
+			];
+		case "explore.tools":
+			return [
+				{ target: "tools-player", title: "Choose a player", description: "Choose the overlay you want on your website. Create an overlay first if the list is empty.", next: true },
+				{ target: "website-copy", title: "Copy the embed code", description: "Copy this public iframe code for your website. Keep your private OBS URL separate." },
+				{ target: "website-code", title: "Install on your website", description: "Paste the code into a Custom HTML or Embed block, publish the page and check playback. Autoplay may require muted playback.", next: true, finish: true, nextLabel: "Finish guide" },
+			];
+		case "explore.support":
+			return [
+				{ target: "support-report", pauseOnInteract: true, title: "Report a problem", description: "Use this button to send a bug report.", next: true },
+				{ target: "support-chat", pauseOnInteract: true, title: "Get help", description: "Use chat for questions. It may ask for functionality consent first. You can also visit the <a href='https://help.clipify.us/' target='_blank' rel='noopener noreferrer'>help center</a>.", next: true, finish: true, nextLabel: "Done" },
 			];
 	}
 }

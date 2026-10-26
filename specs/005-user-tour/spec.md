@@ -1,134 +1,44 @@
-# Feature Specification: User tours
+# Feature specification: Clipify guide
 
-**Feature Branch**: `feat/user-tour`
+Branch: `feat/user-tour`. Current scope includes the user's final checklist, navigation and account-persistence requirements. Earlier implementation experiments are recorded only in the cycle/defect logs.
 
-**Created**: 2026-10-25
+## User stories
 
-**Status**: Implemented; UX revision under browser verification
+1. **US1, P1: Learn the normal overlay workflow.** A new user creates and names an overlay, chooses clips and filters, previews it and follows OBS/Streamlabs setup instructions. A returning user can replay creation from Add Overlay. From another page, the guide teaches the Dashboard link, Overlays tab and real edit control. Starting a task never changes pages for the user.
+2. **US2, P2: Customize an overlay.** The user opens the overlay, clicks Customize Overlay Style, edits a visible setting and uses the normal Save Style control. Keeping defaults records a skip.
+3. **US3, P2: Build and use a playlist.** The user creates/names a playlist, selects/orders clips, saves and learns normal navigation back to an overlay to select the playlist.
+4. **US4, P2: Explore Clipify.** A single optional section introduces galleries, public website installation through the actual avatar menu and Tools action, and existing report/chat controls.
 
-**Input**: Floating expandable guide with interactive spotlight journeys for first overlay, appearance, playlists and optional website/tools/support discovery.
-
-## User Scenarios & Testing
-
-### User Story 1 - Get the first overlay running (Priority: P1)
-
-Create a usable overlay with guided actions and confirm installation.
-
-**Why this priority**: First usable output is the activation boundary.
-
-**Independent Test**: Complete this journey through real dashboard controls and verify its saved output.
-
-**BDD**: Required. **ATDD**: Required. Shared browser scenarios prove the same observable behavior and stakeholder outcome.
-
-**Acceptance Scenarios**:
-
-1. Given a new account, when a user follows the overlay guide, then a named configured overlay exists and preview can be checked.
-2. Given a copied URL, when installation is not confirmed, then setup remains incomplete.
-3. Given a paused guide, when the user returns, then progress resumes without another resource being created.
-
-### User Story 2 - Customize an overlay (Priority: P2)
-
-Choose a visible appearance change and save it, or retain defaults.
-
-**Why this priority**: Optional capability discovery follows initial value.
-
-**Independent Test**: Complete this journey through real dashboard controls and verify its saved output.
-
-**BDD**: Required. **ATDD**: Required. Shared browser scenarios prove the same observable behavior and stakeholder outcome.
-
-**Acceptance Scenarios**:
-
-1. Given an owned overlay, when a user saves a visible style change, then appearance progress completes.
-2. Given unchanged defaults, when the user keeps them, then the guide records a skip without claiming a saved customization.
-
-### User Story 3 - Build and use a playlist (Priority: P2)
-
-Create a playlist, populate and arrange it, then connect it to an overlay.
-
-**Why this priority**: Optional capability discovery follows initial value.
-
-**Independent Test**: Complete this journey through real dashboard controls and verify its saved output.
-
-**BDD**: Required. **ATDD**: Required. Shared browser scenarios prove the same observable behavior and stakeholder outcome.
-
-**Acceptance Scenarios**:
-
-1. Given a new playlist, when a user saves clips and an order, then those clips persist in that order.
-2. Given a populated playlist, when an overlay is saved using it, then the playlist journey completes.
-
-### Edge Cases
-
-- **EC-001**: Failed create/save leaves the task incomplete and the existing error visible.
-- **EC-002**: No matching clips keeps preview incomplete and offers a broader source or crawl-status guidance.
-- **EC-003**: Missing/deleted/unauthorized resources or missing targets pause with recovery guidance; never create a replacement automatically.
-- **EC-004**: Malformed, unavailable or obsolete browser storage recovers to usable in-memory defaults without crashing; accounts remain isolated.
-- **EC-005**: Failed clipboard write leaves the copy step incomplete and permits retry.
-- **EC-006**: Navigation, refresh, modal interactions, switching journeys and repeated completion cannot skip successful-action requirements or duplicate resources.
-- **EC-007**: Existing resources count only for their actual observed state; delegated/foreign-owner actions do not complete personal onboarding.
+BDD and ATDD share one browser execution owner per example. The 39 individually tagged examples in `test/bdd/features/user-tour/guide.feature` are canonical. Database concurrency/integrity has separate service-integration ownership; browser journeys are not duplicated as MCP workflows.
 
 ## Requirements
 
-### Functional Requirements
+- **FR-001:** Show a compact first-use checklist and HeroUI progress ring. Keep Sentry feedback and chat in their original positions; the guide launcher sits above feedback. Remember minimization for the account.
+- **FR-002:** Guide navigation through user clicks on normal controls. Replay of overlay creation highlights Add Overlay even when an overlay already exists. Never create a resource automatically. An edit icon is a normal, accessible app control outside the guide too.
+- **FR-003:** Keep the four core tasks as one coherent flow. Successful actions advance to the next relevant task without a completion card or an extra Continue summary. Expected preview/clip dialogs temporarily own focus, then restore the pointer.
+- **FR-004:** Appearance uses the real Customize Overlay Style entry point and normal Save control. Respect Pro availability and access locks.
+- **FR-005:** Playlist creation, selection, order, save and overlay association follow successful owned-resource outcomes. Teach navigation between the playlist and overlay rather than moving pages for the user.
+- **FR-006:** Store versioned account progress in PostgreSQL using `user_content_states` under an isolated key. Authenticate reads/writes, require the expected active account on writes, serialize events transactionally and retain queued events on transient failure. Browser clearing must not reset completion, skips or minimization. Import an account's old local state only once. Recognize existing owned setup and keep the welcome checklist minimized for existing accounts.
+- **FR-007:** Recognize successful actions outside tours. Separate actual completions from manual skips. Do not infer preview, external installation or customization from resource existence alone.
+- **FR-008:** Highlight the actual copy button. Clipboard success advances to external setup instructions; finishing instructions is self-reported guide completion, not verified OBS/website playback. Never put an OBS secret in public website installation code.
+- **FR-009:** Use one expanded HeroUI accordion section, clickable task rows, indeterminate checkboxes for active tasks and a separate anchored skip-confirmation popover. Support cancel and undo. Remove status chips, replay/continue subtitles, completion cards, resource-chooser buttons, persistent support paragraphs and browser-storage footer copy. Do not use em dashes in guide copy. Preserve native control ARIA state, keyboard behavior and reduced-motion preferences.
+- **FR-010:** Consent UI takes priority. Keep analytics limited to allowed journey/task identifiers. Support introductions point to existing widgets; clicking a support control pauses the spotlight so the normal UI can open and own focus.
+- **FR-011:** Keep four sections: first overlay, appearance, playlist and Explore Clipify. Merge website/tools discovery into one task under Explore. Defer 24/7 onboarding.
+- **FR-012:** Website setup teaches opening the app menu, choosing Tools, selecting a player and copying public iframe code. Galleries and support remain short, optional introductions.
 
-- **FR-001**: System MUST show an authenticated dashboard launcher with expandable first-overlay, appearance, and playlist sections; show progress per section, never a combined backlog.
-- **FR-002**: System MUST start a user-requested interactive spotlight tour from each task; keep the real target operable and advance action steps only on successful actions.
-- **FR-003**: System MUST guide creating/naming an overlay, choosing clips, saving, previewing available clips, copying the URL, and finishing the OBS/Streamlabs instructions.
-- **FR-004**: System MUST offer appearance as a separate optional journey with a visible customization and successful save; allow keeping defaults without claiming a customization.
-- **FR-005**: System MUST guide playlist creation/naming, adding and saving clips, arranging clips, and attaching the playlist to an overlay.
-- **FR-006**: System MUST persist validated account-scoped progress in this browser; support pause, resume, replay and minimizing without creating resources automatically.
-- **FR-007**: System MUST recognize successful actions performed outside a tour; reuse owned existing resources and never treat opening a tour as task completion.
-- **FR-008**: System MUST explain external setup with OBS/Streamlabs instructions and an explicit finish action; copying alone never means setup succeeded.
-- **FR-009**: System MUST provide keyboard-operable controls, Escape to pause, readable pointers, responsive positioning and reduced-motion support.
-- **FR-010**: System MUST emit non-sensitive guide-start, pause and task-complete analytics through existing analytics facilities; never include names, URLs or secrets.
-- **FR-011**: System MUST keep the four-task activation path separate from optional website and exploration sections. 24/7 remains deferred. No forced paywalls or automatic blocking spotlights.
+## Edge cases
 
-### Key Entities
+- **EC-001:** Failed creates/saves do not complete tasks; the app's normal Save label, disabled state and error handling remain authoritative.
+- **EC-002:** Empty previews offer broader source/filter guidance and remain incomplete.
+- **EC-003:** Missing controls, deleted resources and unrelated navigation pause with recovery through normal navigation. No automatic replacement or permanent chooser control.
+- **EC-004:** Corrupt legacy cache and unavailable browser storage cannot override account state. Server write failure retains optimistic session state plus ordered retryable events and exposes Retry.
+- **EC-005:** Clipboard denial leaves copy guidance active and cannot finish setup.
+- **EC-006:** Replaying may point at creation, but creates nothing until the user explicitly clicks the normal Add control.
+- **EC-007:** Account switching and foreign-owned resource reports cannot modify another account's progress. Account deletion cascades persisted state.
 
-- Journey: ordered tasks for one concrete user outcome.
-- Task: stable identifier, title, guidance steps and successful completion condition.
-- Progress: version, completed tasks, chosen resource IDs, paused step and panel preference, scoped to one account.
+## Success criteria
 
-## Success Criteria
-
-### Measurable Outcomes
-
-- **SC-001**: A new user can complete the first-overlay journey and confirm external setup without visiting unrelated features.
-- **SC-002**: All supported journeys can be paused, resumed and replayed with no automatic duplicate creation.
-- **SC-003**: All launcher and tour controls are usable by keyboard, including pausing with Escape.
-- **SC-004**: Every completion corresponds to a successful domain action or explicit finish of an informational/external-setup guide. Skips are recorded separately; failed actions never complete tasks.
-
-## Assumptions
-
-- Progress is per account in the current browser; cross-device synchronization is deferred.
-- Tours are opt-in; existing welcome dialogs retain their existing behavior.
-- Stream setup is self-confirmed because clipboard success does not prove playback in OBS.
-- Existing access checks, plans, revision checks and clip data remain authoritative.
-- Activation and paid-conversion impact will be measured after release; no uplift is claimed before an experiment.
-
-## Test-First Specification Addendum
-
-### Test Classification and Applicability Matrix
-
-All US/FR/EC/SC sources require TDD, BDD and ATDD evidence. Browser scenarios own shared BDD/ATDD evidence because the performed action and resulting saved state are both the behavioral example and acceptance boundary. See [test-traceability.md](test-traceability.md) for individual mappings and [tdd/test-list.md](tdd/test-list.md) for implementation inventory. No practice is N/A.
-
-### BDD and ATDD Evidence
-
-Gherkin scenarios live in `test/bdd/features/user-tour/guide.feature`; browser bindings own execution once for both evidence roles. Each scenario has a stable scenario-level ID; all outline examples are enumerated.
-
-## Approved UX revision (2026-10-25)
-
-The checklist opens on first use. Spotlight journeys remain user-initiated so consent and current work are not interrupted. The corner launcher uses a HeroUI progress bar; Sentry feedback shares the right-side dock above it, and chat remains on the left. Consent banners/preferences suspend guide interaction.
-
-Each row has a HeroUI checkbox with explicit skip confirmation and undo. Persist skipped IDs separately from successful actions, and show in-progress status on the task itself. Clicking an in-progress row continues at its current step; there is no separate Resume guide action.
-
-Creation starts at the real Add Overlay button, even if dashboard discovery found an existing overlay. Explicitly opening an existing editor can select it. Saving a name does not implicitly bypass source/filter education. Highlight source choice and the complete filters area separately. A successful task opens a handoff with a next-task action. Keep ordinary Save controls and their disabled behavior unchanged; unchanged defaults can be acknowledged or skipped inside the guide only.
-
-Appearance first highlights Customize Overlay Style, then follows the user's real click to Theme Studio. Copying highlights the copy button, followed by separate Browser Source instructions. Finishing these instructions is self-reported guide completion, not telemetry claiming successful external installation.
-
-- **FR-012**: Optional website journey teaches selecting a player, copying its public iframe code and installing it externally. Optional exploration introduces real Galleries tab, website tools and help/reporting without changing consent choices. No external installation verification is claimed.
-
-### User Story 4 - Discover website installation and help (Priority: P2)
-
-Use the public website tool rather than sharing an OBS secret. Discover galleries, tools and support separately from activation. BDD and ATDD share one browser execution owner. Acceptance: website copy advances only after clipboard success; gallery intro uses the actual tab; support explains functionality consent without granting it. Cases BDD-TOUR-US4-030 through 032 own these journeys. Cases 027 through 029 own default visibility, checkbox skipping and source/filter handoff.
-
-First-use visibility applies to the dashboard welcome panel. Entering an editor without an active tour minimizes it to preserve access to normal controls. Task handoffs and paused guides remain explicit. Expected preview/clip-picker dialogs temporarily own focus and interaction; closing them restores the running pointer, while unexpected dialogs pause with recovery.
+- **SC-001:** The complete first-overlay path is reachable through real controls, with no programmatic page changes by the provider.
+- **SC-002:** Account completion/skips/minimization survive browser clearing and reauthentication; existing users do not receive a fresh welcome popup just because they have no legacy guide record.
+- **SC-003:** Ring/checklist/popover controls work on desktop, narrow screens and keyboard. Only one section expands at a time, and normal feedback/chat remain reachable.
+- **SC-004:** Every completion maps to a successful action or explicit informational finish; skips stay distinct. All owning examples and required quality gates must pass before merge.

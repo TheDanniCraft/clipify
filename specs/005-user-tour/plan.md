@@ -1,51 +1,22 @@
-# Implementation Plan: User tours
+# Implementation plan: Clipify guide
 
-**Branch**: `feat/user-tour` | **Date**: 2026-10-25 | **Spec**: [spec.md](spec.md)
+Use a native React/HeroUI checklist and a lazy Driver.js adapter. The checklist is an action launcher, not another help panel. Reference the concise task/action pattern in Usertour and Userflow; record source links in research.md.
 
-## Summary
+## Architecture
 
-Add a native floating guide panel with five expandable sections and Driver.js spotlights. Mount an account-keyed client provider in the authenticated dashboard layout. Keep tour state separate from successful domain outcomes. Existing create/save handlers report owned-resource outcomes through a typed context; no tour initiates a mutation itself. Stable data-tour attributes anchor guidance. Persist versioned progress locally with guarded parsing and writes. No schema changes or generated migrations.
+- `src/app/lib/userTour.ts`: version 2 progress parser, validated events, four-section catalog, navigation queues separate from action checkpoints, automatic within-journey continuation and legacy task migration.
+- `src/app/components/user-tour/provider.tsx`: HeroUI Accordion, Checkbox, Popover and ProgressCircle; server-supplied snapshot; optimistic state with ordered retryable server-action queue. No router calls. Observe the actual page after user navigation. Indeterminate checkbox is the active-state cue; replay is a row action with an icon, not extra prose.
+- `src/app/components/user-tour/spotlight.tsx`: target rendering and observation; selected tabs and revealed menus drive action advancement. Preserve native control ARIA around Driver annotations. Allow expected dialogs to suspend/restore a pointer, avoid false missing-target pauses during route transitions, and yield focus to popovers and support widgets.
+- `src/app/actions/userTour.ts`: authenticated action boundary. Reads/writes require the expected current account; event validation rejects unknown or foreign-owned updates.
+- `src/server/user-tour/progress.ts`: store JSON state in the existing account content-state row under `clipify-user-tour:v2`. Use a transaction and row lock for read/transition/write so simultaneous device updates are not lost. Resolve owned resources on read, recognize existing setup once, and use the existing account-deletion cascade.
+- Dashboard layout loads the authoritative snapshot through the action boundary. Normal Dashboard logo navigation uses Next Link; real edit buttons and menu items expose stable targets. Create/save/copy handlers retain their ordinary behavior and report only successful outcomes.
 
-## Technical Context
+## Data and migrations
 
-TypeScript 6, Next.js 16.4.2 App Router, React 19, HeroUI 3, Driver.js 1.10.2. Browser-local account-scoped storage. Existing Plausible integration for non-sensitive events. Jest/Testing Library for state and component tests; Playwright BDD for real browser acceptance. Desktop and narrow browser viewports; opt-in, no automatic spotlight. Lazy-load spotlight code. Next client/server guide and usePathname reference reviewed before implementation.
+No schema, Drizzle configuration or generated migration changes. Reuse the existing `user_content_states` table, whose account/key primary key and user foreign key already cover this preference. Browser storage is a one-time legacy import source, not durable authority. Store only allowed task/navigation IDs, resource IDs and UI/checkpoint state. Never store URLs, secrets or clip contents.
 
-## Constitution Check
+## Verification
 
-Required: spec/plan before code, failing executable tests before each behavior, Gherkin with one browser owner for BDD/ATDD, isolated loopback test databases, stable requirement IDs, no threshold reductions. Existing owner checks, revision conflicts and plan gates remain authoritative. Post-design review: no exceptions needed. Usertour service integration deferred because fixed code-owned journeys need no external authoring backend; Driver.js avoids maintaining spotlight geometry ourselves.
+Run affected whole-file Jest suites without coverage. Database integration belongs in the existing database lane at `test/mcp/integration/user-tour-progress.test.ts`, using a separate disposable loopback database per case. Genuine browser flows have one BDD/ATDD owner and their own application server/database. Run all 39 examples and inspect desktop/mobile screenshots, ring placement, native widgets, actual navigation and popover focus. Then verify full lint, explicit feature-owned formatting, types and both builds.
 
-## Project Structure
-
-- `src/app/lib/userTour.ts`: catalog, validation, transitions and route resolution.
-- `src/app/components/user-tour/`: provider, panel, spotlight adapter and styles.
-- Existing dashboard layout, table, overlay/theme/playlist pages: targets and successful-action reports.
-- `test/app/lib/userTour.test.ts`: TDD-owned state/validation evidence.
-- `test/app/components/user-tour/`: TDD-owned integration and adapter evidence.
-- `test/bdd/features/user-tour/guide.feature` and `test/bdd/steps/user-tour.steps.ts`: browser-owned BDD and ATDD evidence, one execution path.
-
-## Test Plan
-
-For each slice: add the whole-file test, run without coverage, record intended red, implement minimal behavior, run green, refactor while green. Browser scenarios are specified before implementation and bound incrementally. Never count a tooltip view as a successful action. Scope includes clipboard denial, create/save conflicts, empty clips, missing targets, inaccessible resources, storage corruption and account isolation.
-
-| Gate            | Command                                                                                                                                | Policy / evidence                                                                                      |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Inner loop      | `bun run test --runInBand <whole-file>`                                                                                                | Required, no coverage, all tests in file                                                               |
-| Affected suites | `bun run test:affected ef3efa18`                                                                                                       | Required after complete slice                                                                          |
-| Browser         | `bun run test:e2e:build` then `bunx bddgen` then `bunx playwright test --project=bdd-chromium .features-gen/bdd/user-tour --workers=1` | Required, disposable loopback fixture database; playwright-report and test-results/browser             |
-| Coverage        | `bun run test:coverage`                                                                                                                | Required before merge; unchanged repository thresholds and merged lane evidence; test-results/coverage |
-| Lint            | `bun run app:lint`                                                                                                                     | Required, zero errors                                                                                  |
-| Format          | `bun run app:prettier:check`                                                                                                           | Required                                                                                               |
-| Types           | `bun run app:typecheck`                                                                                                                | Required                                                                                               |
-| Build           | `bun run app:build`                                                                                                                    | Required                                                                                               |
-| Security        | `bun run audit:high` and owner/secret negative tests                                                                                   | Required; no URL/name/secret analytics                                                                 |
-| Runtime smoke   | browser journeys above                                                                                                                 | Required; real targets/popovers and keyboard/Escape verified                                           |
-
-Block merge for missing or failed gates. Keep runner reports as raw evidence and record commands/status in test-traceability.md; no inferred passes. No threshold exceptions. Overall summary destination: rolling, `reports/test-summary.md`, no release ID. Convergence will update that aggregate; this feature retains its own reports.
-
-## UX revision
-
-Retain the native guide state and lazy Driver adapter. Add validated per-account skipped task IDs and a completed-task handoff; preserve existing persisted completions. First-use checklist visibility is on; spotlights stay opt-in. Use installed HeroUI Button, Checkbox, Chip, Link and ProgressBar. Do not replace domain controls for guide purposes.
-
-Remove discovery-driven routing; actual Add/create and navigation buttons own navigation during tours. Initial task selection can return to the task's starting page. Teach source, filters and saving separately. Existing access gates remain authoritative, including read-only highlighting of locked controls. Website code-copy reports from ToolsClient only after clipboard success. Public website instructions and optional galleries/tools/support introductions extend the catalog to five sections, with 24/7 still excluded. Consent preference events suspend guide UI and pause active tasks. Reserve the bottom-right corner for the progress launcher and move feedback within that same dock.
-
-Validation: nine revision-state cases, provider skip/resume/consent/handoff cases and locked-control adapter coverage, all affected whole-file suites, 32 owning browser scenarios, lint/format/type/build. Full merge coverage/Test and the existing dependency-security requirements remain unchanged.
+Complete merge coverage/Test and dependency-security gates remain mandatory. Draft CI is scoped feedback, not merge evidence. Do not generate migrations or alter thresholds, hooks or the user's untracked configuration.
