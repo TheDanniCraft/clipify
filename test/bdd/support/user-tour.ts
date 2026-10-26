@@ -5,13 +5,15 @@ import { createMcpPostgresFixture } from "../../support/mcp/postgres";
 import { browserProviderEnvironment } from "../../support/mcp/browser-database.cjs";
 export { expect } from "@playwright/test";
 export type TourWorld = { origin: string; fixture: Awaited<ReturnType<typeof createMcpPostgresFixture>>; owner?: { creatorId: string; creatorOrganizationId: string; overlayId: string; playlistId: string }; result?: unknown };
-export const test = base.extend<{ tourWorld: TourWorld }>({
+export const test = base.extend<{ tourWorld: TourWorld; deploymentId: string | undefined }>({
+	deploymentId: [undefined, { option: true }],
 	trace: "off",
-	tourWorld: async ({}, provideWorld) => {
+	tourWorld: async ({ deploymentId }, provideWorld) => {
 		const fixture = await createMcpPostgresFixture();
 		console.log("Guide fixture database ready");
 		const env: NodeJS.ProcessEnv = {
 			PATH: process.env.PATH,
+			...(deploymentId ? { SOURCE_COMMIT: deploymentId } : {}),
 			HOME: process.env.HOME,
 			NODE_ENV: "production",
 			APP_ENV: "test",

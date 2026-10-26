@@ -25,9 +25,15 @@ refresh while populated; they are not written to draft storage. If storage is
 blocked or full, refresh is refused and edits remain on the current page. Other
 forms warn the user to copy edits before refreshing.
 
+Dashboard pages check for deployments on entry, every five minutes, and when
+returning to a visible tab or coming online. Detection opens the existing update
+notice without refreshing or saving. Dismissing it leaves the Refresh required
+button and does not reopen the notice for the same deployment. Another open
+dialog defers the notice until that dialog closes.
+
 Unattended overlay, controller, gallery-player and Runner-presentation routes
-retain periodic deployment checks and automatic refresh. Dashboard pages do not
-periodically refresh. The existing one-minute reload guard limits repeated
+retain periodic deployment checks and automatic refresh. Dashboard pages refresh
+only after an explicit user click. The existing one-minute reload guard limits repeated
 refreshes to the same deployment.
 
 The recovery client must already be loaded for these behaviors to apply. Tabs
