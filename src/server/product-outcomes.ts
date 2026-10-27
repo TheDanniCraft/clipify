@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { db, type QueryClient } from "@/db/client";
 import { auditEventsTable } from "@/db/schema";
 
-type Outcome = "creator_created" | "trial_granted" | "checkout_created" | "first_playback" | "playback_day" | "payment_verified";
+type Outcome = "creator_created" | "trial_granted" | "checkout_created" | "first_playback" | "playback_day" | "payment_verified" | "payment_failed" | "refund_succeeded";
 
 export async function recordProductOutcome(input: { outcome: Outcome; creatorId: string; key: string; occurredAt?: Date; metadata?: { amountMinor?: number; currency?: string; billingReason?: string; cycle?: string; source?: string } }, client: QueryClient = db) {
 	// A deterministic UUID makes transaction retries and duplicate webhook deliveries one outcome.

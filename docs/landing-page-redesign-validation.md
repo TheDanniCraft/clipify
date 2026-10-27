@@ -1,5 +1,7 @@
 # Landing page redesign delivery record
 
+Current closeout and owner-only checklist: [landing-page-audit-closeout.md](landing-page-audit-closeout.md). Earlier sections below retain the implementation history.
+
 This change implements the landing-page buying journey from the 25 October 2026 audit, including the detailed 23-page PDF. It preserves Clipify's purple identity and existing product workflows. It also corrects the closely related public metadata, signup orientation, avatar delivery, and plan presentation issues.
 
 ## Audit traceability

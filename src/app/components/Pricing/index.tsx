@@ -46,10 +46,10 @@ export default function TiersComponent({ source = "pricing_page", campaignOffer 
 	};
 
 	return (
-		<div className='relative mx-auto flex w-full max-w-3xl flex-col items-center'>
+		<div className='@container relative mx-auto flex w-full max-w-3xl flex-col items-center'>
 			<BillingFrequency value={selectedFrequency.key} onChange={onFrequencyChange} pricing={proPromoEnabled ? null : pricing} />
 
-			<div className='mt-8 grid w-full grid-cols-1 items-stretch gap-4 sm:grid-cols-2'>
+			<div className='mt-8 grid w-full grid-cols-1 items-stretch gap-4 @min-[32rem]:grid-cols-2'>
 				{tiers.map((tier) => {
 					const promoPrice = pricingPromoByFrequency[selectedFrequency.key];
 					const hasPromoPrice = tier.key === "pro" && proPromoEnabled && promoPrice !== null;
@@ -131,7 +131,7 @@ export default function TiersComponent({ source = "pricing_page", campaignOffer 
 			) : null}
 
 			<Card variant='secondary' className='mt-4 w-full border border-accent/30'>
-				<Card.Content className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
+				<Card.Content className='flex flex-col gap-4 @min-[40rem]:flex-row @min-[40rem]:items-center @min-[40rem]:justify-between'>
 					<div>
 						<h2 className='font-semibold'>Agency or enterprise?</h2>
 						<p className='mt-1 text-sm text-foreground/75'>Manage multiple independent creators, team permissions, and centrally assigned Pro seats with custom commercial terms.</p>
@@ -151,7 +151,7 @@ export default function TiersComponent({ source = "pricing_page", campaignOffer 
 
 			{showRunner ? (
 				<Card variant='secondary' className='mt-4 w-full border border-default/60'>
-					<Card.Content className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
+					<Card.Content className='flex flex-col gap-4 @min-[40rem]:flex-row @min-[40rem]:items-center @min-[40rem]:justify-between'>
 						<div className='min-w-0 flex-1'>
 							<h2 className='font-semibold'>{runnerIncluded.title}</h2>
 							<p className='mt-1 text-sm text-foreground/75'>{runnerIncluded.description}</p>

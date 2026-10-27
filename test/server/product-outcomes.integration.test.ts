@@ -57,3 +57,39 @@ it("removes only the deleted creator's product records during the existing accou
 		await fixture.close();
 	}
 });
+
+it("reports mature retention windows, activation delay and refunds independently of gross receipts", async () => {
+	const fixture = await createMcpPostgresFixture();
+	const previous = process.env.NEXT_PUBLIC_BASE_URL;
+	process.env.NEXT_PUBLIC_BASE_URL = "https://clipify.us";
+	const now = Date.now();
+	const day = 86400000;
+	try {
+		for (const [id, age] of [
+			["mature", 50],
+			["young", 2],
+			["no-return", 50],
+		] as const) {
+			await recordProductOutcome({ outcome: "creator_created", creatorId: id, key: "signup", occurredAt: new Date(now - age * day - 60000) }, fixture.db);
+			await recordProductOutcome({ outcome: "first_playback", creatorId: id, key: "first", occurredAt: new Date(now - age * day) }, fixture.db);
+		}
+		for (const age of [43, 20]) await recordProductOutcome({ outcome: "playback_day", creatorId: "mature", key: String(age), occurredAt: new Date(now - age * day) }, fixture.db);
+		// A preview return must not rescue an otherwise inactive production cohort.
+		process.env.NEXT_PUBLIC_BASE_URL = "https://preview.invalid";
+		await recordProductOutcome({ outcome: "playback_day", creatorId: "no-return", key: "preview", occurredAt: new Date(now - 43 * day) }, fixture.db);
+		process.env.NEXT_PUBLIC_BASE_URL = "https://clipify.us";
+		for (let i = 0; i < 2; i++) await recordProductOutcome({ outcome: "refund_succeeded", creatorId: "mature", key: "re_1", metadata: { amountMinor: 50, currency: "eur" } }, fixture.db);
+		await recordProductOutcome({ outcome: "payment_failed", creatorId: "mature", key: "evt_fail", metadata: { currency: "eur" } }, fixture.db);
+		await fixture.pool.query("INSERT INTO users(id,email,username,avatar,role,plan) VALUES('guardrail','guardrail@example.invalid','guardrail','','user','free')");
+		await fixture.pool.query("INSERT INTO billing_subscriptions(id,user_id,stripe_customer_id,status,cancel_at_period_end) VALUES('active','guardrail','cus_guardrail','active',true),('unpaid','guardrail','cus_guardrail','past_due',false),('canceled','guardrail','cus_guardrail','canceled',false)");
+		const reports = (await fixture.pool.query(readFileSync("docs/marketing-outcome-report.sql", "utf8"))) as unknown as { rows: Record<string, unknown>[] }[];
+		expect(reports[2].rows[0]).toMatchObject({ activated_creators: "3", median_seconds_to_first_playback: 60, d7_mature_creators: "2", d7_returned_creators: "1", d30_mature_creators: "2", d30_returned_creators: "1" });
+		expect(reports[1].rows).toEqual([]);
+		expect(reports[3].rows[0]).toMatchObject({ creators_canceling_at_period_end: "1", creators_with_payment_issues: "1", creators_with_canceled_subscriptions: "1" });
+		expect(reports[4].rows).toEqual(expect.arrayContaining([expect.objectContaining({ action: "product:refund_succeeded", recorded_events: "1", refunded_minor_units: "50" }), expect.objectContaining({ action: "product:payment_failed", recorded_events: "1", refunded_minor_units: null })]));
+	} finally {
+		if (previous === undefined) delete process.env.NEXT_PUBLIC_BASE_URL;
+		else process.env.NEXT_PUBLIC_BASE_URL = previous;
+		await fixture.close();
+	}
+});

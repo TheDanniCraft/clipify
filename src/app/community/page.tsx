@@ -103,7 +103,7 @@ export default async function CommunityPage() {
 
 	return (
 		<div className='bg-background text-foreground'>
-			<div className='bg-gradient-to-br from-brand-800 to-brand-400 min-h-dvh relative flex flex-col overflow-hidden text-white'>
+			<div className='bg-gradient-to-br from-brand-800 to-brand-400 relative flex flex-col overflow-hidden text-white'>
 				<BasicNavbar />
 				<div
 					className='
@@ -115,16 +115,12 @@ export default async function CommunityPage() {
 						opacity-30
 					'
 				/>
-				<div className='mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-12 sm:px-6 lg:px-8'>
+				<div className='mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-10 sm:py-16 sm:px-6 lg:px-8'>
 					<main className='container mx-auto flex flex-1 flex-col justify-center overflow-hidden px-0'>
-						<section className='z-20 grid grid-cols-1 items-start gap-10 lg:grid-cols-[1.1fr_0.9fr]'>
+						<section className='z-20 max-w-3xl'>
 							<div className='flex flex-col items-start gap-6'>
-								<h1 className='max-w-3xl text-[clamp(40px,10vw,64px)] font-bold leading-[1.05] tracking-tighter'>
-									Clipify itself is just some code.
-									<br />
-									With you, it becomes a powerful tool.
-								</h1>
-								<p className='max-w-xl text-lg leading-8 text-white/70'>See how creators are using Clipify in real streams and how the community puts the tool to work.</p>
+								<h1 className='max-w-3xl text-[clamp(40px,10vw,64px)] font-bold leading-[1.05] tracking-tighter'>Find your next favorite creator.</h1>
+								<p className='max-w-xl text-lg leading-8 text-white/70'>Explore creators who appear in the Clipify directory and visit their channels.</p>
 								<div className='flex flex-col gap-3 sm:flex-row sm:items-center'>
 									<Link href='/login' className='h-10 w-[163px] bg-white px-[16px] py-[10px] text-sm font-medium leading-5 text-black rounded-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-accent text-accent-foreground hover:bg-accent-hover'>
 										Register now
@@ -134,8 +130,6 @@ export default async function CommunityPage() {
 									<CommunityHeroAvatars streamers={featuredStreamers} totalCount={totalCount} />
 								</div>
 							</div>
-
-							<div />
 						</section>
 					</main>
 				</div>
@@ -143,7 +137,7 @@ export default async function CommunityPage() {
 			<div className='w-full bg-background px-4 py-24'>
 				<div className='mx-auto flex w-full max-w-6xl flex-col'>
 					<div className='mb-6 flex flex-col items-start gap-2'>
-						<p className='max-w-2xl text-sm text-muted'>Want to be featured here? Manage your Creator Page and community visibility in Settings.</p>
+						<p className='max-w-2xl text-sm text-muted'>This directory shows visible community profiles. Pro badges indicate access, including trials or grants; they do not identify paying subscribers. Twitch live status does not establish current Clipify playback. Manage your Creator Page and community visibility in Settings.</p>
 					</div>
 					<div className='mt-4'>
 						{communityGroups.map((group) => (

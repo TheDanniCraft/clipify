@@ -25,9 +25,10 @@ function isChatwootWidgetMounted() {
 const ChatWidget = () => {
 	const pathname = usePathname();
 	const isEmbedded = isEmbeddedRoute(pathname);
-	const { openDialog } = useHeadlessConsentUI();
+	const { banner, dialog, openDialog } = useHeadlessConsentUI();
 	const functionalityAllowed = useConsent("functionality");
 	const [preferencesVisible, setPreferencesVisible] = useState(false);
+	const consentVisible = banner.isVisible || dialog.isVisible || preferencesVisible;
 	const [chatwootState, setChatwootState] = useState({ checked: false, available: false });
 	useScriptLoader(isEmbedded ? [] : [chatwootConsentScript]);
 	const scriptStatus: ConsentScriptStatus = !functionalityAllowed ? "blocked" : chatwootState.available ? "ready" : "loading";
@@ -37,7 +38,7 @@ const ChatWidget = () => {
 			const chatwoot = window.$chatwoot;
 			if (!chatwoot || !isChatwootWidgetMounted()) return;
 
-			if (isEmbedded || scriptStatus !== "ready") {
+			if (isEmbedded || consentVisible || scriptStatus !== "ready") {
 				chatwoot.toggle?.("close");
 				chatwoot.toggleBubbleVisibility?.("hide");
 				return;
@@ -49,7 +50,7 @@ const ChatWidget = () => {
 		syncChatwootVisibility();
 		window.addEventListener("chatwoot:ready", syncChatwootVisibility);
 		return () => window.removeEventListener("chatwoot:ready", syncChatwootVisibility);
-	}, [isEmbedded, scriptStatus]);
+	}, [isEmbedded, scriptStatus, consentVisible]);
 
 	useEffect(() => {
 		function updateChatwootState() {
@@ -70,7 +71,7 @@ const ChatWidget = () => {
 		return () => window.removeEventListener(CONSENT_PREFERENCES_VISIBILITY_EVENT, updatePreferencesVisibility);
 	}, []);
 
-	if (!chatwootState.checked || chatwootState.available || !shouldShowChatConsentFallback({ isEmbedded, preferencesVisible, scriptStatus })) return null;
+	if (!chatwootState.checked || chatwootState.available || !shouldShowChatConsentFallback({ isEmbedded, preferencesVisible: consentVisible, scriptStatus })) return null;
 
 	function openSupportConsent() {
 		setPreferencesVisible(true);

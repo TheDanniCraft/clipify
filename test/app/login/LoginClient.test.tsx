@@ -3,6 +3,9 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { authClient } from "@/auth/client";
 import LoginClient from "@/app/login/LoginClient";
 
+const plausible = jest.fn();
+jest.mock("next-plausible", () => ({ usePlausible: () => plausible }));
+
 jest.mock("@/auth/client", () => ({
 	authClient: { signIn: { social: jest.fn() } },
 }));
@@ -69,4 +72,29 @@ describe("native MCP sign-in", () => {
 			window.history.replaceState({}, "", "/");
 		}
 	});
+});
+
+it("records deliberate authentication intent without signed return URLs or identifiers", async () => {
+	jest.clearAllMocks();
+	(authClient.signIn.social as jest.Mock).mockResolvedValue({ error: null });
+	render(<LoginClient returnUrl='/checkout/continue' />);
+	expect(plausible).not.toHaveBeenCalled();
+	fireEvent.click(screen.getByRole("button", { name: "Login with Twitch" }));
+	await waitFor(() => expect(plausible).toHaveBeenCalledWith("auth_started", { props: { provider: "twitch", source: "checkout" } }));
+	expect(plausible).toHaveBeenCalledTimes(1);
+});
+
+it.each(["returned", "thrown"])("allows retry after a %s authentication-start error", async (mode) => {
+	jest.clearAllMocks();
+	const social = authClient.signIn.social as jest.Mock;
+	if (mode === "thrown") social.mockRejectedValueOnce(new Error("network"));
+	else social.mockResolvedValueOnce({ error: { message: "denied" } });
+	social.mockResolvedValueOnce({ error: null });
+	render(<LoginClient returnUrl='' />);
+	fireEvent.click(screen.getByRole("button", { name: "Login with Twitch" }));
+	await screen.findByRole("alert");
+	expect(screen.getByRole("button", { name: "Login with Twitch" })).toBeEnabled();
+	fireEvent.click(screen.getByRole("button", { name: "Login with Twitch" }));
+	await waitFor(() => expect(social).toHaveBeenCalledTimes(2));
+	expect(plausible).toHaveBeenCalledTimes(2);
 });

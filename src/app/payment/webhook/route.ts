@@ -11,7 +11,7 @@ import Stripe from "stripe";
 
 import { getStripe } from "@actions/subscription";
 import { db } from "@/db/client";
-import { billingWebhookEventsTable } from "@/db/schema";
+import { billingWebhookEventsTable, usersTable } from "@/db/schema";
 import { syncStripeSubscription } from "@/server/billing";
 import { syncAgencyStripeSubscription } from "@/server/agencies/billing-sync";
 import { captureUnexpectedError } from "@lib/sentryServer";
@@ -55,6 +55,18 @@ async function getCanonicalSubscription(stripe: Stripe, subscription: string | S
 
 async function processEvent(stripe: Stripe, event: Stripe.Event) {
 	switch (event.type) {
+		case "refund.created":
+		case "refund.updated": {
+			const refund = event.data.object as Stripe.Refund;
+			if (refund.status !== "succeeded" || refund.amount <= 0 || !refund.charge) return;
+			const charge = await stripe.charges.retrieve(typeof refund.charge === "string" ? refund.charge : refund.charge.id);
+			const customerId = typeof charge.customer === "string" ? charge.customer : charge.customer?.id;
+			if (!customerId) return;
+			const owners = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.stripeCustomerId, customerId)).limit(2);
+			// Refunds are a creator billing guardrail, not a deduction from Pro invoice revenue.
+			if (owners.length === 1) await recordProductOutcome({ outcome: "refund_succeeded", creatorId: owners[0].id, key: refund.id, occurredAt: new Date(event.created * 1000), metadata: { amountMinor: refund.amount, currency: refund.currency } });
+			return;
+		}
 		case "checkout.session.completed":
 		case "checkout.session.async_payment_succeeded": {
 			const session = await stripe.checkout.sessions.retrieve((event.data.object as Stripe.Checkout.Session).id, { expand: ["subscription"] });
@@ -82,6 +94,7 @@ async function processEvent(stripe: Stripe, event: Stripe.Event) {
 			const agency = await syncAgencyStripeSubscription(subscription, event.created, event.type === "invoice.paid");
 			if (agency.handled) return;
 			const result = await syncStripeSubscription(subscription, null, event.created);
+			if (event.type === "invoice.payment_failed") await recordProductOutcome({ outcome: "payment_failed", creatorId: result.userId, key: event.id, occurredAt: new Date(event.created * 1000), metadata: { currency: invoice.currency, billingReason: invoice.billing_reason ?? "unknown" } });
 			if (event.type === "invoice.paid" && invoice.status === "paid") {
 				const products = await Promise.all(subscription.items.data.map((item) => resolveBillingProductForPrice(item.price)));
 				if (products.includes(BillingProduct.Pro))
@@ -111,7 +124,7 @@ export async function POST(req: Request) {
 		return NextResponse.json({ error: message }, { status: 400 });
 	}
 
-	const handledEvents = new Set(["checkout.session.completed", "checkout.session.async_payment_succeeded", "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted", "invoice.paid", "invoice.payment_failed"]);
+	const handledEvents = new Set(["refund.created", "refund.updated", "checkout.session.completed", "checkout.session.async_payment_succeeded", "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted", "invoice.paid", "invoice.payment_failed"]);
 	if (!handledEvents.has(event.type)) return NextResponse.json({});
 
 	const claim = await claimWebhookEvent(event);

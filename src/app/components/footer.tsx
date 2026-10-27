@@ -230,11 +230,11 @@ export default function Footer() {
 	const renderList = useCallback(
 		({ title, items }: { title: string; items: readonly { readonly name: string; readonly href: string }[] }) => (
 			<div>
-				<h3 className='text-sm text-muted font-semibold'>{title}</h3>
+				<h3 className='text-sm text-foreground/75 font-semibold'>{title}</h3>
 				<ul className='mt-2 space-y-0.5'>
 					{items.map((item) => (
 						<li key={item.name}>
-							<Link className='text-muted text-sm' href={item.href}>
+							<Link className='text-foreground/75 text-sm' href={item.href}>
 								{item.name}
 							</Link>
 						</li>
@@ -257,16 +257,16 @@ export default function Footer() {
 								<span className='text-sm font-medium'>Clipify</span>
 							</div>
 							<div className='space-y-4'>
-								<p className='text-sm text-muted'>Need a break? Clipify got you covered. Auto-play clips while you are away - keep your stream alive and your viewers entertained.</p>
+								<p className='text-sm text-foreground/75'>Need a break? Clipify got you covered. Auto-play clips while you are away - keep your stream alive and your viewers entertained.</p>
 								{communityStreamers.length > 0 ? (
 									<Link href='/community' className='inline-flex max-w-fit flex-col items-start gap-2 rounded-[14px] border border-default/80 bg-surface-secondary/70 px-3 py-2 transition hover:border-default hover:bg-surface-secondary'>
 										<div className='space-y-0.5 text-left'>
 											<p className='text-sm font-semibold text-foreground'>Clipify community</p>
-											<p className='text-[11px] text-muted'>
+											<p className='text-[11px] text-foreground/75'>
 												{communityStreamerCount} streamer{communityStreamerCount === 1 ? "" : "s"}
 											</p>
 										</div>
-										<CommunityTeaser streamers={communityStreamers} totalCount={communityStreamerCount} countClassName='ml-2 text-[11px] font-medium text-muted' />
+										<CommunityTeaser streamers={communityStreamers} totalCount={communityStreamerCount} countClassName='ml-2 text-[11px] font-medium text-foreground/75' />
 									</Link>
 								) : null}
 							</div>
@@ -280,7 +280,7 @@ export default function Footer() {
 								<div>{renderList({ title: "About Us", items: footerNavigation.aboutUs })}</div>
 								<div className='mt-10 md:mt-0'>
 									{renderList({ title: "Legal", items: footerNavigation.legal })}
-									<button type='button' className='link mt-1 text-sm text-muted' onClick={() => window.dispatchEvent(new CustomEvent(OPEN_CONSENT_PREFERENCES_EVENT))}>
+									<button type='button' className='link mt-1 text-sm text-foreground/75' onClick={() => window.dispatchEvent(new CustomEvent(OPEN_CONSENT_PREFERENCES_EVENT))}>
 										Cookie preferences
 									</button>
 								</div>
@@ -291,8 +291,8 @@ export default function Footer() {
 					<Card variant='secondary' className='mt-4 mb-10 sm:mt-6 sm:mb-14 lg:mt-8 lg:mb-16'>
 						<Card.Content className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
 							<div className='shrink-0'>
-								<h3 className='text-sm text-muted font-semibold'>Subscribe to our newsletter</h3>
-								<p className='text-sm text-muted mt-2'>Receive updates on new features, tips and tricks, or offers straight to your email.</p>
+								<h3 className='text-sm text-foreground/75 font-semibold'>Subscribe to our newsletter</h3>
+								<p className='text-sm text-foreground/75 mt-2'>Receive updates on new features, tips and tricks, or offers straight to your email.</p>
 							</div>
 							<div className='w-full lg:max-w-md' onFocusCapture={() => setNewsletterRequested(true)}>
 								<Form className='w-full space-y-3' onSubmit={handleNewsletterSubmit}>
@@ -324,7 +324,7 @@ export default function Footer() {
 																case "success":
 																	return <IconCircleCheckFilled className='text-success' />;
 																default:
-																	return <IconMailFilled className='text-muted' />;
+																	return <IconMailFilled className='text-foreground/75' />;
 															}
 														})()}
 													</InputGroup.Prefix>
@@ -357,7 +357,7 @@ export default function Footer() {
 											}}
 											transition={{ duration: 0.24, ease: "easeOut" }}
 										>
-											<div className='rounded-[8px] border border-default px-3 py-2 text-xs text-muted'>Subscribing as {pendingEmail}</div>
+											<div className='rounded-[8px] border border-default px-3 py-2 text-xs text-foreground/75'>Subscribing as {pendingEmail}</div>
 											<TextField fullWidth>
 												<Label>How should we call you?</Label>
 												<Input fullWidth variant='secondary' placeholder={firstNamePlaceholder} value={firstName} onChange={(event) => setFirstName(event.target.value)} />
@@ -389,8 +389,8 @@ export default function Footer() {
 											<Turnstile size='compact' siteKey='0x4AAAAAACMFR636JljxhVLl' onSuccess={setToken} onError={(error) => console.error("Turnstile error:", error)} onExpire={() => setToken(null)} />
 										</div>
 									)}
-									{newsletterState === "loading" && <p className='text-xs text-muted pt-1'>Subscribing...</p>}
-									{newsletterState === "captcha" && <p className='text-xs text-muted pt-1'>Please complete the CAPTCHA first.</p>}
+									{newsletterState === "loading" && <p className='text-xs text-foreground/75 pt-1'>Subscribing...</p>}
+									{newsletterState === "captcha" && <p className='text-xs text-foreground/75 pt-1'>Please complete the CAPTCHA first.</p>}
 									{newsletterState === "error" && <p className='text-xs text-danger pt-1'>Could not subscribe right now. Please try again.</p>}
 									{newsletterState === "rateLimit" && <p className='text-xs text-danger pt-1'>Too many attempts. Please wait a moment.</p>}
 								</Form>
@@ -417,14 +417,14 @@ export default function Footer() {
 					<div className='flex flex-wrap justify-between gap-2 pt-8'>
 						<div>
 							<div className='flex items-center justify-center gap-3 md:justify-start'>
-								<Link href='https://status.thedannicraft.de/status/clipify' className='text-muted'>
+								<Link href='https://status.thedannicraft.de/status/clipify' className='text-foreground/75'>
 									<span className='inline-flex items-center gap-2 text-xs font-medium'>
 										<span aria-hidden className='h-2 w-2 rounded-full' style={{ backgroundColor: statusColor }} />
 										<span>{statusText}</span>
 									</span>
 								</Link>
 							</div>
-							<p className='text-center text-xs text-muted md:text-start'>&copy; {new Date().getFullYear()} TheDanniCraft. All rights reserved.</p>
+							<p className='text-center text-xs text-foreground/75 md:text-start'>&copy; {new Date().getFullYear()} TheDanniCraft. All rights reserved.</p>
 						</div>
 
 						<div role='group' aria-label='Color theme' className='flex w-fit gap-1 rounded-full border border-default p-1'>

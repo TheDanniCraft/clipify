@@ -1,5 +1,7 @@
 # Landing page redesign implementation plan
 
+Current closeout and owner-only checklist: [landing-page-audit-closeout.md](landing-page-audit-closeout.md). Earlier sections below retain the implementation history.
+
 Make Clipify immediately understandable as a Twitch clip player for OBS break scenes, demonstrate real playback early, and explain why saved curation, styling, and controls justify an account. Preserve the purple identity, existing product capabilities, and permanent Free plan.
 
 Prepared on 27 October 2026 for `feat/redesign-landing-page`. The implementation uses this brief; delivery evidence and remaining work are recorded in `landing-page-redesign-validation.md`.

@@ -181,3 +181,106 @@ test("newsletter keyboard navigation skips the inactive name step", async ({ pag
 	await page.keyboard.press("Tab");
 	await expect(name).not.toBeFocused();
 });
+
+for (const theme of ["light", "dark"]) {
+	for (const consentWidth of [320, 640]) {
+		test(`public page chrome, consent and reflow are accessible at ${consentWidth}px in ${theme} mode`, async ({ page }, testInfo) => {
+			await page.setViewportSize({ width: consentWidth, height: 900 });
+			await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+			await page.goto("/");
+			const reject = page.getByRole("button", { name: "Reject optional", exact: true });
+			await expect(reject).toBeVisible();
+			await expect(page.getByRole("button", { name: "Enable support chat" })).toHaveCount(0);
+			await reject.focus();
+			await page.screenshot({ path: testInfo.outputPath(`consent-${consentWidth}-${theme}.png`), fullPage: true });
+			await page.addScriptTag({ content: axeSource });
+			const check = () =>
+				page.evaluate(async () => {
+					const engine = (window as typeof window & { axe: typeof import("axe-core") }).axe;
+					return (await engine.run(document, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] } })).violations.map(({ id, nodes }) => ({ id, targets: nodes.map(({ target }) => target) }));
+				});
+			expect(await check()).toEqual([]);
+			await Promise.all([page.waitForEvent("load"), reject.press("Enter")]);
+			await page.addScriptTag({ content: axeSource });
+			expect(await check()).toEqual([]);
+			// CSS zoom exercises 200% reflow at a 640px viewport, alongside the 320px cases.
+			await page.evaluate(() => {
+				document.documentElement.style.zoom = window.innerWidth === 640 ? "2" : "1";
+			});
+			expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+			await expect(page.getByRole("link", { name: "Start free with Twitch" }).first()).toBeVisible();
+			await page.screenshot({ path: testInfo.outputPath(`reflow-${consentWidth}-${theme}.png`), fullPage: true });
+		});
+	}
+	test(`public gallery plays controlled media and restores keyboard focus in ${theme} mode`, async ({ page }, testInfo) => {
+		await page.setViewportSize({ width: 390, height: 900 });
+		await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+		const sample = { id: "demo-clip", title: "A demo highlight", broadcaster_id: "demo-owner", creator_name: "Demo creator", duration: 8, thumbnail_url: "/landing-playback.png" };
+		let loads = 0,
+			mediaRequests = 0;
+		// Substitute only the external clip/media results; real actions, renderer and HeroUI modal remain installed.
+		await page.route("**/gallery", async (route) => {
+			if (route.request().method() !== "POST") return route.continue();
+			const response = await route.fetch();
+			let body = await response.text();
+			if (route.request().postData() === "[]") {
+				loads++;
+				expect(body).toContain("1:null");
+				body = body.replace("1:null", `1:${JSON.stringify({ overlayId: "demo", clips: [sample] })}`);
+			} else if (route.request().postData()?.includes("demo-clip")) {
+				mediaRequests++;
+				expect(body).toContain('1:"$undefined"');
+				body = body.replace('1:"$undefined"', `1:"/__gallery-fixture.mp4"`);
+			}
+			await route.fulfill({ response, body });
+		});
+		await page.route("**/__gallery-fixture.mp4", (route) => route.fulfill({ contentType: "video/mp4", body: readFileSync("test/fixtures/runner/presentation.mp4") }));
+		await page.goto("/gallery");
+		await dismissPrivacy(page);
+		expect(loads).toBe(0);
+		expect(mediaRequests).toBe(0);
+		await page.getByRole("button", { name: "Explore the demo gallery" }).click();
+		const card = page.getByRole("button", { name: /A demo highlight/ });
+		await expect(card).toBeVisible();
+		expect(mediaRequests).toBe(0);
+		await assertAccessibleMain(page);
+		await card.focus();
+		await card.press("Enter");
+		const dialog = page.getByRole("dialog");
+		await expect(dialog).toBeVisible();
+		const video = dialog.locator("video");
+		await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.currentTime)).toBeGreaterThan(0.2);
+		await page.screenshot({ path: testInfo.outputPath(`gallery-${theme}.png`), fullPage: true });
+		await page.keyboard.press("Escape");
+		await expect(dialog).toHaveCount(0);
+		await expect(card).toBeFocused();
+		await expect(page.locator("video")).toHaveCount(0);
+		expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+	});
+}
+
+test("unavailable public gallery offers retry without requiring login", async ({ page }) => {
+	await page.goto("/gallery");
+	await dismissPrivacy(page);
+	await page.getByRole("button", { name: "Explore the demo gallery" }).click();
+	await expect(page.locator("main").getByRole("alert")).toHaveText("The gallery couldn't load. Please try again.");
+	await expect(page.getByRole("button", { name: "Try gallery again" })).toBeEnabled();
+	await expect(page.getByRole("link", { name: "Create your gallery" })).toBeVisible();
+});
+
+for (const theme of ["light", "dark"]) {
+	test(`community introduction leaves room for the directory in ${theme} mode`, async ({ page }, testInfo) => {
+		await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+		for (const width of [390, 1440]) {
+			await page.setViewportSize({ width, height: 900 });
+			await page.goto("/community");
+			if (await page.getByRole("button", { name: "Reject optional", exact: true }).isVisible()) await dismissPrivacy(page);
+			await expect(page.getByRole("heading", { level: 1 })).toHaveText("Find your next favorite creator.");
+			const context = page.getByText("This directory shows visible community profiles.", { exact: false });
+			await expect(context).toBeVisible();
+			expect((await context.boundingBox())!.y).toBeLessThan(900);
+			expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+			await page.screenshot({ path: testInfo.outputPath(`community-${width}-${theme}.png`), fullPage: true });
+		}
+	});
+}

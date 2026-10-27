@@ -13,7 +13,9 @@ export default async function GalleryFramePage({ params }: { params: Promise<{ g
 		<>
 			<style>{`html,body,#root{height:100%;background:transparent!important}html{color-scheme:normal!important}body{margin:0;padding:0;min-height:100%!important}`}</style>
 			<script dangerouslySetInnerHTML={{ __html: "window.$chatwoot = window.$chatwoot || {}; window.$chatwoot.disabled = true;" }} />
-			<GalleryFrame gallery={bundle.gallery} clips={bundle.clips} ownerName={bundle.owner.username} showAttribution={bundle.showAttribution} />
+			<main>
+				<GalleryFrame gallery={bundle.gallery} clips={bundle.clips} ownerName={bundle.owner.username} showAttribution={bundle.showAttribution} />
+			</main>
 		</>
 	);
 }

@@ -1,3 +1,4 @@
+import PublicGalleryDemo from "@components/gallery/PublicGalleryDemo";
 import type { Metadata } from "next";
 import { Link } from "@components/heroui-client";
 import BasicNavbar from "@components/LandingPage/basicNavbar";
@@ -14,12 +15,13 @@ export default function GalleryLandingPage() {
 		<>
 			<BasicNavbar />
 			<main className='mx-auto flex min-h-[70dvh] max-w-4xl flex-col items-center justify-center gap-6 px-6 py-20 text-center'>
-				<p className='font-semibold text-accent'>Clipify Galleries</p>
+				<p className='font-semibold text-accent dark:text-violet-300'>Clipify Galleries</p>
 				<h1 className='text-4xl font-bold sm:text-6xl'>Turn your best clips into a gallery people remember.</h1>
-				<p className='max-w-2xl text-lg text-muted'>Choose a curated playlist or a filtered selection of Twitch highlights. Share a public gallery link or embed the gallery on your own website.</p>
+				<p className='max-w-2xl text-lg text-foreground/75'>Choose a curated playlist or a filtered selection of Twitch highlights. Share a public gallery link or embed the gallery on your own website.</p>
 				<p className='max-w-2xl leading-relaxed text-foreground/75'>Free includes one branded gallery with up to 50 live clips. Pro adds more galleries and customization. Gallery visibility is managed in your settings; share public gallery links rather than private streaming-source URLs.</p>
+				<PublicGalleryDemo />
 				<div className='flex flex-wrap justify-center gap-3'>
-					<Link className='rounded-xl bg-accent px-5 py-3 font-semibold text-accent-foreground' href='/login'>
+					<Link className='rounded-xl bg-accent px-5 py-3 font-semibold text-accent dark:text-violet-300-foreground' href='/login'>
 						Create your gallery
 					</Link>
 					<Link className='rounded-xl bg-default px-5 py-3 font-semibold' href='/'>
