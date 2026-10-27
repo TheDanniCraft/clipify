@@ -239,6 +239,13 @@
       "when": 1793029825680,
       "tag": "0033_sharp_boomer",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1793063494697,
+      "tag": "0034_stiff_misty_knight",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,1 @@
+ALTER TYPE "public"."badge" ADD VALUE 'clipify-expert' BEFORE 'founder';
