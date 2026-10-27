@@ -168,18 +168,7 @@ CREATE TABLE "stream_session_destinations" (
 ALTER TABLE "agency_accounts" DROP CONSTRAINT "agency_accounts_seat_limit_nonnegative";--> statement-breakpoint
 ALTER TABLE "agency_billing_accounts" DROP CONSTRAINT "agency_billing_runner_minimum_nonnegative";--> statement-breakpoint
 ALTER TABLE "agency_billing_accounts" DROP CONSTRAINT "agency_billing_runner_quantity_nonnegative";--> statement-breakpoint
-ALTER TABLE "agency_license_allocations" ALTER COLUMN "product" SET DATA TYPE text;--> statement-breakpoint
-ALTER TABLE "agency_license_allocations" ALTER COLUMN "product" SET DEFAULT 'creator_pro'::text;--> statement-breakpoint
-DROP TYPE "public"."agency_license_product";--> statement-breakpoint
-CREATE TYPE "public"."agency_license_product" AS ENUM('creator_pro');--> statement-breakpoint
-ALTER TABLE "agency_license_allocations" ALTER COLUMN "product" SET DEFAULT 'creator_pro'::"public"."agency_license_product";--> statement-breakpoint
-ALTER TABLE "agency_license_allocations" ALTER COLUMN "product" SET DATA TYPE "public"."agency_license_product" USING "product"::"public"."agency_license_product";--> statement-breakpoint
-ALTER TABLE "entitlement_grants" ALTER COLUMN "entitlement" SET DATA TYPE text;--> statement-breakpoint
-ALTER TABLE "entitlement_grants" ALTER COLUMN "entitlement" SET DEFAULT 'pro_access'::text;--> statement-breakpoint
-DROP TYPE "public"."entitlement";--> statement-breakpoint
-CREATE TYPE "public"."entitlement" AS ENUM('pro_access');--> statement-breakpoint
-ALTER TABLE "entitlement_grants" ALTER COLUMN "entitlement" SET DEFAULT 'pro_access'::"public"."entitlement";--> statement-breakpoint
-ALTER TABLE "entitlement_grants" ALTER COLUMN "entitlement" SET DATA TYPE "public"."entitlement" USING "entitlement"::"public"."entitlement";--> statement-breakpoint
+-- Preserve retired Runner enum values for existing grants, allocations and rollback compatibility.
 ALTER TABLE "runners" ADD COLUMN "protocol_version" integer DEFAULT 1 NOT NULL;--> statement-breakpoint
 ALTER TABLE "runners" ADD COLUMN "capabilities" jsonb DEFAULT '[]'::jsonb NOT NULL;--> statement-breakpoint
 ALTER TABLE "runners" ADD COLUMN "last_acknowledged_config_revision" integer;--> statement-breakpoint

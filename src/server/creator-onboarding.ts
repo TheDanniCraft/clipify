@@ -42,12 +42,9 @@ export async function initializeCreator(creatorId: string, twitchCreatedAt: Date
 			throw new Error("AUTH_USER_ALREADY_LINKED_TO_CREATOR");
 		}
 
-		const organizationId = `creator:${creatorId}`;
 		const [existingAccount] = await tx.select().from(creatorAccountsTable).where(eq(creatorAccountsTable.creatorId, creatorId));
-
-		if (existingAccount && existingAccount.organizationId !== organizationId) {
-			throw new Error("CREATOR_ORGANIZATION_CONFLICT");
-		}
+		// Migrated creators retain their original organization and team memberships.
+		const organizationId = existingAccount?.organizationId ?? `creator:${creatorId}`;
 
 		const now = new Date();
 		const profile = {
