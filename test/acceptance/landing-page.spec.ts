@@ -116,6 +116,9 @@ test("demo shell plays controlled real media on mobile, sends skip, and stops of
 test("public routes identify their own canonical and social URLs", async ({ page }) => {
 	for (const path of ["/", "/pricing", "/community", "/changelog", "/roadmap", "/features", "/gallery", "/guides/twitch-clips-in-obs", "/guides/twitch-clip-playlists", "/guides/control-twitch-clip-playback", "/legal/privacy", "/legal/terms", "/legal/cookies"]) {
 		await page.goto(path);
+		const socialTitle = await page.locator('meta[name="twitter:title"]').getAttribute("content");
+		expect(socialTitle).toBeTruthy();
+		expect(socialTitle).not.toContain("Even when you can't");
 		expect(new URL((await page.locator('link[rel="canonical"]').getAttribute("href"))!).href).toBe(new URL(`https://clipify.us${path}`).href);
 		expect(new URL((await page.locator('meta[property="og:url"]').getAttribute("content"))!).href).toBe(new URL(`https://clipify.us${path}`).href);
 	}
@@ -154,6 +157,10 @@ for (const theme of ["light", "dark"]) {
 		await page.goto("/pricing");
 		await assertAccessibleMain(page);
 		await page.getByRole("heading", { name: "Compare what is included", exact: true }).scrollIntoViewIfNeeded();
+		const comparison = page.getByRole("table", { name: "Compare Free and Pro", exact: true });
+		await expect(comparison).toBeVisible();
+		await expect(comparison.getByRole("columnheader", { name: "Free", exact: true })).toBeVisible();
+		await expect(comparison.getByRole("columnheader", { name: "Pro", exact: true })).toBeVisible();
 		await expect(page.getByText("Self-hosted Runner", { exact: true }).filter({ visible: true })).toBeVisible();
 		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
 		await page.screenshot({ path: testInfo.outputPath(`pricing-mobile-${theme}.png`), fullPage: true, animations: "disabled" });

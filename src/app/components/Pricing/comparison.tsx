@@ -172,27 +172,39 @@ export default function PricingComparison({ campaignOffer = null, pricing }: { c
 
 				<div className='mt-10'>
 					<h2 className='mb-5 text-2xl font-semibold'>Compare what is included</h2>
-					<div className='sticky top-16 z-10 grid grid-cols-[minmax(0,1fr)_4.5rem_4.5rem] border-b border-border bg-background py-3 text-sm font-semibold'>
-						<span>Feature</span>
-						<span className='text-center'>Free</span>
-						<span className='text-center'>Pro</span>
-					</div>
-					{pricingFeatures.map((group) => (
-						<section key={group.title} className='mt-7'>
-							<h3 className='border-b border-border pb-3 text-base font-semibold'>{group.title}</h3>
-							{group.items.map((item) => (
-								<div key={item.title} className='grid grid-cols-[minmax(0,1fr)_4.5rem_4.5rem] items-center gap-y-2 border-b border-border/60 py-4 text-sm'>
-									<FeatureTitle item={item} />
-									<div className='text-center'>
-										<FeatureValue plan='Free' value={item.tiers.free} />
-									</div>
-									<div className='text-center'>
-										<FeatureValue plan='Pro' value={item.tiers.pro} />
+					<div role='table' aria-label='Compare Free and Pro'>
+						<div role='row' className='sticky top-16 z-10 grid grid-cols-[minmax(0,1fr)_4.5rem_4.5rem] border-b border-border bg-background py-3 text-sm font-semibold'>
+							<span role='columnheader'>Feature</span>
+							<span role='columnheader' className='text-center'>
+								Free
+							</span>
+							<span role='columnheader' className='text-center'>
+								Pro
+							</span>
+						</div>
+						{pricingFeatures.map((group) => (
+							<div role='rowgroup' key={group.title} className='mt-7'>
+								<div role='row'>
+									<div role='columnheader' aria-colspan={3} className='border-b border-border pb-3 text-base font-semibold'>
+										{group.title}
 									</div>
 								</div>
-							))}
-						</section>
-					))}
+								{group.items.map((item) => (
+									<div role='row' key={item.title} className='grid grid-cols-[minmax(0,1fr)_4.5rem_4.5rem] items-center gap-y-2 border-b border-border/60 py-4 text-sm'>
+										<div role='rowheader'>
+											<FeatureTitle item={item} />
+										</div>
+										<div role='cell' className='text-center'>
+											<FeatureValue plan='Free' value={item.tiers.free} />
+										</div>
+										<div role='cell' className='text-center'>
+											<FeatureValue plan='Pro' value={item.tiers.pro} />
+										</div>
+									</div>
+								))}
+							</div>
+						))}
+					</div>
 				</div>
 			</div>
 

@@ -32,6 +32,7 @@ export default function Footer() {
 	const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
 	const [isSuccessOpen, setIsSuccessOpen] = useState(false);
 	const [token, setToken] = useState<string | null>(null);
+	const [newsletterRequested, setNewsletterRequested] = useState(false);
 	const mounted = useSyncExternalStore(
 		() => () => undefined,
 		() => true,
@@ -290,7 +291,7 @@ export default function Footer() {
 								<h3 className='text-sm text-muted font-semibold'>Subscribe to our newsletter</h3>
 								<p className='text-sm text-muted mt-2'>Receive updates on new features, tips and tricks, or offers straight to your email.</p>
 							</div>
-							<div className='w-full lg:max-w-md'>
+							<div className='w-full lg:max-w-md' onFocusCapture={() => setNewsletterRequested(true)}>
 								<Form className='w-full space-y-3' onSubmit={handleNewsletterSubmit}>
 									<motion.div
 										className='relative w-full'
@@ -377,9 +378,9 @@ export default function Footer() {
 											</div>
 										</motion.div>
 									</motion.div>
-									{!isE2ETestMode && (
+									{!isE2ETestMode && newsletterRequested && (
 										<div className='pt-1'>
-											<Turnstile siteKey='0x4AAAAAACMFR636JljxhVLl' onSuccess={setToken} onError={(error) => console.error("Turnstile error:", error)} onExpire={() => setToken(null)} />
+											<Turnstile size='compact' siteKey='0x4AAAAAACMFR636JljxhVLl' onSuccess={setToken} onError={(error) => console.error("Turnstile error:", error)} onExpire={() => setToken(null)} />
 										</div>
 									)}
 									{newsletterState === "loading" && <p className='text-xs text-muted pt-1'>Subscribing...</p>}

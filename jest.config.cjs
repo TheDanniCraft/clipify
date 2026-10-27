@@ -94,7 +94,6 @@ const customJestConfig = {
 		"!src/app/components/chatWidget.tsx",
 		"!src/app/components/construction.tsx",
 		"!src/app/components/errorPage.tsx",
-		"!src/app/components/footer.tsx",
 		"!src/app/components/nextErrorPage.tsx",
 		"!src/app/components/tagsInput.tsx",
 		"!src/app/components/upgradeModal.tsx",
