@@ -12,10 +12,15 @@ const client = {
 		},
 	})),
 } as unknown as QueryClient;
-const original = process.env.NEXT_PUBLIC_BASE_URL;
+const original = process.env;
+beforeEach(() => {
+	process.env = { ...original };
+	delete process.env.COOLIFY_URL;
+	delete process.env.COOLIFY_RESOURCE_UUID;
+	delete process.env.COOLIFY_CONTAINER_NAME;
+});
 afterEach(() => {
-	if (original === undefined) delete process.env.NEXT_PUBLIC_BASE_URL;
-	else process.env.NEXT_PUBLIC_BASE_URL = original;
+	process.env = original;
 	jest.clearAllMocks();
 });
 it("deduplicates replayed outcomes without conflating invoices, creators, or deployments", async () => {
@@ -37,4 +42,12 @@ it("deduplicates replayed outcomes without conflating invoices, creators, or dep
 it("propagates persistence failure so its owner can retry", async () => {
 	conflict.mockRejectedValueOnce(new Error("database unavailable"));
 	await expect(recordProductOutcome({ outcome: "creator_created", creatorId: "creator", key: "signup" }, client)).rejects.toThrow("database unavailable");
+});
+
+it("uses the established runtime deployment URL even when the public build URL names production", async () => {
+	process.env.NEXT_PUBLIC_BASE_URL = "https://clipify.us";
+	process.env.COOLIFY_RESOURCE_UUID = "fixture-preview";
+	process.env.COOLIFY_URL = "http://beta-533.clipify.cloud.thedannicraft.de,http://secondary.invalid";
+	await recordProductOutcome({ outcome: "creator_created", creatorId: "creator", key: "signup" }, client);
+	expect(values.mock.calls[0][0].metadata.deployment).toBe("https://beta-533.clipify.cloud.thedannicraft.de");
 });

@@ -87,7 +87,7 @@ async function processEvent(stripe: Stripe, event: Stripe.Event) {
 				if (products.includes(BillingProduct.Pro))
 					await db.transaction(async (tx) => {
 						await queueProPaymentEmail({ userId: result.userId, subscriptionId: subscription.id, invoiceId: invoice.id, amountPaid: invoice.amount_paid, billingReason: invoice.billing_reason }, tx);
-						if (invoice.amount_paid > 0) await recordProductOutcome({ outcome: "payment_verified", creatorId: result.userId, key: invoice.id, metadata: { amountMinor: invoice.amount_paid, currency: invoice.currency, billingReason: invoice.billing_reason ?? "unknown" } }, tx);
+						if (invoice.amount_paid > 0) await recordProductOutcome({ outcome: "payment_verified", creatorId: result.userId, key: invoice.id, occurredAt: new Date(event.created * 1000), metadata: { amountMinor: invoice.amount_paid, currency: invoice.currency, billingReason: invoice.billing_reason ?? "unknown" } }, tx);
 					});
 			}
 			return;

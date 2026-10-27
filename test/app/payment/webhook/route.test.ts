@@ -177,7 +177,7 @@ describe("app/payment/webhook route", () => {
 		if (type === "invoice.paid") expect(queueProPayment).toHaveBeenCalledWith(expect.objectContaining({ invoiceId: "in-1", userId: "user_1", amountPaid: amount }), expect.anything());
 		else expect(queueProPayment).not.toHaveBeenCalled();
 		const { recordProductOutcome } = jest.requireMock("@/server/product-outcomes");
-		if (type === "invoice.paid" && Number(amount) > 0) expect(recordProductOutcome).toHaveBeenCalledWith(expect.objectContaining({ outcome: "payment_verified", creatorId: "user_1", key: "in-1", metadata: { amountMinor: amount, currency: "eur", billingReason: "subscription_cycle" } }), expect.anything());
+		if (type === "invoice.paid" && Number(amount) > 0) expect(recordProductOutcome).toHaveBeenCalledWith(expect.objectContaining({ outcome: "payment_verified", creatorId: "user_1", key: "in-1", occurredAt: new Date(1900000000 * 1000), metadata: { amountMinor: amount, currency: "eur", billingReason: "subscription_cycle" } }), expect.anything());
 		else expect(recordProductOutcome).not.toHaveBeenCalled();
 	});
 });

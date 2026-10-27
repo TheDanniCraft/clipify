@@ -1,4 +1,5 @@
 import "server-only";
+import { resolveBaseUrl } from "@/app/lib/baseUrl";
 import { createHash } from "node:crypto";
 import { db, type QueryClient } from "@/db/client";
 import { auditEventsTable } from "@/db/schema";
@@ -7,7 +8,7 @@ type Outcome = "creator_created" | "trial_granted" | "checkout_created" | "first
 
 export async function recordProductOutcome(input: { outcome: Outcome; creatorId: string; key: string; occurredAt?: Date; metadata?: { amountMinor?: number; currency?: string; billingReason?: string; cycle?: string; source?: string } }, client: QueryClient = db) {
 	// A deterministic UUID makes transaction retries and duplicate webhook deliveries one outcome.
-	const deployment = (process.env.NEXT_PUBLIC_BASE_URL ?? "unknown").replace(/\/$/, "");
+	const deployment = resolveBaseUrl().origin;
 	const hash = createHash("sha256")
 		.update(JSON.stringify([deployment, input.outcome, input.creatorId, input.key]))
 		.digest("hex");
