@@ -12,10 +12,10 @@ import DashboardUserAvatar from "@components/dashboardUserAvatar";
 import CodeSnippet from "@components/codeSnippet";
 import FullscreenLoadingState from "@components/fullscreenLoadingState";
 import { AuthenticatedUser, Plan, UserSettings } from "@types";
-import { Alert, Button, Card, Chip, Separator, Form, Input, Link, Modal, Spinner, Switch, Tooltip, useOverlayState, TextField, TextArea, Label, Description, FieldError } from "@heroui/react";
+import { Alert, Button, Card, Separator, Form, Input, Link, Modal, Spinner, Switch, Tooltip, useOverlayState, TextField, TextArea, Label, Description, FieldError } from "@heroui/react";
 import { notify as addToast } from "@lib/toast";
 
-import { IconAlertTriangle, IconClock, IconDatabase, IconDeviceFloppy, IconInfoCircle, IconMail, IconRefresh, IconShieldLock, IconTrash } from "@tabler/icons-react";
+import { IconAlertTriangle, IconDatabase, IconDeviceFloppy, IconInfoCircle, IconMail, IconRefresh, IconShieldLock, IconTrash } from "@tabler/icons-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -83,7 +83,6 @@ export default function SettingsPage() {
 
 	const [isRequestingExport, setIsRequestingExport] = useState(false);
 	const [isRequestingDeletion, setIsRequestingDeletion] = useState(false);
-	const [recentAuthRemainingMs, setRecentAuthRemainingMs] = useState(0);
 
 	const router = useRouter();
 	const navigationGuardEnabled = useCallback(() => JSON.stringify(settings) !== JSON.stringify(baseSettings), [settings, baseSettings]);
@@ -102,17 +101,6 @@ export default function SettingsPage() {
 
 		validateUser();
 	}, [router]);
-
-	useEffect(() => {
-		function updateRecentAuthWindow() {
-			const expiresAt = Number(sessionStorage.getItem("clipify:recent-auth-expires-at") ?? 0);
-			setRecentAuthRemainingMs(Math.max(0, expiresAt - Date.now()));
-			if (expiresAt <= Date.now()) sessionStorage.removeItem("clipify:recent-auth-expires-at");
-		}
-		updateRecentAuthWindow();
-		const interval = window.setInterval(updateRecentAuthWindow, 1000);
-		return () => window.clearInterval(interval);
-	}, []);
 
 	const hasForceRefreshStatus = !!clipForceRefreshStatus;
 	const canRefresh = clipForceRefreshStatus?.canRefresh;
@@ -225,12 +213,9 @@ export default function SettingsPage() {
 				window.history.replaceState(null, "", `/dashboard/settings${params.size ? `?${params}` : ""}`);
 			}
 			if (reauthenticated) {
-				const expiresAt = Date.now() + 5 * 60 * 1000;
-				sessionStorage.setItem("clipify:recent-auth-expires-at", String(expiresAt));
-				setRecentAuthRemainingMs(5 * 60 * 1000);
 				if (reauthenticated === "export") exportModalOnOpen();
 				if (reauthenticated === "deletion") deleteModalOnOpen();
-				addToast({ title: "Signed in again", description: reauthenticated === "export" ? "Review and request your data package within five minutes." : reauthenticated === "deletion" ? "You can schedule account deletion for the next five minutes." : "You can continue with the sensitive account action for the next five minutes.", color: "success" });
+				addToast({ title: "Signed in again", description: "You can now continue with your account action.", color: "success" });
 				params.delete("reauthenticated");
 				router.replace(params.size ? `/dashboard/settings?${params.toString()}` : "/dashboard/settings");
 			}
@@ -282,11 +267,6 @@ export default function SettingsPage() {
 		if (hours > 0) return `${hours}h ${minutes}m`;
 		if (minutes > 0) return `${minutes}m ${seconds}s`;
 		return `${seconds}s`;
-	}
-
-	function formatRecentAuthCountdown(value: number) {
-		const totalSeconds = Math.max(0, Math.ceil(value / 1000));
-		return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, "0")}`;
 	}
 
 	async function handleForceRefreshCache() {
@@ -704,11 +684,6 @@ export default function SettingsPage() {
 								</Form>
 								<Separator className='my-4' />
 								<div className='flex  flex-col gap-2 justify-end'>
-									{recentAuthRemainingMs > 0 ? (
-										<Chip color='success' variant='soft' className='self-start'>
-											<IconClock aria-hidden='true' size={14} /> Recent sign-in: {formatRecentAuthCountdown(recentAuthRemainingMs)}
-										</Chip>
-									) : null}
 									<Button fullWidth variant='secondary' aria-label='Export Account Data' onPress={exportModalOnOpen}>
 										<IconDatabase />
 										Request Account Data

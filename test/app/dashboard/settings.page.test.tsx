@@ -340,14 +340,13 @@ test.each(["free", "pro"])("old Runner add-on request opens normal %s billing wi
 	expect(screen.queryByText("Upgrade with Runner")).not.toBeInTheDocument();
 	expect(screen.queryByText("Upgrade runner_access yearly")).not.toBeInTheDocument();
 });
-test("return from recent export sign-in stores a bounded window and removes return marker", async () => {
+test("return from recent export sign-in restores confirmation without a countdown", async () => {
 	window.history.replaceState({}, "", "/dashboard/settings?reauthenticated=export&tab=settings");
 	render(<SettingsPage />);
 	expect(await screen.findByText("Request your Clipify data")).toBeVisible();
 	expect(router.replace).toHaveBeenCalledWith("/dashboard/settings?tab=settings");
-	const remaining = Number(sessionStorage.getItem("clipify:recent-auth-expires-at")) - Date.now();
-	expect(remaining).toBeGreaterThan(290000);
-	expect(remaining).toBeLessThanOrEqual(300000);
+	expect(screen.queryByText(/Recent sign-in:/)).not.toBeInTheDocument();
+	expect(sessionStorage.getItem("clipify:recent-auth-expires-at")).toBeNull();
 	fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
 	expect(screen.queryByText("Request your Clipify data")).not.toBeInTheDocument();
 	expect(requestAccountDataExport).not.toHaveBeenCalled();
