@@ -3,6 +3,7 @@ import { verifyAccountDataExportToken } from "@/auth/account-data-export-token";
 import { downloadDatabaseAccountDataExport } from "@/server/account-lifecycle/database";
 import { createAccountDataArchive } from "@/server/account-lifecycle/account-data-archive";
 import { isRecentAuthRequired } from "@/auth/recent-auth";
+import { resolveBaseUrl } from "@/app/lib/baseUrl";
 
 export async function GET(request: NextRequest) {
 	const token = request.nextUrl.searchParams.get("token");
@@ -24,12 +25,12 @@ export async function GET(request: NextRequest) {
 		});
 	} catch (error) {
 		if (error instanceof Error && error.message === "AUTHENTICATION_REQUIRED") {
-			const login = new URL("/login", request.url);
+			const login = new URL("/login", resolveBaseUrl());
 			login.searchParams.set("returnUrl", `${request.nextUrl.pathname}${request.nextUrl.search}`);
 			return NextResponse.redirect(login);
 		}
 		if (isRecentAuthRequired(error)) {
-			const verification = new URL("/dashboard/settings", request.url);
+			const verification = new URL("/dashboard/settings", resolveBaseUrl());
 			verification.hash = `downloadExport=${encodeURIComponent(token!)}`;
 			return NextResponse.redirect(verification);
 		}
