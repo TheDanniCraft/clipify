@@ -168,3 +168,16 @@ for (const theme of ["light", "dark"]) {
 		await expect(page.getByRole("heading", { name: "Oops, page not found", exact: true })).toBeVisible();
 	});
 }
+
+test("newsletter keyboard navigation skips the inactive name step", async ({ page }) => {
+	await page.setViewportSize({ width: 390, height: 900 });
+	await page.goto("/");
+	await dismissPrivacy(page);
+	const email = page.getByRole("textbox", { name: "Newsletter email address", exact: true });
+	const name = page.getByPlaceholder("First name", { exact: true });
+	await expect(name).toHaveCount(1);
+	await expect(name.locator("xpath=ancestor::*[@inert][1]")).toHaveCount(1);
+	await email.focus();
+	await page.keyboard.press("Tab");
+	await expect(name).not.toBeFocused();
+});

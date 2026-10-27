@@ -124,6 +124,7 @@ it("loads no verification widget before newsletter focus and still requires a to
 it("preserves the email and optional-name workflow through success and confirmation dismissal", async () => {
 	const input = await start("real.streamer@example.invalid");
 	const name = screen.getByPlaceholderText("Streamer");
+	expect(name).toHaveFocus();
 	fireEvent.change(name, { target: { value: "Alex" } });
 	fireEvent.submit(input.closest("form")!);
 	await screen.findByRole("dialog");
@@ -153,6 +154,7 @@ it("keeps pending details after rate limiting or a rejected request", async () =
 it("allows backing out of details and does not submit after verification expires", async () => {
 	const input = await start();
 	fireEvent.click(screen.getByRole("button", { name: "Back" }));
+	await waitFor(() => expect(input).toHaveFocus());
 	fireEvent.change(input, { target: { value: "" } });
 	fireEvent.submit(input.closest("form")!);
 	expect(subscribe).not.toHaveBeenCalled();

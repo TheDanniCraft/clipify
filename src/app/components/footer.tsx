@@ -43,6 +43,9 @@ export default function Footer() {
 	const emailStepRef = useRef<HTMLDivElement>(null);
 	const nameStepRef = useRef<HTMLDivElement>(null);
 	const [stepHeights, setStepHeights] = useState({ email: 64, name: 172 });
+	useEffect(() => {
+		if (isDetailsExpanded) nameStepRef.current?.querySelector("input")?.focus();
+	}, [isDetailsExpanded]);
 	const firstNamePlaceholder = useMemo(() => {
 		const localPart = (pendingEmail.split("@")[0] || "").trim();
 		if (!localPart) {
@@ -302,6 +305,7 @@ export default function Footer() {
 									>
 										<motion.div
 											ref={emailStepRef}
+											inert={isDetailsExpanded}
 											className={isDetailsExpanded ? "absolute inset-0 w-full" : "relative w-full"}
 											animate={{
 												opacity: isDetailsExpanded ? 0 : 1,
@@ -344,6 +348,7 @@ export default function Footer() {
 										</motion.div>
 										<motion.div
 											ref={nameStepRef}
+											inert={!isDetailsExpanded}
 											className={isDetailsExpanded ? "relative w-full space-y-3" : "absolute inset-0 w-full space-y-3"}
 											animate={{
 												opacity: isDetailsExpanded ? 1 : 0,
@@ -364,6 +369,7 @@ export default function Footer() {
 													onPress={() => {
 														setIsDetailsExpanded(false);
 														setNewsletterState("default");
+														window.requestAnimationFrame(() => emailStepRef.current?.querySelector("input")?.focus());
 													}}
 													isDisabled={newsletterState === "loading"}
 												>
