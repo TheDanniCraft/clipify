@@ -2,6 +2,7 @@
 "use server";
 
 import Stripe from "stripe";
+import { recordProductOutcome } from "@/server/product-outcomes";
 import { BillingProduct, NumokStripeMetadata } from "@types";
 import { resolveBillingCatalog, resolveBillingPrice, resolveBillingProductForPrice } from "@/server/billingCatalog";
 import { getStripe as getServerStripe } from "@/server/stripe";
@@ -364,6 +365,7 @@ export async function generateCheckout(productKeys: BillingProduct[] | Array<{ p
 		}
 	}
 
+	await recordProductOutcome({ outcome: "checkout_created", creatorId: authUser.id, key: session.id, metadata: { cycle: billingCycle, source: source ?? "upgrade_modal" } });
 	return session.url;
 }
 

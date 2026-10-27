@@ -1,5 +1,6 @@
 /* istanbul ignore file */
 "use server";
+import { recordProductOutcome } from "@/server/product-outcomes";
 import { queueProPaymentEmail } from "@/server/notifications/pro-events";
 import { resolveBillingProductForPrice } from "@/server/billingCatalog";
 import { BillingProduct } from "@types";
@@ -83,7 +84,11 @@ async function processEvent(stripe: Stripe, event: Stripe.Event) {
 			const result = await syncStripeSubscription(subscription, null, event.created);
 			if (event.type === "invoice.paid" && invoice.status === "paid") {
 				const products = await Promise.all(subscription.items.data.map((item) => resolveBillingProductForPrice(item.price)));
-				if (products.includes(BillingProduct.Pro)) await db.transaction((tx) => queueProPaymentEmail({ userId: result.userId, subscriptionId: subscription.id, invoiceId: invoice.id, amountPaid: invoice.amount_paid, billingReason: invoice.billing_reason }, tx));
+				if (products.includes(BillingProduct.Pro))
+					await db.transaction(async (tx) => {
+						await queueProPaymentEmail({ userId: result.userId, subscriptionId: subscription.id, invoiceId: invoice.id, amountPaid: invoice.amount_paid, billingReason: invoice.billing_reason }, tx);
+						if (invoice.amount_paid > 0) await recordProductOutcome({ outcome: "payment_verified", creatorId: result.userId, key: invoice.id, metadata: { amountMinor: invoice.amount_paid, currency: invoice.currency, billingReason: invoice.billing_reason ?? "unknown" } }, tx);
+					});
 			}
 			return;
 		}

@@ -41,6 +41,8 @@ describe("TDD-PRIVACY-001 account export MCP approvals", () => {
 	});
 	test("includes owned content, billing and privacy records alongside approvals", () => {
 		const result = runMcpProbe("account-export-probe", ["populated"]);
+		expect(result.productOutcomeIncluded).toBe(true);
+		expect(result.foreignOutcomeIncluded).toBe(false);
 		expect(result.resourceCounts).toEqual({ overlays: 1, playlists: 1, subscriptions: 1, subjects: 1 });
 		expect(result.mcp.connections).toHaveLength(1);
 		expect(result.leaksPrivateClientData).toBe(false);

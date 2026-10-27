@@ -1,4 +1,5 @@
 /** @jest-environment node */
+jest.mock("@/server/product-outcomes", () => ({ recordProductOutcome: jest.fn().mockResolvedValue(undefined) }));
 import { BillingProduct } from "@types";
 import { flowProbe } from "../../support/mcp/probe";
 

@@ -20,7 +20,7 @@ async function main() {
 	try {
 		const context = await auth.$context;
 		const mode = process.argv[4];
-		if (["retry", "initialize", "profile", "unlink-primary"].includes(mode)) {
+		if (["retry", "initialize", "profile", "unlink-primary", "entitlements"].includes(mode)) {
 			const { rows } = await dbPool.query("SELECT id,user_id,access_token,refresh_token FROM auth.account WHERE provider_id='twitch' AND account_id=$1", [creatorId]);
 			const authUserId = rows[0]?.user_id;
 			if (!authUserId) throw new Error("PROBE_TWITCH_ACCOUNT_MISSING");
@@ -36,6 +36,12 @@ async function main() {
 				return;
 			}
 
+			if (mode === "entitlements") {
+				const { resolveUserEntitlements } = await import("@/app/lib/entitlements");
+				const { rows: users } = await dbPool.query("SELECT id, plan FROM users WHERE id=$1", [creatorId]);
+				process.stdout.write(JSON.stringify(await resolveUserEntitlements(users[0])) + "\n");
+				return;
+			}
 			if (mode === "retry") await completeTwitchSignIn(creatorId, authUserId);
 			if (mode === "initialize") await Promise.all(Array.from({ length: 8 }, () => initializeCreator(creatorId, new Date("2012-04-15T13:45:00Z"), authUserId)));
 			if (mode === "profile") await context.internalAdapter.updateUser(authUserId, { name: "Updated Creator", email: `updated-${email}`, image: "https://example.invalid/updated.png" });

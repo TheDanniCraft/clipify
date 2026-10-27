@@ -3,6 +3,7 @@
 import { type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type RefObject, type SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ClipQueueItem, ModQueueItem, Overlay, PlaybackMode, TwitchClip, VideoClip } from "@types";
 import { getAvatar, getDemoClip, getGameDetails, getTwitchClipBatch, getTwitchClipPlaybackUrl, resolvePlayableClip, subscribeToChat } from "@actions/twitch";
+import { recordOverlayPlayback } from "@actions/productPlayback";
 import PlayerOverlay from "@components/playerOverlay";
 import { Avatar, Link } from "@heroui/react";
 
@@ -423,6 +424,8 @@ type RunnerPlaybackWindow = Window & {
 
 export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedOverlay, isDemoPlayer, embedMuted, embedAutoplay, overlaySecret, initialStandby = false, runnerPresentation = false }: OverlayPlayerProps) {
 	const plausible = usePlausible();
+	const reportedPlaybackDay = useRef<string | null>(null);
+	const playbackOutcomeRetryAt = useRef(0);
 
 	const [isStandby, setIsStandby] = useState<boolean>(!!initialStandby);
 	const [runnerSelectionSettled, setRunnerSelectionSettled] = useState(false);
@@ -1809,6 +1812,19 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 			if (!video) return;
 			if (activeSlot !== slot) return;
 			if (isCrossfading) return;
+			const day = new Date().toISOString().slice(0, 10);
+			if (!isDemoPlayer && !isEmbed && !runnerPresentation && !isInIframe() && overlaySecret && !video.paused && video.currentTime >= ACTIVE_PLAYBACK_CONFIRM_SECONDS && reportedPlaybackDay.current !== day && Date.now() >= playbackOutcomeRetryAt.current) {
+				reportedPlaybackDay.current = day;
+				playbackOutcomeRetryAt.current = Date.now() + 60_000;
+				recordOverlayPlayback(overlay.id, overlaySecret)
+					.then((result) => {
+						if (!result.recorded) reportedPlaybackDay.current = null;
+					})
+					.catch((error) => {
+						reportedPlaybackDay.current = null;
+						console.error("Could not record playback outcome", error);
+					});
+			}
 			const duration = video.duration;
 			if (!Number.isFinite(duration) || duration <= 0) return;
 
@@ -1843,7 +1859,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 				}
 			}
 		},
-		[activeSlot, advanceClip, isCrossfading, prepareNextVideo, startCrossfade],
+		[activeSlot, advanceClip, isCrossfading, prepareNextVideo, startCrossfade, isDemoPlayer, isEmbed, runnerPresentation, overlay.id, overlaySecret],
 	);
 
 	useEffect(() => {

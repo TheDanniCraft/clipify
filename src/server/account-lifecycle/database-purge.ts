@@ -1,4 +1,4 @@
-import { and, eq, inArray, lte } from "drizzle-orm";
+import { and, eq, inArray, like, lte } from "drizzle-orm";
 import { db } from "@/db/client";
 import { accountDeletionRequestsTable, creatorAccountsTable, creatorIdentityLinksTable, usersTable, auditEventsTable, notificationOutboxTable } from "@/db/schema";
 import { organization, user, member } from "@/db/auth-schema";
@@ -24,6 +24,7 @@ export async function purgeDueDatabaseAccounts(input: { now?: Date; limit?: numb
 			const recipient = identity?.email || creator.email;
 			// Keep a non-identifying audit tombstone; the org/request cascade is intentional.
 			await tx.insert(auditEventsTable).values({ targetType: "account_deletion_request", targetId: request.id, action: "account.deletion.purge", outcome: "success", correlationId: `account-purge:${request.id}`, metadata: { purgedAt: now.toISOString() } });
+			await tx.delete(auditEventsTable).where(and(eq(auditEventsTable.targetType, "creator"), eq(auditEventsTable.targetId, creator.id), like(auditEventsTable.action, "product:%")));
 			await tx.delete(usersTable).where(eq(usersTable.id, creator.id));
 			await tx.delete(organization).where(eq(organization.id, request.organizationId));
 			if (identity) {

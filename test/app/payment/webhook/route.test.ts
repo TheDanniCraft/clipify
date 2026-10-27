@@ -1,4 +1,5 @@
 /** @jest-environment node */
+jest.mock("@/server/product-outcomes", () => ({ recordProductOutcome: jest.fn().mockResolvedValue(undefined) }));
 
 const queueProPayment = jest.fn();
 jest.mock("@/server/notifications/pro-events", () => ({ queueProPaymentEmail: (...args: unknown[]) => queueProPayment(...args) }));
@@ -162,14 +163,21 @@ describe("app/payment/webhook route", () => {
 		expect(updateWhere).toHaveBeenCalled();
 		expect(syncStripeSubscription).toHaveBeenCalledWith(subscription);
 	});
-	it.each(["invoice.paid", "invoice.payment_failed"])("%s only queues a personal thank-you for a paid Pro invoice", async (type) => {
+	it.each([
+		["invoice.paid", 100],
+		["invoice.payment_failed", 100],
+		["invoice.paid", 0],
+	])("%s with amount %s only records verified money received", async (type, amount) => {
 		const subscription = { id: "sub-1", items: { data: [{ price: { metadata: { key: "pro" } } }] } };
-		const invoice = { id: "in-1", status: type === "invoice.paid" ? "paid" : "open", amount_paid: 100, billing_reason: "subscription_cycle", parent: { subscription_details: { subscription: "sub-1" } } };
+		const invoice = { id: "in-1", status: type === "invoice.paid" ? "paid" : "open", amount_paid: amount, currency: "eur", billing_reason: "subscription_cycle", parent: { subscription_details: { subscription: "sub-1" } } };
 		getStripe.mockResolvedValue({ webhooks: { constructEvent: () => ({ id: "evt_paid", created: 1900000000, type, data: { object: invoice } }) }, subscriptions: { retrieve: async () => subscription } });
 		const { POST } = await loadRoute();
 		const response = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
 		expect(response.status).toBe(200);
-		if (type === "invoice.paid") expect(queueProPayment).toHaveBeenCalledWith(expect.objectContaining({ invoiceId: "in-1", userId: "user_1", amountPaid: 100 }), expect.anything());
+		if (type === "invoice.paid") expect(queueProPayment).toHaveBeenCalledWith(expect.objectContaining({ invoiceId: "in-1", userId: "user_1", amountPaid: amount }), expect.anything());
 		else expect(queueProPayment).not.toHaveBeenCalled();
+		const { recordProductOutcome } = jest.requireMock("@/server/product-outcomes");
+		if (type === "invoice.paid" && Number(amount) > 0) expect(recordProductOutcome).toHaveBeenCalledWith(expect.objectContaining({ outcome: "payment_verified", creatorId: "user_1", key: "in-1", metadata: { amountMinor: amount, currency: "eur", billingReason: "subscription_cycle" } }), expect.anything());
+		else expect(recordProductOutcome).not.toHaveBeenCalled();
 	});
 });

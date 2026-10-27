@@ -1,4 +1,5 @@
 /** @jest-environment node */
+jest.mock("@/server/product-outcomes", () => ({ recordProductOutcome: jest.fn().mockResolvedValue(undefined) }));
 export {};
 
 const stripeCtor = jest.fn();
@@ -167,7 +168,7 @@ describe("actions/subscription", () => {
 
 	it("creates a checkout session and persists customer id when needed", async () => {
 		customersCreate.mockResolvedValue({ id: "cus_new" });
-		checkoutCreate.mockResolvedValue({ url: "https://checkout.stripe.test/session-1" });
+		checkoutCreate.mockResolvedValue({ id: "cs_fixture", url: "https://checkout.stripe.test/session-1" });
 
 		const { generatePaymentLink } = await loadSubscription();
 		const result = await generatePaymentLink("monthly", "/dashboard/settings", undefined, "upgrade_modal");
@@ -179,6 +180,7 @@ describe("actions/subscription", () => {
 			}),
 		);
 		expect(db.update).toHaveBeenCalled();
+		expect(jest.requireMock("@/server/product-outcomes").recordProductOutcome).toHaveBeenCalledWith(expect.objectContaining({ outcome: "checkout_created", creatorId: "user-1", key: "cs_fixture" }));
 		expect(checkoutCreate).toHaveBeenCalledWith(
 			expect.objectContaining({
 				customer: "cus_new",
@@ -190,7 +192,7 @@ describe("actions/subscription", () => {
 
 	it("keeps caller supplied checkout redirects on the Clipify origin", async () => {
 		validateAuth.mockResolvedValue({ id: "user-1", email: "alice@example.com", stripeCustomerId: "cus_123" });
-		checkoutCreate.mockResolvedValue({ url: "https://checkout.stripe.test/session-1" });
+		checkoutCreate.mockResolvedValue({ id: "cs_fixture", url: "https://checkout.stripe.test/session-1" });
 		const { generateCheckout } = await loadSubscription();
 		await generateCheckout(["pro" as never], "yearly", undefined, undefined, undefined, { successUrl: "https://evil.example/success", cancelUrl: "//evil.example/cancel" });
 		expect(checkoutCreate).toHaveBeenCalledWith(expect.objectContaining({ success_url: "https://clipify.us/dashboard/settings", cancel_url: "https://clipify.us/dashboard/settings" }));
