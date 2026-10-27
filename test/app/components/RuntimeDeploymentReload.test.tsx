@@ -1,4 +1,4 @@
-import { render, waitFor, fireEvent, screen } from "@testing-library/react";
+import { act, render, waitFor, fireEvent, screen } from "@testing-library/react";
 import RuntimeDeploymentReload from "@/app/components/RuntimeDeploymentReload";
 import { DEPLOYMENT_CHECK_EVENT } from "@/app/lib/deployment";
 
@@ -15,6 +15,7 @@ describe("RuntimeDeploymentReload", () => {
 
 	beforeEach(() => {
 		pathname = "/dashboard";
+		sessionStorage.clear();
 		global.Request = class {} as unknown as typeof Request;
 		fetchMock.mockReset();
 		fetchMock.mockResolvedValue({ ok: true, headers: { get: () => "deployment-1" } });
@@ -66,15 +67,43 @@ describe("RuntimeDeploymentReload", () => {
 		expect(fetchMock).toHaveBeenCalledTimes(2);
 	});
 
-	it("does not poll dashboard editors", () => {
+	it.each(["/dashboard", "/dashboard/settings", "/dashboard/settings/team", "/dashboard/overlay/one", "/dashboard/playlist/one", "/dashboard/runners/one"])("detects updates on %s without automatically refreshing", async (path) => {
+		pathname = path;
+		fetchMock.mockResolvedValue({ ok: true, headers: { get: () => "deployment-2" } });
 		const view = render(<RuntimeDeploymentReload deploymentId='deployment-1' />);
-
-		expect(fetchMock).not.toHaveBeenCalled();
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/deployment", { cache: "no-store", credentials: "omit" }));
+		expect(screen.getByText("Clipify has been updated")).toBeVisible();
+		expect(screen.getByRole("button", { name: "Refresh Clipify" })).toBeVisible();
+		expect(sessionStorage.getItem(`clipify:deployment-reload:${window.location.pathname}`)).toBeNull();
 		view.unmount();
+	});
+
+	it("checks periodically and on returning to a visible dashboard tab", async () => {
+		jest.useFakeTimers();
+		const view = render(<RuntimeDeploymentReload deploymentId='deployment-1' />);
+		try {
+			await act(async () => {
+				await jest.advanceTimersByTimeAsync(0);
+			});
+			expect(fetchMock).toHaveBeenCalledTimes(1);
+			await act(async () => {
+				await jest.advanceTimersByTimeAsync(5 * 60_000);
+			});
+			expect(fetchMock).toHaveBeenCalledTimes(2);
+			await act(async () => {
+				document.dispatchEvent(new Event("visibilitychange"));
+			});
+			expect(fetchMock).toHaveBeenCalledTimes(3);
+		} finally {
+			view.unmount();
+			jest.useRealTimers();
+		}
 	});
 
 	it("checks a caught missing Server Action on a dashboard without retrying the mutation", async () => {
 		const view = render(<RuntimeDeploymentReload deploymentId='deployment-1' />);
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+		fetchMock.mockClear();
 		fetchMock.mockResolvedValueOnce({ ok: false, headers: { get: (name: string) => (name === "x-nextjs-action-not-found" ? "1" : null) } });
 		await window.fetch("/dashboard/runners/one", { method: "POST", headers: { "Next-Action": "old-action" }, body: "draft" });
 		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
@@ -101,8 +130,10 @@ describe("RuntimeDeploymentReload", () => {
 		activeDialog.setAttribute("role", "dialog");
 		activeDialog.setAttribute("aria-label", "Edit destination");
 		document.body.append(activeDialog);
-		fetchMock.mockResolvedValueOnce({ ok: false, headers: { get: (name: string) => (name === "x-nextjs-action-not-found" ? "1" : null) } }).mockResolvedValueOnce({ ok: true, headers: { get: () => "deployment-2" } });
 		const view = render(<RuntimeDeploymentReload deploymentId='deployment-1' />);
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+		fetchMock.mockClear();
+		fetchMock.mockResolvedValueOnce({ ok: false, headers: { get: (name: string) => (name === "x-nextjs-action-not-found" ? "1" : null) } }).mockResolvedValueOnce({ ok: true, headers: { get: () => "deployment-2" } });
 		try {
 			await window.fetch("/dashboard/runners/one", { method: "POST", headers: { "Next-Action": "old-action" } });
 			expect(await screen.findByRole("button", { name: "Refresh required" })).toBeVisible();
@@ -116,6 +147,8 @@ describe("RuntimeDeploymentReload", () => {
 
 	it("does not treat validation or an external service response as a missing dashboard action", async () => {
 		const view = render(<RuntimeDeploymentReload deploymentId='deployment-1' />);
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+		fetchMock.mockClear();
 		await window.fetch("/dashboard/settings", { method: "POST", headers: { "Next-Action": "valid-action" } });
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 		fetchMock.mockResolvedValueOnce({ ok: false, headers: { get: () => "1" } });

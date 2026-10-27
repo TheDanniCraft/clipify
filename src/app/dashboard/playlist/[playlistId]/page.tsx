@@ -4,6 +4,7 @@ import { useDeploymentDraft } from "@lib/deploymentDrafts";
 import LocalizedDate from "@components/localizedDate";
 import { buttonVariants } from "@heroui/styles";
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
+import { useUserTour } from "@components/user-tour/provider";
 
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -39,10 +40,15 @@ const normalizeCategorySearch = (value: string) => value.toLowerCase().replace(/
 
 export default function PlaylistPage() {
 	const router = useRouter();
+	const { report: reportTour } = useUserTour();
 	const { playlistId } = useParams() as { playlistId: string };
 
 	const [user, setUser] = useState<AuthenticatedUser>();
 	const [playlist, setPlaylist] = useState<{ id: string; ownerId: string; name: string; clipCount: number; configurationRevision: number } | null>(null);
+	useEffect(() => {
+		if (playlist) reportTour({ type: "playlist.ready", ownerId: playlist.ownerId, id: playlist.id, select: true });
+	}, [playlist, reportTour]);
+
 	const [isPlaylistResolved, setIsPlaylistResolved] = useState(false);
 	const [playlistNameDraft, setPlaylistNameDraft] = useState("");
 	const [playlistClips, setPlaylistClips] = useState<TwitchClip[]>([]);
@@ -259,7 +265,8 @@ export default function PlaylistPage() {
 	const isPlaylistDirty = playlistClips.map((clip) => clip.id).join(",") !== savedPlaylistClipIds.join(",");
 	const isPlaylistNameDirty = playlist ? playlistNameDraft.trim() !== playlist.name : false;
 	const canSavePlaylist = isPlaylistDirty || isPlaylistNameDirty;
-	const navGuard = useNavigationGuard({ enabled: canSavePlaylist });
+	const navigationGuardEnabled = useCallback(() => canSavePlaylist, [canSavePlaylist]);
+	const navGuard = useNavigationGuard({ enabled: navigationGuardEnabled });
 
 	useEffect(() => {
 		// eslint-disable-next-line react-hooks/set-state-in-effect
@@ -318,6 +325,7 @@ export default function PlaylistPage() {
 				return Array.from(nextById.values());
 			});
 			setSelectedCachedClipIds(new Set([]));
+			if (playlist) reportTour({ type: "playlist.clips-added", ownerId: playlist.ownerId, id: playlist.id, count: clipsToAdd.length });
 			onAddClipsClose();
 		} catch {
 			addToast({ title: "Failed to add clips", color: "danger" });
@@ -403,11 +411,11 @@ export default function PlaylistPage() {
 								<IconArrowLeft />
 							</Button>
 							<TextField className='min-w-0 flex-1'>
-								<Input variant='secondary' aria-label='Playlist name' value={playlistNameDraft} onChange={(event) => setPlaylistNameDraft(event.target.value)} placeholder='Playlist name' className='h-8 text-sm' />
+								<Input data-tour='playlist-name' variant='secondary' aria-label='Playlist name' value={playlistNameDraft} onChange={(event) => setPlaylistNameDraft(event.target.value)} placeholder='Playlist name' className='h-8 text-sm' />
 							</TextField>
 						</div>
 						<div className='flex flex-wrap items-center gap-2 pt-1'>
-							<Button variant='primary' className='font-semibold px-4' onPress={handleOpenAddClips}>
+							<Button data-tour='playlist-add' variant='primary' className='font-semibold px-4' onPress={handleOpenAddClips}>
 								{<IconPlus size={18} />}
 								Add Clips
 							</Button>
@@ -425,6 +433,7 @@ export default function PlaylistPage() {
 								Auto Import
 							</Button>
 							<Button
+								data-tour='playlist-save'
 								onPress={async () => {
 									if (!playlistId) return;
 									const nextName = playlistNameDraft.trim();
@@ -444,6 +453,7 @@ export default function PlaylistPage() {
 											setSavedPlaylistClipIds(saved.clips.map((clip) => clip.id));
 											setPlaylist((prev) => (prev ? { ...prev, name: saved.name, configurationRevision: saved.configurationRevision, clipCount: saved.clips.length } : prev));
 											setPlaylistNameDraft(saved.name);
+											if (playlist) reportTour({ type: "playlist.saved", ownerId: playlist.ownerId, id: playlistId, named: Boolean(saved.name.trim()), count: saved.clips.length });
 										} else if (isPlaylistNameDirty) {
 											const updated = await savePlaylist(playlistId, { name: nextName }, playlist?.configurationRevision);
 											if (!updated) {
@@ -452,6 +462,7 @@ export default function PlaylistPage() {
 											}
 											setPlaylist((prev) => (prev ? { ...prev, name: updated.name, configurationRevision: updated.configurationRevision } : prev));
 											setPlaylistNameDraft(updated.name);
+											if (playlist) reportTour({ type: "playlist.saved", ownerId: playlist.ownerId, id: playlistId, named: Boolean(updated.name.trim()), count: savedPlaylistClipIds.length });
 										}
 									} catch {
 										addToast({ title: "Playlist could not be saved. Try again.", color: "danger" });
@@ -512,7 +523,7 @@ export default function PlaylistPage() {
 								Remove selected ({selectedPlaylistClipIds.size})
 							</Button>
 						</div>
-						<ul className='space-y-2'>
+						<ul data-tour='playlist-order' aria-label='Playlist clips' className='space-y-2'>
 							{playlistClips.map((clip) => (
 								<li
 									key={clip.id}
@@ -591,8 +602,8 @@ export default function PlaylistPage() {
 			<ControlledModal isOpen={isAddClipsOpen} onOpenChange={onAddClipsOpenChange} size='lg' containerClassName='max-w-5xl' dialogClassName='max-h-[80vh]'>
 				<Modal.Header className='flex flex-col gap-1'>
 					<Modal.Heading>Select clips to add</Modal.Heading>
-					<TextField>
-						<InputGroup>
+					<TextField data-tour='playlist-clip-search'>
+						<InputGroup variant='secondary'>
 							<InputGroup.Prefix>{<IconSearch size={16} />}</InputGroup.Prefix>
 							<InputGroup.Input placeholder='Search by title or creator...' value={cachedClipsFilter} onChange={(event) => setCachedClipsFilter(event.target.value)} className='h-8 text-sm' />
 							{cachedClipsFilter ? <CloseButton aria-label='Clear' onPress={() => setCachedClipsFilter("")} /> : null}
@@ -600,87 +611,89 @@ export default function PlaylistPage() {
 					</TextField>
 				</Modal.Header>
 				<Modal.Body className='overflow-y-auto'>
-					<Table>
-						<Table.ScrollContainer className='max-h-[56vh]'>
-							<Table.Content aria-label='Cached clips table' selectionMode='multiple' selectedKeys={selectedCachedClipIds} onSelectionChange={setSelectedCachedClipIds} sortDescriptor={cachedClipsSortDescriptor} onSortChange={setCachedClipsSortDescriptor}>
-								<Table.Header>
-									<Table.Column className='pr-0'>
-										<Checkbox aria-label='Select all clips' slot='selection'>
-											<Checkbox.Content>
-												<Checkbox.Control>
-													<Checkbox.Indicator />
-												</Checkbox.Control>
-											</Checkbox.Content>
-										</Checkbox>
-									</Table.Column>
-									<Table.Column id='clip' allowsSorting isRowHeader>
-										{({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>Clip</Table.SortableColumnHeader>}
-									</Table.Column>
-									<Table.Column id='creator' allowsSorting>
-										{({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>Creator</Table.SortableColumnHeader>}
-									</Table.Column>
-									<Table.Column id='category' allowsSorting>
-										{({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>Category</Table.SortableColumnHeader>}
-									</Table.Column>
-									<Table.Column id='views' allowsSorting>
-										{({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>Views</Table.SortableColumnHeader>}
-									</Table.Column>
-									<Table.Column id='date' allowsSorting>
-										{({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>Date</Table.SortableColumnHeader>}
-									</Table.Column>
-								</Table.Header>
-								<Table.Body
-									renderEmptyState={() =>
-										cachedClips === undefined ? (
-											<span className='inline-flex items-center gap-2 p-4'>
-												<Spinner />
-												Loading clips...
-											</span>
-										) : (
-											<div className='p-4 text-muted'>No clips found in cache.</div>
-										)
-									}
-								>
-									{(paginatedCachedClips ?? []).map((item) => (
-										<Table.Row key={item.id} id={item.id} textValue={item.title}>
-											<Table.Cell className='pr-0'>
-												<Checkbox aria-label={`Select ${item.title}`} slot='selection'>
-													<Checkbox.Content>
-														<Checkbox.Control>
-															<Checkbox.Indicator />
-														</Checkbox.Control>
-													</Checkbox.Content>
-												</Checkbox>
-											</Table.Cell>
-											<Table.Cell>
-												<div className='flex items-center gap-2'>
-													<Image unoptimized src={item.thumbnail_url} alt={item.title} width={56} height={32} className='h-8 w-14 rounded object-cover' />
-													<div className='truncate max-w-[250px]'>{item.title}</div>
-												</div>
-											</Table.Cell>
-											<Table.Cell>{item.creator_name}</Table.Cell>
-											<Table.Cell>{getGameName(item.game_id)}</Table.Cell>
-											<Table.Cell>{item.view_count}</Table.Cell>
-											<Table.Cell>{<LocalizedDate value={item.created_at} />}</Table.Cell>
-										</Table.Row>
-									))}
-								</Table.Body>
-							</Table.Content>
-						</Table.ScrollContainer>
-						{cachedClipsPagesCount > 1 ? (
-							<Table.Footer className='flex w-full justify-center gap-4 items-center'>
-								<AppPagination page={cachedClipsPage} total={cachedClipsPagesCount} onChange={setCachedClipsPage} />
-								<div className='text-xs text-muted'>{sortedCachedClips.length} clips total</div>
-							</Table.Footer>
-						) : null}
-					</Table>
+					<div data-tour='playlist-clip-selection'>
+						<Table>
+							<Table.ScrollContainer className='max-h-[56vh]'>
+								<Table.Content aria-label='Cached clips table' selectionMode='multiple' selectedKeys={selectedCachedClipIds} onSelectionChange={(keys) => setSelectedCachedClipIds(keys === "all" ? new Set([...(selectedCachedClipIds === "all" ? [] : selectedCachedClipIds), ...paginatedCachedClips.map((clip) => clip.id)]) : keys)} sortDescriptor={cachedClipsSortDescriptor} onSortChange={setCachedClipsSortDescriptor}>
+									<Table.Header>
+										<Table.Column className='pr-0'>
+											<Checkbox aria-label='Select all clips' slot='selection' variant='primary'>
+												<Checkbox.Content>
+													<Checkbox.Control>
+														<Checkbox.Indicator />
+													</Checkbox.Control>
+												</Checkbox.Content>
+											</Checkbox>
+										</Table.Column>
+										<Table.Column id='clip' allowsSorting isRowHeader>
+											{({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>Clip</Table.SortableColumnHeader>}
+										</Table.Column>
+										<Table.Column id='creator' allowsSorting>
+											{({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>Creator</Table.SortableColumnHeader>}
+										</Table.Column>
+										<Table.Column id='category' allowsSorting>
+											{({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>Category</Table.SortableColumnHeader>}
+										</Table.Column>
+										<Table.Column id='views' allowsSorting>
+											{({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>Views</Table.SortableColumnHeader>}
+										</Table.Column>
+										<Table.Column id='date' allowsSorting>
+											{({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>Date</Table.SortableColumnHeader>}
+										</Table.Column>
+									</Table.Header>
+									<Table.Body
+										renderEmptyState={() =>
+											cachedClips === undefined ? (
+												<span className='inline-flex items-center gap-2 p-4'>
+													<Spinner />
+													Loading clips...
+												</span>
+											) : (
+												<div className='p-4 text-muted'>No clips found in cache.</div>
+											)
+										}
+									>
+										{(paginatedCachedClips ?? []).map((item) => (
+											<Table.Row key={item.id} id={item.id} textValue={item.title}>
+												<Table.Cell className='pr-0'>
+													<Checkbox aria-label={`Select ${item.title}`} slot='selection' variant='secondary'>
+														<Checkbox.Content>
+															<Checkbox.Control>
+																<Checkbox.Indicator />
+															</Checkbox.Control>
+														</Checkbox.Content>
+													</Checkbox>
+												</Table.Cell>
+												<Table.Cell>
+													<div className='flex items-center gap-2'>
+														<Image unoptimized src={item.thumbnail_url} alt={item.title} width={56} height={32} className='h-8 w-14 rounded object-cover' />
+														<div className='truncate max-w-[250px]'>{item.title}</div>
+													</div>
+												</Table.Cell>
+												<Table.Cell>{item.creator_name}</Table.Cell>
+												<Table.Cell>{getGameName(item.game_id)}</Table.Cell>
+												<Table.Cell>{item.view_count}</Table.Cell>
+												<Table.Cell>{<LocalizedDate value={item.created_at} />}</Table.Cell>
+											</Table.Row>
+										))}
+									</Table.Body>
+								</Table.Content>
+							</Table.ScrollContainer>
+							{cachedClipsPagesCount > 1 ? (
+								<Table.Footer className='flex w-full justify-center gap-4 items-center'>
+									<AppPagination page={cachedClipsPage} total={cachedClipsPagesCount} onChange={setCachedClipsPage} />
+									<div className='text-xs text-muted'>{sortedCachedClips.length} clips total</div>
+								</Table.Footer>
+							) : null}
+						</Table>
+					</div>
 				</Modal.Body>
 				<Modal.Footer>
 					{wouldExceedFreeLimit && <div className='mr-auto text-xs text-danger'>Free plan limit is {FREE_PLAYLIST_CLIP_LIMIT} clips per playlist.</div>}
-					<Button variant='tertiary' onPress={onAddClipsClose}>
+					<Button data-tour='playlist-clip-cancel' variant='tertiary' onPress={onAddClipsClose}>
 						Cancel
 					</Button>
-					<Button onPress={handleAddSelectedClips} isDisabled={selectedIds.length === 0 || wouldExceedFreeLimit} variant='primary'>
+					<Button data-tour='playlist-clip-confirm' onPress={handleAddSelectedClips} isDisabled={selectedIds.length === 0 || wouldExceedFreeLimit} variant='primary'>
 						Add selected clips
 					</Button>
 				</Modal.Footer>

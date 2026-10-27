@@ -9,6 +9,7 @@ on:
       - "src/db/schema.ts"
       - "src/db/auth-schema.ts"
       - "src/app/lib/types.ts"
+      - "src/app/lib/badgeCatalog.ts"
       - "drizzle.config.ts"
 
 jobs:

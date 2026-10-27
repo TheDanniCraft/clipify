@@ -24,10 +24,10 @@ describe("TDD-US3-004 protected server boundaries", () => {
 		expect(source).not.toMatch(/editorsTable|legacyEditor|hasLegacyEditorAccess/);
 	});
 
-	it("exposes Team as the only settings management path", () => {
+	it("exposes Team as the embedded settings management panel", () => {
 		const settingsSource = readFileSync(path.join(process.cwd(), "src/app/dashboard/settings/page.tsx"), "utf8");
 		expect(settingsSource).not.toMatch(/Edit editors|settings\?\.editors|feature:\s*["']editors["']/);
-		expect(settingsSource).toContain("/dashboard/settings/team");
+		expect(settingsSource).toContain("<TeamSettingsPanel embedded");
 	});
 
 	it("keeps direct team access and creator invitations behind Pro while leaving agency access separate", () => {
@@ -39,7 +39,7 @@ describe("TDD-US3-004 protected server boundaries", () => {
 	});
 
 	it("keeps Team management inside the Clipify dashboard design system", () => {
-		const teamSource = readFileSync(path.join(process.cwd(), "src/app/dashboard/settings/team/page.tsx"), "utf8");
+		const teamSource = readFileSync(path.join(process.cwd(), "src/app/components/settings/TeamSettingsPanel.tsx"), "utf8");
 		expect(teamSource).toContain("<DashboardNavbar");
 		expect(teamSource).toContain("<Table");
 		expect(teamSource).toContain("<Select");
@@ -53,7 +53,7 @@ describe("TDD-US3-004 protected server boundaries", () => {
 
 	it("prevents delegated team managers from escalating their own or another member's access", () => {
 		const authSource = readFileSync(path.join(process.cwd(), "src/auth/config.ts"), "utf8");
-		const teamSource = readFileSync(path.join(process.cwd(), "src/app/dashboard/settings/team/page.tsx"), "utf8");
+		const teamSource = readFileSync(path.join(process.cwd(), "src/app/components/settings/TeamSettingsPanel.tsx"), "utf8");
 		expect(authSource).toContain('context.path !== "/organization/update-member-role"');
 		expect(authSource).toContain('context.path !== "/organization/invite-member"');
 		expect(authSource).toContain("evaluateRoleAssignment({");

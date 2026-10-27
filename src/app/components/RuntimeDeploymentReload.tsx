@@ -85,7 +85,7 @@ export default function RuntimeDeploymentReload({ deploymentId }: { deploymentId
 	}, [anotherDialogIsOpen, promptOpen, updateId]);
 
 	useEffect(() => {
-		const unattended = Boolean(deploymentId) && isLongLivedRuntimePath(pathname);
+		const canDetectUpdates = Boolean(deploymentId);
 		const requestCheck = () => {
 			void checkDeployment();
 		};
@@ -119,7 +119,7 @@ export default function RuntimeDeploymentReload({ deploymentId }: { deploymentId
 		window.fetch = recoveryFetch;
 
 		const checkWhenVisible = () => {
-			if (unattended && document.visibilityState === "visible") void checkDeployment();
+			if (canDetectUpdates && document.visibilityState === "visible") void checkDeployment();
 		};
 		const checkWhenSourceActive = (event: Event) => {
 			if ((event as CustomEvent<{ active?: unknown }>).detail?.active === true) void checkDeployment();
@@ -129,8 +129,8 @@ export default function RuntimeDeploymentReload({ deploymentId }: { deploymentId
 			if (isMissingServerActionError(error)) void checkDeployment(true);
 		};
 
-		const initialCheck = unattended ? window.setTimeout(requestCheck, 0) : undefined;
-		const interval = unattended ? window.setInterval(requestCheck, CHECK_INTERVAL_MS) : undefined;
+		const initialCheck = canDetectUpdates ? window.setTimeout(requestCheck, 0) : undefined;
+		const interval = canDetectUpdates ? window.setInterval(requestCheck, CHECK_INTERVAL_MS) : undefined;
 		window.addEventListener(DEPLOYMENT_CHECK_EVENT, requestCheck);
 		window.addEventListener("obsSourceActiveChanged", checkWhenSourceActive);
 		window.addEventListener("online", checkWhenVisible);

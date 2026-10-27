@@ -1,3 +1,5 @@
+const reportTour = jest.fn();
+jest.mock("@components/user-tour/provider", () => ({ useUserTour: () => ({ report: reportTour, activeTask: null }), PreviewTourCheckpoint: () => null }));
 import React from "react";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 
@@ -21,6 +23,7 @@ const createChannelReward = jest.fn();
 const removeChannelReward = jest.fn();
 const titleBlocked = jest.fn();
 const navigationGuard = { active: false, reject: jest.fn(), accept: jest.fn() };
+const navigationGuardOptions = jest.fn();
 const mockFieldContext = React.createContext<{ label: string; value?: string; input?: (value: string) => void; select?: (value: string) => void; open: boolean; setOpen: (open: boolean) => void }>({ label: "", open: false, setOpen: () => undefined });
 const mockNumberContext = React.createContext<{ label: string; value: number; change?: (value: number) => void }>({ label: "", value: 0 });
 const mockSliderContext = React.createContext<number[]>([]);
@@ -39,7 +42,10 @@ jest.mock("next/navigation", () => ({
 }));
 
 jest.mock("nextjs-nav-guard", () => ({
-	useNavigationGuard: () => navigationGuard,
+	useNavigationGuard: (options: unknown) => {
+		navigationGuardOptions(options);
+		return navigationGuard;
+	},
 }));
 
 jest.mock("@actions/database", () => ({
@@ -472,6 +478,24 @@ describe("dashboard overlay settings playlist mode", () => {
 			fireEvent.change(input, { target: { value } });
 		});
 	}
+	it("checks the current dirty state when navigation is requested", async () => {
+		const name = await openPage();
+		const enabled = () => navigationGuardOptions.mock.calls.at(-1)![0].enabled();
+		expect(enabled()).toBe(false);
+		await change(name, "Edited overlay");
+		expect(enabled()).toBe(true);
+		await change(name, "Playlist Overlay");
+		expect(enabled()).toBe(false);
+	});
+	it("shows recovery navigation instead of loading a deleted overlay forever", async () => {
+		getOverlay.mockResolvedValue(null);
+		const Page = (await import("@/app/dashboard/overlay/[overlayId]/page")).default;
+		await act(async () => {
+			render(<Page />);
+		});
+		expect(await screen.findByText("Open the Dashboard using the Clipify logo to choose or create an overlay.")).toBeVisible();
+		expect(screen.queryByText("Loading overlay")).not.toBeInTheDocument();
+	});
 	it("redirects an unauthenticated user to logout", async () => {
 		validateAuth.mockResolvedValue(null);
 		const Page = (await import("@/app/dashboard/overlay/[overlayId]/page")).default;
@@ -487,6 +511,7 @@ describe("dashboard overlay settings playlist mode", () => {
 		});
 		await submit();
 		expect(saveOverlay).toHaveBeenCalledWith("overlay-1", expect.objectContaining({ status: "paused" }), 4);
+		expect(reportTour).toHaveBeenCalledWith(expect.objectContaining({ type: "overlay.saved", id: "overlay-1", named: true, source: true }));
 	});
 	it("navigates to the theme studio and owned playlist editor", async () => {
 		await openPage();
@@ -511,6 +536,32 @@ describe("dashboard overlay settings playlist mode", () => {
 		} finally {
 			popup.mockRestore();
 		}
+	});
+	it("keeps the editor usable when leaving Playlist with incomplete legacy preview metadata", async () => {
+		getTwitchClips.mockResolvedValue([clip("legacy", { creator_name: undefined, creator_id: undefined, game_id: undefined })]);
+		await openPage();
+		await press("Overlay Type");
+		await act(async () => {
+			fireEvent.click(screen.getByRole("option", { name: "All Clips" }));
+		});
+		expect(screen.getByRole("button", { name: "Overlay Type" })).toBeEnabled();
+		expect(reportTour).toHaveBeenCalledWith(expect.objectContaining({ type: "overlay.type-selected", playlist: false }));
+	});
+	it("ignores a stale playlist preview response after choosing another source", async () => {
+		let release!: (clips: unknown[]) => void;
+		const pending = new Promise<unknown[]>((resolve) => {
+			release = resolve;
+		});
+		getTwitchClips.mockImplementation((_overlay, type) => (type === "Playlist" ? pending : Promise.resolve([])));
+		await openPage();
+		await press("Overlay Type");
+		await act(async () => {
+			fireEvent.click(screen.getByRole("option", { name: "All Clips" }));
+		});
+		await act(async () => {
+			release([clip("stale")]);
+		});
+		expect(screen.getByRole("button", { name: "Preview Clips" })).toHaveTextContent("0");
 	});
 	it.each(["1", "7", "30", "90", "180", "365", "Featured", "All", "Queue"])("source %s clears playlist binding and normalizes ordered playback", async (type) => {
 		getOverlay.mockResolvedValue({ ...buildOverlay(), playbackMode: "order" });
@@ -539,7 +590,7 @@ describe("dashboard overlay settings playlist mode", () => {
 		getOverlay.mockResolvedValue({ ...buildOverlay(), playbackMode: mode });
 		getTwitchClips.mockResolvedValue(clips);
 		await openPage();
-		await press("15");
+		await press("Preview Clips");
 		const items = within(screen.getByRole("dialog")).getAllByRole("listitem");
 		expect(items).toHaveLength(mode === "smart_shuffle" ? 12 : 15);
 		if (mode === "top") expect(items[0]).toHaveTextContent("Clip 14");
@@ -564,7 +615,7 @@ describe("dashboard overlay settings playlist mode", () => {
 		getTwitchClips.mockResolvedValue([clip("filtered", { game_id: "game", ...clipPatch })]);
 		titleBlocked.mockReturnValue(blocked === true);
 		await openPage();
-		await press(String(expected));
+		await press("Preview Clips");
 		const dialog = screen.getByRole("dialog");
 		expect(within(dialog).queryAllByRole("listitem")).toHaveLength(expected);
 	});
@@ -882,11 +933,13 @@ describe("dashboard overlay settings playlist mode", () => {
 	});
 
 	it("reports a rejected overlay save without a success notification", async () => {
+		reportTour.mockClear();
 		saveOverlay.mockRejectedValue(new Error("denied"));
 		await openPage();
 		await submit();
 		expect(jest.requireMock("@lib/toast").notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Could not save overlay", color: "danger" }));
 		expect(jest.requireMock("@lib/toast").notify).not.toHaveBeenCalledWith(expect.objectContaining({ title: "Overlay settings saved" }));
+		expect(reportTour).not.toHaveBeenCalledWith(expect.objectContaining({ type: "overlay.saved" }));
 	});
 
 	it("keeps or discards a dirty draft through the navigation guard", async () => {
@@ -993,7 +1046,7 @@ describe("dashboard overlay settings playlist mode", () => {
 		getOverlay.mockResolvedValue({ ...buildOverlay(), playbackMode: "smart_shuffle" });
 		getTwitchClips.mockResolvedValue(Array.from({ length: 14 }, (_, index) => clip(String(index), { view_count: 1, creator_id: "", game_id: index % 2 ? "" : "game", created_at: `2026-09-${String(index + 1).padStart(2, "0")}T00:00:00Z` })));
 		await openPage();
-		await press("14");
+		await press("Preview Clips");
 		const dialog = screen.getByText("Preview Clips").closest("[role='dialog']") as HTMLElement;
 		expect(within(dialog).getAllByRole("listitem")).toHaveLength(12);
 	});
@@ -1017,7 +1070,7 @@ describe("dashboard overlay settings playlist mode", () => {
 		getOverlay.mockResolvedValue({ ...buildOverlay(), type: "All", playlistId: null, categoriesOnly: undefined, categoriesBlocked: undefined, clipCreatorsOnly: undefined, clipCreatorsBlocked: undefined });
 		getTwitchClips.mockResolvedValue([clip("a")]);
 		await openPage();
-		await press("1");
+		await press("Preview Clips");
 		expect(screen.getByText("Clip a")).toBeInTheDocument();
 	});
 

@@ -1,3 +1,4 @@
+jest.mock("@components/user-tour/provider", () => ({ useUserTour: () => ({ report: jest.fn() }) }));
 import ToolsClient from "@components/tools/ToolsClient";
 import { render, screen } from "@testing-library/react";
 

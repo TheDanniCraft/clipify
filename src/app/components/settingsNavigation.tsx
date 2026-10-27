@@ -5,35 +5,27 @@ import { useRouter } from "next/navigation";
 
 export type SettingsNavigationKey = "settings" | "connections" | "creator" | "billing" | "team";
 
-const ROUTES: Record<Exclude<SettingsNavigationKey, "settings" | "connections" | "creator" | "billing">, string> = {
-	team: "/dashboard/settings/team",
-};
-
-export default function SettingsNavigation({ active, onCoreSectionChange }: { active: SettingsNavigationKey; onCoreSectionChange?: (section: "settings" | "connections" | "creator" | "billing") => void }) {
+export default function SettingsNavigation({ active, onCoreSectionChange }: { active: SettingsNavigationKey; onCoreSectionChange?: (section: SettingsNavigationKey) => void }) {
 	const router = useRouter();
 
 	function navigate(key: React.Key) {
 		const section = String(key) as SettingsNavigationKey;
-		if (section === "settings" || section === "connections" || section === "creator" || section === "billing") {
-			if (onCoreSectionChange) {
-				onCoreSectionChange(section);
-				return;
-			}
-			router.push(section === "settings" ? "/dashboard/settings" : `/dashboard/settings?tab=${section}`);
+		if (onCoreSectionChange) {
+			onCoreSectionChange(section);
 			return;
 		}
-		router.push(ROUTES[section]);
+		router.push(section === "settings" ? "/dashboard/settings" : `/dashboard/settings?tab=${section}`);
 	}
 
 	return (
 		<Tabs selectedKey={active} onSelectionChange={navigate} className='w-full' variant='primary'>
 			<Tabs.ListContainer className='w-full overflow-x-auto'>
 				<Tabs.List aria-label='Settings sections' className='w-full min-w-[32rem]'>
-					<Tabs.Tab id='settings' className='flex-1'>
+					<Tabs.Tab data-tour='settings-core-tab' id='settings' className='flex-1'>
 						Settings
 						<Tabs.Indicator />
 					</Tabs.Tab>
-					<Tabs.Tab id='connections' className='flex-1'>
+					<Tabs.Tab data-tour='settings-connections-tab' id='connections' className='flex-1'>
 						Connections
 						<Tabs.Indicator />
 					</Tabs.Tab>
@@ -45,7 +37,7 @@ export default function SettingsNavigation({ active, onCoreSectionChange }: { ac
 						Billing
 						<Tabs.Indicator />
 					</Tabs.Tab>
-					<Tabs.Tab id='team' className='flex-1'>
+					<Tabs.Tab data-tour='settings-team-tab' id='team' className='flex-1'>
 						Team
 						<Tabs.Indicator />
 					</Tabs.Tab>

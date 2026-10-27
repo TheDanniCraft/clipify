@@ -2,14 +2,25 @@ import { queueBadgeEmail } from "@/server/notifications/badge-events";
 import "server-only";
 
 import { db } from "@/db/client";
-import { userBadgesTable } from "@/db/schema";
+import { userContentStatesTable, userBadgesTable } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { badgeCatalog, type AutomaticBadgeSlug, type BadgeCondition, type BadgeSlug, type ManualBadgeSlug } from "@lib/badgeCatalog";
 import { getActivePartnerAccessGrant } from "@lib/entitlements";
 
+import { guideContentKey, parseProgress } from "@lib/userTour";
+
 type AutomaticBadgeResolver = (userId: string) => Promise<Date | null>;
 
 const automaticBadgeResolvers: Record<BadgeCondition, AutomaticBadgeResolver> = {
+	"completed-all-guides": async (userId) => {
+		const [row] = await db
+			.select({ state: userContentStatesTable.state })
+			.from(userContentStatesTable)
+			.where(and(eq(userContentStatesTable.userId, userId), eq(userContentStatesTable.contentKey, guideContentKey)))
+			.limit(1);
+		const awardedAt = row ? parseProgress(row.state, false).expertAwardedAt : undefined;
+		return awardedAt ? new Date(awardedAt) : null;
+	},
 	"active-partner-grant": async (userId) => (await getActivePartnerAccessGrant(userId))?.startsAt ?? null,
 };
 

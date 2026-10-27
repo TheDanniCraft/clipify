@@ -18,7 +18,7 @@ describe("badge catalog", () => {
 			Object.entries(badgeCatalog)
 				.filter(([, badge]) => "condition" in badge)
 				.map(([slug]) => slug),
-		).toEqual(["partner"]);
+		).toEqual(["clipify-expert", "partner"]);
 	});
 	it("accepts catalog slugs and rejects arbitrary database values", () => {
 		expect(isBadgeSlug("founder")).toBe(true);
@@ -30,7 +30,7 @@ describe("badge catalog", () => {
 		expect(isBadgeSlug("made-up-badge")).toBe(false);
 	});
 	it("derives the PostgreSQL enum values from the registry", () => {
-		expect(badgeSlugs).toEqual(["founder", "founder-supporter", "partner", "beta-tester", "contributor"]);
+		expect(badgeSlugs).toEqual(["clipify-expert", "founder", "founder-supporter", "partner", "beta-tester", "contributor"]);
 		expect(badgeSlugs).toEqual(Object.keys(badgeCatalog));
 		expect(badgeEnum.enumValues).toEqual(badgeSlugs);
 	});

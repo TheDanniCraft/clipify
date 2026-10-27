@@ -1,3 +1,12 @@
+jest.mock("@actions/userTour", () => ({ getUserTourProgress: async () => ({ progress: { version: 2, completed: [], skipped: [], active: null, minimized: false }, importLegacy: false }) }));
+jest.mock("@components/user-tour/provider", () => ({
+	UserTourProvider: ({ children, accountId, dashboardContent }: { children: React.ReactNode; accountId: string; dashboardContent: unknown[] }) => (
+		<div data-testid='user-tour' data-account={accountId}>
+			{children}
+			<span>{`dashboard-content:${dashboardContent.length}`}</span>
+		</div>
+	),
+}));
 import React from "react";
 import { render, screen } from "@testing-library/react";
 

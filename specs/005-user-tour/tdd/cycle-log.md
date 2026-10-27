@@ -1,0 +1,129 @@
+# Red–Green–Refactor Evidence
+
+The entries below record preparation, intended failures and subsequent implementation checks.
+
+## State slice
+
+Red: `bun run test --runInBand test/app/lib/userTour.test.ts` failed because `src/app/lib/userTour` did not exist (1 suite failed). Initial sandbox execution could not initialize TypeScript; rerun with execution permissions reached the intended missing-module red. Green candidate: 16/17 passed; corrected resume fixture to include the existing overlay required for pointer index 1 (without an overlay only the create pointer exists).
+
+State green: 17/17. UI red: missing provider/spotlight module. UI green: 5/5 provider, 3/3 spotlight tests. Editor integration red: 3 intended assertions failed, 229 existing tests passed, before wiring successful save reports. First integration green attempt exposed a JSX ternary syntax mistake; corrected before rerunning.
+
+Recovery red: state/provider suites failed on missing playlist prerequisite, missing guide_paused event and missing navigation after delayed existing-resource discovery (24/25 planned assertions exercised). Added scoped prerequisite routing, safe pause metadata and discovery navigation without mutations.
+
+Playlist replay red: new Keep saved playlist test failed while 44 existing tests passed. Added explicit acknowledgement of saved state without mutation, and moved the order spotlight to the real draggable list rather than its instructional caption. Recovery suite green: 25/25 state/provider assertions.
+
+Browser verification: BDD-TOUR-US1-001 and BDD-TOUR-US1-002 passed (launcher unobstructed; actual first overlay created/named/saved). BDD-TOUR-US1-014 exposed native Escape closing the spotlight without pausing state. Adapter red reproduced this (1 failed, 3 passed), then added explicit Escape capture and close-button pause ownership. Playlist replay green: 45/45 tests.
+
+State selection red: explicit owned resource retained stale ID; implemented explicit page selection, clearing copy confirmation when selection changes. Missing-resource red: reducer and provider lacked replacement/reset; implemented explicit Choose another resource controls, retaining completed tasks and never creating resources. Delayed-anchor/modal red: 2 adapter assertions failed (4 passed); added targeted attribute observation and application-dialog detection excluding Driver.
+
+Appearance completion red: the existing volume-boundary cases showed audio-only saves incorrectly reporting a visible customization (2 failed, 89 passed). The report now checks a changed appearance field in both the draft and persisted result, excluding audio-only and revision-only changes.
+
+Final green: 16 affected suites / 430 tests. Browser sweep 24/26; the remaining playlist cases passed 2/2 after waiting for real spotlight readiness and persisted completion rather than an earlier success toast. Final keyboard, customized-theme and unchanged-theme follow-up 3/3 passed. E2E and standalone builds pass. Full merge coverage/Test remains pending; dependency audit reproduces three existing baseline advisories.
+
+## UX revision
+
+Red: userTour.revision.test.ts failed all six initial cases for default visibility, real Add Overlay entry, completed-task handoff, separate manual skips, real Theme Studio entry and filter/copy steps. Green: all six after implementing the revision. Added consent, in-place resume, unchanged appearance and owned website copy checks; provider/revision follow-up passed 22/22. Locked-filter adapter red: 1 failed / 7 passed; the highlighted access-locked region lacked disableActiveInteraction. Added an explicit read-only anchor and adapter guard; final affected verification pending below.
+
+Browser scenarios now total 32; the six additional examples own default corner visibility, installed HeroUI checkbox skip/undo, source/filter handoff, website installation, galleries and support/tools. Existing journeys were updated for actual style-button navigation and direct task resume. Historical 26-case evidence belongs to the first candidate, not this revised source.
+
+Further integration red: three editor/undo assertions failed (22 passed): initial editor entry kept the welcome checklist open, normal navigation did not minimize it, and unchecking a completed task retained its old handoff. Green: 25/25 after minimizing inactive editor entry/navigation and clearing an undone handoff. Expected-dialog red and tab-state red: 2 failed / 8 passed; the adapter now suspends for expected clip dialogs, restores its pointer after close and observes real aria-selected state rather than depending on a swallowed tab click. Adapter green: 10/10. Final affected suites: 17/17, 448/448 tests.
+
+First complete revised browser sweep: 27 passed / 5 failed. Three normal-save cases exposed welcome-panel overlap; the playlist case exposed tab timing; tools/support exposed a test helper interpreting open="" as closed. Fixed editor behavior and adapter state, corrected the helper and updated playlist traversal to follow the restored clip/order/save steps. Final revised build/sweep pending below.
+
+Final revision verification: all 32 owning browser scenarios pass in one complete two-worker sweep (5.5 minutes). Affected suites pass 17/17 and 448/448. Full lint has zero errors and five pre-existing warnings; feature-owned formatting, TypeScript, E2E build and standalone build pass. Full merge coverage/Test and baseline dependency advisories remain unresolved gates.
+
+## Quiet checklist / durable account revision
+
+Navigation red: seven new cases failed on missing navigation helpers and the earlier replay/handoff behavior. Green: all seven, then eight including unrelated navigation, pass after separate navigation/action checkpoints and user-click routing. Auth boundary red: the new persistence module/action did not exist. Green: three action cases reject unsigned/stale-account, invalid and foreign-owned events and save valid events in the authenticated scope.
+
+Five PostgreSQL integration checks pass with a separate disposable database per case: fresh-read durability, simultaneous updates, account separation/deletion cascade, paused checkpoint restoration and existing-resource recognition. These live in the established database lane, not the ordinary browser owner. Provider tests were updated for server snapshots and portal confirmation; the old status-card assertions were replaced by quiet continuation assertions.
+
+First installed-component smoke: 1/5 passed. The ring launcher was left-aligned under a wider panel; the logo performed a full document navigation, and menu clicks did not expose the next step reliably. Added end alignment, Next Link, destination-transition tolerance, native control ARIA preservation and revealed-menu observation. Follow-up: 5/6 pass, with one active-checkbox popover focus race. Deferred focus restoration now checks whether a native popover/dialog/widget owns focus. The ring uses the visible large native circle, and support clicks pause the spotlight before opening normal support UI. Focus/adapter follow-up: 27/27 tests pass. Final complete verification pending below.
+
+Final sweep: 32/39 browser cases passed initially. Seven failures led to a resume-versus-replay reducer regression test (9 navigation cases green), awaited playlist persistence and popover exit in bindings. Targeted rerun passed 9/10, including active skip cancellation/retry, cleared-browser persistence, replay and real menu navigation. The remaining deleted-resource case exposed the editor’s pre-existing infinite loader; added an unavailable state retaining normal Dashboard navigation. Visual review also found HeroUI Button shrinking the ring SVG; set explicit track dimensions and added a browser geometry assertion.
+
+Affected revision suites: 20/20 and 470/470 passed, including five disposable PostgreSQL checks. Provider suite after ring correction: 14/14 passed. Changed-file lint passed. Production and browser builds passed before the last ring/recovery slice; final slice checks follow in test-summary.md.
+
+Final recovery slice: overlay settings whole-file suite 98/98, final browser production build/type check green, and targeted Chromium recovery/ring scenarios 2/2 green. Desktop artifact inspected with a visible 36px ring and original Sentry position. All 39 unique examples have passing evidence across the full and targeted runs. Complete merge coverage and dependency-security gates remain pending; PR stays draft.
+
+Personalization refinement adds regressions for starting in Theme Studio, returning to an unchanged Save checkpoint through the real Customize control, Back review, persisted section counts and filter-to-style continuation. Initial five whole-file model/provider/adapter suites passed 70/70 tests. Initial affected run passed 16/16 suites and 414 tests; final provider/adapter assertions and browser cases 040/041 follow. No schema change.
+
+Personalization browser verification: 5/6 green initially; case 040 exposed a binding that opened the checklist before Theme Studio had arrived. Waiting on the editor’s real heading/input and acknowledged guide state fixed the binding; 040 passed on rerun. Cases cover keyboard, style save, unchanged defaults, cleared-browser state, resume/review, and filter-to-style section persistence. Final model/provider/adapter run 43/43 passed. Standalone build and changed-source lint passed.
+
+Settled-animation visual rerun of 040 passed. Inspected the workspace screenshot: preview and grouped controls remain interactive, the explanatory popover is readable, and the section launcher retains its title. All six affected browser examples have passing evidence across the sweep and targeted rerun.
+
+Dropdown/progress fix: traced the flash to an explicit opacity:0 CSS rule on Driver’s mask during native popovers. Removed that override and raised native portals. Added section-weighted partial progress with completed/skipped and replay handling. New model/provider checks passed; all 16 affected suites / 416 tests passed. Four owning browser examples passed, including real option hit testing, outside dismissal and persisted 38% after reload in new case 042. Browser and standalone builds/types, source lint and dropdown screenshot review passed. No schema changes.
+
+Universal HeroUI controls refinement: replaced conditional Back flags with an engine-level action-index rule; added previous-event location and normal Theme Studio back navigation. Driver only provides highlighting/positioning; a React portal renders HeroUI Pause/Back/Continue buttons. Ring and accessible name stay in percent. Initial portal/model/provider run passed 47 tests, and affected run passed 16 suites / 418 tests. Initial build caught Testing Library exact options unsupported in ByRoleOptions; removed those test-only options and restarted build. Browser owning cases 043 and 044 are new regressions.
+
+Real-browser integration found two defects in the first HeroUI sweep (6/11 passed): reserved Driver action classes intercepted portal button events, and initially measured popover height could obscure native controls after React mounted its footer. Replaced reserved classes with data-tour-action hooks and observe popover size/DOM changes to refresh geometry. Spotlight whole-file suite passed 14/14 after the corrections; browser production build/type checking passed. The corrected 11-case browser sweep is recorded in test-summary.md.
+
+The corrected sweep passed 10/11; the tiny edit target still exposed initial layout being measured before Driver set __activeElement at the end of highlight animation. Added an onHighlighted refresh, with a new adapter regression (whole file 15/15). Final targeted 040/043/044 passed 3/3, establishing green evidence for all 11 unique affected journeys. Both final production builds/types and source lint passed. The real-browser Back case changes Overlay Type, reviews filters and returns without losing the draft value. The ring remains percent while active and idle.
+
+Removed duplicate appearance.filters task following user feedback. Core Choose your clips retains source, filters and save. Retired acknowledged completions map to overlay.source without translating optional skips; old active indices map to core filter/save checkpoints. Updated parser/catalog and appearance count regressions. All 16 affected suites / 419 tests and browser cases 018/019/041/043 (4/4) passed. Browser production build/types, lint and formatting pass.
+
+Guided picker revision adds a six-step flow with an owned clips-added event and no premature completion. Added old-index migration, reopening/Back navigation, modal ownership/keyboard adapter checks and section-boundary assertions. Initial six suites passed 203 tests before new cases; final affected run passed 16 suites / 425 tests. Initial browser sweep passed only section confirmation: the SVG path intercepted modal guide buttons; fixed guided-modal pointer routing, and scoped the checklist helper to its region to avoid launcher/accordion name collisions. Corrected browser cases 005/020/021/045/046 are being verified.
+
+The next browser sweep passed core picker, pagination/save and ordinary playlist use. Two remaining failures exposed a hint covering Cancel and an underlying editor crash when leaving Playlist: old preview clips lacked creator fields. Prefer side-positioned modal hints; normalize optional creator/category preview metadata and ignore stale source fetches, with two whole-file page regressions. Source-type selection now advances or rewinds an owned playlist-use task and prevents invalid Next. All seven final affected browser examples 005/020/021/022/045/046/047 passed in one run; the targeted model/adapter/editor run passed 138 tests. Both production builds/types and source lint pass. Final inset outline verification keeps the selected table region visible within scroll clipping.
+
+Final seven-case browser sweep passed 7/7 after side-positioning the modal hints and fixing missing legacy creator metadata plus stale preview responses. The outline-only rerun of 045 passed with a visibly outlined table/pagination region; inspected its screenshot. Native editor/model/adapter whole-file tests passed 138/138. Both production builds/type checks and source lint pass. No cross-section automatic start was introduced, and addition still requires a native save for completion.
+
+Final completion evidence: all 16 affected suites / 428 tests passed. All seven owning browser examples passed in one final run, with an additional successful inset-outline visual rerun. Existing saved checkpoints, section boundaries and native save semantics remain covered. Full merge validation remains pending; keep the PR draft.
+
+## Welcome journey and Clipify Expert badge
+
+Implemented a single welcome entry point inside the guide provider: retain Pro trial content, offer Start guided tour / Maybe later, and provide a generic welcome when trial content is absent. Account progress remembers the decision; consent keeps priority. Added core-completion timestamp latching and an automatic balloon badge shared by member/profile presentation. Replay never revokes an earned badge; skips do not qualify. Added catalog path ownership to the existing post-merge migration workflow.
+
+Focused component/action/catalog suites passed (31 tests). The complete affected run passed 159 suites / 2329 tests; one pre-existing suite and three tests were skipped. The first browser batch passed defer and badge/member-card persistence; the trial-welcome example exposed an incorrect paid-plan fixture, which was corrected to a free account with a reverse-trial grant. The initial type check caught a HeroUI toast API mismatch; corrected to the established application toast adapter before the passing browser build. Full browser sweep and standalone build are tracked below when complete.
+
+The first development db:push attempt found no Infisical CLI on PATH. Reused the already-installed temporary CLI; Infisical dev-only db:push completed with Changes applied. No generated migration files were created or edited.
+
+Review while the full browser sweep was running found a first-read bootstrap edge: existing resources were recognized as completed, but welcomeSeen had not yet been set on the newly inserted guide row. Preserve the existing-account minimized behavior by recording that the welcome is already seen when owned setup is bootstrapped. Added the assertion to the existing database integration case. Stopped the old browser sweep after its first 25 passing examples so the final run can use the corrected source. The welcome example also now checks consent priority after clearing consent cookies.
+
+The manually started full suite was superseded while in its database lane after the existing-account bootstrap correction. The required pre-push run will provide final-source affected-suite evidence; no successful full-run result is claimed for the interrupted run.
+
+The pre-push hook twice reproduced a cold fixture-creation timeout in the existing first persistence test (the default Jest beforeEach budget was five seconds). Lowering worker concurrency did not resolve cold schema provisioning. Aligned only the fixture setup/cleanup hooks to the 35-second budget already used by other disposable-database suites; test assertion budgets, coverage thresholds and application behavior are unchanged. The first hook run had 2328 passing tests and one setup failure.
+
+The final-source 50-example browser sweep passed 48 examples. Case 040 resumed before the Dashboard route completed; its setup now waits for the actual Dashboard URL and heading. Case 048 cleared consent cookies but retained the local-storage consent decision; its setup now clears both browser stores before checking consent precedence. These are browser setup corrections; the application build is unchanged. Targeted reruns follow below. The member-card screenshot from case 050 was inspected: Clipify Expert text and balloon icon display through the existing badge UI. The corrected persistence whole-file run passed all eight cases, including cold setup with the scoped hook budget.
+
+Final owning browser reruns for 040 and 048 passed 2/2 on the unchanged final application build. Combined with the sweep’s 48 passing examples, all 50 canonical tour behaviors are verified. The trial-welcome screenshot was inspected: one native HeroUI modal preserves the trial message and offers Maybe later / Start guided tour, with the checklist behind it. Both final browser and standalone production builds/type checks pass. Source lint, feature-owned formatting and git diff checks pass.
+
+## Expert requires all guides
+
+User correction: Expert recognizes exploring every available guide, rather than completing only overlay setup. The central eligibility helper now requires all 11 task IDs across all four sections. Skips do not qualify. Replaced the balloon with a graduation cap (Tabler IconSchool), and updated welcome, toast and badge descriptions. Added expertAwardVersion=2 so earlier core-only awards cannot grant the revised achievement; valid all-guide awards survive replay. Badge slug/enum remains unchanged.
+
+The complete affected run passed 159 suites / 2333 tests with one existing skipped suite and three skipped tests. Browser case 050 now checks no award after the core section, then finishes the last remaining discovery task and verifies the member-card graduation cap after reload. Welcome case 048 verifies the all-guides promise.
+
+Final verification: browser cases 048, 049 and revised 050 passed 3/3. The graduation-cap member-card screenshot was inspected. Browser and standalone production builds/type checks, affected-source lint, formatting and diff checks pass. No schema push is needed because the badge slug/enum is unchanged.
+
+## Missing badge after replay and ambiguous skips
+
+Read-only Infisical development-state audit found eight completed tasks and three skipped (overlay.source, appearance.style, playlist.use), with no award timestamp. The user clarified that completion had been reset for testing and some tasks may have been manually skipped. No development account data was modified.
+
+The UI hid the distinction by checking completed and skipped tasks alike. It now labels explicit skips, explains their Expert exclusion and shows real Expert completion out of 11. Guided current/default confirmations now complete their guides instead of recording a skip. Native Save handlers remain unchanged. Added model coverage for all six confirmation flows, a persistence case for the exact eight/three state, and browser case 051.
+
+The first affected run exposed a new unit assertion against an ARIA attribute omitted by the HeroUI test mock, plus an unsupported Testing Library exact option caught by the build. Replaced that unit assertion with visible skip text and moved the ARIA assertion to the real browser. The corrected affected run passed 128 suites / 2013 tests (one pre-existing skipped suite, three skipped tests). Browser runs and final build evidence follow below.
+
+The owning browser sweep passed six existing cases (019, 028, 029, 038, 041, 050). New case 051 initially counted skipped labels across all mounted accordion panels instead of checking the visible task; scoped its assertion to the Choose your clips button. The application correctly rendered all three historical skipped labels. The targeted 051 rerun verifies the actual three-guide completion path below.
+
+The next real-browser assertion showed that HeroUI also filters aria-description in production. Switched the skipped row to a supported aria-describedby reference to its visible Skipped label, and rebuilt. This preserves the original button name while exposing the actual state to assistive technology. The final 051 run checks the accessible description and the complete three-guide replay path.
+
+Final owning browser result: 051 passed, including the supported accessible skip description and the exact 8/11 → 11/11 award path. Combined with the six passing owning examples, all seven behaviors are verified. The final Expert-progress screenshot was inspected. The affected run passed 128 suites / 2013 tests; source lint, formatting, diff checks and browser production build/type checks pass. Account state was left untouched because historical skip origin is ambiguous.
+
+The required pre-push rerun caught one existing assertion that selected the only status role for the Pro notice. The new accessible Expert progress counter is intentionally another status region. Scoped the assertion to the exact Pro notice while still checking its live-status role; no application code changed. All other 2012 tests passed in that hook run.
+
+Final push hook passed 128 affected suites / 2013 tests with the existing one-suite/three-test skips. Both final production builds and type checks passed. The seven owning browser behaviors are verified, including 051 after the accessibility correction. The current development account was rechecked read-only and remains at eight completions and the same three explicit skipped records; no historical records were rewritten.
+
+## Native Save stalled on a preselected playlist
+
+Read-only development audit confirmed that the saved overlay playlist differed from the playlist ID remembered by the guide. Native Save already reported the successful persisted association; the reducer incorrectly required the stale guide playlist ID. The active playlist.use task now completes when the acknowledged Save matches its overlay, and adopts the actual saved playlist ID. Foreign owner, other-overlay and no-playlist outcomes remain guarded. No editor selection or native Save handler changed.
+
+Added a model regression, a persistence/reload regression with two owned playlists, and browser case 052 with a preselected native playlist that differs from the tutorial playlist. The affected run passed 128 suites / 2015 tests, with one existing skipped suite and three skipped tests. Browser and standalone results follow when complete.
+
+Native playlist Save regression verified: active association now adopts the playlist actually saved on the matching guided overlay, even when the editor preselected a different playlist. Model/persistence tests include stale ID, wrong owner, other overlay and no-playlist cases. The affected run passed 128 suites / 2015 tests (one existing skipped suite, three skipped tests); owning browser cases 022, 047 and new 052 passed 3/3. Both production builds/type checks, lint, formatting and diff checks pass. No native selection/Save behavior or database schema changed. Development account state was inspected read-only and left untouched.
+
+## Expanded discovery before user walkthrough
+
+After authorizing ready/merge, the user requested short Runner, Settings, AI and Editor discovery guides, then explicitly revoked merge authorization until they can test the new flow. PR was marked ready to trigger full CI; auto-merge is disabled. Four discovery tasks, native anchors and bounded settings/team navigation were added. The current catalog has 15 tasks; prior valid Expert awards remain permanent.
+
+The four new browser cases and two updated Expert cases passed 6/6. The affected run passed 158 suites / 2335 tests (one existing skipped suite, three skipped tests). Both production builds/type checks passed. The old-head full CI completed all producers/browser shards successfully, then failed the unchanged playlist editor branch gate at 83.94% < 85%. Added native Select all across pages, suffix/middle category match and zero-filter tests; all 48 playlist tests pass, and scoped playlist coverage reaches 85.78% (187/218 branches). The existing partial-lane collector was used only for diagnosis; no thresholds or merge checks were changed. Final full CI on the pushed source remains the required evidence.

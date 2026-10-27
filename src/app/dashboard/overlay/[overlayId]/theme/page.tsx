@@ -2,6 +2,7 @@
 import { useDeploymentDraft } from "@lib/deploymentDrafts";
 
 import ThemeColorInput, { clamp } from "@components/theme/ThemeColorInput";
+import { useUserTour } from "@components/user-tour/provider";
 
 import { validateAuth } from "@actions/auth";
 import { getOverlay, getOverlayOwnerPlan, saveOverlay } from "@actions/database";
@@ -543,6 +544,7 @@ function OverlayStylePreview({ overlay, canDrag, onMove, onScaleChange, streamer
 
 export default function OverlayStylePage() {
 	const router = useRouter();
+	const { report: reportTour } = useUserTour();
 	const { overlayId } = useParams() as { overlayId: string };
 
 	const [overlay, setOverlay] = useState<Overlay | null>(null);
@@ -711,6 +713,8 @@ export default function OverlayStylePage() {
 			}
 			setOverlay(saved);
 			setBaseOverlay(saved);
+			const customized = baseOverlay && (Object.keys(THEME_DEFAULTS) as Array<keyof typeof THEME_DEFAULTS>).some((field) => overlay[field] !== baseOverlay[field] && saved[field] !== baseOverlay[field]);
+			reportTour({ type: "theme.saved", ownerId: saved.ownerId, id: saved.id, changed: Boolean(customized) });
 			addToast({ title: "Style saved", description: "Overlay style has been updated.", color: "success" });
 		} catch {
 			addToast({ title: "Could not save style", description: "Overlay changed or access was updated. Reload and try again.", color: "danger" });
@@ -725,20 +729,20 @@ export default function OverlayStylePage() {
 				<div className='w-full p-4 md:p-6'>
 					<Card>
 						<Card.Header className='flex w-full flex-row items-center justify-between gap-2'>
-							<Button isIconOnly variant='tertiary' aria-label='Back to Overlay Settings' onPress={() => router.push(`/dashboard/overlay/${overlay.id}`)}>
+							<Button data-tour='theme-back' isIconOnly variant='tertiary' aria-label='Back to Overlay Settings' onPress={() => router.push(`/dashboard/overlay/${overlay.id}`)}>
 								<IconArrowLeft />
 							</Button>
 							<div className='flex items-center gap-2'>
 								<Button variant='tertiary' onPress={handleResetThemeDefaults}>
 									Reset Theme
 								</Button>
-								<Button onPress={handleSave} isDisabled={!isFormDirty} variant='primary'>
+								<Button data-tour='theme-save' onPress={handleSave} isDisabled={!isFormDirty} variant='primary'>
 									{<IconDeviceFloppy />}
 									Save Style
 								</Button>
 							</div>
 						</Card.Header>
-						<Card.Content className='flex flex-col gap-4'>
+						<Card.Content data-tour={ownerHasAdvancedAccess ? "theme-controls" : undefined} className='flex flex-col gap-4'>
 							<div>
 								{!dragSupported && (
 									<Alert status='warning' className='mb-3'>
@@ -764,6 +768,7 @@ export default function OverlayStylePage() {
 								) : null}
 
 								<div
+									data-tour={ownerHasAdvancedAccess ? "theme-preview" : undefined}
 									style={{
 										filter: ownerPlan === Plan.Free && !ownerHasAdvancedAccess ? "blur(1.5px)" : "none",
 										pointerEvents: ownerPlan === Plan.Free && !ownerHasAdvancedAccess ? "none" : "auto",
@@ -814,6 +819,7 @@ export default function OverlayStylePage() {
 									</Slider.Track>
 								</Slider>
 								<Select
+									data-tour={ownerHasAdvancedAccess ? "theme-components" : undefined}
 									variant='secondary'
 									selectionMode='multiple'
 									value={Array.from(selectedComponents)}
@@ -855,6 +861,7 @@ export default function OverlayStylePage() {
 									</Select.Popover>
 								</Select>
 								<Select
+									data-tour={ownerHasAdvancedAccess ? "theme-effects" : undefined}
 									variant='secondary'
 									selectionMode='multiple'
 									value={Array.from(selectedEffects)}
@@ -982,7 +989,9 @@ export default function OverlayStylePage() {
 										)}
 									</Card.Content>
 								</Card>
-								<ThemeColorInput label='Text Color' value={overlay.themeTextColor} defaultValue='#FFFFFF' onChange={(value) => setOverlay({ ...overlay, themeTextColor: value })} />
+								<div>
+									<ThemeColorInput label='Text Color' value={overlay.themeTextColor} defaultValue='#FFFFFF' onChange={(value) => setOverlay({ ...overlay, themeTextColor: value })} />
+								</div>
 								<ThemeColorInput label='Background Color' value={overlay.themeBackgroundColor} defaultValue='rgba(10,10,10,0.65)' allowAlpha onChange={(value) => setOverlay({ ...overlay, themeBackgroundColor: value })} />
 								<div className='lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3'>
 									<ThemeColorInput label='Progress Gradient Start' value={overlay.progressBarStartColor} defaultValue='#26018E' onChange={(value) => setOverlay({ ...overlay, progressBarStartColor: value })} />

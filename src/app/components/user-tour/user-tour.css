@@ -1,0 +1,103 @@
+.clipify-tour-popover {
+	font-family: inherit;
+	color: var(--color-foreground);
+	background: var(--color-surface);
+	border: 1px solid var(--color-separator);
+	border-radius: 16px;
+	padding: 20px;
+	max-width: min(340px, calc(100vw - 24px));
+}
+.clipify-tour-popover .driver-popover-title {
+	padding-right: 20px;
+	font-size: 16px;
+}
+.clipify-tour-popover .driver-popover-description {
+	font-size: 14px;
+	line-height: 1.6;
+}
+
+.clipify-tour-popover .driver-popover-close-btn {
+	color: var(--color-muted);
+}
+.clipify-tour-popover button:focus-visible {
+	outline: 2px solid var(--color-accent);
+	outline-offset: 3px;
+}
+/* React Aria select options are portalled outside the highlighted field. */
+.driver-active [role="listbox"],
+.driver-active [role="listbox"] *,
+.driver-active .user-tour-launcher,
+.driver-active .user-tour-launcher * {
+	pointer-events: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+	.clipify-tour-popover {
+		animation: none;
+	}
+}
+
+.driver-active-element {
+	outline: 2px solid var(--color-accent);
+	outline-offset: 4px;
+}
+
+/* Keep native portalled controls above the spotlight while preserving its dimming. */
+.driver-active :is([data-slot="select-popover"], [data-slot="color-picker-popover"], [data-slot="popover-dialog"]),
+.driver-active :is([data-slot="select-popover"], [data-slot="color-picker-popover"], [data-slot="popover-dialog"]) * {
+	pointer-events: auto;
+}
+.driver-active:has([data-slot="select-popover"], [data-slot="color-picker-popover"], [data-slot="popover-dialog"]) .driver-overlay path {
+	pointer-events: none !important;
+}
+
+.driver-active:has([data-slot="select-popover"], [data-slot="color-picker-popover"], [data-slot="popover-dialog"]) .clipify-tour-popover {
+	visibility: hidden;
+}
+
+/* Consent always owns interaction until the user has made their choice. */
+.driver-active:has(#consent-banner-title) .driver-overlay,
+.driver-active:has(#consent-banner-title) .clipify-tour-popover {
+	display: none;
+}
+.driver-active .user-tour-launcher {
+	z-index: 1000000001;
+}
+/* Preserve access locks even when permissions resolve after the spotlight mounts. */
+.driver-active [data-tour-readonly="true"],
+.driver-active [data-tour-readonly="true"] * {
+	pointer-events: none !important;
+}
+
+/* Native menu items and support widgets retain their normal hit targets. */
+.driver-active [data-slot="dropdown-popover"],
+.driver-active [data-slot="dropdown-popover"] *,
+.driver-active #sentry-feedback,
+.driver-active .woot--bubble-holder,
+.driver-active .woot--bubble-holder * {
+	pointer-events: auto;
+}
+
+/* React Aria popovers are body portals outside Driver’s highlighted stacking context. */
+.driver-active :is([data-slot="select-popover"], [data-slot="color-picker-popover"], [data-slot="dropdown-popover"], [data-slot="popover-dialog"]) {
+	z-index: 1000000002 !important;
+}
+
+/* Guided clip-picker steps stay in React Aria’s modal focus scope. */
+.driver-active [data-slot="modal-backdrop"]:has([data-tour-guided-dialog="true"]) {
+	z-index: 1000000002 !important;
+}
+.driver-active [data-tour-guided-dialog="true"] .driver-active-element-parent-no-scroll {
+	overflow-y: auto !important;
+}
+.driver-active [data-tour-guided-dialog="true"] :is([aria-label="Close dialog"], [data-tour="playlist-clip-cancel"], [data-tour="playlist-clip-search"], [data-tour="playlist-clip-selection"], [data-tour="playlist-clip-confirm"]),
+.driver-active [data-tour-guided-dialog="true"] :is([aria-label="Close dialog"], [data-tour="playlist-clip-cancel"], [data-tour="playlist-clip-search"], [data-tour="playlist-clip-selection"], [data-tour="playlist-clip-confirm"]) * {
+	pointer-events: auto;
+}
+
+.driver-active:has([data-tour-guided-dialog="true"]) .driver-overlay path {
+	pointer-events: none !important;
+}
+/* Keep the whole selection region visibly outlined inside the modal's scroll clipping. */
+.driver-active [data-tour-guided-dialog="true"] .driver-active-element {
+	outline-offset: -2px;
+}

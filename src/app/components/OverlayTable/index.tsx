@@ -1,4 +1,5 @@
 "use client";
+import { useUserTour } from "@components/user-tour/provider";
 import { Dropdown, Table, Checkbox, Button, RadioGroup, Radio, Chip, Separator, Tooltip, Popover, Spinner, Link, Avatar, Skeleton, Tabs, useOverlayState, TextField, InputGroup, Label, cn } from "@heroui/react";
 import { notify as addToast } from "@lib/toast";
 import type { Selection, SortDescriptor } from "@heroui/react";
@@ -38,6 +39,7 @@ function TableEmptyState({ children }: { children: React.ReactNode }) {
 
 export default function OverlayTable({ userId }: { userId: string }) {
 	const router = useRouter();
+	const { report: reportTour, resourceIds } = useUserTour();
 	type LocalOverlay = Overlay & { accessType?: "owner" | "editor" };
 	type LocalPlaylist = { id: string; ownerId: string; name: string; clipCount: number; configurationRevision: number; accessType?: "owner" | "editor" };
 	type LocalGallery = Gallery & { accessType?: "owner" | "editor" };
@@ -118,6 +120,8 @@ export default function OverlayTable({ userId }: { userId: string }) {
 				});
 
 				setOverlays(combinedOverlays);
+				if (combinedOverlays[0]) reportTour({ type: "overlay.ready", ownerId: combinedOverlays[0].ownerId, id: combinedOverlays[0].id });
+				if (combinedPlaylists[0]) reportTour({ type: "playlist.ready", ownerId: combinedPlaylists[0].ownerId, id: combinedPlaylists[0].id });
 				setPlaylists(combinedPlaylists);
 				setGalleries(combinedGalleries);
 				setRunners(combinedRunners);
@@ -127,7 +131,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 		}
 
 		fetchOverlays();
-	}, [userId]);
+	}, [userId, reportTour]);
 
 	useEffect(() => {
 		async function fetchUser() {
@@ -269,6 +273,9 @@ export default function OverlayTable({ userId }: { userId: string }) {
 		return resultKeys;
 	}, [selectedKeys, filteredItems, filterValue]);
 
+	const tourOverlayId = overlays?.find((item) => item.ownerId === userId && item.id === resourceIds?.overlayId)?.id ?? overlays?.find((item) => item.ownerId === userId)?.id;
+	const tourPlaylistId = playlists?.find((item) => item.ownerId === userId && item.id === resourceIds?.playlistId)?.id ?? playlists?.find((item) => item.ownerId === userId)?.id;
+
 	const renderCell = useCallback(
 		(item: LocalOverlay | LocalPlaylist | LocalGallery | LocalRunner, columnKey: React.Key) => {
 			const key = columnKey as ColumnsKey;
@@ -289,7 +296,9 @@ export default function OverlayTable({ userId }: { userId: string }) {
 					case "actions":
 						return (
 							<div className='flex items-center justify-end gap-2'>
-								<IconPencil className='cursor-pointer text-muted' height={18} width={18} />
+								<Button data-tour={overlay.id === tourOverlayId ? "open-overlay" : undefined} isIconOnly size='sm' variant='tertiary' aria-label={`Edit ${overlay.name}`} onPress={() => router.push(`/dashboard/overlay/${overlay.id}`)}>
+									<IconPencil size={18} />
+								</Button>
 								<Button isIconOnly size='sm' variant='tertiary' aria-label={`Delete ${overlay.name}`} onPress={() => setDeleteRequest({ kind: "overlay", id: overlay.id, name: overlay.name, configurationRevision: overlay.configurationRevision })}>
 									<IconTrash size={18} />
 								</Button>
@@ -312,6 +321,9 @@ export default function OverlayTable({ userId }: { userId: string }) {
 					case "actions":
 						return (
 							<div className='flex items-center justify-end gap-2'>
+								<Button data-tour={playlist.id === tourPlaylistId ? "open-playlist" : undefined} isIconOnly size='sm' variant='tertiary' aria-label={`Edit ${playlist.name}`} onPress={() => router.push(`/dashboard/playlist/${playlist.id}`)}>
+									<IconPencil size={18} />
+								</Button>
 								<Button isIconOnly size='sm' variant='tertiary' aria-label={`Delete ${playlist.name}`} onPress={() => setDeleteRequest({ kind: "playlist", id: playlist.id, name: playlist.name, configurationRevision: playlist.configurationRevision })}>
 									<IconTrash size={18} aria-hidden='true' />
 								</Button>
@@ -419,7 +431,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 				}
 			}
 		},
-		[activeTab, userId],
+		[activeTab, userId, router, tourOverlayId, tourPlaylistId],
 	);
 
 	const onNextPage = useMemoizedCallback(() => {
@@ -904,6 +916,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 					</div>
 
 					<Button
+						data-tour={activeTab === "overlays" ? "create-overlay" : activeTab === "playlists" ? "create-playlist" : undefined}
 						isPending={isLoading}
 						isDisabled={overlays === undefined}
 						onPress={async () => {
@@ -1006,6 +1019,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 										if (error?.code === "PLAN_LIMIT_REACHED") onUpgradeOpen();
 										return;
 									}
+									reportTour({ type: "overlay.created", ownerId: userId, id: overlay.id });
 									router.push(`/dashboard/overlay/${overlay.id}`);
 								} catch {
 									addToast({ title: "Error", description: "Failed to create overlay. Please try again.", color: "danger" });
@@ -1045,6 +1059,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 										setIsLoading(false);
 										return;
 									}
+									reportTour({ type: "playlist.created", ownerId: userId, id: playlist.id });
 									router.push(`/dashboard/playlist/${playlist.id}`);
 								})
 								.catch(() => {
@@ -1091,7 +1106,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 				)}
 			</div>
 		);
-	}, [activeTab, overlays, playlists, galleries, runners, userId, currentUser, reloadOverlays, isLoading, plausible, onUpgradeOpen, router]);
+	}, [activeTab, overlays, playlists, galleries, runners, userId, currentUser, reloadOverlays, isLoading, plausible, onUpgradeOpen, router, reportTour]);
 
 	const bottomContent = useMemo(() => {
 		return (
@@ -1118,19 +1133,19 @@ export default function OverlayTable({ userId }: { userId: string }) {
 			<Tabs selectedKey={activeTab} onSelectionChange={onTabChange} className='mb-4 w-fit max-w-full'>
 				<Tabs.ListContainer className='w-fit max-w-full'>
 					<Tabs.List aria-label='Resource type' className='w-fit max-w-full *:w-fit'>
-						<Tabs.Tab id='overlays' className='flex-none'>
+						<Tabs.Tab data-tour='overlays-tab' id='overlays' className='flex-none'>
 							<Label>Overlays</Label>
 							<Tabs.Indicator />
 						</Tabs.Tab>
-						<Tabs.Tab id='playlists' className='flex-none'>
+						<Tabs.Tab data-tour='playlists-tab' id='playlists' className='flex-none'>
 							<Label>Playlists</Label>
 							<Tabs.Indicator />
 						</Tabs.Tab>
-						<Tabs.Tab id='galleries' className='flex-none'>
+						<Tabs.Tab data-tour='galleries-tab' id='galleries' className='flex-none'>
 							<Label>Galleries</Label>
 							<Tabs.Indicator />
 						</Tabs.Tab>
-						<Tabs.Tab id='runners' className='flex-none'>
+						<Tabs.Tab data-tour='runners-tab' id='runners' className='flex-none'>
 							<Label>Runners</Label>
 							<Tabs.Indicator />
 						</Tabs.Tab>
@@ -1180,7 +1195,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 				</div>
 			)}
 			{topContent}
-			<Table>
+			<Table data-tour={activeTab === "galleries" ? "gallery-list" : activeTab === "runners" ? "runner-list" : undefined}>
 				<Table.ScrollContainer>
 					<Table.Content
 						aria-label='Management table'

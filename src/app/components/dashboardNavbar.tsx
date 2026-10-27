@@ -1,8 +1,9 @@
 "use client";
+import NextLink from "next/link";
 
 import { IconBuildingCommunity, IconDiamondFilled, IconMoonFilled, IconSunFilled } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
-import { Autocomplete, Button, ComboBox, Dropdown, EmptyState, Input, Label, Link, ListBox, SearchField, Spinner, useFilter } from "@heroui/react";
+import { Autocomplete, Button, ComboBox, Dropdown, EmptyState, Input, Label, ListBox, SearchField, Spinner, useFilter } from "@heroui/react";
 
 import { AuthenticatedUser, CampaignOffer, Role } from "@types";
 import Logo from "@components/logo";
@@ -165,10 +166,10 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 		<>
 			<nav className='w-full bg-accent'>
 				<header className='mx-auto flex h-16 w-full max-w-5xl items-center px-4 lg:px-8'>
-					<Link href='/dashboard' className='flex items-center'>
+					<NextLink data-tour='dashboard-home' href='/dashboard' className='flex items-center'>
 						<Logo width={30} />
 						<p className='ml-2 font-bold text-white'>Clipify</p>
-					</Link>
+					</NextLink>
 					<ul className='ml-auto flex h-12 max-w-fit items-center gap-0'>
 						{organizationOptions.length > 1 ? (
 							<li className='mr-1 w-36 sm:w-48'>
@@ -224,7 +225,7 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 						</li>
 						<li className='px-2'>
 							<Dropdown>
-								<Dropdown.Trigger className='mt-1 h-8 w-8 overflow-visible transition-transform' aria-label='Open profile menu'>
+								<Dropdown.Trigger data-tour='nav-menu' className='mt-1 h-8 w-8 overflow-visible transition-transform' aria-label='Open profile menu'>
 									<DashboardUserAvatar username={signedInUsername} avatar={signedInAvatar} showStatus />
 								</Dropdown.Trigger>
 								<Dropdown.Popover placement='bottom end'>
@@ -242,13 +243,13 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 												<Label>Upgrade to Pro</Label>
 											</Dropdown.Item>
 										) : null}
-										<Dropdown.Item id='settings' textValue={user.plan ? "My Settings" : "Agency dashboard"} onAction={() => router.push(user.plan ? "/dashboard/settings" : "/dashboard/agency")}>
+										<Dropdown.Item data-tour='nav-settings' id='settings' textValue={user.plan ? "My Settings" : "Agency dashboard"} onAction={() => router.push(user.plan ? "/dashboard/settings" : "/dashboard/agency")}>
 											<Label>{user.plan ? "My Settings" : "Agency dashboard"}</Label>
 										</Dropdown.Item>
 										<Dropdown.Item id='member_card' textValue='Badges' onAction={() => router.push("/dashboard/member-card")}>
 											<Label>Badges</Label>
 										</Dropdown.Item>
-										<Dropdown.Item id='embeddable_widgets' textValue='Tools' onAction={() => router.push("/dashboard/tools")}>
+										<Dropdown.Item data-tour='nav-tools' id='embeddable_widgets' textValue='Tools' onAction={() => router.push("/dashboard/tools")}>
 											<Label>Tools</Label>
 										</Dropdown.Item>
 										{canOpenAdminView ? (

@@ -1,3 +1,5 @@
+const reportTour = jest.fn();
+jest.mock("@components/user-tour/provider", () => ({ useUserTour: () => ({ report: reportTour, activeTask: null }) }));
 import React from "react";
 jest.mock("@lib/toast", () => ({ notify: (...args: unknown[]) => addToast(...args) }));
 jest.mock("@components/appPagination", () => ({ __esModule: true, default: () => <div>Pagination</div> }));

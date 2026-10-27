@@ -3,6 +3,7 @@ import { useDeploymentDraft } from "@lib/deploymentDrafts";
 
 import LocalizedDate from "@components/localizedDate";
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
+import { PreviewTourCheckpoint, useUserTour } from "@components/user-tour/provider";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -72,12 +73,24 @@ const playbackModeHelpText: Record<PlaybackMode, string> = {
 
 export default function OverlaySettings() {
 	const router = useRouter();
+	const { report: reportTour } = useUserTour();
 	const { overlayId } = useParams() as { overlayId: string };
 
 	const [overlay, setOverlay] = useState<Overlay | null>(null);
+	const [overlayMissing, setOverlayMissing] = useState(false);
 	const [baseOverlay, setBaseOverlay] = useState<Overlay | null>(null);
 	const [baseUrl, setBaseUrl] = useState<string | null>(null);
 	const [user, setUser] = useState<AuthenticatedUser>();
+	useEffect(() => {
+		if (overlay) reportTour({ type: "overlay.ready", ownerId: overlay.ownerId, id: overlay.id, select: true });
+	}, [overlay, reportTour]);
+	const draftOverlayId = overlay?.id,
+		draftOverlayOwner = overlay?.ownerId,
+		draftOverlayType = overlay?.type;
+	useEffect(() => {
+		if (draftOverlayId && draftOverlayOwner) reportTour({ type: "overlay.type-selected", ownerId: draftOverlayOwner, id: draftOverlayId, playlist: draftOverlayType === OverlayType.Playlist });
+	}, [draftOverlayId, draftOverlayOwner, draftOverlayType, reportTour]);
+
 	const [reward, setReward] = useState<TwitchReward | null>(null);
 	const [ownerPlan, setOwnerPlan] = useState<Plan | null>(null);
 	const [previewClips, setPreviewClips] = useState<TwitchClip[]>([]);
@@ -136,7 +149,9 @@ export default function OverlaySettings() {
 		setBaseOverlay(saved as Overlay);
 	});
 
-	const navGuard = useNavigationGuard({ enabled: isFormDirty() });
+	// Evaluate at navigation time without resetting guard state on every clean render.
+	const navigationGuardEnabled = useCallback(() => JSON.stringify(overlay) !== JSON.stringify(baseOverlay), [overlay, baseOverlay]);
+	const navGuard = useNavigationGuard({ enabled: navigationGuardEnabled });
 
 	useEffect(() => {
 		// eslint-disable-next-line react-hooks/set-state-in-effect
@@ -430,7 +445,9 @@ export default function OverlaySettings() {
 		let active = true;
 		async function fetchOverlay() {
 			const fetchedOverlay = await getOverlay(overlayId);
-			if (!active || !fetchedOverlay) return;
+			if (!active) return;
+			setOverlayMissing(!fetchedOverlay);
+			if (!fetchedOverlay) return;
 
 			setOverlay(fetchedOverlay);
 			setBaseOverlay(fetchedOverlay);
@@ -460,13 +477,18 @@ export default function OverlaySettings() {
 	}, [overlay?.ownerId]);
 
 	useEffect(() => {
+		let active = true;
 		async function getClipsForType() {
 			if (!overlay) return;
 			const clips = await getTwitchClips(overlay, overlay.type, true);
+			if (!active) return;
 			setPreviewClips(clips);
 			await resolveGameDetails(clips);
 		}
 		getClipsForType();
+		return () => {
+			active = false;
+		};
 	}, [overlay, resolveGameDetails]);
 
 	useEffect(() => {
@@ -525,6 +547,14 @@ export default function OverlaySettings() {
 			plan: user.plan,
 		});
 	}, [ownerPlan, overlay, plausible, user]);
+
+	if (overlayMissing && user) {
+		return (
+			<DashboardNavbar user={user} title='Overlay unavailable' tagline='This overlay was removed or is no longer available.'>
+				<p>Open the Dashboard using the Clipify logo to choose or create an overlay.</p>
+			</DashboardNavbar>
+		);
+	}
 
 	if (!overlayId || !overlay) {
 		return <FullscreenLoadingState message='Loading overlay' />;
@@ -603,8 +633,8 @@ export default function OverlaySettings() {
 		if (isTitleBlocked(clip.title, overlay.blacklistWords)) return false;
 		if (clip.view_count < overlay.minClipViews) return false;
 
-		const creatorName = clip.creator_name.toLowerCase();
-		const creatorId = clip.creator_id.toLowerCase();
+		const creatorName = (clip.creator_name ?? "").toLowerCase();
+		const creatorId = (clip.creator_id ?? "").toLowerCase();
 		const allowed = (overlay.clipCreatorsOnly ?? []).map((name) => name.toLowerCase());
 		const blocked = (overlay.clipCreatorsBlocked ?? []).map((name) => name.toLowerCase());
 
@@ -616,12 +646,12 @@ export default function OverlaySettings() {
 		}
 
 		const allowedCategories = (overlay.categoriesOnly ?? []).map((id) => id.toLowerCase());
-		if (allowedCategories.length > 0 && !allowedCategories.includes(clip.game_id.toLowerCase())) {
+		if (allowedCategories.length > 0 && !allowedCategories.includes((clip.game_id ?? "").toLowerCase())) {
 			return false;
 		}
 
 		const blockedCategories = (overlay.categoriesBlocked ?? []).map((id) => id.toLowerCase());
-		if (blockedCategories.length > 0 && blockedCategories.includes(clip.game_id.toLowerCase())) {
+		if (blockedCategories.length > 0 && blockedCategories.includes((clip.game_id ?? "").toLowerCase())) {
 			return false;
 		}
 
@@ -786,6 +816,7 @@ export default function OverlaySettings() {
 			}
 			setOverlay(saved);
 			setBaseOverlay(saved);
+			reportTour({ type: "overlay.saved", ownerId: saved.ownerId, id: saved.id, named: Boolean(saved.name.trim()), source: true, playlistId: saved.type === OverlayType.Playlist ? saved.playlistId : null });
 			addToast({
 				title: "Overlay settings saved",
 				description: "Your overlay settings have been saved successfully.",
@@ -839,8 +870,8 @@ export default function OverlaySettings() {
 												</Switch.Control>
 											</Switch.Content>
 										</Switch>
-										<div className='flex-1 overflow-hidden'>
-											<CodeSnippet className='w-full max-w-full' symbol='' preClassName='overflow-hidden whitespace-nowrap'>
+										<div data-tour='overlay-url' className='flex-1 overflow-hidden'>
+											<CodeSnippet copyTourTarget='overlay-copy' onCopied={() => reportTour({ type: "overlay.copied", ownerId: overlay.ownerId, id: overlay.id })} className='w-full max-w-full' symbol='' preClassName='overflow-hidden whitespace-nowrap'>
 												{overlayUrl ?? "Missing secret. Refresh this page to generate one."}
 											</CodeSnippet>
 										</div>
@@ -859,7 +890,7 @@ export default function OverlaySettings() {
 											</Button>
 											<Tooltip.Content>{ownerPlan === Plan.Pro ? "Open remote controller" : "Remote controller is a Pro feature"}</Tooltip.Content>
 										</Tooltip>
-										<Button type='submit' isIconOnly isDisabled={!isFormDirty()} aria-label='Save Overlay Settings' variant='primary'>
+										<Button data-tour='overlay-save' type='submit' isIconOnly isDisabled={!isFormDirty()} aria-label='Save Overlay Settings' variant='primary'>
 											<IconDeviceFloppy />
 										</Button>
 									</div>
@@ -868,7 +899,7 @@ export default function OverlaySettings() {
 											<IconAlertTriangle size={16} className='mr-2 flex-shrink-0' />
 											<span className='text-center'>
 												Do not share this URL publicly. For embedding on websites, use the{" "}
-												<Link className='text-xs text-warning underline underline-offset-2' href={`${baseUrl}/dashboard/embed?oid=${overlayId}`}>
+												<Link data-tour='overlay-embed' className='text-xs text-warning underline underline-offset-2' href={`${baseUrl}/dashboard/embed?oid=${overlayId}`}>
 													embed widget tool
 												</Link>
 												.
@@ -878,7 +909,7 @@ export default function OverlaySettings() {
 											For OBS/Streamlabs browser sources, use <span className='font-semibold'>1920x1080</span> for best scaling.
 										</p>
 									</div>
-									<TextField fullWidth variant='secondary' isRequired>
+									<TextField data-tour='overlay-name' fullWidth variant='secondary' isRequired>
 										<Label>Overlay Name</Label>
 										<Input
 											className='w-full'
@@ -893,6 +924,7 @@ export default function OverlaySettings() {
 									</TextField>
 									<div className='flex w-full items-end gap-2'>
 										<Select
+											data-tour='overlay-source'
 											fullWidth
 											isRequired
 											variant='secondary'
@@ -910,6 +942,7 @@ export default function OverlaySettings() {
 													playlistId: nextType === OverlayType.Playlist ? (overlay.playlistId ?? fallbackPlaylistId) : null,
 													playbackMode: nextPlaybackMode,
 												});
+												reportTour({ type: "overlay.type-selected", ownerId: overlay.ownerId, id: overlay.id, playlist: nextType === OverlayType.Playlist });
 											}}
 										>
 											<Label>Overlay Type</Label>
@@ -928,7 +961,17 @@ export default function OverlaySettings() {
 												</ListBox>
 											</Select.Popover>
 										</Select>
-										<Button isIconOnly variant='secondary' onPress={onCliplistOpen} size='lg'>
+										<Button
+											data-tour='overlay-preview'
+											aria-label='Preview Clips'
+											isIconOnly
+											variant='secondary'
+											onPress={() => {
+												reportTour({ type: "overlay.previewed", ownerId: overlay.ownerId, id: overlay.id, count: filteredPreviewClips.length });
+												onCliplistOpen();
+											}}
+											size='lg'
+										>
 											<span>{filteredPreviewClips.length}</span>
 										</Button>
 									</div>
@@ -945,6 +988,7 @@ export default function OverlaySettings() {
 									)}
 
 									<Separator className='my-4' />
+
 									{ownerPlan === Plan.Free && !ownerHasAdvancedAccess && (
 										<div className='w-full mb-4'>
 											<Alert status='warning'>
@@ -995,6 +1039,8 @@ export default function OverlaySettings() {
 										</div>
 									)}
 									<div
+										data-tour='overlay-filters'
+										data-tour-readonly={ownerPlan === Plan.Free && !ownerHasAdvancedAccess && !isPlaylistOverlay ? "true" : undefined}
 										className='flex w-full flex-col gap-4'
 										style={{
 											filter: ownerPlan === Plan.Free && !ownerHasAdvancedAccess && !isPlaylistOverlay ? "blur(1.5px)" : "none",
@@ -1082,6 +1128,7 @@ export default function OverlaySettings() {
 											<div className='px-2 py-2 space-y-2'>
 												<div className='flex w-full items-center gap-2'>
 													<Select
+														data-tour='overlay-playlist'
 														fullWidth
 														variant='secondary'
 														value={overlay.playlistId}
@@ -1107,6 +1154,7 @@ export default function OverlaySettings() {
 																return;
 															}
 															setOverlay({ ...overlay, playlistId: selected ?? null });
+															if (selected) reportTour({ type: "overlay.playlist-selected", ownerId: overlay.ownerId, id: overlay.id, playlistId: String(selected) });
 														}}
 														className='flex-1'
 													>
@@ -1327,7 +1375,7 @@ export default function OverlaySettings() {
 										)}
 										<Separator className='my-2' />
 										<div className='px-2 pb-2'>
-											<Button variant='primary' onPress={() => router.push(`/dashboard/overlay/${overlay.id}/theme`)} className='w-full'>
+											<Button data-tour='overlay-customize' variant='primary' onPress={() => router.push(`/dashboard/overlay/${overlay.id}/theme`)} className='w-full'>
 												{<IconPaint size={16} />}
 												Customize Overlay Style
 											</Button>
@@ -1339,6 +1387,7 @@ export default function OverlaySettings() {
 					</Card>
 				</DashboardEditorLayout>
 
+				<PreviewTourCheckpoint ownerId={overlay.ownerId} overlayId={overlay.id} count={filteredPreviewClips.length} isOpen={isCliplistOpen} />
 				<ControlledModal isOpen={isCliplistOpen} onOpenChange={onCliplistOpenChange} dialogClassName='flex max-h-[80vh] flex-col overflow-hidden'>
 					<Modal.Header className='flex w-full flex-row items-center justify-between gap-3 pt-10'>
 						<Modal.Heading>Preview Clips</Modal.Heading>
@@ -1585,10 +1634,10 @@ export default function OverlaySettings() {
 					<Modal.Body className='overflow-y-auto'>
 						<Table>
 							<Table.ScrollContainer className='max-h-[56vh]'>
-								<Table.Content aria-label='Cached clips table' selectionMode='multiple' selectedKeys={selectedCachedClipIds} onSelectionChange={setSelectedCachedClipIds} sortDescriptor={cachedClipsSortDescriptor} onSortChange={setCachedClipsSortDescriptor}>
+								<Table.Content aria-label='Cached clips table' selectionMode='multiple' selectedKeys={selectedCachedClipIds} onSelectionChange={(keys) => setSelectedCachedClipIds(keys === "all" ? new Set([...(selectedCachedClipIds === "all" ? [] : selectedCachedClipIds), ...sortedCachedClips.map((clip) => clip.id)]) : keys)} sortDescriptor={cachedClipsSortDescriptor} onSortChange={setCachedClipsSortDescriptor}>
 									<Table.Header>
 										<Table.Column className='pr-0'>
-											<Checkbox aria-label='Select all clips' slot='selection'>
+											<Checkbox aria-label='Select all clips' slot='selection' variant='primary'>
 												<Checkbox.Content>
 													<Checkbox.Control>
 														<Checkbox.Indicator />
@@ -1627,7 +1676,7 @@ export default function OverlaySettings() {
 										{sortedCachedClips.map((item) => (
 											<Table.Row key={item.id} id={item.id} textValue={item.title}>
 												<Table.Cell className='pr-0'>
-													<Checkbox aria-label={`Select ${item.title}`} slot='selection'>
+													<Checkbox aria-label={`Select ${item.title}`} slot='selection' variant='secondary'>
 														<Checkbox.Content>
 															<Checkbox.Control>
 																<Checkbox.Indicator />

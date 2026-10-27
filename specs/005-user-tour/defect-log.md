@@ -1,0 +1,102 @@
+# Defect Log: User tours
+
+[Plan](plan.md) · [Traceability](test-traceability.md)
+
+## Severity and Priority Policy
+
+Critical: data/security loss; High: broken acceptance/accessibility; Medium: partial workflow with workaround; Low: cosmetic. Critical/High block release without explicit accepted exception.
+
+## Defect Summary
+
+Zero known defects at planning. Intended test-first red runs are evidence, not defects. Unexpected failures will be recorded with reproduction, source, severity, resolution and verification.
+
+## Defect Details
+
+None yet.
+
+## Open Defect Review
+
+No accepted risks or deferred defects.
+
+## Verification and Regression Closure
+
+Pending execution.
+
+## Defect Metrics
+
+Total 0; open critical/high 0; deferred 0; reopened 0; escaped 0.
+
+## DEF-US1-001 — Incorrect JSX ternary during integration
+
+Severity Medium, priority High. Detected by editor regression and typecheck; overlay editor could not compile. Expected successful save reports; actual SWC syntax error at new Keep saved settings ternary. Fixed misplaced closing brace. Verification pending the rerun; no exception accepted.
+
+## DEF-US1-002 — Launcher occluded by existing feedback and consent UI
+
+Severity High, priority High. Browser BDD-TOUR-US1-001 screenshot showed the launcher underneath Sentry feedback and the privacy banner; click waited until timeout. Fix: reserve feedback space and observe consent-banner geometry to place launcher above it, including responsive banner height. Verification pending browser rerun. Browser dependency setup failures are environment evidence, not product defects.
+
+## DEF-US1-003 — Escape closed spotlight without pausing progress
+
+Severity High, priority High. Browser BDD-TOUR-US1-014 failed focus/paused-state assertion. Adapter test independently reproduced a missing Escape handler. Fix: explicitly capture Escape outside application dialogs and route both Escape and close through Clipify pause; cleanup remains Driver-owned. Verification pending browser rerun. DEF-US1-002 verified by BDD-TOUR-US1-001 and BDD-TOUR-US1-002. DEF-US1-001 verified by editor tests and successful build.
+
+## Baseline dependency audit
+
+The high-severity audit reports the same three advisories in HEAD and feature lockfiles (follow-redirects and transitive zod). Driver.js adds none. Existing dependency remediation is outside this feature; the security gate remains blocked, with no exception accepted.
+
+## DEF-US1-004 — Preview opened before clips finished loading
+
+Severity Medium, priority High. BDD-TOUR-US1-003 found that the initial click could see zero clips even though the visible preview subsequently populated. Added an owner-scoped checkpoint that observes nonempty clips only while preview is open. Provider test reproduced missing checkpoint before implementation. Verification pending browser rerun.
+
+## DEF-US2-005 — Delayed theme anchor was not observed
+
+Severity High, priority High. BDD-TOUR-US2-018/019 found the appearance pointer absent while owner access loaded. The target attribute is added after permission loading; observer watched child insertion only. Stable-callback adapter tests reproduced missing attribute observation. Fix observes allowlisted anchor/role attributes and checks again at timeout.
+
+## DEF-US3-006 — Spotlight blocked playlist clip-selection dialog
+
+Severity High, priority High. BDD-TOUR-US3-020 found Driver overlay intercepting checkbox clicks. HeroUI dialog omitted aria-modal; previous detector required it. Adapter test reproduced missing pause. Fix recognizes application role=dialog while excluding Driver’s own popover, including dialogs already open at tour mount.
+
+## Browser harness corrections
+
+BDD-TOUR-US1-007 now waits for the dashboard create control to finish loading before injecting its controlled failed action. BDD-TOUR-US1-016 now waits for the lazy spotlight before pausing. BDD-TOUR-US3-022 uses the real accessible Overlay Type button name, which includes selected value. These were fixture/selector races rather than application defects.
+
+Native select handoff: distinguished React Aria popovers from full modal dialogs, preserved menu pointer/keyboard interaction and paused only full dialogs. Playlist browser timing: await the mounted spotlight before opening its menu and await saved progress after the second mutation. Both final playlist scenarios pass. Audio-only theme saves no longer count as visual customization; existing volume-boundary tests prove the guard.
+
+## UX revision regressions
+
+The prior guide-only Save replacements have been removed by product request; the earlier syntax defect is historical and the current controls compile. Checklist default visibility, direct in-progress resume, separate skip state, next-task handoff and actual style/copy/filter anchors have regression coverage. Access-locked filter spotlight red failed 1/8 adapter tests; the guard now preserves disabled interaction. Revised affected suites pass 17/17 and 443/443 tests.
+
+The first revised browser attempt exposed a test setup race with the delayed privacy banner: 1 passed, 2 failed, 1 interrupted, 28 unrun. The guide correctly yielded. Browser setup now rejects optional services through the installed consent UI and waits for its reload before beginning task actions. No application consent policy was weakened.
+
+The complete revised sweep found welcome-panel overlap on normal editors (three failures), an initial Playlists tab timing race, and an optional-section test helper treating an empty open attribute as closed. The welcome panel now minimizes on inactive editor entry/navigation; task rows preserve direct resume and completed handoffs. The adapter observes actual selected-tab state and restores guidance after expected clip dialogs. Checkbox controls also have an explicit visible border for dark-mode affordance. Final source unit evidence: 17 suites / 448 tests pass.
+
+## Quiet checklist revision findings
+
+Superseding the prior visual decisions, restore native widget positions and use a larger circular launcher. Retire status chips, completion cards and chooser/support/footer prose. Browser smoke exposed panel-relative launcher alignment, full-document logo navigation, and consumed menu clicks. Fixed with end-aligned layout, normal Next Link navigation, actual revealed-menu observation and native ARIA preservation. The follow-up exposed deferred focus leaving a reopened skip popover; restore focus only when no native popup/widget owns it. Support interactions now pause guidance before normal UI opens. Final current browser sweep is pending; earlier successful revisions are historical evidence only.
+
+Current final checks also found resume naming incorrectly planning creation navigation, delayed writes/popover exit in browser bindings, Button SVG styles shrinking the ring, and an infinite editor loader after resource deletion. Fixes preserve replay at Add, wait on observable completion, give the ring explicit dimensions, and retain the standard navbar for deleted overlays. See test-summary.md for final verification.
+
+## Deep editor entry and selector update loop
+
+- Severity: High. Source: full acceptance CI on the rebased Free Runner integration.
+- A new account opening a Runner editor directly received the tour welcome over its Save control. Offer the guided welcome on the main Dashboard, preserving the unseen choice until the user visits it. Provider regression cases cover Runner, Settings and Overlay deep links followed by Dashboard entry.
+- Runner → Dashboard → Overlay navigation triggered a React Aria collection update loop. The navigation-guard library resets its disabled pending state in every layout effect when passed a boolean false. Use its supported memoized dirty-check callback in Overlay, Playlist and Gallery, preserving clean navigation and dirty-edit confirmation. The complete shared-editor browser sweep reproduced the same loop in Playlist after Overlay was repaired. The owning shared-editor browser case now checks the warning and Cancel action before restoring the saved name and navigating normally.
+- Focused unit verification: 124 passing tests across provider and overlay settings files. Additional Playlist/Gallery whole-file verification passed 59 tests. The production shared-editor browser owner passed all editor/theme/viewport combinations, and the complete Runner UX owner passed all five cases. Full CI on the pushed source remains pending. Temporary diagnostic instrumentation was removed.
+
+## Checklist browser helper mounting race
+
+Full CI b21f0ab9 passed all 22 acceptance cases and all coverage lanes. BDD-TOUR-US3-020 passed on retry after its helper checked checklist visibility before the guide mounted, then clicked the newly mounted launcher and closed an already open checklist. The failed snapshot showed the normal Dashboard and collapsed launcher, without an application error. Wait for the visible mounted launcher before checking panel state, and assert that the checklist is visible before selecting a section. Keep existing timeouts and retry policy unchanged. The owning 56-scenario browser sweep verifies the corrected helper; final evidence is recorded in the PR.
+
+## Chapter handoff, personalization and native dialogs
+
+The latest walkthrough found skip-copy padding, reward clutter, navigation-guard interference and a short personalization chapter. The skip dialog now has an explicit inner spacing wrapper and neutral return-later copy. Expert is explained in the welcome rather than counted in the checklist.
+
+Chapter completion/skip now reveals the next unfinished chapter without starting its optional tour. Completed sections collapse; an explicitly replayed task still expands its own section even after all tasks were completed. Personalization has four tasks: filters, colors/style, components/effects and preview. Filter guidance moved out of the core source task; old completions, explicit skips and checkpoints migrate without losing valid Expert awards. Filters finish in Overlay Settings so optional Theme Studio starts only when chosen.
+
+Native navigation guards now suspend and restore the pointer without pausing or advancing its checkpoint. The first full browser sweep caught an expected-picker regression: modal priority prevented the Add Clips reveal from advancing into the guided search. A whole-file spotlight test reproduced the defect (one failure, seventeen passes). Advance only when an expected reveal appears inside its own allowed dialog; unrelated dialogs still hold the checkpoint. All eighteen spotlight tests then passed, and the real picker, chapter handoff, personalization and Cancel/Discard browser cases passed together. Full owning-sweep and final CI evidence are recorded in the PR.
+
+The native picker shortcut was blocked by Driver's global pointer-event rule while Search or Select clips was highlighted. Keep search, the selection region, pagination and the native confirmation button interactive within the guided modal; report successful addition before the modal closes. The new browser owner selects and adds from Search without any guide Continue, then verifies arrangement and a normal saved playlist. The initial regression fixture used an exact checkbox name, but React Aria includes the row label in its accessible name; use the same supported name query as existing selection journeys.
+
+Team previously pushed a separate route while every other Settings entry selected a panel. Extract the unchanged team-management UI into a reusable panel, embed it in Settings and preserve the legacy standalone entry for agency/old links. The browser owner verifies Team → Connections guidance directly and retains an unsaved Creator Page draft across tabs without reloading. Complete authentication acceptance coverage also verifies legacy creator Team access, agency creator selection and the independent overlay runtime.
+
+The complete browser sweep exposed a new spacing assertion race in case 033: independently sampled dialog/text rectangles straddled the popover entrance animation (8.1px observed versus the 12px minimum). Measure both rectangles in one browser frame and wait for the actual settled padding. Keep the same minimum, native popover and real heading/body measurements; do not add sleeps or retries.
+
+Case 033 passed with the settled same-frame measurement (15.2 seconds; retries disabled). All 61 unique guide examples and the complete three-case authentication acceptance file have passing local evidence on the final application build.

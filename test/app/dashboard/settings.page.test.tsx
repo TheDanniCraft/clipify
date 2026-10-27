@@ -85,7 +85,7 @@ jest.mock("@components/settingsNavigation", () => ({
 	__esModule: true,
 	default: ({ onCoreSectionChange }: any) => (
 		<nav>
-			{["settings", "connections", "creator", "billing"].map((section) => (
+			{["settings", "connections", "creator", "billing", "team"].map((section) => (
 				<button key={section} onClick={() => onCoreSectionChange(section)}>
 					{section} section
 				</button>
@@ -93,6 +93,7 @@ jest.mock("@components/settingsNavigation", () => ({
 		</nav>
 	),
 }));
+jest.mock("@components/settings/TeamSettingsPanel", () => ({ __esModule: true, default: ({ embedded }: any) => <p>{embedded ? "Embedded team panel" : "Standalone team panel"}</p> }));
 jest.mock("@/app/dashboard/settings/billing-panel", () => ({ __esModule: true, default: () => <p>Billing panel</p> }));
 jest.mock("@/app/dashboard/settings/security-panel", () => ({ __esModule: true, default: () => <p>Security panel</p> }));
 jest.mock("@/app/dashboard/settings/connected-apps-panel", () => ({ __esModule: true, default: () => <p>Connected AI apps panel</p> }));
@@ -310,10 +311,13 @@ test("creator profile controls save current title description and visibility cho
 	expect(screen.getByRole("checkbox", { name: "Show Twitch bio" })).toBeDisabled();
 	expect(screen.queryByText("Open Creator Page")).not.toBeInTheDocument();
 });
-test("team action navigates to creator team settings", async () => {
+test("team action selects the embedded Team tab without navigating away", async () => {
 	render(<SettingsPage />);
 	fireEvent.click(await screen.findByRole("button", { name: "Manage team" }));
-	expect(router.push).toHaveBeenCalledWith("/dashboard/settings/team");
+	expect(await screen.findByText("Embedded team panel")).toBeVisible();
+	expect(window.location.pathname).toBe("/dashboard/settings");
+	expect(new URLSearchParams(window.location.search).get("tab")).toBe("team");
+	expect(router.push).not.toHaveBeenCalled();
 });
 
 test("upgrade request preserves chosen billing cycle and feature", async () => {
@@ -423,4 +427,15 @@ test("malformed saved dates show unknown rather than an invalid date string", as
 	render(<SettingsPage />);
 	expect(await screen.findByText(/Unknown/)).toBeVisible();
 	expect(screen.queryByText(/Invalid Date/)).not.toBeInTheDocument();
+});
+
+test("Team deep links select the same embedded panel and preserve query context", async () => {
+	window.history.replaceState({}, "", "/dashboard/settings?tab=team&organization=creator-org");
+	render(<SettingsPage />);
+	expect(await screen.findByText("Embedded team panel")).toBeVisible();
+	fireEvent.click(screen.getByRole("button", { name: "connections section" }));
+	expect(screen.getByText("Connected AI apps panel")).toBeVisible();
+	expect(new URLSearchParams(window.location.search).get("organization")).toBe("creator-org");
+	expect(new URLSearchParams(window.location.search).get("tab")).toBe("connections");
+	expect(router.push).not.toHaveBeenCalled();
 });

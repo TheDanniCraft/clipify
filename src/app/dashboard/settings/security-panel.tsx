@@ -151,7 +151,7 @@ export default function SecuritySettingsPanel() {
 
 	return (
 		<>
-			<Card variant='secondary' className='w-full' id='security'>
+			<Card data-tour='account-security' variant='secondary' className='w-full' id='security'>
 				<Card.Header>
 					<div>
 						<Card.Title>Sign-in &amp; security</Card.Title>

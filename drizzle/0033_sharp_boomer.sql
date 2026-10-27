@@ -187,6 +187,8 @@ ALTER TABLE "stream_sessions" ADD COLUMN "control_mode" "stream_control_mode" DE
 ALTER TABLE "stream_sessions" ADD COLUMN "test_expires_at" timestamp with time zone;--> statement-breakpoint
 ALTER TABLE "stream_sessions" ADD COLUMN "automation_paused_at" timestamp with time zone;--> statement-breakpoint
 ALTER TABLE "stream_sessions" ADD COLUMN "automation_revision" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
+ALTER TABLE "runners" ADD CONSTRAINT "runners_owner_id_unique" UNIQUE("owner_id","id");--> statement-breakpoint
+ALTER TABLE "stream_sessions" ADD CONSTRAINT "stream_sessions_owner_identity" UNIQUE("owner_id","id");--> statement-breakpoint
 ALTER TABLE "runner_branding_assets" ADD CONSTRAINT "runner_branding_assets_owner_id_users_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "runner_branding_profiles" ADD CONSTRAINT "runner_branding_profiles_owner_id_users_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "runner_branding_profiles" ADD CONSTRAINT "runner_branding_profiles_owner_id_background_asset_id_runner_branding_assets_owner_id_id_fk" FOREIGN KEY ("owner_id","background_asset_id") REFERENCES "public"."runner_branding_assets"("owner_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -222,8 +224,6 @@ ALTER TABLE "agency_billing_accounts" DROP COLUMN "runner_seat_item_id";--> stat
 ALTER TABLE "agency_billing_accounts" DROP COLUMN "runner_seat_minimum";--> statement-breakpoint
 ALTER TABLE "agency_billing_accounts" DROP COLUMN "runner_seat_quantity";--> statement-breakpoint
 ALTER TABLE "agency_billing_accounts" DROP COLUMN "pending_runner_seat_quantity";--> statement-breakpoint
-ALTER TABLE "runners" ADD CONSTRAINT "runners_owner_id_unique" UNIQUE("owner_id","id");--> statement-breakpoint
-ALTER TABLE "stream_sessions" ADD CONSTRAINT "stream_sessions_owner_identity" UNIQUE("owner_id","id");--> statement-breakpoint
 ALTER TABLE "agency_accounts" ADD CONSTRAINT "agency_accounts_seat_limit_nonnegative" CHECK ("agency_accounts"."creator_seat_limit" >= 0);--> statement-breakpoint
 ALTER TABLE "stream_sessions" ADD CONSTRAINT "stream_sessions_automation_revision_nonnegative" CHECK ("stream_sessions"."automation_revision" >= 0);--> statement-breakpoint
 ALTER TABLE "stream_sessions" ADD CONSTRAINT "stream_sessions_scheduled_clips_only" CHECK ("stream_sessions"."control_mode" <> 'scheduled' OR "stream_sessions"."mode" = '24/7');

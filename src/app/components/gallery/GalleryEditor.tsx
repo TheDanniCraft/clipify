@@ -17,7 +17,7 @@ import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconPlay
 import type { Gallery, Playlist, TwitchClip } from "@types";
 import { useRouter } from "next/navigation";
 import { NavigationGuardProvider, useNavigationGuard } from "nextjs-nav-guard";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CLIPIFY_ELEMENTS_HELP_URL, FREE_PLAYLIST_CLIP_LIMIT } from "@lib/constants";
 import type { GalleryPatch } from "@lib/gallery";
 
@@ -182,7 +182,8 @@ function GalleryEditorContent({ initialGallery, playlists, canUseAdvanced, canUs
 	const initialPreview = useRef(true);
 	const ownerPlaylists = useMemo(() => playlists.filter((playlist) => playlist.ownerId === gallery.ownerId), [gallery.ownerId, playlists]);
 	const isGalleryDirty = useMemo(() => JSON.stringify(gallery) !== JSON.stringify(savedGallery), [gallery, savedGallery]);
-	const navGuard = useNavigationGuard({ enabled: isGalleryDirty });
+	const navigationGuardEnabled = useCallback(() => isGalleryDirty, [isGalleryDirty]);
+	const navGuard = useNavigationGuard({ enabled: navigationGuardEnabled });
 	const customDateRange = useMemo(() => {
 		if (!gallery.liveCustomStart || !gallery.liveCustomEnd) return null;
 		return {

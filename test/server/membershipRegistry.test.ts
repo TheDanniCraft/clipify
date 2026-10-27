@@ -7,11 +7,16 @@ jest.mock("@lib/entitlements", () => ({ getActivePartnerAccessGrant: (...args: u
 
 import { awardBadgeInternal, resolveAutomaticBadgeAwards } from "@/server/membership";
 
+const mockGuideRows = jest.fn();
 const execute = jest.fn();
 const values = jest.fn();
 const inserts: unknown[] = [];
 jest.mock("@/db/client", () => ({
 	db: {
+		select: () => {
+			const chain = { from: () => chain, where: () => chain, limit: (...args: unknown[]) => mockGuideRows(...args) };
+			return chain;
+		},
 		insert: (table: unknown) => {
 			inserts.push(table);
 			const chain = {
@@ -34,6 +39,7 @@ describe("badge registry writes", () => {
 		inserts.length = 0;
 		execute.mockResolvedValue([{ ok: true }]);
 		mockGetActivePartnerAccessGrant.mockResolvedValue(null);
+		mockGuideRows.mockResolvedValue([]);
 	});
 	it("records only the user award without a database catalog write", async () => {
 		await awardBadgeInternal({ userId: "274252231", badge: "beta-tester", source: "manual-test" });
@@ -49,4 +55,10 @@ describe("badge registry writes", () => {
 	it("removes the derived Partner badge when the grant is inactive", async () => {
 		await expect(resolveAutomaticBadgeAwards("former-partner")).resolves.toEqual([]);
 	});
+});
+
+it("resolves Clipify Expert from the durable completion timestamp", async () => {
+	const awardedAt = "2026-10-26T12:00:00.000Z";
+	mockGuideRows.mockResolvedValue([{ state: JSON.stringify({ version: 2, completed: [], expertAwardVersion: 2, expertAwardedAt: awardedAt }) }]);
+	await expect(resolveAutomaticBadgeAwards("expert")).resolves.toEqual([{ slug: "clipify-expert", awardedAt: new Date(awardedAt) }]);
 });
