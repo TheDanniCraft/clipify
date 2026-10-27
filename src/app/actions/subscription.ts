@@ -253,10 +253,13 @@ export async function generateCheckout(productKeys: BillingProduct[] | Array<{ p
 	if (!limit.success) throw new Error("RATE_LIMITED: Please wait before starting another checkout");
 	const entitlements = await resolveUserEntitlements(authUser);
 	const ownership = await Promise.all(selectedProducts.map(async (entry) => ({ ...entry, owned: (await checkIfSubscriptionExists(entry.product)) || isProductOwnedByEntitlement(entry.product, entitlements) })));
-	const productsToBuy = ownership.filter((entry) => !entry.owned).map((entry) => entry.product);
+	const checkoutProducts = ownership.filter((entry) => !entry.owned);
+	const productsToBuy = checkoutProducts.map((entry) => entry.product);
+	const checkoutCycles = Array.from(new Set(checkoutProducts.map((entry) => entry.billingCycle)));
+	const checkoutCycle = checkoutCycles.length === 1 ? checkoutCycles[0] : "mixed";
 	if (productsToBuy.length === 0) throw new Error("You already own every selected product");
 	const cookieStore = await cookies();
-	const selectedPrices = await Promise.all(ownership.filter((entry) => !entry.owned).map(async (entry) => (await resolveBillingPrice(entry.product, entry.billingCycle)).priceId));
+	const selectedPrices = await Promise.all(checkoutProducts.map(async (entry) => (await resolveBillingPrice(entry.product, entry.billingCycle)).priceId));
 
 	const stripe = getServerStripe();
 	const baseUrl = await getBaseUrl();
@@ -319,12 +322,9 @@ export async function generateCheckout(productKeys: BillingProduct[] | Array<{ p
 		metadata: {
 			userId: authUser.id,
 			source: source ?? "upgrade_modal",
-			billingCycle,
+			billingCycle: checkoutCycle,
 			products: productsToBuy.join(","),
-			billingCycles: ownership
-				.filter((entry) => !entry.owned)
-				.map((entry) => `${entry.product}:${entry.billingCycle}`)
-				.join(","),
+			billingCycles: checkoutProducts.map((entry) => `${entry.product}:${entry.billingCycle}`).join(","),
 			campaignSlug: campaignOffer?.slug ?? "",
 			offerCode: offerCode ?? "",
 			...numokMetadata,
@@ -365,7 +365,7 @@ export async function generateCheckout(productKeys: BillingProduct[] | Array<{ p
 		}
 	}
 
-	await recordProductOutcome({ outcome: "checkout_created", creatorId: authUser.id, key: session.id, metadata: { cycle: billingCycle, source: source ?? "upgrade_modal" } });
+	await recordProductOutcome({ outcome: "checkout_created", creatorId: authUser.id, key: session.id, metadata: { cycle: checkoutCycle, source: source ?? "upgrade_modal" } });
 	return session.url;
 }
 

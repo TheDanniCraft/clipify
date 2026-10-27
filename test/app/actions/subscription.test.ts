@@ -190,6 +190,25 @@ describe("actions/subscription", () => {
 		expect(result).toBe("https://checkout.stripe.test/session-1");
 	});
 
+	it.each<{ cycles: Array<"monthly" | "yearly">; fallback: "monthly" | "yearly"; expected: string }>([
+		{ cycles: ["monthly"], fallback: "yearly", expected: "monthly" },
+		{ cycles: ["yearly"], fallback: "monthly", expected: "yearly" },
+		{ cycles: ["monthly", "yearly"], fallback: "yearly", expected: "mixed" },
+	])("records the selected $expected cadence instead of the fallback", async ({ cycles, fallback, expected }) => {
+		validateAuth.mockResolvedValue({ id: "user-1", email: "alice@example.com", stripeCustomerId: "cus_123" });
+		subscriptionsList.mockResolvedValue({ data: [] });
+		checkoutCreate.mockResolvedValue({ id: "cs_cadence", url: "https://checkout.stripe.test/cadence" });
+		const { generateCheckout } = await loadSubscription();
+		await generateCheckout(cycles.map((billingCycle) => ({ product: "pro", billingCycle })) as never, fallback);
+		expect(checkoutCreate).toHaveBeenCalledWith(
+			expect.objectContaining({
+				line_items: cycles.map((cycle) => ({ price: `price_current_pro_${cycle}`, quantity: 1 })),
+				metadata: expect.objectContaining({ billingCycle: expected, billingCycles: cycles.map((cycle) => `pro:${cycle}`).join(",") }),
+			}),
+		);
+		expect(jest.requireMock("@/server/product-outcomes").recordProductOutcome).toHaveBeenCalledWith(expect.objectContaining({ outcome: "checkout_created", metadata: { cycle: expected, source: "upgrade_modal" } }));
+	});
+
 	it("keeps caller supplied checkout redirects on the Clipify origin", async () => {
 		validateAuth.mockResolvedValue({ id: "user-1", email: "alice@example.com", stripeCustomerId: "cus_123" });
 		checkoutCreate.mockResolvedValue({ id: "cs_fixture", url: "https://checkout.stripe.test/session-1" });

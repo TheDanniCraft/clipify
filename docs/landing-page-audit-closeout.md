@@ -51,6 +51,9 @@ not changed.
 - Basic multiple-UTC-day use is a different measure from those return windows.
   The activation timing/retention report covers recorded new-creator cohorts.
   It does not reconstruct historical signups or add anonymous visitor attribution.
+- Checkout cadence is derived from the products actually sent to the processor,
+  including explicitly monthly selections passed through a yearly-default caller.
+  Mixed selections are labeled `mixed`; prices and billing behavior are unchanged.
 - `invoice.payment_failed` records signed failed attempts by event identity.
   Current billing state provides cancellation and overdue/unpaid guardrails.
 - `refund.created` and `refund.updated` record positive succeeded refunds by refund
