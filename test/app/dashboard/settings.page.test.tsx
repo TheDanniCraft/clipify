@@ -8,6 +8,7 @@ const getOwnClipForceRefreshStatus = jest.fn();
 const forceRefreshOwnClipCache = jest.fn();
 const router = { push: jest.fn(), replace: jest.fn() };
 const notify = jest.fn();
+const getFeatureAccess = jest.fn();
 jest.mock("@heroui/react", () => {
 	const React = require("react");
 	const fixture = jest.requireActual("../../__mocks__/heroui-react.cjs");
@@ -39,7 +40,7 @@ jest.mock("@actions/twitch", () => ({ getOwnClipForceRefreshStatus: (...args: un
 jest.mock("@actions/subscription", () => ({ requestAccountDataExport: jest.fn(), requestAccountDeletion: jest.fn() }));
 jest.mock("@/auth/client", () => ({ authClient: { signIn: { social: jest.fn() } } }));
 jest.mock("@lib/toast", () => ({ notify: (...args: unknown[]) => notify(...args) }));
-jest.mock("@lib/featureAccess", () => ({ getFeatureAccess: () => ({ allowed: true }), getTrialDaysLeft: () => 0, isReverseTrialActive: () => false }));
+jest.mock("@lib/featureAccess", () => ({ getFeatureAccess: (...args: unknown[]) => getFeatureAccess(...args), getTrialDaysLeft: () => 0, isReverseTrialActive: () => false }));
 jest.mock("nextjs-nav-guard", () => ({ useNavigationGuard: () => ({ active: false, accept: jest.fn(), reject: jest.fn() }) }));
 jest.mock("next/image", () => ({ __esModule: true, default: () => null }));
 jest.mock("@components/dashboardNavbar", () => ({ __esModule: true, default: ({ children }: any) => <main>{children}</main> }));
@@ -105,6 +106,7 @@ import { authClient } from "@/auth/client";
 
 beforeEach(() => {
 	jest.clearAllMocks();
+	getFeatureAccess.mockReset().mockReturnValue({ allowed: true });
 	window.history.replaceState({}, "", "/dashboard/settings");
 	sessionStorage.clear();
 	validateAuth.mockReset().mockResolvedValue({ id: "owner", username: "Owner", plan: "free", email: "owner@example.invalid" });
@@ -470,4 +472,13 @@ test("Team deep links select the same embedded panel and preserve query context"
 	expect(new URLSearchParams(window.location.search).get("organization")).toBe("creator-org");
 	expect(new URLSearchParams(window.location.search).get("tab")).toBe("connections");
 	expect(router.push).not.toHaveBeenCalled();
+});
+
+test("Creator Page social preview upgrade opens the relevant upgrade without saving settings", async () => {
+	getFeatureAccess.mockReturnValue({ allowed: false });
+	window.history.replaceState({}, "", "/dashboard/settings?tab=creator");
+	render(<SettingsPage />);
+	fireEvent.click(await screen.findByRole("button", { name: "Upgrade to Pro" }));
+	expect(await screen.findByText("Upgrade creator_social_preview yearly")).toBeVisible();
+	expect(saveSettings).not.toHaveBeenCalled();
 });
