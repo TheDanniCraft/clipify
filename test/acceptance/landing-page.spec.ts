@@ -284,3 +284,52 @@ for (const theme of ["light", "dark"]) {
 		}
 	});
 }
+
+for (const theme of ["light", "dark"]) {
+	for (const path of ["/gallery", "/features", "/guides/twitch-clips-in-obs", "/guides/twitch-clip-playlists", "/guides/control-twitch-clip-playback"]) {
+		test(`signup controls on ${path} keep contrast on hover and keyboard focus in ${theme} mode`, async ({ page }, testInfo) => {
+			await page.setViewportSize({ width: 390, height: 900 });
+			await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+			await page.goto(path);
+			await dismissPrivacy(page);
+			const labels = path === "/gallery" ? ["Create your gallery", "Learn about Clipify"] : ["Start free with Twitch"];
+			for (const label of labels) {
+				const action = page.locator("main").getByRole("link", { name: label, exact: true });
+				await action.scrollIntoViewIfNeeded();
+				await expect(action).toBeVisible();
+				const contrast = () =>
+					action.evaluate((e) => {
+						const ctx = document.createElement("canvas").getContext("2d")!;
+						const luminance = (color: string) => {
+							ctx.clearRect(0, 0, 1, 1);
+							ctx.fillStyle = color;
+							ctx.fillRect(0, 0, 1, 1);
+							const channels = Array.from(ctx.getImageData(0, 0, 1, 1).data)
+								.slice(0, 3)
+								.map((v) => {
+									const n = v / 255;
+									return n <= 0.04045 ? n / 12.92 : ((n + 0.055) / 1.055) ** 2.4;
+								});
+							return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+						};
+						const style = getComputedStyle(e);
+						const fg = luminance(style.color),
+							bg = luminance(style.backgroundColor);
+						return (Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05);
+					});
+				expect(await contrast()).toBeGreaterThanOrEqual(4.5);
+				await action.hover();
+				expect(await contrast()).toBeGreaterThanOrEqual(4.5);
+				await assertAccessibleMain(page);
+				await action.focus();
+				await page.keyboard.press("Tab");
+				await page.keyboard.press("Shift+Tab");
+				await expect(action).toBeFocused();
+				expect(await contrast()).toBeGreaterThanOrEqual(4.5);
+				await assertAccessibleMain(page);
+				await expect(action).toHaveAttribute("href", label === "Learn about Clipify" ? "/" : "/login");
+			}
+			if (path === "/gallery") await page.screenshot({ path: testInfo.outputPath(`gallery-cta-${theme}.png`) });
+		});
+	}
+}

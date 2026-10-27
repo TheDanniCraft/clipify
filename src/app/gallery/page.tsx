@@ -1,4 +1,5 @@
 import PublicGalleryDemo from "@components/gallery/PublicGalleryDemo";
+import { buttonVariants } from "@heroui/styles";
 import type { Metadata } from "next";
 import { Link } from "@components/heroui-client";
 import BasicNavbar from "@components/LandingPage/basicNavbar";
@@ -21,10 +22,10 @@ export default function GalleryLandingPage() {
 				<p className='max-w-2xl leading-relaxed text-foreground/75'>Free includes one branded gallery with up to 50 live clips. Pro adds more galleries and customization. Gallery visibility is managed in your settings; share public gallery links rather than private streaming-source URLs.</p>
 				<PublicGalleryDemo />
 				<div className='flex flex-wrap justify-center gap-3'>
-					<Link className='rounded-xl bg-accent px-5 py-3 font-semibold text-accent dark:text-violet-300-foreground' href='/login'>
+					<Link className={buttonVariants({ variant: "primary", className: "no-underline" })} href='/login'>
 						Create your gallery
 					</Link>
-					<Link className='rounded-xl bg-default px-5 py-3 font-semibold' href='/'>
+					<Link className={buttonVariants({ variant: "secondary", className: "text-foreground no-underline" })} href='/'>
 						Learn about Clipify
 					</Link>
 				</div>

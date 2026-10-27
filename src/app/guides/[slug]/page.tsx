@@ -1,3 +1,4 @@
+import { buttonVariants } from "@heroui/styles";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Image from "next/image";
@@ -66,7 +67,7 @@ export default async function GuidePage({ params }: Props) {
 				</article>
 				<section className='mt-14 rounded-3xl bg-gradient-to-br from-brand-900 to-brand-600 p-8 text-white'>
 					<h2 className='text-2xl font-bold'>Put your highlights back on stream.</h2>
-					<Link href='/login' className='mt-5 rounded-full bg-white px-5 py-3 font-semibold text-violet-950'>
+					<Link href='/login' className={buttonVariants({ variant: "primary", className: "mt-5 bg-white text-violet-950 hover:bg-violet-100 no-underline" })}>
 						Start free with Twitch
 					</Link>
 				</section>

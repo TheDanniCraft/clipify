@@ -1,3 +1,4 @@
+import { buttonVariants } from "@heroui/styles";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { Link } from "@components/heroui-client";
@@ -71,7 +72,7 @@ export default function FeaturesPage() {
 								</Link>
 							))}
 						</div>
-						<Link href='/login' className='mt-8 rounded-full bg-accent px-6 py-3 font-semibold text-accent-foreground'>
+						<Link href='/login' className={buttonVariants({ variant: "primary", className: "mt-8 no-underline" })}>
 							Start free with Twitch
 						</Link>
 					</section>
