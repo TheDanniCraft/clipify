@@ -47,7 +47,7 @@ export default function TiersComponent({ source = "pricing_page", campaignOffer 
 
 	return (
 		<div className='relative mx-auto flex w-full max-w-3xl flex-col items-center'>
-			<BillingFrequency value={selectedFrequency.key} onChange={onFrequencyChange} />
+			<BillingFrequency value={selectedFrequency.key} onChange={onFrequencyChange} pricing={proPromoEnabled ? null : pricing} />
 
 			<div className='mt-8 grid w-full grid-cols-1 items-stretch gap-4 sm:grid-cols-2'>
 				{tiers.map((tier) => {

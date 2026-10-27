@@ -39,6 +39,8 @@ for (const theme of ["light", "dark"]) {
 			await expect(page.getByRole("button", { name: "Watch the demo", exact: true })).toBeVisible();
 			expect(demoRequests).toHaveLength(0);
 			await assertAccessibleMain(page);
+			await expect(page.locator("#features")).not.toContainText("Pro:");
+			await expect(page.getByRole("link", { name: "Explore Clipify", exact: true })).toHaveAttribute("href", "/features");
 			await page.getByRole("img", { name: "A Twitch gaming highlight playing through Clipify" }).evaluate((image: HTMLImageElement) => image.decode());
 			await page.screenshot({ timeout: 15000, path: testInfo.outputPath(`landing-${width}-${theme}.png`), fullPage: true, animations: "disabled" });
 			const monthly = page.getByRole("radio", { name: "Pay Monthly", exact: true });
@@ -112,7 +114,7 @@ test("demo shell plays controlled real media on mobile, sends skip, and stops of
 });
 
 test("public routes identify their own canonical and social URLs", async ({ page }) => {
-	for (const path of ["/", "/pricing", "/community", "/changelog", "/roadmap", "/legal/privacy", "/legal/terms", "/legal/cookies"]) {
+	for (const path of ["/", "/pricing", "/community", "/changelog", "/roadmap", "/features", "/gallery", "/guides/twitch-clips-in-obs", "/guides/twitch-clip-playlists", "/guides/control-twitch-clip-playback", "/legal/privacy", "/legal/terms", "/legal/cookies"]) {
 		await page.goto(path);
 		expect(new URL((await page.locator('link[rel="canonical"]').getAttribute("href"))!).href).toBe(new URL(`https://clipify.us${path}`).href);
 		expect(new URL((await page.locator('meta[property="og:url"]').getAttribute("content"))!).href).toBe(new URL(`https://clipify.us${path}`).href);
@@ -130,5 +132,32 @@ for (const theme of ["light", "dark"]) {
 		await monthly.click();
 		await expect(monthly).toBeChecked();
 		await assertAccessibleMain(page);
+	});
+}
+
+for (const theme of ["light", "dark"]) {
+	test(`features, setup guides, and mobile comparison work in ${theme} mode`, async ({ page }, testInfo) => {
+		await page.setViewportSize({ width: 320, height: 900 });
+		await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+		await page.goto("/features");
+		await dismissPrivacy(page);
+		await assertAccessibleMain(page);
+		await page.getByRole("link", { name: /^Set up clips in OBS/ }).click();
+		await expect(page.getByRole("heading", { level: 1 })).toHaveText("Play Twitch clips in OBS during breaks");
+		for (const slug of ["twitch-clips-in-obs", "twitch-clip-playlists", "control-twitch-clip-playback"]) {
+			await page.goto(`/guides/${slug}`);
+			await assertAccessibleMain(page);
+			await expect(page.getByRole("heading", { name: "What you need", exact: true })).toBeVisible();
+			await expect(page.getByRole("link", { name: "Start free with Twitch", exact: true })).toHaveAttribute("href", "/login");
+			expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
+		}
+		await page.goto("/pricing");
+		await assertAccessibleMain(page);
+		await page.getByRole("heading", { name: "Compare what is included", exact: true }).scrollIntoViewIfNeeded();
+		await expect(page.getByText("Self-hosted Runner", { exact: true }).filter({ visible: true })).toBeVisible();
+		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
+		await page.screenshot({ path: testInfo.outputPath(`pricing-mobile-${theme}.png`), fullPage: true, animations: "disabled" });
+		await page.goto("/guides/not-a-clipify-guide");
+		await expect(page.getByRole("heading", { name: "Oops, page not found", exact: true })).toBeVisible();
 	});
 }

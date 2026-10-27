@@ -2,12 +2,13 @@ import { legalDocumentRoutes } from "./legal/documents";
 
 export const footerNavigation = {
 	features: [
-		{ name: "Easy to Use", href: "/#features" },
-		{ name: "Plug & Play", href: "/#features" },
-		{ name: "Customize your player", href: "/#features" },
-		{ name: "Multiple Overlays", href: "/#features" },
-		{ name: "Channel Points Integration", href: "/#features" },
+		{ name: "All features", href: "/features" },
+		{ name: "Twitch clips in OBS", href: "/guides/twitch-clips-in-obs" },
+		{ name: "Clip playlists", href: "/guides/twitch-clip-playlists" },
+		{ name: "Playback controls", href: "/guides/control-twitch-clip-playback" },
+		{ name: "Scene styling", href: "/features#styling" },
 	],
+
 	supportOptions: [
 		{ name: "Pricing", href: "/pricing" },
 		{ name: "FAQs", href: "/#faq" },
@@ -18,7 +19,7 @@ export const footerNavigation = {
 	aboutUs: [
 		{ name: "Changelog", href: "/changelog" },
 		{ name: "Roadmap", href: "/roadmap" },
-		{ name: "Collaborations", href: "https://help.clipify.us/hc/clipify/articles/1756597294-collaborations" },
+		{ name: "Collaboration enquiries", href: "mailto:contact@clipify.us?subject=Clipify%20collaboration" },
 		{ name: "Climate Initiative", href: "https://climate.stripe.com/FaGAVC" },
 	],
 	legal: [

@@ -8,7 +8,7 @@ import { IconChevronRight, IconMenu2, IconX } from "@tabler/icons-react";
 
 const menuItems = [
 	{ name: "Home", href: "/#home" },
-	{ name: "Features", href: "/#features" },
+	{ name: "Features", href: "/features" },
 	{ name: "Pricing", href: "/pricing" },
 	{ name: "Community", href: "/community" },
 	{ name: "Demo", href: "/#demo" },

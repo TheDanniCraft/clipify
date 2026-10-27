@@ -5,7 +5,7 @@ import LocalizedDate from "@components/localizedDate";
 import BasicNavbar from "@components/LandingPage/basicNavbar";
 import { GithubRelease } from "@types";
 import axios from "axios";
-import xss from "xss";
+import ReleaseNotes from "@components/releaseNotes";
 
 export const metadata = {
 	title: "Changelog | Clipify",
@@ -30,7 +30,7 @@ export default async function ChangelogPage() {
 		<>
 			<BasicNavbar />
 
-			<div className='min-h-screen bg-background text-foreground p-6'>
+			<main className='min-h-screen bg-background px-6 py-12 text-foreground'>
 				<div className='max-w-5xl mx-auto'>
 					<h1 className='text-4xl font-bold text-center mb-2 flex items-center justify-center gap-2'>
 						<span className='text-accent'>📝</span>
@@ -61,17 +61,12 @@ export default async function ChangelogPage() {
 															<h3 className='text-lg font-semibold'>Release {release.name || release.tag_name}</h3>
 															<LinkIcon />
 														</Link>
-														<p
-															className='text-sm'
-															dangerouslySetInnerHTML={{
-																__html: xss(release.body).replace(/(?:\r\n|\r|\n)/g, "<br />"),
-															}}
-														/>
+														<p className='mb-5 text-sm text-foreground/75'>
+															<LocalizedDate value={release.published_at} />
+														</p>
+														<ReleaseNotes body={release.body ?? ""} />
 													</CardContent>
 												</Card>
-												<span className='text-xs mr-4 text-gray-400 ml-auto flex justify-end'>
-													<LocalizedDate value={release.published_at} />
-												</span>
 											</div>
 										</div>
 									))
@@ -79,7 +74,7 @@ export default async function ChangelogPage() {
 						</div>
 					</div>
 				</div>
-			</div>
+			</main>
 
 			<Footer />
 		</>

@@ -40,7 +40,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
 					<p className='mb-7 mt-4 text-base leading-relaxed text-violet-100'>Connect Twitch to save your playlists and overlay settings. Add your overlay as a browser source in OBS when you are ready.</p>
 					<div className='rounded-2xl bg-background p-6 text-foreground shadow-xl'>
 						<LoginClient returnUrl={returnDestination} oauthAuthorization={oauthAuthorization} />
-						<p className='mt-5 text-center text-sm leading-relaxed text-foreground/75'>{checkoutIntent ? "Your Pro selection is saved. Sign in to continue to checkout." : "Start with a permanent Free plan. Pro is optional."}</p>
+						<p className='mt-5 text-center text-sm leading-relaxed text-foreground/75'>{checkoutIntent ? "Your Pro selection is saved. Sign in to continue to checkout." : "Start free. Eligible new creators get seven days of Pro, with no card required. Continue on Free afterward unless you choose a paid plan."}</p>
 					</div>
 					<p className='mt-6 text-xs leading-relaxed text-violet-100'>
 						By logging in, you agree to our{" "}

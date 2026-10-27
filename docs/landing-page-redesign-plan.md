@@ -125,3 +125,9 @@ Compare repeated performance runs under the same device/network/build configurat
 4. Obtain consented creator scenes and quotes, refresh setup help, and conduct small rounds of streamer usability sessions. Use these to refine the page before expanding acquisition content.
 
 The redesign can be accepted on comprehension, truthful presentation, working interactions, accessibility, and measured loading behavior. Business-impact claims require the separate measurement work and sufficient observation.
+
+## Revision scope after preview review
+
+Complete the owned-site recommendations alongside the visual correction: restore product imagery and composition, separate benefits from plan comparison, restore the billing pill's appearance with runtime savings, provide a real features destination, publish the three distinct task guides, present a continuous mobile plan comparison, lead roadmap with Now/Next, and expose readable release subjects before full notes. Verify trial creation, expiry and returning-user behavior before qualified promotion.
+
+Use the existing audit-event store for deduplicated product outcomes, preserving existing transaction and webhook boundaries. Add creator-cohort reporting, preview/deployment separation, and export/purge handling. Verify failure/retry behavior without replacing Stripe fulfillment or claiming anonymous visitor attribution. No new schema is required. Keep consented proof, external CMS edits, Search Console, production observation and human studies explicitly dependent on their real evidence/access rather than treating a code change as completion.

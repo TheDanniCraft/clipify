@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import type { CampaignOffer } from "@types";
-import { Accordion, Button, Card, Chip, Link, Separator, Tooltip, cn } from "@heroui/react";
+import { Button, Card, Chip, Link, Separator, Tooltip, cn } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
 import { IconCheck, IconHeart, IconInfoCircle, IconMinus } from "@tabler/icons-react";
 import { usePlausible } from "next-plausible";
@@ -115,7 +115,7 @@ export default function PricingComparison({ campaignOffer = null, pricing }: { c
 				<p className='mt-4 text-lg text-foreground/75'>Discover the ideal plan for your Clipify setup, starting free.</p>
 			</div>
 			<div className='mt-8'>
-				<BillingFrequency value={selectedFrequency} onChange={onFrequencyChange} />
+				<BillingFrequency value={selectedFrequency} onChange={onFrequencyChange} pricing={campaignOffer?.showPricingTierPromo ? null : pricing} />
 			</div>
 
 			{resolvedPricing.pro[selectedFrequency].amount === null ? (
@@ -133,8 +133,8 @@ export default function PricingComparison({ campaignOffer = null, pricing }: { c
 									More control
 								</Chip>
 							) : null}
-							<Card.Header className='flex flex-col items-start gap-2 pe-28 pb-6'>
-								<h2 className='text-lg font-medium'>{tier.title}</h2>
+							<Card.Header className='flex flex-col items-start gap-2 pb-6'>
+								<h2 className='pe-28 text-lg font-medium'>{tier.title}</h2>
 								<p className='text-sm text-foreground/75'>{tier.description}</p>
 							</Card.Header>
 							<Separator />
@@ -170,38 +170,29 @@ export default function PricingComparison({ campaignOffer = null, pricing }: { c
 					))}
 				</div>
 
-				<div className='mt-8'>
-					<Accordion allowsMultipleExpanded variant='surface' defaultExpandedKeys={new Set([pricingFeatures[0].title])}>
-						{pricingFeatures.map((group) => (
-							<Accordion.Item key={group.title} id={group.title}>
-								<Accordion.Heading>
-									<Accordion.Trigger>
-										{group.title}
-										<Accordion.Indicator />
-									</Accordion.Trigger>
-								</Accordion.Heading>
-								<Accordion.Panel>
-									<Accordion.Body className='space-y-4'>
-										{group.items.map((item) => (
-											<div key={item.title}>
-												<FeatureTitle item={item} />
-												<div className='mt-3 grid grid-cols-2 gap-2 text-center'>
-													<div className='rounded-lg bg-surface-secondary p-2'>
-														<p className='mb-1 text-xs text-foreground/75'>Free</p>
-														<FeatureValue plan='Free' value={item.tiers.free} />
-													</div>
-													<div className='rounded-lg bg-surface-secondary p-2'>
-														<p className='mb-1 text-xs text-accent'>Pro</p>
-														<FeatureValue plan='Pro' value={item.tiers.pro} />
-													</div>
-												</div>
-											</div>
-										))}
-									</Accordion.Body>
-								</Accordion.Panel>
-							</Accordion.Item>
-						))}
-					</Accordion>
+				<div className='mt-10'>
+					<h2 className='mb-5 text-2xl font-semibold'>Compare what is included</h2>
+					<div className='sticky top-16 z-10 grid grid-cols-[minmax(0,1fr)_4.5rem_4.5rem] border-b border-border bg-background py-3 text-sm font-semibold'>
+						<span>Feature</span>
+						<span className='text-center'>Free</span>
+						<span className='text-center'>Pro</span>
+					</div>
+					{pricingFeatures.map((group) => (
+						<section key={group.title} className='mt-7'>
+							<h3 className='border-b border-border pb-3 text-base font-semibold'>{group.title}</h3>
+							{group.items.map((item) => (
+								<div key={item.title} className='grid grid-cols-[minmax(0,1fr)_4.5rem_4.5rem] items-center gap-y-2 border-b border-border/60 py-4 text-sm'>
+									<FeatureTitle item={item} />
+									<div className='text-center'>
+										<FeatureValue plan='Free' value={item.tiers.free} />
+									</div>
+									<div className='text-center'>
+										<FeatureValue plan='Pro' value={item.tiers.pro} />
+									</div>
+								</div>
+							))}
+						</section>
+					))}
 				</div>
 			</div>
 

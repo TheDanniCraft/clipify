@@ -83,7 +83,6 @@ export default function DemoPlayer() {
 								</>
 							) : (
 								<>
-									<p className='text-[10px] font-semibold uppercase tracking-[0.2em] text-violet-200'>Actual Clipify playback</p>
 									<p className='text-xl font-semibold sm:text-2xl'>{status === "error" ? "The demo couldn't load" : status === "paused" ? "Ready when you are" : "Your highlights. Still on stream."}</p>
 									<Button
 										variant='primary'
@@ -125,7 +124,7 @@ export default function DemoPlayer() {
 					)}
 				</div>
 			</div>
-			<p className='mt-3 text-center text-xs leading-relaxed text-violet-100/80'>A real clip playing in an example BRB scene.</p>
+
 			{status === "error" ? (
 				<p role='alert' className='mt-2 text-center text-xs leading-relaxed text-violet-100'>
 					Please try again. You can still explore Clipify and start free.

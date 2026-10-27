@@ -14,7 +14,7 @@ describe("components/Pricing/pricing-tiers", () => {
 		const pro = tiers.find((tier) => tier.key === "pro");
 
 		expect(free?.features).toEqual(expect.arrayContaining(["One playlist (up to 50 clips)", "Playlist overlay type"]));
-		expect(pro?.features).toEqual(expect.arrayContaining(["Unlimited playlists and playlist clips", "Auto import playlists with advanced filters"]));
+		expect(pro?.features).toEqual(expect.arrayContaining(["Unlimited playlists and playlist clips", "Playlist imports with advanced filters"]));
 	});
 
 	it("keeps monthly and yearly billing frequencies", () => {
@@ -41,4 +41,19 @@ describe("components/Pricing/pricing-tiers", () => {
 		expect(pricing.pro.yearly).toEqual({ amount: null, currency: "EUR", formatted: "Unavailable" });
 		expect(pricing).not.toHaveProperty("runner");
 	});
+});
+
+it("calculates annual savings only from comparable resolved prices", async () => {
+	const { annualSavingsPercent } = await import("@/app/components/Pricing/pricing-types");
+	const pricing = { pro: { monthly: { amount: 2, currency: "EUR", formatted: "€2" }, yearly: { amount: 20, currency: "EUR", formatted: "€20" } } };
+	expect(annualSavingsPercent(pricing)).toBe(16);
+	expect(annualSavingsPercent()).toBeNull();
+	for (const yearly of [
+		{ amount: null, currency: "EUR", formatted: "" },
+		{ amount: 20, currency: "USD", formatted: "" },
+		{ amount: 24, currency: "EUR", formatted: "" },
+		{ amount: -1, currency: "EUR", formatted: "" },
+	])
+		expect(annualSavingsPercent({ pro: { ...pricing.pro, yearly } })).toBeNull();
+	expect(annualSavingsPercent({ pro: { ...pricing.pro, monthly: { ...pricing.pro.monthly, amount: 0 } } })).toBeNull();
 });

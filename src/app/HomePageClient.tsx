@@ -105,12 +105,11 @@ export default function HomePageClient({ campaignOffer, pricing }: HomePageClien
 										Explore the demo
 									</Link>
 								</div>
-								<p className='mt-4 text-xs leading-relaxed text-violet-200'>A permanent Free plan. Upgrade when you need more control.</p>
 							</div>
 							<DemoPlayer />
 						</div>
 						<div className='mt-12 flex flex-col items-start justify-between gap-5 border-t border-white/15 pt-6 sm:flex-row sm:items-center'>
-							<div className='flex flex-wrap gap-x-6 gap-y-3 text-xs font-medium text-violet-100'>
+							<div className='grid gap-3 text-sm font-medium text-violet-100 sm:flex sm:flex-wrap sm:gap-x-6'>
 								<span className='flex items-center gap-2'>
 									<IconBrowser size={16} aria-hidden='true' />
 									Works as an OBS browser source
@@ -143,15 +142,15 @@ export default function HomePageClient({ campaignOffer, pricing }: HomePageClien
 							</div>
 							<p className='max-w-md text-base leading-relaxed text-foreground/75 md:justify-self-end'>Set up your player in Clipify. Bring it into the scenes you already use in OBS, Streamlabs, or other software with browser sources.</p>
 						</div>
-						<ol className='grid gap-5 md:grid-cols-3'>
+						<ol className='grid gap-8 md:grid-cols-3'>
 							{[
 								{ title: "Connect Twitch", description: "Sign in with Twitch to set up your Clipify account and manage your clips.", icon: IconBrandTwitch },
 								{ title: "Choose what plays", description: "Pick your clips, create a playlist, and save an overlay for your break scene.", icon: IconPlaylist },
 								{ title: "Add it to OBS", description: "Copy your overlay URL into a browser source. Switch to your BRB scene and let your clips play.", icon: IconBrowser },
 							].map((step, index) => (
 								<li key={step.title}>
-									<Card className='h-full border border-border shadow-none'>
-										<Card.Content className='p-6'>
+									<Card className='h-full border-0 bg-transparent shadow-none'>
+										<Card.Content className='p-0 md:pr-5'>
 											<div className='mb-7 flex items-center justify-between'>
 												<span className='flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent'>
 													<step.icon size={22} aria-hidden='true' />
@@ -167,46 +166,42 @@ export default function HomePageClient({ campaignOffer, pricing }: HomePageClien
 						</ol>
 					</section>
 
-					<section id='features' aria-labelledby='features-heading' className='scroll-mt-20 border-y border-border bg-surface-secondary/50'>
+					<section id='features' aria-labelledby='features-heading' className='scroll-mt-20 overflow-hidden border-y border-border bg-surface-secondary/50'>
 						<div className='mx-auto max-w-7xl px-6 py-16 sm:px-8 sm:py-24'>
-							<div className='mb-10 max-w-2xl'>
-								<p className='mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-accent dark:text-violet-300'>More than a play button</p>
-								<h2 id='features-heading' className='text-3xl font-bold tracking-tight sm:text-4xl'>
-									A break screen that feels like your stream.
-								</h2>
-								<p className='mt-4 text-base leading-relaxed text-foreground/75'>Keep your clip selection, scene styling, and playback controls together. Save your setup so it is there for your next stream.</p>
+							<div className='grid items-center gap-10 lg:grid-cols-[0.85fr_1.15fr]'>
+								<div>
+									<p className='mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-accent dark:text-violet-300'>Made for your next stream</p>
+									<h2 id='features-heading' className='text-3xl font-bold tracking-tight sm:text-4xl'>
+										Your best moments deserve another round.
+									</h2>
+									<p className='mt-5 text-lg leading-relaxed text-foreground/75'>The clutch. The perfectly timed joke. That one moment chat still talks about. Bring them back while you grab a drink or get ready to go live.</p>
+									<p className='mt-4 leading-relaxed text-foreground/75'>Keep your clips and stream setup in one place, ready for the next time you switch scenes.</p>
+									<Link href='/features' className='mt-6 gap-2 font-semibold'>
+										Explore Clipify <IconArrowRight size={18} />
+									</Link>
+								</div>
+								<div className='relative rounded-3xl bg-gradient-to-br from-violet-600/20 via-fuchsia-500/10 to-transparent p-3 sm:p-6'>
+									<Image src='/appSkew.webp' alt='The Clipify dashboard with saved overlays and clip playback settings' width={1920} height={1080} sizes='(max-width: 1024px) 100vw, 720px' className='h-auto w-full rounded-xl transition-transform duration-500 motion-safe:hover:-translate-y-2' />
+								</div>
 							</div>
-							<div className='grid gap-5 lg:grid-cols-3'>
+							<div className='mt-14 grid gap-8 md:grid-cols-3 md:gap-10'>
 								{[
-									{ title: "Choose what plays", description: "Handpick a playlist or select clips with filters. Keep the highlights you want on screen.", icon: IconPlaylist, examples: ["Free: one playlist with up to 50 clips", "Pro: unlimited playlists and advanced filters", "Pro: Top and Smart Shuffle playback"] },
-									{ title: "Make it fit your stream", description: "Use your overlay in a BRB or Starting Soon scene. With Pro, shape its look in Theme Studio.", icon: IconPalette, examples: ["Free: one saved overlay for your scenes", "Pro: custom layouts, colors, and fonts", "Pro: timers and progress styling"] },
-									{ title: "Stay in control", description: "Pro puts playback controls within reach, and lets trusted teammates help manage your setup.", icon: IconDeviceRemote, examples: ["Pro: pause, skip, and mute remotely", "Pro: chat commands and channel points", "Pro: editor and manager access"] },
+									{ title: "Choose what plays", description: "Build a playlist of the highlights you love. Reorder it, leave out clips that no longer fit, and keep a selection ready for each stream.", icon: IconPlaylist, href: "/guides/twitch-clip-playlists", link: "Build your playlist", color: "bg-violet-500/15 text-violet-700 dark:text-violet-300" },
+									{ title: "Make it feel like you", description: "Bring clips into your BRB or Starting Soon scene. Explore layouts, colors, fonts, timers, and progress styles in Theme Studio.", icon: IconPalette, href: "/features#styling", link: "Explore scene styling", color: "bg-fuchsia-500/15 text-fuchsia-800 dark:text-fuchsia-300" },
+									{ title: "Keep the show moving", description: "Skip a clip, pause playback, or let a trusted moderator take the controls while you are away from your desk.", icon: IconDeviceRemote, href: "/guides/control-twitch-clip-playback", link: "See playback controls", color: "bg-cyan-500/15 text-cyan-800 dark:text-cyan-300" },
 								].map((benefit) => (
-									<Card key={benefit.title} className='border border-border shadow-none'>
-										<Card.Content className='flex h-full flex-col p-6 sm:p-7'>
-											<benefit.icon className='mb-6 text-accent' size={28} aria-hidden='true' />
-											<h3 className='text-xl font-semibold'>{benefit.title}</h3>
-											<p className='mb-7 mt-3 text-sm leading-relaxed text-foreground/75'>{benefit.description}</p>
-											<ul className='mt-auto space-y-3 border-t border-border pt-5'>
-												{benefit.examples.map((example) => (
-													<li key={example} className='flex gap-2 text-sm leading-relaxed'>
-														<IconCheck className='mt-0.5 shrink-0 text-accent' size={17} aria-hidden='true' />
-														{example}
-													</li>
-												))}
-											</ul>
-										</Card.Content>
-									</Card>
+									<div key={benefit.title} className='border-t border-border pt-6'>
+										<span className={`mb-5 inline-flex rounded-2xl p-3 ${benefit.color}`}>
+											<benefit.icon size={25} aria-hidden='true' />
+										</span>
+										<h3 className='text-xl font-semibold'>{benefit.title}</h3>
+										<p className='mt-3 text-base leading-relaxed text-foreground/75'>{benefit.description}</p>
+										<Link href={benefit.href} className='mt-4 gap-2 text-sm font-semibold'>
+											{benefit.link}
+											<IconArrowRight size={16} />
+										</Link>
+									</div>
 								))}
-							</div>
-							<div className='mt-7 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border px-6 py-5'>
-								<p className='max-w-2xl text-sm leading-relaxed text-foreground/75'>
-									<strong className='font-semibold text-foreground'>Clips beyond your break scene.</strong> Share a Creator Page, publish a gallery, or broadcast from your own computer with Runner. Runner is included with Free and Pro; your computer needs to stay online.
-								</p>
-								<Link href='/pricing' className='shrink-0 gap-2 text-sm font-medium'>
-									Explore all features
-									<IconArrowRight size={17} />
-								</Link>
 							</div>
 						</div>
 					</section>
@@ -215,10 +210,9 @@ export default function HomePageClient({ campaignOffer, pricing }: HomePageClien
 						<div className='mx-auto mb-10 max-w-2xl text-center'>
 							<p className='mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-accent dark:text-violet-300'>Start free. Make it yours.</p>
 							<h2 id='pricing-heading' className='text-3xl font-bold tracking-tight sm:text-4xl'>
-								Your first break screen is on us.
+								Start with your next break.
 							</h2>
-							<p className='mt-4 text-base leading-relaxed text-foreground/75'>Free gives you one overlay and a playlist of up to 50 clips. Pro adds more room, custom styling, playback controls, and collaboration.</p>
-							<p className='mt-3 text-sm leading-relaxed text-foreground/75'>Your clip library has no clip-count limit. The Free limit applies to the clips saved in a playlist.</p>
+							<p className='mt-4 text-base leading-relaxed text-foreground/75'>Start with a free clip player. Choose Pro when you want more playlists, custom styling, or live controls.</p>
 						</div>
 						{campaignOffer && campaignOffer.showPricingCard ? (
 							<div className='mx-auto w-full max-w-md mt-12'>
@@ -304,7 +298,6 @@ export default function HomePageClient({ campaignOffer, pricing }: HomePageClien
 							Start free with Twitch
 							<IconArrowRight size={18} />
 						</Link>
-						<p className='mt-4 text-xs text-violet-200'>Start on Free. Upgrade only when you choose.</p>
 					</section>
 				</div>
 			</main>

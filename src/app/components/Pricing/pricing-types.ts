@@ -51,3 +51,11 @@ export const unavailableRuntimePricing: RuntimePricing = {
 export function resolveRuntimePricing(pricing?: RuntimePricing | null) {
 	return pricing ?? unavailableRuntimePricing;
 }
+
+export function annualSavingsPercent(pricing?: RuntimePricing | null): number | null {
+	if (!pricing) return null;
+	const { monthly, yearly } = pricing.pro;
+	if (monthly.currency !== yearly.currency || monthly.amount === null || yearly.amount === null || monthly.amount <= 0 || yearly.amount < 0) return null;
+	const saving = Math.floor((1 - yearly.amount / (monthly.amount * 12)) * 100);
+	return saving > 0 ? saving : null;
+}
