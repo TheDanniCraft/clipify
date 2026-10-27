@@ -1,5 +1,7 @@
 "use client";
 
+import ReauthenticationModal from "@components/reauthenticationModal";
+import { isRecentAuthRequired } from "@/auth/recent-auth";
 import LocalizedDate from "@components/localizedDate";
 import { useEffect, useState } from "react";
 import { Button, Card, Chip, Input, InputOTP, Label, Modal, REGEXP_ONLY_DIGITS, TextField, Tooltip } from "@heroui/react";
@@ -23,6 +25,21 @@ export default function SecuritySettingsPanel() {
 	const [isLoadingPasskeys, setIsLoadingPasskeys] = useState(true);
 	const [emailModalOpen, setEmailModalOpen] = useState(false);
 	const [passkeyModalOpen, setPasskeyModalOpen] = useState(false);
+	const [reauthenticating, setReauthenticating] = useState(false);
+	useEffect(() => {
+		let cancelled = false;
+		const params = new URLSearchParams(window.location.search);
+		if (params.get("passkey") === "resume") {
+			queueMicrotask(() => {
+				if (!cancelled) setPasskeyModalOpen(true);
+			});
+			params.delete("passkey");
+			window.history.replaceState(null, "", `/dashboard/settings?${params}#security`);
+		}
+		return () => {
+			cancelled = true;
+		};
+	}, []);
 	const [newEmail, setNewEmail] = useState("");
 	const [currentEmailCode, setCurrentEmailCode] = useState("");
 	const [newEmailCode, setNewEmailCode] = useState("");
@@ -127,6 +144,11 @@ export default function SecuritySettingsPanel() {
 		const result = await authClient.passkey.addPasskey({ name: "Clipify passkey" });
 		setPendingAction(null);
 		if (result.error) {
+			if (isRecentAuthRequired(result.error)) {
+				setPasskeyModalOpen(false);
+				setReauthenticating(true);
+				return;
+			}
 			addToast({ title: "Passkey setup was cancelled", description: "Email code sign-in remains available.", color: "warning" });
 			return;
 		}
@@ -315,6 +337,7 @@ export default function SecuritySettingsPanel() {
 					</Button>
 				</Modal.Footer>
 			</ControlledModal>
+			<ReauthenticationModal isOpen={reauthenticating} onClose={() => setReauthenticating(false)} callbackURL='/dashboard/settings?tab=settings&passkey=resume#security' errorCallbackURL='/dashboard/settings?tab=settings&verification=failed#security' />
 		</>
 	);
 }

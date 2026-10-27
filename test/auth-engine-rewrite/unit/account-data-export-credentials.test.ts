@@ -4,6 +4,19 @@ import { encryptString } from "@lib/encryption";
 import { collectReusableCredentialExport } from "@/server/account-lifecycle/account-data-export-credentials";
 
 describe("account data export reusable credentials", () => {
+	it("preserves the encrypted named destination when a key can no longer be decrypted", () => {
+		const result = collectReusableCredentialExport({
+			overlays: [],
+			runners: [],
+			streamSessions: [],
+			destinations: [
+				{ id: "valid", provider: "custom", rtmpUrl: "rtmp://example/live", encryptedStreamKey: encryptString("my-key") },
+				{ id: "old", provider: "custom", rtmpUrl: "rtmp://example/live", encryptedStreamKey: "unavailable-encryption" },
+				{ id: "empty", provider: "custom", rtmpUrl: "rtmp://example/live", encryptedStreamKey: null },
+			],
+		});
+		expect(result.namedDestinations).toEqual([expect.objectContaining({ destinationId: "valid", value: "my-key" }), expect.objectContaining({ destinationId: "old", value: null, storedEncryptedValue: "unavailable-encryption" })]);
+	});
 	it("includes Clipify-issued overlay, runner, and decrypted stream credentials", () => {
 		const result = collectReusableCredentialExport({
 			overlays: [

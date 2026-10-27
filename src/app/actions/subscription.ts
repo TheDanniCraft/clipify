@@ -19,6 +19,7 @@ import { isProductOwnedByEntitlement } from "@lib/billingOwnership";
 import type { DeletionChoice } from "@/server/account-lifecycle/service";
 import { ACCOUNT_DATA_EXPORT_TTL_MS, createAccountDataExportToken } from "@/auth/account-data-export-token";
 import { sendAccountDataExport } from "@/auth/transactional-mail";
+import { withSensitiveActionResult } from "@/auth/recent-auth";
 
 export type BillingCycle = "monthly" | "yearly";
 export type PaywallSource = "pricing_page" | "upgrade_modal" | "paywall_banner";
@@ -73,24 +74,26 @@ export async function getStripe() {
 export async function requestAccountDeletion(choice: DeletionChoice) {
 	if (choice !== "paid_through" && choice !== "immediate") throw new Error("INVALID_DELETION_CHOICE");
 	const { requestDatabaseAccountDeletion } = await import("@/server/account-lifecycle/database");
-	return requestDatabaseAccountDeletion({
-		choice,
-		mutateBilling: async (subscription, selectedChoice) => {
-			if (usesE2EBillingAdapter()) return;
-			const stripe = getServerStripe();
-			if (selectedChoice === "paid_through") {
-				await stripe.subscriptions.update(subscription.id, { cancel_at_period_end: true });
-				return;
-			}
-			await stripe.subscriptions.cancel(subscription.id);
-		},
-	});
+	return withSensitiveActionResult(() =>
+		requestDatabaseAccountDeletion({
+			choice,
+			mutateBilling: async (subscription, selectedChoice) => {
+				if (usesE2EBillingAdapter()) return;
+				const stripe = getServerStripe();
+				if (selectedChoice === "paid_through") {
+					await stripe.subscriptions.update(subscription.id, { cancel_at_period_end: true });
+					return;
+				}
+				await stripe.subscriptions.cancel(subscription.id);
+			},
+		}),
+	);
 }
 
 export async function recoverAccountDeletion(requestId: string) {
 	if (!/^[0-9a-f-]{36}$/i.test(requestId)) throw new Error("INVALID_DELETION_REQUEST");
 	const { recoverDatabaseAccountDeletion } = await import("@/server/account-lifecycle/database");
-	return recoverDatabaseAccountDeletion({ requestId });
+	return withSensitiveActionResult(() => recoverDatabaseAccountDeletion({ requestId }));
 }
 
 export async function getAccountDeletionOverview() {
@@ -99,16 +102,18 @@ export async function getAccountDeletionOverview() {
 }
 
 export async function requestAccountDataExport() {
-	const { prepareDatabaseAccountDataExport } = await import("@/server/account-lifecycle/database");
-	const identity = await prepareDatabaseAccountDataExport();
-	const limit = await tryRateLimit({ key: "account-data-export", points: 3, duration: 24 * 60 * 60, identifier: identity.authUserId });
-	if (!limit.success) throw new Error("EXPORT_RATE_LIMITED");
-	const now = new Date();
-	const expiresAt = new Date(now.getTime() + ACCOUNT_DATA_EXPORT_TTL_MS);
-	const token = createAccountDataExportToken({ authUserId: identity.authUserId, creatorId: identity.creatorId, organizationId: identity.organizationId, now });
-	const downloadUrl = new URL(`/api/account/export?token=${encodeURIComponent(token)}`, await getBaseUrl()).toString();
-	if (!usesE2EBillingAdapter()) await sendAccountDataExport({ email: identity.email, downloadUrl, expiresAt });
-	return { email: identity.email, expiresAt: expiresAt.toISOString() };
+	return withSensitiveActionResult(async () => {
+		const { prepareDatabaseAccountDataExport } = await import("@/server/account-lifecycle/database");
+		const identity = await prepareDatabaseAccountDataExport();
+		const limit = await tryRateLimit({ key: "account-data-export", points: 3, duration: 24 * 60 * 60, identifier: identity.authUserId });
+		if (!limit.success) throw new Error("EXPORT_RATE_LIMITED");
+		const now = new Date();
+		const expiresAt = new Date(now.getTime() + ACCOUNT_DATA_EXPORT_TTL_MS);
+		const token = createAccountDataExportToken({ authUserId: identity.authUserId, creatorId: identity.creatorId, organizationId: identity.organizationId, now });
+		const downloadUrl = new URL(`/api/account/export?token=${encodeURIComponent(token)}`, await getBaseUrl()).toString();
+		if (!usesE2EBillingAdapter()) await sendAccountDataExport({ email: identity.email, downloadUrl, expiresAt });
+		return { email: identity.email, expiresAt: expiresAt.toISOString() };
+	});
 }
 
 export async function getBillingProductOptions(primaryProduct: BillingProduct) {

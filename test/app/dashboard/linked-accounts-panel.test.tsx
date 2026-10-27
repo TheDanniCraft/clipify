@@ -16,7 +16,7 @@ jest.mock("@heroui/react", () => {
 	return fixture;
 });
 jest.mock("@/auth/client", () => ({ authClient: { listAccounts: (...args: unknown[]) => listAccounts(...args), signIn: { social: (...args: unknown[]) => signInSocial(...args) } } }));
-jest.mock("@/app/actions/account-security", () => ({ disconnectLinkedAccount: (...args: unknown[]) => disconnectLinkedAccount(...args) }));
+jest.mock("@/app/actions/account-security", () => ({ disconnectLinkedAccount: (...args: unknown[]) => disconnectLinkedAccount(...args), listLinkedAccounts: (...args: unknown[]) => listAccounts(...args) }));
 jest.mock("@lib/toast", () => ({ notify: (...args: unknown[]) => notify(...args) }));
 jest.mock("@components/confirmModal", () => ({
 	__esModule: true,
@@ -43,6 +43,14 @@ beforeEach(() => {
 	window.sessionStorage.clear();
 	listAccounts.mockResolvedValue({ data: accounts, error: null });
 	signInSocial.mockResolvedValue({ data: null, error: null });
+});
+
+test("keeps the primary Twitch identity connected", async () => {
+	listAccounts.mockResolvedValue({ data: [{ ...accounts[1], isPrimary: true }], error: null });
+	render(<LinkedAccountsPanel />);
+	expect(await screen.findByRole("button", { name: "Primary account" })).toBeDisabled();
+	expect(screen.queryByRole("button", { name: "Disconnect" })).not.toBeInTheDocument();
+	expect(disconnectLinkedAccount).not.toHaveBeenCalled();
 });
 
 test("disconnects through the coordinated account action and refreshes the list", async () => {
@@ -76,9 +84,9 @@ test("offers provider reauthentication when the session is no longer fresh", asy
 	await screen.findByText("Google");
 	fireEvent.click(screen.getAllByRole("button", { name: "Disconnect" })[0]);
 	fireEvent.click(within(screen.getByRole("heading", { name: "Disconnect Google?" }).closest("section")!).getByRole("button", { name: "Disconnect" }));
-	await screen.findByRole("heading", { name: "Verify your identity" });
-	expect(screen.getByText("To complete this action, please sign in again.")).toBeVisible();
-	fireEvent.click(screen.getByRole("button", { name: "Sign in with Google" }));
+	await screen.findByText("Sign in again to continue");
+	expect(screen.getByText("To verify it's you, please sign in again. Then you can return and finish this action.")).toBeVisible();
+	fireEvent.click(screen.getByRole("button", { name: "Continue with Google" }));
 	await waitFor(() => expect(signInSocial).toHaveBeenCalledWith({ provider: "google", callbackURL: "/dashboard/settings?tab=connections&reauthentication=complete", errorCallbackURL: "/dashboard/settings?tab=connections&reauthentication=failed" }));
 	expect(window.sessionStorage.getItem("clipify.pending-linked-account-disconnect")).toBe("google-account");
 });

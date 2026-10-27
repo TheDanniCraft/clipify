@@ -251,8 +251,9 @@ test("clip schedule shows an estimate and completed history, then a queued refre
 	expect(screen.queryByText(/Next check in about/)).not.toBeInTheDocument();
 });
 test.each(["success", "rate-limited", "failure", "recent-auth"])("account export handles %s without exposing internal errors", async (mode) => {
-	if (mode === "success") (requestAccountDataExport as jest.Mock).mockResolvedValue({ email: "owner@example.invalid", expiresAt: "2026-10-09T00:00:00Z" });
-	else (requestAccountDataExport as jest.Mock).mockRejectedValue(new Error(mode === "rate-limited" ? "EXPORT_RATE_LIMITED" : mode === "recent-auth" ? "RECENT_AUTH_REQUIRED" : "private export failure"));
+	if (mode === "success") (requestAccountDataExport as jest.Mock).mockResolvedValue({ success: true, email: "owner@example.invalid", expiresAt: "2026-10-09T00:00:00Z" });
+	else if (mode === "recent-auth" || mode === "rate-limited") (requestAccountDataExport as jest.Mock).mockResolvedValue({ success: false, code: mode === "recent-auth" ? "REAUTHENTICATION_REQUIRED" : "EXPORT_RATE_LIMITED" });
+	else (requestAccountDataExport as jest.Mock).mockRejectedValue(new Error("private export failure"));
 	render(<SettingsPage />);
 	fireEvent.click(await screen.findByRole("button", { name: "Export Account Data" }));
 	fireEvent.click(screen.getByRole("button", { name: "Email download link" }));
@@ -261,14 +262,16 @@ test.each(["success", "rate-limited", "failure", "recent-auth"])("account export
 	expect(JSON.stringify(notify.mock.calls)).not.toContain("private export failure");
 });
 test.each(["success", "failure", "recent-auth"])("scheduled deletion handles %s", async (mode) => {
-	if (mode === "success") (requestAccountDeletion as jest.Mock).mockResolvedValue({ status: "scheduled", suspensionAt: "2026-10-09T00:00:00Z" });
-	else (requestAccountDeletion as jest.Mock).mockRejectedValue(new Error(mode === "recent-auth" ? "RECENT_AUTH_REQUIRED" : "private deletion failure"));
+	if (mode === "success") (requestAccountDeletion as jest.Mock).mockResolvedValue({ success: true, status: "scheduled", suspensionAt: "2026-10-09T00:00:00Z" });
+	else if (mode === "recent-auth") (requestAccountDeletion as jest.Mock).mockResolvedValue({ success: false, code: "REAUTHENTICATION_REQUIRED" });
+	else (requestAccountDeletion as jest.Mock).mockRejectedValue(new Error("private deletion failure"));
 	render(<SettingsPage />);
 	fireEvent.click(await screen.findByRole("button", { name: "Schedule Account Deletion" }));
 	fireEvent.click(screen.getByRole("button", { name: "Schedule deletion" }));
 	if (mode === "recent-auth") expect(await screen.findByText("Sign in again to continue")).toBeVisible();
 	else await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: mode === "success" ? "Deletion scheduled" : "Deletion was not scheduled" })));
 	expect(JSON.stringify(notify.mock.calls)).not.toContain("private deletion failure");
+	if (mode === "recent-auth") expect(notify).not.toHaveBeenCalled();
 });
 
 test("email preference toggles save explicit opt-in and opt-out provenance", async () => {
@@ -349,15 +352,45 @@ test("return from recent export sign-in stores a bounded window and removes retu
 	expect(screen.queryByText("Request your Clipify data")).not.toBeInTheDocument();
 	expect(requestAccountDataExport).not.toHaveBeenCalled();
 });
+
+test("a stale download preserves its token for verification and removes it from the visible URL", async () => {
+	const token = "signed+download/token==";
+	window.history.replaceState({}, "", `/dashboard/settings#downloadExport=${encodeURIComponent(token)}`);
+	(authClient.signIn.social as jest.Mock).mockResolvedValue({ error: null });
+	render(<SettingsPage />);
+	expect(await screen.findByText("Sign in again to continue")).toBeVisible();
+	expect(window.location.hash).toBe("");
+	fireEvent.click(screen.getByRole("button", { name: "Continue with Twitch" }));
+	await waitFor(() => expect(authClient.signIn.social).toHaveBeenCalledWith({ provider: "twitch", callbackURL: `/dashboard/settings?reauthenticated=download#downloadExport=${encodeURIComponent(token)}`, errorCallbackURL: "/dashboard/settings?verification=failed" }));
+	expect(requestAccountDataExport).not.toHaveBeenCalled();
+});
+
+test.each(["deletion", "sensitive-action"])("returning from %s verification restores confirmation without changing the account", async (action) => {
+	window.history.replaceState({}, "", `/dashboard/settings?reauthenticated=${action}`);
+	render(<SettingsPage />);
+	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Signed in again" })));
+	if (action === "deletion") expect(screen.getByRole("button", { name: "Schedule deletion" })).toBeVisible();
+	expect(router.replace).toHaveBeenCalledWith("/dashboard/settings");
+	expect(requestAccountDeletion).not.toHaveBeenCalled();
+	expect(requestAccountDataExport).not.toHaveBeenCalled();
+});
+
+test.each(["", "&tab=connections"])("a cancelled identity check gives actionable feedback and preserves other parameters %s", async (other) => {
+	window.history.replaceState({}, "", `/dashboard/settings?verification=failed${other}`);
+	render(<SettingsPage />);
+	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Identity check was not completed", color: "warning" })));
+	expect(window.location.search).toBe(other ? "?tab=connections" : "");
+	expect(requestAccountDataExport).not.toHaveBeenCalled();
+});
 test.each(["success", "failure"])("export recent-auth verification handles %s", async (mode) => {
-	(requestAccountDataExport as jest.Mock).mockRejectedValue(new Error("RECENT_AUTH_REQUIRED"));
+	(requestAccountDataExport as jest.Mock).mockResolvedValue({ success: false, code: "REAUTHENTICATION_REQUIRED" });
 	(authClient.signIn.social as jest.Mock).mockResolvedValue({ error: mode === "failure" ? { message: "private auth failure" } : null });
 	render(<SettingsPage />);
 	fireEvent.click(await screen.findByRole("button", { name: "Export Account Data" }));
 	fireEvent.click(screen.getByRole("button", { name: "Email download link" }));
 	fireEvent.click(await screen.findByRole("button", { name: "Continue with Twitch" }));
-	await waitFor(() => expect(authClient.signIn.social).toHaveBeenCalledWith({ provider: "twitch", callbackURL: "/dashboard/settings?reauthenticated=export", errorCallbackURL: "/dashboard/settings?reauthentication=failed" }));
-	if (mode === "failure") await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Identity check could not start" })));
+	await waitFor(() => expect(authClient.signIn.social).toHaveBeenCalledWith({ provider: "twitch", callbackURL: "/dashboard/settings?reauthenticated=export", errorCallbackURL: "/dashboard/settings?verification=failed" }));
+	if (mode === "failure") expect(await screen.findByRole("alert")).toHaveTextContent("Sign-in could not start. Please try again.");
 	expect(JSON.stringify(notify.mock.calls)).not.toContain("private auth failure");
 });
 test.each([
@@ -379,7 +412,7 @@ test("inline settings and creator links preserve navigation between sections", a
 	expect(screen.getByText("Security panel")).toBeVisible();
 });
 test("deletion timing choices are explicit and only confirmation reaches the action", async () => {
-	(requestAccountDeletion as jest.Mock).mockResolvedValue({ status: "scheduled", suspensionAt: "2026-10-09T00:00:00Z" });
+	(requestAccountDeletion as jest.Mock).mockResolvedValue({ success: true, status: "scheduled", suspensionAt: "2026-10-09T00:00:00Z" });
 	render(<SettingsPage />);
 	fireEvent.click(await screen.findByRole("button", { name: "Schedule Account Deletion" }));
 	fireEvent.click(screen.getByRole("button", { name: "Suspend now" }));
@@ -396,7 +429,7 @@ test("export cancel closes the dialog without requesting data", async () => {
 	expect(requestAccountDataExport).not.toHaveBeenCalled();
 });
 test.each(["button", "dialog"])("recent-auth %s cancellation performs no social sign-in", async (mode) => {
-	(requestAccountDataExport as jest.Mock).mockRejectedValue(new Error("RECENT_AUTH_REQUIRED"));
+	(requestAccountDataExport as jest.Mock).mockResolvedValue({ success: false, code: "REAUTHENTICATION_REQUIRED" });
 	render(<SettingsPage />);
 	fireEvent.click(await screen.findByRole("button", { name: "Export Account Data" }));
 	fireEvent.click(screen.getByRole("button", { name: "Email download link" }));

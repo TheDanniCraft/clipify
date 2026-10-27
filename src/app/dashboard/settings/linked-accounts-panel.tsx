@@ -4,11 +4,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Card, Chip, Spinner } from "@heroui/react";
 import { IconBrandGoogle, IconBrandTwitch, IconLink, IconMail } from "@tabler/icons-react";
 import ConfirmModal from "@components/confirmModal";
-import { authClient } from "@/auth/client";
+import ReauthenticationModal from "@components/reauthenticationModal";
 import { notify as addToast } from "@lib/toast";
-import { disconnectLinkedAccount } from "@/app/actions/account-security";
+import { disconnectLinkedAccount, listLinkedAccounts } from "@/app/actions/account-security";
 
-type LinkedAccount = { id: string; providerId: string; accountId: string };
+type LinkedAccount = { id: string; providerId: string; accountId: string; isPrimary?: boolean };
 
 const PENDING_DISCONNECT_KEY = "clipify.pending-linked-account-disconnect";
 
@@ -27,7 +27,7 @@ export default function LinkedAccountsPanel() {
 	const [reauthProvider, setReauthProvider] = useState<"twitch" | "google" | null>(null);
 
 	const refresh = useCallback(async () => {
-		const result = await authClient.listAccounts();
+		const result = await listLinkedAccounts();
 		if (result.error) throw new Error("ACCOUNTS_NOT_LOADED");
 		setAccounts(((result.data ?? []) as LinkedAccount[]).filter((account) => account.providerId === "google" || account.providerId === "twitch"));
 		setLoadError(false);
@@ -35,8 +35,7 @@ export default function LinkedAccountsPanel() {
 
 	useEffect(() => {
 		let active = true;
-		void authClient
-			.listAccounts()
+		void listLinkedAccounts()
 			.then((result) => {
 				if (!active) return;
 				if (result.error) throw new Error("ACCOUNTS_NOT_LOADED");
@@ -61,11 +60,13 @@ export default function LinkedAccountsPanel() {
 			try {
 				const result = await disconnectLinkedAccount(account.id);
 				if (!result.success) {
-					if (result.code === "REAUTHENTICATION_REQUIRED" && result.reauthProvider) {
+					if (result.code === "REAUTHENTICATION_REQUIRED") {
 						setUnlinking(account);
-						setReauthProvider(result.reauthProvider);
+						setReauthProvider(result.reauthProvider ?? "twitch");
+						window.sessionStorage.setItem(PENDING_DISCONNECT_KEY, account.id);
+						return;
 					}
-					addToast({ title: result.code === "REAUTHENTICATION_REQUIRED" ? "Sign in again to continue" : "Account could not be disconnected", description: result.error, color: result.code === "REAUTHENTICATION_REQUIRED" ? "warning" : "danger" });
+					addToast({ title: "Account could not be disconnected", description: result.error, color: "danger" });
 					return;
 				}
 				const disconnectedProvider = account.providerId;
@@ -110,20 +111,6 @@ export default function LinkedAccountsPanel() {
 		queueMicrotask(() => void disconnectAccount(account));
 	}, [accounts, disconnectAccount, loading]);
 
-	async function reauthenticate() {
-		if (!reauthProvider || !unlinking || requestPending.current) return;
-		requestPending.current = true;
-		setPending(true);
-		window.sessionStorage.setItem(PENDING_DISCONNECT_KEY, unlinking.id);
-		const result = await authClient.signIn.social({ provider: reauthProvider, callbackURL: "/dashboard/settings?tab=connections&reauthentication=complete", errorCallbackURL: "/dashboard/settings?tab=connections&reauthentication=failed" });
-		if (result.error) {
-			window.sessionStorage.removeItem(PENDING_DISCONNECT_KEY);
-			requestPending.current = false;
-			setPending(false);
-			addToast({ title: "Sign-in could not start", description: "Please try again.", color: "danger" });
-		}
-	}
-
 	return (
 		<>
 			<Card className='w-full' role='region' aria-labelledby='linked-accounts-title'>
@@ -165,14 +152,14 @@ export default function LinkedAccountsPanel() {
 										</span>
 										<div className='min-w-0'>
 											<p className='font-semibold'>{providerName(account.providerId)}</p>
-											<p className='text-sm text-muted'>Available for sign-in</p>
+											<p className='text-sm text-muted'>{account.isPrimary ? "Required for Clipify sign-in and Twitch features" : "Available for sign-in"}</p>
 										</div>
 										<Chip color='success' variant='soft' size='sm'>
 											Connected
 										</Chip>
 									</div>
-									<Button className='w-full sm:w-auto' size='sm' variant='danger-soft' onPress={() => setUnlinking(account)}>
-										Disconnect
+									<Button className='w-full sm:w-auto' size='sm' variant={account.isPrimary ? "secondary" : "danger-soft"} isDisabled={account.isPrimary} onPress={() => setUnlinking(account)}>
+										{account.isPrimary ? "Primary account" : "Disconnect"}
 									</Button>
 								</div>
 							);
@@ -181,7 +168,7 @@ export default function LinkedAccountsPanel() {
 				</Card.Content>
 			</Card>
 			<ConfirmModal
-				isOpen={unlinking !== null}
+				isOpen={unlinking !== null && reauthProvider === null}
 				isPending={pending}
 				onOpenChange={(open) => {
 					if (!open) {
@@ -192,7 +179,18 @@ export default function LinkedAccountsPanel() {
 				title={reauthProvider ? "Verify your identity" : `Disconnect ${providerName(unlinking?.providerId ?? "account")}?`}
 				confirmLabel={reauthProvider ? `Sign in with ${providerName(reauthProvider)}` : "Disconnect"}
 				description={reauthProvider ? "To complete this action, please sign in again." : "This removes the sign-in method, revokes its Clipify access, and disconnects Runner destinations using the same channel."}
-				onConfirm={reauthProvider ? reauthenticate : disconnect}
+				onConfirm={disconnect}
+			/>
+			<ReauthenticationModal
+				isOpen={reauthProvider !== null}
+				provider={reauthProvider ?? "twitch"}
+				onClose={() => {
+					setReauthProvider(null);
+					setUnlinking(null);
+					window.sessionStorage.removeItem(PENDING_DISCONNECT_KEY);
+				}}
+				callbackURL='/dashboard/settings?tab=connections&reauthentication=complete'
+				errorCallbackURL='/dashboard/settings?tab=connections&reauthentication=failed'
 			/>
 		</>
 	);

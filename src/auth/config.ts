@@ -146,6 +146,10 @@ export const auth = betterAuth({
 				},
 			},
 			delete: {
+				before: async (account) => {
+					const { isPrimaryTwitchAccount } = await import("@/server/primary-twitch-account");
+					if (await isPrimaryTwitchAccount(account)) throw new APIError("BAD_REQUEST", { code: "PRIMARY_TWITCH_ACCOUNT_REQUIRED", message: "Your primary Twitch account is required for Clipify." });
+				},
 				after: async (account) => {
 					const { disconnectStreamingConnectionsForAuthAccount } = await import("@/server/runner/provider-connections");
 					await disconnectStreamingConnectionsForAuthAccount({ id: account.id, userId: account.userId });

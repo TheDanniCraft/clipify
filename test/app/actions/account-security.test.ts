@@ -1,6 +1,8 @@
+jest.mock("@/server/primary-twitch-account", () => ({ isPrimaryTwitchAccount: jest.fn().mockResolvedValue(false) }));
 jest.mock("next/headers", () => ({ headers: async () => new Headers({ cookie: "session=test" }) }));
 jest.mock("@/auth/config", () => ({ auth: { api: { getSession: jest.fn(), listUserAccounts: jest.fn(), getAccessToken: jest.fn(), unlinkAccount: jest.fn(), sendVerificationOTP: jest.fn(), requestEmailChangeEmailOTP: jest.fn() } } }));
 
+import { isPrimaryTwitchAccount } from "@/server/primary-twitch-account";
 import { disconnectLinkedAccount, requestCurrentEmailChangeCode, requestNewEmailChangeCode } from "@/app/actions/account-security";
 const { auth } = jest.requireMock("@/auth/config") as { auth: { api: { getSession: jest.Mock; listUserAccounts: jest.Mock; getAccessToken: jest.Mock; unlinkAccount: jest.Mock; sendVerificationOTP: jest.Mock; requestEmailChangeEmailOTP: jest.Mock } } };
 const nativeFetch = global.fetch;
@@ -8,7 +10,8 @@ const nativeFetch = global.fetch;
 describe("account security actions", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
-		auth.api.getSession.mockResolvedValue({ user: { email: "Current@Example.com" }, session: { createdAt: new Date() } });
+		jest.mocked(isPrimaryTwitchAccount).mockResolvedValue(false);
+		auth.api.getSession.mockResolvedValue({ user: { id: "identity", email: "Current@Example.com" }, session: { createdAt: new Date() } });
 		auth.api.listUserAccounts.mockResolvedValue([
 			{ id: "google-account", providerId: "google" },
 			{ id: "twitch-account", providerId: "twitch" },
@@ -37,6 +40,14 @@ describe("account security actions", () => {
 		expect(auth.api.sendVerificationOTP).not.toHaveBeenCalled();
 		expect(auth.api.requestEmailChangeEmailOTP).not.toHaveBeenCalled();
 	});
+	it("keeps the primary Twitch identity and tokens without attempting provider revocation", async () => {
+		jest.mocked(isPrimaryTwitchAccount).mockResolvedValue(true);
+		expect(await disconnectLinkedAccount("twitch-account")).toMatchObject({ success: false, code: "PRIMARY_ACCOUNT_REQUIRED" });
+		expect(global.fetch).not.toHaveBeenCalled();
+		expect(auth.api.getAccessToken).not.toHaveBeenCalled();
+		expect(auth.api.unlinkAccount).not.toHaveBeenCalled();
+	});
+
 	it("revokes provider access before unlinking the account", async () => {
 		expect(await disconnectLinkedAccount("google-account")).toEqual({ success: true, providerId: "google" });
 		expect(global.fetch).toHaveBeenCalledWith("https://oauth2.googleapis.com/revoke", expect.objectContaining({ method: "POST", body: expect.any(URLSearchParams) }));
@@ -44,7 +55,7 @@ describe("account security actions", () => {
 		expect((global.fetch as jest.Mock).mock.invocationCallOrder[0]).toBeLessThan(auth.api.unlinkAccount.mock.invocationCallOrder[0]);
 	});
 	it("requires recent authentication before revoking anything", async () => {
-		auth.api.getSession.mockResolvedValue({ user: { email: "Current@Example.com" }, session: { createdAt: new Date(Date.now() - 6 * 60_000) } });
+		auth.api.getSession.mockResolvedValue({ user: { id: "identity", email: "Current@Example.com" }, session: { createdAt: new Date(Date.now() - 6 * 60_000) } });
 		expect(await disconnectLinkedAccount("google-account")).toEqual(expect.objectContaining({ success: false, code: "REAUTHENTICATION_REQUIRED", reauthProvider: "google" }));
 		expect(global.fetch).not.toHaveBeenCalled();
 		expect(auth.api.unlinkAccount).not.toHaveBeenCalled();

@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto";
 async function main() {
 	const databaseUrl = new URL(process.env.DATABASE_URL ?? "");
 	if (!["127.0.0.1", "localhost", "[::1]"].includes(databaseUrl.hostname) || !/^\/mcp_[a-f0-9]+$/.test(databaseUrl.pathname)) throw new Error("ONBOARDING_PROBE_REQUIRES_DISPOSABLE_DATABASE");
@@ -19,10 +20,22 @@ async function main() {
 	try {
 		const context = await auth.$context;
 		const mode = process.argv[4];
-		if (["retry", "initialize", "profile"].includes(mode)) {
-			const { rows } = await dbPool.query("SELECT user_id FROM auth.account WHERE provider_id='twitch' AND account_id=$1", [creatorId]);
+		if (["retry", "initialize", "profile", "unlink-primary"].includes(mode)) {
+			const { rows } = await dbPool.query("SELECT id,user_id,access_token,refresh_token FROM auth.account WHERE provider_id='twitch' AND account_id=$1", [creatorId]);
 			const authUserId = rows[0]?.user_id;
 			if (!authUserId) throw new Error("PROBE_TWITCH_ACCOUNT_MISSING");
+			if (mode === "unlink-primary") {
+				const session = await context.internalAdapter.createSession(authUserId);
+				if (!session || typeof context.secret !== "string") throw new Error("FIXTURE_SESSION_REQUIRED");
+				const signed = `${session.token}.${createHmac("sha256", context.secret).update(session.token).digest("base64")}`;
+				const response = await auth.handler(new Request("http://127.0.0.1:3107/api/auth/unlink-account", { method: "POST", headers: { "content-type": "application/json", origin: "http://127.0.0.1:3107", cookie: `${context.authCookies.sessionToken.name}=${signed}` }, body: JSON.stringify({ accountId: rows[0].id }) }));
+				const body = await response.json();
+				const after = await dbPool.query("SELECT access_token,refresh_token FROM auth.account WHERE id=$1", [rows[0].id]);
+				await completeTwitchSignIn(creatorId, authUserId);
+				process.stdout.write(JSON.stringify({ status: response.status, code: body.code, credentialsPreserved: after.rows[0]?.access_token === rows[0].access_token && after.rows[0]?.refresh_token === rows[0].refresh_token, signInStillWorks: true }) + "\n");
+				return;
+			}
+
 			if (mode === "retry") await completeTwitchSignIn(creatorId, authUserId);
 			if (mode === "initialize") await Promise.all(Array.from({ length: 8 }, () => initializeCreator(creatorId, new Date("2012-04-15T13:45:00Z"), authUserId)));
 			if (mode === "profile") await context.internalAdapter.updateUser(authUserId, { name: "Updated Creator", email: `updated-${email}`, image: "https://example.invalid/updated.png" });
