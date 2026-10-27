@@ -324,6 +324,7 @@ export default function Footer() {
 														})()}
 													</InputGroup.Prefix>
 													<InputGroup.Input
+														className='min-w-0'
 														placeholder='mail@example.com'
 														onChange={() => {
 															setNewsletterState("default");

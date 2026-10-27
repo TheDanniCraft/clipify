@@ -85,7 +85,8 @@ test("missing demo configuration gives actionable recovery without blocking sign
 	await expect(page.getByRole("button", { name: "Login with Twitch" })).toBeVisible();
 });
 
-test("demo shell plays controlled real media, sends skip, and stops offscreen", async ({ page }) => {
+test("demo shell plays controlled real media on mobile, sends skip, and stops offscreen", async ({ page }) => {
+	await page.setViewportSize({ width: 320, height: 900 });
 	// Control the media boundary; the installed homepage, controls, iframe and video remain real.
 	await page.route("**/__landing-fixture.mp4", (route) => route.fulfill({ contentType: "video/mp4", body: readFileSync("test/fixtures/runner/presentation.mp4") }));
 	await page.route("**/demoPlayer", (route) => route.fulfill({ contentType: "text/html", body: '<html><body style="margin:0"><video autoplay muted loop playsinline src="/__landing-fixture.mp4" style="width:100%"></video><script>addEventListener("message", e => { if(e.origin===location.origin && e.data.name==="skip") document.body.dataset.command="skip"; });</script></body></html>' }));
@@ -94,6 +95,7 @@ test("demo shell plays controlled real media, sends skip, and stops offscreen", 
 	await page.getByRole("button", { name: "Watch the demo", exact: true }).focus();
 	await page.keyboard.press("Enter");
 	await expect(page.getByRole("button", { name: "Skip clip", exact: true })).toBeVisible();
+	expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 	const frame = page.frameLocator("iframe[title='Clipify playback demo']");
 	await expect.poll(() => frame.locator("video").evaluate((video: HTMLVideoElement) => video.currentTime)).toBeGreaterThan(0);
 	await page.getByRole("button", { name: "Skip clip", exact: true }).click();

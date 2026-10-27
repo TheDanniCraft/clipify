@@ -60,7 +60,7 @@ export default function DemoPlayer() {
 	};
 
 	return (
-		<div ref={containerRef} id='demo' className='scroll-mt-24'>
+		<div ref={containerRef} id='demo' className='min-w-0 scroll-mt-24'>
 			<div className='overflow-hidden rounded-2xl border border-white/15 bg-zinc-950 shadow-2xl shadow-black/25'>
 				<div className='flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3 text-xs text-zinc-300'>
 					<span className='flex items-center gap-2'>
@@ -102,13 +102,13 @@ export default function DemoPlayer() {
 						</div>
 					) : null}
 				</div>
-				<div className='flex min-h-14 items-center justify-between gap-2 px-4 py-2 text-xs text-zinc-300'>
+				<div className='flex min-h-14 flex-wrap items-center justify-between gap-2 px-4 py-2 text-xs text-zinc-300'>
 					<span className='flex items-center gap-2'>
 						<IconVolumeOff size={16} aria-hidden='true' />
 						Demo plays without sound
 					</span>
 					{active ? (
-						<div className='flex items-center gap-1'>
+						<div className='ml-auto flex flex-wrap items-center gap-1'>
 							{status === "playing" ? (
 								<Button variant='ghost' size='sm' onPress={() => iframeRef.current?.contentWindow?.postMessage({ name: "skip", data: null }, window.location.origin)} className='text-white'>
 									<IconPlayerSkipForward size={16} />
