@@ -3,6 +3,13 @@ import BasicNavbar from "@components/LandingPage/basicNavbar";
 import { RoadmapItem } from "@components/roadmap/roadmapItem";
 import { getRoadmapItems } from "@lib/roadmap";
 
+export const metadata = {
+	title: "Roadmap | Clipify",
+	description: "Explore current and upcoming Clipify improvements for Twitch creators.",
+	alternates: { canonical: "https://clipify.us/roadmap" },
+	openGraph: { title: "Roadmap | Clipify", description: "Explore current and upcoming Clipify improvements for Twitch creators.", url: "https://clipify.us/roadmap" },
+};
+
 export default async function RoadmapPage() {
 	const roadmapItems = await getRoadmapItems();
 

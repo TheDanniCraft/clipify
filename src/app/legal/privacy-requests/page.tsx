@@ -8,6 +8,8 @@ const requestDocument = legalDocuments.find(({ id }) => id === "privacy-requests
 export const metadata: Metadata = {
 	title: "Privacy Requests | Clipify",
 	description: "How to make a privacy request to Clipify and what to expect next.",
+	alternates: { canonical: "https://clipify.us/legal/privacy-requests" },
+	openGraph: { url: "https://clipify.us/legal/privacy-requests" },
 };
 
 function titleCase(value: string) {

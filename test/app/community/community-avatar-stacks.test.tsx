@@ -46,6 +46,12 @@ describe("community avatar stacks", () => {
 		expect(screen.getByText("+75 more")).toHaveClass("shrink-0", "whitespace-nowrap");
 	});
 
+	it("requests the verified small Twitch avatar while preserving other image URLs", () => {
+		const { container } = render(<CommunityTeaser streamers={[{ ...streamers[0], avatar: "https://static-cdn.jtvnw.net/jtv_user_pictures/example-profile_image-300x300.png" }, streamers[1]]} />);
+		expect(container.querySelector('[data-avatar-src="https://static-cdn.jtvnw.net/jtv_user_pictures/example-profile_image-70x70.png"]')).not.toBeNull();
+		expect(container.querySelector('[data-avatar-src="/twitch-live.png"]')).not.toBeNull();
+	});
+
 	it("keeps the shared teaser overflow label whole", () => {
 		render(<CommunityTeaser streamers={streamers} totalCount={85} />);
 

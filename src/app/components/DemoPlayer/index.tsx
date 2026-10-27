@@ -1,56 +1,141 @@
 "use client";
 
-import { useEffect, useRef, useState, type RefObject } from "react";
-import StreamingWithChatMock from "./StreamingWithChatMock";
-import "./DemoPlayer.css";
+import { useEffect, useRef, useState } from "react";
+import { Button, Spinner } from "@heroui/react";
+import Image from "next/image";
+import { usePlausible } from "next-plausible";
+import { IconPlayerPlayFilled, IconPlayerPause, IconRefresh, IconVolumeOff, IconPlayerSkipForward } from "@tabler/icons-react";
 
-type DemoMode = "clipify" | "brb";
-
-const INITIAL_VIEWERS = 128;
-const VIEWER_STEPS: Record<DemoMode, readonly number[]> = {
-	clipify: [0, 1, 0, -1, 1, 0, -1, 0],
-	brb: [-3, -5, -2, -4, -6, -3, -5, -4],
-};
-
-export function nextDemoViewerCount(current: number, mode: DemoMode, step: number) {
-	const changes = VIEWER_STEPS[mode];
-	return Math.max(0, current + changes[step % changes.length]);
-}
+type DemoStatus = "idle" | "loading" | "playing" | "paused" | "error";
 
 export default function DemoPlayer() {
+	const plausible = usePlausible();
+	const containerRef = useRef<HTMLDivElement>(null);
 	const iframeRef = useRef<HTMLIFrameElement>(null);
-	const viewerStepRef = useRef(0);
-	const [mode, setMode] = useState<DemoMode>("clipify");
-	const [viewerCount, setViewerCount] = useState(INITIAL_VIEWERS);
+	const documentCleanup = useRef<(() => void) | null>(null);
+	const [status, setStatus] = useState<DemoStatus>("idle");
+	const active = status === "loading" || status === "playing";
 
 	useEffect(() => {
-		const id = window.setInterval(() => {
-			setViewerCount((current) => nextDemoViewerCount(current, mode, viewerStepRef.current++));
-		}, 1800);
+		const pause = () => setStatus((current) => (current === "loading" || current === "playing" ? "paused" : current));
+		const onVisibilityChange = () => {
+			if (document.hidden) pause();
+		};
+		const observer = new IntersectionObserver((entries) => {
+			const entry = entries.at(-1);
+			if (entry && !entry.isIntersecting) pause();
+		});
+		if (containerRef.current) observer.observe(containerRef.current);
+		document.addEventListener("visibilitychange", onVisibilityChange);
+		return () => {
+			observer.disconnect();
+			document.removeEventListener("visibilitychange", onVisibilityChange);
+		};
+	}, []);
 
-		return () => window.clearInterval(id);
-	}, [mode]);
+	useEffect(() => {
+		if (status !== "loading") return;
+		const timeout = window.setTimeout(() => setStatus("error"), 20_000);
+		return () => window.clearTimeout(timeout);
+	}, [status]);
 
-	const selectMode = (nextMode: DemoMode) => {
-		viewerStepRef.current = 0;
-		setViewerCount(INITIAL_VIEWERS);
-		setMode(nextMode);
+	useEffect(
+		() => () => {
+			documentCleanup.current?.();
+		},
+		[active],
+	);
+
+	const onPlayerLoad = () => {
+		documentCleanup.current?.();
+		const playerDocument = iframeRef.current?.contentDocument;
+		if (!playerDocument || /Overlay not found|Overlay paused/.test(playerDocument.body?.textContent ?? "")) {
+			setStatus("error");
+			return;
+		}
+		const onPlaying = () => setStatus("playing");
+		playerDocument.addEventListener("playing", onPlaying, true);
+		documentCleanup.current = () => playerDocument.removeEventListener("playing", onPlaying, true);
+		if (Array.from(playerDocument.querySelectorAll("video")).some((video) => !video.paused && video.readyState >= 2)) onPlaying();
 	};
 
 	return (
-		<div className='w-full'>
-			<StreamingWithChatMock iframeRef={iframeRef as RefObject<HTMLIFrameElement>} chatVariant={mode} viewerCount={viewerCount} onChatVariantChange={selectMode}>
-				{mode === "clipify" ? (
-					<iframe referrerPolicy='strict-origin-when-cross-origin' ref={iframeRef} className='w-full h-full' src='/demoPlayer' title='Interactive demo player' />
-				) : (
-					<div className='demoComparison__brb' role='img' aria-label='A static be right back screen'>
-						<div className='demoComparison__brbGlow' aria-hidden />
-						<p>Stream paused</p>
-						<h3>Be right back</h3>
-						<span>Hang tight — the stream will continue soon.</span>
-					</div>
-				)}
-			</StreamingWithChatMock>
+		<div ref={containerRef} id='demo' className='scroll-mt-24'>
+			<div className='overflow-hidden rounded-2xl border border-white/15 bg-zinc-950 shadow-2xl shadow-black/25'>
+				<div className='flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3 text-xs text-zinc-300'>
+					<span className='flex items-center gap-2'>
+						<span className='h-2 w-2 rounded-full bg-violet-400' aria-hidden='true' />
+						Your BRB scene
+					</span>
+					<span className='rounded-md bg-white/5 px-2 py-1 text-zinc-300'>Browser source</span>
+				</div>
+				<div className='relative aspect-video overflow-hidden bg-zinc-950'>
+					<Image src='/landing-playback.png' alt='A Twitch gaming highlight playing through Clipify' fill sizes='(max-width: 1024px) 100vw, 650px' loading='eager' className='object-cover' />
+					{active ? <iframe ref={iframeRef} src='/demoPlayer' title='Clipify playback demo' referrerPolicy='strict-origin-when-cross-origin' allow='autoplay' onLoad={onPlayerLoad} className='absolute inset-0 h-full w-full border-0' /> : null}
+					{status !== "playing" ? (
+						<div className='absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60 px-5 text-center text-white'>
+							{status === "loading" ? (
+								<>
+									<Spinner className='text-white' />
+									<p role='status' className='text-sm'>
+										Loading your clip preview…
+									</p>
+								</>
+							) : (
+								<>
+									<p className='text-[10px] font-semibold uppercase tracking-[0.2em] text-violet-200'>Actual Clipify playback</p>
+									<p className='text-xl font-semibold sm:text-2xl'>{status === "error" ? "The demo couldn't load" : status === "paused" ? "Ready when you are" : "Your highlights. Still on stream."}</p>
+									<Button
+										variant='primary'
+										size='lg'
+										onPress={() => {
+											plausible("demo_requested", { props: { placement: "hero", action: status === "idle" ? "start" : status === "error" ? "retry" : "resume" } });
+											setStatus("loading");
+										}}
+										className='bg-white text-violet-950 hover:bg-violet-100'
+									>
+										{status === "error" ? <IconRefresh size={18} /> : <IconPlayerPlayFilled size={18} />}
+										{status === "error" ? "Try demo again" : status === "paused" ? "Resume demo" : "Watch the demo"}
+									</Button>
+								</>
+							)}
+						</div>
+					) : null}
+				</div>
+				<div className='flex min-h-14 items-center justify-between gap-2 px-4 py-2 text-xs text-zinc-300'>
+					<span className='flex items-center gap-2'>
+						<IconVolumeOff size={16} aria-hidden='true' />
+						Demo plays without sound
+					</span>
+					{active ? (
+						<div className='flex items-center gap-1'>
+							{status === "playing" ? (
+								<Button variant='ghost' size='sm' onPress={() => iframeRef.current?.contentWindow?.postMessage({ name: "skip", data: null }, window.location.origin)} className='text-white'>
+									<IconPlayerSkipForward size={16} />
+									Skip clip
+								</Button>
+							) : null}
+							<Button autoFocus variant='ghost' size='sm' onPress={() => setStatus("paused")} className='text-white'>
+								<IconPlayerPause size={16} />
+								Pause demo
+							</Button>
+						</div>
+					) : (
+						<span className='text-zinc-400'>OBS scene preview</span>
+					)}
+				</div>
+			</div>
+			<p className='mt-3 text-center text-xs leading-relaxed text-violet-100/80'>A real clip playing in an example BRB scene.</p>
+			{status === "error" ? (
+				<p role='alert' className='mt-2 text-center text-xs leading-relaxed text-violet-100'>
+					Please try again. You can still explore Clipify and start free.
+				</p>
+			) : null}
+			{status === "paused" ? (
+				<p role='status' className='mt-1 text-center text-xs text-violet-100/80'>
+					Demo paused to save bandwidth. Resume starts a new clip.
+				</p>
+			) : null}
 		</div>
 	);
 }

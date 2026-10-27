@@ -14,6 +14,8 @@ import { getCommunityAvatarTone } from "@lib/communityAvatarTone";
 export const metadata = {
 	title: "Community | Clipify",
 	description: "Meet the creators using Clipify and see how the community turns the tool into something bigger.",
+	alternates: { canonical: "https://clipify.us/community" },
+	openGraph: { title: "Community | Clipify", url: "https://clipify.us/community" },
 };
 
 export const dynamic = "force-dynamic";
@@ -141,7 +143,7 @@ export default async function CommunityPage() {
 			<div className='w-full bg-background px-4 py-24'>
 				<div className='mx-auto flex w-full max-w-6xl flex-col'>
 					<div className='mb-6 flex flex-col items-start gap-2'>
-						<p className='max-w-2xl text-sm text-muted'>Want to be featured here? Create an account, create your first overlay and opt in in Settings.</p>
+						<p className='max-w-2xl text-sm text-muted'>Want to be featured here? Manage your Creator Page and community visibility in Settings.</p>
 					</div>
 					<div className='mt-4'>
 						{communityGroups.map((group) => (

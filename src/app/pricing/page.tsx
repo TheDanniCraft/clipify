@@ -14,6 +14,8 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
 	title: "Pricing | Clipify",
 	description: "Compare Clipify Free and Pro, including self-hosted Runner broadcasting with unlimited streaming hours.",
+	alternates: { canonical: "https://clipify.us/pricing" },
+	openGraph: { title: "Pricing | Clipify", url: "https://clipify.us/pricing" },
 };
 
 const pricingFaq = [
@@ -56,7 +58,7 @@ export default async function PricingPage() {
 					<div className='mx-auto max-w-4xl'>
 						<div className='mb-10 text-center'>
 							<h2 className='text-3xl font-bold'>Pricing questions</h2>
-							<p className='mt-3 text-muted'>The details people usually want before choosing a plan.</p>
+							<p className='mt-3 text-foreground/75'>The details people usually want before choosing a plan.</p>
 						</div>
 						<PricingFaq items={pricingFaq} />
 					</div>

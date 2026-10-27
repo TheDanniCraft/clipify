@@ -11,12 +11,14 @@ export async function generateMetadata({ params }: { params: Promise<{ twitchUse
 	const { twitchUsername } = await params;
 	const creator = await getCreatorPageMetadata(twitchUsername);
 	if (!creator) return {};
+	const canonical = `https://clipify.us/creators/${encodeURIComponent(creator.username.toLowerCase())}`;
 	const preview = resolveCreatorPageMetadata(creator.username, creator.socialTitle, creator.socialDescription);
 	return {
 		title: preview.title,
+		alternates: { canonical },
 		description: preview.description,
 		robots: creator.visibility === "discoverable" ? { index: true, follow: true } : { index: false, follow: false },
-		openGraph: { title: preview.openGraphTitle, description: preview.openGraphDescription, images: [{ url: memberCardImagePath(creator.memberCardId), width: 1200, height: 1200, alt: `${creator.username}'s Clipify Member Card` }] },
+		openGraph: { url: canonical, title: preview.openGraphTitle, description: preview.openGraphDescription, images: [{ url: memberCardImagePath(creator.memberCardId), width: 1200, height: 1200, alt: `${creator.username}'s Clipify Member Card` }] },
 		twitter: { card: "summary_large_image", title: preview.openGraphTitle, description: preview.openGraphDescription, images: [memberCardImagePath(creator.memberCardId)] },
 	};
 }

@@ -8,6 +8,8 @@ const privacyDocument = legalDocuments.find(({ id }) => id === "privacy")!;
 export const metadata: Metadata = {
 	title: "Privacy Policy | Clipify",
 	description: "How Clipify processes and protects personal data.",
+	alternates: { canonical: "https://clipify.us/legal/privacy" },
+	openGraph: { url: "https://clipify.us/legal/privacy" },
 };
 
 export default function PrivacyPage() {

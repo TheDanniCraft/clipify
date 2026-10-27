@@ -1,10 +1,18 @@
 import { Card, CardContent, Chip, Link, LinkIcon } from "@components/heroui-client";
 
 import Footer from "@components/footer";
+import LocalizedDate from "@components/localizedDate";
 import BasicNavbar from "@components/LandingPage/basicNavbar";
 import { GithubRelease } from "@types";
 import axios from "axios";
 import xss from "xss";
+
+export const metadata = {
+	title: "Changelog | Clipify",
+	description: "See the latest Clipify releases and improvements to Twitch clip playback, overlays, and creator tools.",
+	alternates: { canonical: "https://clipify.us/changelog" },
+	openGraph: { title: "Changelog | Clipify", description: "See the latest Clipify releases and improvements to Twitch clip playback, overlays, and creator tools.", url: "https://clipify.us/changelog" },
+};
 
 export default async function ChangelogPage() {
 	async function getReleases(): Promise<GithubRelease[]> {
@@ -61,7 +69,9 @@ export default async function ChangelogPage() {
 														/>
 													</CardContent>
 												</Card>
-												<span className='text-xs mr-4 text-gray-400 ml-auto flex justify-end'>{release.published_at}</span>
+												<span className='text-xs mr-4 text-gray-400 ml-auto flex justify-end'>
+													<LocalizedDate value={release.published_at} />
+												</span>
 											</div>
 										</div>
 									))

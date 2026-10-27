@@ -10,6 +10,8 @@ const categories = projectConsentCategories({ necessary: true, functionality: fa
 export const metadata: Metadata = {
 	title: "Cookie Policy | Clipify",
 	description: "Clipify's authoritative service and browser-storage declarations.",
+	alternates: { canonical: "https://clipify.us/legal/cookies" },
+	openGraph: { url: "https://clipify.us/legal/cookies" },
 };
 
 export default function CookiesPage() {

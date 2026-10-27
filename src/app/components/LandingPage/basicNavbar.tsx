@@ -7,7 +7,7 @@ import Logo from "@components/logo";
 import { IconChevronRight, IconMenu2, IconX } from "@tabler/icons-react";
 
 const menuItems = [
-	{ name: "Home", href: "/#" },
+	{ name: "Home", href: "/#home" },
 	{ name: "Features", href: "/#features" },
 	{ name: "Pricing", href: "/pricing" },
 	{ name: "Community", href: "/community" },
@@ -28,6 +28,19 @@ const BasicNavbar = React.forwardRef<HTMLElement, BasicNavbarProps>(({ className
 	const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 	const [isHidden, setIsHidden] = React.useState(false);
 	const lastScrollY = React.useRef(0);
+	const menuButtonRef = React.useRef<HTMLButtonElement>(null);
+
+	React.useEffect(() => {
+		if (!isMenuOpen) return;
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (event.key === "Escape") {
+				setIsMenuOpen(false);
+				menuButtonRef.current?.focus();
+			}
+		};
+		window.addEventListener("keydown", onKeyDown);
+		return () => window.removeEventListener("keydown", onKeyDown);
+	}, [isMenuOpen]);
 
 	React.useEffect(() => {
 		if (!shouldHideOnScroll) return;
@@ -48,7 +61,7 @@ const BasicNavbar = React.forwardRef<HTMLElement, BasicNavbarProps>(({ className
 	}, [isMenuOpen]);
 
 	return (
-		<nav ref={ref} {...props} className={cn("sticky top-0 z-40 w-full bg-background/40 backdrop-blur-lg backdrop-saturate-150 transition-transform duration-300", isMenuOpen && "bg-background/70", isHidden && "-translate-y-full", classNames.base, className)}>
+		<nav ref={ref} {...props} className={cn("sticky top-0 z-40 w-full bg-brand-900/95 backdrop-blur-lg backdrop-saturate-150 transition-transform duration-300", isMenuOpen && "bg-brand-900", isHidden && "-translate-y-full", classNames.base, className)}>
 			<header className={cn("mx-auto flex h-[60px] w-full max-w-[1024px] items-center justify-between px-8", classNames.wrapper)}>
 				<Link href='/' className='flex items-center'>
 					<Logo size={34} />
@@ -70,18 +83,18 @@ const BasicNavbar = React.forwardRef<HTMLElement, BasicNavbarProps>(({ className
 						Login
 					</Link>
 					<Link className={buttonVariants({ variant: "primary", className: "gap-2 bg-accent-foreground text-black hover:bg-accent-foreground/90" })} href='/login'>
-						Get Started
+						Start free
 						<IconChevronRight />
 					</Link>
 				</div>
 
-				<Button type='button' isIconOnly variant='ghost' className='text-white md:hidden' aria-expanded={isMenuOpen} aria-label='Toggle navigation menu' onPress={() => setIsMenuOpen((open) => !open)}>
+				<Button ref={menuButtonRef} type='button' isIconOnly variant='ghost' className='text-white md:hidden' aria-expanded={isMenuOpen} aria-controls={isMenuOpen ? "public-mobile-navigation" : undefined} aria-label='Toggle navigation menu' onPress={() => setIsMenuOpen((open) => !open)}>
 					{isMenuOpen ? <IconX /> : <IconMenu2 />}
 				</Button>
 			</header>
 
 			{isMenuOpen ? (
-				<div className='max-h-fit bg-default/50 pb-6 pt-6 shadow-medium backdrop-blur-md backdrop-saturate-150 dark:bg-surface-secondary/50 md:hidden'>
+				<div id='public-mobile-navigation' className='max-h-fit bg-brand-900 pb-6 pt-6 shadow-medium md:hidden'>
 					<ul className='flex flex-col gap-2 px-4'>
 						<li>
 							<Link href='/login' onPress={() => setIsMenuOpen(false)} className={buttonVariants({ variant: "secondary", fullWidth: true })}>
@@ -90,7 +103,7 @@ const BasicNavbar = React.forwardRef<HTMLElement, BasicNavbarProps>(({ className
 						</li>
 						<li className='mb-4'>
 							<Link href='/login' onPress={() => setIsMenuOpen(false)} className={buttonVariants({ variant: "primary", fullWidth: true, className: "bg-accent-foreground text-black hover:bg-accent-foreground/90" })}>
-								Get Started
+								Start free
 							</Link>
 						</li>
 						{menuItems.map((item, index) => (

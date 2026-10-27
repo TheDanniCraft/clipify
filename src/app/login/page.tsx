@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { readCheckoutIntent } from "@/server/checkoutIntent";
 import { legalDocumentRoutes } from "@lib/legal/documents";
 import LoginClient from "./LoginClient";
+import Logo from "@components/logo";
 import { getAuthSession } from "@/auth/session";
 import { safeReturnPath } from "@/auth/return-url";
 
@@ -28,25 +29,40 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
 		<>
 			<ErrorToast error={error as string} errorCode={errorCode as string} />
 
-			<div className='min-h-screen min-w-screen flex items-center justify-center bg-gradient-to-br from-brand-800 to-brand-400'>
-				<div className='flex flex-col items-center'>
-					<LoginClient returnUrl={returnDestination} oauthAuthorization={oauthAuthorization} />
-
-					<div className='mt-2 flex max-w-[240px] flex-col items-center text-center text-xs text-gray-400'>
-						<p>
-							By logging in, you agree to our{" "}
-							<Link href={legalDocumentRoutes.terms} className='text-xs text-foreground'>
-								Terms
-							</Link>{" "}
-							and{" "}
-							<Link href={legalDocumentRoutes.privacy} className='text-xs text-foreground'>
-								Privacy
-							</Link>
-							. We send you product update emails by default. You can opt out anytime.
-						</p>
+			<main className='flex min-h-dvh items-center justify-center bg-gradient-to-br from-brand-900 via-brand-800 to-brand-600 px-6 py-12 text-white'>
+				<div className='w-full max-w-md'>
+					<Link href='/' aria-label='Clipify home' className='mb-10 flex w-fit items-center gap-2 text-xl font-semibold text-white'>
+						<Logo size={36} />
+						Clipify
+					</Link>
+					<p className='mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-violet-200'>Your clips, ready for your next stream</p>
+					<h1 className='text-3xl font-bold tracking-tight'>Welcome to Clipify</h1>
+					<p className='mb-7 mt-4 text-base leading-relaxed text-violet-100'>Connect Twitch to save your playlists and overlay settings. Add your overlay as a browser source in OBS when you are ready.</p>
+					<div className='rounded-2xl bg-background p-6 text-foreground shadow-xl'>
+						<LoginClient returnUrl={returnDestination} oauthAuthorization={oauthAuthorization} />
+						<p className='mt-5 text-center text-sm leading-relaxed text-foreground/75'>{checkoutIntent ? "Your Pro selection is saved. Sign in to continue to checkout." : "Start with a permanent Free plan. Pro is optional."}</p>
+					</div>
+					<p className='mt-6 text-xs leading-relaxed text-violet-100'>
+						By logging in, you agree to our{" "}
+						<Link href={legalDocumentRoutes.terms} className='text-xs text-white underline'>
+							Terms
+						</Link>{" "}
+						and{" "}
+						<Link href={legalDocumentRoutes.privacy} className='text-xs text-white underline'>
+							Privacy Policy
+						</Link>
+						. We send product update emails by default. You can opt out anytime.
+					</p>
+					<div className='mt-5 flex gap-5'>
+						<Link href='/' className='text-sm text-white'>
+							Back to home
+						</Link>
+						<Link href='https://help.clipify.us' className='text-sm text-white'>
+							Setup help
+						</Link>
 					</div>
 				</div>
-			</div>
+			</main>
 		</>
 	);
 }

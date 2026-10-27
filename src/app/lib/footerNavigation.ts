@@ -16,7 +16,7 @@ export const footerNavigation = {
 		{ name: "Service Status", href: "https://status.thedannicraft.de/status/clipify" },
 	],
 	aboutUs: [
-		{ name: "Latest News", href: "/changelog" },
+		{ name: "Changelog", href: "/changelog" },
 		{ name: "Roadmap", href: "/roadmap" },
 		{ name: "Collaborations", href: "https://help.clipify.us/hc/clipify/articles/1756597294-collaborations" },
 		{ name: "Climate Initiative", href: "https://climate.stripe.com/FaGAVC" },

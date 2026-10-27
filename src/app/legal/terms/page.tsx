@@ -9,6 +9,8 @@ const termsDocument = legalDocuments.find(({ id }) => id === "terms")!;
 export const metadata: Metadata = {
 	title: "Terms of Service | Clipify",
 	description: "The terms that apply when using Clipify and the self-hosted Runner.",
+	alternates: { canonical: "https://clipify.us/legal/terms" },
+	openGraph: { url: "https://clipify.us/legal/terms" },
 };
 
 export default function TermsPage() {

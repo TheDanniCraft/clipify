@@ -5,6 +5,20 @@ import type { ReactNode } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import TiersComponent from "@/app/components/Pricing";
 
+jest.mock("@/app/components/Pricing/BillingFrequency", () => ({
+	__esModule: true,
+	default: ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
+		<div>
+			<button aria-pressed={value === "yearly"} onClick={() => onChange("yearly")}>
+				Pay Yearly
+			</button>
+			<button aria-pressed={value === "monthly"} onClick={() => onChange("monthly")}>
+				Pay Monthly
+			</button>
+		</div>
+	),
+}));
+
 jest.mock("next-plausible", () => ({
 	usePlausible: () => jest.fn(),
 }));
@@ -27,35 +41,9 @@ jest.mock("@tabler/icons-react", () => ({
 jest.mock("@heroui/react", () => {
 	const React = require("react") as typeof import("react");
 
-	function TabsRoot({ children, selectedKey, onSelectionChange }: { children: ReactNode; selectedKey?: string; onSelectionChange?: (key: string) => void }) {
-		return (
-			<div data-testid='tabs' data-selected-key={selectedKey}>
-				{React.Children.map(children, (child) =>
-					React.isValidElement(child)
-						? React.cloneElement(child, {
-								onSelect: onSelectionChange,
-							} as Record<string, unknown>)
-						: child,
-				)}
-			</div>
-		);
-	}
-
-	const passSelection = ({ children, onSelect }: { children: ReactNode; onSelect?: (key: string) => void }) => <div>{React.Children.map(children, (child) => (React.isValidElement(child) ? React.cloneElement(child, { onSelect } as Record<string, unknown>) : child))}</div>;
-	const Tabs = Object.assign(TabsRoot, {
-		ListContainer: passSelection,
-		List: passSelection,
-		Tab: ({ children, id, onSelect }: { children: ReactNode; id: string; onSelect?: (key: string) => void }) => (
-			<button type='button' onClick={() => onSelect?.(id)}>
-				{children}
-			</button>
-		),
-		Indicator: () => null,
-	});
-
 	return {
-		Button: ({ children, onPress, as: _as, fullWidth: _fullWidth, color: _color, variant: _variant, ...props }: { children: ReactNode; onPress?: () => void; as?: unknown; fullWidth?: boolean; color?: string; variant?: string; [key: string]: unknown }) => (
-			<button type='button' onClick={onPress} {...props}>
+		Button: ({ children, onPress, isDisabled, as: _as, fullWidth: _fullWidth, color: _color, variant: _variant, ...props }: { children: ReactNode; onPress?: () => void; isDisabled?: boolean; as?: unknown; fullWidth?: boolean; color?: string; variant?: string; [key: string]: unknown }) => (
+			<button type='button' disabled={isDisabled} onClick={onPress} {...props}>
 				{children}
 			</button>
 		),
@@ -68,7 +56,6 @@ jest.mock("@heroui/react", () => {
 		Separator: () => <hr />,
 		Link: ({ children, ...props }: { children: ReactNode }) => <a {...props}>{children}</a>,
 		Spacer: () => <div />,
-		Tabs,
 		cn: (...values: Array<string | false | null | undefined>) => values.filter(Boolean).join(" "),
 	};
 });
@@ -110,9 +97,7 @@ describe("components/Pricing index", () => {
 			/>,
 		);
 
-		expect(screen.getAllByText("2 months free").length).toBeGreaterThan(0);
 		expect(screen.getByText("Limited offer")).toBeInTheDocument();
-		expect(screen.getAllByText("Save 2 months with yearly billing").length).toBeGreaterThan(0);
 		expect(screen.getByText("10 EUR")).toBeInTheDocument();
 
 		fireEvent.click(screen.getByRole("button", { name: /Pay Monthly/i }));
@@ -123,8 +108,15 @@ describe("components/Pricing index", () => {
 		render(<TiersComponent pricing={pricing} />);
 
 		expect(screen.queryByText("Limited offer")).not.toBeInTheDocument();
-		expect(screen.getAllByText("2 months free").length).toBeGreaterThan(0);
 		expect(screen.getByText("20 EUR")).toBeInTheDocument();
+	});
+
+	it("keeps Free available when Pro pricing cannot load", () => {
+		render(<TiersComponent />);
+		expect(screen.getByRole("button", { name: "Get Pro" })).toBeDisabled();
+		expect(screen.getByRole("status")).toHaveTextContent("Pro pricing is temporarily unavailable");
+		expect(screen.getByRole("link", { name: "Start for Free" })).toHaveAttribute("href", "/checkout/clear");
+		expect(screen.queryByText("Save 2 months with yearly billing")).not.toBeInTheDocument();
 	});
 
 	it("keeps the cards concise and links to the full comparison", () => {

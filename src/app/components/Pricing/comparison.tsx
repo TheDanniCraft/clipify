@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import type { CampaignOffer } from "@types";
-import { Accordion, Button, Card, Chip, Link, Separator, Tabs, Tooltip, cn } from "@heroui/react";
+import { Accordion, Button, Card, Chip, Link, Separator, Tooltip, cn } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
 import { IconCheck, IconHeart, IconInfoCircle, IconMinus } from "@tabler/icons-react";
 import { usePlausible } from "next-plausible";
@@ -12,6 +12,7 @@ import type { PricingFeatureItem } from "./pricing-comparison-types";
 import { FrequencyEnum, resolveRuntimePricing, type RuntimePricing, type Tier } from "./pricing-types";
 import { trackPaywallEvent } from "@lib/paywallTracking";
 import ProSetupModal from "./ProSetupModal";
+import BillingFrequency from "./BillingFrequency";
 
 function FeatureValue({ plan, value }: { plan: string; value: boolean | string }) {
 	if (value === true) {
@@ -25,12 +26,12 @@ function FeatureValue({ plan, value }: { plan: string; value: boolean | string }
 	if (value === false) {
 		return (
 			<>
-				<IconMinus aria-hidden className='mx-auto text-muted/60' width={21} />
+				<IconMinus aria-hidden className='mx-auto text-foreground/75' width={21} />
 				<span className='sr-only'>Not included in {plan}</span>
 			</>
 		);
 	}
-	return <span className='text-sm font-medium text-muted'>{value}</span>;
+	return <span className='text-sm font-medium text-foreground/75'>{value}</span>;
 }
 
 function FeatureTitle({ item }: { item: PricingFeatureItem }) {
@@ -54,7 +55,7 @@ function FeatureTitle({ item }: { item: PricingFeatureItem }) {
 		<div className='flex items-center gap-1.5'>
 			<span>{item.title}</span>
 			<Tooltip delay={0} closeDelay={100} isOpen={isOpen} onOpenChange={setIsHoverOpen}>
-				<Button ref={triggerRef} isIconOnly aria-expanded={isOpen} aria-label={`About ${item.title}`} className='h-6 min-h-6 w-6 min-w-6 shrink-0 text-muted' size='sm' variant='ghost' onBlur={() => setIsPinnedOpen(false)} onPress={() => setIsPinnedOpen((current) => !current)}>
+				<Button ref={triggerRef} isIconOnly aria-expanded={isOpen} aria-label={`About ${item.title}`} className='h-6 min-h-6 w-6 min-w-6 shrink-0 text-foreground/75' size='sm' variant='ghost' onBlur={() => setIsPinnedOpen(false)} onPress={() => setIsPinnedOpen((current) => !current)}>
 					<IconInfoCircle aria-hidden width={17} />
 				</Button>
 				<Tooltip.Content showArrow placement='right' className='w-80 max-w-[calc(100vw-2rem)] break-normal text-sm leading-relaxed'>
@@ -63,30 +64,6 @@ function FeatureTitle({ item }: { item: PricingFeatureItem }) {
 				</Tooltip.Content>
 			</Tooltip>
 		</div>
-	);
-}
-
-function BillingTabs({ selectedKey, onSelectionChange }: { selectedKey: FrequencyEnum; onSelectionChange: (key: React.Key) => void }) {
-	return (
-		<Tabs className='w-fit max-w-full' selectedKey={selectedKey} onSelectionChange={onSelectionChange}>
-			<Tabs.ListContainer className='w-fit max-w-full'>
-				<Tabs.List aria-label='Billing frequency' className='w-fit max-w-full *:w-fit'>
-					<Tabs.Tab id={FrequencyEnum.Yearly} className='flex-none px-3'>
-						<div className='flex items-center gap-1.5'>
-							<span className='whitespace-nowrap'>Pay Yearly</span>
-							<Chip color='accent' size='sm' variant='primary'>
-								2 months free
-							</Chip>
-						</div>
-						<Tabs.Indicator />
-					</Tabs.Tab>
-					<Tabs.Tab id={FrequencyEnum.Monthly} className='flex-none whitespace-nowrap px-3'>
-						Pay Monthly
-						<Tabs.Indicator />
-					</Tabs.Tab>
-				</Tabs.List>
-			</Tabs.ListContainer>
-		</Tabs>
 	);
 }
 
@@ -100,7 +77,7 @@ function TierPrice({ campaignOffer, pricing, selectedFrequency, tier }: { campai
 			<p className='flex flex-wrap items-baseline gap-2 tabular-nums'>
 				{typeof tier.price !== "string" && hasPromo ? (
 					<>
-						<span aria-hidden className='text-lg text-muted/60 line-through'>
+						<span aria-hidden className='text-lg text-foreground/75 line-through'>
 							{pricing.pro[selectedFrequency].formatted}
 						</span>
 						<span className='text-4xl font-semibold leading-8 tracking-tight text-brand-secondary'>{campaignPrice} EUR</span>
@@ -108,9 +85,8 @@ function TierPrice({ campaignOffer, pricing, selectedFrequency, tier }: { campai
 				) : (
 					<span className='text-4xl font-semibold leading-8 tracking-tight'>{typeof tier.price === "string" ? tier.price : pricing.pro[selectedFrequency].formatted}</span>
 				)}
-				{typeof tier.price !== "string" ? <span className='text-sm font-medium text-muted'>/{suffix}</span> : null}
+				{typeof tier.price !== "string" ? <span className='text-sm font-medium text-foreground/75'>/{suffix}</span> : null}
 			</p>
-			<p className={cn("mt-2 h-4 text-xs font-medium", tier.key === "pro" && selectedFrequency === FrequencyEnum.Yearly ? "text-success" : "invisible")}>Save 2 months with yearly billing</p>
 		</div>
 	);
 }
@@ -136,38 +112,44 @@ export default function PricingComparison({ campaignOffer = null, pricing }: { c
 					Pricing
 				</Chip>
 				<h1 className='text-4xl font-medium tracking-tight'>Compare plans &amp; features.</h1>
-				<p className='mt-4 text-lg text-muted'>Discover the ideal plan for your Clipify setup, starting free.</p>
+				<p className='mt-4 text-lg text-foreground/75'>Discover the ideal plan for your Clipify setup, starting free.</p>
 			</div>
 			<div className='mt-8'>
-				<BillingTabs selectedKey={selectedFrequency} onSelectionChange={onFrequencyChange} />
+				<BillingFrequency value={selectedFrequency} onChange={onFrequencyChange} />
 			</div>
+
+			{resolvedPricing.pro[selectedFrequency].amount === null ? (
+				<p role='status' className='mt-4 text-center text-sm text-foreground/75'>
+					Pro pricing is temporarily unavailable. Please try again later or continue with Free.
+				</p>
+			) : null}
 
 			<div className='mt-12 w-full lg:hidden'>
 				<div className='grid gap-4 sm:grid-cols-2'>
 					{tiers.map((tier) => (
 						<Card key={tier.key} className={cn("relative p-3 shadow-none", tier.mostPopular ? "border border-default/70 bg-surface-secondary" : "border border-default/60 bg-transparent")}>
 							{tier.mostPopular ? (
-								<Chip className='absolute right-4 top-4' color='accent' variant='soft'>
-									Most Popular
+								<Chip className='absolute right-4 top-4' color='accent' variant='primary'>
+									More control
 								</Chip>
 							) : null}
 							<Card.Header className='flex flex-col items-start gap-2 pe-28 pb-6'>
 								<h2 className='text-lg font-medium'>{tier.title}</h2>
-								<p className='text-sm text-muted'>{tier.description}</p>
+								<p className='text-sm text-foreground/75'>{tier.description}</p>
 							</Card.Header>
 							<Separator />
 							<Card.Content className='gap-6'>
 								<TierPrice campaignOffer={campaignOffer} pricing={resolvedPricing} selectedFrequency={selectedFrequency} tier={tier} />
 								<ul className='space-y-2'>
 									{tier.summaryFeatures?.map((feature) => (
-										<li key={feature} className='flex items-start gap-2 text-sm text-muted'>
+										<li key={feature} className='flex items-start gap-2 text-sm text-foreground/75'>
 											<IconCheck className='mt-0.5 shrink-0 text-accent' width={18} />
 											{feature}
 										</li>
 									))}
 								</ul>
 								{tier.personalNote ? (
-									<p className='flex items-start gap-2 text-xs text-muted'>
+									<p className='flex items-start gap-2 text-xs text-foreground/75'>
 										<IconHeart className='mt-0.5 shrink-0 text-accent' width={16} />
 										{tier.personalNote}
 									</p>
@@ -175,11 +157,11 @@ export default function PricingComparison({ campaignOffer = null, pricing }: { c
 							</Card.Content>
 							<Card.Footer>
 								{tier.key === "pro" ? (
-									<Button fullWidth variant='primary' onPress={openProSetup}>
+									<Button fullWidth variant='primary' isDisabled={resolvedPricing.pro[selectedFrequency].amount === null} onPress={openProSetup}>
 										{tier.buttonText}
 									</Button>
 								) : (
-									<Link href={freeHref} onPress={() => trackPaywallEvent(plausible, "paywall_cta_click", { source: "pricing_page", feature: "plan", plan: tier.key, cycle: selectedFrequency })} className={buttonVariants({ fullWidth: true, variant: "secondary", className: "no-underline" })}>
+									<Link href={freeHref} onPress={() => trackPaywallEvent(plausible, "paywall_cta_click", { source: "pricing_page", feature: "plan", plan: tier.key, cycle: selectedFrequency })} className={buttonVariants({ fullWidth: true, variant: "secondary", className: "no-underline text-foreground" })}>
 										{tier.buttonText}
 									</Link>
 								)}
@@ -205,7 +187,7 @@ export default function PricingComparison({ campaignOffer = null, pricing }: { c
 												<FeatureTitle item={item} />
 												<div className='mt-3 grid grid-cols-2 gap-2 text-center'>
 													<div className='rounded-lg bg-surface-secondary p-2'>
-														<p className='mb-1 text-xs text-muted'>Free</p>
+														<p className='mb-1 text-xs text-foreground/75'>Free</p>
 														<FeatureValue plan='Free' value={item.tiers.free} />
 													</div>
 													<div className='rounded-lg bg-surface-secondary p-2'>
@@ -239,8 +221,8 @@ export default function PricingComparison({ campaignOffer = null, pricing }: { c
 									<th key={tier.key} scope='col' className={cn("relative bg-background px-6 pt-5 xl:px-8", tier.mostPopular && "rounded-t-2xl bg-surface-secondary")}>
 										<div className='mb-2 flex h-5 items-center'>
 											{tier.mostPopular ? (
-												<Chip color='accent' size='sm' variant='soft'>
-													Most Popular
+												<Chip color='accent' size='sm' variant='primary'>
+													More control
 												</Chip>
 											) : null}
 										</div>
@@ -256,11 +238,11 @@ export default function PricingComparison({ campaignOffer = null, pricing }: { c
 									<td key={tier.key} className={cn("relative bg-background px-6 py-4 xl:px-8", tier.mostPopular && "bg-surface-secondary")}>
 										<TierPrice campaignOffer={campaignOffer} pricing={resolvedPricing} selectedFrequency={selectedFrequency} tier={tier} />
 										{tier.key === "pro" ? (
-											<Button fullWidth variant='primary' className='mt-6 shadow-sm' onPress={openProSetup}>
+											<Button fullWidth variant='primary' className='mt-6 shadow-sm' isDisabled={resolvedPricing.pro[selectedFrequency].amount === null} onPress={openProSetup}>
 												{tier.buttonText}
 											</Button>
 										) : (
-											<Link href={freeHref} onPress={() => trackPaywallEvent(plausible, "paywall_cta_click", { source: "pricing_page", feature: "plan", plan: tier.key, cycle: selectedFrequency })} className={buttonVariants({ fullWidth: true, variant: "secondary", className: "mt-6 no-underline" })}>
+											<Link href={freeHref} onPress={() => trackPaywallEvent(plausible, "paywall_cta_click", { source: "pricing_page", feature: "plan", plan: tier.key, cycle: selectedFrequency })} className={buttonVariants({ fullWidth: true, variant: "secondary", className: "mt-6 no-underline text-foreground" })}>
 												{tier.buttonText}
 											</Link>
 										)}
@@ -283,7 +265,7 @@ export default function PricingComparison({ campaignOffer = null, pricing }: { c
 										const isLast = groupIndex === pricingFeatures.length - 1 && itemIndex === group.items.length - 1;
 										return (
 											<tr key={item.title}>
-												<th scope='row' className='py-4 text-sm font-normal text-muted'>
+												<th scope='row' className='py-4 text-sm font-normal text-foreground/75'>
 													<FeatureTitle item={item} />
 												</th>
 												<td className='px-6 py-4 text-center xl:px-8'>
