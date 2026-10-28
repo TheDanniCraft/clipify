@@ -2,7 +2,11 @@
 const { resolve, relative } = require("node:path");
 const durations = require("./test-duration-baseline.json");
 const normalize = (path) => relative(process.cwd(), resolve(path)).replaceAll("\\", "/");
-const quiet = /(runtime-boundaries|database-(abort|deadline)|provider-(abort|concurrency|deadline|queue|unlock)|request-(cancellation|pool-lifecycle)|cimd-deadline|refresh-boundaries|creation-quotas|authorization-entitlements|policy.*serialization|(create|resource|playlist(-add|-item)?)(-delete)?-expiry|auth-performance)\.test\./;
+const quiet = /(runtime-boundaries|database-(abort|deadline)|provider-(abort|concurrency|deadline|queue|unlock)|request-(cancellation|pool-lifecycle)|cimd-deadline|refresh-boundaries|creation-quotas|policy.*serialization|(create|resource|playlist(-add|-item)?)(-delete)?-expiry|auth-performance)\.test\./;
+const nativeScenarioPaths = ["mcp-workflows/", "mcp-support/read_authority.feature.spec.js", "mcp-support/mutation_authority.feature.spec.js"];
+const nativeScenarioPatterns = nativeScenarioPaths.map((path) => `**/${path}${path.endsWith("/") ? "**" : ""}`);
+const isNativeScenarioFile = (path) => nativeScenarioPaths.some((suffix) => path.replaceAll("\\", "/").includes(`/${suffix}`));
+const isQuietTest = (path) => quiet.test(normalize(path));
 const database = /(?:^|\/)test\/mcp\/(integration|contract|workflows)\/|test\/auth-engine-rewrite\/integration\/(creator-onboarding-trigger|provider-credential-switch)\.test\.|coverage-(collector|parallel|next-entries)\.test\.|test\/server\/runner\/|test\/app\/lib\/runnerScheduler\.test\./;
 function balance(paths, count) {
 	const bins = Array.from({ length: count }, () => ({ weight: 0, paths: [] }));
@@ -15,8 +19,8 @@ function balance(paths, count) {
 	return bins.map((bin) => bin.paths.sort());
 }
 function partitionTests(paths) {
-	const timing = paths.filter((path) => quiet.test(normalize(path)));
-	const ordinary = paths.filter((path) => !quiet.test(normalize(path)));
+	const timing = paths.filter((path) => isQuietTest(path));
+	const ordinary = paths.filter((path) => !isQuietTest(path));
 	const db = balance(
 		ordinary.filter((path) => database.test(normalize(path))),
 		3,
@@ -29,8 +33,8 @@ function fullValidationRequired(event, eventName) {
 function selectBrowserFiles(paths, index, count) {
 	if (!Number.isInteger(index) || !Number.isInteger(count) || count < 1 || index < 0 || index >= count) throw new Error("Invalid browser shard");
 	return balance(
-		paths.filter((path) => !path.replaceAll("\\", "/").includes("/mcp-workflows/")),
+		paths.filter((path) => !isNativeScenarioFile(path)),
 		count,
 	)[index];
 }
-module.exports = { partitionTests, fullValidationRequired, selectBrowserFiles, balance };
+module.exports = { partitionTests, fullValidationRequired, selectBrowserFiles, balance, isQuietTest, nativeScenarioPatterns, ...require("./browser-sharding.cjs") };

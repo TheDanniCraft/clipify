@@ -1,3 +1,2 @@
 node scripts/check-drizzle-migration-policy.mjs staged
 bun run git:staged
-bun run app:typecheck

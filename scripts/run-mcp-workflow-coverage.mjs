@@ -38,13 +38,13 @@ export function combinedWorkflowInventory(reports) {
 export function workflowInventory() {
 	const env = { ...process.env };
 	delete env.PLAYWRIGHT_JSON_OUTPUT_NAME;
-	return combinedWorkflowInventory([JSON.parse(execFileSync(process.execPath, [require.resolve("@playwright/test/cli"), "test", "--config", "playwright.mcp.config.ts", ...nativeProjectArguments, "mcp-workflows", "--list", "--reporter=json"], { env, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }))]);
+	return combinedWorkflowInventory([JSON.parse(execFileSync(process.execPath, [require.resolve("@playwright/test/cli"), "test", "--config", "playwright.mcp.config.ts", ...nativeProjectArguments, "--list", "--reporter=json"], { env, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }))]);
 }
 
 export function workflowExecutionCommands(workers, playwright = require.resolve("@playwright/test/cli")) {
 	return [
-		[playwright, "test", "--config", "playwright.mcp.config.ts", ...nativeProjectArguments, "mcp-workflows", `--workers=${workers}`, "--grep-invert", "@mode:serial", "--reporter=line,json"],
-		[playwright, "test", "--config", "playwright.mcp.config.ts", ...nativeProjectArguments, "mcp-workflows", "--workers=1", "--retries=1", "--grep", "@mode:serial", "--reporter=line,json"],
+		[playwright, "test", "--config", "playwright.mcp.config.ts", ...nativeProjectArguments, `--workers=${workers}`, "--grep-invert", "@mode:serial", "--reporter=line,json"],
+		[playwright, "test", "--config", "playwright.mcp.config.ts", ...nativeProjectArguments, "--workers=1", "--retries=1", "--grep", "@mode:serial", "--reporter=line,json"],
 	];
 }
 

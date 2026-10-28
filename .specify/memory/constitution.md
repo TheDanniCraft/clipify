@@ -73,8 +73,10 @@ Rationale: small changes make failures diagnosable, reviews meaningful, and roll
 3. Place every test task before its corresponding implementation task.
 4. Execute one behavior at a time through Red -> Green -> Refactor and record the evidence.
 5. Run the relevant fast file or scenario command during the inner loop.
-6. Run complete affected suites, coverage, lint, formatting, type checking, browser acceptance, and
-   other applicable gates before the slice is considered complete.
+6. Run focused whole-file tests during development. Git hooks run only fast staged-file and
+   migration checks. Complete affected suites, coverage, lint, formatting, type checking, browser
+   acceptance, and other applicable gates are enforced by CI before merge; they need not be
+   repeated locally merely to push. Squash merges retain one reviewed commit per PR.
 7. Update traceability, defects, and the feature test summary before a Go recommendation.
 8. A failed mandatory gate blocks completion unless a scoped exception and compensating evidence
    are explicitly approved and recorded.
@@ -92,7 +94,7 @@ and PATCH for non-semantic clarification. Every review MUST verify constitution 
 approved exception MUST identify its scope, owner, expiry or follow-up, risk, and compensating
 evidence.
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-25 | **Last Amended**: 2026-09-25
+**Version**: 1.0.1 | **Ratified**: 2026-09-25 | **Last Amended**: 2026-10-28
 
 ---
 

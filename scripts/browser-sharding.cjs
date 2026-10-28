@@ -1,0 +1,74 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+const { readFileSync, existsSync } = require("node:fs");
+const { execFileSync } = require("node:child_process");
+const baseline = require("./test-duration-baseline.json");
+
+function readTestDurations(path = process.env.CLIPIFY_TEST_DURATION_FILE) {
+	if (!path || !existsSync(path)) return baseline;
+	try {
+		const cached = JSON.parse(readFileSync(path, "utf8"));
+		if (!cached || Array.isArray(cached) || typeof cached !== "object" || Object.values(cached).some((value) => typeof value !== "number" || !Number.isFinite(value) || value <= 0 || value > 86400)) throw Error("Invalid timing values");
+		return { ...baseline, ...cached };
+	} catch {
+		console.warn("Ignoring invalid optional browser timing cache; using the checked-in baseline.");
+		return baseline;
+	}
+}
+function listBrowserTests(args = []) {
+	const env = { ...process.env };
+	delete env.PLAYWRIGHT_JSON_OUTPUT_NAME;
+	return JSON.parse(execFileSync(process.execPath, ["node_modules/@playwright/test/cli.js", "test", "--project=bdd-chromium", ...args, "--list", "--reporter=json"], { env, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 }));
+}
+function browserTestCases(report) {
+	const cases = [];
+	const visit = (suite, parents = []) => {
+		const titles = suite.title === suite.file ? parents : [...parents, suite.title];
+		for (const spec of suite.specs ?? [])
+			for (const test of spec.tests ?? []) {
+				if (test.projectName !== "bdd-chromium") continue;
+				const file = spec.file.replaceAll("\\", "/");
+				const selector = `[bdd-chromium] › ${file} › ${[...titles, spec.title].join(" › ")}`;
+				cases.push({ id: spec.id, file, selector, tags: (spec.tags ?? []).map((tag) => (tag.startsWith("@") ? tag : `@${tag}`)), test });
+			}
+		for (const child of suite.suites ?? []) visit(child, titles);
+	};
+	for (const suite of report.suites ?? []) visit(suite);
+	if (!cases.length || new Set(cases.map((c) => c.id)).size !== cases.length || cases.some((c) => !c.id)) throw Error("Empty or duplicate browser scenario inventory");
+	return cases;
+}
+function browserTestUnits(report, profile = readTestDurations()) {
+	const groups = new Map();
+	for (const row of browserTestCases(report)) {
+		if (!groups.has(row.file)) groups.set(row.file, []);
+		groups.get(row.file).push(row);
+	}
+	return [...groups].flatMap(([file, cases]) => {
+		const fallback = profile[file.replace(/^\.features-gen\//, "")] ?? cases.length;
+		// Only explicitly independent fixtures may split a file across workers.
+		const split = cases.every((c) => c.tags.includes("@shard:scenario") && !c.tags.includes("@mode:serial"));
+		return split ? cases.map((c) => ({ selector: c.selector, testIds: [c.id], weight: profile[c.selector] ?? fallback / cases.length })) : [{ selector: file, testIds: cases.map((c) => c.id), weight: fallback }];
+	});
+}
+function distributeBrowserTests(units, count) {
+	if (!Number.isInteger(count) || count < 1) throw Error("Invalid browser shard count");
+	const bins = Array.from({ length: count }, () => ({ selectors: [], testIds: [], estimatedSeconds: 0 }));
+	for (const unit of [...units].sort((a, b) => b.weight - a.weight || a.selector.localeCompare(b.selector))) {
+		const bin = bins.reduce((best, candidate) => (candidate.estimatedSeconds < best.estimatedSeconds ? candidate : best));
+		bin.selectors.push(unit.selector);
+		bin.testIds.push(...unit.testIds);
+		bin.estimatedSeconds += unit.weight;
+	}
+	return bins;
+}
+function selectBrowserTests(report, index, count, profile = readTestDurations()) {
+	if (!Number.isInteger(index) || index < 0 || index >= count) throw Error("Invalid browser shard");
+	return distributeBrowserTests(browserTestUnits(report, profile), count)[index];
+}
+function planBrowserShards(report, profile = readTestDurations(), targetSeconds = 300, maxShards = 10) {
+	if (!Number.isFinite(targetSeconds) || targetSeconds <= 0 || !Number.isInteger(maxShards) || maxShards < 1) throw Error("Invalid browser shard budget");
+	const units = browserTestUnits(report, profile),
+		total = units.reduce((n, u) => n + u.weight, 0);
+	const count = Math.min(maxShards, units.length, Math.max(1, Math.ceil(total / targetSeconds)));
+	return distributeBrowserTests(units, count);
+}
+module.exports = { readTestDurations, listBrowserTests, browserTestCases, selectBrowserTests, planBrowserShards };

@@ -126,18 +126,22 @@ Example:
 
 - Do not push an intentionally failing TDD Red. Keep Red/Green cycles local and
   push only after the affected whole-file tests pass.
-- Before pushing a completed slice, run affected coverage with the existing CI
-  thresholds, including files exercised by changed tests. Passing assertions alone
-  do not establish that coverage passed. Run the relevant real browser journeys
-  with CI's build/runtime configuration; do not add local-only environment values
-  that hide an absent-configuration failure.
-- The pre-push hook runs related tests for ordinary application changes, the full
-  application coverage owner for shared/configuration changes, and the native
-  Runner coverage owner for Runner changes. It is a safety net, not evidence that
-  browser acceptance, packaging or another operating system has passed.
+- During development, run the affected whole-file tests without coverage and the
+  relevant browser journeys. Keep the failing Red local. Expensive complete suites,
+  coverage, type checking and platform validation belong to GitHub's required gate;
+  a developer laptop is not required to repeat that gate before a push.
+- Local hooks retain the migration guard and fast staged-file checks. The pre-push
+  hook reports where validation runs; it does not execute application suites.
+- Draft PRs provide scoped feedback. Mark ready only when affected checks pass;
+  complete CI validation with unchanged thresholds is mandatory before merge.
+- Merge PRs with squash only. The PR title must follow the Gitmoji commit convention;
+  the required title check also runs on title edits without restarting full CI.
 - Never bypass a failed hook or lower thresholds to push. Fix the failure or report
   the specific unavailable prerequisite. Do not repeatedly push speculative fixes
   and cancel the validation checkpoint before its final gate finishes.
+- Keep CI work bounded: use the timing-driven browser planner, preserve complete
+  scenario inventories, and report budget overruns. A timing cache is scheduling
+  data, never passing test evidence. Split files only for verified independent fixtures.
 - Report local checks, platform-specific checks and the final CI gate separately.
   Windows process/update/capture changes need real Windows validation; a Linux
   test run or Linux Docker host cannot establish Windows behavior.

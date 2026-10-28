@@ -150,8 +150,11 @@ jobs:
     if: needs.changes.outputs.full == 'true'
     runs-on: ubuntu-latest
     needs: [deps, changes]
+    outputs:
+      matrix: ${{ steps.shards.outputs.matrix }}
     env:
       MCP_BROWSER_PROVIDER_FIXTURE: "true"
+      CLIPIFY_TEST_DURATION_FILE: .cache/test/browser-durations.json
     steps:
       - name: 📥 Check out repository
         uses: actions/checkout@v7
@@ -170,6 +173,23 @@ jobs:
             **/node_modules
           key: ${{ needs.deps.outputs.cache-key }}
 
+      - name: ♻️ Restore optional browser timing history
+        uses: actions/cache/restore@v6
+        with:
+          path: .cache/test/browser-durations.json
+          key: ${{ runner.os }}-browser-durations-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: ${{ runner.os }}-browser-durations-
+      - name: 🔀 Plan bounded browser shards
+        id: shards
+        run: |
+          bunx bddgen
+          node scripts/plan-browser-shards.cjs
+      - name: 📦 Share immutable browser shard plan
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-shard-plan
+          path: test-results/browser-shard-plan.json
+          retention-days: 2
       - name: 🏗️ Build isolated browser application
         run: bun run test:e2e:build
       - name: 📦 Share exact browser build
@@ -230,6 +250,19 @@ jobs:
           bunx bddgen
           node scripts/check-generated-scenarios.mjs
           node scripts/merge-test-coverage.mjs
+      - name: 📥 Download browser scenario execution evidence
+        uses: actions/download-artifact@v8
+        with:
+          pattern: browser-timing-*
+          path: test-results/browser-timings/
+      - name: 🔎 Verify complete browser inventory and refresh scheduling timings
+        run: node scripts/update-browser-durations.cjs test-results/browser-timings .cache/test/browser-durations.json
+      - name: 💾 Save optional browser timing history
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: .cache/test/browser-durations.json
+          key: ${{ runner.os }}-browser-durations-${{ github.run_id }}-${{ github.run_attempt }}
       - name: 📦 Upload complete coverage report
         uses: actions/upload-artifact@v7
         with:
@@ -385,11 +418,7 @@ jobs:
         run: node test/support/prepare-media.mjs
       - name: 🎞️ Install workflow media dependencies
         if: matrix.lane == 'workflows'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ffmpeg
-          sudo apt-get satisfy -y --no-install-recommends "$(paste -sd, "$(dirname "$RUNNER_CHROME_PATH")/deb.deps")"
-          ffmpeg -version
+        run: bash scripts/install-runner-media-deps.sh
       - name: 🧪 Run owning coverage lane
         run: node scripts/run-coverage-lane.mjs ${{ matrix.lane }}
 
@@ -421,27 +450,10 @@ jobs:
     needs: [deps, changes, browser-build]
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - project: acceptance-chromium
-            shard: 1/1
-            label: acceptance
-          - project: atdd-chromium
-            shard: 1/1
-            label: atdd
-          - project: bdd-chromium
-            shard: 1/3
-            label: bdd-1
-          - project: bdd-chromium
-            shard: 2/3
-            label: bdd-2
-          - project: bdd-chromium
-            shard: 3/3
-            label: bdd-3
-          - project: compliance-chromium
-            shard: 1/1
-            label: compliance
+      matrix: ${{ fromJSON(needs.browser-build.outputs.matrix) }}
     env:
+      CLIPIFY_BROWSER_SHARD_PLAN: test-results/browser-shard-plan.json
+      PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/browser-timing-${{ matrix.label }}.json
       CLIPIFY_E2E_SCHEMA_PUSH: "1"
       APP_ENV: "test"
       E2E_TEST_MODE: "true"
@@ -509,10 +521,7 @@ jobs:
         run: node test/support/prepare-media.mjs
       - name: 🎞️ Install BDD native media system dependencies
         if: matrix.project == 'bdd-chromium'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ffmpeg
-          sudo apt-get satisfy -y --no-install-recommends "$(paste -sd, "$(dirname "$RUNNER_CHROME_PATH")/deb.deps")"
+        run: bash scripts/install-runner-media-deps.sh
       - name: 🧩 Compile native application probes once
         run: |
           node --input-type=module -e "import { buildMcpCoverageProbes } from './scripts/build-mcp-coverage-probes.mjs'; await buildMcpCoverageProbes({ outputDirectory: 'test-results/mcp/browser-native-probes' });"
@@ -534,9 +543,22 @@ jobs:
           name: browser-build
           path: .next-playwright/
 
+      - name: 📥 Download immutable browser shard plan
+        uses: actions/download-artifact@v8
+        with:
+          name: browser-shard-plan
+          path: test-results/
       - name: 🧪 Run complete browser project shard
         run: node scripts/run-browser-shard.mjs ${{ matrix.project }} ${{ matrix.shard }}
 
+      - name: 📦 Upload successful BDD timing evidence
+        if: success() && matrix.project == 'bdd-chromium'
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-timing-${{ matrix.label }}
+          path: test-results/browser-timing-${{ matrix.label }}.json
+          if-no-files-found: error
+          retention-days: 2
       - name: 🧹 Remove job-owned schema template
         if: always()
         run: node scripts/cleanup-mcp-fixture-template.mjs
@@ -643,10 +665,7 @@ jobs:
         working-directory: packages/runner
         run: node test/support/prepare-media.mjs
       - name: 🎞️ Install native media test system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ffmpeg
-          sudo apt-get satisfy -y --no-install-recommends "$(paste -sd, "$(dirname "$RUNNER_CHROME_PATH")/deb.deps")"
+        run: bash scripts/install-runner-media-deps.sh
       - name: 🧪 Test Runner
         working-directory: packages/runner
         run: bun run test:coverage

@@ -1,1 +1,1 @@
-node scripts/pre-push-tests.cjs
+echo "Full validation runs in the required GitHub checks; run affected tests while developing."

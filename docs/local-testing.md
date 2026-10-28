@@ -141,8 +141,9 @@ bunx playwright test --config playwright.mcp.config.ts --project=bdd-chromium mc
 ```
 
 Use whole-file Jest checks during development. Name filters can exit successfully
-with no tests executed, so they are not a valid isolated Red proof. At completion,
-use the complete coverage gate rather than substituting a scoped run:
+with no tests executed, so they are not a valid isolated Red proof. Git hooks do not repeat the complete application gate. Push after the affected
+whole-file checks pass; a ready PR must pass complete GitHub validation before merge.
+To reproduce that complete gate locally when needed:
 
 ```sh
 bun run test:coverage
@@ -321,3 +322,29 @@ completion milestones. The root MCP command scenarios have their own focused
 `runner-stop-control.feature`; registration/recovery scenarios remain in
 `runner-free-pro.feature`. Real native media journeys have a separate execution
 owner from those business-control scenarios.
+
+The authority catalogue scenarios in `mcp-support/read_authority.feature` and
+`mcp-support/mutation_authority.feature` execute only in the native workflow owner.
+Their 110 read cases and 83 mutation cases replace the duplicate Jest catalogues;
+BDD/ATDD/TDD traceability points to that one execution. Genuine UI scenarios remain
+browser-owned. `scripts/test-execution.cjs` supplies the shared ownership patterns
+and timing classification to both local runners and CI.
+
+Browser scheduling uses recent successful CI timings, with
+`scripts/test-duration-baseline.json` as the fallback. CI creates one immutable plan
+for every browser matrix job, targeting five minutes of estimated BDD test work
+per shard, capped at ten BDD shards. Setup, builds and queues are additional; the
+job summary reports any over-budget shard rather than omitting tests. The other
+coverage and browser lanes retain their complete inventories and thresholds.
+
+Mark a feature `@shard:scenario` only after verifying that every scenario owns an
+independent fixture. The guide feature has that property; its former 12.7-minute
+file can therefore split across workers. Other files stay grouped to preserve
+shared setup. Every planned selector is resolved through Playwright before running.
+The final gate verifies that the collected BDD reports cover the complete current
+scenario inventory exactly once before saving new scheduling timings. Timing
+caches never substitute for passing test results.
+
+Squash is the only merge method. The `🏷️ PR title` check validates the resulting
+commit subject, including title edits. The checked-in Gitmoji list comes from
+`https://gitmoji.dev/api/gitmojis`; it does not require network access during CI.
