@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 import { DEPLOYMENT_CHECK_EVENT, DEPLOYMENT_ID_HEADER, isLongLivedRuntimePath, isMissingServerActionError } from "@lib/deployment";
 
 const CHECK_INTERVAL_MS = 5 * 60_000;
+const DASHBOARD_CHECK_INTERVAL_MS = 30_000;
 const RELOAD_GUARD_MS = 60_000;
 const RELOAD_GUARD_KEY = "clipify:deployment-reload";
 
@@ -37,52 +38,69 @@ function rememberReload(deploymentId: string) {
 
 export default function RuntimeDeploymentReload({ deploymentId }: { deploymentId: string }) {
 	const pathname = usePathname();
-	const checking = useRef(false);
+	const checking = useRef<Promise<void> | null>(null);
+	const requiresRefresh = useRef(false);
+	const missingActionDetected = useRef(false);
 	const sensitiveEdits = useRef(new Set<HTMLInputElement>());
 	const notifiedDeployment = useRef<string | null>(null);
 	const dismissedDeployment = useRef<string | null>(null);
 	const [promptOpen, setPromptOpen] = useState(false);
+	const [promptRequest, setPromptRequest] = useState(0);
 	const [updateId, setUpdateId] = useState<string | null>(null);
 	const [recoveryError, setRecoveryError] = useState<string | null>(null);
 	const anotherDialogIsOpen = useCallback(() => Boolean(document.querySelector('[role="dialog"]')), []);
 
 	const checkDeployment = useCallback(
-		async (missingAction = false) => {
-			if ((!deploymentId && !missingAction) || checking.current) return;
-			checking.current = true;
-			try {
-				const response = await fetch("/api/deployment", { cache: "no-store", credentials: "omit" });
-				if (!response.ok) return;
-				const currentDeploymentId = response.headers.get(DEPLOYMENT_ID_HEADER)?.trim() || (missingAction ? deploymentId || "missing-action" : "");
-				if (!currentDeploymentId || (!missingAction && currentDeploymentId === deploymentId) || recentlyReloadedFor(currentDeploymentId)) return;
-				if (isLongLivedRuntimePath(pathname)) {
-					rememberReload(currentDeploymentId);
-					window.location.reload();
-				} else {
-					setUpdateId(currentDeploymentId);
-					if (notifiedDeployment.current !== currentDeploymentId) {
-						notifiedDeployment.current = currentDeploymentId;
-						dismissedDeployment.current = null;
-						if (!anotherDialogIsOpen()) setPromptOpen(true);
+		(missingAction = false): Promise<void> => {
+			missingActionDetected.current ||= missingAction;
+			if (!deploymentId && !missingActionDetected.current) return Promise.resolve();
+			if (checking.current) return checking.current;
+			checking.current = Promise.resolve().then(async () => {
+				try {
+					const response = await fetch("/api/deployment", { cache: "no-store", credentials: "omit", signal: AbortSignal.timeout(5_000) });
+					if (!response.ok) return;
+					const forced = missingActionDetected.current;
+					const currentDeploymentId = response.headers.get(DEPLOYMENT_ID_HEADER)?.trim() || (forced ? deploymentId || "missing-action" : "");
+					if (!currentDeploymentId || (!forced && currentDeploymentId === deploymentId)) return;
+					requiresRefresh.current = true;
+					if (recentlyReloadedFor(currentDeploymentId)) return;
+					if (isLongLivedRuntimePath(pathname)) {
+						rememberReload(currentDeploymentId);
+						window.location.reload();
+					} else {
+						setUpdateId(currentDeploymentId);
+						if (notifiedDeployment.current !== currentDeploymentId || missingAction) {
+							notifiedDeployment.current = currentDeploymentId;
+							dismissedDeployment.current = null;
+							setPromptRequest((request) => request + 1);
+							if (!anotherDialogIsOpen()) setPromptOpen(true);
+						}
 					}
+				} catch {
+					// A temporary network failure should not interrupt an active overlay.
+				} finally {
+					checking.current = null;
 				}
-			} catch {
-				// A temporary network failure should not interrupt an active overlay.
-			} finally {
-				checking.current = false;
-			}
+			});
+			return checking.current;
 		},
 		[anotherDialogIsOpen, deploymentId, pathname],
 	);
 
 	useEffect(() => {
-		if (!updateId || promptOpen || dismissedDeployment.current === updateId || !anotherDialogIsOpen()) return;
-		const observer = new MutationObserver(() => {
+		if (!updateId || promptOpen || dismissedDeployment.current === updateId) return;
+		const openWhenReady = () => {
 			if (!anotherDialogIsOpen() && dismissedDeployment.current !== updateId) setPromptOpen(true);
-		});
+		};
+		const observer = new MutationObserver(openWhenReady);
 		observer.observe(document.body, { childList: true, subtree: true });
-		return () => observer.disconnect();
-	}, [anotherDialogIsOpen, promptOpen, updateId]);
+		// Portals may have closed before this observer was attached.
+		const frame = window.requestAnimationFrame(openWhenReady);
+		return () => {
+			window.cancelAnimationFrame(frame);
+			observer.disconnect();
+		};
+	}, [anotherDialogIsOpen, promptOpen, promptRequest, updateId]);
 
 	useEffect(() => {
 		const canDetectUpdates = Boolean(deploymentId);
@@ -104,7 +122,10 @@ export default function RuntimeDeploymentReload({ deploymentId }: { deploymentId
 			const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
 			const url = new URL(input instanceof Request ? input.url : String(input), window.location.href);
 			const actionId = url.origin === window.location.origin ? headers.get("Next-Action") : null;
-			if (actionId && obsoleteActions.has(actionId)) {
+			if (actionId && !isLongLivedRuntimePath(pathname) && !requiresRefresh.current) await checkDeployment();
+			if (actionId && (obsoleteActions.has(actionId) || (!isLongLivedRuntimePath(pathname) && requiresRefresh.current))) {
+				dismissedDeployment.current = null;
+				setPromptRequest((request) => request + 1);
 				const error = new Error("Clipify has been updated. Refresh Clipify to continue.");
 				error.name = "UnrecognizedActionError";
 				throw error;
@@ -112,6 +133,7 @@ export default function RuntimeDeploymentReload({ deploymentId }: { deploymentId
 			const response = await originalFetch(input, init);
 			if (actionId && response.headers.get("x-nextjs-action-not-found") === "1") {
 				obsoleteActions.add(actionId);
+				requiresRefresh.current = true;
 				void checkDeployment(true);
 			}
 			return response;
@@ -130,10 +152,11 @@ export default function RuntimeDeploymentReload({ deploymentId }: { deploymentId
 		};
 
 		const initialCheck = canDetectUpdates ? window.setTimeout(requestCheck, 0) : undefined;
-		const interval = canDetectUpdates ? window.setInterval(requestCheck, CHECK_INTERVAL_MS) : undefined;
+		const interval = canDetectUpdates ? window.setInterval(isLongLivedRuntimePath(pathname) ? requestCheck : checkWhenVisible, isLongLivedRuntimePath(pathname) ? CHECK_INTERVAL_MS : DASHBOARD_CHECK_INTERVAL_MS) : undefined;
 		window.addEventListener(DEPLOYMENT_CHECK_EVENT, requestCheck);
 		window.addEventListener("obsSourceActiveChanged", checkWhenSourceActive);
 		window.addEventListener("online", checkWhenVisible);
+		window.addEventListener("focus", checkWhenVisible);
 		window.addEventListener("error", checkAfterActionFailure);
 		window.addEventListener("unhandledrejection", checkAfterActionFailure);
 		document.addEventListener("visibilitychange", checkWhenVisible);
@@ -148,6 +171,7 @@ export default function RuntimeDeploymentReload({ deploymentId }: { deploymentId
 			window.removeEventListener(DEPLOYMENT_CHECK_EVENT, requestCheck);
 			window.removeEventListener("obsSourceActiveChanged", checkWhenSourceActive);
 			window.removeEventListener("online", checkWhenVisible);
+			window.removeEventListener("focus", checkWhenVisible);
 			window.removeEventListener("error", checkAfterActionFailure);
 			window.removeEventListener("unhandledrejection", checkAfterActionFailure);
 			document.removeEventListener("visibilitychange", checkWhenVisible);

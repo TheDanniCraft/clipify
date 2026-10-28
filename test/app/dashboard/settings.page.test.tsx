@@ -482,3 +482,23 @@ test("Creator Page social preview upgrade opens the relevant upgrade without sav
 	expect(await screen.findByText("Upgrade creator_social_preview yearly")).toBeVisible();
 	expect(saveSettings).not.toHaveBeenCalled();
 });
+
+test("an obsolete export action closes the export dialog without a misleading failure toast", async () => {
+	const error = new Error("Server Action was not found on the server.");
+	error.name = "UnrecognizedActionError";
+	(requestAccountDataExport as jest.Mock).mockRejectedValue(error);
+	const check = jest.fn();
+	window.addEventListener("clipify:check-deployment", check);
+	const view = render(<SettingsPage />);
+	try {
+		await screen.findByRole("button", { name: "Export Account Data" });
+		fireEvent.click(screen.getByRole("button", { name: "Export Account Data" }));
+		fireEvent.click(screen.getByRole("button", { name: /Email download link/ }));
+		await waitFor(() => expect(check).toHaveBeenCalled());
+		expect(notify).not.toHaveBeenCalledWith(expect.objectContaining({ title: "Export request failed" }));
+		expect(screen.queryByRole("button", { name: /Email download link/ })).not.toBeInTheDocument();
+	} finally {
+		window.removeEventListener("clipify:check-deployment", check);
+		view.unmount();
+	}
+});

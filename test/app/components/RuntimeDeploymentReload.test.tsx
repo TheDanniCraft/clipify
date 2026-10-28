@@ -31,14 +31,14 @@ describe("RuntimeDeploymentReload", () => {
 		pathname = "/overlay/overlay-1";
 		const view = render(<RuntimeDeploymentReload deploymentId='deployment-1' />);
 
-		await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/deployment", { cache: "no-store", credentials: "omit" }));
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/deployment", { cache: "no-store", credentials: "omit", signal: expect.any(AbortSignal) }));
 		view.unmount();
 	});
 
 	it.each(["/gallery", "/gallery/gallery-1", "/runner/preview/runner-1", "/pricing"])("monitors %s without waiting for interaction", async (path) => {
 		pathname = path;
 		const view = render(<RuntimeDeploymentReload deploymentId='deployment-1' />);
-		await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/deployment", { cache: "no-store", credentials: "omit" }));
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/deployment", { cache: "no-store", credentials: "omit", signal: expect.any(AbortSignal) }));
 		view.unmount();
 	});
 
@@ -71,10 +71,36 @@ describe("RuntimeDeploymentReload", () => {
 		pathname = path;
 		fetchMock.mockResolvedValue({ ok: true, headers: { get: () => "deployment-2" } });
 		const view = render(<RuntimeDeploymentReload deploymentId='deployment-1' />);
-		await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/deployment", { cache: "no-store", credentials: "omit" }));
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/deployment", { cache: "no-store", credentials: "omit", signal: expect.any(AbortSignal) }));
 		expect(screen.getByText("Clipify has been updated")).toBeVisible();
 		expect(screen.getByRole("button", { name: "Refresh Clipify" })).toBeVisible();
 		expect(sessionStorage.getItem(`clipify:deployment-reload:${window.location.pathname}`)).toBeNull();
+		view.unmount();
+	});
+
+	it("detects an update when the dashboard window regains focus", async () => {
+		const view = render(<RuntimeDeploymentReload deploymentId='deployment-1' />);
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+		fetchMock.mockResolvedValue({ ok: true, headers: { get: () => "deployment-2" } });
+		act(() => {
+			window.dispatchEvent(new Event("focus"));
+		});
+		expect(await screen.findByText("Clipify has been updated")).toBeVisible();
+		expect(sessionStorage.getItem(`clipify:deployment-reload:${window.location.pathname}`)).toBeNull();
+		view.unmount();
+	});
+
+	it("checks the deployment before sending a dashboard action and blocks an obsolete mutation", async () => {
+		const view = render(<RuntimeDeploymentReload deploymentId='deployment-1' />);
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+		fetchMock.mockClear();
+		fetchMock.mockResolvedValue({ ok: true, headers: { get: () => "deployment-2" } });
+		await act(async () => {
+			await expect(window.fetch("/dashboard/settings", { method: "POST", headers: { "Next-Action": "old-export" } })).rejects.toMatchObject({ name: "UnrecognizedActionError" });
+		});
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(fetchMock.mock.calls[0][0]).toBe("/api/deployment");
+		expect(screen.getByText("Clipify has been updated")).toBeVisible();
 		view.unmount();
 	});
 
@@ -87,7 +113,7 @@ describe("RuntimeDeploymentReload", () => {
 			});
 			expect(fetchMock).toHaveBeenCalledTimes(1);
 			await act(async () => {
-				await jest.advanceTimersByTimeAsync(5 * 60_000);
+				await jest.advanceTimersByTimeAsync(30_000);
 			});
 			expect(fetchMock).toHaveBeenCalledTimes(2);
 			await act(async () => {
@@ -104,13 +130,13 @@ describe("RuntimeDeploymentReload", () => {
 		const view = render(<RuntimeDeploymentReload deploymentId='deployment-1' />);
 		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
 		fetchMock.mockClear();
-		fetchMock.mockResolvedValueOnce({ ok: false, headers: { get: (name: string) => (name === "x-nextjs-action-not-found" ? "1" : null) } });
+		fetchMock.mockResolvedValueOnce({ ok: true, headers: { get: () => "deployment-1" } }).mockResolvedValueOnce({ ok: false, headers: { get: (name: string) => (name === "x-nextjs-action-not-found" ? "1" : null) } });
 		await window.fetch("/dashboard/runners/one", { method: "POST", headers: { "Next-Action": "old-action" }, body: "draft" });
-		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-		expect(fetchMock.mock.calls[1]).toEqual(["/api/deployment", { cache: "no-store", credentials: "omit" }]);
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
+		expect(fetchMock.mock.calls[2]).toEqual(["/api/deployment", { cache: "no-store", credentials: "omit", signal: expect.any(AbortSignal) }]);
 		expect(fetchMock.mock.calls.filter(([url]) => url === "/dashboard/runners/one")).toHaveLength(1);
 		await expect(window.fetch("/dashboard/runners/one", { method: "POST", headers: { "Next-Action": "old-action" } })).rejects.toMatchObject({ name: "UnrecognizedActionError" });
-		expect(fetchMock).toHaveBeenCalledTimes(2);
+		expect(fetchMock).toHaveBeenCalledTimes(3);
 		view.unmount();
 	});
 
@@ -133,7 +159,10 @@ describe("RuntimeDeploymentReload", () => {
 		const view = render(<RuntimeDeploymentReload deploymentId='deployment-1' />);
 		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
 		fetchMock.mockClear();
-		fetchMock.mockResolvedValueOnce({ ok: false, headers: { get: (name: string) => (name === "x-nextjs-action-not-found" ? "1" : null) } }).mockResolvedValueOnce({ ok: true, headers: { get: () => "deployment-2" } });
+		fetchMock
+			.mockResolvedValueOnce({ ok: true, headers: { get: () => "deployment-1" } })
+			.mockResolvedValueOnce({ ok: false, headers: { get: (name: string) => (name === "x-nextjs-action-not-found" ? "1" : null) } })
+			.mockResolvedValueOnce({ ok: true, headers: { get: () => "deployment-2" } });
 		try {
 			await window.fetch("/dashboard/runners/one", { method: "POST", headers: { "Next-Action": "old-action" } });
 			expect(await screen.findByRole("button", { name: "Refresh required" })).toBeVisible();
@@ -150,12 +179,103 @@ describe("RuntimeDeploymentReload", () => {
 		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
 		fetchMock.mockClear();
 		await window.fetch("/dashboard/settings", { method: "POST", headers: { "Next-Action": "valid-action" } });
-		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(fetchMock).toHaveBeenCalledTimes(2);
 		fetchMock.mockResolvedValueOnce({ ok: false, headers: { get: () => "1" } });
 		await window.fetch("https://example.org/", { headers: { "Next-Action": "external" } });
-		expect(fetchMock).toHaveBeenCalledTimes(2);
+		expect(fetchMock).toHaveBeenCalledTimes(3);
 		view.unmount();
 	});
+	it("keeps working after a failed deployment check and retries on focus", async () => {
+		fetchMock.mockRejectedValueOnce(new Error("temporary network failure"));
+		const view = render(<RuntimeDeploymentReload deploymentId='deployment-1' />);
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+		act(() => {
+			window.dispatchEvent(new Event("focus"));
+		});
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+		expect(screen.queryByRole("button", { name: "Refresh required" })).not.toBeInTheDocument();
+		view.unmount();
+	});
+
+	it.each(["valid", "malformed", "unavailable"])("retains automatic runtime recovery with %s session storage", async (storage) => {
+		pathname = "/overlay/one";
+		const key = `clipify:deployment-reload:${window.location.pathname}`;
+		if (storage === "malformed") sessionStorage.setItem(key, "not json");
+		const read =
+			storage === "unavailable"
+				? jest.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+						throw new Error("unavailable");
+					})
+				: null;
+		const write = jest.spyOn(Storage.prototype, "setItem");
+		if (storage === "unavailable")
+			write.mockImplementation(() => {
+				throw new Error("unavailable");
+			});
+		const navigation = jest.spyOn(console, "error").mockImplementation(() => {});
+		fetchMock.mockResolvedValue({ ok: true, headers: { get: () => "deployment-2" } });
+		const view = render(<RuntimeDeploymentReload deploymentId='deployment-1' />);
+		try {
+			await waitFor(() => expect(write).toHaveBeenCalledWith(key, expect.any(String)));
+			if (storage !== "unavailable") {
+				expect(JSON.parse(sessionStorage.getItem(key)!)).toMatchObject({ deploymentId: "deployment-2" });
+				act(() => {
+					window.dispatchEvent(new Event(DEPLOYMENT_CHECK_EVENT));
+				});
+				await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+				expect(write).toHaveBeenCalledTimes(1);
+			}
+		} finally {
+			view.unmount();
+			read?.mockRestore();
+			write.mockRestore();
+			navigation.mockRestore();
+		}
+	});
+
+	it("only remembers a dashboard reload after the user explicitly refreshes", async () => {
+		fetchMock.mockResolvedValue({ ok: true, headers: { get: () => "deployment-2" } });
+		const navigation = jest.spyOn(console, "error").mockImplementation(() => {});
+		const view = render(<RuntimeDeploymentReload deploymentId='deployment-1' />);
+		try {
+			await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+			fireEvent.click(screen.getByRole("button", { name: "Refresh Clipify" }));
+			expect(JSON.parse(sessionStorage.getItem(`clipify:deployment-reload:${window.location.pathname}`)!)).toMatchObject({ deploymentId: "deployment-2" });
+		} finally {
+			view.unmount();
+			navigation.mockRestore();
+		}
+	});
+
+	it("lets the user open a queued refresh notice explicitly", async () => {
+		const dialog = document.createElement("div");
+		dialog.setAttribute("role", "dialog");
+		document.body.append(dialog);
+		fetchMock.mockResolvedValue({ ok: true, headers: { get: () => "deployment-2" } });
+		const view = render(<RuntimeDeploymentReload deploymentId='deployment-1' />);
+		try {
+			fireEvent.click(await screen.findByRole("button", { name: "Refresh required" }));
+			expect(screen.queryByRole("button", { name: "Refresh required" })).not.toBeInTheDocument();
+			expect(sessionStorage.getItem(`clipify:deployment-reload:${window.location.pathname}`)).toBeNull();
+		} finally {
+			dialog.remove();
+			view.unmount();
+		}
+	});
+
+	it("checks missing-action error events without treating ordinary errors as an update", async () => {
+		const view = render(<RuntimeDeploymentReload deploymentId='deployment-1' />);
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+		window.dispatchEvent(new ErrorEvent("error", { error: new Error("network error") }));
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		await act(async () => {
+			window.dispatchEvent(new ErrorEvent("error", { error: Object.assign(new Error("stale"), { name: "UnrecognizedActionError" }) }));
+		});
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+		expect(screen.queryByRole("button", { name: "Refresh required" })).not.toBeInTheDocument();
+		view.unmount();
+	});
+
 	it("protects newly entered secrets but does not mistake an existing masked value for an edit", () => {
 		const preserve = jest.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
 			throw new DOMException("Storage full", "QuotaExceededError");

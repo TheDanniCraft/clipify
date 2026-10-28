@@ -1,6 +1,7 @@
 "use client";
 import ReauthenticationModal from "@components/reauthenticationModal";
 import { useDeploymentDraft } from "@lib/deploymentDrafts";
+import { isMissingServerActionError, requestDeploymentCheck } from "@lib/deployment";
 
 import { formatDisplayDate } from "@lib/dateFormat";
 import LocalizedDate from "@components/localizedDate";
@@ -811,6 +812,11 @@ export default function SettingsPage() {
 								exportModalOnOpenChange(false);
 								addToast({ title: "Data export requested", description: `We sent the download link to ${result.email}. It expires ${formatDisplayDate(result.expiresAt, undefined, { hour: "2-digit", minute: "2-digit" })}.`, color: "success" });
 							} catch (error) {
+								if (isMissingServerActionError(error)) {
+									exportModalOnOpenChange(false);
+									requestDeploymentCheck();
+									return;
+								}
 								addToast({ title: "Export request failed", description: error instanceof Error && error.message === "EXPORT_RATE_LIMITED" ? "You can request up to three exports per day." : "Please retry or contact support.", color: "danger" });
 							} finally {
 								setIsRequestingExport(false);
