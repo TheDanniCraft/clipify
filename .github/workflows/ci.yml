@@ -550,6 +550,7 @@ jobs:
       matrix: ${{ fromJSON(needs.validation-plan.outputs.browser_matrix) }}
     env:
       CLIPIFY_BROWSER_SHARD_PLAN: test-results/browser-shard-plan.json
+      INSTANCE_HEALTH_TOKEN: clipify-e2e-instance-health-not-for-production
       PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/browser-timing-${{ matrix.label }}.json
       CLIPIFY_E2E_SCHEMA_PUSH: "1"
       APP_ENV: "test"

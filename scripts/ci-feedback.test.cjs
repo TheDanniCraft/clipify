@@ -32,6 +32,7 @@ test("title edits get a fast dedicated Gitmoji check and browser matrices use an
 	const ci = yaml.parse(readFileSync(".github/workflows/ci.yml", "utf8"));
 	assert.equal(ci.jobs["browser-tests"].strategy.matrix, "${{ fromJSON(needs.validation-plan.outputs.browser_matrix) }}");
 	assert.ok(ci.jobs["validation-plan"].steps.some((step) => step.id === "browser"));
+	assert.ok(ci.jobs["browser-tests"].env.INSTANCE_HEALTH_TOKEN, "health acceptance requires explicit CI runtime authentication");
 	assert.ok(ci.jobs.test.steps.some((step) => step.run?.includes("update-browser-durations")));
 });
 
