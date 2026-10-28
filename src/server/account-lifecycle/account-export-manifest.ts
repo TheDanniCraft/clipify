@@ -1,3 +1,4 @@
+import { createAccountExportLayout } from "./account-export-layout";
 import { isTable } from "drizzle-orm";
 import { getTableConfig, type PgTable } from "drizzle-orm/pg-core";
 import * as schema from "@/db/schema";
@@ -78,7 +79,7 @@ export const accountExportCoverage: Record<string, { paths: string[] } | { exclu
 	"auth.verification": { paths: ["verificationRecords"] },
 };
 
-export function createAccountExportManifest(data: Record<string, unknown>) {
+export function createAccountExportManifest(data: Record<string, unknown>, locations = createAccountExportLayout(data).locations) {
 	const tables = [...new Set(Object.values({ ...schema, ...authSchema }).filter(isTable))].map((table) => {
 		const config = getTableConfig(table as PgTable);
 		const name = `${config.schema ?? "public"}.${config.name}`;
@@ -88,14 +89,14 @@ export function createAccountExportManifest(data: Record<string, unknown>) {
 		const datasets = coverage.paths.map((path) => {
 			const value = path.split(".").reduce<unknown>((current, key) => (current && typeof current === "object" ? (current as Record<string, unknown>)[key] : undefined), data);
 			if (value === undefined) throw new Error(`ACCOUNT_EXPORT_DATASET_MISSING: ${path}`);
-			return { file: `${path.replaceAll(".", "/")}.json`, records: Array.isArray(value) ? value.length : value === null ? 0 : 1 };
+			return { ...locations.get(path), records: Array.isArray(value) ? value.length : value === null ? 0 : 1 };
 		});
 		return { table: name, status: "included", datasets };
 	});
 	return {
-		format: "clipify-account-data-v3",
+		format: "clipify-account-data-v4",
 		exportedAt: data.exportedAt,
-		externalSources: Object.fromEntries(Object.entries((data.external ?? {}) as Record<string, { status: string; description: string }>).map(([name, source]) => [name, { status: source.status, description: source.description, file: `external/${name}.json` }])),
+		externalSources: Object.fromEntries(Object.entries((data.external ?? {}) as Record<string, { status: string; description: string }>).map(([name, source]) => [name, { status: source.status, description: source.description, ...locations.get(`external.${name}`) }])),
 		tables,
 		dataNotes: [
 			"Dates are ISO 8601 strings. Null means no value was stored; an empty array means there were no matching records.",
@@ -103,27 +104,29 @@ export function createAccountExportManifest(data: Record<string, unknown>) {
 			"Clipify stores clip metadata and provider URLs, not copies of Twitch video files. Cached entries are scoped to this creator and referenced clips.",
 			"MCP connections, tool audit records and retry responses are included. AI conversations and prompts held only by a connected AI app are not stored by Clipify.",
 			"Consent records can only be attributed where the consent subject is linked to this account's identifiers.",
-			"Original stored credential values are preserved. Reusable credentials are also decrypted where available in reusableCredentials; unavailable decryption is identified explicitly. Password hashes cannot be converted back into passwords. Passkey private keys are held on the user's device, not in Clipify.",
+			"Original stored credential values are preserved. Reusable credentials are also decrypted where available in security/security.json; unavailable decryption is identified explicitly. Password hashes cannot be converted back into passwords. Passkey private keys are held on the user's device, not in Clipify.",
 		],
-		sensitiveFields: [
-			"external/support.json: conversations[].messages[].attachments[].data_url, conversations[].messages[].attachments[].thumb_url",
-			"identity/providerAccounts.json: accessToken, refreshToken, idToken, password",
-			"identity/sessions.json: token",
-			"identity/passkeys.json: credentialID, publicKey",
-			"content/overlays.json: secret",
-			"content/runners.json: token",
-			"content/enrollments.json: deviceCode, userCode",
-			"content/streamSessions.json: encryptedStreamKey",
-			"reusableCredentials/*.json: value",
-			"reusableCredentials/namedDestinations.json: value, storedEncryptedValue",
-			"reusableCredentials/oauthAccounts.json: accessToken.value, accessToken.storedValue, refreshToken.value, refreshToken.storedValue, idToken.value, idToken.storedValue",
-			"runner/destinations.json: encryptedStreamKey",
-			"runner/providerConnections.json: encryptedTokens",
-			"runner/broadcastAdmissions.json: encryptedTargetsSnapshot, terminalCredentialHash",
-			"aiApps/accessTokens.json: token",
-			"aiApps/refreshTokens.json: token, rotationReplayResponse",
-			"aiApps/registeredClients.json: clientSecret",
-			"verificationRecords.json: value",
-		],
+		sensitiveFields: [...locations].flatMap(([source, location]) => {
+			const fields = sensitiveSources[source] ?? (source.startsWith("reusableCredentials.") ? "value, storedEncryptedValue, accessToken, refreshToken, idToken" : undefined);
+			return fields ? [`${location.file}#${location.pointer}: ${fields}`] : [];
+		}),
 	};
 }
+
+const sensitiveSources: Record<string, string> = {
+	"external.support": "conversations[].messages[].attachments[].data_url, conversations[].messages[].attachments[].thumb_url",
+	"identity.providerAccounts": "accessToken, refreshToken, idToken, password",
+	"identity.sessions": "token",
+	"identity.passkeys": "credentialID, publicKey",
+	"content.overlays": "secret",
+	"content.runners": "token",
+	"content.enrollments": "deviceCode, userCode",
+	"content.streamSessions": "encryptedStreamKey",
+	"runner.destinations": "encryptedStreamKey",
+	"runner.providerConnections": "encryptedTokens",
+	"runner.broadcastAdmissions": "encryptedTargetsSnapshot, terminalCredentialHash",
+	"aiApps.accessTokens": "token",
+	"aiApps.refreshTokens": "token, rotationReplayResponse",
+	"aiApps.registeredClients": "clientSecret",
+	verificationRecords: "value",
+};

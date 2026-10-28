@@ -33,6 +33,8 @@ export function readMcpSourceManifest() {
 		"src/server/account-lifecycle/account-data-export.ts",
 		"src/server/account-lifecycle/account-data-export-credentials.ts",
 		"src/server/account-lifecycle/account-data-archive.ts",
+		"src/server/account-lifecycle/account-export-layout.ts",
+		"src/server/account-lifecycle/account-export-assets.ts",
 		"src/server/account-lifecycle/account-export-external.ts",
 		"src/server/account-lifecycle/account-export-manifest.ts",
 		"src/server/primary-twitch-account.ts",

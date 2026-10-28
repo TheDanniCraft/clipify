@@ -12,7 +12,7 @@ describe("TDD-PRIVACY-001 account export MCP approvals", () => {
 		const result = runMcpProbe("account-export-probe", ["complete"], 60000);
 		expect(result.tableCount).toBe(71);
 		expect(result.unclassified).toBe(0);
-		expect(result.files).toEqual(expect.arrayContaining(["READ-ME-FIRST.txt", "manifest.json", "identity/profile.json", "runner/destinations.json", "clipStorage/cache.json", "aiApps/registeredClients.json", "external/support.json"]));
+		expect(result.files).toEqual(expect.arrayContaining(["READ-ME-FIRST.txt", "manifest.json", "account/account.json", "security/security.json", "runner/runner.json", "clips/clips.json", "connections/connections.json", "support/conversations.json"]));
 		expect(result.createdAt).toBe("2026-10-05T00:00:00.000Z");
 		expect(result.username).toBe("password is an ordinary username");
 		expect(result.clipIds).toEqual(["clip:creator:own-clip"]);

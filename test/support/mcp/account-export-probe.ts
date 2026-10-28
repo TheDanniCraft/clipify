@@ -114,10 +114,10 @@ async function main() {
 			const { unzipSync, strFromU8 } = await import("fflate");
 			const files = unzipSync(await createAccountDataArchive(exported as Record<string, unknown>));
 			const manifest = JSON.parse(strFromU8(files["manifest.json"]));
-			const profile = JSON.parse(strFromU8(files["identity/profile.json"]));
-			const cache = JSON.parse(strFromU8(files["clipStorage/cache.json"]));
-			const credentials = JSON.parse(strFromU8(files["identity/providerAccounts.json"]));
-			const decoded = JSON.parse(strFromU8(files["reusableCredentials/oauthAccounts.json"]));
+			const profile = JSON.parse(strFromU8(files["account/account.json"])).profile;
+			const cache = JSON.parse(strFromU8(files["clips/clips.json"])).cache;
+			const credentials = JSON.parse(strFromU8(files["security/security.json"])).providerAccounts;
+			const decoded = JSON.parse(strFromU8(files["security/security.json"])).credentials.oauthAccounts;
 			const serialized = JSON.stringify(exported);
 			console.log(
 				JSON.stringify({
@@ -129,14 +129,26 @@ async function main() {
 					clipIds: cache.map((entry: { key: string }) => entry.key),
 					ownCredentialsPresent: Boolean(credentials.find((row: { id: string; accessToken: string }) => row.id === "owner-account")?.accessToken) && decoded.find((row: { accountId: string }) => row.accountId === "owner-account")?.accessToken?.value === "owner-access-token" && serialized.includes("owner-session-token"),
 					unavailableCredentialPreserved: decoded.find((row: { accountId: string }) => row.accountId === "legacy-account")?.accessToken?.storedValue === "$ba$unavailable",
-					brandingBytes: [...files["assets/55a14977-cf49-4338-adbd-9d9d50178b85.png"]],
-					consentPolicyIds: JSON.parse(strFromU8(files["privacy/policies.json"])).map((row: { id: string }) => row.id),
+					brandingBytes: [...files[JSON.parse(strFromU8(files["runner/runner.json"])).brandingAssets[0].archiveFile]],
+					consentPolicyIds: JSON.parse(strFromU8(files["account/account.json"])).privacy.policies.map((row: { id: string }) => row.id),
 					foreignDataPresent: ["foreign-access-token", "foreign-session-token", "foreign-private-clip", "Foreign destination", "private-client-secret"].some((value) => serialized.includes(value)),
-					registeredClients: JSON.parse(strFromU8(files["aiApps/registeredClients.json"])).map((entry: { clientId: string }) => entry.clientId),
+					registeredClients: JSON.parse(strFromU8(files["connections/connections.json"])).registeredClients.map((entry: { clientId: string }) => entry.clientId),
 					notice: strFromU8(files["READ-ME-FIRST.txt"]),
 					externalSupportStatus: manifest.externalSources.support.status,
-					manifestPathsExist: [...manifest.tables.flatMap((table: { datasets?: Array<{ file: string }> }) => (table.datasets ?? []).map((dataset) => dataset.file)), ...Object.values(manifest.externalSources).map((source) => (source as { file: string }).file)].every((name) => Object.hasOwn(files, name)),
-					supportMessages: JSON.parse(strFromU8(files["external/support.json"])).conversations.flatMap((conversation: { messages: Array<{ content: string }> }) => conversation.messages.map((message) => message.content)),
+					manifestPathsExist: [...manifest.tables.flatMap((table: { datasets?: Array<{ file?: string; pointer?: string }> }) => table.datasets ?? []), ...Object.values(manifest.externalSources)].every((source) => {
+						const { file, pointer } = source as { file?: string; pointer?: string };
+						if (!file) return true;
+						if (!Object.hasOwn(files, file)) return false;
+						const document = JSON.parse(strFromU8(files[file]));
+						return (
+							!pointer ||
+							pointer
+								.slice(1)
+								.split("/")
+								.reduce((value, key) => value?.[key], document) !== undefined
+						);
+					}),
+					supportMessages: JSON.parse(strFromU8(files["support/conversations.json"])).conversations.flatMap((conversation: { messages: Array<{ content: string }> }) => conversation.messages.map((message) => message.content)),
 					supportSecretsPresent: serialized.includes("PRIVATE SUPPORT NOTE") || serialized.includes("fixture-support-key"),
 				}),
 			);

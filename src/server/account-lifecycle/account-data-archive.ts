@@ -1,5 +1,7 @@
 import { strToU8, zip, type Zippable } from "fflate";
 import { createAccountExportManifest } from "./account-export-manifest";
+import { createAccountExportLayout } from "./account-export-layout";
+import { collectAccountArchiveAssets } from "./account-export-assets";
 
 export const ACCOUNT_EXPORT_NOTICE = `CLIPIFY PRIVATE ACCOUNT DATA PACKAGE
 
@@ -10,7 +12,12 @@ upload it to an AI service unless you understand and accept that service's data 
 
 manifest.json lists every database table, its account-scoped files, record counts, shared
 system tables that are excluded, and the status of external sources. Empty arrays mean
-there were no matching records. Null means no value was stored. Dates use ISO 8601.
+there were no matching records. Empty datasets have no separate file. Null means no value
+was stored. Dates use ISO 8601. Each populated category contains one JSON document.
+Avatar images, Runner uploads and available support attachments are included alongside
+their records. The manifest lists files that could not be retrieved and their original URLs.
+External downloads allow up to 5 MiB per avatar, 25 MiB per support attachment and 100 MiB
+in total, with a 60-second deadline. Original URLs remain in the JSON records.
 Original encrypted values and password hashes are preserved; reusable credentials are
 also decrypted where available. Private deployment
 encryption/signing keys and other users' unrelated private records are never included.
@@ -26,21 +33,11 @@ paths in the manifest, rather than guessing from words inside the user's data.
 `;
 
 export async function createAccountDataArchive(data: Record<string, unknown>) {
-	const manifest = createAccountExportManifest(data);
-	const files: Zippable = {
-		"READ-ME-FIRST.txt": strToU8(ACCOUNT_EXPORT_NOTICE),
-	};
-	for (const [section, content] of Object.entries(data)) {
-		if (content && typeof content === "object" && !Array.isArray(content)) {
-			for (const [name, value] of Object.entries(content)) files[`${section}/${name}.json`] = strToU8(JSON.stringify(value, null, 2));
-		} else files[`${section}.json`] = strToU8(JSON.stringify(content, null, 2));
-	}
-	const assets = (data.runner as { brandingAssets?: Array<{ id: string; normalizedMime: string; bytes: { encoding: string; value: string } }> } | undefined)?.brandingAssets ?? [];
-	for (const asset of assets) {
-		if (!/^[a-f0-9-]{36}$/i.test(asset.id) || asset.bytes?.encoding !== "base64") continue;
-		const extension = ({ "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif" } as Record<string, string>)[asset.normalizedMime] ?? "bin";
-		files[`assets/${asset.id}.${extension}`] = new Uint8Array(Buffer.from(asset.bytes.value, "base64"));
-	}
-	files["manifest.json"] = strToU8(JSON.stringify({ ...manifest, files: ["manifest.json", ...Object.keys(files)] }, null, 2));
+	const { documents, locations } = createAccountExportLayout(data);
+	const manifest = createAccountExportManifest(data, locations);
+	const { files: assets, assets: assetManifest } = await collectAccountArchiveAssets(documents);
+	const files: Zippable = { "READ-ME-FIRST.txt": strToU8(ACCOUNT_EXPORT_NOTICE), ...assets };
+	for (const [file, document] of Object.entries(documents)) files[file] = strToU8(JSON.stringify(document, null, 2));
+	files["manifest.json"] = strToU8(JSON.stringify({ ...manifest, assets: assetManifest, sensitiveFields: [...manifest.sensitiveFields, ...(assetManifest.some((asset) => asset.sourceUrl) ? ["manifest.json#/assets: sourceUrl"] : [])], files: ["manifest.json", ...Object.keys(files)] }, null, 2));
 	return new Promise<Uint8Array<ArrayBuffer>>((resolve, reject) => zip(files, { level: 1 }, (error, bytes) => (error ? reject(error) : resolve(bytes))));
 }

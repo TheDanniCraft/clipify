@@ -11,7 +11,7 @@ export async function collectExternalAccountData(emails: string[], creatorId: st
 	const base = process.env.USESEND_BASE_URL;
 	const key = process.env.USESEND_API_KEY;
 	const bookIds = [...new Set([process.env.USESEND_CONTACT_BOOK_ID, process.env.USESEND_PRODUCT_UPDATES_CONTACT_BOOK_ID].filter((id): id is string => Boolean(id)))];
-	if (!base || !key || !bookIds.length) return { ...support, newsletter: { status: "not_configured", contacts: [] as Contact[], description: "Newsletter provider access is not configured for this deployment. Local subscription and consent settings are included in identity/settings.json." } };
+	if (!base || !key || !bookIds.length) return { ...support, newsletter: { status: "not_configured", contacts: [] as Contact[], description: "Newsletter provider access is not configured for this deployment. Local subscription and consent settings are included in account/account.json#/settings." } };
 	const client = new UseSend(key, base.replace(/\/+$/, ""));
 	const addresses = new Set(emails.map((email) => email.toLowerCase()));
 	const contacts: Contact[] = [];
