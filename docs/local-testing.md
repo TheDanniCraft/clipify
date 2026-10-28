@@ -143,14 +143,17 @@ bunx playwright test --config playwright.mcp.config.ts --project=bdd-chromium mc
 Use whole-file Jest checks during development. Name filters can exit successfully
 with no tests executed, so they are not a valid isolated Red proof. Git hooks do not repeat the complete application gate. Push after the affected
 whole-file checks pass; a ready PR must pass complete GitHub validation before merge.
-To reproduce that complete gate locally when needed:
+The full local command is for a specific CI reproduction, an explicit request,
+or shared execution changes whose affected owners cannot be bounded. It is not
+a routine push checkpoint. To reproduce that complete gate locally when needed:
 
 ```sh
 bun run test:coverage
 ```
 
-For a completed slice with a scoped application inventory, invoke the coverage
-wrapper so native application probes contribute their original-source counters:
+When investigating coverage specifically, invoke the coverage wrapper so native
+application probes contribute their original-source counters. Scoped coverage is
+optional during normal development; complete coverage remains owned by CI:
 
 ```sh
 node scripts/run-mcp-coverage.mjs --runTestsByPath test/server/runner/admission.test.ts
@@ -162,7 +165,7 @@ A scoped report may also lack other required source owners; combine only matchin
 current-source owning reports and enforce all original thresholds at the final
 gate. Run whole-file development checks without coverage as shown above.
 
-CI instead owns six independent coverage lanes and merges their current-source
+CI instead owns duration-planned coverage lanes and merges their current-source
 reports. Native workflows have one BDD/coverage owner and are excluded from
 browser shards. Browser projects are invoked through `scripts/run-browser-shard.mjs`
 when reproducing CI ownership, rather than executing native workflows twice.
@@ -170,7 +173,7 @@ when reproducing CI ownership, rather than executing native workflows twice.
 Each coverage lane records both the commit tree and a fingerprint of the actual
 tracked/untracked execution inputs and Node runtime. Keep source, tests, scripts,
 configuration and dependencies fixed while producing or merging a checkpoint.
-The merge requires all six exact owning inventories and matching fingerprints;
+The merge requires all planned owning inventories and matching fingerprints;
 an unchanged HEAD does not make results from different working files compatible.
 Spec Kit progress/evidence updates can continue while the product inputs stay
 fixed.
@@ -410,3 +413,27 @@ before increasing capacity. Keep a few representative end-to-end journeys and
 move additional policy combinations to the lowest sufficient layer as features
 grow. A test suite is part of the product's maintenance budget, not an unlimited
 list of equally expensive browser scenarios.
+
+### Select local tests
+
+1. Start with the changed behavior's complete owning test files, without coverage.
+   Include its failure and permission boundaries, not only the new happy path.
+2. Follow callers and execution ownership. For ordinary direct imports, Jest's
+   `--findRelatedTests` can help discover affected whole files. For MCP probes,
+   shared fixtures and dynamically dispatched scenarios, inspect their callers
+   and BDD bindings explicitly; the static Jest graph can miss subprocess owners.
+3. At a completed slice, run the affected suites and relevant real browser or
+   media scenarios. A backend-only change does not require every unrelated UI
+   journey. Shared test-harness or dependency changes may require broader owners.
+4. After a failure, fix it and rerun the affected whole files. Do not repeat
+   unchanged successful suites without a concrete reason. A full local run is
+   reserved for an explicit request, CI reproduction, or impact that cannot be
+   bounded to affected owners.
+5. Push after the affected checks pass. GitHub runs the full validation and
+   coverage gate before merge; local focused evidence does not replace it.
+
+For example, changing MCP consent activation requires the OAuth/connection
+contract and integration owners, plus any existing creator-selection and agency
+consent scenarios that exercise that behavior. It does not require local Runner
+capture, updater or unrelated application suites. A change to the visible consent
+flow also requires its real consent-browser journeys.

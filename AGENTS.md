@@ -134,6 +134,13 @@ Example:
   relevant browser journeys. Keep the failing Red local. Expensive complete suites,
   coverage, type checking and platform validation belong to GitHub's required gate;
   a developer laptop is not required to repeat that gate before a push.
+- Select local tests from changed behavior and its callers, including subprocess
+  probes, shared fixtures and BDD bindings; changed test filenames alone are not
+  a dependency map. Use the [local selection rules](docs/local-testing.md#select-local-tests)
+  and expand only for a concrete unresolved boundary or failure.
+- Do not start a full local suite or coverage owner merely because a slice is
+  ready to push. Reserve that for an explicit request, reproducing a CI failure,
+  or shared execution changes whose impact cannot be bounded to affected owners.
 - Local hooks retain the migration guard and fast staged-file checks. The pre-push
   hook reports where validation runs; it does not execute application suites.
 - Draft PRs provide scoped feedback. Mark ready only when affected checks pass;
