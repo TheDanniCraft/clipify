@@ -18,8 +18,19 @@ test("Runner timing plans retain each whole file once without artificial job cei
 });
 test("Runner aggregation rejects missing, duplicated, foreign and incomplete shard evidence", () => {
 	const expected = [["test/a.test.ts"], ["test/b.test.ts"]];
-	const row = (index) => ({ index, count: 2, owners: expected[index - 1], sourceFingerprint: fingerprint, node: process.version, platform: process.platform, arch: process.arch, imageVersion: process.env.ImageVersion ?? null });
+	const row = (index) => ({ index, count: 2, owners: expected[index - 1], sourceFingerprint: fingerprint, node: process.version, platform: process.platform, arch: process.arch, imageOS: process.env.ImageOS ?? null, imageVersion: process.env.ImageVersion ?? null });
 	assert.doesNotThrow(() => validateRunnerShardMetadata([row(1), row(2)], expected, fingerprint));
+	assert.doesNotThrow(() =>
+		validateRunnerShardMetadata(
+			[
+				{ ...row(1), imageVersion: "20261023.163.3" },
+				{ ...row(2), imageVersion: "20261026.180.1" },
+			],
+			expected,
+			fingerprint,
+		),
+	);
+	assert.throws(() => validateRunnerShardMetadata([row(1), { ...row(2), imageOS: "foreign-os" }], expected, fingerprint));
 	for (const rows of [[row(1)], [row(1), row(1)], [row(1), { ...row(2), sourceFingerprint: "b".repeat(64) }], [row(1), { ...row(2), owners: ["foreign.test.ts"] }], [row(1), { ...row(2), node: "v0" }]]) assert.throws(() => validateRunnerShardMetadata(rows, expected, fingerprint));
 });
 
@@ -54,6 +65,8 @@ test("native producer matrices belong to Runner while dependency preparation rem
 	assert.equal(ci.jobs.deps.strategy, undefined);
 	assert.equal(ci.jobs.runner.strategy.matrix, "${{ fromJSON(needs.validation-plan.outputs.runner_matrix) }}");
 	assert.ok(ci.jobs["runner-coverage"].needs.includes("runner"));
+	assert.equal(ci.jobs.runner["runs-on"], "ubuntu-24.04");
+	assert.equal(ci.jobs["runner-coverage"]["runs-on"], "ubuntu-24.04");
 });
 
 test("partial source coverage defers completeness only; the native aggregate remains strict", async () => {

@@ -721,7 +721,7 @@ jobs:
 
   runner:
     name: 🏃 Runner tests (${{ matrix.label }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [changes, deps, validation-plan]
     if: needs.changes.outputs.runner == 'true' && needs.changes.outputs.full == 'true'
     strategy:
@@ -785,7 +785,7 @@ jobs:
 
   runner-coverage:
     name: 🏃 Runner coverage gate
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [changes, deps, runner]
     if: needs.changes.outputs.runner == 'true' && needs.changes.outputs.full == 'true'
     steps:

@@ -42,6 +42,6 @@ export function runRunnerCoverageLane() {
 	const results = JSON.parse(readFileSync(resultsPath, "utf8")),
 		validation = validateRunnerPartialEvidence(results, JSON.parse(readFileSync(reportPath, "utf8")), selected);
 	if (!validation.ok || coverageSourceFingerprint(resolve(sharding.directory, "../..")) !== sourceFingerprint) throw Error("Invalid Runner shard evidence: " + validation.errors.join("; "));
-	writeFileSync(join(output, "shard.json"), JSON.stringify({ index, count, owners: selected, sourceFingerprint, node: process.version, platform: process.platform, arch: process.arch, imageVersion: process.env.ImageVersion ?? null, reportSha256: sharding.fileHash(reportPath), resultsSha256: sharding.fileHash(resultsPath) }, null, 2) + "\n");
+	writeFileSync(join(output, "shard.json"), JSON.stringify({ index, count, owners: selected, sourceFingerprint, node: process.version, platform: process.platform, arch: process.arch, imageOS: process.env.ImageOS ?? null, imageVersion: process.env.ImageVersion ?? null, reportSha256: sharding.fileHash(reportPath), resultsSha256: sharding.fileHash(resultsPath) }, null, 2) + "\n");
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) runRunnerCoverageLane();

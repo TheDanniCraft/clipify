@@ -15,9 +15,10 @@ export function nativeCoverageThresholds(thresholds) {
 
 export function validateRunnerShardMetadata(rows, expected, fingerprint) {
 	if (!/^[a-f0-9]{64}$/.test(fingerprint) || rows.length !== expected.length) throw Error("Missing Runner shard evidence");
+	// GitHub rolls image patch versions across runners; the pinned OS must still match.
 	const seen = new Set();
 	for (const row of rows) {
-		if (seen.has(row.index) || row.count !== expected.length || !expected[row.index - 1] || JSON.stringify([...row.owners].sort()) !== JSON.stringify([...expected[row.index - 1]].sort()) || row.sourceFingerprint !== fingerprint || row.node !== process.version || row.platform !== process.platform || row.arch !== process.arch || row.imageVersion !== (process.env.ImageVersion ?? null)) throw Error("Duplicate, incomplete or foreign Runner shard evidence");
+		if (seen.has(row.index) || row.count !== expected.length || !expected[row.index - 1] || JSON.stringify([...row.owners].sort()) !== JSON.stringify([...expected[row.index - 1]].sort()) || row.sourceFingerprint !== fingerprint || row.node !== process.version || row.platform !== process.platform || row.arch !== process.arch || row.imageOS !== (process.env.ImageOS ?? null)) throw Error("Duplicate, incomplete or foreign Runner shard evidence");
 		seen.add(row.index);
 	}
 }
@@ -56,7 +57,27 @@ export async function mergeRunnerCoverage(input, planFile) {
 		validation = validateRunnerCoverageEvidence(combined, report, owners);
 	if (!validation.ok || coverageSourceFingerprint(resolve(sharding.directory, "../..")) !== fingerprint) throw Error("Invalid complete Runner evidence: " + validation.errors.join("; "));
 	writeFileSync(join(output, "jest-results.json"), JSON.stringify(combined));
-	writeFileSync(join(output, "execution-inputs.json"), JSON.stringify({ ...validation, sourceFingerprint: fingerprint, node: process.version, reportSha256: sharding.fileHash(join(output, "coverage-final.json")), passed: combined.numPassedTests, inheritedTodo: combined.numTodoTests }, null, 2) + "\n");
+	writeFileSync(
+		join(output, "execution-inputs.json"),
+		JSON.stringify(
+			{
+				...validation,
+				sourceFingerprint: fingerprint,
+				node: process.version,
+				platform: process.platform,
+				arch: process.arch,
+				runnerImages: folders.map((f) => {
+					const { imageOS, imageVersion } = JSON.parse(readFileSync(join(f, "shard.json"), "utf8"));
+					return { imageOS, imageVersion };
+				}),
+				reportSha256: sharding.fileHash(join(output, "coverage-final.json")),
+				passed: combined.numPassedTests,
+				inheritedTodo: combined.numTodoTests,
+			},
+			null,
+			2,
+		) + "\n",
+	);
 	const timings = Object.fromEntries(combined.testResults.map((s) => ["packages/runner/" + sharding.normalize(s.name), Math.max(0.001, (s.endTime - s.startTime) / 1000)]));
 	writeFileSync(join(output, "runner-durations.json"), JSON.stringify(timings, null, 2) + "\n");
 }
