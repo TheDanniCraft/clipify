@@ -153,7 +153,10 @@ export async function collectComprehensiveAccountData(input: { authUserId: strin
 	const emails = [...new Set([profiles[0]?.email, authUsers[0]?.email].filter((email): email is string => Boolean(email)))];
 	const { resourceAuditEvents, addressedNotifications, receivedInvitations, ...additional } = await collectAdditionalAccountData(input, { emails, resourceIds: [...overlays, ...playlists, ...galleries, ...runners, ...streamSessions].map((row) => row.id).concat(grantIds), queuedClips, playlistClips, modQueue });
 	const reusableCredentials = { ...collectReusableCredentialExport({ overlays, runners, streamSessions, destinations: additional.runner.destinations }), oauthAccounts: await collectOAuthCredentialExport(providerAccounts) };
-	const external = await collectExternalAccountData(emails);
+	const external = await collectExternalAccountData(
+		authUsers.filter((row) => row.emailVerified).map((row) => row.email),
+		input.creatorId,
+	);
 
 	return serializeExport({
 		exportFormat: "clipify-account-data-v3",

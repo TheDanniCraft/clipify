@@ -106,6 +106,7 @@ export function createAccountExportManifest(data: Record<string, unknown>) {
 			"Original stored credential values are preserved. Reusable credentials are also decrypted where available in reusableCredentials; unavailable decryption is identified explicitly. Password hashes cannot be converted back into passwords. Passkey private keys are held on the user's device, not in Clipify.",
 		],
 		sensitiveFields: [
+			"external/support.json: conversations[].messages[].attachments[].data_url, conversations[].messages[].attachments[].thumb_url",
 			"identity/providerAccounts.json: accessToken, refreshToken, idToken, password",
 			"identity/sessions.json: token",
 			"identity/passkeys.json: credentialID, publicKey",

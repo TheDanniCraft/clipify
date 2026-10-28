@@ -3,6 +3,10 @@ async function main() {
 	const fixture = await createMcpPostgresFixture();
 	process.env.DATABASE_URL = fixture.url;
 	process.env.USESEND_API_KEY = "";
+	process.env.CHATWOOT_API_TOKEN = "";
+	process.env.CHATWOOT_BASE_URL = "";
+	process.env.CHATWOOT_ACCOUNT_ID = "";
+	process.env.CHATWOOT_INBOX_IDS = "";
 	process.env.APP_ENV = "test";
 	process.env.DISABLE_BACKGROUND_JOBS = "true";
 	process.env.NEXT_PUBLIC_BASE_URL = "http://127.0.0.1:3107";
@@ -66,13 +70,42 @@ async function main() {
 			await fixture.pool.query(`INSERT INTO runner_branding_assets(id,owner_id,kind,normalized_mime,size_bytes,width,height,checksum,bytes) VALUES('55a14977-cf49-4338-adbd-9d9d50178b85','creator','logo','image/png',4,1,1,'fixture',$1)`, [Buffer.from([137, 80, 78, 71])]);
 		}
 
+		if (mode === "complete" || mode === "unverified-support-email") {
+			if (mode === "unverified-support-email") await fixture.pool.query("UPDATE auth.\"user\" SET email_verified=false WHERE id='owner'");
+			process.env.CHATWOOT_BASE_URL = "https://support.example.invalid";
+			process.env.CHATWOOT_ACCOUNT_ID = "1";
+			process.env.CHATWOOT_INBOX_IDS = "1";
+			process.env.CHATWOOT_API_TOKEN = "fixture-support-key";
+			const originalFetch = globalThis.fetch;
+			globalThis.fetch = async (input, init) => {
+				const url = new URL(String(input));
+				if (url.origin !== "https://support.example.invalid") return originalFetch(input, init);
+				const first = url.searchParams.get("page") === "1";
+				let data: unknown;
+				if (url.pathname.endsWith("/contacts/filter")) data = { payload: first ? [{ id: 7, identifier: "creator", email: "owner@example.invalid", name: "Owner", contact_inboxes: [{ inbox: { id: 1 } }] }] : [] };
+				else if (url.pathname.endsWith("/conversations/filter")) data = { payload: first ? [{ inbox_id: 1, id: 19, status: "resolved", created_at: 1700000000, meta: { sender: { id: 7 } } }] : [] };
+				else if (url.pathname.endsWith("/messages"))
+					data = {
+						meta: { contact: { id: 7 } },
+						payload: url.searchParams.has("before")
+							? []
+							: [
+									{ id: 30, conversation_id: 19, private: false, message_type: 0, content: "My exported support conversation", created_at: 1700000000 },
+									{ id: 31, conversation_id: 19, private: true, message_type: 1, content: "PRIVATE SUPPORT NOTE", created_at: 1700000000 },
+								],
+					};
+				else throw new Error("Unexpected support fixture route");
+				return Response.json(data);
+			};
+		}
+
 		const { collectComprehensiveAccountData } = await import("@/server/account-lifecycle/account-data-export");
 		if (mode === "sparse") {
 			await fixture.pool.query("DELETE FROM users WHERE id='creator'");
 			await fixture.pool.query("DELETE FROM auth.\"user\" WHERE id='owner'");
 		}
 		const exported = await collectComprehensiveAccountData({ authUserId: "owner", creatorId: "creator", organizationId: "creator-org", ...(mode === "sparse" ? {} : { now }) });
-		if (mode === "sparse") {
+		if (mode === "sparse" || mode === "unverified-support-email") {
 			console.log(JSON.stringify(exported));
 			return;
 		}
@@ -102,6 +135,9 @@ async function main() {
 					registeredClients: JSON.parse(strFromU8(files["aiApps/registeredClients.json"])).map((entry: { clientId: string }) => entry.clientId),
 					notice: strFromU8(files["READ-ME-FIRST.txt"]),
 					externalSupportStatus: manifest.externalSources.support.status,
+					manifestPathsExist: [...manifest.tables.flatMap((table: { datasets?: Array<{ file: string }> }) => (table.datasets ?? []).map((dataset) => dataset.file)), ...Object.values(manifest.externalSources).map((source) => (source as { file: string }).file)].every((name) => Object.hasOwn(files, name)),
+					supportMessages: JSON.parse(strFromU8(files["external/support.json"])).conversations.flatMap((conversation: { messages: Array<{ content: string }> }) => conversation.messages.map((message) => message.content)),
+					supportSecretsPresent: serialized.includes("PRIVATE SUPPORT NOTE") || serialized.includes("fixture-support-key"),
 				}),
 			);
 			return;

@@ -22,9 +22,16 @@ describe("TDD-PRIVACY-001 account export MCP approvals", () => {
 		expect(result.consentPolicyIds).toEqual(["own-policy"]);
 		expect(result.foreignDataPresent).toBe(false);
 		expect(result.registeredClients).toEqual(["owned-client"]);
-		expect(result.externalSupportStatus).toBe("external_request_required");
+		expect(result.externalSupportStatus).toBe("included");
+		expect(result.manifestPathsExist).toBe(true);
+		expect(result.supportMessages).toEqual(["My exported support conversation"]);
+		expect(result.supportSecretsPresent).toBe(false);
 		expect(result.notice).toContain("Names, usernames");
 		expect(result.notice).toContain("Do not reproduce credential values");
+	});
+	test("an unverified email cannot claim another support history", () => {
+		const result = runMcpProbe("account-export-probe", ["unverified-support-email"]);
+		expect(result.external.support).toEqual({ status: "included", contacts: [], conversations: [] });
 	});
 	test.each(["active", "revoked"])("exports own %s approvals without private client data", (mode) => {
 		const result = runMcpProbe("account-export-probe", [mode]);
