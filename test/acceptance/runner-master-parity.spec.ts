@@ -78,9 +78,10 @@ test("Runner preserves first connection, headless setup, updates, quality and re
 			}
 		};
 		await expectCenteredSetup();
-		const advanced = setup.getByRole("button", { name: "Advanced / Docker setup", exact: true });
+		const advanced = setup.getByRole("button", { name: "Advanced / Headless setup", exact: true });
 		await advanced.focus();
 		await advanced.press("Enter");
+		await expect(setup.getByRole("link", { name: "Read the headless setup guide" })).toHaveAttribute("href", "https://help.clipify.us/hc/clipify/articles/self-hosted-clipify-runner");
 		await expect(setup.getByText(/CLIPIFY_TOKEN/)).toBeVisible();
 		const token = setup.getByLabel("Manual Runner Token", { exact: true });
 		await expect(token).toHaveAttribute("type", "password");

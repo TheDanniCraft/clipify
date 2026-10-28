@@ -10,6 +10,7 @@ jest.mock("child_process");
 jest.mock("puppeteer-stream", () => ({ launch: jest.fn(), getStream: jest.fn() }));
 jest.mock("fs");
 jest.mock("net", () => ({
+	...jest.requireActual("net"),
 	createServer: jest.fn().mockReturnValue({
 		once: jest.fn(),
 		off: jest.fn(),

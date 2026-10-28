@@ -277,6 +277,19 @@ describe("actions/subscription", () => {
 		await expect(requestAccountDeletion("immediate")).resolves.toMatchObject({ status: "suspended" });
 		expect(subscriptionsCancel).toHaveBeenCalledWith("sub_lifecycle");
 	});
+	it("returns verification requirements without sending mail, consuming export quota or changing billing", async () => {
+		const { requestAccountDataExport, requestAccountDeletion, recoverAccountDeletion } = await loadSubscription();
+		prepareDatabaseAccountDataExport.mockRejectedValueOnce(new Error("RECENT_AUTH_REQUIRED"));
+		requestDatabaseAccountDeletion.mockRejectedValueOnce(new Error("RECENT_AUTH_REQUIRED"));
+		recoverDatabaseAccountDeletion.mockRejectedValueOnce(new Error("RECENT_AUTH_REQUIRED"));
+		await expect(requestAccountDataExport()).resolves.toEqual({ success: false, code: "REAUTHENTICATION_REQUIRED" });
+		await expect(requestAccountDeletion("paid_through")).resolves.toEqual({ success: false, code: "REAUTHENTICATION_REQUIRED" });
+		await expect(recoverAccountDeletion("00000000-0000-4000-8000-000000000001")).resolves.toEqual({ success: false, code: "REAUTHENTICATION_REQUIRED" });
+		expect(sendAccountDataExport).not.toHaveBeenCalled();
+		expect(tryRateLimit).not.toHaveBeenCalled();
+		expect(subscriptionsUpdate).not.toHaveBeenCalled();
+		expect(subscriptionsCancel).not.toHaveBeenCalled();
+	});
 
 	it("rejects an invalid account deletion choice before loading the database boundary", async () => {
 		const { requestAccountDeletion } = await loadSubscription();
@@ -291,7 +304,7 @@ describe("actions/subscription", () => {
 		expect(tryRateLimit).toHaveBeenCalledWith({ key: "account-data-export", points: 3, duration: 86_400, identifier: "auth-1" });
 		expect(createAccountDataExportToken).toHaveBeenCalledWith(expect.objectContaining({ authUserId: "auth-1", creatorId: "user-1", organizationId: "org-1", now: expect.any(Date) }));
 		expect(sendAccountDataExport).toHaveBeenCalledWith(expect.objectContaining({ email: "alice@example.com", downloadUrl: "https://clipify.us/api/account/export?token=signed-export-token", expiresAt: expect.any(Date) }));
-		expect(new Date(result.expiresAt).getTime()).toBeGreaterThan(Date.now() + 2 * 24 * 60 * 60 * 1000);
+		expect(new Date((result as { expiresAt: string }).expiresAt).getTime()).toBeGreaterThan(Date.now() + 2 * 24 * 60 * 60 * 1000);
 	});
 
 	it("prepares exports without contacting the real mail provider in the E2E environment", async () => {
@@ -311,7 +324,7 @@ describe("actions/subscription", () => {
 		tryRateLimit.mockResolvedValueOnce({ success: false });
 		const { requestAccountDataExport } = await loadSubscription();
 
-		await expect(requestAccountDataExport()).rejects.toThrow("EXPORT_RATE_LIMITED");
+		await expect(requestAccountDataExport()).resolves.toEqual({ success: false, code: "EXPORT_RATE_LIMITED" });
 		expect(sendAccountDataExport).not.toHaveBeenCalled();
 	});
 });

@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Accordion, Button, InputGroup, Label, TextField } from "@heroui/react";
+import { Accordion, Button, InputGroup, Label, Link, TextField } from "@heroui/react";
 import { IconCheck, IconCopy, IconEye, IconEyeOff } from "@tabler/icons-react";
 
 export default function AdvancedRunnerSetup({ token, error, onRetry, pending = false }: { token: string | null; error: string | null; onRetry: () => void; pending?: boolean }) {
@@ -22,7 +22,7 @@ export default function AdvancedRunnerSetup({ token, error, onRetry, pending = f
 			<Accordion.Item id='advanced-runner-setup'>
 				<Accordion.Heading>
 					<Accordion.Trigger>
-						Advanced / Docker setup
+						Advanced / Headless setup
 						<Accordion.Indicator />
 					</Accordion.Trigger>
 				</Accordion.Heading>
@@ -43,8 +43,11 @@ export default function AdvancedRunnerSetup({ token, error, onRetry, pending = f
 							</InputGroup>
 						</TextField>
 						<p className='text-sm text-muted'>
-							For Docker or a headless computer, set <code>CLIPIFY_TOKEN</code> to this token when starting Runner.
+							For a headless computer, set <code>CLIPIFY_TOKEN</code> to this token when starting Runner.
 						</p>
+						<Link href='https://help.clipify.us/hc/clipify/articles/self-hosted-clipify-runner' target='_blank' rel='noopener noreferrer'>
+							Read the headless setup guide
+						</Link>
 						{copied && (
 							<p role='status' className='text-sm text-success'>
 								Token copied

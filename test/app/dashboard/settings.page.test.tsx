@@ -8,6 +8,7 @@ const getOwnClipForceRefreshStatus = jest.fn();
 const forceRefreshOwnClipCache = jest.fn();
 const router = { push: jest.fn(), replace: jest.fn() };
 const notify = jest.fn();
+const getFeatureAccess = jest.fn();
 jest.mock("@heroui/react", () => {
 	const React = require("react");
 	const fixture = jest.requireActual("../../__mocks__/heroui-react.cjs");
@@ -39,7 +40,7 @@ jest.mock("@actions/twitch", () => ({ getOwnClipForceRefreshStatus: (...args: un
 jest.mock("@actions/subscription", () => ({ requestAccountDataExport: jest.fn(), requestAccountDeletion: jest.fn() }));
 jest.mock("@/auth/client", () => ({ authClient: { signIn: { social: jest.fn() } } }));
 jest.mock("@lib/toast", () => ({ notify: (...args: unknown[]) => notify(...args) }));
-jest.mock("@lib/featureAccess", () => ({ getFeatureAccess: () => ({ allowed: true }), getTrialDaysLeft: () => 0, isReverseTrialActive: () => false }));
+jest.mock("@lib/featureAccess", () => ({ getFeatureAccess: (...args: unknown[]) => getFeatureAccess(...args), getTrialDaysLeft: () => 0, isReverseTrialActive: () => false }));
 jest.mock("nextjs-nav-guard", () => ({ useNavigationGuard: () => ({ active: false, accept: jest.fn(), reject: jest.fn() }) }));
 jest.mock("next/image", () => ({ __esModule: true, default: () => null }));
 jest.mock("@components/dashboardNavbar", () => ({ __esModule: true, default: ({ children }: any) => <main>{children}</main> }));
@@ -105,6 +106,7 @@ import { authClient } from "@/auth/client";
 
 beforeEach(() => {
 	jest.clearAllMocks();
+	getFeatureAccess.mockReset().mockReturnValue({ allowed: true });
 	window.history.replaceState({}, "", "/dashboard/settings");
 	sessionStorage.clear();
 	validateAuth.mockReset().mockResolvedValue({ id: "owner", username: "Owner", plan: "free", email: "owner@example.invalid" });
@@ -251,8 +253,9 @@ test("clip schedule shows an estimate and completed history, then a queued refre
 	expect(screen.queryByText(/Next check in about/)).not.toBeInTheDocument();
 });
 test.each(["success", "rate-limited", "failure", "recent-auth"])("account export handles %s without exposing internal errors", async (mode) => {
-	if (mode === "success") (requestAccountDataExport as jest.Mock).mockResolvedValue({ email: "owner@example.invalid", expiresAt: "2026-10-09T00:00:00Z" });
-	else (requestAccountDataExport as jest.Mock).mockRejectedValue(new Error(mode === "rate-limited" ? "EXPORT_RATE_LIMITED" : mode === "recent-auth" ? "RECENT_AUTH_REQUIRED" : "private export failure"));
+	if (mode === "success") (requestAccountDataExport as jest.Mock).mockResolvedValue({ success: true, email: "owner@example.invalid", expiresAt: "2026-10-09T00:00:00Z" });
+	else if (mode === "recent-auth" || mode === "rate-limited") (requestAccountDataExport as jest.Mock).mockResolvedValue({ success: false, code: mode === "recent-auth" ? "REAUTHENTICATION_REQUIRED" : "EXPORT_RATE_LIMITED" });
+	else (requestAccountDataExport as jest.Mock).mockRejectedValue(new Error("private export failure"));
 	render(<SettingsPage />);
 	fireEvent.click(await screen.findByRole("button", { name: "Export Account Data" }));
 	fireEvent.click(screen.getByRole("button", { name: "Email download link" }));
@@ -261,14 +264,16 @@ test.each(["success", "rate-limited", "failure", "recent-auth"])("account export
 	expect(JSON.stringify(notify.mock.calls)).not.toContain("private export failure");
 });
 test.each(["success", "failure", "recent-auth"])("scheduled deletion handles %s", async (mode) => {
-	if (mode === "success") (requestAccountDeletion as jest.Mock).mockResolvedValue({ status: "scheduled", suspensionAt: "2026-10-09T00:00:00Z" });
-	else (requestAccountDeletion as jest.Mock).mockRejectedValue(new Error(mode === "recent-auth" ? "RECENT_AUTH_REQUIRED" : "private deletion failure"));
+	if (mode === "success") (requestAccountDeletion as jest.Mock).mockResolvedValue({ success: true, status: "scheduled", suspensionAt: "2026-10-09T00:00:00Z" });
+	else if (mode === "recent-auth") (requestAccountDeletion as jest.Mock).mockResolvedValue({ success: false, code: "REAUTHENTICATION_REQUIRED" });
+	else (requestAccountDeletion as jest.Mock).mockRejectedValue(new Error("private deletion failure"));
 	render(<SettingsPage />);
 	fireEvent.click(await screen.findByRole("button", { name: "Schedule Account Deletion" }));
 	fireEvent.click(screen.getByRole("button", { name: "Schedule deletion" }));
 	if (mode === "recent-auth") expect(await screen.findByText("Sign in again to continue")).toBeVisible();
 	else await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: mode === "success" ? "Deletion scheduled" : "Deletion was not scheduled" })));
 	expect(JSON.stringify(notify.mock.calls)).not.toContain("private deletion failure");
+	if (mode === "recent-auth") expect(notify).not.toHaveBeenCalled();
 });
 
 test("email preference toggles save explicit opt-in and opt-out provenance", async () => {
@@ -337,27 +342,56 @@ test.each(["free", "pro"])("old Runner add-on request opens normal %s billing wi
 	expect(screen.queryByText("Upgrade with Runner")).not.toBeInTheDocument();
 	expect(screen.queryByText("Upgrade runner_access yearly")).not.toBeInTheDocument();
 });
-test("return from recent export sign-in stores a bounded window and removes return marker", async () => {
+test("return from recent export sign-in restores confirmation without a countdown", async () => {
 	window.history.replaceState({}, "", "/dashboard/settings?reauthenticated=export&tab=settings");
 	render(<SettingsPage />);
 	expect(await screen.findByText("Request your Clipify data")).toBeVisible();
 	expect(router.replace).toHaveBeenCalledWith("/dashboard/settings?tab=settings");
-	const remaining = Number(sessionStorage.getItem("clipify:recent-auth-expires-at")) - Date.now();
-	expect(remaining).toBeGreaterThan(290000);
-	expect(remaining).toBeLessThanOrEqual(300000);
+	expect(screen.queryByText(/Recent sign-in:/)).not.toBeInTheDocument();
+	expect(sessionStorage.getItem("clipify:recent-auth-expires-at")).toBeNull();
 	fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
 	expect(screen.queryByText("Request your Clipify data")).not.toBeInTheDocument();
 	expect(requestAccountDataExport).not.toHaveBeenCalled();
 });
+
+test("a stale download preserves its token for verification and removes it from the visible URL", async () => {
+	const token = "signed+download/token==";
+	window.history.replaceState({}, "", `/dashboard/settings#downloadExport=${encodeURIComponent(token)}`);
+	(authClient.signIn.social as jest.Mock).mockResolvedValue({ error: null });
+	render(<SettingsPage />);
+	expect(await screen.findByText("Sign in again to continue")).toBeVisible();
+	expect(window.location.hash).toBe("");
+	fireEvent.click(screen.getByRole("button", { name: "Continue with Twitch" }));
+	await waitFor(() => expect(authClient.signIn.social).toHaveBeenCalledWith({ provider: "twitch", callbackURL: `/dashboard/settings?reauthenticated=download#downloadExport=${encodeURIComponent(token)}`, errorCallbackURL: "/dashboard/settings?verification=failed" }));
+	expect(requestAccountDataExport).not.toHaveBeenCalled();
+});
+
+test.each(["deletion", "sensitive-action"])("returning from %s verification restores confirmation without changing the account", async (action) => {
+	window.history.replaceState({}, "", `/dashboard/settings?reauthenticated=${action}`);
+	render(<SettingsPage />);
+	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Signed in again" })));
+	if (action === "deletion") expect(screen.getByRole("button", { name: "Schedule deletion" })).toBeVisible();
+	expect(router.replace).toHaveBeenCalledWith("/dashboard/settings");
+	expect(requestAccountDeletion).not.toHaveBeenCalled();
+	expect(requestAccountDataExport).not.toHaveBeenCalled();
+});
+
+test.each(["", "&tab=connections"])("a cancelled identity check gives actionable feedback and preserves other parameters %s", async (other) => {
+	window.history.replaceState({}, "", `/dashboard/settings?verification=failed${other}`);
+	render(<SettingsPage />);
+	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Identity check was not completed", color: "warning" })));
+	expect(window.location.search).toBe(other ? "?tab=connections" : "");
+	expect(requestAccountDataExport).not.toHaveBeenCalled();
+});
 test.each(["success", "failure"])("export recent-auth verification handles %s", async (mode) => {
-	(requestAccountDataExport as jest.Mock).mockRejectedValue(new Error("RECENT_AUTH_REQUIRED"));
+	(requestAccountDataExport as jest.Mock).mockResolvedValue({ success: false, code: "REAUTHENTICATION_REQUIRED" });
 	(authClient.signIn.social as jest.Mock).mockResolvedValue({ error: mode === "failure" ? { message: "private auth failure" } : null });
 	render(<SettingsPage />);
 	fireEvent.click(await screen.findByRole("button", { name: "Export Account Data" }));
 	fireEvent.click(screen.getByRole("button", { name: "Email download link" }));
 	fireEvent.click(await screen.findByRole("button", { name: "Continue with Twitch" }));
-	await waitFor(() => expect(authClient.signIn.social).toHaveBeenCalledWith({ provider: "twitch", callbackURL: "/dashboard/settings?reauthenticated=export", errorCallbackURL: "/dashboard/settings?reauthentication=failed" }));
-	if (mode === "failure") await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Identity check could not start" })));
+	await waitFor(() => expect(authClient.signIn.social).toHaveBeenCalledWith({ provider: "twitch", callbackURL: "/dashboard/settings?reauthenticated=export", errorCallbackURL: "/dashboard/settings?verification=failed" }));
+	if (mode === "failure") expect(await screen.findByRole("alert")).toHaveTextContent("Sign-in could not start. Please try again.");
 	expect(JSON.stringify(notify.mock.calls)).not.toContain("private auth failure");
 });
 test.each([
@@ -379,7 +413,7 @@ test("inline settings and creator links preserve navigation between sections", a
 	expect(screen.getByText("Security panel")).toBeVisible();
 });
 test("deletion timing choices are explicit and only confirmation reaches the action", async () => {
-	(requestAccountDeletion as jest.Mock).mockResolvedValue({ status: "scheduled", suspensionAt: "2026-10-09T00:00:00Z" });
+	(requestAccountDeletion as jest.Mock).mockResolvedValue({ success: true, status: "scheduled", suspensionAt: "2026-10-09T00:00:00Z" });
 	render(<SettingsPage />);
 	fireEvent.click(await screen.findByRole("button", { name: "Schedule Account Deletion" }));
 	fireEvent.click(screen.getByRole("button", { name: "Suspend now" }));
@@ -396,7 +430,7 @@ test("export cancel closes the dialog without requesting data", async () => {
 	expect(requestAccountDataExport).not.toHaveBeenCalled();
 });
 test.each(["button", "dialog"])("recent-auth %s cancellation performs no social sign-in", async (mode) => {
-	(requestAccountDataExport as jest.Mock).mockRejectedValue(new Error("RECENT_AUTH_REQUIRED"));
+	(requestAccountDataExport as jest.Mock).mockResolvedValue({ success: false, code: "REAUTHENTICATION_REQUIRED" });
 	render(<SettingsPage />);
 	fireEvent.click(await screen.findByRole("button", { name: "Export Account Data" }));
 	fireEvent.click(screen.getByRole("button", { name: "Email download link" }));
@@ -438,4 +472,33 @@ test("Team deep links select the same embedded panel and preserve query context"
 	expect(new URLSearchParams(window.location.search).get("organization")).toBe("creator-org");
 	expect(new URLSearchParams(window.location.search).get("tab")).toBe("connections");
 	expect(router.push).not.toHaveBeenCalled();
+});
+
+test("Creator Page social preview upgrade opens the relevant upgrade without saving settings", async () => {
+	getFeatureAccess.mockReturnValue({ allowed: false });
+	window.history.replaceState({}, "", "/dashboard/settings?tab=creator");
+	render(<SettingsPage />);
+	fireEvent.click(await screen.findByRole("button", { name: "Upgrade to Pro" }));
+	expect(await screen.findByText("Upgrade creator_social_preview yearly")).toBeVisible();
+	expect(saveSettings).not.toHaveBeenCalled();
+});
+
+test("an obsolete export action closes the export dialog without a misleading failure toast", async () => {
+	const error = new Error("Server Action was not found on the server.");
+	error.name = "UnrecognizedActionError";
+	(requestAccountDataExport as jest.Mock).mockRejectedValue(error);
+	const check = jest.fn();
+	window.addEventListener("clipify:check-deployment", check);
+	const view = render(<SettingsPage />);
+	try {
+		await screen.findByRole("button", { name: "Export Account Data" });
+		fireEvent.click(screen.getByRole("button", { name: "Export Account Data" }));
+		fireEvent.click(screen.getByRole("button", { name: /Email download link/ }));
+		await waitFor(() => expect(check).toHaveBeenCalled());
+		expect(notify).not.toHaveBeenCalledWith(expect.objectContaining({ title: "Export request failed" }));
+		expect(screen.queryByRole("button", { name: /Email download link/ })).not.toBeInTheDocument();
+	} finally {
+		window.removeEventListener("clipify:check-deployment", check);
+		view.unmount();
+	}
 });

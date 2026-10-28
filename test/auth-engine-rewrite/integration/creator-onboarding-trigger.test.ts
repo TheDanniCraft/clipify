@@ -114,6 +114,13 @@ describe("Better Auth hooks own Clipify creator setup", () => {
 		expect(notices.rows[0].count).toBe(1);
 	});
 
+	it("blocks primary Twitch unlinking through the native endpoint without removing login credentials", async () => {
+		const id = randomUUID();
+		probe(id);
+		expect(probe(id, "unlink-primary")).toEqual({ status: 400, code: "PRIMARY_TWITCH_ACCOUNT_REQUIRED", credentialsPreserved: true, signInStillWorks: true });
+		expect((await state(id)).owners).toBe(1);
+	});
+
 	it("reuses a migrated creator organization during sign-in and concurrent retries", async () => {
 		const id = randomUUID();
 		const organizationId = `creator:${randomUUID().replaceAll("-", "").slice(0, 24)}`;

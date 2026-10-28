@@ -2,11 +2,20 @@
 
 import { headers } from "next/headers";
 import { auth } from "@/auth/config";
+import { isPrimaryTwitchAccount } from "@/server/primary-twitch-account";
 
 const FRESH_SESSION_MS = 5 * 60 * 1000;
 const FRESH_SESSION_SAFETY_MS = 5_000;
 
-export type DisconnectLinkedAccountResult = { success: true; providerId: string } | { success: false; code: "ACCOUNT_NOT_FOUND" | "REAUTHENTICATION_REQUIRED" | "REVOCATION_FAILED" | "SERVICE_UNAVAILABLE"; error: string; reauthProvider?: "twitch" | "google" };
+export type DisconnectLinkedAccountResult = { success: true; providerId: string } | { success: false; code: "ACCOUNT_NOT_FOUND" | "REAUTHENTICATION_REQUIRED" | "PRIMARY_ACCOUNT_REQUIRED" | "REVOCATION_FAILED" | "SERVICE_UNAVAILABLE"; error: string; reauthProvider?: "twitch" | "google" };
+
+export async function listLinkedAccounts() {
+	const requestHeaders = await headers();
+	const session = await auth.api.getSession({ headers: requestHeaders });
+	if (!session) return { data: null, error: "AUTHENTICATION_REQUIRED" };
+	const accounts = await auth.api.listUserAccounts({ headers: requestHeaders });
+	return { data: await Promise.all(accounts.map(async (account) => ({ ...account, isPrimary: await isPrimaryTwitchAccount({ ...account, userId: session.user.id }) }))), error: null };
+}
 
 async function sessionIdentity() {
 	const requestHeaders = await headers();
@@ -69,6 +78,7 @@ export async function disconnectLinkedAccount(accountId: string): Promise<Discon
 	const accounts = await auth.api.listUserAccounts({ headers: requestHeaders });
 	const account = accounts.find((candidate) => candidate.id === accountId);
 	if (!account || (account.providerId !== "twitch" && account.providerId !== "google")) return { success: false, code: "ACCOUNT_NOT_FOUND", error: "This account is no longer linked." };
+	if (await isPrimaryTwitchAccount({ ...account, userId: session.user.id })) return { success: false, code: "PRIMARY_ACCOUNT_REQUIRED", error: "Your primary Twitch account is required for Clipify. Manage Runner channels separately." };
 	const reauthProvider = ([account.providerId, ...accounts.map((candidate) => candidate.providerId)].find((provider) => provider === "twitch" || provider === "google") ?? undefined) as "twitch" | "google" | undefined;
 	if (Date.now() - new Date(session.session.createdAt).getTime() >= FRESH_SESSION_MS - FRESH_SESSION_SAFETY_MS) {
 		return { success: false, code: "REAUTHENTICATION_REQUIRED", error: "Sign in again before disconnecting this account.", reauthProvider };

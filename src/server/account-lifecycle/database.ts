@@ -251,6 +251,7 @@ export async function downloadDatabaseAccountDataExport(input: { authUserId: str
 		.where(and(eq(authMemberTable.organizationId, input.organizationId), eq(authMemberTable.userId, actor.authUserId)))
 		.limit(1);
 	if (membership[0]?.role !== "owner") throw new Error("EXPORT_IDENTITY_MISMATCH");
+	assertOwnerAndRecent({ authUserId: actor.authUserId, sessionId: actor.sessionId, organizationId: input.organizationId, accountRole: "owner", authenticatedAt: actor.authenticatedAt }, input.now ?? new Date());
 	const { collectComprehensiveAccountData } = await import("./account-data-export");
 	return collectComprehensiveAccountData(input);
 }

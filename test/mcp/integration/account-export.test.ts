@@ -1,9 +1,40 @@
 /** @jest-environment node */
 import { runMcpProbe } from "../../support/mcp/probe";
 describe("TDD-PRIVACY-001 account export MCP approvals", () => {
+	test("preserves empty datasets and export time when linked records have already disappeared", () => {
+		const result = runMcpProbe("account-export-probe", ["sparse"]);
+		expect(result.identity.profile).toBeNull();
+		expect(result.identity.authUsers).toEqual([]);
+		expect(result.external.newsletter.status).toBe("not_configured");
+		expect(Number.isNaN(Date.parse(result.exportedAt))).toBe(false);
+	});
+	test("builds a complete scoped ZIP with readable dates, stored credentials and an explicit coverage manifest", () => {
+		const result = runMcpProbe("account-export-probe", ["complete"], 60000);
+		expect(result.hasTableInventory).toBe(false);
+		expect(result.files).toEqual(expect.arrayContaining(["READ-ME-FIRST.txt", "manifest.json", "account/account.json", "security/security.json", "runner/runner.json", "clips/clips.json", "connections/connections.json", "support/conversations.json"]));
+		expect(result.createdAt).toBe("2026-10-05T00:00:00.000Z");
+		expect(result.username).toBe("password is an ordinary username");
+		expect(result.clipIds).toEqual(["clip:creator:own-clip"]);
+		expect(result.ownCredentialsPresent).toBe(true);
+		expect(result.unavailableCredentialPreserved).toBe(true);
+		expect(result.brandingBytes).toEqual([137, 80, 78, 71]);
+		expect(result.consentPolicyIds).toEqual(["own-policy"]);
+		expect(result.foreignDataPresent).toBe(false);
+		expect(result.registeredClients).toEqual(["owned-client"]);
+		expect(result.supportIndex).toMatchObject({ file: "support/conversations.json", records: 1, messages: 1 });
+		expect(result.manifestPathsExist).toBe(true);
+		expect(result.supportMessages).toEqual(["My exported support conversation"]);
+		expect(result.supportSecretsPresent).toBe(false);
+		expect(result.notice).toContain("Names, usernames");
+		expect(result.notice).toContain("Do not reproduce credential values");
+	});
+	test("an unverified email cannot claim another support history", () => {
+		const result = runMcpProbe("account-export-probe", ["unverified-support-email"]);
+		expect(result.external.support).toEqual({ status: "included", contacts: [], conversations: [] });
+	});
 	test.each(["active", "revoked"])("exports own %s approvals without private client data", (mode) => {
 		const result = runMcpProbe("account-export-probe", [mode]);
-		expect(result.mcp).toEqual({ connections: [expect.objectContaining({ id: result.ownId, clientId: "client", clientName: "Custom AI", scopes: ["creator:read", "overlay:read"], active: mode === "active", revokedAt: mode === "revoked" ? result.now : null, creators: [{ creatorId: "creator", agencyOrganizationId: null }] })] });
+		expect(result.mcp).toMatchObject({ connections: [expect.objectContaining({ id: result.ownId, clientId: "client", clientName: "Custom AI", scopes: ["creator:read", "overlay:read"], active: mode === "active", revokedAt: mode === "revoked" ? result.now : null, creators: [{ creatorId: "creator", agencyOrganizationId: null }] })] });
 		expect(result.leaksPrivateClientData).toBe(false);
 		expect(result.leaksForeignGrant).toBe(false);
 	});
@@ -25,7 +56,7 @@ describe("TDD-PRIVACY-001 account export MCP approvals", () => {
 	});
 	test("exports no connections when only another actor has an approval", () => {
 		const result = runMcpProbe("account-export-probe", ["empty"]);
-		expect(result.mcp).toEqual({ connections: [] });
+		expect(result.mcp).toMatchObject({ connections: [] });
 		expect(result.leaksForeignGrant).toBe(false);
 	});
 });

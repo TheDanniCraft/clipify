@@ -5,7 +5,7 @@ import * as net from "net";
 jest.mock("puppeteer-stream", () => ({ launch: jest.fn(), getStream: jest.fn() }));
 jest.mock("../downloader", () => ({ ensureDependencies: jest.fn() }));
 jest.mock("../extension", () => ({ writeExtension: jest.fn() }));
-jest.mock("net", () => ({ createServer: jest.fn(), Socket: jest.fn() }));
+jest.mock("net", () => ({ ...jest.requireActual("net"), createServer: jest.fn(), Socket: jest.fn() }));
 
 class Socket extends EventEmitter {
 	remoteAddress = "127.0.0.1";
@@ -25,7 +25,9 @@ class Socket extends EventEmitter {
 let accept: (socket: Socket) => void;
 let server: EventEmitter & { listen: jest.Mock; close: jest.Mock };
 let forwards: Socket[];
+const originalRtmpHost = process.env.CLIPIFY_RTMP_HOST;
 beforeEach(() => {
+	delete process.env.CLIPIFY_RTMP_HOST;
 	jest.useFakeTimers();
 	jest.clearAllMocks();
 	forwards = [];
@@ -42,6 +44,8 @@ beforeEach(() => {
 });
 afterEach(async () => {
 	await stopTCPProxy();
+	if (originalRtmpHost === undefined) delete process.env.CLIPIFY_RTMP_HOST;
+	else process.env.CLIPIFY_RTMP_HOST = originalRtmpHost;
 	jest.clearAllTimers();
 	jest.useRealTimers();
 });
@@ -116,4 +120,27 @@ test("stopping destroys open clients and failed listeners can be retried", async
 	expect(server.close).toHaveBeenCalledTimes(1);
 	await stopTCPProxy();
 	expect(server.close).toHaveBeenCalledTimes(1);
+});
+
+test.each([
+	[undefined, "127.0.0.1"],
+	["", "127.0.0.1"],
+	["0.0.0.0", "0.0.0.0"],
+	[" 192.168.1.20 ", "192.168.1.20"],
+	["::1", "::1"],
+	["::", "::"],
+])("binds the ingest listener to %s without changing the local FFmpeg forwarder", async (configured, expected) => {
+	if (configured !== undefined) process.env.CLIPIFY_RTMP_HOST = configured;
+	await startTCPProxy();
+	expect(server.listen).toHaveBeenCalledWith(1935, expected, expect.any(Function));
+	const client = new Socket();
+	accept(client);
+	client.emit("data", Buffer.from([3]));
+	expect(forwards[0].connect).toHaveBeenCalledWith(1936, "127.0.0.1", expect.any(Function));
+});
+
+test.each(["not-an-address", "http://0.0.0.0", "0.0.0.0:1935"])("rejects invalid ingest bind address %s before opening a listener", async (host) => {
+	process.env.CLIPIFY_RTMP_HOST = host;
+	await expect(startTCPProxy()).rejects.toThrow("CLIPIFY_RTMP_HOST must be an IPv4 or IPv6 address");
+	expect(net.createServer).not.toHaveBeenCalled();
 });

@@ -101,9 +101,15 @@ test("Runner channel linking records the destination without onboarding another 
 
 test("account deletion cleans up Runner channel references after the account is deleted", async () => {
 	const account = { id: "runner-account", providerId: "google", userId: "identity", accountId: "channel" };
-	expect(options.databaseHooks.account.delete.before).toBeUndefined();
+	await expect(options.databaseHooks.account.delete.before(account)).resolves.toBeUndefined();
 	await options.databaseHooks.account.delete.after(account, undefined);
 	expect(disconnectStreamingConnectionsForAuthAccount).toHaveBeenCalledWith({ id: "runner-account", userId: "identity" });
+});
+
+test("account deletion refuses the creator's primary Twitch identity", async () => {
+	rows.push([{ creatorId: "creator" }]);
+	await expect(options.databaseHooks.account.delete.before({ id: "primary", providerId: "twitch", userId: "identity", accountId: "creator" })).rejects.toThrow("Your primary Twitch account is required for Clipify.");
+	expect(disconnectStreamingConnectionsForAuthAccount).not.toHaveBeenCalled();
 });
 
 test("auth identity updates synchronize the linked creator through our function", async () => {

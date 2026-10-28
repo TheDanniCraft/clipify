@@ -82,6 +82,7 @@
 		"drizzle-orm": "^0.45.4",
 		"embla-carousel": ">=8.6.0",
 		"embla-carousel-react": ">=8.6.0",
+		"fflate": "^0.8.3",
 		"fluent-ffmpeg": "^2.1.3",
 		"jsonwebtoken": "^9.0.3",
 		"maplibre-gl": ">=6.14.0",

@@ -4,7 +4,8 @@ import { IconCalendarClock, IconDatabase, IconRefresh, IconShieldLock } from "@t
 import DashboardNavbar from "@components/dashboardNavbar";
 import { AlertContent, AlertDescription, AlertRoot, Button, CardContent, CardDescription, CardFooter, CardHeader, CardRoot, CardTitle, Chip } from "@components/heroui-client";
 import { getAuthActorContext } from "@/auth/session";
-import { getAccountDeletionOverview, recoverAccountDeletion } from "@actions/subscription";
+import { getAccountDeletionOverview } from "@actions/subscription";
+import RecoveryAction from "./recovery-action";
 
 export default async function AccountRecoveryPage() {
 	const actor = await getAuthActorContext();
@@ -13,12 +14,6 @@ export default async function AccountRecoveryPage() {
 	const request = await getAccountDeletionOverview();
 	if (!request) redirect("/dashboard/settings");
 	const requestId = request.id;
-
-	async function recover() {
-		"use server";
-		await recoverAccountDeletion(requestId);
-		redirect("/dashboard");
-	}
 
 	const purgeDate = request.purgeEligibleAt ? new Date(request.purgeEligibleAt) : null;
 
@@ -85,12 +80,7 @@ export default async function AccountRecoveryPage() {
 									Recovery unavailable
 								</Button>
 							) : (
-								<form action={recover}>
-									<Button type='submit' variant='primary'>
-										<IconRefresh aria-hidden='true' size={18} />
-										Recover my account
-									</Button>
-								</form>
+								<RecoveryAction requestId={requestId} />
 							)}
 						</div>
 					</CardContent>

@@ -32,7 +32,9 @@ RUN case "$COOLIFY_URL" in \
 
 RUN --mount=type=secret,id=SENTRY_DSN,env=SENTRY_DSN,required=true \
     --mount=type=secret,id=SENTRY_AUTH_TOKEN,env=SENTRY_AUTH_TOKEN,required=true \
-    SENTRY_RELEASE="${SENTRY_RELEASE:-${SENTRY_RELEASE_PREFIX}@${SOURCE_COMMIT:-local}}" \
+    deployment_build_id="${SOURCE_COMMIT:-$(node -e 'process.stdout.write(require("node:crypto").randomUUID())')}" && \
+    SOURCE_COMMIT="${deployment_build_id}" \
+    SENTRY_RELEASE="${SENTRY_RELEASE:-${SENTRY_RELEASE_PREFIX}@${deployment_build_id}}" \
     bun run app:build
 
 # -------------------------

@@ -82,7 +82,9 @@ export async function stopTCPProxy() {
 export async function startTCPProxy() {
 	if (proxyClosePromise) await proxyClosePromise;
 	if (proxyServer) return Promise.resolve(false);
-	console.log(`[TCP Proxy] Starting on port ${RTMP_PROXY_PORT}...`);
+	const host = process.env.CLIPIFY_RTMP_HOST?.trim() || "127.0.0.1";
+	if (!net.isIP(host)) throw new Error("CLIPIFY_RTMP_HOST must be an IPv4 or IPv6 address");
+	console.log(`[TCP Proxy] Starting on ${host}:${RTMP_PROXY_PORT}...`);
 	const server = net.createServer((clientSocket) => {
 		proxySockets.add(clientSocket);
 		console.log(`[TCP Proxy] Connection received from ${clientSocket.remoteAddress}`);
@@ -196,9 +198,9 @@ export async function startTCPProxy() {
 			reject(error);
 		};
 		server.once("error", handleListenError);
-		server.listen(RTMP_PROXY_PORT, "127.0.0.1", () => {
+		server.listen(RTMP_PROXY_PORT, host, () => {
 			server.off("error", handleListenError);
-			console.log(`[TCP Proxy] Listening on port ${RTMP_PROXY_PORT}`);
+			console.log(`[TCP Proxy] Listening on ${host}:${RTMP_PROXY_PORT}`);
 			resolve(true);
 		});
 	});

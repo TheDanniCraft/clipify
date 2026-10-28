@@ -31,6 +31,14 @@ export function readMcpSourceManifest() {
 		"src/server/rate-limit.ts",
 		"src/auth/providers/twitch-refresh.ts",
 		"src/server/account-lifecycle/account-data-export.ts",
+		"src/server/account-lifecycle/account-data-export-credentials.ts",
+		"src/server/account-lifecycle/account-data-archive.ts",
+		"src/server/account-lifecycle/account-export-layout.ts",
+		"src/server/account-lifecycle/account-export-assets.ts",
+		"src/server/account-lifecycle/account-export-external.ts",
+		"src/server/account-lifecycle/account-export-manifest.ts",
+		"src/server/primary-twitch-account.ts",
+		"src/auth/recent-auth.ts",
 		"src/auth/mcp-options.ts",
 		"src/auth/mcp-principal.ts",
 		"src/auth/session-principal.ts",
@@ -68,7 +76,8 @@ export function readMcpSourceManifest() {
 	const critical = feature.filter(
 		(path) =>
 			runner.critical.includes(path) ||
-			path === "src/server/account-lifecycle/account-data-export.ts" ||
+			path.startsWith("src/server/account-lifecycle/account-") ||
+			path === "src/server/primary-twitch-account.ts" ||
 			path === "src/db/client.ts" ||
 			path === "src/db/request-scope.ts" ||
 			path === "src/server/provider-credentials.ts" ||
