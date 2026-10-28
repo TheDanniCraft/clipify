@@ -49,12 +49,13 @@ export function createAccountExportLayout(data: Record<string, unknown>) {
 			const [category, key] = destination;
 			const file = `${category}/${category === "support" ? "conversations" : category}.json`;
 			const document = (documents[file] ??= {});
-			if (!key) Object.assign(document, structuredClone(value));
+			const storedValue = section === "external" ? Object.fromEntries(Object.entries(value as Record<string, unknown>).filter(([field]) => !["status", "description"].includes(field))) : value;
+			if (!key) Object.assign(document, structuredClone(storedValue));
 			else {
 				const keys = key.split("/");
 				let target = document;
 				for (const part of keys.slice(0, -1)) target = (target[part] ??= {}) as Record<string, unknown>;
-				target[keys.at(-1)!] = structuredClone(value);
+				target[keys.at(-1)!] = structuredClone(storedValue);
 			}
 			locations.set(source, { file, pointer: key ? `/${key}` : "" });
 		}

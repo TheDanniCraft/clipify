@@ -56,7 +56,10 @@ test("stale sensitive actions offer verification through production server actio
 		expect(download.status(), await download.text()).toBe(200);
 		expect(download.headers()["content-type"]).toBe("application/zip");
 		const files = unzipSync(await download.body());
-		expect(JSON.parse(strFromU8(files["manifest.json"])).tables).toHaveLength(71);
+		const manifest = JSON.parse(strFromU8(files["manifest.json"]));
+		expect(manifest).not.toHaveProperty("tables");
+		expect(manifest).not.toHaveProperty("externalSources");
+		expect(manifest.contents).toContainEqual(expect.objectContaining({ file: "account/account.json", pointer: "/profile", name: "Profile", records: 1 }));
 		expect(JSON.parse(strFromU8(files["account/account.json"])).profile.id).toBe(owner.fixture.creatorId);
 		const resumedDownload = page.waitForEvent("download");
 		await page.goto(`/dashboard/settings?reauthenticated=download#downloadExport=${encodeURIComponent(token)}`);

@@ -80,30 +80,36 @@ export const accountExportCoverage: Record<string, { paths: string[] } | { exclu
 };
 
 export function createAccountExportManifest(data: Record<string, unknown>, locations = createAccountExportLayout(data).locations) {
-	const tables = [...new Set(Object.values({ ...schema, ...authSchema }).filter(isTable))].map((table) => {
+	[...new Set(Object.values({ ...schema, ...authSchema }).filter(isTable))].forEach((table) => {
 		const config = getTableConfig(table as PgTable);
 		const name = `${config.schema ?? "public"}.${config.name}`;
 		const coverage = accountExportCoverage[name];
 		if (!coverage) throw new Error(`ACCOUNT_EXPORT_TABLE_NOT_CLASSIFIED: ${name}`);
-		if ("excluded" in coverage) return { table: name, status: "system_or_shared", reason: coverage.excluded };
-		const datasets = coverage.paths.map((path) => {
+		if ("excluded" in coverage) return;
+		coverage.paths.forEach((path) => {
 			const value = path.split(".").reduce<unknown>((current, key) => (current && typeof current === "object" ? (current as Record<string, unknown>)[key] : undefined), data);
 			if (value === undefined) throw new Error(`ACCOUNT_EXPORT_DATASET_MISSING: ${path}`);
-			return { ...locations.get(path), records: Array.isArray(value) ? value.length : value === null ? 0 : 1 };
 		});
-		return { table: name, status: "included", datasets };
 	});
 	return {
 		format: "clipify-account-data-v4",
 		exportedAt: data.exportedAt,
-		externalSources: Object.fromEntries(Object.entries((data.external ?? {}) as Record<string, { status: string; description: string }>).map(([name, source]) => [name, { status: source.status, description: source.description, ...locations.get(`external.${name}`) }])),
-		tables,
+		contents: [...locations].flatMap(([source, location]) => {
+			const value = source.split(".").reduce<unknown>((current, key) => (current && typeof current === "object" ? (current as Record<string, unknown>)[key] : undefined), data);
+			if (source === "external.support") {
+				const support = value as { contacts: unknown[]; conversations: { messages: unknown[] }[] };
+				return [{ ...location, name: "Support conversations", records: support.conversations.length, messages: support.conversations.reduce((count, conversation) => count + conversation.messages.length, 0) }];
+			}
+			if (source === "external.newsletter") return [{ ...location, name: "Newsletter subscriptions", records: (value as { contacts: unknown[] }).contacts.length }];
+			const name = source
+				.split(".")
+				.at(-1)!
+				.replace(/([a-z])([A-Z])/g, "$1 $2");
+			return [{ ...location, name: name[0].toUpperCase() + name.slice(1), records: Array.isArray(value) ? value.length : 1 }];
+		}),
 		dataNotes: [
 			"Dates are ISO 8601 strings. Null means no value was stored; an empty array means there were no matching records.",
-			"Database fields stored as JSON text remain strings so their original stored value is preserved.",
 			"Clipify stores clip metadata and provider URLs, not copies of Twitch video files. Cached entries are scoped to this creator and referenced clips.",
-			"MCP connections, tool audit records and retry responses are included. AI conversations and prompts held only by a connected AI app are not stored by Clipify.",
-			"Consent records can only be attributed where the consent subject is linked to this account's identifiers.",
 			"Original stored credential values are preserved. Reusable credentials are also decrypted where available in security/security.json; unavailable decryption is identified explicitly. Password hashes cannot be converted back into passwords. Passkey private keys are held on the user's device, not in Clipify.",
 		],
 		sensitiveFields: [...locations].flatMap(([source, location]) => {

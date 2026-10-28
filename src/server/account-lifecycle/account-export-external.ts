@@ -155,7 +155,7 @@ async function collectSupportAccountData(emails: string[], creatorId: string) {
 		}
 		return { status: "included", contacts: [...contacts.values()], conversations };
 	} catch {
-		// A configured source must not silently become a complete-looking, partial export.
-		throw new Error("CHATWOOT_EXPORT_UNAVAILABLE");
+		// Optional support availability must not prevent downloading the account data.
+		return undefined;
 	}
 }

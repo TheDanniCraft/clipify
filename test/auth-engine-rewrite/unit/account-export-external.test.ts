@@ -139,7 +139,7 @@ test("an empty support history contains empty data arrays and no explanatory pla
 	expect(result.support).toEqual({ status: "included", contacts: [], conversations: [] });
 });
 
-test.each(["credentials", "response", "contact", "conversation", "message", "pagination", "contact pagination", "conversation pagination", "message contact", "conversation inbox"])("fails closed for a support %s failure instead of producing a partial-looking export", async (failure) => {
+test.each(["credentials", "response", "contact", "conversation", "message", "pagination", "contact pagination", "conversation pagination", "message contact", "conversation inbox"])("omits support on a %s failure while keeping the remaining export available", async (failure) => {
 	const fetch = configureSupport();
 	mockSupport(fetch, (data, url) => {
 		if (failure === "contact" && url.includes("contacts/filter")) return { payload: "invalid" };
@@ -154,7 +154,7 @@ test.each(["credentials", "response", "contact", "conversation", "message", "pag
 	});
 	if (failure === "credentials") delete process.env.CHATWOOT_ACCOUNT_ID;
 	if (failure === "response") fetch.mockResolvedValue(new Response("PRIVATE ERROR", { status: 403 }));
-	await expect(collectExternalAccountData(["owner@example.com"], "creator")).rejects.toThrow("CHATWOOT_EXPORT_UNAVAILABLE");
+	expect((await collectExternalAccountData(["owner@example.com"], "creator")).support).toBeUndefined();
 });
 
 test("email-only support contacts are included only for a verified account email", async () => {
@@ -177,7 +177,7 @@ test("unverified email addresses cannot be used to locate support history", asyn
 test.each(["http://support.example.invalid", "invalid-url"])("does not send the support API token to invalid base URL %s", async (base) => {
 	const fetch = configureSupport();
 	process.env.CHATWOOT_BASE_URL = base;
-	await expect(collectExternalAccountData(["owner@example.com"], "creator")).rejects.toThrow("CHATWOOT_EXPORT_UNAVAILABLE");
+	expect((await collectExternalAccountData(["owner@example.com"], "creator")).support).toBeUndefined();
 	expect(fetch).not.toHaveBeenCalled();
 });
 
@@ -189,4 +189,15 @@ test("contacts belonging only to another product's inbox are not exported", asyn
 	});
 	expect((await collectExternalAccountData(["owner@example.com"], "creator")).support).toEqual({ status: "included", contacts: [], conversations: [] });
 	expect(fetch.mock.calls.some(([url]) => String(url).includes("conversations"))).toBe(false);
+});
+
+test("a support timeout does not prevent exporting available newsletter data", async () => {
+	const fetch = configureSupport();
+	fetch.mockRejectedValue(new DOMException("Provider timed out", "TimeoutError"));
+	Object.assign(process.env, { USESEND_BASE_URL: "https://mail.example.invalid", USESEND_API_KEY: "fixture-key", USESEND_CONTACT_BOOK_ID: "book" });
+	fetchRequest.mockResolvedValue({ data: [{ id: "own", email: "owner@example.com" }] });
+	const result = await collectExternalAccountData(["owner@example.com"], "creator");
+	expect(result.support).toBeUndefined();
+	expect(result.newsletter.contacts).toEqual([{ id: "own", email: "owner@example.com" }]);
+	expect(JSON.stringify(result)).not.toContain("Provider timed out");
 });

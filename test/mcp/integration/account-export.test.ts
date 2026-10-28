@@ -10,8 +10,7 @@ describe("TDD-PRIVACY-001 account export MCP approvals", () => {
 	});
 	test("builds a complete scoped ZIP with readable dates, stored credentials and an explicit coverage manifest", () => {
 		const result = runMcpProbe("account-export-probe", ["complete"], 60000);
-		expect(result.tableCount).toBe(71);
-		expect(result.unclassified).toBe(0);
+		expect(result.hasTableInventory).toBe(false);
 		expect(result.files).toEqual(expect.arrayContaining(["READ-ME-FIRST.txt", "manifest.json", "account/account.json", "security/security.json", "runner/runner.json", "clips/clips.json", "connections/connections.json", "support/conversations.json"]));
 		expect(result.createdAt).toBe("2026-10-05T00:00:00.000Z");
 		expect(result.username).toBe("password is an ordinary username");
@@ -22,7 +21,7 @@ describe("TDD-PRIVACY-001 account export MCP approvals", () => {
 		expect(result.consentPolicyIds).toEqual(["own-policy"]);
 		expect(result.foreignDataPresent).toBe(false);
 		expect(result.registeredClients).toEqual(["owned-client"]);
-		expect(result.externalSupportStatus).toBe("included");
+		expect(result.supportIndex).toMatchObject({ file: "support/conversations.json", records: 1, messages: 1 });
 		expect(result.manifestPathsExist).toBe(true);
 		expect(result.supportMessages).toEqual(["My exported support conversation"]);
 		expect(result.supportSecretsPresent).toBe(false);

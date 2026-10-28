@@ -10,14 +10,11 @@ Keep it on a device you trust. Sharing credential values may give someone access
 Clipify resources or connected services. Do not post the archive in support tickets or
 upload it to an AI service unless you understand and accept that service's data handling.
 
-manifest.json lists every database table, its account-scoped files, record counts, shared
-system tables that are excluded, and the status of external sources. Empty arrays mean
-there were no matching records. Empty datasets have no separate file. Null means no value
-was stored. Dates use ISO 8601. Each populated category contains one JSON document.
+manifest.json is an index of the included data files and their record counts.
+Empty datasets have no separate file. Null means no value was stored. Dates use
+ISO 8601. Each populated category contains one JSON document.
 Avatar images, Runner uploads and available support attachments are included alongside
-their records. The manifest lists files that could not be retrieved and their original URLs.
-External downloads allow up to 5 MiB per avatar, 25 MiB per support attachment and 100 MiB
-in total, with a 60-second deadline. Original URLs remain in the JSON records.
+their records. Original file URLs remain in the JSON records.
 Original encrypted values and password hashes are preserved; reusable credentials are
 also decrypted where available. Private deployment
 encryption/signing keys and other users' unrelated private records are never included.
@@ -38,6 +35,6 @@ export async function createAccountDataArchive(data: Record<string, unknown>) {
 	const { files: assets, assets: assetManifest } = await collectAccountArchiveAssets(documents);
 	const files: Zippable = { "READ-ME-FIRST.txt": strToU8(ACCOUNT_EXPORT_NOTICE), ...assets };
 	for (const [file, document] of Object.entries(documents)) files[file] = strToU8(JSON.stringify(document, null, 2));
-	files["manifest.json"] = strToU8(JSON.stringify({ ...manifest, assets: assetManifest, sensitiveFields: [...manifest.sensitiveFields, ...(assetManifest.some((asset) => asset.sourceUrl) ? ["manifest.json#/assets: sourceUrl"] : [])], files: ["manifest.json", ...Object.keys(files)] }, null, 2));
+	files["manifest.json"] = strToU8(JSON.stringify({ ...manifest, assets: assetManifest.filter((asset) => asset.status === "included"), sensitiveFields: [...manifest.sensitiveFields, ...(assetManifest.some((asset) => asset.sourceUrl) ? ["manifest.json#/assets: sourceUrl"] : [])], files: ["manifest.json", ...Object.keys(files)] }, null, 2));
 	return new Promise<Uint8Array<ArrayBuffer>>((resolve, reject) => zip(files, { level: 1 }, (error, bytes) => (error ? reject(error) : resolve(bytes))));
 }

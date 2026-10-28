@@ -122,8 +122,8 @@ async function main() {
 			console.log(
 				JSON.stringify({
 					files: Object.keys(files),
-					tableCount: manifest.tables.length,
-					unclassified: manifest.tables.filter((entry: { status: string }) => !["included", "system_or_shared"].includes(entry.status)).length,
+					hasTableInventory: Object.hasOwn(manifest, "tables"),
+
 					username: profile.username,
 					createdAt: profile.createdAt,
 					clipIds: cache.map((entry: { key: string }) => entry.key),
@@ -134,8 +134,8 @@ async function main() {
 					foreignDataPresent: ["foreign-access-token", "foreign-session-token", "foreign-private-clip", "Foreign destination", "private-client-secret"].some((value) => serialized.includes(value)),
 					registeredClients: JSON.parse(strFromU8(files["connections/connections.json"])).registeredClients.map((entry: { clientId: string }) => entry.clientId),
 					notice: strFromU8(files["READ-ME-FIRST.txt"]),
-					externalSupportStatus: manifest.externalSources.support.status,
-					manifestPathsExist: [...manifest.tables.flatMap((table: { datasets?: Array<{ file?: string; pointer?: string }> }) => table.datasets ?? []), ...Object.values(manifest.externalSources)].every((source) => {
+					supportIndex: manifest.contents.find((entry: { name: string }) => entry.name === "Support conversations"),
+					manifestPathsExist: manifest.contents.every((source: { file?: string; pointer?: string }) => {
 						const { file, pointer } = source as { file?: string; pointer?: string };
 						if (!file) return true;
 						if (!Object.hasOwn(files, file)) return false;

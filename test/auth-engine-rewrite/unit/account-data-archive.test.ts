@@ -88,11 +88,12 @@ test("groups populated datasets and tokens without creating files for empty tabl
 	expect(JSON.parse(fflate.strFromU8(files["account/account.json"]))).toMatchObject({ profile: { username: "owner" }, newsletter: { contacts: [{ email: "owner@example.com" }] } });
 	expect(JSON.parse(fflate.strFromU8(files["security/security.json"]))).toMatchObject({ tokens: { access: [{ token: "private-access" }], refresh: [{ token: "private-refresh" }] } });
 	const manifest = JSON.parse(fflate.strFromU8(files["manifest.json"]));
-	const emptyTable = manifest.tables.find((entry: { table: string }) => entry.table === "public.galleries");
-	expect(emptyTable.datasets).toEqual([{ records: 0 }]);
-	for (const entry of manifest.tables.flatMap((table: { datasets?: unknown[] }) => table.datasets ?? []).filter((entry: { file?: string }) => entry.file)) expect(files[entry.file]).toBeDefined();
-	expect(manifest.externalSources.newsletter.file).toBe("account/account.json");
-	expect(manifest.externalSources.newsletter.pointer).toBe("/newsletter");
+	expect(manifest).not.toHaveProperty("tables");
+	expect(manifest).not.toHaveProperty("externalSources");
+	expect(manifest.contents).toEqual(expect.arrayContaining([expect.objectContaining({ file: "account/account.json", pointer: "/profile", name: "Profile", records: 1 }), expect.objectContaining({ file: "account/account.json", pointer: "/newsletter", name: "Newsletter subscriptions", records: 1 })]));
+	for (const entry of manifest.contents) expect(files[entry.file]).toBeDefined();
+	expect(JSON.stringify(manifest)).not.toContain("public.galleries");
+	expect(JSON.parse(fflate.strFromU8(files["account/account.json"])).newsletter).toEqual({ contacts: [{ email: "owner@example.com" }] });
 });
 
 test("includes downloaded avatars and maps support data and sensitive records to their actual category", async () => {
@@ -113,8 +114,8 @@ test("includes downloaded avatars and maps support data and sensitive records to
 		expect([...files[profile.avatarFile]]).toEqual([9]);
 		expect(data.identity.profile).not.toHaveProperty("avatarFile");
 		expect(JSON.parse(fflate.strFromU8(files["support/conversations.json"]))).toMatchObject({ conversations: [{ messages: [{ content: "hello" }] }] });
-		expect(manifest.externalSources.newsletter).not.toHaveProperty("file");
-		expect(manifest.externalSources.support).toMatchObject({ file: "support/conversations.json", pointer: "" });
+		expect(manifest.contents.some((entry: { name: string }) => entry.name === "Newsletter subscriptions")).toBe(false);
+		expect(manifest.contents).toContainEqual({ file: "support/conversations.json", pointer: "", name: "Support conversations", records: 1, messages: 1 });
 		expect(manifest.sensitiveFields).toContain("security/security.json#/verificationRecords: value");
 		expect(manifest.sensitiveFields).toContain("manifest.json#/assets: sourceUrl");
 		expect(manifest.assets[0]).toMatchObject({ sourceUrl: data.identity.profile.avatar, file: profile.avatarFile, status: "included" });
@@ -131,4 +132,34 @@ test("an undefined required dataset cannot be omitted as an empty dataset", asyn
 	const data = emptyPackage();
 	data.identity.profile = undefined;
 	await expect(createAccountDataArchive(data)).rejects.toThrow("ACCOUNT_EXPORT_DATASET_MISSING: identity.profile");
+});
+
+test("omits unavailable and empty external sources without diagnostic files or provider notes", async () => {
+	const data = emptyPackage();
+	data.identity.profile = { username: "owner" };
+	data.external = { newsletter: { status: "unavailable", contacts: [], description: "Provider unavailable" } };
+	const files = fflate.unzipSync(await createAccountDataArchive(data));
+	expect(Object.keys(files).sort()).toEqual(["READ-ME-FIRST.txt", "account/account.json", "manifest.json"]);
+	const manifest = JSON.parse(fflate.strFromU8(files["manifest.json"]));
+	expect(manifest.contents).toEqual([{ file: "account/account.json", pointer: "/profile", name: "Profile", records: 1 }]);
+	expect(
+		Object.values(files)
+			.map((bytes) => fflate.strFromU8(bytes))
+			.join("\n"),
+	).not.toContain("Provider unavailable");
+});
+
+test("a failed optional image download leaves its original URL without diagnostic manifest entries", async () => {
+	const fetch = jest.spyOn(globalThis, "fetch").mockRejectedValue(new Error("private download failure"));
+	try {
+		const data = emptyPackage();
+		data.identity.profile = { avatar: "https://static-cdn.jtvnw.net/avatar.png" };
+		const files = fflate.unzipSync(await createAccountDataArchive(data));
+		const manifest = JSON.parse(fflate.strFromU8(files["manifest.json"]));
+		expect(manifest.assets).toEqual([]);
+		expect(JSON.parse(fflate.strFromU8(files["account/account.json"])).profile.avatar).toBe(data.identity.profile.avatar);
+		expect(fflate.strFromU8(files["manifest.json"])).not.toMatch(/download_failed|private download failure/);
+	} finally {
+		fetch.mockRestore();
+	}
 });
