@@ -11,6 +11,8 @@ test("Settings detects a deployment without reloading and restores its draft onl
 		return route.fulfill({ status: 204, headers: { "x-clipify-deployment-id": updated ? "deployment-after-update" : "deployment-before-update" } });
 	});
 	await page.route("**/dashboard/settings?tab=creator", async (route) => {
+		// Keep initialization asynchronous so visibility cannot stand in for loaded settings.
+		if (route.request().method() === "POST") await new Promise((resolve) => setTimeout(resolve, 500));
 		if (!updated || !route.request().isNavigationRequest()) return route.continue();
 		const response = await route.fetch();
 		// Simulate the updated document as well as its version endpoint after refresh.
@@ -25,6 +27,7 @@ test("Settings detects a deployment without reloading and restores its draft onl
 	await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 	const title = page.getByRole("textbox", { name: "Preview title", exact: true });
 	await expect(title).toBeVisible();
+	await expect(title).toBeEnabled();
 	await expect.poll(() => checks).toBeGreaterThan(0);
 	const savedTitle = (await tourWorld.fixture.pool.query('SELECT creator_page_social_title FROM "userSettings" WHERE id=$1', [owner.fixture.creatorId])).rows[0].creator_page_social_title;
 	await title.fill("Keep this unsaved preview title");
