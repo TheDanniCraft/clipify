@@ -1417,3 +1417,42 @@ nonzero because unrelated gallery coverage is absent from this deliberately
 limited collection; this is measurement evidence, not a full coverage-gate pass.
 No threshold was overridden. Full CI retains the unchanged gallery/global and
 strict MCP source gates. Evidence: authorization-ux/scoped-ui-coverage.log.
+
+
+### 2026-10-28 — Independent connections for the same OAuth client
+
+FR-005 now explicitly covers separate authorizations sharing one account/client ID.
+Four whole-file regression cases exercise sequential and overlapping approvals,
+three distinct grants with different creator/scope selections, concurrent refresh
+rotation, and revoking either the oldest or newest connection.
+
+Red: `test/mcp/integration/independent-connections.test.ts` failed all four cases
+on the original implementation. Sequential approval retained only one active
+grant instead of three; overlapping approvals could reject a code exchange.
+Evidence: `/tmp/clipify-independent-red.log`.
+
+Green: activate only the newly approved grant; remove the client-wide lock and
+revocation loop. All four cases pass, including scoped creator reads, rejected
+unapproved creator reads, immutable grant IDs after refresh, and continued
+access/refresh for the two connections left after explicit disconnection.
+Evidence: `/tmp/clipify-independent-green.log`. Full coverage, built-application
+browser acceptance and final GitHub validation are recorded in PR #536.
+
+The broad local owner exposed two older replacement-policy expectations. Under
+the approved FR-005 behavior, the older token remains usable but cannot gain a
+newly approved creator; agency fixture observations select only the grant created
+by that consent, rather than combining every active connection. All 22 assertions
+in the three affected whole-file suites and both existing BDD scenarios pass.
+The real HTTP audit additionally confirms natural 10-second access expiry,
+parallel refresh and MCP calls after reconnecting the same client. Three freshly
+built consent/settings browser journeys, type-check, lint and formatting pass.
+
+The broad local coverage owner completed all 549 native workflow scenarios and
+five serial media scenarios; the unchanged source coverage gate returned
+`ok: true` with no errors. Grant handling measured 96.96% lines / 92.2% branches;
+connection management measured 100% across all four metrics. Its earlier Jest
+execution retained the two superseded expectations above (556 suites passed,
+two failed); this is not claimed as a full current-input test pass. The corrected
+whole files and BDD cases passed separately. Fresh complete final-source GitHub
+validation remains required before merge; no existing successful suites are
+repeated locally merely to replace those historical assertion results.

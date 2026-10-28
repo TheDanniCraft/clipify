@@ -2,7 +2,7 @@ import "server-only";
 import { APIError } from "better-auth/api";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { McpOptions } from "@better-auth/mcp";
 import { db } from "@/db/client";
 import { mcpConnectionGrantsTable, mcpGrantCreatorsTable } from "@/db/schema";
@@ -102,17 +102,7 @@ export async function approveMcpConsent(input: { auth: ConsentAuth; origin: stri
 		}
 		const { response, result } = await forwardProviderConsent(session);
 		if (id && response.ok && result?.url && new URL(result.url).searchParams.has("code")) {
-			await db.transaction(async (tx) => {
-				// Lock all existing grants consistently before replacing consent authority.
-				const grants = await tx
-					.select()
-					.from(mcpConnectionGrantsTable)
-					.where(and(eq(mcpConnectionGrantsTable.authUserId, session.user.id), eq(mcpConnectionGrantsTable.clientId, clientId)))
-					.orderBy(mcpConnectionGrantsTable.id)
-					.for("update");
-				for (const grant of grants) if (grant.active && !grant.revokedAt) await tx.update(mcpConnectionGrantsTable).set({ revokedAt: new Date() }).where(eq(mcpConnectionGrantsTable.id, grant.id));
-				await tx.update(mcpConnectionGrantsTable).set({ active: true }).where(eq(mcpConnectionGrantsTable.id, id!));
-			});
+			await db.update(mcpConnectionGrantsTable).set({ active: true }).where(eq(mcpConnectionGrantsTable.id, id));
 		} else if (id) await db.delete(mcpConnectionGrantsTable).where(eq(mcpConnectionGrantsTable.id, id));
 		return response;
 	} catch (error) {

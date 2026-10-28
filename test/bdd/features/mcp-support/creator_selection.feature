@@ -1,4 +1,4 @@
-@BDD @ATDD @US1 @FR-003 @FR-006 @FR-008 @FR-011
+@BDD @ATDD @US1 @FR-005 @FR-003 @FR-006 @FR-008 @FR-011
 Feature: Creator approval remains explicit while membership changes
 
   @BDD-US1-022 @BDD-US1-023

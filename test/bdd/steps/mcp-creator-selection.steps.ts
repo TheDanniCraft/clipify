@@ -21,8 +21,9 @@ Then("creator calls require explicit approval and current membership", async () 
 	expect(JSON.stringify(result.thirdSelection.result)).not.toContain("Third owned");
 	expect(result.firstSelection.result.creatorId).toBe("fixture-creator");
 	expect(result.secondSelection.result.creatorId).toBe("second-owned-creator");
-	expect(result.oldAccess).toMatchObject({ status: 401, error: "invalid_token" });
-	expect(result.oldAccess.challenge).toContain("resource_metadata=");
+	expect(result.oldAccess.status).toBe(200);
+	expect(result.oldAccess.result.items.map((item: any) => item.id)).toEqual(["fixture-creator"]);
+	expect(result.oldUnapproved.result.error.code).toBe("ACCESS_DENIED");
 	expect(result.afterRemoval.result.items.map((item: any) => item.id)).toEqual(["fixture-creator"]);
 	expect(result.removedSelection.result.error.code).toBe("ACCESS_DENIED");
 	expect(result.approvalsAfterRemoval).toEqual(result.expandedCreators);

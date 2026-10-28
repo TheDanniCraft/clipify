@@ -350,6 +350,10 @@ async function main() {
 						return { body, exchange, codeRaceStatuses, tokenResponse, tokens, payload };
 					}
 					const { exchange, codeRaceStatuses, tokenResponse, tokens, payload } = await exchangeAuthorizationCode(callback);
+					if (mode.startsWith("connections:same-client:")) {
+						console.log(JSON.stringify(await (await import("./independent-connections")).checkIndependentConnections({ auth, fixture, origin, client, cookie, headers, query, verifier, actorId: actor.user.id, tokens, mode })));
+						return;
+					}
 					if (mode === "persistent:rolling") {
 						console.log(JSON.stringify(await (await import("./persistent-access-lifetime")).checkPersistentAccessLifetime({ auth, origin, clientId: client.client_id, tokens, resolveGrant: grants!.resolveMcpGrant })));
 						return;

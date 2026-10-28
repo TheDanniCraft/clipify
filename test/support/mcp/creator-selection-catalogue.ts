@@ -69,12 +69,13 @@ export async function runCreatorSelectionCatalogue(input: { fixture: Fixture; au
 		const firstSelection = await call(tokens.access_token, "get_capabilities", { creatorId: "fixture-creator" });
 		const secondSelection = await call(tokens.access_token, "get_capabilities", { creatorId: extra });
 		const oldAccess = await call(input.token, "list_creators", {});
+		const oldUnapproved = await call(input.token, "get_capabilities", { creatorId: extra });
 		const expandedCreators = (await fixture.pool.query("SELECT creator_id FROM mcp_grant_creators WHERE grant_id=$1 ORDER BY creator_id", [claims.clipify_grant_id])).rows.map((row) => row.creator_id);
 		await fixture.pool.query("DELETE FROM auth.member WHERE organization_id='second-owned-org' AND user_id=$1", [input.actorId]);
 		const afterRemoval = await call(tokens.access_token, "list_creators", {});
 		const removedSelection = await call(tokens.access_token, "get_capabilities", { creatorId: extra });
 		const approvalsAfterRemoval = (await fixture.pool.query("SELECT creator_id FROM mcp_grant_creators WHERE grant_id=$1 ORDER BY creator_id", [claims.clipify_grant_id])).rows.map((row) => row.creator_id);
-		return { initialList, initialRead, unapproved, missing, initialCreators, consentStatus: consent.status, tokenStatus: exchange.status, distinctGrant: claims.clipify_grant_id !== input.claims.clipify_grant_id, generation: claims.clipify_grant_generation, subjectBound: claims.sub === input.actorId, expandedList, afterThirdOwnership, thirdSelection, firstSelection, secondSelection, oldAccess, expandedCreators, afterRemoval, removedSelection, approvalsAfterRemoval };
+		return { initialList, initialRead, unapproved, missing, initialCreators, consentStatus: consent.status, tokenStatus: exchange.status, distinctGrant: claims.clipify_grant_id !== input.claims.clipify_grant_id, generation: claims.clipify_grant_generation, subjectBound: claims.sub === input.actorId, expandedList, afterThirdOwnership, thirdSelection, firstSelection, secondSelection, oldAccess, oldUnapproved, expandedCreators, afterRemoval, removedSelection, approvalsAfterRemoval };
 	} finally {
 		globalThis.fetch = originalFetch;
 	}

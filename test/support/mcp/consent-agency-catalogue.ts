@@ -16,10 +16,11 @@ export async function runConsentAgencyCatalogue(input: { fixture: Awaited<Return
 		if (name === "revoked-link") await fixture.pool.query("UPDATE agency_creator_links SET status='revoked',revoked_by=$1,revoked_at=now() WHERE agency_organization_id='consent-agency'", [actorId]);
 		if (name === "missing-ceiling") await fixture.pool.query("UPDATE agency_creator_links SET permission_ceiling='[]' WHERE agency_organization_id='consent-agency'");
 		const target = { creatorId: "foreign-creator", agencyOrganizationId: name === "missing-agency" ? null : name === "foreign-agency" ? "foreign-agency" : "consent-agency" };
-		const before = (await fixture.pool.query("SELECT count(*)::int AS count FROM mcp_connection_grants")).rows[0].count;
+		const previous = (await fixture.pool.query("SELECT id FROM mcp_connection_grants")).rows.map((row) => row.id);
+		const before = previous.length;
 		const response = await approveMcpConsent({ auth: input.auth, origin: input.origin, headers: new Headers({ Cookie: input.cookie, Origin: input.origin, "Content-Type": "application/json" }), oauthQuery: input.query, accept: true, scopes: ["offline_access"], creators: name === "duplicate-creator" ? [target, target] : [target] });
 		const body = await response.json();
-		const rows = (await fixture.pool.query("SELECT g.id,c.creator_id,c.agency_organization_id FROM mcp_connection_grants g JOIN mcp_grant_creators c ON c.grant_id=g.id WHERE g.active AND g.revoked_at IS NULL")).rows;
+		const rows = (await fixture.pool.query("SELECT g.id,c.creator_id,c.agency_organization_id FROM mcp_connection_grants g JOIN mcp_grant_creators c ON c.grant_id=g.id WHERE g.active AND g.revoked_at IS NULL AND NOT (g.id = ANY($1::uuid[]))", [previous])).rows;
 		const after = (await fixture.pool.query("SELECT count(*)::int AS count FROM mcp_connection_grants")).rows[0].count;
 		outcomes.push({ name, status: response.status, issuedCode: typeof body.url === "string" && new URL(body.url).searchParams.has("code"), newGrants: after - before, currentCreators: rows.map((row) => ({ creatorId: row.creator_id, agencyOrganizationId: row.agency_organization_id })) });
 	}

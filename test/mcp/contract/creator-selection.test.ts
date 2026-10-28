@@ -35,10 +35,10 @@ describe("TDD-US1-026 immutable approval and live creator selection", () => {
 		expect(result.firstSelection.result.creatorId).toBe("fixture-creator");
 		expect(result.secondSelection.result.creatorId).toBe("second-owned-creator");
 	});
-	test("replaced consent cannot keep using the old signed access token", () => {
-		expect(result.oldAccess.status).toBe(401);
-		expect(result.oldAccess.error).toBe("invalid_token");
-		expect(result.oldAccess.challenge).toContain("resource_metadata=");
+	test("new consent leaves the older connection limited to its original approval", () => {
+		expect(result.oldAccess.status).toBe(200);
+		expect(result.oldAccess.result.items.map((creator: any) => creator.id)).toEqual(["fixture-creator"]);
+		expect(result.oldUnapproved.result.error.code).toBe("ACCESS_DENIED");
 	});
 	test("live membership removal shrinks access while the immutable approved set is preserved", () => {
 		expect(result.afterRemoval.result.items.map((creator: any) => creator.id)).toEqual(["fixture-creator"]);
