@@ -37,6 +37,7 @@ async function main() {
 			await fixture.pool.query("INSERT INTO billing_subscriptions (id,user_id,stripe_customer_id,status) VALUES ('export-subscription','creator','export-customer','active')");
 			await fixture.pool.query("INSERT INTO subject (id,\"externalId\") VALUES ('export-subject','owner')");
 		}
+		if (mode === "persistent") await fixture.pool.query("UPDATE mcp_connection_grants SET expires_at=NULL WHERE id=$1", [ownId]);
 		if (mode === "expired") await fixture.pool.query("UPDATE mcp_connection_grants SET expires_at=$1 WHERE id=$2", [now, ownId]);
 		if (mode === "unnamed") await fixture.pool.query("UPDATE auth.oauth_client SET name=NULL WHERE client_id='client'");
 		if (mode === "empty") await fixture.pool.query("DELETE FROM mcp_connection_grants WHERE auth_user_id='owner'");

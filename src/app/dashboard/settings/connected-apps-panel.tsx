@@ -12,7 +12,7 @@ import type { McpConnection } from "@lib/mcpConnection";
 function connectionStatus(connection: McpConnection) {
 	if (connection.active) return "Active";
 	if (connection.revokedAt) return "Disconnected";
-	return new Date(connection.expiresAt) <= new Date() ? "Expired" : "Inactive";
+	return connection.expiresAt && new Date(connection.expiresAt) <= new Date() ? "Expired" : "Inactive";
 }
 function connectionAccessLabel(scopes: string[]) {
 	if (scopes.some((scope) => scope.endsWith(":delete"))) return "Read, edit and delete";
@@ -220,7 +220,7 @@ export default function ConnectedAppsPanel() {
 													{connectionStatus(connection)}
 												</Chip>
 											</Table.Cell>
-											<Table.Cell className='text-xs text-muted'>{<LocalizedDate value={connection.expiresAt} />}</Table.Cell>
+											<Table.Cell className='text-xs text-muted'>{connection.expiresAt ? <LocalizedDate value={connection.expiresAt} /> : "No fixed expiry"}</Table.Cell>
 											<Table.Cell>
 												<div className='flex flex-wrap gap-1'>
 													<Button size='sm' variant='tertiary' aria-label={`Details for ${connection.clientName}`} aria-haspopup='dialog' onPress={() => setDetailsId(detailsId === connection.id ? null : connection.id)}>

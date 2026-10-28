@@ -9,12 +9,13 @@ import type { Permission } from "@/auth/permissions";
 
 /** Transaction lock order: OAuth grant, creator lifecycle, owner policy, membership, role, agency link, Pro entitlement rows, then resources. */
 export async function authorizeLockedMutation(principal: TrustedCreatorPrincipal, creatorId: string, permission: Permission, client: TransactionClient, testNow?: Date) {
-	let grantExpiresAt: Date | undefined;
+	let grantExpiresAt: Date | null = null;
 	if (principal.kind === "oauth") {
 		if (!principal.grantId) throw new Error("AUTHENTICATION_REQUIRED");
 		const [grant] = await client.select().from(mcpConnectionGrantsTable).where(eq(mcpConnectionGrantsTable.id, principal.grantId)).limit(1).for("update");
 		const now = testNow ?? new Date();
-		if (!grant || !grant.active || grant.revokedAt || grant.expiresAt <= now || !principal.tokenExpiresAt || principal.tokenExpiresAt <= now || grant.authUserId !== principal.authUserId || grant.clientId !== principal.clientId || grant.generation !== principal.generation || grant.resource !== principal.resource || grant.issuer !== principal.issuer || !principal.scopes?.length || principal.scopes.some((scope) => !grant.scopes.includes(scope))) throw new Error("AUTHENTICATION_REQUIRED");
+		if (!grant || !grant.active || grant.revokedAt || (grant.expiresAt && grant.expiresAt <= now) || !principal.tokenExpiresAt || principal.tokenExpiresAt <= now || grant.authUserId !== principal.authUserId || grant.clientId !== principal.clientId || grant.generation !== principal.generation || grant.resource !== principal.resource || grant.issuer !== principal.issuer || !principal.scopes?.length || principal.scopes.some((scope) => !grant.scopes.includes(scope)))
+			throw new Error("AUTHENTICATION_REQUIRED");
 		grantExpiresAt = grant.expiresAt;
 	}
 	const [account] = await client.select().from(creatorAccountsTable).where(eq(creatorAccountsTable.creatorId, creatorId)).limit(1).for("update");
@@ -51,7 +52,7 @@ export async function authorizeLockedMutation(principal: TrustedCreatorPrincipal
 	await lockOwnerProEntitlements(creatorId, client);
 	const now = testNow ?? new Date();
 	// Waiting for the creator lock can also outlast the token; never use entry time.
-	if (principal.kind === "oauth" && (!principal.tokenExpiresAt || principal.tokenExpiresAt <= now || !grantExpiresAt || grantExpiresAt <= now)) throw new Error("AUTHENTICATION_REQUIRED");
+	if (principal.kind === "oauth" && (!principal.tokenExpiresAt || principal.tokenExpiresAt <= now || (grantExpiresAt && grantExpiresAt <= now))) throw new Error("AUTHENTICATION_REQUIRED");
 	const decision = await authorizeTrustedCreatorOperation({ principal, creatorId, permission, client, now });
 	if (!decision.allowed) throw new Error("ACCESS_DENIED");
 	return {
@@ -59,7 +60,7 @@ export async function authorizeLockedMutation(principal: TrustedCreatorPrincipal
 		// The grant row remains locked, but its clock deadline can pass during later resource waits.
 		assertAuthorityCurrent() {
 			const current = new Date();
-			if (principal.kind === "oauth" && (!principal.tokenExpiresAt || principal.tokenExpiresAt <= current || !grantExpiresAt || grantExpiresAt <= current)) throw new Error("AUTHENTICATION_REQUIRED");
+			if (principal.kind === "oauth" && (!principal.tokenExpiresAt || principal.tokenExpiresAt <= current || (grantExpiresAt && grantExpiresAt <= current))) throw new Error("AUTHENTICATION_REQUIRED");
 		},
 	};
 }

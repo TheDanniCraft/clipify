@@ -54,6 +54,7 @@ async function main() {
 		const actor = await signUp.json();
 		const reg = await auth.handler(new Request(`${origin}/api/auth/oauth2/register`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ client_name: "Controlled client", application_type: "native", redirect_uris: ["http://127.0.0.1:49999/callback"], token_endpoint_auth_method: "none", grant_types: ["authorization_code", "refresh_token"], response_types: ["code"] }) }));
 		const client = await reg.json();
+		if (mode === "persistent:restricted") await fixture.pool.query("UPDATE auth.oauth_client SET scopes=$1 WHERE client_id=$2", [["creator:read", "overlay:read", "playlist:read"], client.client_id]);
 		await fixture.pool.query(`INSERT INTO auth.organization (id,name,slug,created_at) VALUES ('creator-org','Fixture creator','fixture-creator',now()); INSERT INTO users (id,email,username,avatar,role,plan) VALUES ('fixture-creator','creator@example.invalid','Fixture creator','','user','free');`);
 		await fixture.pool.query(`INSERT INTO creator_accounts (creator_id,organization_id,status) VALUES ('fixture-creator','creator-org','active')`);
 		await fixture.pool.query(`INSERT INTO auth.member (id,organization_id,user_id,role,created_at) VALUES ($1,'creator-org',$2,'owner',now())`, [randomUUID(), actor.user.id]);
@@ -237,7 +238,9 @@ async function main() {
 			state: "fixture-state",
 			resource: `${origin}/mcp`,
 		});
-		const authorization = await auth.handler(new Request(`${origin}/api/auth/oauth2/authorize?${query}`, { headers: mode === "logged-out" ? {} : { Cookie: cookie } }));
+		if (mode.startsWith("persistent:")) query.set("scope", "creator:read overlay:read playlist:read");
+
+		const authorization = await auth.handler(mode === "persistent:post" ? new Request(`${origin}/api/auth/oauth2/authorize`, { method: "POST", headers: { Cookie: cookie, Origin: origin, "Content-Type": "application/x-www-form-urlencoded" }, body: query }) : new Request(`${origin}/api/auth/oauth2/authorize?${query}`, { headers: mode === "logged-out" ? {} : { Cookie: cookie } }));
 		const location = authorization.headers.get("location");
 		if (!location) throw new Error(`Authorization fixture failed: ${authorization.status}`);
 		async function exerciseAuthorizationJourney(location: string) {
@@ -248,7 +251,7 @@ async function main() {
 				const signedQuery = new URL(location, origin).search.slice(1);
 				const headers = new Headers({ Cookie: cookie, Origin: origin, "Content-Type": "application/json" });
 				async function selectConsentScopes() {
-					let finalScopes = mode === "narrow" ? ["creator:read"] : ["creator:read", "overlay:read", "playlist:read", "offline_access"];
+					let finalScopes = ["narrow", "persistent:decline", "persistent:restricted"].includes(mode) ? ["creator:read"] : ["creator:read", "overlay:read", "playlist:read", "offline_access"];
 					if (mode.startsWith("selection:") && existsSync("src/server/mcp/scopes.ts")) {
 						const { consentPreset } = await import("@/server/mcp/scopes");
 						const selection = mode.slice(10);
@@ -347,6 +350,10 @@ async function main() {
 						return { body, exchange, codeRaceStatuses, tokenResponse, tokens, payload };
 					}
 					const { exchange, codeRaceStatuses, tokenResponse, tokens, payload } = await exchangeAuthorizationCode(callback);
+					if (mode === "persistent:rolling") {
+						console.log(JSON.stringify(await (await import("./persistent-access-lifetime")).checkPersistentAccessLifetime({ auth, origin, clientId: client.client_id, tokens, resolveGrant: grants!.resolveMcpGrant })));
+						return;
+					}
 
 					async function dispatchProbeCatalogue() {
 						const cases = [
@@ -997,6 +1004,9 @@ async function main() {
 								unapprovedDenied,
 								consentStatus: consent.status,
 								tokenStatus: tokenResponse.status,
+								hasRefreshToken: typeof tokens.refresh_token === "string",
+								signedScopes: new URLSearchParams(signedQuery).get("scope"),
+								grantExpiresAt: payload?.clipify_grant_id ? (await fixture.pool.query("SELECT expires_at FROM mcp_connection_grants WHERE id=$1", [payload.clipify_grant_id])).rows[0]?.expires_at : undefined,
 								audience: payload?.aud,
 								issuer: payload?.iss,
 								hasGrant: typeof payload?.clipify_grant_id === "string",

@@ -14,7 +14,7 @@ export async function resolveMcpGrant(verifiedClaims: unknown, client: QueryClie
 	const claims = parsed.data;
 	if (claims.exp * 1000 <= now.getTime()) throw new Error("AUTHENTICATION_REQUIRED");
 	const [grant] = await client.select().from(mcpConnectionGrantsTable).where(eq(mcpConnectionGrantsTable.id, claims.clipify_grant_id)).limit(1);
-	if (!grant?.active || grant.revokedAt || grant.expiresAt <= now || grant.authUserId !== claims.sub || grant.clientId !== claims.client_id || grant.generation !== claims.clipify_grant_generation || claims.scope.split(" ").some((scope) => !grant.scopes.includes(scope))) throw new Error("AUTHENTICATION_REQUIRED");
+	if (!grant?.active || grant.revokedAt || (grant.expiresAt && grant.expiresAt <= now) || grant.authUserId !== claims.sub || grant.clientId !== claims.client_id || grant.generation !== claims.clipify_grant_generation || claims.scope.split(" ").some((scope) => !grant.scopes.includes(scope))) throw new Error("AUTHENTICATION_REQUIRED");
 	const audience = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
 	// Resource/issuer verification belongs to the provider wrapper; the grant must
 	// also retain its token's exact resource (no adoption of another service).

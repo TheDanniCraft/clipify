@@ -4,6 +4,9 @@ jest.mock("@better-auth/mcp", () => ({ mcp: (options: unknown) => ({ id: "mcp", 
 jest.mock("@better-auth/cimd", () => ({ cimd: (options: unknown) => ({ id: "cimd", options }) }));
 jest.mock("@better-auth/cimd/node", () => ({ fetchClientMetadataResource: jest.fn() }));
 jest.mock("@/server/mcp/rate-limit", () => ({ consumeMcpRateLimit: jest.fn(), getMcpNetworkSignal: () => "fixture-network", getMcpRateLimits: () => ({ registrationsPerMinute: 2 }) }));
+jest.mock("better-auth/api", () => ({ createAuthMiddleware: (handler: unknown) => handler }));
+jest.mock("@better-auth/oauth-provider", () => ({ getOAuthProviderApi: jest.fn() }));
+import { getOAuthProviderApi } from "@better-auth/oauth-provider";
 import { createMcpPlugins } from "@/auth/mcp-options";
 import { consumeMcpRateLimit } from "@/server/mcp/rate-limit";
 import { fetchClientMetadataResource } from "@better-auth/cimd/node";
@@ -144,4 +147,20 @@ test("registration abort remains safely rejected when reader cancellation itself
 
 test("registers identity plugins without a feature toggle", () => {
 	expect(createMcpPlugins({ origin: "https://clipify.example" }).map((item) => item.id)).toEqual(expect.arrayContaining(["mcp", "jwt", "cimd"]));
+});
+
+const persistent = plugins.find((item) => item.id === "clipify-mcp-persistent-access")!.hooks!.before![0];
+const authorization = { response_type: "code", client_id: "client", resource: "https://clipify.example/mcp", scope: "creator:read" };
+test.each([{ sig: "signed" }, { request: "signed-request-object" }, { request_uri: "urn:request:opaque" }, { response_type: "token" }, { resource: "https://other.example/mcp" }, { resource: ["https://clipify.example/mcp", "https://other.example/mcp"] }, { scope: "creator:read offline_access" }, { scope: undefined }, { client_id: undefined }])("persistent access leaves protected or unrelated request %p unchanged", async (patch) => {
+	const query = { ...authorization, ...patch };
+	expect(await (persistent.handler as any)({ method: "GET", query })).toBeUndefined();
+	expect(getOAuthProviderApi).not.toHaveBeenCalled();
+});
+test.each([null, { disabled: true }, { scopes: ["creator:read"] }])("persistent access cannot widen client policy %p", async (client) => {
+	(getOAuthProviderApi as jest.Mock).mockReturnValue({ getClient: async () => client });
+	expect(await (persistent.handler as any)({ method: "GET", query: authorization })).toBeUndefined();
+});
+test("persistent access is limited to the initial authorization endpoint", () => {
+	expect(persistent.matcher({ path: "/oauth2/authorize" } as any)).toBe(true);
+	for (const path of ["/oauth2/consent", "/oauth2/continue", "/oauth2/token"]) expect(persistent.matcher({ path } as any)).toBe(false);
 });

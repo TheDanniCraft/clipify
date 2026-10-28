@@ -28,7 +28,7 @@ export const providerGrantOptions: Partial<McpOptions> = {
 	customAccessTokenClaims: async ({ user, referenceId, scopes }) => {
 		if (!user || !referenceId) throw new APIError("BAD_REQUEST", { error: "invalid_grant", error_description: "Connection authorization is unavailable" });
 		const [grant] = await db.select().from(mcpConnectionGrantsTable).where(eq(mcpConnectionGrantsTable.id, referenceId)).limit(1);
-		if (!grant?.active || grant.revokedAt || grant.expiresAt <= new Date() || grant.authUserId !== user.id || scopes.some((scope) => !grant.scopes.includes(scope))) throw new APIError("BAD_REQUEST", { error: "invalid_grant", error_description: "Connection authorization is unavailable" });
+		if (!grant?.active || grant.revokedAt || (grant.expiresAt && grant.expiresAt <= new Date()) || grant.authUserId !== user.id || scopes.some((scope) => !grant.scopes.includes(scope))) throw new APIError("BAD_REQUEST", { error: "invalid_grant", error_description: "Connection authorization is unavailable" });
 		return { clipify_grant_id: grant.id, clipify_grant_generation: grant.generation };
 	},
 };
@@ -87,7 +87,7 @@ export async function approveMcpConsent(input: { auth: ConsentAuth; origin: stri
 					const decision = await authorizeTrustedCreatorOperation({ principal: { kind: "session", authUserId: session.user.id, authenticatedAt: session.session.createdAt, sessionId: session.session.id, organizationId: target.agencyOrganizationId }, creatorId: target.creatorId, permission: permissions[0], permissions, client: tx });
 					if (!decision.allowed) throw new Error("ACCESS_DENIED");
 				}
-				await tx.insert(mcpConnectionGrantsTable).values({ id, authUserId: session.user.id, clientId, resource: `${new URL(input.origin).origin}/mcp`, issuer: `${new URL(input.origin).origin}/api/auth`, scopes, expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) });
+				await tx.insert(mcpConnectionGrantsTable).values({ id, authUserId: session.user.id, clientId, resource: `${new URL(input.origin).origin}/mcp`, issuer: `${new URL(input.origin).origin}/api/auth`, scopes });
 				await tx.insert(mcpGrantCreatorsTable).values(input.creators.map((target) => ({ ...target, grantId: id!, scopes: target.scopes ?? scopes.filter((scope) => scope !== "offline_access") })));
 			});
 		}

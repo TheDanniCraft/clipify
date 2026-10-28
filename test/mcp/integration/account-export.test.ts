@@ -32,9 +32,10 @@ describe("TDD-PRIVACY-001 account export MCP approvals", () => {
 		const result = runMcpProbe("account-export-probe", ["unverified-support-email"]);
 		expect(result.external.support).toEqual({ status: "included", contacts: [], conversations: [] });
 	});
-	test.each(["active", "revoked"])("exports own %s approvals without private client data", (mode) => {
+	test.each(["active", "persistent", "revoked"])("exports own %s approvals without private client data", (mode) => {
 		const result = runMcpProbe("account-export-probe", [mode]);
-		expect(result.mcp).toMatchObject({ connections: [expect.objectContaining({ id: result.ownId, clientId: "client", clientName: "Custom AI", scopes: ["creator:read", "overlay:read"], active: mode === "active", revokedAt: mode === "revoked" ? result.now : null, creators: [{ creatorId: "creator", agencyOrganizationId: null }] })] });
+		expect(result.mcp).toMatchObject({ connections: [expect.objectContaining({ id: result.ownId, clientId: "client", clientName: "Custom AI", scopes: ["creator:read", "overlay:read"], active: mode !== "revoked", revokedAt: mode === "revoked" ? result.now : null, creators: [{ creatorId: "creator", agencyOrganizationId: null }] })] });
+		if (mode === "persistent") expect(result.mcp.connections[0].expiresAt).toBeNull();
 		expect(result.leaksPrivateClientData).toBe(false);
 		expect(result.leaksForeignGrant).toBe(false);
 	});

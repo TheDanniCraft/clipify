@@ -18,9 +18,9 @@ describe("mutation reauthorization after waiting for locks", () => {
 		jest.clearAllMocks();
 		authorize.mockResolvedValue({ allowed: true, creator: { id: "owner" } });
 	});
-	test("valid grant locks and rechecks current backend access", async () => {
+	test.each([grant.expiresAt, null])("valid grant with expiry %p locks and rechecks current backend access", async (expiresAt) => {
 		expect(mutation?.authorizeLockedMutation).toEqual(expect.any(Function));
-		const tx = client();
+		const tx = client({ ...grant, expiresAt });
 		const decision = await mutation.authorizeLockedMutation(principal, "owner", "overlay:create", tx, now);
 		expect(decision.creator.id).toBe("owner");
 		expect(tx.result.for).toHaveBeenCalledWith("update");

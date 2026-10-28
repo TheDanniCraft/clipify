@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
 import { createAuthenticatedFixture, type AuthFixture } from "../atdd/support/auth-engine-rewrite";
 import { browserDatabaseUrl } from "../support/mcp/browser-database.cjs";
@@ -10,7 +11,10 @@ test("linked accounts and AI access share the Connections settings tab", async (
 	try {
 		owner = await createAuthenticatedFixture(request, context, { withProviderCredentials: true });
 		await pool.query(`INSERT INTO auth.account (id, account_id, provider_id, user_id, created_at, updated_at) VALUES ($1, $2, 'google', $3, now(), now())`, [`e2e-secondary-${owner.fixture.authUserId}`, "isolated-secondary-channel", owner.fixture.authUserId]);
+		await pool.query("INSERT INTO mcp_connection_grants(id,auth_user_id,client_id,resource,issuer,scopes,active) VALUES($1,$2,'persistent-browser-client','http://127.0.0.1:3107/mcp','http://127.0.0.1:3107/api/auth',ARRAY['creator:read','offline_access'],true)", [randomUUID(), owner.fixture.authUserId]);
 		await page.goto("/dashboard/settings?tab=connections");
+		await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
+		await expect(page.getByText("No fixed expiry", { exact: true })).toBeVisible();
 		await expect(page.getByRole("tab", { name: "Connections", exact: true })).toHaveAttribute("aria-selected", "true");
 		await expect(page.getByRole("heading", { name: "Linked accounts", exact: true })).toBeVisible();
 		await expect(page.getByRole("heading", { name: "Connected AI apps", exact: true })).toBeVisible();

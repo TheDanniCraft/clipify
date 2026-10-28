@@ -18,7 +18,7 @@ export async function runCimdConsentJourney(input: { fixture: Awaited<ReturnType
 	const authorization = await auth.handler(new Request(origin + "/api/auth/oauth2/authorize?" + params, { headers: { Cookie: cookie } }));
 	const location = authorization.headers.get("location");
 	if (!location) throw new Error("CIMD_COMPLETE_AUTHORIZATION_UNAVAILABLE");
-	const consent = await approveMcpConsent({ auth, origin, headers: new Headers({ Cookie: cookie, Origin: origin, "Content-Type": "application/json" }), oauthQuery: new URL(location, origin).search.slice(1), accept: true, scopes: ["creator:read"], creators: [{ creatorId: "url-creator", agencyOrganizationId: null }] });
+	const consent = await approveMcpConsent({ auth, origin, headers: new Headers({ Cookie: cookie, Origin: origin, "Content-Type": "application/json" }), oauthQuery: new URL(location, origin).search.slice(1), accept: true, scopes: ["creator:read", "offline_access"], creators: [{ creatorId: "url-creator", agencyOrganizationId: null }] });
 	const approved = await consent.json();
 	const code = approved.url ? new URL(approved.url).searchParams.get("code") : null;
 	if (!code) throw new Error("CIMD_COMPLETE_CODE_UNAVAILABLE");
@@ -38,7 +38,19 @@ export async function runCimdConsentJourney(input: { fixture: Awaited<ReturnType
 		const route = await import("@/app/mcp/route");
 		const read = await route.POST(new Request(origin + "/mcp", { method: "POST", headers: { Authorization: `Bearer ${tokens.access_token}`, "Content-Type": "application/json", Accept: "application/json, text/event-stream", "MCP-Protocol-Version": "2025-06-18" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "list_creators", arguments: {} } }) }));
 		const body = await read.text();
-		return { consentStatus: consent.status, tokenStatus: tokenResponse.status, readStatus: read.status, creatorRead: body.includes("url-creator"), clientBound: grant.client_id === clientId && (claims.client_id ?? claims.azp) === clientId, actorBound: grant.auth_user_id === actor.user.id && claims.sub === actor.user.id, active: grant.active, generation: grant.generation, approvedCreators: approvals.map((row) => row.creator_id), uuidGrant: /^[a-f0-9-]{36}$/.test(grant.id) };
+		return {
+			hasRefreshToken: typeof tokens.refresh_token === "string",
+			consentStatus: consent.status,
+			tokenStatus: tokenResponse.status,
+			readStatus: read.status,
+			creatorRead: body.includes("url-creator"),
+			clientBound: grant.client_id === clientId && (claims.client_id ?? claims.azp) === clientId,
+			actorBound: grant.auth_user_id === actor.user.id && claims.sub === actor.user.id,
+			active: grant.active,
+			generation: grant.generation,
+			approvedCreators: approvals.map((row) => row.creator_id),
+			uuidGrant: /^[a-f0-9-]{36}$/.test(grant.id),
+		};
 	} finally {
 		globalThis.fetch = originalFetch;
 	}
