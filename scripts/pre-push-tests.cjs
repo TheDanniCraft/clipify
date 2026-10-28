@@ -32,6 +32,13 @@ function changedPaths(input, git = (...args) => execFileSync("git", args, { enco
 	return [...paths];
 }
 
+function isolatedTestEnvironment(source = process.env) {
+	const environment = { ...source };
+	// Hook-local Git paths must not follow tests into their disposable repositories.
+	for (const name of execFileSync("git", ["rev-parse", "--local-env-vars"], { encoding: "utf8" }).trim().split(/\r?\n/)) delete environment[name];
+	return environment;
+}
+
 function main() {
 	// Child test runners may drain inherited stdin. Preserve Git's refs first.
 	let refInput = "";
@@ -40,7 +47,8 @@ function main() {
 	} catch {
 		// Invalid/missing input retains the conservative full-suite fallback.
 	}
-	const selfTest = spawnSync(process.execPath, [require("node:path").join(__dirname, "pre-push-tests.test.cjs")], { stdio: "inherit" });
+	const environment = isolatedTestEnvironment();
+	const selfTest = spawnSync(process.execPath, [require("node:path").join(__dirname, "pre-push-tests.test.cjs")], { stdio: "inherit", env: environment });
 	if (selfTest.status !== 0) {
 		process.exitCode = selfTest.status ?? 1;
 		return;
@@ -61,14 +69,14 @@ function main() {
 	const native = paths?.some((path) => path.startsWith("packages/runner/"));
 	if (native) {
 		console.log("[pre-push] Checking the native Runner execution policy.");
-		const policy = spawnSync(process.execPath, [require("node:path").join(__dirname, "runner-ci-policy.test.mjs")], { stdio: "inherit" });
+		const policy = spawnSync(process.execPath, [require("node:path").join(__dirname, "runner-ci-policy.test.mjs")], { stdio: "inherit", env: environment });
 		if (policy.error) console.error(policy.error.message);
 		if (policy.status !== 0) {
 			process.exitCode = policy.status ?? 1;
 			return;
 		}
 		console.log("[pre-push] Running the native Runner coverage owner.");
-		const result = spawnSync("bun", ["run", "test:coverage"], { cwd: "packages/runner", stdio: "inherit" });
+		const result = spawnSync("bun", ["run", "test:coverage"], { cwd: "packages/runner", stdio: "inherit", env: environment });
 		if (result.error) console.error(result.error.message);
 		if (result.status !== 0) {
 			process.exitCode = result.status ?? 1;
@@ -78,10 +86,10 @@ function main() {
 	const applicationPaths = paths?.filter((path) => !path.startsWith("packages/runner/"));
 	if (native && !applicationPaths.length) return;
 	console.log(check.full ? "[pre-push] Running the full application coverage owner for shared changes." : "[pre-push] Running related application tests. Coverage and browser checkpoints remain mandatory before pushing.");
-	const result = check.full ? spawnSync("bun", ["run", "test:coverage"], { stdio: "inherit" }) : spawnSync(process.execPath, [require("node:path").join(__dirname, "run-scoped-tests.mjs"), "--paths", JSON.stringify(applicationPaths)], { stdio: "inherit" });
+	const result = check.full ? spawnSync("bun", ["run", "test:coverage"], { stdio: "inherit", env: environment }) : spawnSync(process.execPath, [require("node:path").join(__dirname, "run-scoped-tests.mjs"), "--paths", JSON.stringify(applicationPaths)], { stdio: "inherit", env: environment });
 	if (result.error) console.error(result.error.message);
 	process.exitCode = result.status ?? 1;
 }
 
-module.exports = { selectPushChecks, changedPaths };
+module.exports = { selectPushChecks, changedPaths, isolatedTestEnvironment };
 if (require.main === module) main();

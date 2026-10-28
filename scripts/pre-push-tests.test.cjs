@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { selectPushChecks, changedPaths } = require("./pre-push-tests.cjs");
+const { selectPushChecks, changedPaths, isolatedTestEnvironment } = require("./pre-push-tests.cjs");
 test("documentation avoids duplicate application tests", () => assert.deepEqual(selectPushChecks(["specs/003-mcp-support/tasks.md", "graphify-out/graph.json"]), { full: false, paths: [] }));
 test("hook changes run their dedicated checks without application changes", () => assert.deepEqual(selectPushChecks([".husky/pre-push", "scripts/pre-push-tests.cjs", "scripts/pre-push-tests.test.cjs"]), { full: false, paths: [] }));
 test("UI and its regression tests select related suites", () => assert.deepEqual(selectPushChecks(["src/app/auth/mcp/consent/ConsentForm.tsx", "test/mcp/component/consent.test.tsx"]), { full: false, paths: ["src/app/auth/mcp/consent/ConsentForm.tsx", "test/mcp/component/consent.test.tsx"] }));
@@ -96,6 +96,33 @@ test("push execution honors coverage ownership and blocks failures", () => {
 			if (expected === "native-coverage") assert.match(result.stdout, /native-policy[\s\S]*native-coverage/);
 			if (paths.startsWith("packages/runner/")) assert.doesNotMatch(result.stdout, /application-coverage|related-tests/);
 		}
+	} finally {
+		rmSync(directory, { recursive: true, force: true });
+	}
+});
+
+test("test children shed hook-local Git paths while retaining test configuration", () => {
+	const source = { GIT_DIR: "/parent/git", GIT_COMMON_DIR: "/parent/common", GIT_WORK_TREE: "/parent/worktree", GIT_INDEX_FILE: "/parent/index", GIT_OBJECT_DIRECTORY: "/parent/objects", GIT_CONFIG_PARAMETERS: "inherited config", PATH: "fixture-path", MCP_TEST_TEMPLATE_ID: "push-fixture", MCP_TEST_DATABASE_URL: "postgresql://clipify_mcp@127.0.0.1:54419/clipify_mcp_fixture" };
+	assert.deepEqual(isolatedTestEnvironment(source), { PATH: source.PATH, MCP_TEST_TEMPLATE_ID: source.MCP_TEST_TEMPLATE_ID, MCP_TEST_DATABASE_URL: source.MCP_TEST_DATABASE_URL });
+	assert.equal(source.GIT_DIR, "/parent/git");
+});
+
+test("self-tests and coverage receive isolated Git environments without weakening failures", () => {
+	const { mkdtempSync, writeFileSync, rmSync } = require("node:fs");
+	const { tmpdir } = require("node:os");
+	const { join } = require("node:path");
+	const { spawnSync } = require("node:child_process");
+	const directory = mkdtempSync(join(tmpdir(), "clipify-push-git-env-"));
+	try {
+		const preload = join(directory, "child-boundary.cjs");
+		writeFileSync(
+			preload,
+			`const assert=require('node:assert/strict'),child=require('node:child_process');child.execFileSync=(command,args)=>args.includes('--local-env-vars')?'GIT_DIR\\nGIT_INDEX_FILE\\nGIT_WORK_TREE':'src/auth/mcp-options.ts';child.spawnSync=(command,args,options)=>{for(const name of ['GIT_DIR','GIT_INDEX_FILE','GIT_WORK_TREE'])assert.equal(options.env[name],undefined);assert.equal(options.env.MCP_TEST_TEMPLATE_ID,'push-fixture');assert.equal(process.env.GIT_DIR,'/parent/repository');console.log('isolated-child');return {status:args[0].endsWith('pre-push-tests.test.cjs')?0:1};};`,
+		);
+		const result = spawnSync(process.execPath, ["--require", preload, join(__dirname, "pre-push-tests.cjs")], { input: "refs/heads/a abc refs/heads/a def\n", encoding: "utf8", env: { ...process.env, GIT_DIR: "/parent/repository", GIT_INDEX_FILE: "/parent/index", GIT_WORK_TREE: "/parent/tree", MCP_TEST_TEMPLATE_ID: "push-fixture" } });
+		assert.equal(result.status, 1, result.stderr);
+		assert.equal((result.stdout.match(/isolated-child/g) ?? []).length, 2, result.stderr);
+		assert.match(result.stdout, /full application coverage owner/);
 	} finally {
 		rmSync(directory, { recursive: true, force: true });
 	}
