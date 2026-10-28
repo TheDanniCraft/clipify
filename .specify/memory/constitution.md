@@ -66,6 +66,27 @@ Rationale: small changes make failures diagnosable, reviews meaningful, and roll
 - Mutation testing is a separate capability gate. Until it is available, the highest-risk changes
   MUST use recorded deliberate-mutant spot checks where test strength needs additional proof.
 
+## Validation Execution Policy
+
+Prefer the smallest sufficient real test boundary. BDD and ATDD evidence roles do
+not require browser execution or duplicated artifacts when native integration
+proves the same behavior. Preserve real UI, media, security and platform boundaries
+where those boundaries are the behavior under test.
+
+Local hooks retain fast migration and staged-file checks. Complete validation is
+owned by CI before merge. Independent producers may run in duration-planned parallel lanes,
+provided the mandatory merged gate verifies complete disjoint inventories,
+matching execution inputs and unchanged coverage thresholds. Timing history is
+scheduling data only. A performance target must never terminate or omit required
+tests, waive failed evidence, or disguise growing work by silently enlarging batches. Do not impose artificial
+job ceilings: GitHub owns actual concurrency, while planning and reporting must
+distinguish queued jobs, setup and execution. Optimize total time to a reliable
+green merge gate rather than raw shard count.
+
+The detailed canonical policy is [Validation strategy](../../docs/local-testing.md#validation-strategy).
+This 2026-10-28 amendment implements the user's approved CI feedback-loop strategy;
+existing active feature traces retain IDs and link shared evidence to one owner.
+
 ## Development Workflow
 
 1. Resolve the active feature specification and plan before implementation begins.
@@ -94,7 +115,7 @@ and PATCH for non-semantic clarification. Every review MUST verify constitution 
 approved exception MUST identify its scope, owner, expiry or follow-up, risk, and compensating
 evidence.
 
-**Version**: 1.0.1 | **Ratified**: 2026-09-25 | **Last Amended**: 2026-10-28
+**Version**: 1.1.0 | **Ratified**: 2026-09-25 | **Last Amended**: 2026-10-28
 
 ---
 

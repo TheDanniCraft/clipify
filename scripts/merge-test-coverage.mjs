@@ -43,8 +43,12 @@ export async function mergeCoverage(directory) {
 	for (const path of ["coverage/coverage-final.json", "coverage/lcov.info"]) rmSync(path, { force: true });
 	rmSync("coverage/runner-feature", { recursive: true, force: true });
 	const paths = JSON.parse(execFileSync(process.execPath, ["node_modules/jest/bin/jest.js", "--listTests", "--json"], { encoding: "utf8" }));
-	const expected = Object.fromEntries(Object.entries(execution.partitionTests(paths)).map(([lane, tests]) => [lane, tests.map((path) => relative(process.cwd(), path))]));
-	expected.workflows = (await import("./run-mcp-workflow-coverage.mjs")).workflowInventory();
+	const expected = Object.fromEntries(Object.entries(execution.coveragePartitions(paths)).map(([lane, tests]) => [lane, tests.map((path) => relative(process.cwd(), path))]));
+	const { workflowInventory, workflowLaneNames } = await import("./run-mcp-workflow-coverage.mjs");
+	const workflowLanes = workflowLaneNames();
+	for (const lane of workflowLanes) expected[lane] = workflowInventory(lane);
+	const workflowCases = workflowLanes.flatMap((lane) => expected[lane]).sort();
+	if (new Set(workflowCases).size !== workflowCases.length || JSON.stringify(workflowCases) !== JSON.stringify(workflowInventory())) throw new Error("Workflow shards must own every current scenario exactly once");
 	const folders = readdirSync(directory, { withFileTypes: true })
 		.filter((entry) => entry.isDirectory())
 		.map((entry) => join(directory, entry.name));
@@ -54,6 +58,17 @@ export async function mergeCoverage(directory) {
 		execFileSync("git", ["rev-parse", "HEAD^{tree}"], { encoding: "utf8" }).trim(),
 		sourceFingerprint,
 	);
+	const { workflowDurationProfile } = require("./workflow-test-planning.cjs");
+	const timingReports = folders.flatMap((folder) => ["workflow-results-parallel.json", "workflow-results-serial.json"].filter((name) => require("node:fs").existsSync(join(folder, name))).map((name) => JSON.parse(readFileSync(join(folder, name), "utf8"))));
+	mkdirSync("coverage", { recursive: true });
+	const timings = workflowDurationProfile(timingReports);
+	for (const folder of folders) {
+		const resultsPath = join(folder, "jest-results.json");
+		if (!require("node:fs").existsSync(resultsPath)) continue;
+		for (const suite of JSON.parse(readFileSync(resultsPath, "utf8")).testResults) timings[relative(process.cwd(), suite.name).replaceAll("\\", "/")] = Math.max(0.001, (suite.endTime - suite.startTime) / 1000);
+	}
+	writeFileSync("coverage/workflow-durations.json", JSON.stringify(timings, null, 2) + "\n");
+
 	const { projectConfig, globalConfig } = await require("jest-config").readConfig({}, process.cwd());
 	await enforceJestCoverage(
 		folders.map((folder) => JSON.parse(readFileSync(join(folder, "coverage-final.json"), "utf8"))),

@@ -333,7 +333,7 @@ and timing classification to both local runners and CI.
 Browser scheduling uses recent successful CI timings, with
 `scripts/test-duration-baseline.json` as the fallback. CI creates one immutable plan
 for every browser matrix job, targeting five minutes of estimated BDD test work
-per shard, capped at ten BDD shards. Setup, builds and queues are additional; the
+per shard. Shard counts grow with measured work; there is no artificial job ceiling. Setup, builds and queues are additional; the
 job summary reports any over-budget shard rather than omitting tests. The other
 coverage and browser lanes retain their complete inventories and thresholds.
 
@@ -348,3 +348,65 @@ caches never substitute for passing test results.
 Squash is the only merge method. The `🏷️ PR title` check validates the resulting
 commit subject, including title edits. The checked-in Gitmoji list comes from
 `https://gitmoji.dev/api/gitmojis`; it does not require network access during CI.
+
+## Validation strategy
+
+Use the smallest real test boundary that proves the behavior. Keep pure rules and
+large input matrices in fast unit or native integration tests. Use real browser
+journeys for rendered controls, navigation, accessibility and recovery. Use real
+Chromium/FFmpeg/native processes for capture, scheduling and delivery boundaries;
+those tests must not be replaced by mocks merely to meet a time target.
+
+TDD, BDD and ATDD describe evidence roles, not three mandatory executions of the
+same behavior. Each executable artifact has one owning suite. Requirements can
+reference the same passing artifact across practices. When consolidating tests,
+compare the actual case sets and retained assertions, then update traceability and
+commands. Removing a duplicate must not remove a distinct boundary or error case.
+
+During development, observe a focused failing whole-file test, implement the fix,
+and rerun the affected files. Keep failing Red work local. Local hooks run the
+migration guard and staged-file checks. Draft CI gives scoped feedback; ready PRs
+must pass complete validation, coverage, type checks, lint, build and applicable
+platform journeys before a squash merge. The Gitmoji PR-title check is mandatory
+and title edits do not restart the expensive pipeline.
+
+Parallelize independent work, not shared timing-sensitive resources. Application
+coverage plans unit/database/timing lanes from measured work. Native workflows
+plan protocol and isolated media jobs from elapsed work, preserving shared fixture
+groups. Runner tests keep files intact and derive the number of isolated jobs from
+successful per-file timings, then merge coverage. The ordinary complete local Runner command remains available. Runner
+shard results must match the current whole-file inventory, source fingerprint,
+Node/platform/image and artifact hashes. Its aggregate gate retains every existing
+critical/global coverage threshold and the single inherited TODO allowance.
+
+All planners target five minutes of estimated work, with immutable plans and
+explicit fixture independence. There is no fixed total-job budget or arbitrary
+per-suite shard ceiling. Planned jobs and simultaneously running jobs are different:
+GitHub schedules available capacity and queues excess jobs. A Pro account supports
+up to 40 simultaneous standard runners; public-repository minutes do not remove
+that technical limit. This is a work target, not a wall-clock deadline.
+Builds, queueing, setup, long individual cases and exhausted capacity can exceed
+it. Report those costs and optimize the bottleneck; never silently drop scenarios,
+lower coverage thresholds or treat additional runners as a substitute for reducing
+waste. More jobs are useful only when they reduce time to the green merge gate.
+
+All coverage producers must contribute their exact disjoint inventory. Gates
+reject missing, duplicated, skipped or foreign execution evidence and mismatched
+inputs. Timing history may influence scheduling only, with safe baseline fallback;
+it is never proof that a test passed. Reusing passing results requires complete
+matching execution inputs and a separately reviewed policy. Approximate change
+selection must not replace the full merge gate without validated dependency
+mapping, an unknown-impact full-run fallback and explicit approval.
+
+CI publishes a timing table separating job creation-to-start waiting, test steps,
+and setup/other work. Creation-to-start can include dependency waiting, so it is
+not presented as pure runner-queue latency. GitHub
+[documents the actual account concurrency limits](https://docs.github.com/en/actions/reference/limits);
+planned jobs may exceed those limits and wait without enlarging test batches.
+
+Track slowest jobs and files, setup versus execution time, shard imbalance and
+flakes from successful CI reports. Optimize fixture startup and repeated work
+before increasing capacity. Keep a few representative end-to-end journeys and
+move additional policy combinations to the lowest sufficient layer as features
+grow. A test suite is part of the product's maintenance budget, not an unlimited
+list of equally expensive browser scenarios.

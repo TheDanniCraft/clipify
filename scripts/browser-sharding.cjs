@@ -19,15 +19,15 @@ function listBrowserTests(args = []) {
 	delete env.PLAYWRIGHT_JSON_OUTPUT_NAME;
 	return JSON.parse(execFileSync(process.execPath, ["node_modules/@playwright/test/cli.js", "test", "--project=bdd-chromium", ...args, "--list", "--reporter=json"], { env, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 }));
 }
-function browserTestCases(report) {
+function browserTestCases(report, projects = ["bdd-chromium"]) {
 	const cases = [];
 	const visit = (suite, parents = []) => {
 		const titles = suite.title === suite.file ? parents : [...parents, suite.title];
 		for (const spec of suite.specs ?? [])
 			for (const test of spec.tests ?? []) {
-				if (test.projectName !== "bdd-chromium") continue;
+				if (!projects.includes(test.projectName)) continue;
 				const file = spec.file.replaceAll("\\", "/");
-				const selector = `[bdd-chromium] › ${file} › ${[...titles, spec.title].join(" › ")}`;
+				const selector = `[${test.projectName}] › ${file} › ${[...titles, spec.title].join(" › ")}`;
 				cases.push({ id: spec.id, file, selector, tags: (spec.tags ?? []).map((tag) => (tag.startsWith("@") ? tag : `@${tag}`)), test });
 			}
 		for (const child of suite.suites ?? []) visit(child, titles);
@@ -49,7 +49,7 @@ function browserTestUnits(report, profile = readTestDurations()) {
 		return split ? cases.map((c) => ({ selector: c.selector, testIds: [c.id], weight: profile[c.selector] ?? fallback / cases.length })) : [{ selector: file, testIds: cases.map((c) => c.id), weight: fallback }];
 	});
 }
-function distributeBrowserTests(units, count) {
+function distributeTestUnits(units, count) {
 	if (!Number.isInteger(count) || count < 1) throw Error("Invalid browser shard count");
 	const bins = Array.from({ length: count }, () => ({ selectors: [], testIds: [], estimatedSeconds: 0 }));
 	for (const unit of [...units].sort((a, b) => b.weight - a.weight || a.selector.localeCompare(b.selector))) {
@@ -62,13 +62,13 @@ function distributeBrowserTests(units, count) {
 }
 function selectBrowserTests(report, index, count, profile = readTestDurations()) {
 	if (!Number.isInteger(index) || index < 0 || index >= count) throw Error("Invalid browser shard");
-	return distributeBrowserTests(browserTestUnits(report, profile), count)[index];
+	return distributeTestUnits(browserTestUnits(report, profile), count)[index];
 }
-function planBrowserShards(report, profile = readTestDurations(), targetSeconds = 300, maxShards = 10) {
-	if (!Number.isFinite(targetSeconds) || targetSeconds <= 0 || !Number.isInteger(maxShards) || maxShards < 1) throw Error("Invalid browser shard budget");
+function planBrowserShards(report, profile = readTestDurations(), targetSeconds = 300) {
+	if (!Number.isFinite(targetSeconds) || targetSeconds <= 0) throw Error("Invalid browser shard budget");
 	const units = browserTestUnits(report, profile),
 		total = units.reduce((n, u) => n + u.weight, 0);
-	const count = Math.min(maxShards, units.length, Math.max(1, Math.ceil(total / targetSeconds)));
-	return distributeBrowserTests(units, count);
+	const count = Math.min(units.length, Math.max(1, Math.ceil(total / targetSeconds)));
+	return distributeTestUnits(units, count);
 }
-module.exports = { readTestDurations, listBrowserTests, browserTestCases, selectBrowserTests, planBrowserShards };
+module.exports = { readTestDurations, listBrowserTests, browserTestCases, selectBrowserTests, planBrowserShards, distributeTestUnits };

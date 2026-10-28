@@ -22,9 +22,11 @@ for (const status of ["failure", "cancelled", "skipped"]) {
 }
 test("mandatory Test gate permits unchanged Runner scope and requires the actual native job", () => {
 	assert.ok(ci.jobs.test.needs.includes("runner"));
-	assert.equal(guard.env.RUNNER, "${{ needs.runner.result }}");
+	assert.ok(ci.jobs.test.needs.includes("runner-coverage"));
+	assert.equal(guard.env.RUNNER, "${{ needs.runner-coverage.result }}");
 	assert.equal(guard.env.RUNNER_REQUIRED, "${{ needs.changes.outputs.runner }}");
-	assert.ok(ci.jobs.runner.steps.some((step) => step.run === "bun run test:coverage"));
+	assert.ok(ci.jobs.runner.steps.some((step) => step.run?.includes("run-runner-coverage-lane.mjs")));
+	assert.ok(ci.jobs["runner-coverage"].steps.some((step) => step.run?.includes("merge-runner-coverage.mjs")));
 	for (const [required, status] of [
 		["false", "skipped"],
 		["true", "success"],

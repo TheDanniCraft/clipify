@@ -30,7 +30,30 @@ test("title edits get a fast dedicated Gitmoji check and browser matrices use an
 	assert.ok(title.on.pull_request.types.includes("edited"));
 	assert.match(title.jobs.title.steps.at(-1).run, /check-pr-title/);
 	const ci = yaml.parse(readFileSync(".github/workflows/ci.yml", "utf8"));
-	assert.equal(ci.jobs["browser-tests"].strategy.matrix, "${{ fromJSON(needs.browser-build.outputs.matrix) }}");
-	assert.ok(ci.jobs["browser-build"].steps.some((step) => step.id === "shards"));
+	assert.equal(ci.jobs["browser-tests"].strategy.matrix, "${{ fromJSON(needs.validation-plan.outputs.browser_matrix) }}");
+	assert.ok(ci.jobs["validation-plan"].steps.some((step) => step.id === "browser"));
 	assert.ok(ci.jobs.test.steps.some((step) => step.run?.includes("update-browser-durations")));
+});
+
+test("CI metadata planning loads the real Playwright config without enabling database fixtures", () => {
+	const yaml = require("yaml"),
+		{ spawnSync } = require("node:child_process");
+	const ci = yaml.parse(readFileSync(".github/workflows/ci.yml", "utf8"));
+	const build = ci.jobs["browser-build"],
+		step = ci.jobs["validation-plan"];
+	const env = { ...process.env, ...build.env, ...step.env, CI: "true" };
+	delete env.DATABASE_URL;
+	delete env.MCP_BROWSER_DATABASE_URL;
+	for (const key of ["JWT_SECRET", "BETTER_AUTH_SECRET", "MCP_TEST_DATABASE_URL", "MCP_TEST_TEMPLATE_ID", "APP_ENV", "E2E_TEST_MODE", "CLIPIFY_E2E_SCHEMA_PUSH"]) delete env[key];
+	delete env.GITHUB_OUTPUT;
+	delete env.GITHUB_STEP_SUMMARY;
+	const result = spawnSync(process.execPath, ["node_modules/playwright-bdd/dist/cli/index.js"], { env, encoding: "utf8", timeout: 30000 });
+	assert.equal(result.status, 0, result.stderr);
+	assert.equal(build.env.MCP_BROWSER_PROVIDER_FIXTURE, "true");
+	assert.equal(step.env.MCP_BROWSER_PROVIDER_FIXTURE, "false");
+	const planned = spawnSync(process.execPath, ["scripts/plan-browser-shards.cjs"], { env, encoding: "utf8", timeout: 30000 });
+	assert.equal(planned.status, 0, planned.stderr);
+	const plan = JSON.parse(readFileSync("test-results/browser-shard-plan.json", "utf8"));
+	assert.ok(plan.shards.length > 6);
+	assert.ok(plan.shards.every((shard) => shard.testIds.length > 0));
 });

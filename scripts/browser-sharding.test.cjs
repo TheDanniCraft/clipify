@@ -48,16 +48,17 @@ test("missing or invalid timing caches fall back without changing the scenario i
 	}
 });
 
-test("automatic plans add bounded capacity as test work grows without dropping scenarios", () => {
+test("automatic plans follow measured work without artificial job ceilings", () => {
 	const r = report(Array.from({ length: 30 }, (_, i) => spec(String(i), `Journey ${i}`, 100000)));
 	const weights = collectBrowserDurations([r]);
 	const plan = planBrowserShards(r, weights, 300, 10);
 	assert.equal(plan.length, 10);
 	assert.equal(plan.flatMap((s) => s.testIds).length, 30);
 	assert.ok(plan.every((s) => s.estimatedSeconds === 300));
-	const capped = planBrowserShards(r, weights, 300, 2);
-	assert.equal(capped.length, 2);
-	assert.equal(capped.flatMap((s) => s.testIds).length, 30);
-	assert.ok(capped.some((s) => s.estimatedSeconds > 300));
+	const larger = report(Array.from({ length: 60 }, (_, i) => spec(String(i), `Journey ${i}`, 100000)));
+	const scaled = planBrowserShards(larger, collectBrowserDurations([larger]), 300);
+	assert.equal(scaled.length, 20);
+	assert.equal(scaled.flatMap((s) => s.testIds).length, 60);
+
 	assert.throws(() => collectBrowserDurations([r], ["missing"]), /complete scenario inventory/);
 });

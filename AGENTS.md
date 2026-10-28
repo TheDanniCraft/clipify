@@ -104,6 +104,10 @@ Example:
 
 ## Test execution and pull requests
 
+- Follow the canonical [validation strategy](docs/local-testing.md#validation-strategy):
+  smallest sufficient test boundary, one execution owner, duration-planned independent
+  shards, and strict merged evidence before squash merge.
+
 - Open new pull requests as drafts by default. Draft CI provides scoped feedback;
   it does not satisfy the required full Test gate. Mark ready only at the final
   review checkpoint; `ready_for_review` triggers complete validation.
@@ -139,8 +143,8 @@ Example:
 - Never bypass a failed hook or lower thresholds to push. Fix the failure or report
   the specific unavailable prerequisite. Do not repeatedly push speculative fixes
   and cancel the validation checkpoint before its final gate finishes.
-- Keep CI work bounded: use the timing-driven browser planner, preserve complete
-  scenario inventories, and report budget overruns. A timing cache is scheduling
+- Use measured-work CI planning without artificial job ceilings; preserve complete
+  scenario inventories, and report slow groups and queue/setup/test time. A timing cache is scheduling
   data, never passing test evidence. Split files only for verified independent fixtures.
 - Report local checks, platform-specific checks and the final CI gate separately.
   Windows process/update/capture changes need real Windows validation; a Linux
