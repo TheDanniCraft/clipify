@@ -2110,5 +2110,59 @@
 			"rateLimited": 0,
 			"emptyResponse": 0
 		}
+	},
+	"onboarding": {
+		"tasksPerAccount": 18,
+		"accountsWithProgress": 3,
+		"completedAccounts": 1,
+		"completedTasks": 22,
+		"skippedTasks": 2,
+		"completionRate": 0.2,
+		"averageProgress": 0.24444444444444444,
+		"trackedAccounts": 5,
+		"untrackedAccounts": 3,
+		"invalidProgressAccounts": 1,
+		"sections": {
+			"overlay": {
+				"title": "Get your first overlay running",
+				"tasksPerAccount": 4,
+				"accountsWithProgress": 3,
+				"completedAccounts": 1,
+				"completedTasks": 7,
+				"skippedTasks": 1,
+				"completionRate": 0.2,
+				"averageProgress": 0.35
+			},
+			"appearance": {
+				"title": "Make your overlay yours",
+				"tasksPerAccount": 4,
+				"accountsWithProgress": 2,
+				"completedAccounts": 1,
+				"completedTasks": 5,
+				"skippedTasks": 0,
+				"completionRate": 0.2,
+				"averageProgress": 0.25
+			},
+			"playlist": {
+				"title": "Build a playlist",
+				"tasksPerAccount": 3,
+				"accountsWithProgress": 1,
+				"completedAccounts": 1,
+				"completedTasks": 3,
+				"skippedTasks": 0,
+				"completionRate": 0.2,
+				"averageProgress": 0.2
+			},
+			"explore": {
+				"title": "Explore Clipify",
+				"tasksPerAccount": 7,
+				"accountsWithProgress": 2,
+				"completedAccounts": 1,
+				"completedTasks": 7,
+				"skippedTasks": 1,
+				"completionRate": 0.2,
+				"averageProgress": 0.2
+			}
+		}
 	}
 }

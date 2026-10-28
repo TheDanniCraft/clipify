@@ -1,5 +1,5 @@
 /** @jest-environment node */
-jest.mock("@/app/lib/instanceHealth", () => ({ getInstanceHealthSnapshot: jest.fn(async () => ({ status: "ok", mcp: { calls: { started_total: 1 } }, mcpClients: { summary: { registeredClients: 2 } } })) }));
+jest.mock("@/app/lib/instanceHealth", () => ({ getInstanceHealthSnapshot: jest.fn(async () => ({ status: "ok", onboarding: { trackedAccounts: 5, completedAccounts: 1 }, mcp: { calls: { started_total: 1 } }, mcpClients: { summary: { registeredClients: 2 } } })) }));
 import { getInstanceHealthSnapshot } from "@/app/lib/instanceHealth";
 import { GET } from "@/app/internal/health/instance/route";
 beforeEach(() => {
@@ -18,6 +18,6 @@ test.each([undefined, "Bearer wrong", "Basic isolated-health-token"])("health me
 test("authenticated health includes additive MCP data and remains uncached", async () => {
 	const response = await GET(new Request("https://clipify.example/internal/health/instance", { headers: { Authorization: "Bearer isolated-health-token" } }) as any);
 	expect(response.headers.get("cache-control")).toBe("no-store");
-	expect(await response.json()).toMatchObject({ mcp: { calls: { started_total: 1 } }, mcpClients: { summary: { registeredClients: 2 } } });
+	expect(await response.json()).toMatchObject({ onboarding: { trackedAccounts: 5, completedAccounts: 1 }, mcp: { calls: { started_total: 1 } }, mcpClients: { summary: { registeredClients: 2 } } });
 	expect(getInstanceHealthSnapshot).toHaveBeenCalledWith({ exclude: ["twitchRateLimit"] });
 });
