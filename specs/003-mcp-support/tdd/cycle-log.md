@@ -1520,3 +1520,28 @@ type-check, affected lint, formatting and exact 826-scenario selector resolution
 pass. Temporary diagnostic hooks and generated screenshots are not in the patch.
 No full repository suite was repeated locally; fresh complete GitHub validation
 and measured post-change CI times remain the final checkpoint.
+
+
+### 2026-10-29 — Runtime transfer, browser cache and deletion readiness
+
+#3676 overhead included 779 MiB of compilation cache in a 1.1 GiB shared build;
+the uploaded artifact was 703,170,753 bytes. A runtime-only gzip archive retains
+all manifests, static files and source maps and measures 78,789,141 bytes, packed
+in 2.39 seconds. The extracted 291 MiB app ran the complete account-lifecycle
+ATDD file: 18 cases passed in 36.3 seconds, including both deletion choices.
+
+The missing shared-binary/runtime-transfer workflow guard failed first, then all
+10 affected automation checks passed after wiring versioned Chromium restore and
+cache-free runtime transfer. Dependency checks exercise already-ready, missing
+and failed-install cases; actual local Playwright OS validation also passed.
+No cached result substitutes for test execution or current-run OS validation.
+
+The #3676 deletion snapshots had no dialog after clicking the settings trigger,
+not a mismatched username in a visible dialog. The step now waits for loaded
+settings (the real prefix), opens and asserts the named deletion dialog, then
+asserts its account-specific confirmation field before filling. Missing controls
+fail bounded readiness assertions instead of consuming the full 180-second
+scenario timeout. Consent preparation uses the shared initialization prerequisite.
+Production deletion behavior, authorization and lifecycle assertions are unchanged.
+The prior CI failure and retry artifacts are retained as Red evidence; final
+focused/browser and fresh CI outcomes are recorded in PR #536.

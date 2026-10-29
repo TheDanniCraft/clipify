@@ -62,3 +62,15 @@ test("CI metadata planning loads the real Playwright config without enabling dat
 	for (const name of ["📦 Install BDD native presentation dependencies", "🌐 Prepare BDD native presentation browser", "🎞️ Install BDD native media system dependencies"]) assert.equal(steps.find((step) => step.name === name).if, "matrix.native_media == true");
 	assert.equal(steps.find((step) => step.name === "🎞️ Prepare frame decoding only where required").if, "matrix.ffmpeg == true && matrix.native_media != true");
 });
+
+test("browser jobs share versioned binaries and transfer the exact runtime without build caches", () => {
+	const ci = require("yaml").parse(readFileSync(".github/workflows/ci.yml", "utf8"));
+	assert.ok(ci.jobs.deps.outputs["browser-cache-key"]);
+	const build = ci.jobs["browser-build"].steps;
+	assert.ok(build.some((step) => step.run?.includes("browser-build-artifact.mjs pack")));
+	assert.equal(build.find((step) => step.name === "📦 Share exact browser build").with["compression-level"], 0);
+	const steps = ci.jobs["browser-tests"].steps;
+	assert.ok(steps.some((step) => step.with?.key === "${{ needs.deps.outputs.browser-cache-key }}"));
+	assert.ok(steps.some((step) => step.run?.includes("install-playwright-chromium.sh")));
+	assert.ok(steps.some((step) => step.run?.includes("browser-build-artifact.mjs unpack")));
+});

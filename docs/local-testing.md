@@ -419,6 +419,25 @@ move additional policy combinations to the lowest sufficient layer as features
 grow. A test suite is part of the product's maintenance budget, not an unlimited
 list of equally expensive browser scenarios.
 
+### Browser setup and build transfer
+
+CI downloads the exact Playwright browser revision once into a versioned binary
+cache. Each browser job still checks its own OS dependencies with Playwright's
+`install-deps --dry-run`, installs missing libraries, and ensures the matching
+browser is present. A binary cache never establishes OS readiness or a test pass.
+[Playwright cautions that binary-cache restore can cost as much as downloading](https://playwright.dev/docs/ci#caching-browsers);
+compare actual cache and setup timings rather than assuming a cache is faster.
+
+The shared build artifact is `browser-build.tar.gz`. It preserves runtime files,
+static assets, manifests and source maps, while excluding compilation cache and
+unused standalone output. Browser jobs unpack it into `.next-playwright`; they
+run that exact build instead of rebuilding. To reproduce a CI build locally,
+check out its source commit, download the `browser-build` artifact and run:
+
+```sh
+node scripts/browser-build-artifact.mjs unpack test-results/browser-build/browser-build.tar.gz .next-playwright
+```
+
 ### Select local tests
 
 1. Start with the changed behavior's complete owning test files, without coverage.

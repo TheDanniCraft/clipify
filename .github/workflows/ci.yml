@@ -56,6 +56,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       cache-key: ${{ steps.compute-key.outputs.key }}
+      browser-cache-key: ${{ steps.compute-browser-key.outputs.key }}
     steps:
       - name: 📥 Check out repository
         uses: actions/checkout@v7
@@ -100,6 +101,24 @@ jobs:
             ~/.bun/install/global
             **/node_modules
           key: ${{ steps.compute-key.outputs.key }}
+
+      - name: 🔑 Compute installed browser cache key
+        id: compute-browser-key
+        run: echo "key=${{ runner.os }}-${{ runner.arch }}-playwright-${{ hashFiles('node_modules/playwright-core/package.json', 'node_modules/playwright-core/browsers.json') }}" >> "$GITHUB_OUTPUT"
+      - name: ♻️ Restore shared Chromium binaries
+        id: browser-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ steps.compute-browser-key.outputs.key }}
+      - name: 🌐 Ensure matching Chromium binaries
+        run: bunx playwright install chromium
+      - name: 💾 Save shared Chromium binaries
+        if: steps.browser-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ steps.compute-browser-key.outputs.key }}
 
   draft-tests:
     name: 🧪 Scoped draft checks
@@ -176,12 +195,14 @@ jobs:
 
       - name: 🏗️ Build isolated browser application
         run: bun run test:e2e:build
+      - name: 📦 Pack browser runtime without compilation caches
+        run: node scripts/browser-build-artifact.mjs pack .next-playwright "${{ runner.temp }}/browser-build.tar.gz"
       - name: 📦 Share exact browser build
         uses: actions/upload-artifact@v7
         with:
           name: browser-build
-          path: .next-playwright/
-          include-hidden-files: true
+          path: ${{ runner.temp }}/browser-build.tar.gz
+          compression-level: 0
           retention-days: 2
 
   test:
@@ -603,8 +624,13 @@ jobs:
       - name: 🗃️ Prepare disposable E2E database
         run: bun run db:push:e2e
 
-      - name: 🌐 Install Playwright Chromium
-        run: bunx playwright install --with-deps chromium
+      - name: ♻️ Restore shared Chromium binaries
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ needs.deps.outputs.browser-cache-key }}
+      - name: 🌐 Verify browser libraries and matching Chromium
+        run: bash scripts/install-playwright-chromium.sh
 
       - name: 📦 Install BDD native presentation dependencies
         if: matrix.native_media == true
@@ -646,7 +672,9 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: browser-build
-          path: .next-playwright/
+          path: ${{ runner.temp }}/browser-build
+      - name: 📦 Restore exact browser runtime
+        run: node scripts/browser-build-artifact.mjs unpack "${{ runner.temp }}/browser-build/browser-build.tar.gz" .next-playwright
 
       - name: 📥 Download immutable browser shard plan
         uses: actions/download-artifact@v8
