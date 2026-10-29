@@ -42,33 +42,40 @@ function browserTestUnits(report, profile = readTestDurations()) {
 		if (!groups.has(row.file)) groups.set(row.file, []);
 		groups.get(row.file).push(row);
 	}
+	const unit = (rows, selector, weight) => {
+		const nativeMedia = rows.some((c) => c.tags.includes("@requires:native-media"));
+		return { selector, testIds: rows.map((c) => c.id), weight, nativeMedia, ffmpeg: nativeMedia || rows.some((c) => c.tags.includes("@requires:ffmpeg")) };
+	};
 	return [...groups].flatMap(([file, cases]) => {
 		const fallback = profile[file.replace(/^\.features-gen\//, "")] ?? cases.length;
 		// Only explicitly independent fixtures may split a file across workers.
 		const split = cases.every((c) => c.tags.includes("@shard:scenario") && !c.tags.includes("@mode:serial"));
-		return split ? cases.map((c) => ({ selector: c.selector, testIds: [c.id], weight: profile[c.selector] ?? fallback / cases.length })) : [{ selector: file, testIds: cases.map((c) => c.id), weight: fallback }];
+		return split ? cases.map((c) => unit([c], c.selector, profile[c.selector] ?? fallback / cases.length)) : [unit(cases, file, fallback)];
 	});
 }
-function distributeTestUnits(units, count) {
+function distributeTestUnits(units, count, startupSeconds = 0) {
 	if (!Number.isInteger(count) || count < 1) throw Error("Invalid browser shard count");
-	const bins = Array.from({ length: count }, () => ({ selectors: [], testIds: [], estimatedSeconds: 0 }));
+	const bins = Array.from({ length: count }, () => ({ selectors: [], testIds: [], estimatedSeconds: startupSeconds, nativeMedia: false, ffmpeg: false }));
 	for (const unit of [...units].sort((a, b) => b.weight - a.weight || a.selector.localeCompare(b.selector))) {
 		const bin = bins.reduce((best, candidate) => (candidate.estimatedSeconds < best.estimatedSeconds ? candidate : best));
 		bin.selectors.push(unit.selector);
 		bin.testIds.push(...unit.testIds);
 		bin.estimatedSeconds += unit.weight;
+		bin.nativeMedia ||= Boolean(unit.nativeMedia);
+		bin.ffmpeg ||= Boolean(unit.ffmpeg);
 	}
 	return bins;
 }
 function selectBrowserTests(report, index, count, profile = readTestDurations()) {
 	if (!Number.isInteger(index) || index < 0 || index >= count) throw Error("Invalid browser shard");
-	return distributeTestUnits(browserTestUnits(report, profile), count)[index];
+	return distributeTestUnits(browserTestUnits(report, profile), count, profile.__browserStartupSeconds ?? 0)[index];
 }
 function planBrowserShards(report, profile = readTestDurations(), targetSeconds = 300) {
 	if (!Number.isFinite(targetSeconds) || targetSeconds <= 0) throw Error("Invalid browser shard budget");
 	const units = browserTestUnits(report, profile),
 		total = units.reduce((n, u) => n + u.weight, 0);
-	const count = Math.min(units.length, Math.max(1, Math.ceil(total / targetSeconds)));
-	return distributeTestUnits(units, count);
+	const startupSeconds = profile.__browserStartupSeconds ?? 0;
+	const count = Math.min(units.length, Math.max(1, Math.ceil(total / Math.max(1, targetSeconds - startupSeconds))));
+	return distributeTestUnits(units, count, startupSeconds);
 }
 module.exports = { readTestDurations, listBrowserTests, browserTestCases, selectBrowserTests, planBrowserShards, distributeTestUnits };

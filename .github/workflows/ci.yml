@@ -607,19 +607,26 @@ jobs:
         run: bunx playwright install --with-deps chromium
 
       - name: 📦 Install BDD native presentation dependencies
-        if: matrix.project == 'bdd-chromium'
+        if: matrix.native_media == true
         working-directory: packages/runner
         run: |
           bun install --frozen-lockfile
           bun run patches:validate
           node check-native.mjs
       - name: 🌐 Prepare BDD native presentation browser
-        if: matrix.project == 'bdd-chromium'
+        if: matrix.native_media == true
         working-directory: packages/runner
         run: node test/support/prepare-media.mjs
       - name: 🎞️ Install BDD native media system dependencies
-        if: matrix.project == 'bdd-chromium'
+        if: matrix.native_media == true
         run: bash scripts/install-runner-media-deps.sh
+      - name: 🎞️ Prepare frame decoding only where required
+        if: matrix.ffmpeg == true && matrix.native_media != true
+        run: |
+          if ! command -v ffmpeg >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends ffmpeg
+          fi
       - name: 🧩 Compile native application probes once
         run: |
           node --input-type=module -e "import { buildMcpCoverageProbes } from './scripts/build-mcp-coverage-probes.mjs'; await buildMcpCoverageProbes({ outputDirectory: 'test-results/mcp/browser-native-probes' });"

@@ -1,3 +1,4 @@
+@requires:ffmpeg
 Feature: Runner attribution readability
 
   @BDD @US4 @FR-017 @BDD-US4-DEC011 @runner-readability-browser

@@ -1,3 +1,4 @@
+import { openConsentPage } from "../../support/consent-page";
 import { parseZonedDateTime } from "@internationalized/date";
 import { openRunnerSchedule, fillScheduleField, expectScheduleField } from "../../support/runner/editor";
 import { createBdd } from "playwright-bdd";
@@ -74,7 +75,7 @@ Given("a Pro creator is authoring a Runner schedule in the browser", async ({ pa
 	await query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,control_mode) VALUES($1,$2,$3,$4,'24/7','scheduled')", [state.sessionId, owner.fixture.creatorId, state.runnerId, owner.fixture.overlayId]);
 	await query("INSERT INTO stream_session_destinations(session_id,destination_id,owner_id,position) VALUES($1,$2,$3,0)", [state.sessionId, state.targetId, owner.fixture.creatorId]);
 	await page.context().addCookies([owner.cookie]);
-	await page.goto(origin + "/legal/cookies");
+	await openConsentPage(page, origin);
 	await expect(page.getByRole("button", { name: "Enable support chat", exact: true })).toBeVisible();
 	const preferences = page.getByRole("main").getByRole("button", { name: "Cookie preferences", exact: true });
 	await preferences.focus();

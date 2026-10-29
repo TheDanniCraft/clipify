@@ -1,4 +1,4 @@
-@BDD @US1 @runner-manual-browser
+@BDD @US1 @runner-manual-browser @shard:scenario
 Feature: Manual Runner configuration
 
   @FR-005 @BDD-US1-FR005

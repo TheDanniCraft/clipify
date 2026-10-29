@@ -57,4 +57,8 @@ test("CI metadata planning loads the real Playwright config without enabling dat
 	const plan = JSON.parse(readFileSync("test-results/browser-shard-plan.json", "utf8"));
 	assert.ok(plan.shards.length > 6);
 	assert.ok(plan.shards.every((shard) => shard.testIds.length > 0));
+	assert.ok(plan.shards.filter((shard) => shard.selectors.some((selector) => selector.includes("/runner-free-pro.feature.spec.js ›"))).length > 1);
+	const steps = ci.jobs["browser-tests"].steps;
+	for (const name of ["📦 Install BDD native presentation dependencies", "🌐 Prepare BDD native presentation browser", "🎞️ Install BDD native media system dependencies"]) assert.equal(steps.find((step) => step.name === name).if, "matrix.native_media == true");
+	assert.equal(steps.find((step) => step.name === "🎞️ Prepare frame decoding only where required").if, "matrix.ffmpeg == true && matrix.native_media != true");
 });

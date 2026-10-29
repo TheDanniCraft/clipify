@@ -396,7 +396,12 @@ waste. More jobs are useful only when they reduce time to the green merge gate.
 All coverage producers must contribute their exact disjoint inventory. Gates
 reject missing, duplicated, skipped or foreign execution evidence and mismatched
 inputs. Timing history may influence scheduling only, with safe baseline fallback;
-it is never proof that a test passed. Reusing passing results requires complete
+it is never proof that a test passed. Browser forecasts use successful-attempt durations and measured
+Playwright startup; failed retry time remains visible in the actual execution
+reports. Only verified independent scenarios carry `@shard:scenario`. Mark
+scenarios needing native Runner capture with `@requires:native-media`, or frame
+decoding alone with `@requires:ffmpeg`, so the owning shards prepare their actual
+prerequisites. Shared fixture groups remain intact. Reusing passing results requires complete
 matching execution inputs and a separately reviewed policy. Approximate change
 selection must not replace the full merge gate without validated dependency
 mapping, an unknown-impact full-run fallback and explicit approval.

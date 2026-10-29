@@ -19,7 +19,7 @@ Feature: Runner-generated presentation
     When the Runner starts generated clip playback
     Then its playing clip visibly retains Clipify attribution
 
-  @FR-016 @BDD-US4-FR016 @BDD-US4-OPT055 @BDD-US4-OPT057
+  @FR-016 @BDD-US4-FR016 @BDD-US4-OPT055 @BDD-US4-OPT057 @requires:native-media
   Scenario: Live forwarding bypasses attribution across generated fallback and return
     Given a Free Runner has an active live-fallback broadcast with playable clips
     When its live input disconnects and then returns through the native Runner

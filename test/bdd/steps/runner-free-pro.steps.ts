@@ -1,3 +1,4 @@
+import { openConsentPage } from "../../support/consent-page";
 import { openRunnerAppearance, openRunnerDestinations } from "../../support/runner/editor";
 import type { Page } from "@playwright/test";
 import { createBdd } from "playwright-bdd";
@@ -29,7 +30,7 @@ Given("a Free creator is configuring a local Runner in the browser", async ({ pa
 	await page.context().addCookies([owner.cookie]);
 	// The banner is policy-dependent. Use the existing always-available preferences
 	// control and its real keyboard flow instead of guessing whether a banner appears.
-	await page.goto("http://127.0.0.1:3107/legal/cookies");
+	await openConsentPage(page);
 	await expect(page.getByRole("button", { name: "Enable support chat", exact: true })).toBeVisible();
 	const preferences = page.getByRole("main").getByRole("button", { name: "Cookie preferences", exact: true });
 	await preferences.focus();

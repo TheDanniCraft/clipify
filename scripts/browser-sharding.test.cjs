@@ -62,3 +62,33 @@ test("automatic plans follow measured work without artificial job ceilings", () 
 
 	assert.throws(() => collectBrowserDurations([r], ["missing"]), /complete scenario inventory/);
 });
+
+test("normal browser estimates exclude failed attempts and retain measured startup", () => {
+	const r = report([spec("a", "A", 7000)]);
+	r.stats.duration = 78000;
+	r.suites[0].suites[0].specs[0].tests[0].status = "flaky";
+	r.suites[0].suites[0].specs[0].tests[0].results.unshift({ status: "timedOut", duration: 60000 });
+	const durations = collectBrowserDurations([r]);
+	assert.equal(durations["bdd/guide.feature.spec.js"], 7);
+	assert.equal(durations.__browserStartupSeconds, 11);
+	const plan = planBrowserShards(r, durations);
+	assert.equal(plan[0].estimatedSeconds, 18);
+	r.stats.duration = Infinity;
+	assert.throws(() => collectBrowserDurations([r]), /duration/);
+	r.stats.duration = 78000;
+	r.suites[0].suites[0].specs[0].tests[0].results[0].duration = -1;
+	assert.throws(() => collectBrowserDurations([r]), /duration/);
+});
+
+test("media prerequisites follow actual selected scenarios and preserve grouped fixtures", () => {
+	const r = report([spec("a", "Native", 100000), spec("b", "Frame decode", 100000), spec("c", "UI only", 100000)]);
+	r.suites[0].suites[0].specs[0].tags.push("requires:native-media");
+	r.suites[0].suites[0].specs[1].tags.push("requires:ffmpeg");
+	const parts = [0, 1, 2].map((i) => selectBrowserTests(r, i, 3, collectBrowserDurations([r])));
+	assert.equal(parts.filter((p) => p.nativeMedia).length, 1);
+	assert.equal(parts.filter((p) => p.ffmpeg).length, 2);
+	for (const row of r.suites[0].suites[0].specs) row.tags = row.tags.filter((tag) => tag !== "shard:scenario");
+	const grouped = selectBrowserTests(r, 0, 1, collectBrowserDurations([r]));
+	assert.equal(grouped.nativeMedia, true);
+	assert.equal(grouped.ffmpeg, true);
+});

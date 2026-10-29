@@ -1,3 +1,4 @@
+import { openConsentPage } from "../../support/consent-page";
 import { openRunnerAppearance } from "../../support/runner/editor";
 import { createBdd } from "playwright-bdd";
 import type { Locator } from "@playwright/test";
@@ -9,7 +10,7 @@ const { When, Then } = createBdd(test);
 When("its owner opens the Runner appearance settings", async ({ page, mcpWorld }) => {
 	const world = state(mcpWorld.input);
 	await page.context().addCookies([world.owner.cookie]);
-	await page.goto("http://127.0.0.1:3107/legal/cookies");
+	await openConsentPage(page);
 	await expect(page.getByRole("button", { name: "Enable support chat", exact: true })).toBeVisible();
 	const preferences = page.getByRole("main").getByRole("button", { name: "Cookie preferences", exact: true });
 	await preferences.focus();
