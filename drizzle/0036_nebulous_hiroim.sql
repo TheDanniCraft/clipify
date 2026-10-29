@@ -1,0 +1,1 @@
+ALTER TABLE "mcp_connection_grants" ALTER COLUMN "expires_at" DROP NOT NULL;
