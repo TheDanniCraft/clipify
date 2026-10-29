@@ -278,3 +278,27 @@ update; redirects do not silently rewrite external articles.
 - Asset checks verify all eight feature desktop/mobile images are exactly 4:3 and at least 1080px wide. Native playback captures are 1664×936 and 1920×1080. Ten product WebP files total 684,966 bytes; the source hero PNG is 791,896 bytes and uses a content-hashed optimized URL. No matched Lighthouse or field-performance improvement is claimed for this slice.
 - All 27 current public-page Chromium acceptance scenarios passed without retries. Former guide-page contrast checks were replaced by exact redirect checks; marketing canonical checks cover retained indexable pages. Gallery playback/retry/focus, signup contrast, demo lifecycle, pricing, consent and mobile keyboard behavior remain covered.
 - The PR remains draft. The complete required CI gate still belongs to ready-for-review before merge.
+
+### Live-data and standalone-compiler follow-up
+
+The first pushed CI run exposed a PNG import declaration missing from a standalone
+`tsc --noEmit` run before Next generates `next-env.d.ts`. Removing that generated
+file locally reproduced TS2307. `src/next-image.d.ts` references Next's installed
+image declarations; the same standalone command then passed with the generated
+file still absent. No compiler setting or threshold was relaxed.
+
+The first live portrait review also exposed an avatar fallback with an accessible
+name on a generic element. All three public Avatar uses now explicitly use the
+image role, preserving the creator/status name when a portrait fails. The
+regression tests failed before the correction and passed afterward. Six disposable
+public profiles with unavailable portraits exercised eleven real installed avatar
+fallbacks, the five-avatar cap and +1 count, in both themes without A/AA findings.
+Populating the directory also exposed a homepage community-row overflow at 200%
+zoom; its existing flex layout now wraps within the available width.
+
+Current affected coverage: 13 suites / 103 tests pass with the unchanged thresholds
+(93.26% statements, 88.35% branches, 94.53% functions, 94.55% lines). Homepage and
+avatar whole-file checks also pass. The production browser build passes with the
+explicit declarations. All 27 browser scenarios passed again with the populated fixture, including
+200% reflow. The dedicated 640px / 200% zoom check measured 640px document
+width and no overflowing elements.

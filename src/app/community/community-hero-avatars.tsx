@@ -19,7 +19,7 @@ export default function CommunityHeroAvatars({ streamers, totalCount }: Communit
 				{visibleStreamers.map((streamer, index) => {
 					const tone = getCommunityAvatarTone(streamer);
 					return (
-						<Avatar key={streamer.id} aria-label={`${streamer.displayName}: ${tone.label}`} className={["relative h-8 w-8 text-xs ring-2", tone.ringClass, index > 0 ? "-ms-2" : ""].filter(Boolean).join(" ")} color={tone.color} variant='soft' style={{ zIndex: visibleStreamers.length - index }}>
+						<Avatar role='img' key={streamer.id} aria-label={`${streamer.displayName}: ${tone.label}`} className={["relative h-8 w-8 text-xs ring-2", tone.ringClass, index > 0 ? "-ms-2" : ""].filter(Boolean).join(" ")} color={tone.color} variant='soft' style={{ zIndex: visibleStreamers.length - index }}>
 							<Avatar.Image alt='' src={streamer.avatar} />
 							<Avatar.Fallback>{streamer.displayName.slice(0, 2).toUpperCase()}</Avatar.Fallback>
 						</Avatar>

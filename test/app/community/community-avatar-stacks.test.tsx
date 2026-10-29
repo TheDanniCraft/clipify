@@ -38,12 +38,17 @@ describe("community avatar stacks", () => {
 	it("renders semantic rings and the uncapped community-page overflow count", () => {
 		render(<CommunityHeroAvatars streamers={streamers} totalCount={80} />);
 
-		expect(screen.getByLabelText("Clipify Live: Live with Clipify")).toHaveClass("ring-success");
+		expect(screen.getByRole("img", { name: "Clipify Live: Live with Clipify" })).toHaveClass("ring-success");
 		expect(screen.getByLabelText("Twitch Live: Live on Twitch")).toHaveClass("ring-danger");
 		expect(screen.getByLabelText("Partner: Clipify Partner")).toHaveClass("ring-warning");
 		expect(screen.getByLabelText("Pro: Clipify Pro")).toHaveClass("ring-accent");
 		expect(screen.getByLabelText("Offline: Offline")).toHaveClass("ring-default");
 		expect(screen.getByText("+75 more")).toHaveClass("shrink-0", "whitespace-nowrap");
+	});
+
+	it("keeps a teaser avatar named when its image falls back to initials", () => {
+		render(<CommunityTeaser streamers={[{ ...streamers[0], avatar: "/missing.png" }]} />);
+		expect(screen.getByRole("img", { name: "Clipify Live: Live with Clipify" })).toHaveTextContent("CL");
 	});
 
 	it("caps the teaser at five avatars and counts every remaining listed creator", () => {

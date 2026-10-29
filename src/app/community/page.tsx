@@ -46,7 +46,7 @@ function StreamerRow({ streamer }: { streamer: CommunityPageStreamer }) {
 	return (
 		<div className='flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between'>
 			<div className='flex min-w-0 items-center gap-3'>
-				<Avatar aria-label={`${streamer.displayName}: ${avatarTone.label}`} color={avatarTone.color} variant='soft' className={`ring-2 ${avatarTone.ringClass}`} size='md'>
+				<Avatar role='img' aria-label={`${streamer.displayName}: ${avatarTone.label}`} color={avatarTone.color} variant='soft' className={`ring-2 ${avatarTone.ringClass}`} size='md'>
 					<AvatarImage alt='' src={streamer.avatar} />
 					<AvatarFallback>{streamer.displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
 				</Avatar>

@@ -109,7 +109,7 @@ export default function HomePageClient({ campaignOffer, pricing }: HomePageClien
 							</div>
 							<DemoPlayer />
 						</div>
-						<div className='mt-12 flex flex-col items-start justify-between gap-5 border-t border-white/15 pt-6 sm:flex-row sm:items-center'>
+						<div className='mt-12 flex flex-wrap flex-col items-start justify-between gap-5 border-t border-white/15 pt-6 sm:flex-row sm:items-center'>
 							<div className='grid gap-3 text-sm font-medium text-violet-100 sm:flex sm:flex-wrap sm:gap-x-6'>
 								<span className='flex items-center gap-2'>
 									<IconBrowser size={16} aria-hidden='true' />
@@ -124,7 +124,7 @@ export default function HomePageClient({ campaignOffer, pricing }: HomePageClien
 									Free to get started
 								</span>
 							</div>
-							<Link href='/community' className='inline-flex flex-col items-start gap-3 text-sm text-white sm:flex-row sm:items-center'>
+							<Link href='/community' className='inline-flex min-w-0 max-w-full flex-wrap flex-col items-start gap-3 text-sm text-white sm:flex-row sm:items-center'>
 								{communityStreamers.length ? <CommunityTeaser streamers={communityStreamers} totalCount={communityPreview?.totalCount} countClassName='text-violet-100' /> : null}
 								<span className='inline-flex items-center gap-2'>
 									{communityStreamers.length === 0 && <IconUsersGroup size={18} aria-hidden='true' />}Explore the creator community <IconArrowRight size={15} aria-hidden='true' />

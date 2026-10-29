@@ -24,7 +24,7 @@ export default function CommunityTeaser({ className, countClassName, maxVisible 
 				{visibleStreamers.map((streamer, index) => {
 					const tone = getCommunityAvatarTone(streamer);
 					return (
-						<Avatar key={streamer.id} aria-label={`${streamer.displayName}: ${tone.label}`} className={["relative h-7 w-7 rounded-full text-xs ring-2", tone.ringClass, index > 0 ? "-ms-2" : ""].filter(Boolean).join(" ")} color={tone.color} variant='soft' style={{ zIndex: visibleStreamers.length - index }}>
+						<Avatar role='img' key={streamer.id} aria-label={`${streamer.displayName}: ${tone.label}`} className={["relative h-7 w-7 rounded-full text-xs ring-2", tone.ringClass, index > 0 ? "-ms-2" : ""].filter(Boolean).join(" ")} color={tone.color} variant='soft' style={{ zIndex: visibleStreamers.length - index }}>
 							<Avatar.Image alt='' src={streamer.avatar.replace("-profile_image-300x300.", "-profile_image-70x70.")} loading='lazy' width={28} height={28} />
 							<Avatar.Fallback>{streamer.displayName.slice(0, 2).toUpperCase()}</Avatar.Fallback>
 						</Avatar>
