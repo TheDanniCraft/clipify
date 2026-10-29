@@ -208,7 +208,20 @@ for (const theme of ["light", "dark"]) {
 			await page.goto("/");
 			const reject = page.getByRole("button", { name: "Reject optional", exact: true });
 			await expect(reject).toBeVisible();
-			await expect(page.getByRole("button", { name: "Enable support chat" })).toHaveCount(0);
+			const support = page.getByRole("button", { name: "Enable support chat" });
+			await expect(support).toBeVisible();
+			await expect
+				.poll(async () => {
+					const bubble = await support.boundingBox();
+					const banner = await page.getByRole("heading", { name: "Your privacy choices", exact: true }).locator("xpath=ancestor::aside").boundingBox();
+					return bubble!.y + bubble!.height <= banner!.y - 8;
+				})
+				.toBe(true);
+			await support.click();
+			await expect(page.getByRole("dialog", { name: "Privacy preferences", exact: true })).toBeVisible();
+			await expect(support).toHaveCount(0);
+			await page.getByRole("button", { name: "Close privacy preferences", exact: true }).click();
+			await expect(support).toBeVisible();
 			await reject.focus();
 			await page.screenshot({ path: testInfo.outputPath(`consent-${consentWidth}-${theme}.png`), fullPage: true });
 			await page.addScriptTag({ content: axeSource });

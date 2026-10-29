@@ -53,7 +53,7 @@ export default function FeaturesPage() {
 				<div className='mx-auto max-w-6xl px-6 py-14 sm:px-8 sm:py-20'>
 					<PublicPageHeader title='Build your break screen.' description='Choose Twitch clips, save an OBS overlay, and keep playback under control.' />
 					{features.map((feature, index) => (
-						<section key={feature.id} id={feature.id} className='grid min-w-0 scroll-mt-24 items-start gap-6 border-b border-separator py-14 first-of-type:pt-0 sm:py-20 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-x-14 md:gap-y-4'>
+						<section key={feature.id} id={feature.id} className='grid min-w-0 scroll-mt-24 items-start gap-6 border-b border-separator py-14 first-of-type:pt-0 sm:py-20 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-x-14 md:gap-y-4 md:grid-rows-[auto_1fr]'>
 							<header className={`min-w-0 ${feature.image && index % 2 ? "md:col-start-2" : ""}`}>
 								<p className='mb-4 text-sm font-medium text-accent dark:text-violet-300'>{feature.label}</p>
 								<h2 className='break-words text-3xl font-semibold leading-tight tracking-tight sm:text-4xl'>{feature.title}</h2>

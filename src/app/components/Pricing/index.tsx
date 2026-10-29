@@ -1,5 +1,7 @@
 "use client";
 
+import TierPrice from "./TierPrice";
+
 import React, { useState } from "react";
 import type { CampaignOffer } from "@types";
 import { Button, Card, Chip, Separator, Link, cn } from "@heroui/react";
@@ -72,19 +74,7 @@ export default function TiersComponent({ source = "pricing_page", campaignOffer 
 							<Separator />
 							<Card.Content className='flex flex-col gap-5'>
 								<div className='flex min-h-20 flex-col justify-end'>
-									<p className='flex flex-wrap items-end gap-2 pt-2 tabular-nums'>
-										{typeof tier.price !== "string" && hasPromoPrice ? (
-											<>
-												<span className='text-xl font-medium text-foreground/75 line-through decoration-2' aria-hidden='true'>
-													{runtimePricing.pro[selectedFrequency.key].formatted}
-												</span>
-												<span className='text-4xl font-extrabold leading-none tracking-tight text-brand-secondary'>{promoPrice} EUR</span>
-											</>
-										) : (
-											<span className='text-4xl font-extrabold leading-none tracking-tight'>{typeof tier.price === "string" ? tier.price : runtimePricing.pro[selectedFrequency.key].formatted}</span>
-										)}
-										{typeof tier.price !== "string" ? <span className='text-sm font-medium leading-none text-foreground/75'>/{selectedFrequency.priceSuffix}</span> : null}
-									</p>
+									<TierPrice campaignOffer={campaignOffer} pricing={runtimePricing} selectedFrequency={selectedFrequency.key} tier={tier} />
 								</div>
 								<ul className='flex flex-col gap-2.5'>
 									{tier.summaryFeatures?.map((feature) => (

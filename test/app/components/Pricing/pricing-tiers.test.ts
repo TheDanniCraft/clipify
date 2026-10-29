@@ -57,3 +57,12 @@ it("calculates annual savings only from comparable resolved prices", async () =>
 		expect(annualSavingsPercent({ pro: { ...pricing.pro, yearly } })).toBeNull();
 	expect(annualSavingsPercent({ pro: { ...pricing.pro, monthly: { ...pricing.pro.monthly, amount: 0 } } })).toBeNull();
 });
+
+it("describes the exact annual saving in free months without promising rounded-up months", async () => {
+	const { annualSavingsLabel } = await import("@/app/components/Pricing/pricing-types");
+	const pricing = { pro: { monthly: { amount: 2, currency: "EUR", formatted: "€2" }, yearly: { amount: 20, currency: "EUR", formatted: "€20" } } };
+	expect(annualSavingsLabel(pricing)).toBe("2 months free");
+	expect(annualSavingsLabel({ pro: { ...pricing.pro, yearly: { ...pricing.pro.yearly, amount: 22 } } })).toBe("1 month free");
+	expect(annualSavingsLabel({ pro: { ...pricing.pro, yearly: { ...pricing.pro.yearly, amount: 21 } } })).toBe("Save 12%");
+	expect(annualSavingsLabel()).toBeNull();
+});

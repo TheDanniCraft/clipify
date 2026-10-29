@@ -1,5 +1,7 @@
 "use client";
 
+import TierPrice from "./TierPrice";
+
 import React, { useEffect, useRef, useState } from "react";
 import type { CampaignOffer } from "@types";
 import { Button, Card, Chip, Link, Separator, Tooltip, cn } from "@heroui/react";
@@ -7,9 +9,9 @@ import { buttonVariants } from "@heroui/styles";
 import { IconCheck, IconHeart, IconInfoCircle, IconMinus } from "@tabler/icons-react";
 import { usePlausible } from "next-plausible";
 
-import { frequencies, pricingFeatures, tiers } from "./pricing-catalog";
+import { pricingFeatures, tiers } from "./pricing-catalog";
 import type { PricingFeatureItem } from "./pricing-comparison-types";
-import { FrequencyEnum, resolveRuntimePricing, type RuntimePricing, type Tier } from "./pricing-types";
+import { FrequencyEnum, resolveRuntimePricing, type RuntimePricing } from "./pricing-types";
 import { trackPaywallEvent } from "@lib/paywallTracking";
 import ProSetupModal from "./ProSetupModal";
 import BillingFrequency from "./BillingFrequency";
@@ -68,30 +70,6 @@ function FeatureTitle({ item }: { item: PricingFeatureItem }) {
 	);
 }
 
-function TierPrice({ campaignOffer, pricing, selectedFrequency, tier }: { campaignOffer: CampaignOffer | null; pricing: RuntimePricing; selectedFrequency: FrequencyEnum; tier: Tier }) {
-	const campaignPrice = selectedFrequency === FrequencyEnum.Monthly ? campaignOffer?.pricingMonthlyPromo : campaignOffer?.pricingYearlyPromo;
-	const hasPromo = tier.key === "pro" && campaignOffer?.showPricingTierPromo && typeof campaignPrice === "number";
-	const suffix = frequencies.find((frequency) => frequency.key === selectedFrequency)?.priceSuffix;
-
-	return (
-		<div>
-			<p className='flex flex-wrap items-baseline gap-2 tabular-nums'>
-				{typeof tier.price !== "string" && hasPromo ? (
-					<>
-						<span aria-hidden className='text-lg text-foreground/75 line-through'>
-							{pricing.pro[selectedFrequency].formatted}
-						</span>
-						<span className='text-4xl font-semibold leading-8 tracking-tight text-brand-secondary'>{campaignPrice} EUR</span>
-					</>
-				) : (
-					<span className='text-4xl font-semibold leading-8 tracking-tight'>{typeof tier.price === "string" ? tier.price : pricing.pro[selectedFrequency].formatted}</span>
-				)}
-				{typeof tier.price !== "string" ? <span className='text-sm font-medium text-foreground/75'>/{suffix}</span> : null}
-			</p>
-		</div>
-	);
-}
-
 export default function PricingComparison({ campaignOffer = null, pricing }: { campaignOffer?: CampaignOffer | null; pricing?: RuntimePricing | null }) {
 	const resolvedPricing = resolveRuntimePricing(pricing);
 	const [selectedFrequency, setSelectedFrequency] = useState(FrequencyEnum.Yearly);
@@ -111,7 +89,7 @@ export default function PricingComparison({ campaignOffer = null, pricing }: { c
 			<div className='w-full'>
 				<PublicPageHeader title='Compare plans & features.' description='Plans for your clip playlists, overlays, and broadcasts.' />
 			</div>
-			<div>
+			<div className='w-full'>
 				<BillingFrequency value={selectedFrequency} onChange={onFrequencyChange} pricing={campaignOffer?.showPricingTierPromo ? null : pricing} />
 			</div>
 

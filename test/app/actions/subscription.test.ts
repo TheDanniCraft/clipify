@@ -246,6 +246,23 @@ describe("actions/subscription", () => {
 		expect(customersCreate).not.toHaveBeenCalled();
 	});
 
+	it.each([true, false])("honors campaign auto-apply=%s without needing an offer cookie", async (autoApplyAtCheckout) => {
+		validateAuth.mockResolvedValue({ id: "user-1", email: "alice@example.com", stripeCustomerId: "cus_existing" });
+		subscriptionsList.mockResolvedValue({ data: [] });
+		getActiveCampaignOffer.mockResolvedValue({ slug: "summer", offerCode: "summer", autoApplyAtCheckout });
+		promotionCodesList.mockResolvedValue({ data: [{ id: "promo_campaign" }] });
+		checkoutCreate.mockReset().mockResolvedValue({ id: "cs_campaign", url: "https://checkout.stripe.test/campaign" });
+		const { generatePaymentLink } = await loadSubscription();
+		await expect(generatePaymentLink("yearly")).resolves.toBe("https://checkout.stripe.test/campaign");
+		if (autoApplyAtCheckout) {
+			expect(promotionCodesList).toHaveBeenCalledWith({ code: "SUMMER", limit: 1 });
+			expect(checkoutCreate).toHaveBeenCalledWith(expect.objectContaining({ discounts: [{ promotion_code: "promo_campaign" }] }));
+		} else {
+			expect(promotionCodesList).not.toHaveBeenCalled();
+			expect(checkoutCreate).toHaveBeenCalledWith(expect.objectContaining({ allow_promotion_codes: true }));
+		}
+	});
+
 	it("retries checkout without promo discount when code is not redeemable", async () => {
 		validateAuth.mockResolvedValue({
 			id: "user-1",

@@ -81,6 +81,13 @@ describe("PricingComparison Pro setup", () => {
 		runner: { monthly: { amount: 3, currency: "EUR", formatted: "3 EUR" }, yearly: { amount: 30, currency: "EUR", formatted: "30 EUR" } },
 	};
 
+	it("compares yearly Pro with twelve monthly payments and removes that comparison for monthly billing", () => {
+		render(<PricingComparison pricing={pricing} />);
+		for (const reference of screen.getAllByText("€24.00")) expect(reference).toHaveClass("line-through");
+		fireEvent.click(screen.getByRole("button", { name: "Pay Monthly" }));
+		expect(screen.queryByText("€24.00")).not.toBeInTheDocument();
+	});
+
 	it("keeps paid checkout unavailable when no price has been resolved", () => {
 		render(<PricingComparison />);
 		for (const action of screen.getAllByRole("button", { name: "Get Pro" })) expect(action).toBeDisabled();

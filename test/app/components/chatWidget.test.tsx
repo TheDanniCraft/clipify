@@ -157,20 +157,19 @@ describe("components/ChatWidget", () => {
 		expect(toggleBubbleVisibility).toHaveBeenCalledWith("show");
 	});
 
-	it("keeps the support fallback out of privacy choices and restores it afterward", () => {
-		mockFunctionalityAllowed = false;
+	it("keeps the local support preview visible with the initial banner and hides it for the preferences dialog", () => {
 		mockBannerVisible = true;
-		mockDialogVisible = false;
 		const { rerender } = render(<ChatWidget />);
-		expect(screen.queryByRole("button", { name: "Enable support chat" })).not.toBeInTheDocument();
-		mockBannerVisible = false;
+		expect(screen.getByRole("button", { name: "Enable support chat" })).toBeVisible();
 		mockDialogVisible = true;
 		rerender(<ChatWidget />);
 		expect(screen.queryByRole("button", { name: "Enable support chat" })).not.toBeInTheDocument();
 		mockDialogVisible = false;
+		mockBannerVisible = false;
 		rerender(<ChatWidget />);
 		expect(screen.getByRole("button", { name: "Enable support chat" })).toBeVisible();
 	});
+
 	it("hides an already mounted support widget while privacy choices are open", () => {
 		mockBannerVisible = false;
 		mockDialogVisible = false;

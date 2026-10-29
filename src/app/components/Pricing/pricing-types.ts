@@ -59,3 +59,11 @@ export function annualSavingsPercent(pricing?: RuntimePricing | null): number | 
 	const saving = Math.floor((1 - yearly.amount / (monthly.amount * 12)) * 100);
 	return saving > 0 ? saving : null;
 }
+
+export function annualSavingsLabel(pricing?: RuntimePricing | null): string | null {
+	const percent = annualSavingsPercent(pricing);
+	if (percent === null || !pricing) return null;
+	const months = 12 - pricing.pro.yearly.amount! / pricing.pro.monthly.amount!;
+	const rounded = Math.round(months);
+	return rounded > 0 && Math.abs(months - rounded) < 0.0001 ? `${rounded} ${rounded === 1 ? "month" : "months"} free` : `Save ${percent}%`;
+}

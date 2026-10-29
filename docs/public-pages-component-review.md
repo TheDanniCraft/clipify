@@ -379,3 +379,18 @@ changed-file lint passed. Four real Chromium scenarios passed without retries:
 phone/desktop in light/dark, actual keyboard profile navigation, a Unicode name,
 a creator without an overlay, correct canonical/sitemap inclusion, and subsequent
 unlisted/unpublished/disabled removal with cached snapshot data retained.
+
+## Final screenshot canvas correction — 29 October 2026
+
+This supersedes the earlier 4:3 crop and asset-size entries above. Product assets now retain complete native component bounds, rather than a common aspect ratio. Actual installed editors were captured from disposable local fixtures at 3× device scale:
+
+| Image                                 | Desktop pixels | Narrow pixels |
+| ------------------------------------- | -------------- | ------------- |
+| Playlist workspace                    | 2208 × 2007    | 1428 × 2103   |
+| Overlay settings                      | 2196 × 1488    | 1416 × 1560   |
+| Theme typography and full color popup | 2112 × 2487    | 1380 × 2511   |
+| Playback control card                 | 2202 × 576     | 1446 × 588    |
+
+The complete Theme Studio picker includes its hue, RGB, opacity and reset controls. An open popup naturally overlaps fields beneath it; neither its bounds nor the typography card is cropped. Narrow images are selected below 480 CSS pixels; wider layouts use the higher-resolution desktop captures. Static imports provide actual dimensions and content-hashed filenames. Images use natural height rather than object-cover framing; no live editor or new animation workload is mounted.
+
+The unchanged native playback image is 1664 × 936. The retained selection asset is 1800 × 1350 and is not currently used. All ten WebPs, including the unused retained asset, total 1,027,896 bytes. This is an image-quality correction, not a claim of improved Lighthouse performance. Offscreen images remain lazy-loaded.

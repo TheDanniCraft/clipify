@@ -167,3 +167,19 @@ prove the encoded input regression and literal-percent fallback. Real browser
 acceptance covers publication, no-overlay discovery, keyboard navigation, correct
 canonical, unlisted/noindex and removal of disabled/unpublished profiles from the
 directory and sitemap. No production records or settings were changed.
+
+## Final review corrections — 29 October 2026
+
+- Restore a wider Monthly/Yearly control with an inline savings chip derived from the billing catalog. The standard €2/€20 catalog reads “2 months free”; non-integral savings retain a truthful percentage. Homepage and comparison share one price renderer: Pro is red, and yearly includes the struck-through cost of twelve monthly payments. Campaign pricing keeps its own reference price and suppresses the ordinary savings badge when a promotional tier is displayed.
+- Preserve the existing campaign banner, offer card/countdown, redemption cookie and automatic checkout promotion. Regression cases exercise both enabled and disabled automatic application without an offer cookie; no campaign or payment was created in production.
+- Keep the local support launcher visible before optional consent, positioned above the initial banner. Opening preferences hides it until the dialog closes. Real Chatwoot still requires functionality consent.
+- Recapture playlist, overlay, Theme Studio and live controls from the actual installed editors with disposable fixtures, native 3× resolution and complete component bounds. Include the full color-picker popup; do not force a common crop. Static image imports carry the measured dimensions and content-hashed URLs, preventing old screenshots from surviving behind unchanged asset URLs. Marketing pages still load static images rather than mounting editors. The feature grid now reserves flexible space after its heading so taller natural screenshots do not separate headings from their descriptions.
+- The future Umami migration, consent boundaries, source-verified reporting limits and acceptance criteria are documented in `docs/landing-page-redesign-plan.md`. No analytics provider was switched.
+
+Clarification: the three guide routes are new on this branch, not established production articles being moved. Their 308 destinations consolidate content ownership at the specific Help Center article. The publishing handoff remains necessary for outdated screenshots inside the external Help Center itself.
+
+### Remaining review and operator work
+
+The current repository corrections do not require more product decisions. Before merging, the required complete CI gate must pass; scoped draft feedback is not that gate. After release, verify production metadata, original Unicode creator URL, campaign/checkout behavior and fresh CrawlSEO/Search Console results. These are deployment verification, not evidence of an established ranking increase.
+
+External content follow-ups remain: publish the prepared Help Center updates and approve any real creator quotes/scenes before use. Confirm affiliate availability before promoting that program. These do not justify invented proof or claims in the current pages. Hosting, retention and the baseline-versus-consented tracking policy are decisions for the future Umami migration, not current redesign blockers.
