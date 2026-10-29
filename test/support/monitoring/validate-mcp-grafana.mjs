@@ -32,7 +32,7 @@ function flattenNumbers(value, path) {
 	if (typeof value === "number") fields[path] = value;
 	else if (value && typeof value === "object") for (const [key, child] of Object.entries(value)) flattenNumbers(child, `${path}_${key}`);
 }
-for (const key of ["crawler", "notifications", "clips"]) flattenNumbers(sample[key], key);
+for (const key of ["crawler", "notifications", "clips", "onboarding"]) flattenNumbers(sample[key], key);
 const healthFixture = { ...sample, mcpClients: { ...sample.mcpClients, items: Array.from({ length: 25 }, (_, index) => ({ name: index === 0 ? "Meta MCP" : `Custom ${index + 1}`, registeredClients: 1, authorizedClients: 1, activeConnections: 1, activeClients30d: 1, calls30d: 4 })) } };
 let healthReads = 0;
 const fixture = createServer((request, response) => {
@@ -61,6 +61,7 @@ for (const scenario of scenarios)
 			for (const key of Object.keys(values)) {
 				if (key.startsWith("mcp_duration_buckets_")) values[key] = key === "mcp_duration_buckets_le_inf_total" || Number(key.slice("mcp_duration_buckets_le_".length, -"_total".length).replace("_", ".")) >= 0.1 ? total : 0;
 			}
+			if (scenario === "zero") for (const key of Object.keys(values)) if (key.startsWith("onboarding_") && !key.endsWith("tasksPerAccount")) values[key] = 0;
 			Object.assign(values, {
 				mcp_calls_started_total: total,
 				mcp_calls_completed_total: total,
@@ -136,6 +137,11 @@ function values(scenario, panel) {
 	}
 	return output;
 }
+for (const scenario of ["normal", "replicas", "gap"]) {
+	assert.deepEqual(values(scenario, "Guide completion rate"), [0.2]);
+	assert(values(scenario, "Average guide progress").every((value) => Math.abs(value - 22 / 90) < 1e-10));
+}
+assert.deepEqual(values("zero", "Guide completion rate"), [0]);
 const rateTitle = "MCP calls per minute";
 assert.deepEqual(values("normal", rateTitle), [3, 3, 3, 3, 3]);
 assert.deepEqual(values("reset", rateTitle), [3, 3, 0, 3, 3]);
@@ -151,6 +157,7 @@ for (const scenario of ["normal", "replicas", "gap"]) {
 }
 
 let namedApplications;
+let guideSections;
 for (const panel of panels) {
 	const targets = (panel.targets ?? []).filter((target) => target.query || target.type === "json");
 	if (!targets.length) continue;
@@ -158,7 +165,16 @@ for (const panel of panels) {
 	const data = await res.json();
 	if (!res.ok || Object.values(data.results ?? {}).some((result) => result.error)) throw Error("Grafana query " + panel.title + " " + JSON.stringify(data));
 	if (panel.title === "MCP applications (current)") namedApplications = data;
+	if (panel.title === "Guide sections") guideSections = data;
 }
+const sectionNames = guideSections.results.A.frames.flatMap((frame) => {
+	const column = frame.schema.fields.findIndex((field) => field.name === "Section");
+	return column < 0 ? [] : frame.data.values[column];
+});
+assert.deepEqual(
+	sectionNames,
+	Object.values(sample.onboarding.sections).map((section) => section.title),
+);
 assert(JSON.stringify(namedApplications).includes("Meta MCP"));
 assert(JSON.stringify(namedApplications).includes("Custom 25"), "Every application is returned, including groups beyond rank 20");
 assert(healthReads > 0, "Named applications are read through the authenticated health datasource");

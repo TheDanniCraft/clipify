@@ -6,9 +6,7 @@ const { randomUUID } = require("node:crypto");
 const { readTestSystem, selectTestWorkers } = require("./test-worker-budget.cjs");
 const { selectDatabaseWorkers, readFixtureDatabaseCapacity } = require("./test-database-budget.cjs");
 
-function isQuietTest(path) {
-	return /(runtime-boundaries|database-(abort|deadline)|provider-(abort|concurrency|deadline|queue|unlock)|request-(cancellation|pool-lifecycle)|cimd-deadline|refresh-boundaries|creation-quotas|authorization-entitlements|policy.*serialization|(create|resource|playlist(-add|-item)?)(-delete)?-expiry|auth-performance)\.test\./.test(path);
-}
+const { isQuietTest } = require("./test-execution.cjs");
 
 function isDatabaseTest(path) {
 	const normalized = path.replaceAll("\\", "/");

@@ -7,6 +7,9 @@ const { browserServerNodeOptions } = require("./scripts/browser-server-budget.cj
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { browserProviderEnvironment } = require("./test/support/mcp/browser-database.cjs");
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { nativeScenarioPatterns } = require("./scripts/test-execution.cjs");
+
 const baseURL = "http://127.0.0.1:3107";
 const bddTestDir = defineBddConfig({
 	features: "test/bdd/features/**/*.feature",
@@ -42,7 +45,7 @@ export default defineConfig({
 	workers: process.env.CI ? 1 : undefined,
 	timeout: 60_000,
 	expect: { timeout: 5_000 },
-	reporter: process.env.CI ? [["line"], ["html", { open: "never", outputFolder: "playwright-report" }], ["junit", { outputFile: "test-results/playwright-junit.xml" }]] : [["list"], ["html", { open: "never", outputFolder: "playwright-report" }]],
+	reporter: process.env.CI ? [["line"], ["json"], ["html", { open: "never", outputFolder: "playwright-report" }], ["junit", { outputFile: "test-results/playwright-junit.xml" }]] : [["list"], ["html", { open: "never", outputFolder: "playwright-report" }]],
 	use: {
 		baseURL,
 		trace: "retain-on-failure",
@@ -61,14 +64,14 @@ export default defineConfig({
 		{
 			name: "atdd-chromium",
 			testDir: atddTestDir,
-			testIgnore: ["**/mcp-workflows/**"],
+			testIgnore: nativeScenarioPatterns,
 			timeout: 180_000,
 			use: { ...chromium, trace: "off" },
 		},
 		{
 			name: "bdd-chromium",
 			testDir: bddTestDir,
-			testIgnore: ["**/mcp-workflows/**"],
+			testIgnore: nativeScenarioPatterns,
 			use: { ...chromium, trace: "off" },
 		},
 		{

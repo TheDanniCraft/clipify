@@ -11,7 +11,7 @@ When("the actual provider authorizes using that client metadata document", async
 	result = runMcpProbe("cimd-https-probe", [mode], 25000);
 });
 Then("the URL client completes real consent and reads only its approved creator", async () => {
-	expect(result).toEqual({ consentStatus: 200, tokenStatus: 200, readStatus: 200, creatorRead: true, clientBound: true, actorBound: true, active: true, generation: 1, approvedCreators: ["url-creator"], uuidGrant: true });
+	expect(result).toEqual({ hasRefreshToken: true, consentStatus: 200, tokenStatus: 200, readStatus: 200, creatorRead: true, clientBound: true, actorBound: true, active: true, generation: 1, approvedCreators: ["url-creator"], uuidGrant: true });
 });
 Then("only valid metadata reaches consent and transport connections are closed without leaking credentials", async () => {
 	expect(result.closed).toBe(true);

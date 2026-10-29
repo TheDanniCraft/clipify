@@ -239,3 +239,11 @@ test("removes one inactive connection only after confirmation", async () => {
 	expect(purgeInactiveConnectedMcpApps).toHaveBeenCalledWith("first");
 	expect(screen.getByText("Another app")).toBeVisible();
 });
+
+test("a connection without a fixed deadline shows its status without an invalid date", async () => {
+	(getConnectedMcpApps as jest.Mock).mockResolvedValue({ connections: [{ ...connection, expiresAt: null }] });
+	render(<Panel />);
+	expect(await screen.findByText("No fixed expiry")).toBeVisible();
+	expect(screen.getByText("Active")).toBeVisible();
+	expect(screen.queryByText(/Invalid Date/)).not.toBeInTheDocument();
+});

@@ -12,7 +12,7 @@ test("v6 is a complete V2 editor resource preserving the existing dashboard iden
 		else if (value && typeof value === "object") for (const [key, child] of Object.entries(value)) collect(child, `${path}_${key}`);
 	}
 	const sample = JSON.parse(readFileSync("grafana/mcp-health-sample.json", "utf8"));
-	for (const key of ["crawler", "notifications", "clips", "mcpClients"]) collect(sample[key], key);
+	for (const key of ["crawler", "notifications", "clips", "mcpClients", "onboarding"]) collect(sample[key], key);
 	expect(dashboard).toMatchObject({ apiVersion: "dashboard.grafana.app/v2", kind: "Dashboard", metadata: { name: "clipify-vm01-overview" } });
 	expect(Object.keys(dashboard.metadata)).toEqual(["name"]);
 	expect(dashboard).not.toHaveProperty("panels");
@@ -21,8 +21,8 @@ test("v6 is a complete V2 editor resource preserving the existing dashboard iden
 		expect(element.kind).toBe("Panel");
 		return element.spec;
 	});
-	expect(panels).toHaveLength(78);
-	expect(dashboard.spec.layout.spec.rows).toHaveLength(14);
+	expect(panels).toHaveLength(85);
+	expect(dashboard.spec.layout.spec.rows).toHaveLength(15);
 	expect(new Set(panels.map((panel: any) => panel.id)).size).toBe(panels.length);
 	const refinedPanels = new Set([6, 7, 16, 20, 30, 39, 46, 101, 102]);
 	for (const previousPanel of previous.panels.filter((panel: any) => panel.type !== "row" && !refinedPanels.has(panel.id))) {
@@ -32,7 +32,7 @@ test("v6 is a complete V2 editor resource preserving the existing dashboard iden
 		expect(panel.data.spec.queries.map((target: any) => target.spec.query.spec.query)).toEqual((previousPanel.targets ?? []).map((target: any) => target.query));
 	}
 	const added = panels.filter((panel: any) => panel.id >= 300 || panel.id === 103);
-	expect(added).toHaveLength(21);
+	expect(added).toHaveLength(28);
 	for (const panel of added)
 		for (const target of panel.data.spec.queries) {
 			expect(target.spec.refId).toBe("A");
@@ -43,7 +43,7 @@ test("v6 is a complete V2 editor resource preserving the existing dashboard iden
 			} else {
 				expect(target.spec.query.group).toBe("influxdb");
 				expect(target.spec.query.datasource.name).toBe("efg3es37pgh6ob");
-				for (const match of target.spec.query.spec.query.matchAll(/r\._field == "((?:mcp_|mcpClients_|crawler_|notifications_|clips_)[a-zA-Z0-9_]+)"/g)) expect(fields).toHaveProperty(match[1]);
+				for (const match of target.spec.query.spec.query.matchAll(/r\._field == "((?:mcp_|mcpClients_|crawler_|notifications_|clips_|onboarding_)[a-zA-Z0-9_]+)"/g)) expect(fields).toHaveProperty(match[1]);
 			}
 		}
 	expect(added.find((panel: any) => panel.title.includes("p95")).data.spec.queries[0].spec.query.spec.query).toContain("histogramQuantile");

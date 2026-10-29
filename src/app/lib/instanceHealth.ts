@@ -17,6 +17,10 @@ import { getMcpMetricsSnapshot, type McpMetricsSnapshot } from "@/server/mcp/met
 
 import { getMcpClientHealthStats, type McpClientStats } from "@/server/mcp/client-stats";
 
+import { getUserTourHealthStats } from "@/server/user-tour/metrics";
+
+import type { UserTourStats } from "./userTour";
+
 type HealthStatus = "ok" | "degraded" | "down";
 
 type ClipFetchMetrics = {
@@ -86,6 +90,7 @@ export function recordTwitchRateLimit(log: TwitchRateLimitLog) {
 }
 
 export type InstanceHealthSnapshot = {
+	onboarding: UserTourStats;
 	crawler: Record<keyof ReturnType<typeof crawlerHealthCounts>, number>;
 	notifications: Record<keyof ReturnType<typeof notificationHealthCounts>, number>;
 	mcp: McpMetricsSnapshot;
@@ -574,6 +579,7 @@ async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealth
 	]);
 	const numericCounts = <T extends Record<string, unknown>>(fields: T, row: Record<string, unknown> | undefined): Record<keyof T, number> => Object.fromEntries(Object.keys(fields).map((key) => [key, Number(row?.[key] ?? 0)])) as Record<keyof T, number>;
 	const mcpClients = await getMcpClientHealthStats(db).catch(() => null);
+	const onboarding = await getUserTourHealthStats(db, usersTotal);
 	const healthAggregationMs = Date.now() - started;
 
 	let status: HealthStatus = "ok";
@@ -581,6 +587,7 @@ async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealth
 	if (dbPingMs > 5000 || healthAggregationMs > 5000) status = "down";
 
 	const health = {
+		onboarding,
 		crawler: numericCounts(crawlerFields, crawlerCounts),
 		notifications: numericCounts(notificationFields, notificationCounts),
 		mcp: getMcpMetricsSnapshot(),

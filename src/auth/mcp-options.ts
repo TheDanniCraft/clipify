@@ -1,3 +1,5 @@
+import { createAuthMiddleware } from "better-auth/api";
+import { getOAuthProviderApi } from "@better-auth/oauth-provider";
 import { jwt } from "better-auth/plugins";
 import { mcp, type McpOptions } from "@better-auth/mcp";
 import { cimd } from "@better-auth/cimd";
@@ -115,10 +117,29 @@ const registrationBoundary: BetterAuthPlugin = {
 
 export function createMcpPlugins(input: { origin: string; options?: Partial<McpOptions> }): BetterAuthPlugin[] {
 	const origin = new URL(input.origin).origin;
-	return [
-		registrationBoundary,
-		jwt({ jwt: { issuer: `${origin}/api/auth` } }),
-		mcp({ ...input.options, loginPage: "/login", consentPage: "/auth/mcp/consent", resource: `${origin}/mcp`, scopes: [...MCP_SCOPES, "offline_access"], grantTypes: ["authorization_code", "refresh_token"], refreshTokenReuseInterval: 0, allowDynamicClientRegistration: true, allowUnauthenticatedClientRegistration: true }),
-		cimd({ fetchClientMetadataResource: boundedClientMetadataFetch, metadataProfile: "mcp-2026-07-28" }),
-	];
+	const options: McpOptions = { ...input.options, loginPage: "/login", consentPage: "/auth/mcp/consent", resource: `${origin}/mcp`, scopes: [...MCP_SCOPES, "offline_access"], grantTypes: ["authorization_code", "refresh_token"], refreshTokenReuseInterval: 0, allowDynamicClientRegistration: true, allowUnauthenticatedClientRegistration: true };
+	const provider = mcp(options);
+	const persistentAccess: BetterAuthPlugin = {
+		id: "clipify-mcp-persistent-access",
+		hooks: {
+			before: [
+				{
+					matcher: (ctx) => ctx.path === "/oauth2/authorize",
+					handler: createAuthMiddleware(async (ctx) => {
+						const parameters = ctx.method === "POST" ? ctx.body : ctx.query;
+						if (!parameters || parameters.sig || parameters.request || parameters.request_uri || parameters.response_type !== "code" || typeof parameters.client_id !== "string" || typeof parameters.scope !== "string") return;
+						const resources = Array.isArray(parameters.resource) ? parameters.resource : [parameters.resource];
+						if (resources.length !== 1 || resources[0] !== options.resource) return;
+						const scopes = parameters.scope.split(" ").filter(Boolean);
+						if (scopes.includes("offline_access")) return;
+						const client = await getOAuthProviderApi(ctx, provider.options).getClient(parameters.client_id);
+						if (!client || client.disabled || (client.scopes && !client.scopes.includes("offline_access"))) return;
+						// Add refresh consent before the provider signs state; never rewrite signed continuations.
+						return { context: { [ctx.method === "POST" ? "body" : "query"]: { ...parameters, scope: [...scopes, "offline_access"].join(" ") } } };
+					}),
+				},
+			],
+		},
+	};
+	return [registrationBoundary, persistentAccess, jwt({ jwt: { issuer: `${origin}/api/auth` } }), provider, cimd({ fetchClientMetadataResource: boundedClientMetadataFetch, metadataProfile: "mcp-2026-07-28" })];
 }

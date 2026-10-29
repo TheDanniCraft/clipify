@@ -3,7 +3,7 @@
 `clipify-vm01-overview-v6.json` is the complete Grafana Cloud **Edit as JSON**
 resource, including `apiVersion`, `kind`, `metadata` and `spec`. Keep the existing
 dashboard identity `clipify-vm01-overview` and the API version used by your editor.
-The revised dashboard has 78 panels in 14 rows.
+The revised dashboard has 85 panels in 15 rows.
 
 ## Data sources
 
@@ -101,3 +101,32 @@ by retention, while stored point volume scales with the fields/application group
 exported by the collector. Cloud import/deployment is separate from local
 acceptance; new crawler/outbox/fallback fields appear after the app is released
 and the existing collector scrapes that version.
+
+## Onboarding guides
+
+`onboarding` is a fresh, single SQL aggregate over saved account guide records.
+It contains counts only, with fixed section names from the guide definitions;
+no account IDs, overlay IDs, playlist IDs or raw saved state are exported.
+The same aggregate appears in the authenticated health endpoint and admin page.
+
+- `trackedAccounts` counts accounts with a saved guide record. `untrackedAccounts`
+  counts other accounts; they are excluded from completion denominators.
+- `accountsWithProgress` counts records with at least one completed or skipped
+  current task. It is not a count of explicit guide starts: existing resources
+  can prefill completion, and browser-only legacy progress is not visible until
+  imported into the account record.
+- `completedAccounts` and `completionRate` require every current task, including
+  optional sections, to be completed. Skipped tasks never count as completed.
+- `averageProgress` is completed tasks divided by tracked accounts times the
+  current number of tasks. `sections` exposes those same counts and ratios for
+  overlay setup, appearance, playlists and exploration.
+- `invalidProgressAccounts` counts unreadable or unsupported saved records.
+  They remain in the denominator as incomplete. Empty populations have zero
+  ratios; the admin page displays an explicit empty state.
+
+These are current-state gauges, not event counters. Resetting a guide or adding
+new tasks can lower completion. Per-section rates use all tracked accounts,
+not just accounts that touched that section. Historical panels use the existing
+recursive collector fields (`onboarding_*`) and the latest sample per window,
+without summing replicas. The section table uses one latest complete sample in
+the selected period. There is no new tracking schema or migration.

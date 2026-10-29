@@ -1101,7 +1101,7 @@ export const mcpConnectionGrantsTable = pgTable(
 		scopes: text("scopes").array().notNull(),
 		active: boolean("active").notNull().default(false),
 		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-		expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+		expiresAt: timestamp("expires_at", { withTimezone: true }),
 		revokedAt: timestamp("revoked_at", { withTimezone: true }),
 	},
 	(table) => [index("mcp_grants_actor_client_idx").on(table.authUserId, table.clientId), check("mcp_grant_generation_positive", sql`${table.generation} > 0`)],

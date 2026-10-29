@@ -18,7 +18,7 @@ const run = (args, env) => {
 	if (result.status !== 0) throw new Error(`Coverage lane ${lane} failed (${result.status})`);
 };
 let tests;
-if (lane === "workflows") {
+if (lane.startsWith("workflows")) {
 	resetWorkflowCoverageArtifacts(outputDirectory);
 	const probes = join(outputDirectory, "probes"),
 		raw = join(outputDirectory, "raw");
@@ -26,13 +26,13 @@ if (lane === "workflows") {
 	writeFileSync(join(outputDirectory, "coverage-final.json"), "{}\n");
 	const environment = { ...process.env, MCP_PROBE_RUNTIME: "node", MCP_PROBE_COVERAGE_PROVIDER: "istanbul", MCP_COVERAGE_PROBE_DIRECTORY: probes, MCP_V8_COVERAGE_DIR: raw };
 	const { collectMcpWorkflowCoverage } = await import("./run-mcp-workflow-coverage.mjs");
-	if (!(await collectMcpWorkflowCoverage({ environment, rawDirectory: raw, outputDirectory }))) throw new Error("Workflow scenarios failed");
+	if (!(await collectMcpWorkflowCoverage({ environment, rawDirectory: raw, outputDirectory, lane }))) throw new Error("Workflow scenarios failed");
 	tests = JSON.parse(readFileSync(join(outputDirectory, "workflow-inventory.json"), "utf8"));
 	rmSync(probes, { recursive: true, force: true });
 	rmSync(raw, { recursive: true, force: true });
 } else {
 	const list = JSON.parse(execFileSync(process.execPath, ["node_modules/jest/bin/jest.js", "--listTests", "--json"], { encoding: "utf8" }));
-	const partitions = execution.partitionTests(list);
+	const partitions = execution.coveragePartitions(list);
 	if (!Object.hasOwn(partitions, lane) || !partitions[lane].length) throw new Error(`Empty or unknown lane: ${lane}`);
 	tests = partitions[lane].map((path) => relative(process.cwd(), path));
 	const results = join(outputDirectory, "jest-results.json");

@@ -1,3 +1,4 @@
+@shard:fixture
 @BDD @ATDD @US3 @FR-008 @EC-007 @BDD-READ-AUTHORITY-001
 Feature: Read access follows current backend authority
   Scenario Outline: Current role access path and selected creator govern every read

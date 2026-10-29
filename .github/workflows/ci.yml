@@ -37,6 +37,10 @@ jobs:
             runner:
               - "packages/runner/**"
               - "scripts/fingerprint-runner.mjs"
+              - "scripts/run-runner-coverage-lane.mjs"
+              - "scripts/merge-runner-coverage.mjs"
+              - "scripts/runner-test-sharding.cjs"
+              - "scripts/plan-runner-shards.cjs"
               - "scripts/run-runner-self-test.mjs"
               - "scripts/write-runner-metadata.mjs"
               - "scripts/validate-runner-matrix.mjs"
@@ -52,6 +56,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       cache-key: ${{ steps.compute-key.outputs.key }}
+      browser-cache-key: ${{ steps.compute-browser-key.outputs.key }}
     steps:
       - name: 📥 Check out repository
         uses: actions/checkout@v7
@@ -96,6 +101,24 @@ jobs:
             ~/.bun/install/global
             **/node_modules
           key: ${{ steps.compute-key.outputs.key }}
+
+      - name: 🔑 Compute installed browser cache key
+        id: compute-browser-key
+        run: echo "key=${{ runner.os }}-${{ runner.arch }}-playwright-${{ hashFiles('node_modules/playwright-core/package.json', 'node_modules/playwright-core/browsers.json') }}" >> "$GITHUB_OUTPUT"
+      - name: ♻️ Restore shared Chromium binaries
+        id: browser-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ steps.compute-browser-key.outputs.key }}
+      - name: 🌐 Ensure matching Chromium binaries
+        run: bunx playwright install chromium
+      - name: 💾 Save shared Chromium binaries
+        if: steps.browser-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ steps.compute-browser-key.outputs.key }}
 
   draft-tests:
     name: 🧪 Scoped draft checks
@@ -172,19 +195,26 @@ jobs:
 
       - name: 🏗️ Build isolated browser application
         run: bun run test:e2e:build
+      - name: 📦 Pack browser runtime without compilation caches
+        run: node scripts/browser-build-artifact.mjs pack .next-playwright "${{ runner.temp }}/browser-build.tar.gz"
       - name: 📦 Share exact browser build
         uses: actions/upload-artifact@v7
         with:
           name: browser-build
-          path: .next-playwright/
-          include-hidden-files: true
+          path: ${{ runner.temp }}/browser-build.tar.gz
+          compression-level: 0
           retention-days: 2
 
   test:
     name: 🧪 Test
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
-    needs: [deps, changes, coverage-lanes, browser-tests, draft-tests, runner]
+    needs: [deps, changes, coverage-lanes, browser-tests, draft-tests, runner, runner-coverage, validation-plan]
+    env:
+      CLIPIFY_WORKFLOW_SHARD_PLAN: ${{ github.workspace }}/test-results/workflow-shard-plan.json
+    permissions:
+      contents: read
+      actions: read
     steps:
       - name: 📥 Check out repository
         uses: actions/checkout@v7
@@ -214,7 +244,7 @@ jobs:
           COVERAGE: ${{ needs.coverage-lanes.result }}
           BROWSER: ${{ needs.browser-tests.result }}
           RUNNER_REQUIRED: ${{ needs.changes.outputs.runner }}
-          RUNNER: ${{ needs.runner.result }}
+          RUNNER: ${{ needs.runner-coverage.result }}
         run: |
           test "$FULL" = "true" || { echo "Draft feedback is scoped. Mark ready for the mandatory full gate."; exit 1; }
           test "$COVERAGE" = "success"
@@ -225,11 +255,44 @@ jobs:
         with:
           pattern: coverage-*
           path: coverage-lanes/
+      - name: 📥 Download native workflow plan
+        uses: actions/download-artifact@v8
+        with:
+          name: workflow-shard-plan
+          path: test-results/
       - name: 🔎 Merge evidence and enforce unchanged thresholds
         run: |
           bunx bddgen
           node scripts/check-generated-scenarios.mjs
           node scripts/merge-test-coverage.mjs
+      - name: 📥 Download browser scenario execution evidence
+        uses: actions/download-artifact@v8
+        with:
+          pattern: browser-timing-*
+          path: test-results/browser-timings/
+      - name: 🔎 Verify complete browser inventory and refresh scheduling timings
+        run: node scripts/update-browser-durations.cjs test-results/browser-timings .cache/test/browser-durations.json
+      - name: 💾 Save optional browser timing history
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: .cache/test/browser-durations.json
+          key: ${{ runner.os }}-browser-durations-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: 💾 Refresh optional native workflow timing history
+        continue-on-error: true
+        run: |
+          mkdir -p .cache/test
+          cp coverage/workflow-durations.json .cache/test/workflow-durations.json
+      - uses: actions/cache/save@v6
+        continue-on-error: true
+        with:
+          path: .cache/test/workflow-durations.json
+          key: ${{ runner.os }}-workflow-durations-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: 📊 Report queue, setup and test execution time
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/report-ci-timings.cjs
       - name: 📦 Upload complete coverage report
         uses: actions/upload-artifact@v7
         with:
@@ -317,16 +380,99 @@ jobs:
       - name: 🎨 Check formatting
         run: bun run app:prettier:check
 
+  validation-plan:
+    name: 🔀 Plan test execution
+    if: needs.changes.outputs.full == 'true'
+    runs-on: ubuntu-latest
+    needs: [deps, changes]
+    outputs:
+      coverage_matrix: ${{ steps.plan.outputs.matrix }}
+      browser_matrix: ${{ steps.browser.outputs.matrix }}
+      runner_matrix: ${{ steps.runner.outputs.matrix }}
+    env:
+      MCP_BROWSER_PROVIDER_FIXTURE: "false"
+      CLIPIFY_TEST_DURATION_FILE: .cache/test/workflow-durations.json
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.21.0
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/cache/restore@v6
+        with:
+          path: |
+            ~/.bun/install/cache
+            ~/.bun/install/global
+            **/node_modules
+          key: ${{ needs.deps.outputs.cache-key }}
+      - name: 📦 Install native metadata dependencies
+        working-directory: packages/runner
+        run: bun install --frozen-lockfile
+      - uses: actions/cache/restore@v6
+        continue-on-error: true
+        with:
+          path: .cache/test/workflow-durations.json
+          key: ${{ runner.os }}-workflow-durations-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: ${{ runner.os }}-workflow-durations-
+      - name: 🔀 Plan elapsed-work-based coverage jobs
+        id: plan
+        run: |
+          bunx bddgen --config playwright.mcp.config.ts
+          node scripts/plan-workflow-shards.cjs
+      - uses: actions/upload-artifact@v7
+        with:
+          name: workflow-shard-plan
+          path: test-results/workflow-shard-plan.json
+          retention-days: 2
+
+      - name: ♻️ Restore optional browser timing history
+        uses: actions/cache/restore@v6
+        continue-on-error: true
+        with:
+          path: .cache/test/browser-durations.json
+          key: ${{ runner.os }}-browser-durations-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: ${{ runner.os }}-browser-durations-
+      - name: 🔀 Plan browser scenarios from measured work
+        id: browser
+        env:
+          CLIPIFY_TEST_DURATION_FILE: .cache/test/browser-durations.json
+        run: node scripts/plan-browser-shards.cjs
+      - uses: actions/upload-artifact@v7
+        with:
+          name: browser-shard-plan
+          path: test-results/browser-shard-plan.json
+          retention-days: 2
+      - name: ♻️ Restore optional Runner timing history
+        if: needs.changes.outputs.runner == 'true'
+        uses: actions/cache/restore@v6
+        continue-on-error: true
+        with:
+          path: .cache/test/runner-durations.json
+          key: ${{ runner.os }}-runner-durations-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: ${{ runner.os }}-runner-durations-
+      - name: 🔀 Plan Runner files from measured work
+        if: needs.changes.outputs.runner == 'true'
+        id: runner
+        env:
+          CLIPIFY_TEST_DURATION_FILE: .cache/test/runner-durations.json
+        run: node scripts/plan-runner-shards.cjs
+      - uses: actions/upload-artifact@v7
+        if: needs.changes.outputs.runner == 'true'
+        with:
+          name: runner-shard-plan
+          path: test-results/runner-shard-plan.json
+          retention-days: 2
+
   coverage-lanes:
     name: 🧪 Coverage (${{ matrix.lane }})
     if: needs.changes.outputs.full == 'true'
     runs-on: ubuntu-latest
-    needs: [deps, changes]
+    needs: [deps, changes, validation-plan]
     strategy:
       fail-fast: false
-      matrix:
-        lane: [unit, database-1, database-2, database-3, quiet, workflows]
+      matrix: ${{ fromJSON(needs.validation-plan.outputs.coverage_matrix) }}
     env:
+      CLIPIFY_WORKFLOW_SHARD_PLAN: ${{ github.workspace }}/test-results/workflow-shard-plan.json
       MCP_PROBE_RUNTIME: node
       MCP_TEST_TEMPLATE_ID: coverage-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.lane }}
       MCP_TEST_DATABASE_URL: postgresql://clipify_e2e:clipify_e2e@127.0.0.1:5432/clipify_e2e
@@ -368,28 +514,29 @@ jobs:
         with:
           node-version: 24.21.0
 
+      - name: 📥 Download immutable workflow coverage plan
+        uses: actions/download-artifact@v8
+        with:
+          name: workflow-shard-plan
+          path: test-results/
       - name: 🔎 Verify execution policy and automation
-        if: matrix.lane == 'unit'
+        if: matrix.lane == 'unit' || matrix.lane == 'unit-1'
         run: node --test scripts/*.test.cjs scripts/*.test.mjs
 
       - name: 📦 Install workflow Runner dependencies
-        if: matrix.lane == 'workflows'
+        if: startsWith(matrix.lane, 'workflows')
         working-directory: packages/runner
         run: |
           bun install --frozen-lockfile
           bun run patches:validate
           node check-native.mjs
       - name: 🌐 Prepare workflow media browser
-        if: matrix.lane == 'workflows'
+        if: startsWith(matrix.lane, 'workflows-media')
         working-directory: packages/runner
         run: node test/support/prepare-media.mjs
       - name: 🎞️ Install workflow media dependencies
-        if: matrix.lane == 'workflows'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ffmpeg
-          sudo apt-get satisfy -y --no-install-recommends "$(paste -sd, "$(dirname "$RUNNER_CHROME_PATH")/deb.deps")"
-          ffmpeg -version
+        if: startsWith(matrix.lane, 'workflows-media')
+        run: bash scripts/install-runner-media-deps.sh
       - name: 🧪 Run owning coverage lane
         run: node scripts/run-coverage-lane.mjs ${{ matrix.lane }}
 
@@ -418,30 +565,14 @@ jobs:
     if: needs.changes.outputs.full == 'true'
     name: 🌐 Browser tests (${{ matrix.label }})
     runs-on: ubuntu-latest
-    needs: [deps, changes, browser-build]
+    needs: [deps, changes, browser-build, validation-plan]
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - project: acceptance-chromium
-            shard: 1/1
-            label: acceptance
-          - project: atdd-chromium
-            shard: 1/1
-            label: atdd
-          - project: bdd-chromium
-            shard: 1/3
-            label: bdd-1
-          - project: bdd-chromium
-            shard: 2/3
-            label: bdd-2
-          - project: bdd-chromium
-            shard: 3/3
-            label: bdd-3
-          - project: compliance-chromium
-            shard: 1/1
-            label: compliance
+      matrix: ${{ fromJSON(needs.validation-plan.outputs.browser_matrix) }}
     env:
+      CLIPIFY_BROWSER_SHARD_PLAN: test-results/browser-shard-plan.json
+      INSTANCE_HEALTH_TOKEN: clipify-e2e-instance-health-not-for-production
+      PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/browser-timing-${{ matrix.label }}.json
       CLIPIFY_E2E_SCHEMA_PUSH: "1"
       APP_ENV: "test"
       E2E_TEST_MODE: "true"
@@ -493,26 +624,35 @@ jobs:
       - name: 🗃️ Prepare disposable E2E database
         run: bun run db:push:e2e
 
-      - name: 🌐 Install Playwright Chromium
-        run: bunx playwright install --with-deps chromium
+      - name: ♻️ Restore shared Chromium binaries
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ needs.deps.outputs.browser-cache-key }}
+      - name: 🌐 Verify browser libraries and matching Chromium
+        run: bash scripts/install-playwright-chromium.sh
 
       - name: 📦 Install BDD native presentation dependencies
-        if: matrix.project == 'bdd-chromium'
+        if: matrix.native_media == true
         working-directory: packages/runner
         run: |
           bun install --frozen-lockfile
           bun run patches:validate
           node check-native.mjs
       - name: 🌐 Prepare BDD native presentation browser
-        if: matrix.project == 'bdd-chromium'
+        if: matrix.native_media == true
         working-directory: packages/runner
         run: node test/support/prepare-media.mjs
       - name: 🎞️ Install BDD native media system dependencies
-        if: matrix.project == 'bdd-chromium'
+        if: matrix.native_media == true
+        run: bash scripts/install-runner-media-deps.sh
+      - name: 🎞️ Prepare frame decoding only where required
+        if: matrix.ffmpeg == true && matrix.native_media != true
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ffmpeg
-          sudo apt-get satisfy -y --no-install-recommends "$(paste -sd, "$(dirname "$RUNNER_CHROME_PATH")/deb.deps")"
+          if ! command -v ffmpeg >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends ffmpeg
+          fi
       - name: 🧩 Compile native application probes once
         run: |
           node --input-type=module -e "import { buildMcpCoverageProbes } from './scripts/build-mcp-coverage-probes.mjs'; await buildMcpCoverageProbes({ outputDirectory: 'test-results/mcp/browser-native-probes' });"
@@ -532,11 +672,26 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: browser-build
-          path: .next-playwright/
+          path: ${{ runner.temp }}/browser-build
+      - name: 📦 Restore exact browser runtime
+        run: node scripts/browser-build-artifact.mjs unpack "${{ runner.temp }}/browser-build/browser-build.tar.gz" .next-playwright
 
+      - name: 📥 Download immutable browser shard plan
+        uses: actions/download-artifact@v8
+        with:
+          name: browser-shard-plan
+          path: test-results/
       - name: 🧪 Run complete browser project shard
         run: node scripts/run-browser-shard.mjs ${{ matrix.project }} ${{ matrix.shard }}
 
+      - name: 📦 Upload successful BDD timing evidence
+        if: success() && matrix.project == 'bdd-chromium'
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-timing-${{ matrix.label }}
+          path: test-results/browser-timing-${{ matrix.label }}.json
+          if-no-files-found: error
+          retention-days: 2
       - name: 🧹 Remove job-owned schema template
         if: always()
         run: node scripts/cleanup-mcp-fixture-template.mjs
@@ -600,10 +755,15 @@ jobs:
         run: bun run app:check-action-manifest
 
   runner:
-    name: 🏃 Runner typecheck and tests
-    runs-on: ubuntu-latest
-    needs: [changes, deps]
-    if: needs.changes.outputs.runner == 'true'
+    name: 🏃 Runner tests (${{ matrix.label }})
+    runs-on: ubuntu-24.04
+    needs: [changes, deps, validation-plan]
+    if: needs.changes.outputs.runner == 'true' && needs.changes.outputs.full == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.validation-plan.outputs.runner_matrix) }}
+    env:
+      RUNNER_TEST_SHARD_PLAN: ${{ github.workspace }}/test-results/runner-shard-plan.json
     steps:
       - name: 📥 Check out repository
         uses: actions/checkout@v7
@@ -643,15 +803,66 @@ jobs:
         working-directory: packages/runner
         run: node test/support/prepare-media.mjs
       - name: 🎞️ Install native media test system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ffmpeg
-          sudo apt-get satisfy -y --no-install-recommends "$(paste -sd, "$(dirname "$RUNNER_CHROME_PATH")/deb.deps")"
-      - name: 🧪 Test Runner
-        working-directory: packages/runner
-        run: bun run test:coverage
+        run: bash scripts/install-runner-media-deps.sh
+      - name: 📥 Download immutable native shard plan
+        uses: actions/download-artifact@v8
+        with:
+          name: runner-shard-plan
+          path: test-results/
+      - name: 🧪 Test Runner shard
+        run: node scripts/run-runner-coverage-lane.mjs --shard=${{ matrix.shard }}
       - name: 📦 Retain native coverage evidence
         uses: actions/upload-artifact@v7
+        with:
+          name: runner-native-${{ matrix.label }}
+          path: packages/runner/coverage/runner-shard-${{ matrix.index }}/
+          if-no-files-found: error
+
+  runner-coverage:
+    name: 🏃 Runner coverage gate
+    runs-on: ubuntu-24.04
+    needs: [changes, deps, runner]
+    if: needs.changes.outputs.runner == 'true' && needs.changes.outputs.full == 'true'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.21.0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.3
+      - uses: actions/cache/restore@v6
+        with:
+          path: |
+            ~/.bun/install/cache
+            ~/.bun/install/global
+            **/node_modules
+          key: ${{ needs.deps.outputs.cache-key }}
+          fail-on-cache-miss: true
+      - name: 📦 Install native test discovery dependencies
+        working-directory: packages/runner
+        run: bun install --frozen-lockfile
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: runner-native-runner-*
+          path: test-results/runner-coverage-lanes/
+      - uses: actions/download-artifact@v8
+        with:
+          name: runner-shard-plan
+          path: test-results/
+      - name: 🔎 Merge complete native evidence and enforce unchanged thresholds
+        run: node scripts/merge-runner-coverage.mjs test-results/runner-coverage-lanes test-results/runner-shard-plan.json
+      - name: 💾 Refresh optional native scheduling history
+        continue-on-error: true
+        run: |
+          mkdir -p .cache/test
+          cp packages/runner/coverage/runner-feature/runner-durations.json .cache/test/runner-durations.json
+      - uses: actions/cache/save@v6
+        continue-on-error: true
+        with:
+          path: .cache/test/runner-durations.json
+          key: ${{ runner.os }}-runner-durations-${{ github.run_id }}-${{ github.run_attempt }}
+      - uses: actions/upload-artifact@v7
         with:
           name: runner-native-coverage
           path: packages/runner/coverage/runner-feature/

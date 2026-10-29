@@ -1,3 +1,4 @@
+@shard:fixture
 @BDD @ATDD @US2 @FR-009 @FR-012 @EC-013
 Feature: Every mutation follows current creator authority and plan
   @BDD-MUTATION-AUTHORITY-001

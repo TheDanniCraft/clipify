@@ -1,3 +1,4 @@
+import { openConsentPage } from "../../support/consent-page";
 import { createBdd } from "playwright-bdd";
 import type { Page } from "@playwright/test";
 import { TWITCH_REQUIRED_SCOPES } from "@/auth/providers/twitch";
@@ -20,7 +21,7 @@ const DATABASE_ACTION_TIMEOUT_MS = 90_000;
 
 async function prepareInteractivePage(page: Page) {
 	const returnUrl = page.url();
-	await page.goto("/legal/cookies");
+	await openConsentPage(page);
 	await expect(page.getByRole("button", { name: "Enable support chat", exact: true })).toBeVisible();
 	await expect(page.locator("html")).toHaveClass(/c15t-(?:light|dark)/, { timeout: 30_000 });
 	const preferences = page.getByRole("main").getByRole("button", { name: "Cookie preferences", exact: true });
@@ -484,10 +485,13 @@ When(/^the owner chooses (.+)$/, async ({ page, authWorld }, deletionChoice: str
 	await page.goto("/dashboard/settings");
 	await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible({ timeout: 30_000 });
 	await prepareInteractivePage(page);
-	await page.getByRole("button", { name: "Schedule Account Deletion" }).click();
-	const dialog = page.getByRole("dialog");
+	await expect(page.getByRole("textbox", { name: /^Command Prefix/ })).toHaveValue("!", { timeout: 10_000 });
+	await page.getByRole("button", { name: "Schedule Account Deletion", exact: true }).click();
+	const dialog = page.getByRole("dialog", { name: "Schedule account deletion", exact: true });
+	await expect(dialog).toBeVisible({ timeout: 10_000 });
 	if (deletionChoice === "delete now") await dialog.getByRole("button", { name: "Suspend now" }).click();
-	await dialog.getByPlaceholder(username).fill(username);
+	await expect(dialog.getByPlaceholder(username)).toBeVisible({ timeout: 10_000 });
+	await dialog.getByPlaceholder(username).fill(username, { timeout: 10_000 });
 	await dialog.getByRole("button", { name: deletionChoice === "delete now" ? "Delete after confirmation" : "Schedule deletion" }).click();
 	if (deletionChoice === "delete now") await expect(page).toHaveURL(/\/login\?returnUrl=/, { timeout: DATABASE_ACTION_TIMEOUT_MS });
 	else await expect(page.getByText("Deletion scheduled", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });

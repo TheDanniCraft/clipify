@@ -1,4 +1,4 @@
-@BDD @real-browser
+@BDD @real-browser @shard:scenario
 Feature: Clipify guided onboarding
 
   @US1 @FR-001 @SC-001 @BDD-TOUR-US1-001

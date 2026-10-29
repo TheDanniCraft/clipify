@@ -14,7 +14,7 @@ export async function getMcpClientStats(page = 1, pageSize: number | null = 20, 
   GROUP BY metadata->>'clientId'
  ), grants AS (
   SELECT client_id,count(*) AS active_connections FROM mcp_connection_grants
-  WHERE active AND revoked_at IS NULL AND expires_at>now() GROUP BY client_id
+  WHERE active AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>now()) GROUP BY client_id
  ), ids AS (
   SELECT client_id FROM auth.oauth_client UNION SELECT client_id FROM usage UNION SELECT client_id FROM grants
  ), groups AS (

@@ -1,4 +1,5 @@
 /** @jest-environment node */
+jest.mock("@/server/user-tour/metrics", () => ({ getUserTourHealthStats: jest.fn(async () => ({ trackedAccounts: 0, untrackedAccounts: 0, invalidProgressAccounts: 0, tasksPerAccount: 18, accountsWithProgress: 0, completedAccounts: 0, completedTasks: 0, skippedTasks: 0, completionRate: 0, averageProgress: 0, sections: {} })) }));
 export {};
 
 const dbSelect = jest.fn();

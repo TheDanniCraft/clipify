@@ -1417,3 +1417,142 @@ nonzero because unrelated gallery coverage is absent from this deliberately
 limited collection; this is measurement evidence, not a full coverage-gate pass.
 No threshold was overridden. Full CI retains the unchanged gallery/global and
 strict MCP source gates. Evidence: authorization-ux/scoped-ui-coverage.log.
+
+
+### 2026-10-28 — Independent connections for the same OAuth client
+
+FR-005 now explicitly covers separate authorizations sharing one account/client ID.
+Four whole-file regression cases exercise sequential and overlapping approvals,
+three distinct grants with different creator/scope selections, concurrent refresh
+rotation, and revoking either the oldest or newest connection.
+
+Red: `test/mcp/integration/independent-connections.test.ts` failed all four cases
+on the original implementation. Sequential approval retained only one active
+grant instead of three; overlapping approvals could reject a code exchange.
+Evidence: `/tmp/clipify-independent-red.log`.
+
+Green: activate only the newly approved grant; remove the client-wide lock and
+revocation loop. All four cases pass, including scoped creator reads, rejected
+unapproved creator reads, immutable grant IDs after refresh, and continued
+access/refresh for the two connections left after explicit disconnection.
+Evidence: `/tmp/clipify-independent-green.log`. Full coverage, built-application
+browser acceptance and final GitHub validation are recorded in PR #536.
+
+The broad local owner exposed two older replacement-policy expectations. Under
+the approved FR-005 behavior, the older token remains usable but cannot gain a
+newly approved creator; agency fixture observations select only the grant created
+by that consent, rather than combining every active connection. All 22 assertions
+in the three affected whole-file suites and both existing BDD scenarios pass.
+The real HTTP audit additionally confirms natural 10-second access expiry,
+parallel refresh and MCP calls after reconnecting the same client. Three freshly
+built consent/settings browser journeys, type-check, lint and formatting pass.
+
+The broad local coverage owner completed all 549 native workflow scenarios and
+five serial media scenarios; the unchanged source coverage gate returned
+`ok: true` with no errors. Grant handling measured 96.96% lines / 92.2% branches;
+connection management measured 100% across all four metrics. Its earlier Jest
+execution retained the two superseded expectations above (556 suites passed,
+two failed); this is not claimed as a full current-input test pass. The corrected
+whole files and BDD cases passed separately. Fresh complete final-source GitHub
+validation remains required before merge; no existing successful suites are
+repeated locally merely to replace those historical assertion results.
+
+
+### 2026-10-29 — Browser shard work and prerequisites
+
+Run #3674 retained a whole 42-scenario Runner file as a 351-second unit; one
+privacy-reload timeout added a failed 61.6-second attempt. Browser setup added
+106–216 seconds. The planner restored the expected previous-run timing cache;
+these were grouping, retry-estimation and prerequisite costs, not a cache miss.
+
+Red: focused planner regressions observed 67 seconds instead of the successful
+7-second attempt and missing per-scenario prerequisite metadata. Green: estimate
+successful attempts plus measured Playwright startup, retain retry costs in the
+actual reports, and tag the scenarios requiring native capture or FFmpeg alone.
+The 42 Runner scenarios use per-scenario fixtures and passed with two concurrent
+browser workers in 2.8 minutes, without retries. All 18 affected automation tests
+and exact selector resolution for all 826 browser scenarios passed. Replaying
+#3674 normal durations produces nine shards at 279–280 seconds, with two native
+media jobs and one FFmpeg-only job; this is a replay, not future timing evidence.
+
+Timeout investigation: the first Runner scenario in both #3674 and #3675 stalled
+on privacy `Reject optional` -> page `load`; retries passed in about 7 seconds.
+A separate local media run reproduced that wait in the collision feature
+(18/19 cases passed). A consent-path/status/lifecycle diagnostic rerun passed all
+nine collision cases. No cookies, tokens or request bodies were logged, and no
+privacy behavior, timeout or assertion was weakened. The diagnostic hook was
+removed. The underlying intermittent privacy bootstrap/reload cause is unresolved
+and must not be reported as fixed. Final standard-runtime and GitHub outcomes
+are recorded in PR #536.
+
+Further standard-runtime reproduction confirmed the same first privacy action
+failed in the collision feature without diagnostic hooks. Runner fixtures opened
+preferences after page hydration without waiting for `/api/c15t/init` to finish.
+The three shared setup callers now wait for that same-origin GET response and
+its body before interacting, while retaining the original save/reload checks.
+Three focused setup assertions cover pending initialization, request matching,
+and real HTTP/body failures. This synchronizes test setup; it does not change
+production privacy behavior or establish that every possible early-user-click
+race is resolved. Type-check and affected lint pass. Complete changed-feature
+browser outcomes and fresh CI remain recorded with the final source in PR #536.
+
+The standard 51-scenario post-readiness run had no privacy-reload timeout:
+50 passed, while one schedule setup rejected nominal valid bounds with “must
+end after it starts.” This is a different failure from the consent wait, and no
+schedule assertion or product behavior was changed. Its whole owning file is
+rerun with all assertions retained; the final result is recorded in PR #536.
+
+The whole-file rerun confirmed a second setup defect: failure snapshots showed
+start `2027-10-01` instead of the intended `2027-02-01`. The segmented-field helper
+changed year/month while retaining the current month-end day, an invalid
+intermediate February date. It now enters day 1 before year/month and asserts
+every final segment through the existing `expectScheduleField` helper. This fixes
+test input construction; no schedule validation or product behavior is changed.
+The pre-fix repeated whole-file result was 40/42, with the same baseline-save
+error in two other examples; post-fix whole-file evidence is recorded in PR #536.
+
+Final local Green: all 42 Runner scenarios pass with two concurrent workers in
+2.9 minutes, without retries, including the previously failing February cases.
+The nine collision cases passed after consent-readiness synchronization; the
+other ten media/readability cases passed in the earlier owning-feature run.
+All 18 affected automation assertions, three consent-setup unit assertions,
+type-check, affected lint, formatting and exact 826-scenario selector resolution
+pass. Temporary diagnostic hooks and generated screenshots are not in the patch.
+No full repository suite was repeated locally; fresh complete GitHub validation
+and measured post-change CI times remain the final checkpoint.
+
+
+### 2026-10-29 — Runtime transfer, browser cache and deletion readiness
+
+#3676 overhead included 779 MiB of compilation cache in a 1.1 GiB shared build;
+the uploaded artifact was 703,170,753 bytes. A runtime-only gzip archive retains
+all manifests, static files and source maps and measures 78,789,141 bytes, packed
+in 2.39 seconds. The extracted 291 MiB app ran the complete account-lifecycle
+ATDD file: 18 cases passed in 36.3 seconds, including both deletion choices.
+
+The missing shared-binary/runtime-transfer workflow guard failed first, then all
+10 affected automation checks passed after wiring versioned Chromium restore and
+cache-free runtime transfer. Dependency checks exercise already-ready, missing
+and failed-install cases; actual local Playwright OS validation also passed.
+No cached result substitutes for test execution or current-run OS validation.
+
+The #3676 deletion snapshots had no dialog after clicking the settings trigger,
+not a mismatched username in a visible dialog. The step now waits for loaded
+settings (the real prefix), opens and asserts the named deletion dialog, then
+asserts its account-specific confirmation field before filling. Missing controls
+fail bounded readiness assertions instead of consuming the full 180-second
+scenario timeout. Consent preparation uses the shared initialization prerequisite.
+Production deletion behavior, authorization and lifecycle assertions are unchanged.
+The prior CI failure and retry artifacts are retained as Red evidence; final
+focused/browser and fresh CI outcomes are recorded in PR #536.
+
+### Pricing consent follow-up after complete CI
+
+- Full CI 40802797320 passed in 11:32. All 22 ATDD scenarios passed in
+  59.2 seconds without retries; the complete ATDD job fell from 8:33 to 2:11.
+- Its logs exposed one separate pricing scenario waiting 60 seconds for reload
+  after interacting before consent initialization. Reuse `openConsentPage` in
+  that remaining Runner pricing helper, preserving all consent and purchase
+  assertions. The entire six-scenario feature passed locally in 24.6 seconds
+  without retries; affected lint and formatting passed. Final CI follows this
+  narrow fix, with no unrelated local suite repeated.

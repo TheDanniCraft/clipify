@@ -3,6 +3,7 @@ import { validateAdminAuth } from "@actions/auth";
 import { getAdminExplorerPage } from "@actions/adminView";
 import AdminMcpClients from "@components/adminMcpClients";
 import { getMcpClientStats } from "@/server/mcp/client-stats";
+import AdminUserTourStats from "@components/adminUserTourStats";
 import AdminMcpMetrics from "@components/adminMcpMetrics";
 import AdminHealthCharts from "@components/adminHealthCharts";
 import AdminUserExplorer from "@components/adminUserExplorer";
@@ -64,6 +65,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 		<DashboardNavbar user={adminUser} title='Admin' tagline='Operational telemetry and account entry points'>
 			<div className='mt-5 flex flex-col gap-4'>
 				<AdminNavigation active='operations' />
+				<AdminUserTourStats stats={health.onboarding} />
 				<AdminMcpMetrics metrics={health.mcp} />
 				<AdminMcpClients stats={clientStats} />
 				<Card>

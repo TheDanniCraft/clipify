@@ -27,7 +27,7 @@ beforeEach(async () => {
 	for (let index = 0; index < ids.length; index++) {
 		const id = ids[index],
 			userId = index === 4 ? "other" : "owner";
-		await fixture.db.insert(mcpConnectionGrantsTable).values({ id, authUserId: userId, clientId: "client", resource: `${origin}/mcp`, issuer: `${origin}/api/auth`, scopes: ["creator:read"], active: index !== 3, revokedAt: index === 2 ? past : null, expiresAt: index === 1 ? past : future });
+		await fixture.db.insert(mcpConnectionGrantsTable).values({ id, authUserId: userId, clientId: "client", resource: `${origin}/mcp`, issuer: `${origin}/api/auth`, scopes: ["creator:read"], active: index !== 3, revokedAt: index === 2 ? past : null, expiresAt: index === 0 ? null : index === 1 ? past : future });
 		await fixture.db.insert(oauthRefreshToken).values({ id, token: `refresh-${id}`, userId, clientId: "client", referenceId: id, scopes: ["creator:read"], createdAt: now, expiresAt: future });
 		await fixture.db.insert(oauthAccessToken).values({ id, token: `access-${id}`, userId, clientId: "client", referenceId: id, refreshId: id, scopes: ["creator:read"], createdAt: now, expiresAt: future });
 		await fixture.db.insert(oauthConsent).values({ id, userId, clientId: "client", referenceId: id, scopes: ["creator:read"], createdAt: now, updatedAt: now });

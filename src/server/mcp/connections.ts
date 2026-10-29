@@ -25,9 +25,9 @@ export async function listMcpConnections(input: { auth: SessionAuth; headers: He
 				creatorIds: creators.map((creator) => creator.creatorId),
 				creatorPermissions: creators.map((creator) => ({ creatorId: creator.creatorId, scopes: creator.scopes ?? grant.scopes.filter((scope) => scope !== "offline_access") })),
 				createdAt: grant.createdAt.toISOString(),
-				expiresAt: grant.expiresAt.toISOString(),
+				expiresAt: grant.expiresAt?.toISOString() ?? null,
 				revokedAt: grant.revokedAt?.toISOString() ?? null,
-				active: grant.active && !grant.revokedAt && grant.expiresAt > new Date(),
+				active: grant.active && !grant.revokedAt && (!grant.expiresAt || grant.expiresAt > new Date()),
 			};
 		}),
 	);

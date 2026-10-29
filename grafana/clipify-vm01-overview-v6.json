@@ -9866,6 +9866,676 @@
 						}
 					}
 				}
+			},
+			"panel-500": {
+				"kind": "Panel",
+				"spec": {
+					"id": 500,
+					"title": "Guide records",
+					"description": "Saved guide state, including tasks inferred from existing resources. Percentages use accounts with a saved guide record, including unreadable records as incomplete. Skips are not completion. These are database-wide gauges; never sum replicas or apply increase(). Missing samples stay missing.",
+					"links": [],
+					"data": {
+						"kind": "QueryGroup",
+						"spec": {
+							"queries": [
+								{
+									"kind": "PanelQuery",
+									"spec": {
+										"query": {
+											"kind": "DataQuery",
+											"group": "influxdb",
+											"version": "v0",
+											"datasource": {
+												"name": "efg3es37pgh6ob"
+											},
+											"spec": {
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"onboarding_trackedAccounts\" or r._field == \"onboarding_untrackedAccounts\" or r._field == \"onboarding_invalidProgressAccounts\")\n  |> group(columns: [\"_field\"])\n  |> last()"
+											}
+										},
+										"refId": "A",
+										"hidden": false
+									}
+								}
+							],
+							"transformations": [],
+							"queryOptions": {}
+						}
+					},
+					"vizConfig": {
+						"kind": "VizConfig",
+						"group": "stat",
+						"version": "13.2.0-31775358088",
+						"spec": {
+							"options": {
+								"colorMode": "value",
+								"graphMode": "area",
+								"justifyMode": "center",
+								"orientation": "auto",
+								"percentChangeColorMode": "standard",
+								"reduceOptions": {
+									"calcs": ["lastNotNull"],
+									"fields": "",
+									"values": false
+								},
+								"showPercentChange": false,
+								"textMode": "auto",
+								"wideLayout": true
+							},
+							"fieldConfig": {
+								"defaults": {
+									"unit": "short",
+									"decimals": 0,
+									"color": {
+										"mode": "palette-classic"
+									}
+								},
+								"overrides": [
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "onboarding_trackedAccounts"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "With guide record"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "onboarding_untrackedAccounts"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Without guide record"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "onboarding_invalidProgressAccounts"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Unreadable records"
+											}
+										]
+									}
+								]
+							}
+						}
+					}
+				}
+			},
+			"panel-501": {
+				"kind": "Panel",
+				"spec": {
+					"id": 501,
+					"title": "All guides completed",
+					"description": "Saved guide state, including tasks inferred from existing resources. Percentages use accounts with a saved guide record, including unreadable records as incomplete. Skips are not completion. These are database-wide gauges; never sum replicas or apply increase(). Missing samples stay missing.",
+					"links": [],
+					"data": {
+						"kind": "QueryGroup",
+						"spec": {
+							"queries": [
+								{
+									"kind": "PanelQuery",
+									"spec": {
+										"query": {
+											"kind": "DataQuery",
+											"group": "influxdb",
+											"version": "v0",
+											"datasource": {
+												"name": "efg3es37pgh6ob"
+											},
+											"spec": {
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"onboarding_completedAccounts\")\n  |> group(columns: [\"_field\"])\n  |> last()"
+											}
+										},
+										"refId": "A",
+										"hidden": false
+									}
+								}
+							],
+							"transformations": [],
+							"queryOptions": {}
+						}
+					},
+					"vizConfig": {
+						"kind": "VizConfig",
+						"group": "stat",
+						"version": "13.2.0-31775358088",
+						"spec": {
+							"options": {
+								"colorMode": "value",
+								"graphMode": "area",
+								"justifyMode": "center",
+								"orientation": "auto",
+								"percentChangeColorMode": "standard",
+								"reduceOptions": {
+									"calcs": ["lastNotNull"],
+									"fields": "",
+									"values": false
+								},
+								"showPercentChange": false,
+								"textMode": "auto",
+								"wideLayout": true
+							},
+							"fieldConfig": {
+								"defaults": {
+									"unit": "short",
+									"decimals": 0,
+									"color": {
+										"mode": "palette-classic"
+									}
+								},
+								"overrides": [
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "onboarding_completedAccounts"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Accounts"
+											}
+										]
+									}
+								]
+							}
+						}
+					}
+				}
+			},
+			"panel-502": {
+				"kind": "Panel",
+				"spec": {
+					"id": 502,
+					"title": "Guide completion rate",
+					"description": "Saved guide state, including tasks inferred from existing resources. Percentages use accounts with a saved guide record, including unreadable records as incomplete. Skips are not completion. These are database-wide gauges; never sum replicas or apply increase(). Missing samples stay missing.",
+					"links": [],
+					"data": {
+						"kind": "QueryGroup",
+						"spec": {
+							"queries": [
+								{
+									"kind": "PanelQuery",
+									"spec": {
+										"query": {
+											"kind": "DataQuery",
+											"group": "influxdb",
+											"version": "v0",
+											"datasource": {
+												"name": "efg3es37pgh6ob"
+											},
+											"spec": {
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"onboarding_completionRate\")\n  |> group(columns: [\"_field\"])\n  |> last()"
+											}
+										},
+										"refId": "A",
+										"hidden": false
+									}
+								}
+							],
+							"transformations": [],
+							"queryOptions": {}
+						}
+					},
+					"vizConfig": {
+						"kind": "VizConfig",
+						"group": "stat",
+						"version": "13.2.0-31775358088",
+						"spec": {
+							"options": {
+								"colorMode": "value",
+								"graphMode": "area",
+								"justifyMode": "center",
+								"orientation": "auto",
+								"percentChangeColorMode": "standard",
+								"reduceOptions": {
+									"calcs": ["lastNotNull"],
+									"fields": "",
+									"values": false
+								},
+								"showPercentChange": false,
+								"textMode": "auto",
+								"wideLayout": true
+							},
+							"fieldConfig": {
+								"defaults": {
+									"unit": "percentunit",
+									"decimals": 1,
+									"color": {
+										"mode": "palette-classic"
+									},
+									"min": 0,
+									"max": 1
+								},
+								"overrides": [
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "onboarding_completionRate"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "All guides completed"
+											}
+										]
+									}
+								]
+							}
+						}
+					}
+				}
+			},
+			"panel-503": {
+				"kind": "Panel",
+				"spec": {
+					"id": 503,
+					"title": "Average guide progress",
+					"description": "Saved guide state, including tasks inferred from existing resources. Percentages use accounts with a saved guide record, including unreadable records as incomplete. Skips are not completion. These are database-wide gauges; never sum replicas or apply increase(). Missing samples stay missing.",
+					"links": [],
+					"data": {
+						"kind": "QueryGroup",
+						"spec": {
+							"queries": [
+								{
+									"kind": "PanelQuery",
+									"spec": {
+										"query": {
+											"kind": "DataQuery",
+											"group": "influxdb",
+											"version": "v0",
+											"datasource": {
+												"name": "efg3es37pgh6ob"
+											},
+											"spec": {
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"onboarding_averageProgress\")\n  |> group(columns: [\"_field\"])\n  |> last()"
+											}
+										},
+										"refId": "A",
+										"hidden": false
+									}
+								}
+							],
+							"transformations": [],
+							"queryOptions": {}
+						}
+					},
+					"vizConfig": {
+						"kind": "VizConfig",
+						"group": "stat",
+						"version": "13.2.0-31775358088",
+						"spec": {
+							"options": {
+								"colorMode": "value",
+								"graphMode": "area",
+								"justifyMode": "center",
+								"orientation": "auto",
+								"percentChangeColorMode": "standard",
+								"reduceOptions": {
+									"calcs": ["lastNotNull"],
+									"fields": "",
+									"values": false
+								},
+								"showPercentChange": false,
+								"textMode": "auto",
+								"wideLayout": true
+							},
+							"fieldConfig": {
+								"defaults": {
+									"unit": "percentunit",
+									"decimals": 1,
+									"color": {
+										"mode": "palette-classic"
+									},
+									"min": 0,
+									"max": 1
+								},
+								"overrides": [
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "onboarding_averageProgress"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Completed tasks / available tasks"
+											}
+										]
+									}
+								]
+							}
+						}
+					}
+				}
+			},
+			"panel-504": {
+				"kind": "Panel",
+				"spec": {
+					"id": 504,
+					"title": "Guide account progress",
+					"description": "Saved guide state, including tasks inferred from existing resources. Percentages use accounts with a saved guide record, including unreadable records as incomplete. Skips are not completion. These are database-wide gauges; never sum replicas or apply increase(). Missing samples stay missing.",
+					"links": [],
+					"data": {
+						"kind": "QueryGroup",
+						"spec": {
+							"queries": [
+								{
+									"kind": "PanelQuery",
+									"spec": {
+										"query": {
+											"kind": "DataQuery",
+											"group": "influxdb",
+											"version": "v0",
+											"datasource": {
+												"name": "efg3es37pgh6ob"
+											},
+											"spec": {
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"onboarding_trackedAccounts\" or r._field == \"onboarding_accountsWithProgress\" or r._field == \"onboarding_completedAccounts\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+											}
+										},
+										"refId": "A",
+										"hidden": false
+									}
+								}
+							],
+							"transformations": [],
+							"queryOptions": {}
+						}
+					},
+					"vizConfig": {
+						"kind": "VizConfig",
+						"group": "timeseries",
+						"version": "",
+						"spec": {
+							"options": {
+								"legend": {
+									"displayMode": "table",
+									"placement": "bottom"
+								},
+								"tooltip": {
+									"mode": "multi"
+								}
+							},
+							"fieldConfig": {
+								"defaults": {
+									"unit": "short",
+									"decimals": 0,
+									"color": {
+										"mode": "palette-classic"
+									}
+								},
+								"overrides": [
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "onboarding_trackedAccounts"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "With guide record"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "onboarding_accountsWithProgress"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "With recorded progress"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "onboarding_completedAccounts"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "All guides completed"
+											}
+										]
+									}
+								]
+							}
+						}
+					}
+				}
+			},
+			"panel-505": {
+				"kind": "Panel",
+				"spec": {
+					"id": 505,
+					"title": "Guide section completion rates",
+					"description": "Saved guide state, including tasks inferred from existing resources. Percentages use accounts with a saved guide record, including unreadable records as incomplete. Skips are not completion. These are database-wide gauges; never sum replicas or apply increase(). Missing samples stay missing.",
+					"links": [],
+					"data": {
+						"kind": "QueryGroup",
+						"spec": {
+							"queries": [
+								{
+									"kind": "PanelQuery",
+									"spec": {
+										"query": {
+											"kind": "DataQuery",
+											"group": "influxdb",
+											"version": "v0",
+											"datasource": {
+												"name": "efg3es37pgh6ob"
+											},
+											"spec": {
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"onboarding_sections_overlay_completionRate\" or r._field == \"onboarding_sections_appearance_completionRate\" or r._field == \"onboarding_sections_playlist_completionRate\" or r._field == \"onboarding_sections_explore_completionRate\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+											}
+										},
+										"refId": "A",
+										"hidden": false
+									}
+								}
+							],
+							"transformations": [],
+							"queryOptions": {}
+						}
+					},
+					"vizConfig": {
+						"kind": "VizConfig",
+						"group": "timeseries",
+						"version": "",
+						"spec": {
+							"options": {
+								"legend": {
+									"displayMode": "table",
+									"placement": "bottom"
+								},
+								"tooltip": {
+									"mode": "multi"
+								}
+							},
+							"fieldConfig": {
+								"defaults": {
+									"unit": "percentunit",
+									"decimals": 1,
+									"color": {
+										"mode": "palette-classic"
+									},
+									"min": 0,
+									"max": 1
+								},
+								"overrides": [
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "onboarding_sections_overlay_completionRate"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Get your first overlay running"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "onboarding_sections_appearance_completionRate"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Make your overlay yours"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "onboarding_sections_playlist_completionRate"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Build a playlist"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "onboarding_sections_explore_completionRate"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Explore Clipify"
+											}
+										]
+									}
+								]
+							}
+						}
+					}
+				}
+			},
+			"panel-506": {
+				"kind": "Panel",
+				"spec": {
+					"id": 506,
+					"title": "Guide sections",
+					"description": "Saved guide state, including tasks inferred from existing resources. Percentages use accounts with a saved guide record, including unreadable records as incomplete. Skips are not completion. These are database-wide gauges; never sum replicas or apply increase(). Missing samples stay missing. Last complete sample in the selected time range.",
+					"links": [],
+					"data": {
+						"kind": "QueryGroup",
+						"spec": {
+							"queries": [
+								{
+									"kind": "PanelQuery",
+									"spec": {
+										"query": {
+											"kind": "DataQuery",
+											"group": "influxdb",
+											"version": "v0",
+											"datasource": {
+												"name": "efg3es37pgh6ob"
+											},
+											"spec": {
+												"query": "latest = from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"onboarding_sections_overlay_accountsWithProgress\" or r._field == \"onboarding_sections_overlay_completedAccounts\" or r._field == \"onboarding_sections_overlay_completionRate\" or r._field == \"onboarding_sections_overlay_averageProgress\" or r._field == \"onboarding_sections_overlay_skippedTasks\" or r._field == \"onboarding_sections_appearance_accountsWithProgress\" or r._field == \"onboarding_sections_appearance_completedAccounts\" or r._field == \"onboarding_sections_appearance_completionRate\" or r._field == \"onboarding_sections_appearance_averageProgress\" or r._field == \"onboarding_sections_appearance_skippedTasks\" or r._field == \"onboarding_sections_playlist_accountsWithProgress\" or r._field == \"onboarding_sections_playlist_completedAccounts\" or r._field == \"onboarding_sections_playlist_completionRate\" or r._field == \"onboarding_sections_playlist_averageProgress\" or r._field == \"onboarding_sections_playlist_skippedTasks\" or r._field == \"onboarding_sections_explore_accountsWithProgress\" or r._field == \"onboarding_sections_explore_completedAccounts\" or r._field == \"onboarding_sections_explore_completionRate\" or r._field == \"onboarding_sections_explore_averageProgress\" or r._field == \"onboarding_sections_explore_skippedTasks\")\n  |> group(columns: [])\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 1)\noverlay = latest |> map(fn: (r) => ({Rank: 0.0, Section: \"Get your first overlay running\", \"With progress\": r.onboarding_sections_overlay_accountsWithProgress, \"Completed accounts\": r.onboarding_sections_overlay_completedAccounts, \"Completion rate\": r.onboarding_sections_overlay_completionRate, \"Average progress\": r.onboarding_sections_overlay_averageProgress, \"Skipped tasks\": r.onboarding_sections_overlay_skippedTasks}))\nappearance = latest |> map(fn: (r) => ({Rank: 1.0, Section: \"Make your overlay yours\", \"With progress\": r.onboarding_sections_appearance_accountsWithProgress, \"Completed accounts\": r.onboarding_sections_appearance_completedAccounts, \"Completion rate\": r.onboarding_sections_appearance_completionRate, \"Average progress\": r.onboarding_sections_appearance_averageProgress, \"Skipped tasks\": r.onboarding_sections_appearance_skippedTasks}))\nplaylist = latest |> map(fn: (r) => ({Rank: 2.0, Section: \"Build a playlist\", \"With progress\": r.onboarding_sections_playlist_accountsWithProgress, \"Completed accounts\": r.onboarding_sections_playlist_completedAccounts, \"Completion rate\": r.onboarding_sections_playlist_completionRate, \"Average progress\": r.onboarding_sections_playlist_averageProgress, \"Skipped tasks\": r.onboarding_sections_playlist_skippedTasks}))\nexplore = latest |> map(fn: (r) => ({Rank: 3.0, Section: \"Explore Clipify\", \"With progress\": r.onboarding_sections_explore_accountsWithProgress, \"Completed accounts\": r.onboarding_sections_explore_completedAccounts, \"Completion rate\": r.onboarding_sections_explore_completionRate, \"Average progress\": r.onboarding_sections_explore_averageProgress, \"Skipped tasks\": r.onboarding_sections_explore_skippedTasks}))\nunion(tables: [overlay, appearance, playlist, explore])\n  |> group(columns: [])\n  |> sort(columns: [\"Rank\"])"
+											}
+										},
+										"refId": "A",
+										"hidden": false
+									}
+								}
+							],
+							"transformations": [
+								{
+									"kind": "Transformation",
+									"group": "organize",
+									"spec": {
+										"options": {
+											"excludeByName": {
+												"Rank": true
+											},
+											"indexByName": {
+												"Section": 0,
+												"With progress": 1,
+												"Completed accounts": 2,
+												"Completion rate": 3,
+												"Average progress": 4,
+												"Skipped tasks": 5
+											}
+										}
+									}
+								}
+							],
+							"queryOptions": {}
+						}
+					},
+					"vizConfig": {
+						"kind": "VizConfig",
+						"group": "table",
+						"version": "",
+						"spec": {
+							"options": {
+								"showHeader": true
+							},
+							"fieldConfig": {
+								"defaults": {
+									"unit": "short",
+									"decimals": 0
+								},
+								"overrides": [
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "Completion rate"
+										},
+										"properties": [
+											{
+												"id": "unit",
+												"value": "percentunit"
+											},
+											{
+												"id": "decimals",
+												"value": 1
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "Average progress"
+										},
+										"properties": [
+											{
+												"id": "unit",
+												"value": "percentunit"
+											},
+											{
+												"id": "decimals",
+												"value": 1
+											}
+										]
+									}
+								]
+							}
+						}
+					}
+				}
 			}
 		},
 		"layout": {
@@ -11074,6 +11744,111 @@
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-413"
+												}
+											}
+										}
+									]
+								}
+							}
+						}
+					},
+					{
+						"kind": "RowsLayoutRow",
+						"spec": {
+							"title": "Onboarding guides",
+							"collapse": false,
+							"layout": {
+								"kind": "GridLayout",
+								"spec": {
+									"items": [
+										{
+											"kind": "GridLayoutItem",
+											"spec": {
+												"x": 0,
+												"y": 0,
+												"width": 6,
+												"height": 5,
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-500"
+												}
+											}
+										},
+										{
+											"kind": "GridLayoutItem",
+											"spec": {
+												"x": 6,
+												"y": 0,
+												"width": 6,
+												"height": 5,
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-501"
+												}
+											}
+										},
+										{
+											"kind": "GridLayoutItem",
+											"spec": {
+												"x": 12,
+												"y": 0,
+												"width": 6,
+												"height": 5,
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-502"
+												}
+											}
+										},
+										{
+											"kind": "GridLayoutItem",
+											"spec": {
+												"x": 18,
+												"y": 0,
+												"width": 6,
+												"height": 5,
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-503"
+												}
+											}
+										},
+										{
+											"kind": "GridLayoutItem",
+											"spec": {
+												"x": 0,
+												"y": 5,
+												"width": 12,
+												"height": 8,
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-504"
+												}
+											}
+										},
+										{
+											"kind": "GridLayoutItem",
+											"spec": {
+												"x": 12,
+												"y": 5,
+												"width": 12,
+												"height": 8,
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-505"
+												}
+											}
+										},
+										{
+											"kind": "GridLayoutItem",
+											"spec": {
+												"x": 0,
+												"y": 13,
+												"width": 24,
+												"height": 8,
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-506"
 												}
 											}
 										}

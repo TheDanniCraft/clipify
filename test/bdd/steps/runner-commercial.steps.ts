@@ -1,3 +1,4 @@
+import { openConsentPage } from "../../support/consent-page";
 import { createBdd } from "playwright-bdd";
 import { Pool } from "pg";
 import { test, expect } from "../support/mcp-support";
@@ -6,7 +7,7 @@ import { browserDatabaseUrl } from "../../support/mcp/browser-database.cjs";
 const { Given, When, Then, AfterScenario } = createBdd(test);
 
 Given("a visitor is viewing Clipify's public pricing", async ({ page }) => {
-	await page.goto("http://127.0.0.1:3107/legal/cookies");
+	await openConsentPage(page);
 	await expect(page.getByRole("button", { name: "Enable support chat", exact: true })).toBeVisible();
 	const preferences = page.getByRole("main").getByRole("button", { name: "Cookie preferences", exact: true });
 	await preferences.focus();

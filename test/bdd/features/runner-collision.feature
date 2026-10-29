@@ -38,7 +38,7 @@ Feature: Runner attribution avoids overlay content
       | 720p       |
       | 1080p      |
 
-  @BDD @US4 @FR-017 @BDD-US4-DEC012 @runner-collision-browser @runner-presentation-browser @runner-blocked-startup-browser
+  @BDD @US4 @FR-017 @BDD-US4-DEC012 @runner-collision-browser @runner-presentation-browser @runner-blocked-startup-browser @requires:native-media
   Scenario: A blocked playing layout prevents native output startup
     Given an admitted branded Runner has a later Pro layout filling its mobile frame
     When its native Runner attempts to start the blocked generated layout

@@ -41,11 +41,14 @@ export async function fillScheduleField(scope: Page | Locator, label: string, va
 		await scope.getByLabel(label, { exact: true }).fill(value);
 		return;
 	}
-	for (const [part, text] of parts(label, value)) {
+	// Set a safe day before changing month/year (for example October 29 -> February 1).
+	const sequence = label.endsWith("time") ? parts(label, value) : [["day", "1"], ...parts(label, value)];
+	for (const [part, text] of sequence) {
 		const segment = scope.getByRole("spinbutton", { name: new RegExp(`^${part}, ${label}$`, "i") });
 		await segment.focus();
 		await segment.pressSequentially(text);
 	}
+	await expectScheduleField(scope, label, value);
 }
 export async function expectScheduleField(scope: Page | Locator, label: string, value: string) {
 	if (label === "Timezone" || label === "Calendar timezone") {

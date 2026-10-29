@@ -68,10 +68,10 @@ test("connection listing rejects an absent session before querying data", async 
 	f.auth.api.getSession.mockResolvedValue(null as any);
 	await expect(connections.listMcpConnections({ ...f, headers })).rejects.toThrow("AUTHENTICATION_REQUIRED");
 });
-test("legacy creator permissions inherit operation scopes but exclude refresh permission", async () => {
+test.each([new Date(Date.now() + 60000), null])("legacy creator permissions inherit operation scopes with grant expiry %p", async (expiresAt) => {
 	const { mcpConnectionGrantsTable, mcpGrantCreatorsTable } = require("@/db/schema");
 	const { oauthClient } = require("@/db/auth-schema");
-	const row = { ...grant, scopes: ["creator:read", "offline_access"], createdAt: new Date(), revokedAt: null };
+	const row = { ...grant, expiresAt, scopes: ["creator:read", "offline_access"], createdAt: new Date(), revokedAt: null };
 	const client = { select: () => ({ from: (table: unknown) => ({ where: () => (table === mcpConnectionGrantsTable ? { orderBy: async () => [row] } : table === oauthClient ? { limit: async () => [] } : table === mcpGrantCreatorsTable ? Promise.resolve([{ creatorId: "creator", scopes: null }]) : Promise.reject(new Error("Unexpected table"))) }) }) };
 	const f = fixture();
 	const result = await connections.listMcpConnections({ auth: f.auth, headers, client });

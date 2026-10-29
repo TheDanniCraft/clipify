@@ -1,0 +1,19 @@
+name: 🏷️ Pull request title
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  title:
+    name: 🏷️ PR title
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Validate squash commit title
+        run: node scripts/check-pr-title.cjs
