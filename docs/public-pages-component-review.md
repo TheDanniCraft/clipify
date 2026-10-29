@@ -97,8 +97,8 @@ graph rebuild was not necessary for these bounded changes.
 
 ## Validation of this revision
 
-Rebased on master `5801b671`. Seven affected whole-file Jest suites passed
-37 tests, including account-export/onboarding conflict coverage. The browser build
+Rebased on master `5801b671`. Eight affected whole-file Jest suites passed
+74 tests, including account-export/onboarding conflict coverage. The browser build
 and its TypeScript check passed. New release-summary, footer-destination and roadmap
 filter expectations were first observed failing, then passed after implementation.
 
@@ -112,6 +112,11 @@ separate preview check.
 The complete landing-page acceptance file passed all 33 real Chromium checks,
 without retries, including demo playback/recovery, pricing, consent, gallery
 focus restoration, metadata and 320/390/1440px light/dark layouts.
+
+The deployed preview also passed eight portrait route/theme checks with its real
+release and roadmap records, including status filtering and image loading.
+The final follow-up restores explicit Runner inclusion wording; its existing
+commercial contract test retains all offer and hardware assertions.
 
 Complete coverage and the final merge gate remain CI responsibilities under the
 current repository validation strategy. This is a draft PR, not merge approval.

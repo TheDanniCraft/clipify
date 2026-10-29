@@ -331,7 +331,7 @@ test("TDD-US5-DEC013: reference templates and home FAQ describe included unlimit
 	expect(full).toMatch(/Runner and broadcasting/);
 	expect(full).toMatch(/Advanced Runner features require effective Pro.*valid Pro grants, trials, and agency creator seats/);
 	expect(full).not.toMatch(/Existing active Runner grants provide advanced Runner benefits/);
-	const runnerFaq = faqs.find((faq) => /self-hosted Runner/i.test(faq.title));
+	const runnerFaq = faqs.find((faq) => /\bRunner\b/i.test(faq.title));
 	expect(runnerFaq).toBeDefined();
 	expect(runnerFaq?.content).toMatch(/included with Free and Pro/);
 	expect(runnerFaq?.content).toMatch(/your own Windows, Linux, or macOS computer/);
