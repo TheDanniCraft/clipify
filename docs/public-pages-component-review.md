@@ -22,7 +22,7 @@ patch; Pro was already current. There is no reason to upgrade unrelated packages
 | Component                       | Decision                                                       | Reason                                                                                                                                                                                                         |
 | ------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Pro Timeline                    | Use for releases and roadmap                                   | Semantic ordered milestones, decorative rails, current-state semantics; avoids custom timeline geometry and oversized nested cards.                                                                            |
-| OSS Tabs                        | Use for roadmap filters                                        | Touch and keyboard operation; All updates shows shipped history immediately. Three tabs fit a narrow viewport.                                                                                                 |
+| OSS Tabs                        | Omit from the roadmap                                          | One continuous timeline keeps upcoming work and shipped history visible without switching views.                                                                                                               |
 | OSS Link                        | Use for secondary gallery navigation and help links            | Navigation should read as navigation, with a visible focus target.                                                                                                                                             |
 | Pro Hover Card                  | Good for optional creator previews                             | It supplements an existing focusable link. It must not make essential content hover-only on phones.                                                                                                            |
 | Pro Holo Card                   | Closest match for the current Member Card's foil/tilt behavior | Hover Card is a preview container; Holo Card is the card treatment. A future replacement must retain the existing export/share rendering, identity and badge data, reduced-motion behavior and touch handling. |
@@ -83,8 +83,8 @@ program's operational status.
 
 The public roadmap still uses published CMS records. The auth-system rewrite's
 future scope/status needs editorial confirmation against the work already shipped;
-a presentation change must not silently invent that decision. The new timeline
-makes the existing shipped history readable without expanding an accordion.
+a presentation change must not silently invent that decision. The continuous timeline shows upcoming work first, followed by shipped records in
+reverse published order, without tabs or an accordion.
 
 The Help Center's older Getting Started article and chat-command terminology need
 an external editorial pass. Existing repository drafts remain available for that
@@ -95,7 +95,7 @@ The existing code graph was used to locate related surfaces, then checked agains
 current source because the graph predates this public-page revision. A complete
 graph rebuild was not necessary for these bounded changes.
 
-## Validation of this revision
+## Validation of preceding revision (`5be6c495`)
 
 Rebased on master `5801b671`. Eight affected whole-file Jest suites passed
 74 tests, including account-export/onboarding conflict coverage. The browser build
@@ -120,3 +120,37 @@ commercial contract test retains all offer and hardware assertions.
 
 Complete coverage and the final merge gate remain CI responsibilities under the
 current repository validation strategy. This is a draft PR, not merge approval.
+
+## Homepage review follow-up
+
+The homepage's “Your best moments” section now shows actual player output in a
+static purple BRB scene. It does not imitate Twitch/OBS application chrome, add
+fake audience data, autoplay media or mount the dashboard. Playlist editor imagery
+remains on Features and the playlist guide, where it explains selection.
+
+The community link has its own two-line portrait layout and extra space before
+the setup section. The shared teaser still caps visible avatars at five and
+calculates the remaining count from the directory total; it never hard-codes “+5”.
+Other public pages retain the compact footer teaser; they do not share the old
+homepage's crowded community-to-setup transition.
+
+Release summaries strip emojis only for website presentation. Updated AGENTS.md
+requires future release notes to be written from squash-merged PR outcomes and
+verified final diffs, with multiple distinct outcomes per PR where useful. Commit
+subjects/PR titles retain Gitmoji. Existing published GitHub notes are unchanged.
+
+Public routes changed in the preceding refinement: `/`, `/features`, `/pricing`,
+`/gallery`, `/changelog`, `/roadmap`, `/guides/twitch-clips-in-obs`,
+`/guides/twitch-clip-playlists`, `/guides/control-twitch-clip-playback`, and shared
+footer navigation. The remote controller route and behavior were not changed;
+its image was captured for the Features page. This follow-up changes Home and
+Roadmap plus repository release-note guidance.
+
+Follow-up checks: three affected whole-file suites / eight tests passed, including
+reverse shipped ordering, immutable inputs, and the five-avatar/remaining-count
+contract. The ordering expectations were first observed failing before the change.
+Twelve real-browser route/layout/theme checks passed for Home and populated
+Roadmap at 320/390/1440px, with WCAG A/AA diagnostics and screenshots reviewed.
+All six existing homepage interaction scenarios passed without retries. The final
+browser build/TypeScript and changed-file lint/format checks passed. The previous
+33-scenario result above is historical; unchanged scenarios were not rerun.

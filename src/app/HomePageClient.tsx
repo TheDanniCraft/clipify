@@ -16,7 +16,6 @@ import CommunityTeaser from "@components/LandingPage/communityTeaser";
 import Footer from "@components/footer";
 import FloatingBanner from "@components/floatingBanner";
 import DemoPlayer from "@components/DemoPlayer";
-import ProductImage from "@components/LandingPage/productImage";
 import CountdownTimer from "@components/countdownTimer";
 import { getPublicCommunityTeaserAction } from "@actions/community";
 import type { CommunityTeaserPayload } from "@lib/community-types";
@@ -80,7 +79,7 @@ export default function HomePageClient({ campaignOffer, pricing }: HomePageClien
 			<main id='home'>
 				<div className='relative isolate bg-gradient-to-br from-brand-900 via-brand-800 to-brand-600 text-white'>
 					<BasicNavbar classNames={{ wrapper: "max-w-7xl" }} />
-					<div className='mx-auto max-w-7xl px-6 pb-16 pt-12 sm:px-8 sm:pb-20 sm:pt-20'>
+					<div className='mx-auto max-w-7xl px-6 pb-24 pt-12 sm:px-8 sm:pb-28 sm:pt-20'>
 						<div className='grid items-center gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-12'>
 							<div>
 								<p className='mb-5 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-violet-200'>
@@ -124,9 +123,11 @@ export default function HomePageClient({ campaignOffer, pricing }: HomePageClien
 									Free to get started
 								</span>
 							</div>
-							<Link href='/community' className='flex flex-wrap items-center gap-3 text-xs text-white'>
-								{communityStreamers.length ? <CommunityTeaser streamers={communityStreamers} totalCount={communityPreview?.totalCount} countClassName='text-violet-100' /> : <IconUsersGroup size={18} aria-hidden='true' />}Explore the creator community
-								<IconArrowRight size={15} />
+							<Link href='/community' className='inline-flex flex-col items-start gap-3 text-sm text-white sm:flex-row sm:items-center'>
+								{communityStreamers.length ? <CommunityTeaser streamers={communityStreamers} totalCount={communityPreview?.totalCount} countClassName='text-violet-100' /> : null}
+								<span className='inline-flex items-center gap-2'>
+									{communityStreamers.length === 0 && <IconUsersGroup size={18} aria-hidden='true' />}Explore the creator community <IconArrowRight size={15} aria-hidden='true' />
+								</span>
 							</Link>
 						</div>
 					</div>
@@ -181,7 +182,13 @@ export default function HomePageClient({ campaignOffer, pricing }: HomePageClien
 										Explore Clipify <IconArrowRight size={18} />
 									</Link>
 								</div>
-								<ProductImage view='playlist' className='lg:-rotate-2' />
+								<figure className='min-w-0'>
+									<div className='overflow-hidden rounded-2xl border border-white/10 bg-[#20103b] p-4 shadow-lg shadow-black/10 sm:p-7'>
+										<p className='mb-5 text-2xl font-semibold tracking-tight text-white sm:text-3xl'>Be right back.</p>
+										<Image src='/product/overlay.webp' alt='A Twitch highlight playing through Clipify in a purple break scene' width={641} height={360} sizes='(max-width: 1024px) 100vw, 720px' loading='lazy' className='h-auto w-full rounded-lg' />
+									</div>
+									<figcaption className='mt-3 text-xs text-foreground/65'>A break scene with Clipify.</figcaption>
+								</figure>
 							</div>
 							<div className='mt-14 grid gap-8 md:grid-cols-3 md:gap-10'>
 								{[
