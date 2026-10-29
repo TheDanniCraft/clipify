@@ -6,9 +6,9 @@ export default function ReleaseNotes({ body }: { body: string }) {
 	const summary = releaseSummary(body);
 	return (
 		<>
-			<ul className='space-y-3'>
+			<ul className='list-disc space-y-3 pl-5 marker:text-accent'>
 				{summary.map((line, index) => (
-					<li key={index} className='text-sm leading-relaxed'>
+					<li key={index} className='text-base leading-relaxed text-foreground/80'>
 						{line}
 					</li>
 				))}
@@ -17,7 +17,7 @@ export default function ReleaseNotes({ body }: { body: string }) {
 				<Accordion.Item id='details'>
 					<Accordion.Heading>
 						<Accordion.Trigger>
-							{summary.length ? "All release notes" : "Maintenance details"}
+							{summary.length ? "Published release notes" : "Maintenance details"}
 							<Accordion.Indicator />
 						</Accordion.Trigger>
 					</Accordion.Heading>

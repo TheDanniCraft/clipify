@@ -1,7 +1,7 @@
 import { buttonVariants } from "@heroui/styles";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import Image from "next/image";
+import ProductImage from "@components/LandingPage/productImage";
 import { Link } from "@components/heroui-client";
 import BasicNavbar from "@components/LandingPage/basicNavbar";
 import Footer from "@components/footer";
@@ -32,7 +32,7 @@ export default async function GuidePage({ params }: Props) {
 				<article>
 					<h1 className='max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl'>{guide.title}</h1>
 					<p className='mt-6 max-w-3xl text-lg leading-relaxed text-foreground/75'>{guide.intro}</p>
-					<Image src={guide.image} alt={guide.imageAlt} width={1920} height={1080} sizes='(max-width: 1024px) 100vw, 960px' className='my-10 h-auto w-full rounded-2xl border border-border bg-zinc-950' />
+					<ProductImage view={guide.productView} className='my-10 max-w-3xl' />
 					<div className='max-w-3xl space-y-10'>
 						<section>
 							<h2 className='text-2xl font-semibold'>What you need</h2>
@@ -59,8 +59,8 @@ export default async function GuidePage({ params }: Props) {
 						<section>
 							<h2 className='text-2xl font-semibold'>If something does not work</h2>
 							<p className='mt-3 leading-relaxed text-foreground/75'>{guide.troubleshooting}</p>
-							<Link href='https://help.clipify.us/' className='mt-4'>
-								Open the help center
+							<Link href={guide.helpHref} className='mt-4'>
+								Read the full Help Center guide
 							</Link>
 						</section>
 					</div>

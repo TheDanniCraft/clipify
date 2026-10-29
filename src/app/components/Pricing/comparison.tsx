@@ -106,13 +106,10 @@ export default function PricingComparison({ campaignOffer = null, pricing }: { c
 	};
 
 	return (
-		<div className='mx-auto flex w-full max-w-7xl flex-col items-center py-24'>
+		<div className='mx-auto flex w-full max-w-7xl flex-col items-center py-12 sm:py-20'>
 			<div className='flex max-w-xl flex-col text-center'>
-				<Chip color='accent' variant='primary' className='mx-auto mb-4'>
-					Pricing
-				</Chip>
 				<h1 className='text-4xl font-medium tracking-tight'>Compare plans &amp; features.</h1>
-				<p className='mt-4 text-lg text-foreground/75'>Discover the ideal plan for your Clipify setup, starting free.</p>
+				<p className='mt-4 text-lg text-foreground/75'>Plans for your clip playlists, overlays, and broadcasts.</p>
 			</div>
 			<div className='mt-8'>
 				<BillingFrequency value={selectedFrequency} onChange={onFrequencyChange} pricing={campaignOffer?.showPricingTierPromo ? null : pricing} />

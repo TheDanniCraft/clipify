@@ -25,8 +25,8 @@ export default function GalleryLandingPage() {
 					<Link className={buttonVariants({ variant: "primary", className: "no-underline" })} href='/login'>
 						Create your gallery
 					</Link>
-					<Link className={buttonVariants({ variant: "secondary", className: "text-foreground no-underline" })} href='/'>
-						Learn about Clipify
+					<Link className='self-center gap-2 py-3 text-sm text-accent dark:text-violet-300' href='/features'>
+						Explore Clipify
 					</Link>
 				</div>
 			</main>

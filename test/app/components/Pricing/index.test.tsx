@@ -125,7 +125,7 @@ describe("components/Pricing index", () => {
 		expect(screen.getByText("One branded website gallery")).toBeInTheDocument();
 		expect(screen.queryByText("Append or replace behavior on playlist import")).not.toBeInTheDocument();
 		expect(screen.getByText(/directly supports an independent developer/i)).toBeInTheDocument();
-		expect(screen.getByRole("link", { name: /Compare all features/i })).toHaveAttribute("href", "/pricing");
+		expect(screen.getByRole("link", { name: /Compare Free and Pro/i })).toHaveAttribute("href", "/pricing");
 		expect(screen.queryByRole("link", { name: "Add Runner" })).not.toBeInTheDocument();
 		fireEvent.click(screen.getByRole("button", { name: "Get Pro" }));
 		expect(screen.getByText("Shared Pro setup")).toBeInTheDocument();

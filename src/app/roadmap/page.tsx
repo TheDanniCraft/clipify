@@ -17,14 +17,13 @@ export default async function RoadmapPage() {
 		<>
 			<BasicNavbar />
 
-			<main className='min-h-screen bg-background px-6 py-12 text-foreground'>
-				<div className='max-w-5xl mx-auto'>
-					<h1 className='text-4xl font-bold text-center mb-2 flex items-center justify-center gap-2'>
-						<span className='text-accent'>✨</span>
-						Product Roadmap
-						<span className='text-accent'>✨</span>
-					</h1>
-					<p className='text-center text-muted mb-12'>See what we&apos;re building next and help shape the future of Clipify</p>
+			<main className='min-h-screen bg-background px-6 py-14 sm:px-8 sm:py-20 text-foreground'>
+				<div className='max-w-6xl mx-auto'>
+					<header className='mb-12 border-b border-separator pb-10 sm:mb-16'>
+						<p className='mb-4 text-sm font-medium text-accent dark:text-violet-300'>The Clipify roadmap</p>
+						<h1 className='text-4xl font-bold tracking-tight sm:text-6xl'>What we’re building.</h1>
+						<p className='mt-5 max-w-xl text-lg leading-relaxed text-foreground/75'>Follow work in progress, upcoming ideas, and the milestones already on your stream.</p>
+					</header>
 
 					{roadmapItems.length > 0 ? (
 						<RoadmapSections items={roadmapItems} />

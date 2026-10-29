@@ -16,6 +16,7 @@ import CommunityTeaser from "@components/LandingPage/communityTeaser";
 import Footer from "@components/footer";
 import FloatingBanner from "@components/floatingBanner";
 import DemoPlayer from "@components/DemoPlayer";
+import ProductImage from "@components/LandingPage/productImage";
 import CountdownTimer from "@components/countdownTimer";
 import { getPublicCommunityTeaserAction } from "@actions/community";
 import type { CommunityTeaserPayload } from "@lib/community-types";
@@ -180,15 +181,13 @@ export default function HomePageClient({ campaignOffer, pricing }: HomePageClien
 										Explore Clipify <IconArrowRight size={18} />
 									</Link>
 								</div>
-								<div className='relative rounded-3xl bg-gradient-to-br from-violet-600/20 via-fuchsia-500/10 to-transparent p-3 sm:p-6'>
-									<Image src='/appSkew.webp' alt='The Clipify dashboard with saved overlays and clip playback settings' width={1920} height={1080} sizes='(max-width: 1024px) 100vw, 720px' className='h-auto w-full rounded-xl transition-transform duration-500 motion-safe:hover:-translate-y-2' />
-								</div>
+								<ProductImage view='playlist' className='lg:-rotate-2' />
 							</div>
 							<div className='mt-14 grid gap-8 md:grid-cols-3 md:gap-10'>
 								{[
-									{ title: "Choose what plays", description: "Build a playlist of the highlights you love. Reorder it, leave out clips that no longer fit, and keep a selection ready for each stream.", icon: IconPlaylist, href: "/guides/twitch-clip-playlists", link: "Build your playlist", color: "bg-violet-500/15 text-violet-700 dark:text-violet-300" },
+									{ title: "Choose what plays", description: "Build a playlist of the highlights you love. Reorder it, leave out clips that no longer fit, and keep a selection ready for each stream.", icon: IconPlaylist, href: "/features#playlists", link: "Build your playlist", color: "bg-violet-500/15 text-violet-700 dark:text-violet-300" },
 									{ title: "Make it feel like you", description: "Bring clips into your BRB or Starting Soon scene. Explore layouts, colors, fonts, timers, and progress styles in Theme Studio.", icon: IconPalette, href: "/features#styling", link: "Explore scene styling", color: "bg-fuchsia-500/15 text-fuchsia-800 dark:text-fuchsia-300" },
-									{ title: "Keep the show moving", description: "Skip a clip, pause playback, or let a trusted moderator take the controls while you are away from your desk.", icon: IconDeviceRemote, href: "/guides/control-twitch-clip-playback", link: "See playback controls", color: "bg-cyan-500/15 text-cyan-800 dark:text-cyan-300" },
+									{ title: "Keep the show moving", description: "Skip a clip, pause playback, or let a trusted moderator take the controls while you are away from your desk.", icon: IconDeviceRemote, href: "/features#controls", link: "See playback controls", color: "bg-cyan-500/15 text-cyan-800 dark:text-cyan-300" },
 								].map((benefit) => (
 									<div key={benefit.title} className='border-t border-border pt-6'>
 										<span className={`mb-5 inline-flex rounded-2xl p-3 ${benefit.color}`}>
@@ -212,7 +211,7 @@ export default function HomePageClient({ campaignOffer, pricing }: HomePageClien
 							<h2 id='pricing-heading' className='text-3xl font-bold tracking-tight sm:text-4xl'>
 								Start with your next break.
 							</h2>
-							<p className='mt-4 text-base leading-relaxed text-foreground/75'>Start with a free clip player. Choose Pro when you want more playlists, custom styling, or live controls.</p>
+							<p className='mt-4 text-base leading-relaxed text-foreground/75'>Get your first clip playlist on stream for free. No card required.</p>
 						</div>
 						{campaignOffer && campaignOffer.showPricingCard ? (
 							<div className='mx-auto w-full max-w-md mt-12'>
@@ -260,9 +259,9 @@ export default function HomePageClient({ campaignOffer, pricing }: HomePageClien
 							<div>
 								<p className='mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-accent dark:text-violet-300'>Before your next stream</p>
 								<h2 id='faq-heading' className='text-3xl font-bold tracking-tight sm:text-4xl'>
-									A few things you might be wondering.
+									Questions before your next stream.
 								</h2>
-								<p className='mt-4 text-sm leading-relaxed text-foreground/75'>Need a hand with your setup? Our help center walks you through the details.</p>
+								<p className='mt-4 text-sm leading-relaxed text-foreground/75'>Find setup instructions, troubleshooting, and the details in the Help Center.</p>
 								<Link href='https://help.clipify.us' className='mt-5 gap-2 text-sm font-medium'>
 									Visit the help center
 									<IconArrowRight size={17} />

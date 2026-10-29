@@ -1,10 +1,9 @@
 import { buttonVariants } from "@heroui/styles";
 import type { Metadata } from "next";
-import Image from "next/image";
-import { Link } from "@components/heroui-client";
+import { Link, LinkIcon } from "@components/heroui-client";
 import BasicNavbar from "@components/LandingPage/basicNavbar";
+import ProductImage from "@components/LandingPage/productImage";
 import Footer from "@components/footer";
-import { publicGuides } from "@lib/publicGuides";
 
 export const metadata: Metadata = {
 	title: "Twitch Clip Playlists, OBS Overlays & Live Controls | Clipify",
@@ -15,66 +14,103 @@ export const metadata: Metadata = {
 const features = [
 	{
 		id: "playlists",
-		title: "Keep a playlist ready for every kind of stream",
-		text: "Handpick highlights, reorder your selection, and save it for your next break. Use basic filters to find clips or explore advanced filters, Top and Smart Shuffle playback, and requested imports with Pro.",
-		availability: "Free includes one playlist with up to 50 clips and Random playback. Pro adds more playlists and advanced selection tools.",
-		href: "/guides/twitch-clip-playlists",
-		action: "Build a clip playlist",
+		label: "Clip playlists",
+		title: "Keep the moments you want to come back to.",
+		text: "The clutch. The running joke. The clip your chat still brings up. Put them together in a saved playlist, change the selection, and have it ready for the next stream.",
+		detail: "Pick clips yourself or narrow the selection with filters. Requested imports let you review a fresh selection before saving it.",
+		image: "playlist",
+		href: "https://help.clipify.us/hc/clipify/articles/create-manage-clip-playlists",
+		action: "Read the playlist guide",
 	},
-	{ id: "overlays", title: "Bring your clips into OBS", text: "Save your overlay once and add its URL as a browser source. Switch to your BRB or Starting Soon scene and let your selection play. Your existing gameplay setup stays in OBS.", availability: "One overlay is included with Free. Pro supports more overlays. Runner is not required for browser-source playback.", href: "/guides/twitch-clips-in-obs", action: "Set up clips in OBS" },
-	{ id: "styling", title: "Give your break scene its own look", text: "Theme Studio brings layouts, colors, fonts, timers, and progress styling into your overlay setup. Match the player to your stream rather than rebuilding your scene each time you change clips.", availability: "Custom Theme Studio styling requires Pro. Free includes the standard player.", href: "/#demo", action: "Try the playback demo" },
-	{ id: "controls", title: "Skip, pause, and bring your moderators along", text: "Use the remote panel from a phone or second screen. Configure Twitch chat commands and channel points interactions, or give editors and managers access through their own accounts.", availability: "Remote playback controls, chat controls, channel points, and team access require Pro.", href: "/guides/control-twitch-clip-playback", action: "Explore playback controls" },
-	{ id: "sharing", title: "Give your clips a home beyond the live stream", text: "Publish a Creator Page, curate a gallery, or embed clips on your own website. Manage your page's visibility in your settings and share its public link instead of your private OBS source URL.", availability: "Free includes a Creator Page and one branded gallery. Pro adds more galleries and customization.", href: "/gallery", action: "Explore galleries" },
-	{ id: "runner", title: "Broadcast from your own computer", text: "The optional Runner runs on Windows, Linux, or macOS. Use manual broadcasting or explore Pro's advanced broadcasting tools. Your computer needs to stay online; this is not hosted streaming infrastructure.", availability: "Runner is included with Free and Pro, with unlimited streaming hours. Advanced capabilities require Pro.", href: "https://help.clipify.us/", action: "Read the Runner documentation" },
-];
+	{ id: "overlays", label: "OBS overlays", title: "Your break scene. With something worth watching.", text: "Clipify plays inside a browser source in OBS or Streamlabs. Set up your BRB or Starting Soon scene once, then manage the clips in Clipify without rebuilding the scene.", detail: "Choose a playlist or clip source, save the overlay, and copy its private browser-source URL into your scene. Runner is not required.", image: "overlay", href: "/#demo", action: "Watch the player in action" },
+	{ id: "styling", label: "Theme Studio", title: "Make room for your own style.", text: "Choose the layout, colors, typography, timers, and progress styles that fit your channel. Position the clip and channel information around the moments that matter.", detail: "Pro includes Theme Studio. Arrange the layout on desktop; adjust colors and text from your phone.", image: "theme", href: "https://help.clipify.us/", action: "Explore setup help" },
+	{
+		id: "controls",
+		label: "Live controls",
+		title: "Keep the show moving. Even from your phone.",
+		text: "Skip a clip, pause playback, or mute the player from a second screen. Give a trusted moderator their own access so you can step away from your desk.",
+		detail: "Pro includes the remote panel, Twitch chat commands, channel points, and collaboration controls.",
+		image: "controls",
+		href: "https://help.clipify.us/hc/clipify/articles/1765998791-controlling-the-overlay-via-chat-commands",
+		action: "See the chat controls",
+	},
+] as const;
 export default function FeaturesPage() {
 	return (
 		<>
 			<BasicNavbar />
-			<main>
-				<header className='overflow-hidden bg-gradient-to-br from-brand-900 to-brand-600 px-6 py-16 text-white sm:py-24'>
+			<main className='overflow-hidden'>
+				<header className='border-b border-separator bg-surface-secondary/50 px-6 py-14 sm:px-8 sm:py-20'>
 					<div className='mx-auto max-w-6xl'>
-						<p className='text-sm font-semibold text-violet-200'>Your stream. Your highlights.</p>
-						<h1 className='mt-4 max-w-3xl text-4xl font-bold tracking-tight sm:text-6xl'>More of the moments worth watching again.</h1>
-						<p className='mt-6 max-w-2xl text-lg leading-relaxed text-violet-100'>Choose clips, save your setup, and bring your highlights into the scenes you already use.</p>
-						<Image src='/appSkew.webp' alt='Clipify dashboard showing saved overlays and playback settings' width={1920} height={1080} sizes='(max-width: 1152px) 100vw, 1152px' className='mt-10 h-auto w-full rounded-2xl' />
-					</div>
-				</header>
-				<div className='mx-auto max-w-6xl px-6 py-14 sm:px-8'>
-					<nav aria-label='Feature topics' className='mb-12 flex flex-wrap gap-3'>
-						{features.map((feature) => (
-							<Link key={feature.id} href={`#${feature.id}`} className='rounded-full border border-border px-4 py-2 text-sm'>
-								{feature.id === "styling" ? "Theme Studio" : feature.id.charAt(0).toUpperCase() + feature.id.slice(1)}
-							</Link>
-						))}
-					</nav>
-					{features.map((feature, index) => (
-						<section key={feature.id} id={feature.id} className='grid scroll-mt-24 gap-5 border-t border-border py-10 md:grid-cols-[0.8fr_1.2fr] md:gap-12'>
-							<h2 className='text-2xl font-semibold sm:text-3xl'>
-								<span className='mb-3 block text-sm text-accent dark:text-violet-300'>0{index + 1}</span>
-								{feature.title}
-							</h2>
-							<div>
-								<p className='text-lg leading-relaxed text-foreground/75'>{feature.text}</p>
-								<p className='mt-4 text-sm leading-relaxed text-foreground/75'>{feature.availability}</p>
-								<Link href={feature.href} className='mt-5 font-semibold'>
-									{feature.action} →
-								</Link>
-							</div>
-						</section>
-					))}
-					<section className='border-t border-border pt-12'>
-						<h2 className='text-3xl font-bold'>Take it into your next stream.</h2>
-						<div className='mt-6 grid gap-4 md:grid-cols-3'>
-							{publicGuides.map((guide) => (
-								<Link key={guide.slug} href={`/guides/${guide.slug}`} className='rounded-2xl border border-border p-6 font-semibold'>
-									{guide.title} →
+						<p className='mb-4 text-sm font-medium text-accent dark:text-violet-300'>Clipify, up close</p>
+						<h1 className='max-w-4xl text-4xl font-bold leading-tight tracking-tight sm:text-6xl'>One home for your highlights.</h1>
+						<p className='mt-6 max-w-2xl text-lg leading-relaxed text-foreground/75'>Pick the clips. Make the scene yours. Keep your next break ready.</p>
+						<nav aria-label='Feature topics' className='mt-8 flex flex-wrap gap-x-6 gap-y-3'>
+							{features.map((feature) => (
+								<Link key={feature.id} href={`#${feature.id}`} className='py-1 text-sm'>
+									{feature.label}
 								</Link>
 							))}
+							<Link href='#galleries' className='py-1 text-sm'>
+								Galleries
+							</Link>
+							<Link href='#runner' className='py-1 text-sm'>
+								Runner
+							</Link>
+						</nav>
+					</div>
+				</header>
+				<div className='mx-auto max-w-6xl px-6 sm:px-8'>
+					{features.map((feature, index) => (
+						<section key={feature.id} id={feature.id} className='grid scroll-mt-24 items-center gap-8 border-b border-separator py-14 sm:py-20 md:grid-cols-2 md:gap-14'>
+							<div className={index % 2 ? "md:order-2" : ""}>
+								<p className='mb-4 text-sm font-medium text-accent dark:text-violet-300'>{feature.label}</p>
+								<h2 className='text-3xl font-semibold leading-tight tracking-tight sm:text-4xl'>{feature.title}</h2>
+								<p className='mt-5 text-lg leading-relaxed text-foreground/75'>{feature.text}</p>
+								<p className='mt-4 text-sm leading-relaxed text-foreground/70'>{feature.detail}</p>
+								<Link href={feature.href} className='mt-6 gap-2 text-sm font-semibold'>
+									{feature.action}
+									<LinkIcon />
+								</Link>
+							</div>
+							<ProductImage view={feature.image} />
+						</section>
+					))}
+					<div className='grid gap-10 border-b border-separator py-14 sm:py-20 md:grid-cols-2 md:gap-16'>
+						<section id='galleries' className='scroll-mt-24'>
+							<p className='mb-4 text-sm font-medium text-accent dark:text-violet-300'>Galleries & Creator Pages</p>
+							<h2 className='text-2xl font-semibold'>Good clips don’t have to end with the stream.</h2>
+							<p className='mt-4 leading-relaxed text-foreground/75'>Give viewers a public place to browse your highlights. Share a gallery or Creator Page while keeping your OBS source private.</p>
+							<Link href='/gallery' className='mt-5 gap-2'>
+								Try the gallery
+								<LinkIcon />
+							</Link>
+						</section>
+						<section id='runner' className='scroll-mt-24'>
+							<p className='mb-4 text-sm font-medium text-accent dark:text-violet-300'>Self-hosted Runner</p>
+							<h2 className='text-2xl font-semibold'>Take the broadcast into your own hands.</h2>
+							<p className='mt-4 leading-relaxed text-foreground/75'>Broadcast from your Windows, Linux, or macOS computer. Runner is optional, with manual broadcasting included on Free and advanced broadcasting tools on Pro.</p>
+							<Link href='https://help.clipify.us/hc/clipify/articles/self-hosted-clipify-runner' className='mt-5 gap-2'>
+								Meet Runner
+								<LinkIcon />
+							</Link>
+						</section>
+					</div>
+					<section className='grid gap-6 py-14 sm:py-20 md:grid-cols-2 md:gap-14'>
+						<div>
+							<h2 className='text-3xl font-semibold tracking-tight'>Ready for your next stream?</h2>
+							<Link href='/login' className={buttonVariants({ variant: "primary", className: "mt-6 no-underline" })}>
+								Start free with Twitch
+							</Link>
 						</div>
-						<Link href='/login' className={buttonVariants({ variant: "primary", className: "mt-8 no-underline" })}>
-							Start free with Twitch
-						</Link>
+						<div>
+							<h3 className='text-lg font-semibold'>Need a hand setting it up?</h3>
+							<p className='mt-3 leading-relaxed text-foreground/75'>The Help Center has the full setup instructions and troubleshooting.</p>
+							<Link href='https://help.clipify.us/hc/clipify/articles/1769328012-getting-started-with-clipify' className='mt-5 gap-2'>
+								Getting started with Clipify
+								<LinkIcon />
+							</Link>
+						</div>
 					</section>
 				</div>
 			</main>

@@ -49,12 +49,12 @@ for (const theme of ["light", "dark"]) {
 			const yearly = page.getByRole("radio", { name: "Pay Yearly", exact: true });
 			await yearly.click();
 			await expect(yearly).toBeChecked();
-			const free = page.getByRole("button", { name: "What can I do for free?", exact: true });
+			const free = page.getByRole("button", { name: "Can I get started for free?", exact: true });
 			await free.scrollIntoViewIfNeeded();
 			await free.focus();
 			await free.press("Enter");
 			await expect(free).toHaveAttribute("aria-expanded", "true");
-			await expect(page.getByText("Free is an ongoing plan.", { exact: false })).toBeVisible();
+			await expect(page.getByText("Free includes a clip player", { exact: false })).toBeVisible();
 			if (width < 768) {
 				await page.evaluate(() => window.scrollTo(0, 0));
 				const menu = page.getByRole("button", { name: "Toggle navigation menu" });
@@ -145,8 +145,8 @@ for (const theme of ["light", "dark"]) {
 		await page.goto("/features");
 		await dismissPrivacy(page);
 		await assertAccessibleMain(page);
-		await page.getByRole("link", { name: /^Set up clips in OBS/ }).click();
-		await expect(page.getByRole("heading", { level: 1 })).toHaveText("Play Twitch clips in OBS during breaks");
+		await expect(page.getByRole("link", { name: "Read the playlist guide", exact: true })).toHaveAttribute("href", "https://help.clipify.us/hc/clipify/articles/create-manage-clip-playlists");
+		await expect(page.getByRole("link", { name: "Getting started with Clipify", exact: true })).toHaveAttribute("href", "https://help.clipify.us/hc/clipify/articles/1769328012-getting-started-with-clipify");
 		for (const slug of ["twitch-clips-in-obs", "twitch-clip-playlists", "control-twitch-clip-playback"]) {
 			await page.goto(`/guides/${slug}`);
 			await assertAccessibleMain(page);
@@ -292,7 +292,7 @@ for (const theme of ["light", "dark"]) {
 			await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
 			await page.goto(path);
 			await dismissPrivacy(page);
-			const labels = path === "/gallery" ? ["Create your gallery", "Learn about Clipify"] : ["Start free with Twitch"];
+			const labels = path === "/gallery" ? ["Create your gallery"] : ["Start free with Twitch"];
 			for (const label of labels) {
 				const action = page.locator("main").getByRole("link", { name: label, exact: true });
 				await action.scrollIntoViewIfNeeded();
@@ -327,9 +327,17 @@ for (const theme of ["light", "dark"]) {
 				await expect(action).toBeFocused();
 				expect(await contrast()).toBeGreaterThanOrEqual(4.5);
 				await assertAccessibleMain(page);
-				await expect(action).toHaveAttribute("href", label === "Learn about Clipify" ? "/" : "/login");
+				await expect(action).toHaveAttribute("href", "/login");
 			}
-			if (path === "/gallery") await page.screenshot({ path: testInfo.outputPath(`gallery-cta-${theme}.png`) });
+			if (path === "/gallery") {
+				const learn = page.locator("main").getByRole("link", { name: "Explore Clipify", exact: true });
+				await expect(learn).toHaveAttribute("href", "/features");
+				await expect(learn).not.toHaveClass(/button--/);
+				await learn.focus();
+				await expect(learn).toBeFocused();
+				await assertAccessibleMain(page);
+				await page.screenshot({ path: testInfo.outputPath(`gallery-cta-${theme}.png`) });
+			}
 		});
 	}
 }
