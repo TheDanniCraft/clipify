@@ -13,7 +13,7 @@ export const footerNavigation = {
 		{ name: "Pricing", href: "/pricing" },
 		{ name: "FAQs", href: "/#faq" },
 		{ name: "Community", href: "/community" },
-		{ name: "Help Center", href: "https://help.clipify.us/" },
+		{ name: "Setup guide", href: "https://help.clipify.us/hc/clipify/articles/1769328012-getting-started-with-clipify" },
 		{ name: "Service Status", href: "https://status.thedannicraft.de/status/clipify" },
 	],
 	aboutUs: [

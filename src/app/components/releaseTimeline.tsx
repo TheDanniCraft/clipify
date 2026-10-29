@@ -8,7 +8,7 @@ import ReleaseNotes from "@components/releaseNotes";
 
 export default function ReleaseTimeline({ releases }: { releases: GithubRelease[] }) {
 	return (
-		<Timeline aria-label='Clipify releases' size='sm' className='w-full'>
+		<Timeline aria-label='Clipify releases' size='sm' density='compact' className='w-full'>
 			{releases.map((release, index) => (
 				<Timeline.Item key={release.id} status={index === 0 ? "current" : "default"}>
 					<Timeline.Content className='min-w-0 gap-0 border-b border-separator pb-10 sm:pb-14'>

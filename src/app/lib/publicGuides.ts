@@ -4,7 +4,17 @@ export const publicGuides = [
 		title: "Play Twitch clips in OBS during breaks",
 		description: "Set up a Clipify browser source for a BRB or Starting Soon scene in OBS Studio, including clip selection, audio checks, and Free plan limits.",
 		intro: "Give your highlights a place in your stream while you step away. Clipify plays your selected Twitch clips through a browser source in OBS Studio. You keep your existing gameplay scene and switch to a separate break scene when you need it.",
-		productView: "overlay",
+		productView: null,
+		reference: {
+			title: "OBS browser source settings",
+			intro: "Save your overlay in Clipify, then add a Browser source to your break scene in OBS.",
+			rows: [
+				{ label: "Source type", detail: "Browser" },
+				{ label: "URL", detail: "Your private Clipify overlay URL" },
+				{ label: "Width", detail: "1920" },
+				{ label: "Height", detail: "1080" },
+			],
+		},
 		helpHref: "https://help.clipify.us/hc/clipify/articles/1769328012-getting-started-with-clipify",
 		requirements: "You need a Twitch account with available clips, a Clipify account, and OBS Studio or other streaming software with browser-source support. An internet connection is required. Runner is not required for this setup.",
 		steps: [
@@ -21,7 +31,8 @@ export const publicGuides = [
 		title: "Build a Twitch clip playlist for your stream",
 		description: "Choose, reorder, and maintain a Twitch clip playlist in Clipify. Learn how the clip library, playlist limits, playback modes, and requested imports work.",
 		intro: "A playlist gives you a saved selection of highlights instead of leaving every break to chance. Use it for a regular BRB scene, a game-specific stream, or a collection of moments you want new viewers to see.",
-		productView: "playlist",
+		productView: "selection",
+		reference: null,
 		helpHref: "https://help.clipify.us/hc/clipify/articles/create-manage-clip-playlists",
 		requirements: "Connect your Twitch account and make sure the clips you want are available in your Clipify library. You need an overlay to play the selection in OBS; creating a playlist alone does not add a browser source to your stream.",
 		steps: [
@@ -39,7 +50,18 @@ export const publicGuides = [
 		title: "Control Twitch clip playback during a stream",
 		description: "Use Clipify Pro's remote panel, Twitch chat controls, channel points, and teammate access to manage clip playback during a stream.",
 		intro: "Sometimes the right next clip needs a human decision. Clipify's live controls let you pause, skip, mute, or manage playback without rebuilding your OBS scene. Trusted teammates can help keep the selection appropriate while you are away.",
-		productView: "controls",
+		productView: null,
+		reference: {
+			title: "Quick playback commands",
+			intro: "These examples use the default ! prefix. Use the prefix configured in your settings.",
+			rows: [
+				{ label: "!play", detail: "Resume clip playback" },
+				{ label: "!pause", detail: "Pause the current clip" },
+				{ label: "!skip", detail: "Move to the next clip" },
+				{ label: "!hide", detail: "Hide the overlay player" },
+				{ label: "!show", detail: "Show the overlay player" },
+			],
+		},
 		helpHref: "https://help.clipify.us/hc/clipify/articles/1765998791-controlling-the-overlay-via-chat-commands",
 		requirements: "Live remote controls, chat controls, channel points integration, and editor or manager access require Pro access. You still need a configured overlay and a working browser source. Your streaming computer and the device used for the remote panel need internet access.",
 		steps: [

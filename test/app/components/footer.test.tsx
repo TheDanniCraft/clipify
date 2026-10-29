@@ -31,7 +31,7 @@ jest.mock("motion/react", () => {
 	const React = require("react");
 	return {
 		motion: {
-			div: React.forwardRef(function MotionDiv({ children, animate: _a, transition: _t, ...props }: any, ref: any) {
+			div: React.forwardRef(function MotionDiv({ children, animate: _a, transition: _t, initial: _i, ...props }: any, ref: any) {
 				return (
 					<div ref={ref} {...props}>
 						{children}

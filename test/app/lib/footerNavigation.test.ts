@@ -12,3 +12,7 @@ describe("footer navigation", () => {
 it("takes collaboration enquiries to the published help-center overview", () => {
 	expect(footerNavigation.aboutUs.find((item) => item.name === "Collaboration enquiries")?.href).toBe("https://help.clipify.us/hc/clipify/articles/1756597294-collaborations");
 });
+
+it("takes setup help directly to the published getting-started article", () => {
+	expect(footerNavigation.supportOptions.find((item) => item.name === "Setup guide")?.href).toBe("https://help.clipify.us/hc/clipify/articles/1769328012-getting-started-with-clipify");
+});

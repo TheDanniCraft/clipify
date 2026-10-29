@@ -23,7 +23,16 @@ const features = [
 		action: "Read the playlist guide",
 	},
 	{ id: "overlays", label: "OBS overlays", title: "Your break scene. With something worth watching.", text: "Clipify plays inside a browser source in OBS or Streamlabs. Set up your BRB or Starting Soon scene once, then manage the clips in Clipify without rebuilding the scene.", detail: "Choose a playlist or clip source, save the overlay, and copy its private browser-source URL into your scene. Runner is not required.", image: "overlay", href: "/#demo", action: "Watch the player in action" },
-	{ id: "styling", label: "Theme Studio", title: "Make room for your own style.", text: "Choose the layout, colors, typography, timers, and progress styles that fit your channel. Position the clip and channel information around the moments that matter.", detail: "Pro includes Theme Studio. Arrange the layout on desktop; adjust colors and text from your phone.", image: "theme", href: "https://help.clipify.us/", action: "Explore setup help" },
+	{
+		id: "styling",
+		label: "Theme Studio",
+		title: "Make room for your own style.",
+		text: "Choose the layout, colors, typography, timers, and progress styles that fit your channel. Position the clip and channel information around the moments that matter.",
+		detail: "Pro includes Theme Studio. Arrange the layout on desktop; adjust colors and text from your phone.",
+		image: null,
+		href: "https://help.clipify.us/hc/clipify/articles/1769328012-getting-started-with-clipify",
+		action: "Read the overlay setup guide",
+	},
 	{
 		id: "controls",
 		label: "Live controls",
@@ -42,38 +51,28 @@ export default function FeaturesPage() {
 			<main className='overflow-hidden'>
 				<header className='border-b border-separator bg-surface-secondary/50 px-6 py-14 sm:px-8 sm:py-20'>
 					<div className='mx-auto max-w-6xl'>
-						<p className='mb-4 text-sm font-medium text-accent dark:text-violet-300'>Clipify, up close</p>
-						<h1 className='max-w-4xl text-4xl font-bold leading-tight tracking-tight sm:text-6xl'>One home for your highlights.</h1>
-						<p className='mt-6 max-w-2xl text-lg leading-relaxed text-foreground/75'>Pick the clips. Make the scene yours. Keep your next break ready.</p>
-						<nav aria-label='Feature topics' className='mt-8 flex flex-wrap gap-x-6 gap-y-3'>
-							{features.map((feature) => (
-								<Link key={feature.id} href={`#${feature.id}`} className='py-1 text-sm'>
-									{feature.label}
-								</Link>
-							))}
-							<Link href='#galleries' className='py-1 text-sm'>
-								Galleries
-							</Link>
-							<Link href='#runner' className='py-1 text-sm'>
-								Runner
-							</Link>
-						</nav>
+						<h1 className='max-w-4xl text-4xl font-bold leading-tight tracking-tight sm:text-6xl'>Build your break screen.</h1>
+						<p className='mt-6 max-w-2xl text-lg leading-relaxed text-foreground/75'>Choose Twitch clips, save an OBS overlay, and keep playback under control.</p>
 					</div>
 				</header>
 				<div className='mx-auto max-w-6xl px-6 sm:px-8'>
 					{features.map((feature, index) => (
-						<section key={feature.id} id={feature.id} className='grid scroll-mt-24 items-center gap-8 border-b border-separator py-14 sm:py-20 md:grid-cols-2 md:gap-14'>
-							<div className={index % 2 ? "md:order-2" : ""}>
+						<section key={feature.id} id={feature.id} className='grid scroll-mt-24 gap-6 border-b border-separator py-14 sm:py-20 md:grid-cols-2 md:gap-x-14 md:gap-y-4'>
+							<header className={feature.image && index % 2 ? "md:col-start-2" : ""}>
 								<p className='mb-4 text-sm font-medium text-accent dark:text-violet-300'>{feature.label}</p>
 								<h2 className='text-3xl font-semibold leading-tight tracking-tight sm:text-4xl'>{feature.title}</h2>
-								<p className='mt-5 text-lg leading-relaxed text-foreground/75'>{feature.text}</p>
+							</header>
+							{feature.image && <ProductImage view={feature.image} className={`md:row-start-1 md:row-span-2 ${index % 2 ? "md:col-start-1" : "md:col-start-2"}`} />}
+							<div className={feature.image ? `md:row-start-2 ${index % 2 ? "md:col-start-2" : "md:col-start-1"}` : "md:col-start-2"}>
+								<p className='text-lg leading-relaxed text-foreground/75'>{feature.text}</p>
 								<p className='mt-4 text-sm leading-relaxed text-foreground/70'>{feature.detail}</p>
-								<Link href={feature.href} className='mt-6 gap-2 text-sm font-semibold'>
-									{feature.action}
-									<LinkIcon />
-								</Link>
+								<p className='mt-5 text-sm leading-relaxed text-foreground/75'>
+									<Link href={feature.href} className='inline font-semibold'>
+										{feature.action}
+									</Link>{" "}
+									for the full workflow.
+								</p>
 							</div>
-							<ProductImage view={feature.image} />
 						</section>
 					))}
 					<div className='grid gap-10 border-b border-separator py-14 sm:py-20 md:grid-cols-2 md:gap-16'>

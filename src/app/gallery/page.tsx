@@ -15,20 +15,18 @@ export default function GalleryLandingPage() {
 	return (
 		<>
 			<BasicNavbar />
-			<main className='mx-auto flex min-h-[70dvh] max-w-4xl flex-col items-center justify-center gap-6 px-6 py-20 text-center'>
-				<p className='font-semibold text-accent dark:text-violet-300'>Clipify Galleries</p>
-				<h1 className='text-4xl font-bold sm:text-6xl'>Turn your best clips into a gallery people remember.</h1>
-				<p className='max-w-2xl text-lg text-foreground/75'>Choose a curated playlist or a filtered selection of Twitch highlights. Share a public gallery link or embed the gallery on your own website.</p>
-				<p className='max-w-2xl leading-relaxed text-foreground/75'>Free includes one branded gallery with up to 50 live clips. Pro adds more galleries and customization. Gallery visibility is managed in your settings; share public gallery links rather than private streaming-source URLs.</p>
+			<main className='mx-auto max-w-6xl px-6 py-14 sm:px-8 sm:py-20'>
+				<header className='grid gap-8 border-b border-separator pb-12 lg:grid-cols-[1.2fr_0.8fr] lg:items-end'>
+					<div>
+						<h1 className='max-w-3xl text-4xl font-bold tracking-tight sm:text-6xl'>Your clips, together.</h1>
+						<p className='mt-6 max-w-2xl text-lg leading-relaxed text-foreground/75'>Collect your Twitch highlights in one public gallery. Share the link with your community or embed it on your website.</p>
+						<Link className={buttonVariants({ variant: "primary", className: "mt-7 no-underline" })} href='/login'>
+							Create your gallery
+						</Link>
+					</div>
+					<p className='max-w-md text-sm leading-relaxed text-foreground/75'>Free includes one branded gallery with up to 50 live clips. Choose a playlist or filtered selection, then manage who can see it in your gallery settings.</p>
+				</header>
 				<PublicGalleryDemo />
-				<div className='flex flex-wrap justify-center gap-3'>
-					<Link className={buttonVariants({ variant: "primary", className: "no-underline" })} href='/login'>
-						Create your gallery
-					</Link>
-					<Link className='self-center gap-2 py-3 text-sm text-accent dark:text-violet-300' href='/features'>
-						Explore Clipify
-					</Link>
-				</div>
 			</main>
 			<Footer />
 		</>

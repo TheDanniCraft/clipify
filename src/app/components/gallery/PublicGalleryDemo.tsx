@@ -71,11 +71,11 @@ export default function PublicGalleryDemo() {
 		}
 	}
 	return (
-		<section aria-labelledby='gallery-demo-heading' className='w-full text-left'>
+		<section aria-labelledby='gallery-demo-heading' className='w-full py-10 sm:py-14'>
 			<h2 id='gallery-demo-heading' className='text-2xl font-semibold'>
-				Pick a highlight. Press play.
+				Inside a Clipify gallery
 			</h2>
-			<p className='mt-3 mb-6 text-foreground/75'>Explore a gallery using clips from the Clipify demo.</p>
+			<p className='mt-3 mb-7 max-w-2xl leading-relaxed text-foreground/75'>These clips come from Clipify’s public demo. Open the gallery below, then choose a clip to watch.</p>
 			{bundle ? (
 				<GalleryFrame gallery={gallery} clips={bundle.clips} ownerName='the Clipify demo' showAttribution onSelectClip={play} />
 			) : (

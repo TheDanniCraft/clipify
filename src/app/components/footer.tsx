@@ -304,6 +304,7 @@ export default function Footer() {
 										transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
 									>
 										<motion.div
+											initial={false}
 											ref={emailStepRef}
 											inert={isDetailsExpanded}
 											className={isDetailsExpanded ? "absolute inset-0 w-full" : "relative w-full"}
@@ -347,6 +348,7 @@ export default function Footer() {
 											</TextField>
 										</motion.div>
 										<motion.div
+											initial={false}
 											ref={nameStepRef}
 											inert={!isDetailsExpanded}
 											className={isDetailsExpanded ? "relative w-full space-y-3" : "absolute inset-0 w-full space-y-3"}

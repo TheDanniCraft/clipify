@@ -16,6 +16,7 @@ import CommunityTeaser from "@components/LandingPage/communityTeaser";
 import Footer from "@components/footer";
 import FloatingBanner from "@components/floatingBanner";
 import DemoPlayer from "@components/DemoPlayer";
+import ProductImage from "@components/LandingPage/productImage";
 import CountdownTimer from "@components/countdownTimer";
 import { getPublicCommunityTeaserAction } from "@actions/community";
 import type { CommunityTeaserPayload } from "@lib/community-types";
@@ -178,17 +179,23 @@ export default function HomePageClient({ campaignOffer, pricing }: HomePageClien
 									</h2>
 									<p className='mt-5 text-lg leading-relaxed text-foreground/75'>The clutch. The perfectly timed joke. That one moment chat still talks about. Bring them back while you grab a drink or get ready to go live.</p>
 									<p className='mt-4 leading-relaxed text-foreground/75'>Keep your clips and stream setup in one place, ready for the next time you switch scenes.</p>
-									<Link href='/features' className='mt-6 gap-2 font-semibold'>
-										Explore Clipify <IconArrowRight size={18} />
-									</Link>
+									<p className='mt-5 text-sm leading-relaxed text-foreground/75'>
+										See how{" "}
+										<Link href='/features#playlists' className='inline font-medium'>
+											playlists
+										</Link>
+										,{" "}
+										<Link href='/features#styling' className='inline font-medium'>
+											scene styling
+										</Link>{" "}
+										and{" "}
+										<Link href='/features#controls' className='inline font-medium'>
+											live controls
+										</Link>{" "}
+										fit together.
+									</p>
 								</div>
-								<figure className='min-w-0'>
-									<div className='overflow-hidden rounded-2xl border border-white/10 bg-[#20103b] p-4 shadow-lg shadow-black/10 sm:p-7'>
-										<p className='mb-5 text-2xl font-semibold tracking-tight text-white sm:text-3xl'>Be right back.</p>
-										<Image src='/product/overlay.webp' alt='A Twitch highlight playing through Clipify in a purple break scene' width={641} height={360} sizes='(max-width: 1024px) 100vw, 720px' loading='lazy' className='h-auto w-full rounded-lg' />
-									</div>
-									<figcaption className='mt-3 text-xs text-foreground/65'>A break scene with Clipify.</figcaption>
-								</figure>
+								<ProductImage view='broadcast' />
 							</div>
 							<div className='mt-14 grid gap-8 md:grid-cols-3 md:gap-10'>
 								{[
@@ -269,8 +276,8 @@ export default function HomePageClient({ campaignOffer, pricing }: HomePageClien
 									Questions before your next stream.
 								</h2>
 								<p className='mt-4 text-sm leading-relaxed text-foreground/75'>Find setup instructions, troubleshooting, and the details in the Help Center.</p>
-								<Link href='https://help.clipify.us' className='mt-5 gap-2 text-sm font-medium'>
-									Visit the help center
+								<Link href='https://help.clipify.us/hc/clipify/articles/1769328012-getting-started-with-clipify' className='mt-5 gap-2 text-sm font-medium'>
+									Read the setup guide
 									<IconArrowRight size={17} />
 								</Link>
 							</div>

@@ -40,7 +40,7 @@ for (const theme of ["light", "dark"]) {
 			expect(demoRequests).toHaveLength(0);
 			await assertAccessibleMain(page);
 			await expect(page.locator("#features")).not.toContainText("Pro:");
-			await expect(page.getByRole("link", { name: "Explore Clipify", exact: true })).toHaveAttribute("href", "/features");
+			await expect(page.getByRole("link", { name: "playlists", exact: true })).toHaveAttribute("href", "/features#playlists");
 			await page.getByRole("img", { name: "A Twitch gaming highlight playing through Clipify" }).evaluate((image: HTMLImageElement) => image.decode());
 			await page.screenshot({ timeout: 15000, path: testInfo.outputPath(`landing-${width}-${theme}.png`), fullPage: true, animations: "disabled" });
 			const monthly = page.getByRole("radio", { name: "Pay Monthly", exact: true });
@@ -151,6 +151,7 @@ for (const theme of ["light", "dark"]) {
 			await page.goto(`/guides/${slug}`);
 			await assertAccessibleMain(page);
 			await expect(page.getByRole("heading", { name: "What you need", exact: true })).toBeVisible();
+			if (slug === "control-twitch-clip-playback") await expect(page.getByRole("heading", { name: "Quick playback commands", exact: true })).toBeVisible();
 			await expect(page.getByRole("link", { name: "Start free with Twitch", exact: true })).toHaveAttribute("href", "/login");
 			expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
 		}
@@ -330,11 +331,8 @@ for (const theme of ["light", "dark"]) {
 				await expect(action).toHaveAttribute("href", "/login");
 			}
 			if (path === "/gallery") {
-				const learn = page.locator("main").getByRole("link", { name: "Explore Clipify", exact: true });
-				await expect(learn).toHaveAttribute("href", "/features");
-				await expect(learn).not.toHaveClass(/button--/);
-				await learn.focus();
-				await expect(learn).toBeFocused();
+				await expect(page.locator("main").getByRole("link", { name: "Explore Clipify", exact: true })).toHaveCount(0);
+				await expect(page.getByRole("heading", { name: "Inside a Clipify gallery", exact: true })).toBeVisible();
 				await assertAccessibleMain(page);
 				await page.screenshot({ path: testInfo.outputPath(`gallery-cta-${theme}.png`) });
 			}

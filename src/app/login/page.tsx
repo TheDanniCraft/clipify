@@ -57,7 +57,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
 						<Link href='/' className='text-sm text-white'>
 							Back to home
 						</Link>
-						<Link href='https://help.clipify.us' className='text-sm text-white'>
+						<Link href='https://help.clipify.us/hc/clipify/articles/1769328012-getting-started-with-clipify' className='text-sm text-white'>
 							Setup help
 						</Link>
 					</div>

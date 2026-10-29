@@ -154,3 +154,56 @@ Roadmap at 320/390/1440px, with WCAG A/AA diagnostics and screenshots reviewed.
 All six existing homepage interaction scenarios passed without retries. The final
 browser build/TypeScript and changed-file lint/format checks passed. The previous
 33-scenario result above is historical; unchanged scenarios were not rerun.
+
+## Image, navigation and timeline revision
+
+Features now uses consistently framed 4:3 captures. Desktop UI assets are
+1800×1350 from native 3× browser rendering, with phone-specific crops where useful.
+The full controller panel is retained on phones. The homepage uses a fresh native
+1920×1080 playback capture without a surrounding BRB frame or heading. Source video
+resolution was verified before capture; no low-resolution frame was enlarged.
+Static WebP files are served directly to preserve text detail, with intrinsic
+sizes, phone sources and lazy loading. The previous small crops are replaced with
+eight current files, totaling under 800 KiB; only the requested page's imagery loads.
+
+The Theme Studio fields/canvas screenshot is removed. The section explains styling
+without a poor or fabricated preview. The OBS guide uses a source-settings reference,
+the playback guide has a command reference, and the playlist guide has its own
+selected-clips image. Decorative repeated guide hero images and captions are gone.
+
+Features no longer has a link inventory or “Clipify, up close” heading. Navigation
+is part of the relevant explanation. Generic Explore Clipify links are removed
+from Gallery/guides and replaced with contextual links on Home. Gallery's actual
+interactive example is part of the page layout, after its introduction and action.
+Help links, including the dashboard and tour support links, target specific articles.
+
+Roadmap follows the official HeroUI Centered Milestones example: alternating
+milestone cards on desktop and one compact rail on phones. Changelog keeps a
+compact version-history rail and shows all creator-facing release lines without
+a duplicate raw-notes accordion. Version titles remain direct GitHub links.
+
+At the owner's explicit request, leading Gitmoji were removed from all 94 existing
+published GitHub release bodies. A before/after comparison verified every body
+against the backed-up original, preserving all other text and line endings. Tags,
+assets and release targets were not changed. This external publication edit is
+separate from this branch's code.
+
+Current verification: 11 affected whole-file suites / 116 tests passed; the footer
+owner's five tests passed again after the initial-animation correction. Twenty-four
+real Chromium route/layout/theme checks passed, including 4:3 geometry, decoded
+source images, specific Help Center article URLs, populated milestone history,
+WCAG A/AA diagnostics and screenshots reviewed in light/dark. The browser build
+and TypeScript check passed.
+
+Three fresh unthrottled local 390×844 runs measured 639,958 bytes of initial JS
+and 190,865 bytes of images, with no video, demo iframe or dashboard requests.
+Compared with the preceding 639,932/14,970-byte sample, JS is essentially unchanged
+and initial image transfer increases by about 172 KiB to retain native HD playback
+detail. All current product assets together remain below 800 KiB and are lazy-loaded.
+These samples are not Lighthouse scores, field performance or conversion evidence.
+
+All 33 current public-page acceptance scenarios passed without retries, including
+real installed pricing/demo/gallery controls, recovery, consent, keyboard focus,
+article references, mobile comparisons and signup contrast. Changed-file lint and
+format checks passed. No production OAuth, purchase or newsletter email was used
+as a test fixture. Full merged coverage and platform gates remain CI-owned.

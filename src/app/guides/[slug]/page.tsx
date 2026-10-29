@@ -26,18 +26,31 @@ export default async function GuidePage({ params }: Props) {
 		<>
 			<BasicNavbar />
 			<main className='mx-auto max-w-5xl px-6 py-12 sm:px-8 sm:py-20'>
-				<Link href='/features' className='mb-8 text-sm'>
-					Explore Clipify
-				</Link>
 				<article>
 					<h1 className='max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl'>{guide.title}</h1>
 					<p className='mt-6 max-w-3xl text-lg leading-relaxed text-foreground/75'>{guide.intro}</p>
-					<ProductImage view={guide.productView} className='my-10 max-w-3xl' />
+
 					<div className='max-w-3xl space-y-10'>
 						<section>
 							<h2 className='text-2xl font-semibold'>What you need</h2>
 							<p className='mt-3 leading-relaxed text-foreground/75'>{guide.requirements}</p>
 						</section>
+						{guide.productView ? (
+							<ProductImage view={guide.productView} className='my-10' />
+						) : guide.reference ? (
+							<section className='border-y border-separator py-7'>
+								<h2 className='text-2xl font-semibold'>{guide.reference.title}</h2>
+								<p className='mt-3 leading-relaxed text-foreground/75'>{guide.reference.intro}</p>
+								<dl className='mt-5 divide-y divide-separator'>
+									{guide.reference.rows.map(({ label, detail }) => (
+										<div key={label} className='grid grid-cols-[6rem_1fr] gap-4 py-3'>
+											<dt className='font-mono font-semibold'>{label}</dt>
+											<dd className='text-foreground/75'>{detail}</dd>
+										</div>
+									))}
+								</dl>
+							</section>
+						) : null}
 						<ol className='space-y-9'>
 							{guide.steps.map((step, index) => (
 								<li key={step.title}>
@@ -65,9 +78,9 @@ export default async function GuidePage({ params }: Props) {
 						</section>
 					</div>
 				</article>
-				<section className='mt-14 rounded-3xl bg-gradient-to-br from-brand-900 to-brand-600 p-8 text-white'>
-					<h2 className='text-2xl font-bold'>Put your highlights back on stream.</h2>
-					<Link href='/login' className={buttonVariants({ variant: "primary", className: "mt-5 bg-white text-violet-950 hover:bg-violet-100 no-underline" })}>
+				<section className='mt-14 border-t border-separator pt-10'>
+					<h2 className='text-2xl font-bold'>Set up your clip player.</h2>
+					<Link href='/login' className={buttonVariants({ variant: "primary", className: "mt-5 no-underline" })}>
 						Start free with Twitch
 					</Link>
 				</section>
