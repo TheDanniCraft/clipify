@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button, Spinner } from "@heroui/react";
 import Image from "next/image";
+import landingPlayback from "../../../../public/landing-playback.png";
 import { usePlausible } from "next-plausible";
 import { IconPlayerPlayFilled, IconPlayerPause, IconRefresh, IconVolumeOff, IconPlayerSkipForward } from "@tabler/icons-react";
 
@@ -70,7 +71,7 @@ export default function DemoPlayer() {
 					<span className='rounded-md bg-white/5 px-2 py-1 text-zinc-300'>Browser source</span>
 				</div>
 				<div className='relative aspect-video overflow-hidden bg-zinc-950'>
-					<Image src='/landing-playback.png' alt='A Twitch gaming highlight playing through Clipify' fill sizes='(max-width: 1024px) 100vw, 650px' loading='eager' className='object-cover' />
+					<Image src={landingPlayback} alt='A Twitch gaming highlight playing through Clipify' fill sizes='(max-width: 1024px) 100vw, 650px' loading='eager' className='object-cover' />
 					{active ? <iframe ref={iframeRef} src='/demoPlayer' title='Clipify playback demo' referrerPolicy='strict-origin-when-cross-origin' allow='autoplay' onLoad={onPlayerLoad} className='absolute inset-0 h-full w-full border-0' /> : null}
 					{status !== "playing" ? (
 						<div className='absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60 px-5 text-center text-white'>

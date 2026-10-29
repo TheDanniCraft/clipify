@@ -137,7 +137,7 @@ export default async function CommunityPage() {
 			<div className='w-full bg-background px-4 py-24'>
 				<div className='mx-auto flex w-full max-w-6xl flex-col'>
 					<div className='mb-6 flex flex-col items-start gap-2'>
-						<p className='max-w-2xl text-sm text-muted'>This directory shows visible community profiles. Pro badges indicate access, including trials or grants; they do not identify paying subscribers. Twitch live status does not establish current Clipify playback. Manage your Creator Page and community visibility in Settings.</p>
+						<p className='max-w-2xl text-sm text-muted'>Meet creators with public Clipify profiles. You can manage your profile and community visibility in Settings.</p>
 					</div>
 					<div className='mt-4'>
 						{communityGroups.map((group) => (

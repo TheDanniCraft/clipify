@@ -51,7 +51,7 @@ export default async function PricingPage() {
 		<div className='min-h-screen bg-background'>
 			<BasicNavbar shouldHideOnScroll={false} />
 			<main>
-				<section className='px-4'>
+				<section className='px-6 sm:px-8'>
 					<PricingComparison campaignOffer={campaignOffer} pricing={pricing} />
 				</section>
 

@@ -13,6 +13,7 @@ import { FrequencyEnum, resolveRuntimePricing, type RuntimePricing, type Tier } 
 import { trackPaywallEvent } from "@lib/paywallTracking";
 import ProSetupModal from "./ProSetupModal";
 import BillingFrequency from "./BillingFrequency";
+import PublicPageHeader from "@components/LandingPage/publicPageHeader";
 
 function FeatureValue({ plan, value }: { plan: string; value: boolean | string }) {
 	if (value === true) {
@@ -106,12 +107,11 @@ export default function PricingComparison({ campaignOffer = null, pricing }: { c
 	};
 
 	return (
-		<div className='mx-auto flex w-full max-w-7xl flex-col items-center py-12 sm:py-20'>
-			<div className='flex max-w-xl flex-col text-center'>
-				<h1 className='text-4xl font-medium tracking-tight'>Compare plans &amp; features.</h1>
-				<p className='mt-4 text-lg text-foreground/75'>Plans for your clip playlists, overlays, and broadcasts.</p>
+		<div className='mx-auto flex w-full max-w-6xl flex-col items-center py-14 sm:py-20'>
+			<div className='w-full'>
+				<PublicPageHeader title='Compare plans & features.' description='Plans for your clip playlists, overlays, and broadcasts.' />
 			</div>
-			<div className='mt-8'>
+			<div>
 				<BillingFrequency value={selectedFrequency} onChange={onFrequencyChange} pricing={campaignOffer?.showPricingTierPromo ? null : pricing} />
 			</div>
 

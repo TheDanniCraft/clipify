@@ -1,3 +1,4 @@
+import PublicPageHeader from "@components/LandingPage/publicPageHeader";
 import { buttonVariants } from "@heroui/styles";
 import type { Metadata } from "next";
 import { Link, LinkIcon } from "@components/heroui-client";
@@ -29,7 +30,7 @@ const features = [
 		title: "Make room for your own style.",
 		text: "Choose the layout, colors, typography, timers, and progress styles that fit your channel. Position the clip and channel information around the moments that matter.",
 		detail: "Pro includes Theme Studio. Arrange the layout on desktop; adjust colors and text from your phone.",
-		image: null,
+		image: "theme",
 		href: "https://help.clipify.us/hc/clipify/articles/1769328012-getting-started-with-clipify",
 		action: "Read the overlay setup guide",
 	},
@@ -48,19 +49,14 @@ export default function FeaturesPage() {
 	return (
 		<>
 			<BasicNavbar />
-			<main className='overflow-hidden'>
-				<header className='border-b border-separator bg-surface-secondary/50 px-6 py-14 sm:px-8 sm:py-20'>
-					<div className='mx-auto max-w-6xl'>
-						<h1 className='max-w-4xl text-4xl font-bold leading-tight tracking-tight sm:text-6xl'>Build your break screen.</h1>
-						<p className='mt-6 max-w-2xl text-lg leading-relaxed text-foreground/75'>Choose Twitch clips, save an OBS overlay, and keep playback under control.</p>
-					</div>
-				</header>
-				<div className='mx-auto max-w-6xl px-6 sm:px-8'>
+			<main>
+				<div className='mx-auto max-w-6xl px-6 py-14 sm:px-8 sm:py-20'>
+					<PublicPageHeader title='Build your break screen.' description='Choose Twitch clips, save an OBS overlay, and keep playback under control.' />
 					{features.map((feature, index) => (
-						<section key={feature.id} id={feature.id} className='grid scroll-mt-24 gap-6 border-b border-separator py-14 sm:py-20 md:grid-cols-2 md:gap-x-14 md:gap-y-4'>
-							<header className={feature.image && index % 2 ? "md:col-start-2" : ""}>
+						<section key={feature.id} id={feature.id} className='grid min-w-0 scroll-mt-24 items-start gap-6 border-b border-separator py-14 first-of-type:pt-0 sm:py-20 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-x-14 md:gap-y-4'>
+							<header className={`min-w-0 ${feature.image && index % 2 ? "md:col-start-2" : ""}`}>
 								<p className='mb-4 text-sm font-medium text-accent dark:text-violet-300'>{feature.label}</p>
-								<h2 className='text-3xl font-semibold leading-tight tracking-tight sm:text-4xl'>{feature.title}</h2>
+								<h2 className='break-words text-3xl font-semibold leading-tight tracking-tight sm:text-4xl'>{feature.title}</h2>
 							</header>
 							{feature.image && <ProductImage view={feature.image} className={`md:row-start-1 md:row-span-2 ${index % 2 ? "md:col-start-1" : "md:col-start-2"}`} />}
 							<div className={feature.image ? `md:row-start-2 ${index % 2 ? "md:col-start-2" : "md:col-start-1"}` : "md:col-start-2"}>
@@ -69,8 +65,7 @@ export default function FeaturesPage() {
 								<p className='mt-5 text-sm leading-relaxed text-foreground/75'>
 									<Link href={feature.href} className='inline font-semibold'>
 										{feature.action}
-									</Link>{" "}
-									for the full workflow.
+									</Link>
 								</p>
 							</div>
 						</section>

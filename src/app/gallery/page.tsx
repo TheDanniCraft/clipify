@@ -1,3 +1,4 @@
+import PublicPageHeader from "@components/LandingPage/publicPageHeader";
 import PublicGalleryDemo from "@components/gallery/PublicGalleryDemo";
 import { buttonVariants } from "@heroui/styles";
 import type { Metadata } from "next";
@@ -16,16 +17,11 @@ export default function GalleryLandingPage() {
 		<>
 			<BasicNavbar />
 			<main className='mx-auto max-w-6xl px-6 py-14 sm:px-8 sm:py-20'>
-				<header className='grid gap-8 border-b border-separator pb-12 lg:grid-cols-[1.2fr_0.8fr] lg:items-end'>
-					<div>
-						<h1 className='max-w-3xl text-4xl font-bold tracking-tight sm:text-6xl'>Your clips, together.</h1>
-						<p className='mt-6 max-w-2xl text-lg leading-relaxed text-foreground/75'>Collect your Twitch highlights in one public gallery. Share the link with your community or embed it on your website.</p>
-						<Link className={buttonVariants({ variant: "primary", className: "mt-7 no-underline" })} href='/login'>
-							Create your gallery
-						</Link>
-					</div>
-					<p className='max-w-md text-sm leading-relaxed text-foreground/75'>Free includes one branded gallery with up to 50 live clips. Choose a playlist or filtered selection, then manage who can see it in your gallery settings.</p>
-				</header>
+				<PublicPageHeader title='Your clips, together.' description='Collect your Twitch highlights in one public gallery. Share the link with your community or embed it on your website.'>
+					<Link className={buttonVariants({ variant: "primary", className: "mt-7 no-underline" })} href='/login'>
+						Create your gallery
+					</Link>
+				</PublicPageHeader>
 				<PublicGalleryDemo />
 			</main>
 			<Footer />

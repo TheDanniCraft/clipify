@@ -39,7 +39,7 @@ export function normalizeRoadmapColor(value?: string | null): RoadmapColor {
 	return (roadmapColorOptions as readonly string[]).includes(trimmed) ? (trimmed as RoadmapColor) : "slate";
 }
 
-export function orderRoadmapItems(items: RoadmapItemData[]): RoadmapItemData[] {
+export function orderRoadmapItems<T extends RoadmapItemData>(items: T[]): T[] {
 	const order = [RoadmapStatus.InDevelopment, RoadmapStatus.Planned, RoadmapStatus.Future];
 	const upcoming = items.filter((item) => item.status !== RoadmapStatus.Shipped).sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status));
 	return [...upcoming, ...items.filter((item) => item.status === RoadmapStatus.Shipped).reverse()];

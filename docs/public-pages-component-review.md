@@ -207,3 +207,74 @@ real installed pricing/demo/gallery controls, recovery, consent, keyboard focus,
 article references, mobile comparisons and signup contrast. Changed-file lint and
 format checks passed. No production OAuth, purchase or newsletter email was used
 as a test fixture. Full merged coverage and platform gates remain CI-owned.
+
+## Consistency review, 29 October
+
+The public-page branch was checked as one site rather than as independent page
+compositions. The homepage keeps its purple playback hero; feature, gallery,
+pricing, release-history and roadmap introductions now use the same
+`PublicPageHeader`, container width, heading scale, description treatment and
+bottom divider. Decorative update/roadmap eyebrows and the full-width Features
+banner have been removed. Community keeps its existing creator/avatar hero and
+uses factual public-profile wording without an analytics disclaimer in the page.
+
+| Surface      | Correction                                                                                                                                                                                                                          |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Home         | Two different cached highlights replace the low-view screenshot material: Minecraft in the demo cover, Counter-Strike in the supporting player image. The existing layout and copy remain.                                          |
+| Features     | Two equal, shrinkable desktop columns and wrapping headings prevent the OBS title from clipping. All four illustrated sections use 4:3 images, including Theme Studio. Setup links go straight to the relevant Help Center article. |
+| Gallery      | Uses the same introductory layout as the other information pages. Removes the separate plan-limit paragraph and shortens the demo introduction. Gallery playback, recovery and the installed modal remain.                          |
+| Pricing      | Uses the shared introduction and gutters, preserving the monthly/yearly control and Free/Pro table on desktop and phones.                                                                                                           |
+| Changelog    | Keeps the compact release-history timeline and complete release subjects. Version headings are plain text; the page no longer adds GitHub links.                                                                                    |
+| Roadmap      | Keeps one continuous milestone timeline, upcoming first. Restores each published CMS icon and color inside its card, while status remains separately visible. Icon resolution stays on the server.                                  |
+| Setup guides | The three existing guide routes return permanent redirects to exact Help Center articles. Their duplicate article bodies and sitemap entries are removed. No second publishing system or runtime HTML ingestion is introduced.      |
+| Demo player  | Explicit route-level `noindex, nofollow` survives deployment to production, where the preview-wide indexing block does not apply.                                                                                                   |
+
+### Screenshot selection and fidelity
+
+`marketing-clip-pool.json` records six candidates selected from the connected,
+approved creator's cached collection, sorted by views and varied by category.
+The search scanned 172 clips and reported a complete cached collection; this is
+not a claim about every Clipify creator or every clip on Twitch. Footage was
+inspected before choosing frames. Counter-Strike has 111 cached views and
+Minecraft has 33 at capture time. The source frames are 1664×936 and 1920×1080.
+
+Player images use the real rendered Clipify scene with a reviewed native video
+frame frozen into its browser snapshot. They are static product illustrations,
+not a claim that audience behavior or a playback timestamp was measured. The
+playlist and control captures use real matching clip titles, thumbnails and view
+counts in a disposable local account. Theme Studio shows the actual installed
+color-picker controls at browser zoom; no fictional editor controls are added.
+The floating support-chat control is excluded from that product crop.
+
+No production creator settings, playlists or media were changed. No video or
+live dashboard is loaded just to show these static images. The screenshot pool
+is editorial source data, not a client bundle or a new automated Twitch fetch.
+
+### SEO evidence and remaining external checks
+
+The authenticated CrawlSEO connection was verified and its latest existing
+production crawl and Search Console aggregates were read. Direct production /
+preview responses confirm that route-specific canonicals, social URLs and
+changelog/roadmap titles are corrected on the branch. Static sitemap dates are
+no longer fabricated from request time. Preview `noindex` protection is expected.
+Guide redirects now consolidate setup content in the Help Center.
+
+CrawlSEO's existing crawl still describes production, not the unreleased preview.
+Its reported creator URL failure and weakly connected public profiles need
+production-data verification; profile privacy settings must be preserved. Its
+performance reports cannot establish a preview performance improvement, and
+Search Console cannot establish a ranking effect before release and recrawling.
+The MCP inventory reads existing crawls; it does not provide a tool to start a
+fresh preview crawl. Google-selected canonicals require URL Inspection after
+release. Existing Help Center content and screenshots still need their publisher's
+update; redirects do not silently rewrite external articles.
+
+### Validation for the consistency corrections
+
+- Final browser build and TypeScript passed. Changed-file ESLint and Prettier passed.
+- Twelve affected coverage suites passed: 98 tests, 93.26% statements, 88.44% branches, 94.44% functions and 94.58% lines. Existing global and stricter gallery thresholds were retained. This is affected Jest coverage, not the complete native/MCP merge gate.
+- Demo image-import and icon fallback checks passed after the final source edit. The separately affected community and demo whole-file checks passed too.
+- All 42 assert-based route / width / theme checks passed across Home, Features, Gallery, Pricing, Changelog, Roadmap and Community at 320/390/1440px in light/dark. Checks included installed controls, decoded matching image proportions, heading bounds, CMS milestone icons/colors, direct article destinations and WCAG A/AA diagnostics. All guide routes returned 308 to their exact Help Center article; the standalone demo emitted noindex.
+- Asset checks verify all eight feature desktop/mobile images are exactly 4:3 and at least 1080px wide. Native playback captures are 1664×936 and 1920×1080. Ten product WebP files total 684,966 bytes; the source hero PNG is 791,896 bytes and uses a content-hashed optimized URL. No matched Lighthouse or field-performance improvement is claimed for this slice.
+- All 27 current public-page Chromium acceptance scenarios passed without retries. Former guide-page contrast checks were replaced by exact redirect checks; marketing canonical checks cover retained indexable pages. Gallery playback/retry/focus, signup contrast, demo lifecycle, pricing, consent and mobile keyboard behavior remain covered.
+- The PR remains draft. The complete required CI gate still belongs to ready-for-review before merge.

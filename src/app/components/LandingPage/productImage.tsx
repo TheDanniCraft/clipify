@@ -1,6 +1,7 @@
 import Image from "next/image";
 
 const productImages = {
+	theme: { alt: "Theme Studio typography and background color controls with the color picker open", mobile: true },
 	playlist: { alt: "Clipify playlist editor with selected clips and saved playlist controls", mobile: true },
 	overlay: { alt: "Clipify overlay settings with a saved playlist and playback options", mobile: true },
 	controls: { alt: "Clipify remote playback controls for pause, skip, mute and volume", mobile: true },
@@ -13,7 +14,7 @@ export default function ProductImage({ view, className = "" }: { view: keyof typ
 	return (
 		<picture className={`block min-w-0 overflow-hidden rounded-xl ${className}`}>
 			{image.mobile && <source media='(max-width: 640px)' srcSet={`/product/${view}-mobile.webp 3x`} width={1080} height={810} />}
-			<Image unoptimized src={`/product/${view}.webp`} alt={image.alt} width={view === "broadcast" ? 1920 : 1800} height={view === "broadcast" ? 1080 : 1350} sizes={view === "broadcast" ? "(max-width: 1024px) 100vw, 720px" : "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 768px"} loading='lazy' className={`h-auto w-full ${view === "broadcast" ? "aspect-video" : "aspect-[4/3]"}`} />
+			<Image unoptimized src={`/product/${view}.webp`} alt={image.alt} width={view === "broadcast" ? 1664 : 1800} height={view === "broadcast" ? 936 : 1350} sizes={view === "broadcast" ? "(max-width: 1024px) 100vw, 720px" : "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 768px"} loading='lazy' className={`h-auto w-full ${view === "broadcast" ? "aspect-video" : "aspect-[4/3]"}`} />
 		</picture>
 	);
 }

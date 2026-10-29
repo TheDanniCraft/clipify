@@ -1,7 +1,7 @@
 "use client";
 
 import { Timeline } from "@heroui-pro/react";
-import { Chip, Link } from "@heroui/react";
+import { Chip } from "@heroui/react";
 import type { GithubRelease } from "@types";
 import LocalizedDate from "@components/localizedDate";
 import ReleaseNotes from "@components/releaseNotes";
@@ -21,12 +21,7 @@ export default function ReleaseTimeline({ releases }: { releases: GithubRelease[
 									</Chip>
 								)}
 							</div>
-							<h2 className='mb-5 text-2xl font-semibold tracking-tight sm:text-3xl'>
-								<Link href={release.html_url} target='_blank' rel='noopener noreferrer' className='text-foreground'>
-									{release.name || release.tag_name}
-									<Link.Icon />
-								</Link>
-							</h2>
+							<h2 className='mb-5 text-2xl font-semibold tracking-tight sm:text-3xl'>{release.name || release.tag_name}</h2>
 							<ReleaseNotes body={release.body ?? ""} />
 						</article>
 					</Timeline.Content>

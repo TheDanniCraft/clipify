@@ -114,7 +114,7 @@ test("demo shell plays controlled real media on mobile, sends skip, and stops of
 });
 
 test("public routes identify their own canonical and social URLs", async ({ page }) => {
-	for (const path of ["/", "/pricing", "/community", "/changelog", "/roadmap", "/features", "/gallery", "/guides/twitch-clips-in-obs", "/guides/twitch-clip-playlists", "/guides/control-twitch-clip-playback", "/legal/privacy", "/legal/terms", "/legal/cookies"]) {
+	for (const path of ["/", "/pricing", "/community", "/changelog", "/roadmap", "/features", "/gallery", "/legal/privacy", "/legal/terms", "/legal/cookies"]) {
 		await page.goto(path);
 		const socialTitle = await page.locator('meta[name="twitter:title"]').getAttribute("content");
 		expect(socialTitle).toBeTruthy();
@@ -147,13 +147,14 @@ for (const theme of ["light", "dark"]) {
 		await assertAccessibleMain(page);
 		await expect(page.getByRole("link", { name: "Read the playlist guide", exact: true })).toHaveAttribute("href", "https://help.clipify.us/hc/clipify/articles/create-manage-clip-playlists");
 		await expect(page.getByRole("link", { name: "Getting started with Clipify", exact: true })).toHaveAttribute("href", "https://help.clipify.us/hc/clipify/articles/1769328012-getting-started-with-clipify");
-		for (const slug of ["twitch-clips-in-obs", "twitch-clip-playlists", "control-twitch-clip-playback"]) {
-			await page.goto(`/guides/${slug}`);
-			await assertAccessibleMain(page);
-			await expect(page.getByRole("heading", { name: "What you need", exact: true })).toBeVisible();
-			if (slug === "control-twitch-clip-playback") await expect(page.getByRole("heading", { name: "Quick playback commands", exact: true })).toBeVisible();
-			await expect(page.getByRole("link", { name: "Start free with Twitch", exact: true })).toHaveAttribute("href", "/login");
-			expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
+		for (const [slug, article] of [
+			["twitch-clips-in-obs", "1769328012-getting-started-with-clipify"],
+			["twitch-clip-playlists", "create-manage-clip-playlists"],
+			["control-twitch-clip-playback", "1765998791-controlling-the-overlay-via-chat-commands"],
+		]) {
+			const response = await page.request.get(`/guides/${slug}`, { maxRedirects: 0 });
+			expect(response.status()).toBe(308);
+			expect(response.headers().location).toBe(`https://help.clipify.us/hc/clipify/articles/${article}`);
 		}
 		await page.goto("/pricing");
 		await assertAccessibleMain(page);
@@ -277,7 +278,7 @@ for (const theme of ["light", "dark"]) {
 			await page.goto("/community");
 			if (await page.getByRole("button", { name: "Reject optional", exact: true }).isVisible()) await dismissPrivacy(page);
 			await expect(page.getByRole("heading", { level: 1 })).toHaveText("Find your next favorite creator.");
-			const context = page.getByText("This directory shows visible community profiles.", { exact: false });
+			const context = page.getByText("Meet creators with public Clipify profiles.", { exact: false });
 			await expect(context).toBeVisible();
 			expect((await context.boundingBox())!.y).toBeLessThan(900);
 			expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
@@ -287,7 +288,7 @@ for (const theme of ["light", "dark"]) {
 }
 
 for (const theme of ["light", "dark"]) {
-	for (const path of ["/gallery", "/features", "/guides/twitch-clips-in-obs", "/guides/twitch-clip-playlists", "/guides/control-twitch-clip-playback"]) {
+	for (const path of ["/gallery", "/features"]) {
 		test(`signup controls on ${path} keep contrast on hover and keyboard focus in ${theme} mode`, async ({ page }, testInfo) => {
 			await page.setViewportSize({ width: 390, height: 900 });
 			await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
@@ -332,7 +333,7 @@ for (const theme of ["light", "dark"]) {
 			}
 			if (path === "/gallery") {
 				await expect(page.locator("main").getByRole("link", { name: "Explore Clipify", exact: true })).toHaveCount(0);
-				await expect(page.getByRole("heading", { name: "Inside a Clipify gallery", exact: true })).toBeVisible();
+				await expect(page.getByRole("heading", { name: "Try a gallery", exact: true })).toBeVisible();
 				await assertAccessibleMain(page);
 				await page.screenshot({ path: testInfo.outputPath(`gallery-cta-${theme}.png`) });
 			}

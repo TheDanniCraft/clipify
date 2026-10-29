@@ -1,3 +1,5 @@
+import RoadmapIcon from "@components/roadmap/roadmapIcon";
+import PublicPageHeader from "@components/LandingPage/publicPageHeader";
 import Footer from "@components/footer";
 import BasicNavbar from "@components/LandingPage/basicNavbar";
 import RoadmapSections from "@components/roadmap/roadmapSections";
@@ -19,14 +21,10 @@ export default async function RoadmapPage() {
 
 			<main className='min-h-screen bg-background px-6 py-14 sm:px-8 sm:py-20 text-foreground'>
 				<div className='max-w-6xl mx-auto'>
-					<header className='mb-12 border-b border-separator pb-10 sm:mb-16'>
-						<p className='mb-4 text-sm font-medium text-accent dark:text-violet-300'>The Clipify roadmap</p>
-						<h1 className='text-4xl font-bold tracking-tight sm:text-6xl'>What we’re building.</h1>
-						<p className='mt-5 max-w-xl text-lg leading-relaxed text-foreground/75'>Follow work in progress, upcoming ideas, and the milestones already on your stream.</p>
-					</header>
+					<PublicPageHeader title='What we’re building.' description='Follow work in progress, upcoming ideas, and the milestones already on your stream.' />
 
 					{roadmapItems.length > 0 ? (
-						<RoadmapSections items={roadmapItems} />
+						<RoadmapSections items={roadmapItems.map((item) => ({ ...item, visual: <RoadmapIcon icon={item.icon} color={item.color} /> }))} />
 					) : (
 						<div className='rounded-3xl border border-default bg-surface px-6 py-16 text-center'>
 							<h2 className='text-2xl font-semibold'>Roadmap unavailable</h2>

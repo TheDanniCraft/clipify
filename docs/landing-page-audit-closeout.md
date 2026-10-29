@@ -7,24 +7,24 @@ requires people, external publishing, or a production release.
 
 ## Repository delivery
 
-| Audit pages | Recommendation                                                | Delivery                                                                                                                                                                     |
-| ----------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 4–6         | Explain Twitch/OBS and the saved workflow immediately         | Clear hero, output preview, setup steps, three benefit groups, actual dashboard image, features destination and final CTA                                                    |
-| 6–7         | Demonstrate functionality without invented retention evidence | Real click-to-play video, retry/skip/pause, offscreen cleanup; scripted counters and chat removed                                                                            |
-| 7, 14       | Use accurate community evidence                               | Visibility-filtered teaser retained; shorter directory hero; explicit explanation that Pro access and Twitch status do not establish payment or active product usage         |
-| 8–9         | Clarify limits, imports, pricing and signup                   | Library/playlist distinction, requested imports, runtime billing/savings, readable mobile comparison, qualified trial wording and checkout continuity                        |
-| 8           | Runner and Pro-only purchase route                            | Current code includes optional self-hosted Runner with Free/Pro; no obsolete add-on price restored; selected Pro total remains clear                                         |
-| 9           | Verify eligible trial creation, expiry and returning users    | Disposable-account integration checks; live OAuth transport remains a production acceptance check                                                                            |
-| 10–11       | Remove eager media and unnecessary initial work               | Intent-loaded demo, smaller avatars/responsive images, immediate hero, interaction-loaded Turnstile without removing verification                                            |
-| 11          | Contrast, keyboard, ARIA and reflow                           | Free CTA contrast, radio/table semantics, menu and dialog keyboard behavior, newsletter inert/focus fix, public consent/chrome and 200% CSS-zoom reflow checks               |
-| 12, 21      | Canonicals, titles, social metadata and sitemap               | Route-specific metadata including creator/legal routes, no request-time marketing lastmod, creator visibility restrictions preserved                                         |
-| 13          | Publish focused search-intent content                         | Three distinct task guides with requirements, setup, limits, troubleshooting and relevant actions                                                                            |
-| 14          | Changelog and roadmap presentation                            | Localized release dates, readable subjects and expandable original notes; Now/Next before collapsed Shipped                                                                  |
-| 15          | Demonstrate a gallery before signup                           | Existing gallery renderer with intent-loaded public demo clips, real video in a HeroUI modal, playback retry and Twitch fallback; no private gallery or invented endorsement |
-| 16–17       | Separate acquisition traffic from runtime/preview             | Production top-level route classification; explicit CTA/demo/auth-start intent; checkout creation distinct from Continue clicks                                              |
-| 17          | Record completed creator outcomes                             | Transactional signup/trial, first playback/daily return, created checkout and signed positive paid invoices; deterministic deduplication and account export/purge handling   |
-| 17, 19–20   | Activation timing and retention reporting                     | Read-only cohort SQL with median time to first playback, mature D7/D30 return windows, denominators and numerator counts                                                     |
-| 17          | Billing guardrails                                            | Current subscription cancellation/payment-problem counts; signed failed-invoice and succeeded-refund records, deduplicated refund identity and currency-separated reporting  |
+| Audit pages | Recommendation                                                | Delivery                                                                                                                                                                                     |
+| ----------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 4–6         | Explain Twitch/OBS and the saved workflow immediately         | Clear hero, output preview, setup steps, three benefit groups, actual dashboard image, features destination and final CTA                                                                    |
+| 6–7         | Demonstrate functionality without invented retention evidence | Real click-to-play video, retry/skip/pause, offscreen cleanup; scripted counters and chat removed                                                                                            |
+| 7, 14       | Use accurate community evidence                               | Visibility-filtered teaser retained; shorter directory hero; factual public-profile wording without claims about paying subscribers or active usage                                          |
+| 8–9         | Clarify limits, imports, pricing and signup                   | Library/playlist distinction, requested imports, runtime billing/savings, readable mobile comparison, qualified trial wording and checkout continuity                                        |
+| 8           | Runner and Pro-only purchase route                            | Current code includes optional self-hosted Runner with Free/Pro; no obsolete add-on price restored; selected Pro total remains clear                                                         |
+| 9           | Verify eligible trial creation, expiry and returning users    | Disposable-account integration checks; live OAuth transport remains a production acceptance check                                                                                            |
+| 10–11       | Remove eager media and unnecessary initial work               | Intent-loaded demo, smaller avatars/responsive images, immediate hero, interaction-loaded Turnstile without removing verification                                                            |
+| 11          | Contrast, keyboard, ARIA and reflow                           | Free CTA contrast, radio/table semantics, menu and dialog keyboard behavior, newsletter inert/focus fix, public consent/chrome and 200% CSS-zoom reflow checks                               |
+| 12, 21      | Canonicals, titles, social metadata and sitemap               | Route-specific metadata including creator/legal routes, no request-time marketing lastmod, creator visibility restrictions preserved                                                         |
+| 13          | Publish focused search-intent content                         | Features explain the user jobs; setup links go directly to maintained Help Center articles. Existing guide URLs permanently redirect to those articles, avoiding duplicate content ownership |
+| 14          | Changelog and roadmap presentation                            | Localized release dates and complete readable release subjects without GitHub links; one continuous roadmap, upcoming first, with original CMS icons and colors                              |
+| 15          | Demonstrate a gallery before signup                           | Existing gallery renderer with intent-loaded public demo clips, real video in a HeroUI modal, playback retry and Twitch fallback; no private gallery or invented endorsement                 |
+| 16–17       | Separate acquisition traffic from runtime/preview             | Production top-level route classification; explicit CTA/demo/auth-start intent; checkout creation distinct from Continue clicks                                                              |
+| 17          | Record completed creator outcomes                             | Transactional signup/trial, first playback/daily return, created checkout and signed positive paid invoices; deterministic deduplication and account export/purge handling                   |
+| 17, 19–20   | Activation timing and retention reporting                     | Read-only cohort SQL with median time to first playback, mature D7/D30 return windows, denominators and numerator counts                                                                     |
+| 17          | Billing guardrails                                            | Current subscription cancellation/payment-problem counts; signed failed-invoice and succeeded-refund records, deduplicated refund identity and currency-separated reporting                  |
 
 The competitor comparisons informed category clarity, early output, saved setup
 and practical operational explanations. They do not justify claims of exclusive
@@ -38,7 +38,7 @@ not changed.
   Signed return URLs, email addresses and creator identifiers are not sent.
 - `traffic_scope=marketing` must be applied in Plausible acquisition reports.
   Eligible routes include home, pricing, community, changelog, roadmap, features,
-  gallery and the three owned guides. Preview/iframe activity remains separately
+  gallery. Legacy guide routes redirect to the Help Center. Preview/iframe activity remains separately
   classified. Existing unfiltered reports and historical contamination are not
   repaired by adding this property.
 - First playback means observed video progression in an authorized top-level
@@ -77,7 +77,7 @@ removes product records, so aggregates are not an immutable accounting ledger.
       visibility is not testimonial permission.
 - [ ] Provide help-center editing access or identify its publisher. The existing
       Getting Started screenshots and overlapping growth articles require external
-      edits; the new owned guides do not overwrite them.
+      edits. The website now links or redirects to those articles as the sole maintained setup guides.
 - [ ] Confirm whether the affiliate program is active, paused or discontinued,
       and its correct destination if active. The owned footer offers contact;
       external articles and any legacy redirect must match the confirmed status.
@@ -86,7 +86,7 @@ removes product records, so aggregates are not an immutable accounting ledger.
       This delivery corrects wording and preserves current defaults.
 - [ ] Confirm the scope/status of the future authentication roadmap item so it
       can be distinguished from shipped work and genuinely marked reviewed.
-- [ ] Provide Search Console access or selected-canonical/query inspection exports.
+- [ ] Inspect Google-selected canonicals after release using Search Console URL Inspection. Aggregate query/page evidence is now available through the connected CrawlSEO server.
 - [ ] Supply willing unfamiliar streamers for a small comprehension/setup round
       and a creator who can validate OBS audio, scene transitions and moderation
       in their own streaming setup. Recruitment/contact requires owner involvement.

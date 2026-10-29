@@ -1,11 +1,12 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Timeline } from "@heroui-pro/react";
 import { Card, Chip } from "@heroui/react";
 import { IconCheck, IconFlag, IconTools } from "@tabler/icons-react";
 import { RoadmapStatus, orderRoadmapItems, type RoadmapItemData } from "./roadmapData";
 
-export default function RoadmapSections({ items }: { items: RoadmapItemData[] }) {
+export default function RoadmapSections({ items }: { items: (RoadmapItemData & { visual: ReactNode })[] }) {
 	const milestones = orderRoadmapItems(items);
 	function timeline(centered: boolean) {
 		return (
@@ -24,11 +25,14 @@ export default function RoadmapSections({ items }: { items: RoadmapItemData[] })
 									<Card.Content className='gap-0 p-5 text-left sm:p-7'>
 										<div className='mb-4 flex flex-wrap items-center gap-3 text-sm text-foreground/75'>
 											<span>{item.timeframe}</span>
-											<Chip className='text-foreground' size='sm' variant='soft' color={active ? "accent" : "default"}>
+											<Chip className='text-foreground' size='sm' variant='soft' color={shipped ? "success" : active ? "accent" : "default"}>
 												{item.status}
 											</Chip>
 										</div>
-										<h2 className='text-xl font-semibold tracking-tight sm:text-2xl'>{item.title}</h2>
+										<div className='flex items-start gap-3'>
+											{item.visual}
+											<h2 className='min-w-0 text-xl font-semibold tracking-tight sm:text-2xl'>{item.title}</h2>
+										</div>
 										<p className='mt-3 leading-relaxed text-foreground/75'>{item.description}</p>
 										{item.features.length > 0 && (
 											<ul className='mt-5 space-y-2 text-sm leading-relaxed text-foreground/75'>

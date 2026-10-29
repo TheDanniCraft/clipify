@@ -1,4 +1,3 @@
-import { publicGuides } from "@lib/publicGuides";
 import type { MetadataRoute } from "next";
 import { getBaseUrl } from "@actions/utils";
 import { db } from "@/db/client";
@@ -42,7 +41,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 		{ url: `${baseUrl}community`, changeFrequency: "weekly", priority: 0.7 },
 		{ url: `${baseUrl}gallery`, changeFrequency: "monthly", priority: 0.6 },
 		{ url: `${baseUrl}features`, changeFrequency: "monthly", priority: 0.8 },
-		...publicGuides.map((guide) => ({ url: `${baseUrl}guides/${guide.slug}`, changeFrequency: "monthly" as const, priority: 0.7 })),
 		...creators.map((creator) => ({
 			url: new URL(`/creators/${encodeURIComponent(creator.username.toLowerCase())}`, baseUrl).toString(),
 			...(creator.updatedAt ? { lastModified: creator.updatedAt } : {}),
