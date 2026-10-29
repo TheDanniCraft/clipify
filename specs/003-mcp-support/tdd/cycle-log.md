@@ -1545,3 +1545,14 @@ scenario timeout. Consent preparation uses the shared initialization prerequisit
 Production deletion behavior, authorization and lifecycle assertions are unchanged.
 The prior CI failure and retry artifacts are retained as Red evidence; final
 focused/browser and fresh CI outcomes are recorded in PR #536.
+
+### Pricing consent follow-up after complete CI
+
+- Full CI 40802797320 passed in 11:32. All 22 ATDD scenarios passed in
+  59.2 seconds without retries; the complete ATDD job fell from 8:33 to 2:11.
+- Its logs exposed one separate pricing scenario waiting 60 seconds for reload
+  after interacting before consent initialization. Reuse `openConsentPage` in
+  that remaining Runner pricing helper, preserving all consent and purchase
+  assertions. The entire six-scenario feature passed locally in 24.6 seconds
+  without retries; affected lint and formatting passed. Final CI follows this
+  narrow fix, with no unrelated local suite repeated.
