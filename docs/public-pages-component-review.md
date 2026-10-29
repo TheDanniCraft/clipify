@@ -296,9 +296,26 @@ fallbacks, the five-avatar cap and +1 count, in both themes without A/AA finding
 Populating the directory also exposed a homepage community-row overflow at 200%
 zoom; its existing flex layout now wraps within the available width.
 
-Current affected coverage: 13 suites / 103 tests pass with the unchanged thresholds
+The avatar follow-up coverage: 13 suites / 103 tests pass with the unchanged thresholds
 (93.26% statements, 88.35% branches, 94.53% functions, 94.55% lines). Homepage and
 avatar whole-file checks also pass. The production browser build passes with the
 explicit declarations. All 27 browser scenarios passed again with the populated fixture, including
 200% reflow. The dedicated 640px / 200% zoom check measured 640px document
 width and no overflowing elements.
+
+### Roadmap first-response correction
+
+Two fresh preview deployments initially served the cached “Roadmap unavailable”
+build-time fallback, then showed all fourteen published milestones after
+revalidation. The roadmap now awaits Next's `connection()` before reading the
+existing cached CMS loader, matching the request-boundary pattern already used
+in the application. Milestone ordering, content, icons and colors are unchanged.
+
+A request-boundary regression failed before the change and passed afterward. A
+browser build with CMS credentials deliberately absent completed successfully and
+classified `/roadmap` as dynamic. Supplying the local CMS credentials only at
+runtime produced an immediate 200 response with its four controlled milestones
+and `private, no-cache, no-store` headers. All 27 browser scenarios passed again
+with the populated directory. Affected coverage is now 14 suites / 104 tests,
+93.14% statements, 88.22% branches, 94.16% functions and 94.51% lines, with
+all existing thresholds retained. Changed-file lint and formatting passed.

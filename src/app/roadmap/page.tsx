@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import RoadmapIcon from "@components/roadmap/roadmapIcon";
 import PublicPageHeader from "@components/LandingPage/publicPageHeader";
 import Footer from "@components/footer";
@@ -13,6 +14,7 @@ export const metadata = {
 };
 
 export default async function RoadmapPage() {
+	await connection();
 	const roadmapItems = await getRoadmapItems();
 
 	return (
