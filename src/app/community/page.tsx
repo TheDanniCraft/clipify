@@ -116,7 +116,7 @@ export default async function CommunityPage() {
 					'
 				/>
 				<div className='mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-10 sm:py-16 sm:px-6 lg:px-8'>
-					<main className='container mx-auto flex flex-1 flex-col justify-center overflow-hidden px-0'>
+					<main className='container mx-auto flex flex-1 flex-col justify-center px-0'>
 						<section className='z-20 max-w-3xl'>
 							<div className='flex flex-col items-start gap-6'>
 								<h1 className='max-w-3xl text-[clamp(40px,10vw,64px)] font-bold leading-[1.05] tracking-tighter'>Find your next favorite creator.</h1>

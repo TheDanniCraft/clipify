@@ -11,7 +11,7 @@ jest.mock("@/auth/client", () => ({
 }));
 
 jest.mock("@components/heroui-client", () => ({
-	Button: ({ children, variant, onPress, isDisabled, isPending: _isPending, size: _size, ...props }: React.ComponentProps<"button"> & { variant?: string; onPress?: () => void; isDisabled?: boolean; isPending?: boolean; size?: string }) => (
+	Button: ({ children, variant, onPress, isDisabled, isPending: _isPending, size: _size, fullWidth: _fullWidth, ...props }: React.ComponentProps<"button"> & { variant?: string; onPress?: () => void; isDisabled?: boolean; isPending?: boolean; size?: string; fullWidth?: boolean }) => (
 		<button {...props} data-variant={variant} disabled={isDisabled} onClick={onPress}>
 			{children}
 		</button>
@@ -19,10 +19,10 @@ jest.mock("@components/heroui-client", () => ({
 }));
 
 describe("app/login/LoginClient", () => {
-	it("keeps the Twitch login action on the dark tertiary treatment", () => {
+	it("shows Twitch sign-in as the primary action", () => {
 		render(<LoginClient returnUrl='/dashboard' />);
 
-		expect(screen.getByRole("button", { name: "Login with Twitch" })).toHaveAttribute("data-variant", "tertiary");
+		expect(screen.getByRole("button", { name: "Login with Twitch" })).toHaveAttribute("data-variant", "primary");
 	});
 });
 

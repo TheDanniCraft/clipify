@@ -1,3 +1,5 @@
+import { connection } from "next/server";
+import { getDemoGalleryClips } from "@actions/gallery";
 import PublicPageHeader from "@components/LandingPage/publicPageHeader";
 import PublicGalleryDemo from "@components/gallery/PublicGalleryDemo";
 import { buttonVariants } from "@heroui/styles";
@@ -12,7 +14,9 @@ export const metadata: Metadata = {
 	openGraph: { title: "Twitch Clip Galleries | Clipify", description: "Curate and share Twitch highlights in a gallery.", url: "https://clipify.us/gallery" },
 };
 
-export default function GalleryLandingPage() {
+export default async function GalleryLandingPage() {
+	await connection();
+	const initialBundle = await getDemoGalleryClips().catch(() => null);
 	return (
 		<>
 			<BasicNavbar />
@@ -22,7 +26,7 @@ export default function GalleryLandingPage() {
 						Create your gallery
 					</Link>
 				</PublicPageHeader>
-				<PublicGalleryDemo />
+				<PublicGalleryDemo initialBundle={initialBundle} />
 			</main>
 			<Footer />
 		</>

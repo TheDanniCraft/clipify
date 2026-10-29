@@ -42,14 +42,14 @@ beforeEach(() => {
 	media.mockResolvedValue("https://media.example.invalid/clip.mp4");
 });
 async function open() {
-	fireEvent.click(screen.getByRole("button", { name: "Explore the demo gallery" }));
 	await screen.findByRole("button", { name: "Play sample" });
 	fireEvent.click(screen.getByRole("button", { name: "Play sample" }));
 }
-it("loads only on intent, requests approved demo media, and removes it on close", async () => {
-	const { container } = render(<PublicGalleryDemo />);
+it("shows initial clips immediately, requests media only on selection, and removes it on close", async () => {
+	const { container } = render(<PublicGalleryDemo initialBundle={{ overlayId: "public-demo", clips }} />);
 	expect(load).not.toHaveBeenCalled();
 	expect(media).not.toHaveBeenCalled();
+	expect(screen.getByRole("button", { name: "Play sample" })).toBeVisible();
 	await open();
 	await waitFor(() => expect(container.querySelector("video")).toHaveAttribute("src", "https://media.example.invalid/clip.mp4"));
 	expect(media).toHaveBeenCalledWith("one", "owner", { kind: "demo", overlayId: "public-demo" });
@@ -61,8 +61,8 @@ it("loads only on intent, requests approved demo media, and removes it on close"
 it.each([null, new Error("network")])("recovers from absent clips and gallery lookup failure", async (result) => {
 	if (result instanceof Error) load.mockRejectedValueOnce(result);
 	else load.mockResolvedValueOnce(result);
-	render(<PublicGalleryDemo />);
-	fireEvent.click(screen.getByRole("button", { name: "Explore the demo gallery" }));
+	render(<PublicGalleryDemo initialBundle={null} />);
+	fireEvent.click(screen.getByRole("button", { name: "Try gallery again" }));
 	expect(await screen.findByRole("alert")).toHaveTextContent("couldn't load");
 	fireEvent.click(screen.getByRole("button", { name: "Try gallery again" }));
 	await screen.findByRole("button", { name: "Play sample" });
@@ -70,7 +70,7 @@ it.each([null, new Error("network")])("recovers from absent clips and gallery lo
 it.each([undefined, new Error("network")])("retries missing or rejected playback URLs", async (result) => {
 	if (result instanceof Error) media.mockRejectedValueOnce(result);
 	else media.mockResolvedValueOnce(result);
-	const { container } = render(<PublicGalleryDemo />);
+	const { container } = render(<PublicGalleryDemo initialBundle={{ overlayId: "public-demo", clips }} />);
 	await open();
 	await screen.findByRole("button", { name: "Try clip again" });
 	fireEvent.click(screen.getByRole("button", { name: "Try clip again" }));
@@ -87,7 +87,7 @@ it.each(["resolve", "reject"])("ignores late %s after the player closes", async 
 			reject = no;
 		}),
 	);
-	const { container } = render(<PublicGalleryDemo />);
+	const { container } = render(<PublicGalleryDemo initialBundle={{ overlayId: "public-demo", clips }} />);
 	await open();
 	expect(screen.getByRole("status")).toHaveTextContent("Loading clip");
 	fireEvent.click(screen.getByRole("button", { name: "Close player" }));

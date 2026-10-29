@@ -198,6 +198,6 @@ export async function getPublicGalleryPlayer(galleryId: string, clipId: string) 
 export async function getDemoGalleryClips() {
 	const overlayId = process.env.DEMO_OVERLAY_ID;
 	if (!overlayId) return null;
-	const clips = await getTwitchClipBatch(overlayId, undefined, undefined, [], 3);
+	const clips = await getTwitchClipBatch(overlayId, undefined, undefined, [], 12);
 	return clips.length ? { overlayId, clips } : null;
 }

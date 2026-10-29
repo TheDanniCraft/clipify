@@ -15,7 +15,7 @@ export default function CommunityHeroAvatars({ streamers, totalCount }: Communit
 
 	return (
 		<div className='flex max-w-full flex-wrap items-center gap-y-2'>
-			<div className='flex shrink-0 items-center'>
+			<div className='flex shrink-0 items-center p-1'>
 				{visibleStreamers.map((streamer, index) => {
 					const tone = getCommunityAvatarTone(streamer);
 					return (

@@ -218,16 +218,16 @@ bottom divider. Decorative update/roadmap eyebrows and the full-width Features
 banner have been removed. Community keeps its existing creator/avatar hero and
 uses factual public-profile wording without an analytics disclaimer in the page.
 
-| Surface      | Correction                                                                                                                                                                                                                          |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Home         | Two different cached highlights replace the low-view screenshot material: Minecraft in the demo cover, Counter-Strike in the supporting player image. The existing layout and copy remain.                                          |
-| Features     | Two equal, shrinkable desktop columns and wrapping headings prevent the OBS title from clipping. All four illustrated sections use 4:3 images, including Theme Studio. Setup links go straight to the relevant Help Center article. |
-| Gallery      | Uses the same introductory layout as the other information pages. Removes the separate plan-limit paragraph and shortens the demo introduction. Gallery playback, recovery and the installed modal remain.                          |
-| Pricing      | Uses the shared introduction and gutters, preserving the monthly/yearly control and Free/Pro table on desktop and phones.                                                                                                           |
-| Changelog    | Keeps the compact release-history timeline and complete release subjects. Version headings are plain text; the page no longer adds GitHub links.                                                                                    |
-| Roadmap      | Keeps one continuous milestone timeline, upcoming first. Restores each published CMS icon and color inside its card, while status remains separately visible. Icon resolution stays on the server.                                  |
-| Setup guides | The three existing guide routes return permanent redirects to exact Help Center articles. Their duplicate article bodies and sitemap entries are removed. No second publishing system or runtime HTML ingestion is introduced.      |
-| Demo player  | Explicit route-level `noindex, nofollow` survives deployment to production, where the preview-wide indexing block does not apply.                                                                                                   |
+| Surface      | Correction                                                                                                                                                                                                                                                                                               |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Home         | Two different cached highlights replace the low-view screenshot material: Minecraft in the demo cover, Counter-Strike in the supporting player image. The existing layout and copy remain.                                                                                                               |
+| Features     | Two equal, shrinkable desktop columns and wrapping headings prevent the OBS title from clipping. Images preserve their native proportions. The overlay settings now use complete desktop and narrow captures rather than a forced 4:3 crop. Setup links go straight to the relevant Help Center article. |
+| Gallery      | Uses the same introductory layout as the other information pages. Removes the separate plan-limit paragraph and demo-loading gate; renders up to 12 authorized public-demo clips immediately. Gallery playback, recovery and the installed modal remain.                                                 |
+| Pricing      | Uses the shared introduction and gutters, preserving the monthly/yearly control and Free/Pro table on desktop and phones.                                                                                                                                                                                |
+| Changelog    | Keeps the compact release-history timeline and complete release subjects. Version headings are plain text; the page no longer adds GitHub links.                                                                                                                                                         |
+| Roadmap      | Keeps one continuous milestone timeline, upcoming first. Restores each published CMS icon and color on its timeline marker, while status remains separately visible. Icon resolution stays on the server.                                                                                                |
+| Setup guides | The three existing guide routes return permanent redirects to exact Help Center articles. Their duplicate article bodies and sitemap entries are removed. No second publishing system or runtime HTML ingestion is introduced.                                                                           |
+| Demo player  | Explicit route-level `noindex, nofollow` survives deployment to production, where the preview-wide indexing block does not apply.                                                                                                                                                                        |
 
 ### Screenshot selection and fidelity
 
@@ -319,3 +319,39 @@ and `private, no-cache, no-store` headers. All 27 browser scenarios passed again
 with the populated directory. Affected coverage is now 14 suites / 104 tests,
 93.14% statements, 88.22% branches, 94.16% functions and 94.51% lines, with
 all existing thresholds retained. Changed-file lint and formatting passed.
+
+### Portrait review follow-up
+
+Login now uses the normal theme background, compact branding and one full-width
+primary Twitch action. Existing checkout continuation, signed OAuth parameters,
+retry handling, legal links and email-default wording are preserved. Login and
+Runner enrollment have distinct metadata and explicit utility-page noindex rules.
+
+Community avatar groups reserve space for their rings; the inner hero no longer
+clips those rings. Roadmap icons now identify the timeline steps themselves.
+The pricing control centers its two plain labels independently of the annual
+savings note. The Runner link describes the setup guide rather than introducing
+Runner like a person.
+
+Gallery metadata is loaded on the server and passed to the existing renderer.
+The public source authorizes the same demo clips as before, now requesting up to
+12 rather than three. Videos still load only on clip selection. An unavailable
+source retains local retry; closing the player cancels stale results and restores
+keyboard focus. Phone layouts use two columns and larger screens use three.
+
+The overlay screenshots were freshly captured from the actual editor, including
+the selected playlist and the complete controls through Customize Overlay Style.
+Desktop is 2028×1512 and narrow is 1416×1560, captured at native 3× resolution;
+neither is stretched or forced into 4:3. These supersede the earlier asset-size
+and 4:3 checkpoint above. Other product images retain their native dimensions.
+No editor is mounted on the public Features page.
+
+Affected coverage passes with unchanged thresholds: 19 suites, 135 tests;
+92.55% statements, 87.41% branches, 93.38% functions and 93.84% lines across the
+selected sources. The strict gallery owner thresholds pass separately within that
+run. Build/TypeScript and changed-file ESLint pass. Final browser and pushed CI
+results belong to the PR's current head.
+
+[CrawlSEO reconciliation and acceptance criteria](landing-page-audit-closeout.md#crawlseo-reconciliation--29-october-2026)
+separates implemented branch corrections from profile-data checks and production
+recrawl/performance verification. It does not claim ranking improvements.

@@ -85,7 +85,7 @@ export default function FeaturesPage() {
 							<h2 className='text-2xl font-semibold'>Take the broadcast into your own hands.</h2>
 							<p className='mt-4 leading-relaxed text-foreground/75'>Broadcast from your Windows, Linux, or macOS computer. Runner is optional, with manual broadcasting included on Free and advanced broadcasting tools on Pro.</p>
 							<Link href='https://help.clipify.us/hc/clipify/articles/self-hosted-clipify-runner' className='mt-5 gap-2'>
-								Meet Runner
+								Read the Runner setup guide
 								<LinkIcon />
 							</Link>
 						</section>

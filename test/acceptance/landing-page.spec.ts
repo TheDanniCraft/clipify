@@ -72,6 +72,7 @@ for (const theme of ["light", "dark"]) {
 			await expect(page.getByRole("heading", { name: "Welcome to Clipify" })).toBeVisible();
 			await expect(page.getByRole("button", { name: "Login with Twitch", exact: true })).toBeVisible();
 			await expect(page.getByRole("link", { name: "Clipify home" })).toHaveAttribute("href", "/");
+			await assertAccessibleMain(page);
 		});
 	}
 }
@@ -134,6 +135,14 @@ for (const theme of ["light", "dark"]) {
 		const monthly = page.getByRole("radio", { name: "Pay Monthly", exact: true });
 		await monthly.click();
 		await expect(monthly).toBeChecked();
+		for (const label of ["Pay Monthly", "Pay Yearly"]) {
+			const offset = await page.getByRole("radio", { name: label, exact: true }).evaluate((button) => {
+				const bounds = button.getBoundingClientRect();
+				const text = button.querySelector("span")!.getBoundingClientRect();
+				return Math.abs(text.x + text.width / 2 - bounds.x - bounds.width / 2);
+			});
+			expect(offset).toBeLessThan(1);
+		}
 		await assertAccessibleMain(page);
 	});
 }
@@ -147,6 +156,13 @@ for (const theme of ["light", "dark"]) {
 		await assertAccessibleMain(page);
 		await expect(page.getByRole("link", { name: "Read the playlist guide", exact: true })).toHaveAttribute("href", "https://help.clipify.us/hc/clipify/articles/create-manage-clip-playlists");
 		await expect(page.getByRole("link", { name: "Getting started with Clipify", exact: true })).toHaveAttribute("href", "https://help.clipify.us/hc/clipify/articles/1769328012-getting-started-with-clipify");
+		for (const image of await page.locator("main picture img").all()) {
+			await image.scrollIntoViewIfNeeded();
+			await image.evaluate((image: HTMLImageElement) => image.decode());
+			const shape = await image.evaluate((image: HTMLImageElement) => ({ displayed: image.width / image.height, original: image.naturalWidth / image.naturalHeight }));
+			expect(Math.abs(shape.displayed - shape.original)).toBeLessThan(0.01);
+		}
+		await page.locator("#overlays").screenshot({ path: testInfo.outputPath(`overlay-image-${theme}.png`) });
 		for (const [slug, article] of [
 			["twitch-clips-in-obs", "1769328012-getting-started-with-clipify"],
 			["twitch-clip-playlists", "create-manage-clip-playlists"],
@@ -241,7 +257,7 @@ for (const theme of ["light", "dark"]) {
 		await dismissPrivacy(page);
 		expect(loads).toBe(0);
 		expect(mediaRequests).toBe(0);
-		await page.getByRole("button", { name: "Explore the demo gallery" }).click();
+		await page.getByRole("button", { name: "Try gallery again" }).click();
 		const card = page.getByRole("button", { name: /A demo highlight/ });
 		await expect(card).toBeVisible();
 		expect(mediaRequests).toBe(0);
@@ -264,7 +280,7 @@ for (const theme of ["light", "dark"]) {
 test("unavailable public gallery offers retry without requiring login", async ({ page }) => {
 	await page.goto("/gallery");
 	await dismissPrivacy(page);
-	await page.getByRole("button", { name: "Explore the demo gallery" }).click();
+	await page.getByRole("button", { name: "Try gallery again" }).click();
 	await expect(page.locator("main").getByRole("alert")).toHaveText("The gallery couldn't load. Please try again.");
 	await expect(page.getByRole("button", { name: "Try gallery again" })).toBeEnabled();
 	await expect(page.getByRole("link", { name: "Create your gallery" })).toBeVisible();
@@ -333,7 +349,7 @@ for (const theme of ["light", "dark"]) {
 			}
 			if (path === "/gallery") {
 				await expect(page.locator("main").getByRole("link", { name: "Explore Clipify", exact: true })).toHaveCount(0);
-				await expect(page.getByRole("heading", { name: "Try a gallery", exact: true })).toBeVisible();
+				await expect(page.getByRole("region", { name: "Clip gallery example", exact: true })).toBeVisible();
 				await assertAccessibleMain(page);
 				await page.screenshot({ path: testInfo.outputPath(`gallery-cta-${theme}.png`) });
 			}

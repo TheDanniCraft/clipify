@@ -20,7 +20,7 @@ export default function CommunityTeaser({ className, countClassName, maxVisible 
 
 	return (
 		<div className={["flex max-w-full flex-wrap items-center gap-y-2", className].filter(Boolean).join(" ")}>
-			<div className='flex shrink-0 items-center'>
+			<div className='flex shrink-0 items-center p-1'>
 				{visibleStreamers.map((streamer, index) => {
 					const tone = getCommunityAvatarTone(streamer);
 					return (

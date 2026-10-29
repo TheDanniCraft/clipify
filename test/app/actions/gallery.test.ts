@@ -434,6 +434,6 @@ describe("public demo gallery", () => {
 		expect(await getDemoGalleryClips()).toBeNull();
 		getTwitchClipBatch.mockResolvedValueOnce([{ id: "clip" }]);
 		expect(await getDemoGalleryClips()).toEqual({ overlayId: "demo", clips: [{ id: "clip" }] });
-		expect(getTwitchClipBatch).toHaveBeenLastCalledWith("demo", undefined, undefined, [], 3);
+		expect(getTwitchClipBatch).toHaveBeenLastCalledWith("demo", undefined, undefined, [], 12);
 	});
 });

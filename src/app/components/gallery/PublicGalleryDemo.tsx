@@ -11,8 +11,8 @@ const gallery: GalleryFrameConfig = {
 	id: "clipify-public-demo",
 	layout: "grid",
 	listDensity: "comfortable",
-	gridAuto: true,
-	gridMobileColumns: 1,
+	gridAuto: false,
+	gridMobileColumns: 2,
 	gridTabletColumns: 3,
 	gridDesktopColumns: 3,
 	carouselMobileCards: 1,
@@ -35,10 +35,10 @@ const gallery: GalleryFrameConfig = {
 	showCreatedAt: false,
 };
 
-export default function PublicGalleryDemo() {
-	const [bundle, setBundle] = useState<Awaited<ReturnType<typeof getDemoGalleryClips>>>(null);
+export default function PublicGalleryDemo({ initialBundle }: { initialBundle: Awaited<ReturnType<typeof getDemoGalleryClips>> }) {
+	const [bundle, setBundle] = useState(initialBundle);
 	const [loading, setLoading] = useState(false);
-	const [galleryError, setGalleryError] = useState(false);
+	const [galleryError, setGalleryError] = useState(!initialBundle);
 	const [selected, setSelected] = useState<TwitchClip | null>(null);
 	const [media, setMedia] = useState<string | null>(null);
 	const [playerError, setPlayerError] = useState(false);
@@ -71,16 +71,12 @@ export default function PublicGalleryDemo() {
 		}
 	}
 	return (
-		<section aria-labelledby='gallery-demo-heading' className='w-full'>
-			<h2 id='gallery-demo-heading' className='text-2xl font-semibold'>
-				Try a gallery
-			</h2>
-			<p className='mt-3 mb-7 max-w-2xl leading-relaxed text-foreground/75'>Browse the demo collection and choose a highlight to play.</p>
+		<section aria-label='Clip gallery example' className='w-full'>
 			{bundle ? (
 				<GalleryFrame gallery={gallery} clips={bundle.clips} ownerName='the Clipify demo' showAttribution onSelectClip={play} />
 			) : (
 				<Button isPending={loading} isDisabled={loading} onPress={loadGallery}>
-					{galleryError ? "Try gallery again" : "Explore the demo gallery"}
+					Try gallery again
 				</Button>
 			)}
 			{galleryError ? (
