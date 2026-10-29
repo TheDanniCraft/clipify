@@ -260,8 +260,7 @@ no longer fabricated from request time. Preview `noindex` protection is expected
 Guide redirects now consolidate setup content in the Help Center.
 
 CrawlSEO's existing crawl still describes production, not the unreleased preview.
-Its reported creator URL failure and weakly connected public profiles need
-production-data verification; profile privacy settings must be preserved. Its
+Its reported creator URL failure and weakly connected public profiles were subsequently investigated and fixed; see the creator discovery section below. Profile privacy settings are preserved. Its
 performance reports cannot establish a preview performance improvement, and
 Search Console cannot establish a ranking effect before release and recrawling.
 The MCP inventory reads existing crawls; it does not provide a tool to start a
@@ -355,3 +354,28 @@ results belong to the PR's current head.
 [CrawlSEO reconciliation and acceptance criteria](landing-page-audit-closeout.md#crawlseo-reconciliation--29-october-2026)
 separates implemented branch corrections from profile-data checks and production
 recrawl/performance verification. It does not claim ranking improvements.
+
+### Creator discovery and localized routes
+
+The remaining CrawlSEO profile findings were investigated against public HTTP
+responses and the connected read-only database. The reported localized account
+is enabled/discoverable; its existing URL returned 404 because content lookup
+received a percent-encoded name while metadata lookup received the decoded name.
+A disposable account reproduced that mismatch. Both route lookups now decode the
+parameter consistently, returning 200 and the correct encoded canonical.
+
+The community snapshot's overlay join excluded 35 of 127 discoverable profiles
+at investigation time. Removing that requirement aligns directory coverage with
+sitemap eligibility. Creator names now link to their saved Clipify path; their
+current Twitch login remains separate. Fresh visibility filtering excludes
+unlisted, unpublished and disabled profiles even when an older snapshot remains.
+Unlisted profiles remain accessible by direct link and emit noindex/nofollow.
+No production account or profile settings were changed.
+
+Validation: 25 affected suites / 165 tests passed with unchanged thresholds
+(89.97% statements, 83.33% branches, 93.5% functions, 92.34% lines across selected
+sources; strict gallery owners pass). Production browser build/TypeScript and
+changed-file lint passed. Four real Chromium scenarios passed without retries:
+phone/desktop in light/dark, actual keyboard profile navigation, a Unicode name,
+a creator without an overlay, correct canonical/sitemap inclusion, and subsequent
+unlisted/unpublished/disabled removal with cached snapshot data retained.

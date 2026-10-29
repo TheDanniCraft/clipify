@@ -1,4 +1,4 @@
-import { queryCreatorClips, resolveCreatorPageMetadata, resolveCreatorPageVisibility } from "@lib/creatorPage";
+import { decodeCreatorUsername, queryCreatorClips, resolveCreatorPageMetadata, resolveCreatorPageVisibility } from "@lib/creatorPage";
 import type { TwitchClip } from "@types";
 
 const clip = (id: string, created_at: string, view_count: number): TwitchClip => ({ id, created_at, view_count, url: `https://clips.twitch.tv/${id}`, embed_url: "", broadcaster_id: "owner", broadcaster_name: "Owner", creator_id: "creator", creator_name: "Creator", video_id: "", game_id: "game", language: "en", title: id, thumbnail_url: `${id}.jpg`, duration: 10 });
@@ -33,4 +33,14 @@ describe("creator page domain", () => {
 		expect(queryCreatorClips(clips, { sort: "newest", start: new Date("2026-01-01"), pageSize: 1 }).items[0]?.id).toBe("new");
 		expect(queryCreatorClips(clips, { sort: "newest", cursor: "1", pageSize: 2 }).items.map((item) => item.id)).toEqual(["popular", "old"]);
 	});
+});
+
+it.each([
+	["alice", "alice"],
+	["家姐", "家姐"],
+	["%E5%AE%B6%E5%A7%90", "家姐"],
+	["name%25", "name%"],
+	["name%", "name%"],
+])("decodes a creator route segment %s without rejecting a literal percent", (value, expected) => {
+	expect(decodeCreatorUsername(value)).toBe(expected);
 });

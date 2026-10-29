@@ -1,12 +1,12 @@
 /** @jest-environment node */
 import { generateMetadata as memberMetadata } from "@/app/members/[cardId]/page";
-import { generateMetadata as creatorMetadata } from "@/app/creators/[twitchUsername]/page";
+import CreatorPage, { generateMetadata as creatorMetadata } from "@/app/creators/[twitchUsername]/page";
 import { getPublicMemberProfile } from "@lib/membership";
-import { getCreatorPageMetadata } from "@actions/creatorPage";
+import { getCreatorPage, getCreatorPageMetadata } from "@actions/creatorPage";
 import { clipifyShareDescription } from "@lib/memberCardShare";
 
 jest.mock("@lib/membership", () => ({ getPublicMemberProfile: jest.fn() }));
-jest.mock("@actions/creatorPage", () => ({ getCreatorPageMetadata: jest.fn() }));
+jest.mock("@actions/creatorPage", () => ({ getCreatorPageMetadata: jest.fn(), getCreatorPage: jest.fn() }));
 jest.mock("@components/membership/BadgeGrid", () => () => null);
 jest.mock("@components/membership/MemberCard", () => () => null);
 jest.mock("@components/membership/MemberCardActions", () => () => null);
@@ -32,4 +32,10 @@ describe("member card social previews", () => {
 		expect(metadata.openGraph).toMatchObject({ images: [{ url: image }] });
 		expect(metadata.twitter).toMatchObject({ images: [image] });
 	});
+});
+
+it("looks up the decoded creator name for percent-encoded public routes", async () => {
+	jest.mocked(getCreatorPage).mockResolvedValue({ creator: { username: "家姐" }, items: [], nextCursor: null, total: 0 } as unknown as NonNullable<Awaited<ReturnType<typeof getCreatorPage>>>);
+	await CreatorPage({ params: Promise.resolve({ twitchUsername: "%E5%AE%B6%E5%A7%90" }) });
+	expect(getCreatorPage).toHaveBeenCalledWith("家姐", expect.objectContaining({ pageSize: 24 }));
 });

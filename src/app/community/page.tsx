@@ -52,7 +52,13 @@ function StreamerRow({ streamer }: { streamer: CommunityPageStreamer }) {
 				</Avatar>
 				<div className='min-w-0'>
 					<div className='flex flex-wrap items-center gap-2'>
-						<p className='truncate text-base font-semibold text-foreground'>{streamer.displayName}</p>
+						{streamer.profileUrl ? (
+							<Link href={streamer.profileUrl} className='min-w-0 max-w-full truncate text-base font-semibold text-foreground'>
+								{streamer.displayName}
+							</Link>
+						) : (
+							<p className='truncate text-base font-semibold text-foreground'>{streamer.displayName}</p>
+						)}
 						<Chip size='sm' color={badgeColor} variant={badgeVariant}>
 							{badgeLabel}
 						</Chip>
