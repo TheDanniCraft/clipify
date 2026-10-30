@@ -1,3 +1,4 @@
+import { socialPreview } from "@lib/socialPreview";
 import type { Metadata } from "next";
 import { Card, CardContent } from "@components/heroui-client";
 import RunnerEnrollForm from "./runner-enroll-form";
@@ -7,7 +8,7 @@ export const metadata: Metadata = {
 	title: "Connect your Runner | Clipify",
 	description: "Connect your self-hosted Clipify Runner using its device code.",
 	alternates: { canonical: "https://clipify.us/runner/enroll" },
-	openGraph: { title: "Connect your Runner | Clipify", url: "https://clipify.us/runner/enroll" },
+	openGraph: { ...socialPreview, title: "Connect your Runner | Clipify", url: "https://clipify.us/runner/enroll" },
 	robots: { index: false, follow: false },
 };
 

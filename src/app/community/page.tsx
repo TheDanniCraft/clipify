@@ -1,3 +1,4 @@
+import { socialPreview } from "@lib/socialPreview";
 import { Avatar, AvatarFallback, AvatarImage, Chip, Link } from "@components/heroui-client";
 
 import { IconBroadcast, IconBrandTwitch, IconCircleMinus, IconDiamondFilled, IconPlugConnected, IconSparkles } from "@tabler/icons-react";
@@ -15,7 +16,7 @@ export const metadata = {
 	title: "Community | Clipify",
 	description: "Meet the creators using Clipify and see how the community turns the tool into something bigger.",
 	alternates: { canonical: "https://clipify.us/community" },
-	openGraph: { title: "Community | Clipify", url: "https://clipify.us/community" },
+	openGraph: { ...socialPreview, title: "Community | Clipify", url: "https://clipify.us/community" },
 };
 
 export const dynamic = "force-dynamic";

@@ -1,3 +1,4 @@
+import { socialPreview } from "@lib/socialPreview";
 import type { Metadata } from "next";
 import LegalDocumentLayout from "@components/legal/LegalDocumentLayout";
 import LegalSections from "@components/legal/LegalSections";
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
 	title: "Privacy Policy | Clipify",
 	description: "How Clipify processes and protects personal data.",
 	alternates: { canonical: "https://clipify.us/legal/privacy" },
-	openGraph: { url: "https://clipify.us/legal/privacy" },
+	openGraph: { ...socialPreview, url: "https://clipify.us/legal/privacy" },
 };
 
 export default function PrivacyPage() {

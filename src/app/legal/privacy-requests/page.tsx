@@ -1,3 +1,4 @@
+import { socialPreview } from "@lib/socialPreview";
 import type { Metadata } from "next";
 import LegalDocumentLayout from "@components/legal/LegalDocumentLayout";
 import { legalDocuments } from "@lib/legal/documents";
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
 	title: "Privacy Requests | Clipify",
 	description: "How to make a privacy request to Clipify and what to expect next.",
 	alternates: { canonical: "https://clipify.us/legal/privacy-requests" },
-	openGraph: { url: "https://clipify.us/legal/privacy-requests" },
+	openGraph: { ...socialPreview, url: "https://clipify.us/legal/privacy-requests" },
 };
 
 function titleCase(value: string) {

@@ -1,3 +1,4 @@
+import { socialPreview } from "@lib/socialPreview";
 import type { Metadata } from "next";
 import PricingFaq from "@components/Pricing/pricing-faq";
 
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
 	title: "Pricing | Clipify",
 	description: "Compare Clipify Free and Pro, including self-hosted Runner broadcasting with unlimited streaming hours.",
 	alternates: { canonical: "https://clipify.us/pricing" },
-	openGraph: { title: "Pricing | Clipify", url: "https://clipify.us/pricing" },
+	openGraph: { ...socialPreview, title: "Pricing | Clipify", url: "https://clipify.us/pricing" },
 };
 
 const pricingFaq = [

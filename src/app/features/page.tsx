@@ -1,3 +1,4 @@
+import { socialPreview } from "@lib/socialPreview";
 import PublicPageHeader from "@components/LandingPage/publicPageHeader";
 import { buttonVariants } from "@heroui/styles";
 import type { Metadata } from "next";
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
 	title: "Twitch Clip Playlists, OBS Overlays & Live Controls | Clipify",
 	description: "Explore Clipify's saved Twitch clip playlists, OBS browser-source overlays, Theme Studio, live playback controls, galleries, and self-hosted Runner.",
 	alternates: { canonical: "https://clipify.us/features" },
-	openGraph: { title: "Explore Clipify's Twitch streaming tools", description: "Choose your clips, build a break scene, and control playback with Clipify.", url: "https://clipify.us/features" },
+	openGraph: { ...socialPreview, title: "Explore Clipify's Twitch streaming tools", description: "Choose your clips, build a break scene, and control playback with Clipify.", url: "https://clipify.us/features" },
 };
 const features = [
 	{

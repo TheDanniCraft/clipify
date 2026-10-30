@@ -394,3 +394,9 @@ This supersedes the earlier 4:3 crop and asset-size entries above. Product asset
 The complete Theme Studio picker includes its hue, RGB, opacity and reset controls. An open popup naturally overlaps fields beneath it; neither its bounds nor the typography card is cropped. Narrow images are selected below 480 CSS pixels; wider layouts use the higher-resolution desktop captures. Static imports provide actual dimensions and content-hashed filenames. Images use natural height rather than object-cover framing; no live editor or new animation workload is mounted.
 
 The unchanged native playback image is 1664 × 936. The retained selection asset is 1800 × 1350 and is not currently used. All ten WebPs, including the unused retained asset, total 1,027,896 bytes. This is an image-quality correction, not a claim of improved Lighthouse performance. Offscreen images remain lazy-loaded.
+
+## Dedicated social artwork — 30 October 2026
+
+The OG image is now designed in [Clipify Assets in Penpot](https://penport.cloud.thedannicraft.de/#/workspace?team-id=a0f8e0b8-835f-81d8-8008-b162b281549e&file-id=61024453-0cbc-8004-8008-deb071224a07&page-id=61024453-0cbc-8004-8008-deb071224a08), board `0a7bea9f-35ee-8086-8008-deb0eefa0329`. The 1200×630 PNG export replaces the homepage screenshot. Branding, typography, gradient, grid and product-image layers remain editable in that file; the playback and playlist captures are existing actual product assets. No generated imagery or website navigation is included.
+
+Public-route metadata shares a static image import, giving social crawlers a content-hashed image URL and explicit dimensions/alt text. Creator and member pages retain their individual cards. The existing `/og-image.png` URL remains available. Browser checks cover OG/Twitter tags and image delivery across the seven main public pages.

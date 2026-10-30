@@ -1,3 +1,4 @@
+import { socialPreview } from "@lib/socialPreview";
 import { connection } from "next/server";
 import { getDemoGalleryClips } from "@actions/gallery";
 import PublicPageHeader from "@components/LandingPage/publicPageHeader";
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
 	title: "Twitch Clip Galleries for Your Website | Clipify",
 	description: "Curate Twitch highlights in a public Clipify gallery or embed a clip collection on your own website.",
 	alternates: { canonical: "https://clipify.us/gallery" },
-	openGraph: { title: "Twitch Clip Galleries | Clipify", description: "Curate and share Twitch highlights in a gallery.", url: "https://clipify.us/gallery" },
+	openGraph: { ...socialPreview, title: "Twitch Clip Galleries | Clipify", description: "Curate and share Twitch highlights in a gallery.", url: "https://clipify.us/gallery" },
 };
 
 export default async function GalleryLandingPage() {

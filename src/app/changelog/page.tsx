@@ -1,3 +1,4 @@
+import { socialPreview } from "@lib/socialPreview";
 import PublicPageHeader from "@components/LandingPage/publicPageHeader";
 import Footer from "@components/footer";
 import BasicNavbar from "@components/LandingPage/basicNavbar";
@@ -9,7 +10,7 @@ export const metadata = {
 	title: "Changelog | Clipify",
 	description: "See the latest Clipify releases and improvements to Twitch clip playback, overlays, and creator tools.",
 	alternates: { canonical: "https://clipify.us/changelog" },
-	openGraph: { title: "Changelog | Clipify", description: "See the latest Clipify releases and improvements to Twitch clip playback, overlays, and creator tools.", url: "https://clipify.us/changelog" },
+	openGraph: { ...socialPreview, title: "Changelog | Clipify", description: "See the latest Clipify releases and improvements to Twitch clip playback, overlays, and creator tools.", url: "https://clipify.us/changelog" },
 };
 
 export default async function ChangelogPage() {

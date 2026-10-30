@@ -1,3 +1,4 @@
+import { socialPreview } from "@lib/socialPreview";
 import { connection } from "next/server";
 import RoadmapIcon from "@components/roadmap/roadmapIcon";
 import PublicPageHeader from "@components/LandingPage/publicPageHeader";
@@ -10,7 +11,7 @@ export const metadata = {
 	title: "Roadmap | Clipify",
 	description: "Explore current and upcoming Clipify improvements for Twitch creators.",
 	alternates: { canonical: "https://clipify.us/roadmap" },
-	openGraph: { title: "Roadmap | Clipify", description: "Explore current and upcoming Clipify improvements for Twitch creators.", url: "https://clipify.us/roadmap" },
+	openGraph: { ...socialPreview, title: "Roadmap | Clipify", description: "Explore current and upcoming Clipify improvements for Twitch creators.", url: "https://clipify.us/roadmap" },
 };
 
 export default async function RoadmapPage() {

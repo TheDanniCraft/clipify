@@ -1,3 +1,4 @@
+import { socialPreview } from "@lib/socialPreview";
 import type { Metadata } from "next";
 import { Link } from "@components/heroui-client";
 import ErrorToast from "@components/errorToast";
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
 	title: "Sign in with Twitch | Clipify",
 	description: "Connect your Twitch account to manage Clipify playlists and OBS overlays.",
 	alternates: { canonical: "https://clipify.us/login" },
-	openGraph: { title: "Sign in with Twitch | Clipify", url: "https://clipify.us/login" },
+	openGraph: { ...socialPreview, title: "Sign in with Twitch | Clipify", url: "https://clipify.us/login" },
 	robots: { index: false, follow: false },
 };
 
