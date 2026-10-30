@@ -9,7 +9,7 @@ it("proxies only native public collection, recorder configuration and randomized
 	const rewrites = await resolved.rewrites!();
 	expect(Array.isArray(rewrites)).toBe(true);
 	if (!Array.isArray(rewrites)) throw new Error("Expected exact rewrites");
-	expect(rewrites.filter((row) => row.source.startsWith("/statistics/")).map((row) => row.destination)).toEqual(["https://umami.cloud.thedannicraft.de/api/send", "https://umami.cloud.thedannicraft.de/api/record", "https://umami.cloud.thedannicraft.de/api/websites/cc971acc-716d-4056-a79c-3cfda9fb8e1d/recorder"]);
+	expect(rewrites.filter((row) => row.source.startsWith("/statistics/")).map((row) => row.destination)).toEqual(["https://umami.cloud.thedannicraft.de/api/send", "https://umami.cloud.thedannicraft.de/api/record", "https://umami.cloud.thedannicraft.de/api/websites/:websiteId/recorder"]);
 	expect(rewrites.filter((row) => row.source.startsWith("/js/")).every((row) => /^\/js\/bundle_[a-f0-9]{16}\.js$/.test(row.source))).toBe(true);
 });
 

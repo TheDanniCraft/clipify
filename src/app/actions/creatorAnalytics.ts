@@ -1,5 +1,7 @@
 "use server";
 
+import { umamiWebsiteId } from "@/server/umami";
+import { resolveBaseUrl } from "@/app/lib/baseUrl";
 import { db } from "@/db/client";
 import { plausibleStatsCacheTable, usersTable } from "@/db/schema";
 import { resolveUserEntitlements } from "@lib/entitlements";
@@ -37,7 +39,7 @@ async function ownerForActor(ownerId: string, permission: "analytics:read" | "an
 async function loadCreatorAnalytics(owner: typeof usersTable.$inferSelect, range?: CreatorAnalyticsRange | null): Promise<(CreatorAnalyticsData & { stale: boolean; fetchedAt: string }) | null> {
 	const today = new Date().toISOString().slice(0, 10);
 	const dateRange = normalizedRange(range) ?? { end: today, start: new Date(Date.parse(`${today}T00:00:00Z`) - 29 * 86400000).toISOString().slice(0, 10) };
-	const cacheKey = `umami-v1:${owner.username}:${dateRange.start}:${dateRange.end}`;
+	const cacheKey = `umami-v1:${umamiWebsiteId()}:${resolveBaseUrl().hostname}:${owner.username}:${dateRange.start}:${dateRange.end}`;
 	const cacheRows = await db
 		.select()
 		.from(plausibleStatsCacheTable)

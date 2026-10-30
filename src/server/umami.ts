@@ -10,11 +10,12 @@ import type { RequestConsentState } from "@c15t/core/server";
 
 type EventData = Record<string, string | number | boolean | null | undefined>;
 const baseUrl = () => (process.env.UMAMI_BASE_URL || "https://umami.cloud.thedannicraft.de").replace(/\/$/, "");
-export const umamiWebsiteId = () => process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID || "cc971acc-716d-4056-a79c-3cfda9fb8e1d";
+export const umamiWebsiteId = () => process.env.UMAMI_WEBSITE_ID || "";
 
 export async function queryUmami<T>(endpoint: string, parameters: Record<string, string | number>) {
 	const key = process.env.UMAMI_API_KEY;
 	if (!key) throw new Error("UMAMI_API_KEY is not configured");
+	if (!umamiWebsiteId()) throw new Error("UMAMI_WEBSITE_ID is not configured");
 	const query = new URLSearchParams(Object.entries(parameters).map(([name, value]) => [name, String(value)]));
 	const started = Date.now();
 	const response = await fetch(`${baseUrl()}/api/websites/${umamiWebsiteId()}${endpoint}?${query}`, { headers: { Authorization: `Bearer ${key}` }, cache: "no-store", signal: AbortSignal.timeout(10000) });
@@ -26,6 +27,7 @@ export async function queryUmami<T>(endpoint: string, parameters: Record<string,
 
 /** Official native ingestion at the outcome owner, never a frontend event relay. */
 export async function sendServerProductEvent(authUserId: string, name: string, data: EventData, requestState?: RequestConsentState) {
+	if (process.env.E2E_TEST_MODE === "true" || !umamiWebsiteId()) return;
 	try {
 		const { readAnalyticsConsent, linkRequestAnalyticsSubject } = await import("./analytics-consent");
 		if (requestState && !(await linkRequestAnalyticsSubject(authUserId, requestState))) return;
@@ -34,7 +36,7 @@ export async function sendServerProductEvent(authUserId: string, name: string, d
 			method: "POST",
 			// No browser agent exists for a verified background outcome.
 			headers: { "Content-Type": "application/json", "User-Agent": "" },
-			body: JSON.stringify({ type: "event", payload: { website: umamiWebsiteId(), hostname: "clipify.us", url: "/dashboard", id: authUserId, name, tag: "server", data } }),
+			body: JSON.stringify({ type: "event", payload: { website: umamiWebsiteId(), hostname: resolveBaseUrl().hostname, url: "/dashboard", id: authUserId, name, tag: "server", data } }),
 			signal: AbortSignal.timeout(2000),
 		});
 	} catch {
@@ -43,7 +45,7 @@ export async function sendServerProductEvent(authUserId: string, name: string, d
 }
 
 export function trackServerProductEvent(authUserId: string, name: string, data: EventData) {
-	if (typeof authUserId !== "string" || !authUserId || resolveBaseUrl().hostname !== "clipify.us") return;
+	if (typeof authUserId !== "string" || !authUserId || process.env.E2E_TEST_MODE === "true" || !umamiWebsiteId()) return;
 	try {
 		after(async () => sendServerProductEvent(authUserId, name, data, await requestState));
 		const requestState = import("./analytics-consent").then(({ readRequestAnalyticsState }) => readRequestAnalyticsState()).catch(() => undefined);
@@ -53,7 +55,7 @@ export function trackServerProductEvent(authUserId: string, name: string, data: 
 }
 
 export function trackCommittedCreatorOutcome(creatorId: string, outcomeId: string, name: string, data: EventData) {
-	if (resolveBaseUrl().hostname !== "clipify.us") return;
+	if (process.env.E2E_TEST_MODE === "true" || !umamiWebsiteId()) return;
 	try {
 		after(async () => {
 			try {
@@ -74,7 +76,7 @@ export function trackCommittedCreatorOutcome(creatorId: string, outcomeId: strin
 
 /** Transaction-owned audit IDs prevent optional events for rolled-back work. */
 export function trackCommittedProductEvent(authUserId: string, auditId: string, name: string, data: EventData) {
-	if (typeof authUserId !== "string" || !authUserId || resolveBaseUrl().hostname !== "clipify.us") return;
+	if (typeof authUserId !== "string" || !authUserId || process.env.E2E_TEST_MODE === "true" || !umamiWebsiteId()) return;
 	try {
 		after(async () => {
 			try {

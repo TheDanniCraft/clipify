@@ -9,7 +9,6 @@ const drizzle = nodeFileTrace([require.resolve("drizzle-kit"), require.resolve("
 const umamiTrackerName = `bundle_${crypto.randomBytes(8).toString("hex")}.js`;
 const umamiRecorderName = `bundle_${crypto.randomBytes(8).toString("hex")}.js`;
 const umamiBaseUrl = process.env.UMAMI_BASE_URL || "https://umami.cloud.thedannicraft.de";
-const umamiWebsiteId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID || "cc971acc-716d-4056-a79c-3cfda9fb8e1d";
 const deploymentId = toDeploymentId(process.env.SOURCE_COMMIT) || toDeploymentId(process.env.SENTRY_RELEASE) || undefined;
 const replayContentSecurityPolicy = (frameAncestors: string) => `frame-ancestors ${frameAncestors}; frame-src 'self' https://challenges.cloudflare.com https://chat.cloud.thedannicraft.de; worker-src 'self' blob:; child-src 'self' blob:;`;
 
@@ -32,7 +31,7 @@ const nextConfigPromise = Promise.resolve(drizzle).then(
 					{ source: `/js/${umamiRecorderName}`, destination: `${umamiBaseUrl}/recorder.js` },
 					{ source: "/statistics/api/send", destination: `${umamiBaseUrl}/api/send` },
 					{ source: "/statistics/api/record", destination: `${umamiBaseUrl}/api/record` },
-					{ source: `/statistics/api/websites/${umamiWebsiteId}/recorder`, destination: `${umamiBaseUrl}/api/websites/${umamiWebsiteId}/recorder` },
+					{ source: "/statistics/api/websites/:websiteId/recorder", destination: `${umamiBaseUrl}/api/websites/:websiteId/recorder` },
 				];
 			},
 			async headers() {
@@ -98,7 +97,6 @@ export default nextConfigPromise.then((resolvedConfig) => {
 			SENTRY_RELEASE: process.env.SENTRY_RELEASE ?? "",
 			IS_PREVIEW: process.env.IS_PREVIEW === "true" ? "true" : "false",
 			E2E_TEST_MODE: process.env.E2E_TEST_MODE === "true" ? "true" : "false",
-			NEXT_PUBLIC_UMAMI_WEBSITE_ID: umamiWebsiteId,
 			NEXT_PUBLIC_UMAMI_TRACKER_PATH: `/js/${umamiTrackerName}`,
 			NEXT_PUBLIC_UMAMI_RECORDER_PATH: `/js/${umamiRecorderName}`,
 		},

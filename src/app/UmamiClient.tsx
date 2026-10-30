@@ -16,9 +16,7 @@ function canRecordHeatmap(rawUrl: string) {
 	return heatmapRoutes.has(url.pathname) && [...url.searchParams.keys()].every((key) => /^utm_(?:source|medium|campaign|content|term)$/.test(key));
 }
 
-const websiteId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID || "cc971acc-716d-4056-a79c-3cfda9fb8e1d";
-
-export default function UmamiClient() {
+export default function UmamiClient({ websiteId }: { websiteId: string }) {
 	const measurement = useConsent("measurement");
 	const identifyConsent = useIdentify();
 	const { policyPending } = useSnapshot();
@@ -29,7 +27,7 @@ export default function UmamiClient() {
 	const previousMeasurement = useRef(measurement);
 	const identified = useRef<string | null>(null);
 	const identifiedContext = useRef<string | null>(null);
-	const enabled = process.env.E2E_TEST_MODE !== "true" && !policyPending;
+	const enabled = process.env.E2E_TEST_MODE !== "true" && !policyPending && Boolean(websiteId);
 	const recorderEligible = measurement && ready && heatmapRoutes.has(pathname) && canRecordHeatmap(window.location.href);
 	const resetIdentity = hasIdentifiedSession && !measurement;
 
@@ -98,7 +96,7 @@ export default function UmamiClient() {
 	if (!enabled) return null;
 	return (
 		<>
-			<Script id='clipify-analytics' src={process.env.NEXT_PUBLIC_UMAMI_TRACKER_PATH || "/statistics/script.js"} data-website-id={websiteId} data-host-url='/statistics' data-domains='clipify.us' data-before-send='clipifyBeforeUmamiSend' data-performance={measurement ? "true" : "false"} onReady={() => setReady(true)} />
+			<Script id='clipify-analytics' src={process.env.NEXT_PUBLIC_UMAMI_TRACKER_PATH || "/statistics/script.js"} data-website-id={websiteId} data-host-url='/statistics' data-before-send='clipifyBeforeUmamiSend' data-performance={measurement ? "true" : "false"} onReady={() => setReady(true)} />
 			{recorderEligible ? <Script id='clipify-heatmaps' src={process.env.NEXT_PUBLIC_UMAMI_RECORDER_PATH || "/statistics/recorder.js"} data-website-id={websiteId} data-host-url='/statistics' onReady={() => setRecorderLoaded(true)} /> : null}
 		</>
 	);

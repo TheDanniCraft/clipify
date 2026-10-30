@@ -4,6 +4,7 @@ const query = jest.fn();
 jest.mock("@/server/umami", () => ({ queryUmami: (...args: unknown[]) => query(...args) }));
 
 beforeEach(() => {
+	process.env.NEXT_PUBLIC_BASE_URL = "https://clipify.us";
 	query.mockImplementation(async (endpoint: string, params: Record<string, string>) => {
 		if (endpoint === "/stats") return { pageviews: 10, visitors: 4, visits: 5, bounces: 2, totaltime: 200 };
 		if (endpoint === "/pageviews") return { pageviews: [{ x: "2026-10-01", y: 10 }], sessions: [{ x: "2026-10-01", y: 5 }] };
@@ -25,4 +26,11 @@ it("preserves real visitors/visits and engagement metrics instead of substitutin
 it("does not turn invalid native metrics into plausible-looking zero reports", async () => {
 	query.mockResolvedValue({ error: "invalid" });
 	await expect(getUmamiCreatorAnalytics("creator", { start: "2026-10-01", end: "2026-10-02" })).rejects.toThrow();
+});
+
+it("filters preview reports by the actual hostname", async () => {
+	process.env.NEXT_PUBLIC_BASE_URL = "https://beta-533.clipify.cloud.thedannicraft.de";
+	query.mockClear();
+	await getUmamiCreatorAnalytics("creator", { start: "2026-10-01", end: "2026-10-02" });
+	for (const [, params] of query.mock.calls) expect(params.hostname).toBe("eq.beta-533.clipify.cloud.thedannicraft.de");
 });

@@ -38,6 +38,7 @@ describe("creator analytics exports", () => {
 		jest.clearAllMocks();
 		selectRows.length = 0;
 		process.env.UMAMI_API_KEY = "test-key";
+		process.env.UMAMI_WEBSITE_ID = "cc971acc-716d-4056-a79c-3cfda9fb8e1d";
 		validateAuth.mockResolvedValue({ id: "owner", username: "Alice" });
 		resolveUserEntitlements.mockResolvedValue({ effectivePlan: "pro" });
 		getFeatureAccess.mockReturnValue({ allowed: true });
