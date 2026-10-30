@@ -20,6 +20,26 @@ Given("a visitor is viewing Clipify's public pricing", async ({ page }) => {
 });
 
 When("they open the Pro setup dialog", async ({ page }) => {
+	// Supply only the external Stripe catalog; keep the real page, hydration and checkout controls.
+	let catalogApplied = false;
+	await page.route("**/pricing", async (route) => {
+		const response = await route.fetch();
+		let body = await response.text();
+		for (const [cycle, amount] of [
+			["monthly", 2],
+			["yearly", 20],
+		] as const) {
+			const missing = { priceId: "", productId: null, amount: null, currency: "EUR", formatted: "Unavailable" };
+			const price = { ...missing, priceId: `price_fixture_pro_${cycle}`, productId: "prod_fixture_pro", amount, formatted: `€${amount}.00` };
+			const old = JSON.stringify(`${JSON.stringify(cycle)}:${JSON.stringify(missing)}`).slice(1, -1);
+			const replacement = JSON.stringify(`${JSON.stringify(cycle)}:${JSON.stringify(price)}`).slice(1, -1);
+			if (body.includes(old)) catalogApplied = true;
+			body = body.replaceAll(old, replacement);
+		}
+		await route.fulfill({ response, body });
+	});
+	await page.reload();
+	expect(catalogApplied).toBe(true);
 	await page.getByRole("button", { name: "Get Pro", exact: true }).first().click();
 	await expect(page.getByRole("dialog", { name: "Complete your Pro setup", exact: true })).toBeVisible();
 });
@@ -125,8 +145,9 @@ Then("pricing, features and served reference documents agree on the two included
 		expect(text).toMatch(/unlimited streaming hours/i);
 		expect(text).not.toMatch(/Runner access is a separate optional product|Pro and Runner prices|separate Runner access/);
 	}
-	await page.goto("http://127.0.0.1:3107/#features");
-	await expect(page.getByRole("heading", { name: "Self-hosted Runner", level: 3, exact: true })).toBeVisible();
+	await page.goto("http://127.0.0.1:3107/features#runner");
+	await expect(page.locator("#runner")).toContainText("Self-hosted Runner");
+	await expect(page.locator("#runner")).toContainText("manual broadcasting included on Free");
 	await expect(page.locator("body")).not.toContainText("3 EUR per month or 30 EUR per year");
 	await expect(page.getByRole("heading", { name: "Self-hosted Runner add-on", exact: true })).toHaveCount(0);
 	await expect(page.locator('a[href*="runner=true"],a[href*="addon=runner"]')).toHaveCount(0);
@@ -135,7 +156,7 @@ Then("pricing, features and served reference documents agree on the two included
 	await expect(page.getByText("Runner and broadcasting", { exact: true }).last()).toBeVisible();
 	await page.screenshot({ path: "specs/004-runner-free-pro/tdd/evidence/C1-pricing-desktop.png", fullPage: true });
 	await page.setViewportSize({ width: 390, height: 844 });
-	const group = page.getByRole("button", { name: "Runner and broadcasting", exact: true });
+	const group = page.getByRole("table", { name: "Compare Free and Pro", exact: true }).getByText("Runner and broadcasting", { exact: true });
 	await expect(group).toBeVisible();
 	await expect(page.getByText("Streaming hours", { exact: true }).first()).toBeVisible();
 	const overflow = await page.evaluate(() => ({
