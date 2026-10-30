@@ -1,17 +1,8 @@
 import { trackPaywallEvent } from "@/app/lib/paywallTracking";
+import { trackEvent } from "@/app/lib/analytics";
+jest.mock("@/app/lib/analytics", () => ({ trackEvent: jest.fn() }));
 
-describe("lib/paywallTracking", () => {
-	it("forwards event name and props to plausible", () => {
-		const plausible = jest.fn();
-
-		trackPaywallEvent(plausible, "checkout_start", { source: "pricing", value: 1 });
-
-		expect(plausible).toHaveBeenCalledWith("checkout_start", { props: { source: "pricing", value: 1 } });
-	});
-
-	it("forwards undefined props shape when omitted", () => {
-		const plausible = jest.fn();
-		trackPaywallEvent(plausible, "paywall_impression");
-		expect(plausible).toHaveBeenCalledWith("paywall_impression", { props: undefined });
-	});
+it("preserves the existing aggregate paywall event and context through native tracking", () => {
+	trackPaywallEvent("checkout_start", { source: "pricing", value: 1 });
+	expect(trackEvent).toHaveBeenCalledWith("checkout_start", { source: "pricing", value: 1 });
 });

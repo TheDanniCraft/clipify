@@ -2,6 +2,10 @@
 jest.mock("@/server/product-outcomes", () => ({ recordProductOutcome: jest.fn().mockResolvedValue(undefined) }));
 export {};
 
+const analyticsAllowed = jest.fn();
+const analyticsPrincipal = jest.fn();
+jest.mock("@/auth/session-principal", () => ({ getVerifiedSessionPrincipal: (...args: unknown[]) => analyticsPrincipal(...args) }));
+jest.mock("@/server/analytics-consent", () => ({ readAnalyticsConsent: (...args: unknown[]) => analyticsAllowed(...args) }));
 const stripeCtor = jest.fn();
 const subscriptionsList = jest.fn();
 const subscriptionsUpdate = jest.fn();
@@ -100,6 +104,8 @@ async function loadSubscription() {
 
 describe("actions/subscription", () => {
 	beforeEach(() => {
+		analyticsAllowed.mockResolvedValue(false);
+		analyticsPrincipal.mockResolvedValue({ authUserId: "verified-actor" });
 		jest.clearAllMocks();
 		process.env.STRIPE_SECRET_KEY = "sk_test_123";
 		getBaseUrl.mockResolvedValue(new URL("https://clipify.us"));
@@ -164,6 +170,25 @@ describe("actions/subscription", () => {
 			data: [{ status: "canceled" }, { status: "active" }],
 		});
 		await expect(checkIfSubscriptionExists()).resolves.toBe(true);
+	});
+
+	it.each([false, true])("includes the recognized feature in Stripe metadata only with current consent: %s", async (allowed) => {
+		analyticsAllowed.mockResolvedValue(allowed);
+		validateAuth.mockResolvedValue({ id: "user-1", email: "alice@example.com", stripeCustomerId: "cus_analytics" });
+		checkoutCreate.mockResolvedValue({ id: "cs_feature", url: "https://checkout.stripe.test/feature" });
+		const { generateCheckout } = await loadSubscription();
+		await generateCheckout(["pro" as never], "monthly", undefined, undefined, "upgrade_modal", { analyticsFeature: "theme_studio" });
+		const params = checkoutCreate.mock.calls[0][0];
+		expect(params.metadata.analyticsFeature).toBe(allowed ? "theme_studio" : undefined);
+		expect(params.subscription_data.metadata.analyticsFeature).toBe(allowed ? "theme_studio" : undefined);
+	});
+	it("continues checkout if optional analytics identity lookup fails", async () => {
+		analyticsPrincipal.mockRejectedValue(new Error("optional authority unavailable"));
+		validateAuth.mockResolvedValue({ id: "user-1", email: "alice@example.com", stripeCustomerId: "cus_analytics" });
+		checkoutCreate.mockResolvedValue({ id: "cs_feature", url: "https://checkout.stripe.test/feature" });
+		const { generateCheckout } = await loadSubscription();
+		await expect(generateCheckout(["pro" as never], "monthly", undefined, undefined, "upgrade_modal", { analyticsFeature: "theme_studio" })).resolves.toBe("https://checkout.stripe.test/feature");
+		expect(checkoutCreate.mock.calls[0][0].metadata).not.toHaveProperty("analyticsFeature");
 	});
 
 	it("creates a checkout session and persists customer id when needed", async () => {

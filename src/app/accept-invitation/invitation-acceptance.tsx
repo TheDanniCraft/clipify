@@ -1,4 +1,5 @@
 "use client";
+import { trackProductEvent } from "@lib/analytics";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -67,6 +68,7 @@ export default function InvitationAcceptance({ invitation }: { invitation: Invit
 			setPending(null);
 			return addToast({ title: "Invitation could not be accepted", description: accepted.error.message, color: "danger" });
 		}
+		trackProductEvent("collaboration_accepted", { organization_type: activeInvitation.isAgency ? "agency" : "creator" });
 		const activation = await fetch("/api/agencies/activate", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ organizationId: activeInvitation.organizationId }) });
 		if (!activation.ok) {
 			addToast({ title: "Invitation accepted", description: "Your account will finish activating when the dashboard opens.", color: "warning" });

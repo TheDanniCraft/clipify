@@ -14,7 +14,7 @@ import { useTheme } from "next-themes";
 import axios from "axios";
 import { getPublicCommunityFooterTeaserAction } from "@actions/community";
 import { getEmailProvider, subscribeToNewsletter } from "@actions/newsletter";
-import { usePlausible } from "next-plausible";
+import { trackEvent } from "@lib/analytics";
 import { isRatelimitError } from "@actions/rateLimit";
 import type { CommunityTeaserPayload } from "@lib/community-types";
 import { footerNavigation } from "@lib/footerNavigation";
@@ -27,7 +27,7 @@ export default function Footer() {
 	const [statusColor, setStatusColor] = useState("#ffffff");
 	const [statusText, setStatusText] = useState(isE2ETestMode ? "Test environment" : "Loading...");
 	const [footerCommunityPreview, setFooterCommunityPreview] = useState<CommunityTeaserPayload | null>(null);
-	const plausible = usePlausible();
+
 	const [newsletterState, setNewsletterState] = useState("default");
 	const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
 	const [isSuccessOpen, setIsSuccessOpen] = useState(false);
@@ -203,16 +203,14 @@ export default function Footer() {
 				setIsDetailsExpanded(false);
 				setIsSuccessOpen(true);
 
-				plausible("Newsletter Subscription", {
-					props: {
-						emailType: await getEmailProvider(pendingEmail),
-					},
+				trackEvent("Newsletter Subscription", {
+					emailType: await getEmailProvider(pendingEmail),
 				});
 			} catch {
 				setNewsletterState("error");
 			}
 		},
-		[firstName, pendingEmail, plausible, token],
+		[firstName, pendingEmail, token],
 	);
 
 	const handleNewsletterSubmit = useCallback(

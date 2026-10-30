@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePlausible } from "next-plausible";
+import { trackEvent } from "@lib/analytics";
 
 import type { CampaignOffer } from "@types";
 import BasicNavbar from "@components/LandingPage/basicNavbar";
@@ -42,7 +42,6 @@ type HomePageClientProps = {
 };
 
 export default function HomePageClient({ campaignOffer, pricing }: HomePageClientProps) {
-	const plausible = usePlausible();
 	const campaignOfferHref = campaignOffer ? buildCampaignOfferHref(campaignOffer.ctaHref, campaignOffer.utmCampaign) : null;
 	const floatingCtaLabel = campaignOffer?.floatingCtaLabel ?? campaignOffer?.ctaLabel;
 	const floatingTitle = campaignOffer?.floatingTitle ?? campaignOffer?.badgeText ?? campaignOffer?.title;
@@ -97,7 +96,7 @@ export default function HomePageClient({ campaignOffer, pricing }: HomePageClien
 								</h1>
 								<p className='mt-6 max-w-lg text-base leading-relaxed text-violet-100 sm:text-lg'>Turn your Twitch highlights into a BRB or Starting Soon screen. Choose your clips, save your overlay, and add it as a browser source in OBS.</p>
 								<div className='mt-8 flex flex-wrap gap-3'>
-									<Link href='/login' onPress={() => plausible("marketing_cta_click", { props: { placement: "hero", action: "start_free" } })} className={buttonVariants({ variant: "primary", size: "lg", className: "gap-2 bg-white text-violet-950 hover:bg-violet-100" })}>
+									<Link href='/login' onPress={() => trackEvent("marketing_cta_click", { placement: "hero", action: "start_free" })} className={buttonVariants({ variant: "primary", size: "lg", className: "gap-2 bg-white text-violet-950 hover:bg-violet-100" })}>
 										<IconBrandTwitch size={19} />
 										Start free with Twitch
 										<IconArrowRight size={18} />
@@ -306,7 +305,7 @@ export default function HomePageClient({ campaignOffer, pricing }: HomePageClien
 							Step away. Keep the highlights rolling.
 						</h2>
 						<p className='mx-auto mb-7 mt-4 max-w-lg text-base leading-relaxed text-violet-100'>Build a break screen with the clips that make your channel yours.</p>
-						<Link href='/login' onPress={() => plausible("marketing_cta_click", { props: { placement: "final", action: "start_free" } })} className={buttonVariants({ variant: "primary", size: "lg", className: "gap-2 bg-white text-violet-950 hover:bg-violet-100" })}>
+						<Link href='/login' onPress={() => trackEvent("marketing_cta_click", { placement: "final", action: "start_free" })} className={buttonVariants({ variant: "primary", size: "lg", className: "gap-2 bg-white text-violet-950 hover:bg-violet-100" })}>
 							<IconBrandTwitch size={19} />
 							Start free with Twitch
 							<IconArrowRight size={18} />

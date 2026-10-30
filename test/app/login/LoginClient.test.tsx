@@ -4,7 +4,7 @@ import { authClient } from "@/auth/client";
 import LoginClient from "@/app/login/LoginClient";
 
 const plausible = jest.fn();
-jest.mock("next-plausible", () => ({ usePlausible: () => plausible }));
+jest.mock("@lib/analytics", () => ({ trackEvent: (...args: unknown[]) => plausible(...args), trackProductEvent: jest.fn() }));
 
 jest.mock("@/auth/client", () => ({
 	authClient: { signIn: { social: jest.fn() } },
@@ -80,7 +80,7 @@ it("records deliberate authentication intent without signed return URLs or ident
 	render(<LoginClient returnUrl='/checkout/continue' />);
 	expect(plausible).not.toHaveBeenCalled();
 	fireEvent.click(screen.getByRole("button", { name: "Login with Twitch" }));
-	await waitFor(() => expect(plausible).toHaveBeenCalledWith("auth_started", { props: { provider: "twitch", source: "checkout" } }));
+	await waitFor(() => expect(plausible).toHaveBeenCalledWith("auth_started", { provider: "twitch", source: "checkout" }));
 	expect(plausible).toHaveBeenCalledTimes(1);
 });
 

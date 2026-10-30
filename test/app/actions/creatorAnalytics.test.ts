@@ -32,20 +32,24 @@ jest.mock("@lib/featureAccess", () => ({ getFeatureAccess: (...args: unknown[]) 
 jest.mock("@/auth/authorize-operation", () => ({ authorizeCreatorOperation: (input: { creatorId: string }) => authorizeCreatorOperation(input), listAuthorizedCreatorOperations: jest.fn() }));
 
 describe("creator analytics exports", () => {
-	const previousApiKey = process.env.PLAUSIBLE_API_KEY;
+	const previousApiKey = process.env.UMAMI_API_KEY;
 
 	beforeEach(() => {
 		jest.clearAllMocks();
 		selectRows.length = 0;
-		process.env.PLAUSIBLE_API_KEY = "test-key";
+		process.env.UMAMI_API_KEY = "test-key";
 		validateAuth.mockResolvedValue({ id: "owner", username: "Alice" });
 		resolveUserEntitlements.mockResolvedValue({ effectivePlan: "pro" });
 		getFeatureAccess.mockReturnValue({ allowed: true });
-		global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ results: [], meta: { time_labels: [] } }) });
+		global.fetch = jest.fn().mockImplementation(async (input: string) => {
+			const url = new URL(input);
+			const payload = url.pathname.endsWith("/stats") && !url.pathname.endsWith("/events/stats") ? { pageviews: 0, visitors: 0, visits: 0, bounces: 0, totaltime: 0 } : url.pathname.endsWith("/pageviews") ? { pageviews: [], sessions: [] } : url.pathname.endsWith("/numeric-stats") ? { total: 0 } : url.pathname.endsWith("/events/stats") ? { data: { events: 0, visits: 0 } } : [];
+			return { ok: true, status: 200, json: async () => payload };
+		});
 	});
 
 	afterAll(() => {
-		process.env.PLAUSIBLE_API_KEY = previousApiKey;
+		process.env.UMAMI_API_KEY = previousApiKey;
 	});
 
 	it("creates every selected CSV from one analytics refresh", async () => {
@@ -54,7 +58,7 @@ describe("creator analytics exports", () => {
 		const result = await exportCreatorAnalyticsBundle({ ownerId: "owner", range: { start: "2026-08-01", end: "2026-08-02" }, datasets: ["daily", "locations", "daily"] });
 		expect(result).toHaveLength(2);
 		expect(result?.map((entry) => entry.filename)).toEqual(["clipify-Alice-daily-2026-08-01_2026-08-02.csv", "clipify-Alice-locations-2026-08-01_2026-08-02.csv"]);
-		expect(global.fetch).toHaveBeenCalledTimes(7);
+		expect(global.fetch).toHaveBeenCalledTimes(19);
 		expect(dbInsert).toHaveBeenCalledTimes(1);
 	});
 
@@ -75,7 +79,7 @@ describe("creator analytics exports", () => {
 
 		expect(result).not.toBeNull();
 		expect(resolveUserEntitlements).toHaveBeenCalledWith(expect.objectContaining({ id: "managed" }));
-		expect(global.fetch).toHaveBeenCalledTimes(7);
+		expect(global.fetch).toHaveBeenCalledTimes(19);
 	});
 
 	it("does not expose analytics for a creator the actor does not manage", async () => {

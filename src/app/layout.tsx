@@ -3,7 +3,6 @@ import "./globals.css";
 import { Providers } from "./providers";
 import ThemeProvider from "./theme-provider";
 import { getBaseUrl } from "@actions/utils";
-import PlausibleClient from "./PlausibleClient";
 import ConsentManager from "./components/ConsentManager";
 import RuntimeDeploymentReload from "./components/RuntimeDeploymentReload";
 import { getDeploymentId } from "./lib/deployment";
@@ -46,11 +45,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 			<body className='min-h-screen bg-background text-foreground' suppressHydrationWarning>
 				<RuntimeDeploymentReload deploymentId={getDeploymentId()} />
 				<ConsentManager>
-					<PlausibleClient>
-						<ThemeProvider>
-							<Providers>{children}</Providers>
-						</ThemeProvider>
-					</PlausibleClient>
+					<ThemeProvider>
+						<Providers>{children}</Providers>
+					</ThemeProvider>
 				</ConsentManager>
 			</body>
 		</html>

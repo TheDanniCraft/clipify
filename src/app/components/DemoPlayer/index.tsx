@@ -4,13 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { Button, Spinner } from "@heroui/react";
 import Image from "next/image";
 import landingPlayback from "../../../../public/landing-playback.png";
-import { usePlausible } from "next-plausible";
+import { trackEvent, trackProductEvent } from "@lib/analytics";
 import { IconPlayerPlayFilled, IconPlayerPause, IconRefresh, IconVolumeOff, IconPlayerSkipForward } from "@tabler/icons-react";
 
 type DemoStatus = "idle" | "loading" | "playing" | "paused" | "error";
 
 export default function DemoPlayer() {
-	const plausible = usePlausible();
 	const containerRef = useRef<HTMLDivElement>(null);
 	const iframeRef = useRef<HTMLIFrameElement>(null);
 	const documentCleanup = useRef<(() => void) | null>(null);
@@ -47,6 +46,10 @@ export default function DemoPlayer() {
 		[active],
 	);
 
+	useEffect(() => {
+		if (status === "error") trackProductEvent("demo_failed", { placement: "hero" });
+	}, [status]);
+
 	const onPlayerLoad = () => {
 		documentCleanup.current?.();
 		const playerDocument = iframeRef.current?.contentDocument;
@@ -54,7 +57,14 @@ export default function DemoPlayer() {
 			setStatus("error");
 			return;
 		}
-		const onPlaying = () => setStatus("playing");
+		let tracked = false;
+		const onPlaying = () => {
+			if (!tracked) {
+				tracked = true;
+				trackProductEvent("demo_playing", { placement: "hero" });
+			}
+			setStatus("playing");
+		};
 		playerDocument.addEventListener("playing", onPlaying, true);
 		documentCleanup.current = () => playerDocument.removeEventListener("playing", onPlaying, true);
 		if (Array.from(playerDocument.querySelectorAll("video")).some((video) => !video.paused && video.readyState >= 2)) onPlaying();
@@ -89,7 +99,7 @@ export default function DemoPlayer() {
 										variant='primary'
 										size='lg'
 										onPress={() => {
-											plausible("demo_requested", { props: { placement: "hero", action: status === "idle" ? "start" : status === "error" ? "retry" : "resume" } });
+											trackEvent("demo_requested", { placement: "hero", action: status === "idle" ? "start" : status === "error" ? "retry" : "resume" });
 											setStatus("loading");
 										}}
 										className='bg-white text-violet-950 hover:bg-violet-100'

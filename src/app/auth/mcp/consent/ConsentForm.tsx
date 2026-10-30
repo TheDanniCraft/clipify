@@ -1,4 +1,5 @@
 "use client";
+import { trackProductEvent } from "@lib/analytics";
 import { useState } from "react";
 import { Accordion, Alert, Avatar, Button, Card, Checkbox, Chip, Description, Label, Separator, ToggleButton, ToggleButtonGroup } from "@heroui/react";
 import { IconArrowLeft, IconCheck, IconChevronRight, IconPencil, IconPlus, IconShieldCheck, IconTrash } from "@tabler/icons-react";
@@ -110,7 +111,11 @@ export function ConsentForm({ clientName, requestedScopes, creators, oauthQuery,
 							try {
 								const result = await action(data);
 								if (result?.error) setError(result.error);
-								else if (result?.callbackUrl) setHandoff({ callbackUrl: result.callbackUrl, authorized: result.authorized ?? data.get("accept") === "true" });
+								else if (result?.callbackUrl) {
+									const authorized = result.authorized ?? data.get("accept") === "true";
+									trackProductEvent(authorized ? "connected_app_authorized" : "connected_app_declined", { creator_count: entries.length });
+									setHandoff({ callbackUrl: result.callbackUrl, authorized });
+								}
 							} catch {
 								setError("Clipify could not complete this connection. Try again.");
 							} finally {

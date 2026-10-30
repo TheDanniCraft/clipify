@@ -1,20 +1,19 @@
 "use client";
 
-import { usePlausible } from "next-plausible";
+import { trackEvent } from "@lib/analytics";
 import { useState } from "react";
 import { Button } from "@components/heroui-client";
 import { IconBrandTwitch } from "@tabler/icons-react";
 import { authClient } from "@/auth/client";
 
 export default function LoginClient({ returnUrl, oauthAuthorization = false }: { returnUrl: string; oauthAuthorization?: boolean }) {
-	const plausible = usePlausible();
 	const [pending, setPending] = useState(false);
 	const [localError, setLocalError] = useState<string | null>(null);
 
 	async function signInWithTwitch() {
 		setPending(true);
 		setLocalError(null);
-		plausible("auth_started", { props: { provider: "twitch", source: oauthAuthorization ? "oauth_authorization" : returnUrl === "/checkout/continue" ? "checkout" : "login" } });
+		trackEvent("auth_started", { provider: "twitch", source: oauthAuthorization ? "oauth_authorization" : returnUrl === "/checkout/continue" ? "checkout" : "login" });
 		try {
 			const result = await authClient.signIn.social({
 				provider: "twitch",

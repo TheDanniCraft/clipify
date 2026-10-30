@@ -7,7 +7,6 @@ import type { CampaignOffer } from "@types";
 import { Button, Card, Chip, Separator, Link, cn } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
 import { IconArrowRight, IconCheck, IconHeart } from "@tabler/icons-react";
-import { usePlausible } from "next-plausible";
 
 import { frequencies, runnerIncluded, tiers } from "./pricing-catalog";
 import { FrequencyEnum, resolveRuntimePricing, type RuntimePricing } from "./pricing-types";
@@ -29,7 +28,7 @@ export default function TiersComponent({ source = "pricing_page", campaignOffer 
 	const [selectedFrequency, setSelectedFrequency] = useState(frequencies.find((frequency) => frequency.key === FrequencyEnum.Yearly) ?? frequencies[0]);
 	const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
 	const runtimePricing = resolveRuntimePricing(pricing);
-	const plausible = usePlausible();
+
 	const proPromoEnabled = Boolean(campaignOffer?.showPricingTierPromo);
 	const pricingPromoByFrequency = {
 		[FrequencyEnum.Monthly]: campaignOffer?.pricingMonthlyPromo ?? null,
@@ -43,7 +42,7 @@ export default function TiersComponent({ source = "pricing_page", campaignOffer 
 
 	const integrationHref = () => (context === "dashboard" ? `/dashboard/settings?upgrade&cycle=${selectedFrequency.key}&source=pricing_page&feature=plan` : `/checkout/start?plan=pro&cycle=${selectedFrequency.key}&entrypoint=direct_cta`);
 	const openProSetup = () => {
-		trackPaywallEvent(plausible, "paywall_cta_click", { source, feature: "plan", plan: "pro", cycle: selectedFrequency.key });
+		trackPaywallEvent("paywall_cta_click", { source, feature: "plan", plan: "pro", cycle: selectedFrequency.key });
 		setIsPlanModalOpen(true);
 	};
 
@@ -101,7 +100,7 @@ export default function TiersComponent({ source = "pricing_page", campaignOffer 
 										<Link
 											href={tier.key === "free" ? (context === "dashboard" ? "/dashboard" : "/checkout/clear") : integrationHref()}
 											aria-label={tier.buttonText}
-											onPress={() => trackPaywallEvent(plausible, "paywall_cta_click", { source, feature: "plan", plan: tier.key, cycle: selectedFrequency.key })}
+											onPress={() => trackPaywallEvent("paywall_cta_click", { source, feature: "plan", plan: tier.key, cycle: selectedFrequency.key })}
 											className={buttonVariants({ fullWidth: true, variant: tier.mostPopular ? "primary" : "secondary", className: cn("no-underline", tier.key === "free" && "text-foreground", tier.mostPopular && "shadow-md") })}
 										>
 											{tier.buttonText}

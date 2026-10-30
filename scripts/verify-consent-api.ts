@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createC15tClient } from "@c15t/node-sdk";
 import { c15tInstance, createMigrator } from "@c15t/backend";
 import { consentPolicyRules } from "../src/app/lib/consent/policy";
 
@@ -23,6 +24,8 @@ try {
 	backend = c15tInstance({
 		database,
 		basePath: "/api/c15t",
+		apiKeys: ["test-only-server-consent-key-123456789"],
+		identityToken: { signingKey: "test-only-server-identity-key-123456789" },
 		trustedOrigins: ["http://localhost:3000"],
 		ipAddress: { tracking: false },
 		manifest: { appName: "Clipify", policyRules: consentPolicyRules },
@@ -42,6 +45,30 @@ try {
 	assert.equal(init.policyResolution.matchedBy, "fallback");
 	assert.equal(typeof init.policySnapshotToken, "string");
 
+	const client = createC15tClient({ baseUrl: "http://localhost:3000/api/c15t", apiKey: "test-only-server-consent-key-123456789", fetch: (input, init) => handler(new Request(input, init)) });
+	const subjects = await client.subjects.list({ externalId: "test-verified-account" });
+	assert.equal(subjects.ok, true, "native SDK authorizes the server's in-process subject lookup");
+	if (subjects.ok) assert.deepEqual(subjects.data.subjects, []);
+	const confirmedAt = Date.now();
+	const basis = { kind: "choice-v1" as const, fingerprint: init.policyResolution.fingerprints.choice };
+	const saved = await client.subjects.create({
+		type: "cookie_banner",
+		subjectId: "sub_2jv6z8n4q9",
+		domain: "localhost",
+		givenAt: confirmedAt,
+		preferences: { necessary: true, functionality: false, measurement: true },
+		choice: { version: 3, categories: { functionality: { value: false, confirmedAt, basis }, measurement: { value: true, confirmedAt, basis } } },
+		policySnapshotToken: init.policySnapshotToken,
+	});
+	assert.equal(saved.ok, true, JSON.stringify(saved));
+	const linked = await client.subjects.identify("sub_2jv6z8n4q9", { externalId: "test-verified-account" });
+	assert.equal(linked.ok, true, "server SDK verifies the authenticated subject link");
+	const linkedSubjects = await client.subjects.list({ externalId: "test-verified-account" });
+	assert.equal(linkedSubjects.ok && linkedSubjects.data.subjects.length, 1);
+	const recorded = await client.subjects.get("sub_2jv6z8n4q9");
+	assert.equal(recorded.ok && recorded.data.subjectChoice?.categories.measurement?.value, true);
+	const unauthorized = createC15tClient({ baseUrl: "http://localhost:3000/api/c15t", apiKey: "wrong-key", fetch: (input, init) => handler(new Request(input, init)) });
+	assert.equal((await unauthorized.subjects.list({ externalId: "test-verified-account" })).ok, false);
 	console.log("c15t consent API verified");
 } finally {
 	await backend?.dispose();

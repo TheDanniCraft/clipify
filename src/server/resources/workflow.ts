@@ -1,6 +1,7 @@
 import type { ToolName } from "@/server/mcp/schemas";
 
 import "server-only";
+import { trackCommittedProductEvent } from "@/server/umami";
 import { randomUUID, createHash } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { db, type DatabaseClient, type TransactionClient } from "@/db/client";
@@ -12,7 +13,7 @@ import { workflowInputSchemas, type WorkflowToolName } from "@/server/mcp/workfl
 import { workflowPermissions, workflowAnnotations } from "@/server/mcp/workflows/catalogue";
 import { LegacyBroadcastRecoveryRequired, resourceFailure, isResourceFailure } from "./errors";
 import { deriveRunnerCapabilities, resolveRunnerBenefits, type RunnerBenefitInput } from "@/server/runner/capabilities";
-export type WorkflowContext = { tx: TransactionClient; principal: TrustedCreatorPrincipal; creatorId: string; pro: boolean; runnerBenefits?: RunnerBenefitInput; assertCurrent: () => void; afterCommit: (callback: () => void) => void };
+export type WorkflowContext = { tx: TransactionClient; principal: TrustedCreatorPrincipal; creatorId: string; pro: boolean; runnerBenefits?: RunnerBenefitInput; assertCurrent: () => void; afterCommit: (callback: () => void) => void; replayed?: boolean };
 export async function workflowOperation<T extends WorkflowToolName>(principal: TrustedCreatorPrincipal, tool: T, rawInput: unknown, operation: (input: ReturnType<(typeof workflowInputSchemas)[T]["parse"]>, context: WorkflowContext) => Promise<Record<string, unknown>>, client: DatabaseClient = db, auditTool: ToolName = tool): Promise<Record<string, unknown>> {
 	const parsed = workflowInputSchemas[tool].safeParse(rawInput);
 	if (!parsed.success) throw new Error("INVALID_INPUT");
@@ -45,18 +46,21 @@ export async function workflowOperation<T extends WorkflowToolName>(principal: T
 		async function recordWorkflowMutation() {
 			if (!workflowAnnotations(tool).readOnlyHint) {
 				const selectors = input as { overlayId?: string; playlistId?: string; galleryId?: string; runnerId?: string; sessionId?: string };
+				const auditId = randomUUID();
 				const targetId = tool.includes("stream_session") ? (selectors.sessionId ?? (typeof result.id === "string" ? result.id : input.creatorId)) : (selectors.overlayId ?? selectors.playlistId ?? selectors.galleryId ?? selectors.runnerId ?? (typeof result.id === "string" ? result.id : input.creatorId));
 				await tx.insert(auditEventsTable).values({
+					id: auditId,
 					actorUserId: principal.authUserId,
 					...(principal.kind === "session" ? { actorSessionId: principal.sessionId } : {}),
 					targetType: tool.includes("gallery") ? "gallery" : tool.includes("playlist") ? "playlist" : tool.includes("overlay") ? "overlay" : tool.includes("runner") ? "runner" : tool.includes("stream_session") ? "stream_session" : "creator",
 					targetId,
 					action: principal.kind === "oauth" ? `sensitive-integration:mcp.${auditTool}` : `workflow.${tool}`,
 					outcome: "success",
-					correlationId: randomUUID(),
+					correlationId: auditId,
 					occurredAt: new Date(),
 					metadata: { creatorId: input.creatorId, tool: auditTool, ...(principal.kind === "oauth" ? { clientId: principal.clientId, grantId: principal.grantId, generation: principal.generation } : {}) },
 				});
+				if (!context.replayed) trackCommittedProductEvent(principal.authUserId, auditId, "feature_used", { feature: tool, plan: entitlements.effectivePlan, access_source: entitlements.source, is_paying: entitlements.isBillingPro, channel: principal.kind === "oauth" ? "ai" : "web", status: typeof result.status === "string" ? result.status : "saved", ...(typeof result.applied === "boolean" ? { applied: result.applied } : {}) });
 			}
 		}
 		await recordWorkflowMutation();
@@ -93,6 +97,7 @@ export async function workflowRetry(context: WorkflowContext, tool: WorkflowTool
 				.for("share");
 			if (!resource) throw new Error("RESOURCE_UNAVAILABLE");
 		}
+		context.replayed = true;
 		return previous.safeResponse;
 	}
 	if (previous) await tx.delete(mcpMutationRetriesTable).where(eq(mcpMutationRetriesTable.id, previous.id));

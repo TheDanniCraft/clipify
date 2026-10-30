@@ -1,5 +1,25 @@
 export const consentServices = [
 	{
+		id: "umami-product-analytics",
+		name: "Umami product analytics",
+		category: "measurement",
+		description: "Links product use to your Clipify account to understand setup, upgrades and returning use.",
+		purpose: "Measure product journeys, feature adoption, conversion, retention and performance; collect heatmaps on public landing and pricing pages.",
+		provider: "Clipify / Umami",
+		dataCategories: ["Account identifier", "Plan and access source", "Product events", "Page and performance data", "Public-page clicks"],
+		recipient: "Clipify",
+		hostingRegions: ["European Union"],
+		retention: "According to the configured self-hosted Umami retention period.",
+		legalBasis: "Consent.",
+		consentRequired: true,
+		revocation: "Stops new account-linked product analytics, heatmaps and performance collection when your choice is applied.",
+		policyReferences: ["privacy:analytics-observability-and-logs", "cookies:measurement"],
+		auditFlows: ["public:measurement-enabled"],
+		networkOrigins: ["https://clipify.us"],
+		storage: "No cookies",
+		scope: "First-party",
+	},
+	{
 		id: "chatwoot",
 		name: "Live support chat",
 		category: "functionality",
@@ -155,8 +175,8 @@ export const consentCategoryDetails = {
 		description: "Enables optional features such as live support chat.",
 	},
 	measurement: {
-		title: "Measurement",
-		description: "Helps us understand real-world performance and diagnose issues with masked session replay.",
+		title: "Statistics and product analytics",
+		description: "Helps us understand feature use, account journeys, upgrades and performance, with public-page heatmaps and masked Sentry replay.",
 	},
 } as const;
 

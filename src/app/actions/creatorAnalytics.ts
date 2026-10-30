@@ -4,10 +4,9 @@ import { db } from "@/db/client";
 import { plausibleStatsCacheTable, usersTable } from "@/db/schema";
 import { resolveUserEntitlements } from "@lib/entitlements";
 import { getFeatureAccess } from "@lib/featureAccess";
-import { createCreatorAnalyticsCsv, fillEmptyCreatorAnalyticsRange, parsePlausibleCreatorAnalytics, recordCreatorAnalyticsMetric, type CreatorAnalyticsData, type CreatorAnalyticsExportDataset, type PlausibleCreatorPayload } from "@lib/plausibleCreatorAnalytics";
-import { PLAUSIBLE_BASE_URL, PLAUSIBLE_SITE_ID } from "@lib/plausibleConfig";
-import { PLAUSIBLE_EVENTS } from "@lib/plausibleEvents";
-import { and, eq, inArray } from "drizzle-orm";
+import { createCreatorAnalyticsCsv, fillEmptyCreatorAnalyticsRange, recordCreatorAnalyticsMetric, type CreatorAnalyticsData, type CreatorAnalyticsExportDataset } from "@lib/plausibleCreatorAnalytics";
+import { getUmamiCreatorAnalytics } from "@/server/umami-creator-analytics";
+import { and, eq } from "drizzle-orm";
 import { authorizeCreatorOperation, listAuthorizedCreatorOperations } from "@/auth/authorize-operation";
 
 const CACHE_TTL_MS = 10 * 60 * 1000;
@@ -36,58 +35,23 @@ async function ownerForActor(ownerId: string, permission: "analytics:read" | "an
 }
 
 async function loadCreatorAnalytics(owner: typeof usersTable.$inferSelect, range?: CreatorAnalyticsRange | null): Promise<(CreatorAnalyticsData & { stale: boolean; fetchedAt: string }) | null> {
-	const validRange = normalizedRange(range);
-	const dateRange: "30d" | [string, string] = validRange ? [validRange.start, validRange.end] : "30d";
-	const cacheKey = validRange ? `creator-page:analytics:v6:${validRange.start}:${validRange.end}` : "creator-page:analytics:v6:30d";
-	const legacyCacheKeys = validRange ? [`creator-page:analytics:v5:${validRange.start}:${validRange.end}`, `creator-page:analytics:v4:${validRange.start}:${validRange.end}`, `creator-page:analytics:v3:${validRange.start}:${validRange.end}`] : ["creator-page:analytics:v5:30d", "creator-page:analytics:v4:30d", "creator-page:analytics:v3:30d", "creator-page:analytics:v2:30d"];
-	const readableCacheKeys = [cacheKey, ...legacyCacheKeys];
+	const today = new Date().toISOString().slice(0, 10);
+	const dateRange = normalizedRange(range) ?? { end: today, start: new Date(Date.parse(`${today}T00:00:00Z`) - 29 * 86400000).toISOString().slice(0, 10) };
+	const cacheKey = `umami-v1:${owner.username}:${dateRange.start}:${dateRange.end}`;
 	const cacheRows = await db
 		.select()
 		.from(plausibleStatsCacheTable)
-		.where(and(eq(plausibleStatsCacheTable.ownerId, owner.id), inArray(plausibleStatsCacheTable.cacheKey, readableCacheKeys)))
+		.where(and(eq(plausibleStatsCacheTable.ownerId, owner.id), eq(plausibleStatsCacheTable.cacheKey, cacheKey)))
 		.execute();
-	const currentCached = cacheRows.find((row) => row.cacheKey === cacheKey);
-	const cached = currentCached ?? legacyCacheKeys.map((key) => cacheRows.find((row) => row.cacheKey === key)).find(Boolean);
-	const parseResult = (payload: PlausibleCreatorPayload, fetchedAt: Date, stale: boolean) => {
-		const end = validRange?.end ?? fetchedAt.toISOString().slice(0, 10);
-		const start = validRange?.start ?? new Date(new Date(`${end}T00:00:00Z`).getTime() - 29 * 86_400_000).toISOString().slice(0, 10);
-		return { ...fillEmptyCreatorAnalyticsRange(parsePlausibleCreatorAnalytics(payload), start, end), stale, fetchedAt: fetchedAt.toISOString() };
-	};
-	if (currentCached && currentCached.expiresAt.getTime() > Date.now()) {
+	const cached = cacheRows.find((row) => row.cacheKey === cacheKey);
+	const parseResult = (payload: CreatorAnalyticsData, fetchedAt: Date, stale: boolean) => ({ ...fillEmptyCreatorAnalyticsRange(payload, dateRange.start, dateRange.end), stale, fetchedAt: fetchedAt.toISOString() });
+	if (cached && cached.expiresAt.getTime() > Date.now()) {
 		recordCreatorAnalyticsMetric("hits");
-		return parseResult(JSON.parse(currentCached.value) as PlausibleCreatorPayload, currentCached.fetchedAt, false);
+		return parseResult(JSON.parse(cached.value) as CreatorAnalyticsData, cached.fetchedAt, false);
 	}
 	recordCreatorAnalyticsMetric("misses");
-	const apiKey = process.env.PLAUSIBLE_API_KEY;
-	if (!apiKey) {
-		console.error("[creator-analytics] PLAUSIBLE_API_KEY is not configured", { ownerId: owner.id, cacheKey });
-		return cached ? parseResult(JSON.parse(cached.value) as PlausibleCreatorPayload, cached.fetchedAt, true) : null;
-	}
 	try {
-		const escapedUsername = owner.username.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-		const baseQuery = { site_id: PLAUSIBLE_SITE_ID, date_range: dateRange, filters: [["matches", "event:page", [`^/creators/${escapedUsername}/?$`]]] };
-		const query = async (name: string, queryBody: Record<string, unknown>) => {
-			const started = Date.now();
-			const response = await fetch(`${PLAUSIBLE_BASE_URL}/api/v2/query`, { method: "POST", headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" }, body: JSON.stringify({ ...baseQuery, ...queryBody }), cache: "no-store" });
-			recordCreatorAnalyticsMetric("apiRequests", Date.now() - started);
-			if (!response.ok) {
-				if (response.status === 429) recordCreatorAnalyticsMetric("rateLimited");
-				const responseBody = (await response.text()).slice(0, 500);
-				throw new Error(`Plausible ${name} query returned ${response.status}${responseBody ? `: ${responseBody}` : ""}`);
-			}
-			return response.json() as Promise<unknown>;
-		};
-		const playbackFilters = [...baseQuery.filters, ["is", "event:goal", [PLAUSIBLE_EVENTS.clipPlayed]]];
-		const [overview, timeseries, acquisition, locations, technology, playbackOverview, playbackTimeseries] = await Promise.all([
-			query("overview", { metrics: ["visitors", "pageviews", "visits", "bounce_rate", "time_on_page", "scroll_depth"] }),
-			query("timeseries", { metrics: ["visitors", "pageviews", "visits", "bounce_rate", "time_on_page", "scroll_depth"], dimensions: ["time:day"], include: { time_labels: true } }),
-			query("acquisition", { metrics: ["visits"], dimensions: ["visit:source", "visit:channel", "visit:utm_source", "visit:utm_medium", "visit:utm_campaign"], pagination: { limit: 500 } }),
-			query("locations", { metrics: ["visits"], dimensions: ["visit:country_name", "visit:region_name", "visit:city_name"], pagination: { limit: 500 } }),
-			query("technology", { metrics: ["visits"], dimensions: ["visit:device", "visit:browser", "visit:os"], pagination: { limit: 500 } }),
-			query("playback overview", { metrics: ["events", "visits"], filters: playbackFilters }),
-			query("playback timeseries", { metrics: ["events", "visits"], filters: playbackFilters, dimensions: ["time:day"], include: { time_labels: true } }),
-		]);
-		const payload: PlausibleCreatorPayload = { overview, timeseries, acquisition, locations, technology, playbackOverview, playbackTimeseries };
+		const payload = await getUmamiCreatorAnalytics(owner.username, dateRange);
 		const fetchedAt = new Date();
 		await db
 			.insert(plausibleStatsCacheTable)
@@ -97,15 +61,14 @@ async function loadCreatorAnalytics(owner: typeof usersTable.$inferSelect, range
 		return parseResult(payload, fetchedAt, false);
 	} catch (error) {
 		recordCreatorAnalyticsMetric("apiFailures");
-		console.error("[creator-analytics] failed to refresh Plausible cache", { ownerId: owner.id, cacheKey, error });
+		console.error("[creator-analytics] failed to refresh Umami cache", { ownerId: owner.id, error });
 		if (!cached) return null;
 		recordCreatorAnalyticsMetric("staleFallbacks");
 		await db
 			.update(plausibleStatsCacheTable)
 			.set({ lastErrorAt: new Date() })
-			.where(and(eq(plausibleStatsCacheTable.ownerId, owner.id), eq(plausibleStatsCacheTable.cacheKey, cached.cacheKey)))
-			.execute();
-		return parseResult(JSON.parse(cached.value) as PlausibleCreatorPayload, cached.fetchedAt, true);
+			.where(and(eq(plausibleStatsCacheTable.ownerId, owner.id), eq(plausibleStatsCacheTable.cacheKey, cacheKey)));
+		return parseResult(JSON.parse(cached.value) as CreatorAnalyticsData, cached.fetchedAt, true);
 	}
 }
 

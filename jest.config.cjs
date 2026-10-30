@@ -32,6 +32,11 @@ const customJestConfig = {
 	testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/"],
 	modulePathIgnorePatterns: ["<rootDir>/.next/"],
 	collectCoverageFrom: [
+		"src/app/UmamiClient.tsx",
+		"src/server/umami.ts",
+		"src/server/umami-creator-analytics.ts",
+		"src/server/analytics-consent.ts",
+		"src/server/product-outcomes.ts",
 		"src/instrumentation.ts",
 		"src/db/client.ts",
 		"src/db/request-scope.ts",

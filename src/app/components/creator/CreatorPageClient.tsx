@@ -8,9 +8,9 @@ import { parseDate } from "@internationalized/date";
 import { IconArrowLeft, IconArrowRight, IconBrandTwitch, IconExternalLink, IconPlayerPlayFilled, IconX } from "@tabler/icons-react";
 import type { TwitchClip } from "@types";
 import Link from "next/link";
-import { usePlausible } from "next-plausible";
+import { trackEvent } from "@lib/analytics";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { PLAUSIBLE_EVENTS } from "@lib/plausibleEvents";
+import { ANALYTICS_EVENTS } from "@lib/analyticsEvents";
 import { useQualifiedPlayback } from "@/app/hooks/useQualifiedPlayback";
 import type { MemberBadgeView } from "@lib/membership";
 import { formatMemberNumber } from "@lib/membershipFormat";
@@ -37,9 +37,9 @@ function ClipDialog({ username, clips, index, total, hasMore, loadingMore, onInd
 	const dialogRef = useRef<HTMLDialogElement>(null);
 	const [playbackUrl, setPlaybackUrl] = useState<string | null | undefined>();
 	const clip = clips[index];
-	const plausible = usePlausible();
+
 	const qualifiedPlayback = useQualifiedPlayback(clip.id, () => {
-		plausible(PLAUSIBLE_EVENTS.clipPlayed, { props: { surface: "creator_page", creator: username, clipId: clip.id } });
+		trackEvent(ANALYTICS_EVENTS.clipPlayed, { surface: "creator_page", creator: username, clipId: clip.id });
 	});
 	useEffect(() => {
 		const dialog = dialogRef.current;

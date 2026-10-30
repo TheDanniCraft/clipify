@@ -19,7 +19,7 @@ jest.mock("@/app/components/Pricing/BillingFrequency", () => ({
 	),
 }));
 
-jest.mock("next-plausible", () => ({ usePlausible: () => jest.fn() }));
+jest.mock("@lib/analytics", () => ({ trackEvent: jest.fn(), trackProductEvent: jest.fn() }));
 jest.mock("@lib/paywallTracking", () => ({ trackPaywallEvent: jest.fn() }));
 jest.mock("@heroui/styles", () => ({ buttonVariants: () => "button" }));
 jest.mock("@tabler/icons-react", () => ({

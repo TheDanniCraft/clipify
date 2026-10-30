@@ -1,4 +1,6 @@
 /** @jest-environment node */
+import { trackCommittedCreatorOutcome } from "@/server/umami";
+jest.mock("@/server/umami", () => ({ trackCommittedCreatorOutcome: jest.fn() }));
 import { recordProductOutcome } from "@/server/product-outcomes";
 import type { QueryClient } from "@/db/client";
 
@@ -50,4 +52,21 @@ it("uses the established runtime deployment URL even when the public build URL n
 	process.env.COOLIFY_URL = "http://beta-533.clipify.cloud.thedannicraft.de,http://secondary.invalid";
 	await recordProductOutcome({ outcome: "creator_created", creatorId: "creator", key: "signup" }, client);
 	expect(values.mock.calls[0][0].metadata.deployment).toBe("https://beta-533.clipify.cloud.thedannicraft.de");
+});
+
+it("separates first paid activation from revenue and deduplicates webhook retries", async () => {
+	conflict.mockResolvedValueOnce({ rowCount: 1 }).mockResolvedValueOnce({ rowCount: 0 });
+	const input = { outcome: "payment_verified" as const, creatorId: "creator", key: "first-invoice", metadata: { amountMinor: 2000, currency: "eur", billingReason: "subscription_create", feature: "theme_studio" } };
+	await recordProductOutcome(input, client);
+	await recordProductOutcome(input, client);
+	expect(trackCommittedCreatorOutcome).toHaveBeenCalledTimes(2);
+	expect(trackCommittedCreatorOutcome).toHaveBeenCalledWith("creator", expect.any(String), "payment_verified", expect.objectContaining({ revenue: 20, currency: "EUR" }));
+	expect(trackCommittedCreatorOutcome).toHaveBeenCalledWith("creator", expect.any(String), "pro_activated", { plan: "pro", access_source: "billing", is_paying: true, feature: "theme_studio" });
+});
+
+it("records renewal revenue without counting another new paid activation", async () => {
+	conflict.mockResolvedValueOnce({ rowCount: 1 });
+	await recordProductOutcome({ outcome: "payment_verified", creatorId: "creator", key: "renewal", metadata: { amountMinor: 200, currency: "eur", billingReason: "subscription_cycle" } }, client);
+	expect(trackCommittedCreatorOutcome).toHaveBeenCalledTimes(1);
+	expect(trackCommittedCreatorOutcome).toHaveBeenCalledWith("creator", expect.any(String), "payment_verified", expect.objectContaining({ revenue: 2 }));
 });

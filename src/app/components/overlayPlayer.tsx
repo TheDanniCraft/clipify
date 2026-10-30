@@ -12,8 +12,8 @@ import { getFirstValidQueuedClip, removeFromClipQueue, removeFromModQueue } from
 import Logo from "@components/logo";
 import { IconAlertTriangle, IconPlayerPauseFilled, IconPlayerPlayFilled, IconVolume, IconVolumeOff } from "@tabler/icons-react";
 import { clamp, getSlotOpacity, parseThemeFontSetting, sanitizeFontCssUrl, trimCache } from "./overlayPlayer.utils";
-import { usePlausible } from "next-plausible";
-import { PLAUSIBLE_EVENTS } from "@lib/plausibleEvents";
+import { trackEvent } from "@lib/analytics";
+import { ANALYTICS_EVENTS } from "@lib/analyticsEvents";
 import { ACTIVE_PLAYBACK_CONFIRM_SECONDS, CROSSFADE_MS, CROSSFADE_SECONDS, HOLD_FRAME_SECONDS, HOLD_TIMEOUT_MS, NEXT_VIDEO_PREPARE_SECONDS, PLAYBACK_BUFFERING_GRACE_MS, PLAYBACK_ISSUE_REPORT_COOLDOWN_MS, PLAYBACK_LOAD_TIMEOUT_MS, PLAYBACK_PROGRESS_EPSILON_SECONDS, PLAYBACK_RECOVERY_RECHECK_MS, PLAYBACK_STALL_THRESHOLD_MS, PLAYBACK_WATCHDOG_INTERVAL_MS, SHOW_FADE_SECONDS } from "./overlayPlayer.constants";
 import { createPlaybackDrain, type PlaybackDrain } from "../../../packages/runner/src/presentation";
 import { startOverlayPresence } from "@lib/overlayPresence";
@@ -423,7 +423,6 @@ type RunnerPlaybackWindow = Window & {
 };
 
 export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedOverlay, isDemoPlayer, embedMuted, embedAutoplay, overlaySecret, initialStandby = false, runnerPresentation = false }: OverlayPlayerProps) {
-	const plausible = usePlausible();
 	const reportedPlaybackDay = useRef<string | null>(null);
 	const playbackOutcomeRetryAt = useRef(0);
 
@@ -1795,17 +1794,15 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 
 		if (clipRef.current) {
 			if (!isDemoPlayer) {
-				plausible(PLAUSIBLE_EVENTS.clipPlayed, {
-					props: {
-						overlayId: overlay.id,
-						clipId: clipRef.current.id,
-						mode: playbackMode,
-					},
+				trackEvent(ANALYTICS_EVENTS.clipPlayed, {
+					overlayId: overlay.id,
+					clipId: clipRef.current.id,
+					mode: playbackMode,
 				});
 			}
 			markClipAsPlayed(clipRef.current.id);
 		}
-	}, [activeSlot, isCrossfading, isDemoPlayer, markClipAsPlayed, overlay.id, overlaySecret, playbackMode, plausible]);
+	}, [activeSlot, isCrossfading, isDemoPlayer, markClipAsPlayed, overlay.id, overlaySecret, playbackMode]);
 
 	const handleTimeUpdate = useCallback(
 		(slot: "a" | "b", video: HTMLVideoElement | null) => {

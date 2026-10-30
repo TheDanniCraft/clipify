@@ -4,7 +4,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import DemoPlayer from "@/app/components/DemoPlayer";
 
 const mockPlausible = jest.fn();
-jest.mock("next-plausible", () => ({ usePlausible: () => mockPlausible }));
+jest.mock("@lib/analytics", () => ({ trackEvent: (...args: unknown[]) => mockPlausible(...args), trackProductEvent: jest.fn() }));
 
 let visibility: IntersectionObserverCallback;
 const disconnect = jest.fn();
@@ -37,7 +37,7 @@ describe("homepage playback demo", () => {
 		expect(screen.getByRole("button", { name: "Watch the demo" })).toBeVisible();
 		const iframe = play();
 		expect(iframe).toHaveAttribute("src", "/demoPlayer");
-		expect(mockPlausible).toHaveBeenCalledWith("demo_requested", { props: { placement: "hero", action: "start" } });
+		expect(mockPlausible).toHaveBeenCalledWith("demo_requested", { placement: "hero", action: "start" });
 		expect(screen.getByRole("status")).toHaveTextContent("Loading your clip preview");
 	});
 

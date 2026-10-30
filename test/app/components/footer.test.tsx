@@ -22,7 +22,7 @@ jest.mock("axios", () => ({ get: (...args: unknown[]) => status(...args) }));
 jest.mock("@actions/newsletter", () => ({ subscribeToNewsletter: (...args: unknown[]) => subscribe(...args), getEmailProvider: async () => "example" }));
 jest.mock("@actions/community", () => ({ getPublicCommunityFooterTeaserAction: () => community() }));
 jest.mock("@actions/rateLimit", () => ({ isRatelimitError: async (result: unknown) => result === "rate-limit" }));
-jest.mock("next-plausible", () => ({ usePlausible: () => plausible }));
+jest.mock("@lib/analytics", () => ({ trackEvent: (...args: unknown[]) => plausible(...args), trackProductEvent: jest.fn() }));
 jest.mock("next-themes", () => ({ useTheme: () => ({ setTheme: theme }) }));
 jest.mock("@components/logo", () => ({ __esModule: true, default: () => <span>Clipify</span> }));
 jest.mock("@components/LandingPage/communityTeaser", () => ({ __esModule: true, default: () => <span>Creator community</span> }));
@@ -129,7 +129,7 @@ it("preserves the email and optional-name workflow through success and confirmat
 	fireEvent.submit(input.closest("form")!);
 	await screen.findByRole("dialog");
 	expect(subscribe).toHaveBeenCalledWith("real.streamer@example.invalid", "fixture-verification", { firstName: "Alex" });
-	await waitFor(() => expect(plausible).toHaveBeenCalledWith("Newsletter Subscription", { props: { emailType: "example" } }));
+	await waitFor(() => expect(plausible).toHaveBeenCalledWith("Newsletter Subscription", { emailType: "example" }));
 	fireEvent.click(screen.getByRole("button", { name: "Close newsletter confirmation" }));
 	expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });

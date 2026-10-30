@@ -85,9 +85,7 @@ jest.mock("@/app/utils/regexFilter", () => ({
 	isTitleBlocked: (...args: unknown[]) => titleBlocked(...args),
 }));
 
-jest.mock("next-plausible", () => ({
-	usePlausible: () => jest.fn(),
-}));
+jest.mock("@lib/analytics", () => ({ trackEvent: jest.fn(), trackProductEvent: jest.fn() }));
 
 jest.mock("@lib/paywallTracking", () => ({
 	trackPaywallEvent: jest.fn(),
@@ -1023,7 +1021,7 @@ describe("dashboard overlay settings playlist mode", () => {
 		} else {
 			await press("Upgrade to Pro");
 			await press("Upgrade now");
-			expect(jest.requireMock("@lib/paywallTracking").trackPaywallEvent).toHaveBeenCalledWith(expect.anything(), "paywall_cta_click", expect.objectContaining({ feature: "advanced_filters" }));
+			expect(jest.requireMock("@lib/paywallTracking").trackPaywallEvent).toHaveBeenCalledWith("paywall_cta_click", expect.objectContaining({ feature: "advanced_filters" }));
 		}
 		expect(screen.getByRole("button", { name: "Create Reward" })).toBeDisabled();
 	});
