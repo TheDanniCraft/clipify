@@ -21,7 +21,7 @@ it("preserves real visitors/visits and engagement metrics instead of substitutin
 	expect(data.metrics).toMatchObject({ visitors: 4, visits: 5, pageviews: 10, bounceRate: 40, timeOnPage: 6, scrollDepth: 70, clipPlays: 4, playsPerVisit: 0.8, playRate: 40 });
 	expect(data.timeseries[0]).toMatchObject({ date: "2026-10-01", visitors: 4, visits: 5, timeOnPage: 6, scrollDepth: 70 });
 	expect(data.breakdowns.browsers).toEqual([{ name: "Safari", visits: 3, percentage: 60 }]);
-	for (const [, params] of query.mock.calls) expect(params).toMatchObject({ url: "eq./creators/家姐", hostname: "eq.clipify.us" });
+	for (const [, params] of query.mock.calls) expect(params).toMatchObject({ path: "eq./creators/家姐", hostname: "eq.clipify.us" });
 });
 it("does not turn invalid native metrics into plausible-looking zero reports", async () => {
 	query.mockResolvedValue({ error: "invalid" });
@@ -33,4 +33,13 @@ it("filters preview reports by the actual hostname", async () => {
 	query.mockClear();
 	await getUmamiCreatorAnalytics("creator", { start: "2026-10-01", end: "2026-10-02" });
 	for (const [, params] of query.mock.calls) expect(params.hostname).toBe("eq.beta-533.clipify.cloud.thedannicraft.de");
+});
+
+it("scopes every native metric to the creator path using Umami's recognized filter", async () => {
+	query.mockClear();
+	await getUmamiCreatorAnalytics("creator-with-no-traffic", { start: "2026-10-01", end: "2026-10-02" });
+	for (const [, parameters] of query.mock.calls) {
+		expect(parameters.path).toBe("eq./creators/creator-with-no-traffic");
+		expect(parameters).not.toHaveProperty("url");
+	}
 });

@@ -63,6 +63,15 @@ describe("creator analytics exports", () => {
 		expect(dbInsert).toHaveBeenCalledTimes(1);
 	});
 
+	it("ignores cached reports produced by the old unrecognized creator filter", async () => {
+		process.env.NEXT_PUBLIC_BASE_URL = "https://clipify.us";
+		selectRows.push([{ id: "owner", username: "Alice", plan: "pro" }], [{ cacheKey: "umami-v1:cc971acc-716d-4056-a79c-3cfda9fb8e1d:clipify.us:Alice:2026-08-01:2026-08-02", value: "old incorrectly scoped report", fetchedAt: new Date(), expiresAt: new Date(Date.now() + 60000) }]);
+		const { getCreatorAnalytics } = await import("@actions/creatorAnalytics");
+		const result = await getCreatorAnalytics("owner", { start: "2026-08-01", end: "2026-08-02" });
+		expect(result?.metrics.pageviews).toBe(0);
+		expect(global.fetch).toHaveBeenCalledTimes(19);
+	});
+
 	it("rejects empty and unsupported dataset selections before loading an owner", async () => {
 		const { exportCreatorAnalyticsBundle } = await import("@actions/creatorAnalytics");
 		await expect(exportCreatorAnalyticsBundle({ ownerId: "owner", datasets: [] })).resolves.toBeNull();

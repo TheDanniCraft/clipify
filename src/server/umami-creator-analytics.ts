@@ -22,7 +22,7 @@ function metrics(stats: Stats, activeMs: number, depth: number, plays: number, p
 export async function getUmamiCreatorAnalytics(username: string, range: { start: string; end: string }): Promise<CreatorAnalyticsData> {
 	const startAt = Date.parse(`${range.start}T00:00:00Z`);
 	const endAt = Date.parse(`${range.end}T23:59:59.999Z`);
-	const parameters = { startAt, endAt, timezone: "UTC", url: `eq./creators/${username}`, hostname: `eq.${resolveBaseUrl().hostname}` };
+	const parameters = { startAt, endAt, timezone: "UTC", path: `eq./creators/${username}`, hostname: `eq.${resolveBaseUrl().hostname}` };
 	const read = <T>(endpoint: string, extra: Record<string, string | number> = {}) => queryUmami<T>(endpoint, { ...parameters, ...extra });
 	const properties = { eventName: "page_engagement" };
 	const dimensions = { sources: "referrer", channels: "channel", utmSources: "utmSource", mediums: "utmMedium", campaigns: "utmCampaign", countries: "country", regions: "region", cities: "city", devices: "device", browsers: "browser", operatingSystems: "os" } as const;
