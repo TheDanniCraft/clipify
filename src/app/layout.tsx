@@ -1,9 +1,9 @@
+import { socialPreview } from "@lib/socialPreview";
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
 import ThemeProvider from "./theme-provider";
 import { getBaseUrl } from "@actions/utils";
-import PlausibleClient from "./PlausibleClient";
 import ConsentManager from "./components/ConsentManager";
 import RuntimeDeploymentReload from "./components/RuntimeDeploymentReload";
 import { getDeploymentId } from "./lib/deployment";
@@ -16,29 +16,9 @@ export const metadata: Metadata = {
 	description: "Clipify automatically plays your best Twitch clips to keep your stream alive and your viewers entertained, even when you're away.",
 	metadataBase: baseUrl,
 	manifest: manifestUrl,
-	alternates: {
-		canonical: "https://clipify.us",
-	},
-	openGraph: {
-		title: "Clipify - Let your clips talk. Even when you can't.",
-		description: "Need a break? Clipify got you covered. Auto-play clips while you're away - keep your stream alive and your viewers entertained.",
-		url: `${baseUrl}`,
-		siteName: "Clipify",
-		images: [
-			{
-				url: "/og-image.png",
-				width: 1200,
-				height: 630,
-				alt: "Clipify - Twitch Clips Auto-Player",
-			},
-		],
-		locale: "en_US",
-		type: "website",
-	},
+	openGraph: { ...socialPreview, title: "Clipify - Let your clips talk. Even when you can't.", description: "Need a break? Clipify got you covered. Auto-play clips while you're away - keep your stream alive and your viewers entertained.", url: `${baseUrl}`, siteName: "Clipify", locale: "en_US", type: "website" },
 	twitter: {
 		card: "summary_large_image",
-		title: "Clipify - Let your clips talk. Even when you can't.",
-		description: "Auto-play your Twitch clips to keep your stream active and engaging, even when you're away.",
 	},
 };
 
@@ -51,11 +31,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 			<body className='min-h-screen bg-background text-foreground' suppressHydrationWarning>
 				<RuntimeDeploymentReload deploymentId={getDeploymentId()} />
 				<ConsentManager>
-					<PlausibleClient>
-						<ThemeProvider>
-							<Providers>{children}</Providers>
-						</ThemeProvider>
-					</PlausibleClient>
+					<ThemeProvider>
+						<Providers>{children}</Providers>
+					</ThemeProvider>
 				</ConsentManager>
 			</body>
 		</html>

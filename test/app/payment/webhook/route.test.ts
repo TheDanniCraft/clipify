@@ -1,4 +1,5 @@
 /** @jest-environment node */
+jest.mock("@/server/product-outcomes", () => ({ recordProductOutcome: jest.fn().mockResolvedValue(undefined) }));
 
 const queueProPayment = jest.fn();
 jest.mock("@/server/notifications/pro-events", () => ({ queueProPaymentEmail: (...args: unknown[]) => queueProPayment(...args) }));
@@ -8,6 +9,7 @@ const getStripe = jest.fn();
 const syncStripeSubscription = jest.fn();
 const syncAgencyStripeSubscription = jest.fn();
 const findEvent = jest.fn();
+const refundOwners = jest.fn();
 const insertValues = jest.fn();
 const insertReturning = jest.fn();
 const updateWhere = jest.fn();
@@ -39,6 +41,7 @@ jest.mock("@/server/agencies/billing-sync", () => ({ syncAgencyStripeSubscriptio
 jest.mock("@/db/client", () => ({
 	db: {
 		transaction: async (operation: any) => operation({}),
+		select: () => ({ from: () => ({ where: () => ({ limit: refundOwners }) }) }),
 		query: { billingWebhookEventsTable: { findFirst: (...args: unknown[]) => findEvent(...args) } },
 		insert: jest.fn(() => insertBuilder),
 		update: jest.fn(() => updateBuilder),
@@ -56,6 +59,7 @@ describe("app/payment/webhook route", () => {
 		jest.clearAllMocks();
 		headersMock.mockResolvedValue({ get: () => "sig_header" });
 		findEvent.mockResolvedValue(undefined);
+		refundOwners.mockResolvedValue([{ id: "user_1" }]);
 		insertValues.mockResolvedValue(undefined);
 		insertReturning.mockResolvedValue([{ id: "claimed" }]);
 		updateWhere.mockResolvedValue([{ id: "claimed" }]);
@@ -162,14 +166,56 @@ describe("app/payment/webhook route", () => {
 		expect(updateWhere).toHaveBeenCalled();
 		expect(syncStripeSubscription).toHaveBeenCalledWith(subscription);
 	});
-	it.each(["invoice.paid", "invoice.payment_failed"])("%s only queues a personal thank-you for a paid Pro invoice", async (type) => {
+	it.each([
+		["invoice.paid", 100],
+		["invoice.payment_failed", 100],
+		["invoice.paid", 0],
+	])("%s with amount %s only records verified money received", async (type, amount) => {
 		const subscription = { id: "sub-1", items: { data: [{ price: { metadata: { key: "pro" } } }] } };
-		const invoice = { id: "in-1", status: type === "invoice.paid" ? "paid" : "open", amount_paid: 100, billing_reason: "subscription_cycle", parent: { subscription_details: { subscription: "sub-1" } } };
+		const invoice = { id: "in-1", status: type === "invoice.paid" ? "paid" : "open", amount_paid: amount, currency: "eur", billing_reason: "subscription_cycle", parent: { subscription_details: { subscription: "sub-1" } } };
 		getStripe.mockResolvedValue({ webhooks: { constructEvent: () => ({ id: "evt_paid", created: 1900000000, type, data: { object: invoice } }) }, subscriptions: { retrieve: async () => subscription } });
 		const { POST } = await loadRoute();
 		const response = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
 		expect(response.status).toBe(200);
-		if (type === "invoice.paid") expect(queueProPayment).toHaveBeenCalledWith(expect.objectContaining({ invoiceId: "in-1", userId: "user_1", amountPaid: 100 }), expect.anything());
+		if (type === "invoice.paid") expect(queueProPayment).toHaveBeenCalledWith(expect.objectContaining({ invoiceId: "in-1", userId: "user_1", amountPaid: amount }), expect.anything());
 		else expect(queueProPayment).not.toHaveBeenCalled();
+		const { recordProductOutcome } = jest.requireMock("@/server/product-outcomes");
+		if (type === "invoice.paid" && Number(amount) > 0) expect(recordProductOutcome).toHaveBeenCalledWith(expect.objectContaining({ outcome: "payment_verified", creatorId: "user_1", key: "in-1", occurredAt: new Date(1900000000 * 1000), metadata: { amountMinor: amount, currency: "eur", billingReason: "subscription_cycle" } }), expect.anything());
+		else if (type === "invoice.payment_failed") expect(recordProductOutcome).toHaveBeenCalledWith(expect.objectContaining({ outcome: "payment_failed", key: "evt_paid", creatorId: "user_1" }));
+		else expect(recordProductOutcome).not.toHaveBeenCalled();
+	});
+});
+
+describe("refund reporting", () => {
+	beforeEach(() => {
+		jest.clearAllMocks();
+		findEvent.mockResolvedValue(undefined);
+		insertReturning.mockResolvedValue([{ id: "claimed" }]);
+		refundOwners.mockResolvedValue([{ id: "user_1" }]);
+	});
+	it.each(["refund.created", "refund.updated"])("records only succeeded %s by refund identity", async (type) => {
+		const refund = { id: "re_1", status: "succeeded", amount: 50, currency: "eur", charge: "ch_1" };
+		const retrieve = jest.fn().mockResolvedValue({ customer: "cus_1" });
+		getStripe.mockResolvedValue({ webhooks: { constructEvent: () => ({ id: "evt_refund", created: 1900000000, type, data: { object: refund } }) }, charges: { retrieve } });
+		const { POST } = await loadRoute();
+		expect((await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "signed" }))).status).toBe(200);
+		expect(retrieve).toHaveBeenCalledWith("ch_1");
+		expect(jest.requireMock("@/server/product-outcomes").recordProductOutcome).toHaveBeenCalledWith({ outcome: "refund_succeeded", creatorId: "user_1", key: "re_1", occurredAt: new Date(1900000000 * 1000), metadata: { amountMinor: 50, currency: "eur" } });
+		expect(syncStripeSubscription).not.toHaveBeenCalled();
+	});
+	it.each(["pending", "failed", "canceled"])("does not report %s refunds as money returned", async (status) => {
+		const retrieve = jest.fn();
+		getStripe.mockResolvedValue({ webhooks: { constructEvent: () => ({ id: "evt_refund", type: "refund.updated", data: { object: { id: "re_1", status, amount: 50, charge: "ch_1" } } }) }, charges: { retrieve } });
+		const { POST } = await loadRoute();
+		expect((await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "signed" }))).status).toBe(200);
+		expect(retrieve).not.toHaveBeenCalled();
+		expect(jest.requireMock("@/server/product-outcomes").recordProductOutcome).not.toHaveBeenCalled();
+	});
+	it.each([{ owners: [] }, { owners: [{ id: "one" }, { id: "two" }] }])("does not attribute refunds without exactly one matching creator", async ({ owners }) => {
+		refundOwners.mockResolvedValue(owners);
+		getStripe.mockResolvedValue({ webhooks: { constructEvent: () => ({ id: "evt_refund", type: "refund.updated", created: 1900000000, data: { object: { id: "re_1", status: "succeeded", amount: 50, currency: "eur", charge: { id: "ch_1" } } } }) }, charges: { retrieve: async () => ({ customer: { id: "cus_1" } }) } });
+		const { POST } = await loadRoute();
+		expect((await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "signed" }))).status).toBe(200);
+		expect(jest.requireMock("@/server/product-outcomes").recordProductOutcome).not.toHaveBeenCalled();
 	});
 });

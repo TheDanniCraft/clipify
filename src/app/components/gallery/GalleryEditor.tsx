@@ -510,7 +510,7 @@ function GalleryEditorContent({ initialGallery, playlists, canUseAdvanced, canUs
 						<Separator />
 
 						<SettingsSection title='Integration' description='Copy the gallery element below, then install Clipify Elements once on your website. Raw gallery iframes are intentionally unsupported.'>
-							<CodeSnippet symbol='' className='w-full' preClassName='overflow-x-auto whitespace-nowrap'>
+							<CodeSnippet analyticsResource='gallery' symbol='' className='w-full' preClassName='overflow-x-auto whitespace-nowrap'>
 								{`<clipify-gallery gallery-id="${gallery.id}"></clipify-gallery>`}
 							</CodeSnippet>
 							<div className='flex flex-wrap gap-2'>

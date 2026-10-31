@@ -7,8 +7,13 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import styles from "./GalleryFrame.module.css";
 import { requestDeploymentCheck } from "@lib/deployment";
 
+export type GalleryFrameConfig = Pick<
+	Gallery,
+	"id" | "layout" | "listDensity" | "gridMobileColumns" | "gridTabletColumns" | "gridDesktopColumns" | "gridAuto" | "carouselMobileCards" | "carouselTabletCards" | "carouselDesktopCards" | "carouselShowNavigation" | "carouselShowIndicators" | "accentColor" | "cardSurfaceColor" | "textColor" | "cardRadius" | "gap" | "backgroundMode" | "backgroundColor" | "thumbnailTreatment" | "showDuration" | "showTitle" | "showCreator" | "showViews" | "showCreatedAt"
+>;
+
 type Props = {
-	gallery: Gallery;
+	gallery: GalleryFrameConfig;
 	clips: TwitchClip[];
 	ownerName: string;
 	showAttribution: boolean;
@@ -23,9 +28,10 @@ function formatDuration(duration: number) {
 	return `${minutes}:${String(Math.floor(duration % 60)).padStart(2, "0")}`;
 }
 
-function ClipCard({ clip, gallery, onSelect, horizontal = false }: { clip: TwitchClip; gallery: Gallery; onSelect: (clip: TwitchClip) => void; horizontal?: boolean }) {
+function ClipCard({ clip, gallery, onSelect, horizontal = false }: { clip: TwitchClip; gallery: GalleryFrameConfig; onSelect: (clip: TwitchClip) => void; horizontal?: boolean }) {
 	return (
-		<button className={`${styles.card} ${horizontal ? styles.horizontal : styles.vertical} ${gallery.listDensity === "compact" ? styles.compact : ""}`} type='button' onClick={() => onSelect(clip)} aria-label={`Play ${clip.title}`}>
+		<button className={`${styles.card} ${horizontal ? styles.horizontal : styles.vertical} ${gallery.listDensity === "compact" ? styles.compact : ""}`} type='button' onClick={() => onSelect(clip)}>
+			<span className='sr-only'>{gallery.showTitle ? "Play" : `Play ${clip.title}`}</span>
 			<span className={styles.imageWrap}>
 				<img className={styles.thumbnail} src={clip.thumbnail_url} alt='' loading='lazy' />
 				{gallery.showDuration ? <span className={styles.duration}>{formatDuration(clip.duration)}</span> : null}
@@ -132,7 +138,7 @@ export default function GalleryFrame({ gallery, clips, ownerName, showAttributio
 	const cards = clips.map((clip) => <ClipCard key={clip.id} clip={clip} gallery={gallery} onSelect={selectClip} horizontal={gallery.layout === "list"} />);
 
 	return (
-		<main className={styles.frame} style={{ ...frameStyle, ...runtimeStyle }}>
+		<div role='region' aria-label='Clip gallery' className={styles.frame} style={{ ...frameStyle, ...runtimeStyle }}>
 			{clips.length === 0 ? <div className={styles.empty}>No clips are available yet.</div> : null}
 			{gallery.layout === "grid" ? <div className={gallery.gridAuto ? styles.autoGrid : styles.grid}>{cards}</div> : null}
 			{gallery.layout === "list" ? <div className={styles.list}>{cards}</div> : null}
@@ -159,6 +165,6 @@ export default function GalleryFrame({ gallery, clips, ownerName, showAttributio
 					Clips from {ownerName} · Powered by Clipify
 				</a>
 			) : null}
-		</main>
+		</div>
 	);
 }

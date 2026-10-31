@@ -1,10 +1,17 @@
-import { Card, CardContent, Chip, Link, LinkIcon } from "@components/heroui-client";
-
+import { socialPreview } from "@lib/socialPreview";
+import PublicPageHeader from "@components/LandingPage/publicPageHeader";
 import Footer from "@components/footer";
 import BasicNavbar from "@components/LandingPage/basicNavbar";
 import { GithubRelease } from "@types";
 import axios from "axios";
-import xss from "xss";
+import ReleaseTimeline from "@components/releaseTimeline";
+
+export const metadata = {
+	title: "Changelog | Clipify",
+	description: "See the latest Clipify releases and improvements to Twitch clip playback, overlays, and creator tools.",
+	alternates: { canonical: "https://clipify.us/changelog" },
+	openGraph: { ...socialPreview, title: "Changelog | Clipify", description: "See the latest Clipify releases and improvements to Twitch clip playback, overlays, and creator tools.", url: "https://clipify.us/changelog" },
+};
 
 export default async function ChangelogPage() {
 	async function getReleases(): Promise<GithubRelease[]> {
@@ -22,54 +29,17 @@ export default async function ChangelogPage() {
 		<>
 			<BasicNavbar />
 
-			<div className='min-h-screen bg-background text-foreground p-6'>
-				<div className='max-w-5xl mx-auto'>
-					<h1 className='text-4xl font-bold text-center mb-2 flex items-center justify-center gap-2'>
-						<span className='text-accent'>📝</span>
-						Changelog
-						<span className='text-accent'>📝</span>
-					</h1>
-					<p className='text-center text-muted mb-12'>Latest updates and improvements to Clipify</p>
-
-					<div className='relative'>
-						<div className='absolute left-3.5 top-6 bottom-6 w-0.5 bg-gradient-to-b from-muted via-muted to-transparent opacity-20 z-0'></div>
-						<div className='space-y-6'>
-							{!releases || releases.length === 0 ? (
-								<div className='text-gray-600 text-center py-4'>Can&apos;t load changelog right now.</div>
-							) : (
-								releases
-									.filter((release: GithubRelease) => release.prerelease === false)
-									.map((release: GithubRelease) => (
-										<div key={release.id} className='flex items-start gap-6 relative'>
-											<div className='relative z-10 flex items-center justify-center'>
-												<Chip color='accent' size='sm' className='my-2'>
-													{release.name || release.tag_name}
-												</Chip>
-											</div>
-											<div className='flex-1 space-y-1'>
-												<Card className='flex-1 p-4'>
-													<CardContent>
-														<Link className='pb-2' href={release.html_url} target='_blank' rel='noopener noreferrer'>
-															<h3 className='text-lg font-semibold'>Release {release.name || release.tag_name}</h3>
-															<LinkIcon />
-														</Link>
-														<p
-															className='text-sm'
-															dangerouslySetInnerHTML={{
-																__html: xss(release.body).replace(/(?:\r\n|\r|\n)/g, "<br />"),
-															}}
-														/>
-													</CardContent>
-												</Card>
-												<span className='text-xs mr-4 text-gray-400 ml-auto flex justify-end'>{release.published_at}</span>
-											</div>
-										</div>
-									))
-							)}
-						</div>
-					</div>
-				</div>
-			</div>
+			<main className='mx-auto min-h-screen max-w-6xl px-6 py-14 text-foreground sm:px-8 sm:py-20'>
+				<PublicPageHeader title='What’s new.' description='The latest improvements to your clips, your scenes, and the tools behind your stream.' />
+				{releases.some((release) => !release.prerelease) ? (
+					<ReleaseTimeline releases={releases.filter((release) => !release.prerelease)} />
+				) : (
+					<section className='py-10'>
+						<h2 className='text-xl font-semibold'>Updates are temporarily unavailable</h2>
+						<p className='mt-3 text-foreground/75'>Please try again in a moment.</p>
+					</section>
+				)}
+			</main>
 
 			<Footer />
 		</>

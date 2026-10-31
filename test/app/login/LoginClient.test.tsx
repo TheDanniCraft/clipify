@@ -3,12 +3,15 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { authClient } from "@/auth/client";
 import LoginClient from "@/app/login/LoginClient";
 
+const plausible = jest.fn();
+jest.mock("@lib/analytics", () => ({ trackEvent: (...args: unknown[]) => plausible(...args), trackProductEvent: jest.fn() }));
+
 jest.mock("@/auth/client", () => ({
 	authClient: { signIn: { social: jest.fn() } },
 }));
 
 jest.mock("@components/heroui-client", () => ({
-	Button: ({ children, variant, onPress, isDisabled, isPending: _isPending, size: _size, ...props }: React.ComponentProps<"button"> & { variant?: string; onPress?: () => void; isDisabled?: boolean; isPending?: boolean; size?: string }) => (
+	Button: ({ children, variant, onPress, isDisabled, isPending: _isPending, size: _size, fullWidth: _fullWidth, ...props }: React.ComponentProps<"button"> & { variant?: string; onPress?: () => void; isDisabled?: boolean; isPending?: boolean; size?: string; fullWidth?: boolean }) => (
 		<button {...props} data-variant={variant} disabled={isDisabled} onClick={onPress}>
 			{children}
 		</button>
@@ -16,10 +19,10 @@ jest.mock("@components/heroui-client", () => ({
 }));
 
 describe("app/login/LoginClient", () => {
-	it("keeps the Twitch login action on the dark tertiary treatment", () => {
+	it("shows Twitch sign-in as the primary action", () => {
 		render(<LoginClient returnUrl='/dashboard' />);
 
-		expect(screen.getByRole("button", { name: "Login with Twitch" })).toHaveAttribute("data-variant", "tertiary");
+		expect(screen.getByRole("button", { name: "Login with Twitch" })).toHaveAttribute("data-variant", "primary");
 	});
 });
 
@@ -69,4 +72,29 @@ describe("native MCP sign-in", () => {
 			window.history.replaceState({}, "", "/");
 		}
 	});
+});
+
+it("records deliberate authentication intent without signed return URLs or identifiers", async () => {
+	jest.clearAllMocks();
+	(authClient.signIn.social as jest.Mock).mockResolvedValue({ error: null });
+	render(<LoginClient returnUrl='/checkout/continue' />);
+	expect(plausible).not.toHaveBeenCalled();
+	fireEvent.click(screen.getByRole("button", { name: "Login with Twitch" }));
+	await waitFor(() => expect(plausible).toHaveBeenCalledWith("auth_started", { provider: "twitch", source: "checkout" }));
+	expect(plausible).toHaveBeenCalledTimes(1);
+});
+
+it.each(["returned", "thrown"])("allows retry after a %s authentication-start error", async (mode) => {
+	jest.clearAllMocks();
+	const social = authClient.signIn.social as jest.Mock;
+	if (mode === "thrown") social.mockRejectedValueOnce(new Error("network"));
+	else social.mockResolvedValueOnce({ error: { message: "denied" } });
+	social.mockResolvedValueOnce({ error: null });
+	render(<LoginClient returnUrl='' />);
+	fireEvent.click(screen.getByRole("button", { name: "Login with Twitch" }));
+	await screen.findByRole("alert");
+	expect(screen.getByRole("button", { name: "Login with Twitch" })).toBeEnabled();
+	fireEvent.click(screen.getByRole("button", { name: "Login with Twitch" }));
+	await waitFor(() => expect(social).toHaveBeenCalledTimes(2));
+	expect(plausible).toHaveBeenCalledTimes(2);
 });

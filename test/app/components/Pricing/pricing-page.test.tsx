@@ -39,10 +39,12 @@ describe("public pricing server page and FAQ boundary", () => {
 		expect(comparisonProps).toHaveBeenCalledWith({ campaignOffer: campaign, pricing: { pro: { monthly: proMonthly, yearly: proYearly } } });
 		expect(screen.getByRole("navigation", { name: "Public navigation" })).toBeInTheDocument();
 		expect(screen.getByRole("heading", { name: "Pricing questions" })).toBeInTheDocument();
-		for (const question of ["Can I use Clipify for free?", "Do I need to keep my computer running?", "Can I switch between monthly and yearly billing?", "What happens if I stop using Pro?"]) expect(screen.getByRole("button", { name: question })).toBeInTheDocument();
+		for (const question of ["Can I use Clipify for free?", "Can I try Pro without a card?", "Do I need to keep my computer running?", "Can I switch between monthly and yearly billing?", "What happens if I stop using Pro?"]) expect(screen.getByRole("button", { name: question })).toBeInTheDocument();
 		expect(screen.getByText(/Free includes unlimited Twitch clips/)).toBeInTheDocument();
-		expect(screen.getByText(/must stay on and connected to the internet/)).toBeInTheDocument();
-		expect(screen.getByText(/two months free/)).toBeInTheDocument();
+		expect(screen.getByText(/computer running it must also stay on and connected/)).toBeInTheDocument();
+		expect(screen.getByText(/Annual plans are billed once per year/)).toBeInTheDocument();
+		expect(screen.getByText(/Returning creators do not receive another/)).toBeInTheDocument();
+		expect(screen.queryByText(/two months free/)).not.toBeInTheDocument();
 		expect(screen.getByText(/saved settings and content are kept/)).toBeInTheDocument();
 		expect(screen.getByText("Clipify footer")).toBeInTheDocument();
 	});

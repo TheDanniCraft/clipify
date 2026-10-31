@@ -3,7 +3,7 @@ import "server-only";
 import { and, eq, gt, inArray, isNull, lte, or, sql } from "drizzle-orm";
 
 import { db, dbPool } from "@/db/client";
-import { entitlementGrantsTable, overlaysTable, settingsTable, twitchCacheTable, usersTable } from "@/db/schema";
+import { entitlementGrantsTable, settingsTable, twitchCacheTable, usersTable } from "@/db/schema";
 import { Entitlement, EntitlementGrantSource, Plan, TwitchCacheType, type TwitchApiResponse, type TwitchUserResponse, type UserEntitlements } from "@types";
 import { resolveUserEntitlementsForUsers } from "@lib/entitlements";
 import { getAppAccessToken, getUsersDetailsBulk } from "@actions/twitch";
@@ -166,9 +166,7 @@ async function fetchCommunityUsers(): Promise<CommunityUserRow[]> {
 			updatedAt: usersTable.updatedAt,
 		})
 		.from(usersTable)
-		.innerJoin(overlaysTable, eq(overlaysTable.ownerId, usersTable.id))
 		.where(eq(usersTable.disabled, false))
-		.groupBy(usersTable.id, usersTable.username, usersTable.avatar, usersTable.plan, usersTable.lastLogin, usersTable.createdAt, usersTable.updatedAt)
 		.execute();
 }
 
@@ -180,7 +178,8 @@ export async function fetchCommunityPageVisibleUserIds(ownerIds: string[]): Prom
 		const rows = await db
 			.select({ id: settingsTable.id })
 			.from(settingsTable)
-			.where(and(inArray(settingsTable.id, ownerIds), eq(settingsTable.creatorPageEnabled, true), or(eq(settingsTable.creatorPageVisibility, "discoverable"), and(isNull(settingsTable.creatorPageVisibility), eq(settingsTable.showOnCommunityPage, true)))))
+			.innerJoin(usersTable, eq(usersTable.id, settingsTable.id))
+			.where(and(eq(usersTable.disabled, false), inArray(settingsTable.id, ownerIds), eq(settingsTable.creatorPageEnabled, true), or(eq(settingsTable.creatorPageVisibility, "discoverable"), and(isNull(settingsTable.creatorPageVisibility), eq(settingsTable.showOnCommunityPage, true)))))
 			.execute();
 
 		for (const row of rows) {
@@ -291,6 +290,7 @@ async function buildCommunitySnapshot(): Promise<CommunitySnapshot> {
 		return {
 			id: user.id,
 			username: twitchUser?.login ?? user.username,
+			profileUrl: `/creators/${encodeURIComponent(user.username.toLowerCase())}`,
 			displayName: twitchUser?.display_name ?? twitchUser?.login ?? user.username,
 			avatar: twitchUser?.profile_image_url ?? user.avatar,
 			plan: entitlements?.effectivePlan === "pro" || user.plan === Plan.Pro ? Plan.Pro : Plan.Free,

@@ -1,3 +1,4 @@
+import { socialPreview } from "@lib/socialPreview";
 import { Avatar, AvatarFallback, AvatarImage, Chip, Link } from "@components/heroui-client";
 
 import { IconBroadcast, IconBrandTwitch, IconCircleMinus, IconDiamondFilled, IconPlugConnected, IconSparkles } from "@tabler/icons-react";
@@ -14,6 +15,8 @@ import { getCommunityAvatarTone } from "@lib/communityAvatarTone";
 export const metadata = {
 	title: "Community | Clipify",
 	description: "Meet the creators using Clipify and see how the community turns the tool into something bigger.",
+	alternates: { canonical: "https://clipify.us/community" },
+	openGraph: { ...socialPreview, title: "Community | Clipify", url: "https://clipify.us/community" },
 };
 
 export const dynamic = "force-dynamic";
@@ -44,13 +47,19 @@ function StreamerRow({ streamer }: { streamer: CommunityPageStreamer }) {
 	return (
 		<div className='flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between'>
 			<div className='flex min-w-0 items-center gap-3'>
-				<Avatar aria-label={`${streamer.displayName}: ${avatarTone.label}`} color={avatarTone.color} variant='soft' className={`ring-2 ${avatarTone.ringClass}`} size='md'>
+				<Avatar role='img' aria-label={`${streamer.displayName}: ${avatarTone.label}`} color={avatarTone.color} variant='soft' className={`ring-2 ${avatarTone.ringClass}`} size='md'>
 					<AvatarImage alt='' src={streamer.avatar} />
 					<AvatarFallback>{streamer.displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
 				</Avatar>
 				<div className='min-w-0'>
 					<div className='flex flex-wrap items-center gap-2'>
-						<p className='truncate text-base font-semibold text-foreground'>{streamer.displayName}</p>
+						{streamer.profileUrl ? (
+							<Link href={streamer.profileUrl} className='min-w-0 max-w-full truncate text-base font-semibold text-foreground'>
+								{streamer.displayName}
+							</Link>
+						) : (
+							<p className='truncate text-base font-semibold text-foreground'>{streamer.displayName}</p>
+						)}
 						<Chip size='sm' color={badgeColor} variant={badgeVariant}>
 							{badgeLabel}
 						</Chip>
@@ -101,7 +110,7 @@ export default async function CommunityPage() {
 
 	return (
 		<div className='bg-background text-foreground'>
-			<div className='bg-gradient-to-br from-brand-800 to-brand-400 min-h-dvh relative flex flex-col overflow-hidden text-white'>
+			<div className='bg-gradient-to-br from-brand-800 to-brand-400 relative flex flex-col overflow-hidden text-white'>
 				<BasicNavbar />
 				<div
 					className='
@@ -113,16 +122,12 @@ export default async function CommunityPage() {
 						opacity-30
 					'
 				/>
-				<div className='mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-12 sm:px-6 lg:px-8'>
-					<main className='container mx-auto flex flex-1 flex-col justify-center overflow-hidden px-0'>
-						<section className='z-20 grid grid-cols-1 items-start gap-10 lg:grid-cols-[1.1fr_0.9fr]'>
+				<div className='mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-10 sm:py-16 sm:px-6 lg:px-8'>
+					<main className='container mx-auto flex flex-1 flex-col justify-center px-0'>
+						<section className='z-20 max-w-3xl'>
 							<div className='flex flex-col items-start gap-6'>
-								<h1 className='max-w-3xl text-[clamp(40px,10vw,64px)] font-bold leading-[1.05] tracking-tighter'>
-									Clipify itself is just some code.
-									<br />
-									With you, it becomes a powerful tool.
-								</h1>
-								<p className='max-w-xl text-lg leading-8 text-white/70'>See how creators are using Clipify in real streams and how the community puts the tool to work.</p>
+								<h1 className='max-w-3xl text-[clamp(40px,10vw,64px)] font-bold leading-[1.05] tracking-tighter'>Find your next favorite creator.</h1>
+								<p className='max-w-xl text-lg leading-8 text-white/70'>Explore creators who appear in the Clipify directory and visit their channels.</p>
 								<div className='flex flex-col gap-3 sm:flex-row sm:items-center'>
 									<Link href='/login' className='h-10 w-[163px] bg-white px-[16px] py-[10px] text-sm font-medium leading-5 text-black rounded-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-accent text-accent-foreground hover:bg-accent-hover'>
 										Register now
@@ -132,8 +137,6 @@ export default async function CommunityPage() {
 									<CommunityHeroAvatars streamers={featuredStreamers} totalCount={totalCount} />
 								</div>
 							</div>
-
-							<div />
 						</section>
 					</main>
 				</div>
@@ -141,7 +144,7 @@ export default async function CommunityPage() {
 			<div className='w-full bg-background px-4 py-24'>
 				<div className='mx-auto flex w-full max-w-6xl flex-col'>
 					<div className='mb-6 flex flex-col items-start gap-2'>
-						<p className='max-w-2xl text-sm text-muted'>Want to be featured here? Create an account, create your first overlay and opt in in Settings.</p>
+						<p className='max-w-2xl text-sm text-muted'>Meet creators with public Clipify profiles. You can manage your profile and community visibility in Settings.</p>
 					</div>
 					<div className='mt-4'>
 						{communityGroups.map((group) => (

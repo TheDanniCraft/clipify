@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq, inArray, or, sql } from "drizzle-orm";
+import { and, eq, inArray, like, or, sql } from "drizzle-orm";
 import * as tables from "@/db/schema";
 import * as authTables from "@/db/auth-schema";
 import { db } from "@/db/client";
@@ -88,7 +88,7 @@ export async function collectComprehensiveAccountData(input: { authUserId: strin
 		db
 			.select()
 			.from(auditEventsTable)
-			.where(or(inArray(auditEventsTable.accountOrganizationId, organizationIds), eq(auditEventsTable.actorUserId, input.authUserId))),
+			.where(or(inArray(auditEventsTable.accountOrganizationId, organizationIds), eq(auditEventsTable.actorUserId, input.authUserId), and(eq(auditEventsTable.targetType, "creator"), eq(auditEventsTable.targetId, input.creatorId), like(auditEventsTable.action, "product:%")))),
 		db.select().from(notificationOutboxTable).where(inArray(notificationOutboxTable.authorityOrganizationId, organizationIds)),
 		db.select().from(plausibleStatsCacheTable).where(eq(plausibleStatsCacheTable.ownerId, input.creatorId)),
 		db

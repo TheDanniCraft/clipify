@@ -97,7 +97,7 @@ describe("lib/community", () => {
 			.mockResolvedValueOnce([]);
 	});
 
-	it("builds the shared community snapshot without community-page visibility filtering", async () => {
+	it("includes creators without requiring an overlay, before public visibility filtering", async () => {
 		const { refreshCommunitySnapshot } = await loadCommunity();
 
 		const snapshot = await refreshCommunitySnapshot();
@@ -105,7 +105,22 @@ describe("lib/community", () => {
 		expect(snapshot?.totalCount).toBe(1);
 		expect(snapshot?.streamers.map((streamer) => streamer.id)).toEqual(["user-1"]);
 		expect(queryBuilder.leftJoin).not.toHaveBeenCalled();
-		expect(queryBuilder.innerJoin).toHaveBeenCalled();
+		expect(queryBuilder.innerJoin).not.toHaveBeenCalled();
+		expect(snapshot?.streamers[0]).toHaveProperty("profileUrl", "/creators/thedanni");
+	});
+
+	it("keeps the stored profile URL when Twitch reports a different login and localized display name", async () => {
+		getAppAccessToken.mockResolvedValue({ access_token: "local-fixture" });
+		getUsersDetailsBulk.mockResolvedValue([{ id: "user-1", login: "current_login", display_name: "家姐" }]);
+		const originalFetch = global.fetch;
+		global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ data: [] }) });
+		try {
+			const { refreshCommunitySnapshot } = await loadCommunity();
+			const snapshot = await refreshCommunitySnapshot();
+			expect(snapshot?.streamers[0]).toMatchObject({ username: "current_login", displayName: "家姐", profileUrl: "/creators/thedanni" });
+		} finally {
+			global.fetch = originalFetch;
+		}
 	});
 
 	it("returns the opt-in ids for the community page separately", async () => {

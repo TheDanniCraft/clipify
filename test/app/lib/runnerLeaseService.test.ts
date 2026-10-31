@@ -17,6 +17,7 @@ const overlay = { id: session.overlayId, ownerId: actor.ownerId, status: "active
 function transaction(rows: unknown[][]) {
 	const set = jest.fn();
 	const tx = {
+		insert: jest.fn(() => ({ values: () => ({ onConflictDoNothing: async () => ({ rowCount: 0 }) }) })),
 		select: jest.fn(() => {
 			const result = rows.shift() ?? [];
 			const builder = { from: () => builder, where: () => builder, orderBy: () => builder, limit: () => builder, for: async () => result };

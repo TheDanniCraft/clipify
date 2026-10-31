@@ -1,3 +1,4 @@
+import { trackServerProductEvent } from "@/server/umami";
 import "server-only";
 import { listOverlayRecords, readOverlayRecord } from "./overlay-reads";
 import { validateOwnedOverlayReward } from "./overlay-reward-validation";
@@ -52,11 +53,13 @@ export async function createOverlayForPrincipal(principal: TrustedCreatorPrincip
 	const parsed = toolInputSchemas.create_overlay.safeParse(rawInput);
 	if (!parsed.success) throw new Error("INVALID_INPUT");
 	const input = parsed.data;
-	return client.transaction(async (tx) => {
+	const analyticsResult = await client.transaction(async (tx) => {
 		if (principal.kind === "oauth") return createWithRetry(tx, principal, "create_overlay", input, () => insertOverlay(tx, input));
 		await authorizeLockedMutation(principal, input.creatorId, "overlay:create", tx);
 		return insertOverlay(tx, input);
 	});
+	if (principal.kind === "session") trackServerProductEvent(principal.authUserId, "resource_created", { resource_type: "overlay", channel: "web" });
+	return analyticsResult;
 }
 
 /** Scope and current membership precede owner-bound lookup to avoid enumeration. */
@@ -132,6 +135,8 @@ export async function updateOverlayRecord(principal: TrustedCreatorPrincipal, ra
 		return updated;
 	});
 	if (updated.status === StatusOptions.Paused) disconnectOverlaySources(updated.id);
+	trackServerProductEvent(principal.authUserId, "resource_saved", { resource_type: "overlay", channel: principal.kind === "oauth" ? "ai" : "web" });
+	if (auditTool === "update_overlay_theme" || Object.keys(input.patch).some((key) => /^(theme|effect|border|progressBar|showClip|showChannel)/.test(key))) trackServerProductEvent(principal.authUserId, "theme_saved", { changed_group: "style", channel: principal.kind === "oauth" ? "ai" : "web" });
 	return updated;
 }
 
@@ -144,7 +149,7 @@ export async function deleteOverlay(principal: TrustedCreatorPrincipal, rawInput
 	const parsed = toolInputSchemas.delete_overlay.safeParse(rawInput);
 	if (!parsed.success) throw new Error("INVALID_INPUT");
 	const input = parsed.data;
-	return client.transaction(async (tx) => {
+	const analyticsResult = await client.transaction(async (tx) => {
 		const authorization = await authorizeLockedMutation(principal, input.creatorId, "overlay:delete", tx);
 		const [current] = await tx
 			.select()
@@ -170,6 +175,8 @@ export async function deleteOverlay(principal: TrustedCreatorPrincipal, rawInput
 		authorization.assertAuthorityCurrent();
 		return { deletedId: current.id };
 	});
+	trackServerProductEvent(principal.authUserId, "resource_deleted", { resource_type: "overlay", channel: principal.kind === "oauth" ? "ai" : "web" });
+	return analyticsResult;
 }
 
 function normalizedOwnerVolume(creatorId: string, volume: number) {

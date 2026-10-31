@@ -1,4 +1,5 @@
 /** @jest-environment node */
+jest.mock("@/server/product-outcomes", () => ({ recordProductOutcome: jest.fn().mockResolvedValue(undefined) }));
 import { BillingProduct } from "@types";
 import { flowProbe } from "../../support/mcp/probe";
 
@@ -330,8 +331,11 @@ test("TDD-US5-DEC013: reference templates and home FAQ describe included unlimit
 	expect(full).toMatch(/Runner and broadcasting/);
 	expect(full).toMatch(/Advanced Runner features require effective Pro.*valid Pro grants, trials, and agency creator seats/);
 	expect(full).not.toMatch(/Existing active Runner grants provide advanced Runner benefits/);
-	const runnerFaq = faqs.find((faq) => faq.title === "What is the self-hosted Runner?");
-	expect(runnerFaq?.content).toMatch(/broadcasts clips from your Windows, Linux, or macOS computer/);
+	const runnerFaq = faqs.find((faq) => /\bRunner\b/i.test(faq.title));
+	expect(runnerFaq).toBeDefined();
+	expect(runnerFaq?.content).toMatch(/included with Free and Pro/);
+	expect(runnerFaq?.content).toMatch(/your own Windows, Linux, or macOS computer/);
+	expect(runnerFaq?.content).toMatch(/must stay online/);
 	expect(runnerFaq?.content).not.toMatch(/3 EUR|30 EUR|add-on/);
 });
 

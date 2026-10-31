@@ -25,19 +25,36 @@ function isChatwootWidgetMounted() {
 const ChatWidget = () => {
 	const pathname = usePathname();
 	const isEmbedded = isEmbeddedRoute(pathname);
-	const { openDialog } = useHeadlessConsentUI();
+	const { banner, dialog, openDialog } = useHeadlessConsentUI();
 	const functionalityAllowed = useConsent("functionality");
 	const [preferencesVisible, setPreferencesVisible] = useState(false);
+	const [previewBottom, setPreviewBottom] = useState(20);
+	const consentVisible = banner.isVisible || dialog.isVisible || preferencesVisible;
 	const [chatwootState, setChatwootState] = useState({ checked: false, available: false });
 	useScriptLoader(isEmbedded ? [] : [chatwootConsentScript]);
 	const scriptStatus: ConsentScriptStatus = !functionalityAllowed ? "blocked" : chatwootState.available ? "ready" : "loading";
+
+	useEffect(() => {
+		if (!banner.isVisible) return;
+		const element = document.getElementById("consent-banner-title")?.closest("aside");
+		if (!element) return;
+		const positionPreview = () => setPreviewBottom(window.innerHeight - element.getBoundingClientRect().top + 12);
+		positionPreview();
+		const observer = new ResizeObserver(positionPreview);
+		observer.observe(element);
+		window.addEventListener("resize", positionPreview);
+		return () => {
+			observer.disconnect();
+			window.removeEventListener("resize", positionPreview);
+		};
+	}, [banner.isVisible]);
 
 	useEffect(() => {
 		function syncChatwootVisibility() {
 			const chatwoot = window.$chatwoot;
 			if (!chatwoot || !isChatwootWidgetMounted()) return;
 
-			if (isEmbedded || scriptStatus !== "ready") {
+			if (isEmbedded || consentVisible || scriptStatus !== "ready") {
 				chatwoot.toggle?.("close");
 				chatwoot.toggleBubbleVisibility?.("hide");
 				return;
@@ -49,7 +66,7 @@ const ChatWidget = () => {
 		syncChatwootVisibility();
 		window.addEventListener("chatwoot:ready", syncChatwootVisibility);
 		return () => window.removeEventListener("chatwoot:ready", syncChatwootVisibility);
-	}, [isEmbedded, scriptStatus]);
+	}, [isEmbedded, scriptStatus, consentVisible]);
 
 	useEffect(() => {
 		function updateChatwootState() {
@@ -70,7 +87,7 @@ const ChatWidget = () => {
 		return () => window.removeEventListener(CONSENT_PREFERENCES_VISIBILITY_EVENT, updatePreferencesVisibility);
 	}, []);
 
-	if (!chatwootState.checked || chatwootState.available || !shouldShowChatConsentFallback({ isEmbedded, preferencesVisible, scriptStatus })) return null;
+	if (!chatwootState.checked || chatwootState.available || !shouldShowChatConsentFallback({ isEmbedded, preferencesVisible: dialog.isVisible || preferencesVisible, scriptStatus })) return null;
 
 	function openSupportConsent() {
 		setPreferencesVisible(true);
@@ -79,7 +96,7 @@ const ChatWidget = () => {
 	}
 
 	return (
-		<Button isIconOnly aria-label='Enable support chat' className='fixed bottom-5 left-5 z-[110] size-14 rounded-full shadow-xl' onPress={openSupportConsent}>
+		<Button isIconOnly aria-label='Enable support chat' className='fixed left-5 z-[110] size-14 rounded-full shadow-xl' style={{ bottom: banner.isVisible ? previewBottom : 20 }} onPress={openSupportConsent}>
 			<IconMessageCircle className='size-6' aria-hidden='true' />
 		</Button>
 	);

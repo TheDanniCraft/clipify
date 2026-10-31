@@ -5,7 +5,21 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 
 import PricingComparison from "@/app/components/Pricing/comparison";
 
-jest.mock("next-plausible", () => ({ usePlausible: () => jest.fn() }));
+jest.mock("@/app/components/Pricing/BillingFrequency", () => ({
+	__esModule: true,
+	default: ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
+		<div>
+			<button aria-pressed={value === "yearly"} onClick={() => onChange("yearly")}>
+				Pay Yearly
+			</button>
+			<button aria-pressed={value === "monthly"} onClick={() => onChange("monthly")}>
+				Pay Monthly
+			</button>
+		</div>
+	),
+}));
+
+jest.mock("@lib/analytics", () => ({ trackEvent: jest.fn(), trackProductEvent: jest.fn() }));
 jest.mock("@lib/paywallTracking", () => ({ trackPaywallEvent: jest.fn() }));
 jest.mock("@heroui/styles", () => ({ buttonVariants: () => "button" }));
 jest.mock("@tabler/icons-react", () => ({
@@ -30,7 +44,6 @@ jest.mock("@heroui/react", () => {
 		),
 		{ Content: Box, Control: Box, Indicator: () => null },
 	);
-	const Tabs = Object.assign(({ children }: { children: ReactNode }) => <div>{children}</div>, { ListContainer: Box, List: Box, Tab: Box, Indicator: () => null });
 	const Modal = Object.assign(Box, {
 		Backdrop: ({ children, isOpen }: { children: ReactNode; isOpen?: boolean }) => (isOpen ? <div>{children}</div> : null),
 		Container: Box,
@@ -41,8 +54,8 @@ jest.mock("@heroui/react", () => {
 		Body: Box,
 		Footer: Box,
 	});
-	const Button = React.forwardRef<HTMLButtonElement, { children: ReactNode; onPress?: () => void; fullWidth?: boolean; variant?: string; slot?: string } & React.ButtonHTMLAttributes<HTMLButtonElement>>(({ children, onPress, fullWidth: _fullWidth, variant: _variant, slot: _slot, ...props }, ref) => (
-		<button ref={ref} type='button' onClick={onPress} {...props}>
+	const Button = React.forwardRef<HTMLButtonElement, { children: ReactNode; onPress?: () => void; isDisabled?: boolean; fullWidth?: boolean; variant?: string; slot?: string } & React.ButtonHTMLAttributes<HTMLButtonElement>>(({ children, onPress, isDisabled, fullWidth: _fullWidth, variant: _variant, slot: _slot, ...props }, ref) => (
+		<button ref={ref} type='button' disabled={isDisabled} onClick={onPress} {...props}>
 			{children}
 		</button>
 	));
@@ -57,7 +70,6 @@ jest.mock("@heroui/react", () => {
 		Link: ({ children, ...props }: { children: ReactNode; href?: string }) => <a {...props}>{children}</a>,
 		Modal,
 		Separator: () => <hr />,
-		Tabs,
 		Tooltip,
 		cn: (...values: Array<string | false | null | undefined>) => values.filter(Boolean).join(" "),
 	};
@@ -68,6 +80,19 @@ describe("PricingComparison Pro setup", () => {
 		pro: { monthly: { amount: 2, currency: "EUR", formatted: "2 EUR" }, yearly: { amount: 20, currency: "EUR", formatted: "20 EUR" } },
 		runner: { monthly: { amount: 3, currency: "EUR", formatted: "3 EUR" }, yearly: { amount: 30, currency: "EUR", formatted: "30 EUR" } },
 	};
+
+	it("compares yearly Pro with twelve monthly payments and removes that comparison for monthly billing", () => {
+		render(<PricingComparison pricing={pricing} />);
+		for (const reference of screen.getAllByText("€24.00")) expect(reference).toHaveClass("line-through");
+		fireEvent.click(screen.getByRole("button", { name: "Pay Monthly" }));
+		expect(screen.queryByText("€24.00")).not.toBeInTheDocument();
+	});
+
+	it("keeps paid checkout unavailable when no price has been resolved", () => {
+		render(<PricingComparison />);
+		for (const action of screen.getAllByRole("button", { name: "Get Pro" })) expect(action).toBeDisabled();
+		expect(screen.getByRole("status")).toHaveTextContent("Pro pricing is temporarily unavailable");
+	});
 
 	it("includes Runner in Pro setup without rendering a separate purchase option", () => {
 		render(<PricingComparison pricing={pricing} />);

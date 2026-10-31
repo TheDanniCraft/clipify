@@ -12,7 +12,7 @@ jest.mock("@actions/creatorPage", () => ({
 	getCreatorClipPage: (...args: unknown[]) => getCreatorClipPage(...args),
 	getCreatorClipPlayback: (...args: unknown[]) => getCreatorClipPlayback(...args),
 }));
-jest.mock("next-plausible", () => ({ usePlausible: () => plausible }));
+jest.mock("@lib/analytics", () => ({ trackEvent: (...args: unknown[]) => plausible(...args), trackProductEvent: jest.fn() }));
 jest.mock("@components/appDateRangePicker", () => ({ __esModule: true, default: () => <div data-testid='date-range' /> }));
 jest.mock("@heroui/react", () => {
 	const Part = ({ children }: { children?: ReactNode }) => <div>{children}</div>;

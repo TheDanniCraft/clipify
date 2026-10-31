@@ -5,6 +5,7 @@ const getPlaylistRuntimeClipsForOwnerServer = jest.fn();
 const getCachedClipsByOwner = jest.fn();
 const getCachedClipByOwner = jest.fn();
 const getTwitchClipPlaybackUrl = jest.fn();
+const getTwitchClipBatch = jest.fn();
 const resolveUserEntitlements = jest.fn();
 const getFeatureAccess = jest.fn();
 const canResolvePublicClipPlayback = jest.fn();
@@ -61,7 +62,7 @@ dbTransaction.mockImplementation(async (callback: (tx: DbMock) => unknown) => ca
 
 jest.mock("@actions/auth", () => ({ validateAuth: (...args: unknown[]) => validateAuth(...args) }));
 jest.mock("@actions/database", () => ({ getPlaylistRuntimeClipsForOwnerServer: (...args: unknown[]) => getPlaylistRuntimeClipsForOwnerServer(...args) }));
-jest.mock("@actions/twitch", () => ({ getCachedClipByOwner: (...args: unknown[]) => getCachedClipByOwner(...args), getTwitchClipPlaybackUrl: (...args: unknown[]) => getTwitchClipPlaybackUrl(...args) }));
+jest.mock("@actions/twitch", () => ({ getTwitchClipBatch: (...args: unknown[]) => getTwitchClipBatch(...args), getCachedClipByOwner: (...args: unknown[]) => getCachedClipByOwner(...args), getTwitchClipPlaybackUrl: (...args: unknown[]) => getTwitchClipPlaybackUrl(...args) }));
 jest.mock("@/server/clip-cache-read", () => ({ readCachedClipsByOwner: (...args: unknown[]) => getCachedClipsByOwner(...args) }));
 jest.mock("@/db/client", () => ({ db }));
 jest.mock("@lib/entitlements", () => ({ resolveUserEntitlements: (...args: unknown[]) => resolveUserEntitlements(...args) }));
@@ -415,5 +416,24 @@ describe("gallery actions", () => {
 
 		await expect(getPublicGalleryPlayer("gallery-1", "a")).resolves.toMatchObject({ playbackUrl: "https://video.example/clip.mp4" });
 		expect(getTwitchClipPlaybackUrl).toHaveBeenCalledWith("a", "owner", { kind: "gallery", galleryId: "gallery-1" });
+	});
+});
+
+describe("public demo gallery", () => {
+	const original = process.env.DEMO_OVERLAY_ID;
+	afterEach(() => {
+		if (original === undefined) delete process.env.DEMO_OVERLAY_ID;
+		else process.env.DEMO_OVERLAY_ID = original;
+	});
+	it("uses only the configured public demo and never requires login", async () => {
+		const { getDemoGalleryClips } = await import("@actions/gallery");
+		delete process.env.DEMO_OVERLAY_ID;
+		expect(await getDemoGalleryClips()).toBeNull();
+		process.env.DEMO_OVERLAY_ID = "demo";
+		getTwitchClipBatch.mockResolvedValueOnce([]);
+		expect(await getDemoGalleryClips()).toBeNull();
+		getTwitchClipBatch.mockResolvedValueOnce([{ id: "clip" }]);
+		expect(await getDemoGalleryClips()).toEqual({ overlayId: "demo", clips: [{ id: "clip" }] });
+		expect(getTwitchClipBatch).toHaveBeenLastCalledWith("demo", undefined, undefined, [], 12);
 	});
 });

@@ -27,7 +27,7 @@ async function expectScheduleActionAlignment(page: Page) {
 }
 
 async function prepare(page: Page) {
-	await page.goto("/legal/cookies");
+	await Promise.all([page.waitForResponse((response) => response.url().includes("/api/c15t/init") && response.ok()), page.goto("/legal/cookies")]);
 	await expect(page.getByRole("button", { name: "Enable support chat", exact: true })).toBeVisible();
 	const button = page.getByRole("main").getByRole("button", { name: "Cookie preferences", exact: true });
 	await button.focus();
@@ -383,9 +383,10 @@ for (const plan of ["free", "pro"] as const)
 				await page.keyboard.press("Escape");
 				await page.setViewportSize({ width: 1280, height: 900 });
 
-				const endDay = event.getByRole("spinbutton", { name: /day, End date/i });
-				await endDay.focus();
-				await endDay.press("ArrowUp");
+				// Increment the year: day segments wrap within their month at month-end.
+				const endYear = event.getByRole("spinbutton", { name: /year, End date/i });
+				await endYear.focus();
+				await endYear.press("ArrowUp");
 				await event.getByRole("button", { name: "Save schedule", exact: true }).click();
 				await expect(event).not.toBeVisible();
 				await expect(schedule.getByText("Vacation broadcast", { exact: true }).first()).toBeVisible();

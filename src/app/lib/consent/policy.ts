@@ -3,6 +3,7 @@ import { CONSENT_LIFETIME_DAYS } from "./lifetime";
 
 const worldwideConsent = {
 	model: "opt-in" as const,
+	copyRevision: "statistics-product-analytics-v1",
 	prompt: "choice" as const,
 	validity: { choiceDays: CONSENT_LIFETIME_DAYS },
 	scopeMode: "strict" as const,

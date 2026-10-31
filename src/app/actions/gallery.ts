@@ -1,7 +1,7 @@
 "use server";
 
 import { getPlaylistRuntimeClipsForOwnerServer } from "@actions/database";
-import { getCachedClipByOwner, getTwitchClipPlaybackUrl } from "@actions/twitch";
+import { getCachedClipByOwner, getTwitchClipPlaybackUrl, getTwitchClipBatch } from "@actions/twitch";
 import { readCachedClipsByOwner } from "@/server/clip-cache-read";
 import { db } from "@/db/client";
 import { galleriesTable, playlistsTable, usersTable } from "@/db/schema";
@@ -193,4 +193,11 @@ export async function getPublicGalleryPlayer(galleryId: string, clipId: string) 
 		playbackUrl = null;
 	}
 	return { ...bundle, selectedIndex: index, playbackUrl };
+}
+
+export async function getDemoGalleryClips() {
+	const overlayId = process.env.DEMO_OVERLAY_ID;
+	if (!overlayId) return null;
+	const clips = await getTwitchClipBatch(overlayId, undefined, undefined, [], 12);
+	return clips.length ? { overlayId, clips } : null;
 }

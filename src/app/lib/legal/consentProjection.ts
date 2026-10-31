@@ -20,9 +20,9 @@ export function projectConsentCategories(selections: ConsentSelections) {
 export function getAlwaysOnServiceDisclosures() {
 	return [
 		{
-			id: "plausible",
-			name: "Plausible audience statistics",
-			purpose: "Produce aggregated, cookieless audience statistics for Clipify's self-hosted analytics.",
+			id: "umami-baseline",
+			name: "Umami audience statistics",
+			purpose: "Produce cookieless traffic, campaign, engagement and existing product-event statistics without attaching your Clipify account.",
 			alwaysOn: true,
 			consentRequired: false,
 			optionalToggle: false,
