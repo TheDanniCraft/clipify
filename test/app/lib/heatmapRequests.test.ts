@@ -1,5 +1,5 @@
 /** @jest-environment node */
-import { filterHeatmapRequest, installHeatmapRequestFilter } from "@/app/lib/heatmapRequests";
+import { filterHeatmapRequest, installRecorderFetch } from "@/app/lib/heatmapRequests";
 import { setBrowserMeasurementConsent } from "@/app/lib/consent/browserMeasurement";
 
 const origin = "https://clipify.us";
@@ -40,19 +40,20 @@ it.each(["not json", JSON.stringify({ type: "record", payload: { website: "fixtu
 it("does not accept another website's recording", () => {
 	expect(filterHeatmapRequest(body([event()]), "another-site", origin + "/")).toBeNull();
 });
-it("gates only the existing same-origin record endpoint and preserves other fetch traffic", async () => {
+it("isolates recorder filtering without replacing the application fetch", async () => {
 	const original = jest.fn().mockResolvedValue(new Response("ok"));
 	const fakeWindow = { fetch: original, location: new URL(origin + "/pricing") };
 	Object.defineProperty(globalThis, "window", { value: fakeWindow, configurable: true });
 	try {
-		installHeatmapRequestFilter("fixture");
-		await fakeWindow.fetch("/statistics/api/send", { method: "POST", body: "baseline" });
+		installRecorderFetch("fixture");
+		expect(fakeWindow.fetch).toBe(original);
+		await window.clipifyRecorderFetch!("/statistics/api/send", { method: "POST", body: "baseline" });
 		expect(original).toHaveBeenLastCalledWith("/statistics/api/send", { method: "POST", body: "baseline" });
-		await fakeWindow.fetch("/statistics/api/record", { method: "POST", body: body([event(), event("/dashboard")]) });
+		await window.clipifyRecorderFetch!("/statistics/api/record", { method: "POST", body: body([event(), event("/dashboard")]) });
 		expect(JSON.parse(original.mock.calls.at(-1)![1].body).payload.events).toHaveLength(1);
 		original.mockClear();
 		setBrowserMeasurementConsent(false);
-		expect((await fakeWindow.fetch("/statistics/api/record", { method: "POST", body: body([event()]) })).status).toBe(204);
+		expect((await window.clipifyRecorderFetch!("/statistics/api/record", { method: "POST", body: body([event()]) })).status).toBe(204);
 		expect(original).not.toHaveBeenCalled();
 	} finally {
 		delete (globalThis as { window?: unknown }).window;

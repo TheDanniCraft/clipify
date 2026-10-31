@@ -15,16 +15,16 @@ export function filterHeatmapRequest(body: string, websiteId: string, currentUrl
 	}
 }
 
-let installed = false;
-let recorderWebsiteId = "";
+declare global {
+	interface Window {
+		clipifyRecorderFetch?: typeof fetch;
+	}
+}
 
-export function installHeatmapRequestFilter(websiteId: string) {
-	recorderWebsiteId = websiteId;
-	if (installed) return;
-	installed = true;
+export function installRecorderFetch(websiteId: string) {
 	const originalFetch = window.fetch;
-	// Keep this gate for the document's lifetime: removing the script does not stop its recorder.
-	window.fetch = (input, init) => {
+	// Only the proxied recorder receives this function; never replace window.fetch.
+	window.clipifyRecorderFetch = (input, init) => {
 		const rawUrl = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
 		let url: URL;
 		try {
@@ -33,7 +33,7 @@ export function installHeatmapRequestFilter(websiteId: string) {
 			return originalFetch.call(window, input, init);
 		}
 		if (url.origin !== window.location.origin || url.pathname !== "/statistics/api/record") return originalFetch.call(window, input, init);
-		const body = typeof init?.body === "string" ? filterHeatmapRequest(init.body, recorderWebsiteId, window.location.href) : null;
+		const body = typeof init?.body === "string" ? filterHeatmapRequest(init.body, websiteId, window.location.href) : null;
 		return body ? originalFetch.call(window, input, { ...init, body }) : Promise.resolve(new Response(null, { status: 204 }));
 	};
 }

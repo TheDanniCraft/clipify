@@ -12,7 +12,7 @@ let pathname = "/";
 jest.mock("c15t/next", () => ({ useConsent: () => measurement, useSnapshot: () => ({ policyPending }), useIdentify: () => identifyConsent }));
 jest.mock("next/navigation", () => ({ usePathname: () => pathname }));
 jest.mock("nextjs-nav-guard", () => ({ useNavigationGuard: jest.fn() }));
-jest.mock("@/app/lib/heatmapRequests", () => ({ installHeatmapRequestFilter: jest.fn() }));
+jest.mock("@/app/lib/heatmapRequests", () => ({ installRecorderFetch: jest.fn() }));
 jest.mock("@/app/actions/analytics", () => ({ getAnalyticsIdentity: jest.fn().mockResolvedValue(null) }));
 jest.mock("next/script", () => ({
 	__esModule: true,

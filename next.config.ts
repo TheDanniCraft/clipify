@@ -29,7 +29,7 @@ const nextConfigPromise = Promise.resolve(drizzle).then(
 			async rewrites() {
 				return [
 					{ source: `/js/${umamiTrackerName}`, destination: `${umamiBaseUrl}/script.js` },
-					{ source: `/js/${umamiRecorderName}`, destination: `${umamiBaseUrl}/recorder.js` },
+					{ source: `/js/${umamiRecorderName}`, destination: "/api/analytics/recorder" },
 					{ source: "/statistics/api/send", destination: `${umamiBaseUrl}/api/send` },
 					{ source: "/statistics/api/record", destination: `${umamiBaseUrl}/api/record` },
 					{ source: "/statistics/api/websites/:websiteId/recorder", destination: `${umamiBaseUrl}/api/websites/:websiteId/recorder` },

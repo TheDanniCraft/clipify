@@ -4,7 +4,7 @@ import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useConsent, useSnapshot, useIdentify } from "c15t/next";
-import { installHeatmapRequestFilter } from "./lib/heatmapRequests";
+import { installRecorderFetch } from "./lib/heatmapRequests";
 import { canRecordHeatmap } from "./lib/heatmapRoutes";
 import { getAnalyticsIdentity } from "./actions/analytics";
 import { prepareUmamiPayload, setAnalyticsContext } from "./lib/analytics";
@@ -34,7 +34,7 @@ export default function UmamiClient({ websiteId }: { websiteId: string }) {
 	}, [enabled, measurement, pathname]);
 
 	useEffect(() => {
-		if (enabled) installHeatmapRequestFilter(websiteId);
+		if (enabled) installRecorderFetch(websiteId);
 	}, [enabled, websiteId]);
 
 	useEffect(() => {
