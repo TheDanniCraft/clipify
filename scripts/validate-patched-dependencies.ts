@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
-import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 type PackageJson = {
 	patchedDependencies?: Record<string, string>;
@@ -153,7 +153,9 @@ function verifyCodeTargets(targets: PatchTarget[], specifier: string) {
 
 	let typescriptPath: string;
 	try {
-		typescriptPath = projectRequire.resolve("typescript/bin/tsc");
+		const manifestPath = projectRequire.resolve("typescript/package.json");
+		const compiler = JSON.parse(readFileSync(manifestPath, "utf8")) as { bin: Record<string, string> };
+		typescriptPath = resolve(dirname(manifestPath), compiler.bin.tsc6 ?? compiler.bin.tsc);
 	} catch {
 		fail(`TypeScript is required to validate patched code in ${specifier}`);
 	}

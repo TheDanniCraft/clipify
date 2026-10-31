@@ -461,3 +461,15 @@ contract and integration owners, plus any existing creator-selection and agency
 consent scenarios that exercise that behavior. It does not require local Runner
 capture, updater or unrelated application suites. A change to the visible consent
 flow also requires its real consent-browser journeys.
+
+## TypeScript compiler and compatibility API
+
+The root, Runner and video packages install TypeScript 7 under `@typescript/native`;
+its `tsc` executable performs command-line type checks. The `typescript` dependency
+aliases Microsoft's `@typescript/typescript6` compatibility package so Next.js,
+ESLint and generated-scenario AST checks retain the JavaScript compiler API.
+Next.js production builds keep their built-in TypeScript validation enabled.
+
+Patch validation resolves the installed compatibility compiler's declared `tsc6`
+executable from its package manifest rather than importing a private CLI path.
+Keep the three independently locked packages aligned when updating these aliases.
