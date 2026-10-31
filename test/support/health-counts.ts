@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import { eq, inArray } from "drizzle-orm";
-import { usersTable, overlaysTable, settingsTable, runnersTable, streamSessionsTable, clipCrawlJobsTable, notificationOutboxTable } from "@/db/schema";
+import { usersTable, overlaysTable, settingsTable, runnersTable, streamSessionsTable, clipCrawlJobsTable, notificationOutboxTable, twitchCacheTable } from "@/db/schema";
 import { account } from "@/db/auth-schema";
-import { userHealthCounts, overlayHealthCounts, settingsHealthCounts, tokenHealthCounts, runnerHealthCounts, streamHealthCounts, crawlerHealthCounts, notificationHealthCounts } from "@lib/health-counts";
+import { userHealthCounts, overlayHealthCounts, settingsHealthCounts, tokenHealthCounts, runnerHealthCounts, streamHealthCounts, crawlerHealthCounts, notificationHealthCounts, cacheHealthCounts } from "@lib/health-counts";
 
 let postgres: PGlite;
 const now = new Date("2026-10-09T12:00:00Z");
@@ -139,4 +139,36 @@ test("queue health excludes disabled creators and sent history, distinguishes re
 	await postgres.exec("UPDATE notification_outbox SET scheduled_at='2026-10-09T12:01:00Z' WHERE scheduled_at='2026-10-09T11:55:00Z'");
 	assert.equal((await readOutbox()).duePending, 1);
 	assert.equal((await readOutbox()).oldestDueAgeSeconds, 120);
+});
+
+test("cache totals, unavailable and stale validation counts share one scan with exact boundaries", async () => {
+	await postgres.exec(`CREATE TABLE "twitchCache" (type text, key text, value text, fetched_at timestamptz);
+ INSERT INTO "twitchCache" VALUES
+ ('clip','clip:old','{"unavailable":true,"lastValidatedAt":null}','2026-10-09T05:59:59Z'),
+ ('clip','clip:boundary','{"lastValidatedAt":"yes"}','2026-10-09T06:00:00Z'),
+ ('clip','clip:fresh','{"unavailable":false,"lastValidatedAt":"yes"}','2026-10-09T11:00:00Z'),
+ ('clip','clip:unchecked','{}','2026-10-09T01:00:00Z'),
+ ('clip','clip-sync:owner','{"unavailable":true,"lastValidatedAt":"yes"}','2026-10-09T01:00:00Z'),
+ ('avatar','avatar:owner','{}','2026-10-09T01:00:00Z'),
+ ('game','game:one',NULL,NULL);
+ `);
+	const db = drizzle(postgres);
+	const read = async () =>
+		(
+			await db
+				.select({ type: twitchCacheTable.type, ...cacheHealthCounts(now) })
+				.from(twitchCacheTable)
+				.groupBy(twitchCacheTable.type)
+		)
+			.map((row) => ({ ...row, count: Number(row.count), unavailable: Number(row.unavailable), staleValidated: Number(row.staleValidated) }))
+			.sort((a, b) => a.type.localeCompare(b.type));
+	assert.deepEqual(await read(), [
+		{ type: "avatar", count: 1, unavailable: 0, staleValidated: 0 },
+		{ type: "clip", count: 5, unavailable: 2, staleValidated: 1 },
+		{ type: "game", count: 1, unavailable: 0, staleValidated: 0 },
+	]);
+	await postgres.exec(`UPDATE "twitchCache" SET fetched_at='2026-10-09T11:00:00Z' WHERE key='clip:old'`);
+	assert.equal((await read()).find((row) => row.type === "clip")?.staleValidated, 0);
+	await postgres.exec('TRUNCATE "twitchCache"');
+	assert.deepEqual(await read(), []);
 });

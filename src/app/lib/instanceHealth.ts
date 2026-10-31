@@ -3,13 +3,13 @@ import { grantAccessNotExpired } from "@/server/entitlements/grant-period";
 /* istanbul ignore file */
 /* istanbul ignore file */
 /* istanbul ignore file */
-import { userHealthCounts, overlayHealthCounts, settingsHealthCounts, tokenHealthCounts, runnerHealthCounts, streamHealthCounts, crawlerHealthCounts, notificationHealthCounts } from "./health-counts";
+import { userHealthCounts, overlayHealthCounts, settingsHealthCounts, tokenHealthCounts, runnerHealthCounts, streamHealthCounts, crawlerHealthCounts, notificationHealthCounts, cacheHealthCounts } from "./health-counts";
 import { db as database, type QueryClient } from "@/db/client";
 import { billingSubscriptionItemsTable, billingSubscriptionsTable, entitlementGrantsTable, galleriesTable, modQueueTable, overlaysTable, plausibleStatsCacheTable, playlistClipsTable, playlistsTable, queueTable, runnersTable, settingsTable, streamSessionsTable, twitchCacheTable, usersTable, clipCrawlJobsTable, notificationOutboxTable } from "@/db/schema";
 import { account as authAccountTable } from "@/db/auth-schema";
 import { getTwitchCacheReadMetricsSnapshot } from "@actions/database";
 import { getClipCacheSchedulerStats } from "@lib/clipCacheScheduler";
-import { and, count, countDistinct, eq, isNotNull, isNull, like, lt, lte, sql, inArray } from "drizzle-orm";
+import { and, count, countDistinct, eq, isNotNull, isNull, lte, sql, inArray } from "drizzle-orm";
 import { Entitlement, EntitlementGrantSource, OverlayType, PlaybackMode, Plan, StatusOptions, StreamMode, TwitchCacheType } from "@types";
 import { getCreatorAnalyticsRuntimeMetrics } from "@lib/plausibleCreatorAnalytics";
 
@@ -500,7 +500,7 @@ async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealth
 	const cacheTotals = await db
 		.select({
 			type: twitchCacheTable.type,
-			count: count(),
+			...cacheHealthCounts(now),
 		})
 		.from(twitchCacheTable)
 		.groupBy(twitchCacheTable.type)
@@ -511,31 +511,20 @@ async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealth
 	const avatarEntries = Number(cacheTotals.find((row) => row.type === TwitchCacheType.Avatar)?.count ?? 0);
 	const gameEntries = Number(cacheTotals.find((row) => row.type === TwitchCacheType.Game)?.count ?? 0);
 
-	const [unavailableClipsRows, clipSyncProgressRows, staleValidatedRows] = await Promise.all([
-		db
-			.select({ count: count() })
-			.from(twitchCacheTable)
-			.where(and(eq(twitchCacheTable.type, TwitchCacheType.Clip), sql`coalesce((${twitchCacheTable.value}::jsonb ->> 'unavailable')::boolean, false)`))
-			.execute(),
-		db
-			.select({
-				states: countDistinct(overlaysTable.ownerId),
-				complete: sql<number>`count(distinct ${overlaysTable.ownerId}) filter (where coalesce((${twitchCacheTable.value}::jsonb ->> 'backfillComplete')::boolean, false))`,
-			})
-			.from(overlaysTable)
-			.innerJoin(usersTable, eq(usersTable.id, overlaysTable.ownerId))
-			.leftJoin(twitchCacheTable, and(eq(twitchCacheTable.type, TwitchCacheType.Clip), eq(twitchCacheTable.key, sql`'clip-sync:' || ${overlaysTable.ownerId}`)))
-			.where(and(eq(overlaysTable.status, StatusOptions.Active), eq(usersTable.disabled, false)))
-			.execute(),
-		db
-			.select({ count: count() })
-			.from(twitchCacheTable)
-			.where(and(eq(twitchCacheTable.type, TwitchCacheType.Clip), like(twitchCacheTable.key, "clip:%"), sql`${twitchCacheTable.value}::jsonb ? 'lastValidatedAt'`, lt(twitchCacheTable.fetchedAt, sql`now() - interval '6 hours'`)))
-			.execute(),
-	]);
+	const clipSyncProgressRows = await db
+		.select({
+			states: countDistinct(overlaysTable.ownerId),
+			complete: sql<number>`count(distinct ${overlaysTable.ownerId}) filter (where coalesce((${twitchCacheTable.value}::jsonb ->> 'backfillComplete')::boolean, false))`,
+		})
+		.from(overlaysTable)
+		.innerJoin(usersTable, eq(usersTable.id, overlaysTable.ownerId))
+		.leftJoin(twitchCacheTable, and(eq(twitchCacheTable.type, TwitchCacheType.Clip), eq(twitchCacheTable.key, sql`'clip-sync:' || ${overlaysTable.ownerId}`)))
+		.where(and(eq(overlaysTable.status, StatusOptions.Active), eq(usersTable.disabled, false)))
+		.execute();
 
-	const unavailableClips = Number(unavailableClipsRows[0]?.count ?? 0);
-	const staleValidatedClips = Number(staleValidatedRows[0]?.count ?? 0);
+	const clipCounts = cacheTotals.find((row) => row.type === TwitchCacheType.Clip);
+	const unavailableClips = Number(clipCounts?.unavailable ?? 0);
+	const staleValidatedClips = Number(clipCounts?.staleValidated ?? 0);
 	const clipSyncStates = Number(clipSyncProgressRows[0]?.states ?? 0);
 	const clipSyncCompleteCount = Number(clipSyncProgressRows[0]?.complete ?? 0);
 	const backfillCompleteRatio = clipSyncStates > 0 ? clipSyncCompleteCount / clipSyncStates : 0;
