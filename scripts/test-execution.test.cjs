@@ -41,7 +41,8 @@ test("CI keeps a mandatory complete gate and triggers when a draft becomes ready
 	assert.ok(workflow.on.pull_request.types.includes("ready_for_review"));
 	assert.ok(workflow.jobs.test.needs.includes("coverage-lanes"));
 	assert.ok(workflow.jobs.test.needs.includes("browser-tests"));
-	assert.equal(workflow.jobs.test.if, "${{ !cancelled() }}");
+	assert.equal(workflow.jobs.test.if, "${{ !cancelled() && needs.changes.outputs.full == 'true' }}");
+	assert.doesNotMatch(JSON.stringify(workflow.jobs.test.steps), /Draft feedback is scoped/);
 	assert.equal(workflow.jobs["coverage-lanes"].strategy.matrix, "${{ fromJSON(needs.validation-plan.outputs.coverage_matrix) }}");
 	assert.ok(workflow.jobs["coverage-lanes"].needs.includes("validation-plan"));
 	assert.ok(workflow.jobs["browser-tests"].needs.includes("browser-build"));

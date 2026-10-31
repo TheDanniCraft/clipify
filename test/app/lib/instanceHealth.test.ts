@@ -186,13 +186,11 @@ describe("lib/instanceHealth", () => {
 				{ mode: "failsafe", destination: "custom", count: 3 },
 			], // streamsByModeAndDestinationRows
 			[
-				{ type: "clip", count: 100 },
+				{ type: "clip", count: 100, unavailable: 4, staleValidated: 5 },
 				{ type: "avatar", count: 20 },
 				{ type: "game", count: 15 },
 			], // cacheTotals
-			[{ count: 4 }], // unavailableClipsRows
 			[{ states: 3, complete: 2 }], // clipSyncProgressRows
-			[{ count: 5 }], // staleValidatedRows
 			[{ total: 4, published: 3, owners: 2, curated: 2, live: 2, orphaned: 0 }], // galleryRows
 			[
 				{ layout: "grid", count: 2 },
@@ -235,7 +233,7 @@ describe("lib/instanceHealth", () => {
 
 		expect(snapshot.mcp.calls.started_total).toBeGreaterThanOrEqual(0);
 		expect(snapshot.mcp.processStartedAt).toEqual(expect.any(String));
-		expect(dbSelect).toHaveBeenCalledTimes(34);
+		expect(dbSelect).toHaveBeenCalledTimes(32);
 		expect(snapshot.crawler).toMatchObject({ dueRecent: 2, dueBackfill: 3, manualPending: 1, expiredLeases: 0, oldestDueAgeSeconds: 15.5 });
 		expect(snapshot.notifications).toMatchObject({ duePending: 4, expiredClaims: 1, failed: 1, skipped: 2 });
 		expect(snapshot.counts.users).toBe(10);
@@ -338,13 +336,11 @@ describe("lib/instanceHealth", () => {
 			[{ count: 1 }], // modQueueRows
 			[{ total: 10, expired: 0, expiring: 2 }], // combined tokenRows
 			[
-				{ type: "clip", count: 100 },
+				{ type: "clip", count: 100, unavailable: 0, staleValidated: 4 },
 				{ type: "avatar", count: 20 },
 				{ type: "game", count: 15 },
 			], // cacheTotals
-			[{ count: 0 }], // unavailableClipsRows
 			[{ states: 0, complete: 0 }], // clipSyncProgressRows
-			[{ count: 4 }], // staleValidatedRows
 		];
 		dbSelect.mockImplementation(() => makeQuery(selectQueue.shift() ?? []));
 
@@ -434,9 +430,7 @@ describe("lib/instanceHealth", () => {
 			[{ count: 0 }], // modQueueRows
 			[{ total: 0, expired: 0, expiring: 0 }], // combined tokenRows
 			[], // cacheTotals (empty)
-			[{ count: 0 }], // unavailableClipsRows
 			[{ states: 0, complete: 0 }], // clipSyncProgressRows
-			[{ count: 0 }], // staleValidatedRows
 		];
 		dbSelect.mockImplementation(() => makeQuery(selectQueue.shift() ?? []));
 
@@ -495,9 +489,7 @@ describe("lib/instanceHealth", () => {
 			[], // expiringIn24hRows
 			[], // readyForTwitchApiUsersRows
 			[], // cacheTotals
-			[], // unavailableClipsRows
 			[], // clipSyncProgressRows
-			[], // staleValidatedRows
 		];
 		dbSelect.mockImplementation(() => makeQuery(selectQueue.shift() ?? []));
 

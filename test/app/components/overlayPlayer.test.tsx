@@ -332,6 +332,149 @@ describe("components/overlayPlayer", () => {
 		expect(removeFromClipQueue).toHaveBeenCalledWith("mod-q1", "overlay-1", undefined);
 	});
 
+	it("retries initial selection failures with capped backoff and cancels retries on unmount", async () => {
+		jest.useFakeTimers();
+		const failure = new TypeError("NetworkError when attempting to fetch resource.");
+		const errors = jest.spyOn(console, "error").mockImplementation(() => undefined);
+		getFirstValidQueuedClip.mockRejectedValue(failure);
+		const view = render(<OverlayPlayer overlay={buildOverlay()} />);
+		try {
+			await act(async () => {});
+			expect(getFirstValidQueuedClip).toHaveBeenCalledTimes(1);
+			for (const [delay, calls] of [
+				[5000, 2],
+				[10000, 3],
+				[20000, 4],
+				[30000, 5],
+				[30000, 6],
+			]) {
+				await act(async () => {
+					jest.advanceTimersByTime(delay - 1);
+				});
+				expect(getFirstValidQueuedClip).toHaveBeenCalledTimes(calls - 1);
+				await act(async () => {
+					jest.advanceTimersByTime(1);
+				});
+				expect(getFirstValidQueuedClip).toHaveBeenCalledTimes(calls);
+			}
+			view.unmount();
+			await act(async () => {
+				jest.advanceTimersByTime(60000);
+			});
+			expect(getFirstValidQueuedClip).toHaveBeenCalledTimes(6);
+		} finally {
+			view.unmount();
+			getFirstValidQueuedClip.mockReset().mockResolvedValue(null);
+			errors.mockRestore();
+		}
+	});
+
+	it("starts playback after a transient initial selection failure without reloading", async () => {
+		jest.useFakeTimers();
+		const errors = jest.spyOn(console, "error").mockImplementation(() => undefined);
+		getFirstValidQueuedClip.mockRejectedValueOnce(new TypeError("Load failed"));
+		getTwitchClipBatch.mockResolvedValue([buildClip("reconnected")]);
+		try {
+			render(<OverlayPlayer overlay={buildOverlay()} />);
+			await act(async () => {});
+			expect(screen.queryByText("clip-reconnected")).not.toBeInTheDocument();
+			await act(async () => {
+				jest.advanceTimersByTime(5000);
+			});
+			await screen.findByText("clip-reconnected");
+		} finally {
+			getFirstValidQueuedClip.mockReset().mockResolvedValue(null);
+			errors.mockRestore();
+		}
+	});
+
+	it("recovers an empty initial pool when clips become available", async () => {
+		jest.useFakeTimers();
+		render(<OverlayPlayer overlay={buildOverlay()} />);
+		await act(async () => {});
+		expect(document.querySelector("video")).toBeNull();
+		getTwitchClipBatch.mockResolvedValue([buildClip("newly-available")]);
+		await act(async () => {
+			jest.advanceTimersByTime(5000);
+		});
+		await screen.findByText("clip-newly-available");
+	});
+
+	it("keeps the current clip after failed prefetch and advance, then permits the next advance", async () => {
+		const errors = jest.spyOn(console, "error").mockImplementation(() => undefined);
+		getTwitchClipBatch.mockResolvedValue([buildClip("keep-playing", { view_count: 900 }), buildClip("next-after-outage", { view_count: 500 })]);
+		getFirstValidQueuedClip.mockResolvedValueOnce(null).mockRejectedValueOnce(new TypeError("prefetch failed")).mockRejectedValueOnce(new TypeError("advance failed"));
+		try {
+			render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
+			await screen.findByText("clip-keep-playing");
+			await waitFor(() => expect(errors).toHaveBeenCalledWith("Error prefetching next clip:", expect.any(TypeError)));
+			const video = document.querySelector("video")!;
+			await act(async () => {
+				fireEvent.ended(video);
+			});
+			expect(video.getAttribute("src")).toContain("keep-playing");
+			expect(removeFromClipQueue).not.toHaveBeenCalled();
+			await act(async () => {
+				fireEvent.ended(video);
+			});
+			await screen.findByText("clip-next-after-outage");
+		} finally {
+			getFirstValidQueuedClip.mockReset().mockResolvedValue(null);
+			errors.mockRestore();
+		}
+	});
+
+	it("handles failed demo play commands and accepts a subsequent command", async () => {
+		const errors = jest.spyOn(console, "error").mockImplementation(() => undefined);
+		getTwitchClipBatch.mockResolvedValue([buildClip("demo-stays-playing")]);
+		getDemoClip.mockRejectedValueOnce(new TypeError("demo request failed"));
+		try {
+			render(<OverlayPlayer overlay={buildOverlay()} isDemoPlayer />);
+			await screen.findByText("clip-demo-stays-playing");
+			await sendDemoCommand("play", "https://clips.twitch.tv/FailedDemoClip");
+			await waitFor(() => expect(errors).toHaveBeenCalledWith("Error handling demo command:", expect.any(TypeError)));
+			expect(screen.getByText("clip-demo-stays-playing")).toBeInTheDocument();
+			await sendDemoCommand("pause", "");
+			expect(pauseMock).toHaveBeenCalled();
+		} finally {
+			getDemoClip.mockReset().mockResolvedValue(null);
+			errors.mockRestore();
+		}
+	});
+
+	it("keeps iframe playback responsive through buffering and both video slots", async () => {
+		jest.useFakeTimers();
+		const descriptor = Object.getOwnPropertyDescriptor(window, "self")!;
+		Object.defineProperty(window, "self", { configurable: true, value: {} });
+		getTwitchClipBatch.mockResolvedValue([buildClip("iframe-first", { view_count: 900 }), buildClip("iframe-second", { view_count: 500 })]);
+		const view = render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} isEmbed embedAutoplay showEmbedOverlay />);
+		try {
+			await screen.findByText("clip-iframe-first");
+			const first = document.querySelectorAll("video")[0];
+			fireEvent.play(first);
+			fireEvent.waiting(first);
+			fireEvent.playing(first);
+			setVideoTiming(first, 30, 2);
+			fireEvent.timeUpdate(first);
+			await act(async () => {
+				fireEvent.ended(first);
+			});
+			await screen.findByText("clip-iframe-second");
+			const second = document.querySelectorAll("video")[1];
+			fireEvent.canPlay(second);
+			fireEvent.play(second);
+			fireEvent.waiting(second);
+			fireEvent.playing(second);
+			setVideoTiming(second, 30, 2);
+			fireEvent.timeUpdate(second);
+			expect(second.src).toContain("iframe-second");
+			expect(playMock).toHaveBeenCalled();
+		} finally {
+			view.unmount();
+			Object.defineProperty(window, "self", descriptor);
+		}
+	});
+
 	it("loads from cached clip pool and resolves playback candidate when queues are empty", async () => {
 		const topClip = buildClip("top-1", { title: "top-clip", view_count: 500 });
 		const lowClip = buildClip("low-1", { title: "low-clip", view_count: 10 });
@@ -1153,7 +1296,7 @@ describe("components/overlayPlayer", () => {
 
 			await screen.findByText("skip-first-clip");
 			await waitFor(() => {
-				expect(consoleSpy).toHaveBeenCalledWith("Error advancing clip after pending skip:", expect.any(Error));
+				expect(consoleSpy).toHaveBeenCalledWith("Error selecting next clip:", expect.any(Error));
 			});
 		} finally {
 			consoleSpy.mockRestore();

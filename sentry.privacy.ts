@@ -59,6 +59,8 @@ function scrubEvent<T extends ErrorEvent | TransactionEvent>(event: T): T {
 export function beforeSendError(event: ErrorEvent) {
 	const messages = [event.message, ...(event.exception?.values ?? []).map((exception) => exception.value)];
 	if (messages.some((message) => message === "RECENT_AUTH_REQUIRED")) return null;
+	const exceptions = event.exception?.values;
+	if (exceptions?.length === 1 && exceptions[0].type === "UnrecognizedActionError" && exceptions[0].value === "Clipify has been updated. Refresh Clipify to continue.") return null;
 	return scrubEvent(event);
 }
 

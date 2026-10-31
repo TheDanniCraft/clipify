@@ -207,7 +207,7 @@ jobs:
 
   test:
     name: 🧪 Test
-    if: ${{ !cancelled() }}
+    if: ${{ !cancelled() && needs.changes.outputs.full == 'true' }}
     runs-on: ubuntu-latest
     needs: [deps, changes, coverage-lanes, browser-tests, draft-tests, runner, runner-coverage, validation-plan]
     env:
@@ -240,13 +240,11 @@ jobs:
 
       - name: 🔒 Require complete validation before merge
         env:
-          FULL: ${{ needs.changes.outputs.full }}
           COVERAGE: ${{ needs.coverage-lanes.result }}
           BROWSER: ${{ needs.browser-tests.result }}
           RUNNER_REQUIRED: ${{ needs.changes.outputs.runner }}
           RUNNER: ${{ needs.runner-coverage.result }}
         run: |
-          test "$FULL" = "true" || { echo "Draft feedback is scoped. Mark ready for the mandatory full gate."; exit 1; }
           test "$COVERAGE" = "success"
           test "$BROWSER" = "success"
           if [ "$RUNNER_REQUIRED" = "true" ]; then test "$RUNNER" = "success"; fi

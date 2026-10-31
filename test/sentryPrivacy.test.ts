@@ -53,3 +53,11 @@ describe("Sentry privacy hooks", () => {
 		});
 	});
 });
+
+test("drops only the deliberate refresh-required exception, preserving unrelated action failures", () => {
+	const expected = { type: "UnrecognizedActionError", value: "Clipify has been updated. Refresh Clipify to continue." };
+	expect(beforeSendError({ type: undefined, exception: { values: [expected] } })).toBeNull();
+	expect(beforeSendError({ type: undefined, exception: { values: [{ type: "UnrecognizedActionError", value: 'Server Action "unknown" was not found on the server.' }] } })).not.toBeNull();
+	expect(beforeSendError({ type: undefined, exception: { values: [{ ...expected, type: "Error" }] } })).not.toBeNull();
+	expect(beforeSendError({ type: undefined, exception: { values: [expected, { type: "Error", value: "Database unavailable" }] } })).not.toBeNull();
+});
