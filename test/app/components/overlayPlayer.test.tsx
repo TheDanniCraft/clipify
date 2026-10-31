@@ -442,6 +442,39 @@ describe("components/overlayPlayer", () => {
 		}
 	});
 
+	it("keeps iframe playback responsive through buffering and both video slots", async () => {
+		jest.useFakeTimers();
+		const descriptor = Object.getOwnPropertyDescriptor(window, "self")!;
+		Object.defineProperty(window, "self", { configurable: true, value: {} });
+		getTwitchClipBatch.mockResolvedValue([buildClip("iframe-first", { view_count: 900 }), buildClip("iframe-second", { view_count: 500 })]);
+		const view = render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} isEmbed embedAutoplay showEmbedOverlay />);
+		try {
+			await screen.findByText("clip-iframe-first");
+			const first = document.querySelectorAll("video")[0];
+			fireEvent.play(first);
+			fireEvent.waiting(first);
+			fireEvent.playing(first);
+			setVideoTiming(first, 30, 2);
+			fireEvent.timeUpdate(first);
+			await act(async () => {
+				fireEvent.ended(first);
+			});
+			await screen.findByText("clip-iframe-second");
+			const second = document.querySelectorAll("video")[1];
+			fireEvent.canPlay(second);
+			fireEvent.play(second);
+			fireEvent.waiting(second);
+			fireEvent.playing(second);
+			setVideoTiming(second, 30, 2);
+			fireEvent.timeUpdate(second);
+			expect(second.src).toContain("iframe-second");
+			expect(playMock).toHaveBeenCalled();
+		} finally {
+			view.unmount();
+			Object.defineProperty(window, "self", descriptor);
+		}
+	});
+
 	it("loads from cached clip pool and resolves playback candidate when queues are empty", async () => {
 		const topClip = buildClip("top-1", { title: "top-clip", view_count: 500 });
 		const lowClip = buildClip("low-1", { title: "low-clip", view_count: 10 });

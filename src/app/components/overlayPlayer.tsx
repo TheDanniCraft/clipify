@@ -1662,7 +1662,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 	}, [refreshClipPool]);
 
 	/**
-	 * Initial clip load (RUNS ONCE).
+	 * Initial clip load, retrying until playback is available.
 	 */
 	const didInitRef = useRef(false);
 	useEffect(() => {
@@ -1687,24 +1687,13 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 				await consumeQueueItem(candidate.queueItem);
 				if (runnerDrainRef.current?.canAdvance() === false || cancelled || isStandbyRef.current || myReqId !== requestIdRef.current) return;
 				committed = true;
-				if (activeSlot === "a") {
-					readyARef.current = false;
-					setClipA(built);
-					readyBRef.current = false;
-					setClipB(null);
-					if (videoBRef.current) {
-						videoBRef.current.pause();
-						videoBRef.current.currentTime = 0;
-					}
-				} else {
-					readyBRef.current = false;
-					setClipB(built);
-					readyARef.current = false;
-					setClipA(null);
-					if (videoARef.current) {
-						videoARef.current.pause();
-						videoARef.current.currentTime = 0;
-					}
+				readyARef.current = false;
+				setClipA(built);
+				readyBRef.current = false;
+				setClipB(null);
+				if (videoBRef.current) {
+					videoBRef.current.pause();
+					videoBRef.current.currentTime = 0;
 				}
 				setVideoClip(built);
 				setShowOverlay(true);
@@ -1733,7 +1722,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 			if (retryTimer) clearTimeout(retryTimer);
 			if (!committed) didInitRef.current = false;
 		};
-	}, [activeSlot, buildVideoClipFast, consumeQueueItem, getRandomClip, isDemoPlayer, isStandby, runnerPresentation]);
+	}, [buildVideoClipFast, consumeQueueItem, getRandomClip, isDemoPlayer, isStandby, runnerPresentation]);
 
 	/**
 	 * Prefetch next clip while current plays.
