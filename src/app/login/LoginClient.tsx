@@ -32,9 +32,9 @@ export default function LoginClient({ returnUrl, oauthAuthorization = false }: {
 	}
 
 	return (
-		<div className='flex w-full flex-col items-center gap-3'>
-			<Button aria-label='Login with Twitch' isDisabled={pending} isPending={pending} onPress={signInWithTwitch} size='lg' variant='primary' fullWidth>
-				<IconBrandTwitch aria-hidden='true' />
+		<div className='flex flex-col items-center gap-3'>
+			<Button aria-label='Login with Twitch' isDisabled={pending} isPending={pending} onPress={signInWithTwitch} size='lg' variant='tertiary'>
+				<IconBrandTwitch color='#8956FB' aria-hidden='true' />
 				{pending ? "Connecting to Twitch…" : "Login with Twitch"}
 			</Button>
 			{localError ? (
