@@ -21,7 +21,7 @@ test("v6 is a complete V2 editor resource preserving the existing dashboard iden
 		expect(element.kind).toBe("Panel");
 		return element.spec;
 	});
-	expect(panels).toHaveLength(85);
+	expect(panels).toHaveLength(86);
 	expect(dashboard.spec.layout.spec.rows).toHaveLength(15);
 	expect(new Set(panels.map((panel: any) => panel.id)).size).toBe(panels.length);
 	const refinedPanels = new Set([6, 7, 16, 20, 30, 39, 46, 101, 102]);
@@ -32,7 +32,7 @@ test("v6 is a complete V2 editor resource preserving the existing dashboard iden
 		expect(panel.data.spec.queries.map((target: any) => target.spec.query.spec.query)).toEqual((previousPanel.targets ?? []).map((target: any) => target.query));
 	}
 	const added = panels.filter((panel: any) => panel.id >= 300 || panel.id === 103);
-	expect(added).toHaveLength(28);
+	expect(added).toHaveLength(29);
 	for (const panel of added)
 		for (const target of panel.data.spec.queries) {
 			expect(target.spec.refId).toBe("A");
@@ -73,4 +73,33 @@ test("Flux metric overrides label numeric values without leaking query range met
 		}
 	}
 	expect(checked).toBeGreaterThan(40);
+});
+
+test("onboarding summarizes actionable states and exposes every saved guide milestone", () => {
+	const dashboard = JSON.parse(readFileSync("grafana/clipify-vm01-overview-v6.json", "utf8"));
+	const summary = dashboard.spec.elements["panel-500"].spec;
+	expect(summary.title).toBe("Onboarding status");
+	const rules = summary.vizConfig.spec.fieldConfig.overrides;
+	expect(rules.map((rule: any) => rule.properties.find((property: any) => property.id === "displayName").value)).toEqual(["Started", "In progress", "Completed", "Invalid state"]);
+	expect(rules[3].properties).toEqual(
+		expect.arrayContaining([
+			{
+				id: "thresholds",
+				value: {
+					mode: "absolute",
+					steps: [
+						{ color: "green", value: null },
+						{ color: "red", value: 1 },
+					],
+				},
+			},
+		]),
+	);
+	expect(dashboard.spec.elements["panel-501"].spec.title).toBe("Overlay link copied");
+	const taskQuery = dashboard.spec.elements["panel-507"].spec.data.spec.queries[0].spec.query.spec.query;
+	const sample = JSON.parse(readFileSync("grafana/mcp-health-sample.json", "utf8"));
+	for (const [key, task] of Object.entries(sample.onboarding.tasks) as [string, any][]) {
+		expect(taskQuery).toContain(task.title);
+		for (const metric of ["completedAccounts", "skippedAccounts", "pendingAccounts", "completionRate"]) expect(taskQuery).toContain(`onboarding_tasks_${key}_${metric}`);
+	}
 });

@@ -138,10 +138,10 @@ function values(scenario, panel) {
 	return output;
 }
 for (const scenario of ["normal", "replicas", "gap"]) {
-	assert.deepEqual(values(scenario, "Guide completion rate"), [0.2]);
+	assert.deepEqual(values(scenario, "First-overlay guide completion"), [0.2]);
 	assert(values(scenario, "Average guide progress").every((value) => Math.abs(value - 22 / 90) < 1e-10));
 }
-assert.deepEqual(values("zero", "Guide completion rate"), [0]);
+assert.deepEqual(values("zero", "First-overlay guide completion"), [0]);
 const rateTitle = "MCP calls per minute";
 assert.deepEqual(values("normal", rateTitle), [3, 3, 3, 3, 3]);
 assert.deepEqual(values("reset", rateTitle), [3, 3, 0, 3, 3]);
@@ -158,6 +158,7 @@ for (const scenario of ["normal", "replicas", "gap"]) {
 
 let namedApplications;
 let guideSections;
+let guideSteps;
 for (const panel of panels) {
 	const targets = (panel.targets ?? []).filter((target) => target.query || target.type === "json");
 	if (!targets.length) continue;
@@ -166,6 +167,7 @@ for (const panel of panels) {
 	if (!res.ok || Object.values(data.results ?? {}).some((result) => result.error)) throw Error("Grafana query " + panel.title + " " + JSON.stringify(data));
 	if (panel.title === "MCP applications (current)") namedApplications = data;
 	if (panel.title === "Guide sections") guideSections = data;
+	if (panel.title === "Guide step details") guideSteps = data;
 }
 const sectionNames = guideSections.results.A.frames.flatMap((frame) => {
 	const column = frame.schema.fields.findIndex((field) => field.name === "Section");
@@ -174,6 +176,14 @@ const sectionNames = guideSections.results.A.frames.flatMap((frame) => {
 assert.deepEqual(
 	sectionNames,
 	Object.values(sample.onboarding.sections).map((section) => section.title),
+);
+const stepNames = guideSteps.results.A.frames.flatMap((frame) => {
+	const column = frame.schema.fields.findIndex((field) => field.name === "Step");
+	return column < 0 ? [] : frame.data.values[column];
+});
+assert.deepEqual(
+	stepNames,
+	Object.values(sample.onboarding.tasks).map((task) => task.title),
 );
 assert(JSON.stringify(namedApplications).includes("Meta MCP"));
 assert(JSON.stringify(namedApplications).includes("Custom 25"), "Every application is returned, including groups beyond rank 20");
