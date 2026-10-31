@@ -52,3 +52,25 @@ test("v6 is a complete V2 editor resource preserving the existing dashboard iden
 		expect(panel.data.spec.transformations[0]).toMatchObject({ kind: "Transformation", group: "organize", spec: { options: { excludeByName: { Rank: true } } } });
 	}
 });
+
+test("Flux metric overrides label numeric values without leaking query range metadata", () => {
+	const dashboard = JSON.parse(readFileSync("grafana/clipify-vm01-overview-v6.json", "utf8"));
+	let checked = 0;
+	for (const element of Object.values(dashboard.spec.elements) as any[]) {
+		const config = element.spec.vizConfig.spec.fieldConfig;
+		for (const override of config.overrides ?? []) {
+			const pattern = override.matcher.options;
+			const metric = typeof pattern === "string" ? pattern.match(/(?:onboarding|mcp|mcpClients|crawler|notifications|clips)_[A-Za-z0-9_]+/)?.[0] : undefined;
+			if (!metric) continue;
+			expect(override.matcher.id).toBe("byRegexp");
+			const matcher = new RegExp(pattern);
+			expect(matcher.test(metric)).toBe(true);
+			expect(matcher.test(`_value {_field="${metric}", _start="2026-10-01 00:00:00 +0000 UTC", _stop="2026-10-31 00:00:00 +0000 UTC"}`)).toBe(true);
+			expect(matcher.test(`_value {_stop="now", _field="${metric}", _start="then"}`)).toBe(true);
+			expect(matcher.test(`_value {_field="${metric}_other"}`)).toBe(false);
+			expect(matcher.test(`host {_field="${metric}"}`)).toBe(false);
+			checked++;
+		}
+	}
+	expect(checked).toBeGreaterThan(40);
+});
