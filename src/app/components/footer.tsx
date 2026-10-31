@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Button, Card, Separator, Form, Input, Link, Modal, Spinner, TextField, Label, FieldError, InputGroup } from "@heroui/react";
 import Image from "next/image";
 
-import { Turnstile } from "nextjs-turnstile";
+import { Turnstile, type TurnstileRef } from "nextjs-turnstile";
 
 import Logo from "@components/logo";
 import CommunityTeaser from "@components/LandingPage/communityTeaser";
@@ -34,8 +34,12 @@ export default function Footer() {
 
 	const [pendingEmail, setPendingEmail] = useState("");
 	const [firstName, setFirstName] = useState("");
-	const emailStepRef = useRef<HTMLDivElement>(null);
-	const [formWidth, setFormWidth] = useState(0);
+	const turnstileRef = useRef<TurnstileRef>(null);
+	const mounted = useSyncExternalStore(
+		() => () => {},
+		() => true,
+		() => false,
+	);
 	const firstNamePlaceholder = useMemo(() => {
 		const localPart = (pendingEmail.split("@")[0] || "").trim();
 		if (!localPart) {
@@ -58,11 +62,7 @@ export default function Footer() {
 		return guess.charAt(0).toUpperCase() + guess.slice(1);
 	}, [pendingEmail]);
 
-	const measureNewsletterWidth = useCallback(() => {
-		setFormWidth(emailStepRef.current?.clientWidth || 300);
-	}, []);
-
-	const emailSubmitDisabled = newsletterState === "loading" || newsletterState === "success" || !token;
+	const emailSubmitDisabled = newsletterState === "loading" || newsletterState === "success" || !mounted;
 	const detailSubmitDisabled = newsletterState === "loading" || !pendingEmail || !token;
 
 	const communityStreamers = useMemo(() => footerCommunityPreview?.streamers ?? [], [footerCommunityPreview]);
@@ -123,45 +123,27 @@ export default function Footer() {
 		};
 	}, []);
 
-	useEffect(() => {
-		const frame = window.requestAnimationFrame(measureNewsletterWidth);
-		return () => window.cancelAnimationFrame(frame);
-	}, [measureNewsletterWidth]);
-
-	useEffect(() => {
-		const handleResize = () => measureNewsletterWidth();
-		window.addEventListener("resize", handleResize);
-		return () => window.removeEventListener("resize", handleResize);
-	}, [measureNewsletterWidth]);
-
-	const subscribe = useCallback(
-		(event: React.FormEvent<HTMLFormElement>) => {
-			event.preventDefault();
-			const data = Object.fromEntries(new FormData(event.currentTarget));
-			const email = ((data.email as string) || "").trim();
-			if (!email || !(event.currentTarget.elements.namedItem("email") as HTMLInputElement | null)?.validity.valid) {
-				setPendingEmail(email);
-				setNewsletterState("invalid");
-				setIsDetailsExpanded(false);
-				return;
-			}
-			if (!token) {
-				setPendingEmail(email);
-				setNewsletterState("captcha");
-				setIsDetailsExpanded(false);
-				return;
-			}
+	const subscribe = useCallback((event: React.FormEvent<HTMLFormElement>) => {
+		event.preventDefault();
+		const data = Object.fromEntries(new FormData(event.currentTarget));
+		const email = ((data.email as string) || "").trim();
+		if (!email || !(event.currentTarget.elements.namedItem("email") as HTMLInputElement | null)?.validity.valid) {
 			setPendingEmail(email);
-			setFirstName("");
-			setNewsletterState("default");
-			setIsDetailsExpanded(true);
-		},
-		[token],
-	);
+			setNewsletterState("invalid");
+			setIsDetailsExpanded(false);
+			return;
+		}
+
+		setPendingEmail(email);
+		setFirstName("");
+		setToken(null);
+		setNewsletterState("default");
+		setIsDetailsExpanded(true);
+	}, []);
 
 	const finishSubscribe = useCallback(async () => {
 		if (!token) {
-			setNewsletterState("error");
+			setNewsletterState("captcha");
 			return;
 		}
 		setNewsletterState("loading");
@@ -187,6 +169,9 @@ export default function Footer() {
 			});
 		} catch {
 			setNewsletterState("error");
+		} finally {
+			setToken(null);
+			turnstileRef.current?.reset();
 		}
 	}, [firstName, pendingEmail, token]);
 
@@ -259,7 +244,7 @@ export default function Footer() {
 							</div>
 							<div className='w-full lg:max-w-md'>
 								<Form className='w-full space-y-2' validationBehavior='aria' onSubmit={subscribe}>
-									<div ref={emailStepRef}>
+									<div>
 										<TextField aria-label='Newsletter email address' fullWidth isRequired type='email' name='email' validationBehavior='aria' isInvalid={newsletterState === "invalid"} isDisabled={newsletterState === "loading" || newsletterState === "success"}>
 											<InputGroup fullWidth variant='secondary'>
 												<InputGroup.Prefix>
@@ -289,31 +274,11 @@ export default function Footer() {
 													}
 												</InputGroup.Suffix>
 											</InputGroup>
-											<div className='min-h-6 pt-1 text-xs' aria-live='polite'>
+											<div className='pt-1 text-xs' aria-live='polite'>
 												{newsletterState === "invalid" && <FieldError>Enter a valid email address.</FieldError>}
-												{newsletterState === "captcha" && <p>Please complete verification.</p>}
 											</div>
 										</TextField>
 									</div>
-									{!isE2ETestMode && (
-										<div className={formWidth > 0 && formWidth < 300 ? "min-h-[148px] py-1" : "min-h-[73px] py-1"}>
-											{formWidth > 0 && (
-												<Turnstile
-													theme={resolvedTheme === "dark" ? "dark" : "light"}
-													className='inline-block align-top leading-none'
-													size={formWidth < 300 ? "compact" : "normal"}
-													appearance='always'
-													siteKey='0x4AAAAAACMFR636JljxhVLl'
-													onSuccess={setToken}
-													onError={(error) => {
-														setToken(null);
-														console.error("Turnstile error:", error);
-													}}
-													onExpire={() => setToken(null)}
-												/>
-											)}
-										</div>
-									)}
 								</Form>
 							</div>
 						</Card.Content>
@@ -321,7 +286,10 @@ export default function Footer() {
 					<Modal.Backdrop
 						isOpen={isDetailsExpanded}
 						onOpenChange={(open) => {
-							if (newsletterState !== "loading") setIsDetailsExpanded(open);
+							if (newsletterState !== "loading") {
+								setIsDetailsExpanded(open);
+								if (!open) setToken(null);
+							}
 						}}
 					>
 						<Modal.Container size='sm'>
@@ -344,8 +312,26 @@ export default function Footer() {
 											<Label>First name (optional)</Label>
 											<Input autoFocus fullWidth variant='secondary' placeholder={firstNamePlaceholder} value={firstName} onChange={(event) => setFirstName(event.target.value)} />
 										</TextField>
+										{!isE2ETestMode && (
+											<div className='flex min-h-[140px] justify-center'>
+												<Turnstile
+													ref={turnstileRef}
+													theme={resolvedTheme === "dark" ? "dark" : "light"}
+													size='compact'
+													appearance='always'
+													siteKey='0x4AAAAAACMFR636JljxhVLl'
+													onSuccess={setToken}
+													onError={(error) => {
+														setToken(null);
+														console.error("Turnstile error:", error);
+													}}
+													onExpire={() => setToken(null)}
+												/>
+											</div>
+										)}
+
 										<div className='min-h-5 text-sm text-danger' role='alert'>
-											{newsletterState === "error" ? "Could not subscribe right now. Please try again." : newsletterState === "rateLimit" ? "Too many attempts. Please wait a moment." : null}
+											{newsletterState === "error" ? "Could not subscribe right now. Please try again." : newsletterState === "rateLimit" ? "Too many attempts. Please wait a moment." : newsletterState === "captcha" ? "Complete verification to subscribe." : null}
 										</div>
 										<Button type='submit' fullWidth variant='primary' isPending={newsletterState === "loading"} isDisabled={detailSubmitDisabled}>
 											Subscribe

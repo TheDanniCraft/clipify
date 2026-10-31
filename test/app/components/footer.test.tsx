@@ -103,31 +103,34 @@ async function start(email = "streamer@example.invalid") {
 	const input = screen.getByRole("textbox", { name: "Newsletter email address" });
 	fireEvent.focus(input);
 	fireEvent.change(input, { target: { value: email } });
+	fireEvent.submit(input.closest("form")!);
 	await screen.findByTestId("newsletter-verification");
 	await act(async () => verification.onSuccess("fixture-verification"));
-	fireEvent.submit(input.closest("form")!);
 	return input;
 }
-it("shows verification with the form and still requires a valid unexpired token", async () => {
+it("loads compact verification only inside the modal and requires a valid unexpired token", async () => {
 	render(<Footer />);
 	await screen.findByText("All systems operational");
-	expect(await screen.findByTestId("newsletter-verification")).toBeVisible();
-	expect(screen.getByRole("button", { name: "Continue newsletter signup" })).toBeDisabled();
+	expect(screen.queryByTestId("newsletter-verification")).not.toBeInTheDocument();
 	const input = screen.getByRole("textbox", { name: "Newsletter email address" });
-	fireEvent.focus(input);
-	expect(screen.getByTestId("newsletter-verification")).toHaveAttribute("data-size", "normal");
-	expect(screen.getByTestId("newsletter-verification")).toHaveAttribute("data-appearance", "always");
-	expect(screen.getByTestId("newsletter-verification")).toHaveAttribute("data-theme", "dark");
 	fireEvent.change(input, { target: { value: "streamer@example.invalid" } });
 	fireEvent.submit(input.closest("form")!);
-	expect(screen.getByText("Please complete verification.")).toBeVisible();
+	const widget = await screen.findByTestId("newsletter-verification");
+	expect(widget.closest('[role="dialog"]')).not.toBeNull();
+	expect(widget).toHaveAttribute("data-size", "compact");
+	expect(widget).toHaveAttribute("data-appearance", "always");
+	expect(widget).toHaveAttribute("data-theme", "dark");
+	const submit = screen.getByRole("button", { name: /^Subscribe$/ });
+	expect(submit).toBeDisabled();
+	fireEvent.submit(screen.getByPlaceholderText("Streamer").closest("form")!);
 	expect(subscribe).not.toHaveBeenCalled();
-	await screen.findByTestId("newsletter-verification");
+	expect(screen.getByText("Complete verification to subscribe.")).toBeVisible();
 	await act(async () => verification.onSuccess("fixture-verification"));
-	expect(screen.getByRole("button", { name: "Continue newsletter signup" })).toBeEnabled();
+	expect(submit).toBeEnabled();
 	await act(async () => verification.onExpire());
-	expect(screen.getByRole("button", { name: "Continue newsletter signup" })).toBeDisabled();
+	expect(submit).toBeDisabled();
 });
+
 it("preserves the email and optional-name workflow through success and confirmation dismissal", async () => {
 	await start("real.streamer@example.invalid");
 	const name = screen.getByPlaceholderText("Streamer");
@@ -146,8 +149,9 @@ it("lets a creator omit a name and recover after a server failure", async () => 
 	fireEvent.click(screen.getByRole("button", { name: /^Subscribe$/ }));
 	await screen.findByText("Could not subscribe right now. Please try again.");
 	expect(subscribe).toHaveBeenCalledWith("streamer@example.invalid", "fixture-verification", undefined);
+	await act(async () => verification.onSuccess("fresh-verification"));
 	fireEvent.click(screen.getByRole("button", { name: /^Subscribe$/ }));
-	await screen.findByRole("dialog");
+	await screen.findByText("You're almost there!");
 });
 it("keeps pending details after rate limiting or a rejected request", async () => {
 	subscribe.mockResolvedValueOnce("rate-limit").mockRejectedValueOnce(new Error("offline"));
@@ -155,6 +159,7 @@ it("keeps pending details after rate limiting or a rejected request", async () =
 	expect(screen.getByPlaceholderText("First name")).toBeVisible();
 	fireEvent.click(screen.getByRole("button", { name: /^Subscribe$/ }));
 	await screen.findByText("Too many attempts. Please wait a moment.");
+	await act(async () => verification.onSuccess("fresh-verification"));
 	fireEvent.click(screen.getByRole("button", { name: /^Subscribe$/ }));
 	await screen.findByText("Could not subscribe right now. Please try again.");
 });
@@ -169,11 +174,11 @@ it("allows backing out of details and does not submit after verification expires
 	fireEvent.submit(input.closest("form")!);
 	await act(async () => verification.onExpire());
 	fireEvent.submit(screen.getByPlaceholderText("Other").closest("form")!);
-	await screen.findByText("Could not subscribe right now. Please try again.");
+	await screen.findByText("Complete verification to subscribe.");
 	expect(subscribe).not.toHaveBeenCalled();
 });
 
-it("keeps newsletter submission disabled in server HTML before verification or hydration", () => {
+it("keeps the footer action disabled in server HTML before hydration", () => {
 	const container = document.createElement("div");
 	container.innerHTML = renderToStaticMarkup(<Footer />);
 	expect(container.querySelector('button[aria-label="Continue newsletter signup"]')).toBeDisabled();

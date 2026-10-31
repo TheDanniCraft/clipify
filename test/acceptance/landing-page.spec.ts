@@ -196,9 +196,17 @@ test("newsletter keeps optional name fields out of the footer keyboard order", a
 	const name = page.getByPlaceholder("First name", { exact: true });
 	await expect(name).toHaveCount(0);
 	await expect(page.getByRole("dialog")).toHaveCount(0);
+	await email.fill("newsletter@example.invalid");
 	await email.focus();
 	await page.keyboard.press("Tab");
-	await expect(page.getByRole("link", { name: "Test environment", exact: true })).toBeFocused();
+	await expect(page.getByRole("button", { name: "Continue newsletter signup", exact: true })).toBeFocused();
+	await page.keyboard.press("Enter");
+	const dialog = page.getByRole("dialog");
+	await expect(dialog.getByRole("textbox", { name: "First name (optional)" })).toBeFocused();
+	await expect(dialog.getByRole("button", { name: "Subscribe", exact: true })).toBeDisabled();
+	await page.keyboard.press("Escape");
+	await expect(dialog).toHaveCount(0);
+	await expect(page.getByRole("button", { name: "Continue newsletter signup", exact: true })).toBeFocused();
 });
 
 for (const theme of ["light", "dark"]) {
