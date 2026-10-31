@@ -62,7 +62,7 @@ function MetricCard({ title, value, valueKey, points, icon, color, suffix, avera
 				<KPI.Trend trend={trend.trend}>{trend.label}</KPI.Trend>
 			</KPI.Content>
 			<KPI.Chart
-				areaProps={{ type: "linear", strokeLinejoin: "round" }}
+				areaProps={{ type: "basis", strokeLinejoin: "round" }}
 				color={color}
 				data={chartData}
 				height={72}
