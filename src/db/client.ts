@@ -3,6 +3,7 @@ import * as domainSchema from "./schema";
 import * as authSchema from "./auth-schema";
 import type { Pool } from "pg";
 import { RequestAwarePool } from "./request-scope";
+import { captureUnexpectedError } from "@/app/lib/sentryServer";
 
 declare global {
 	var __dbPool: Pool | undefined;
@@ -17,7 +18,14 @@ const pool =
 		statement_timeout: 10_000,
 	});
 
-globalThis.__dbPool = pool;
+if (!globalThis.__dbPool) {
+	// Handle disconnects while idle or leased, without hiding query failures.
+	const reportConnectionError = (error: Error) => captureUnexpectedError(error, "database", "connection");
+	pool.on("error", reportConnectionError);
+	pool.on("acquire", (client) => client.on("error", reportConnectionError));
+	pool.on("release", (_error, client) => client.removeListener("error", reportConnectionError));
+	globalThis.__dbPool = pool;
+}
 
 export const dbPool = pool;
 export const schema = { ...domainSchema, ...authSchema };
