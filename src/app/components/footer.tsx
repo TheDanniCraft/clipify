@@ -296,11 +296,12 @@ export default function Footer() {
 										</TextField>
 									</div>
 									{!isE2ETestMode && (
-										<div className={formWidth > 0 && formWidth < 300 ? "min-h-[140px]" : "min-h-[65px]"}>
+										<div className={formWidth > 0 && formWidth < 300 ? "min-h-[148px] py-1" : "min-h-[73px] py-1"}>
 											{formWidth > 0 && (
 												<Turnstile
 													theme={resolvedTheme === "dark" ? "dark" : "light"}
-													size={formWidth < 300 ? "compact" : "flexible"}
+													className='inline-block align-top leading-none'
+													size={formWidth < 300 ? "compact" : "normal"}
 													appearance='always'
 													siteKey='0x4AAAAAACMFR636JljxhVLl'
 													onSuccess={setToken}

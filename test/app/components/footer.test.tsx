@@ -115,7 +115,7 @@ it("shows verification with the form and still requires a valid unexpired token"
 	expect(screen.getByRole("button", { name: "Continue newsletter signup" })).toBeDisabled();
 	const input = screen.getByRole("textbox", { name: "Newsletter email address" });
 	fireEvent.focus(input);
-	expect(screen.getByTestId("newsletter-verification")).toHaveAttribute("data-size", "flexible");
+	expect(screen.getByTestId("newsletter-verification")).toHaveAttribute("data-size", "normal");
 	expect(screen.getByTestId("newsletter-verification")).toHaveAttribute("data-appearance", "always");
 	expect(screen.getByTestId("newsletter-verification")).toHaveAttribute("data-theme", "dark");
 	fireEvent.change(input, { target: { value: "streamer@example.invalid" } });
