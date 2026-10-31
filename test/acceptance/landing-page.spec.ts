@@ -69,9 +69,10 @@ for (const theme of ["light", "dark"]) {
 				await expect(page).toHaveURL(/#demo$/);
 			}
 			await page.getByRole("link", { name: "Start free with Twitch" }).last().click();
-			await expect(page.getByRole("heading", { name: "Welcome to Clipify" })).toBeVisible();
+			await expect(page).toHaveURL(/\/login(?:\?|$)/);
 			await expect(page.getByRole("button", { name: "Login with Twitch", exact: true })).toBeVisible();
-			await expect(page.getByRole("link", { name: "Clipify home" })).toHaveAttribute("href", "/");
+			await expect(page.getByRole("link", { name: "Terms", exact: true })).toHaveAttribute("href", "/legal/terms");
+			await expect(page.getByRole("link", { name: "Privacy", exact: true })).toHaveAttribute("href", "/legal/privacy");
 			await assertAccessibleMain(page);
 		});
 	}
@@ -197,7 +198,7 @@ test("newsletter keeps optional name fields out of the footer keyboard order", a
 	await expect(page.getByRole("dialog")).toHaveCount(0);
 	await email.focus();
 	await page.keyboard.press("Tab");
-	await expect(name).not.toBeFocused();
+	await expect(page.getByRole("link", { name: "Test environment", exact: true })).toBeFocused();
 });
 
 for (const theme of ["light", "dark"]) {
