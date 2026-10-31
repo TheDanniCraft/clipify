@@ -130,3 +130,25 @@ not just accounts that touched that section. Historical panels use the existing
 recursive collector fields (`onboarding_*`) and the latest sample per window,
 without summing replicas. The section table uses one latest complete sample in
 the selected period. There is no new tracking schema or migration.
+
+### Onboarding status and step detail
+
+The overview shows Started (blue), In progress (orange), Completed (green) and
+Invalid state. Zero invalid records is green; one or more is red. Completed in
+this summary means the required first-overlay guide, not every optional guide.
+Started includes saved active tasks as well as completed or skipped milestones;
+existing resources may prefill progress. The legacy aggregate fields remain
+available for existing consumers but tracked/untracked storage counts are no
+longer the primary status summary.
+
+The overlay-link copy card is a separate saved checkpoint. It does not establish
+that OBS received the URL or that a stream was broadcast. The step table lists
+all current guide tasks in guide order with completed, skipped, pending and
+completion-rate columns. Its denominator is valid saved guide records, excluding
+invalid states and accounts with no guide record. Section percentages retain
+their existing saved-record denominator. Pending steps are not abandonment and
+independent task counts are not an ordered conversion funnel.
+
+These additional recursive `onboarding_tasks_*` fields become available after
+the application is deployed and scraped. No account or resource identifiers are
+exported and no migration or extra event tracking is introduced.
