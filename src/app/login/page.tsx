@@ -7,7 +7,6 @@ import { redirect } from "next/navigation";
 import { readCheckoutIntent } from "@/server/checkoutIntent";
 import { legalDocumentRoutes } from "@lib/legal/documents";
 import LoginClient from "./LoginClient";
-import Logo from "@components/logo";
 import { getAuthSession } from "@/auth/session";
 import { safeReturnPath } from "@/auth/return-url";
 
@@ -39,33 +38,23 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
 		<>
 			<ErrorToast error={error as string} errorCode={errorCode as string} />
 
-			<main className='flex min-h-dvh flex-col bg-background px-6 text-foreground'>
-				<header className='mx-auto flex w-full max-w-6xl items-center justify-between py-6'>
-					<Link href='/' aria-label='Clipify home' className='flex items-center gap-2 text-lg font-semibold text-foreground'>
-						<Logo size={32} />
-						Clipify
-					</Link>
-					<Link href='https://help.clipify.us/hc/clipify/articles/1769328012-getting-started-with-clipify' className='text-sm'>
-						Setup help
-					</Link>
-				</header>
-				<div className='mx-auto flex w-full max-w-sm flex-1 flex-col justify-center pb-20 pt-10'>
-					<h1 className='text-3xl font-bold tracking-tight'>Welcome to Clipify</h1>
-					<p className='mb-8 mt-3 leading-relaxed text-foreground/75'>Sign in with Twitch to manage your clips and get your next stream ready.</p>
+			<main className='min-h-screen min-w-screen flex items-center justify-center bg-gradient-to-br from-brand-800 to-brand-400'>
+				<div className='flex flex-col items-center'>
 					<LoginClient returnUrl={returnDestination} oauthAuthorization={oauthAuthorization} />
-					<p className='mt-6 text-sm leading-relaxed text-foreground/75'>{checkoutIntent ? "Your Pro selection is saved. Sign in to continue to checkout." : "Free to get started. Eligible new creators also get seven days of Pro. No card required."}</p>
-					{!checkoutIntent && <p className='mt-2 text-sm leading-relaxed text-foreground/75'>Continue on Free afterward unless you choose a paid plan.</p>}
-					<p className='mt-8 text-xs leading-relaxed text-foreground/65'>
-						By logging in, you agree to our{" "}
-						<Link href={legalDocumentRoutes.terms} className='text-xs underline'>
-							Terms
-						</Link>{" "}
-						and{" "}
-						<Link href={legalDocumentRoutes.privacy} className='text-xs underline'>
-							Privacy Policy
-						</Link>
-						. We send product update emails by default. You can opt out anytime.
-					</p>
+
+					<div className='mt-2 flex max-w-[240px] flex-col items-center text-center text-xs text-white/90'>
+						<p>
+							By logging in, you agree to our{" "}
+							<Link href={legalDocumentRoutes.terms} className='text-xs text-white underline'>
+								Terms
+							</Link>{" "}
+							and{" "}
+							<Link href={legalDocumentRoutes.privacy} className='text-xs text-white underline'>
+								Privacy
+							</Link>
+							. We send you product update emails by default. You can opt out anytime.
+						</p>
+					</div>
 				</div>
 			</main>
 		</>

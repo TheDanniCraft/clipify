@@ -104,7 +104,7 @@ export default function PricingComparison({ campaignOffer = null, pricing }: { c
 						<Card key={tier.key} className={cn("relative p-3 shadow-none", tier.mostPopular ? "border border-default/70 bg-surface-secondary" : "border border-default/60 bg-transparent")}>
 							{tier.mostPopular ? (
 								<Chip className='absolute right-4 top-4' color='accent' variant='primary'>
-									More control
+									Most popular
 								</Chip>
 							) : null}
 							<Card.Header className='flex flex-col items-start gap-2 pb-6'>
@@ -199,7 +199,7 @@ export default function PricingComparison({ campaignOffer = null, pricing }: { c
 										<div className='mb-2 flex h-5 items-center'>
 											{tier.mostPopular ? (
 												<Chip color='accent' size='sm' variant='primary'>
-													More control
+													Most popular
 												</Chip>
 											) : null}
 										</div>

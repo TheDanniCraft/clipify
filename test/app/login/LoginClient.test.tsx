@@ -19,10 +19,10 @@ jest.mock("@components/heroui-client", () => ({
 }));
 
 describe("app/login/LoginClient", () => {
-	it("shows Twitch sign-in as the primary action", () => {
+	it("uses the original Twitch button appearance", () => {
 		render(<LoginClient returnUrl='/dashboard' />);
 
-		expect(screen.getByRole("button", { name: "Login with Twitch" })).toHaveAttribute("data-variant", "primary");
+		expect(screen.getByRole("button", { name: "Login with Twitch" })).toHaveAttribute("data-variant", "tertiary");
 	});
 });
 

@@ -3,6 +3,7 @@ import { withSentryConfig } from "@sentry/nextjs/config";
 import crypto from "crypto";
 import path from "path";
 import { nodeFileTrace } from "@vercel/nft";
+import { publicHeatmapPaths } from "./src/app/lib/heatmapRoutes";
 import { toDeploymentId } from "./src/app/lib/deploymentId";
 
 const drizzle = nodeFileTrace([require.resolve("drizzle-kit"), require.resolve("drizzle-orm"), path.resolve(path.dirname(require.resolve("drizzle-kit")), "bin.cjs")]).then((drizzle) => [...drizzle.fileList, "./node_modules/.bin/drizzle-kit", "./node_modules/drizzle-orm/**", "./node_modules/drizzle-kit/**"]);
@@ -28,7 +29,7 @@ const nextConfigPromise = Promise.resolve(drizzle).then(
 			async rewrites() {
 				return [
 					{ source: `/js/${umamiTrackerName}`, destination: `${umamiBaseUrl}/script.js` },
-					{ source: `/js/${umamiRecorderName}`, destination: `${umamiBaseUrl}/recorder.js` },
+					{ source: `/js/${umamiRecorderName}`, destination: "/api/analytics/recorder" },
 					{ source: "/statistics/api/send", destination: `${umamiBaseUrl}/api/send` },
 					{ source: "/statistics/api/record", destination: `${umamiBaseUrl}/api/record` },
 					{ source: "/statistics/api/websites/:websiteId/recorder", destination: `${umamiBaseUrl}/api/websites/:websiteId/recorder` },
@@ -50,7 +51,7 @@ const nextConfigPromise = Promise.resolve(drizzle).then(
 				];
 
 				return [
-					...["/", "/features", "/pricing"].map((source) => ({ source, headers: [...baseSecurityHeaders, { key: "Content-Security-Policy", value: replayContentSecurityPolicy(new URL(umamiBaseUrl).origin) }] })),
+					...publicHeatmapPaths.map((source) => ({ source, headers: [...baseSecurityHeaders, { key: "Content-Security-Policy", value: replayContentSecurityPolicy(new URL(umamiBaseUrl).origin) }] })),
 					{
 						source: "/runner/preview/:runnerId",
 						headers: [...baseSecurityHeaders, { key: "X-Frame-Options", value: "SAMEORIGIN" }, { key: "Content-Security-Policy", value: replayContentSecurityPolicy("'self'") }],
@@ -80,7 +81,7 @@ const nextConfigPromise = Promise.resolve(drizzle).then(
 						headers: [...baseSecurityHeaders, { key: "Access-Control-Allow-Origin", value: "*" }, { key: "Cache-Control", value: "public, max-age=300, s-maxage=86400" }],
 					},
 					{
-						source: "/:path((?!$|features/?$|pricing/?$|runner/preview/[^/]+/?$|demoPlayer$|embed/[^/]+/?$|gallery/[^/]+/frame/?$|gallery/[^/]+/clip/[^/]+/?$|dashboard/galleries/[^/]+/preview/clip/[^/]+/?$).*)",
+						source: "/:path((?!$|features/?$|pricing/?$|community/?$|changelog/?$|roadmap/?$|runner/preview/[^/]+/?$|demoPlayer$|embed/[^/]+/?$|gallery/[^/]+/frame/?$|gallery/[^/]+/clip/[^/]+/?$|dashboard/galleries/[^/]+/preview/clip/[^/]+/?$).*)",
 						headers: [...baseSecurityHeaders, { key: "X-Frame-Options", value: "DENY" }, { key: "Content-Security-Policy", value: replayContentSecurityPolicy("'none'") }],
 					},
 				];

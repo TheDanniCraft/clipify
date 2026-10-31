@@ -35,6 +35,7 @@ const customJestConfig = {
 		"src/app/UmamiClient.tsx",
 		"src/app/UmamiRuntime.tsx",
 		"src/app/api/analytics/config/route.ts",
+		"src/app/api/analytics/recorder/route.ts",
 		"src/server/umami.ts",
 		"src/server/umami-creator-analytics.ts",
 		"src/server/analytics-consent.ts",

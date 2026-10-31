@@ -4,8 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExtern
 import { Button, Card, Separator, Form, Input, Link, Modal, Spinner, TextField, Label, FieldError, InputGroup } from "@heroui/react";
 import Image from "next/image";
 
-import { Turnstile } from "nextjs-turnstile";
-import { motion } from "motion/react";
+import { Turnstile, type TurnstileRef } from "nextjs-turnstile";
 
 import Logo from "@components/logo";
 import CommunityTeaser from "@components/LandingPage/communityTeaser";
@@ -23,7 +22,7 @@ import { OPEN_CONSENT_PREFERENCES_EVENT } from "@lib/consent/events";
 const isE2ETestMode = process.env.E2E_TEST_MODE === "true";
 
 export default function Footer() {
-	const { setTheme } = useTheme();
+	const { setTheme, resolvedTheme } = useTheme();
 	const [statusColor, setStatusColor] = useState("#ffffff");
 	const [statusText, setStatusText] = useState(isE2ETestMode ? "Test environment" : "Loading...");
 	const [footerCommunityPreview, setFooterCommunityPreview] = useState<CommunityTeaserPayload | null>(null);
@@ -32,20 +31,15 @@ export default function Footer() {
 	const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
 	const [isSuccessOpen, setIsSuccessOpen] = useState(false);
 	const [token, setToken] = useState<string | null>(null);
-	const [newsletterRequested, setNewsletterRequested] = useState(false);
+
+	const [pendingEmail, setPendingEmail] = useState("");
+	const [firstName, setFirstName] = useState("");
+	const turnstileRef = useRef<TurnstileRef>(null);
 	const mounted = useSyncExternalStore(
-		() => () => undefined,
+		() => () => {},
 		() => true,
 		() => false,
 	);
-	const [pendingEmail, setPendingEmail] = useState("");
-	const [firstName, setFirstName] = useState("");
-	const emailStepRef = useRef<HTMLDivElement>(null);
-	const nameStepRef = useRef<HTMLDivElement>(null);
-	const [stepHeights, setStepHeights] = useState({ email: 64, name: 172 });
-	useEffect(() => {
-		if (isDetailsExpanded) nameStepRef.current?.querySelector("input")?.focus();
-	}, [isDetailsExpanded]);
 	const firstNamePlaceholder = useMemo(() => {
 		const localPart = (pendingEmail.split("@")[0] || "").trim();
 		if (!localPart) {
@@ -68,14 +62,8 @@ export default function Footer() {
 		return guess.charAt(0).toUpperCase() + guess.slice(1);
 	}, [pendingEmail]);
 
-	const measureStepHeights = useCallback(() => {
-		const emailHeight = emailStepRef.current?.scrollHeight ?? 64;
-		const nameHeight = nameStepRef.current?.scrollHeight ?? 172;
-		setStepHeights({ email: emailHeight, name: nameHeight });
-	}, []);
-
-	const emailSubmitDisabled = newsletterState === "loading" || newsletterState === "success" || (mounted && !token);
-	const detailSubmitDisabled = newsletterState === "loading" || !pendingEmail || (mounted && !token);
+	const emailSubmitDisabled = newsletterState === "loading" || newsletterState === "success" || !mounted;
+	const detailSubmitDisabled = newsletterState === "loading" || !pendingEmail || !token;
 
 	const communityStreamers = useMemo(() => footerCommunityPreview?.streamers ?? [], [footerCommunityPreview]);
 	const communityStreamerCount = footerCommunityPreview?.totalCount ?? 0;
@@ -135,95 +123,57 @@ export default function Footer() {
 		};
 	}, []);
 
-	useEffect(() => {
-		const frame = window.requestAnimationFrame(measureStepHeights);
-		return () => window.cancelAnimationFrame(frame);
-	}, [measureStepHeights, firstName, pendingEmail, newsletterState]);
-
-	useEffect(() => {
-		const handleResize = () => measureStepHeights();
-		window.addEventListener("resize", handleResize);
-		return () => window.removeEventListener("resize", handleResize);
-	}, [measureStepHeights]);
-
-	const subscribe = useCallback(
-		(event: React.FormEvent<HTMLFormElement>) => {
-			event.preventDefault();
-			const data = Object.fromEntries(new FormData(event.currentTarget));
-			const email = ((data.email as string) || "").trim();
-			if (!email) {
-				setPendingEmail(email);
-				setNewsletterState("default");
-				setIsDetailsExpanded(false);
-				return;
-			}
-			if (!token) {
-				setPendingEmail(email);
-				setNewsletterState("captcha");
-				setIsDetailsExpanded(false);
-				return;
-			}
+	const subscribe = useCallback((event: React.FormEvent<HTMLFormElement>) => {
+		event.preventDefault();
+		const data = Object.fromEntries(new FormData(event.currentTarget));
+		const email = ((data.email as string) || "").trim();
+		if (!email || !(event.currentTarget.elements.namedItem("email") as HTMLInputElement | null)?.validity.valid) {
 			setPendingEmail(email);
-			setFirstName("");
-			setNewsletterState("default");
-			setIsDetailsExpanded(true);
-		},
-		[token],
-	);
+			setNewsletterState("invalid");
+			setIsDetailsExpanded(false);
+			return;
+		}
 
-	const finishSubscribe = useCallback(
-		async (includeNames = true) => {
-			if (!token) {
+		setPendingEmail(email);
+		setFirstName("");
+		setToken(null);
+		setNewsletterState("default");
+		setIsDetailsExpanded(true);
+	}, []);
+
+	const finishSubscribe = useCallback(async () => {
+		if (!token) {
+			setNewsletterState("captcha");
+			return;
+		}
+		setNewsletterState("loading");
+
+		try {
+			const res = await subscribeToNewsletter(pendingEmail, token, firstName.trim() ? { firstName: firstName.trim() } : undefined);
+
+			if (await isRatelimitError(res)) {
+				setNewsletterState("rateLimit");
+				return;
+			}
+			if (res instanceof Error) {
 				setNewsletterState("error");
 				return;
 			}
-			setNewsletterState("loading");
 
-			try {
-				const res = await subscribeToNewsletter(
-					pendingEmail,
-					token || "",
-					includeNames
-						? {
-								firstName: firstName.trim() || undefined,
-							}
-						: undefined,
-				);
+			setNewsletterState("success");
+			setIsDetailsExpanded(false);
+			setIsSuccessOpen(true);
 
-				if (await isRatelimitError(res)) {
-					setNewsletterState("rateLimit");
-					return;
-				}
-				if (res instanceof Error) {
-					setNewsletterState("error");
-					return;
-				}
-
-				setNewsletterState("success");
-				setIsDetailsExpanded(false);
-				setIsSuccessOpen(true);
-
-				trackEvent("Newsletter Subscription", {
-					emailType: await getEmailProvider(pendingEmail),
-				});
-			} catch {
-				setNewsletterState("error");
-			}
-		},
-		[firstName, pendingEmail, token],
-	);
-
-	const handleNewsletterSubmit = useCallback(
-		(event: React.FormEvent<HTMLFormElement>) => {
-			if (isDetailsExpanded) {
-				event.preventDefault();
-				void finishSubscribe(true);
-				return;
-			}
-			subscribe(event);
-		},
-		[finishSubscribe, isDetailsExpanded, subscribe],
-	);
+			trackEvent("Newsletter Subscription", {
+				emailType: await getEmailProvider(pendingEmail),
+			});
+		} catch {
+			setNewsletterState("error");
+		} finally {
+			setToken(null);
+			turnstileRef.current?.reset();
+		}
+	}, [firstName, pendingEmail, token]);
 
 	const renderList = useCallback(
 		({ title, items }: { title: string; items: readonly { readonly name: string; readonly href: string }[] }) => (
@@ -292,111 +242,105 @@ export default function Footer() {
 								<h3 className='text-sm text-foreground/75 font-semibold'>Subscribe to our newsletter</h3>
 								<p className='text-sm text-foreground/75 mt-2'>Receive updates on new features, tips and tricks, or offers straight to your email.</p>
 							</div>
-							<div className='w-full lg:max-w-md' onFocusCapture={() => setNewsletterRequested(true)}>
-								<Form className='w-full space-y-3' onSubmit={handleNewsletterSubmit}>
-									<motion.div
-										className='relative w-full'
-										animate={{
-											height: isDetailsExpanded ? stepHeights.name : stepHeights.email,
-										}}
-										transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-									>
-										<motion.div
-											initial={false}
-											ref={emailStepRef}
-											inert={isDetailsExpanded}
-											className={isDetailsExpanded ? "absolute inset-0 w-full" : "relative w-full"}
-											animate={{
-												opacity: isDetailsExpanded ? 0 : 1,
-												y: isDetailsExpanded ? -8 : 0,
-												pointerEvents: isDetailsExpanded ? "none" : "auto",
-											}}
-											transition={{ duration: 0.2, ease: "easeOut" }}
-										>
-											<TextField aria-label='Newsletter email address' fullWidth isRequired type='email' className={newsletterState == "success" ? "text-success" : newsletterState == "error" || newsletterState == "rateLimit" ? "text-danger" : "text-foreground"} name='email' isDisabled={newsletterState === "loading" || newsletterState === "success"}>
-												<InputGroup fullWidth variant='secondary'>
-													<InputGroup.Prefix>
-														{(() => {
-															switch (newsletterState) {
-																case "loading":
-																	return <Spinner />;
-																case "success":
-																	return <IconCircleCheckFilled className='text-success' />;
-																default:
-																	return <IconMailFilled className='text-foreground/75' />;
-															}
-														})()}
-													</InputGroup.Prefix>
-													<InputGroup.Input
-														className='min-w-0'
-														placeholder='mail@example.com'
-														onChange={() => {
-															setNewsletterState("default");
-														}}
-													/>
-													<InputGroup.Suffix>
-														{
-															<Button size='sm' isIconOnly type='submit' isDisabled={emailSubmitDisabled} aria-label='Continue newsletter signup' variant='primary'>
-																<IconSend className='text-white' />
-															</Button>
+							<div className='w-full lg:max-w-md'>
+								<Form className='w-full space-y-2' validationBehavior='aria' onSubmit={subscribe}>
+									<div>
+										<TextField aria-label='Newsletter email address' fullWidth isRequired type='email' name='email' validationBehavior='aria' isInvalid={newsletterState === "invalid"} isDisabled={newsletterState === "loading" || newsletterState === "success"}>
+											<InputGroup fullWidth variant='secondary'>
+												<InputGroup.Prefix>
+													{(() => {
+														switch (newsletterState) {
+															case "loading":
+																return <Spinner />;
+															case "success":
+																return <IconCircleCheckFilled className='text-success' />;
+															default:
+																return <IconMailFilled className='text-foreground/75' />;
 														}
-													</InputGroup.Suffix>
-												</InputGroup>
-												<FieldError />
-											</TextField>
-										</motion.div>
-										<motion.div
-											initial={false}
-											ref={nameStepRef}
-											inert={!isDetailsExpanded}
-											className={isDetailsExpanded ? "relative w-full space-y-3" : "absolute inset-0 w-full space-y-3"}
-											animate={{
-												opacity: isDetailsExpanded ? 1 : 0,
-												y: isDetailsExpanded ? 0 : 8,
-												pointerEvents: isDetailsExpanded ? "auto" : "none",
-											}}
-											transition={{ duration: 0.24, ease: "easeOut" }}
-										>
-											<div className='rounded-[8px] border border-default px-3 py-2 text-xs text-foreground/75'>Subscribing as {pendingEmail}</div>
-											<TextField fullWidth>
-												<Label>How should we call you?</Label>
-												<Input fullWidth variant='secondary' placeholder={firstNamePlaceholder} value={firstName} onChange={(event) => setFirstName(event.target.value)} />
-											</TextField>
-											<div className='flex flex-wrap items-center gap-2'>
-												<Button
-													type='button'
-													variant='tertiary'
-													onPress={() => {
-														setIsDetailsExpanded(false);
+													})()}
+												</InputGroup.Prefix>
+												<InputGroup.Input
+													className='min-w-0'
+													placeholder='mail@example.com'
+													onChange={() => {
 														setNewsletterState("default");
-														window.requestAnimationFrame(() => emailStepRef.current?.querySelector("input")?.focus());
 													}}
-													isDisabled={newsletterState === "loading"}
-												>
-													Back
-												</Button>
-												<Button type='button' variant='tertiary' onPress={() => finishSubscribe(false)} isDisabled={detailSubmitDisabled}>
-													Skip
-												</Button>
-												<Button type='submit' isDisabled={detailSubmitDisabled} variant='primary'>
-													Add and subscribe
-												</Button>
+												/>
+												<InputGroup.Suffix className='pl-2 pr-1'>
+													{
+														<Button className='rounded-md' size='sm' isIconOnly type='submit' isDisabled={emailSubmitDisabled} aria-label='Continue newsletter signup' variant='primary'>
+															<IconSend className='text-white' />
+														</Button>
+													}
+												</InputGroup.Suffix>
+											</InputGroup>
+											<div className='pt-1 text-xs' aria-live='polite'>
+												{newsletterState === "invalid" && <FieldError>Enter a valid email address.</FieldError>}
 											</div>
-										</motion.div>
-									</motion.div>
-									{!isE2ETestMode && newsletterRequested && (
-										<div className='pt-1'>
-											<Turnstile size='compact' siteKey='0x4AAAAAACMFR636JljxhVLl' onSuccess={setToken} onError={(error) => console.error("Turnstile error:", error)} onExpire={() => setToken(null)} />
-										</div>
-									)}
-									{newsletterState === "loading" && <p className='text-xs text-foreground/75 pt-1'>Subscribing...</p>}
-									{newsletterState === "captcha" && <p className='text-xs text-foreground/75 pt-1'>Please complete the CAPTCHA first.</p>}
-									{newsletterState === "error" && <p className='text-xs text-danger pt-1'>Could not subscribe right now. Please try again.</p>}
-									{newsletterState === "rateLimit" && <p className='text-xs text-danger pt-1'>Too many attempts. Please wait a moment.</p>}
+										</TextField>
+									</div>
 								</Form>
 							</div>
 						</Card.Content>
 					</Card>
+					<Modal.Backdrop
+						isOpen={isDetailsExpanded}
+						onOpenChange={(open) => {
+							if (newsletterState !== "loading") {
+								setIsDetailsExpanded(open);
+								if (!open) setToken(null);
+							}
+						}}
+					>
+						<Modal.Container size='sm'>
+							<Modal.Dialog>
+								<Modal.CloseTrigger aria-label='Cancel newsletter signup' />
+								<Modal.Header>
+									<Modal.Heading>Subscribe to our newsletter</Modal.Heading>
+								</Modal.Header>
+								<Modal.Body>
+									<p className='text-sm text-foreground/75'>We’ll send a confirmation email to {pendingEmail}.</p>
+									<Form
+										className='mt-4 space-y-4'
+										validationBehavior='aria'
+										onSubmit={(event) => {
+											event.preventDefault();
+											void finishSubscribe();
+										}}
+									>
+										<TextField fullWidth>
+											<Label>First name (optional)</Label>
+											<Input autoFocus fullWidth variant='secondary' placeholder={firstNamePlaceholder} value={firstName} onChange={(event) => setFirstName(event.target.value)} />
+										</TextField>
+										{!isE2ETestMode && (
+											<div className='flex min-h-[140px] justify-center'>
+												<Turnstile
+													ref={turnstileRef}
+													theme={resolvedTheme === "dark" ? "dark" : "light"}
+													size='compact'
+													appearance='always'
+													siteKey='0x4AAAAAACMFR636JljxhVLl'
+													onSuccess={setToken}
+													onError={(error) => {
+														setToken(null);
+														console.error("Turnstile error:", error);
+													}}
+													onExpire={() => setToken(null)}
+												/>
+											</div>
+										)}
+
+										<div className='min-h-5 text-sm text-danger' role='alert'>
+											{newsletterState === "error" ? "Could not subscribe right now. Please try again." : newsletterState === "rateLimit" ? "Too many attempts. Please wait a moment." : newsletterState === "captcha" ? "Complete verification to subscribe." : null}
+										</div>
+										<Button type='submit' fullWidth variant='primary' isPending={newsletterState === "loading"} isDisabled={detailSubmitDisabled}>
+											Subscribe
+										</Button>
+									</Form>
+								</Modal.Body>
+							</Modal.Dialog>
+						</Modal.Container>
+					</Modal.Backdrop>
 					<Modal.Backdrop isOpen={isSuccessOpen} onOpenChange={setIsSuccessOpen}>
 						<Modal.Container>
 							<Modal.Dialog>
