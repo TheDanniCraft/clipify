@@ -1,5 +1,6 @@
 "use client";
 
+import { trackEvent } from "@lib/analytics";
 import { useState } from "react";
 import { Button } from "@components/heroui-client";
 import { IconBrandTwitch } from "@tabler/icons-react";
@@ -12,22 +13,28 @@ export default function LoginClient({ returnUrl, oauthAuthorization = false }: {
 	async function signInWithTwitch() {
 		setPending(true);
 		setLocalError(null);
-		const result = await authClient.signIn.social({
-			provider: "twitch",
-			callbackURL: returnUrl || "/dashboard",
-			// Keep the provider-signed query on the login page for cancellation/retry.
-			errorCallbackURL: oauthAuthorization ? `${window.location.pathname}${window.location.search}` : returnUrl ? `/login?returnUrl=${encodeURIComponent(returnUrl)}` : "/login",
-		});
-		if (result.error) {
+		trackEvent("auth_started", { provider: "twitch", source: oauthAuthorization ? "oauth_authorization" : returnUrl === "/checkout/continue" ? "checkout" : "login" });
+		try {
+			const result = await authClient.signIn.social({
+				provider: "twitch",
+				callbackURL: returnUrl || "/dashboard",
+				// Keep the provider-signed query on the login page for cancellation/retry.
+				errorCallbackURL: oauthAuthorization ? `${window.location.pathname}${window.location.search}` : returnUrl ? `/login?returnUrl=${encodeURIComponent(returnUrl)}` : "/login",
+			});
+			if (result.error) {
+				setLocalError("Twitch sign-in could not be started. Please try again.");
+				setPending(false);
+			}
+		} catch {
 			setLocalError("Twitch sign-in could not be started. Please try again.");
 			setPending(false);
 		}
 	}
 
 	return (
-		<div className='flex flex-col items-center gap-3'>
-			<Button aria-label='Login with Twitch' isDisabled={pending} isPending={pending} onPress={signInWithTwitch} size='lg' variant='tertiary'>
-				<IconBrandTwitch color='#8956FB' />
+		<div className='flex w-full flex-col items-center gap-3'>
+			<Button aria-label='Login with Twitch' isDisabled={pending} isPending={pending} onPress={signInWithTwitch} size='lg' variant='primary' fullWidth>
+				<IconBrandTwitch aria-hidden='true' />
 				{pending ? "Connecting to Twitch…" : "Login with Twitch"}
 			</Button>
 			{localError ? (

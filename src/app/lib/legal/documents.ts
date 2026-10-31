@@ -25,8 +25,8 @@ export const legalDocumentRoutes = {
 } as const;
 
 export const legalDocuments: readonly LegalDocumentManifestEntry[] = [
-	{ id: "privacy", route: legalDocumentRoutes.privacy, title: "Privacy Policy", description: "How Clipify collects, uses, shares, and protects personal data.", ...initialPolicyMetadata },
-	{ id: "cookies", route: legalDocumentRoutes.cookies, title: "Cookie Policy", description: "Which services and browser storage Clipify uses, and how you can manage optional choices.", ...initialPolicyMetadata },
+	{ id: "privacy", route: legalDocumentRoutes.privacy, title: "Privacy Policy", description: "How Clipify collects, uses, shares, and protects personal data.", ...initialPolicyMetadata, version: "1.2.0", effectiveDate: "2026-10-30", updatedDate: "2026-10-30" },
+	{ id: "cookies", route: legalDocumentRoutes.cookies, title: "Cookie Policy", description: "Which services and browser storage Clipify uses, and how you can manage optional choices.", ...initialPolicyMetadata, version: "1.2.0", effectiveDate: "2026-10-30", updatedDate: "2026-10-30" },
 	{ id: "terms", route: legalDocumentRoutes.terms, title: "Terms of Service", description: "The rules that apply when you use Clipify and the self-hosted Runner.", ...initialPolicyMetadata },
 	{ id: "privacy-requests", route: legalDocumentRoutes.privacyRequests, title: "Privacy Requests", description: "How to exercise your privacy rights and what to expect after contacting us.", ...initialPolicyMetadata },
 	{ id: "imprint", route: legalDocumentRoutes.imprint, title: "Imprint", description: "Provider and contact information for Clipify.", ...initialPolicyMetadata },
@@ -111,9 +111,10 @@ export const privacyPolicySections: readonly LegalDocumentSection[] = [
 	{
 		id: "analytics-observability-and-logs",
 		title: "9. Analytics, diagnostics, and logs",
-		summary: "Clipify uses self-hosted, cookieless Plausible statistics and operational server diagnostics to understand use, reliability, and failures.",
+		summary: "Clipify uses self-hosted, cookieless Umami statistics and operational server diagnostics to understand use, reliability, and failures.",
 		details: [
-			"Plausible produces aggregated audience statistics without advertising profiles or cross-site tracking. Server logs, metrics, traces, database spans, and captured backend errors are processed for security and reliable operation under our legitimate interests.",
+			"Umami records page visits, referral and campaign sources, browser, device, approximate location, scroll and focused engagement, and existing product events without attaching your Clipify account. We use these statistics to understand service usage; there are no advertising profiles or cross-site tracking. Server logs, metrics, traces, database spans, and captured backend errors are processed for security and reliable operation under our legitimate interests.",
+			"After statistics consent, Umami also links feature use and verified outcomes to your Clipify account to measure setup, conversion and retention. Public landing, features and pricing pages can collect click heatmaps, and browser performance is measured. Umami session recording is disabled. Withdrawing consent stops new optional collection; existing records follow the configured retention period.",
 			"Sentry browser performance measurement, browser profiling, and masked Session Replay are optional and start only after measurement consent. Replay masks text and inputs and blocks media by default. Sampling means only a portion of eligible sessions is recorded. You can withdraw measurement consent at any time.",
 		],
 	},
@@ -132,7 +133,7 @@ export const privacyPolicySections: readonly LegalDocumentSection[] = [
 			"Stripe group companies for checkout, subscriptions, payments, fraud prevention, invoices, and tax-related processing.",
 			"Cloudflare, Inc. for Turnstile abuse prevention and network security on protected flows.",
 			"Functional Software, Inc. (Sentry) for error monitoring and, after consent, browser measurement and Session Replay. The Clipify Sentry project uses the EU data region.",
-			"Clipify-operated infrastructure for hosting, PostgreSQL storage, Plausible statistics, Chatwoot support, and UseSend communications.",
+			"Clipify-operated infrastructure for hosting, PostgreSQL storage, Umami statistics, Chatwoot support, and UseSend communications.",
 			"Authorities, courts, advisers, or a successor operator where disclosure is legally required or necessary to protect rights and complete a lawful business transfer.",
 		],
 		details: ["For transparency, the provider notices below explain how these providers handle personal data in their own roles. Clipify remains responsible for the processing described in this policy, and these provider notices do not replace Clipify's disclosures."],

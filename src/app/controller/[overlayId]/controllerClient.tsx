@@ -1,4 +1,5 @@
 "use client";
+import { trackProductEvent } from "@lib/analytics";
 
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IconBroadcast, IconLock, IconLockOpen2, IconEye, IconEyeOff, IconLayoutSidebarRightExpand, IconPlayerSkipForward, IconPlayerPauseFilled, IconPlayerPlayFilled, IconPlus, IconVolume, IconVolumeOff } from "@tabler/icons-react";
@@ -211,6 +212,8 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 	const executeControllerAction = async (action: "set_volume" | "clear_mod_queue" | "clear_viewer_queue" | "clear_all_queues" | "add_mod_clip", options?: { volume?: number; clipUrl?: string }) => {
 		try {
 			const response = await runControllerAction(overlayId, { action, volume: options?.volume, clipUrl: options?.clipUrl });
+			if (response.ok) trackProductEvent("controller_action_completed", { action });
+			else trackProductEvent("controller_action_failed", { action, status: response.status });
 			if (response.ok && action !== "set_volume") refreshQueues();
 			return response;
 		} catch (error) {
@@ -269,6 +272,7 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 		const ws = wsRef.current;
 		if (!ws || ws.readyState !== WebSocket.OPEN) return;
 		ws.send(JSON.stringify({ type: "command", data: { name, data, overlayId } }));
+		trackProductEvent("controller_command_sent", { action: name });
 	};
 
 	const lastStateAt = Math.max(lastEventAt ?? 0, nowPlayingUpdatedAt ?? 0, lastHeartbeatAt ?? 0);

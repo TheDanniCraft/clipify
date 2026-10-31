@@ -1,6 +1,11 @@
 /** @jest-environment node */
+jest.mock("@/server/product-outcomes", () => ({ recordProductOutcome: jest.fn().mockResolvedValue(undefined) }));
 export {};
 
+const analyticsAllowed = jest.fn();
+const analyticsPrincipal = jest.fn();
+jest.mock("@/auth/session-principal", () => ({ getVerifiedSessionPrincipal: (...args: unknown[]) => analyticsPrincipal(...args) }));
+jest.mock("@/server/analytics-consent", () => ({ readAnalyticsConsent: (...args: unknown[]) => analyticsAllowed(...args) }));
 const stripeCtor = jest.fn();
 const subscriptionsList = jest.fn();
 const subscriptionsUpdate = jest.fn();
@@ -99,6 +104,8 @@ async function loadSubscription() {
 
 describe("actions/subscription", () => {
 	beforeEach(() => {
+		analyticsAllowed.mockResolvedValue(false);
+		analyticsPrincipal.mockResolvedValue({ authUserId: "verified-actor" });
 		jest.clearAllMocks();
 		process.env.STRIPE_SECRET_KEY = "sk_test_123";
 		getBaseUrl.mockResolvedValue(new URL("https://clipify.us"));
@@ -165,9 +172,28 @@ describe("actions/subscription", () => {
 		await expect(checkIfSubscriptionExists()).resolves.toBe(true);
 	});
 
+	it.each([false, true])("includes the recognized feature in Stripe metadata only with current consent: %s", async (allowed) => {
+		analyticsAllowed.mockResolvedValue(allowed);
+		validateAuth.mockResolvedValue({ id: "user-1", email: "alice@example.com", stripeCustomerId: "cus_analytics" });
+		checkoutCreate.mockResolvedValue({ id: "cs_feature", url: "https://checkout.stripe.test/feature" });
+		const { generateCheckout } = await loadSubscription();
+		await generateCheckout(["pro" as never], "monthly", undefined, undefined, "upgrade_modal", { analyticsFeature: "theme_studio" });
+		const params = checkoutCreate.mock.calls[0][0];
+		expect(params.metadata.analyticsFeature).toBe(allowed ? "theme_studio" : undefined);
+		expect(params.subscription_data.metadata.analyticsFeature).toBe(allowed ? "theme_studio" : undefined);
+	});
+	it("continues checkout if optional analytics identity lookup fails", async () => {
+		analyticsPrincipal.mockRejectedValue(new Error("optional authority unavailable"));
+		validateAuth.mockResolvedValue({ id: "user-1", email: "alice@example.com", stripeCustomerId: "cus_analytics" });
+		checkoutCreate.mockResolvedValue({ id: "cs_feature", url: "https://checkout.stripe.test/feature" });
+		const { generateCheckout } = await loadSubscription();
+		await expect(generateCheckout(["pro" as never], "monthly", undefined, undefined, "upgrade_modal", { analyticsFeature: "theme_studio" })).resolves.toBe("https://checkout.stripe.test/feature");
+		expect(checkoutCreate.mock.calls[0][0].metadata).not.toHaveProperty("analyticsFeature");
+	});
+
 	it("creates a checkout session and persists customer id when needed", async () => {
 		customersCreate.mockResolvedValue({ id: "cus_new" });
-		checkoutCreate.mockResolvedValue({ url: "https://checkout.stripe.test/session-1" });
+		checkoutCreate.mockResolvedValue({ id: "cs_fixture", url: "https://checkout.stripe.test/session-1" });
 
 		const { generatePaymentLink } = await loadSubscription();
 		const result = await generatePaymentLink("monthly", "/dashboard/settings", undefined, "upgrade_modal");
@@ -179,6 +205,7 @@ describe("actions/subscription", () => {
 			}),
 		);
 		expect(db.update).toHaveBeenCalled();
+		expect(jest.requireMock("@/server/product-outcomes").recordProductOutcome).toHaveBeenCalledWith(expect.objectContaining({ outcome: "checkout_created", creatorId: "user-1", key: "cs_fixture" }));
 		expect(checkoutCreate).toHaveBeenCalledWith(
 			expect.objectContaining({
 				customer: "cus_new",
@@ -188,9 +215,28 @@ describe("actions/subscription", () => {
 		expect(result).toBe("https://checkout.stripe.test/session-1");
 	});
 
+	it.each<{ cycles: Array<"monthly" | "yearly">; fallback: "monthly" | "yearly"; expected: string }>([
+		{ cycles: ["monthly"], fallback: "yearly", expected: "monthly" },
+		{ cycles: ["yearly"], fallback: "monthly", expected: "yearly" },
+		{ cycles: ["monthly", "yearly"], fallback: "yearly", expected: "mixed" },
+	])("records the selected $expected cadence instead of the fallback", async ({ cycles, fallback, expected }) => {
+		validateAuth.mockResolvedValue({ id: "user-1", email: "alice@example.com", stripeCustomerId: "cus_123" });
+		subscriptionsList.mockResolvedValue({ data: [] });
+		checkoutCreate.mockResolvedValue({ id: "cs_cadence", url: "https://checkout.stripe.test/cadence" });
+		const { generateCheckout } = await loadSubscription();
+		await generateCheckout(cycles.map((billingCycle) => ({ product: "pro", billingCycle })) as never, fallback);
+		expect(checkoutCreate).toHaveBeenCalledWith(
+			expect.objectContaining({
+				line_items: cycles.map((cycle) => ({ price: `price_current_pro_${cycle}`, quantity: 1 })),
+				metadata: expect.objectContaining({ billingCycle: expected, billingCycles: cycles.map((cycle) => `pro:${cycle}`).join(",") }),
+			}),
+		);
+		expect(jest.requireMock("@/server/product-outcomes").recordProductOutcome).toHaveBeenCalledWith(expect.objectContaining({ outcome: "checkout_created", metadata: { cycle: expected, source: "upgrade_modal" } }));
+	});
+
 	it("keeps caller supplied checkout redirects on the Clipify origin", async () => {
 		validateAuth.mockResolvedValue({ id: "user-1", email: "alice@example.com", stripeCustomerId: "cus_123" });
-		checkoutCreate.mockResolvedValue({ url: "https://checkout.stripe.test/session-1" });
+		checkoutCreate.mockResolvedValue({ id: "cs_fixture", url: "https://checkout.stripe.test/session-1" });
 		const { generateCheckout } = await loadSubscription();
 		await generateCheckout(["pro" as never], "yearly", undefined, undefined, undefined, { successUrl: "https://evil.example/success", cancelUrl: "//evil.example/cancel" });
 		expect(checkoutCreate).toHaveBeenCalledWith(expect.objectContaining({ success_url: "https://clipify.us/dashboard/settings", cancel_url: "https://clipify.us/dashboard/settings" }));
@@ -223,6 +269,23 @@ describe("actions/subscription", () => {
 		await expect(generatePaymentLink("monthly", "/dashboard/settings", undefined, "pricing_page")).rejects.toThrow("You already own every selected product");
 		expect(checkoutCreate).not.toHaveBeenCalled();
 		expect(customersCreate).not.toHaveBeenCalled();
+	});
+
+	it.each([true, false])("honors campaign auto-apply=%s without needing an offer cookie", async (autoApplyAtCheckout) => {
+		validateAuth.mockResolvedValue({ id: "user-1", email: "alice@example.com", stripeCustomerId: "cus_existing" });
+		subscriptionsList.mockResolvedValue({ data: [] });
+		getActiveCampaignOffer.mockResolvedValue({ slug: "summer", offerCode: "summer", autoApplyAtCheckout });
+		promotionCodesList.mockResolvedValue({ data: [{ id: "promo_campaign" }] });
+		checkoutCreate.mockReset().mockResolvedValue({ id: "cs_campaign", url: "https://checkout.stripe.test/campaign" });
+		const { generatePaymentLink } = await loadSubscription();
+		await expect(generatePaymentLink("yearly")).resolves.toBe("https://checkout.stripe.test/campaign");
+		if (autoApplyAtCheckout) {
+			expect(promotionCodesList).toHaveBeenCalledWith({ code: "SUMMER", limit: 1 });
+			expect(checkoutCreate).toHaveBeenCalledWith(expect.objectContaining({ discounts: [{ promotion_code: "promo_campaign" }] }));
+		} else {
+			expect(promotionCodesList).not.toHaveBeenCalled();
+			expect(checkoutCreate).toHaveBeenCalledWith(expect.objectContaining({ allow_promotion_codes: true }));
+		}
 	});
 
 	it("retries checkout without promo discount when code is not redeemable", async () => {

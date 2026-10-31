@@ -38,9 +38,7 @@ jest.mock("next/navigation", () => ({
 	useSearchParams: () => new URLSearchParams(),
 }));
 
-jest.mock("next-plausible", () => ({
-	usePlausible: () => jest.fn(),
-}));
+jest.mock("@lib/analytics", () => ({ trackEvent: jest.fn(), trackProductEvent: jest.fn() }));
 
 jest.mock("@lib/paywallTracking", () => ({
 	trackPaywallEvent: (...args: unknown[]) => trackPaywall(...args),
@@ -890,7 +888,7 @@ describe("components/OverlayTable/index", () => {
 		});
 		await screen.findByText(days === 1 ? "Ends today" : "4 days left");
 		fireEvent.click(screen.getByRole("button", { name: "Upgrade now" }));
-		expect(trackPaywall).toHaveBeenCalledWith(expect.any(Function), "paywall_cta_click", expect.objectContaining({ feature: "trial_active", plan: "free" }));
+		expect(trackPaywall).toHaveBeenCalledWith("paywall_cta_click", expect.objectContaining({ feature: "trial_active", plan: "free" }));
 	});
 
 	it("rejected owned playlist creation keeps the dashboard and shows a safe retry", async () => {

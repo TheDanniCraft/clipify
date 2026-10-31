@@ -34,3 +34,11 @@ export function queryCreatorClips(clips: TwitchClip[], query: CreatorClipQuery) 
 	const items = filtered.slice(offset, offset + pageSize);
 	return { items, nextCursor: offset + items.length < filtered.length ? String(offset + items.length) : null, total: filtered.length };
 }
+
+export function decodeCreatorUsername(value: string): string {
+	try {
+		return decodeURIComponent(value);
+	} catch {
+		return value;
+	}
+}

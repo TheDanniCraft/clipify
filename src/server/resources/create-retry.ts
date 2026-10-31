@@ -1,4 +1,5 @@
 import "server-only";
+import { trackCommittedProductEvent } from "@/server/umami";
 import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import type { TransactionClient } from "@/db/client";
@@ -44,7 +45,9 @@ export async function createWithRetry(client: TransactionClient, principal: Trus
 		if (result.creatorId !== input.creatorId) throw new Error("SERVICE_UNAVAILABLE");
 		await client.insert(mcpMutationRetriesTable).values({ ...identity, inputDigest: digest, safeResponse: result, resourceId: result.id, createdAt: now, expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000) });
 	}
-	await client.insert(auditEventsTable).values({ actorUserId: principal.authUserId, targetType: tool === "create_overlay" ? "overlay" : "playlist", targetId: result.id, action: `sensitive-integration:mcp.${tool}`, outcome: "success", correlationId: randomUUID(), occurredAt: new Date(), metadata: { clientId: principal.clientId, grantId: principal.grantId, generation: principal.generation, creatorId: input.creatorId, tool, replayed } });
+	const auditId = randomUUID();
+	await client.insert(auditEventsTable).values({ id: auditId, actorUserId: principal.authUserId, targetType: tool === "create_overlay" ? "overlay" : "playlist", targetId: result.id, action: `sensitive-integration:mcp.${tool}`, outcome: "success", correlationId: auditId, occurredAt: new Date(), metadata: { clientId: principal.clientId, grantId: principal.grantId, generation: principal.generation, creatorId: input.creatorId, tool, replayed } });
+	if (!replayed) trackCommittedProductEvent(principal.authUserId, auditId, "resource_created", { resource_type: tool === "create_overlay" ? "overlay" : "playlist", channel: "ai" });
 	authorization.assertAuthorityCurrent();
 	return result;
 }

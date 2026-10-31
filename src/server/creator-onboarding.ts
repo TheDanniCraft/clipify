@@ -1,4 +1,5 @@
 import "server-only";
+import { recordProductOutcome } from "./product-outcomes";
 
 import { and, eq, or } from "drizzle-orm";
 import { createHash } from "node:crypto";
@@ -140,7 +141,9 @@ export async function initializeCreator(creatorId: string, twitchCreatedAt: Date
 				})
 				.onConflictDoNothing();
 
-			await ensureReverseTrialGrantForUser(user, tx);
+			const trial = await ensureReverseTrialGrantForUser(user, tx);
+			if (trial.created) await recordProductOutcome({ outcome: "trial_granted", creatorId, key: "reverse-trial" }, tx);
+			await recordProductOutcome({ outcome: "creator_created", creatorId, key: "signup" }, tx);
 		}
 
 		await tx

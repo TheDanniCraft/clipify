@@ -32,20 +32,25 @@ jest.mock("@lib/featureAccess", () => ({ getFeatureAccess: (...args: unknown[]) 
 jest.mock("@/auth/authorize-operation", () => ({ authorizeCreatorOperation: (input: { creatorId: string }) => authorizeCreatorOperation(input), listAuthorizedCreatorOperations: jest.fn() }));
 
 describe("creator analytics exports", () => {
-	const previousApiKey = process.env.PLAUSIBLE_API_KEY;
+	const previousApiKey = process.env.UMAMI_API_KEY;
 
 	beforeEach(() => {
 		jest.clearAllMocks();
 		selectRows.length = 0;
-		process.env.PLAUSIBLE_API_KEY = "test-key";
+		process.env.UMAMI_API_KEY = "test-key";
+		process.env.UMAMI_WEBSITE_ID = "cc971acc-716d-4056-a79c-3cfda9fb8e1d";
 		validateAuth.mockResolvedValue({ id: "owner", username: "Alice" });
 		resolveUserEntitlements.mockResolvedValue({ effectivePlan: "pro" });
 		getFeatureAccess.mockReturnValue({ allowed: true });
-		global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ results: [], meta: { time_labels: [] } }) });
+		global.fetch = jest.fn().mockImplementation(async (input: string) => {
+			const url = new URL(input);
+			const payload = url.pathname.endsWith("/stats") && !url.pathname.endsWith("/events/stats") ? { pageviews: 0, visitors: 0, visits: 0, bounces: 0, totaltime: 0 } : url.pathname.endsWith("/pageviews") ? { pageviews: [], sessions: [] } : url.pathname.endsWith("/numeric-stats") ? { total: 0 } : url.pathname.endsWith("/events/stats") ? { data: { events: 0, visits: 0 } } : [];
+			return { ok: true, status: 200, json: async () => payload };
+		});
 	});
 
 	afterAll(() => {
-		process.env.PLAUSIBLE_API_KEY = previousApiKey;
+		process.env.UMAMI_API_KEY = previousApiKey;
 	});
 
 	it("creates every selected CSV from one analytics refresh", async () => {
@@ -54,8 +59,17 @@ describe("creator analytics exports", () => {
 		const result = await exportCreatorAnalyticsBundle({ ownerId: "owner", range: { start: "2026-08-01", end: "2026-08-02" }, datasets: ["daily", "locations", "daily"] });
 		expect(result).toHaveLength(2);
 		expect(result?.map((entry) => entry.filename)).toEqual(["clipify-Alice-daily-2026-08-01_2026-08-02.csv", "clipify-Alice-locations-2026-08-01_2026-08-02.csv"]);
-		expect(global.fetch).toHaveBeenCalledTimes(7);
+		expect(global.fetch).toHaveBeenCalledTimes(19);
 		expect(dbInsert).toHaveBeenCalledTimes(1);
+	});
+
+	it("ignores cached reports produced by the old unrecognized creator filter", async () => {
+		process.env.NEXT_PUBLIC_BASE_URL = "https://clipify.us";
+		selectRows.push([{ id: "owner", username: "Alice", plan: "pro" }], [{ cacheKey: "umami-v1:cc971acc-716d-4056-a79c-3cfda9fb8e1d:clipify.us:Alice:2026-08-01:2026-08-02", value: "old incorrectly scoped report", fetchedAt: new Date(), expiresAt: new Date(Date.now() + 60000) }]);
+		const { getCreatorAnalytics } = await import("@actions/creatorAnalytics");
+		const result = await getCreatorAnalytics("owner", { start: "2026-08-01", end: "2026-08-02" });
+		expect(result?.metrics.pageviews).toBe(0);
+		expect(global.fetch).toHaveBeenCalledTimes(19);
 	});
 
 	it("rejects empty and unsupported dataset selections before loading an owner", async () => {
@@ -75,7 +89,7 @@ describe("creator analytics exports", () => {
 
 		expect(result).not.toBeNull();
 		expect(resolveUserEntitlements).toHaveBeenCalledWith(expect.objectContaining({ id: "managed" }));
-		expect(global.fetch).toHaveBeenCalledTimes(7);
+		expect(global.fetch).toHaveBeenCalledTimes(19);
 	});
 
 	it("does not expose analytics for a creator the actor does not manage", async () => {

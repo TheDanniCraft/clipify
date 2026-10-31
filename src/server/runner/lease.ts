@@ -1,5 +1,6 @@
 import { PLAYBACK_TIMEOUT_MESSAGE } from "../../../packages/runner/src/presentation";
 import "server-only";
+import { recordProductOutcome } from "@/server/product-outcomes";
 import { randomUUID, sign } from "node:crypto";
 import { runnerSigningKey as signingKey } from "./signing";
 import { and, desc, eq, inArray } from "drizzle-orm";
@@ -351,6 +352,7 @@ async function acknowledgeActiveOutput(tx: TransactionClient, runner: RunnerIden
 		.update(streamSessionsTable)
 		.set({ actualState: StreamState.Running, ...(session.lastError === PLAYBACK_TIMEOUT_MESSAGE ? { lastError: null } : {}), ...(cachedStart ? { desiredState: StreamState.Running } : {}), ...(testExpiresAt ? { testExpiresAt } : {}) })
 		.where(and(eq(streamSessionsTable.id, session.id), eq(streamSessionsTable.ownerId, runner.ownerId)));
+	if (outputStates?.some((output) => output.state === "streaming") && !admission.outputStates?.some((output) => output.state === "streaming")) await recordProductOutcome({ outcome: "runner_output_streaming", creatorId: runner.ownerId, key: admission.id, occurredAt: now }, tx);
 	return true;
 }
 

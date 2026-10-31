@@ -1,4 +1,5 @@
 "use client";
+import { trackProductEvent } from "@lib/analytics";
 
 import LocalizedDate from "@components/localizedDate";
 import { validateAuth } from "@actions/auth";
@@ -325,6 +326,7 @@ export default function TeamSettingsPanel({ embedded = false }: { embedded?: boo
 			const result = (await response.json()) as { invitationUrl?: string; error?: string };
 			if (!response.ok || !result.invitationUrl) throw new Error(result.error ?? "INVITATION_NOT_CREATED");
 			setInvitationUrl(result.invitationUrl);
+			trackProductEvent("collaboration_invited", { delivery });
 			addToast({ title: "Invitation created", description: delivery === "copy-and-email" ? "The invitation was also sent by email." : "Copy the link and share it securely.", color: "success" });
 			setEmail("");
 			await refresh();
@@ -345,6 +347,7 @@ export default function TeamSettingsPanel({ embedded = false }: { embedded?: boo
 			createdRoleId = resolved.createdRoleId;
 			const result = await authClient.organization.updateMemberRole({ organizationId: organization.id, memberId: editingMember.id, role: resolved.role });
 			if (result.error) throw new Error("ROLE_NOT_UPDATED");
+			trackProductEvent("collaboration_access_changed");
 			addToast({ title: "Member access updated", color: "success" });
 			setIsAccessModalOpen(false);
 			resetAccessEditor();
@@ -363,6 +366,7 @@ export default function TeamSettingsPanel({ embedded = false }: { embedded?: boo
 		try {
 			const result = await authClient.organization.removeMember({ organizationId: organization.id, memberIdOrEmail: memberId });
 			if (result.error) throw new Error("MEMBER_NOT_REMOVED");
+			trackProductEvent("collaboration_removed");
 			addToast({ title: "Member removed", color: "success" });
 			await refresh();
 		} catch {

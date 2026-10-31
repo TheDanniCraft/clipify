@@ -2,13 +2,11 @@
 
 import { Button, Checkbox, Link, Modal } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
-import { usePlausible } from "next-plausible";
 
 import { trackPaywallEvent } from "@lib/paywallTracking";
 import { FrequencyEnum, type RuntimePricing } from "./pricing-types";
 
-export default function ProSetupModal({ isOpen, onOpenChange, pricing, selectedFrequency, entrypoint }: { isOpen: boolean; onOpenChange: (isOpen: boolean) => void; pricing: RuntimePricing; selectedFrequency: FrequencyEnum; entrypoint: "direct_cta" | "pricing_comparison" }) {
-	const plausible = usePlausible();
+export default function ProSetupModal({ source = "pricing_page", isOpen, onOpenChange, pricing, selectedFrequency, entrypoint }: { source?: "homepage" | "pricing_page"; isOpen: boolean; onOpenChange: (isOpen: boolean) => void; pricing: RuntimePricing; selectedFrequency: FrequencyEnum; entrypoint: "direct_cta" | "pricing_comparison" }) {
 	const checkoutHref = `/checkout/start?plan=pro&cycle=${selectedFrequency}&entrypoint=${entrypoint}`;
 	const selectedTotalLabel = pricing.pro[selectedFrequency].formatted;
 	const period = selectedFrequency === FrequencyEnum.Monthly ? "month" : "year";
@@ -51,7 +49,7 @@ export default function ProSetupModal({ isOpen, onOpenChange, pricing, selectedF
 						<Button slot='close' variant='secondary'>
 							Cancel
 						</Button>
-						<Link href={checkoutHref} onPress={() => trackPaywallEvent(plausible, "checkout_start", { source: "pricing_page", feature: "plan", plan: "pro", cycle: selectedFrequency })} className={buttonVariants({ variant: "primary", className: "no-underline" })}>
+						<Link href={checkoutHref} onPress={() => trackPaywallEvent("checkout_start", { source, feature: "plan", plan: "pro", cycle: selectedFrequency })} className={buttonVariants({ variant: "primary", className: "no-underline" })}>
 							Continue to checkout
 						</Link>
 					</Modal.Footer>

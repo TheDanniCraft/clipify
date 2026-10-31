@@ -2,6 +2,8 @@
 "use server";
 
 import Stripe from "stripe";
+import { getUpgradeCopy } from "@lib/upgradeCopy";
+import { recordProductOutcome } from "@/server/product-outcomes";
 import { BillingProduct, NumokStripeMetadata } from "@types";
 import { resolveBillingCatalog, resolveBillingPrice, resolveBillingProductForPrice } from "@/server/billingCatalog";
 import { getStripe as getServerStripe } from "@/server/stripe";
@@ -243,7 +245,7 @@ async function persistStripeCustomerId(userId: string, customerId: string) {
 	return result.length > 0;
 }
 
-export async function generateCheckout(productKeys: BillingProduct[] | Array<{ product: BillingProduct; billingCycle: BillingCycle }>, billingCycle: BillingCycle = "yearly", returnUrl?: string, numokMetadata?: NumokStripeMetadata, source?: PaywallSource, checkoutOptions?: { idempotencyKey?: string; successUrl?: string; cancelUrl?: string }) {
+export async function generateCheckout(productKeys: BillingProduct[] | Array<{ product: BillingProduct; billingCycle: BillingCycle }>, billingCycle: BillingCycle = "yearly", returnUrl?: string, numokMetadata?: NumokStripeMetadata, source?: PaywallSource, checkoutOptions?: { idempotencyKey?: string; successUrl?: string; cancelUrl?: string; analyticsFeature?: string }) {
 	if (!productKeys.length || productKeys.some((entry) => (typeof entry === "string" ? entry : entry.product) !== BillingProduct.Pro)) return { success: false as const, code: "INVALID_PRODUCT" as const, error: "Choose a supported plan." };
 	const authUser = await getAuthorizedUser();
 	const selectedProducts = Array.from(new Map(productKeys.map((entry) => (typeof entry === "string" ? [entry, { product: entry, billingCycle }] : [`${entry.product}:${entry.billingCycle}`, entry]))).values());
@@ -252,10 +254,13 @@ export async function generateCheckout(productKeys: BillingProduct[] | Array<{ p
 	if (!limit.success) throw new Error("RATE_LIMITED: Please wait before starting another checkout");
 	const entitlements = await resolveUserEntitlements(authUser);
 	const ownership = await Promise.all(selectedProducts.map(async (entry) => ({ ...entry, owned: (await checkIfSubscriptionExists(entry.product)) || isProductOwnedByEntitlement(entry.product, entitlements) })));
-	const productsToBuy = ownership.filter((entry) => !entry.owned).map((entry) => entry.product);
+	const checkoutProducts = ownership.filter((entry) => !entry.owned);
+	const productsToBuy = checkoutProducts.map((entry) => entry.product);
+	const checkoutCycles = Array.from(new Set(checkoutProducts.map((entry) => entry.billingCycle)));
+	const checkoutCycle = checkoutCycles.length === 1 ? checkoutCycles[0] : "mixed";
 	if (productsToBuy.length === 0) throw new Error("You already own every selected product");
 	const cookieStore = await cookies();
-	const selectedPrices = await Promise.all(ownership.filter((entry) => !entry.owned).map(async (entry) => (await resolveBillingPrice(entry.product, entry.billingCycle)).priceId));
+	const selectedPrices = await Promise.all(checkoutProducts.map(async (entry) => (await resolveBillingPrice(entry.product, entry.billingCycle)).priceId));
 
 	const stripe = getServerStripe();
 	const baseUrl = await getBaseUrl();
@@ -307,26 +312,35 @@ export async function generateCheckout(productKeys: BillingProduct[] | Array<{ p
 		promo = promoList.data.length ? promoList.data[0] : null;
 	}
 
+	let analyticsFeature: string | undefined;
+	if (checkoutOptions?.analyticsFeature && (checkoutOptions.analyticsFeature === "plan" || getUpgradeCopy(checkoutOptions.analyticsFeature))) {
+		try {
+			const { getVerifiedSessionPrincipal } = await import("@/auth/session-principal");
+			const { readAnalyticsConsent } = await import("@/server/analytics-consent");
+			const actor = await getVerifiedSessionPrincipal();
+			if (actor && (await readAnalyticsConsent(actor.authUserId))) analyticsFeature = checkoutOptions.analyticsFeature;
+		} catch {
+			/* Optional attribution cannot prevent checkout. */
+		}
+	}
 	const baseSessionParams: Stripe.Checkout.SessionCreateParams = {
 		line_items: selectedPrices.map((price) => ({ price, quantity: 1 })),
 		client_reference_id: authUser.id,
 		mode: "subscription",
-		subscription_data: { metadata: { userId: authUser.id, products: productsToBuy.join(",") } },
+		subscription_data: { metadata: { userId: authUser.id, products: productsToBuy.join(","), ...(analyticsFeature ? { analyticsFeature } : {}) } },
 		success_url: safeReturnUrl(checkoutOptions?.successUrl),
 		cancel_url: cancelUrl,
 		customer: stripeCustomerId,
 		metadata: {
 			userId: authUser.id,
 			source: source ?? "upgrade_modal",
-			billingCycle,
+			billingCycle: checkoutCycle,
 			products: productsToBuy.join(","),
-			billingCycles: ownership
-				.filter((entry) => !entry.owned)
-				.map((entry) => `${entry.product}:${entry.billingCycle}`)
-				.join(","),
+			billingCycles: checkoutProducts.map((entry) => `${entry.product}:${entry.billingCycle}`).join(","),
 			campaignSlug: campaignOffer?.slug ?? "",
 			offerCode: offerCode ?? "",
 			...numokMetadata,
+			...(analyticsFeature ? { analyticsFeature } : {}),
 		},
 		tax_id_collection: {
 			enabled: true,
@@ -364,6 +378,7 @@ export async function generateCheckout(productKeys: BillingProduct[] | Array<{ p
 		}
 	}
 
+	await recordProductOutcome({ outcome: "checkout_created", creatorId: authUser.id, key: session.id, metadata: { cycle: checkoutCycle, source: source ?? "upgrade_modal", ...(analyticsFeature ? { feature: analyticsFeature } : {}) } });
 	return session.url;
 }
 

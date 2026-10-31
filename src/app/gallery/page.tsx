@@ -1,19 +1,35 @@
-import Link from "next/link";
+import { socialPreview } from "@lib/socialPreview";
+import { connection } from "next/server";
+import { getDemoGalleryClips } from "@actions/gallery";
+import PublicPageHeader from "@components/LandingPage/publicPageHeader";
+import PublicGalleryDemo from "@components/gallery/PublicGalleryDemo";
+import { buttonVariants } from "@heroui/styles";
+import type { Metadata } from "next";
+import { Link } from "@components/heroui-client";
+import BasicNavbar from "@components/LandingPage/basicNavbar";
+import Footer from "@components/footer";
+export const metadata: Metadata = {
+	title: "Twitch Clip Galleries for Your Website | Clipify",
+	description: "Curate Twitch highlights in a public Clipify gallery or embed a clip collection on your own website.",
+	alternates: { canonical: "https://clipify.us/gallery" },
+	openGraph: { ...socialPreview, title: "Twitch Clip Galleries | Clipify", description: "Curate and share Twitch highlights in a gallery.", url: "https://clipify.us/gallery" },
+};
 
-export default function GalleryLandingPage() {
+export default async function GalleryLandingPage() {
+	await connection();
+	const initialBundle = await getDemoGalleryClips().catch(() => null);
 	return (
-		<main className='mx-auto flex min-h-[70dvh] max-w-4xl flex-col items-center justify-center gap-6 px-6 py-20 text-center'>
-			<p className='font-semibold text-accent'>Clipify Galleries</p>
-			<h1 className='text-4xl font-bold sm:text-6xl'>Turn your best clips into a gallery people remember.</h1>
-			<p className='max-w-2xl text-lg text-muted'>Publish curated highlights or automatically show your newest and most-viewed clips.</p>
-			<div className='flex flex-wrap justify-center gap-3'>
-				<Link className='rounded-xl bg-accent px-5 py-3 font-semibold text-accent-foreground' href='/login'>
-					Create your gallery
-				</Link>
-				<Link className='rounded-xl bg-default px-5 py-3 font-semibold' href='/'>
-					Learn about Clipify
-				</Link>
-			</div>
-		</main>
+		<>
+			<BasicNavbar />
+			<main className='mx-auto max-w-6xl px-6 py-14 sm:px-8 sm:py-20'>
+				<PublicPageHeader title='Your clips, together.' description='Collect your Twitch highlights in one public gallery. Share the link with your community or embed it on your website.'>
+					<Link className={buttonVariants({ variant: "primary", className: "mt-7 no-underline" })} href='/login'>
+						Create your gallery
+					</Link>
+				</PublicPageHeader>
+				<PublicGalleryDemo initialBundle={initialBundle} />
+			</main>
+			<Footer />
+		</>
 	);
 }

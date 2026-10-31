@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import { withPlausibleProxy } from "next-plausible";
 import { withSentryConfig } from "@sentry/nextjs/config";
 import crypto from "crypto";
 import path from "path";
@@ -7,9 +6,10 @@ import { nodeFileTrace } from "@vercel/nft";
 import { toDeploymentId } from "./src/app/lib/deploymentId";
 
 const drizzle = nodeFileTrace([require.resolve("drizzle-kit"), require.resolve("drizzle-orm"), path.resolve(path.dirname(require.resolve("drizzle-kit")), "bin.cjs")]).then((drizzle) => [...drizzle.fileList, "./node_modules/.bin/drizzle-kit", "./node_modules/drizzle-orm/**", "./node_modules/drizzle-kit/**"]);
-const plausibleScriptName = process.env.NEXT_PUBLIC_PLAUSIBLE_SCRIPT_NAME ?? process.env.PLAUSIBLE_SCRIPT_NAME ?? `${crypto.randomInt(1000, 10000)}-${crypto.randomBytes(8).toString("hex")}`;
+const umamiTrackerName = `bundle_${crypto.randomBytes(8).toString("hex")}.js`;
+const umamiRecorderName = `bundle_${crypto.randomBytes(8).toString("hex")}.js`;
+const umamiBaseUrl = process.env.UMAMI_BASE_URL || "https://umami.cloud.thedannicraft.de";
 const deploymentId = toDeploymentId(process.env.SOURCE_COMMIT) || toDeploymentId(process.env.SENTRY_RELEASE) || undefined;
-const plausibleSrc = "https://analytics.thedannicraft.de/js/pa-plTnxxmoxCSO3VJloWzAG.js";
 const replayContentSecurityPolicy = (frameAncestors: string) => `frame-ancestors ${frameAncestors}; frame-src 'self' https://challenges.cloudflare.com https://chat.cloud.thedannicraft.de; worker-src 'self' blob:; child-src 'self' blob:;`;
 
 const nextConfigPromise = Promise.resolve(drizzle).then(
@@ -25,6 +25,15 @@ const nextConfigPromise = Promise.resolve(drizzle).then(
 				"**": [...drizzle, "./node_modules/@sentry/profiling-node/**", "./node_modules/@sentry/node-cpu-profiler/**"],
 			},
 			poweredByHeader: false,
+			async rewrites() {
+				return [
+					{ source: `/js/${umamiTrackerName}`, destination: `${umamiBaseUrl}/script.js` },
+					{ source: `/js/${umamiRecorderName}`, destination: `${umamiBaseUrl}/recorder.js` },
+					{ source: "/statistics/api/send", destination: `${umamiBaseUrl}/api/send` },
+					{ source: "/statistics/api/record", destination: `${umamiBaseUrl}/api/record` },
+					{ source: "/statistics/api/websites/:websiteId/recorder", destination: `${umamiBaseUrl}/api/websites/:websiteId/recorder` },
+				];
+			},
 			async headers() {
 				const baseSecurityHeaders = [
 					{ key: "X-Content-Type-Options", value: "nosniff" },
@@ -41,6 +50,7 @@ const nextConfigPromise = Promise.resolve(drizzle).then(
 				];
 
 				return [
+					...["/", "/features", "/pricing"].map((source) => ({ source, headers: [...baseSecurityHeaders, { key: "Content-Security-Policy", value: replayContentSecurityPolicy(new URL(umamiBaseUrl).origin) }] })),
 					{
 						source: "/runner/preview/:runnerId",
 						headers: [...baseSecurityHeaders, { key: "X-Frame-Options", value: "SAMEORIGIN" }, { key: "Content-Security-Policy", value: replayContentSecurityPolicy("'self'") }],
@@ -70,7 +80,7 @@ const nextConfigPromise = Promise.resolve(drizzle).then(
 						headers: [...baseSecurityHeaders, { key: "Access-Control-Allow-Origin", value: "*" }, { key: "Cache-Control", value: "public, max-age=300, s-maxage=86400" }],
 					},
 					{
-						source: "/:path((?!runner/preview/[^/]+/?$|demoPlayer$|embed/[^/]+/?$|gallery/[^/]+/frame/?$|gallery/[^/]+/clip/[^/]+/?$|dashboard/galleries/[^/]+/preview/clip/[^/]+/?$).*)",
+						source: "/:path((?!$|features/?$|pricing/?$|runner/preview/[^/]+/?$|demoPlayer$|embed/[^/]+/?$|gallery/[^/]+/frame/?$|gallery/[^/]+/clip/[^/]+/?$|dashboard/galleries/[^/]+/preview/clip/[^/]+/?$).*)",
 						headers: [...baseSecurityHeaders, { key: "X-Frame-Options", value: "DENY" }, { key: "Content-Security-Policy", value: replayContentSecurityPolicy("'none'") }],
 					},
 				];
@@ -87,37 +97,33 @@ export default nextConfigPromise.then((resolvedConfig) => {
 			SENTRY_RELEASE: process.env.SENTRY_RELEASE ?? "",
 			IS_PREVIEW: process.env.IS_PREVIEW === "true" ? "true" : "false",
 			E2E_TEST_MODE: process.env.E2E_TEST_MODE === "true" ? "true" : "false",
+			NEXT_PUBLIC_UMAMI_TRACKER_PATH: `/js/${umamiTrackerName}`,
+			NEXT_PUBLIC_UMAMI_RECORDER_PATH: `/js/${umamiRecorderName}`,
 		},
 	};
 
-	return withSentryConfig(
-		withPlausibleProxy({
-			src: plausibleSrc!,
-			scriptPath: `/js/${plausibleScriptName}.js`,
-		})(configWithSentryBuildEnvironment),
-		{
-			org: "thedannicraft",
-			project: "clipify",
-			authToken: process.env.SENTRY_AUTH_TOKEN,
-			widenClientFileUpload: true,
-			tunnelRoute: "/monitor",
-			release: {
-				name: process.env.SENTRY_RELEASE,
-				create: true,
-				finalize: true,
-				setCommits: {
-					auto: true,
-					ignoreMissing: true,
-					ignoreEmpty: true,
-				},
-				deploy: {
-					env: process.env.IS_PREVIEW === "true" ? "preview" : "production",
-				},
+	return withSentryConfig(configWithSentryBuildEnvironment, {
+		org: "thedannicraft",
+		project: "clipify",
+		authToken: process.env.SENTRY_AUTH_TOKEN,
+		widenClientFileUpload: true,
+		tunnelRoute: "/monitor",
+		release: {
+			name: process.env.SENTRY_RELEASE,
+			create: true,
+			finalize: true,
+			setCommits: {
+				auto: true,
+				ignoreMissing: true,
+				ignoreEmpty: true,
 			},
-			silent: false,
-			sourcemaps: {
-				deleteSourcemapsAfterUpload: true,
+			deploy: {
+				env: process.env.IS_PREVIEW === "true" ? "preview" : "production",
 			},
 		},
-	);
+		silent: false,
+		sourcemaps: {
+			deleteSourcemapsAfterUpload: true,
+		},
+	});
 });

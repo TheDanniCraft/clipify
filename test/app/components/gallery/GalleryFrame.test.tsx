@@ -56,12 +56,12 @@ describe("GalleryFrame", () => {
 		expect(screen.getByText("1:05")).toBeInTheDocument();
 		expect(screen.queryByRole("time")).not.toBeInTheDocument();
 		expect(screen.getByRole("link", { name: /Clips from Alice/i })).toHaveAttribute("href", expect.stringContaining("utm_campaign=gallery-1"));
-		const main = container.querySelector("main") as HTMLElement;
+		const main = container.querySelector('[aria-label="Clip gallery"]') as HTMLElement;
 		expect(main.style.getPropertyValue("--clipify-accent")).toBe("#7C3AED");
 		expect(main.style.getPropertyValue("--clipify-radius")).toBe("16px");
 		expect(main.style.getPropertyValue("--clipify-background")).toBe("transparent");
 
-		fireEvent.click(screen.getByRole("button", { name: "Play Clip one" }));
+		fireEvent.click(screen.getByRole("button", { name: /Clip one/ }));
 		expect(onSelectClip).toHaveBeenCalledWith(clip);
 	});
 
@@ -88,7 +88,7 @@ describe("GalleryFrame", () => {
 	it("accepts only a validated parent handshake, applies Pro runtime styles, resizes, and restores focus", () => {
 		const port = { start: jest.fn(), close: jest.fn(), postMessage: jest.fn(), onmessage: null as null | ((event: MessageEvent) => void) };
 		const { container } = render(<GalleryFrame gallery={buildGallery()} clips={[buildClip("one")]} ownerName='Alice' showAttribution={false} />);
-		const button = screen.getByRole("button", { name: "Play Clip one" });
+		const button = screen.getByRole("button", { name: /Clip one/ });
 		button.focus();
 
 		act(() => {
@@ -101,7 +101,7 @@ describe("GalleryFrame", () => {
 		});
 		expect(port.start).toHaveBeenCalled();
 		expect(port.postMessage).toHaveBeenCalledWith(expect.objectContaining({ type: "ready", allowRuntimeStyles: true }));
-		const main = container.querySelector("main") as HTMLElement;
+		const main = container.querySelector('[aria-label="Clip gallery"]') as HTMLElement;
 		expect(main.style.getPropertyValue("--clipify-accent")).toBe("#123456");
 		expect(main.style.getPropertyValue("--clipify-card")).toBe("#18181B");
 		expect(main.style.getPropertyValue("--clipify-radius")).toBe("22px");

@@ -6,8 +6,8 @@ import { IconPlayerPauseFilled, IconPlayerPlayFilled, IconRefresh, IconVolume, I
 import type { Gallery, TwitchClip } from "@types";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { requestDeploymentCheck } from "@lib/deployment";
-import { usePlausible } from "next-plausible";
-import { PLAUSIBLE_EVENTS } from "@lib/plausibleEvents";
+import { trackEvent } from "@lib/analytics";
+import { ANALYTICS_EVENTS } from "@lib/analyticsEvents";
 import { useQualifiedPlayback } from "@/app/hooks/useQualifiedPlayback";
 
 type CarouselApi = {
@@ -62,9 +62,9 @@ export default function GalleryPlayer({ gallery, clips, initialIndex, initialPla
 	const portRef = useRef<MessagePort | null>(null);
 	const clip = clips[selectedIndex];
 	const playbackUrl = playbackUrls[clip.id];
-	const plausible = usePlausible();
+
 	const qualifiedPlayback = useQualifiedPlayback(clip.id, () => {
-		plausible(PLAUSIBLE_EVENTS.clipPlayed, { props: { surface: "gallery", galleryId: gallery.id, clipId: clip.id } });
+		trackEvent(ANALYTICS_EVENTS.clipPlayed, { surface: "gallery", galleryId: gallery.id, clipId: clip.id });
 	});
 	const syncPlayingState = useCallback(() => {
 		const video = videoRef.current;

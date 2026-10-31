@@ -20,7 +20,7 @@ const declarations: InventoryDeclaration[] = [...necessaryConsentServices, ...co
 }));
 
 // Reviewed platform exceptions remain explicit, but are not optional c15t services.
-declarations.push({ serviceId: "clipify-application", storageNames: [], storagePatterns: [], origins: [], scriptOrigins: [firstPartyOrigin] }, { serviceId: "plausible-cookieless", storageNames: [], storagePatterns: [], origins: ["https://analytics.thedannicraft.de"], scriptOrigins: ["https://analytics.thedannicraft.de"] });
+declarations.push({ serviceId: "clipify-application", storageNames: [], storagePatterns: [], origins: [], scriptOrigins: [firstPartyOrigin] }, { serviceId: "umami-baseline", storageNames: [], storagePatterns: [], origins: ["https://clipify.us"], scriptOrigins: ["https://clipify.us"] });
 
 const expectedMatrix: ExpectedObservationMatrix = {
 	"public:default": ["script"],

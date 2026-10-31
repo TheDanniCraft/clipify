@@ -1,3 +1,4 @@
+import { socialPreview } from "@lib/socialPreview";
 import type { Metadata } from "next";
 import LegalDocumentLayout from "@components/legal/LegalDocumentLayout";
 import LegalSections from "@components/legal/LegalSections";
@@ -9,6 +10,8 @@ const termsDocument = legalDocuments.find(({ id }) => id === "terms")!;
 export const metadata: Metadata = {
 	title: "Terms of Service | Clipify",
 	description: "The terms that apply when using Clipify and the self-hosted Runner.",
+	alternates: { canonical: "https://clipify.us/legal/terms" },
+	openGraph: { ...socialPreview, url: "https://clipify.us/legal/terms" },
 };
 
 export default function TermsPage() {

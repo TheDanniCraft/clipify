@@ -32,6 +32,9 @@ async function main() {
 		}
 		if (mode === "revoked") await fixture.pool.query("UPDATE mcp_connection_grants SET active=false,revoked_at=$1 WHERE id=$2", [now, ownId]);
 		if (mode === "populated") {
+			const { recordProductOutcome } = await import("@/server/product-outcomes");
+			await recordProductOutcome({ outcome: "creator_created", creatorId: "creator", key: "fixture" });
+			await recordProductOutcome({ outcome: "creator_created", creatorId: "foreign", key: "fixture" });
 			await fixture.pool.query("INSERT INTO overlays (owner_id,name,status,type) VALUES ('creator','Export overlay','active','All')");
 			await fixture.pool.query("INSERT INTO playlists (owner_id,name) VALUES ('creator','Export playlist')");
 			await fixture.pool.query("INSERT INTO billing_subscriptions (id,user_id,stripe_customer_id,status) VALUES ('export-subscription','creator','export-customer','active')");
@@ -159,7 +162,18 @@ async function main() {
 		const serialized = JSON.stringify(exported);
 		const section = (exported as { mcp?: unknown }).mcp ?? null;
 		const data = exported as { content: { overlays: unknown[]; playlists: unknown[] }; billing: { subscriptions: unknown[] }; privacy: { subjects: unknown[] } };
-		console.log(JSON.stringify({ mcp: section, resourceCounts: { overlays: data.content.overlays.length, playlists: data.content.playlists.length, subscriptions: data.billing.subscriptions.length, subjects: data.privacy.subjects.length }, leaksPrivateClientData: serialized.includes("private-client-secret") || serialized.includes("private-client-metadata"), leaksForeignGrant: serialized.includes(foreignId), ownId, now: now.toISOString() }));
+		console.log(
+			JSON.stringify({
+				productOutcomeIncluded: serialized.includes("product:creator_created"),
+				foreignOutcomeIncluded: serialized.includes('"targetId":"foreign"'),
+				mcp: section,
+				resourceCounts: { overlays: data.content.overlays.length, playlists: data.content.playlists.length, subscriptions: data.billing.subscriptions.length, subjects: data.privacy.subjects.length },
+				leaksPrivateClientData: serialized.includes("private-client-secret") || serialized.includes("private-client-metadata"),
+				leaksForeignGrant: serialized.includes(foreignId),
+				ownId,
+				now: now.toISOString(),
+			}),
+		);
 	} finally {
 		const { dbPool } = await import("@/db/client");
 		await dbPool.end();

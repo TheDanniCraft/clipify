@@ -5,6 +5,7 @@ export type CommunityStreamerStatus = "live_with_overlay" | "live" | "offline";
 export type CommunityStreamer = {
 	id: string;
 	username: string;
+	profileUrl?: string;
 	displayName: string;
 	avatar: string;
 	plan: Plan;

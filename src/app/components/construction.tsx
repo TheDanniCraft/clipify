@@ -8,12 +8,11 @@ import Image from "next/image";
 
 import { IconCircleCheckFilled, IconMailFilled, IconSend } from "@tabler/icons-react";
 import { subscribeToNewsletter, getEmailProvider } from "@actions/newsletter";
-import { usePlausible } from "next-plausible";
+import { trackEvent } from "@lib/analytics";
 import { isRatelimitError } from "@actions/rateLimit";
 import { Turnstile } from "nextjs-turnstile";
 
 const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
-	const plausible = usePlausible();
 	const [token, setToken] = useState<string | null>(null);
 	const [timeLeft, setTimeLeft] = useState({
 		days: "0",
@@ -66,10 +65,8 @@ const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 					return;
 				}
 				setNewsletterState("success");
-				plausible("Newsletter Subscription", {
-					props: {
-						emailType: await getEmailProvider(data.email as string),
-					},
+				trackEvent("Newsletter Subscription", {
+					emailType: await getEmailProvider(data.email as string),
 				});
 			})
 			.catch(async () => {

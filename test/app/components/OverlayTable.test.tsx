@@ -27,9 +27,7 @@ jest.mock("@components/upgradeModal", () => ({
 }));
 jest.mock("@components/appPagination", () => ({ __esModule: true, default: () => <div>Pagination</div> }));
 
-jest.mock("next-plausible", () => ({
-	usePlausible: () => jest.fn(),
-}));
+jest.mock("@lib/analytics", () => ({ trackEvent: jest.fn(), trackProductEvent: jest.fn() }));
 
 const getAllOverlays = jest.fn();
 const getAllPlaylists = jest.fn();

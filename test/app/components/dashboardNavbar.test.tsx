@@ -246,7 +246,7 @@ describe("components/dashboardNavbar", () => {
 		expect(routerPush).toHaveBeenCalledWith("/dashboard/tools");
 
 		fireEvent.click(screen.getByText("Help"));
-		expect(routerPush).toHaveBeenCalledWith("https://help.clipify.us/");
+		expect(routerPush).toHaveBeenCalledWith("https://help.clipify.us/hc/clipify/articles/1769328012-getting-started-with-clipify");
 
 		fireEvent.click(screen.getByText("Log Out"));
 		expect(routerPush).toHaveBeenCalledWith("/logout");

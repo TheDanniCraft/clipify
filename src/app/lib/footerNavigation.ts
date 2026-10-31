@@ -2,23 +2,24 @@ import { legalDocumentRoutes } from "./legal/documents";
 
 export const footerNavigation = {
 	features: [
-		{ name: "Easy to Use", href: "/#features" },
-		{ name: "Plug & Play", href: "/#features" },
-		{ name: "Customize your player", href: "/#features" },
-		{ name: "Multiple Overlays", href: "/#features" },
-		{ name: "Channel Points Integration", href: "/#features" },
+		{ name: "All features", href: "/features" },
+		{ name: "Twitch clips in OBS", href: "/features#overlays" },
+		{ name: "Clip playlists", href: "/features#playlists" },
+		{ name: "Playback controls", href: "/features#controls" },
+		{ name: "Scene styling", href: "/features#styling" },
 	],
+
 	supportOptions: [
 		{ name: "Pricing", href: "/pricing" },
 		{ name: "FAQs", href: "/#faq" },
 		{ name: "Community", href: "/community" },
-		{ name: "Help Center", href: "https://help.clipify.us/" },
+		{ name: "Setup guide", href: "https://help.clipify.us/hc/clipify/articles/1769328012-getting-started-with-clipify" },
 		{ name: "Service Status", href: "https://status.thedannicraft.de/status/clipify" },
 	],
 	aboutUs: [
-		{ name: "Latest News", href: "/changelog" },
+		{ name: "Changelog", href: "/changelog" },
 		{ name: "Roadmap", href: "/roadmap" },
-		{ name: "Collaborations", href: "https://help.clipify.us/hc/clipify/articles/1756597294-collaborations" },
+		{ name: "Collaboration enquiries", href: "https://help.clipify.us/hc/clipify/articles/1756597294-collaborations" },
 		{ name: "Climate Initiative", href: "https://climate.stripe.com/FaGAVC" },
 	],
 	legal: [

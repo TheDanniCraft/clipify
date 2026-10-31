@@ -1,3 +1,4 @@
+import { socialPreview } from "@lib/socialPreview";
 import type { Metadata } from "next";
 import LegalDocumentLayout from "@components/legal/LegalDocumentLayout";
 import CookiePreferencesLink from "@components/legal/CookiePreferencesLink";
@@ -10,6 +11,8 @@ const categories = projectConsentCategories({ necessary: true, functionality: fa
 export const metadata: Metadata = {
 	title: "Cookie Policy | Clipify",
 	description: "Clipify's authoritative service and browser-storage declarations.",
+	alternates: { canonical: "https://clipify.us/legal/cookies" },
+	openGraph: { ...socialPreview, url: "https://clipify.us/legal/cookies" },
 };
 
 export default function CookiesPage() {

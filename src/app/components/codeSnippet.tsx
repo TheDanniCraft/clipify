@@ -1,5 +1,6 @@
 "use client";
 
+import { trackProductEvent } from "@lib/analytics";
 import { useState, type ReactNode } from "react";
 import { Button } from "@heroui/react";
 import { IconChecks, IconClipboard } from "@tabler/icons-react";
@@ -12,6 +13,7 @@ type CodeSnippetProps = {
 	preClassName?: string;
 	onCopied?: () => void;
 	copyTourTarget?: string;
+	analyticsResource?: "overlay" | "gallery";
 };
 
 const sizeClasses = {
@@ -20,7 +22,7 @@ const sizeClasses = {
 	lg: "px-4 py-2 text-base",
 };
 
-export default function CodeSnippet({ children, symbol = "$", size = "md", className, preClassName, onCopied, copyTourTarget }: CodeSnippetProps) {
+export default function CodeSnippet({ children, symbol = "$", size = "md", className, preClassName, onCopied, copyTourTarget, analyticsResource }: CodeSnippetProps) {
 	const [copied, setCopied] = useState(false);
 
 	const copy = async () => {
@@ -28,6 +30,7 @@ export default function CodeSnippet({ children, symbol = "$", size = "md", class
 			await navigator.clipboard.writeText(children);
 			setCopied(true);
 			onCopied?.();
+			if (analyticsResource) trackProductEvent("source_copied", { resource_type: analyticsResource });
 			window.setTimeout(() => setCopied(false), 2000);
 		} catch {
 			setCopied(false);

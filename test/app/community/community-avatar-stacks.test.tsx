@@ -38,12 +38,30 @@ describe("community avatar stacks", () => {
 	it("renders semantic rings and the uncapped community-page overflow count", () => {
 		render(<CommunityHeroAvatars streamers={streamers} totalCount={80} />);
 
-		expect(screen.getByLabelText("Clipify Live: Live with Clipify")).toHaveClass("ring-success");
+		expect(screen.getByRole("img", { name: "Clipify Live: Live with Clipify" })).toHaveClass("ring-success");
 		expect(screen.getByLabelText("Twitch Live: Live on Twitch")).toHaveClass("ring-danger");
 		expect(screen.getByLabelText("Partner: Clipify Partner")).toHaveClass("ring-warning");
 		expect(screen.getByLabelText("Pro: Clipify Pro")).toHaveClass("ring-accent");
 		expect(screen.getByLabelText("Offline: Offline")).toHaveClass("ring-default");
 		expect(screen.getByText("+75 more")).toHaveClass("shrink-0", "whitespace-nowrap");
+	});
+
+	it("keeps a teaser avatar named when its image falls back to initials", () => {
+		render(<CommunityTeaser streamers={[{ ...streamers[0], avatar: "/missing.png" }]} />);
+		expect(screen.getByRole("img", { name: "Clipify Live: Live with Clipify" })).toHaveTextContent("CL");
+	});
+
+	it("caps the teaser at five avatars and counts every remaining listed creator", () => {
+		const { container } = render(<CommunityTeaser streamers={[...streamers, { ...streamers[0], id: "sixth", displayName: "Sixth creator" }]} totalCount={87} />);
+		expect(container.querySelectorAll("[data-avatar-src]")).toHaveLength(5);
+		expect(screen.getByText("+82 more")).toBeVisible();
+		expect(screen.queryByLabelText(/Sixth creator/)).toBeNull();
+	});
+
+	it("requests the verified small Twitch avatar while preserving other image URLs", () => {
+		const { container } = render(<CommunityTeaser streamers={[{ ...streamers[0], avatar: "https://static-cdn.jtvnw.net/jtv_user_pictures/example-profile_image-300x300.png" }, streamers[1]]} />);
+		expect(container.querySelector('[data-avatar-src="https://static-cdn.jtvnw.net/jtv_user_pictures/example-profile_image-70x70.png"]')).not.toBeNull();
+		expect(container.querySelector('[data-avatar-src="/twitch-live.png"]')).not.toBeNull();
 	});
 
 	it("keeps the shared teaser overflow label whole", () => {

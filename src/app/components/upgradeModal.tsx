@@ -11,7 +11,7 @@ import { getActiveCampaignOfferAction } from "@actions/campaignOffers";
 import { frequencies, tiers } from "@components/Pricing/pricing-tiers";
 import { FrequencyEnum, TiersEnum } from "@components/Pricing/pricing-types";
 import { BillingProduct, type AuthenticatedUser, type CampaignOffer } from "@types";
-import { usePlausible } from "next-plausible";
+import { trackProductEvent } from "@lib/analytics";
 import { trackPaywallEvent } from "@lib/paywallTracking";
 import { getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
 
@@ -44,7 +44,6 @@ function formatOriginalPrice(value?: string | number | null) {
 }
 
 export default function UpgradeModal({ isOpen, onOpenChange, user, title, description, ctaLabel, returnUrl, source = "upgrade_modal", feature = "unknown", initialBillingCycle = "yearly", primaryProduct }: UpgradeModalProps) {
-	const plausible = usePlausible();
 	const contextualCopy = getUpgradeCopy(feature);
 	const effectivePlan = user.entitlements?.effectivePlan ?? user.plan;
 	const [billingCycle, setBillingCycle] = useState<BillingCycle>(initialBillingCycle);
@@ -89,13 +88,14 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 		}
 		if (hasTrackedImpressionRef.current) return;
 		hasTrackedImpressionRef.current = true;
-		trackPaywallEvent(plausible, "paywall_impression", {
+		trackProductEvent("upgrade_opened", { source, feature, cycle: billingCycle });
+		trackPaywallEvent("paywall_impression", {
 			source,
 			feature,
 			plan: user.plan,
 			cycle: billingCycle,
 		});
-	}, [billingCycle, feature, isOpen, plausible, source, user.plan]);
+	}, [billingCycle, feature, isOpen, source, user.plan]);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -129,15 +129,22 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 				if (!cancelled) {
 					setBillingOptions([]);
 					setPriceLoadError(true);
+					trackProductEvent("upgrade_prices_failed", { source, feature });
 				}
 			});
 		return () => {
 			cancelled = true;
 		};
-	}, [initialBillingCycle, isOpen, primary, priceLoadAttempt]);
+	}, [initialBillingCycle, isOpen, primary, priceLoadAttempt, feature, source]);
 
 	return (
-		<Modal.Backdrop isOpen={isOpen} onOpenChange={onOpenChange}>
+		<Modal.Backdrop
+			isOpen={isOpen}
+			onOpenChange={(open) => {
+				if (!open && isOpen && !checkingOut) trackProductEvent("upgrade_dismissed", { source, feature, cycle: billingCycle, close_method: "unknown" });
+				onOpenChange(open);
+			}}
+		>
 			<Modal.Container size='lg' placement='center' scroll='inside'>
 				<Modal.Dialog className='max-h-[90dvh]'>
 					<Modal.CloseTrigger />
@@ -198,6 +205,7 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 										const cycle = String(key) as BillingCycle;
 										setCheckoutError(null);
 										setBillingCycle(cycle);
+										trackProductEvent("upgrade_cycle_changed", { source, feature, cycle });
 										setProductCycles((previous) => new Map(previous).set(proBillingOption.key, cycle));
 									}}
 									className='w-fit'
@@ -251,19 +259,20 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 								onPress={async () => {
 									if (checkingOut) return;
 									setCheckingOut(true);
+									trackProductEvent("upgrade_cta_clicked", { source, feature, cycle: billingCycle });
 									setCheckoutError(null);
 									try {
-										trackPaywallEvent(plausible, "paywall_cta_click", {
+										trackPaywallEvent("paywall_cta_click", {
 											source,
 											feature,
 											plan: user.plan,
 											cycle: billingCycle,
 										});
 										const products = payableProducts.map((option) => ({ product: option.key, billingCycle: cycleFor(option) }));
-										const link = await generateCheckout(products, billingCycle, returnUrl ?? (typeof window !== "undefined" ? window.location.href : undefined), window.numok?.getStripeMetadata(), source);
+										const link = await generateCheckout(products, billingCycle, returnUrl ?? (typeof window !== "undefined" ? window.location.href : undefined), window.numok?.getStripeMetadata(), source, { analyticsFeature: feature });
 
 										if (typeof link === "string" && link) {
-											trackPaywallEvent(plausible, "checkout_start", {
+											trackPaywallEvent("checkout_start", {
 												source,
 												feature,
 												plan: user.plan,
@@ -272,9 +281,11 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 											window.location.assign(link);
 										} else {
 											setCheckoutError(link && typeof link === "object" ? link.error : "Could not open checkout. Please try again.");
+											trackProductEvent("checkout_failed", { source, feature, stage: "session" });
 										}
 									} catch {
 										setCheckoutError("Could not open checkout. Please try again.");
+										trackProductEvent("checkout_failed", { source, feature, stage: "session" });
 									} finally {
 										setCheckingOut(false);
 									}

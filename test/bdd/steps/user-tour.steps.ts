@@ -275,7 +275,7 @@ When("guide analytics are emitted", async ({ page, tourWorld }) => {
 	await page.evaluate(() => {
 		const calls: unknown[] = [];
 		(window as any).tourEvents = calls;
-		(window as any).plausible = (event: string, options: unknown) => calls.push({ event, options });
+		(window as any).umami = { track: (event: string, data: unknown) => calls.push({ event, data }) };
 	});
 	await start(page, "Choose your clips");
 	await expect(page.locator(".driver-popover-title")).toHaveText("Choose your clips");
@@ -284,10 +284,10 @@ When("guide analytics are emitted", async ({ page, tourWorld }) => {
 });
 Then("only allowlisted task and journey metadata are present", async ({ page, tourWorld }) => {
 	await progress(page, tourWorld);
-	const events = await page.evaluate(() => (window as any).tourEvents as { event: string; options: { props: Record<string, string> } }[]);
+	const events = await page.evaluate(() => (window as any).tourEvents as { event: string; data: Record<string, string> }[]);
 	expect(events.some((entry) => entry.event === "guide_started")).toBe(true);
 	for (const entry of events.filter((event) => event.event.startsWith("guide_"))) {
-		expect(Object.keys(entry.options.props).sort()).toEqual(["journey", "task"]);
+		expect(Object.keys(entry.data).sort()).toEqual(["journey", "task"]);
 		expect(JSON.stringify(entry)).not.toContain(tourWorld.owner!.overlayId);
 	}
 });

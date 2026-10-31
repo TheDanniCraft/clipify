@@ -30,7 +30,6 @@ import ControlledModal from "@components/controlledModal";
 import AppDateRangePicker from "@components/appDateRangePicker";
 import CodeSnippet from "@components/codeSnippet";
 import { getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
-import { usePlausible } from "next-plausible";
 import { trackPaywallEvent } from "@lib/paywallTracking";
 import { parseDate } from "@internationalized/date";
 
@@ -142,7 +141,6 @@ export default function OverlaySettings() {
 		onUpgradeOpen();
 	};
 	const { isOpen: isAutoImportLockedOpen, open: onAutoImportLockedOpen, close: onAutoImportLockedClose, setOpen: onAutoImportLockedOpenChange } = useOverlayState();
-	const plausible = usePlausible();
 
 	useDeploymentDraft(user && overlay && baseOverlay ? `overlay:${user.id}:${overlay.id}` : null, overlay ?? {}, baseOverlay ?? {}, (draft, saved) => {
 		setOverlay(draft as Overlay);
@@ -541,12 +539,12 @@ export default function OverlaySettings() {
 		if (!overlay) return;
 		if (user.id !== overlay.ownerId) return;
 		if (ownerPlan !== Plan.Free) return;
-		trackPaywallEvent(plausible, "paywall_impression", {
+		trackPaywallEvent("paywall_impression", {
 			source: "paywall_banner",
 			feature: "advanced_filters",
 			plan: user.plan,
 		});
-	}, [ownerPlan, overlay, plausible, user]);
+	}, [ownerPlan, overlay, user]);
 
 	if (overlayMissing && user) {
 		return (
@@ -871,7 +869,7 @@ export default function OverlaySettings() {
 											</Switch.Content>
 										</Switch>
 										<div data-tour='overlay-url' className='flex-1 overflow-hidden'>
-											<CodeSnippet copyTourTarget='overlay-copy' onCopied={() => reportTour({ type: "overlay.copied", ownerId: overlay.ownerId, id: overlay.id })} className='w-full max-w-full' symbol='' preClassName='overflow-hidden whitespace-nowrap'>
+											<CodeSnippet analyticsResource='overlay' copyTourTarget='overlay-copy' onCopied={() => reportTour({ type: "overlay.copied", ownerId: overlay.ownerId, id: overlay.id })} className='w-full max-w-full' symbol='' preClassName='overflow-hidden whitespace-nowrap'>
 												{overlayUrl ?? "Missing secret. Refresh this page to generate one."}
 											</CodeSnippet>
 										</div>
@@ -1013,7 +1011,7 @@ export default function OverlaySettings() {
 														variant='primary'
 														isDisabled={user?.id !== overlay.ownerId}
 														onPress={() => {
-															trackPaywallEvent(plausible, "paywall_cta_click", {
+															trackPaywallEvent("paywall_cta_click", {
 																source: "paywall_banner",
 																feature: "advanced_filters",
 																plan: user?.plan ?? "free",

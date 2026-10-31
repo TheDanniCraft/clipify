@@ -1,5 +1,6 @@
 "use server";
 
+import { trackServerProductEvent } from "@/server/umami";
 import { redirect } from "next/navigation";
 import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 
@@ -121,6 +122,7 @@ async function approveRunnerEnrollment(code: string, runnerId?: string): Promise
 		})
 		.where(eq(runnerEnrollmentsTable.id, enrollmentResult.enrollment.id));
 
+	trackServerProductEvent(access.authUserId, "runner_enrolled", { channel: "web" });
 	return { status: "approved", runnerId: runner.id };
 }
 
