@@ -16,14 +16,16 @@ export default function TierPrice({ campaignOffer, pricing, selectedFrequency, t
 					{hasPromo ? "Regular price" : "Twelve monthly payments"}: {previous}.{" "}
 				</span>
 			) : null}
-			<p className='flex flex-wrap items-baseline gap-2 tabular-nums'>
+			<p className='flex flex-wrap items-baseline gap-x-2 gap-y-0.5 tabular-nums'>
+				<span className='inline-flex shrink-0 items-baseline gap-1 whitespace-nowrap'>
+					<span className={`text-3xl sm:text-4xl font-bold leading-none tracking-tight ${isPro ? "text-danger" : "text-foreground"}`}>{hasPromo ? `${campaignPrice} EUR` : isPro ? pricing.pro[selectedFrequency].formatted : (tier.price as string)}</span>
+					{isPro ? <span className='text-sm font-medium text-foreground/75'>/{suffix}</span> : null}
+				</span>
 				{previous ? (
-					<span aria-hidden='true' className='text-lg text-foreground/75 line-through'>
+					<span aria-hidden='true' className='text-base text-foreground/60 line-through'>
 						{previous}
 					</span>
 				) : null}
-				<span className={`text-4xl font-bold leading-none tracking-tight ${isPro ? "text-danger" : "text-foreground"}`}>{hasPromo ? `${campaignPrice} EUR` : isPro ? pricing.pro[selectedFrequency].formatted : (tier.price as string)}</span>
-				{isPro ? <span className='text-sm font-medium text-foreground/75'>/{suffix}</span> : null}
 			</p>
 		</div>
 	);

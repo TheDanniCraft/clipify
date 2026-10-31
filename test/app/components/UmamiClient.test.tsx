@@ -1,3 +1,4 @@
+import { dirname, join } from "node:path";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { useNavigationGuard } from "nextjs-nav-guard";
 import UmamiClient from "@/app/UmamiClient";
@@ -71,7 +72,7 @@ it("starts native heatmaps only after the consented tracker is ready", async () 
 	expect(screen.queryByTestId("clipify-heatmaps")).not.toBeInTheDocument();
 	await act(async () => scriptReady["clipify-analytics"]());
 	expect(screen.getByTestId("clipify-heatmaps")).toBeInTheDocument();
-	expect(jest.mocked(useNavigationGuard)).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: true }));
+	expect(jest.mocked(useNavigationGuard)).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: expect.any(Function) }));
 	measurement = false;
 	setBrowserMeasurementConsent(false);
 	view.rerender(<UmamiClient websiteId='b1e8f2fb-9b3e-4276-91f6-dfbce9455377' />);
@@ -146,4 +147,24 @@ it("uses the site ID supplied by the runtime without a hostname restriction", ()
 it("does not load collection when the Infisical site ID is missing", () => {
 	render(<UmamiClient websiteId='' />);
 	expect(screen.queryByTestId("clipify-analytics")).not.toBeInTheDocument();
+});
+
+it("analytics never cancels native unload after enabling heatmaps", async () => {
+	const { useInterceptPageUnload } = jest.requireActual(join(dirname(require.resolve("nextjs-nav-guard")), "hooks/useInterceptPageUnload.js"));
+	jest.mocked(useNavigationGuard).mockImplementation((options) => {
+		useInterceptPageUnload(options);
+		return { active: false, accept: jest.fn(), reject: jest.fn() };
+	});
+	measurement = true;
+	setBrowserMeasurementConsent(true);
+	const view = render(<UmamiClient websiteId='fixture' />);
+	await act(async () => scriptReady["clipify-analytics"]());
+	await act(async () => scriptReady["clipify-heatmaps"]());
+	const event = new Event("beforeunload", { cancelable: true });
+	window.dispatchEvent(event);
+	expect(event.defaultPrevented).toBe(false);
+	const enabled = jest.mocked(useNavigationGuard).mock.calls.at(-1)![0].enabled;
+	expect(typeof enabled === "function" && enabled({ type: "push", to: "/login" })).toBe(true);
+	view.unmount();
+	jest.mocked(useNavigationGuard).mockReset();
 });

@@ -23,7 +23,7 @@ import { OPEN_CONSENT_PREFERENCES_EVENT } from "@lib/consent/events";
 const isE2ETestMode = process.env.E2E_TEST_MODE === "true";
 
 export default function Footer() {
-	const { setTheme } = useTheme();
+	const { setTheme, resolvedTheme } = useTheme();
 	const [statusColor, setStatusColor] = useState("#ffffff");
 	const [statusText, setStatusText] = useState(isE2ETestMode ? "Test environment" : "Loading...");
 	const [footerCommunityPreview, setFooterCommunityPreview] = useState<CommunityTeaserPayload | null>(null);
@@ -42,7 +42,7 @@ export default function Footer() {
 	const [firstName, setFirstName] = useState("");
 	const emailStepRef = useRef<HTMLDivElement>(null);
 	const nameStepRef = useRef<HTMLDivElement>(null);
-	const [stepHeights, setStepHeights] = useState({ email: 64, name: 172 });
+	const [stepHeights, setStepHeights] = useState({ email: 64, name: 172, width: 300 });
 	useEffect(() => {
 		if (isDetailsExpanded) nameStepRef.current?.querySelector("input")?.focus();
 	}, [isDetailsExpanded]);
@@ -71,7 +71,7 @@ export default function Footer() {
 	const measureStepHeights = useCallback(() => {
 		const emailHeight = emailStepRef.current?.scrollHeight ?? 64;
 		const nameHeight = nameStepRef.current?.scrollHeight ?? 172;
-		setStepHeights({ email: emailHeight, name: nameHeight });
+		setStepHeights({ email: emailHeight, name: nameHeight, width: emailStepRef.current?.clientWidth || 300 });
 	}, []);
 
 	const emailSubmitDisabled = newsletterState === "loading" || newsletterState === "success" || (mounted && !token);
@@ -386,7 +386,7 @@ export default function Footer() {
 									</motion.div>
 									{!isE2ETestMode && newsletterRequested && (
 										<div className='pt-1'>
-											<Turnstile size='compact' siteKey='0x4AAAAAACMFR636JljxhVLl' onSuccess={setToken} onError={(error) => console.error("Turnstile error:", error)} onExpire={() => setToken(null)} />
+											<Turnstile theme={resolvedTheme === "dark" ? "dark" : "light"} size={stepHeights.width < 300 ? "compact" : "flexible"} appearance='interaction-only' siteKey='0x4AAAAAACMFR636JljxhVLl' onSuccess={setToken} onError={(error) => console.error("Turnstile error:", error)} onExpire={() => setToken(null)} />
 										</div>
 									)}
 									{newsletterState === "loading" && <p className='text-xs text-foreground/75 pt-1'>Subscribing...</p>}

@@ -84,7 +84,7 @@ export default function UmamiClient({ websiteId }: { websiteId: string }) {
 	}, [measurement, ready, pathname, enabled, identifyConsent]);
 
 	useNavigationGuard({
-		enabled: recorderLoaded || recorderEligible || resetIdentity,
+		enabled: ({ type }) => type !== "beforeunload" && (recorderLoaded || recorderEligible || resetIdentity),
 		confirm: ({ to, type }) => {
 			if (type === "beforeunload" || (!resetIdentity && canRecordHeatmap(new URL(to, window.location.href).href))) return true;
 			// The native recorder has no dispose API; unload its listeners before private navigation.

@@ -63,7 +63,7 @@ export default function TiersComponent({ source = "pricing_page", campaignOffer 
 								</Chip>
 							) : tier.mostPopular ? (
 								<Chip className='absolute right-4 top-4' color='accent' variant='primary'>
-									More control
+									Most popular
 								</Chip>
 							) : null}
 							<Card.Header className='flex flex-col items-start gap-2 pb-5'>

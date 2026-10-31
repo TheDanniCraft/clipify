@@ -9,10 +9,10 @@ const plausible = jest.fn();
 const theme = jest.fn();
 let verification: { onSuccess: (token: string) => void; onExpire: () => void; onError: (error: string) => void };
 jest.mock("nextjs-turnstile", () => ({
-	Turnstile: (props: typeof verification & { size: string }) => {
+	Turnstile: (props: typeof verification & { size: string; appearance: string; theme: string }) => {
 		verification = props;
 		return (
-			<div data-testid='newsletter-verification' data-size={props.size}>
+			<div data-testid='newsletter-verification' data-size={props.size} data-appearance={props.appearance} data-theme={props.theme}>
 				Verification
 			</div>
 		);
@@ -23,7 +23,7 @@ jest.mock("@actions/newsletter", () => ({ subscribeToNewsletter: (...args: unkno
 jest.mock("@actions/community", () => ({ getPublicCommunityFooterTeaserAction: () => community() }));
 jest.mock("@actions/rateLimit", () => ({ isRatelimitError: async (result: unknown) => result === "rate-limit" }));
 jest.mock("@lib/analytics", () => ({ trackEvent: (...args: unknown[]) => plausible(...args), trackProductEvent: jest.fn() }));
-jest.mock("next-themes", () => ({ useTheme: () => ({ setTheme: theme }) }));
+jest.mock("next-themes", () => ({ useTheme: () => ({ setTheme: theme, resolvedTheme: "dark" }) }));
 jest.mock("@components/logo", () => ({ __esModule: true, default: () => <span>Clipify</span> }));
 jest.mock("@components/LandingPage/communityTeaser", () => ({ __esModule: true, default: () => <span>Creator community</span> }));
 jest.mock("next/image", () => ({ __esModule: true, default: ({ alt }: { alt: string }) => <span>{alt}</span> }));
@@ -111,7 +111,9 @@ it("loads no verification widget before newsletter focus and still requires a to
 	expect(screen.getByRole("button", { name: "Continue newsletter signup" })).toBeDisabled();
 	const input = screen.getByRole("textbox", { name: "Newsletter email address" });
 	fireEvent.focus(input);
-	expect(screen.getByTestId("newsletter-verification")).toHaveAttribute("data-size", "compact");
+	expect(screen.getByTestId("newsletter-verification")).toHaveAttribute("data-size", "flexible");
+	expect(screen.getByTestId("newsletter-verification")).toHaveAttribute("data-appearance", "interaction-only");
+	expect(screen.getByTestId("newsletter-verification")).toHaveAttribute("data-theme", "dark");
 	fireEvent.change(input, { target: { value: "streamer@example.invalid" } });
 	fireEvent.submit(input.closest("form")!);
 	expect(screen.getByText("Please complete the CAPTCHA first.")).toBeVisible();
