@@ -19,7 +19,7 @@ test("a missing save action preserves Runner edits across refresh and waits for 
 		await pool.query("INSERT INTO runner_destinations(id,owner_id,name,provider,rtmp_url) VALUES($1,$2,'Recovery output','custom','rtmp://127.0.0.1:1949/live')", [destinationId, ownerId]);
 		await pool.query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,control_mode,rtmp_url) VALUES($1,$2,$3,$4,'24/7','manual','rtmp://127.0.0.1:1949/live')", [sessionId, ownerId, runnerId, owner.fixture.overlayId]);
 		await pool.query("INSERT INTO stream_session_destinations(owner_id,session_id,destination_id,position) VALUES($1,$2,$3,0)", [ownerId, sessionId, destinationId]);
-		await page.goto("/legal/cookies");
+		await Promise.all([page.waitForResponse((response) => response.url().includes("/api/c15t/init") && response.ok()), page.goto("/legal/cookies")]);
 		await page.waitForLoadState("networkidle");
 		await expect(page.locator("html")).toHaveClass(/c15t-(?:light|dark)/);
 		await expect(page.getByRole("button", { name: "Enable support chat", exact: true })).toBeVisible();
@@ -87,7 +87,7 @@ test("an overlay draft survives deployment recovery without overwriting a concur
 	let owner: AuthFixture | undefined;
 	try {
 		owner = await createAuthenticatedFixture(request, context, { withProviderCredentials: true });
-		await page.goto("/legal/cookies");
+		await Promise.all([page.waitForResponse((response) => response.url().includes("/api/c15t/init") && response.ok()), page.goto("/legal/cookies")]);
 		await page.waitForLoadState("networkidle");
 		await expect(page.locator("html")).toHaveClass(/c15t-(?:light|dark)/);
 		await expect(page.getByRole("button", { name: "Enable support chat", exact: true })).toBeVisible();
