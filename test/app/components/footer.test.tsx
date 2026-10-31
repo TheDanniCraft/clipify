@@ -60,7 +60,7 @@ jest.mock("@heroui/react", () => {
 		Button,
 		TextField: Box,
 		Label: Box,
-		FieldError: () => null,
+		FieldError: Box,
 		Spinner: () => <span>Loading</span>,
 		Link: ({ children, onPress, ...props }: any) => (
 			<a {...props} onClick={onPress}>
@@ -73,6 +73,8 @@ jest.mock("@heroui/react", () => {
 			Container: Box,
 			Dialog: ({ children }: any) => <div role='dialog'>{children}</div>,
 			Body: Box,
+			Header: Box,
+			Heading: Box,
 			CloseTrigger: (props: any) => {
 				const close = React.useContext(ModalContext);
 				return (
@@ -118,7 +120,7 @@ it("shows verification with the form and still requires a valid unexpired token"
 	expect(screen.getByTestId("newsletter-verification")).toHaveAttribute("data-theme", "dark");
 	fireEvent.change(input, { target: { value: "streamer@example.invalid" } });
 	fireEvent.submit(input.closest("form")!);
-	expect(screen.getByText("Please complete the CAPTCHA first.")).toBeVisible();
+	expect(screen.getByText("Please complete verification.")).toBeVisible();
 	expect(subscribe).not.toHaveBeenCalled();
 	await screen.findByTestId("newsletter-verification");
 	await act(async () => verification.onSuccess("fixture-verification"));
@@ -127,12 +129,12 @@ it("shows verification with the form and still requires a valid unexpired token"
 	expect(screen.getByRole("button", { name: "Continue newsletter signup" })).toBeDisabled();
 });
 it("preserves the email and optional-name workflow through success and confirmation dismissal", async () => {
-	const input = await start("real.streamer@example.invalid");
+	await start("real.streamer@example.invalid");
 	const name = screen.getByPlaceholderText("Streamer");
 	expect(name).toHaveFocus();
 	fireEvent.change(name, { target: { value: "Alex" } });
-	fireEvent.submit(input.closest("form")!);
-	await screen.findByRole("dialog");
+	fireEvent.submit(name.closest("form")!);
+	await screen.findByText("You're almost there!");
 	expect(subscribe).toHaveBeenCalledWith("real.streamer@example.invalid", "fixture-verification", { firstName: "Alex" });
 	await waitFor(() => expect(plausible).toHaveBeenCalledWith("Newsletter Subscription", { emailType: "example" }));
 	fireEvent.click(screen.getByRole("button", { name: "Close newsletter confirmation" }));
@@ -141,32 +143,32 @@ it("preserves the email and optional-name workflow through success and confirmat
 it("lets a creator omit a name and recover after a server failure", async () => {
 	subscribe.mockResolvedValueOnce(new Error("unavailable"));
 	await start();
-	fireEvent.click(screen.getByRole("button", { name: "Skip" }));
+	fireEvent.click(screen.getByRole("button", { name: /^Subscribe$/ }));
 	await screen.findByText("Could not subscribe right now. Please try again.");
 	expect(subscribe).toHaveBeenCalledWith("streamer@example.invalid", "fixture-verification", undefined);
-	fireEvent.click(screen.getByRole("button", { name: "Skip" }));
+	fireEvent.click(screen.getByRole("button", { name: /^Subscribe$/ }));
 	await screen.findByRole("dialog");
 });
 it("keeps pending details after rate limiting or a rejected request", async () => {
 	subscribe.mockResolvedValueOnce("rate-limit").mockRejectedValueOnce(new Error("offline"));
 	await start("mail@example.invalid");
 	expect(screen.getByPlaceholderText("First name")).toBeVisible();
-	fireEvent.click(screen.getByRole("button", { name: "Skip" }));
+	fireEvent.click(screen.getByRole("button", { name: /^Subscribe$/ }));
 	await screen.findByText("Too many attempts. Please wait a moment.");
-	fireEvent.click(screen.getByRole("button", { name: "Skip" }));
+	fireEvent.click(screen.getByRole("button", { name: /^Subscribe$/ }));
 	await screen.findByText("Could not subscribe right now. Please try again.");
 });
 it("allows backing out of details and does not submit after verification expires", async () => {
 	const input = await start();
-	fireEvent.click(screen.getByRole("button", { name: "Back" }));
-	await waitFor(() => expect(input).toHaveFocus());
+	fireEvent.click(screen.getByRole("button", { name: "Cancel newsletter signup" }));
+	expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 	fireEvent.change(input, { target: { value: "" } });
 	fireEvent.submit(input.closest("form")!);
 	expect(subscribe).not.toHaveBeenCalled();
 	fireEvent.change(input, { target: { value: "other@example.invalid" } });
 	fireEvent.submit(input.closest("form")!);
 	await act(async () => verification.onExpire());
-	fireEvent.submit(input.closest("form")!);
+	fireEvent.submit(screen.getByPlaceholderText("Other").closest("form")!);
 	await screen.findByText("Could not subscribe right now. Please try again.");
 	expect(subscribe).not.toHaveBeenCalled();
 });

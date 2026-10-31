@@ -187,14 +187,14 @@ for (const theme of ["light", "dark"]) {
 	});
 }
 
-test("newsletter keyboard navigation skips the inactive name step", async ({ page }) => {
+test("newsletter keeps optional name fields out of the footer keyboard order", async ({ page }) => {
 	await page.setViewportSize({ width: 390, height: 900 });
 	await page.goto("/");
 	await dismissPrivacy(page);
 	const email = page.getByRole("textbox", { name: "Newsletter email address", exact: true });
 	const name = page.getByPlaceholder("First name", { exact: true });
-	await expect(name).toHaveCount(1);
-	await expect(name.locator("xpath=ancestor::*[@inert][1]")).toHaveCount(1);
+	await expect(name).toHaveCount(0);
+	await expect(page.getByRole("dialog")).toHaveCount(0);
 	await email.focus();
 	await page.keyboard.press("Tab");
 	await expect(name).not.toBeFocused();

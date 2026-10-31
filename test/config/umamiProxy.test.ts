@@ -19,7 +19,7 @@ it("allows the Umami dashboard to frame only approved public heatmap pages", asy
 	function headersFor(path: string) {
 		return Object.fromEntries(rules.filter((row) => getPathMatch(row.source)(path)).flatMap((row) => row.headers.map((header) => [header.key, header.value])));
 	}
-	for (const path of ["/", "/features", "/pricing"]) {
+	for (const path of ["/", "/features", "/pricing", "/community", "/changelog", "/roadmap"]) {
 		expect(headersFor(path)["Content-Security-Policy"]).toContain("frame-ancestors https://umami.cloud.thedannicraft.de;");
 		expect(headersFor(path)["X-Frame-Options"]).toBeUndefined();
 	}

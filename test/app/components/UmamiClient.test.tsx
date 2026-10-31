@@ -1,4 +1,3 @@
-import { dirname, join } from "node:path";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { useNavigationGuard } from "nextjs-nav-guard";
 import UmamiClient from "@/app/UmamiClient";
@@ -13,6 +12,7 @@ let pathname = "/";
 jest.mock("c15t/next", () => ({ useConsent: () => measurement, useSnapshot: () => ({ policyPending }), useIdentify: () => identifyConsent }));
 jest.mock("next/navigation", () => ({ usePathname: () => pathname }));
 jest.mock("nextjs-nav-guard", () => ({ useNavigationGuard: jest.fn() }));
+jest.mock("@/app/lib/heatmapRequests", () => ({ installHeatmapRequestFilter: jest.fn() }));
 jest.mock("@/app/actions/analytics", () => ({ getAnalyticsIdentity: jest.fn().mockResolvedValue(null) }));
 jest.mock("next/script", () => ({
 	__esModule: true,
@@ -72,11 +72,11 @@ it("starts native heatmaps only after the consented tracker is ready", async () 
 	expect(screen.queryByTestId("clipify-heatmaps")).not.toBeInTheDocument();
 	await act(async () => scriptReady["clipify-analytics"]());
 	expect(screen.getByTestId("clipify-heatmaps")).toBeInTheDocument();
-	expect(jest.mocked(useNavigationGuard)).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: expect.any(Function) }));
+	expect(useNavigationGuard).not.toHaveBeenCalled();
 	measurement = false;
 	setBrowserMeasurementConsent(false);
 	view.rerender(<UmamiClient websiteId='b1e8f2fb-9b3e-4276-91f6-dfbce9455377' />);
-	expect(screen.queryByTestId("clipify-heatmaps")).not.toBeInTheDocument();
+	expect(screen.getByTestId("clipify-heatmaps")).toBeInTheDocument();
 });
 
 it("verifies c15t identity but never identifies the Umami account before statistics consent", async () => {
@@ -149,22 +149,27 @@ it("does not load collection when the Infisical site ID is missing", () => {
 	expect(screen.queryByTestId("clipify-analytics")).not.toBeInTheDocument();
 });
 
-it("analytics never cancels native unload after enabling heatmaps", async () => {
-	const { useInterceptPageUnload } = jest.requireActual(join(dirname(require.resolve("nextjs-nav-guard")), "hooks/useInterceptPageUnload.js"));
-	jest.mocked(useNavigationGuard).mockImplementation((options) => {
-		useInterceptPageUnload(options);
-		return { active: false, accept: jest.fn(), reject: jest.fn() };
-	});
+it("analytics never registers a navigation guard or cancels native unload", async () => {
+	measurement = true;
+	setBrowserMeasurementConsent(true);
+	render(<UmamiClient websiteId='fixture' />);
+	await act(async () => scriptReady["clipify-analytics"]());
+	const event = new Event("beforeunload", { cancelable: true });
+	window.dispatchEvent(event);
+	expect(event.defaultPrevented).toBe(false);
+	expect(useNavigationGuard).not.toHaveBeenCalled();
+});
+
+it("retains one recorder element through excluded routes and return navigation", async () => {
 	measurement = true;
 	setBrowserMeasurementConsent(true);
 	const view = render(<UmamiClient websiteId='fixture' />);
 	await act(async () => scriptReady["clipify-analytics"]());
-	await act(async () => scriptReady["clipify-heatmaps"]());
-	const event = new Event("beforeunload", { cancelable: true });
-	window.dispatchEvent(event);
-	expect(event.defaultPrevented).toBe(false);
-	const enabled = jest.mocked(useNavigationGuard).mock.calls.at(-1)![0].enabled;
-	expect(typeof enabled === "function" && enabled({ type: "push", to: "/login" })).toBe(true);
-	view.unmount();
-	jest.mocked(useNavigationGuard).mockReset();
+	const recorder = screen.getByTestId("clipify-heatmaps");
+	pathname = "/dashboard";
+	view.rerender(<UmamiClient websiteId='fixture' />);
+	expect(screen.getByTestId("clipify-heatmaps")).toBe(recorder);
+	pathname = "/community";
+	view.rerender(<UmamiClient websiteId='fixture' />);
+	expect(screen.getByTestId("clipify-heatmaps")).toBe(recorder);
 });
