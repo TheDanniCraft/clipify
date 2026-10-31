@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, Card, Separator, Form, Input, Link, Modal, Spinner, TextField, Label, FieldError, InputGroup } from "@heroui/react";
 import Image from "next/image";
 
@@ -32,17 +32,12 @@ export default function Footer() {
 	const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
 	const [isSuccessOpen, setIsSuccessOpen] = useState(false);
 	const [token, setToken] = useState<string | null>(null);
-	const [newsletterRequested, setNewsletterRequested] = useState(false);
-	const mounted = useSyncExternalStore(
-		() => () => undefined,
-		() => true,
-		() => false,
-	);
+
 	const [pendingEmail, setPendingEmail] = useState("");
 	const [firstName, setFirstName] = useState("");
 	const emailStepRef = useRef<HTMLDivElement>(null);
 	const nameStepRef = useRef<HTMLDivElement>(null);
-	const [stepHeights, setStepHeights] = useState({ email: 64, name: 172, width: 300 });
+	const [stepHeights, setStepHeights] = useState({ email: 64, name: 172, width: 0 });
 	useEffect(() => {
 		if (isDetailsExpanded) nameStepRef.current?.querySelector("input")?.focus();
 	}, [isDetailsExpanded]);
@@ -74,8 +69,8 @@ export default function Footer() {
 		setStepHeights({ email: emailHeight, name: nameHeight, width: emailStepRef.current?.clientWidth || 300 });
 	}, []);
 
-	const emailSubmitDisabled = newsletterState === "loading" || newsletterState === "success" || (mounted && !token);
-	const detailSubmitDisabled = newsletterState === "loading" || !pendingEmail || (mounted && !token);
+	const emailSubmitDisabled = newsletterState === "loading" || newsletterState === "success" || !token;
+	const detailSubmitDisabled = newsletterState === "loading" || !pendingEmail || !token;
 
 	const communityStreamers = useMemo(() => footerCommunityPreview?.streamers ?? [], [footerCommunityPreview]);
 	const communityStreamerCount = footerCommunityPreview?.totalCount ?? 0;
@@ -292,7 +287,7 @@ export default function Footer() {
 								<h3 className='text-sm text-foreground/75 font-semibold'>Subscribe to our newsletter</h3>
 								<p className='text-sm text-foreground/75 mt-2'>Receive updates on new features, tips and tricks, or offers straight to your email.</p>
 							</div>
-							<div className='w-full lg:max-w-md' onFocusCapture={() => setNewsletterRequested(true)}>
+							<div className='w-full lg:max-w-md'>
 								<Form className='w-full space-y-3' onSubmit={handleNewsletterSubmit}>
 									<motion.div
 										className='relative w-full'
@@ -305,7 +300,7 @@ export default function Footer() {
 											initial={false}
 											ref={emailStepRef}
 											inert={isDetailsExpanded}
-											className={isDetailsExpanded ? "absolute inset-0 w-full" : "relative w-full"}
+											className={isDetailsExpanded ? "absolute inset-x-0 top-0 w-full" : "relative w-full"}
 											animate={{
 												opacity: isDetailsExpanded ? 0 : 1,
 												y: isDetailsExpanded ? -8 : 0,
@@ -334,9 +329,9 @@ export default function Footer() {
 															setNewsletterState("default");
 														}}
 													/>
-													<InputGroup.Suffix>
+													<InputGroup.Suffix className='pl-2 pr-1'>
 														{
-															<Button size='sm' isIconOnly type='submit' isDisabled={emailSubmitDisabled} aria-label='Continue newsletter signup' variant='primary'>
+															<Button className='rounded-md' size='sm' isIconOnly type='submit' isDisabled={emailSubmitDisabled} aria-label='Continue newsletter signup' variant='primary'>
 																<IconSend className='text-white' />
 															</Button>
 														}
@@ -349,7 +344,7 @@ export default function Footer() {
 											initial={false}
 											ref={nameStepRef}
 											inert={!isDetailsExpanded}
-											className={isDetailsExpanded ? "relative w-full space-y-3" : "absolute inset-0 w-full space-y-3"}
+											className={isDetailsExpanded ? "relative w-full space-y-3" : "absolute inset-x-0 top-0 w-full space-y-3"}
 											animate={{
 												opacity: isDetailsExpanded ? 1 : 0,
 												y: isDetailsExpanded ? 0 : 8,
@@ -384,9 +379,9 @@ export default function Footer() {
 											</div>
 										</motion.div>
 									</motion.div>
-									{!isE2ETestMode && newsletterRequested && (
+									{!isE2ETestMode && stepHeights.width > 0 && (
 										<div className='pt-1'>
-											<Turnstile theme={resolvedTheme === "dark" ? "dark" : "light"} size={stepHeights.width < 300 ? "compact" : "flexible"} appearance='interaction-only' siteKey='0x4AAAAAACMFR636JljxhVLl' onSuccess={setToken} onError={(error) => console.error("Turnstile error:", error)} onExpire={() => setToken(null)} />
+											<Turnstile theme={resolvedTheme === "dark" ? "dark" : "light"} size={stepHeights.width < 300 ? "compact" : "flexible"} appearance='always' siteKey='0x4AAAAAACMFR636JljxhVLl' onSuccess={setToken} onError={(error) => console.error("Turnstile error:", error)} onExpire={() => setToken(null)} />
 										</div>
 									)}
 									{newsletterState === "loading" && <p className='text-xs text-foreground/75 pt-1'>Subscribing...</p>}

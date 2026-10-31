@@ -61,11 +61,11 @@ describe("actions/newsletter", () => {
 		expect(contactsCreate).not.toHaveBeenCalled();
 	});
 
-	it("throws when captcha validation fails", async () => {
+	it.each(["", "bad-captcha"])("rejects subscription when captcha validation fails for %p", async (token) => {
 		tryRateLimit.mockResolvedValue({ success: true });
 		verifyTurnstile.mockResolvedValue(false);
 		const { subscribeToNewsletter } = await loadNewsletter();
-		const result = await subscribeToNewsletter("user@example.com", "bad-captcha");
+		const result = await subscribeToNewsletter("user@example.com", token);
 		expect(result).toEqual(expect.objectContaining({ message: "Invalid CAPTCHA" }));
 		expect(contactsCreate).not.toHaveBeenCalled();
 	});

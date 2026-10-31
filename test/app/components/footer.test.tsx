@@ -1,4 +1,5 @@
 /** @jest-environment jsdom */
+import { renderToStaticMarkup } from "react-dom/server";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import Footer from "@/app/components/footer";
 
@@ -100,24 +101,26 @@ async function start(email = "streamer@example.invalid") {
 	const input = screen.getByRole("textbox", { name: "Newsletter email address" });
 	fireEvent.focus(input);
 	fireEvent.change(input, { target: { value: email } });
+	await screen.findByTestId("newsletter-verification");
 	await act(async () => verification.onSuccess("fixture-verification"));
 	fireEvent.submit(input.closest("form")!);
 	return input;
 }
-it("loads no verification widget before newsletter focus and still requires a token", async () => {
+it("shows verification with the form and still requires a valid unexpired token", async () => {
 	render(<Footer />);
 	await screen.findByText("All systems operational");
-	expect(screen.queryByTestId("newsletter-verification")).not.toBeInTheDocument();
+	expect(await screen.findByTestId("newsletter-verification")).toBeVisible();
 	expect(screen.getByRole("button", { name: "Continue newsletter signup" })).toBeDisabled();
 	const input = screen.getByRole("textbox", { name: "Newsletter email address" });
 	fireEvent.focus(input);
 	expect(screen.getByTestId("newsletter-verification")).toHaveAttribute("data-size", "flexible");
-	expect(screen.getByTestId("newsletter-verification")).toHaveAttribute("data-appearance", "interaction-only");
+	expect(screen.getByTestId("newsletter-verification")).toHaveAttribute("data-appearance", "always");
 	expect(screen.getByTestId("newsletter-verification")).toHaveAttribute("data-theme", "dark");
 	fireEvent.change(input, { target: { value: "streamer@example.invalid" } });
 	fireEvent.submit(input.closest("form")!);
 	expect(screen.getByText("Please complete the CAPTCHA first.")).toBeVisible();
 	expect(subscribe).not.toHaveBeenCalled();
+	await screen.findByTestId("newsletter-verification");
 	await act(async () => verification.onSuccess("fixture-verification"));
 	expect(screen.getByRole("button", { name: "Continue newsletter signup" })).toBeEnabled();
 	await act(async () => verification.onExpire());
@@ -165,5 +168,12 @@ it("allows backing out of details and does not submit after verification expires
 	await act(async () => verification.onExpire());
 	fireEvent.submit(input.closest("form")!);
 	await screen.findByText("Could not subscribe right now. Please try again.");
+	expect(subscribe).not.toHaveBeenCalled();
+});
+
+it("keeps newsletter submission disabled in server HTML before verification or hydration", () => {
+	const container = document.createElement("div");
+	container.innerHTML = renderToStaticMarkup(<Footer />);
+	expect(container.querySelector('button[aria-label="Continue newsletter signup"]')).toBeDisabled();
 	expect(subscribe).not.toHaveBeenCalled();
 });
