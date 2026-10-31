@@ -292,7 +292,7 @@ export default function Footer() {
 							}
 						}}
 					>
-						<Modal.Container size='sm' scroll='outside' className='px-2 sm:px-10'>
+						<Modal.Container size='sm' scroll='outside' className='px-1 sm:px-10'>
 							<Modal.Dialog>
 								<Modal.CloseTrigger aria-label='Cancel newsletter signup' />
 								<Modal.Header>
@@ -313,7 +313,7 @@ export default function Footer() {
 											<Input autoFocus fullWidth variant='secondary' placeholder={firstNamePlaceholder} value={firstName} onChange={(event) => setFirstName(event.target.value)} />
 										</TextField>
 										{!isE2ETestMode && (
-											<div className='-mx-6 flex min-h-[65px] justify-center sm:mx-0'>
+											<div className='-mx-4 flex min-h-[65px] justify-center sm:mx-0'>
 												<Turnstile
 													ref={turnstileRef}
 													theme={resolvedTheme === "dark" ? "dark" : "light"}
