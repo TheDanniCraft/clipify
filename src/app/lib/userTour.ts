@@ -58,7 +58,7 @@ const validId = (value: unknown): value is string => typeof value === "string" &
 export type GuideLocation = "dashboard" | "overlay" | "theme" | "playlist" | "tools" | "settings" | "team" | "other";
 export type NavigationTarget = "home" | "overlays" | "overlay" | "playlists" | "playlist" | "profile" | "tools" | "theme" | "settings" | "clip-picker" | "close-picker" | "account-settings" | "core-settings" | "settings-panel" | "connections-panel" | "team";
 export type GuideSectionStats = { title: string; tasksPerAccount: number; accountsWithProgress: number; completedAccounts: number; completedTasks: number; skippedTasks: number; completionRate: number; averageProgress: number };
-export type UserTourStats = Omit<GuideSectionStats, "title"> & { trackedAccounts: number; untrackedAccounts: number; invalidProgressAccounts: number; sections: Record<string, GuideSectionStats> };
+export type UserTourStats = Omit<GuideSectionStats, "title"> & { trackedAccounts: number; untrackedAccounts: number; invalidProgressAccounts: number; startedAccounts: number; inProgressAccounts: number; overlayLinkCopiedAccounts: number; tasks: Record<string, { title: string; section: string; completedAccounts: number; skippedAccounts: number; pendingAccounts: number; completionRate: number }>; sections: Record<string, GuideSectionStats> };
 
 export type GuideProgress = {
 	version: 2;

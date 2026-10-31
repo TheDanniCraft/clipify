@@ -426,8 +426,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "clips_fetches_v2TwitchApi"
+											"id": "byRegexp",
+											"options": "^(?:clips_fetches_v2TwitchApi|_value\\s*\\{[^}]*\\b_field=\"clips_fetches_v2TwitchApi\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -445,8 +445,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "clips_fetches_v1GraphQL"
+											"id": "byRegexp",
+											"options": "^(?:clips_fetches_v1GraphQL|_value\\s*\\{[^}]*\\b_field=\"clips_fetches_v1GraphQL\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -464,8 +464,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "clips_fetches_v2FallbackGraphQL"
+											"id": "byRegexp",
+											"options": "^(?:clips_fetches_v2FallbackGraphQL|_value\\s*\\{[^}]*\\b_field=\"clips_fetches_v2FallbackGraphQL\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -483,8 +483,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "clips_fetches_v2RateLimited"
+											"id": "byRegexp",
+											"options": "^(?:clips_fetches_v2RateLimited|_value\\s*\\{[^}]*\\b_field=\"clips_fetches_v2RateLimited\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -3203,8 +3203,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "mcp_calls_success_total"
+											"id": "byRegexp",
+											"options": "^(?:mcp_calls_success_total|_value\\s*\\{[^}]*\\b_field=\"mcp_calls_success_total\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -3215,8 +3215,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "mcp_calls_denied_total"
+											"id": "byRegexp",
+											"options": "^(?:mcp_calls_denied_total|_value\\s*\\{[^}]*\\b_field=\"mcp_calls_denied_total\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -3227,8 +3227,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "mcp_calls_error_total"
+											"id": "byRegexp",
+											"options": "^(?:mcp_calls_error_total|_value\\s*\\{[^}]*\\b_field=\"mcp_calls_error_total\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -3239,8 +3239,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "mcp_calls_cancelled_total"
+											"id": "byRegexp",
+											"options": "^(?:mcp_calls_cancelled_total|_value\\s*\\{[^}]*\\b_field=\"mcp_calls_cancelled_total\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8936,8 +8936,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "clips_fallbackReasons_missingCredentials"
+											"id": "byRegexp",
+											"options": "^(?:clips_fallbackReasons_missingCredentials|_value\\s*\\{[^}]*\\b_field=\"clips_fallbackReasons_missingCredentials\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8948,8 +8948,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "clips_fallbackReasons_disabledAccount"
+											"id": "byRegexp",
+											"options": "^(?:clips_fallbackReasons_disabledAccount|_value\\s*\\{[^}]*\\b_field=\"clips_fallbackReasons_disabledAccount\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8960,8 +8960,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "clips_fallbackReasons_refreshFailed"
+											"id": "byRegexp",
+											"options": "^(?:clips_fallbackReasons_refreshFailed|_value\\s*\\{[^}]*\\b_field=\"clips_fallbackReasons_refreshFailed\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8972,8 +8972,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "clips_fallbackReasons_missingScope"
+											"id": "byRegexp",
+											"options": "^(?:clips_fallbackReasons_missingScope|_value\\s*\\{[^}]*\\b_field=\"clips_fallbackReasons_missingScope\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8984,8 +8984,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "clips_fallbackReasons_apiRejected"
+											"id": "byRegexp",
+											"options": "^(?:clips_fallbackReasons_apiRejected|_value\\s*\\{[^}]*\\b_field=\"clips_fallbackReasons_apiRejected\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8996,8 +8996,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "clips_fallbackReasons_apiError"
+											"id": "byRegexp",
+											"options": "^(?:clips_fallbackReasons_apiError|_value\\s*\\{[^}]*\\b_field=\"clips_fallbackReasons_apiError\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9008,8 +9008,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "clips_fallbackReasons_rateLimited"
+											"id": "byRegexp",
+											"options": "^(?:clips_fallbackReasons_rateLimited|_value\\s*\\{[^}]*\\b_field=\"clips_fallbackReasons_rateLimited\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9020,8 +9020,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "clips_fallbackReasons_emptyResponse"
+											"id": "byRegexp",
+											"options": "^(?:clips_fallbackReasons_emptyResponse|_value\\s*\\{[^}]*\\b_field=\"clips_fallbackReasons_emptyResponse\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9095,8 +9095,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "mcp_requests_status_2xx_total"
+											"id": "byRegexp",
+											"options": "^(?:mcp_requests_status_2xx_total|_value\\s*\\{[^}]*\\b_field=\"mcp_requests_status_2xx_total\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9107,8 +9107,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "mcp_requests_status_3xx_total"
+											"id": "byRegexp",
+											"options": "^(?:mcp_requests_status_3xx_total|_value\\s*\\{[^}]*\\b_field=\"mcp_requests_status_3xx_total\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9119,8 +9119,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "mcp_requests_status_4xx_total"
+											"id": "byRegexp",
+											"options": "^(?:mcp_requests_status_4xx_total|_value\\s*\\{[^}]*\\b_field=\"mcp_requests_status_4xx_total\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9131,8 +9131,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "mcp_requests_status_5xx_total"
+											"id": "byRegexp",
+											"options": "^(?:mcp_requests_status_5xx_total|_value\\s*\\{[^}]*\\b_field=\"mcp_requests_status_5xx_total\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9206,8 +9206,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "crawler_dueRecent"
+											"id": "byRegexp",
+											"options": "^(?:crawler_dueRecent|_value\\s*\\{[^}]*\\b_field=\"crawler_dueRecent\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9218,8 +9218,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "crawler_dueBackfill"
+											"id": "byRegexp",
+											"options": "^(?:crawler_dueBackfill|_value\\s*\\{[^}]*\\b_field=\"crawler_dueBackfill\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9293,8 +9293,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "crawler_runningRecent"
+											"id": "byRegexp",
+											"options": "^(?:crawler_runningRecent|_value\\s*\\{[^}]*\\b_field=\"crawler_runningRecent\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9305,8 +9305,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "crawler_runningBackfill"
+											"id": "byRegexp",
+											"options": "^(?:crawler_runningBackfill|_value\\s*\\{[^}]*\\b_field=\"crawler_runningBackfill\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9380,8 +9380,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "crawler_oldestDueAgeSeconds"
+											"id": "byRegexp",
+											"options": "^(?:crawler_oldestDueAgeSeconds|_value\\s*\\{[^}]*\\b_field=\"crawler_oldestDueAgeSeconds\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9392,8 +9392,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "crawler_oldestManualWaitSeconds"
+											"id": "byRegexp",
+											"options": "^(?:crawler_oldestManualWaitSeconds|_value\\s*\\{[^}]*\\b_field=\"crawler_oldestManualWaitSeconds\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9467,8 +9467,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "crawler_retrying"
+											"id": "byRegexp",
+											"options": "^(?:crawler_retrying|_value\\s*\\{[^}]*\\b_field=\"crawler_retrying\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9479,8 +9479,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "crawler_expiredLeases"
+											"id": "byRegexp",
+											"options": "^(?:crawler_expiredLeases|_value\\s*\\{[^}]*\\b_field=\"crawler_expiredLeases\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9491,8 +9491,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "crawler_manualPending"
+											"id": "byRegexp",
+											"options": "^(?:crawler_manualPending|_value\\s*\\{[^}]*\\b_field=\"crawler_manualPending\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9566,8 +9566,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "notifications_duePending"
+											"id": "byRegexp",
+											"options": "^(?:notifications_duePending|_value\\s*\\{[^}]*\\b_field=\"notifications_duePending\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9578,8 +9578,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "notifications_dueRetry"
+											"id": "byRegexp",
+											"options": "^(?:notifications_dueRetry|_value\\s*\\{[^}]*\\b_field=\"notifications_dueRetry\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9653,8 +9653,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "notifications_claimed"
+											"id": "byRegexp",
+											"options": "^(?:notifications_claimed|_value\\s*\\{[^}]*\\b_field=\"notifications_claimed\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9665,8 +9665,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "notifications_expiredClaims"
+											"id": "byRegexp",
+											"options": "^(?:notifications_expiredClaims|_value\\s*\\{[^}]*\\b_field=\"notifications_expiredClaims\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9677,8 +9677,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "notifications_failed"
+											"id": "byRegexp",
+											"options": "^(?:notifications_failed|_value\\s*\\{[^}]*\\b_field=\"notifications_failed\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9689,8 +9689,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "notifications_skipped"
+											"id": "byRegexp",
+											"options": "^(?:notifications_skipped|_value\\s*\\{[^}]*\\b_field=\"notifications_skipped\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9764,8 +9764,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "notifications_oldestDueAgeSeconds"
+											"id": "byRegexp",
+											"options": "^(?:notifications_oldestDueAgeSeconds|_value\\s*\\{[^}]*\\b_field=\"notifications_oldestDueAgeSeconds\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9839,8 +9839,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "notifications_scheduledPending"
+											"id": "byRegexp",
+											"options": "^(?:notifications_scheduledPending|_value\\s*\\{[^}]*\\b_field=\"notifications_scheduledPending\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9851,8 +9851,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "notifications_scheduledRetry"
+											"id": "byRegexp",
+											"options": "^(?:notifications_scheduledRetry|_value\\s*\\{[^}]*\\b_field=\"notifications_scheduledRetry\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9871,8 +9871,8 @@
 				"kind": "Panel",
 				"spec": {
 					"id": 500,
-					"title": "Guide records",
-					"description": "Saved guide state, including tasks inferred from existing resources. Percentages use accounts with a saved guide record, including unreadable records as incomplete. Skips are not completion. These are database-wide gauges; never sum replicas or apply increase(). Missing samples stay missing.",
+					"title": "Onboarding status",
+					"description": "Current saved guide progress, including milestones inferred from existing resources. Started includes a saved active task, completion or skip. Completed means the required first-overlay guide; optional guides are separate. These are gauges, not an ordered signup funnel or abandonment measurements.",
 					"links": [],
 					"data": {
 						"kind": "QueryGroup",
@@ -9889,7 +9889,7 @@
 												"name": "efg3es37pgh6ob"
 											},
 											"spec": {
-												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"onboarding_trackedAccounts\" or r._field == \"onboarding_untrackedAccounts\" or r._field == \"onboarding_invalidProgressAccounts\")\n  |> group(columns: [\"_field\"])\n  |> last()"
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"onboarding_startedAccounts\" or r._field == \"onboarding_inProgressAccounts\" or r._field == \"onboarding_sections_overlay_completedAccounts\" or r._field == \"onboarding_invalidProgressAccounts\")\n  |> group(columns: [\"_field\"])\n  |> last()"
 											}
 										},
 										"refId": "A",
@@ -9932,37 +9932,92 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "onboarding_trackedAccounts"
+											"id": "byRegexp",
+											"options": "^(?:onboarding_startedAccounts|_value\\s*\\{[^}]*\\b_field=\"onboarding_startedAccounts\"[^}]*\\})$"
 										},
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "With guide record"
+												"value": "Started"
+											},
+											{
+												"id": "color",
+												"value": {
+													"mode": "fixed",
+													"fixedColor": "blue"
+												}
 											}
 										]
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "onboarding_untrackedAccounts"
+											"id": "byRegexp",
+											"options": "^(?:onboarding_inProgressAccounts|_value\\s*\\{[^}]*\\b_field=\"onboarding_inProgressAccounts\"[^}]*\\})$"
 										},
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "Without guide record"
+												"value": "In progress"
+											},
+											{
+												"id": "color",
+												"value": {
+													"mode": "fixed",
+													"fixedColor": "orange"
+												}
 											}
 										]
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "onboarding_invalidProgressAccounts"
+											"id": "byRegexp",
+											"options": "^(?:onboarding_sections_overlay_completedAccounts|_value\\s*\\{[^}]*\\b_field=\"onboarding_sections_overlay_completedAccounts\"[^}]*\\})$"
 										},
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "Unreadable records"
+												"value": "Completed"
+											},
+											{
+												"id": "color",
+												"value": {
+													"mode": "fixed",
+													"fixedColor": "green"
+												}
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byRegexp",
+											"options": "^(?:onboarding_invalidProgressAccounts|_value\\s*\\{[^}]*\\b_field=\"onboarding_invalidProgressAccounts\"[^}]*\\})$"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Invalid state"
+											},
+											{
+												"id": "color",
+												"value": {
+													"mode": "thresholds"
+												}
+											},
+											{
+												"id": "thresholds",
+												"value": {
+													"mode": "absolute",
+													"steps": [
+														{
+															"color": "green",
+															"value": null
+														},
+														{
+															"color": "red",
+															"value": 1
+														}
+													]
+												}
 											}
 										]
 									}
@@ -9976,8 +10031,8 @@
 				"kind": "Panel",
 				"spec": {
 					"id": 501,
-					"title": "All guides completed",
-					"description": "Saved guide state, including tasks inferred from existing resources. Percentages use accounts with a saved guide record, including unreadable records as incomplete. Skips are not completion. These are database-wide gauges; never sum replicas or apply increase(). Missing samples stay missing.",
+					"title": "Overlay link copied",
+					"description": "Accounts with a saved copy of their current overlay browser-source link. This does not prove the link was added to OBS or broadcast.",
 					"links": [],
 					"data": {
 						"kind": "QueryGroup",
@@ -9994,7 +10049,7 @@
 												"name": "efg3es37pgh6ob"
 											},
 											"spec": {
-												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"onboarding_completedAccounts\")\n  |> group(columns: [\"_field\"])\n  |> last()"
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"onboarding_overlayLinkCopiedAccounts\")\n  |> group(columns: [\"_field\"])\n  |> last()"
 											}
 										},
 										"refId": "A",
@@ -10037,13 +10092,20 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "onboarding_completedAccounts"
+											"id": "byRegexp",
+											"options": "^(?:onboarding_overlayLinkCopiedAccounts|_value\\s*\\{[^}]*\\b_field=\"onboarding_overlayLinkCopiedAccounts\"[^}]*\\})$"
 										},
 										"properties": [
 											{
 												"id": "displayName",
 												"value": "Accounts"
+											},
+											{
+												"id": "color",
+												"value": {
+													"mode": "fixed",
+													"fixedColor": "blue"
+												}
 											}
 										]
 									}
@@ -10057,8 +10119,8 @@
 				"kind": "Panel",
 				"spec": {
 					"id": 502,
-					"title": "Guide completion rate",
-					"description": "Saved guide state, including tasks inferred from existing resources. Percentages use accounts with a saved guide record, including unreadable records as incomplete. Skips are not completion. These are database-wide gauges; never sum replicas or apply increase(). Missing samples stay missing.",
+					"title": "First-overlay guide completion",
+					"description": "Current saved guide progress, including milestones inferred from existing resources. Started includes a saved active task, completion or skip. Completed means the required first-overlay guide; optional guides are separate. These are gauges, not an ordered signup funnel or abandonment measurements. Percentage uses accounts with a saved guide record; invalid records remain incomplete.",
 					"links": [],
 					"data": {
 						"kind": "QueryGroup",
@@ -10075,7 +10137,7 @@
 												"name": "efg3es37pgh6ob"
 											},
 											"spec": {
-												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"onboarding_completionRate\")\n  |> group(columns: [\"_field\"])\n  |> last()"
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"onboarding_sections_overlay_completionRate\")\n  |> group(columns: [\"_field\"])\n  |> last()"
 											}
 										},
 										"refId": "A",
@@ -10120,13 +10182,20 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "onboarding_completionRate"
+											"id": "byRegexp",
+											"options": "^(?:onboarding_sections_overlay_completionRate|_value\\s*\\{[^}]*\\b_field=\"onboarding_sections_overlay_completionRate\"[^}]*\\})$"
 										},
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "All guides completed"
+												"value": "Completed"
+											},
+											{
+												"id": "color",
+												"value": {
+													"mode": "fixed",
+													"fixedColor": "green"
+												}
 											}
 										]
 									}
@@ -10203,8 +10272,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "onboarding_averageProgress"
+											"id": "byRegexp",
+											"options": "^(?:onboarding_averageProgress|_value\\s*\\{[^}]*\\b_field=\"onboarding_averageProgress\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -10223,8 +10292,8 @@
 				"kind": "Panel",
 				"spec": {
 					"id": 504,
-					"title": "Guide account progress",
-					"description": "Saved guide state, including tasks inferred from existing resources. Percentages use accounts with a saved guide record, including unreadable records as incomplete. Skips are not completion. These are database-wide gauges; never sum replicas or apply increase(). Missing samples stay missing.",
+					"title": "Onboarding progress over time",
+					"description": "Current saved guide progress, including milestones inferred from existing resources. Started includes a saved active task, completion or skip. Completed means the required first-overlay guide; optional guides are separate. These are gauges, not an ordered signup funnel or abandonment measurements.",
 					"links": [],
 					"data": {
 						"kind": "QueryGroup",
@@ -10241,7 +10310,7 @@
 												"name": "efg3es37pgh6ob"
 											},
 											"spec": {
-												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"onboarding_trackedAccounts\" or r._field == \"onboarding_accountsWithProgress\" or r._field == \"onboarding_completedAccounts\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"onboarding_startedAccounts\" or r._field == \"onboarding_inProgressAccounts\" or r._field == \"onboarding_sections_overlay_completedAccounts\")\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
 											}
 										},
 										"refId": "A",
@@ -10278,37 +10347,58 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "onboarding_trackedAccounts"
+											"id": "byRegexp",
+											"options": "^(?:onboarding_startedAccounts|_value\\s*\\{[^}]*\\b_field=\"onboarding_startedAccounts\"[^}]*\\})$"
 										},
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "With guide record"
+												"value": "Started"
+											},
+											{
+												"id": "color",
+												"value": {
+													"mode": "fixed",
+													"fixedColor": "blue"
+												}
 											}
 										]
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "onboarding_accountsWithProgress"
+											"id": "byRegexp",
+											"options": "^(?:onboarding_inProgressAccounts|_value\\s*\\{[^}]*\\b_field=\"onboarding_inProgressAccounts\"[^}]*\\})$"
 										},
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "With recorded progress"
+												"value": "In progress"
+											},
+											{
+												"id": "color",
+												"value": {
+													"mode": "fixed",
+													"fixedColor": "orange"
+												}
 											}
 										]
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "onboarding_completedAccounts"
+											"id": "byRegexp",
+											"options": "^(?:onboarding_sections_overlay_completedAccounts|_value\\s*\\{[^}]*\\b_field=\"onboarding_sections_overlay_completedAccounts\"[^}]*\\})$"
 										},
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "All guides completed"
+												"value": "Completed"
+											},
+											{
+												"id": "color",
+												"value": {
+													"mode": "fixed",
+													"fixedColor": "green"
+												}
 											}
 										]
 									}
@@ -10379,8 +10469,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "onboarding_sections_overlay_completionRate"
+											"id": "byRegexp",
+											"options": "^(?:onboarding_sections_overlay_completionRate|_value\\s*\\{[^}]*\\b_field=\"onboarding_sections_overlay_completionRate\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -10391,8 +10481,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "onboarding_sections_appearance_completionRate"
+											"id": "byRegexp",
+											"options": "^(?:onboarding_sections_appearance_completionRate|_value\\s*\\{[^}]*\\b_field=\"onboarding_sections_appearance_completionRate\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -10403,8 +10493,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "onboarding_sections_playlist_completionRate"
+											"id": "byRegexp",
+											"options": "^(?:onboarding_sections_playlist_completionRate|_value\\s*\\{[^}]*\\b_field=\"onboarding_sections_playlist_completionRate\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -10415,8 +10505,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "onboarding_sections_explore_completionRate"
+											"id": "byRegexp",
+											"options": "^(?:onboarding_sections_explore_completionRate|_value\\s*\\{[^}]*\\b_field=\"onboarding_sections_explore_completionRate\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -10519,6 +10609,96 @@
 										"matcher": {
 											"id": "byName",
 											"options": "Average progress"
+										},
+										"properties": [
+											{
+												"id": "unit",
+												"value": "percentunit"
+											},
+											{
+												"id": "decimals",
+												"value": 1
+											}
+										]
+									}
+								]
+							}
+						}
+					}
+				}
+			},
+			"panel-507": {
+				"kind": "Panel",
+				"spec": {
+					"id": 507,
+					"title": "Guide step details",
+					"description": "Completed, skipped and not yet completed milestones across valid saved guide records. Accounts without a guide record and invalid records are excluded. Tasks can be completed out of order or inferred from existing resources, so differences are not sequential funnel drop-off. OBS setup is confirmed by the creator, not independently verified.",
+					"links": [],
+					"data": {
+						"kind": "QueryGroup",
+						"spec": {
+							"queries": [
+								{
+									"kind": "PanelQuery",
+									"spec": {
+										"query": {
+											"kind": "DataQuery",
+											"group": "influxdb",
+											"version": "v0",
+											"datasource": {
+												"name": "efg3es37pgh6ob"
+											},
+											"spec": {
+												"query": "latest = from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"onboarding_tasks_overlay_name_completedAccounts\" or r._field == \"onboarding_tasks_overlay_name_skippedAccounts\" or r._field == \"onboarding_tasks_overlay_name_pendingAccounts\" or r._field == \"onboarding_tasks_overlay_name_completionRate\" or r._field == \"onboarding_tasks_overlay_source_completedAccounts\" or r._field == \"onboarding_tasks_overlay_source_skippedAccounts\" or r._field == \"onboarding_tasks_overlay_source_pendingAccounts\" or r._field == \"onboarding_tasks_overlay_source_completionRate\" or r._field == \"onboarding_tasks_overlay_preview_completedAccounts\" or r._field == \"onboarding_tasks_overlay_preview_skippedAccounts\" or r._field == \"onboarding_tasks_overlay_preview_pendingAccounts\" or r._field == \"onboarding_tasks_overlay_preview_completionRate\" or r._field == \"onboarding_tasks_overlay_setup_completedAccounts\" or r._field == \"onboarding_tasks_overlay_setup_skippedAccounts\" or r._field == \"onboarding_tasks_overlay_setup_pendingAccounts\" or r._field == \"onboarding_tasks_overlay_setup_completionRate\" or r._field == \"onboarding_tasks_appearance_clip_filters_completedAccounts\" or r._field == \"onboarding_tasks_appearance_clip_filters_skippedAccounts\" or r._field == \"onboarding_tasks_appearance_clip_filters_pendingAccounts\" or r._field == \"onboarding_tasks_appearance_clip_filters_completionRate\" or r._field == \"onboarding_tasks_appearance_style_completedAccounts\" or r._field == \"onboarding_tasks_appearance_style_skippedAccounts\" or r._field == \"onboarding_tasks_appearance_style_pendingAccounts\" or r._field == \"onboarding_tasks_appearance_style_completionRate\" or r._field == \"onboarding_tasks_appearance_components_completedAccounts\" or r._field == \"onboarding_tasks_appearance_components_skippedAccounts\" or r._field == \"onboarding_tasks_appearance_components_pendingAccounts\" or r._field == \"onboarding_tasks_appearance_components_completionRate\" or r._field == \"onboarding_tasks_appearance_preview_completedAccounts\" or r._field == \"onboarding_tasks_appearance_preview_skippedAccounts\" or r._field == \"onboarding_tasks_appearance_preview_pendingAccounts\" or r._field == \"onboarding_tasks_appearance_preview_completionRate\" or r._field == \"onboarding_tasks_playlist_name_completedAccounts\" or r._field == \"onboarding_tasks_playlist_name_skippedAccounts\" or r._field == \"onboarding_tasks_playlist_name_pendingAccounts\" or r._field == \"onboarding_tasks_playlist_name_completionRate\" or r._field == \"onboarding_tasks_playlist_clips_completedAccounts\" or r._field == \"onboarding_tasks_playlist_clips_skippedAccounts\" or r._field == \"onboarding_tasks_playlist_clips_pendingAccounts\" or r._field == \"onboarding_tasks_playlist_clips_completionRate\" or r._field == \"onboarding_tasks_playlist_use_completedAccounts\" or r._field == \"onboarding_tasks_playlist_use_skippedAccounts\" or r._field == \"onboarding_tasks_playlist_use_pendingAccounts\" or r._field == \"onboarding_tasks_playlist_use_completionRate\" or r._field == \"onboarding_tasks_explore_galleries_completedAccounts\" or r._field == \"onboarding_tasks_explore_galleries_skippedAccounts\" or r._field == \"onboarding_tasks_explore_galleries_pendingAccounts\" or r._field == \"onboarding_tasks_explore_galleries_completionRate\" or r._field == \"onboarding_tasks_explore_runners_completedAccounts\" or r._field == \"onboarding_tasks_explore_runners_skippedAccounts\" or r._field == \"onboarding_tasks_explore_runners_pendingAccounts\" or r._field == \"onboarding_tasks_explore_runners_completionRate\" or r._field == \"onboarding_tasks_explore_tools_completedAccounts\" or r._field == \"onboarding_tasks_explore_tools_skippedAccounts\" or r._field == \"onboarding_tasks_explore_tools_pendingAccounts\" or r._field == \"onboarding_tasks_explore_tools_completionRate\" or r._field == \"onboarding_tasks_explore_settings_completedAccounts\" or r._field == \"onboarding_tasks_explore_settings_skippedAccounts\" or r._field == \"onboarding_tasks_explore_settings_pendingAccounts\" or r._field == \"onboarding_tasks_explore_settings_completionRate\" or r._field == \"onboarding_tasks_explore_editors_completedAccounts\" or r._field == \"onboarding_tasks_explore_editors_skippedAccounts\" or r._field == \"onboarding_tasks_explore_editors_pendingAccounts\" or r._field == \"onboarding_tasks_explore_editors_completionRate\" or r._field == \"onboarding_tasks_explore_ai_completedAccounts\" or r._field == \"onboarding_tasks_explore_ai_skippedAccounts\" or r._field == \"onboarding_tasks_explore_ai_pendingAccounts\" or r._field == \"onboarding_tasks_explore_ai_completionRate\" or r._field == \"onboarding_tasks_explore_support_completedAccounts\" or r._field == \"onboarding_tasks_explore_support_skippedAccounts\" or r._field == \"onboarding_tasks_explore_support_pendingAccounts\" or r._field == \"onboarding_tasks_explore_support_completionRate\")\n  |> group(columns: [\"_field\"])\n  |> last()\n  |> group(columns: [])\n  |> pivot(rowKey: [], columnKey: [\"_field\"], valueColumn: \"_value\")\nstep0 = latest |> map(fn: (r) => ({Rank: 0.0, Guide: \"First overlay\", Step: \"Create and name your overlay\", Completed: r.onboarding_tasks_overlay_name_completedAccounts, Skipped: r.onboarding_tasks_overlay_name_skippedAccounts, \"Not completed\": r.onboarding_tasks_overlay_name_pendingAccounts, \"Completion rate\": r.onboarding_tasks_overlay_name_completionRate}))\nstep1 = latest |> map(fn: (r) => ({Rank: 1.0, Guide: \"First overlay\", Step: \"Choose your clips\", Completed: r.onboarding_tasks_overlay_source_completedAccounts, Skipped: r.onboarding_tasks_overlay_source_skippedAccounts, \"Not completed\": r.onboarding_tasks_overlay_source_pendingAccounts, \"Completion rate\": r.onboarding_tasks_overlay_source_completionRate}))\nstep2 = latest |> map(fn: (r) => ({Rank: 2.0, Guide: \"First overlay\", Step: \"Preview your overlay\", Completed: r.onboarding_tasks_overlay_preview_completedAccounts, Skipped: r.onboarding_tasks_overlay_preview_skippedAccounts, \"Not completed\": r.onboarding_tasks_overlay_preview_pendingAccounts, \"Completion rate\": r.onboarding_tasks_overlay_preview_completionRate}))\nstep3 = latest |> map(fn: (r) => ({Rank: 3.0, Guide: \"First overlay\", Step: \"Add it to OBS or Streamlabs\", Completed: r.onboarding_tasks_overlay_setup_completedAccounts, Skipped: r.onboarding_tasks_overlay_setup_skippedAccounts, \"Not completed\": r.onboarding_tasks_overlay_setup_pendingAccounts, \"Completion rate\": r.onboarding_tasks_overlay_setup_completionRate}))\nstep4 = latest |> map(fn: (r) => ({Rank: 4.0, Guide: \"Appearance\", Step: \"Choose your filters\", Completed: r.onboarding_tasks_appearance_clip_filters_completedAccounts, Skipped: r.onboarding_tasks_appearance_clip_filters_skippedAccounts, \"Not completed\": r.onboarding_tasks_appearance_clip_filters_pendingAccounts, \"Completion rate\": r.onboarding_tasks_appearance_clip_filters_completionRate}))\nstep5 = latest |> map(fn: (r) => ({Rank: 5.0, Guide: \"Appearance\", Step: \"Choose colors and style\", Completed: r.onboarding_tasks_appearance_style_completedAccounts, Skipped: r.onboarding_tasks_appearance_style_skippedAccounts, \"Not completed\": r.onboarding_tasks_appearance_style_pendingAccounts, \"Completion rate\": r.onboarding_tasks_appearance_style_completionRate}))\nstep6 = latest |> map(fn: (r) => ({Rank: 6.0, Guide: \"Appearance\", Step: \"Choose what to display\", Completed: r.onboarding_tasks_appearance_components_completedAccounts, Skipped: r.onboarding_tasks_appearance_components_skippedAccounts, \"Not completed\": r.onboarding_tasks_appearance_components_pendingAccounts, \"Completion rate\": r.onboarding_tasks_appearance_components_completionRate}))\nstep7 = latest |> map(fn: (r) => ({Rank: 7.0, Guide: \"Appearance\", Step: \"Preview your look\", Completed: r.onboarding_tasks_appearance_preview_completedAccounts, Skipped: r.onboarding_tasks_appearance_preview_skippedAccounts, \"Not completed\": r.onboarding_tasks_appearance_preview_pendingAccounts, \"Completion rate\": r.onboarding_tasks_appearance_preview_completionRate}))\nstep8 = latest |> map(fn: (r) => ({Rank: 8.0, Guide: \"Playlist\", Step: \"Create and name a playlist\", Completed: r.onboarding_tasks_playlist_name_completedAccounts, Skipped: r.onboarding_tasks_playlist_name_skippedAccounts, \"Not completed\": r.onboarding_tasks_playlist_name_pendingAccounts, \"Completion rate\": r.onboarding_tasks_playlist_name_completionRate}))\nstep9 = latest |> map(fn: (r) => ({Rank: 9.0, Guide: \"Playlist\", Step: \"Add and arrange clips\", Completed: r.onboarding_tasks_playlist_clips_completedAccounts, Skipped: r.onboarding_tasks_playlist_clips_skippedAccounts, \"Not completed\": r.onboarding_tasks_playlist_clips_pendingAccounts, \"Completion rate\": r.onboarding_tasks_playlist_clips_completionRate}))\nstep10 = latest |> map(fn: (r) => ({Rank: 10.0, Guide: \"Playlist\", Step: \"Use your playlist in an overlay\", Completed: r.onboarding_tasks_playlist_use_completedAccounts, Skipped: r.onboarding_tasks_playlist_use_skippedAccounts, \"Not completed\": r.onboarding_tasks_playlist_use_pendingAccounts, \"Completion rate\": r.onboarding_tasks_playlist_use_completionRate}))\nstep11 = latest |> map(fn: (r) => ({Rank: 11.0, Guide: \"Explore\", Step: \"Discover clip galleries\", Completed: r.onboarding_tasks_explore_galleries_completedAccounts, Skipped: r.onboarding_tasks_explore_galleries_skippedAccounts, \"Not completed\": r.onboarding_tasks_explore_galleries_pendingAccounts, \"Completion rate\": r.onboarding_tasks_explore_galleries_completionRate}))\nstep12 = latest |> map(fn: (r) => ({Rank: 12.0, Guide: \"Explore\", Step: \"Discover runners\", Completed: r.onboarding_tasks_explore_runners_completedAccounts, Skipped: r.onboarding_tasks_explore_runners_skippedAccounts, \"Not completed\": r.onboarding_tasks_explore_runners_pendingAccounts, \"Completion rate\": r.onboarding_tasks_explore_runners_completionRate}))\nstep13 = latest |> map(fn: (r) => ({Rank: 13.0, Guide: \"Explore\", Step: \"Add Clipify to your website\", Completed: r.onboarding_tasks_explore_tools_completedAccounts, Skipped: r.onboarding_tasks_explore_tools_skippedAccounts, \"Not completed\": r.onboarding_tasks_explore_tools_pendingAccounts, \"Completion rate\": r.onboarding_tasks_explore_tools_completionRate}))\nstep14 = latest |> map(fn: (r) => ({Rank: 14.0, Guide: \"Explore\", Step: \"Find your settings\", Completed: r.onboarding_tasks_explore_settings_completedAccounts, Skipped: r.onboarding_tasks_explore_settings_skippedAccounts, \"Not completed\": r.onboarding_tasks_explore_settings_pendingAccounts, \"Completion rate\": r.onboarding_tasks_explore_settings_completionRate}))\nstep15 = latest |> map(fn: (r) => ({Rank: 15.0, Guide: \"Explore\", Step: \"Find your team members\", Completed: r.onboarding_tasks_explore_editors_completedAccounts, Skipped: r.onboarding_tasks_explore_editors_skippedAccounts, \"Not completed\": r.onboarding_tasks_explore_editors_pendingAccounts, \"Completion rate\": r.onboarding_tasks_explore_editors_completionRate}))\nstep16 = latest |> map(fn: (r) => ({Rank: 16.0, Guide: \"Explore\", Step: \"Discover AI connections\", Completed: r.onboarding_tasks_explore_ai_completedAccounts, Skipped: r.onboarding_tasks_explore_ai_skippedAccounts, \"Not completed\": r.onboarding_tasks_explore_ai_pendingAccounts, \"Completion rate\": r.onboarding_tasks_explore_ai_completionRate}))\nstep17 = latest |> map(fn: (r) => ({Rank: 17.0, Guide: \"Explore\", Step: \"Find help and report a problem\", Completed: r.onboarding_tasks_explore_support_completedAccounts, Skipped: r.onboarding_tasks_explore_support_skippedAccounts, \"Not completed\": r.onboarding_tasks_explore_support_pendingAccounts, \"Completion rate\": r.onboarding_tasks_explore_support_completionRate}))\nunion(tables: [step0, step1, step2, step3, step4, step5, step6, step7, step8, step9, step10, step11, step12, step13, step14, step15, step16, step17])\n  |> group(columns: [])\n  |> sort(columns: [\"Rank\"])"
+											}
+										},
+										"refId": "A",
+										"hidden": false
+									}
+								}
+							],
+							"transformations": [
+								{
+									"kind": "Transformation",
+									"group": "organize",
+									"spec": {
+										"options": {
+											"excludeByName": {
+												"Rank": true
+											},
+											"indexByName": {
+												"Guide": 0,
+												"Step": 1,
+												"Completed": 2,
+												"Skipped": 3,
+												"Not completed": 4,
+												"Completion rate": 5
+											}
+										}
+									}
+								}
+							],
+							"queryOptions": {}
+						}
+					},
+					"vizConfig": {
+						"kind": "VizConfig",
+						"group": "table",
+						"version": "",
+						"spec": {
+							"options": {
+								"showHeader": true
+							},
+							"fieldConfig": {
+								"defaults": {
+									"unit": "short",
+									"decimals": 0
+								},
+								"overrides": [
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "Completion rate"
 										},
 										"properties": [
 											{
@@ -11849,6 +12029,19 @@
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-506"
+												}
+											}
+										},
+										{
+											"kind": "GridLayoutItem",
+											"spec": {
+												"x": 0,
+												"y": 22,
+												"width": 24,
+												"height": 16,
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-507"
 												}
 											}
 										}

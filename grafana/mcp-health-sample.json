@@ -2163,6 +2163,155 @@
 				"completionRate": 0.2,
 				"averageProgress": 0.2
 			}
+		},
+		"startedAccounts": 3,
+		"inProgressAccounts": 2,
+		"overlayLinkCopiedAccounts": 1,
+		"tasks": {
+			"overlay_name": {
+				"title": "Create and name your overlay",
+				"section": "overlay",
+				"completedAccounts": 2,
+				"skippedAccounts": 0,
+				"pendingAccounts": 2,
+				"completionRate": 0.5
+			},
+			"overlay_source": {
+				"title": "Choose your clips",
+				"section": "overlay",
+				"completedAccounts": 3,
+				"skippedAccounts": 0,
+				"pendingAccounts": 1,
+				"completionRate": 0.75
+			},
+			"overlay_preview": {
+				"title": "Preview your overlay",
+				"section": "overlay",
+				"completedAccounts": 1,
+				"skippedAccounts": 1,
+				"pendingAccounts": 2,
+				"completionRate": 0.25
+			},
+			"overlay_setup": {
+				"title": "Add it to OBS or Streamlabs",
+				"section": "overlay",
+				"completedAccounts": 1,
+				"skippedAccounts": 0,
+				"pendingAccounts": 3,
+				"completionRate": 0.25
+			},
+			"appearance_clip_filters": {
+				"title": "Choose your filters",
+				"section": "appearance",
+				"completedAccounts": 2,
+				"skippedAccounts": 0,
+				"pendingAccounts": 2,
+				"completionRate": 0.5
+			},
+			"appearance_style": {
+				"title": "Choose colors and style",
+				"section": "appearance",
+				"completedAccounts": 1,
+				"skippedAccounts": 0,
+				"pendingAccounts": 3,
+				"completionRate": 0.25
+			},
+			"appearance_components": {
+				"title": "Choose what to display",
+				"section": "appearance",
+				"completedAccounts": 1,
+				"skippedAccounts": 0,
+				"pendingAccounts": 3,
+				"completionRate": 0.25
+			},
+			"appearance_preview": {
+				"title": "Preview your look",
+				"section": "appearance",
+				"completedAccounts": 1,
+				"skippedAccounts": 0,
+				"pendingAccounts": 3,
+				"completionRate": 0.25
+			},
+			"playlist_name": {
+				"title": "Create and name a playlist",
+				"section": "playlist",
+				"completedAccounts": 1,
+				"skippedAccounts": 0,
+				"pendingAccounts": 3,
+				"completionRate": 0.25
+			},
+			"playlist_clips": {
+				"title": "Add and arrange clips",
+				"section": "playlist",
+				"completedAccounts": 1,
+				"skippedAccounts": 0,
+				"pendingAccounts": 3,
+				"completionRate": 0.25
+			},
+			"playlist_use": {
+				"title": "Use your playlist in an overlay",
+				"section": "playlist",
+				"completedAccounts": 1,
+				"skippedAccounts": 0,
+				"pendingAccounts": 3,
+				"completionRate": 0.25
+			},
+			"explore_galleries": {
+				"title": "Discover clip galleries",
+				"section": "explore",
+				"completedAccounts": 1,
+				"skippedAccounts": 0,
+				"pendingAccounts": 3,
+				"completionRate": 0.25
+			},
+			"explore_runners": {
+				"title": "Discover runners",
+				"section": "explore",
+				"completedAccounts": 1,
+				"skippedAccounts": 0,
+				"pendingAccounts": 3,
+				"completionRate": 0.25
+			},
+			"explore_tools": {
+				"title": "Add Clipify to your website",
+				"section": "explore",
+				"completedAccounts": 1,
+				"skippedAccounts": 1,
+				"pendingAccounts": 2,
+				"completionRate": 0.25
+			},
+			"explore_settings": {
+				"title": "Find your settings",
+				"section": "explore",
+				"completedAccounts": 1,
+				"skippedAccounts": 0,
+				"pendingAccounts": 3,
+				"completionRate": 0.25
+			},
+			"explore_editors": {
+				"title": "Find your team members",
+				"section": "explore",
+				"completedAccounts": 1,
+				"skippedAccounts": 0,
+				"pendingAccounts": 3,
+				"completionRate": 0.25
+			},
+			"explore_ai": {
+				"title": "Discover AI connections",
+				"section": "explore",
+				"completedAccounts": 1,
+				"skippedAccounts": 0,
+				"pendingAccounts": 3,
+				"completionRate": 0.25
+			},
+			"explore_support": {
+				"title": "Find help and report a problem",
+				"section": "explore",
+				"completedAccounts": 1,
+				"skippedAccounts": 0,
+				"pendingAccounts": 3,
+				"completionRate": 0.25
+			}
 		}
 	}
 }

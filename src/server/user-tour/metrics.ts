@@ -20,6 +20,9 @@ function skippedTask(id: string): SQL {
 /** One database aggregate; no account IDs, resource IDs or raw guide state leave the query. */
 export async function getUserTourHealthStats(db: Pick<QueryClient, "execute">, totalAccounts: number): Promise<UserTourStats> {
 	const groups = [{ id: "overall", tasks: journeys.flatMap((journey) => journey.tasks.map((task) => task.id)) }, ...journeys.map((journey) => ({ id: journey.id, tasks: journey.tasks.map((task) => task.id) }))];
+	const tasks = journeys.flatMap((journey) => journey.tasks.map((task) => ({ ...task, section: journey.id, key: task.id.replace(/[.-]/g, "_") })));
+	const taskFields = tasks.flatMap((task) => [sql`count(*) FILTER (WHERE ${completedTask(task.id)}) AS ${sql.identifier(`${task.key}_completed`)}`, sql`count(*) FILTER (WHERE ${skippedTask(task.id)}) AS ${sql.identifier(`${task.key}_skipped`)}`]);
+	const activity = groups[0].tasks.flatMap((id) => [completedTask(id), skippedTask(id)]);
 	const fields = groups.flatMap(({ id, tasks }) => {
 		const completed = tasks.map(completedTask);
 		const skipped = tasks.map(skippedTask);
@@ -40,7 +43,13 @@ export async function getUserTourHealthStats(db: Pick<QueryClient, "execute">, t
 			SELECT data, coalesce(data->'completed', '[]'::jsonb) AS completed,
 				CASE WHEN jsonb_typeof(data->'skipped') = 'array' THEN data->'skipped' ELSE '[]'::jsonb END AS skipped FROM valid
 		)
-		SELECT count(*) AS tracked, count(*) FILTER (WHERE data IS NULL) AS invalid, ${sql.join(fields, sql`, `)} FROM progress
+		SELECT count(*) AS tracked, count(*) FILTER (WHERE data IS NULL) AS invalid,
+			count(*) FILTER (WHERE (${sql.join(activity, sql` OR `)}) OR data->'active'->>'task' IN (${sql.join(
+				tasks.map((task) => sql`${task.id}`),
+				sql`, `,
+			)})) AS started,
+			count(*) FILTER (WHERE data->>'copiedOverlayId' ~ '^[a-zA-Z0-9_-]{1,128}$' AND data->>'copiedOverlayId' = data->>'overlayId') AS copied,
+			${sql.join([...fields, ...taskFields], sql`, `)} FROM progress
 	`);
 	const row = result.rows[0];
 	const trackedAccounts = Number(row.tracked);
@@ -49,5 +58,24 @@ export async function getUserTourHealthStats(db: Pick<QueryClient, "execute">, t
 		const completedTasks = Number(row[`${id}_completedTasks`]);
 		return { tasksPerAccount, accountsWithProgress: Number(row[`${id}_accountsWithProgress`]), completedAccounts, completedTasks, skippedTasks: Number(row[`${id}_skippedTasks`]), completionRate: trackedAccounts ? completedAccounts / trackedAccounts : 0, averageProgress: trackedAccounts ? completedTasks / (trackedAccounts * tasksPerAccount) : 0 };
 	};
-	return { ...stats("overall", groups[0].tasks.length), trackedAccounts, untrackedAccounts: Math.max(0, totalAccounts - trackedAccounts), invalidProgressAccounts: Number(row.invalid), sections: Object.fromEntries(journeys.map((journey) => [journey.id, { title: journey.title, ...stats(journey.id, journey.tasks.length) }])) };
+	const validAccounts = trackedAccounts - Number(row.invalid);
+	const startedAccounts = Number(row.started);
+	const requiredCompletedAccounts = Number(row.overlay_completedAccounts);
+	return {
+		...stats("overall", groups[0].tasks.length),
+		startedAccounts,
+		inProgressAccounts: Math.max(0, startedAccounts - requiredCompletedAccounts),
+		overlayLinkCopiedAccounts: Number(row.copied),
+		tasks: Object.fromEntries(
+			tasks.map((task) => {
+				const completedAccounts = Number(row[`${task.key}_completed`]);
+				const skippedAccounts = Number(row[`${task.key}_skipped`]);
+				return [task.key, { title: task.title, section: task.section, completedAccounts, skippedAccounts, pendingAccounts: validAccounts - completedAccounts - skippedAccounts, completionRate: validAccounts ? completedAccounts / validAccounts : 0 }];
+			}),
+		),
+		trackedAccounts,
+		untrackedAccounts: Math.max(0, totalAccounts - trackedAccounts),
+		invalidProgressAccounts: Number(row.invalid),
+		sections: Object.fromEntries(journeys.map((journey) => [journey.id, { title: journey.title, ...stats(journey.id, journey.tasks.length) }])),
+	};
 }

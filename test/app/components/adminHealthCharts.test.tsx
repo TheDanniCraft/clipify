@@ -40,7 +40,7 @@ jest.mock("recharts", () => ({
 }));
 
 const healthSnapshot: InstanceHealthSnapshot = {
-	onboarding: { trackedAccounts: 0, untrackedAccounts: 0, invalidProgressAccounts: 0, tasksPerAccount: 18, accountsWithProgress: 0, completedAccounts: 0, completedTasks: 0, skippedTasks: 0, completionRate: 0, averageProgress: 0, sections: {} },
+	onboarding: { startedAccounts: 0, inProgressAccounts: 0, overlayLinkCopiedAccounts: 0, tasks: {}, trackedAccounts: 0, untrackedAccounts: 0, invalidProgressAccounts: 0, tasksPerAccount: 18, accountsWithProgress: 0, completedAccounts: 0, completedTasks: 0, skippedTasks: 0, completionRate: 0, averageProgress: 0, sections: {} },
 	crawler: sample.crawler,
 	notifications: sample.notifications,
 	mcp: sample.mcp,
