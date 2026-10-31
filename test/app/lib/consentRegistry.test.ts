@@ -7,7 +7,7 @@ import { privacyPolicySections } from "@lib/legal/documents";
 describe("consent disclosure registry", () => {
 	it("pins the reviewed service inventory before validating each declaration", () => {
 		expect(necessaryConsentServices.map(({ id }) => id)).toEqual(["clipify-authentication", "consent-storage", "cloudflare-turnstile"]);
-		expect(consentServices.map(({ id }) => id)).toEqual(["chatwoot", "sentry-replay", "sentry-rum"]);
+		expect(consentServices.map(({ id }) => id)).toEqual(["umami-product-analytics", "chatwoot", "sentry-replay", "sentry-rum"]);
 	});
 
 	it("provides complete declarations", () => {

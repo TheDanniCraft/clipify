@@ -262,7 +262,7 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 												<Label>Return to Admin</Label>
 											</Dropdown.Item>
 										) : null}
-										<Dropdown.Item id='help_and_feedback' textValue='Help' onAction={() => router.push("https://help.clipify.us/")}>
+										<Dropdown.Item id='help_and_feedback' textValue='Help' onAction={() => router.push("https://help.clipify.us/hc/clipify/articles/1769328012-getting-started-with-clipify")}>
 											<Label>Help</Label>
 										</Dropdown.Item>
 										<Dropdown.Item id='logout' textValue='Log Out' variant='danger' onAction={() => router.push("/logout")}>

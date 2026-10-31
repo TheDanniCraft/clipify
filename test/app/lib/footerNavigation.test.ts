@@ -3,8 +3,16 @@
 import { footerNavigation } from "@lib/footerNavigation";
 
 describe("footer navigation", () => {
-	it("uses root-page anchors for landing-page sections", () => {
-		expect(footerNavigation.features.every(({ href }) => href === "/#features")).toBe(true);
+	it("links feature topics to product explanations and preserves the FAQ anchor", () => {
+		expect(footerNavigation.features.map(({ href }) => href)).toEqual(["/features", "/features#overlays", "/features#playlists", "/features#controls", "/features#styling"]);
 		expect(footerNavigation.supportOptions.find(({ name }) => name === "FAQs")?.href).toBe("/#faq");
 	});
+});
+
+it("takes collaboration enquiries to the published help-center overview", () => {
+	expect(footerNavigation.aboutUs.find((item) => item.name === "Collaboration enquiries")?.href).toBe("https://help.clipify.us/hc/clipify/articles/1756597294-collaborations");
+});
+
+it("takes setup help directly to the published getting-started article", () => {
+	expect(footerNavigation.supportOptions.find((item) => item.name === "Setup guide")?.href).toBe("https://help.clipify.us/hc/clipify/articles/1769328012-getting-started-with-clipify");
 });

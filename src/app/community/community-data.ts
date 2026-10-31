@@ -61,7 +61,7 @@ const groupDefinitions: CommunityPageGroupDefinition[] = [
 	{
 		key: "offline",
 		title: "Offline",
-		description: "Creators who opted in and are currently offline.",
+		description: "Discoverable creator profiles that are currently offline.",
 		filter: (streamer) => streamer.status === "offline",
 	},
 ];

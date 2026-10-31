@@ -1,3 +1,4 @@
+import { trackServerProductEvent } from "@/server/umami";
 import "server-only";
 import { publicClip } from "./clip-discovery";
 import { providerClipSchema } from "./clip-validation";
@@ -73,18 +74,20 @@ export async function createPlaylistForPrincipal(principal: TrustedCreatorPrinci
 	const parsed = toolInputSchemas.create_playlist.safeParse(rawInput);
 	if (!parsed.success) throw new Error("INVALID_INPUT");
 	const input = parsed.data;
-	return client.transaction(async (tx) => {
+	const analyticsResult = await client.transaction(async (tx) => {
 		if (principal.kind === "oauth") return createWithRetry(tx, principal, "create_playlist", input, () => insertPlaylist(tx, input));
 		await authorizeLockedMutation(principal, input.creatorId, "playlist:create", tx);
 		return insertPlaylist(tx, input);
 	});
+	if (principal.kind === "session") trackServerProductEvent(principal.authUserId, "resource_created", { resource_type: "playlist", channel: "web" });
+	return analyticsResult;
 }
 
 export async function updatePlaylistRecord(principal: TrustedCreatorPrincipal, rawInput: unknown, client: DatabaseClient = db) {
 	const parsed = toolInputSchemas.update_playlist.safeParse(rawInput);
 	if (!parsed.success) throw new Error("INVALID_INPUT");
 	const input = parsed.data;
-	return client.transaction(async (tx) => {
+	const analyticsResult = await client.transaction(async (tx) => {
 		const authorization = await authorizeLockedMutation(principal, input.creatorId, "playlist:update", tx);
 		const [current] = await tx
 			.select()
@@ -112,6 +115,8 @@ export async function updatePlaylistRecord(principal: TrustedCreatorPrincipal, r
 		authorization.assertAuthorityCurrent();
 		return updated;
 	});
+	trackServerProductEvent(principal.authUserId, "resource_saved", { resource_type: "playlist", channel: principal.kind === "oauth" ? "ai" : "web" });
+	return analyticsResult;
 }
 
 export async function updatePlaylist(principal: TrustedCreatorPrincipal, rawInput: unknown, client: DatabaseClient = db) {
@@ -122,14 +127,15 @@ export async function removePlaylistItems(principal: TrustedCreatorPrincipal, ra
 	const parsed = toolInputSchemas.remove_playlist_items.safeParse(rawInput);
 	if (!parsed.success) throw new Error("INVALID_INPUT");
 	const input = parsed.data;
-	return savePlaylistItemSelection(principal, { creatorId: input.creatorId, playlistId: input.playlistId, expectedRevision: input.expectedRevision, clipIds: input.itemIds, mode: "remove" }, client, { tool: "remove_playlist_items", projectResult: readPlaylistResult });
+	const analyticsResult = await savePlaylistItemSelection(principal, { creatorId: input.creatorId, playlistId: input.playlistId, expectedRevision: input.expectedRevision, clipIds: input.itemIds, mode: "remove" }, client, { tool: "remove_playlist_items", projectResult: readPlaylistResult });
+	return analyticsResult;
 }
 
 export async function reorderPlaylistItems(principal: TrustedCreatorPrincipal, rawInput: unknown, client: DatabaseClient = db) {
 	const parsed = toolInputSchemas.reorder_playlist_items.safeParse(rawInput);
 	if (!parsed.success) throw new Error("INVALID_INPUT");
 	const input = parsed.data;
-	return client.transaction(async (tx) => {
+	const analyticsResult = await client.transaction(async (tx) => {
 		const authorization = await authorizeLockedMutation(principal, input.creatorId, "playlist-items:manage", tx);
 		const [current] = await tx
 			.select()
@@ -167,20 +173,23 @@ export async function reorderPlaylistItems(principal: TrustedCreatorPrincipal, r
 		authorization.assertAuthorityCurrent();
 		return result;
 	});
+	trackServerProductEvent(principal.authUserId, "playlist_clips_changed", { resource_type: "playlist", channel: principal.kind === "oauth" ? "ai" : "web" });
+	return analyticsResult;
 }
 
 export async function addPlaylistItems(principal: TrustedCreatorPrincipal, rawInput: unknown, client: DatabaseClient = db) {
 	const parsed = toolInputSchemas.add_playlist_items.safeParse(rawInput);
 	if (!parsed.success) throw new Error("INVALID_INPUT");
 	const input = parsed.data;
-	return savePlaylistItemSelection(principal, { creatorId: input.creatorId, playlistId: input.playlistId, expectedRevision: input.expectedRevision, clipIds: input.clipIds, mode: "append" }, client, { tool: "add_playlist_items", projectResult: readPlaylistResult });
+	const analyticsResult = await savePlaylistItemSelection(principal, { creatorId: input.creatorId, playlistId: input.playlistId, expectedRevision: input.expectedRevision, clipIds: input.clipIds, mode: "append" }, client, { tool: "add_playlist_items", projectResult: readPlaylistResult });
+	return analyticsResult;
 }
 
 export async function deletePlaylist(principal: TrustedCreatorPrincipal, rawInput: unknown, client: DatabaseClient = db) {
 	const parsed = toolInputSchemas.delete_playlist.safeParse(rawInput);
 	if (!parsed.success) throw new Error("INVALID_INPUT");
 	const input = parsed.data;
-	return client.transaction(async (tx) => {
+	const analyticsResult = await client.transaction(async (tx) => {
 		const authorization = await authorizeLockedMutation(principal, input.creatorId, "playlist:delete", tx);
 		const [current] = await tx
 			.select()
@@ -216,4 +225,6 @@ export async function deletePlaylist(principal: TrustedCreatorPrincipal, rawInpu
 		authorization.assertAuthorityCurrent();
 		return { deletedId: current.id };
 	});
+	trackServerProductEvent(principal.authUserId, "resource_deleted", { resource_type: "playlist", channel: principal.kind === "oauth" ? "ai" : "web" });
+	return analyticsResult;
 }

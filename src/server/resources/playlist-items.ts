@@ -1,4 +1,5 @@
 import "server-only";
+import { trackCommittedProductEvent } from "@/server/umami";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { and, asc, eq } from "drizzle-orm";
@@ -104,21 +105,24 @@ export async function savePlaylistItemSelection(principal: TrustedCreatorPrincip
 			.update(playlistsTable)
 			.set({ configurationRevision: revision, updatedAt: new Date(), ...(input.name !== undefined ? { name: input.name } : {}) })
 			.where(eq(playlistsTable.id, current.id));
+		const auditId = randomUUID();
 		async function recordPlaylistItemMutation() {
 			if (!projection?.skipAudit)
 				await tx.insert(auditEventsTable).values({
+					id: auditId,
 					actorUserId: principal.authUserId,
 					...(principal.kind === "session" ? { actorSessionId: principal.sessionId } : {}),
 					targetType: "playlist",
 					targetId: current.id,
 					action: principal.kind === "oauth" ? `sensitive-integration:mcp.${projection?.tool ?? "save_playlist_items"}` : input.requirePro ? "playlist.items.import" : "playlist.items.save",
 					outcome: "success",
-					correlationId: randomUUID(),
+					correlationId: auditId,
 					occurredAt: new Date(),
 					metadata: { creatorId: input.creatorId, revision, ...(projection ? { tool: projection.tool } : {}), ...(principal.kind === "oauth" ? { clientId: principal.clientId, grantId: principal.grantId, generation: principal.generation } : {}) },
 				});
 		}
 		await recordPlaylistItemMutation();
+		if (!projection?.skipAudit) trackCommittedProductEvent(principal.authUserId, auditId, input.requirePro || projection?.tool === "commit_playlist_import" ? "playlist_imported" : "playlist_clips_changed", { mode: input.mode, clip_count: nextRows.length, channel: principal.kind === "oauth" ? "ai" : "web" });
 		const result = projection ? await projection.projectResult({ ...current, name: input.name ?? current.name, configurationRevision: revision }, tx) : { clips, configurationRevision: revision, name: input.name ?? current.name };
 		authorization.assertAuthorityCurrent();
 		return result;

@@ -41,7 +41,7 @@ let currentPath = "/dashboard";
 const push = jest.fn(),
 	track = jest.fn();
 jest.mock("next/navigation", () => ({ usePathname: () => currentPath, useRouter: () => ({ push }) }));
-jest.mock("next-plausible", () => ({ usePlausible: () => track }));
+jest.mock("@lib/analytics", () => ({ trackEvent: (...args: unknown[]) => track(...args), trackProductEvent: jest.fn() }));
 jest.mock("@components/user-tour/spotlight", () => ({
 	__esModule: true,
 	default: ({ step, onPause, onNext }: any) => (
@@ -172,7 +172,7 @@ it("yields to consent preferences and leaves the pointer paused", async () => {
 it("emits only safe task identifiers for successful actions", async () => {
 	mount();
 	fireEvent.click(screen.getByText("Save successfully"));
-	await waitFor(() => expect(track).toHaveBeenCalledWith("guide_task_completed", { props: { journey: "overlay", task: "overlay.name" } }));
+	await waitFor(() => expect(track).toHaveBeenCalledWith("guide_task_completed", { journey: "overlay", task: "overlay.name" }));
 	expect(JSON.stringify(track.mock.calls)).not.toContain("overlay-1");
 });
 it("recognizes a nonempty preview after asynchronous loading", async () => {

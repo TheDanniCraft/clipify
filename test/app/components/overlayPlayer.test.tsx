@@ -1,3 +1,4 @@
+jest.mock("@actions/productPlayback", () => ({ recordOverlayPlayback: jest.fn().mockResolvedValue({ recorded: true }) }));
 import type { ElementType, ReactNode, VideoHTMLAttributes } from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import OverlayPlayer from "@/app/components/overlayPlayer";
@@ -264,6 +265,59 @@ describe("components/overlayPlayer", () => {
 	afterEach(() => {
 		jest.useRealTimers();
 		playMock.mockResolvedValue(undefined);
+	});
+
+	it("records confirmed playback once and retries a failed report after its cooldown", async () => {
+		const report = jest.requireMock("@actions/productPlayback").recordOverlayPlayback as jest.Mock;
+		report.mockRejectedValueOnce(new Error("fixture outage")).mockResolvedValue({ recorded: true });
+		const clock = jest.spyOn(Date, "now");
+		const now = Date.now();
+		clock.mockReturnValue(now);
+		const errors = jest.spyOn(console, "error").mockImplementation(() => undefined);
+		try {
+			getTwitchClipBatch.mockResolvedValue([buildClip("outcome-clip")]);
+			render(<OverlayPlayer overlay={buildOverlay()} overlaySecret='fixture-secret' />);
+			await screen.findByText("clip-outcome-clip");
+			const video = document.querySelector("video") as HTMLVideoElement;
+			Object.defineProperty(video, "paused", { configurable: true, value: false });
+			setVideoTiming(video, 60, 0);
+			fireEvent.timeUpdate(video);
+			expect(report).not.toHaveBeenCalled();
+			setVideoTiming(video, 60, 5);
+			await act(async () => {
+				fireEvent.timeUpdate(video);
+			});
+			expect(report).toHaveBeenCalledWith("overlay-1", "fixture-secret");
+			fireEvent.timeUpdate(video);
+			expect(report).toHaveBeenCalledTimes(1);
+			clock.mockReturnValue(now + 60_001);
+			await act(async () => {
+				fireEvent.timeUpdate(video);
+			});
+			expect(report).toHaveBeenCalledTimes(2);
+			fireEvent.timeUpdate(video);
+			expect(report).toHaveBeenCalledTimes(2);
+		} finally {
+			clock.mockRestore();
+			errors.mockRestore();
+		}
+	});
+
+	it("does not count dashboard iframe playback as creator activation", async () => {
+		getTwitchClipBatch.mockResolvedValue([buildClip("preview-outcome")]);
+		render(<OverlayPlayer overlay={buildOverlay()} overlaySecret='fixture-secret' />);
+		await screen.findByText("clip-preview-outcome");
+		const video = document.querySelector("video") as HTMLVideoElement;
+		Object.defineProperty(video, "paused", { configurable: true, value: false });
+		setVideoTiming(video, 60, 5);
+		const descriptor = Object.getOwnPropertyDescriptor(window, "self")!;
+		try {
+			Object.defineProperty(window, "self", { configurable: true, value: {} });
+			fireEvent.timeUpdate(video);
+			expect(jest.requireMock("@actions/productPlayback").recordOverlayPlayback).not.toHaveBeenCalled();
+		} finally {
+			Object.defineProperty(window, "self", descriptor);
+		}
 	});
 
 	it("prefers mod queue clips over normal queue during clip selection", async () => {

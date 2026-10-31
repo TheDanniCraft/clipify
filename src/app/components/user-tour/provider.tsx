@@ -2,7 +2,7 @@
 import { createContext, lazy, Suspense, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { notify as addToast } from "@lib/toast";
-import { usePlausible } from "next-plausible";
+import { trackEvent } from "@lib/analytics";
 import { Accordion, Button, Checkbox, Popover, ProgressCircle } from "@heroui/react";
 import { IconChevronRight, IconMinus, IconRotateClockwise } from "@tabler/icons-react";
 import { saveUserTourEvent } from "@actions/userTour";
@@ -84,7 +84,7 @@ function TaskCheckbox({ task, selected, current, onRequest, onConfirm, onRestore
 /** Server state is authoritative. Browser storage is only imported once for older accounts. */
 export function UserTourProvider({ accountId, children, appearanceAvailable = true, initialProgress = defaultProgress(), importLegacy = false, dashboardContent = [] }: { accountId: string; children: ReactNode; appearanceAvailable?: boolean; initialProgress?: GuideProgress; importLegacy?: boolean; dashboardContent?: DashboardContentItem[] }) {
 	const pathname = usePathname();
-	const track = usePlausible();
+
 	const [progress, setProgress] = useState(() => (pathname !== "/dashboard" && !initialProgress.active ? { ...initialProgress, minimized: true } : initialProgress));
 	const rawLocation = guideLocation(pathname);
 	const location = rawLocation === "overlay" && pathname !== `/dashboard/overlay/${progress.overlayId}` ? "other" : rawLocation === "playlist" && pathname !== `/dashboard/playlist/${progress.playlistId}` ? "other" : rawLocation;
@@ -183,12 +183,12 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 		};
 	}, []);
 	useEffect(() => {
-		for (const task of progress.completed) if (!seenCompletions.current.includes(task)) track("guide_task_completed", { props: { journey: task.split(".")[0], task } });
+		for (const task of progress.completed) if (!seenCompletions.current.includes(task)) trackEvent("guide_task_completed", { journey: task.split(".")[0], task });
 		seenCompletions.current = progress.completed;
-	}, [progress.completed, track]);
+	}, [progress.completed]);
 	const pause = useCallback(
 		(reason = "") => {
-			if (activeTask) track("guide_paused", { props: { journey: activeTask.split(".")[0], task: activeTask } });
+			if (activeTask) trackEvent("guide_paused", { journey: activeTask.split(".")[0], task: activeTask });
 			setMessage(reason);
 			report({ type: "pause" });
 			setTimeout(() => {
@@ -197,7 +197,7 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 				launcher.current?.focus();
 			}, 0);
 		},
-		[activeTask, report, track],
+		[activeTask, report],
 	);
 	useEffect(() => {
 		if (previousPath.current === pathname) return;
@@ -230,7 +230,7 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 		setExpanded(section?.id ?? "overlay");
 		if (active?.task === task) report({ type: "resume", location, pickerOpen: Boolean(document.querySelector('[data-tour="playlist-clip-search"]')) });
 		else report({ type: "start", task, location, pickerOpen: Boolean(document.querySelector('[data-tour="playlist-clip-search"]')) });
-		track("guide_started", { props: { journey: task.split(".")[0], task } });
+		trackEvent("guide_started", { journey: task.split(".")[0], task });
 	};
 	const onPause = useCallback(() => pause(), [pause]);
 	const onMissing = useCallback(() => pause(step?.inDialog ? "Clip selection closed. Click the task to reopen it." : "That control isn't available here. Close any open dialog and try the task again."), [pause, step?.inDialog]);

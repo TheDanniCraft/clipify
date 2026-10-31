@@ -19,7 +19,6 @@ import UpgradeModal from "@components/upgradeModal";
 import ConfirmModal from "@components/confirmModal";
 import AppPagination from "@components/appPagination";
 import { getFeatureAccess, getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
-import { usePlausible } from "next-plausible";
 import { trackPaywallEvent } from "@lib/paywallTracking";
 
 import { CopyText } from "./copy-text";
@@ -68,7 +67,10 @@ export default function OverlayTable({ userId }: { userId: string }) {
 	const [unlinkRequest, setUnlinkRequest] = useState<null | { kind: "runner"; ids: string[]; name: string }>(null);
 	const { isOpen: isUpgradeOpen, open: onUpgradeOpen, setOpen: onUpgradeOpenChange } = useOverlayState();
 	const [trialUpgrade, setTrialUpgrade] = React.useState(false);
-	const plausible = usePlausible();
+	const bannerTracked = React.useRef(false);
+	useEffect(() => {
+		bannerTracked.current = false;
+	}, [activeTab, userId]);
 
 	const [statusFilter, setStatusFilter] = React.useState("all");
 	const [runnerLinkFilter, setRunnerLinkFilter] = React.useState("all");
@@ -144,13 +146,18 @@ export default function OverlayTable({ userId }: { userId: string }) {
 	useEffect(() => {
 		if (!currentUser) return;
 		const effectivePlan = currentUser.entitlements?.effectivePlan ?? currentUser.plan;
-		if (effectivePlan !== "free") return;
+		if (effectivePlan !== "free") {
+			bannerTracked.current = false;
+			return;
+		}
+		if (bannerTracked.current) return;
 
 		if (activeTab === "overlays") {
 			const ownerOverlaysCount = overlays?.filter((o) => o.ownerId === userId).length ?? 0;
 			if (ownerOverlaysCount < 1) return;
 			if (getFeatureAccess(currentUser, "multi_overlay").allowed) return;
-			trackPaywallEvent(plausible, "paywall_impression", {
+			bannerTracked.current = true;
+			trackPaywallEvent("paywall_impression", {
 				source: "paywall_banner",
 				feature: "multi_overlay",
 				plan: currentUser.plan,
@@ -160,7 +167,8 @@ export default function OverlayTable({ userId }: { userId: string }) {
 			const ownerPlaylistsCount = playlists?.filter((p) => p.ownerId === userId).length ?? 0;
 			if (ownerPlaylistsCount < 1) return;
 			if (getFeatureAccess(currentUser, "multi_playlist").allowed) return;
-			trackPaywallEvent(plausible, "paywall_impression", {
+			bannerTracked.current = true;
+			trackPaywallEvent("paywall_impression", {
 				source: "paywall_banner",
 				feature: "multi_playlist",
 				plan: currentUser.plan,
@@ -170,14 +178,15 @@ export default function OverlayTable({ userId }: { userId: string }) {
 			const ownerGalleriesCount = galleries?.filter((gallery) => gallery.ownerId === userId).length ?? 0;
 			if (ownerGalleriesCount < 1) return;
 			if (getFeatureAccess(currentUser, "multi_gallery").allowed) return;
-			trackPaywallEvent(plausible, "paywall_impression", {
+			bannerTracked.current = true;
+			trackPaywallEvent("paywall_impression", {
 				source: "paywall_banner",
 				feature: "multi_gallery",
 				plan: currentUser.plan,
 				gallery_count: ownerGalleriesCount,
 			});
 		}
-	}, [currentUser, overlays, playlists, galleries, plausible, userId, activeTab]);
+	}, [currentUser, overlays, playlists, galleries, userId, activeTab]);
 
 	// Plan is available on currentUser; avoid extra fetch.
 
@@ -948,7 +957,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 							setIsLoading(true);
 
 							if (activeTab === "overlays" && effectivePlan === "free" && ownerOverlaysCount >= 1 && !multiOverlayAccess.allowed) {
-								trackPaywallEvent(plausible, "paywall_cta_click", {
+								trackPaywallEvent("paywall_cta_click", {
 									source: "paywall_banner",
 									feature: "multi_overlay",
 									plan: currentUser?.plan ?? "free",
@@ -972,7 +981,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 							}
 
 							if (activeTab === "playlists" && effectivePlan === "free" && ownerPlaylistsCount >= 1 && !multiPlaylistAccess.allowed) {
-								trackPaywallEvent(plausible, "paywall_cta_click", {
+								trackPaywallEvent("paywall_cta_click", {
 									source: "paywall_banner",
 									feature: "multi_playlist",
 									plan: currentUser?.plan ?? "free",
@@ -996,7 +1005,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 							}
 
 							if (activeTab === "galleries" && effectivePlan === "free" && ownerGalleriesCount >= 1 && !multiGalleryAccess.allowed) {
-								trackPaywallEvent(plausible, "paywall_cta_click", {
+								trackPaywallEvent("paywall_cta_click", {
 									source: "paywall_banner",
 									feature: "multi_gallery",
 									plan: currentUser?.plan ?? "free",
@@ -1091,7 +1100,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 							variant='primary'
 							className='font-semibold'
 							onPress={() => {
-								trackPaywallEvent(plausible, "paywall_cta_click", {
+								trackPaywallEvent("paywall_cta_click", {
 									source: "paywall_banner",
 									feature: "trial_active",
 									plan: currentUser?.plan ?? "free",
@@ -1106,7 +1115,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 				)}
 			</div>
 		);
-	}, [activeTab, overlays, playlists, galleries, runners, userId, currentUser, reloadOverlays, isLoading, plausible, onUpgradeOpen, router, reportTour]);
+	}, [activeTab, overlays, playlists, galleries, runners, userId, currentUser, reloadOverlays, isLoading, onUpgradeOpen, router, reportTour]);
 
 	const bottomContent = useMemo(() => {
 		return (

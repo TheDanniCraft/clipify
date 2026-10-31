@@ -6,6 +6,8 @@ import { chatwootConsentScript } from "@/app/lib/consent/chatwoot";
 
 const mockUseScriptLoader = jest.fn();
 let mockFunctionalityAllowed = false;
+let mockBannerVisible = false;
+let mockDialogVisible = false;
 const mockOpenDialog = jest.fn();
 let mockPathname = "/";
 let mockIsEmbedded = false;
@@ -32,7 +34,7 @@ jest.mock("c15t/next", () => ({
 }));
 
 jest.mock("c15t/next/headless", () => ({
-	useHeadlessConsentUI: () => ({ openDialog: mockOpenDialog }),
+	useHeadlessConsentUI: () => ({ openDialog: mockOpenDialog, banner: { isVisible: mockBannerVisible }, dialog: { isVisible: mockDialogVisible } }),
 }));
 
 jest.mock("@heroui/react", () => ({
@@ -56,6 +58,8 @@ describe("components/ChatWidget", () => {
 		delete window.$chatwoot;
 		document.querySelectorAll(".woot--bubble-holder, .woot-widget-holder").forEach((element) => element.remove());
 		mockFunctionalityAllowed = false;
+		mockBannerVisible = false;
+		mockDialogVisible = false;
 	});
 
 	it("registers Chatwoot with c15t and offers consent while functionality is denied", () => {
@@ -151,5 +155,37 @@ describe("components/ChatWidget", () => {
 		mountChatwootWidget();
 		fireEvent(window, new Event("chatwoot:ready"));
 		expect(toggleBubbleVisibility).toHaveBeenCalledWith("show");
+	});
+
+	it("keeps the local support preview visible with the initial banner and hides it for the preferences dialog", () => {
+		mockBannerVisible = true;
+		const { rerender } = render(<ChatWidget />);
+		expect(screen.getByRole("button", { name: "Enable support chat" })).toBeVisible();
+		mockDialogVisible = true;
+		rerender(<ChatWidget />);
+		expect(screen.queryByRole("button", { name: "Enable support chat" })).not.toBeInTheDocument();
+		mockDialogVisible = false;
+		mockBannerVisible = false;
+		rerender(<ChatWidget />);
+		expect(screen.getByRole("button", { name: "Enable support chat" })).toBeVisible();
+	});
+
+	it("hides an already mounted support widget while privacy choices are open", () => {
+		mockBannerVisible = false;
+		mockDialogVisible = false;
+		mockFunctionalityAllowed = true;
+		const toggle = jest.fn(),
+			toggleBubbleVisibility = jest.fn();
+		window.$chatwoot = { toggle, toggleBubbleVisibility } as unknown as NonNullable<Window["$chatwoot"]>;
+		mountChatwootWidget();
+		const { rerender } = render(<ChatWidget />);
+		toggleBubbleVisibility.mockClear();
+		mockBannerVisible = true;
+		rerender(<ChatWidget />);
+		expect(toggle).toHaveBeenCalledWith("close");
+		expect(toggleBubbleVisibility).toHaveBeenCalledWith("hide");
+		mockBannerVisible = false;
+		rerender(<ChatWidget />);
+		expect(toggleBubbleVisibility).toHaveBeenLastCalledWith("show");
 	});
 });

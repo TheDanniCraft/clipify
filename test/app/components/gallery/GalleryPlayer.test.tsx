@@ -7,7 +7,7 @@ const plausible = jest.fn();
 const carouselApi = { on: jest.fn(), off: jest.fn(), selectedScrollSnap: jest.fn(() => 0), scrollPrev: jest.fn(), scrollNext: jest.fn() };
 let selectCallback: (() => void) | undefined;
 
-jest.mock("next-plausible", () => ({ usePlausible: () => plausible }));
+jest.mock("@lib/analytics", () => ({ trackEvent: (...args: unknown[]) => plausible(...args), trackProductEvent: jest.fn() }));
 jest.mock(
 	"@heroui-pro/react/carousel",
 	() => {
@@ -99,7 +99,7 @@ describe("GalleryPlayer", () => {
 		act(() => jest.advanceTimersByTime(4_999));
 		expect(plausible).not.toHaveBeenCalledWith("clip_played", expect.anything());
 		act(() => jest.advanceTimersByTime(1));
-		expect(plausible).toHaveBeenCalledWith("clip_played", expect.objectContaining({ props: expect.objectContaining({ galleryId: "gallery-1", clipId: "one" }) }));
+		expect(plausible).toHaveBeenCalledWith("clip_played", expect.objectContaining({ galleryId: "gallery-1", clipId: "one" }));
 		Object.defineProperty(video, "paused", { configurable: true, value: false });
 		fireEvent.click(screen.getByRole("button", { name: "Pause" }));
 		expect(pause).toHaveBeenCalled();

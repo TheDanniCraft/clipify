@@ -1,34 +1,33 @@
+import { socialPreview } from "@lib/socialPreview";
+import { connection } from "next/server";
+import RoadmapIcon from "@components/roadmap/roadmapIcon";
+import PublicPageHeader from "@components/LandingPage/publicPageHeader";
 import Footer from "@components/footer";
 import BasicNavbar from "@components/LandingPage/basicNavbar";
-import { RoadmapItem } from "@components/roadmap/roadmapItem";
+import RoadmapSections from "@components/roadmap/roadmapSections";
 import { getRoadmapItems } from "@lib/roadmap";
 
+export const metadata = {
+	title: "Roadmap | Clipify",
+	description: "Explore current and upcoming Clipify improvements for Twitch creators.",
+	alternates: { canonical: "https://clipify.us/roadmap" },
+	openGraph: { ...socialPreview, title: "Roadmap | Clipify", description: "Explore current and upcoming Clipify improvements for Twitch creators.", url: "https://clipify.us/roadmap" },
+};
+
 export default async function RoadmapPage() {
+	await connection();
 	const roadmapItems = await getRoadmapItems();
 
 	return (
 		<>
 			<BasicNavbar />
 
-			<div className='min-h-screen bg-background text-foreground p-6'>
-				<div className='max-w-5xl mx-auto'>
-					<h1 className='text-4xl font-bold text-center mb-2 flex items-center justify-center gap-2'>
-						<span className='text-accent'>✨</span>
-						Product Roadmap
-						<span className='text-accent'>✨</span>
-					</h1>
-					<p className='text-center text-muted mb-12'>See what we&apos;re building next and help shape the future of Clipify</p>
+			<main className='min-h-screen bg-background px-6 py-14 sm:px-8 sm:py-20 text-foreground'>
+				<div className='max-w-6xl mx-auto'>
+					<PublicPageHeader title='What we’re building.' description='Follow work in progress, upcoming ideas, and the milestones already on your stream.' />
 
 					{roadmapItems.length > 0 ? (
-						<div className='relative'>
-							<div className='absolute left-3.5 top-6 bottom-6 w-0.5 bg-gradient-to-b from-muted via-muted to-transparent opacity-20 z-0'></div>
-
-							<div className='space-y-6'>
-								{roadmapItems.map((item, index) => (
-									<RoadmapItem key={index} icon={item.icon} color={item.color} title={item.title} description={item.description} status={item.status} timeframe={item.timeframe} features={item.features} />
-								))}
-							</div>
-						</div>
+						<RoadmapSections items={roadmapItems.map((item) => ({ ...item, visual: <RoadmapIcon icon={item.icon} color={item.color} /> }))} />
 					) : (
 						<div className='rounded-3xl border border-default bg-surface px-6 py-16 text-center'>
 							<h2 className='text-2xl font-semibold'>Roadmap unavailable</h2>
@@ -36,7 +35,7 @@ export default async function RoadmapPage() {
 						</div>
 					)}
 				</div>
-			</div>
+			</main>
 
 			<Footer />
 		</>

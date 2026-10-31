@@ -19,32 +19,31 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 	return [
 		{
 			url: baseUrl.toString(),
-			lastModified: new Date(),
 			changeFrequency: "monthly",
 			priority: 1,
 		},
 		{
 			url: `${baseUrl}changelog`,
-			lastModified: new Date(),
 			changeFrequency: "weekly",
 			priority: 0.8,
 		},
 		{
 			url: `${baseUrl}pricing`,
-			lastModified: new Date(),
 			changeFrequency: "monthly",
 			priority: 0.9,
 		},
 
 		{
 			url: `${baseUrl}roadmap`,
-			lastModified: new Date(),
 			changeFrequency: "monthly",
 			priority: 0.7,
 		},
+		{ url: `${baseUrl}community`, changeFrequency: "weekly", priority: 0.7 },
+		{ url: `${baseUrl}gallery`, changeFrequency: "monthly", priority: 0.6 },
+		{ url: `${baseUrl}features`, changeFrequency: "monthly", priority: 0.8 },
 		...creators.map((creator) => ({
 			url: new URL(`/creators/${encodeURIComponent(creator.username.toLowerCase())}`, baseUrl).toString(),
-			lastModified: creator.updatedAt ?? new Date(),
+			...(creator.updatedAt ? { lastModified: creator.updatedAt } : {}),
 			changeFrequency: "daily" as const,
 			priority: 0.7,
 		})),

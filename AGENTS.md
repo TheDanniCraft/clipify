@@ -70,23 +70,27 @@ Resources
 
 Release notes appear on the Clipify website and are written for end users.
 
-- Use plain lines of Gitmoji commit subjects, matching previous releases. Keep
-  the emoji and concise imperative wording; do not add Markdown bullets, section
-  headings, PR numbers, test results, deployment instructions, or explanatory
-  paragraphs.
-- Start from commits since the previous release. Combine related subjects into
-  one clear line when helpful, remove duplicates and merge-only commits, and
-  omit changes that are irrelevant to end users.
-- Keep only changes included in the release target. Describe user-visible fixes
-  or features clearly rather than exposing internal implementation details.
-- Review recent published releases before writing notes. Do not use GitHub's
-  generated release-note template.
+- Write plain lines of concise, end-user change summaries. Do not copy Gitmoji
+  commit subjects verbatim. Omit emojis, Markdown bullets, section headings,
+  PR numbers, test results, deployment instructions and implementation detail.
+- Start from pull requests squash-merged since the previous release and included
+  in the release target. Review each PR's final description and diff, and consult
+  its original commits when needed: one squash subject can hide several distinct
+  user-visible improvements. A PR can contribute more than one release-note line.
+- Combine related outcomes, remove duplicates, and omit changes irrelevant to end
+  users. Describe only behavior actually included in the release target.
+- Review recent published releases for product context. Do not use GitHub's
+  generated release-note template. This plain-text policy applies to new releases;
+  do not rewrite previously published notes unless explicitly requested.
+- Commit messages and squash PR titles still follow the Gitmoji convention above;
+  release notes are a separate editorial artifact.
 
 Example:
 
 ```text
-🐛 Fix OAuth sign-in across production and preview
-💄 Refine team and authorization management
+Fix account access and deployment recovery
+Keep connected AI apps authorized between sessions
+Add advanced Runner ingest settings
 ```
 
 ## Local test prerequisites

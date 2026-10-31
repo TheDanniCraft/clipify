@@ -100,6 +100,10 @@ describe("Better Auth hooks own Clipify creator setup", () => {
 		const row = await state(id);
 		expect(row).toMatchObject({ plan: "free", onboarding_pending: false, prefix: "!", creator_page_visibility: "discoverable", trials: 1, owners: 1, links: 1 });
 		expect(row.member_number).toBeGreaterThan(0);
+		expect((await fixture.pool.query("SELECT action,count(*)::int AS count FROM audit_events WHERE target_id=$1 AND action LIKE 'product:%' GROUP BY action ORDER BY action", [id])).rows).toEqual([
+			{ action: "product:creator_created", count: 1 },
+			{ action: "product:trial_granted", count: 1 },
+		]);
 		expect(row.twitch_created_at.toISOString()).toBe("2012-04-15T13:45:00.000Z");
 		return row;
 	}
@@ -110,6 +114,7 @@ describe("Better Auth hooks own Clipify creator setup", () => {
 		const id = randomUUID();
 		probe(id);
 		expect((await expectComplete(id)).member_number).toBe(1);
+		expect(probe(id, "entitlements")).toMatchObject({ proAccess: true, reverseTrialActive: true, isBillingPro: false });
 		const notices = await fixture.pool.query("SELECT count(*)::int AS count FROM notification_outbox WHERE dedupe_key LIKE 'benefit:%:granted' AND recipient=$1", [`${id}@example.invalid`]);
 		expect(notices.rows[0].count).toBe(1);
 	});
@@ -196,6 +201,10 @@ describe("Better Auth hooks own Clipify creator setup", () => {
 		const after = await state(id);
 		expect(after).toMatchObject({ member_number: before.member_number, prefix: "custom!", marketing_opt_in: false, owners: 1, links: 1, trials: 1 });
 		expect((await fixture.pool.query("SELECT ends_at < now() AS expired FROM entitlement_grants WHERE user_id=$1", [id])).rows[0].expired).toBe(true);
+		expect((await fixture.pool.query("SELECT count(*)::int AS count FROM audit_events WHERE target_id=$1 AND action='product:creator_created'", [id])).rows[0].count).toBe(1);
+		expect(after.plan).toBe("free");
+		expect(probe(id, "entitlements")).toMatchObject({ proAccess: false, reverseTrialActive: false, effectivePlan: "free" });
+		expect((await fixture.pool.query("SELECT count(*)::int AS count FROM billing_subscriptions WHERE user_id=$1", [id])).rows[0].count).toBe(0);
 	});
 
 	it("preserves a pre-existing paid, manually disabled creator when Twitch is linked", async () => {
