@@ -108,7 +108,7 @@ async function start(email = "streamer@example.invalid") {
 	await act(async () => verification.onSuccess("fixture-verification"));
 	return input;
 }
-it("loads compact verification only inside the modal and requires a valid unexpired token", async () => {
+it("loads horizontal verification only inside the modal and requires a valid unexpired token", async () => {
 	render(<Footer />);
 	await screen.findByText("All systems operational");
 	expect(screen.queryByTestId("newsletter-verification")).not.toBeInTheDocument();
@@ -117,7 +117,7 @@ it("loads compact verification only inside the modal and requires a valid unexpi
 	fireEvent.submit(input.closest("form")!);
 	const widget = await screen.findByTestId("newsletter-verification");
 	expect(widget.closest('[role="dialog"]')).not.toBeNull();
-	expect(widget).toHaveAttribute("data-size", "compact");
+	expect(widget).toHaveAttribute("data-size", "normal");
 	expect(widget).toHaveAttribute("data-appearance", "always");
 	expect(widget).toHaveAttribute("data-theme", "dark");
 	const submit = screen.getByRole("button", { name: /^Subscribe$/ });
