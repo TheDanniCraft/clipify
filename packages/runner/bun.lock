@@ -6,17 +6,17 @@
       "name": "@clipify/runner-internal",
       "dependencies": {
         "@internationalized/date": "3.12.4",
-        "@napi-rs/keyring": "^2.1.1",
-        "@puppeteer/browsers": "^3.2.5",
-        "puppeteer-core": "^25.14.0",
+        "@napi-rs/keyring": "^2.1.2",
+        "@puppeteer/browsers": "^3.2.6",
+        "puppeteer-core": "^25.16.0",
         "puppeteer-stream": "^3.0.23",
       },
       "devDependencies": {
-        "@swc/core": "^1.16.18",
+        "@swc/core": "^1.16.20",
         "@swc/jest": "^0.2.39",
         "@types/jest": "^30.0.0",
         "@types/node": "^26.6.5",
-        "@yao-pkg/pkg": "6.23.0",
+        "@yao-pkg/pkg": "6.24.0",
         "esbuild": "^0.28.2",
         "jest": "^30.5.2",
         "resedit": "^3.1.0",
@@ -26,13 +26,13 @@
   },
   "patchedDependencies": {
     "puppeteer-core@24.43.1": "patches/puppeteer-core-24.patch",
-    "@yao-pkg/pkg@6.23.0": "patches/yao-pkg-qemu.patch",
+    "@yao-pkg/pkg@6.24.0": "patches/yao-pkg-qemu.patch",
     "puppeteer-stream@3.0.23": "patches/puppeteer-stream.patch",
   },
   "overrides": {
-    "@puppeteer/browsers": "^3.2.3",
+    "@puppeteer/browsers": "^3.2.6",
     "undici": "^7.30.1",
-    "zod": "4.6.6",
+    "zod": "4.6.7",
   },
   "packages": {
     "@babel/code-frame": ["@babel/code-frame@7.29.7", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.29.7", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, "sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw=="],
@@ -399,9 +399,9 @@
 
     "@unrs/resolver-binding-win32-x64-msvc": ["@unrs/resolver-binding-win32-x64-msvc@1.12.2", "", { "os": "win32", "cpu": "x64" }, "sha512-nAB74NfSNKknqQ1RrYj6uz8FcXEomu/MATJZxh/x+BArzN2U3JbOYC0APYzUIGhVY3m5hRxA8VPNdPBoG8txlA=="],
 
-    "@yao-pkg/pkg": ["@yao-pkg/pkg@6.23.0", "", { "dependencies": { "@babel/generator": "^7.23.0", "@babel/parser": "^7.23.0", "@babel/traverse": "^7.23.0", "@babel/types": "^7.23.0", "@roberts_lando/vfs": "^0.3.3", "@yao-pkg/pkg-fetch": "3.6.6", "esbuild": "^0.28.1", "into-stream": "^9.1.0", "multistream": "^4.1.0", "picocolors": "^1.1.0", "picomatch": "^4.0.2", "postject": "^1.0.0-alpha.6", "prebuild-install": "^7.1.1", "resolve": "^1.22.10", "resolve.exports": "^2.0.3", "stream-meter": "^1.0.4", "tar": "^7.5.7", "tinyglobby": "^0.2.11", "unzipper": "^0.12.3" }, "bin": { "pkg": "lib-es5/bin.js" } }, "sha512-+d8iqRcmDxPpTE5fbSmsn1rShktIKvMcQGcFhwLdH15A4g2fBcRVLXppeQmu9fbF98bhYXjCOj6UTf3odXxWiA=="],
+    "@yao-pkg/pkg": ["@yao-pkg/pkg@6.24.0", "", { "dependencies": { "@babel/generator": "^7.23.0", "@babel/parser": "^7.23.0", "@babel/traverse": "^7.23.0", "@babel/types": "^7.23.0", "@roberts_lando/vfs": "^0.3.3", "@yao-pkg/pkg-fetch": "3.6.7", "esbuild": "^0.28.1", "into-stream": "^9.1.0", "multistream": "^4.1.0", "picocolors": "^1.1.0", "picomatch": "^4.0.2", "postject": "^1.0.0-alpha.6", "prebuild-install": "^7.1.1", "resolve": "^1.22.10", "resolve.exports": "^2.0.3", "stream-meter": "^1.0.4", "tar": "^7.5.7", "tinyglobby": "^0.2.11", "unzipper": "^0.12.3" }, "bin": { "pkg": "lib-es5/bin.js" } }, "sha512-SMwFLic12noHLbqxhhQVClVX6YZlQtzwwez6dq7Xj64rXX6OFgZTTQbPgw4wgec5IoUN+6rCRKgyW/cnVPOwkA=="],
 
-    "@yao-pkg/pkg-fetch": ["@yao-pkg/pkg-fetch@3.6.6", "", { "dependencies": { "picocolors": "^1.1.0", "progress": "^2.0.3", "semver": "^7.3.5", "tar-fs": "^3.1.1", "undici": "^7.28.0", "yargs": "^16.2.0" }, "bin": { "pkg-fetch": "lib-es5/bin.js" } }, "sha512-Nu9ytHewcV6FuH4WvdpYZxz2XwiP2p30jlPBzbvwsS3OPYN7RRTyGrXhcmhS59O3AdXz/LW+4bozhV3alN+MEA=="],
+    "@yao-pkg/pkg-fetch": ["@yao-pkg/pkg-fetch@3.6.7", "", { "dependencies": { "picocolors": "^1.1.0", "progress": "^2.0.3", "semver": "^7.3.5", "tar-fs": "^3.1.1", "undici": "^7.28.0", "yargs": "^16.2.0" }, "bin": { "pkg-fetch": "lib-es5/bin.js" } }, "sha512-uEeU5druVgHffruTAXzW6nf0wHfREWlCq5LBtQ4hCdLBDbwTteuym5NrxREur3EgNcqFRenEi6Rivwo723PkHg=="],
 
     "ansi-escapes": ["ansi-escapes@4.3.2", "", { "dependencies": { "type-fest": "^0.21.3" } }, "sha512-gKXj5ALrKWQLsYG9jlTRmR/xKluxHV+Z9QEwNIgCfM1/uwPMCuzVVnh5mwTd+OuBZcwSIMbqssNWRm1lE51QaQ=="],
 
@@ -923,7 +923,7 @@
 
     "yocto-queue": ["yocto-queue@0.1.0", "", {}, "sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q=="],
 
-    "zod": ["zod@4.6.6", "", {}, "sha512-4UmzQUF5fxvfcYHlbjBmejU+w+hbDnWFx4aS8kBx7nPBHcO2SqPbpAG8snbdg+Xse4pRefR98hgjFgIMCI/UhA=="],
+    "zod": ["zod@4.6.7", "", {}, "sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg=="],
 
     "@babel/core/semver": ["semver@6.3.1", "", { "bin": { "semver": "bin/semver.js" } }, "sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA=="],
 
