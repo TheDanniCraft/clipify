@@ -241,7 +241,18 @@ export default function ThemeColorInput({ label, value, onChange, defaultValue, 
 	}, [allowAlpha, hsv.h, hsv.s, hsv.v, parsed.a]);
 	const color = useMemo(() => parseColor(normalizedValue), [normalizedValue]);
 	const latestColorRef = useRef(normalizedValue);
-	const swatches = useMemo(() => Array.from(new Set([defaultValue, "#7C3AED", "#9146FF", "#FFFFFF", "#000000", ...recentColors].map((entry) => entry.trim()).filter(Boolean))), [defaultValue, recentColors]);
+	const swatches = useMemo(() => {
+		// React Aria derives item IDs from hexa, independent of React keys.
+		const colors = new Set<string>();
+		for (const entry of [defaultValue, "#7C3AED", "#9146FF", "#FFFFFF", "#000000", ...recentColors]) {
+			try {
+				colors.add(parseColor(entry.trim()).toString("hexa"));
+			} catch {
+				// Ignore invalid colors from older or edited local storage.
+			}
+		}
+		return [...colors];
+	}, [defaultValue, recentColors]);
 
 	useEffect(() => {
 		latestColorRef.current = normalizedValue;

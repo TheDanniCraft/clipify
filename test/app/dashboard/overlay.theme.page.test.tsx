@@ -556,7 +556,7 @@ test("viewport resize restores desktop layout editing without making saved setti
 test("swatch selection commits exact recent color and saving advances the loaded revision", async () => {
 	await ready();
 	const picker = screen.getByRole("group", { name: "Text Color" });
-	fireEvent.click(within(picker).getByRole("button", { name: "Swatch #9146FF" }));
+	fireEvent.click(within(picker).getByRole("button", { name: /Swatch #9146ffff/i }));
 	expect(JSON.parse(window.localStorage.getItem("clipify:overlay-theme-recent-colors")!)[0]).toBe("rgba(145, 70, 255, 1)");
 	fireEvent.click(screen.getByRole("button", { name: "Save Style" }));
 	await waitFor(() => expect(saveOverlay).toHaveBeenCalledWith("overlay-1", expect.objectContaining({ themeTextColor: expect.stringMatching(/^#9146ff$/i) }), 7));
@@ -701,4 +701,22 @@ test("reports saved appearance only after successful persistence", async () => {
 	fireEvent.click(screen.getByRole("button", { name: "Reset Theme" }));
 	fireEvent.click(screen.getByRole("button", { name: "Save Style" }));
 	await waitFor(() => expect(reportTour).toHaveBeenCalledWith(expect.objectContaining({ type: "theme.saved", id: "overlay-1", changed: true })));
+});
+
+test("equivalent recent colors have unique swatch identities while preserving opacity", async () => {
+	window.localStorage.setItem("clipify:overlay-theme-recent-colors", JSON.stringify(["#fff", "rgba(255, 255, 255, 1)", "hsl(0, 0%, 100%)", "rgba(255, 255, 255, 0.5)"]));
+	await ready();
+	const parseColor = jest.requireActual("@react-stately/color").parseColor;
+	const colors = within(screen.getByRole("group", { name: "Background Color" }))
+		.getAllByRole("button", { name: /^Swatch / })
+		.map((button) => parseColor(button.getAttribute("aria-label")!.slice(7)).toString("hexa"));
+	expect(new Set(colors).size).toBe(colors.length);
+	expect(colors).toContain("#FFFFFFFF");
+	expect(colors).toContain("#FFFFFF80");
+});
+
+test("invalid recent color strings do not enter the swatch collection", async () => {
+	window.localStorage.setItem("clipify:overlay-theme-recent-colors", JSON.stringify(["not-a-color", "#abcdef"]));
+	await ready();
+	expect(screen.queryByRole("button", { name: "Swatch not-a-color" })).not.toBeInTheDocument();
 });

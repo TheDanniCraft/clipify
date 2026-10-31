@@ -1117,7 +1117,11 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 				return true;
 			}
 
-			const candidate = await getRandomClip();
+			const candidate = await getRandomClip().catch((error) => {
+				requestDeploymentCheck();
+				console.error("Error selecting next clip:", error);
+				return null;
+			});
 			if (!candidate) {
 				// Keep current clip if we can't fetch a new one (avoid blank background on skip).
 				return false;
@@ -1508,7 +1512,12 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 			const { name, data: payload } = data as { name?: string; data?: unknown };
 			if (typeof name !== "string" || name.length === 0) return;
 
-			await handleCommand(name, typeof payload === "string" ? payload : "");
+			try {
+				await handleCommand(name, typeof payload === "string" ? payload : "");
+			} catch (error) {
+				requestDeploymentCheck();
+				console.error("Error handling demo command:", error);
+			}
 		};
 
 		function setupWebSocket() {
@@ -1653,7 +1662,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 	}, [refreshClipPool]);
 
 	/**
-	 * Initial clip load (RUNS ONCE).
+	 * Initial clip load, retrying until playback is available.
 	 */
 	const didInitRef = useRef(false);
 	useEffect(() => {
@@ -1662,10 +1671,13 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 		didInitRef.current = true;
 		let cancelled = false;
 		let committed = false;
+		let retryTimer: ReturnType<typeof setTimeout> | null = null;
+		let retryDelayMs = 5000;
 
 		const run = async () => {
+			if (cancelled || clipRef.current) return;
 			const candidate = await getRandomClip();
-			if (runnerDrainRef.current?.canAdvance() === false || cancelled || isStandbyRef.current || !candidate) return;
+			if (runnerDrainRef.current?.canAdvance() === false || cancelled || isStandbyRef.current || clipRef.current || !candidate) return;
 
 			const myReqId = ++requestIdRef.current;
 			const built = await buildVideoClipFast(candidate.clip);
@@ -1675,38 +1687,42 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 				await consumeQueueItem(candidate.queueItem);
 				if (runnerDrainRef.current?.canAdvance() === false || cancelled || isStandbyRef.current || myReqId !== requestIdRef.current) return;
 				committed = true;
-				if (activeSlot === "a") {
-					readyARef.current = false;
-					setClipA(built);
-					readyBRef.current = false;
-					setClipB(null);
-					if (videoBRef.current) {
-						videoBRef.current.pause();
-						videoBRef.current.currentTime = 0;
-					}
-				} else {
-					readyBRef.current = false;
-					setClipB(built);
-					readyARef.current = false;
-					setClipA(null);
-					if (videoARef.current) {
-						videoARef.current.pause();
-						videoARef.current.currentTime = 0;
-					}
+				readyARef.current = false;
+				setClipA(built);
+				readyBRef.current = false;
+				setClipB(null);
+				if (videoBRef.current) {
+					videoBRef.current.pause();
+					videoBRef.current.currentTime = 0;
 				}
 				setVideoClip(built);
 				setShowOverlay(true);
 			}
 		};
 
-		void run().finally(() => {
-			if (runnerPresentation && !cancelled && !isStandbyRef.current) setRunnerSelectionSettled(true);
-		});
+		const load = async () => {
+			try {
+				await run();
+			} catch (error) {
+				if (!cancelled) {
+					requestDeploymentCheck();
+					console.error("Error loading initial clip:", error);
+				}
+			} finally {
+				if (runnerPresentation && !cancelled && !isStandbyRef.current) setRunnerSelectionSettled(true);
+				if (!committed && !cancelled && !clipRef.current && !isStandbyRef.current && runnerDrainRef.current?.canAdvance() !== false) {
+					retryTimer = setTimeout(load, retryDelayMs);
+					retryDelayMs = Math.min(retryDelayMs * 2, 30000);
+				}
+			}
+		};
+		void load();
 		return () => {
 			cancelled = true;
+			if (retryTimer) clearTimeout(retryTimer);
 			if (!committed) didInitRef.current = false;
 		};
-	}, [activeSlot, buildVideoClipFast, consumeQueueItem, getRandomClip, isDemoPlayer, isStandby, runnerPresentation]);
+	}, [buildVideoClipFast, consumeQueueItem, getRandomClip, isDemoPlayer, isStandby, runnerPresentation]);
 
 	/**
 	 * Prefetch next clip while current plays.
@@ -1732,7 +1748,12 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 			nextQueueItemRef.current = candidate.queueItem ?? null;
 		}
 
-		prefetchNext();
+		void prefetchNext().catch((error) => {
+			if (!cancelled) {
+				requestDeploymentCheck();
+				console.error("Error prefetching next clip:", error);
+			}
+		});
 
 		return () => {
 			cancelled = true;

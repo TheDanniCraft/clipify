@@ -112,9 +112,9 @@ Add advanced Runner ingest settings
   smallest sufficient test boundary, one execution owner, duration-planned independent
   shards, and strict merged evidence before squash merge.
 
-- Open new pull requests as drafts by default. Draft CI provides scoped feedback;
-  it does not satisfy the required full Test gate. Mark ready only at the final
-  review checkpoint; `ready_for_review` triggers complete validation.
+- Open completed work as normal pull requests by default. Use drafts only for
+  rough or unfinished work. Draft CI provides scoped feedback without deliberately
+  failing the full Test gate; `ready_for_review` triggers complete validation.
 - During development, run the changed behavior's whole-file tests without
   coverage. At a completed slice, run complete affected suites and the relevant
   browser scenarios. Do not repeat unchanged successful checks without a reason.
@@ -147,8 +147,9 @@ Add advanced Runner ingest settings
   or shared execution changes whose impact cannot be bounded to affected owners.
 - Local hooks retain the migration guard and fast staged-file checks. The pre-push
   hook reports where validation runs; it does not execute application suites.
-- Draft PRs provide scoped feedback. Mark ready only when affected checks pass;
-  complete CI validation with unchanged thresholds is mandatory before merge.
+- Draft PRs provide scoped feedback. Mark unfinished work ready when affected
+  checks pass; complete CI validation with unchanged thresholds is mandatory
+  before merge.
 - Merge PRs with squash only. The PR title must follow the Gitmoji commit convention;
   the required title check also runs on title edits without restarting full CI.
 - Never bypass a failed hook or lower thresholds to push. Fix the failure or report

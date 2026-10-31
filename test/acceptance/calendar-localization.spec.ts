@@ -5,15 +5,19 @@ import { browserDatabaseUrl } from "../support/mcp/browser-database.cjs";
 import { createAuthenticatedFixture, type AuthFixture } from "../atdd/support/auth-engine-rewrite";
 async function fillDate(scope: Locator, label: string, value: string) {
 	const field = scope.getByText(label, { exact: true }).locator('xpath=ancestor::*[@data-slot="date-picker"][1]');
+	// Keep dates valid when moving between months with different lengths.
 	for (const [part, text] of [
+		["day", "1"],
 		["year", value.slice(0, 4)],
 		["month", String(Number(value.slice(5, 7)))],
 		["day", String(Number(value.slice(8, 10)))],
 	]) {
 		const names: Record<string, string> = { year: "year|Jahr", month: "month|Monat", day: "day|Tag" };
 		const segment = field.getByRole("spinbutton", { name: new RegExp(`^(${names[part]}),`, "i") });
+		await segment.blur();
 		await segment.focus();
 		await segment.pressSequentially(text);
+		await expect(segment).toHaveAttribute("aria-valuenow", String(Number(text)));
 	}
 }
 for (const locale of ["en-US", "de-DE"])
@@ -38,11 +42,17 @@ for (const locale of ["en-US", "de-DE"])
 			await pool.query("INSERT INTO stream_sessions(id,owner_id,runner_id,overlay_id,mode,control_mode) VALUES($1,$2,$3,$4,'24/7','scheduled')", [sessionId, owner.fixture.creatorId, runnerId, owner.fixture.overlayId]);
 			await pool.query("INSERT INTO stream_session_destinations(session_id,destination_id,owner_id,position) VALUES($1,$2,$3,0)", [sessionId, targetId, owner.fixture.creatorId]);
 			await page.goto("/legal/cookies");
+			const consent = page.getByRole("complementary", { name: "Your privacy choices", exact: true });
+			await consent.getByRole("button", { name: "Reject optional", exact: true }).click();
+			await expect(consent).not.toBeVisible();
+			await page.reload();
 			await expect(page.getByRole("button", { name: "Enable support chat", exact: true })).toBeVisible();
 			const preferences = page.getByRole("main").getByRole("button", { name: "Cookie preferences", exact: true });
 			await preferences.focus();
 			await preferences.press("Enter");
-			await Promise.all([page.waitForEvent("load"), page.getByRole("dialog", { name: "Privacy preferences", exact: true }).getByRole("button", { name: "Reject optional", exact: true }).click()]);
+			const privacy = page.getByRole("dialog", { name: "Privacy preferences", exact: true });
+			await privacy.getByRole("button", { name: "Reject optional", exact: true }).click();
+			await expect(privacy).not.toBeVisible();
 			await page.goto("/legal/privacy");
 			const published = page.locator("time[datetime]").first();
 			const value = await published.getAttribute("datetime");

@@ -1,7 +1,7 @@
 import { count, countDistinct, sql } from "drizzle-orm";
-import { usersTable, overlaysTable, settingsTable, runnersTable, streamSessionsTable, clipCrawlJobsTable, notificationOutboxTable } from "@/db/schema";
+import { usersTable, overlaysTable, settingsTable, runnersTable, streamSessionsTable, clipCrawlJobsTable, notificationOutboxTable, twitchCacheTable } from "@/db/schema";
 import { account as authAccountTable } from "@/db/auth-schema";
-import { StatusOptions, RunnerStatus, StreamState } from "@types";
+import { StatusOptions, RunnerStatus, StreamState, TwitchCacheType } from "@types";
 
 // Multiple filtered counts share a query while preserving fresh values on every poll.
 export function userHealthCounts(dayAgo: Date, weekAgo: Date, monthAgo: Date) {
@@ -102,5 +102,14 @@ export function streamHealthCounts() {
 		desiredRunning: sql<number>`count(*) filter (where ${streamSessionsTable.desiredState} = ${StreamState.Running})`,
 		actualRunning: sql<number>`count(*) filter (where ${streamSessionsTable.actualState} = ${StreamState.Running})`,
 		errors: sql<number>`count(*) filter (where ${streamSessionsTable.actualState} = ${StreamState.Error})`,
+	};
+}
+
+export function cacheHealthCounts(now: Date) {
+	const cache = twitchCacheTable;
+	return {
+		count: count(),
+		unavailable: sql<number>`count(*) filter (where ${cache.type} = ${TwitchCacheType.Clip} and coalesce((${cache.value}::jsonb ->> 'unavailable')::boolean, false))`,
+		staleValidated: sql<number>`count(*) filter (where ${cache.type} = ${TwitchCacheType.Clip} and ${cache.key} like 'clip:%' and ${cache.value}::jsonb ? 'lastValidatedAt' and ${cache.fetchedAt} < ${now.toISOString()}::timestamptz - interval '6 hours')`,
 	};
 }
