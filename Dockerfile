@@ -40,7 +40,7 @@ RUN --mount=type=secret,id=SENTRY_DSN,env=SENTRY_DSN,required=true \
 # -------------------------
 # runner (production)
 # -------------------------
-FROM node:24.21.0-bookworm-slim AS runner
+FROM node:24.22.0-bookworm-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
