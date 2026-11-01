@@ -227,7 +227,7 @@ jobs:
       - name: 🟢 Match coverage producer Node
         uses: actions/setup-node@v7
         with:
-          node-version: 24.22.1
+          node-version: 26.12.1
 
       - name: ♻️ Restore deps cache
         uses: actions/cache/restore@v6
@@ -394,7 +394,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 24.22.1
+          node-version: 26.12.1
       - uses: oven-sh/setup-bun@v2
       - uses: actions/cache/restore@v6
         with:
@@ -510,7 +510,7 @@ jobs:
       - name: 🟢 Set up verified Node runtime
         uses: actions/setup-node@v7
         with:
-          node-version: 24.22.1
+          node-version: 26.12.1
 
       - name: 📥 Download immutable workflow coverage plan
         uses: actions/download-artifact@v8
@@ -617,7 +617,7 @@ jobs:
       - name: 🟢 Set up verified Node runtime
         uses: actions/setup-node@v7
         with:
-          node-version: 24.22.1
+          node-version: 26.12.1
 
       - name: 🗃️ Prepare disposable E2E database
         run: bun run db:push:e2e
@@ -754,7 +754,7 @@ jobs:
 
   runner:
     name: 🏃 Runner tests (${{ matrix.label }})
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: [changes, deps, validation-plan]
     if: needs.changes.outputs.runner == 'true' && needs.changes.outputs.full == 'true'
     strategy:
@@ -768,7 +768,7 @@ jobs:
       - name: 🟢 Match native test Node
         uses: actions/setup-node@v7
         with:
-          node-version: 24.22.1
+          node-version: 26.12.1
       - name: 🟢 Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -818,14 +818,14 @@ jobs:
 
   runner-coverage:
     name: 🏃 Runner coverage gate
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: [changes, deps, runner]
     if: needs.changes.outputs.runner == 'true' && needs.changes.outputs.full == 'true'
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 24.22.1
+          node-version: 26.12.1
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.4
