@@ -159,7 +159,7 @@ const navigationSteps: Record<NavigationTarget, GuideStep> = {
 	"clip-picker": { target: "playlist-add", title: "Open the clip picker", description: "Click Add Clips to return to your clip selection.", action: true, next: true, reveals: "playlist-clip-search", allowDialog: true },
 	settings: { target: "theme-back", title: "Return to overlay settings", description: "Use the back button to return to your overlay settings.", destination: "overlay" },
 	theme: { target: "overlay-customize", title: "Open Theme Studio", description: "Click Customize Overlay Style to return to your look.", destination: "theme" },
-	home: { target: "dashboard-home", title: "Open your Dashboard", description: "Click the Clipify logo to find your overlays and playlists.", destination: "dashboard" },
+	home: { target: "dashboard-home", title: "Open your Dashboard", description: "Open Home to find your overlays and playlists.", destination: "dashboard" },
 	overlays: { target: "overlays-tab", title: "Open Overlays", description: "Choose Overlays in navigation.", action: true, next: true },
 	overlay: { target: "open-overlay", title: "Open your overlay", description: "Click your overlay's row to open its settings.", destination: "overlay" },
 	playlists: { target: "playlists-tab", title: "Open Playlists", description: "Choose Playlists in navigation.", action: true, next: true },

@@ -1,32 +1,44 @@
 # Test Summary Report: Creator Library and Export
 
-Feature: [spec.md](spec.md). Updated 2026-11-03. Branch: `features/clip-export`, based on `b6c8e591`.
+Feature: [spec.md](spec.md). Updated2026-11-03. Branch: `features/clip-export`. PR: [546](https://github.com/TheDanniCraft/clipify/pull/546).
 
 ## Delivery state
 
-Implemented sidebar/search, Home clip metrics, available stream lists/details, clip inventory/private previews and bounded manual ZIP export. Resource lists and editors use canonical destinations; legacy dashboard-tab bookmarks redirect. The Mobbin review informed three bounded Home/selection-toolbar improvements using existing Clipify branding and installed HeroUI/HeroUI Pro components. Automated publishing is outside this feature. No schema, generated migration, dependency manifest or lockfile changed.
+The feature provides Home clip metrics, available stream lists/details, a searchable clip inventory, authorized previews and bounded manual ZIP export. The rejected dashboard was audited against actual authenticated Mobbin references and the pinned Payload Bay sidebar. Search and utilities now belong to the sidebar; content uses consistent theme surfaces/gutters, compact filters and readable mobile metadata. Exact search results open the selected clip, and export/reconnect/retry/cancellation preserve selection. Existing editors and guide navigation remain in scope.
 
-Recommendation: draft preview delivery with the local coverage checkpoint passed; **No-Go for merge** until required CI and the findings below are resolved. Publication details are recorded in the PR.
+No schema or generated migration changed. Dependency overrides patch follow-redirects and transitive Zod. Automated publishing remains outside this manual-export feature.
 
-## Current-source executed evidence
+Current recommendation: local validation complete; publication and required ready-for-review CI remain pending. The old draft preview and its passing CI do not validate these unpushed corrections. No merge or production release is authorized.
 
-- Production browser build: passed (`/tmp/clipify-spec006-guard-final-build.log`).
-- Real-component acceptance: **32/32 passed**,6.3min (`/tmp/clipify-spec006-final-all-acceptance.log`). Includes390px/1440px light/dark layouts, keyboard/search/focus, permission and upgrade behavior, missing/revoked access, provider/media failures, failed-only retry, cancellation, expired sessions and unsaved Gallery draft protection through both navigation paths.
-- Core and existing guide BDD: **109/109 passed**,21.2min (`/tmp/clipify-spec006-final-all-bdd.log`):48 feature examples and61 guide examples. Includes complete ZIPs of1/25/50 clips, filters/sorts, stable paging, selection across pages and a warm10k inventory timing check. No product code changed after these browser checks.
-- Complete application coverage: **passed with exit0** (`/tmp/clipify-spec006-full-coverage-final.log`):595 Jest suites and6657 tests passed, plus549 instrumented workflows and5 serial media workflows. Three pre-existing skipped tests remain. Global coverage:88.63% lines,86.42% statements,83.14% functions,81.82% branches; all unchanged source-specific floors passed. The execution-source fingerprint matches the final source. First attempt failed two test/collection issues; fixes and whole-file Green are recorded in [tdd/cycle-log.md](tdd/cycle-log.md). No threshold was lowered or bypassed. Scoped diagnostics are not credited as a complete gate.
-- Lint: zero errors,nine existing warnings; typecheck passed after final test corrections. Migration policy:13/13 passed. Changed-file formatting is checked before commit; hooks remain enabled.
-- Navbar/inventory final whole-file recovery checks:44/44 passed (`/tmp/clipify-spec006-navbar-recovery-green.log`); coverage registration contract passed. Earlier whole-file checkpoints overlap and are not summed into a unique execution total.
-- Ownership, exact-provider-ID and actual-byte deliberate mutants were killed, then restored whole files passed. These spot checks do not constitute exhaustive mutation coverage.
-- Maximum server media package sample:128MiB included, ZIP134220363 bytes,948ms, observed process RSS increase426913792 bytes. This does not measure client peak memory or concurrent service capacity.
+## Correction checkpoint evidence
 
-## Traceability and remaining findings
+- Production browser build and installed-dependency patch validation passed: `/tmp/clipify-ui-guide-layer-build.log`.
+- All11 affected component files passed164 assertions: `/tmp/clipify-ui-complete-units.log`. Subsequent whole-file checks for the final guide/empty-state/navigation refinements passed73 assertions: `/tmp/clipify-ui-polish-unit.log`. These overlapping runs are not added together.
+- Guide clipping correction passed56 provider/spotlight/portal assertions, including an observed failing portal-boundary assertion before the fix. Home’s active-mobile-guide tests pass12 assertions in their whole file.
+- Feedback lifecycle intended Red and complete Green are recorded in [tdd/cycle-log.md](tdd/cycle-log.md). Exact preview identity/retry/late-result handling, utility portal movement and dashboard chat behavior have dedicated tests.
+- The current acceptance owner passed38/38: `/tmp/clipify-ui-resume-acceptance.log` (7.6minutes). This includes eight light/dark responsive layouts,27 recovery cases and three existing editor/guard cases. Subsequent guide corrections move the expanded panel outside sidebar clipping and retain launcher interaction above the active tour overlay. All61 guide scenarios and11 layout/editor cases passed in `/tmp/clipify-ui-guide-layer-browser.log`; its two failures came from the stream test’s now-corrected assumption that the checklist was expanded on resource pages. The final core checkpoint passed all25 inventory scenarios in `/tmp/clipify-ui-inventory-final.log` (4.7minutes), with23 remaining core cases passing in `/tmp/clipify-ui-core-final.log`. The inventory rerun replaces its two transient interaction/locator failures; counts are not added across overlapping runs. Screenshots disable transitions to capture settled controls.
+- The maximum-package browser checkpoint downloaded four complete32MiB MP4 files in a134221695-byte archive, with an accurate manifest. Observed download/inspection time:2287ms. Maximum sampled Chromium backing storage:271080416 bytes; JS used heap:29296500 bytes; embedder heap:10599536 bytes. These maxima are sampled metrics, not simultaneous whole-process RSS or a concurrency benchmark. Raw evidence is retained in the browser report and ignored dashboard audit artifacts.
+- Final lint passed with zero errors and nine existing warnings: `/tmp/clipify-ui-final-lint.log`. Build typechecking passed. Migration policy passed13/13: `/tmp/clipify-ui-final-migration.log`.
+- PR-owned formatting passed: `/tmp/clipify-ui-owned-format-final.log`. The default local formatter also discovers unrelated untracked private attachments; those files are excluded from this PR and left untouched. CI checks committed changes.
+- Current-source Jest coverage covers the new preview and utility portal at100% statements/branches/functions/lines. Home:100% lines/statements/functions and91.3% branches; sidebar:99.13% lines and94.69% branches. The complete aggregate gate passed without changing any threshold.
+- High/critical dependency audit passed: `/tmp/clipify-ui-audit.log`. Five findings below the configured severity remain outside that pass; no audit policy was weakened.
 
-The original181-example planning matrix and612 atomic tasks are retained as planning/provenance records. Only actually executed evidence is credited. Several characterizations followed production code; GOV-001 remains open because later passing tests and mutants cannot establish historical test-first ordering. There is no claim of complete test-first compliance or that every original atomic task is complete. Actual executable owners are mapped in [test-traceability.md](test-traceability.md).
+## Complete current-source coverage
 
-The unchanged dependency audit reports four high advisories in `follow-redirects` and transitive Zod (`/tmp/clipify-spec006-final-audit.log`). This is an open merge-gate finding; the audit did not pass. No waiver or merge approval is inferred.
+`/tmp/clipify-ui-full-coverage.log` exited0:597 Jest suites and6668 tests passed, with one inherited skipped suite/three skipped tests;549 instrumented workflows and five serial media workflows passed. All existing global, critical and ordinary source thresholds passed. Before/after execution-input fingerprint: `ffb849db69679c21ae96d20f45f4b2df34fa79911120d52ff155f62a9055893e`. No earlier source's coverage report was reused. The matching source stays frozen through commit; CI validates the published commit separately.
 
-Required full GitHub validation remains outstanding until ready for review; scoped draft CI is separate evidence. Local browser fixtures use disposable loopback PostgreSQL18; CI owns PostgreSQL16 browser validation. Native Runner process/capture/update and real Windows validation are outside this web change. The browser cannot observe disk-save completion, so feedback promises download initiation only.
+## Earlier implementation baseline
 
-## Design artifacts
+Commit1219de42 passed complete application coverage:595 Jest suites /6657 tests,549 instrumented workflows and five serial media workflows, with all unchanged global/source-specific thresholds. Three inherited skipped tests remained. Its browser acceptance passed32/32 and core/guide BDD109/109; draft CI passed. This is historical evidence only, not coverage of the corrections above.
 
-See [design-review.md](design-review.md) for inspected references and decisions. Actual before/after Home and Inventory HTML/PNG boards are in ignored `test-results/design-review/clipify-dashboard-review.zip`; all four viewport/theme combinations were inspected. Authentication material is excluded from artifacts.
+Ownership, exact-provider-ID and actual-byte spot mutants were killed and restored whole files passed during that baseline. Server maximum-package sampling included128MiB media with a426913792-byte RSS increase. Neither those spot mutants nor the two memory samples establish exhaustive mutation coverage or concurrent service capacity.
+
+## Traceability and limits
+
+The original181-example planning matrix and612 atomic tasks retain historical provenance. Current executable owners are mapped in [test-traceability.md](test-traceability.md); the customer-preview correction checklist is appended to tasks.md. Several characterizations followed production code. GOV-001 therefore records a historical test-first ordering deviation that later Green tests cannot erase. No claim of perfect historical TDD compliance or blanket completion of all original atomic rows is made.
+
+Required full GitHub validation is separate from draft CI and local execution. Local browser fixtures use disposable loopback PostgreSQL18; CI owns PostgreSQL16 browser validation. Native Runner process/capture/update and real Windows checks are outside this web change. The browser reports download initiation, not completion of the user's save-to-disk operation. Live Twitch account authorization and production concurrency are not simulated as customer load evidence.
+
+## Visual evidence
+
+[design-review.md](design-review.md) links eight inspected Mobbin references and maps all audit findings to corrections. The rejected baseline/reference board is `test-results/dashboard-audit/audit.html`; new captures are preserved under `test-results/dashboard-audit/final-layouts/`. Home, Inventory, filters, populated selection, stream lists/details, drawer and collapsed rail were inspected in light/dark at390px,820px,1024px and1440px. Real interactions and error recovery supplement screenshot inspection; neither screenshots nor mocked tests alone establish UX acceptance.

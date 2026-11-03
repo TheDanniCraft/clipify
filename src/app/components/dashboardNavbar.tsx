@@ -167,9 +167,9 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 
 	return (
 		<>
-			<nav className='sticky top-0 z-30 w-full bg-accent'>
-				<header className='mx-auto flex min-h-16 w-full max-w-5xl flex-wrap items-center gap-y-2 px-4 py-2 lg:px-8'>
-					<NextLink data-tour='dashboard-home' href='/dashboard' className='flex items-center'>
+			<nav className={inShell ? "sticky top-0 z-30 w-full border-b border-separator bg-background" : "sticky top-0 z-30 w-full bg-accent"}>
+				<header className='flex min-h-16 w-full items-center gap-3 px-4 py-2 lg:px-8'>
+					<NextLink data-tour={inShell ? undefined : "dashboard-home"} href='/dashboard' className={inShell ? "hidden" : "flex items-center"}>
 						<Logo width={30} />
 						<p className='ml-2 font-bold text-white'>Clipify</p>
 					</NextLink>
@@ -190,12 +190,12 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 									}}
 								>
 									<Label className='sr-only'>Account</Label>
-									<Autocomplete.Trigger className='h-9 items-center gap-2 rounded-xl border-transparent bg-accent-foreground/10 px-2 text-accent-foreground shadow-none hover:bg-accent-foreground/15'>
-										<span className='flex h-5 w-4 shrink-0 items-center justify-center text-accent-foreground/70'>
+									<Autocomplete.Trigger className='h-9 items-center gap-2 rounded-xl border-transparent bg-default px-2 text-foreground shadow-none hover:bg-default-hover'>
+										<span className='flex h-5 w-4 shrink-0 items-center justify-center text-muted'>
 											<IconBuildingCommunity aria-hidden='true' className='translate-y-px' size={15} />
 										</span>
 										<Autocomplete.Value className='flex min-w-0 items-center truncate text-sm font-medium leading-5'>{displayedOrganization?.name ?? "Select account"}</Autocomplete.Value>
-										<Autocomplete.Indicator className='shrink-0 text-accent-foreground/70' />
+										<Autocomplete.Indicator className='shrink-0 text-muted' />
 									</Autocomplete.Trigger>
 									<Autocomplete.Popover className='min-w-64' placement='bottom end'>
 										<Autocomplete.Filter filter={contains}>
@@ -224,7 +224,7 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 						) : null}
 						<li>
 							<Button isIconOnly variant='ghost' onPress={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label='Toggle Theme'>
-								{(theme ?? "dark") === "dark" ? <IconSunFilled className='text-accent-foreground/60' width={24} /> : <IconMoonFilled className='text-accent-foreground/60' width={24} />}
+								{(theme ?? "dark") === "dark" ? <IconSunFilled className={inShell ? "text-muted" : "text-accent-foreground/60"} width={24} /> : <IconMoonFilled className={inShell ? "text-muted" : "text-accent-foreground/60"} width={24} />}
 							</Button>
 						</li>
 						<li className='px-2'>
@@ -357,7 +357,7 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 			) : null}
 			<div className='w-full'>
 				<ContentContainer className='mt-6 flex w-full flex-col items-center'>
-					<div className='w-full max-w-5xl px-4 lg:px-8'>
+					<div className='w-full px-4 lg:px-8'>
 						<DashboardBreadcrumbs />
 						<header className=' flex w-full items-center justify-between'>
 							<div className='flex flex-col'>

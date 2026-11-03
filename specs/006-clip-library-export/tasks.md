@@ -691,3 +691,17 @@ US3 -> US4 -> US2 -> US1 -> full gates. Each story uses working existing chrome 
 The test-list owns A/U state. Registry artifact IDs remain stable and may cover multiple atomic U behaviors. A group checkpoint completes only after every marker on it is DONE/verified BASELINE. No production task precedes its own failing test task. New task IDs deliberately need not increase in displayed order because original IDs are preserved.
 
 **Task count**: 612 original planning tasks. All four product surfaces are implemented. Checkboxes retain strict evidence semantics: a postimplementation test does not earn a historical test-first task. Current executed owners and outstanding final gates are recorded in test-summary.md, test-traceability.md and tdd/cycle-log.md; unchecked planning rows must not be interpreted as a claim that the product code is absent or that all original examples ran.
+
+## Customer preview correction checkpoint
+
+These tasks track the authorized follow-up to the rejected UI. Original atomic rows above retain historical provenance; later characterization cannot retroactively establish a test-first sequence. The current executable owners in test-traceability.md and final gate results in test-summary.md determine product readiness.
+
+- [x] T613 Inspect authenticated Mobbin web references and the actual Payload Bay sidebar; document each audit finding and its correction in design-review.md.
+- [x] T614 Integrate search/brand/utilities into the HeroUI Pro sidebar, unify content surfaces/gutters, retain mobile navigation, focus, guide and editor routes.
+- [x] T615 Compact inventory filters/selection, retain complete mobile metadata, open exact clip previews and make refresh/recovery actions coherent.
+- [x] T616 Add preview/portal/feedback lifecycle tests and run complete affected component owners; preserve existing permission and export guards.
+- [x] T617 Patch the existing high dependency advisories without changing the migration schema or weakening audit policy.
+- [x] T618 Inspect real Home, Inventory, populated selection, filters, Streams, stream detail, collapsed rail and drawer screenshots in light/dark at390px/820px/1024px/1440px; pass complete affected browser owners including existing guide/editor recovery.
+- [x] T619 Download and inspect the maximum128MiB media package in Chromium; record browser heap/backing-storage samples with their measurement limits.
+- [x] T620 Pass complete current-source owning coverage with existing floors, lint, typecheck, formatting, audit and migration checks; reconcile final evidence and remaining provenance limits.
+- [ ] T621 Commit/push the reviewed source, update PR546, verify the updated preview deployment and run required ready-for-review CI. Do not merge or release.

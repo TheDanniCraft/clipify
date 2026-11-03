@@ -1,3 +1,5 @@
+let mockActiveTask: string | null = null;
+jest.mock("@components/user-tour/provider", () => ({ useUserTour: () => ({ activeTask: mockActiveTask }) }));
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import CreatorOverview from "@components/creator/creatorOverview";
 import { DashboardNavigationContext } from "@components/dashboardNavigation";
@@ -7,10 +9,11 @@ jest.mock("@actions/creatorLibrary", () => ({ getCreatorClipOverview: (...args: 
 jest.mock("@components/localizedDate", () => ({ __esModule: true, default: ({ value }: { value: string }) => <time>{value}</time> }));
 const metrics = { ok: true, count: 2, views: 20, topClips: [{ id: "A", title: "Clutch", views: 20 }], complete: false, fetchedAt: "2026-11-03T00:00:00Z", timeZone: "UTC" };
 beforeEach(() => {
+	mockActiveTask = null;
 	overview.mockReset();
 	broadcasts.mockReset();
 });
-it.each([true, false])("keeps guide shortcuts available for mobile=%s without duplicating desktop targets", async (mobile) => {
+it.each([true, false])("omits duplicate resource navigation for mobile=%s outside an active guide", async (mobile) => {
 	overview.mockResolvedValue(metrics);
 	broadcasts.mockResolvedValue({ ok: true, stale: false, items: [] });
 	render(
@@ -19,16 +22,7 @@ it.each([true, false])("keeps guide shortcuts available for mobile=%s without du
 		</DashboardNavigationContext.Provider>,
 	);
 	await screen.findByText("Clutch");
-	for (const [name, target] of [
-		["Overlays", "overlays-tab"],
-		["Playlists", "playlists-tab"],
-		["Galleries", "galleries-tab"],
-		["Runner", "runners-tab"],
-	]) {
-		const link = screen.getByRole("link", { name });
-		if (mobile) expect(link).toHaveAttribute("data-tour", target);
-		else expect(link).not.toHaveAttribute("data-tour");
-	}
+	for (const name of ["Overlays", "Playlists", "Galleries", "Runner"]) expect(screen.queryByRole("link", { name })).not.toBeInTheDocument();
 });
 it("loads clip metrics independently of unavailable broadcasts", async () => {
 	overview.mockResolvedValue(metrics);
@@ -106,4 +100,30 @@ it("retries only the failed broadcasts without replacing successful clip metrics
 	await screen.findByText(/No available broadcasts/);
 	expect(screen.getByText("Clutch")).toBeInTheDocument();
 	expect(overview).toHaveBeenCalledTimes(1);
+});
+
+it.each([true, false])("shows guide destination shortcuts only during mobile guidance: mobile=%s", async (mobile) => {
+	mockActiveTask = "overlay.name";
+	overview.mockResolvedValue(metrics);
+	broadcasts.mockResolvedValue({ ok: true, stale: false, items: [{ id: "one", title: "One clip stream", clipCount: 1, createdAt: "2026-11-03T00:00:00Z" }] });
+	render(
+		<DashboardNavigationContext.Provider value={{ mobile, expanded: false, toggle: jest.fn(), search: jest.fn(), registerSearch: jest.fn() }}>
+			<CreatorOverview creatorId='owner' />
+		</DashboardNavigationContext.Provider>,
+	);
+	await screen.findByText("Clutch");
+	expect(screen.getByText("1 clip", { exact: true })).toBeInTheDocument();
+	if (mobile) {
+		expect(screen.getByRole("navigation", { name: "Creator shortcuts" })).toBeVisible();
+		for (const [name, path, target] of [
+			["Home", "/dashboard", "dashboard-home"],
+			["Overlays", "/dashboard/overlays", "overlays-tab"],
+			["Playlists", "/dashboard/playlists", "playlists-tab"],
+			["Galleries", "/dashboard/galleries", "galleries-tab"],
+			["Runner", "/dashboard/runners", "runners-tab"],
+		]) {
+			expect(screen.getByRole("link", { name })).toHaveAttribute("href", path);
+			expect(screen.getByRole("link", { name })).toHaveAttribute("data-tour", target);
+		}
+	} else expect(screen.queryByRole("navigation", { name: "Creator shortcuts" })).not.toBeInTheDocument();
 });

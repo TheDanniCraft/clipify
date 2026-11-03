@@ -284,3 +284,19 @@ it("opens the next chapter when the current chapter finishes without starting it
 	expect(screen.queryByRole("button", { name: "Pointer next" })).not.toBeInTheDocument();
 	expect(save).toHaveBeenCalledWith("owner", { type: "next" });
 });
+
+it("keeps the expanded checklist outside the sidebar clipping container", async () => {
+	const sidebar = document.createElement("div");
+	sidebar.id = "dashboard-utilities";
+	document.body.append(sidebar);
+	try {
+		const view = mount();
+		await waitFor(() => expect(sidebar).toContainElement(screen.getByRole("button", { name: /Get started.*0%/ })));
+		expect(sidebar).not.toContainElement(screen.getByRole("region", { name: "Your Clipify guide" }));
+		fireEvent.click(screen.getByRole("button", { name: "Minimize guide" }));
+		expect(screen.queryByRole("region", { name: "Your Clipify guide" })).not.toBeInTheDocument();
+		view.unmount();
+	} finally {
+		sidebar.remove();
+	}
+});

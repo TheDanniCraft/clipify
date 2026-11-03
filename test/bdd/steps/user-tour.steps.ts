@@ -125,7 +125,7 @@ When("the first overlay journey is followed", async ({ page, tourWorld }) => {
 });
 Then("the named configured overlay is saved", async ({ page, tourWorld }) => {
 	expect((await tourWorld.fixture.pool.query("SELECT name FROM overlays WHERE owner_id=$1", [tourWorld.owner!.creatorId])).rows).toEqual([{ name: "My first overlay" }]);
-	expect((await progress(page, tourWorld)).completed).toContain("overlay.name");
+	await expect.poll(async () => (await progress(page, tourWorld)).completed).toContain("overlay.name");
 	await expect(page.locator(".driver-popover-title")).toHaveText("Choose your clips");
 });
 When("the clip preview is opened with available clips", async ({ page, tourWorld }) => {
@@ -246,7 +246,7 @@ When("browser storage is unavailable", async ({ page }) => {
 Then("guide actions remain usable for the session", async ({ page, tourWorld }) => {
 	await overlay(page, tourWorld);
 	await saveName(page);
-	expect((await progress(page, tourWorld)).completed).toContain("overlay.name");
+	await expect.poll(async () => (await progress(page, tourWorld)).completed).toContain("overlay.name");
 });
 When("another account owns the opened overlay", async ({ page, request, tourWorld }) => {
 	await progress(page, tourWorld);
@@ -278,7 +278,7 @@ When("an owned overlay is saved outside a tour", async ({ page, tourWorld }) => 
 	await saveName(page);
 });
 Then("the matching checklist tasks complete", async ({ page, tourWorld }) => {
-	expect((await progress(page, tourWorld)).completed).toEqual(expect.arrayContaining(["overlay.name", "overlay.source"]));
+	await expect.poll(async () => (await progress(page, tourWorld)).completed).toEqual(expect.arrayContaining(["overlay.name", "overlay.source"]));
 });
 When("guide analytics are emitted", async ({ page, tourWorld }) => {
 	await overlay(page, tourWorld);
@@ -472,7 +472,7 @@ Then("the guide explains Pro availability without starting a paywall", async ({ 
 	await expect(page.getByRole("dialog")).toHaveCount(0);
 	expect((await progress(page, tourWorld)).completed).not.toContain("appearance.style");
 });
-Then("the checklist is open in the corner with progress and no automatic spotlight", async ({ page }) => {
+Then("the checklist opens beside sidebar navigation with progress and no automatic spotlight", async ({ page }) => {
 	await expect(page.getByRole("region", { name: "Your Clipify guide" })).toBeVisible();
 	await expect(page.locator(".driver-popover")).toHaveCount(0);
 	await expect(page.locator('[data-slot="progress-circle"] svg')).toBeVisible();
@@ -480,9 +480,12 @@ Then("the checklist is open in the corner with progress and no automatic spotlig
 	expect(ring!.width).toBeGreaterThanOrEqual(32);
 	expect(ring!.height).toBeGreaterThanOrEqual(32);
 	const launcher = await page.getByRole("button", { name: /^Get started/ }).boundingBox();
-	const size = page.viewportSize()!;
-	expect(size.width - launcher!.x - launcher!.width).toBeCloseTo(16, 0);
-	expect(size.height - launcher!.y - launcher!.height).toBeCloseTo(96, 0);
+	const sidebar = await page.locator('[data-slot="sidebar"]').boundingBox();
+	const checklist = await page.getByRole("region", { name: "Your Clipify guide" }).boundingBox();
+	expect(launcher!.x).toBeGreaterThanOrEqual(sidebar!.x);
+	expect(launcher!.x + launcher!.width).toBeLessThanOrEqual(sidebar!.x + sidebar!.width);
+	expect(checklist!.x).toBeGreaterThanOrEqual(sidebar!.x + sidebar!.width);
+	expect(checklist!.x + checklist!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
 	const feedback = await page.getByRole("button", { name: "Report a problem", exact: true }).boundingBox();
 	expect(feedback!.y).toBeGreaterThan(launcher!.y + launcher!.height);
 	await page.screenshot({ path: "/tmp/clipify-user-tour-revised-desktop.png" });
@@ -757,7 +760,7 @@ Then("its options stay usable above the dimming and section progress survives re
 	await progress(page, tourWorld);
 	await page.reload();
 	await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "38");
-	expect((await progress(page, tourWorld)).completed).toContain("overlay.name");
+	await expect.poll(async () => (await progress(page, tourWorld)).completed).toContain("overlay.name");
 });
 
 When("the clip task is reviewed backward from save to source", async ({ page, tourWorld }) => {

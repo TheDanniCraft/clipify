@@ -4,10 +4,12 @@ import { Button, Card, Link, Skeleton } from "@heroui/react";
 import { getCreatorClipOverview, getCreatorBroadcasts } from "@actions/creatorLibrary";
 import LocalizedDate from "@components/localizedDate";
 import { DashboardNavigationContext } from "@components/dashboardNavigation";
+import { useUserTour } from "@components/user-tour/provider";
 type Overview = Awaited<ReturnType<typeof getCreatorClipOverview>>;
 type Broadcasts = Awaited<ReturnType<typeof getCreatorBroadcasts>>;
 export default function CreatorOverview({ creatorId }: { creatorId: string }) {
 	const navigation = useContext(DashboardNavigationContext);
+	const { activeTask } = useUserTour();
 	const [overview, setOverview] = useState<Overview>();
 	const [broadcasts, setBroadcasts] = useState<Broadcasts>();
 	const [retryOverview, setRetryOverview] = useState(0);
@@ -95,21 +97,27 @@ export default function CreatorOverview({ creatorId }: { creatorId: string }) {
 					</p>
 				) : null}
 			</section>
-			<nav aria-label='Creator shortcuts' className='flex flex-wrap gap-4'>
-				<Link href='/dashboard/overlays' data-tour={navigation?.mobile ? "overlays-tab" : undefined}>
-					Overlays
-				</Link>
-				<Link href='/dashboard/playlists' data-tour={navigation?.mobile ? "playlists-tab" : undefined}>
-					Playlists
-				</Link>
-				<Link href='/dashboard/galleries' data-tour={navigation?.mobile ? "galleries-tab" : undefined}>
-					Galleries
-				</Link>
-				<Link href='/dashboard/runners' data-tour={navigation?.mobile ? "runners-tab" : undefined}>
-					Runner
-				</Link>
-				<Link href='/dashboard/clips'>Clip Inventory</Link>
-			</nav>
+
+			{activeTask && navigation?.mobile ? (
+				<nav aria-label='Creator shortcuts' className='flex flex-wrap gap-4'>
+					<Link href='/dashboard' data-tour='dashboard-home'>
+						Home
+					</Link>
+					<Link href='/dashboard/overlays' data-tour={navigation?.mobile ? "overlays-tab" : undefined}>
+						Overlays
+					</Link>
+					<Link href='/dashboard/playlists' data-tour={navigation?.mobile ? "playlists-tab" : undefined}>
+						Playlists
+					</Link>
+					<Link href='/dashboard/galleries' data-tour={navigation?.mobile ? "galleries-tab" : undefined}>
+						Galleries
+					</Link>
+					<Link href='/dashboard/runners' data-tour={navigation?.mobile ? "runners-tab" : undefined}>
+						Runner
+					</Link>
+					<Link href='/dashboard/clips'>Clip Inventory</Link>
+				</nav>
+			) : null}
 			<div className='grid gap-6 lg:grid-cols-2'>
 				<Card>
 					<Card.Header>
@@ -129,7 +137,7 @@ export default function CreatorOverview({ creatorId }: { creatorId: string }) {
 										<div key={stream.id} className='flex flex-wrap items-center justify-between gap-2 border-b border-default py-3'>
 											<Link href={`/dashboard/streams/${stream.id}`}>{stream.title || "Untitled stream"}</Link>
 											<span className='text-sm text-muted'>
-												{stream.clipCount === null ? "Clip counts unavailable" : `${stream.clipCount} clips`} <LocalizedDate value={stream.createdAt} />
+												{stream.clipCount === null ? "Clip counts unavailable" : `${stream.clipCount} ${stream.clipCount === 1 ? "clip" : "clips"}`} <LocalizedDate value={stream.createdAt} />
 											</span>
 										</div>
 									))

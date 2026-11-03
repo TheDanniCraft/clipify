@@ -33,6 +33,8 @@ export function readMcpSourceManifest() {
 		"src/auth/permissions.ts",
 		"src/app/components/creator/clipExport.tsx",
 		"src/app/components/creator/clipInventory.tsx",
+		"src/app/components/creator/clipPreview.tsx",
+		"src/app/components/dashboardUtilityPortal.tsx",
 		"src/app/components/creator/creatorOverview.tsx",
 		"src/app/components/dashboardShell.tsx",
 		"src/app/components/dashboardNavigation.tsx",

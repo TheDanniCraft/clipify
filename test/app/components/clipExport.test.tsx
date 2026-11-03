@@ -119,7 +119,7 @@ it("downloads a validated ZIP, excludes successful IDs from retry and releases t
 	fetchMock.mockResolvedValueOnce(successResponse({ included: [0], skipped: [{ index: 1, code: "provider_error", retryable: true }] })).mockResolvedValue(responseJSON({ code: "PROVIDER_UNAVAILABLE" }));
 	const view = render(<ClipExport creatorId='owner' clipIds={["A", "B"]} scope='owner' />);
 	fireEvent.click(screen.getByRole("button", { name: "Export selected" }));
-	await screen.findByText(/1 clips ready/);
+	await screen.findByText(/1 clip ready/);
 	expect(click).toHaveBeenCalledTimes(1);
 	expect(create).toHaveBeenCalledTimes(1);
 	fireEvent.click(screen.getByRole("button", { name: "Retry failed clips" }));
@@ -174,7 +174,7 @@ it("replaces previous Blob URLs and releases the latest download after sixty sec
 		fetchMock.mockResolvedValueOnce(successResponse({ included: [0], skipped: [] })).mockResolvedValueOnce(successResponse({ included: [0], skipped: [] }));
 		render(<ClipExport creatorId='owner' clipIds={["A"]} scope='owner' />);
 		fireEvent.click(screen.getByRole("button", { name: "Export selected" }));
-		await screen.findByText(/1 clips ready/);
+		await screen.findByText(/1 clip ready/);
 		fireEvent.click(screen.getByRole("button", { name: "Export selected" }));
 		await waitFor(() => expect(index).toBe(2));
 		expect(revoke).toHaveBeenCalledWith("blob:1");

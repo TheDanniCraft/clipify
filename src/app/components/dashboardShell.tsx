@@ -3,7 +3,10 @@ import { useEffect, useRef, useState, type ReactNode, type CSSProperties } from 
 import { usePathname, useRouter } from "next/navigation";
 import { Sidebar, Command, useSidebar } from "@heroui-pro/react";
 import { Button } from "@heroui/react";
-import { IconHome, IconVideo, IconScissors, IconLayoutGrid, IconPlaylist, IconPhoto, IconDeviceDesktop, IconTools, IconSettings, IconFolder, IconSearch } from "@tabler/icons-react";
+import { IconHome, IconVideo, IconScissors, IconLayoutGrid, IconPlaylist, IconPhoto, IconDeviceDesktop, IconTools, IconSettings, IconFolder, IconSearch, IconHelpCircle } from "@tabler/icons-react";
+import NextLink from "next/link";
+import Logo from "./logo";
+import ClipPreview from "./creator/clipPreview";
 import { searchCreatorLibrary } from "@actions/creatorLibrary";
 import { DashboardNavigationContext } from "./dashboardNavigation";
 import { isEmbeddedRoute } from "@lib/embeddedRoutes";
@@ -25,6 +28,7 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 	const path = usePathname();
 	const sidebar = useSidebar();
 	const [searchOpen, setSearchOpen] = useState(false);
+	const [preview, setPreview] = useState<SearchClip | null>(null);
 	const [waitingForDrawer, setWaitingForDrawer] = useState(false);
 	const [query, setQuery] = useState("");
 	const [clips, setClips] = useState<SearchClip[]>([]);
@@ -100,7 +104,7 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 		};
 	}, [creatorId, query, searchOpen, retry]);
 	const menuItem = (item: (typeof destinations)[number]) => (
-		<Sidebar.MenuItem key={item.href} id={item.href} href={item.href} isCurrent={current?.href === item.href} render={(props) => <div {...props} aria-current={current?.href === item.href ? "page" : undefined} />} aria-current={current?.href === item.href ? "page" : undefined} textValue={item.title} data-tour={"tour" in item && !sidebar.isMobile ? item.tour : undefined}>
+		<Sidebar.MenuItem key={item.href} id={item.href} href={item.href} isCurrent={current?.href === item.href} render={(props) => <div {...props} aria-current={current?.href === item.href ? "page" : undefined} />} aria-current={current?.href === item.href ? "page" : undefined} textValue={item.title} data-tour={"tour" in item ? item.tour : undefined}>
 			<Sidebar.MenuIcon>
 				<item.icon className='size-4' />
 			</Sidebar.MenuIcon>
@@ -110,9 +114,14 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 	const navigation = (
 		<>
 			<Sidebar.Header>
-				<p className='px-1 py-3 text-sm font-semibold' data-sidebar='label'>
-					Creator tools
-				</p>
+				<NextLink data-tour={sidebar.isMobile ? undefined : "dashboard-home"} href='/dashboard' aria-label='Clipify Home' className='flex h-12 items-center gap-2 px-1 font-bold text-foreground'>
+					<Logo width={28} />
+					{sidebar.isMobile || open ? <span>Clipify</span> : null}
+				</NextLink>
+				<Button ref={searchRef} variant='secondary' isIconOnly={!sidebar.isMobile && !open} className={sidebar.isMobile || open ? "w-full justify-start" : "w-full justify-center"} aria-label='Search clips and tools' aria-haspopup='dialog' onPress={showSearch}>
+					<IconSearch className='size-4 shrink-0' />
+					{sidebar.isMobile || open ? <span className='truncate'>Search clips and tools</span> : null}
+				</Button>
 			</Sidebar.Header>
 			<Sidebar.Content>
 				<Sidebar.Group>
@@ -139,6 +148,16 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 					</Sidebar.Menu>
 				</Sidebar.Group>
 			</Sidebar.Content>
+			{!sidebar.isMobile ? (
+				<Sidebar.Footer>
+					{!open ? (
+						<Button isIconOnly variant='tertiary' aria-label='Show help and getting started' onPress={() => setOpen(true)}>
+							<IconHelpCircle className='size-4' />
+						</Button>
+					) : null}
+					<div id='dashboard-utilities' className={open ? "flex flex-col gap-2" : "hidden"} />
+				</Sidebar.Footer>
+			) : null}
 		</>
 	);
 	const changeSearch = (open: boolean) => {
@@ -160,7 +179,10 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 		>
 			<Sidebar style={{ "--sidebar-width": "16rem", "--sidebar-width-collapsed": "3rem" } as CSSProperties}>{navigation}</Sidebar>
 			<Sidebar.Mobile>{navigation}</Sidebar.Mobile>
-			<Sidebar.Main className='min-w-0'>{children}</Sidebar.Main>
+			<Sidebar.Main className='min-w-0'>
+				{children}
+				{sidebar.isMobile ? <div id='dashboard-utilities' className='mt-auto flex flex-wrap items-center gap-3 border-t border-separator p-4' /> : null}
+			</Sidebar.Main>
 			<Command>
 				<Command.Backdrop isOpen={searchOpen} onOpenChange={changeSearch}>
 					<Command.Container size='lg'>
@@ -208,7 +230,7 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 									const clip = clips.find((item) => `clip:${item.id}` === String(key));
 									if (clip) {
 										changeSearch(false);
-										router.push(`/dashboard/clips?title=${encodeURIComponent(clip.title)}`);
+										setPreview(clip);
 									}
 								}}
 							>
@@ -250,6 +272,17 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 					</Command.Container>
 				</Command.Backdrop>
 			</Command>
+			{preview ? (
+				<ClipPreview
+					key={`${creatorId}:${preview.id}`}
+					creatorId={creatorId}
+					clip={preview}
+					onClose={() => {
+						setPreview(null);
+						requestAnimationFrame(() => searchRef.current?.focus());
+					}}
+				/>
+			) : null}
 		</DashboardNavigationContext.Provider>
 	);
 }

@@ -139,10 +139,11 @@ it.each([
 	{ ok: false, code: "SERVICE_UNAVAILABLE" },
 ])("reports library refresh outcome %#", async (result) => {
 	refresh.mockResolvedValue(result);
+	inventory.mockResolvedValue(data);
 	render(<ClipInventory creatorId='owner' query={{}} data={data} />);
 	fireEvent.click(screen.getByRole("button", { name: "Refresh library" }));
 	await waitFor(() => expect(refresh).toHaveBeenCalledWith({ creatorId: "owner" }));
-	await screen.findByText(result.ok ? "Refresh requested. Reload clips to check for new results." : result.code === "SYNC_COOLDOWN" ? /The library was refreshed recently/ : result.code === "RECONNECT_REQUIRED" ? /Connect Twitch to load your clips/ : "The library could not be refreshed. Please try again.");
+	await screen.findByText(result.ok ? /Refresh started/ : result.code === "SYNC_COOLDOWN" ? /The library was refreshed recently/ : result.code === "RECONNECT_REQUIRED" ? /Connect Twitch to load your clips/ : "The library could not be refreshed. Please try again.");
 });
 it("retains filter drafts after refresh and reload transport failures", async () => {
 	refresh.mockRejectedValue(new Error("offline"));
@@ -152,7 +153,8 @@ it("retains filter drafts after refresh and reload transport failures", async ()
 	fireEvent.change(title, { target: { value: "Keep this filter" } });
 	fireEvent.click(screen.getByRole("button", { name: "Refresh library" }));
 	await screen.findByText("The library could not be refreshed. Please try again.");
-	const reload = screen.getByRole("button", { name: "Reload clips" });
+	refresh.mockResolvedValue({ ok: true, accepted: true });
+	const reload = screen.getByRole("button", { name: "Refresh library" });
 	await waitFor(() => expect(reload).toBeEnabled());
 	fireEvent.click(reload);
 	await screen.findByText("Your clips could not be loaded. Please try again.");
@@ -246,11 +248,11 @@ it("links a known VOD association without attributing unassigned clips to a stre
 			}}
 		/>,
 	);
-	expect(screen.getByRole("link", { name: "View stream" })).toHaveAttribute("href", "/dashboard/streams/123");
-	expect(screen.getByText("Unassigned")).toBeInTheDocument();
+	for (const link of screen.getAllByRole("link", { name: "View stream" })) expect(link).toHaveAttribute("href", "/dashboard/streams/123");
+	expect(screen.getAllByText("Unassigned").length).toBeGreaterThan(0);
 });
 
 it("displays clip creation dates in the timezone used by the saved filters", () => {
 	render(<ClipInventory creatorId='owner' query={{ timeZone: "Europe/Berlin" }} data={{ ...data, total: 1, items: [item] }} />);
-	expect(screen.getByText(item.createdAt)).toHaveAttribute("data-timezone", "Europe/Berlin");
+	for (const date of screen.getAllByText(item.createdAt)) expect(date).toHaveAttribute("data-timezone", "Europe/Berlin");
 });

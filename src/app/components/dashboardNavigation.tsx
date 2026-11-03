@@ -7,27 +7,29 @@ export function DashboardNavigationControls() {
 	const context = useContext(DashboardNavigationContext);
 	if (!context) return null;
 	return (
-		<div className='order-3 flex w-full min-w-0 items-center gap-2 sm:order-2 sm:ml-6 sm:w-auto sm:flex-1'>
+		<div className='order-1 flex shrink-0 items-center'>
 			<Button isIconOnly variant='secondary' aria-label='Toggle navigation' aria-expanded={context.expanded} onPress={context.toggle}>
 				<IconMenu2 className='size-5' />
 			</Button>
-			<Button ref={(node) => context.registerSearch(node)} variant='secondary' className='min-w-0 flex-1 justify-start sm:max-w-sm' aria-label='Search clips and tools' aria-haspopup='dialog' onPress={context.search}>
-				<IconSearch className='size-4 shrink-0' />
-				<span className='truncate'>Search clips and tools</span>
-				<span className='ml-auto hidden text-xs text-muted lg:inline'>⌘ / Ctrl K</span>
-			</Button>
+			{context.mobile && !context.expanded ? (
+				<Button ref={(node) => context.registerSearch(node)} isIconOnly variant='tertiary' aria-label='Search clips and tools' aria-haspopup='dialog' onPress={context.search}>
+					<IconSearch className='size-5' />
+				</Button>
+			) : null}
 		</div>
 	);
 }
 
 export function DashboardBreadcrumbs() {
 	const context = useContext(DashboardNavigationContext);
-	if (!context) return null;
+	if (!context || context.current?.href === "/dashboard") return null;
 	const tourTargets: Record<string, string> = { "/dashboard/overlays": "overlays-tab", "/dashboard/playlists": "playlists-tab", "/dashboard/galleries": "galleries-tab", "/dashboard/runners": "runners-tab" };
 	const tourTarget = context.mobile && !context.current?.detail ? tourTargets[context.current?.href ?? ""] : undefined;
 	return (
 		<Breadcrumbs aria-label='Dashboard breadcrumb' className='mb-4'>
-			<Breadcrumbs.Item href='/dashboard'>Home</Breadcrumbs.Item>
+			<Breadcrumbs.Item href='/dashboard'>
+				<span data-tour={context.mobile ? "dashboard-home" : undefined}>Home</span>
+			</Breadcrumbs.Item>
 			{context.current && context.current.href !== "/dashboard" ? (
 				<Breadcrumbs.Item href={context.current.detail ? context.current.href : undefined}>
 					<span data-tour={tourTarget} aria-current={tourTarget ? "page" : undefined}>
@@ -35,7 +37,7 @@ export function DashboardBreadcrumbs() {
 					</span>
 				</Breadcrumbs.Item>
 			) : null}
-			{context.current?.detail ? <Breadcrumbs.Item>Editor</Breadcrumbs.Item> : null}
+			{context.current?.detail ? <Breadcrumbs.Item>{context.current.href === "/dashboard/streams" ? "Stream" : "Editor"}</Breadcrumbs.Item> : null}
 		</Breadcrumbs>
 	);
 }

@@ -1,4 +1,7 @@
 import { readFileSync } from "node:fs";
+import { createServer, request as httpRequest } from "node:http";
+import https from "node:https";
+import { syncBuiltinESMExports } from "node:module";
 import { Pool } from "pg";
 import { browserDatabaseUrl } from "./browser-database.cjs";
 const pool = new Pool({ connectionString: browserDatabaseUrl(), max: 1 });
@@ -21,6 +24,18 @@ globalThis.fetch = async (input, init) => {
 		const id = url.searchParams.get("id");
 		if (id) data = data.filter((video) => video.id === id);
 		return Response.json({ data, pagination: id || url.searchParams.get("after") ? {} : { cursor: "library-next" } });
+	}
+	if (url.origin === "https://api.twitch.tv" && url.pathname === "/helix/clips" && /^e2e-creator-[a-f0-9-]{36}$/.test(url.searchParams.get("broadcaster_id") ?? "")) {
+		if (headers.get("Authorization") !== "Bearer isolated-dashboard-fixture-token") throw new Error("Unexpected clip sync provider context");
+		const creatorId = url.searchParams.get("broadcaster_id");
+		const { rows } = await pool.query('SELECT value FROM "twitchCache" WHERE type=$1 AND starts_with(key,$2)', ["clip", `clip:${creatorId}:`]);
+		const start = Date.parse(url.searchParams.get("started_at") ?? "1970-01-01");
+		const end = Date.parse(url.searchParams.get("ended_at") ?? new Date().toISOString());
+		const data = rows
+			.map((row) => JSON.parse(row.value))
+			.map((value) => ({ ...value.clip, title: value.testProviderTitle ?? value.clip.title }))
+			.filter((clip) => Date.parse(clip.created_at) >= start && Date.parse(clip.created_at) <= end);
+		return Response.json({ data, pagination: {} });
 	}
 	if (url.origin === "https://api.twitch.tv" && url.pathname === "/helix/clips/downloads") {
 		const ids = url.searchParams.getAll("clip_id");
@@ -63,8 +78,45 @@ globalThis.fetch = async (input, init) => {
 				}, 5000);
 				signal?.addEventListener("abort", abort, { once: true });
 			});
+		if (mode === "maximum_file") {
+			const media = Buffer.alloc(32 * 1024 * 1024);
+			video.copy(media);
+			media.writeUInt32BE(media.length - video.length, video.length);
+			media.write("free", video.length + 4, "ascii");
+			return new Response(media, { headers: { "Content-Type": "video/mp4", "Content-Length": String(media.length) } });
+		}
 		return new Response(video, { headers: { "Content-Type": "video/mp4", "Content-Length": String(video.byteLength) } });
 	}
 	return nativeFetch(input, init);
 };
 process.once("beforeExit", () => void pool.end());
+
+// Bundled Axios uses Node HTTPS rather than fetch. Its fixture GETs use a real loopback transport.
+const provider = createServer(async (request, response) => {
+	try {
+		const url = new URL(request.url, "https://api.twitch.tv");
+		if (request.method !== "GET" || url.pathname !== "/helix/clips" || !/^e2e-creator-[a-f0-9-]{36}$/.test(url.searchParams.get("broadcaster_id") ?? "")) {
+			response.writeHead(404).end();
+			return;
+		}
+		const result = await globalThis.fetch(url, { headers: request.headers });
+		response.writeHead(result.status, Object.fromEntries(result.headers));
+		response.end(Buffer.from(await result.arrayBuffer()));
+	} catch {
+		response.writeHead(500).end("Fixture provider request failed");
+	}
+});
+await new Promise((resolve) => provider.listen(0, "127.0.0.1", resolve));
+provider.unref();
+const nativeRequest = https.request;
+https.request = function (...args) {
+	const [options, callback] = args;
+	if (options && typeof options === "object" && options.hostname === "api.twitch.tv") {
+		const url = new URL(options.path, "https://api.twitch.tv");
+		if (url.pathname === "/helix/clips" && /^e2e-creator-[a-f0-9-]{36}$/.test(url.searchParams.get("broadcaster_id") ?? "")) {
+			return httpRequest({ ...options, protocol: "http:", hostname: "127.0.0.1", host: "127.0.0.1", port: provider.address().port, agent: undefined }, callback);
+		}
+	}
+	return nativeRequest.apply(this, args);
+};
+syncBuiltinESMExports();

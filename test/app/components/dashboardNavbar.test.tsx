@@ -385,7 +385,7 @@ describe("components/dashboardNavbar", () => {
 		const toggle = jest.fn();
 		const search = jest.fn();
 		const view = render(
-			<DashboardNavigationContext.Provider value={{ toggle, search, expanded: true, registerSearch: jest.fn(), current: { href: "/dashboard/overlays", title: "Overlays", detail: false } }}>
+			<DashboardNavigationContext.Provider value={{ toggle, search, expanded: false, mobile: true, registerSearch: jest.fn(), current: { href: "/dashboard/overlays", title: "Overlays", detail: false } }}>
 				<DashboardNavbar user={mockUser()} title='Overlays' tagline='Your overlays'>
 					Workspace
 				</DashboardNavbar>

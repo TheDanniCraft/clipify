@@ -59,11 +59,12 @@ When("I open Inventory and preview a clip", async ({ page, tourWorld }) => {
 	await expect(privacy).not.toBeVisible();
 	await page.reload();
 	await expect(page.locator('[data-tour="guide-launcher"]')).toBeVisible();
+	if (await page.getByRole("region", { name: "Your Clipify guide", exact: true }).isVisible()) await page.getByRole("button", { name: "Minimize guide", exact: true }).click();
 	await expect(page.getByRole("heading", { name: "Clip Inventory", exact: true })).toBeVisible();
 	const row = page.getByRole("row", { name: new RegExp(title) });
 	await expect(row.getByText("42", { exact: true })).toBeVisible();
 	await expect(row.getByText("Strategy", { exact: true })).toBeVisible();
-	await expect(row.locator("time")).toBeVisible();
+	await expect(row.locator("time:visible")).toHaveCount(1);
 	await row.getByRole("button", { name: `Preview ${title}` }).click();
 });
 
@@ -121,7 +122,7 @@ Given("negative views nonfinite duration reversed ranges invalid timezone and ex
 async function expectResults(page: Page, ids: string[]) {
 	await expect(page.locator("[data-clip-id]")).toHaveCount(ids.length);
 	await expect.poll(() => page.locator("[data-clip-id]").evaluateAll((rows) => rows.map((row) => row.getAttribute("data-clip-id")))).toEqual(ids);
-	await expect(page.getByRole("status", { name: "Inventory results" })).toHaveText(`${ids.length} clips`);
+	await expect(page.getByRole("status", { name: "Inventory results" })).toHaveText(`${ids.length} ${ids.length === 1 ? "clip" : "clips"}`);
 }
 When("I apply each filter then their combined intersection and restore the URL", async ({ page, tourWorld }) => {
 	const state = cases.get(tourWorld)!;
@@ -136,7 +137,7 @@ When("I apply each filter then their combined intersection and restore the URL",
 	await page.goto(`${tourWorld.origin}/dashboard/clips?${new URLSearchParams(combined.query)}`);
 	await expectResults(page, [state.ids[0]]);
 	await page.reload();
-	await expect(page.locator('[data-tour="guide-launcher"]')).toBeVisible();
+	await expect(page.getByRole("heading", { name: "Clip Inventory", exact: true })).toBeVisible();
 	state.expected = [state.ids[0]];
 });
 Then("results and total counts exactly match case-insensitive title category date minimum-view and duration predicates", async ({ page, tourWorld }) => {
@@ -151,7 +152,7 @@ When("I submit each invalid query", async ({ page, tourWorld }) => {
 Then("field-level validation preserves entered values and no provider fetch occurs", async ({ page, tourWorld }) => {
 	const state = cases.get(tourWorld)!;
 	await expect(page.getByRole("alert", { name: "Filter validation" })).toBeVisible();
-	await expect(page.locator(`[data-filter-error-field="${state.field}"]`)).toBeVisible();
+	await expect(page.getByRole("alert", { name: "Filter validation" }).locator(`[data-filter-error-field="${state.field}"]`)).toBeVisible();
 	for (const [key, value] of Object.entries(invalidCases[state.variant!].query)) expect(new URL(page.url()).searchParams.get(key)).toBe(value);
 	// Provider-call denial is independently owned by the server validation test; this browser checks visible error and draft preservation.
 });
@@ -201,14 +202,25 @@ When("I select page one remove a row and select items on page two", async ({ pag
 	await expect(privacy).not.toBeVisible();
 	await page.reload();
 	await expect(page.locator('[data-tour="guide-launcher"]')).toBeVisible();
+	if (await page.getByRole("region", { name: "Your Clipify guide", exact: true }).isVisible()) await page.getByRole("button", { name: "Minimize guide", exact: true }).click();
 	await expect(page.getByRole("button", { name: "Select page", exact: true })).toBeVisible();
 	await page.getByRole("button", { name: "Select page", exact: true }).click();
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("25 selected");
-	await page.locator("[data-clip-id]").first().getByRole("checkbox").press("Space");
+	const first = page.locator("[data-clip-id]").first().getByRole("checkbox");
+	await expect(first).toBeChecked();
+	await first.focus();
+	await expect(first).toBeFocused();
+	await page.keyboard.press("Space");
+	await expect(first).not.toBeChecked();
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("24 selected");
 	await page.getByRole("button", { name: "Next", exact: true }).click();
 	await expect(page.locator("[data-clip-id]").first()).toHaveAttribute("data-clip-id", cases.get(tourWorld)!.ids[26]);
-	await page.locator("[data-clip-id]").first().getByRole("checkbox").press("Space");
+	const next = page.locator("[data-clip-id]").first().getByRole("checkbox");
+	await expect(next).not.toBeChecked();
+	await next.focus();
+	await expect(next).toBeFocused();
+	await page.keyboard.press("Space");
+	await expect(next).toBeChecked();
 });
 Then("only explicit selected IDs persist and selected count equals their unique count", async ({ page }) => {
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("25 selected");
@@ -231,6 +243,7 @@ When("I export each explicitly selected set", async ({ page, tourWorld }) => {
 	await expect(privacy).not.toBeVisible();
 	await page.reload();
 	await expect(page.locator('[data-tour="guide-launcher"]')).toBeVisible();
+	if (await page.getByRole("region", { name: "Your Clipify guide", exact: true }).isVisible()) await page.getByRole("button", { name: "Minimize guide", exact: true }).click();
 	await expect(page.getByRole("button", { name: "Select page", exact: true })).toBeVisible();
 	await page.getByRole("button", { name: "Select page", exact: true }).click();
 	if (count === 50) {
@@ -289,6 +302,13 @@ const streamVariants = ["archive with clips", "zero-clip archive", "exclude high
 Given("two archive broadcasts one with no matching clips and a non-archive video", seedInventory);
 When("I browse Streams and open both archive broadcasts", async ({ page, tourWorld }) => {
 	await page.goto(`${tourWorld.origin}/dashboard/streams`);
+	const privacy = page.getByRole("button", { name: "Reject optional", exact: true });
+	await expect(privacy).toBeVisible();
+	await privacy.click();
+	await expect(privacy).not.toBeVisible();
+	await page.reload();
+	await expect(page.locator('[data-tour="guide-launcher"]')).toBeVisible();
+	if (await page.getByRole("region", { name: "Your Clipify guide", exact: true }).isVisible()) await page.getByRole("button", { name: "Minimize guide", exact: true }).click();
 	await expect(page.getByRole("heading", { name: "Streams", exact: true })).toBeVisible();
 	await expect(page.getByRole("link", { name: "Highlight", exact: true })).toHaveCount(0);
 	await expect(page.getByRole("link", { name: "Upload", exact: true })).toHaveCount(0);
@@ -298,7 +318,7 @@ When("I browse Streams and open both archive broadcasts", async ({ page, tourWor
 	] as const) {
 		await page.getByRole("link", { name: title, exact: true }).click();
 		await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
-		await expect(page.getByRole("status", { name: "Inventory results" })).toHaveText(`${total} clips`);
+		await expect(page.getByRole("status", { name: "Inventory results" })).toHaveText(`${total} ${total === 1 ? "clip" : "clips"}`);
 		await page.getByRole("link", { name: "Back to streams", exact: true }).click();
 	}
 	if (cases.get(tourWorld)!.variant === "next provider page") {
@@ -322,6 +342,14 @@ When("I visit every sidebar destination", async ({ page, tourWorld }) => {
 	await expect(page.locator('[data-tour="guide-launcher"]')).toBeVisible();
 	const tree = page.getByRole("treegrid", { name: "Creator navigation", exact: true });
 	await expect(tree).toBeVisible();
+	if (cases.get(tourWorld)!.variant === "Home") {
+		const panel = await page.getByRole("region", { name: "Your Clipify guide", exact: true }).boundingBox();
+		const navigation = await tree.boundingBox();
+		expect(panel).not.toBeNull();
+		expect(navigation).not.toBeNull();
+		expect(panel!.x).toBeGreaterThanOrEqual(navigation!.x + navigation!.width);
+		await page.screenshot({ path: test.info().outputPath("first-use-guide-navigation.png"), animations: "disabled" });
+	}
 	await tree.getByRole("row", { name: cases.get(tourWorld)!.variant!, exact: true }).click();
 });
 Then("the selected location and correct existing resource list are shown", async ({ page, tourWorld }) => {

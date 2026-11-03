@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { usePathname } from "next/navigation";
-import { Button, Card, Checkbox, Input, Label, ListBox, Modal, NumberField, Select, Table, TextField, Link } from "@heroui/react";
+import { Button, Card, Checkbox, Disclosure, Input, Label, ListBox, NumberField, Select, Table, TextField, Link } from "@heroui/react";
 import { fromDate, toCalendarDate } from "@internationalized/date";
-import { getCreatorClipInventory, getCreatorClipPreview, refreshCreatorLibrary } from "@actions/creatorLibrary";
+import { getCreatorClipInventory, refreshCreatorLibrary } from "@actions/creatorLibrary";
 import AppDateRangePicker, { type AppDateRange } from "@components/appDateRangePicker";
 import AppPagination from "@components/appPagination";
-import ControlledModal from "@components/controlledModal";
+import ClipPreview from "./clipPreview";
 import LocalizedDate from "@components/localizedDate";
 import ClipExport from "./clipExport";
 
@@ -50,23 +50,8 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 		setSelection({ scope: selectionScope, ids });
 	};
 	const [preview, setPreview] = useState<Clip | null>(null);
-	const [playbackUrl, setPlaybackUrl] = useState<string | null | undefined>();
 	const timeZone = query.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone;
 	const [range, setRange] = useState<AppDateRange | null>(() => restoredRange(query));
-	useEffect(() => {
-		if (!preview) return;
-		let current = true;
-		void getCreatorClipPreview({ creatorId, clipId: preview.id })
-			.then((result) => {
-				if (current) setPlaybackUrl(result?.playbackUrl ?? null);
-			})
-			.catch(() => {
-				if (current) setPlaybackUrl(null);
-			});
-		return () => {
-			current = false;
-		};
-	}, [creatorId, preview]);
 	const navigate = useCallback(
 		(next: Record<string, string>, push = true) => {
 			if (fixedVideoId) next = { ...next, videoId: fixedVideoId };
@@ -115,7 +100,7 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 			<Card>
 				<Card.Content>
 					<form
-						className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
+						className='grid grid-cols-[minmax(0,1fr)_auto] gap-3'
 						onSubmit={(event) => {
 							event.preventDefault();
 							const next = Object.fromEntries(Object.entries(draft).filter(([, value]) => value !== ""));
@@ -135,72 +120,83 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 							<Label>Title</Label>
 							<Input variant='secondary' placeholder='Search clip titles' />
 						</TextField>
-						<Select variant='secondary' aria-label='Category' selectedKey={draft.category || null} onSelectionChange={(key) => update("category", String(key ?? ""))}>
-							<Label>Category</Label>
-							<Select.Trigger>
-								<Select.Value />
-							</Select.Trigger>
-							<Select.Popover>
-								<ListBox>
-									<ListBox.Item id='' textValue='All categories'>
-										All categories
-									</ListBox.Item>
-									{data.ok
-										? data.categories.map((category) => (
-												<ListBox.Item key={category.id} id={category.id} textValue={category.name}>
-													{category.name}
+						<Button className='self-end' type='submit' isPending={pending}>
+							Apply filters
+						</Button>
+						<Disclosure className='col-span-2' defaultExpanded={Boolean(query.category || query.minViews || query.minDuration || query.maxDuration || query.startedAt || query.sort)}>
+							<Disclosure.Heading>
+								<Disclosure.Trigger className='flex w-full items-center justify-between gap-2'>
+									Filters and sorting
+									<Disclosure.Indicator />
+								</Disclosure.Trigger>
+							</Disclosure.Heading>
+							<Disclosure.Content>
+								<Disclosure.Body className='grid gap-4 pt-4 sm:grid-cols-2 lg:grid-cols-3'>
+									<Select variant='secondary' aria-label='Category' selectedKey={draft.category || null} onSelectionChange={(key) => update("category", String(key ?? ""))}>
+										<Label>Category</Label>
+										<Select.Trigger>
+											<Select.Value />
+										</Select.Trigger>
+										<Select.Popover>
+											<ListBox>
+												<ListBox.Item id='' textValue='All categories'>
+													All categories
 												</ListBox.Item>
-											))
-										: null}
-								</ListBox>
-							</Select.Popover>
-						</Select>
-						<Select variant='secondary' selectedKey={draft.sort ?? "newest"} onSelectionChange={(key) => update("sort", String(key ?? "newest"))}>
-							<Label>Sort</Label>
-							<Select.Trigger>
-								<Select.Value />
-							</Select.Trigger>
-							<Select.Popover>
-								<ListBox>
-									<ListBox.Item id='newest' textValue='Newest'>
-										Newest
-									</ListBox.Item>
-									<ListBox.Item id='most_viewed' textValue='Most viewed'>
-										Most viewed
-									</ListBox.Item>
-								</ListBox>
-							</Select.Popover>
-						</Select>
-						{["minViews", "minDuration", "maxDuration"].map((key) => (
-							<NumberField variant='secondary' key={key} value={draft[key] ? Number(draft[key]) : undefined} onChange={(value) => update(key, Number.isNaN(value) ? "" : String(value))} minValue={0} isInvalid={Boolean(fieldErrors?.[key as keyof typeof fieldErrors])}>
-								<Label>
-									{fields[key]}
-									{key.includes("Duration") ? " (seconds)" : ""}
-								</Label>
-								<NumberField.Group>
-									<NumberField.DecrementButton />
-									<NumberField.Input />
-									<NumberField.IncrementButton />
-								</NumberField.Group>
-							</NumberField>
-						))}
-						<AppDateRangePicker label='Clip creation dates' value={range} onChange={setRange} variant='secondary' fullWidth />
-						<div className='flex items-end gap-2'>
-							<Button type='submit' isPending={pending}>
-								Apply filters
-							</Button>
-							<Button
-								variant='secondary'
-								onPress={() => {
-									setDraft({});
-									setRange(null);
-									navigate({});
-								}}
-							>
-								Clear filters
-							</Button>
-						</div>
-						<p className='text-xs text-muted sm:col-span-2 lg:col-span-3'>Dates use {timeZone}. Views are each clip’s current lifetime views.</p>
+												{data.ok
+													? data.categories.map((category) => (
+															<ListBox.Item key={category.id} id={category.id} textValue={category.name}>
+																{category.name}
+															</ListBox.Item>
+														))
+													: null}
+											</ListBox>
+										</Select.Popover>
+									</Select>
+									<Select variant='secondary' selectedKey={draft.sort ?? "newest"} onSelectionChange={(key) => update("sort", String(key ?? "newest"))}>
+										<Label>Sort</Label>
+										<Select.Trigger>
+											<Select.Value />
+										</Select.Trigger>
+										<Select.Popover>
+											<ListBox>
+												<ListBox.Item id='newest' textValue='Newest'>
+													Newest
+												</ListBox.Item>
+												<ListBox.Item id='most_viewed' textValue='Most viewed'>
+													Most viewed
+												</ListBox.Item>
+											</ListBox>
+										</Select.Popover>
+									</Select>
+									{["minViews", "minDuration", "maxDuration"].map((key) => (
+										<NumberField variant='secondary' key={key} value={draft[key] ? Number(draft[key]) : undefined} onChange={(value) => update(key, Number.isNaN(value) ? "" : String(value))} minValue={0} isInvalid={Boolean(fieldErrors?.[key as keyof typeof fieldErrors])}>
+											<Label>
+												{fields[key]}
+												{key.includes("Duration") ? " (seconds)" : ""}
+											</Label>
+											<NumberField.Group>
+												<NumberField.DecrementButton />
+												<NumberField.Input />
+												<NumberField.IncrementButton />
+											</NumberField.Group>
+										</NumberField>
+									))}
+									<AppDateRangePicker label='Clip creation dates' value={range} onChange={setRange} variant='secondary' fullWidth />
+
+									<Button
+										variant='secondary'
+										onPress={() => {
+											setDraft({});
+											setRange(null);
+											navigate({});
+										}}
+									>
+										Clear filters
+									</Button>
+									<p className='text-xs text-muted sm:col-span-2 lg:col-span-3'>Dates use {timeZone}. Views are each clip’s current lifetime views.</p>
+								</Disclosure.Body>
+							</Disclosure.Content>
+						</Disclosure>
 					</form>
 				</Card.Content>
 			</Card>
@@ -230,6 +226,7 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 									try {
 										const result = await refreshCreatorLibrary({ creatorId });
 										setRefresh(result);
+										navigate(query, false);
 									} catch {
 										setRefresh({ ok: false, code: "SERVICE_UNAVAILABLE" });
 									}
@@ -238,15 +235,17 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 						>
 							Refresh library
 						</Button>
-						<Button variant='tertiary' isDisabled={pending} onPress={() => navigate(query, false)}>
-							Reload clips
-						</Button>
 					</div>
 
 					{refresh ? (
 						<div role={refresh.ok ? "status" : "alert"} className='rounded-xl border border-default p-3 text-sm'>
 							{refresh.ok ? (
-								"Refresh requested. Reload clips to check for new results."
+								<>
+									Refresh started. New clips may take a moment to appear.{" "}
+									<Button variant='tertiary' isDisabled={pending} onPress={() => navigate(query, false)}>
+										Check for new clips
+									</Button>
+								</>
 							) : refresh.code === "SYNC_COOLDOWN" ? (
 								<>The library was refreshed recently. You can request another refresh {"nextAllowedAt" in refresh && refresh.nextAllowedAt ? <LocalizedDate value={refresh.nextAllowedAt} timeZone={timeZone} showTime /> : "later"}.</>
 							) : refresh.code === "RECONNECT_REQUIRED" ? (
@@ -261,37 +260,39 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 							)}
 						</div>
 					) : null}
-					<Card>
-						<Card.Content className='flex flex-col gap-4'>
-							<div className='flex flex-wrap items-center gap-3'>
-								<Button
-									variant='secondary'
-									isDisabled={pending || selected.size >= 50}
-									onPress={() => {
-										const ids = new Set(selected);
-										for (const clip of data.items) {
-											if (ids.size < 50) ids.add(clip.id);
-										}
-										setSelection({ scope: selectionScope, ids });
-									}}
-								>
-									Select page
-								</Button>
-								<Button variant='tertiary' isDisabled={selected.size === 0} onPress={() => setSelection({ scope: selectionScope, ids: new Set() })}>
-									Clear selection
-								</Button>
-								<p role='status' aria-label='Clip selection'>
-									{selected.size} selected
-								</p>
-								<p className='text-xs text-muted'>Select up to 50 clips across pages.</p>
-								{selection.cleared ? <p role='status'>Selection cleared because the filters changed.</p> : null}
-							</div>
-							<ClipExport creatorId={creatorId} clipIds={[...selected]} scope={selection.scope} />
-						</Card.Content>
-					</Card>
-					<div className='flex flex-wrap items-center justify-between gap-3'>
+					{data.items.length || selected.size ? (
+						<Card>
+							<Card.Content className='flex flex-row flex-wrap items-center justify-between gap-3'>
+								<div className='flex flex-wrap items-center gap-3'>
+									<Button
+										variant='secondary'
+										isDisabled={pending || selected.size >= 50 || data.items.length === 0}
+										onPress={() => {
+											const ids = new Set(selected);
+											for (const clip of data.items) {
+												if (ids.size < 50) ids.add(clip.id);
+											}
+											setSelection({ scope: selectionScope, ids });
+										}}
+									>
+										Select page
+									</Button>
+									<Button className={selected.size ? "" : "hidden"} variant='tertiary' isDisabled={selected.size === 0} onPress={() => setSelection({ scope: selectionScope, ids: new Set() })}>
+										Clear selection
+									</Button>
+									<p role='status' aria-label='Clip selection'>
+										{selected.size} selected
+									</p>
+
+									{selection.cleared ? <p role='status'>Selection cleared because the filters changed.</p> : null}
+								</div>
+								<ClipExport creatorId={creatorId} clipIds={[...selected]} scope={selection.scope} />
+							</Card.Content>
+						</Card>
+					) : null}
+					<div className='flex flex-row flex-wrap items-center justify-between gap-3'>
 						<p role='status' aria-label='Inventory results'>
-							{data.total} clips
+							{data.total} {data.total === 1 ? "clip" : "clips"}
 						</p>
 						<p className='text-sm text-muted'>
 							{data.complete ? "Library synchronized" : "Showing known clips. Older clips may still be syncing."}
@@ -313,21 +314,21 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 					) : (
 						<Table>
 							<Table.ScrollContainer>
-								<Table.Content aria-label='Clip inventory' className='min-w-[640px]'>
+								<Table.Content aria-label='Clip inventory' className='w-full xl:min-w-[640px]'>
 									<Table.Header>
 										<Table.Column aria-label='Select clips'>Select</Table.Column>
 										<Table.Column isRowHeader>Clip</Table.Column>
-										<Table.Column>Category</Table.Column>
-										<Table.Column>Created</Table.Column>
-										<Table.Column>Duration</Table.Column>
-										<Table.Column>Views</Table.Column>
-										<Table.Column>Stream</Table.Column>
+										<Table.Column className='hidden xl:table-cell'>Category</Table.Column>
+										<Table.Column className='hidden xl:table-cell'>Created</Table.Column>
+										<Table.Column className='hidden xl:table-cell'>Duration</Table.Column>
+										<Table.Column className='hidden xl:table-cell'>Views</Table.Column>
+										<Table.Column className='hidden xl:table-cell'>Stream</Table.Column>
 									</Table.Header>
 									<Table.Body>
 										{data.items.map((clip) => (
 											<Table.Row key={clip.id} id={clip.id} data-clip-id={clip.id}>
 												<Table.Cell>
-													<Checkbox isSelected={selected.has(clip.id)} isDisabled={!selected.has(clip.id) && selected.size >= 50} onChange={(include) => selectClip(clip.id, include)}>
+													<Checkbox variant='secondary' isSelected={selected.has(clip.id)} isDisabled={!selected.has(clip.id) && selected.size >= 50} onChange={(include) => selectClip(clip.id, include)}>
 														<Checkbox.Content>
 															<Checkbox.Control>
 																<Checkbox.Indicator />
@@ -337,27 +338,37 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 													</Checkbox>
 												</Table.Cell>
 												<Table.Cell>
-													<div className='flex items-center gap-3'>
-														{clip.thumbnailUrl ? <img src={clip.thumbnailUrl} alt='' className='h-12 w-20 rounded-lg object-cover' /> : null}
-														<Button
-															variant='tertiary'
-															aria-label={`Preview ${clip.title}`}
-															onPress={() => {
-																setPlaybackUrl(undefined);
-																setPreview(clip);
-															}}
-														>
-															{clip.title || "Untitled clip"}
-														</Button>
+													<div className='flex min-w-0 flex-col gap-2'>
+														<div className='flex min-w-0 items-center gap-3'>
+															{clip.thumbnailUrl ? <img src={clip.thumbnailUrl} alt='' className='h-12 w-20 shrink-0 rounded-lg object-cover' /> : null}
+															<Button
+																variant='ghost'
+																className='h-auto min-w-0 flex-1 justify-start whitespace-normal py-2 text-left'
+																aria-label={`Preview ${clip.title}`}
+																onPress={() => {
+																	setPreview(clip);
+																}}
+															>
+																{clip.title || "Untitled clip"}
+															</Button>
+														</div>
+														<p className='w-full text-xs text-muted xl:hidden'>
+															{clip.views.toLocaleString()} views, {Math.round(clip.duration)}s<br />
+															{data.categories.find((category) => category.id === clip.categoryId)?.name ?? "Category unavailable"}
+															<br />
+															<LocalizedDate value={clip.createdAt} showTime timeZone={timeZone} />
+															<br />
+															{clip.videoId ? <Link href={`/dashboard/streams/${encodeURIComponent(clip.videoId)}`}>View stream</Link> : "Unassigned"}
+														</p>
 													</div>
 												</Table.Cell>
-												<Table.Cell>{data.categories.find((category) => category.id === clip.categoryId)?.name ?? "Category unavailable"}</Table.Cell>
-												<Table.Cell>
+												<Table.Cell className='hidden xl:table-cell'>{data.categories.find((category) => category.id === clip.categoryId)?.name ?? "Category unavailable"}</Table.Cell>
+												<Table.Cell className='hidden whitespace-nowrap xl:table-cell'>
 													<LocalizedDate value={clip.createdAt} timeZone={timeZone} showTime />
 												</Table.Cell>
-												<Table.Cell>{Math.round(clip.duration)}s</Table.Cell>
-												<Table.Cell>{clip.views.toLocaleString()}</Table.Cell>
-												<Table.Cell>{clip.videoId ? <Link href={`/dashboard/streams/${encodeURIComponent(clip.videoId)}`}>View stream</Link> : "Unassigned"}</Table.Cell>
+												<Table.Cell className='hidden xl:table-cell'>{Math.round(clip.duration)}s</Table.Cell>
+												<Table.Cell className='hidden xl:table-cell'>{clip.views.toLocaleString()}</Table.Cell>
+												<Table.Cell className='hidden whitespace-nowrap xl:table-cell'>{clip.videoId ? <Link href={`/dashboard/streams/${encodeURIComponent(clip.videoId)}`}>View stream</Link> : "Unassigned"}</Table.Cell>
 											</Table.Row>
 										))}
 									</Table.Body>
@@ -368,45 +379,7 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 					<AppPagination page={Number(query.page) || 1} total={Math.ceil(data.total / (Number(query.pageSize) || 25))} onChange={(page) => navigate({ ...query, page: String(page) })} />
 				</>
 			)}
-			<ControlledModal
-				isOpen={Boolean(preview)}
-				onClose={() => {
-					setPreview(null);
-					setPlaybackUrl(undefined);
-				}}
-				size='lg'
-			>
-				<Modal.Header>
-					<Modal.Heading>{preview?.title}</Modal.Heading>
-				</Modal.Header>
-				<Modal.Body>
-					{playbackUrl ? (
-						<video src={playbackUrl} controls autoPlay playsInline className='aspect-video w-full rounded-lg bg-black' />
-					) : playbackUrl === undefined ? (
-						<p role='status'>Loading preview…</p>
-					) : (
-						<div role='alert'>
-							<p>This preview is unavailable. You can still open the clip on Twitch.</p>
-							<Button
-								variant='secondary'
-								onPress={() => {
-									if (preview) {
-										setPlaybackUrl(undefined);
-										setPreview({ ...preview });
-									}
-								}}
-							>
-								Retry preview
-							</Button>
-						</div>
-					)}
-					{preview ? (
-						<Link href={preview.url} target='_blank' rel='noopener noreferrer'>
-							Open on Twitch
-						</Link>
-					) : null}
-				</Modal.Body>
-			</ControlledModal>
+			{preview ? <ClipPreview key={`${creatorId}:${preview.id}`} creatorId={creatorId} clip={preview} onClose={() => setPreview(null)} /> : null}
 		</div>
 	);
 }

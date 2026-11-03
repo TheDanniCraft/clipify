@@ -6,8 +6,18 @@ let path = "/dashboard/clips";
 let mobile = false;
 const push = jest.fn();
 const search = jest.fn();
+const preview = jest.fn().mockResolvedValue({ playbackUrl: "https://example.com/clip.mp4" });
 jest.mock("next/navigation", () => ({ usePathname: () => path, useRouter: () => ({ push }) }));
-jest.mock("@actions/creatorLibrary", () => ({ searchCreatorLibrary: (...args: unknown[]) => search(...args) }));
+jest.mock("@components/controlledModal", () => ({
+	__esModule: true,
+	default: ({ children, onClose }: { children: React.ReactNode; onClose: () => void }) => (
+		<section>
+			<button onClick={onClose}>Close clip preview</button>
+			{children}
+		</section>
+	),
+}));
+jest.mock("@actions/creatorLibrary", () => ({ searchCreatorLibrary: (...args: unknown[]) => search(...args), getCreatorClipPreview: (...args: unknown[]) => preview(...args) }));
 jest.mock(
 	"@heroui-pro/react",
 	() => {
@@ -15,7 +25,22 @@ jest.mock(
 		const wrapper = ({ children }: { children: React.ReactNode }) => <div>{children}</div>;
 		const SearchContext = React.createContext(null);
 		const ActionContext = React.createContext(null);
-		const Sidebar = Object.assign(wrapper, { Provider: wrapper, Header: wrapper, Content: wrapper, Group: wrapper, Menu: wrapper, MenuIcon: wrapper, MenuLabel: wrapper, MenuTrigger: wrapper, MenuIndicator: wrapper, Submenu: wrapper, Main: wrapper, Mobile: () => null, MenuItem: ({ children, render, href }: { children: React.ReactNode; render?: (props: Record<string, unknown>) => React.ReactNode; href?: string }) => (render ? render({ "data-href": href, children }) : <div>{children}</div>) });
+		const Sidebar = Object.assign(wrapper, {
+			Provider: wrapper,
+			Header: wrapper,
+			Content: wrapper,
+			Footer: wrapper,
+			Group: wrapper,
+			Menu: wrapper,
+			MenuIcon: wrapper,
+			MenuLabel: wrapper,
+			MenuTrigger: wrapper,
+			MenuIndicator: wrapper,
+			Submenu: wrapper,
+			Main: wrapper,
+			Mobile: () => null,
+			MenuItem: ({ children, render, href }: { children: React.ReactNode; render?: (props: Record<string, unknown>) => React.ReactNode; href?: string }) => (render ? render({ "data-href": href, children }) : <div>{children}</div>),
+		});
 		const Input = ({ onKeyDownCapture, ...props }: React.InputHTMLAttributes<HTMLInputElement>) => {
 			const state = React.useContext(SearchContext);
 			return <input {...props} value={state.value} onChange={(event) => state.change(event.target.value)} onKeyDownCapture={onKeyDownCapture} />;
@@ -85,7 +110,7 @@ it.each([
 		</DashboardShell>,
 	);
 	expect(screen.getAllByText(title).length).toBeGreaterThan(0);
-	expect(screen.getByText("Editor")).toBeInTheDocument();
+	expect(screen.getByText(route.startsWith("/dashboard/streams/") ? "Stream" : "Editor")).toBeInTheDocument();
 });
 it("leaves embedded gallery previews free of dashboard chrome", () => {
 	path = "/dashboard/galleries/A/preview";
@@ -106,12 +131,15 @@ it("toggles desktop navigation by button and shortcut without stealing input sho
 	const toggle = screen.getByRole("button", { name: "Toggle navigation" });
 	fireEvent.click(toggle);
 	expect(toggle).toHaveAttribute("aria-expanded", "false");
+	fireEvent.click(screen.getByRole("button", { name: "Show help and getting started" }));
+	expect(toggle).toHaveAttribute("aria-expanded", "true");
+	fireEvent.click(toggle);
 	fireEvent.keyDown(document, { ctrlKey: true, key: "b" });
 	expect(toggle).toHaveAttribute("aria-expanded", "true");
 	fireEvent.keyDown(document, { key: "b" });
 	expect(toggle).toHaveAttribute("aria-expanded", "true");
 });
-it("searches authorized clips and navigates to the inventory result", async () => {
+it("opens the exact searched clip and restores focus after closing its preview", async () => {
 	search.mockResolvedValue({ ok: true, items: [{ id: "A", title: "Clutch" }] });
 	render(
 		<DashboardShell creatorId='owner' permissions={[...PERMISSIONS]}>
@@ -123,8 +151,11 @@ it("searches authorized clips and navigates to the inventory result", async () =
 	await screen.findByRole("button", { name: "Clutch" });
 	expect(search).toHaveBeenCalledWith({ creatorId: "owner", title: "Clutch" });
 	fireEvent.click(screen.getByRole("button", { name: "Clutch" }));
-	expect(push).toHaveBeenCalledWith("/dashboard/clips?title=Clutch");
-	expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+	await waitFor(() => expect(preview).toHaveBeenCalledWith({ creatorId: "owner", clipId: "A" }));
+	expect(push).not.toHaveBeenCalled();
+	fireEvent.click(screen.getByRole("button", { name: "Close clip preview" }));
+	await waitFor(() => expect(screen.getByRole("button", { name: "Search clips and tools" })).toHaveFocus());
+	expect(screen.queryByRole("button", { name: "Close clip preview" })).not.toBeInTheDocument();
 });
 it("navigates directly to a permitted tool", () => {
 	render(

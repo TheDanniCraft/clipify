@@ -5,6 +5,7 @@ import { readFile } from "node:fs/promises";
 import type { Page, APIRequestContext } from "@playwright/test";
 async function setup({ page, request, tourWorld }: { page: Page; request: APIRequestContext; tourWorld: TourWorld }, mode?: string) {
 	const seeded = await seedCreatorLibrary({ page, request, tourWorld });
+	await tourWorld.fixture.pool.query('INSERT INTO "twitchCache" (type,key,value) VALUES ($1,$2,$3)', ["clip", `clip-sync-force:${seeded.creatorId}`, JSON.stringify({ lastForcedAt: new Date().toISOString() })]);
 	await tourWorld.fixture.pool.query("UPDATE auth.account SET scope=$1 WHERE provider_id=$2 AND account_id=$3", ["channel:manage:clips", "twitch", seeded.creatorId]);
 	const row = await tourWorld.fixture.pool.query('SELECT value FROM "twitchCache" WHERE type=$1 AND key=$2', ["clip", `clip:${seeded.creatorId}:${seeded.id}`]);
 	const value = JSON.parse(row.rows[0].value);
@@ -68,7 +69,7 @@ for (const width of [390, 1440])
 			const seeded = await setup({ page, request, tourWorld });
 			const second = `LibrarySort01_${seeded.creatorId.slice("e2e-creator-".length)}`;
 			await tourWorld.fixture.pool.query('INSERT INTO "twitchCache" (type,key,value) VALUES ($1,$2,$3)', ["clip", `clip:${seeded.creatorId}:${second}`, JSON.stringify({ ...seeded.value, clip: { ...seeded.value.clip, id: second, title: "Retry this clip" }, testDownloadMode: "media_5xx" })]);
-			await page.getByRole("button", { name: "Reload clips", exact: true }).click();
+			await page.getByRole("button", { name: "Refresh library", exact: true }).click();
 			await expect(page.getByRole("status", { name: "Inventory results" })).toHaveText("2 clips");
 			await page.getByRole("button", { name: "Select page", exact: true }).click();
 			await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("2 selected");
@@ -78,7 +79,7 @@ for (const width of [390, 1440])
 			const entries = unzipSync(new Uint8Array(await readFile((await archive.path())!)));
 			const manifest = JSON.parse(strFromU8(entries["manifest.json"]));
 			expect(manifest.clips.filter((clip: { status: string }) => clip.status === "included").map((clip: { id: string }) => clip.id)).toEqual([seeded.id]);
-			await expect(page.getByText("1 clips were skipped.", { exact: false })).toBeVisible();
+			await expect(page.getByText("1 clip was skipped.", { exact: false })).toBeVisible();
 			await setMode(tourWorld, seeded.creatorId, second, { ...seeded.value, clip: { ...seeded.value.clip, id: second, title: "Retry this clip" } });
 			const requestPromise = page.waitForRequest((request) => request.url().endsWith("/api/clips/export") && request.method() === "POST");
 			const retryDownload = page.waitForEvent("download");
@@ -148,7 +149,7 @@ test("Clip export records portrait fallback in the downloaded manifest", async (
 test("Clip inventory renders a warm ten-thousand-clip page within two seconds", async ({ page, request, tourWorld }, info) => {
 	const seeded = await setup({ page, request, tourWorld });
 	await tourWorld.fixture.pool.query(`INSERT INTO "twitchCache" (type,key,value) SELECT 'clip','clip:'||$1||':Warm'||i,jsonb_build_object('clip',$2::jsonb||jsonb_build_object('id','Warm'||i,'view_count',i))::text FROM generate_series(1,9999) AS i`, [seeded.creatorId, JSON.stringify(seeded.value.clip)]);
-	await page.getByRole("button", { name: "Reload clips", exact: true }).click();
+	await page.getByRole("button", { name: "Refresh library", exact: true }).click();
 	await expect(page.getByRole("status", { name: "Inventory results" })).toHaveText("10000 clips");
 	await expect(page.locator("[data-clip-id]")).toHaveCount(25);
 	const first = await page.locator("[data-clip-id]").first().getAttribute("data-clip-id");
@@ -171,7 +172,7 @@ test("Clip export withholds buffered media when the current grant is revoked dur
 	const seeded = await setup({ page, request, tourWorld });
 	const second = `LibrarySort01_${seeded.creatorId.slice("e2e-creator-".length)}`;
 	await tourWorld.fixture.pool.query('INSERT INTO "twitchCache" (type,key,value) VALUES ($1,$2,$3)', ["clip", `clip:${seeded.creatorId}:${second}`, JSON.stringify({ ...seeded.value, clip: { ...seeded.value.clip, id: second, title: "Delayed clip" }, testDownloadMode: "delay" })]);
-	await page.getByRole("button", { name: "Reload clips", exact: true }).click();
+	await page.getByRole("button", { name: "Refresh library", exact: true }).click();
 	await expect(page.getByRole("status", { name: "Inventory results" })).toHaveText("2 clips");
 	await page.getByRole("button", { name: "Select page", exact: true }).click();
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("2 selected");
@@ -188,4 +189,68 @@ test("Clip export withholds buffered media when the current grant is revoked dur
 	await expect(page.getByRole("region", { name: "Clip export" }).getByRole("alert")).toContainText("no longer have permission", { timeout: 10000 });
 	expect(downloads).toBe(0);
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("2 selected");
+});
+
+test("Maximum clip package downloads intact with measured browser memory", async ({ page, request, tourWorld }, info) => {
+	test.setTimeout(120000);
+	const seeded = await setup({ page, request, tourWorld }, "maximum_file");
+	for (let index = 1; index < 4; index++) {
+		const id = `LibrarySort${String(index).padStart(2, "0")}_${seeded.creatorId.slice("e2e-creator-".length)}`;
+		await tourWorld.fixture.pool.query('INSERT INTO "twitchCache" (type,key,value) VALUES ($1,$2,$3)', ["clip", `clip:${seeded.creatorId}:${id}`, JSON.stringify({ ...seeded.value, clip: { ...seeded.value.clip, id, title: `Maximum package clip ${index}` }, testDownloadMode: "maximum_file" })]);
+	}
+	await page.getByRole("button", { name: "Refresh library", exact: true }).click();
+	await expect(page.getByRole("status", { name: "Inventory results" })).toHaveText("4 clips");
+	await page.getByRole("button", { name: "Select page", exact: true }).click();
+	const cdp = await page.context().newCDPSession(page);
+	const samples: { usedSize: number; totalSize: number; embedderHeapUsedSize: number; backingStorageSize: number }[] = [];
+	const sample = async () => {
+		samples.push(await cdp.send("Runtime.getHeapUsage"));
+	};
+	await sample();
+	let sampling = true;
+	const measurements = (async () => {
+		while (sampling) {
+			await sample();
+			await new Promise((resolve) => setTimeout(resolve, 100));
+		}
+	})();
+	const started = Date.now();
+	try {
+		const downloaded = page.waitForEvent("download");
+		await page.getByRole("button", { name: "Export selected", exact: true }).click();
+		const archive = await downloaded;
+		const bytes = new Uint8Array(await readFile((await archive.path())!));
+		const entries = unzipSync(bytes);
+		const manifest = JSON.parse(strFromU8(entries["manifest.json"]));
+		expect(manifest.clips.filter((clip: { status: string }) => clip.status === "included")).toHaveLength(4);
+		const videos = Object.entries(entries).filter(([name]) => name.endsWith(".mp4"));
+		expect(videos).toHaveLength(4);
+		expect(videos.every(([, bytes]) => bytes.length === 32 * 1024 * 1024)).toBe(true);
+		await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("4 selected");
+		await info.attach("maximum-package-browser-memory.json", { body: JSON.stringify({ archiveBytes: bytes.length, elapsedMs: Date.now() - started, samples, note: "Chromium heap/backing-storage samples; not whole-process RSS or concurrent capacity." }, null, 2), contentType: "application/json" });
+	} finally {
+		sampling = false;
+		await measurements;
+		await cdp.detach();
+	}
+});
+
+test("Refresh library shows synchronized provider metadata and retains selection", async ({ page, request, tourWorld }) => {
+	const seeded = await setup({ page, request, tourWorld });
+	await tourWorld.fixture.pool.query('DELETE FROM "twitchCache" WHERE type=$1 AND key=$2', ["clip", `clip-sync-force:${seeded.creatorId}`]);
+	await tourWorld.fixture.pool.query('UPDATE "twitchCache" SET value=$1 WHERE type=$2 AND key=$3', [JSON.stringify({ ...seeded.value, testProviderTitle: "Synchronized highlight" }), "clip", `clip:${seeded.creatorId}:${seeded.id}`]);
+	await page.getByRole("button", { name: "Refresh library", exact: true }).click();
+	await expect(page.getByText("Refresh started. New clips may take a moment to appear.", { exact: false })).toBeVisible();
+	await expect
+		.poll(
+			async () => {
+				const row = await tourWorld.fixture.pool.query('SELECT value FROM "twitchCache" WHERE type=$1 AND key=$2', ["clip", `clip:${seeded.creatorId}:${seeded.id}`]);
+				return JSON.parse(row.rows[0].value).clip.title;
+			},
+			{ timeout: 15000 },
+		)
+		.toBe("Synchronized highlight");
+	await page.getByRole("button", { name: "Check for new clips", exact: true }).click();
+	await expect(page.getByRole("button", { name: "Preview Synchronized highlight", exact: true })).toBeVisible();
+	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("1 selected");
 });

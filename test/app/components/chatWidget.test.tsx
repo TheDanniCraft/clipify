@@ -62,6 +62,20 @@ describe("components/ChatWidget", () => {
 		mockDialogVisible = false;
 	});
 
+	it("opens chat from dashboard utilities while keeping the floating bubble hidden", () => {
+		mockPathname = "/dashboard/clips";
+		mockFunctionalityAllowed = true;
+		mountChatwootWidget();
+		const toggle = jest.fn();
+		const toggleBubbleVisibility = jest.fn();
+		window.$chatwoot = { toggle, toggleBubbleVisibility } as unknown as NonNullable<Window["$chatwoot"]>;
+		render(<ChatWidget />);
+		expect(toggleBubbleVisibility).toHaveBeenLastCalledWith("hide");
+		fireEvent.click(screen.getByRole("button", { name: "Enable support chat" }));
+		expect(toggle).toHaveBeenLastCalledWith("open");
+		expect(mockOpenDialog).not.toHaveBeenCalled();
+	});
+
 	it("registers Chatwoot with c15t and offers consent while functionality is denied", () => {
 		const openPreferences = jest.fn();
 		window.addEventListener(OPEN_CONSENT_PREFERENCES_EVENT, openPreferences);

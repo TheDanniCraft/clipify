@@ -42,7 +42,7 @@ DEF-US1-001 is closed by the pinned reference inspection. Implementation must li
 
 ## Defect Metrics
 
-Preparation defects are preserved above. Product fixes and final-checkpoint findings are recorded below. The final production build,32/32 layout/recovery/editor acceptance checks and109/109 core/guide examples pass; the full root coverage owner passed with exit0. GOV-001 remains open: later characterization and deliberate mutants cannot prove historical test-first ordering. The unchanged dependency audit is also open. No waiver, deferral or merge approval is recorded.
+Preparation defects are preserved above. Product fixes and final-checkpoint findings are recorded below. The earlier implementation baseline passed its production build,32/32 layout/recovery/editor acceptance checks,109/109 core/guide examples and complete root coverage. These historical results do not validate the subsequent UI corrections; current-source results are maintained in test-summary.md. GOV-001 remains open: later characterization and deliberate mutants cannot prove historical test-first ordering. The dependency finding was subsequently patched and verified; see AUDIT-001. No waiver, deferral or merge approval is recorded.
 
 ## Required Checks
 
@@ -65,7 +65,7 @@ T017/T029/T045/T005 required an entire story to be materialized before any produ
 
 ## GOV-001 — Outer-loop binding completeness (open)
 
-Only BDD-US3-001 is currently executable. Query units were started while the more specific BDD-US3-002/003/006 bindings remain planned; this is not credited as complete acceptance-first discipline. Preserve the unit Red/Green evidence, materialize and observe the relevant real-browser examples before further product changes, and audit this deviation in tdd/verification.md. No waiver, story completion, push or release is credited.
+At the initial checkpoint, only BDD-US3-001 was executable. Query units were started while the more specific BDD-US3-002/003/006 bindings remain planned; this is not credited as complete acceptance-first discipline. Preserve the unit Red/Green evidence, materialize and observe the relevant real-browser examples before further product changes, and audit this deviation in tdd/verification.md. No waiver, story completion, push or release is credited.
 
 ## DEF-US3-002 — BDD callback fixture declaration (fixed)
 
@@ -109,16 +109,16 @@ The expanded guard tests supplied selected-ID/cache-row arrays directly as Jest 
 
 ## Implementation corrections and current findings
 
-| ID             | Finding                                                                                                            | Status   | Evidence and disposition                                                                                                                                              |
-| -------------- | ------------------------------------------------------------------------------------------------------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| DEF-EXPORT-001 | Filename collision fallback could replace an existing ZIP entry                                                    | Verified | Intended Red and whole-file Green recorded in cycle-log.md; search continues until a unique sanitized filename exists.                                                |
-| DEF-EXPORT-002 | Malformed Host and HTTPS proxy-origin handling could escape controlled denial or reject valid same-origin requests | Verified | Owning HTTP boundary tests and30/30 real acceptance pass; validated proxy scheme plus browser-facing Host determine origin.                                           |
-| DEF-EXPORT-003 | Empty/malformed archive or already-expired retry deadline could produce misleading client recovery                 | Verified | Intended Reds in cycle-log.md; framing, bounded response validation and response-time clock correction have whole-file Greens.                                        |
-| DEF-DATA-001   | Provider-deleted broadcast and invalid cached clip rows could imply available/complete data                        | Verified | Provider404 wins over stale availability; invalid entries independently invalidate completeness. Intended Reds and complete owner Greens are recorded.                |
-| DEF-NAV-001    | Resource Back routes, fixed-stream filtering and saved local-date restoration could lose context                   | Verified | Canonical resource returns, fixed VOD scope and timezone-aware restored filters; whole-file and30/30 real acceptance checkpoints.                                     |
-| DEF-HOME-001   | Retrying failed broadcasts unnecessarily replaced successful metrics                                               | Verified | Eight complete component checks Green after intended independent-retry Red; request effects are independent.                                                          |
-| AUDIT-001      | Four high advisories in unchanged dependency graph                                                                 | Open     | `bun run audit:high` fails for follow-redirects1.16.0 and transitive Zod4.4.3. No manifest/lockfile changes are part of this feature. Retain as a merge-gate finding. |
-| MOBBIN-001     | Optional reference tools initially unavailable/authentication required                                             | Verified | User completed normal OAuth; authenticated web screens and flows were inspected. Applied moves and exact references are in design-review.md.                          |
+| ID             | Finding                                                                                                            | Status   | Evidence and disposition                                                                                                                               |
+| -------------- | ------------------------------------------------------------------------------------------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| DEF-EXPORT-001 | Filename collision fallback could replace an existing ZIP entry                                                    | Verified | Intended Red and whole-file Green recorded in cycle-log.md; search continues until a unique sanitized filename exists.                                 |
+| DEF-EXPORT-002 | Malformed Host and HTTPS proxy-origin handling could escape controlled denial or reject valid same-origin requests | Verified | Owning HTTP boundary tests and30/30 real acceptance pass; validated proxy scheme plus browser-facing Host determine origin.                            |
+| DEF-EXPORT-003 | Empty/malformed archive or already-expired retry deadline could produce misleading client recovery                 | Verified | Intended Reds in cycle-log.md; framing, bounded response validation and response-time clock correction have whole-file Greens.                         |
+| DEF-DATA-001   | Provider-deleted broadcast and invalid cached clip rows could imply available/complete data                        | Verified | Provider404 wins over stale availability; invalid entries independently invalidate completeness. Intended Reds and complete owner Greens are recorded. |
+| DEF-NAV-001    | Resource Back routes, fixed-stream filtering and saved local-date restoration could lose context                   | Verified | Canonical resource returns, fixed VOD scope and timezone-aware restored filters; whole-file and30/30 real acceptance checkpoints.                      |
+| DEF-HOME-001   | Retrying failed broadcasts unnecessarily replaced successful metrics                                               | Verified | Eight complete component checks Green after intended independent-retry Red; request effects are independent.                                           |
+| AUDIT-001      | High advisories in follow-redirects and transitive Zod                                                             | Verified | Overrides pin patched1.16.2 and4.6.7; `bun run audit:high` passes in `/tmp/clipify-ui-audit.log`. Existing severity policy is unchanged.               |
+| MOBBIN-001     | Optional reference tools initially unavailable/authentication required                                             | Verified | User completed normal OAuth; authenticated web screens and flows were inspected. Applied moves and exact references are in design-review.md.           |
 
 The private preview guard was moved into the registered critical `creator-library.ts` owner because the existing legacy Twitch action has a pre-existing Istanbul file exclusion. No exclusion or threshold was added or weakened. Fresh creator permission and exact clip ownership precede lazy playback-cache access;115 complete guard/playback tests passed. Final root coverage still owns the complete coverage decision.
 
@@ -133,3 +133,43 @@ Severity:High (unsaved draft loss); status:verified in the final32-case real-bro
 ## Final owner test corrections
 
 The first complete coverage attempt failed the coverage-registration contract and an inventory recovery assertion. Jest now collects the registered permissions source; the recovery test waits for the enabled Reload action and proves its entered draft filter survives the failure and is submitted. Navbar coverage characterization covers existing organization/admin/campaign branches. The affected Navbar and inventory whole files passed44/44, and the coverage-registration whole file passed. These test/setup corrections are not historical product Reds. Final complete coverage is recorded in test-summary.md.
+
+## Dashboard visual audit correction
+
+The initial published UI was rejected. The complete finding-to-correction map and inspected Mobbin URLs are in design-review.md. Sidebar search/brand/utility placement, shared chrome/gutters, compact filters and selection, mobile metadata, exact-ID previews, stream breadcrumbs and Home duplication were corrected. Populated-library inspection additionally found long titles moving below thumbnails; rows now keep thumbnail/title side by side and retain compact metadata through tablet widths.
+
+Browser fixture corrections are not product Reds: the installed NumberField exposes a textbox; interaction after a full document navigation waits for the existing guide hydration marker; the legacy Axios crawler needs a loopback HTTP provider fixture rather than only a global-fetch interceptor. The actual refresh browser case proves provider metadata reaches the inventory without dropping selection. A36-case acceptance checkpoint passed before the final row alignment refinement; final gates are recorded in test-summary.md.
+
+Feedback opening after component unmount was a product lifecycle defect. Its intended Red, mounted-guard fix and complete Green are recorded in tdd/cycle-log.md. Existing guide Home targets were moved with the shell, preserving desktop and mobile navigation rather than leaving a hidden header target.
+
+## REVIEW-002 — Interrupted checkpoint and animation capture
+
+The final38-case browser run stopped with SIGTERM after24 passing cases, leaving its local test server on port3107. No product assertion failed. The orphaned fixture server was stopped and the complete acceptance owner restarted. Visual inspection also found a drawer capture during its CSS entrance transition; screenshot capture now disables animations so review evidence shows the settled state. Real keyboard and focus assertions remain unchanged. The layout owner is rerun after this capture-only adjustment.
+
+## UI-013 — Expanded guide blocks sidebar navigation
+
+The first core navigation regression cases timed out because a first-use expanded checklist was absolutely positioned inside the sidebar, covered its rows and was clipped by its overflow boundary. This is a product defect, unlike the earlier interrupted run. A new whole-file provider test failed on the panel remaining inside the sidebar (`/tmp/clipify-ui-guide-panel-red.log`:24 pass,1 fail). The existing checklist now portals to the document and sits beside desktop navigation; its launcher remains in the sidebar. The guide, spotlight and portal owners pass56 assertions (`/tmp/clipify-ui-guide-panel-green.log`). The rebuilt real-browser core/guide/layout/editor owner must pass before closure. No navigation assertion was weakened or force-clicked.
+
+## FIXTURE-014 — Core browser readiness and responsive date locator
+
+The combined regression run exposed stale browser interactions: Streams clicked its SSR-rendered HeroUI link before hydration; filter restoration waited for a guide launcher hidden by unanswered consent; the clip preview date locator matched both hidden compact metadata and its visible desktop cell. Streams now follows the existing consent/reload/hydration sequence and explicitly minimizes the checklist before content interaction. Filter restoration waits for its own heading and retains exact IDs/counts. Preview asserts exactly one visible date. Content-selection/export journeys explicitly minimize the first-use checklist; sidebar navigation deliberately leaves it expanded and checks that its bounds do not overlap navigation. No force-click, arbitrary delay, permission bypass or reduced acceptance outcome was added. These changes require complete core feature files to pass again.
+
+## UI-015 — Guide launcher beneath the tour overlay
+
+Two existing browser journeys proved that Driver’s overlay intercepted the sidebar launcher while a task was active. The sidebar is sticky and creates its own stacking context, so raising only the descendant launcher did not escape it. The active-tour CSS now raises that sidebar context using the existing guide layer; the expanded panel already renders in the document portal. The same skip-confirmation and unsaved-draft journeys must pass without force clicks. The default-placement scenario now asserts the authorized sidebar launcher and adjacent checklist instead of obsolete bottom-right pixel offsets. Two persisted-progress assertions poll for the asynchronous saved result rather than reading an idle marker once. All original completion values remain required.
+
+The new Home test initially used Testing Library’s nonexistent `exact` role option; production build typechecking caught it. The option was removed (string role names are already exact). This was a test API error, not a product behavior failure.
+
+## Guide correction verification
+
+The final layering build passed all61 existing guide scenarios and all11 layout/editor cases (`/tmp/clipify-ui-guide-layer-browser.log`). This closes UI-013 and UI-015 with real navigation, narrow-screen, keyboard, skip-confirmation and unsaved-draft evidence. Two core stream cases in that run had already loaded an unconditional Minimize action before the setup correction; resource pages intentionally start minimized. The corrected setup checks the actual visible panel first, matching the existing guide helper. The48-case core owner is rerun as a complete checkpoint. Test-setup timeouts are not credited as product Reds.
+
+## FIXTURE-016 — Inventory streaming locator and keyboard synchronization
+
+The complete core rerun passed46/48. A field-error locator saw both the visible validation region and a hidden streamed counterpart; it now scopes to the accessible Filter validation alert. A selection test pressed Space before confirming the controlled checkbox state/focus and left25 selected. The whole inventory feature is rerun with CI's single-worker setting, asserting checked state, actual keyboard focus, Space activation and the resulting unchecked/selected states before pagination. This strengthens the interaction proof without force clicks, sleeps or relaxed outcomes. The remaining core feature files passed their complete cases in `/tmp/clipify-ui-core-final.log`.
+
+Final inventory closure: all25 cases passed in `/tmp/clipify-ui-inventory-final.log` (4.7minutes), including actual focus/Space selection and visible page-size validation. The other23 core cases passed in the preceding core report. All61 guide cases,11 layout/editor cases and27 recovery cases have passing owning evidence. Complete application coverage remains in progress; no prior source’s coverage is reused.
+
+## Final local gate
+
+Complete current-source coverage exited0:597 suites /6668 tests,549 instrumented workflows and five serial media workflows; inherited skips and all original thresholds unchanged. Execution inputs matched before/after the run. No open product defect remains from this review. GOV-001 remains a historical process deviation, not a fabricated test-first pass. Publication, preview deployment and the full ready-for-review GitHub gate are separate final steps.

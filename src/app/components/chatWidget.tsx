@@ -1,3 +1,4 @@
+import DashboardUtilityPortal from "@components/dashboardUtilityPortal";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { isEmbeddedRoute } from "@lib/embeddedRoutes";
@@ -25,6 +26,7 @@ function isChatwootWidgetMounted() {
 const ChatWidget = () => {
 	const pathname = usePathname();
 	const isEmbedded = isEmbeddedRoute(pathname);
+	const inDashboard = pathname.startsWith("/dashboard") && !isEmbedded;
 	const { banner, dialog, openDialog } = useHeadlessConsentUI();
 	const functionalityAllowed = useConsent("functionality");
 	const [preferencesVisible, setPreferencesVisible] = useState(false);
@@ -60,13 +62,13 @@ const ChatWidget = () => {
 				return;
 			}
 
-			chatwoot.toggleBubbleVisibility?.("show");
+			chatwoot.toggleBubbleVisibility?.(inDashboard ? "hide" : "show");
 		}
 
 		syncChatwootVisibility();
 		window.addEventListener("chatwoot:ready", syncChatwootVisibility);
 		return () => window.removeEventListener("chatwoot:ready", syncChatwootVisibility);
-	}, [isEmbedded, scriptStatus, consentVisible]);
+	}, [isEmbedded, inDashboard, scriptStatus, consentVisible]);
 
 	useEffect(() => {
 		function updateChatwootState() {
@@ -87,18 +89,26 @@ const ChatWidget = () => {
 		return () => window.removeEventListener(CONSENT_PREFERENCES_VISIBILITY_EVENT, updatePreferencesVisibility);
 	}, []);
 
-	if (!chatwootState.checked || chatwootState.available || !shouldShowChatConsentFallback({ isEmbedded, preferencesVisible: dialog.isVisible || preferencesVisible, scriptStatus })) return null;
+	if (!chatwootState.checked || (!inDashboard && chatwootState.available) || (!inDashboard && !shouldShowChatConsentFallback({ isEmbedded, preferencesVisible: dialog.isVisible || preferencesVisible, scriptStatus }))) return null;
+	if (inDashboard && (consentVisible || isEmbedded)) return null;
 
 	function openSupportConsent() {
+		if (inDashboard && chatwootState.available && functionalityAllowed) {
+			window.$chatwoot?.toggle?.("open");
+			return;
+		}
 		setPreferencesVisible(true);
 		openDialog();
 		window.dispatchEvent(new CustomEvent<OpenConsentPreferencesDetail>(OPEN_CONSENT_PREFERENCES_EVENT, { detail: { category: "functionality" } }));
 	}
 
 	return (
-		<Button isIconOnly aria-label='Enable support chat' className='fixed left-5 z-[110] size-14 rounded-full shadow-xl' style={{ bottom: banner.isVisible ? previewBottom : 20 }} onPress={openSupportConsent}>
-			<IconMessageCircle className='size-6' aria-hidden='true' />
-		</Button>
+		<DashboardUtilityPortal>
+			<Button isIconOnly={!inDashboard} variant={inDashboard ? "tertiary" : "primary"} aria-label='Enable support chat' className={inDashboard ? "justify-start" : "fixed left-5 z-[110] size-14 rounded-full shadow-xl"} style={inDashboard ? undefined : { bottom: banner.isVisible ? previewBottom : 20 }} onPress={openSupportConsent}>
+				<IconMessageCircle className='size-6' aria-hidden='true' />
+				{inDashboard ? "Support chat" : null}
+			</Button>
+		</DashboardUtilityPortal>
 	);
 };
 

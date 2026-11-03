@@ -76,3 +76,7 @@ The user requested a Mobbin-assisted review while retaining HeroUI. The installe
 ### Connection restored and references reviewed
 
 The user explicitly requested another attempt and OAuth login. The official Mobbin MCP endpoint was registered through Codex's normal MCP CLI; the user completed browser authorization, and Codex confirmed successful login. The authenticated catalog reports Mobbin1.0.0 with search_screens/search_flows. Calls used Codex's managed MCP connection without reading credential files or starting an agent turn. Web screen and flow images were retrieved and inspected; the bounded move table and exact reference URLs are in [design-review.md](design-review.md). The initial unavailable state above is historical, not a current blocker. No OAuth callback, authorization code or token belongs in repository artifacts.
+
+## Corrected sidebar placement after visual audit
+
+Reinspection of the pinned Payload Bay shell confirms search inside navigation. The final desktop implementation places brand/search in HeroUI Pro Sidebar.Header and utilities in Sidebar.Footer, with a neutral content header. This supersedes the earlier header-search adaptation. See design-review.md for eight actual inspected Mobbin references and the correction table.

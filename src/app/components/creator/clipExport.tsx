@@ -106,13 +106,13 @@ export default function ClipExport({ creatorId, clipIds, scope }: { creatorId: s
 						Cancel export
 					</Button>
 				) : null}
-				<p className='text-xs text-muted'>Up to 50 clips, 32 MiB per clip and 128 MiB per package.</p>
+				{clipIds.length ? <p className='text-xs text-muted'>Up to 50 clips, 32 MiB per clip and 128 MiB per package.</p> : null}
 			</div>
 			{current ? (
 				<div role={current.error && current.error !== "CANCELLED" ? "alert" : "status"} className='rounded-xl border border-default p-4'>
 					{current.summary ? (
 						<p>
-							{current.summary.included.length} clips ready. Download initiated.{current.summary.skipped.length ? ` ${current.summary.skipped.length} clips were skipped.` : ""}
+							{current.summary.included.length} {current.summary.included.length === 1 ? "clip" : "clips"} ready. Download initiated.{current.summary.skipped.length ? ` ${current.summary.skipped.length} ${current.summary.skipped.length === 1 ? "clip was" : "clips were"} skipped.` : ""}
 						</p>
 					) : (
 						<p>{current.error === "CANCELLED" ? "Export cancelled. Your selection is kept." : (messages[current.error ?? ""] ?? "The export could not be prepared. Please try again.")}</p>

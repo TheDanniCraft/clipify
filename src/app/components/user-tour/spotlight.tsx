@@ -44,7 +44,7 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 				}
 		};
 		const target = () => {
-			if (step.target === "support-report") return document.querySelector("#sentry-feedback")?.shadowRoot?.querySelector<HTMLElement>(".widget__actor") ?? null;
+			if (step.target === "support-report") return document.querySelector<HTMLElement>('[data-tour="support-report"]') ?? document.querySelector("#sentry-feedback")?.shadowRoot?.querySelector<HTMLElement>(".widget__actor") ?? null;
 			if (step.target === "support-chat") return document.querySelector<HTMLElement>('[aria-label="Enable support chat"], .woot--bubble-holder');
 			return document.querySelector<HTMLElement>(`[data-tour="${step.target}"]`);
 		};
