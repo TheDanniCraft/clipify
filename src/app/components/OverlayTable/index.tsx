@@ -36,7 +36,7 @@ function TableEmptyState({ children }: { children: React.ReactNode }) {
 	return <div className='flex min-h-24 w-full items-center justify-center rounded-b-2xl border-b border-separator-tertiary/50 bg-surface px-4 py-3 text-center'>{children}</div>;
 }
 
-export default function OverlayTable({ userId }: { userId: string }) {
+export default function OverlayTable({ userId, resourceType }: { userId: string; resourceType?: DashboardTab }) {
 	const router = useRouter();
 	const { report: reportTour, resourceIds } = useUserTour();
 	type LocalOverlay = Overlay & { accessType?: "owner" | "editor" };
@@ -48,7 +48,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 	const [playlists, setPlaylists] = useState<LocalPlaylist[]>();
 	const [galleries, setGalleries] = useState<LocalGallery[]>();
 	const [runners, setRunners] = useState<LocalRunner[]>();
-	const [activeTab, setActiveTab] = useState<DashboardTab>("overlays");
+	const [activeTab, setActiveTab] = useState<DashboardTab>(resourceType ?? "overlays");
 	const [filterValue, setFilterValue] = useState("");
 	const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]));
 	const [visibleOverlayColumns, setVisibleOverlayColumns] = useState<Selection>(new Set(INITIAL_VISIBLE_COLUMNS));
@@ -915,7 +915,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 			<div className='mb-[12px]'>
 				<div className='flex items-center justify-between'>
 					<div className='flex w-[226px] items-center gap-2'>
-						<h1 className='text-2xl font-[700] leading-[32px]'>{title}</h1>
+						{!resourceType ? <h1 className='text-2xl font-[700] leading-[32px]'>{title}</h1> : null}
 						<Chip className='hidden items-center text-muted sm:flex' size='sm' variant='tertiary'>
 							{itemCount}
 						</Chip>
@@ -1115,7 +1115,7 @@ export default function OverlayTable({ userId }: { userId: string }) {
 				)}
 			</div>
 		);
-	}, [activeTab, overlays, playlists, galleries, runners, userId, currentUser, reloadOverlays, isLoading, onUpgradeOpen, router, reportTour]);
+	}, [resourceType, activeTab, overlays, playlists, galleries, runners, userId, currentUser, reloadOverlays, isLoading, onUpgradeOpen, router, reportTour]);
 
 	const bottomContent = useMemo(() => {
 		return (
@@ -1139,28 +1139,30 @@ export default function OverlayTable({ userId }: { userId: string }) {
 	return (
 		<div className='h-full w-full p-6'>
 			{topBar}
-			<Tabs selectedKey={activeTab} onSelectionChange={onTabChange} className='mb-4 w-fit max-w-full'>
-				<Tabs.ListContainer className='w-fit max-w-full'>
-					<Tabs.List aria-label='Resource type' className='w-fit max-w-full *:w-fit'>
-						<Tabs.Tab data-tour='overlays-tab' id='overlays' className='flex-none'>
-							<Label>Overlays</Label>
-							<Tabs.Indicator />
-						</Tabs.Tab>
-						<Tabs.Tab data-tour='playlists-tab' id='playlists' className='flex-none'>
-							<Label>Playlists</Label>
-							<Tabs.Indicator />
-						</Tabs.Tab>
-						<Tabs.Tab data-tour='galleries-tab' id='galleries' className='flex-none'>
-							<Label>Galleries</Label>
-							<Tabs.Indicator />
-						</Tabs.Tab>
-						<Tabs.Tab data-tour='runners-tab' id='runners' className='flex-none'>
-							<Label>Runners</Label>
-							<Tabs.Indicator />
-						</Tabs.Tab>
-					</Tabs.List>
-				</Tabs.ListContainer>
-			</Tabs>
+			{!resourceType ? (
+				<Tabs selectedKey={activeTab} onSelectionChange={onTabChange} className='mb-4 w-fit max-w-full'>
+					<Tabs.ListContainer className='w-fit max-w-full'>
+						<Tabs.List aria-label='Resource type' className='w-fit max-w-full *:w-fit'>
+							<Tabs.Tab data-tour='overlays-tab' id='overlays' className='flex-none'>
+								<Label>Overlays</Label>
+								<Tabs.Indicator />
+							</Tabs.Tab>
+							<Tabs.Tab data-tour='playlists-tab' id='playlists' className='flex-none'>
+								<Label>Playlists</Label>
+								<Tabs.Indicator />
+							</Tabs.Tab>
+							<Tabs.Tab data-tour='galleries-tab' id='galleries' className='flex-none'>
+								<Label>Galleries</Label>
+								<Tabs.Indicator />
+							</Tabs.Tab>
+							<Tabs.Tab data-tour='runners-tab' id='runners' className='flex-none'>
+								<Label>Runners</Label>
+								<Tabs.Indicator />
+							</Tabs.Tab>
+						</Tabs.List>
+					</Tabs.ListContainer>
+				</Tabs>
+			) : null}
 			{activeTab === "overlays" && currentUser && (currentUser.entitlements?.effectivePlan ?? currentUser.plan) === "free" && !getFeatureAccess(currentUser, "multi_overlay").allowed && (overlays?.filter((o) => o.ownerId === userId).length ?? 0) >= 1 && (
 				<div className='mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning bg-warning-soft px-4 py-3 text-sm text-warning'>
 					<span>You&apos;re on the Free plan and have reached the overlay limit. Upgrade to add more overlays.</span>

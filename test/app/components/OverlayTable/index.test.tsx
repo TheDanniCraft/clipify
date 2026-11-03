@@ -1223,4 +1223,16 @@ describe("components/OverlayTable/index", () => {
 		expect(push).toHaveBeenCalledWith("/runner/enroll");
 		expect(createRunner).not.toHaveBeenCalled();
 	});
+	it("keeps one page heading when rendered as a dedicated resource list", async () => {
+		const Table = (await import("@/app/components/OverlayTable")).default;
+		await act(async () => {
+			render(
+				<>
+					<h1>Overlays</h1>
+					<Table userId='owner-1' resourceType='overlays' />
+				</>,
+			);
+		});
+		expect(screen.getAllByRole("heading", { name: "Overlays" })).toHaveLength(1);
+	});
 });

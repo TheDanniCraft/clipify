@@ -1,0 +1,182 @@
+"use client";
+import { useContext, useEffect, useState } from "react";
+import { Button, Card, Link, Skeleton } from "@heroui/react";
+import { getCreatorClipOverview, getCreatorBroadcasts } from "@actions/creatorLibrary";
+import LocalizedDate from "@components/localizedDate";
+import { DashboardNavigationContext } from "@components/dashboardNavigation";
+type Overview = Awaited<ReturnType<typeof getCreatorClipOverview>>;
+type Broadcasts = Awaited<ReturnType<typeof getCreatorBroadcasts>>;
+export default function CreatorOverview({ creatorId }: { creatorId: string }) {
+	const navigation = useContext(DashboardNavigationContext);
+	const [overview, setOverview] = useState<Overview>();
+	const [broadcasts, setBroadcasts] = useState<Broadcasts>();
+	const [retryOverview, setRetryOverview] = useState(0);
+	const [retryBroadcasts, setRetryBroadcasts] = useState(0);
+	useEffect(() => {
+		let current = true;
+		const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+		void getCreatorClipOverview({ creatorId, timeZone })
+			.then((data) => {
+				if (current) setOverview(data);
+			})
+			.catch(() => {
+				if (current) setOverview({ ok: false, code: "SERVICE_UNAVAILABLE" });
+			});
+		return () => {
+			current = false;
+		};
+	}, [creatorId, retryOverview]);
+	useEffect(() => {
+		let current = true;
+		void getCreatorBroadcasts({ creatorId })
+			.then((data) => {
+				if (current) setBroadcasts(data);
+			})
+			.catch(() => {
+				if (current) setBroadcasts({ ok: false, code: "SERVICE_UNAVAILABLE" });
+			});
+		return () => {
+			current = false;
+		};
+	}, [creatorId, retryBroadcasts]);
+	return (
+		<div className='my-6 flex flex-col gap-6'>
+			<section aria-label='Clip performance' className='flex flex-col gap-3'>
+				<header>
+					<h2 className='font-semibold'>Clip performance</h2>
+					<p className='text-sm text-muted'>Created in the last 30 local calendar days</p>
+				</header>
+				<div className='grid grid-cols-2 gap-4'>
+					{overview?.ok ? (
+						<>
+							<Card>
+								<Card.Content>
+									<p className='text-sm text-muted'>Known clips</p>
+									<p role='status' aria-label='Known clips' className='my-2 text-3xl font-bold'>
+										{overview.count.toLocaleString()}
+									</p>
+								</Card.Content>
+							</Card>
+							<Card>
+								<Card.Content>
+									<p className='text-sm text-muted'>Current clip views</p>
+									<p role='status' aria-label='Current clip views' className='my-2 text-3xl font-bold'>
+										{overview.views.toLocaleString()}
+									</p>
+									<p className='text-sm text-muted'>Lifetime views of those clips</p>
+								</Card.Content>
+							</Card>
+						</>
+					) : overview ? (
+						<Card className='col-span-2'>
+							<Card.Content>
+								<p role='alert'>Clip performance could not be loaded.</p>
+								<Button variant='secondary' onPress={() => setRetryOverview((value) => value + 1)}>
+									Retry
+								</Button>
+							</Card.Content>
+						</Card>
+					) : (
+						<>
+							<Skeleton className='h-36 rounded-xl' />
+							<Skeleton className='h-36 rounded-xl' />
+						</>
+					)}
+				</div>
+				{overview?.ok ? (
+					<p className='text-sm text-muted'>
+						{overview.complete ? "Library synchronized." : "These are known clips; older clips may still be syncing."} Dates use {overview.timeZone}.
+						{overview.fetchedAt ? (
+							<>
+								{" "}
+								Updated <LocalizedDate value={overview.fetchedAt} showTime />
+							</>
+						) : null}
+					</p>
+				) : null}
+			</section>
+			<nav aria-label='Creator shortcuts' className='flex flex-wrap gap-4'>
+				<Link href='/dashboard/overlays' data-tour={navigation?.mobile ? "overlays-tab" : undefined}>
+					Overlays
+				</Link>
+				<Link href='/dashboard/playlists' data-tour={navigation?.mobile ? "playlists-tab" : undefined}>
+					Playlists
+				</Link>
+				<Link href='/dashboard/galleries' data-tour={navigation?.mobile ? "galleries-tab" : undefined}>
+					Galleries
+				</Link>
+				<Link href='/dashboard/runners' data-tour={navigation?.mobile ? "runners-tab" : undefined}>
+					Runner
+				</Link>
+				<Link href='/dashboard/clips'>Clip Inventory</Link>
+			</nav>
+			<div className='grid gap-6 lg:grid-cols-2'>
+				<Card>
+					<Card.Header>
+						<Card.Title>Recent streams</Card.Title>
+						<Card.Description>Available Twitch broadcasts, including streams without clips</Card.Description>
+					</Card.Header>
+					<Card.Content>
+						{broadcasts?.ok ? (
+							<>
+								{broadcasts.stale ? (
+									<p role='status' className='mb-3 text-warning'>
+										Showing saved broadcasts. Twitch could not refresh them.
+									</p>
+								) : null}
+								{broadcasts.items.length ? (
+									broadcasts.items.slice(0, 5).map((stream) => (
+										<div key={stream.id} className='flex flex-wrap items-center justify-between gap-2 border-b border-default py-3'>
+											<Link href={`/dashboard/streams/${stream.id}`}>{stream.title || "Untitled stream"}</Link>
+											<span className='text-sm text-muted'>
+												{stream.clipCount === null ? "Clip counts unavailable" : `${stream.clipCount} clips`} <LocalizedDate value={stream.createdAt} />
+											</span>
+										</div>
+									))
+								) : (
+									<p className='text-muted'>No available broadcasts. Twitch may remove older broadcasts.</p>
+								)}
+							</>
+						) : broadcasts ? (
+							<div role='alert'>
+								<p>Broadcasts could not be loaded. Your clip data is kept.</p>
+								<Button variant='secondary' onPress={() => setRetryBroadcasts((value) => value + 1)}>
+									Retry broadcasts
+								</Button>
+							</div>
+						) : (
+							<p role='status'>Loading broadcasts…</p>
+						)}
+						<Link className='mt-4' href='/dashboard/streams'>
+							View all streams
+						</Link>
+					</Card.Content>
+				</Card>
+				<Card>
+					<Card.Header>
+						<Card.Title>Top clips</Card.Title>
+						<Card.Description>Highest current views among clips created in the last 30 local days</Card.Description>
+					</Card.Header>
+					<Card.Content>
+						{overview?.ok ? (
+							overview.topClips.length ? (
+								<div className='divide-y divide-default'>
+									{overview.topClips.map((clip) => (
+										<div key={clip.id} data-top-clip-id={clip.id} className='flex items-center justify-between gap-4 py-3'>
+											<Link href={`/dashboard/clips?title=${encodeURIComponent(clip.title)}`}>{clip.title || "Untitled clip"}</Link>
+											<span className='shrink-0 text-sm'>{clip.views.toLocaleString()} views</span>
+										</div>
+									))}
+								</div>
+							) : (
+								<p className='text-muted'>No known clips in this window yet. Your clip library is ready when you are.</p>
+							)
+						) : (
+							<p className='text-muted'>{overview ? "Clip performance unavailable." : "Loading clips…"}</p>
+						)}
+					</Card.Content>
+				</Card>
+			</div>
+		</div>
+	);
+}

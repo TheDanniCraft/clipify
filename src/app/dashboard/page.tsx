@@ -1,24 +1,18 @@
 import { redirect } from "next/navigation";
-import OverlayTable from "@components/OverlayTable";
-import DashboardNavbar from "@components/dashboardNavbar";
 import { validateAuth } from "@actions/auth";
-import { getAccessTokenResult } from "@actions/database";
+import DashboardNavbar from "@components/dashboardNavbar";
+import CreatorOverview from "@components/creator/creatorOverview";
 import ChatwootData from "@components/chatwootData";
-
-export default async function Dashboard() {
+export default async function Dashboard({ searchParams }: { searchParams?: Promise<{ tab?: string | string[] }> } = {}) {
 	const user = await validateAuth();
-	if (!user) {
-		redirect("/logout");
-	}
-	const tokenResult = await getAccessTokenResult(user.id);
-	if (!tokenResult.token) {
-		redirect(tokenResult.reason === "user_disabled" ? "/logout?error=accountDisabled" : "/logout");
-	}
+	if (!user) redirect("/logout");
+	const tab = (await searchParams)?.tab;
+	if (typeof tab === "string" && ["overlays", "playlists", "galleries", "runners"].includes(tab)) redirect(`/dashboard/${tab}`);
 	return (
 		<>
 			<ChatwootData user={user} />
-			<DashboardNavbar user={user} title='Dashboard' tagline='Manage your overlays'>
-				<OverlayTable key={user.id} userId={user.id} />
+			<DashboardNavbar user={user} title='Home' tagline='Your streams and clips at a glance'>
+				<CreatorOverview key={user.id} creatorId={user.id} />
 			</DashboardNavbar>
 		</>
 	);

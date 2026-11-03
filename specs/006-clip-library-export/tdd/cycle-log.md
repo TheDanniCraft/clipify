@@ -1,0 +1,243 @@
+# Cycle Log: Creator Library and Bulk Export
+
+Append only. This preparation records the existing baseline only; no feature Red/Green/refactor cycle has started.
+
+## Baseline
+
+- Source commit: `9f6107a3`; planning artifacts are uncommitted. Application, tests, schema, configuration and lockfiles were unchanged.
+- Complete owner: `bun run test:coverage` -> exit0;555 Jest suites/6331 tests passed,1 existing suite/3 existing tests skipped;434 native workflow examples passed (5 serial +429 parallel),0 native skips/failures/flaky cases. Approximate full command duration2109s.
+- Final combined coverage: L87.70/B80.51/F81.84/S85.39. Existing global and per-source gates passed unchanged.
+- Browser owner: `bun run test:acceptance` -> exit0, guarded production build succeeded,27 tests passed. Approximate command duration452s.
+- Isolated application file: consentOrigins3 passed; existing component/database/property files35 passed.
+- Known Jest name1 passed; nonexistent name0 ran with exit0. Single-name execution stays disabled; use whole-file commands.
+- Isolated acceptance file1 passed. Default bddgen and isolated generated login-smoke BDD file1 passed.
+- Environment: Node24.21.0/Bun1.4.2, disposable PostgreSQL18 bound to127.0.0.1:54419, separate browser database, job-owned template IDs, installed Chromium OS prerequisites and FFmpeg. No production/shared-development credentials or data.
+- Raw local evidence: `/tmp/clipify-spec006-baseline.log`, `/tmp/clipify-spec006-browser-baseline.log`, `/tmp/clipify-spec006-file.json`, `/tmp/clipify-spec006-exemplars.json`, `/tmp/clipify-spec006-browser-file.log`, `/tmp/clipify-spec006-bdd-baseline.log`, `coverage/coverage-final.json`, `coverage/workflow-results-serial.json`, `coverage/workflow-results-parallel.json`. Later selector probes overwrite the generic Playwright report; the complete27-test browser result remains in its named raw log.
+- Setup observations: restricted-sandbox detached TypeScript output and missing Chromium libraries were resolved without changing tests. Overlapping isolated browser probes caused one port collision; the BDD probe passed when run sequentially. These were setup evidence, never intended feature Reds.
+- Current feature state:15 acceptance and174 pending inner behaviors;5 existing characterization rows are BASELINE. No new test bindings or source code were created.
+- Next execution requires the user's implementation request. Revalidate/recreate disposable services and reapply the documented environment per shell; this baseline does not waive later source/input identity or complete CI gates.
+
+### Baseline planning note
+
+During final TDD-plan reconciliation, five duplicate preservation rows (U22/U23/U24/U25/U28) were retired in favor of the existing verified characterization rows U171/U169/U170/U173/U172. Their IDs remain reserved as DROPPED. Current list totals:15 acceptance behaviors;169 pending inner behaviors,5 verified characterizations and5 retired duplicates. This changes only planning counts; the baseline execution and zero feature cycles remain unchanged.
+
+## Clean-master baseline alignment
+
+- Source base: b6c8e591 on features/clip-export, excluding unrelated fix-branch commits. Locked master dependencies installed; no package/lock changes.
+- Owning pre-change files: clip-cache-read, Twitch playback, dashboardNavbar, OverlayTable and consent-permissions:5 suites/142 tests passed unchanged (9.596s), evidence /tmp/clipify-spec006-master-baseline.json.
+- The earlier full baseline remains attributed only to9f6107a3. Full current-source coverage, browser and static gates remain mandatory on this feature before push; no cross-source coverage reuse is credited.
+- No feature source or feature test binding has yet been written. Specification, plan, tasks and TDD inventory remain aligned with the same public APIs on master.
+
+## Implementation — inventory first slice
+
+- Base: b6c8e591; working branch features/clip-export. Preparation completed before feature source edits.
+- BDD-US3-001: guarded browser build and bddgen passed. Both real-browser examples reached missing `Clip Inventory` heading on `/dashboard/clips`, after correcting DEF-US3-001 fixture setup. Red evidence: `/tmp/clipify-spec006-outer-red-corrected.log`. Outer acceptance remains Red while inventory is built.
+- U56: whole-file `bun run test --runInBand --runTestsByPath test/server/creator-clips.test.ts --coverage=false` failed at defaults assertion: received `{}` instead of newest/page1/pageSize25. Declaration-only schema stub establishes a runnable assertion rather than treating module resolution as Red. Evidence: `/tmp/clipify-spec006-u56-red.log`.
+- U56 Green: same whole-file command passed1/1; `/tmp/clipify-spec006-u56-green.log`. Minimal defaults implemented; unrelated query fields remain absent.
+
+- U57 Red: whole-file defaults suite failed at new validation assertion (expected false, received true). Evidence `/tmp/clipify-spec006-u57-red.log`.
+- U57 Green: same whole-file suite passed. Evidence `/tmp/clipify-spec006-u57-green.log`. No additional refactor needed.
+
+- U58 Red: whole-file defaults suite failed at new validation assertion (expected false, received true). Evidence `/tmp/clipify-spec006-u58-red.log`.
+- U58 Green: same whole-file suite passed. Evidence `/tmp/clipify-spec006-u58-green.log`. No additional refactor needed.
+
+- U59 Red: whole-file defaults suite failed at new validation assertion (expected false, received true). Evidence `/tmp/clipify-spec006-u59-red.log`.
+- U59 Green: same whole-file suite passed. Evidence `/tmp/clipify-spec006-u59-green.log`. No additional refactor needed.
+
+- U60 Red: whole-file defaults suite failed at new validation assertion (expected false, received true). Evidence `/tmp/clipify-spec006-u60-red.log`.
+- U60 Green: same whole-file suite passed. Evidence `/tmp/clipify-spec006-u60-green.log`. No additional refactor needed.
+
+- U61 Red: whole-file defaults suite failed at new validation assertion (expected false, received true). Evidence `/tmp/clipify-spec006-u61-red.log`.
+- U61 Green: same whole-file suite passed. Evidence `/tmp/clipify-spec006-u61-green.log`. No additional refactor needed.
+
+- U63 Red: whole-file defaults suite failed at new validation assertion (expected false, received true). Evidence `/tmp/clipify-spec006-u63-red.log`.
+- U63 Green: same whole-file suite passed. Evidence `/tmp/clipify-spec006-u63-green.log`. No additional refactor needed.
+
+### Query validation refactor checkpoint
+
+- Whole-file command throughout: `bun run test --runInBand --runTestsByPath test/server/creator-clips.test.ts --coverage=false`; single-name filtering remains disabled per profile.
+- U57 decisive actual Red output: `Expected: false / Received: true`.
+- U58 decisive actual Red output: `Expected: false / Received: true`.
+- U59 decisive actual Red output: `Expected: false / Received: true`.
+- U60 decisive actual Red output: `Expected: false / Received: true`.
+- U61 decisive actual Red output: `Expected: false / Received: true`.
+- U63 decisive actual Red output: `Expected: false / Received: true`.
+- U62 is characterization of the established page-size boundary: initial whole file passed8/8. Deliberate `.max(49)` mutant failed only U62 with `Too big: expected number to be <=49`; exact source restored. Evidence `/tmp/clipify-spec006-u62-baseline.log`, `/tmp/clipify-spec006-u62-mutant.log`.
+- Formatting-only refactor retained8/8 passing tests: `/tmp/clipify-spec006-query-refactor-green.log`. U56–U63 are DONE (U62 characterized/mutant verified). No other behavior credited.
+
+- U64 Red: whole-file command failed at title selection: expected `["Match"]`, received `[]`. Actual diff `/tmp/clipify-spec006-u64-red.log`. Minimal query stub replaced with the existing filter/projection helpers; no copied filter implementation.
+- U64 Green: whole file passed9/9; `/tmp/clipify-spec006-u64-refactor-green.log`. No refactor needed.
+- U65 Red: `+ "Other"` leaked into selected results; `/tmp/clipify-spec006-u65-red.log`. Whole-file command above.
+- U65 Green: whole file passed10/10; `/tmp/clipify-spec006-u65-green.log`. Reused existing category predicate; no refactor needed.
+
+- U66 existing helper behavior characterized by new inventory test; initial whole-file Green `/tmp/clipify-spec006-u66-baseline.log`. Deliberate removal/inversion of `startedAt` failed at `U66: includes the start timestamp`; actual expected/received diff `/tmp/clipify-spec006-u66-mutant.log`. Source restored exactly; whole-file Green `/tmp/clipify-spec006-u66-restored.log`. No production behavior added; no refactor needed.
+
+- U67 existing helper behavior characterized by new inventory test; initial whole-file Green `/tmp/clipify-spec006-u67-baseline.log`. Deliberate removal/inversion of `endedAt` failed at `U67: excludes the end timestamp`; actual expected/received diff `/tmp/clipify-spec006-u67-mutant.log`. Source restored exactly; whole-file Green `/tmp/clipify-spec006-u67-restored.log`. No production behavior added; no refactor needed.
+
+- U68 existing helper behavior characterized by new inventory test; initial whole-file Green `/tmp/clipify-spec006-u68-baseline.log`. Deliberate removal/inversion of `minViews` failed at `U68: includes the minimum view threshold`; actual expected/received diff `/tmp/clipify-spec006-u68-mutant.log`. Source restored exactly; whole-file Green `/tmp/clipify-spec006-u68-restored.log`. No production behavior added; no refactor needed.
+
+- U69 existing helper behavior characterized by new inventory test; initial whole-file Green `/tmp/clipify-spec006-u69-baseline.log`. Deliberate removal/inversion of `minDuration` failed at `U69: includes the minimum duration threshold`; actual expected/received diff `/tmp/clipify-spec006-u69-mutant.log`. Source restored exactly; whole-file Green `/tmp/clipify-spec006-u69-restored.log`. No production behavior added; no refactor needed.
+
+- U70 existing helper behavior characterized by new inventory test; initial whole-file Green `/tmp/clipify-spec006-u70-baseline.log`. Deliberate removal/inversion of `maxDuration` failed at `U70: includes the maximum duration threshold`; actual expected/received diff `/tmp/clipify-spec006-u70-mutant.log`. Source restored exactly; whole-file Green `/tmp/clipify-spec006-u70-restored.log`. No production behavior added; no refactor needed.
+
+- U71 existing helper behavior characterized by new inventory test; initial whole-file Green `/tmp/clipify-spec006-u71-baseline.log`. Deliberate removal/inversion of `title` failed at `U71: uses the intersection of filters`; actual expected/received diff `/tmp/clipify-spec006-u71-mutant.log`. Source restored exactly; whole-file Green `/tmp/clipify-spec006-u71-restored.log`. No production behavior added; no refactor needed.
+
+- U72 existing helper behavior characterized by new inventory test; initial whole-file Green `/tmp/clipify-spec006-u72-baseline.log`. Deliberate removal/inversion of `tie` failed at `U72: breaks equal dates by ID`; actual expected/received diff `/tmp/clipify-spec006-u72-mutant.log`. Source restored exactly; whole-file Green `/tmp/clipify-spec006-u72-restored.log`. No production behavior added; no refactor needed.
+
+- U73 existing helper behavior characterized by new inventory test; initial whole-file Green `/tmp/clipify-spec006-u73-baseline.log`. Deliberate removal/inversion of `sort` failed at `U73: breaks equal view counts by ID`; actual expected/received diff `/tmp/clipify-spec006-u73-mutant.log`. Source restored exactly; whole-file Green `/tmp/clipify-spec006-u73-restored.log`. No production behavior added; no refactor needed.
+
+### Execution-governance checkpoint
+
+PREP-002 corrects inconsistent story-wide versus acceptance-slice wording without removing examples. GOV-001 records that query units preceded the more specific filter/validation browser bindings; the existing metadata-only outer Red does not establish those missing examples. Further product changes require the applicable executable browser evidence first. This deviation is retained for cold TDD verification; no retroactive Red, waiver or complete story is claimed.
+
+- BDD-US3-002/006:17 real-browser examples ran with successful isolated fixtures;9 fail on missing `Clip Inventory` heading,8 fail on absent field validation. Evidence `/tmp/clipify-spec006-query-outer-red-corrected.log`. DEF-US3-003 subsequently strengthens the invalid-field locator before UI code; those revised assertions must be rerun before acceptance is credited.
+- BDD-US3-003 newest tie reached the missing-heading assertion before pagination production edits; sorting run evidence `/tmp/clipify-spec006-sort-outer-red.log`.
+- U74 Red: same whole-file query command failed pagination assertion; actual diff `+ Received +25`, including `+ "Match00"` before expected page-two IDs. `/tmp/clipify-spec006-u74-red.log`.
+
+- BDD-US3-003 completed:5/5 examples reach expected missing Inventory heading; no fixture/type errors. `/tmp/clipify-spec006-sort-outer-red.log`.
+- U74 Green: whole-file query suite19/19 passed after page slicing; `/tmp/clipify-spec006-u74-green.log`. No refactor needed.
+- Preparation structural audit after corrections:612 unique tasks,69 unique registered artifacts,36 mapped sources,181 well-formed scenario matrix examples,8 Required BDD/ATDD applicability decisions,179 reserved inner-behavior IDs, valid local links and test-before-implementation task ordering. `/tmp/clipify-spec006-preparation-analysis.json`. This is document analysis, not feature delivery approval.
+- Expanded bindings TypeScript gate passed: `bun run app:typecheck`, `/tmp/clipify-spec006-bindings-types.log`. Full feature gates remain pending.
+
+### Retained local checkpoint
+
+- Final current query file:19/19 passed in0.776s, `/tmp/clipify-spec006-query-checkpoint.log`. Current typecheck exited0, `/tmp/clipify-spec006-checkpoint-types.log`. Changed-file formatting and whitespace checks passed.
+- No resource routes, export endpoint, sidebar or user-facing feature has been delivered. All changes remain local; no commit/push/PR, no final coverage or CI gate. GOV-001 and remaining acceptance examples prevent delivery approval.
+
+- Resume U92 Red: expected `PERMISSION_DENIED`, received `SERVICE_UNAVAILABLE`. Whole-file command above; `/tmp/clipify-spec006-resume-U92-red.log`.
+
+- Resume U92 Green: foreign read denied before cache. Whole-file20 tests passed; `/tmp/clipify-spec006-resume-U92-green.log`. No refactor needed.
+
+- Resume U87 Red: expected `ok:true` with one owner clip; received `ok:false`. `/tmp/clipify-spec006-resume-U87-red.log`.
+
+- U87 corrected Green:21 whole-file tests passed, `/tmp/clipify-spec006-resume-owner-fixed.log`. DEF-US3-004 corrected invalid fixture; strict provider schema retained.
+
+- U179 existing strict error boundary verified: baseline `/tmp/clipify-spec006-cache-error-baseline.log`; deliberate wrong-error mutant failed U179 `/tmp/clipify-spec006-cache-error-mutant.log`; exact source restored,22 whole-file tests Green `/tmp/clipify-spec006-cache-error-restored.log`. No false empty inventory is returned.
+
+- U174 Red: privately authorized preview expected a source URL but received undefined. Whole-file external Twitch suite; `/tmp/clipify-spec006-inventory-preview-red.log`.
+- U174 Green: whole external Twitch suite passed; `/tmp/clipify-spec006-inventory-preview-green.log`. Existing public/overlay/gallery/demo authorities retained.
+
+- U97 export input Red: expected deduplicated selection, received empty object; `/tmp/clipify-spec006-export-input-red.log`.
+- U97 export input Green: whole-file passed; `/tmp/clipify-spec006-export-input-green.log`. Deduplication preserves first-occurrence order.
+
+- Export roles Red: contentManager lacks `clips:export`; `/tmp/clipify-spec006-export-roles-red.log`.
+- Export roles Green: explicit export/creator permissions granted to content management; analyst/billing remain denied; `/tmp/clipify-spec006-export-roles-green.log`.
+
+- Export trusted-host Red: actual assertion failure `/tmp/clipify-spec006-trusted-host-red.log`.
+- Export trusted-host Green: complete export test file passed; `/tmp/clipify-spec006-trusted-host-green.log`. No refactor needed.
+
+- Export complete-mp4 Red: actual assertion failure `/tmp/clipify-spec006-complete-mp4-red.log`.
+- Export complete-mp4 Green: complete export test file passed; `/tmp/clipify-spec006-complete-mp4-green.log`. No refactor needed.
+
+- Export actual-byte-limit Red: actual assertion failure `/tmp/clipify-spec006-actual-byte-limit-red.log`.
+- Export actual-byte-limit Green: complete export test file passed; `/tmp/clipify-spec006-actual-byte-limit-green.log`. No refactor needed.
+
+- BDD-US3-004 Red: real Inventory page loads, then Select page action is absent; timed-out locator retains actual evidence `/tmp/clipify-spec006-selection-export-red.log`. Added an explicit visibility assertion to bound future intended Red time without changing the expected control. Selection implementation follows this observed failure; scope excludes only page so filters/creator reset selected IDs.
+- Inventory checkpoint:24 real browser scenarios Green, `/tmp/clipify-spec006-inventory-browser.log`; private preview external suite75 tests Green, `/tmp/clipify-spec006-inventory-preview-green.log`.
+
+- U105 archive Red: whole-file archive contract expects ok:true, receives false; no archive preparation exists. `/tmp/clipify-spec006-archive-red.log`. Export outer scenarios also reached missing selection/export controls: `/tmp/clipify-spec006-selection-export-red.log`. Archive implementation follows those observed failures.
+
+- Export route origin guard Red/Green and attachment Red retained at `/tmp/clipify-spec006-export-route-*.log`; expected attachment200 received501.
+
+- Local-calendar30-day window: spring DST whole-file assertion Red then Green; `/tmp/clipify-spec006-overview-window-red.log`, `/tmp/clipify-spec006-overview-window-green.log`.
+
+- Browser exposed internal Next origin versus actual Host mismatch. Reproducing unit test received403 instead of200, `/tmp/clipify-spec006-host-origin-red.log`; use browser-facing Host with request protocol, retain foreign-Origin denial, whole route suite Green `/tmp/clipify-spec006-host-origin-green.log`.
+
+- Window aggregation Red then Green: count/current views exclude before/after clips; top IDs break equal-view ties. `/tmp/clipify-spec006-overview-summary-red.log`, `/tmp/clipify-spec006-overview-summary-green.log`.
+
+- VOD membership Red then Green: later-created matching VOD retained; other/blank VOD excluded. `/tmp/clipify-spec006-vod-filter-red.log`, `/tmp/clipify-spec006-vod-filter-green.log`.
+
+- Broadcast cursor creator-binding Red then Green: correct creator round-trip; foreign creator rejects before provider access. `/tmp/clipify-spec006-broadcast-cursor-red.log`, `/tmp/clipify-spec006-broadcast-cursor-green.log`.
+
+- Dedicated list duplicate heading reproduced in browser and unit (received2, expected1), then fixed only for fixed-resource mode. `/tmp/clipify-spec006-resource-heading-red.log`, `/tmp/clipify-spec006-resource-heading-green.log`. Legacy default table heading retained.
+
+- Existing guide route expectations intentionally move from the former table-as-Home to dedicated resource lists. New expectations Red before route edits, then all owning whole files Green. `/tmp/clipify-spec006-tour-routes-red.log`, `/tmp/clipify-spec006-tour-routes-green.log`. Resource editor URLs and guide task IDs unchanged.
+
+- First-run inventory refresh reuses existing authorized clip sync (no overlay prerequisite, new queue or schema). Foreign denial and accepted sync each Red then Green: `/tmp/clipify-spec006-first-sync-*.log`.
+
+- Invalid summary JSON reproduced as wrong error then normalized to invalid_response, Red/Green `/tmp/clipify-spec006-summary-parser-*.log`. No Blob is created from malformed positional data.
+
+- Export filename-bytes actual assertion Red: `/tmp/clipify-spec006-filename-bytes-red.log`.
+- Export filename-bytes whole-file Green: `/tmp/clipify-spec006-filename-bytes-green.log`.
+
+- Export all-failures actual assertion Red: `/tmp/clipify-spec006-all-failures-red.log`.
+- Export all-failures whole-file Green: `/tmp/clipify-spec006-all-failures-green.log`.
+
+- Export file-size-result actual assertion Red: `/tmp/clipify-spec006-file-size-result-red.log`.
+- Export file-size-result whole-file Green: `/tmp/clipify-spec006-file-size-result-green.log`.
+
+- Export grant-after-zip actual assertion Red: `/tmp/clipify-spec006-grant-after-zip-red.log`.
+- Export grant-after-zip whole-file Green: `/tmp/clipify-spec006-grant-after-zip-green.log`.
+
+- All-failed error packet positional validation Red/Green: `/tmp/clipify-spec006-failure-parser-*.log`; malformed indices cannot drive retries.
+
+- All-failed UI retry reproduced resubmitting A/B/C instead of B in `/tmp/clipify-spec006-all-failed-retry-red.log`; wired validated unsuccessful positions and separate reconnect recovery. Whole component file Green `/tmp/clipify-spec006-all-failed-retry-green.log`.
+- Filename collision suffix reproduced overwriting an existing entry in `/tmp/clipify-spec006-name-collision-red.log`; collision search now continues until unused. Green `/tmp/clipify-spec006-name-collision-green.log`.
+- Added postimplementation malformed-summary, positional-error, streamed-byte and abort characterization checks. Combined export recovery checkpoint: 3 suites, 78 tests passed, `/tmp/clipify-spec006-export-recovery-checkpoint.log`. These extra characterization checks do not claim test-first provenance.
+
+- Deleted-stream regression Red `/tmp/clipify-spec006-deleted-broadcast-red.log`, then 13 whole-file tests Green `/tmp/clipify-spec006-deleted-broadcast-green.log`. Confirmed provider 404 takes precedence over stale cached availability.
+- Invalid cached clip completeness Red `/tmp/clipify-spec006-cache-completeness-red.log`; source now tracks invalid entries independently of sync marker order. Whole-file Green is `/tmp/clipify-spec006-cache-completeness-green.log`.
+- HTTP boundary characterization: 9 tests passed `/tmp/clipify-spec006-api-boundaries.log`, including actual/declared body limits, private controlled errors and retry headers.
+
+- Empty ZIP response test initially stopped at an invalid base64 header; corrected the fixture to valid base64url and observed the intended download-validation Red `/tmp/clipify-spec006-empty-archive-red.log`. Minimum ZIP framing validation made all 7 component checks Green `/tmp/clipify-spec006-empty-archive-green.log`.
+- Added postimplementation provider batch/concurrency, partial manifest order, actual 32 MiB media limit and extended MP4 checks. Export whole-file checkpoint: 63 passed `/tmp/clipify-spec006-export-concurrency-limits.log`.
+- Server-action input/delegation/recovery characterization: 30 passed `/tmp/clipify-spec006-action-boundaries.log`.
+
+- Saved timezone and Back date restoration: both intended assertions Red `/tmp/clipify-spec006-restored-local-dates-red.log`, whole-file Green `/tmp/clipify-spec006-restored-local-dates-green.log`.
+- Clearing optional stream filters lost VOD identity: intended assertion Red `/tmp/clipify-spec006-stream-scope-red.log`, whole-file Green 3 tests `/tmp/clipify-spec006-stream-scope-green.log`.
+- Integrated browser checkpoint: 48/48 real-component examples passed `/tmp/clipify-spec006-current-browser.log`; production build `/tmp/clipify-spec006-current-build.log`. Later source fixes require the final rebuilt affected journeys before push; this checkpoint is not a final-head gate.
+- Moved resource regression tests retain the prior provider-token requirements at Overlays; Home now asserts cached metrics need no fresh token. 4 suites/20 tests passed `/tmp/clipify-spec006-dashboard-moved-regressions.log`. Additional page boundary checks 17 passed `/tmp/clipify-spec006-pages-checkpoint.log`.
+
+- Malformed HTTP Host intended Red `/tmp/clipify-spec006-malformed-host-red.log`, then controlled denial Green `/tmp/clipify-spec006-malformed-host-green.log`.
+- HTTPS proxy-origin intended 200-vs-403 Red `/tmp/clipify-spec006-proxy-origin-red.log`, then 25 API/export/inventory tests Green `/tmp/clipify-spec006-proxy-origin-green.log`.
+- Mobile installed-component search Escape remained open in `/tmp/clipify-spec006-layout-ready-browser.log`. The supported input capture API now closes search and restores focus; both 390px themes passed in `/tmp/clipify-spec006-layout-keyboard-browser.log`. Its desktop shortcut case ran before hydration and was corrected to establish hydration through the actual search control; complete layout rerun remains required.
+
+- Screenshot review exposed collapsed-looking desktop navigation before transition completion and incorrect variable ownership. Exact reference width check Red `/tmp/clipify-spec006-sidebar-width-red.log`; moved 256px/48px variables to the Sidebar root and added settled-width checks before screenshots. Final rebuilt browser Green remains required.
+- Expanded postimplementation characterization: input callbacks, actual selected-set cap, stale query protection and provider token/cache boundaries. 114 provider/cache tests passed `/tmp/clipify-spec006-provider-boundaries-checkpoint.log`; 30 navigation/inventory tests passed `/tmp/clipify-spec006-navigation-unit-checkpoint.log`; 24 timer/Home/layout checks passed `/tmp/clipify-spec006-ui-recovery-timers-checkpoint.log`.
+- Remaining inventory requirements exposed two intended Reds (malformed saved dates and visible VOD association) `/tmp/clipify-spec006-stream-association-red.log`. Finite-date validation plus explicit stream/unassigned column made all 21 inventory tests Green `/tmp/clipify-spec006-stream-association-green.log`.
+
+- Actual 128 MiB media boundary: all 67 export tests passed `/tmp/clipify-spec006-export-memory-boundary.log`. Four complete 32 MiB MP4 files included, fifth clip skipped at aggregate cap, ZIP134220363 bytes (under130 MiB). Package-time elapsed948ms; observed process RSS delta426913792 bytes, total992223232 in Jest. This is an observed package-time sample, not a maximum concurrent-service or mobile-browser memory claim. Removed the redundant client typed-array copy before Blob creation.
+- Refined UI diagnostic: 5 suites/61 tests passed, inventory99.13% lines/92.37% branches, export100% lines/93.68% branches, overview100% lines/90% branches, shell99.08% lines/93.25% branches. Scoped diagnostics still exit nonzero for unrelated missing gallery evidence; no thresholds are disabled, and the complete root owner remains mandatory.
+
+- Required deliberate mutants all killed and restored Green: ownership, exact provider clip ID, actual byte cap. `/tmp/clipify-spec006-mutants.json` and `/tmp/clipify-spec006-mutant-{ownership,exact-id,actual-bytes}-{red,green}.log`. These are mutation checks, not retroactive test-first claims.
+- Selection reset feedback had been invisible after a completed filter request. Intended assertion Red `/tmp/clipify-spec006-selection-notice-red.log`; stored reset notice made all 21 inventory checks Green `/tmp/clipify-spec006-selection-notice-green.log`.
+- Rebuilt integrated 48-example run passed `/tmp/clipify-spec006-final-browser.log`. All four exact-width/keyboard/theme layout examples passed `/tmp/clipify-spec006-final-layout-browser.log`; its existing editor regression then produced intended Red: Runner Back returned the legacy tab URL rather than its canonical resource list. Unit legacy bookmark/Gallery/Playlist return tests also produced intended Reds `/tmp/clipify-spec006-resource-return-red.log`. Fixing redirects and editor return targets is the next slice; do not report the five-test file Green yet.
+- Root dependency audit currently reports four high advisories in unchanged follow-redirects and transitive Zod versions (`/tmp/clipify-spec006-audit.log`). Dependency manifests/lockfile are unchanged by this feature. This is a merge-gate issue to report separately, not a passing audit.
+
+- Canonical resource returns and legacy dashboard-tab redirects: intended Reds in `/tmp/clipify-spec006-resource-return-red.log` and real Runner return Red in `/tmp/clipify-spec006-final-layout-browser.log`; 5 whole files/172 tests Green `/tmp/clipify-spec006-resource-return-green.log`. Standard router navigation and existing unsaved guards remain in place.
+- Stream detail count/view total assertion Red `/tmp/clipify-spec006-stream-totals-red.log`; known/unavailable totals made all17 page checks Green `/tmp/clipify-spec006-stream-totals-green.log`.
+- Actual route/provider recovery checkpoint: 17/17 passed `/tmp/clipify-spec006-recovery-scoped-browser.log`: missing scope, revoked token,429 timing,5xx retry, deleted/HTML/truncated media, partial archive and unsuccessful-only retry, cancellation, expired session, five current roles, mixed foreign ID denial, portrait variant. First attempt's generic alert matched Next's route announcer; narrowed to export region without changing required feedback. Later expanded matrix/performance cases require their own complete run.
+
+## Final shared-flow corrections and covered authorization boundary
+
+- Home section retry independence: intended Red `/tmp/clipify-spec006-independent-home-retry-red.log`; separate overview/broadcast request effects made all eight component tests Green in `/tmp/clipify-spec006-independent-home-retry-green.log`. A failed stream refresh preserves successful clip metrics.
+- An already-expired provider retry deadline could remain disabled because the displayed clock was captured before the response. Intended Red `/tmp/clipify-spec006-expired-retry-red.log`; response handling now updates the clock before rendering recovery actions. This is a product correction, rather than a fixture delay.
+- Private preview authorization is exercised in `src/server/creator-library.ts`, a registered critical coverage owner, before the existing lazy playback-cache reader. The legacy Twitch action already has a file-wide Istanbul exclusion; no exclusion or threshold was introduced to accommodate this feature. Exact context, owner, clip ID and fresh authorization denial checks precede cache access. Both complete owner files passed:115 tests in `/tmp/clipify-spec006-covered-private-guard-green.log`. These added boundary checks are characterization, not retrospectively claimed test-first evidence.
+- Guide navigation recognizes an already-current resource through `aria-current="page"`; mobile breadcrumbs supply the current destination while desktop navigation is collapsed into the drawer. Existing resource editor Back actions use canonical resource-list routes. Spotlight removal tests keep a stable React key, so the mutation observer and its timer are tested rather than accidental remount behavior. Whole-file scoped coverage reached30 passing tests and the unchanged ordinary coverage floors in `/tmp/clipify-spec006-guide-threshold-diagnostic-coverage.log`; missing unrelated gallery evidence means that scoped invocation is not a root gate pass.
+- Browser fixture readiness now waits for the existing client-rendered guide launcher after reload before selecting clips. Editor layout uses a retrying geometry assertion through transient remounts. Neither change weakens the required selection or layout assertion; setup failures are excluded from intended product Red evidence.
+
+## Playlist replay route and Mobbin layout pass
+
+- Real complete guide owner found playlist replay paused after reaching the new resource list. A navigation-readiness assertion alone did not fix it; that first hypothesis is not recorded as a verified resolution. Persisted fixture state isolated the route-helper mismatch. Intended whole-file unit Red: `/tmp/clipify-spec006-playlist-replay-red.log` (expected list, received editor). Shared helper correction made76 tests in three whole files Green (`/tmp/clipify-spec006-playlist-replay-green.log`); the real focused browser scenario passed (`/tmp/clipify-spec006-replay-fixed-browser.log`).
+- The next whole guide development run was stopped after the user-authorized Mobbin review added layout work, before publication; no complete guide pass is claimed from that interrupted checkpoint. Final complete owner runs after the last rebuilt source.
+- Before the Mobbin layout moves, all four responsive/theme Home+Inventory baseline captures passed (`/tmp/clipify-spec006-mobbin-baseline-browser.log`). Actual captures are preserved in `/tmp/clipify-mobbin-before/`.
+- Streams-first mobile Home layout was asserted before source changes. Intended geometry Red: `/tmp/clipify-spec006-home-hierarchy-red.log` (stream heading below the top-clips heading). Applied the three referenced moves from design-review.md using existing HeroUI components. All48 affected Home/inventory/export component tests passed (`/tmp/clipify-spec006-mobbin-component-green.log`). Final rebuilt geometry/browser Green and full owning coverage remain pending.
+
+- Final Mobbin build passed (`/tmp/clipify-spec006-mobbin-final-build.log`), and the complete layout/recovery/editor owner passed30/30 again (`/tmp/clipify-spec006-mobbin-final-acceptance.log`,6.2min). Streams-first/paired-panel geometry is now Green in every viewport/theme variant. Saved actual before/after captures were inspected; palette, component library and all data/action controls remain preserved.
+- Current-source core BDD completed48/48 in `/tmp/clipify-spec006-mobbin-final-bdd.log`. The same combined run passed the fixed playlist replay and narrow guide scenarios, then found an obsolete shared helper in the deleted-overlay scenario: it branched on the old editor URL before Home completed and skipped the newly required Overlays navigation. The helper now waits for the actual Home/Overlays destination and follows the real guide step. No product assertion was removed or weakened. All61 guide examples run together without fail-fast in `/tmp/clipify-spec006-guide-all-browser.log`; no full pass is claimed before completion.
+
+## Shell navigation and Gallery draft protection
+
+- The complete61-example guide run collected59 passes and two outdated binding expectations (`/tmp/clipify-spec006-guide-all-browser.log`): Tools -> Home omitted the new Overlays step, and a Theme Studio return still expected the old Dashboard heading. Bindings now follow the observed Overlays navigation and expect Home; all existing overlay identity, save-step and progress assertions remain.
+- One capture-only rerun clicked the visible SSR search launcher before hydration. It now waits for the existing client-rendered guide launcher, as the established recovery fixture already does. This is setup evidence, not an intended product Red. Geometry attachments are written to real artifact paths so they survive reporter teardown.
+- New Gallery navigation regression setup initially aborted during consent reload and then mismatched HeroUI's required-marker accessible name. Those failures are excluded from product Red. The corrected fixture completes the established reload, locates the actual required field and confirms Save is enabled before navigation.
+- Actual Gallery sidebar Red: `/tmp/clipify-spec006-gallery-sidebar-guard-red.log`; the unsaved editor reached Home without confirmation. Actual command-search Red: `/tmp/clipify-spec006-gallery-search-red.log`; the same missing confirmation reproduced through the palette. Gallery's nested NavigationGuardProvider isolated its registrations from the shell router's app-wide provider.
+- Removed the redundant nested Gallery provider and reused the existing app guard. All29 affected Sidebar/Gallery unit tests passed (`/tmp/clipify-spec006-gallery-shared-guard-unit.log`). A fresh production build passed (`/tmp/clipify-spec006-guard-final-build.log`). Both real regression cases passed at1280px and390px (`/tmp/clipify-spec006-gallery-guard-green.log`): search and sidebar Cancel preserve the draft; explicit Discard reaches Home without saving the draft.
+- Final current-source32-case acceptance and109-case core/guide owners run together after this fix. Do not replace their eventual result with the earlier focused/checkpoint passes. The full application coverage owner remains required before push.
+
+## Final browser and coverage checkpoint
+
+- Final production build passed. Complete current-source acceptance passed32/32 (`/tmp/clipify-spec006-final-all-acceptance.log`); core/guide BDD passed109/109 (`/tmp/clipify-spec006-final-all-bdd.log`). These include the two Gallery dirty-draft navigation regressions and all four viewport/theme combinations.
+- First complete application coverage attempt failed two Jest assertions: the source-manifest coverage contract lacked the newly registered permissions source in Jest collection; the inventory recovery test clicked Reload before the React transition enabled it. Added the missing source collection and made the test wait for enabled state while verifying its entered filter draft survives and is submitted. These are gate/test corrections, not product Red evidence.
+- Navbar was below the unchanged function/branch coverage floors. Added characterization of its existing organization, agency, admin-search, campaign and pending-session paths. Navbar and inventory whole files passed44/44 (`/tmp/clipify-spec006-navbar-recovery-green.log`); Navbar scoped coverage reached96.64% statements,90% branches,97.05% functions and99.21% lines. Scoped evidence does not substitute for the complete owner.
+- The second complete owner passed with exit0:595 Jest suites/6657 tests,549 instrumented workflows and5 serial media workflows. Three pre-existing skipped tests remain. Existing global and source-specific coverage floors passed; final execution-source fingerprint matched. Log:`/tmp/clipify-spec006-full-coverage-final.log`.

@@ -836,10 +836,10 @@ export default function OverlaySettings() {
 							<div className='flex min-w-0 items-center gap-3'>
 								<Button
 									isIconOnly
-									aria-label='Back to dashboard'
+									aria-label='Back to overlays'
 									variant='tertiary'
 									onPress={() => {
-										router.push(`${baseUrl}/dashboard`);
+										router.push(`${baseUrl}/dashboard/overlays`);
 									}}
 								>
 									<IconArrowLeft />

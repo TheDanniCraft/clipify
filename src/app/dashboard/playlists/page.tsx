@@ -1,0 +1,13 @@
+import { redirect } from "next/navigation";
+import { validateAuth } from "@actions/auth";
+import DashboardNavbar from "@components/dashboardNavbar";
+import OverlayTable from "@components/OverlayTable";
+export default async function Page() {
+	const user = await validateAuth();
+	if (!user) redirect("/logout");
+	return (
+		<DashboardNavbar user={user} title='Playlists' tagline='Manage your playlists'>
+			<OverlayTable key={user.id} userId={user.id} resourceType='playlists' />
+		</DashboardNavbar>
+	);
+}

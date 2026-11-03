@@ -7,12 +7,13 @@ import { Autocomplete, Button, ComboBox, Dropdown, EmptyState, Input, Label, Lis
 
 import { AuthenticatedUser, CampaignOffer, Role } from "@types";
 import Logo from "@components/logo";
+import { DashboardNavigationContext, DashboardNavigationControls, DashboardBreadcrumbs } from "@components/dashboardNavigation";
 import CountdownTimer from "@components/countdownTimer";
 import DashboardUserAvatar from "@components/dashboardUserAvatar";
 import { useRouter } from "next/navigation";
 import { getAdminViewCandidates, stopAdminView, switchAdminView, type AdminViewCandidate } from "@actions/adminView";
 import { getActiveCampaignOfferAction } from "@actions/campaignOffers";
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { authClient } from "@/auth/client";
 
 export type DashboardNavbarUser = Pick<AuthenticatedUser, "id" | "username"> & Partial<Pick<AuthenticatedUser, "avatar" | "role" | "plan" | "entitlements" | "adminView">>;
@@ -32,6 +33,8 @@ function accountType(organization: OrganizationOption) {
 }
 
 export default function DashboardNavbar({ children, user, title, tagline, organizationId }: { children?: React.ReactNode; user: DashboardNavbarUser; title: string; tagline: string; organizationId?: string }) {
+	const inShell = useContext(DashboardNavigationContext) !== null;
+	const ContentContainer = inShell ? "div" : "main";
 	const { theme, setTheme } = useTheme();
 	const { contains } = useFilter({ sensitivity: "base" });
 	const router = useRouter();
@@ -164,13 +167,14 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 
 	return (
 		<>
-			<nav className='w-full bg-accent'>
-				<header className='mx-auto flex h-16 w-full max-w-5xl items-center px-4 lg:px-8'>
+			<nav className='sticky top-0 z-30 w-full bg-accent'>
+				<header className='mx-auto flex min-h-16 w-full max-w-5xl flex-wrap items-center gap-y-2 px-4 py-2 lg:px-8'>
 					<NextLink data-tour='dashboard-home' href='/dashboard' className='flex items-center'>
 						<Logo width={30} />
 						<p className='ml-2 font-bold text-white'>Clipify</p>
 					</NextLink>
-					<ul className='ml-auto flex h-12 max-w-fit items-center gap-0'>
+					<DashboardNavigationControls />
+					<ul className='order-2 ml-auto flex h-12 max-w-fit items-center gap-0 sm:order-3'>
 						{organizationOptions.length > 1 ? (
 							<li className='mr-1 w-36 sm:w-48'>
 								<Autocomplete
@@ -352,8 +356,9 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 				</div>
 			) : null}
 			<div className='w-full'>
-				<main className='mt-6 flex w-full flex-col items-center'>
+				<ContentContainer className='mt-6 flex w-full flex-col items-center'>
 					<div className='w-full max-w-5xl px-4 lg:px-8'>
+						<DashboardBreadcrumbs />
 						<header className=' flex w-full items-center justify-between'>
 							<div className='flex flex-col'>
 								<h1 className='text-xl font-bold text-foreground lg:text-3xl'>{title}</h1>
@@ -362,7 +367,7 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 						</header>
 						{children}
 					</div>
-				</main>
+				</ContentContainer>
 			</div>
 		</>
 	);

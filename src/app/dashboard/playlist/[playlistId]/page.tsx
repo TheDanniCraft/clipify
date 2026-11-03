@@ -390,9 +390,9 @@ export default function PlaylistPage() {
 						<Card.Content className='flex flex-col items-center gap-4 py-10 text-center'>
 							<div className='text-xl font-semibold'>Playlist not found</div>
 							<div className='text-sm text-muted'>This playlist may not exist anymore, or you might not have access.</div>
-							<Button onPress={() => router.push("/dashboard")}>
+							<Button onPress={() => router.push("/dashboard/playlists")}>
 								{<IconArrowLeft size={16} />}
-								Back to Dashboard
+								Back to Playlists
 							</Button>
 						</Card.Content>
 					</Card>
@@ -407,7 +407,7 @@ export default function PlaylistPage() {
 				<Card className='w-full max-w-4xl'>
 					<Card.Header className='flex flex-col items-stretch gap-3'>
 						<div className='flex items-center gap-2'>
-							<Button isIconOnly variant='tertiary' aria-label='Back to dashboard' onPress={() => router.push("/dashboard")}>
+							<Button isIconOnly variant='tertiary' aria-label='Back to playlists' onPress={() => router.push("/dashboard/playlists")}>
 								<IconArrowLeft />
 							</Button>
 							<TextField className='min-w-0 flex-1'>

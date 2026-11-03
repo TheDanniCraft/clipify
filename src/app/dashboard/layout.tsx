@@ -1,3 +1,6 @@
+import DashboardShell from "@components/dashboardShell";
+import { authorizeCreatorOperation } from "@/auth/authorize-operation";
+import { PERMISSIONS, type Permission } from "@/auth/permissions";
 import { Suspense, type ReactNode } from "react";
 import { connection } from "next/server";
 import { validateAuth } from "@actions/auth";
@@ -10,20 +13,31 @@ import { getPendingDashboardContent } from "@lib/dashboardContent";
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
 	await connection();
 	const user = await validateAuth();
+	const grant = user ? await authorizeCreatorOperation({ creatorId: user.id, resourceOwnerId: user.id, permission: "creator:read" }) : null;
+	const needed: Permission[] = ["creator:read", "overlay:read", "playlist:read", "gallery:read", "runner:read", "account:read"];
+	const permissions: Permission[] = grant?.allowed && grant.accessPath === "owner" ? [...PERMISSIONS] : user ? (await Promise.all(needed.map(async (permission) => ({ permission, result: await authorizeCreatorOperation({ creatorId: user.id, resourceOwnerId: user.id, permission }) })))).filter((item) => item.result.allowed).map((item) => item.permission) : [];
+	const content = user ? (
+		<DashboardShell key={user.id} creatorId={user.id} permissions={permissions}>
+			{children}
+		</DashboardShell>
+	) : (
+		children
+	);
+
 	const [items, guide] = await Promise.all([user ? getPendingDashboardContent(user) : Promise.resolve([]), user ? getUserTourProgress(user.id) : Promise.resolve(null)]);
 	return (
 		<>
 			<SentryFeedbackWidget />
 			{user && guide ? (
-				<Suspense fallback={children}>
+				<Suspense fallback={content}>
 					<UserTourProvider key={user.id} accountId={user.id} initialProgress={guide.progress} importLegacy={guide.importLegacy} dashboardContent={items} appearanceAvailable={(user.entitlements?.effectivePlan ?? user.plan) === "pro"}>
-						{children}
+						{content}
 					</UserTourProvider>
 				</Suspense>
 			) : (
 				<>
 					<DashboardContentHost items={items} />
-					{children}
+					{content}
 				</>
 			)}
 		</>

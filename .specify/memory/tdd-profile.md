@@ -1,11 +1,11 @@
 ---
-detected_at: 2786b3f8
-refreshed_on: 2026-10-14
+detected_at: 9f6107a3
+refreshed_on: 2026-11-03
 ecosystems:
   - typescript-app
   - typescript-native-workflows
-  - typescript-browser
-  - typescript-runner
+  - typescript-browser-acceptance
+  - typescript-browser-bdd
 default: typescript-app
 stacks:
   typescript-app:
@@ -24,7 +24,7 @@ stacks:
     test_glob: "{test/**/*.test.{ts,tsx},src/**/__tests__/**/*.test.{ts,tsx}}"
     exemplar:
       unit: test/app/lib/consentOrigins.test.ts
-      component: test/app/components/chatWidget.test.tsx
+      component: test/app/components/dashboardNavbar.test.tsx
       database-integration: test/server/memberNumbers.test.ts
       property: test/app/lib/consentRegistry.test.ts
     helpers:
@@ -32,27 +32,20 @@ stacks:
       - test/helpers/pgliteEnvironment.cjs
       - test/app/gallery/fixtures.ts
       - test/support/auth-engine-rewrite/database.ts
-    verified:
-      - file
-      - suite
-      - coverage
-      - property
+      - test/support/mcp/postgres.ts
+    verified: [file, suite, coverage, property]
     suite_baseline: green
-    suite_seconds: 1596
+    suite_seconds: 2109
   typescript-native-workflows:
     cwd: .
     runner: playwright-bdd with native MCP probes
     single: null
-    file: bunx bddgen --config playwright.mcp.config.ts && bunx playwright test
-      --config playwright.mcp.config.ts --project=bdd-chromium {file}
-      --workers=1
+    file: null
     suite: bun run test:coverage
     watch: null
     coverage: bun run test:coverage
     mutation: null
-    acceptance: bunx bddgen --config playwright.mcp.config.ts && bunx playwright
-      test --config playwright.mcp.config.ts --project=bdd-chromium {file}
-      --workers=1
+    acceptance: bun run test:coverage
     property: null
     approval: null
     contract: null
@@ -61,23 +54,17 @@ stacks:
       bdd-feature: test/bdd/features/mcp-workflows/runners.feature
       bdd-steps: test/bdd/steps/mcp-workflows.steps.ts
     helpers:
-      - test/bdd/support/mcp-support.ts
-      - test/support/mcp/probe.ts
       - test/support/mcp/postgres.ts
-      - test/support/mcp/fixtures.ts
-    verified:
-      - file
-      - suite
-      - coverage
-      - acceptance
+      - test/support/mcp/probe.ts
+    verified: [suite, coverage, acceptance]
     suite_baseline: green
-    suite_seconds: 1596
-  typescript-browser:
+    suite_seconds: 2109
+  typescript-browser-acceptance:
     cwd: .
-    runner: playwright with playwright-bdd
+    runner: playwright
     single: null
-    file: bunx playwright test {file} --project=acceptance-chromium --workers=1
-    suite: null
+    file: bunx playwright test --project=acceptance-chromium {file} --workers=1
+    suite: bun run test:acceptance
     watch: null
     coverage: null
     mutation: null
@@ -85,279 +72,168 @@ stacks:
     property: null
     approval: null
     contract: null
-    test_glob: "{test/acceptance/**/*.spec.ts,test/bdd/features/**/*.feature,test/a\
-      tdd/features/**/*.feature,test/compliance/**/*.spec.ts}"
+    test_glob: test/acceptance/**/*.spec.ts
     exemplar:
       acceptance: test/acceptance/login.spec.ts
-      bdd-feature: test/bdd/features/login-smoke.feature
-      bdd-steps: test/bdd/steps/login-smoke.steps.ts
-      atdd-steps: test/atdd/steps/harness.steps.ts
     helpers:
-      - test/bdd/support/fixtures.ts
-      - test/bdd/support/auth-engine-rewrite.ts
-      - test/atdd/support/auth-engine-rewrite.ts
       - test/support/mcp/browser-database.cjs
-    verified:
-      - file
-      - acceptance
+      - test/support/mcp/postgres.ts
+      - test/bdd/support/user-tour.ts
+      - test/support/user-tour/server.mjs
+    verified: [file, suite, acceptance]
     suite_baseline: green
-    suite_seconds: null
-  typescript-runner:
-    cwd: packages/runner
-    runner: jest
+    suite_seconds: 452
+  typescript-browser-bdd:
+    cwd: .
+    runner: playwright-bdd with real browser
     single: null
-    file: bun run test --runTestsByPath {file} --coverage=false
-    suite: bun run test --coverage
+    file: bunx bddgen && bunx playwright test --project=bdd-chromium {file} --workers=1
+    suite: null
     watch: null
-    coverage: bun run test --coverage
+    coverage: null
     mutation: null
-    acceptance: null
+    acceptance: bunx bddgen && bunx playwright test --project=bdd-chromium {file} --workers=1
     property: null
     approval: null
     contract: null
-    test_glob: "{src/**/__tests__/**/*.test.ts,test/**/*.test.ts}"
+    test_glob: test/bdd/features/**/*.feature
     exemplar:
-      unit: src/__tests__/engine.test.ts
-      storage-boundary: test/storage.test.ts
-      real-media: test/bdd/runner-free-pro.test.ts
+      bdd-feature: test/bdd/features/login-smoke.feature
+      bdd-steps: test/bdd/steps/login-smoke.steps.ts
+      authenticated-browser: test/bdd/steps/user-tour.steps.ts
     helpers:
-      - test/support/prepare-media.mjs
-      - test/support/native-media.mjs
-      - test/support/drain-probe.mjs
-    verified:
-      - file
-      - suite
-      - coverage
+      - test/bdd/support/fixtures.ts
+      - test/bdd/support/user-tour.ts
+      - test/support/user-tour/server.mjs
+      - test/support/mcp/browser-database.cjs
+    verified: [file, acceptance]
     suite_baseline: green
-    suite_seconds: 1.306
-verified:
-  - file
-  - suite
-  - coverage
-  - property
-  - acceptance
+    suite_seconds: null
+verified: [file, suite, coverage, property, acceptance]
 suite_baseline: green
-suite_seconds: 1596
+suite_seconds: 2109
 ---
 
 # TDD Stack Profile
 
-## Current baseline after localhost setup
+## Verification scope and current baseline
 
-Local prerequisites were installed/configured on 2026-10-14 at the user's request:
-PostgreSQL 18 in a disposable /tmp cluster bound to 127.0.0.1:54419, a uniquely
-named browser fixture initialized using the existing schema helper, Chromium's
-OS libraries, and separate native/browser environment files. Follow
-[docs/local-testing.md](../../docs/local-testing.md) before executing these
-commands in another workspace or shell. No production database or application
-source/test changes were needed.
+Refreshed for creator-library planning at source HEAD `9f6107a3`. No application,
+feature test, schema, migration, package, lockfile or test-configuration change was
+made. This profile records current execution, not the old workspace's results.
+The previous profile remains available in Git history at this source HEAD.
 
-- Complete application Jest: 461 suites / 4844 tests passed; 0 failed.
-  Existing skips: 2 suites / 11 tests
-  in the auth creator-onboarding-trigger/provider-credential-switch suites.
-  No test or skip condition was changed by this setup.
-- Complete native workflow inventory integrated into the same coverage command:
-  343 passed / 0 failed / 0 skipped.
-- Complete `bun run test:coverage` command exited 0; final merged coverage report
-  and the repository's existing thresholds passed. Observed duration approximately
-  1596 seconds, measured from the parent process start through result collection.
-- Previously unexplained database-budget/mixed-source checks: 2 suites / 3 tests
-  passed unchanged after setting the CI fixture environment.
-- Focused native Runner workflows: 73 passed / 0 failed / 0 skipped.
-- Browser acceptance: 4 passed; isolated login file: 1 passed. Browser full
-  BDD/ATDD/compliance release suites were not rerun by this setup task.
-- Runner package: existing verified 5 suites / 20 passed / 1 TODO remains unchanged.
+| Command or capability                          | Observed result                                                                                                                                                       | Evidence                                                                                                                                        |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Full `bun run test:coverage` owner             | Exit0;555 Jest suites/6331 tests passed,1 suite/3 tests already skipped;434 native workflows passed (5 serial plus429 parallel),0 workflow skips/failures/flaky cases | /tmp/clipify-spec006-baseline.log; coverage/coverage-final.json; coverage/workflow-results-serial.json; coverage/workflow-results-parallel.json |
+| Final combined coverage                        | Lines87.70%, branches80.51%, functions81.84%, statements85.39%; original global and per-source gates passed                                                           | coverage/coverage-final.json and final gate output in baseline log                                                                              |
+| Application whole-file selector                | consentOrigins:3 passed                                                                                                                                               | /tmp/clipify-spec006-file.json                                                                                                                  |
+| Known-name experiment                          | Exactly1 passed/2 skipped                                                                                                                                             | /tmp/clipify-spec006-single.json                                                                                                                |
+| Nonexistent-name experiment                    | Exit0,0 executed/3 skipped; unsafe for Red proof, so single remains null                                                                                              | /tmp/clipify-spec006-zero.json                                                                                                                  |
+| Existing component/database/property exemplars | Three files/35 tests passed unchanged                                                                                                                                 | /tmp/clipify-spec006-exemplars.json                                                                                                             |
+| Full browser acceptance script                 | Guarded production build and27 acceptance tests passed; approximately452s including build                                                                             | /tmp/clipify-spec006-browser-baseline.log                                                                                                       |
+| Browser whole-file selector                    | login.spec.ts:1 passed                                                                                                                                                | /tmp/clipify-spec006-browser-file.log                                                                                                           |
+| Browser BDD selector/generator                 | bddgen succeeded; generated login-smoke.feature.spec.js:1 passed                                                                                                      | /tmp/clipify-spec006-bdd-baseline.log                                                                                                           |
 
-Native full-suite/coverage commands intentionally refer to the same complete app
-coverage owner. Execute that shared command once at its applicable completion
-gate, not once per evidence label or stack. Browser `suite` remains null because
-only acceptance and its isolated file command were verified here. Its
-`suite_baseline: green` denotes those verified browser checks, not a claim of
-complete release validation. Jest name filters remain null because zero-match
-runs can falsely succeed; use the verified whole-file commands.
+The application and native workflow stacks intentionally share one complete
+coverage execution owner; run that command once, not once per practice label.
+The browser BDD green baseline denotes its verified smoke/file command, not all
+BDD/ATDD/compliance release scenarios. The direct browser acceptance stack covers
+its27-test project. Feature scenarios remain unimplemented and PENDING.
 
-Current temporary setup: source /tmp/clipify-local-test-env.sh for native/Jest
-checks; source /tmp/clipify-local-browser-env.sh for browser checks in a separate
-shell. Browser-only URL/settings must not leak into Jest tests. The first broad
-retry inherited NEXT_PUBLIC_BASE_URL from browser setup and was stopped after
-that override changed a request-origin fixture; the complete successful retry
-used the native-only CI environment. No assertion was changed.
+## Runtime and disposable prerequisites
 
-Read-only comparison confirmed yesterday's successful CI on the exact HEAD:
-https://github.com/TheDanniCraft/clipify/actions/runs/38401644930. CI provides
-PostgreSQL, template IDs and Chromium dependencies; those were absent from the
-original local environment. Raw current results are /tmp/clipify-local-test-*,
-plus coverage/coverage-final.json and coverage/workflow-results.json.
+Follow [docs/local-testing.md](../../docs/local-testing.md) before any future full
+suite, native workflow or browser run. This run used Node24.21.0, Bun1.4.2,
+PostgreSQL18 on loopback, installed Chromium plus its documented OS libraries,
+and FFmpeg8.0.1. CI browser PostgreSQL16 remains a separate version-specific gate.
+No production, shared-development or Infisical credentials were used.
 
-## Initial refresh before local prerequisites
+The available host Node was22.23.4, so Node24 was copied from an already-present
+node:24.21.0-bookworm image into a task-owned /tmp runtime. PostgreSQL used an
+already-present postgres:18 image in a disposable task-labeled container bound
+only to127.0.0.1:54419. Browser tests used a separate uniquely named mcp_ database
+initialized by initializeMcpFixtureSchema, never a generated migration or db push.
+Only repository-required operating-system test prerequisites were installed;
+no JavaScript dependency was added or upgraded.
 
-This profile was re-detected and tested on 2026-10-14 at HEAD 2786b3f8. The
-existing planning documents are uncommitted; the HEAD alone is not tested-source
-or release-gate evidence. `verified` at the root is the union of the stack-local
-lists, not a claim that every stack supports every capability. Null means not
-successfully verified in this workspace; failed candidate commands appear below
-for diagnosis, not as executable verified entries.
+Required environment variable names, whose documented disposable values must be
+reapplied per shell: MCP_TEST_DATABASE_URL, MCP_TEST_TEMPLATE_ID,
+MCP_PROBE_RUNTIME and JWT_SECRET for native/Jest. Browser mode additionally uses
+DATABASE_URL, MCP_BROWSER_DATABASE_URL, MCP_BROWSER_PROVIDER_FIXTURE, APP_ENV,
+E2E_TEST_MODE, DISABLE_BACKGROUND_JOBS, RUNNER_ARTIFACT_SOURCE,
+BETTER_AUTH_SECRET, RATE_LIMIT_HASH_SECRET, TWITCH_CLIENT_ID,
+TWITCH_CLIENT_SECRET, ENCRYPTION_SECRET and NEXT_PUBLIC_BASE_URL, plus empty
+Sentry upload/runtime settings as documented. Do not mix browser-only settings
+into native/Jest. Do not copy a prior job's template identity. Cleanup removes
+job-owned templates and the disposable fixture container after verification;
+verify/recreate the fixtures before another execution.
 
-The initial application attempt below was failing and incomplete because its
-local prerequisites/environment were missing. It is historical diagnostic evidence,
-not the current baseline. The corrected current results appear above.
+## Conventions to match
 
-| Check                              | Observed result                                                                                                                                                                      |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| App whole file, consentOrigins     | 1 suite / 3 tests passed; 0.381s measured from Jest JSON timestamps                                                                                                                  |
-| App known name                     | Exactly 1 passed / 2 skipped; 0.351s                                                                                                                                                 |
-| App nonexistent name               | Exit 0 with 0 tests run / 3 skipped: unsafe; single remains null                                                                                                                     |
-| App full coverage attempt          | 303 passed suites and 4 failed suites observed before stopping repeated unavailable-database failures; partial counts only, no complete test count/duration or final coverage report |
-| Database-budget focused diagnostic | 1 suite / 2 tests failed without coverage; not explained solely by outer coverage instrumentation                                                                                    |
-| Native Runner workflow feature     | 73 failed / 0 passed / 0 skipped examples in 154.088s; every failure includes ECONNREFUSED to disposable PostgreSQL                                                                  |
-| Browser acceptance                 | 2 tests failed; Chromium headless-shell cannot load libnspr4.so. Test build compilation and type checking completed, with additional loopback database connection errors             |
-| Runner full suite + coverage       | 5 suites / 20 tests passed / 1 existing TODO; 1.306s; coverage-final.json generated                                                                                                  |
-| Runner engine whole file           | 1 suite / 4 tests passed; 0.513s                                                                                                                                                     |
-| Runner known name                  | Exactly 1 passed / 1 skipped                                                                                                                                                         |
-| Runner nonexistent name            | Exit 0 with 0 tests run / 2 skipped: unsafe; single remains null                                                                                                                     |
+- Root Jest30 uses Next's adapter, its existing setup and custom test-budget
+  runner. Node tests declare their Node environment. Embedded database cases use
+  pgliteEnvironment.cjs, which supplies the constructor; every test owns/closes
+  its own instance. Reuse gallery buildClip/buildGallery and auth database
+  FixtureBuilder helpers. Assertions/doubles are Jest/Testing Library; property
+  assertions use the existing fast-check library. Every listed exemplar/helper
+  was opened; the selected app exemplars were executed successfully.
+- Native MCP examples execute the composed Node HTTP/protocol entry through
+  probe.ts and disposable PostgreSQL. A native file selector was not separately
+  refreshed, so file is null; the complete coverage owner did verify434 cases.
+  These are not a substitute for rendered browser journeys.
+- Browser acceptance uses the actual guarded built app. Browser BDD uses the
+  generated .features-gen/bdd path or an unambiguous generated-file pattern as
+  {file}; passing a raw source feature pathname need not match the generated
+  test. Scope the clip-library generated file before its scenario ID: other
+  project features use some identical feature-local labels.
+- Reuse the real Next app lifecycle and authenticated fixture route illustrated
+  by user-tour.ts/server.mjs for dashboard BDD. The auth-engine-rewrite in-memory
+  authWorld is not proof of rendered dashboard behavior. Override only external
+  provider/media boundaries through the established isolated fixture machinery.
+- Run browser commands sequentially: their global server owns port3107. Build
+  the app before browser execution; do not compile another app during journeys.
 
-The application command attempted was `bun run test:coverage --maxWorkers=2
---json --outputFile=/tmp/clipify-tdd-refresh-app.json`. The command did not finish:
-only its own process tree was stopped after database failures, so no full-suite
-or full-coverage verification is credited. Failed suite names observed:
+## Execution policy and missing capabilities
 
-- `test/mcp/unit/test-runner-database-budget.test.ts`: nested Jest expected exit 0
-  but returned 1; also fails its complete file without coverage. Root cause remains
-  unresolved; do not automatically classify this mocked-Pool test as missing DB.
-- `test/mcp/unit/coverage-mixed-source.test.ts`: nested run expected zero failures
-  but reported three. Root cause remains unresolved pending a working fixture.
-- `test/mcp/workflows/galleries.test.ts` and
-  `test/mcp/workflows/clip-cache-tools.test.ts`: native probe output contains
-  ECONNREFUSED 127.0.0.1:54419.
+The full root owner took35m09s, so the user-provided AGENTS.md policy governs the
+inner loop: changed whole-file tests without coverage, then complete affected
+suites/owning coverage and real browser acceptance at completed slices, with full
+owning CI validation before merge. No reduced threshold or skip was introduced.
+Existing critical L95/B90 and ordinary L90/B85 source floors, statement/function
+floors and any stricter path/Runner floor remain unchanged.
 
-There is no PostgreSQL listener on fixture ports 54419 or 5432, no installed
-PostgreSQL command-line server found, and no Docker daemon socket. Browser files
-are installed, but the required operating-system Chromium library is missing.
-No dependencies, OS packages, source, test files or configurations were changed
-by this refresh. Installing prerequisites or fixing the existing failures is
-separate work; no application/production database was used as a fixture.
+Jest single-name execution is deliberately null because a zero-match can falsely
+succeed. Whole-file commands are the verified fallback. Browser name selectors,
+watch, snapshots/approval and a dedicated contract tool were not separately
+verified and remain null; example/contract assertions still use ordinary Jest.
+StrykerJS is absent; mutation remains null. Implementation verification must use
+recorded deliberate mutants for the highest-risk ownership, exact-ID and byte
+limit guards. No mutation is meaningful before this feature has source code.
 
-## Current execution policy
+The independent packages/runner stack was not re-profiled because this feature
+changes no native Runner runtime/process/capture/update code. Its old commands
+are not silently promoted to current verification. A later Runner change needs
+its current package test:coverage owner and real platform checks. Linux/browser
+results do not establish Windows behavior or native packaging.
 
-The active constitution already mandates Test-First Delivery and deterministic,
-traceable evidence. No constitution amendment is needed or made.
+## Resolved setup observations
 
-- During development, execute the changed behavior's whole-file tests without
-  coverage. Name filtering is not a valid Jest Red proof because zero matches
-  can exit successfully. Record the intended failing assertion, not setup errors.
-- Complete each slice with affected suites and relevant owning browser/runtime
-  scenarios and applicable coverage/static gates. Do not repeat unchanged
-  successful checks without changed source, inputs or an unresolved concern.
-- Full coverage, all owning scenarios, lint, formatting, types and build remain
-  required before merge. Draft scoped CI feedback does not satisfy the full gate.
-- Native MCP BDD/coverage evidence has one execution owner. Genuine browser
-  journeys remain browser-owned; do not duplicate execution for BDD/ATDD labels.
-- Tests use disposable loopback databases; every case owns its database and
-  job-owned schema templates are cleaned up. Never use shared development or
-  production data. Feature branches do not generate Drizzle migrations.
+Inside the restricted sandbox Next's detached TypeScript --showConfig child
+returned empty output; the same unchanged test passed when run with the required
+execution permission. Missing Chromium OS libraries initially prevented launch;
+following the repository prerequisites resolved that setup issue. One isolated
+BDD probe overlapped another browser selector and hit EADDRINUSE; rerunning it
+alone passed. These are documented environment/setup observations, not product
+regressions or intended TDD Reds. The complete baseline commands above exited0.
 
-## Initial failed and remaining unverified command candidates
+## Constitution outcome
 
-This table preserves the initial missing-prerequisite observations. Current
-frontmatter and the current-baseline section supersede resolved entries; remaining
-unexecuted browser release commands are still not credited as verified.
+The existing Test-First Delivery/TF-1 through TF-8 principles already govern this
+workflow. No competing principle, constitution amendment or approval is needed
+or applied. All feature cycles remain pending in its TDD test list and may start
+only under a subsequent implementation request.
 
-| Stack/capability                  | Existing candidate                                                                                                                                                     | Current obstacle                                                                                         |
-| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| App complete suite/coverage       | `bun run test:coverage`                                                                                                                                                | Missing PostgreSQL and unresolved pre-existing baseline failures                                         |
-| Native workflow whole feature     | `bunx bddgen --config playwright.mcp.config.ts` then `bunx playwright test --config playwright.mcp.config.ts --project=bdd-chromium mcp-workflows/runners --workers=1` | 73 fixture connection failures; generation itself succeeded                                              |
-| Native workflow complete coverage | `node scripts/run-coverage-lane.mjs workflows`                                                                                                                         | Needs the same disposable PostgreSQL; not separately executed because the fixture prerequisite is absent |
-| Browser complete acceptance       | `bun run test:acceptance`                                                                                                                                              | Attempted; missing libnspr4.so and loopback fixture                                                      |
-| Browser BDD / ATDD                | `bun run test:bdd` / `bun run test:atdd`                                                                                                                               | Not separately executed; same browser/DB prerequisites unresolved                                        |
-| Browser full suite                | `bun run test:e2e`                                                                                                                                                     | Not executed; same browser/DB prerequisites unresolved                                                   |
-| Broader app feedback              | `bun run test:affected` with the verified comparison commit                                                                                                            | Available script, not verified by this refresh                                                           |
+## Clean-master implementation boundary
 
-## Conventions and shared utilities
-
-### TypeScript application
-
-Jest 30 uses Next's Jest adapter, jsdom by default, and a custom MCP test runner.
-Node tests declare `@jest-environment node`; embedded-database cases use
-`test/helpers/pgliteEnvironment.cjs`. Jest expect/jest.fn/mock/spyOn are the native
-assertion and double APIs. React components use Testing Library; `jest.setup.ts`
-loads jest-dom and TextEncoder/TextDecoder. Reuse gallery buildGallery/buildClip
-fixtures and the auth test database/FixtureBuilder helpers. The helper named
-`pgliteEnvironment` only exposes the PGlite constructor; each test still creates
-and closes its own instance.
-
-Use consentOrigins as the pure unit exemplar, chatWidget for React component
-behavior, memberNumbers for embedded PostgreSQL boundaries, and consentRegistry
-for a genuine fast-check invariant rejecting unrelated storage keys. All four
-files were opened; consentRegistry, chatWidget and memberNumbers passed during
-the partial app run. The consentOrigins whole-file command was verified
-separately. Property testing is now established rather than merely installed.
-
-### Native MCP workflows
-
-playwright-bdd under `playwright.mcp.config.ts` executes native HTTP/protocol
-probes, often without launching a browser. Reuse mcp-support's mcpWorld and
-`test/support/mcp/probe.ts`, which runs the real composed entry point. Runner
-workflow scenarios live in runners.feature with bindings in
-mcp-workflows.steps.ts. `createMcpPostgresFixture` creates a unique database per
-case and rejects remote/persistent fixture URLs. Do not confuse these checks
-with browser journeys or turn their failures into passing unit substitutes.
-
-### Browser acceptance, BDD and ATDD
-
-Direct acceptance specs exercise the running application. Gherkin features and
-bindings are generated by bddgen before Playwright runs. Reuse existing BDD and
-ATDD auth fixtures/controlled clocks; authenticated browser fixtures are gated
-by test mode, loopback URLs and opaque test credentials. No production secrets.
-Keep OAuth traces off where the established fixture requires it. The public
-login spec/feature/steps are the browser entry-point exemplars; harness.steps.ts
-shows ATDD binding conventions, not a replacement for user acceptance.
-
-### Self-hosted Runner
-
-Independent Jest 30 stack in packages/runner with SWC and Node environment.
-Use engine.test.ts for Puppeteer/process/live-input boundaries and storage.test.ts
-for keyring/filesystem boundaries; both files were opened. Existing tests mock
-these boundaries with Jest. The package test script already supplies runInBand
-and forceExit; the verified file command need not repeat them. The suite still
-reports one existing TODO and a forced-exit warning. New tests must clean owned
-timers/processes/sockets rather than rely on forced exit. It has no existing
-coverage threshold: generated percentages do not establish a new accepted gate.
-
-## CI ownership, safety and retained evidence
-
-CI owns six complete coverage lanes: unit, database-1, database-2, database-3,
-quiet and workflows. It merges reports with `scripts/merge-test-coverage.mjs`;
-missing/foreign inventory fails. Keep existing Jest global B50/F65/L60/S60 and
-stricter per-path/MCP thresholds. Coverage artifacts and browser results are
-retained 30 days; the shared browser build is retained 2 days. The complete
-Runner suite also gates its owning CI job. This refresh is local diagnostic
-verification and does not substitute for current-source CI fingerprints.
-
-Raw refresh logs/JSON are `/tmp/clipify-tdd-refresh-*`. Runner coverage was moved
-to `/tmp/clipify-tdd-refresh-runner-coverage` after verification to keep generated
-artifacts out of the tracked worktree. These temporary diagnostics do not imply
-30-day CI retention. The exact old-to-new profile diff is available from git.
-
-## Initial limitations and current remaining capabilities
-
-- Mutation tooling is absent in manifests/locks and installed modules. No Stryker
-  dependency was added. Use recorded deliberate-mutant checks on the highest-risk
-  changed behaviors during TDD verification until a separately approved tool exists.
-- Initial app coverage was interrupted. Current complete app/native coverage now
-  passes; genuine browser coverage is not configured. Runner coverage remains
-  successfully verified.
-- Interactive watch/UI workflows were inspected in package scripts but not
-  exercised; watch remains null. No approval/snapshot command was verified.
-- No separate contract-test framework is configured. Use existing composed
-  route/protocol tests, with one declared artifact owner.
-- Complete app/native verification now passes after setup. Full browser
-  BDD/ATDD/compliance validation remains a later release gate. Historical counts
-  from other commits are not evidence for this checkout.
-
-## Native media lifecycle checkpoint (2026-10-15)
-
-The complete native no-coverage checkpoint A5-native-lifecycle-complete-checkpoint-restored.log passes39 tests with1 pre-existing TODO in46.574seconds. This is scoped native lifecycle evidence, not a final feature/application coverage gate. Native browser setup follows docs/local-testing.md and the capture dependency revision; the real media owner requires FFmpeg and Chrome libraries. Package patch validation verifies3 dependencies/4 files, including both CJS/ESM extension-install ordering fixes in the capture dependency's nested Puppeteer24. Exact-version resolution checks every matching installed copy beside a different direct version. No timeout, assertion or coverage threshold was relaxed.
-
-### Runner presentation prerequisite — 2026-10-17
-
-Native/Jest workflows now also use `JWT_SECRET=clipify-e2e-jwt-secret-not-for-production` from the isolated test profile. The real private Runner presentation endpoint signs a scoped cookie; missing signing configuration is setup failure, not product Red. The three disposable-database CI jobs and [local testing guide](../../docs/local-testing.md) supply this fixed non-production value. Keep browser-only exports separate. Verified by the complete five-scenario native multistream owner in `specs/004-runner-free-pro/tdd/evidence/E1-private-multistream-keyed-workflows.log`.
+The feature branch was subsequently created from b6c8e591 with its locked Next16.4.3/HeroUI3.2.7/Auth1.7.12 dependencies. Five feature-owning existing test files passed142 tests unchanged; see /tmp/clipify-spec006-master-baseline.json. The full result above is historical at9f6107a3, not identical-source evidence for b6c8e591. Development uses the user-required whole-file inner loop from this green owning-file baseline; complete current-source coverage/browser/static gates must pass again before push.

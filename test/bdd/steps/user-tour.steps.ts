@@ -20,6 +20,14 @@ async function panel(page: Page) {
 	if (!(await checklist.isVisible())) await launcher.click();
 	await expect(checklist).toBeVisible();
 }
+async function followOverlayNavigation(page: Page) {
+	await expect(page).toHaveURL(/\/dashboard(?:\/overlays)?(?:[?#].*)?$/);
+	if (new URL(page.url()).pathname === "/dashboard") {
+		await expect(page.locator(".driver-popover-title")).toHaveText("Open Overlays");
+		await page.locator('[data-tour="overlays-tab"]').click();
+		await expect(page).toHaveURL(/\/dashboard\/overlays(?:[?#].*)?$/);
+	}
+}
 async function start(page: Page, name: string, section?: string) {
 	await panel(page);
 	if (section) {
@@ -106,6 +114,7 @@ When("the first overlay journey is followed", async ({ page, tourWorld }) => {
 	await seedProgress(tourWorld);
 	await page.reload();
 	await start(page, "Create and name your overlay");
+	await followOverlayNavigation(page);
 	await expect(page.locator(".driver-popover-title")).toHaveText("Create an overlay");
 	await page.getByRole("button", { name: "Add Overlay", exact: true }).click();
 	await expect(page.getByLabel("Overlay Name", { exact: true })).toBeVisible();
@@ -172,10 +181,11 @@ When("overlay creation fails", async ({ page, tourWorld }) => {
 	await seedProgress(tourWorld);
 	await page.reload();
 	await start(page, "Create and name your overlay");
+	await followOverlayNavigation(page);
 	await expect(page.locator(".driver-popover-title")).toHaveText("Create an overlay");
 	await expect(page.getByRole("button", { name: "Add Overlay", exact: true })).toBeEnabled();
 	await progress(page, tourWorld);
-	await page.route("**/dashboard", (route) => (route.request().method() === "POST" ? route.fulfill({ status: 500, body: "Controlled unavailable action" }) : route.continue()));
+	await page.route("**/dashboard/overlays", (route) => (route.request().method() === "POST" ? route.fulfill({ status: 500, body: "Controlled unavailable action" }) : route.continue()));
 	await page.getByRole("button", { name: "Add Overlay", exact: true }).click();
 });
 Then("the creation task stays incomplete", async ({ page, tourWorld }) => {
@@ -338,7 +348,7 @@ When("the playlist guide creates names and saves clips", async ({ page, tourWorl
 	await seedProgress(tourWorld);
 	await page.reload();
 	await start(page, "Create and name a playlist", "Build a playlist");
-	await page.getByRole("tab", { name: "Playlists", exact: true }).click();
+	await page.locator('[data-tour="playlists-tab"]').click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Create a playlist");
 	await page.getByRole("button", { name: "Add Playlist", exact: true }).click();
 	await page.getByPlaceholder("Playlist name").fill("My curated clips");
@@ -409,7 +419,9 @@ When("a completed playlist tour is replayed", async ({ page, tourWorld }) => {
 	await expect(page.locator(".driver-popover-title")).toHaveText("Open your Dashboard");
 	await expect(page).toHaveURL(`${tourWorld.origin}/dashboard/playlist/${tourWorld.owner!.playlistId}`);
 	await page.locator('[data-tour="dashboard-home"]').click();
-	await page.getByRole("tab", { name: "Playlists", exact: true }).click();
+	await expect(page).toHaveURL(`${tourWorld.origin}/dashboard`);
+	await expect(page.locator(".driver-popover-title")).toHaveText("Open Playlists");
+	await page.locator('[data-tour="playlists-tab"]').click();
 });
 Then("the existing playlist is reused", async ({ page, tourWorld }) => {
 	await expect(page.locator(".driver-popover-title")).toHaveText("Create a playlist");
@@ -442,6 +454,7 @@ When("the guided overlay is deleted before the user returns", async ({ page, tou
 Then("the user can choose a replacement without automatic creation", async ({ page, tourWorld }) => {
 	await expect(page.getByRole("button", { name: "Choose another overlay" })).toHaveCount(0);
 	await page.locator('[data-tour="dashboard-home"]').click();
+	await followOverlayNavigation(page);
 	await expect(page.locator(".driver-popover-title")).toHaveText("Create an overlay");
 	expect(Number((await tourWorld.fixture.pool.query("SELECT count(*) FROM overlays")).rows[0].count)).toBe(0);
 });
@@ -519,7 +532,7 @@ Then("the website guide completes after copying public installation code", async
 When("the gallery introduction is followed", async ({ page }) => {
 	await start(page, "Discover clip galleries", "Explore Clipify");
 	await expect(page.locator(".driver-popover-title")).toHaveText("Open Galleries");
-	await page.getByRole("tab", { name: "Galleries", exact: true }).click();
+	await page.locator('[data-tour="galleries-tab"]').click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Discover galleries");
 	await page.getByRole("button", { name: "Done", exact: true }).click();
 });
@@ -590,9 +603,10 @@ When("completed overlay creation is replayed from the editor", async ({ page, to
 	await page.locator('[data-tour="dashboard-home"]').click();
 });
 Then("Add Overlay is highlighted without opening or creating an overlay", async ({ page, tourWorld }) => {
+	await followOverlayNavigation(page);
 	await expect(page.locator(".driver-popover-title")).toHaveText("Create an overlay");
 	await expect(page.locator('[data-tour="create-overlay"]')).toHaveClass(/driver-active-element/);
-	await expect(page).toHaveURL(`${tourWorld.origin}/dashboard`);
+	await expect(page).toHaveURL(`${tourWorld.origin}/dashboard/overlays`);
 	expect(Number((await tourWorld.fixture.pool.query("SELECT count(*) FROM overlays")).rows[0].count)).toBe(1);
 });
 When("an account with existing resources has no guide record", async ({ page, tourWorld }) => {
@@ -614,6 +628,7 @@ When("an overlay task is started from Tools", async ({ page, tourWorld }) => {
 });
 Then("normal Dashboard navigation opens the overlay through its edit control", async ({ page, tourWorld }) => {
 	await page.locator('[data-tour="dashboard-home"]').click();
+	await followOverlayNavigation(page);
 	await expect(page.locator(".driver-popover-title")).toHaveText("Open your overlay");
 	await page.locator('[data-tour="open-overlay"]').click();
 	await expect(page).toHaveURL(`${tourWorld.origin}/dashboard/overlay/${tourWorld.owner!.overlayId}`);
@@ -668,11 +683,12 @@ When("customization is started inside Theme Studio and left at its save step", a
 	await pause(page);
 	await page.locator('[data-tour="dashboard-home"]').click();
 	await expect(page).toHaveURL(`${tourWorld.origin}/dashboard`);
-	await expect(page.getByRole("heading", { name: "Dashboard", exact: true })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "Home", exact: true })).toBeVisible();
 	await expect(page.getByRole("region", { name: "Your Clipify guide" })).toBeVisible();
 });
 Then("resuming teaches the route back to Theme Studio and allows reviewing the look", async ({ page, tourWorld }) => {
 	await resumeTask(page, tourWorld);
+	await followOverlayNavigation(page);
 	await expect(page.locator(".driver-popover-title")).toHaveText("Open your overlay");
 	await page.locator('[data-tour="open-overlay"]').click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Open Theme Studio");
@@ -920,6 +936,7 @@ When("the fresh welcome offers the guided journey", async ({ page, tourWorld }) 
 Then("starting the welcome teaches the real Add Overlay control", async ({ page, tourWorld }) => {
 	await page.getByRole("button", { name: "Start guided tour", exact: true }).click();
 	await expect(page.getByRole("button", { name: "Start guided tour", exact: true })).toHaveCount(0);
+	await followOverlayNavigation(page);
 	await expect(page.locator(".driver-popover-title")).toHaveText("Create an overlay");
 	await expect(page.locator('[data-tour="create-overlay"]')).toHaveClass(/driver-active-element/);
 	expect((await progress(page, tourWorld)).welcomeSeen).toBe(true);
@@ -1053,7 +1070,7 @@ async function openSettingsFromGuide(page: Page) {
 When("the runner discovery guide is followed", async ({ page }) => {
 	await start(page, "Discover runners", "Explore Clipify");
 	await expect(page.locator(".driver-popover-title")).toHaveText("Open Runners");
-	await page.getByRole("tab", { name: "Runners", exact: true }).click();
+	await page.locator('[data-tour="runners-tab"]').click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Discover runners");
 	await expect(page.locator('[data-tour="runner-list"]')).toHaveClass(/driver-active-element/);
 	await page.getByRole("button", { name: "Done", exact: true }).click();
@@ -1222,6 +1239,7 @@ Then("Cancel restores the guide and Discard continues through normal navigation"
 	await expect(dialog).toBeVisible();
 	await dialog.getByRole("button", { name: "Discard Changes", exact: true }).click();
 	await expect(page).toHaveURL(`${tourWorld.origin}/dashboard`);
+	await followOverlayNavigation(page);
 	await expect(page.locator(".driver-popover-title")).toHaveText("Create an overlay");
 	expect((await progress(page, tourWorld)).active).toMatchObject({ task: "overlay.name", paused: false, navigation: [] });
 });

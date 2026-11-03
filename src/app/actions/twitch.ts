@@ -19,6 +19,7 @@ import { canResolveDemoClipPlayback, canResolvePublicClipPlayback, canResolveTru
 import { TWITCH_CLIPS_LAUNCH_MS } from "@lib/constants";
 import { operationalCount, operationalDuration } from "@lib/operationalHealth";
 import { authorizeCreatorOperation } from "@/auth/authorize-operation";
+import { canPreviewInventoryClip } from "@/server/creator-library";
 import { readCachedClipsByOwner } from "@/server/clip-cache-read";
 
 export async function logTwitchError(context: string, error: unknown) {
@@ -368,10 +369,11 @@ const MAX_CLIP_PLAYBACK_URLS = 1_000;
 const clipPlaybackUrlCache = new Map<string, { url: string; expiresAt: number }>();
 const clipPlaybackUrlRequests = new Map<string, Promise<string | undefined>>();
 
-export type ClipPlaybackContext = { kind: "overlay"; overlayId: string; secret?: string } | { kind: "demo"; overlayId: string } | { kind: "gallery"; galleryId: string; preview?: boolean } | { kind: "creator"; username: string };
+export type ClipPlaybackContext = { kind: "inventory"; creatorId: string } | { kind: "overlay"; overlayId: string; secret?: string } | { kind: "demo"; overlayId: string } | { kind: "gallery"; galleryId: string; preview?: boolean } | { kind: "creator"; username: string };
 
 async function canPlayClipInContext(clipId: string, broadcasterId: string, context: ClipPlaybackContext | undefined) {
 	if (!clipId || !broadcasterId || !context || typeof context !== "object") return false;
+	if (context.kind === "inventory") return canPreviewInventoryClip({ creatorId: broadcasterId, contextCreatorId: context.creatorId, clipId }, () => getCachedClipByOwner(broadcasterId, clipId));
 	if (context.kind === "demo") {
 		if (!process.env.DEMO_OVERLAY_ID || context.overlayId !== process.env.DEMO_OVERLAY_ID) return false;
 		const overlay = await getOverlayPublic(context.overlayId).catch(() => null);
@@ -436,7 +438,7 @@ export async function getTwitchClipPlaybackUrl(clipId: string, broadcasterId: st
 		operationalCount("clipify.clip_fetch.requests", 1, { outcome: "coalesced" });
 		return pending;
 	}
-	const allowed = context.kind === "demo" ? await canResolveDemoClipPlayback(broadcasterId) : context.kind === "overlay" && context.secret ? await canResolveTrustedClipPlayback(broadcasterId) : await canResolvePublicClipPlayback(broadcasterId);
+	const allowed = context.kind === "demo" ? await canResolveDemoClipPlayback(broadcasterId) : context.kind === "inventory" || (context.kind === "overlay" && context.secret) ? await canResolveTrustedClipPlayback(broadcasterId) : await canResolvePublicClipPlayback(broadcasterId);
 	if (!allowed) {
 		operationalCount("clipify.clip_fetch.requests", 1, { outcome: "not_authorized" });
 		return undefined;

@@ -1,6 +1,7 @@
 import React from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import DashboardNavbar from "@/app/components/dashboardNavbar";
+import { DashboardNavigationContext } from "@/app/components/dashboardNavigation";
 
 const setTheme = jest.fn();
 const routerPush = jest.fn();
@@ -12,7 +13,7 @@ const getActiveCampaignOfferAction = jest.fn();
 const setActiveOrganization = jest.fn();
 let currentTheme = "dark";
 let identitySession: { data: { session: { activeOrganizationId: string | null } } | null; isPending: boolean } = { data: { session: { activeOrganizationId: "creator-org" } }, isPending: false };
-let organizationList: { data: Array<{ id: string; name: string; metadata: string }>; isPending: boolean } = { data: [], isPending: false };
+let organizationList: { data: Array<{ id: string; name: string; metadata?: unknown }> | undefined; isPending: boolean } = { data: [], isPending: false };
 
 jest.mock("@/auth/client", () => ({
 	authClient: {
@@ -59,6 +60,8 @@ jest.mock("@heroui/react", () => {
 	const ComboContext = ReactLib.createContext<{ inputValue?: string; onInputChange?: (value: string) => void; onSelectionChange?: (key: string) => void }>({});
 	const AutocompleteContext = ReactLib.createContext<{ onChange?: (key: string) => void }>({});
 	return {
+		Breadcrumbs: jest.requireActual("../../__mocks__/heroui-react.cjs").Breadcrumbs,
+		Spinner: () => <span role='status' aria-label='Loading' />,
 		Autocomplete: Object.assign(({ children, onChange }: { children: React.ReactNode; onChange?: (key: string) => void }) => <AutocompleteContext.Provider value={{ onChange }}>{children}</AutocompleteContext.Provider>, {
 			Trigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 			Value: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
@@ -100,19 +103,22 @@ jest.mock("@heroui/react", () => {
 		EmptyState: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 		Label: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
 		ListBox: Object.assign(
-			({ children, items = [] }: { children: React.ReactNode | ((item: { id: string; username: string }) => React.ReactNode); items?: Array<{ id: string; username: string }> }) => {
+			({ children, items = [], renderEmptyState }: { children: React.ReactNode | ((item: { id: string; username: string }) => React.ReactNode); items?: Array<{ id: string; username: string }>; renderEmptyState?: () => React.ReactNode }) => {
 				const context = ReactLib.useContext(ComboContext);
 				const autocomplete = ReactLib.useContext(AutocompleteContext);
 				if (autocomplete.onChange) return <div>{children as React.ReactNode}</div>;
 				return (
-					<select aria-label='admin-switch-select' onChange={(event) => context.onSelectionChange?.(event.target.value)}>
-						<option value=''>Select user</option>
-						{items.map((item) => (
-							<option key={item.id} value={item.id}>
-								{item.username}
-							</option>
-						))}
-					</select>
+					<>
+						<select aria-label='admin-switch-select' onChange={(event) => context.onSelectionChange?.(event.target.value)}>
+							<option value=''>Select user</option>
+							{items.map((item) => (
+								<option key={item.id} value={item.id}>
+									{item.username}
+								</option>
+							))}
+						</select>
+						{items.length === 0 ? renderEmptyState?.() : typeof children === "function" ? items.map((item) => <ReactLib.Fragment key={item.id}>{children(item)}</ReactLib.Fragment>) : null}
+					</>
 				);
 			},
 			{
@@ -374,5 +380,133 @@ describe("components/dashboardNavbar", () => {
 		expect(screen.getByText("Return to Admin")).toBeInTheDocument();
 		fireEvent.click(screen.getByText("Return to Admin"));
 		await waitFor(() => expect(stopAdminView).toHaveBeenCalled());
+	});
+	it("uses shell controls and breadcrumbs without nesting another main landmark", () => {
+		const toggle = jest.fn();
+		const search = jest.fn();
+		const view = render(
+			<DashboardNavigationContext.Provider value={{ toggle, search, expanded: true, registerSearch: jest.fn(), current: { href: "/dashboard/overlays", title: "Overlays", detail: false } }}>
+				<DashboardNavbar user={mockUser()} title='Overlays' tagline='Your overlays'>
+					Workspace
+				</DashboardNavbar>
+			</DashboardNavigationContext.Provider>,
+		);
+		expect(view.container.querySelector("main")).toBeNull();
+		expect(screen.getByText("Workspace")).toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Toggle navigation" }));
+		fireEvent.click(screen.getByRole("button", { name: "Search clips and tools" }));
+		expect(toggle).toHaveBeenCalledTimes(1);
+		expect(search).toHaveBeenCalledTimes(1);
+	});
+
+	it.each([false, true])("synchronizes a requested account and refreshes only when accepted, error=%s", async (denied) => {
+		organizationList.data = [
+			{ id: "creator-org", name: "Creator", metadata: "{invalid" },
+			{ id: "agency-org", name: "Agency", metadata: { accountType: "agency" } },
+		];
+		setActiveOrganization.mockResolvedValue({ data: null, error: denied ? { message: "denied" } : null });
+		render(<DashboardNavbar user={mockUser()} organizationId='agency-org' title='Agency' tagline='Account' />);
+		await waitFor(() => expect(setActiveOrganization).toHaveBeenCalledWith({ organizationId: "agency-org" }));
+		await act(async () => {});
+		expect(routerRefresh).toHaveBeenCalledTimes(denied ? 0 : 1);
+		expect(routerPush).not.toHaveBeenCalled();
+	});
+
+	it("ignores duplicate account switches, preserves a denied account and can retry", async () => {
+		organizationList.data = [
+			{ id: "creator-org", name: "Creator", metadata: "" },
+			{ id: "agency-org", name: "Agency", metadata: { accountType: "agency" } },
+		];
+		let resolve: (value: unknown) => void = () => {};
+		setActiveOrganization.mockImplementationOnce(
+			() =>
+				new Promise((done) => {
+					resolve = done;
+				}),
+		);
+		render(<DashboardNavbar user={mockUser()} title='Home' tagline='Account' />);
+		fireEvent.click(screen.getByRole("button", { name: /^Creator/ }));
+		expect(setActiveOrganization).not.toHaveBeenCalled();
+		fireEvent.click(screen.getByRole("button", { name: /^Agency/ }));
+		fireEvent.click(screen.getByRole("button", { name: /^Agency/ }));
+		expect(setActiveOrganization).toHaveBeenCalledTimes(1);
+		await act(async () => resolve({ data: null, error: { message: "denied" } }));
+		expect(routerPush).not.toHaveBeenCalled();
+		fireEvent.click(screen.getByRole("button", { name: /^Agency/ }));
+		await waitFor(() => expect(routerPush).toHaveBeenCalledWith("/dashboard/agency"));
+	});
+
+	it("returns from an agency account to its creator workspace", async () => {
+		identitySession = { data: { session: { activeOrganizationId: "agency-org" } }, isPending: false };
+		organizationList.data = [
+			{ id: "creator-org", name: "Creator", metadata: null },
+			{ id: "agency-org", name: "Agency", metadata: JSON.stringify({ accountType: "agency" }) },
+		];
+		render(<DashboardNavbar user={mockUser({ plan: undefined, avatar: undefined })} title='Agency' tagline='Account' />);
+		fireEvent.click(screen.getByText("Agency dashboard"));
+		expect(routerPush).toHaveBeenCalledWith("/dashboard/agency");
+		routerPush.mockClear();
+		fireEvent.click(screen.getByRole("button", { name: /^Creator/ }));
+		await waitFor(() => expect(routerPush).toHaveBeenCalledWith("/dashboard"));
+	});
+
+	it.each([
+		{ badgeText: "Campaign", floatingSubtitle: "Annual discount", endAt: new Date(Date.now() + 3600000).toISOString() },
+		{ badgeText: null, floatingSubtitle: null, endAt: null },
+	])("keeps campaign copy and its upgrade destination available: $badgeText", async (offer) => {
+		getActiveCampaignOfferAction.mockResolvedValue({ ...offer, title: "Founders", showDashboardBanner: true });
+		render(<DashboardNavbar user={mockUser()} title='Home' tagline='Overview' />);
+		await screen.findByText(offer.badgeText ?? "Founders");
+		expect(screen.getByText(offer.floatingSubtitle ?? "Upgrade today with the active campaign price.")).toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Upgrade Today" }));
+		expect(routerPush).toHaveBeenCalledWith("/dashboard/settings?upgrade&cycle=yearly&source=paywall_banner&feature=active_campaign");
+	});
+
+	it.each([false, true])("keeps reverse-trial upgrades consistent with entitlements, active=%s", (active) => {
+		render(<DashboardNavbar user={mockUser({ entitlements: { effectivePlan: "pro", reverseTrialActive: active } })} title='Home' tagline='Overview' />);
+		expect(screen.queryAllByText("Upgrade to Pro")).toHaveLength(active ? 1 : 0);
+	});
+
+	it("keeps the agency menu usable before identity and organization data arrive", () => {
+		identitySession = { data: null, isPending: true };
+		organizationList = { data: undefined, isPending: true };
+		render(<DashboardNavbar user={mockUser({ plan: undefined, avatar: undefined })} title='Agency' tagline='Account' />);
+		expect(screen.getByText("Agency dashboard")).toBeInTheDocument();
+		expect(screen.queryByText("Upgrade to Pro")).not.toBeInTheDocument();
+	});
+
+	it("shows empty/loading search guidance and ignores obsolete admin candidates", async () => {
+		let resolveOld: (value: unknown) => void = () => {};
+		getAdminViewCandidates
+			.mockImplementationOnce(
+				() =>
+					new Promise((resolve) => {
+						resolveOld = resolve;
+					}),
+			)
+			.mockResolvedValue([]);
+		render(<DashboardNavbar user={mockUser({ adminView: { active: true, adminUserId: "admin" } })} title='Home' tagline='Admin view' />);
+		expect(screen.getByText("admin")).toBeInTheDocument();
+		await act(async () => {
+			jest.advanceTimersByTime(200);
+		});
+		expect(screen.getByRole("status", { name: "Loading" })).toBeInTheDocument();
+		fireEvent.change(screen.getByLabelText("admin-switch-search"), { target: { value: "" } });
+		await act(async () => {
+			jest.advanceTimersByTime(200);
+		});
+		expect(screen.getByText("Type to search...")).toBeInTheDocument();
+		await act(async () => resolveOld([{ id: "obsolete", username: "Old result" }]));
+		expect(screen.queryByRole("option", { name: "Old result" })).not.toBeInTheDocument();
+		fireEvent.change(screen.getByLabelText("admin-switch-search"), { target: { value: "bo" } });
+		await act(async () => {
+			jest.advanceTimersByTime(200);
+		});
+		expect(screen.getByText("Keep typing...")).toBeInTheDocument();
+		fireEvent.change(screen.getByLabelText("admin-switch-search"), { target: { value: "none" } });
+		await act(async () => {
+			jest.advanceTimersByTime(200);
+		});
+		expect(screen.getByText("No users found.")).toBeInTheDocument();
 	});
 });

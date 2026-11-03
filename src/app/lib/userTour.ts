@@ -123,7 +123,7 @@ export function shouldOfferGuideWelcome(progress: GuideProgress): boolean {
 	return !progress.welcomeSeen && !progress.active && !journeys[0].tasks.every((task) => progress.completed.includes(task.id) || progress.skipped.includes(task.id));
 }
 export function guideLocation(pathname: string): GuideLocation {
-	if (pathname === "/dashboard") return "dashboard";
+	if (pathname === "/dashboard" || /^\/dashboard\/(overlays|playlists|galleries|runners)$/.test(pathname)) return "dashboard";
 	if (pathname === "/dashboard/settings" || pathname === "/dashboard/settings/team") return "settings";
 	if (/^\/dashboard\/overlay\/[a-zA-Z0-9_-]+\/theme$/.test(pathname)) return "theme";
 	if (/^\/dashboard\/overlay\/[a-zA-Z0-9_-]+$/.test(pathname)) return "overlay";
@@ -160,9 +160,9 @@ const navigationSteps: Record<NavigationTarget, GuideStep> = {
 	settings: { target: "theme-back", title: "Return to overlay settings", description: "Use the back button to return to your overlay settings.", destination: "overlay" },
 	theme: { target: "overlay-customize", title: "Open Theme Studio", description: "Click Customize Overlay Style to return to your look.", destination: "theme" },
 	home: { target: "dashboard-home", title: "Open your Dashboard", description: "Click the Clipify logo to find your overlays and playlists.", destination: "dashboard" },
-	overlays: { target: "overlays-tab", title: "Open Overlays", description: "Choose the Overlays tab.", action: true, next: true },
+	overlays: { target: "overlays-tab", title: "Open Overlays", description: "Choose Overlays in navigation.", action: true, next: true },
 	overlay: { target: "open-overlay", title: "Open your overlay", description: "Click your overlay's row to open its settings.", destination: "overlay" },
-	playlists: { target: "playlists-tab", title: "Open Playlists", description: "Choose the Playlists tab.", action: true, next: true },
+	playlists: { target: "playlists-tab", title: "Open Playlists", description: "Choose Playlists in navigation.", action: true, next: true },
 	playlist: { target: "open-playlist", title: "Open your playlist", description: "Click your playlist's row to edit its clips.", destination: "playlist" },
 	profile: { target: "nav-menu", reveals: "nav-tools", title: "Open the app menu", description: "Click your avatar.", action: true, next: true },
 	tools: { target: "nav-tools", title: "Open Tools", description: "Choose Tools for website players and galleries.", destination: "tools", preserveFocus: true },
@@ -454,15 +454,20 @@ export function transition(progress: GuideProgress, event: GuideEvent, accountId
 }
 /** Expected page only, never a command to navigate. */
 export function routeForTask(task: TaskId, progress: GuideProgress): string {
-	if (task === "playlist.use" && !progress.playlistId) return "/dashboard";
+	if (task === "playlist.use" && !progress.playlistId) return "/dashboard/playlists";
 	const nav = progress.active?.task === task ? progress.active.navigation?.[0] : undefined;
-	if (nav === "home" || nav === "overlays" || nav === "overlay" || nav === "playlists" || nav === "playlist") return "/dashboard";
+	if (nav === "home") return "/dashboard";
+	if (nav === "overlays" || nav === "overlay") return "/dashboard/overlays";
+	if (nav === "playlists" || nav === "playlist") return "/dashboard/playlists";
+	if (task === "explore.runners") return "/dashboard/runners";
+	if (task === "explore.galleries") return "/dashboard/galleries";
 	if (task === "explore.tools") return "/dashboard/tools";
 	if (task === "explore.settings" || task === "explore.ai") return "/dashboard/settings";
 	if (task === "explore.editors") return "/dashboard/settings";
 	if (task.startsWith("explore.")) return "/dashboard";
-	if (task === "playlist.name" || task === "playlist.clips") return progress.playlistId ? `/dashboard/playlist/${progress.playlistId}` : "/dashboard";
-	if (!progress.overlayId || (task === "overlay.name" && !progress.active?.index)) return "/dashboard";
+	if (task === "playlist.name" && !progress.active?.index) return "/dashboard/playlists";
+	if (task === "playlist.name" || task === "playlist.clips") return progress.playlistId ? `/dashboard/playlist/${progress.playlistId}` : "/dashboard/playlists";
+	if (!progress.overlayId || (task === "overlay.name" && !progress.active?.index)) return "/dashboard/overlays";
 	return `/dashboard/overlay/${progress.overlayId}${isThemeTask(task) && (progress.active?.index ?? 0) > 0 ? "/theme" : ""}`;
 }
 const createOverlay: GuideStep = { target: "create-overlay", title: "Create an overlay", description: "Click Add Overlay to create one. This opens its settings." };

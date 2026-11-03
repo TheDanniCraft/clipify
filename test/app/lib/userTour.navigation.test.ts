@@ -1,5 +1,17 @@
 import { hasCompletedAllGuides, guideLocation, routeForTask, journeys, journeyGuidePercent, currentGuideStep, defaultProgress, transition, stepsForTask, navigationForTask, parseProgress, type GuideProgress } from "@lib/userTour";
 const apply = (state: ReturnType<typeof defaultProgress>, event: Parameters<typeof transition>[1]) => transition(state, event, "owner");
+it("keeps playlist creation replay active on its resource list with an existing playlist", () => {
+	let state = apply({ ...defaultProgress(), playlistId: "existing", completed: ["playlist.name"] }, { type: "start", task: "playlist.name", location: "playlist" });
+	state = apply(state, { type: "location", location: "dashboard" });
+	state = apply(state, { type: "next" });
+	expect(currentGuideStep(state)?.target).toBe("create-playlist");
+	expect(routeForTask("playlist.name", state)).toBe("/dashboard/playlists");
+	state = apply(state, { type: "location", location: "dashboard" });
+	expect(state.active).toMatchObject({ paused: false, index: 0, navigation: [] });
+	expect(state.playlistId).toBe("existing");
+	state = apply(state, { type: "playlist.created", ownerId: "owner", id: "existing" });
+	expect(routeForTask("playlist.name", state)).toBe("/dashboard/playlist/existing");
+});
 it("replays creation at Add Overlay even when it was completed before", () => {
 	let state: GuideProgress = { ...defaultProgress(), overlayId: "existing", completed: ["overlay.name" as const] };
 	state = apply(state, { type: "start", task: "overlay.name", location: "dashboard" });
@@ -295,7 +307,7 @@ it("recognizes settings routes and teaches every discovery entry point", () => {
 	expect(navigationForTask("explore.ai", "settings", defaultProgress(), 2)).toEqual(["connections-panel"]);
 	for (const task of ["explore.settings", "explore.ai"] as const) expect(routeForTask(task, defaultProgress())).toBe("/dashboard/settings");
 	expect(routeForTask("explore.editors", defaultProgress())).toBe("/dashboard/settings");
-	expect(routeForTask("explore.runners", defaultProgress())).toBe("/dashboard");
+	expect(routeForTask("explore.runners", defaultProgress())).toBe("/dashboard/runners");
 	const state = apply({ ...defaultProgress(), active: { task: "explore.ai", index: 2, paused: true } }, { type: "resume", location: "settings" });
 	expect(parseProgress(JSON.stringify(state)).active?.navigation).toEqual(["connections-panel"]);
 });

@@ -107,7 +107,7 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 				guidedModal = modal;
 				modal.dataset.tourGuidedDialog = "true";
 			}
-			if (step.action && element?.getAttribute("role") === "tab" && element.getAttribute("aria-selected") === "true") {
+			if (step.action && ((element?.getAttribute("role") === "tab" && element.getAttribute("aria-selected") === "true") || element?.getAttribute("aria-current") === "page")) {
 				if (!advanced) {
 					advanced = true;
 					onNext();
@@ -205,7 +205,7 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 			restorePopoverScope();
 			if (shown) spotlight.refresh();
 		});
-		observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-tour", "aria-modal", "role", "aria-selected", "data-entering", "data-exiting", "inert", "aria-hidden"] });
+		observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-tour", "aria-modal", "role", "aria-selected", "aria-current", "data-entering", "data-exiting", "inert", "aria-hidden"] });
 		show();
 		const timeout = window.setTimeout(() => {
 			if (!shown && !suspended && !advanced) {

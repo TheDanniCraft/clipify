@@ -12,6 +12,33 @@ export function readMcpSourceManifest() {
 	const runner = JSON.parse(readFileSync(new URL("./runner-feature-coverage.json", import.meta.url), "utf8"));
 	const directories = ["src/server/mcp", "src/server/resources", "src/server/runner", "src/app/auth/mcp", "src/app/mcp", "src/app/.well-known"];
 	const files = [
+		"src/app/lib/userTour.ts",
+		"src/app/components/user-tour/spotlight.tsx",
+		"src/app/components/gallery/GalleryEditor.tsx",
+		"src/server/creator-library.ts",
+		"src/server/creator-overview.ts",
+		"src/server/creator-broadcasts.ts",
+		"src/server/clip-export.ts",
+		"src/app/api/clips/export/route.ts",
+		"src/app/dashboard/layout.tsx",
+		"src/app/dashboard/page.tsx",
+		"src/app/dashboard/clips/page.tsx",
+		"src/app/dashboard/streams/page.tsx",
+		"src/app/dashboard/streams/[videoId]/page.tsx",
+		"src/app/dashboard/overlays/page.tsx",
+		"src/app/dashboard/playlists/page.tsx",
+		"src/app/dashboard/runners/page.tsx",
+		"src/app/actions/creatorLibrary.ts",
+		"src/app/lib/clipExport.ts",
+		"src/auth/permissions.ts",
+		"src/app/components/creator/clipExport.tsx",
+		"src/app/components/creator/clipInventory.tsx",
+		"src/app/components/creator/creatorOverview.tsx",
+		"src/app/components/dashboardShell.tsx",
+		"src/app/components/dashboardNavigation.tsx",
+		"src/app/components/dashboardNavbar.tsx",
+		"src/app/dashboard/galleries/page.tsx",
+
 		...runner.critical,
 		...runner.ordinary,
 		"packages/runner/src/protocol.ts",
@@ -76,6 +103,7 @@ export function readMcpSourceManifest() {
 	const critical = feature.filter(
 		(path) =>
 			runner.critical.includes(path) ||
+			["src/server/creator-library.ts", "src/server/creator-overview.ts", "src/server/creator-broadcasts.ts", "src/server/clip-export.ts", "src/app/actions/creatorLibrary.ts", "src/app/api/clips/export/route.ts", "src/app/lib/clipExport.ts"].includes(path) ||
 			path.startsWith("src/server/account-lifecycle/account-") ||
 			path === "src/server/primary-twitch-account.ts" ||
 			path === "src/db/client.ts" ||

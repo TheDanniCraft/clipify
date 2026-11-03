@@ -16,7 +16,7 @@ import { parseDate } from "@internationalized/date";
 import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconPlayerPauseFilled, IconPlayerPlayFilled, IconRestore } from "@tabler/icons-react";
 import type { Gallery, Playlist, TwitchClip } from "@types";
 import { useRouter } from "next/navigation";
-import { NavigationGuardProvider, useNavigationGuard } from "nextjs-nav-guard";
+import { useNavigationGuard } from "nextjs-nav-guard";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CLIPIFY_ELEMENTS_HELP_URL, FREE_PLAYLIST_CLIP_LIMIT } from "@lib/constants";
 import type { GalleryPatch } from "@lib/gallery";
@@ -158,15 +158,7 @@ function GalleryColorPicker({ label, value, defaultValue, onChange, isDisabled, 
 	);
 }
 
-export default function GalleryEditor(props: { initialGallery: Gallery; playlists: Playlist[]; canUseAdvanced: boolean; canUseStyling: boolean; previewClips: TwitchClip[]; previewOwnerName: string; showPreviewAttribution: boolean }) {
-	return (
-		<NavigationGuardProvider>
-			<GalleryEditorContent {...props} />
-		</NavigationGuardProvider>
-	);
-}
-
-function GalleryEditorContent({ initialGallery, playlists, canUseAdvanced, canUseStyling, previewClips, previewOwnerName, showPreviewAttribution }: { initialGallery: Gallery; playlists: Playlist[]; canUseAdvanced: boolean; canUseStyling: boolean; previewClips: TwitchClip[]; previewOwnerName: string; showPreviewAttribution: boolean }) {
+export default function GalleryEditor({ initialGallery, playlists, canUseAdvanced, canUseStyling, previewClips, previewOwnerName, showPreviewAttribution }: { initialGallery: Gallery; playlists: Playlist[]; canUseAdvanced: boolean; canUseStyling: boolean; previewClips: TwitchClip[]; previewOwnerName: string; showPreviewAttribution: boolean }) {
 	const router = useRouter();
 	const [gallery, setGallery] = useState(initialGallery);
 	const [savedGallery, setSavedGallery] = useState(initialGallery);
@@ -183,6 +175,7 @@ function GalleryEditorContent({ initialGallery, playlists, canUseAdvanced, canUs
 	const ownerPlaylists = useMemo(() => playlists.filter((playlist) => playlist.ownerId === gallery.ownerId), [gallery.ownerId, playlists]);
 	const isGalleryDirty = useMemo(() => JSON.stringify(gallery) !== JSON.stringify(savedGallery), [gallery, savedGallery]);
 	const navigationGuardEnabled = useCallback(() => isGalleryDirty, [isGalleryDirty]);
+	// Share the app guard so sidebar and command-search navigation can see this draft.
 	const navGuard = useNavigationGuard({ enabled: navigationGuardEnabled });
 	const customDateRange = useMemo(() => {
 		if (!gallery.liveCustomStart || !gallery.liveCustomEnd) return null;
@@ -283,7 +276,7 @@ function GalleryEditorContent({ initialGallery, playlists, canUseAdvanced, canUs
 			<Card className='w-full max-w-4xl'>
 				<Card.Header className='flex w-full flex-row items-center justify-between gap-4'>
 					<div className='flex min-w-0 items-center gap-3'>
-						<Button isIconOnly variant='tertiary' aria-label='Back to dashboard' onPress={() => router.push("/dashboard")}>
+						<Button isIconOnly variant='tertiary' aria-label='Back to galleries' onPress={() => router.push("/dashboard/galleries")}>
 							<IconArrowLeft />
 						</Button>
 						<h1 className='truncate text-xl font-bold'>Gallery Settings</h1>
