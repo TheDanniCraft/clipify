@@ -291,6 +291,7 @@ for (const theme of ["light", "dark"]) {
 		const video = dialog.locator("video");
 		await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.currentTime)).toBeGreaterThan(0.2);
 		await page.screenshot({ path: testInfo.outputPath(`gallery-${theme}.png`), fullPage: true });
+		await expect(dialog).toBeFocused();
 		await page.keyboard.press("Escape");
 		await expect(dialog).toHaveCount(0);
 		await expect(card).toBeFocused();

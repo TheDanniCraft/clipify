@@ -271,3 +271,9 @@ CodeQL alert33 supplied the candidate. Add a real HTTP loopback regression to th
 The origin-guard regression remains green, but static analysis on44424583 still reports the request-derived fetch URL. Refactor forwarding to a literal endpoint plus parsed query parameters while retaining rejection of foreign origins; add date bounds to the valid request assertion. Whole-file Green:21/21 (`/tmp/clipify-ui-fixture-fixed-origin-green.log`). This is a security-boundary clarification under the existing regression, not a fabricated second Red.
 
 Final fixed-endpoint browser checkpoint:25/25 inventory scenarios passed (`/tmp/clipify-ui-fixture-fixed-origin-browser.log`), including all filters, invalid-input recovery, sorting, pagination and cross-page selection.
+
+### Final acceptance prerequisite correction
+
+CI41713908883 reports the dark public-gallery dialog remaining after Escape and a retried calendar consent/navigation abort. Unchanged whole-file local reproduction passed29/29; diagnostic gallery replay passed6/6. These are browser fixture findings, not claimed as intended product TDD Reds. Assert dialog focus before its real Escape interaction and wait for consent reload completion. Retain all original outcome checks. Final whole-file repetitions and exact-head CI remain required.
+
+FIXTURE-020 final local checkpoint:both complete affected browser files passed twice,58/58 (`/tmp/clipify-final-acceptance-fixed.log`,3.3minutes). Gallery Escape/focus restoration and calendar locale/reload behavior passed in both repetitions. Affected lint, formatting and application typecheck passed. Final published full CI remains required.
