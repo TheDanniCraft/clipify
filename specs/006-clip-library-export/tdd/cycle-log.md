@@ -267,3 +267,7 @@ Final UI-017 browser Green:74/74 in `/tmp/clipify-ui-hydration-final-browser.log
 ### Test-provider origin boundary
 
 CodeQL alert33 supplied the candidate. Add a real HTTP loopback regression to the existing provider-isolation test file; replace outbound fetch with a destination spy so no external request can occur. Red:`/tmp/clipify-ui-fixture-origin-red.log`, expected404 but received200 for the foreign origin. Add the explicit fixed-origin guard. Green:`/tmp/clipify-ui-fixture-origin-green.log`,21 provider/environment tests passed. The whole inventory browser owner passed25/25 (`/tmp/clipify-ui-fixture-origin-browser.log`), validating the real Axios/loopback fixture path. Typecheck, affected lint and formatting also passed.
+
+The origin-guard regression remains green, but static analysis on44424583 still reports the request-derived fetch URL. Refactor forwarding to a literal endpoint plus parsed query parameters while retaining rejection of foreign origins; add date bounds to the valid request assertion. Whole-file Green:21/21 (`/tmp/clipify-ui-fixture-fixed-origin-green.log`). This is a security-boundary clarification under the existing regression, not a fabricated second Red.
+
+Final fixed-endpoint browser checkpoint:25/25 inventory scenarios passed (`/tmp/clipify-ui-fixture-fixed-origin-browser.log`), including all filters, invalid-input recovery, sorting, pagination and cross-page selection.

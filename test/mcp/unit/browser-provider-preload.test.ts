@@ -14,7 +14,7 @@ describe("TDD-SDK-PROVIDER-FIXTURE-001 test provider isolation", () => {
 			await import('./test/support/mcp/clip-library-provider-preload.mjs');
 			const destinations = [];
 			globalThis.fetch = async (url) => { destinations.push(String(url)); return new Response('fixture'); };
-			const path = '/helix/clips?broadcaster_id=e2e-creator-00000000-0000-4000-8000-000000000001';
+			const path = '/helix/clips?broadcaster_id=e2e-creator-00000000-0000-4000-8000-000000000001&started_at=2026-11-01&ended_at=2026-11-03';
 			const request = (path) => new Promise((resolve, reject) => {
 				http.get({ hostname: '127.0.0.1', port: server.address().port, path, agent: false }, response => {
 					response.resume(); response.on('end', () => resolve(response.statusCode));

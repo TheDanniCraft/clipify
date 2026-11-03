@@ -99,7 +99,7 @@ const provider = createServer(async (request, response) => {
 			response.writeHead(404).end();
 			return;
 		}
-		const result = await globalThis.fetch(url, { headers: request.headers });
+		const result = await globalThis.fetch(`https://api.twitch.tv/helix/clips?${url.searchParams}`, { headers: request.headers });
 		response.writeHead(result.status, Object.fromEntries(result.headers));
 		response.end(Buffer.from(await result.arrayBuffer()));
 	} catch {
