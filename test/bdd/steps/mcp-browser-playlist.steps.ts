@@ -155,10 +155,8 @@ Then("the activity shows safe actor app creator operation time and outcome", asy
 });
 Given("the browser dashboard has read a playlist deletion revision", async ({ page, request, mcpWorld }) => {
 	await connectBrowserPlaylist({ page, request, mcpWorld, withProviderCredentials: true });
-	await page.goto(`${origin}/dashboard`);
-	await page.getByText("E2E continuity overlay", { exact: true }).waitFor({ state: "visible" });
-	await page.getByRole("tab", { name: "Playlists", exact: true }).click();
-	await expect(page.getByRole("tab", { name: "Playlists", exact: true })).toHaveAttribute("aria-selected", "true");
+	await page.goto(`${origin}/dashboard/playlists`);
+	await expect(page.getByRole("treegrid", { name: "Creator navigation", exact: true }).getByRole("row", { name: "Playlists", exact: true })).toHaveAttribute("aria-current", "page");
 	await page.getByText("Browser playlist", { exact: true }).waitFor({ state: "visible" });
 	await expect(page.getByText("Browser playlist", { exact: true })).toBeVisible();
 });
@@ -218,7 +216,7 @@ Then("the stale browser clip save preserves the MCP playlist and its clips", asy
 
 Given("the browser dashboard has read an overlay deletion revision", async ({ page, request, mcpWorld }) => {
 	await connectBrowserPlaylist({ page, request, mcpWorld, withProviderCredentials: true, requestedScopes: "creator:read playlist:read overlay:read overlay:update" });
-	await page.goto(`${origin}/dashboard`);
+	await page.goto(`${origin}/dashboard/overlays`);
 	await expect(page.getByText("E2E continuity overlay", { exact: true })).toBeVisible();
 });
 When("the browser confirms deletion of its cached overlay", async ({ page }) => {

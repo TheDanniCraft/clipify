@@ -120,8 +120,7 @@ When("a Free creator opens Runner onboarding", async ({ page, request, mcpWorld 
 	await setFreeCommercialPlan(owner);
 	mcpWorld.input = { commercialOwner: owner };
 	await page.context().addCookies([owner.cookie]);
-	await page.goto("http://127.0.0.1:3107/dashboard");
-	await page.getByRole("tab", { name: "Runners", exact: true }).click();
+	await page.goto("http://127.0.0.1:3107/dashboard/runners");
 });
 
 Then("Runner onboarding creates a Runner without checkout", async ({ page }) => {
