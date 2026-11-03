@@ -13,6 +13,11 @@ it("moves a utility into the shell when asynchronous content mounts, and survive
 	await act(async () => {
 		document.body.append(target);
 	});
+	expect(target).toBeEmptyDOMElement();
+	expect(view.container).toContainElement(screen.getByRole("button"));
+	await act(async () => {
+		target.setAttribute("data-dashboard-utilities-ready", "true");
+	});
 	await waitFor(() => expect(target).toContainElement(screen.getByRole("button")));
 	await act(async () => {
 		target.remove();

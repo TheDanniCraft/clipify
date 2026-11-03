@@ -288,6 +288,7 @@ it("opens the next chapter when the current chapter finishes without starting it
 it("keeps the expanded checklist outside the sidebar clipping container", async () => {
 	const sidebar = document.createElement("div");
 	sidebar.id = "dashboard-utilities";
+	sidebar.setAttribute("data-dashboard-utilities-ready", "true");
 	document.body.append(sidebar);
 	try {
 		const view = mount();

@@ -23,6 +23,9 @@ const destinations = [
 	{ title: "Settings", href: "/dashboard/settings", permission: "account:read", icon: IconSettings },
 ] as const;
 type SearchClip = Extract<Awaited<ReturnType<typeof searchCreatorLibrary>>, { ok: true }>["items"][number];
+function markUtilityHostReady(node: HTMLDivElement | null) {
+	node?.setAttribute("data-dashboard-utilities-ready", "true");
+}
 function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { children: ReactNode; creatorId: string; permissions: Permission[]; open: boolean; setOpen: (open: boolean) => void }) {
 	const router = useRouter();
 	const path = usePathname();
@@ -155,7 +158,7 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 							<IconHelpCircle className='size-4' />
 						</Button>
 					) : null}
-					<div id='dashboard-utilities' className={open ? "flex flex-col gap-2" : "hidden"} />
+					<div ref={markUtilityHostReady} id='dashboard-utilities' className={open ? "flex flex-col gap-2" : "hidden"} />
 				</Sidebar.Footer>
 			) : null}
 		</>
@@ -181,7 +184,7 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 			<Sidebar.Mobile>{navigation}</Sidebar.Mobile>
 			<Sidebar.Main className='min-w-0'>
 				{children}
-				{sidebar.isMobile ? <div id='dashboard-utilities' className='mt-auto flex flex-wrap items-center gap-3 border-t border-separator p-4' /> : null}
+				{sidebar.isMobile ? <div ref={markUtilityHostReady} id='dashboard-utilities' className='mt-auto flex flex-wrap items-center gap-3 border-t border-separator p-4' /> : null}
 			</Sidebar.Main>
 			<Command>
 				<Command.Backdrop isOpen={searchOpen} onOpenChange={changeSearch}>

@@ -127,6 +127,10 @@ Given("an agency has an available paid creator license and an accepted creator l
 });
 
 When("the agency allocates the license to that creator", async ({ page, authWorld }) => {
+	const hydrationErrors: string[] = [];
+	page.on("pageerror", (error) => {
+		if (/hydration|#418/i.test(error.message)) hydrationErrors.push(error.message);
+	});
 	await (authWorld.values.get("allocationService") as AgencyAllocationService).allocate({ linkId: "link-atdd", creatorId: "creator-atdd", sourceReference: "custom-contract" });
 	const fixture = authWorld.values.get("realAgencyFixture") as { fixture: { creatorOrganizationId: string } };
 	await page.goto(`/dashboard/agency?creator=${encodeURIComponent(fixture.fixture.creatorOrganizationId)}`);
@@ -137,6 +141,7 @@ When("the agency allocates the license to that creator", async ({ page, authWorl
 	await expect(commercialReference).toHaveValue("e2e-atdd-allocation");
 	await page.getByRole("button", { name: "Allocate Pro seat" }).click();
 	await expect(page.getByText("Creator Pro seat allocated.", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
+	expect(hydrationErrors).toEqual([]);
 	const occupiedSeatCard = page.getByText("Occupied", { exact: true }).locator("..");
 	await expect(occupiedSeatCard.getByRole("heading", { name: "1", exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
 });
