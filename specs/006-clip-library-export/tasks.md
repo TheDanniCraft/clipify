@@ -704,4 +704,6 @@ These tasks track the authorized follow-up to the rejected UI. Original atomic r
 - [x] T618 Inspect real Home, Inventory, populated selection, filters, Streams, stream detail, collapsed rail and drawer screenshots in light/dark at390px/820px/1024px/1440px; pass complete affected browser owners including existing guide/editor recovery.
 - [x] T619 Download and inspect the maximum128MiB media package in Chromium; record browser heap/backing-storage samples with their measurement limits.
 - [x] T620 Pass complete current-source owning coverage with existing floors, lint, typecheck, formatting, audit and migration checks; reconcile final evidence and remaining provenance limits.
-- [ ] T621 Commit/push the reviewed source, update PR546, verify the updated preview deployment and run required ready-for-review CI. Do not merge or release.
+- [x] T621 Commit/push the reviewed source, update PR546, verify the updated preview deployment and run required ready-for-review CI. Do not merge or release.
+
+T621 publication evidence: application head17fc33de476ada2f2739fdf620437a3db12dccf7 passed complete ready-for-review CI [41706820598](https://github.com/TheDanniCraft/clipify/actions/runs/41706820598), and the updated preview is live. The subsequent FIXTURE-019 test-proxy origin guard has passing local whole-file and browser checks; its own full CI/CodeQL result remains a required PR check before merge. No merge or release was performed.

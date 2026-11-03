@@ -8,7 +8,7 @@ The feature provides Home clip metrics, available stream lists/details, a search
 
 No schema or generated migration changed. Dependency overrides patch follow-redirects and transitive Zod. Automated publishing remains outside this manual-export feature.
 
-Current recommendation: local validation complete; publication and required ready-for-review CI remain pending. The old draft preview and its passing CI do not validate these unpushed corrections. No merge or production release is authorized.
+Current recommendation: implementation and local correction validation are complete. PR546 is ready for review and the updated preview is live. Required full CI and the CodeQL fixture-boundary follow-up are tracked below; a live preview alone is not release approval. No merge or production release is authorized.
 
 ## Correction checkpoint evidence
 
@@ -54,3 +54,9 @@ Final affected coverage includes the guide provider, spotlight, progress reducer
 Final production-browser checkpoint:74/74 passed in `/tmp/clipify-ui-hydration-final-browser.log`:61 guide cases, eight light/dark responsive layouts, two filtered bulk cases, two account-verification cases and the color-picker case. The account/color assertions retain their empty browser-error requirements. Fresh screenshots were inspected at390px,820px and1440px and preserved in `test-results/dashboard-audit/hydration-layouts/`; the complete report is in `test-results/dashboard-audit/hydration-report/`. The resource suite has a separate final checkpoint to avoid crediting the earlier mixed run as wholly green.
 
 Final resource checkpoint:23/23 passed in `/tmp/clipify-ui-resource-final.log` (2.6minutes), covering overlay create-failure/retry, filtered and partial bulk operations, playlist revisions/deletion/actual dragging, SDK approval/edit/revoke and Runner onboarding. This is the clean complete owner run following the intermediate fixture corrections. All full CI failures from41698287110 have a passing local owning checkpoint; the next published full gate remains required.
+
+## Published application and fixture boundary checkpoint
+
+Application corrections are published at17fc33de476ada2f2739fdf620437a3db12dccf7. The updated preview returned HTTP200 for the dashboard and deployment ID `16d2040a-6b6e-4ff4-a72c-a7d495a3c4de`, correlated with the deployment bot notification. The deployment endpoint does not embed a commit SHA. Full application CI is [41706820598](https://github.com/TheDanniCraft/clipify/actions/runs/41706820598); it completed successfully, including all owning browser jobs and the final merged Test gate. This establishes the complete published application checkpoint; the fixture-only follow-up below must also pass its own checks.
+
+FIXTURE-019 restricts the test-only clip proxy to its fixed Twitch origin after CodeQL alert33. The regression first reproduced the foreign-origin forwarding, then passed with the origin guard. Provider/environment whole-file checks passed21/21; the inventory browser owner passed25/25. Affected lint, formatting and typecheck passed. No external request or application database is used by the regression. The follow-up requires its own full CI and CodeQL analysis after publication; no alert is suppressed.

@@ -95,7 +95,7 @@ process.once("beforeExit", () => void pool.end());
 const provider = createServer(async (request, response) => {
 	try {
 		const url = new URL(request.url, "https://api.twitch.tv");
-		if (request.method !== "GET" || url.pathname !== "/helix/clips" || !/^e2e-creator-[a-f0-9-]{36}$/.test(url.searchParams.get("broadcaster_id") ?? "")) {
+		if (request.method !== "GET" || url.origin !== "https://api.twitch.tv" || url.pathname !== "/helix/clips" || !/^e2e-creator-[a-f0-9-]{36}$/.test(url.searchParams.get("broadcaster_id") ?? "")) {
 			response.writeHead(404).end();
 			return;
 		}
