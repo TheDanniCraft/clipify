@@ -304,3 +304,6 @@ Guide follow-up: the complete61-case run stopped at AI discovery after54 passing
 
 
 FIXTURE-032 owning Green: all11 Home/Streams BDD story examples passed against unchanged production source in `/tmp/clipify-dashboard-home-bdd-final.log` (1.9minutes). Zero-window examples now check the actionable empty state and inventory link; populated examples still check exact count, current views and top-ID ordering. The prior published failure is not reclassified as a product Red; it was an outdated expectation after the user-requested presentation change.
+
+
+UI-033 Red/Green: `/tmp/clipify-dashboard-permission-red.log` failed the new real Analytics Read checkbox assertion against the previous build. Adding HeroUI Content/Control/Indicator to both agency forms restored real controls. The rebuilt source passed all four agency width/theme keyboard-toggle and axe cases (`/tmp/clipify-dashboard-permission-agency-browser.log`) and the full22-case authentication owner, including submitted narrowing (`/tmp/clipify-dashboard-permission-atdd-browser.log`). Affected coverage passed23 suites/578 tests with existing thresholds (`/tmp/clipify-dashboard-permission-coverage.log`); build/typecheck and lint/format passed.

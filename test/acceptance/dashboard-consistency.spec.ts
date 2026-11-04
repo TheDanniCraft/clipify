@@ -168,6 +168,14 @@ for (const width of [390, 1440])
 					await expect(page.locator("h1").first()).toBeVisible();
 					await expect(page.locator("main")).toHaveCount(1);
 					expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+					if (route === "/dashboard/agency") {
+						const permission = page.getByRole("group", { name: "Overlay", exact: true }).getByRole("checkbox", { name: "Read", exact: true });
+						await expect(permission).not.toBeChecked();
+						await permission.press("Space");
+						await expect(permission).toBeChecked();
+						await permission.press("Space");
+						await expect(permission).not.toBeChecked();
+					}
 					await checkAccessibility(page);
 					await page.screenshot({ path: info.outputPath(`${index}-${theme}-${width}.png`), fullPage: true, animations: "disabled" });
 				}

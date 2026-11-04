@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { IconArrowRight, IconBuildingCommunity, IconCheck, IconCreditCard, IconExternalLink, IconLicense, IconLink, IconUsersGroup } from "@tabler/icons-react";
 import { allocateAgencyLicenseFormAction, changeAgencySeatQuantityFormAction, getAgencyOverviewAction, openAgencyBillingPortalFormAction, proposeAgencyLinkFormAction, startAgencyBillingFormAction } from "@/app/actions/agency";
 import DashboardNavbar from "@components/dashboardNavbar";
-import { Button, Checkbox, Chip, Input, Label, TextField } from "@components/heroui-client";
+import { Button, Checkbox, CheckboxContent, CheckboxControl, CheckboxIndicator, Chip, Input, Label, TextField } from "@components/heroui-client";
 import { Alert, Card, ProgressBar } from "@components/heroui-server";
 import { PERMISSIONS } from "@/auth/permissions";
 import { getDashboardNavbarUser } from "@/auth/navigation-user";
@@ -260,8 +260,13 @@ export default async function AgencyDashboardPage({ searchParams }: { searchPara
 											{actions.map((action) => {
 												const permission = `${resource}:${action}`;
 												return (
-													<Checkbox key={permission} name='permission' value={permission}>
-														{label(action)}
+													<Checkbox key={permission} name='permission' value={permission} variant='secondary'>
+														<CheckboxContent>
+															<CheckboxControl>
+																<CheckboxIndicator />
+															</CheckboxControl>
+															{label(action)}
+														</CheckboxContent>
 													</Checkbox>
 												);
 											})}

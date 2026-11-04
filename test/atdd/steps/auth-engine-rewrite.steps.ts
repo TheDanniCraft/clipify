@@ -98,8 +98,15 @@ When("the creator owner accepts the request with a creator-approved permission s
 	await page.goto("/dashboard/settings/agencies");
 	await expect(page.getByRole("heading", { name: "Agency access" })).toBeVisible({ timeout: 30_000 });
 	await prepareInteractivePage(page);
+	const analytics = page.getByRole("checkbox", { name: "Analytics Read", exact: true });
+	await expect(analytics).toBeChecked();
+	await analytics.press("Space");
+	await expect(analytics).not.toBeChecked();
+	await expect(page.getByRole("checkbox", { name: "Overlay Read", exact: true })).toBeChecked();
 	await page.getByRole("button", { name: "Approve agency access" }).click();
 	await expect(page.getByText("Accepted", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
+	await expect(page.getByText("overlay:read", { exact: true })).toBeVisible();
+	await expect(page.getByText("analytics:read", { exact: true })).toHaveCount(0);
 });
 
 Then("the staff member can manage the creator only through permissions present in both sets", async ({ authWorld }) => {

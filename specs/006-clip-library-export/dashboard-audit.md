@@ -50,6 +50,7 @@ Descript's learning library and VEED, Riverside and Vimeo editing screens were a
 - Stream tables forced mobile horizontal browsing. Compact stream metadata stays with its title while wide columns remain available on desktop.
 - Consent choices now use equal-width HeroUI actions on mobile, retaining compact desktop actions.
 - The consent portal could mount after the support widget's one-time measurement. The widget now discovers and observes the actual banner after mount or drawer relocation; listeners and observers are cleaned up. A failing regression preceded the fix.
+- Agency request and approval forms omitted the interactive Checkbox compound parts, leaving permission labels without controls. Both now use the installed Content/Control/Indicator parts and readable permission labels. Real keyboard tests verify request selection and narrowed approved permissions.
 - Older mobile acceptance fixtures attempted to use hidden footer controls without opening the drawer. They now follow the visible mobile navigation path while retaining the export and draft-preservation assertions.
 
 ## Evidence rules
@@ -63,3 +64,5 @@ Local fixtures use disposable loopback PostgreSQL18 and test provider responses.
 ## Final local checkpoint
 
 Affected coverage:23 suites / 578 tests, unchanged thresholds. Production build/typecheck, affected lint and formatting passed. Complete affected production-browser checkpoint:75/75, including 84 creator-route captures, axe checks on all audited routes, four agency layout/account cases, exact clip preview, consent/support and complete export recovery. Guide and authentication regression owners and the required published full CI are tracked separately in test-summary.md. The reviewed standalone actual before/after boards are preserved in `test-results/dashboard-audit/system-review/before-after-dark.html` and `before-after-light.html`.
+
+Permission follow-up UI-033: the production build/typecheck and affected lint/format passed. Affected coverage passed23 suites/578 tests including both agency pages and the client boundary (85.01% statements,79.64% branches,83.22% functions,87.31% lines; unchanged floors). Four agency viewport/theme keyboard and accessibility cases and the complete22-case authentication owner passed against the rebuilt source. Earlier75-case and61-case checkpoints remain evidence for unchanged source paths; the final complete published CI is required for the combined tree.
