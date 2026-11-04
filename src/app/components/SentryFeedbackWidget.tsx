@@ -60,7 +60,7 @@ export default function SentryFeedbackWidget() {
 						}
 					}}
 				>
-					<IconBug className='size-4 shrink-0 text-warning-soft-foreground' aria-hidden='true' />
+					<IconBug className='size-4 shrink-0 text-danger' aria-hidden='true' />
 					Report a problem
 				</Button>
 			</div>
