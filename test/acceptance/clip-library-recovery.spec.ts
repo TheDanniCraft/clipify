@@ -370,3 +370,53 @@ test("Mobile Settings sidebar preserves drafts and guided navigation", async ({ 
 	await expect(title).toHaveValue("Keep this creator draft");
 	expect(await page.evaluate(() => performance.timeOrigin)).toBe(timeOrigin);
 });
+
+for (const width of [390, 1440])
+	for (const theme of ["light", "dark"])
+		test(`Sidebar icons, completed progress and collapse spacing at ${width}px in ${theme}`, async ({ page, request, tourWorld }, info) => {
+			await page.setViewportSize({ width, height: 1000 });
+			await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+			const seeded = await seedCreatorLibrary({ page, request, tourWorld });
+			const { defaultProgress, guideContentKey, journeys } = await import("../../src/app/lib/userTour");
+			await tourWorld.fixture.pool.query("UPDATE user_content_states SET state=$1 WHERE user_id=$2 AND content_key=$3", [JSON.stringify({ ...defaultProgress(), welcomeSeen: true, minimized: true, journeyId: journeys.at(-1)!.id, completed: journeys.flatMap((journey) => journey.tasks.map((task) => task.id)) }), seeded.creatorId, guideContentKey]);
+			await page.goto(`${tourWorld.origin}/dashboard/tools`);
+			await page.getByRole("button", { name: "Reject optional", exact: true }).click();
+			await page.reload();
+			if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+			const sidebar = page.locator(`[data-slot="${width === 390 ? "sidebar-mobile" : "sidebar"}"]`);
+			const navigation = sidebar.getByRole("treegrid", { name: "Creator navigation", exact: true });
+			for (const title of ["Clip Player", "Clip Gallery"]) await expect(navigation.getByRole("row", { name: title, exact: true }).locator("svg").first()).toBeVisible();
+			await navigation.getByRole("row", { name: "Settings", exact: true }).click();
+			for (const title of ["Account", "Connections", "Creator Page", "Billing", "Team"]) {
+				const icon = navigation.getByRole("row", { name: title, exact: true }).locator("svg").first();
+				await icon.scrollIntoViewIfNeeded();
+				await expect(icon).toBeVisible();
+			}
+			const circle = sidebar.getByRole("progressbar");
+			await expect(circle).toHaveAttribute("aria-valuenow", "100");
+			const fits = await circle.evaluate((element) => {
+				const label = element.querySelector("span")!;
+				const range = document.createRange();
+				range.selectNodeContents(label);
+				const text = range.getBoundingClientRect();
+				const svg = element.querySelector("svg")!;
+				const track = svg.getBoundingClientRect();
+				const fill = element.querySelector("circle")!;
+				const radius = (Number(fill.getAttribute("r")) - Number(fill.getAttribute("stroke-width") || svg.getAttribute("stroke-width")) / 2) * (track.width / svg.viewBox.baseVal.width);
+				return Math.hypot(text.width / 2, text.height / 2) < radius;
+			});
+			expect(fits).toBe(true);
+			await page.screenshot({ path: info.outputPath("sidebar-polish.png"), animations: "disabled" });
+			if (width === 1440) {
+				await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+				const toggle = page.getByRole("button", { name: "Toggle navigation", exact: true });
+				await expect(toggle).toHaveAttribute("aria-expanded", "false");
+				await expect
+					.poll(async () => {
+						const [rail, button] = await Promise.all([sidebar.boundingBox(), toggle.boundingBox()]);
+						return button!.x - rail!.x - rail!.width;
+					})
+					.toBeLessThanOrEqual(10);
+				await page.screenshot({ path: info.outputPath("collapsed-sidebar-polish.png"), animations: "disabled" });
+			}
+		});

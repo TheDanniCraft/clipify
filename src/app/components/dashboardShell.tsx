@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode, type
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Sidebar, Command, useSidebar } from "@heroui-pro/react";
 import { Button, Kbd } from "@heroui/react";
-import { IconHome, IconVideo, IconScissors, IconLayoutGrid, IconPlaylist, IconPhoto, IconDeviceDesktop, IconTools, IconSettings, IconFolder, IconSearch, IconHelpCircle } from "@tabler/icons-react";
+import { IconHome, IconVideo, IconScissors, IconLayoutGrid, IconPlaylist, IconPhoto, IconDeviceDesktop, IconTools, IconSettings, IconFolder, IconSearch, IconHelpCircle, IconUserCircle, IconPlug, IconId, IconCreditCard, IconUsers, IconPlayerPlay } from "@tabler/icons-react";
 import NextLink from "next/link";
 import Logo from "./logo";
 import { settingsSections, settingsSection, toolSections } from "@lib/dashboardSections";
@@ -48,8 +48,9 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 	const [retry, setRetry] = useState(0);
 	const [searching, setSearching] = useState(false);
 	const searchRef = useRef<HTMLButtonElement | null>(null);
-	const settingsItems: Destination[] = settingsSections.filter((item) => permissions.includes(item.permission));
-	const toolItems: Destination[] = toolSections.map((item) => ({ ...item, permission: null }));
+	const settingsIcons = { settings: IconUserCircle, connections: IconPlug, creator: IconId, billing: IconCreditCard, team: IconUsers };
+	const settingsItems: Destination[] = settingsSections.filter((item) => permissions.includes(item.permission)).map((item) => ({ ...item, icon: settingsIcons[item.key] }));
+	const toolItems: Destination[] = toolSections.map((item) => ({ ...item, permission: null, icon: item.title === "Clip Player" ? IconPlayerPlay : IconPhoto }));
 	const allowed = destinations.filter((item) => (item.title === "Settings" ? settingsItems.length > 0 : item.permission === null || permissions.includes(item.permission)));
 	const searchable = [...new Map([...settingsItems, ...toolItems, ...allowed].map((item) => [item.href, item])).values()];
 	const currentChild = activeGroup === "settings" && path === "/dashboard/settings" ? settingsItems.find((item) => item.href === settingsSections.find((candidate) => candidate.key === section)?.href) : activeGroup === "tools" ? toolItems[params.get("tool") === "gallery" ? 1 : 0] : undefined;

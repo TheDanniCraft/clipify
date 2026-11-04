@@ -327,12 +327,12 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 								document.body,
 							)}
 						<Button ref={launcher} data-tour='guide-launcher' aria-label={`${launcherTitle} · ${percentage}%`} aria-expanded={!progress.minimized} aria-controls='clipify-guide-panel' variant='ghost' fullWidth className='h-10 max-w-full justify-start gap-2 px-2 text-foreground' onPress={() => report({ type: "panel", minimized: !progress.minimized })}>
-							<ProgressCircle aria-label={`${currentJourney.title} progress`} value={percentage} size='lg' className='relative size-9 shrink-0'>
-								<ProgressCircle.Track style={{ width: 36, height: 36 }}>
+							<ProgressCircle aria-label={`${currentJourney.title} progress`} value={percentage} size='lg' className='relative size-10 shrink-0'>
+								<ProgressCircle.Track style={{ width: 40, height: 40 }}>
 									<ProgressCircle.TrackCircle style={{ stroke: "var(--color-muted)", opacity: 0.45 }} />
 									<ProgressCircle.FillCircle />
 								</ProgressCircle.Track>
-								<span className='absolute inset-0 grid place-items-center text-[10px] font-semibold'>{`${percentage}%`}</span>
+								<span className='absolute inset-0 grid place-items-center text-[10px] leading-none font-medium tabular-nums'>{`${percentage}%`}</span>
 							</ProgressCircle>
 							<span className='text-sm font-semibold'>{launcherTitle}</span>
 						</Button>

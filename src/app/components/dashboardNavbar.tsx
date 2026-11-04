@@ -190,7 +190,7 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 	return (
 		<>
 			<nav className={inShell ? "sticky top-0 z-30 w-full border-b border-separator bg-background" : "sticky top-0 z-30 w-full bg-accent"}>
-				<header className='flex min-h-16 w-full items-center gap-3 px-4 py-2 lg:px-8'>
+				<header className={`flex min-h-16 w-full items-center gap-3 px-4 py-2 ${inShell && !navigation?.expanded ? "lg:pl-2 lg:pr-8" : "lg:px-8"}`}>
 					<NextLink data-tour={inShell ? undefined : "dashboard-home"} href='/dashboard' className={inShell ? "hidden" : "flex items-center"}>
 						<Logo width={30} />
 						<p className='ml-2 font-bold text-white'>Clipify</p>
