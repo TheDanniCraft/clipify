@@ -8,6 +8,7 @@ import { Button } from "@heroui/react";
 import { IconMessageCircle } from "@tabler/icons-react";
 import { CONSENT_PREFERENCES_VISIBILITY_EVENT, OPEN_CONSENT_PREFERENCES_EVENT, type ConsentPreferencesVisibilityDetail, type OpenConsentPreferencesDetail } from "@lib/consent/events";
 import { chatwootConsentScript } from "@lib/consent/chatwoot";
+import { notify } from "@lib/toast";
 
 type ConsentScriptStatus = "blocked" | "loading" | "ready";
 
@@ -35,6 +36,7 @@ const ChatWidget = () => {
 	const [chatwootState, setChatwootState] = useState({ checked: false, available: false });
 	useScriptLoader(isEmbedded ? [] : [chatwootConsentScript]);
 	const scriptStatus: ConsentScriptStatus = !functionalityAllowed ? "blocked" : chatwootState.available ? "ready" : "loading";
+	const floating = !inDashboard || banner.isVisible;
 
 	useEffect(() => {
 		if (!banner.isVisible) return;
@@ -102,11 +104,12 @@ const ChatWidget = () => {
 	}, []);
 
 	if (!chatwootState.checked || (!inDashboard && chatwootState.available) || (!inDashboard && !shouldShowChatConsentFallback({ isEmbedded, preferencesVisible: dialog.isVisible || preferencesVisible, scriptStatus }))) return null;
-	if (inDashboard && (consentVisible || isEmbedded)) return null;
+	if (inDashboard && (dialog.isVisible || preferencesVisible || isEmbedded)) return null;
 
 	function openSupportConsent() {
-		if (inDashboard && chatwootState.available && functionalityAllowed) {
-			window.$chatwoot?.toggle?.("open");
+		if (inDashboard && functionalityAllowed && !consentVisible) {
+			if (isChatwootWidgetMounted() && typeof window.$chatwoot?.toggle === "function") window.$chatwoot.toggle("open");
+			else notify({ title: "Support chat is loading", description: "Please try again in a moment." });
 			return;
 		}
 		setPreferencesVisible(true);
@@ -116,8 +119,8 @@ const ChatWidget = () => {
 
 	return (
 		<DashboardUtilityPortal slot='chat'>
-			<Button isIconOnly={!inDashboard} variant={inDashboard ? "ghost" : "primary"} fullWidth={inDashboard} aria-label='Enable support chat' className={inDashboard ? "justify-start text-muted" : "fixed left-5 z-[110] size-14 rounded-full shadow-xl"} style={inDashboard ? undefined : { bottom: banner.isVisible ? previewBottom : 20 }} onPress={openSupportConsent}>
-				<IconMessageCircle className='size-6' aria-hidden='true' />
+			<Button isIconOnly={!inDashboard} variant={inDashboard ? (floating ? "secondary" : "ghost") : "primary"} fullWidth={!floating} aria-label='Enable support chat' className={inDashboard ? `${floating ? "fixed left-5 z-[110] shadow-xl" : ""} justify-start text-muted` : "fixed left-5 z-[110] size-14 rounded-full shadow-xl"} style={floating ? { bottom: banner.isVisible ? previewBottom : 20 } : undefined} onPress={openSupportConsent}>
+				<IconMessageCircle className={inDashboard ? "size-4 shrink-0" : "size-6"} aria-hidden='true' />
 				{inDashboard ? "Support chat" : null}
 			</Button>
 		</DashboardUtilityPortal>

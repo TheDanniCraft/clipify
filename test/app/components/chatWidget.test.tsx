@@ -5,6 +5,8 @@ import { OPEN_CONSENT_PREFERENCES_EVENT } from "@/app/lib/consent/events";
 import { chatwootConsentScript } from "@/app/lib/consent/chatwoot";
 
 const mockUseScriptLoader = jest.fn();
+const mockNotify = jest.fn();
+jest.mock("@lib/toast", () => ({ notify: (...args: unknown[]) => mockNotify(...args) }));
 let mockFunctionalityAllowed = false;
 let mockBannerVisible = false;
 let mockDialogVisible = false;
@@ -96,6 +98,66 @@ describe("components/ChatWidget", () => {
 		fireEvent.click(screen.getByRole("button", { name: "Enable support chat" }));
 		expect(toggle).toHaveBeenLastCalledWith("open");
 		expect(mockOpenDialog).not.toHaveBeenCalled();
+	});
+
+	it("offers dashboard support consent before the initial banner is dismissed", () => {
+		mockPathname = "/dashboard/clips";
+		mockBannerVisible = true;
+		const preferences = jest.fn();
+		window.addEventListener(OPEN_CONSENT_PREFERENCES_EVENT, preferences);
+		try {
+			render(<ChatWidget />);
+			fireEvent.click(screen.getByRole("button", { name: "Enable support chat" }));
+			expect(mockOpenDialog).toHaveBeenCalledTimes(1);
+			expect(preferences.mock.calls[0][0].detail).toEqual({ category: "functionality" });
+		} finally {
+			window.removeEventListener(OPEN_CONSENT_PREFERENCES_EVENT, preferences);
+		}
+	});
+
+	it("returns to consent after revocation even when the SDK remains available", () => {
+		mockPathname = "/dashboard/clips";
+		mockFunctionalityAllowed = true;
+		mountChatwootWidget();
+		const toggle = jest.fn();
+		window.$chatwoot = { toggle, toggleBubbleVisibility: jest.fn() } as unknown as NonNullable<Window["$chatwoot"]>;
+		const { rerender } = render(<ChatWidget />);
+		mockFunctionalityAllowed = false;
+		rerender(<ChatWidget />);
+		toggle.mockClear();
+		fireEvent.click(screen.getByRole("button", { name: "Enable support chat" }));
+		expect(toggle).not.toHaveBeenCalledWith("open");
+		expect(mockOpenDialog).toHaveBeenCalledTimes(1);
+	});
+
+	it("keeps consented dashboard support actionable while the SDK is still loading", () => {
+		mockPathname = "/dashboard/clips";
+		mockFunctionalityAllowed = true;
+		render(<ChatWidget />);
+		fireEvent.click(screen.getByRole("button", { name: "Enable support chat" }));
+		expect(mockOpenDialog).not.toHaveBeenCalled();
+		expect(mockNotify).toHaveBeenCalledWith(expect.objectContaining({ title: "Support chat is loading" }));
+		const toggle = jest.fn();
+		window.$chatwoot = { toggle, toggleBubbleVisibility: jest.fn() } as unknown as NonNullable<Window["$chatwoot"]>;
+		mountChatwootWidget();
+		fireEvent(window, new Event("chatwoot:ready"));
+		fireEvent.click(screen.getByRole("button", { name: "Enable support chat" }));
+		expect(toggle).toHaveBeenLastCalledWith("open");
+		expect(mockOpenDialog).not.toHaveBeenCalled();
+	});
+
+	it("keeps the initial privacy choice ahead of an already available dashboard SDK", () => {
+		mockPathname = "/dashboard/clips";
+		mockFunctionalityAllowed = true;
+		mockBannerVisible = true;
+		const toggle = jest.fn();
+		window.$chatwoot = { toggle, toggleBubbleVisibility: jest.fn() } as unknown as NonNullable<Window["$chatwoot"]>;
+		mountChatwootWidget();
+		render(<ChatWidget />);
+		toggle.mockClear();
+		fireEvent.click(screen.getByRole("button", { name: "Enable support chat" }));
+		expect(toggle).not.toHaveBeenCalledWith("open");
+		expect(mockOpenDialog).toHaveBeenCalledTimes(1);
 	});
 
 	it("registers Chatwoot with c15t and offers consent while functionality is denied", () => {
