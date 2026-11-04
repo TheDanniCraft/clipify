@@ -1,6 +1,8 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import ClipPreview from "@components/creator/clipPreview";
 const preview = jest.fn();
+const notify = jest.fn();
+jest.mock("@lib/toast", () => ({ notify: (...args: unknown[]) => notify(...args) }));
 jest.mock("@actions/creatorLibrary", () => ({ getCreatorClipPreview: (...args: unknown[]) => preview(...args) }));
 jest.mock("@components/controlledModal", () => ({
 	__esModule: true,
@@ -12,18 +14,24 @@ jest.mock("@components/controlledModal", () => ({
 	),
 }));
 const clip = { id: "exact-id", title: "Same title", url: "https://clips.twitch.tv/exact-id" };
-beforeEach(() => preview.mockReset());
+beforeEach(() => {
+	preview.mockReset();
+	notify.mockClear();
+});
 it.each([null, "reject"])("recovers an unavailable preview without changing its identity: %s", async (failure) => {
 	if (failure) preview.mockRejectedValueOnce(new Error("offline"));
 	else preview.mockResolvedValueOnce(null);
 	preview.mockResolvedValueOnce({ playbackUrl: "https://media.example/clip.mp4" });
 	const close = jest.fn();
 	const view = render(<ClipPreview creatorId='owner' clip={clip} onClose={close} />);
-	await screen.findByRole("alert");
+	await screen.findByRole("button", { name: "Retry preview" });
+	expect(notify).toHaveBeenCalledWith(expect.objectContaining({ color: "danger" }));
+	expect(screen.queryByRole("alert")).toBeNull();
 	fireEvent.click(screen.getByRole("button", { name: "Retry preview" }));
 	await waitFor(() => expect(view.container.querySelector("video")).toHaveAttribute("src", "https://media.example/clip.mp4"));
 	expect(preview.mock.calls).toEqual([[{ creatorId: "owner", clipId: "exact-id" }], [{ creatorId: "owner", clipId: "exact-id" }]]);
-	expect(screen.getByRole("link")).toHaveAttribute("href", clip.url);
+	expect(screen.getByRole("link", { name: "Open on Twitch" })).toHaveAttribute("href", clip.url);
+	expect(screen.getByRole("link", { name: "View clip details" })).toHaveAttribute("href", "/dashboard/clips/exact-id");
 	fireEvent.click(screen.getByRole("button", { name: "Close" }));
 	expect(close).toHaveBeenCalledTimes(1);
 });

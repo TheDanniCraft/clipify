@@ -92,7 +92,7 @@ When("a Free creator opens their billing controls", async ({ page, request, mcpW
 	mcpWorld.input = { commercialOwner: owner };
 	await page.context().addCookies([owner.cookie]);
 	await page.goto("http://127.0.0.1:3107/dashboard/settings");
-	await page.getByRole("tab", { name: "Billing", exact: true }).click();
+	await page.getByRole("treegrid", { name: "Creator navigation", exact: true }).getByRole("row", { name: "Billing", exact: true }).click();
 	await expect(page.getByText("Your plan", { exact: true })).toBeVisible();
 });
 

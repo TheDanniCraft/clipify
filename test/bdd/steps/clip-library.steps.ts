@@ -337,7 +337,7 @@ Then("the archives appear newest first and the empty stream shows zero clip coun
 	if (cases.get(tourWorld)!.variant !== "next provider page") await expect.poll(() => page.locator("[data-broadcast-id]").evaluateAll((rows) => rows.map((row) => row.getAttribute("data-broadcast-id")))).toEqual(["12346", "12345"]);
 });
 
-const navigationDestinations: Record<string, string> = { Home: "/dashboard", Streams: "/dashboard/streams", "Clip Inventory": "/dashboard/clips", Overlays: "/dashboard/overlays", Playlists: "/dashboard/playlists", Galleries: "/dashboard/galleries", Runner: "/dashboard/runners", Tools: "/dashboard/tools", Settings: "/dashboard/settings" };
+const navigationDestinations: Record<string, string> = { Home: "/dashboard", Streams: "/dashboard/streams", "Clip Inventory": "/dashboard/clips", Overlays: "/dashboard/overlays", Playlists: "/dashboard/playlists", Galleries: "/dashboard/galleries", Runner: "/dashboard/runners", Tools: "/dashboard/tools?tool=player", Settings: "/dashboard/settings" };
 Given("an owner with all creator tools", seedInventory);
 When("I visit every sidebar destination", async ({ page, tourWorld }) => {
 	await page.goto(`${tourWorld.origin}/dashboard`);
@@ -357,11 +357,17 @@ When("I visit every sidebar destination", async ({ page, tourWorld }) => {
 		expect(panel!.x).toBeGreaterThanOrEqual(navigation!.x + navigation!.width);
 		await page.screenshot({ path: test.info().outputPath("first-use-guide-navigation.png"), animations: "disabled" });
 	}
-	await tree.getByRole("row", { name: cases.get(tourWorld)!.variant!, exact: true }).click();
+	const destination = cases.get(tourWorld)!.variant!;
+	await tree.getByRole("row", { name: destination, exact: true }).click();
+	if (destination === "Tools" || destination === "Settings") {
+		await expect(page).toHaveURL(`${tourWorld.origin}/dashboard`);
+		await tree.getByRole("row", { name: destination === "Tools" ? "Clip Player" : "Account", exact: true }).click();
+	}
 });
 Then("the selected location and correct existing resource list are shown", async ({ page, tourWorld }) => {
 	const title = cases.get(tourWorld)!.variant!;
 	await expect(page).toHaveURL(`${tourWorld.origin}${navigationDestinations[title]}`);
-	await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
-	await expect(page.getByRole("treegrid", { name: "Creator navigation", exact: true }).getByRole("row", { name: title, exact: true })).toHaveAttribute("aria-current", "page");
+	await expect(page.getByRole("heading", { name: title === "Tools" ? "Clip Player" : title, exact: true })).toBeVisible();
+	const row = title === "Tools" ? "Clip Player" : title === "Settings" ? "Account" : title;
+	await expect(page.getByRole("treegrid", { name: "Creator navigation", exact: true }).getByRole("row", { name: row, exact: true })).toHaveAttribute("aria-current", "page");
 });

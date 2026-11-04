@@ -1,6 +1,17 @@
 const notify = jest.fn();
 jest.mock("@lib/toast", () => ({ notify: (...args: unknown[]) => notify(...args) }));
-jest.mock("@components/controlledModal", () => ({ __esModule: true, default: ({ isOpen, children }: any) => (isOpen ? <section role='dialog'>{children}</section> : null) }));
+jest.mock("@components/controlledModal", () => ({
+	__esModule: true,
+	default: ({ isOpen, children, onClose }: any) =>
+		isOpen ? (
+			<section role='dialog'>
+				<button aria-label='Close dialog' onClick={onClose}>
+					Close
+				</button>
+				{children}
+			</section>
+		) : null,
+}));
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import ClipExport from "@components/creator/clipExport";
 const fetchMock = jest.fn();
@@ -226,4 +237,31 @@ it("does not keep a late provider reset disabled after its deadline has already 
 	} finally {
 		jest.useRealTimers();
 	}
+});
+it("downloads individual MP4 and supports reopening and dismissing result details", async () => {
+	const bytes = new Uint8Array([0, 0, 0, 8, 102, 116, 121, 112]);
+	let read = false;
+	const summary = btoa(JSON.stringify({ included: [0], skipped: [] }))
+		.replace(/=/g, "")
+		.replace(/\+/g, "-")
+		.replace(/\//g, "_");
+	fetchMock.mockResolvedValue({ ok: true, headers: { get: (name: string) => (name === "content-type" ? "video/mp4" : summary) }, body: { getReader: () => ({ read: async () => (read ? { done: true } : ((read = true), { done: false, value: bytes })), cancel: jest.fn(), releaseLock: jest.fn() }) } });
+	const create = jest.fn(() => "blob:mp4");
+	Object.defineProperty(URL, "createObjectURL", { configurable: true, value: create });
+	Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: jest.fn() });
+	const click = jest.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+		expect(this.download).toBe("clipify-A.mp4");
+	});
+	render(<ClipExport creatorId='owner' clipIds={["A"]} scope='owner:A' format='mp4' />);
+	fireEvent.click(screen.getByRole("button", { name: "Download MP4" }));
+	await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
+	expect(fetchMock.mock.calls[0][0]).toBe("/api/clips/export?format=mp4");
+	expect(create).toHaveBeenCalledWith(expect.objectContaining({ type: "video/mp4" }));
+	fireEvent.click(screen.getByRole("button", { name: "Download details" }));
+	expect(screen.getByRole("dialog")).toHaveTextContent("1 clip ready");
+	fireEvent.click(screen.getByRole("button", { name: "Close details" }));
+	expect(screen.queryByRole("dialog")).toBeNull();
+	fireEvent.click(screen.getByRole("button", { name: "Download details" }));
+	fireEvent.click(screen.getByRole("button", { name: "Close dialog" }));
+	expect(screen.queryByRole("dialog")).toBeNull();
 });

@@ -54,3 +54,27 @@ it("updates the indicator when a later presence poll confirms a stream", async (
 		jest.useRealTimers();
 	}
 });
+it("does not overlap presence requests while a previous poll is pending", async () => {
+	jest.useFakeTimers();
+	let finish!: (value: unknown) => void;
+	presence.mockReturnValue(
+		new Promise((resolve) => {
+			finish = resolve;
+		}),
+	);
+	const view = render(<DashboardUserAvatar username='Creator' avatar='/avatar.png' showStatus />);
+	try {
+		await act(async () => {
+			jest.advanceTimersByTime(60000);
+		});
+		expect(presence).toHaveBeenCalledTimes(1);
+		await act(async () => finish({ ok: false }));
+		await act(async () => {
+			jest.advanceTimersByTime(30000);
+		});
+		expect(presence).toHaveBeenCalledTimes(2);
+	} finally {
+		view.unmount();
+		jest.useRealTimers();
+	}
+});

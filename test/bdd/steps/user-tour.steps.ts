@@ -488,7 +488,11 @@ Then("the checklist opens beside sidebar navigation with progress and no automat
 	expect(checklist!.x).toBeGreaterThanOrEqual(sidebar!.x + sidebar!.width);
 	expect(checklist!.x + checklist!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
 	const feedback = await page.getByRole("button", { name: "Report a problem", exact: true }).boundingBox();
-	expect(feedback!.y).toBeGreaterThan(launcher!.y + launcher!.height);
+	const account = await page.locator("[data-dashboard-account-controls]").boundingBox();
+	expect(account).not.toBeNull();
+	expect(feedback!.y + feedback!.height).toBeLessThanOrEqual(account!.y);
+	expect(account!.y + account!.height).toBeLessThanOrEqual(launcher!.y);
+	expect(feedback!.width).toBeCloseTo(account!.width, 0);
 	await page.screenshot({ path: "/tmp/clipify-user-tour-revised-desktop.png" });
 });
 When("a task is manually skipped and the page reloaded", async ({ page, tourWorld }) => {

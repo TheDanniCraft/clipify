@@ -56,6 +56,11 @@ table {
 }
 
 html {
-	scrollbar-gutter: stable;
 	scroll-behavior: smooth;
+}
+
+@media (min-width: 769px) {
+	html:has([data-slot="sidebar"]) {
+		scrollbar-gutter: stable;
+	}
 }

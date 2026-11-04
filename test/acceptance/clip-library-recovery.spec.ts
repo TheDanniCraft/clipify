@@ -320,23 +320,26 @@ test("Export failure dialog preserves page geometry and selection", async ({ pag
 	expect(Math.abs(after!.y - before!.y)).toBeLessThan(1);
 });
 
-test("Real Sentry feedback does not shift dashboard content", async ({ page, request, tourWorld }, info) => {
-	await setup({ page, request, tourWorld });
-	const heading = page.getByRole("heading", { name: "Clip Inventory", exact: true });
-	const before = await heading.boundingBox();
-	await page.getByRole("button", { name: "Report a problem", exact: true }).click();
-	const dialog = page.getByRole("dialog", { name: "Report a problem", exact: true });
-	await expect(dialog).toBeVisible();
-	const during = await heading.boundingBox();
-	expect(Math.abs(during!.x - before!.x)).toBeLessThan(1);
-	expect(Math.abs(during!.width - before!.width)).toBeLessThan(1);
-	await page.screenshot({ path: info.outputPath("sentry-feedback.png"), fullPage: true });
-	await dialog
-		.getByRole("button", { name: /Cancel|Close/ })
-		.first()
-		.click();
-	await expect(dialog).not.toBeVisible();
-});
+for (const width of [390, 1280])
+	test(`Real Sentry feedback does not shift dashboard content at ${width}px`, async ({ page, request, tourWorld }, info) => {
+		await page.setViewportSize({ width, height: 900 });
+		await setup({ page, request, tourWorld });
+		const heading = page.getByRole("heading", { name: "Clip Inventory", exact: true });
+		const before = await heading.boundingBox();
+		if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+		await page.getByRole("button", { name: "Report a problem", exact: true }).click();
+		const dialog = page.getByRole("dialog", { name: "Report a problem", exact: true });
+		await expect(dialog).toBeVisible();
+		const during = await heading.boundingBox();
+		expect(Math.abs(during!.x - before!.x)).toBeLessThan(1);
+		expect(Math.abs(during!.width - before!.width)).toBeLessThan(1);
+		await page.screenshot({ path: info.outputPath("sentry-feedback.png"), fullPage: true });
+		await dialog
+			.getByRole("button", { name: /Cancel|Close/ })
+			.first()
+			.click();
+		await expect(dialog).not.toBeVisible();
+	});
 
 test("Mobile Settings sidebar preserves drafts and guided navigation", async ({ page, request, tourWorld }, info) => {
 	await page.setViewportSize({ width: 390, height: 900 });

@@ -352,7 +352,7 @@ When(/^the owner (updates account information|requests an account export|cancels
 	await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible({ timeout: 30_000 });
 	await prepareInteractivePage(page);
 	if (operation === "updates account information") {
-		await page.getByRole("tab", { name: "Creator Page" }).click();
+		await page.getByRole("treegrid", { name: "Creator navigation", exact: true }).getByRole("row", { name: "Creator Page", exact: true }).click();
 		const creatorPageSwitch = page.getByRole("switch", { name: "Enable creator page" });
 		await expect(creatorPageSwitch).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
 		await expect(creatorPageSwitch).toBeEnabled({ timeout: DATABASE_ACTION_TIMEOUT_MS });
@@ -370,7 +370,7 @@ When(/^the owner (updates account information|requests an account export|cancels
 		await dialog.getByRole("button", { name: "Email download link" }).click();
 		await expect(page.getByText("Data export requested", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
 	} else {
-		await page.getByRole("tab", { name: "Billing" }).click();
+		await page.getByRole("treegrid", { name: "Creator navigation", exact: true }).getByRole("row", { name: "Billing", exact: true }).click();
 		const pro = page.getByRole("checkbox", { name: "Pro" });
 		await expect(pro).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
 		await pro.press("Space");
