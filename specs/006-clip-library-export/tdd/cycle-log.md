@@ -307,3 +307,9 @@ FIXTURE-032 owning Green: all11 Home/Streams BDD story examples passed against u
 
 
 UI-033 Red/Green: `/tmp/clipify-dashboard-permission-red.log` failed the new real Analytics Read checkbox assertion against the previous build. Adding HeroUI Content/Control/Indicator to both agency forms restored real controls. The rebuilt source passed all four agency width/theme keyboard-toggle and axe cases (`/tmp/clipify-dashboard-permission-agency-browser.log`) and the full22-case authentication owner, including submitted narrowing (`/tmp/clipify-dashboard-permission-atdd-browser.log`). Affected coverage passed23 suites/578 tests with existing thresholds (`/tmp/clipify-dashboard-permission-coverage.log`); build/typecheck and lint/format passed.
+
+
+UI-034 Red: the published mobile gallery draft retry retained a trace where an early edit reverted. Holding real application chunks made the readiness regression fail deterministically: expected disabled, received enabled (`/tmp/clipify-dashboard-editor-cold-red.log`). The shared editor boundary now uses a native disabled/busy fieldset until the existing useSyncExternalStore hydration contract resolves. Build/typecheck and affected23-suite/578-test coverage passed; the first browser matrix was interrupted by the session usage limit and has no complete pass claim. The resumed complete owners use fresh loopback fixture data.
+
+
+UI-034 Green: the complete resumed editor/consistency owners passed12/12 (3.3minutes) in `/tmp/clipify-dashboard-editor-cold-resumed-browser.log`. The cold test verifies disabled server controls while scripts are held, then enables scripts and verifies the first editable name remains and Save becomes enabled. Both desktop/mobile draft navigation cases and all route/accessibility matrices passed on the rebuilt source. Coverage, build/typecheck and affected lint/format also passed.

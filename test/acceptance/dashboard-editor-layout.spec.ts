@@ -158,3 +158,35 @@ for (const width of [1280, 390]) {
 		}
 	});
 }
+
+test("cold editor controls wait for hydration before accepting a draft", async ({ page, request, context }) => {
+	let owner: AuthFixture | undefined;
+	const pool = new Pool({ connectionString: browserDatabaseUrl(), max: 1 });
+	let releaseScripts = () => {};
+	const scriptsReady = new Promise<void>((resolve) => {
+		releaseScripts = resolve;
+	});
+	try {
+		owner = await createAuthenticatedFixture(request, context, { withProviderCredentials: true });
+		const galleryId = randomUUID();
+		await pool.query("INSERT INTO galleries(id,owner_id,name) VALUES($1,$2,'Cold gallery')", [galleryId, owner.fixture.creatorId]);
+		await page.route(/\/_next\/static\/.*\.js(?:\?|$)/, async (route) => {
+			await scriptsReady;
+			await route.continue();
+		});
+		await page.goto(`/dashboard/galleries/${galleryId}`, { waitUntil: "commit" });
+		const name = page.getByRole("textbox", { name: /^Gallery Name\*?$/ });
+		await expect(name).toBeVisible();
+		await expect(name).toBeDisabled();
+		releaseScripts();
+		await expect(name).toBeEnabled({ timeout: 30000 });
+		await name.fill("Keep the first editable draft");
+		await expect(name).toHaveValue("Keep the first editable draft");
+		await expect(page.getByRole("button", { name: "Save Gallery Settings", exact: true })).toBeEnabled();
+	} finally {
+		releaseScripts();
+		await page.close();
+		await pool.end();
+		if (owner) await request.delete("/api/test/auth-fixture", { headers: fixtureHeaders, data: { authUserId: owner.fixture.authUserId, creatorId: owner.fixture.creatorId, organizationIds: [owner.fixture.creatorOrganizationId, owner.fixture.agencyOrganizationId] } });
+	}
+});
