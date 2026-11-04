@@ -7,7 +7,7 @@ Feature: Creator library story 2
     Given known clips before at and after the local 30-day boundaries with tied views
     And the required fixture class is "<example>"
     When I open Home
-    Then the exact included clip count current-view sum and top five with ID tie-break are shown
+    Then the matching clip metrics and ordered top five or actionable empty state are shown
 
     Examples:
       | example |

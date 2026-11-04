@@ -24,7 +24,7 @@ Creators navigate through Home, Streams, Clip Inventory, Overlays, Playlists, Ga
 
 ### User Story 2 - Understand recent streams and clip performance (Priority: P2)
 
-Home shows recent available Twitch broadcasts, the count of known clips created in the last 30 days, their summed current views, and the five highest-viewed clips from that creation window. Streams shows available broadcasts and opens a stream's clips and aggregate clip views.
+Home shows recent available Twitch broadcasts, the count of known clips created in the last 30 days, their summed current views, and the five highest-viewed clips from that creation window. When that window has no clips, show one actionable empty state linking to inventory rather than zero-valued stat cards and an empty ranking. Streams shows available broadcasts and opens a stream's clips and aggregate clip views.
 
 **Why this priority**: Restores a clip-focused landing page while avoiding unsupported historical analytics claims.
 **Independent Test**: Use known streams and clips to verify totals, ordering, zero-clip streams and stream detail membership.
@@ -86,7 +86,7 @@ Creators export selected clips into a ZIP of original provider MP4 files and a m
 - **FR-001**: Provide responsive collapsible sidebar navigation, default-open contextual groups, ancestor breadcrumbs and independent search using the pinned Payload Bay PR #13 interaction reference in research.md; preserve existing theme, account, help, upgrade, admin and agency behavior.
 - **FR-002**: Preserve all existing editor URLs and resource operations; move the current dashboard resource table to an Overlays destination and provide direct permitted destinations for its resource types.
 - **FR-003**: Search permitted destinations and cached clip titles in the active creator, with loading, empty, error/retry and keyboard/focus behavior. Search never executes mutations.
-- **FR-004**: Home MUST show recent streams, known clip count, current aggregate clip views and top five clips for clips created in the last 30 local calendar days; label the measurement and freshness honestly.
+- **FR-004**: Home MUST show recent streams, known clip count, current aggregate clip views and top five clips for clips created in the last 30 local calendar days; label the measurement and freshness honestly. For a zero-clip window, show the actionable inventory empty state instead of redundant zero-valued cards.
 - **FR-005**: Streams MUST show available Twitch archive broadcasts newest first, including zero-clip broadcasts, and open scoped clip details with count and summed current clip views.
 - **FR-006**: Match clips to streams by provider VOD ID only; retain unassigned clips in the inventory, and never present available VODs as a complete permanent stream history.
 - **FR-007**: Inventory MUST expose title, provider thumbnail when present, category, created date, duration, current views, stream association when known, and preview/provider link.

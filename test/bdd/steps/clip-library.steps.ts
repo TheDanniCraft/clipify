@@ -291,10 +291,17 @@ When("I open Home", async ({ page, tourWorld }) => {
 	await page.goto(`${tourWorld.origin}/dashboard`);
 	await expect(page.getByRole("heading", { name: "Home", exact: true })).toBeVisible();
 });
-Then("the exact included clip count current-view sum and top five with ID tie-break are shown", async ({ page, tourWorld }) => {
+Then("the matching clip metrics and ordered top five or actionable empty state are shown", async ({ page, tourWorld }) => {
 	const home = cases.get(tourWorld)!.home!;
-	await expect(page.getByRole("status", { name: "Known clips" })).toHaveText(String(home.count));
-	await expect(page.getByRole("status", { name: "Current clip views" })).toHaveText(String(home.views));
+	if (home.count === 0) {
+		await expect(page.getByText("No clips from the last 30 days", { exact: true })).toBeVisible();
+		await expect(page.getByRole("link", { name: "Browse clip inventory", exact: true })).toHaveAttribute("href", "/dashboard/clips");
+		await expect(page.getByRole("status", { name: "Known clips" })).toHaveCount(0);
+		await expect(page.getByRole("status", { name: "Current clip views" })).toHaveCount(0);
+	} else {
+		await expect(page.getByRole("status", { name: "Known clips" })).toHaveText(String(home.count));
+		await expect(page.getByRole("status", { name: "Current clip views" })).toHaveText(String(home.views));
+	}
 	await expect.poll(() => page.locator("[data-top-clip-id]").evaluateAll((items) => items.map((item) => item.getAttribute("data-top-clip-id")))).toEqual(home.ids.slice(0, 5));
 });
 

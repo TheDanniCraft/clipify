@@ -301,3 +301,6 @@ Account-context race: after choosing Creator from Agency, the old route could re
 
 
 Guide follow-up: the complete61-case run stopped at AI discovery after54 passing cases. Pause intentionally reopens the guide checklist; the step then tried to click a tab behind that panel. The visible Minimize guide action restores normal page access. The isolated case passed against the unchanged production build in `/tmp/clipify-dashboard-guide-tab-diagnostic.log`; this is fixture sequencing, not a product TDD Red. Complete rerun evidence is tracked separately.
+
+
+FIXTURE-032 owning Green: all11 Home/Streams BDD story examples passed against unchanged production source in `/tmp/clipify-dashboard-home-bdd-final.log` (1.9minutes). Zero-window examples now check the actionable empty state and inventory link; populated examples still check exact count, current views and top-ID ordering. The prior published failure is not reclassified as a product Red; it was an outdated expectation after the user-requested presentation change.
