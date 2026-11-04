@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import ChatWidget from "@/app/components/chatWidget";
 import { OPEN_CONSENT_PREFERENCES_EVENT } from "@/app/lib/consent/events";
 import { chatwootConsentScript } from "@/app/lib/consent/chatwoot";
@@ -38,8 +38,8 @@ jest.mock("c15t/next/headless", () => ({
 }));
 
 jest.mock("@heroui/react", () => ({
-	Button: ({ onPress, children, "aria-label": ariaLabel }: { onPress?: () => void; children: React.ReactNode; "aria-label"?: string }) => (
-		<button onClick={onPress} aria-label={ariaLabel}>
+	Button: ({ onPress, children, style, "aria-label": ariaLabel }: { onPress?: () => void; children: React.ReactNode; style?: React.CSSProperties; "aria-label"?: string }) => (
+		<button onClick={onPress} aria-label={ariaLabel} style={style}>
 			{children}
 		</button>
 	),
@@ -52,6 +52,11 @@ jest.mock("@tabler/icons-react", () => ({
 describe("components/ChatWidget", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
+		global.ResizeObserver = class {
+			observe() {}
+			unobserve() {}
+			disconnect() {}
+		};
 		mockPathname = "/";
 		mockIsEmbedded = false;
 		delete window.chatwootSDK;
@@ -60,6 +65,23 @@ describe("components/ChatWidget", () => {
 		mockFunctionalityAllowed = false;
 		mockBannerVisible = false;
 		mockDialogVisible = false;
+	});
+
+	it("positions support above a consent banner that mounts after the widget", async () => {
+		mockBannerVisible = true;
+		const { unmount } = render(<ChatWidget />);
+		const banner = document.createElement("aside");
+		const title = document.createElement("h2");
+		title.id = "consent-banner-title";
+		banner.append(title);
+		jest.spyOn(banner, "getBoundingClientRect").mockReturnValue({ top: 500 } as DOMRect);
+		document.body.append(banner);
+		try {
+			await waitFor(() => expect(screen.getByRole("button", { name: "Enable support chat" })).toHaveStyle({ bottom: `${window.innerHeight - 500 + 12}px` }));
+		} finally {
+			unmount();
+			banner.remove();
+		}
 	});
 
 	it("opens chat from dashboard utilities while keeping the floating bubble hidden", () => {

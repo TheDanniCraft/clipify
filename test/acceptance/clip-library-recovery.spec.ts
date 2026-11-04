@@ -15,7 +15,10 @@ async function setup({ page, request, tourWorld }: { page: Page; request: APIReq
 	await consent.click();
 	await expect(consent).not.toBeVisible();
 	await page.reload();
+	const mobile = (page.viewportSize()?.width ?? 1280) < 768;
+	if (mobile) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
 	await expect(page.locator('[data-tour="guide-launcher"]')).toBeVisible();
+	if (mobile) await page.keyboard.press("Escape");
 	await page.getByRole("button", { name: "Select page", exact: true }).click();
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("1 selected");
 	return { ...seeded, value };

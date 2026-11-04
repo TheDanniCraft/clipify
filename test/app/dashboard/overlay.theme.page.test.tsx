@@ -82,6 +82,7 @@ jest.mock("@heroui/react", () => {
 			return R.createElement(TabsContext.Provider, { value: { onSelectionChange, selectedKey } }, children);
 		},
 		{
+			Panel: ({ children }: any) => children,
 			ListContainer: shared.Card.Content,
 			List: function ThemeTabList({ children, ...props }: any) {
 				return R.createElement("div", { role: "tablist", "aria-label": props["aria-label"] }, children);

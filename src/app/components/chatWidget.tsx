@@ -38,15 +38,27 @@ const ChatWidget = () => {
 
 	useEffect(() => {
 		if (!banner.isVisible) return;
-		const element = document.getElementById("consent-banner-title")?.closest("aside");
-		if (!element) return;
-		const positionPreview = () => setPreviewBottom(window.innerHeight - element.getBoundingClientRect().top + 12);
-		positionPreview();
+		let element: HTMLElement | null = null;
+		const positionPreview = () => {
+			if (element) setPreviewBottom(window.innerHeight - element.getBoundingClientRect().top + 12);
+		};
 		const observer = new ResizeObserver(positionPreview);
-		observer.observe(element);
+		const findBanner = () => {
+			const next = document.getElementById("consent-banner-title")?.closest("aside") ?? null;
+			if (next === element) return;
+			observer.disconnect();
+			element = next;
+			if (element) observer.observe(element);
+			positionPreview();
+		};
+		findBanner();
+		// Consent portals mount later and move when the mobile drawer opens.
+		const mutations = new MutationObserver(findBanner);
+		mutations.observe(document.body, { childList: true, subtree: true });
 		window.addEventListener("resize", positionPreview);
 		return () => {
 			observer.disconnect();
+			mutations.disconnect();
 			window.removeEventListener("resize", positionPreview);
 		};
 	}, [banner.isVisible]);

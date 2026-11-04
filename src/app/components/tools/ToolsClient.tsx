@@ -100,7 +100,7 @@ export default function ToolsClient({ overlays, galleries, initialTool, initialG
 
 	return (
 		<DashboardEditorLayout>
-			<Tabs data-tour='tools-tabs' selectedKey={tool} onSelectionChange={(key) => setTool(key === "gallery" ? "gallery" : "player")} className='w-fit max-w-full'>
+			<Tabs data-tour='tools-tabs' selectedKey={tool} onSelectionChange={(key) => setTool(key === "gallery" ? "gallery" : "player")} className='w-full min-w-0'>
 				<Tabs.ListContainer className='w-fit max-w-full'>
 					<Tabs.List aria-label='Integration tool' className='w-fit max-w-full *:w-fit'>
 						<Tabs.Tab id='player' className='flex-none'>
@@ -113,106 +113,107 @@ export default function ToolsClient({ overlays, galleries, initialTool, initialG
 						</Tabs.Tab>
 					</Tabs.List>
 				</Tabs.ListContainer>
+				<Tabs.Panel id={tool}>
+					<div className='grid grid-cols-1 items-start gap-4 md:grid-cols-2 md:gap-8'>
+						<Card>
+							<Card.Header>
+								<div className='flex items-center gap-3'>
+									<Button isIconOnly variant='tertiary' aria-label='Back to dashboard' onPress={() => router.push("/dashboard")}>
+										<IconArrowLeft />
+									</Button>
+									<div>
+										<h2 className='text-xl font-bold'>{tool === "player" ? "Configure Clip Player" : "Configure Clip Gallery"}</h2>
+										<p className='text-sm text-muted'>Choose a resource and copy the installation code.</p>
+									</div>
+								</div>
+							</Card.Header>
+							<Separator />
+							<Card.Content className='flex flex-col gap-5'>
+								{tool === "player" ? (
+									<>
+										<div data-tour='tools-player'>
+											<ResourceSelect label='Player' value={overlayId} items={overlays} onChange={setOverlayId} />
+										</div>
+										{overlay ? (
+											<p className='text-sm text-muted'>
+												<span className='font-semibold text-foreground'>{overlay.name}</span>
+											</p>
+										) : (
+											<p className='text-sm text-muted'>Create an overlay before installing a Clip Player.</p>
+										)}
+										<CopyField label='Player ID' value={overlayId} description='This ID identifies the selected Clipify player. Overlay secrets are never exposed.' />
+										<div className='grid gap-3 sm:grid-cols-2'>
+											<OptionSwitch isSelected={muted} onChange={setMuted}>
+												Muted
+											</OptionSwitch>
+											<OptionSwitch isSelected={autoplay} onChange={setAutoplay}>
+												Autoplay
+											</OptionSwitch>
+											<OptionSwitch isSelected={showBanner} onChange={setShowBanner}>
+												Branding banner
+											</OptionSwitch>
+											<OptionSwitch isSelected={showOverlay} onChange={setShowOverlay}>
+												Player display
+											</OptionSwitch>
+										</div>
+										<CopyField label='Player URL' value={playerUrl} />
+										<div data-tour='website-code'>
+											<CopyField
+												label='Iframe code'
+												value={playerIframe}
+												copyTourTarget={overlay ? "website-copy" : undefined}
+												onCopied={() => {
+													if (overlay) report({ type: "website.copied", ownerId: overlay.ownerId, id: overlay.id });
+												}}
+											/>
+										</div>
+										<CopyField label='Clipify Player element' value={playerElement} />
+									</>
+								) : (
+									<>
+										<ResourceSelect label='Gallery' value={galleryId} items={galleries} onChange={setGalleryId} />
+										{gallery ? (
+											<p className='text-sm text-muted'>
+												<span className='font-semibold text-foreground'>{gallery.name}</span> · {gallery.published ? "Published" : "Draft"} · {gallery.source === "curated" ? "Curated" : "Live"}
+											</p>
+										) : (
+											<p className='text-sm text-muted'>Create a gallery before installing it.</p>
+										)}
+										<CopyField label='Gallery ID' value={galleryId} />
+										<CopyField label='Clipify Gallery element' value={galleryElement} />
+										<p className='text-sm text-muted'>Install Clipify Elements once, then place this element where the gallery should appear. Galleries intentionally have no raw iframe embed because the website-level clip modal must be created in the host page.</p>
+									</>
+								)}
+							</Card.Content>
+							<Card.Footer className='flex flex-wrap gap-2'>
+								<Link href={CLIPIFY_ELEMENTS_HELP_URL} target='_blank' rel='noopener noreferrer' className={buttonVariants({ variant: "primary" })}>
+									Install Clipify Elements
+									<Link.Icon />
+								</Link>
+								{tool === "gallery" && galleryId ? (
+									<Link href={`/dashboard/galleries/${galleryId}`} className={buttonVariants({ variant: "tertiary" })}>
+										Configure gallery
+									</Link>
+								) : null}
+							</Card.Footer>
+						</Card>
+
+						<Card>
+							<Card.Header>
+								<div>
+									<h2 className='text-xl font-bold'>Preview</h2>
+									<p className='text-sm text-muted'>{tool === "gallery" ? "Test the gallery on a realistic website canvas." : "Preview the selected player configuration."}</p>
+								</div>
+							</Card.Header>
+							<Separator />
+							<Card.Content>
+								{tool === "player" && overlayId ? <ClipifyElementPreview type='player' resourceId={overlayId} /> : null}
+								{tool === "gallery" && galleryPreview?.gallery.id === galleryId ? <GalleryInlinePreview gallery={galleryPreview.gallery} clips={galleryPreview.clips} ownerName={galleryPreview.ownerName} showAttribution={galleryPreview.showAttribution} /> : null}
+							</Card.Content>
+						</Card>
+					</div>
+				</Tabs.Panel>
 			</Tabs>
-
-			<div className='grid grid-cols-1 items-start gap-4 md:grid-cols-2 md:gap-8'>
-				<Card>
-					<Card.Header>
-						<div className='flex items-center gap-3'>
-							<Button isIconOnly variant='tertiary' aria-label='Back to dashboard' onPress={() => router.push("/dashboard")}>
-								<IconArrowLeft />
-							</Button>
-							<div>
-								<h2 className='text-xl font-bold'>{tool === "player" ? "Configure Clip Player" : "Configure Clip Gallery"}</h2>
-								<p className='text-sm text-muted'>Choose a resource and copy the installation code.</p>
-							</div>
-						</div>
-					</Card.Header>
-					<Separator />
-					<Card.Content className='flex flex-col gap-5'>
-						{tool === "player" ? (
-							<>
-								<div data-tour='tools-player'>
-									<ResourceSelect label='Player' value={overlayId} items={overlays} onChange={setOverlayId} />
-								</div>
-								{overlay ? (
-									<p className='text-sm text-muted'>
-										<span className='font-semibold text-foreground'>{overlay.name}</span>
-									</p>
-								) : (
-									<p className='text-sm text-muted'>Create an overlay before installing a Clip Player.</p>
-								)}
-								<CopyField label='Player ID' value={overlayId} description='This ID identifies the selected Clipify player. Overlay secrets are never exposed.' />
-								<div className='grid gap-3 sm:grid-cols-2'>
-									<OptionSwitch isSelected={muted} onChange={setMuted}>
-										Muted
-									</OptionSwitch>
-									<OptionSwitch isSelected={autoplay} onChange={setAutoplay}>
-										Autoplay
-									</OptionSwitch>
-									<OptionSwitch isSelected={showBanner} onChange={setShowBanner}>
-										Branding banner
-									</OptionSwitch>
-									<OptionSwitch isSelected={showOverlay} onChange={setShowOverlay}>
-										Player display
-									</OptionSwitch>
-								</div>
-								<CopyField label='Player URL' value={playerUrl} />
-								<div data-tour='website-code'>
-									<CopyField
-										label='Iframe code'
-										value={playerIframe}
-										copyTourTarget={overlay ? "website-copy" : undefined}
-										onCopied={() => {
-											if (overlay) report({ type: "website.copied", ownerId: overlay.ownerId, id: overlay.id });
-										}}
-									/>
-								</div>
-								<CopyField label='Clipify Player element' value={playerElement} />
-							</>
-						) : (
-							<>
-								<ResourceSelect label='Gallery' value={galleryId} items={galleries} onChange={setGalleryId} />
-								{gallery ? (
-									<p className='text-sm text-muted'>
-										<span className='font-semibold text-foreground'>{gallery.name}</span> · {gallery.published ? "Published" : "Draft"} · {gallery.source === "curated" ? "Curated" : "Live"}
-									</p>
-								) : (
-									<p className='text-sm text-muted'>Create a gallery before installing it.</p>
-								)}
-								<CopyField label='Gallery ID' value={galleryId} />
-								<CopyField label='Clipify Gallery element' value={galleryElement} />
-								<p className='text-sm text-muted'>Install Clipify Elements once, then place this element where the gallery should appear. Galleries intentionally have no raw iframe embed because the website-level clip modal must be created in the host page.</p>
-							</>
-						)}
-					</Card.Content>
-					<Card.Footer className='flex flex-wrap gap-2'>
-						<Link href={CLIPIFY_ELEMENTS_HELP_URL} target='_blank' rel='noopener noreferrer' className={buttonVariants({ variant: "primary" })}>
-							Install Clipify Elements
-							<Link.Icon />
-						</Link>
-						{tool === "gallery" && galleryId ? (
-							<Link href={`/dashboard/galleries/${galleryId}`} className={buttonVariants({ variant: "tertiary" })}>
-								Configure gallery
-							</Link>
-						) : null}
-					</Card.Footer>
-				</Card>
-
-				<Card>
-					<Card.Header>
-						<div>
-							<h2 className='text-xl font-bold'>Preview</h2>
-							<p className='text-sm text-muted'>{tool === "gallery" ? "Test the gallery on a realistic website canvas." : "Preview the selected player configuration."}</p>
-						</div>
-					</Card.Header>
-					<Separator />
-					<Card.Content>
-						{tool === "player" && overlayId ? <ClipifyElementPreview type='player' resourceId={overlayId} /> : null}
-						{tool === "gallery" && galleryPreview?.gallery.id === galleryId ? <GalleryInlinePreview gallery={galleryPreview.gallery} clips={galleryPreview.clips} ownerName={galleryPreview.ownerName} showAttribution={galleryPreview.showAttribution} /> : null}
-					</Card.Content>
-				</Card>
-			</div>
 		</DashboardEditorLayout>
 	);
 }

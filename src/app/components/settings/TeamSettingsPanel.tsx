@@ -408,6 +408,123 @@ export default function TeamSettingsPanel({ embedded = false }: { embedded?: boo
 			<FullscreenLoadingState message='Loading team settings' />
 		);
 
+	const teamContent = !organization ? (
+		<Card>
+			<Card.Header data-tour='team-overview'>
+				<Card.Title>No creator account available</Card.Title>
+				<Card.Description>This identity is not connected to a creator account that has Team management.</Card.Description>
+			</Card.Header>
+		</Card>
+	) : (
+		<Card>
+			<Card.Header data-tour='team-overview' className='flex-col items-stretch gap-4 sm:flex-row sm:items-center sm:justify-between'>
+				<div className='flex items-center gap-3'>
+					<div className='flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent'>
+						<IconUsersGroup aria-hidden='true' size={20} />
+					</div>
+					<div>
+						<Card.Title>{organization.name}</Card.Title>
+						<Card.Description>Manage active members and pending invitations from one place.</Card.Description>
+					</div>
+				</div>
+				<Button variant='primary' isDisabled={!canInviteMembers} onPress={openInvitationEditor}>
+					<IconUserPlus aria-hidden='true' size={18} />
+					Invite member
+				</Button>
+			</Card.Header>
+			<Card.Content>
+				<Table variant='secondary'>
+					<Table.ScrollContainer>
+						<Table.Content aria-label='Team members and invitations' className='min-w-[760px]'>
+							<Table.Header>
+								<Table.Column isRowHeader>Member</Table.Column>
+								<Table.Column>Access</Table.Column>
+								<Table.Column>Status</Table.Column>
+								<Table.Column className='text-end'>Actions</Table.Column>
+							</Table.Header>
+							<Table.Body renderEmptyState={() => <div className='p-8 text-center text-sm text-muted'>{isLoadingTeam ? "Loading team…" : "No team members or pending invitations."}</div>}>
+								{teamRows.map((row) => {
+									if (row.kind === "invitation") {
+										const { invitation } = row;
+										return (
+											<Table.Row key={`invitation-${invitation.id}`} id={`invitation-${invitation.id}`} textValue={invitation.email} className='opacity-65'>
+												<Table.Cell>
+													<div className='flex items-center gap-3'>
+														<div className='flex size-9 shrink-0 items-center justify-center rounded-full bg-surface-secondary text-muted'>
+															<IconMail aria-hidden='true' size={17} />
+														</div>
+														<div className='min-w-0'>
+															<p className='truncate font-medium'>{invitation.email}</p>
+															<p className='text-xs text-muted'>Expires {formatExpiration(invitation.expiresAt)}</p>
+														</div>
+													</div>
+												</Table.Cell>
+												<Table.Cell>{formatRole(invitation.role)}</Table.Cell>
+												<Table.Cell>
+													<Chip color='warning' size='sm' variant='soft'>
+														Pending invitation
+													</Chip>
+												</Table.Cell>
+												<Table.Cell>
+													<div className='flex justify-end gap-1'>
+														<Button isIconOnly size='sm' variant='secondary' isDisabled aria-label={`Edit invitation for ${invitation.email}`}>
+															<IconPencil aria-hidden='true' size={16} />
+														</Button>
+														<Button isIconOnly size='sm' variant='danger-soft' isPending={pendingAction === `revoke-${invitation.id}`} isDisabled={pendingAction !== null} aria-label={`Revoke invitation for ${invitation.email}`} onPress={() => void revokeInvitation(invitation.id)}>
+															<IconTrash aria-hidden='true' size={16} />
+														</Button>
+													</div>
+												</Table.Cell>
+											</Table.Row>
+										);
+									}
+
+									const { member } = row;
+									const isOwner = member.role.split(",").includes("owner");
+									const isCurrentMember = member.user.id === identitySession.data?.user.id;
+									return (
+										<Table.Row key={member.id} id={member.id} textValue={member.user.name || member.user.email}>
+											<Table.Cell>
+												<div className='flex items-center gap-3'>
+													<DashboardUserAvatar username={member.user.name || member.user.email} avatar='' />
+													<div className='min-w-0'>
+														<p className='truncate font-medium'>{member.user.name || member.user.email}</p>
+														<p className='truncate text-sm text-muted'>{member.user.email}</p>
+													</div>
+												</div>
+											</Table.Cell>
+											<Table.Cell>
+												<div className='flex items-center gap-2'>
+													<IconShieldCheck aria-hidden='true' className='text-muted' size={17} />
+													<span>{formatRole(member.role)}</span>
+												</div>
+											</Table.Cell>
+											<Table.Cell>
+												<Chip color={isOwner ? "accent" : "success"} size='sm' variant='soft'>
+													{isOwner ? "Owner" : "Active"}
+												</Chip>
+											</Table.Cell>
+											<Table.Cell>
+												<div className='flex justify-end gap-1'>
+													<Button isIconOnly size='sm' variant='secondary' isDisabled={isOwner || isCurrentMember || !canUpdateMembers || pendingAction !== null} aria-label={`Edit access for ${member.user.email}`} onPress={() => openMemberEditor(member)}>
+														<IconPencil aria-hidden='true' size={16} />
+													</Button>
+													<Button isIconOnly size='sm' variant='danger-soft' isPending={pendingAction === `remove-${member.id}`} isDisabled={isOwner || isCurrentMember || !canRemoveMembers || pendingAction !== null} aria-label={`Remove ${member.user.email}`} onPress={() => void removeMember(member.id)}>
+														<IconTrash aria-hidden='true' size={16} />
+													</Button>
+												</div>
+											</Table.Cell>
+										</Table.Row>
+									);
+								})}
+							</Table.Body>
+						</Table.Content>
+					</Table.ScrollContainer>
+				</Table>
+			</Card.Content>
+		</Card>
+	);
+
 	return (
 		<TeamSettingsLayout user={user} embedded={embedded}>
 			<div className='mt-6 flex w-full flex-col gap-6 pb-10'>
@@ -419,123 +536,7 @@ export default function TeamSettingsPanel({ embedded = false }: { embedded?: boo
 						</Button>
 					</div>
 				)}
-				{embedded || isAgencyOrganization ? null : <SettingsNavigation active='team' />}
-				{!organization ? (
-					<Card>
-						<Card.Header data-tour='team-overview'>
-							<Card.Title>No creator account available</Card.Title>
-							<Card.Description>This identity is not connected to a creator account that has Team management.</Card.Description>
-						</Card.Header>
-					</Card>
-				) : (
-					<Card>
-						<Card.Header data-tour='team-overview' className='flex-col items-stretch gap-4 sm:flex-row sm:items-center sm:justify-between'>
-							<div className='flex items-center gap-3'>
-								<div className='flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent'>
-									<IconUsersGroup aria-hidden='true' size={20} />
-								</div>
-								<div>
-									<Card.Title>{organization.name}</Card.Title>
-									<Card.Description>Manage active members and pending invitations from one place.</Card.Description>
-								</div>
-							</div>
-							<Button variant='primary' isDisabled={!canInviteMembers} onPress={openInvitationEditor}>
-								<IconUserPlus aria-hidden='true' size={18} />
-								Invite member
-							</Button>
-						</Card.Header>
-						<Card.Content>
-							<Table variant='secondary'>
-								<Table.ScrollContainer>
-									<Table.Content aria-label='Team members and invitations' className='min-w-[760px]'>
-										<Table.Header>
-											<Table.Column isRowHeader>Member</Table.Column>
-											<Table.Column>Access</Table.Column>
-											<Table.Column>Status</Table.Column>
-											<Table.Column className='text-end'>Actions</Table.Column>
-										</Table.Header>
-										<Table.Body renderEmptyState={() => <div className='p-8 text-center text-sm text-muted'>{isLoadingTeam ? "Loading team…" : "No team members or pending invitations."}</div>}>
-											{teamRows.map((row) => {
-												if (row.kind === "invitation") {
-													const { invitation } = row;
-													return (
-														<Table.Row key={`invitation-${invitation.id}`} id={`invitation-${invitation.id}`} textValue={invitation.email} className='opacity-65'>
-															<Table.Cell>
-																<div className='flex items-center gap-3'>
-																	<div className='flex size-9 shrink-0 items-center justify-center rounded-full bg-surface-secondary text-muted'>
-																		<IconMail aria-hidden='true' size={17} />
-																	</div>
-																	<div className='min-w-0'>
-																		<p className='truncate font-medium'>{invitation.email}</p>
-																		<p className='text-xs text-muted'>Expires {formatExpiration(invitation.expiresAt)}</p>
-																	</div>
-																</div>
-															</Table.Cell>
-															<Table.Cell>{formatRole(invitation.role)}</Table.Cell>
-															<Table.Cell>
-																<Chip color='warning' size='sm' variant='soft'>
-																	Pending invitation
-																</Chip>
-															</Table.Cell>
-															<Table.Cell>
-																<div className='flex justify-end gap-1'>
-																	<Button isIconOnly size='sm' variant='secondary' isDisabled aria-label={`Edit invitation for ${invitation.email}`}>
-																		<IconPencil aria-hidden='true' size={16} />
-																	</Button>
-																	<Button isIconOnly size='sm' variant='danger-soft' isPending={pendingAction === `revoke-${invitation.id}`} isDisabled={pendingAction !== null} aria-label={`Revoke invitation for ${invitation.email}`} onPress={() => void revokeInvitation(invitation.id)}>
-																		<IconTrash aria-hidden='true' size={16} />
-																	</Button>
-																</div>
-															</Table.Cell>
-														</Table.Row>
-													);
-												}
-
-												const { member } = row;
-												const isOwner = member.role.split(",").includes("owner");
-												const isCurrentMember = member.user.id === identitySession.data?.user.id;
-												return (
-													<Table.Row key={member.id} id={member.id} textValue={member.user.name || member.user.email}>
-														<Table.Cell>
-															<div className='flex items-center gap-3'>
-																<DashboardUserAvatar username={member.user.name || member.user.email} avatar='' />
-																<div className='min-w-0'>
-																	<p className='truncate font-medium'>{member.user.name || member.user.email}</p>
-																	<p className='truncate text-sm text-muted'>{member.user.email}</p>
-																</div>
-															</div>
-														</Table.Cell>
-														<Table.Cell>
-															<div className='flex items-center gap-2'>
-																<IconShieldCheck aria-hidden='true' className='text-muted' size={17} />
-																<span>{formatRole(member.role)}</span>
-															</div>
-														</Table.Cell>
-														<Table.Cell>
-															<Chip color={isOwner ? "accent" : "success"} size='sm' variant='soft'>
-																{isOwner ? "Owner" : "Active"}
-															</Chip>
-														</Table.Cell>
-														<Table.Cell>
-															<div className='flex justify-end gap-1'>
-																<Button isIconOnly size='sm' variant='secondary' isDisabled={isOwner || isCurrentMember || !canUpdateMembers || pendingAction !== null} aria-label={`Edit access for ${member.user.email}`} onPress={() => openMemberEditor(member)}>
-																	<IconPencil aria-hidden='true' size={16} />
-																</Button>
-																<Button isIconOnly size='sm' variant='danger-soft' isPending={pendingAction === `remove-${member.id}`} isDisabled={isOwner || isCurrentMember || !canRemoveMembers || pendingAction !== null} aria-label={`Remove ${member.user.email}`} onPress={() => void removeMember(member.id)}>
-																	<IconTrash aria-hidden='true' size={16} />
-																</Button>
-															</div>
-														</Table.Cell>
-													</Table.Row>
-												);
-											})}
-										</Table.Body>
-									</Table.Content>
-								</Table.ScrollContainer>
-							</Table>
-						</Card.Content>
-					</Card>
-				)}
+				{embedded || isAgencyOrganization ? teamContent : <SettingsNavigation active='team'>{teamContent}</SettingsNavigation>}
 			</div>
 
 			<Modal.Backdrop

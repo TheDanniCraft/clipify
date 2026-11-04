@@ -84,13 +84,14 @@ jest.mock("@components/controlledModal", () => ({
 jest.mock("@components/creator/CreatorAnalyticsCard", () => ({ __esModule: true, default: () => <p>Creator analytics panel</p> }));
 jest.mock("@components/settingsNavigation", () => ({
 	__esModule: true,
-	default: ({ onCoreSectionChange }: any) => (
+	default: ({ onCoreSectionChange, children }: any) => (
 		<nav>
 			{["settings", "connections", "creator", "billing", "team"].map((section) => (
 				<button key={section} onClick={() => onCoreSectionChange(section)}>
 					{section} section
 				</button>
 			))}
+			{children}
 		</nav>
 	),
 }));

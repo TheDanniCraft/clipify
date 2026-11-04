@@ -29,7 +29,7 @@ function markUtilityHostReady(node: HTMLDivElement | null) {
 function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { children: ReactNode; creatorId: string; permissions: Permission[]; open: boolean; setOpen: (open: boolean) => void }) {
 	const router = useRouter();
 	const path = usePathname();
-	const sidebar = useSidebar();
+	const { isMobile, isMobileOpen, setMobileOpen } = useSidebar();
 	const [searchOpen, setSearchOpen] = useState(false);
 	const [preview, setPreview] = useState<SearchClip | null>(null);
 	const [waitingForDrawer, setWaitingForDrawer] = useState(false);
@@ -46,42 +46,46 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 	if (path.startsWith("/dashboard/runner/")) active = "/dashboard/runners";
 	const current = allowed.find((item) => active === item.href || (item.href !== "/dashboard" && active.startsWith(item.href + "/")));
 	useEffect(() => {
-		if (!sidebar.isMobileOpen) return;
+		if (!isMobileOpen) return;
 		const closeForUtility = (event: MouseEvent) => {
-			if (event.target instanceof Element && event.target.closest("#dashboard-mobile-utilities button")) sidebar.setMobileOpen(false);
+			if (event.target instanceof Element && event.target.closest("#dashboard-mobile-utilities button") && !event.target.closest("[data-dashboard-account-controls]")) setMobileOpen(false);
 		};
 		// Widget portals bubble through their React owners, so observe their DOM event here.
 		document.addEventListener("click", closeForUtility, true);
 		return () => document.removeEventListener("click", closeForUtility, true);
-	}, [sidebar.isMobileOpen, sidebar.setMobileOpen]);
+	}, [isMobileOpen, setMobileOpen]);
 
-	const toggle = () => (sidebar.isMobile ? sidebar.setMobileOpen(!sidebar.isMobileOpen) : setOpen(!open));
+	useEffect(() => {
+		setMobileOpen(false);
+	}, [path, setMobileOpen]);
+
+	const toggle = () => (isMobile ? setMobileOpen(!isMobileOpen) : setOpen(!open));
 	const showSearch = () => {
 		setQuery("");
 		setClips([]);
 		setSearchError(false);
-		if (sidebar.isMobileOpen) {
-			sidebar.setMobileOpen(false);
+		if (isMobileOpen) {
+			setMobileOpen(false);
 			setWaitingForDrawer(true);
 		} else setSearchOpen(true);
 	};
 	useEffect(() => {
-		if (!waitingForDrawer || sidebar.isMobileOpen) return;
+		if (!waitingForDrawer || isMobileOpen) return;
 		const timer = setTimeout(() => {
 			setWaitingForDrawer(false);
 			setSearchOpen(true);
 		}, 250);
 		return () => clearTimeout(timer);
-	}, [waitingForDrawer, sidebar.isMobileOpen]);
+	}, [waitingForDrawer, isMobileOpen]);
 	useEffect(() => {
-		if (!sidebar.isMobile) sidebar.setMobileOpen(false);
-	}, [sidebar.isMobile, sidebar.setMobileOpen]);
+		if (!isMobile) setMobileOpen(false);
+	}, [isMobile, setMobileOpen]);
 	useEffect(() => {
 		const handle = (event: KeyboardEvent) => {
 			const target = event.target instanceof Element ? event.target : null;
 			if (!(event.ctrlKey || event.metaKey) || target?.closest("input,textarea,select,[contenteditable=true]")) return;
 			if (event.key.toLowerCase() === "k") {
-				if (document.querySelector('[role="dialog"][aria-modal="true"]') && !sidebar.isMobileOpen) return;
+				if (document.querySelector('[role="dialog"][aria-modal="true"]') && !isMobileOpen) return;
 				event.preventDefault();
 				showSearch();
 			}
@@ -127,13 +131,13 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 	const navigation = (
 		<>
 			<Sidebar.Header>
-				<NextLink data-tour={sidebar.isMobile ? undefined : "dashboard-home"} href='/dashboard' aria-label='Clipify Home' className='flex h-12 items-center gap-2 px-1 font-bold text-foreground'>
+				<NextLink data-tour={isMobile ? undefined : "dashboard-home"} href='/dashboard' aria-label='Clipify Home' className='flex h-12 items-center gap-2 px-1 font-bold text-foreground'>
 					<Logo width={28} />
-					{sidebar.isMobile || open ? <span>Clipify</span> : null}
+					{isMobile || open ? <span>Clipify</span> : null}
 				</NextLink>
-				<Button ref={searchRef} variant='secondary' isIconOnly={!sidebar.isMobile && !open} className={sidebar.isMobile || open ? "w-full justify-start" : "w-full justify-center"} aria-label='Search clips and tools' aria-haspopup='dialog' onPress={showSearch}>
+				<Button ref={searchRef} variant='secondary' isIconOnly={!isMobile && !open} className={isMobile || open ? "w-full justify-start" : "w-full justify-center"} aria-label='Search clips and tools' aria-haspopup='dialog' onPress={showSearch}>
 					<IconSearch className='size-4 shrink-0' />
-					{sidebar.isMobile || open ? <span className='truncate'>Search clips and tools</span> : null}
+					{isMobile || open ? <span className='truncate'>Search clips and tools</span> : null}
 				</Button>
 			</Sidebar.Header>
 			<Sidebar.Content>
@@ -168,23 +172,23 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 							<IconHelpCircle className='size-4' />
 						</Button>
 					) : null}
-					<div ref={markUtilityHostReady} id={sidebar.isMobile ? "dashboard-mobile-utilities" : "dashboard-utilities"} className={open ? "flex flex-col gap-2" : "hidden"} />
+					<div ref={markUtilityHostReady} id={isMobile ? "dashboard-mobile-utilities" : "dashboard-utilities"} className={open ? "flex flex-col gap-2" : "hidden"} />
 				</Sidebar.Footer>
 			}
 		</>
 	);
 	const changeSearch = (open: boolean) => {
 		setSearchOpen(open);
-		if (!open) requestAnimationFrame(() => (sidebar.isMobile ? document.querySelector<HTMLButtonElement>('[aria-label="Toggle navigation"]') : searchRef.current)?.focus());
+		if (!open) requestAnimationFrame(() => (isMobile ? document.querySelector<HTMLButtonElement>('[aria-label="Toggle navigation"]') : searchRef.current)?.focus());
 	};
 	return (
 		<DashboardNavigationContext.Provider
 			value={{
 				toggle,
 				search: showSearch,
-				expanded: sidebar.isMobile ? sidebar.isMobileOpen : open,
-				mobile: sidebar.isMobile,
-				current: current ? { href: current.href, title: current.title, detail: path !== current.href } : undefined,
+				expanded: isMobile ? isMobileOpen : open,
+				mobile: isMobile,
+				current: current ? { href: current.href, title: current.title, detail: path !== current.href, detailLabel: current.href === "/dashboard/settings" ? (path.startsWith("/dashboard/settings/team") ? "Team" : path.startsWith("/dashboard/settings/agencies") ? "Agency access" : "Account recovery") : undefined } : undefined,
 				registerSearch: (node) => {
 					searchRef.current = node;
 				},
@@ -194,7 +198,7 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 			<Sidebar.Mobile>{navigation}</Sidebar.Mobile>
 			<Sidebar.Main className='min-w-0'>
 				{children}
-				{sidebar.isMobile ? <div ref={markUtilityHostReady} id='dashboard-utilities' className='hidden' /> : null}
+				{isMobile ? <div ref={markUtilityHostReady} id='dashboard-utilities' className='hidden' /> : null}
 			</Sidebar.Main>
 			<Command>
 				<Command.Backdrop isOpen={searchOpen} onOpenChange={changeSearch}>
@@ -292,7 +296,7 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 					clip={preview}
 					onClose={() => {
 						setPreview(null);
-						requestAnimationFrame(() => (sidebar.isMobile ? document.querySelector<HTMLButtonElement>('[aria-label="Toggle navigation"]') : searchRef.current)?.focus());
+						requestAnimationFrame(() => (isMobile ? document.querySelector<HTMLButtonElement>('[aria-label="Toggle navigation"]') : searchRef.current)?.focus());
 					}}
 				/>
 			) : null}

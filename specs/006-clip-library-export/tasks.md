@@ -707,3 +707,9 @@ These tasks track the authorized follow-up to the rejected UI. Original atomic r
 - [x] T621 Commit/push the reviewed source, update PR546, verify the updated preview deployment and run required ready-for-review CI. Do not merge or release.
 
 T621 publication evidence: application head17fc33de476ada2f2739fdf620437a3db12dccf7 passed complete ready-for-review CI [41706820598](https://github.com/TheDanniCraft/clipify/actions/runs/41706820598), and the updated preview is live. The subsequent FIXTURE-019 test-proxy origin guard has passing local whole-file and browser checks; its own full CI/CodeQL result remains a required PR check before merge. No merge or release was performed.
+
+## Complete dashboard audit follow-up, 2026-11-04
+
+- [x] T622 Inventory every dashboard route family; restore official HeroUI skills, inspect authenticated Mobbin references, document concrete shared-source findings and their owners in dashboard-audit.md.
+- [x] T623 Complete affected whole-file coverage, production-build browser route/accessibility matrices, consent/export/draft/account recovery and screenshot review for the final correction source. Preserve failed-run evidence and existing thresholds.
+- [ ] T624 Commit/push the completed correction, update PR546, verify its deployment and finish the exact-head required full CI gate. Do not merge or release.

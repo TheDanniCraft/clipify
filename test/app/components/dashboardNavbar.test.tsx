@@ -34,6 +34,7 @@ jest.mock("next-themes", () => ({
 }));
 
 jest.mock("next/navigation", () => ({
+	usePathname: () => "/dashboard/overlays",
 	useRouter: () => ({
 		push: routerPush,
 		refresh: routerRefresh,
@@ -144,6 +145,7 @@ jest.mock("@heroui/react", () => {
 describe("components/dashboardNavbar", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
+		window.innerWidth = 1024;
 		jest.useFakeTimers();
 		currentTheme = "dark";
 		getActiveCampaignOfferAction.mockResolvedValue(null);
@@ -382,6 +384,7 @@ describe("components/dashboardNavbar", () => {
 		await waitFor(() => expect(stopAdminView).toHaveBeenCalled());
 	});
 	it("uses shell controls and breadcrumbs without nesting another main landmark", () => {
+		window.innerWidth = 390;
 		const toggle = jest.fn();
 		const search = jest.fn();
 		const view = render(
@@ -410,6 +413,25 @@ describe("components/dashboardNavbar", () => {
 		await act(async () => {});
 		expect(routerRefresh).toHaveBeenCalledTimes(denied ? 0 : 1);
 		expect(routerPush).not.toHaveBeenCalled();
+	});
+
+	it("does not restore the old route account after the user switches workspaces", async () => {
+		identitySession = { data: { session: { activeOrganizationId: "agency-org" } }, isPending: false };
+		organizationList.data = [
+			{ id: "creator-org", name: "Creator" },
+			{ id: "agency-org", name: "Agency", metadata: { accountType: "agency" } },
+		];
+		const view = render(<DashboardNavbar user={mockUser()} organizationId='agency-org' title='Agency' tagline='Account' />);
+		fireEvent.click(screen.getByRole("button", { name: /^Creator/ }));
+		await waitFor(() => expect(routerPush).toHaveBeenCalledWith("/dashboard"));
+		identitySession = { data: { session: { activeOrganizationId: "creator-org" } }, isPending: false };
+		view.rerender(<DashboardNavbar user={mockUser()} organizationId='agency-org' title='Agency' tagline='Account' />);
+		await act(async () => {});
+		expect(setActiveOrganization).toHaveBeenCalledTimes(1);
+		expect(setActiveOrganization).toHaveBeenCalledWith({ organizationId: "creator-org" });
+		view.rerender(<DashboardNavbar user={mockUser()} organizationId='creator-org' title='Home' tagline='Account' />);
+		view.rerender(<DashboardNavbar user={mockUser()} organizationId='agency-org' title='Agency' tagline='Account' />);
+		await waitFor(() => expect(setActiveOrganization).toHaveBeenCalledWith({ organizationId: "agency-org" }));
 	});
 
 	it("ignores duplicate account switches, preserves a denied account and can retry", async () => {

@@ -36,7 +36,7 @@ export default async function StreamPage({ params, searchParams }: { params: Pro
 				<span>Known clips: {stream.broadcast.clipCount === null ? "Unavailable" : stream.broadcast.clipCount.toLocaleString()}</span>
 				<span>Current clip views: {stream.broadcast.clipViews === null ? "Unavailable" : stream.broadcast.clipViews.toLocaleString()}</span>
 			</div>
-			{stream.stale ? <p className='mt-3 text-sm text-warning'>Showing saved broadcast information.</p> : null}
+			{stream.stale ? <p className='mt-3 text-sm text-warning-soft-foreground'>Showing saved broadcast information.</p> : null}
 			<ClipInventory key={`${user.id}:${videoId}`} creatorId={user.id} query={raw} data={data} />
 		</DashboardNavbar>
 	);

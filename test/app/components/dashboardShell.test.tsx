@@ -84,6 +84,7 @@ const content = (
 beforeEach(() => {
 	path = "/dashboard/clips";
 	mobile = false;
+	window.innerWidth = 1024;
 	jest.clearAllMocks();
 	search.mockResolvedValue({ ok: true, items: [] });
 });
@@ -217,6 +218,7 @@ it("ignores a search response after its query is superseded", async () => {
 
 it("closes mobile navigation before opening command search", async () => {
 	mobile = true;
+	window.innerWidth = 390;
 	render(
 		<DashboardShell creatorId='owner' permissions={[...PERMISSIONS]}>
 			{content}
@@ -251,6 +253,7 @@ it.each([
 	["runners", "Runner"],
 ])("exposes the already-open mobile %s destination to the guide", (resource, _title) => {
 	mobile = true;
+	window.innerWidth = 390;
 	path = `/dashboard/${resource}`;
 	render(
 		<DashboardShell creatorId='owner' permissions={[...PERMISSIONS]}>
@@ -263,6 +266,7 @@ it.each([
 
 it("closes mobile navigation for a utility portaled from another React owner", () => {
 	mobile = true;
+	window.innerWidth = 390;
 	render(
 		<DashboardShell creatorId='owner' permissions={[...PERMISSIONS]}>
 			{content}
@@ -274,4 +278,24 @@ it("closes mobile navigation for a utility portaled from another React owner", (
 	document.getElementById("dashboard-mobile-utilities")!.append(utility);
 	fireEvent.click(utility);
 	expect(toggle).toHaveAttribute("aria-expanded", "false");
+});
+
+it("waits for the mobile breakpoint before enabling the first menu press", () => {
+	window.innerWidth = 390;
+	const view = render(
+		<DashboardShell creatorId='owner' permissions={[...PERMISSIONS]}>
+			{content}
+		</DashboardShell>,
+	);
+	expect(screen.getByRole("button", { name: "Toggle navigation" })).toBeDisabled();
+	mobile = true;
+	view.rerender(
+		<DashboardShell creatorId='owner' permissions={[...PERMISSIONS]}>
+			{content}
+		</DashboardShell>,
+	);
+	const toggle = screen.getByRole("button", { name: "Toggle navigation" });
+	expect(toggle).toBeEnabled();
+	fireEvent.click(toggle);
+	expect(toggle).toHaveAttribute("aria-expanded", "true");
 });

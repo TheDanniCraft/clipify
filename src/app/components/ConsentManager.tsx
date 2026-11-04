@@ -180,14 +180,14 @@ function ConsentInterface() {
 								</div>
 							</div>
 							<div className='grid gap-2 sm:grid-cols-3 lg:flex lg:items-center'>
-								<Button size='sm' variant='tertiary' isDisabled={pending} onPress={showPreferencesFromBanner}>
+								<Button fullWidth className='lg:w-auto' size='sm' variant='tertiary' isDisabled={pending} onPress={showPreferencesFromBanner}>
 									<IconSettings className='size-4' aria-hidden='true' />
 									Preferences
 								</Button>
-								<Button size='sm' variant='outline' isDisabled={pending} isPending={pendingAction === "reject"} onPress={() => void save("reject", () => performBannerAction("reject"), "banner")}>
+								<Button fullWidth className='lg:w-auto' size='sm' variant='outline' isDisabled={pending} isPending={pendingAction === "reject"} onPress={() => void save("reject", () => performBannerAction("reject"), "banner")}>
 									Reject optional
 								</Button>
-								<Button size='sm' isDisabled={pending} isPending={pendingAction === "accept"} onPress={() => void save("accept", () => performBannerAction("accept"), "banner")}>
+								<Button fullWidth className='lg:w-auto' size='sm' isDisabled={pending} isPending={pendingAction === "accept"} onPress={() => void save("accept", () => performBannerAction("accept"), "banner")}>
 									Accept all
 								</Button>
 							</div>

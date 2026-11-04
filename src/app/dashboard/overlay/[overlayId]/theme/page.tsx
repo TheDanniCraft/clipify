@@ -8,6 +8,7 @@ import { validateAuth } from "@actions/auth";
 import { getOverlay, getOverlayOwnerPlan, saveOverlay } from "@actions/database";
 import ChatwootData from "@components/chatwootData";
 import DashboardNavbar from "@components/dashboardNavbar";
+import DashboardEditorLayout from "@components/dashboardEditorLayout";
 import FullscreenLoadingState from "@components/fullscreenLoadingState";
 import UpgradeModal from "@components/upgradeModal";
 import { getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
@@ -119,7 +120,7 @@ function isGoogleFontsUrl(fontUrl: string | undefined | null): boolean {
 	return sanitizeThemeFontCssUrl(fontUrl) !== "";
 }
 
-function OverlayStylePreview({ overlay, canDrag, onMove, onScaleChange, streamerAvatar, dragBlockedReason }: { overlay: Overlay; canDrag: boolean; onMove: (target: DragTarget, x: number, y: number) => void; onScaleChange: (target: DragTarget, scale: number) => void; streamerAvatar?: string; dragBlockedReason: DragBlockedReason | null }) {
+function OverlayStylePreview({ overlay, canDrag, onMove, onScaleChange, streamerAvatar }: { overlay: Overlay; canDrag: boolean; onMove: (target: DragTarget, x: number, y: number) => void; onScaleChange: (target: DragTarget, scale: number) => void; streamerAvatar?: string; dragBlockedReason: DragBlockedReason | null }) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const channelRef = useRef<HTMLDivElement | null>(null);
 	const clipRef = useRef<HTMLDivElement | null>(null);
@@ -537,7 +538,7 @@ function OverlayStylePreview({ overlay, canDrag, onMove, onScaleChange, streamer
 					</div>
 				)}
 			</div>
-			<div className='mt-2 text-xs text-muted'>{canDrag ? "Drag overlay elements to position them. Use arrow keys to nudge selected items (Shift for larger steps)." : dragBlockedReason === "narrow" ? "Drag and drop needs a wider viewport. Increase browser width or use desktop." : "Drag and drop is only supported on desktop. Switch to a desktop browser."}</div>
+			<div className='mt-2 text-xs text-muted'>{canDrag ? "Drag overlay elements to position them. Use arrow keys to nudge selected items (Shift for larger steps)." : null}</div>
 		</div>
 	);
 }
@@ -726,13 +727,16 @@ export default function OverlayStylePage() {
 			<DashboardNavbar user={user} title='Overlay Style' tagline='Customize look and layout'>
 				<ChatwootData user={user} overlay={overlay} />
 
-				<div className='w-full p-4 md:p-6'>
+				<DashboardEditorLayout>
 					<Card>
-						<Card.Header className='flex w-full flex-row items-center justify-between gap-2'>
-							<Button data-tour='theme-back' isIconOnly variant='tertiary' aria-label='Back to Overlay Settings' onPress={() => router.push(`/dashboard/overlay/${overlay.id}`)}>
-								<IconArrowLeft />
-							</Button>
-							<div className='flex items-center gap-2'>
+						<Card.Header className='flex w-full flex-row flex-wrap items-center justify-between gap-3'>
+							<div className='flex min-w-0 items-center gap-3'>
+								<Button data-tour='theme-back' isIconOnly variant='tertiary' aria-label='Back to Overlay Settings' onPress={() => router.push(`/dashboard/overlay/${overlay.id}`)}>
+									<IconArrowLeft />
+								</Button>
+								<h2 className='text-xl font-bold'>Style settings</h2>
+							</div>
+							<div className='flex w-full items-center justify-end gap-2 sm:w-auto'>
 								<Button variant='tertiary' onPress={handleResetThemeDefaults}>
 									Reset Theme
 								</Button>
@@ -942,51 +946,52 @@ export default function OverlayStylePage() {
 													</Tabs.Tab>
 												</Tabs.List>
 											</Tabs.ListContainer>
+											<Tabs.Panel id={currentFontMode}>
+												{currentFontMode === "website" && <p className='text-xs text-muted'>Using the same default font stack as the Clipify website.</p>}
+
+												{currentFontMode === "system" && (
+													<Select variant='secondary' value={systemFontOptions.some((opt) => opt.key === parsedThemeFont.fontFamily) ? parsedThemeFont.fontFamily : systemFontOptions[0]?.key || "system-ui"} onChange={(value) => setOverlay({ ...overlay, themeFontFamily: encodeThemeFontSetting((value as string) || "system-ui", "") })}>
+														<Label>System Font</Label>
+														<Select.Trigger>
+															<Select.Value />
+															<Select.Indicator />
+														</Select.Trigger>
+														<Select.Popover>
+															<ListBox>
+																{systemFontOptions.map((font) => (
+																	<ListBox.Item key={font.key} id={font.key} textValue={font.label}>
+																		<Label>{font.label}</Label>
+																		<ListBox.ItemIndicator />
+																	</ListBox.Item>
+																))}
+															</ListBox>
+														</Select.Popover>
+													</Select>
+												)}
+
+												{currentFontMode === "google" && (
+													<div className='grid grid-cols-1 lg:grid-cols-2 gap-3'>
+														<TextField type='text'>
+															<Label>Google Font Family</Label>
+															<Input
+																value={googleFontFamily}
+																onChange={(event) =>
+																	((value) => {
+																		const family = (value || "Poppins").trim();
+																		setOverlay({ ...overlay, themeFontFamily: encodeThemeFontSetting(`${family}, sans-serif`, buildGoogleFontUrl(family)) });
+																	})(event.target.value)
+																}
+															/>
+															<Description>Example: Poppins, Space Grotesk, Roboto Slab</Description>
+														</TextField>
+														<TextField type='text' isReadOnly>
+															<Label>Google CSS URL</Label>
+															<Input value={safeThemeFontUrl} />
+														</TextField>
+													</div>
+												)}
+											</Tabs.Panel>
 										</Tabs>
-
-										{currentFontMode === "website" && <p className='text-xs text-muted'>Using the same default font stack as the Clipify website.</p>}
-
-										{currentFontMode === "system" && (
-											<Select variant='secondary' value={systemFontOptions.some((opt) => opt.key === parsedThemeFont.fontFamily) ? parsedThemeFont.fontFamily : systemFontOptions[0]?.key || "system-ui"} onChange={(value) => setOverlay({ ...overlay, themeFontFamily: encodeThemeFontSetting((value as string) || "system-ui", "") })}>
-												<Label>System Font</Label>
-												<Select.Trigger>
-													<Select.Value />
-													<Select.Indicator />
-												</Select.Trigger>
-												<Select.Popover>
-													<ListBox>
-														{systemFontOptions.map((font) => (
-															<ListBox.Item key={font.key} id={font.key} textValue={font.label}>
-																<Label>{font.label}</Label>
-																<ListBox.ItemIndicator />
-															</ListBox.Item>
-														))}
-													</ListBox>
-												</Select.Popover>
-											</Select>
-										)}
-
-										{currentFontMode === "google" && (
-											<div className='grid grid-cols-1 lg:grid-cols-2 gap-3'>
-												<TextField type='text'>
-													<Label>Google Font Family</Label>
-													<Input
-														value={googleFontFamily}
-														onChange={(event) =>
-															((value) => {
-																const family = (value || "Poppins").trim();
-																setOverlay({ ...overlay, themeFontFamily: encodeThemeFontSetting(`${family}, sans-serif`, buildGoogleFontUrl(family)) });
-															})(event.target.value)
-														}
-													/>
-													<Description>Example: Poppins, Space Grotesk, Roboto Slab</Description>
-												</TextField>
-												<TextField type='text' isReadOnly>
-													<Label>Google CSS URL</Label>
-													<Input value={safeThemeFontUrl} />
-												</TextField>
-											</div>
-										)}
 									</Card.Content>
 								</Card>
 								<div>
@@ -1000,7 +1005,7 @@ export default function OverlayStylePage() {
 							</div>
 						</Card.Content>
 					</Card>
-				</div>
+				</DashboardEditorLayout>
 			</DashboardNavbar>
 			<UpgradeModal isOpen={isUpgradeOpen} onOpenChange={onUpgradeOpenChange} user={user} source='upgrade_modal' feature='theme_studio' />
 		</>

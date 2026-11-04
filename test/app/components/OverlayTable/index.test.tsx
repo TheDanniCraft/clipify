@@ -942,7 +942,7 @@ describe("components/OverlayTable/index", () => {
 		});
 		await screen.findByText("Deletion Resource");
 		const row = screen.getAllByRole("row").find((item) => within(item).queryByText("Deletion Resource"))!;
-		fireEvent.click(within(row).getByTestId("IconTrash"));
+		fireEvent.click(within(row).getByRole("button", { name: "Delete Deletion Resource" }));
 		const remove = tab === "Galleries" ? deleteGallery : deleteRunner;
 		expect(remove).not.toHaveBeenCalled();
 		await act(async () => {
@@ -969,7 +969,7 @@ describe("components/OverlayTable/index", () => {
 		});
 		await screen.findByText("Deletion Resource");
 		const row = screen.getAllByRole("row").find((item) => within(item).queryByText("Deletion Resource"))!;
-		fireEvent.click(within(row).getByTestId("IconTrash"));
+		fireEvent.click(within(row).getByRole("button", { name: "Delete Deletion Resource" }));
 		await act(async () => {
 			fireEvent.click(screen.getByRole("button", { name: /^Delete$/ }));
 		});

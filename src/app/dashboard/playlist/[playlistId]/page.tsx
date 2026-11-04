@@ -593,7 +593,7 @@ export default function PlaylistPage() {
 									</Button>
 								</li>
 							))}
-							{playlistClips.length === 0 && <div className='py-12 text-center text-muted border-2 border-dashed border-default rounded-lg'>This playlist is empty. Add clips to get started!</div>}
+							{playlistClips.length === 0 && <li className='py-12 text-center text-muted border-2 border-dashed border-default rounded-lg'>This playlist is empty. Add clips to get started!</li>}
 						</ul>
 					</Card.Content>
 				</Card>

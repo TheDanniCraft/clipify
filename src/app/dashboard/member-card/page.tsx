@@ -17,7 +17,7 @@ export default async function MemberCardPage() {
 
 	return (
 		<DashboardNavbar user={user} title='Member Card' tagline='Your place in the Clipify community'>
-			<main className='mx-auto grid w-full max-w-5xl gap-8 px-4 py-8 lg:grid-cols-[minmax(280px,360px)_1fr] lg:items-start lg:px-8'>
+			<section aria-label='Member card and badges' className='my-6 grid w-full min-w-0 gap-6 lg:grid-cols-[minmax(280px,360px)_1fr] lg:items-start'>
 				<div className='flex flex-col items-center gap-4'>
 					<MemberCard profile={profile} />
 					<MemberCardActions username={profile.username} cardId={profile.cardId} memberNumber={profile.memberNumber} isOwner />
@@ -37,7 +37,7 @@ export default async function MemberCardPage() {
 						<BadgeGrid badges={profile.badges} />
 					</CardContent>
 				</CardRoot>
-			</main>
+			</section>
 		</DashboardNavbar>
 	);
 }

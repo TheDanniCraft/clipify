@@ -844,7 +844,7 @@ export default function OverlaySettings() {
 								>
 									<IconArrowLeft />
 								</Button>
-								<h1 className='text-xl font-bold'>Overlay Settings</h1>
+								<h2 className='min-w-0 break-words text-xl font-bold'>{overlay.name}</h2>
 							</div>
 							<span className='hidden shrink-0 text-sm text-muted sm:inline'>ID: {overlayId}</span>
 						</Card.Header>
@@ -893,11 +893,11 @@ export default function OverlaySettings() {
 										</Button>
 									</div>
 									<div className='flex w-full flex-col gap-2'>
-										<div className='w-full flex justify-center items-center text-xs text-warning p-2 border border-warning rounded bg-warning-soft max-w-full'>
+										<div className='w-full flex justify-center items-center text-xs text-warning-soft-foreground p-2 border border-warning rounded bg-warning-soft max-w-full'>
 											<IconAlertTriangle size={16} className='mr-2 flex-shrink-0' />
 											<span className='text-center'>
 												Do not share this URL publicly. For embedding on websites, use the{" "}
-												<Link data-tour='overlay-embed' className='text-xs text-warning underline underline-offset-2' href={`${baseUrl}/dashboard/embed?oid=${overlayId}`}>
+												<Link data-tour='overlay-embed' className='text-xs text-warning-soft-foreground underline underline-offset-2' href={`${baseUrl}/dashboard/embed?oid=${overlayId}`}>
 													embed widget tool
 												</Link>
 												.
@@ -1023,7 +1023,7 @@ export default function OverlaySettings() {
 														Upgrade to Pro
 													</Button>
 													{user?.id !== overlay.ownerId ? (
-														<p className='text-xs text-danger text-center mt-2'>Only the overlay owner can unlock Pro features.</p>
+														<p className='text-xs text-danger-soft-foreground text-center mt-2'>Only the overlay owner can unlock Pro features.</p>
 													) : (
 														<div className='mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning bg-warning-soft px-3 py-2'>
 															<p className='text-xs'>{inTrial ? `Trial active: ${trialDaysLeft <= 1 ? "ends today." : `${trialDaysLeft} days left.`}` : "Start Pro now. Cancel anytime."}</p>
@@ -1700,7 +1700,7 @@ export default function OverlaySettings() {
 						</Table>
 					</Modal.Body>
 					<Modal.Footer>
-						{wouldExceedFreeLimit && <div className='mr-auto text-xs text-danger'>Free plan limit is {FREE_PLAYLIST_CLIP_LIMIT} clips per playlist.</div>}
+						{wouldExceedFreeLimit && <div className='mr-auto text-xs text-danger-soft-foreground'>Free plan limit is {FREE_PLAYLIST_CLIP_LIMIT} clips per playlist.</div>}
 						<Button variant='tertiary' onPress={onAddClipsClose}>
 							Cancel
 						</Button>
@@ -1903,7 +1903,7 @@ export default function OverlaySettings() {
 					</Modal.Header>
 					<Modal.Body>
 						<p className='text-sm text-foreground'>
-							You&apos;ve made changes to your <span className='font-semibold text-foreground'>overlay settings</span> that haven&apos;t been saved. If you go back now, <span className='font-semibold text-danger'>those changes will be lost</span>.
+							You&apos;ve made changes to your <span className='font-semibold text-foreground'>overlay settings</span> that haven&apos;t been saved. If you go back now, <span className='font-semibold text-danger-soft-foreground'>those changes will be lost</span>.
 							<br />
 							<br />
 							<span className='font-semibold text-foreground'>Do you want to continue without saving?</span>

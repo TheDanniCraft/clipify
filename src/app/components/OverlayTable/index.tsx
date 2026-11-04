@@ -297,7 +297,7 @@ export default function OverlayTable({ userId, resourceType }: { userId: string;
 					case "accessType":
 						return <AvatarCell ownerId={overlay.ownerId} userId={userId} />;
 					case "name":
-						return <CopyText>{cellValue}</CopyText>;
+						return <CopyText textClassName='min-w-0 break-words'>{cellValue}</CopyText>;
 					case "id":
 						return <CopyText textClassName='whitespace-nowrap'>{cellValue}</CopyText>;
 					case "status":
@@ -363,16 +363,12 @@ export default function OverlayTable({ userId, resourceType }: { userId: string;
 					case "actions":
 						return (
 							<div className='flex items-center justify-end gap-2'>
-								<IconPencil className='cursor-pointer text-muted' height={18} width={18} />
-								<IconTrash
-									className='cursor-pointer text-muted'
-									height={18}
-									width={18}
-									onClick={(event) => {
-										event.stopPropagation();
-										setDeleteRequest({ kind: "gallery", id: gallery.id, name: gallery.name });
-									}}
-								/>
+								<Button isIconOnly size='sm' variant='tertiary' aria-label={`Edit ${gallery.name}`} onPress={() => router.push(`/dashboard/galleries/${gallery.id}`)}>
+									<IconPencil size={18} />
+								</Button>
+								<Button isIconOnly size='sm' variant='tertiary' aria-label={`Delete ${gallery.name}`} onPress={() => setDeleteRequest({ kind: "gallery", id: gallery.id, name: gallery.name })}>
+									<IconTrash size={18} />
+								</Button>
 							</div>
 						);
 					default:
@@ -424,15 +420,12 @@ export default function OverlayTable({ userId, resourceType }: { userId: string;
 					case "actions":
 						return (
 							<div className='flex items-center justify-end gap-2'>
-								<IconTrash
-									className='cursor-pointer text-danger transition-opacity hover:opacity-80'
-									height={18}
-									width={18}
-									onClick={(event) => {
-										event.stopPropagation();
-										setDeleteRequest({ kind: "runner", id: runner.id, name: runner.name });
-									}}
-								/>
+								<Button isIconOnly size='sm' variant='tertiary' aria-label={`Edit ${runner.name}`} onPress={() => router.push(`/dashboard/runners/${runner.id}`)}>
+									<IconPencil size={18} />
+								</Button>
+								<Button isIconOnly size='sm' variant='tertiary' aria-label={`Delete ${runner.name}`} onPress={() => setDeleteRequest({ kind: "runner", id: runner.id, name: runner.name })}>
+									<IconTrash size={18} />
+								</Button>
 							</div>
 						);
 					default:
@@ -738,7 +731,7 @@ export default function OverlayTable({ userId, resourceType }: { userId: string;
 							</Dropdown.Popover>
 						</Dropdown>
 						<Dropdown>
-							<Button variant='tertiary' size='sm' aria-label='Open Column Options'>
+							<Button className='hidden md:inline-flex' variant='tertiary' size='sm' aria-label='Open Column Options'>
 								<IconArrowsLeftRight className='text-muted' width={16} />
 								Columns
 							</Button>
@@ -886,7 +879,7 @@ export default function OverlayTable({ userId, resourceType }: { userId: string;
 												});
 										}}
 									>
-										<IconTrash className='text-danger' width={16} />
+										<IconTrash className='text-danger-soft-foreground' width={16} />
 										<Label>Delete</Label>
 									</Dropdown.Item>
 								</Dropdown.Menu>
@@ -967,7 +960,7 @@ export default function OverlayTable({ userId, resourceType }: { userId: string;
 									description: (
 										<p>
 											To add an additional overlay, please{" "}
-											<Link className='text-warning underline underline-offset-2' href='/dashboard/settings'>
+											<Link className='text-warning-soft-foreground underline underline-offset-2' href='/dashboard/settings'>
 												upgrade
 											</Link>{" "}
 											to <strong>Pro</strong>.
@@ -991,7 +984,7 @@ export default function OverlayTable({ userId, resourceType }: { userId: string;
 									description: (
 										<p>
 											To add an additional playlist, please{" "}
-											<Link className='text-warning underline underline-offset-2' href='/dashboard/settings'>
+											<Link className='text-warning-soft-foreground underline underline-offset-2' href='/dashboard/settings'>
 												upgrade
 											</Link>{" "}
 											to <strong>Pro</strong>.
@@ -1137,7 +1130,7 @@ export default function OverlayTable({ userId, resourceType }: { userId: string;
 	}, [filterSelectedKeys, page, pages, filteredItems.length, onPreviousPage, onNextPage]);
 
 	return (
-		<div className='h-full w-full p-6'>
+		<div className={resourceType ? "my-6 w-full min-w-0" : "h-full w-full p-6"}>
 			{topBar}
 			{!resourceType ? (
 				<Tabs selectedKey={activeTab} onSelectionChange={onTabChange} className='mb-4 w-fit max-w-full'>
@@ -1164,7 +1157,7 @@ export default function OverlayTable({ userId, resourceType }: { userId: string;
 				</Tabs>
 			) : null}
 			{activeTab === "overlays" && currentUser && (currentUser.entitlements?.effectivePlan ?? currentUser.plan) === "free" && !getFeatureAccess(currentUser, "multi_overlay").allowed && (overlays?.filter((o) => o.ownerId === userId).length ?? 0) >= 1 && (
-				<div className='mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning bg-warning-soft px-4 py-3 text-sm text-warning'>
+				<div className='mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning bg-warning-soft px-4 py-3 text-sm text-warning-soft-foreground'>
 					<span>You&apos;re on the Free plan and have reached the overlay limit. Upgrade to add more overlays.</span>
 					<Button
 						variant='tertiary'
@@ -1178,7 +1171,7 @@ export default function OverlayTable({ userId, resourceType }: { userId: string;
 				</div>
 			)}
 			{activeTab === "playlists" && currentUser && (currentUser.entitlements?.effectivePlan ?? currentUser.plan) === "free" && !getFeatureAccess(currentUser, "multi_playlist").allowed && (playlists?.filter((p) => p.ownerId === userId).length ?? 0) >= 1 && (
-				<div className='mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning bg-warning-soft px-4 py-3 text-sm text-warning'>
+				<div className='mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning bg-warning-soft px-4 py-3 text-sm text-warning-soft-foreground'>
 					<span>You&apos;re on the Free plan and have reached the playlist limit. Upgrade to add more playlists.</span>
 					<Button
 						variant='tertiary'
@@ -1192,7 +1185,7 @@ export default function OverlayTable({ userId, resourceType }: { userId: string;
 				</div>
 			)}
 			{activeTab === "galleries" && currentUser && (currentUser.entitlements?.effectivePlan ?? currentUser.plan) === "free" && !getFeatureAccess(currentUser, "multi_gallery").allowed && (galleries?.filter((gallery) => gallery.ownerId === userId).length ?? 0) >= 1 && (
-				<div className='mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning bg-warning-soft px-4 py-3 text-sm text-warning'>
+				<div className='mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning bg-warning-soft px-4 py-3 text-sm text-warning-soft-foreground'>
 					<span>You&apos;re on the Free plan and have reached the gallery limit. Upgrade to add more galleries.</span>
 					<Button
 						variant='tertiary'
@@ -1241,7 +1234,7 @@ export default function OverlayTable({ userId, resourceType }: { userId: string;
 									id={column.uid}
 									allowsSorting={column.uid === "name" || column.uid === "clipCount" || column.uid === "source" || column.uid === "published" || column.uid === "layout"}
 									isRowHeader={column.uid === rowHeaderColumn}
-									className={cn([column.uid === "actions" ? "flex items-center justify-end px-[20px]" : "", column.uid === "accessType" ? "w-[48px] min-w-[48px] max-w-[48px] px-1" : "", column.uid === "id" ? "min-w-[260px]" : "", column.uid === "clipCount" ? "w-[90px] min-w-[90px] max-w-[90px] text-right" : "", column.uid === "name" ? "min-w-[160px]" : ""])}
+									className={cn([column.uid === "actions" ? "text-right" : "", rowHeaderColumn === "name" && column.uid !== "name" && column.uid !== "actions" ? "hidden md:table-cell" : "", column.uid === "accessType" ? "w-[48px] min-w-[48px] max-w-[48px] px-1" : "", column.uid === "id" ? "min-w-[260px]" : "", column.uid === "clipCount" ? "w-[90px] min-w-[90px] max-w-[90px] text-right" : "", column.uid === "name" ? "min-w-[160px]" : ""])}
 								>
 									{column.uid === "name" || column.uid === "clipCount" || column.uid === "source" || column.uid === "published" || column.uid === "layout" ? (
 										({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>{column.name}</Table.SortableColumnHeader>
@@ -1335,7 +1328,7 @@ export default function OverlayTable({ userId, resourceType }: { userId: string;
 										</Checkbox>
 									</Table.Cell>
 									{headerColumns.map((column) => (
-										<Table.Cell key={column.uid} className={cn(column.uid === "accessType" ? "w-[48px] min-w-[48px] max-w-[48px] px-1" : "", column.uid === "id" ? "min-w-[260px]" : "", column.uid === "clipCount" ? "w-[90px] min-w-[90px] max-w-[90px] text-right" : "", column.uid === "name" ? "min-w-[160px]" : "")}>
+										<Table.Cell key={column.uid} className={cn(rowHeaderColumn === "name" && column.uid !== "name" && column.uid !== "actions" ? "hidden md:table-cell" : "", column.uid === "accessType" ? "w-[48px] min-w-[48px] max-w-[48px] px-1" : "", column.uid === "id" ? "min-w-[260px]" : "", column.uid === "clipCount" ? "w-[90px] min-w-[90px] max-w-[90px] text-right" : "", column.uid === "name" ? "min-w-[160px]" : "")}>
 											{renderCell(item, column.uid)}
 										</Table.Cell>
 									))}

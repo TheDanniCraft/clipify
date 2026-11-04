@@ -29,7 +29,7 @@ test("resource editors share card navigation, gutters and responsive headers", a
 		await page.reload();
 		const editors = [
 			{ key: "runner", path: `/dashboard/runners/${runnerId}`, back: "Back to runners", destination: /\/dashboard\/runners$/, heading: runnerName },
-			{ key: "overlay", path: `/dashboard/overlay/${owner.fixture.overlayId}`, back: "Back to overlays", destination: /\/dashboard\/overlays$/, heading: "Overlay Settings" },
+			{ key: "overlay", path: `/dashboard/overlay/${owner.fixture.overlayId}`, back: "Back to overlays", destination: /\/dashboard\/overlays$/, heading: "E2E continuity overlay" },
 			{ key: "gallery", path: `/dashboard/galleries/${galleryId}`, back: "Back to galleries", destination: /\/dashboard\/galleries$/, heading: "Gallery Settings" },
 			{ key: "playlist", path: `/dashboard/playlist/${playlistId}`, back: "Back to playlists", destination: /\/dashboard\/playlists$/, heading: null },
 			{ key: "tools", path: "/dashboard/tools", back: "Back to dashboard", destination: /\/dashboard$/, heading: "Configure Clip Player" },
@@ -124,10 +124,11 @@ for (const width of [1280, 390]) {
 			await page.goto(`/dashboard/galleries/${galleryId}`);
 			const name = page.getByRole("textbox", { name: /^Gallery Name\*?$/ });
 			await expect(name).toHaveValue("Saved gallery");
-			await expect(page.locator('[data-tour="guide-launcher"]')).toBeVisible();
+			if (width !== 390) await expect(page.locator('[data-tour="guide-launcher"]')).toBeVisible();
 			await name.fill("Keep this unsaved gallery");
 			await expect(page.getByRole("button", { name: "Save Gallery Settings", exact: true })).toBeEnabled();
 			const confirmation = page.getByRole("dialog").filter({ hasText: "Unsaved Changes" });
+			if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
 			await page.getByRole("button", { name: "Search clips and tools", exact: true }).click();
 			const search = page.getByRole("dialog", { name: "Search clips and tools", exact: true });
 			await expect(search).toBeVisible();

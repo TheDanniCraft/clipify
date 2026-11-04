@@ -1119,6 +1119,7 @@ When("the AI discovery guide is followed", async ({ page }) => {
 	await page.getByRole("button", { name: "Back", exact: true }).click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Connected AI apps");
 	await pause(page);
+	await page.getByRole("button", { name: "Minimize guide", exact: true }).click();
 	await page.getByRole("tab", { name: "Settings", exact: true }).click();
 	await start(page, "Discover AI connections", "Explore Clipify");
 	await expect(page.locator(".driver-popover-title")).toHaveText("Choose Connections");

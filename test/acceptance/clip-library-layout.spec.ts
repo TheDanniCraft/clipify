@@ -90,7 +90,7 @@ for (const width of [390, 820, 1024, 1440])
 			});
 			await page.goto(`${tourWorld.origin}/dashboard`);
 			await expect(page.getByRole("status", { name: "Known clips", exact: true })).toHaveText("1");
-			await expect(page.getByRole("link", { name: "Last night's clutch", exact: true })).toBeVisible();
+			await expect(page.getByRole("button", { name: "Last night's clutch", exact: true })).toBeVisible();
 			await expect(page.getByText("Recent streams", { exact: true })).toBeVisible();
 			await expect(page.getByRole("link", { name: "Latest stream", exact: true })).toBeVisible();
 			expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

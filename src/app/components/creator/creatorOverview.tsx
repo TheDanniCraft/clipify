@@ -2,6 +2,7 @@
 import { useContext, useEffect, useState } from "react";
 import { Button, Card, Link, Skeleton } from "@heroui/react";
 import { getCreatorClipOverview, getCreatorBroadcasts } from "@actions/creatorLibrary";
+import ClipPreview from "./clipPreview";
 import LocalizedDate from "@components/localizedDate";
 import { DashboardNavigationContext } from "@components/dashboardNavigation";
 import { useUserTour } from "@components/user-tour/provider";
@@ -10,6 +11,7 @@ type Broadcasts = Awaited<ReturnType<typeof getCreatorBroadcasts>>;
 export default function CreatorOverview({ creatorId }: { creatorId: string }) {
 	const navigation = useContext(DashboardNavigationContext);
 	const { activeTask } = useUserTour();
+	const [preview, setPreview] = useState<{ id: string; title: string; url: string } | null>(null);
 	const [overview, setOverview] = useState<Overview>();
 	const [broadcasts, setBroadcasts] = useState<Broadcasts>();
 	const [retryOverview, setRetryOverview] = useState(0);
@@ -49,12 +51,22 @@ export default function CreatorOverview({ creatorId }: { creatorId: string }) {
 					<p className='text-sm text-muted'>Clips created in the last 30 days</p>
 				</header>
 				<div className='grid grid-cols-2 gap-4'>
-					{overview?.ok ? (
+					{overview?.ok && overview.count === 0 ? (
+						<Card className='col-span-2'>
+							<Card.Header>
+								<Card.Title>No clips from the last 30 days</Card.Title>
+								<Card.Description>Open your inventory to browse older clips or refresh your library.</Card.Description>
+							</Card.Header>
+							<Card.Content>
+								<Link href='/dashboard/clips'>Browse clip inventory</Link>
+							</Card.Content>
+						</Card>
+					) : overview?.ok ? (
 						<>
 							<Card>
 								<Card.Content>
 									<p className='text-sm text-muted'>Clips</p>
-									<p role='status' aria-label='Known clips' className='my-2 text-3xl font-bold'>
+									<p role='status' aria-label='Known clips' className='my-2 text-3xl font-bold tabular-nums'>
 										{overview.count.toLocaleString()}
 									</p>
 								</Card.Content>
@@ -62,7 +74,7 @@ export default function CreatorOverview({ creatorId }: { creatorId: string }) {
 							<Card>
 								<Card.Content>
 									<p className='text-sm text-muted'>Views</p>
-									<p role='status' aria-label='Current clip views' className='my-2 text-3xl font-bold'>
+									<p role='status' aria-label='Current clip views' className='my-2 text-3xl font-bold tabular-nums'>
 										{overview.views.toLocaleString()}
 									</p>
 									<p className='text-sm text-muted'>Total views on these clips</p>
@@ -72,7 +84,8 @@ export default function CreatorOverview({ creatorId }: { creatorId: string }) {
 					) : overview ? (
 						<Card className='col-span-2'>
 							<Card.Content>
-								<p role='alert'>Clip performance could not be loaded.</p>
+								<p role='alert'>{overview.code === "RECONNECT_REQUIRED" ? "Reconnect Twitch to load your clips." : "Clip performance could not be loaded."}</p>
+								{overview.code === "RECONNECT_REQUIRED" ? <Link href='/dashboard/settings?tab=connections'>Manage linked accounts</Link> : null}
 								<Button variant='secondary' onPress={() => setRetryOverview((value) => value + 1)}>
 									Retry
 								</Button>
@@ -118,7 +131,7 @@ export default function CreatorOverview({ creatorId }: { creatorId: string }) {
 					<Link href='/dashboard/clips'>Clip Inventory</Link>
 				</nav>
 			) : null}
-			<div className='grid gap-6 lg:grid-cols-2'>
+			<div className={overview?.ok && overview.count === 0 ? "grid gap-6" : "grid gap-6 lg:grid-cols-2"}>
 				<Card>
 					<Card.Header>
 						<Card.Title>Recent streams</Card.Title>
@@ -128,7 +141,7 @@ export default function CreatorOverview({ creatorId }: { creatorId: string }) {
 						{broadcasts?.ok ? (
 							<>
 								{broadcasts.stale ? (
-									<p role='status' className='mb-3 text-warning'>
+									<p role='status' className='mb-3 text-warning-soft-foreground'>
 										Showing saved broadcasts. Twitch could not refresh them.
 									</p>
 								) : null}
@@ -147,7 +160,8 @@ export default function CreatorOverview({ creatorId }: { creatorId: string }) {
 							</>
 						) : broadcasts ? (
 							<div role='alert'>
-								<p>Broadcasts could not be loaded. Your clip data is kept.</p>
+								<p>{broadcasts.code === "RECONNECT_REQUIRED" ? "Reconnect Twitch to load your broadcasts." : "Broadcasts could not be loaded. Your clip data is kept."}</p>
+								{broadcasts.code === "RECONNECT_REQUIRED" ? <Link href='/dashboard/settings?tab=connections'>Manage linked accounts</Link> : null}
 								<Button variant='secondary' onPress={() => setRetryBroadcasts((value) => value + 1)}>
 									Retry broadcasts
 								</Button>
@@ -160,31 +174,36 @@ export default function CreatorOverview({ creatorId }: { creatorId: string }) {
 						</Link>
 					</Card.Content>
 				</Card>
-				<Card>
-					<Card.Header>
-						<Card.Title>Top clips</Card.Title>
-						<Card.Description>Your most viewed clips from the last 30 days</Card.Description>
-					</Card.Header>
-					<Card.Content>
-						{overview?.ok ? (
-							overview.topClips.length ? (
-								<div className='divide-y divide-default'>
-									{overview.topClips.map((clip) => (
-										<div key={clip.id} data-top-clip-id={clip.id} className='flex items-center justify-between gap-4 py-3'>
-											<Link href={`/dashboard/clips?title=${encodeURIComponent(clip.title)}`}>{clip.title || "Untitled clip"}</Link>
-											<span className='shrink-0 text-sm'>{clip.views.toLocaleString()} views</span>
-										</div>
-									))}
-								</div>
+				{!(overview?.ok && overview.count === 0) ? (
+					<Card>
+						<Card.Header>
+							<Card.Title>Top clips</Card.Title>
+							<Card.Description>Your most viewed clips from the last 30 days</Card.Description>
+						</Card.Header>
+						<Card.Content>
+							{overview?.ok ? (
+								overview.topClips.length ? (
+									<div className='divide-y divide-default'>
+										{overview.topClips.map((clip) => (
+											<div key={clip.id} data-top-clip-id={clip.id} className='flex items-center justify-between gap-4 py-3'>
+												<Button variant='tertiary' className='h-auto min-w-0 justify-start whitespace-normal p-0 text-left font-medium' onPress={() => setPreview(clip)}>
+													{clip.title || "Untitled clip"}
+												</Button>
+												<span className='shrink-0 text-sm'>{clip.views.toLocaleString()} views</span>
+											</div>
+										))}
+									</div>
+								) : (
+									<p className='text-muted'>No clips from the last 30 days. Browse your inventory to find older clips.</p>
+								)
 							) : (
-								<p className='text-muted'>No clips from the last 30 days. Browse your inventory to find older clips.</p>
-							)
-						) : (
-							<p className='text-muted'>{overview ? "Clip performance unavailable." : "Loading clips…"}</p>
-						)}
-					</Card.Content>
-				</Card>
+								<p className='text-muted'>{overview ? "Clip performance unavailable." : "Loading clips…"}</p>
+							)}
+						</Card.Content>
+					</Card>
+				) : null}
 			</div>
+			{preview ? <ClipPreview creatorId={creatorId} clip={preview} onClose={() => setPreview(null)} /> : null}
 		</div>
 	);
 }

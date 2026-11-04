@@ -37,26 +37,33 @@ export default async function StreamsPage({ searchParams }: { searchParams: Prom
 						) : (
 							<Table>
 								<Table.ScrollContainer>
-									<Table.Content aria-label='Available streams' className='min-w-[560px]'>
+									<Table.Content aria-label='Available streams' className='w-full sm:min-w-[560px]'>
 										<Table.Header>
 											<Table.Column isRowHeader>Stream</Table.Column>
-											<Table.Column>Created</Table.Column>
-											<Table.Column>Duration</Table.Column>
+											<Table.Column className='hidden sm:table-cell'>Created</Table.Column>
+											<Table.Column className='hidden sm:table-cell'>Duration</Table.Column>
 											<Table.Column>Known clips</Table.Column>
-											<Table.Column>Clip views</Table.Column>
+											<Table.Column className='hidden sm:table-cell'>Clip views</Table.Column>
 										</Table.Header>
 										<Table.Body>
 											{result.items.map((stream) => (
 												<Table.Row key={stream.id} data-broadcast-id={stream.id}>
 													<Table.Cell>
-														<Link href={`/dashboard/streams/${stream.id}`}>{stream.title || "Untitled stream"}</Link>
+														<Link className='max-w-full whitespace-normal break-words' href={`/dashboard/streams/${stream.id}`}>
+															{stream.title || "Untitled stream"}
+														</Link>
+														<div className='mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted sm:hidden'>
+															<LocalizedDate value={stream.createdAt} showTime />
+															<span>{stream.duration}</span>
+															<span>{stream.clipViews === null ? "Views unavailable" : `${stream.clipViews.toLocaleString()} views`}</span>
+														</div>
 													</Table.Cell>
-													<Table.Cell>
+													<Table.Cell className='hidden sm:table-cell'>
 														<LocalizedDate value={stream.createdAt} showTime />
 													</Table.Cell>
-													<Table.Cell>{stream.duration}</Table.Cell>
+													<Table.Cell className='hidden sm:table-cell'>{stream.duration}</Table.Cell>
 													<Table.Cell>{stream.clipCount === null ? "Unavailable" : stream.clipCount.toLocaleString()}</Table.Cell>
-													<Table.Cell>{stream.clipViews === null ? "Unavailable" : stream.clipViews.toLocaleString()}</Table.Cell>
+													<Table.Cell className='hidden sm:table-cell'>{stream.clipViews === null ? "Unavailable" : stream.clipViews.toLocaleString()}</Table.Cell>
 												</Table.Row>
 											))}
 										</Table.Body>

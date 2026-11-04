@@ -3,6 +3,14 @@ jest.mock("@components/user-tour/provider", () => ({ useUserTour: () => ({ activ
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import CreatorOverview from "@components/creator/creatorOverview";
 import { DashboardNavigationContext } from "@components/dashboardNavigation";
+jest.mock("@components/creator/clipPreview", () => ({
+	__esModule: true,
+	default: ({ clip }: { clip: { id: string } }) => (
+		<div role='dialog' aria-label='Clip preview'>
+			{clip.id}
+		</div>
+	),
+}));
 const overview = jest.fn();
 const broadcasts = jest.fn();
 jest.mock("@actions/creatorLibrary", () => ({ getCreatorClipOverview: (...args: unknown[]) => overview(...args), getCreatorBroadcasts: (...args: unknown[]) => broadcasts(...args) }));
@@ -126,4 +134,32 @@ it.each([true, false])("shows guide destination shortcuts only during mobile gui
 			expect(screen.getByRole("link", { name })).toHaveAttribute("data-tour", target);
 		}
 	} else expect(screen.queryByRole("navigation", { name: "Creator shortcuts" })).not.toBeInTheDocument();
+});
+
+it("opens the exact top clip even when titles are identical", async () => {
+	overview.mockResolvedValue({
+		...metrics,
+		topClips: [
+			{ id: "A", title: "Same title", views: 20 },
+			{ id: "B", title: "Same title", views: 10 },
+		],
+	});
+	broadcasts.mockResolvedValue({ ok: true, stale: false, items: [] });
+	render(<CreatorOverview creatorId='owner' />);
+	fireEvent.click((await screen.findAllByRole("button", { name: "Same title" }))[1]);
+	expect(screen.getByRole("dialog", { name: "Clip preview" })).toHaveTextContent("B");
+});
+it("offers linked-account recovery when Twitch must reconnect", async () => {
+	overview.mockResolvedValue({ ok: false, code: "RECONNECT_REQUIRED" });
+	broadcasts.mockResolvedValue({ ok: true, stale: false, items: [] });
+	render(<CreatorOverview creatorId='owner' />);
+	await screen.findByText("Reconnect Twitch to load your clips.");
+	expect(screen.getByRole("link", { name: "Manage linked accounts" })).toHaveAttribute("href", "/dashboard/settings?tab=connections");
+});
+it("gives an empty Home a library action instead of empty statistic cards", async () => {
+	overview.mockResolvedValue({ ...metrics, count: 0, views: 0, topClips: [] });
+	broadcasts.mockResolvedValue({ ok: true, stale: false, items: [] });
+	render(<CreatorOverview creatorId='owner' />);
+	expect(await screen.findByRole("link", { name: "Browse clip inventory" })).toHaveAttribute("href", "/dashboard/clips");
+	expect(screen.queryByRole("status", { name: "Known clips" })).not.toBeInTheDocument();
 });
