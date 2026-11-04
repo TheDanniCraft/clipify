@@ -831,7 +831,7 @@ export default function OverlaySettings() {
 
 			<DashboardNavbar user={user!} title='Overlay Settings' tagline='Manage your overlays'>
 				<DashboardEditorLayout>
-					<Card className='w-full max-w-4xl'>
+					<Card className='w-full'>
 						<Card.Header className='flex w-full flex-row items-center justify-between gap-4'>
 							<div className='flex min-w-0 items-center gap-3'>
 								<Button

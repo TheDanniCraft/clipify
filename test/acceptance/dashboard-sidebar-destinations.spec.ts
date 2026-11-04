@@ -36,3 +36,34 @@ for (const width of [390, 1440])
 		await expect(muted).toBeChecked();
 		expect(await page.evaluate(() => performance.timeOrigin)).toBe(timeOrigin);
 	});
+
+for (const width of [820, 1440])
+	test(`Tools workspace keeps useful configuration and preview space at ${width}px`, async ({ page, request, tourWorld }, info) => {
+		await page.setViewportSize({ width, height: 900 });
+		await seedCreatorLibrary({ page, request, tourWorld });
+		await page.goto(`${tourWorld.origin}/dashboard/tools`);
+		await page.getByRole("button", { name: "Reject optional", exact: true }).click();
+		await page.reload();
+		const workspace = page.getByRole("region", { name: "Editor workspace", exact: true });
+		const configuration = workspace.getByRole("heading", { name: "Configure Clip Player", exact: true });
+		const preview = workspace.getByRole("heading", { name: "Preview", exact: true });
+		const cardBounds = (node: Element) => {
+			const { x, y, width, height } = node.closest('[data-slot="card"]')!.getBoundingClientRect();
+			return { x, y, width, height };
+		};
+		const [form, canvas] = await Promise.all([configuration.evaluate(cardBounds), preview.evaluate(cardBounds)]);
+		if (width === 820) {
+			expect(Math.abs(canvas!.x - form!.x)).toBeLessThan(2);
+			expect(canvas!.y).toBeGreaterThan(form!.y + form!.height);
+		} else {
+			expect(canvas!.x).toBeGreaterThan(form!.x + form!.width);
+			await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+			await expect(preview).toBeInViewport();
+			await expect.poll(() => preview.evaluate((node) => getComputedStyle(node.closest('[data-slot="card"]')!).position)).toBe("sticky");
+		}
+		const tree = page.getByRole("treegrid", { name: "Creator navigation", exact: true });
+		const parentIcon = await tree.getByRole("row", { name: "Create and share", exact: true }).locator("svg").first().boundingBox();
+		const guide = await tree.getByRole("row", { name: "Overlays", exact: true }).evaluate((node) => node.getBoundingClientRect().x + parseFloat(getComputedStyle(node, "::before").left));
+		expect(Math.abs(guide - (parentIcon!.x + parentIcon!.width / 2))).toBeLessThan(4);
+		await page.screenshot({ path: info.outputPath(`tools-workspace-${width}.png`), fullPage: true, animations: "disabled" });
+	});

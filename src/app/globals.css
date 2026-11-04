@@ -59,6 +59,10 @@ html {
 	scroll-behavior: smooth;
 }
 
+.clipify-creator-navigation[data-guide-lines] .sidebar__menu-item::before {
+	left: var(--sidebar-menu-indent);
+}
+
 @media (min-width: 769px) {
 	html:has([data-slot="sidebar"]) {
 		scrollbar-gutter: stable;

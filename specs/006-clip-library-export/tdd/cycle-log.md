@@ -340,3 +340,13 @@ CI also exposed preview assertions that still required inline operational errors
 
 
 The original full checkpoint41841801676 completed with failure. Its final ATDD log contained four obsolete-tab failures; the extra paid-deadline caller passed unchanged on a fresh disposable database after an unresolved privacy-setup failure, both retained as CHECKPOINT040. Final affected browser evidence is12 BDD, five acceptance and five account/subscription ATDD scenarios, in separate owning runs. The correction's exact-head CI and preview remain required.
+
+
+### Dashboard support consent and editor-space follow-up
+
+`chat-red.log` reproduced the missing pre-consent dashboard action (one failing/12 passing tests). `chat-loading-red.log` additionally reproduced reopening preferences while the SDK was loading after consent (two failing/12 passing). The corrected complete chat owner passed 15 tests, including loading-to-ready recovery, stale SDK revocation and an already available SDK with the initial privacy choice still open. The other affected component owners passed 63 tests, for 78 distinct component cases across six files without coverage.
+
+The initial actual mobile browser reproduced banner interception of the footer action. Moving the compact consent prompt above the banner passed all four c15t journeys at 390/1440px in light/dark. Six existing editor/history scenarios passed, including shared widths, mobile reflow, draft protection and cold hydration. Two additional Tools scenarios passed after the card-bound fixture correction. The guide alignment assertion then failed on the old generated selector; final source confirmation remains required for its scoped CSS correction. The earlier sidebar head 7b1e996f completed full CI 41904445505 successfully before any follow-up push.
+
+
+Final source confirmation: production build/TypeScript and patched-dependency validation passed in `final-source-build.log`. `source-browser.log` passed all six final Tools/consent cases, including measured HeroUI guide alignment at 820/1440px and all four actual c15t journeys. Together with the six unchanged editor/history cases, twelve relevant browser scenarios passed incrementally. Screenshots before/after rejection and Tools layout were inspected. The guide uses the installed component's pseudo-element and CSS variable; no replacement tree is drawn. Lint, formatting and diff checks passed. Complete exact-head CI/publication remains recorded on PR #546 after push.

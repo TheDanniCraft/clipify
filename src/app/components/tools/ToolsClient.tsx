@@ -100,7 +100,7 @@ export default function ToolsClient({ overlays, galleries, initialTool, initialG
 
 	return (
 		<DashboardEditorLayout>
-			<div className='grid grid-cols-1 items-start gap-4 md:grid-cols-2 md:gap-8'>
+			<div className='grid grid-cols-1 items-start gap-6 lg:grid-cols-2 lg:gap-8'>
 				<Card>
 					<Card.Header>
 						<div className='flex items-center gap-3'>
@@ -184,7 +184,7 @@ export default function ToolsClient({ overlays, galleries, initialTool, initialG
 					</Card.Footer>
 				</Card>
 
-				<Card>
+				<Card className='lg:sticky lg:top-20'>
 					<Card.Header>
 						<div>
 							<h2 className='text-xl font-bold'>Preview</h2>

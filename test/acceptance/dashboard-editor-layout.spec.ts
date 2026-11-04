@@ -61,6 +61,7 @@ test("resource editors share card navigation, gutters and responsive headers", a
 					if (!referenceBounds) referenceBounds = bounds!;
 					expect(Math.abs(bounds!.x - referenceBounds.x)).toBeLessThan(2);
 					expect(Math.abs(bounds!.width - referenceBounds.width)).toBeLessThan(2);
+					if (viewport.width === 1280) expect(bounds!.width).toBeGreaterThan(900);
 					for (const theme of ["dark", "light"]) {
 						const html = page.locator("html");
 						if (!(await html.getAttribute("class"))?.split(/\s+/).includes(theme)) await page.getByRole("button", { name: "Toggle Theme", exact: true }).click();

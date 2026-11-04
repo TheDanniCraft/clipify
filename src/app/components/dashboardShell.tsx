@@ -166,7 +166,7 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 			</Sidebar.Header>
 			<Sidebar.Content>
 				<Sidebar.Group>
-					<Sidebar.Menu aria-label='Creator navigation' key={activeGroup ?? "root"} defaultExpandedKeys={["resources", ...(activeGroup ? [activeGroup] : [])]}>
+					<Sidebar.Menu aria-label='Creator navigation' className='clipify-creator-navigation' key={activeGroup ?? "root"} defaultExpandedKeys={["resources", ...(activeGroup ? [activeGroup] : [])]}>
 						{allowed
 							.slice(0, 3)
 							.filter((item) => ["Home", "Streams", "Clip Inventory"].includes(item.title))

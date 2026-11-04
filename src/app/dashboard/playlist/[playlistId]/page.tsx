@@ -404,7 +404,7 @@ export default function PlaylistPage() {
 	return (
 		<DashboardNavbar user={user!} title='Playlist Management' tagline='Manage your curated clip sets'>
 			<DashboardEditorLayout>
-				<Card className='w-full max-w-4xl'>
+				<Card className='w-full'>
 					<Card.Header className='flex flex-col items-stretch gap-3'>
 						<div className='flex items-center gap-2'>
 							<Button isIconOnly variant='tertiary' aria-label='Back to playlists' onPress={() => router.push("/dashboard/playlists")}>

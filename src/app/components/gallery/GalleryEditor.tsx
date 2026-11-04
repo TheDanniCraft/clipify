@@ -273,7 +273,7 @@ export default function GalleryEditor({ initialGallery, playlists, canUseAdvance
 
 	return (
 		<DashboardEditorLayout>
-			<Card className='w-full max-w-4xl'>
+			<Card className='w-full'>
 				<Card.Header className='flex w-full flex-row items-center justify-between gap-4'>
 					<div className='flex min-w-0 items-center gap-3'>
 						<Button isIconOnly variant='tertiary' aria-label='Back to galleries' onPress={() => router.push("/dashboard/galleries")}>
