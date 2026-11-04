@@ -77,13 +77,10 @@ for (const width of [390, 820, 1024, 1440])
 			await launcher.click();
 			await input.fill("clutch");
 			await dialog.getByRole("menuitem", { name: "Last night's clutch", exact: true }).click();
-			const preview = page.getByRole("dialog", { name: "Last night's clutch", exact: true });
-			await expect(preview).toBeVisible();
-			await expect(page.getByRole("dialog")).toHaveCount(1);
-			await expect(preview.getByRole("link", { name: "Open on Twitch" })).toHaveAttribute("href", `https://clips.twitch.tv/${seeded.id}`);
-			await page.keyboard.press("Escape");
-			await expect(preview).not.toBeVisible();
-			await expect(width === 390 ? toggle : launcher).toBeFocused();
+			await expect(page).toHaveURL(`${tourWorld.origin}/dashboard/clips/${seeded.id}`);
+			await expect(page.getByRole("heading", { name: "Last night's clutch", exact: true })).toBeVisible();
+			await expect(page.getByRole("link", { name: "Open on Twitch", exact: true })).toHaveAttribute("href", `https://clips.twitch.tv/${seeded.id}`);
+			await page.getByRole("button", { name: "Back to clip inventory", exact: true }).click();
 			const selectionBounds = await page.getByRole("status", { name: "Clip selection", exact: true }).evaluate((element) => {
 				const box = element.closest('[data-slot="card"]')!.getBoundingClientRect();
 				return { x: box.x + scrollX, y: box.y + scrollY, w: box.width, h: box.height, width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight };
@@ -137,7 +134,7 @@ for (const width of [390, 820, 1024, 1440])
 			else await expect(page.locator('[data-tour="guide-launcher"]')).toBeVisible();
 			await page.getByRole("button", { name: "Select page", exact: true }).click();
 			await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("9 selected");
-			const title = page.getByRole("button", { name: "Preview An unexpectedly close finish after a long evening of matches with the community", exact: true });
+			const title = page.getByRole("link", { name: "An unexpectedly close finish after a long evening of matches with the community", exact: true });
 			const row = page.getByRole("row").filter({ has: title });
 			const thumbnailBounds = await row.locator("img").boundingBox();
 			const titleBounds = await title.boundingBox();

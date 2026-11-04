@@ -712,14 +712,14 @@ T621 publication evidence: application head17fc33de476ada2f2739fdf620437a3db12dc
 
 - [x] T622 Inventory every dashboard route family; restore official HeroUI skills, inspect authenticated Mobbin references, document concrete shared-source findings and their owners in dashboard-audit.md.
 - [x] T623 Complete affected whole-file coverage, production-build browser route/accessibility matrices, consent/export/draft/account recovery and screenshot review for the final correction source. Preserve failed-run evidence and existing thresholds.
-- [ ] T624 Commit/push the completed correction, update PR546, verify its deployment and finish the exact-head required full CI gate. Do not merge or release.
+- [x] T624 Commit/push the completed correction, update PR546, verify its deployment and finish the exact-head required full CI gate. Do not merge or release.
 
 ## Sidebar navigation and clip-detail follow-up
 
 - [x] T625 Reproduce and fix legacy Twitch CDN export rejection; pass owning whole-file and real-video browser recovery checks before publishing the urgent correction.
-- [ ] T626 Move Settings and Tools destinations into the HeroUI Pro sidebar with URL/back/draft preservation, using inspected Mobbin web references.
-- [ ] T627 Align footer utilities; use neutral Search and HeroUI Kbd; distinguish desktop sidebar collapse from mobile menu; display truthful signed-in/live avatar status.
-- [ ] T628 Add authorized clip-detail navigation, metadata and individual MP4 download through the bounded shared export pipeline.
-- [ ] T629 Share creator-account Twitch download request limits across bulk, individual and playback resolution; retain permission checks, byte bounds and provider cooldown feedback.
-- [ ] T630 Move operational export errors into focused result dialogs and toasts, preserve local form validation and prevent feedback-modal layout shift.
+- [x] T626 Move Settings and Tools destinations into the HeroUI Pro sidebar with URL/back/draft preservation, using inspected Mobbin web references.
+- [x] T627 Align footer utilities; use neutral Search and HeroUI Kbd; distinguish desktop sidebar collapse from mobile menu; display truthful signed-in/live avatar status.
+- [x] T628 Add authorized clip-detail navigation, metadata and individual MP4 download through the bounded shared export pipeline.
+- [x] T629 Share creator-account Twitch download request limits across bulk, individual and playback resolution; retain permission checks, byte bounds and provider cooldown feedback.
+- [x] T630 Move operational export errors into focused result dialogs and toasts, preserve local form validation and prevent feedback-modal layout shift.
 - [ ] T631 Complete affected owner/browser validation, inspect both themes and viewport sizes, publish to PR546 and verify exact-head full CI and preview.

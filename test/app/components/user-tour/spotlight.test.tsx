@@ -608,3 +608,14 @@ it("waits for an unavailable support shadow host without inventing a target", ()
 		jest.useRealTimers();
 	}
 });
+it("highlights a Settings sidebar destination inside the mobile drawer", () => {
+	render(
+		<section role='dialog' aria-modal='true'>
+			<div data-slot='sidebar-mobile'>
+				<button data-tour='settings-connections-tab'>Connections</button>
+			</div>
+			<Spotlight step={{ ...step, target: "settings-connections-tab" }} onPause={jest.fn()} onMissing={jest.fn()} onNext={jest.fn()} />
+		</section>,
+	);
+	expect(highlight).toHaveBeenCalledWith(expect.objectContaining({ element: document.querySelector('[data-tour="settings-connections-tab"]') }));
+});

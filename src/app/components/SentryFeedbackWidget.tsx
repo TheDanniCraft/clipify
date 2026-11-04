@@ -2,6 +2,8 @@
 
 import * as Sentry from "@sentry/nextjs";
 import { Button } from "@heroui/react";
+import { IconBug } from "@tabler/icons-react";
+import { notify } from "@lib/toast";
 import DashboardUtilityPortal from "./dashboardUtilityPortal";
 import { useEffect, useState, useRef } from "react";
 import { usePathname } from "next/navigation";
@@ -11,7 +13,6 @@ export default function SentryFeedbackWidget() {
 	const pathname = usePathname();
 	const isEmbedded = isEmbeddedRoute(pathname);
 	const inDashboard = pathname.startsWith("/dashboard") && !isEmbedded;
-	const [error, setError] = useState(false);
 	const [pending, setPending] = useState(false);
 	const form = useRef<Awaited<ReturnType<NonNullable<ReturnType<typeof Sentry.getFeedback>>["createForm"]>> | null>(null);
 	const mounted = useRef(false);
@@ -33,36 +34,35 @@ export default function SentryFeedbackWidget() {
 	}, [isEmbedded, inDashboard]);
 
 	return inDashboard ? (
-		<DashboardUtilityPortal>
+		<DashboardUtilityPortal slot='report'>
 			<div>
 				<Button
 					data-tour='support-report'
-					variant='tertiary'
+					variant='ghost'
+					fullWidth
+					className='justify-start text-muted'
 					isPending={pending}
 					onPress={async () => {
 						setPending(true);
-						setError(false);
 						try {
 							const feedback = Sentry.getFeedback();
 							if (!feedback) throw new Error("Unavailable");
+							feedback.setTheme(document.documentElement.classList.contains("dark") ? "dark" : "light");
 							form.current ??= await feedback.createForm();
 							if (!mounted.current) return;
 							form.current.appendToDom();
 							form.current.open();
+							if (form.current.el instanceof HTMLElement) form.current.el.querySelector('[role="dialog"],dialog')?.setAttribute("aria-label", "Report a problem");
 						} catch {
-							setError(true);
+							notify({ title: "Feedback could not open", description: "Try again or use support chat.", color: "danger" });
 						} finally {
 							setPending(false);
 						}
 					}}
 				>
+					<IconBug size={20} aria-hidden='true' />
 					Report a problem
 				</Button>
-				{error ? (
-					<p role='alert' className='text-xs text-danger'>
-						Feedback could not open. Try again or use support chat.
-					</p>
-				) : null}
 			</div>
 		</DashboardUtilityPortal>
 	) : null;

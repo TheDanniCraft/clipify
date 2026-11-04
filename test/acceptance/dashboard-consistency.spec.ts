@@ -91,13 +91,12 @@ for (const width of [390, 1440])
 							expect(bounds).not.toBeNull();
 							expect(bounds!.x).toBeGreaterThanOrEqual(0);
 							expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
-							await page.getByRole("tab", { name: "Billing", exact: true }).press("Enter");
-							await expect(page.getByRole("tab", { name: "Billing", exact: true })).toHaveAttribute("aria-selected", "true");
-							await page.getByRole("tab", { name: "Settings", exact: true }).press("Enter");
-							await expect(page.getByRole("tab", { name: "Settings", exact: true })).toHaveAttribute("aria-selected", "true");
+							if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+							await page.locator(width === 390 ? '[data-slot="sidebar-mobile"] [data-tour="settings-core-tab"]' : '[data-slot="sidebar"] [data-tour="settings-core-tab"]').press("Enter");
+							await expect(page).toHaveURL(/\/dashboard\/settings$/);
+							await expect(page.locator('[data-tour="settings-core-tab"][aria-current="page"]')).toHaveCount(1);
 						}
-						// Allow subpixel rounding at the tab scroller edge, while still requiring the selected tab in view.
-						if (route.startsWith("/dashboard/settings") && route !== "/dashboard/settings/agencies") await expect(page.getByRole("tab", { selected: true })).toBeInViewport({ ratio: 0.99 });
+
 						const menuBounds = await page.getByRole("button", { name: "Toggle navigation", exact: true }).boundingBox();
 						const themeBounds = await page.getByRole("button", { name: "Toggle Theme", exact: true }).boundingBox();
 						expect(menuBounds!.x).toBeLessThan(themeBounds!.x);

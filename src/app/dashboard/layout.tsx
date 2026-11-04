@@ -14,7 +14,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 	await connection();
 	const user = await validateAuth();
 	const grant = user ? await authorizeCreatorOperation({ creatorId: user.id, resourceOwnerId: user.id, permission: "creator:read" }) : null;
-	const needed: Permission[] = ["creator:read", "overlay:read", "playlist:read", "gallery:read", "runner:read", "account:read"];
+	const needed: Permission[] = ["creator:read", "overlay:read", "playlist:read", "gallery:read", "runner:read", "account:read", "member:read", "billing:read"];
 	const permissions: Permission[] = grant?.allowed && grant.accessPath === "owner" ? [...PERMISSIONS] : user ? (await Promise.all(needed.map(async (permission) => ({ permission, result: await authorizeCreatorOperation({ creatorId: user.id, resourceOwnerId: user.id, permission }) })))).filter((item) => item.result.allowed).map((item) => item.permission) : [];
 	const content = user ? (
 		<DashboardShell key={user.id} creatorId={user.id} permissions={permissions}>

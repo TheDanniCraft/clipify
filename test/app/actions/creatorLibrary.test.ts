@@ -1,12 +1,12 @@
 /** @jest-environment node */
-import { refreshCreatorLibrary, getCreatorClipInventory, getCreatorClipPreview, getCreatorClipOverview, getCreatorBroadcasts, getCreatorBroadcast, searchCreatorLibrary } from "@actions/creatorLibrary";
+import { refreshCreatorLibrary, getCreatorClipInventory, getCreatorClipPreview, getCreatorClipOverview, getCreatorBroadcasts, getCreatorBroadcast, searchCreatorLibrary, getCreatorClipDetail } from "@actions/creatorLibrary";
 const authorize = jest.fn();
 const refresh = jest.fn();
 const token = jest.fn();
 jest.mock("@/auth/authorize-operation", () => ({ authorizeCreatorOperation: (...args: unknown[]) => authorize(...args) }));
 jest.mock("@/server/clip-cache", () => ({ refreshCreatorClips: (...args: unknown[]) => refresh(...args) }));
 jest.mock("@/server/tokens", () => ({ getAccessTokenResultInternal: (...args: unknown[]) => token(...args) }));
-jest.mock("@/server/creator-library", () => ({ readCreatorInventory: (...args: unknown[]) => inventory(...args) }));
+jest.mock("@/server/creator-library", () => ({ readCreatorInventory: (...args: unknown[]) => inventory(...args), readCreatorClipDetail: (...args: unknown[]) => detail(...args) }));
 jest.mock("@actions/twitch", () => ({ getTwitchClipPlaybackUrl: (...args: unknown[]) => playback(...args) }));
 it("denies a foreign creator refresh before starting work", async () => {
 	authorize.mockResolvedValue({ allowed: false, code: "PERMISSION_DENIED" });
@@ -23,6 +23,7 @@ it("starts the existing clip sync for an authorized account without requiring an
 });
 
 const inventory = jest.fn();
+const detail = jest.fn();
 const playback = jest.fn();
 const overview = jest.fn();
 const broadcasts = jest.fn();
@@ -89,4 +90,14 @@ describe("creator library action boundaries", () => {
 		expect(await refreshCreatorLibrary({ creatorId: "owner" })).toEqual({ ok: false, code: "SYNC_COOLDOWN", nextAllowedAt: "later" });
 		expect(await refreshCreatorLibrary({ creatorId: "owner" })).toEqual({ ok: false, code: "SERVICE_UNAVAILABLE" });
 	});
+});
+
+it.each([undefined, {}, { creatorId: "", clipId: "A" }, { creatorId: "owner", clipId: "" }, { creatorId: 3, clipId: "A" }, { creatorId: "owner", clipId: 3 }, { creatorId: "x".repeat(201), clipId: "A" }, { creatorId: "owner", clipId: "x".repeat(201) }])("rejects invalid detail input %#", async (input) => {
+	expect(await getCreatorClipDetail(input as never)).toEqual({ ok: false, code: "INVALID_INPUT" });
+	expect(detail).not.toHaveBeenCalled();
+});
+it("delegates validated detail requests to the authorizing reader", async () => {
+	detail.mockResolvedValue({ ok: false, code: "PERMISSION_DENIED" });
+	expect(await getCreatorClipDetail({ creatorId: "owner", clipId: "A" })).toEqual({ ok: false, code: "PERMISSION_DENIED" });
+	expect(detail).toHaveBeenCalledWith("owner", "A");
 });

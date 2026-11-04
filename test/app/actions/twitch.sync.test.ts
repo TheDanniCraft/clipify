@@ -941,3 +941,5 @@ describe("actions/twitch syncOwnerClipCache", () => {
 		expect(savedState.backfillWindowSizeMs).not.toBe(12 * 60 * 60 * 1000);
 	});
 });
+
+jest.mock("@/server/clip-download-limit", () => ({ reserveTwitchClipDownloadRequest: jest.fn().mockResolvedValue({ allowed: true, remaining: 99 }) }));

@@ -9,7 +9,7 @@ import { twitchCacheTable } from "@/db/schema";
 import { TwitchCacheType } from "@types";
 import { authorizeCreatorOperation } from "@/auth/authorize-operation";
 import { getAccessTokenResultInternal } from "@/server/tokens";
-import { tryRateLimit } from "@actions/rateLimit";
+import { reserveClipDownloadJob, reserveTwitchClipDownloadRequest } from "./clip-download-limit";
 import { providerClipSchema } from "./resources/clip-validation";
 import { publicClip } from "./resources/clip-discovery";
 
@@ -57,8 +57,8 @@ export function isCompleteMp4(bytes: Uint8Array) {
 }
 
 export const EXPORT_LIMITS = { file: 32 * 1024 * 1024, media: 128 * 1024 * 1024, manifest: 1024 * 1024, archive: 130 * 1024 * 1024 } as const;
-export type ExportSummary = { included: number[]; skipped: { index: number; code: string; retryable: boolean }[]; retryAt?: string };
-type ArchiveResult = { ok: true; bytes: Uint8Array; summary: ExportSummary } | { ok: false; code: string; status: number; retryAt?: string; failures?: ExportSummary["skipped"] };
+export type ExportSummary = { included: number[]; skipped: { index: number; code: string; retryable: boolean; title?: string }[]; retryAt?: string };
+type ArchiveResult = { ok: true; bytes: Uint8Array; summary: ExportSummary; filename?: string } | { ok: false; code: string; status: number; retryAt?: string; failures?: ExportSummary["skipped"] };
 const failure = (code: string, status: number, retryAt?: string): Extract<ArchiveResult, { ok: false }> => ({ ok: false, code, status, ...(retryAt ? { retryAt } : {}) });
 
 async function downloadMedia(url: string, signal: AbortSignal) {
@@ -114,10 +114,11 @@ export function clipExportFilename(title: string, id: string, index: number, use
 	return filename;
 }
 
-export async function buildClipArchive(input: unknown, parentSignal?: AbortSignal): Promise<ArchiveResult> {
+export async function buildClipArchive(input: unknown, parentSignal?: AbortSignal, format: "zip" | "mp4" = "zip"): Promise<ArchiveResult> {
 	const parsed = exportRequestSchema.safeParse(input);
 	if (!parsed.success) return failure("INVALID_INPUT", 400);
 	const { creatorId, clipIds } = parsed.data;
+	if (format === "mp4" && clipIds.length !== 1) return failure("INVALID_INPUT", 400);
 	const authorize = async () => {
 		const read = await authorizeCreatorOperation({ creatorId, resourceOwnerId: creatorId, permission: "creator:read" });
 		return read.allowed ? authorizeCreatorOperation({ creatorId, resourceOwnerId: creatorId, permission: "clips:export" }) : read;
@@ -140,15 +141,19 @@ export async function buildClipArchive(input: unknown, parentSignal?: AbortSigna
 			return clip.success && clip.data.id === id && clip.data.broadcaster_id === creatorId ? { clip: clip.data, unavailable: stored.unavailable === true } : null;
 		});
 		if (clips.some((clip) => !clip)) return failure("INVALID_INPUT", 400);
-		const limit = await tryRateLimit({ key: "clip-export", points: 3, duration: 60, identifier: `${grant.authUserId}:${creatorId}` });
-		if (!limit.success) return failure("RATE_LIMITED", 429, new Date(Date.now() + 60000).toISOString());
+		const limit = await reserveClipDownloadJob(creatorId);
+		if (!limit.allowed) return failure("RATE_LIMITED", 429, new Date(Date.now() + limit.retryAfterSeconds * 1000).toISOString());
 		const tokenResult = await getAccessTokenResultInternal(creatorId);
 		const token = tokenResult.token;
 		if (!token || !token.scope?.some((scope) => scope === "channel:manage:clips" || scope === "editor:manage:clips")) return failure("RECONNECT_REQUIRED", 403);
 		const summary: ExportSummary = { included: [], skipped: [] };
 		const sources = new Map<number, { url: string; variant: "landscape" | "portrait" }>();
 		const skip = (index: number, code: string) => {
-			if (!summary.skipped.some((item) => item.index === index)) summary.skipped.push({ index, code, retryable: ["provider_error", "download_timeout", "rate_limited"].includes(code) });
+			if (!summary.skipped.some((item) => item.index === index)) {
+				const title = Array.from(clips[index]!.clip.title).slice(0, 80);
+				while (strToU8(title.join("")).length > 80) title.pop();
+				summary.skipped.push({ index, code, retryable: ["provider_error", "download_timeout", "rate_limited"].includes(code), title: title.join("") });
+			}
 		};
 		let blocked: string | undefined;
 		const providerSchema = z.object({ data: z.array(z.object({ clip_id: z.string(), landscape_download_url: z.string().nullable().optional(), portrait_download_url: z.string().nullable().optional() })).max(10) });
@@ -167,6 +172,13 @@ export async function buildClipArchive(input: unknown, parentSignal?: AbortSigna
 				});
 			if (!indices.length) continue;
 			if (blocked) {
+				indices.forEach((index) => skip(index, blocked!));
+				continue;
+			}
+			const capacity = await reserveTwitchClipDownloadRequest(creatorId);
+			if (!capacity.allowed) {
+				blocked = "rate_limited";
+				summary.retryAt = new Date(Date.now() + capacity.retryAfterSeconds * 1000).toISOString();
 				indices.forEach((index) => skip(index, blocked!));
 				continue;
 			}
@@ -260,6 +272,12 @@ export async function buildClipArchive(input: unknown, parentSignal?: AbortSigna
 			const limited = summary.skipped.some((item) => item.code === "file_size_limit" || item.code === "package_size_limit");
 			const code = limited ? "EXPORT_LIMIT" : summary.skipped.some((item) => item.code === "reconnect_required") ? "RECONNECT_REQUIRED" : summary.skipped.some((item) => item.code === "rate_limited") ? "RATE_LIMITED" : summary.skipped.some((item) => item.code === "provider_error") ? "PROVIDER_UNAVAILABLE" : summary.skipped.some((item) => item.code === "download_timeout") ? "EXPORT_TIMEOUT" : "EXPORT_UNAVAILABLE";
 			return { ...failure(code, code === "EXPORT_LIMIT" ? 413 : code === "RECONNECT_REQUIRED" ? 403 : code === "RATE_LIMITED" ? 429 : code === "PROVIDER_UNAVAILABLE" ? 502 : code === "EXPORT_TIMEOUT" ? 504 : 409, summary.retryAt), failures: summary.skipped };
+		}
+		if (format === "mp4") {
+			const finalGrant = await authorize();
+			if (!finalGrant.allowed) return failure(finalGrant.code, 403);
+			const filename = String(manifest[0].filename);
+			return { ok: true, bytes: files[filename], filename, summary };
 		}
 		for (const skipped of summary.skipped) manifest.push({ ...publicClip(clips[skipped.index]!.clip), status: "skipped", code: skipped.code, retryable: skipped.retryable });
 		manifest.sort((a, b) => clipIds.indexOf(String(a.id)) - clipIds.indexOf(String(b.id)));

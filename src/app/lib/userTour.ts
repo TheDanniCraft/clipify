@@ -151,9 +151,9 @@ export function navigationForTask(task: TaskId, location: GuideLocation, progres
 export type GuideStep = { target: string; title: string; description: string; next?: boolean; nextDisabled?: boolean; action?: boolean; finish?: boolean; nextLabel?: string; allowDialog?: boolean; inDialog?: boolean; dialogClosed?: boolean; destination?: GuideLocation; preserveFocus?: boolean; reveals?: string; pauseOnInteract?: boolean };
 const navigationSteps: Record<NavigationTarget, GuideStep> = {
 	"connections-panel": { target: "settings-connections-tab", title: "Choose Connections", description: "Choose Connections to return to your connected AI apps.", action: true, next: true, reveals: "connected-ai-apps" },
-	"settings-panel": { target: "settings-core-tab", title: "Choose Settings", description: "Choose Settings to return to this guide.", action: true, next: true, reveals: "settings-overview" },
+	"settings-panel": { target: "settings-core-tab", title: "Choose Account", description: "Choose Account to return to this guide.", action: true, next: true, reveals: "settings-overview" },
 	"account-settings": { target: "nav-settings", title: "Open Settings", description: "Choose My Settings.", destination: "settings", preserveFocus: true },
-	"core-settings": { target: "settings-core-tab", title: "Open Settings", description: "Choose Settings to return to your account preferences.", destination: "settings" },
+	"core-settings": { target: "settings-core-tab", title: "Open Account", description: "Choose Account to return to your account preferences.", destination: "settings" },
 	team: { target: "settings-team-tab", title: "Open Team", description: "Choose Team to find your team members and manage their access.", action: true, next: true, reveals: "team-overview" },
 	"close-picker": { target: "playlist-clip-cancel", title: "Return to Add Clips", description: "Click Cancel to return to the playlist and its Add Clips button.", action: true, next: true, inDialog: true, dialogClosed: true },
 	"clip-picker": { target: "playlist-add", title: "Open the clip picker", description: "Click Add Clips to return to your clip selection.", action: true, next: true, reveals: "playlist-clip-search", allowDialog: true },
@@ -548,7 +548,7 @@ export function stepsForTask(task: TaskId, progress: GuideProgress): GuideStep[]
 			];
 		case "explore.settings":
 			return [
-				{ target: "settings-core-tab", title: "Choose Settings", description: "Open the Settings tab for your account preferences.", action: true, next: true, reveals: "settings-overview" },
+				{ target: "settings-core-tab", title: "Choose Account", description: "Choose Account in the Settings sidebar for your account preferences.", action: true, next: true, reveals: "settings-overview" },
 				{ target: "settings-overview", title: "Your account settings", description: "Find your profile, plan and preferences here. The tabs above also lead to connections, your creator page, billing and team.", next: true },
 				{ target: "account-security", title: "Sign-in and security", description: "Manage your sign-in email and passkeys here. You can review these options without changing anything.", next: true, finish: true, nextLabel: "Done" },
 			];

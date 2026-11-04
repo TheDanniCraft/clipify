@@ -51,7 +51,14 @@ const rateLimit = jest.fn();
 const cacheRead = jest.fn();
 jest.mock("@/auth/authorize-operation", () => ({ authorizeCreatorOperation: (...args: unknown[]) => authorize(...args) }));
 jest.mock("@/server/tokens", () => ({ getAccessTokenResultInternal: (...args: unknown[]) => getToken(...args) }));
-jest.mock("@actions/rateLimit", () => ({ tryRateLimit: (...args: unknown[]) => rateLimit(...args) }));
+const providerCapacity = jest.fn();
+jest.mock("@/server/clip-download-limit", () => ({
+	reserveClipDownloadJob: async (creatorId: string) => {
+		const result = await rateLimit(creatorId);
+		return result.success ? { allowed: true, remaining: 2 } : { allowed: false, retryAfterSeconds: 60 };
+	},
+	reserveTwitchClipDownloadRequest: (...args: unknown[]) => providerCapacity(...args),
+}));
 jest.mock("@/db/client", () => ({
 	db: {
 		select: () => {
@@ -68,6 +75,7 @@ beforeEach(() => {
 	authorize.mockReset();
 	getToken.mockReset();
 	rateLimit.mockReset();
+	providerCapacity.mockReset().mockResolvedValue({ allowed: true, remaining: 99 });
 	cacheRead.mockReset();
 	authorize.mockResolvedValue({ allowed: true, authUserId: "actor" });
 	rateLimit.mockResolvedValue({ success: true });
@@ -123,7 +131,7 @@ it.each([null, { accessToken: "private", scope: [] }])("requires current Twitch 
 	expect(await buildClipArchive({ creatorId: "owner", clipIds: ["ClipA"] })).toMatchObject({ ok: false, code: "RECONNECT_REQUIRED", status: 403 });
 	expect(globalThis.fetch).not.toHaveBeenCalled();
 });
-it("limits export starts per actor and creator", async () => {
+it("shares export admission by creator account", async () => {
 	rateLimit.mockResolvedValue({ success: false });
 	expect(await buildClipArchive({ creatorId: "owner", clipIds: ["ClipA"] })).toMatchObject({ ok: false, code: "RATE_LIMITED", status: 429, retryAt: expect.any(String) });
 	expect(globalThis.fetch).not.toHaveBeenCalled();
@@ -361,4 +369,23 @@ it("downloads older Twitch clips served by the verified legacy CDN", async () =>
 	const result = await buildClipArchive({ creatorId: "owner", clipIds: ["ClipA"] });
 	expect(result).toMatchObject({ ok: true, summary: { included: [0], skipped: [] } });
 	if (result.ok) expect(Object.values(unzipSync(result.bytes)).some((bytes) => Buffer.from(bytes).equals(video))).toBe(true);
+});
+
+it("returns one complete MP4 for an individual download", async () => {
+	const result = await buildClipArchive({ creatorId: "owner", clipIds: ["ClipA"] }, undefined, "mp4");
+	expect(result.ok).toBe(true);
+	if (result.ok) expect(Buffer.from(result.bytes)).toEqual(video);
+});
+
+it("shares provider capacity with single downloads and sends no request after exhaustion", async () => {
+	providerCapacity.mockResolvedValue({ allowed: false, retryAfterSeconds: 15 });
+	const result = await buildClipArchive({ creatorId: "owner", clipIds: ["ClipA"] }, undefined, "mp4");
+	expect(result).toMatchObject({ ok: false, code: "RATE_LIMITED", status: 429 });
+	expect(providerCapacity).toHaveBeenCalledWith("owner");
+	expect(rateLimit).toHaveBeenCalledWith("owner");
+	expect(globalThis.fetch).not.toHaveBeenCalled();
+});
+it("rejects multiple IDs in an individual download before reading metadata", async () => {
+	expect(await buildClipArchive({ creatorId: "owner", clipIds: ["A", "B"] }, undefined, "mp4")).toMatchObject({ ok: false, code: "INVALID_INPUT" });
+	expect(cacheRead).not.toHaveBeenCalled();
 });

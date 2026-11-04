@@ -56,5 +56,6 @@ table {
 }
 
 html {
+	scrollbar-gutter: stable;
 	scroll-behavior: smooth;
 }

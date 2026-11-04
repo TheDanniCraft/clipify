@@ -10,6 +10,7 @@ import AppPagination from "@components/appPagination";
 import ClipPreview from "./clipPreview";
 import LocalizedDate from "@components/localizedDate";
 import ClipExport from "./clipExport";
+import { notify } from "@lib/toast";
 
 const subscribeToHydration = () => () => undefined;
 const clientReady = () => true;
@@ -38,6 +39,21 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 	const fixedVideoId = path.startsWith("/dashboard/streams/") ? initialQuery.videoId : undefined;
 	const [draft, setDraft] = useState(query);
 	const [refresh, setRefresh] = useState<Awaited<ReturnType<typeof refreshCreatorLibrary>>>();
+	useEffect(() => {
+		if (!refresh) return;
+		notify({
+			title: refresh.ok ? "Refresh started. New clips may take a moment to appear." : refresh.code === "SYNC_COOLDOWN" ? "The library was refreshed recently." : refresh.code === "RECONNECT_REQUIRED" ? "Connect Twitch to load your clips." : "The library could not be refreshed. Please try again.",
+			description:
+				!refresh.ok && refresh.code === "RECONNECT_REQUIRED" ? (
+					<Link href='/dashboard/settings?tab=connections'>Connect Twitch</Link>
+				) : !refresh.ok && "nextAllowedAt" in refresh && refresh.nextAllowedAt ? (
+					<>
+						Try again after <LocalizedDate value={refresh.nextAllowedAt} showTime />
+					</>
+				) : undefined,
+			color: refresh.ok ? "success" : refresh.code === "SYNC_COOLDOWN" ? "default" : "danger",
+		});
+	}, [refresh]);
 	const [pending, startTransition] = useTransition();
 	const selectionScope = JSON.stringify([
 		creatorId,
@@ -79,6 +95,10 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 					result = { ok: false, code: "SERVICE_UNAVAILABLE" };
 				}
 				if (epoch !== requestEpoch.current) return;
+				if (!result.ok && result.code !== "INVALID_INPUT") {
+					notify({ title: result.code === "SERVICE_UNAVAILABLE" ? "Your clips could not be loaded. Please try again." : "You don’t have access to this creator’s clips.", color: "danger" });
+					if (result.code === "SERVICE_UNAVAILABLE") return;
+				}
 				setView({ query: next, data: result });
 				if (push) window.history.pushState(null, "", `${path}?${new URLSearchParams(next)}`);
 			});
@@ -240,31 +260,11 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 						>
 							Refresh library
 						</Button>
+						<Button variant='ghost' isDisabled={!refresh?.ok || pending} onPress={() => navigate(query, false)}>
+							Check for new clips
+						</Button>
 					</div>
 
-					{refresh ? (
-						<div role={refresh.ok ? "status" : "alert"} className='rounded-xl border border-default p-3 text-sm'>
-							{refresh.ok ? (
-								<>
-									Refresh started. New clips may take a moment to appear.{" "}
-									<Button variant='tertiary' isDisabled={pending} onPress={() => navigate(query, false)}>
-										Check for new clips
-									</Button>
-								</>
-							) : refresh.code === "SYNC_COOLDOWN" ? (
-								<>The library was refreshed recently. You can request another refresh {"nextAllowedAt" in refresh && refresh.nextAllowedAt ? <LocalizedDate value={refresh.nextAllowedAt} timeZone={timeZone} showTime /> : "later"}.</>
-							) : refresh.code === "RECONNECT_REQUIRED" ? (
-								<>
-									Connect Twitch to load your clips.{" "}
-									<Link href='/dashboard/settings' target='_blank' rel='noopener noreferrer'>
-										Connect Twitch (opens in a new tab)
-									</Link>
-								</>
-							) : (
-								"The library could not be refreshed. Please try again."
-							)}
-						</div>
-					) : null}
 					{data.items.length || selected.size ? (
 						<Card>
 							<Card.Content className='flex flex-row flex-wrap items-center justify-between gap-3'>
@@ -344,18 +344,24 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 												</Table.Cell>
 												<Table.Cell>
 													<div className='flex min-w-0 flex-col gap-2'>
-														<div className='flex min-w-0 items-center gap-3'>
+														<div className='flex min-w-0 items-start gap-3'>
 															{clip.thumbnailUrl ? <img src={clip.thumbnailUrl} alt='' className='h-12 w-20 shrink-0 rounded-lg object-cover' /> : null}
-															<Button
-																variant='ghost'
-																className='h-auto min-w-0 flex-1 justify-start whitespace-normal py-2 text-left'
-																aria-label={`Preview ${clip.title}`}
-																onPress={() => {
-																	setPreview(clip);
-																}}
-															>
-																{clip.title || "Untitled clip"}
-															</Button>
+															<div className='flex min-w-0 flex-1 flex-col items-start gap-1'>
+																<Link href={`/dashboard/clips/${encodeURIComponent(clip.id)}`} className='min-w-0 break-words font-medium'>
+																	{clip.title || "Untitled clip"}
+																</Link>
+
+																<Button
+																	variant='ghost'
+																	className='h-auto px-0 py-1 text-xs text-muted'
+																	aria-label={`Preview ${clip.title}`}
+																	onPress={() => {
+																		setPreview(clip);
+																	}}
+																>
+																	Preview
+																</Button>
+															</div>
 														</div>
 														<p className='w-full text-xs text-muted xl:hidden'>
 															{clip.views.toLocaleString()} views, {Math.round(clip.duration)}s<br />

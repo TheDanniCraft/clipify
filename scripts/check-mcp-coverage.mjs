@@ -19,6 +19,14 @@ export function readMcpSourceManifest() {
 		"src/server/creator-overview.ts",
 		"src/server/creator-broadcasts.ts",
 		"src/server/clip-export.ts",
+		"src/server/clip-download-limit.ts",
+		"src/app/components/creator/clipDetails.tsx",
+		"src/app/components/creator/clipPlayer.tsx",
+		"src/app/api/dashboard/presence/route.ts",
+		"src/app/lib/dashboardSections.ts",
+		"src/app/actions/dashboardPresence.ts",
+		"src/app/components/dashboardUserAvatar.tsx",
+		"src/app/dashboard/clips/[clipId]/page.tsx",
 		"src/app/api/clips/export/route.ts",
 		"src/app/dashboard/layout.tsx",
 		"src/app/dashboard/page.tsx",
@@ -105,7 +113,7 @@ export function readMcpSourceManifest() {
 	const critical = feature.filter(
 		(path) =>
 			runner.critical.includes(path) ||
-			["src/server/creator-library.ts", "src/server/creator-overview.ts", "src/server/creator-broadcasts.ts", "src/server/clip-export.ts", "src/app/actions/creatorLibrary.ts", "src/app/api/clips/export/route.ts", "src/app/lib/clipExport.ts"].includes(path) ||
+			["src/server/clip-download-limit.ts", "src/server/creator-library.ts", "src/server/creator-overview.ts", "src/server/creator-broadcasts.ts", "src/server/clip-export.ts", "src/app/actions/creatorLibrary.ts", "src/app/api/clips/export/route.ts", "src/app/lib/clipExport.ts"].includes(path) ||
 			path.startsWith("src/server/account-lifecycle/account-") ||
 			path === "src/server/primary-twitch-account.ts" ||
 			path === "src/db/client.ts" ||

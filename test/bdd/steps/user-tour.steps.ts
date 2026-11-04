@@ -1112,7 +1112,7 @@ When("the AI discovery guide is followed", async ({ page }) => {
 	await openSettingsFromGuide(page);
 	await expect(page.locator(".driver-popover-title")).toHaveText("Choose Connections");
 	await expect(page.locator('[data-tour="settings-connections-tab"]')).toHaveClass(/driver-active-element/);
-	await page.getByRole("tab", { name: "Connections", exact: true }).click();
+	await page.locator('[data-tour="settings-connections-tab"]').click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Connected AI apps");
 	await page.getByRole("button", { name: "Continue", exact: true }).click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Connect an AI app");
@@ -1120,10 +1120,10 @@ When("the AI discovery guide is followed", async ({ page }) => {
 	await expect(page.locator(".driver-popover-title")).toHaveText("Connected AI apps");
 	await pause(page);
 	await page.getByRole("button", { name: "Minimize guide", exact: true }).click();
-	await page.getByRole("tab", { name: "Settings", exact: true }).click();
+	await page.locator('[data-tour="settings-core-tab"]').click();
 	await start(page, "Discover AI connections", "Explore Clipify");
 	await expect(page.locator(".driver-popover-title")).toHaveText("Choose Connections");
-	await page.getByRole("tab", { name: "Connections", exact: true }).click();
+	await page.locator('[data-tour="settings-connections-tab"]').click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Connected AI apps");
 	await page.getByRole("button", { name: "Continue", exact: true }).click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Connect an AI app");
@@ -1139,7 +1139,7 @@ When("the editor discovery guide is followed", async ({ page }) => {
 	await start(page, "Find your team members", "Explore Clipify");
 	await openSettingsFromGuide(page);
 	await expect(page.locator(".driver-popover-title")).toHaveText("Open Team");
-	await page.getByRole("tab", { name: "Team", exact: true }).click();
+	await page.locator('[data-tour="settings-team-tab"]').click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Your team members");
 	await expect(page.getByRole("button", { name: "Invite member", exact: true })).toBeVisible();
 	await page.getByRole("button", { name: "Done", exact: true }).click();
@@ -1277,14 +1277,14 @@ When("AI discovery starts from Team with a creator settings draft", async ({ pag
 	await page.goto(`${tourWorld.origin}/dashboard/settings?tab=creator`);
 	await page.getByRole("textbox", { name: "Preview title", exact: true }).fill("My unsaved creator title");
 	tourWorld.result = { timeOrigin: await page.evaluate(() => performance.timeOrigin) };
-	await page.getByRole("tab", { name: "Team", exact: true }).click();
+	await page.locator('[data-tour="settings-team-tab"]').click();
 	await expect(page).toHaveURL(`${tourWorld.origin}/dashboard/settings?tab=team`);
-	await expect(page.getByRole("tablist", { name: "Settings sections", exact: true })).toHaveCount(1);
+	await expect(page.getByRole("tablist", { name: "Settings sections", exact: true })).toHaveCount(0);
 	await expect(page.locator('[data-tour="team-overview"]')).toBeVisible();
 	await expect(page.getByRole("dialog", { name: "Unsaved Changes", exact: true })).toHaveCount(0);
 	await start(page, "Discover AI connections", "Explore Clipify");
 	await expect(page.locator(".driver-popover-title")).toHaveText("Choose Connections");
-	await page.getByRole("tab", { name: "Connections", exact: true }).click();
+	await page.locator('[data-tour="settings-connections-tab"]').click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Connected AI apps");
 	await page.getByRole("button", { name: "Continue", exact: true }).click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Connect an AI app");
@@ -1292,7 +1292,7 @@ When("AI discovery starts from Team with a creator settings draft", async ({ pag
 });
 Then("Connections opens directly and the creator draft is retained", async ({ page, tourWorld }) => {
 	expect((await progress(page, tourWorld)).completed).toContain("explore.ai");
-	await page.getByRole("tab", { name: "Creator Page", exact: true }).click();
+	await page.locator('[data-tour="settings-creator-tab"]').click();
 	await expect(page.getByRole("textbox", { name: "Preview title", exact: true })).toHaveValue("My unsaved creator title");
 	expect(await page.evaluate(() => performance.timeOrigin)).toBe((tourWorld.result as { timeOrigin: number }).timeOrigin);
 	await expect(page.getByRole("dialog", { name: "Unsaved Changes", exact: true })).toHaveCount(0);

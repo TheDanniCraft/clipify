@@ -33,7 +33,7 @@ export async function readBoundedResponse(response: Pick<Response, "body">, maxB
 	}
 }
 
-const summarySchema = z.object({ included: z.array(z.number().int().nonnegative()).max(50), skipped: z.array(z.object({ index: z.number().int().nonnegative(), code: z.enum(["clip_unavailable", "download_unavailable", "file_size_limit", "package_size_limit", "invalid_media", "provider_error", "download_timeout", "rate_limited", "reconnect_required"]), retryable: z.boolean() })).max(50), retryAt: z.string().datetime().optional() });
+const summarySchema = z.object({ included: z.array(z.number().int().nonnegative()).max(50), skipped: z.array(z.object({ index: z.number().int().nonnegative(), code: z.enum(["clip_unavailable", "download_unavailable", "file_size_limit", "package_size_limit", "invalid_media", "provider_error", "download_timeout", "rate_limited", "reconnect_required"]), retryable: z.boolean(), title: z.string().max(1000).optional() })).max(50), retryAt: z.string().datetime().optional() });
 export type ClipExportSummary = z.infer<typeof summarySchema>;
 export function decodeClipExportSummary(encoded: string | null, count: number) {
 	try {

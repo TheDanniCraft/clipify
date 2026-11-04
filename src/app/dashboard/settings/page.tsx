@@ -18,7 +18,7 @@ import { notify as addToast } from "@lib/toast";
 
 import { IconAlertTriangle, IconDatabase, IconDeviceFloppy, IconInfoCircle, IconMail, IconRefresh, IconShieldLock, IconTrash } from "@tabler/icons-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { requestAccountDataExport, requestAccountDeletion } from "@actions/subscription";
 import { forceRefreshOwnClipCache, getOwnClipForceRefreshStatus } from "@actions/twitch";
@@ -29,7 +29,7 @@ import BillingPanel from "./billing-panel";
 import ChatwootData from "@components/chatwootData";
 import ControlledModal from "@components/controlledModal";
 import CreatorAnalyticsCard from "@components/creator/CreatorAnalyticsCard";
-import SettingsNavigation, { type SettingsNavigationKey } from "@components/settingsNavigation";
+import { settingsSection, type SettingsSection } from "@lib/dashboardSections";
 import TeamSettingsPanel from "@components/settings/TeamSettingsPanel";
 import { getFeatureAccess, getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
 import type { BillingCycle, PaywallSource } from "@actions/subscription";
@@ -58,13 +58,12 @@ type ClipForceRefreshStatusState = {
 	canRefresh: boolean;
 } | null;
 
-type SettingsSection = SettingsNavigationKey;
-
 export default function SettingsPage() {
 	const [user, setUser] = useState<AuthenticatedUser | null>(null);
 	const { isOpen: upgradeModalIsOpen, open: upgradeModalOnOpen, setOpen: upgradeModalOnOpenChange } = useOverlayState();
 
-	const [sectionTab, setSectionTab] = useState<SettingsSection>("settings");
+	const params = useSearchParams();
+	const sectionTab = settingsSection(params);
 	const { isOpen: deleteModalIsOpen, open: deleteModalOnOpen, setOpen: deleteModalOnOpenChange } = useOverlayState();
 	const { isOpen: exportModalIsOpen, open: exportModalOnOpen, setOpen: exportModalOnOpenChange } = useOverlayState();
 	const [deletionChoice, setDeletionChoice] = useState<"paid_through" | "immediate">("paid_through");
@@ -86,7 +85,16 @@ export default function SettingsPage() {
 	const [isRequestingDeletion, setIsRequestingDeletion] = useState(false);
 
 	const router = useRouter();
-	const navigationGuardEnabled = useCallback(() => JSON.stringify(settings) !== JSON.stringify(baseSettings), [settings, baseSettings]);
+	const navigationGuardEnabled = useCallback(
+		({ to, type }: { to: string; type: string }) => {
+			if (["push", "replace", "popstate"].includes(type)) {
+				const destination = new URL(to, window.location.href);
+				if (destination.origin === window.location.origin && destination.pathname === "/dashboard/settings") return false;
+			}
+			return JSON.stringify(settings) !== JSON.stringify(baseSettings);
+		},
+		[settings, baseSettings],
+	);
 	const navGuard = useNavigationGuard({ enabled: navigationGuardEnabled });
 
 	useEffect(() => {
@@ -221,9 +229,7 @@ export default function SettingsPage() {
 				router.replace(params.size ? `/dashboard/settings?${params.toString()}` : "/dashboard/settings");
 			}
 			const requestedTab = params.get("tab");
-			if (requestedTab === "creator" || requestedTab === "connections" || requestedTab === "billing" || requestedTab === "team") setSectionTab(requestedTab);
-			else if (requestedTab === "badges" || requestedTab === "achievements") router.replace("/dashboard/member-card");
-			else if (params.has("billing") || params.has("checkout") || params.get("addon") === "runner") setSectionTab("billing");
+			if (requestedTab === "badges" || requestedTab === "achievements") router.replace("/dashboard/member-card");
 		});
 		return () => {
 			cancelled = true;
@@ -352,11 +358,10 @@ export default function SettingsPage() {
 	}
 
 	function selectSection(section: SettingsSection) {
-		setSectionTab(section);
 		const params = new URLSearchParams(window.location.search);
 		if (section === "settings") params.delete("tab");
 		else params.set("tab", section);
-		window.history.replaceState(window.history.state, "", params.size ? `/dashboard/settings?${params.toString()}` : "/dashboard/settings");
+		router.push(params.size ? `/dashboard/settings?${params.toString()}` : "/dashboard/settings");
 	}
 
 	return (
@@ -365,7 +370,7 @@ export default function SettingsPage() {
 
 			<DashboardNavbar user={user} title='Settings' tagline='Manage your settings'>
 				<div className='mt-4 flex w-full flex-col gap-2'>
-					<SettingsNavigation active={sectionTab} onCoreSectionChange={selectSection}>
+					<section aria-label='Settings content'>
 						{sectionTab === "team" ? (
 							<TeamSettingsPanel embedded />
 						) : sectionTab === "billing" ? (
@@ -480,7 +485,7 @@ export default function SettingsPage() {
 										</section>
 										<Separator />
 										<p className='text-xs text-muted'>
-											Search-engine and Clipify Discovery visibility is managed under <Link onPress={() => setSectionTab("settings")}>Settings</Link>.
+											Search-engine and Clipify Discovery visibility is managed under <Link onPress={() => selectSection("settings")}>Settings</Link>.
 										</p>
 										<Button fullWidth type='submit' isDisabled={!isFormDirty()} aria-label='Save Creator Page Settings' variant='primary'>
 											<IconDeviceFloppy /> Save Creator Page Settings
@@ -658,7 +663,7 @@ export default function SettingsPage() {
 														</Switch>
 													</div>
 													<p className='mt-2 text-xs text-muted'>
-														Creator Page availability and profile content are configured in the <Link onPress={() => setSectionTab("creator")}>Creator Page tab</Link>.
+														Creator Page availability and profile content are configured in the <Link onPress={() => selectSection("creator")}>Creator Page settings</Link>.
 													</p>
 												</Card.Content>
 											</Card>
@@ -698,7 +703,7 @@ export default function SettingsPage() {
 								</Card.Content>
 							</Card>
 						)}
-					</SettingsNavigation>
+					</section>
 				</div>
 			</DashboardNavbar>
 

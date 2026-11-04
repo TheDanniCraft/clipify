@@ -8,6 +8,7 @@ import { Autocomplete, Button, ComboBox, Dropdown, EmptyState, Input, Label, Lis
 import { AuthenticatedUser, CampaignOffer, Role } from "@types";
 import DashboardUtilityPortal from "@components/dashboardUtilityPortal";
 import Logo from "@components/logo";
+import { notify } from "@lib/toast";
 import { DashboardNavigationContext, DashboardNavigationControls, DashboardBreadcrumbs } from "@components/dashboardNavigation";
 import CountdownTimer from "@components/countdownTimer";
 import DashboardUserAvatar from "@components/dashboardUserAvatar";
@@ -55,7 +56,6 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 	const [isLoadingSwitchCandidates, setIsLoadingSwitchCandidates] = useState(false);
 	const [isSwitchingOrganization, setIsSwitchingOrganization] = useState(false);
 	const appliedOrganization = useRef<string | null>(null);
-	const [switchError, setSwitchError] = useState<string | null>(null);
 	const [campaignOffer, setCampaignOffer] = useState<CampaignOffer | null>(null);
 	const effectivePlan = user?.entitlements?.effectivePlan ?? user?.plan;
 	const showUpgradeItem = user?.plan === "free" && (effectivePlan === "free" || Boolean(user?.entitlements?.reverseTrialActive));
@@ -168,11 +168,10 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 	async function handleSwitchAdminView(targetUserId: string) {
 		if (isSwitchingAdminView || !targetUserId) return;
 		setIsSwitchingAdminView(true);
-		setSwitchError(null);
 		try {
 			const result = await switchAdminView(targetUserId);
 			if (!result.ok) {
-				setSwitchError(`Switch failed: ${result.error}`);
+				notify({ title: "Account could not be switched", description: result.error, color: "danger" });
 				return;
 			}
 			router.push("/dashboard");
@@ -199,7 +198,7 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 					<DashboardNavigationControls />
 					{inShell ? <div className='min-w-0 flex-1'>{!navigation?.current || navigation.current.href === "/dashboard" ? <span className='text-sm font-medium'>{navigation?.current?.title ?? title}</span> : <DashboardBreadcrumbs />}</div> : null}
 					{inShell ? themeControl : null}
-					<AccountControlsContainer>
+					<AccountControlsContainer {...(inShell ? { slot: "account" as const } : {})}>
 						<ul data-dashboard-account-controls className={inShell ? "flex w-full flex-wrap items-center gap-2" : "order-2 ml-auto flex h-12 max-w-fit items-center gap-0 sm:order-3"}>
 							{organizationOptions.length > 1 ? (
 								<li className={inShell ? "w-full" : "mr-1 w-36 sm:w-48"}>
@@ -375,7 +374,6 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 								Exit
 							</Button>
 						</div>
-						{switchError ? <p className='text-[11px] text-danger'>{switchError}</p> : null}
 					</div>
 				</div>
 			) : null}

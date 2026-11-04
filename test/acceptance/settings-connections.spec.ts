@@ -15,7 +15,7 @@ test("linked accounts and AI access share the Connections settings tab", async (
 		await page.goto("/dashboard/settings?tab=connections");
 		await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 		await expect(page.getByText("No fixed expiry", { exact: true })).toBeVisible();
-		await expect(page.getByRole("tab", { name: "Connections", exact: true })).toHaveAttribute("aria-selected", "true");
+		await expect(page.locator('[data-tour="settings-connections-tab"][aria-current="page"]')).toHaveAttribute("aria-current", "page");
 		await expect(page.getByRole("heading", { name: "Linked accounts", exact: true })).toBeVisible();
 		await expect(page.getByRole("heading", { name: "Connected AI apps", exact: true })).toBeVisible();
 		await expect(page.getByRole("heading", { name: "AI app activity", exact: true })).toBeVisible();

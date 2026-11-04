@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 const auth = jest.fn();
 const inventory = jest.fn();
+const detail = jest.fn();
 const broadcasts = jest.fn();
 const broadcast = jest.fn();
 const redirect = jest.fn((destination: string) => {
@@ -8,7 +9,7 @@ const redirect = jest.fn((destination: string) => {
 });
 jest.mock("next/navigation", () => ({ redirect: (destination: string) => redirect(destination) }));
 jest.mock("@actions/auth", () => ({ validateAuth: () => auth() }));
-jest.mock("@actions/creatorLibrary", () => ({ getCreatorClipInventory: (...args: unknown[]) => inventory(...args), getCreatorBroadcasts: (...args: unknown[]) => broadcasts(...args), getCreatorBroadcast: (...args: unknown[]) => broadcast(...args) }));
+jest.mock("@actions/creatorLibrary", () => ({ getCreatorClipInventory: (...args: unknown[]) => inventory(...args), getCreatorClipDetail: (...args: unknown[]) => detail(...args), getCreatorBroadcasts: (...args: unknown[]) => broadcasts(...args), getCreatorBroadcast: (...args: unknown[]) => broadcast(...args) }));
 jest.mock("@components/dashboardNavbar", () => ({
 	__esModule: true,
 	default: ({ children, title }: { children: React.ReactNode; title: string }) => (
@@ -21,6 +22,7 @@ jest.mock("@components/dashboardNavbar", () => ({
 jest.mock("@components/creator/clipInventory", () => ({ __esModule: true, default: ({ query }: { query: unknown }) => <output>{JSON.stringify(query)}</output> }));
 jest.mock("@components/OverlayTable", () => ({ __esModule: true, default: ({ resourceType, userId }: { resourceType: string; userId: string }) => <output>{`${resourceType}:${userId}`}</output> }));
 jest.mock("@components/localizedDate", () => ({ __esModule: true, default: ({ value }: { value: string }) => <time>{value}</time> }));
+jest.mock("@components/creator/clipDetails", () => ({ __esModule: true, default: ({ creatorId }: { creatorId: string }) => <output>{creatorId}</output> }));
 const empty = { ok: true, items: [], nextCursor: null, stale: false, fetchedAt: "2026-11-03T00:00:00Z" };
 beforeEach(() => {
 	jest.clearAllMocks();
@@ -111,4 +113,17 @@ it("protects both stream routes before provider access", async () => {
 	await expect(Detail({ params: Promise.resolve({ videoId: "123" }), searchParams: Promise.resolve({}) })).rejects.toThrow("redirect");
 	expect(broadcasts).not.toHaveBeenCalled();
 	expect(broadcast).not.toHaveBeenCalled();
+});
+
+it("authorizes clip details before reading the requested creator metadata", async () => {
+	const Page = (await import("@/app/dashboard/clips/[clipId]/page")).default;
+	render(await Page({ params: Promise.resolve({ clipId: "A" }) }));
+	expect(detail).toHaveBeenCalledWith({ creatorId: "owner", clipId: "A" });
+	expect(screen.getByRole("heading", { name: "Clip details" })).toBeVisible();
+});
+it("requires sign-in before resolving clip details", async () => {
+	auth.mockResolvedValue(null);
+	const Page = (await import("@/app/dashboard/clips/[clipId]/page")).default;
+	await expect(Page({ params: Promise.resolve({ clipId: "A" }) })).rejects.toThrow("redirect");
+	expect(detail).not.toHaveBeenCalled();
 });

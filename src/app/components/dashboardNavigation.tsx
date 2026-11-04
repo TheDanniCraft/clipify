@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useContext, useSyncExternalStore } from "react";
 import { Breadcrumbs, Button } from "@heroui/react";
-import { IconMenu2 } from "@tabler/icons-react";
+import { IconMenu2, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand } from "@tabler/icons-react";
 const subscribeToHydration = () => () => undefined;
 const clientReady = () => true;
 const serverReady = () => false;
@@ -14,8 +14,8 @@ export function DashboardNavigationControls() {
 	const navigationReady = hydrated && Boolean(context.mobile) === mobileViewport;
 	return (
 		<div className='flex shrink-0 items-center'>
-			<Button isDisabled={!navigationReady} isIconOnly variant='secondary' aria-label='Toggle navigation' aria-expanded={context.expanded} onPress={context.toggle}>
-				<IconMenu2 className='size-5' />
+			<Button isDisabled={!navigationReady} isIconOnly variant={context.mobile ? "secondary" : "ghost"} className='text-muted' aria-label='Toggle navigation' aria-expanded={context.expanded} onPress={context.toggle}>
+				{context.mobile ? <IconMenu2 className='size-5' /> : context.expanded ? <IconLayoutSidebarLeftCollapse className='size-5' /> : <IconLayoutSidebarLeftExpand className='size-5' />}
 			</Button>
 		</div>
 	);

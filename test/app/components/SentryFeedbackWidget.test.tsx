@@ -1,3 +1,6 @@
+const notify = jest.fn();
+beforeEach(() => notify.mockReset());
+jest.mock("@lib/toast", () => ({ notify: (...args: unknown[]) => notify(...args) }));
 import React from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
@@ -22,7 +25,8 @@ describe("components/SentryFeedbackWidget", () => {
 		const appendToDom = jest.fn();
 		const removeFromDom = jest.fn();
 		getFeedback.mockReturnValue({
-			createForm: async () => ({ appendToDom, removeFromDom, open: jest.fn() }),
+			setTheme: jest.fn(),
+			createForm: async () => ({ el: document.createElement("div"), appendToDom, removeFromDom, open: jest.fn() }),
 		});
 		const SentryFeedbackWidget = (await import("@/app/components/SentryFeedbackWidget")).default;
 
@@ -50,6 +54,7 @@ it("does not append a feedback form after its page unmounts", async () => {
 	let resolve!: (value: unknown) => void;
 	const appendToDom = jest.fn();
 	getFeedback.mockReturnValue({
+		setTheme: jest.fn(),
 		createForm: () =>
 			new Promise((done) => {
 				resolve = done;
@@ -68,10 +73,37 @@ it("offers a local retry when feedback is unavailable", async () => {
 	const Component = (await import("@/app/components/SentryFeedbackWidget")).default;
 	render(<Component />);
 	fireEvent.click(screen.getByRole("button", { name: "Report a problem" }));
-	await screen.findByRole("alert");
+	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ color: "danger" })));
 	const open = jest.fn();
-	getFeedback.mockReturnValue({ createForm: async () => ({ appendToDom: jest.fn(), removeFromDom: jest.fn(), open }) });
+	getFeedback.mockReturnValue({ setTheme: jest.fn(), createForm: async () => ({ el: document.createElement("div"), appendToDom: jest.fn(), removeFromDom: jest.fn(), open }) });
 	fireEvent.click(screen.getByRole("button", { name: "Report a problem" }));
 	await waitFor(() => expect(open).toHaveBeenCalledTimes(1));
 	expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+});
+
+it("reports service failures without inserting an error into the sidebar", async () => {
+	pathname = "/dashboard/clips";
+	getFeedback.mockReturnValue(null);
+	const Component = (await import("@/app/components/SentryFeedbackWidget")).default;
+	render(<Component />);
+	fireEvent.click(screen.getByRole("button", { name: "Report a problem" }));
+	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ color: "danger" })));
+	expect(screen.queryByRole("alert")).toBeNull();
+});
+it("matches the dashboard theme and names the real feedback dialog", async () => {
+	pathname = "/dashboard/clips";
+	const el = document.createElement("div");
+	el.innerHTML = '<div role="dialog"><h2>Report a problem</h2></div>';
+	const setTheme = jest.fn();
+	getFeedback.mockReturnValue({ setTheme, createForm: async () => ({ el, appendToDom: () => document.body.append(el), open: jest.fn(), removeFromDom: () => el.remove() }) });
+	document.documentElement.classList.add("dark");
+	try {
+		const Component = (await import("@/app/components/SentryFeedbackWidget")).default;
+		render(<Component />);
+		fireEvent.click(screen.getByRole("button", { name: "Report a problem" }));
+		await waitFor(() => expect(setTheme).toHaveBeenCalledWith("dark"));
+		expect(screen.getByRole("dialog", { name: "Report a problem" })).toBeVisible();
+	} finally {
+		document.documentElement.classList.remove("dark");
+	}
 });

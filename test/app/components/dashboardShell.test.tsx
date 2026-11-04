@@ -7,7 +7,7 @@ let mobile = false;
 const push = jest.fn();
 const search = jest.fn();
 const preview = jest.fn().mockResolvedValue({ playbackUrl: "https://example.com/clip.mp4" });
-jest.mock("next/navigation", () => ({ usePathname: () => path, useRouter: () => ({ push }) }));
+jest.mock("next/navigation", () => ({ usePathname: () => path, useSearchParams: () => new URLSearchParams(), useRouter: () => ({ push }) }));
 jest.mock("@components/controlledModal", () => ({
 	__esModule: true,
 	default: ({ children, onClose }: { children: React.ReactNode; onClose: () => void }) => (
@@ -140,7 +140,7 @@ it("toggles desktop navigation by button and shortcut without stealing input sho
 	fireEvent.keyDown(document, { key: "b" });
 	expect(toggle).toHaveAttribute("aria-expanded", "true");
 });
-it("opens the exact searched clip and restores focus after closing its preview", async () => {
+it("navigates to the exact searched clip detail", async () => {
 	search.mockResolvedValue({ ok: true, items: [{ id: "A", title: "Clutch" }] });
 	render(
 		<DashboardShell creatorId='owner' permissions={[...PERMISSIONS]}>
@@ -152,11 +152,8 @@ it("opens the exact searched clip and restores focus after closing its preview",
 	await screen.findByRole("button", { name: "Clutch" });
 	expect(search).toHaveBeenCalledWith({ creatorId: "owner", title: "Clutch" });
 	fireEvent.click(screen.getByRole("button", { name: "Clutch" }));
-	await waitFor(() => expect(preview).toHaveBeenCalledWith({ creatorId: "owner", clipId: "A" }));
-	expect(push).not.toHaveBeenCalled();
-	fireEvent.click(screen.getByRole("button", { name: "Close clip preview" }));
-	await waitFor(() => expect(screen.getByRole("button", { name: "Search clips and tools" })).toHaveFocus());
-	expect(screen.queryByRole("button", { name: "Close clip preview" })).not.toBeInTheDocument();
+	await waitFor(() => expect(push).toHaveBeenCalledWith("/dashboard/clips/A"));
+	expect(preview).not.toHaveBeenCalled();
 });
 it("navigates directly to a permitted tool", () => {
 	render(

@@ -1467,3 +1467,5 @@ describe("actions/twitch external API and failure handling", () => {
 		expect(authorizeCreatorOperation).not.toHaveBeenCalled();
 	});
 });
+
+jest.mock("@/server/clip-download-limit", () => ({ reserveTwitchClipDownloadRequest: jest.fn().mockResolvedValue({ allowed: true, remaining: 99 }) }));

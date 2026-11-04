@@ -142,3 +142,12 @@ All four stories require TDD, BDD and ATDD. Browser-owned scenarios supply both 
 ## Acceptance Criterion Identifiers
 
 Each existing numbered acceptance scenario has a stable anchor `US<n>-AC<m>` in its listed order (US1:1–4, US2:1–3, US3:1–4, US4:1–4;15 total). These anchors do not replace US/FR/SC/EC IDs. The outer TDD loop maps one A behavior to each anchor.
+
+### Follow-up acceptance: navigation and clip downloads
+
+- Settings categories and Clip Player/Clip Gallery use the existing sidebar, with URL/back navigation and unsaved section drafts preserved. Leaving an edited resource still requires its existing unsaved-change confirmation.
+- Search uses neutral text, the visible label Search and a platform-appropriate HeroUI keyboard hint. Desktop uses a sidebar collapse affordance; mobile uses its menu affordance.
+- An owned inventory/search clip opens an authorized detail route containing preview, metadata and MP4 download. Foreign or unavailable cache entries expose no metadata.
+- ZIP, individual MP4 and official playback download-URL calls share persistent account budgets. Existing trust, permission, timeout and byte limits remain enforced.
+- Operational errors use toast feedback; export per-clip details use a bounded, scrollable dialog without moving the underlying inventory. Filter validation stays inline. Report feedback must not shift the dashboard horizontally.
+- The signed-in avatar is green; only confirmed own-channel Twitch live data makes it red. Delegated account context must not change whose presence is displayed.

@@ -1,3 +1,5 @@
+const notify = jest.fn();
+jest.mock("@lib/toast", () => ({ notify: (...args: unknown[]) => notify(...args) }));
 import React from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import DashboardNavbar from "@/app/components/dashboardNavbar";
@@ -342,7 +344,7 @@ describe("components/dashboardNavbar", () => {
 		fireEvent.change(screen.getByLabelText("admin-switch-select"), { target: { value: "user-2" } });
 		await waitFor(() => expect(switchAdminView).toHaveBeenCalledWith("user-2"));
 		expect(routerPush).not.toHaveBeenCalledWith("/dashboard");
-		await waitFor(() => expect(screen.getByText("Switch failed: unauthorized")).toBeInTheDocument());
+		await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Account could not be switched", description: "unauthorized", color: "danger" })));
 	});
 
 	it("handles selection of empty/null target in admin switch", async () => {

@@ -111,3 +111,9 @@ Authenticated browser fixture exemplar: `test/bdd/support/user-tour.ts`, `test/b
 ## Clean-base alignment before implementation
 
 The original full baseline was executed at9f6107a3 on an unrelated fix branch and remains labeled as such; it is not credited to clean master or the future feature. The new feature branch starts at master b6c8e591, with its locked Next16.4.3/HeroUI3.2.7/Auth1.7.12 dependencies installed. Clip-cache, Twitch, authorization and permission APIs were unchanged; navigation changes are limited to an updated help URL and existing analytics modernization. Recheck current owning whole-file baseline tests, keep the same A/U/scenario/task identifiers, and require complete current-source coverage/browser/static validation again before push. No unrelated fix commits are carried into the PR.
+
+### Sidebar and individual-download follow-up
+
+Reuse the existing HeroUI Pro sidebar for URL-addressable Settings and Tools sections. Keep Settings drafts mounted across query-only navigation and keep its unsaved-change guard for leaving the resource. Reuse DashboardEditorLayout for owned clip details and a shared stable ClipPlayer for preview/detail.
+
+The existing export HTTP route accepts an explicit MP4 format for one clip. It reuses the complete authorization, provider batching, host validation, media byte validation, cancellation, size/deadline bounds and final authorization path. Existing database rate-limit counters bind manual jobs and provider calls to creator identity across members/instances. No generated schema work is required. ZIP errors use ControlledModal and the house toast helper; refresh failures retain successful inventory data. Stable scrollbar gutters are verified against the installed Sentry dialog.

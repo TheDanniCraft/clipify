@@ -6,7 +6,6 @@ import { validateAuth } from "@actions/auth";
 import DashboardNavbar from "@components/dashboardNavbar";
 import DashboardUserAvatar from "@components/dashboardUserAvatar";
 import FullscreenLoadingState from "@components/fullscreenLoadingState";
-import SettingsNavigation from "@components/settingsNavigation";
 import type { DashboardNavbarUser } from "@components/dashboardNavbar";
 import { Button, Card, Checkbox, Chip, Input, Label, ListBox, Modal, Select, Spinner, Table, TextField } from "@heroui/react";
 import { notify as addToast } from "@lib/toast";
@@ -536,7 +535,7 @@ export default function TeamSettingsPanel({ embedded = false }: { embedded?: boo
 						</Button>
 					</div>
 				)}
-				{embedded || isAgencyOrganization ? teamContent : <SettingsNavigation active='team'>{teamContent}</SettingsNavigation>}
+				{teamContent}
 			</div>
 
 			<Modal.Backdrop

@@ -1,3 +1,6 @@
+const notify = jest.fn();
+jest.mock("@lib/toast", () => ({ notify: (...args: unknown[]) => notify(...args) }));
+jest.mock("@components/controlledModal", () => ({ __esModule: true, default: ({ isOpen, children }: any) => (isOpen ? <section role='dialog'>{children}</section> : null) }));
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import ClipExport from "@components/creator/clipExport";
 const fetchMock = jest.fn();
@@ -8,6 +11,7 @@ function responseJSON(value: unknown) {
 }
 beforeEach(() => {
 	fetchMock.mockReset();
+	notify.mockClear();
 	globalThis.fetch = fetchMock;
 });
 afterEach(() => {
@@ -39,7 +43,7 @@ it("keeps permanent failures visible without offering a futile retry", async () 
 	fetchMock.mockResolvedValue(responseJSON({ code: "EXPORT_UNAVAILABLE", failures: [{ index: 0, code: "clip_unavailable", retryable: false }] }));
 	render(<ClipExport creatorId='owner' clipIds={["A"]} scope='owner' />);
 	fireEvent.click(screen.getByRole("button", { name: "Export selected" }));
-	await screen.findByText("A: Clip unavailable");
+	await screen.findByText("Clip 1: Clip unavailable");
 	expect(screen.queryByRole("button", { name: "Retry failed clips" })).not.toBeInTheDocument();
 });
 it("separates reconnect recovery from transient retries", async () => {
@@ -65,7 +69,7 @@ it("cancels an in-flight export without clearing the selection", async () => {
 	render(<ClipExport creatorId='owner' clipIds={["A"]} scope='owner' />);
 	fireEvent.click(screen.getByRole("button", { name: "Export selected" }));
 	fireEvent.click(screen.getByRole("button", { name: "Cancel export" }));
-	await screen.findByText("Export cancelled. Your selection is kept.");
+	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Export cancelled. Your selection is kept." })));
 	expect(screen.getByRole("button", { name: "Export selected" })).toBeEnabled();
 });
 it("aborts and hides an export when the creator/filter context changes", async () => {
@@ -174,7 +178,7 @@ it("replaces previous Blob URLs and releases the latest download after sixty sec
 		fetchMock.mockResolvedValueOnce(successResponse({ included: [0], skipped: [] })).mockResolvedValueOnce(successResponse({ included: [0], skipped: [] }));
 		render(<ClipExport creatorId='owner' clipIds={["A"]} scope='owner' />);
 		fireEvent.click(screen.getByRole("button", { name: "Export selected" }));
-		await screen.findByText(/1 clip ready/);
+		await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Download started" })));
 		fireEvent.click(screen.getByRole("button", { name: "Export selected" }));
 		await waitFor(() => expect(index).toBe(2));
 		expect(revoke).toHaveBeenCalledWith("blob:1");

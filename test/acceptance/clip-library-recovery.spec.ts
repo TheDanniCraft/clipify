@@ -31,7 +31,7 @@ for (const mode of ["missing_scope", "revoked"])
 		const seeded = await setup({ page, request, tourWorld }, mode === "revoked" ? mode : undefined);
 		if (mode === "missing_scope") await tourWorld.fixture.pool.query("UPDATE auth.account SET scope=$1 WHERE account_id=$2", ["", seeded.creatorId]);
 		await page.getByRole("button", { name: "Export selected", exact: true }).click();
-		await expect(page.getByRole("region", { name: "Clip export" }).getByRole("alert")).toContainText("Reconnect Twitch");
+		await expect(page.getByRole("dialog", { name: "Export details", exact: true })).toContainText("Reconnect Twitch");
 		await expect(page.getByRole("link", { name: "Reconnect Twitch (opens in a new tab)", exact: true })).toHaveAttribute("target", "_blank");
 		await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("1 selected");
 		await expect(page.getByRole("button", { name: "Retry after reconnect", exact: true })).toBeEnabled();
@@ -59,7 +59,7 @@ for (const mode of ["deleted", "html", "truncated"])
 		let downloads = 0;
 		page.on("download", () => downloads++);
 		await page.getByRole("button", { name: "Export selected", exact: true }).click();
-		await expect(page.getByRole("region", { name: "Clip export" }).getByRole("alert")).toContainText("No selected clips could be downloaded");
+		await expect(page.getByRole("dialog", { name: "Export details", exact: true })).toContainText("No selected clips could be downloaded");
 		await expect(page.getByRole("button", { name: "Retry failed clips", exact: true })).toHaveCount(0);
 		await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("1 selected");
 		expect(downloads).toBe(0);
@@ -102,7 +102,7 @@ test("Clip export refuses an expired session without dropping the local selectio
 	const seeded = await setup({ page, request, tourWorld });
 	await tourWorld.fixture.pool.query("DELETE FROM auth.session WHERE user_id=$1", [seeded.authUserId]);
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
-	await expect(page.getByRole("region", { name: "Clip export" }).getByRole("alert")).toContainText("Sign in again");
+	await expect(page.getByRole("dialog", { name: "Export details", exact: true })).toContainText("Sign in again");
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("1 selected");
 });
 
@@ -168,7 +168,7 @@ test("Clip export refuses a suspended creator with actionable feedback", async (
 	const seeded = await setup({ page, request, tourWorld });
 	await tourWorld.fixture.pool.query("UPDATE users SET disabled=true WHERE id=$1", [seeded.creatorId]);
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
-	await expect(page.getByRole("region", { name: "Clip export" }).getByRole("alert")).toContainText("This creator account is suspended. Contact support");
+	await expect(page.getByRole("dialog", { name: "Export details", exact: true })).toContainText("This creator account is suspended. Contact support");
 	await expect(page.getByRole("button", { name: "Retry failed clips", exact: true })).toHaveCount(0);
 });
 test("Clip export withholds buffered media when the current grant is revoked during preparation", async ({ page, request, tourWorld }) => {
@@ -189,7 +189,7 @@ test("Clip export withholds buffered media when the current grant is revoked dur
 		})
 		.toBe(true);
 	await tourWorld.fixture.pool.query("UPDATE auth.member SET role=$1 WHERE organization_id=$2 AND user_id=$3", ["analyst", tourWorld.owner!.creatorOrganizationId, seeded.authUserId]);
-	await expect(page.getByRole("region", { name: "Clip export" }).getByRole("alert")).toContainText("no longer have permission", { timeout: 10000 });
+	await expect(page.getByRole("dialog", { name: "Export details", exact: true })).toContainText("no longer have permission", { timeout: 10000 });
 	expect(downloads).toBe(0);
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("2 selected");
 });
@@ -269,4 +269,101 @@ test("Clip export downloads Twitch legacy CDN media intact", async ({ page, requ
 	expect(manifest.clips[0]).toMatchObject({ id: seeded.id, status: "included" });
 	expect(strFromU8(entries[manifest.clips[0].filename].slice(4, 8))).toBe("ftyp");
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("1 selected");
+});
+
+test("Clip details exposes owned metadata and MP4 with the shared bulk budget", async ({ page, request, tourWorld }, info) => {
+	const seeded = await setup({ page, request, tourWorld });
+	await page.getByRole("link", { name: "Last night's clutch", exact: true }).click();
+	await expect(page).toHaveURL(new RegExp(`/dashboard/clips/${seeded.id}$`));
+	await expect(page.getByRole("heading", { name: "Last night's clutch", exact: true })).toBeVisible();
+	await expect(page.getByText("Clip maker", { exact: true })).toBeVisible();
+	await expect(page.getByText("Strategy", { exact: true })).toBeVisible();
+	const download = page.waitForEvent("download");
+	await page.getByRole("button", { name: "Download MP4", exact: true }).click();
+	const media = await download;
+	expect(media.suggestedFilename()).toMatch(/\.mp4$/);
+	const bytes = await readFile((await media.path())!);
+	expect(bytes.subarray(4, 8).toString()).toBe("ftyp");
+	for (let i = 0; i < 2; i++) expect((await page.request.post(`${tourWorld.origin}/api/clips/export`, { data: { creatorId: seeded.creatorId, clipIds: [seeded.id] }, headers: { Origin: tourWorld.origin } })).status()).toBe(200);
+	const denied = await page.request.post(`${tourWorld.origin}/api/clips/export?format=mp4`, { data: { creatorId: seeded.creatorId, clipIds: [seeded.id] }, headers: { Origin: tourWorld.origin } });
+	expect(denied.status()).toBe(429);
+	expect((await denied.json()).code).toBe("RATE_LIMITED");
+	await expect(page.getByText("Download started", { exact: true })).not.toBeVisible({ timeout: 10000 });
+	for (const theme of ["light", "dark"]) {
+		if (!(await page.locator("html").getAttribute("class"))?.split(" ").includes(theme)) await page.getByRole("button", { name: "Toggle Theme", exact: true }).click();
+		await expect(page.locator("html")).toHaveClass(new RegExp(`\\b${theme}\\b`));
+		for (const width of [390, 1440]) {
+			await page.setViewportSize({ width, height: 900 });
+			await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+			await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+			expect((await page.locator("nav").first().boundingBox())!.y).toBe(0);
+			await page.screenshot({ path: info.outputPath(`clip-details-${theme}-${width}.png`), fullPage: true, animations: "disabled" });
+		}
+	}
+});
+
+test("Export failure dialog preserves page geometry and selection", async ({ page, request, tourWorld }, info) => {
+	await setup({ page, request, tourWorld }, "html");
+	const selection = page.getByRole("status", { name: "Clip selection", exact: true });
+	const before = await selection.boundingBox();
+	await page.getByRole("button", { name: "Export selected", exact: true }).click();
+	const details = page.getByRole("dialog", { name: "Export details", exact: true });
+	await expect(details).toBeVisible();
+	await expect(details).toContainText("Last night's clutch: Twitch returned an incomplete video");
+	await expect(details).not.toContainText("RunnerPresentation_");
+	await page.screenshot({ path: info.outputPath("export-error-dialog.png"), fullPage: true });
+	await details.getByRole("button", { name: "Close details", exact: true }).click();
+	await expect(details).not.toBeVisible();
+	await expect(selection).toHaveText("1 selected");
+	const after = await selection.boundingBox();
+	expect(Math.abs(after!.x - before!.x)).toBeLessThan(1);
+	expect(Math.abs(after!.y - before!.y)).toBeLessThan(1);
+});
+
+test("Real Sentry feedback does not shift dashboard content", async ({ page, request, tourWorld }, info) => {
+	await setup({ page, request, tourWorld });
+	const heading = page.getByRole("heading", { name: "Clip Inventory", exact: true });
+	const before = await heading.boundingBox();
+	await page.getByRole("button", { name: "Report a problem", exact: true }).click();
+	const dialog = page.getByRole("dialog", { name: "Report a problem", exact: true });
+	await expect(dialog).toBeVisible();
+	const during = await heading.boundingBox();
+	expect(Math.abs(during!.x - before!.x)).toBeLessThan(1);
+	expect(Math.abs(during!.width - before!.width)).toBeLessThan(1);
+	await page.screenshot({ path: info.outputPath("sentry-feedback.png"), fullPage: true });
+	await dialog
+		.getByRole("button", { name: /Cancel|Close/ })
+		.first()
+		.click();
+	await expect(dialog).not.toBeVisible();
+});
+
+test("Mobile Settings sidebar preserves drafts and guided navigation", async ({ page, request, tourWorld }, info) => {
+	await page.setViewportSize({ width: 390, height: 900 });
+	await setup({ page, request, tourWorld });
+	await page.goto(`${tourWorld.origin}/dashboard/settings?tab=creator`);
+	const title = page.getByRole("textbox", { name: "Preview title", exact: true });
+	await title.fill("Keep this creator draft");
+	const timeOrigin = await page.evaluate(() => performance.timeOrigin);
+	await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+	await page.locator('[data-slot="sidebar-mobile"] [data-tour="settings-team-tab"]').click();
+	await expect(page).toHaveURL(/tab=team/);
+	await expect(page.getByRole("dialog", { name: "Unsaved Changes", exact: true })).toHaveCount(0);
+	await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+	await page.locator('[data-slot="sidebar-mobile"] [data-tour="guide-launcher"]').click();
+	const chapter = page.getByRole("region", { name: "Your Clipify guide", exact: true }).getByRole("button", { name: /^Explore Clipify/ });
+	if ((await chapter.getAttribute("aria-expanded")) !== "true") await chapter.click();
+	await page.getByRole("button", { name: "Discover AI connections", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Choose Connections");
+	const connections = page.locator('[data-slot="sidebar-mobile"] [data-tour="settings-connections-tab"]');
+	await expect(connections).toBeVisible();
+	await connections.click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Connected AI apps");
+	await expect(page.locator(".driver-popover")).toHaveCSS("opacity", "1");
+	await page.screenshot({ path: info.outputPath("mobile-settings-guide.png"), fullPage: true, animations: "disabled" });
+	await page.getByRole("button", { name: "Pause guide", exact: true }).click();
+	await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+	await page.locator('[data-slot="sidebar-mobile"] [data-tour="settings-creator-tab"]').click();
+	await expect(title).toHaveValue("Keep this creator draft");
+	expect(await page.evaluate(() => performance.timeOrigin)).toBe(timeOrigin);
 });

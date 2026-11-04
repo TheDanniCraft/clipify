@@ -107,3 +107,35 @@ export async function canPreviewInventoryClip(input: { creatorId: string; contex
 	const clip = await readClip();
 	return clip?.id === input.clipId && clip.broadcaster_id === input.creatorId;
 }
+
+export async function readCreatorClipDetail(creatorId: string, clipId: string) {
+	const decision = await authorizeCreatorOperation({ creatorId, resourceOwnerId: creatorId, permission: "creator:read" });
+	if (!decision.allowed) return { ok: false as const, code: decision.code };
+	try {
+		const [row] = await db
+			.select({ value: twitchCacheTable.value, fetchedAt: twitchCacheTable.fetchedAt })
+			.from(twitchCacheTable)
+			.where(and(eq(twitchCacheTable.type, TwitchCacheType.Clip), eq(twitchCacheTable.key, `clip:${creatorId}:${clipId}`), or(isNull(twitchCacheTable.expiresAt), gt(twitchCacheTable.expiresAt, new Date()))))
+			.execute();
+		if (!row) return { ok: false as const, code: "NOT_FOUND" };
+		const stored = JSON.parse(row.value);
+		const parsed = providerClipSchema.safeParse(stored.clip ?? stored);
+		if (stored.unavailable || !parsed.success || parsed.data.id !== clipId || parsed.data.broadcaster_id !== creatorId) return { ok: false as const, code: "NOT_FOUND" };
+		const clip = parsed.data;
+		let categoryName: string | null = null;
+		if (clip.game_id) {
+			const [game] = await db
+				.select({ value: twitchCacheTable.value })
+				.from(twitchCacheTable)
+				.where(and(eq(twitchCacheTable.type, TwitchCacheType.Game), eq(twitchCacheTable.key, clip.game_id)))
+				.execute();
+			if (game) {
+				const parsedGame = z.object({ name: z.string() }).safeParse(JSON.parse(game.value));
+				if (parsedGame.success) categoryName = parsedGame.data.name;
+			}
+		}
+		return { ok: true as const, clip: publicClip(clip), categoryName, fetchedAt: row.fetchedAt.toISOString() };
+	} catch {
+		return { ok: false as const, code: "SERVICE_UNAVAILABLE" };
+	}
+}

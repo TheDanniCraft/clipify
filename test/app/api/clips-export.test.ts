@@ -66,3 +66,15 @@ it("accepts the browser HTTPS origin forwarded by the deployment proxy", async (
 	const result = await POST(new Request("http://127.0.0.1:3000/api/clips/export", { method: "POST", headers: { host: "preview.clipify.test", origin: "https://preview.clipify.test", "x-forwarded-proto": "https", "content-type": "application/json" }, body: "{}" }));
 	expect(result.status).toBe(200);
 });
+it("sends individual MP4 through the same authorized pipeline", async () => {
+	archive.mockResolvedValue({ ok: true, bytes: new Uint8Array([1]), filename: "Winning round.mp4", summary: { included: [0], skipped: [] } });
+	const input = new Request("https://clipify.test/api/clips/export?format=mp4", { method: "POST", headers: { origin: "https://clipify.test", "content-type": "application/json" }, body: '{"creatorId":"owner","clipIds":["A"]}' });
+	const response = await POST(input);
+	expect(response.headers.get("content-type")).toBe("video/mp4");
+	expect(response.headers.get("content-disposition")).toContain("Winning%20round.mp4");
+	expect(archive).toHaveBeenLastCalledWith({ creatorId: "owner", clipIds: ["A"] }, input.signal, "mp4");
+});
+it("rejects unsupported download formats", async () => {
+	const response = await POST(new Request("https://clipify.test/api/clips/export?format=html", { method: "POST", headers: { origin: "https://clipify.test", "content-type": "application/json" }, body: "{}" }));
+	expect(response.status).toBe(400);
+});

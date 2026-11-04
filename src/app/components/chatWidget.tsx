@@ -115,8 +115,8 @@ const ChatWidget = () => {
 	}
 
 	return (
-		<DashboardUtilityPortal>
-			<Button isIconOnly={!inDashboard} variant={inDashboard ? "tertiary" : "primary"} aria-label='Enable support chat' className={inDashboard ? "justify-start" : "fixed left-5 z-[110] size-14 rounded-full shadow-xl"} style={inDashboard ? undefined : { bottom: banner.isVisible ? previewBottom : 20 }} onPress={openSupportConsent}>
+		<DashboardUtilityPortal slot='chat'>
+			<Button isIconOnly={!inDashboard} variant={inDashboard ? "ghost" : "primary"} fullWidth={inDashboard} aria-label='Enable support chat' className={inDashboard ? "justify-start text-muted" : "fixed left-5 z-[110] size-14 rounded-full shadow-xl"} style={inDashboard ? undefined : { bottom: banner.isVisible ? previewBottom : 20 }} onPress={openSupportConsent}>
 				<IconMessageCircle className='size-6' aria-hidden='true' />
 				{inDashboard ? "Support chat" : null}
 			</Button>

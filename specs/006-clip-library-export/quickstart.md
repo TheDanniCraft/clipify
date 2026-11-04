@@ -1,6 +1,6 @@
 # Implementation Validation Guide
 
-Preparation is complete; the user subsequently authorized implementation, commit, push and a draft PR. The pinned reference and v1 defaults are recorded in `spec.md`. Initial inventory test execution is in progress; current evidence and any sequencing deviations are recorded in tdd/cycle-log.md and defect-log.md.
+Implementation is present on `features/clip-export` in normal PR546. The user authorized implementation, commit, push and preview publication; merge and production release remain separate. Read test-summary.md and the PR's exact-head checks for current validation status. Historical planning/TDD gaps are retained honestly in cycle-log.md rather than credited as test-first work.
 
 ## Setup
 
@@ -19,9 +19,9 @@ bunx bddgen
 bunx playwright test --project=bdd-chromium .features-gen/bdd/clip-library/us4.feature.spec.js --grep BDD-US4-001 --workers=1
 ```
 
-Only the initial inventory files/bindings currently exist; materialize each remaining slice before changing its corresponding product behavior. Whole-file Jest commands must be run for the actual touched file, not just a selected passing assertion. Generated Gherkin tests must preserve stable IDs in test titles for grep; always scope the generated clip-library story file before grep; otherwise run that whole story file and record its real command in the registry. Do not pass off missing bindings or absent services as the intended Red.
+The clip-library bindings and follow-up browser owners exist. Whole-file Jest commands must be run for the actual touched file, not just a selected passing assertion. Generated Gherkin tests must preserve stable IDs in test titles for grep; always scope the generated clip-library story file before grep; otherwise run that whole story file and record its real command in the registry. Do not pass off missing bindings or absent services as the intended Red.
 
-## Required completion gates
+## Required CI completion gates
 
 ```sh
 bun run test:coverage
@@ -36,7 +36,7 @@ bunx bddgen
 bunx playwright test --project=bdd-chromium --workers=1
 ```
 
-The complete CI gate also runs all affected existing browser owners, build/package checks and merged coverage owners. Use the browser-tests job build/runtime environment exactly; do not run guarded CI-only schema push locally. Check CI ownership before changing any manifest. Do not repeat successful unchanged checks without a reason.
+These complete suites, coverage and platform checks are CI-owned. Routine local push checks use affected whole-file tests without coverage plus relevant browser journeys, following the current AGENTS.md selection policy. The complete CI gate also runs all affected existing browser owners, build/package checks and merged coverage owners. Use the browser-tests job build/runtime environment exactly; do not run guarded CI-only schema push locally. Check CI ownership before changing any manifest. Do not repeat successful unchanged checks without a reason.
 
 ## Demonstration and assertions
 
@@ -57,3 +57,7 @@ docker exec clipify-spec006-pg pg_isready -U clipify_mcp -d clipify_mcp_fixture
 ```
 
 Use Node24.21.0 on PATH and a fresh job-owned template ID. The documented native/Jest environment and a separately initialized browser database are still required. Do not run multiple browser commands at once on3107. Cleanup your own templates and stop only this task-owned disposable container. System Chromium/FFmpeg prerequisites remain installed; no JavaScript dependency change is needed.
+
+## Sidebar/download follow-up smoke checks
+
+Use Settings and Tools sidebar groups on desktop and mobile; switch sections and use browser Back with an unsaved Settings draft. Leave the resource to verify the existing guard still applies. Search a clip, open its detail page, review metadata and download its MP4. Bulk and individual jobs must share the account budget. With a provider failure, confirm toast feedback and a readable result dialog while selection/page position remain stable. Open Sentry reporting in both app themes and check that content does not shift. Presence must not navigate away when a session expires.

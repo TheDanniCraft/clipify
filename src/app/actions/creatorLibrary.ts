@@ -52,3 +52,9 @@ export async function refreshCreatorLibrary(input: { creatorId: string }) {
 		return { ok: false as const, code: "SERVICE_UNAVAILABLE" };
 	}
 }
+
+export async function getCreatorClipDetail(input: { creatorId: string; clipId: string }) {
+	if (!input || typeof input.creatorId !== "string" || typeof input.clipId !== "string" || !input.creatorId || !input.clipId || input.creatorId.length > 200 || input.clipId.length > 200) return { ok: false as const, code: "INVALID_INPUT" };
+	const { readCreatorClipDetail } = await import("@/server/creator-library");
+	return readCreatorClipDetail(input.creatorId, input.clipId);
+}

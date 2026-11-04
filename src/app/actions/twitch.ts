@@ -1,5 +1,6 @@
 /* istanbul ignore file */
 "use server";
+import { reserveTwitchClipDownloadRequest } from "@/server/clip-download-limit";
 
 import axios from "axios";
 import { crawlRecentClips, type RecentCrawlState } from "@/server/clip-crawler/recent";
@@ -272,6 +273,10 @@ async function resolveTwitchClipPlaybackUrl(clipId: string, broadcasterId: strin
 	}
 
 	try {
+		if (!(await reserveTwitchClipDownloadRequest(broadcasterId)).allowed) {
+			incrementClipFetchRateLimited();
+			return getTwitchClipPlaybackUrlFromGraphQL(clipId);
+		}
 		const response = await axios.get<TwitchClipDownloadResponse>("https://api.twitch.tv/helix/clips/downloads", {
 			headers: {
 				Authorization: `Bearer ${token.accessToken}`,

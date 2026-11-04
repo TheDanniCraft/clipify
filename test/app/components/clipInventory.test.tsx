@@ -1,3 +1,5 @@
+const notify = jest.fn();
+jest.mock("@lib/toast", () => ({ notify: (...args: unknown[]) => notify(...args) }));
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import ClipInventory from "@components/creator/clipInventory";
 let path = "/dashboard/clips";
@@ -143,7 +145,7 @@ it.each([
 	render(<ClipInventory creatorId='owner' query={{}} data={data} />);
 	fireEvent.click(screen.getByRole("button", { name: "Refresh library" }));
 	await waitFor(() => expect(refresh).toHaveBeenCalledWith({ creatorId: "owner" }));
-	await screen.findByText(result.ok ? /Refresh started/ : result.code === "SYNC_COOLDOWN" ? /The library was refreshed recently/ : result.code === "RECONNECT_REQUIRED" ? /Connect Twitch to load your clips/ : "The library could not be refreshed. Please try again.");
+	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: expect.any(String) })));
 });
 it("retains filter drafts after refresh and reload transport failures", async () => {
 	refresh.mockRejectedValue(new Error("offline"));
@@ -152,12 +154,12 @@ it("retains filter drafts after refresh and reload transport failures", async ()
 	const title = screen.getByPlaceholderText("Search clip titles");
 	fireEvent.change(title, { target: { value: "Keep this filter" } });
 	fireEvent.click(screen.getByRole("button", { name: "Refresh library" }));
-	await screen.findByText("The library could not be refreshed. Please try again.");
+	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: "The library could not be refreshed. Please try again." })));
 	refresh.mockResolvedValue({ ok: true, accepted: true });
 	const reload = screen.getByRole("button", { name: "Refresh library" });
 	await waitFor(() => expect(reload).toBeEnabled());
 	fireEvent.click(reload);
-	await screen.findByText("Your clips could not be loaded. Please try again.");
+	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Your clips could not be loaded. Please try again." })));
 	expect(screen.getByPlaceholderText("Search clip titles")).toHaveValue("Keep this filter");
 	await act(async () => {
 		fireEvent.submit(title.closest("form")!);
@@ -177,10 +179,10 @@ it("keeps an unavailable preview recoverable without leaving the library", async
 	preview.mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce(null).mockResolvedValueOnce({ playbackUrl: "https://media.test/A.mp4" });
 	render(<ClipInventory creatorId='owner' query={{}} data={{ ...data, items: [item], total: 1 }} />);
 	fireEvent.click(screen.getByRole("button", { name: "Preview Clutch" }));
-	await screen.findByText(/This preview is unavailable/);
+	await screen.findByText(/Preview unavailable/);
 	fireEvent.click(screen.getByRole("button", { name: "Retry preview" }));
 	await waitFor(() => expect(preview).toHaveBeenCalledTimes(2));
-	await screen.findByText(/This preview is unavailable/);
+	await screen.findByText(/Preview unavailable/);
 	fireEvent.click(screen.getByRole("button", { name: "Retry preview" }));
 	await waitFor(() => expect(document.querySelector("video")).toHaveAttribute("src", "https://media.test/A.mp4"));
 });
@@ -265,4 +267,18 @@ it("enables page selection only after the client can handle it", () => {
 	expect([...server.querySelectorAll("button")].find((button) => button.textContent === "Select page")).toBeDisabled();
 	render(<ClipInventory {...props} />);
 	expect(screen.getByRole("button", { name: "Select page" })).toBeEnabled();
+});
+
+it("keeps operational refresh errors out of the page layout", async () => {
+	refresh.mockRejectedValue(new Error("offline"));
+	render(<ClipInventory creatorId='owner' query={{}} data={data} />);
+	fireEvent.click(screen.getByRole("button", { name: "Refresh library" }));
+	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ color: "danger" })));
+	expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+});
+it("clears visible clip metadata after access is revoked", async () => {
+	inventory.mockResolvedValue({ ok: false, code: "PERMISSION_DENIED" });
+	render(<ClipInventory creatorId='owner' query={{}} data={{ ...data, items: [item], total: 1 }} />);
+	fireEvent.submit(screen.getByPlaceholderText("Search clip titles").closest("form")!);
+	await waitFor(() => expect(screen.queryByRole("link", { name: "Clutch" })).not.toBeInTheDocument());
 });

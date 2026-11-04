@@ -248,7 +248,7 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 			{hydrated && <DashboardContentHost isVisible={!consentOpen && !consentBanner} items={dashboardContent.length ? dashboardContent : offerWelcome ? [guidedWelcome] : []} onStartGuide={offerWelcome ? () => report({ type: "welcome.start", location: rawLocation }) : undefined} onDismissGuide={offerWelcome ? () => report({ type: "welcome.dismiss" }) : undefined} />}
 			<span hidden data-guide-sync={syncState} />
 			{hydrated && !consentOpen && !consentBanner && (
-				<DashboardUtilityPortal>
+				<DashboardUtilityPortal slot='guide'>
 					<aside aria-label='Clipify guide' className='user-tour-launcher relative flex min-w-0 flex-col items-start'>
 						{!progress.minimized &&
 							createPortal(
@@ -326,7 +326,7 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 								</section>,
 								document.body,
 							)}
-						<Button ref={launcher} data-tour='guide-launcher' aria-label={`${launcherTitle} · ${percentage}%`} aria-expanded={!progress.minimized} aria-controls='clipify-guide-panel' variant='secondary' className='h-10 max-w-full gap-2 px-2 text-foreground' onPress={() => report({ type: "panel", minimized: !progress.minimized })}>
+						<Button ref={launcher} data-tour='guide-launcher' aria-label={`${launcherTitle} · ${percentage}%`} aria-expanded={!progress.minimized} aria-controls='clipify-guide-panel' variant='ghost' fullWidth className='h-10 max-w-full justify-start gap-2 px-2 text-foreground' onPress={() => report({ type: "panel", minimized: !progress.minimized })}>
 							<ProgressCircle aria-label={`${currentJourney.title} progress`} value={percentage} size='lg' className='relative size-9 shrink-0'>
 								<ProgressCircle.Track style={{ width: 36, height: 36 }}>
 									<ProgressCircle.TrackCircle style={{ stroke: "var(--color-muted)", opacity: 0.45 }} />
