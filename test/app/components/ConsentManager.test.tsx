@@ -59,3 +59,19 @@ describe("components/ConsentManager", () => {
 		expect(mockReloadAfterConsentSave).not.toHaveBeenCalled();
 	});
 });
+
+it("keeps consent actions inside the mobile modal overlay", async () => {
+	const host = document.createElement("div");
+	host.dataset.slot = "sidebar-mobile-overlay-container";
+	document.body.append(host);
+	const view = render(
+		<ConsentManager>
+			<div>Application</div>
+		</ConsentManager>,
+	);
+	await waitFor(() => expect(host.querySelector('[aria-labelledby="consent-banner-title"]')).not.toBeNull());
+	fireEvent.click(screen.getByRole("button", { name: "Accept all" }));
+	await waitFor(() => expect(mockPerformBannerAction).toHaveBeenCalled());
+	view.unmount();
+	host.remove();
+});

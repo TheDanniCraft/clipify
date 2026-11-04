@@ -45,6 +45,16 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 	if (path.startsWith("/dashboard/playlist/")) active = "/dashboard/playlists";
 	if (path.startsWith("/dashboard/runner/")) active = "/dashboard/runners";
 	const current = allowed.find((item) => active === item.href || (item.href !== "/dashboard" && active.startsWith(item.href + "/")));
+	useEffect(() => {
+		if (!sidebar.isMobileOpen) return;
+		const closeForUtility = (event: MouseEvent) => {
+			if (event.target instanceof Element && event.target.closest("#dashboard-mobile-utilities button")) sidebar.setMobileOpen(false);
+		};
+		// Widget portals bubble through their React owners, so observe their DOM event here.
+		document.addEventListener("click", closeForUtility, true);
+		return () => document.removeEventListener("click", closeForUtility, true);
+	}, [sidebar.isMobileOpen, sidebar.setMobileOpen]);
+
 	const toggle = () => (sidebar.isMobile ? sidebar.setMobileOpen(!sidebar.isMobileOpen) : setOpen(!open));
 	const showSearch = () => {
 		setQuery("");
@@ -151,21 +161,21 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 					</Sidebar.Menu>
 				</Sidebar.Group>
 			</Sidebar.Content>
-			{!sidebar.isMobile ? (
+			{
 				<Sidebar.Footer>
 					{!open ? (
 						<Button isIconOnly variant='tertiary' aria-label='Show help and getting started' onPress={() => setOpen(true)}>
 							<IconHelpCircle className='size-4' />
 						</Button>
 					) : null}
-					<div ref={markUtilityHostReady} id='dashboard-utilities' className={open ? "flex flex-col gap-2" : "hidden"} />
+					<div ref={markUtilityHostReady} id={sidebar.isMobile ? "dashboard-mobile-utilities" : "dashboard-utilities"} className={open ? "flex flex-col gap-2" : "hidden"} />
 				</Sidebar.Footer>
-			) : null}
+			}
 		</>
 	);
 	const changeSearch = (open: boolean) => {
 		setSearchOpen(open);
-		if (!open) requestAnimationFrame(() => searchRef.current?.focus());
+		if (!open) requestAnimationFrame(() => (sidebar.isMobile ? document.querySelector<HTMLButtonElement>('[aria-label="Toggle navigation"]') : searchRef.current)?.focus());
 	};
 	return (
 		<DashboardNavigationContext.Provider
@@ -184,7 +194,7 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 			<Sidebar.Mobile>{navigation}</Sidebar.Mobile>
 			<Sidebar.Main className='min-w-0'>
 				{children}
-				{sidebar.isMobile ? <div ref={markUtilityHostReady} id='dashboard-utilities' className='mt-auto flex flex-wrap items-center gap-3 border-t border-separator p-4' /> : null}
+				{sidebar.isMobile ? <div ref={markUtilityHostReady} id='dashboard-utilities' className='hidden' /> : null}
 			</Sidebar.Main>
 			<Command>
 				<Command.Backdrop isOpen={searchOpen} onOpenChange={changeSearch}>
@@ -282,7 +292,7 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 					clip={preview}
 					onClose={() => {
 						setPreview(null);
-						requestAnimationFrame(() => searchRef.current?.focus());
+						requestAnimationFrame(() => (sidebar.isMobile ? document.querySelector<HTMLButtonElement>('[aria-label="Toggle navigation"]') : searchRef.current)?.focus());
 					}}
 				/>
 			) : null}

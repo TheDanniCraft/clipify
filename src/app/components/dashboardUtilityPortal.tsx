@@ -7,7 +7,7 @@ export default function DashboardUtilityPortal({ children }: { children: ReactNo
 	const pathname = usePathname();
 	const [target, setTarget] = useState<HTMLElement | null>(null);
 	useEffect(() => {
-		const find = () => setTarget(document.querySelector<HTMLElement>('#dashboard-utilities[data-dashboard-utilities-ready="true"]'));
+		const find = () => setTarget(document.querySelector<HTMLElement>('[data-slot="sidebar-mobile"] #dashboard-mobile-utilities[data-dashboard-utilities-ready="true"]') ?? document.querySelector<HTMLElement>('#dashboard-utilities[data-dashboard-utilities-ready="true"]'));
 		find();
 		// Portaling into server HTML before its host hydrates forces React to discard the dashboard.
 		const observer = new MutationObserver(find);

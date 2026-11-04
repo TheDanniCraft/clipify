@@ -11,22 +11,29 @@ for (const width of [390, 820, 1024, 1440])
 			await page.goto(`${tourWorld.origin}/dashboard/clips`);
 			const privacy = page.getByRole("button", { name: "Reject optional", exact: true });
 			await expect(privacy).toBeVisible();
-			await privacy.click();
+			if (width === 390) {
+				await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+				await expect(page.getByRole("treegrid", { name: "Creator navigation", exact: true })).toBeVisible();
+				await expect(page.locator('[data-slot="sidebar-mobile-overlay-container"]').getByRole("button", { name: "Reject optional", exact: true })).toBeVisible();
+			}
+			await Promise.all([page.waitForEvent("load"), privacy.click()]);
 			await expect(privacy).not.toBeVisible();
 			await page.reload();
 			await expect(page.getByRole("heading", { name: "Clip Inventory", exact: true })).toBeVisible();
-			await expect(page.locator('[data-tour="guide-launcher"]')).toBeVisible();
+			if (width !== 390) await expect(page.locator('[data-tour="guide-launcher"]')).toBeVisible();
 			await expect(page.locator("html")).toHaveClass(theme === "dark" ? /dark/ : /light/);
 			const launcher = page.getByRole("button", { name: "Search clips and tools", exact: true });
-			await expect(launcher).toBeVisible();
+			if (width !== 390) await expect(launcher).toBeVisible();
 			const toggle = page.getByRole("button", { name: "Toggle navigation", exact: true });
 			if (width === 390) {
 				await expect(toggle).toHaveAttribute("aria-expanded", "false");
 				await toggle.press("Enter");
+				await expect(page.locator('[data-slot="sidebar-mobile"] [data-tour="guide-launcher"]')).toBeVisible();
 				await expect(page.getByRole("treegrid", { name: "Creator navigation", exact: true })).toBeVisible();
 				await page.screenshot({ path: info.outputPath(`drawer-${width}-${theme}.png`), fullPage: true, animations: "disabled" });
 				await page.keyboard.press("Control+k");
 			} else {
+				if (width === 390) await toggle.click();
 				await launcher.click();
 				await expect(page.getByRole("dialog", { name: "Search clips and tools", exact: true })).toBeVisible();
 				await page.getByRole("button", { name: "Close search", exact: true }).click();
@@ -46,7 +53,7 @@ for (const width of [390, 820, 1024, 1440])
 			await expect(dialog.getByRole("menuitem", { name: "Last night's clutch", exact: true })).toBeVisible();
 			await page.keyboard.press("Escape");
 			await expect(dialog).not.toBeVisible();
-			await expect(launcher).toBeFocused();
+			await expect(width === 390 ? toggle : launcher).toBeFocused();
 			if (width !== 390) {
 				await page.keyboard.press("Control+b");
 				await expect(toggle).toHaveAttribute("aria-expanded", "true");
@@ -66,6 +73,7 @@ for (const width of [390, 820, 1024, 1440])
 			await page.getByRole("button", { name: "Clear filters", exact: true }).click();
 			await expect(page).not.toHaveURL(/minViews=/);
 			await filters.click();
+			if (width === 390) await toggle.click();
 			await launcher.click();
 			await input.fill("clutch");
 			await dialog.getByRole("menuitem", { name: "Last night's clutch", exact: true }).click();
@@ -75,7 +83,7 @@ for (const width of [390, 820, 1024, 1440])
 			await expect(preview.getByRole("link", { name: "Open on Twitch" })).toHaveAttribute("href", `https://clips.twitch.tv/${seeded.id}`);
 			await page.keyboard.press("Escape");
 			await expect(preview).not.toBeVisible();
-			await expect(launcher).toBeFocused();
+			await expect(width === 390 ? toggle : launcher).toBeFocused();
 			const selectionBounds = await page.getByRole("status", { name: "Clip selection", exact: true }).evaluate((element) => {
 				const box = element.closest('[data-slot="card"]')!.getBoundingClientRect();
 				return { x: box.x + scrollX, y: box.y + scrollY, w: box.width, h: box.height, width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight };
@@ -105,6 +113,7 @@ for (const width of [390, 820, 1024, 1440])
 				expect(Math.abs(streams!.y - topClips!.y)).toBeLessThanOrEqual(2);
 				expect(streams!.x).toBeLessThan(topClips!.x);
 			} else expect(streams!.y).toBeLessThan(topClips!.y);
+			if (width === 390) await toggle.click();
 			await launcher.press("Enter");
 			await expect(dialog).toBeVisible();
 			await dialog.locator("input").fill("Streams");
@@ -124,7 +133,8 @@ for (const width of [390, 820, 1024, 1440])
 			}
 			await page.goto(`${tourWorld.origin}/dashboard/clips`);
 			await expect(page.getByRole("status", { name: "Inventory results" })).toHaveText("9 clips");
-			await expect(page.locator('[data-tour="guide-launcher"]')).toBeVisible();
+			if (width === 390) await expect(page.locator('[data-tour="guide-launcher"]')).toBeHidden();
+			else await expect(page.locator('[data-tour="guide-launcher"]')).toBeVisible();
 			await page.getByRole("button", { name: "Select page", exact: true }).click();
 			await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("9 selected");
 			const title = page.getByRole("button", { name: "Preview An unexpectedly close finish after a long evening of matches with the community", exact: true });
@@ -138,5 +148,11 @@ for (const width of [390, 820, 1024, 1440])
 			expect(titleBounds!.y + titleBounds!.height).toBeGreaterThan(thumbnailBounds!.y);
 			await page.screenshot({ path: info.outputPath(`selected-library-${width}-${theme}.png`), fullPage: true, animations: "disabled" });
 			expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+			if (width === 390) {
+				await toggle.click();
+				await page.locator('[data-slot="sidebar-mobile"] [data-tour="guide-launcher"]').click();
+				await expect(toggle).toHaveAttribute("aria-expanded", "false");
+				await expect(page.getByRole("region", { name: "Your Clipify guide" })).toBeVisible();
+			}
 		});
 	}

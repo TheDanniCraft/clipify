@@ -1,21 +1,20 @@
 "use client";
-import { createContext, useContext } from "react";
+import { createContext, useContext, useSyncExternalStore } from "react";
 import { Breadcrumbs, Button } from "@heroui/react";
-import { IconMenu2, IconSearch } from "@tabler/icons-react";
+import { IconMenu2 } from "@tabler/icons-react";
+const subscribeToHydration = () => () => undefined;
+const clientReady = () => true;
+const serverReady = () => false;
 export const DashboardNavigationContext = createContext<{ toggle: () => void; search: () => void; expanded: boolean; mobile?: boolean; current?: { href: string; title: string; detail: boolean }; registerSearch: (node: HTMLButtonElement | null) => void } | null>(null);
 export function DashboardNavigationControls() {
+	const hydrated = useSyncExternalStore(subscribeToHydration, clientReady, serverReady);
 	const context = useContext(DashboardNavigationContext);
 	if (!context) return null;
 	return (
 		<div className='order-1 flex shrink-0 items-center'>
-			<Button isIconOnly variant='secondary' aria-label='Toggle navigation' aria-expanded={context.expanded} onPress={context.toggle}>
+			<Button isDisabled={!hydrated} isIconOnly variant='secondary' aria-label='Toggle navigation' aria-expanded={context.expanded} onPress={context.toggle}>
 				<IconMenu2 className='size-5' />
 			</Button>
-			{context.mobile && !context.expanded ? (
-				<Button ref={(node) => context.registerSearch(node)} isIconOnly variant='tertiary' aria-label='Search clips and tools' aria-haspopup='dialog' onPress={context.search}>
-					<IconSearch className='size-5' />
-				</Button>
-			) : null}
 		</div>
 	);
 }

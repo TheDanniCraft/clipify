@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import { Button, Card, Checkbox, Disclosure, Input, Label, ListBox, NumberField, Select, Table, TextField, Link } from "@heroui/react";
 import { fromDate, toCalendarDate } from "@internationalized/date";
@@ -10,6 +10,10 @@ import AppPagination from "@components/appPagination";
 import ClipPreview from "./clipPreview";
 import LocalizedDate from "@components/localizedDate";
 import ClipExport from "./clipExport";
+
+const subscribeToHydration = () => () => undefined;
+const clientReady = () => true;
+const serverReady = () => false;
 
 type InventoryResult = Awaited<ReturnType<typeof getCreatorClipInventory>>;
 type Clip = Extract<InventoryResult, { ok: true }>["items"][number];
@@ -26,6 +30,7 @@ function restoredRange(query: Record<string, string>): AppDateRange | null {
 }
 
 export default function ClipInventory({ creatorId, query: initialQuery, data: initialData }: { creatorId: string; query: Record<string, string>; data: InventoryResult }) {
+	const hydrated = useSyncExternalStore(subscribeToHydration, clientReady, serverReady);
 	const [view, setView] = useState({ query: initialQuery, data: initialData });
 	const { query, data } = view;
 	const requestEpoch = useRef(0);
@@ -266,7 +271,7 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 								<div className='flex flex-wrap items-center gap-3'>
 									<Button
 										variant='secondary'
-										isDisabled={pending || selected.size >= 50 || data.items.length === 0}
+										isDisabled={!hydrated || pending || selected.size >= 50 || data.items.length === 0}
 										onPress={() => {
 											const ids = new Set(selected);
 											for (const clip of data.items) {

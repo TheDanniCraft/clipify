@@ -57,7 +57,7 @@ it("shows honest empty metrics and stream titles", async () => {
 	overview.mockResolvedValue({ ...metrics, count: 0, views: 0, topClips: [], fetchedAt: null });
 	broadcasts.mockResolvedValue({ ok: true, stale: false, items: [{ id: "1", title: "", clipCount: 0, createdAt: "2026-11-03T00:00:00Z" }] });
 	render(<CreatorOverview creatorId='owner' />);
-	await screen.findByText(/No known clips in this window/);
+	await screen.findByText(/No clips from the last 30 days/);
 	expect(screen.getByRole("link", { name: "Untitled stream" })).toHaveAttribute("href", "/dashboard/streams/1");
 	expect(screen.getByText(/0 clips/)).toBeInTheDocument();
 });

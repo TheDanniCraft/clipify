@@ -16,6 +16,8 @@ async function seedProgress(world: TourWorld, patch: Partial<GuideProgress> = {}
 async function panel(page: Page) {
 	const launcher = page.locator('[data-tour="guide-launcher"]');
 	const checklist = page.getByRole("region", { name: "Your Clipify guide" });
+	if (await checklist.isVisible()) return;
+	if (!(await launcher.isVisible()) && (page.viewportSize()?.width ?? 1280) < 768) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
 	await expect(launcher).toBeVisible();
 	if (!(await checklist.isVisible())) await launcher.click();
 	await expect(checklist).toBeVisible();
@@ -438,8 +440,7 @@ Then("the guide stays within the viewport above other widgets", async ({ page })
 	expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(360);
 	expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(640);
 	const feedback = page.getByRole("button", { name: "Report a problem", exact: true });
-	const reportBox = await feedback.boundingBox();
-	expect(reportBox!.y + reportBox!.height).toBeGreaterThan(560);
+	await expect(feedback).toBeHidden();
 	await page.screenshot({ path: "/tmp/clipify-user-tour-mobile.png" });
 });
 When("the guided overlay is deleted before the user returns", async ({ page, tourWorld }) => {

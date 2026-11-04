@@ -46,14 +46,14 @@ export default function CreatorOverview({ creatorId }: { creatorId: string }) {
 			<section aria-label='Clip performance' className='flex flex-col gap-3'>
 				<header>
 					<h2 className='font-semibold'>Clip performance</h2>
-					<p className='text-sm text-muted'>Created in the last 30 local calendar days</p>
+					<p className='text-sm text-muted'>Clips created in the last 30 days</p>
 				</header>
 				<div className='grid grid-cols-2 gap-4'>
 					{overview?.ok ? (
 						<>
 							<Card>
 								<Card.Content>
-									<p className='text-sm text-muted'>Known clips</p>
+									<p className='text-sm text-muted'>Clips</p>
 									<p role='status' aria-label='Known clips' className='my-2 text-3xl font-bold'>
 										{overview.count.toLocaleString()}
 									</p>
@@ -61,11 +61,11 @@ export default function CreatorOverview({ creatorId }: { creatorId: string }) {
 							</Card>
 							<Card>
 								<Card.Content>
-									<p className='text-sm text-muted'>Current clip views</p>
+									<p className='text-sm text-muted'>Views</p>
 									<p role='status' aria-label='Current clip views' className='my-2 text-3xl font-bold'>
 										{overview.views.toLocaleString()}
 									</p>
-									<p className='text-sm text-muted'>Lifetime views of those clips</p>
+									<p className='text-sm text-muted'>Total views on these clips</p>
 								</Card.Content>
 							</Card>
 						</>
@@ -163,7 +163,7 @@ export default function CreatorOverview({ creatorId }: { creatorId: string }) {
 				<Card>
 					<Card.Header>
 						<Card.Title>Top clips</Card.Title>
-						<Card.Description>Highest current views among clips created in the last 30 local days</Card.Description>
+						<Card.Description>Your most viewed clips from the last 30 days</Card.Description>
 					</Card.Header>
 					<Card.Content>
 						{overview?.ok ? (
@@ -177,7 +177,7 @@ export default function CreatorOverview({ creatorId }: { creatorId: string }) {
 									))}
 								</div>
 							) : (
-								<p className='text-muted'>No known clips in this window yet. Your clip library is ready when you are.</p>
+								<p className='text-muted'>No clips from the last 30 days. Browse your inventory to find older clips.</p>
 							)
 						) : (
 							<p className='text-muted'>{overview ? "Clip performance unavailable." : "Loading clips…"}</p>

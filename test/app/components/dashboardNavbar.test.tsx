@@ -1,7 +1,7 @@
 import React from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import DashboardNavbar from "@/app/components/dashboardNavbar";
-import { DashboardNavigationContext } from "@/app/components/dashboardNavigation";
+import { DashboardNavigationContext, DashboardNavigationControls } from "@/app/components/dashboardNavigation";
 
 const setTheme = jest.fn();
 const routerPush = jest.fn();
@@ -394,9 +394,9 @@ describe("components/dashboardNavbar", () => {
 		expect(view.container.querySelector("main")).toBeNull();
 		expect(screen.getByText("Workspace")).toBeInTheDocument();
 		fireEvent.click(screen.getByRole("button", { name: "Toggle navigation" }));
-		fireEvent.click(screen.getByRole("button", { name: "Search clips and tools" }));
+		expect(screen.queryByRole("button", { name: "Search clips and tools" })).not.toBeInTheDocument();
 		expect(toggle).toHaveBeenCalledTimes(1);
-		expect(search).toHaveBeenCalledTimes(1);
+		expect(search).not.toHaveBeenCalled();
 	});
 
 	it.each([false, true])("synchronizes a requested account and refreshes only when accepted, error=%s", async (denied) => {
@@ -509,4 +509,16 @@ describe("components/dashboardNavbar", () => {
 		});
 		expect(screen.getByText("No users found.")).toBeInTheDocument();
 	});
+});
+
+it("keeps the server-rendered menu trigger disabled until hydration", () => {
+	const { renderToString } = jest.requireActual("react-dom/server.node");
+	const html = renderToString(
+		<DashboardNavigationContext.Provider value={{ toggle: jest.fn(), search: jest.fn(), expanded: false, mobile: true, registerSearch: jest.fn() }}>
+			<DashboardNavigationControls />
+		</DashboardNavigationContext.Provider>,
+	);
+	const server = document.createElement("div");
+	server.innerHTML = html;
+	expect(server.querySelector('button[aria-label="Toggle navigation"]')).toBeDisabled();
 });

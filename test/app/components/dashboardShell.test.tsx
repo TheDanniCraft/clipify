@@ -260,3 +260,18 @@ it.each([
 	expect(document.querySelector(`[data-tour="${resource}-tab"][aria-current="page"]`)).not.toBeNull();
 	expect(screen.getByText("Resource editor")).toBeInTheDocument();
 });
+
+it("closes mobile navigation for a utility portaled from another React owner", () => {
+	mobile = true;
+	render(
+		<DashboardShell creatorId='owner' permissions={[...PERMISSIONS]}>
+			{content}
+		</DashboardShell>,
+	);
+	const toggle = screen.getByRole("button", { name: "Toggle navigation" });
+	fireEvent.click(toggle);
+	const utility = document.createElement("button");
+	document.getElementById("dashboard-mobile-utilities")!.append(utility);
+	fireEvent.click(utility);
+	expect(toggle).toHaveAttribute("aria-expanded", "false");
+});

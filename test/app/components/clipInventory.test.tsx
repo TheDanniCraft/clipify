@@ -256,3 +256,13 @@ it("displays clip creation dates in the timezone used by the saved filters", () 
 	render(<ClipInventory creatorId='owner' query={{ timeZone: "Europe/Berlin" }} data={{ ...data, total: 1, items: [item] }} />);
 	for (const date of screen.getAllByText(item.createdAt)) expect(date).toHaveAttribute("data-timezone", "Europe/Berlin");
 });
+
+it("enables page selection only after the client can handle it", () => {
+	const { renderToString } = jest.requireActual("react-dom/server.node");
+	const props = { creatorId: "owner", query: {}, data: { ...data, items: [item], total: 1 } };
+	const server = document.createElement("div");
+	server.innerHTML = renderToString(<ClipInventory {...props} />);
+	expect([...server.querySelectorAll("button")].find((button) => button.textContent === "Select page")).toBeDisabled();
+	render(<ClipInventory {...props} />);
+	expect(screen.getByRole("button", { name: "Select page" })).toBeEnabled();
+});
