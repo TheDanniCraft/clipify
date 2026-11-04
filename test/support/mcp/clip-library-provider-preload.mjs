@@ -49,9 +49,9 @@ globalThis.fetch = async (input, init) => {
 		if (modes.includes("revoked")) return new Response(null, { status: 401 });
 		if (modes.includes("provider_429")) return new Response(null, { status: 429, headers: { "retry-after": "2" } });
 		if (modes.includes("provider_5xx")) return new Response(null, { status: 503 });
-		return Response.json({ data: ids.filter((id) => rows.some((row) => row.key.endsWith(`:${id}`))).map((id) => ({ clip_id: id, ...(downloadModes.get(id) === "portrait_only" ? { portrait_download_url: `https://production.assets.clips.twitchcdn.net/library/${id}.mp4` } : { landscape_download_url: `https://production.assets.clips.twitchcdn.net/library/${id}.mp4` }) })) });
+		return Response.json({ data: ids.filter((id) => rows.some((row) => row.key.endsWith(`:${id}`))).map((id) => ({ clip_id: id, ...(downloadModes.get(id) === "portrait_only" ? { portrait_download_url: `https://production.assets.clips.twitchcdn.net/library/${id}.mp4` } : { landscape_download_url: `https://${downloadModes.get(id) === "legacy_cdn" ? "d1ndex63qxojbr.cloudfront.net" : "production.assets.clips.twitchcdn.net"}/library/${id}.mp4` }) })) });
 	}
-	if (url.origin === "https://production.assets.clips.twitchcdn.net" && url.pathname.startsWith("/library/")) {
+	if (["https://production.assets.clips.twitchcdn.net", "https://d1ndex63qxojbr.cloudfront.net"].includes(url.origin) && url.pathname.startsWith("/library/")) {
 		const id = url.pathname.slice("/library/".length, -4);
 		if (!fixtureId.test(id)) return nativeFetch(input, init);
 		if (headers.has("Authorization") || headers.has("Client-Id")) throw new Error("Provider credentials leaked into a media request");

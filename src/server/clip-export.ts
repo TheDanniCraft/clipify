@@ -22,10 +22,11 @@ export const exportRequestSchema = z.object({
 		.pipe(z.array(z.string()).min(1).max(50)),
 });
 
+// Older Twitch clips use this exact CloudFront distribution; other tenants remain blocked.
 export function isTrustedClipMediaUrl(value: string) {
 	try {
 		const url = new URL(value);
-		return url.protocol === "https:" && url.hostname === "production.assets.clips.twitchcdn.net" && !url.username && !url.password && !url.port;
+		return url.protocol === "https:" && ["production.assets.clips.twitchcdn.net", "d1ndex63qxojbr.cloudfront.net"].includes(url.hostname) && !url.username && !url.password && !url.port;
 	} catch {
 		return false;
 	}

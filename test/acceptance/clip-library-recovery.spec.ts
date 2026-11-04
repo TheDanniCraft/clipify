@@ -257,3 +257,16 @@ test("Refresh library shows synchronized provider metadata and retains selection
 	await expect(page.getByRole("button", { name: "Preview Synchronized highlight", exact: true })).toBeVisible();
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("1 selected");
 });
+
+test("Clip export downloads Twitch legacy CDN media intact", async ({ page, request, tourWorld }) => {
+	const seeded = await setup({ page, request, tourWorld }, "legacy_cdn");
+	const download = page.waitForEvent("download");
+	await page.getByRole("button", { name: "Export selected", exact: true }).click();
+	const archive = await download;
+	const entries = unzipSync(await readFile((await archive.path())!));
+	const manifest = JSON.parse(strFromU8(entries["manifest.json"]));
+	expect(manifest.clips).toHaveLength(1);
+	expect(manifest.clips[0]).toMatchObject({ id: seeded.id, status: "included" });
+	expect(strFromU8(entries[manifest.clips[0].filename].slice(4, 8))).toBe("ftyp");
+	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("1 selected");
+});

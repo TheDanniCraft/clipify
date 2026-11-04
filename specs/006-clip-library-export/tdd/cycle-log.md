@@ -313,3 +313,6 @@ UI-034 Red: the published mobile gallery draft retry retained a trace where an e
 
 
 UI-034 Green: the complete resumed editor/consistency owners passed12/12 (3.3minutes) in `/tmp/clipify-dashboard-editor-cold-resumed-browser.log`. The cold test verifies disabled server controls while scripts are held, then enables scripts and verifies the first editable name remains and Save becomes enabled. Both desktop/mobile draft navigation cases and all route/accessibility matrices passed on the rebuilt source. Coverage, build/typecheck and affected lint/format also passed.
+
+
+UI-035 Red/Green: `/tmp/clipify-follow-cdn-red.log` recorded1 failing/67 passing export cases for the actual Twitch-observed legacy CDN host. Adding the exact host passed68/68 in `/tmp/clipify-follow-cdn-green.log`. The complete production-browser export recovery file passed28/28 in5.1minutes, including the verified-host intact-video download (`/tmp/clipify-follow-cdn-browser.log`). Arbitrary CloudFront hosts and foreign redirects remain denied.

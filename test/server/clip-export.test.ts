@@ -354,3 +354,11 @@ it("includes exactly 128 MiB of complete media and skips the next clip within th
 	expect(result.bytes.length).toBeLessThanOrEqual(130 * 1024 * 1024);
 	console.info(JSON.stringify({ benchmark: "128MiB-export", elapsedMs: Math.round(performance.now() - started), archiveBytes: result.bytes.length, rssAtPackageBytes: packaged, rssDeltaBytes: packaged - initial }));
 });
+
+it("downloads older Twitch clips served by the verified legacy CDN", async () => {
+	cacheRead.mockResolvedValue([ownedEntry()]);
+	jest.mocked(globalThis.fetch).mockImplementation(async (input) => (String(input).includes("api.twitch.tv") ? Response.json({ data: [{ clip_id: "ClipA", landscape_download_url: "https://d1ndex63qxojbr.cloudfront.net/clip.mp4?sig=temporary" }] }) : new Response(video)));
+	const result = await buildClipArchive({ creatorId: "owner", clipIds: ["ClipA"] });
+	expect(result).toMatchObject({ ok: true, summary: { included: [0], skipped: [] } });
+	if (result.ok) expect(Object.values(unzipSync(result.bytes)).some((bytes) => Buffer.from(bytes).equals(video))).toBe(true);
+});
