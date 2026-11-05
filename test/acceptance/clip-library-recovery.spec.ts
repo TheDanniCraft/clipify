@@ -27,7 +27,7 @@ async function setMode(tourWorld: TourWorld, creatorId: string, id: string, valu
 	await tourWorld.fixture.pool.query('UPDATE "twitchCache" SET value=$1 WHERE type=$2 AND key=$3', [JSON.stringify({ ...(value as object), testDownloadMode: mode }), "clip", `clip:${creatorId}:${id}`]);
 }
 for (const mode of ["missing_scope", "revoked"])
-	test(`Clip export reconnect recovery: ${mode}`, async ({ page, request, tourWorld }) => {
+	test(`Clip export reconnect recovery: ${mode}`, { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
 		const seeded = await setup({ page, request, tourWorld }, mode === "revoked" ? mode : undefined);
 		if (mode === "missing_scope") await tourWorld.fixture.pool.query("UPDATE auth.account SET scope=$1 WHERE account_id=$2", ["", seeded.creatorId]);
 		await page.getByRole("button", { name: "Export selected", exact: true }).click();
@@ -38,7 +38,7 @@ for (const mode of ["missing_scope", "revoked"])
 		await expect(page.getByRole("button", { name: "Retry after reconnect", exact: true })).toBeEnabled();
 	});
 for (const mode of ["provider_429", "provider_5xx"])
-	test(`Clip export provider recovery: ${mode}`, async ({ page, request, tourWorld }) => {
+	test(`Clip export provider recovery: ${mode}`, { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
 		const seeded = await setup({ page, request, tourWorld }, mode);
 		await page.getByRole("button", { name: "Export selected", exact: true }).click();
 		await page.getByRole("button", { name: "Start export", exact: true }).click();
@@ -57,7 +57,7 @@ for (const mode of ["provider_429", "provider_5xx"])
 		await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("1 selected");
 	});
 for (const mode of ["deleted", "html", "truncated"])
-	test(`Clip export rejects unavailable media: ${mode}`, async ({ page, request, tourWorld }) => {
+	test(`Clip export rejects unavailable media: ${mode}`, { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
 		await setup({ page, request, tourWorld }, mode);
 		let downloads = 0;
 		page.on("download", () => downloads++);
@@ -70,7 +70,7 @@ for (const mode of ["deleted", "html", "truncated"])
 	});
 for (const width of [390, 1440])
 	for (const theme of ["light", "dark"] as const)
-		test(`Clip export partial retry at ${width}px in ${theme}`, async ({ page, request, tourWorld }) => {
+		test(`Clip export partial retry at ${width}px in ${theme}`, { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
 			await page.setViewportSize({ width, height: 900 });
 			await page.addInitScript((value) => localStorage.setItem("theme", value), theme);
 			const seeded = await setup({ page, request, tourWorld });
@@ -95,7 +95,7 @@ for (const width of [390, 1440])
 			expect((await requestPromise).postDataJSON().files.map((file: { clipId: string }) => file.clipId)).toEqual([second]);
 			await retryDownload;
 		});
-test("Clip export cancellation retains explicit selection", async ({ page, request, tourWorld }) => {
+test("Clip export cancellation retains explicit selection", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
 	await setup({ page, request, tourWorld }, "delay");
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
 	await page.getByRole("button", { name: "Start export", exact: true }).click();
@@ -104,7 +104,7 @@ test("Clip export cancellation retains explicit selection", async ({ page, reque
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("1 selected");
 	await expect(page.getByRole("button", { name: "Export selected", exact: true })).toBeEnabled();
 });
-test("Clip export refuses an expired session without dropping the local selection", async ({ page, request, tourWorld }) => {
+test("Clip export refuses an expired session without dropping the local selection", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
 	const seeded = await setup({ page, request, tourWorld });
 	await tourWorld.fixture.pool.query("DELETE FROM auth.session WHERE user_id=$1", [seeded.authUserId]);
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
@@ -114,7 +114,7 @@ test("Clip export refuses an expired session without dropping the local selectio
 });
 
 for (const role of ["owner", "operations", "contentManager", "analyst", "billingManager", "custom-read", "custom-export"])
-	test(`Clip export authorizes the current ${role} role at the real HTTP boundary`, async ({ page, request, tourWorld }) => {
+	test(`Clip export authorizes the current ${role} role at the real HTTP boundary`, { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
 		const seeded = await setup({ page, request, tourWorld });
 		if (role.startsWith("custom-")) await tourWorld.fixture.pool.query("INSERT INTO auth.organization_role (id,organization_id,role,permission) VALUES ($1,$2,$3,$4)", [`role-${seeded.creatorId}`, tourWorld.owner!.creatorOrganizationId, role, JSON.stringify({ creator: ["read"], clips: role === "custom-export" ? ["export"] : [] })]);
 		await tourWorld.fixture.pool.query("UPDATE auth.member SET role=$1 WHERE organization_id=$2 AND user_id=$3", [role, tourWorld.owner!.creatorOrganizationId, seeded.authUserId]);
@@ -133,7 +133,7 @@ for (const role of ["owner", "operations", "contentManager", "analyst", "billing
 			expect(result.body.code).toBe("PERMISSION_DENIED");
 		}
 	});
-test("Clip export rejects a mixed owned and foreign selection before emitting media", async ({ page, request, tourWorld }) => {
+test("Clip export rejects a mixed owned and foreign selection before emitting media", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
 	const seeded = await setup({ page, request, tourWorld });
 	const result = await page.evaluate(
 		async (payload) => {
@@ -145,7 +145,7 @@ test("Clip export rejects a mixed owned and foreign selection before emitting me
 	expect(result.status).toBe(400);
 	expect(result.body.code).toBe("INVALID_INPUT");
 });
-test("Clip export records portrait fallback in the downloaded manifest", async ({ page, request, tourWorld }) => {
+test("Clip export records portrait fallback in the downloaded manifest", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
 	const seeded = await setup({ page, request, tourWorld }, "portrait_only");
 	// The compatibility API retains portrait fallback; configured Original exports require landscape.
 	const response = await page.request.post(`${tourWorld.origin}/api/clips/export`, { headers: { Origin: tourWorld.origin }, data: { creatorId: seeded.creatorId, clipIds: [seeded.id] } });
@@ -156,7 +156,7 @@ test("Clip export records portrait fallback in the downloaded manifest", async (
 	expect(manifest.clips[0].status).toBe("included");
 });
 
-test("Clip inventory renders a warm ten-thousand-clip page within two seconds", async ({ page, request, tourWorld }, info) => {
+test("Clip inventory renders a warm ten-thousand-clip page within two seconds", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }, info) => {
 	const seeded = await setup({ page, request, tourWorld });
 	await tourWorld.fixture.pool.query(`INSERT INTO "twitchCache" (type,key,value) SELECT 'clip','clip:'||$1||':Warm'||i,jsonb_build_object('clip',$2::jsonb||jsonb_build_object('id','Warm'||i,'view_count',i))::text FROM generate_series(1,9999) AS i`, [seeded.creatorId, JSON.stringify(seeded.value.clip)]);
 	await page.getByRole("button", { name: "Refresh library", exact: true }).click();
@@ -171,7 +171,7 @@ test("Clip inventory renders a warm ten-thousand-clip page within two seconds", 
 	await info.attach("warm-inventory-latency", { body: JSON.stringify({ clips: 10000, pageSize: 25, elapsedMs }), contentType: "application/json" });
 	expect(elapsedMs).toBeLessThan(2000);
 });
-test("Clip export refuses a suspended creator with actionable feedback", async ({ page, request, tourWorld }) => {
+test("Clip export refuses a suspended creator with actionable feedback", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
 	const seeded = await setup({ page, request, tourWorld });
 	await tourWorld.fixture.pool.query("UPDATE users SET disabled=true WHERE id=$1", [seeded.creatorId]);
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
@@ -179,7 +179,7 @@ test("Clip export refuses a suspended creator with actionable feedback", async (
 	await expect(page.getByRole("dialog", { name: "Clip exports", exact: true })).toContainText("This creator account is suspended. Contact support");
 	await expect(page.getByRole("button", { name: "Retry failed files", exact: true })).toHaveCount(0);
 });
-test("Clip export withholds buffered media when the current grant is revoked during preparation", async ({ page, request, tourWorld }) => {
+test("Clip export withholds buffered media when the current grant is revoked during preparation", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
 	const seeded = await setup({ page, request, tourWorld });
 	const second = `LibrarySort01_${seeded.creatorId.slice("e2e-creator-".length)}`;
 	await tourWorld.fixture.pool.query('INSERT INTO "twitchCache" (type,key,value) VALUES ($1,$2,$3)', ["clip", `clip:${seeded.creatorId}:${second}`, JSON.stringify({ ...seeded.value, clip: { ...seeded.value.clip, id: second, title: "Delayed clip" }, testDownloadMode: "delay" })]);
@@ -203,7 +203,7 @@ test("Clip export withholds buffered media when the current grant is revoked dur
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("2 selected");
 });
 
-test("Maximum clip package downloads intact with measured browser memory", async ({ page, request, tourWorld }, info) => {
+test("Maximum clip package downloads intact with measured browser memory", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }, info) => {
 	test.setTimeout(120000);
 	const seeded = await setup({ page, request, tourWorld }, "maximum_file");
 	for (let index = 1; index < 4; index++) {
@@ -248,7 +248,7 @@ test("Maximum clip package downloads intact with measured browser memory", async
 	}
 });
 
-test("Refresh library shows synchronized provider metadata and retains selection", async ({ page, request, tourWorld }) => {
+test("Refresh library shows synchronized provider metadata and retains selection", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
 	const seeded = await setup({ page, request, tourWorld });
 	await tourWorld.fixture.pool.query('DELETE FROM "twitchCache" WHERE type=$1 AND key=$2', ["clip", `clip-sync-force:${seeded.creatorId}`]);
 	await tourWorld.fixture.pool.query('UPDATE "twitchCache" SET value=$1 WHERE type=$2 AND key=$3', [JSON.stringify({ ...seeded.value, testProviderTitle: "Synchronized highlight" }), "clip", `clip:${seeded.creatorId}:${seeded.id}`]);
@@ -268,7 +268,7 @@ test("Refresh library shows synchronized provider metadata and retains selection
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("1 selected");
 });
 
-test("Clip export downloads Twitch legacy CDN media intact", async ({ page, request, tourWorld }) => {
+test("Clip export downloads Twitch legacy CDN media intact", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
 	const seeded = await setup({ page, request, tourWorld }, "legacy_cdn");
 	const download = page.waitForEvent("download");
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
@@ -282,7 +282,7 @@ test("Clip export downloads Twitch legacy CDN media intact", async ({ page, requ
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("1 selected");
 });
 
-test("Clip details exposes owned metadata and MP4 with the shared bulk budget", async ({ page, request, tourWorld }, info) => {
+test("Clip details exposes owned metadata and MP4 with the shared bulk budget", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }, info) => {
 	const seeded = await setup({ page, request, tourWorld });
 	await page.getByRole("link", { name: "Last night's clutch", exact: true }).click();
 	await expect(page).toHaveURL(new RegExp(`/dashboard/clips/${seeded.id}$`));
@@ -314,7 +314,7 @@ test("Clip details exposes owned metadata and MP4 with the shared bulk budget", 
 	}
 });
 
-test("Export failure dialog preserves page geometry and selection", async ({ page, request, tourWorld }, info) => {
+test("Export failure dialog preserves page geometry and selection", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }, info) => {
 	await setup({ page, request, tourWorld }, "html");
 	const selection = page.getByRole("status", { name: "Clip selection", exact: true });
 	const before = await selection.boundingBox();
@@ -335,7 +335,7 @@ test("Export failure dialog preserves page geometry and selection", async ({ pag
 });
 
 for (const width of [390, 1280])
-	test(`Real Sentry feedback does not shift dashboard content at ${width}px`, async ({ page, request, tourWorld }, info) => {
+	test(`Real Sentry feedback does not shift dashboard content at ${width}px`, { tag: "@shard:scenario" }, async ({ page, request, tourWorld }, info) => {
 		await page.setViewportSize({ width, height: 900 });
 		await setup({ page, request, tourWorld });
 		const heading = page.getByRole("heading", { name: "Clip Inventory", exact: true });
@@ -355,7 +355,7 @@ for (const width of [390, 1280])
 		await expect(dialog).not.toBeVisible();
 	});
 
-test("Mobile Settings sidebar preserves drafts and guided navigation", async ({ page, request, tourWorld }, info) => {
+test("Mobile Settings sidebar preserves drafts and guided navigation", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }, info) => {
 	await page.setViewportSize({ width: 390, height: 900 });
 	await setup({ page, request, tourWorld });
 	await page.goto(`${tourWorld.origin}/dashboard/settings?tab=creator`);
@@ -387,7 +387,7 @@ test("Mobile Settings sidebar preserves drafts and guided navigation", async ({ 
 
 for (const width of [390, 1440])
 	for (const theme of ["light", "dark"])
-		test(`Sidebar icons, completed progress and collapse spacing at ${width}px in ${theme}`, async ({ page, request, tourWorld }, info) => {
+		test(`Sidebar icons, completed progress and collapse spacing at ${width}px in ${theme}`, { tag: "@shard:scenario" }, async ({ page, request, tourWorld }, info) => {
 			await page.setViewportSize({ width, height: 1000 });
 			await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
 			const seeded = await seedCreatorLibrary({ page, request, tourWorld });

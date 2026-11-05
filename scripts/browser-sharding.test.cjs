@@ -51,7 +51,7 @@ test("missing or invalid timing caches fall back without changing the scenario i
 test("automatic plans follow measured work without artificial job ceilings", () => {
 	const r = report(Array.from({ length: 30 }, (_, i) => spec(String(i), `Journey ${i}`, 100000)));
 	const weights = collectBrowserDurations([r]);
-	const plan = planBrowserShards(r, weights, 300, 10);
+	const plan = planBrowserShards(r, weights, 300);
 	assert.equal(plan.length, 10);
 	assert.equal(plan.flatMap((s) => s.testIds).length, 30);
 	assert.ok(plan.every((s) => s.estimatedSeconds === 300));
@@ -70,7 +70,7 @@ test("normal browser estimates exclude failed attempts and retain measured start
 	r.suites[0].suites[0].specs[0].tests[0].results.unshift({ status: "timedOut", duration: 60000 });
 	const durations = collectBrowserDurations([r]);
 	assert.equal(durations["bdd/guide.feature.spec.js"], 7);
-	assert.equal(durations.__browserStartupSeconds, 11);
+	assert.equal(durations["__browserStartupSeconds:bdd-chromium"], 11);
 	const plan = planBrowserShards(r, durations);
 	assert.equal(plan[0].estimatedSeconds, 18);
 	r.stats.duration = Infinity;
@@ -91,4 +91,63 @@ test("media prerequisites follow actual selected scenarios and preserve grouped 
 	const grouped = selectBrowserTests(r, 0, 1, collectBrowserDurations([r]));
 	assert.equal(grouped.nativeMedia, true);
 	assert.equal(grouped.ffmpeg, true);
+});
+
+test("all browser projects balance measured work and spread newly discovered scenarios", () => {
+	const { planBrowserProjects, BROWSER_PROJECTS } = require("./browser-sharding.cjs");
+	const projects = ["acceptance-chromium", "bdd-chromium", "atdd-chromium", "compliance-chromium"];
+	assert.deepEqual(BROWSER_PROJECTS, projects);
+	const inventory = { suites: projects.map((project) => ({ title: project, specs: Array.from({ length: 12 }, (_, i) => ({ id: `${project}-${i}`, title: `Case ${i}`, file: `test/${project}/case-${i}.spec.ts`, tags: [], tests: [{ projectName: project }] })) })) };
+	const weights = Object.fromEntries(projects.flatMap((project) => Array.from({ length: 6 }, (_, i) => [`[${project}] › test/${project}/case-${i}.spec.ts › ${project} › Case ${i}`, 100])));
+	const planned = planBrowserProjects(inventory, weights);
+	for (const project of projects) {
+		const shards = planned[project];
+		assert.ok(shards.length >= 4);
+		assert.equal(shards.flatMap((s) => s.testIds).length, 12);
+		assert.equal(new Set(shards.flatMap((s) => s.testIds)).size, 12);
+		assert.ok(shards.every((s) => s.estimatedSeconds <= 300));
+		const counts = shards.map((s) => s.testIds.filter((id) => Number(id.split("-").at(-1)) >= 6).length);
+		assert.ok(Math.max(...counts) - Math.min(...counts) <= 1);
+	}
+	const slower = Object.fromEntries(Object.keys(weights).map((key) => [key, 200]));
+	assert.ok(planBrowserProjects(inventory, slower)["acceptance-chromium"].length > planned["acceptance-chromium"].length);
+	const faster = Object.fromEntries(Object.keys(weights).map((key) => [key, 25]));
+	assert.ok(planBrowserProjects(inventory, faster)["acceptance-chromium"].length < planned["acceptance-chromium"].length);
+});
+
+test("a large new atomic fixture does not force dozens of mostly empty shards", () => {
+	const known = Array.from({ length: 10 }, (_, i) => ({ ...spec(`old-${i}`, `Known ${i}`, 100000, false), file: `test/old-${i}.spec.ts` }));
+	const fresh = Array.from({ length: 29 }, (_, i) => ({ ...spec(`new-${i}`, `New ${i}`, 10000, false), file: "test/new-fixture.spec.ts" }));
+	const r = report([...known, ...fresh]);
+	const profile = Object.fromEntries(known.map((row) => [row.file, 100]));
+	const bins = planBrowserShards(r, profile, 300);
+	assert.ok(bins.length <= 5);
+	assert.ok(bins.every((bin) => bin.estimatedSeconds <= 300));
+	assert.equal(bins.flatMap((bin) => bin.testIds).length, 39);
+});
+
+test("timing feedback covers every project and rejects missing and duplicated execution", () => {
+	const { BROWSER_PROJECTS, browserTestCases } = require("./browser-sharding.cjs");
+	const reports = BROWSER_PROJECTS.map((project) => {
+		const r = report([spec("same-id", "Same test", 1000)]);
+		r.suites[0].suites[0].specs[0].tests[0].projectName = project;
+		return r;
+	});
+	const expected = reports.flatMap((r) => browserTestCases(r, BROWSER_PROJECTS).map((row) => row.selector));
+	const weights = collectBrowserDurations(reports, expected);
+	for (const selector of expected) assert.equal(weights[selector], 1);
+	assert.throws(() => collectBrowserDurations(reports.slice(1), expected), /complete scenario inventory/);
+	assert.throws(() => collectBrowserDurations([...reports, reports[0]], expected), /duplicate/);
+});
+
+test("renamed cases use last-run peer timings and remain new even inside an existing file", () => {
+	const { planBrowserProjects, BROWSER_PROJECTS } = require("./browser-sharding.cjs");
+	const inventory = { suites: BROWSER_PROJECTS.map((project) => ({ title: "test/renamed.spec.ts", file: "test/renamed.spec.ts", specs: Array.from({ length: 12 }, (_, i) => ({ id: `${project}-${i}`, title: `New ${i}`, file: "test/renamed.spec.ts", tags: ["shard:scenario"], tests: [{ projectName: project }] })) })) };
+	const previous = Object.fromEntries(BROWSER_PROJECTS.flatMap((project) => Array.from({ length: 12 }, (_, i) => [`[${project}] › test/renamed.spec.ts › Old ${i}`, 100])));
+	for (const project of BROWSER_PROJECTS) previous[`[${project}] › test/renamed.spec.ts`] = 1200;
+	const planned = planBrowserProjects(inventory, previous);
+	for (const bins of Object.values(planned)) {
+		assert.equal(bins.length, 4);
+		assert.ok(bins.every((bin) => bin.newTests === 3 && bin.estimatedSeconds === 300));
+	}
 });

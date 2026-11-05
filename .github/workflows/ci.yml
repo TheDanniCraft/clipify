@@ -112,7 +112,8 @@ jobs:
           path: ~/.cache/ms-playwright
           key: ${{ steps.compute-browser-key.outputs.key }}
       - name: 🌐 Ensure matching Chromium binaries
-        run: bunx playwright install chromium
+        timeout-minutes: 4
+        run: PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT=30000 timeout --kill-after=15s 180s bunx playwright install chromium
       - name: 💾 Save shared Chromium binaries
         if: steps.browser-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v6
@@ -164,9 +165,8 @@ jobs:
           key: ${{ needs.deps.outputs.cache-key }}
 
       - name: 🎞️ Install portrait rendering dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core
+        timeout-minutes: 7
+        run: bash scripts/install-frame-deps.sh
       - name: 🧪 Run affected tests
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -535,15 +535,16 @@ jobs:
       - name: 🌐 Prepare workflow media browser
         if: startsWith(matrix.lane, 'workflows-media')
         working-directory: packages/runner
+        timeout-minutes: 5
         run: node test/support/prepare-media.mjs
       - name: 🎞️ Install workflow media dependencies
         if: startsWith(matrix.lane, 'workflows-media')
+        timeout-minutes: 10
         run: bash scripts/install-runner-media-deps.sh
       - name: 🎞️ Install portrait rendering dependencies
         if: startsWith(matrix.lane, 'unit')
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core
+        timeout-minutes: 7
+        run: bash scripts/install-frame-deps.sh
       - name: 🧪 Run owning coverage lane
         run: node scripts/run-coverage-lane.mjs ${{ matrix.lane }}
 
@@ -637,6 +638,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: ${{ needs.deps.outputs.browser-cache-key }}
       - name: 🌐 Verify browser libraries and matching Chromium
+        timeout-minutes: 7
         run: bash scripts/install-playwright-chromium.sh
 
       - name: 📦 Install BDD native presentation dependencies
@@ -649,17 +651,16 @@ jobs:
       - name: 🌐 Prepare BDD native presentation browser
         if: matrix.native_media == true
         working-directory: packages/runner
+        timeout-minutes: 5
         run: node test/support/prepare-media.mjs
       - name: 🎞️ Install BDD native media system dependencies
         if: matrix.native_media == true
+        timeout-minutes: 10
         run: bash scripts/install-runner-media-deps.sh
       - name: 🎞️ Prepare frame decoding only where required
         if: matrix.ffmpeg == true && matrix.native_media != true
-        run: |
-          if ! command -v ffmpeg >/dev/null 2>&1 || ! command -v ffprobe >/dev/null 2>&1 || ! test -f /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf; then
-            sudo apt-get update
-            sudo apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core
-          fi
+        timeout-minutes: 7
+        run: bash scripts/install-frame-deps.sh
       - name: 🧩 Compile native application probes once
         run: |
           node --input-type=module -e "import { buildMcpCoverageProbes } from './scripts/build-mcp-coverage-probes.mjs'; await buildMcpCoverageProbes({ outputDirectory: 'test-results/mcp/browser-native-probes' });"
@@ -691,8 +692,8 @@ jobs:
       - name: 🧪 Run complete browser project shard
         run: node scripts/run-browser-shard.mjs ${{ matrix.project }} ${{ matrix.shard }}
 
-      - name: 📦 Upload successful BDD timing evidence
-        if: success() && matrix.project == 'bdd-chromium'
+      - name: 📦 Upload successful browser timing evidence
+        if: success()
         uses: actions/upload-artifact@v7
         with:
           name: browser-timing-${{ matrix.label }}
@@ -808,8 +809,10 @@ jobs:
         run: bun run typecheck
       - name: 🌐 Prepare native media test browser
         working-directory: packages/runner
+        timeout-minutes: 5
         run: node test/support/prepare-media.mjs
       - name: 🎞️ Install native media test system dependencies
+        timeout-minutes: 10
         run: bash scripts/install-runner-media-deps.sh
       - name: 📥 Download immutable native shard plan
         uses: actions/download-artifact@v8

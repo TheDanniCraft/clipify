@@ -4,7 +4,7 @@ import { createClipComposition } from "../../src/app/lib/clipComposition";
 test.use({ actionTimeout: 10000, navigationTimeout: 15000 });
 for (const width of [390, 1440])
 	for (const theme of ["light", "dark"])
-		test(`Account brand imports OBS styling, previews custom fonts and shares it with clips at ${width} ${theme}`, async ({ page, request, tourWorld }, info) => {
+		test(`Account brand imports OBS styling, previews custom fonts and shares it with clips at ${width} ${theme}`, { tag: "@shard:scenario" }, async ({ page, request, tourWorld }, info) => {
 			test.setTimeout(150000);
 			await page.setViewportSize({ width, height: 1000 });
 			await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
@@ -47,7 +47,7 @@ for (const width of [390, 1440])
 			await expect(page.getByRole("textbox", { name: "Text Color", exact: true })).toHaveCount(0);
 		});
 
-test("Free brand settings keep the watermark and open the existing upgrade without saving", async ({ page, request, tourWorld }, info) => {
+test("Free brand settings keep the watermark and open the existing upgrade without saving", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }, info) => {
 	test.setTimeout(120000);
 	const { creatorId } = await seedCreatorLibrary({ page, request, tourWorld });
 	await tourWorld.fixture.pool.query("UPDATE users SET plan='free',created_at='2020-01-01' WHERE id=$1", [creatorId]);
@@ -75,7 +75,7 @@ test("Free brand settings keep the watermark and open the existing upgrade witho
 	await expect(watermark).toBeChecked();
 });
 
-test("Concurrent brand saves keep the newer style and preserve the other tab's draft", async ({ page, request, tourWorld }) => {
+test("Concurrent brand saves keep the newer style and preserve the other tab's draft", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
 	test.setTimeout(120000);
 	const { creatorId } = await seedCreatorLibrary({ page, request, tourWorld });
 	await tourWorld.fixture.pool.query("UPDATE users SET plan='pro' WHERE id=$1", [creatorId]);
@@ -104,7 +104,7 @@ test("Concurrent brand saves keep the newer style and preserve the other tab's d
 	await other.close();
 });
 
-test("A read-only collaborator can inspect brand styling without editable controls", async ({ page, request, tourWorld }) => {
+test("A read-only collaborator can inspect brand styling without editable controls", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
 	test.setTimeout(120000);
 	const { creatorId, authUserId } = await seedCreatorLibrary({ page, request, tourWorld });
 	await tourWorld.fixture.pool.query("UPDATE users SET plan='pro' WHERE id=$1", [creatorId]);
@@ -117,7 +117,7 @@ test("A read-only collaborator can inspect brand styling without editable contro
 	expect((await tourWorld.fixture.pool.query("SELECT state FROM user_content_states WHERE user_id=$1 AND content_key='creator-brand:v1'", [creatorId])).rows).toHaveLength(0);
 });
 
-test("Built-in brand fonts render through native queued previews for multiple widgets", async ({ page, request, tourWorld }, info) => {
+test("Built-in brand fonts render through native queued previews for multiple widgets", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }, info) => {
 	test.setTimeout(120000);
 	const { creatorId, id } = await seedCreatorLibrary({ page, request, tourWorld });
 	const { creatorBrandSchema } = await import("../../src/app/lib/overlayMetadata");
@@ -148,7 +148,7 @@ test("Built-in brand fonts render through native queued previews for multiple wi
 	await page.screenshot({ path: info.outputPath("builtin-branded-composition.png"), fullPage: true });
 });
 
-test("Stalled brand loading offers retry and then loads the creator settings", async ({ page, request, tourWorld }) => {
+test("Stalled brand loading offers retry and then loads the creator settings", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
 	test.setTimeout(60000);
 	const { creatorId } = await seedCreatorLibrary({ page, request, tourWorld });
 	const blocked: import("@playwright/test").Route[] = [];
@@ -171,7 +171,7 @@ test("Stalled brand loading offers retry and then loads the creator settings", a
 	await expect(page.getByRole("textbox", { name: "Text Color", exact: true })).toBeVisible();
 });
 
-test("Untrusted overlay font hosts use the built-in fallback when imported and saved", async ({ page, request, tourWorld }) => {
+test("Untrusted overlay font hosts use the built-in fallback when imported and saved", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
 	const { creatorId } = await seedCreatorLibrary({ page, request, tourWorld });
 	await tourWorld.fixture.pool.query("UPDATE overlays SET name='Imported style',theme_font_family=$2,theme_text_color='#ffeecc' WHERE id=$1", [tourWorld.owner!.overlayId, "Laila, sans-serif||url||https://fonts.googleapis.com.evil.example/css2?family=Laila"]);
 	await page.goto(`${tourWorld.origin}/dashboard/settings?tab=brand`);
