@@ -2,7 +2,8 @@
 import { useDeploymentDraft } from "@lib/deploymentDrafts";
 
 import { OverlayChannelMetadata, OverlayClipMetadata } from "@components/overlayMetadata";
-import { DEFAULT_WIDGET_THEME } from "@lib/overlayMetadata";
+import { getCreatorBrand } from "@actions/creatorBrand";
+import { type CreatorBrand, brandOverlayFields, DEFAULT_WIDGET_THEME } from "@lib/overlayMetadata";
 import ThemeColorInput, { clamp } from "@components/theme/ThemeColorInput";
 import { useUserTour } from "@components/user-tour/provider";
 
@@ -16,7 +17,7 @@ import UpgradeModal from "@components/upgradeModal";
 import { getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
 import { AuthenticatedUser, Overlay, Plan } from "@types";
 
-import { Alert, Button, Card, Separator, Input, ListBox, Select, Slider, Tabs, useOverlayState, TextField, Label, Description } from "@heroui/react";
+import { Alert, Button, Card, Separator, Link, Input, ListBox, Select, Slider, Tabs, useOverlayState, TextField, Label, Description } from "@heroui/react";
 import { notify as addToast } from "@lib/toast";
 
 import { IconArrowLeft, IconCrown, IconDeviceFloppy } from "@tabler/icons-react";
@@ -534,6 +535,7 @@ export default function OverlayStylePage() {
 	const { report: reportTour } = useUserTour();
 	const { overlayId } = useParams() as { overlayId: string };
 
+	const [accountBrand, setAccountBrand] = useState<CreatorBrand | null>(null);
 	const [overlay, setOverlay] = useState<Overlay | null>(null);
 	const [baseOverlay, setBaseOverlay] = useState<Overlay | null>(null);
 	const [user, setUser] = useState<AuthenticatedUser>();
@@ -568,6 +570,8 @@ export default function OverlayStylePage() {
 			if (!active || !fetchedOverlay) return;
 			setOverlay(fetchedOverlay);
 			setBaseOverlay(fetchedOverlay);
+			const brand = await getCreatorBrand(fetchedOverlay.ownerId);
+			if (active && brand.ok) setAccountBrand(brand.brand);
 			const plan = await getOverlayOwnerPlan(fetchedOverlay.id);
 			if (active) setOwnerPlan(plan);
 		}
@@ -605,7 +609,7 @@ export default function OverlayStylePage() {
 		return () => window.removeEventListener("resize", updateDragSupport);
 	}, []);
 
-	const parsedThemeFont = parseThemeFontSetting(overlay?.themeFontFamily);
+	const parsedThemeFont = parseThemeFontSetting(accountBrand ? brandOverlayFields(accountBrand).themeFontFamily : overlay?.themeFontFamily);
 	const safeThemeFontUrl = useMemo(() => sanitizeThemeFontCssUrl(parsedThemeFont.fontUrl), [parsedThemeFont.fontUrl]);
 	const currentFontMode = getFontMode(parsedThemeFont.fontFamily, safeThemeFontUrl);
 	const googleFontFamily = extractPrimaryFontName(parsedThemeFont.fontFamily) || "Poppins";
@@ -767,7 +771,7 @@ export default function OverlayStylePage() {
 									}}
 								>
 									<OverlayStylePreview
-										overlay={overlay}
+										overlay={accountBrand ? { ...overlay, ...brandOverlayFields(accountBrand) } : overlay}
 										canDrag={dragSupported}
 										streamerAvatar={user.avatar}
 										dragBlockedReason={dragBlockedReason}
@@ -887,107 +891,116 @@ export default function OverlayStylePage() {
 										</ListBox>
 									</Select.Popover>
 								</Select>
-								<Card className='lg:col-span-2 border border-default/80'>
-									<Card.Header className='pb-1'>
+								{accountBrand ? (
+									<div className='lg:col-span-2'>
+										<p className='text-sm text-muted'>Widget appearance comes from your account brand.</p>
+										<Link href='/dashboard/settings?tab=brand'>Brand styling</Link>
+									</div>
+								) : (
+									<>
+										<Card className='lg:col-span-2 border border-default/80'>
+											<Card.Header className='pb-1'>
+												<div>
+													<div className='text-sm font-semibold'>Typography</div>
+													<div className='text-xs text-muted'>Pick a font source, then fine-tune only what you need.</div>
+												</div>
+											</Card.Header>
+											<Card.Content className='pt-1 flex flex-col gap-3'>
+												<Tabs
+													selectedKey={currentFontMode}
+													onSelectionChange={(key) => {
+														const mode = key as FontMode;
+														if (mode === "website") {
+															setOverlay({ ...overlay, themeFontFamily: "inherit" });
+															return;
+														}
+														if (mode === "system") {
+															setOverlay({ ...overlay, themeFontFamily: encodeThemeFontSetting(systemFontOptions[0]?.key || "system-ui", "") });
+															return;
+														}
+														if (mode === "google") {
+															const nextFamily = extractPrimaryFontName(parsedThemeFont.fontFamily) || "Poppins";
+															setOverlay({ ...overlay, themeFontFamily: encodeThemeFontSetting(`${nextFamily}, sans-serif`, buildGoogleFontUrl(nextFamily)) });
+															return;
+														}
+														setOverlay({ ...overlay, themeFontFamily: "inherit" });
+													}}
+													variant='primary'
+												>
+													<Tabs.ListContainer>
+														<Tabs.List aria-label='Typography Source'>
+															<Tabs.Tab id='website'>
+																Website
+																<Tabs.Indicator />
+															</Tabs.Tab>
+															<Tabs.Tab id='system'>
+																System
+																<Tabs.Indicator />
+															</Tabs.Tab>
+															<Tabs.Tab id='google'>
+																Google
+																<Tabs.Indicator />
+															</Tabs.Tab>
+														</Tabs.List>
+													</Tabs.ListContainer>
+													<Tabs.Panel id={currentFontMode}>
+														{currentFontMode === "website" && <p className='text-xs text-muted'>Using the same default font stack as the Clipify website.</p>}
+
+														{currentFontMode === "system" && (
+															<Select variant='secondary' value={systemFontOptions.some((opt) => opt.key === parsedThemeFont.fontFamily) ? parsedThemeFont.fontFamily : systemFontOptions[0]?.key || "system-ui"} onChange={(value) => setOverlay({ ...overlay, themeFontFamily: encodeThemeFontSetting((value as string) || "system-ui", "") })}>
+																<Label>System Font</Label>
+																<Select.Trigger>
+																	<Select.Value />
+																	<Select.Indicator />
+																</Select.Trigger>
+																<Select.Popover>
+																	<ListBox>
+																		{systemFontOptions.map((font) => (
+																			<ListBox.Item key={font.key} id={font.key} textValue={font.label}>
+																				<Label>{font.label}</Label>
+																				<ListBox.ItemIndicator />
+																			</ListBox.Item>
+																		))}
+																	</ListBox>
+																</Select.Popover>
+															</Select>
+														)}
+
+														{currentFontMode === "google" && (
+															<div className='grid grid-cols-1 lg:grid-cols-2 gap-3'>
+																<TextField type='text'>
+																	<Label>Google Font Family</Label>
+																	<Input
+																		value={googleFontFamily}
+																		onChange={(event) =>
+																			((value) => {
+																				const family = (value || "Poppins").trim();
+																				setOverlay({ ...overlay, themeFontFamily: encodeThemeFontSetting(`${family}, sans-serif`, buildGoogleFontUrl(family)) });
+																			})(event.target.value)
+																		}
+																	/>
+																	<Description>Example: Poppins, Space Grotesk, Roboto Slab</Description>
+																</TextField>
+																<TextField type='text' isReadOnly>
+																	<Label>Google CSS URL</Label>
+																	<Input value={safeThemeFontUrl} />
+																</TextField>
+															</div>
+														)}
+													</Tabs.Panel>
+												</Tabs>
+											</Card.Content>
+										</Card>
 										<div>
-											<div className='text-sm font-semibold'>Typography</div>
-											<div className='text-xs text-muted'>Pick a font source, then fine-tune only what you need.</div>
+											<ThemeColorInput label='Text Color' value={overlay.themeTextColor} defaultValue='#FFFFFF' onChange={(value) => setOverlay({ ...overlay, themeTextColor: value })} />
 										</div>
-									</Card.Header>
-									<Card.Content className='pt-1 flex flex-col gap-3'>
-										<Tabs
-											selectedKey={currentFontMode}
-											onSelectionChange={(key) => {
-												const mode = key as FontMode;
-												if (mode === "website") {
-													setOverlay({ ...overlay, themeFontFamily: "inherit" });
-													return;
-												}
-												if (mode === "system") {
-													setOverlay({ ...overlay, themeFontFamily: encodeThemeFontSetting(systemFontOptions[0]?.key || "system-ui", "") });
-													return;
-												}
-												if (mode === "google") {
-													const nextFamily = extractPrimaryFontName(parsedThemeFont.fontFamily) || "Poppins";
-													setOverlay({ ...overlay, themeFontFamily: encodeThemeFontSetting(`${nextFamily}, sans-serif`, buildGoogleFontUrl(nextFamily)) });
-													return;
-												}
-												setOverlay({ ...overlay, themeFontFamily: "inherit" });
-											}}
-											variant='primary'
-										>
-											<Tabs.ListContainer>
-												<Tabs.List aria-label='Typography Source'>
-													<Tabs.Tab id='website'>
-														Website
-														<Tabs.Indicator />
-													</Tabs.Tab>
-													<Tabs.Tab id='system'>
-														System
-														<Tabs.Indicator />
-													</Tabs.Tab>
-													<Tabs.Tab id='google'>
-														Google
-														<Tabs.Indicator />
-													</Tabs.Tab>
-												</Tabs.List>
-											</Tabs.ListContainer>
-											<Tabs.Panel id={currentFontMode}>
-												{currentFontMode === "website" && <p className='text-xs text-muted'>Using the same default font stack as the Clipify website.</p>}
-
-												{currentFontMode === "system" && (
-													<Select variant='secondary' value={systemFontOptions.some((opt) => opt.key === parsedThemeFont.fontFamily) ? parsedThemeFont.fontFamily : systemFontOptions[0]?.key || "system-ui"} onChange={(value) => setOverlay({ ...overlay, themeFontFamily: encodeThemeFontSetting((value as string) || "system-ui", "") })}>
-														<Label>System Font</Label>
-														<Select.Trigger>
-															<Select.Value />
-															<Select.Indicator />
-														</Select.Trigger>
-														<Select.Popover>
-															<ListBox>
-																{systemFontOptions.map((font) => (
-																	<ListBox.Item key={font.key} id={font.key} textValue={font.label}>
-																		<Label>{font.label}</Label>
-																		<ListBox.ItemIndicator />
-																	</ListBox.Item>
-																))}
-															</ListBox>
-														</Select.Popover>
-													</Select>
-												)}
-
-												{currentFontMode === "google" && (
-													<div className='grid grid-cols-1 lg:grid-cols-2 gap-3'>
-														<TextField type='text'>
-															<Label>Google Font Family</Label>
-															<Input
-																value={googleFontFamily}
-																onChange={(event) =>
-																	((value) => {
-																		const family = (value || "Poppins").trim();
-																		setOverlay({ ...overlay, themeFontFamily: encodeThemeFontSetting(`${family}, sans-serif`, buildGoogleFontUrl(family)) });
-																	})(event.target.value)
-																}
-															/>
-															<Description>Example: Poppins, Space Grotesk, Roboto Slab</Description>
-														</TextField>
-														<TextField type='text' isReadOnly>
-															<Label>Google CSS URL</Label>
-															<Input value={safeThemeFontUrl} />
-														</TextField>
-													</div>
-												)}
-											</Tabs.Panel>
-										</Tabs>
-									</Card.Content>
-								</Card>
-								<div>
-									<ThemeColorInput label='Text Color' value={overlay.themeTextColor} defaultValue='#FFFFFF' onChange={(value) => setOverlay({ ...overlay, themeTextColor: value })} />
-								</div>
-								<ThemeColorInput label='Background Color' value={overlay.themeBackgroundColor} defaultValue='rgba(10,10,10,0.65)' allowAlpha onChange={(value) => setOverlay({ ...overlay, themeBackgroundColor: value })} />
-								<div className='lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3'>
-									<ThemeColorInput label='Progress Gradient Start' value={overlay.progressBarStartColor} defaultValue='#26018E' onChange={(value) => setOverlay({ ...overlay, progressBarStartColor: value })} />
-									<ThemeColorInput label='Progress Gradient End' value={overlay.progressBarEndColor} defaultValue='#8D42F9' onChange={(value) => setOverlay({ ...overlay, progressBarEndColor: value })} />
-								</div>
+										<ThemeColorInput label='Background Color' value={overlay.themeBackgroundColor} defaultValue='rgba(10,10,10,0.65)' allowAlpha onChange={(value) => setOverlay({ ...overlay, themeBackgroundColor: value })} />
+										<div className='lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3'>
+											<ThemeColorInput label='Progress Gradient Start' value={overlay.progressBarStartColor} defaultValue='#26018E' onChange={(value) => setOverlay({ ...overlay, progressBarStartColor: value })} />
+											<ThemeColorInput label='Progress Gradient End' value={overlay.progressBarEndColor} defaultValue='#8D42F9' onChange={(value) => setOverlay({ ...overlay, progressBarEndColor: value })} />
+										</div>
+									</>
+								)}
 							</div>
 						</Card.Content>
 					</Card>

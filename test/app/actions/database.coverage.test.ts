@@ -1,3 +1,4 @@
+jest.mock("@/server/creator-brand", () => ({ readCreatorBrand: async () => ({ brand: null, revision: 0 }) }));
 jest.mock("@/auth/session-principal", () => ({ getVerifiedSessionPrincipal: async () => ({ kind: "session", authUserId: "auth-user-1", sessionId: "session-1", authenticatedAt: new Date() }) }));
 /** @jest-environment node */
 export {};

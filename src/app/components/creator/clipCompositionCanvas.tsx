@@ -1,15 +1,101 @@
 "use client";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { Button, Label, Slider } from "@heroui/react";
 import { IconPlayerPlay, IconPlayerPause, IconRefresh } from "@tabler/icons-react";
 import { getCreatorClipPreview } from "@actions/creatorLibrary";
 import { compositionDimensions, updateCompositionFrame, updateCompositionSource, type ClipComposition } from "@lib/clipComposition";
-import { overlayMetadataSvg } from "@lib/overlayMetadata";
+import { notify } from "@lib/toast";
+import { clipifyWatermarkSvg, type CreatorBrand, overlayMetadataSvg } from "@lib/overlayMetadata";
 import { isTrustedClipMediaUrl } from "@lib/clipExport";
 import { compositionLayerColor } from "@lib/clipLayoutTemplate";
 import CompositionBox from "./clipCompositionBox";
-export default function ClipCompositionCanvas({ creatorId, clip, layout, selected, onSelect, onChange, onDimensions }: { creatorId: string; clip: { id: string; title: string; broadcasterName?: string | null; clipCreatorName?: string | null }; layout: ClipComposition; selected: string; onSelect: (id: string) => void; onChange: (layout: ClipComposition) => void; onDimensions: (value: { width: number; height: number }) => void }) {
-	const widgetImages = useRef(new Map<string, { key: string; image: HTMLImageElement | null }>());
+export default function ClipCompositionCanvas({
+	creatorId,
+	clip,
+	layout,
+	selected,
+	onSelect,
+	onChange,
+	onDimensions,
+	brand,
+	watermark = false,
+}: {
+	brand?: CreatorBrand | null;
+	watermark?: boolean;
+	creatorId: string;
+	clip: { id: string; title: string; broadcasterName?: string | null; clipCreatorName?: string | null };
+	layout: ClipComposition;
+	selected: string;
+	onSelect: (id: string) => void;
+	onChange: (layout: ClipComposition) => void;
+	onDimensions: (value: { width: number; height: number }) => void;
+}) {
+	const widgetImages = useRef(new Map<string, { key: string; image: HTMLImageElement | null; cancel?: () => void }>());
+	// Queue raster requests so multiple widgets cannot exhaust preview capacity.
+	const nativeRequests = useRef<{ image: HTMLImageElement; url: string; cancelled: boolean }[]>([]);
+	const nativeBusy = useRef(false);
+	const enqueueNative = useCallback((image: HTMLImageElement, url: string) => {
+		const job = { image, url, cancelled: false };
+		nativeRequests.current.push(job);
+		const pump = () => {
+			if (nativeBusy.current) return;
+			let next = nativeRequests.current.shift();
+			while (next?.cancelled) next = nativeRequests.current.shift();
+			if (!next) return;
+			const current = next;
+			nativeBusy.current = true;
+			const loaded = current.image.onload,
+				failed = current.image.onerror;
+			let completed = false;
+			const finish = (callback: () => void) => {
+				if (completed) return;
+				completed = true;
+				try {
+					if (!current.cancelled) callback();
+				} finally {
+					nativeBusy.current = false;
+					pump();
+				}
+			};
+			current.image.onload = (event) => finish(() => loaded?.call(current.image, event));
+			current.image.onerror = (event) => finish(() => failed?.call(current.image, event));
+			current.image.src = current.url;
+		};
+		pump();
+		return () => {
+			job.cancelled = true;
+		};
+	}, []);
+	const warnedFont = useRef(false);
+	const retryWidgets = useCallback(() => {
+		for (const item of widgetImages.current.values()) item.cancel?.();
+		widgetImages.current.clear();
+		warnedFont.current = false;
+	}, []);
+	const latestBrand = useRef(brand);
+	useEffect(() => {
+		latestBrand.current = brand;
+	}, [brand]);
+	const watermarkImage = useRef<HTMLImageElement | null>(null);
+	useEffect(() => {
+		if (!watermark) return;
+		const image = new Image();
+		image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(clipifyWatermarkSvg())}`;
+		image.onload = () => {
+			watermarkImage.current = image;
+		};
+		return () => {
+			watermarkImage.current = null;
+		};
+	}, [watermark]);
+	useEffect(
+		() => () => {
+			for (const entry of widgetImages.current.values()) entry.cancel?.();
+			widgetImages.current.clear();
+			nativeRequests.current = [];
+		},
+		[],
+	);
 	const avatarData = useRef<string | undefined>(undefined);
 	const avatarRevision = useRef(0);
 	const sourceStage = useRef<HTMLDivElement>(null),
@@ -32,7 +118,11 @@ export default function ClipCompositionCanvas({ creatorId, clip, layout, selecte
 	useEffect(() => {
 		latest.current = layout;
 		const ids = new Set(layout.layers.map((layer) => layer.id));
-		for (const id of widgetImages.current.keys()) if (!ids.has(id)) widgetImages.current.delete(id);
+		for (const id of widgetImages.current.keys())
+			if (!ids.has(id)) {
+				widgetImages.current.get(id)?.cancel?.();
+				widgetImages.current.delete(id);
+			}
 	}, [layout]);
 	const output = compositionDimensions(layout.format),
 		needsLogo = layout.layers.some((layer) => layer.kind === "logo" || layer.kind === "channel");
@@ -117,10 +207,12 @@ export default function ClipCompositionCanvas({ creatorId, clip, layout, selecte
 									ctx.drawImage(image, x + (w - image.width * scale) / 2, y + (h - image.height * scale) / 2, image.width * scale, image.height * scale);
 								}
 							} else {
-								const key = JSON.stringify([layer.kind, layer.fontSize, latest.current.widgetTheme, clip.title, clip.broadcasterName, clip.clipCreatorName, w, h, avatarRevision.current]);
+								const key = JSON.stringify([layer.kind, layer.fontSize, latestBrand.current ?? latest.current.widgetTheme, clip.title, clip.broadcasterName, clip.clipCreatorName, w, h, avatarRevision.current]);
 								let cached = widgetImages.current.get(layer.id);
 								if (cached?.key !== key) {
-									const svg = overlayMetadataSvg(layer.kind, clip, w, h, layer.fontSize, latest.current.widgetTheme, avatarData.current);
+									cached?.cancel?.();
+									const theme = latestBrand.current ?? latest.current.widgetTheme;
+									const svg = overlayMetadataSvg(layer.kind, clip, w, h, layer.fontSize, theme, avatarData.current, undefined, latestBrand.current?.fontFamily);
 									const image = new Image();
 									cached = { key, image: cached?.image ?? null };
 									widgetImages.current.set(layer.id, cached);
@@ -129,9 +221,38 @@ export default function ClipCompositionCanvas({ creatorId, clip, layout, selecte
 										if (current?.key === key) current.image = image;
 									};
 									image.onerror = () => {
-										if (widgetImages.current.get(layer.id)?.key === key) setFailed(true);
+										if (widgetImages.current.get(layer.id)?.key !== key) return;
+										if (!latestBrand.current) {
+											setFailed(true);
+											return;
+										}
+										if (!warnedFont.current) {
+											warnedFont.current = true;
+											notify({
+												title: "Font preview unavailable",
+												description: (
+													<div className='space-y-2'>
+														<p>Your video and layout are preserved. Retry or choose another font in Brand styling.</p>
+														<Button variant='secondary' onPress={retryWidgets}>
+															Retry widgets
+														</Button>
+													</div>
+												),
+												color: "danger",
+											});
+										}
 									};
-									image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+									if (latestBrand.current) {
+										const payload = { creatorId, kind: layer.kind, width: w, height: h, fontSize: layer.fontSize, clip, theme: latestBrand.current };
+										let cancelRequest: (() => void) | undefined;
+										const timer = setTimeout(() => {
+											cancelRequest = enqueueNative(image, `/api/clips/widget-preview?data=${encodeURIComponent(JSON.stringify(payload))}`);
+										}, 250);
+										cached.cancel = () => {
+											clearTimeout(timer);
+											cancelRequest?.();
+										};
+									} else image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 								}
 								if (cached.image) ctx.drawImage(cached.image, x, y, w, h);
 							}
@@ -139,6 +260,7 @@ export default function ClipCompositionCanvas({ creatorId, clip, layout, selecte
 							ctx.restore();
 						}
 					}
+					if (watermark && watermarkImage.current) ctx.drawImage(watermarkImage.current, c.width - 216, c.height - 60, 200, 44);
 				} catch {
 					setFailed(true);
 					return;
@@ -148,8 +270,9 @@ export default function ClipCompositionCanvas({ creatorId, clip, layout, selecte
 		};
 		frame = requestAnimationFrame(draw);
 		return () => cancelAnimationFrame(frame);
-	}, [url, ready, clip, layout.format]);
+	}, [url, ready, clip, layout.format, watermark, creatorId, retryWidgets, enqueueNative]);
 	const retryMedia = () => {
+		for (const entry of widgetImages.current.values()) entry.cancel?.();
 		widgetImages.current.clear();
 		setUrl(undefined);
 		setReady(false);

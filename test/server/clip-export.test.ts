@@ -33,6 +33,10 @@ it("U121: rejects actual bytes over the cap despite a smaller Content-Length", a
 	await expect(readBoundedResponse(new Response(new Uint8Array([1, 2, 3, 4]), { headers: { "content-length": "1" } }), 3)).rejects.toThrow("byte_limit");
 });
 
+const exportBrand = jest.fn();
+const exportEntitlements = jest.fn();
+jest.mock("@/server/creator-brand", () => ({ readCreatorBrand: (...args: unknown[]) => exportBrand(...args) }));
+jest.mock("@lib/entitlements", () => ({ resolveUserEntitlements: (...args: unknown[]) => exportEntitlements(...args) }));
 const afterZip = jest.fn();
 jest.mock("fflate", () => {
 	const actual = jest.requireActual("fflate");
@@ -77,6 +81,8 @@ const video = readFileSync("test/fixtures/runner/presentation.mp4");
 const ownedEntry = (id = "ClipA", extra: Record<string, unknown> = {}) => ({ key: `clip:owner:${id}`, value: JSON.stringify({ clip: { id, title: "My clip", duration: 12, broadcaster_id: "owner", created_at: "2026-11-01T00:00:00Z", ...extra } }) });
 beforeEach(() => {
 	afterZip.mockReset();
+	exportBrand.mockReset().mockResolvedValue({ brand: null, revision: 0 });
+	exportEntitlements.mockReset().mockResolvedValue({ proAccess: true });
 	authorize.mockReset();
 	getToken.mockReset();
 	rateLimit.mockReset();
@@ -717,4 +723,20 @@ it("retains legacy untemplated portrait export plans", async () => {
 	expect(result.ok).toBe(true);
 	if (!result.ok) throw Error(result.code);
 	expect(JSON.parse(strFromU8(unzipSync(result.bytes)["manifest.json"])).clips[0]).toMatchObject({ outputLabel: "Legacy portrait", format: "mobile" });
+});
+
+it("enforces free composed-export branding on the server and honors Pro removal", async () => {
+	const { createClipComposition } = await import("@lib/clipComposition");
+	const layout = createClipComposition("mobile");
+	render.mockResolvedValue(new Uint8Array(video));
+	exportBrand.mockResolvedValue({ brand: { watermark: false, themeTextColor: "#fff", themeBackgroundColor: "#000", themeAccentColor: "#fff", borderSize: 0, borderRadius: 10, fontFamily: "DejaVu Sans", fontSource: "builtin" }, revision: 1 });
+	exportEntitlements.mockResolvedValue({ proAccess: false });
+	expect((await buildClipArchive({ creatorId: "owner", clipIds: ["ClipA"], layout }, undefined, "mp4")).ok).toBe(true);
+	expect(render.mock.calls.at(-1)?.[4]).toMatchObject({ watermark: true, brand: { watermark: false } });
+	exportEntitlements.mockResolvedValue({ proAccess: true });
+	expect((await buildClipArchive({ creatorId: "owner", clipIds: ["ClipA"], layout }, undefined, "mp4")).ok).toBe(true);
+	expect(render.mock.calls.at(-1)?.[4]).toMatchObject({ watermark: false });
+	render.mockClear();
+	expect((await buildClipArchive({ creatorId: "owner", clipIds: ["ClipA"] }, undefined, "mp4")).ok).toBe(true);
+	expect(render).not.toHaveBeenCalled();
 });

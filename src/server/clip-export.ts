@@ -1,4 +1,6 @@
 import "server-only";
+import { readCreatorBrand } from "./creator-brand";
+import { resolveUserEntitlements } from "@lib/entitlements";
 import type { ClipExportProgress } from "@lib/clipExportStream";
 import { clipLayoutSchema } from "@lib/clipLayout";
 import { compositionSchema } from "@lib/clipComposition";
@@ -169,7 +171,7 @@ async function prepareClipArchive(input: unknown, parentSignal?: AbortSignal, fo
 				const title = Array.from(clips[index]!.clip.title).slice(0, 80);
 				while (strToU8(title.join("")).length > 80) title.pop();
 				progress?.({ index, stage: "skipped", code });
-				summary.skipped.push({ index, code, retryable: ["provider_error", "download_timeout", "rate_limited", "render_busy", "render_failed"].includes(code), title: title.join("") });
+				summary.skipped.push({ index, code, retryable: ["provider_error", "download_timeout", "rate_limited", "render_busy", "render_failed", "font_unavailable"].includes(code), title: title.join("") });
 			}
 		};
 		let blocked: string | undefined;
@@ -262,11 +264,12 @@ async function prepareClipArchive(input: unknown, parentSignal?: AbortSignal, fo
 						let bytes = await downloadMedia(sources.get(index)!.url, fileSignal);
 						if (parsed.data.layout) {
 							progress?.({ index, stage: "rendering" });
-							bytes = await renderClipLayout(bytes, parsed.data.layout, publicClip(clips[index]!.clip), signal, { avatar: grant.creator?.avatar });
+							const [{ brand }, entitlement] = await Promise.all([readCreatorBrand(creatorId), resolveUserEntitlements(permission.creator)]);
+							bytes = await renderClipLayout(bytes, parsed.data.layout, publicClip(clips[index]!.clip), signal, { avatar: permission.creator?.avatar, brand: brand ?? undefined, watermark: !entitlement.proAccess || (brand?.watermark ?? true) });
 						}
 						return { index, bytes };
 					} catch (error) {
-						return { index, code: fileSignal.aborted ? "download_timeout" : error instanceof Error && ["clip_unavailable", "download_unavailable", "file_size_limit", "invalid_media", "render_busy", "render_failed"].includes(error.message) ? error.message : "provider_error" };
+						return { index, code: fileSignal.aborted ? "download_timeout" : error instanceof Error && ["clip_unavailable", "download_unavailable", "file_size_limit", "invalid_media", "render_busy", "render_failed", "font_unavailable"].includes(error.message) ? error.message : "provider_error" };
 					}
 				}),
 			);

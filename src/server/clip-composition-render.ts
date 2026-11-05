@@ -4,7 +4,8 @@ import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { compositionDimensions, type ClipComposition } from "@/app/lib/clipComposition";
 import { clipLayerText } from "@/app/lib/clipLayout";
-import { overlayMetadataSvg } from "@/app/lib/overlayMetadata";
+import { DEFAULT_WIDGET_THEME, type CreatorBrand } from "@/app/lib/overlayMetadata";
+import { renderBrandWidget } from "./brand-font-render";
 import { readBoundedResponse } from "@/app/lib/clipExport";
 const avatarHosts = new Set(["static-cdn.jtvnw.net", "lh3.googleusercontent.com", "yt3.googleusercontent.com", "yt3.ggpht.com"]);
 export async function readClipCompositionLogo(avatar: string | undefined, signal: AbortSignal) {
@@ -23,14 +24,18 @@ export async function readClipCompositionLogo(avatar: string | undefined, signal
 	if (!png && !jpeg && !webp) throw new Error("render_failed");
 	return sharp(bytes, { limitInputPixels: 1000000, animated: false }).rotate().resize({ width: 512, height: 512, fit: "inside", withoutEnlargement: true }).png().toBuffer();
 }
-export async function compositionFilterGraph(layout: ClipComposition, dir: string, clip: Parameters<typeof clipLayerText>[1], signal: AbortSignal, avatar?: string) {
+export async function compositionFilterGraph(layout: ClipComposition, dir: string, clip: Parameters<typeof clipLayerText>[1], signal: AbortSignal, avatar?: string, brand?: CreatorBrand) {
 	const { width, height } = compositionDimensions(layout.format),
 		videos = layout.layers.filter((layer) => layer.kind === "video"),
 		logos = layout.layers.filter((layer) => layer.kind === "logo");
 	const filters: string[] = [],
 		inputs: string[] = [];
 	let avatarImage: Buffer | undefined;
-	if (avatar && layout.layers.some((layer) => layer.kind === "channel" || layer.kind === "logo")) avatarImage = await readClipCompositionLogo(avatar, signal);
+	if (avatar && layout.layers.some((layer) => layer.kind === "channel" || layer.kind === "logo"))
+		avatarImage = await readClipCompositionLogo(avatar, signal).catch((error) => {
+			if (logos.length || signal.aborted) throw error;
+			return undefined;
+		});
 	let inputIndex = 1;
 	if (logos.length) {
 		const path = join(dir, "channel-logo");
@@ -56,8 +61,7 @@ export async function compositionFilterGraph(layout: ClipComposition, dir: strin
 			filters.push(`[logo${logoIndex++}]scale=${w}:${h}:force_original_aspect_ratio=decrease:force_divisible_by=2,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2:color=black@0,setsar=1[${label}]`);
 		} else {
 			const path = join(dir, `widget-${index}.png`);
-			const svg = overlayMetadataSvg(layer.kind, clip, w, h, layer.fontSize, layout.widgetTheme, avatarImage ? `data:image/png;base64,${avatarImage.toString("base64")}` : undefined);
-			await writeFile(path, await sharp(Buffer.from(svg), { limitInputPixels: 1000000 }).png().toBuffer());
+			await writeFile(path, await renderBrandWidget(layer.kind, clip, w, h, layer.fontSize, brand ?? layout.widgetTheme ?? DEFAULT_WIDGET_THEME, signal, avatarImage ? `data:image/png;base64,${avatarImage.toString("base64")}` : undefined));
 			inputs.push("-loop", "1", "-max_pixels", "1000000", "-i", path);
 			filters.push(`[${inputIndex++}:v]format=rgba[${label}]`);
 		}

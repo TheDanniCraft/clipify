@@ -395,3 +395,21 @@ Channel identity uses an avatar/name background block through both canvas and FF
 ### Contextual widgets and shared overlay presentation
 
 The composition renderer independently drew generic blocks and broke title wrapping into short character chunks. Extracted real channel/clip components for overlay playback and Theme Studio and a shared contextual metadata model for canvas/export. Channel info groups avatar, name and channel/category context; Clip info groups title and clipped-by credit. Mobile defaults span the canvas and fit content; saved narrow widgets have explicit fit actions. Existing theme color controls customize translucent background, text, accent and corners; default is dark/light-text, while white/black is an explicit customization test. Canvas image failure now enters retry and ignores stale callbacks. Native PNG/FFmpeg and actual browser pixels exercise the same bounded SVG, including escaping, avatar fallback and styles. Detailed evidence and regression-after provenance are in tdd/cycle-log.md. Account-wide brand ownership and custom fonts are the next requested scope, not silently included in this verification.
+
+### Native custom-font lifetime
+
+Verified and fixed: a per-render font path was deleted during cleanup while Pango retained it. Subsequent jobs rendered empty glyph boxes. A cross-job pixel equality test records the Red; the bounded cache now retains stable hashed paths while in use, evicts only idle entries and restores the same path after eviction. Consecutive jobs and idle-cache eviction retain identical pixels. Final browser captures show readable Laila glyphs in account and composition previews. This was a real regression found during visual/native review, not an accepted placeholder.
+
+### Shared upgrade price fallback
+
+Verified: when billing data has null prices, checkout is correctly disabled but the reused modal labels the button as a zero-price upgrade. The Free branding browser scenario reproduces the missing Prices unavailable state. The candidate corrects only the unavailable label; valid-price checkout behavior and existing consent-aware paywall events stay in the shared flow. Final browser evidence follows in the cycle log.
+
+### Branded font previews across platforms and collaborators
+
+Verified and fixed: a built-in branded font must use native PNGs in the composition canvas as well as the account preview, because SVG image rendering cannot assume the viewer has the server's font installed. All adopted brand fonts now follow the native preview path, with one cancellable widget request at a time per editor. Real serif glyph pixels and multiple distinct widget requests pass in the browser; cancellation, late completion and retry pass in the whole-file owner.
+
+Read-only creator collaborators now receive disabled brand controls and a clear explanation instead of being invited to make a forbidden save. Brand loading skips unrelated account-setting requests; switching back to account settings loads them while preserving an existing draft. The permission and prerequisite Reds/Greens and final browser examples are recorded in the cycle log.
+
+### Optional Channel info avatar recovery
+
+Verified and fixed: the preview used initials for an unavailable optional avatar while native export failed. Native Channel info now produces the same initials PNG as an absent avatar after an official-CDN404. Explicit logo layers still fail rather than silently substituting another asset, and cancellation remains propagated. brand-avatar-recovery-red/green.log and the native/render whole-file owners cover the distinction.

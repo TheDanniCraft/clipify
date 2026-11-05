@@ -1,3 +1,4 @@
+jest.mock("@lib/toast", () => ({ notify: jest.fn() }));
 import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
 import Canvas from "@components/creator/clipCompositionCanvas";
 import { createClipComposition } from "@lib/clipComposition";
@@ -202,4 +203,60 @@ it("recovers a failed widget decode and ignores stale callbacks after removal", 
 	act(() => second.onerror());
 	act(() => second.onload());
 	expect(screen.queryByRole("button", { name: "Retry preview" })).not.toBeInTheDocument();
+});
+
+it("uses the same native font raster for a branded canvas without reloading its video", async () => {
+	const { creatorBrandSchema } = await import("@lib/overlayMetadata");
+	const layout = createClipComposition("mobile");
+	layout.layers.push({ id: "title", label: "Clip info", kind: "title", fontSize: 32, frame: { x: 0, y: 0.8, w: 1, h: 0.1 } });
+	const props = { creatorId: "owner", clip, layout, brand: creatorBrandSchema.parse({ fontSource: "google", fontFamily: "Laila" }), selected: "camera", onSelect: () => {}, onChange: () => {}, onDimensions: () => {} };
+	render(<Canvas {...props} />);
+	await ready();
+	act(() => frames.shift()!(0));
+	await waitFor(() => expect(rasterImages.some((image) => image.src.startsWith("/api/clips/widget-preview?data=") && decodeURIComponent(image.src).includes('"Laila"'))).toBe(true));
+	expect(preview).toHaveBeenCalledTimes(1);
+});
+it("offers font retry in a toast without discarding the video preview", async () => {
+	const { creatorBrandSchema } = await import("@lib/overlayMetadata");
+	const { notify } = await import("@lib/toast");
+	const layout = createClipComposition("mobile");
+	layout.layers.push({ id: "title", kind: "title", label: "Clip info", fontSize: 32, frame: { x: 0, y: 0.8, w: 1, h: 0.1 } });
+	render(<Canvas creatorId='owner' clip={clip} layout={layout} brand={creatorBrandSchema.parse({ fontSource: "google", fontFamily: "Laila" })} selected='camera' onSelect={() => {}} onChange={() => {}} onDimensions={() => {}} />);
+	await ready();
+	act(() => frames.shift()!(0));
+	await waitFor(() => expect(rasterImages.some((image) => image.src.startsWith("/api/clips/widget-preview"))).toBe(true));
+	const image = rasterImages.find((image) => image.src.startsWith("/api/clips/widget-preview"));
+	act(() => image.onerror());
+	expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Font preview unavailable" }));
+	act(() => image.onerror());
+	expect(notify).toHaveBeenCalledTimes(1);
+	render(jest.mocked(notify).mock.calls[0][0].description as React.ReactElement);
+	fireEvent.click(screen.getByRole("button", { name: "Retry widgets" }));
+	act(() => frames.shift()!(0));
+	await waitFor(() => expect(rasterImages.filter((image) => image.src.startsWith("/api/clips/widget-preview")).length).toBe(2));
+	expect(preview).toHaveBeenCalledTimes(1);
+
+	expect(screen.getByRole("button", { name: "Play preview" })).toBeEnabled();
+});
+it.each([false, true])("uses native raster fonts for built-in branding and queues previews without racing slots (remove=%s)", async (remove) => {
+	const { creatorBrandSchema } = await import("@lib/overlayMetadata");
+	const layout = createClipComposition("desktop");
+	for (let i = 0; i < 3; i++) layout.layers.push({ id: `text-${i}`, kind: "title", label: `Info ${i}`, fontSize: 32, frame: { x: 0, y: i * 0.15, w: 0.5, h: 0.1 } });
+	const props = { creatorId: "owner", clip, layout, brand: creatorBrandSchema.parse({ fontFamily: "DejaVu Serif" }), selected: "gameplay", onSelect: () => {}, onChange: () => {}, onDimensions: () => {} };
+	const view = render(<Canvas {...props} />);
+	await ready();
+	act(() => frames.shift()!(0));
+	const requests = () => rasterImages.filter((image) => image.src.startsWith("/api/clips/widget-preview"));
+	await waitFor(() => expect(requests()).toHaveLength(1));
+	if (remove) view.rerender(<Canvas {...props} layout={{ ...layout, layers: layout.layers.filter((layer) => layer.id !== "text-1") }} />);
+	act(() => requests()[0].onload());
+	await waitFor(() => expect(requests()).toHaveLength(2));
+	if (!remove) {
+		act(() => requests()[1].onload());
+		await waitFor(() => expect(requests()).toHaveLength(3));
+	}
+	const last = requests().at(-1);
+	view.unmount();
+	act(() => last.onload());
+	expect(preview).toHaveBeenCalledTimes(1);
 });

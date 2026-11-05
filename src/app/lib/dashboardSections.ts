@@ -2,6 +2,7 @@ import type { Permission } from "@/auth/permissions";
 
 export const settingsSections = [
 	{ key: "settings", title: "Account", href: "/dashboard/settings", permission: "account:read", tour: "settings-core-tab" },
+	{ key: "brand", title: "Brand styling", href: "/dashboard/settings?tab=brand", permission: "creator:read" },
 	{ key: "connections", title: "Connections", href: "/dashboard/settings?tab=connections", permission: "account:read", tour: "settings-connections-tab" },
 	{ key: "creator", title: "Creator Page", href: "/dashboard/settings?tab=creator", permission: "creator:read", tour: "settings-creator-tab" },
 	{ key: "billing", title: "Billing", href: "/dashboard/settings?tab=billing", permission: "billing:read" },

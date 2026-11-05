@@ -811,7 +811,11 @@ T673 local closure: paired-atomic-browser-green.log passes all9 editor/interacti
 
 ## Creator-wide brand styling (new requested scope)
 
-- [ ] T681 Resolve preservation/adoption of differently styled existing overlays, then add a creator-owned Brand styling settings/sidebar entry using the established theme controls.
-- [ ] T682 Route overlay playback, Theme Studio and composition preview/native export through the same saved creator brand; preserve local arrangement/effects and agency creator authorization. Follow schema-only feature-branch migration ownership; do not generate a custom migration or discard existing customization.
-- [ ] T683 Support the selected brand typography in actual exported video as well as preview, with bounded trusted font handling and an explicit recoverable unavailable-font state.
-- [ ] T684 Verify brand persistence, existing-overlay adoption, cross-creator/agency isolation, live/clip appearance parity and failure/draft recovery using installed controls on desktop/mobile in both themes. Watermark/Pro removal remains deferred.
+- [x] T681 Preserve existing styles until explicit first adoption, then add a creator-owned Brand styling settings/sidebar entry using the established theme controls.
+- [x] T682 Route overlay playback, Theme Studio and composition preview/native export through the same saved creator brand; preserve local arrangement/effects and agency creator authorization. Follow schema-only feature-branch migration ownership; do not generate a custom migration or discard existing customization.
+- [x] T683 Support the selected brand typography in actual exported video as well as preview, with bounded trusted font handling and an explicit recoverable unavailable-font state.
+- [x] T684 Verify brand persistence, existing-overlay adoption, cross-creator/agency isolation, live/clip appearance parity and failure/draft recovery using installed controls on desktop/mobile in both themes. Verify read-only collaborators can inspect the brand without editable controls.
+
+- [x] T685 Enforce composed-export attribution on Free with a Pro removal setting, existing upgrade/consent-aware analytics, unchanged Original bytes and actual encoded-pixel tests.
+
+T681–T685 local closure: brand-candidate-browser-export.log passes all10 final-candidate browser/export cases (1.9min), including the corrected unavailable-price state, import/adoption, Laila pixels, Free keyboard upgrade, four responsive theme variants, concurrent brand saves and complete1/25/50-clip plus five-video paired exports. brand-publish-browser.log separately passes all15 editor/theme/paired/brand owners. New-source scoped diagnostics retain the unchanged floors, and required merged CI remains a publication gate recorded on PR546. No schema or migration was changed.

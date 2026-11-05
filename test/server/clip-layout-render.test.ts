@@ -206,3 +206,61 @@ it("normalizes JPEG/WebP logos and rejects spoofed, oversized or inaccessible im
 		globalThis.fetch = originalFetch;
 	}
 }, 30000);
+
+it("burns the non-layer watermark into composed pixels and lets the account brand override local colors", async () => {
+	const { createClipComposition } = await import("@lib/clipComposition");
+	const { creatorBrandSchema, DEFAULT_WIDGET_THEME } = await import("@lib/overlayMetadata");
+	const sharp = (await import("sharp")).default;
+	const dir = await mkdtemp(join(tmpdir(), "clipify-brand-pixel-"));
+	try {
+		const input = join(dir, "source.mp4");
+		execFileSync("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "color=black:size=640x360:rate=15", "-t", "0.2", "-c:v", "libx264", "-threads", "1", "-pix_fmt", "yuv420p", "-y", input]);
+		const layout = createClipComposition("desktop");
+		layout.layers.push({ id: "title", kind: "title", label: "Clip info", fontSize: 32, frame: { x: 0, y: 0, w: 0.5, h: 0.2 } });
+		layout.widgetTheme = { ...DEFAULT_WIDGET_THEME, themeBackgroundColor: "#ffffff" };
+		const bytes = new Uint8Array(await readFile(input));
+		const brand = creatorBrandSchema.parse({ themeBackgroundColor: "#ff0000" });
+		const samples = [];
+		for (const watermark of [false, true]) {
+			const result = await renderClipLayout(bytes, layout, { title: "A clip" }, AbortSignal.timeout(20000), { brand, watermark });
+			const file = join(dir, `${watermark}.mp4`);
+			await writeFile(file, result);
+			const png = execFileSync("ffmpeg", ["-v", "error", "-i", file, "-frames:v", "1", "-f", "image2pipe", "-vcodec", "png", "pipe:1"]);
+			const pixel = await sharp(png).extract({ left: 100, top: 100, width: 1, height: 1 }).raw().toBuffer();
+			expect(pixel[0]).toBeGreaterThan(200);
+			expect(pixel[1]).toBeLessThan(30);
+			const patch = await sharp(png).extract({ left: 1060, top: 650, width: 204, height: 54 }).removeAlpha().raw().toBuffer();
+			samples.push(patch.reduce((sum, value) => sum + value, 0) / patch.length);
+		}
+		expect(samples[1]).toBeGreaterThan(samples[0] + 5);
+	} finally {
+		await rm(dir, { recursive: true, force: true });
+	}
+}, 45000);
+
+it("keeps Channel info exportable when its optional avatar is unavailable, while requiring explicit logo assets", async () => {
+	const { compositionFilterGraph } = await import("@/server/clip-composition-render");
+	const { createClipComposition } = await import("@lib/clipComposition");
+	const dir = await mkdtemp(join(tmpdir(), "clipify-avatar-fallback-"));
+	const fetcher = jest.spyOn(global, "fetch").mockResolvedValue(new Response(null, { status: 404 }));
+	const layout = createClipComposition("desktop");
+	layout.layers.push({ id: "channel", kind: "channel", label: "Channel info", fontSize: 32, frame: { x: 0, y: 0, w: 0.5, h: 0.15 } });
+	try {
+		await compositionFilterGraph(layout, dir, { title: "Clip", broadcasterName: "Creator" }, AbortSignal.timeout(5000), "https://static-cdn.jtvnw.net/missing.png");
+		const fallback = await readFile(join(dir, "widget-1.png"));
+		await compositionFilterGraph(layout, dir, { title: "Clip", broadcasterName: "Creator" }, AbortSignal.timeout(5000));
+		expect(fallback.equals(await readFile(join(dir, "widget-1.png")))).toBe(true);
+		layout.layers.push({ id: "logo", kind: "logo", label: "Logo", frame: { x: 0, y: 0.5, w: 0.1, h: 0.1 } });
+		await expect(compositionFilterGraph(layout, dir, { title: "Clip" }, AbortSignal.timeout(5000), "https://static-cdn.jtvnw.net/missing.png")).rejects.toThrow("render_failed");
+		layout.layers.pop();
+		const stopped = new AbortController();
+		fetcher.mockImplementation(async () => {
+			stopped.abort();
+			throw Error("aborted");
+		});
+		await expect(compositionFilterGraph(layout, dir, { title: "Clip" }, stopped.signal, "https://static-cdn.jtvnw.net/missing.png")).rejects.toThrow("aborted");
+	} finally {
+		fetcher.mockRestore();
+		await rm(dir, { recursive: true, force: true });
+	}
+});

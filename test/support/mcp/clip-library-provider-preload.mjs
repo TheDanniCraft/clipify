@@ -11,6 +11,9 @@ const downloadModes = new Map();
 const fixtureId = /^(?:RunnerPresentation|LibrarySort\d{2})_([a-f0-9-]{36})$/;
 globalThis.fetch = async (input, init) => {
 	const url = new URL(input instanceof Request ? input.url : String(input));
+	// Deterministic licensed font bytes for the real browser/native brand journey.
+	if (url.origin === "https://fonts.googleapis.com" && url.pathname === "/css" && url.searchParams.get("family") === "Laila:400,700") return new Response("@font-face {font-weight:400;src:url(https://fonts.gstatic.com/s/laila/fixture.ttf)} @font-face {font-weight:700;src:url(https://fonts.gstatic.com/s/laila/fixture.ttf)}", { headers: { "content-type": "text/css" } });
+	if (url.href === "https://fonts.gstatic.com/s/laila/fixture.ttf") return new Response(readFileSync(new URL("../../fixtures/fonts/Laila-Regular.ttf", import.meta.url)), { headers: { "content-type": "font/ttf" } });
 	const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
 	if (url.origin === "https://api.twitch.tv" && url.pathname === "/helix/videos") {
 		const requested = url.searchParams.get("user_id");

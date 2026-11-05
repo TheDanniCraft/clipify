@@ -1,4 +1,6 @@
 import "server-only";
+import sharp from "sharp";
+import { clipifyWatermarkSvg, type CreatorBrand } from "@lib/overlayMetadata";
 import { spawn } from "node:child_process";
 import { mkdtemp, writeFile, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -9,7 +11,7 @@ import { compositionFilterGraph } from "./clip-composition-render";
 let activeRenders = 0;
 const LIMIT = 32 * 1024 * 1024;
 /** FFmpeg receives only bounded local files, never user URLs or shell command strings. */
-export async function renderClipLayout(bytes: Uint8Array, layout: ClipLayout | ClipComposition, clip: Parameters<typeof clipLayerText>[1], signal: AbortSignal, context?: { avatar?: string }) {
+export async function renderClipLayout(bytes: Uint8Array, layout: ClipLayout | ClipComposition, clip: Parameters<typeof clipLayerText>[1], signal: AbortSignal, context?: { avatar?: string; brand?: CreatorBrand; watermark?: boolean }) {
 	const parsed = layout.version === 2 ? compositionSchema.parse(layout) : clipLayoutSchema.parse(layout);
 	if (activeRenders >= 2) throw new Error("render_busy");
 	signal.throwIfAborted();
@@ -24,7 +26,7 @@ export async function renderClipLayout(bytes: Uint8Array, layout: ClipLayout | C
 			previous: string,
 			inputs: string[] = [];
 		if (parsed.version === 2) {
-			const graph = await compositionFilterGraph(parsed, dir, clip, signal, context?.avatar);
+			const graph = await compositionFilterGraph(parsed, dir, clip, signal, context?.avatar, context?.brand);
 			filters = graph.filters;
 			previous = graph.output;
 			inputs = graph.inputs;
@@ -40,6 +42,14 @@ export async function renderClipLayout(bytes: Uint8Array, layout: ClipLayout | C
 				filters.push(`[${previous}]drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:textfile=${dir}/text-${index}.txt:expansion=none:fontcolor=white:fontsize=${layer.size}:box=1:boxcolor=black@0.65:boxborderw=6:x='min(w-tw-8,w*${layer.x / 100})':y='min(h-th-8,h*${layer.y / 100})'[text${index}]`);
 				previous = `text${index}`;
 			}
+		}
+		if (context?.watermark) {
+			const path = join(dir, "clipify-watermark.png");
+			await writeFile(path, await sharp(Buffer.from(clipifyWatermarkSvg())).png().toBuffer());
+			const index = 1 + inputs.filter((value) => value === "-i").length;
+			inputs.push("-loop", "1", "-max_pixels", "1000000", "-i", path);
+			filters.push(`[${previous}][${index}:v]overlay=x=W-w-16:y=H-h-16:shortest=1:eof_action=repeat[branded]`);
+			previous = "branded";
 		}
 		const args = ["-hide_banner", "-loglevel", "error", "-nostdin", "-protocol_whitelist", "file,pipe", "-threads", "2", "-f", "mov", "-i", input, ...inputs, "-filter_complex_threads", "1", "-filter_complex", filters.join(";"), "-map", `[${previous}]`, "-map", "0:a?", "-c:v", "libx264", "-threads", "2", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-fs", String(LIMIT + 1024 * 1024), "-y", output];
 		await new Promise<void>((resolve, reject) => {

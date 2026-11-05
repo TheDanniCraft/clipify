@@ -2,6 +2,49 @@
 @import "@heroui/styles";
 @import "@heroui-pro/react/css";
 @import "./themes/clipify.css";
+@font-face {
+	font-family: "DejaVu Sans";
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url("/api/brand-font?family=DejaVu%20Sans&weight=400") format("truetype");
+}
+@font-face {
+	font-family: "DejaVu Sans";
+	font-style: normal;
+	font-weight: 700;
+	font-display: swap;
+	src: url("/api/brand-font?family=DejaVu%20Sans&weight=700") format("truetype");
+}
+@font-face {
+	font-family: "DejaVu Serif";
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url("/api/brand-font?family=DejaVu%20Serif&weight=400") format("truetype");
+}
+@font-face {
+	font-family: "DejaVu Serif";
+	font-style: normal;
+	font-weight: 700;
+	font-display: swap;
+	src: url("/api/brand-font?family=DejaVu%20Serif&weight=700") format("truetype");
+}
+@font-face {
+	font-family: "DejaVu Sans Mono";
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url("/api/brand-font?family=DejaVu%20Sans%20Mono&weight=400") format("truetype");
+}
+@font-face {
+	font-family: "DejaVu Sans Mono";
+	font-style: normal;
+	font-weight: 700;
+	font-display: swap;
+	src: url("/api/brand-font?family=DejaVu%20Sans%20Mono&weight=700") format("truetype");
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme {

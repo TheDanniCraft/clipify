@@ -388,3 +388,11 @@ These revisions update existing acceptance owners rather than duplicating workfl
 - COMP-U17: Failed widget decoding is retryable and stale callbacks after removal cannot replace current preview state. Reference-inventory failures preserve styled drafts. Owners: clipCompositionCanvas and clipCompositionEditor.
 
 These are regression-after refinements of the existing owners, not a retrospective test-first claim. New shared sources are included in unchanged ordinary coverage manifests.
+
+## Creator brand and attribution behaviors
+
+- BRAND-A01: Import an overlay into the creator's account brand without rewriting its saved resource fields; explicit first adoption shares appearance across overlays and paired clip formats. Creator/agency permissions bind every read/write to that creator.
+- BRAND-A02: Optimistic revision checks reject concurrent brand saves and preserve the losing tab's draft. Service, validation and font failures retain entered values.
+- BRAND-A03: Custom typography renders actual glyphs in native PNG/video and browser preview; repeated jobs and idle-cache eviction retain identical pixels. Reject untrusted hosts, font URLs/CSS injection, redirects, oversize/malformed fonts and excessive concurrent work.
+- BRAND-A04: Free cannot remove composed-video attribution, including forged payloads or previously saved Pro settings after downgrade. Pro removal works; Original downloads retain original bytes. The locked control opens the existing upgrade flow and consent-aware analytics.
+- BRAND-A05: Inspect real HeroUI account/clip/theme flows at390/1440 in both themes, native font pixels, preview retry without video reload, keyboard watermark operation, responsive upgrade modal and cross-tab conflict recovery. Existing crop, paired-save and palette owners remain green.

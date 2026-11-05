@@ -25,6 +25,7 @@ import { forceRefreshOwnClipCache, getOwnClipForceRefreshStatus } from "@actions
 import { useNavigationGuard } from "nextjs-nav-guard";
 import { getUpgradeCopy } from "@lib/upgradeCopy";
 import UpgradeModal from "@components/upgradeModal";
+import BrandSettingsPanel from "@components/settings/BrandSettingsPanel";
 import BillingPanel from "./billing-panel";
 import ChatwootData from "@components/chatwootData";
 import ControlledModal from "@components/controlledModal";
@@ -64,6 +65,7 @@ export default function SettingsPage() {
 
 	const params = useSearchParams();
 	const sectionTab = settingsSection(params);
+	const isBrandSection = sectionTab === "brand";
 	const { isOpen: deleteModalIsOpen, open: deleteModalOnOpen, setOpen: deleteModalOnOpenChange } = useOverlayState();
 	const { isOpen: exportModalIsOpen, open: exportModalOnOpen, setOpen: exportModalOnOpenChange } = useOverlayState();
 	const [deletionChoice, setDeletionChoice] = useState<"paid_through" | "immediate">("paid_through");
@@ -134,12 +136,12 @@ export default function SettingsPage() {
 		let cancelled = false;
 
 		async function fetchSettings() {
-			if (!user) return;
+			if (!user || isBrandSection) return;
 			try {
 				const fetchedSettings = await getSettings(user.id, true);
 				if (cancelled) return;
-				setSettings(fetchedSettings);
-				setBaseSettings(fetchedSettings);
+				setSettings((previous) => (previous?.id === user.id ? previous : fetchedSettings));
+				setBaseSettings((previous) => (previous?.id === user.id ? previous : fetchedSettings));
 				const status = await getClipCacheStatus(user.id);
 				if (cancelled) return;
 				setClipCacheStatus(status);
@@ -156,7 +158,7 @@ export default function SettingsPage() {
 		return () => {
 			cancelled = true;
 		};
-	}, [user]);
+	}, [user, isBrandSection]);
 
 	useEffect(() => {
 		if (!user || sectionTab !== "settings") return;
@@ -371,7 +373,9 @@ export default function SettingsPage() {
 			<DashboardNavbar user={user} title='Settings' tagline='Manage your settings'>
 				<div className='mt-4 flex w-full flex-col gap-2'>
 					<section aria-label='Settings content'>
-						{sectionTab === "team" ? (
+						{sectionTab === "brand" ? (
+							<BrandSettingsPanel key={user.id} user={user} />
+						) : sectionTab === "team" ? (
 							<TeamSettingsPanel embedded />
 						) : sectionTab === "billing" ? (
 							<BillingPanel />

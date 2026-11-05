@@ -8,7 +8,19 @@ const color = z
 		const match = value.match(/^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)$/);
 		return Boolean(match && match.slice(1, 4).every((n) => Number.isFinite(Number(n)) && Number(n) >= 0 && Number(n) <= 255) && (match[4] === undefined || (Number.isFinite(Number(match[4])) && Number(match[4]) >= 0 && Number(match[4]) <= 1)));
 	}, "Choose a valid color.");
-export const widgetThemeSchema = z.object({ themeTextColor: color.default(DEFAULT_WIDGET_THEME.themeTextColor), themeBackgroundColor: color.default(DEFAULT_WIDGET_THEME.themeBackgroundColor), themeAccentColor: color.default(DEFAULT_WIDGET_THEME.themeAccentColor), borderSize: z.number().finite().min(0).max(12).default(0), borderRadius: z.number().finite().min(0).max(80).default(10) });
+export const widgetThemeSchema = z.object({ themeTextColor: color.default(DEFAULT_WIDGET_THEME.themeTextColor), themeBackgroundColor: color.default(DEFAULT_WIDGET_THEME.themeBackgroundColor), themeAccentColor: color.default(DEFAULT_WIDGET_THEME.themeAccentColor), borderSize: z.number().finite().min(0).max(32).default(0), borderRadius: z.number().finite().min(0).max(80).default(10) });
+const brandFontFields = {
+	fontFamily: z
+		.string()
+		.trim()
+		.regex(/^[A-Za-z][A-Za-z0-9 -]{0,79}$/)
+		.default("DejaVu Sans"),
+	fontSource: z.enum(["builtin", "google"]).default("builtin"),
+};
+export const brandFontSchema = z.object(brandFontFields).refine((font) => font.fontSource === "google" || ["DejaVu Sans", "DejaVu Serif", "DejaVu Sans Mono"].includes(font.fontFamily), "Choose a supported font.");
+export const creatorBrandSchema = widgetThemeSchema.extend({ ...brandFontFields, progressBarStartColor: color.default("#26018E"), progressBarEndColor: color.default("#8D42F9"), watermark: z.boolean().default(true) }).refine((brand) => brandFontSchema.safeParse(brand).success, "Choose a supported font.");
+export type CreatorBrand = z.infer<typeof creatorBrandSchema>;
+export type OverlayText = { line: string; x: number; y: number; size: number; bold: boolean; opacity: number; width: number };
 export type WidgetTheme = z.infer<typeof widgetThemeSchema>;
 export type MetadataContent = { title: string; broadcasterName?: string | null; clipCreatorName?: string | null; categoryName?: string | null };
 export function overlayMetadataContent(kind: "channel" | "title" | "clipper", clip: MetadataContent) {
@@ -57,7 +69,7 @@ export function overlayMetadataHeight(kind: "channel" | "title" | "clipper", cli
 	const lines = kind === "channel" ? 1 : Math.max(1, wrapOverlayText(content.primary, Math.max(1, width - 40), fontSize, 3).length);
 	return Math.ceil((40 + lines * fontSize * 1.2 + (content.secondary ? fontSize * 0.72 * 1.4 : 0)) / 2) * 2;
 }
-export function overlayMetadataSvg(kind: "channel" | "title" | "clipper", clip: MetadataContent, width: number, height: number, fontSize: number, theme: WidgetTheme = DEFAULT_WIDGET_THEME, avatar?: string) {
+export function overlayMetadataSvg(kind: "channel" | "title" | "clipper", clip: MetadataContent, width: number, height: number, fontSize: number, theme: WidgetTheme = DEFAULT_WIDGET_THEME, avatar?: string, renderText?: (text: OverlayText) => string, fontFamily = "DejaVu Sans") {
 	const content = overlayMetadataContent(kind, clip),
 		padding = Math.min(20, height * 0.12),
 		avatarSize = kind === "channel" ? Math.max(2, Math.min(height - padding * 2, width * 0.22)) : 0;
@@ -73,7 +85,8 @@ export function overlayMetadataSvg(kind: "channel" | "title" | "clipper", clip: 
 	const secondarySize = Math.max(1, Math.min(size * 0.72, available / Math.max(1, textWidth(content.secondary, 1))));
 	const totalHeight = lines.length * size * 1.2 + (content.secondary ? secondarySize * 1.4 : 0),
 		top = Math.max(padding, (height - totalHeight) / 2);
-	const text = (line: string, x: number, y: number, font: number, bold: boolean, opacity = 1) => `<text x="${x}" y="${y}" dominant-baseline="hanging" font-family="DejaVu Sans,sans-serif" font-size="${font}" font-weight="${bold ? 700 : 400}" fill="${escape(theme.themeTextColor)}" opacity="${opacity}" textLength="${Math.max(0.1, Math.min(available, textWidth(line, font)))}" lengthAdjust="spacingAndGlyphs">${escape(line)}</text>`;
+	const text = (line: string, x: number, y: number, font: number, bold: boolean, opacity = 1) =>
+		renderText ? renderText({ line, x, y, size: font, bold, opacity, width: Math.max(0.1, Math.min(available, textWidth(line, font))) }) : `<text x="${x}" y="${y}" dominant-baseline="hanging" font-family="${escape(fontFamily)},sans-serif" font-size="${font}" font-weight="${bold ? 700 : 400}" fill="${escape(theme.themeTextColor)}" opacity="${opacity}" textLength="${Math.max(0.1, Math.min(available, textWidth(line, font)))}" lengthAdjust="spacingAndGlyphs">${escape(line)}</text>`;
 	const radius = Math.min(theme.borderRadius, width / 2, height / 2),
 		border = Math.min(theme.borderSize, width / 2, height / 2);
 	const background = `<rect x="${border / 2}" y="${border / 2}" width="${Math.max(1, width - border)}" height="${Math.max(1, height - border)}" rx="${radius}" fill="${escape(theme.themeBackgroundColor)}" stroke="${escape(theme.themeAccentColor)}" stroke-width="${border}"/>`;
@@ -82,4 +95,21 @@ export function overlayMetadataSvg(kind: "channel" | "title" | "clipper", clip: 
 		? `<defs><clipPath id="avatar"><circle cx="${padding + avatarSize / 2}" cy="${height / 2}" r="${avatarSize / 2}"/></clipPath></defs><circle cx="${padding + avatarSize / 2}" cy="${height / 2}" r="${avatarSize / 2}" fill="${escape(theme.themeAccentColor)}"/>${safeAvatar ? `<image href="${escape(avatar!)}" x="${padding}" y="${(height - avatarSize) / 2}" width="${avatarSize}" height="${avatarSize}" preserveAspectRatio="xMidYMid slice" clip-path="url(#avatar)"/>` : text(content.primary.slice(0, 2).toUpperCase(), padding + avatarSize * 0.18, (height - size) / 2, Math.min(size, avatarSize * 0.45), true)}`
 		: "";
 	return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${background}${portrait}${lines.map((line, index) => text(line, left, top + index * size * 1.2, size, true)).join("")}${content.secondary ? text(content.secondary, left, top + lines.length * size * 1.2, secondarySize, false, 0.8) : ""}</svg>`;
+}
+
+export function clipifyWatermarkSvg() {
+	return '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="44" viewBox="0 0 200 44"><rect width="200" height="44" rx="12" fill="#0a0a0a" fill-opacity="0.65"/><g transform="translate(10 6) scale(0.2)"><path d="M28.1,30.8l100.3,57.7c3.1,1.8,3.1,6.2,0,7.9l-100,57.7c-3.1,1.8-6.9-.4-6.9-4l-.3-115.4c0-3.5,3.8-5.8,6.9-4Z" fill="#2a2a65"/><path d="M11.5,4.8l106.3,61.2c3.2,1.9,3.2,6.6,0,8.4L11.9,135.5c-3.2,1.9-7.3-.5-7.3-4.2l-.4-122.3c0-3.7,4-6.1,7.3-4.2Z" fill="#6355a0"/><path d="M33.6,48.2l35.6,20.5c1.2.7,1.2,2.4,0,3.1l-35.5,20.5c-1.2.7-2.7-.2-2.7-1.5v-41c-.1-1.4,1.3-2.2,2.5-1.5Z" fill="white"/></g><text x="44" y="28" font-family="DejaVu Sans,sans-serif" font-size="17" fill="white">Made with Clipify</text></svg>';
+}
+
+export function brandOverlayFields(brand: CreatorBrand) {
+	return {
+		progressBarStartColor: brand.progressBarStartColor,
+		progressBarEndColor: brand.progressBarEndColor,
+		themeTextColor: brand.themeTextColor,
+		themeBackgroundColor: brand.themeBackgroundColor,
+		themeAccentColor: brand.themeAccentColor,
+		borderSize: brand.borderSize,
+		borderRadius: brand.borderRadius,
+		themeFontFamily: brand.fontSource === "google" ? `${brand.fontFamily}, sans-serif||url||https://fonts.googleapis.com/css2?family=${encodeURIComponent(brand.fontFamily)}:wght@400;700&display=swap` : brand.fontFamily,
+	};
 }

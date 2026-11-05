@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode, type
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Sidebar, Command, useSidebar } from "@heroui-pro/react";
 import { Button, Kbd } from "@heroui/react";
-import { IconHome, IconLayoutCollage, IconVideo, IconScissors, IconLayoutGrid, IconPlaylist, IconPhoto, IconDeviceDesktop, IconTools, IconSettings, IconFolder, IconSearch, IconHelpCircle, IconUserCircle, IconPlug, IconId, IconCreditCard, IconUsers, IconPlayerPlay, IconAward, IconBuildingCommunity } from "@tabler/icons-react";
+import { IconPalette, IconHome, IconLayoutCollage, IconVideo, IconScissors, IconLayoutGrid, IconPlaylist, IconPhoto, IconDeviceDesktop, IconTools, IconSettings, IconFolder, IconSearch, IconHelpCircle, IconUserCircle, IconPlug, IconId, IconCreditCard, IconUsers, IconPlayerPlay, IconAward, IconBuildingCommunity } from "@tabler/icons-react";
 import NextLink from "next/link";
 import { ClipExportProvider, ExportQueueLauncher, useClipExports } from "./creator/clipExportQueue";
 import AdminNavigation from "./adminNavigation";
@@ -55,7 +55,7 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen, isAd
 	const homeHref = permissions.length ? "/dashboard" : "/dashboard/agency";
 	const canSearchClips = permissions.includes("creator:read");
 	const searchLabel = canSearchClips ? "Search clips and tools" : "Search pages";
-	const settingsIcons = { settings: IconUserCircle, connections: IconPlug, creator: IconId, billing: IconCreditCard, team: IconUsers };
+	const settingsIcons = { brand: IconPalette, settings: IconUserCircle, connections: IconPlug, creator: IconId, billing: IconCreditCard, team: IconUsers };
 	const settingsItems: Destination[] = settingsSections.filter((item) => permissions.includes(item.permission)).map((item) => ({ ...item, icon: settingsIcons[item.key] }));
 	if (permissions.includes("account:read")) settingsItems.push({ title: "Badges", href: "/dashboard/member-card", permission: "account:read", icon: IconAward });
 	const toolItems: Destination[] = permissions.length ? toolSections.map((item) => ({ ...item, permission: null, icon: item.title === "Clip Player" ? IconPlayerPlay : IconPhoto, tour: item.title === "Clip Player" ? "nav-tools" : undefined })) : [];

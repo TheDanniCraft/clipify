@@ -43,3 +43,18 @@ it("sizes grouped widgets to their content rather than leaving permanent empty p
 	expect(overlayMetadataHeight("channel", { title: "", broadcasterName: "Creator" }, 720, 32)).toBeGreaterThan(80);
 	expect(overlayMetadataHeight("clipper", { title: "" }, 720, 32)).toBeLessThan(100);
 });
+
+it("validates creator-wide fonts and branding without accepting CSS or remote font URLs", () => {
+	const schema = (require("@lib/overlayMetadata") as typeof import("@lib/overlayMetadata") & { creatorBrandSchema: import("zod").ZodType }).creatorBrandSchema;
+	expect(schema).toBeDefined();
+	expect(schema.safeParse({ fontFamily: "Laila", fontSource: "google", watermark: false }).success).toBe(true);
+	for (const input of [{ fontFamily: "Laila; color:red", fontSource: "google" }, { fontFamily: "Arial", fontSource: "builtin" }, { fontSource: "https://evil.invalid/font.ttf" }]) expect(schema.safeParse(input).success).toBe(false);
+	expect(schema.parse({})).toMatchObject({ watermark: true, fontFamily: "DejaVu Sans", fontSource: "builtin" });
+});
+
+it("maps a saved brand to overlay colors and typography without layout fields", async () => {
+	const { creatorBrandSchema, brandOverlayFields, clipifyWatermarkSvg } = await import("@lib/overlayMetadata");
+	expect(brandOverlayFields(creatorBrandSchema.parse({}))).toMatchObject({ themeFontFamily: "DejaVu Sans", borderRadius: 10 });
+	expect(brandOverlayFields(creatorBrandSchema.parse({ fontFamily: "Laila", fontSource: "google" })).themeFontFamily).toContain("https://fonts.googleapis.com/css2?family=Laila");
+	expect(clipifyWatermarkSvg()).toContain("Made with Clipify");
+});

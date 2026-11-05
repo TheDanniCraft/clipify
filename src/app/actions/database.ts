@@ -1,4 +1,6 @@
 "use server";
+import { readCreatorBrand } from "@/server/creator-brand";
+import { brandOverlayFields } from "@lib/overlayMetadata";
 
 import { usersTable, overlaysTable, playlistClipsTable, queueTable, settingsTable, modQueueTable, twitchCacheTable } from "@/db/schema";
 import { db, QueryClient } from "@/db/client";
@@ -1148,7 +1150,9 @@ export async function getOverlayPublic(overlayId: string) {
 export async function getOverlayBySecret(overlayId: string, secret?: string) {
 	try {
 		const overlay = await requireOverlaySecretAccess(overlayId, secret);
-		return overlay;
+		if (!overlay) return null;
+		const { brand } = await readCreatorBrand(overlay.ownerId);
+		return brand ? { ...overlay, ...brandOverlayFields(brand) } : overlay;
 	} catch (error) {
 		console.error("Error fetching overlay:", error);
 		throw new Error("Failed to fetch overlay");

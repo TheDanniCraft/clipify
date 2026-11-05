@@ -1,3 +1,4 @@
+jest.mock("@components/settings/BrandSettingsPanel", () => ({ __esModule: true, default: () => <div>Brand settings panel</div> }));
 import React from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 const validateAuth = jest.fn();
@@ -531,4 +532,26 @@ test("keeps leave and reload protection while allowing same-account section navi
 	expect(navigationGuard({ to: "", type: "beforeunload" })).toBe(true);
 	expect(navigationGuard({ to: "/dashboard", type: "push" })).toBe(true);
 	expect(navigationGuard({ to: "https://other.invalid/dashboard/settings", type: "push" })).toBe(true);
+});
+
+test("brand settings do not query unrelated private account settings", async () => {
+	window.history.replaceState({}, "", "/dashboard/settings?tab=brand");
+	render(<SettingsPage />);
+	expect(await screen.findByText("Brand settings panel")).toBeVisible();
+	expect(getSettings).not.toHaveBeenCalled();
+	expect(getClipCacheStatus).not.toHaveBeenCalled();
+});
+test("opening account settings after Brand loads them without replacing an existing draft", async () => {
+	window.history.replaceState({}, "", "/dashboard/settings?tab=brand");
+	getSettings.mockResolvedValue({ id: "owner", prefix: "!", marketingOptIn: false });
+	render(<SettingsPage />);
+	await screen.findByText("Brand settings panel");
+	navigateSection("settings");
+	const input = await screen.findByDisplayValue("!");
+	fireEvent.change(input, { target: { value: "?" } });
+	navigateSection("brand");
+	getSettings.mockResolvedValue({ id: "owner", prefix: "??", marketingOptIn: false });
+	navigateSection("settings");
+	await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2));
+	expect(screen.getByDisplayValue("?")).toBeVisible();
 });

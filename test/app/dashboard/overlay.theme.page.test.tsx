@@ -1,3 +1,5 @@
+const accountBrand = jest.fn().mockResolvedValue({ ok: true, brand: null });
+jest.mock("@actions/creatorBrand", () => ({ getCreatorBrand: (...args: unknown[]) => accountBrand(...args) }));
 const reportTour = jest.fn();
 jest.mock("@components/user-tour/provider", () => ({ useUserTour: () => ({ report: reportTour, activeTask: null }) }));
 import React from "react";
@@ -720,4 +722,12 @@ test("invalid recent color strings do not enter the swatch collection", async ()
 	window.localStorage.setItem("clipify:overlay-theme-recent-colors", JSON.stringify(["not-a-color", "#abcdef"]));
 	await ready();
 	expect(screen.queryByRole("button", { name: "Swatch not-a-color" })).not.toBeInTheDocument();
+});
+
+test("uses the account brand in preview and sends appearance changes to Brand styling", async () => {
+	const { creatorBrandSchema } = await import("@lib/overlayMetadata");
+	accountBrand.mockResolvedValueOnce({ ok: true, brand: creatorBrandSchema.parse({ fontFamily: "Laila", fontSource: "google", themeTextColor: "#ff0000" }) });
+	render(<Page />);
+	expect(await screen.findByRole("link", { name: "Brand styling" })).toHaveAttribute("href", "/dashboard/settings?tab=brand");
+	expect(screen.queryByRole("textbox", { name: "Text Color" })).not.toBeInTheDocument();
 });

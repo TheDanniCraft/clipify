@@ -295,7 +295,7 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 								isDisabled={checkingOut || !canUpgrade || billingOptions.length === 0 || payableProducts.length === 0 || payableProducts.some((option) => option.prices[cycleFor(option)].amount === null)}
 								variant='primary'
 							>
-								{ctaLabel ?? (billingOptions.length === 0 ? "Loading prices…" : payableProducts.length === 0 ? "Already included" : `Upgrade to Pro for ${totalLabel}/${billingCycle === "monthly" ? "month" : "year"}`)}
+								{ctaLabel ?? (billingOptions.length === 0 ? "Loading prices…" : payableProducts.length === 0 ? "Already included" : payableProducts.some((option) => option.prices[cycleFor(option)].amount === null) ? "Prices unavailable" : `Upgrade to Pro for ${totalLabel}/${billingCycle === "monthly" ? "month" : "year"}`)}
 							</Button>
 						</div>
 						<p className='text-center text-xs text-muted'>You can cancel anytime in your billing portal.</p>

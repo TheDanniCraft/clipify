@@ -4,13 +4,14 @@ import { useRouter } from "next/navigation";
 import { Button, Card, Input, Label, TextField, Modal, Skeleton, Chip } from "@heroui/react";
 import { IconPlus, IconLayoutCollage } from "@tabler/icons-react";
 import { listClipLayouts, saveClipLayoutTemplate, setDefaultClipLayout, deleteClipLayoutTemplate, loadClipLayoutOverride, type ClipLayoutTemplate } from "@actions/clipLayoutLibrary";
+import type { CreatorBrand } from "@lib/overlayMetadata";
 import { createClipComposition, type ClipComposition } from "@lib/clipComposition";
 import { templateCompositions } from "@lib/clipLayoutTemplate";
 import { notify } from "@lib/toast";
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
 import ControlledModal from "@components/controlledModal";
 import ClipCompositionEditor from "./clipCompositionEditor";
-export default function ClipLayoutLibrary({ creatorId, layoutId, clipId, referenceId, newFormat, outputFormat }: { creatorId: string; layoutId?: string; clipId?: string; referenceId?: string; newFormat?: string; outputFormat?: string }) {
+export default function ClipLayoutLibrary({ creatorId, layoutId, clipId, referenceId, newFormat, outputFormat, brand, watermark }: { brand?: CreatorBrand | null; watermark?: boolean; creatorId: string; layoutId?: string; clipId?: string; referenceId?: string; newFormat?: string; outputFormat?: string }) {
 	const router = useRouter();
 	const [library, setLibrary] = useState<Awaited<ReturnType<typeof listClipLayouts>>>(),
 		[sharedReference, setSharedReference] = useState(referenceId ?? ""),
@@ -57,7 +58,7 @@ export default function ClipLayoutLibrary({ creatorId, layoutId, clipId, referen
 	}, [creatorId, entry, clipId, scope, selectedFormat]);
 	const path = (id: string) => `/dashboard/clip-layouts?layout=${encodeURIComponent(id)}${clipId ? `&clip=${encodeURIComponent(clipId)}` : sharedReference ? `&reference=${encodeURIComponent(sharedReference)}` : ""}`;
 	const error = () => notify({ title: "Layout could not be updated", description: "Your changes are preserved. Try again.", color: "danger" });
-	if (activeEntry && initial) return <ClipCompositionEditor key={`${activeEntry.id}:${clipId ?? ""}:${selectedFormat}`} onFormatChange={(format) => router.push(path(activeEntry.id) + `&format=${format}`)} creatorId={creatorId} entry={activeEntry} initial={initial} clipId={clipId} referenceId={sharedReference} onReferenceChange={setSharedReference} onBack={() => router.push("/dashboard/clip-layouts")} onSaved={() => setAttempt((n) => n + 1)} />;
+	if (activeEntry && initial) return <ClipCompositionEditor brand={brand} watermark={watermark} key={`${activeEntry.id}:${clipId ?? ""}:${selectedFormat}`} onFormatChange={(format) => router.push(path(activeEntry.id) + `&format=${format}`)} creatorId={creatorId} entry={activeEntry} initial={initial} clipId={clipId} referenceId={sharedReference} onReferenceChange={setSharedReference} onBack={() => router.push("/dashboard/clip-layouts")} onSaved={() => setAttempt((n) => n + 1)} />;
 	return (
 		<DashboardEditorLayout>
 			<Card>

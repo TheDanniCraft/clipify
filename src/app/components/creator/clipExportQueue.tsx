@@ -33,7 +33,8 @@ const reasons: Record<string, string> = {
 	invalid_media: "Twitch returned an incomplete video",
 	provider_error: "Twitch download failed",
 	render_busy: "Portrait rendering is busy. Retry shortly.",
-	render_failed: "Portrait rendering failed. Your layout is kept.",
+	render_failed: "Rendering failed. Your layout is kept.",
+	font_unavailable: "Your brand font could not be loaded. Retry or choose another font in Brand styling.",
 	download_timeout: "Download timed out",
 	rate_limited: "Twitch download limit reached",
 	reconnect_required: "Reconnect Twitch",
@@ -237,7 +238,7 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 	};
 	const view = (batch: Batch) => {
 		const failures = batch.summary?.skipped ?? batch.failures;
-		const retry = failures ? failures.filter((item) => item.retryable && ["provider_error", "download_timeout", "rate_limited", "render_busy", "render_failed"].includes(item.code)).map((item) => item.index) : ["PROVIDER_UNAVAILABLE", "EXPORT_TIMEOUT", "SERVICE_UNAVAILABLE", "invalid_response"].includes(batch.error ?? "") ? batch.request.clipIds.map((_, index) => index) : [];
+		const retry = failures ? failures.filter((item) => item.retryable && ["provider_error", "download_timeout", "rate_limited", "render_busy", "render_failed", "font_unavailable"].includes(item.code)).map((item) => item.index) : ["PROVIDER_UNAVAILABLE", "EXPORT_TIMEOUT", "SERVICE_UNAVAILABLE", "invalid_response"].includes(batch.error ?? "") ? batch.request.clipIds.map((_, index) => index) : [];
 		const reconnectIds = failures ? failures.filter((item) => item.code === "reconnect_required").map((item) => item.index) : batch.error === "RECONNECT_REQUIRED" ? batch.request.clipIds.map((_, index) => index) : [];
 		const reconnect = reconnectIds.length > 0;
 		return (

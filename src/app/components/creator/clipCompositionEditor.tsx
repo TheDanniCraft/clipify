@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Button, Card, Input, Label, TextField, NumberField, Select, ListBox, Modal, Autocomplete, SearchField, EmptyState, Tabs } from "@heroui/react";
+import { Button, Card, Input, Label, TextField, NumberField, Select, ListBox, Modal, Link, Autocomplete, SearchField, EmptyState, Tabs } from "@heroui/react";
 import { IconPalette, IconArrowLeft, IconPlus, IconArrowUp, IconArrowDown, IconTrash } from "@tabler/icons-react";
 import { useNavigationGuard } from "nextjs-nav-guard";
 import { saveClipLayoutTemplate, saveClipLayoutOverride, resetClipLayoutOverride, type ClipLayoutTemplate } from "@actions/clipLayoutLibrary";
@@ -9,7 +9,7 @@ import { compositionDimensions, resizeCompositionRect, updateCompositionFrame, u
 import { compositionLayerColor } from "@lib/clipLayoutTemplate";
 import { notify } from "@lib/toast";
 import ThemeColorInput from "@components/theme/ThemeColorInput";
-import { DEFAULT_WIDGET_THEME, overlayMetadataHeight } from "@lib/overlayMetadata";
+import { type CreatorBrand, DEFAULT_WIDGET_THEME, overlayMetadataHeight } from "@lib/overlayMetadata";
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
 import ControlledModal from "@components/controlledModal";
 import ClipCompositionCanvas from "./clipCompositionCanvas";
@@ -35,7 +35,7 @@ function Numeric({ label, value, min = 0, max = 100, onChange }: { label: string
 		</NumberField>
 	);
 }
-export default function ClipCompositionEditor({ creatorId, entry, initial, clipId, referenceId, onBack, onSaved, onFormatChange, onReferenceChange }: { creatorId: string; entry: ClipLayoutTemplate; initial: ClipComposition; clipId?: string; referenceId?: string; onBack: () => void; onSaved: () => void; onReferenceChange?: (id: string) => void; onFormatChange?: (format: "desktop" | "mobile") => void }) {
+export default function ClipCompositionEditor({ creatorId, entry, initial, clipId, referenceId, onBack, onSaved, onFormatChange, onReferenceChange, brand, watermark }: { brand?: CreatorBrand | null; watermark?: boolean; creatorId: string; entry: ClipLayoutTemplate; initial: ClipComposition; clipId?: string; referenceId?: string; onBack: () => void; onSaved: () => void; onReferenceChange?: (id: string) => void; onFormatChange?: (format: "desktop" | "mobile") => void }) {
 	const [sourceDimensions, setSourceDimensions] = useState({ width: 1920, height: 1080 }),
 		[layout, setLayout] = useState(initial),
 		[name, setName] = useState(entry.name),
@@ -145,36 +145,38 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 	};
 	return (
 		<DashboardEditorLayout>
-			<ControlledModal ariaLabel='Widget appearance' isOpen={appearanceOpen} onClose={() => setAppearanceOpen(false)}>
-				<Modal.Header>
-					<Modal.Heading>Widget appearance</Modal.Heading>
-				</Modal.Header>
-				<Modal.Body className='space-y-4'>
-					<p className='text-sm text-muted'>Style the channel and clip information together.</p>
-					{(
-						[
-							["themeTextColor", "Text Color"],
-							["themeBackgroundColor", "Background Color"],
-							["themeAccentColor", "Accent Color"],
-						] as const
-					).map(([field, label]) => (
-						<ThemeColorInput key={field} label={label} value={(layout.widgetTheme ?? DEFAULT_WIDGET_THEME)[field]} defaultValue={DEFAULT_WIDGET_THEME[field]} allowAlpha={field === "themeBackgroundColor"} onChange={(value) => change({ ...layout, widgetTheme: { ...DEFAULT_WIDGET_THEME, ...layout.widgetTheme, [field]: value } })} />
-					))}
-					<div className='grid grid-cols-2 gap-3'>
+			{!brand ? (
+				<ControlledModal ariaLabel='Widget appearance' isOpen={appearanceOpen} onClose={() => setAppearanceOpen(false)}>
+					<Modal.Header>
+						<Modal.Heading>Widget appearance</Modal.Heading>
+					</Modal.Header>
+					<Modal.Body className='space-y-4'>
+						<p className='text-sm text-muted'>Style the channel and clip information together.</p>
 						{(
 							[
-								["borderRadius", "Corner radius (px)", 80],
-								["borderSize", "Border width (px)", 12],
+								["themeTextColor", "Text Color"],
+								["themeBackgroundColor", "Background Color"],
+								["themeAccentColor", "Accent Color"],
 							] as const
-						).map(([field, label, max]) => (
-							<Numeric key={field} label={label} value={(layout.widgetTheme ?? DEFAULT_WIDGET_THEME)[field]} max={max} onChange={(value) => change({ ...layout, widgetTheme: { ...DEFAULT_WIDGET_THEME, ...layout.widgetTheme, [field]: value } })} />
+						).map(([field, label]) => (
+							<ThemeColorInput key={field} label={label} value={(layout.widgetTheme ?? DEFAULT_WIDGET_THEME)[field]} defaultValue={DEFAULT_WIDGET_THEME[field]} allowAlpha={field === "themeBackgroundColor"} onChange={(value) => change({ ...layout, widgetTheme: { ...DEFAULT_WIDGET_THEME, ...layout.widgetTheme, [field]: value } })} />
 						))}
-					</div>
-				</Modal.Body>
-				<Modal.Footer>
-					<Button onPress={() => setAppearanceOpen(false)}>Done</Button>
-				</Modal.Footer>
-			</ControlledModal>
+						<div className='grid grid-cols-2 gap-3'>
+							{(
+								[
+									["borderRadius", "Corner radius (px)", 80],
+									["borderSize", "Border width (px)", 12],
+								] as const
+							).map(([field, label, max]) => (
+								<Numeric key={field} label={label} value={(layout.widgetTheme ?? DEFAULT_WIDGET_THEME)[field]} max={max} onChange={(value) => change({ ...layout, widgetTheme: { ...DEFAULT_WIDGET_THEME, ...layout.widgetTheme, [field]: value } })} />
+							))}
+						</div>
+					</Modal.Body>
+					<Modal.Footer>
+						<Button onPress={() => setAppearanceOpen(false)}>Done</Button>
+					</Modal.Footer>
+				</ControlledModal>
+			) : null}
 			<ControlledModal ariaLabel='Unsaved layout changes' isOpen={guard.active} onClose={() => guard.reject()}>
 				<Modal.Header>
 					<Modal.Heading>Leave without saving?</Modal.Heading>
@@ -234,10 +236,17 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 						</div>
 					</div>
 					<div className='flex flex-wrap gap-2'>
-						<Button variant='secondary' onPress={() => setAppearanceOpen(true)}>
-							<IconPalette className='size-4' />
-							Widget appearance
-						</Button>
+						{brand ? (
+							<Link href='/dashboard/settings?tab=brand' className='inline-flex items-center gap-2'>
+								<IconPalette className='size-4' />
+								Brand styling
+							</Link>
+						) : (
+							<Button variant='secondary' onPress={() => setAppearanceOpen(true)}>
+								<IconPalette className='size-4' />
+								Widget appearance
+							</Button>
+						)}
 						{clipId ? (
 							<Button variant='secondary' onPress={() => setReset(true)}>
 								Reset to template
@@ -330,7 +339,7 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 						<p className='text-sm text-muted'>Changes apply only to this clip and layout. Your global template stays unchanged.</p>
 					)}
 					{clip ? (
-						<ClipCompositionCanvas key={clip.id} creatorId={creatorId} clip={clip} layout={layout} selected={layer.id} onSelect={setSelected} onChange={change} onDimensions={setSourceDimensions} />
+						<ClipCompositionCanvas brand={brand} watermark={watermark} key={clip.id} creatorId={creatorId} clip={clip} layout={layout} selected={layer.id} onSelect={setSelected} onChange={change} onDimensions={setSourceDimensions} />
 					) : (
 						<div className='rounded-xl bg-default/50 p-6 text-sm text-muted'>
 							{reference ? (

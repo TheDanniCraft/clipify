@@ -259,3 +259,10 @@ it.each(["unavailable", "offline"])("keeps a styled layout draft after reference
 	await waitFor(() => expect(saveTemplate).toHaveBeenCalled());
 	expect(saveTemplate.mock.calls[0][1]).toMatchObject({ name: "Preserved draft", composition: { widgetTheme: { themeTextColor: "#111111" } } });
 });
+
+it("routes shared brand changes to settings once the creator has adopted a global brand", async () => {
+	const { creatorBrandSchema } = await import("@lib/overlayMetadata");
+	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} onBack={() => {}} onSaved={() => {}} brand={creatorBrandSchema.parse({})} />);
+	expect(screen.queryByRole("button", { name: "Widget appearance" })).not.toBeInTheDocument();
+	expect(screen.getByRole("link", { name: "Brand styling" })).toHaveAttribute("href", "/dashboard/settings?tab=brand");
+});
