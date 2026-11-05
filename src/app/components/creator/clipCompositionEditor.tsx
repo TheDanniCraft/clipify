@@ -1,13 +1,15 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Button, Card, Input, Label, TextField, NumberField, Select, ListBox, Modal, Autocomplete, SearchField, EmptyState, Tabs } from "@heroui/react";
-import { IconArrowLeft, IconPlus, IconArrowUp, IconArrowDown, IconTrash } from "@tabler/icons-react";
+import { IconPalette, IconArrowLeft, IconPlus, IconArrowUp, IconArrowDown, IconTrash } from "@tabler/icons-react";
 import { useNavigationGuard } from "nextjs-nav-guard";
 import { saveClipLayoutTemplate, saveClipLayoutOverride, resetClipLayoutOverride, type ClipLayoutTemplate } from "@actions/clipLayoutLibrary";
 import { getCreatorClipInventory, getCreatorClipDetail, searchCreatorLibrary } from "@actions/creatorLibrary";
-import { resizeCompositionRect, updateCompositionFrame, updateCompositionSource, type ClipComposition, type CompositionLayer } from "@lib/clipComposition";
+import { compositionDimensions, resizeCompositionRect, updateCompositionFrame, updateCompositionSource, type ClipComposition, type CompositionLayer } from "@lib/clipComposition";
 import { compositionLayerColor } from "@lib/clipLayoutTemplate";
 import { notify } from "@lib/toast";
+import ThemeColorInput from "@components/theme/ThemeColorInput";
+import { DEFAULT_WIDGET_THEME, overlayMetadataHeight } from "@lib/overlayMetadata";
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
 import ControlledModal from "@components/controlledModal";
 import ClipCompositionCanvas from "./clipCompositionCanvas";
@@ -47,7 +49,8 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 		[search, setSearch] = useState(""),
 		[loading, setLoading] = useState(true),
 		[retry, setRetry] = useState(0),
-		[reset, setReset] = useState(false);
+		[reset, setReset] = useState(false),
+		[appearanceOpen, setAppearanceOpen] = useState(false);
 	const guard = useNavigationGuard({ enabled: dirty });
 	useEffect(() => {
 		if (!dirty) return;
@@ -104,9 +107,12 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 	const update = (next: CompositionLayer) => change({ ...layout, layers: layout.layers.map((item) => (item.id === layer.id ? next : item)) });
 	const add = (kind: CompositionLayer["kind"]) => {
 		const id = crypto.randomUUID(),
-			label = kind === "video" ? `Video crop ${layout.layers.filter((item) => item.kind === "video").length + 1}` : kind === "title" ? "Clip title" : kind === "channel" ? "Channel name" : kind === "clipper" ? "Clipper" : "Channel logo";
+			label = kind === "video" ? `Video crop ${layout.layers.filter((item) => item.kind === "video").length + 1}` : kind === "title" ? "Clip info" : kind === "channel" ? "Channel info" : kind === "clipper" ? "Clipper" : "Channel logo";
+		const output = compositionDimensions(layout.format),
+			infoWidth = layout.format === "mobile" ? 1 : 0.65;
+		const infoHeight = Math.min(0.35, overlayMetadataHeight("title", clip ?? { title: "Clip title" }, infoWidth * output.width, 32) / output.height);
 		const camera = layout.layers.find((item) => item.kind === "video" && item.id === "camera");
-		const frame = kind === "channel" ? { x: 0.05, y: layout.format === "mobile" ? Math.max(0, Math.min(0.93, (camera?.frame.y ?? 0) + (camera?.frame.h ?? 0.333) - 0.035)) : 0.85, w: layout.format === "mobile" ? 0.9 : 0.5, h: layout.format === "mobile" ? 0.07 : 0.1 } : { x: 0.05, y: 0.05, w: 0.5, h: kind === "video" ? 0.3 : kind === "logo" ? 0.15 : 0.1 };
+		const frame = kind === "channel" ? { x: 0, y: layout.format === "mobile" ? Math.max(0, Math.min(0.91, (camera?.frame.y ?? 0) + (camera?.frame.h ?? 0.333) - 0.045)) : 0.83, w: layout.format === "mobile" ? 1 : 0.5, h: layout.format === "mobile" ? 0.09 : 0.12 } : kind === "title" ? { x: 0, y: 1 - infoHeight, w: infoWidth, h: infoHeight } : { x: 0.05, y: 0.05, w: 0.5, h: kind === "video" ? 0.3 : kind === "logo" ? 0.15 : 0.1 };
 		const next: CompositionLayer = kind === "video" ? { id, label, kind, source: { x: 0.1, y: 0.1, w: 0.4, h: 0.4 }, frame } : kind === "logo" ? { id, label, kind, frame } : { id, label, kind, fontSize: 32, frame };
 		const expanded = { ...layout, layers: [...layout.layers, next] };
 		change(next.kind === "video" ? updateCompositionSource(expanded, id, next.source, sourceDimensions) : expanded);
@@ -139,6 +145,36 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 	};
 	return (
 		<DashboardEditorLayout>
+			<ControlledModal ariaLabel='Widget appearance' isOpen={appearanceOpen} onClose={() => setAppearanceOpen(false)}>
+				<Modal.Header>
+					<Modal.Heading>Widget appearance</Modal.Heading>
+				</Modal.Header>
+				<Modal.Body className='space-y-4'>
+					<p className='text-sm text-muted'>Style the channel and clip information together.</p>
+					{(
+						[
+							["themeTextColor", "Text Color"],
+							["themeBackgroundColor", "Background Color"],
+							["themeAccentColor", "Accent Color"],
+						] as const
+					).map(([field, label]) => (
+						<ThemeColorInput key={field} label={label} value={(layout.widgetTheme ?? DEFAULT_WIDGET_THEME)[field]} defaultValue={DEFAULT_WIDGET_THEME[field]} allowAlpha={field === "themeBackgroundColor"} onChange={(value) => change({ ...layout, widgetTheme: { ...DEFAULT_WIDGET_THEME, ...layout.widgetTheme, [field]: value } })} />
+					))}
+					<div className='grid grid-cols-2 gap-3'>
+						{(
+							[
+								["borderRadius", "Corner radius (px)", 80],
+								["borderSize", "Border width (px)", 12],
+							] as const
+						).map(([field, label, max]) => (
+							<Numeric key={field} label={label} value={(layout.widgetTheme ?? DEFAULT_WIDGET_THEME)[field]} max={max} onChange={(value) => change({ ...layout, widgetTheme: { ...DEFAULT_WIDGET_THEME, ...layout.widgetTheme, [field]: value } })} />
+						))}
+					</div>
+				</Modal.Body>
+				<Modal.Footer>
+					<Button onPress={() => setAppearanceOpen(false)}>Done</Button>
+				</Modal.Footer>
+			</ControlledModal>
 			<ControlledModal ariaLabel='Unsaved layout changes' isOpen={guard.active} onClose={() => guard.reject()}>
 				<Modal.Header>
 					<Modal.Heading>Leave without saving?</Modal.Heading>
@@ -198,6 +234,10 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 						</div>
 					</div>
 					<div className='flex flex-wrap gap-2'>
+						<Button variant='secondary' onPress={() => setAppearanceOpen(true)}>
+							<IconPalette className='size-4' />
+							Widget appearance
+						</Button>
 						{clipId ? (
 							<Button variant='secondary' onPress={() => setReset(true)}>
 								Reset to template
@@ -338,9 +378,9 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 								</Select.Trigger>
 								<Select.Popover>
 									<ListBox>
-										{(["video", "channel", "logo", "title", "clipper"] as const).map((kind) => (
+										{(["video", "channel", "title"] as const).map((kind) => (
 											<ListBox.Item key={kind} id={kind} textValue={kind}>
-												<Label>{kind === "video" ? "Video crop" : kind === "channel" ? "Channel name" : kind === "logo" ? "Channel logo" : kind === "title" ? "Clip title" : "Clipper"}</Label>
+												<Label>{kind === "video" ? "Video crop" : kind === "channel" ? "Channel info" : "Clip info"}</Label>
 											</ListBox.Item>
 										))}
 									</ListBox>
@@ -415,7 +455,24 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 									</Select.Popover>
 								</Select>
 							) : layer.kind !== "logo" ? (
-								<Numeric label='Text size' value={layer.fontSize} min={12} max={96} onChange={(fontSize) => update({ ...layer, fontSize: Math.round(fontSize) })} />
+								<div className='space-y-3'>
+									<Numeric label='Text size' value={layer.fontSize} min={12} max={96} onChange={(fontSize) => update({ ...layer, fontSize: Math.round(fontSize) })} />
+									<div className='flex flex-wrap gap-2'>
+										<Button variant='secondary' onPress={() => update({ ...layer, frame: { ...layer.frame, x: 0, w: 1 } })}>
+											Fit canvas width
+										</Button>
+										<Button
+											variant='secondary'
+											onPress={() => {
+												const output = compositionDimensions(layout.format),
+													h = Math.min(1, overlayMetadataHeight(layer.kind, clip ?? { title: "Clip title" }, layer.frame.w * output.width, layer.fontSize) / output.height);
+												update({ ...layer, frame: { ...layer.frame, y: Math.min(layer.frame.y, 1 - h), h } });
+											}}
+										>
+											Fit content
+										</Button>
+									</div>
+								</div>
 							) : null}
 							<div className='flex flex-wrap gap-2'>
 								<Button variant='secondary' isDisabled={layout.layers.indexOf(layer) === layout.layers.length - 1} onPress={() => moveLayer(1)}>

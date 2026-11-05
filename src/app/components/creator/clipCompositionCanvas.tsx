@@ -4,11 +4,14 @@ import { Button, Label, Slider } from "@heroui/react";
 import { IconPlayerPlay, IconPlayerPause, IconRefresh } from "@tabler/icons-react";
 import { getCreatorClipPreview } from "@actions/creatorLibrary";
 import { compositionDimensions, updateCompositionFrame, updateCompositionSource, type ClipComposition } from "@lib/clipComposition";
-import { clipLayerLines, clipLayerText } from "@lib/clipLayout";
+import { overlayMetadataSvg } from "@lib/overlayMetadata";
 import { isTrustedClipMediaUrl } from "@lib/clipExport";
 import { compositionLayerColor } from "@lib/clipLayoutTemplate";
 import CompositionBox from "./clipCompositionBox";
 export default function ClipCompositionCanvas({ creatorId, clip, layout, selected, onSelect, onChange, onDimensions }: { creatorId: string; clip: { id: string; title: string; broadcasterName?: string | null; clipCreatorName?: string | null }; layout: ClipComposition; selected: string; onSelect: (id: string) => void; onChange: (layout: ClipComposition) => void; onDimensions: (value: { width: number; height: number }) => void }) {
+	const widgetImages = useRef(new Map<string, { key: string; image: HTMLImageElement | null }>());
+	const avatarData = useRef<string | undefined>(undefined);
+	const avatarRevision = useRef(0);
 	const sourceStage = useRef<HTMLDivElement>(null),
 		outputStage = useRef<HTMLDivElement>(null),
 		video = useRef<HTMLVideoElement>(null),
@@ -28,6 +31,8 @@ export default function ClipCompositionCanvas({ creatorId, clip, layout, selecte
 		[guides, setGuides] = useState<{ x?: number; y?: number }>({});
 	useEffect(() => {
 		latest.current = layout;
+		const ids = new Set(layout.layers.map((layer) => layer.id));
+		for (const id of widgetImages.current.keys()) if (!ids.has(id)) widgetImages.current.delete(id);
 	}, [layout]);
 	const output = compositionDimensions(layout.format),
 		needsLogo = layout.layers.some((layer) => layer.kind === "logo" || layer.kind === "channel");
@@ -47,6 +52,7 @@ export default function ClipCompositionCanvas({ creatorId, clip, layout, selecte
 	useEffect(() => {
 		if (!needsLogo) {
 			logo.current = null;
+			avatarData.current = undefined;
 			return;
 		}
 		let active = true;
@@ -54,6 +60,16 @@ export default function ClipCompositionCanvas({ creatorId, clip, layout, selecte
 		image.onload = () => {
 			if (active) {
 				logo.current = image;
+				const buffer = document.createElement("canvas");
+				buffer.width = image.width;
+				buffer.height = image.height;
+				try {
+					buffer.getContext("2d")?.drawImage(image, 0, 0);
+					avatarData.current = buffer.toDataURL("image/png");
+					avatarRevision.current++;
+				} catch {
+					avatarData.current = undefined;
+				}
 				setLogoFailed(false);
 			}
 		};
@@ -100,28 +116,24 @@ export default function ClipCompositionCanvas({ creatorId, clip, layout, selecte
 									const scale = Math.min(w / image.width, h / image.height);
 									ctx.drawImage(image, x + (w - image.width * scale) / 2, y + (h - image.height * scale) / 2, image.width * scale, image.height * scale);
 								}
-							} else if (layer.kind === "channel") {
-								const padding = Math.min(12, h / 8),
-									side = Math.max(2, h - padding * 2);
-								ctx.fillStyle = "rgba(24,24,27,.95)";
-								ctx.fillRect(x, y, w, h);
-								if (logo.current) ctx.drawImage(logo.current, x + padding, y + padding, side, side);
-								else {
-									ctx.fillStyle = "#71717a";
-									ctx.fillRect(x + padding, y + padding, side, side);
-								}
-								ctx.font = `${layer.fontSize}px "DejaVu Sans",sans-serif`;
-								ctx.textBaseline = "middle";
-								ctx.fillStyle = "#fff";
-								ctx.fillText(clipLayerLines(clipLayerText("channel", clip), layer.fontSize, Math.max(1, w - side - padding * 3))[0] ?? "", x + side + padding * 2, y + h / 2);
 							} else {
-								ctx.font = `${layer.fontSize}px "DejaVu Sans",sans-serif`;
-								ctx.textBaseline = "top";
-								const padding = Math.min(12, h / 8);
-								ctx.fillStyle = "rgba(24,24,27,.95)";
-								ctx.fillRect(x, y, w, h);
-								ctx.fillStyle = "#fff";
-								clipLayerLines(clipLayerText(layer.kind, clip), layer.fontSize, Math.max(1, w - padding * 2)).forEach((line, index) => ctx.fillText(line, x + padding, y + padding + index * layer.fontSize * 1.2));
+								const key = JSON.stringify([layer.kind, layer.fontSize, latest.current.widgetTheme, clip.title, clip.broadcasterName, clip.clipCreatorName, w, h, avatarRevision.current]);
+								let cached = widgetImages.current.get(layer.id);
+								if (cached?.key !== key) {
+									const svg = overlayMetadataSvg(layer.kind, clip, w, h, layer.fontSize, latest.current.widgetTheme, avatarData.current);
+									const image = new Image();
+									cached = { key, image: cached?.image ?? null };
+									widgetImages.current.set(layer.id, cached);
+									image.onload = () => {
+										const current = widgetImages.current.get(layer.id);
+										if (current?.key === key) current.image = image;
+									};
+									image.onerror = () => {
+										if (widgetImages.current.get(layer.id)?.key === key) setFailed(true);
+									};
+									image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+								}
+								if (cached.image) ctx.drawImage(cached.image, x, y, w, h);
 							}
 						} finally {
 							ctx.restore();
@@ -138,6 +150,7 @@ export default function ClipCompositionCanvas({ creatorId, clip, layout, selecte
 		return () => cancelAnimationFrame(frame);
 	}, [url, ready, clip, layout.format]);
 	const retryMedia = () => {
+		widgetImages.current.clear();
 		setUrl(undefined);
 		setReady(false);
 		setPlaying(false);

@@ -3,6 +3,7 @@ import Canvas from "@components/creator/clipCompositionCanvas";
 import { createClipComposition } from "@lib/clipComposition";
 const preview = jest.fn();
 const boxes: any[] = [];
+const rasterImages: any[] = [];
 jest.mock("@actions/creatorLibrary", () => ({ getCreatorClipPreview: (...a: unknown[]) => preview(...a) }));
 jest.mock("@components/creator/clipCompositionBox", () => ({
 	__esModule: true,
@@ -24,6 +25,13 @@ let frames: FrameRequestCallback[] = [];
 const ctx = { fillRect: jest.fn(), drawImage: jest.fn(), save: jest.fn(), restore: jest.fn(), beginPath: jest.fn(), rect: jest.fn(), clip: jest.fn(), measureText: jest.fn(() => ({ width: 60 })), fillText: jest.fn() };
 const clip = { id: "ClipA", title: "A moment", broadcasterName: "Channel", clipCreatorName: "Maker" };
 beforeEach(() => {
+	rasterImages.length = 0;
+	jest.spyOn(window, "Image").mockImplementation(() => {
+		const image = { width: 100, height: 100, src: "", onload: null, onerror: null };
+		rasterImages.push(image);
+		return image as never;
+	});
+	jest.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j8ZkAAAAASUVORK5CYII=");
 	jest.clearAllMocks();
 	frames = [];
 	boxes.length = 0;
@@ -55,7 +63,12 @@ it("draws actual crops and widgets and keeps media loaded when layout changes", 
 	act(() => frames.shift()!(0));
 	expect(ctx.drawImage).toHaveBeenCalledTimes(2);
 	expect(ctx.drawImage).toHaveBeenNthCalledWith(1, sourceVideo, 1440, 20, 480, 284, 0, 0, 720, 426);
-	expect(ctx.fillText).toHaveBeenCalledWith("A moment", 12, 12);
+	const widget = rasterImages.find((image) => image.src.startsWith("data:image/svg+xml"));
+	expect(decodeURIComponent(widget.src)).toContain("A moment");
+	expect(decodeURIComponent(widget.src)).toContain("clipped by Maker");
+	act(() => widget.onload());
+	act(() => frames.shift()!(0));
+	expect(ctx.drawImage).toHaveBeenCalledWith(widget, 0, 0, 720, 128);
 	expect(dimensions).toHaveBeenCalledWith({ width: 1920, height: 1080 });
 	fireEvent.click(screen.getByRole("button", { name: "Camera crop" }));
 	expect(change).toHaveBeenCalled();
@@ -93,11 +106,11 @@ it("draws the channel logo from the authorized image proxy and offers recovery i
 	await ready();
 	expect(images[0].src).toContain("/api/clips/layout-logo?creatorId=owner");
 	act(() => frames.shift()!(0));
-	expect(ctx.fillRect).toHaveBeenCalledWith(140, 444, 104, 104);
+	expect(decodeURIComponent(images.find((image) => image.src.startsWith("data:image/svg+xml")).src)).toContain("Twitch channel");
 	act(() => images[0].onload());
 	act(() => frames.shift()!(0));
 	expect(ctx.drawImage).toHaveBeenCalledWith(images[0], expect.any(Number), expect.any(Number), expect.any(Number), expect.any(Number));
-	expect(ctx.fillText).toHaveBeenCalledWith("Channel", 256, 496);
+	expect(images.some((image) => decodeURIComponent(image.src).includes("Channel"))).toBe(true);
 	act(() => images[0].onerror());
 	fireEvent.click(screen.getByRole("button", { name: "Retry logo" }));
 	await waitFor(() => expect(preview).toHaveBeenLastCalledWith(expect.objectContaining({ refresh: true })));
@@ -168,4 +181,25 @@ it("handles unavailable playback and rejected playback attempts without removing
 	fireEvent.timeUpdate(video);
 	expect(screen.getByText("3 / 12s")).toBeVisible();
 	view.unmount();
+});
+
+it("recovers a failed widget decode and ignores stale callbacks after removal", async () => {
+	const layout = createClipComposition("desktop");
+	layout.layers.push({ id: "title", label: "Clip info", kind: "title", fontSize: 32, frame: { x: 0, y: 0.8, w: 1, h: 0.2 } });
+	const props = { creatorId: "owner", clip, selected: "title", onSelect: () => {}, onChange: () => {}, onDimensions: () => {} };
+	const view = render(<Canvas {...props} layout={layout} />);
+	await ready();
+	act(() => frames.shift()!(0));
+	const first = rasterImages.find((image) => image.src.startsWith("data:image/svg+xml"));
+	act(() => first.onerror());
+	expect(screen.getByRole("button", { name: "Retry preview" })).toBeVisible();
+	fireEvent.click(screen.getByRole("button", { name: "Retry preview" }));
+	await ready();
+	act(() => frames.shift()!(0));
+	const second = rasterImages.filter((image) => image.src.startsWith("data:image/svg+xml")).at(-1);
+	expect(second).not.toBe(first);
+	view.rerender(<Canvas {...props} layout={{ ...layout, layers: layout.layers.slice(0, 1) }} />);
+	act(() => second.onerror());
+	act(() => second.onload());
+	expect(screen.queryByRole("button", { name: "Retry preview" })).not.toBeInTheDocument();
 });

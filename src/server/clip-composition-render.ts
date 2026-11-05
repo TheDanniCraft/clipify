@@ -3,7 +3,8 @@ import sharp from "sharp";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { compositionDimensions, type ClipComposition } from "@/app/lib/clipComposition";
-import { clipLayerText, clipLayerLines } from "@/app/lib/clipLayout";
+import { clipLayerText } from "@/app/lib/clipLayout";
+import { overlayMetadataSvg } from "@/app/lib/overlayMetadata";
 import { readBoundedResponse } from "@/app/lib/clipExport";
 const avatarHosts = new Set(["static-cdn.jtvnw.net", "lh3.googleusercontent.com", "yt3.googleusercontent.com", "yt3.ggpht.com"]);
 export async function readClipCompositionLogo(avatar: string | undefined, signal: AbortSignal) {
@@ -25,20 +26,17 @@ export async function readClipCompositionLogo(avatar: string | undefined, signal
 export async function compositionFilterGraph(layout: ClipComposition, dir: string, clip: Parameters<typeof clipLayerText>[1], signal: AbortSignal, avatar?: string) {
 	const { width, height } = compositionDimensions(layout.format),
 		videos = layout.layers.filter((layer) => layer.kind === "video"),
-		logos = layout.layers.filter((layer) => layer.kind === "logo" || layer.kind === "channel");
+		logos = layout.layers.filter((layer) => layer.kind === "logo");
 	const filters: string[] = [],
 		inputs: string[] = [];
+	let avatarImage: Buffer | undefined;
+	if (avatar && layout.layers.some((layer) => layer.kind === "channel" || layer.kind === "logo")) avatarImage = await readClipCompositionLogo(avatar, signal);
+	let inputIndex = 1;
 	if (logos.length) {
 		const path = join(dir, "channel-logo");
-		const image =
-			avatar || logos.some((layer) => layer.kind === "logo")
-				? await readClipCompositionLogo(avatar, signal)
-				: await sharp({ create: { width: 64, height: 64, channels: 4, background: "#71717a" } })
-						.png()
-						.toBuffer();
-		await writeFile(path, image);
+		await writeFile(path, avatarImage ?? (await readClipCompositionLogo(avatar, signal)));
 		inputs.push("-loop", "1", "-max_pixels", "1000000", "-i", path);
-		filters.push(`[1:v]format=rgba,split=${logos.length}${logos.map((_, index) => `[logo${index}]`).join("")}`);
+		filters.push(`[${inputIndex++}:v]format=rgba,split=${logos.length}${logos.map((_, index) => `[logo${index}]`).join("")}`);
 	}
 	filters.push(`[0:v]split=${videos.length + 1}[background]${videos.map((_, index) => `[video${index}]`).join("")}`);
 	filters.push(`[background]scale=${width}:${height},format=rgba,drawbox=color=black:t=fill[base]`);
@@ -56,20 +54,12 @@ export async function compositionFilterGraph(layout: ClipComposition, dir: strin
 			filters.push(`[video${videoIndex++}]crop=w='max(2,trunc(iw*${c.w}/2)*2)':h='max(2,trunc(ih*${c.h}/2)*2)':x='trunc(iw*${c.x}/2)*2':y='trunc(ih*${c.y}/2)*2',scale=${w}:${h}:force_original_aspect_ratio=decrease:force_divisible_by=2,format=rgba,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2:color=black@0,setsar=1[${label}]`);
 		} else if (layer.kind === "logo") {
 			filters.push(`[logo${logoIndex++}]scale=${w}:${h}:force_original_aspect_ratio=decrease:force_divisible_by=2,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2:color=black@0,setsar=1[${label}]`);
-		} else if (layer.kind === "channel") {
-			const padding = Math.min(12, h / 8),
-				side = Math.max(2, Math.trunc((h - padding * 2) / 2) * 2);
-			const path = join(dir, `widget-${index}.txt`);
-			await writeFile(path, clipLayerLines(clipLayerText("channel", clip), layer.fontSize, Math.max(1, w - side - padding * 3))[0] ?? "");
-			filters.push(`color=c=0x18181b@0.95:s=${w}x${h}:r=30,format=rgba[badge${index}]`);
-			filters.push(`[logo${logoIndex++}]scale=${side}:${side},setsar=1[avatar${index}]`);
-			filters.push(`[badge${index}][avatar${index}]overlay=x=${padding}:y=${padding}:shortest=1,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:textfile=${path}:expansion=none:fontcolor=white:fontsize=${layer.fontSize}:x=${side + padding * 2}:y=(h-text_h)/2[${label}]`);
 		} else {
-			const path = join(dir, `widget-${index}.txt`),
-				padding = Math.min(12, h / 8),
-				text = clipLayerLines(clipLayerText(layer.kind, clip), layer.fontSize, Math.max(1, w - padding * 2)).join("\n");
-			await writeFile(path, text);
-			filters.push(`color=c=0x18181b@0.95:s=${w}x${h}:r=30,format=rgba,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:textfile=${path}:expansion=none:fontcolor=white:fontsize=${layer.fontSize}:x=${padding}:y=${padding}:line_spacing=${Math.round(layer.fontSize * 0.2)}[${label}]`);
+			const path = join(dir, `widget-${index}.png`);
+			const svg = overlayMetadataSvg(layer.kind, clip, w, h, layer.fontSize, layout.widgetTheme, avatarImage ? `data:image/png;base64,${avatarImage.toString("base64")}` : undefined);
+			await writeFile(path, await sharp(Buffer.from(svg), { limitInputPixels: 1000000 }).png().toBuffer());
+			inputs.push("-loop", "1", "-max_pixels", "1000000", "-i", path);
+			filters.push(`[${inputIndex++}:v]format=rgba[${label}]`);
 		}
 		const output = `composite${index}`;
 		filters.push(`[${previous}][${label}]overlay=x=${x}:y=${y}:shortest=1:eof_action=repeat[${output}]`);

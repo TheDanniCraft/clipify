@@ -1,6 +1,8 @@
 "use client";
 import { useDeploymentDraft } from "@lib/deploymentDrafts";
 
+import { OverlayChannelMetadata, OverlayClipMetadata } from "@components/overlayMetadata";
+import { DEFAULT_WIDGET_THEME } from "@lib/overlayMetadata";
 import ThemeColorInput, { clamp } from "@components/theme/ThemeColorInput";
 import { useUserTour } from "@components/user-tour/provider";
 
@@ -14,7 +16,7 @@ import UpgradeModal from "@components/upgradeModal";
 import { getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
 import { AuthenticatedUser, Overlay, Plan } from "@types";
 
-import { Alert, Avatar, Button, Card, Separator, Input, ListBox, Select, Slider, Tabs, useOverlayState, TextField, Label, Description } from "@heroui/react";
+import { Alert, Button, Card, Separator, Input, ListBox, Select, Slider, Tabs, useOverlayState, TextField, Label, Description } from "@heroui/react";
 import { notify as addToast } from "@lib/toast";
 
 import { IconArrowLeft, IconCrown, IconDeviceFloppy } from "@tabler/icons-react";
@@ -31,19 +33,15 @@ const systemFontOptions = [
 type FontMode = "website" | "system" | "google";
 type DragBlockedReason = "touch" | "narrow";
 const THEME_DEFAULTS = {
+	...DEFAULT_WIDGET_THEME,
 	overlayInfoFadeOutSeconds: 6,
 	showChannelInfo: true,
 	showClipInfo: true,
 	showTimer: false,
 	showProgressBar: false,
 	themeFontFamily: "inherit",
-	themeTextColor: "#FFFFFF",
-	themeAccentColor: "#7C3AED",
-	themeBackgroundColor: "rgba(10,10,10,0.65)",
 	progressBarStartColor: "#26018E",
 	progressBarEndColor: "#8D42F9",
-	borderSize: 0,
-	borderRadius: 10,
 	effectScanlines: false,
 	effectStatic: false,
 	effectCrt: false,
@@ -442,16 +440,7 @@ function OverlayStylePreview({ overlay, canDrag, onMove, onScaleChange, streamer
 										});
 									}}
 								>
-									<div className={`flex items-center ${channelAnchoredRight ? "flex-row-reverse" : ""}`}>
-										<Avatar size='md'>
-											<Avatar.Image alt='TheDanniCraft' src={streamerAvatar} />
-											<Avatar.Fallback>TD</Avatar.Fallback>
-										</Avatar>
-										<div className={`text-xs ${channelAnchoredRight ? "mr-2 text-right" : "ml-2 text-left"}`}>
-											<div className='font-semibold'>TheDanniCraft</div>
-											<div className='opacity-80'>Playing Just Chatting</div>
-										</div>
-									</div>
+									<OverlayChannelMetadata name='TheDanniCraft' avatar={streamerAvatar} category='Just Chatting' mirrored={channelAnchoredRight} />
 									{renderResizeHandles("channel")}
 								</div>
 							</div>
@@ -488,10 +477,7 @@ function OverlayStylePreview({ overlay, canDrag, onMove, onScaleChange, streamer
 										});
 									}}
 								>
-									<div className={`text-xs break-normal ${clipAnchoredRight ? "text-right" : "text-left"}`}>
-										<div className='font-bold'>Insane comeback in ranked</div>
-										<div className='opacity-80 mt-1'>clipped by bestviewer123</div>
-									</div>
+									<OverlayClipMetadata title='Insane comeback in ranked' clipper='bestviewer123' alignRight={clipAnchoredRight} />
 									{renderResizeHandles("clip")}
 								</div>
 							</div>

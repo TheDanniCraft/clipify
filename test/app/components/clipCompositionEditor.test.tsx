@@ -1,3 +1,12 @@
+jest.mock("@components/theme/ThemeColorInput", () => ({
+	__esModule: true,
+	default: ({ label, value, onChange }: any) => (
+		<label>
+			{label}
+			<input aria-label={label} value={value} onChange={(event) => onChange(event.target.value)} />
+		</label>
+	),
+}));
 jest.mock("@heroui/react", () => jest.requireActual("../../support/clipCompositionControls").compositionControls(jest.requireActual("../../__mocks__/heroui-react.cjs")));
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import ClipCompositionEditor from "@components/creator/clipCompositionEditor";
@@ -67,7 +76,7 @@ it("adds arbitrary crops and widgets, edits source bounds and retains widget ord
 	fireEvent.change(screen.getByRole("textbox", { name: "Layer name" }), { target: { value: "Killfeed" } });
 	fireEvent.change(screen.getByRole("combobox", { name: "Edit box" }), { target: { value: "source" } });
 	fireEvent.change(screen.getByRole("spinbutton", { name: "Height (%)" }), { target: { value: "2" } });
-	for (const kind of ["title", "channel", "clipper", "logo"]) fireEvent.change(screen.getByRole("combobox", { name: "Add layer" }), { target: { value: kind } });
+	for (const kind of ["title", "channel"]) fireEvent.change(screen.getByRole("combobox", { name: "Add layer" }), { target: { value: kind } });
 	fireEvent.click(screen.getByRole("button", { name: "Send backward" }));
 	fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
 	await waitFor(() => expect(saveTemplate).toHaveBeenCalled());
@@ -75,7 +84,7 @@ it("adds arbitrary crops and widgets, edits source bounds and retains widget ord
 	expect(saved.name).toBe("My mobile");
 	expect(saved.composition.layers.filter((layer: any) => layer.kind === "video")).toHaveLength(3);
 	expect(saved.composition.layers.find((layer: any) => layer.label === "Killfeed").source.h).toBe(0.02);
-	expect(saved.composition.layers.map((layer: any) => layer.kind)).toEqual(expect.arrayContaining(["title", "channel", "clipper", "logo"]));
+	expect(saved.composition.layers.map((layer: any) => layer.kind)).toEqual(expect.arrayContaining(["title", "channel"]));
 });
 it("resets only a clip override and preserves the draft if reset fails", async () => {
 	reset.mockResolvedValueOnce({ ok: false }).mockResolvedValueOnce({ ok: true });
@@ -99,14 +108,14 @@ it("edits source and output geometry, presets, widgets and stacking without chan
 	fireEvent.change(screen.getByRole("spinbutton", { name: "Text size" }), { target: { value: "48" } });
 	fireEvent.change(screen.getByRole("spinbutton", { name: "Height (%)" }), { target: { value: "8" } });
 	fireEvent.click(screen.getByRole("button", { name: "Send backward" }));
-	fireEvent.click(screen.getByRole("button", { name: "Clip title" }));
+	fireEvent.click(screen.getByRole("button", { name: "Clip info" }));
 	fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
 	await waitFor(() => expect(saved).toHaveBeenCalled());
 	const layers = saveTemplate.mock.calls[0][1].composition.layers;
 	expect(layers.find((l: any) => l.kind === "title")).toMatchObject({ fontSize: 48, frame: { h: 0.08 } });
 	expect(composition.layers).toHaveLength(2);
 	fireEvent.click(screen.getByRole("button", { name: "Remove layer" }));
-	expect(screen.queryByRole("button", { name: "Clip title" })).not.toBeInTheDocument();
+	expect(screen.queryByRole("button", { name: "Clip info" })).not.toBeInTheDocument();
 });
 it("recovers reference lookup/search failures without discarding an edited name", async () => {
 	inventory.mockResolvedValueOnce({ ok: false });
@@ -197,4 +206,56 @@ it.each(["desktop", "mobile"] as const)("adds a usable channel block without a c
 	const badge = saveTemplate.mock.calls[0][1].composition.layers.find((layer: any) => layer.kind === "channel");
 	expect(badge.frame.w).toBeGreaterThanOrEqual(0.5);
 	expect(badge.frame.y + badge.frame.h).toBeLessThanOrEqual(1);
+});
+
+it("uses the existing theme controls and preserves appearance through save", async () => {
+	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} onBack={() => {}} onSaved={() => {}} />);
+	fireEvent.click(screen.getByRole("button", { name: "Widget appearance" }));
+	fireEvent.change(screen.getByRole("textbox", { name: "Background Color" }), { target: { value: "rgba(20,30,40,0.5)" } });
+	fireEvent.change(screen.getByRole("spinbutton", { name: "Corner radius (px)" }), { target: { value: "18" } });
+	fireEvent.click(screen.getByRole("button", { name: "Done" }));
+	fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
+	await waitFor(() => expect(saveTemplate).toHaveBeenCalled());
+	expect(saveTemplate.mock.calls[0][1].composition.widgetTheme).toMatchObject({ themeBackgroundColor: "rgba(20,30,40,0.5)", borderRadius: 18 });
+});
+
+it.each(["title", "channel", "clipper"] as const)("fits a saved %s widget without losing its metadata or draft", async (kind) => {
+	const layout = { version: 2 as const, format: "mobile" as const, layers: [{ id: "saved", kind, label: "Saved widget", fontSize: 32, frame: { x: 0.05, y: 0.05, w: 0.5, h: 0.2 } }] };
+	const clip = { id: "ClipA", title: "Known title", clipCreatorName: "Viewer" };
+	detail.mockResolvedValue({ ok: true, clip });
+	render(<ClipCompositionEditor creatorId='owner' entry={{ ...entry, composition: layout }} initial={layout} referenceId={kind === "title" ? "ClipA" : undefined} onBack={() => {}} onSaved={() => {}} />);
+	if (kind === "title") await screen.findByRole("option", { name: "Known title" });
+	fireEvent.click(screen.getByRole("button", { name: "Fit canvas width" }));
+	fireEvent.click(screen.getByRole("button", { name: "Fit content" }));
+	fireEvent.click(screen.getByRole("button", { name: "Widget appearance" }));
+	fireEvent.click(screen.getByRole("button", { name: "Close layout dialog" }));
+	expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+	fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
+	await waitFor(() => expect(saveTemplate).toHaveBeenCalled());
+	const saved = saveTemplate.mock.calls[0][1].composition.layers[0];
+	expect(saved).toMatchObject({ id: "saved", kind, frame: { x: 0, w: 1 } });
+	expect(saved.frame.h).toBeLessThan(0.2);
+});
+it("keeps a saved standalone logo editable without treating it as text", async () => {
+	const layout = { version: 2 as const, format: "desktop" as const, layers: [{ id: "logo", kind: "logo" as const, label: "Saved logo", frame: { x: 0, y: 0, w: 0.2, h: 0.2 } }] };
+	render(<ClipCompositionEditor creatorId='owner' entry={{ ...entry, composition: layout }} initial={layout} onBack={() => {}} onSaved={() => {}} />);
+	expect(screen.queryByRole("button", { name: "Fit content" })).not.toBeInTheDocument();
+	fireEvent.change(screen.getByRole("textbox", { name: "Layer name" }), { target: { value: "My logo" } });
+	fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
+	await waitFor(() => expect(saveTemplate).toHaveBeenCalled());
+	expect(saveTemplate.mock.calls[0][1].composition.layers[0]).toMatchObject({ kind: "logo", label: "My logo" });
+});
+
+it.each(["unavailable", "offline"])("keeps a styled layout draft after reference inventory is %s", async (state) => {
+	if (state === "offline") inventory.mockRejectedValueOnce(Error("offline"));
+	else inventory.mockResolvedValueOnce({ ok: false, code: "SERVICE_UNAVAILABLE" });
+	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} onBack={() => {}} onSaved={() => {}} />);
+	fireEvent.change(screen.getByRole("textbox", { name: "Layout name" }), { target: { value: "Preserved draft" } });
+	await waitFor(() => expect(jest.requireMock("@lib/toast").notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Reference clips could not be loaded" })));
+	fireEvent.click(screen.getByRole("button", { name: "Widget appearance" }));
+	fireEvent.change(screen.getByRole("textbox", { name: "Text Color" }), { target: { value: "#111111" } });
+	fireEvent.click(screen.getByRole("button", { name: "Done" }));
+	fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
+	await waitFor(() => expect(saveTemplate).toHaveBeenCalled());
+	expect(saveTemplate.mock.calls[0][1]).toMatchObject({ name: "Preserved draft", composition: { widgetTheme: { themeTextColor: "#111111" } } });
 });

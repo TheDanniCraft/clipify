@@ -802,3 +802,16 @@ T673 local closure: paired-atomic-browser-green.log passes all9 editor/interacti
 - [x] T675 Let output boxes define shape and source crops preserve it, keep output moves/content independent, and snap movement/resizing in both panes with Alt bypass.
 - [x] T676 Keep identity colors independent of membership/order, share reference selection across format tabs, and render channel identity/title/clipper as coherent exported blocks with a usable default identity strip.
 - [x] T677 Verify complete geometry/component/native-render owners, installed Chromium desktop/mobile/light/dark editing, Firefox pointer release, and the corrected compact-guide BDD owner; reconcile the spec/plan/test list and publication evidence.
+
+## Shared overlay metadata presentation
+
+- [x] T678 Extract shared channel/clip content for overlay playback and Theme Studio; reuse that contextual model in canvas/native widget rendering.
+- [x] T679 Add full-width/content-fit mobile defaults, explicit fit actions for existing saved widgets, and optional composition appearance through existing theme controls.
+- [x] T680 Verify word-aware fitting, safe SVG/theme/avatar inputs, native customized pixels, existing overlay/theme behavior, nested palette pointer/focus, draft/error recovery and unchanged ordinary coverage floors.
+
+## Creator-wide brand styling (new requested scope)
+
+- [ ] T681 Resolve preservation/adoption of differently styled existing overlays, then add a creator-owned Brand styling settings/sidebar entry using the established theme controls.
+- [ ] T682 Route overlay playback, Theme Studio and composition preview/native export through the same saved creator brand; preserve local arrangement/effects and agency creator authorization. Follow schema-only feature-branch migration ownership; do not generate a custom migration or discard existing customization.
+- [ ] T683 Support the selected brand typography in actual exported video as well as preview, with bounded trusted font handling and an explicit recoverable unavailable-font state.
+- [ ] T684 Verify brand persistence, existing-overlay adoption, cross-creator/agency isolation, live/clip appearance parity and failure/draft recovery using installed controls on desktop/mobile in both themes. Watermark/Pro removal remains deferred.

@@ -379,3 +379,12 @@ State GREEN records current regression evidence, not chronological TDD proof. In
 - COMP-U15: Adding/removing/reordering layers never changes another layer's identity color. Existing clip-layout-template owner.
 
 These revisions update existing acceptance owners rather than duplicating workflow evidence. Geometry/source expectations were updated after implementation and are recorded as REGRESSION_AFTER; no retrospective test-first claim.
+
+### Shared overlay metadata revision
+
+- COMP-A11: Channel and clip groups reuse overlay/theme content and contextual credits; new mobile widgets use full-width defaults and content-fit heights. Existing narrow widgets can fit width/content without losing metadata. Owners: overlayMetadata, clipCompositionEditor, clipCompositionCanvas and the existing clip-composition-interaction browser scenarios.
+- COMP-A12: Actual HeroUI theme fields/palette work inside the appearance dialog, restore focus and update real preview pixels. Saved appearance reaches native video pixels. Owners: clip-composition-interaction, theme-color-palette, clip-layout-render and overlay-metadata.
+- COMP-U16: Escaped bounded SVG metadata rejects unsafe theme colors and external avatar references; legitimate normalized PNG avatars, literal text, fallback identity and word wrapping remain playable. Owner: overlay-metadata and clip-layout-render.
+- COMP-U17: Failed widget decoding is retryable and stale callbacks after removal cannot replace current preview state. Reference-inventory failures preserve styled drafts. Owners: clipCompositionCanvas and clipCompositionEditor.
+
+These are regression-after refinements of the existing owners, not a retrospective test-first claim. New shared sources are included in unchanged ordinary coverage manifests.

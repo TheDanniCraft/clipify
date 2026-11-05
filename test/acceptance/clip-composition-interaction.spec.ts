@@ -6,7 +6,7 @@ for (const width of [390, 1440])
 	test(`Reusable crop layers, output handles and widgets at ${width}px`, async ({ page, request, tourWorld }, info) => {
 		test.setTimeout(120000);
 		await page.setViewportSize({ width, height: 950 });
-		await page.addInitScript(() => localStorage.setItem("theme", "dark"));
+		await page.addInitScript((theme) => localStorage.setItem("theme", theme), width === 390 ? "dark" : "light");
 		const { creatorId, id } = await seedCreatorLibrary({ page, request, tourWorld });
 		const initial = createClipComposition("mobile");
 		await tourWorld.fixture.pool.query("INSERT INTO user_content_states(user_id,content_key,state) VALUES($1,$2,$3)", [creatorId, "clip-layout-template:v2:custom", JSON.stringify({ name: "My composition", composition: initial })]);
@@ -40,11 +40,49 @@ for (const width of [390, 1440])
 		await height.fill("2");
 		await height.press("Tab");
 		await page.getByRole("button", { name: /Add (layer|crop or widget)/ }).click();
-		await page.getByRole("option", { name: "Clip title", exact: true }).click();
+		await page.getByRole("option", { name: "Clip info", exact: true }).click();
 		await expect(page.getByRole("textbox", { name: "Text size", exact: true })).toBeVisible();
-		await page.route("**/api/clips/layout-logo?**", (route) => route.fulfill({ contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j8ZkAAAAASUVORK5CYII=", "base64") }));
+		const widgetWidth = page.getByRole("textbox", { name: "Width (%)", exact: true });
+		await widgetWidth.fill("50");
+		await widgetWidth.press("Tab");
+		await page.getByRole("button", { name: "Fit canvas width", exact: true }).click();
+		await expect(widgetWidth).toHaveValue("100");
+		const widgetHeight = page.getByRole("textbox", { name: "Height (%)", exact: true });
+		await widgetHeight.fill("4");
+		await widgetHeight.press("Tab");
+		await page.getByRole("button", { name: "Fit content", exact: true }).click();
+		await expect.poll(async () => parseFloat(await widgetHeight.inputValue())).toBeGreaterThan(4);
+
+		const sharp = (await import("sharp")).default;
+		const avatar = await sharp({ create: { width: 64, height: 64, channels: 4, background: "#7c3aed" } })
+			.png()
+			.toBuffer();
+		await page.route("**/api/clips/layout-logo?**", (route) => route.fulfill({ contentType: "image/png", body: avatar }));
 		await page.getByRole("button", { name: /Add (layer|crop or widget)/ }).click();
-		await page.getByRole("option", { name: "Channel name", exact: true }).click();
+		await page.getByRole("option", { name: "Channel info", exact: true }).click();
+		const pixel = () => page.locator("canvas").evaluate((node: HTMLCanvasElement) => Array.from(node.getContext("2d")!.getImageData(Math.floor(node.width * 0.97), Math.floor(node.height * 0.94), 1, 1).data));
+		await expect.poll(async () => (await pixel())[2]).toBeLessThan(90);
+		await page.getByRole("button", { name: "Channel info output", exact: true }).scrollIntoViewIfNeeded();
+		await page.evaluate(() => window.scrollTo(0, 0));
+		await page.screenshot({ path: info.outputPath("default-widgets.png"), fullPage: true, animations: "disabled" });
+		await page.getByRole("button", { name: "Widget appearance", exact: true }).click();
+		const appearance = page.getByRole("dialog", { name: "Widget appearance", exact: true });
+		const background = appearance.getByRole("textbox", { name: "Background Color", exact: true });
+		await appearance.getByRole("button", { name: "Pick Background Color", exact: true }).click();
+		await page.getByRole("option").nth(3).click();
+		if (await page.getByRole("option").first().isVisible()) await page.keyboard.press("Escape");
+		await expect(appearance).toBeVisible();
+		await background.fill("#ffffff");
+		await background.press("Tab");
+		await appearance.getByRole("button", { name: "Done", exact: true }).click();
+		await expect(page.getByRole("button", { name: "Widget appearance", exact: true })).toBeFocused();
+		await expect.poll(async () => (await pixel())[0]).toBeGreaterThan(230);
+		await page.getByRole("button", { name: "Widget appearance", exact: true }).click();
+		const textColor = appearance.getByRole("textbox", { name: "Text Color", exact: true });
+		await textColor.fill("#000000");
+		await textColor.press("Tab");
+		await appearance.getByRole("button", { name: "Done", exact: true }).click();
+
 		await page.getByRole("button", { name: "Save layout", exact: true }).click();
 		await expect(page.getByText("Layout saved", { exact: true })).toBeVisible();
 		await expect(page.getByRole("button", { name: "Save layout", exact: true })).toBeDisabled();
@@ -54,6 +92,7 @@ for (const width of [390, 1440])
 		expect(saved.layers.find((layer: any) => layer.label === "Killfeed").source.h).toBeCloseTo(0.02, 5);
 		expect(saved.layers.some((layer: any) => layer.kind === "title")).toBe(true);
 		expect(saved.layers.some((layer: any) => layer.kind === "channel")).toBe(true);
+		expect(saved.widgetTheme.themeTextColor.toLowerCase()).toBe("#000000");
 		const camera = saved.layers.find((layer: any) => layer.id === "camera");
 		expect(camera.source).toBeDefined();
 		expect(camera.frame.w).toBeLessThan(initial.layers[0].frame.w);

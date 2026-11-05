@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { widgetThemeSchema } from "./overlayMetadata";
 import { defaultClipLayout, sourceCrop, type ClipLayout } from "./clipLayout";
 const rectSchema = z.object({ x: z.number().finite().min(0).max(1), y: z.number().finite().min(0).max(1), w: z.number().finite().min(0.002).max(1), h: z.number().finite().min(0.002).max(1) }).refine((r) => r.x + r.w <= 1.000001 && r.y + r.h <= 1.000001, "Keep the box inside the frame.");
 const frameSchema = z.object({ x: z.number().finite().min(0).max(1), y: z.number().finite().min(0).max(1), w: z.number().finite().min(0.000001).max(1), h: z.number().finite().min(0.000001).max(1) }).refine((r) => r.x + r.w <= 1.000001 && r.y + r.h <= 1.000001, "Keep the layer inside the canvas.");
@@ -7,6 +8,7 @@ const text = { ...base, fontSize: z.number().int().min(12).max(96) };
 export const compositionSchema = z.object({
 	version: z.literal(2),
 	format: z.enum(["desktop", "mobile"]),
+	widgetTheme: widgetThemeSchema.optional(),
 	layers: z
 		.array(z.discriminatedUnion("kind", [z.object({ ...base, kind: z.literal("video"), source: rectSchema }), z.object({ ...text, kind: z.literal("title") }), z.object({ ...text, kind: z.literal("channel") }), z.object({ ...text, kind: z.literal("clipper") }), z.object({ ...base, kind: z.literal("logo") })]))
 		.min(1)
