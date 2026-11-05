@@ -46,6 +46,8 @@ async function respondGraphql(request, response) {
 }
 
 function respondMedia(request, response, background) {
+	// Canvas previews need the same anonymous media access as the public CDN.
+	response.setHeader("Access-Control-Allow-Origin", "*");
 	const media = mediaByBackground[background];
 	response.setHeader("Content-Type", "video/mp4");
 	response.setHeader("Accept-Ranges", "bytes");

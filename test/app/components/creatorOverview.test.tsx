@@ -21,7 +21,7 @@ beforeEach(() => {
 	overview.mockReset();
 	broadcasts.mockReset();
 });
-it.each([true, false])("omits duplicate resource navigation for mobile=%s outside an active guide", async (mobile) => {
+it.each([true, false])("provides C quick access for mobile=%s outside an active guide", async (mobile) => {
 	overview.mockResolvedValue(metrics);
 	broadcasts.mockResolvedValue({ ok: true, stale: false, items: [] });
 	render(
@@ -30,7 +30,7 @@ it.each([true, false])("omits duplicate resource navigation for mobile=%s outsid
 		</DashboardNavigationContext.Provider>,
 	);
 	await screen.findByText("Clutch");
-	for (const name of ["Overlays", "Playlists", "Galleries", "Runner"]) expect(screen.queryByRole("link", { name })).not.toBeInTheDocument();
+	for (const name of ["Overlays", "Playlists", "Galleries", "Runner"]) expect(screen.getByRole("link", { name })).toBeInTheDocument();
 });
 it("loads clip metrics independently of unavailable broadcasts", async () => {
 	overview.mockResolvedValue(metrics);

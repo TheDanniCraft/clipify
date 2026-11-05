@@ -33,12 +33,16 @@ export async function readBoundedResponse(response: Pick<Response, "body">, maxB
 	}
 }
 
-const summarySchema = z.object({ included: z.array(z.number().int().nonnegative()).max(50), skipped: z.array(z.object({ index: z.number().int().nonnegative(), code: z.enum(["clip_unavailable", "download_unavailable", "file_size_limit", "package_size_limit", "invalid_media", "provider_error", "download_timeout", "rate_limited", "reconnect_required"]), retryable: z.boolean(), title: z.string().max(1000).optional() })).max(50), retryAt: z.string().datetime().optional() });
+const summarySchema = z.object({
+	included: z.array(z.number().int().nonnegative()).max(50),
+	skipped: z.array(z.object({ index: z.number().int().nonnegative(), code: z.enum(["clip_unavailable", "download_unavailable", "file_size_limit", "package_size_limit", "invalid_media", "provider_error", "download_timeout", "rate_limited", "reconnect_required", "render_busy", "render_failed"]), retryable: z.boolean(), title: z.string().max(1000).optional() })).max(50),
+	retryAt: z.string().datetime().optional(),
+});
 export type ClipExportSummary = z.infer<typeof summarySchema>;
 export function decodeClipExportSummary(encoded: string | null, count: number) {
 	try {
 		if (!encoded || encoded.length > 16384 || !/^[A-Za-z0-9_-]+$/.test(encoded)) throw new Error("invalid_response");
-		const summary = summarySchema.parse(JSON.parse(atob(encoded.replace(/-/g, "+").replace(/_/g, "/"))));
+		const summary = summarySchema.parse(JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(encoded.replace(/-/g, "+").replace(/_/g, "/")), (character) => character.charCodeAt(0)))));
 		const indices = [...summary.included, ...summary.skipped.map((item) => item.index)];
 		if (!summary.included.length || indices.length !== count || new Set(indices).size !== count || indices.some((index) => index >= count)) throw new Error("invalid_response");
 		return summary;

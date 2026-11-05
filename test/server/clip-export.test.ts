@@ -389,3 +389,48 @@ it("rejects multiple IDs in an individual download before reading metadata", asy
 	expect(await buildClipArchive({ creatorId: "owner", clipIds: ["A", "B"] }, undefined, "mp4")).toMatchObject({ ok: false, code: "INVALID_INPUT" });
 	expect(cacheRead).not.toHaveBeenCalled();
 });
+
+it("renders a custom portrait through the existing authorized single-download path", async () => {
+	const { defaultClipLayout } = await import("@lib/clipLayout");
+	const result = await buildClipArchive({ creatorId: "owner", clipIds: ["ClipA"], layout: defaultClipLayout }, undefined, "mp4");
+	expect(result.ok).toBe(true);
+	if (result.ok) {
+		expect(isCompleteMp4(result.bytes)).toBe(true);
+		expect(result.summary.included).toEqual([0]);
+	}
+	expect(rateLimit).toHaveBeenCalledWith("owner");
+	expect(providerCapacity).toHaveBeenCalledWith("owner");
+});
+it("rejects invalid custom framing before provider or rate-limit access", async () => {
+	const { defaultClipLayout } = await import("@lib/clipLayout");
+	expect(await buildClipArchive({ creatorId: "owner", clipIds: ["ClipA"], layout: { ...defaultClipLayout, gameplay: { x: 1, y: 0, w: 1, h: 1 } } })).toMatchObject({ ok: false, code: "INVALID_INPUT" });
+	expect(rateLimit).not.toHaveBeenCalled();
+	expect(globalThis.fetch).not.toHaveBeenCalled();
+});
+it("returns an actionable render failure while preserving export recovery metadata", async () => {
+	const { defaultClipLayout } = await import("@lib/clipLayout");
+	const fake = Buffer.concat(
+		["ftyp", "moov", "mdat"].map((type) => {
+			const b = Buffer.alloc(8);
+			b.writeUInt32BE(8);
+			b.write(type, 4);
+			return b;
+		}),
+	);
+	jest.mocked(globalThis.fetch).mockImplementation(async (input) => (String(input).startsWith("https://api.twitch.tv/") ? Response.json({ data: [{ clip_id: "ClipA", landscape_download_url: "https://production.assets.clips.twitchcdn.net/ClipA.mp4" }] }) : new Response(fake)));
+	expect(await buildClipArchive({ creatorId: "owner", clipIds: ["ClipA"], layout: defaultClipLayout }, undefined, "mp4")).toMatchObject({ ok: false, failures: [{ index: 0, code: "render_failed", retryable: true }] });
+});
+it("renders a selected batch with each clip metadata and a portrait manifest", async () => {
+	const { defaultClipLayout } = await import("@lib/clipLayout");
+	cacheRead.mockResolvedValue([ownedEntry("ClipA", { title: "First moment" }), ownedEntry("ClipB", { title: "Second moment" })]);
+	jest.mocked(globalThis.fetch).mockImplementation(async (input) => (String(input).startsWith("https://api.twitch.tv/") ? Response.json({ data: ["ClipA", "ClipB"].map((clip_id) => ({ clip_id, landscape_download_url: `https://production.assets.clips.twitchcdn.net/${clip_id}.mp4` })) }) : new Response(video)));
+	const result = await buildClipArchive({ creatorId: "owner", clipIds: ["ClipA", "ClipB"], layout: { ...defaultClipLayout, textLayers: [{ field: "title", x: 5, y: 80, size: 24 }] } });
+	expect(result.ok).toBe(true);
+	if (!result.ok) return;
+	const files = unzipSync(result.bytes);
+	const manifest = JSON.parse(strFromU8(files["manifest.json"]));
+	expect(manifest.clips).toEqual(expect.arrayContaining([expect.objectContaining({ id: "ClipA", title: "First moment", variant: "portrait" }), expect.objectContaining({ id: "ClipB", title: "Second moment", variant: "portrait" })]));
+	const media = Object.entries(files).filter(([name]) => name.endsWith(".mp4"));
+	expect(media).toHaveLength(2);
+	expect(Buffer.from(media[0][1]).equals(Buffer.from(media[1][1]))).toBe(false);
+});

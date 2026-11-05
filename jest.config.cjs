@@ -37,6 +37,13 @@ const customJestConfig = {
 		"src/server/creator-overview.ts",
 		"src/server/creator-broadcasts.ts",
 		"src/server/clip-export.ts",
+		"src/server/clip-layout-render.ts",
+		"src/app/lib/clipLayout.ts",
+		"src/app/actions/clipLayouts.ts",
+		"src/app/components/creator/clipLayoutEditor.tsx",
+		"src/app/components/creator/streamMoments.tsx",
+		"src/app/dashboard/clips/layout/page.tsx",
+
 		"src/server/clip-download-limit.ts",
 		"src/app/components/creator/clipDetails.tsx",
 		"src/app/components/creator/clipPlayer.tsx",

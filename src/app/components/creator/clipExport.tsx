@@ -1,4 +1,5 @@
 "use client";
+import type { ClipLayout } from "@lib/clipLayout";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button, Link, Modal } from "@heroui/react";
 import ControlledModal from "@components/controlledModal";
@@ -20,9 +21,21 @@ const messages: Record<string, string> = {
 	SERVICE_UNAVAILABLE: "The export could not be prepared. Please try again.",
 	invalid_response: "The download response was incomplete. Please try again.",
 };
-const reasons: Record<string, string> = { clip_unavailable: "Clip unavailable", download_unavailable: "Download unavailable", file_size_limit: "Clip exceeds 32 MiB", package_size_limit: "Package exceeds 128 MiB", invalid_media: "Twitch returned an incomplete video", provider_error: "Twitch download failed", download_timeout: "Download timed out", rate_limited: "Twitch download limit reached", reconnect_required: "Reconnect Twitch" };
+const reasons: Record<string, string> = {
+	clip_unavailable: "Clip unavailable",
+	download_unavailable: "Download unavailable",
+	file_size_limit: "Clip exceeds 32 MiB",
+	package_size_limit: "Package exceeds 128 MiB",
+	invalid_media: "Twitch returned an incomplete video",
+	provider_error: "Twitch download failed",
+	render_busy: "Portrait rendering is busy. Retry shortly.",
+	render_failed: "Portrait rendering failed. Your layout is kept.",
+	download_timeout: "Download timed out",
+	rate_limited: "Twitch download limit reached",
+	reconnect_required: "Reconnect Twitch",
+};
 type Result = { scope: string; submitted: string[]; summary?: ClipExportSummary; failures?: ClipExportSummary["skipped"]; error?: string; retryAt?: string };
-export default function ClipExport({ creatorId, clipIds, scope, format = "zip" }: { creatorId: string; clipIds: string[]; scope: string; format?: "zip" | "mp4" }) {
+export default function ClipExport({ creatorId, clipIds, scope, format = "zip", layout }: { creatorId: string; clipIds: string[]; scope: string; layout?: ClipLayout; format?: "zip" | "mp4" }) {
 	const [busy, setBusy] = useState(false);
 	const [detailsOpen, setDetailsOpen] = useState(false);
 	const [now, setNow] = useState(() => Date.now());
@@ -68,7 +81,7 @@ export default function ClipExport({ creatorId, clipIds, scope, format = "zip" }
 		setBusy(true);
 		setResult(undefined);
 		try {
-			const response = await fetch(format === "mp4" ? "/api/clips/export?format=mp4" : "/api/clips/export", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ creatorId, clipIds: submitted }), signal: abort.signal });
+			const response = await fetch(format === "mp4" ? "/api/clips/export?format=mp4" : "/api/clips/export", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ creatorId, clipIds: submitted, ...(layout ? { layout } : {}) }), signal: abort.signal });
 			if (!response.ok) {
 				const failure = decodeClipExportError(JSON.parse(new TextDecoder().decode(await readBoundedResponse(response, 65536, abort.signal))), submitted.length);
 				finish({ scope: requestScope, submitted, error: failure.code, retryAt: failure.retryAt, failures: failure.failures });
@@ -102,7 +115,7 @@ export default function ClipExport({ creatorId, clipIds, scope, format = "zip" }
 		}
 	};
 	const failures = current?.summary?.skipped ?? current?.failures;
-	const retryIds = failures ? failures.filter((item) => item.retryable && ["provider_error", "download_timeout", "rate_limited"].includes(item.code)).map((item) => current!.submitted[item.index]) : current?.error && ["RATE_LIMITED", "PROVIDER_UNAVAILABLE", "EXPORT_TIMEOUT", "SERVICE_UNAVAILABLE", "invalid_response", "CANCELLED"].includes(current.error) ? current.submitted : [];
+	const retryIds = failures ? failures.filter((item) => item.retryable && ["provider_error", "download_timeout", "rate_limited", "render_busy", "render_failed"].includes(item.code)).map((item) => current!.submitted[item.index]) : current?.error && ["RATE_LIMITED", "PROVIDER_UNAVAILABLE", "EXPORT_TIMEOUT", "SERVICE_UNAVAILABLE", "invalid_response", "CANCELLED"].includes(current.error) ? current.submitted : [];
 	const reconnectIds = failures ? failures.filter((item) => item.code === "reconnect_required").map((item) => current!.submitted[item.index]) : current?.error === "RECONNECT_REQUIRED" ? current.submitted : [];
 	const reconnect = reconnectIds.length > 0;
 	return (

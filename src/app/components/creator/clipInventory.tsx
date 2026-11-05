@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useTransition, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import { Button, Card, Checkbox, Disclosure, Input, Label, ListBox, NumberField, Select, Table, TextField, Link } from "@heroui/react";
+import { IconChevronRight } from "@tabler/icons-react";
 import { fromDate, toCalendarDate } from "@internationalized/date";
 import { getCreatorClipInventory, refreshCreatorLibrary } from "@actions/creatorLibrary";
 import AppDateRangePicker, { type AppDateRange } from "@components/appDateRangePicker";
@@ -291,7 +292,12 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 
 									{selection.cleared ? <p role='status'>Selection cleared because the filters changed.</p> : null}
 								</div>
-								<ClipExport creatorId={creatorId} clipIds={[...selected]} scope={selection.scope} />
+								<div className='flex flex-wrap items-center gap-3'>
+									<Link isDisabled={selected.size === 0} href={`/dashboard/clips/layout?clips=${encodeURIComponent([...selected].join(","))}`}>
+										Portrait layout
+									</Link>
+									<ClipExport creatorId={creatorId} clipIds={[...selected]} scope={selection.scope} />
+								</div>
 							</Card.Content>
 						</Card>
 					) : null}
@@ -328,6 +334,7 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 										<Table.Column className='hidden xl:table-cell'>Duration</Table.Column>
 										<Table.Column className='hidden xl:table-cell'>Views</Table.Column>
 										<Table.Column className='hidden xl:table-cell'>Stream</Table.Column>
+										<Table.Column aria-label='Clip details'> </Table.Column>
 									</Table.Header>
 									<Table.Body>
 										{data.items.map((clip) => (
@@ -342,12 +349,16 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 														</Checkbox.Content>
 													</Checkbox>
 												</Table.Cell>
-												<Table.Cell>
-													<div className='flex min-w-0 flex-col gap-2'>
-														<div className='flex min-w-0 items-start gap-3'>
-															{clip.thumbnailUrl ? <img src={clip.thumbnailUrl} alt='' className='h-12 w-20 shrink-0 rounded-lg object-cover' /> : null}
-															<div className='flex min-w-0 flex-1 flex-col items-start gap-1'>
-																<Link href={`/dashboard/clips/${encodeURIComponent(clip.id)}`} className='min-w-0 break-words font-medium'>
+												<Table.Cell className='py-2'>
+													<div className='flex min-w-0 flex-col gap-1'>
+														<div className='flex min-w-0 items-center gap-3'>
+															{clip.thumbnailUrl ? (
+																<Link href={`/dashboard/clips/${encodeURIComponent(clip.id)}`} aria-label={`Details for ${clip.title || "Untitled clip"}`} className='shrink-0'>
+																	<img src={clip.thumbnailUrl} alt='' className='h-10 w-18 rounded-md object-cover' />
+																</Link>
+															) : null}
+															<div className='flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1'>
+																<Link href={`/dashboard/clips/${encodeURIComponent(clip.id)}`} className='line-clamp-1 min-w-0 font-medium'>
 																	{clip.title || "Untitled clip"}
 																</Link>
 
@@ -363,23 +374,30 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 																</Button>
 															</div>
 														</div>
-														<p className='w-full text-xs text-muted xl:hidden'>
-															{clip.views.toLocaleString()} views, {Math.round(clip.duration)}s<br />
-															{data.categories.find((category) => category.id === clip.categoryId)?.name ?? "Category unavailable"}
-															<br />
+														<p className='flex w-full flex-wrap gap-x-3 gap-y-1 text-xs text-muted xl:hidden'>
+															{clip.views.toLocaleString()} views, {Math.round(clip.duration)}s{data.categories.find((category) => category.id === clip.categoryId)?.name ?? "Category unavailable"}
 															<LocalizedDate value={clip.createdAt} showTime timeZone={timeZone} />
-															<br />
 															{clip.videoId ? <Link href={`/dashboard/streams/${encodeURIComponent(clip.videoId)}`}>View stream</Link> : "Unassigned"}
 														</p>
 													</div>
 												</Table.Cell>
-												<Table.Cell className='hidden xl:table-cell'>{data.categories.find((category) => category.id === clip.categoryId)?.name ?? "Category unavailable"}</Table.Cell>
+												<Table.Cell className='hidden xl:table-cell'>
+													<span className='flex items-center gap-2'>
+														{data.categories.find((category) => category.id === clip.categoryId)?.artworkUrl ? <img alt='' src={data.categories.find((category) => category.id === clip.categoryId)!.artworkUrl!} className='h-9 w-6 rounded object-cover' /> : null}
+														{data.categories.find((category) => category.id === clip.categoryId)?.name ?? "Category unavailable"}
+													</span>
+												</Table.Cell>
 												<Table.Cell className='hidden whitespace-nowrap xl:table-cell'>
 													<LocalizedDate value={clip.createdAt} timeZone={timeZone} showTime />
 												</Table.Cell>
 												<Table.Cell className='hidden xl:table-cell'>{Math.round(clip.duration)}s</Table.Cell>
 												<Table.Cell className='hidden xl:table-cell'>{clip.views.toLocaleString()}</Table.Cell>
 												<Table.Cell className='hidden whitespace-nowrap xl:table-cell'>{clip.videoId ? <Link href={`/dashboard/streams/${encodeURIComponent(clip.videoId)}`}>View stream</Link> : "Unassigned"}</Table.Cell>
+												<Table.Cell>
+													<Link aria-label={`Open ${clip.title || "Untitled clip"}`} href={`/dashboard/clips/${encodeURIComponent(clip.id)}`}>
+														<IconChevronRight className='size-4' />
+													</Link>
+												</Table.Cell>
 											</Table.Row>
 										))}
 									</Table.Body>
@@ -387,7 +405,24 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 							</Table.ScrollContainer>
 						</Table>
 					)}
-					<AppPagination page={Number(query.page) || 1} total={Math.ceil(data.total / (Number(query.pageSize) || 25))} onChange={(page) => navigate({ ...query, page: String(page) })} />
+					<div className='flex flex-wrap items-center justify-between gap-3'>
+						<Select aria-label='Clips per page' variant='secondary' className='w-36' selectedKey={query.pageSize || "25"} onSelectionChange={(key) => navigate({ ...query, page: "1", pageSize: String(key) })}>
+							<Select.Trigger>
+								<Select.Value />
+							</Select.Trigger>
+							<Select.Popover>
+								<ListBox>
+									<ListBox.Item id='25' textValue='25 per page'>
+										25 per page
+									</ListBox.Item>
+									<ListBox.Item id='50' textValue='50 per page'>
+										50 per page
+									</ListBox.Item>
+								</ListBox>
+							</Select.Popover>
+						</Select>
+						<AppPagination className='w-auto' page={Number(query.page) || 1} total={Math.ceil(data.total / (Number(query.pageSize) || 25))} onChange={(page) => navigate({ ...query, page: String(page) })} />
+					</div>
 				</>
 			)}
 			{preview ? <ClipPreview key={`${creatorId}:${preview.id}`} creatorId={creatorId} clip={preview} onClose={() => setPreview(null)} /> : null}

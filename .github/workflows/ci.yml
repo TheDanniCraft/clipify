@@ -163,6 +163,10 @@ jobs:
             **/node_modules
           key: ${{ needs.deps.outputs.cache-key }}
 
+      - name: 🎞️ Install portrait rendering dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core
       - name: 🧪 Run affected tests
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -535,6 +539,11 @@ jobs:
       - name: 🎞️ Install workflow media dependencies
         if: startsWith(matrix.lane, 'workflows-media')
         run: bash scripts/install-runner-media-deps.sh
+      - name: 🎞️ Install portrait rendering dependencies
+        if: startsWith(matrix.lane, 'unit')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core
       - name: 🧪 Run owning coverage lane
         run: node scripts/run-coverage-lane.mjs ${{ matrix.lane }}
 
@@ -647,9 +656,9 @@ jobs:
       - name: 🎞️ Prepare frame decoding only where required
         if: matrix.ffmpeg == true && matrix.native_media != true
         run: |
-          if ! command -v ffmpeg >/dev/null 2>&1; then
+          if ! command -v ffmpeg >/dev/null 2>&1 || ! command -v ffprobe >/dev/null 2>&1 || ! test -f /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf; then
             sudo apt-get update
-            sudo apt-get install -y --no-install-recommends ffmpeg
+            sudo apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core
           fi
       - name: 🧩 Compile native application probes once
         run: |

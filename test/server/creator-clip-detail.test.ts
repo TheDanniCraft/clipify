@@ -1,3 +1,4 @@
+jest.mock("@actions/twitch", () => ({ getGamesDetailsBulk: jest.fn(async () => []), getGameDetails: jest.fn(async () => null) }));
 /** @jest-environment node */
 import { readCreatorClipDetail } from "@/server/creator-library";
 const authorize = jest.fn();

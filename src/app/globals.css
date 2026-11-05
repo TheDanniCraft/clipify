@@ -68,3 +68,16 @@ html {
 		scrollbar-gutter: stable;
 	}
 }
+
+/* Keep contextual editor actions below the dashboard's sticky toolbar. */
+.clipify-editor-workspace > .card > .card__header {
+	position: sticky;
+	top: 4rem;
+	z-index: 20;
+	background: var(--surface);
+}
+@media (max-width: 639px) {
+	.clipify-editor-workspace > .card > .card__header {
+		position: static;
+	}
+}

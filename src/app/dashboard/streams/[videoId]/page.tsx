@@ -3,6 +3,7 @@ import { Link } from "@heroui/react";
 import { validateAuth } from "@actions/auth";
 import { getCreatorBroadcast, getCreatorClipInventory } from "@actions/creatorLibrary";
 import DashboardNavbar from "@components/dashboardNavbar";
+import StreamMoments from "@components/creator/streamMoments";
 import ClipInventory from "@components/creator/clipInventory";
 export default async function StreamPage({ params, searchParams }: { params: Promise<{ videoId: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
 	const user = await validateAuth();
@@ -37,6 +38,7 @@ export default async function StreamPage({ params, searchParams }: { params: Pro
 				<span>Current clip views: {stream.broadcast.clipViews === null ? "Unavailable" : stream.broadcast.clipViews.toLocaleString()}</span>
 			</div>
 			{stream.stale ? <p className='mt-3 text-sm text-warning-soft-foreground'>Showing saved broadcast information.</p> : null}
+			<StreamMoments creatorId={user.id} clips={stream.broadcast.moments ?? []} />
 			<ClipInventory key={`${user.id}:${videoId}`} creatorId={user.id} query={raw} data={data} />
 		</DashboardNavbar>
 	);

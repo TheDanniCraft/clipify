@@ -380,3 +380,18 @@ All paths use the repository's existing Jest, Playwright and disposable-fixture 
 ## Current correction checkpoint
 
 The complete baseline coverage and109-case core/guide browser run belong to commit1219de42. Current-source affected browser gates and complete coverage pass; test-summary.md records their final evidence without reusing that historical pass. The high/critical dependency audit now passes after patched overrides. Draft CI and full merge validation remain distinct. GOV-001 stays open for historical TDD ordering; Green behavior/gate results do not retroactively satisfy that provenance requirement.
+
+## C dashboard / portrait extension (2026-11-05)
+
+| Requirement                                   | Owning executable evidence                                                                                                     |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| C-01 category resolution / compact pagination | creator-clips.test.ts, appPagination.test.tsx, creator-layout.spec.ts                                                          |
+| C-02 independent Home summaries               | creatorOverview.test.tsx, creator-layout.spec.ts                                                                               |
+| V-01 crop movement / mode switching           | clipLayoutEditor.test.tsx, clip-layout.test.ts, creator-layout.spec.ts                                                         |
+| V-02 per-clip metadata / stream positions     | clip-export.test.ts, creator-broadcasts.test.ts, streamMoments.test.tsx, creator-layout.spec.ts                                |
+| V-03 owned presets / save recovery            | clipLayouts.test.ts, clipLayoutEditor.test.tsx, creator-layout.spec.ts                                                         |
+| V-04 shared manual export / Unicode details   | clip-export.test.ts, clipExport.test.tsx, clipExport.test.ts, creator-layout.spec.ts                                           |
+| V-05 bounded renderer / cleanup and capacity  | clip-layout-render.test.ts, clip-export.test.ts                                                                                |
+| V-06 installed controls / rendered MP4        | creator-layout.spec.ts; shared dashboard-editor-layout.spec.ts; clip-library-recovery.spec.ts reconnect and original MP4 cases |
+
+These are additional source mappings, not replacement evidence for the existing feature inventory. The browser owner covers UX; unit/contract owners cover validation and failure boundaries without duplicating a second browser execution under a different practice label. Historical TDD provenance gaps remain documented in cycle-log.md.

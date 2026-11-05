@@ -26,6 +26,13 @@ browser jobs. These local instructions use 18 for both. The owning CI jobs remai
 the required version-specific release validation. Other operating systems need
 their native PostgreSQL installation and the same Playwright dependency setup.
 
+## Creator portrait exports
+
+Portrait export tests and the app runtime need `ffmpeg`, `ffprobe`, and DejaVu Sans.
+On Ubuntu install them with `sudo apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core`.
+The production container and owning CI jobs install these packages. Renderer tests use
+locally generated media; they never download customer clips.
+
 ## Runner package prerequisites
 
 The guarded Playwright server generates a disposable Ed25519 signing key for

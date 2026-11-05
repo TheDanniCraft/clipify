@@ -2,7 +2,7 @@
 import { useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, Link } from "@heroui/react";
-import { IconArrowLeft } from "@tabler/icons-react";
+import { IconArrowLeft, IconBrandTwitch } from "@tabler/icons-react";
 import type { getCreatorClipDetail } from "@actions/creatorLibrary";
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
 import LocalizedDate from "@components/localizedDate";
@@ -22,7 +22,7 @@ export default function ClipDetails({ creatorId, data }: { creatorId: string; da
 	return (
 		<DashboardEditorLayout>
 			<Card className='w-full'>
-				<Card.Header className='flex flex-wrap items-start justify-between gap-4'>
+				<Card.Header className='flex flex-row flex-wrap items-start justify-between gap-4'>
 					<div className='flex min-w-0 items-start gap-3'>
 						<Button isIconOnly variant='tertiary' aria-label='Back to clip inventory' onPress={() => router.push("/dashboard/clips")}>
 							<IconArrowLeft />
@@ -30,7 +30,8 @@ export default function ClipDetails({ creatorId, data }: { creatorId: string; da
 						<h2 className='min-w-0 break-words text-xl font-semibold'>{clip?.title || (data.ok ? "Untitled clip" : "Clip unavailable")}</h2>
 					</div>
 					{clip ? (
-						<Link href={clip.url} target='_blank' rel='noopener noreferrer'>
+						<Link href={clip.url} target='_blank' rel='noopener noreferrer' className='gap-2 rounded-lg bg-accent-soft px-3 py-2 font-medium text-accent-soft-foreground'>
+							<IconBrandTwitch className='size-4' aria-hidden='true' />
 							Open on Twitch
 						</Link>
 					) : null}
@@ -39,7 +40,10 @@ export default function ClipDetails({ creatorId, data }: { creatorId: string; da
 					{clip && data.ok ? (
 						<>
 							<ClipPlayer creatorId={creatorId} clipId={clip.id} />
-							<ClipExport creatorId={creatorId} clipIds={[clip.id]} scope={`${creatorId}:${clip.id}`} format='mp4' />
+							<div className='flex flex-wrap items-center gap-3'>
+								<Link href={`/dashboard/clips/layout?clips=${encodeURIComponent(clip.id)}`}>Create portrait clip</Link>
+								<ClipExport creatorId={creatorId} clipIds={[clip.id]} scope={`${creatorId}:${clip.id}`} format='mp4' />
+							</div>
 							<dl className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3'>
 								{[
 									["Channel", clip.broadcasterName ?? "Unavailable"],

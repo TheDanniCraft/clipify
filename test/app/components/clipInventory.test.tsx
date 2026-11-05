@@ -99,7 +99,7 @@ it("keeps stream identity when clearing optional filters", async () => {
 
 const item = { id: "A", title: "Clutch", url: "https://clips.twitch.tv/A", categoryId: "game", createdAt: "2026-11-03T00:00:00Z", views: 10, duration: 12, thumbnailUrl: "https://static-cdn.jtvnw.net/a.jpg", broadcasterId: "owner", broadcasterName: null, clipCreatorId: null, clipCreatorName: null, videoId: null, vodOffsetSeconds: null, language: null, isFeatured: null };
 it("shows cached metadata, selects only the visible page and clears explicit selection", () => {
-	render(<ClipInventory creatorId='owner' query={{}} data={{ ...data, items: [item], total: 1, complete: true, fetchedAt: "2026-11-03T00:00:00Z", categories: [{ id: "game", name: "Game" }] }} />);
+	render(<ClipInventory creatorId='owner' query={{}} data={{ ...data, items: [item], total: 1, complete: true, fetchedAt: "2026-11-03T00:00:00Z", categories: [{ id: "game", name: "Game", artworkUrl: null }] }} />);
 	expect(screen.getByText("12s")).toBeInTheDocument();
 	expect(screen.getByText("10")).toBeInTheDocument();
 	fireEvent.click(screen.getByRole("button", { name: "Select page" }));

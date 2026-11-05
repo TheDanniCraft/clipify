@@ -105,3 +105,11 @@ Browser evidence is incremental, not a single fabricated aggregate run:
 Persistent local artifacts are under `test-results/dashboard-audit/sidebar-followup/`. Earlier `/tmp` logs were lost during server restarts; their observed counts are preserved in cycle-log.md without claiming durable local paths. Browser accounts/databases and provider media are disposable fixtures. A real customer's authenticated Twitch download has not been exercised with their credentials.
 
 At this commit snapshot, T631's final publication/CI/preview gate is pending. PR546 records the subsequent exact-head CI result and deployment correlation. A passing older head or a preview URL alone does not establish the follow-up gate. Historical test-first ordering gaps remain disclosed in the original ledger rather than being rewritten as successful TDD proof.
+
+## C dashboard and portrait checkpoint, 2026-11-05
+
+Local affected whole-file owners pass without coverage, including real FFmpeg output, request/ownership validation, shared download recovery, presets, pointer/keyboard editing, concurrency and overlapping saves. Current type checking, production browser build, changed-file lint (no blocking findings), formatting and patch checks pass. Full coverage remains owned by required CI with unchanged thresholds.
+
+Browser evidence is retained under test-results/creator-layout. Thirteen distinct owning journeys pass across the recorded executions: four portrait flows in390/1440px light/dark, settings identity in both themes/widths, two-clip portrait ZIP, two reconnect cases, original MP4, shared editors, two gallery draft/navigation cases and cold-editor hydration. The last frozen-browser.log rerun verifies the final selection guard, compact pagination, stream-position labels and single portrait download. It replaces the earlier desktop-dark readiness failure; no failing result is counted as passing. The publication CI/preview is pending; no merge or release is authorized.
+
+Limits: Full/Stacked manual layouts and one saved channel preset; no arbitrary timeline editor, custom logo uploads, social publishing, Twitch Recap API integration, new pricing or watermark policy. Historical strict TDD provenance gaps remain explicitly recorded.

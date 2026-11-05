@@ -2,7 +2,7 @@
 const { listBrowserTests, planBrowserShards } = require("./browser-sharding.cjs");
 const { mkdirSync, writeFileSync, appendFileSync } = require("node:fs");
 const fixed = [
-	{ project: "acceptance-chromium", shard: "1/1", label: "acceptance" },
+	{ project: "acceptance-chromium", shard: "1/1", label: "acceptance", ffmpeg: true },
 	{ project: "atdd-chromium", shard: "1/1", label: "atdd" },
 	{ project: "compliance-chromium", shard: "1/1", label: "compliance" },
 ];

@@ -1778,6 +1778,7 @@ export async function getGamesDetailsBulk(gameIds: string[], authUserId: string)
 
 		for (const chunk of chunks) {
 			const response = await axios.get<TwitchApiResponse<Game>>("https://api.twitch.tv/helix/games", {
+				timeout: 5000,
 				headers: {
 					Authorization: `Bearer ${accessToken}`,
 					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
@@ -1832,6 +1833,7 @@ export async function getGameDetails(gameId: string, authUserId: string): Promis
 
 	try {
 		const response = await axios.get<TwitchApiResponse<Game>>(url, {
+			timeout: 5000,
 			headers: {
 				Authorization: `Bearer ${accessToken}`,
 				/* istanbul ignore next */

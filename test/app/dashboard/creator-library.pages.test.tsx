@@ -127,3 +127,22 @@ it("requires sign-in before resolving clip details", async () => {
 	await expect(Page({ params: Promise.resolve({ clipId: "A" }) })).rejects.toThrow("redirect");
 	expect(detail).not.toHaveBeenCalled();
 });
+
+jest.mock("@components/creator/clipLayoutEditor", () => ({ __esModule: true, default: ({ creatorId, ids }: { creatorId: string; ids: string[] }) => <output>{`${creatorId}:${ids.join(",")}`}</output> }));
+it("opens the portrait workspace for the authenticated creator and deduplicates selection", async () => {
+	const Page = (await import("@/app/dashboard/clips/layout/page")).default;
+	render(await Page({ searchParams: Promise.resolve({ clips: "A,A,B" }) }));
+	expect(detail).toHaveBeenCalledWith({ creatorId: "owner", clipId: "A" });
+	expect(screen.getByText("owner:A,B")).toBeVisible();
+});
+it.each(["", "x".repeat(201), Array.from({ length: 51 }, (_, i) => String(i)).join(",")])("rejects an invalid portrait selection before reading clips", async (clips) => {
+	const Page = (await import("@/app/dashboard/clips/layout/page")).default;
+	render(await Page({ searchParams: Promise.resolve({ clips }) }));
+	expect(screen.getByRole("link", { name: "Select clips in your inventory" })).toBeVisible();
+	expect(detail).not.toHaveBeenCalled();
+});
+it("requires authentication before opening a portrait layout", async () => {
+	auth.mockResolvedValue(false);
+	const Page = (await import("@/app/dashboard/clips/layout/page")).default;
+	await expect(Page({ searchParams: Promise.resolve({ clips: "A" }) })).rejects.toThrow("redirect");
+});

@@ -151,3 +151,18 @@ Each existing numbered acceptance scenario has a stable anchor `US<n>-AC<m>` in 
 - ZIP, individual MP4 and official playback download-URL calls share persistent account budgets. Existing trust, permission, timeout and byte limits remain enforced.
 - Operational errors use toast feedback; export per-clip details use a bounded, scrollable dialog without moving the underlying inventory. Filter validation stays inline. Report feedback must not shift the dashboard horizontally.
 - The signed-in avatar is green; only confirmed own-channel Twitch live data makes it red. Delegated account context must not change whose presence is displayed.
+
+## Approved extension: C dashboard and manual portrait exports (2026-11-05)
+
+The creator keeps the approved sidebar and uses aligned Home summary cards, a stream table and a dense25/50-row clip inventory with compact numbered pagination. Stream detail provides a chronological selection of owned moments; it does not claim to import, synchronize or publish Twitch Stream Recaps.
+
+- C-01: A creator can paginate a populated inventory and open clip details from its thumbnail, title or details action. Missing cached category names resolve from Twitch when possible; artwork accompanies names when available. Unavailable metadata never fabricates a category.
+- C-02: Home keeps clip metrics and latest stream independent during loading/failure. Top clips occupy a full-width list. Existing onboarding links remain available.
+- V-01: From one clip or a selected batch, the creator opens a portrait workspace, adjusts gameplay/camera source crops using pointer or keyboard controls, switches Full/Stacked and adjusts the camera share between20% and50%. Full mode always edits the visible gameplay crop.
+- V-02: Optional channel, title and clipper layers use each clip's own metadata, with bounded positions/sizes and consistent preview/render text wrapping.
+- V-03: An authorized creator saves one reusable channel layout and can reload it across sessions. Failed or overlapping saves preserve newer edits. Unsaved navigation requires a decision. Exports cannot start while a saved layout is still loading.
+- V-04: Manual exports produce a portrait MP4 for one clip or a ZIP for a batch. Original downloads remain unchanged. The same creator permissions, provider request budgets, job budgets, ownership validation and byte limits apply. A landscape source is required for custom crops.
+- V-05: Rendering uses bounded local files, process concurrency, threads, runtime and output size, with temporary-file cleanup after success/failure/cancellation. Operational failures use existing export dialogs/toasts and retain the layout.
+- V-06: Installed HeroUI controls work in390px/1440px light/dark browsers. A real downloaded video has720×1280 dimensions and preserves source audio.
+
+No automatic social publishing, Twitch Recap publishing, pricing change, watermark policy, custom logo uploads or general-purpose timeline editor is included in this extension.

@@ -61,3 +61,7 @@ it("cancels pending reads when the request is aborted", async () => {
 	expect(cancel).toHaveBeenCalled();
 	expect(stream.locked).toBe(false);
 });
+it("keeps Unicode clip titles readable in partial export details", () => {
+	const value = { included: [0], skipped: [{ index: 1, code: "render_failed", retryable: true, title: "Überraschung 世界 🎉" }] };
+	expect(decodeClipExportSummary(encode(value), 2)).toEqual(value);
+});

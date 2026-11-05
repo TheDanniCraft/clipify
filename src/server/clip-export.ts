@@ -1,4 +1,6 @@
 import "server-only";
+import { clipLayoutSchema } from "@lib/clipLayout";
+import { renderClipLayout } from "./clip-layout-render";
 import { z } from "zod";
 import { readBoundedResponse } from "@lib/clipExport";
 export { readBoundedResponse } from "@lib/clipExport";
@@ -15,6 +17,7 @@ import { publicClip } from "./resources/clip-discovery";
 
 export const exportRequestSchema = z.object({
 	creatorId: z.string().min(1).max(200),
+	layout: clipLayoutSchema.optional(),
 	clipIds: z
 		.array(z.string().min(1).max(200))
 		.max(1000)
@@ -152,7 +155,7 @@ export async function buildClipArchive(input: unknown, parentSignal?: AbortSigna
 			if (!summary.skipped.some((item) => item.index === index)) {
 				const title = Array.from(clips[index]!.clip.title).slice(0, 80);
 				while (strToU8(title.join("")).length > 80) title.pop();
-				summary.skipped.push({ index, code, retryable: ["provider_error", "download_timeout", "rate_limited"].includes(code), title: title.join("") });
+				summary.skipped.push({ index, code, retryable: ["provider_error", "download_timeout", "rate_limited", "render_busy", "render_failed"].includes(code), title: title.join("") });
 			}
 		};
 		let blocked: string | undefined;
@@ -215,7 +218,7 @@ export async function buildClipArchive(input: unknown, parentSignal?: AbortSigna
 						continue;
 					}
 					const item = matching[0];
-					const mediaUrl = item.landscape_download_url || item.portrait_download_url;
+					const mediaUrl = parsed.data.layout ? item.landscape_download_url : item.landscape_download_url || item.portrait_download_url;
 					if (!mediaUrl) {
 						skip(index, "download_unavailable");
 						continue;
@@ -241,9 +244,11 @@ export async function buildClipArchive(input: unknown, parentSignal?: AbortSigna
 				pair.map(async (index) => {
 					const fileSignal = AbortSignal.any([signal, AbortSignal.timeout(30000)]);
 					try {
-						return { index, bytes: await downloadMedia(sources.get(index)!.url, fileSignal) };
+						let bytes = await downloadMedia(sources.get(index)!.url, fileSignal);
+						if (parsed.data.layout) bytes = await renderClipLayout(bytes, parsed.data.layout, publicClip(clips[index]!.clip), signal);
+						return { index, bytes };
 					} catch (error) {
-						return { index, code: fileSignal.aborted ? "download_timeout" : error instanceof Error && ["clip_unavailable", "download_unavailable", "file_size_limit", "invalid_media"].includes(error.message) ? error.message : "provider_error" };
+						return { index, code: fileSignal.aborted ? "download_timeout" : error instanceof Error && ["clip_unavailable", "download_unavailable", "file_size_limit", "invalid_media", "render_busy", "render_failed"].includes(error.message) ? error.message : "provider_error" };
 					}
 				}),
 			);
@@ -261,7 +266,7 @@ export async function buildClipArchive(input: unknown, parentSignal?: AbortSigna
 				files[filename] = result.bytes;
 				totalBytes += result.bytes.length;
 				summary.included.push(result.index);
-				manifest.push({ ...publicClip(clip), status: "included", filename, bytes: result.bytes.length, variant: sources.get(result.index)!.variant });
+				manifest.push({ ...publicClip(clip), status: "included", filename, bytes: result.bytes.length, variant: parsed.data.layout ? "portrait" : sources.get(result.index)!.variant });
 			}
 		}
 		signal.throwIfAborted();

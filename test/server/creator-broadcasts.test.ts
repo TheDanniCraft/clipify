@@ -128,3 +128,18 @@ describe("provider response and signed cursor boundaries", () => {
 		expect(() => sealBroadcastCursor("owner", "x".repeat(2000))).toThrow("INVALID_INPUT");
 	});
 });
+it("orders stream moments by VOD position even when viewers clipped them later", async () => {
+	authorize.mockResolvedValue({ allowed: true });
+	cache.mockResolvedValue({ value: { data: [archiveVideo], fetchedAt: new Date().toISOString() } });
+	library.mockResolvedValue({
+		ok: true,
+		clips: [
+			{ id: "Later", title: "Later", broadcaster_id: "owner", video_id: "100", vod_offset: 90, duration: 10, created_at: "2026-11-01T00:00:00Z" },
+			{ id: "First", title: "First", broadcaster_id: "owner", video_id: "100", vod_offset: 10, duration: 10, created_at: "2026-11-03T00:00:00Z" },
+		],
+	});
+	const { readCreatorBroadcasts } = await import("@/server/creator-broadcasts");
+	const result = await readCreatorBroadcasts("owner");
+	expect(result.ok).toBe(true);
+	if (result.ok) expect(result.items[0].moments.map((clip) => clip.id)).toEqual(["First", "Later"]);
+});

@@ -310,3 +310,14 @@ These extend the original planned matrix; they do not retroactively establish te
 | FU7 | Tools sidebar URLs and browser history preserve player options                            | dashboard-sidebar-destinations.spec.ts                                                                           | Final local browser checkpoint recorded in test-summary.md                                                                 |
 
 Operational refresh failures preserve successful inventory data; typed access revocation clears visible metadata. Both have whole-file component coverage, including an observed access-revocation Red. Full exact-head CI and published preview status remain separately tracked in PR546.
+
+## 2026-11-05 portrait and C follow-up
+
+- C-01: test/server/creator-clips.test.ts; test/app/components/appPagination.test.tsx; test/acceptance/creator-layout.spec.ts.
+- C-02: test/app/components/creatorOverview.test.tsx; test/acceptance/creator-layout.spec.ts.
+- V-01/V-02: test/server/clip-layout.test.ts; test/app/components/clipLayoutEditor.test.tsx; real pointer/keyboard/browser preview in test/acceptance/creator-layout.spec.ts.
+- V-03: test/app/actions/clipLayouts.test.ts; concurrent-save/navigation cases in test/app/components/clipLayoutEditor.test.tsx; real preset save/reload in the browser owner.
+- V-04/V-05: test/server/clip-export.test.ts; test/server/clip-layout-render.test.ts; existing export recovery owners and real downloaded MP4 in the browser owner.
+- V-06: test/acceptance/creator-layout.spec.ts across both widths/themes, plus shared editor/regression owners.
+
+Evidence note: the initial layout module's missing-module Red is scaffolding evidence, not proof of behavior-first TDD. Renderer/component tests were developed alongside implementation; no retrospective test-first claim is made.

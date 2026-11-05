@@ -6,6 +6,8 @@ import { twitchCacheTable } from "@/db/schema";
 import { TwitchCacheType } from "@types";
 import { providerClipSchema } from "./resources/clip-validation";
 import { authorizeCreatorOperation } from "@/auth/authorize-operation";
+import { getGamesDetailsBulk, getGameDetails } from "@actions/twitch";
+import { publicTwitchImageUrl } from "./resources/twitch-image";
 import { filterDiscoveredClips, publicClip } from "./resources/clip-discovery";
 
 export const inventoryQuerySchema = z
@@ -87,7 +89,17 @@ export async function readCreatorLibrary(creatorId: string, query: unknown = {})
 					.where(and(eq(twitchCacheTable.type, TwitchCacheType.Game), inArray(twitchCacheTable.key, categoryIds)))
 					.execute()
 			: [];
-		const categories = games.map((row) => z.object({ id: z.string(), name: z.string() }).parse(JSON.parse(row.value)));
+		const cachedGames = games.flatMap((row) => {
+			try {
+				const game = z.object({ id: z.string(), name: z.string(), box_art_url: z.string().optional() }).safeParse(JSON.parse(row.value));
+				return game.success ? [game.data] : [];
+			} catch {
+				return [];
+			}
+		});
+		const missing = categoryIds.filter((id) => !cachedGames.some((game) => game.id === id));
+		const fetched = missing.length ? await getGamesDetailsBulk(missing, creatorId).catch(() => []) : [];
+		const categories = [...cachedGames, ...fetched].filter((game) => categoryIds.includes(game.id)).map((game) => ({ id: game.id, name: game.name, artworkUrl: publicTwitchImageUrl(game.box_art_url?.replace("{width}", "40").replace("{height}", "56")) }));
 		return { ok: true as const, clips: [...clips.values()], filters: parsed.data, categories, complete: complete && !invalid, fetchedAt };
 	} catch {
 		return { ok: false as const, code: "SERVICE_UNAVAILABLE" };
@@ -133,6 +145,7 @@ export async function readCreatorClipDetail(creatorId: string, clipId: string) {
 				const parsedGame = z.object({ name: z.string() }).safeParse(JSON.parse(game.value));
 				if (parsedGame.success) categoryName = parsedGame.data.name;
 			}
+			if (!categoryName) categoryName = (await getGameDetails(clip.game_id, creatorId).catch(() => null))?.name ?? null;
 		}
 		return { ok: true as const, clip: publicClip(clip), categoryName, fetchedAt: row.fetchedAt.toISOString() };
 	} catch {

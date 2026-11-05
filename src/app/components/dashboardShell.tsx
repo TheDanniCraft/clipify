@@ -234,7 +234,7 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 				search: showSearch,
 				expanded: isMobile ? isMobileOpen : open,
 				mobile: isMobile,
-				current: current ? { href: current.href, title: current.title, detail: Boolean(currentChild) || path !== current.href, detailLabel: currentChild?.title ?? (path.startsWith("/dashboard/clips/") ? "Clip" : undefined) ?? (current.href === "/dashboard/settings" ? (path.startsWith("/dashboard/settings/team") ? "Team" : path.startsWith("/dashboard/settings/agencies") ? "Agency access" : "Account recovery") : undefined) } : undefined,
+				current: current ? { href: current.href, title: current.title, detail: Boolean(currentChild) || path !== current.href, detailLabel: currentChild?.title ?? (path === "/dashboard/clips/layout" ? "Portrait layout" : path.startsWith("/dashboard/clips/") ? "Clip" : undefined) ?? (current.href === "/dashboard/settings" ? (path.startsWith("/dashboard/settings/team") ? "Team" : path.startsWith("/dashboard/settings/agencies") ? "Agency access" : "Account recovery") : undefined) } : undefined,
 				registerSearch: (node) => {
 					searchRef.current = node;
 				},

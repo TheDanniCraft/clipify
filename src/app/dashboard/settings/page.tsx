@@ -506,25 +506,8 @@ export default function SettingsPage() {
 							</Card>
 						) : (
 							<Card className='mt-4'>
-								<Card.Header>
-									<div className='flex w-full min-w-0 items-center justify-end'>
-										<div className='flex w-full min-w-0 items-center gap-2'>
-											<div className='min-w-0 flex-1 overflow-hidden'>
-												<CodeSnippet className='w-full min-w-0' size='sm' symbol='User ID:' preClassName='overflow-hidden whitespace-nowrap'>
-													{user.id}
-												</CodeSnippet>
-											</div>
-											<Tooltip delay={0}>
-												<Button isIconOnly size='sm' variant='ghost' aria-label='About your user ID'>
-													<IconInfoCircle size={20} className='text-muted' aria-hidden='true' />
-												</Button>
-												<Tooltip.Content>If you contact support, please specify this user ID.</Tooltip.Content>
-											</Tooltip>
-										</div>
-									</div>
-								</Card.Header>
-								<Card.Content className='px-6 pt-0 pb-6'>
-									<div data-tour='settings-overview' className='mb-5 flex items-center gap-3'>
+								<Card.Header className='flex flex-row flex-wrap items-center justify-between gap-4'>
+									<div data-tour='settings-overview' className='flex items-center gap-3'>
 										<DashboardUserAvatar username={user.username} avatar={user.avatar} />
 										<div>
 											<p className='text-2xl font-bold'>{user.username}</p>
@@ -533,6 +516,21 @@ export default function SettingsPage() {
 											</p>
 										</div>
 									</div>
+									<div className='flex max-w-full min-w-0 items-center gap-2 sm:max-w-sm'>
+										<div className='min-w-0 overflow-hidden'>
+											<CodeSnippet className='w-full min-w-0' size='sm' symbol='User ID:' preClassName='overflow-hidden whitespace-nowrap'>
+												{user.id}
+											</CodeSnippet>
+										</div>
+										<Tooltip delay={0}>
+											<Button isIconOnly size='sm' variant='ghost' aria-label='About your user ID'>
+												<IconInfoCircle size={20} className='text-muted' aria-hidden='true' />
+											</Button>
+											<Tooltip.Content>If you contact support, please specify this user ID.</Tooltip.Content>
+										</Tooltip>
+									</div>
+								</Card.Header>
+								<Card.Content className='px-6 pt-0 pb-6'>
 									<Separator className='my-6' />
 
 									<div className='space-y-6'>

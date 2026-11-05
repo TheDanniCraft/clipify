@@ -1,3 +1,4 @@
+jest.mock("@actions/twitch", () => ({ getGamesDetailsBulk: jest.fn(async () => []), getGameDetails: jest.fn(async () => null) }));
 /** @jest-environment node */
 import { inventoryQuerySchema, queryInventoryClips, readCreatorInventory } from "@/server/creator-library";
 
@@ -215,4 +216,15 @@ describe("private inventory preview authority", () => {
 		const { canPreviewInventoryClip } = await import("@/server/creator-library");
 		expect(await canPreviewInventoryClip({ creatorId: "owner", contextCreatorId: "owner", clipId: "A" }, async () => cached)).toBe(false);
 	});
+});
+
+it("resolves cold category metadata without exposing provider-only fields", async () => {
+	const { getGamesDetailsBulk } = await import("@actions/twitch");
+	jest.mocked(getGamesDetailsBulk).mockResolvedValueOnce([{ id: "123", name: "Just Chatting", box_art_url: "https://static-cdn.jtvnw.net/boxart/{width}x{height}.jpg", igdb_id: "private" }]);
+	authorizeCreatorOperation.mockResolvedValue({ allowed: true });
+	cacheRows.push([{ key: "clip:owner:A", value: JSON.stringify(clip("A")), fetchedAt: new Date() }], []);
+	const result = await readCreatorInventory("owner");
+	expect(result).toMatchObject({ ok: true, categories: [{ id: "123", name: "Just Chatting", artworkUrl: "https://static-cdn.jtvnw.net/boxart/40x56.jpg" }] });
+	expect(getGamesDetailsBulk).toHaveBeenCalledWith(["123"], "owner");
+	expect(JSON.stringify(result)).not.toContain("private");
 });
