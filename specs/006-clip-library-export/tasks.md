@@ -754,3 +754,10 @@ T631 preceding checkpoint:23b6dd303fd14462644ee01db3e94e5d84a11ae9 passed full C
 - [x] T648 Add creator-scoped modal queue, sequential batches, sidebar launcher, expandable session history and stable triggers; compact library refresh.
 - [x] T649 Complete affected whole-file and real browser recovery/portrait/batch validation and inspect both themes and mobile/desktop screenshots.
 - [ ] T650 Publish exact source to PR546, verify preview deployment and inspect the separate required CI checkpoint.
+
+## Home shortcuts and insights, 2026-11-05
+
+- [x] T651 Inspect existing Home/data/entitlement/upgrade paths, HeroUI APIs and Mobbin creator-dashboard references.
+- [x] T652 Test and implement icon shortcuts, additive all-time top clips, genuine Pro page metrics and a feature-specific upgrade entry.
+- [x] T653 Complete affected owners and real browser states, inspect both themes/viewport sizes and repair the prior export BDD response matcher without weakening content assertions.
+- [ ] T654 Publish the passing source to PR546 and verify its exact preview; report complete CI separately.

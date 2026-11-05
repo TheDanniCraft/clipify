@@ -9,7 +9,7 @@ export function localCreationWindow(timeZone: string, now: Date) {
 export function summarizeCreatorClips(clips: import("zod").z.infer<typeof import("./resources/clip-validation").providerClipSchema>[], timeZone: string, now: Date) {
 	const window = localCreationWindow(timeZone, now);
 	const matches = filterDiscoveredClips(clips, { ...window, sort: "most_viewed" });
-	return { ...window, count: matches.length, views: matches.reduce((sum, clip) => sum + (clip.view_count ?? 0), 0), topClips: matches.slice(0, 5).map(publicClip) };
+	return { ...window, count: matches.length, views: matches.reduce((sum, clip) => sum + (clip.view_count ?? 0), 0), topClips: matches.slice(0, 5).map(publicClip), allTimeTopClips: filterDiscoveredClips(clips, { sort: "most_viewed" }).slice(0, 5).map(publicClip) };
 }
 
 export async function readCreatorOverview(creatorId: string, timeZone: string) {

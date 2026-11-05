@@ -36,10 +36,10 @@ Given("the required fixture class is {string}", async ({ tourWorld }, variant: s
 			const time = variant === "start minus one millisecond" ? home.start - 1 : variant === "end minus one millisecond" ? home.end - 1 : variant === "exact exclusive end" ? home.end : home.start;
 			const clip = { ...template, id, title: `Home clip ${index + 1}`, created_at: new Date(time).toISOString(), view_count: 10 };
 			await tourWorld.fixture.pool.query('INSERT INTO "twitchCache" (type,key,value) VALUES ($1,$2,$3)', ["clip", `clip:${owner}:${id}`, JSON.stringify({ clip })]);
+			home.ids.push(id);
 			if (time >= home.start && time < home.end) {
 				home.count++;
 				home.views += 10;
-				home.ids.push(id);
 			}
 		}
 	}
@@ -248,12 +248,13 @@ When("I export each explicitly selected set", async ({ page, tourWorld }) => {
 	await page.getByRole("button", { name: "Select page", exact: true }).click();
 	if (count === 50) {
 		await page.getByRole("button", { name: "Next", exact: true }).click();
+		await expect(page).toHaveURL(/page=2/);
 		await expect(page.getByRole("button", { name: "Select page", exact: true })).toBeVisible();
 		await page.getByRole("button", { name: "Select page", exact: true }).click();
 	}
 	state.expected = count === 1 ? [state.ids[0]] : state.ids.slice(1, count + 1);
 	const downloading = page.waitForEvent("download", { timeout: 30000 });
-	const responsePromise = page.waitForResponse((response) => response.url().endsWith("/api/clips/export"), { timeout: 30000 });
+	const responsePromise = page.waitForResponse((response) => new URL(response.url()).pathname === "/api/clips/export" && response.request().method() === "POST", { timeout: 30000 });
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
 	const response = await responsePromise;
 	expect(response.status(), response.ok() ? "archive response" : await response.text()).toBe(200);
@@ -291,7 +292,7 @@ When("I open Home", async ({ page, tourWorld }) => {
 	await page.goto(`${tourWorld.origin}/dashboard`);
 	await expect(page.getByRole("heading", { name: "Home", exact: true })).toBeVisible();
 });
-Then("the matching clip metrics and ordered top five or actionable empty state are shown", async ({ page, tourWorld }) => {
+Then("the recent clip metrics and all-time top five or actionable empty state are shown", async ({ page, tourWorld }) => {
 	const home = cases.get(tourWorld)!.home!;
 	if (home.count === 0) {
 		await expect(page.getByText("No clips from the last 30 days", { exact: true })).toBeVisible();

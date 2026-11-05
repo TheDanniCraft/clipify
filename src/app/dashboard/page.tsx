@@ -3,6 +3,7 @@ import { getDashboardNavbarUser } from "@/auth/navigation-user";
 import { validateAuth } from "@actions/auth";
 import DashboardNavbar from "@components/dashboardNavbar";
 import CreatorOverview from "@components/creator/creatorOverview";
+import { getFeatureAccess } from "@lib/featureAccess";
 import ChatwootData from "@components/chatwootData";
 export default async function Dashboard({ searchParams }: { searchParams?: Promise<{ tab?: string | string[]; agency?: string | string[] }> } = {}) {
 	const params = await searchParams;
@@ -15,7 +16,7 @@ export default async function Dashboard({ searchParams }: { searchParams?: Promi
 		<>
 			<ChatwootData user={user} />
 			<DashboardNavbar user={user} title='Home' tagline='Your streams and clips at a glance'>
-				<CreatorOverview key={user.id} creatorId={user.id} />
+				<CreatorOverview key={user.id} creatorId={user.id} analyticsAllowed={getFeatureAccess(user, "creator_page_analytics").allowed} />
 			</DashboardNavbar>
 		</>
 	);

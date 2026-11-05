@@ -57,7 +57,7 @@ function makeUser(role: "user" | "admin", id = "user-1") {
 	};
 }
 
-jest.mock("@components/creator/creatorOverview", () => ({ __esModule: true, default: ({ creatorId }: { creatorId: string }) => <div>{`creator-overview:${creatorId}`}</div> }));
+jest.mock("@components/creator/creatorOverview", () => ({ __esModule: true, default: ({ creatorId, analyticsAllowed }: { creatorId: string; analyticsAllowed: boolean }) => <div data-analytics={analyticsAllowed ? "enabled" : "locked"}>{`creator-overview:${creatorId}`}</div> }));
 describe("app/dashboard/page", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
@@ -115,4 +115,14 @@ it("retains an authenticated session when its creator context is unavailable", a
 	await expect(Page()).rejects.toThrow("NEXT_REDIRECT");
 	expect(redirect).toHaveBeenCalledWith("/dashboard/agency");
 	expect(redirect).not.toHaveBeenCalledWith("/logout");
+});
+
+it.each([
+	["free", "locked"],
+	["pro", "enabled"],
+])("passes %s page analytics access to Home", async (plan, state) => {
+	validateAuth.mockResolvedValue({ ...makeUser("user", "owner"), plan });
+	const Page = (await import("@/app/dashboard/page")).default;
+	render(await Page());
+	expect(screen.getByText("creator-overview:owner")).toHaveAttribute("data-analytics", state);
 });

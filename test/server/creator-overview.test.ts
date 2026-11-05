@@ -36,3 +36,10 @@ it("keeps only five top clips and treats absent views as zero", async () => {
 	expect(result.views).toBe(21);
 	expect(result.topClips.map((clip) => clip.id)).toEqual(["6", "5", "4", "3", "2"]);
 });
+it("keeps an all-time ranking when the creator has no recent clips", async () => {
+	const { summarizeCreatorClips } = await import("@/server/creator-overview");
+	const old = { id: "old", title: "An old favourite", broadcaster_id: "owner", duration: 10, created_at: "2020-01-01T00:00:00Z", view_count: 123 };
+	const result = summarizeCreatorClips([old], "UTC", new Date("2026-11-05T00:00:00Z"));
+	expect(result).toMatchObject({ count: 0, views: 0, topClips: [] });
+	expect(result.allTimeTopClips.map((clip) => clip.id)).toEqual(["old"]);
+});

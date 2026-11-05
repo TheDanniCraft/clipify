@@ -39,3 +39,5 @@ The previous four screenshots and successful no-overflow assertions did not esta
 ## Batch export modal
 
 Reviewed Mobbin Proton transfer panel (https://mobbin.com/screens/12f6528d-e78a-4540-9087-784c0baa9172) and Teachable bulk upload (https://mobbin.com/screens/c81d368e-2376-414b-8fa8-c24983c6bd9c). Adopt named per-file progress, a reopening launcher and compact completed history, using installed HeroUI Modal/Spinner/Disclosure/Button and Clipify tokens. Preserve the accepted clip inventory table and portrait editor. No invented percentage while the server is processing.
+
+Home refinement references: Kit https://mobbin.com/screens/47235d98-be19-49ae-84e3-6d01f5b7021e shows labeled navigation actions with icons; Podia https://mobbin.com/screens/4202d45b-854f-4905-9413-4405d5f60563 keeps audience statistics alongside content/activity. Use the structural distinction between shortcuts, content and audience metrics inside Clipify's HeroUI theme, retaining the approved C layout. Icon button sizing and Card composition follow installed HeroUI documentation. The all-time scope and Pro lock copy are Clipify product decisions.

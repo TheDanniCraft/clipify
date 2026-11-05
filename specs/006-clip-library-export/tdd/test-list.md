@@ -335,3 +335,5 @@ Export-flow audit owners: clipPlayer.test.tsx and clipPreview.test.tsx cover lat
 - Incremental transport rejects malformed/oversized metadata, invalid indices, missing/inconsistent summaries, truncated/oversized bytes and invalid file signatures. Cancellation stops reads.
 - Failure, reconnect subset retry, partial package retry, cancellation and completed history remain actionable without changing page geometry.
 - Compact refresh retains filtering and cross-page selection; portrait selection explains its 50-clip limit.
+
+Home insights: verify no-recent-activity creators retain old top clips; original recent metrics/window/tie semantics remain intact. Check labeled icon shortcuts and guide targets, server Free/Pro access propagation, no locked analytics fetch, real data/retry/stale freshness, rejection versus upgrade separation and late response isolation. Browser acceptance covers Free/Pro at390/1440px in both themes, keyboard entry into the existing upgrade modal, no horizontal overflow, and the existing portrait journey. Run complete BDD Home/Streams and original export scenarios when changing shared bindings.
