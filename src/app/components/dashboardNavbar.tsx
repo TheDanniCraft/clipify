@@ -192,6 +192,55 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 		</Button>
 	);
 
+	const accountSwitcher =
+		((organizations.isPending && !inShell) || organizationOptions.length > 1 || (organizationOptions.length === 1 && accountType(organizationOptions[0]) === "agency" && !activeOrganization)) && (!inShell || navigation.expanded) ? (
+			<li className={inShell ? "w-full" : "mr-1 w-36 sm:w-48"}>
+				<Autocomplete
+					aria-label='Account context'
+					isDisabled={organizations.isPending || isSwitchingOrganization}
+					placeholder='Select account'
+					selectionMode='single'
+					value={displayedOrganization?.id ?? null}
+					variant='secondary'
+					onChange={(key) => {
+						const organization = organizationOptions.find((candidate) => candidate.id === String(key ?? ""));
+						if (organization) void switchAccount(organization);
+					}}
+				>
+					<Label className='sr-only'>Account</Label>
+					<Autocomplete.Trigger className='h-9 items-center gap-2 rounded-xl border-transparent bg-default px-2 text-foreground shadow-none hover:bg-default-hover'>
+						<span className='flex h-5 w-4 shrink-0 items-center justify-center text-muted'>
+							<IconBuildingCommunity aria-hidden='true' className='translate-y-px' size={15} />
+						</span>
+						<Autocomplete.Value className='block min-w-0 flex-1 truncate text-left text-sm font-medium leading-5'>{displayedOrganization?.name ?? (organizations.isPending ? "Loading accounts…" : "Select account")}</Autocomplete.Value>
+						<Autocomplete.Indicator className='shrink-0 text-muted' />
+					</Autocomplete.Trigger>
+					<Autocomplete.Popover className='min-w-64' placement='bottom end'>
+						<Autocomplete.Filter filter={contains}>
+							<SearchField autoFocus aria-label='Search accounts' name='account-search' variant='secondary'>
+								<SearchField.Group>
+									<SearchField.SearchIcon />
+									<SearchField.Input placeholder='Search accounts' />
+									<SearchField.ClearButton />
+								</SearchField.Group>
+							</SearchField>
+							<ListBox renderEmptyState={() => <EmptyState>No accounts found.</EmptyState>}>
+								{organizationOptions.map((organization) => (
+									<ListBox.Item key={organization.id} id={organization.id} textValue={organization.name}>
+										<div className='min-w-0'>
+											<Label className='block truncate'>{organization.name}</Label>
+											<p className='text-xs capitalize text-muted'>{accountType(organization)} account</p>
+										</div>
+										<ListBox.ItemIndicator />
+									</ListBox.Item>
+								))}
+							</ListBox>
+						</Autocomplete.Filter>
+					</Autocomplete.Popover>
+				</Autocomplete>
+			</li>
+		) : null;
+
 	return (
 		<>
 			<nav className={inShell ? "sticky top-0 z-30 w-full border-b border-separator bg-background" : "sticky top-0 z-30 w-full bg-accent"}>
@@ -206,6 +255,7 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 					<AccountControlsContainer {...(inShell ? { slot: "account" as const } : {})}>
 						<ul data-dashboard-account-controls className={inShell ? "flex w-full flex-col items-stretch gap-1" : "order-2 ml-auto flex h-12 max-w-fit items-center gap-0 sm:order-3"}>
 							{!inShell ? <li>{themeControl}</li> : null}
+							{inShell ? accountSwitcher : null}
 							<li className={inShell ? "min-w-0 flex-1" : "px-2"}>
 								<Dropdown>
 									<Dropdown.Trigger data-tour='nav-menu' className={inShell ? `flex h-10 w-full min-w-0 items-center gap-2 rounded-lg text-foreground ${navigation.expanded ? "px-2" : "justify-center"}` : "mt-1 h-8 w-8 overflow-visible transition-transform"} aria-label='Open profile menu'>
@@ -260,53 +310,7 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 									</Dropdown.Popover>
 								</Dropdown>
 							</li>
-							{(organizations.isPending || organizationOptions.length > 1 || (organizationOptions.length > 0 && !activeOrganization)) && (!inShell || navigation.expanded) ? (
-								<li className={inShell ? "w-full" : "mr-1 w-36 sm:w-48"}>
-									<Autocomplete
-										aria-label='Account context'
-										isDisabled={organizations.isPending || isSwitchingOrganization}
-										placeholder='Select account'
-										selectionMode='single'
-										value={displayedOrganization?.id ?? null}
-										variant='secondary'
-										onChange={(key) => {
-											const organization = organizationOptions.find((candidate) => candidate.id === String(key ?? ""));
-											if (organization) void switchAccount(organization);
-										}}
-									>
-										<Label className='sr-only'>Account</Label>
-										<Autocomplete.Trigger className='h-9 items-center gap-2 rounded-xl border-transparent bg-default px-2 text-foreground shadow-none hover:bg-default-hover'>
-											<span className='flex h-5 w-4 shrink-0 items-center justify-center text-muted'>
-												<IconBuildingCommunity aria-hidden='true' className='translate-y-px' size={15} />
-											</span>
-											<Autocomplete.Value className='block min-w-0 flex-1 truncate text-left text-sm font-medium leading-5'>{displayedOrganization?.name ?? (organizations.isPending ? "Loading accounts…" : "Select account")}</Autocomplete.Value>
-											<Autocomplete.Indicator className='shrink-0 text-muted' />
-										</Autocomplete.Trigger>
-										<Autocomplete.Popover className='min-w-64' placement='bottom end'>
-											<Autocomplete.Filter filter={contains}>
-												<SearchField autoFocus aria-label='Search accounts' name='account-search' variant='secondary'>
-													<SearchField.Group>
-														<SearchField.SearchIcon />
-														<SearchField.Input placeholder='Search accounts' />
-														<SearchField.ClearButton />
-													</SearchField.Group>
-												</SearchField>
-												<ListBox renderEmptyState={() => <EmptyState>No accounts found.</EmptyState>}>
-													{organizationOptions.map((organization) => (
-														<ListBox.Item key={organization.id} id={organization.id} textValue={organization.name}>
-															<div className='min-w-0'>
-																<Label className='block truncate'>{organization.name}</Label>
-																<p className='text-xs capitalize text-muted'>{accountType(organization)} account</p>
-															</div>
-															<ListBox.ItemIndicator />
-														</ListBox.Item>
-													))}
-												</ListBox>
-											</Autocomplete.Filter>
-										</Autocomplete.Popover>
-									</Autocomplete>
-								</li>
-							) : null}
+							{!inShell ? accountSwitcher : null}
 						</ul>
 					</AccountControlsContainer>
 				</header>

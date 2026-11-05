@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const React = require("react");
 
-const Component = React.forwardRef(function HeroUIComponent({ children, onPress, className, id, style, "aria-label": ariaLabel, "aria-pressed": ariaPressed, "aria-expanded": ariaExpanded }, ref) {
-	return React.createElement("div", { className, id, style, ref, "aria-label": ariaLabel, "aria-pressed": ariaPressed, "aria-expanded": ariaExpanded, onClick: onPress }, children);
+const Component = React.forwardRef(function HeroUIComponent({ children, onPress, className, id, style, role, "aria-label": ariaLabel, "aria-pressed": ariaPressed, "aria-expanded": ariaExpanded }, ref) {
+	return React.createElement("div", { className, id, style, ref, role, "aria-label": ariaLabel, "aria-pressed": ariaPressed, "aria-expanded": ariaExpanded, onClick: onPress }, children);
 });
 
 const CompoundComponent = new Proxy(Component, {

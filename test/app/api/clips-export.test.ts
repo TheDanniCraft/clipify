@@ -1,7 +1,8 @@
 /** @jest-environment node */
 import { POST } from "@/app/api/clips/export/route";
 const archive = jest.fn();
-jest.mock("@/server/clip-export", () => ({ ...jest.requireActual("@/server/clip-export"), buildClipArchive: (...args: unknown[]) => archive(...args) }));
+const planArchive = jest.fn();
+jest.mock("@/server/clip-export", () => ({ ...jest.requireActual("@/server/clip-export"), buildClipArchive: (...args: unknown[]) => archive(...args), buildClipExportPlan: (...args: unknown[]) => planArchive(...args) }));
 it("rejects cross-origin export before preparing media", async () => {
 	const response = await POST(new Request("https://clipify.test/api/clips/export", { method: "POST", headers: { origin: "https://other.test", "content-type": "application/json" }, body: JSON.stringify({ creatorId: "owner", clipIds: ["A"] }) }));
 	expect(response.status).toBe(403);
@@ -108,4 +109,15 @@ it("streams typed access denial without a file and cancels active work on discon
 	const response = await POST(make());
 	await response.body!.cancel();
 	expect(signal.aborted).toBe(true);
+});
+
+it("dispatches a bounded multi-version plan through the private progress response", async () => {
+	archive.mockClear();
+	archive.mockResolvedValue({ ok: true, bytes: new Uint8Array([1, 2, 3]), summary: { included: [0], skipped: [] } });
+	planArchive.mockResolvedValue({ ok: true, bytes: new Uint8Array([1, 2, 3]), summary: { included: [0], skipped: [] } });
+	const input = { creatorId: "owner", files: [{ clipId: "A", outputKey: "original" }], outputs: [{ key: "original", label: "Original" }] };
+	const response = await POST(new Request("https://clipify.test/api/clips/export?plan=1&progress=1", { method: "POST", headers: { origin: "https://clipify.test", "content-type": "application/json" }, body: JSON.stringify(input) }));
+	await response.arrayBuffer();
+	expect(planArchive).toHaveBeenCalledWith(input, expect.any(AbortSignal), "zip", expect.any(Function));
+	expect(archive).not.toHaveBeenCalled();
 });

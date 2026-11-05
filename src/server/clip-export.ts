@@ -1,6 +1,9 @@
 import "server-only";
 import type { ClipExportProgress } from "@lib/clipExportStream";
 import { clipLayoutSchema } from "@lib/clipLayout";
+import { compositionSchema } from "@lib/clipComposition";
+import { clipExportPlanSchema } from "@lib/clipExportPlan";
+import { listClipLayouts } from "@actions/clipLayoutLibrary";
 import { renderClipLayout } from "./clip-layout-render";
 import { z } from "zod";
 import { readBoundedResponse } from "@lib/clipExport";
@@ -8,7 +11,7 @@ export { readBoundedResponse } from "@lib/clipExport";
 import { zipSync, strToU8 } from "fflate";
 import { and, eq, gt, inArray, isNull, or } from "drizzle-orm";
 import { db } from "@/db/client";
-import { twitchCacheTable } from "@/db/schema";
+import { twitchCacheTable, userContentStatesTable } from "@/db/schema";
 import { TwitchCacheType } from "@types";
 import { authorizeCreatorOperation } from "@/auth/authorize-operation";
 import { getAccessTokenResultInternal } from "@/server/tokens";
@@ -18,7 +21,7 @@ import { publicClip } from "./resources/clip-discovery";
 
 export const exportRequestSchema = z.object({
 	creatorId: z.string().min(1).max(200),
-	layout: clipLayoutSchema.optional(),
+	layout: z.union([clipLayoutSchema, compositionSchema]).optional(),
 	clipIds: z
 		.array(z.string().min(1).max(200))
 		.max(1000)
@@ -118,7 +121,25 @@ export function clipExportFilename(title: string, id: string, index: number, use
 	return filename;
 }
 
+async function readOwnedExportClips(creatorId: string, clipIds: string[]) {
+	const keys = clipIds.map((id) => `clip:${creatorId}:${id}`);
+	const rows = await db
+		.select({ key: twitchCacheTable.key, value: twitchCacheTable.value })
+		.from(twitchCacheTable)
+		.where(and(eq(twitchCacheTable.type, TwitchCacheType.Clip), inArray(twitchCacheTable.key, keys), or(isNull(twitchCacheTable.expiresAt), gt(twitchCacheTable.expiresAt, new Date()))))
+		.execute();
+	return clipIds.map((id) => {
+		const row = rows.find((entry) => entry.key === `clip:${creatorId}:${id}`);
+		if (!row) return null;
+		const stored = JSON.parse(row.value);
+		const clip = providerClipSchema.safeParse(stored.clip ?? stored);
+		return clip.success && clip.data.id === id && clip.data.broadcaster_id === creatorId ? { clip: clip.data, unavailable: stored.unavailable === true } : null;
+	});
+}
 export async function buildClipArchive(input: unknown, parentSignal?: AbortSignal, format: "zip" | "mp4" = "zip", progress?: (event: ClipExportProgress) => void): Promise<ArchiveResult> {
+	return prepareClipArchive(input, parentSignal, format, progress);
+}
+async function prepareClipArchive(input: unknown, parentSignal?: AbortSignal, format: "zip" | "mp4" = "zip", progress?: (event: ClipExportProgress) => void, reserved = false, landscapeOnly = false): Promise<ArchiveResult> {
 	const parsed = exportRequestSchema.safeParse(input);
 	if (!parsed.success) return failure("INVALID_INPUT", 400);
 	const { creatorId, clipIds } = parsed.data;
@@ -131,26 +152,14 @@ export async function buildClipArchive(input: unknown, parentSignal?: AbortSigna
 	if (!grant.allowed) return failure(grant.code, grant.code === "AUTHENTICATION_REQUIRED" ? 401 : 403);
 	const signal = AbortSignal.any([...(parentSignal ? [parentSignal] : []), AbortSignal.timeout(120000)]);
 	try {
-		const keys = clipIds.map((id) => `clip:${creatorId}:${id}`);
-		const rows = await db
-			.select({ key: twitchCacheTable.key, value: twitchCacheTable.value })
-			.from(twitchCacheTable)
-			.where(and(eq(twitchCacheTable.type, TwitchCacheType.Clip), inArray(twitchCacheTable.key, keys), or(isNull(twitchCacheTable.expiresAt), gt(twitchCacheTable.expiresAt, new Date()))))
-			.execute();
-		const clips = clipIds.map((id) => {
-			const row = rows.find((entry) => entry.key === `clip:${creatorId}:${id}`);
-			if (!row) return null;
-			const stored = JSON.parse(row.value);
-			const clip = providerClipSchema.safeParse(stored.clip ?? stored);
-			return clip.success && clip.data.id === id && clip.data.broadcaster_id === creatorId ? { clip: clip.data, unavailable: stored.unavailable === true } : null;
-		});
+		const clips = await readOwnedExportClips(creatorId, clipIds);
 		if (clips.some((clip) => !clip)) return failure("INVALID_INPUT", 400);
-		const limit = await reserveClipDownloadJob(creatorId);
+		const limit = reserved ? { allowed: true as const } : await reserveClipDownloadJob(creatorId);
 		if (!limit.allowed) return failure("RATE_LIMITED", 429, new Date(Date.now() + limit.retryAfterSeconds * 1000).toISOString());
 		const tokenResult = await getAccessTokenResultInternal(creatorId);
 		const token = tokenResult.token;
 		if (!token || !token.scope?.some((scope) => scope === "channel:manage:clips" || scope === "editor:manage:clips")) return failure("RECONNECT_REQUIRED", 403);
-		const volume = await reserveClipExportVolume(creatorId, clipIds.length);
+		const volume = reserved ? { allowed: true as const } : await reserveClipExportVolume(creatorId, clipIds.length);
 		if (!volume.allowed) return failure("RATE_LIMITED", 429, new Date(Date.now() + volume.retryAfterSeconds * 1000).toISOString());
 		clips.forEach((item, index) => progress?.({ index, stage: "queued", title: item!.clip.title.slice(0, 1000) }));
 		const summary: ExportSummary = { included: [], skipped: [] };
@@ -223,7 +232,7 @@ export async function buildClipArchive(input: unknown, parentSignal?: AbortSigna
 						continue;
 					}
 					const item = matching[0];
-					const mediaUrl = parsed.data.layout ? item.landscape_download_url : item.landscape_download_url || item.portrait_download_url;
+					const mediaUrl = parsed.data.layout || landscapeOnly ? item.landscape_download_url : item.landscape_download_url || item.portrait_download_url;
 					if (!mediaUrl) {
 						skip(index, "download_unavailable");
 						continue;
@@ -253,7 +262,7 @@ export async function buildClipArchive(input: unknown, parentSignal?: AbortSigna
 						let bytes = await downloadMedia(sources.get(index)!.url, fileSignal);
 						if (parsed.data.layout) {
 							progress?.({ index, stage: "rendering" });
-							bytes = await renderClipLayout(bytes, parsed.data.layout, publicClip(clips[index]!.clip), signal);
+							bytes = await renderClipLayout(bytes, parsed.data.layout, publicClip(clips[index]!.clip), signal, { avatar: grant.creator?.avatar });
 						}
 						return { index, bytes };
 					} catch (error) {
@@ -299,6 +308,135 @@ export async function buildClipArchive(input: unknown, parentSignal?: AbortSigna
 		const manifestBytes = strToU8(JSON.stringify({ version: 1, createdAt: new Date().toISOString(), clips: manifest }));
 		if (manifestBytes.length > EXPORT_LIMITS.manifest) return failure("EXPORT_LIMIT", 413);
 		files["manifest.json"] = manifestBytes;
+		const bytes = zipSync(files, { level: 0 });
+		if (bytes.length > EXPORT_LIMITS.archive) return failure("EXPORT_LIMIT", 413);
+		const finalGrant = await authorize();
+		if (!finalGrant.allowed) return failure(finalGrant.code, 403);
+		return { ok: true, bytes, summary };
+	} catch {
+		return failure(parentSignal?.aborted ? "EXPORT_CANCELLED" : signal.aborted ? "EXPORT_TIMEOUT" : "SERVICE_UNAVAILABLE", parentSignal?.aborted ? 499 : signal.aborted ? 504 : 503);
+	}
+}
+
+export async function buildClipExportPlan(input: unknown, parentSignal?: AbortSignal, format: "zip" | "mp4" = "zip", progress?: (event: ClipExportProgress) => void): Promise<ArchiveResult> {
+	const parsed = clipExportPlanSchema.safeParse(input);
+	if (!parsed.success || (format === "mp4" && parsed.data.files.length !== 1)) return failure("INVALID_INPUT", 400);
+	const plan = parsed.data,
+		{ creatorId } = plan;
+	const authorize = async () => {
+		const read = await authorizeCreatorOperation({ creatorId, resourceOwnerId: creatorId, permission: "creator:read" });
+		return read.allowed ? authorizeCreatorOperation({ creatorId, resourceOwnerId: creatorId, permission: "clips:export" }) : read;
+	};
+	const grant = await authorize();
+	if (!grant.allowed) return failure(grant.code, grant.code === "AUTHENTICATION_REQUIRED" ? 401 : 403);
+	const signal = AbortSignal.any([...(parentSignal ? [parentSignal] : []), AbortSignal.timeout(120000)]);
+	try {
+		const ids = [...new Set(plan.files.map((file) => file.clipId))],
+			clips = await readOwnedExportClips(creatorId, ids);
+		if (clips.some((clip) => !clip)) return failure("INVALID_INPUT", 400);
+		const known = new Map(ids.map((id, index) => [id, clips[index]!.clip]));
+		const outputLayouts = new Map(plan.outputs.map((output) => [output.key, output.layout]));
+		const templated = plan.outputs.filter((output) => output.templateId);
+		const overrides = new Map<string, ReturnType<typeof compositionSchema.parse>>();
+		if (templated.length) {
+			const library = await listClipLayouts(creatorId);
+			if (!library.ok) return failure(library.code, 503);
+			for (const output of templated) {
+				const entry = library.templates.find((entry) => entry.id === output.templateId);
+				if (!entry) return failure("LAYOUT_UNAVAILABLE", 409);
+				if (output.layout && (output.layout.version !== 2 || output.layout.format !== entry.composition.format)) return failure("LAYOUT_UNAVAILABLE", 409);
+				if (!output.layout) outputLayouts.set(output.key, entry.composition);
+			}
+			const keys = plan.files.flatMap((file) => {
+				const output = templated.find((output) => output.key === file.outputKey);
+				return output ? [`clip-layout-override:v2:${output.templateId}:${file.clipId}`] : [];
+			});
+			if (keys.length) {
+				const rows = await db
+					.select({ contentKey: userContentStatesTable.contentKey, state: userContentStatesTable.state })
+					.from(userContentStatesTable)
+					.where(and(eq(userContentStatesTable.userId, creatorId), inArray(userContentStatesTable.contentKey, keys)))
+					.execute();
+				for (const row of rows) {
+					const composition = compositionSchema.parse(JSON.parse(row.state).composition);
+					overrides.set(row.contentKey, composition);
+				}
+			}
+		}
+		const job = await reserveClipDownloadJob(creatorId);
+		if (!job.allowed) return failure("RATE_LIMITED", 429, new Date(Date.now() + job.retryAfterSeconds * 1000).toISOString());
+		const token = await getAccessTokenResultInternal(creatorId);
+		if (!token.token?.scope?.some((scope) => scope === "channel:manage:clips" || scope === "editor:manage:clips")) return failure("RECONNECT_REQUIRED", 403);
+		const volume = await reserveClipExportVolume(creatorId, plan.files.length);
+		if (!volume.allowed) return failure("RATE_LIMITED", 429, new Date(Date.now() + volume.retryAfterSeconds * 1000).toISOString());
+		const summary: ExportSummary = { included: [], skipped: [] },
+			files: Record<string, Uint8Array> = {},
+			manifest: Record<string, unknown>[] = [],
+			used = new Set<string>();
+		let total = 0;
+		const title = (index: number) => {
+			const file = plan.files[index],
+				output = plan.outputs.find((output) => output.key === file.outputKey)!;
+			return `${known.get(file.clipId)!.title} / ${output.label}`.slice(0, 1000);
+		};
+		plan.files.forEach((_, index) => progress?.({ index, stage: "queued", title: title(index) }));
+		const skip = (index: number, code: string, retryable: boolean) => {
+			summary.skipped.push({ index, code, retryable, title: title(index).slice(0, 80) });
+			progress?.({ index, stage: "skipped", code });
+		};
+		for (let offset = 0; offset < plan.files.length; offset += 2) {
+			signal.throwIfAborted();
+			const results = await Promise.all(
+				plan.files.slice(offset, offset + 2).map(async (file, position) => {
+					const index = offset + position,
+						output = plan.outputs.find((output) => output.key === file.outputKey)!;
+					const override = output.templateId ? overrides.get(`clip-layout-override:v2:${output.templateId}:${file.clipId}`) : undefined;
+					const base = outputLayouts.get(output.key);
+					if (override && (!base || base.version !== 2 || override.format !== base.format)) return { index, result: failure("LAYOUT_UNAVAILABLE", 409), output };
+					const layout = override ?? base;
+					const result = await prepareClipArchive({ creatorId, clipIds: [file.clipId], ...(layout ? { layout } : {}) }, signal, "mp4", (event) => progress?.({ ...event, index, title: title(index) }), true, true);
+					return { index, result, output };
+				}),
+			);
+			for (const { index, result, output } of results) {
+				if (!result.ok) {
+					if (["AUTHENTICATION_REQUIRED", "PERMISSION_DENIED", "ACCOUNT_SUSPENDED", "ENTITLEMENT_REQUIRED", "LAYOUT_UNAVAILABLE"].includes(result.code)) return result;
+					const item = result.failures?.[0],
+						code = item?.code ?? (result.code === "RATE_LIMITED" ? "rate_limited" : result.code === "RECONNECT_REQUIRED" ? "reconnect_required" : result.code === "EXPORT_TIMEOUT" ? "download_timeout" : result.code === "INVALID_INPUT" ? "clip_unavailable" : "provider_error");
+					skip(index, code, item?.retryable ?? ["rate_limited", "download_timeout", "provider_error"].includes(code));
+					if (result.retryAt && (!summary.retryAt || result.retryAt > summary.retryAt)) summary.retryAt = result.retryAt;
+					continue;
+				}
+				if (total + result.bytes.length > EXPORT_LIMITS.media) {
+					skip(index, "package_size_limit", false);
+					continue;
+				}
+				const clip = known.get(plan.files[index].clipId)!,
+					filename = clipExportFilename(`${clip.title} ${output.label}`, `${clip.id}-${output.key}`, index, used);
+				files[filename] = result.bytes;
+				total += result.bytes.length;
+				summary.included.push(index);
+				manifest.push({ ...publicClip(clip), status: "included", filename, bytes: result.bytes.length, outputKey: output.key, outputLabel: output.label, format: outputLayouts.get(output.key)?.version === 2 ? (outputLayouts.get(output.key) as import("@lib/clipComposition").ClipComposition).format : output.layout ? "mobile" : "original" });
+				progress?.({ index, stage: "ready", title: title(index) });
+			}
+		}
+		signal.throwIfAborted();
+		const permission = await authorize();
+		if (!permission.allowed) return failure(permission.code, 403);
+		summary.skipped.sort((a, b) => a.index - b.index);
+		if (!summary.included.length) {
+			const code = summary.skipped.some((item) => item.code === "package_size_limit" || item.code === "file_size_limit") ? "EXPORT_LIMIT" : summary.skipped.some((item) => item.code === "reconnect_required") ? "RECONNECT_REQUIRED" : summary.skipped.some((item) => item.code === "rate_limited") ? "RATE_LIMITED" : "EXPORT_UNAVAILABLE";
+			return { ...failure(code, code === "RATE_LIMITED" ? 429 : 422, summary.retryAt), failures: summary.skipped };
+		}
+		if (format === "mp4") return { ok: true, bytes: files[String(manifest[0].filename)], filename: String(manifest[0].filename), summary };
+		for (const item of summary.skipped) {
+			const file = plan.files[item.index],
+				output = plan.outputs.find((output) => output.key === file.outputKey)!;
+			manifest.push({ ...publicClip(known.get(file.clipId)!), status: "skipped", outputKey: output.key, outputLabel: output.label, code: item.code, retryable: item.retryable });
+		}
+		const data = strToU8(JSON.stringify({ version: 2, createdAt: new Date().toISOString(), clips: manifest, skipped: summary.skipped }, null, 2));
+		if (data.length > EXPORT_LIMITS.manifest) return failure("EXPORT_LIMIT", 413);
+		files["manifest.json"] = data;
 		const bytes = zipSync(files, { level: 0 });
 		if (bytes.length > EXPORT_LIMITS.archive) return failure("EXPORT_LIMIT", 413);
 		const finalGrant = await authorize();

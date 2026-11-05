@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, useTransition, useSyncExterna
 import { usePathname } from "next/navigation";
 import { Button, Card, Checkbox, Disclosure, Input, Label, ListBox, NumberField, Select, Table, TextField, Link } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
-import { IconChevronRight, IconDeviceMobile, IconRefresh } from "@tabler/icons-react";
+import { IconChevronRight, IconLayoutGrid, IconRefresh } from "@tabler/icons-react";
 import { fromDate, toCalendarDate } from "@internationalized/date";
 import { getCreatorClipInventory, refreshCreatorLibrary } from "@actions/creatorLibrary";
 import AppDateRangePicker, { type AppDateRange } from "@components/appDateRangePicker";
@@ -289,12 +289,11 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 									{selection.cleared ? <p role='status'>Selection cleared because the filters changed.</p> : null}
 								</div>
 								<div className='flex flex-wrap items-center gap-3'>
-									<Link className={buttonVariants({ variant: "secondary", className: "gap-2" })} isDisabled={selected.size === 0 || selected.size > 50} href={`/dashboard/clips/layout?clips=${encodeURIComponent([...selected].join(","))}`}>
-										<IconDeviceMobile className='size-4' aria-hidden='true' />
-										Create portrait clips
+									<Link className={buttonVariants({ variant: "secondary", className: "gap-2" })} href='/dashboard/clip-layouts'>
+										<IconLayoutGrid className='size-4' aria-hidden='true' />
+										Clip layouts
 									</Link>
-									{selected.size > 50 ? <p className='text-sm text-muted'>Portrait layouts support up to 50 clips at a time.</p> : null}
-									<ClipExport creatorId={creatorId} clipIds={[...selected]} scope={selection.scope} clipNames={selection.names} />
+									<ClipExport creatorId={creatorId} clipIds={[...selected]} scope={selection.scope} clipNames={selection.names} configure />
 								</div>
 							</Card.Content>
 						</Card>

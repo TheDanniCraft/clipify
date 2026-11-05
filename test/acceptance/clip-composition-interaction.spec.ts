@@ -1,0 +1,122 @@
+import { test, expect } from "../bdd/support/user-tour";
+import { seedCreatorLibrary } from "../support/creator-library";
+import { createClipComposition } from "../../src/app/lib/clipComposition";
+test.use({ actionTimeout: 15000 });
+for (const width of [390, 1440])
+	test(`Reusable crop layers, output handles and widgets at ${width}px`, async ({ page, request, tourWorld }, info) => {
+		test.setTimeout(120000);
+		await page.setViewportSize({ width, height: 950 });
+		await page.addInitScript(() => localStorage.setItem("theme", "dark"));
+		const { creatorId, id } = await seedCreatorLibrary({ page, request, tourWorld });
+		const initial = createClipComposition("mobile");
+		await tourWorld.fixture.pool.query("INSERT INTO user_content_states(user_id,content_key,state) VALUES($1,$2,$3)", [creatorId, "clip-layout-template:v2:custom", JSON.stringify({ name: "My composition", composition: initial })]);
+		await page.goto(`${tourWorld.origin}/dashboard/clip-layouts?layout=custom&reference=${id}`);
+		await page.getByRole("button", { name: "Reject optional", exact: true }).click();
+		await page.reload();
+		await expect(page.getByRole("button", { name: "Play preview", exact: true })).toBeEnabled();
+		const handle = page.getByRole("button", { name: "Resize Camera output bottom right", exact: true });
+		await handle.scrollIntoViewIfNeeded();
+		const before = await handle.boundingBox();
+		expect(before).not.toBeNull();
+		const x = before!.x + 12,
+			y = before!.y + 12;
+		if (width === 390) {
+			const cdp = await page.context().newCDPSession(page);
+			await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+			await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x - 35, y: y - 25 }] });
+			await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+			await cdp.detach();
+		} else {
+			await page.mouse.move(x, y);
+			await page.mouse.down();
+			await page.mouse.move(x - 70, y - 40, { steps: 5 });
+			await page.mouse.up();
+		}
+		await page.getByRole("button", { name: /Add (layer|crop or widget)/ }).click();
+		await page.getByRole("option", { name: "Video crop", exact: true }).click();
+		await page.getByRole("textbox", { name: "Layer name", exact: true }).fill("Killfeed");
+		await page.getByRole("button", { name: /Output layer.*Edit box/ }).click();
+		await page.getByRole("option", { name: "Source crop", exact: true }).click();
+		const height = page.getByRole("textbox", { name: "Height (%)", exact: true });
+		await height.fill("2");
+		await height.press("Tab");
+		await page.getByRole("button", { name: /Add (layer|crop or widget)/ }).click();
+		await page.getByRole("option", { name: "Clip title", exact: true }).click();
+		await expect(page.getByRole("textbox", { name: "Text size", exact: true })).toBeVisible();
+		await page.getByRole("button", { name: "Save layout", exact: true }).click();
+		await expect(page.getByText("Layout saved", { exact: true })).toBeVisible();
+		await expect(page.getByRole("button", { name: "Save layout", exact: true })).toBeDisabled();
+		const row = (await tourWorld.fixture.pool.query("SELECT state FROM user_content_states WHERE user_id=$1 AND content_key=$2", [creatorId, "clip-layout-template:v2:custom"])).rows[0];
+		const saved = JSON.parse(row.state).composition;
+		expect(saved.layers.filter((layer: any) => layer.kind === "video")).toHaveLength(3);
+		expect(saved.layers.find((layer: any) => layer.label === "Killfeed").source.h).toBeCloseTo(0.02, 5);
+		expect(saved.layers.some((layer: any) => layer.kind === "title")).toBe(true);
+		const camera = saved.layers.find((layer: any) => layer.id === "camera");
+		expect(camera.source).toEqual(initial.layers[0].kind === "video" ? initial.layers[0].source : null);
+		expect(camera.frame.w).toBeLessThan(initial.layers[0].frame.w);
+		expect(camera.frame.w / camera.frame.h).toBeCloseTo(initial.layers[0].frame.w / initial.layers[0].frame.h, 3);
+		await page.evaluate(() => window.scrollTo(0, 0));
+		await page.screenshot({ path: info.outputPath("custom-composition.png"), fullPage: true, animations: "disabled" });
+	});
+test("Source modifiers and output snapping preserve independent content and placement", async ({ page, request, tourWorld }) => {
+	test.setTimeout(120000);
+	await page.setViewportSize({ width: 1440, height: 1000 });
+	const { creatorId, id } = await seedCreatorLibrary({ page, request, tourWorld });
+	const composition = createClipComposition("desktop");
+	composition.layers[0] = { id: "gameplay", kind: "video", label: "Gameplay", source: { x: 0.1, y: 0.1, w: 0.4, h: 0.3 }, frame: { x: 0.2, y: 0.2, w: 0.4, h: 0.3 } };
+	await tourWorld.fixture.pool.query("INSERT INTO user_content_states(user_id,content_key,state) VALUES($1,$2,$3)", [creatorId, "clip-layout-template:v2:modifiers", JSON.stringify({ name: "Modifier layout", composition })]);
+	await page.goto(`${tourWorld.origin}/dashboard/clip-layouts?layout=modifiers&reference=${id}`);
+	await page.getByRole("button", { name: "Reject optional", exact: true }).click();
+	await page.reload();
+	await expect(page.getByRole("button", { name: "Play preview", exact: true })).toBeEnabled();
+	const natural = await page.locator("video").evaluate((video: HTMLVideoElement) => ({ width: video.videoWidth, height: video.videoHeight }));
+	const read = async () => JSON.parse((await tourWorld.fixture.pool.query("SELECT state FROM user_content_states WHERE user_id=$1 AND content_key=$2", [creatorId, "clip-layout-template:v2:modifiers"])).rows[0].state).composition;
+	const save = async () => {
+		const before = JSON.stringify(await read());
+		await page.getByRole("button", { name: "Save layout", exact: true }).click();
+		await expect.poll(async () => JSON.stringify(await read())).not.toBe(before);
+		return (await read()).layers[0];
+	};
+	const resize = async (keys: string[], dx: number, dy: number) => {
+		const handle = page.getByRole("button", { name: "Resize Gameplay crop bottom right", exact: true });
+		await handle.scrollIntoViewIfNeeded();
+		const b = (await handle.boundingBox())!;
+		for (const key of keys) await page.keyboard.down(key);
+		await page.mouse.move(b.x + 12, b.y + 12);
+		await page.mouse.down();
+		await page.mouse.move(b.x + 12 + dx, b.y + 12 + dy, { steps: 5 });
+		await page.mouse.up();
+		for (const key of [...keys].reverse()) await page.keyboard.up(key);
+		return save();
+	};
+	let layer = await resize(["Control"], 35, 10);
+	expect((layer.source.w * natural.width) / (layer.source.h * natural.height)).toBeCloseTo(9 / 16, 3);
+	layer = await resize(["Control", "Shift"], 20, 15);
+	expect((layer.source.w * natural.width) / (layer.source.h * natural.height)).toBeCloseTo(16 / 9, 3);
+	const locked = layer.source.w / layer.source.h;
+	layer = await resize(["Shift"], 20, 5);
+	expect(layer.source.w / layer.source.h).toBeCloseTo(locked, 3);
+	layer = await resize([], 30, 0);
+	expect(layer.source.w / layer.source.h).toBeGreaterThan(locked + 0.05);
+	const captured = layer.source;
+	const move = async (alt: boolean) => {
+		const box = page.getByRole("button", { name: "Gameplay output", exact: true });
+		await box.scrollIntoViewIfNeeded();
+		const b = (await box.locator("..").boundingBox())!,
+			stage = (await page.locator("canvas").boundingBox())!;
+		if (alt) await page.keyboard.down("Alt");
+		await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+		await page.mouse.down();
+		await page.mouse.move(stage.x + 2 + b.width / 2, b.y + b.height / 2, { steps: 5 });
+		await page.mouse.up();
+		if (alt) await page.keyboard.up("Alt");
+		return save();
+	};
+	layer = await move(false);
+	expect(layer.frame.x).toBe(0);
+	expect(layer.source).toEqual(captured);
+	layer = await move(true);
+	expect(layer.frame.x).toBeGreaterThan(0);
+	expect(layer.frame.x).toBeLessThan(0.015);
+	expect(layer.source).toEqual(captured);
+});

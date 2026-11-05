@@ -3,7 +3,7 @@ import { useEffect, useTransition } from "react";
 import { buttonVariants } from "@heroui/styles";
 import { useRouter } from "next/navigation";
 import { Button, Card, Link } from "@heroui/react";
-import { IconArrowLeft, IconBrandTwitch, IconDeviceMobile } from "@tabler/icons-react";
+import { IconArrowLeft, IconBrandTwitch, IconLayoutGrid } from "@tabler/icons-react";
 import type { getCreatorClipDetail } from "@actions/creatorLibrary";
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
 import LocalizedDate from "@components/localizedDate";
@@ -42,11 +42,12 @@ export default function ClipDetails({ creatorId, data }: { creatorId: string; da
 						<>
 							<ClipPlayer creatorId={creatorId} clipId={clip.id} />
 							<div className='flex flex-wrap items-center gap-3'>
-								<Link className={buttonVariants({ variant: "secondary", className: "gap-2" })} href={`/dashboard/clips/layout?clips=${encodeURIComponent(clip.id)}`}>
-									<IconDeviceMobile className='size-4' aria-hidden='true' />
-									Create portrait clip
+								<Link className={buttonVariants({ variant: "secondary", className: "gap-2" })} href={`/dashboard/clip-layouts?reference=${encodeURIComponent(clip.id)}`}>
+									<IconLayoutGrid className='size-4' aria-hidden='true' />
+									Customize layouts
 								</Link>
-								<ClipExport clipNames={{ [clip.id]: clip.title }} creatorId={creatorId} clipIds={[clip.id]} scope={`${creatorId}:${clip.id}`} format='mp4' />
+								<ClipExport configure label='Export versions' clipNames={{ [clip.id]: clip.title }} creatorId={creatorId} clipIds={[clip.id]} scope={`${creatorId}:${clip.id}`} />
+								<ClipExport variant='secondary' clipNames={{ [clip.id]: clip.title }} creatorId={creatorId} clipIds={[clip.id]} scope={`${creatorId}:${clip.id}`} format='mp4' />
 							</div>
 							<dl className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3'>
 								{[

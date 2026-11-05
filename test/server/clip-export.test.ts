@@ -1,7 +1,7 @@
 /** @jest-environment node */
 import { readFileSync } from "node:fs";
 import { unzipSync, strFromU8 } from "fflate";
-import { exportRequestSchema, buildClipArchive, isTrustedClipMediaUrl, isCompleteMp4, clipExportFilename, readBoundedResponse } from "@/server/clip-export";
+import { exportRequestSchema, buildClipArchive, buildClipExportPlan, isTrustedClipMediaUrl, isCompleteMp4, clipExportFilename, readBoundedResponse } from "@/server/clip-export";
 
 describe("manual clip export selection", () => {
 	it("U97: freezes a deduplicated nonempty selection of at most fifty IDs", () => {
@@ -48,6 +48,10 @@ jest.mock("fflate", () => {
 const authorize = jest.fn();
 const getToken = jest.fn();
 const rateLimit = jest.fn();
+const render = jest.fn();
+jest.mock("@/server/clip-layout-render", () => ({ renderClipLayout: (...args: unknown[]) => render(...args) }));
+const layouts = jest.fn();
+jest.mock("@actions/clipLayoutLibrary", () => ({ listClipLayouts: (...args: unknown[]) => layouts(...args) }));
 const cacheRead = jest.fn();
 jest.mock("@/auth/authorize-operation", () => ({ authorizeCreatorOperation: (...args: unknown[]) => authorize(...args) }));
 jest.mock("@/server/tokens", () => ({ getAccessTokenResultInternal: (...args: unknown[]) => getToken(...args) }));
@@ -78,6 +82,8 @@ beforeEach(() => {
 	rateLimit.mockReset();
 	providerCapacity.mockReset().mockResolvedValue({ allowed: true, remaining: 99 });
 	cacheRead.mockReset();
+	layouts.mockReset().mockResolvedValue({ ok: true, templates: [], defaults: {} });
+	render.mockReset().mockImplementation(jest.requireActual("@/server/clip-layout-render").renderClipLayout);
 	authorize.mockResolvedValue({ allowed: true, authUserId: "actor" });
 	rateLimit.mockResolvedValue({ success: true });
 	getToken.mockResolvedValue({ token: { accessToken: "private-token", scope: ["channel:manage:clips"] } });
@@ -451,5 +457,114 @@ it("rejects exhausted account clip volume before contacting Twitch", async () =>
 	volume.mockResolvedValueOnce({ allowed: false, retryAfterSeconds: 12 });
 	expect(await buildClipArchive({ creatorId: "owner", clipIds: ["ClipA"] })).toMatchObject({ ok: false, code: "RATE_LIMITED", status: 429 });
 	expect(volume).toHaveBeenLastCalledWith("owner", 1);
+	expect(globalThis.fetch).not.toHaveBeenCalled();
+});
+
+it("packages Original, Desktop and two Mobile versions as four distinct complete files with one quota reservation", async () => {
+	const { createClipExportPlan } = await import("@lib/clipExportPlan");
+	const { createClipComposition } = await import("@lib/clipComposition");
+	const plan = createClipExportPlan(
+		"owner",
+		["ClipA"],
+		[
+			{ key: "original", label: "Original" },
+			{ key: "desktop", label: "Desktop main", layout: createClipComposition("desktop") },
+			{ key: "mobile1", label: "Mobile camera", layout: createClipComposition("mobile") },
+			{ key: "mobile2", label: "Mobile second", layout: createClipComposition("mobile") },
+		],
+	)[0];
+	const volume = jest.requireMock("@/server/clip-download-limit").reserveClipExportVolume;
+	volume.mockClear();
+	const progress = jest.fn();
+	const result = await buildClipExportPlan(plan, undefined, "zip", progress);
+	expect(result.ok).toBe(true);
+	if (!result.ok) throw new Error(result.code);
+	const files = unzipSync(result.bytes),
+		manifest = JSON.parse(strFromU8(files["manifest.json"]));
+	expect(Object.keys(files).filter((name) => name.endsWith(".mp4"))).toHaveLength(4);
+	expect(manifest.clips.map((clip: any) => clip.outputKey)).toEqual(["original", "desktop", "mobile1", "mobile2"]);
+	expect(files[manifest.clips[0].filename]).toEqual(new Uint8Array(video));
+	expect(rateLimit).toHaveBeenCalledTimes(1);
+	expect(volume).toHaveBeenCalledTimes(1);
+	expect(volume).toHaveBeenCalledWith("owner", 4);
+	expect(result.summary.included).toEqual([0, 1, 2, 3]);
+	expect(progress.mock.calls.some((call) => call[0].index === 3 && call[0].stage === "ready")).toBe(true);
+}, 30000);
+it("records the clip and version for every skipped output in a partial package", async () => {
+	const { createClipExportPlan } = await import("@lib/clipExportPlan");
+	const plan = createClipExportPlan(
+		"owner",
+		["ClipA"],
+		[
+			{ key: "first", label: "Original one" },
+			{ key: "second", label: "Original two" },
+		],
+	)[0];
+	let media = 0;
+	jest.mocked(globalThis.fetch).mockImplementation(async (input) => (String(input).startsWith("https://api.twitch.tv/") ? Response.json({ data: [{ clip_id: "ClipA", landscape_download_url: "https://production.assets.clips.twitchcdn.net/ClipA.mp4" }] }) : ++media === 1 ? new Response(video) : new Response(null, { status: 404 })));
+	const result = await buildClipExportPlan(plan);
+	expect(result.ok).toBe(true);
+	if (!result.ok) return;
+	const manifest = JSON.parse(strFromU8(unzipSync(result.bytes)["manifest.json"]));
+	expect(manifest.clips).toEqual(expect.arrayContaining([expect.objectContaining({ id: "ClipA", outputKey: "second", outputLabel: "Original two", status: "skipped", code: "clip_unavailable" })]));
+});
+it("rejects malformed plans and foreign clips before reserving download quota", async () => {
+	expect(await buildClipExportPlan({ creatorId: "owner", outputs: [], files: [] })).toMatchObject({ ok: false, code: "INVALID_INPUT" });
+	const { createClipExportPlan } = await import("@lib/clipExportPlan");
+	cacheRead.mockResolvedValue([ownedEntry("ClipA", { broadcaster_id: "foreign" })]);
+	expect(await buildClipExportPlan(createClipExportPlan("owner", ["ClipA"], [{ key: "original", label: "Original" }])[0])).toMatchObject({ ok: false, code: "INVALID_INPUT" });
+	expect(rateLimit).not.toHaveBeenCalled();
+	expect(globalThis.fetch).not.toHaveBeenCalled();
+});
+it("rechecks creator access before releasing a multi-version package", async () => {
+	const { createClipExportPlan } = await import("@lib/clipExportPlan");
+	let downloaded = false;
+	authorize.mockImplementation(async () => (downloaded ? { allowed: false, code: "PERMISSION_DENIED" } : { allowed: true }));
+	jest.mocked(globalThis.fetch).mockImplementation(async (input) => {
+		if (String(input).startsWith("https://api.twitch.tv/")) return Response.json({ data: [{ clip_id: "ClipA", landscape_download_url: "https://production.assets.clips.twitchcdn.net/ClipA.mp4" }] });
+		downloaded = true;
+		return new Response(video);
+	});
+	expect(await buildClipExportPlan(createClipExportPlan("owner", ["ClipA"], [{ key: "original", label: "Original" }])[0])).toMatchObject({ ok: false, code: "PERMISSION_DENIED" });
+});
+it("never substitutes a Twitch portrait variant for configured Original output", async () => {
+	const { createClipExportPlan } = await import("@lib/clipExportPlan");
+	jest.mocked(globalThis.fetch).mockResolvedValue(Response.json({ data: [{ clip_id: "ClipA", portrait_download_url: "https://production.assets.clips.twitchcdn.net/ClipA.mp4" }] }));
+	expect(await buildClipExportPlan(createClipExportPlan("owner", ["ClipA"], [{ key: "original", label: "Original" }])[0])).toMatchObject({ ok: false, code: "EXPORT_UNAVAILABLE", failures: [{ index: 0, code: "download_unavailable" }] });
+	expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+});
+
+it("applies the saved clip/template override while keeping global layouts unchanged", async () => {
+	const { createClipComposition } = await import("@lib/clipComposition"),
+		{ createClipExportPlan } = await import("@lib/clipExportPlan");
+	const composition = createClipComposition("desktop"),
+		override = { ...composition, layers: [...composition.layers, { id: "title", kind: "title" as const, label: "Clip title", fontSize: 64, frame: { x: 0, y: 0, w: 1, h: 0.2 } }] };
+	layouts.mockResolvedValue({ ok: true, templates: [{ id: "desktop", name: "Desktop", composition }], defaults: {} });
+	cacheRead.mockResolvedValueOnce([ownedEntry()]).mockResolvedValueOnce([{ contentKey: "clip-layout-override:v2:desktop:ClipA", state: JSON.stringify({ composition: override }) }]);
+	render.mockResolvedValueOnce(new Uint8Array(video));
+	const result = await buildClipExportPlan(createClipExportPlan("owner", ["ClipA"], [{ key: "desktop", label: "Desktop", templateId: "desktop", layout: composition }])[0]);
+	expect(result.ok).toBe(true);
+	expect(render).toHaveBeenCalledWith(expect.any(Uint8Array), override, expect.objectContaining({ id: "ClipA" }), expect.any(AbortSignal), expect.any(Object));
+	expect(composition.layers).toHaveLength(1);
+});
+it("rejects deleted or incompatible templates before reserving a download job", async () => {
+	const { createClipComposition } = await import("@lib/clipComposition"),
+		{ createClipExportPlan } = await import("@lib/clipExportPlan");
+	const composition = createClipComposition("desktop");
+	const packet = createClipExportPlan("owner", ["ClipA"], [{ key: "desktop", label: "Desktop", templateId: "desktop", layout: composition }])[0];
+	expect(await buildClipExportPlan(packet)).toMatchObject({ ok: false, code: "LAYOUT_UNAVAILABLE" });
+	expect(rateLimit).not.toHaveBeenCalled();
+	layouts.mockResolvedValue({ ok: true, templates: [{ id: "desktop", name: "Desktop", composition: createClipComposition("mobile") }], defaults: {} });
+	expect(await buildClipExportPlan(packet)).toMatchObject({ ok: false, code: "LAYOUT_UNAVAILABLE" });
+	expect(rateLimit).not.toHaveBeenCalled();
+	expect(globalThis.fetch).not.toHaveBeenCalled();
+});
+it("refuses an incompatible saved override rather than exporting the wrong orientation", async () => {
+	const { createClipComposition } = await import("@lib/clipComposition"),
+		{ createClipExportPlan } = await import("@lib/clipExportPlan");
+	const composition = createClipComposition("desktop");
+	layouts.mockResolvedValue({ ok: true, templates: [{ id: "desktop", name: "Desktop", composition }], defaults: {} });
+	cacheRead.mockResolvedValueOnce([ownedEntry()]).mockResolvedValueOnce([{ contentKey: "clip-layout-override:v2:desktop:ClipA", state: JSON.stringify({ composition: createClipComposition("mobile") }) }]);
+	expect(await buildClipExportPlan(createClipExportPlan("owner", ["ClipA"], [{ key: "desktop", label: "Desktop", templateId: "desktop", layout: composition }])[0])).toMatchObject({ ok: false, code: "LAYOUT_UNAVAILABLE" });
 	expect(globalThis.fetch).not.toHaveBeenCalled();
 });

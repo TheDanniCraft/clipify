@@ -5,7 +5,7 @@ import { Sidebar, Command, useSidebar } from "@heroui-pro/react";
 import { Button, Kbd } from "@heroui/react";
 import { IconHome, IconVideo, IconScissors, IconLayoutGrid, IconPlaylist, IconPhoto, IconDeviceDesktop, IconTools, IconSettings, IconFolder, IconSearch, IconHelpCircle, IconUserCircle, IconPlug, IconId, IconCreditCard, IconUsers, IconPlayerPlay, IconAward, IconBuildingCommunity } from "@tabler/icons-react";
 import NextLink from "next/link";
-import { ClipExportProvider, ExportQueueLauncher } from "./creator/clipExportQueue";
+import { ClipExportProvider, ExportQueueLauncher, useClipExports } from "./creator/clipExportQueue";
 import AdminNavigation from "./adminNavigation";
 import Logo from "./logo";
 import { settingsSections, settingsSection, toolSections } from "@lib/dashboardSections";
@@ -18,6 +18,7 @@ const destinations: Destination[] = [
 	{ title: "Home", href: "/dashboard", permission: "creator:read", icon: IconHome },
 	{ title: "Streams", href: "/dashboard/streams", permission: "creator:read", icon: IconVideo },
 	{ title: "Clip Inventory", href: "/dashboard/clips", permission: "creator:read", icon: IconScissors },
+	{ title: "Clip layouts", href: "/dashboard/clip-layouts", permission: "creator:read", icon: IconLayoutGrid, tour: "clip-layouts-tab" },
 	{ title: "Overlays", href: "/dashboard/overlays", permission: "overlay:read", icon: IconLayoutGrid, tour: "overlays-tab" },
 	{ title: "Playlists", href: "/dashboard/playlists", permission: "playlist:read", icon: IconPlaylist, tour: "playlists-tab" },
 	{ title: "Galleries", href: "/dashboard/galleries", permission: "gallery:read", icon: IconPhoto, tour: "galleries-tab" },
@@ -41,6 +42,7 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen, isAd
 		() => false,
 	);
 	const navigationKey = `${path}?${params}`;
+	const exportQueue = useClipExports();
 	const { isMobile, isMobileOpen, setMobileOpen } = useSidebar();
 	const [searchOpen, setSearchOpen] = useState(false);
 	const [waitingForDrawer, setWaitingForDrawer] = useState(false);
@@ -68,7 +70,7 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen, isAd
 	useEffect(() => {
 		if (!isMobileOpen) return;
 		const closeForUtility = (event: MouseEvent) => {
-			if (event.target instanceof Element && event.target.closest("#dashboard-mobile-utilities button") && !event.target.closest("[data-dashboard-account-controls]")) setMobileOpen(false);
+			if (event.target instanceof Element && event.target.closest("#dashboard-mobile-utilities button, [data-dashboard-launcher]") && !event.target.closest("[data-dashboard-account-controls]")) setMobileOpen(false);
 		};
 		// Widget portals bubble through their React owners, so observe their DOM event here.
 		document.addEventListener("click", closeForUtility, true);
@@ -207,6 +209,12 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen, isAd
 							))}
 					</Sidebar.Menu>
 				</Sidebar.Group>
+				{exportQueue?.batches.length ? (
+					<Sidebar.Group>
+						<ExportQueueLauncher compact={!open && !isMobile} />
+					</Sidebar.Group>
+				) : null}
+				{isAdmin ? <AdminNavigation /> : null}
 			</Sidebar.Content>
 			{isMobile ? <div ref={markUtilityHostReady} data-dashboard-consent className='max-h-[35dvh] shrink-0 overflow-y-auto' /> : null}
 			{
@@ -217,11 +225,8 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen, isAd
 						</Button>
 					) : null}
 					<div ref={markUtilityHostReady} id={isMobile ? "dashboard-mobile-utilities" : "dashboard-utilities"} className='flex flex-col gap-0.5'>
-						{["exports", "account", "guide", "admin", "chat", "report"].map((slot) => (
-							<div key={slot} data-dashboard-utility={slot} className={open || isMobile || slot === "account" || slot === "exports" ? "min-w-0 empty:hidden" : "hidden"}>
-								{slot === "exports" ? <ExportQueueLauncher compact={!open && !isMobile} /> : null}
-								{slot === "admin" && isAdmin ? <AdminNavigation /> : null}
-							</div>
+						{["admin", "guide", "chat", "report", "account"].map((slot) => (
+							<div key={slot} data-dashboard-utility={slot} className={open || isMobile || slot === "account" ? "min-w-0 empty:hidden" : "hidden"}></div>
 						))}
 					</div>
 				</Sidebar.Footer>

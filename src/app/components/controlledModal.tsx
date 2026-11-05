@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 type ControlledModalProps = {
 	children: ReactNode;
+	ariaLabel?: string;
 	isOpen: boolean;
 	onOpenChange?: (isOpen: boolean) => void;
 	onClose?: () => void;
@@ -15,7 +16,7 @@ type ControlledModalProps = {
 	showCloseButton?: boolean;
 };
 
-export default function ControlledModal({ children, isOpen, onOpenChange, onClose, variant, size, containerClassName, dialogClassName, showCloseButton = true }: ControlledModalProps) {
+export default function ControlledModal({ children, ariaLabel, isOpen, onOpenChange, onClose, variant, size, containerClassName, dialogClassName, showCloseButton = true }: ControlledModalProps) {
 	const handleOpenChange = (open: boolean) => {
 		onOpenChange?.(open);
 		if (!open) onClose?.();
@@ -24,7 +25,7 @@ export default function ControlledModal({ children, isOpen, onOpenChange, onClos
 	return (
 		<Modal.Backdrop isOpen={isOpen} onOpenChange={handleOpenChange} variant={variant}>
 			<Modal.Container size={size} className={containerClassName}>
-				<Modal.Dialog className={dialogClassName}>
+				<Modal.Dialog aria-label={ariaLabel} className={dialogClassName}>
 					{showCloseButton ? <Modal.CloseTrigger aria-label='Close dialog' /> : null}
 					{children}
 				</Modal.Dialog>

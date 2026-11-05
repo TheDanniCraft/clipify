@@ -88,3 +88,76 @@ it("releases render capacity when temporary storage cannot be created", async ()
 		mkdir.mockRestore();
 	}
 });
+
+it("renders three independent video crops and widgets in Desktop and Mobile without losing audio", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "clipify-composition-test-"));
+	try {
+		const input = join(dir, "source.mp4");
+		execFileSync("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "color=c=blue:s=640x360:r=15", "-f", "lavfi", "-i", "sine=frequency=440", "-vf", "drawbox=x=480:y=0:w=160:h=120:color=red:t=fill,drawbox=x=0:y=270:w=320:h=90:color=lime:t=fill", "-t", "0.3", "-c:v", "libx264", "-threads", "1", "-pix_fmt", "yuv420p", "-c:a", "aac", "-y", input]);
+		const bytes = new Uint8Array(await readFile(input));
+		for (const format of ["desktop", "mobile"] as const) {
+			const layout = {
+				version: 2 as const,
+				format,
+				layers: [
+					{ id: "game", kind: "video" as const, label: "Game", source: { x: 0, y: 0, w: 0.5, h: 0.5 }, frame: { x: 0, y: 0, w: 0.5, h: 0.5 } },
+					{ id: "camera", kind: "video" as const, label: "Camera", source: { x: 0.75, y: 0, w: 0.25, h: 1 / 3 }, frame: { x: 0.5, y: 0, w: 0.25, h: 1 / 3 } },
+					{ id: "killfeed", kind: "video" as const, label: "Killfeed", source: { x: 0, y: 0.75, w: 0.5, h: 0.25 }, frame: { x: 0, y: 0.75, w: 0.5, h: 0.25 } },
+					{ id: "title", kind: "title" as const, label: "Title", fontSize: 24, frame: { x: 0.5, y: 0.5, w: 0.5, h: 0.2 } },
+				],
+			};
+			const output = await renderClipLayout(bytes, layout as any, { title: "literal %{shell}; [x]' title" }, AbortSignal.timeout(15000));
+			const file = join(dir, `${format}.mp4`);
+			await writeFile(file, output);
+			const streams = JSON.parse(execFileSync("ffprobe", ["-v", "quiet", "-show_streams", "-of", "json", file], { encoding: "utf8" })).streams;
+			const width = format === "desktop" ? 1280 : 720,
+				height = format === "desktop" ? 720 : 1280;
+			expect(streams.find((s: any) => s.codec_type === "video")).toMatchObject({ width, height });
+			expect(streams.some((s: any) => s.codec_type === "audio")).toBe(true);
+			const rgb = execFileSync("ffmpeg", ["-v", "error", "-i", file, "-frames:v", "1", "-f", "rawvideo", "-pix_fmt", "rgb24", "pipe:1"], { maxBuffer: 5 * 1024 * 1024 });
+			for (const [x, y, color] of [
+				[0.25, 0.25, 2],
+				[0.625, 1 / 6, 0],
+				[0.25, 0.875, 1],
+			]) {
+				const offset = (Math.floor(y * height) * width + Math.floor(x * width)) * 3;
+				expect(rgb[offset + color]).toBeGreaterThan(200);
+				expect(rgb[offset + ((color + 1) % 3)]).toBeLessThan(30);
+			}
+		}
+	} finally {
+		await rm(dir, { recursive: true, force: true });
+	}
+}, 30000);
+it("renders the authorized channel logo and rejects untrusted or non-image logo sources", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "clipify-logo-test-"));
+	const originalFetch = globalThis.fetch;
+	try {
+		const input = join(dir, "source.mp4"),
+			logo = join(dir, "logo.png");
+		execFileSync("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "color=c=blue:s=320x180:r=15", "-t", "0.2", "-c:v", "libx264", "-threads", "1", "-pix_fmt", "yuv420p", "-y", input]);
+		execFileSync("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "color=c=white:s=16x16", "-frames:v", "1", "-threads", "1", "-y", logo]);
+		const bytes = new Uint8Array(await readFile(input)),
+			image = new Uint8Array(await readFile(logo));
+		const fetchMock = jest.fn().mockResolvedValue(new Response(image, { headers: { "content-type": "image/png" } }));
+		globalThis.fetch = fetchMock;
+		const { createClipComposition } = await import("@lib/clipComposition");
+		const layout = createClipComposition("desktop");
+		layout.layers.push({ id: "logo", kind: "logo", label: "Channel logo", frame: { x: 0.5, y: 0.1, w: 0.2, h: (0.2 * 1280) / 720 } });
+		const avatar = "https://static-cdn.jtvnw.net/jtv_user_pictures/fixture-profile_image-300x300.png";
+		const rendered = await renderClipLayout(bytes, layout, { title: "Logo" }, AbortSignal.timeout(15000), { avatar });
+		const out = join(dir, "logo-output.mp4");
+		await writeFile(out, rendered);
+		const rgb = execFileSync("ffmpeg", ["-v", "error", "-i", out, "-frames:v", "1", "-f", "rawvideo", "-pix_fmt", "rgb24", "pipe:1"], { maxBuffer: 5 * 1024 * 1024 });
+		const offset = (200 * 1280 + 760) * 3;
+		expect([...rgb.subarray(offset, offset + 3)].every((n) => n > 230)).toBe(true);
+		expect(fetchMock).toHaveBeenCalledWith(new URL(avatar), expect.objectContaining({ redirect: "manual", cache: "no-store" }));
+		await expect(renderClipLayout(bytes, layout, { title: "Bad" }, AbortSignal.timeout(1000), { avatar: "http://127.0.0.1/private" })).rejects.toThrow();
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		fetchMock.mockResolvedValueOnce(new Response("<svg/>", { headers: { "content-type": "image/svg+xml" } }));
+		await expect(renderClipLayout(bytes, layout, { title: "Bad" }, AbortSignal.timeout(1000), { avatar })).rejects.toThrow();
+	} finally {
+		globalThis.fetch = originalFetch;
+		await rm(dir, { recursive: true, force: true });
+	}
+}, 30000);

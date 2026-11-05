@@ -182,7 +182,7 @@ export default function CreatorOverview({ creatorId, analyticsAllowed = false }:
 				</Card>
 			</div>
 			<div className='grid gap-4 lg:grid-cols-2'>
-				<Card aria-label='Top clips'>
+				<Card role='region' aria-label='Top clips'>
 					<Card.Header className='flex-row flex-wrap items-center justify-between gap-2'>
 						<div>
 							<Card.Title>Top clips</Card.Title>

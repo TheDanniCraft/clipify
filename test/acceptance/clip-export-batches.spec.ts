@@ -23,6 +23,7 @@ for (const width of [390, 1440])
 			const button = page.getByRole("button", { name: "Export selected", exact: true }),
 				before = await button.boundingBox();
 			await button.click();
+			await page.getByRole("button", { name: "Start export", exact: true }).click();
 			const modal = page.getByRole("dialog", { name: "Clip exports", exact: true });
 			await expect(modal).toBeVisible();
 			await expect(modal.getByRole("list", { name: "Batch 1 clips" })).toContainText("Last night's clutch");
@@ -39,7 +40,7 @@ for (const width of [390, 1440])
 			await (await download).saveAs(info.outputPath("batch.zip"));
 			if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
 			await page.getByRole("button", { name: "Exports", exact: true }).click();
-			await expect(modal).toContainText("1 clip ready");
+			await expect(modal).toContainText("1 file ready");
 			await expect(modal.getByText("Ready", { exact: true })).toBeVisible();
 			await expect(page.getByText("Download started", { exact: true })).not.toBeVisible();
 			await page.screenshot({ path: info.outputPath("completed.png"), fullPage: true, animations: "disabled" });
@@ -49,8 +50,9 @@ for (const width of [390, 1440])
 			await expect(page).toHaveURL(/\/dashboard\/clips$/);
 			await page.getByRole("button", { name: "Select page", exact: true }).click();
 			await page.getByRole("button", { name: "Export selected", exact: true }).click();
-			await expect(modal.getByRole("button", { name: /Batch 1, completed, 1 clip/ })).toBeVisible();
-			await modal.getByRole("button", { name: /Batch 1, completed, 1 clip/ }).click();
+			await page.getByRole("button", { name: "Start export", exact: true }).click();
+			await expect(modal.getByRole("button", { name: /Batch 1, completed, 1 file/ })).toBeVisible();
+			await modal.getByRole("button", { name: /Batch 1, completed, 1 file/ }).click();
 			await expect(modal.getByRole("list", { name: "Batch 1 clips" })).toBeVisible();
 			await page.screenshot({ path: info.outputPath("history.png"), fullPage: true, animations: "disabled" });
 			await modal.getByRole("button", { name: "Cancel export", exact: true }).click();
@@ -82,6 +84,7 @@ test("Fifty-one clips split at the minute boundary and share the server quota wi
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("51 selected");
 	const first = page.waitForEvent("download");
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
+	await page.getByRole("button", { name: "Start export", exact: true }).click();
 	await (await first).saveAs(info.outputPath("first.zip"));
 	await expect(page.getByText(/Waiting for the download limit/)).toBeVisible();
 	expect(Object.keys(unzipSync(new Uint8Array(await readFile(info.outputPath("first.zip"))))).filter((name) => name.endsWith(".mp4"))).toHaveLength(50);
@@ -90,7 +93,7 @@ test("Fifty-one clips split at the minute boundary and share the server quota wi
 	const second = page.waitForEvent("download", { timeout: 75000 });
 	await (await second).saveAs(info.outputPath("second.zip"));
 	expect(Object.keys(unzipSync(new Uint8Array(await readFile(info.outputPath("second.zip"))))).filter((name) => name.endsWith(".mp4"))).toHaveLength(1);
-	await expect(page.getByRole("dialog", { name: "Clip exports" })).toContainText("1 clip ready");
+	await expect(page.getByRole("dialog", { name: "Clip exports" })).toContainText("1 file ready");
 });
 test("Concurrent bulk requests reserve quantities atomically without charging rejected work", async ({ page, request, tourWorld }) => {
 	test.setTimeout(120000);

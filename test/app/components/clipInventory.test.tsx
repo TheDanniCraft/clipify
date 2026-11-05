@@ -218,7 +218,8 @@ it("allows individual selection and deselection and caps queued selection at fiv
 	expect(screen.getByRole("status", { name: "Clip selection" })).toHaveTextContent("0 selected");
 	fireEvent.click(screen.getByRole("button", { name: "Select page" }));
 	expect(screen.getByRole("status", { name: "Clip selection" })).toHaveTextContent("500 selected");
-	expect(screen.getByText("Portrait layouts support up to 50 clips at a time.")).toBeVisible();
+	expect(screen.queryByText("Portrait layouts support up to 50 clips at a time.")).not.toBeInTheDocument();
+	expect(screen.getByRole("link", { name: "Clip layouts" })).toHaveAttribute("href", "/dashboard/clip-layouts");
 	expect(screen.getByRole("checkbox", { name: "Select Clip 500" })).toBeDisabled();
 });
 it("ignores an old inventory response after a newer navigation completes", async () => {

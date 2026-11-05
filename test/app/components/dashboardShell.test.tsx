@@ -318,8 +318,9 @@ it("orders identity, guide, admin and support consistently in the footer", () =>
 		</DashboardShell>,
 	);
 	const slots = [...document.querySelectorAll("[data-dashboard-utility]")].map((node) => node.getAttribute("data-dashboard-utility"));
-	expect(slots).toEqual(["exports", "account", "guide", "admin", "chat", "report"]);
+	expect(slots).toEqual(["admin", "guide", "chat", "report", "account"]);
 	expect(screen.getByRole("navigation", { name: "Admin sections" })).toBeVisible();
+	expect(screen.getByRole("navigation", { name: "Admin sections" }).closest("[data-dashboard-utility]")).toBeNull();
 });
 it("does not expose admin navigation to a creator", () => {
 	render(
@@ -373,4 +374,24 @@ it("uses agency home in allocation breadcrumbs without a creator-dashboard detou
 	expect(screen.queryByText("Home", { exact: true })).not.toBeInTheDocument();
 	expect(screen.getAllByText("Agency")).toHaveLength(2);
 	expect(screen.getByText("Allocations")).toBeVisible();
+});
+it("closes the mobile drawer for an export launcher outside the utility footer", () => {
+	mobile = true;
+	window.innerWidth = 390;
+	render(
+		<DashboardShell creatorId='owner' permissions={[...PERMISSIONS]}>
+			{content}
+		</DashboardShell>,
+	);
+	const toggle = screen.getByRole("button", { name: "Toggle navigation" });
+	fireEvent.click(toggle);
+	const launcher = document.createElement("button");
+	launcher.setAttribute("data-dashboard-launcher", "exports");
+	document.body.append(launcher);
+	try {
+		fireEvent.click(launcher);
+		expect(toggle).toHaveAttribute("aria-expanded", "false");
+	} finally {
+		launcher.remove();
+	}
 });

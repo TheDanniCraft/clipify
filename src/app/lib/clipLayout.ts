@@ -18,8 +18,8 @@ export function clipLayerText(field: ClipLayout["textLayers"][number]["field"], 
 }
 
 /** Use the same bounded multiline credits in the canvas and MP4. */
-export function clipLayerLines(text: string, size: number) {
-	const width = Math.max(1, Math.floor(680 / size));
+export function clipLayerLines(text: string, size: number, availableWidth = 680) {
+	const width = Math.max(1, Math.floor(availableWidth / size));
 	const characters = Array.from(text);
 	const lines: string[] = [];
 	while (characters.length && lines.length < 3) lines.push(characters.splice(0, width).join(""));

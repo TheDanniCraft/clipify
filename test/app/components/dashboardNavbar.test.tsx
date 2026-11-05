@@ -82,7 +82,7 @@ jest.mock("@heroui/react", () => {
 			</button>
 		),
 		Dropdown: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
-			Trigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Trigger: ({ children, ...props }: { children: React.ReactNode; "aria-label"?: string }) => <button {...props}>{children}</button>,
 			Popover: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 			Menu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 			Item: ({ children, onAction }: { children: React.ReactNode; onAction?: () => void }) => <button onClick={onAction}>{children}</button>,
@@ -145,6 +145,42 @@ jest.mock("@heroui/react", () => {
 });
 
 describe("components/dashboardNavbar", () => {
+	it("keeps the profile last in visual and keyboard order without losing account choices", async () => {
+		organizationList = {
+			data: [
+				{ id: "creator-org", name: "Creator", metadata: { accountType: "creator" } },
+				{ id: "agency-org", name: "Agency", metadata: { accountType: "agency" } },
+			],
+			isPending: false,
+		};
+		const host = document.createElement("div");
+		host.id = "dashboard-utilities";
+		host.setAttribute("data-dashboard-utilities-ready", "true");
+		const slot = document.createElement("div");
+		slot.setAttribute("data-dashboard-utility", "account");
+		host.append(slot);
+		document.body.append(host);
+		const view = render(
+			<DashboardNavigationContext.Provider value={{ toggle: jest.fn(), search: jest.fn(), expanded: true, mobile: false, registerSearch: jest.fn() }}>
+				<DashboardNavbar user={mockUser()} title='Home' tagline='Overview' />
+			</DashboardNavigationContext.Provider>,
+		);
+		try {
+			const profile = await screen.findByRole("button", { name: "Open profile menu" });
+			const children = slot.querySelectorAll("[data-dashboard-account-controls] > li");
+			expect(children[children.length - 1]).toContainElement(profile);
+		} finally {
+			view.unmount();
+			host.remove();
+		}
+	});
+
+	it("hides a redundant creator selector even when the session has no explicit organization", () => {
+		identitySession = { data: { session: { activeOrganizationId: null } }, isPending: false };
+		organizationList = { data: [{ id: "own", name: "My creator", metadata: { accountType: "creator" } }], isPending: false };
+		render(<DashboardNavbar user={mockUser()} title='Home' tagline='Overview' />);
+		expect(screen.queryByText("Select account")).not.toBeInTheDocument();
+	});
 	beforeEach(() => {
 		jest.clearAllMocks();
 		window.innerWidth = 1024;

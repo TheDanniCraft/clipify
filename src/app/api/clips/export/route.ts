@@ -1,9 +1,12 @@
-import { buildClipArchive, readBoundedResponse } from "@/server/clip-export";
+import { buildClipArchive, buildClipExportPlan, readBoundedResponse } from "@/server/clip-export";
 import { EXPORT_STREAM_TYPE } from "@lib/clipExportStream";
 export const runtime = "nodejs";
 const privateHeaders = { "Cache-Control": "private, no-store" };
 export async function POST(request: Request) {
 	const requestUrl = new URL(request.url);
+	const planned = requestUrl.searchParams.get("plan") === "1";
+	const inputLimit = planned ? 1024 * 1024 : 65536;
+	const build = planned ? buildClipExportPlan : buildClipArchive;
 	let expectedOrigin: string;
 	try {
 		const forwardedProtocol = request.headers.get("x-forwarded-proto");
@@ -14,10 +17,10 @@ export async function POST(request: Request) {
 	}
 	if (request.headers.get("origin") !== expectedOrigin) return Response.json({ ok: false, code: "PERMISSION_DENIED" }, { status: 403, headers: privateHeaders });
 	if (!request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) return Response.json({ ok: false, code: "INVALID_INPUT" }, { status: 400, headers: privateHeaders });
-	if (Number(request.headers.get("content-length")) > 65536) return Response.json({ ok: false, code: "EXPORT_LIMIT" }, { status: 413, headers: privateHeaders });
+	if (Number(request.headers.get("content-length")) > inputLimit) return Response.json({ ok: false, code: "EXPORT_LIMIT" }, { status: 413, headers: privateHeaders });
 	let input: unknown;
 	try {
-		input = JSON.parse(new TextDecoder().decode(await readBoundedResponse(request, 65536, request.signal)));
+		input = JSON.parse(new TextDecoder().decode(await readBoundedResponse(request, inputLimit, request.signal)));
 	} catch (error) {
 		return Response.json({ ok: false, code: error instanceof Error && error.message === "byte_limit" ? "EXPORT_LIMIT" : "INVALID_INPUT" }, { status: error instanceof Error && error.message === "byte_limit" ? 413 : 400, headers: privateHeaders });
 	}
@@ -34,7 +37,7 @@ export async function POST(request: Request) {
 					};
 					void (async () => {
 						try {
-							const result = await buildClipArchive(input, signal, format, (event) => emit({ type: "clip", ...event }));
+							const result = await build(input, signal, format, (event) => emit({ type: "clip", ...event }));
 							if (!result.ok) {
 								emit({ type: "error", ...result });
 								return;
@@ -59,7 +62,7 @@ export async function POST(request: Request) {
 			});
 			return new Response(body, { headers: { ...privateHeaders, "Content-Type": EXPORT_STREAM_TYPE, "X-Accel-Buffering": "no" } });
 		}
-		const result = await buildClipArchive(input, request.signal, format);
+		const result = await build(input, request.signal, format);
 		const headers = new Headers(privateHeaders);
 		const retryAt = result.ok ? result.summary.retryAt : result.retryAt;
 		if (retryAt) headers.set("Retry-After", String(Math.max(1, Math.ceil((Date.parse(retryAt) - Date.now()) / 1000))));

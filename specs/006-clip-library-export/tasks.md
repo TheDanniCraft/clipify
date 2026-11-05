@@ -761,3 +761,26 @@ T631 preceding checkpoint:23b6dd303fd14462644ee01db3e94e5d84a11ae9 passed full C
 - [x] T652 Test and implement icon shortcuts, additive all-time top clips, genuine Pro page metrics and a feature-specific upgrade entry.
 - [x] T653 Complete affected owners and real browser states, inspect both themes/viewport sizes and repair the prior export BDD response matcher without weakening content assertions.
 - [ ] T654 Publish the passing source to PR546 and verify its exact preview; report complete CI separately.
+
+## Reusable compositions and export planning
+
+- [x] T655 Clarify source/output geometry and simultaneous Original/Desktop/Mobile versions, inspect supplied sidebar image and Mobbin references, record requirements.
+- [x] T656 Red/Green the multi-layer schema and bounded ratio/snap geometry (model-red/green and geometry-red/green).
+- [x] T657 Test and implement named creator templates/defaults, separate authorized clip overrides and legacy conversion.
+- [x] T658 Test and implement matching multi-layer Desktop/Mobile preview/FFmpeg rendering, metadata/logo widgets, bounded assets and cleanup.
+- [x] T659 Test and implement global layout management and shared editor with source crops, output handles, snapping, keyboard/touch and preserved drafts.
+- [x] T660 Test and implement multi-output export settings, clip-major50-file batches, authoritative overrides, shared budget reservation and distinct-file ZIP progress.
+- [x] T661 Red/Green sidebar account-choice/profile/navigation organization and restore the Top clips region semantics found by preceding CI.
+- [x] T662 Complete affected whole-file owners and real browser/FFmpeg scenarios, update existing flow assertions, inspect screenshots in both themes and viewport sizes.
+- [ ] T663 Commit/push passing source, update PR546 and verify exact preview; report complete required CI separately.
+
+## Phase 24: TDD remediation for reusable compositions (cold audit)
+
+Strict TDD verification is FAIL. Do not mark the follow-up TDD-complete until its blocking findings are addressed; historical test-after provenance must remain disclosed and cannot be recreated retrospectively.
+
+- [x] T664 [F2] Pin saved-override application and isolation through planned exports at src/server/clip-export.ts:339, plus deleted/incompatible template rejection. Verify `bun run test --runInBand --runTestsByPath test/server/clip-export.test.ts --coverage=false` and the real four-version/override browser owner.
+- [x] T665 [F1] Add stable composition follow-up IDs/states and honest LIKELY/TEST_AFTER evidence to tdd/test-list.md, reconciling cycle-log.md:440 without claiming retrospective test-first proof; rerun `/speckit.tdd.verify 006-clip-library-export`.
+- [x] T666 [F3,F4] Assert preserved edited payloads and precise preview crops/text at test/app/components/clipCompositionEditor.test.tsx:30 and clipCompositionCanvas.test.tsx:50; verify both complete whole-file owners without coverage.
+- [x] T667 [F5] Prove creator/template/clip deletion/reset isolation with disposable storage at test/app/actions/clipLayoutLibrary.test.ts:14; verify its whole-file owner without coverage.
+- [x] T668 [F6] Exercise source modifiers and output snap/Alt bypass in installed-component browser interactions at test/acceptance/clip-composition-interaction.spec.ts:6; run that complete owner after the active browser checkpoint finishes.
+- [ ] T669 Record scoped deliberate mutants only after the live validation owner finishes, restore source exactly and rerun affected whole-file Green; attach final browser, exact-source coverage and required CI evidence separately.

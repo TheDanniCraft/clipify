@@ -219,3 +219,11 @@ it("does not display a previous creator's late page analytics", async () => {
 	await act(async () => finish(result(99)));
 	await waitFor(() => expect(screen.getByRole("status", { name: "Creator Page visitors" })).toHaveTextContent("0"));
 });
+
+it("retains a labeled region for the top-clip card", async () => {
+	overview.mockResolvedValue(metrics);
+	broadcasts.mockResolvedValue({ ok: true, items: [], stale: false });
+	render(<CreatorOverview creatorId='owner' />);
+	await screen.findByText("Clutch");
+	expect(screen.getByRole("region", { name: "Top clips" })).toBeVisible();
+});
