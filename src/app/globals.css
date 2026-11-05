@@ -81,3 +81,21 @@ html {
 		position: static;
 	}
 }
+
+/* Keep privacy choices reachable without moving sidebar account and support actions. */
+[data-dashboard-consent] .clipify-consent-banner {
+	position: relative;
+	inset: auto;
+	margin: 0.5rem;
+}
+[data-dashboard-consent] .clipify-consent-banner .card__content {
+	padding: 0.75rem;
+}
+@media (min-width: 769px) {
+	body:has([data-slot="sidebar"][data-state="expanded"]) .clipify-consent-banner {
+		left: calc(16rem + 0.75rem);
+	}
+	body:has([data-slot="sidebar"][data-state="collapsed"]) .clipify-consent-banner {
+		left: calc(3rem + 0.75rem);
+	}
+}

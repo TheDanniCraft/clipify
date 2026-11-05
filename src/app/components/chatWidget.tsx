@@ -27,7 +27,7 @@ function isChatwootWidgetMounted() {
 const ChatWidget = () => {
 	const pathname = usePathname();
 	const isEmbedded = isEmbeddedRoute(pathname);
-	const inDashboard = pathname.startsWith("/dashboard") && !isEmbedded;
+	const inDashboard = (pathname.startsWith("/dashboard") || pathname.startsWith("/admin")) && !isEmbedded;
 	const { banner, dialog, openDialog } = useHeadlessConsentUI();
 	const functionalityAllowed = useConsent("functionality");
 	const [preferencesVisible, setPreferencesVisible] = useState(false);
@@ -36,7 +36,7 @@ const ChatWidget = () => {
 	const [chatwootState, setChatwootState] = useState({ checked: false, available: false });
 	useScriptLoader(isEmbedded ? [] : [chatwootConsentScript]);
 	const scriptStatus: ConsentScriptStatus = !functionalityAllowed ? "blocked" : chatwootState.available ? "ready" : "loading";
-	const floating = !inDashboard || banner.isVisible;
+	const floating = !inDashboard;
 
 	useEffect(() => {
 		if (!banner.isVisible) return;

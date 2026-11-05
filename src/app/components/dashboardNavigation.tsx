@@ -5,7 +5,7 @@ import { IconMenu2, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand }
 const subscribeToHydration = () => () => undefined;
 const clientReady = () => true;
 const serverReady = () => false;
-export const DashboardNavigationContext = createContext<{ toggle: () => void; search: () => void; expanded: boolean; mobile?: boolean; current?: { href: string; title: string; detail: boolean; detailLabel?: string }; registerSearch: (node: HTMLButtonElement | null) => void } | null>(null);
+export const DashboardNavigationContext = createContext<{ toggle: () => void; search: () => void; expanded: boolean; mobile?: boolean; homeHref?: string; current?: { href: string; title: string; detail: boolean; detailLabel?: string }; registerSearch: (node: HTMLButtonElement | null) => void } | null>(null);
 export function DashboardNavigationControls() {
 	const hydrated = useSyncExternalStore(subscribeToHydration, clientReady, serverReady);
 	const context = useContext(DashboardNavigationContext);
@@ -23,15 +23,17 @@ export function DashboardNavigationControls() {
 
 export function DashboardBreadcrumbs() {
 	const context = useContext(DashboardNavigationContext);
-	if (!context || context.current?.href === "/dashboard") return null;
+	if (!context) return null;
+	const homeHref = context.homeHref ?? "/dashboard";
+	if (context.current?.href === homeHref && !context.current.detail) return null;
 	const tourTargets: Record<string, string> = { "/dashboard/overlays": "overlays-tab", "/dashboard/playlists": "playlists-tab", "/dashboard/galleries": "galleries-tab", "/dashboard/runners": "runners-tab" };
 	const tourTarget = context.mobile && !context.current?.detail ? tourTargets[context.current?.href ?? ""] : undefined;
 	return (
 		<Breadcrumbs aria-label='Dashboard breadcrumb' className='min-w-0'>
-			<Breadcrumbs.Item href='/dashboard'>
-				<span data-tour={context.mobile ? "dashboard-home" : undefined}>Home</span>
+			<Breadcrumbs.Item href={homeHref}>
+				<span data-tour={context.mobile ? "dashboard-home" : undefined}>{homeHref === "/dashboard/agency" ? "Agency" : "Home"}</span>
 			</Breadcrumbs.Item>
-			{context.current && context.current.href !== "/dashboard" ? (
+			{context.current && context.current.href !== homeHref ? (
 				<Breadcrumbs.Item href={context.current.detail ? context.current.href : undefined}>
 					<span data-tour={tourTarget} aria-current={tourTarget ? "page" : undefined}>
 						{context.current.title}

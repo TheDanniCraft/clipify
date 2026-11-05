@@ -166,3 +166,11 @@ The creator keeps the approved sidebar and uses aligned Home summary cards, a st
 - V-06: Installed HeroUI controls work in390px/1440px light/dark browsers. A real downloaded video has720×1280 dimensions and preserves source audio.
 
 No automatic social publishing, Twitch Recap publishing, pricing change, watermark policy, custom logo uploads or general-purpose timeline editor is included in this extension.
+
+## Sidebar account and agency recovery follow-up
+
+R-01: Keep the signed-in avatar/name, optional account-context selector, guide progress, authorized Admin section, and compact support/report actions in that order in the sidebar footer. Retain an actionable avatar in collapsed desktop navigation. Account settings, Badges and Tools use sidebar destinations instead of duplicated profile-menu entries. Operations and Agencies use the same sidebar without a separate tab bar; existing server authorization remains required.
+
+R-02: An unavailable agency context must retain signed-in account navigation and an actionable recovery page. Recover the legacy /dashboard?agency=unavailable URL through that page; no cookie clearing or automatic sign-out is required to choose another account. Email-only agency identities may render navigation without creator permissions. Failed context switching preserves the current account and reports actionable toast feedback.
+
+R-03: The guide launcher and support stay in the sidebar before the first privacy choice. The consent prompt stays reachable without covering footer actions. Chatwoot still requires functionality consent, and privacy preferences retain their existing precedence. Saved guide navigation remains compatible while Settings and Tools discovery point to sidebar controls. Verify actual desktop/mobile components in both themes, account switching, disabled-agency recovery, admin access and consent rejection/enable/revocation.

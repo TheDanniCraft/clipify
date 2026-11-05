@@ -1,3 +1,4 @@
+jest.mock("@components/dashboardUtilityPortal", () => ({ __esModule: true, default: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
 import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import ChatWidget from "@/app/components/chatWidget";
@@ -286,4 +287,11 @@ describe("components/ChatWidget", () => {
 		rerender(<ChatWidget />);
 		expect(toggleBubbleVisibility).toHaveBeenLastCalledWith("show");
 	});
+});
+
+it("keeps dashboard support in its sidebar slot before a privacy choice", () => {
+	mockPathname = "/dashboard/clips";
+	mockBannerVisible = true;
+	render(<ChatWidget />);
+	expect(screen.getByRole("button", { name: "Enable support chat" })).not.toHaveStyle({ bottom: "20px" });
 });

@@ -12,7 +12,7 @@ import { isEmbeddedRoute } from "@lib/embeddedRoutes";
 export default function SentryFeedbackWidget() {
 	const pathname = usePathname();
 	const isEmbedded = isEmbeddedRoute(pathname);
-	const inDashboard = pathname.startsWith("/dashboard") && !isEmbedded;
+	const inDashboard = (pathname.startsWith("/dashboard") || pathname.startsWith("/admin")) && !isEmbedded;
 	const [pending, setPending] = useState(false);
 	const form = useRef<Awaited<ReturnType<NonNullable<ReturnType<typeof Sentry.getFeedback>>["createForm"]>> | null>(null);
 	const mounted = useRef(false);

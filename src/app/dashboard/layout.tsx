@@ -3,6 +3,7 @@ import { authorizeCreatorOperation } from "@/auth/authorize-operation";
 import { PERMISSIONS, type Permission } from "@/auth/permissions";
 import { Suspense, type ReactNode } from "react";
 import { connection } from "next/server";
+import { getDashboardNavbarUser } from "@/auth/navigation-user";
 import { validateAuth } from "@actions/auth";
 import { UserTourProvider } from "@components/user-tour/provider";
 import SentryFeedbackWidget from "@components/SentryFeedbackWidget";
@@ -12,25 +13,26 @@ import { getPendingDashboardContent } from "@lib/dashboardContent";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
 	await connection();
-	const user = await validateAuth();
-	const grant = user ? await authorizeCreatorOperation({ creatorId: user.id, resourceOwnerId: user.id, permission: "creator:read" }) : null;
+	const creator = await validateAuth();
+	const user = creator || (await getDashboardNavbarUser());
+	const grant = creator ? await authorizeCreatorOperation({ creatorId: creator.id, resourceOwnerId: creator.id, permission: "creator:read" }) : null;
 	const needed: Permission[] = ["creator:read", "overlay:read", "playlist:read", "gallery:read", "runner:read", "account:read", "member:read", "billing:read"];
-	const permissions: Permission[] = grant?.allowed && grant.accessPath === "owner" ? [...PERMISSIONS] : user ? (await Promise.all(needed.map(async (permission) => ({ permission, result: await authorizeCreatorOperation({ creatorId: user.id, resourceOwnerId: user.id, permission }) })))).filter((item) => item.result.allowed).map((item) => item.permission) : [];
+	const permissions: Permission[] = grant?.allowed && grant.accessPath === "owner" ? [...PERMISSIONS] : creator ? (await Promise.all(needed.map(async (permission) => ({ permission, result: await authorizeCreatorOperation({ creatorId: creator.id, resourceOwnerId: creator.id, permission }) })))).filter((item) => item.result.allowed).map((item) => item.permission) : [];
 	const content = user ? (
-		<DashboardShell key={user.id} creatorId={user.id} permissions={permissions}>
+		<DashboardShell key={user.id} creatorId={user.id} permissions={permissions} isAdmin={user.role === "admin" && !user.adminView?.active}>
 			{children}
 		</DashboardShell>
 	) : (
 		children
 	);
 
-	const [items, guide] = await Promise.all([user ? getPendingDashboardContent(user) : Promise.resolve([]), user ? getUserTourProgress(user.id) : Promise.resolve(null)]);
+	const [items, guide] = await Promise.all([creator ? getPendingDashboardContent(creator) : Promise.resolve([]), creator ? getUserTourProgress(creator.id) : Promise.resolve(null)]);
 	return (
 		<>
 			<SentryFeedbackWidget />
 			{user && guide ? (
 				<Suspense fallback={content}>
-					<UserTourProvider key={user.id} accountId={user.id} initialProgress={guide.progress} importLegacy={guide.importLegacy} dashboardContent={items} appearanceAvailable={(user.entitlements?.effectivePlan ?? user.plan) === "pro"}>
+					<UserTourProvider key={user.id} accountId={user.id} initialProgress={guide.progress} importLegacy={guide.importLegacy} dashboardContent={items} appearanceAvailable={Boolean(creator && (creator.entitlements?.effectivePlan ?? creator.plan) === "pro")}>
 						{content}
 					</UserTourProvider>
 				</Suspense>

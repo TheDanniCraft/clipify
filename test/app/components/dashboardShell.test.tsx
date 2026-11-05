@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import DashboardShell from "@components/dashboardShell";
 import { DashboardNavigationControls, DashboardBreadcrumbs } from "@components/dashboardNavigation";
 import { PERMISSIONS } from "@/auth/permissions";
@@ -74,6 +74,7 @@ jest.mock(
 	},
 	{ virtual: true },
 );
+jest.mock("@components/adminNavigation", () => ({ __esModule: true, default: () => <nav aria-label='Admin sections'>Operations Agencies</nav> }));
 const content = (
 	<>
 		<DashboardNavigationControls />
@@ -308,4 +309,68 @@ it.each([
 		</DashboardShell>,
 	);
 	expect(screen.getByText(label, { exact: true })).toBeInTheDocument();
+});
+
+it("orders identity, guide, admin and support consistently in the footer", () => {
+	render(
+		<DashboardShell creatorId='admin' permissions={[...PERMISSIONS]} isAdmin>
+			{content}
+		</DashboardShell>,
+	);
+	const slots = [...document.querySelectorAll("[data-dashboard-utility]")].map((node) => node.getAttribute("data-dashboard-utility"));
+	expect(slots).toEqual(["account", "guide", "admin", "chat", "report"]);
+	expect(screen.getByRole("navigation", { name: "Admin sections" })).toBeVisible();
+});
+it("does not expose admin navigation to a creator", () => {
+	render(
+		<DashboardShell creatorId='owner' permissions={[...PERMISSIONS]}>
+			{content}
+		</DashboardShell>,
+	);
+	expect(screen.queryByRole("navigation", { name: "Admin sections" })).not.toBeInTheDocument();
+	expect(screen.getByText("Badges")).toBeInTheDocument();
+});
+
+it("recognizes Badges as a sidebar destination", () => {
+	path = "/dashboard/member-card";
+	render(
+		<DashboardShell creatorId='owner' permissions={[...PERMISSIONS]}>
+			{content}
+		</DashboardShell>,
+	);
+	expect(screen.getAllByText("Badges")).toHaveLength(2);
+});
+
+it("keeps agency-only home and search within granted navigation", () => {
+	jest.useFakeTimers();
+	path = "/dashboard/agency";
+	const view = render(
+		<DashboardShell creatorId='agency-member' permissions={[]}>
+			{content}
+		</DashboardShell>,
+	);
+	try {
+		expect(screen.getByRole("link", { name: "Clipify Home" })).toHaveAttribute("href", "/dashboard/agency");
+		expect(screen.queryByText("Tools")).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Search pages" }));
+		fireEvent.change(screen.getByPlaceholderText("Search pages…"), { target: { value: "agency" } });
+		act(() => jest.advanceTimersByTime(250));
+		expect(search).not.toHaveBeenCalled();
+		expect(screen.getByRole("button", { name: "Agency" })).toBeVisible();
+	} finally {
+		view.unmount();
+		jest.useRealTimers();
+	}
+});
+
+it("uses agency home in allocation breadcrumbs without a creator-dashboard detour", () => {
+	path = "/dashboard/agency/allocations";
+	render(
+		<DashboardShell creatorId='agency-member' permissions={[]}>
+			{content}
+		</DashboardShell>,
+	);
+	expect(screen.queryByText("Home", { exact: true })).not.toBeInTheDocument();
+	expect(screen.getAllByText("Agency")).toHaveLength(2);
+	expect(screen.getByText("Allocations")).toBeVisible();
 });

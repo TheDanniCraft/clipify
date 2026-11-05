@@ -3,7 +3,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 
-export default function DashboardUtilityPortal({ children, slot = "chat" }: { children: ReactNode; slot?: "chat" | "report" | "account" | "guide" }) {
+export default function DashboardUtilityPortal({ children, slot = "chat" }: { children: ReactNode; slot?: "chat" | "report" | "account" | "guide" | "admin" }) {
 	const pathname = usePathname();
 	const [target, setTarget] = useState<HTMLElement | null>(null);
 	useEffect(() => {
@@ -17,5 +17,5 @@ export default function DashboardUtilityPortal({ children, slot = "chat" }: { ch
 		observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-dashboard-utilities-ready"] });
 		return () => observer.disconnect();
 	}, [pathname, slot]);
-	return target ? createPortal(children, target) : children;
+	return target ? createPortal(children, target) : pathname.startsWith("/dashboard") || pathname.startsWith("/admin") ? <div hidden>{children}</div> : children;
 }

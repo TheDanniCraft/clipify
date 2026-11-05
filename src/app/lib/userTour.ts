@@ -152,7 +152,7 @@ export type GuideStep = { target: string; title: string; description: string; ne
 const navigationSteps: Record<NavigationTarget, GuideStep> = {
 	"connections-panel": { target: "settings-connections-tab", title: "Choose Connections", description: "Choose Connections to return to your connected AI apps.", action: true, next: true, reveals: "connected-ai-apps" },
 	"settings-panel": { target: "settings-core-tab", title: "Choose Account", description: "Choose Account to return to this guide.", action: true, next: true, reveals: "settings-overview" },
-	"account-settings": { target: "nav-settings", title: "Open Settings", description: "Choose My Settings.", destination: "settings", preserveFocus: true },
+	"account-settings": { target: "settings-core-tab", title: "Open Account", description: "Choose Account in the Settings sidebar.", destination: "settings", preserveFocus: true },
 	"core-settings": { target: "settings-core-tab", title: "Open Account", description: "Choose Account to return to your account preferences.", destination: "settings" },
 	team: { target: "settings-team-tab", title: "Open Team", description: "Choose Team to find your team members and manage their access.", action: true, next: true, reveals: "team-overview" },
 	"close-picker": { target: "playlist-clip-cancel", title: "Return to Add Clips", description: "Click Cancel to return to the playlist and its Add Clips button.", action: true, next: true, inDialog: true, dialogClosed: true },
@@ -164,12 +164,14 @@ const navigationSteps: Record<NavigationTarget, GuideStep> = {
 	overlay: { target: "open-overlay", title: "Open your overlay", description: "Click your overlay's row to open its settings.", destination: "overlay" },
 	playlists: { target: "playlists-tab", title: "Open Playlists", description: "Choose Playlists in navigation.", action: true, next: true },
 	playlist: { target: "open-playlist", title: "Open your playlist", description: "Click your playlist's row to edit its clips.", destination: "playlist" },
-	profile: { target: "nav-menu", reveals: "nav-tools", title: "Open the app menu", description: "Click your avatar.", action: true, next: true },
-	tools: { target: "nav-tools", title: "Open Tools", description: "Choose Tools for website players and galleries.", destination: "tools", preserveFocus: true },
+	profile: { target: "settings-group", reveals: "settings-core-tab", title: "Expand Settings", description: "Expand Settings in the sidebar.", action: true, next: true },
+	tools: { target: "nav-tools", title: "Open Clip Player", description: "Choose Clip Player in the Tools sidebar.", destination: "tools", preserveFocus: true },
 };
 export function currentGuideStep(progress: GuideProgress): GuideStep | undefined {
 	if (!progress.active) return;
 	const navigation = progress.active.navigation?.[0];
+	// Saved guides retain the legacy profile step while navigation lives in the sidebar.
+	if (navigation === "profile" && progress.active.task === "explore.tools") return { target: "tools-group", reveals: "nav-tools", title: "Expand Tools", description: "Expand Tools in the sidebar.", action: true, next: true };
 	return navigation ? navigationSteps[navigation] : stepsForTask(progress.active.task, progress)[progress.active.index];
 }
 export function activeGuidePercent(progress: GuideProgress) {

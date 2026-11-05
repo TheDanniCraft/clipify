@@ -520,10 +520,10 @@ Then("the next task guides source without changing Save behavior", async ({ page
 When("the website player guide is followed", async ({ page }) => {
 	await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
 	await start(page, "Add Clipify to your website", "Explore Clipify");
-	await expect(page.locator(".driver-popover-title")).toHaveText("Open the app menu");
-	await page.getByRole("button", { name: "Open profile menu", exact: true }).click();
-	await expect(page.locator(".driver-popover-title")).toHaveText("Open Tools");
-	await page.getByRole("menuitem", { name: "Tools", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Expand Tools");
+	await page.locator('[data-tour="tools-group"]').click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Open Clip Player");
+	await page.locator('[data-tour="nav-tools"]').click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Choose a player");
 	await page.locator('[data-tour-action="next"]').click();
 	await page.locator('[data-tour="website-copy"]').click();
@@ -1070,10 +1070,10 @@ Then("saving the overlay completes the guide with the actual playlist", async ({
 	expect((await progress(page, tourWorld)).completed).toContain("playlist.use");
 });
 async function openSettingsFromGuide(page: Page) {
-	await expect(page.locator(".driver-popover-title")).toHaveText("Open the app menu");
-	await page.locator('[data-tour="nav-menu"]').click();
-	await expect(page.locator(".driver-popover-title")).toHaveText("Open Settings");
-	await page.getByRole("menuitem", { name: "My Settings", exact: true }).click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Expand Settings");
+	await page.locator('[data-tour="settings-group"]').click();
+	await expect(page.locator(".driver-popover-title")).toHaveText("Open Account");
+	await page.locator('[data-tour="settings-core-tab"]').click();
 }
 When("the runner discovery guide is followed", async ({ page }) => {
 	await start(page, "Discover runners", "Explore Clipify");

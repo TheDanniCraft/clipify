@@ -95,6 +95,7 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 	const [message, setMessage] = useState("");
 	const [consentOpen, setConsentOpen] = useState(false);
 	const [consentBanner, setConsentBanner] = useState(false);
+	const [guideRequested, setGuideRequested] = useState(false);
 	const [syncState, setSyncState] = useState<"idle" | "saving" | "error">("idle");
 	const launcher = useRef<HTMLButtonElement>(null);
 	const previousPath = useRef(pathname);
@@ -196,7 +197,8 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 			setTimeout(() => {
 				const focusOwner = document.activeElement;
 				if (document.querySelector(`${tourModalSelector}, ${tourPopoverSelector}`) || focusOwner?.id === "sentry-feedback" || focusOwner?.tagName === "IFRAME") return;
-				launcher.current?.focus();
+				if (launcher.current?.getClientRects().length) launcher.current.focus();
+				else document.querySelector<HTMLButtonElement>('[aria-label="Toggle navigation"]')?.focus();
 			}, 0);
 		},
 		[activeTask, report],
@@ -240,6 +242,7 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 	const onPrevious = useCallback(() => report({ type: "previous", location, pickerOpen: Boolean(document.querySelector('[data-tour="playlist-clip-search"]')) }), [report, location]);
 	const isFinished = (task: TaskId) => progress.completed.includes(task) || progress.skipped.includes(task);
 	const currentJourney = journeys.find((journey) => journey.id === (active?.task.split(".")[0] ?? progress.journeyId)) ?? journeys[0];
+	const panelVisible = !progress.minimized && (!consentBanner || guideRequested);
 	const launcherTitle = currentJourney.id === "overlay" ? "Get started" : currentJourney.title;
 	const percentage = journeyGuidePercent(progress);
 	return (
@@ -247,10 +250,10 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 			{children}
 			{hydrated && <DashboardContentHost isVisible={!consentOpen && !consentBanner} items={dashboardContent.length ? dashboardContent : offerWelcome ? [guidedWelcome] : []} onStartGuide={offerWelcome ? () => report({ type: "welcome.start", location: rawLocation }) : undefined} onDismissGuide={offerWelcome ? () => report({ type: "welcome.dismiss" }) : undefined} />}
 			<span hidden data-guide-sync={syncState} />
-			{hydrated && !consentOpen && !consentBanner && (
+			{hydrated && !consentOpen && (
 				<DashboardUtilityPortal slot='guide'>
 					<aside aria-label='Clipify guide' className='user-tour-launcher relative flex min-w-0 flex-col items-start'>
-						{!progress.minimized &&
+						{panelVisible &&
 							createPortal(
 								<section id='clipify-guide-panel' aria-label='Your Clipify guide' style={{ maxHeight: `calc(100dvh - ${bottom + 80}px)` }} className='user-tour-launcher fixed bottom-24 left-4 z-40 w-80 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl border border-separator bg-surface p-4 text-foreground shadow-xl md:left-[17rem]'>
 									<div className='mb-2 flex items-center justify-between gap-3'>
@@ -326,7 +329,20 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 								</section>,
 								document.body,
 							)}
-						<Button ref={launcher} data-tour='guide-launcher' aria-label={`${launcherTitle} · ${percentage}%`} aria-expanded={!progress.minimized} aria-controls='clipify-guide-panel' variant='ghost' fullWidth className='h-10 max-w-full justify-start gap-2 px-2 text-foreground' onPress={() => report({ type: "panel", minimized: !progress.minimized })}>
+						<Button
+							ref={launcher}
+							data-tour='guide-launcher'
+							aria-label={`${launcherTitle} · ${percentage}%`}
+							aria-expanded={panelVisible}
+							aria-controls='clipify-guide-panel'
+							variant='ghost'
+							fullWidth
+							className='h-10 max-w-full justify-start gap-2 px-2 text-foreground'
+							onPress={() => {
+								setGuideRequested(true);
+								report({ type: "panel", minimized: panelVisible });
+							}}
+						>
 							<ProgressCircle aria-label={`${currentJourney.title} progress`} value={percentage} size='lg' className='relative size-10 shrink-0'>
 								<ProgressCircle.Track style={{ width: 40, height: 40 }}>
 									<ProgressCircle.TrackCircle style={{ stroke: "var(--color-muted)", opacity: 0.45 }} />

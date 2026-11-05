@@ -1,3 +1,4 @@
+jest.mock("@components/dashboardUtilityPortal", () => ({ __esModule: true, default: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
 const notify = jest.fn();
 beforeEach(() => notify.mockReset());
 jest.mock("@lib/toast", () => ({ notify: (...args: unknown[]) => notify(...args) }));
@@ -106,4 +107,14 @@ it("matches the dashboard theme and names the real feedback dialog", async () =>
 	} finally {
 		document.documentElement.classList.remove("dark");
 	}
+});
+
+it("keeps admin feedback in the shared sidebar instead of creating a floating widget", async () => {
+	pathname = "/admin/agencies";
+	const createWidget = jest.fn();
+	getFeedback.mockReturnValue({ createWidget });
+	const Widget = (await import("@/app/components/SentryFeedbackWidget")).default;
+	render(<Widget />);
+	expect(screen.getByRole("button", { name: "Report a problem" })).toBeVisible();
+	expect(createWidget).not.toHaveBeenCalled();
 });

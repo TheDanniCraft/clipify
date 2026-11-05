@@ -26,10 +26,10 @@ const getServerHydratedSnapshot = () => false;
 function ConsentBannerPortal({ children }: { children: ReactNode }) {
 	const [target, setTarget] = useState<HTMLElement | null>(null);
 	useEffect(() => {
-		const find = () => setTarget(document.querySelector<HTMLElement>('[data-slot="sidebar-mobile-overlay-container"]') ?? document.body);
+		const find = () => setTarget(document.querySelector<HTMLElement>('[data-slot="sidebar-mobile"] [data-dashboard-consent][data-dashboard-utilities-ready="true"]') ?? document.querySelector<HTMLElement>('[data-slot="sidebar-mobile-overlay-container"]') ?? document.body);
 		find();
 		const observer = new MutationObserver(find);
-		observer.observe(document.body, { childList: true, subtree: true });
+		observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-dashboard-utilities-ready"] });
 		return () => observer.disconnect();
 	}, []);
 	return target ? createPortal(children, target) : null;
@@ -156,7 +156,7 @@ function ConsentInterface() {
 	function renderBanner(behindModal = false) {
 		return (
 			<ConsentBannerPortal>
-				<aside className={`fixed inset-x-3 bottom-3 ${behindModal ? "z-[90]" : "z-[100]"}`} aria-labelledby='consent-banner-title' aria-hidden={behindModal || undefined} inert={behindModal || undefined}>
+				<aside className={`clipify-consent-banner fixed inset-x-3 bottom-3 ${behindModal ? "z-[90]" : "z-[100]"}`} aria-labelledby='consent-banner-title' aria-hidden={behindModal || undefined} inert={behindModal || undefined}>
 					<Card variant='secondary' className='mx-auto w-full max-w-[1280px] overflow-hidden border border-default bg-surface/95 shadow-xl backdrop-blur-xl'>
 						<Card.Content className='grid gap-3 p-3 sm:p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-5'>
 							<div className='flex min-w-0 items-center gap-3'>

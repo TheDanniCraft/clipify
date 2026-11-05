@@ -1,3 +1,5 @@
+const navigationIdentity = jest.fn();
+jest.mock("@/auth/navigation-user", () => ({ getDashboardNavbarUser: () => navigationIdentity() }));
 import React from "react";
 import { render, screen } from "@testing-library/react";
 
@@ -59,6 +61,7 @@ jest.mock("@components/creator/creatorOverview", () => ({ __esModule: true, defa
 describe("app/dashboard/page", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
+		navigationIdentity.mockResolvedValue(null);
 		redirect.mockImplementation(() => {
 			throw new Error("NEXT_REDIRECT");
 		});
@@ -91,4 +94,25 @@ it.each([
 	const Page = (await import("@/app/dashboard/page")).default;
 	await expect(Page({ searchParams: Promise.resolve({ tab }) })).rejects.toThrow("NEXT_REDIRECT");
 	expect(redirect).toHaveBeenCalledWith(target);
+});
+
+it("recovers the old unavailable-agency URL before creator authentication", async () => {
+	redirect.mockImplementation(() => {
+		throw new Error("NEXT_REDIRECT");
+	});
+	validateAuth.mockClear();
+	const Page = (await import("@/app/dashboard/page")).default;
+	await expect(Page({ searchParams: Promise.resolve({ agency: "unavailable" }) })).rejects.toThrow("NEXT_REDIRECT");
+	expect(redirect).toHaveBeenCalledWith("/dashboard/agency");
+	expect(validateAuth).not.toHaveBeenCalled();
+});
+
+it("retains an authenticated session when its creator context is unavailable", async () => {
+	redirect.mockClear();
+	validateAuth.mockResolvedValue(false);
+	navigationIdentity.mockResolvedValue({ id: "agency-member", username: "Member" });
+	const Page = (await import("@/app/dashboard/page")).default;
+	await expect(Page()).rejects.toThrow("NEXT_REDIRECT");
+	expect(redirect).toHaveBeenCalledWith("/dashboard/agency");
+	expect(redirect).not.toHaveBeenCalledWith("/logout");
 });

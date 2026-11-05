@@ -734,3 +734,8 @@ T621 publication evidence: application head17fc33de476ada2f2739fdf620437a3db12dc
 - [x] T637 Run affected whole-file suites and real browser desktop/mobile light/dark editor/export/recovery; publish passing source to PR546 and inspect preview/CI without merging.
 
 T631 preceding checkpoint:23b6dd303fd14462644ee01db3e94e5d84a11ae9 passed full CI41913108910 and preview deployment jqmxy9ebpgildkpppum4s7ux finished. T637 remains open until the new publication checkpoint finishes its own required CI and preview.
+
+- [x] T638 Consolidate sidebar profile/context/guide/admin/support ordering, collapsed avatar and account/Badges destinations; preserve responsive consent placement.
+- [x] T639 Recover unavailable agencies and legacy URLs without clearing sessions; retain email-only navigation and toast failed switches without granting creator permissions.
+- [x] T640 Preserve saved onboarding navigation through sidebar Settings/Tools and verify affected whole-file owners plus real desktop/mobile light/dark browser journeys.
+- [ ] T641 Publish the passing account/sidebar follow-up to PR546, inspect its preview and required CI, and retain any pending platform validation explicitly.

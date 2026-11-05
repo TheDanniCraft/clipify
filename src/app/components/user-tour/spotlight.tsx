@@ -24,7 +24,7 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 		let disposed = false;
 		let shown = false;
 		let requestedNavigation = false;
-		const sidebarStep = step.target.startsWith("settings-");
+		const sidebarStep = step.target.startsWith("settings-") || step.target === "tools-group" || step.target === "nav-tools";
 		let suspended = false;
 		let advanced = false;
 		let missingTimer: ReturnType<typeof setTimeout> | undefined;

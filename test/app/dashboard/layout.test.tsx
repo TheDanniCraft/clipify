@@ -1,3 +1,5 @@
+const navbarIdentity = jest.fn();
+jest.mock("@/auth/navigation-user", () => ({ getDashboardNavbarUser: () => navbarIdentity() }));
 jest.mock("@actions/userTour", () => ({ getUserTourProgress: async () => ({ progress: { version: 2, completed: [], skipped: [], active: null, minimized: false }, importLegacy: false }) }));
 jest.mock("@components/user-tour/provider", () => ({
 	UserTourProvider: ({ children, accountId, dashboardContent }: { children: React.ReactNode; accountId: string; dashboardContent: unknown[] }) => (
@@ -83,4 +85,14 @@ it("keeps unauthenticated content outside the creator shell", async () => {
 	render(await Layout({ children: <div>Public content</div> }));
 	expect(screen.getByText("Public content")).toBeInTheDocument();
 	expect(screen.queryByTestId("shell")).not.toBeInTheDocument();
+});
+
+it("retains the sidebar and account switcher for email-only agency members", async () => {
+	validateAuth.mockResolvedValue(false);
+	navbarIdentity.mockResolvedValue({ id: "agency-member", username: "Agency owner" });
+	const Layout = (await import("@/app/dashboard/layout")).default;
+	render(await Layout({ children: <p>Agency recovery</p> }));
+	expect(screen.getByTestId("shell")).toHaveAttribute("data-creator", "agency-member");
+	expect(screen.getByTestId("shell")).toHaveAttribute("data-permissions", "");
+	expect(screen.getByText("Agency recovery")).toBeVisible();
 });

@@ -233,6 +233,68 @@ describe("components/dashboardNavbar", () => {
 		expect(routerRefresh).toHaveBeenCalled();
 	});
 
+	it("reports a failed context transport and permits a retry", async () => {
+		organizationList = {
+			data: [
+				{ id: "creator-org", name: "Creator", metadata: { accountType: "creator" } },
+				{ id: "agency-org", name: "Agency", metadata: { accountType: "agency" } },
+			],
+			isPending: false,
+		};
+		setActiveOrganization.mockRejectedValueOnce(new Error("offline"));
+		render(<DashboardNavbar user={mockUser()} title='Home' tagline='Test' />);
+		fireEvent.click(screen.getByRole("button", { name: /Agency/ }));
+		await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Account could not be switched", color: "danger" })));
+		expect(routerPush).not.toHaveBeenCalled();
+		setActiveOrganization.mockResolvedValueOnce({ data: null, error: null });
+		fireEvent.click(screen.getByRole("button", { name: /Agency/ }));
+		await waitFor(() => expect(routerPush).toHaveBeenCalledWith("/dashboard/agency"));
+	});
+
+	it("puts Return to Admin in the footer section while impersonating", async () => {
+		const host = document.createElement("div");
+		host.id = "dashboard-utilities";
+		host.setAttribute("data-dashboard-utilities-ready", "true");
+		const admin = document.createElement("div");
+		admin.setAttribute("data-dashboard-utility", "admin");
+		host.append(admin);
+		document.body.append(host);
+		const view = render(
+			<DashboardNavigationContext.Provider value={{ toggle: jest.fn(), search: jest.fn(), expanded: true, mobile: false, registerSearch: jest.fn() }}>
+				<DashboardNavbar user={mockUser({ adminView: { active: true, adminUserId: "root", adminUsername: "root" } })} title='Home' tagline='Test' />
+			</DashboardNavigationContext.Provider>,
+		);
+		try {
+			const button = await screen.findByRole("button", { name: "Return to Admin" });
+			expect(admin).toContainElement(button);
+			expect(screen.getAllByText("Return to Admin")).toHaveLength(1);
+			fireEvent.click(button);
+			await waitFor(() => expect(stopAdminView).toHaveBeenCalledTimes(1));
+		} finally {
+			view.unmount();
+			host.remove();
+		}
+	});
+
+	it("lets an agency-only member select their one valid account from a stale context", async () => {
+		identitySession = { data: { session: { activeOrganizationId: "creator-org" } }, isPending: false };
+		organizationList = { data: [{ id: "agency-org", name: "Agency workspace", metadata: { accountType: "agency" } }], isPending: false };
+		render(<DashboardNavbar user={mockUser({ plan: undefined })} title='Agency unavailable' tagline='Recover' />);
+		expect(screen.getByText("Select account")).toBeVisible();
+		fireEvent.click(screen.getByRole("button", { name: /^Agency workspace/ }));
+		await waitFor(() => expect(setActiveOrganization).toHaveBeenCalledWith({ organizationId: "agency-org" }));
+		expect(routerPush).toHaveBeenCalledWith("/dashboard/agency");
+	});
+
+	it("identifies agency home without a creator breadcrumb", () => {
+		render(
+			<DashboardNavigationContext.Provider value={{ toggle: jest.fn(), search: jest.fn(), expanded: true, homeHref: "/dashboard/agency", registerSearch: jest.fn(), current: { href: "/dashboard/agency", title: "Agency", detail: false } }}>
+				<DashboardNavbar user={mockUser()} title='Agency dashboard' tagline='Manage workspace' />
+			</DashboardNavigationContext.Provider>,
+		);
+		expect(screen.getByText("Agency")).toBeVisible();
+		expect(screen.queryByLabelText("Dashboard breadcrumb")).not.toBeInTheDocument();
+	});
 	it("hides upgrade link for pro users", () => {
 		render(
 			<DashboardNavbar user={mockUser({ plan: "pro" })} title='T' tagline='T'>
@@ -496,6 +558,7 @@ describe("components/dashboardNavbar", () => {
 		organizationList = { data: undefined, isPending: true };
 		render(<DashboardNavbar user={mockUser({ plan: undefined, avatar: undefined })} title='Agency' tagline='Account' />);
 		expect(screen.getByText("Agency dashboard")).toBeInTheDocument();
+		expect(screen.getByText("Loading accounts…")).toBeInTheDocument();
 		expect(screen.queryByText("Upgrade to Pro")).not.toBeInTheDocument();
 	});
 

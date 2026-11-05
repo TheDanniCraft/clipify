@@ -3,8 +3,9 @@ import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode, type
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Sidebar, Command, useSidebar } from "@heroui-pro/react";
 import { Button, Kbd } from "@heroui/react";
-import { IconHome, IconVideo, IconScissors, IconLayoutGrid, IconPlaylist, IconPhoto, IconDeviceDesktop, IconTools, IconSettings, IconFolder, IconSearch, IconHelpCircle, IconUserCircle, IconPlug, IconId, IconCreditCard, IconUsers, IconPlayerPlay } from "@tabler/icons-react";
+import { IconHome, IconVideo, IconScissors, IconLayoutGrid, IconPlaylist, IconPhoto, IconDeviceDesktop, IconTools, IconSettings, IconFolder, IconSearch, IconHelpCircle, IconUserCircle, IconPlug, IconId, IconCreditCard, IconUsers, IconPlayerPlay, IconAward, IconBuildingCommunity } from "@tabler/icons-react";
 import NextLink from "next/link";
+import AdminNavigation from "./adminNavigation";
 import Logo from "./logo";
 import { settingsSections, settingsSection, toolSections } from "@lib/dashboardSections";
 import { searchCreatorLibrary } from "@actions/creatorLibrary";
@@ -27,12 +28,12 @@ type SearchClip = Extract<Awaited<ReturnType<typeof searchCreatorLibrary>>, { ok
 function markUtilityHostReady(node: HTMLDivElement | null) {
 	node?.setAttribute("data-dashboard-utilities-ready", "true");
 }
-function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { children: ReactNode; creatorId: string; permissions: Permission[]; open: boolean; setOpen: (open: boolean) => void }) {
+function NavigationFrame({ children, creatorId, permissions, open, setOpen, isAdmin = false }: { children: ReactNode; creatorId: string; permissions: Permission[]; open: boolean; setOpen: (open: boolean) => void; isAdmin?: boolean }) {
 	const router = useRouter();
 	const path = usePathname();
 	const params = useSearchParams();
 	const section = settingsSection(params);
-	const activeGroup = path.startsWith("/dashboard/settings") ? "settings" : path === "/dashboard/tools" ? "tools" : undefined;
+	const activeGroup = path.startsWith("/dashboard/settings") || path === "/dashboard/member-card" ? "settings" : path === "/dashboard/tools" ? "tools" : undefined;
 	const commandKey = useSyncExternalStore(
 		() => () => undefined,
 		() => /Mac|iPhone|iPad/.test(navigator.platform),
@@ -48,17 +49,21 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 	const [retry, setRetry] = useState(0);
 	const [searching, setSearching] = useState(false);
 	const searchRef = useRef<HTMLButtonElement | null>(null);
+	const homeHref = permissions.length ? "/dashboard" : "/dashboard/agency";
+	const canSearchClips = permissions.includes("creator:read");
+	const searchLabel = canSearchClips ? "Search clips and tools" : "Search pages";
 	const settingsIcons = { settings: IconUserCircle, connections: IconPlug, creator: IconId, billing: IconCreditCard, team: IconUsers };
 	const settingsItems: Destination[] = settingsSections.filter((item) => permissions.includes(item.permission)).map((item) => ({ ...item, icon: settingsIcons[item.key] }));
-	const toolItems: Destination[] = toolSections.map((item) => ({ ...item, permission: null, icon: item.title === "Clip Player" ? IconPlayerPlay : IconPhoto }));
-	const allowed = destinations.filter((item) => (item.title === "Settings" ? settingsItems.length > 0 : item.permission === null || permissions.includes(item.permission)));
+	if (permissions.includes("account:read")) settingsItems.push({ title: "Badges", href: "/dashboard/member-card", permission: "account:read", icon: IconAward });
+	const toolItems: Destination[] = permissions.length ? toolSections.map((item) => ({ ...item, permission: null, icon: item.title === "Clip Player" ? IconPlayerPlay : IconPhoto, tour: item.title === "Clip Player" ? "nav-tools" : undefined })) : [];
+	const allowed = [...(!permissions.length ? [{ title: "Agency", href: "/dashboard/agency", permission: null, icon: IconBuildingCommunity }] : []), ...destinations].filter((item) => (item.title === "Settings" ? settingsItems.length > 0 : item.title === "Tools" ? toolItems.length > 0 : item.permission === null || permissions.includes(item.permission)));
 	const searchable = [...new Map([...settingsItems, ...toolItems, ...allowed].map((item) => [item.href, item])).values()];
 	const currentChild = activeGroup === "settings" && path === "/dashboard/settings" ? settingsItems.find((item) => item.href === settingsSections.find((candidate) => candidate.key === section)?.href) : activeGroup === "tools" ? toolItems[params.get("tool") === "gallery" ? 1 : 0] : undefined;
 	let active = path;
 	if (path.startsWith("/dashboard/overlay/")) active = "/dashboard/overlays";
 	if (path.startsWith("/dashboard/playlist/")) active = "/dashboard/playlists";
 	if (path.startsWith("/dashboard/runner/")) active = "/dashboard/runners";
-	const current = allowed.find((item) => active === item.href || (item.href !== "/dashboard" && active.startsWith(item.href + "/")));
+	const current = path === "/dashboard/member-card" ? { title: "Badges", href: "/dashboard/member-card", permission: null } : allowed.find((item) => active === item.href || (item.href !== "/dashboard" && active.startsWith(item.href + "/")));
 	useEffect(() => {
 		if (!isMobileOpen) return;
 		const closeForUtility = (event: MouseEvent) => {
@@ -112,7 +117,7 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 		return () => document.removeEventListener("keydown", handle);
 	});
 	useEffect(() => {
-		if (!searchOpen || query.trim().length < 2) return;
+		if (!searchOpen || !canSearchClips || query.trim().length < 2) return;
 		let current = true;
 		const timer = setTimeout(() => {
 			setSearching(true);
@@ -133,7 +138,7 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 			current = false;
 			clearTimeout(timer);
 		};
-	}, [creatorId, query, searchOpen, retry]);
+	}, [creatorId, query, searchOpen, retry, canSearchClips]);
 	const menuItem = (item: Destination) => (
 		<Sidebar.MenuItem key={item.href} id={item.href} href={item.href} isCurrent={(currentChild?.href ?? current?.href) === item.href} render={(props) => <div {...props} aria-current={(currentChild?.href ?? current?.href) === item.href ? "page" : undefined} />} aria-current={(currentChild?.href ?? current?.href) === item.href ? "page" : undefined} textValue={item.title} data-tour={item.tour}>
 			{item.icon ? (
@@ -147,11 +152,11 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 	const navigation = (
 		<>
 			<Sidebar.Header>
-				<NextLink data-tour={isMobile ? undefined : "dashboard-home"} href='/dashboard' aria-label='Clipify Home' className='flex h-12 items-center gap-2 px-1 font-bold text-foreground'>
+				<NextLink data-tour={isMobile ? undefined : "dashboard-home"} href={homeHref} aria-label='Clipify Home' className='flex h-12 items-center gap-2 px-1 font-bold text-foreground'>
 					<Logo width={28} />
 					{isMobile || open ? <span>Clipify</span> : null}
 				</NextLink>
-				<Button ref={searchRef} variant='secondary' isIconOnly={!isMobile && !open} className={isMobile || open ? "w-full justify-start text-muted" : "w-full justify-center text-muted"} aria-label='Search clips and tools' aria-haspopup='dialog' onPress={showSearch}>
+				<Button ref={searchRef} variant='secondary' isIconOnly={!isMobile && !open} className={isMobile || open ? "w-full justify-start text-muted" : "w-full justify-center text-muted"} aria-label={searchLabel} aria-haspopup='dialog' onPress={showSearch}>
 					<IconSearch className='size-4 shrink-0' />
 					{isMobile || open ? (
 						<>
@@ -167,10 +172,7 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 			<Sidebar.Content>
 				<Sidebar.Group>
 					<Sidebar.Menu aria-label='Creator navigation' className='clipify-creator-navigation' key={activeGroup ?? "root"} defaultExpandedKeys={["resources", ...(activeGroup ? [activeGroup] : [])]}>
-						{allowed
-							.slice(0, 3)
-							.filter((item) => ["Home", "Streams", "Clip Inventory"].includes(item.title))
-							.map(menuItem)}
+						{allowed.filter((item) => ["Home", "Streams", "Clip Inventory", "Agency"].includes(item.title)).map(menuItem)}
 						{allowed.some((item) => "tour" in item) ? (
 							<Sidebar.MenuItem id='resources' textValue='Create and share'>
 								<Sidebar.MenuIcon>
@@ -195,28 +197,29 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 									<Sidebar.MenuIcon>
 										<group.icon className='size-4' />
 									</Sidebar.MenuIcon>
-									<Sidebar.MenuLabel>
-										{group.title}
-										<Sidebar.MenuTrigger>
-											<Sidebar.MenuIndicator />
-										</Sidebar.MenuTrigger>
-									</Sidebar.MenuLabel>
+									<Sidebar.MenuLabel>{group.title}</Sidebar.MenuLabel>
+									<Sidebar.MenuTrigger data-tour={`${group.id}-group`}>
+										<Sidebar.MenuIndicator />
+									</Sidebar.MenuTrigger>
 									<Sidebar.Submenu>{group.items.map(menuItem)}</Sidebar.Submenu>
 								</Sidebar.MenuItem>
 							))}
 					</Sidebar.Menu>
 				</Sidebar.Group>
 			</Sidebar.Content>
+			{isMobile ? <div ref={markUtilityHostReady} data-dashboard-consent className='max-h-[35dvh] shrink-0 overflow-y-auto' /> : null}
 			{
-				<Sidebar.Footer>
+				<Sidebar.Footer className='gap-1 max-h-[50dvh] overflow-y-auto'>
 					{!open ? (
 						<Button isIconOnly variant='tertiary' aria-label='Show help and getting started' onPress={() => setOpen(true)}>
 							<IconHelpCircle className='size-4' />
 						</Button>
 					) : null}
-					<div ref={markUtilityHostReady} id={isMobile ? "dashboard-mobile-utilities" : "dashboard-utilities"} className={open ? "flex flex-col gap-2" : "hidden"}>
-						{["chat", "report", "account", "guide"].map((slot) => (
-							<div key={slot} data-dashboard-utility={slot} className='min-w-0 empty:hidden' />
+					<div ref={markUtilityHostReady} id={isMobile ? "dashboard-mobile-utilities" : "dashboard-utilities"} className='flex flex-col gap-0.5'>
+						{["account", "guide", "admin", "chat", "report"].map((slot) => (
+							<div key={slot} data-dashboard-utility={slot} className={open || isMobile || slot === "account" ? "min-w-0 empty:hidden" : "hidden"}>
+								{slot === "admin" && isAdmin ? <AdminNavigation /> : null}
+							</div>
 						))}
 					</div>
 				</Sidebar.Footer>
@@ -230,11 +233,19 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 	return (
 		<DashboardNavigationContext.Provider
 			value={{
+				homeHref,
 				toggle,
 				search: showSearch,
 				expanded: isMobile ? isMobileOpen : open,
 				mobile: isMobile,
-				current: current ? { href: current.href, title: current.title, detail: Boolean(currentChild) || path !== current.href, detailLabel: currentChild?.title ?? (path === "/dashboard/clips/layout" ? "Portrait layout" : path.startsWith("/dashboard/clips/") ? "Clip" : undefined) ?? (current.href === "/dashboard/settings" ? (path.startsWith("/dashboard/settings/team") ? "Team" : path.startsWith("/dashboard/settings/agencies") ? "Agency access" : "Account recovery") : undefined) } : undefined,
+				current: current
+					? {
+							href: current.href,
+							title: current.title,
+							detail: Boolean(currentChild) || path !== current.href,
+							detailLabel: currentChild?.title ?? (path === "/dashboard/agency/allocations" ? "Allocations" : path === "/dashboard/clips/layout" ? "Portrait layout" : path.startsWith("/dashboard/clips/") ? "Clip" : undefined) ?? (current.href === "/dashboard/settings" ? (path.startsWith("/dashboard/settings/team") ? "Team" : path.startsWith("/dashboard/settings/agencies") ? "Agency access" : "Account recovery") : undefined),
+						}
+					: undefined,
 				registerSearch: (node) => {
 					searchRef.current = node;
 				},
@@ -250,7 +261,7 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 				<Command.Backdrop isOpen={searchOpen} onOpenChange={changeSearch}>
 					<Command.Container size='lg'>
 						<Command.Dialog
-							aria-label='Search clips and tools'
+							aria-label={searchLabel}
 							inputValue={query}
 							onInputChange={(value) => {
 								setQuery(value);
@@ -271,14 +282,14 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 											changeSearch(false);
 										}
 									}}
-									aria-label='Search clips and tools'
-									placeholder='Search clips and tools…'
+									aria-label={searchLabel}
+									placeholder={`${searchLabel}…`}
 								/>
 								<Command.InputGroup.ClearButton />
 							</Command.InputGroup>
 							<Command.List
 								aria-label='Search results'
-								renderEmptyState={() => <p className='p-4 text-sm text-muted'>{searching ? "Searching clips…" : "No matching clips or tools."}</p>}
+								renderEmptyState={() => <p className='p-4 text-sm text-muted'>{searching ? "Searching clips…" : canSearchClips ? "No matching clips or tools." : "No matching pages."}</p>}
 								onAction={(key) => {
 									const destination = searchable.find((item) => item.href === String(key));
 									if (destination) {
@@ -297,7 +308,7 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 									}
 								}}
 							>
-								<Command.Group heading='Tools'>
+								<Command.Group heading='Pages'>
 									{searchable
 										.filter((item) => item.title.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
 										.map((item) => (
@@ -326,7 +337,7 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 								) : null}
 							</Command.List>
 							<Command.Footer>
-								<p className='text-xs text-muted'>{query.trim().length < 2 ? "Type at least two characters to search clips." : searching ? "Searching clips…" : "Use arrow keys to choose a result and Enter to open it."}</p>
+								<p className='text-xs text-muted'>{!canSearchClips ? "Choose a page with the arrow keys and press Enter." : query.trim().length < 2 ? "Type at least two characters to search clips." : searching ? "Searching clips…" : "Use arrow keys to choose a result and Enter to open it."}</p>
 								<Button variant='tertiary' size='sm' onPress={() => changeSearch(false)}>
 									Close search
 								</Button>
@@ -338,14 +349,14 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen }: { 
 		</DashboardNavigationContext.Provider>
 	);
 }
-export default function DashboardShell({ children, creatorId, permissions }: { children: ReactNode; creatorId: string; permissions: Permission[] }) {
+export default function DashboardShell({ children, creatorId, permissions, isAdmin = false }: { children: ReactNode; creatorId: string; permissions: Permission[]; isAdmin?: boolean }) {
 	const router = useRouter();
 	const path = usePathname();
 	const [open, setOpen] = useState(true);
 	if (isEmbeddedRoute(path)) return children;
 	return (
 		<Sidebar.Provider open={open} onOpenChange={setOpen} navigate={router.push} toggleShortcut={false}>
-			<NavigationFrame creatorId={creatorId} permissions={permissions} open={open} setOpen={setOpen}>
+			<NavigationFrame isAdmin={isAdmin} creatorId={creatorId} permissions={permissions} open={open} setOpen={setOpen}>
 				{children}
 			</NavigationFrame>
 		</Sidebar.Provider>

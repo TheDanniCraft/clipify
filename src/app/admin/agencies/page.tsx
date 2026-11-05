@@ -4,7 +4,6 @@ import { IconBuildingBank, IconCheck, IconPlus, IconUsers } from "@tabler/icons-
 import { validateAdminAuth } from "@actions/auth";
 import { getAdminAgenciesAction } from "@/app/actions/agency";
 import DashboardNavbar from "@components/dashboardNavbar";
-import AdminNavigation from "@components/adminNavigation";
 import { AlertContent, AlertDescription, AlertRoot, AlertTitle, CardContent, CardDescription, CardHeader, CardRoot, CardTitle, Chip, TableBody, TableCell, TableColumn, TableContent, TableHeader, TableRoot, TableRow, TableScrollContainer } from "@components/heroui-client";
 import AgencyProvisionForm from "./agency-provision-form";
 
@@ -26,7 +25,6 @@ export default async function AdminAgenciesPage({ searchParams }: { searchParams
 	return (
 		<DashboardNavbar user={user} title='Agency accounts' tagline='Provision negotiated terms and Stripe-backed creator or Runner seats'>
 			<div className='mt-6 flex flex-col gap-6 pb-10'>
-				<AdminNavigation active='agencies' />
 				{params.error ? (
 					<AlertRoot status='danger'>
 						<AlertContent>

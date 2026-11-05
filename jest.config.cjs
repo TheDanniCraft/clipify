@@ -54,6 +54,8 @@ const customJestConfig = {
 		"src/app/dashboard/clips/[[]clipId]/page.tsx",
 		"src/app/api/clips/export/route.ts",
 		"src/app/dashboard/layout.tsx",
+		"src/app/admin/layout.tsx",
+		"src/app/components/adminNavigation.tsx",
 		"src/app/dashboard/page.tsx",
 		"src/app/dashboard/clips/page.tsx",
 		"src/app/dashboard/streams/page.tsx",

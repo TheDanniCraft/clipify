@@ -14,7 +14,7 @@ for (const width of [390, 820, 1024, 1440])
 			if (width === 390) {
 				await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
 				await expect(page.getByRole("treegrid", { name: "Creator navigation", exact: true })).toBeVisible();
-				await expect(page.locator('[data-slot="sidebar-mobile-overlay-container"]').getByRole("button", { name: "Reject optional", exact: true })).toBeVisible();
+				await expect(page.locator('[data-slot="sidebar-mobile"]').getByRole("button", { name: "Reject optional", exact: true })).toBeVisible();
 			}
 			await Promise.all([page.waitForEvent("load"), privacy.click()]);
 			await expect(privacy).not.toBeVisible();
@@ -147,6 +147,7 @@ for (const width of [390, 820, 1024, 1440])
 				await toggle.click();
 				await page.locator('[data-slot="sidebar-mobile"] [data-tour="guide-launcher"]').click();
 				await expect(toggle).toHaveAttribute("aria-expanded", "false");
+				await expect(page.locator('[data-slot="sidebar-mobile"]')).not.toBeVisible();
 				await expect(page.getByRole("region", { name: "Your Clipify guide" })).toBeVisible();
 			}
 		});
