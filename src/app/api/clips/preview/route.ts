@@ -13,7 +13,7 @@ export async function GET(request: Request) {
 		if (!result?.playbackUrl || !isTrustedClipMediaUrl(result.playbackUrl)) return new Response(null, { status: 404, headers });
 		const signal = AbortSignal.any([request.signal, AbortSignal.timeout(30000)]);
 		const response = await fetch(result.playbackUrl, { signal, redirect: "manual", cache: "no-store", headers: range ? { Range: range } : undefined });
-		if (!response.ok || !response.body || !["video/mp4", "application/octet-stream"].includes(response.headers.get("content-type")?.split(";")[0] ?? "") || Number(response.headers.get("content-length")) > EXPORT_LIMITS.file) {
+		if (!response.ok || !response.body || !["video/mp4", "application/octet-stream", "binary/octet-stream"].includes(response.headers.get("content-type")?.split(";")[0] ?? "") || Number(response.headers.get("content-length")) > EXPORT_LIMITS.file) {
 			await response.body?.cancel();
 			return new Response(null, { status: 502, headers });
 		}

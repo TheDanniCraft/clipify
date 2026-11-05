@@ -43,3 +43,11 @@ it("streams a complete video and rejects actual bytes beyond the declared size c
 	const oversized = await GET(new Request(url));
 	await expect(oversized.arrayBuffer()).rejects.toThrow("byte_limit");
 });
+
+it("serves Twitch CDN binary/octet-stream media as video/mp4", async () => {
+	jest.mocked(fetch).mockResolvedValueOnce(new Response(new Uint8Array([1, 2]), { status: 206, headers: { "content-type": "binary/octet-stream", "content-length": "2", "content-range": "bytes 0-1/2" } }));
+	const result = await GET(new Request(url, { headers: { range: "bytes=0-" } }));
+	expect(result.status).toBe(206);
+	expect(result.headers.get("content-type")).toBe("video/mp4");
+	expect([...new Uint8Array(await result.arrayBuffer())]).toEqual([1, 2]);
+});

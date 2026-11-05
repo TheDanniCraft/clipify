@@ -106,6 +106,7 @@ globalThis.fetch = async (input, init) => {
 		const response = await nativeFetch(`${origin}${url.pathname}`, init);
 		const headers = new Headers(response.headers);
 		headers.delete("Access-Control-Allow-Origin");
+		headers.set("Content-Type", "binary/octet-stream");
 		return new Response(response.body, { status: response.status, headers });
 	}
 	return nativeFetch(input, init);
