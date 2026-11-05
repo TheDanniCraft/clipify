@@ -196,3 +196,28 @@ it("ends a stalled brand skeleton, retries, and ignores the superseded response"
 	expect(screen.getByRole("textbox", { name: "Text Color" })).toHaveValue("#ff0000");
 	jest.useRealTimers();
 });
+
+it.each(["https://fonts.googleapis.com.evil.example/css2?family=Laila", "https://evil-fonts.googleapis.com/css2?family=Laila", "https://evil.example/fonts.googleapis.com", "https://evil.example/?host=fonts.googleapis.com", "https://evil.example/#fonts.googleapis.com", "https://fonts.googleapis.com@evil.example/css2?family=Laila", "http://fonts.googleapis.com/css2?family=Laila", "not-a-url-fonts.googleapis.com"])("does not import an untrusted stylesheet as a Google font: %s", async (fontUrl) => {
+	load.mockResolvedValue({ ok: true, canEdit: true, brand: null, revision: 0, canRemoveWatermark: true });
+	sources.mockResolvedValue({ ok: true, overlays: [{ id: "legacy", name: "OBS style", themeFontFamily: `Laila, sans-serif||url||${fontUrl}`, themeTextColor: "#ffeecc", themeBackgroundColor: "#112233", themeAccentColor: "#7C3AED", borderRadius: 10, borderSize: 0 }] });
+	render(<Panel user={user} />);
+	fireEvent.change(await screen.findByRole("combobox", { name: "Start from an existing overlay" }), { target: { value: "legacy" } });
+	expect(screen.getByRole("combobox", { name: "Font source" })).toHaveValue("builtin");
+	expect(screen.queryByRole("textbox", { name: "Google font family" })).not.toBeInTheDocument();
+	expect(screen.getByRole("textbox", { name: "Text Color" })).toHaveValue("#ffeecc");
+	fireEvent.click(screen.getByRole("button", { name: "Apply brand" }));
+	fireEvent.click(screen.getByRole("button", { name: "Apply to overlays and clips" }));
+	await waitFor(() => expect(save).toHaveBeenCalledWith("creator", expect.objectContaining({ fontSource: "builtin", fontFamily: "DejaVu Sans", themeTextColor: "#ffeecc" }), 0));
+});
+
+it.each(["https://fonts.googleapis.com/css?family=Laila", "https://FONTS.GOOGLEAPIS.COM/css2?family=Laila"])("preserves a legitimate Google font import: %s", async (fontUrl) => {
+	load.mockResolvedValue({ ok: true, canEdit: true, brand: null, revision: 0, canRemoveWatermark: true });
+	sources.mockResolvedValue({ ok: true, overlays: [{ id: "legacy", name: "OBS style", themeFontFamily: `Laila, sans-serif||url||${fontUrl}`, themeTextColor: "#ffeecc", themeBackgroundColor: "#112233", themeAccentColor: "#7C3AED", borderRadius: 10, borderSize: 0 }] });
+	render(<Panel user={user} />);
+	fireEvent.change(await screen.findByRole("combobox", { name: "Start from an existing overlay" }), { target: { value: "legacy" } });
+	expect(screen.getByRole("combobox", { name: "Font source" })).toHaveValue("google");
+	expect(screen.getByRole("textbox", { name: "Google font family" })).toHaveValue("Laila");
+	fireEvent.click(screen.getByRole("button", { name: "Apply brand" }));
+	fireEvent.click(screen.getByRole("button", { name: "Apply to overlays and clips" }));
+	await waitFor(() => expect(save).toHaveBeenCalledWith("creator", expect.objectContaining({ fontSource: "google", fontFamily: "Laila", themeTextColor: "#ffeecc" }), 0));
+});

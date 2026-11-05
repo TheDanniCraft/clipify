@@ -11,6 +11,7 @@ import { trackProductEvent } from "@lib/analytics";
 import { notify } from "@lib/toast";
 import type { AuthenticatedUser } from "@types";
 import ThemeColorInput from "@components/theme/ThemeColorInput";
+import { parseThemeFontSetting, sanitizeFontCssUrl } from "@components/overlayPlayer.utils";
 import ControlledModal from "@components/controlledModal";
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
 import UpgradeModal from "@components/upgradeModal";
@@ -138,8 +139,9 @@ export default function BrandSettingsPanel({ user }: { user: AuthenticatedUser }
 	function importOverlay(id: string) {
 		const overlay = sources.find((source) => source.id === id);
 		if (!overlay) return;
-		const family = overlay.themeFontFamily.split("||url||")[0].split(",")[0].replace(/["']/g, "").trim();
-		const google = overlay.themeFontFamily.includes("fonts.googleapis.com");
+		const font = parseThemeFontSetting(overlay.themeFontFamily);
+		const family = font.fontFamily.split(",")[0].replace(/["']/g, "").trim();
+		const google = Boolean(sanitizeFontCssUrl(font.fontUrl));
 		const next = creatorBrandSchema.safeParse({ ...draft, ...overlay, fontFamily: google ? family : "DejaVu Sans", fontSource: google ? "google" : "builtin", borderSize: Math.min(32, overlay.borderSize), borderRadius: Math.min(80, overlay.borderRadius) });
 		if (next.success) setDraft(next.data);
 		else notify({ title: "Overlay style could not be copied", description: "The original overlay is unchanged. Choose its colors and font below.", color: "warning" });

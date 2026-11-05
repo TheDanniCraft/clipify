@@ -170,3 +170,20 @@ test("Stalled brand loading offers retry and then loads the creator settings", a
 	await expect(page.getByRole("button", { name: "Apply brand", exact: true })).toBeEnabled({ timeout: 10000 });
 	await expect(page.getByRole("textbox", { name: "Text Color", exact: true })).toBeVisible();
 });
+
+test("Untrusted overlay font hosts use the built-in fallback when imported and saved", async ({ page, request, tourWorld }) => {
+	const { creatorId } = await seedCreatorLibrary({ page, request, tourWorld });
+	await tourWorld.fixture.pool.query("UPDATE overlays SET name='Imported style',theme_font_family=$2,theme_text_color='#ffeecc' WHERE id=$1", [tourWorld.owner!.overlayId, "Laila, sans-serif||url||https://fonts.googleapis.com.evil.example/css2?family=Laila"]);
+	await page.goto(`${tourWorld.origin}/dashboard/settings?tab=brand`);
+	await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
+	await expect(page.getByRole("button", { name: "Apply brand", exact: true })).toBeEnabled();
+	await page.getByRole("button", { name: /Start from an existing overlay/ }).click();
+	await page.getByRole("option", { name: "Imported style", exact: true }).click();
+	await expect(page.getByRole("textbox", { name: "Google font family", exact: true })).toHaveCount(0);
+	await expect(page.getByRole("textbox", { name: "Text Color", exact: true })).toHaveValue("#FFEECC");
+	await page.getByRole("button", { name: "Apply brand", exact: true }).click();
+	await page.getByRole("button", { name: "Apply to overlays and clips", exact: true }).click();
+	await expect(page.getByRole("button", { name: "Save brand", exact: true })).toBeDisabled();
+	const { rows } = await tourWorld.fixture.pool.query("SELECT state FROM user_content_states WHERE user_id=$1 AND content_key='creator-brand:v1'", [creatorId]);
+	expect(JSON.parse(rows[0].state).brand).toMatchObject({ fontSource: "builtin", fontFamily: "DejaVu Sans" });
+});
