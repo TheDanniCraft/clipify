@@ -228,3 +228,10 @@ it("resolves cold category metadata without exposing provider-only fields", asyn
 	expect(getGamesDetailsBulk).toHaveBeenCalledWith(["123"], "owner");
 	expect(JSON.stringify(result)).not.toContain("private");
 });
+it("retains owned clips when missing category metadata cannot be refreshed", async () => {
+	const { getGamesDetailsBulk } = await import("@actions/twitch");
+	jest.mocked(getGamesDetailsBulk).mockRejectedValueOnce(new Error("provider unavailable"));
+	authorizeCreatorOperation.mockResolvedValue({ allowed: true });
+	cacheRows.push([{ key: "clip:owner:A", value: JSON.stringify(clip("A")), fetchedAt: new Date() }], []);
+	expect(await readCreatorInventory("owner")).toMatchObject({ ok: true, total: 1, items: [{ id: "A" }], categories: [] });
+});

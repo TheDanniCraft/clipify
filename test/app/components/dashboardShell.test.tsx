@@ -296,3 +296,16 @@ it("waits for the mobile breakpoint before enabling the first menu press", () =>
 	fireEvent.click(toggle);
 	expect(toggle).toHaveAttribute("aria-expanded", "true");
 });
+
+it.each([
+	["/dashboard/clips/A", "Clip"],
+	["/dashboard/clips/layout", "Portrait layout"],
+])("labels the clip workspace breadcrumb for %s", (route, label) => {
+	path = route;
+	render(
+		<DashboardShell creatorId='owner' permissions={[...PERMISSIONS]}>
+			{content}
+		</DashboardShell>,
+	);
+	expect(screen.getByText(label, { exact: true })).toBeInTheDocument();
+});

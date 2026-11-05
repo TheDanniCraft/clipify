@@ -45,3 +45,9 @@ it.each([{ games: [] }, { games: [{ value: JSON.stringify({ name: 7 }) }] }])("t
 	execute.mockResolvedValueOnce([{ value: JSON.stringify({ clip }), fetchedAt: new Date() }]).mockResolvedValueOnce(games);
 	expect(await readCreatorClipDetail("owner", "A")).toMatchObject({ ok: true, categoryName: null });
 });
+it("keeps owned clip details available when the category provider fails", async () => {
+	const { getGameDetails } = await import("@actions/twitch");
+	jest.mocked(getGameDetails).mockRejectedValueOnce(new Error("provider unavailable"));
+	execute.mockResolvedValueOnce([{ value: JSON.stringify({ clip }), fetchedAt: new Date() }]).mockResolvedValueOnce([]);
+	expect(await readCreatorClipDetail("owner", "A")).toMatchObject({ ok: true, clip: { id: "A" }, categoryName: null });
+});

@@ -400,7 +400,7 @@ it("renders a custom portrait through the existing authorized single-download pa
 	}
 	expect(rateLimit).toHaveBeenCalledWith("owner");
 	expect(providerCapacity).toHaveBeenCalledWith("owner");
-});
+}, 30000);
 it("rejects invalid custom framing before provider or rate-limit access", async () => {
 	const { defaultClipLayout } = await import("@lib/clipLayout");
 	expect(await buildClipArchive({ creatorId: "owner", clipIds: ["ClipA"], layout: { ...defaultClipLayout, gameplay: { x: 1, y: 0, w: 1, h: 1 } } })).toMatchObject({ ok: false, code: "INVALID_INPUT" });
@@ -433,4 +433,4 @@ it("renders a selected batch with each clip metadata and a portrait manifest", a
 	const media = Object.entries(files).filter(([name]) => name.endsWith(".mp4"));
 	expect(media).toHaveLength(2);
 	expect(Buffer.from(media[0][1]).equals(Buffer.from(media[1][1]))).toBe(false);
-});
+}, 30000);

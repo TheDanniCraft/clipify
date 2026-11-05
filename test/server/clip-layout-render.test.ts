@@ -65,3 +65,26 @@ it("caps concurrent renders and returns a retryable busy result", async () => {
 		spy.mockRestore();
 	}
 });
+
+it("rejects oversized or incomplete rendered output before returning media", async () => {
+	const fs = (await import("node:fs/promises")).default;
+	const bytes = new Uint8Array(await readFile("test/fixtures/runner/presentation.mp4"));
+	const size = jest.spyOn(fs, "stat");
+	try {
+		for (const outputSize of [32 * 1024 * 1024, 1]) {
+			size.mockResolvedValueOnce({ size: outputSize } as never);
+			await expect(renderClipLayout(bytes, defaultClipLayout, { title: "Bounded output" }, AbortSignal.timeout(15000))).rejects.toThrow("file_size_limit");
+		}
+	} finally {
+		size.mockRestore();
+	}
+}, 30000);
+it("releases render capacity when temporary storage cannot be created", async () => {
+	const fs = (await import("node:fs/promises")).default;
+	const mkdir = jest.spyOn(fs, "mkdtemp").mockRejectedValue(new Error("temporary storage unavailable"));
+	try {
+		for (let i = 0; i < 3; i++) await expect(renderClipLayout(new Uint8Array([1]), defaultClipLayout, { title: "T" }, AbortSignal.timeout(5000))).rejects.toThrow("temporary storage unavailable");
+	} finally {
+		mkdir.mockRestore();
+	}
+});
