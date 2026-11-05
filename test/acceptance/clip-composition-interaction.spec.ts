@@ -11,15 +11,14 @@ for (const width of [390, 1440])
 		const initial = createClipComposition("mobile");
 		await tourWorld.fixture.pool.query("INSERT INTO user_content_states(user_id,content_key,state) VALUES($1,$2,$3)", [creatorId, "clip-layout-template:v2:custom", JSON.stringify({ name: "My composition", composition: initial })]);
 		await page.goto(`${tourWorld.origin}/dashboard/clip-layouts?layout=custom&reference=${id}`);
-		await page.getByRole("button", { name: "Reject optional", exact: true }).click();
-		await page.reload();
+		await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 		await expect(page.getByRole("button", { name: "Play preview", exact: true })).toBeEnabled();
 		const handle = page.getByRole("button", { name: "Resize Camera output bottom right", exact: true });
 		await handle.scrollIntoViewIfNeeded();
 		const before = await handle.boundingBox();
 		expect(before).not.toBeNull();
-		const x = before!.x + 12,
-			y = before!.y + 12;
+		const x = before!.x + 10,
+			y = before!.y + 10;
 		if (width === 390) {
 			const cdp = await page.context().newCDPSession(page);
 			await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
@@ -43,6 +42,9 @@ for (const width of [390, 1440])
 		await page.getByRole("button", { name: /Add (layer|crop or widget)/ }).click();
 		await page.getByRole("option", { name: "Clip title", exact: true }).click();
 		await expect(page.getByRole("textbox", { name: "Text size", exact: true })).toBeVisible();
+		await page.route("**/api/clips/layout-logo?**", (route) => route.fulfill({ contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j8ZkAAAAASUVORK5CYII=", "base64") }));
+		await page.getByRole("button", { name: /Add (layer|crop or widget)/ }).click();
+		await page.getByRole("option", { name: "Channel name", exact: true }).click();
 		await page.getByRole("button", { name: "Save layout", exact: true }).click();
 		await expect(page.getByText("Layout saved", { exact: true })).toBeVisible();
 		await expect(page.getByRole("button", { name: "Save layout", exact: true })).toBeDisabled();
@@ -51,14 +53,16 @@ for (const width of [390, 1440])
 		expect(saved.layers.filter((layer: any) => layer.kind === "video")).toHaveLength(3);
 		expect(saved.layers.find((layer: any) => layer.label === "Killfeed").source.h).toBeCloseTo(0.02, 5);
 		expect(saved.layers.some((layer: any) => layer.kind === "title")).toBe(true);
+		expect(saved.layers.some((layer: any) => layer.kind === "channel")).toBe(true);
 		const camera = saved.layers.find((layer: any) => layer.id === "camera");
-		expect(camera.source).toEqual(initial.layers[0].kind === "video" ? initial.layers[0].source : null);
+		expect(camera.source).toBeDefined();
 		expect(camera.frame.w).toBeLessThan(initial.layers[0].frame.w);
-		expect(camera.frame.w / camera.frame.h).toBeCloseTo(initial.layers[0].frame.w / initial.layers[0].frame.h, 3);
+		expect((camera.source.w * 16) / (camera.source.h * 9)).toBeCloseTo((camera.frame.w * 720) / (camera.frame.h * 1280), 3);
 		await page.evaluate(() => window.scrollTo(0, 0));
+		await expect(page.getByText("Layout saved", { exact: true })).toBeHidden({ timeout: 10000 });
 		await page.screenshot({ path: info.outputPath("custom-composition.png"), fullPage: true, animations: "disabled" });
 	});
-test("Source modifiers and output snapping preserve independent content and placement", async ({ page, request, tourWorld }) => {
+test("Output shape drives locked source cropping; releases stop movement and edges snap", async ({ page, request, tourWorld }) => {
 	test.setTimeout(120000);
 	await page.setViewportSize({ width: 1440, height: 1000 });
 	const { creatorId, id } = await seedCreatorLibrary({ page, request, tourWorld });
@@ -66,8 +70,7 @@ test("Source modifiers and output snapping preserve independent content and plac
 	composition.layers[0] = { id: "gameplay", kind: "video", label: "Gameplay", source: { x: 0.1, y: 0.1, w: 0.4, h: 0.3 }, frame: { x: 0.2, y: 0.2, w: 0.4, h: 0.3 } };
 	await tourWorld.fixture.pool.query("INSERT INTO user_content_states(user_id,content_key,state) VALUES($1,$2,$3)", [creatorId, "clip-layout-template:v2:modifiers", JSON.stringify({ name: "Modifier layout", composition })]);
 	await page.goto(`${tourWorld.origin}/dashboard/clip-layouts?layout=modifiers&reference=${id}`);
-	await page.getByRole("button", { name: "Reject optional", exact: true }).click();
-	await page.reload();
+	await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 	await expect(page.getByRole("button", { name: "Play preview", exact: true })).toBeEnabled();
 	const natural = await page.locator("video").evaluate((video: HTMLVideoElement) => ({ width: video.videoWidth, height: video.videoHeight }));
 	const read = async () => JSON.parse((await tourWorld.fixture.pool.query("SELECT state FROM user_content_states WHERE user_id=$1 AND content_key=$2", [creatorId, "clip-layout-template:v2:modifiers"])).rows[0].state).composition;
@@ -82,22 +85,32 @@ test("Source modifiers and output snapping preserve independent content and plac
 		await handle.scrollIntoViewIfNeeded();
 		const b = (await handle.boundingBox())!;
 		for (const key of keys) await page.keyboard.down(key);
-		await page.mouse.move(b.x + 12, b.y + 12);
+		await page.mouse.move(b.x + 10, b.y + 10);
 		await page.mouse.down();
-		await page.mouse.move(b.x + 12 + dx, b.y + 12 + dy, { steps: 5 });
+		await page.mouse.move(b.x + 10 + dx, b.y + 10 + dy, { steps: 5 });
 		await page.mouse.up();
 		for (const key of [...keys].reverse()) await page.keyboard.up(key);
 		return save();
 	};
-	let layer = await resize(["Control"], 35, 10);
-	expect((layer.source.w * natural.width) / (layer.source.h * natural.height)).toBeCloseTo(9 / 16, 3);
-	layer = await resize(["Control", "Shift"], 20, 15);
-	expect((layer.source.w * natural.width) / (layer.source.h * natural.height)).toBeCloseTo(16 / 9, 3);
+	let layer = await resize([], 20, 5);
 	const locked = layer.source.w / layer.source.h;
-	layer = await resize(["Shift"], 20, 5);
+	expect(locked).toBeCloseTo(0.4 / 0.3, 3);
+	expect(layer.frame).toEqual(composition.layers[0].frame);
+	layer = await resize(["Shift"], 10, 5);
 	expect(layer.source.w / layer.source.h).toBeCloseTo(locked, 3);
-	layer = await resize([], 30, 0);
-	expect(layer.source.w / layer.source.h).toBeGreaterThan(locked + 0.05);
+	const edge = page.getByRole("button", { name: "Resize Gameplay output right", exact: true });
+	await edge.scrollIntoViewIfNeeded();
+	const edgeBox = (await edge.boundingBox())!;
+	await page.mouse.move(edgeBox.x + edgeBox.width / 2, edgeBox.y + edgeBox.height / 2);
+	await page.mouse.down();
+	await page.mouse.move(edgeBox.x + 40, edgeBox.y + edgeBox.height / 2);
+	await page.mouse.up();
+	const released = await page.getByRole("button", { name: "Gameplay output", exact: true }).boundingBox();
+	await page.mouse.move(edgeBox.x + 90, edgeBox.y + edgeBox.height / 2);
+	expect(await page.getByRole("button", { name: "Gameplay output", exact: true }).boundingBox()).toEqual(released);
+	layer = await save();
+	expect(layer.frame.w / layer.frame.h).not.toBeCloseTo(0.4 / 0.3, 2);
+	expect((layer.source.w * natural.width) / (layer.source.h * natural.height)).toBeCloseTo((layer.frame.w * 1280) / (layer.frame.h * 720), 3);
 	const captured = layer.source;
 	const move = async (alt: boolean) => {
 		const box = page.getByRole("button", { name: "Gameplay output", exact: true });

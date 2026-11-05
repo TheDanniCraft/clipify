@@ -17,17 +17,19 @@ export type ClipComposition = z.infer<typeof compositionSchema>;
 export type CompositionLayer = ClipComposition["layers"][number];
 export type CompositionRect = CompositionLayer["frame"];
 const clean = (n: number) => Number(n.toFixed(6));
-export function resizeCompositionRect(rect: CompositionRect, dx: number, dy: number, corner: "nw" | "ne" | "sw" | "se", ratio?: number): CompositionRect {
+export function resizeCompositionRect(rect: CompositionRect, dx: number, dy: number, corner: "n" | "s" | "e" | "w" | "nw" | "ne" | "sw" | "se", ratio?: number): CompositionRect {
 	const west = corner.includes("w"),
-		north = corner.includes("n");
-	const ax = west ? rect.x + rect.w : rect.x,
-		ay = north ? rect.y + rect.h : rect.y;
-	const maxW = west ? ax : 1 - ax,
-		maxH = north ? ay : 1 - ay;
-	let w = Math.max(0.002, rect.w + (west ? -dx : dx)),
-		h = Math.max(0.002, rect.h + (north ? -dy : dy));
+		north = corner.includes("n"),
+		horizontal = corner.includes("w") || corner.includes("e"),
+		vertical = corner.includes("n") || corner.includes("s");
+	const ax = west ? rect.x + rect.w : horizontal ? rect.x : rect.x + rect.w / 2,
+		ay = north ? rect.y + rect.h : vertical ? rect.y : rect.y + rect.h / 2;
+	const maxW = horizontal ? (west ? ax : 1 - ax) : 2 * Math.min(ax, 1 - ax),
+		maxH = vertical ? (north ? ay : 1 - ay) : 2 * Math.min(ay, 1 - ay);
+	let w = Math.max(0.002, rect.w + (horizontal ? (west ? -dx : dx) : 0)),
+		h = Math.max(0.002, rect.h + (vertical ? (north ? -dy : dy) : 0));
 	if (ratio && Number.isFinite(ratio) && ratio > 0) {
-		if (Math.abs(dx / rect.w) > Math.abs(dy / rect.h)) h = w / ratio;
+		if (!vertical || (horizontal && Math.abs(dx / rect.w) > Math.abs(dy / rect.h))) h = w / ratio;
 		else w = h * ratio;
 		w = Math.max(w, 0.002, 0.002 * ratio);
 		h = w / ratio;
@@ -38,7 +40,7 @@ export function resizeCompositionRect(rect: CompositionRect, dx: number, dy: num
 		w = Math.min(w, maxW);
 		h = Math.min(h, maxH);
 	}
-	return { x: clean(west ? ax - w : ax), y: clean(north ? ay - h : ay), w: clean(w), h: clean(h) };
+	return { x: clean(west ? ax - w : horizontal ? ax : ax - w / 2), y: clean(north ? ay - h : vertical ? ay : ay - h / 2), w: clean(w), h: clean(h) };
 }
 export function snapCompositionRect(rect: CompositionRect, others: CompositionRect[], thresholdX: number, thresholdY: number) {
 	const guides: { x?: number; y?: number } = {};
@@ -80,18 +82,16 @@ export function createClipComposition(format: ClipComposition["format"]): ClipCo
 	return format === "mobile" ? convertLegacyClipLayout(defaultClipLayout) : { version: 2, format, layers: [{ id: "gameplay", kind: "video", label: "Gameplay", source: { x: 0, y: 0, w: 1, h: 1 }, frame: { x: 0, y: 0, w: 1, h: 1 } }] };
 }
 export function updateCompositionSource(layout: ClipComposition, id: string, source: CompositionRect, dimensions: { width: number; height: number }): ClipComposition {
-	const canvas = compositionDimensions(layout.format);
-	return {
-		...layout,
-		layers: layout.layers.map((layer) => {
-			if (layer.id !== id || layer.kind !== "video") return layer;
-			const ratio = (source.w * dimensions.width) / (source.h * dimensions.height);
-			let w = layer.frame.w,
-				h = (w * canvas.width) / (canvas.height * ratio);
-			const scale = Math.min(1, (1 - layer.frame.x) / w, (1 - layer.frame.y) / h);
-			w *= scale;
-			h *= scale;
-			return { ...layer, source, frame: { ...layer.frame, w, h } };
-		}),
-	};
+	return { ...layout, layers: layout.layers.map((layer) => (layer.id === id && layer.kind === "video" ? { ...layer, source: cropForFrame(source, layer.frame, dimensions, compositionDimensions(layout.format)) } : layer)) };
+}
+export function cropForFrame(source: CompositionRect, frame: CompositionRect, dimensions: { width: number; height: number }, output: { width: number; height: number }): CompositionRect {
+	const ratio = Math.max(0.002, Math.min(500, (frame.w * output.width * dimensions.height) / (frame.h * output.height * dimensions.width)));
+	const cx = source.x + source.w / 2,
+		cy = source.y + source.h / 2;
+	const w = Math.min(1, ratio, Math.max(0.002, 0.002 * ratio, Math.min(source.w, source.h * ratio))),
+		h = w / ratio;
+	return { x: clean(Math.max(0, Math.min(1 - w, cx - w / 2))), y: clean(Math.max(0, Math.min(1 - h, cy - h / 2))), w: clean(w), h: clean(h) };
+}
+export function updateCompositionFrame(layout: ClipComposition, id: string, frame: CompositionRect, dimensions: { width: number; height: number }): ClipComposition {
+	return { ...layout, layers: layout.layers.map((layer) => (layer.id !== id ? layer : layer.kind === "video" ? { ...layer, frame, source: Math.abs(layer.frame.w / layer.frame.h - frame.w / frame.h) < 0.00001 ? layer.source : cropForFrame(layer.source, frame, dimensions, compositionDimensions(layout.format)) } : { ...layer, frame })) };
 }

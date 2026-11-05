@@ -795,3 +795,10 @@ T663/T669 publication closure: source42c91366 deployed exactly, CI42034438429 pa
 - [x] T673 Verify actual browser source/output editing, format-switch persistence, search, preview proxy/recovery, override isolation and downloads in both themes and sizes; publish and verify the exact preview.
 
 T673 local closure: paired-atomic-browser-green.log passes all9 editor/interaction/storage cases after the concurrent-save fix; paired-browser-verified.log passes all4 owning US4 export cases, including five video files from paired collections. Production build and source checksums match; publication and final CI evidence are attached to PR546 after push.
+
+## Output-driven composition interaction revision
+
+- [x] T674 Keep drag state behind native capture-phase pointer move/release/cancel, lost capture, blur and primary-button checks; center eight resize handles on borders and use native move/resize cursors.
+- [x] T675 Let output boxes define shape and source crops preserve it, keep output moves/content independent, and snap movement/resizing in both panes with Alt bypass.
+- [x] T676 Keep identity colors independent of membership/order, share reference selection across format tabs, and render channel identity/title/clipper as coherent exported blocks with a usable default identity strip.
+- [x] T677 Verify complete geometry/component/native-render owners, installed Chromium desktop/mobile/light/dark editing, Firefox pointer release, and the corrected compact-guide BDD owner; reconcile the spec/plan/test list and publication evidence.

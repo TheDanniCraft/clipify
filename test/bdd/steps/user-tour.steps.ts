@@ -478,9 +478,11 @@ Then("the checklist opens beside sidebar navigation with progress and no automat
 	await expect(page.locator(".driver-popover")).toHaveCount(0);
 	await expect(page.locator('[data-slot="progress-circle"] svg')).toBeVisible();
 	const ring = await page.locator('[data-slot="progress-circle"] svg').boundingBox();
-	expect(ring!.width).toBeGreaterThanOrEqual(32);
-	expect(ring!.height).toBeGreaterThanOrEqual(32);
+	expect(ring!.width).toBeGreaterThanOrEqual(16);
+	expect(ring!.width).toBeLessThanOrEqual(20);
+	expect(ring!.height).toBe(ring!.width);
 	const launcher = await page.getByRole("button", { name: /^Get started/ }).boundingBox();
+	expect(launcher!.height).toBeGreaterThanOrEqual(36);
 	const sidebar = await page.locator('[data-slot="sidebar"]').boundingBox();
 	const checklist = await page.getByRole("region", { name: "Your Clipify guide" }).boundingBox();
 	expect(launcher!.x).toBeGreaterThanOrEqual(sidebar!.x);

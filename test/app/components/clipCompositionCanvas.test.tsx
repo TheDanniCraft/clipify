@@ -55,7 +55,7 @@ it("draws actual crops and widgets and keeps media loaded when layout changes", 
 	act(() => frames.shift()!(0));
 	expect(ctx.drawImage).toHaveBeenCalledTimes(2);
 	expect(ctx.drawImage).toHaveBeenNthCalledWith(1, sourceVideo, 1440, 20, 480, 284, 0, 0, 720, 426);
-	expect(ctx.fillText).toHaveBeenCalledWith("A moment", 0, 0);
+	expect(ctx.fillText).toHaveBeenCalledWith("A moment", 12, 12);
 	expect(dimensions).toHaveBeenCalledWith({ width: 1920, height: 1080 });
 	fireEvent.click(screen.getByRole("button", { name: "Camera crop" }));
 	expect(change).toHaveBeenCalled();
@@ -88,12 +88,16 @@ it("draws the channel logo from the authorized image proxy and offers recovery i
 	});
 	const layout = createClipComposition("desktop");
 	layout.layers.push({ id: "logo", kind: "logo", label: "Logo", frame: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } });
+	layout.layers.push({ id: "channel", kind: "channel", label: "Channel badge", fontSize: 24, frame: { x: 0.1, y: 0.6, w: 0.75, h: 0.18 } });
 	render(<Canvas creatorId='owner' clip={clip} layout={layout} selected='logo' onSelect={() => {}} onChange={() => {}} onDimensions={() => {}} />);
 	await ready();
 	expect(images[0].src).toContain("/api/clips/layout-logo?creatorId=owner");
+	act(() => frames.shift()!(0));
+	expect(ctx.fillRect).toHaveBeenCalledWith(140, 444, 104, 104);
 	act(() => images[0].onload());
 	act(() => frames.shift()!(0));
 	expect(ctx.drawImage).toHaveBeenCalledWith(images[0], expect.any(Number), expect.any(Number), expect.any(Number), expect.any(Number));
+	expect(ctx.fillText).toHaveBeenCalledWith("Channel", 256, 496);
 	act(() => images[0].onerror());
 	fireEvent.click(screen.getByRole("button", { name: "Retry logo" }));
 	await waitFor(() => expect(preview).toHaveBeenLastCalledWith(expect.objectContaining({ refresh: true })));
@@ -138,15 +142,16 @@ it("applies output edits, source ratio modifiers and snapping guides independent
 	await ready();
 	const source = boxes.find((p) => p.label === "Camera crop"),
 		output = boxes.find((p) => p.label === "Camera output");
-	expect(source.ratio({}, source.rect)).toBeUndefined();
-	expect(source.ratio({ shiftKey: true }, source.rect)).toBeCloseTo(source.rect.w / source.rect.h);
-	expect(source.ratio({ ctrlKey: true }, source.rect)).toBeCloseTo(((9 / 16) * 1080) / 1920);
-	expect(source.ratio({ metaKey: true, shiftKey: true }, source.rect)).toBeCloseTo(1);
-	expect(output.ratio({}, output.rect)).toBeCloseTo(output.rect.w / output.rect.h);
+	const ratio = (output.rect.w * 720 * 1080) / (output.rect.h * 1280 * 1920);
+	for (const keys of [{}, { shiftKey: true }, { ctrlKey: true }, { metaKey: true, shiftKey: true }]) expect(source.ratio(keys, source.rect)).toBeCloseTo(ratio);
+	expect(output.ratio({}, output.rect)).toBeUndefined();
+	expect(output.ratio({ shiftKey: true }, output.rect)).toBeCloseTo(output.rect.w / output.rect.h);
+	expect(source.snap).toBe(true);
 	act(() => {
 		output.onSelect();
 		output.onChange({ ...output.rect, x: 0.1 });
 		output.onGuides({ x: 0.5, y: 0.5 });
+		source.onGuides({ x: 0.5, y: 0.5 });
 	});
 	expect(change.mock.calls.at(-1)[0].layers[0]).toMatchObject({ source: layout.layers[0].kind === "video" ? layout.layers[0].source : {}, frame: { x: 0.1 } });
 	expect(document.querySelector('[style="left: 50%;"]')).toBeInTheDocument();

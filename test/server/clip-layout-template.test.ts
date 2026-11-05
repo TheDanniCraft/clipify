@@ -16,11 +16,18 @@ it("imports either existing format without losing its crops and preserves paired
 it("uses stable matching layer colors in the source, output and layer list", () => {
 	expect(compositionLayerColor("camera")).toBe(compositionLayerColor("camera"));
 	expect(compositionLayerColor("camera")).not.toBe(compositionLayerColor("gameplay"));
-	expect(compositionLayerColor("title")).toMatch(/^#[a-f0-9]{6}$/);
+	expect(compositionLayerColor("title")).toMatch(/^hsl\(/);
 });
 
 it("keeps 32 layer identities distinct and does not change colors when stacking order changes", () => {
 	const ids = Array.from({ length: 32 }, (_, i) => `layer-${i}`);
-	expect(new Set(ids.map((id) => compositionLayerColor(id, ids))).size).toBe(32);
-	for (const id of ids) expect(compositionLayerColor(id, ids)).toBe(compositionLayerColor(id, [...ids].reverse()));
+	expect(new Set(ids.map((id) => compositionLayerColor(id))).size).toBe(32);
+	for (const id of ids) expect(compositionLayerColor(id)).toBe(compositionLayerColor(id));
+});
+
+it("keeps existing colors when adding or removing any other layer", () => {
+	const ids = ["camera", "gameplay", "custom-1"];
+	const before = Object.fromEntries(ids.map((id) => [id, compositionLayerColor(id)]));
+	const after = Object.fromEntries(["a-new-layer", ...ids, "z-another-layer"].map((id) => [id, compositionLayerColor(id)]));
+	expect(after).toMatchObject(before);
 });

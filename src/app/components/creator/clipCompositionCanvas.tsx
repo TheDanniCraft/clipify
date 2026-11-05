@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Button, Label, Slider } from "@heroui/react";
 import { IconPlayerPlay, IconPlayerPause, IconRefresh } from "@tabler/icons-react";
 import { getCreatorClipPreview } from "@actions/creatorLibrary";
-import { compositionDimensions, updateCompositionSource, type ClipComposition } from "@lib/clipComposition";
+import { compositionDimensions, updateCompositionFrame, updateCompositionSource, type ClipComposition } from "@lib/clipComposition";
 import { clipLayerLines, clipLayerText } from "@lib/clipLayout";
 import { isTrustedClipMediaUrl } from "@lib/clipExport";
 import { compositionLayerColor } from "@lib/clipLayoutTemplate";
@@ -15,6 +15,7 @@ export default function ClipCompositionCanvas({ creatorId, clip, layout, selecte
 		canvas = useRef<HTMLCanvasElement>(null),
 		latest = useRef(layout),
 		logo = useRef<HTMLImageElement | null>(null);
+	const [sourceGuides, setSourceGuides] = useState<{ x?: number; y?: number }>({});
 	const [url, setUrl] = useState<string | null>(),
 		[retry, setRetry] = useState(0),
 		[ready, setReady] = useState(false),
@@ -29,7 +30,7 @@ export default function ClipCompositionCanvas({ creatorId, clip, layout, selecte
 		latest.current = layout;
 	}, [layout]);
 	const output = compositionDimensions(layout.format),
-		needsLogo = layout.layers.some((layer) => layer.kind === "logo");
+		needsLogo = layout.layers.some((layer) => layer.kind === "logo" || layer.kind === "channel");
 	useEffect(() => {
 		let current = true;
 		void getCreatorClipPreview({ creatorId, clipId: clip.id, ...(retry ? { refresh: true } : {}) })
@@ -99,16 +100,28 @@ export default function ClipCompositionCanvas({ creatorId, clip, layout, selecte
 									const scale = Math.min(w / image.width, h / image.height);
 									ctx.drawImage(image, x + (w - image.width * scale) / 2, y + (h - image.height * scale) / 2, image.width * scale, image.height * scale);
 								}
+							} else if (layer.kind === "channel") {
+								const padding = Math.min(12, h / 8),
+									side = Math.max(2, h - padding * 2);
+								ctx.fillStyle = "rgba(24,24,27,.95)";
+								ctx.fillRect(x, y, w, h);
+								if (logo.current) ctx.drawImage(logo.current, x + padding, y + padding, side, side);
+								else {
+									ctx.fillStyle = "#71717a";
+									ctx.fillRect(x + padding, y + padding, side, side);
+								}
+								ctx.font = `${layer.fontSize}px "DejaVu Sans",sans-serif`;
+								ctx.textBaseline = "middle";
+								ctx.fillStyle = "#fff";
+								ctx.fillText(clipLayerLines(clipLayerText("channel", clip), layer.fontSize, Math.max(1, w - side - padding * 3))[0] ?? "", x + side + padding * 2, y + h / 2);
 							} else {
 								ctx.font = `${layer.fontSize}px "DejaVu Sans",sans-serif`;
 								ctx.textBaseline = "top";
-								clipLayerLines(clipLayerText(layer.kind, clip), layer.fontSize, w).forEach((line, index) => {
-									const top = y + index * layer.fontSize * 1.2;
-									ctx.fillStyle = "rgba(0,0,0,.65)";
-									ctx.fillRect(x, top, ctx.measureText(line).width + 6, layer.fontSize * 1.2);
-									ctx.fillStyle = "#fff";
-									ctx.fillText(line, x, top);
-								});
+								const padding = Math.min(12, h / 8);
+								ctx.fillStyle = "rgba(24,24,27,.95)";
+								ctx.fillRect(x, y, w, h);
+								ctx.fillStyle = "#fff";
+								clipLayerLines(clipLayerText(layer.kind, clip), layer.fontSize, Math.max(1, w - padding * 2)).forEach((line, index) => ctx.fillText(line, x + padding, y + padding + index * layer.fontSize * 1.2));
 							}
 						} finally {
 							ctx.restore();
@@ -168,21 +181,23 @@ export default function ClipCompositionCanvas({ creatorId, clip, layout, selecte
 										.map((layer) => (
 											<CompositionBox
 												key={layer.id}
-												color={compositionLayerColor(
-													layer.id,
-													layout.layers.map((item) => item.id),
-												)}
+												color={compositionLayerColor(layer.id)}
 												rect={layer.source}
 												label={`${layer.label} crop`}
 												selected={selected === layer.id}
 												stage={sourceStage}
 												dimensions={dimensions}
 												onSelect={() => onSelect(layer.id)}
+												snap
+												onGuides={setSourceGuides}
+												targets={layout.layers.filter((item) => item.id !== layer.id && item.kind === "video").map((item) => (item.kind === "video" ? item.source : item.frame))}
 												onChange={(source) => onChange(updateCompositionSource(layout, layer.id, source, dimensions))}
-												ratio={(e, start) => (e.ctrlKey || e.metaKey ? ((e.shiftKey ? 16 / 9 : 9 / 16) * dimensions.height) / dimensions.width : e.shiftKey ? start.w / start.h : undefined)}
+												ratio={() => (layer.frame.w * output.width * dimensions.height) / (layer.frame.h * output.height * dimensions.width)}
 											/>
 										))
 								: null}
+							{sourceGuides.x !== undefined ? <div className='pointer-events-none absolute inset-y-0 w-px bg-accent' style={{ left: `${sourceGuides.x * 100}%` }} /> : null}
+							{sourceGuides.y !== undefined ? <div className='pointer-events-none absolute inset-x-0 h-px bg-accent' style={{ top: `${sourceGuides.y * 100}%` }} /> : null}
 						</div>
 					</section>
 					<section className='min-w-0 space-y-2'>
@@ -193,12 +208,10 @@ export default function ClipCompositionCanvas({ creatorId, clip, layout, selecte
 								? layout.layers.map((layer) => (
 										<CompositionBox
 											key={layer.id}
-											color={compositionLayerColor(
-												layer.id,
-												layout.layers.map((item) => item.id),
-											)}
+											color={compositionLayerColor(layer.id)}
 											rect={layer.frame}
 											label={`${layer.label} output`}
+											showLabel={layer.kind === "video"}
 											selected={selected === layer.id}
 											stage={outputStage}
 											dimensions={output}
@@ -206,8 +219,8 @@ export default function ClipCompositionCanvas({ creatorId, clip, layout, selecte
 											targets={layout.layers.filter((item) => item.id !== layer.id).map((item) => item.frame)}
 											onGuides={setGuides}
 											onSelect={() => onSelect(layer.id)}
-											onChange={(frame) => onChange({ ...layout, layers: layout.layers.map((item) => (item.id === layer.id ? { ...item, frame } : item)) })}
-											ratio={layer.kind === "video" || layer.kind === "logo" ? (_e, start) => start.w / start.h : undefined}
+											onChange={(frame) => onChange(updateCompositionFrame(layout, layer.id, frame, dimensions))}
+											ratio={layer.kind === "logo" ? (_e, start) => start.w / start.h : (e, start) => (e.shiftKey ? start.w / start.h : undefined)}
 										/>
 									))
 								: null}
@@ -277,7 +290,7 @@ export default function ClipCompositionCanvas({ creatorId, clip, layout, selecte
 					</Button>
 				</div>
 			) : null}
-			<p className='text-xs text-muted'>Drag a crop to choose content. Resize the output to scale it. Shift keeps the crop shape; Ctrl sets 9:16, Ctrl+Shift sets 16:9. Output layers snap to edges and other layers; hold Alt to bypass. Arrow keys move one pixel.</p>
+			<p className='text-xs text-muted'>Shape and arrange boxes in the output. Move or scale the matching source crop to choose content. Resize the output to scale it. Shift preserves the output shape. Boxes snap to edges and other boxes; hold Alt to bypass. Arrow keys move one pixel.</p>
 		</div>
 	);
 }

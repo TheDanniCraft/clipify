@@ -5,7 +5,7 @@ import { IconArrowLeft, IconPlus, IconArrowUp, IconArrowDown, IconTrash } from "
 import { useNavigationGuard } from "nextjs-nav-guard";
 import { saveClipLayoutTemplate, saveClipLayoutOverride, resetClipLayoutOverride, type ClipLayoutTemplate } from "@actions/clipLayoutLibrary";
 import { getCreatorClipInventory, getCreatorClipDetail, searchCreatorLibrary } from "@actions/creatorLibrary";
-import { resizeCompositionRect, updateCompositionSource, type ClipComposition, type CompositionLayer } from "@lib/clipComposition";
+import { resizeCompositionRect, updateCompositionFrame, updateCompositionSource, type ClipComposition, type CompositionLayer } from "@lib/clipComposition";
 import { compositionLayerColor } from "@lib/clipLayoutTemplate";
 import { notify } from "@lib/toast";
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
@@ -33,7 +33,7 @@ function Numeric({ label, value, min = 0, max = 100, onChange }: { label: string
 		</NumberField>
 	);
 }
-export default function ClipCompositionEditor({ creatorId, entry, initial, clipId, referenceId, onBack, onSaved, onFormatChange }: { creatorId: string; entry: ClipLayoutTemplate; initial: ClipComposition; clipId?: string; referenceId?: string; onBack: () => void; onSaved: () => void; onFormatChange?: (format: "desktop" | "mobile") => void }) {
+export default function ClipCompositionEditor({ creatorId, entry, initial, clipId, referenceId, onBack, onSaved, onFormatChange, onReferenceChange }: { creatorId: string; entry: ClipLayoutTemplate; initial: ClipComposition; clipId?: string; referenceId?: string; onBack: () => void; onSaved: () => void; onReferenceChange?: (id: string) => void; onFormatChange?: (format: "desktop" | "mobile") => void }) {
 	const [sourceDimensions, setSourceDimensions] = useState({ width: 1920, height: 1080 }),
 		[layout, setLayout] = useState(initial),
 		[name, setName] = useState(entry.name),
@@ -105,7 +105,8 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 	const add = (kind: CompositionLayer["kind"]) => {
 		const id = crypto.randomUUID(),
 			label = kind === "video" ? `Video crop ${layout.layers.filter((item) => item.kind === "video").length + 1}` : kind === "title" ? "Clip title" : kind === "channel" ? "Channel name" : kind === "clipper" ? "Clipper" : "Channel logo";
-		const frame = { x: 0.05, y: 0.05, w: 0.5, h: kind === "video" ? 0.3 : kind === "logo" ? 0.15 : 0.1 };
+		const camera = layout.layers.find((item) => item.kind === "video" && item.id === "camera");
+		const frame = kind === "channel" ? { x: 0.05, y: layout.format === "mobile" ? Math.max(0, Math.min(0.93, (camera?.frame.y ?? 0) + (camera?.frame.h ?? 0.333) - 0.035)) : 0.85, w: layout.format === "mobile" ? 0.9 : 0.5, h: layout.format === "mobile" ? 0.07 : 0.1 } : { x: 0.05, y: 0.05, w: 0.5, h: kind === "video" ? 0.3 : kind === "logo" ? 0.15 : 0.1 };
 		const next: CompositionLayer = kind === "video" ? { id, label, kind, source: { x: 0.1, y: 0.1, w: 0.4, h: 0.4 }, frame } : kind === "logo" ? { id, label, kind, frame } : { id, label, kind, fontSize: 32, frame };
 		const expanded = { ...layout, layers: [...layout.layers, next] };
 		change(next.kind === "video" ? updateCompositionSource(expanded, id, next.source, sourceDimensions) : expanded);
@@ -247,6 +248,7 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 								onChange={(key) => {
 									setClip(null);
 									setReference(String(key ?? ""));
+									onReferenceChange?.(String(key ?? ""));
 								}}
 							>
 								<Label>Reference clip</Label>
@@ -313,10 +315,7 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 											aria-hidden='true'
 											className='size-2.5 shrink-0 rounded-full'
 											style={{
-												backgroundColor: compositionLayerColor(
-													item.id,
-													layout.layers.map((layer) => layer.id),
-												),
+												backgroundColor: compositionLayerColor(item.id),
 											}}
 										/>
 										{item.label}
@@ -379,11 +378,11 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 											let frame = { ...box };
 											if (key === "x" || key === "y") frame[key] = Math.min(value / 100, 1 - frame[key === "x" ? "w" : "h"]);
 											else {
-												const ratio = !sourceMode && (layer.kind === "video" || layer.kind === "logo") ? frame.w / frame.h : undefined;
+												const ratio = sourceMode && layer.kind === "video" ? layer.source.w / layer.source.h : layer.kind === "logo" ? frame.w / frame.h : undefined;
 												frame = resizeCompositionRect(frame, key === "w" ? value / 100 - frame.w : 0, key === "h" ? value / 100 - frame.h : 0, "se", ratio);
 											}
 											if (sourceMode && layer.kind === "video") change(updateCompositionSource(layout, layer.id, frame, sourceDimensions));
-											else update({ ...layer, frame });
+											else change(updateCompositionFrame(layout, layer.id, frame, sourceDimensions));
 										}}
 									/>
 								))}
@@ -391,20 +390,20 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 							{layer.kind === "video" ? (
 								<Select
 									variant='secondary'
-									aria-label='Source crop shape'
+									aria-label='Output shape'
 									value={null}
 									onChange={(key) => {
 										if (!key) return;
-										const source = { ...layer.source },
-											ratio = ((key === "portrait" ? 9 / 16 : key === "landscape" ? 16 / 9 : 1) * sourceDimensions.height) / sourceDimensions.width;
-										source.h = Math.min(1 - source.y, source.w / ratio);
-										source.w = Math.min(1 - source.x, source.h * ratio);
-										change(updateCompositionSource(layout, layer.id, source, sourceDimensions));
+										const frame = { ...layer.frame },
+											ratio = (key === "portrait" ? 9 / 16 : key === "landscape" ? 16 / 9 : 1) * (layout.format === "mobile" ? 1280 / 720 : 720 / 1280);
+										frame.h = Math.min(1 - frame.y, frame.w / ratio);
+										frame.w = Math.min(1 - frame.x, frame.h * ratio);
+										change(updateCompositionFrame(layout, layer.id, frame, sourceDimensions));
 									}}
 								>
-									<Label>Source crop shape</Label>
+									<Label>Output shape</Label>
 									<Select.Trigger>
-										<Select.Value>Set crop aspect ratio</Select.Value>
+										<Select.Value>Set output aspect ratio</Select.Value>
 										<Select.Indicator />
 									</Select.Trigger>
 									<Select.Popover>

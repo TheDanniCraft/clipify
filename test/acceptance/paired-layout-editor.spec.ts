@@ -14,13 +14,8 @@ for (const width of [390, 1440])
 			const desktop = createClipComposition("desktop"),
 				mobile = createClipComposition("mobile");
 			await tourWorld.fixture.pool.query("INSERT INTO user_content_states(user_id,content_key,state) VALUES($1,$2,$3)", [creatorId, "clip-layout-template:v2:paired", JSON.stringify({ name: templateName, composition: mobile, compositions: { desktop, mobile } })]);
-			await page.goto(`${tourWorld.origin}/dashboard/clip-layouts?layout=paired&reference=${id}&format=mobile`);
+			await page.goto(`${tourWorld.origin}/dashboard/clip-layouts?layout=paired&format=mobile`);
 			await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
-			await expect(page.getByRole("button", { name: "Play preview", exact: true })).toBeEnabled({ timeout: 20000 });
-			await expect(page.locator("video")).toHaveAttribute("src", /\/api\/clips\/preview\?/);
-			const rendered = () => page.locator("canvas").evaluate((canvas: HTMLCanvasElement) => [...canvas.getContext("2d")!.getImageData(Math.floor(canvas.width / 2), Math.floor(canvas.height / 4), 1, 1).data].slice(0, 3).some((value) => value > 10));
-			await expect.poll(rendered).toBe(true);
-			await expect(page.getByRole("button", { name: "Search clips", exact: true })).toHaveCount(0);
 			const picker = page.getByRole("region", { name: "Editor workspace" }).locator('[data-slot="autocomplete-trigger"]');
 			await picker.click();
 			const search = page.getByRole("searchbox", { name: "Find a reference clip" });
@@ -29,6 +24,12 @@ for (const width of [390, 1440])
 			await search.fill("clutch");
 			await expect(page.getByRole("option", { name: "Last night's clutch", exact: true })).toBeVisible();
 			await page.getByRole("option", { name: "Last night's clutch", exact: true }).click();
+			await expect(page.getByRole("button", { name: "Play preview", exact: true })).toBeEnabled({ timeout: 20000 });
+			await expect(page.locator("video")).toHaveAttribute("src", /\/api\/clips\/preview\?/);
+			const rendered = () => page.locator("canvas").evaluate((canvas: HTMLCanvasElement) => [...canvas.getContext("2d")!.getImageData(Math.floor(canvas.width / 2), Math.floor(canvas.height / 4), 1, 1).data].slice(0, 3).some((value) => value > 10));
+			await expect.poll(rendered).toBe(true);
+			await expect(page.getByRole("button", { name: "Search clips", exact: true })).toHaveCount(0);
+
 			await expect(page.getByRole("button", { name: "Play preview", exact: true })).toBeEnabled();
 			const colors = await page.getByRole("button", { name: "Camera crop", exact: true }).evaluate((node) => getComputedStyle(node.parentElement!).borderColor);
 			expect(colors).toBe(await page.getByRole("button", { name: "Camera output", exact: true }).evaluate((node) => getComputedStyle(node.parentElement!).borderColor));

@@ -30,6 +30,7 @@ const composition = createClipComposition("mobile"),
 	entry = { id: "template", name: "Camera", composition, updatedAt: "2026-11-05T00:00:00Z" };
 beforeEach(() => {
 	jest.clearAllMocks();
+	for (const mock of [saveTemplate, saveOverride, reset, inventory, detail, searchClips]) mock.mockReset();
 	navigationGuard.active = false;
 	inventory.mockResolvedValue({ ok: true, items: [] });
 	detail.mockResolvedValue({ ok: false, code: "NOT_FOUND" });
@@ -90,7 +91,7 @@ it("resets only a clip override and preserves the draft if reset fails", async (
 it("edits source and output geometry, presets, widgets and stacking without changing the saved template", async () => {
 	const saved = jest.fn();
 	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} onBack={() => {}} onSaved={saved} />);
-	for (const shape of ["portrait", "landscape", "square"]) fireEvent.change(screen.getByRole("combobox", { name: "Source crop shape" }), { target: { value: shape } });
+	for (const shape of ["portrait", "landscape", "square"]) fireEvent.change(screen.getByRole("combobox", { name: "Output shape" }), { target: { value: shape } });
 	for (const label of ["Left (%)", "Top (%)", "Width (%)", "Height (%)"]) fireEvent.change(screen.getByRole("spinbutton", { name: label }), { target: { value: "20" } });
 	fireEvent.change(screen.getByRole("combobox", { name: "Edit box" }), { target: { value: "source" } });
 	for (const label of ["Left (%)", "Top (%)", "Width (%)", "Height (%)"]) fireEvent.change(screen.getByRole("spinbutton", { name: label }), { target: { value: "10" } });
@@ -177,4 +178,23 @@ it("does not duplicate a selected reference already present in the initial inven
 	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} referenceId='ClipA' onBack={() => {}} onSaved={() => {}} />);
 	await screen.findByRole("option", { name: "Current clip" });
 	expect(screen.getAllByRole("option", { name: "Current clip" })).toHaveLength(1);
+});
+
+it.each(["desktop", "mobile"] as const)("adds a usable channel block without a camera in %s and shares reference selection", async (format) => {
+	const layout = createClipComposition(format);
+	layout.layers = layout.layers.filter((layer) => layer.id !== "camera");
+	const clip = { id: "ClipA", title: "Reference" };
+	inventory.mockResolvedValue({ ok: true, items: [clip] });
+	detail.mockResolvedValue({ ok: true, clip });
+	const selected = jest.fn();
+	render(<ClipCompositionEditor creatorId='owner' entry={{ ...entry, composition: layout }} initial={layout} onReferenceChange={selected} onBack={() => {}} onSaved={() => {}} />);
+	await screen.findByRole("option", { name: "Reference" });
+	fireEvent.change(screen.getByRole("combobox", { name: "Reference clip" }), { target: { value: "ClipA" } });
+	expect(selected).toHaveBeenCalledWith("ClipA");
+	fireEvent.change(screen.getByRole("combobox", { name: "Add layer" }), { target: { value: "channel" } });
+	fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
+	await waitFor(() => expect(saveTemplate).toHaveBeenCalled());
+	const badge = saveTemplate.mock.calls[0][1].composition.layers.find((layer: any) => layer.kind === "channel");
+	expect(badge.frame.w).toBeGreaterThanOrEqual(0.5);
+	expect(badge.frame.y + badge.frame.h).toBeLessThanOrEqual(1);
 });
