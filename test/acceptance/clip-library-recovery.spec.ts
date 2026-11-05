@@ -279,7 +279,7 @@ test("Clip details exposes owned metadata and MP4 with the shared bulk budget", 
 	await expect(page.getByText("Clip maker", { exact: true })).toBeVisible();
 	await expect(page.getByText("Strategy", { exact: true })).toBeVisible();
 	const download = page.waitForEvent("download");
-	await page.getByRole("button", { name: "Download MP4", exact: true }).click();
+	await page.getByRole("button", { name: "Download original", exact: true }).click();
 	const media = await download;
 	expect(media.suggestedFilename()).toMatch(/\.mp4$/);
 	const bytes = await readFile((await media.path())!);

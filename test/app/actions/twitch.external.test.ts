@@ -1445,6 +1445,17 @@ describe("actions/twitch external API and failure handling", () => {
 		expect(authorizeCreatorOperation).toHaveBeenCalledWith({ creatorId: "owner-1", resourceOwnerId: "owner-1", permission: "creator:read" });
 		expect(canResolveTrustedClipPlayback).toHaveBeenCalledWith("owner-1");
 	});
+	it("refreshes failed inventory playback without reusing the cached URL or bypassing budgets", async () => {
+		getAccessTokenResultInternal.mockResolvedValue({ token: null, reason: "missing" });
+		const post = jest.spyOn(axios, "post").mockResolvedValueOnce(buildGraphqlClipResponse("retry-private", "https://clips.twitchcdn.net/old.mp4")).mockResolvedValue(buildGraphqlClipResponse("retry-private", "https://clips.twitchcdn.net/new.mp4"));
+		const { getTwitchClipPlaybackUrl } = await loadTwitch();
+		await expect(getTwitchClipPlaybackUrl("retry-private", "owner-1", { kind: "inventory", creatorId: "owner-1" })).resolves.toContain("old.mp4");
+		await expect(getTwitchClipPlaybackUrl("retry-private", "owner-1", { kind: "inventory", creatorId: "owner-1", refresh: true } as never)).resolves.toContain("new.mp4");
+		expect(post).toHaveBeenCalledTimes(2);
+		canResolveTrustedClipPlayback.mockResolvedValueOnce(false);
+		await expect(getTwitchClipPlaybackUrl("retry-private", "owner-1", { kind: "inventory", creatorId: "owner-1", refresh: true } as never)).resolves.toBeUndefined();
+		expect(post).toHaveBeenCalledTimes(2);
+	});
 	it("U175: denies a foreign cached clip before resolving private playback", async () => {
 		getTwitchCache.mockResolvedValue({ ...buildClip("foreign-private"), broadcaster_id: "foreign" });
 		const post = jest.spyOn(axios, "post");

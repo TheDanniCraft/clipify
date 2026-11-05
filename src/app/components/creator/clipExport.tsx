@@ -122,7 +122,7 @@ export default function ClipExport({ creatorId, clipIds, scope, format = "zip", 
 		<section className='flex flex-col gap-3' aria-label='Clip export'>
 			<div className='flex flex-wrap items-center gap-3'>
 				<Button isDisabled={!clipIds.length || busy} onPress={() => void exportClips(clipIds)}>
-					{busy ? "Preparing download…" : format === "mp4" ? "Download MP4" : "Export selected"}
+					{busy ? "Preparing download…" : layout ? (format === "mp4" ? "Download portrait" : "Export portrait clips") : format === "mp4" ? "Download original" : "Export selected"}
 				</Button>
 				{busy ? (
 					<Button variant='secondary' onPress={() => controller.current?.abort()}>

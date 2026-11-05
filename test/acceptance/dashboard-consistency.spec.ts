@@ -106,7 +106,13 @@ for (const width of [390, 1440])
 				if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
 				await page.getByRole("button", { name: "Open profile menu", exact: true }).click();
 				await expect(page.getByRole("menu", { name: "Open profile menu" })).toBeVisible();
-				await page.getByRole("menuitem", { name: "My Settings", exact: true }).click();
+				await expect(page.getByRole("menu", { name: "Open profile menu" }).getByText("My Settings", { exact: true })).toHaveCount(0);
+				await page.keyboard.press("Escape");
+				const toggle = page.getByRole("button", { name: "Toggle navigation", exact: true });
+				if (width === 390 && (await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+				const navigation = page.locator(width === 390 ? '[data-slot="sidebar-mobile"]' : '[data-slot="sidebar"]');
+				await navigation.locator('[data-tour="settings-group"]').click();
+				await navigation.locator('[data-tour="settings-core-tab"]').click();
 				await expect(page).toHaveURL(/\/dashboard\/settings$/);
 				await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
 				if (width === 390) await expect(page.getByRole("button", { name: "Toggle navigation", exact: true })).toHaveAttribute("aria-expanded", "false");
@@ -183,6 +189,7 @@ for (const width of [390, 1440])
 				await page.getByRole("option", { name: "E2E Creator Account creator account", exact: true }).click();
 				await expect(page).toHaveURL(/\/dashboard$/);
 				await expect(page.getByRole("heading", { name: "Home", exact: true })).toBeVisible();
+				if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
 				await expect(page.locator('[data-dashboard-account-controls] [data-slot="autocomplete-value"]')).toHaveText("E2E Creator Account");
 				expect(errors).toEqual([]);
 			} finally {

@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState, useTransition, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import { Button, Card, Checkbox, Disclosure, Input, Label, ListBox, NumberField, Select, Table, TextField, Link } from "@heroui/react";
-import { IconChevronRight } from "@tabler/icons-react";
+import { buttonVariants } from "@heroui/styles";
+import { IconChevronRight, IconDeviceMobile } from "@tabler/icons-react";
 import { fromDate, toCalendarDate } from "@internationalized/date";
 import { getCreatorClipInventory, refreshCreatorLibrary } from "@actions/creatorLibrary";
 import AppDateRangePicker, { type AppDateRange } from "@components/appDateRangePicker";
@@ -293,8 +294,9 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 									{selection.cleared ? <p role='status'>Selection cleared because the filters changed.</p> : null}
 								</div>
 								<div className='flex flex-wrap items-center gap-3'>
-									<Link isDisabled={selected.size === 0} href={`/dashboard/clips/layout?clips=${encodeURIComponent([...selected].join(","))}`}>
-										Portrait layout
+									<Link className={buttonVariants({ variant: "secondary", className: "gap-2" })} isDisabled={selected.size === 0} href={`/dashboard/clips/layout?clips=${encodeURIComponent([...selected].join(","))}`}>
+										<IconDeviceMobile className='size-4' aria-hidden='true' />
+										Create portrait clips
 									</Link>
 									<ClipExport creatorId={creatorId} clipIds={[...selected]} scope={selection.scope} />
 								</div>

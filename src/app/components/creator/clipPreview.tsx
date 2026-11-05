@@ -1,4 +1,6 @@
 "use client";
+import { buttonVariants } from "@heroui/styles";
+import { IconBrandTwitch, IconArrowRight } from "@tabler/icons-react";
 import { Link, Modal } from "@heroui/react";
 import ControlledModal from "@components/controlledModal";
 import ClipPlayer from "./clipPlayer";
@@ -11,11 +13,17 @@ export default function ClipPreview({ creatorId, clip, onClose }: { creatorId: s
 			</Modal.Header>
 			<Modal.Body>
 				<ClipPlayer key={`${creatorId}:${clip.id}`} creatorId={creatorId} clipId={clip.id} />
-				<Link href={`/dashboard/clips/${encodeURIComponent(clip.id)}`}>View clip details</Link>
-				<Link href={clip.url} target='_blank' rel='noopener noreferrer'>
+			</Modal.Body>
+			<Modal.Footer className='flex flex-wrap items-center justify-between gap-3'>
+				<Link className={buttonVariants({ variant: "tertiary", className: "gap-2" })} href={clip.url} target='_blank' rel='noopener noreferrer'>
+					<IconBrandTwitch className='size-4' aria-hidden='true' />
 					Open on Twitch
 				</Link>
-			</Modal.Body>
+				<Link className={buttonVariants({ variant: "secondary", className: "gap-2" })} href={`/dashboard/clips/${encodeURIComponent(clip.id)}`}>
+					View clip details
+					<IconArrowRight className='size-4' aria-hidden='true' />
+				</Link>
+			</Modal.Footer>
 		</ControlledModal>
 	);
 }

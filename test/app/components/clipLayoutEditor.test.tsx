@@ -48,7 +48,13 @@ jest.mock("@heroui/react", () => {
 		),
 		{ Content: Part, Control: Part, Indicator: () => null },
 	);
-	return { ...base, Label: Part, Modal: base.Modal, Slider, Button, Checkbox };
+	const ToggleButton = ({ children, onPress, isSelected, isDisabled }: { children: React.ReactNode; onPress?: () => void; isSelected: boolean; isDisabled?: boolean }) => (
+		<button role='radio' aria-checked={isSelected} disabled={isDisabled} onClick={onPress}>
+			{children}
+		</button>
+	);
+	const ToggleButtonGroup = ({ children, onSelectionChange, selectedKeys }: { children: React.ReactNode; selectedKeys: Set<string>; onSelectionChange: (keys: Set<string>) => void }) => <div>{React.Children.map(children, (child: React.ReactElement<{ id: string }>) => React.cloneElement(child, { isSelected: selectedKeys.has(child.props.id), onPress: () => onSelectionChange(new Set([child.props.id])) }))}</div>;
+	return { ...base, Label: Part, Modal: base.Modal, Slider, Button, Checkbox, ToggleButton, ToggleButtonGroup };
 });
 const clip = { id: "A", title: "Winner", broadcasterName: "Channel", clipCreatorName: "Viewer" };
 const data = { ok: true, clip } as never;
@@ -74,6 +80,7 @@ async function ready() {
 	await screen.findByRole("button", { name: "Play clip" });
 	await waitFor(() => expect(load).toHaveBeenCalled());
 	await waitFor(() => expect(document.querySelector("video")).not.toBeNull());
+	fireEvent.loadedData(document.querySelector("video")!);
 }
 function state() {
 	return JSON.parse(screen.getByLabelText("Export layout").textContent!);
@@ -83,12 +90,12 @@ it("loads a saved channel layout, allows full/stacked framing and saves the curr
 	render(<Editor creatorId='owner' ids={["A"]} data={data} />);
 	await ready();
 	await waitFor(() => expect(state().layout.mode).toBe("full"));
-	fireEvent.click(screen.getByRole("button", { name: "Stacked" }));
+	fireEvent.click(screen.getByRole("radio", { name: "Stacked" }));
 	fireEvent.change(screen.getByRole("slider", { name: "Camera height (%)" }), { target: { value: 40 } });
 	fireEvent.change(screen.getByRole("slider", { name: "Crop width" }), { target: { value: 50 } });
 	fireEvent.change(screen.getByRole("slider", { name: "Horizontal position" }), { target: { value: 90 } });
 	expect(state().layout.gameplay).toMatchObject({ w: 0.5, x: 0.5 });
-	fireEvent.click(screen.getByRole("button", { name: "Camera" }));
+	fireEvent.click(screen.getByRole("radio", { name: "Camera" }));
 	fireEvent.change(screen.getByRole("slider", { name: "Crop height" }), { target: { value: 20 } });
 	fireEvent.click(screen.getByRole("button", { name: "Save channel layout" }));
 	await waitFor(() => expect(save).toHaveBeenCalledWith("owner", expect.objectContaining({ cameraShare: 0.4 })));
@@ -119,7 +126,7 @@ it("keeps edits after save failures and offers source retry", async () => {
 	await waitFor(() => expect(preview).toHaveBeenCalledTimes(2));
 	fireEvent.click(await screen.findByRole("button", { name: "Retry preview" }));
 	await ready();
-	fireEvent.click(screen.getByRole("button", { name: "Full" }));
+	fireEvent.click(screen.getByRole("radio", { name: "Full" }));
 	for (let i = 0; i < 2; i++) {
 		fireEvent.click(screen.getByRole("button", { name: "Save channel layout" }));
 		await waitFor(() => expect(save).toHaveBeenCalledTimes(i + 1));
@@ -161,7 +168,7 @@ it("supports keyboard crop movement and synchronized playback/preview frames", a
 	});
 	expect(ctx.drawImage).toHaveBeenCalledTimes(2);
 	expect(ctx.fillText).toHaveBeenCalledWith("Winner", expect.any(Number), expect.any(Number), 704);
-	fireEvent.click(screen.getByRole("button", { name: "Full" }));
+	fireEvent.click(screen.getByRole("radio", { name: "Full" }));
 	act(() => {
 		frames.shift()?.(0);
 	});
@@ -226,9 +233,9 @@ it("does not mark newer edits saved when an older save completes", async () => {
 	);
 	render(<Editor creatorId='owner' ids={["A"]} data={data} />);
 	await ready();
-	fireEvent.click(screen.getByRole("button", { name: "Full" }));
+	fireEvent.click(screen.getByRole("radio", { name: "Full" }));
 	fireEvent.click(screen.getByRole("button", { name: "Save channel layout" }));
-	fireEvent.click(screen.getByRole("button", { name: "Stacked" }));
+	fireEvent.click(screen.getByRole("radio", { name: "Stacked" }));
 	await act(async () => finish({ ok: true }));
 	expect(screen.getByRole("button", { name: "Save channel layout" })).toBeEnabled();
 });
@@ -236,8 +243,8 @@ it("does not mark newer edits saved when an older save completes", async () => {
 it("returns crop controls to gameplay when switching from camera to Full mode", async () => {
 	render(<Editor creatorId='owner' ids={["A"]} data={data} />);
 	await ready();
-	fireEvent.click(screen.getByRole("button", { name: "Camera" }));
-	fireEvent.click(screen.getByRole("button", { name: "Full" }));
+	fireEvent.click(screen.getByRole("radio", { name: "Camera" }));
+	fireEvent.click(screen.getByRole("radio", { name: "Full" }));
 	expect(screen.getByRole("slider", { name: "Crop width" })).toHaveValue("100");
 });
 
@@ -273,5 +280,25 @@ it("recovers from preset, playback and canvas failures without discarding the la
 		frames.shift()?.(0);
 	});
 	expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Portrait preview unavailable" }));
+	expect(state().layout).toEqual(defaultClipLayout);
+	expect(screen.getByLabelText("Export layout").closest("fieldset")).toBeDisabled();
+	fireEvent.click(screen.getByRole("button", { name: "Retry portrait preview" }));
+	await ready();
+	expect(preview).toHaveBeenLastCalledWith({ creatorId: "owner", clipId: "A", refresh: true });
+	expect(screen.getByLabelText("Export layout").closest("fieldset")).not.toBeDisabled();
+});
+it("does not offer an unseen portrait export while the source is missing or decoding", async () => {
+	preview.mockResolvedValueOnce(null).mockResolvedValue({ playbackUrl: "https://media.invalid/retry.mp4" });
+	render(<Editor creatorId='owner' ids={["A"]} data={data} />);
+	await screen.findByRole("button", { name: "Retry preview" });
+	expect(screen.getByLabelText("Export layout").closest("fieldset")).toBeDisabled();
+	expect(screen.getByText("Load the source clip to preview your portrait.")).toBeVisible();
+	fireEvent.click(screen.getByRole("button", { name: "Retry preview" }));
+	await waitFor(() => expect(document.querySelector("video")).not.toBeNull());
+	expect(screen.getByLabelText("Export layout").closest("fieldset")).toBeDisabled();
+	fireEvent.loadedData(document.querySelector("video")!);
+	expect(screen.getByLabelText("Export layout").closest("fieldset")).not.toBeDisabled();
+	fireEvent.error(document.querySelector("video")!);
+	expect(screen.getByLabelText("Export layout").closest("fieldset")).toBeDisabled();
 	expect(state().layout).toEqual(defaultClipLayout);
 });

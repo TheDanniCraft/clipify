@@ -8,9 +8,9 @@ export async function getCreatorClipInventory(input: { creatorId: string; query?
 	return readCreatorInventory(input.creatorId, input.query);
 }
 
-export async function getCreatorClipPreview(input: { creatorId: string; clipId: string }) {
-	if (!input || typeof input.creatorId !== "string" || typeof input.clipId !== "string" || input.creatorId.length > 200 || input.clipId.length > 200) return null;
-	const playbackUrl = await getTwitchClipPlaybackUrl(input.clipId, input.creatorId, { kind: "inventory", creatorId: input.creatorId });
+export async function getCreatorClipPreview(input: { creatorId: string; clipId: string; refresh?: boolean }) {
+	if (!input || typeof input.creatorId !== "string" || typeof input.clipId !== "string" || input.creatorId.length > 200 || (input.refresh !== undefined && typeof input.refresh !== "boolean") || input.clipId.length > 200) return null;
+	const playbackUrl = await getTwitchClipPlaybackUrl(input.clipId, input.creatorId, { kind: "inventory", creatorId: input.creatorId, ...(input.refresh ? { refresh: true } : {}) });
 	return playbackUrl ? { playbackUrl } : null;
 }
 

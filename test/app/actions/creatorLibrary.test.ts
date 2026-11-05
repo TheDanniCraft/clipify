@@ -53,6 +53,14 @@ describe("creator library action boundaries", () => {
 		playback.mockResolvedValue(null);
 		expect(await getCreatorClipPreview({ creatorId: "owner", clipId: "A" })).toBeNull();
 	});
+	it("passes explicit preview retries through the inventory authorization context", async () => {
+		playback.mockResolvedValue("https://media.test/new.mp4");
+		await getCreatorClipPreview({ creatorId: "owner", clipId: "A", refresh: true } as never);
+		expect(playback).toHaveBeenCalledWith("A", "owner", { kind: "inventory", creatorId: "owner", refresh: true });
+		playback.mockClear();
+		expect(await getCreatorClipPreview({ creatorId: "owner", clipId: "A", refresh: "yes" } as never)).toBeNull();
+		expect(playback).not.toHaveBeenCalled();
+	});
 	it("rejects invalid overview and broadcast requests", async () => {
 		for (const input of [undefined, {}, { creatorId: 3 }, { creatorId: "owner", timeZone: 3 }]) expect(await getCreatorClipOverview(input as never)).toMatchObject({ ok: false });
 		for (const input of [undefined, {}, { creatorId: 3 }, { creatorId: "owner", after: 3 }]) expect(await getCreatorBroadcasts(input as never)).toMatchObject({ ok: false });

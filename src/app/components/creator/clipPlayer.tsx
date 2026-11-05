@@ -9,7 +9,7 @@ export default function ClipPlayer({ creatorId, clipId }: { creatorId: string; c
 	const [retry, setRetry] = useState(0);
 	useEffect(() => {
 		let current = true;
-		void getCreatorClipPreview({ creatorId, clipId })
+		void getCreatorClipPreview({ creatorId, clipId, ...(retry ? { refresh: true } : {}) })
 			.then((result) => {
 				if (!current) return;
 				setPlaybackUrl(result?.playbackUrl ?? null);
@@ -27,7 +27,18 @@ export default function ClipPlayer({ creatorId, clipId }: { creatorId: string; c
 	return (
 		<div className='aspect-video w-full overflow-hidden rounded-xl bg-surface-secondary'>
 			{playbackUrl ? (
-				<video src={playbackUrl} controls autoPlay playsInline aria-label='Clip preview' className='h-full w-full bg-black' />
+				<video
+					src={playbackUrl}
+					controls
+					autoPlay
+					playsInline
+					onError={() => {
+						setPlaybackUrl(null);
+						notify({ title: "Clip preview unavailable", description: "Retry to load a fresh preview, or open the clip on Twitch.", color: "warning" });
+					}}
+					aria-label='Clip preview'
+					className='h-full w-full bg-black'
+				/>
 			) : (
 				<div className='flex h-full flex-col items-center justify-center gap-3 p-4 text-center text-sm text-muted'>
 					{playbackUrl === undefined ? (

@@ -29,7 +29,7 @@ it.each([null, "reject"])("recovers an unavailable preview without changing its 
 	expect(screen.queryByRole("alert")).toBeNull();
 	fireEvent.click(screen.getByRole("button", { name: "Retry preview" }));
 	await waitFor(() => expect(view.container.querySelector("video")).toHaveAttribute("src", "https://media.example/clip.mp4"));
-	expect(preview.mock.calls).toEqual([[{ creatorId: "owner", clipId: "exact-id" }], [{ creatorId: "owner", clipId: "exact-id" }]]);
+	expect(preview.mock.calls).toEqual([[{ creatorId: "owner", clipId: "exact-id" }], [{ creatorId: "owner", clipId: "exact-id", refresh: true }]]);
 	expect(screen.getByRole("link", { name: "Open on Twitch" })).toHaveAttribute("href", clip.url);
 	expect(screen.getByRole("link", { name: "View clip details" })).toHaveAttribute("href", "/dashboard/clips/exact-id");
 	fireEvent.click(screen.getByRole("button", { name: "Close" }));

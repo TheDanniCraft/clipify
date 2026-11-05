@@ -36,3 +36,11 @@ it.each([false, true])("ignores playback settled after unmount, rejection=%s", a
 	});
 	expect(notify).not.toHaveBeenCalled();
 });
+it("recovers from an expired media URL after the server resolves it", async () => {
+	preview.mockResolvedValueOnce({ playbackUrl: "https://media.test/expired.mp4" }).mockResolvedValue({ playbackUrl: "https://media.test/fresh.mp4" });
+	render(<ClipPlayer creatorId='owner' clipId='A' />);
+	const video = await screen.findByLabelText("Clip preview");
+	fireEvent.error(video);
+	fireEvent.click(await screen.findByRole("button", { name: "Retry preview" }));
+	await waitFor(() => expect(screen.getByLabelText("Clip preview")).toHaveAttribute("src", "https://media.test/fresh.mp4"));
+});

@@ -374,7 +374,7 @@ const MAX_CLIP_PLAYBACK_URLS = 1_000;
 const clipPlaybackUrlCache = new Map<string, { url: string; expiresAt: number }>();
 const clipPlaybackUrlRequests = new Map<string, Promise<string | undefined>>();
 
-export type ClipPlaybackContext = { kind: "inventory"; creatorId: string } | { kind: "overlay"; overlayId: string; secret?: string } | { kind: "demo"; overlayId: string } | { kind: "gallery"; galleryId: string; preview?: boolean } | { kind: "creator"; username: string };
+export type ClipPlaybackContext = { kind: "inventory"; creatorId: string; refresh?: boolean } | { kind: "overlay"; overlayId: string; secret?: string } | { kind: "demo"; overlayId: string } | { kind: "gallery"; galleryId: string; preview?: boolean } | { kind: "creator"; username: string };
 
 async function canPlayClipInContext(clipId: string, broadcasterId: string, context: ClipPlaybackContext | undefined) {
 	if (!clipId || !broadcasterId || !context || typeof context !== "object") return false;
@@ -431,6 +431,7 @@ export async function getTwitchClipPlaybackUrl(clipId: string, broadcasterId: st
 		return undefined;
 	}
 	const key = `${broadcasterId}:${clipId}`;
+	if (context.kind === "inventory" && context.refresh === true) clipPlaybackUrlCache.delete(key);
 	const cached = clipPlaybackUrlCache.get(key);
 	if (cached && cached.expiresAt > Date.now()) {
 		operationalCount("clipify.clip_fetch.requests", 1, { outcome: "cache_hit" });

@@ -253,7 +253,7 @@ it("downloads individual MP4 and supports reopening and dismissing result detail
 		expect(this.download).toBe("clipify-A.mp4");
 	});
 	render(<ClipExport creatorId='owner' clipIds={["A"]} scope='owner:A' format='mp4' />);
-	fireEvent.click(screen.getByRole("button", { name: "Download MP4" }));
+	fireEvent.click(screen.getByRole("button", { name: "Download original" }));
 	await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
 	expect(fetchMock.mock.calls[0][0]).toBe("/api/clips/export?format=mp4");
 	expect(create).toHaveBeenCalledWith(expect.objectContaining({ type: "video/mp4" }));

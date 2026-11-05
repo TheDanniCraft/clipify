@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useRef, useState, type PointerEvent } from "react";
-import { Button, Card, Label, Link, Slider, Checkbox, Modal } from "@heroui/react";
+import { Button, Card, Label, Link, Slider, Checkbox, Modal, ToggleButton, ToggleButtonGroup } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { useNavigationGuard } from "nextjs-nav-guard";
 import ControlledModal from "@components/controlledModal";
-import { IconArrowLeft, IconPlayerPlay, IconPlayerPause, IconRefresh, IconArrowsDiagonal } from "@tabler/icons-react";
+import { IconArrowLeft, IconPlayerPlay, IconPlayerPause, IconRefresh, IconArrowsDiagonal, IconLayoutRows, IconDeviceMobile, IconBrandTwitch } from "@tabler/icons-react";
 import { getCreatorClipPreview, type getCreatorClipDetail } from "@actions/creatorLibrary";
 import { loadClipLayout, saveClipLayout } from "@actions/clipLayouts";
 import { defaultClipLayout, clipLayoutSchema, sourceCrop, clipLayerText, clipLayerLines, type ClipLayout, type ClipCrop } from "@lib/clipLayout";
@@ -14,9 +14,10 @@ import { notify } from "@lib/toast";
 
 type Detail = Awaited<ReturnType<typeof getCreatorClipDetail>>;
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
-function Range({ label, value, min = 0, max = 100, onChange }: { label: string; value: number; min?: number; max?: number; onChange: (v: number) => void }) {
+function Range({ label, value, min = 0, max = 100, onChange, isDisabled }: { label: string; value: number; min?: number; max?: number; isDisabled?: boolean; onChange: (v: number) => void }) {
 	return (
 		<Slider
+			isDisabled={isDisabled}
 			value={value}
 			minValue={min}
 			maxValue={max}
@@ -43,6 +44,8 @@ export default function ClipLayoutEditor({ creatorId, ids, data }: { creatorId: 
 		[playing, setPlaying] = useState(false),
 		[time, setTime] = useState(0),
 		[duration, setDuration] = useState(0),
+		[mediaReady, setMediaReady] = useState(false),
+		[previewFailed, setPreviewFailed] = useState(false),
 		[loaded, setLoaded] = useState(false),
 		[saving, setSaving] = useState(false),
 		[dirty, setDirty] = useState(false);
@@ -74,7 +77,7 @@ export default function ClipLayoutEditor({ creatorId, ids, data }: { creatorId: 
 	}, [creatorId]);
 	useEffect(() => {
 		let current = true;
-		void getCreatorClipPreview({ creatorId, clipId: ids[0] })
+		void getCreatorClipPreview({ creatorId, clipId: ids[0], ...(retry ? { refresh: true } : {}) })
 			.then((r) => {
 				if (current) setSource(r?.playbackUrl ?? null);
 			})
@@ -127,15 +130,25 @@ export default function ClipLayoutEditor({ creatorId, ids, data }: { creatorId: 
 				} catch {
 					if (!failed) {
 						failed = true;
+						setPreviewFailed(true);
 						notify({ title: "Portrait preview unavailable", description: "Retry the source clip. Your layout is kept.", color: "warning" });
 					}
 				}
 			}
-			frame = requestAnimationFrame(draw);
+			if (!failed) frame = requestAnimationFrame(draw);
 		};
 		frame = requestAnimationFrame(draw);
 		return () => cancelAnimationFrame(frame);
 	}, [source, clip]);
+	const retrySource = () => {
+		setSource(undefined);
+		setMediaReady(false);
+		setPreviewFailed(false);
+		setPlaying(false);
+		setTime(0);
+		setDuration(0);
+		setRetry((value) => value + 1);
+	};
 	const change = (next: ClipLayout) => {
 		const parsed = clipLayoutSchema.safeParse(next);
 		if (parsed.success) {
@@ -243,7 +256,7 @@ export default function ClipLayoutEditor({ creatorId, ids, data }: { creatorId: 
 						>
 							Save channel layout
 						</Button>
-						<fieldset disabled={!loaded} className='contents'>
+						<fieldset disabled={!loaded || !mediaReady || previewFailed} className='contents'>
 							<ClipExport creatorId={creatorId} clipIds={ids} scope={`${creatorId}:${ids.join(",")}:${JSON.stringify(layout)}`} format={ids.length === 1 ? "mp4" : "zip"} layout={layout} />
 						</fieldset>
 					</div>
@@ -251,29 +264,42 @@ export default function ClipLayoutEditor({ creatorId, ids, data }: { creatorId: 
 				<Card.Content>
 					<fieldset disabled={!loaded} aria-busy={!loaded} className='space-y-6'>
 						<div className='flex flex-wrap items-center justify-between gap-3'>
-							<div className='flex gap-2'>
-								<Button
-									size='sm'
-									variant={layout.mode === "full" ? "primary" : "secondary"}
-									onPress={() => {
-										setSelected("gameplay");
-										change({ ...layout, mode: "full" });
+							<div className='space-y-2'>
+								<h2 className='text-sm font-medium'>Layout</h2>
+								<ToggleButtonGroup
+									aria-label='Portrait layout'
+									selectionMode='single'
+									disallowEmptySelection
+									selectedKeys={new Set([layout.mode])}
+									onSelectionChange={(keys) => {
+										const mode = [...keys][0];
+										if (mode === "full" || mode === "stacked") {
+											if (mode === "full") setSelected("gameplay");
+											change({ ...layout, mode });
+										}
 									}}
 								>
-									Full
-								</Button>
-								<Button size='sm' variant={layout.mode === "stacked" ? "primary" : "secondary"} onPress={() => change({ ...layout, mode: "stacked" })}>
-									Stacked
-								</Button>
+									<ToggleButton id='full'>
+										<IconDeviceMobile className='size-4' aria-hidden='true' />
+										Full
+									</ToggleButton>
+									<ToggleButton id='stacked'>
+										<IconLayoutRows className='size-4' aria-hidden='true' />
+										Stacked
+									</ToggleButton>
+								</ToggleButtonGroup>
+								<p className='text-sm text-muted'>{layout.mode === "stacked" ? "Camera above gameplay in a vertical clip." : "One crop fills the vertical clip."}</p>
 							</div>
 							<Button size='sm' variant='ghost' onPress={() => change(defaultClipLayout)}>
 								<IconRefresh className='size-4' /> Reset layout
 							</Button>
 						</div>
-						<div className='grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_200px]'>
+						<div className='grid items-start gap-4 lg:grid-cols-[minmax(0,256fr)_minmax(0,81fr)]'>
 							<section aria-label='Source crop editor' className='min-w-0 space-y-3'>
-								<h2 className='text-sm font-medium'>Original clip</h2>
-								<div data-source-stage className='relative aspect-video overflow-hidden rounded-xl bg-black'>
+								<h2 className='text-sm font-medium'>
+									Original clip <span className='text-muted'>16:9</span>
+								</h2>
+								<div data-source-stage aria-busy={source === undefined || Boolean(source && !mediaReady)} className='relative aspect-video overflow-hidden rounded-xl bg-black'>
 									{source ? (
 										<video
 											ref={video}
@@ -282,6 +308,7 @@ export default function ClipLayoutEditor({ creatorId, ids, data }: { creatorId: 
 											playsInline
 											preload='auto'
 											className='h-full w-full object-contain'
+											onLoadedData={() => setMediaReady(true)}
 											onLoadedMetadata={() => {
 												setDuration(video.current?.duration || 0);
 											}}
@@ -290,26 +317,33 @@ export default function ClipLayoutEditor({ creatorId, ids, data }: { creatorId: 
 											onPause={() => setPlaying(false)}
 											onError={() => {
 												setSource(null);
+												setMediaReady(false);
+												setPlaying(false);
 												notify({ title: "Source clip could not be loaded", description: "Retry to keep editing.", color: "danger" });
 											}}
 										/>
 									) : (
-										<div className='flex h-full flex-col items-center justify-center gap-3 p-4 text-center text-sm text-muted'>
+										<div className='flex h-full flex-col items-center justify-center gap-3 bg-surface-secondary p-4 text-center text-sm text-muted'>
 											<p role='status'>{source === undefined ? "Loading clip…" : "Clip preview unavailable"}</p>
 											{source === null ? (
-												<Button
-													variant='secondary'
-													onPress={() => {
-														setSource(undefined);
-														setRetry((v) => v + 1);
-													}}
-												>
+												<Button variant='secondary' onPress={retrySource}>
 													Retry preview
 												</Button>
 											) : null}
+											{source === null ? (
+												<Link className='gap-2' href={clip.url} target='_blank' rel='noopener noreferrer'>
+													<IconBrandTwitch className='size-4' aria-hidden='true' />
+													Open on Twitch
+												</Link>
+											) : null}
 										</div>
 									)}
-									{source
+									{source && !mediaReady ? (
+										<div className='absolute inset-0 flex items-center justify-center bg-surface-secondary p-4 text-sm text-muted' role='status'>
+											Loading clip…
+										</div>
+									) : null}
+									{source && mediaReady
 										? (["gameplay", ...(layout.mode === "stacked" ? ["camera"] : [])] as const).map((kind) => {
 												const c = layout[kind as "gameplay" | "camera"];
 												return (
@@ -317,7 +351,7 @@ export default function ClipLayoutEditor({ creatorId, ids, data }: { creatorId: 
 														<Button
 															aria-label={`Move ${kind} crop`}
 															variant='ghost'
-															className={`pointer-events-auto h-full w-full min-w-0 touch-none items-start justify-start rounded-none border-2 p-1 text-xs ${kind === "camera" ? "border-warning text-warning" : "border-accent text-accent"}`}
+															className={`pointer-events-auto h-full w-full min-w-0 touch-none items-start justify-start rounded-none border-2 p-1 text-xs ${kind === "camera" ? "border-white text-white" : "border-accent text-accent"}`}
 															onPointerDown={(e) => drag(e, kind as "gameplay" | "camera")}
 															onKeyDown={(e) => {
 																if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) return;
@@ -342,7 +376,7 @@ export default function ClipLayoutEditor({ creatorId, ids, data }: { creatorId: 
 										isIconOnly
 										variant='secondary'
 										aria-label={playing ? "Pause clip" : "Play clip"}
-										isDisabled={!source}
+										isDisabled={!mediaReady}
 										onPress={() => {
 											const v = video.current;
 											if (v?.paused) void v.play().catch(() => notify({ title: "Playback could not start", color: "warning" }));
@@ -354,6 +388,7 @@ export default function ClipLayoutEditor({ creatorId, ids, data }: { creatorId: 
 									<div className='min-w-0 flex-1'>
 										<Range
 											label='Preview position'
+											isDisabled={!mediaReady}
 											value={time}
 											max={Math.max(1, duration)}
 											onChange={(v) => {
@@ -364,21 +399,45 @@ export default function ClipLayoutEditor({ creatorId, ids, data }: { creatorId: 
 								</div>
 								<p className='text-xs text-muted'>Drag a crop to move it. Use its corner to resize, or use the controls below. Arrow keys move the focused crop.</p>
 							</section>
-							<section aria-label='Portrait preview' className='mx-auto w-full max-w-[200px] space-y-3'>
-								<h2 className='text-sm font-medium'>Portrait 9:16</h2>
-								<canvas ref={canvas} width={720} height={1280} role='img' aria-label='Rendered portrait preview' className='aspect-[9/16] w-full rounded-xl bg-black' />
+							<section aria-label='Portrait preview' className='mx-auto w-full max-w-60 space-y-3 lg:max-w-none'>
+								<h2 className='text-sm font-medium'>
+									Portrait <span className='text-muted'>9:16</span>
+								</h2>
+								<div data-portrait-stage className='relative aspect-[9/16] overflow-hidden rounded-xl bg-black' aria-busy={source === undefined || Boolean(source && !mediaReady)}>
+									<canvas ref={canvas} width={720} height={1280} role='img' aria-label='Rendered portrait preview' aria-hidden={!mediaReady || previewFailed} className='block h-full w-full' />
+									{!mediaReady || previewFailed ? (
+										<div className='absolute inset-0 flex flex-col items-center justify-center gap-3 bg-surface-secondary p-3 text-center text-sm text-muted'>
+											<IconDeviceMobile className='size-6' aria-hidden='true' />
+											<p role='status'>{previewFailed ? "Your layout preview could not be drawn." : source === null ? "Load the source clip to preview your portrait." : "Loading portrait preview…"}</p>
+											{previewFailed ? (
+												<Button size='sm' variant='secondary' onPress={retrySource}>
+													Retry portrait preview
+												</Button>
+											) : null}
+										</div>
+									) : null}
+								</div>
 							</section>
 						</div>
 						<div className='grid gap-6 md:grid-cols-2'>
 							<section className='space-y-4' aria-label='Crop settings'>
 								<div className='flex flex-wrap items-center gap-2'>
 									<h2 className='mr-2 font-semibold'>Source crops</h2>
-									<Button size='sm' variant={selected === "gameplay" ? "primary" : "secondary"} onPress={() => setSelected("gameplay")}>
-										Gameplay
-									</Button>
-									<Button size='sm' isDisabled={layout.mode === "full"} variant={selected === "camera" ? "primary" : "secondary"} onPress={() => setSelected("camera")}>
-										Camera
-									</Button>
+									<ToggleButtonGroup
+										aria-label='Edit crop'
+										selectionMode='single'
+										disallowEmptySelection
+										selectedKeys={new Set([selected])}
+										onSelectionChange={(keys) => {
+											const kind = [...keys][0];
+											if (kind === "gameplay" || (kind === "camera" && layout.mode === "stacked")) setSelected(kind);
+										}}
+									>
+										<ToggleButton id='gameplay'>Gameplay</ToggleButton>
+										<ToggleButton id='camera' isDisabled={layout.mode === "full"}>
+											Camera
+										</ToggleButton>
+									</ToggleButtonGroup>
 								</div>
 								<div className='grid grid-cols-2 gap-4'>
 									{(["x", "y", "w", "h"] as const).map((key, i) => (
@@ -393,7 +452,7 @@ export default function ClipLayoutEditor({ creatorId, ids, data }: { creatorId: 
 									const layer = layout.textLayers.find((l) => l.field === field);
 									return (
 										<div key={field} className='space-y-3'>
-											<Checkbox isSelected={Boolean(layer)} onChange={(enabled) => change({ ...layout, textLayers: enabled ? [...layout.textLayers, { field, x: 5, y: field === "title" ? 80 : field === "clipper" ? 88 : 5, size: 24 }] : layout.textLayers.filter((l) => l.field !== field) })}>
+											<Checkbox variant='secondary' isSelected={Boolean(layer)} onChange={(enabled) => change({ ...layout, textLayers: enabled ? [...layout.textLayers, { field, x: 5, y: field === "title" ? 80 : field === "clipper" ? 88 : 5, size: 24 }] : layout.textLayers.filter((l) => l.field !== field) })}>
 												<Checkbox.Content>
 													<Checkbox.Control>
 														<Checkbox.Indicator />
