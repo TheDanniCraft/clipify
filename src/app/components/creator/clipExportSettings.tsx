@@ -32,7 +32,17 @@ export default function ClipExportSettings({ creatorId, clipIds, onStart, onClos
 		};
 	}, [creatorId, attempt]);
 	const chosen = library?.ok ? library.templates.filter((t) => selected?.includes(t.id)) : [];
-	const outputs: ClipExportOutput[] = [...(versions.has("original") ? [{ key: "original", label: "Original" }] : []), ...chosen.flatMap((entry, index) => (["desktop", "mobile"] as const).filter((format) => versions.has(format)).map((format) => ({ key: `layout-${index}-${format}`, label: `${entry.name} ${format === "desktop" ? "Desktop" : "Mobile"}`, layout: templateCompositions(entry)[format], templateId: entry.id, format })))];
+	const outputs: ClipExportOutput[] = [
+		...(versions.has("original") ? [{ key: "original", label: "Original" }] : []),
+		...chosen.flatMap((entry, index) =>
+			(["desktop", "mobile"] as const)
+				.filter((format) => versions.has(format))
+				.map((format) => {
+					const suffix = format === "desktop" ? "Desktop" : "Mobile";
+					return { key: `layout-${index}-${format}`, label: `${entry.name.slice(0, 80 - suffix.length - 1)} ${suffix}`, layout: templateCompositions(entry)[format], templateId: entry.id, format };
+				}),
+		),
+	];
 	const refresh = () => {
 		setLibrary(undefined);
 		setAttempt((n) => n + 1);
@@ -87,10 +97,12 @@ export default function ClipExportSettings({ creatorId, clipIds, onStart, onClos
 				{library?.ok ? (
 					library.templates.length ? (
 						<div className='space-y-3'>
-							<Autocomplete variant='secondary' selectionMode='multiple' value={selected ?? []} onChange={(keys) => setSelected(Array.isArray(keys) ? keys.map(String) : keys ? [String(keys)] : [])} placeholder='Choose templates'>
+							<Autocomplete className='min-w-0' variant='secondary' selectionMode='multiple' value={selected ?? []} onChange={(keys) => setSelected(Array.isArray(keys) ? keys.map(String) : keys ? [String(keys)] : [])} placeholder='Choose templates'>
 								<Label>Layout templates</Label>
-								<Autocomplete.Trigger>
-									<Autocomplete.Value />
+								<Autocomplete.Trigger className='min-w-0'>
+									<Autocomplete.Value className='min-w-0 flex-1 overflow-hidden'>
+										<span className='block min-w-0 truncate'>{chosen.map((entry) => entry.name).join(", ") || "Choose templates"}</span>
+									</Autocomplete.Value>
 									<Autocomplete.Indicator />
 								</Autocomplete.Trigger>
 								<Autocomplete.Popover>
@@ -105,7 +117,7 @@ export default function ClipExportSettings({ creatorId, clipIds, onStart, onClos
 										<ListBox renderEmptyState={() => <EmptyState>No templates found</EmptyState>}>
 											{library.templates.map((entry) => (
 												<ListBox.Item key={entry.id} id={entry.id} textValue={entry.name}>
-													<Label>{entry.name}</Label>
+													<Label className='min-w-0 flex-1 truncate'>{entry.name}</Label>
 													<ListBox.ItemIndicator />
 												</ListBox.Item>
 											))}
@@ -117,7 +129,7 @@ export default function ClipExportSettings({ creatorId, clipIds, onStart, onClos
 							{clipIds.length === 1
 								? chosen.map((entry) => (
 										<div key={entry.id} className='flex flex-wrap items-center gap-x-4 gap-y-2 text-xs'>
-											<span className='text-muted'>{entry.name}</span>
+											<span className='min-w-0 max-w-full break-words text-muted'>{entry.name}</span>
 											{(["desktop", "mobile"] as const).map((format) => (
 												<Link key={format} href={`/dashboard/clip-layouts?layout=${encodeURIComponent(entry.id)}&clip=${encodeURIComponent(clipIds[0])}&format=${format}`} target='_blank' rel='noopener noreferrer'>
 													Adjust {format === "desktop" ? "Desktop" : "Mobile"} for this clip

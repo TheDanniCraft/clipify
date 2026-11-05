@@ -9,10 +9,11 @@ for (const width of [390, 1440])
 			await page.setViewportSize({ width, height: 1000 });
 			await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
 			const { creatorId, id } = await seedCreatorLibrary({ page, request, tourWorld });
+			const templateName = width === 390 && theme === "light" ? "x".repeat(80) : "My stream";
 			await tourWorld.fixture.pool.query("UPDATE playlist_clips SET clip_data=jsonb_set(clip_data::jsonb,'{testPreviewOfficial}','true')::text WHERE clip_id=$1", [id]);
 			const desktop = createClipComposition("desktop"),
 				mobile = createClipComposition("mobile");
-			await tourWorld.fixture.pool.query("INSERT INTO user_content_states(user_id,content_key,state) VALUES($1,$2,$3)", [creatorId, "clip-layout-template:v2:paired", JSON.stringify({ name: "My stream", composition: mobile, compositions: { desktop, mobile } })]);
+			await tourWorld.fixture.pool.query("INSERT INTO user_content_states(user_id,content_key,state) VALUES($1,$2,$3)", [creatorId, "clip-layout-template:v2:paired", JSON.stringify({ name: templateName, composition: mobile, compositions: { desktop, mobile } })]);
 			await page.goto(`${tourWorld.origin}/dashboard/clip-layouts?layout=paired&reference=${id}&format=mobile`);
 			await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 			await expect(page.getByRole("button", { name: "Play preview", exact: true })).toBeEnabled({ timeout: 20000 });
@@ -61,6 +62,25 @@ for (const width of [390, 1440])
 			await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve(null)))));
 			await page.screenshot({ path: info.outputPath("paired-editor.png"), fullPage: true, animations: "disabled" });
 			expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+			await page.getByRole("button", { name: "Back to clip layouts", exact: true }).click();
+			await expect(page.getByRole("button", { name: "Edit layout", exact: true })).toBeVisible();
+			expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+			if (width === 390 && theme === "light") {
+				await page.goto(`${tourWorld.origin}/dashboard/clips`);
+				await page.getByRole("button", { name: "Select page", exact: true }).click();
+				await page.getByRole("button", { name: "Export selected", exact: true }).click();
+				const dialog = page.getByRole("dialog", { name: "Export clips", exact: true });
+				for (const name of ["Desktop", "Mobile"]) {
+					await dialog.getByRole("checkbox", { name, exact: true }).focus();
+					await page.keyboard.press("Space");
+				}
+				await expect(dialog.getByRole("status", { name: "Export file count" })).toHaveText("3 video files");
+				const body = dialog.locator('[data-slot="modal-body"]');
+				expect(await body.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
+				await dialog.screenshot({ path: info.outputPath("long-name-export.png") });
+				expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+				await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+			}
 		});
 test("Concurrent Desktop and Mobile saves preserve both compositions", async ({ page, request, tourWorld }) => {
 	test.setTimeout(120000);

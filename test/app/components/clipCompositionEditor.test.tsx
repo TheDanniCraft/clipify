@@ -11,13 +11,26 @@ const saveTemplate = jest.fn(),
 jest.mock("@actions/clipLayoutLibrary", () => ({ saveClipLayoutTemplate: (...args: unknown[]) => saveTemplate(...args), saveClipLayoutOverride: (...args: unknown[]) => saveOverride(...args), resetClipLayoutOverride: (...args: unknown[]) => reset(...args) }));
 jest.mock("@actions/creatorLibrary", () => ({ getCreatorClipInventory: (...a: unknown[]) => inventory(...a), getCreatorClipDetail: (...a: unknown[]) => detail(...a), searchCreatorLibrary: (...a: unknown[]) => searchClips(...a) }));
 jest.mock("@components/creator/clipCompositionCanvas", () => ({ __esModule: true, default: () => null }));
-jest.mock("nextjs-nav-guard", () => ({ useNavigationGuard: () => ({ active: false }) }));
-jest.mock("@components/controlledModal", () => ({ __esModule: true, default: ({ children, isOpen }: any) => (isOpen ? <section role='dialog'>{children}</section> : null) }));
+const navigationGuard = { active: false, accept: jest.fn(), reject: jest.fn() };
+jest.mock("nextjs-nav-guard", () => ({ useNavigationGuard: ({ enabled }: any) => ({ ...navigationGuard, active: enabled && navigationGuard.active }) }));
+jest.mock("@components/controlledModal", () => ({
+	__esModule: true,
+	default: ({ children, isOpen, onClose }: any) =>
+		isOpen ? (
+			<section role='dialog'>
+				<button aria-label='Close layout dialog' onClick={onClose}>
+					Close
+				</button>
+				{children}
+			</section>
+		) : null,
+}));
 jest.mock("@lib/toast", () => ({ notify: jest.fn() }));
 const composition = createClipComposition("mobile"),
 	entry = { id: "template", name: "Camera", composition, updatedAt: "2026-11-05T00:00:00Z" };
 beforeEach(() => {
 	jest.clearAllMocks();
+	navigationGuard.active = false;
 	inventory.mockResolvedValue({ ok: true, items: [] });
 	detail.mockResolvedValue({ ok: false, code: "NOT_FOUND" });
 	searchClips.mockResolvedValue({ ok: true, items: [] });
@@ -136,4 +149,32 @@ it("does not show the selected reference as a false match for an unrelated searc
 	fireEvent.change(screen.getByRole("textbox", { name: "Find a reference clip" }), { target: { value: "missing clip" } });
 	await waitFor(() => expect(searchClips).toHaveBeenCalled());
 	expect(screen.getByRole("combobox", { name: "Reference clip" }).querySelector('option[value="ClipA"]')).not.toBeInTheDocument();
+});
+it("keeps unsaved fields intact when rejecting navigation and only discards after explicit acceptance", () => {
+	navigationGuard.active = true;
+	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} onBack={() => {}} onSaved={() => {}} />);
+	fireEvent.change(screen.getByRole("textbox", { name: "Layer name" }), { target: { value: "My unsaved crop" } });
+	fireEvent.click(screen.getByRole("button", { name: "Keep editing" }));
+	expect(navigationGuard.reject).toHaveBeenCalledTimes(1);
+	expect(screen.getByRole("textbox", { name: "Layer name" })).toHaveValue("My unsaved crop");
+	fireEvent.click(screen.getByRole("button", { name: "Close layout dialog" }));
+	expect(navigationGuard.reject).toHaveBeenCalledTimes(2);
+	fireEvent.click(screen.getByRole("button", { name: "Discard changes" }));
+	expect(navigationGuard.accept).toHaveBeenCalledTimes(1);
+	expect(saveTemplate).not.toHaveBeenCalled();
+});
+it("closing the reset dialog does not reset a clip override", () => {
+	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} clipId='ClipA' onBack={() => {}} onSaved={() => {}} />);
+	fireEvent.click(screen.getByRole("button", { name: "Reset to template" }));
+	fireEvent.click(screen.getByRole("button", { name: "Close layout dialog" }));
+	expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+	expect(reset).not.toHaveBeenCalled();
+});
+it("does not duplicate a selected reference already present in the initial inventory", async () => {
+	const clip = { id: "ClipA", title: "Current clip" };
+	inventory.mockResolvedValue({ ok: true, items: [clip] });
+	detail.mockResolvedValue({ ok: true, clip });
+	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} referenceId='ClipA' onBack={() => {}} onSaved={() => {}} />);
+	await screen.findByRole("option", { name: "Current clip" });
+	expect(screen.getAllByRole("option", { name: "Current clip" })).toHaveLength(1);
 });

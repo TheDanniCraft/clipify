@@ -90,7 +90,7 @@ export default function ClipLayoutLibrary({ creatorId, layoutId, clipId, referen
 										<div key={item.id} className='flex flex-wrap items-center justify-between gap-3 rounded-xl bg-default/40 p-4'>
 											<div className='flex min-w-0 items-center gap-3'>
 												<IconLayoutCollage className='size-5 shrink-0 text-muted' />
-												<div>
+												<div className='min-w-0'>
 													<p className='break-words font-medium'>{item.name}</p>
 													<p className='text-xs text-muted'>Desktop 16:9 / Mobile 9:16</p>
 												</div>

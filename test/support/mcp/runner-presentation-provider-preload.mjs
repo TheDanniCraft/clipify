@@ -103,9 +103,10 @@ const nativeFetch = globalThis.fetch;
 globalThis.fetch = async (input, init) => {
 	const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
 	if (url.origin === "https://production.assets.clips.twitchcdn.net" && url.pathname.startsWith("/clip/") && (await seededClip(url.pathname.slice(6, -4)))) {
- const response = await nativeFetch(`${origin}${url.pathname}`, init);
- const headers = new Headers(response.headers); headers.delete("Access-Control-Allow-Origin");
- return new Response(response.body, {status:response.status,headers});
- }
+		const response = await nativeFetch(`${origin}${url.pathname}`, init);
+		const headers = new Headers(response.headers);
+		headers.delete("Access-Control-Allow-Origin");
+		return new Response(response.body, { status: response.status, headers });
+	}
 	return nativeFetch(input, init);
 };

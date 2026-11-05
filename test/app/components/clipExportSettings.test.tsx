@@ -112,3 +112,20 @@ it("never substitutes a different template after the selected collection is dele
 	expect(screen.getByRole("button", { name: "Start export" })).toBeDisabled();
 	expect(screen.getByRole("listbox", { name: "Layout templates" })).toHaveValue([]);
 });
+it("exports both formats of an eighty-character template name without changing the stored name", async () => {
+	const name = "x".repeat(80);
+	list.mockResolvedValue({ ok: true, templates: [{ id: "long", name, composition: createClipComposition("desktop") }], defaults: {} });
+	const start = jest.fn(() => true);
+	render(<ClipExportSettings creatorId='owner' clipIds={["A"]} onStart={start} onClose={() => {}} />);
+	await screen.findByRole("listbox", { name: "Layout templates" });
+	for (const version of ["Desktop", "Mobile"]) fireEvent.click(screen.getByRole("checkbox", { name: version }));
+	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
+	expect(start).toHaveBeenCalledTimes(1);
+	const outputs = (start.mock.calls[0] as any)[0][0].outputs;
+	for (const output of outputs.filter((o: any) => o.templateId)) {
+		expect(output.templateId).toBe("long");
+		expect(output.label.length).toBeLessThanOrEqual(80);
+		expect(output.label).toMatch(/ (Desktop|Mobile)$/);
+	}
+	expect(screen.getByRole("option", { name })).toBeInTheDocument();
+});

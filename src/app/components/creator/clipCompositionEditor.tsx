@@ -189,8 +189,8 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 						<Button isIconOnly variant='tertiary' aria-label='Back to clip layouts' onPress={onBack}>
 							<IconArrowLeft />
 						</Button>
-						<div>
-							<Card.Title>{entry.name}</Card.Title>
+						<div className='min-w-0'>
+							<Card.Title className='break-words'>{entry.name}</Card.Title>
 							<Card.Description>
 								{clipId ? "Clip-specific adjustments" : "Reusable layout"} / {layout.format === "desktop" ? "Desktop 16:9" : "Mobile 9:16"}
 							</Card.Description>
@@ -241,7 +241,6 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 							</TextField>
 							<Autocomplete
 								variant='secondary'
-								aria-label='Reference clip'
 								placeholder='Choose a clip to preview'
 								value={reference || null}
 								allowsEmptyCollection
@@ -252,7 +251,9 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 							>
 								<Label>Reference clip</Label>
 								<Autocomplete.Trigger>
-									<Autocomplete.Value>{clip?.title || clips.find((item) => item.id === reference)?.title || "Choose a clip to preview"}</Autocomplete.Value>
+									<Autocomplete.Value className='min-w-0 flex-1'>
+										<span className='min-w-0 flex-1 truncate'>{clip?.title || clips.find((item) => item.id === reference)?.title || "Choose a clip to preview"}</span>
+									</Autocomplete.Value>
 									<Autocomplete.Indicator />
 								</Autocomplete.Trigger>
 								<Autocomplete.Popover>
@@ -274,7 +275,7 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 										<ListBox renderEmptyState={() => <EmptyState>{loading ? "Loading clips…" : "No clips found. Try another title."}</EmptyState>}>
 											{[...(clip && search.trim().length < 2 && !clips.some((item) => item.id === clip.id) ? [clip] : []), ...clips].map((item) => (
 												<ListBox.Item id={item.id} key={item.id} textValue={item.title || "Untitled clip"}>
-													<Label>{item.title || "Untitled clip"}</Label>
+													<Label className='min-w-0 flex-1 truncate'>{item.title || "Untitled clip"}</Label>
 													<ListBox.ItemIndicator />
 												</ListBox.Item>
 											))}
