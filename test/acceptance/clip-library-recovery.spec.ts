@@ -408,18 +408,11 @@ for (const width of [390, 1440])
 			}
 			const circle = sidebar.getByRole("progressbar");
 			await expect(circle).toHaveAttribute("aria-valuenow", "100");
-			const fits = await circle.evaluate((element) => {
-				const label = element.querySelector("span")!;
-				const range = document.createRange();
-				range.selectNodeContents(label);
-				const text = range.getBoundingClientRect();
-				const svg = element.querySelector("svg")!;
-				const track = svg.getBoundingClientRect();
-				const fill = element.querySelector("circle")!;
-				const radius = (Number(fill.getAttribute("r")) - Number(fill.getAttribute("stroke-width") || svg.getAttribute("stroke-width")) / 2) * (track.width / svg.viewBox.baseVal.width);
-				return Math.hypot(text.width / 2, text.height / 2) < radius;
-			});
-			expect(fits).toBe(true);
+			const guide = sidebar.locator('[data-tour="guide-launcher"]');
+			const support = sidebar.getByRole("button", { name: "Enable support chat", exact: true });
+			await expect(guide.getByText("100%", { exact: true })).toBeVisible();
+			expect((await circle.boundingBox())!.width).toBeLessThanOrEqual(20);
+			expect((await guide.boundingBox())!.height).toBe((await support.boundingBox())!.height);
 			await page.screenshot({ path: info.outputPath("sidebar-polish.png"), animations: "disabled" });
 			if (width === 1440) {
 				await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();

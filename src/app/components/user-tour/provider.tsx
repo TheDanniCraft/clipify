@@ -337,20 +337,20 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 							aria-controls='clipify-guide-panel'
 							variant='ghost'
 							fullWidth
-							className='h-10 max-w-full justify-start gap-2 px-2 text-foreground'
+							className='max-w-full justify-start gap-2 text-muted'
 							onPress={() => {
 								setGuideRequested(true);
 								report({ type: "panel", minimized: panelVisible });
 							}}
 						>
-							<ProgressCircle aria-label={`${currentJourney.title} progress`} value={percentage} size='lg' className='relative size-10 shrink-0'>
-								<ProgressCircle.Track style={{ width: 40, height: 40 }}>
+							<ProgressCircle aria-label={`${currentJourney.title} progress`} value={percentage} size='sm' className='size-4 shrink-0'>
+								<ProgressCircle.Track style={{ width: 16, height: 16 }}>
 									<ProgressCircle.TrackCircle style={{ stroke: "var(--color-muted)", opacity: 0.45 }} />
 									<ProgressCircle.FillCircle />
 								</ProgressCircle.Track>
-								<span className='absolute inset-0 grid place-items-center text-[10px] leading-none font-medium tabular-nums'>{`${percentage}%`}</span>
 							</ProgressCircle>
-							<span className='text-sm font-semibold'>{launcherTitle}</span>
+							<span className='min-w-0 flex-1 truncate text-left'>{launcherTitle}</span>
+							<span className='text-xs tabular-nums'>{`${percentage}%`}</span>
 						</Button>
 					</aside>
 				</DashboardUtilityPortal>
