@@ -147,3 +147,26 @@ test("Built-in brand fonts render through native queued previews for multiple wi
 		.toBe(true);
 	await page.screenshot({ path: info.outputPath("builtin-branded-composition.png"), fullPage: true });
 });
+
+test("Stalled brand loading offers retry and then loads the creator settings", async ({ page, request, tourWorld }) => {
+	test.setTimeout(60000);
+	const { creatorId } = await seedCreatorLibrary({ page, request, tourWorld });
+	const blocked: import("@playwright/test").Route[] = [];
+	let stall = true;
+	await page.route("**/dashboard/settings?tab=brand", (route) => {
+		const req = route.request();
+		if (stall && req.headers()["next-action"] && req.postData()?.includes(creatorId)) {
+			blocked.push(route);
+			return;
+		}
+		return route.continue();
+	});
+	await page.goto(`${tourWorld.origin}/dashboard/settings?tab=brand`);
+	await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
+	await expect(page.getByRole("button", { name: "Retry brand styling", exact: true })).toBeVisible({ timeout: 22000 });
+	stall = false;
+	await Promise.all(blocked.map((route) => route.abort()));
+	await page.getByRole("button", { name: "Retry brand styling", exact: true }).click();
+	await expect(page.getByRole("button", { name: "Apply brand", exact: true })).toBeEnabled({ timeout: 10000 });
+	await expect(page.getByRole("textbox", { name: "Text Color", exact: true })).toBeVisible();
+});

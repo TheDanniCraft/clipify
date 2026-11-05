@@ -171,3 +171,28 @@ it("shows collaborators a read-only brand without inviting an unauthorized save"
 	expect(screen.getByRole("textbox", { name: "Text Color" })).toBeDisabled();
 	expect(screen.getByText("You can view this brand. An account owner can change it.")).toBeVisible();
 });
+
+it("ends a stalled brand skeleton, retries, and ignores the superseded response", async () => {
+	jest.useFakeTimers();
+	let resolveOld: (v: unknown) => void = () => {};
+	load.mockImplementationOnce(
+		() =>
+			new Promise((resolve) => {
+				resolveOld = resolve;
+			}),
+	);
+	render(<Panel user={user} />);
+	await act(async () => {
+		jest.advanceTimersByTime(15000);
+	});
+	expect(screen.getByRole("button", { name: "Retry brand styling" })).toBeVisible();
+	load.mockResolvedValueOnce({ ok: true, brand: creatorBrandSchema.parse({ themeTextColor: "#ff0000" }), revision: 2, canEdit: true, canRemoveWatermark: true });
+	await act(async () => {
+		fireEvent.click(screen.getByRole("button", { name: "Retry brand styling" }));
+	});
+	await act(async () => {
+		resolveOld({ ok: true, brand: creatorBrandSchema.parse({}), revision: 1, canEdit: true, canRemoveWatermark: true });
+	});
+	expect(screen.getByRole("textbox", { name: "Text Color" })).toHaveValue("#ff0000");
+	jest.useRealTimers();
+});

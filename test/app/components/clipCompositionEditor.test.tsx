@@ -210,13 +210,14 @@ it.each(["desktop", "mobile"] as const)("adds a usable channel block without a c
 
 it("uses the existing theme controls and preserves appearance through save", async () => {
 	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} onBack={() => {}} onSaved={() => {}} />);
-	fireEvent.click(screen.getByRole("button", { name: "Widget appearance" }));
+	fireEvent.change(screen.getByRole("combobox", { name: "Add layer" }), { target: { value: "title" } });
+	fireEvent.click(screen.getByRole("switch", { name: "Use brand styling" }));
 	fireEvent.change(screen.getByRole("textbox", { name: "Background Color" }), { target: { value: "rgba(20,30,40,0.5)" } });
 	fireEvent.change(screen.getByRole("spinbutton", { name: "Corner radius (px)" }), { target: { value: "18" } });
-	fireEvent.click(screen.getByRole("button", { name: "Done" }));
+
 	fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
 	await waitFor(() => expect(saveTemplate).toHaveBeenCalled());
-	expect(saveTemplate.mock.calls[0][1].composition.widgetTheme).toMatchObject({ themeBackgroundColor: "rgba(20,30,40,0.5)", borderRadius: 18 });
+	expect(saveTemplate.mock.calls[0][1].composition.layers.at(-1).appearance).toMatchObject({ themeBackgroundColor: "rgba(20,30,40,0.5)", borderRadius: 18 });
 });
 
 it.each(["title", "channel", "clipper"] as const)("fits a saved %s widget without losing its metadata or draft", async (kind) => {
@@ -227,8 +228,8 @@ it.each(["title", "channel", "clipper"] as const)("fits a saved %s widget withou
 	if (kind === "title") await screen.findByRole("option", { name: "Known title" });
 	fireEvent.click(screen.getByRole("button", { name: "Fit canvas width" }));
 	fireEvent.click(screen.getByRole("button", { name: "Fit content" }));
-	fireEvent.click(screen.getByRole("button", { name: "Widget appearance" }));
-	fireEvent.click(screen.getByRole("button", { name: "Close layout dialog" }));
+	fireEvent.change(screen.getByRole("combobox", { name: "Add layer" }), { target: { value: "title" } });
+	fireEvent.click(screen.getByRole("switch", { name: "Use brand styling" }));
 	expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 	fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
 	await waitFor(() => expect(saveTemplate).toHaveBeenCalled());
@@ -252,12 +253,14 @@ it.each(["unavailable", "offline"])("keeps a styled layout draft after reference
 	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} onBack={() => {}} onSaved={() => {}} />);
 	fireEvent.change(screen.getByRole("textbox", { name: "Layout name" }), { target: { value: "Preserved draft" } });
 	await waitFor(() => expect(jest.requireMock("@lib/toast").notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Reference clips could not be loaded" })));
-	fireEvent.click(screen.getByRole("button", { name: "Widget appearance" }));
+	fireEvent.change(screen.getByRole("combobox", { name: "Add layer" }), { target: { value: "title" } });
+	fireEvent.click(screen.getByRole("switch", { name: "Use brand styling" }));
 	fireEvent.change(screen.getByRole("textbox", { name: "Text Color" }), { target: { value: "#111111" } });
-	fireEvent.click(screen.getByRole("button", { name: "Done" }));
+
 	fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
 	await waitFor(() => expect(saveTemplate).toHaveBeenCalled());
-	expect(saveTemplate.mock.calls[0][1]).toMatchObject({ name: "Preserved draft", composition: { widgetTheme: { themeTextColor: "#111111" } } });
+	expect(saveTemplate.mock.calls[0][1].name).toBe("Preserved draft");
+	expect(saveTemplate.mock.calls[0][1].composition.layers.at(-1).appearance.themeTextColor).toBe("#111111");
 });
 
 it("routes shared brand changes to settings once the creator has adopted a global brand", async () => {
@@ -265,4 +268,18 @@ it("routes shared brand changes to settings once the creator has adopted a globa
 	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} onBack={() => {}} onSaved={() => {}} brand={creatorBrandSchema.parse({})} />);
 	expect(screen.queryByRole("button", { name: "Widget appearance" })).not.toBeInTheDocument();
 	expect(screen.getByRole("link", { name: "Brand styling" })).toHaveAttribute("href", "/dashboard/settings?tab=brand");
+});
+
+it("resets only a widget override to its brand without changing the account style", async () => {
+	const { creatorBrandSchema } = await import("@lib/overlayMetadata");
+	const brand = creatorBrandSchema.parse({ borderRadius: 30 });
+	const layout = { version: 2 as const, format: "mobile" as const, layers: [{ id: "info", kind: "title" as const, label: "Info", fontSize: 32, frame: { x: 0, y: 0, w: 1, h: 0.1 }, appearance: { borderRadius: 4 } }] };
+	render(<ClipCompositionEditor creatorId='owner' entry={{ ...entry, composition: layout }} initial={layout} brand={brand} onBack={() => {}} onSaved={() => {}} />);
+	expect(screen.getByRole("spinbutton", { name: "Corner radius (px)" })).toHaveValue(4);
+	fireEvent.click(screen.getByRole("switch", { name: "Use brand styling" }));
+	expect(screen.queryByRole("spinbutton", { name: "Corner radius (px)" })).not.toBeInTheDocument();
+	fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
+	await waitFor(() => expect(saveTemplate).toHaveBeenCalled());
+	expect(saveTemplate.mock.calls[0][1].composition.layers[0].appearance).toBeUndefined();
+	expect(brand.borderRadius).toBe(30);
 });

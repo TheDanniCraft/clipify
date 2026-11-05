@@ -63,9 +63,16 @@ export default function BrandSettingsPanel({ user }: { user: AuthenticatedUser }
 	const guard = useNavigationGuard({ enabled: loaded && dirty });
 	useEffect(() => {
 		let active = true;
+		const timeout = setTimeout(() => {
+			if (active) {
+				active = false;
+				setFailed(true);
+			}
+		}, 15000);
 		void getCreatorBrand(user.id)
 			.then((result) => {
 				if (!active) return;
+				clearTimeout(timeout);
 				if (!result.ok) {
 					setFailed(true);
 					return;
@@ -79,7 +86,10 @@ export default function BrandSettingsPanel({ user }: { user: AuthenticatedUser }
 				setLoaded(true);
 			})
 			.catch(() => {
-				if (active) setFailed(true);
+				if (active) {
+					clearTimeout(timeout);
+					setFailed(true);
+				}
 			});
 		void getBrandOverlaySources(user.id)
 			.then((result) => {
@@ -88,6 +98,7 @@ export default function BrandSettingsPanel({ user }: { user: AuthenticatedUser }
 			.catch(() => {});
 		return () => {
 			active = false;
+			clearTimeout(timeout);
 		};
 	}, [user.id, attempt]);
 	async function save() {

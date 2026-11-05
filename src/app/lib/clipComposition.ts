@@ -1,16 +1,16 @@
 import { z } from "zod";
-import { widgetThemeSchema } from "./overlayMetadata";
+import { DEFAULT_WIDGET_THEME, type CreatorBrand, widgetThemeSchema } from "./overlayMetadata";
 import { defaultClipLayout, sourceCrop, type ClipLayout } from "./clipLayout";
 const rectSchema = z.object({ x: z.number().finite().min(0).max(1), y: z.number().finite().min(0).max(1), w: z.number().finite().min(0.002).max(1), h: z.number().finite().min(0.002).max(1) }).refine((r) => r.x + r.w <= 1.000001 && r.y + r.h <= 1.000001, "Keep the box inside the frame.");
 const frameSchema = z.object({ x: z.number().finite().min(0).max(1), y: z.number().finite().min(0).max(1), w: z.number().finite().min(0.000001).max(1), h: z.number().finite().min(0.000001).max(1) }).refine((r) => r.x + r.w <= 1.000001 && r.y + r.h <= 1.000001, "Keep the layer inside the canvas.");
 const base = { id: z.string().regex(/^[a-zA-Z0-9_-]{1,64}$/), label: z.string().trim().min(1).max(80), frame: frameSchema };
-const text = { ...base, fontSize: z.number().int().min(12).max(96) };
+const text = { ...base, fontSize: z.number().int().min(12).max(96), appearance: widgetThemeSchema.partial().optional() };
 export const compositionSchema = z.object({
 	version: z.literal(2),
 	format: z.enum(["desktop", "mobile"]),
 	widgetTheme: widgetThemeSchema.optional(),
 	layers: z
-		.array(z.discriminatedUnion("kind", [z.object({ ...base, kind: z.literal("video"), source: rectSchema }), z.object({ ...text, kind: z.literal("title") }), z.object({ ...text, kind: z.literal("channel") }), z.object({ ...text, kind: z.literal("clipper") }), z.object({ ...base, kind: z.literal("logo") })]))
+		.array(z.discriminatedUnion("kind", [z.object({ ...base, kind: z.literal("video"), source: rectSchema, sourceAnchor: rectSchema.optional() }), z.object({ ...text, kind: z.literal("title") }), z.object({ ...text, kind: z.literal("channel") }), z.object({ ...text, kind: z.literal("clipper") }), z.object({ ...base, kind: z.literal("logo") })]))
 		.min(1)
 		.max(32)
 		.refine((layers) => new Set(layers.map((layer) => layer.id)).size === layers.length, "Every layer needs a unique ID."),
@@ -84,7 +84,7 @@ export function createClipComposition(format: ClipComposition["format"]): ClipCo
 	return format === "mobile" ? convertLegacyClipLayout(defaultClipLayout) : { version: 2, format, layers: [{ id: "gameplay", kind: "video", label: "Gameplay", source: { x: 0, y: 0, w: 1, h: 1 }, frame: { x: 0, y: 0, w: 1, h: 1 } }] };
 }
 export function updateCompositionSource(layout: ClipComposition, id: string, source: CompositionRect, dimensions: { width: number; height: number }): ClipComposition {
-	return { ...layout, layers: layout.layers.map((layer) => (layer.id === id && layer.kind === "video" ? { ...layer, source: cropForFrame(source, layer.frame, dimensions, compositionDimensions(layout.format)) } : layer)) };
+	return { ...layout, layers: layout.layers.map((layer) => (layer.id === id && layer.kind === "video" ? { ...layer, source: cropForFrame(source, layer.frame, dimensions, compositionDimensions(layout.format)), sourceAnchor: cropForFrame(source, layer.frame, dimensions, compositionDimensions(layout.format)) } : layer)) };
 }
 export function cropForFrame(source: CompositionRect, frame: CompositionRect, dimensions: { width: number; height: number }, output: { width: number; height: number }): CompositionRect {
 	const ratio = Math.max(0.002, Math.min(500, (frame.w * output.width * dimensions.height) / (frame.h * output.height * dimensions.width)));
@@ -95,5 +95,9 @@ export function cropForFrame(source: CompositionRect, frame: CompositionRect, di
 	return { x: clean(Math.max(0, Math.min(1 - w, cx - w / 2))), y: clean(Math.max(0, Math.min(1 - h, cy - h / 2))), w: clean(w), h: clean(h) };
 }
 export function updateCompositionFrame(layout: ClipComposition, id: string, frame: CompositionRect, dimensions: { width: number; height: number }): ClipComposition {
-	return { ...layout, layers: layout.layers.map((layer) => (layer.id !== id ? layer : layer.kind === "video" ? { ...layer, frame, source: Math.abs(layer.frame.w / layer.frame.h - frame.w / frame.h) < 0.00001 ? layer.source : cropForFrame(layer.source, frame, dimensions, compositionDimensions(layout.format)) } : { ...layer, frame })) };
+	return { ...layout, layers: layout.layers.map((layer) => (layer.id !== id ? layer : layer.kind === "video" ? { ...layer, frame, sourceAnchor: layer.sourceAnchor ?? layer.source, source: Math.abs(layer.frame.w / layer.frame.h - frame.w / frame.h) < 0.00001 ? layer.source : cropForFrame(layer.sourceAnchor ?? layer.source, frame, dimensions, compositionDimensions(layout.format)) } : { ...layer, frame })) };
+}
+
+export function compositionWidgetTheme(layout: ClipComposition, layer: CompositionLayer, brand?: CreatorBrand | null) {
+	return { ...DEFAULT_WIDGET_THEME, ...layout.widgetTheme, ...brand, ...("appearance" in layer ? layer.appearance : {}) };
 }

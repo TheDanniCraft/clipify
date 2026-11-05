@@ -85,6 +85,8 @@ it("moves and snaps only the active primary pointer, supports cancellation and p
 	expect(guides).toHaveBeenCalledWith(expect.objectContaining({ x: 0, y: 0 }));
 	fireEvent.pointerMove(button, { buttons: 1, pointerId: 1, clientX: 2, clientY: 2, altKey: true });
 	expect(change.mock.calls.at(-1)[0].x).toBeCloseTo(0.002);
+	fireEvent.pointerMove(button, { buttons: 1, pointerId: 1, clientX: 2, clientY: 2, ctrlKey: true });
+	expect(change.mock.calls.at(-1)[0].x).toBeCloseTo(0.002);
 	fireEvent.pointerCancel(button);
 	const count = change.mock.calls.length;
 	fireEvent.pointerMove(button, { buttons: 1, pointerId: 1, clientX: 300, clientY: 300 });
@@ -139,6 +141,8 @@ it("snaps a resized edge to a neighboring layer and ignores another pointer's re
 	fireEvent.pointerUp(window, { pointerId: 2 });
 	fireEvent.pointerMove(window, { buttons: 1, pointerId: 1, clientX: 747, clientY: 200 });
 	expect(change).toHaveBeenLastCalledWith({ x: 0.1, y: 0.1, w: 0.65, h: 0.2 });
+	fireEvent.pointerMove(window, { buttons: 1, pointerId: 1, clientX: 747, clientY: 200, ctrlKey: true });
+	expect(change.mock.calls.at(-1)[0].w).toBeCloseTo(0.647);
 	fireEvent.pointerUp(window, { pointerId: 1 });
 	const count = change.mock.calls.length;
 	fireEvent.pointerMove(window, { buttons: 1, pointerId: 1, clientX: 900, clientY: 200 });

@@ -232,6 +232,15 @@ it("burns the non-layer watermark into composed pixels and lets the account bran
 			const patch = await sharp(png).extract({ left: 1060, top: 650, width: 204, height: 54 }).removeAlpha().raw().toBuffer();
 			samples.push(patch.reduce((sum, value) => sum + value, 0) / patch.length);
 		}
+		layout.layers[1] = { ...layout.layers[1], appearance: { themeBackgroundColor: "#00ff00", borderRadius: 24 } } as (typeof layout.layers)[number];
+		const overridden = await renderClipLayout(bytes, layout, { title: "A clip" }, AbortSignal.timeout(20000), { brand });
+		const overriddenFile = join(dir, "override.mp4");
+		await writeFile(overriddenFile, overridden);
+		const png = execFileSync("ffmpeg", ["-v", "error", "-i", overriddenFile, "-frames:v", "1", "-f", "image2pipe", "-vcodec", "png", "pipe:1"]);
+		const green = await sharp(png).extract({ left: 100, top: 100, width: 1, height: 1 }).raw().toBuffer();
+		expect(green[1]).toBeGreaterThan(200);
+		expect(green[0]).toBeLessThan(30);
+
 		expect(samples[1]).toBeGreaterThan(samples[0] + 5);
 	} finally {
 		await rm(dir, { recursive: true, force: true });

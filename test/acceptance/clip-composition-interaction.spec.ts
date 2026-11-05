@@ -60,13 +60,20 @@ for (const width of [390, 1440])
 		await page.route("**/api/clips/layout-logo?**", (route) => route.fulfill({ contentType: "image/png", body: avatar }));
 		await page.getByRole("button", { name: /Add (layer|crop or widget)/ }).click();
 		await page.getByRole("option", { name: "Channel info", exact: true }).click();
-		const pixel = () => page.locator("canvas").evaluate((node: HTMLCanvasElement) => Array.from(node.getContext("2d")!.getImageData(Math.floor(node.width * 0.97), Math.floor(node.height * 0.94), 1, 1).data));
+		const pixel = () =>
+			page.getByRole("button", { name: "Channel info output", exact: true }).evaluate((node) => {
+				const c = document.querySelector("canvas")!;
+				const r = node.getBoundingClientRect(),
+					b = c.getBoundingClientRect();
+				return Array.from(c.getContext("2d")!.getImageData(Math.floor(((r.x + r.width * 0.9 - b.x) / b.width) * c.width), Math.floor(((r.y + r.height * 0.7 - b.y) / b.height) * c.height), 1, 1).data);
+			});
 		await expect.poll(async () => (await pixel())[2]).toBeLessThan(90);
 		await page.getByRole("button", { name: "Channel info output", exact: true }).scrollIntoViewIfNeeded();
 		await page.evaluate(() => window.scrollTo(0, 0));
 		await page.screenshot({ path: info.outputPath("default-widgets.png"), fullPage: true, animations: "disabled" });
-		await page.getByRole("button", { name: "Widget appearance", exact: true }).click();
-		const appearance = page.getByRole("dialog", { name: "Widget appearance", exact: true });
+		await page.getByText("Use brand styling", { exact: true }).locator("..").locator('[data-slot="switch-control"]').click();
+		await expect(page.getByRole("switch", { name: "Use brand styling", exact: true })).not.toBeChecked();
+		const appearance = page.getByRole("region", { name: "Widget appearance", exact: true });
 		const background = appearance.getByRole("textbox", { name: "Background Color", exact: true });
 		await appearance.getByRole("button", { name: "Pick Background Color", exact: true }).click();
 		await page.getByRole("option").nth(3).click();
@@ -74,14 +81,14 @@ for (const width of [390, 1440])
 		await expect(appearance).toBeVisible();
 		await background.fill("#ffffff");
 		await background.press("Tab");
-		await appearance.getByRole("button", { name: "Done", exact: true }).click();
-		await expect(page.getByRole("button", { name: "Widget appearance", exact: true })).toBeFocused();
+		await expect(page.getByRole("dialog")).toHaveCount(0);
+		await expect(appearance).toBeVisible();
 		await expect.poll(async () => (await pixel())[0]).toBeGreaterThan(230);
-		await page.getByRole("button", { name: "Widget appearance", exact: true }).click();
+
 		const textColor = appearance.getByRole("textbox", { name: "Text Color", exact: true });
 		await textColor.fill("#000000");
 		await textColor.press("Tab");
-		await appearance.getByRole("button", { name: "Done", exact: true }).click();
+		await expect(page.getByRole("dialog")).toHaveCount(0);
 
 		await page.getByRole("button", { name: "Save layout", exact: true }).click();
 		await expect(page.getByText("Layout saved", { exact: true })).toBeVisible();
@@ -92,7 +99,7 @@ for (const width of [390, 1440])
 		expect(saved.layers.find((layer: any) => layer.label === "Killfeed").source.h).toBeCloseTo(0.02, 5);
 		expect(saved.layers.some((layer: any) => layer.kind === "title")).toBe(true);
 		expect(saved.layers.some((layer: any) => layer.kind === "channel")).toBe(true);
-		expect(saved.widgetTheme.themeTextColor.toLowerCase()).toBe("#000000");
+		expect(saved.layers.find((layer: any) => layer.kind === "channel").appearance.themeTextColor.toLowerCase()).toBe("#000000");
 		const camera = saved.layers.find((layer: any) => layer.id === "camera");
 		expect(camera.source).toBeDefined();
 		expect(camera.frame.w).toBeLessThan(initial.layers[0].frame.w);
@@ -151,24 +158,42 @@ test("Output shape drives locked source cropping; releases stop movement and edg
 	expect(layer.frame.w / layer.frame.h).not.toBeCloseTo(0.4 / 0.3, 2);
 	expect((layer.source.w * natural.width) / (layer.source.h * natural.height)).toBeCloseTo((layer.frame.w * 1280) / (layer.frame.h * 720), 3);
 	const captured = layer.source;
-	const move = async (alt: boolean) => {
+	const move = async (modifier?: string, offset = 2) => {
 		const box = page.getByRole("button", { name: "Gameplay output", exact: true });
 		await box.scrollIntoViewIfNeeded();
 		const b = (await box.locator("..").boundingBox())!,
 			stage = (await page.locator("canvas").boundingBox())!;
-		if (alt) await page.keyboard.down("Alt");
+		if (modifier) await page.keyboard.down(modifier);
 		await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
 		await page.mouse.down();
-		await page.mouse.move(stage.x + 2 + b.width / 2, b.y + b.height / 2, { steps: 5 });
+		await page.mouse.move(stage.x + offset + b.width / 2, b.y + b.height / 2, { steps: 5 });
 		await page.mouse.up();
-		if (alt) await page.keyboard.up("Alt");
+		if (modifier) await page.keyboard.up(modifier);
 		return save();
 	};
-	layer = await move(false);
+	layer = await move();
 	expect(layer.frame.x).toBe(0);
 	expect(layer.source).toEqual(captured);
-	layer = await move(true);
+	layer = await move("Control");
 	expect(layer.frame.x).toBeGreaterThan(0);
 	expect(layer.frame.x).toBeLessThan(0.015);
 	expect(layer.source).toEqual(captured);
+	await page.getByText("Snapping", { exact: true }).locator("..").locator('[data-slot="switch-control"]').click();
+	await expect(page.getByRole("switch", { name: "Snapping", exact: true })).not.toBeChecked();
+	layer = await move(undefined, 5);
+	expect(layer.frame.x).toBeGreaterThan(0);
+	const beforeRepeated = layer.source;
+	const outputWidth = page.getByRole("textbox", { name: "Width (%)", exact: true });
+	const originalWidth = await outputWidth.inputValue();
+	for (let n = 0; n < 5; n++) {
+		await outputWidth.fill("20");
+		await outputWidth.press("Tab");
+		await outputWidth.fill(originalWidth);
+		await outputWidth.press("Tab");
+	}
+	await page.getByRole("button", { name: "Save layout", exact: true }).click();
+	await expect(page.getByRole("button", { name: "Save layout", exact: true })).toBeDisabled();
+	const afterRepeated = (await read()).layers[0].source;
+	expect(afterRepeated.w).toBeCloseTo(beforeRepeated.w, 3);
+	expect(afterRepeated.h).toBeCloseTo(beforeRepeated.h, 3);
 });

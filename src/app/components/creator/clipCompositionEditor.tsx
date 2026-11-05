@@ -1,11 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Button, Card, Input, Label, TextField, NumberField, Select, ListBox, Modal, Link, Autocomplete, SearchField, EmptyState, Tabs } from "@heroui/react";
+import { Button, Card, Input, Label, TextField, NumberField, Select, ListBox, Modal, Link, Autocomplete, SearchField, EmptyState, Tabs, Switch } from "@heroui/react";
 import { IconPalette, IconArrowLeft, IconPlus, IconArrowUp, IconArrowDown, IconTrash } from "@tabler/icons-react";
 import { useNavigationGuard } from "nextjs-nav-guard";
 import { saveClipLayoutTemplate, saveClipLayoutOverride, resetClipLayoutOverride, type ClipLayoutTemplate } from "@actions/clipLayoutLibrary";
 import { getCreatorClipInventory, getCreatorClipDetail, searchCreatorLibrary } from "@actions/creatorLibrary";
-import { compositionDimensions, resizeCompositionRect, updateCompositionFrame, updateCompositionSource, type ClipComposition, type CompositionLayer } from "@lib/clipComposition";
+import { compositionWidgetTheme, compositionDimensions, resizeCompositionRect, updateCompositionFrame, updateCompositionSource, type ClipComposition, type CompositionLayer } from "@lib/clipComposition";
 import { compositionLayerColor } from "@lib/clipLayoutTemplate";
 import { notify } from "@lib/toast";
 import ThemeColorInput from "@components/theme/ThemeColorInput";
@@ -49,8 +49,7 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 		[search, setSearch] = useState(""),
 		[loading, setLoading] = useState(true),
 		[retry, setRetry] = useState(0),
-		[reset, setReset] = useState(false),
-		[appearanceOpen, setAppearanceOpen] = useState(false);
+		[reset, setReset] = useState(false);
 	const guard = useNavigationGuard({ enabled: dirty });
 	useEffect(() => {
 		if (!dirty) return;
@@ -145,38 +144,6 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 	};
 	return (
 		<DashboardEditorLayout>
-			{!brand ? (
-				<ControlledModal ariaLabel='Widget appearance' isOpen={appearanceOpen} onClose={() => setAppearanceOpen(false)}>
-					<Modal.Header>
-						<Modal.Heading>Widget appearance</Modal.Heading>
-					</Modal.Header>
-					<Modal.Body className='space-y-4'>
-						<p className='text-sm text-muted'>Style the channel and clip information together.</p>
-						{(
-							[
-								["themeTextColor", "Text Color"],
-								["themeBackgroundColor", "Background Color"],
-								["themeAccentColor", "Accent Color"],
-							] as const
-						).map(([field, label]) => (
-							<ThemeColorInput key={field} label={label} value={(layout.widgetTheme ?? DEFAULT_WIDGET_THEME)[field]} defaultValue={DEFAULT_WIDGET_THEME[field]} allowAlpha={field === "themeBackgroundColor"} onChange={(value) => change({ ...layout, widgetTheme: { ...DEFAULT_WIDGET_THEME, ...layout.widgetTheme, [field]: value } })} />
-						))}
-						<div className='grid grid-cols-2 gap-3'>
-							{(
-								[
-									["borderRadius", "Corner radius (px)", 80],
-									["borderSize", "Border width (px)", 12],
-								] as const
-							).map(([field, label, max]) => (
-								<Numeric key={field} label={label} value={(layout.widgetTheme ?? DEFAULT_WIDGET_THEME)[field]} max={max} onChange={(value) => change({ ...layout, widgetTheme: { ...DEFAULT_WIDGET_THEME, ...layout.widgetTheme, [field]: value } })} />
-							))}
-						</div>
-					</Modal.Body>
-					<Modal.Footer>
-						<Button onPress={() => setAppearanceOpen(false)}>Done</Button>
-					</Modal.Footer>
-				</ControlledModal>
-			) : null}
 			<ControlledModal ariaLabel='Unsaved layout changes' isOpen={guard.active} onClose={() => guard.reject()}>
 				<Modal.Header>
 					<Modal.Heading>Leave without saving?</Modal.Heading>
@@ -236,17 +203,10 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 						</div>
 					</div>
 					<div className='flex flex-wrap gap-2'>
-						{brand ? (
-							<Link href='/dashboard/settings?tab=brand' className='inline-flex items-center gap-2'>
-								<IconPalette className='size-4' />
-								Brand styling
-							</Link>
-						) : (
-							<Button variant='secondary' onPress={() => setAppearanceOpen(true)}>
-								<IconPalette className='size-4' />
-								Widget appearance
-							</Button>
-						)}
+						<Link href='/dashboard/settings?tab=brand' className='inline-flex items-center gap-2'>
+							<IconPalette className='size-4' />
+							Brand styling
+						</Link>
 						{clipId ? (
 							<Button variant='secondary' onPress={() => setReset(true)}>
 								Reset to template
@@ -483,6 +443,50 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 									</div>
 								</div>
 							) : null}
+							{layer.kind !== "video" && layer.kind !== "logo" ? (
+								<section aria-label='Widget appearance' className='space-y-4 border-t border-separator pt-4'>
+									<div>
+										<h3 className='font-medium'>Widget appearance</h3>
+										<p className='text-sm text-muted'>Use your brand or customize this widget in this layout.</p>
+									</div>
+									<Switch isSelected={!layer.appearance} onChange={(inherit) => update({ ...layer, appearance: inherit ? undefined : {} })} aria-label='Use brand styling'>
+										<Switch.Content>
+											<Switch.Control>
+												<Switch.Thumb />
+											</Switch.Control>
+											<Label>Use brand styling</Label>
+										</Switch.Content>
+									</Switch>
+									{layer.appearance ? (
+										<>
+											{(
+												[
+													["themeTextColor", "Text Color"],
+													["themeBackgroundColor", "Background Color"],
+													["themeAccentColor", "Accent Color"],
+												] as const
+											).map(([field, label]) => (
+												<ThemeColorInput key={field} label={label} value={compositionWidgetTheme(layout, layer, brand)[field]} defaultValue={DEFAULT_WIDGET_THEME[field]} allowAlpha={field === "themeBackgroundColor"} onChange={(value) => update({ ...layer, appearance: { ...layer.appearance, [field]: value } })} />
+											))}
+											<div className='grid grid-cols-2 gap-3'>
+												{(
+													[
+														["borderRadius", "Corner radius (px)", 80],
+														["borderSize", "Border width (px)", 32],
+													] as const
+												).map(([field, label, max]) => (
+													<Numeric key={field} label={label} value={compositionWidgetTheme(layout, layer, brand)[field]} max={max} onChange={(value) => update({ ...layer, appearance: { ...layer.appearance, [field]: value } })} />
+												))}
+											</div>
+										</>
+									) : (
+										<p className='text-sm text-muted'>
+											Colors and corners follow <Link href='/dashboard/settings?tab=brand'>Brand styling</Link>.
+										</p>
+									)}
+								</section>
+							) : null}
+
 							<div className='flex flex-wrap gap-2'>
 								<Button variant='secondary' isDisabled={layout.layers.indexOf(layer) === layout.layers.length - 1} onPress={() => moveLayer(1)}>
 									<IconArrowUp className='size-4' />

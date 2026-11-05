@@ -1,9 +1,9 @@
 "use client";
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
-import { Button, Label, Slider } from "@heroui/react";
+import { Button, Label, Slider, Switch } from "@heroui/react";
 import { IconPlayerPlay, IconPlayerPause, IconRefresh } from "@tabler/icons-react";
 import { getCreatorClipPreview } from "@actions/creatorLibrary";
-import { compositionDimensions, updateCompositionFrame, updateCompositionSource, type ClipComposition } from "@lib/clipComposition";
+import { compositionWidgetTheme, compositionDimensions, updateCompositionFrame, updateCompositionSource, type ClipComposition } from "@lib/clipComposition";
 import { notify } from "@lib/toast";
 import { clipifyWatermarkSvg, type CreatorBrand, overlayMetadataSvg } from "@lib/overlayMetadata";
 import { isTrustedClipMediaUrl } from "@lib/clipExport";
@@ -114,6 +114,7 @@ export default function ClipCompositionCanvas({
 		[time, setTime] = useState(0),
 		[duration, setDuration] = useState(0),
 		[dimensions, setDimensions] = useState({ width: 1920, height: 1080 }),
+		[snapping, setSnapping] = useState(true),
 		[guides, setGuides] = useState<{ x?: number; y?: number }>({});
 	useEffect(() => {
 		latest.current = layout;
@@ -207,11 +208,11 @@ export default function ClipCompositionCanvas({
 									ctx.drawImage(image, x + (w - image.width * scale) / 2, y + (h - image.height * scale) / 2, image.width * scale, image.height * scale);
 								}
 							} else {
-								const key = JSON.stringify([layer.kind, layer.fontSize, latestBrand.current ?? latest.current.widgetTheme, clip.title, clip.broadcasterName, clip.clipCreatorName, w, h, avatarRevision.current]);
+								const key = JSON.stringify([layer.kind, layer.fontSize, compositionWidgetTheme(latest.current, layer, latestBrand.current), clip.title, clip.broadcasterName, clip.clipCreatorName, w, h, avatarRevision.current]);
 								let cached = widgetImages.current.get(layer.id);
 								if (cached?.key !== key) {
 									cached?.cancel?.();
-									const theme = latestBrand.current ?? latest.current.widgetTheme;
+									const theme = compositionWidgetTheme(latest.current, layer, latestBrand.current);
 									const svg = overlayMetadataSvg(layer.kind, clip, w, h, layer.fontSize, theme, avatarData.current, undefined, latestBrand.current?.fontFamily);
 									const image = new Image();
 									cached = { key, image: cached?.image ?? null };
@@ -243,7 +244,7 @@ export default function ClipCompositionCanvas({
 										}
 									};
 									if (latestBrand.current) {
-										const payload = { creatorId, kind: layer.kind, width: w, height: h, fontSize: layer.fontSize, clip, theme: latestBrand.current };
+										const payload = { creatorId, kind: layer.kind, width: w, height: h, fontSize: layer.fontSize, clip, theme };
 										let cancelRequest: (() => void) | undefined;
 										const timer = setTimeout(() => {
 											cancelRequest = enqueueNative(image, `/api/clips/widget-preview?data=${encodeURIComponent(JSON.stringify(payload))}`);
@@ -324,7 +325,7 @@ export default function ClipCompositionCanvas({
 												stage={sourceStage}
 												dimensions={dimensions}
 												onSelect={() => onSelect(layer.id)}
-												snap
+												snap={snapping}
 												onGuides={setSourceGuides}
 												targets={layout.layers.filter((item) => item.id !== layer.id && item.kind === "video").map((item) => (item.kind === "video" ? item.source : item.frame))}
 												onChange={(source) => onChange(updateCompositionSource(layout, layer.id, source, dimensions))}
@@ -351,7 +352,7 @@ export default function ClipCompositionCanvas({
 											selected={selected === layer.id}
 											stage={outputStage}
 											dimensions={output}
-											snap
+											snap={snapping}
 											targets={layout.layers.filter((item) => item.id !== layer.id).map((item) => item.frame)}
 											onGuides={setGuides}
 											onSelect={() => onSelect(layer.id)}
@@ -426,7 +427,15 @@ export default function ClipCompositionCanvas({
 					</Button>
 				</div>
 			) : null}
-			<p className='text-xs text-muted'>Shape and arrange boxes in the output. Move or scale the matching source crop to choose content. Resize the output to scale it. Shift preserves the output shape. Boxes snap to edges and other boxes; hold Alt to bypass. Arrow keys move one pixel.</p>
+			<Switch isSelected={snapping} onChange={setSnapping} aria-label='Snapping'>
+				<Switch.Content>
+					<Switch.Control>
+						<Switch.Thumb />
+					</Switch.Control>
+					<Label>Snapping</Label>
+				</Switch.Content>
+			</Switch>
+			<p className='text-xs text-muted'>Shape and arrange boxes in the output. Move or scale the matching source crop to choose content. Resize the output to scale it. Shift preserves the output shape. Boxes snap to edges and other boxes; hold Control or Alt to bypass. Arrow keys move one pixel.</p>
 		</div>
 	);
 }

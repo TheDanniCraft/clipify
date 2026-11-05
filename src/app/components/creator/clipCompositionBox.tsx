@@ -57,7 +57,7 @@ export default function CompositionBox({
 		const dx = (event.clientX - start.x) / bounds.width,
 			dy = (event.clientY - start.y) / bounds.height;
 		let next = start.corner ? resizeCompositionRect(start.rect, dx, dy, start.corner, ratio?.(event, start.rect)) : { ...start.rect, x: Math.max(0, Math.min(1 - start.rect.w, start.rect.x + dx)), y: Math.max(0, Math.min(1 - start.rect.h, start.rect.y + dy)) };
-		if (snap && start.corner && !event.altKey) {
+		if (snap && start.corner && !event.altKey && !event.ctrlKey) {
 			let sx = dx,
 				sy = dy;
 			const guides: Guides = {};
@@ -76,7 +76,7 @@ export default function CompositionBox({
 			}
 			next = resizeCompositionRect(start.rect, sx, sy, start.corner, ratio?.(event, start.rect));
 			onGuides?.(guides);
-		} else if (snap && !event.altKey) {
+		} else if (snap && !event.altKey && !event.ctrlKey) {
 			const result = snapCompositionRect(next, targets, 8 / bounds.width, 8 / bounds.height);
 			next = result.rect;
 			onGuides?.(result.guides);

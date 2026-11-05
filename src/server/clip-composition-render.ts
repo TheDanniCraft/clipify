@@ -2,9 +2,9 @@ import "server-only";
 import sharp from "sharp";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { compositionDimensions, type ClipComposition } from "@/app/lib/clipComposition";
+import { compositionWidgetTheme, compositionDimensions, type ClipComposition } from "@/app/lib/clipComposition";
 import { clipLayerText } from "@/app/lib/clipLayout";
-import { DEFAULT_WIDGET_THEME, type CreatorBrand } from "@/app/lib/overlayMetadata";
+import { type CreatorBrand } from "@/app/lib/overlayMetadata";
 import { renderBrandWidget } from "./brand-font-render";
 import { readBoundedResponse } from "@/app/lib/clipExport";
 const avatarHosts = new Set(["static-cdn.jtvnw.net", "lh3.googleusercontent.com", "yt3.googleusercontent.com", "yt3.ggpht.com"]);
@@ -61,7 +61,7 @@ export async function compositionFilterGraph(layout: ClipComposition, dir: strin
 			filters.push(`[logo${logoIndex++}]scale=${w}:${h}:force_original_aspect_ratio=decrease:force_divisible_by=2,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2:color=black@0,setsar=1[${label}]`);
 		} else {
 			const path = join(dir, `widget-${index}.png`);
-			await writeFile(path, await renderBrandWidget(layer.kind, clip, w, h, layer.fontSize, brand ?? layout.widgetTheme ?? DEFAULT_WIDGET_THEME, signal, avatarImage ? `data:image/png;base64,${avatarImage.toString("base64")}` : undefined));
+			await writeFile(path, await renderBrandWidget(layer.kind, clip, w, h, layer.fontSize, compositionWidgetTheme(layout, layer, brand), signal, avatarImage ? `data:image/png;base64,${avatarImage.toString("base64")}` : undefined));
 			inputs.push("-loop", "1", "-max_pixels", "1000000", "-i", path);
 			filters.push(`[${inputIndex++}:v]format=rgba[${label}]`);
 		}

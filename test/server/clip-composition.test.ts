@@ -1,5 +1,5 @@
 /** @jest-environment node */
-import { compositionSchema, resizeCompositionRect, snapCompositionRect, convertLegacyClipLayout, createClipComposition, updateCompositionFrame, updateCompositionSource } from "@lib/clipComposition";
+import { compositionWidgetTheme, compositionSchema, resizeCompositionRect, snapCompositionRect, convertLegacyClipLayout, createClipComposition, updateCompositionFrame, updateCompositionSource } from "@lib/clipComposition";
 it("validates independent gameplay, camera, killfeed and widget layers in either output format", () => {
 	const video = (id: string) => ({ id, kind: "video", label: id, source: { x: 0, y: 0, w: 0.5, h: 0.5 }, frame: { x: 0, y: 0, w: 0.5, h: 0.5 } });
 	for (const format of ["mobile", "desktop"]) {
@@ -83,4 +83,43 @@ it.each(["n", "s", "e", "w", "nw", "ne", "sw", "se"] as const)("keeps %s resize 
 it("keeps minimal-width output strips saveable at the source pixel bound", () => {
 	const next = updateCompositionFrame(createClipComposition("mobile"), "gameplay", { x: 0, y: 0, w: 0.002, h: 1 }, { width: 1920, height: 1080 });
 	expect(compositionSchema.safeParse(next).success).toBe(true);
+});
+
+it("restores source content after repeated output shape changes", () => {
+	let layout = createClipComposition("mobile");
+	const layer = layout.layers.find((l) => l.id === "gameplay")!;
+	if (layer.kind !== "video") throw Error("Expected video");
+	const original = layer.source;
+	for (let i = 0; i < 30; i++) {
+		layout = updateCompositionFrame(layout, layer.id, { ...layer.frame, w: layer.frame.w * 0.6 }, { width: 1920, height: 1080 });
+		layout = updateCompositionFrame(layout, layer.id, layer.frame, { width: 1920, height: 1080 });
+	}
+	const final = layout.layers.find((l) => l.id === layer.id)!;
+	if (final.kind !== "video") throw Error("Expected video");
+	expect(final.source.w).toBeCloseTo(original.w, 5);
+	expect(final.source.h).toBeCloseTo(original.h, 5);
+});
+
+it("inherits account styling while applying only the chosen widget's appearance", () => {
+	const layout = createClipComposition("mobile");
+	const widget = { id: "info", kind: "title" as const, label: "Info", fontSize: 32, frame: { x: 0, y: 0, w: 1, h: 0.1 }, appearance: { borderRadius: 24, themeBackgroundColor: "#ff0000" } };
+	expect(compositionSchema.safeParse({ ...layout, layers: [...layout.layers, widget] }).success).toBe(true);
+	expect(compositionWidgetTheme(layout, widget)).toMatchObject(widget.appearance);
+	expect(compositionWidgetTheme(layout, { ...widget, appearance: undefined }).borderRadius).not.toBe(24);
+});
+
+it("uses a newly selected source region as the anchor for later output reshaping", () => {
+	const dimensions = { width: 1920, height: 1080 };
+	let layout = createClipComposition("desktop");
+	layout = updateCompositionFrame(layout, "gameplay", { x: 0, y: 0, w: 0.5, h: 1 }, dimensions);
+	layout = updateCompositionSource(layout, "gameplay", { x: 0.2, y: 0.2, w: 0.2, h: 0.4 }, dimensions);
+	const selected = layout.layers[0];
+	if (selected.kind !== "video") throw Error("Expected video");
+	expect(selected.sourceAnchor).toEqual(selected.source);
+	layout = compositionSchema.parse(JSON.parse(JSON.stringify(layout)));
+	layout = updateCompositionFrame(layout, "gameplay", { x: 0, y: 0, w: 1, h: 0.5 }, dimensions);
+	layout = updateCompositionFrame(layout, "gameplay", selected.frame, dimensions);
+	const final = layout.layers[0];
+	if (final.kind !== "video") throw Error("Expected video");
+	expect(final.source).toEqual(selected.source);
 });

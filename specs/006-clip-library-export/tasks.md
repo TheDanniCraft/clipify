@@ -819,3 +819,5 @@ T673 local closure: paired-atomic-browser-green.log passes all9 editor/interacti
 - [x] T685 Enforce composed-export attribution on Free with a Pro removal setting, existing upgrade/consent-aware analytics, unchanged Original bytes and actual encoded-pixel tests.
 
 T681–T685 local closure: brand-candidate-browser-export.log passes all10 final-candidate browser/export cases (1.9min), including the corrected unavailable-price state, import/adoption, Laila pixels, Free keyboard upgrade, four responsive theme variants, concurrent brand saves and complete1/25/50-clip plus five-video paired exports. brand-publish-browser.log separately passes all15 editor/theme/paired/brand owners. New-source scoped diagnostics retain the unchanged floors, and required merged CI remains a publication gate recorded on PR546. No schema or migration was changed.
+
+- [x] T686 Fix repeated output resizing with stable source intent; inline/reset per-widget appearance with preview/export parity; preserve Shift proportions and add Control/toggle snapping; bound stalled brand loading with retry. Verify complete affected owners and installed browser interactions before publication.
