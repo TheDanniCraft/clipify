@@ -22,6 +22,8 @@ export function readMcpSourceManifest() {
 		"src/server/clip-layout-render.ts",
 		"src/app/lib/clipLayout.ts",
 		"src/app/lib/clipComposition.ts",
+		"src/app/lib/clipLayoutTemplate.ts",
+		"src/app/api/clips/preview/route.ts",
 		"src/app/lib/clipExportPlan.ts",
 		"src/app/actions/clipLayoutLibrary.ts",
 		"src/server/clip-composition-render.ts",

@@ -104,10 +104,8 @@ it("recovers reference lookup/search failures without discarding an edited name"
 	await waitFor(() => expect(detail).toHaveBeenCalledTimes(2));
 	const query = screen.getByRole("textbox", { name: "Find a reference clip" });
 	fireEvent.change(query, { target: { value: "first" } });
-	fireEvent.click(screen.getByRole("button", { name: "Search clips" }));
 	await waitFor(() => expect(searchClips).toHaveBeenCalledTimes(1));
 	fireEvent.change(query, { target: { value: "second" } });
-	fireEvent.click(screen.getByRole("button", { name: "Search clips" }));
 	await waitFor(() => expect(screen.getByRole("combobox", { name: "Reference clip" }).querySelector('option[value="ClipB"]')).toBeInTheDocument());
 	fireEvent.change(screen.getByRole("combobox", { name: "Reference clip" }), { target: { value: "ClipB" } });
 	expect(screen.getByRole("textbox", { name: "Layout name" })).toHaveValue("Draft");
@@ -130,4 +128,12 @@ it("can cancel a reset without touching the override", async () => {
 	fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 	expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 	expect(reset).not.toHaveBeenCalled();
+});
+it("does not show the selected reference as a false match for an unrelated search", async () => {
+	detail.mockResolvedValue({ ok: true, clip: { id: "ClipA", title: "Current clip" } });
+	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} referenceId='ClipA' onBack={() => {}} onSaved={() => {}} />);
+	await screen.findByRole("option", { name: "Current clip" });
+	fireEvent.change(screen.getByRole("textbox", { name: "Find a reference clip" }), { target: { value: "missing clip" } });
+	await waitFor(() => expect(searchClips).toHaveBeenCalled());
+	expect(screen.getByRole("combobox", { name: "Reference clip" }).querySelector('option[value="ClipA"]')).not.toBeInTheDocument();
 });

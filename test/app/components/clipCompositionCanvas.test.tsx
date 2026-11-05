@@ -27,7 +27,7 @@ beforeEach(() => {
 	jest.clearAllMocks();
 	frames = [];
 	boxes.length = 0;
-	preview.mockResolvedValue({ playbackUrl: "https://media.invalid/source.mp4" });
+	preview.mockResolvedValue({ playbackUrl: "https://production.assets.clips.twitchcdn.net/source.mp4" });
 	jest.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
 		frames.push(cb);
 		return frames.length;
@@ -37,7 +37,7 @@ beforeEach(() => {
 });
 afterEach(() => jest.restoreAllMocks());
 async function ready() {
-	await waitFor(() => expect(document.querySelector("video")).toHaveAttribute("src", "https://media.invalid/source.mp4"));
+	await waitFor(() => expect(document.querySelector("video")).toHaveAttribute("src", expect.stringMatching(/^\/api\/clips\/preview\?creatorId=owner&clipId=ClipA&attempt=\d+$/)));
 	const video = document.querySelector("video")!;
 	Object.defineProperties(video, { videoWidth: { configurable: true, value: 1920 }, videoHeight: { configurable: true, value: 1080 }, readyState: { configurable: true, value: 2 }, duration: { configurable: true, value: 12 } });
 	fireEvent.loadedMetadata(video);

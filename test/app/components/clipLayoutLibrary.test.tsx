@@ -40,7 +40,7 @@ it("opens saved global layouts and clip overrides in separate scopes", async () 
 	await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
 	view.rerender(<Library creatorId='owner' layoutId='camera' clipId='ClipA' />);
 	expect(await screen.findByText("ClipA:Camera")).toBeVisible();
-	expect(loadOverride).toHaveBeenCalledWith("owner", "camera", "ClipA");
+	expect(loadOverride).toHaveBeenCalledWith("owner", "camera", "ClipA", "mobile");
 });
 it("keeps the layout list after failed deletion and allows a successful retry", async () => {
 	remove.mockResolvedValueOnce({ ok: false, code: "SERVICE_UNAVAILABLE" });
@@ -81,7 +81,7 @@ it.each([false, true])("retains creation drafts after %s service failure and can
 	save.mockImplementationOnce(() => (throws ? Promise.reject(Error("offline")) : Promise.resolve({ ok: false })));
 	render(<Library creatorId='owner' newFormat='mobile' clipId='ClipA' />);
 	fireEvent.change(screen.getByRole("textbox", { name: "Layout name" }), { target: { value: "Draft" } });
-	fireEvent.change(screen.getByRole("combobox", { name: "Output format" }), { target: { value: "mobile" } });
+
 	fireEvent.click(screen.getAllByRole("button", { name: "Create layout" }).at(-1)!);
 	await waitFor(() => expect(jest.requireMock("@lib/toast").notify).toHaveBeenCalled());
 	expect(screen.getByRole("textbox", { name: "Layout name" })).toHaveValue("Draft");

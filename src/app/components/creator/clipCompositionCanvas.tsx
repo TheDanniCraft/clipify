@@ -5,6 +5,8 @@ import { IconPlayerPlay, IconPlayerPause, IconRefresh } from "@tabler/icons-reac
 import { getCreatorClipPreview } from "@actions/creatorLibrary";
 import { compositionDimensions, updateCompositionSource, type ClipComposition } from "@lib/clipComposition";
 import { clipLayerLines, clipLayerText } from "@lib/clipLayout";
+import { isTrustedClipMediaUrl } from "@lib/clipExport";
+import { compositionLayerColor } from "@lib/clipLayoutTemplate";
 import CompositionBox from "./clipCompositionBox";
 export default function ClipCompositionCanvas({ creatorId, clip, layout, selected, onSelect, onChange, onDimensions }: { creatorId: string; clip: { id: string; title: string; broadcasterName?: string | null; clipCreatorName?: string | null }; layout: ClipComposition; selected: string; onSelect: (id: string) => void; onChange: (layout: ClipComposition) => void; onDimensions: (value: { width: number; height: number }) => void }) {
 	const sourceStage = useRef<HTMLDivElement>(null),
@@ -32,7 +34,7 @@ export default function ClipCompositionCanvas({ creatorId, clip, layout, selecte
 		let current = true;
 		void getCreatorClipPreview({ creatorId, clipId: clip.id, ...(retry ? { refresh: true } : {}) })
 			.then((result) => {
-				if (current) setUrl(result?.playbackUrl ?? null);
+				if (current) setUrl(result?.playbackUrl ? (isTrustedClipMediaUrl(result.playbackUrl) ? `/api/clips/preview?creatorId=${encodeURIComponent(creatorId)}&clipId=${encodeURIComponent(clip.id)}&attempt=${retry}` : result.playbackUrl) : null);
 			})
 			.catch(() => {
 				if (current) setUrl(null);
@@ -163,7 +165,23 @@ export default function ClipCompositionCanvas({ creatorId, clip, layout, selecte
 							{ready
 								? layout.layers
 										.filter((layer) => layer.kind === "video")
-										.map((layer) => <CompositionBox key={layer.id} rect={layer.source} label={`${layer.label} crop`} selected={selected === layer.id} stage={sourceStage} dimensions={dimensions} onSelect={() => onSelect(layer.id)} onChange={(source) => onChange(updateCompositionSource(layout, layer.id, source, dimensions))} ratio={(e, start) => (e.ctrlKey || e.metaKey ? ((e.shiftKey ? 16 / 9 : 9 / 16) * dimensions.height) / dimensions.width : e.shiftKey ? start.w / start.h : undefined)} />)
+										.map((layer) => (
+											<CompositionBox
+												key={layer.id}
+												color={compositionLayerColor(
+													layer.id,
+													layout.layers.map((item) => item.id),
+												)}
+												rect={layer.source}
+												label={`${layer.label} crop`}
+												selected={selected === layer.id}
+												stage={sourceStage}
+												dimensions={dimensions}
+												onSelect={() => onSelect(layer.id)}
+												onChange={(source) => onChange(updateCompositionSource(layout, layer.id, source, dimensions))}
+												ratio={(e, start) => (e.ctrlKey || e.metaKey ? ((e.shiftKey ? 16 / 9 : 9 / 16) * dimensions.height) / dimensions.width : e.shiftKey ? start.w / start.h : undefined)}
+											/>
+										))
 								: null}
 						</div>
 					</section>
@@ -175,6 +193,10 @@ export default function ClipCompositionCanvas({ creatorId, clip, layout, selecte
 								? layout.layers.map((layer) => (
 										<CompositionBox
 											key={layer.id}
+											color={compositionLayerColor(
+												layer.id,
+												layout.layers.map((item) => item.id),
+											)}
 											rect={layer.frame}
 											label={`${layer.label} output`}
 											selected={selected === layer.id}
@@ -196,7 +218,7 @@ export default function ClipCompositionCanvas({ creatorId, clip, layout, selecte
 				</div>
 				{!ready || failed ? (
 					<div className='absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-xl bg-background/90 p-4 text-center'>
-						<p className='text-sm text-muted'>{url !== null && !failed ? "Loading clip preview…" : "Clip preview unavailable. Your layout is still editable."}</p>
+						<p className='text-sm text-muted'>{url !== null && !failed ? "Loading clip preview…" : "Clip preview unavailable. Retry or choose another reference clip."}</p>
 						{url === null || failed ? (
 							<Button variant='secondary' onPress={retryMedia}>
 								<IconRefresh className='size-4' />

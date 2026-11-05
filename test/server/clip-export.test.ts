@@ -547,14 +547,15 @@ it("applies the saved clip/template override while keeping global layouts unchan
 	expect(render).toHaveBeenCalledWith(expect.any(Uint8Array), override, expect.objectContaining({ id: "ClipA" }), expect.any(AbortSignal), expect.any(Object));
 	expect(composition.layers).toHaveLength(1);
 });
-it("rejects deleted or incompatible templates before reserving a download job", async () => {
+it("rejects deleted templates or conflicting output orientation before reserving quota", async () => {
 	const { createClipComposition } = await import("@lib/clipComposition"),
 		{ createClipExportPlan } = await import("@lib/clipExportPlan");
 	const composition = createClipComposition("desktop");
 	const packet = createClipExportPlan("owner", ["ClipA"], [{ key: "desktop", label: "Desktop", templateId: "desktop", layout: composition }])[0];
 	expect(await buildClipExportPlan(packet)).toMatchObject({ ok: false, code: "LAYOUT_UNAVAILABLE" });
 	expect(rateLimit).not.toHaveBeenCalled();
-	layouts.mockResolvedValue({ ok: true, templates: [{ id: "desktop", name: "Desktop", composition: createClipComposition("mobile") }], defaults: {} });
+	packet.outputs[0].format = "mobile";
+	layouts.mockResolvedValue({ ok: true, templates: [{ id: "desktop", name: "Desktop", composition }], defaults: {} });
 	expect(await buildClipExportPlan(packet)).toMatchObject({ ok: false, code: "LAYOUT_UNAVAILABLE" });
 	expect(rateLimit).not.toHaveBeenCalled();
 	expect(globalThis.fetch).not.toHaveBeenCalled();
@@ -564,7 +565,7 @@ it("refuses an incompatible saved override rather than exporting the wrong orien
 		{ createClipExportPlan } = await import("@lib/clipExportPlan");
 	const composition = createClipComposition("desktop");
 	layouts.mockResolvedValue({ ok: true, templates: [{ id: "desktop", name: "Desktop", composition }], defaults: {} });
-	cacheRead.mockResolvedValueOnce([ownedEntry()]).mockResolvedValueOnce([{ contentKey: "clip-layout-override:v2:desktop:ClipA", state: JSON.stringify({ composition: createClipComposition("mobile") }) }]);
+	cacheRead.mockResolvedValueOnce([ownedEntry()]).mockResolvedValueOnce([{ contentKey: "clip-layout-override:v2:desktop:ClipA:desktop", state: JSON.stringify({ composition: createClipComposition("mobile") }) }]);
 	expect(await buildClipExportPlan(createClipExportPlan("owner", ["ClipA"], [{ key: "desktop", label: "Desktop", templateId: "desktop", layout: composition }])[0])).toMatchObject({ ok: false, code: "LAYOUT_UNAVAILABLE" });
 	expect(globalThis.fetch).not.toHaveBeenCalled();
 });
@@ -669,4 +670,51 @@ it.each(["token", "cache", "missing"])("records a planned output failure after %
 	if (kind === "missing") cacheRead.mockResolvedValueOnce([ownedEntry()]).mockResolvedValueOnce([]);
 	const result = await buildClipExportPlan(await originalPlan());
 	expect(result).toMatchObject({ ok: false, failures: [{ index: 0, code: kind === "token" ? "reconnect_required" : kind === "cache" ? "provider_error" : "clip_unavailable", retryable: kind === "cache" }] });
+});
+it("exports both formats from the same named template with independent format overrides", async () => {
+	const { createClipComposition } = await import("@lib/clipComposition"),
+		{ createClipExportPlan } = await import("@lib/clipExportPlan");
+	const desktop = createClipComposition("desktop"),
+		mobile = createClipComposition("mobile");
+	const desktopOverride = { ...desktop, layers: desktop.layers.map((layer) => ({ ...layer, label: "Desktop override" })) },
+		mobileOverride = { ...mobile, layers: mobile.layers.map((layer) => ({ ...layer, label: "Mobile override" })) };
+	layouts.mockResolvedValue({ ok: true, templates: [{ id: "pair", name: "Stream", composition: mobile, compositions: { desktop, mobile } }], defaults: {} });
+	cacheRead.mockResolvedValueOnce([ownedEntry()]).mockResolvedValueOnce([
+		{ contentKey: "clip-layout-override:v2:pair:ClipA:desktop", state: JSON.stringify({ composition: desktopOverride }) },
+		{ contentKey: "clip-layout-override:v2:pair:ClipA:mobile", state: JSON.stringify({ composition: mobileOverride }) },
+	]);
+	render.mockResolvedValue(new Uint8Array(video));
+	const plan = createClipExportPlan(
+		"owner",
+		["ClipA"],
+		[
+			{ key: "desktop", label: "Desktop", templateId: "pair", format: "desktop" },
+			{ key: "mobile", label: "Mobile", templateId: "pair", format: "mobile" },
+		],
+	)[0];
+	const result = await buildClipExportPlan(plan);
+	expect(result.ok).toBe(true);
+	expect(render.mock.calls.map((call) => call[1])).toEqual([desktopOverride, mobileOverride]);
+	expect(desktop.layers[0].label).toBe("Gameplay");
+	expect(mobile.layers[0].label).toBe("Camera");
+});
+it("does not apply a historical Mobile override to the Desktop composition of its collection", async () => {
+	const { createClipComposition } = await import("@lib/clipComposition"),
+		{ createClipExportPlan } = await import("@lib/clipExportPlan");
+	const desktop = createClipComposition("desktop"),
+		mobile = createClipComposition("mobile");
+	layouts.mockResolvedValue({ ok: true, templates: [{ id: "pair", name: "Stream", composition: mobile, compositions: { desktop, mobile } }], defaults: {} });
+	cacheRead.mockResolvedValueOnce([ownedEntry()]).mockResolvedValueOnce([{ contentKey: "clip-layout-override:v2:pair:ClipA", state: JSON.stringify({ composition: mobile }) }]);
+	render.mockResolvedValueOnce(new Uint8Array(video));
+	expect(await buildClipExportPlan(createClipExportPlan("owner", ["ClipA"], [{ key: "desktop", label: "Desktop", templateId: "pair", format: "desktop" }])[0])).toMatchObject({ ok: true });
+	expect(render.mock.calls[0][1]).toEqual(desktop);
+});
+it("retains legacy untemplated portrait export plans", async () => {
+	const { defaultClipLayout } = await import("@lib/clipLayout"),
+		{ createClipExportPlan } = await import("@lib/clipExportPlan");
+	render.mockResolvedValueOnce(new Uint8Array(video));
+	const result = await buildClipExportPlan(createClipExportPlan("owner", ["ClipA"], [{ key: "legacy", label: "Legacy portrait", layout: defaultClipLayout }])[0]);
+	expect(result.ok).toBe(true);
+	if (!result.ok) throw Error(result.code);
+	expect(JSON.parse(strFromU8(unzipSync(result.bytes)["manifest.json"])).clips[0]).toMatchObject({ outputLabel: "Legacy portrait", format: "mobile" });
 });

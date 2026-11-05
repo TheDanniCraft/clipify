@@ -2,7 +2,7 @@ import { z } from "zod";
 import { clipLayoutSchema } from "./clipLayout";
 import { compositionSchema } from "./clipComposition";
 const key = z.string().regex(/^[a-zA-Z0-9_-]{1,200}$/);
-export const clipExportOutputSchema = z.object({ key, label: z.string().trim().min(1).max(80), layout: z.union([clipLayoutSchema, compositionSchema]).optional(), templateId: key.optional() });
+export const clipExportOutputSchema = z.object({ key, label: z.string().trim().min(1).max(80), layout: z.union([clipLayoutSchema, compositionSchema]).optional(), templateId: key.optional(), format: z.enum(["desktop", "mobile"]).optional() });
 export type ClipExportOutput = z.infer<typeof clipExportOutputSchema>;
 export const clipExportPlanSchema = z
 	.object({

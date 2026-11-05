@@ -2,6 +2,7 @@ import "server-only";
 import type { ClipExportProgress } from "@lib/clipExportStream";
 import { clipLayoutSchema } from "@lib/clipLayout";
 import { compositionSchema } from "@lib/clipComposition";
+import { templateCompositions } from "@lib/clipLayoutTemplate";
 import { clipExportPlanSchema } from "@lib/clipExportPlan";
 import { listClipLayouts } from "@actions/clipLayoutLibrary";
 import { renderClipLayout } from "./clip-layout-render";
@@ -29,15 +30,8 @@ export const exportRequestSchema = z.object({
 		.pipe(z.array(z.string()).min(1).max(50)),
 });
 
-// Older Twitch clips use this exact CloudFront distribution; other tenants remain blocked.
-export function isTrustedClipMediaUrl(value: string) {
-	try {
-		const url = new URL(value);
-		return url.protocol === "https:" && ["production.assets.clips.twitchcdn.net", "d1ndex63qxojbr.cloudfront.net"].includes(url.hostname) && !url.username && !url.password && !url.port;
-	} catch {
-		return false;
-	}
-}
+export { isTrustedClipMediaUrl } from "@lib/clipExport";
+import { isTrustedClipMediaUrl } from "@lib/clipExport";
 
 export function isCompleteMp4(bytes: Uint8Array) {
 	const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -342,6 +336,10 @@ export async function buildClipExportPlan(input: unknown, parentSignal?: AbortSi
 		if (clips.some((clip) => !clip)) return failure("INVALID_INPUT", 400);
 		const known = new Map(ids.map((id, index) => [id, clips[index]!.clip]));
 		const outputLayouts = new Map(plan.outputs.map((output) => [output.key, output.layout]));
+		const outputFormat = (key: string) => {
+			const layout = outputLayouts.get(key);
+			return layout?.version === 2 ? layout.format : undefined;
+		};
 		const templated = plan.outputs.filter((output) => output.templateId);
 		const overrides = new Map<string, ReturnType<typeof compositionSchema.parse>>();
 		if (templated.length) {
@@ -350,12 +348,13 @@ export async function buildClipExportPlan(input: unknown, parentSignal?: AbortSi
 			for (const output of templated) {
 				const entry = library.templates.find((entry) => entry.id === output.templateId);
 				if (!entry) return failure("LAYOUT_UNAVAILABLE", 409);
-				if (output.layout && (output.layout.version !== 2 || output.layout.format !== entry.composition.format)) return failure("LAYOUT_UNAVAILABLE", 409);
-				if (!output.layout) outputLayouts.set(output.key, entry.composition);
+				const format = output.format ?? (output.layout?.version === 2 ? output.layout.format : entry.composition.format);
+				if (output.layout && (output.layout.version !== 2 || output.layout.format !== format)) return failure("LAYOUT_UNAVAILABLE", 409);
+				outputLayouts.set(output.key, output.layout ?? templateCompositions(entry)[format]);
 			}
 			const keys = plan.files.flatMap((file) => {
 				const output = templated.find((output) => output.key === file.outputKey);
-				return output ? [`clip-layout-override:v2:${output.templateId}:${file.clipId}`] : [];
+				return output ? [`clip-layout-override:v2:${output.templateId}:${file.clipId}`, `clip-layout-override:v2:${output.templateId}:${file.clipId}:${outputFormat(output.key)}`] : [];
 			});
 			if (keys.length) {
 				const rows = await db
@@ -392,8 +391,9 @@ export async function buildClipExportPlan(input: unknown, parentSignal?: AbortSi
 				plan.files.slice(offset, offset + 2).map(async (file, position) => {
 					const index = offset + position,
 						output = plan.outputs.find((output) => output.key === file.outputKey)!;
-					const override = output.templateId ? overrides.get(`clip-layout-override:v2:${output.templateId}:${file.clipId}`) : undefined;
 					const base = outputLayouts.get(output.key);
+					const legacyOverride = output.templateId ? overrides.get(`clip-layout-override:v2:${output.templateId}:${file.clipId}`) : undefined;
+					const override = output.templateId ? (overrides.get(`clip-layout-override:v2:${output.templateId}:${file.clipId}:${base?.version === 2 ? base.format : undefined}`) ?? (legacyOverride?.format === (base?.version === 2 ? base.format : undefined) ? legacyOverride : undefined)) : undefined;
 					if (override && (!base || base.version !== 2 || override.format !== base.format)) return { index, result: failure("LAYOUT_UNAVAILABLE", 409), output };
 					const layout = override ?? base;
 					const result = await prepareClipArchive({ creatorId, clipIds: [file.clipId], ...(layout ? { layout } : {}) }, signal, "mp4", (event) => progress?.({ ...event, index, title: title(index) }), true, true);

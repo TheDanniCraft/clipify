@@ -2,6 +2,7 @@
 import { Button } from "@heroui/react";
 import { useRef, type PointerEvent, type RefObject } from "react";
 import { resizeCompositionRect, snapCompositionRect, type CompositionRect } from "@lib/clipComposition";
+import type { CSSProperties } from "react";
 type Corner = "nw" | "ne" | "sw" | "se";
 type Guides = { x?: number; y?: number };
 export default function CompositionBox({
@@ -17,6 +18,7 @@ export default function CompositionBox({
 	targets = [],
 	onGuides,
 	onRemove,
+	color = "var(--accent)",
 }: {
 	rect: CompositionRect;
 	label: string;
@@ -30,6 +32,7 @@ export default function CompositionBox({
 	targets?: CompositionRect[];
 	onGuides?: (guides: Guides) => void;
 	onRemove?: () => void;
+	color?: string;
 }) {
 	const drag = useRef<{ pointerId: number; x: number; y: number; rect: CompositionRect; corner?: Corner } | null>(null);
 	const begin = (event: PointerEvent<HTMLElement>, corner?: Corner) => {
@@ -60,7 +63,7 @@ export default function CompositionBox({
 	};
 	const pointer = { onPointerMove: move, onPointerUp: end, onPointerCancel: end, onLostPointerCapture: end };
 	return (
-		<div className={`absolute border-2 ${selected ? "border-accent" : "border-white/70"}`} style={{ left: `${rect.x * 100}%`, top: `${rect.y * 100}%`, width: `${rect.w * 100}%`, height: `${rect.h * 100}%` }}>
+		<div className={`absolute border-2 ${selected ? "opacity-100" : "opacity-70"}`} style={{ "--layer-color": color, borderColor: color, left: `${rect.x * 100}%`, top: `${rect.y * 100}%`, width: `${rect.w * 100}%`, height: `${rect.h * 100}%` } as CSSProperties}>
 			<Button
 				{...pointer}
 				aria-label={label}
@@ -83,10 +86,10 @@ export default function CompositionBox({
 			/>
 			{selected ? (
 				<>
-					<span className='pointer-events-none absolute left-0 top-0 max-w-full truncate bg-accent px-1 text-xs text-accent-foreground'>{label}</span>
+					<span className='pointer-events-none absolute left-0 top-0 max-w-full truncate bg-[var(--layer-color)] px-1 text-xs text-black'>{label}</span>
 					{(["nw", "ne", "sw", "se"] as const).map((corner) => (
 						<Button key={corner} {...pointer} aria-label={`Resize ${label} ${corner.includes("n") ? "top" : "bottom"} ${corner.includes("w") ? "left" : "right"}`} variant='ghost' onPointerDown={(e) => begin(e, corner)} className={`absolute z-10 size-6 min-w-0 touch-none rounded-none p-0 ${corner.includes("n") ? "top-0" : "bottom-0"} ${corner.includes("w") ? "left-0" : "right-0"} ${corner === "nw" || corner === "se" ? "cursor-nwse-resize" : "cursor-nesw-resize"}`}>
-							<span className='size-2 border border-white bg-accent' />
+							<span className='size-2 border border-white bg-[var(--layer-color)]' />
 						</Button>
 					))}
 				</>

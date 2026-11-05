@@ -9,7 +9,7 @@ jest.mock("@heroui/react", () => {
 		),
 		{ Heading: base.Disclosure.Heading, Trigger: base.Disclosure.Trigger, Indicator: base.Disclosure.Indicator, Content: base.Disclosure.Content },
 	);
-	return new Proxy({ ...base, Disclosure }, { get: (target: any, key: any) => (key in target ? target[key] : base[key]) });
+	return new Proxy({ ...base, Disclosure, useFilter: () => ({ contains: (text: string, input: string) => text.toLowerCase().includes(input.toLowerCase()) }) }, { get: (target: any, key: any) => (key in target ? target[key] : base[key]) });
 });
 const notify = jest.fn();
 jest.mock("@actions/clipLayoutLibrary", () => ({ listClipLayouts: async () => ({ ok: true, templates: [], defaults: {} }) }));

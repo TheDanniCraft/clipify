@@ -41,7 +41,8 @@ async function respondGraphql(request, response) {
 		return;
 	}
 	response.writeHead(200, { "Content-Type": "application/json" });
-	response.end(JSON.stringify([{ data: { clip: { videoQualities: [{ quality: "720", sourceURL: `${origin}/clip/${id}.mp4` }], playbackAccessToken: { signature: "fixture-signature", value: "fixture-token" } } } }]));
+	const official = (await pool.query("SELECT clip_data::jsonb->>'testPreviewOfficial' AS official FROM playlist_clips WHERE clip_id=$1 LIMIT 1", [id])).rows[0]?.official === "true";
+	response.end(JSON.stringify([{ data: { clip: { videoQualities: [{ quality: "720", sourceURL: official ? `https://production.assets.clips.twitchcdn.net/clip/${id}.mp4` : `${origin}/clip/${id}.mp4` }], playbackAccessToken: { signature: "fixture-signature", value: "fixture-token" } } } }]));
 	return;
 }
 
@@ -97,3 +98,14 @@ process.once("beforeExit", () => {
 	server.close();
 	void pool.end();
 });
+
+const nativeFetch = globalThis.fetch;
+globalThis.fetch = async (input, init) => {
+	const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
+	if (url.origin === "https://production.assets.clips.twitchcdn.net" && url.pathname.startsWith("/clip/") && (await seededClip(url.pathname.slice(6, -4)))) {
+ const response = await nativeFetch(`${origin}${url.pathname}`, init);
+ const headers = new Headers(response.headers); headers.delete("Access-Control-Allow-Origin");
+ return new Response(response.body, {status:response.status,headers});
+ }
+	return nativeFetch(input, init);
+};

@@ -35,5 +35,31 @@ export function compositionControls(base: any) {
 		),
 		{ Trigger: base.Select.Trigger, Value: base.Select.Value, Indicator: base.Select.Indicator, Popover: base.Select.Popover },
 	);
-	return new Proxy({ ...base, TextField, NumberField, Select }, { get: (target: any, key: any) => (key in target ? target[key] : base[key]) });
+	const FilterContext = React.createContext<any>({});
+	const Autocomplete = Object.assign(
+		({ children, value, onChange, selectionMode, "aria-label": name }: any) => (
+			<div>
+				<select aria-label={name ?? label(children)} multiple={selectionMode === "multiple"} value={value ?? (selectionMode === "multiple" ? [] : "")} onChange={(event) => onChange(selectionMode === "multiple" ? Array.from(event.target.selectedOptions, (o) => o.value) : event.target.value)}>
+					{selectionMode !== "multiple" ? <option value=''>Choose</option> : null}
+					{nodes(children)
+						.filter((child) => child.props.id)
+						.map((child) => (
+							<option key={child.props.id} value={child.props.id}>
+								{child.props.textValue ?? label(child.props.children)}
+							</option>
+						))}
+				</select>
+				{children}
+			</div>
+		),
+		{ Trigger: base.Autocomplete.Trigger, Value: base.Autocomplete.Value, Indicator: base.Autocomplete.Indicator, Popover: base.Autocomplete.Popover, Filter: ({ children, inputValue, onInputChange }: any) => <FilterContext.Provider value={{ inputValue, onInputChange }}>{children}</FilterContext.Provider> },
+	);
+	const SearchField = Object.assign(
+		({ "aria-label": name }: any) => {
+			const filter = React.useContext(FilterContext);
+			return <input aria-label={name} value={filter.inputValue ?? ""} onChange={(event) => filter.onInputChange?.(event.target.value)} />;
+		},
+		{ Group: base.SearchField.Group, Input: base.SearchField.Input, SearchIcon: base.SearchField.SearchIcon, ClearButton: base.SearchField.ClearButton },
+	);
+	return new Proxy({ ...base, TextField, NumberField, Select, Autocomplete, SearchField, useFilter: () => ({ contains: (text: string, input: string) => text.toLowerCase().includes(input.toLowerCase()) }) }, { get: (target: any, key: any) => (key in target ? target[key] : base[key]) });
 }

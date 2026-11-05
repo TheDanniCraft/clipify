@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode, type
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Sidebar, Command, useSidebar } from "@heroui-pro/react";
 import { Button, Kbd } from "@heroui/react";
-import { IconHome, IconVideo, IconScissors, IconLayoutGrid, IconPlaylist, IconPhoto, IconDeviceDesktop, IconTools, IconSettings, IconFolder, IconSearch, IconHelpCircle, IconUserCircle, IconPlug, IconId, IconCreditCard, IconUsers, IconPlayerPlay, IconAward, IconBuildingCommunity } from "@tabler/icons-react";
+import { IconHome, IconLayoutCollage, IconVideo, IconScissors, IconLayoutGrid, IconPlaylist, IconPhoto, IconDeviceDesktop, IconTools, IconSettings, IconFolder, IconSearch, IconHelpCircle, IconUserCircle, IconPlug, IconId, IconCreditCard, IconUsers, IconPlayerPlay, IconAward, IconBuildingCommunity } from "@tabler/icons-react";
 import NextLink from "next/link";
 import { ClipExportProvider, ExportQueueLauncher, useClipExports } from "./creator/clipExportQueue";
 import AdminNavigation from "./adminNavigation";
@@ -18,11 +18,11 @@ const destinations: Destination[] = [
 	{ title: "Home", href: "/dashboard", permission: "creator:read", icon: IconHome },
 	{ title: "Streams", href: "/dashboard/streams", permission: "creator:read", icon: IconVideo },
 	{ title: "Clip Inventory", href: "/dashboard/clips", permission: "creator:read", icon: IconScissors },
-	{ title: "Clip layouts", href: "/dashboard/clip-layouts", permission: "creator:read", icon: IconLayoutGrid, tour: "clip-layouts-tab" },
 	{ title: "Overlays", href: "/dashboard/overlays", permission: "overlay:read", icon: IconLayoutGrid, tour: "overlays-tab" },
 	{ title: "Playlists", href: "/dashboard/playlists", permission: "playlist:read", icon: IconPlaylist, tour: "playlists-tab" },
 	{ title: "Galleries", href: "/dashboard/galleries", permission: "gallery:read", icon: IconPhoto, tour: "galleries-tab" },
 	{ title: "Runner", href: "/dashboard/runners", permission: "runner:read", icon: IconDeviceDesktop, tour: "runners-tab" },
+	{ title: "Clip layouts", href: "/dashboard/clip-layouts", permission: "creator:read", icon: IconLayoutCollage, tour: "clip-layouts-tab" },
 	{ title: "Tools", href: "/dashboard/tools", permission: null, icon: IconTools },
 	{ title: "Settings", href: "/dashboard/settings", permission: "account:read", icon: IconSettings },
 ];

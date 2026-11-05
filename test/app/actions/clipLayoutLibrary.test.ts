@@ -48,11 +48,11 @@ it("denies global and clip changes before any read/write when permissions are ab
 	expect(read).not.toHaveBeenCalled();
 	expect(write).not.toHaveBeenCalled();
 });
-it("keeps template orientation stable so existing clip overrides cannot silently change format", async () => {
+it("saves Mobile alongside Desktop without replacing its composition", async () => {
 	const composition = createClipComposition("desktop");
 	read.mockResolvedValue([{ contentKey: "clip-layout-template:v2:layout", state: JSON.stringify({ name: "Desktop", composition }), updatedAt: new Date() }]);
-	expect(await saveClipLayoutTemplate("owner", { id: "layout", name: "Desktop", composition: createClipComposition("mobile") })).toMatchObject({ ok: false, code: "INVALID_INPUT" });
-	expect(write).not.toHaveBeenCalled();
+	expect(await saveClipLayoutTemplate("owner", { id: "layout", name: "Paired", composition: createClipComposition("mobile") })).toMatchObject({ ok: true, id: "layout" });
+	expect(JSON.parse(write.mock.calls[0][0].state).compositions).toEqual({ desktop: composition, mobile: createClipComposition("mobile") });
 });
 
 it("lists named layouts, preserves format defaults and ignores stale default references", async () => {
@@ -69,7 +69,7 @@ it("sets a default only for an existing template and never writes a foreign crea
 	const composition = createClipComposition("desktop");
 	read.mockResolvedValue([{ contentKey: "clip-layout-template:v2:layout", state: JSON.stringify({ name: "Desktop", composition }) }]);
 	expect(await setDefaultClipLayout("owner", "layout")).toEqual({ ok: true });
-	expect(write).toHaveBeenCalledWith(expect.objectContaining({ userId: "owner", contentKey: "clip-layout-default:v2:desktop", state: JSON.stringify({ id: "layout" }) }));
+	expect(write).toHaveBeenCalledWith(expect.objectContaining({ userId: "owner", contentKey: "clip-layout-default:v2:template", state: JSON.stringify({ id: "layout" }) }));
 });
 it("loads and resets clip overrides only after checking the clip belongs to the creator", async () => {
 	detail.mockResolvedValueOnce({ ok: false, code: "NOT_FOUND" });
@@ -117,19 +117,49 @@ it("returns typed storage failures without leaking database details", async () =
 	});
 	expect(await saveClipLayoutTemplate("owner", { name: "Main", composition: createClipComposition("desktop") })).toEqual({ ok: false, code: "SERVICE_UNAVAILABLE" });
 });
-it("renames a global template without changing its identity and rejects incompatible clip formats", async () => {
+it("renames a paired template and saves each format in an independent clip override", async () => {
 	const composition = createClipComposition("desktop");
 	read.mockResolvedValue([{ contentKey: "clip-layout-template:v2:layout", state: JSON.stringify({ name: "Old", composition }) }]);
 	expect(await saveClipLayoutTemplate("owner", { id: "layout", name: "Renamed", composition })).toEqual({ ok: true, id: "layout" });
 	expect(write.mock.calls[0][0].contentKey).toBe("clip-layout-template:v2:layout");
-	expect(JSON.parse(write.mock.calls[0][0].state)).toEqual({ name: "Renamed", composition });
+	expect(JSON.parse(write.mock.calls[0][0].state)).toMatchObject({ name: "Renamed", composition });
 	write.mockClear();
-	expect(await saveClipLayoutOverride("owner", "layout", "clip", createClipComposition("mobile"))).toMatchObject({ ok: false, code: "INVALID_INPUT" });
-	expect(write).not.toHaveBeenCalled();
+	expect(await saveClipLayoutOverride("owner", "layout", "clip", createClipComposition("mobile"))).toMatchObject({ ok: true });
+	expect(write.mock.calls[0][0].contentKey).toBe("clip-layout-override:v2:layout:clip:mobile");
 	read.mockResolvedValue([]);
 	expect(await loadClipLayoutOverride("owner", "missing", "clip")).toMatchObject({ ok: false, code: "NOT_FOUND" });
 });
 it("preserves a stale editor draft instead of recreating a deleted global template", async () => {
 	expect(await saveClipLayoutTemplate("owner", { id: "deleted", name: "Old draft", composition: createClipComposition("desktop") })).toMatchObject({ ok: false, code: "NOT_FOUND" });
 	expect(write).not.toHaveBeenCalled();
+});
+it("loads the requested format override and ignores a legacy override for the other format", async () => {
+	const desktop = createClipComposition("desktop"),
+		mobile = createClipComposition("mobile");
+	read.mockResolvedValueOnce([{ contentKey: "clip-layout-template:v2:pair", state: JSON.stringify({ name: "Pair", composition: desktop }) }]).mockResolvedValueOnce([
+		{ contentKey: "clip-layout-override:v2:pair:clip", state: JSON.stringify({ composition: mobile }) },
+		{ contentKey: "clip-layout-override:v2:pair:clip:desktop", state: JSON.stringify({ composition: desktop }) },
+	]);
+	expect(await loadClipLayoutOverride("owner", "pair", "clip", "desktop")).toMatchObject({ ok: true, composition: desktop });
+	expect(await loadClipLayoutOverride("owner", "pair", "clip", "invalid" as any)).toMatchObject({ ok: false, code: "INVALID_INPUT" });
+	expect(await resetClipLayoutOverride("owner", "pair", "clip", "invalid" as any)).toMatchObject({ ok: false, code: "INVALID_INPUT" });
+});
+it("uses one default collection for both formats without replacing either composition", async () => {
+	const desktop = createClipComposition("desktop"),
+		mobile = createClipComposition("mobile");
+	mobile.layers[0].label = "Saved camera";
+	read.mockResolvedValue([
+		{ contentKey: "clip-layout-template:v2:pair", state: JSON.stringify({ name: "Pair", composition: desktop, compositions: { desktop, mobile } }), updatedAt: new Date() },
+		{ contentKey: "clip-layout-default:v2:template", state: JSON.stringify({ id: "pair" }), updatedAt: new Date() },
+	]);
+	const result = await listClipLayouts("owner");
+	expect(result).toMatchObject({ ok: true, defaults: { desktop: "pair", mobile: "pair" } });
+	if (!result.ok) throw Error(result.code);
+	expect(result.templates[0].compositions).toEqual({ desktop, mobile });
+});
+it("leaves Desktop unchanged when only a historical Mobile override exists", async () => {
+	const desktop = createClipComposition("desktop"),
+		mobile = createClipComposition("mobile");
+	read.mockResolvedValueOnce([{ contentKey: "clip-layout-template:v2:pair", state: JSON.stringify({ name: "Pair", composition: desktop }) }]).mockResolvedValueOnce([{ contentKey: "clip-layout-override:v2:pair:clip", state: JSON.stringify({ composition: mobile }) }]);
+	expect(await loadClipLayoutOverride("owner", "pair", "clip", "desktop")).toMatchObject({ ok: true, composition: null });
 });

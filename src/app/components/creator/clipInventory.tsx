@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, useTransition, useSyncExterna
 import { usePathname } from "next/navigation";
 import { Button, Card, Checkbox, Disclosure, Input, Label, ListBox, NumberField, Select, Table, TextField, Link } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
-import { IconChevronRight, IconLayoutGrid, IconRefresh } from "@tabler/icons-react";
+import { IconChevronRight, IconLayoutCollage, IconRefresh } from "@tabler/icons-react";
 import { fromDate, toCalendarDate } from "@internationalized/date";
 import { getCreatorClipInventory, refreshCreatorLibrary } from "@actions/creatorLibrary";
 import AppDateRangePicker, { type AppDateRange } from "@components/appDateRangePicker";
@@ -290,7 +290,7 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 								</div>
 								<div className='flex flex-wrap items-center gap-3'>
 									<Link className={buttonVariants({ variant: "secondary", className: "gap-2" })} href='/dashboard/clip-layouts'>
-										<IconLayoutGrid className='size-4' aria-hidden='true' />
+										<IconLayoutCollage className='size-4' aria-hidden='true' />
 										Clip layouts
 									</Link>
 									<ClipExport creatorId={creatorId} clipIds={[...selected]} scope={selection.scope} clipNames={selection.names} configure />

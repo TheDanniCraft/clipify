@@ -149,13 +149,13 @@ for (const width of [390, 1440])
 		await expect(page.getByRole("button", { name: "Save clip adjustments", exact: true })).toBeDisabled();
 		const rows = await tourWorld.fixture.pool.query("SELECT content_key,state FROM user_content_states WHERE user_id=$1 AND starts_with(content_key,'clip-layout-')", [creatorId]);
 		expect(JSON.parse(rows.rows.find((r: any) => r.content_key === "clip-layout-template:v2:camera").state).composition).toEqual(composition);
-		expect(rows.rows.some((r: any) => r.content_key === `clip-layout-override:v2:camera:${id}`)).toBe(true);
-		expect(JSON.parse(rows.rows.find((r: any) => r.content_key === `clip-layout-override:v2:camera:${id}`).state).composition.layers[0].frame.y).toBeGreaterThan(0);
+		expect(rows.rows.some((r: any) => r.content_key === `clip-layout-override:v2:camera:${id}:mobile`)).toBe(true);
+		expect(JSON.parse(rows.rows.find((r: any) => r.content_key === `clip-layout-override:v2:camera:${id}:mobile`).state).composition.layers[0].frame.y).toBeGreaterThan(0);
 		await page.screenshot({ path: info.outputPath("override.png"), fullPage: true, animations: "disabled" });
 		await page.getByRole("button", { name: "Reset to template", exact: true }).click();
 		await page.getByRole("button", { name: "Reset adjustments", exact: true }).click();
 		await expect(page.getByRole("dialog")).not.toBeVisible();
-		expect((await tourWorld.fixture.pool.query("SELECT state FROM user_content_states WHERE user_id=$1 AND content_key=$2", [creatorId, `clip-layout-override:v2:camera:${id}`])).rowCount).toBe(0);
+		expect((await tourWorld.fixture.pool.query("SELECT state FROM user_content_states WHERE user_id=$1 AND content_key=$2", [creatorId, `clip-layout-override:v2:camera:${id}:mobile`])).rowCount).toBe(0);
 	});
 
 test("Clip preview actions remain grouped and usable in the installed modal", async ({ page, request, tourWorld }, info) => {

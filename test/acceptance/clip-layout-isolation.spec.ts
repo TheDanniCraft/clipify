@@ -13,6 +13,9 @@ test("Reset and deletion keep other clips, templates and creators intact", async
 	await put(foreign, "clip-layout-default:v2:mobile", { id: "other" });
 	const target = `clip-layout-override:v2:camera:${id}`;
 	await put(creatorId, target, { composition });
+	const desktopKey = `clip-layout-override:v2:camera:${id}:desktop`,
+		desktop = createClipComposition("desktop");
+	await put(creatorId, desktopKey, { composition: desktop });
 	const preserved = [
 		{ user: creatorId, key: "clip-layout-override:v2:camera:DifferentClip" },
 		{ user: creatorId, key: `clip-layout-override:v2:other:${id}` },
@@ -27,6 +30,7 @@ test("Reset and deletion keep other clips, templates and creators intact", async
 	await page.getByRole("button", { name: "Reset adjustments", exact: true }).click();
 	await expect(page.getByRole("dialog", { name: "Reset clip adjustments", exact: true })).not.toBeVisible();
 	expect((await tourWorld.fixture.pool.query("SELECT state FROM user_content_states WHERE user_id=$1 AND content_key=$2", [creatorId, target])).rowCount).toBe(0);
+	expect(JSON.parse((await tourWorld.fixture.pool.query("SELECT state FROM user_content_states WHERE user_id=$1 AND content_key=$2", [creatorId, desktopKey])).rows[0].state)).toEqual({ composition: desktop });
 	for (const row of preserved) {
 		const stored = await tourWorld.fixture.pool.query("SELECT state FROM user_content_states WHERE user_id=$1 AND content_key=$2", [row.user, row.key]);
 		expect(JSON.parse(stored.rows[0].state)).toEqual({ composition });
@@ -38,11 +42,12 @@ test("Reset and deletion keep other clips, templates and creators intact", async
 		[creatorId, "camera"],
 		[foreign, "other"],
 	])
-		expect(JSON.parse((await tourWorld.fixture.pool.query("SELECT state FROM user_content_states WHERE user_id=$1 AND content_key=$2", [user, "clip-layout-default:v2:mobile"])).rows[0].state)).toEqual({ id: expected });
+		expect(JSON.parse((await tourWorld.fixture.pool.query("SELECT state FROM user_content_states WHERE user_id=$1 AND content_key=$2", [user, user === creatorId ? "clip-layout-default:v2:template" : "clip-layout-default:v2:mobile"])).rows[0].state)).toEqual({ id: expected });
 	await page.getByRole("button", { name: "Delete", exact: true }).first().click();
 	await page.getByRole("dialog", { name: "Delete layout", exact: true }).getByRole("button", { name: "Delete layout", exact: true }).click();
 	await expect(page.getByRole("dialog", { name: "Delete layout", exact: true })).not.toBeVisible();
 	expect((await tourWorld.fixture.pool.query("SELECT state FROM user_content_states WHERE user_id=$1 AND content_key=$2", [creatorId, "clip-layout-template:v2:camera"])).rowCount).toBe(0);
+	expect((await tourWorld.fixture.pool.query("SELECT state FROM user_content_states WHERE user_id=$1 AND content_key=$2", [creatorId, desktopKey])).rowCount).toBe(0);
 	expect((await tourWorld.fixture.pool.query("SELECT state FROM user_content_states WHERE user_id=$1 AND content_key=$2", [creatorId, `clip-layout-override:v2:other:${id}`])).rowCount).toBe(1);
 	expect((await tourWorld.fixture.pool.query("SELECT state FROM user_content_states WHERE user_id=$1 AND content_key=$2", [creatorId, "clip-layout-template:v2:other"])).rowCount).toBe(1);
 	expect((await tourWorld.fixture.pool.query("SELECT state FROM user_content_states WHERE user_id=$1 AND content_key=$2", [foreign, "clip-layout-template:v2:camera"])).rowCount).toBe(1);

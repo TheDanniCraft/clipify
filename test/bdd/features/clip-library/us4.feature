@@ -18,6 +18,6 @@ Feature: Creator library story 4
   @FR-010 @FR-013 @SC-004
   @BDD-US4-COMP-001 @requires:ffmpeg
   Scenario: Export named versions with an authoritative clip override
-    Given a creator has named Desktop and Mobile layouts and an isolated clip override
-    When I export Original plus one Desktop and two Mobile versions
-    Then four complete videos apply my clip override without changing global or foreign layouts
+    Given a creator has paired layout templates and an isolated clip override
+    When I export Original and both formats from two templates
+    Then five complete videos apply my clip override without changing global or foreign layouts

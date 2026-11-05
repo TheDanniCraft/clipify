@@ -37,14 +37,23 @@ export async function downloadCompositionExports({ page, tourWorld }: Context, s
 	await page.reload();
 	await page.getByRole("button", { name: "Select page", exact: true }).click();
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
-	await expect(page.getByRole("checkbox", { name: "Desktop: Forbidden layout", exact: true })).toHaveCount(0);
-	for (const label of ["Desktop: Main desktop", "Mobile: Camera mobile", "Mobile: Gameplay mobile"]) {
-		const checkbox = page.getByRole("checkbox", { name: label, exact: true });
+	await page.getByRole("dialog", { name: "Export clips", exact: true }).locator('[data-slot="autocomplete-trigger"]').click();
+	await expect(page.getByRole("option", { name: "Forbidden layout", exact: true })).toHaveCount(0);
+	for (const name of ["Camera mobile", "Main desktop"]) {
+		const option = page.getByRole("option", { name, exact: true });
+		if ((await option.getAttribute("aria-selected")) !== "true") await option.click();
+	}
+	// Remove the automatically selected legacy template if it is not one of these two.
+	const extra = page.getByRole("option", { name: "Gameplay mobile", exact: true });
+	if ((await extra.getAttribute("aria-selected")) === "true") await extra.click();
+	await page.keyboard.press("Escape");
+	for (const name of ["Desktop", "Mobile"]) {
+		const checkbox = page.getByRole("checkbox", { name, exact: true });
 		await checkbox.focus();
 		await page.keyboard.press("Space");
 		await expect(checkbox).toBeChecked();
 	}
-	await expect(page.getByRole("status", { name: "Export file count" })).toHaveText("4 video files");
+	await expect(page.getByRole("status", { name: "Export file count" })).toHaveText("5 video files");
 	const download = page.waitForEvent("download", { timeout: 90000 });
 	await page.getByRole("button", { name: "Start export", exact: true }).click();
 	const path = info.outputPath("four-versions.zip");
@@ -57,16 +66,16 @@ export async function verifyCompositionExports({ tourWorld }: Context, state: Co
 		{ unzipSync, strFromU8 } = await import("fflate");
 	const files = unzipSync(await readFile(path!)),
 		manifest = JSON.parse(strFromU8(files["manifest.json"]));
-	expect(manifest.clips).toHaveLength(4);
-	expect(manifest.clips.map((clip: any) => clip.outputLabel)).toEqual(["Original", "Main desktop", "Camera mobile", "Gameplay mobile"]);
+	expect(manifest.clips).toHaveLength(5);
+	expect(manifest.clips.map((clip: any) => clip.outputLabel)).toEqual(["Original", "Camera mobile Desktop", "Camera mobile Mobile", "Main desktop Desktop", "Main desktop Mobile"]);
 	for (const [index, clip] of manifest.clips.entries()) {
 		const mediaPath = info.outputPath(`version-${index}.mp4`);
 		await writeFile(mediaPath, files[clip.filename]);
 		const media = JSON.parse(execFileSync("ffprobe", ["-v", "quiet", "-show_streams", "-of", "json", mediaPath], { encoding: "utf8" }));
-		if (index) expect(media.streams.find((s: any) => s.codec_type === "video")).toMatchObject(index === 1 ? { width: 1280, height: 720 } : { width: 720, height: 1280 });
+		if (index) expect(media.streams.find((s: any) => s.codec_type === "video")).toMatchObject(clip.format === "desktop" ? { width: 1280, height: 720 } : { width: 720, height: 1280 });
 		expect(clip.id).toBe(id);
 	}
-	const desktopFile = manifest.clips.find((clip: any) => clip.outputLabel === "Main desktop"),
+	const desktopFile = manifest.clips.find((clip: any) => clip.outputLabel === "Main desktop Desktop"),
 		originalFile = manifest.clips.find((clip: any) => clip.outputLabel === "Original");
 	const originalPath = info.outputPath("source-for-parity.mp4"),
 		desktopPath = info.outputPath("desktop-override.mp4");

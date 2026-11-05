@@ -772,7 +772,7 @@ T631 preceding checkpoint:23b6dd303fd14462644ee01db3e94e5d84a11ae9 passed full C
 - [x] T660 Test and implement multi-output export settings, clip-major50-file batches, authoritative overrides, shared budget reservation and distinct-file ZIP progress.
 - [x] T661 Red/Green sidebar account-choice/profile/navigation organization and restore the Top clips region semantics found by preceding CI.
 - [x] T662 Complete affected whole-file owners and real browser/FFmpeg scenarios, update existing flow assertions, inspect screenshots in both themes and viewport sizes.
-- [ ] T663 Commit/push passing source, update PR546 and verify exact preview; report complete required CI separately.
+- [x] T663 Commit/push passing source, update PR546 and verify exact preview; report complete required CI separately.
 
 ## Phase 24: TDD remediation for reusable compositions (cold audit)
 
@@ -783,4 +783,15 @@ Strict TDD verification is FAIL. Do not mark the follow-up TDD-complete until it
 - [x] T666 [F3,F4] Assert preserved edited payloads and precise preview crops/text at test/app/components/clipCompositionEditor.test.tsx:30 and clipCompositionCanvas.test.tsx:50; verify both complete whole-file owners without coverage.
 - [x] T667 [F5] Prove creator/template/clip deletion/reset isolation with disposable storage at test/app/actions/clipLayoutLibrary.test.ts:14; verify its whole-file owner without coverage.
 - [x] T668 [F6] Exercise source modifiers and output snap/Alt bypass in installed-component browser interactions at test/acceptance/clip-composition-interaction.spec.ts:6; run that complete owner after the active browser checkpoint finishes.
-- [ ] T669 Record scoped deliberate mutants only after the live validation owner finishes, restore source exactly and rerun affected whole-file Green; attach final browser, exact-source coverage and required CI evidence separately.
+- [x] T669 Record scoped deliberate mutants only after the live validation owner finishes, restore source exactly and rerun affected whole-file Green; attach final browser, exact-source coverage and required CI evidence separately.
+
+## Paired-template/editor follow-up
+
+T663/T669 publication closure: source42c91366 deployed exactly, CI42034438429 passed merged coverage and scenario inventory;167 acceptance cases completed, two on retry. Historical TDD provenance remains disclosed.
+
+- [x] T670 Preserve named single-format layouts while adding both compositions per template, one default collection and independent format overrides/reset.
+- [x] T671 Apply export format choices to the same selected template IDs and preserve Original, authorization, quotas and progress.
+- [x] T672 Move the navigation item below Runner, replace reference controls with HeroUI Autocomplete, link layer colors and align the add control.
+- [x] T673 Verify actual browser source/output editing, format-switch persistence, search, preview proxy/recovery, override isolation and downloads in both themes and sizes; publish and verify the exact preview.
+
+T673 local closure: paired-atomic-browser-green.log passes all9 editor/interaction/storage cases after the concurrent-save fix; paired-browser-verified.log passes all4 owning US4 export cases, including five video files from paired collections. Production build and source checksums match; publication and final CI evidence are attached to PR546 after push.

@@ -12,7 +12,7 @@ jest.mock("@heroui/react", () => {
 		),
 		{ Content: base.Checkbox.Content, Control: base.Checkbox.Control, Indicator: base.Checkbox.Indicator },
 	);
-	return new Proxy({ ...base, Checkbox }, { get: (target: any, key: any) => (key in target ? target[key] : base[key]) });
+	return jest.requireActual("../../support/clipCompositionControls").compositionControls(new Proxy({ ...base, Checkbox }, { get: (target: any, key: any) => (key in target ? target[key] : base[key]) }));
 });
 const list = jest.fn();
 jest.mock("@actions/clipLayoutLibrary", () => ({ listClipLayouts: (...args: unknown[]) => list(...args) }));
@@ -30,19 +30,21 @@ it("selects Original and multiple Desktop/Mobile layouts before starting one exp
 	render(<ClipExportSettings creatorId='owner' clipIds={["ClipA"]} onStart={start} onClose={close} />);
 	expect(start).not.toHaveBeenCalled();
 	expect(screen.getByRole("checkbox", { name: "Original" })).toBeChecked();
-	for (const label of ["Desktop: Main desktop", "Mobile: Camera mobile", "Mobile: Gameplay mobile"]) fireEvent.click(await screen.findByRole("checkbox", { name: label }));
+	await screen.findByRole("listbox", { name: "Layout templates" });
+	fireEvent.click(screen.getByRole("checkbox", { name: "Desktop" }));
+	fireEvent.click(screen.getByRole("checkbox", { name: "Mobile" }));
 	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
 	await waitFor(() => expect(start).toHaveBeenCalledTimes(1));
-	expect(start.mock.calls[0][0][0].files).toHaveLength(4);
-	expect(start.mock.calls[0][0][0].outputs.map((output: any) => output.label)).toEqual(["Original", "Main desktop", "Camera mobile", "Gameplay mobile"]);
+	expect(start.mock.calls[0][0][0].files).toHaveLength(3);
+	expect(start.mock.calls[0][0][0].outputs.map((output: any) => output.label)).toEqual(["Original", "Main desktop Desktop", "Main desktop Mobile"]);
 	expect(close).toHaveBeenCalledTimes(1);
 });
 it("retains choices when queueing fails and offers global layout creation when none exist", async () => {
 	list.mockResolvedValue({ ok: true, templates: [], defaults: {} });
 	const close = jest.fn();
 	render(<ClipExportSettings creatorId='owner' clipIds={["ClipA"]} onStart={() => false} onClose={close} />);
-	await screen.findByRole("link", { name: "Create Desktop layout" });
-	expect(screen.getByRole("link", { name: "Create Mobile layout" })).toHaveAttribute("target", "_blank");
+	await screen.findByRole("link", { name: "Create layout template" });
+	expect(screen.getByRole("link", { name: "Create layout template" })).toHaveAttribute("target", "_blank");
 	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
 	expect(close).not.toHaveBeenCalled();
 	expect(screen.getByRole("checkbox", { name: "Original" })).toBeChecked();
@@ -58,13 +60,14 @@ it("recovers failed lookups, removes stale choices on refresh, and preserves Ori
 		close = jest.fn();
 	render(<ClipExportSettings creatorId='owner' clipIds={["A", "B"]} onStart={start} onClose={close} />);
 	fireEvent.click(await screen.findByRole("button", { name: "Retry layouts" }));
-	fireEvent.click(await screen.findByRole("checkbox", { name: "Desktop: Desk" }));
+	fireEvent.click(await screen.findByRole("checkbox", { name: "Desktop" }));
 	fireEvent.click(screen.getByRole("checkbox", { name: "Original" }));
 	expect(screen.getByRole("status", { name: "Export file count" })).toHaveTextContent("2 video files");
 	expect(screen.queryByText("Adjust clip")).not.toBeInTheDocument();
 	fireEvent.click(screen.getByRole("button", { name: "Refresh layouts" }));
-	await screen.findByText("No desktop layouts yet.");
+	await screen.findByText("No layout templates yet. Create one for Desktop and Mobile.");
 	expect(screen.getByRole("button", { name: "Start export" })).toBeDisabled();
+	fireEvent.click(screen.getByRole("checkbox", { name: "Desktop" }));
 	fireEvent.click(screen.getByRole("checkbox", { name: "Original" }));
 	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
 	expect(start).toHaveBeenCalledWith(expect.arrayContaining([expect.objectContaining({ files: expect.arrayContaining([expect.objectContaining({ clipId: "A" }), expect.objectContaining({ clipId: "B" })]) })]));
@@ -96,4 +99,16 @@ it("ignores a lookup resolving after unmount", async () => {
 	const view = render(<ClipExportSettings creatorId='owner' clipIds={[]} onStart={() => true} onClose={() => {}} />);
 	view.unmount();
 	await import("@testing-library/react").then(({ act }) => act(async () => resolve({ ok: true, templates: [], defaults: {} })));
+});
+it("never substitutes a different template after the selected collection is deleted", async () => {
+	const template = (id: string) => ({ id, name: id, composition: createClipComposition("desktop") });
+	list.mockResolvedValueOnce({ ok: true, templates: [template("Chosen")], defaults: {} }).mockResolvedValueOnce({ ok: true, templates: [template("Other")], defaults: {} });
+	render(<ClipExportSettings creatorId='owner' clipIds={["A"]} onStart={() => true} onClose={() => {}} />);
+	await screen.findByRole("listbox", { name: "Layout templates" });
+	fireEvent.click(screen.getByRole("checkbox", { name: "Desktop" }));
+	expect(screen.getByRole("button", { name: "Start export" })).toBeEnabled();
+	fireEvent.click(screen.getByRole("button", { name: "Refresh layouts" }));
+	await screen.findByRole("option", { name: "Other" });
+	expect(screen.getByRole("button", { name: "Start export" })).toBeDisabled();
+	expect(screen.getByRole("listbox", { name: "Layout templates" })).toHaveValue([]);
 });

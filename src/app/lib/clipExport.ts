@@ -63,3 +63,13 @@ export function decodeClipExportError(value: unknown, count: number) {
 		throw new Error("invalid_response");
 	}
 }
+
+// Older Twitch clips use this exact CloudFront distribution; other tenants remain blocked.
+export function isTrustedClipMediaUrl(value: string) {
+	try {
+		const url = new URL(value);
+		return url.protocol === "https:" && ["production.assets.clips.twitchcdn.net", "d1ndex63qxojbr.cloudfront.net"].includes(url.hostname) && !url.username && !url.password && !url.port;
+	} catch {
+		return false;
+	}
+}

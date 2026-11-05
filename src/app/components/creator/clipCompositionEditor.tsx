@@ -1,11 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Button, Card, Input, Label, TextField, NumberField, Select, ListBox, Modal } from "@heroui/react";
+import { Button, Card, Input, Label, TextField, NumberField, Select, ListBox, Modal, Autocomplete, SearchField, EmptyState, Tabs } from "@heroui/react";
 import { IconArrowLeft, IconPlus, IconArrowUp, IconArrowDown, IconTrash } from "@tabler/icons-react";
 import { useNavigationGuard } from "nextjs-nav-guard";
 import { saveClipLayoutTemplate, saveClipLayoutOverride, resetClipLayoutOverride, type ClipLayoutTemplate } from "@actions/clipLayoutLibrary";
 import { getCreatorClipInventory, getCreatorClipDetail, searchCreatorLibrary } from "@actions/creatorLibrary";
 import { resizeCompositionRect, updateCompositionSource, type ClipComposition, type CompositionLayer } from "@lib/clipComposition";
+import { compositionLayerColor } from "@lib/clipLayoutTemplate";
 import { notify } from "@lib/toast";
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
 import ControlledModal from "@components/controlledModal";
@@ -32,7 +33,7 @@ function Numeric({ label, value, min = 0, max = 100, onChange }: { label: string
 		</NumberField>
 	);
 }
-export default function ClipCompositionEditor({ creatorId, entry, initial, clipId, referenceId, onBack, onSaved }: { creatorId: string; entry: ClipLayoutTemplate; initial: ClipComposition; clipId?: string; referenceId?: string; onBack: () => void; onSaved: () => void }) {
+export default function ClipCompositionEditor({ creatorId, entry, initial, clipId, referenceId, onBack, onSaved, onFormatChange }: { creatorId: string; entry: ClipLayoutTemplate; initial: ClipComposition; clipId?: string; referenceId?: string; onBack: () => void; onSaved: () => void; onFormatChange?: (format: "desktop" | "mobile") => void }) {
 	const [sourceDimensions, setSourceDimensions] = useState({ width: 1920, height: 1080 }),
 		[layout, setLayout] = useState(initial),
 		[name, setName] = useState(entry.name),
@@ -43,7 +44,6 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 		[clip, setClip] = useState<Clip | null>(null),
 		[reference, setReference] = useState(clipId ?? referenceId ?? ""),
 		[clips, setClips] = useState<Clip[]>([]),
-		[query, setQuery] = useState(""),
 		[search, setSearch] = useState(""),
 		[loading, setLoading] = useState(true),
 		[retry, setRetry] = useState(0),
@@ -57,20 +57,23 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 	}, [dirty]);
 	useEffect(() => {
 		let active = true;
-		const request = search.trim().length >= 2 ? searchCreatorLibrary({ creatorId, title: search }) : getCreatorClipInventory({ creatorId, query: { pageSize: 10 } });
-		void request
-			.then((result) => {
-				if (!active) return;
-				if (result.ok) setClips(result.items);
-				else notify({ title: "Reference clips could not be loaded", description: "Try searching again.", color: "danger" });
-			})
-			.catch(() => {
-				if (active) notify({ title: "Reference clips could not be loaded", color: "danger" });
-			})
-			.finally(() => {
-				if (active) setLoading(false);
-			});
+		const timer = setTimeout(() => {
+			const request = search.trim().length >= 2 ? searchCreatorLibrary({ creatorId, title: search }) : getCreatorClipInventory({ creatorId, query: { pageSize: 10 } });
+			void request
+				.then((result) => {
+					if (!active) return;
+					if (result.ok) setClips(result.items);
+					else notify({ title: "Reference clips could not be loaded", description: "Try searching again.", color: "danger" });
+				})
+				.catch(() => {
+					if (active) notify({ title: "Reference clips could not be loaded", color: "danger" });
+				})
+				.finally(() => {
+					if (active) setLoading(false);
+				});
+		}, 250);
 		return () => {
+			clearTimeout(timer);
 			active = false;
 		};
 	}, [creatorId, search]);
@@ -163,7 +166,7 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 						onPress={async () => {
 							setSaving(true);
 							try {
-								const result = await resetClipLayoutOverride(creatorId, entry.id, clipId!);
+								const result = await resetClipLayoutOverride(creatorId, entry.id, clipId!, layout.format);
 								if (!result.ok) throw Error();
 								setLayout(entry.composition);
 								setDirty(false);
@@ -205,6 +208,22 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 					</div>
 				</Card.Header>
 				<Card.Content className='space-y-6'>
+					{onFormatChange ? (
+						<Tabs selectedKey={layout.format} onSelectionChange={(key) => onFormatChange(key === "desktop" ? "desktop" : "mobile")} variant='secondary'>
+							<Tabs.ListContainer>
+								<Tabs.List aria-label='Layout format'>
+									<Tabs.Tab id='desktop'>
+										Desktop 16:9
+										<Tabs.Indicator />
+									</Tabs.Tab>
+									<Tabs.Tab id='mobile'>
+										Mobile 9:16
+										<Tabs.Indicator />
+									</Tabs.Tab>
+								</Tabs.List>
+							</Tabs.ListContainer>
+						</Tabs>
+					) : null}
 					{!clipId ? (
 						<div className='grid gap-4 sm:grid-cols-2'>
 							<TextField
@@ -220,53 +239,53 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 								<Label>Layout name</Label>
 								<Input />
 							</TextField>
-							<Select
+							<Autocomplete
 								variant='secondary'
 								aria-label='Reference clip'
+								placeholder='Choose a clip to preview'
 								value={reference || null}
+								allowsEmptyCollection
 								onChange={(key) => {
 									setClip(null);
 									setReference(String(key ?? ""));
 								}}
 							>
 								<Label>Reference clip</Label>
-								<Select.Trigger>
-									<Select.Value>{clip?.title ?? "Choose a clip to preview"}</Select.Value>
-									<Select.Indicator />
-								</Select.Trigger>
-								<Select.Popover>
-									<ListBox>
-										{clips.map((item) => (
-											<ListBox.Item key={item.id} id={item.id} textValue={item.title}>
-												<Label>{item.title || "Untitled clip"}</Label>
-												<ListBox.ItemIndicator />
-											</ListBox.Item>
-										))}
-									</ListBox>
-								</Select.Popover>
-							</Select>
+								<Autocomplete.Trigger>
+									<Autocomplete.Value>{clip?.title || clips.find((item) => item.id === reference)?.title || "Choose a clip to preview"}</Autocomplete.Value>
+									<Autocomplete.Indicator />
+								</Autocomplete.Trigger>
+								<Autocomplete.Popover>
+									<Autocomplete.Filter
+										inputValue={search}
+										onInputChange={(value) => {
+											setLoading(true);
+											setSearch(value);
+										}}
+										filter={() => true}
+									>
+										<SearchField aria-label='Find a reference clip' variant='secondary' autoFocus>
+											<SearchField.Group>
+												<SearchField.SearchIcon />
+												<SearchField.Input placeholder='Search clip titles' />
+												<SearchField.ClearButton />
+											</SearchField.Group>
+										</SearchField>
+										<ListBox renderEmptyState={() => <EmptyState>{loading ? "Loading clips…" : "No clips found. Try another title."}</EmptyState>}>
+											{[...(clip && search.trim().length < 2 && !clips.some((item) => item.id === clip.id) ? [clip] : []), ...clips].map((item) => (
+												<ListBox.Item id={item.id} key={item.id} textValue={item.title || "Untitled clip"}>
+													<Label>{item.title || "Untitled clip"}</Label>
+													<ListBox.ItemIndicator />
+												</ListBox.Item>
+											))}
+										</ListBox>
+									</Autocomplete.Filter>
+								</Autocomplete.Popover>
+							</Autocomplete>
 						</div>
 					) : (
 						<p className='text-sm text-muted'>Changes apply only to this clip and layout. Your global template stays unchanged.</p>
 					)}
-					{!clipId ? (
-						<form
-							className='flex items-end gap-2'
-							onSubmit={(event) => {
-								event.preventDefault();
-								setLoading(true);
-								setSearch(query);
-							}}
-						>
-							<TextField variant='secondary' className='min-w-0 flex-1' value={query} onChange={setQuery} maxLength={1000}>
-								<Label>Find a reference clip</Label>
-								<Input placeholder='Search clip titles' />
-							</TextField>
-							<Button type='submit' variant='secondary' isPending={loading}>
-								Search clips
-							</Button>
-						</form>
-					) : null}
 					{clip ? (
 						<ClipCompositionCanvas key={clip.id} creatorId={creatorId} clip={clip} layout={layout} selected={layer.id} onSelect={setSelected} onChange={change} onDimensions={setSourceDimensions} />
 					) : (
@@ -288,7 +307,17 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 							<h3 className='text-sm font-medium'>Layers</h3>
 							<div className='space-y-1'>
 								{[...layout.layers].reverse().map((item) => (
-									<Button key={item.id} fullWidth variant={item.id === layer.id ? "secondary" : "ghost"} className='justify-start' onPress={() => setSelected(item.id)}>
+									<Button key={item.id} fullWidth variant={item.id === layer.id ? "secondary" : "ghost"} className='justify-start gap-2' onPress={() => setSelected(item.id)}>
+										<span
+											aria-hidden='true'
+											className='size-2.5 shrink-0 rounded-full'
+											style={{
+												backgroundColor: compositionLayerColor(
+													item.id,
+													layout.layers.map((layer) => layer.id),
+												),
+											}}
+										/>
 										{item.label}
 									</Button>
 								))}
@@ -302,9 +331,9 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 									if (key) add(String(key) as CompositionLayer["kind"]);
 								}}
 							>
-								<Select.Trigger>
-									<IconPlus className='size-4' />
-									<Select.Value>Add crop or widget</Select.Value>
+								<Select.Trigger className='items-center gap-2'>
+									<IconPlus className='size-4 shrink-0' />
+									<Select.Value className='flex-1 text-left'>Add crop or widget</Select.Value>
 									<Select.Indicator />
 								</Select.Trigger>
 								<Select.Popover>
