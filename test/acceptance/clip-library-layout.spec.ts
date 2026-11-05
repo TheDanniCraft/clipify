@@ -88,28 +88,26 @@ for (const width of [390, 820, 1024, 1440])
 			await page.goto(`${tourWorld.origin}/dashboard`);
 			await expect(page.getByRole("status", { name: "Known clips", exact: true })).toHaveText("1");
 			await expect(page.getByRole("button", { name: "Last night's clutch", exact: true })).toBeVisible();
-			await expect(page.getByText("Recent streams", { exact: true })).toBeVisible();
+			await expect(page.getByRole("heading", { name: "Latest stream", exact: true })).toBeVisible();
 			await expect(page.getByRole("link", { name: "Latest stream", exact: true })).toBeVisible();
 			expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 			await page.screenshot({ path: info.outputPath(`home-${width}-${theme}.png`), fullPage: true, animations: "disabled" });
-			const homeBounds = await page.getByRole("region", { name: "Clip performance", exact: true }).evaluate((element) => {
-				const rect = (node: Element) => {
-					const box = node.getBoundingClientRect();
-					return { x: box.x + scrollX, y: box.y + scrollY, w: box.width, h: box.height };
-				};
-				return { header: rect(element.querySelector("header")!), panels: rect(element.nextElementSibling!), width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight };
-			});
+			const performance = page.locator(".card").filter({ has: page.getByRole("heading", { name: "Clip performance", exact: true }) });
+			const latestStream = page.locator(".card").filter({ has: page.getByRole("heading", { name: "Latest stream", exact: true }) });
+			const topClips = page.getByRole("region", { name: "Top clips", exact: true });
+			const homeBounds = { performance: await performance.boundingBox(), stream: await latestStream.boundingBox(), clips: await topClips.boundingBox() };
 			const measurementsPath = info.outputPath(`layout-regions-${width}-${theme}.json`);
 			await writeFile(measurementsPath, JSON.stringify({ inventory: selectionBounds, home: homeBounds }));
 			await info.attach(`layout-regions-${width}-${theme}.json`, { path: measurementsPath, contentType: "application/json" });
-			const streams = await page.getByText("Recent streams", { exact: true }).boundingBox();
-			const topClips = await page.getByText("Top clips", { exact: true }).boundingBox();
-			expect(streams).not.toBeNull();
-			expect(topClips).not.toBeNull();
+			expect(homeBounds.performance).not.toBeNull();
+			expect(homeBounds.stream).not.toBeNull();
+			expect(homeBounds.clips).not.toBeNull();
 			if (width >= 1024) {
-				expect(Math.abs(streams!.y - topClips!.y)).toBeLessThanOrEqual(2);
-				expect(streams!.x).toBeLessThan(topClips!.x);
-			} else expect(streams!.y).toBeLessThan(topClips!.y);
+				expect(Math.abs(homeBounds.performance!.y - homeBounds.stream!.y)).toBeLessThanOrEqual(2);
+				expect(Math.abs(homeBounds.performance!.height - homeBounds.stream!.height)).toBeLessThanOrEqual(2);
+				expect(homeBounds.performance!.x).toBeLessThan(homeBounds.stream!.x);
+			} else expect(homeBounds.performance!.y + homeBounds.performance!.height).toBeLessThanOrEqual(homeBounds.stream!.y);
+			expect(homeBounds.clips!.y).toBeGreaterThanOrEqual(homeBounds.stream!.y + homeBounds.stream!.height);
 			if (width === 390) await toggle.click();
 			await launcher.press("Enter");
 			await expect(dialog).toBeVisible();
