@@ -738,10 +738,19 @@ T631 preceding checkpoint:23b6dd303fd14462644ee01db3e94e5d84a11ae9 passed full C
 - [x] T638 Consolidate sidebar profile/context/guide/admin/support ordering, collapsed avatar and account/Badges destinations; preserve responsive consent placement.
 - [x] T639 Recover unavailable agencies and legacy URLs without clearing sessions; retain email-only navigation and toast failed switches without granting creator permissions.
 - [x] T640 Preserve saved onboarding navigation through sidebar Settings/Tools and verify affected whole-file owners plus real desktop/mobile light/dark browser journeys.
-- [ ] T641 Publish the passing account/sidebar follow-up to PR546, inspect its preview and required CI, and retain any pending platform validation explicitly.
+- [x] T641 Publish the passing account/sidebar follow-up to PR546, inspect its preview and required CI, and retain any pending platform validation explicitly.
 
 ## Export and portrait flow audit, 2026-11-05
 
 - [x] T642 Audit selection, clip preview/detail, portrait framing and export/recovery in installed HeroUI; correct action affordances and align preview frames in both themes and viewport sizes.
 - [x] T643 Reproduce and repair media-element failure and expired cached-URL retry; retain creator authorization, download budgets, layout drafts and original downloads.
-- [ ] T644 Pass affected whole-file owners and real-media browser/export/recovery checks, inspect screenshots, publish to PR546 and verify exact-source preview; report required CI separately.
+- [x] T644 Pass affected whole-file owners and real-media browser/export/recovery checks, inspect screenshots, publish to PR546 and verify exact-source preview; report required CI separately.
+
+## Batch export refinement, 2026-11-05
+
+- [x] T645 Specify modal/queue boundaries and inspect installed HeroUI controls plus Mobbin transfer patterns.
+- [x] T646 Test and implement real clip progress transport with bounded metadata/media, abort and existing API compatibility.
+- [x] T647 Test and implement atomic account-wide weighted 50-clip allowance shared by every export path.
+- [x] T648 Add creator-scoped modal queue, sequential batches, sidebar launcher, expandable session history and stable triggers; compact library refresh.
+- [x] T649 Complete affected whole-file and real browser recovery/portrait/batch validation and inspect both themes and mobile/desktop screenshots.
+- [ ] T650 Publish exact source to PR546, verify preview deployment and inspect the separate required CI checkpoint.

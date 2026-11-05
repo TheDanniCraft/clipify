@@ -318,7 +318,7 @@ it("orders identity, guide, admin and support consistently in the footer", () =>
 		</DashboardShell>,
 	);
 	const slots = [...document.querySelectorAll("[data-dashboard-utility]")].map((node) => node.getAttribute("data-dashboard-utility"));
-	expect(slots).toEqual(["account", "guide", "admin", "chat", "report"]);
+	expect(slots).toEqual(["exports", "account", "guide", "admin", "chat", "report"]);
 	expect(screen.getByRole("navigation", { name: "Admin sections" })).toBeVisible();
 });
 it("does not expose admin navigation to a creator", () => {

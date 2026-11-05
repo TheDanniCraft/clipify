@@ -31,7 +31,7 @@ for (const mode of ["missing_scope", "revoked"])
 		const seeded = await setup({ page, request, tourWorld }, mode === "revoked" ? mode : undefined);
 		if (mode === "missing_scope") await tourWorld.fixture.pool.query("UPDATE auth.account SET scope=$1 WHERE account_id=$2", ["", seeded.creatorId]);
 		await page.getByRole("button", { name: "Export selected", exact: true }).click();
-		await expect(page.getByRole("dialog", { name: "Export details", exact: true })).toContainText("Reconnect Twitch");
+		await expect(page.getByRole("dialog", { name: "Clip exports", exact: true })).toContainText("Reconnect Twitch");
 		await expect(page.getByRole("link", { name: "Reconnect Twitch (opens in a new tab)", exact: true })).toHaveAttribute("target", "_blank");
 		await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("1 selected");
 		await expect(page.getByRole("button", { name: "Retry after reconnect", exact: true })).toBeEnabled();
@@ -40,15 +40,16 @@ for (const mode of ["provider_429", "provider_5xx"])
 	test(`Clip export provider recovery: ${mode}`, async ({ page, request, tourWorld }) => {
 		const seeded = await setup({ page, request, tourWorld }, mode);
 		await page.getByRole("button", { name: "Export selected", exact: true }).click();
-		const retry = page.getByRole("button", { name: "Retry failed clips", exact: true });
-		await expect(retry).toBeVisible();
-		if (mode === "provider_429") {
-			await expect(retry).toBeDisabled();
-			await expect(retry).toBeEnabled({ timeout: 5000 });
-		}
-		await setMode(tourWorld, seeded.creatorId, seeded.id, seeded.value);
 		const download = page.waitForEvent("download");
-		await retry.click();
+		if (mode === "provider_429") {
+			await expect(page.getByText(/Waiting for the download limit/)).toBeVisible();
+			await setMode(tourWorld, seeded.creatorId, seeded.id, seeded.value);
+		} else {
+			const retry = page.getByRole("button", { name: "Retry failed clips", exact: true });
+			await expect(retry).toBeEnabled();
+			await setMode(tourWorld, seeded.creatorId, seeded.id, seeded.value);
+			await retry.click();
+		}
 		const archive = await download;
 		expect(archive.suggestedFilename()).toMatch(/\.zip$/);
 		await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("1 selected");
@@ -59,7 +60,7 @@ for (const mode of ["deleted", "html", "truncated"])
 		let downloads = 0;
 		page.on("download", () => downloads++);
 		await page.getByRole("button", { name: "Export selected", exact: true }).click();
-		await expect(page.getByRole("dialog", { name: "Export details", exact: true })).toContainText("No selected clips could be downloaded");
+		await expect(page.getByRole("dialog", { name: "Clip exports", exact: true })).toContainText("No selected clips could be downloaded");
 		await expect(page.getByRole("button", { name: "Retry failed clips", exact: true })).toHaveCount(0);
 		await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("1 selected");
 		expect(downloads).toBe(0);
@@ -82,9 +83,9 @@ for (const width of [390, 1440])
 			const entries = unzipSync(new Uint8Array(await readFile((await archive.path())!)));
 			const manifest = JSON.parse(strFromU8(entries["manifest.json"]));
 			expect(manifest.clips.filter((clip: { status: string }) => clip.status === "included").map((clip: { id: string }) => clip.id)).toEqual([seeded.id]);
-			await expect(page.getByText("1 clip was skipped.", { exact: false })).toBeVisible();
+			await expect(page.getByRole("dialog", { name: "Clip exports" }).getByText(/1 clip skipped/)).toBeVisible();
 			await setMode(tourWorld, seeded.creatorId, second, { ...seeded.value, clip: { ...seeded.value.clip, id: second, title: "Retry this clip" } });
-			const requestPromise = page.waitForRequest((request) => request.url().endsWith("/api/clips/export") && request.method() === "POST");
+			const requestPromise = page.waitForRequest((request) => new URL(request.url()).pathname === "/api/clips/export" && request.method() === "POST");
 			const retryDownload = page.waitForEvent("download");
 			await page.getByRole("button", { name: "Retry failed clips", exact: true }).click();
 			expect((await requestPromise).postDataJSON().clipIds).toEqual([second]);
@@ -94,7 +95,7 @@ test("Clip export cancellation retains explicit selection", async ({ page, reque
 	await setup({ page, request, tourWorld }, "delay");
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
 	await page.getByRole("button", { name: "Cancel export", exact: true }).click();
-	await expect(page.getByText("Export cancelled. Your selection is kept.", { exact: true })).toBeVisible();
+	await expect(page.getByRole("dialog", { name: "Clip exports" }).getByText("Export cancelled. Your selection is kept.", { exact: true })).toBeVisible();
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("1 selected");
 	await expect(page.getByRole("button", { name: "Export selected", exact: true })).toBeEnabled();
 });
@@ -102,7 +103,7 @@ test("Clip export refuses an expired session without dropping the local selectio
 	const seeded = await setup({ page, request, tourWorld });
 	await tourWorld.fixture.pool.query("DELETE FROM auth.session WHERE user_id=$1", [seeded.authUserId]);
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
-	await expect(page.getByRole("dialog", { name: "Export details", exact: true })).toContainText("Sign in again");
+	await expect(page.getByRole("dialog", { name: "Clip exports", exact: true })).toContainText("Sign in again");
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("1 selected");
 });
 
@@ -168,7 +169,7 @@ test("Clip export refuses a suspended creator with actionable feedback", async (
 	const seeded = await setup({ page, request, tourWorld });
 	await tourWorld.fixture.pool.query("UPDATE users SET disabled=true WHERE id=$1", [seeded.creatorId]);
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
-	await expect(page.getByRole("dialog", { name: "Export details", exact: true })).toContainText("This creator account is suspended. Contact support");
+	await expect(page.getByRole("dialog", { name: "Clip exports", exact: true })).toContainText("This creator account is suspended. Contact support");
 	await expect(page.getByRole("button", { name: "Retry failed clips", exact: true })).toHaveCount(0);
 });
 test("Clip export withholds buffered media when the current grant is revoked during preparation", async ({ page, request, tourWorld }) => {
@@ -189,7 +190,7 @@ test("Clip export withholds buffered media when the current grant is revoked dur
 		})
 		.toBe(true);
 	await tourWorld.fixture.pool.query("UPDATE auth.member SET role=$1 WHERE organization_id=$2 AND user_id=$3", ["analyst", tourWorld.owner!.creatorOrganizationId, seeded.authUserId]);
-	await expect(page.getByRole("dialog", { name: "Export details", exact: true })).toContainText("no longer have permission", { timeout: 10000 });
+	await expect(page.getByRole("dialog", { name: "Clip exports", exact: true })).toContainText("no longer have permission", { timeout: 10000 });
 	expect(downloads).toBe(0);
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("2 selected");
 });
@@ -253,7 +254,7 @@ test("Refresh library shows synchronized provider metadata and retains selection
 			{ timeout: 15000 },
 		)
 		.toBe("Synchronized highlight");
-	await page.getByRole("button", { name: "Check for new clips", exact: true }).click();
+	await page.getByRole("button", { name: "Refresh library", exact: true }).click();
 	await expect(page.getByRole("button", { name: "Preview Synchronized highlight", exact: true })).toBeVisible();
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("1 selected");
 });
@@ -284,6 +285,7 @@ test("Clip details exposes owned metadata and MP4 with the shared bulk budget", 
 	expect(media.suggestedFilename()).toMatch(/\.mp4$/);
 	const bytes = await readFile((await media.path())!);
 	expect(bytes.subarray(4, 8).toString()).toBe("ftyp");
+	await page.getByRole("dialog", { name: "Clip exports" }).getByRole("button", { name: "Close exports", exact: true }).click();
 	for (let i = 0; i < 2; i++) expect((await page.request.post(`${tourWorld.origin}/api/clips/export`, { data: { creatorId: seeded.creatorId, clipIds: [seeded.id] }, headers: { Origin: tourWorld.origin } })).status()).toBe(200);
 	const denied = await page.request.post(`${tourWorld.origin}/api/clips/export?format=mp4`, { data: { creatorId: seeded.creatorId, clipIds: [seeded.id] }, headers: { Origin: tourWorld.origin } });
 	expect(denied.status()).toBe(429);
@@ -307,12 +309,13 @@ test("Export failure dialog preserves page geometry and selection", async ({ pag
 	const selection = page.getByRole("status", { name: "Clip selection", exact: true });
 	const before = await selection.boundingBox();
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
-	const details = page.getByRole("dialog", { name: "Export details", exact: true });
+	const details = page.getByRole("dialog", { name: "Clip exports", exact: true });
 	await expect(details).toBeVisible();
-	await expect(details).toContainText("Last night's clutch: Twitch returned an incomplete video");
+	await expect(details.getByRole("list")).toContainText("Last night's clutch");
+	await expect(details.getByRole("list")).toContainText("Twitch returned an incomplete video");
 	await expect(details).not.toContainText("RunnerPresentation_");
 	await page.screenshot({ path: info.outputPath("export-error-dialog.png"), fullPage: true });
-	await details.getByRole("button", { name: "Close details", exact: true }).click();
+	await details.getByRole("button", { name: "Close exports", exact: true }).click();
 	await expect(details).not.toBeVisible();
 	await expect(selection).toHaveText("1 selected");
 	const after = await selection.boundingBox();

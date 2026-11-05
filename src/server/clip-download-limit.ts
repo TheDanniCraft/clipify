@@ -9,3 +9,8 @@ export async function reserveClipDownloadJob(creatorId: string) {
 export async function reserveTwitchClipDownloadRequest(creatorId: string) {
 	return consumeDatabaseRateLimit({ action: "twitch-clip-download", identityKey: creatorId, networkKey: creatorId, limit: 100, windowMs: 60000, now: new Date() });
 }
+
+/** Count clips across original/portrait, single/bulk exports and all team members. */
+export async function reserveClipExportVolume(creatorId: string, count: number) {
+	return consumeDatabaseRateLimit({ action: "clip-export-volume", identityKey: creatorId, networkKey: creatorId, limit: 50, cost: count, windowMs: 60000, now: new Date() });
+}

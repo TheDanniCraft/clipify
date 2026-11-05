@@ -78,3 +78,34 @@ it("rejects unsupported download formats", async () => {
 	const response = await POST(new Request("https://clipify.test/api/clips/export?format=html", { method: "POST", headers: { origin: "https://clipify.test", "content-type": "application/json" }, body: "{}" }));
 	expect(response.status).toBe(400);
 });
+it("streams per-clip progress before the bounded download bytes", async () => {
+	archive.mockImplementation(async (_input, _signal, _format, progress) => {
+		progress({ index: 0, stage: "processing", title: "Owned clip" });
+		return { ok: true, bytes: new Uint8Array([1, 2, 3]), summary: { included: [0], skipped: [] } };
+	});
+	const req = new Request("https://clipify.test/api/clips/export?progress=1", { method: "POST", headers: { origin: "https://clipify.test", "content-type": "application/json" }, body: JSON.stringify({ creatorId: "owner", clipIds: ["A"] }) });
+	const result = await POST(req);
+	expect(result.headers.get("content-type")).toBe("application/vnd.clipify.export-stream");
+	expect(result.headers.get("x-accel-buffering")).toBe("no");
+	const bytes = new Uint8Array(await result.arrayBuffer());
+	expect(new TextDecoder().decode(bytes)).toContain('"stage":"processing"');
+	expect([...bytes.slice(-3)]).toEqual([1, 2, 3]);
+});
+it("streams a controlled error rather than an unhandled rejected response", async () => {
+	archive.mockRejectedValue(new Error("private detail"));
+	const result = await POST(new Request("https://clipify.test/api/clips/export?progress=1", { method: "POST", headers: { origin: "https://clipify.test", "content-type": "application/json" }, body: "{}" }));
+	expect(await result.text()).toBe(JSON.stringify({ type: "error", code: "SERVICE_UNAVAILABLE" }) + "\n");
+});
+it("streams typed access denial without a file and cancels active work on disconnect", async () => {
+	archive.mockResolvedValueOnce({ ok: false, code: "PERMISSION_DENIED", status: 403 });
+	const make = () => new Request("https://clipify.test/api/clips/export?progress=1", { method: "POST", headers: { origin: "https://clipify.test", "content-type": "application/json" }, body: "{}" });
+	expect(await (await POST(make())).text()).toContain('"code":"PERMISSION_DENIED"');
+	let signal!: AbortSignal;
+	archive.mockImplementation((_input, abort) => {
+		signal = abort;
+		return new Promise((resolve) => abort.addEventListener("abort", () => resolve({ ok: false, code: "EXPORT_CANCELLED", status: 499 })));
+	});
+	const response = await POST(make());
+	await response.body!.cancel();
+	expect(signal.aborted).toBe(true);
+});

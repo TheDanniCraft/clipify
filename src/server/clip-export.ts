@@ -1,4 +1,5 @@
 import "server-only";
+import type { ClipExportProgress } from "@lib/clipExportStream";
 import { clipLayoutSchema } from "@lib/clipLayout";
 import { renderClipLayout } from "./clip-layout-render";
 import { z } from "zod";
@@ -11,7 +12,7 @@ import { twitchCacheTable } from "@/db/schema";
 import { TwitchCacheType } from "@types";
 import { authorizeCreatorOperation } from "@/auth/authorize-operation";
 import { getAccessTokenResultInternal } from "@/server/tokens";
-import { reserveClipDownloadJob, reserveTwitchClipDownloadRequest } from "./clip-download-limit";
+import { reserveClipDownloadJob, reserveTwitchClipDownloadRequest, reserveClipExportVolume } from "./clip-download-limit";
 import { providerClipSchema } from "./resources/clip-validation";
 import { publicClip } from "./resources/clip-discovery";
 
@@ -117,7 +118,7 @@ export function clipExportFilename(title: string, id: string, index: number, use
 	return filename;
 }
 
-export async function buildClipArchive(input: unknown, parentSignal?: AbortSignal, format: "zip" | "mp4" = "zip"): Promise<ArchiveResult> {
+export async function buildClipArchive(input: unknown, parentSignal?: AbortSignal, format: "zip" | "mp4" = "zip", progress?: (event: ClipExportProgress) => void): Promise<ArchiveResult> {
 	const parsed = exportRequestSchema.safeParse(input);
 	if (!parsed.success) return failure("INVALID_INPUT", 400);
 	const { creatorId, clipIds } = parsed.data;
@@ -149,12 +150,16 @@ export async function buildClipArchive(input: unknown, parentSignal?: AbortSigna
 		const tokenResult = await getAccessTokenResultInternal(creatorId);
 		const token = tokenResult.token;
 		if (!token || !token.scope?.some((scope) => scope === "channel:manage:clips" || scope === "editor:manage:clips")) return failure("RECONNECT_REQUIRED", 403);
+		const volume = await reserveClipExportVolume(creatorId, clipIds.length);
+		if (!volume.allowed) return failure("RATE_LIMITED", 429, new Date(Date.now() + volume.retryAfterSeconds * 1000).toISOString());
+		clips.forEach((item, index) => progress?.({ index, stage: "queued", title: item!.clip.title.slice(0, 1000) }));
 		const summary: ExportSummary = { included: [], skipped: [] };
 		const sources = new Map<number, { url: string; variant: "landscape" | "portrait" }>();
 		const skip = (index: number, code: string) => {
 			if (!summary.skipped.some((item) => item.index === index)) {
 				const title = Array.from(clips[index]!.clip.title).slice(0, 80);
 				while (strToU8(title.join("")).length > 80) title.pop();
+				progress?.({ index, stage: "skipped", code });
 				summary.skipped.push({ index, code, retryable: ["provider_error", "download_timeout", "rate_limited", "render_busy", "render_failed"].includes(code), title: title.join("") });
 			}
 		};
@@ -244,8 +249,12 @@ export async function buildClipArchive(input: unknown, parentSignal?: AbortSigna
 				pair.map(async (index) => {
 					const fileSignal = AbortSignal.any([signal, AbortSignal.timeout(30000)]);
 					try {
+						progress?.({ index, stage: "processing" });
 						let bytes = await downloadMedia(sources.get(index)!.url, fileSignal);
-						if (parsed.data.layout) bytes = await renderClipLayout(bytes, parsed.data.layout, publicClip(clips[index]!.clip), signal);
+						if (parsed.data.layout) {
+							progress?.({ index, stage: "rendering" });
+							bytes = await renderClipLayout(bytes, parsed.data.layout, publicClip(clips[index]!.clip), signal);
+						}
 						return { index, bytes };
 					} catch (error) {
 						return { index, code: fileSignal.aborted ? "download_timeout" : error instanceof Error && ["clip_unavailable", "download_unavailable", "file_size_limit", "invalid_media", "render_busy", "render_failed"].includes(error.message) ? error.message : "provider_error" };
@@ -266,6 +275,7 @@ export async function buildClipArchive(input: unknown, parentSignal?: AbortSigna
 				files[filename] = result.bytes;
 				totalBytes += result.bytes.length;
 				summary.included.push(result.index);
+				progress?.({ index: result.index, stage: "ready" });
 				manifest.push({ ...publicClip(clip), status: "included", filename, bytes: result.bytes.length, variant: parsed.data.layout ? "portrait" : sources.get(result.index)!.variant });
 			}
 		}

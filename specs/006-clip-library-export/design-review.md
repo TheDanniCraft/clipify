@@ -35,3 +35,7 @@ Payload Bay PR13 remains pinned at `1560be1e9ac0339ebeebc774b19f57c4d4fe80ff`. R
 ## Evidence boundaries
 
 The previous four screenshots and successful no-overflow assertions did not establish acceptable UX. The audit HTML in ignored `test-results/dashboard-audit/audit.html` records that rejected baseline and the eight inspected references. Current acceptance captures Home, Inventory, expanded filters, Streams and a stream detail at390px,820px,1024px and1440px in both themes. Only completed runs and inspected artifacts are credited in test-summary.md; no mock-component test substitutes for browser acceptance.
+
+## Batch export modal
+
+Reviewed Mobbin Proton transfer panel (https://mobbin.com/screens/12f6528d-e78a-4540-9087-784c0baa9172) and Teachable bulk upload (https://mobbin.com/screens/c81d368e-2376-414b-8fa8-c24983c6bd9c). Adopt named per-file progress, a reopening launcher and compact completed history, using installed HeroUI Modal/Spinner/Disclosure/Button and Clipify tokens. Preserve the accepted clip inventory table and portrait editor. No invented percentage while the server is processing.

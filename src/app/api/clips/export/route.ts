@@ -1,4 +1,5 @@
 import { buildClipArchive, readBoundedResponse } from "@/server/clip-export";
+import { EXPORT_STREAM_TYPE } from "@lib/clipExportStream";
 export const runtime = "nodejs";
 const privateHeaders = { "Cache-Control": "private, no-store" };
 export async function POST(request: Request) {
@@ -23,6 +24,41 @@ export async function POST(request: Request) {
 	try {
 		const format = requestUrl.searchParams.get("format") ?? "zip";
 		if (format !== "zip" && format !== "mp4") return Response.json({ ok: false, code: "INVALID_INPUT" }, { status: 400, headers: privateHeaders });
+		if (requestUrl.searchParams.get("progress") === "1") {
+			const abort = new AbortController();
+			const signal = AbortSignal.any([request.signal, abort.signal]);
+			const body = new ReadableStream<Uint8Array>({
+				start(controller) {
+					const emit = (event: unknown) => {
+						if (!signal.aborted) controller.enqueue(new TextEncoder().encode(JSON.stringify(event) + "\n"));
+					};
+					void (async () => {
+						try {
+							const result = await buildClipArchive(input, signal, format, (event) => emit({ type: "clip", ...event }));
+							if (!result.ok) {
+								emit({ type: "error", ...result });
+								return;
+							}
+							const summary = Buffer.from(JSON.stringify(result.summary)).toString("base64url");
+							if (summary.length > 16384) {
+								emit({ type: "error", code: "EXPORT_LIMIT" });
+								return;
+							}
+							emit({ type: "file", bytes: result.bytes.length, summary });
+							if (!signal.aborted) controller.enqueue(new Uint8Array(result.bytes));
+						} catch {
+							emit({ type: "error", code: "SERVICE_UNAVAILABLE" });
+						} finally {
+							if (!signal.aborted) controller.close();
+						}
+					})();
+				},
+				cancel() {
+					abort.abort();
+				},
+			});
+			return new Response(body, { headers: { ...privateHeaders, "Content-Type": EXPORT_STREAM_TYPE, "X-Accel-Buffering": "no" } });
+		}
 		const result = await buildClipArchive(input, request.signal, format);
 		const headers = new Headers(privateHeaders);
 		const retryAt = result.ok ? result.summary.retryAt : result.retryAt;

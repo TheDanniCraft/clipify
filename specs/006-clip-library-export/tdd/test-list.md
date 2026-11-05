@@ -325,3 +325,13 @@ Evidence note: the initial layout module's missing-module Red is scaffolding evi
 Sidebar follow-up acceptance: R-01 maps to dashboard-account-sidebar.spec.ts and adminNavigation/layout/navbar/Shell owners (identity/context order, compact utilities, collapsed avatar, sidebar admin sections, impersonation return and non-admin denial). R-02 maps to the same browser journeys and agency.page/layout/page owners (suspended agency, legacy URL, context recovery, email-only navigation and provider/permission failures). R-03 maps to dashboard-support-consent.spec.ts, six owning guide BDD scenarios and portal/chat/provider/model/spotlight owners (pending/reject/enable/revoke, actual portal host, explicit guide-panel opening and saved guide navigation). Coverage-gate.test.ts preserves manifest ownership for new admin layout/navigation sources without changing thresholds.
 
 Export-flow audit owners: clipPlayer.test.tsx and clipPreview.test.tsx cover late media errors, fresh retry and modal lifecycle; clipLayoutEditor.test.tsx covers decode-gated export, stable failed-preview recovery and preserved crops; creatorLibrary.test.ts and twitch.external.test.ts cover typed retry transport, renewed URLs and retained budgets; clipExport.test.tsx retains original/bulk downloads. creator-layout.spec.ts owns desktop/mobile light/dark aligned previews, actual canvas playback, saved drafts, portrait MP4/ZIP and failed-media recovery; clip-library-recovery.spec.ts owns original/bulk provider/permission/retry boundaries. BDD-TOUR-US1-027 owns the requested footer order and accessible guide.
+
+## Batch exports
+
+- Stable Export selected opens the modal; owned clip titles and real processing/render/ready stages appear.
+- Modal close and SPA navigation preserve work; creator switch/unmount cancels without a late download.
+- Fifty-one selected clips produce batches of 50 and 1 with minute waiting and automatic resume.
+- Concurrent bulk reservations admit only available quantities; rejection rolls back; single downloads share the allowance.
+- Incremental transport rejects malformed/oversized metadata, invalid indices, missing/inconsistent summaries, truncated/oversized bytes and invalid file signatures. Cancellation stops reads.
+- Failure, reconnect subset retry, partial package retry, cancellation and completed history remain actionable without changing page geometry.
+- Compact refresh retains filtering and cross-page selection; portrait selection explains its 50-clip limit.

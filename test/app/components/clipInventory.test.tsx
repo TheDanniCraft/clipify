@@ -209,16 +209,17 @@ it("uses local midnight boundaries when applying a restored date range", async (
 	fireEvent.submit(screen.getByPlaceholderText("Search clip titles").closest("form")!);
 	await waitFor(() => expect(inventory).toHaveBeenCalledWith({ creatorId: "owner", query: expect.objectContaining({ startedAt: "2026-10-31T23:00:00.000Z", endedAt: "2026-11-02T23:00:00.000Z" }) }));
 });
-it("allows individual selection and deselection and caps page selection at fifty", () => {
-	const items = Array.from({ length: 51 }, (_, i) => ({ ...item, id: String(i), title: `Clip ${i}`, thumbnailUrl: null }));
-	render(<ClipInventory creatorId='owner' query={{}} data={{ ...data, items, total: 51 }} />);
+it("allows individual selection and deselection and caps queued selection at five hundred", () => {
+	const items = Array.from({ length: 501 }, (_, i) => ({ ...item, id: String(i), title: `Clip ${i}`, thumbnailUrl: null }));
+	render(<ClipInventory creatorId='owner' query={{}} data={{ ...data, items, total: 501 }} />);
 	fireEvent.click(screen.getByRole("checkbox", { name: "Select Clip 0" }));
 	expect(screen.getByRole("status", { name: "Clip selection" })).toHaveTextContent("1 selected");
 	fireEvent.click(screen.getByRole("checkbox", { name: "Select Clip 0" }));
 	expect(screen.getByRole("status", { name: "Clip selection" })).toHaveTextContent("0 selected");
 	fireEvent.click(screen.getByRole("button", { name: "Select page" }));
-	expect(screen.getByRole("status", { name: "Clip selection" })).toHaveTextContent("50 selected");
-	expect(screen.getByRole("checkbox", { name: "Select Clip 50" })).toBeDisabled();
+	expect(screen.getByRole("status", { name: "Clip selection" })).toHaveTextContent("500 selected");
+	expect(screen.getByText("Portrait layouts support up to 50 clips at a time.")).toBeVisible();
+	expect(screen.getByRole("checkbox", { name: "Select Clip 500" })).toBeDisabled();
 });
 it("ignores an old inventory response after a newer navigation completes", async () => {
 	let finish: (value: unknown) => void = () => {};

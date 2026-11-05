@@ -121,6 +121,7 @@ for (const theme of ["light", "dark"])
 			await file.saveAs(path);
 			const media = JSON.parse(execFileSync("ffprobe", ["-v", "quiet", "-show_streams", "-of", "json", path], { encoding: "utf8" }));
 			expect(media.streams.find((s: { codec_type: string }) => s.codec_type === "video")).toMatchObject({ width: 720, height: 1280 });
+			await page.getByRole("button", { name: "Close exports", exact: true }).click();
 			await page.getByRole("button", { name: "Back to clip details", exact: true }).click();
 			await expect(page.getByRole("heading", { name: "Leave without saving?", exact: true })).toBeVisible();
 			await page.getByRole("button", { name: "Keep editing", exact: true }).click();

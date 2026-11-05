@@ -41,6 +41,8 @@ const customJestConfig = {
 		"src/app/lib/clipLayout.ts",
 		"src/app/actions/clipLayouts.ts",
 		"src/app/components/creator/clipLayoutEditor.tsx",
+		"src/app/components/creator/clipExportQueue.tsx",
+		"src/app/lib/clipExportStream.ts",
 		"src/app/components/creator/streamMoments.tsx",
 		"src/app/dashboard/clips/layout/page.tsx",
 

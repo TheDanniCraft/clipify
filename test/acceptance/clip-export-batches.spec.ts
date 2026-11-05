@@ -1,0 +1,111 @@
+import { test, expect } from "../bdd/support/user-tour";
+import { seedCreatorLibrary } from "../support/creator-library";
+import { guideContentKey } from "../../src/app/lib/userTour";
+import { unzipSync } from "fflate";
+import { readFile } from "node:fs/promises";
+for (const width of [390, 1440])
+	for (const theme of ["light", "dark"])
+		test(`Batch exports stay stable and continue through navigation at ${width}px in ${theme}`, async ({ page, request, tourWorld }, info) => {
+			test.setTimeout(120000);
+			await page.setViewportSize({ width, height: 950 });
+			await page.addInitScript((t) => localStorage.setItem("theme", t), theme);
+			const { creatorId, id } = await seedCreatorLibrary({ page, request, tourWorld });
+			const pool = tourWorld.fixture.pool;
+			await pool.query("UPDATE auth.account SET scope=$1 WHERE provider_id='twitch' AND account_id=$2", ["channel:manage:clips", creatorId]);
+			await pool.query("UPDATE user_content_states SET state=jsonb_set(state::jsonb,'{minimized}','true')::text WHERE user_id=$1 AND content_key=$2", [creatorId, guideContentKey]);
+			await pool.query(`UPDATE "twitchCache" SET value=jsonb_set(value::jsonb,'{testDownloadMode}','"delay"')::text WHERE key=$1`, [`clip:${creatorId}:${id}`]);
+			await page.goto(`${tourWorld.origin}/dashboard/clips`);
+			await page.getByRole("button", { name: "Reject optional", exact: true }).click();
+			await expect(page.getByRole("button", { name: "Reject optional", exact: true })).not.toBeVisible();
+			await page.reload();
+			await expect(page.getByRole("button", { name: "Check for new clips", exact: true })).toHaveCount(0);
+			await page.getByRole("button", { name: "Select page", exact: true }).click();
+			const button = page.getByRole("button", { name: "Export selected", exact: true }),
+				before = await button.boundingBox();
+			await button.click();
+			const modal = page.getByRole("dialog", { name: "Clip exports", exact: true });
+			await expect(modal).toBeVisible();
+			await expect(modal.getByRole("list", { name: "Batch 1 clips" })).toContainText("Last night's clutch");
+			await expect(modal.getByText("Downloading", { exact: true })).toBeVisible();
+			const after = await button.boundingBox();
+			expect(after!.width).toBeCloseTo(before!.width, 0);
+			expect(after!.height).toBeCloseTo(before!.height, 0);
+			await page.screenshot({ path: info.outputPath("processing.png"), fullPage: true, animations: "disabled" });
+			const download = page.waitForEvent("download");
+			await modal.getByRole("button", { name: "Continue in background", exact: true }).click();
+			if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+			await page.getByRole("row", { name: "Streams", exact: true }).click();
+			await expect(page).toHaveURL(/\/dashboard\/streams$/);
+			await (await download).saveAs(info.outputPath("batch.zip"));
+			if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+			await page.getByRole("button", { name: "Exports", exact: true }).click();
+			await expect(modal).toContainText("1 clip ready");
+			await expect(modal.getByText("Ready", { exact: true })).toBeVisible();
+			await expect(page.getByText("Download started", { exact: true })).not.toBeVisible();
+			await page.screenshot({ path: info.outputPath("completed.png"), fullPage: true, animations: "disabled" });
+			await modal.getByRole("button", { name: "Close exports", exact: true }).click();
+			if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+			await page.getByRole("row", { name: "Clip Inventory", exact: true }).click();
+			await expect(page).toHaveURL(/\/dashboard\/clips$/);
+			await page.getByRole("button", { name: "Select page", exact: true }).click();
+			await page.getByRole("button", { name: "Export selected", exact: true }).click();
+			await expect(modal.getByRole("button", { name: /Batch 1, completed, 1 clip/ })).toBeVisible();
+			await modal.getByRole("button", { name: /Batch 1, completed, 1 clip/ }).click();
+			await expect(modal.getByRole("list", { name: "Batch 1 clips" })).toBeVisible();
+			await page.screenshot({ path: info.outputPath("history.png"), fullPage: true, animations: "disabled" });
+			await modal.getByRole("button", { name: "Cancel export", exact: true }).click();
+		});
+test("Fifty-one clips split at the minute boundary and share the server quota with individual downloads", async ({ page, request, tourWorld }, info) => {
+	test.setTimeout(120000);
+	const { creatorId, id } = await seedCreatorLibrary({ page, request, tourWorld });
+	const pool = tourWorld.fixture.pool;
+	await pool.query("UPDATE auth.account SET scope=$1 WHERE provider_id='twitch' AND account_id=$2", ["channel:manage:clips", creatorId]);
+	await pool.query("UPDATE user_content_states SET state=jsonb_set(state::jsonb,'{minimized}','true')::text WHERE user_id=$1 AND content_key=$2", [creatorId, guideContentKey]);
+	const row = (await pool.query('SELECT value FROM "twitchCache" WHERE key=$1', [`clip:${creatorId}:${id}`])).rows[0];
+	const stored = JSON.parse(row.value);
+	for (let index = 0; index < 50; index++) {
+		const clipId = `LibrarySort${String(index).padStart(2, "0")}_${creatorId.slice("e2e-creator-".length)}`;
+		await pool.query('INSERT INTO "twitchCache"(type,key,value) VALUES($1,$2,$3)', ["clip", `clip:${creatorId}:${clipId}`, JSON.stringify({ clip: { ...stored.clip, id: clipId, title: `Batch clip ${index}` } })]);
+	}
+	await page.goto(`${tourWorld.origin}/dashboard/clips`);
+	await page.getByRole("button", { name: "Reject optional", exact: true }).click();
+	await expect(page.getByRole("button", { name: "Reject optional", exact: true })).not.toBeVisible();
+	await page.reload();
+	await page.getByRole("button", { name: "Select page", exact: true }).click();
+	await page.getByRole("button", { name: "Next", exact: true }).click();
+	await expect(page).toHaveURL(/page=2/);
+	await expect(page.getByRole("grid", { name: "Clip inventory" }).locator("[data-clip-id]")).toHaveCount(25);
+	await page.getByRole("button", { name: "Select page", exact: true }).click();
+	await page.getByRole("button", { name: "Next", exact: true }).click();
+	await expect(page.getByRole("grid", { name: "Clip inventory" }).locator("[data-clip-id]")).toHaveCount(1);
+	await page.getByRole("button", { name: "Select page", exact: true }).click();
+	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("51 selected");
+	const first = page.waitForEvent("download");
+	await page.getByRole("button", { name: "Export selected", exact: true }).click();
+	await (await first).saveAs(info.outputPath("first.zip"));
+	await expect(page.getByText(/Waiting for the download limit/)).toBeVisible();
+	expect(Object.keys(unzipSync(new Uint8Array(await readFile(info.outputPath("first.zip"))))).filter((name) => name.endsWith(".mp4"))).toHaveLength(50);
+	const blocked = await page.request.post(`${tourWorld.origin}/api/clips/export?format=mp4`, { headers: { Origin: tourWorld.origin }, data: { creatorId, clipIds: [id] } });
+	expect(blocked.status()).toBe(429);
+	const second = page.waitForEvent("download", { timeout: 75000 });
+	await (await second).saveAs(info.outputPath("second.zip"));
+	expect(Object.keys(unzipSync(new Uint8Array(await readFile(info.outputPath("second.zip"))))).filter((name) => name.endsWith(".mp4"))).toHaveLength(1);
+	await expect(page.getByRole("dialog", { name: "Clip exports" })).toContainText("1 clip ready");
+});
+test("Concurrent bulk requests reserve quantities atomically without charging rejected work", async ({ page, request, tourWorld }) => {
+	test.setTimeout(120000);
+	const { creatorId, id } = await seedCreatorLibrary({ page, request, tourWorld });
+	const pool = tourWorld.fixture.pool;
+	await pool.query("UPDATE auth.account SET scope=$1 WHERE provider_id='twitch' AND account_id=$2", ["channel:manage:clips", creatorId]);
+	const stored = JSON.parse((await pool.query('SELECT value FROM "twitchCache" WHERE key=$1', [`clip:${creatorId}:${id}`])).rows[0].value);
+	const ids = [id];
+	for (let index = 0; index < 29; index++) {
+		const next = `LibrarySort${String(index).padStart(2, "0")}_${creatorId.slice("e2e-creator-".length)}`;
+		ids.push(next);
+		await pool.query('INSERT INTO "twitchCache"(type,key,value) VALUES($1,$2,$3)', ["clip", `clip:${creatorId}:${next}`, JSON.stringify({ clip: { ...stored.clip, id: next } })]);
+	}
+	const replies = await Promise.all([0, 1].map(() => page.request.post(`${tourWorld.origin}/api/clips/export`, { headers: { Origin: tourWorld.origin }, data: { creatorId, clipIds: ids } })));
+	expect(replies.map((response) => response.status()).sort()).toEqual([200, 429]);
+	const individual = await page.request.post(`${tourWorld.origin}/api/clips/export?format=mp4`, { headers: { Origin: tourWorld.origin }, data: { creatorId, clipIds: [id] } });
+	expect(individual.status()).toBe(200);
+});

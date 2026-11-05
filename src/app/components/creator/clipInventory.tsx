@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, useTransition, useSyncExterna
 import { usePathname } from "next/navigation";
 import { Button, Card, Checkbox, Disclosure, Input, Label, ListBox, NumberField, Select, Table, TextField, Link } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
-import { IconChevronRight, IconDeviceMobile } from "@tabler/icons-react";
+import { IconChevronRight, IconDeviceMobile, IconRefresh } from "@tabler/icons-react";
 import { fromDate, toCalendarDate } from "@internationalized/date";
 import { getCreatorClipInventory, refreshCreatorLibrary } from "@actions/creatorLibrary";
 import AppDateRangePicker, { type AppDateRange } from "@components/appDateRangePicker";
@@ -64,13 +64,13 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 			.filter(([key]) => key !== "page")
 			.sort(),
 	]);
-	const [selection, setSelection] = useState<{ scope: string; ids: Set<string>; cleared?: boolean }>({ scope: selectionScope, ids: new Set<string>() });
+	const [selection, setSelection] = useState<{ scope: string; ids: Set<string>; cleared?: boolean; names?: Record<string, string> }>({ scope: selectionScope, ids: new Set<string>() });
 	const selected = selection.scope === selectionScope ? selection.ids : new Set<string>();
 	const selectClip = (id: string, include: boolean) => {
 		const ids = new Set(selected);
-		if (include && ids.size < 50) ids.add(id);
+		if (include && ids.size < 500) ids.add(id);
 		else if (!include) ids.delete(id);
-		setSelection({ scope: selectionScope, ids });
+		setSelection({ scope: selectionScope, ids, names: { ...selection.names, ...Object.fromEntries(data.ok ? data.items.map((clip) => [clip.id, clip.title]) : []) } });
 	};
 	const [preview, setPreview] = useState<Clip | null>(null);
 	const timeZone = query.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -149,6 +149,24 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 						</TextField>
 						<Button className='self-end' type='submit' isPending={pending}>
 							Apply filters
+						</Button>
+						<Button
+							variant='ghost'
+							size='sm'
+							isPending={pending}
+							onPress={() =>
+								startTransition(async () => {
+									try {
+										const result = await refreshCreatorLibrary({ creatorId });
+										setRefresh(result);
+										navigate(query, false);
+									} catch {
+										setRefresh({ ok: false, code: "SERVICE_UNAVAILABLE" });
+									}
+								})
+							}
+						>
+							<IconRefresh className='size-4' aria-hidden='true' /> Refresh library
 						</Button>
 						<Disclosure className='col-span-2' defaultExpanded={Boolean(query.category || query.minViews || query.minDuration || query.maxDuration || query.startedAt || query.sort)}>
 							<Disclosure.Heading>
@@ -244,42 +262,19 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 				</div>
 			) : (
 				<>
-					<div className='flex flex-wrap items-center gap-3'>
-						<Button
-							variant='secondary'
-							isPending={pending}
-							onPress={() =>
-								startTransition(async () => {
-									try {
-										const result = await refreshCreatorLibrary({ creatorId });
-										setRefresh(result);
-										navigate(query, false);
-									} catch {
-										setRefresh({ ok: false, code: "SERVICE_UNAVAILABLE" });
-									}
-								})
-							}
-						>
-							Refresh library
-						</Button>
-						<Button variant='ghost' isDisabled={!refresh?.ok || pending} onPress={() => navigate(query, false)}>
-							Check for new clips
-						</Button>
-					</div>
-
 					{data.items.length || selected.size ? (
 						<Card>
 							<Card.Content className='flex flex-row flex-wrap items-center justify-between gap-3'>
 								<div className='flex flex-wrap items-center gap-3'>
 									<Button
 										variant='secondary'
-										isDisabled={!hydrated || pending || selected.size >= 50 || data.items.length === 0}
+										isDisabled={!hydrated || pending || selected.size >= 500 || data.items.length === 0}
 										onPress={() => {
 											const ids = new Set(selected);
 											for (const clip of data.items) {
-												if (ids.size < 50) ids.add(clip.id);
+												if (ids.size < 500) ids.add(clip.id);
 											}
-											setSelection({ scope: selectionScope, ids });
+											setSelection({ scope: selectionScope, ids, names: { ...selection.names, ...Object.fromEntries(data.ok ? data.items.map((clip) => [clip.id, clip.title]) : []) } });
 										}}
 									>
 										Select page
@@ -294,11 +289,12 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 									{selection.cleared ? <p role='status'>Selection cleared because the filters changed.</p> : null}
 								</div>
 								<div className='flex flex-wrap items-center gap-3'>
-									<Link className={buttonVariants({ variant: "secondary", className: "gap-2" })} isDisabled={selected.size === 0} href={`/dashboard/clips/layout?clips=${encodeURIComponent([...selected].join(","))}`}>
+									<Link className={buttonVariants({ variant: "secondary", className: "gap-2" })} isDisabled={selected.size === 0 || selected.size > 50} href={`/dashboard/clips/layout?clips=${encodeURIComponent([...selected].join(","))}`}>
 										<IconDeviceMobile className='size-4' aria-hidden='true' />
 										Create portrait clips
 									</Link>
-									<ClipExport creatorId={creatorId} clipIds={[...selected]} scope={selection.scope} />
+									{selected.size > 50 ? <p className='text-sm text-muted'>Portrait layouts support up to 50 clips at a time.</p> : null}
+									<ClipExport creatorId={creatorId} clipIds={[...selected]} scope={selection.scope} clipNames={selection.names} />
 								</div>
 							</Card.Content>
 						</Card>
@@ -342,7 +338,7 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 										{data.items.map((clip) => (
 											<Table.Row key={clip.id} id={clip.id} data-clip-id={clip.id}>
 												<Table.Cell>
-													<Checkbox variant='secondary' isSelected={selected.has(clip.id)} isDisabled={!selected.has(clip.id) && selected.size >= 50} onChange={(include) => selectClip(clip.id, include)}>
+													<Checkbox variant='secondary' isSelected={selected.has(clip.id)} isDisabled={!selected.has(clip.id) && selected.size >= 500} onChange={(include) => selectClip(clip.id, include)}>
 														<Checkbox.Content>
 															<Checkbox.Control>
 																<Checkbox.Indicator />

@@ -46,7 +46,7 @@ export default function ClipDetails({ creatorId, data }: { creatorId: string; da
 									<IconDeviceMobile className='size-4' aria-hidden='true' />
 									Create portrait clip
 								</Link>
-								<ClipExport creatorId={creatorId} clipIds={[clip.id]} scope={`${creatorId}:${clip.id}`} format='mp4' />
+								<ClipExport clipNames={{ [clip.id]: clip.title }} creatorId={creatorId} clipIds={[clip.id]} scope={`${creatorId}:${clip.id}`} format='mp4' />
 							</div>
 							<dl className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3'>
 								{[

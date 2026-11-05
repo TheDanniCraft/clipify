@@ -5,6 +5,7 @@ import { Sidebar, Command, useSidebar } from "@heroui-pro/react";
 import { Button, Kbd } from "@heroui/react";
 import { IconHome, IconVideo, IconScissors, IconLayoutGrid, IconPlaylist, IconPhoto, IconDeviceDesktop, IconTools, IconSettings, IconFolder, IconSearch, IconHelpCircle, IconUserCircle, IconPlug, IconId, IconCreditCard, IconUsers, IconPlayerPlay, IconAward, IconBuildingCommunity } from "@tabler/icons-react";
 import NextLink from "next/link";
+import { ClipExportProvider, ExportQueueLauncher } from "./creator/clipExportQueue";
 import AdminNavigation from "./adminNavigation";
 import Logo from "./logo";
 import { settingsSections, settingsSection, toolSections } from "@lib/dashboardSections";
@@ -216,8 +217,9 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen, isAd
 						</Button>
 					) : null}
 					<div ref={markUtilityHostReady} id={isMobile ? "dashboard-mobile-utilities" : "dashboard-utilities"} className='flex flex-col gap-0.5'>
-						{["account", "guide", "admin", "chat", "report"].map((slot) => (
-							<div key={slot} data-dashboard-utility={slot} className={open || isMobile || slot === "account" ? "min-w-0 empty:hidden" : "hidden"}>
+						{["exports", "account", "guide", "admin", "chat", "report"].map((slot) => (
+							<div key={slot} data-dashboard-utility={slot} className={open || isMobile || slot === "account" || slot === "exports" ? "min-w-0 empty:hidden" : "hidden"}>
+								{slot === "exports" ? <ExportQueueLauncher compact={!open && !isMobile} /> : null}
 								{slot === "admin" && isAdmin ? <AdminNavigation /> : null}
 							</div>
 						))}
@@ -356,9 +358,11 @@ export default function DashboardShell({ children, creatorId, permissions, isAdm
 	if (isEmbeddedRoute(path)) return children;
 	return (
 		<Sidebar.Provider open={open} onOpenChange={setOpen} navigate={router.push} toggleShortcut={false}>
-			<NavigationFrame isAdmin={isAdmin} creatorId={creatorId} permissions={permissions} open={open} setOpen={setOpen}>
-				{children}
-			</NavigationFrame>
+			<ClipExportProvider key={creatorId} creatorId={creatorId}>
+				<NavigationFrame isAdmin={isAdmin} creatorId={creatorId} permissions={permissions} open={open} setOpen={setOpen}>
+					{children}
+				</NavigationFrame>
+			</ClipExportProvider>
 		</Sidebar.Provider>
 	);
 }

@@ -13,7 +13,9 @@ jest.mock("@components/controlledModal", () => ({
 		) : null,
 }));
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { ClipExportProvider, ExportQueueLauncher } from "@components/creator/clipExportQueue";
 import ClipExport from "@components/creator/clipExport";
+import { toast } from "@heroui/react";
 const fetchMock = jest.fn();
 const originalFetch = globalThis.fetch;
 function responseJSON(value: unknown) {
@@ -54,7 +56,7 @@ it("keeps permanent failures visible without offering a futile retry", async () 
 	fetchMock.mockResolvedValue(responseJSON({ code: "EXPORT_UNAVAILABLE", failures: [{ index: 0, code: "clip_unavailable", retryable: false }] }));
 	render(<ClipExport creatorId='owner' clipIds={["A"]} scope='owner' />);
 	fireEvent.click(screen.getByRole("button", { name: "Export selected" }));
-	await screen.findByText("Clip 1: Clip unavailable");
+	await screen.findByText("Clip unavailable");
 	expect(screen.queryByRole("button", { name: "Retry failed clips" })).not.toBeInTheDocument();
 });
 it("separates reconnect recovery from transient retries", async () => {
@@ -80,10 +82,11 @@ it("cancels an in-flight export without clearing the selection", async () => {
 	render(<ClipExport creatorId='owner' clipIds={["A"]} scope='owner' />);
 	fireEvent.click(screen.getByRole("button", { name: "Export selected" }));
 	fireEvent.click(screen.getByRole("button", { name: "Cancel export" }));
-	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Export cancelled. Your selection is kept." })));
+	await screen.findByText("Export cancelled. Your selection is kept.");
+	expect(notify).not.toHaveBeenCalled();
 	expect(screen.getByRole("button", { name: "Export selected" })).toBeEnabled();
 });
-it("aborts and hides an export when the creator/filter context changes", async () => {
+it("aborts and hides an export when the creator changes", async () => {
 	fetchMock.mockImplementation((_url, options) => new Promise((_resolve, reject) => options.signal.addEventListener("abort", () => reject(new Error("aborted")))));
 	const view = render(<ClipExport creatorId='owner' clipIds={["A"]} scope='one' />);
 	fireEvent.click(screen.getByRole("button", { name: "Export selected" }));
@@ -162,18 +165,19 @@ it("reports transport errors locally and keeps retry available", async () => {
 	expect(screen.getByRole("button", { name: "Retry failed clips" })).toBeEnabled();
 });
 
-it("reenables retry after the provider wait expires", async () => {
+it("resumes the waiting batch automatically when the provider quota resets", async () => {
 	jest.useFakeTimers();
 	try {
-		fetchMock.mockResolvedValue(responseJSON({ code: "RATE_LIMITED", retryAt: new Date(Date.now() + 1000).toISOString() }));
+		fetchMock.mockResolvedValueOnce(responseJSON({ code: "RATE_LIMITED", retryAt: new Date(Date.now() + 1000).toISOString() })).mockRejectedValue(new Error("offline"));
 		render(<ClipExport creatorId='owner' clipIds={["A"]} scope='owner' />);
 		fireEvent.click(screen.getByRole("button", { name: "Export selected" }));
-		const retry = await screen.findByRole("button", { name: "Retry failed clips" });
-		expect(retry).toBeDisabled();
+		await screen.findByText(/Waiting for the download limit/);
+		expect(fetchMock).toHaveBeenCalledTimes(1);
 		await act(async () => {
-			jest.advanceTimersByTime(1100);
+			await jest.advanceTimersByTimeAsync(1100);
 		});
-		expect(retry).toBeEnabled();
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+		await screen.findByRole("button", { name: "Retry failed clips" });
 	} finally {
 		jest.useRealTimers();
 	}
@@ -189,7 +193,8 @@ it("replaces previous Blob URLs and releases the latest download after sixty sec
 		fetchMock.mockResolvedValueOnce(successResponse({ included: [0], skipped: [] })).mockResolvedValueOnce(successResponse({ included: [0], skipped: [] }));
 		render(<ClipExport creatorId='owner' clipIds={["A"]} scope='owner' />);
 		fireEvent.click(screen.getByRole("button", { name: "Export selected" }));
-		await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Download started" })));
+		await screen.findByText("1 clip ready. Download initiated.");
+		expect(notify).not.toHaveBeenCalled();
 		fireEvent.click(screen.getByRole("button", { name: "Export selected" }));
 		await waitFor(() => expect(index).toBe(2));
 		expect(revoke).toHaveBeenCalledWith("blob:1");
@@ -209,7 +214,7 @@ it("offers reconnect-only retry when the provider requires a renewed token befor
 	expect(screen.queryByRole("button", { name: "Retry failed clips" })).not.toBeInTheDocument();
 });
 it("bounds the client selection before issuing a request", () => {
-	render(<ClipExport creatorId='owner' clipIds={Array.from({ length: 51 }, (_, i) => String(i))} scope='owner' />);
+	render(<ClipExport creatorId='owner' clipIds={Array.from({ length: 501 }, (_, i) => String(i))} scope='owner' />);
 	fireEvent.click(screen.getByRole("button", { name: "Export selected" }));
 	expect(fetchMock).not.toHaveBeenCalled();
 });
@@ -252,16 +257,79 @@ it("downloads individual MP4 and supports reopening and dismissing result detail
 	const click = jest.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
 		expect(this.download).toBe("clipify-A.mp4");
 	});
-	render(<ClipExport creatorId='owner' clipIds={["A"]} scope='owner:A' format='mp4' />);
+	render(
+		<ClipExportProvider creatorId='owner'>
+			<ExportQueueLauncher />
+			<ClipExport creatorId='owner' clipIds={["A"]} scope='owner:A' format='mp4' />
+		</ClipExportProvider>,
+	);
 	fireEvent.click(screen.getByRole("button", { name: "Download original" }));
 	await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
-	expect(fetchMock.mock.calls[0][0]).toBe("/api/clips/export?format=mp4");
+	expect(fetchMock.mock.calls[0][0]).toBe("/api/clips/export?format=mp4&progress=1");
 	expect(create).toHaveBeenCalledWith(expect.objectContaining({ type: "video/mp4" }));
-	fireEvent.click(screen.getByRole("button", { name: "Download details" }));
+	fireEvent.click(screen.getByRole("button", { name: "Exports" }));
 	expect(screen.getByRole("dialog")).toHaveTextContent("1 clip ready");
-	fireEvent.click(screen.getByRole("button", { name: "Close details" }));
+	fireEvent.click(screen.getByRole("button", { name: "Close exports" }));
 	expect(screen.queryByRole("dialog")).toBeNull();
-	fireEvent.click(screen.getByRole("button", { name: "Download details" }));
+	fireEvent.click(screen.getByRole("button", { name: "Exports" }));
 	fireEvent.click(screen.getByRole("button", { name: "Close dialog" }));
 	expect(screen.queryByRole("dialog")).toBeNull();
+});
+it("keeps the export label fixed and processes a fifty-one clip selection in timed batches", async () => {
+	jest.useFakeTimers();
+	try {
+		Object.defineProperty(URL, "createObjectURL", { configurable: true, value: jest.fn(() => "blob:batch") });
+		Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: jest.fn() });
+		jest.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+		fetchMock.mockImplementation((_url, options) => successResponse({ included: JSON.parse(options.body).clipIds.map((_: string, index: number) => index), skipped: [] }));
+		const view = render(<ClipExport creatorId='owner' clipIds={Array.from({ length: 51 }, (_, index) => String(index))} scope='many' />);
+		fireEvent.click(screen.getByRole("button", { name: "Export selected" }));
+		await screen.findByText(/Waiting for the download limit/);
+		expect(screen.getByRole("button", { name: "Export selected" })).toHaveTextContent("Export selected");
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(JSON.parse(fetchMock.mock.calls[0][1].body).clipIds).toHaveLength(50);
+		await act(async () => {
+			await jest.advanceTimersByTimeAsync(60001);
+		});
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+		expect(JSON.parse(fetchMock.mock.calls[1][1].body).clipIds).toEqual(["50"]);
+		view.unmount();
+	} finally {
+		jest.useRealTimers();
+	}
+});
+it("continues an active export when its dialog and page are closed, and reopens it from Exports", async () => {
+	let finish!: (value: unknown) => void;
+	fetchMock.mockImplementation(
+		() =>
+			new Promise((resolve) => {
+				finish = resolve;
+			}),
+	);
+	Object.defineProperty(URL, "createObjectURL", { configurable: true, value: jest.fn(() => "blob:background") });
+	Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: jest.fn() });
+	const download = jest.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+	const view = render(
+		<ClipExportProvider creatorId='owner'>
+			<ExportQueueLauncher />
+			<ClipExport creatorId='owner' clipIds={["A"]} scope='background' />
+		</ClipExportProvider>,
+	);
+	fireEvent.click(screen.getByRole("button", { name: "Export selected" }));
+	fireEvent.click(screen.getByRole("button", { name: "Continue in background" }));
+	expect(screen.queryByRole("dialog")).toBeNull();
+	notify.mockReturnValueOnce("background-export");
+	const closeToast = jest.spyOn(toast, "close");
+	view.rerender(
+		<ClipExportProvider creatorId='owner'>
+			<ExportQueueLauncher />
+			<p>Different dashboard page</p>
+		</ClipExportProvider>,
+	);
+	await act(async () => finish(successResponse({ included: [0], skipped: [] })));
+	expect(download).toHaveBeenCalledTimes(1);
+	expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Download started" }));
+	fireEvent.click(screen.getByRole("button", { name: "Exports" }));
+	expect(screen.getByRole("dialog")).toHaveTextContent("1 clip ready");
+	expect(closeToast).toHaveBeenCalledWith("background-export");
 });

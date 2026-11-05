@@ -257,7 +257,7 @@ export default function ClipLayoutEditor({ creatorId, ids, data }: { creatorId: 
 							Save channel layout
 						</Button>
 						<fieldset disabled={!loaded || !mediaReady || previewFailed} className='contents'>
-							<ClipExport creatorId={creatorId} clipIds={ids} scope={`${creatorId}:${ids.join(",")}:${JSON.stringify(layout)}`} format={ids.length === 1 ? "mp4" : "zip"} layout={layout} />
+							<ClipExport clipNames={{ [ids[0]]: clip.title }} creatorId={creatorId} clipIds={ids} scope={`${creatorId}:${ids.join(",")}:${JSON.stringify(layout)}`} format={ids.length === 1 ? "mp4" : "zip"} layout={layout} />
 						</fieldset>
 					</div>
 				</Card.Header>

@@ -13,6 +13,7 @@ const CompoundComponent = new Proxy(Component, {
 });
 
 const toast = Object.assign(() => undefined, {
+	close: () => undefined,
 	success: () => undefined,
 	warning: () => undefined,
 	danger: () => undefined,

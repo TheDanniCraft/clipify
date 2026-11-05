@@ -58,6 +58,7 @@ jest.mock("@/server/clip-download-limit", () => ({
 		return result.success ? { allowed: true, remaining: 2 } : { allowed: false, retryAfterSeconds: 60 };
 	},
 	reserveTwitchClipDownloadRequest: (...args: unknown[]) => providerCapacity(...args),
+	reserveClipExportVolume: jest.fn().mockResolvedValue({ allowed: true, remaining: 0 }),
 }));
 jest.mock("@/db/client", () => ({
 	db: {
@@ -392,7 +393,9 @@ it("rejects multiple IDs in an individual download before reading metadata", asy
 
 it("renders a custom portrait through the existing authorized single-download path", async () => {
 	const { defaultClipLayout } = await import("@lib/clipLayout");
-	const result = await buildClipArchive({ creatorId: "owner", clipIds: ["ClipA"], layout: defaultClipLayout }, undefined, "mp4");
+	const progress = jest.fn();
+	const result = await buildClipArchive({ creatorId: "owner", clipIds: ["ClipA"], layout: defaultClipLayout }, undefined, "mp4", progress);
+	expect(progress.mock.calls.map(([event]) => event.stage)).toEqual(["queued", "processing", "rendering", "ready"]);
 	expect(result.ok).toBe(true);
 	if (result.ok) {
 		expect(isCompleteMp4(result.bytes)).toBe(true);
@@ -434,3 +437,19 @@ it("renders a selected batch with each clip metadata and a portrait manifest", a
 	expect(media).toHaveLength(2);
 	expect(Buffer.from(media[0][1]).equals(Buffer.from(media[1][1]))).toBe(false);
 }, 30000);
+it("reports owned clip progress before returning the archive", async () => {
+	const progress = jest.fn();
+	const result = await buildClipArchive({ creatorId: "owner", clipIds: ["ClipA"] }, undefined, "zip", progress);
+	expect(result.ok).toBe(true);
+	expect(progress.mock.calls.map(([event]) => event.stage)).toEqual(["queued", "processing", "ready"]);
+	expect(progress).toHaveBeenCalledWith(expect.objectContaining({ index: 0, title: "My clip", stage: "queued" }));
+	expect(JSON.stringify(progress.mock.calls)).not.toContain("private-token");
+});
+
+it("rejects exhausted account clip volume before contacting Twitch", async () => {
+	const volume = jest.requireMock("@/server/clip-download-limit").reserveClipExportVolume;
+	volume.mockResolvedValueOnce({ allowed: false, retryAfterSeconds: 12 });
+	expect(await buildClipArchive({ creatorId: "owner", clipIds: ["ClipA"] })).toMatchObject({ ok: false, code: "RATE_LIMITED", status: 429 });
+	expect(volume).toHaveBeenLastCalledWith("owner", 1);
+	expect(globalThis.fetch).not.toHaveBeenCalled();
+});
