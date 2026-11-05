@@ -35,7 +35,7 @@
 	"patchedDependencies": {
 		"puppeteer-stream@3.0.23": "patches/puppeteer-stream.patch",
 		"@yao-pkg/pkg@6.24.0": "patches/yao-pkg-qemu.patch",
-		"puppeteer-core@24.43.1": "patches/puppeteer-core-24.patch"
+		"puppeteer-core@25.16.0": "patches/puppeteer-core-24.patch"
 	},
 	"overrides": {
 		"@puppeteer/browsers": "^3.2.6",
