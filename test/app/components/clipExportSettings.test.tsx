@@ -47,3 +47,53 @@ it("retains choices when queueing fails and offers global layout creation when n
 	expect(close).not.toHaveBeenCalled();
 	expect(screen.getByRole("checkbox", { name: "Original" })).toBeChecked();
 });
+
+it("recovers failed lookups, removes stale choices on refresh, and preserves Original as an independent choice", async () => {
+	const entry = { id: "desktop", name: "Desk", composition: createClipComposition("desktop") };
+	list
+		.mockRejectedValueOnce(Error("offline"))
+		.mockResolvedValueOnce({ ok: true, templates: [entry], defaults: {} })
+		.mockResolvedValueOnce({ ok: true, templates: [], defaults: {} });
+	const start = jest.fn(() => true),
+		close = jest.fn();
+	render(<ClipExportSettings creatorId='owner' clipIds={["A", "B"]} onStart={start} onClose={close} />);
+	fireEvent.click(await screen.findByRole("button", { name: "Retry layouts" }));
+	fireEvent.click(await screen.findByRole("checkbox", { name: "Desktop: Desk" }));
+	fireEvent.click(screen.getByRole("checkbox", { name: "Original" }));
+	expect(screen.getByRole("status", { name: "Export file count" })).toHaveTextContent("2 video files");
+	expect(screen.queryByText("Adjust clip")).not.toBeInTheDocument();
+	fireEvent.click(screen.getByRole("button", { name: "Refresh layouts" }));
+	await screen.findByText("No desktop layouts yet.");
+	expect(screen.getByRole("button", { name: "Start export" })).toBeDisabled();
+	fireEvent.click(screen.getByRole("checkbox", { name: "Original" }));
+	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
+	expect(start).toHaveBeenCalledWith(expect.arrayContaining([expect.objectContaining({ files: expect.arrayContaining([expect.objectContaining({ clipId: "A" }), expect.objectContaining({ clipId: "B" })]) })]));
+	fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+	expect(close).toHaveBeenCalledTimes(2);
+});
+it.each([Error("Select at most 500 clips."), Error("unexpected"), "unexpected"])("reports queue failures without closing or discarding selection: %s", async (error) => {
+	list.mockResolvedValue({ ok: false, code: "SERVICE_UNAVAILABLE" });
+	const close = jest.fn();
+	render(
+		<ClipExportSettings
+			creatorId='owner'
+			clipIds={["A"]}
+			onStart={() => {
+				throw error;
+			}}
+			onClose={close}
+		/>,
+	);
+	await screen.findByText(/Layouts could not be loaded/);
+	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
+	expect(jest.requireMock("@lib/toast").notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Export could not be queued", color: "danger" }));
+	expect(close).not.toHaveBeenCalled();
+	expect(screen.getByRole("checkbox", { name: "Original" })).toBeChecked();
+});
+it("ignores a lookup resolving after unmount", async () => {
+	let resolve: any;
+	list.mockReturnValue(new Promise((r) => (resolve = r)));
+	const view = render(<ClipExportSettings creatorId='owner' clipIds={[]} onStart={() => true} onClose={() => {}} />);
+	view.unmount();
+	await import("@testing-library/react").then(({ act }) => act(async () => resolve({ ok: true, templates: [], defaults: {} })));
+});

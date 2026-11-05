@@ -92,3 +92,15 @@ it("cancels a transfer after its file header has arrived", async () => {
 	await rejection;
 	expect(cancel).toHaveBeenCalledTimes(1);
 });
+it("keeps the original transfer error when transport cancellation itself rejects", async () => {
+	const reader = { read: jest.fn().mockResolvedValue({ done: false, value: encode({ type: "error", code: "RECONNECT_REQUIRED" }) }), cancel: jest.fn().mockRejectedValue(Error("cancel unavailable")), releaseLock: jest.fn() };
+	const stream = { ok: true, headers: new Headers({ "content-type": EXPORT_STREAM_TYPE }), body: { getReader: () => reader } } as unknown as Response;
+	const controller = new AbortController();
+	reader.read.mockImplementationOnce(async () => {
+		controller.abort();
+		return { done: false, value: encode({ type: "error", code: "RECONNECT_REQUIRED" }) };
+	});
+	await expect(readClipExportResponse(stream, 1, "zip", controller.signal, () => {})).resolves.toMatchObject({ ok: false, code: "RECONNECT_REQUIRED" });
+	expect(reader.cancel).toHaveBeenCalledTimes(2);
+	expect(reader.releaseLock).toHaveBeenCalled();
+});

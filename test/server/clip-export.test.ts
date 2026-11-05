@@ -568,3 +568,105 @@ it("refuses an incompatible saved override rather than exporting the wrong orien
 	expect(await buildClipExportPlan(createClipExportPlan("owner", ["ClipA"], [{ key: "desktop", label: "Desktop", templateId: "desktop", layout: composition }])[0])).toMatchObject({ ok: false, code: "LAYOUT_UNAVAILABLE" });
 	expect(globalThis.fetch).not.toHaveBeenCalled();
 });
+
+async function originalPlan() {
+	const { createClipExportPlan } = await import("@lib/clipExportPlan");
+	return createClipExportPlan("owner", ["ClipA"], [{ key: "original", label: "Original" }])[0];
+}
+it.each(["AUTHENTICATION_REQUIRED", "PERMISSION_DENIED"])("rejects planned exports with %s before provider access", async (code) => {
+	authorize.mockResolvedValue({ allowed: false, code });
+	expect(await buildClipExportPlan(await originalPlan())).toMatchObject({ ok: false, code, status: code === "AUTHENTICATION_REQUIRED" ? 401 : 403 });
+	expect(globalThis.fetch).not.toHaveBeenCalled();
+});
+it("returns a single planned Original as untouched MP4 and rejects multi-file MP4 transport", async () => {
+	const plan = await originalPlan();
+	const result = await buildClipExportPlan(plan, undefined, "mp4");
+	expect(result).toMatchObject({ ok: true, bytes: new Uint8Array(video), filename: expect.stringMatching(/\.mp4$/) });
+	plan.files.push({ clipId: "ClipB", outputKey: "original" });
+	expect(await buildClipExportPlan(plan, undefined, "mp4")).toMatchObject({ ok: false, code: "INVALID_INPUT" });
+});
+it.each(["job", "volume", "token"])("rejects planned exports when %s access is unavailable", async (kind) => {
+	if (kind === "job") rateLimit.mockResolvedValue({ success: false });
+	if (kind === "volume") jest.requireMock("@/server/clip-download-limit").reserveClipExportVolume.mockResolvedValueOnce({ allowed: false, retryAfterSeconds: 5 });
+	if (kind === "token") getToken.mockResolvedValue({ token: null });
+	expect(await buildClipExportPlan(await originalPlan())).toMatchObject({ ok: false, code: kind === "token" ? "RECONNECT_REQUIRED" : "RATE_LIMITED" });
+	expect(globalThis.fetch).not.toHaveBeenCalled();
+});
+it.each([401, 403, 429, 500, 404])("returns actionable per-version provider failure for HTTP %s", async (status) => {
+	jest.mocked(globalThis.fetch).mockImplementation(async () => new Response(null, { status, headers: { "retry-after": "5" } }));
+	const result = await buildClipExportPlan(await originalPlan());
+	expect(result.ok).toBe(false);
+	if (result.ok) throw Error("unexpected success");
+	expect(result.failures).toHaveLength(1);
+	expect(result.failures![0].index).toBe(0);
+});
+it("uses authoritative template contents when no composition snapshot was supplied", async () => {
+	const { createClipExportPlan } = await import("@lib/clipExportPlan"),
+		{ createClipComposition } = await import("@lib/clipComposition");
+	const composition = createClipComposition("desktop");
+	layouts.mockResolvedValue({ ok: true, templates: [{ id: "desk", composition }], defaults: {} });
+	cacheRead.mockResolvedValueOnce([ownedEntry()]).mockResolvedValueOnce([]);
+	render.mockResolvedValueOnce(new Uint8Array(video));
+	expect(await buildClipExportPlan(createClipExportPlan("owner", ["ClipA"], [{ key: "desk", label: "Desktop", templateId: "desk" }])[0])).toMatchObject({ ok: true });
+	expect(render).toHaveBeenCalledWith(expect.anything(), composition, expect.anything(), expect.anything(), expect.anything());
+});
+it("reports failed template reads and corrupt saved overrides without downloading", async () => {
+	const { createClipExportPlan } = await import("@lib/clipExportPlan"),
+		{ createClipComposition } = await import("@lib/clipComposition");
+	const composition = createClipComposition("desktop"),
+		plan = createClipExportPlan("owner", ["ClipA"], [{ key: "desk", label: "Desktop", templateId: "desk", layout: composition }])[0];
+	layouts.mockResolvedValueOnce({ ok: false, code: "SERVICE_UNAVAILABLE" });
+	expect(await buildClipExportPlan(plan)).toMatchObject({ ok: false, code: "SERVICE_UNAVAILABLE" });
+	layouts.mockResolvedValue({ ok: true, templates: [{ id: "desk", composition }], defaults: {} });
+	cacheRead.mockResolvedValueOnce([ownedEntry()]).mockResolvedValueOnce([{ contentKey: "clip-layout-override:v2:desk:ClipA", state: "bad json" }]);
+	expect(await buildClipExportPlan(plan)).toMatchObject({ ok: false, code: "SERVICE_UNAVAILABLE" });
+	expect(globalThis.fetch).not.toHaveBeenCalled();
+});
+it("honors cancellation, cache failure and final ZIP access revocation for planned exports", async () => {
+	const plan = await originalPlan(),
+		abort = new AbortController();
+	abort.abort();
+	expect(await buildClipExportPlan(plan, abort.signal)).toMatchObject({ ok: false, code: "EXPORT_CANCELLED" });
+	cacheRead.mockRejectedValueOnce(Error("offline"));
+	expect(await buildClipExportPlan(plan)).toMatchObject({ ok: false, code: "SERVICE_UNAVAILABLE" });
+	afterZip.mockImplementation(() => authorize.mockResolvedValue({ allowed: false, code: "PERMISSION_DENIED" }));
+	expect(await buildClipExportPlan(plan)).toMatchObject({ ok: false, code: "PERMISSION_DENIED" });
+});
+it.each(["media", "manifest", "archive"] as const)("enforces the planned package %s cap before release", async (cap) => {
+	const { EXPORT_LIMITS } = await import("@/server/clip-export");
+	const limits = EXPORT_LIMITS as Record<string, number>,
+		saved = limits[cap];
+	const { createClipExportPlan } = await import("@lib/clipExportPlan");
+	const plan = createClipExportPlan(
+		"owner",
+		["ClipA"],
+		[
+			{ key: "a", label: "First" },
+			{ key: "b", label: "Second" },
+		],
+	)[0];
+	try {
+		if (cap === "media") limits[cap] = video.length;
+		else {
+			const fetchImpl = jest.mocked(globalThis.fetch).getMockImplementation()!;
+			jest.mocked(globalThis.fetch).mockImplementation(async (input, init) => {
+				const response = await fetchImpl(input, init);
+				if (!String(input).startsWith("https://api.twitch.tv/")) limits[cap] = 1;
+				return response;
+			});
+		}
+		const result = await buildClipExportPlan(plan);
+		if (cap === "media") {
+			expect(result).toMatchObject({ ok: true, summary: { included: [0], skipped: [{ index: 1, code: "package_size_limit", retryable: false }] } });
+		} else expect(result).toMatchObject({ ok: false, code: "EXPORT_LIMIT", status: 413 });
+	} finally {
+		limits[cap] = saved;
+	}
+});
+it.each(["token", "cache", "missing"])("records a planned output failure after %s disappears mid-export", async (kind) => {
+	if (kind === "token") getToken.mockResolvedValueOnce({ token: { accessToken: "private-token", scope: ["channel:manage:clips"] } }).mockResolvedValue({ token: null });
+	if (kind === "cache") cacheRead.mockResolvedValueOnce([ownedEntry()]).mockRejectedValueOnce(Error("offline"));
+	if (kind === "missing") cacheRead.mockResolvedValueOnce([ownedEntry()]).mockResolvedValueOnce([]);
+	const result = await buildClipExportPlan(await originalPlan());
+	expect(result).toMatchObject({ ok: false, failures: [{ index: 0, code: kind === "token" ? "reconnect_required" : kind === "cache" ? "provider_error" : "clip_unavailable", retryable: kind === "cache" }] });
+});

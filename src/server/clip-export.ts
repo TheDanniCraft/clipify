@@ -139,6 +139,16 @@ async function readOwnedExportClips(creatorId: string, clipIds: string[]) {
 export async function buildClipArchive(input: unknown, parentSignal?: AbortSignal, format: "zip" | "mp4" = "zip", progress?: (event: ClipExportProgress) => void): Promise<ArchiveResult> {
 	return prepareClipArchive(input, parentSignal, format, progress);
 }
+async function prepareClipExportAccess(creatorId: string, count: number, reserved = false) {
+	const job = reserved ? { allowed: true as const } : await reserveClipDownloadJob(creatorId);
+	if (!job.allowed) return failure("RATE_LIMITED", 429, new Date(Date.now() + job.retryAfterSeconds * 1000).toISOString());
+	const token = (await getAccessTokenResultInternal(creatorId)).token;
+	if (!token || !token.scope?.some((scope) => scope === "channel:manage:clips" || scope === "editor:manage:clips")) return failure("RECONNECT_REQUIRED", 403);
+	const volume = reserved ? { allowed: true as const } : await reserveClipExportVolume(creatorId, count);
+	if (!volume.allowed) return failure("RATE_LIMITED", 429, new Date(Date.now() + volume.retryAfterSeconds * 1000).toISOString());
+	return { ok: true as const, token };
+}
+
 async function prepareClipArchive(input: unknown, parentSignal?: AbortSignal, format: "zip" | "mp4" = "zip", progress?: (event: ClipExportProgress) => void, reserved = false, landscapeOnly = false): Promise<ArchiveResult> {
 	const parsed = exportRequestSchema.safeParse(input);
 	if (!parsed.success) return failure("INVALID_INPUT", 400);
@@ -154,13 +164,9 @@ async function prepareClipArchive(input: unknown, parentSignal?: AbortSignal, fo
 	try {
 		const clips = await readOwnedExportClips(creatorId, clipIds);
 		if (clips.some((clip) => !clip)) return failure("INVALID_INPUT", 400);
-		const limit = reserved ? { allowed: true as const } : await reserveClipDownloadJob(creatorId);
-		if (!limit.allowed) return failure("RATE_LIMITED", 429, new Date(Date.now() + limit.retryAfterSeconds * 1000).toISOString());
-		const tokenResult = await getAccessTokenResultInternal(creatorId);
-		const token = tokenResult.token;
-		if (!token || !token.scope?.some((scope) => scope === "channel:manage:clips" || scope === "editor:manage:clips")) return failure("RECONNECT_REQUIRED", 403);
-		const volume = reserved ? { allowed: true as const } : await reserveClipExportVolume(creatorId, clipIds.length);
-		if (!volume.allowed) return failure("RATE_LIMITED", 429, new Date(Date.now() + volume.retryAfterSeconds * 1000).toISOString());
+		const access = await prepareClipExportAccess(creatorId, clipIds.length, reserved);
+		if (!access.ok) return access;
+		const { token } = access;
 		clips.forEach((item, index) => progress?.({ index, stage: "queued", title: item!.clip.title.slice(0, 1000) }));
 		const summary: ExportSummary = { included: [], skipped: [] };
 		const sources = new Map<number, { url: string; variant: "landscape" | "portrait" }>();
@@ -363,12 +369,8 @@ export async function buildClipExportPlan(input: unknown, parentSignal?: AbortSi
 				}
 			}
 		}
-		const job = await reserveClipDownloadJob(creatorId);
-		if (!job.allowed) return failure("RATE_LIMITED", 429, new Date(Date.now() + job.retryAfterSeconds * 1000).toISOString());
-		const token = await getAccessTokenResultInternal(creatorId);
-		if (!token.token?.scope?.some((scope) => scope === "channel:manage:clips" || scope === "editor:manage:clips")) return failure("RECONNECT_REQUIRED", 403);
-		const volume = await reserveClipExportVolume(creatorId, plan.files.length);
-		if (!volume.allowed) return failure("RATE_LIMITED", 429, new Date(Date.now() + volume.retryAfterSeconds * 1000).toISOString());
+		const access = await prepareClipExportAccess(creatorId, plan.files.length);
+		if (!access.ok) return access;
 		const summary: ExportSummary = { included: [], skipped: [] },
 			files: Record<string, Uint8Array> = {},
 			manifest: Record<string, unknown>[] = [],

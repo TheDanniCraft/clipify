@@ -161,3 +161,35 @@ it("renders the authorized channel logo and rejects untrusted or non-image logo 
 		await rm(dir, { recursive: true, force: true });
 	}
 }, 30000);
+
+it("normalizes JPEG/WebP logos and rejects spoofed, oversized or inaccessible image sources", async () => {
+	const originalFetch = globalThis.fetch;
+	const fetchMock = jest.fn();
+	globalThis.fetch = fetchMock;
+	const { readClipCompositionLogo } = await import("../../src/server/clip-composition-render");
+	const sharp = (await import("sharp")).default;
+	const avatar = "https://static-cdn.jtvnw.net/logo";
+	const signal = AbortSignal.timeout(15000);
+	try {
+		for (const format of ["jpeg", "webp"] as const) {
+			const bytes = await sharp({ create: { width: 16, height: 8, channels: 3, background: "#fff" } })
+				[format]()
+				.toBuffer();
+			fetchMock.mockResolvedValueOnce(new Response(new Uint8Array(bytes), { headers: { "content-type": `image/${format}; charset=binary` } }));
+			const logo = await readClipCompositionLogo(avatar, signal);
+			expect(await sharp(logo).metadata()).toMatchObject({ format: "png", width: 16, height: 8 });
+		}
+		for (const url of [undefined, "https://user:pass@static-cdn.jtvnw.net/logo", "https://static-cdn.jtvnw.net:444/logo", "https://private.invalid/logo"]) await expect(readClipCompositionLogo(url, signal)).rejects.toThrow();
+		for (const response of [new Response(null, { status: 404 }), new Response("x"), new Response("x", { headers: { "content-type": "image/png" } }), new Response(new Uint8Array([137, 80, 78, 71, 0, 0, 0, 0, 0, 0, 0, 0]), { headers: { "content-type": "image/png" } })]) {
+			fetchMock.mockResolvedValueOnce(response);
+			await expect(readClipCompositionLogo(avatar, signal)).rejects.toThrow();
+		}
+		const oversized = await sharp({ create: { width: 1001, height: 1000, channels: 3, background: "#fff" } })
+			.png()
+			.toBuffer();
+		fetchMock.mockResolvedValueOnce(new Response(new Uint8Array(oversized), { headers: { "content-type": "image/png" } }));
+		await expect(readClipCompositionLogo(avatar, signal)).rejects.toThrow();
+	} finally {
+		globalThis.fetch = originalFetch;
+	}
+}, 30000);

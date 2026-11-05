@@ -2,18 +2,23 @@ import { act, render, screen, fireEvent, waitFor } from "@testing-library/react"
 import Canvas from "@components/creator/clipCompositionCanvas";
 import { createClipComposition } from "@lib/clipComposition";
 const preview = jest.fn();
+const boxes: any[] = [];
 jest.mock("@actions/creatorLibrary", () => ({ getCreatorClipPreview: (...a: unknown[]) => preview(...a) }));
 jest.mock("@components/creator/clipCompositionBox", () => ({
 	__esModule: true,
-	default: ({ label, onSelect, onChange, rect }: any) => (
-		<button
-			aria-label={label}
-			onClick={() => {
-				onSelect();
-				onChange({ ...rect, x: 0.01 });
-			}}
-		/>
-	),
+	default: (props: any) => {
+		boxes.push(props);
+		const { label, onSelect, onChange, rect } = props;
+		return (
+			<button
+				aria-label={label}
+				onClick={() => {
+					onSelect();
+					onChange({ ...rect, x: 0.01 });
+				}}
+			/>
+		);
+	},
 }));
 let frames: FrameRequestCallback[] = [];
 const ctx = { fillRect: jest.fn(), drawImage: jest.fn(), save: jest.fn(), restore: jest.fn(), beginPath: jest.fn(), rect: jest.fn(), clip: jest.fn(), measureText: jest.fn(() => ({ width: 60 })), fillText: jest.fn() };
@@ -21,6 +26,7 @@ const clip = { id: "ClipA", title: "A moment", broadcasterName: "Channel", clipC
 beforeEach(() => {
 	jest.clearAllMocks();
 	frames = [];
+	boxes.length = 0;
 	preview.mockResolvedValue({ playbackUrl: "https://media.invalid/source.mp4" });
 	jest.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
 		frames.push(cb);
@@ -124,4 +130,37 @@ it("ignores a preview response after its editor has unmounted", async () => {
 	view.unmount();
 	await act(async () => resolve({ playbackUrl: "https://media.invalid/late.mp4" }));
 	expect(document.querySelector("video")).not.toBeInTheDocument();
+});
+it("applies output edits, source ratio modifiers and snapping guides independently", async () => {
+	const layout = createClipComposition("mobile"),
+		change = jest.fn();
+	render(<Canvas creatorId='owner' clip={clip} layout={layout} selected='camera' onSelect={() => {}} onChange={change} onDimensions={() => {}} />);
+	await ready();
+	const source = boxes.find((p) => p.label === "Camera crop"),
+		output = boxes.find((p) => p.label === "Camera output");
+	expect(source.ratio({}, source.rect)).toBeUndefined();
+	expect(source.ratio({ shiftKey: true }, source.rect)).toBeCloseTo(source.rect.w / source.rect.h);
+	expect(source.ratio({ ctrlKey: true }, source.rect)).toBeCloseTo(((9 / 16) * 1080) / 1920);
+	expect(source.ratio({ metaKey: true, shiftKey: true }, source.rect)).toBeCloseTo(1);
+	expect(output.ratio({}, output.rect)).toBeCloseTo(output.rect.w / output.rect.h);
+	act(() => {
+		output.onSelect();
+		output.onChange({ ...output.rect, x: 0.1 });
+		output.onGuides({ x: 0.5, y: 0.5 });
+	});
+	expect(change.mock.calls.at(-1)[0].layers[0]).toMatchObject({ source: layout.layers[0].kind === "video" ? layout.layers[0].source : {}, frame: { x: 0.1 } });
+	expect(document.querySelector('[style="left: 50%;"]')).toBeInTheDocument();
+});
+it("handles unavailable playback and rejected playback attempts without removing the editable canvas", async () => {
+	preview.mockResolvedValueOnce(null);
+	const view = render(<Canvas creatorId='owner' clip={clip} layout={createClipComposition("desktop")} selected='gameplay' onSelect={() => {}} onChange={() => {}} onDimensions={() => {}} />);
+	fireEvent.click(await screen.findByRole("button", { name: "Retry preview" }));
+	const video = await ready();
+	jest.spyOn(HTMLMediaElement.prototype, "play").mockRejectedValueOnce(Error("blocked"));
+	fireEvent.click(screen.getByRole("button", { name: "Play preview" }));
+	await screen.findByRole("button", { name: "Retry preview" });
+	video.currentTime = 3;
+	fireEvent.timeUpdate(video);
+	expect(screen.getByText("3 / 12s")).toBeVisible();
+	view.unmount();
 });

@@ -48,3 +48,58 @@ it("resizes from drag handles while preserving the supplied aspect ratio", () =>
 	expect(change).toHaveBeenCalledWith({ x: 0.1, y: 0.1, w: 0.8, h: 0.4 });
 	jest.restoreAllMocks();
 });
+
+it("moves and snaps only the active primary pointer, supports cancellation and precise keyboard removal", () => {
+	Object.defineProperty(window, "PointerEvent", {
+		configurable: true,
+		value: class extends MouseEvent {
+			pointerId: number;
+			constructor(type: string, init: any) {
+				super(type, init);
+				this.pointerId = init.pointerId ?? 1;
+			}
+		},
+	});
+	Object.defineProperty(HTMLElement.prototype, "setPointerCapture", { configurable: true, value: jest.fn() });
+	const bounds = jest.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ width: 1000, height: 1000 } as any);
+	const stage = createRef<HTMLDivElement>(),
+		change = jest.fn(),
+		select = jest.fn(),
+		guides = jest.fn(),
+		remove = jest.fn();
+	const rect = { x: 0.1, y: 0.1, w: 0.4, h: 0.2 };
+	const view = render(
+		<div ref={stage}>
+			<CompositionBox rect={rect} label='Layer' selected={false} stage={stage} dimensions={{ width: 1000, height: 1000 }} onSelect={select} onChange={change} snap onGuides={guides} onRemove={remove} />
+		</div>,
+	);
+	const button = screen.getByRole("button", { name: "Layer" });
+	fireEvent.pointerMove(button, { pointerId: 1, clientX: 0, clientY: 0 });
+	fireEvent.pointerDown(button, { button: 2, pointerId: 1 });
+	expect(select).not.toHaveBeenCalled();
+	fireEvent.pointerDown(button, { button: 0, pointerId: 1, clientX: 100, clientY: 100 });
+	fireEvent.pointerMove(button, { pointerId: 2, clientX: 0, clientY: 0 });
+	expect(change).not.toHaveBeenCalled();
+	fireEvent.pointerMove(button, { pointerId: 1, clientX: 2, clientY: 2 });
+	expect(change).toHaveBeenLastCalledWith({ ...rect, x: 0, y: 0 });
+	expect(guides).toHaveBeenCalledWith(expect.objectContaining({ x: 0, y: 0 }));
+	fireEvent.pointerMove(button, { pointerId: 1, clientX: 2, clientY: 2, altKey: true });
+	expect(change.mock.calls.at(-1)[0].x).toBeCloseTo(0.002);
+	fireEvent.pointerCancel(button);
+	const count = change.mock.calls.length;
+	fireEvent.pointerMove(button, { pointerId: 1, clientX: 300, clientY: 300 });
+	expect(change).toHaveBeenCalledTimes(count);
+	for (const key of ["ArrowLeft", "ArrowUp", "ArrowDown"]) fireEvent.keyDown(button, { key, shiftKey: true });
+	expect(change).toHaveBeenLastCalledWith({ ...rect, y: 0.11 });
+	fireEvent.keyDown(button, { key: "Delete" });
+	fireEvent.keyDown(button, { key: "Backspace" });
+	fireEvent.keyDown(button, { key: "x" });
+	expect(remove).toHaveBeenCalledTimes(2);
+	fireEvent.click(button);
+	expect(select).toHaveBeenCalled();
+	view.rerender(<CompositionBox rect={rect} label='Layer' selected stage={{ current: null }} dimensions={{ width: 1000, height: 1000 }} onSelect={select} onChange={change} />);
+	fireEvent.pointerDown(screen.getByRole("button", { name: "Resize Layer top left" }), { button: 0, pointerId: 1 });
+	fireEvent.pointerMove(screen.getByRole("button", { name: "Resize Layer top left" }), { pointerId: 1, clientX: 30, clientY: 30 });
+	fireEvent.lostPointerCapture(screen.getByRole("button", { name: "Layer" }));
+	bounds.mockRestore();
+});

@@ -32,9 +32,9 @@ for (const width of [390, 1440])
 			await expect(profile).toBeVisible();
 			await expect(context).toBeVisible();
 			await expect(guide).toBeVisible();
-			const boxes = await Promise.all([profile, context, guide, support].map((locator) => locator.boundingBox()));
+			const boxes = await Promise.all([guide, support, context, profile].map((locator) => locator.boundingBox()));
 			for (let i = 1; i < boxes.length; i++) expect(boxes[i]!.y).toBeGreaterThanOrEqual(boxes[i - 1]!.y + boxes[i - 1]!.height);
-			await expect(host.getByRole("treegrid", { name: "Admin sections", exact: true })).toBeVisible();
+			await expect(page.getByRole("treegrid", { name: "Admin sections", exact: true })).toBeVisible();
 			await page.screenshot({ path: info.outputPath("pending-consent.png"), fullPage: true });
 			await profile.click();
 			const menu = page.getByRole("menu", { name: "Open profile menu" });
@@ -46,14 +46,14 @@ for (const width of [390, 1440])
 			await expect(guide).toBeVisible();
 			await expect(support).toBeVisible();
 			const after = await support.boundingBox();
-			expect(Math.abs(after!.y - boxes[3]!.y)).toBeLessThanOrEqual(3);
+			expect(Math.abs(after!.y - boxes[1]!.y)).toBeLessThanOrEqual(3);
 			await page.screenshot({ path: info.outputPath("after-reject.png"), fullPage: true });
-			await host.getByRole("row", { name: "Operations", exact: true }).click();
+			await page.getByRole("row", { name: "Operations", exact: true }).click();
 			await expect(page).toHaveURL(`${tourWorld.origin}/admin`);
 			await openSidebar();
-			await expect(host.getByRole("treegrid", { name: "Admin sections", exact: true })).toBeVisible();
+			await expect(page.getByRole("treegrid", { name: "Admin sections", exact: true })).toBeVisible();
 			await expect(page.getByRole("tablist", { name: "Admin sections", exact: true })).toHaveCount(0);
-			await host.getByRole("row", { name: "Agencies", exact: true }).click();
+			await page.getByRole("row", { name: "Agencies", exact: true }).click();
 			await expect(page).toHaveURL(`${tourWorld.origin}/admin/agencies`);
 			await expect(page.getByText("Provision an agency", { exact: true })).toBeVisible();
 			await openSidebar();
@@ -94,7 +94,7 @@ for (const width of [390, 1440])
 				const returnAdmin = host.getByRole("button", { name: "Return to Admin", exact: true });
 				await expect(returnAdmin).toBeVisible();
 				await returnAdmin.click();
-				await expect(host.getByRole("treegrid", { name: "Admin sections", exact: true })).toBeVisible();
+				await expect(page.getByRole("treegrid", { name: "Admin sections", exact: true })).toBeVisible();
 				await expect(returnAdmin).toHaveCount(0);
 				await page.screenshot({ path: info.outputPath("admin-return.png"), fullPage: true });
 			}

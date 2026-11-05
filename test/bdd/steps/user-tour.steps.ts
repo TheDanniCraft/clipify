@@ -491,7 +491,7 @@ Then("the checklist opens beside sidebar navigation with progress and no automat
 	const account = await page.locator("[data-dashboard-account-controls]").boundingBox();
 	expect(account).not.toBeNull();
 	expect(launcher!.y + launcher!.height).toBeLessThanOrEqual(feedback!.y);
-	expect(account!.y + account!.height).toBeLessThanOrEqual(launcher!.y);
+	expect(feedback!.y + feedback!.height).toBeLessThanOrEqual(account!.y);
 	expect(feedback!.width).toBeCloseTo(account!.width, 0);
 	await page.screenshot({ path: "/tmp/clipify-user-tour-revised-desktop.png" });
 });

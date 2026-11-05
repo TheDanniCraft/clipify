@@ -16,7 +16,7 @@ Feature: Creator library story 4
       | fifty eligible clips |
 
   @FR-010 @FR-013 @SC-004
-  @BDD-US4-COMP-001
+  @BDD-US4-COMP-001 @requires:ffmpeg
   Scenario: Export named versions with an authoritative clip override
     Given a creator has named Desktop and Mobile layouts and an isolated clip override
     When I export Original plus one Desktop and two Mobile versions
