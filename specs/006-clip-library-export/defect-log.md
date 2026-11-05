@@ -413,3 +413,5 @@ Read-only creator collaborators now receive disabled brand controls and a clear 
 ### Optional Channel info avatar recovery
 
 Verified and fixed: the preview used initials for an unavailable optional avatar while native export failed. Native Channel info now produces the same initials PNG as an absent avatar after an official-CDN404. Explicit logo layers still fail rather than silently substituting another asset, and cancellation remains propagated. brand-avatar-recovery-red/green.log and the native/render whole-file owners cover the distinction.
+
+Deployment follow-up: commit87db2b2d deployed successfully, but anonymous built-in-font checks returned503 for all three families despite local OS fonts passing. Built-in fonts are now distributed as licensed application assets; native Pango previews/exports load those exact files, independent of runtime image font installation. brand-runtime-font-red.log reproduces the absent packaged asset. brand-runtime-font-green.log passes127 tests across all five affected native/API owners. The previous CI checkpoint is allowed to finish before a follow-up push.

@@ -6,6 +6,7 @@ it("serves only the installed built-in font files without accepting paths", asyn
 	if (!route) return;
 	const response = await route.GET(new Request("http://localhost/api/brand-font?family=DejaVu%20Sans&weight=400"));
 	expect(response.status).toBe(200);
+	expect(Buffer.from(await response.clone().arrayBuffer()).equals(await (await import("node:fs/promises")).readFile("public/fonts/brand/DejaVuSans.ttf"))).toBe(true);
 	expect(response.headers.get("content-type")).toBe("font/ttf");
 	expect((await response.arrayBuffer()).byteLength).toBeGreaterThan(1000);
 	expect((await route.GET(new Request("http://localhost/api/brand-font?family=../../etc/passwd&weight=400"))).status).toBe(404);

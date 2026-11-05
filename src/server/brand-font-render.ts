@@ -88,12 +88,8 @@ const escape = (value: string) => value.replace(/[&<>"']/g, (c) => ({ "&": "&amp
 /** Rasterize from the same scene used by the editor; font files never enter FFmpeg syntax. */
 export async function renderBrandWidget(kind: "channel" | "title" | "clipper", clip: MetadataContent, width: number, height: number, size: number, theme: WidgetTheme & Partial<Pick<CreatorBrand, "fontFamily" | "fontSource">>, signal: AbortSignal, avatar?: string) {
 	const font = brandFontSchema.parse({ fontFamily: theme.fontFamily, fontSource: theme.fontSource });
-	if (font.fontSource === "builtin")
-		return sharp(Buffer.from(overlayMetadataSvg(kind, clip, width, height, size, theme, avatar, undefined, font.fontFamily)), { limitInputPixels: 1000000 })
-			.png()
-			.toBuffer();
 	try {
-		return await withFont(font.fontFamily, signal, async ({ regular, bold }) => {
+		const render = async ({ regular, bold }: FontFiles) => {
 			const texts: OverlayText[] = [];
 			const scene = overlayMetadataSvg(kind, clip, width, height, size, theme, avatar, (text) => {
 				texts.push(text);
@@ -124,7 +120,12 @@ export async function renderBrandWidget(kind: "channel" | "title" | "clipper", c
 			);
 			signal.throwIfAborted();
 			return sharp(Buffer.from(scene), { limitInputPixels: 1000000 }).composite(overlays).png().toBuffer();
-		});
+		};
+		if (font.fontSource === "builtin") {
+			const name = font.fontFamily.replaceAll(" ", "");
+			return await render({ regular: join(process.cwd(), "public/fonts/brand", `${name}.ttf`), bold: join(process.cwd(), "public/fonts/brand", `${name}-Bold.ttf`) });
+		}
+		return await withFont(font.fontFamily, signal, render);
 	} catch {
 		signal.throwIfAborted();
 		throw new Error("font_unavailable");
