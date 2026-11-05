@@ -372,3 +372,6 @@ Publication checkpoint473b8db3: preview deployment wava3wuadiaimwvhpu5bx5gu fini
 
 
 CI41949894057 completed:132 acceptance scenarios passed and8 failed because clip-library-layout.spec.ts still asserted the superseded Home composition (Recent streams beside Top clips). The test now measures the approved C composition: equal-height Clip performance and Latest stream cards side by side at desktop, stacked below1024px, with the Top clips table below. The complete affected file passes all8 viewport/theme cases locally in2.6minutes (ci-layout-browser.log); existing navigation, search focus, consent, selection and long-title assertions remain. All other browser/BDD owners completed successfully. This correction changes tests only; the replacement full CI checkpoint must still pass.
+
+
+T637 publication closure: feature/test commit3b5c3b9da49fa0178e1dbac5dd4fac8cd257fcb9 passed the complete required CI41953552267, including all browser owners and the aggregate Test/merged-coverage gate with unchanged thresholds. Preview deployment r1qhbkmpygfdx68wiiautdqx finished for that exact commit; public health returned204 and favicon200. PR546 remains open and unmerged. The following documentation-only closure changes no runtime, test, dependency or execution configuration inputs.

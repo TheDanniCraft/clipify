@@ -731,6 +731,6 @@ T621 publication evidence: application head17fc33de476ada2f2739fdf620437a3db12dc
 - [x] T634 Add chronological stream moments, clearly separate from Twitch Recaps.
 - [x] T635 Test and implement normalized crop/layout validation, synchronized preview and saved per-channel presets using existing content-state storage.
 - [x] T636 Test and implement bounded manual portrait MP4/ZIP rendering through existing authorized export pipeline; preserve original downloads. No watermark/pricing change or social publishing.
-- [ ] T637 Run affected whole-file suites and real browser desktop/mobile light/dark editor/export/recovery; publish passing source to PR546 and inspect preview/CI without merging.
+- [x] T637 Run affected whole-file suites and real browser desktop/mobile light/dark editor/export/recovery; publish passing source to PR546 and inspect preview/CI without merging.
 
 T631 preceding checkpoint:23b6dd303fd14462644ee01db3e94e5d84a11ae9 passed full CI41913108910 and preview deployment jqmxy9ebpgildkpppum4s7ux finished. T637 remains open until the new publication checkpoint finishes its own required CI and preview.
