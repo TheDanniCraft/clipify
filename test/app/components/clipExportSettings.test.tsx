@@ -129,3 +129,18 @@ it("warns about a slow device without silently switching to server processing", 
 	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
 	expect(start).toHaveBeenCalledWith(expect.any(Array), "browser");
 });
+
+it("queues a chosen custom encoding preset while preserving Original and paired layout versions", async () => {
+	list.mockResolvedValue({ ok: true, templates: [{ id: "main", name: "Main", composition: createClipComposition("desktop"), updatedAt: "2026-11-05" }], defaults: { desktop: "main" } });
+	const start = jest.fn((_plans: any[]) => true);
+	render(<ClipExportSettings creatorId='owner' clipIds={["ClipA"]} onStart={start} onClose={() => {}} />);
+	await screen.findByRole("listbox", { name: "Layout templates" });
+	expect(screen.queryByRole("combobox", { name: "Export for" })).not.toBeInTheDocument();
+	fireEvent.click(screen.getByRole("checkbox", { name: "Desktop" }));
+	fireEvent.change(screen.getByRole("combobox", { name: "Export for" }), { target: { value: "custom" } });
+	fireEvent.change(screen.getByRole("spinbutton", { name: "Maximum size (MB)" }), { target: { value: "10" } });
+	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
+	await waitFor(() => expect(start).toHaveBeenCalledTimes(1));
+	expect(start.mock.calls[0][0][0].preset).toEqual({ id: "custom", maxSizeMB: 10 });
+	expect(start.mock.calls[0][0][0].outputs[0]).toEqual({ key: "original", label: "Original" });
+});

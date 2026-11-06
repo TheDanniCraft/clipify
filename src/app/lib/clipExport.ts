@@ -36,7 +36,7 @@ export async function readBoundedResponse(response: Pick<Response, "body">, maxB
 
 const summarySchema = z.object({
 	included: z.array(z.number().int().nonnegative()).max(50),
-	skipped: z.array(z.object({ index: z.number().int().nonnegative(), code: z.enum(["clip_unavailable", "download_unavailable", "file_size_limit", "package_size_limit", "invalid_media", "provider_error", "download_timeout", "rate_limited", "reconnect_required", "render_busy", "render_failed", "font_unavailable", "browser_unsupported"]), retryable: z.boolean(), title: z.string().max(1000).optional() })).max(50),
+	skipped: z.array(z.object({ index: z.number().int().nonnegative(), code: z.enum(["clip_unavailable", "download_unavailable", "file_size_limit", "package_size_limit", "invalid_media", "provider_error", "download_timeout", "rate_limited", "reconnect_required", "render_busy", "render_failed", "font_unavailable", "browser_unsupported", "preset_size_limit"]), retryable: z.boolean(), title: z.string().max(1000).optional() })).max(50),
 	retryAt: z.string().datetime().optional(),
 });
 export type ClipExportSummary = z.infer<typeof summarySchema>;
@@ -101,6 +101,7 @@ export function isRetryableClipExportFailure(code: string) {
 }
 
 export function clipExportFailureCode(failures: readonly { code: string }[]) {
+	if (failures.some((item) => item.code === "preset_size_limit")) return "PRESET_SIZE_LIMIT";
 	if (failures.some((item) => ["file_size_limit", "package_size_limit"].includes(item.code))) return "EXPORT_LIMIT";
 	if (failures.some((item) => item.code === "reconnect_required")) return "RECONNECT_REQUIRED";
 	if (failures.some((item) => item.code === "rate_limited")) return "RATE_LIMITED";

@@ -439,3 +439,26 @@ it("cancels an in-memory source remux before starting FFmpeg", async () => {
 		await rm(dir, { recursive: true, force: true });
 	}
 });
+
+it("encodes a size preset from real media duration and returns a complete bounded MP4 with audio", async () => {
+	const cp = (await import("node:child_process")).default;
+	const spawn = jest.spyOn(cp, "spawn");
+	const dir = await mkdtemp(join(tmpdir(), "clipify-preset-test-"));
+	try {
+		const source = join(dir, "source.mp4"),
+			target = join(dir, "output.mp4");
+		execFileSync("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "testsrc2=size=640x360:rate=30", "-f", "lavfi", "-i", "sine=frequency=440", "-t", "3", "-c:v", "libx264", "-threads", "1", "-pix_fmt", "yuv420p", "-c:a", "aac", "-y", source]);
+		const bytes = await renderClipLayout(new Uint8Array(await readFile(source)), defaultClipLayout, { title: "Preset" }, AbortSignal.timeout(30000), { preset: { id: "custom", maxSizeMB: 1 } });
+		expect(bytes.byteLength).toBeLessThanOrEqual(1_000_000);
+		const args = spawn.mock.calls[0][1] as string[];
+		expect(args).toContain("-b:v");
+		expect(args).not.toContain("-crf");
+		await writeFile(target, bytes);
+		const probe = JSON.parse(execFileSync("ffprobe", ["-v", "quiet", "-show_streams", "-of", "json", target], { encoding: "utf8" }));
+		expect(probe.streams.find((s: any) => s.codec_type === "video")).toMatchObject({ codec_name: "h264", width: 720, height: 1280 });
+		expect(probe.streams.find((s: any) => s.codec_type === "audio")).toMatchObject({ codec_name: "aac" });
+	} finally {
+		spawn.mockRestore();
+		await rm(dir, { recursive: true, force: true });
+	}
+}, 45000);

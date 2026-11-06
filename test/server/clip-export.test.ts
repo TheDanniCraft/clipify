@@ -757,6 +757,7 @@ it("prepares authorized browser outputs with scoped source access without render
 			{ key: "original", label: "Original" },
 			{ key: "desktop", label: "Desktop", layout },
 		],
+		{ id: "discord" },
 	)[0];
 	const result = await prepareBrowserClipExport(plan, AbortSignal.timeout(5000));
 	expect(result.ok).toBe(true);
@@ -764,6 +765,8 @@ it("prepares authorized browser outputs with scoped source access without render
 		expect(result.clips).toHaveLength(1);
 		expect(readBrowserClipSource(result.clips[0].sourceToken)).toEqual({ creatorId: "owner", clipId: "ClipA" });
 		expect(result.clips[0].outputs.map((o: any) => o.key)).toEqual(["original", "desktop"]);
+		expect(result.clips[0].outputs[0].preset).toBeUndefined();
+		expect(result.clips[0].outputs[1].preset).toEqual({ id: "discord" });
 	}
 	expect(render).not.toHaveBeenCalled();
 	expect(jest.requireMock("@/server/clip-download-limit").reserveClipExportVolume).toHaveBeenCalledWith("owner", 2);
@@ -813,4 +816,54 @@ it("stops an oversized browser recipe before allocating every selected widget im
 	const result = await prepareBrowserClipExport(createClipExportPlan("owner", ids, [{ key: "desktop", label: "Desktop", layout }])[0], AbortSignal.timeout(15000));
 	expect(result).toMatchObject({ ok: false, code: "EXPORT_LIMIT", status: 413 });
 	expect(fetch.mock.calls.length).toBeLessThan(15);
+});
+
+it.each(["input", "permission", "ownership", "layout", "access", "final-permission"] as const)("rejects browser preset preparation at the %s boundary without releasing a source ticket", async (boundary) => {
+	const { prepareBrowserClipExport } = await import("@/server/clip-export");
+	const { createClipExportPlan } = await import("@lib/clipExportPlan");
+	const plan = createClipExportPlan("owner", ["ClipA"], [{ key: "original", label: "Original" }], { id: "discord" })[0];
+	let expected = "INVALID_INPUT";
+	if (boundary === "permission") {
+		authorize.mockResolvedValue({ allowed: false, code: "PERMISSION_DENIED" });
+		expected = "PERMISSION_DENIED";
+	}
+	if (boundary === "ownership") cacheRead.mockResolvedValue([ownedEntry("ClipA", { broadcaster_id: "foreign" })]);
+	if (boundary === "layout") {
+		plan.outputs[0].templateId = "deleted";
+		expected = "LAYOUT_UNAVAILABLE";
+	}
+	if (boundary === "access") {
+		getToken.mockResolvedValue({});
+		expected = "RECONNECT_REQUIRED";
+	}
+	if (boundary === "final-permission") {
+		exportBrand.mockImplementationOnce(async () => {
+			authorize.mockResolvedValue({ allowed: false, code: "PERMISSION_DENIED" });
+			return { brand: null, revision: 0 };
+		});
+		expected = "PERMISSION_DENIED";
+	}
+	const result = await prepareBrowserClipExport(boundary === "input" ? { ...plan, preset: { id: "forged" } } : plan, AbortSignal.timeout(5000));
+	expect(result).toMatchObject({ ok: false, code: expected });
+	expect(result).not.toHaveProperty("clips");
+	expect(globalThis.fetch).not.toHaveBeenCalled();
+});
+it("passes presets only to encoded native outputs and retains Original after a size failure", async () => {
+	const { createClipExportPlan } = await import("@lib/clipExportPlan");
+	const { createClipComposition } = await import("@lib/clipComposition");
+	const plan = createClipExportPlan(
+		"owner",
+		["ClipA"],
+		[
+			{ key: "original", label: "Original" },
+			{ key: "desktop", label: "Desktop", layout: createClipComposition("desktop") },
+		],
+		{ id: "custom", maxSizeMB: 1 },
+	)[0];
+	render.mockRejectedValueOnce(Error("preset_size_limit"));
+	const result = await buildClipExportPlan(plan);
+	expect(render).toHaveBeenCalledTimes(1);
+	expect(render.mock.calls[0][4]).toMatchObject({ preset: { id: "custom", maxSizeMB: 1 } });
+	expect(result).toMatchObject({ ok: true, summary: { included: [0], skipped: [{ index: 1, code: "preset_size_limit", retryable: false }] } });
+	if (result.ok) expect(unzipSync(result.bytes)[Object.keys(unzipSync(result.bytes)).find((k) => k.endsWith(".mp4"))!]).toEqual(new Uint8Array(video));
 });

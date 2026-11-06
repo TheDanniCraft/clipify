@@ -406,3 +406,5 @@ These are regression-after refinements of the existing owners, not a retrospecti
 
 - BEXP-05 VERIFIED: Native rendering creates no input/output/widget media files, handles sources requiring seekless remuxing, bounds stdout and retains audio/timing/widgets; cancellation and broken pipes release resources. The existing bounded font cache is separate from clip media.
 - BEXP-06 VERIFIED: Total selections above the former caps retain every validated clip/version pair in fifty-file packets. Full browser packages download as numbered ZIP parts; only the latest Blob is retained. Later quota/unavailable-source failures preserve completed parts and only recoverable files retry. Public manifests retain metadata and byte counts without source capabilities.
+
+PSET-01/02/03: duration-dependent bitrate (short clips retain more), custom/unknown validation, audio/container budget, measured oversize retry, hard byte bound, cancellation, preset snapshot across50-file packets; installed export settings sends chosen preset without modifying Original; real browser/native outputs retain audio/geometry/widgets and fit the target.

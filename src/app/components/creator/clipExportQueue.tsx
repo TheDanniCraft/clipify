@@ -12,6 +12,7 @@ import type { ClipLayout } from "@lib/clipLayout";
 import type { ClipExportSummary } from "@lib/clipExport";
 import { readClipExportResponse, type ClipExportProgress } from "@lib/clipExportStream";
 const messages: Record<string, string> = {
+	PRESET_SIZE_LIMIT: "This video could not fit the chosen size. Open export settings and choose a larger target.",
 	BROWSER_UNSUPPORTED: "Video export is unavailable on this device. Try a supported browser or choose server processing.",
 	RECONNECT_REQUIRED: "Reconnect Twitch to download clips, then retry here.",
 	RATE_LIMITED: "The download limit was reached. Wait before trying again.",
@@ -29,6 +30,7 @@ const messages: Record<string, string> = {
 	LAYOUT_UNAVAILABLE: "A selected layout is no longer available. Open export settings and choose another layout.",
 };
 const reasons: Record<string, string> = {
+	preset_size_limit: "This video could not fit the chosen size. Choose a larger target in export settings.",
 	browser_unsupported: "Browser rendering unavailable. You can process this file on the server.",
 	clip_unavailable: "Clip unavailable",
 	download_unavailable: "Download unavailable",

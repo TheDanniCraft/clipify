@@ -65,7 +65,7 @@ export async function buildBrowserBatch(plan: ClipExportPlan, signal: AbortSigna
 					progress({ index, stage: "ready" });
 				} catch (error) {
 					signal.throwIfAborted();
-					code = error instanceof Error && ["file_size_limit", "package_size_limit"].includes(error.message) ? error.message : "browser_unsupported";
+					code = error instanceof Error && ["file_size_limit", "package_size_limit", "preset_size_limit"].includes(error.message) ? error.message : "browser_unsupported";
 				}
 			if (code) {
 				summary.skipped.push({ index, code: code as ClipExportSummary["skipped"][number]["code"], retryable: isRetryableClipExportFailure(code), title: `${clip.title} / ${output.label}` });

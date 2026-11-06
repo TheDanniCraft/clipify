@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { exportPresetSchema, type ExportPreset } from "./clipExportPreset";
 import { clipLayoutSchema } from "./clipLayout";
 import { compositionSchema } from "./clipComposition";
 const key = z.string().regex(/^[a-zA-Z0-9_-]{1,200}$/);
@@ -7,6 +8,7 @@ export type ClipExportOutput = z.infer<typeof clipExportOutputSchema>;
 export const clipExportPlanSchema = z
 	.object({
 		creatorId: z.string().min(1).max(200),
+		preset: exportPresetSchema.optional(),
 		outputs: z.array(clipExportOutputSchema).min(1).max(50),
 		files: z
 			.array(z.object({ clipId: key, outputKey: key }))
@@ -18,7 +20,7 @@ export const clipExportPlanSchema = z
 		return new Set(keys).size === keys.length && plan.files.every((file) => keys.includes(file.outputKey)) && new Set(plan.files.map((file) => JSON.stringify([file.clipId, file.outputKey]))).size === plan.files.length;
 	}, "Select distinct clips and output versions.");
 export type ClipExportPlan = z.infer<typeof clipExportPlanSchema>;
-export function createClipExportPlan(creatorId: string, clipIds: string[], outputs: ClipExportOutput[]): ClipExportPlan[] {
+export function createClipExportPlan(creatorId: string, clipIds: string[], outputs: ClipExportOutput[], preset?: ExportPreset): ClipExportPlan[] {
 	const ids = [...new Set(clipIds)];
 	if (!ids.length || !outputs.length) throw new Error("Select clips and at least one output version.");
 	const snapshots = z.array(clipExportOutputSchema).parse(outputs);
@@ -28,7 +30,7 @@ export function createClipExportPlan(creatorId: string, clipIds: string[], outpu
 	for (let offset = 0; offset < files.length; offset += 50) {
 		const batch = files.slice(offset, offset + 50),
 			keys = new Set(batch.map((file) => file.outputKey));
-		batches.push(clipExportPlanSchema.parse({ creatorId, files: batch, outputs: snapshots.filter((output) => keys.has(output.key)) }));
+		batches.push(clipExportPlanSchema.parse({ creatorId, preset, files: batch, outputs: snapshots.filter((output) => keys.has(output.key)) }));
 	}
 	return batches;
 }

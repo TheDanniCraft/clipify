@@ -152,6 +152,8 @@ Each existing numbered acceptance scenario has a stable anchor `US<n>-AC<m>` in 
 - Operational errors use toast feedback; export per-clip details use a bounded, scrollable dialog without moving the underlying inventory. Filter validation stays inline. Report feedback must not shift the dashboard horizontally.
 - The signed-in avatar is green; only confirmed own-channel Twitch live data makes it red. Delegated account context must not change whose presence is displayed.
 
+Later approved sections supersede earlier extension boundaries and interaction drafts, including the subsequent branding/watermark and paired-template decisions. Manual export remains the publishing boundary; no automation screen placement is inferred by the preset extension.
+
 ## Approved extension: C dashboard and manual portrait exports (2026-11-05)
 
 The creator keeps the approved sidebar and uses aligned Home summary cards, a stream table and a dense25/50-row clip inventory with compact numbered pagination. Stream detail provides a chronological selection of owned moments; it does not claim to import, synchronize or publish Twitch Stream Recaps.
@@ -228,3 +230,11 @@ Browser export extension: default to capability-tested WebCodecs worker encoding
 Use the same server-generated PNGs for all text/logo widgets and watermark in both engines, including custom Google fonts. Share even-pixel geometry/crop rounding. Validate real browser MP4/audio and decoded-frame parity against FFmpeg, plus unsupported/slow/error/cancel/retry and explicit fallback using installed HeroUI. Test source ticket forgery/expiry/cross-owner denial and quota boundaries.
 
 Manual export resource follow-up: Original-only batches package in the browser without requiring WebCodecs. Composed exports use the tested browser encoder by default; unsupported or slow devices retain an explicit native choice. Native fallback processes two files per request and permits two active renders per process. Keep32MiB per-file and128MiB archive bounds, splitting browser packages before126MiB of media rather than skipping valid outputs. Each numbered ZIP part retains public clip metadata, actual output byte counts and included/skipped results; source tickets and render assets never enter manifests. Only the latest download Blob is retained. Scoped source tickets last six hours, covering the bounded worst-case slow batch; every source request still checks current authorization and the shared transfer budget. Do not raise native concurrency based on isolated synthetic RAM measurements.
+
+## Manual export presets (2026-11-06)
+
+PSET-01: The existing export settings dialog offers General, Discord, YouTube, TikTok, Instagram Reels, Reddit and Custom size presets for encoded Desktop/Mobile versions. One preset applies to selected template versions; Original remains byte-for-byte unchanged and explicitly bypasses presets. Do not introduce layout management or automatic publishing in this dialog. Preserve approved dashboard/navigation organization.
+
+PSET-02: Budget each clip independently from its actual media duration, subtract AAC audio and container headroom, and cap bitrate at the preset's useful quality ceiling. Preserve composition shape, widgets, fonts and audio in both render engines. Discord defaults to20MB (current free manual-upload allowance); custom targets accept1–32MB. Existing32MiB processing bounds remain; never allocate platform-sized gigabyte buffers.
+
+PSET-03: Verify every encoded output against the target bytes, retry sequentially with a lower bitrate using the actual result size (at most3attempts), and fail locally with actionable size feedback if no complete valid output fits. No oversized or truncated file is reported ready. Cancellation and existing quotas/concurrency remain. Expose quality/target meaning without promising automatic platform upload or acceptance.

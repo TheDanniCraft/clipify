@@ -415,3 +415,17 @@ Read-only creator collaborators now receive disabled brand controls and a clear 
 Verified and fixed: the preview used initials for an unavailable optional avatar while native export failed. Native Channel info now produces the same initials PNG as an absent avatar after an official-CDN404. Explicit logo layers still fail rather than silently substituting another asset, and cancellation remains propagated. brand-avatar-recovery-red/green.log and the native/render whole-file owners cover the distinction.
 
 Deployment follow-up: commit87db2b2d deployed successfully, but anonymous built-in-font checks returned503 for all three families despite local OS fonts passing. Built-in fonts are now distributed as licensed application assets; native Pango previews/exports load those exact files, independent of runtime image font installation. brand-runtime-font-red.log reproduces the absent packaged asset. brand-runtime-font-green.log passes127 tests across all five affected native/API owners. The previous CI checkpoint is allowed to finish before a follow-up push.
+
+### PSET-D01 — Preset option description runs into its label
+
+Found by installed-component browser run `/tmp/clipify-preset-browser.log`, PSET-01 desktop/mobile. Expected clearly separated preset name/description and an accessible option name. Actual: the wrapper kept Label/Description inline, producing concatenated text and names. Fix: stack both with shared spacing and set the option's accessible name. Status: fixed, awaiting final rebuilt browser verification. The first two selector timeouts are evidence of this defect, not successful render evidence.
+
+PSET-D01 follow-up: rebuilt mobile/light Discord flow now passes real rendering, audio, Original byte equality, and native pixel parity. Desktop custom-size test reached the correct UI but used a spinbutton locator; installed HeroUI NumberField exposes a textbox. Correct that test locator and commit using Tab. This is test setup/API evidence, not a product failure or a reason to replace HeroUI.
+
+### PSET-D02 — Instrumented native export case exceeded its local deadline during a concurrent build
+
+Command: scoped server export coverage run, `/tmp/clipify-preset-server-coverage.log`. Expected whole-file tests to pass; actual four-version native case reached its30s deadline while TypeScript/static generation was also running. Source branch measurement is90.77%, above90%; missing unrelated gallery coverage is expected for this scoped diagnostic and is not a passing full gate. Status: awaiting isolated whole-file rerun, with unchanged deadlines and thresholds.
+
+PSET-D01 verified: all6 rebuilt browser-owner cases pass in clipify-preset-reviewed-browser.log, including custom1MB Desktop/Mobile encoding and mobile/light Discord. Inspect closed-state screenshots in both themes. Fullscreen popup capture waits for the library's entering animation to finish so opacity mid-transition is not mistaken for the settled design.
+
+PSET-D02 verified: isolated whole-file rerun clipify-preset-server-final-green.log passes all120tests with unchanged deadlines. Preserve the earlier scoped90.77% source-branch measurement as diagnostic evidence; only complete merged CI can establish the coverage gate.

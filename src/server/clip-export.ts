@@ -12,6 +12,7 @@ import { compositionSchema, convertLegacyClipLayout, type ClipComposition } from
 import { templateCompositions } from "@lib/clipLayoutTemplate";
 import { clipExportPlanSchema } from "@lib/clipExportPlan";
 import { listClipLayouts } from "@actions/clipLayoutLibrary";
+import type { ExportPreset } from "@lib/clipExportPreset";
 import { renderClipLayout } from "./clip-layout-render";
 import { z } from "zod";
 import { readBoundedResponse, clipExportFilename, clipExportFailureCode, isRetryableClipExportFailure } from "@lib/clipExport";
@@ -226,7 +227,7 @@ async function resolveExportSources(creatorId: string, clipIds: string[], clips:
 	}
 	return null;
 }
-async function downloadExportClip(index: number, url: string, creatorId: string, clip: NonNullable<ExportClips[number]>["clip"], layout: ClipLayout | ClipComposition | undefined, permission: Extract<Awaited<ReturnType<typeof authorizeClipExport>>, { allowed: true }>, signal: AbortSignal, progress?: (event: ClipExportProgress) => void) {
+async function downloadExportClip(index: number, url: string, creatorId: string, clip: NonNullable<ExportClips[number]>["clip"], layout: ClipLayout | ClipComposition | undefined, permission: Extract<Awaited<ReturnType<typeof authorizeClipExport>>, { allowed: true }>, signal: AbortSignal, progress?: (event: ClipExportProgress) => void, preset?: ExportPreset) {
 	const fileSignal = AbortSignal.any([signal, AbortSignal.timeout(30000)]);
 	try {
 		progress?.({ index, stage: "processing" });
@@ -236,11 +237,11 @@ async function downloadExportClip(index: number, url: string, creatorId: string,
 		if (layout) {
 			progress?.({ index, stage: "rendering" });
 			const [{ brand }, entitlement] = await Promise.all([readCreatorBrand(creatorId), resolveUserEntitlements(permission.creator)]);
-			bytes = await renderClipLayout(bytes, layout, publicClip(clip), signal, { avatar: permission.creator?.avatar, brand: brand ?? undefined, watermark: !entitlement.proAccess || (layout.version === 2 ? (layout.watermark ?? true) : true) });
+			bytes = await renderClipLayout(bytes, layout, publicClip(clip), signal, { preset, avatar: permission.creator?.avatar, brand: brand ?? undefined, watermark: !entitlement.proAccess || (layout.version === 2 ? (layout.watermark ?? true) : true) });
 		}
 		return { index, bytes };
 	} catch (error) {
-		return { index, code: fileSignal.aborted ? "download_timeout" : error instanceof Error && ["clip_unavailable", "download_unavailable", "file_size_limit", "invalid_media", "render_busy", "render_failed", "font_unavailable"].includes(error.message) ? error.message : "provider_error" };
+		return { index, code: fileSignal.aborted ? "download_timeout" : error instanceof Error && ["clip_unavailable", "download_unavailable", "file_size_limit", "invalid_media", "render_busy", "render_failed", "font_unavailable", "preset_size_limit"].includes(error.message) ? error.message : "provider_error" };
 	}
 }
 function emptyArchiveResult(summary: ExportSummary) {
@@ -302,7 +303,7 @@ function createArchiveSkip(clips: ExportClips, summary: ExportSummary, progress?
 		}
 	};
 }
-async function prepareClipArchive(input: unknown, parentSignal?: AbortSignal, format: "zip" | "mp4" = "zip", progress?: (event: ClipExportProgress) => void, reserved = false, landscapeOnly = false): Promise<ArchiveResult> {
+async function prepareClipArchive(input: unknown, parentSignal?: AbortSignal, format: "zip" | "mp4" = "zip", progress?: (event: ClipExportProgress) => void, reserved = false, landscapeOnly = false, preset?: ExportPreset): Promise<ArchiveResult> {
 	const parsed = exportRequestSchema.safeParse(input);
 	if (!parsed.success) return failure("INVALID_INPUT", 400);
 	const { creatorId, clipIds } = parsed.data;
@@ -333,7 +334,7 @@ async function prepareClipArchive(input: unknown, parentSignal?: AbortSignal, fo
 			const permission = await authorize();
 			if (!permission.allowed) return failure(permission.code, 403);
 			const pair = indices.slice(offset, offset + 2);
-			const results = await Promise.all(pair.map((index) => downloadExportClip(index, sources.get(index)!.url, creatorId, clips[index]!.clip, parsed.data.layout, permission, signal, progress)));
+			const results = await Promise.all(pair.map((index) => downloadExportClip(index, sources.get(index)!.url, creatorId, clips[index]!.clip, parsed.data.layout, permission, signal, progress, preset)));
 			totalBytes = appendArchiveResults(results, clips, sources, parsed.data.layout, files, manifest, used, summary, totalBytes, skip, progress);
 		}
 		return await finishClipArchive(creatorId, clipIds, clips, files, manifest, summary, format, signal);
@@ -395,7 +396,7 @@ async function renderPlannedExport(plan: z.infer<typeof clipExportPlanSchema>, f
 	const override = plannedOverride(output.templateId, file.clipId, base, overrides);
 	if (override && (!base || base.version !== 2 || override.format !== base.format)) return { index, result: failure("LAYOUT_UNAVAILABLE", 409), output };
 	const layout = override ?? base;
-	const result = await prepareClipArchive({ creatorId, clipIds: [file.clipId], ...(layout ? { layout } : {}) }, signal, "mp4", (event) => progress?.({ ...event, index, title: title(index) }), true, true);
+	const result = await prepareClipArchive({ creatorId, clipIds: [file.clipId], ...(layout ? { layout } : {}) }, signal, "mp4", (event) => progress?.({ ...event, index, title: title(index) }), true, true, layout ? plan.preset : undefined);
 	return { index, result, output };
 }
 type ExportPackage = { files: Record<string, Uint8Array>; manifest: Record<string, unknown>[]; used: Set<string>; summary: ExportSummary; total: number };
@@ -531,7 +532,7 @@ export async function prepareBrowserClipExport(input: unknown, signal: AbortSign
 			// Reserve space for public metadata/layouts before encoding repeated PNG payloads.
 			imageBytes += [...Object.values(assets), ...(watermark ? [mark] : [])].reduce((sum, bytes) => sum + Math.ceil(bytes.length / 3) * 4 + 32, 0);
 			if (imageBytes > 6 * 1024 * 1024) return failure("EXPORT_LIMIT", 413);
-			outputs.push({ key: output.key, label: output.label, layout, assets: Object.fromEntries(Object.entries(assets).map(([key, value]) => [key, `data:image/png;base64,${value.toString("base64")}`])), watermark: watermark ? `data:image/png;base64,${mark.toString("base64")}` : null });
+			outputs.push({ preset: layout ? plan.preset : undefined, key: output.key, label: output.label, layout, assets: Object.fromEntries(Object.entries(assets).map(([key, value]) => [key, `data:image/png;base64,${value.toString("base64")}`])), watermark: watermark ? `data:image/png;base64,${mark.toString("base64")}` : null });
 		}
 		clips.push({ ...clip, sourceToken: unavailable ? "" : signBrowserClipSource(creatorId, id), error: unavailable ? ("clip_unavailable" as const) : undefined, outputs });
 	}

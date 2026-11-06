@@ -1,19 +1,22 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Button, Checkbox, Label, Modal, Skeleton, Autocomplete, SearchField, ListBox, EmptyState, RadioGroup, Radio, Description, useFilter } from "@heroui/react";
+import { Button, Checkbox, Label, Modal, Skeleton, Autocomplete, SearchField, ListBox, EmptyState, RadioGroup, Radio, Description, Select, NumberField, FieldError, useFilter } from "@heroui/react";
 import { browserExportCapability, type BrowserCapability } from "@lib/clipBrowserRender";
 import type { ExportEngine } from "@lib/clipBrowserExport";
 import ControlledModal from "@components/controlledModal";
 import { listClipLayouts } from "@actions/clipLayoutLibrary";
 import { createClipExportPlan, type ClipExportPlan, type ClipExportOutput } from "@lib/clipExportPlan";
 import { templateCompositions } from "@lib/clipLayoutTemplate";
+import { exportPresets, exportPresetSchema, type ExportPreset } from "@lib/clipExportPreset";
 import { notify } from "@lib/toast";
 export default function ClipExportSettings({ creatorId, clipIds, onStart, onClose }: { creatorId: string; clipIds: string[]; onStart: (plans: ClipExportPlan[], engine: ExportEngine) => boolean; onClose: () => void }) {
 	const [engine, setEngine] = useState<ExportEngine>("browser"),
 		[capability, setCapability] = useState<BrowserCapability>(),
 		[library, setLibrary] = useState<Awaited<ReturnType<typeof listClipLayouts>>>(),
 		[versions, setVersions] = useState(new Set(["original"])),
-		[selected, setSelected] = useState<string[]>();
+		[selected, setSelected] = useState<string[]>(),
+		[presetId, setPresetId] = useState<ExportPreset["id"]>("general"),
+		[maxSizeMB, setMaxSizeMB] = useState(20);
 	useEffect(() => {
 		let active = true;
 		void browserExportCapability().then((value) => {
@@ -55,6 +58,7 @@ export default function ClipExportSettings({ creatorId, clipIds, onStart, onClos
 		),
 	];
 	const composed = versions.has("desktop") || versions.has("mobile");
+	const preset = exportPresetSchema.safeParse(presetId === "custom" ? { id: presetId, maxSizeMB } : { id: presetId });
 	return (
 		<ControlledModal ariaLabel='Export clips' isOpen onClose={onClose} size='lg'>
 			<Modal.Header>
@@ -139,6 +143,51 @@ export default function ClipExportSettings({ creatorId, clipIds, onStart, onClos
 					<Skeleton className='h-24 rounded-xl' />
 				)}
 				{composed ? (
+					<section aria-label='Export quality' className='space-y-3'>
+						<Select
+							variant='secondary'
+							value={presetId}
+							onChange={(key) => {
+								if (key) setPresetId(String(key) as ExportPreset["id"]);
+							}}
+							aria-label='Export for'
+						>
+							<Label>Export for</Label>
+							<Select.Trigger>
+								<Select.Value />
+								<Select.Indicator />
+							</Select.Trigger>
+							<Select.Popover>
+								<ListBox>
+									{exportPresets.map((item) => (
+										<ListBox.Item id={item.id} key={item.id} textValue={item.label} aria-label={item.label}>
+											<div className='flex min-w-0 flex-1 flex-col gap-0.5'>
+												<Label>{item.label}</Label>
+												<Description>{item.description}</Description>
+											</div>
+											<ListBox.ItemIndicator />
+										</ListBox.Item>
+									))}
+								</ListBox>
+							</Select.Popover>
+							<Description>MP4 video with AAC audio. Quality adjusts to each clip’s length. Original files stay unchanged.</Description>
+						</Select>
+						{presetId === "custom" ? (
+							<NumberField variant='secondary' value={maxSizeMB} onChange={setMaxSizeMB} minValue={1} maxValue={32} isInvalid={!preset.success} className='w-full'>
+								<Label>Maximum size (MB)</Label>
+								<NumberField.Group>
+									<NumberField.DecrementButton />
+									<NumberField.Input />
+									<NumberField.IncrementButton />
+								</NumberField.Group>
+								<Description>1–32 MB per encoded video.</Description>
+								<FieldError>Choose a size between 1 and 32 MB.</FieldError>
+							</NumberField>
+						) : null}
+						{["tiktok", "instagram"].includes(presetId) && !versions.has("mobile") ? <p className='text-sm text-muted'>Select Mobile for a vertical video.</p> : null}
+					</section>
+				) : null}
+				{composed ? (
 					<RadioGroup variant='secondary' value={engine} onChange={(value) => setEngine(value as ExportEngine)} aria-label='Processing'>
 						<Label>Processing</Label>
 						<Radio value='browser' aria-label='On this device' aria-describedby='browser-export-help' isDisabled={capability === undefined || capability === "unsupported"}>
@@ -170,10 +219,10 @@ export default function ClipExportSettings({ creatorId, clipIds, onStart, onClos
 					Cancel
 				</Button>
 				<Button
-					isDisabled={(composed && engine === "browser" && (capability === undefined || capability === "unsupported")) || !outputs.length || ((versions.has("desktop") || versions.has("mobile")) && !chosen.length)}
+					isDisabled={(composed && !preset.success) || (composed && engine === "browser" && (capability === undefined || capability === "unsupported")) || !outputs.length || ((versions.has("desktop") || versions.has("mobile")) && !chosen.length)}
 					onPress={() => {
 						try {
-							if (onStart(createClipExportPlan(creatorId, clipIds, outputs), composed ? engine : "browser")) onClose();
+							if (onStart(createClipExportPlan(creatorId, clipIds, outputs, composed && preset.success ? preset.data : undefined), composed ? engine : "browser")) onClose();
 						} catch (error) {
 							notify({ title: "Export could not be queued", description: error instanceof Error && error.message.startsWith("Select ") ? error.message : "Review your clip and output selection.", color: "danger" });
 						}

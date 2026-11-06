@@ -835,3 +835,7 @@ T681–T685 local closure: brand-candidate-browser-export.log passes all10 final
 - [x] T695 [BEXP-04] Default supported devices to browser export, show unsupported/slow feedback and explicit server fallback; preserve batch progress/download/history/retry and verify installed controls.
 - [x] T696 [BEXP-05] Eliminate accumulation of exported server media; evaluate seekless FFmpeg input/output and streamed ZIP delivery, retaining strict cancellation, permission and byte bounds. Verify no per-library disk growth before claiming zero-disk behavior.
 - [x] T697 [BEXP-06] Process selections without a fixed total clip cap through bounded batches/packages, retaining account-wide per-minute quotas and browser memory bounds.
+
+- [x] T698 [PSET-01/02/03] Prove duration-based preset planning, bounded retries, input validation and cancellation Red, implement the shared policy and record Green.
+- [x] T699 [PSET-02/03] Carry preset snapshots through plans/recipes and implement actual native/browser media duration, encoding and final size verification; prove parity and audio with generated media.
+- [x] T700 [PSET-01] Add installed HeroUI preset/custom-size controls to existing export settings; verify Original bypass, queue/retry retention, desktop/mobile, themes and keyboard operation; publish only passing affected checks.

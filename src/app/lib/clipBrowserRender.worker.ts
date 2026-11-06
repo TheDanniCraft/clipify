@@ -1,6 +1,7 @@
 import { Input, BufferSource, MP4, Output, Mp4OutputFormat, StreamTarget, Conversion, Quality } from "mediabunny";
 import { compositionDimensions, compositionRectPixels } from "./clipComposition";
 import { CLIPIFY_WATERMARK, clipifyWatermarkPosition, clipifyWatermarkPositions } from "./overlayMetadata";
+import { encodeForPreset, type ExportEncoding } from "./clipExportPreset";
 import type { BrowserOutput } from "./clipBrowserExport";
 const port = self as unknown as Pick<Worker, "postMessage" | "onmessage">;
 const LIMIT = 32 * 1024 * 1024;
@@ -44,6 +45,25 @@ async function probe() {
 	return performance.now() - started > 2000 ? "slow" : "supported";
 }
 async function render(bytes: ArrayBuffer, recipe: BrowserOutput) {
+	if (!recipe.preset) return renderOnce(bytes, recipe);
+	const input = new Input({ source: new BufferSource(bytes), formats: [MP4] });
+	let duration: number,
+		audioBitrate = 0;
+	try {
+		duration = await input.computeDuration();
+		const audio = await input.getPrimaryAudioTrack();
+		if (audio) {
+			if ((await audio.getCodec()) !== "aac") throw new Error("browser_unsupported");
+			audioBitrate = (await audio.computePacketStats()).averageBitrate;
+		}
+	} finally {
+		input.dispose();
+	}
+	// Copy compatible AAC instead of requiring an AAC encoder on the user's OS.
+	const result = await encodeForPreset(recipe.preset, duration, new AbortController().signal, async (encoding) => new Uint8Array(await renderOnce(bytes, recipe, encoding)), audioBitrate);
+	return result.buffer;
+}
+async function renderOnce(bytes: ArrayBuffer, recipe: BrowserOutput, encoding?: ExportEncoding) {
 	if (!recipe.layout) throw new Error("browser_unsupported");
 	const layout = recipe.layout,
 		{ width, height } = compositionDimensions(layout.format),
@@ -56,13 +76,13 @@ async function render(bytes: ArrayBuffer, recipe: BrowserOutput) {
 		const canvas = new OffscreenCanvas(width, height),
 			ctx = canvas.getContext("2d");
 		if (!ctx) throw new Error("browser_unsupported");
-		const storage = new Uint8Array(LIMIT);
+		const storage = new Uint8Array(Math.min(LIMIT, encoding?.maxBytes ?? LIMIT));
 		let size = 0;
 		const target = new StreamTarget(
 			new WritableStream({
 				write(chunk) {
 					const end = chunk.position + chunk.data.length;
-					if (end > LIMIT) throw new Error("file_size_limit");
+					if (end > Math.min(LIMIT, encoding?.maxBytes ?? LIMIT)) throw new Error("file_size_limit");
 					storage.set(chunk.data, chunk.position);
 					size = Math.max(size, end);
 				},
@@ -79,9 +99,10 @@ async function render(bytes: ArrayBuffer, recipe: BrowserOutput) {
 			input,
 			output,
 			tracks: "primary",
+
 			video: {
 				codec: "avc",
-				quality: new Quality({ bitrate: 4000000 }),
+				quality: new Quality({ bitrate: encoding?.videoBitrate ?? 4000000 }),
 				frameRate: 30,
 				forceTranscode: true,
 				processedWidth: width,
@@ -155,6 +176,6 @@ port.onmessage = async (event: MessageEvent) => {
 		const bytes = await render(event.data.bytes, event.data.output);
 		port.postMessage({ type: "result", bytes }, [bytes]);
 	} catch (error) {
-		port.postMessage({ type: "error", code: error instanceof Error && error.message === "file_size_limit" ? "file_size_limit" : "browser_unsupported" });
+		port.postMessage({ type: "error", code: error instanceof Error && ["file_size_limit", "preset_size_limit"].includes(error.message) ? error.message : "browser_unsupported" });
 	}
 };

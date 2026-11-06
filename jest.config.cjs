@@ -52,6 +52,7 @@ const customJestConfig = {
 		"src/app/components/overlayMetadata.tsx",
 		"src/app/api/clips/preview/route.ts",
 		"src/app/lib/clipExportPlan.ts",
+		"src/app/lib/clipExportPreset.ts",
 		"src/app/actions/clipLayoutLibrary.ts",
 		"src/server/clip-composition-render.ts",
 		"src/app/api/clips/layout-logo/route.ts",

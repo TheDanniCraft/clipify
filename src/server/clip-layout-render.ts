@@ -1,4 +1,5 @@
 import "server-only";
+import { encodeForPreset, type ExportPreset, type ExportEncoding } from "@lib/clipExportPreset";
 import sharp from "sharp";
 import { Input, BufferSource, MP4, Output, BufferTarget, Mp4OutputFormat, Conversion } from "mediabunny";
 import { clipifyWatermarkSvg, clipifyWatermarkExpression, clipifyWatermarkPositions, type CreatorBrand } from "@lib/overlayMetadata";
@@ -53,8 +54,21 @@ async function sourceForPipe(bytes: Uint8Array, signal: AbortSignal) {
 		input.dispose();
 	}
 }
+type RenderContext = { avatar?: string; brand?: CreatorBrand; watermark?: boolean; preset?: ExportPreset };
+export async function renderClipLayout(bytes: Uint8Array, layout: ClipLayout | ClipComposition, clip: Parameters<typeof clipLayerText>[1], signal: AbortSignal, context?: RenderContext) {
+	if (!context?.preset) return renderClipLayoutOnce(bytes, layout, clip, signal, context);
+	signal.throwIfAborted();
+	const input = new Input({ source: new BufferSource(bytes), formats: [MP4] });
+	let duration: number;
+	try {
+		duration = await input.computeDuration();
+	} finally {
+		input.dispose();
+	}
+	return encodeForPreset(context.preset, duration, signal, (encoding) => renderClipLayoutOnce(bytes, layout, clip, signal, context, encoding));
+}
 /** All media travels through bounded pipes; no source, output or widget files are created. */
-export async function renderClipLayout(bytes: Uint8Array, layout: ClipLayout | ClipComposition, clip: Parameters<typeof clipLayerText>[1], signal: AbortSignal, context?: { avatar?: string; brand?: CreatorBrand; watermark?: boolean }) {
+async function renderClipLayoutOnce(bytes: Uint8Array, layout: ClipLayout | ClipComposition, clip: Parameters<typeof clipLayerText>[1], signal: AbortSignal, context?: RenderContext, encoding?: ExportEncoding) {
 	const parsed = layout.version === 2 ? compositionSchema.parse(layout) : convertLegacyClipLayout(clipLayoutSchema.parse(layout));
 	if (activeRenders >= 2) throw new Error("render_busy");
 	signal.throwIfAborted();
@@ -109,8 +123,7 @@ export async function renderClipLayout(bytes: Uint8Array, layout: ClipLayout | C
 			"0",
 			"-preset",
 			"veryfast",
-			"-crf",
-			"23",
+			...(encoding ? ["-b:v", String(encoding.videoBitrate), "-maxrate", String(encoding.videoBitrate), "-bufsize", String(encoding.videoBitrate * 2)] : ["-crf", "23"]),
 			"-pix_fmt",
 			"yuv420p",
 			"-r",
@@ -118,7 +131,8 @@ export async function renderClipLayout(bytes: Uint8Array, layout: ClipLayout | C
 			"-c:a",
 			"aac",
 			"-b:a",
-			"128k",
+			String(encoding?.audioBitrate ?? 128000),
+			...(encoding ? ["-ar", "48000", "-ac", "2"] : []),
 			"-avoid_negative_ts",
 			"disabled",
 			"-movflags",
@@ -138,7 +152,7 @@ export async function renderClipLayout(bytes: Uint8Array, layout: ClipLayout | C
 			});
 			child.stdout?.on("data", (chunk: Buffer) => {
 				length += chunk.length;
-				if (length >= LIMIT) {
+				if (length >= Math.min(LIMIT, (encoding?.maxBytes ?? LIMIT - 1) + 1)) {
 					oversized = true;
 					child.kill("SIGKILL");
 				} else chunks.push(chunk);

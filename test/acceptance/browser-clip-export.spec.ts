@@ -34,6 +34,17 @@ for (const mode of ["audio", "audio_untagged"])
 			await dialog.getByRole("checkbox", { name, exact: true }).focus();
 			await page.keyboard.press("Space");
 		}
+		const preset = mode === "audio" ? { id: "custom", maxSizeMB: 1 } : { id: "discord" };
+		await dialog.getByRole("button", { name: "Export for" }).click();
+		await expect(page.locator('[data-slot="select-popover"]')).toHaveCSS("opacity", "1");
+		await page.screenshot({ path: info.outputPath("preset-options.png"), fullPage: true, animations: "disabled" });
+		await page.getByRole("option", { name: mode === "audio" ? "Custom size" : "Discord", exact: true }).click();
+		if (mode === "audio") {
+			const size = dialog.getByRole("textbox", { name: "Maximum size (MB)" });
+			await size.fill("1");
+			await size.press("Tab");
+		}
+		await expect(dialog.getByText(/Original files stay unchanged/)).toBeVisible();
 		await expect(dialog.getByRole("radio", { name: "On this device", exact: true })).toBeChecked();
 		await expect(dialog.getByRole("button", { name: "Start export", exact: true })).toBeEnabled({ timeout: 15000 });
 		await dialog.screenshot({ path: info.outputPath("processing-choice.png") });
@@ -44,6 +55,8 @@ for (const mode of ["audio", "audio_untagged"])
 		expect(heavy).toHaveLength(0);
 		const archive = unzipSync(await readFile(path)),
 			manifest = JSON.parse(strFromU8(archive["manifest.json"]));
+		const original = manifest.clips.find((item: any) => item.format === "original");
+		expect(Buffer.from(archive[original.filename]).equals(await readFile(mode === "audio" ? "test/fixtures/clips/export-audio.mp4" : "test/fixtures/clips/export-audio-untagged.mp4"))).toBe(true);
 		expect(manifest.clips).toHaveLength(3);
 		for (const [index, item] of manifest.clips.entries()) {
 			const file = info.outputPath(`browser-${index}.mp4`);
@@ -51,8 +64,9 @@ for (const mode of ["audio", "audio_untagged"])
 			const streams = JSON.parse(execFileSync("ffprobe", ["-v", "error", "-show_streams", "-of", "json", file], { encoding: "utf8" })).streams;
 			expect(streams.some((s: any) => s.codec_type === "audio")).toBe(true);
 			if (index) {
+				expect(archive[item.filename].byteLength).toBeLessThanOrEqual(mode === "audio" ? 1_000_000 : 20_000_000);
 				expect(streams.find((s: any) => s.codec_type === "video")).toMatchObject(item.format === "desktop" ? { width: 1280, height: 720 } : { width: 720, height: 1280 });
-				const native = await page.request.post(`${tourWorld.origin}/api/clips/export?format=mp4&plan=1`, { headers: { origin: tourWorld.origin }, data: { creatorId, outputs: [{ key: "native", label: "Native parity", templateId: "browser", format: item.format }], files: [{ clipId: id, outputKey: "native" }] } });
+				const native = await page.request.post(`${tourWorld.origin}/api/clips/export?format=mp4&plan=1`, { headers: { origin: tourWorld.origin }, data: { creatorId, preset, outputs: [{ key: "native", label: "Native parity", templateId: "browser", format: item.format }], files: [{ clipId: id, outputKey: "native" }] } });
 				expect(native.status()).toBe(200);
 				const nativeFile = info.outputPath(`native-${index}.mp4`);
 				await writeFile(nativeFile, await native.body());
