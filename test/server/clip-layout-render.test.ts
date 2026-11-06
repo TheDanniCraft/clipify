@@ -229,7 +229,7 @@ it("burns the non-layer watermark into composed pixels and lets the account bran
 			const pixel = await sharp(png).extract({ left: 100, top: 100, width: 1, height: 1 }).raw().toBuffer();
 			expect(pixel[0]).toBeGreaterThan(200);
 			expect(pixel[1]).toBeLessThan(30);
-			const patch = await sharp(png).extract({ left: 1060, top: 650, width: 204, height: 54 }).removeAlpha().raw().toBuffer();
+			const patch = await sharp(png).extract({ left: 1024, top: 553, width: 192, height: 52 }).removeAlpha().raw().toBuffer();
 			samples.push(patch.reduce((sum, value) => sum + value, 0) / patch.length);
 		}
 		layout.layers[1] = { ...layout.layers[1], appearance: { themeBackgroundColor: "#00ff00", borderRadius: 24 } } as (typeof layout.layers)[number];
@@ -285,8 +285,8 @@ it("moves encoded branding from bottom-right to top-left after eight seconds", a
 		const output = join(dir, "output.mp4");
 		await writeFile(output, bytes);
 		for (const [time, left, top, emptyLeft, emptyTop] of [
-			[0, 1072, 652, 16, 175],
-			[8.1, 16, 175, 1072, 652],
+			[0, 1024, 553, 64, 182],
+			[8.1, 64, 182, 1024, 553],
 		]) {
 			const png = execFileSync("ffmpeg", ["-v", "error", "-ss", String(time), "-i", output, "-frames:v", "1", "-f", "image2pipe", "-vcodec", "png", "pipe:1"]);
 			const average = async (x: number, y: number) => {
@@ -308,13 +308,13 @@ it("places encoded branding in clear space instead of over a widget", async () =
 		const input = join(dir, "input.mp4");
 		execFileSync("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "color=black:size=640x360:rate=5", "-t", "0.3", "-c:v", "libx264", "-threads", "1", "-pix_fmt", "yuv420p", "-y", input]);
 		const layout = createClipComposition("desktop");
-		layout.layers.push({ id: "blocked-corner", label: "Channel", kind: "channel", fontSize: 32, frame: { x: 0.75, y: 0.85, w: 0.25, h: 0.15 }, appearance: { themeTextColor: "#ff0000", themeBackgroundColor: "#ff0000", borderRadius: 0 } });
+		layout.layers.push({ id: "blocked-corner", label: "Channel", kind: "channel", fontSize: 32, frame: { x: 0.75, y: 0.72, w: 0.25, h: 0.28 }, appearance: { themeTextColor: "#ff0000", themeBackgroundColor: "#ff0000", borderRadius: 0 } });
 		const output = join(dir, "output.mp4");
 		await writeFile(output, await renderClipLayout(new Uint8Array(await readFile(input)), layout, { title: "Clip" }, AbortSignal.timeout(20000), { watermark: true }));
 		const png = execFileSync("ffmpeg", ["-v", "error", "-i", output, "-frames:v", "1", "-f", "image2pipe", "-vcodec", "png", "pipe:1"]);
-		const clear = await sharp(png).extract({ left: 16, top: 175, width: 192, height: 52 }).removeAlpha().raw().toBuffer();
+		const clear = await sharp(png).extract({ left: 64, top: 182, width: 192, height: 52 }).removeAlpha().raw().toBuffer();
 		expect(clear.reduce((total, value) => total + value, 0) / clear.length).toBeGreaterThan(5);
-		const corner = await sharp(png).extract({ left: 1072, top: 652, width: 192, height: 52 }).removeAlpha().raw().toBuffer();
+		const corner = await sharp(png).extract({ left: 1072, top: 553, width: 192, height: 52 }).removeAlpha().raw().toBuffer();
 		for (let index = 0; index < corner.length; index += 3) {
 			expect(corner[index + 1]).toBeLessThan(35);
 			expect(corner[index + 2]).toBeLessThan(35);

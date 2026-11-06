@@ -105,7 +105,7 @@ export function overlayMetadataSvg(kind: "channel" | "title" | "clipper", clip: 
 
 // Keep preview and encoded watermark timing and positions identical.
 export const CLIPIFY_WATERMARK = { width: 192, height: 52, inset: 16, interval: 8 } as const;
-export const CLIPIFY_WATERMARK_CORNERS = [
+export const CLIPIFY_WATERMARK_ANCHORS = [
 	[1, 1],
 	[0, 0.25],
 	[1, 0.6],
@@ -116,16 +116,18 @@ export const CLIPIFY_WATERMARK_CORNERS = [
 type WatermarkPoint = { x: number; y: number };
 export function clipifyWatermarkPositions(width: number, height: number, widgets: { x: number; y: number; w: number; h: number }[] = []): WatermarkPoint[] {
 	const { inset, width: w, height: h } = CLIPIFY_WATERMARK;
-	const right = Math.max(inset, width - w - inset),
-		bottom = Math.max(inset, height - h - inset);
+	const left = Math.max(inset, Math.round(width * 0.05)),
+		top = Math.max(inset, Math.round(height * 0.08)),
+		right = Math.max(left, Math.round(width - w - left)),
+		bottom = Math.max(top, Math.round(height - h - Math.max(inset, height * 0.16)));
 	const obstacles = widgets.map((rect) => ({ x: rect.x * width - 8, y: rect.y * height - 8, w: rect.w * width + 16, h: rect.h * height + 16 }));
 	const overlap = ({ x, y }: WatermarkPoint) => obstacles.reduce((total, rect) => total + Math.max(0, Math.min(x + w, rect.x + rect.w) - Math.max(x, rect.x)) * Math.max(0, Math.min(y + h, rect.y + rect.h) - Math.max(y, rect.y)), 0);
-	const candidates = CLIPIFY_WATERMARK_CORNERS.map(([x, y]) => ({ x: inset + x * (right - inset), y: inset + y * (bottom - inset) }));
+	const candidates = CLIPIFY_WATERMARK_ANCHORS.map(([x, y]) => ({ x: Math.round(left + x * (right - left)), y: Math.round(top + y * (bottom - top)) }));
 	const free = candidates.filter((point) => overlap(point) === 0);
 	if (free.length) return free;
 	// Obstacle boundaries also find gaps when every usual edge position is occupied.
-	const xs = [inset, right, ...obstacles.flatMap((rect) => [rect.x - w, rect.x + rect.w])].filter((x) => x >= inset && x <= right);
-	const ys = [inset, bottom, ...obstacles.flatMap((rect) => [rect.y - h, rect.y + rect.h])].filter((y) => y >= inset && y <= bottom);
+	const xs = [left, right, ...obstacles.flatMap((rect) => [rect.x - w, rect.x + rect.w])].filter((x) => x >= left && x <= right);
+	const ys = [top, bottom, ...obstacles.flatMap((rect) => [rect.y - h, rect.y + rect.h])].filter((y) => y >= top && y <= bottom);
 	for (const y of ys) for (const x of xs) if (overlap({ x, y }) === 0) return [{ x, y }];
 	return [candidates.reduce((best, point) => (overlap(point) < overlap(best) ? point : best))];
 }

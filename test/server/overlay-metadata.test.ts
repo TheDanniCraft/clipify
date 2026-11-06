@@ -59,17 +59,17 @@ it("maps a saved brand to overlay colors and typography without layout fields", 
 	expect(clipifyWatermarkSvg()).toContain("clipify.us");
 });
 
-it("shows the channel address and cycles branding through six fixed edge positions", async () => {
+it("shows the channel address and cycles branding through six inset positions", async () => {
 	const { clipifyWatermarkPosition, clipifyWatermarkExpression, clipifyWatermarkPositions } = await import("@lib/overlayMetadata");
 	expect(overlayMetadataContent("channel", { title: "", broadcasterName: "TheDanniCraft" }, true)).toEqual({ primary: "TheDanniCraft", secondary: "twitch.tv/thedannicraft" });
 	expect([0, 8, 16, 24, 32, 40, 48].map((time) => clipifyWatermarkPosition(time, clipifyWatermarkPositions(1280, 720)))).toEqual([
-		{ x: 1072, y: 652 },
-		{ x: 16, y: 175 },
-		{ x: 1072, y: 16 + 636 * 0.6 },
-		{ x: 16, y: 652 },
-		{ x: 1072, y: 16 },
-		{ x: 16, y: 16 + 636 * 0.65 },
-		{ x: 1072, y: 652 },
+		{ x: 1024, y: 553 },
+		{ x: 64, y: 182 },
+		{ x: 1024, y: 355 },
+		{ x: 64, y: 553 },
+		{ x: 1024, y: 58 },
+		{ x: 64, y: 380 },
+		{ x: 1024, y: 553 },
 	]);
 	expect(clipifyWatermarkExpression(0, clipifyWatermarkPositions(1280, 720))).toContain("mod(t,48)");
 });
@@ -95,8 +95,8 @@ it("keeps branding clear of widgets, including free space away from the default 
 		expect(position.x + CLIPIFY_WATERMARK.width).toBeLessThanOrEqual(504);
 	}
 	expect(clipifyWatermarkPosition(8, positions)).toEqual(positions[1 % positions.length]);
-	const blockedCorner = clipifyWatermarkPositions(720, 1280, [{ x: 0.65, y: 0.9, w: 0.35, h: 0.1 }]);
-	expect(blockedCorner).not.toContainEqual({ x: 512, y: 1212 });
+	const blockedCorner = clipifyWatermarkPositions(720, 1280, [{ x: 0.65, y: 0.78, w: 0.35, h: 0.22 }]);
+	expect(blockedCorner).not.toContainEqual({ x: 492, y: 1023 });
 });
 
 it("keeps logo and text transparent outside their shapes", async () => {
@@ -112,6 +112,19 @@ it("keeps logo and text transparent outside their shapes", async () => {
 it("keeps branding bounded when widgets occupy the entire canvas", async () => {
 	const { clipifyWatermarkPositions, clipifyWatermarkExpression } = await import("@lib/overlayMetadata");
 	const positions = clipifyWatermarkPositions(1280, 720, [{ x: 0, y: 0, w: 1, h: 1 }]);
-	expect(positions).toEqual([{ x: 1072, y: 652 }]);
-	expect(clipifyWatermarkExpression(0, positions)).toBe("1072");
+	expect(positions).toEqual([{ x: 1024, y: 553 }]);
+	expect(clipifyWatermarkExpression(0, positions)).toBe("1024");
+});
+
+it.each([
+	[720, 1280],
+	[1280, 720],
+])("keeps branding away from outer corners and bottom controls at %sx%s", async (width, height) => {
+	const { clipifyWatermarkPositions, CLIPIFY_WATERMARK } = await import("@lib/overlayMetadata");
+	for (const point of clipifyWatermarkPositions(width, height)) {
+		expect(point.x).toBeGreaterThanOrEqual(width * 0.05);
+		expect(point.y).toBeGreaterThanOrEqual(Math.floor(height * 0.08));
+		expect(point.x + CLIPIFY_WATERMARK.width).toBeLessThanOrEqual(width * 0.95);
+		expect(point.y + CLIPIFY_WATERMARK.height).toBeLessThanOrEqual(Math.ceil(height * 0.84));
+	}
 });
