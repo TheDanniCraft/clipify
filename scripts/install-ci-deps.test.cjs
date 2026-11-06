@@ -76,3 +76,18 @@ test("missing frame binaries install through the bounded package helper", () => 
 		fs.rmSync(dir, { recursive: true, force: true });
 	}
 });
+
+test("hosted runner setup replaces the stalled Azure Ubuntu mirror before installing", () => {
+	const dir = fs.mkdtempSync(join(require("node:os").tmpdir(), "ci-mirror-"));
+	try {
+		const log = join(dir, "log");
+		fs.writeFileSync(join(dir, "sudo"), '#!/bin/sh\necho "$*" >> "$CALL_LOG"\nexit 0\n', { mode: 0o755 });
+		const result = spawnSync("bash", ["scripts/install-ci-deps.sh", "apt-get", "update"], { encoding: "utf8", env: { ...process.env, PATH: dir + ":" + process.env.PATH, GITHUB_ACTIONS: "true", CALL_LOG: log } });
+		assert.equal(result.status, 0, result.stderr);
+		const calls = fs.readFileSync(log, "utf8").split("\n");
+		assert.match(calls[0], /sed -i .*azure\.archive\.ubuntu\.com.*archive\.ubuntu\.com.*ubuntu\.sources/);
+		assert.match(calls[1], /apt-get update/);
+	} finally {
+		fs.rmSync(dir, { recursive: true, force: true });
+	}
+});

@@ -3,6 +3,10 @@ set -euo pipefail
 if [ "$#" -eq 0 ]; then echo 'An installation command is required.' >&2; exit 64; fi
 config="$(mktemp)"
 trap 'rm -f "$config"' EXIT
+# Hosted runners are disposable; avoid the Azure mirror that stalled media downloads.
+if [ "${GITHUB_ACTIONS:-false}" = true ]; then
+  sudo sed -i 's|://azure.archive.ubuntu.com/ubuntu|://archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list.d/ubuntu.sources
+fi
 cat > "$config" <<'APT'
 Acquire::Retries "2";
 Acquire::http::Timeout "30";
