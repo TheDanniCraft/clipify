@@ -437,3 +437,15 @@ The first final build rejected Testing Library's unsupported `exact` role option
 ### FINAL-D02 — Disabled automation label crowded by nested chip
 
 Actual browser screenshot showed an ellipsized Automations label. Use the existing HeroUI Pro Sidebar.MenuChip directly, removing the redundant nested Chip/padding. The final responsive owner verifies the installed disabled row and label. This is a UI correction, not a new component system.
+
+### FINAL-D03 — Final CI found a stale page empty-state assertion
+
+CI42286859229 unit lane failed one of455 suites because creator-library.pages.test.tsx still expected the old “No available broadcasts” heading. The page now correctly says “No saved streams yet” for persistent history. This owning page file was missed in the local selection. Corrected only its exact copy assertion; all23 whole-file tests pass in `/tmp/clipify-final-page-owner.log`. The initial local correction omitted “yet” and failed the same exact-name assertion; it is not credited as Green. No product rollback, timeout change or coverage relaxation. Waiting for the existing full checkpoint before publishing the correction.
+
+### FINAL-05 operator handoff
+
+The temporary preview-only post-deployment command was removed and verified empty on user request. No scheduled task, schema change or permanent deployment hook exists. Seed success was not verified and is not claimed. The requested manual development SQL is [preview-demo.sql](preview-demo.sql); its actual-schema idempotency and source-clip preservation self-check passes in `/tmp/clipify-preview-demo-sql-self-check.log`. It must be run against development only. T705 remains unconfirmed until the operator applies it; Infisical CLI is unavailable locally. Do not reconnect Desktop Commander or introduce another deployment seed hook.
+
+### FINAL-D04 — Existing stream journey fixtures still described provider-page navigation
+
+CI42286859229 completed with three distinct failing owners: one exact page-heading assertion, six creator-layout permutations looking for the renamed “Available streams” grid, and one US2 BDD example waiting for a provider-page link after the catalog switched to saved-history pagination. The aggregate Test failure is consequential, not a fourth root cause. Correct the two exact label assertions. Replace the BDD provider-page example with21 saved streams, retaining the stable BDD-US2-002 ID and all five broadcast classes; explicitly assert20 records on page one and one older retained record on page two. Bounded provider cursor collection remains covered in the archive service owner. No production assertion, case, retry, deadline or coverage threshold is removed. The complete creator-layout owner passes10/10 locally (`/tmp/clipify-final-stream-label-browser.log`). Final US2 whole-owner result is recorded in the summary.

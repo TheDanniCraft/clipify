@@ -23,6 +23,16 @@ Given("the required fixture class is {string}", async ({ tourWorld }, variant: s
 		expect([...Object.keys(filterCases), ...Object.keys(invalidCases), ...Object.keys(sortCases), ...Object.keys(exportCounts), ...homeVariants, ...streamVariants, ...Object.keys(navigationDestinations)]).toContain(variant);
 	}
 	cases.get(tourWorld)!.variant = variant;
+	if (variant === "next saved page") {
+		const owner = tourWorld.owner!.creatorId;
+		const lastSeenAt = new Date().toISOString();
+		for (let index = 0; index < 19; index++) {
+			const older = index === 18;
+			const id = older ? "12347" : String(20000 + index);
+			const video = { id, user_id: owner, type: "archive", title: older ? "Older stream" : `Saved stream ${index + 1}`, created_at: older ? "2026-10-01T00:00:00Z" : "2026-10-15T00:00:00Z", duration: "1h", thumbnail_url: "" };
+			await tourWorld.fixture.pool.query("INSERT INTO user_content_states(user_id,content_key,state) VALUES($1,$2,$3)", [owner, `broadcast:v1:${id}`, JSON.stringify({ video, lastSeenAt, unavailable: true })]);
+		}
+	}
 	if (homeVariants.includes(variant)) {
 		const state = cases.get(tourWorld)!;
 		const home = state.home!;
@@ -307,7 +317,7 @@ Then("the recent clip metrics and all-time top five or actionable empty state ar
 	await expect.poll(() => page.locator("[data-top-clip-id]").evaluateAll((items) => items.map((item) => item.getAttribute("data-top-clip-id")))).toEqual(home.ids.slice(0, 5));
 });
 
-const streamVariants = ["archive with clips", "zero-clip archive", "exclude highlight", "exclude upload", "next provider page"];
+const streamVariants = ["archive with clips", "zero-clip archive", "exclude highlight", "exclude upload", "next saved page"];
 Given("two archive broadcasts one with no matching clips and a non-archive video", seedInventory);
 When("I browse Streams and open both archive broadcasts", async ({ page, tourWorld }) => {
 	await page.goto(`${tourWorld.origin}/dashboard/streams`);
@@ -330,13 +340,15 @@ When("I browse Streams and open both archive broadcasts", async ({ page, tourWor
 		await expect(page.getByRole("status", { name: "Inventory results" })).toHaveText(`${total} ${total === 1 ? "clip" : "clips"}`);
 		await page.getByRole("link", { name: "Back to streams", exact: true }).click();
 	}
-	if (cases.get(tourWorld)!.variant === "next provider page") {
+	if (cases.get(tourWorld)!.variant === "next saved page") {
+		await expect(page.locator("[data-broadcast-id]")).toHaveCount(20);
 		await page.getByRole("link", { name: "Next streams", exact: true }).click();
 		await expect(page.getByRole("link", { name: "Older stream", exact: true })).toBeVisible();
+		await expect(page.locator("[data-broadcast-id]")).toHaveCount(1);
 	}
 });
 Then("the archives appear newest first and the empty stream shows zero clip counts", async ({ page, tourWorld }) => {
-	if (cases.get(tourWorld)!.variant !== "next provider page") await expect.poll(() => page.locator("[data-broadcast-id]").evaluateAll((rows) => rows.map((row) => row.getAttribute("data-broadcast-id")))).toEqual(["12346", "12345"]);
+	if (cases.get(tourWorld)!.variant !== "next saved page") await expect.poll(() => page.locator("[data-broadcast-id]").evaluateAll((rows) => rows.map((row) => row.getAttribute("data-broadcast-id")))).toEqual(["12346", "12345"]);
 });
 
 const navigationDestinations: Record<string, string> = { Home: "/dashboard", Streams: "/dashboard/streams", "Clip Inventory": "/dashboard/clips", Overlays: "/dashboard/overlays", Playlists: "/dashboard/playlists", Galleries: "/dashboard/galleries", Runner: "/dashboard/runners", Tools: "/dashboard/tools?tool=player", Settings: "/dashboard/settings" };

@@ -56,7 +56,7 @@ it.each(["playlists", "galleries", "runners"] as const)("protects the %s resourc
 it("shows empty broadcasts without suggesting cached clips were deleted", async () => {
 	const Page = (await import("@/app/dashboard/streams/page")).default;
 	render(await Page({ searchParams: Promise.resolve({}) }));
-	expect(screen.getByRole("heading", { name: "No available broadcasts" })).toBeInTheDocument();
+	expect(screen.getByRole("heading", { name: "No saved streams yet" })).toBeInTheDocument();
 	expect(screen.getByRole("link", { name: "Open Clip Inventory" })).toHaveAttribute("href", "/dashboard/clips");
 });
 it.each(["RECONNECT_REQUIRED", "SERVICE_UNAVAILABLE"])("offers recovery for %s", async (code) => {

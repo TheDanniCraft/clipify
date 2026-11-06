@@ -32,7 +32,7 @@ Feature: Creator library story 2
       | zero-clip archive |
       | exclude highlight |
       | exclude upload |
-      | next provider page |
+      | next saved page |
 
   @FR-006 @EC-003
   @BDD-US2-003
