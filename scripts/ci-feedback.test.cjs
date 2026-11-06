@@ -88,9 +88,9 @@ test("system-package and browser bootstrap work is bounded without weakening the
 	assert.equal(ci.jobs["browser-tests"].steps.find((step) => step.name === "📦 Upload successful browser timing evidence").if, "success()");
 });
 
-test("CI uses a stable Ubuntu image across planning, execution and evidence collection", () => {
+test("CI follows the latest Ubuntu image across planning, execution and evidence collection", () => {
 	const ci = require("yaml").parse(readFileSync(".github/workflows/ci.yml", "utf8"));
 	for (const [name, job] of Object.entries(ci.jobs)) {
-		if (typeof job["runs-on"] === "string" && job["runs-on"].startsWith("ubuntu-")) assert.equal(job["runs-on"], "ubuntu-24.04", name);
+		if (typeof job["runs-on"] === "string" && job["runs-on"].startsWith("ubuntu-")) assert.equal(job["runs-on"], "ubuntu-latest", name);
 	}
 });

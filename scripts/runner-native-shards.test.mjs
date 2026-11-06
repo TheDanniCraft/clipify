@@ -65,8 +65,8 @@ test("native producer matrices belong to Runner while dependency preparation rem
 	assert.equal(ci.jobs.deps.strategy, undefined);
 	assert.equal(ci.jobs.runner.strategy.matrix, "${{ fromJSON(needs.validation-plan.outputs.runner_matrix) }}");
 	assert.ok(ci.jobs["runner-coverage"].needs.includes("runner"));
-	assert.equal(ci.jobs.runner["runs-on"], "ubuntu-24.04");
-	assert.equal(ci.jobs["runner-coverage"]["runs-on"], "ubuntu-24.04");
+	assert.equal(ci.jobs.runner["runs-on"], "ubuntu-latest");
+	assert.equal(ci.jobs["runner-coverage"]["runs-on"], "ubuntu-latest");
 });
 
 test("partial source coverage defers completeness only; the native aggregate remains strict", async () => {

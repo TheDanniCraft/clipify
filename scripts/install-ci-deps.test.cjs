@@ -17,7 +17,7 @@ test("package commands have noninteractive, network, lock and whole-command boun
 			["timeout", 124],
 		]) {
 			fs.writeFileSync(log, "");
-			const r = spawnSync("bash", ["scripts/install-ci-deps.sh", "apt-get", "update"], { encoding: "utf8", env: { ...process.env, PATH: dir + ":" + process.env.PATH, CALL_LOG: log, FAIL_MODE: mode } });
+			const r = spawnSync("bash", ["scripts/install-ci-deps.sh", "apt-get", "update"], { encoding: "utf8", env: { ...process.env, GITHUB_ACTIONS: "false", PATH: dir + ":" + process.env.PATH, CALL_LOG: log, FAIL_MODE: mode } });
 			assert.equal(r.status, status, r.stderr);
 			const text = fs.readFileSync(log, "utf8");
 			assert.match(text, /--kill-after=15s 180s/);
@@ -40,7 +40,7 @@ test("frame bootstrap uses the bundled fonts without a package update on prepare
 			fonts = join(dir, "fonts");
 		fs.writeFileSync(join(dir, "sudo"), '#!/bin/sh\necho "$*" >> "$CALL_LOG"\nexec "$@"\n', { mode: 0o755 });
 		for (const name of ["ffmpeg", "ffprobe"]) fs.writeFileSync(join(dir, name), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
-		const env = { ...process.env, PATH: dir + ":" + process.env.PATH, CALL_LOG: log };
+		const env = { ...process.env, GITHUB_ACTIONS: "false", PATH: dir + ":" + process.env.PATH, CALL_LOG: log };
 		let r = spawnSync("bash", ["scripts/install-frame-deps.sh", fonts], { encoding: "utf8", env });
 		assert.equal(r.status, 0, r.stderr);
 		assert.deepEqual(fs.readFileSync(join(fonts, "DejaVuSans.ttf")), fs.readFileSync("public/fonts/brand/DejaVuSans.ttf"));
@@ -66,7 +66,7 @@ test("missing frame binaries install through the bounded package helper", () => 
 		for (const command of ["bash", "dirname", "mktemp", "cat", "rm", "env", "timeout", "chmod"]) fs.symlinkSync("/usr/bin/" + command, join(bin, command));
 		fs.writeFileSync(join(bin, "sudo"), '#!/bin/sh\nexec "$@"\n', { mode: 0o755 });
 		fs.writeFileSync(join(bin, "apt-get"), '#!/bin/sh\necho "$*" >> "$CALL_LOG"\nif [ "$1" = install ];then\n for name in ffmpeg ffprobe;do printf "#!/bin/sh\\nexit 0\\n" > "$TEST_BIN/$name";chmod 755 "$TEST_BIN/$name";done\nfi\n', { mode: 0o755 });
-		const result = spawnSync("/bin/bash", ["scripts/install-frame-deps.sh", fonts], { encoding: "utf8", env: { ...process.env, PATH: bin, CALL_LOG: log, TEST_BIN: bin } });
+		const result = spawnSync("/bin/bash", ["scripts/install-frame-deps.sh", fonts], { encoding: "utf8", env: { ...process.env, GITHUB_ACTIONS: "false", PATH: bin, CALL_LOG: log, TEST_BIN: bin } });
 		assert.equal(result.status, 0, result.stderr);
 		const calls = fs.readFileSync(log, "utf8");
 		assert.match(calls, /update/);
@@ -82,12 +82,17 @@ test("hosted runner setup replaces the stalled Azure Ubuntu mirror before instal
 	try {
 		const log = join(dir, "log");
 		fs.writeFileSync(join(dir, "sudo"), '#!/bin/sh\necho "$*" >> "$CALL_LOG"\nexit 0\n', { mode: 0o755 });
-		const result = spawnSync("bash", ["scripts/install-ci-deps.sh", "apt-get", "update"], { encoding: "utf8", env: { ...process.env, PATH: dir + ":" + process.env.PATH, GITHUB_ACTIONS: "true", CALL_LOG: log } });
+		const result = spawnSync("bash", ["scripts/install-ci-deps.sh", "apt-get", "update"], { encoding: "utf8", env: { ...process.env, GITHUB_ACTIONS: "false", PATH: dir + ":" + process.env.PATH, GITHUB_ACTIONS: "true", CALL_LOG: log } });
 		assert.equal(result.status, 0, result.stderr);
 		const calls = fs.readFileSync(log, "utf8").split("\n");
-		assert.match(calls[0], /sed -i .*azure\.archive\.ubuntu\.com.*archive\.ubuntu\.com.*ubuntu\.sources/);
-		assert.match(calls[1], /apt-get update/);
+		assert.ok(calls.some((call) => /sed -i .*azure\.archive\.ubuntu\.com.*archive\.ubuntu\.com.*(?:sources\.list|\.sources|\.list)$/.test(call)));
+		assert.match(calls.at(-2), /apt-get update/);
 	} finally {
 		fs.rmSync(dir, { recursive: true, force: true });
 	}
+});
+
+test("mirror setup includes the mirror-list transport used by hosted Ubuntu runners", () => {
+	const script = fs.readFileSync("scripts/install-ci-deps.sh", "utf8");
+	assert.match(script, /for source in \/etc\/apt\/apt-mirrors\.txt \/etc\/apt\/apt-mirrors-\*\.txt/);
 });

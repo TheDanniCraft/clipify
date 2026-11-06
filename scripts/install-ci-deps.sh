@@ -5,7 +5,11 @@ config="$(mktemp)"
 trap 'rm -f "$config"' EXIT
 # Hosted runners are disposable; avoid the Azure mirror that stalled media downloads.
 if [ "${GITHUB_ACTIONS:-false}" = true ]; then
-  sudo sed -i 's|://azure.archive.ubuntu.com/ubuntu|://archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list.d/ubuntu.sources
+  for source in /etc/apt/apt-mirrors.txt /etc/apt/apt-mirrors-*.txt /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
+    if test -f "$source"; then
+      sudo sed -i 's|://azure.archive.ubuntu.com/ubuntu|://archive.ubuntu.com/ubuntu|g' "$source"
+    fi
+  done
 fi
 cat > "$config" <<'APT'
 Acquire::Retries "2";
