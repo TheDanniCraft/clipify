@@ -1,13 +1,13 @@
 "use client";
 import type { AuthenticatedUser } from "@types";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Card, Input, Label, TextField, NumberField, Select, ListBox, Modal, Link, Autocomplete, SearchField, EmptyState, Tabs, Switch, Tooltip, Spinner } from "@heroui/react";
 import { IconArrowLeft, IconPlus, IconArrowUp, IconArrowDown, IconTrash, IconLock } from "@tabler/icons-react";
 import { useNavigationGuard } from "nextjs-nav-guard";
 import { saveClipLayoutTemplate, saveClipLayoutOverride, resetClipLayoutOverride, type ClipLayoutTemplate } from "@actions/clipLayoutLibrary";
 import { getCreatorClipInventory, getCreatorClipDetail, searchCreatorLibrary } from "@actions/creatorLibrary";
 import { compositionWidgetTheme, compositionDimensions, resizeCompositionRect, updateCompositionFrame, updateCompositionSource, type ClipComposition, type CompositionLayer } from "@lib/clipComposition";
-import { compositionLayerColor } from "@lib/clipLayoutTemplate";
+import { compositionLayerColor, templateCompositions } from "@lib/clipLayoutTemplate";
 import { notify } from "@lib/toast";
 import ThemeColorInput from "@components/theme/ThemeColorInput";
 import { type CreatorBrand, DEFAULT_WIDGET_THEME, overlayMetadataHeight, overlayMetadataSize } from "@lib/overlayMetadata";
@@ -39,35 +39,11 @@ function Numeric({ label, value, min = 0, max = 100, onChange }: { label: string
 		</NumberField>
 	);
 }
-export default function ClipCompositionEditor({
-	user,
-	creatorId,
-	entry,
-	initial,
-	clipId,
-	referenceId,
-	onBack,
-	onSaved,
-	onFormatChange,
-	onReferenceChange,
-	brand,
-	canRemoveWatermark = false,
-}: {
-	user?: AuthenticatedUser;
-	brand?: CreatorBrand | null;
-	canRemoveWatermark?: boolean;
-	creatorId: string;
-	entry: ClipLayoutTemplate;
-	initial: ClipComposition;
-	clipId?: string;
-	referenceId?: string;
-	onBack: () => void;
-	onSaved: () => void;
-	onReferenceChange?: (id: string) => void;
-	onFormatChange?: (format: "desktop" | "mobile") => void;
-}) {
+export default function ClipCompositionEditor({ user, creatorId, entry, initial, clipId, referenceId, onBack, onSaved, onReferenceChange, brand, canRemoveWatermark = false }: { user?: AuthenticatedUser; brand?: CreatorBrand | null; canRemoveWatermark?: boolean; creatorId: string; entry: ClipLayoutTemplate; initial: ClipComposition; clipId?: string; referenceId?: string; onBack: () => void; onSaved: () => void; onReferenceChange?: (id: string) => void }) {
 	const [sourceDimensions, setSourceDimensions] = useState({ width: 1920, height: 1080 }),
 		[layout, setLayout] = useState(initial),
+		[drafts, setDrafts] = useState(() => ({ ...templateCompositions(entry), [initial.format]: initial })),
+		[editedFormats, setEditedFormats] = useState<Set<ClipComposition["format"]>>(() => new Set()),
 		[name, setName] = useState(entry.name),
 		[dirty, setDirty] = useState(false),
 		[saving, setSaving] = useState(false),
@@ -82,6 +58,7 @@ export default function ClipCompositionEditor({
 		[retry, setRetry] = useState(0),
 		[reset, setReset] = useState(false),
 		[upgrade, setUpgrade] = useState(false);
+	const revision = useRef(0);
 	const selectLayer = useCallback((id: string, mode?: "source" | "output") => {
 		if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
 		setSelected(id);
@@ -149,6 +126,9 @@ export default function ClipCompositionEditor({
 	}, [creatorId, reference, retry, clip?.id]);
 	const change = (next: ClipComposition) => {
 		setLayout(next);
+		setDrafts((previous) => ({ ...previous, [next.format]: next }));
+		setEditedFormats((previous) => new Set([...previous, next.format]));
+		revision.current++;
 		setDirty(true);
 	};
 	const watermarkEnabled = !canRemoveWatermark || (layout.watermark ?? true);
@@ -184,15 +164,31 @@ export default function ClipCompositionEditor({
 		change(next.kind === "video" ? updateCompositionSource(expanded, id, next.source, sourceDimensions) : expanded);
 		setSelected(id);
 	};
+	const switchFormat = (format: ClipComposition["format"]) => {
+		if (format === layout.format) return;
+		if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+		setLayout(drafts[format]);
+		setSelected(drafts[format].layers[0].id);
+		setBoxMode("output");
+	};
 	const save = async () => {
+		const savingRevision = revision.current;
 		setSaving(true);
 		try {
-			const result = clipId ? await saveClipLayoutOverride(creatorId, entry.id, clipId, layout) : await saveClipLayoutTemplate(creatorId, { id: entry.id, name, composition: layout });
-			if (!result.ok) {
-				notify({ title: "Layout could not be saved", description: result.code === "INVALID_INPUT" ? "Check the layout name and keep every layer inside the canvas." : "Your changes are preserved. Try again.", color: "danger" });
-				return;
+			const formats = editedFormats.size ? [...editedFormats] : [layout.format];
+			const pending = clipId ? [layout] : formats.map((format) => drafts[format]);
+			for (const composition of pending) {
+				const result = clipId ? await saveClipLayoutOverride(creatorId, entry.id, clipId, composition) : await saveClipLayoutTemplate(creatorId, { id: entry.id, name, composition });
+				if (!result.ok) {
+					notify({ title: "Layout could not be saved", description: result.code === "INVALID_INPUT" ? "Check the layout name and keep every layer inside the canvas." : "Your changes are preserved. Try again.", color: "danger" });
+					return;
+				}
 			}
-			setDirty(false);
+			if (revision.current === savingRevision) {
+				setDirty(false);
+				setEditedFormats(new Set());
+			}
+
 			notify({ title: clipId ? "Clip adjustments saved" : "Layout saved", color: "success" });
 			onSaved();
 		} catch {
@@ -289,8 +285,8 @@ export default function ClipCompositionEditor({
 						</div>
 					</Card.Header>
 					<Card.Content className='space-y-6'>
-						{onFormatChange ? (
-							<Tabs className='sticky top-[8.25rem] z-20 bg-surface py-2 lg:top-36' selectedKey={layout.format} onSelectionChange={(key) => onFormatChange(key === "desktop" ? "desktop" : "mobile")} variant='secondary'>
+						{!clipId ? (
+							<Tabs className='sticky top-[8.25rem] z-20 bg-surface py-2 lg:top-36' selectedKey={layout.format} onSelectionChange={(key) => switchFormat(key === "desktop" ? "desktop" : "mobile")} variant='secondary'>
 								<Tabs.ListContainer>
 									<Tabs.List aria-label='Layout format'>
 										<Tabs.Tab id='desktop'>
@@ -312,6 +308,7 @@ export default function ClipCompositionEditor({
 									value={name}
 									onChange={(v) => {
 										setName(v);
+										revision.current++;
 										setDirty(true);
 									}}
 									maxLength={80}

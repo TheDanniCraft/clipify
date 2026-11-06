@@ -61,5 +61,19 @@ export function compositionControls(base: any) {
 		},
 		{ Group: base.SearchField.Group, Input: base.SearchField.Input, SearchIcon: base.SearchField.SearchIcon, ClearButton: base.SearchField.ClearButton },
 	);
-	return new Proxy({ ...base, TextField, NumberField, Select, Autocomplete, SearchField, useFilter: () => ({ contains: (text: string, input: string) => text.toLowerCase().includes(input.toLowerCase()) }) }, { get: (target: any, key: any) => (key in target ? target[key] : base[key]) });
+	const tabContext = React.createContext<any>(null);
+	const Tabs = Object.assign(({ children, selectedKey, onSelectionChange }: any) => <tabContext.Provider value={{ selectedKey, onSelectionChange }}>{children}</tabContext.Provider>, {
+		ListContainer: base.Tabs.ListContainer,
+		List: base.Tabs.List,
+		Indicator: base.Tabs.Indicator,
+		Tab: ({ id, children }: any) => {
+			const state = React.useContext(tabContext);
+			return (
+				<button role='tab' aria-selected={state.selectedKey === id} onClick={() => state.onSelectionChange(id)}>
+					{children}
+				</button>
+			);
+		},
+	});
+	return new Proxy({ ...base, TextField, NumberField, Select, Autocomplete, SearchField, Tabs, useFilter: () => ({ contains: (text: string, input: string) => text.toLowerCase().includes(input.toLowerCase()) }) }, { get: (target: any, key: any) => (key in target ? target[key] : base[key]) });
 }

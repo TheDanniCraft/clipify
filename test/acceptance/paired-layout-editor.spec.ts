@@ -37,13 +37,19 @@ for (const width of [390, 1440])
 			expect(await layerColor("Camera crop")).not.toBe(await layerColor("Gameplay crop"));
 			await expect(page.getByRole("textbox", { name: "Layer name", exact: true })).toHaveValue("Camera");
 			await page.getByRole("textbox", { name: "Layer name", exact: true }).fill("Face camera");
-			await page.getByRole("button", { name: "Save layout", exact: true }).click();
-			await expect(page.getByRole("button", { name: "Save layout", exact: true })).toBeDisabled();
 			await page.getByRole("tab", { name: "Desktop 16:9", exact: true }).click();
+			await expect(page.getByRole("dialog", { name: "Unsaved layout changes", exact: true })).toHaveCount(0);
 			await expect(page.getByRole("tab", { name: "Desktop 16:9", exact: true })).toHaveAttribute("aria-selected", "true");
 			await page.getByRole("button", { name: "Gameplay crop", exact: true }).click();
 			await expect(page.getByRole("textbox", { name: "Layer name", exact: true })).toHaveValue("Gameplay");
 			await page.getByRole("textbox", { name: "Layer name", exact: true }).fill("Full gameplay");
+			await page.getByRole("tab", { name: "Mobile 9:16", exact: true }).click();
+			await expect(page.getByRole("textbox", { name: "Layer name", exact: true })).toHaveValue("Face camera");
+			await page.getByRole("tab", { name: "Desktop 16:9", exact: true }).click();
+			await expect(page.getByRole("textbox", { name: "Layer name", exact: true })).toHaveValue("Full gameplay");
+			const beforeSave = JSON.parse((await tourWorld.fixture.pool.query("SELECT state FROM user_content_states WHERE user_id=$1 AND content_key=$2", [creatorId, "clip-layout-template:v2:paired"])).rows[0].state);
+			expect(beforeSave.compositions.mobile.layers[0].label).toBe("Camera");
+			expect(beforeSave.compositions.desktop.layers[0].label).toBe("Gameplay");
 			await page.getByRole("button", { name: "Save layout", exact: true }).click();
 			await expect(page.getByRole("button", { name: "Save layout", exact: true })).toBeDisabled();
 			await expect.poll(async () => JSON.parse((await tourWorld.fixture.pool.query("SELECT state FROM user_content_states WHERE user_id=$1 AND content_key=$2", [creatorId, "clip-layout-template:v2:paired"])).rows[0].state).compositions.desktop.layers[0].label).toBe("Full gameplay");
@@ -121,6 +127,7 @@ for (const width of [390, 1440])
 		await page.addInitScript((theme) => localStorage.setItem("theme", theme), width === 390 ? "dark" : "light");
 		const { creatorId, id } = await seedCreatorLibrary({ page, request, tourWorld });
 		const composition = createClipComposition("mobile");
+		composition.layers.push({ id: "footer", label: "Footer info", kind: "title", fontSize: 32, frame: { x: 0.6, y: 0.88, w: 0.4, h: 0.12 } });
 		await tourWorld.fixture.pool.query("INSERT INTO user_content_states(user_id,content_key,state) VALUES($1,$2,$3)", [creatorId, "clip-layout-template:v2:slow", JSON.stringify({ name: "Saved reference", composition })]);
 		let release!: () => void;
 		const pending = new Promise<void>((done) => {
@@ -147,4 +154,11 @@ for (const width of [390, 1440])
 		await page.getByRole("button", { name: "Reject optional", exact: true }).click();
 		await expect(page.getByRole("button", { name: "Play preview", exact: true })).toBeEnabled({ timeout: 20000 });
 		await expect(page.getByText("Loading reference clip…", { exact: true })).toHaveCount(0);
+		await page.getByRole("button", { name: "Clipify Watermark", exact: true }).click();
+		const mark = page.getByRole("button", { name: "Clipify Watermark output", exact: true });
+		await mark.scrollIntoViewIfNeeded();
+		const badge = (await mark.boundingBox())!,
+			widget = (await page.getByRole("button", { name: "Footer info output", exact: true }).boundingBox())!;
+		expect(badge.x + badge.width <= widget.x || widget.x + widget.width <= badge.x || badge.y + badge.height <= widget.y || widget.y + widget.height <= badge.y).toBe(true);
+		await page.screenshot({ path: info.outputPath("clear-watermark.png"), fullPage: true, animations: "disabled" });
 	});

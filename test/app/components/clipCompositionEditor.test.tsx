@@ -420,3 +420,59 @@ it("previews a search result immediately without a duplicate detail lookup", asy
 	expect(screen.queryByText("Reference clip unavailable.")).not.toBeInTheDocument();
 	expect(detail).not.toHaveBeenCalled();
 });
+
+it("switches unsaved formats locally and saves both edited compositions with one action", async () => {
+	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} onBack={() => {}} onSaved={() => {}} />);
+	fireEvent.change(screen.getByRole("textbox", { name: "Layer name" }), { target: { value: "Mobile camera draft" } });
+	fireEvent.click(screen.getByRole("tab", { name: "Desktop 16:9" }));
+	expect(screen.getByRole("textbox", { name: "Layer name" })).toHaveValue("Gameplay");
+	fireEvent.change(screen.getByRole("textbox", { name: "Layer name" }), { target: { value: "Desktop game draft" } });
+	fireEvent.click(screen.getByRole("tab", { name: "Mobile 9:16" }));
+	expect(screen.getByRole("textbox", { name: "Layer name" })).toHaveValue("Mobile camera draft");
+	expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+	expect(saveTemplate).not.toHaveBeenCalled();
+	fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
+	await waitFor(() => expect(saveTemplate).toHaveBeenCalledTimes(2));
+	const saved = saveTemplate.mock.calls.map((call: any) => call[1].composition);
+	expect(saved).toEqual(expect.arrayContaining([expect.objectContaining({ format: "mobile", layers: expect.arrayContaining([expect.objectContaining({ label: "Mobile camera draft" })]) }), expect.objectContaining({ format: "desktop", layers: expect.arrayContaining([expect.objectContaining({ label: "Desktop game draft" })]) })]));
+});
+
+it("retains both drafts if one format fails to save and retries without losing either", async () => {
+	const saved = jest.fn();
+	saveTemplate.mockResolvedValueOnce({ ok: true }).mockResolvedValueOnce({ ok: false, code: "SERVICE_UNAVAILABLE" });
+	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} onBack={() => {}} onSaved={saved} />);
+	fireEvent.change(screen.getByRole("textbox", { name: "Layer name" }), { target: { value: "Mobile draft" } });
+	fireEvent.click(screen.getByRole("tab", { name: "Desktop 16:9" }));
+	fireEvent.change(screen.getByRole("textbox", { name: "Layer name" }), { target: { value: "Desktop draft" } });
+	fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
+	await waitFor(() => expect(saveTemplate).toHaveBeenCalledTimes(2));
+	await waitFor(() => expect(jest.requireMock("@lib/toast").notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Layout could not be saved" })));
+	expect(saved).not.toHaveBeenCalled();
+	expect(screen.getByRole("textbox", { name: "Layer name" })).toHaveValue("Desktop draft");
+	fireEvent.click(screen.getByRole("tab", { name: "Mobile 9:16" }));
+	expect(screen.getByRole("textbox", { name: "Layer name" })).toHaveValue("Mobile draft");
+	fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
+	await waitFor(() => expect(saved).toHaveBeenCalledTimes(1));
+	expect(saveTemplate).toHaveBeenCalledTimes(4);
+});
+
+it("keeps edits made while saving protected instead of marking them saved", async () => {
+	let finish!: (value: unknown) => void;
+	saveTemplate.mockReturnValueOnce(
+		new Promise((done) => {
+			finish = done;
+		}),
+	);
+	const saved = jest.fn();
+	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} onBack={() => {}} onSaved={saved} />);
+	fireEvent.change(screen.getByRole("textbox", { name: "Layer name" }), { target: { value: "Sent draft" } });
+	fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
+	fireEvent.change(screen.getByRole("textbox", { name: "Layer name" }), { target: { value: "New draft" } });
+	finish({ ok: true });
+	await waitFor(() => expect(saved).toHaveBeenCalled());
+	expect(screen.getByRole("textbox", { name: "Layer name" })).toHaveValue("New draft");
+	expect(screen.getByRole("button", { name: "Save layout" })).toBeEnabled();
+	const event = new Event("beforeunload", { cancelable: true });
+	window.dispatchEvent(event);
+	expect(event.defaultPrevented).toBe(true);
+});

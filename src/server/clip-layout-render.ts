@@ -1,12 +1,12 @@
 import "server-only";
 import sharp from "sharp";
-import { clipifyWatermarkSvg, clipifyWatermarkExpression, type CreatorBrand } from "@lib/overlayMetadata";
+import { clipifyWatermarkSvg, clipifyWatermarkExpression, clipifyWatermarkPositions, type CreatorBrand } from "@lib/overlayMetadata";
 import { spawn } from "node:child_process";
 import { mkdtemp, writeFile, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { clipLayoutSchema, clipLayerText, clipLayerLines, type ClipLayout } from "@lib/clipLayout";
-import { compositionSchema, type ClipComposition } from "@lib/clipComposition";
+import { compositionSchema, compositionDimensions, type ClipComposition } from "@lib/clipComposition";
 import { compositionFilterGraph } from "./clip-composition-render";
 let activeRenders = 0;
 const LIMIT = 32 * 1024 * 1024;
@@ -22,10 +22,12 @@ export async function renderClipLayout(bytes: Uint8Array, layout: ClipLayout | C
 		const input = join(dir, "input.mp4"),
 			output = join(dir, "output.mp4");
 		await writeFile(input, bytes);
+		const watermarkWidgets: { x: number; y: number; w: number; h: number }[] = [];
 		let filters: string[],
 			previous: string,
 			inputs: string[] = [];
 		if (parsed.version === 2) {
+			watermarkWidgets.push(...parsed.layers.filter((layer) => layer.kind !== "video").map((layer) => layer.frame));
 			const graph = await compositionFilterGraph(parsed, dir, clip, signal, context?.avatar, context?.brand);
 			filters = graph.filters;
 			previous = graph.output;
@@ -36,7 +38,9 @@ export async function renderClipLayout(bytes: Uint8Array, layout: ClipLayout | C
 			filters = parsed.mode === "full" ? [`[0:v]${crop(parsed.gameplay, 720, 1280)}[composed]`] : [`[0:v]split=2[g][c]`, `[g]${crop(parsed.gameplay, 720, 1280 - camH)}[game]`, `[c]${crop(parsed.camera, 720, camH)}[cam]`, `[cam][game]vstack=inputs=2[composed]`];
 			previous = "composed";
 			for (const [index, layer] of parsed.textLayers.entries()) {
-				const text = clipLayerLines(clipLayerText(layer.field, clip), layer.size).join("\n");
+				const lines = clipLayerLines(clipLayerText(layer.field, clip), layer.size);
+				const text = lines.join("\n");
+				watermarkWidgets.push({ x: layer.x / 100, y: layer.y / 100, w: Math.min(1 - layer.x / 100, (Math.max(...lines.map((line) => line.length), 0) * layer.size + 12) / 720), h: Math.min(1 - layer.y / 100, (lines.length * layer.size * 1.2 + 12) / 1280) });
 				await writeFile(join(dir, `text-${index}.txt`), text);
 				// Text files and expansion=none keep provider titles out of FFmpeg filter syntax.
 				filters.push(`[${previous}]drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:textfile=${dir}/text-${index}.txt:expansion=none:fontcolor=white:fontsize=${layer.size}:box=1:boxcolor=black@0.65:boxborderw=6:x='min(w-tw-8,w*${layer.x / 100})':y='min(h-th-8,h*${layer.y / 100})'[text${index}]`);
@@ -44,11 +48,13 @@ export async function renderClipLayout(bytes: Uint8Array, layout: ClipLayout | C
 			}
 		}
 		if (context?.watermark) {
+			const dimensions = parsed.version === 2 ? compositionDimensions(parsed.format) : { width: 720, height: 1280 };
+			const positions = clipifyWatermarkPositions(dimensions.width, dimensions.height, watermarkWidgets);
 			const path = join(dir, "clipify-watermark.png");
 			await writeFile(path, await sharp(Buffer.from(clipifyWatermarkSvg())).png().toBuffer());
 			const index = 1 + inputs.filter((value) => value === "-i").length;
 			inputs.push("-loop", "1", "-max_pixels", "1000000", "-i", path);
-			filters.push(`[${previous}][${index}:v]overlay=x='${clipifyWatermarkExpression(0)}':y='${clipifyWatermarkExpression(1)}':shortest=1:eof_action=repeat[branded]`);
+			filters.push(`[${previous}][${index}:v]overlay=x='${clipifyWatermarkExpression(0, positions)}':y='${clipifyWatermarkExpression(1, positions)}':shortest=1:eof_action=repeat[branded]`);
 			previous = "branded";
 		}
 		const args = ["-hide_banner", "-loglevel", "error", "-nostdin", "-protocol_whitelist", "file,pipe", "-threads", "2", "-f", "mov", "-i", input, ...inputs, "-filter_complex_threads", "1", "-filter_complex", filters.join(";"), "-map", `[${previous}]`, "-map", "0:a?", "-c:v", "libx264", "-threads", "2", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-fs", String(LIMIT + 1024 * 1024), "-y", output];

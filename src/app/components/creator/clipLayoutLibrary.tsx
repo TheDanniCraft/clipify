@@ -59,8 +59,7 @@ export default function ClipLayoutLibrary({ user, creatorId, layoutId, clipId, r
 	}, [creatorId, entry, clipId, scope, selectedFormat]);
 	const path = (id: string) => `/dashboard/clip-layouts?layout=${encodeURIComponent(id)}${clipId ? `&clip=${encodeURIComponent(clipId)}` : sharedReference ? `&reference=${encodeURIComponent(sharedReference)}` : ""}`;
 	const error = () => notify({ title: "Layout could not be updated", description: "Your changes are preserved. Try again.", color: "danger" });
-	if (activeEntry && initial)
-		return <ClipCompositionEditor user={user} brand={brand} canRemoveWatermark={canRemoveWatermark} key={`${activeEntry.id}:${clipId ?? ""}:${selectedFormat}`} onFormatChange={(format) => router.push(path(activeEntry.id) + `&format=${format}`)} creatorId={creatorId} entry={activeEntry} initial={initial} clipId={clipId} referenceId={sharedReference} onReferenceChange={setSharedReference} onBack={() => router.push("/dashboard/clip-layouts")} onSaved={() => setAttempt((n) => n + 1)} />;
+	if (activeEntry && initial) return <ClipCompositionEditor user={user} brand={brand} canRemoveWatermark={canRemoveWatermark} key={`${activeEntry.id}:${clipId ?? ""}:${clipId ? selectedFormat : "template"}`} creatorId={creatorId} entry={activeEntry} initial={initial} clipId={clipId} referenceId={sharedReference} onReferenceChange={setSharedReference} onBack={() => router.push("/dashboard/clip-layouts")} onSaved={() => setAttempt((n) => n + 1)} />;
 	return (
 		<DashboardEditorLayout>
 			<Card>

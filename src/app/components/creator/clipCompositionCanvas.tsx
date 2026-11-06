@@ -1,11 +1,11 @@
 "use client";
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Button, Label, Slider, Switch } from "@heroui/react";
 import { IconPlayerPlay, IconPlayerPause, IconRefresh } from "@tabler/icons-react";
 import { getCreatorClipPreview } from "@actions/creatorLibrary";
 import { compositionWidgetTheme, compositionDimensions, updateCompositionFrame, updateCompositionSource, type ClipComposition } from "@lib/clipComposition";
 import { notify } from "@lib/toast";
-import { CLIPIFY_WATERMARK, clipifyWatermarkSvg, clipifyWatermarkPosition, type CreatorBrand, overlayMetadataSvg } from "@lib/overlayMetadata";
+import { CLIPIFY_WATERMARK, clipifyWatermarkSvg, clipifyWatermarkPosition, clipifyWatermarkPositions, type CreatorBrand, overlayMetadataSvg } from "@lib/overlayMetadata";
 import { isTrustedClipMediaUrl } from "@lib/clipExport";
 import { compositionLayerColor } from "@lib/clipLayoutTemplate";
 import CompositionBox from "./clipCompositionBox";
@@ -32,6 +32,18 @@ export default function ClipCompositionCanvas({
 	onChange: (layout: ClipComposition) => void;
 	onDimensions: (value: { width: number; height: number }) => void;
 }) {
+	const brandingPositions = useMemo(() => {
+		const output = compositionDimensions(layout.format);
+		return clipifyWatermarkPositions(
+			output.width,
+			output.height,
+			layout.layers.filter((layer) => layer.kind !== "video").map((layer) => layer.frame),
+		);
+	}, [layout]);
+	const latestBrandingPositions = useRef(brandingPositions);
+	useEffect(() => {
+		latestBrandingPositions.current = brandingPositions;
+	}, [brandingPositions]);
 	const widgetImages = useRef(new Map<string, { key: string; image: HTMLImageElement | null; cancel?: () => void }>());
 	// Queue raster requests so multiple widgets cannot exhaust preview capacity.
 	const nativeRequests = useRef<{ image: HTMLImageElement; url: string; cancelled: boolean }[]>([]);
@@ -264,7 +276,7 @@ export default function ClipCompositionCanvas({
 						}
 					}
 					if (watermark && watermarkImage.current) {
-						const position = clipifyWatermarkPosition(v.currentTime, c.width, c.height);
+						const position = clipifyWatermarkPosition(v.currentTime, latestBrandingPositions.current);
 						ctx.drawImage(watermarkImage.current, position.x, position.y, CLIPIFY_WATERMARK.width, CLIPIFY_WATERMARK.height);
 					}
 				} catch {
@@ -288,7 +300,7 @@ export default function ClipCompositionCanvas({
 		setFailed(false);
 	};
 
-	const brandingPosition = clipifyWatermarkPosition(time, output.width, output.height);
+	const brandingPosition = clipifyWatermarkPosition(time, brandingPositions);
 	return (
 		<div className='space-y-4'>
 			<div className='relative'>

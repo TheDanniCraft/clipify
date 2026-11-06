@@ -299,3 +299,27 @@ it("moves encoded branding from bottom-right to top-left after eight seconds", a
 		await rm(dir, { recursive: true, force: true });
 	}
 }, 45000);
+
+it("places encoded branding in clear space instead of over a widget", async () => {
+	const { createClipComposition } = await import("@lib/clipComposition");
+	const sharp = (await import("sharp")).default;
+	const dir = await mkdtemp(join(tmpdir(), "clipify-clear-brand-"));
+	try {
+		const input = join(dir, "input.mp4");
+		execFileSync("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "color=black:size=640x360:rate=5", "-t", "0.3", "-c:v", "libx264", "-threads", "1", "-pix_fmt", "yuv420p", "-y", input]);
+		const layout = createClipComposition("desktop");
+		layout.layers.push({ id: "blocked-corner", label: "Channel", kind: "channel", fontSize: 32, frame: { x: 0.75, y: 0.85, w: 0.25, h: 0.15 }, appearance: { themeTextColor: "#ff0000", themeBackgroundColor: "#ff0000", borderRadius: 0 } });
+		const output = join(dir, "output.mp4");
+		await writeFile(output, await renderClipLayout(new Uint8Array(await readFile(input)), layout, { title: "Clip" }, AbortSignal.timeout(20000), { watermark: true }));
+		const png = execFileSync("ffmpeg", ["-v", "error", "-i", output, "-frames:v", "1", "-f", "image2pipe", "-vcodec", "png", "pipe:1"]);
+		const clear = await sharp(png).extract({ left: 16, top: 175, width: 192, height: 52 }).removeAlpha().raw().toBuffer();
+		expect(clear.reduce((total, value) => total + value, 0) / clear.length).toBeGreaterThan(5);
+		const corner = await sharp(png).extract({ left: 1072, top: 652, width: 192, height: 52 }).removeAlpha().raw().toBuffer();
+		for (let index = 0; index < corner.length; index += 3) {
+			expect(corner[index + 1]).toBeLessThan(35);
+			expect(corner[index + 2]).toBeLessThan(35);
+		}
+	} finally {
+		await rm(dir, { recursive: true, force: true });
+	}
+});
