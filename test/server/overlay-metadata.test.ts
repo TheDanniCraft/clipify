@@ -59,10 +59,10 @@ it("maps a saved brand to overlay colors and typography without layout fields", 
 	expect(clipifyWatermarkSvg()).toContain("clipify.us");
 });
 
-it("shows the channel address and cycles branding through four fixed corners", async () => {
+it("shows the channel address and cycles branding through six fixed edge positions", async () => {
 	const { clipifyWatermarkPosition, clipifyWatermarkExpression } = await import("@lib/overlayMetadata");
 	expect(overlayMetadataContent("channel", { title: "", broadcasterName: "TheDanniCraft" }, true)).toEqual({ primary: "TheDanniCraft", secondary: "twitch.tv/thedannicraft" });
-	expect([0, 3, 6, 9, 12, 15, 18].map((time) => clipifyWatermarkPosition(time, 1280, 720))).toEqual([
+	expect([0, 8, 16, 24, 32, 40, 48].map((time) => clipifyWatermarkPosition(time, 1280, 720))).toEqual([
 		{ x: 1116, y: 664 },
 		{ x: 16, y: 178 },
 		{ x: 1116, y: 404.8 },
@@ -71,7 +71,7 @@ it("shows the channel address and cycles branding through four fixed corners", a
 		{ x: 16, y: 437.2 },
 		{ x: 1116, y: 664 },
 	]);
-	expect(clipifyWatermarkExpression(0)).toContain("mod(t,18)");
+	expect(clipifyWatermarkExpression(0)).toContain("mod(t,48)");
 });
 
 it("fits both widget dimensions without forcing glyph proportions", async () => {

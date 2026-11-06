@@ -104,7 +104,7 @@ export function overlayMetadataSvg(kind: "channel" | "title" | "clipper", clip: 
 }
 
 // Keep preview and encoded watermark timing and positions identical.
-export const CLIPIFY_WATERMARK = { width: 148, height: 40, inset: 16, interval: 3 } as const;
+export const CLIPIFY_WATERMARK = { width: 148, height: 40, inset: 16, interval: 8 } as const;
 export const CLIPIFY_WATERMARK_CORNERS = [
 	[1, 1],
 	[0, 0.25],

@@ -36,9 +36,9 @@ for (const width of [390, 1440])
 			await tourWorld.fixture.pool.query("UPDATE playlist_clips SET clip_data=jsonb_set(clip_data::jsonb,'{testPreviewOfficial}','true')::text WHERE clip_id=$1", [id]);
 			const imageResponse = page.waitForResponse((response) => response.url().includes("/api/clips/widget-preview?data=") && decodeURIComponent(response.url()).includes("Laila") && response.status() === 200);
 			await page.goto(`${tourWorld.origin}/dashboard/clip-layouts?layout=branded&reference=${id}`);
-			await expect(page.getByRole("switch", { name: "Clipify watermark", exact: true })).toBeChecked();
-			await page.getByText("Clipify watermark", { exact: true }).locator("..").locator('[data-slot="switch-control"]').click();
-			await expect(page.getByRole("switch", { name: "Clipify watermark", exact: true })).not.toBeChecked();
+			await expect(page.getByRole("button", { name: "Clipify watermark", exact: true })).toBeVisible();
+			await page.getByRole("button", { name: "Remove Clipify watermark", exact: true }).click();
+			await expect(page.getByRole("button", { name: "Clipify watermark", exact: true })).toHaveCount(0);
 			await page.getByRole("button", { name: "Save layout", exact: true }).click();
 			await imageResponse;
 			await expect(page.getByRole("button", { name: "Play preview", exact: true })).toBeEnabled();
@@ -57,8 +57,8 @@ test("Free clip layouts keep the watermark and open the existing upgrade without
 	await page.setViewportSize({ width: 390, height: 900 });
 	await page.goto(`${tourWorld.origin}/dashboard/clip-layouts?layout=free`);
 	await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
-	const watermark = page.getByRole("switch", { name: "Clipify watermark", exact: true });
-	await expect(watermark).toBeChecked();
+	const watermark = page.getByRole("button", { name: "Remove Clipify watermark", exact: true });
+	await expect(watermark).toBeVisible();
 	await watermark.focus();
 	await watermark.press("Space");
 	const upgrade = page.getByRole("dialog").filter({ has: page.getByRole("heading", { name: "Make every clip your own with Pro", exact: true }) });
@@ -74,7 +74,7 @@ test("Free clip layouts keep the watermark and open the existing upgrade without
 	await page.screenshot({ path: info.outputPath("branding-upgrade-mobile.png"), fullPage: false, animations: "disabled" });
 	expect((await tourWorld.fixture.pool.query("SELECT state FROM user_content_states WHERE user_id=$1 AND content_key='creator-brand:v1'", [creatorId])).rows).toHaveLength(0);
 	await page.keyboard.press("Escape");
-	await expect(watermark).toBeChecked();
+	await expect(watermark).toBeVisible();
 });
 
 test("Concurrent brand saves keep the newer style and preserve the other tab's draft", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {

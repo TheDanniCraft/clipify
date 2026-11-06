@@ -274,19 +274,19 @@ it("keeps Channel info exportable when its optional avatar is unavailable, while
 	}
 });
 
-it("moves encoded branding from bottom-right to top-left after three seconds", async () => {
+it("moves encoded branding from bottom-right to top-left after eight seconds", async () => {
 	const { createClipComposition } = await import("@lib/clipComposition");
 	const sharp = (await import("sharp")).default;
 	const dir = await mkdtemp(join(tmpdir(), "clipify-moving-brand-"));
 	try {
 		const input = join(dir, "input.mp4");
-		execFileSync("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "color=black:size=640x360:rate=5", "-t", "5.3", "-c:v", "libx264", "-threads", "1", "-pix_fmt", "yuv420p", "-y", input]);
+		execFileSync("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "color=black:size=640x360:rate=5", "-t", "8.3", "-c:v", "libx264", "-threads", "1", "-pix_fmt", "yuv420p", "-y", input]);
 		const bytes = await renderClipLayout(new Uint8Array(await readFile(input)), createClipComposition("desktop"), { title: "Clip" }, AbortSignal.timeout(30000), { watermark: true });
 		const output = join(dir, "output.mp4");
 		await writeFile(output, bytes);
 		for (const [time, left, top, emptyLeft, emptyTop] of [
 			[0, 1116, 664, 16, 178],
-			[3.1, 16, 178, 1116, 664],
+			[8.1, 16, 178, 1116, 664],
 		]) {
 			const png = execFileSync("ffmpeg", ["-v", "error", "-ss", String(time), "-i", output, "-frames:v", "1", "-f", "image2pipe", "-vcodec", "png", "pipe:1"]);
 			const average = async (x: number, y: number) => {

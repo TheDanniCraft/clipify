@@ -298,7 +298,7 @@ it("resets only a widget override to its brand without changing the account styl
 
 it("stores branding per layout and lets Pro keep credits on one composition", async () => {
 	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} canRemoveWatermark onBack={() => {}} onSaved={() => {}} />);
-	fireEvent.click(screen.getByRole("switch", { name: "Clipify watermark" }));
+	fireEvent.click(screen.getByRole("button", { name: "Remove Clipify watermark" }));
 	fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
 	await waitFor(() => expect(saveTemplate).toHaveBeenCalledWith("owner", expect.objectContaining({ composition: expect.objectContaining({ watermark: false }) })));
 	expect(composition.watermark).toBeUndefined();
@@ -306,9 +306,9 @@ it("stores branding per layout and lets Pro keep credits on one composition", as
 });
 it("keeps free layout credits on and opens upgrade without saving an unavailable value", () => {
 	render(<ClipCompositionEditor creatorId='owner' user={{ id: "owner" } as never} entry={entry} initial={composition} onBack={() => {}} onSaved={() => {}} />);
-	const toggle = screen.getByRole("switch", { name: "Clipify watermark" });
+	const toggle = screen.getByRole("button", { name: "Remove Clipify watermark" });
 	fireEvent.click(toggle);
-	expect(toggle).toBeChecked();
+	expect(screen.getByRole("button", { name: "Clipify watermark" })).toBeVisible();
 	expect(screen.getByRole("dialog")).toHaveTextContent("Upgrade branding");
 	expect(saveTemplate).not.toHaveBeenCalled();
 });
@@ -328,10 +328,11 @@ it("targets numeric controls from the clicked canvas and deselects with Escape o
 	detail.mockResolvedValue({ ok: true, clip: { id: "Ref", title: "Reference" } });
 	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} referenceId='Ref' onBack={() => {}} onSaved={() => {}} />);
 	fireEvent.click(await screen.findByRole("button", { name: "Select source crop" }));
-	expect(screen.getByRole("heading", { name: "Source crop" })).toBeVisible();
+	const sourceLeft = (screen.getByRole("spinbutton", { name: "Left (%)" }) as HTMLInputElement).value;
+	expect(screen.queryByRole("heading", { name: "Source crop" })).not.toBeInTheDocument();
 	expect(screen.queryByRole("combobox", { name: "Edit box" })).not.toBeInTheDocument();
 	fireEvent.click(screen.getByRole("button", { name: "Select output layer" }));
-	expect(screen.getByRole("heading", { name: "Output layer" })).toBeVisible();
+	expect(screen.getByRole("spinbutton", { name: "Left (%)" })).not.toHaveValue(Number(sourceLeft));
 	fireEvent.keyDown(window, { key: "Escape" });
 	expect(screen.queryByRole("textbox", { name: "Layer name" })).not.toBeInTheDocument();
 	fireEvent.click(screen.getByRole("button", { name: "Camera" }));
@@ -353,4 +354,15 @@ it("keeps the inspector stable when choosing a portaled menu option", () => {
 	} finally {
 		menu.remove();
 	}
+});
+
+it("restores the fixed branding layer without adding editable geometry to the template", async () => {
+	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={{ ...composition, watermark: false }} canRemoveWatermark onBack={() => {}} onSaved={() => {}} />);
+	fireEvent.change(screen.getByRole("combobox", { name: "Add layer" }), { target: { value: "watermark" } });
+	expect(screen.getByRole("region", { name: "Branding layer" })).toHaveTextContent("8 seconds");
+	expect(screen.queryByRole("textbox", { name: "Layer name" })).not.toBeInTheDocument();
+	expect(screen.queryByRole("button", { name: "Bring Clipify watermark forward" })).not.toBeInTheDocument();
+	fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
+	await waitFor(() => expect(saveTemplate).toHaveBeenCalled());
+	expect(saveTemplate.mock.calls[0][1].composition).toMatchObject({ watermark: true, layers: composition.layers });
 });

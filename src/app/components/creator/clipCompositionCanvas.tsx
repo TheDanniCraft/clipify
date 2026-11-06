@@ -19,9 +19,11 @@ export default function ClipCompositionCanvas({
 	onDimensions,
 	brand,
 	watermark = false,
+	onRemoveWatermark,
 }: {
 	brand?: CreatorBrand | null;
 	watermark?: boolean;
+	onRemoveWatermark?: () => void;
 	creatorId: string;
 	clip: { id: string; title: string; broadcasterName?: string | null; clipCreatorName?: string | null };
 	layout: ClipComposition;
@@ -286,6 +288,7 @@ export default function ClipCompositionCanvas({
 		setFailed(false);
 	};
 
+	const brandingPosition = clipifyWatermarkPosition(time, output.width, output.height);
 	return (
 		<div className='space-y-4'>
 			<div className='relative'>
@@ -373,6 +376,21 @@ export default function ClipCompositionCanvas({
 										/>
 									))
 								: null}
+							{ready && watermark ? (
+								<Button
+									aria-label='Clipify watermark output'
+									variant='ghost'
+									onPress={() => onSelect("clipify-watermark", "output")}
+									onKeyDown={(event) => {
+										if ((event.key === "Delete" || event.key === "Backspace") && onRemoveWatermark) {
+											event.preventDefault();
+											onRemoveWatermark();
+										}
+									}}
+									className={`absolute z-20 min-h-0 min-w-0 cursor-default rounded-md border-2 bg-transparent p-0 hover:bg-transparent ${selected === "clipify-watermark" ? "border-accent" : "border-transparent"}`}
+									style={{ left: `${(brandingPosition.x / output.width) * 100}%`, top: `${(brandingPosition.y / output.height) * 100}%`, width: `${(CLIPIFY_WATERMARK.width / output.width) * 100}%`, height: `${(CLIPIFY_WATERMARK.height / output.height) * 100}%` }}
+								/>
+							) : null}
 							{guides.x !== undefined ? <div className='pointer-events-none absolute inset-y-0 w-px bg-accent' style={{ left: `${guides.x * 100}%` }} /> : null}
 							{guides.y !== undefined ? <div className='pointer-events-none absolute inset-x-0 h-px bg-accent' style={{ top: `${guides.y * 100}%` }} /> : null}
 						</div>

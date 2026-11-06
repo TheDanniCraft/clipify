@@ -20,8 +20,8 @@ const toast = Object.assign(() => undefined, {
 	info: () => undefined,
 });
 
-const Button = React.forwardRef(function HeroUIButton({ children, onPress, isDisabled, className, type, "aria-label": ariaLabel, "aria-pressed": ariaPressed, "aria-expanded": ariaExpanded }, ref) {
-	return React.createElement("button", { className, disabled: isDisabled, ref, type, "aria-label": ariaLabel, "aria-pressed": ariaPressed, "aria-expanded": ariaExpanded, onClick: onPress }, children);
+const Button = React.forwardRef(function HeroUIButton({ children, onPress, onKeyDown, style, isDisabled, className, type, "aria-label": ariaLabel, "aria-pressed": ariaPressed, "aria-expanded": ariaExpanded }, ref) {
+	return React.createElement("button", { className, style, onKeyDown, disabled: isDisabled, ref, type, "aria-label": ariaLabel, "aria-pressed": ariaPressed, "aria-expanded": ariaExpanded, onClick: onPress }, children);
 });
 
 const Switch = Object.assign(React.forwardRef(function HeroUISwitch({ children, isSelected, onChange, isDisabled, "aria-label": ariaLabel }, ref) {

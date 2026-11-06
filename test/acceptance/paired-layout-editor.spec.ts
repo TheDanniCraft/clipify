@@ -31,13 +31,17 @@ for (const width of [390, 1440])
 			await expect(page.getByRole("button", { name: "Search clips", exact: true })).toHaveCount(0);
 
 			await expect(page.getByRole("button", { name: "Play preview", exact: true })).toBeEnabled();
-			const colors = await page.getByRole("button", { name: "Camera crop", exact: true }).evaluate((node) => getComputedStyle(node.parentElement!).borderColor);
-			expect(colors).toBe(await page.getByRole("button", { name: "Camera output", exact: true }).evaluate((node) => getComputedStyle(node.parentElement!).borderColor));
-			expect(colors).not.toBe(await page.getByRole("button", { name: "Gameplay crop", exact: true }).evaluate((node) => getComputedStyle(node.parentElement!).borderColor));
+			await page.getByRole("button", { name: "Camera crop", exact: true }).click();
+			const layerColor = (label: string) => page.getByRole("button", { name: label, exact: true }).evaluate((node) => getComputedStyle(node.parentElement!).getPropertyValue("--layer-color"));
+			expect(await layerColor("Camera crop")).toBe(await layerColor("Camera output"));
+			expect(await layerColor("Camera crop")).not.toBe(await layerColor("Gameplay crop"));
+			await expect(page.getByRole("textbox", { name: "Layer name", exact: true })).toHaveValue("Camera");
 			await page.getByRole("textbox", { name: "Layer name", exact: true }).fill("Face camera");
 			await page.getByRole("button", { name: "Save layout", exact: true }).click();
 			await expect(page.getByRole("button", { name: "Save layout", exact: true })).toBeDisabled();
 			await page.getByRole("tab", { name: "Desktop 16:9", exact: true }).click();
+			await expect(page.getByRole("tab", { name: "Desktop 16:9", exact: true })).toHaveAttribute("aria-selected", "true");
+			await page.getByRole("button", { name: "Gameplay crop", exact: true }).click();
 			await expect(page.getByRole("textbox", { name: "Layer name", exact: true })).toHaveValue("Gameplay");
 			await page.getByRole("textbox", { name: "Layer name", exact: true }).fill("Full gameplay");
 			await page.getByRole("button", { name: "Save layout", exact: true }).click();
@@ -47,6 +51,8 @@ for (const width of [390, 1440])
 			expect(state.compositions.mobile.layers[0].label).toBe("Face camera");
 			expect(state.compositions.desktop.layers[0].label).toBe("Full gameplay");
 			await page.getByRole("tab", { name: "Mobile 9:16", exact: true }).click();
+			await expect(page.getByRole("tab", { name: "Mobile 9:16", exact: true })).toHaveAttribute("aria-selected", "true");
+			await page.getByRole("button", { name: "Face camera crop", exact: true }).click();
 			await expect(page.getByRole("textbox", { name: "Layer name", exact: true })).toHaveValue("Face camera");
 			const add = page.locator('[data-slot="select-trigger"]').filter({ hasText: "Add crop or widget" });
 			await add.scrollIntoViewIfNeeded();

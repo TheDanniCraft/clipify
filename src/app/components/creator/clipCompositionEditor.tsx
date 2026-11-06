@@ -1,8 +1,8 @@
 "use client";
 import type { AuthenticatedUser } from "@types";
 import { useCallback, useEffect, useState } from "react";
-import { Button, Card, Input, Label, TextField, NumberField, Select, ListBox, Modal, Link, Autocomplete, SearchField, EmptyState, Tabs, Switch, Tooltip, Description } from "@heroui/react";
-import { IconArrowLeft, IconPlus, IconArrowUp, IconArrowDown, IconTrash } from "@tabler/icons-react";
+import { Button, Card, Input, Label, TextField, NumberField, Select, ListBox, Modal, Link, Autocomplete, SearchField, EmptyState, Tabs, Switch, Tooltip } from "@heroui/react";
+import { IconArrowLeft, IconPlus, IconArrowUp, IconArrowDown, IconTrash, IconLock } from "@tabler/icons-react";
 import { useNavigationGuard } from "nextjs-nav-guard";
 import { saveClipLayoutTemplate, saveClipLayoutOverride, resetClipLayoutOverride, type ClipLayoutTemplate } from "@actions/clipLayoutLibrary";
 import { getCreatorClipInventory, getCreatorClipDetail, searchCreatorLibrary } from "@actions/creatorLibrary";
@@ -15,6 +15,7 @@ import DashboardEditorLayout from "@components/dashboardEditorLayout";
 import UpgradeModal from "@components/upgradeModal";
 import { trackProductEvent } from "@lib/analytics";
 import ControlledModal from "@components/controlledModal";
+import Logo from "@components/logo";
 import ClipCompositionCanvas from "./clipCompositionCanvas";
 type Clip = Extract<Awaited<ReturnType<typeof getCreatorClipDetail>>, { ok: true }>["clip"];
 function Numeric({ label, value, min = 0, max = 100, onChange }: { label: string; value: number; min?: number; max?: number; onChange: (v: number) => void }) {
@@ -149,11 +150,27 @@ export default function ClipCompositionEditor({
 		setLayout(next);
 		setDirty(true);
 	};
+	const watermarkEnabled = !canRemoveWatermark || (layout.watermark ?? true);
+	const removeWatermark = () => {
+		if (!canRemoveWatermark) {
+			trackProductEvent("export_branding_upgrade_requested", { source: "clip_layout" });
+			setUpgrade(true);
+			return;
+		}
+		change({ ...layout, watermark: false });
+		if (selected === "clipify-watermark") selectLayer("");
+	};
 	const layer = layout.layers.find((item) => item.id === selected) ?? layout.layers[0];
 	const sourceMode = layer.kind === "video" && boxMode === "source";
 	const box = sourceMode ? layer.source : layer.frame;
 	const update = (next: CompositionLayer) => change({ ...layout, layers: layout.layers.map((item) => (item.id === layer.id ? next : item)) });
-	const add = (kind: CompositionLayer["kind"]) => {
+	const add = (kind: CompositionLayer["kind"] | "watermark") => {
+		if (kind === "watermark") {
+			change({ ...layout, watermark: true });
+			selectLayer("clipify-watermark");
+			return;
+		}
+
 		const id = crypto.randomUUID(),
 			label = kind === "video" ? `Video crop ${layout.layers.filter((item) => item.kind === "video").length + 1}` : kind === "title" ? "Clip info" : kind === "channel" ? "Channel info" : kind === "clipper" ? "Clipper" : "Channel logo";
 		const output = compositionDimensions(layout.format),
@@ -196,7 +213,7 @@ export default function ClipCompositionEditor({
 			data-clip-editor
 			onPointerDownCapture={(event) => {
 				const target = event.target as HTMLElement;
-				if (!target.closest("button,input,textarea,label,a,[role=option],[role=listbox],[role=menu],[role=dialog],[role=combobox],[role=switch],canvas,[data-clip-stage],[data-layer-row]")) selectLayer("");
+				if (!target.closest("button,input,textarea,label,a,[role=button],[role=option],[role=listbox],[role=menu],[role=dialog],[role=combobox],[role=switch],canvas,[data-clip-stage],[data-layer-row]")) selectLayer("");
 			}}
 		>
 			<DashboardEditorLayout>
@@ -352,7 +369,7 @@ export default function ClipCompositionEditor({
 							<p className='text-sm text-muted'>Changes apply only to this clip and layout. Your global template stays unchanged.</p>
 						)}
 						{clip ? (
-							<ClipCompositionCanvas brand={brand} watermark={!canRemoveWatermark || (layout.watermark ?? true)} key={clip.id} creatorId={creatorId} clip={clip} layout={layout} selected={selected} onSelect={selectLayer} onChange={change} onDimensions={setSourceDimensions} />
+							<ClipCompositionCanvas brand={brand} watermark={watermarkEnabled} onRemoveWatermark={removeWatermark} key={clip.id} creatorId={creatorId} clip={clip} layout={layout} selected={selected} onSelect={selectLayer} onChange={change} onDimensions={setSourceDimensions} />
 						) : (
 							<div className='rounded-xl bg-default/50 p-6 text-sm text-muted'>
 								{reference ? (
@@ -372,6 +389,22 @@ export default function ClipCompositionEditor({
 							<section className='space-y-3'>
 								<h3 className='text-sm font-medium'>Layers</h3>
 								<div className='space-y-1' aria-label='Reorder layers'>
+									{watermarkEnabled ? (
+										<div className='flex items-center gap-1' data-branding-row>
+											<Button variant={selected === "clipify-watermark" ? "secondary" : "ghost"} className='min-w-0 flex-1 justify-start gap-2' onPress={() => selectLayer(selected === "clipify-watermark" ? "" : "clipify-watermark")}>
+												<Logo size={16} aria-hidden='true' />
+												<span className='min-w-0 flex-1 truncate text-left'>Clipify watermark</span>
+												<IconLock className='size-3.5 shrink-0 text-muted' aria-hidden='true' />
+											</Button>
+											<Tooltip>
+												<Button isIconOnly size='sm' variant='danger-soft' aria-label='Remove Clipify watermark' onPress={removeWatermark}>
+													<IconTrash className='size-4' />
+												</Button>
+												<Tooltip.Content>Remove watermark</Tooltip.Content>
+											</Tooltip>
+										</div>
+									) : null}
+
 									{[...layout.layers].reverse().map((item) => (
 										<div
 											draggable
@@ -458,9 +491,9 @@ export default function ClipCompositionEditor({
 									variant='secondary'
 									aria-label='Add layer'
 									value={null}
-									isDisabled={layout.layers.length >= 32}
+									isDisabled={layout.layers.length >= 32 && watermarkEnabled}
 									onChange={(key) => {
-										if (key) add(String(key) as CompositionLayer["kind"]);
+										if (key) add(String(key) as CompositionLayer["kind"] | "watermark");
 									}}
 								>
 									<Select.Trigger className='items-center gap-2'>
@@ -470,45 +503,32 @@ export default function ClipCompositionEditor({
 									</Select.Trigger>
 									<Select.Popover>
 										<ListBox>
-											{(["video", "channel", "title"] as const).map((kind) => (
+											{(layout.layers.length < 32 ? (["video", "channel", "title"] as const) : []).map((kind) => (
 												<ListBox.Item key={kind} id={kind} textValue={kind}>
 													<Label>{kind === "video" ? "Video crop" : kind === "channel" ? "Channel info" : "Clip info"}</Label>
 												</ListBox.Item>
 											))}
+											{!watermarkEnabled ? (
+												<ListBox.Item id='watermark' textValue='Clipify watermark'>
+													<Label>Clipify watermark</Label>
+												</ListBox.Item>
+											) : null}
 										</ListBox>
 									</Select.Popover>
 								</Select>
-								<div className='border-t border-separator pt-3'>
-									<Switch
-										aria-label='Clipify watermark'
-										isSelected={!canRemoveWatermark || (layout.watermark ?? true)}
-										onChange={(enabled) => {
-											if (!enabled && !canRemoveWatermark) {
-												trackProductEvent("export_branding_upgrade_requested", { source: "clip_layout" });
-												setUpgrade(true);
-												return;
-											}
-											change({ ...layout, watermark: enabled });
-										}}
-									>
-										<Switch.Content>
-											<Switch.Control>
-												<Switch.Thumb />
-											</Switch.Control>
-											Clipify watermark
-										</Switch.Content>
-										<Description>Credit Clipify on this layout. Pro can turn it off.</Description>
-									</Switch>
-								</div>
 							</section>
-							{selected ? (
+							{selected === "clipify-watermark" && watermarkEnabled ? (
+								<section aria-label='Branding layer' className='space-y-2'>
+									<h3 className='font-medium'>Clipify watermark</h3>
+									<p className='text-sm text-muted'>Positioned automatically every 8 seconds.</p>
+								</section>
+							) : selected && selected !== "clipify-watermark" ? (
 								<section className='space-y-4'>
 									<TextField variant='secondary' value={layer.label} maxLength={80} onChange={(label) => update({ ...layer, label })}>
 										<Label>Layer name</Label>
 										<Input />
 									</TextField>
-									<h3 className='text-sm font-medium'>{sourceMode ? "Source crop" : "Output layer"}</h3>
-									<p className='text-xs text-muted'>{sourceMode ? "Choose the part of the original video to capture." : "Set the position and size in the exported video."}</p>
+
 									<div className='grid grid-cols-2 gap-3 sm:grid-cols-4'>
 										{(["x", "y", "w", "h"] as const).map((key) => (
 											<Numeric

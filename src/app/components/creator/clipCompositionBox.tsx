@@ -113,7 +113,10 @@ export default function CompositionBox({
 	}, []);
 	const pointer = { onLostPointerCapture: end };
 	return (
-		<div className={`absolute isolate border-2 ${selected || showOutline ? "opacity-100" : "border-transparent"}`} style={{ "--layer-color": color, borderColor: selected || showOutline ? color : "transparent", left: `${rect.x * 100}%`, top: `${rect.y * 100}%`, width: `${rect.w * 100}%`, height: `${rect.h * 100}%` } as CSSProperties}>
+		<div
+			className={`absolute isolate border-2 ${selected ? "opacity-100" : showOutline ? "[--outline-alpha:40%] hover:[--outline-alpha:75%] focus-within:[--outline-alpha:75%]" : "border-transparent"}`}
+			style={{ "--layer-color": color, borderColor: selected ? color : showOutline ? "color-mix(in srgb, var(--layer-color) var(--outline-alpha, 40%), transparent)" : "transparent", left: `${rect.x * 100}%`, top: `${rect.y * 100}%`, width: `${rect.w * 100}%`, height: `${rect.h * 100}%` } as CSSProperties}
+		>
 			<Button
 				{...pointer}
 				aria-label={label}
@@ -134,9 +137,9 @@ export default function CompositionBox({
 				}}
 				className='absolute inset-0 h-full min-h-0 w-full min-w-0 touch-none cursor-move rounded-none bg-transparent p-0 hover:bg-white/5'
 			/>
+			{showLabel && (selected || showOutline) ? <span className={`pointer-events-none absolute left-0 top-0 max-w-full truncate px-1 text-xs ${selected ? "bg-[var(--layer-color)] text-black" : "bg-black/70 text-white/80"}`}>{label}</span> : null}
 			{selected ? (
 				<>
-					{showLabel ? <span className='pointer-events-none absolute left-0 top-0 max-w-full truncate bg-[var(--layer-color)] px-1 text-xs text-black'>{label}</span> : null}
 					{(["n", "s", "e", "w", "nw", "ne", "sw", "se"] as const).map((corner) => {
 						const edge = corner.length === 1;
 						const position = edge ? (corner === "n" ? "inset-x-3 -top-1.5 h-3 w-auto cursor-ns-resize" : corner === "s" ? "inset-x-3 -bottom-1.5 h-3 w-auto cursor-ns-resize" : corner === "w" ? "inset-y-3 -left-1.5 w-3 h-auto cursor-ew-resize" : "inset-y-3 -right-1.5 w-3 h-auto cursor-ew-resize") : `${corner.includes("n") ? "-top-3" : "-bottom-3"} ${corner.includes("w") ? "-left-3" : "-right-3"} ${corner === "nw" || corner === "se" ? "cursor-nwse-resize" : "cursor-nesw-resize"}`;
