@@ -1,7 +1,7 @@
 "use client";
 import type { AuthenticatedUser } from "@types";
 import { useCallback, useEffect, useState } from "react";
-import { Button, Card, Input, Label, TextField, NumberField, Select, ListBox, Modal, Link, Autocomplete, SearchField, EmptyState, Tabs, Switch, Tooltip } from "@heroui/react";
+import { Button, Card, Input, Label, TextField, NumberField, Select, ListBox, Modal, Link, Autocomplete, SearchField, EmptyState, Tabs, Switch, Tooltip, Spinner } from "@heroui/react";
 import { IconArrowLeft, IconPlus, IconArrowUp, IconArrowDown, IconTrash, IconLock } from "@tabler/icons-react";
 import { useNavigationGuard } from "nextjs-nav-guard";
 import { saveClipLayoutTemplate, saveClipLayoutOverride, resetClipLayoutOverride, type ClipLayoutTemplate } from "@actions/clipLayoutLibrary";
@@ -75,6 +75,7 @@ export default function ClipCompositionEditor({
 		[boxMode, setBoxMode] = useState("output"),
 		[clip, setClip] = useState<Clip | null>(null),
 		[reference, setReference] = useState(clipId ?? referenceId ?? ""),
+		[referenceError, setReferenceError] = useState(false),
 		[clips, setClips] = useState<Clip[]>([]),
 		[search, setSearch] = useState(""),
 		[loading, setLoading] = useState(true),
@@ -131,21 +132,21 @@ export default function ClipCompositionEditor({
 	}, [creatorId, search]);
 	useEffect(() => {
 		let active = true;
-		if (reference)
+		if (reference && clip?.id !== reference)
 			void getCreatorClipDetail({ creatorId, clipId: reference })
 				.then((result) => {
 					if (active) {
 						if (result.ok) setClip(result.clip);
-						else notify({ title: "Reference clip unavailable", description: "Choose another clip or retry.", color: "danger" });
+						else setReferenceError(true);
 					}
 				})
 				.catch(() => {
-					if (active) notify({ title: "Reference clip could not be loaded", color: "danger" });
+					if (active) setReferenceError(true);
 				});
 		return () => {
 			active = false;
 		};
-	}, [creatorId, reference, retry]);
+	}, [creatorId, reference, retry, clip?.id]);
 	const change = (next: ClipComposition) => {
 		setLayout(next);
 		setDirty(true);
@@ -325,7 +326,8 @@ export default function ClipCompositionEditor({
 									value={reference || null}
 									allowsEmptyCollection
 									onChange={(key) => {
-										setClip(null);
+										setClip(clips.find((item) => item.id === String(key)) ?? null);
+										setReferenceError(false);
 										setReference(String(key ?? ""));
 										onReferenceChange?.(String(key ?? ""));
 									}}
@@ -341,7 +343,9 @@ export default function ClipCompositionEditor({
 										<Autocomplete.Filter
 											inputValue={search}
 											onInputChange={(value) => {
+												if (value === search) return;
 												setLoading(true);
+												setClips([]);
 												setSearch(value);
 											}}
 											filter={() => true}
@@ -372,10 +376,21 @@ export default function ClipCompositionEditor({
 							<ClipCompositionCanvas brand={brand} watermark={watermarkEnabled} onRemoveWatermark={removeWatermark} key={clip.id} creatorId={creatorId} clip={clip} layout={layout} selected={selected} onSelect={selectLayer} onChange={change} onDimensions={setSourceDimensions} />
 						) : (
 							<div className='rounded-xl bg-default/50 p-6 text-sm text-muted'>
-								{reference ? (
+								{reference && !referenceError ? (
+									<div role='status' className='flex items-center gap-2'>
+										<Spinner size='sm' aria-hidden='true' />
+										Loading reference clip…
+									</div>
+								) : reference ? (
 									<div className='flex flex-wrap items-center gap-3'>
 										Reference clip unavailable.
-										<Button variant='secondary' onPress={() => setRetry((v) => v + 1)}>
+										<Button
+											variant='secondary'
+											onPress={() => {
+												setReferenceError(false);
+												setRetry((v) => v + 1);
+											}}
+										>
 											Retry reference
 										</Button>
 									</div>

@@ -134,7 +134,7 @@ it("recovers reference lookup/search failures without discarding an edited name"
 	detail.mockRejectedValueOnce(Error("offline")).mockResolvedValueOnce({ ok: true, clip: { id: "ClipA", title: "Reference" } });
 	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} referenceId='ClipA' onBack={() => {}} onSaved={() => {}} />);
 	fireEvent.change(screen.getByRole("textbox", { name: "Layout name" }), { target: { value: "Draft" } });
-	fireEvent.click(screen.getByRole("button", { name: "Retry reference" }));
+	fireEvent.click(await screen.findByRole("button", { name: "Retry reference" }));
 	await waitFor(() => expect(detail).toHaveBeenCalledTimes(2));
 	const query = screen.getByRole("textbox", { name: "Find a reference clip" });
 	fireEvent.change(query, { target: { value: "first" } });
@@ -393,4 +393,30 @@ it("deselects branding before removing it and restores the ordinary empty inspec
 	expect(screen.queryByRole("button", { name: "Clipify Watermark" })).not.toBeInTheDocument();
 	expect(screen.queryByRole("region", { name: "Branding layer" })).not.toBeInTheDocument();
 	expect(screen.queryByRole("textbox", { name: "Layer name" })).not.toBeInTheDocument();
+});
+
+it("shows loading instead of unavailable while a saved reference is being resolved", async () => {
+	let resolve!: (value: unknown) => void;
+	detail.mockReturnValue(
+		new Promise((done) => {
+			resolve = done;
+		}),
+	);
+	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} referenceId='Slow' onBack={() => {}} onSaved={() => {}} />);
+	expect(screen.getByRole("status")).toHaveTextContent("Loading reference clip");
+	expect(screen.queryByRole("button", { name: "Retry reference" })).not.toBeInTheDocument();
+	resolve({ ok: false, code: "NOT_FOUND" });
+	await screen.findByRole("button", { name: "Retry reference" });
+	expect(screen.queryByRole("status")).not.toBeInTheDocument();
+});
+
+it("previews a search result immediately without a duplicate detail lookup", async () => {
+	searchClips.mockResolvedValue({ ok: true, items: [{ id: "Found", title: "Found moment" }] });
+	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} onBack={() => {}} onSaved={() => {}} />);
+	fireEvent.change(screen.getByRole("textbox", { name: "Find a reference clip" }), { target: { value: "Found" } });
+	await screen.findByRole("option", { name: "Found moment" });
+	fireEvent.change(screen.getByRole("combobox", { name: "Reference clip" }), { target: { value: "Found" } });
+	expect(screen.getByRole("button", { name: "Select source crop" })).toBeVisible();
+	expect(screen.queryByText("Reference clip unavailable.")).not.toBeInTheDocument();
+	expect(detail).not.toHaveBeenCalled();
 });

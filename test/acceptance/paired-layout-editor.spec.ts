@@ -114,3 +114,37 @@ test("Concurrent Desktop and Mobile saves preserve both compositions", async ({ 
 		.toEqual(["Saved Desktop", "Saved Mobile"]);
 	await second.close();
 });
+
+for (const width of [390, 1440])
+	test(`A slow saved reference shows loading rather than unavailable at ${width}px`, async ({ page, request, tourWorld }, info) => {
+		await page.setViewportSize({ width, height: 1000 });
+		await page.addInitScript((theme) => localStorage.setItem("theme", theme), width === 390 ? "dark" : "light");
+		const { creatorId, id } = await seedCreatorLibrary({ page, request, tourWorld });
+		const composition = createClipComposition("mobile");
+		await tourWorld.fixture.pool.query("INSERT INTO user_content_states(user_id,content_key,state) VALUES($1,$2,$3)", [creatorId, "clip-layout-template:v2:slow", JSON.stringify({ name: "Saved reference", composition })]);
+		let release!: () => void;
+		const pending = new Promise<void>((done) => {
+			release = done;
+		});
+		let requested = false;
+		await page.route("**/dashboard/clip-layouts**", async (route) => {
+			if (route.request().headers()["next-action"] && route.request().postData()?.includes(id)) {
+				requested = true;
+				await pending;
+			}
+			await route.continue();
+		});
+		try {
+			await page.goto(`${tourWorld.origin}/dashboard/clip-layouts?layout=slow&reference=${id}`);
+			await expect.poll(() => requested).toBe(true);
+			await expect(page.getByRole("status").filter({ hasText: "Loading reference clip" })).toBeVisible();
+			await expect(page.getByText("Reference clip unavailable.", { exact: true })).toHaveCount(0);
+			await expect(page.getByRole("button", { name: "Retry reference", exact: true })).toHaveCount(0);
+			await page.screenshot({ path: info.outputPath("reference-loading.png"), fullPage: true, animations: "disabled" });
+		} finally {
+			release();
+		}
+		await page.getByRole("button", { name: "Reject optional", exact: true }).click();
+		await expect(page.getByRole("button", { name: "Play preview", exact: true })).toBeEnabled({ timeout: 20000 });
+		await expect(page.getByText("Loading reference clip…", { exact: true })).toHaveCount(0);
+	});
