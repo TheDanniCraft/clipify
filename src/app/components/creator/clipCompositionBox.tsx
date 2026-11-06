@@ -114,8 +114,8 @@ export default function CompositionBox({
 	const pointer = { onLostPointerCapture: end };
 	return (
 		<div
-			className={`absolute isolate border-2 ${selected ? "opacity-100" : showOutline ? "[--outline-alpha:40%] hover:[--outline-alpha:75%] focus-within:[--outline-alpha:75%]" : "border-transparent"}`}
-			style={{ "--layer-color": color, borderColor: selected ? color : showOutline ? "color-mix(in srgb, var(--layer-color) var(--outline-alpha, 40%), transparent)" : "transparent", left: `${rect.x * 100}%`, top: `${rect.y * 100}%`, width: `${rect.w * 100}%`, height: `${rect.h * 100}%` } as CSSProperties}
+			className={`absolute isolate border-2 ${selected ? "opacity-100" : showOutline ? "[--outline-alpha:75%] hover:[--outline-alpha:90%] focus-within:[--outline-alpha:90%]" : "border-transparent"}`}
+			style={{ "--layer-color": color, borderColor: selected ? color : showOutline ? "color-mix(in srgb, var(--layer-color) var(--outline-alpha, 75%), transparent)" : "transparent", left: `${rect.x * 100}%`, top: `${rect.y * 100}%`, width: `${rect.w * 100}%`, height: `${rect.h * 100}%` } as CSSProperties}
 		>
 			<Button
 				{...pointer}
@@ -138,7 +138,7 @@ export default function CompositionBox({
 				className='absolute inset-0 h-full min-h-0 w-full min-w-0 touch-none cursor-move rounded-none bg-transparent p-0 hover:bg-white/5'
 			/>
 			{showLabel && (selected || showOutline) ? (
-				<span className={`pointer-events-none absolute left-0 top-0 max-w-full truncate px-1 text-xs ${selected ? "bg-[var(--layer-color)] text-black" : ""}`} style={selected ? undefined : { backgroundColor: "color-mix(in srgb, var(--layer-color) 25%, #171717)", color: "color-mix(in srgb, var(--layer-color) 65%, #e5e7eb)" }}>
+				<span className={`pointer-events-none absolute left-0 top-0 max-w-full truncate px-1 text-xs ${selected ? "bg-[var(--layer-color)] text-black" : ""}`} style={selected ? undefined : { backgroundColor: "color-mix(in srgb, var(--layer-color) 75%, #171717)", color: "#111111" }}>
 					{label}
 				</span>
 			) : null}
