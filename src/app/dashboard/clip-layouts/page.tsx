@@ -11,7 +11,7 @@ export default async function ClipLayoutsPage({ searchParams }: { searchParams: 
 	const brand = await getCreatorBrand(user.id);
 	const id = (value: unknown) => (typeof value === "string" && /^[a-zA-Z0-9_-]{1,200}$/.test(value) ? value : undefined);
 	return (
-		<DashboardNavbar user={user} title='Clip layouts' tagline='Reusable Desktop and Mobile compositions'>
+		<DashboardNavbar stickyHeading user={user} title='Clip layouts' tagline='Reusable Desktop and Mobile compositions'>
 			{brand.ok ? (
 				<ClipLayoutLibrary user={user} brand={brand.brand} canRemoveWatermark={brand.canRemoveWatermark} key={user.id} creatorId={user.id} layoutId={id(params.layout)} clipId={id(params.clip)} referenceId={id(params.reference)} newFormat={params.new} outputFormat={params.format} />
 			) : (

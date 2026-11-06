@@ -3,8 +3,8 @@ import { overlayMetadataHeight, overlayMetadataContent, overlayMetadataSvg, wrap
 import sharp from "sharp";
 it("groups title and credit and identifies channel metadata with context", () => {
 	expect(overlayMetadataContent("title", { title: "An excellent play", clipCreatorName: "Viewer" })).toEqual({ primary: "An excellent play", secondary: "clipped by Viewer" });
-	expect(overlayMetadataContent("channel", { title: "", broadcasterName: "Streamer", categoryName: "Just Chatting" }).secondary).toBe("twitch.tv/streamer");
-	expect(overlayMetadataContent("channel", { title: "" }).secondary).toBe("");
+	expect(overlayMetadataContent("channel", { title: "", broadcasterName: "Streamer", categoryName: "Just Chatting" }).secondary).toBe("Playing Just Chatting");
+	expect(overlayMetadataContent("channel", { title: "" }).secondary).toBe("Twitch channel");
 	expect(overlayMetadataContent("clipper", { title: "" }).primary).toBe("Twitch clip");
 	expect(overlayMetadataContent("title", { title: "" }).primary).toBe("Untitled clip");
 });
@@ -56,18 +56,28 @@ it("maps a saved brand to overlay colors and typography without layout fields", 
 	const { creatorBrandSchema, brandOverlayFields, clipifyWatermarkSvg } = await import("@lib/overlayMetadata");
 	expect(brandOverlayFields(creatorBrandSchema.parse({}))).toMatchObject({ themeFontFamily: "DejaVu Sans", borderRadius: 10 });
 	expect(brandOverlayFields(creatorBrandSchema.parse({ fontFamily: "Laila", fontSource: "google" })).themeFontFamily).toContain("https://fonts.googleapis.com/css2?family=Laila");
-	expect(clipifyWatermarkSvg()).toContain("Made with Clipify");
+	expect(clipifyWatermarkSvg()).toContain("clipify.us");
 });
 
 it("shows the channel address and cycles branding through four fixed corners", async () => {
 	const { clipifyWatermarkPosition, clipifyWatermarkExpression } = await import("@lib/overlayMetadata");
-	expect(overlayMetadataContent("channel", { title: "", broadcasterName: "TheDanniCraft" })).toEqual({ primary: "TheDanniCraft", secondary: "twitch.tv/thedannicraft" });
-	expect([0, 5, 10, 15, 20].map((time) => clipifyWatermarkPosition(time, 1280, 720))).toEqual([
-		{ x: 1064, y: 660 },
-		{ x: 16, y: 16 },
-		{ x: 16, y: 660 },
-		{ x: 1064, y: 16 },
-		{ x: 1064, y: 660 },
+	expect(overlayMetadataContent("channel", { title: "", broadcasterName: "TheDanniCraft" }, true)).toEqual({ primary: "TheDanniCraft", secondary: "twitch.tv/thedannicraft" });
+	expect([0, 3, 6, 9, 12, 15, 18].map((time) => clipifyWatermarkPosition(time, 1280, 720))).toEqual([
+		{ x: 1116, y: 664 },
+		{ x: 16, y: 178 },
+		{ x: 1116, y: 404.8 },
+		{ x: 16, y: 664 },
+		{ x: 1116, y: 16 },
+		{ x: 16, y: 437.2 },
+		{ x: 1116, y: 664 },
 	]);
-	expect(clipifyWatermarkExpression(0)).toContain("mod(t,20)");
+	expect(clipifyWatermarkExpression(0)).toContain("mod(t,18)");
+});
+
+it("fits both widget dimensions without forcing glyph proportions", async () => {
+	const { overlayMetadataSize } = await import("@lib/overlayMetadata");
+	const size = overlayMetadataSize("channel", { title: "", broadcasterName: "Streamer" }, 32, 720);
+	expect(size.width).toBeLessThan(720);
+	expect(size.height).toBeGreaterThan(32);
+	expect(overlayMetadataSvg("channel", { title: "", broadcasterName: "Streamer" }, size.width, size.height, 32)).not.toMatch(/textLength|lengthAdjust/);
 });

@@ -38,7 +38,7 @@ function accountType(organization: OrganizationOption) {
 	return metadata && typeof metadata === "object" && "accountType" in metadata && metadata.accountType === "agency" ? "agency" : "creator";
 }
 
-export default function DashboardNavbar({ children, user, title, tagline, organizationId }: { children?: React.ReactNode; user: DashboardNavbarUser; title: string; tagline: string; organizationId?: string }) {
+export default function DashboardNavbar({ children, user, title, tagline, organizationId, stickyHeading = false }: { children?: React.ReactNode; user: DashboardNavbarUser; title: string; tagline: string; organizationId?: string; stickyHeading?: boolean }) {
 	const navigation = useContext(DashboardNavigationContext);
 	const inShell = navigation !== null;
 	const AccountControlsContainer = inShell ? DashboardUtilityPortal : Fragment;
@@ -404,8 +404,8 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 			) : null}
 			<div className='w-full'>
 				<ContentContainer className='mt-6 flex w-full flex-col items-center'>
-					<div className='mx-auto w-full min-w-0 max-w-7xl px-4 pb-8 lg:px-8'>
-						<header className='flex w-full min-w-0 items-start justify-between gap-4'>
+					<div data-sticky-heading={stickyHeading || undefined} className='mx-auto w-full min-w-0 max-w-7xl px-4 pb-8 lg:px-8'>
+						<header className={`flex w-full min-w-0 items-start justify-between gap-4 ${stickyHeading ? "sticky top-16 z-20 bg-background pb-4" : ""}`}>
 							<div className='flex min-w-0 flex-col gap-1'>
 								<h1 className='text-xl font-bold text-foreground lg:text-3xl'>{title}</h1>
 								<p className='text-sm text-muted lg:text-base'>{tagline}</p>

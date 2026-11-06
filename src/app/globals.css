@@ -142,3 +142,7 @@ html {
 		left: calc(3rem + 0.75rem);
 	}
 }
+
+[data-sticky-heading] .clipify-editor-workspace > .card > .card__header {
+	position: static;
+}

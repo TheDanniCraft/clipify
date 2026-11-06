@@ -23,13 +23,13 @@ export type CreatorBrand = z.infer<typeof creatorBrandSchema>;
 export type OverlayText = { line: string; x: number; y: number; size: number; bold: boolean; opacity: number; width: number };
 export type WidgetTheme = z.infer<typeof widgetThemeSchema>;
 export type MetadataContent = { title: string; broadcasterName?: string | null; clipCreatorName?: string | null; categoryName?: string | null; broadcasterLogin?: string | null };
-export function overlayMetadataContent(kind: "channel" | "title" | "clipper", clip: MetadataContent) {
+export function overlayMetadataContent(kind: "channel" | "title" | "clipper", clip: MetadataContent, channelLink = false) {
 	const clean = (text: string | undefined | null) =>
 		text
 			?.replace(/[\u0000-\u001f]/g, " ")
 			.trim()
 			.slice(0, 200) ?? "";
-	if (kind === "channel") return { primary: clean(clip.broadcasterName) || "Channel", secondary: clean(clip.broadcasterLogin) ? `twitch.tv/${clean(clip.broadcasterLogin)}` : clean(clip.broadcasterName) && /^[a-zA-Z0-9_]+$/.test(clean(clip.broadcasterName)) ? `twitch.tv/${clean(clip.broadcasterName).toLowerCase()}` : "" };
+	if (kind === "channel") return { primary: clean(clip.broadcasterName) || "Channel", secondary: !channelLink ? (clip.categoryName ? `Playing ${clean(clip.categoryName)}` : "Twitch channel") : clean(clip.broadcasterLogin) ? `twitch.tv/${clean(clip.broadcasterLogin)}` : clean(clip.broadcasterName) && /^[a-zA-Z0-9_]+$/.test(clean(clip.broadcasterName)) ? `twitch.tv/${clean(clip.broadcasterName).toLowerCase()}` : "" };
 	const credit = clip.clipCreatorName ? `clipped by ${clean(clip.clipCreatorName)}` : "Twitch clip";
 	return kind === "title" ? { primary: clean(clip.title) || "Untitled clip", secondary: credit } : { primary: credit, secondary: "" };
 }
@@ -65,12 +65,19 @@ export function wrapOverlayText(text: string, width: number, size: number, maxLi
 	return result;
 }
 export function overlayMetadataHeight(kind: "channel" | "title" | "clipper", clip: MetadataContent, width: number, fontSize: number) {
-	const content = overlayMetadataContent(kind, clip);
+	const content = overlayMetadataContent(kind, clip, true);
 	const lines = kind === "channel" ? 1 : Math.max(1, wrapOverlayText(content.primary, Math.max(1, width - 40), fontSize, 3).length);
 	return Math.ceil((40 + lines * fontSize * 1.2 + (content.secondary ? fontSize * 0.72 * 1.4 : 0)) / 2) * 2;
 }
+export function overlayMetadataSize(kind: "channel" | "title" | "clipper", clip: MetadataContent, fontSize: number, maxWidth: number) {
+	const content = overlayMetadataContent(kind, clip, true);
+	const height = overlayMetadataHeight(kind, clip, maxWidth, fontSize);
+	const avatar = kind === "channel" ? height - 40 + 20 : 0;
+	const width = Math.min(maxWidth, Math.ceil(Math.max(textWidth(content.primary, fontSize), textWidth(content.secondary, fontSize * 0.72)) * 1.12 + 40 + avatar));
+	return { width: Math.max(40, width), height: overlayMetadataHeight(kind, clip, width, fontSize) };
+}
 export function overlayMetadataSvg(kind: "channel" | "title" | "clipper", clip: MetadataContent, width: number, height: number, fontSize: number, theme: WidgetTheme = DEFAULT_WIDGET_THEME, avatar?: string, renderText?: (text: OverlayText) => string, fontFamily = "DejaVu Sans") {
-	const content = overlayMetadataContent(kind, clip),
+	const content = overlayMetadataContent(kind, clip, true),
 		padding = Math.min(20, height * 0.12),
 		avatarSize = kind === "channel" ? Math.max(2, Math.min(height - padding * 2, width * 0.22)) : 0;
 	const left = padding + (avatarSize ? avatarSize + padding : 0),
@@ -85,8 +92,7 @@ export function overlayMetadataSvg(kind: "channel" | "title" | "clipper", clip: 
 	const secondarySize = Math.max(1, Math.min(size * 0.72, available / Math.max(1, textWidth(content.secondary, 1))));
 	const totalHeight = lines.length * size * 1.2 + (content.secondary ? secondarySize * 1.4 : 0),
 		top = Math.max(padding, (height - totalHeight) / 2);
-	const text = (line: string, x: number, y: number, font: number, bold: boolean, opacity = 1) =>
-		renderText ? renderText({ line, x, y, size: font, bold, opacity, width: Math.max(0.1, Math.min(available, textWidth(line, font))) }) : `<text x="${x}" y="${y}" dominant-baseline="hanging" font-family="${escape(fontFamily)},sans-serif" font-size="${font}" font-weight="${bold ? 700 : 400}" fill="${escape(theme.themeTextColor)}" opacity="${opacity}" textLength="${Math.max(0.1, Math.min(available, textWidth(line, font)))}" lengthAdjust="spacingAndGlyphs">${escape(line)}</text>`;
+	const text = (line: string, x: number, y: number, font: number, bold: boolean, opacity = 1) => (renderText ? renderText({ line, x, y, size: font, bold, opacity, width: available }) : `<text x="${x}" y="${y}" dominant-baseline="hanging" font-family="${escape(fontFamily)},sans-serif" font-size="${font}" font-weight="${bold ? 700 : 400}" fill="${escape(theme.themeTextColor)}" opacity="${opacity}">${escape(line)}</text>`);
 	const radius = Math.min(theme.borderRadius, width / 2, height / 2),
 		border = Math.min(theme.borderSize, width / 2, height / 2);
 	const background = `<rect x="${border / 2}" y="${border / 2}" width="${Math.max(1, width - border)}" height="${Math.max(1, height - border)}" rx="${radius}" fill="${escape(theme.themeBackgroundColor)}" stroke="${escape(theme.themeAccentColor)}" stroke-width="${border}"/>`;
@@ -97,23 +103,27 @@ export function overlayMetadataSvg(kind: "channel" | "title" | "clipper", clip: 
 	return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${background}${portrait}${lines.map((line, index) => text(line, left, top + index * size * 1.2, size, true)).join("")}${content.secondary ? text(content.secondary, left, top + lines.length * size * 1.2, secondarySize, false, 0.8) : ""}</svg>`;
 }
 
-// Share the corner sequence between the live preview and encoded video.
+// Keep preview and encoded watermark timing and positions identical.
+export const CLIPIFY_WATERMARK = { width: 148, height: 40, inset: 16, interval: 3 } as const;
 export const CLIPIFY_WATERMARK_CORNERS = [
 	[1, 1],
-	[0, 0],
+	[0, 0.25],
+	[1, 0.6],
 	[0, 1],
 	[1, 0],
+	[0, 0.65],
 ] as const;
 export function clipifyWatermarkPosition(seconds: number, width: number, height: number) {
-	const corner = CLIPIFY_WATERMARK_CORNERS[Math.floor(Math.max(0, seconds) / 5) % CLIPIFY_WATERMARK_CORNERS.length];
-	return { x: 16 + corner[0] * Math.max(0, width - 232), y: 16 + corner[1] * Math.max(0, height - 76) };
+	const point = CLIPIFY_WATERMARK_CORNERS[Math.floor(Math.max(0, seconds) / CLIPIFY_WATERMARK.interval) % CLIPIFY_WATERMARK_CORNERS.length];
+	return { x: 16 + point[0] * Math.max(0, width - CLIPIFY_WATERMARK.width - 32), y: 16 + point[1] * Math.max(0, height - CLIPIFY_WATERMARK.height - 32) };
 }
 export function clipifyWatermarkExpression(axis: 0 | 1) {
 	const far = axis === 0 ? "W-w-16" : "H-h-16";
-	return CLIPIFY_WATERMARK_CORNERS.slice(0, -1).reduceRight((next, corner, index) => `if(lt(mod(t,20),${(index + 1) * 5}),${corner[axis] ? far : "16"},${next})`, CLIPIFY_WATERMARK_CORNERS.at(-1)![axis] ? far : "16");
+	const period = CLIPIFY_WATERMARK.interval * CLIPIFY_WATERMARK_CORNERS.length;
+	return CLIPIFY_WATERMARK_CORNERS.slice(0, -1).reduceRight((next, point, index) => `if(lt(mod(t,${period}),${(index + 1) * CLIPIFY_WATERMARK.interval}),16+(${far}-16)*${point[axis]},${next})`, `16+(${far}-16)*${CLIPIFY_WATERMARK_CORNERS.at(-1)![axis]}`);
 }
 export function clipifyWatermarkSvg() {
-	return '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="44" viewBox="0 0 200 44"><rect width="200" height="44" rx="12" fill="#0a0a0a" fill-opacity="0.65"/><g transform="translate(10 6) scale(0.2)"><path d="M28.1,30.8l100.3,57.7c3.1,1.8,3.1,6.2,0,7.9l-100,57.7c-3.1,1.8-6.9-.4-6.9-4l-.3-115.4c0-3.5,3.8-5.8,6.9-4Z" fill="#2a2a65"/><path d="M11.5,4.8l106.3,61.2c3.2,1.9,3.2,6.6,0,8.4L11.9,135.5c-3.2,1.9-7.3-.5-7.3-4.2l-.4-122.3c0-3.7,4-6.1,7.3-4.2Z" fill="#6355a0"/><path d="M33.6,48.2l35.6,20.5c1.2.7,1.2,2.4,0,3.1l-35.5,20.5c-1.2.7-2.7-.2-2.7-1.5v-41c-.1-1.4,1.3-2.2,2.5-1.5Z" fill="white"/></g><text x="44" y="28" font-family="DejaVu Sans,sans-serif" font-size="17" fill="white">Made with Clipify</text></svg>';
+	return '<svg xmlns="http://www.w3.org/2000/svg" width="148" height="40" viewBox="0 0 148 40"><rect width="148" height="40" rx="12" fill="#0a0a0a" fill-opacity="0.65"/><g transform="translate(8 4) scale(0.2)"><path d="M28.1,30.8l100.3,57.7c3.1,1.8,3.1,6.2,0,7.9l-100,57.7c-3.1,1.8-6.9-.4-6.9-4l-.3-115.4c0-3.5,3.8-5.8,6.9-4Z" fill="#2a2a65"/><path d="M11.5,4.8l106.3,61.2c3.2,1.9,3.2,6.6,0,8.4L11.9,135.5c-3.2,1.9-7.3-.5-7.3-4.2l-.4-122.3c0-3.7,4-6.1,7.3-4.2Z" fill="#6355a0"/><path d="M33.6,48.2l35.6,20.5c1.2.7,1.2,2.4,0,3.1l-35.5,20.5c-1.2.7-2.7-.2-2.7-1.5v-41c-.1-1.4,1.3-2.2,2.5-1.5Z" fill="white"/></g><text x="42" y="26" font-family="DejaVu Sans,sans-serif" font-size="17" fill="white">clipify.us</text></svg>';
 }
 
 export function brandOverlayFields(brand: CreatorBrand) {

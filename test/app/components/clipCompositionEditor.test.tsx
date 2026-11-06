@@ -20,7 +20,15 @@ const saveTemplate = jest.fn(),
 	searchClips = jest.fn();
 jest.mock("@actions/clipLayoutLibrary", () => ({ saveClipLayoutTemplate: (...args: unknown[]) => saveTemplate(...args), saveClipLayoutOverride: (...args: unknown[]) => saveOverride(...args), resetClipLayoutOverride: (...args: unknown[]) => reset(...args) }));
 jest.mock("@actions/creatorLibrary", () => ({ getCreatorClipInventory: (...a: unknown[]) => inventory(...a), getCreatorClipDetail: (...a: unknown[]) => detail(...a), searchCreatorLibrary: (...a: unknown[]) => searchClips(...a) }));
-jest.mock("@components/creator/clipCompositionCanvas", () => ({ __esModule: true, default: () => null }));
+jest.mock("@components/creator/clipCompositionCanvas", () => ({
+	__esModule: true,
+	default: ({ onSelect, selected }: any) => (
+		<div>
+			<button onClick={() => onSelect(selected, "source")}>Select source crop</button>
+			<button onClick={() => onSelect(selected, "output")}>Select output layer</button>
+		</div>
+	),
+}));
 const navigationGuard = { active: false, accept: jest.fn(), reject: jest.fn() };
 jest.mock("nextjs-nav-guard", () => ({ useNavigationGuard: ({ enabled }: any) => ({ ...navigationGuard, active: enabled && navigationGuard.active }) }));
 jest.mock("@components/controlledModal", () => ({
@@ -50,7 +58,7 @@ beforeEach(() => {
 });
 it("saves clip adjustments through the override action without touching the reusable template", async () => {
 	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} clipId='ClipA' onBack={() => {}} onSaved={() => {}} />);
-	fireEvent.click(screen.getByRole("button", { name: "Bring forward" }));
+	fireEvent.click(screen.getByRole("button", { name: "Bring Camera forward" }));
 	fireEvent.click(screen.getByRole("button", { name: "Save clip adjustments" }));
 	await waitFor(() => expect(saveOverride).toHaveBeenCalledWith("owner", "template", "ClipA", expect.any(Object)));
 	expect(saveTemplate).not.toHaveBeenCalled();
@@ -59,7 +67,7 @@ it("saves clip adjustments through the override action without touching the reus
 it("retains a global layout draft after save failure and allows a successful retry", async () => {
 	saveTemplate.mockResolvedValueOnce({ ok: false, code: "SERVICE_UNAVAILABLE" });
 	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} onBack={() => {}} onSaved={() => {}} />);
-	fireEvent.click(screen.getByRole("button", { name: "Bring forward" }));
+	fireEvent.click(screen.getByRole("button", { name: "Bring Camera forward" }));
 	const button = screen.getByRole("button", { name: "Save layout" });
 	fireEvent.click(button);
 	await waitFor(() => expect(saveTemplate).toHaveBeenCalledTimes(1));
@@ -71,14 +79,15 @@ it("retains a global layout draft after save failure and allows a successful ret
 	expect(saveOverride).not.toHaveBeenCalled();
 });
 it("adds arbitrary crops and widgets, edits source bounds and retains widget ordering in a named template", async () => {
-	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} onBack={() => {}} onSaved={() => {}} />);
+	detail.mockResolvedValue({ ok: true, clip: { id: "Ref", title: "Reference" } });
+	render(<ClipCompositionEditor referenceId='Ref' creatorId='owner' entry={entry} initial={composition} onBack={() => {}} onSaved={() => {}} />);
 	fireEvent.change(screen.getByRole("textbox", { name: "Layout name" }), { target: { value: "My mobile" } });
 	fireEvent.change(screen.getByRole("combobox", { name: "Add layer" }), { target: { value: "video" } });
 	fireEvent.change(screen.getByRole("textbox", { name: "Layer name" }), { target: { value: "Killfeed" } });
-	fireEvent.change(screen.getByRole("combobox", { name: "Edit box" }), { target: { value: "source" } });
+	fireEvent.click(await screen.findByRole("button", { name: "Select source crop" }));
 	fireEvent.change(screen.getByRole("spinbutton", { name: "Height (%)" }), { target: { value: "2" } });
 	for (const kind of ["title", "channel"]) fireEvent.change(screen.getByRole("combobox", { name: "Add layer" }), { target: { value: kind } });
-	fireEvent.click(screen.getByRole("button", { name: "Send backward" }));
+	fireEvent.click(screen.getAllByRole("button", { name: /^Send .* backward$/ })[0]);
 	fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
 	await waitFor(() => expect(saveTemplate).toHaveBeenCalled());
 	const saved = saveTemplate.mock.calls[0][1];
@@ -100,22 +109,23 @@ it("resets only a clip override and preserves the draft if reset fails", async (
 });
 it("edits source and output geometry, presets, widgets and stacking without changing the saved template", async () => {
 	const saved = jest.fn();
-	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} onBack={() => {}} onSaved={saved} />);
+	detail.mockResolvedValue({ ok: true, clip: { id: "Ref", title: "Reference" } });
+	render(<ClipCompositionEditor referenceId='Ref' creatorId='owner' entry={entry} initial={composition} onBack={() => {}} onSaved={saved} />);
 	for (const shape of ["portrait", "landscape", "square"]) fireEvent.change(screen.getByRole("combobox", { name: "Output shape" }), { target: { value: shape } });
 	for (const label of ["Left (%)", "Top (%)", "Width (%)", "Height (%)"]) fireEvent.change(screen.getByRole("spinbutton", { name: label }), { target: { value: "20" } });
-	fireEvent.change(screen.getByRole("combobox", { name: "Edit box" }), { target: { value: "source" } });
+	fireEvent.click(await screen.findByRole("button", { name: "Select source crop" }));
 	for (const label of ["Left (%)", "Top (%)", "Width (%)", "Height (%)"]) fireEvent.change(screen.getByRole("spinbutton", { name: label }), { target: { value: "10" } });
 	fireEvent.change(screen.getByRole("combobox", { name: "Add layer" }), { target: { value: "title" } });
 	fireEvent.change(screen.getByRole("spinbutton", { name: "Text size" }), { target: { value: "48" } });
 	fireEvent.change(screen.getByRole("spinbutton", { name: "Height (%)" }), { target: { value: "8" } });
-	fireEvent.click(screen.getByRole("button", { name: "Send backward" }));
+	fireEvent.click(screen.getAllByRole("button", { name: /^Send .* backward$/ })[0]);
 
 	fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
 	await waitFor(() => expect(saved).toHaveBeenCalled());
 	const layers = saveTemplate.mock.calls[0][1].composition.layers;
 	expect(layers.find((l: any) => l.kind === "title")).toMatchObject({ fontSize: 48, frame: { h: 0.08 } });
 	expect(composition.layers).toHaveLength(2);
-	fireEvent.click(screen.getByRole("button", { name: "Remove layer" }));
+	fireEvent.click(screen.getByRole("button", { name: "Remove Clip info" }));
 	expect(screen.queryByRole("button", { name: "Clip info" })).not.toBeInTheDocument();
 });
 it("recovers reference lookup/search failures without discarding an edited name", async () => {
@@ -235,7 +245,8 @@ it.each(["title", "channel", "clipper"] as const)("fits a saved %s widget withou
 	fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
 	await waitFor(() => expect(saveTemplate).toHaveBeenCalled());
 	const saved = saveTemplate.mock.calls[0][1].composition.layers[0];
-	expect(saved).toMatchObject({ id: "saved", kind, frame: { x: 0, w: 1 } });
+	expect(saved).toMatchObject({ id: "saved", kind, frame: { x: 0 } });
+	expect(saved.frame.w).toBeLessThan(1);
 	expect(saved.frame.h).toBeLessThan(0.2);
 });
 it("keeps a saved standalone logo editable without treating it as text", async () => {
@@ -311,4 +322,35 @@ it("reorders layers by dragging and lets the selected row dismiss the inspector"
 	fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
 	await waitFor(() => expect(saveTemplate).toHaveBeenCalled());
 	expect(saveTemplate.mock.calls[0][1].composition.layers.map((layer: any) => layer.id)).toEqual(["gameplay", "camera"]);
+});
+
+it("targets numeric controls from the clicked canvas and deselects with Escape or an outside click", async () => {
+	detail.mockResolvedValue({ ok: true, clip: { id: "Ref", title: "Reference" } });
+	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} referenceId='Ref' onBack={() => {}} onSaved={() => {}} />);
+	fireEvent.click(await screen.findByRole("button", { name: "Select source crop" }));
+	expect(screen.getByRole("heading", { name: "Source crop" })).toBeVisible();
+	expect(screen.queryByRole("combobox", { name: "Edit box" })).not.toBeInTheDocument();
+	fireEvent.click(screen.getByRole("button", { name: "Select output layer" }));
+	expect(screen.getByRole("heading", { name: "Output layer" })).toBeVisible();
+	fireEvent.keyDown(window, { key: "Escape" });
+	expect(screen.queryByRole("textbox", { name: "Layer name" })).not.toBeInTheDocument();
+	fireEvent.click(screen.getByRole("button", { name: "Camera" }));
+	fireEvent.pointerDown(document.body);
+	expect(screen.queryByRole("textbox", { name: "Layer name" })).not.toBeInTheDocument();
+});
+
+it("keeps the inspector stable when choosing a portaled menu option", () => {
+	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} onBack={() => {}} onSaved={() => {}} />);
+	const menu = document.createElement("div");
+	menu.setAttribute("role", "listbox");
+	const option = document.createElement("div");
+	option.setAttribute("role", "option");
+	menu.append(option);
+	document.body.append(menu);
+	try {
+		fireEvent.pointerDown(option);
+		expect(screen.getByRole("textbox", { name: "Layer name" })).toBeVisible();
+	} finally {
+		menu.remove();
+	}
 });

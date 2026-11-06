@@ -5,7 +5,7 @@ import { IconPlayerPlay, IconPlayerPause, IconRefresh } from "@tabler/icons-reac
 import { getCreatorClipPreview } from "@actions/creatorLibrary";
 import { compositionWidgetTheme, compositionDimensions, updateCompositionFrame, updateCompositionSource, type ClipComposition } from "@lib/clipComposition";
 import { notify } from "@lib/toast";
-import { clipifyWatermarkSvg, clipifyWatermarkPosition, type CreatorBrand, overlayMetadataSvg } from "@lib/overlayMetadata";
+import { CLIPIFY_WATERMARK, clipifyWatermarkSvg, clipifyWatermarkPosition, type CreatorBrand, overlayMetadataSvg } from "@lib/overlayMetadata";
 import { isTrustedClipMediaUrl } from "@lib/clipExport";
 import { compositionLayerColor } from "@lib/clipLayoutTemplate";
 import CompositionBox from "./clipCompositionBox";
@@ -26,7 +26,7 @@ export default function ClipCompositionCanvas({
 	clip: { id: string; title: string; broadcasterName?: string | null; clipCreatorName?: string | null };
 	layout: ClipComposition;
 	selected: string;
-	onSelect: (id: string) => void;
+	onSelect: (id: string, mode?: "source" | "output") => void;
 	onChange: (layout: ClipComposition) => void;
 	onDimensions: (value: { width: number; height: number }) => void;
 }) {
@@ -263,7 +263,7 @@ export default function ClipCompositionCanvas({
 					}
 					if (watermark && watermarkImage.current) {
 						const position = clipifyWatermarkPosition(v.currentTime, c.width, c.height);
-						ctx.drawImage(watermarkImage.current, position.x, position.y, 200, 44);
+						ctx.drawImage(watermarkImage.current, position.x, position.y, CLIPIFY_WATERMARK.width, CLIPIFY_WATERMARK.height);
 					}
 				} catch {
 					setFailed(true);
@@ -292,7 +292,7 @@ export default function ClipCompositionCanvas({
 				<div className='grid items-start gap-4 lg:grid-cols-[var(--source-column)_var(--output-column)]' style={{ "--source-column": `${dimensions.width / dimensions.height}fr`, "--output-column": `${output.width / output.height}fr` } as CSSProperties}>
 					<section className='min-w-0 space-y-2'>
 						<h3 className='text-sm font-medium'>Source crops</h3>
-						<div ref={sourceStage} className='relative overflow-hidden rounded-lg bg-black' style={{ aspectRatio: dimensions.width / dimensions.height }}>
+						<div data-clip-stage ref={sourceStage} className='relative overflow-hidden rounded-lg bg-black' style={{ aspectRatio: dimensions.width / dimensions.height }}>
 							<video
 								ref={video}
 								crossOrigin='anonymous'
@@ -324,10 +324,11 @@ export default function ClipCompositionCanvas({
 												color={compositionLayerColor(layer.id)}
 												rect={layer.source}
 												label={`${layer.label} crop`}
+												showOutline
 												selected={selected === layer.id}
 												stage={sourceStage}
 												dimensions={dimensions}
-												onSelect={() => onSelect(layer.id)}
+												onSelect={() => onSelect(layer.id, "source")}
 												snap={snapping}
 												onGuides={setSourceGuides}
 												targets={layout.layers.filter((item) => item.id !== layer.id && item.kind === "video").map((item) => (item.kind === "video" ? item.source : item.frame))}
@@ -346,6 +347,7 @@ export default function ClipCompositionCanvas({
 							onPointerDown={(event) => {
 								if (event.target === event.currentTarget || event.target === canvas.current) onSelect("");
 							}}
+							data-clip-stage
 							ref={outputStage}
 							className={`relative mx-auto w-full overflow-hidden rounded-lg bg-black ${layout.format === "mobile" ? "max-w-72 lg:max-w-none" : ""}`}
 							style={{ aspectRatio: output.width / output.height }}
@@ -358,14 +360,14 @@ export default function ClipCompositionCanvas({
 											color={compositionLayerColor(layer.id)}
 											rect={layer.frame}
 											label={`${layer.label} output`}
-											showLabel={layer.kind === "video"}
+											showLabel={false}
 											selected={selected === layer.id}
 											stage={outputStage}
 											dimensions={output}
 											snap={snapping}
 											targets={layout.layers.filter((item) => item.id !== layer.id).map((item) => item.frame)}
 											onGuides={setGuides}
-											onSelect={() => onSelect(layer.id)}
+											onSelect={() => onSelect(layer.id, "output")}
 											onChange={(frame) => onChange(updateCompositionFrame(layout, layer.id, frame, dimensions))}
 											ratio={layer.kind === "logo" ? (_e, start) => start.w / start.h : (e, start) => (e.shiftKey ? start.w / start.h : undefined)}
 										/>

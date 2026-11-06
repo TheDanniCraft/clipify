@@ -110,7 +110,7 @@ export async function renderBrandWidget(kind: "channel" | "title" | "clipper", c
 							.toBuffer();
 						return {
 							input: await sharp(png)
-								.resize({ width: Math.max(1, Math.min(width - left, Math.round(text.width))), height: Math.max(1, Math.min(height - top, Math.ceil(text.size * 1.2))), fit: "inside" })
+								.resize({ width: Math.max(1, Math.min(width - left, Math.round(text.width))), height: Math.max(1, Math.min(height - top, Math.ceil(text.size * 1.2))), fit: "inside", withoutEnlargement: true })
 								.png()
 								.toBuffer(),
 							left,

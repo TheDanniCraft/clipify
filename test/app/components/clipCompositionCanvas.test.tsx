@@ -73,7 +73,7 @@ it("draws actual crops and widgets and keeps media loaded when layout changes", 
 	expect(dimensions).toHaveBeenCalledWith({ width: 1920, height: 1080 });
 	fireEvent.click(screen.getByRole("button", { name: "Camera crop" }));
 	expect(change).toHaveBeenCalled();
-	expect(select).toHaveBeenCalledWith("camera");
+	expect(select).toHaveBeenCalledWith("camera", "source");
 	view.rerender(<Canvas creatorId='owner' clip={clip} layout={{ ...layout, layers: layout.layers.slice(0, 2) }} selected='camera' onSelect={select} onChange={change} onDimensions={dimensions} />);
 	expect(preview).toHaveBeenCalledTimes(1);
 });

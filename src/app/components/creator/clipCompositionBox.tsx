@@ -20,6 +20,7 @@ export default function CompositionBox({
 	onRemove,
 	color = "var(--accent)",
 	showLabel = true,
+	showOutline = false,
 }: {
 	rect: CompositionRect;
 	label: string;
@@ -35,6 +36,7 @@ export default function CompositionBox({
 	onRemove?: () => void;
 	color?: string;
 	showLabel?: boolean;
+	showOutline?: boolean;
 }) {
 	const drag = useRef<{ pointerId: number; x: number; y: number; rect: CompositionRect; corner?: Corner } | null>(null);
 	const begin = (event: PointerEvent<HTMLElement>, corner?: Corner) => {
@@ -111,7 +113,7 @@ export default function CompositionBox({
 	}, []);
 	const pointer = { onLostPointerCapture: end };
 	return (
-		<div className={`absolute border-2 ${selected ? "opacity-100" : "border-transparent"}`} style={{ "--layer-color": color, borderColor: selected ? color : "transparent", left: `${rect.x * 100}%`, top: `${rect.y * 100}%`, width: `${rect.w * 100}%`, height: `${rect.h * 100}%` } as CSSProperties}>
+		<div className={`absolute isolate border-2 ${selected || showOutline ? "opacity-100" : "border-transparent"}`} style={{ "--layer-color": color, borderColor: selected || showOutline ? color : "transparent", left: `${rect.x * 100}%`, top: `${rect.y * 100}%`, width: `${rect.w * 100}%`, height: `${rect.h * 100}%` } as CSSProperties}>
 			<Button
 				{...pointer}
 				aria-label={label}
