@@ -163,3 +163,21 @@ it("leaves Desktop unchanged when only a historical Mobile override exists", asy
 	read.mockResolvedValueOnce([{ contentKey: "clip-layout-template:v2:pair", state: JSON.stringify({ name: "Pair", composition: desktop }) }]).mockResolvedValueOnce([{ contentKey: "clip-layout-override:v2:pair:clip", state: JSON.stringify({ composition: mobile }) }]);
 	expect(await loadClipLayoutOverride("owner", "pair", "clip", "desktop")).toMatchObject({ ok: true, composition: null });
 });
+
+it("stores a template reference, restores it on reads and retains it on composition-only saves", async () => {
+	const composition = createClipComposition("mobile");
+	await saveClipLayoutTemplate("owner", { name: "CS layout", composition, referenceClipId: "CS-Clip_1" });
+	const stored = JSON.parse(write.mock.calls[0][0].state);
+	expect(stored.referenceClipId).toBe("CS-Clip_1");
+	read.mockResolvedValue([{ contentKey: "clip-layout-template:v2:cs", state: JSON.stringify(stored), updatedAt: new Date() }]);
+	expect(await listClipLayouts("owner")).toMatchObject({ ok: true, templates: [{ referenceClipId: "CS-Clip_1" }] });
+	await saveClipLayoutTemplate("owner", { id: "cs", name: "CS layout", composition: createClipComposition("desktop") });
+	expect(JSON.parse(write.mock.calls.at(-1)![0].state).referenceClipId).toBe("CS-Clip_1");
+	await saveClipLayoutTemplate("owner", { id: "cs", name: "CS layout", composition, referenceClipId: null });
+	expect(JSON.parse(write.mock.calls.at(-1)![0].state).referenceClipId).toBeNull();
+});
+
+it.each(["bad/id", "", 123])("rejects malformed saved reference %s", async (referenceClipId) => {
+	expect(await saveClipLayoutTemplate("owner", { name: "CS layout", composition: createClipComposition("mobile"), referenceClipId })).toMatchObject({ ok: false, code: "INVALID_INPUT" });
+	expect(write).not.toHaveBeenCalled();
+});

@@ -476,3 +476,20 @@ it("keeps edits made while saving protected instead of marking them saved", asyn
 	window.dispatchEvent(event);
 	expect(event.defaultPrevented).toBe(true);
 });
+
+it("preselects the saved template reference when no explicit clip is supplied", async () => {
+	detail.mockResolvedValue({ ok: true, clip: { id: "Saved-CS", title: "CS reference" } });
+	render(<ClipCompositionEditor creatorId='owner' entry={{ ...entry, referenceClipId: "Saved-CS" }} initial={composition} onBack={() => {}} onSaved={() => {}} />);
+	await screen.findByRole("button", { name: "Select source crop" });
+	expect(detail).toHaveBeenCalledWith({ creatorId: "owner", clipId: "Saved-CS" });
+});
+
+it("makes reference-only changes saveable and includes the chosen clip in the template", async () => {
+	inventory.mockResolvedValue({ ok: true, items: [{ id: "CS-Clip", title: "CS clutch" }] });
+	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} onBack={() => {}} onSaved={() => {}} />);
+	await screen.findByRole("option", { name: "CS clutch" });
+	fireEvent.change(screen.getByRole("combobox", { name: "Reference clip" }), { target: { value: "CS-Clip" } });
+	expect(screen.getByRole("button", { name: "Save layout" })).toBeEnabled();
+	fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
+	await waitFor(() => expect(saveTemplate).toHaveBeenCalledWith("owner", expect.objectContaining({ referenceClipId: "CS-Clip" })));
+});

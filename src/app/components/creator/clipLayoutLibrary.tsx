@@ -15,7 +15,6 @@ import ClipCompositionEditor from "./clipCompositionEditor";
 export default function ClipLayoutLibrary({ user, creatorId, layoutId, clipId, referenceId, newFormat, outputFormat, brand, canRemoveWatermark }: { user?: AuthenticatedUser; brand?: CreatorBrand | null; canRemoveWatermark?: boolean; creatorId: string; layoutId?: string; clipId?: string; referenceId?: string; newFormat?: string; outputFormat?: string }) {
 	const router = useRouter();
 	const [library, setLibrary] = useState<Awaited<ReturnType<typeof listClipLayouts>>>(),
-		[sharedReference, setSharedReference] = useState(referenceId ?? ""),
 		[attempt, setAttempt] = useState(0),
 		[create, setCreate] = useState(newFormat === "desktop" || newFormat === "mobile"),
 		[name, setName] = useState(""),
@@ -57,9 +56,9 @@ export default function ClipLayoutLibrary({ user, creatorId, layoutId, clipId, r
 			active = false;
 		};
 	}, [creatorId, entry, clipId, scope, selectedFormat]);
-	const path = (id: string) => `/dashboard/clip-layouts?layout=${encodeURIComponent(id)}${clipId ? `&clip=${encodeURIComponent(clipId)}` : sharedReference ? `&reference=${encodeURIComponent(sharedReference)}` : ""}`;
+	const path = (id: string) => `/dashboard/clip-layouts?layout=${encodeURIComponent(id)}${clipId ? `&clip=${encodeURIComponent(clipId)}` : referenceId && (!layoutId || id === layoutId) ? `&reference=${encodeURIComponent(referenceId)}` : ""}`;
 	const error = () => notify({ title: "Layout could not be updated", description: "Your changes are preserved. Try again.", color: "danger" });
-	if (activeEntry && initial) return <ClipCompositionEditor user={user} brand={brand} canRemoveWatermark={canRemoveWatermark} key={`${activeEntry.id}:${clipId ?? ""}:${clipId ? selectedFormat : "template"}`} creatorId={creatorId} entry={activeEntry} initial={initial} clipId={clipId} referenceId={sharedReference} onReferenceChange={setSharedReference} onBack={() => router.push("/dashboard/clip-layouts")} onSaved={() => setAttempt((n) => n + 1)} />;
+	if (activeEntry && initial) return <ClipCompositionEditor user={user} brand={brand} canRemoveWatermark={canRemoveWatermark} key={`${activeEntry.id}:${clipId ?? ""}:${clipId ? selectedFormat : "template"}`} creatorId={creatorId} entry={activeEntry} initial={initial} clipId={clipId} referenceId={referenceId} onBack={() => router.push("/dashboard/clip-layouts")} onSaved={() => setAttempt((n) => n + 1)} />;
 	return (
 		<DashboardEditorLayout>
 			<Card>

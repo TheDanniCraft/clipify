@@ -105,6 +105,8 @@ it("keeps logo and text transparent outside their shapes", async () => {
 	expect(info.channels).toBe(4);
 	expect(data[(20 * info.width + info.width - 1) * 4 + 3]).toBe(0);
 	expect(clipifyWatermarkSvg()).not.toContain("<rect");
+	expect(clipifyWatermarkSvg()).not.toMatch(/stroke=|filter=|text-shadow/);
+	expect(clipifyWatermarkSvg()).toContain('font-weight="700"');
 });
 
 it("keeps branding bounded when widgets occupy the entire canvas", async () => {

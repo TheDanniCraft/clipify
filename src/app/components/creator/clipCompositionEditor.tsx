@@ -50,7 +50,7 @@ export default function ClipCompositionEditor({ user, creatorId, entry, initial,
 		[selected, setSelected] = useState(initial.layers[0].id),
 		[boxMode, setBoxMode] = useState("output"),
 		[clip, setClip] = useState<Clip | null>(null),
-		[reference, setReference] = useState(clipId ?? referenceId ?? ""),
+		[reference, setReference] = useState(clipId ?? referenceId ?? entry.referenceClipId ?? ""),
 		[referenceError, setReferenceError] = useState(false),
 		[clips, setClips] = useState<Clip[]>([]),
 		[search, setSearch] = useState(""),
@@ -178,7 +178,7 @@ export default function ClipCompositionEditor({ user, creatorId, entry, initial,
 			const formats = editedFormats.size ? [...editedFormats] : [layout.format];
 			const pending = clipId ? [layout] : formats.map((format) => drafts[format]);
 			for (const composition of pending) {
-				const result = clipId ? await saveClipLayoutOverride(creatorId, entry.id, clipId, composition) : await saveClipLayoutTemplate(creatorId, { id: entry.id, name, composition });
+				const result = clipId ? await saveClipLayoutOverride(creatorId, entry.id, clipId, composition) : await saveClipLayoutTemplate(creatorId, { id: entry.id, name, composition, referenceClipId: reference || null });
 				if (!result.ok) {
 					notify({ title: "Layout could not be saved", description: result.code === "INVALID_INPUT" ? "Check the layout name and keep every layer inside the canvas." : "Your changes are preserved. Try again.", color: "danger" });
 					return;
@@ -326,6 +326,10 @@ export default function ClipCompositionEditor({ user, creatorId, entry, initial,
 										setClip(clips.find((item) => item.id === String(key)) ?? null);
 										setReferenceError(false);
 										setReference(String(key ?? ""));
+										if (String(key ?? "") !== reference) {
+											revision.current++;
+											setDirty(true);
+										}
 										onReferenceChange?.(String(key ?? ""));
 									}}
 								>

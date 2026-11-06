@@ -14,8 +14,8 @@ const prefix = "clip-layout-template:v2:",
 	defaultPrefix = "clip-layout-default:v2:",
 	legacyKey = "clip-portrait-layout:v1";
 const idSchema = z.string().regex(/^[a-zA-Z0-9_-]{1,200}$/);
-const templateSchema = z.object({ name: z.string().trim().min(1).max(80), composition: compositionSchema, compositions: templateCompositionsSchema.optional() });
-export type ClipLayoutTemplate = { id: string; name: string; composition: ClipComposition; compositions?: z.infer<typeof templateCompositionsSchema>; updatedAt: string };
+const templateSchema = z.object({ name: z.string().trim().min(1).max(80), composition: compositionSchema, compositions: templateCompositionsSchema.optional(), referenceClipId: idSchema.nullable().optional() });
+export type ClipLayoutTemplate = { id: string; name: string; composition: ClipComposition; compositions?: z.infer<typeof templateCompositionsSchema>; referenceClipId?: string | null; updatedAt: string };
 const validCreator = (id: string) => typeof id === "string" && id.length > 0 && id.length <= 200;
 async function store(creatorId: string, contentKey: string, value: unknown, format?: ClipComposition["format"]) {
 	const state = JSON.stringify(value),
@@ -28,7 +28,7 @@ async function store(creatorId: string, contentKey: string, value: unknown, form
 		.onConflictDoUpdate({ target: [userContentStatesTable.userId, userContentStatesTable.contentKey], set: { state: storedState, updatedAt } })
 		.execute();
 }
-async function template(creatorId: string, id: string) {
+async function template(creatorId: string, id: string): Promise<z.infer<typeof templateSchema> | null> {
 	const keys = id === "legacy" ? [prefix + id, legacyKey] : [prefix + id];
 	const rows = await db
 		.select({ contentKey: userContentStatesTable.contentKey, state: userContentStatesTable.state })
@@ -79,7 +79,7 @@ export async function saveClipLayoutTemplate(creatorId: string, input: unknown) 
 		}
 		const id = parsed.data.id ?? randomUUID();
 		const compositions = { ...templateCompositions(previous ?? parsed.data), [parsed.data.composition.format]: parsed.data.composition };
-		await store(creatorId, prefix + id, { name: parsed.data.name, composition: parsed.data.composition, compositions }, parsed.data.composition.format);
+		await store(creatorId, prefix + id, { name: parsed.data.name, composition: parsed.data.composition, compositions, referenceClipId: parsed.data.referenceClipId === undefined ? previous?.referenceClipId : parsed.data.referenceClipId }, parsed.data.composition.format);
 		return { ok: true as const, id };
 	} catch {
 		return { ok: false as const, code: "SERVICE_UNAVAILABLE" };

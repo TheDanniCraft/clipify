@@ -56,6 +56,7 @@ for (const width of [390, 1440])
 			const state = JSON.parse((await tourWorld.fixture.pool.query("SELECT state FROM user_content_states WHERE user_id=$1 AND content_key=$2", [creatorId, "clip-layout-template:v2:paired"])).rows[0].state);
 			expect(state.compositions.mobile.layers[0].label).toBe("Face camera");
 			expect(state.compositions.desktop.layers[0].label).toBe("Full gameplay");
+			expect(state.referenceClipId).toBe(id);
 			await page.getByRole("tab", { name: "Mobile 9:16", exact: true }).click();
 			await expect(page.getByRole("tab", { name: "Mobile 9:16", exact: true })).toHaveAttribute("aria-selected", "true");
 			await page.getByRole("button", { name: "Face camera crop", exact: true }).click();
@@ -78,6 +79,10 @@ for (const width of [390, 1440])
 			await page.getByRole("button", { name: "Back to clip layouts", exact: true }).click();
 			await expect(page.getByRole("button", { name: "Edit layout", exact: true })).toBeVisible();
 			expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+			await page.getByRole("button", { name: "Edit layout", exact: true }).click();
+			await expect(page.getByRole("button", { name: "Play preview", exact: true })).toBeEnabled({ timeout: 20000 });
+			await expect(page.getByRole("region", { name: "Editor workspace" }).locator('[data-slot="autocomplete-value"]')).toHaveText("Last night's clutch");
+			await page.getByRole("button", { name: "Back to clip layouts", exact: true }).click();
 			if (width === 390 && theme === "light") {
 				await page.goto(`${tourWorld.origin}/dashboard/clips`);
 				await page.getByRole("button", { name: "Select page", exact: true }).click();
