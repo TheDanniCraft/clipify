@@ -53,15 +53,23 @@ export async function renderClipLayout(bytes: Uint8Array, layout: ClipLayout | C
 			const path = join(dir, "clipify-watermark.png");
 			await writeFile(path, await sharp(Buffer.from(clipifyWatermarkSvg())).png().toBuffer());
 			const index = 1 + inputs.filter((value) => value === "-i").length;
-			inputs.push("-loop", "1", "-max_pixels", "1000000", "-i", path);
+			inputs.push("-loop", "1", "-max_pixels", "1000000", "-threads", "1", "-i", path);
 			filters.push(`[${previous}][${index}:v]overlay=x='${clipifyWatermarkExpression(0, positions)}':y='${clipifyWatermarkExpression(1, positions)}':shortest=1:eof_action=repeat[branded]`);
 			previous = "branded";
 		}
 		const args = ["-hide_banner", "-loglevel", "error", "-nostdin", "-protocol_whitelist", "file,pipe", "-threads", "2", "-f", "mov", "-i", input, ...inputs, "-filter_complex_threads", "1", "-filter_complex", filters.join(";"), "-map", `[${previous}]`, "-map", "0:a?", "-c:v", "libx264", "-threads", "2", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-fs", String(LIMIT + 1024 * 1024), "-y", output];
 		await new Promise<void>((resolve, reject) => {
-			const child = spawn("ffmpeg", args, { stdio: ["ignore", "ignore", "ignore"], signal, killSignal: "SIGKILL", timeout: 90000 });
+			const child = spawn("ffmpeg", args, { stdio: ["ignore", "ignore", "pipe"], signal, killSignal: "SIGKILL", timeout: 90000 });
+			let stderr = "";
+			child.stderr?.on("data", (chunk: Buffer) => {
+				stderr = (stderr + chunk.toString()).slice(-4096);
+			});
 			child.once("error", () => reject(new Error("render_failed")));
-			child.once("close", (code) => (code === 0 ? resolve() : reject(new Error("render_failed"))));
+			child.once("close", (code, signal) => {
+				if (code === 0) return resolve();
+				console.error("Clip render failed", { code, signal, stderr });
+				reject(new Error("render_failed"));
+			});
 		});
 		signal.throwIfAborted();
 		const size = (await stat(output)).size;

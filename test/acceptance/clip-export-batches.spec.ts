@@ -23,6 +23,10 @@ for (const width of [390, 1440])
 			const button = page.getByRole("button", { name: "Export selected", exact: true }),
 				before = await button.boundingBox();
 			await button.click();
+			const settings = page.getByRole("dialog", { name: "Export clips", exact: true });
+			await expect(settings.getByRole("link")).toHaveCount(0);
+			await expect(settings.getByRole("button", { name: /layouts/i })).toHaveCount(0);
+			await settings.screenshot({ path: info.outputPath("settings.png") });
 			await page.getByRole("button", { name: "Start export", exact: true }).click();
 			const modal = page.getByRole("dialog", { name: "Clip exports", exact: true });
 			await expect(modal).toBeVisible();

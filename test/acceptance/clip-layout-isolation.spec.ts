@@ -5,6 +5,7 @@ test("Reset and deletion keep other clips, templates and creators intact", async
 	test.setTimeout(90000);
 	const { creatorId, id } = await seedCreatorLibrary({ page, request, tourWorld }),
 		composition = createClipComposition("mobile");
+	await tourWorld.fixture.pool.query("UPDATE playlist_clips SET clip_data=jsonb_set(clip_data::jsonb,'{testPreviewOfficial}','true')::text WHERE clip_id=$1", [id]);
 	const response = await request.post(`${tourWorld.origin}/api/test/auth-fixture`, { headers: { Authorization: "Bearer clipify-playwright-auth-fixture" }, data: { withProviderCredentials: true, billingState: "active" } });
 	expect(response.status()).toBe(200);
 	const foreign = (await response.json()).fixture.creatorId;

@@ -70,7 +70,7 @@ for (const mode of ["deleted", "html", "truncated"])
 	});
 for (const width of [390, 1440])
 	for (const theme of ["light", "dark"] as const)
-		test(`Clip export partial retry at ${width}px in ${theme}`, { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
+		test(`Clip export partial retry at ${width}px in ${theme}`, { tag: "@shard:scenario" }, async ({ page, request, tourWorld }, info) => {
 			await page.setViewportSize({ width, height: 900 });
 			await page.addInitScript((value) => localStorage.setItem("theme", value), theme);
 			const seeded = await setup({ page, request, tourWorld });
@@ -88,6 +88,8 @@ for (const width of [390, 1440])
 			const manifest = JSON.parse(strFromU8(entries["manifest.json"]));
 			expect(manifest.clips.filter((clip: { status: string }) => clip.status === "included").map((clip: { id: string }) => clip.id)).toEqual([seeded.id]);
 			await expect(page.getByRole("dialog", { name: "Clip exports" }).getByText(/1 file skipped/)).toBeVisible();
+			await expect(page.getByRole("button", { name: "Download ZIP", exact: true })).toBeVisible();
+			await page.getByRole("dialog", { name: "Clip exports" }).screenshot({ path: info.outputPath("partial-export.png") });
 			await setMode(tourWorld, seeded.creatorId, second, { ...seeded.value, clip: { ...seeded.value.clip, id: second, title: "Retry this clip" } });
 			const requestPromise = page.waitForRequest((request) => new URL(request.url()).pathname === "/api/clips/export" && request.method() === "POST");
 			const retryDownload = page.waitForEvent("download");

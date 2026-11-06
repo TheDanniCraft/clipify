@@ -11,9 +11,10 @@ for (const theme of ["light", "dark"])
 
 			await page.addInitScript((t) => localStorage.setItem("theme", t), theme);
 			const { creatorId, id } = await seedCreatorLibrary({ page, request, tourWorld });
+			await tourWorld.fixture.pool.query("UPDATE playlist_clips SET clip_data=jsonb_set(clip_data::jsonb,'{testPreviewOfficial}','true')::text WHERE clip_id=$1", [id]);
 			const auditMedia = info.outputPath("framing-source.mp4");
 			execFileSync("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "testsrc2=size=960x540:rate=15", "-vf", "drawbox=x=720:y=0:w=240:h=162:color=0x333333:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text=CAMERA:x=760:y=60:fontcolor=white:fontsize=28", "-t", "12", "-c:v", "libx264", "-preset", "ultrafast", "-threads", "1", "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-y", auditMedia]);
-			await page.route(`**/clip/${id}.mp4*`, (route) => route.fulfill({ path: auditMedia, contentType: "video/mp4", headers: { "Access-Control-Allow-Origin": "*" } }));
+			await page.route(`**/api/clips/preview?creatorId=${creatorId}&clipId=${id}&*`, (route) => route.fulfill({ path: auditMedia, contentType: "video/mp4", headers: { "Access-Control-Allow-Origin": "*" } }));
 			const pool = tourWorld.fixture.pool;
 			await pool.query("UPDATE auth.account SET scope=$1 WHERE provider_id=$2 AND account_id=$3", ["channel:manage:clips", "twitch", creatorId]);
 			await pool.query(`UPDATE user_content_states SET state=jsonb_set(state::jsonb,'{minimized}','true')::text WHERE user_id=$1 AND content_key=$2`, [creatorId, guideContentKey]);
@@ -109,6 +110,7 @@ for (const width of [390, 1440])
 	test(`Clip override and preview recovery at ${width}px`, async ({ page, request, tourWorld }, info) => {
 		await page.setViewportSize({ width, height: 950 });
 		const { creatorId, id } = await seedCreatorLibrary({ page, request, tourWorld });
+		await tourWorld.fixture.pool.query("UPDATE playlist_clips SET clip_data=jsonb_set(clip_data::jsonb,'{testPreviewOfficial}','true')::text WHERE clip_id=$1", [id]);
 		const { createClipComposition } = await import("../../src/app/lib/clipComposition");
 		const composition = createClipComposition("mobile");
 		await tourWorld.fixture.pool.query("INSERT INTO user_content_states(user_id,content_key,state) VALUES($1,$2,$3)", [creatorId, "clip-layout-template:v2:camera", JSON.stringify({ name: "Camera mobile", composition })]);
@@ -160,6 +162,7 @@ for (const width of [390, 1440])
 
 test("Clip preview actions remain grouped and usable in the installed modal", async ({ page, request, tourWorld }, info) => {
 	const { id } = await seedCreatorLibrary({ page, request, tourWorld });
+	await tourWorld.fixture.pool.query("UPDATE playlist_clips SET clip_data=jsonb_set(clip_data::jsonb,'{testPreviewOfficial}','true')::text WHERE clip_id=$1", [id]);
 	await page.goto(`${tourWorld.origin}/dashboard/clips`);
 	await page.getByRole("button", { name: "Reject optional", exact: true }).click();
 	await page.reload();

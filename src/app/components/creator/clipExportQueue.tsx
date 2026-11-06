@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { Button, Disclosure, Link, Modal, Spinner, toast } from "@heroui/react";
-import { IconCheck, IconClock, IconDownload, IconX } from "@tabler/icons-react";
+import { Button, Disclosure, Link, Modal, Spinner, ProgressBar, toast } from "@heroui/react";
+import { IconCheck, IconClock, IconDownload, IconRefresh, IconX } from "@tabler/icons-react";
 import ControlledModal from "@components/controlledModal";
 import LocalizedDate from "@components/localizedDate";
 import { notify } from "@lib/toast";
@@ -32,7 +32,7 @@ const reasons: Record<string, string> = {
 	package_size_limit: "Package exceeds 128 MiB",
 	invalid_media: "Twitch returned an incomplete video",
 	provider_error: "Twitch download failed",
-	render_busy: "Portrait rendering is busy. Retry shortly.",
+	render_busy: "Video rendering is busy. Retry shortly.",
 	render_failed: "Rendering failed. Your layout is kept.",
 	font_unavailable: "Your brand font could not be loaded. Retry or choose another font in Brand styling.",
 	download_timeout: "Download timed out",
@@ -79,7 +79,6 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 		sequence = useRef(0),
 		controller = useRef<AbortController | null>(null),
 		urls = useRef(new Set<string>()),
-		timers = useRef(new Set<ReturnType<typeof setTimeout>>()),
 		budget = useRef({ used: 0, resetAt: 0 });
 	const update = (fn: (jobs: Batch[]) => Batch[]) => {
 		if (!alive.current) return;
@@ -91,13 +90,11 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 	};
 	useEffect(() => {
 		alive.current = true;
-		const activeUrls = urls.current,
-			activeTimers = timers.current;
+		const activeUrls = urls.current;
 		return () => {
 			alive.current = false;
 			controller.current?.abort();
 			activeUrls.forEach((url) => URL.revokeObjectURL(url));
-			activeTimers.forEach(clearTimeout);
 		};
 	}, []);
 	useEffect(() => {
@@ -167,13 +164,6 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 					anchor.remove();
 					const failures = new Map(result.summary.skipped.map((item) => [item.index, item]));
 					patch(batch.id, { status: "completed", downloadUrl: url, summary: result.summary, retryAt: result.summary.retryAt, clips: (jobs.current.find((job) => job.id === batch.id)?.clips ?? batch.clips).map((clip, index) => ({ ...clip, stage: failures.has(index) ? "skipped" : "ready", code: failures.get(index)?.code })) });
-					const timer = setTimeout(() => {
-						URL.revokeObjectURL(url);
-						urls.current.delete(url);
-						timers.current.delete(timer);
-						update((list) => list.map((job) => (job.id === batch.id ? { ...job, downloadUrl: undefined } : job)));
-					}, 60000);
-					timers.current.add(timer);
 					announce({ title: result.summary.skipped.length ? "Download started with skipped clips" : "Download started", color: result.summary.skipped.length ? "warning" : "success" });
 				} catch (error) {
 					if (alive.current) {
@@ -241,14 +231,30 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 		const retry = failures ? failures.filter((item) => item.retryable && ["provider_error", "download_timeout", "rate_limited", "render_busy", "render_failed", "font_unavailable"].includes(item.code)).map((item) => item.index) : ["PROVIDER_UNAVAILABLE", "EXPORT_TIMEOUT", "SERVICE_UNAVAILABLE", "invalid_response"].includes(batch.error ?? "") ? batch.request.clipIds.map((_, index) => index) : [];
 		const reconnectIds = failures ? failures.filter((item) => item.code === "reconnect_required").map((item) => item.index) : batch.error === "RECONNECT_REQUIRED" ? batch.request.clipIds.map((_, index) => index) : [];
 		const reconnect = reconnectIds.length > 0;
+		const processed = batch.clips.filter((clip) => ["ready", "skipped"].includes(clip.stage)).length;
 		return (
 			<div className='space-y-4'>
 				<div className='flex flex-wrap items-center justify-between gap-2'>
 					<h3 className='font-medium'>Batch {batch.id}</h3>
 					<span className='text-sm text-muted'>
-						{batch.request.plan ? "Export package" : batch.request.layout ? "Portrait" : "Original"} {batch.request.format.toUpperCase()} / {batch.request.clipIds.length} {unit(batch, batch.request.clipIds.length)}
+						{batch.request.clipIds.length} {unit(batch, batch.request.clipIds.length)} ({batch.request.format.toUpperCase()})
 					</span>
 				</div>
+				{pending(batch) ? (
+					<div className='space-y-2'>
+						<div className='flex items-center justify-between gap-3 text-sm'>
+							<span>{batch.status === "waiting" ? "Waiting" : "Preparing your files"}</span>
+							<span className='text-muted tabular-nums'>
+								{processed} of {batch.clips.length} prepared
+							</span>
+						</div>
+						<ProgressBar aria-label={`Batch ${batch.id} progress`} value={processed} maxValue={batch.clips.length} size='sm'>
+							<ProgressBar.Track>
+								<ProgressBar.Fill />
+							</ProgressBar.Track>
+						</ProgressBar>
+					</div>
+				) : null}
 				{batch.status === "waiting" ? (
 					<p role='status' className='text-sm text-muted'>
 						Waiting for the download limit. Resumes in {Math.max(0, Math.ceil(((batch.retryAt ? Date.parse(batch.retryAt) : now) - now) / 1000))}s.
@@ -264,7 +270,7 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 						{batch.summary.included.length} {unit(batch, batch.summary.included.length)} ready. Download initiated.{batch.summary.skipped.length ? ` ${batch.summary.skipped.length} ${unit(batch, batch.summary.skipped.length)} skipped.` : ""}
 					</p>
 				) : null}
-				<ul aria-label={`Batch ${batch.id} clips`} className='divide-y divide-separator'>
+				<ul aria-label={`Batch ${batch.id} clips`} className='max-h-72 divide-y divide-separator overflow-y-auto overscroll-contain'>
 					{batch.clips.map((clip, index) => {
 						const failure = failures?.find((item) => item.index === index),
 							finished = batch.status === "completed" && !failure,
@@ -276,50 +282,55 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 									{finished || (pending(batch) && clip.stage === "ready") ? <IconCheck className='size-5 text-success' /> : failure || batch.status === "failed" ? <IconX className='size-5 text-danger' /> : busy ? <Spinner size='sm' /> : <IconClock className='size-5 text-muted' />}
 								</span>
 								<div className='min-w-0 flex-1'>
-									<p className='line-clamp-2 text-sm font-medium'>{failure?.title || clip.title}</p>
-									<p className='text-xs text-muted'>{label}</p>
+									<p className='line-clamp-2 text-sm font-medium'>{batch.request.clipNames?.[batch.request.clipIds[index]] || failure?.title || clip.title}</p>
+									{batch.request.plan ? <p className='text-xs text-muted'>{batch.request.plan.outputs.find((output) => output.key === batch.request.plan!.files[index].outputKey)?.label}</p> : null}
+									<p className={`text-xs ${failure || batch.status === "failed" ? "text-danger" : "text-muted"}`}>{label}</p>
 								</div>
 							</li>
 						);
 					})}
 				</ul>
-				{reconnect ? (
-					<Link href='/dashboard/settings?tab=connections' target='_blank' rel='noopener noreferrer'>
-						Reconnect Twitch (opens in a new tab)
-					</Link>
-				) : null}
-				{!pending(batch) && batch.status !== "cancelled" && (batch.error || failures?.length) && retry.length ? (
-					<Button variant='secondary' isDisabled={Boolean(batch.retryAt && Date.parse(batch.retryAt) > now)} onPress={() => enqueue(subset(batch.request, retry))}>
-						{batch.request.plan ? "Retry failed files" : "Retry failed clips"}
-					</Button>
-				) : null}
-				{reconnect ? (
-					<Button variant='secondary' onPress={() => enqueue(subset(batch.request, reconnectIds))}>
-						Retry after reconnect
-					</Button>
-				) : null}
-				{batch.status === "completed" ? (
-					<Button
-						variant='secondary'
-						onPress={() => {
-							if (batch.downloadUrl) {
-								const link = document.createElement("a");
-								link.href = batch.downloadUrl;
-								link.download = downloadName(batch);
-								document.body.append(link);
-								link.click();
-								link.remove();
-							} else enqueue(batch.request);
-						}}
-					>
-						{batch.downloadUrl ? `Save ${batch.request.format.toUpperCase()}` : "Export batch again"}
-					</Button>
-				) : null}
-				{pending(batch) ? (
-					<Button variant='secondary' onPress={() => cancel(batch)}>
-						Cancel export
-					</Button>
-				) : null}
+				<div className='flex flex-wrap items-center justify-end gap-2 border-t border-separator pt-4'>
+					{reconnect ? (
+						<Link href='/dashboard/settings?tab=connections' target='_blank' rel='noopener noreferrer'>
+							Reconnect Twitch (opens in a new tab)
+						</Link>
+					) : null}
+					{!pending(batch) && batch.status !== "cancelled" && (batch.error || failures?.length) && retry.length ? (
+						<Button variant={batch.downloadUrl ? "secondary" : "primary"} isDisabled={Boolean(batch.retryAt && Date.parse(batch.retryAt) > now)} onPress={() => enqueue(subset(batch.request, retry))}>
+							<IconRefresh className='size-4 shrink-0' />
+							{batch.request.plan ? "Retry failed files" : "Retry failed clips"}
+						</Button>
+					) : null}
+					{reconnect ? (
+						<Button variant='secondary' onPress={() => enqueue(subset(batch.request, reconnectIds))}>
+							Retry after reconnect
+						</Button>
+					) : null}
+					{batch.status === "completed" ? (
+						<Button
+							variant={batch.downloadUrl ? "primary" : "secondary"}
+							onPress={() => {
+								if (batch.downloadUrl) {
+									const link = document.createElement("a");
+									link.href = batch.downloadUrl;
+									link.download = downloadName(batch);
+									document.body.append(link);
+									link.click();
+									link.remove();
+								} else enqueue(batch.request);
+							}}
+						>
+							<IconDownload className='size-4 shrink-0' />
+							{batch.downloadUrl ? `Download ${batch.request.format.toUpperCase()}` : "Export batch again"}
+						</Button>
+					) : null}
+					{pending(batch) ? (
+						<Button variant='secondary' onPress={() => cancel(batch)}>
+							Cancel export
+						</Button>
+					) : null}
+				</div>
 				{batch.retryAt && Date.parse(batch.retryAt) > now && batch.status !== "waiting" ? (
 					<p className='text-sm text-muted'>
 						Please wait until <LocalizedDate value={batch.retryAt} showTime /> before retrying.
@@ -336,7 +347,7 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 					<Modal.Heading>Clip exports</Modal.Heading>
 				</Modal.Header>
 				<Modal.Body className='max-h-[60dvh] space-y-6 overflow-y-auto'>
-					<p className='text-sm text-muted'>Up to 50 videos per minute. Keep Clipify open while exporting. Downloads start as each batch finishes; your browser may ask to allow multiple downloads.</p>
+					<p className='text-sm text-muted'>Keep this tab open. Your downloads start automatically when ready.</p>
 					{current.map((batch) => (
 						<section key={batch.id} aria-label={`Batch ${batch.id}`} className='space-y-4'>
 							{batch.status === "queued" ? (

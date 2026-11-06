@@ -40,7 +40,7 @@ export async function compositionFilterGraph(layout: ClipComposition, dir: strin
 	if (logos.length) {
 		const path = join(dir, "channel-logo");
 		await writeFile(path, avatarImage ?? (await readClipCompositionLogo(avatar, signal)));
-		inputs.push("-loop", "1", "-max_pixels", "1000000", "-i", path);
+		inputs.push("-loop", "1", "-max_pixels", "1000000", "-threads", "1", "-i", path);
 		filters.push(`[${inputIndex++}:v]format=rgba,split=${logos.length}${logos.map((_, index) => `[logo${index}]`).join("")}`);
 	}
 	filters.push(`[0:v]split=${videos.length + 1}[background]${videos.map((_, index) => `[video${index}]`).join("")}`);
@@ -62,7 +62,7 @@ export async function compositionFilterGraph(layout: ClipComposition, dir: strin
 		} else {
 			const path = join(dir, `widget-${index}.png`);
 			await writeFile(path, await renderBrandWidget(layer.kind, clip, w, h, layer.fontSize, compositionWidgetTheme(layout, layer, brand), signal, avatarImage ? `data:image/png;base64,${avatarImage.toString("base64")}` : undefined));
-			inputs.push("-loop", "1", "-max_pixels", "1000000", "-i", path);
+			inputs.push("-loop", "1", "-max_pixels", "1000000", "-threads", "1", "-i", path);
 			filters.push(`[${inputIndex++}:v]format=rgba[${label}]`);
 		}
 		const output = `composite${index}`;

@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Button, Checkbox, Label, Link, Modal, Skeleton, Autocomplete, SearchField, ListBox, EmptyState, useFilter } from "@heroui/react";
-import { IconRefresh, IconLayoutCollage } from "@tabler/icons-react";
+import { Button, Checkbox, Label, Modal, Skeleton, Autocomplete, SearchField, ListBox, EmptyState, useFilter } from "@heroui/react";
 import ControlledModal from "@components/controlledModal";
 import { listClipLayouts } from "@actions/clipLayoutLibrary";
 import { createClipExportPlan, type ClipExportPlan, type ClipExportOutput } from "@lib/clipExportPlan";
@@ -9,7 +8,6 @@ import { templateCompositions } from "@lib/clipLayoutTemplate";
 import { notify } from "@lib/toast";
 export default function ClipExportSettings({ creatorId, clipIds, onStart, onClose }: { creatorId: string; clipIds: string[]; onStart: (plans: ClipExportPlan[]) => boolean; onClose: () => void }) {
 	const [library, setLibrary] = useState<Awaited<ReturnType<typeof listClipLayouts>>>(),
-		[attempt, setAttempt] = useState(0),
 		[versions, setVersions] = useState(new Set(["original"])),
 		[selected, setSelected] = useState<string[]>();
 	const { contains } = useFilter({ sensitivity: "base" });
@@ -30,7 +28,7 @@ export default function ClipExportSettings({ creatorId, clipIds, onStart, onClos
 		return () => {
 			current = false;
 		};
-	}, [creatorId, attempt]);
+	}, [creatorId]);
 	const chosen = library?.ok ? library.templates.filter((t) => selected?.includes(t.id)) : [];
 	const outputs: ClipExportOutput[] = [
 		...(versions.has("original") ? [{ key: "original", label: "Original" }] : []),
@@ -43,10 +41,6 @@ export default function ClipExportSettings({ creatorId, clipIds, onStart, onClos
 				}),
 		),
 	];
-	const refresh = () => {
-		setLibrary(undefined);
-		setAttempt((n) => n + 1);
-	};
 	return (
 		<ControlledModal ariaLabel='Export clips' isOpen onClose={onClose} size='lg'>
 			<Modal.Header>
@@ -84,16 +78,6 @@ export default function ClipExportSettings({ creatorId, clipIds, onStart, onClos
 						</Checkbox>
 					))}
 				</section>
-				<div className='flex flex-wrap items-center justify-between gap-2'>
-					<Link className='gap-2 text-sm' href={`/dashboard/clip-layouts?reference=${encodeURIComponent(clipIds[0] ?? "")}`} target='_blank' rel='noopener noreferrer'>
-						<IconLayoutCollage className='size-4' />
-						Manage layouts
-					</Link>
-					<Button size='sm' variant='ghost' className='gap-2' onPress={refresh}>
-						<IconRefresh className='size-4' />
-						Refresh layouts
-					</Button>
-				</div>
 				{library?.ok ? (
 					library.templates.length ? (
 						<div className='space-y-3'>
@@ -125,26 +109,10 @@ export default function ClipExportSettings({ creatorId, clipIds, onStart, onClos
 									</Autocomplete.Filter>
 								</Autocomplete.Popover>
 							</Autocomplete>
-							<p className='text-xs text-muted'>Desktop and Mobile both use the selected templates.</p>
-							{clipIds.length === 1
-								? chosen.map((entry) => (
-										<div key={entry.id} className='flex flex-wrap items-center gap-x-4 gap-y-2 text-xs'>
-											<span className='min-w-0 max-w-full break-words text-muted'>{entry.name}</span>
-											{(["desktop", "mobile"] as const).map((format) => (
-												<Link key={format} href={`/dashboard/clip-layouts?layout=${encodeURIComponent(entry.id)}&clip=${encodeURIComponent(clipIds[0])}&format=${format}`} target='_blank' rel='noopener noreferrer'>
-													Adjust {format === "desktop" ? "Desktop" : "Mobile"} for this clip
-												</Link>
-											))}
-										</div>
-									))
-								: null}
 						</div>
 					) : (
 						<div className='space-y-2'>
-							<p className='text-sm text-muted'>No layout templates yet. Create one for Desktop and Mobile.</p>
-							<Link href={`/dashboard/clip-layouts?new=mobile&reference=${encodeURIComponent(clipIds[0] ?? "")}`} target='_blank' rel='noopener noreferrer'>
-								Create layout template
-							</Link>
+							<p className='text-sm text-muted'>No layout templates yet. Add one in Clip layouts to export Desktop or Mobile versions.</p>
 						</div>
 					)
 				) : library ? (
@@ -152,14 +120,10 @@ export default function ClipExportSettings({ creatorId, clipIds, onStart, onClos
 						<p role='status' className='text-sm text-muted'>
 							Layouts could not be loaded. You can still export the original clips.
 						</p>
-						<Button variant='secondary' onPress={refresh}>
-							Retry layouts
-						</Button>
 					</div>
 				) : (
 					<Skeleton className='h-24 rounded-xl' />
 				)}
-				<p className='text-xs text-muted'>Each selected version creates a separate video. Clip-specific adjustments are applied automatically.</p>
 			</Modal.Body>
 			<Modal.Footer className='flex-wrap'>
 				<p role='status' aria-label='Export file count' className='mr-auto text-sm text-muted'>

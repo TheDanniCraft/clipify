@@ -197,7 +197,7 @@ it("resumes the waiting batch automatically when the provider quota resets", asy
 		jest.useRealTimers();
 	}
 });
-it("replaces previous Blob URLs and releases the latest download after sixty seconds", async () => {
+it("retains the latest download beyond a minute and releases it on replacement or unmount", async () => {
 	jest.useFakeTimers();
 	try {
 		let index = 0;
@@ -206,7 +206,7 @@ it("replaces previous Blob URLs and releases the latest download after sixty sec
 		Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: revoke });
 		jest.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
 		fetchMock.mockResolvedValueOnce(successResponse({ included: [0], skipped: [] })).mockResolvedValueOnce(successResponse({ included: [0], skipped: [] }));
-		render(<ClipExport creatorId='owner' clipIds={["A"]} scope='owner' />);
+		const view = render(<ClipExport creatorId='owner' clipIds={["A"]} scope='owner' />);
 		fireEvent.click(screen.getByRole("button", { name: "Export selected" }));
 		await screen.findByText("1 clip ready. Download initiated.");
 		expect(notify).not.toHaveBeenCalled();
@@ -216,6 +216,10 @@ it("replaces previous Blob URLs and releases the latest download after sixty sec
 		await act(async () => {
 			jest.advanceTimersByTime(60000);
 		});
+		expect(revoke).not.toHaveBeenCalledWith("blob:2");
+		expect(screen.getByRole("button", { name: "Download ZIP" })).toBeEnabled();
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+		view.unmount();
 		expect(revoke).toHaveBeenCalledWith("blob:2");
 	} finally {
 		jest.useRealTimers();
@@ -435,7 +439,7 @@ it("can cancel while waiting for a quota reset and download a completed package 
 		await screen.findByText("Export cancelled. Your selection is kept.");
 		fireEvent.click(screen.getByRole("button", { name: "Export selected" }));
 		await screen.findByText("1 clip ready. Download initiated.");
-		fireEvent.click(screen.getByRole("button", { name: "Save ZIP" }));
+		fireEvent.click(screen.getByRole("button", { name: "Download ZIP" }));
 		expect(click).toHaveBeenCalledTimes(2);
 	} finally {
 		jest.useRealTimers();
@@ -456,7 +460,7 @@ it("expands completed batch history and downloads a retained file without contac
 	await waitFor(() => expect(screen.getAllByText("1 clip ready. Download initiated.")).toHaveLength(2));
 	fireEvent.click(screen.getByRole("button", { name: "Toggle batch history" }));
 	expect(screen.getAllByText("1 clip ready. Download initiated.")).toHaveLength(1);
-	fireEvent.click(screen.getByRole("button", { name: "Save ZIP" }));
+	fireEvent.click(screen.getByRole("button", { name: "Download ZIP" }));
 	expect(click).toHaveBeenCalledTimes(3);
 	expect(fetchMock).toHaveBeenCalledTimes(2);
 });

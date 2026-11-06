@@ -323,3 +323,40 @@ it("places encoded branding in clear space instead of over a widget", async () =
 		await rm(dir, { recursive: true, force: true });
 	}
 });
+it("records a bounded renderer diagnostic without exposing it in the export error", async () => {
+	const cp = (await import("node:child_process")).default;
+	const { EventEmitter } = await import("node:events");
+	const diagnostic = jest.spyOn(console, "error").mockImplementation(() => {});
+	const spawn = jest.spyOn(cp, "spawn").mockImplementation(() => {
+		const child = Object.assign(new EventEmitter(), { stderr: new EventEmitter() });
+		queueMicrotask(() => {
+			child.stderr.emit("data", Buffer.from("x".repeat(10000) + "Error configuring filters"));
+			child.emit("close", 1, null);
+		});
+		return child as never;
+	});
+	try {
+		await expect(renderClipLayout(new Uint8Array([1]), defaultClipLayout, { title: "T" }, AbortSignal.timeout(1000))).rejects.toThrow(/^render_failed$/);
+		expect(diagnostic).toHaveBeenCalledWith("Clip render failed", expect.objectContaining({ code: 1, signal: null, stderr: expect.stringContaining("Error configuring filters") }));
+		expect(diagnostic.mock.calls[0][1].stderr.length).toBeLessThanOrEqual(4096);
+	} finally {
+		spawn.mockRestore();
+		diagnostic.mockRestore();
+	}
+});
+it("bounds every image decoder when exporting several widgets and branding", async () => {
+	const cp = (await import("node:child_process")).default;
+	const spawn = jest.spyOn(cp, "spawn");
+	const { createClipComposition } = await import("@lib/clipComposition");
+	const layout = createClipComposition("desktop");
+	for (const kind of ["title", "channel", "clipper"] as const) layout.layers.push({ id: kind, kind, label: kind, fontSize: 24, frame: { x: 0, y: 0.7, w: 0.5, h: 0.1 } });
+	try {
+		await renderClipLayout(new Uint8Array(await readFile("test/fixtures/runner/presentation.mp4")), layout, { title: "Synthetic clip" }, AbortSignal.timeout(15000), { watermark: true });
+		const args = spawn.mock.calls[0][1] as string[];
+		const inputs = args.flatMap((arg, index) => (arg === "-i" ? [index] : []));
+		expect(inputs).toHaveLength(5);
+		for (const input of inputs.slice(1)) expect(args.slice(input - 2, input)).toEqual(["-threads", "1"]);
+	} finally {
+		spawn.mockRestore();
+	}
+}, 20000);
