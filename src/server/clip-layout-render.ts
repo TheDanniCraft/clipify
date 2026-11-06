@@ -1,6 +1,6 @@
 import "server-only";
 import sharp from "sharp";
-import { clipifyWatermarkSvg, type CreatorBrand } from "@lib/overlayMetadata";
+import { clipifyWatermarkSvg, clipifyWatermarkExpression, type CreatorBrand } from "@lib/overlayMetadata";
 import { spawn } from "node:child_process";
 import { mkdtemp, writeFile, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -48,7 +48,7 @@ export async function renderClipLayout(bytes: Uint8Array, layout: ClipLayout | C
 			await writeFile(path, await sharp(Buffer.from(clipifyWatermarkSvg())).png().toBuffer());
 			const index = 1 + inputs.filter((value) => value === "-i").length;
 			inputs.push("-loop", "1", "-max_pixels", "1000000", "-i", path);
-			filters.push(`[${previous}][${index}:v]overlay=x=W-w-16:y=H-h-16:shortest=1:eof_action=repeat[branded]`);
+			filters.push(`[${previous}][${index}:v]overlay=x='${clipifyWatermarkExpression(0)}':y='${clipifyWatermarkExpression(1)}':shortest=1:eof_action=repeat[branded]`);
 			previous = "branded";
 		}
 		const args = ["-hide_banner", "-loglevel", "error", "-nostdin", "-protocol_whitelist", "file,pipe", "-threads", "2", "-f", "mov", "-i", input, ...inputs, "-filter_complex_threads", "1", "-filter_complex", filters.join(";"), "-map", `[${previous}]`, "-map", "0:a?", "-c:v", "libx264", "-threads", "2", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-fs", String(LIMIT + 1024 * 1024), "-y", output];

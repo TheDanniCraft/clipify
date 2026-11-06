@@ -20,12 +20,12 @@ beforeEach(() => {
 	insert.mockReturnValue({ values: () => ({ onConflictDoUpdate: () => ({ returning }) }) });
 	returning.mockResolvedValue([{ state: '{"revision":1}' }]);
 });
-it("saves a creator-owned brand with optimistic revision and rejects denied watermark removal", async () => {
+it("saves a creator-owned brand with optimistic revision without applying export plan restrictions", async () => {
 	const api = await import("@actions/creatorBrand").catch(() => null);
 	expect(api).not.toBeNull();
 	if (!api) return;
 	expect(await api.saveCreatorBrand("creator", { fontFamily: "Laila", fontSource: "google", watermark: true }, 0)).toMatchObject({ ok: true, revision: 1 });
-	expect(await api.saveCreatorBrand("creator", { watermark: false }, 1)).toMatchObject({ ok: false, code: "PRO_REQUIRED" });
+
 	expect(insert).toHaveBeenCalledTimes(1);
 	returning.mockResolvedValue([]);
 	expect(await api.saveCreatorBrand("creator", { watermark: true }, 0)).toMatchObject({ ok: false, code: "CONFLICT" });
@@ -70,15 +70,6 @@ it("keeps the stored brand and translates corrupt storage and write failures", a
 	resolve.mockResolvedValue({ proAccess: true });
 	returning.mockResolvedValue([{}]);
 	expect(await api.saveCreatorBrand("creator", { watermark: false }, 0)).toMatchObject({ ok: true, brand: { watermark: false } });
-});
-it("lists only authorized overlay style fields and handles missing service", async () => {
-	const api = await import("@actions/creatorBrand");
-	expect(await api.getBrandOverlaySources("")).toMatchObject({ code: "INVALID_INPUT" });
-	expect(await api.getBrandOverlaySources("creator")).toMatchObject({ ok: true, overlays: [] });
-	execute.mockRejectedValue(Error("database"));
-	expect(await api.getBrandOverlaySources("creator")).toMatchObject({ code: "SERVICE_UNAVAILABLE" });
-	authorize.mockResolvedValue({ allowed: false, code: "PERMISSION_DENIED" });
-	expect(await api.getBrandOverlaySources("other")).toMatchObject({ code: "PERMISSION_DENIED" });
 });
 it("reports read-only collaborator access separately from creator branding visibility", async () => {
 	const api = await import("@actions/creatorBrand");

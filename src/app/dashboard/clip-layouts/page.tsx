@@ -13,7 +13,7 @@ export default async function ClipLayoutsPage({ searchParams }: { searchParams: 
 	return (
 		<DashboardNavbar user={user} title='Clip layouts' tagline='Reusable Desktop and Mobile compositions'>
 			{brand.ok ? (
-				<ClipLayoutLibrary brand={brand.brand} watermark={!brand.canRemoveWatermark || (brand.brand?.watermark ?? true)} key={user.id} creatorId={user.id} layoutId={id(params.layout)} clipId={id(params.clip)} referenceId={id(params.reference)} newFormat={params.new} outputFormat={params.format} />
+				<ClipLayoutLibrary user={user} brand={brand.brand} canRemoveWatermark={brand.canRemoveWatermark} key={user.id} creatorId={user.id} layoutId={id(params.layout)} clipId={id(params.clip)} referenceId={id(params.reference)} newFormat={params.new} outputFormat={params.format} />
 			) : (
 				<div className='space-y-3'>
 					<p className='text-sm text-muted'>Brand styling could not be loaded. Your layouts are preserved.</p>

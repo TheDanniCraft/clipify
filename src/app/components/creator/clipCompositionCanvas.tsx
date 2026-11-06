@@ -5,7 +5,7 @@ import { IconPlayerPlay, IconPlayerPause, IconRefresh } from "@tabler/icons-reac
 import { getCreatorClipPreview } from "@actions/creatorLibrary";
 import { compositionWidgetTheme, compositionDimensions, updateCompositionFrame, updateCompositionSource, type ClipComposition } from "@lib/clipComposition";
 import { notify } from "@lib/toast";
-import { clipifyWatermarkSvg, type CreatorBrand, overlayMetadataSvg } from "@lib/overlayMetadata";
+import { clipifyWatermarkSvg, clipifyWatermarkPosition, type CreatorBrand, overlayMetadataSvg } from "@lib/overlayMetadata";
 import { isTrustedClipMediaUrl } from "@lib/clipExport";
 import { compositionLayerColor } from "@lib/clipLayoutTemplate";
 import CompositionBox from "./clipCompositionBox";
@@ -261,7 +261,10 @@ export default function ClipCompositionCanvas({
 							ctx.restore();
 						}
 					}
-					if (watermark && watermarkImage.current) ctx.drawImage(watermarkImage.current, c.width - 216, c.height - 60, 200, 44);
+					if (watermark && watermarkImage.current) {
+						const position = clipifyWatermarkPosition(v.currentTime, c.width, c.height);
+						ctx.drawImage(watermarkImage.current, position.x, position.y, 200, 44);
+					}
 				} catch {
 					setFailed(true);
 					return;
@@ -339,7 +342,14 @@ export default function ClipCompositionCanvas({
 					</section>
 					<section className='min-w-0 space-y-2'>
 						<h3 className='text-sm font-medium'>{layout.format === "mobile" ? "Mobile 9:16" : "Desktop 16:9"}</h3>
-						<div ref={outputStage} className={`relative mx-auto w-full overflow-hidden rounded-lg bg-black ${layout.format === "mobile" ? "max-w-72 lg:max-w-none" : ""}`} style={{ aspectRatio: output.width / output.height }}>
+						<div
+							onPointerDown={(event) => {
+								if (event.target === event.currentTarget || event.target === canvas.current) onSelect("");
+							}}
+							ref={outputStage}
+							className={`relative mx-auto w-full overflow-hidden rounded-lg bg-black ${layout.format === "mobile" ? "max-w-72 lg:max-w-none" : ""}`}
+							style={{ aspectRatio: output.width / output.height }}
+						>
 							<canvas ref={canvas} width={output.width} height={output.height} aria-label='Layout preview' className='block h-full w-full' />
 							{ready
 								? layout.layers.map((layer) => (
@@ -394,6 +404,15 @@ export default function ClipCompositionCanvas({
 					{playing ? <IconPlayerPause className='size-4' /> : <IconPlayerPlay className='size-4' />}
 					{playing ? "Pause" : "Play"}
 				</Button>
+				<Switch className='shrink-0 text-sm' isSelected={snapping} onChange={setSnapping} aria-label='Snapping'>
+					<Switch.Content>
+						<Switch.Control>
+							<Switch.Thumb />
+						</Switch.Control>
+						Snapping
+					</Switch.Content>
+				</Switch>
+
 				<Slider
 					isDisabled={!ready || failed}
 					className='min-w-0 flex-1'
@@ -427,14 +446,6 @@ export default function ClipCompositionCanvas({
 					</Button>
 				</div>
 			) : null}
-			<Switch isSelected={snapping} onChange={setSnapping} aria-label='Snapping'>
-				<Switch.Content>
-					<Switch.Control>
-						<Switch.Thumb />
-					</Switch.Control>
-					<Label>Snapping</Label>
-				</Switch.Content>
-			</Switch>
 			<p className='text-xs text-muted'>Shape and arrange boxes in the output. Move or scale the matching source crop to choose content. Resize the output to scale it. Shift preserves the output shape. Boxes snap to edges and other boxes; hold Control or Alt to bypass. Arrow keys move one pixel.</p>
 		</div>
 	);

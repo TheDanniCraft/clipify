@@ -9,6 +9,7 @@ export const compositionSchema = z.object({
 	version: z.literal(2),
 	format: z.enum(["desktop", "mobile"]),
 	widgetTheme: widgetThemeSchema.optional(),
+	watermark: z.boolean().optional(),
 	layers: z
 		.array(z.discriminatedUnion("kind", [z.object({ ...base, kind: z.literal("video"), source: rectSchema, sourceAnchor: rectSchema.optional() }), z.object({ ...text, kind: z.literal("title") }), z.object({ ...text, kind: z.literal("channel") }), z.object({ ...text, kind: z.literal("clipper") }), z.object({ ...base, kind: z.literal("logo") })]))
 		.min(1)

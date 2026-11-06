@@ -1,7 +1,7 @@
 "use server";
-import { eq, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { db } from "@/db/client";
-import { userContentStatesTable, overlaysTable } from "@/db/schema";
+import { userContentStatesTable } from "@/db/schema";
 import { authorizeCreatorOperation } from "@/auth/authorize-operation";
 import { validateBrandFont } from "@/server/brand-font-render";
 import { consumeAppRateLimit } from "@/server/rate-limit";
@@ -27,7 +27,6 @@ export async function saveCreatorBrand(creatorId: string, input: unknown, expect
 	const grant = await authorizeCreatorOperation({ creatorId, resourceOwnerId: creatorId, permission: "creator:update" });
 	if (!grant.allowed) return { ok: false as const, code: grant.code };
 	try {
-		if (!parsed.data.watermark && !(await resolveUserEntitlements(grant.creator)).proAccess) return { ok: false as const, code: "PRO_REQUIRED" };
 		if (!(await consumeAppRateLimit({ key: "brand-save", points: 30, duration: 60, identifier: creatorId })).success) return { ok: false as const, code: "RATE_LIMITED" };
 		try {
 			await validateBrandFont(parsed.data, AbortSignal.timeout(15000));
@@ -44,22 +43,6 @@ export async function saveCreatorBrand(creatorId: string, input: unknown, expect
 			.onConflictDoUpdate({ target: [userContentStatesTable.userId, userContentStatesTable.contentKey], set: { state, updatedAt: new Date() }, setWhere: sql`(${userContentStatesTable.state}::jsonb->>'revision')::integer = ${expectedRevision}` })
 			.returning({ state: userContentStatesTable.state });
 		return rows.length ? { ok: true as const, brand: parsed.data, revision } : { ok: false as const, code: "CONFLICT" };
-	} catch {
-		return { ok: false as const, code: "SERVICE_UNAVAILABLE" };
-	}
-}
-export async function getBrandOverlaySources(creatorId: string) {
-	if (!validId(creatorId)) return { ok: false as const, code: "INVALID_INPUT" };
-	const grant = await authorizeCreatorOperation({ creatorId, resourceOwnerId: creatorId, permission: "overlay:read" });
-	if (!grant.allowed) return { ok: false as const, code: grant.code };
-	try {
-		const overlays = await db
-			.select({ id: overlaysTable.id, name: overlaysTable.name, progressBarStartColor: overlaysTable.progressBarStartColor, progressBarEndColor: overlaysTable.progressBarEndColor, themeFontFamily: overlaysTable.themeFontFamily, themeTextColor: overlaysTable.themeTextColor, themeBackgroundColor: overlaysTable.themeBackgroundColor, themeAccentColor: overlaysTable.themeAccentColor, borderSize: overlaysTable.borderSize, borderRadius: overlaysTable.borderRadius })
-			.from(overlaysTable)
-			.where(eq(overlaysTable.ownerId, creatorId))
-			.limit(100)
-			.execute();
-		return { ok: true as const, overlays };
 	} catch {
 		return { ok: false as const, code: "SERVICE_UNAVAILABLE" };
 	}

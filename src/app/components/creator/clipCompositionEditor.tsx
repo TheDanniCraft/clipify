@@ -1,7 +1,8 @@
 "use client";
+import type { AuthenticatedUser } from "@types";
 import { useEffect, useState } from "react";
-import { Button, Card, Input, Label, TextField, NumberField, Select, ListBox, Modal, Link, Autocomplete, SearchField, EmptyState, Tabs, Switch } from "@heroui/react";
-import { IconPalette, IconArrowLeft, IconPlus, IconArrowUp, IconArrowDown, IconTrash } from "@tabler/icons-react";
+import { Button, Card, Input, Label, TextField, NumberField, Select, ListBox, Modal, Link, Autocomplete, SearchField, EmptyState, Tabs, Switch, Tooltip, Description } from "@heroui/react";
+import { IconArrowLeft, IconPlus, IconArrowUp, IconArrowDown, IconTrash } from "@tabler/icons-react";
 import { useNavigationGuard } from "nextjs-nav-guard";
 import { saveClipLayoutTemplate, saveClipLayoutOverride, resetClipLayoutOverride, type ClipLayoutTemplate } from "@actions/clipLayoutLibrary";
 import { getCreatorClipInventory, getCreatorClipDetail, searchCreatorLibrary } from "@actions/creatorLibrary";
@@ -11,6 +12,8 @@ import { notify } from "@lib/toast";
 import ThemeColorInput from "@components/theme/ThemeColorInput";
 import { type CreatorBrand, DEFAULT_WIDGET_THEME, overlayMetadataHeight } from "@lib/overlayMetadata";
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
+import UpgradeModal from "@components/upgradeModal";
+import { trackProductEvent } from "@lib/analytics";
 import ControlledModal from "@components/controlledModal";
 import ClipCompositionCanvas from "./clipCompositionCanvas";
 type Clip = Extract<Awaited<ReturnType<typeof getCreatorClipDetail>>, { ok: true }>["clip"];
@@ -35,7 +38,33 @@ function Numeric({ label, value, min = 0, max = 100, onChange }: { label: string
 		</NumberField>
 	);
 }
-export default function ClipCompositionEditor({ creatorId, entry, initial, clipId, referenceId, onBack, onSaved, onFormatChange, onReferenceChange, brand, watermark }: { brand?: CreatorBrand | null; watermark?: boolean; creatorId: string; entry: ClipLayoutTemplate; initial: ClipComposition; clipId?: string; referenceId?: string; onBack: () => void; onSaved: () => void; onReferenceChange?: (id: string) => void; onFormatChange?: (format: "desktop" | "mobile") => void }) {
+export default function ClipCompositionEditor({
+	user,
+	creatorId,
+	entry,
+	initial,
+	clipId,
+	referenceId,
+	onBack,
+	onSaved,
+	onFormatChange,
+	onReferenceChange,
+	brand,
+	canRemoveWatermark = false,
+}: {
+	user?: AuthenticatedUser;
+	brand?: CreatorBrand | null;
+	canRemoveWatermark?: boolean;
+	creatorId: string;
+	entry: ClipLayoutTemplate;
+	initial: ClipComposition;
+	clipId?: string;
+	referenceId?: string;
+	onBack: () => void;
+	onSaved: () => void;
+	onReferenceChange?: (id: string) => void;
+	onFormatChange?: (format: "desktop" | "mobile") => void;
+}) {
 	const [sourceDimensions, setSourceDimensions] = useState({ width: 1920, height: 1080 }),
 		[layout, setLayout] = useState(initial),
 		[name, setName] = useState(entry.name),
@@ -49,7 +78,8 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 		[search, setSearch] = useState(""),
 		[loading, setLoading] = useState(true),
 		[retry, setRetry] = useState(0),
-		[reset, setReset] = useState(false);
+		[reset, setReset] = useState(false),
+		[upgrade, setUpgrade] = useState(false);
 	const guard = useNavigationGuard({ enabled: dirty });
 	useEffect(() => {
 		if (!dirty) return;
@@ -144,6 +174,7 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 	};
 	return (
 		<DashboardEditorLayout>
+			{user ? <UpgradeModal user={user} isOpen={upgrade} onOpenChange={setUpgrade} title='Make every clip your own with Pro' description='Remove Clipify branding from your composed exports.' /> : null}
 			<ControlledModal ariaLabel='Unsaved layout changes' isOpen={guard.active} onClose={() => guard.reject()}>
 				<Modal.Header>
 					<Modal.Heading>Leave without saving?</Modal.Heading>
@@ -190,8 +221,8 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 				</Modal.Footer>
 			</ControlledModal>
 			<Card>
-				<Card.Header className='flex flex-row flex-wrap items-start justify-between gap-4'>
-					<div className='flex min-w-0 items-start gap-3'>
+				<Card.Header className='flex flex-row flex-wrap items-center justify-between gap-4'>
+					<div className='flex min-w-0 items-center gap-3'>
 						<Button isIconOnly variant='tertiary' aria-label='Back to clip layouts' onPress={onBack}>
 							<IconArrowLeft />
 						</Button>
@@ -202,11 +233,7 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 							</Card.Description>
 						</div>
 					</div>
-					<div className='flex flex-wrap gap-2'>
-						<Link href='/dashboard/settings?tab=brand' className='inline-flex items-center gap-2'>
-							<IconPalette className='size-4' />
-							Brand styling
-						</Link>
+					<div className='flex flex-wrap items-center gap-2'>
 						{clipId ? (
 							<Button variant='secondary' onPress={() => setReset(true)}>
 								Reset to template
@@ -299,7 +326,7 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 						<p className='text-sm text-muted'>Changes apply only to this clip and layout. Your global template stays unchanged.</p>
 					)}
 					{clip ? (
-						<ClipCompositionCanvas brand={brand} watermark={watermark} key={clip.id} creatorId={creatorId} clip={clip} layout={layout} selected={layer.id} onSelect={setSelected} onChange={change} onDimensions={setSourceDimensions} />
+						<ClipCompositionCanvas brand={brand} watermark={!canRemoveWatermark || (layout.watermark ?? true)} key={clip.id} creatorId={creatorId} clip={clip} layout={layout} selected={selected} onSelect={setSelected} onChange={change} onDimensions={setSourceDimensions} />
 					) : (
 						<div className='rounded-xl bg-default/50 p-6 text-sm text-muted'>
 							{reference ? (
@@ -314,21 +341,67 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 							)}
 						</div>
 					)}
+					<Switch
+						aria-label='Clipify watermark'
+						isSelected={!canRemoveWatermark || (layout.watermark ?? true)}
+						onChange={(enabled) => {
+							if (!enabled && !canRemoveWatermark) {
+								trackProductEvent("export_branding_upgrade_requested", { source: "clip_layout" });
+								setUpgrade(true);
+								return;
+							}
+							change({ ...layout, watermark: enabled });
+						}}
+					>
+						<Switch.Content>
+							<Switch.Control>
+								<Switch.Thumb />
+							</Switch.Control>
+							Clipify watermark
+						</Switch.Content>
+						<Description>Credit Clipify on this layout. Pro can turn it off.</Description>
+					</Switch>
 					<div className='grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]'>
 						<section className='space-y-3'>
 							<h3 className='text-sm font-medium'>Layers</h3>
-							<div className='space-y-1'>
+							<div className='space-y-1' aria-label='Reorder layers'>
 								{[...layout.layers].reverse().map((item) => (
-									<Button key={item.id} fullWidth variant={item.id === layer.id ? "secondary" : "ghost"} className='justify-start gap-2' onPress={() => setSelected(item.id)}>
-										<span
-											aria-hidden='true'
-											className='size-2.5 shrink-0 rounded-full'
-											style={{
-												backgroundColor: compositionLayerColor(item.id),
-											}}
-										/>
-										{item.label}
-									</Button>
+									<div
+										draggable
+										onDragStart={(event) => {
+											event.dataTransfer.setData("application/x-clipify-layer", item.id);
+											event.dataTransfer.effectAllowed = "move";
+										}}
+										onDragOver={(event) => {
+											if (event.dataTransfer.types.includes("application/x-clipify-layer")) event.preventDefault();
+										}}
+										onDrop={(event) => {
+											const id = event.dataTransfer.getData("application/x-clipify-layer");
+											const moving = layout.layers.find((layer) => layer.id === id);
+											if (!moving || id === item.id) return;
+											event.preventDefault();
+											const layers = layout.layers.filter((layer) => layer.id !== id);
+											layers.splice(
+												layers.findIndex((layer) => layer.id === item.id),
+												0,
+												moving,
+											);
+											change({ ...layout, layers });
+											setSelected(id);
+										}}
+										key={item.id}
+									>
+										<Button fullWidth variant={item.id === layer.id ? "secondary" : "ghost"} className='justify-start gap-2' onPress={() => setSelected(selected === item.id ? "" : item.id)}>
+											<span
+												aria-hidden='true'
+												className='size-2.5 shrink-0 rounded-full'
+												style={{
+													backgroundColor: compositionLayerColor(item.id),
+												}}
+											/>
+											{item.label}
+										</Button>
+									</div>
 								))}
 							</div>
 							<Select
@@ -356,159 +429,178 @@ export default function ClipCompositionEditor({ creatorId, entry, initial, clipI
 								</Select.Popover>
 							</Select>
 						</section>
-						<section className='space-y-4'>
-							<TextField variant='secondary' value={layer.label} maxLength={80} onChange={(label) => update({ ...layer, label })}>
-								<Label>Layer name</Label>
-								<Input />
-							</TextField>
-							{layer.kind === "video" ? (
-								<Select variant='secondary' value={boxMode} onChange={(key) => setBoxMode(String(key ?? "output"))}>
-									<Label>Edit box</Label>
-									<Select.Trigger>
-										<Select.Value />
-										<Select.Indicator />
-									</Select.Trigger>
-									<Select.Popover>
-										<ListBox>
-											<ListBox.Item id='source'>Source crop</ListBox.Item>
-											<ListBox.Item id='output'>Output layer</ListBox.Item>
-										</ListBox>
-									</Select.Popover>
-								</Select>
-							) : null}
-							<div className='grid grid-cols-2 gap-3 sm:grid-cols-4'>
-								{(["x", "y", "w", "h"] as const).map((key) => (
-									<Numeric
-										key={key}
-										label={key === "x" ? "Left (%)" : key === "y" ? "Top (%)" : key === "w" ? "Width (%)" : "Height (%)"}
-										value={Number((box[key] * 100).toFixed(2))}
-										min={key === "w" || key === "h" ? 0.2 : 0}
-										onChange={(value) => {
-											let frame = { ...box };
-											if (key === "x" || key === "y") frame[key] = Math.min(value / 100, 1 - frame[key === "x" ? "w" : "h"]);
-											else {
-												const ratio = sourceMode && layer.kind === "video" ? layer.source.w / layer.source.h : layer.kind === "logo" ? frame.w / frame.h : undefined;
-												frame = resizeCompositionRect(frame, key === "w" ? value / 100 - frame.w : 0, key === "h" ? value / 100 - frame.h : 0, "se", ratio);
-											}
-											if (sourceMode && layer.kind === "video") change(updateCompositionSource(layout, layer.id, frame, sourceDimensions));
-											else change(updateCompositionFrame(layout, layer.id, frame, sourceDimensions));
-										}}
-									/>
-								))}
-							</div>
-							{layer.kind === "video" ? (
-								<Select
-									variant='secondary'
-									aria-label='Output shape'
-									value={null}
-									onChange={(key) => {
-										if (!key) return;
-										const frame = { ...layer.frame },
-											ratio = (key === "portrait" ? 9 / 16 : key === "landscape" ? 16 / 9 : 1) * (layout.format === "mobile" ? 1280 / 720 : 720 / 1280);
-										frame.h = Math.min(1 - frame.y, frame.w / ratio);
-										frame.w = Math.min(1 - frame.x, frame.h * ratio);
-										change(updateCompositionFrame(layout, layer.id, frame, sourceDimensions));
-									}}
-								>
-									<Label>Output shape</Label>
-									<Select.Trigger>
-										<Select.Value>Set output aspect ratio</Select.Value>
-										<Select.Indicator />
-									</Select.Trigger>
-									<Select.Popover>
-										<ListBox>
-											<ListBox.Item id='portrait'>Portrait 9:16</ListBox.Item>
-											<ListBox.Item id='landscape'>Landscape 16:9</ListBox.Item>
-											<ListBox.Item id='square'>Square 1:1</ListBox.Item>
-										</ListBox>
-									</Select.Popover>
-								</Select>
-							) : layer.kind !== "logo" ? (
-								<div className='space-y-3'>
-									<Numeric label='Text size' value={layer.fontSize} min={12} max={96} onChange={(fontSize) => update({ ...layer, fontSize: Math.round(fontSize) })} />
-									<div className='flex flex-wrap gap-2'>
-										<Button variant='secondary' onPress={() => update({ ...layer, frame: { ...layer.frame, x: 0, w: 1 } })}>
-											Fit canvas width
-										</Button>
-										<Button
-											variant='secondary'
-											onPress={() => {
-												const output = compositionDimensions(layout.format),
-													h = Math.min(1, overlayMetadataHeight(layer.kind, clip ?? { title: "Clip title" }, layer.frame.w * output.width, layer.fontSize) / output.height);
-												update({ ...layer, frame: { ...layer.frame, y: Math.min(layer.frame.y, 1 - h), h } });
+						{selected ? (
+							<section className='space-y-4'>
+								<TextField variant='secondary' value={layer.label} maxLength={80} onChange={(label) => update({ ...layer, label })}>
+									<Label>Layer name</Label>
+									<Input />
+								</TextField>
+								{layer.kind === "video" ? (
+									<Select variant='secondary' value={boxMode} onChange={(key) => setBoxMode(String(key ?? "output"))}>
+										<Label>Edit box</Label>
+										<Select.Trigger>
+											<Select.Value />
+											<Select.Indicator />
+										</Select.Trigger>
+										<Select.Popover>
+											<ListBox>
+												<ListBox.Item id='source'>Source crop</ListBox.Item>
+												<ListBox.Item id='output'>Output layer</ListBox.Item>
+											</ListBox>
+										</Select.Popover>
+									</Select>
+								) : null}
+								<div className='grid grid-cols-2 gap-3 sm:grid-cols-4'>
+									{(["x", "y", "w", "h"] as const).map((key) => (
+										<Numeric
+											key={key}
+											label={key === "x" ? "Left (%)" : key === "y" ? "Top (%)" : key === "w" ? "Width (%)" : "Height (%)"}
+											value={Number((box[key] * 100).toFixed(2))}
+											min={key === "w" || key === "h" ? 0.2 : 0}
+											onChange={(value) => {
+												let frame = { ...box };
+												if (key === "x" || key === "y") frame[key] = Math.min(value / 100, 1 - frame[key === "x" ? "w" : "h"]);
+												else {
+													const ratio = sourceMode && layer.kind === "video" ? layer.source.w / layer.source.h : layer.kind === "logo" ? frame.w / frame.h : undefined;
+													frame = resizeCompositionRect(frame, key === "w" ? value / 100 - frame.w : 0, key === "h" ? value / 100 - frame.h : 0, "se", ratio);
+												}
+												if (sourceMode && layer.kind === "video") change(updateCompositionSource(layout, layer.id, frame, sourceDimensions));
+												else change(updateCompositionFrame(layout, layer.id, frame, sourceDimensions));
 											}}
-										>
-											Fit content
-										</Button>
-									</div>
+										/>
+									))}
 								</div>
-							) : null}
-							{layer.kind !== "video" && layer.kind !== "logo" ? (
-								<section aria-label='Widget appearance' className='space-y-4 border-t border-separator pt-4'>
-									<div>
-										<h3 className='font-medium'>Widget appearance</h3>
-										<p className='text-sm text-muted'>Use your brand or customize this widget in this layout.</p>
+								{layer.kind === "video" ? (
+									<Select
+										variant='secondary'
+										aria-label='Output shape'
+										value={null}
+										onChange={(key) => {
+											if (!key) return;
+											const frame = { ...layer.frame },
+												ratio = (key === "portrait" ? 9 / 16 : key === "landscape" ? 16 / 9 : 1) * (layout.format === "mobile" ? 1280 / 720 : 720 / 1280);
+											frame.h = Math.min(1 - frame.y, frame.w / ratio);
+											frame.w = Math.min(1 - frame.x, frame.h * ratio);
+											change(updateCompositionFrame(layout, layer.id, frame, sourceDimensions));
+										}}
+									>
+										<Label>Output shape</Label>
+										<Select.Trigger>
+											<Select.Value>Set output aspect ratio</Select.Value>
+											<Select.Indicator />
+										</Select.Trigger>
+										<Select.Popover>
+											<ListBox>
+												<ListBox.Item id='portrait'>Portrait 9:16</ListBox.Item>
+												<ListBox.Item id='landscape'>Landscape 16:9</ListBox.Item>
+												<ListBox.Item id='square'>Square 1:1</ListBox.Item>
+											</ListBox>
+										</Select.Popover>
+									</Select>
+								) : layer.kind !== "logo" ? (
+									<div className='space-y-3'>
+										<Numeric label='Text size' value={layer.fontSize} min={12} max={96} onChange={(fontSize) => update({ ...layer, fontSize: Math.round(fontSize) })} />
+										<div className='flex flex-wrap items-center gap-2'>
+											<Button variant='secondary' onPress={() => update({ ...layer, frame: { ...layer.frame, x: 0, w: 1 } })}>
+												Fit canvas width
+											</Button>
+											<Button
+												variant='secondary'
+												onPress={() => {
+													const output = compositionDimensions(layout.format),
+														h = Math.min(1, overlayMetadataHeight(layer.kind, clip ?? { title: "Clip title" }, layer.frame.w * output.width, layer.fontSize) / output.height);
+													update({ ...layer, frame: { ...layer.frame, y: Math.min(layer.frame.y, 1 - h), h } });
+												}}
+											>
+												Fit content
+											</Button>
+										</div>
 									</div>
-									<Switch isSelected={!layer.appearance} onChange={(inherit) => update({ ...layer, appearance: inherit ? undefined : {} })} aria-label='Use brand styling'>
-										<Switch.Content>
-											<Switch.Control>
-												<Switch.Thumb />
-											</Switch.Control>
-											<Label>Use brand styling</Label>
-										</Switch.Content>
-									</Switch>
-									{layer.appearance ? (
-										<>
-											{(
-												[
-													["themeTextColor", "Text Color"],
-													["themeBackgroundColor", "Background Color"],
-													["themeAccentColor", "Accent Color"],
-												] as const
-											).map(([field, label]) => (
-												<ThemeColorInput key={field} label={label} value={compositionWidgetTheme(layout, layer, brand)[field]} defaultValue={DEFAULT_WIDGET_THEME[field]} allowAlpha={field === "themeBackgroundColor"} onChange={(value) => update({ ...layer, appearance: { ...layer.appearance, [field]: value } })} />
-											))}
-											<div className='grid grid-cols-2 gap-3'>
+								) : null}
+								{layer.kind !== "video" && layer.kind !== "logo" ? (
+									<section aria-label='Widget appearance' className='flex flex-col gap-3 border-t border-separator pt-4'>
+										<div>
+											<h3 className='font-medium'>Widget appearance</h3>
+											<p className='text-sm text-muted'>Use your brand or customize this widget in this layout.</p>
+										</div>
+										<Switch isSelected={!layer.appearance} onChange={(inherit) => update({ ...layer, appearance: inherit ? undefined : {} })} aria-label='Use brand styling'>
+											<Switch.Content>
+												<Switch.Control>
+													<Switch.Thumb />
+												</Switch.Control>
+												Use brand styling
+											</Switch.Content>
+										</Switch>
+										{layer.appearance ? (
+											<>
 												{(
 													[
-														["borderRadius", "Corner radius (px)", 80],
-														["borderSize", "Border width (px)", 32],
+														["themeTextColor", "Text Color"],
+														["themeBackgroundColor", "Background Color"],
+														["themeAccentColor", "Accent Color"],
 													] as const
-												).map(([field, label, max]) => (
-													<Numeric key={field} label={label} value={compositionWidgetTheme(layout, layer, brand)[field]} max={max} onChange={(value) => update({ ...layer, appearance: { ...layer.appearance, [field]: value } })} />
+												).map(([field, label]) => (
+													<ThemeColorInput key={field} label={label} value={compositionWidgetTheme(layout, layer, brand)[field]} defaultValue={DEFAULT_WIDGET_THEME[field]} allowAlpha={field === "themeBackgroundColor"} onChange={(value) => update({ ...layer, appearance: { ...layer.appearance, [field]: value } })} />
 												))}
-											</div>
-										</>
-									) : (
-										<p className='text-sm text-muted'>
-											Colors and corners follow <Link href='/dashboard/settings?tab=brand'>Brand styling</Link>.
-										</p>
-									)}
-								</section>
-							) : null}
+												<div className='grid grid-cols-2 gap-3'>
+													{(
+														[
+															["borderRadius", "Corner radius (px)", 80],
+															["borderSize", "Border width (px)", 32],
+														] as const
+													).map(([field, label, max]) => (
+														<Numeric key={field} label={label} value={compositionWidgetTheme(layout, layer, brand)[field]} max={max} onChange={(value) => update({ ...layer, appearance: { ...layer.appearance, [field]: value } })} />
+													))}
+												</div>
+											</>
+										) : (
+											<p className='text-sm text-muted'>
+												Colors and corners follow <Link href='/dashboard/settings?tab=brand'>Brand styling</Link>.
+											</p>
+										)}
+									</section>
+								) : null}
 
-							<div className='flex flex-wrap gap-2'>
-								<Button variant='secondary' isDisabled={layout.layers.indexOf(layer) === layout.layers.length - 1} onPress={() => moveLayer(1)}>
-									<IconArrowUp className='size-4' />
-									Bring forward
-								</Button>
-								<Button variant='secondary' isDisabled={layout.layers.indexOf(layer) === 0} onPress={() => moveLayer(-1)}>
-									<IconArrowDown className='size-4' />
-									Send backward
-								</Button>
-								<Button
-									variant='danger-soft'
-									isDisabled={layout.layers.length === 1}
-									onPress={() => {
-										change({ ...layout, layers: layout.layers.filter((item) => item.id !== layer.id) });
-										setSelected(layout.layers.find((item) => item.id !== layer.id)!.id);
-									}}
-								>
-									<IconTrash className='size-4' />
-									Remove layer
-								</Button>
-							</div>
-						</section>
+								<div className='flex items-center gap-1' aria-label='Layer order'>
+									<Tooltip>
+										<Tooltip.Trigger>
+											<Button isIconOnly size='sm' aria-label='Bring forward' variant='secondary' isDisabled={layout.layers.indexOf(layer) === layout.layers.length - 1} onPress={() => moveLayer(1)}>
+												<IconArrowUp className='size-4' />
+											</Button>
+										</Tooltip.Trigger>
+										<Tooltip.Content>Bring forward</Tooltip.Content>
+									</Tooltip>
+									<Tooltip>
+										<Tooltip.Trigger>
+											<Button isIconOnly size='sm' aria-label='Send backward' variant='secondary' isDisabled={layout.layers.indexOf(layer) === 0} onPress={() => moveLayer(-1)}>
+												<IconArrowDown className='size-4' />
+											</Button>
+										</Tooltip.Trigger>
+										<Tooltip.Content>Send backward</Tooltip.Content>
+									</Tooltip>
+									<Tooltip>
+										<Tooltip.Trigger>
+											<Button
+												isIconOnly
+												size='sm'
+												aria-label='Remove layer'
+												variant='danger-soft'
+												isDisabled={layout.layers.length === 1}
+												onPress={() => {
+													change({ ...layout, layers: layout.layers.filter((item) => item.id !== layer.id) });
+													setSelected(layout.layers.find((item) => item.id !== layer.id)!.id);
+												}}
+											>
+												<IconTrash className='size-4' />
+											</Button>
+										</Tooltip.Trigger>
+										<Tooltip.Content>Remove layer</Tooltip.Content>
+									</Tooltip>
+								</div>
+							</section>
+						) : (
+							<p className='text-sm text-muted'>Select a layer to edit its appearance and position.</p>
+						)}
 					</div>
 				</Card.Content>
 			</Card>

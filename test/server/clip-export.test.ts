@@ -727,7 +727,7 @@ it("retains legacy untemplated portrait export plans", async () => {
 
 it("enforces free composed-export branding on the server and honors Pro removal", async () => {
 	const { createClipComposition } = await import("@lib/clipComposition");
-	const layout = createClipComposition("mobile");
+	const layout = { ...createClipComposition("mobile"), watermark: false };
 	render.mockResolvedValue(new Uint8Array(video));
 	exportBrand.mockResolvedValue({ brand: { watermark: false, themeTextColor: "#fff", themeBackgroundColor: "#000", themeAccentColor: "#fff", borderSize: 0, borderRadius: 10, fontFamily: "DejaVu Sans", fontSource: "builtin" }, revision: 1 });
 	exportEntitlements.mockResolvedValue({ proAccess: false });
@@ -736,6 +736,8 @@ it("enforces free composed-export branding on the server and honors Pro removal"
 	exportEntitlements.mockResolvedValue({ proAccess: true });
 	expect((await buildClipArchive({ creatorId: "owner", clipIds: ["ClipA"], layout }, undefined, "mp4")).ok).toBe(true);
 	expect(render.mock.calls.at(-1)?.[4]).toMatchObject({ watermark: false });
+	expect((await buildClipArchive({ creatorId: "owner", clipIds: ["ClipA"], layout: { ...layout, watermark: true } }, undefined, "mp4")).ok).toBe(true);
+	expect(render.mock.calls.at(-1)?.[4]).toMatchObject({ watermark: true });
 	render.mockClear();
 	expect((await buildClipArchive({ creatorId: "owner", clipIds: ["ClipA"] }, undefined, "mp4")).ok).toBe(true);
 	expect(render).not.toHaveBeenCalled();

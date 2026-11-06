@@ -25,10 +25,10 @@ beforeEach(() => {
 });
 it("passes creator branding and the enforced watermark to paired templates", async () => {
 	render(await Page({ searchParams: Promise.resolve({ layout: "paired", clip: "clip", reference: "ref", format: "mobile", new: "desktop" }) }));
-	expect(library).toHaveBeenCalledWith(expect.objectContaining({ creatorId: "creator", layoutId: "paired", clipId: "clip", referenceId: "ref", watermark: true }));
+	expect(library).toHaveBeenCalledWith(expect.objectContaining({ creatorId: "creator", layoutId: "paired", clipId: "clip", referenceId: "ref", canRemoveWatermark: false }));
 	brand.mockResolvedValue({ ok: true, brand: { watermark: false }, canRemoveWatermark: true });
 	render(await Page({ searchParams: Promise.resolve({ layout: "<invalid>", clip: "", reference: "x" }) }));
-	expect(library).toHaveBeenLastCalledWith(expect.objectContaining({ watermark: false, layoutId: undefined, clipId: undefined }));
+	expect(library).toHaveBeenLastCalledWith(expect.objectContaining({ canRemoveWatermark: true, layoutId: undefined, clipId: undefined }));
 });
 it("preserves layouts behind a retry when brand access fails and redirects signed-out users", async () => {
 	brand.mockResolvedValue({ ok: false, code: "SERVICE_UNAVAILABLE" });

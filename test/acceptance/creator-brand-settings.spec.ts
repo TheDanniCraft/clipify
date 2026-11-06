@@ -4,7 +4,7 @@ import { createClipComposition } from "../../src/app/lib/clipComposition";
 test.use({ actionTimeout: 10000, navigationTimeout: 15000 });
 for (const width of [390, 1440])
 	for (const theme of ["light", "dark"])
-		test(`Account brand imports OBS styling, previews custom fonts and shares it with clips at ${width} ${theme}`, { tag: "@shard:scenario" }, async ({ page, request, tourWorld }, info) => {
+		test(`Account brand previews custom fonts and shares it with clips at ${width} ${theme}`, { tag: "@shard:scenario" }, async ({ page, request, tourWorld }, info) => {
 			test.setTimeout(150000);
 			await page.setViewportSize({ width, height: 1000 });
 			await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
@@ -15,21 +15,19 @@ for (const width of [390, 1440])
 			await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 			await expect(page.getByRole("button", { name: "Apply brand", exact: true })).toBeEnabled();
 			console.log("Brand settings loaded");
-			await page.getByRole("button", { name: /Start from an existing overlay/ }).click();
-			await page.getByRole("option", { name: "My OBS brand", exact: true }).click();
-			await expect(page.getByRole("textbox", { name: "Google font family", exact: true })).toHaveValue("Laila");
-			console.log("Overlay imported");
+			await page.getByRole("button", { name: /Font source/ }).click();
+			await page.getByRole("option", { name: "Google Fonts", exact: true }).click();
+			await page.getByRole("textbox", { name: "Google font family", exact: true }).fill("Laila");
+			await page.getByRole("textbox", { name: "Text Color", exact: true }).fill("#ffeedd");
 			const preview = page.getByRole("img", { name: "Clip information styled with your brand" });
 			await preview.scrollIntoViewIfNeeded();
 			await expect.poll(() => preview.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth === 720), { timeout: 15000 }).toBe(true);
 			console.log("Native font preview loaded");
-			await page.getByText("Clipify watermark", { exact: true }).click();
-			await expect(page.getByRole("switch", { name: "Clipify watermark", exact: true })).not.toBeChecked();
 			await page.getByRole("button", { name: "Apply brand", exact: true }).click();
 			await page.getByRole("button", { name: "Apply to overlays and clips", exact: true }).click();
 			await expect(page.getByRole("button", { name: "Save brand", exact: true })).toBeDisabled();
 			const { rows } = await tourWorld.fixture.pool.query("SELECT state FROM user_content_states WHERE user_id=$1 AND content_key='creator-brand:v1'", [creatorId]);
-			expect(JSON.parse(rows[0].state)).toMatchObject({ revision: 1, brand: { fontFamily: "Laila", fontSource: "google", watermark: false, themeTextColor: "#ffeedd" } });
+			expect(JSON.parse(rows[0].state)).toMatchObject({ revision: 1, brand: { fontFamily: "Laila", fontSource: "google", watermark: true, themeTextColor: "#FFEEDD" } });
 			await expect(page.getByRole("textbox", { name: "Google font family", exact: true })).toBeVisible();
 			await page.screenshot({ path: info.outputPath("brand-settings.png"), fullPage: true });
 			const mobile = createClipComposition("mobile");
@@ -38,7 +36,10 @@ for (const width of [390, 1440])
 			await tourWorld.fixture.pool.query("UPDATE playlist_clips SET clip_data=jsonb_set(clip_data::jsonb,'{testPreviewOfficial}','true')::text WHERE clip_id=$1", [id]);
 			const imageResponse = page.waitForResponse((response) => response.url().includes("/api/clips/widget-preview?data=") && decodeURIComponent(response.url()).includes("Laila") && response.status() === 200);
 			await page.goto(`${tourWorld.origin}/dashboard/clip-layouts?layout=branded&reference=${id}`);
-			await expect(page.getByRole("link", { name: "Brand styling", exact: true })).toBeVisible();
+			await expect(page.getByRole("switch", { name: "Clipify watermark", exact: true })).toBeChecked();
+			await page.getByText("Clipify watermark", { exact: true }).locator("..").locator('[data-slot="switch-control"]').click();
+			await expect(page.getByRole("switch", { name: "Clipify watermark", exact: true })).not.toBeChecked();
+			await page.getByRole("button", { name: "Save layout", exact: true }).click();
 			await imageResponse;
 			await expect(page.getByRole("button", { name: "Play preview", exact: true })).toBeEnabled();
 			await page.screenshot({ path: info.outputPath("branded-composition.png"), fullPage: true });
@@ -47,13 +48,14 @@ for (const width of [390, 1440])
 			await expect(page.getByRole("textbox", { name: "Text Color", exact: true })).toHaveCount(0);
 		});
 
-test("Free brand settings keep the watermark and open the existing upgrade without saving", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }, info) => {
+test("Free clip layouts keep the watermark and open the existing upgrade without saving", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }, info) => {
 	test.setTimeout(120000);
 	const { creatorId } = await seedCreatorLibrary({ page, request, tourWorld });
+	await tourWorld.fixture.pool.query("INSERT INTO user_content_states(user_id,content_key,state) VALUES($1,$2,$3)", [creatorId, "clip-layout-template:v2:free", JSON.stringify({ name: "Free", composition: createClipComposition("mobile") })]);
 	await tourWorld.fixture.pool.query("UPDATE users SET plan='free',created_at='2020-01-01' WHERE id=$1", [creatorId]);
 	await tourWorld.fixture.pool.query("DELETE FROM entitlement_grants WHERE user_id=$1", [creatorId]);
 	await page.setViewportSize({ width: 390, height: 900 });
-	await page.goto(`${tourWorld.origin}/dashboard/settings?tab=brand`);
+	await page.goto(`${tourWorld.origin}/dashboard/clip-layouts?layout=free`);
 	await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 	const watermark = page.getByRole("switch", { name: "Clipify watermark", exact: true });
 	await expect(watermark).toBeChecked();
@@ -171,19 +173,10 @@ test("Stalled brand loading offers retry and then loads the creator settings", {
 	await expect(page.getByRole("textbox", { name: "Text Color", exact: true })).toBeVisible();
 });
 
-test("Untrusted overlay font hosts use the built-in fallback when imported and saved", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
-	const { creatorId } = await seedCreatorLibrary({ page, request, tourWorld });
-	await tourWorld.fixture.pool.query("UPDATE overlays SET name='Imported style',theme_font_family=$2,theme_text_color='#ffeecc' WHERE id=$1", [tourWorld.owner!.overlayId, "Laila, sans-serif||url||https://fonts.googleapis.com.evil.example/css2?family=Laila"]);
+test("Brand settings omit legacy overlay import and layout watermark controls", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
+	await seedCreatorLibrary({ page, request, tourWorld });
 	await page.goto(`${tourWorld.origin}/dashboard/settings?tab=brand`);
-	await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 	await expect(page.getByRole("button", { name: "Apply brand", exact: true })).toBeEnabled();
-	await page.getByRole("button", { name: /Start from an existing overlay/ }).click();
-	await page.getByRole("option", { name: "Imported style", exact: true }).click();
-	await expect(page.getByRole("textbox", { name: "Google font family", exact: true })).toHaveCount(0);
-	await expect(page.getByRole("textbox", { name: "Text Color", exact: true })).toHaveValue("#FFEECC");
-	await page.getByRole("button", { name: "Apply brand", exact: true }).click();
-	await page.getByRole("button", { name: "Apply to overlays and clips", exact: true }).click();
-	await expect(page.getByRole("button", { name: "Save brand", exact: true })).toBeDisabled();
-	const { rows } = await tourWorld.fixture.pool.query("SELECT state FROM user_content_states WHERE user_id=$1 AND content_key='creator-brand:v1'", [creatorId]);
-	expect(JSON.parse(rows[0].state).brand).toMatchObject({ fontSource: "builtin", fontFamily: "DejaVu Sans" });
+	await expect(page.getByRole("button", { name: /Start from an existing overlay/ })).toHaveCount(0);
+	await expect(page.getByRole("switch", { name: "Clipify watermark", exact: true })).toHaveCount(0);
 });

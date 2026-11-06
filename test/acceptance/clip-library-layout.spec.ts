@@ -1,49 +1,54 @@
+import type { Page, APIRequestContext, TestInfo } from "@playwright/test";
+import type { TourWorld } from "../bdd/support/user-tour";
 import { test, expect } from "../bdd/support/user-tour";
 import { seedCreatorLibrary } from "../support/creator-library";
 import { writeFile } from "node:fs/promises";
+async function openLibraryNavigation(page: Page, request: APIRequestContext, tourWorld: TourWorld, info: TestInfo, width: number, theme: "light" | "dark") {
+	await page.setViewportSize({ width, height: 900 });
+	await page.addInitScript((value) => localStorage.setItem("theme", value), theme);
+	const seeded = await seedCreatorLibrary({ page, request, tourWorld });
+	await page.goto(`${tourWorld.origin}/dashboard/clips`);
+	const privacy = page.getByRole("button", { name: "Reject optional", exact: true });
+	await expect(privacy).toBeVisible();
+	if (width === 390) {
+		await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+		await expect(page.getByRole("treegrid", { name: "Creator navigation", exact: true })).toBeVisible();
+		await expect(page.locator('[data-slot="sidebar-mobile"]').getByRole("button", { name: "Reject optional", exact: true })).toBeVisible();
+	}
+	await Promise.all([page.waitForEvent("load"), privacy.click()]);
+	await expect(privacy).not.toBeVisible();
+	await page.reload();
+	await expect(page.getByRole("heading", { name: "Clip Inventory", exact: true })).toBeVisible();
+	if (width !== 390) await expect(page.locator('[data-tour="guide-launcher"]')).toBeVisible();
+	await expect(page.locator("html")).toHaveClass(theme === "dark" ? /dark/ : /light/);
+	const launcher = page.getByRole("button", { name: "Search clips and tools", exact: true });
+	if (width !== 390) await expect(launcher).toBeVisible();
+	const toggle = page.getByRole("button", { name: "Toggle navigation", exact: true });
+	if (width === 390) {
+		await expect(toggle).toHaveAttribute("aria-expanded", "false");
+		await toggle.press("Enter");
+		await expect(page.locator('[data-slot="sidebar-mobile"] [data-tour="guide-launcher"]')).toBeVisible();
+		await expect(page.getByRole("treegrid", { name: "Creator navigation", exact: true })).toBeVisible();
+		await page.screenshot({ path: info.outputPath(`drawer-${width}-${theme}.png`), fullPage: true, animations: "disabled" });
+		await page.keyboard.press("Control+k");
+	} else {
+		await launcher.click();
+		await expect(page.getByRole("dialog", { name: "Search clips and tools", exact: true })).toBeVisible();
+		await page.getByRole("button", { name: "Close search", exact: true }).click();
+		await expect(page.getByRole("dialog", { name: "Search clips and tools", exact: true })).not.toBeVisible();
+		await page.keyboard.press("Control+b");
+		await expect(toggle).toHaveAttribute("aria-expanded", "false");
+		await expect(page.locator("[data-slot=sidebar]")).toHaveCSS("width", "48px");
+		await page.screenshot({ path: info.outputPath(`rail-${width}-${theme}.png`), fullPage: true, animations: "disabled" });
+		await page.keyboard.press("Control+k");
+	}
+	return { seeded, launcher, toggle };
+}
 for (const width of [390, 820, 1024, 1440])
 	for (const theme of ["light", "dark"] as const) {
 		test(`Clip library navigation, search and focus at ${width}px in ${theme}`, async ({ page, request, tourWorld }, info) => {
 			test.setTimeout(120000);
-			await page.setViewportSize({ width, height: 900 });
-			await page.addInitScript((value) => localStorage.setItem("theme", value), theme);
-			const seeded = await seedCreatorLibrary({ page, request, tourWorld });
-			await page.goto(`${tourWorld.origin}/dashboard/clips`);
-			const privacy = page.getByRole("button", { name: "Reject optional", exact: true });
-			await expect(privacy).toBeVisible();
-			if (width === 390) {
-				await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
-				await expect(page.getByRole("treegrid", { name: "Creator navigation", exact: true })).toBeVisible();
-				await expect(page.locator('[data-slot="sidebar-mobile"]').getByRole("button", { name: "Reject optional", exact: true })).toBeVisible();
-			}
-			await Promise.all([page.waitForEvent("load"), privacy.click()]);
-			await expect(privacy).not.toBeVisible();
-			await page.reload();
-			await expect(page.getByRole("heading", { name: "Clip Inventory", exact: true })).toBeVisible();
-			if (width !== 390) await expect(page.locator('[data-tour="guide-launcher"]')).toBeVisible();
-			await expect(page.locator("html")).toHaveClass(theme === "dark" ? /dark/ : /light/);
-			const launcher = page.getByRole("button", { name: "Search clips and tools", exact: true });
-			if (width !== 390) await expect(launcher).toBeVisible();
-			const toggle = page.getByRole("button", { name: "Toggle navigation", exact: true });
-			if (width === 390) {
-				await expect(toggle).toHaveAttribute("aria-expanded", "false");
-				await toggle.press("Enter");
-				await expect(page.locator('[data-slot="sidebar-mobile"] [data-tour="guide-launcher"]')).toBeVisible();
-				await expect(page.getByRole("treegrid", { name: "Creator navigation", exact: true })).toBeVisible();
-				await page.screenshot({ path: info.outputPath(`drawer-${width}-${theme}.png`), fullPage: true, animations: "disabled" });
-				await page.keyboard.press("Control+k");
-			} else {
-				if (width === 390) await toggle.click();
-				await launcher.click();
-				await expect(page.getByRole("dialog", { name: "Search clips and tools", exact: true })).toBeVisible();
-				await page.getByRole("button", { name: "Close search", exact: true }).click();
-				await expect(page.getByRole("dialog", { name: "Search clips and tools", exact: true })).not.toBeVisible();
-				await page.keyboard.press("Control+b");
-				await expect(toggle).toHaveAttribute("aria-expanded", "false");
-				await expect(page.locator("[data-slot=sidebar]")).toHaveCSS("width", "48px");
-				await page.screenshot({ path: info.outputPath(`rail-${width}-${theme}.png`), fullPage: true, animations: "disabled" });
-				await page.keyboard.press("Control+k");
-			}
+			const { seeded, launcher, toggle } = await openLibraryNavigation(page, request, tourWorld, info, width, theme);
 			const dialog = page.getByRole("dialog", { name: "Search clips and tools", exact: true });
 			await expect(dialog).toBeVisible();
 			await expect(page.getByRole("dialog")).toHaveCount(1);

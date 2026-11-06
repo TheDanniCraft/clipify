@@ -107,7 +107,7 @@ it("draws the channel logo from the authorized image proxy and offers recovery i
 	await ready();
 	expect(images[0].src).toContain("/api/clips/layout-logo?creatorId=owner");
 	act(() => frames.shift()!(0));
-	expect(decodeURIComponent(images.find((image) => image.src.startsWith("data:image/svg+xml")).src)).toContain("Twitch channel");
+	expect(decodeURIComponent(images.find((image) => image.src.startsWith("data:image/svg+xml")).src)).toContain("twitch.tv/channel");
 	act(() => images[0].onload());
 	act(() => frames.shift()!(0));
 	expect(ctx.drawImage).toHaveBeenCalledWith(images[0], expect.any(Number), expect.any(Number), expect.any(Number), expect.any(Number));

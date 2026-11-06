@@ -1,20 +1,18 @@
 "use client";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Button, Card, Description, FieldError, Form, Input, Label, ListBox, Modal, NumberField, Select, Skeleton, Switch, TextField } from "@heroui/react";
+import { Button, Card, Description, FieldError, Form, Input, Label, ListBox, Modal, NumberField, Select, Skeleton, TextField } from "@heroui/react";
 import { IconDeviceFloppy } from "@tabler/icons-react";
 import { useNavigationGuard } from "nextjs-nav-guard";
-import { getCreatorBrand, getBrandOverlaySources, saveCreatorBrand } from "@actions/creatorBrand";
+import { getCreatorBrand, saveCreatorBrand } from "@actions/creatorBrand";
 import { creatorBrandSchema, DEFAULT_WIDGET_THEME, type CreatorBrand } from "@lib/overlayMetadata";
 import { useDeploymentDraft } from "@lib/deploymentDrafts";
 import { trackProductEvent } from "@lib/analytics";
 import { notify } from "@lib/toast";
 import type { AuthenticatedUser } from "@types";
 import ThemeColorInput from "@components/theme/ThemeColorInput";
-import { parseThemeFontSetting, sanitizeFontCssUrl } from "@components/overlayPlayer.utils";
 import ControlledModal from "@components/controlledModal";
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
-import UpgradeModal from "@components/upgradeModal";
 function BrandPreview({ creatorId, brand, username }: { creatorId: string; brand: CreatorBrand; username: string }) {
 	const [src, setSrc] = useState(""),
 		[failed, setFailed] = useState(false),
@@ -42,20 +40,16 @@ function BrandPreview({ creatorId, brand, username }: { creatorId: string; brand
 	);
 }
 export default function BrandSettingsPanel({ user }: { user: AuthenticatedUser }) {
-	const [sourceId, setSourceId] = useState<string | null>(null);
 	const [loaded, setLoaded] = useState(false),
 		[failed, setFailed] = useState(false),
 		[attempt, setAttempt] = useState(0),
 		[draft, setDraft] = useState<CreatorBrand>(() => creatorBrandSchema.parse({})),
 		[base, setBase] = useState<CreatorBrand>(() => creatorBrandSchema.parse({})),
 		[revision, setRevision] = useState(0),
-		[canRemove, setCanRemove] = useState(false),
 		[canEdit, setCanEdit] = useState(false),
 		[busy, setBusy] = useState(false),
 		[confirm, setConfirm] = useState(false),
-		[upgrade, setUpgrade] = useState(false),
-		[fontError, setFontError] = useState(""),
-		[sources, setSources] = useState<Extract<Awaited<ReturnType<typeof getBrandOverlaySources>>, { ok: true }>["overlays"]>([]);
+		[fontError, setFontError] = useState("");
 	useDeploymentDraft(loaded ? `creator-brand:${user.id}` : null, draft, base, (value, saved) => {
 		setDraft(value as CreatorBrand);
 		setBase(saved as CreatorBrand);
@@ -82,7 +76,6 @@ export default function BrandSettingsPanel({ user }: { user: AuthenticatedUser }
 				setDraft(initial);
 				setBase(initial);
 				setRevision(result.revision);
-				setCanRemove(result.canRemoveWatermark);
 				setCanEdit(result.canEdit);
 				setLoaded(true);
 			})
@@ -92,18 +85,13 @@ export default function BrandSettingsPanel({ user }: { user: AuthenticatedUser }
 					setFailed(true);
 				}
 			});
-		void getBrandOverlaySources(user.id)
-			.then((result) => {
-				if (active && result.ok) setSources(result.overlays);
-			})
-			.catch(() => {});
 		return () => {
 			active = false;
 			clearTimeout(timeout);
 		};
 	}, [user.id, attempt]);
 	async function save() {
-		const parsed = creatorBrandSchema.safeParse({ ...draft, watermark: !canRemove || draft.watermark });
+		const parsed = creatorBrandSchema.safeParse(draft);
 		if (!parsed.success) {
 			setFontError("Choose a valid font and appearance.");
 			return;
@@ -115,10 +103,6 @@ export default function BrandSettingsPanel({ user }: { user: AuthenticatedUser }
 		try {
 			const result = await saveCreatorBrand(user.id, snapshot, revision);
 			if (!result.ok) {
-				if (result.code === "PRO_REQUIRED") {
-					setUpgrade(true);
-					return;
-				}
 				if (result.code === "FONT_UNAVAILABLE") {
 					setFontError("This font could not be loaded. Check its Google Fonts family name or retry.");
 					return;
@@ -135,16 +119,6 @@ export default function BrandSettingsPanel({ user }: { user: AuthenticatedUser }
 		} finally {
 			setBusy(false);
 		}
-	}
-	function importOverlay(id: string) {
-		const overlay = sources.find((source) => source.id === id);
-		if (!overlay) return;
-		const font = parseThemeFontSetting(overlay.themeFontFamily);
-		const family = font.fontFamily.split(",")[0].replace(/["']/g, "").trim();
-		const google = Boolean(sanitizeFontCssUrl(font.fontUrl));
-		const next = creatorBrandSchema.safeParse({ ...draft, ...overlay, fontFamily: google ? family : "DejaVu Sans", fontSource: google ? "google" : "builtin", borderSize: Math.min(32, overlay.borderSize), borderRadius: Math.min(80, overlay.borderRadius) });
-		if (next.success) setDraft(next.data);
-		else notify({ title: "Overlay style could not be copied", description: "The original overlay is unchanged. Choose its colors and font below.", color: "warning" });
 	}
 	return (
 		<DashboardEditorLayout>
@@ -190,37 +164,6 @@ export default function BrandSettingsPanel({ user }: { user: AuthenticatedUser }
 								}}
 							>
 								<BrandPreview creatorId={user.id} brand={draft} username={user.username} />
-								{revision === 0 ? (
-									<div className='space-y-3'>
-										<p className='text-sm text-muted'>Your current overlays keep their own styles until you apply an account brand. Widget positions and video effects stay in each editor.</p>
-										{sources.length ? (
-											<Select
-												variant='secondary'
-												value={sourceId}
-												onChange={(value) => {
-													setSourceId(value === null ? null : String(value));
-													importOverlay(String(value));
-												}}
-											>
-												<Label>Start from an existing overlay</Label>
-												<Select.Trigger>
-													<Select.Value />
-													<Select.Indicator />
-												</Select.Trigger>
-												<Select.Popover>
-													<ListBox>
-														{sources.map((source) => (
-															<ListBox.Item key={source.id} id={source.id} textValue={source.name}>
-																{source.name}
-																<ListBox.ItemIndicator />
-															</ListBox.Item>
-														))}
-													</ListBox>
-												</Select.Popover>
-											</Select>
-										) : null}
-									</div>
-								) : null}
 								<section className='grid grid-cols-1 gap-4 md:grid-cols-2' aria-label='Brand colors'>
 									{(
 										[
@@ -324,26 +267,6 @@ export default function BrandSettingsPanel({ user }: { user: AuthenticatedUser }
 										</Select>
 									)}
 								</section>
-								<Switch
-									aria-label='Clipify watermark'
-									isSelected={!canRemove || draft.watermark}
-									onChange={(selected) => {
-										if (!selected && !canRemove) {
-											trackProductEvent("export_branding_upgrade_requested", { source: "brand_settings" });
-											setUpgrade(true);
-											return;
-										}
-										setDraft({ ...draft, watermark: selected });
-									}}
-								>
-									<Switch.Content>
-										<Switch.Control>
-											<Switch.Thumb />
-										</Switch.Control>
-										Clipify watermark
-									</Switch.Content>
-									<Description>A small Clipify mark on Desktop and Mobile exports. Original downloads stay untouched. Remove the mark with Pro.</Description>
-								</Switch>
 							</Form>
 						</fieldset>
 					)}
@@ -375,7 +298,6 @@ export default function BrandSettingsPanel({ user }: { user: AuthenticatedUser }
 					</Button>
 				</Modal.Footer>
 			</ControlledModal>
-			<UpgradeModal user={user} isOpen={upgrade} onOpenChange={setUpgrade} source='upgrade_modal' feature='clip_export_branding' />
 		</DashboardEditorLayout>
 	);
 }

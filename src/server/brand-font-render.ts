@@ -118,6 +118,16 @@ export async function renderBrandWidget(kind: "channel" | "title" | "clipper", c
 						};
 					}),
 			);
+			if (kind === "channel" && overlays.length) {
+				const bodyLeft = Math.max(...overlays.map((layer) => layer.left));
+				const body = overlays.filter((layer) => layer.left === bodyLeft);
+				const heights = await Promise.all(body.map(async (layer) => (await sharp(layer.input).metadata()).height ?? 0));
+				const top = Math.min(...body.map((layer) => layer.top));
+				const bottom = Math.max(...body.map((layer, index) => layer.top + heights[index]));
+				const offset = Math.round((height - (bottom - top)) / 2 - top);
+				for (const layer of body) layer.top += offset;
+			}
+
 			signal.throwIfAborted();
 			return sharp(Buffer.from(scene), { limitInputPixels: 1000000 }).composite(overlays).png().toBuffer();
 		};

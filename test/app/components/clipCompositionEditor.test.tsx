@@ -1,3 +1,4 @@
+jest.mock("@components/upgradeModal", () => ({ __esModule: true, default: ({ isOpen }: any) => (isOpen ? <div role='dialog'>Upgrade branding</div> : null) }));
 jest.mock("@components/theme/ThemeColorInput", () => ({
 	__esModule: true,
 	default: ({ label, value, onChange }: any) => (
@@ -108,7 +109,7 @@ it("edits source and output geometry, presets, widgets and stacking without chan
 	fireEvent.change(screen.getByRole("spinbutton", { name: "Text size" }), { target: { value: "48" } });
 	fireEvent.change(screen.getByRole("spinbutton", { name: "Height (%)" }), { target: { value: "8" } });
 	fireEvent.click(screen.getByRole("button", { name: "Send backward" }));
-	fireEvent.click(screen.getByRole("button", { name: "Clip info" }));
+
 	fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
 	await waitFor(() => expect(saved).toHaveBeenCalled());
 	const layers = saveTemplate.mock.calls[0][1].composition.layers;
@@ -267,7 +268,7 @@ it("routes shared brand changes to settings once the creator has adopted a globa
 	const { creatorBrandSchema } = await import("@lib/overlayMetadata");
 	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} onBack={() => {}} onSaved={() => {}} brand={creatorBrandSchema.parse({})} />);
 	expect(screen.queryByRole("button", { name: "Widget appearance" })).not.toBeInTheDocument();
-	expect(screen.getByRole("link", { name: "Brand styling" })).toHaveAttribute("href", "/dashboard/settings?tab=brand");
+	expect(screen.queryByRole("link", { name: "Brand styling" })).not.toBeInTheDocument();
 });
 
 it("resets only a widget override to its brand without changing the account style", async () => {
@@ -282,4 +283,32 @@ it("resets only a widget override to its brand without changing the account styl
 	await waitFor(() => expect(saveTemplate).toHaveBeenCalled());
 	expect(saveTemplate.mock.calls[0][1].composition.layers[0].appearance).toBeUndefined();
 	expect(brand.borderRadius).toBe(30);
+});
+
+it("stores branding per layout and lets Pro keep credits on one composition", async () => {
+	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} canRemoveWatermark onBack={() => {}} onSaved={() => {}} />);
+	fireEvent.click(screen.getByRole("switch", { name: "Clipify watermark" }));
+	fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
+	await waitFor(() => expect(saveTemplate).toHaveBeenCalledWith("owner", expect.objectContaining({ composition: expect.objectContaining({ watermark: false }) })));
+	expect(composition.watermark).toBeUndefined();
+	expect(screen.queryByRole("link", { name: "Brand styling" })).not.toBeInTheDocument();
+});
+it("keeps free layout credits on and opens upgrade without saving an unavailable value", () => {
+	render(<ClipCompositionEditor creatorId='owner' user={{ id: "owner" } as never} entry={entry} initial={composition} onBack={() => {}} onSaved={() => {}} />);
+	const toggle = screen.getByRole("switch", { name: "Clipify watermark" });
+	fireEvent.click(toggle);
+	expect(toggle).toBeChecked();
+	expect(screen.getByRole("dialog")).toHaveTextContent("Upgrade branding");
+	expect(saveTemplate).not.toHaveBeenCalled();
+});
+
+it("reorders layers by dragging and lets the selected row dismiss the inspector", async () => {
+	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} onBack={() => {}} onSaved={() => {}} />);
+	const data = { types: ["application/x-clipify-layer"], setData: jest.fn(), getData: () => "gameplay", effectAllowed: "" };
+	fireEvent.drop(screen.getByRole("button", { name: "Camera" }).parentElement!, { dataTransfer: data });
+	fireEvent.click(screen.getByRole("button", { name: "Gameplay" }));
+	expect(screen.queryByRole("textbox", { name: "Layer name" })).not.toBeInTheDocument();
+	fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
+	await waitFor(() => expect(saveTemplate).toHaveBeenCalled());
+	expect(saveTemplate.mock.calls[0][1].composition.layers.map((layer: any) => layer.id)).toEqual(["gameplay", "camera"]);
 });

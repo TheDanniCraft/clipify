@@ -24,3 +24,19 @@ it("serves bold fonts and reports a missing runtime font without disclosing path
 		spy.mockRestore();
 	}
 });
+
+it("centers channel name and address together beside the avatar", async () => {
+	const { renderBrandWidget } = await import("@/server/brand-font-render");
+	const { creatorBrandSchema } = await import("@lib/overlayMetadata");
+	const sharp = (await import("sharp")).default;
+	const png = await renderBrandWidget("channel", { title: "", broadcasterName: "Streamer" }, 720, 200, 32, creatorBrandSchema.parse({ themeBackgroundColor: "#00000000" }), AbortSignal.timeout(10000));
+	const pixels = await sharp(png).ensureAlpha().raw().toBuffer();
+	const ys: number[] = [];
+	for (let y = 0; y < 200; y++)
+		for (let x = 205; x < 720; x++) {
+			const i = (y * 720 + x) * 4;
+			if (pixels[i] > 220 && pixels[i + 1] > 220 && pixels[i + 2] > 220 && pixels[i + 3] > 150) ys.push(y);
+		}
+	expect(ys.length).toBeGreaterThan(20);
+	expect(Math.abs((Math.min(...ys) + Math.max(...ys)) / 2 - 100)).toBeLessThanOrEqual(2);
+});

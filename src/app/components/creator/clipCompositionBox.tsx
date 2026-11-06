@@ -111,7 +111,7 @@ export default function CompositionBox({
 	}, []);
 	const pointer = { onLostPointerCapture: end };
 	return (
-		<div className={`absolute border-2 ${selected ? "opacity-100" : "opacity-70"}`} style={{ "--layer-color": color, borderColor: color, left: `${rect.x * 100}%`, top: `${rect.y * 100}%`, width: `${rect.w * 100}%`, height: `${rect.h * 100}%` } as CSSProperties}>
+		<div className={`absolute border-2 ${selected ? "opacity-100" : "border-transparent"}`} style={{ "--layer-color": color, borderColor: selected ? color : "transparent", left: `${rect.x * 100}%`, top: `${rect.y * 100}%`, width: `${rect.w * 100}%`, height: `${rect.h * 100}%` } as CSSProperties}>
 			<Button
 				{...pointer}
 				aria-label={label}
@@ -140,7 +140,7 @@ export default function CompositionBox({
 						const position = edge ? (corner === "n" ? "inset-x-3 -top-1.5 h-3 w-auto cursor-ns-resize" : corner === "s" ? "inset-x-3 -bottom-1.5 h-3 w-auto cursor-ns-resize" : corner === "w" ? "inset-y-3 -left-1.5 w-3 h-auto cursor-ew-resize" : "inset-y-3 -right-1.5 w-3 h-auto cursor-ew-resize") : `${corner.includes("n") ? "-top-3" : "-bottom-3"} ${corner.includes("w") ? "-left-3" : "-right-3"} ${corner === "nw" || corner === "se" ? "cursor-nwse-resize" : "cursor-nesw-resize"}`;
 						const name = `${corner.includes("n") ? "top" : corner.includes("s") ? "bottom" : ""} ${corner.includes("w") ? "left" : corner.includes("e") ? "right" : ""}`.trim();
 						return (
-							<Button key={corner} {...pointer} aria-label={`Resize ${label} ${name}`} variant='ghost' onPointerDownCapture={(e) => begin(e, corner)} className={`absolute z-10 size-6 min-w-0 touch-none rounded-none p-0 ${position}`}>
+							<Button key={corner} {...pointer} aria-label={`Resize ${label} ${name}`} variant='ghost' onPointerDownCapture={(e) => begin(e, corner)} className={`absolute z-10 size-6 min-h-0 min-w-0 touch-none rounded-none bg-transparent p-0 shadow-none hover:bg-transparent data-[hovered=true]:bg-transparent data-[pressed=true]:bg-transparent ${position}`}>
 								{!edge ? <span className='size-2 border border-white bg-[var(--layer-color)]' /> : null}
 							</Button>
 						);

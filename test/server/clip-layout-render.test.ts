@@ -273,3 +273,29 @@ it("keeps Channel info exportable when its optional avatar is unavailable, while
 		await rm(dir, { recursive: true, force: true });
 	}
 });
+
+it("moves encoded branding from bottom-right to top-left after five seconds", async () => {
+	const { createClipComposition } = await import("@lib/clipComposition");
+	const sharp = (await import("sharp")).default;
+	const dir = await mkdtemp(join(tmpdir(), "clipify-moving-brand-"));
+	try {
+		const input = join(dir, "input.mp4");
+		execFileSync("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "color=black:size=640x360:rate=5", "-t", "5.3", "-c:v", "libx264", "-threads", "1", "-pix_fmt", "yuv420p", "-y", input]);
+		const bytes = await renderClipLayout(new Uint8Array(await readFile(input)), createClipComposition("desktop"), { title: "Clip" }, AbortSignal.timeout(30000), { watermark: true });
+		const output = join(dir, "output.mp4");
+		await writeFile(output, bytes);
+		for (const [time, left, top, emptyLeft, emptyTop] of [
+			[0, 1064, 660, 16, 16],
+			[5.1, 16, 16, 1064, 660],
+		]) {
+			const png = execFileSync("ffmpeg", ["-v", "error", "-ss", String(time), "-i", output, "-frames:v", "1", "-f", "image2pipe", "-vcodec", "png", "pipe:1"]);
+			const average = async (x: number, y: number) => {
+				const data = await sharp(png).extract({ left: x, top: y, width: 200, height: 44 }).removeAlpha().raw().toBuffer();
+				return data.reduce((n, v) => n + v, 0) / data.length;
+			};
+			expect(await average(left, top)).toBeGreaterThan((await average(emptyLeft, emptyTop)) + 5);
+		}
+	} finally {
+		await rm(dir, { recursive: true, force: true });
+	}
+}, 45000);

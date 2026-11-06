@@ -34,6 +34,47 @@ export function parseBroadcastCursor(cursor: string | undefined, creatorId: stri
 
 const videoSchema = z.object({ id: z.string().regex(/^\d+$/).max(200), user_id: z.string().min(1).max(200), title: z.string().max(1000), created_at: z.string().datetime(), type: z.string(), duration: z.string().max(100), thumbnail_url: z.string().optional() });
 const pageSchema = z.object({ data: z.array(videoSchema).max(20), after: z.string().max(1024).optional(), fetchedAt: z.string().datetime() });
+function matchesBroadcast(video: z.infer<typeof videoSchema>, creatorId: string, videoId?: string) {
+	return video.user_id === creatorId && video.type === "archive" && (!videoId || video.id === videoId);
+}
+async function fetchBroadcastPage(creatorId: string, videoId: string | undefined, providerAfter: string | undefined) {
+	const credentials = await getAccessTokenResultInternal(creatorId);
+	if (!credentials.token) throw new Error("RECONNECT_REQUIRED");
+	const url = new URL("https://api.twitch.tv/helix/videos");
+	if (videoId) url.searchParams.set("id", videoId);
+	else {
+		url.searchParams.set("user_id", creatorId);
+		url.searchParams.set("type", "archive");
+		url.searchParams.set("first", "20");
+		if (providerAfter) url.searchParams.set("after", providerAfter);
+	}
+	const signal = AbortSignal.timeout(5000);
+	const response = await fetch(url, { headers: { Authorization: `Bearer ${credentials.token.accessToken}`, "Client-Id": process.env.TWITCH_CLIENT_ID ?? "" }, signal, redirect: "error" });
+	if (!response.ok) {
+		await response.body?.cancel();
+		if (videoId && response.status === 404) throw new Error("NOT_FOUND");
+		throw new Error(response.status === 401 ? "RECONNECT_REQUIRED" : "SERVICE_UNAVAILABLE");
+	}
+	const payload = z.object({ data: z.array(videoSchema).max(20), pagination: z.object({ cursor: z.string().max(1024).optional() }).optional() }).parse(JSON.parse(new TextDecoder().decode(await readBoundedResponse(response, 1024 * 1024, signal))));
+	return { data: payload.data.filter((video) => matchesBroadcast(video, creatorId, videoId)), after: payload.pagination?.cursor, fetchedAt: new Date().toISOString() };
+}
+async function cachedBroadcastPage(creatorId: string, key: string, videoId: string | undefined, providerAfter: string | undefined) {
+	const cached = await getTwitchCacheEntry<unknown>(TwitchCacheType.User, key);
+	const stored = pageSchema.safeParse(cached.value);
+	let page = stored.success ? stored.data : null;
+	let stale = false;
+	if (!page || Date.now() - Date.parse(page.fetchedAt) >= 5 * 60000) {
+		try {
+			page = await fetchBroadcastPage(creatorId, videoId, providerAfter);
+			await setTwitchCache(TwitchCacheType.User, key, page, 24 * 60 * 60);
+		} catch (error) {
+			if (error instanceof Error && error.message === "NOT_FOUND") return { ok: false as const, code: "NOT_FOUND" };
+			if (!page) return { ok: false as const, code: error instanceof Error && error.message === "RECONNECT_REQUIRED" ? "RECONNECT_REQUIRED" : "SERVICE_UNAVAILABLE" };
+			stale = true;
+		}
+	}
+	return { ok: true as const, page, stale };
+}
 export async function readCreatorBroadcasts(creatorId: string, after?: string, videoId?: string) {
 	const grant = await authorizeCreatorOperation({ creatorId, resourceOwnerId: creatorId, permission: "creator:read" });
 	if (!grant.allowed) return { ok: false as const, code: grant.code };
@@ -45,41 +86,13 @@ export async function readCreatorBroadcasts(creatorId: string, after?: string, v
 		return { ok: false as const, code: "INVALID_INPUT" };
 	}
 	const key = `broadcasts:${creatorId}:${videoId ? `video-${videoId}` : (after ?? "first")}`;
-	const cached = await getTwitchCacheEntry<unknown>(TwitchCacheType.User, key);
-	const stored = pageSchema.safeParse(cached.value);
-	let page = stored.success ? stored.data : null;
-	let stale = false;
-	if (!page || Date.now() - Date.parse(page.fetchedAt) >= 5 * 60000) {
-		try {
-			const credentials = await getAccessTokenResultInternal(creatorId);
-			if (!credentials.token) throw new Error("RECONNECT_REQUIRED");
-			const url = new URL("https://api.twitch.tv/helix/videos");
-			if (videoId) url.searchParams.set("id", videoId);
-			else {
-				url.searchParams.set("user_id", creatorId);
-				url.searchParams.set("type", "archive");
-				url.searchParams.set("first", "20");
-				if (providerAfter) url.searchParams.set("after", providerAfter);
-			}
-			const signal = AbortSignal.timeout(5000);
-			const response = await fetch(url, { headers: { Authorization: `Bearer ${credentials.token.accessToken}`, "Client-Id": process.env.TWITCH_CLIENT_ID ?? "" }, signal, redirect: "error" });
-			if (!response.ok) {
-				await response.body?.cancel();
-				if (videoId && response.status === 404) return { ok: false as const, code: "NOT_FOUND" };
-				throw new Error(response.status === 401 ? "RECONNECT_REQUIRED" : "SERVICE_UNAVAILABLE");
-			}
-			const payload = z.object({ data: z.array(videoSchema).max(20), pagination: z.object({ cursor: z.string().max(1024).optional() }).optional() }).parse(JSON.parse(new TextDecoder().decode(await readBoundedResponse(response, 1024 * 1024, signal))));
-			page = { data: payload.data.filter((video) => video.user_id === creatorId && video.type === "archive" && (!videoId || video.id === videoId)), after: payload.pagination?.cursor, fetchedAt: new Date().toISOString() };
-			await setTwitchCache(TwitchCacheType.User, key, page, 24 * 60 * 60);
-		} catch (error) {
-			if (!page) return { ok: false as const, code: error instanceof Error && error.message === "RECONNECT_REQUIRED" ? "RECONNECT_REQUIRED" : "SERVICE_UNAVAILABLE" };
-			stale = true;
-		}
-	}
+	const cachedPage = await cachedBroadcastPage(creatorId, key, videoId, providerAfter);
+	if (!cachedPage.ok) return cachedPage;
+	const { page, stale } = cachedPage;
 	const library = await readCreatorLibrary(creatorId);
 	const clips = library.ok ? library.clips : [];
 	const items = page.data
-		.filter((video) => video.user_id === creatorId && video.type === "archive" && (!videoId || video.id === videoId))
+		.filter((video) => matchesBroadcast(video, creatorId, videoId))
 		.sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at) || a.id.localeCompare(b.id))
 		.map((video) => {
 			const matching = clips.filter((clip) => clip.video_id === video.id);

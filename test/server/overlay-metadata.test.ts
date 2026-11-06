@@ -3,8 +3,8 @@ import { overlayMetadataHeight, overlayMetadataContent, overlayMetadataSvg, wrap
 import sharp from "sharp";
 it("groups title and credit and identifies channel metadata with context", () => {
 	expect(overlayMetadataContent("title", { title: "An excellent play", clipCreatorName: "Viewer" })).toEqual({ primary: "An excellent play", secondary: "clipped by Viewer" });
-	expect(overlayMetadataContent("channel", { title: "", broadcasterName: "Streamer", categoryName: "Just Chatting" }).secondary).toBe("Playing Just Chatting");
-	expect(overlayMetadataContent("channel", { title: "" }).secondary).toBe("Twitch channel");
+	expect(overlayMetadataContent("channel", { title: "", broadcasterName: "Streamer", categoryName: "Just Chatting" }).secondary).toBe("twitch.tv/streamer");
+	expect(overlayMetadataContent("channel", { title: "" }).secondary).toBe("");
 	expect(overlayMetadataContent("clipper", { title: "" }).primary).toBe("Twitch clip");
 	expect(overlayMetadataContent("title", { title: "" }).primary).toBe("Untitled clip");
 });
@@ -57,4 +57,17 @@ it("maps a saved brand to overlay colors and typography without layout fields", 
 	expect(brandOverlayFields(creatorBrandSchema.parse({}))).toMatchObject({ themeFontFamily: "DejaVu Sans", borderRadius: 10 });
 	expect(brandOverlayFields(creatorBrandSchema.parse({ fontFamily: "Laila", fontSource: "google" })).themeFontFamily).toContain("https://fonts.googleapis.com/css2?family=Laila");
 	expect(clipifyWatermarkSvg()).toContain("Made with Clipify");
+});
+
+it("shows the channel address and cycles branding through four fixed corners", async () => {
+	const { clipifyWatermarkPosition, clipifyWatermarkExpression } = await import("@lib/overlayMetadata");
+	expect(overlayMetadataContent("channel", { title: "", broadcasterName: "TheDanniCraft" })).toEqual({ primary: "TheDanniCraft", secondary: "twitch.tv/thedannicraft" });
+	expect([0, 5, 10, 15, 20].map((time) => clipifyWatermarkPosition(time, 1280, 720))).toEqual([
+		{ x: 1064, y: 660 },
+		{ x: 16, y: 16 },
+		{ x: 16, y: 660 },
+		{ x: 1064, y: 16 },
+		{ x: 1064, y: 660 },
+	]);
+	expect(clipifyWatermarkExpression(0)).toContain("mod(t,20)");
 });
