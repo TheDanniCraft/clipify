@@ -29,9 +29,13 @@ export default async function StreamPage({ params, searchParams }: { params: Pro
 		<DashboardNavbar user={user} title={stream.broadcast.title || "Untitled stream"} tagline='Clips linked to this broadcast'>
 			<div className='mt-4 flex gap-4'>
 				<Link href='/dashboard/streams'>Back to streams</Link>
-				<Link href={stream.broadcast.url} target='_blank' rel='noopener noreferrer'>
-					Open broadcast on Twitch
-				</Link>
+				{stream.broadcast.available ? (
+					<Link href={stream.broadcast.url} target='_blank' rel='noopener noreferrer'>
+						Open broadcast on Twitch
+					</Link>
+				) : (
+					<p className='text-sm text-muted'>Recording no longer available on Twitch. Your clips are kept.</p>
+				)}
 			</div>
 			<div role='status' aria-label='Stream clip totals' className='mt-4 flex flex-wrap gap-4 text-sm text-muted'>
 				<span>Known clips: {stream.broadcast.clipCount === null ? "Unavailable" : stream.broadcast.clipCount.toLocaleString()}</span>

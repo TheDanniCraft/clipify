@@ -15,6 +15,8 @@ async function creatorVideos(url, input, init, headers) {
 	if (!result.rows.length) return nativeFetch(input, init);
 	if (headers.get("Authorization") !== "Bearer isolated-dashboard-fixture-token") throw new Error("Unexpected videos provider context");
 	const creatorId = result.rows[0].id;
+	const removed = await pool.query("SELECT 1 FROM user_content_states WHERE user_id=$1 AND content_key='test-videos-removed' AND state='true'", [creatorId]);
+	if (removed.rows.length) return Response.json({ data: [], pagination: {} });
 	const make = (id, title, type, date) => ({ id, title, type, user_id: creatorId, created_at: date, duration: "1h", thumbnail_url: "" });
 	let data = [make("12346", "Latest stream", "archive", "2026-11-02T00:00:00Z"), make("12345", "Earlier stream", "archive", "2026-11-01T00:00:00Z"), make("77777", "Highlight", "highlight", "2026-11-03T00:00:00Z"), make("88888", "Upload", "upload", "2026-11-03T00:00:00Z")];
 	if (url.searchParams.get("after")) data = [make("12347", "Older stream", "archive", "2026-10-01T00:00:00Z")];
@@ -30,7 +32,7 @@ async function creatorClips(url, input, init, headers) {
 	const end = Date.parse(url.searchParams.get("ended_at") ?? new Date().toISOString());
 	const data = rows
 		.map((row) => JSON.parse(row.value))
-		.map((value) => ({ ...value.clip, title: value.testProviderTitle ?? value.clip.title }))
+		.map((value) => ({ ...value.clip, title: value.testProviderTitle ?? value.clip.title, ...(value.testProviderNoVod ? { video_id: "", vod_offset: null } : {}) }))
 		.filter((clip) => Date.parse(clip.created_at) >= start && Date.parse(clip.created_at) <= end);
 	return Response.json({ data, pagination: {} });
 }

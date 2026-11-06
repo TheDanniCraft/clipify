@@ -408,3 +408,8 @@ These are regression-after refinements of the existing owners, not a retrospecti
 - BEXP-06 VERIFIED: Total selections above the former caps retain every validated clip/version pair in fifty-file packets. Full browser packages download as numbered ZIP parts; only the latest Blob is retained. Later quota/unavailable-source failures preserve completed parts and only recoverable files retry. Public manifests retain metadata and byte counts without source capabilities.
 
 PSET-01/02/03: duration-dependent bitrate (short clips retain more), custom/unknown validation, audio/container budget, measured oversize retry, hard byte bound, cancellation, preset snapshot across50-file packets; installed export settings sends chosen preset without modifying Original; real browser/native outputs retain audio/geometry/widgets and fit the target.
+
+FINAL-01: disabled Automations follows Runner, is labelled Coming soon and has no destination, including real mobile navigation.
+FINAL-02: creator-owned archive records outlive provider page expiry/deletion; bounded collector checkpoints/backoff never erase saved metadata on provider errors; account deletion owns cleanup.
+FINAL-03: provider refresh/validation cannot erase known clip stream identity; foreign identities are rejected; inventory, counts and export manifests agree.
+FINAL-04: select all matching clips across pages, preserve stream/view filters and selection snapshots, ignore stale responses, clear protected data after revocation; real 59-match stream export excludes other streams and low-view clips.

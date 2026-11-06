@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode, type
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Sidebar, Command, useSidebar } from "@heroui-pro/react";
 import { Button, Kbd } from "@heroui/react";
-import { IconPalette, IconHome, IconLayoutCollage, IconVideo, IconScissors, IconLayoutGrid, IconPlaylist, IconPhoto, IconDeviceDesktop, IconTools, IconSettings, IconFolder, IconSearch, IconHelpCircle, IconUserCircle, IconPlug, IconId, IconCreditCard, IconUsers, IconPlayerPlay, IconAward, IconBuildingCommunity } from "@tabler/icons-react";
+import { IconBolt, IconPalette, IconHome, IconLayoutCollage, IconVideo, IconScissors, IconLayoutGrid, IconPlaylist, IconPhoto, IconDeviceDesktop, IconTools, IconSettings, IconFolder, IconSearch, IconHelpCircle, IconUserCircle, IconPlug, IconId, IconCreditCard, IconUsers, IconPlayerPlay, IconAward, IconBuildingCommunity } from "@tabler/icons-react";
 import NextLink from "next/link";
 import { ClipExportProvider, ExportQueueLauncher } from "./creator/clipExportQueue";
 import AdminNavigation from "./adminNavigation";
@@ -186,7 +186,24 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen, isAd
 										<Sidebar.MenuIndicator />
 									</Sidebar.MenuTrigger>
 								</Sidebar.MenuLabel>
-								<Sidebar.Submenu>{allowed.filter((item) => "tour" in item).map(menuItem)}</Sidebar.Submenu>
+								<Sidebar.Submenu>
+									{allowed
+										.filter((item) => "tour" in item)
+										.flatMap((item) => [
+											menuItem(item),
+											...(item.title === "Runner"
+												? [
+														<Sidebar.MenuItem key='automations' id='automations' textValue='Automations, coming soon' isDisabled tooltip='Automations — coming soon'>
+															<Sidebar.MenuIcon>
+																<IconBolt className='size-4' />
+															</Sidebar.MenuIcon>
+															<Sidebar.MenuLabel>Automations</Sidebar.MenuLabel>
+															<Sidebar.MenuChip>Coming soon</Sidebar.MenuChip>
+														</Sidebar.MenuItem>,
+													]
+												: []),
+										])}
+								</Sidebar.Submenu>
 							</Sidebar.MenuItem>
 						) : null}
 						{[

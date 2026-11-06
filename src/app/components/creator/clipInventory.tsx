@@ -6,7 +6,7 @@ import { Button, Card, Checkbox, Disclosure, Input, Label, ListBox, NumberField,
 import { buttonVariants } from "@heroui/styles";
 import { IconChevronRight, IconLayoutCollage, IconRefresh } from "@tabler/icons-react";
 import { fromDate, toCalendarDate } from "@internationalized/date";
-import { getCreatorClipInventory, refreshCreatorLibrary } from "@actions/creatorLibrary";
+import { getCreatorClipInventory, getCreatorClipSelection, refreshCreatorLibrary } from "@actions/creatorLibrary";
 import AppDateRangePicker, { type AppDateRange } from "@components/appDateRangePicker";
 import AppPagination from "@components/appPagination";
 import ClipPreview from "./clipPreview";
@@ -37,6 +37,8 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 	const [view, setView] = useState({ query: initialQuery, data: initialData });
 	const { query, data } = view;
 	const requestEpoch = useRef(0);
+	const selectionEpoch = useRef(0);
+	const [selectingAll, setSelectingAll] = useState(false);
 	const path = usePathname();
 	const fixedVideoId = path.startsWith("/dashboard/streams/") ? initialQuery.videoId : undefined;
 	const [draft, setDraft] = useState(query);
@@ -67,10 +69,35 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 	const [selection, setSelection] = useState<{ scope: string; ids: Set<string>; cleared?: boolean; names?: Record<string, string> }>({ scope: selectionScope, ids: new Set<string>() });
 	const selected = selection.scope === selectionScope ? selection.ids : new Set<string>();
 	const selectClip = (id: string, include: boolean) => {
+		selectionEpoch.current++;
 		const ids = new Set(selected);
 		if (include) ids.add(id);
 		else if (!include) ids.delete(id);
 		setSelection({ scope: selectionScope, ids, names: { ...selection.names, ...Object.fromEntries(data.ok ? data.items.map((clip) => [clip.id, clip.title]) : []) } });
+	};
+	const selectAll = async () => {
+		const epoch = requestEpoch.current,
+			choice = ++selectionEpoch.current;
+		setSelectingAll(true);
+		try {
+			const parsed: Record<string, unknown> = { ...query };
+			for (const key of ["page", "pageSize", "minViews", "minDuration", "maxDuration"]) if (query[key] !== undefined) parsed[key] = Number(query[key]);
+			const result = await getCreatorClipSelection({ creatorId, query: parsed });
+			if (epoch !== requestEpoch.current || choice !== selectionEpoch.current) return;
+			if (!result.ok) {
+				if (result.code === "SERVICE_UNAVAILABLE" || result.code === "INVALID_INPUT") throw new Error(result.code);
+				setSelection({ scope: selectionScope, ids: new Set() });
+				setView({ query, data: result });
+				notify({ title: "You don’t have access to this creator’s clips.", color: "danger" });
+				return;
+			}
+			setSelection({ scope: selectionScope, ids: new Set(result.items.map((clip) => clip.id)), names: Object.fromEntries(result.items.map((clip) => [clip.id, clip.title])) });
+			if (!result.complete) notify({ title: `Selected ${result.items.length} known clips`, description: "Older clips may still be synchronizing.", color: "default" });
+		} catch {
+			if (epoch === requestEpoch.current && choice === selectionEpoch.current) notify({ title: "Clips could not be selected. Your selection is kept. Please try again.", color: "danger" });
+		} finally {
+			setSelectingAll(false);
+		}
 	};
 	const [preview, setPreview] = useState<Clip | null>(null);
 	const timeZone = query.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -270,6 +297,7 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 										variant='secondary'
 										isDisabled={!hydrated || pending || data.items.length === 0}
 										onPress={() => {
+											selectionEpoch.current++;
 											const ids = new Set(selected);
 											for (const clip of data.items) {
 												ids.add(clip.id);
@@ -279,7 +307,20 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 									>
 										Select page
 									</Button>
-									<Button className={selected.size ? "" : "hidden"} variant='tertiary' isDisabled={selected.size === 0} onPress={() => setSelection({ scope: selectionScope, ids: new Set() })}>
+									{data.total > data.items.length ? (
+										<Button variant='secondary' isPending={selectingAll} isDisabled={!hydrated || pending} onPress={selectAll}>
+											Select all {data.total} clips
+										</Button>
+									) : null}
+									<Button
+										className={selected.size ? "" : "hidden"}
+										variant='tertiary'
+										isDisabled={selected.size === 0}
+										onPress={() => {
+											selectionEpoch.current++;
+											setSelection({ scope: selectionScope, ids: new Set() });
+										}}
+									>
 										Clear selection
 									</Button>
 									<p role='status' aria-label='Clip selection'>

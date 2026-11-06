@@ -10,9 +10,9 @@ export default async function StreamsPage({ searchParams }: { searchParams: Prom
 	const { after } = await searchParams;
 	const result = await getCreatorBroadcasts({ creatorId: user.id, after });
 	return (
-		<DashboardNavbar user={user} title='Streams' tagline='Available Twitch broadcasts and their known clips'>
+		<DashboardNavbar user={user} title='Streams' tagline='Saved streams and their clips'>
 			<div className='my-6 flex flex-col gap-4'>
-				<p className='text-sm text-muted'>Older broadcasts may no longer be available on Twitch. Your cached clips stay in Clip Inventory.</p>
+				<p className='text-sm text-muted'>Stream details stay here after Twitch removes a recording. Older streams appear as your library synchronizes.</p>
 				{!result.ok ? (
 					<Card>
 						<Card.Content>
@@ -29,15 +29,15 @@ export default async function StreamsPage({ searchParams }: { searchParams: Prom
 						{!result.items.length ? (
 							<Card>
 								<Card.Content>
-									<h2 className='font-semibold'>No available broadcasts</h2>
-									<p className='text-muted'>Streams appear here when Twitch makes their recordings available.</p>
+									<h2 className='font-semibold'>No saved streams yet</h2>
+									<p className='text-muted'>Streams appear here when Clipify discovers their broadcasts.</p>
 									<Link href='/dashboard/clips'>Open Clip Inventory</Link>
 								</Card.Content>
 							</Card>
 						) : (
 							<Table>
 								<Table.ScrollContainer>
-									<Table.Content aria-label='Available streams' className='w-full lg:min-w-[560px]'>
+									<Table.Content aria-label='Saved streams' className='w-full lg:min-w-[560px]'>
 										<Table.Header>
 											<Table.Column isRowHeader>Stream</Table.Column>
 											<Table.Column className='hidden lg:table-cell'>Created</Table.Column>

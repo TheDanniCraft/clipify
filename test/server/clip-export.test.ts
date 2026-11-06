@@ -867,3 +867,13 @@ it("passes presets only to encoded native outputs and retains Original after a s
 	expect(result).toMatchObject({ ok: true, summary: { included: [0], skipped: [{ index: 1, code: "preset_size_limit", retryable: false }] } });
 	if (result.ok) expect(unzipSync(result.bytes)[Object.keys(unzipSync(result.bytes)).find((k) => k.endsWith(".mp4"))!]).toEqual(new Uint8Array(video));
 });
+it("retains a historical stream ID in export metadata after the provider removes the VOD reference", async () => {
+	const { prepareBrowserClipExport } = await import("@/server/clip-export");
+	const { createClipExportPlan } = await import("@lib/clipExportPlan");
+	const entry = ownedEntry("ClipA", { video_id: "", vod_offset: null });
+	const stored = JSON.parse(entry.value);
+	stored.broadcast = { id: "123", offset: 42 };
+	entry.value = JSON.stringify(stored);
+	cacheRead.mockResolvedValue([entry]);
+	expect(await prepareBrowserClipExport(createClipExportPlan("owner", ["ClipA"], [{ key: "original", label: "Original" }])[0], AbortSignal.timeout(5000))).toMatchObject({ ok: true, clips: [{ videoId: "123", vodOffsetSeconds: 42 }] });
+});

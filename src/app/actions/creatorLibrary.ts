@@ -58,3 +58,9 @@ export async function getCreatorClipDetail(input: { creatorId: string; clipId: s
 	const { readCreatorClipDetail } = await import("@/server/creator-library");
 	return input.cachedOnly ? readCreatorClipDetail(input.creatorId, input.clipId, true) : readCreatorClipDetail(input.creatorId, input.clipId);
 }
+
+export async function getCreatorClipSelection(input: { creatorId: string; query?: unknown }) {
+	if (!input || typeof input.creatorId !== "string" || !input.creatorId || input.creatorId.length > 200) return { ok: false as const, code: "INVALID_INPUT" };
+	const { readCreatorClipSelection } = await import("@/server/creator-library");
+	return readCreatorClipSelection(input.creatorId, input.query);
+}

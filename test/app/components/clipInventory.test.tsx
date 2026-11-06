@@ -4,10 +4,11 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import ClipInventory from "@components/creator/clipInventory";
 let path = "/dashboard/clips";
 const inventory = jest.fn();
+const allMatches = jest.fn();
 const preview = jest.fn();
 const refresh = jest.fn();
 jest.mock("next/navigation", () => ({ usePathname: () => path }));
-jest.mock("@actions/creatorLibrary", () => ({ getCreatorClipInventory: (...args: unknown[]) => inventory(...args), getCreatorClipPreview: (...args: unknown[]) => preview(...args), refreshCreatorLibrary: (...args: unknown[]) => refresh(...args) }));
+jest.mock("@actions/creatorLibrary", () => ({ getCreatorClipInventory: (...args: unknown[]) => inventory(...args), getCreatorClipSelection: (...args: unknown[]) => allMatches(...args), getCreatorClipPreview: (...args: unknown[]) => preview(...args), refreshCreatorLibrary: (...args: unknown[]) => refresh(...args) }));
 jest.mock("@components/appDateRangePicker", () => ({ __esModule: true, default: ({ value }: { value: { start: { toString: () => string }; end: { toString: () => string } } | null }) => <output data-testid='range'>{value ? `${value.start.toString()}/${value.end.toString()}` : "none"}</output> }));
 jest.mock("@components/appPagination", () => ({ __esModule: true, default: ({ onChange }: { onChange: (page: number) => void }) => <button onClick={() => onChange(2)}>Next page</button> }));
 jest.mock("@components/controlledModal", () => ({
@@ -282,5 +283,43 @@ it("clears visible clip metadata after access is revoked", async () => {
 	inventory.mockResolvedValue({ ok: false, code: "PERMISSION_DENIED" });
 	render(<ClipInventory creatorId='owner' query={{}} data={{ ...data, items: [item], total: 1 }} />);
 	fireEvent.submit(screen.getByPlaceholderText("Search clip titles").closest("form")!);
+	await waitFor(() => expect(screen.queryByRole("link", { name: "Clutch" })).not.toBeInTheDocument());
+});
+
+it("selects every matching clip beyond the visible page using the active stream and view filters", async () => {
+	const items = Array.from({ length: 60 }, (_, i) => ({ id: `Clip${i}`, title: `Clip ${i}` }));
+	allMatches.mockResolvedValue({ ok: true, items, complete: true });
+	path = "/dashboard/streams/123";
+	render(<ClipInventory creatorId='owner' query={{ videoId: "123", minViews: "10" }} data={{ ...data, items: [item], total: 60 }} />);
+	fireEvent.click(screen.getByRole("button", { name: "Select all 60 clips" }));
+	await waitFor(() => expect(screen.getByRole("status", { name: "Clip selection" })).toHaveTextContent("60 selected"));
+	expect(allMatches).toHaveBeenCalledWith({ creatorId: "owner", query: { videoId: "123", minViews: 10 } });
+});
+it("keeps an explicit selection after select-all fails", async () => {
+	allMatches.mockRejectedValue(Error("offline"));
+	render(<ClipInventory creatorId='owner' query={{}} data={{ ...data, items: [item], total: 60 }} />);
+	fireEvent.click(screen.getByRole("button", { name: "Select page" }));
+	fireEvent.click(screen.getByRole("button", { name: "Select all 60 clips" }));
+	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ color: "danger" })));
+	expect(screen.getByRole("status", { name: "Clip selection" })).toHaveTextContent("1 selected");
+});
+it("ignores a select-all result after the user clears the selection", async () => {
+	let resolve!: (value: unknown) => void;
+	allMatches.mockReturnValue(
+		new Promise((done) => {
+			resolve = done;
+		}),
+	);
+	render(<ClipInventory creatorId='owner' query={{}} data={{ ...data, items: [item], total: 60 }} />);
+	fireEvent.click(screen.getByRole("button", { name: "Select page" }));
+	fireEvent.click(screen.getByRole("button", { name: "Select all 60 clips" }));
+	fireEvent.click(screen.getByRole("button", { name: "Clear selection" }));
+	await act(async () => resolve({ ok: true, items: [{ id: item.id, title: item.title }], complete: true }));
+	expect(screen.getByRole("status", { name: "Clip selection" })).toHaveTextContent("0 selected");
+});
+it("clears protected metadata when select-all reports revoked access", async () => {
+	allMatches.mockResolvedValue({ ok: false, code: "PERMISSION_DENIED" });
+	render(<ClipInventory creatorId='owner' query={{}} data={{ ...data, items: [item], total: 60 }} />);
+	fireEvent.click(screen.getByRole("button", { name: "Select all 60 clips" }));
 	await waitFor(() => expect(screen.queryByRole("link", { name: "Clutch" })).not.toBeInTheDocument());
 });

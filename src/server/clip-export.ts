@@ -26,6 +26,7 @@ import { authorizeCreatorOperation } from "@/auth/authorize-operation";
 import { getAccessTokenResultInternal } from "@/server/tokens";
 import { reserveClipDownloadJob, reserveTwitchClipDownloadRequest, reserveClipExportVolume, reserveClipSourceTransfer } from "./clip-download-limit";
 import { providerClipSchema } from "./resources/clip-validation";
+import { withClipBroadcast } from "@lib/clipBroadcast";
 import { publicClip } from "./resources/clip-discovery";
 
 export const exportRequestSchema = z.object({
@@ -116,7 +117,7 @@ async function readOwnedExportClips(creatorId: string, clipIds: string[]) {
 		if (!row) return null;
 		const stored = JSON.parse(row.value);
 		const clip = providerClipSchema.safeParse(stored.clip ?? stored);
-		return clip.success && clip.data.id === id && clip.data.broadcaster_id === creatorId ? { clip: clip.data, unavailable: stored.unavailable === true } : null;
+		return clip.success && clip.data.id === id && clip.data.broadcaster_id === creatorId ? { clip: withClipBroadcast(clip.data, stored), unavailable: stored.unavailable === true } : null;
 	});
 }
 export async function buildClipArchive(input: unknown, parentSignal?: AbortSignal, format: "zip" | "mp4" = "zip", progress?: (event: ClipExportProgress) => void): Promise<ArchiveResult> {

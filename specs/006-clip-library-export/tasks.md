@@ -839,3 +839,12 @@ T681–T685 local closure: brand-candidate-browser-export.log passes all10 final
 - [x] T698 [PSET-01/02/03] Prove duration-based preset planning, bounded retries, input validation and cancellation Red, implement the shared policy and record Green.
 - [x] T699 [PSET-02/03] Carry preset snapshots through plans/recipes and implement actual native/browser media duration, encoding and final size verification; prove parity and audio with generated media.
 - [x] T700 [PSET-01] Add installed HeroUI preset/custom-size controls to existing export settings; verify Original bypass, queue/retry retention, desktop/mobile, themes and keyboard operation; publish only passing affected checks.
+
+## Phase 24: Convergence — final manual-export release boundary
+
+- [x] T701 [FINAL-01] Add a disabled Automations item directly below Runner in Create and share, with an installed HeroUI Coming soon chip, an automation icon, no href/page and no search navigation target. Verify desktop/mobile and collapsed navigation.
+- [x] T702 [FINAL-02] Persist creator-scoped broadcast metadata independently of expiring provider pages, retain stream detail/count/filter access after Twitch deletion, and refresh metadata through the existing bounded crawler lifecycle. Store no VOD media; preserve authorization, account deletion cleanup, backoff and bounded provider paging.
+- [x] T703 [FINAL-03] Preserve known clip-to-broadcast identity/offset when provider refresh removes VOD fields, including durable crawl and validation paths; verify inventory, stream counts/detail and export metadata remain consistent.
+- [x] T704 [FINAL-04] Select/export the complete current filtered clip set across pages from inventory and stream detail, with creator permissions, stable selection scope, loading/error recovery and no fixed selection cap; verify >=10views filtering excludes other streams.
+- [ ] T705 [FINAL-05] Add a clearly labelled preview-only demo stream only after the target test account is identified; include real owned downloadable clips and never seed production/shared customer fixtures.
+- [ ] T706 [FINAL-06] Reconcile superseded task claims against current executable evidence, finish remaining in-scope gaps, update one overall readiness summary and final feature traceability/defects. Preserve honest historical TDD provenance, run owning scenarios and unchanged full CI before claiming release readiness. Keep social publishing integrations deferred.

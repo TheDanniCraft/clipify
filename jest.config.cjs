@@ -36,6 +36,8 @@ const customJestConfig = {
 		"src/server/creator-library.ts",
 		"src/server/creator-overview.ts",
 		"src/server/creator-broadcasts.ts",
+		"src/server/broadcast-archive.ts",
+		"src/app/lib/clipBroadcast.ts",
 		"src/server/clip-export.ts",
 		"src/server/clip-layout-render.ts",
 		"src/app/lib/clipLayout.ts",

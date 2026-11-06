@@ -1,4 +1,5 @@
 import "server-only";
+import { syncBroadcastArchive } from "../broadcast-archive";
 import { syncOwnerClipCache } from "@/app/actions/twitch";
 import { dbPool } from "@/db/client";
 import { captureUnexpectedError } from "@/app/lib/sentryServer";
@@ -29,6 +30,15 @@ async function nextCrawlTime(job: CrawlJob, complete: boolean, recentPending: bo
 	return new Date(Date.now() + delay);
 }
 
+async function collectBroadcastMetadata(creatorId: string) {
+	try {
+		const result = await syncBroadcastArchive(creatorId);
+		operationalCount("clipify.broadcast_archive.jobs", 1, { status: result.ok ? "completed" : result.code });
+	} catch (error) {
+		captureUnexpectedError(error, "broadcast-archive", "collect");
+	}
+}
+
 async function processJob(job: CrawlJob) {
 	const started = Date.now();
 	let leaseLost = false;
@@ -48,6 +58,7 @@ async function processJob(job: CrawlJob) {
 		await heartbeat;
 		if (leaseLost) return;
 		if (result?.status === "completed") {
+			if (job.kind === "recent") await collectBroadcastMetadata(job.creator_id);
 			const next = await nextCrawlTime(job, Boolean(result.backfillComplete), Boolean(result.recentPending));
 			if (result.recentPending) await completeClipCrawlJob(job, next, undefined, true);
 			else await completeClipCrawlJob(job, next);

@@ -238,3 +238,15 @@ PSET-01: The existing export settings dialog offers General, Discord, YouTube, T
 PSET-02: Budget each clip independently from its actual media duration, subtract AAC audio and container headroom, and cap bitrate at the preset's useful quality ceiling. Preserve composition shape, widgets, fonts and audio in both render engines. Discord defaults to20MB (current free manual-upload allowance); custom targets accept1–32MB. Existing32MiB processing bounds remain; never allocate platform-sized gigabyte buffers.
 
 PSET-03: Verify every encoded output against the target bytes, retry sequentially with a lower bitrate using the actual result size (at most3attempts), and fail locally with actionable size feedback if no complete valid output fits. No oversized or truncated file is reported ready. Cancellation and existing quotas/concurrency remain. Expose quality/target meaning without promising automatic platform upload or acceptance.
+
+## Final manual-export release boundary (2026-11-06)
+
+FINAL-01: Dashboard rewrite, clip layouts/branding and manual inventory/stream export are the release scope. Under Create and share, directly below Runner, show a disabled Automations item with an installed HeroUI Coming soon chip and automation icon. It has no destination page, skeleton, search target, scheduler or publishing backend. This supersedes the earlier blanket prohibition on placeholder navigation only for this explicitly requested item.
+
+FINAL-02: Retain discovered stream metadata persistently, beyond Twitch VOD deletion. Keep stream list/detail, clip counts and filtering usable when video playback no longer exists. Record metadata only, not VOD files. Refresh via the existing bounded crawler lifecycle so retention does not depend on visiting Streams. Existing expiring page caches are accelerators, not the archive. Never fabricate missing historical dates/titles for broadcasts that were never observed.
+
+FINAL-03: Retain a known clip's stream association and offset when Twitch clears VOD fields on later refresh. Capture and use these associations consistently in stream inventory/counts, detail and exported metadata. Current provider validation/deletion and creator authorization remain authoritative.
+
+FINAL-04: From a stream or the inventory, users can select/export all known clips matching the active filters across pagination, including minimum10views for a selected/latest stream. Preserve explicit selections through page changes and unchanged failures; reject obsolete responses after scope changes. No fixed total selection cap; processing still uses bounded packets, shared quotas and final byte checks. Explain incomplete library synchronization honestly.
+
+FINAL-05: A clearly identified preview test account may receive one labelled demo stream with owned clips for review. Do not write demo data to production or grant the demo fixture export access to foreign clips.

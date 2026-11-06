@@ -65,3 +65,28 @@ Canonical feature 003 now has 50 tools and 535/549 tasks complete; the original 
 ## MCP activation flag removal
 
 542/556 tasks complete; 14 original blocked obligations remain. MCP/native OAuth/discovery are always installed. 156 unit and 84 affected OAuth/configuration/discovery checks pass, as do strict/global coverage (91 files), types/lint/format/build/action manifest. No activation environment toggle remains. See the canonical feature test summary for current evidence; the previous full 4495-test checkpoint is historical after this refinement.
+
+## Manual clip-export dashboard checkpoint, 2026-11-06
+
+**Mode:** rolling. **Release ID:** N/A. **Scope:** PR546 manual-export dashboard only; other feature reports above remain authoritative for their own scope.
+
+| Feature                           | Spec / Plan                                                                                        | Feature summary                                                  | Traceability                                                          | Defects                                                   | Recommendation                                        |
+| --------------------------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------- | ----------------------------------------------------- |
+| Creator Library and Manual Export | [Spec](../specs/006-clip-library-export/spec.md), [Plan](../specs/006-clip-library-export/plan.md) | [Test summary](../specs/006-clip-library-export/test-summary.md) | [Traceability](../specs/006-clip-library-export/test-traceability.md) | [Defects](../specs/006-clip-library-export/defect-log.md) | No-Go pending final exact-head CI and preview outcome |
+
+Included: dashboard, reusable compositions, browser-first/manual server exports, size-aware presets, archived stream metadata, retained clip identity and all-filtered export. Excluded: automated publishing/integrations; sidebar has a disabled Coming soon entry with no page.
+
+| Required gate                                      | Result                        | Evidence / remaining gap                                                       |
+| -------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------ |
+| Affected unit/service owners                       | Pass                          | 199 tests / 8 suites, final feature cycle log                                  |
+| Native crawler/workflow integration                | Pass                          | 79 tests / 3 suites, disposable PostgreSQL                                     |
+| Production build / TypeScript / dependency guards  | Pass                          | Corrected exact-source browser build                                           |
+| Lint / formatting                                  | Pass with existing warnings   | No errors; ref/image warnings disclosed in feature summary                     |
+| Installed browser components / responsive journeys | Final checkpoint in progress  | Stream export plus sidebar owners; see feature summary                         |
+| Full merged coverage and required CI               | Pending follow-up             | Prior head a7175caa passed CI42273518405; cannot substitute for changed source |
+| Preview demo                                       | Pending deployed verification | Local idempotency and target guards passed; no production seed                 |
+| Historical TDD chronology                          | Unresolved historical GOV-001 | Existing verification retained, no fabricated evidence or waiver               |
+
+Only the final required CI gate and explicitly recorded preview outcome establish this follow-up's readiness. No merge/release is performed by this report. No complete unrelated local suite is repeated; unchanged full CI remains mandatory before merge.
+
+Local completion update: all10 final browser cases pass across the two sequential owners, including actual59-clip archived-stream export, both themes and collapsed navigation. The new-source diagnostic has100%line/function coverage and95.18%branches; complete merged CI remains pending for the follow-up. A transient second-browser port conflict ran no tests and was resolved by sequential execution. Four lint warnings, zero errors. No production/platform claim follows from local Linux evidence.

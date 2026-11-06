@@ -36,10 +36,11 @@ jest.mock(
 			MenuLabel: wrapper,
 			MenuTrigger: wrapper,
 			MenuIndicator: wrapper,
+			MenuChip: wrapper,
 			Submenu: wrapper,
 			Main: wrapper,
 			Mobile: () => null,
-			MenuItem: ({ children, render, href }: { children: React.ReactNode; render?: (props: Record<string, unknown>) => React.ReactNode; href?: string }) => (render ? render({ "data-href": href, children }) : <div>{children}</div>),
+			MenuItem: ({ children, render, href, isDisabled }: { children: React.ReactNode; render?: (props: Record<string, unknown>) => React.ReactNode; href?: string; isDisabled?: boolean }) => (render ? render({ "data-href": href, "aria-disabled": isDisabled || undefined, children }) : <div aria-disabled={isDisabled || undefined}>{children}</div>),
 		});
 		const Input = ({ onKeyDownCapture, ...props }: React.InputHTMLAttributes<HTMLInputElement>) => {
 			const state = React.useContext(SearchContext);
@@ -394,4 +395,17 @@ it("closes the mobile drawer for an export launcher outside the utility footer",
 	} finally {
 		launcher.remove();
 	}
+});
+
+it("shows disabled Automations directly after Runner without a navigation destination", () => {
+	render(
+		<DashboardShell creatorId='owner' permissions={[...PERMISSIONS]}>
+			{content}
+		</DashboardShell>,
+	);
+	const automation = screen.getByText("Automations");
+	expect(automation.closest("[aria-disabled]")).toHaveAttribute("aria-disabled", "true");
+	expect(screen.getByText("Coming soon")).toBeInTheDocument();
+	expect(screen.queryByRole("link", { name: /Automations/ })).not.toBeInTheDocument();
+	expect(screen.getByText("Runner").compareDocumentPosition(automation) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });

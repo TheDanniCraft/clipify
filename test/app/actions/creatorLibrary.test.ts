@@ -1,12 +1,12 @@
 /** @jest-environment node */
-import { refreshCreatorLibrary, getCreatorClipInventory, getCreatorClipPreview, getCreatorClipOverview, getCreatorBroadcasts, getCreatorBroadcast, searchCreatorLibrary, getCreatorClipDetail } from "@actions/creatorLibrary";
+import { getCreatorClipSelection, refreshCreatorLibrary, getCreatorClipInventory, getCreatorClipPreview, getCreatorClipOverview, getCreatorBroadcasts, getCreatorBroadcast, searchCreatorLibrary, getCreatorClipDetail } from "@actions/creatorLibrary";
 const authorize = jest.fn();
 const refresh = jest.fn();
 const token = jest.fn();
 jest.mock("@/auth/authorize-operation", () => ({ authorizeCreatorOperation: (...args: unknown[]) => authorize(...args) }));
 jest.mock("@/server/clip-cache", () => ({ refreshCreatorClips: (...args: unknown[]) => refresh(...args) }));
 jest.mock("@/server/tokens", () => ({ getAccessTokenResultInternal: (...args: unknown[]) => token(...args) }));
-jest.mock("@/server/creator-library", () => ({ readCreatorInventory: (...args: unknown[]) => inventory(...args), readCreatorClipDetail: (...args: unknown[]) => detail(...args) }));
+jest.mock("@/server/creator-library", () => ({ readCreatorClipSelection: (...args: unknown[]) => selection(...args), readCreatorInventory: (...args: unknown[]) => inventory(...args), readCreatorClipDetail: (...args: unknown[]) => detail(...args) }));
 jest.mock("@actions/twitch", () => ({ getTwitchClipPlaybackUrl: (...args: unknown[]) => playback(...args) }));
 it("denies a foreign creator refresh before starting work", async () => {
 	authorize.mockResolvedValue({ allowed: false, code: "PERMISSION_DENIED" });
@@ -22,6 +22,7 @@ it("starts the existing clip sync for an authorized account without requiring an
 	expect(refresh).toHaveBeenCalledWith("owner");
 });
 
+const selection = jest.fn();
 const inventory = jest.fn();
 const detail = jest.fn();
 const playback = jest.fn();
@@ -129,4 +130,18 @@ it("rejects malformed cache-only flags before reader access", async () => {
 	expect(await searchCreatorLibrary({ creatorId: "owner", title: "clutch", cachedOnly: "yes" } as never)).toMatchObject({ ok: false, code: "INVALID_INPUT" });
 	expect(detail).not.toHaveBeenCalled();
 	expect(inventory).not.toHaveBeenCalled();
+});
+
+describe("all-filtered selection action", () => {
+	beforeEach(() => jest.clearAllMocks());
+	it.each([undefined, {}, { creatorId: 3 }, { creatorId: "" }, { creatorId: "x".repeat(201) }])("rejects invalid input %#", async (input) => {
+		expect(await getCreatorClipSelection(input as never)).toEqual({ ok: false, code: "INVALID_INPUT" });
+		expect(selection).not.toHaveBeenCalled();
+	});
+	it("forwards filters to the authorizing service", async () => {
+		const result = { ok: true, items: [{ id: "clip", title: "Clip" }], complete: true };
+		selection.mockResolvedValue(result);
+		expect(await getCreatorClipSelection({ creatorId: "owner", query: { videoId: "123", minViews: 10 } })).toEqual(result);
+		expect(selection).toHaveBeenCalledWith("owner", { videoId: "123", minViews: 10 });
+	});
 });

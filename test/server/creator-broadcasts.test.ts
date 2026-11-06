@@ -10,6 +10,15 @@ const authorize = jest.fn();
 const library = jest.fn();
 const token = jest.fn();
 const cache = jest.fn();
+const saved = jest.fn().mockResolvedValue([]);
+const remember = jest.fn().mockResolvedValue(undefined);
+const mark = jest.fn().mockResolvedValue(undefined);
+jest.mock("@/server/broadcast-archive", () => ({ broadcastVideoSchema: jest.requireActual("@/server/broadcast-archive").broadcastVideoSchema, readSavedBroadcasts: (...args: unknown[]) => saved(...args), saveBroadcasts: (...args: unknown[]) => remember(...args), markBroadcastUnavailable: (...args: unknown[]) => mark(...args), ensureBroadcastCollection: jest.fn().mockResolvedValue(undefined) }));
+beforeEach(() => {
+	saved.mockReset().mockResolvedValue([]);
+	remember.mockClear();
+	mark.mockClear();
+});
 jest.mock("@/auth/authorize-operation", () => ({ authorizeCreatorOperation: (...args: unknown[]) => authorize(...args) }));
 jest.mock("@/server/creator-library", () => ({ readCreatorLibrary: (...args: unknown[]) => library(...args) }));
 jest.mock("@/server/tokens", () => ({ getAccessTokenResultInternal: (...args: unknown[]) => token(...args) }));
@@ -79,11 +88,11 @@ describe("broadcast cache and recovery", () => {
 	});
 	it.each(["bad", "x".repeat(2049), "a." + "x".repeat(43)])("rejects malformed or tampered cursors %#", (cursor) => expect(() => parseBroadcastCursor(cursor, "owner")).toThrow("INVALID_INPUT"));
 	it("accepts an omitted cursor", () => expect(parseBroadcastCursor(undefined, "owner")).toBeUndefined());
-	it("does not serve a deleted broadcast from a stale cache", async () => {
+	it("keeps saved metadata when the Twitch recording is deleted", async () => {
 		cache.mockResolvedValue({ value: { data: [archiveVideo], fetchedAt: "2026-01-01T00:00:00Z" } });
 		jest.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 404 }));
 		const { readCreatorBroadcasts } = await import("@/server/creator-broadcasts");
-		expect(await readCreatorBroadcasts("owner", undefined, "100")).toEqual({ ok: false, code: "NOT_FOUND" });
+		expect(await readCreatorBroadcasts("owner", undefined, "100")).toMatchObject({ ok: true, items: [{ id: "100", available: false }] });
 	});
 });
 describe("provider response and signed cursor boundaries", () => {
@@ -103,13 +112,13 @@ describe("provider response and signed cursor boundaries", () => {
 		const { readCreatorBroadcasts } = await import("@/server/creator-broadcasts");
 		expect(await readCreatorBroadcasts("owner")).toEqual({ ok: false, code: "SERVICE_UNAVAILABLE" });
 	});
-	it("forwards only a verified provider cursor and seals the next cursor", async () => {
+	it("accepts a verified legacy provider cursor without offering it as saved-history pagination", async () => {
 		const fetch = jest.spyOn(globalThis, "fetch").mockResolvedValue(Response.json({ data: [archiveVideo], pagination: { cursor: "next" } }));
 		const { readCreatorBroadcasts } = await import("@/server/creator-broadcasts");
 		const result = await readCreatorBroadcasts("owner", sealBroadcastCursor("owner", "previous"));
 		expect(new URL(String(fetch.mock.calls[0][0])).searchParams.get("after")).toBe("previous");
 		if (!result.ok) throw new Error(result.code);
-		expect(parseBroadcastCursor(result.nextCursor!, "owner")).toBe("next");
+		expect(result.nextCursor).toBeNull();
 	});
 	it("requests an exact VOD without accepting a different returned identity", async () => {
 		const fetch = jest.spyOn(globalThis, "fetch").mockResolvedValue(Response.json({ data: [archiveVideo, { ...archiveVideo, id: "200" }], pagination: {} }));
@@ -142,4 +151,33 @@ it("orders stream moments by VOD position even when viewers clipped them later",
 	const result = await readCreatorBroadcasts("owner");
 	expect(result.ok).toBe(true);
 	if (result.ok) expect(result.items[0].moments.map((clip) => clip.id)).toEqual(["First", "Later"]);
+});
+
+it("retains archived stream details and clip counts after Twitch removes the recording", async () => {
+	authorize.mockResolvedValue({ allowed: true });
+	cache.mockResolvedValue({ value: null });
+	token.mockResolvedValue({ token: { accessToken: "private" } });
+	saved.mockResolvedValue([{ video: archiveVideo, lastSeenAt: "2026-01-01T00:00:00Z", unavailable: false }]);
+	library.mockResolvedValue({ ok: true, clips: [{ video_id: "100", view_count: 11 }] });
+	jest.spyOn(globalThis, "fetch").mockResolvedValue(Response.json({ data: [], pagination: {} }));
+	const { readCreatorBroadcasts } = await import("@/server/creator-broadcasts");
+	expect(await readCreatorBroadcasts("owner", undefined, "100")).toMatchObject({ ok: true, items: [{ id: "100", title: "Stream", clipCount: 1, clipViews: 11, available: false }] });
+	expect(mark).toHaveBeenCalledWith("owner", "100");
+});
+it("paginates persistent streams independently of expired Twitch provider pages", async () => {
+	authorize.mockResolvedValue({ allowed: true });
+	cache.mockResolvedValue({ value: { data: [], fetchedAt: new Date().toISOString() } });
+	library.mockResolvedValue({ ok: true, clips: [] });
+	saved.mockResolvedValue(Array.from({ length: 25 }, (_, i) => ({ video: { ...archiveVideo, id: String(i + 100), created_at: new Date(Date.UTC(2026, 10, 1, i)).toISOString() }, lastSeenAt: "2026-11-01T00:00:00Z", unavailable: true })));
+	const { readCreatorBroadcasts } = await import("@/server/creator-broadcasts");
+	const first = await readCreatorBroadcasts("owner");
+	expect(first.ok).toBe(true);
+	if (!first.ok) return;
+	expect(first.items).toHaveLength(20);
+	expect(first.nextCursor).toBeTruthy();
+	const second = await readCreatorBroadcasts("owner", first.nextCursor!);
+	expect(second.ok).toBe(true);
+	if (!second.ok) return;
+	expect(second.items).toHaveLength(5);
+	expect(new Set([...first.items, ...second.items].map((v) => v.id)).size).toBe(25);
 });

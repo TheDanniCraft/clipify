@@ -1,4 +1,5 @@
 import "server-only";
+import { withClipBroadcast } from "@lib/clipBroadcast";
 import { z } from "zod";
 import { and, eq, gt, inArray, isNull, or, sql } from "drizzle-orm";
 import { db } from "@/db/client";
@@ -38,13 +39,16 @@ export const inventoryQuerySchema = z
 	.refine((query) => query.minDuration === undefined || query.maxDuration === undefined || query.minDuration <= query.maxDuration, { path: ["maxDuration"], message: "Maximum duration must be at least the minimum." })
 	.refine((query) => !query.startedAt || !query.endedAt || Date.parse(query.startedAt) < Date.parse(query.endedAt), { path: ["endedAt"], message: "End must be after start." });
 
-export function queryInventoryClips(clips: z.infer<typeof providerClipSchema>[], query: unknown) {
-	const filters = inventoryQuerySchema.parse(query);
-	const matches = filterDiscoveredClips(
+function matchingInventoryClips(clips: z.infer<typeof providerClipSchema>[], filters: z.infer<typeof inventoryQuerySchema>) {
+	return filterDiscoveredClips(
 		clips.filter((clip) => !filters.videoId || clip.video_id === filters.videoId),
 		filters,
 		filters.category,
 	);
+}
+export function queryInventoryClips(clips: z.infer<typeof providerClipSchema>[], query: unknown) {
+	const filters = inventoryQuerySchema.parse(query);
+	const matches = matchingInventoryClips(clips, filters);
 	const offset = (filters.page - 1) * filters.pageSize;
 	return { items: matches.slice(offset, offset + filters.pageSize).map(publicClip), total: matches.length };
 }
@@ -100,7 +104,7 @@ export async function readCreatorLibrary(creatorId: string, query: unknown = {},
 				invalid = true;
 				continue;
 			}
-			clips.set(clip.data.id, clip.data);
+			clips.set(clip.data.id, withClipBroadcast(clip.data, value));
 			const time = row.fetchedAt.toISOString();
 			if (!fetchedAt || time > fetchedAt) fetchedAt = time;
 		}
@@ -115,6 +119,12 @@ export async function readCreatorInventory(creatorId: string, query: unknown = {
 	const library = await readCreatorLibrary(creatorId, query, cachedOnly);
 	if (!library.ok) return library;
 	return { ok: true as const, ...queryInventoryClips(library.clips, library.filters), categories: library.categories, complete: library.complete, fetchedAt: library.fetchedAt };
+}
+
+export async function readCreatorClipSelection(creatorId: string, query: unknown = {}) {
+	const library = await readCreatorLibrary(creatorId, query);
+	if (!library.ok) return library;
+	return { ok: true as const, items: matchingInventoryClips(library.clips, library.filters).map((clip) => ({ id: clip.id, title: clip.title })), complete: library.complete };
 }
 
 export async function canPreviewInventoryClip(input: { creatorId: string; contextCreatorId: string; clipId: string }, readClip: () => Promise<{ id: string; broadcaster_id: string } | null | undefined>) {
@@ -138,7 +148,7 @@ export async function readCreatorClipDetail(creatorId: string, clipId: string, c
 		const stored = JSON.parse(row.value);
 		const parsed = providerClipSchema.safeParse(stored.clip ?? stored);
 		if (stored.unavailable || !parsed.success || parsed.data.id !== clipId || parsed.data.broadcaster_id !== creatorId) return { ok: false as const, code: "NOT_FOUND" };
-		const clip = parsed.data;
+		const clip = withClipBroadcast(parsed.data, stored);
 		let categoryName: string | null = null;
 		if (clip.game_id && !cachedOnly) {
 			const [game] = await db

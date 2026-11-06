@@ -429,3 +429,11 @@ Command: scoped server export coverage run, `/tmp/clipify-preset-server-coverage
 PSET-D01 verified: all6 rebuilt browser-owner cases pass in clipify-preset-reviewed-browser.log, including custom1MB Desktop/Mobile encoding and mobile/light Discord. Inspect closed-state screenshots in both themes. Fullscreen popup capture waits for the library's entering animation to finish so opacity mid-transition is not mistaken for the settled design.
 
 PSET-D02 verified: isolated whole-file rerun clipify-preset-server-final-green.log passes all120tests with unchanged deadlines. Preserve the earlier scoped90.77% source-branch measurement as diagnostic evidence; only complete merged CI can establish the coverage gate.
+
+### FINAL-D01 — New test assertion rejected by production TypeScript
+
+The first final build rejected Testing Library's unsupported `exact` role option in the revoked-access regression. Removed that Playwright-only option; the string name remains exact by Testing Library default. Corrected production build passes (`/tmp/clipify-manual-current-build-fixed.log`); 199 affected tests pass. No product behavior or threshold changed. Verified.
+
+### FINAL-D02 — Disabled automation label crowded by nested chip
+
+Actual browser screenshot showed an ellipsized Automations label. Use the existing HeroUI Pro Sidebar.MenuChip directly, removing the redundant nested Chip/padding. The final responsive owner verifies the installed disabled row and label. This is a UI correction, not a new component system.

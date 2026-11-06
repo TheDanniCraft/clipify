@@ -243,3 +243,24 @@ it("keeps layout picker searches cache-only when category metadata is missing", 
 	expect(await readCreatorInventory("owner", { pageSize: 10 }, true)).toMatchObject({ ok: true, total: 1, items: [{ id: "A" }], categories: [] });
 	expect(jest.requireMock("@actions/twitch").getGamesDetailsBulk).not.toHaveBeenCalled();
 });
+
+it("selects all matching stream clips independently of result pagination", async () => {
+	const { readCreatorClipSelection } = await import("@/server/creator-library");
+	authorizeCreatorOperation.mockResolvedValue({ allowed: true });
+	const clips = [...Array.from({ length: 60 }, (_, i) => clip(`Match${i}`, { video_id: "123", view_count: 10 })), clip("OtherStream", { video_id: "456", view_count: 50 }), clip("LowViews", { video_id: "123", view_count: 9 })];
+	cacheRows.push(
+		clips.map((c) => ({ key: `clip:owner:${c.id}`, value: JSON.stringify({ clip: c }), fetchedAt: new Date() })),
+		[],
+	);
+	const result = await readCreatorClipSelection("owner", { videoId: "123", minViews: 10, page: 2, pageSize: 25 });
+	expect(result).toMatchObject({ ok: true, items: expect.any(Array) });
+	if (result.ok) {
+		expect(result.items).toHaveLength(60);
+		expect(result.items.every((c) => c.id.startsWith("Match"))).toBe(true);
+	}
+});
+it("keeps stream filtering after the provider clears a saved clip VOD reference", async () => {
+	authorizeCreatorOperation.mockResolvedValue({ allowed: true });
+	cacheRows.push([{ key: "clip:owner:Kept", value: JSON.stringify({ clip: { ...clip("Kept", { video_id: "" }), vod_offset: null }, broadcast: { id: "123", offset: 42 } }), fetchedAt: new Date() }], []);
+	expect(await readCreatorInventory("owner", { videoId: "123" })).toMatchObject({ ok: true, total: 1, items: [{ id: "Kept", videoId: "123", vodOffsetSeconds: 42 }] });
+});

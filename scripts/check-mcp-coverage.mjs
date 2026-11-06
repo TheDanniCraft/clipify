@@ -18,6 +18,8 @@ export function readMcpSourceManifest() {
 		"src/server/creator-library.ts",
 		"src/server/creator-overview.ts",
 		"src/server/creator-broadcasts.ts",
+		"src/server/broadcast-archive.ts",
+		"src/app/lib/clipBroadcast.ts",
 		"src/server/clip-export.ts",
 		"src/server/clip-layout-render.ts",
 		"src/app/lib/clipLayout.ts",
@@ -146,7 +148,7 @@ export function readMcpSourceManifest() {
 	const critical = feature.filter(
 		(path) =>
 			runner.critical.includes(path) ||
-			["src/server/clip-download-limit.ts", "src/server/creator-library.ts", "src/server/creator-overview.ts", "src/server/creator-broadcasts.ts", "src/server/clip-export.ts", "src/app/actions/creatorLibrary.ts", "src/app/api/clips/export/route.ts", "src/app/lib/clipExport.ts", "src/app/lib/clipExportStream.ts"].includes(path) ||
+			["src/server/broadcast-archive.ts", "src/app/lib/clipBroadcast.ts", "src/server/clip-download-limit.ts", "src/server/creator-library.ts", "src/server/creator-overview.ts", "src/server/creator-broadcasts.ts", "src/server/clip-export.ts", "src/app/actions/creatorLibrary.ts", "src/app/api/clips/export/route.ts", "src/app/lib/clipExport.ts", "src/app/lib/clipExportStream.ts"].includes(path) ||
 			path.startsWith("src/server/account-lifecycle/account-") ||
 			path === "src/server/primary-twitch-account.ts" ||
 			path === "src/db/client.ts" ||

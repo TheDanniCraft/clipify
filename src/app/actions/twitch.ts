@@ -1,5 +1,6 @@
 /* istanbul ignore file */
 "use server";
+import { rememberClipBroadcast, type ClipBroadcastReference } from "@lib/clipBroadcast";
 import { reserveTwitchClipDownloadRequest } from "@/server/clip-download-limit";
 
 import axios from "axios";
@@ -56,6 +57,7 @@ type ClipSyncState = RecentCrawlState & {
 
 type CachedClipValue = {
 	clip: TwitchClip;
+	broadcast?: ClipBroadcastReference;
 	unavailable?: boolean;
 	lastSeenAt?: string;
 	lastValidatedAt?: string;
@@ -611,20 +613,36 @@ async function upsertClipsByOwner(ownerId: string, clips: TwitchClip[], durable 
 	if (clips.length === 0) return;
 	const nowIso = new Date().toISOString();
 	if (durable) {
-		const rows = clips.map((clip) => ({ key: toClipCacheKey(ownerId, clip.id), value: JSON.stringify({ clip, lastSeenAt: nowIso, lastValidatedAt: nowIso }) }));
+		const rows = clips.map((clip) => ({ key: toClipCacheKey(ownerId, clip.id), value: JSON.stringify({ clip, broadcast: rememberClipBroadcast(clip), lastSeenAt: nowIso, lastValidatedAt: nowIso }) }));
 		await dbPool.query(
 			`INSERT INTO "twitchCache"(type,key,value,fetched_at,expires_at)
    SELECT 'clip',key,value,now(),NULL FROM jsonb_to_recordset($1::jsonb) AS items(key text,value text)
-   ON CONFLICT(type,key) DO UPDATE SET value=excluded.value,fetched_at=excluded.fetched_at,expires_at=NULL`,
+   ON CONFLICT(type,key) DO UPDATE SET
+ value=(SELECT (incoming || jsonb_build_object('broadcast',COALESCE(incoming->'broadcast',
+ CASE WHEN prior->>'id'=incoming#>>'{clip,id}' AND prior->>'broadcaster_id'=incoming#>>'{clip,broadcaster_id}' THEN
+ COALESCE(NULLIF(stored->'broadcast','null'::jsonb),CASE WHEN nullif(prior->>'video_id','') IS NOT NULL THEN jsonb_build_object('id',prior->>'video_id','offset',prior->'vod_offset') END) END)))::text
+ FROM (SELECT excluded.value::jsonb AS incoming,"twitchCache".value::jsonb AS stored,coalesce("twitchCache".value::jsonb->'clip',"twitchCache".value::jsonb) AS prior) AS history),
+ fetched_at=excluded.fetched_at,expires_at=NULL`,
 			[JSON.stringify(rows)],
 		);
 		return;
 	}
+	const previous =
+		(await getTwitchCacheBatch<CachedClipValue | TwitchClip>(
+			TwitchCacheType.Clip,
+			clips.map((clip) => toClipCacheKey(ownerId, clip.id)),
+		)) ?? [];
+	const prior = new Map(
+		previous.flatMap((value) => {
+			const clip = parseCachedClipValue(value);
+			return clip ? [[clip.id, value] as const] : [];
+		}),
+	);
 	await setTwitchCacheBatch(
 		TwitchCacheType.Clip,
 		clips.map((clip) => ({
 			key: toClipCacheKey(ownerId, clip.id),
-			value: { clip, lastSeenAt: nowIso, lastValidatedAt: nowIso } satisfies CachedClipValue,
+			value: { clip, broadcast: rememberClipBroadcast(clip, prior.get(clip.id)), lastSeenAt: nowIso, lastValidatedAt: nowIso } satisfies CachedClipValue,
 		})),
 	);
 }
@@ -678,6 +696,7 @@ export async function resolvePlayableClip(overlayId: string, clip: TwitchClip, o
 			await setTwitchCache(TwitchCacheType.Clip, key, {
 				/* istanbul ignore next */
 				clip: cachedClip,
+				broadcast: rememberClipBroadcast(cachedClip, cachedValue),
 				unavailable: true,
 				lastSeenAt: (cachedValue as CachedClipValue | null)?.lastSeenAt ?? nowIso,
 				lastValidatedAt: nowIso,
@@ -688,6 +707,7 @@ export async function resolvePlayableClip(overlayId: string, clip: TwitchClip, o
 	if (fresh.broadcaster_id !== ownerId) return fresh;
 	await setTwitchCache(TwitchCacheType.Clip, key, {
 		clip: fresh,
+		broadcast: rememberClipBroadcast(fresh, cachedValue),
 		unavailable: false,
 		lastSeenAt: nowIso,
 		lastValidatedAt: nowIso,

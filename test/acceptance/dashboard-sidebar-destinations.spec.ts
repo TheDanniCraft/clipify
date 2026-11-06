@@ -26,6 +26,10 @@ for (const width of [390, 1440])
 		const timeOrigin = await page.evaluate(() => performance.timeOrigin);
 		if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
 		const sidebar = page.locator(width === 390 ? '[data-slot="sidebar-mobile"]' : '[data-slot="sidebar"]');
+		const automation = sidebar.getByText("Automations", { exact: true });
+		await expect(automation).toBeVisible();
+		await expect(automation.locator('xpath=ancestor::*[@aria-disabled="true"]').first()).toBeVisible();
+		await expect(sidebar.getByText("Coming soon", { exact: true })).toBeVisible();
 		await sidebar.getByRole("row", { name: "Clip Gallery", exact: true }).click();
 		await expect(page).toHaveURL(/tool=gallery/);
 		await expect(page.getByRole("heading", { name: "Configure Clip Gallery", exact: true })).toBeVisible();
