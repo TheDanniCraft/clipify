@@ -7,7 +7,7 @@ jest.mock("@heroui/react", () => {
 				{children}
 			</section>
 		),
-		{ Heading: base.Disclosure.Heading, Trigger: base.Disclosure.Trigger, Indicator: base.Disclosure.Indicator, Content: base.Disclosure.Content },
+		{ Heading: base.Disclosure.Heading, Trigger: base.Disclosure.Trigger, Indicator: base.Disclosure.Indicator, Content: base.Disclosure.Content, Body: base.Disclosure.Body },
 	);
 	return new Proxy({ ...base, Disclosure, useFilter: () => ({ contains: (text: string, input: string) => text.toLowerCase().includes(input.toLowerCase()) }) }, { get: (target: any, key: any) => (key in target ? target[key] : base[key]) });
 });

@@ -34,3 +34,14 @@ test.each(["Dockerfile", "Dockerfile-preview"])("%s embeds a distinct deployment
 	expect(placeholder.release).toBe("clipify-preview@local");
 	expect(placeholder.source).toMatch(/^[a-f0-9-]{36}$/);
 });
+
+test.each(["Dockerfile", "Dockerfile-preview"])("%s provides native clip rendering in its final runtime", (file) => {
+	const runtime = readFileSync(file, "utf8")
+		.split(/\nFROM /)
+		.at(-1)!;
+	const packages = runtime.match(/apt-get install[^&]*/)?.[0] ?? "";
+	expect(packages).toMatch(/\bffmpeg\b/);
+	expect(packages).toMatch(/\bfonts-dejavu-core\b/);
+	expect(runtime).toMatch(/ffmpeg -version/);
+	expect(runtime).toMatch(/ffprobe -version/);
+});

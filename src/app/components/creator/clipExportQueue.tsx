@@ -368,14 +368,20 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 						<div className='space-y-2'>
 							<h3 className='text-sm font-medium text-muted'>Previous batches</h3>
 							{history.map((batch) => (
-								<Disclosure key={batch.id} isExpanded={expanded.includes(batch.id)} onExpandedChange={(value) => setExpanded((ids) => (value ? [...ids, batch.id] : ids.filter((id) => id !== batch.id)))}>
+								<Disclosure className='border-b border-separator last:border-b-0' key={batch.id} isExpanded={expanded.includes(batch.id)} onExpandedChange={(value) => setExpanded((ids) => (value ? [...ids, batch.id] : ids.filter((id) => id !== batch.id)))}>
 									<Disclosure.Heading>
-										<Disclosure.Trigger>
-											Batch {batch.id}, {batch.status}, {batch.request.clipIds.length} {unit(batch, batch.request.clipIds.length)}
-											<Disclosure.Indicator />
-										</Disclosure.Trigger>
+										<Button slot='trigger' variant='ghost' className='h-auto w-full justify-start gap-3 rounded-none px-0 py-3 text-sm' aria-label={`Batch ${batch.id}, ${batch.status}, ${batch.request.clipIds.length} ${unit(batch, batch.request.clipIds.length)}`}>
+											<span className='min-w-0 flex-1 text-left'>Batch {batch.id}</span>
+											<span className='text-muted capitalize'>{batch.status}</span>
+											<span className='text-muted'>
+												{batch.request.clipIds.length} {unit(batch, batch.request.clipIds.length)}
+											</span>
+											<Disclosure.Indicator className='size-4 shrink-0' />
+										</Button>
 									</Disclosure.Heading>
-									<Disclosure.Content>{expanded.includes(batch.id) ? view(batch) : null}</Disclosure.Content>
+									<Disclosure.Content>
+										<Disclosure.Body className='pb-4'>{expanded.includes(batch.id) ? view(batch) : null}</Disclosure.Body>
+									</Disclosure.Content>
 								</Disclosure>
 							))}
 						</div>

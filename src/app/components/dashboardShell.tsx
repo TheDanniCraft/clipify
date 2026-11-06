@@ -5,7 +5,7 @@ import { Sidebar, Command, useSidebar } from "@heroui-pro/react";
 import { Button, Kbd } from "@heroui/react";
 import { IconPalette, IconHome, IconLayoutCollage, IconVideo, IconScissors, IconLayoutGrid, IconPlaylist, IconPhoto, IconDeviceDesktop, IconTools, IconSettings, IconFolder, IconSearch, IconHelpCircle, IconUserCircle, IconPlug, IconId, IconCreditCard, IconUsers, IconPlayerPlay, IconAward, IconBuildingCommunity } from "@tabler/icons-react";
 import NextLink from "next/link";
-import { ClipExportProvider, ExportQueueLauncher, useClipExports } from "./creator/clipExportQueue";
+import { ClipExportProvider, ExportQueueLauncher } from "./creator/clipExportQueue";
 import AdminNavigation from "./adminNavigation";
 import Logo from "./logo";
 import { settingsSections, settingsSection, toolSections } from "@lib/dashboardSections";
@@ -42,7 +42,6 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen, isAd
 		() => false,
 	);
 	const navigationKey = `${path}?${params}`;
-	const exportQueue = useClipExports();
 	const { isMobile, isMobileOpen, setMobileOpen } = useSidebar();
 	const [searchOpen, setSearchOpen] = useState(false);
 	const [waitingForDrawer, setWaitingForDrawer] = useState(false);
@@ -209,11 +208,6 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen, isAd
 							))}
 					</Sidebar.Menu>
 				</Sidebar.Group>
-				{exportQueue?.batches.length ? (
-					<Sidebar.Group>
-						<ExportQueueLauncher compact={!open && !isMobile} />
-					</Sidebar.Group>
-				) : null}
 				{isAdmin ? <AdminNavigation /> : null}
 			</Sidebar.Content>
 			{isMobile ? <div ref={markUtilityHostReady} data-dashboard-consent className='max-h-[35dvh] shrink-0 overflow-y-auto' /> : null}
@@ -225,8 +219,10 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen, isAd
 						</Button>
 					) : null}
 					<div ref={markUtilityHostReady} id={isMobile ? "dashboard-mobile-utilities" : "dashboard-utilities"} className='flex flex-col gap-0.5'>
-						{["admin", "guide", "chat", "report", "account"].map((slot) => (
-							<div key={slot} data-dashboard-utility={slot} className={open || isMobile || slot === "account" ? "min-w-0 empty:hidden" : "hidden"}></div>
+						{["admin", "guide", "exports", "chat", "report", "account"].map((slot) => (
+							<div key={slot} data-dashboard-utility={slot} className={open || isMobile || slot === "account" || slot === "exports" ? "min-w-0 empty:hidden" : "hidden"}>
+								{slot === "exports" ? <ExportQueueLauncher compact={!open && !isMobile} /> : null}
+							</div>
 						))}
 					</div>
 				</Sidebar.Footer>

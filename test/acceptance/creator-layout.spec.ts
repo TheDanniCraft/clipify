@@ -162,7 +162,6 @@ for (const width of [390, 1440])
 
 test("Clip preview actions remain grouped and usable in the installed modal", async ({ page, request, tourWorld }, info) => {
 	const { id } = await seedCreatorLibrary({ page, request, tourWorld });
-	await tourWorld.fixture.pool.query("UPDATE playlist_clips SET clip_data=jsonb_set(clip_data::jsonb,'{testPreviewOfficial}','true')::text WHERE clip_id=$1", [id]);
 	await page.goto(`${tourWorld.origin}/dashboard/clips`);
 	await page.getByRole("button", { name: "Reject optional", exact: true }).click();
 	await page.reload();

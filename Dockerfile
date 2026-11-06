@@ -63,6 +63,8 @@ RUN apt-get update && \
     ffmpeg \
     fonts-dejavu-core \
     adduser && \
+    ffmpeg -version >/dev/null && \
+    ffprobe -version >/dev/null && \
     rm -rf /var/lib/apt/lists/* && \
     addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs

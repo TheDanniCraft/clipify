@@ -43,7 +43,12 @@ for (const width of [390, 1440])
 			await expect(page).toHaveURL(/\/dashboard\/streams$/);
 			await (await download).saveAs(info.outputPath("batch.zip"));
 			if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
-			await page.getByRole("button", { name: "Exports", exact: true }).click();
+			const sidebar = page.locator(`[data-slot="${width === 390 ? "sidebar-mobile" : "sidebar"}"]`);
+			const utilities = sidebar.locator("[data-dashboard-utility]");
+			expect(await utilities.evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-dashboard-utility")))).toEqual(["admin", "guide", "exports", "chat", "report", "account"]);
+			await expect(sidebar.locator('[data-dashboard-utility="exports"]').getByRole("button", { name: "Exports", exact: true })).toBeVisible();
+			await page.screenshot({ path: info.outputPath("export-footer.png"), fullPage: true, animations: "disabled" });
+			await sidebar.getByRole("button", { name: "Exports", exact: true }).click();
 			await expect(modal).toContainText("1 file ready");
 			await expect(modal.getByText("Ready", { exact: true })).toBeVisible();
 			await expect(page.getByText("Download started", { exact: true })).not.toBeVisible();
@@ -56,7 +61,11 @@ for (const width of [390, 1440])
 			await page.getByRole("button", { name: "Export selected", exact: true }).click();
 			await page.getByRole("button", { name: "Start export", exact: true }).click();
 			await expect(modal.getByRole("button", { name: /Batch 1, completed, 1 file/ })).toBeVisible();
-			await modal.getByRole("button", { name: /Batch 1, completed, 1 file/ }).click();
+			const historyRow = modal.getByRole("button", { name: /Batch 1, completed, 1 file/ });
+			const [label, chevron] = await Promise.all([historyRow.locator("span").first().boundingBox(), historyRow.locator("svg").boundingBox()]);
+			expect(Math.abs(label!.y + label!.height / 2 - chevron!.y - chevron!.height / 2)).toBeLessThanOrEqual(2);
+			await modal.screenshot({ path: info.outputPath("collapsed-history.png") });
+			await historyRow.click();
 			await expect(modal.getByRole("list", { name: "Batch 1 clips" })).toBeVisible();
 			await page.screenshot({ path: info.outputPath("history.png"), fullPage: true, animations: "disabled" });
 			await modal.getByRole("button", { name: "Cancel export", exact: true }).click();
