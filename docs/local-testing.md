@@ -435,7 +435,7 @@ cache. Each browser job ensures the matching browser exists and verifies its own
 [Playwright cautions that binary-cache restore can cost as much as downloading](https://playwright.dev/docs/ci#caching-browsers);
 compare actual cache and setup timings rather than assuming a cache is faster.
 
-Media setup reuses the bundled licensed font files and installed FFmpeg before contacting package mirrors. Installation commands run noninteractively with bounded network retries, network/lock timeouts, a three-minute whole-command deadline and explicit workflow step deadlines. A failed setup remains a failed prerequisite; it never becomes passing test evidence or a silently skipped suite.
+Linux CI jobs pin Ubuntu 24.04 so an `ubuntu-latest` image rollout cannot silently change installed media dependencies between runs. Media setup reuses the bundled licensed font files and installed FFmpeg before contacting package mirrors. Installation commands run noninteractively with bounded network retries, network/lock timeouts, a three-minute whole-command deadline and explicit workflow step deadlines. A failed setup remains a failed prerequisite; it never becomes passing test evidence or a silently skipped suite.
 
 The shared build artifact is `browser-build.tar.gz`. It preserves runtime files,
 static assets, manifests and source maps, while excluding compilation cache and

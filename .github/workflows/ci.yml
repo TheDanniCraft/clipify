@@ -17,7 +17,7 @@ concurrency:
 jobs:
   changes:
     name: 🔎 Detect changed areas
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       runner: ${{ steps.filter.outputs.runner }}
       full: ${{ steps.mode.outputs.full }}
@@ -53,7 +53,7 @@ jobs:
 
   deps:
     name: ♻️ Prepare dependency cache
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       cache-key: ${{ steps.compute-key.outputs.key }}
       browser-cache-key: ${{ steps.compute-browser-key.outputs.key }}
@@ -124,7 +124,7 @@ jobs:
   draft-tests:
     name: 🧪 Scoped draft checks
     if: needs.changes.outputs.full != 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [deps, changes]
     env:
       MCP_PROBE_RUNTIME: node
@@ -175,7 +175,7 @@ jobs:
   browser-build:
     name: 🏗️ Shared browser build
     if: needs.changes.outputs.full == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [deps, changes]
     env:
       MCP_BROWSER_PROVIDER_FIXTURE: "true"
@@ -212,7 +212,7 @@ jobs:
   test:
     name: 🧪 Test
     if: ${{ !cancelled() && needs.changes.outputs.full == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [deps, changes, coverage-lanes, browser-tests, draft-tests, runner, runner-coverage, validation-plan]
     env:
       CLIPIFY_WORKFLOW_SHARD_PLAN: ${{ github.workspace }}/test-results/workflow-shard-plan.json
@@ -304,7 +304,7 @@ jobs:
 
   lint:
     name: 🧹 Lint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: deps
     steps:
       - name: 📥 Check out repository
@@ -329,7 +329,7 @@ jobs:
 
   typecheck:
     name: 🔎 Typecheck
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: deps
     steps:
       - name: 📥 Check out repository
@@ -354,7 +354,7 @@ jobs:
 
   format:
     name: 🎨 Format
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: deps
     steps:
       - name: 📥 Check out repository
@@ -385,7 +385,7 @@ jobs:
   validation-plan:
     name: 🔀 Plan test execution
     if: needs.changes.outputs.full == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [deps, changes]
     outputs:
       coverage_matrix: ${{ steps.plan.outputs.matrix }}
@@ -468,7 +468,7 @@ jobs:
   coverage-lanes:
     name: 🧪 Coverage (${{ matrix.lane }})
     if: needs.changes.outputs.full == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [deps, changes, validation-plan]
     strategy:
       fail-fast: false
@@ -572,7 +572,7 @@ jobs:
   browser-tests:
     if: needs.changes.outputs.full == 'true'
     name: 🌐 Browser tests (${{ matrix.label }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [deps, changes, browser-build, validation-plan]
     strategy:
       fail-fast: false
@@ -724,7 +724,7 @@ jobs:
 
   build:
     name: 🏗️ Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: deps
     steps:
       - name: 📥 Check out repository
@@ -880,7 +880,7 @@ jobs:
 
   runner-manifest:
     name: 📋 Verify Runner manifest extraction
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: 📋 Test scratch-image manifest extraction
         run: |
