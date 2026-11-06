@@ -254,11 +254,11 @@ When("I export each explicitly selected set", async ({ page, tourWorld }) => {
 	}
 	state.expected = count === 1 ? [state.ids[0]] : state.ids.slice(1, count + 1);
 	const downloading = page.waitForEvent("download", { timeout: 30000 });
-	const responsePromise = page.waitForResponse((response) => new URL(response.url()).pathname === "/api/clips/export" && response.request().method() === "POST", { timeout: 30000 });
+	const responsePromise = page.waitForResponse((response) => new URL(response.url()).pathname === "/api/clips/export/browser" && response.request().method() === "POST", { timeout: 30000 });
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
 	await page.getByRole("button", { name: "Start export", exact: true }).click();
 	const response = await responsePromise;
-	expect(response.status(), response.ok() ? "archive response" : await response.text()).toBe(200);
+	expect(response.status(), response.ok() ? "export preparation response" : await response.text()).toBe(200);
 	const download = await downloading;
 	expect(await download.failure()).toBeNull();
 	state.archive = await readFile((await download.path())!);

@@ -91,7 +91,7 @@ for (const width of [390, 1440])
 			await expect(page.getByRole("button", { name: "Download ZIP", exact: true })).toBeVisible();
 			await page.getByRole("dialog", { name: "Clip exports" }).screenshot({ path: info.outputPath("partial-export.png") });
 			await setMode(tourWorld, seeded.creatorId, second, { ...seeded.value, clip: { ...seeded.value.clip, id: second, title: "Retry this clip" } });
-			const requestPromise = page.waitForRequest((request) => new URL(request.url()).pathname === "/api/clips/export" && request.method() === "POST");
+			const requestPromise = page.waitForRequest((request) => new URL(request.url()).pathname === "/api/clips/export/browser" && request.method() === "POST");
 			const retryDownload = page.waitForEvent("download");
 			await page.getByRole("button", { name: "Retry failed files", exact: true }).click();
 			expect((await requestPromise).postDataJSON().files.map((file: { clipId: string }) => file.clipId)).toEqual([second]);
@@ -230,19 +230,29 @@ test("Maximum clip package downloads intact with measured browser memory", { tag
 	})();
 	const started = Date.now();
 	try {
-		const downloaded = page.waitForEvent("download");
+		const downloads: import("@playwright/test").Download[] = [];
+		page.on("download", (download) => downloads.push(download));
 		await page.getByRole("button", { name: "Export selected", exact: true }).click();
 		await page.getByRole("button", { name: "Start export", exact: true }).click();
-		const archive = await downloaded;
-		const bytes = new Uint8Array(await readFile((await archive.path())!));
-		const entries = unzipSync(bytes);
-		const manifest = JSON.parse(strFromU8(entries["manifest.json"]));
-		expect(manifest.clips.filter((clip: { status: string }) => clip.status === "included")).toHaveLength(4);
-		const videos = Object.entries(entries).filter(([name]) => name.endsWith(".mp4"));
-		expect(videos).toHaveLength(4);
-		expect(videos.every(([, bytes]) => bytes.length === 32 * 1024 * 1024)).toBe(true);
+		await expect.poll(() => downloads.length).toBe(2);
+		let archiveBytes = 0;
+		const includedIds: string[] = [];
+		for (const archive of downloads) {
+			const bytes = new Uint8Array(await readFile((await archive.path())!));
+			archiveBytes += bytes.length;
+			const entries = unzipSync(bytes);
+			const manifest = JSON.parse(strFromU8(entries["manifest.json"]));
+			const included = manifest.clips.filter((clip: { status: string }) => clip.status === "included");
+			includedIds.push(...included.map((clip: { id: string }) => clip.id));
+			const videos = Object.entries(entries).filter(([name]) => name.endsWith(".mp4"));
+			expect(videos).toHaveLength(included.length);
+			expect(videos.every(([, bytes]) => bytes.length === 32 * 1024 * 1024)).toBe(true);
+			await archive.delete();
+		}
+		expect(includedIds).toHaveLength(4);
+		expect(new Set(includedIds).size).toBe(4);
 		await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("4 selected");
-		await info.attach("maximum-package-browser-memory.json", { body: JSON.stringify({ archiveBytes: bytes.length, elapsedMs: Date.now() - started, samples, note: "Chromium heap/backing-storage samples; not whole-process RSS or concurrent capacity." }, null, 2), contentType: "application/json" });
+		await info.attach("maximum-package-browser-memory.json", { body: JSON.stringify({ archiveBytes, elapsedMs: Date.now() - started, samples, note: "Chromium heap/backing-storage samples; not whole-process RSS or concurrent capacity." }, null, 2), contentType: "application/json" });
 	} finally {
 		sampling = false;
 		await measurements;
