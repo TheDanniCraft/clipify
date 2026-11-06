@@ -1,7 +1,5 @@
 import "server-only";
 import sharp from "sharp";
-import { writeFile } from "node:fs/promises";
-import { join } from "node:path";
 import { compositionWidgetTheme, compositionRectPixels, compositionDimensions, type ClipComposition } from "@/app/lib/clipComposition";
 import { clipLayerText } from "@/app/lib/clipLayout";
 import { type CreatorBrand } from "@/app/lib/overlayMetadata";
@@ -41,19 +39,23 @@ export async function compositionAssets(layout: ClipComposition, clip: Parameter
 	}
 	return assets;
 }
-export async function compositionFilterGraph(layout: ClipComposition, dir: string, clip: Parameters<typeof clipLayerText>[1], signal: AbortSignal, avatar?: string, brand?: CreatorBrand) {
+export async function compositionFilterGraph(layout: ClipComposition, clip: Parameters<typeof clipLayerText>[1], signal: AbortSignal, avatar?: string, brand?: CreatorBrand) {
 	const { width, height } = compositionDimensions(layout.format),
 		videos = layout.layers.filter((layer) => layer.kind === "video"),
 		logos = layout.layers.filter((layer) => layer.kind === "logo");
 	const filters: string[] = [],
 		inputs: string[] = [];
 	const assets = await compositionAssets(layout, clip, signal, avatar, brand);
+	const images: Buffer[] = [];
+	const imageInput = (bytes: Buffer) => {
+		const fd = 3 + images.length;
+		images.push(bytes);
+		inputs.push("-f", "image2pipe", "-c:v", "png", "-max_pixels", "1000000", "-threads", "1", "-i", `pipe:${fd}`);
+	};
 	let inputIndex = 1;
 	if (logos.length) {
-		const path = join(dir, "channel-logo");
-		await writeFile(path, assets[logos[0].id]);
-		inputs.push("-loop", "1", "-max_pixels", "1000000", "-threads", "1", "-i", path);
-		filters.push(`[${inputIndex++}:v]format=rgba,split=${logos.length}${logos.map((_, index) => `[logo${index}]`).join("")}`);
+		imageInput(assets[logos[0].id]);
+		filters.push(`[${inputIndex++}:v]format=rgba,tpad=stop_mode=clone:stop=-1,split=${logos.length}${logos.map((_, index) => `[logo${index}]`).join("")}`);
 	}
 	filters.push(`[0:v]split=${videos.length + 1}[background]${videos.map((_, index) => `[video${index}]`).join("")}`);
 	filters.push(`[background]scale=${width}:${height},format=rgba,drawbox=color=black:t=fill[base]`);
@@ -69,14 +71,12 @@ export async function compositionFilterGraph(layout: ClipComposition, dir: strin
 		} else if (layer.kind === "logo") {
 			filters.push(`[logo${logoIndex++}]scale=${w}:${h}:force_original_aspect_ratio=decrease:force_divisible_by=2,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2:color=black@0,setsar=1[${label}]`);
 		} else {
-			const path = join(dir, `widget-${index}.png`);
-			await writeFile(path, assets[layer.id]);
-			inputs.push("-loop", "1", "-max_pixels", "1000000", "-threads", "1", "-i", path);
-			filters.push(`[${inputIndex++}:v]format=rgba[${label}]`);
+			imageInput(assets[layer.id]);
+			filters.push(`[${inputIndex++}:v]format=rgba,tpad=stop_mode=clone:stop=-1[${label}]`);
 		}
 		const output = `composite${index}`;
 		filters.push(`[${previous}][${label}]overlay=x=${x}:y=${y}:shortest=1:eof_action=repeat[${output}]`);
 		previous = output;
 	}
-	return { filters, output: previous, inputs };
+	return { filters, output: previous, inputs, images };
 }

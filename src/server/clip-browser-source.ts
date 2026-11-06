@@ -6,7 +6,8 @@ const options = { algorithms: ["HS256"], issuer: "clipify.us", audience: "clipif
 export function signBrowserClipSource(creatorId: string, clipId: string) {
 	const secret = process.env.JWT_SECRET;
 	if (!secret) throw new Error("Source access unavailable");
-	return jwt.sign(claims.parse({ creatorId, clipId }), secret, { algorithm: "HS256", issuer: options.issuer, audience: options.audience, expiresIn: 3600 });
+	// Outlast a slow fifty-file batch; each source request still rechecks access and quota.
+	return jwt.sign(claims.parse({ creatorId, clipId }), secret, { algorithm: "HS256", issuer: options.issuer, audience: options.audience, expiresIn: 6 * 3600 });
 }
 export function readBrowserClipSource(ticket: string): { creatorId: string; clipId: string } | null {
 	try {

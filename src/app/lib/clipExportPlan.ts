@@ -20,7 +20,7 @@ export const clipExportPlanSchema = z
 export type ClipExportPlan = z.infer<typeof clipExportPlanSchema>;
 export function createClipExportPlan(creatorId: string, clipIds: string[], outputs: ClipExportOutput[]): ClipExportPlan[] {
 	const ids = [...new Set(clipIds)];
-	if (!ids.length || ids.length > 500 || !outputs.length || ids.length * outputs.length > 10000) throw new Error("Select up to 500 clips and keep the export queue below 10,000 files.");
+	if (!ids.length || !outputs.length) throw new Error("Select clips and at least one output version.");
 	const snapshots = z.array(clipExportOutputSchema).parse(outputs);
 	if (new Set(snapshots.map((output) => output.key)).size !== snapshots.length) throw new Error("Select distinct output versions.");
 	const files = ids.flatMap((clipId) => snapshots.map((output) => ({ clipId, outputKey: output.key }))),

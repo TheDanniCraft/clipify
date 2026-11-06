@@ -82,6 +82,11 @@ test("Unsupported devices retain Original and can explicitly choose server proce
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
 	const dialog = page.getByRole("dialog", { name: "Export clips", exact: true });
 	await expect(dialog.getByRole("button", { name: "Start export", exact: true })).toBeEnabled();
+	const originalDownload = page.waitForEvent("download");
+	await dialog.getByRole("button", { name: "Start export", exact: true }).click();
+	await (await originalDownload).saveAs(info.outputPath("unsupported-original.zip"));
+	await page.getByRole("button", { name: "Close exports", exact: true }).click();
+	await page.getByRole("button", { name: "Export selected", exact: true }).click();
 	await dialog.getByRole("checkbox", { name: "Mobile", exact: true }).focus();
 	await page.keyboard.press("Space");
 	await expect(dialog.getByRole("radio", { name: "On this device", exact: true })).toBeDisabled();
@@ -96,3 +101,98 @@ test("Unsupported devices retain Original and can explicitly choose server proce
 	const archive = unzipSync(await readFile(info.outputPath("server-fallback.zip")));
 	expect(Object.keys(archive).filter((name) => name.endsWith(".mp4"))).toHaveLength(2);
 });
+test("Large browser exports download ZIP parts without dropping files", async ({ page, request, tourWorld }, info) => {
+	test.setTimeout(90000);
+	// Exercise the package boundary with real controls/downloads; codec parity has separate real-encoding cases.
+	await page.addInitScript(() => {
+		const NativeWorker = Worker;
+		window.Worker = class extends NativeWorker {
+			postMessage(data: unknown, options?: StructuredSerializeOptions | Transferable[]) {
+				const message = data as { type: string; bytes: ArrayBuffer };
+				if (message.type !== "render") {
+					if (Array.isArray(options)) super.postMessage(data, options);
+					else super.postMessage(data, options);
+					return;
+				}
+				const original = new Uint8Array(message.bytes),
+					bytes = new Uint8Array(31 * 1024 * 1024);
+				bytes.set(original);
+				new DataView(bytes.buffer).setUint32(original.length, bytes.length - original.length);
+				bytes.set([102, 114, 101, 101], original.length + 4);
+				setTimeout(() => this.dispatchEvent(new MessageEvent("message", { data: { type: "result", bytes: bytes.buffer } })), 0);
+			}
+		};
+	});
+	const { creatorId } = await seedCreatorLibrary({ page, request, tourWorld });
+	await tourWorld.fixture.pool.query("UPDATE auth.account SET scope='channel:manage:clips' WHERE account_id=$1", [creatorId]);
+	const desktop = createClipComposition("desktop"),
+		mobile = createClipComposition("mobile");
+	for (let i = 1; i <= 3; i++) await tourWorld.fixture.pool.query("INSERT INTO user_content_states(user_id,content_key,state) VALUES($1,$2,$3)", [creatorId, `clip-layout-template:v2:parts${i}`, JSON.stringify({ name: `Package ${i}`, composition: desktop, compositions: { desktop, mobile } })]);
+	await page.goto(`${tourWorld.origin}/dashboard/clips`);
+	await page.getByRole("button", { name: "Reject optional", exact: true }).click();
+	await page.reload();
+	await page.getByRole("button", { name: "Select page", exact: true }).click();
+	await page.getByRole("button", { name: "Export selected", exact: true }).click();
+	const dialog = page.getByRole("dialog", { name: "Export clips", exact: true });
+	for (const name of ["Desktop", "Mobile"]) {
+		await dialog.getByRole("checkbox", { name, exact: true }).focus();
+		await page.keyboard.press("Space");
+	}
+	const picker = page.locator('[data-slot="autocomplete-popover"]');
+	for (const name of ["Package 1", "Package 2", "Package 3"]) {
+		if (!(await picker.isVisible())) await dialog.locator('[data-slot="autocomplete-trigger"]').click({ timeout: 5000 });
+		const option = picker.getByRole("option", { name, exact: true });
+		await expect(option).toBeVisible();
+		if ((await option.getAttribute("aria-selected")) !== "true") await option.click();
+	}
+	if (await picker.isVisible()) await page.keyboard.press("Escape");
+	await expect(dialog.getByRole("status", { name: "Export file count" })).toHaveText("7 video files");
+	const downloads: import("@playwright/test").Download[] = [];
+	page.on("download", (download) => downloads.push(download));
+	await dialog.getByRole("button", { name: "Start export", exact: true }).click();
+	await expect.poll(() => downloads.length, { timeout: 45000 }).toBe(2);
+	const names: string[] = [];
+	for (const [i, download] of downloads.entries()) {
+		expect(download.suggestedFilename()).toBe(`clipify-clips-batch-1-part-${i + 1}.zip`);
+		const path = info.outputPath(`part-${i}.zip`);
+		await download.saveAs(path);
+		const archive = unzipSync(await readFile(path));
+		names.push(...Object.keys(archive).filter((name) => name.endsWith(".mp4")));
+		await (await import("node:fs/promises")).unlink(path);
+	}
+	expect(names).toHaveLength(7);
+	expect(new Set(names).size).toBe(7);
+	await expect(page.getByRole("button", { name: "Download latest ZIP", exact: true })).toBeVisible();
+	await page.getByRole("dialog", { name: "Clip exports", exact: true }).screenshot({ path: info.outputPath("completed-parts.png") });
+});
+for (const removed of ["cached", "provider"])
+	test(`Partial browser exports retain metadata and skip removed clips (${removed})`, async ({ page, request, tourWorld }, info) => {
+		const { creatorId, id } = await seedCreatorLibrary({ page, request, tourWorld });
+		await tourWorld.fixture.pool.query("UPDATE auth.account SET scope='channel:manage:clips' WHERE account_id=$1", [creatorId]);
+		const row = (await tourWorld.fixture.pool.query('SELECT value FROM "twitchCache" WHERE key=$1', [`clip:${creatorId}:${id}`])).rows[0];
+		const stored = JSON.parse(row.value),
+			missing = `LibrarySort00_${creatorId.slice("e2e-creator-".length)}`;
+		await tourWorld.fixture.pool.query('INSERT INTO "twitchCache"(type,key,value) VALUES($1,$2,$3)', ["clip", `clip:${creatorId}:${missing}`, JSON.stringify({ ...stored, clip: { ...stored.clip, id: missing, title: "Removed" }, ...(removed === "provider" ? { testDownloadMode: "deleted" } : {}) })]);
+		await page.goto(`${tourWorld.origin}/dashboard/clips`);
+		await page.getByRole("button", { name: "Reject optional", exact: true }).click();
+		await page.reload();
+		await page.getByRole("button", { name: "Select page", exact: true }).click();
+		await page.getByRole("button", { name: "Export selected", exact: true }).click();
+		if (removed === "cached") await tourWorld.fixture.pool.query(`UPDATE "twitchCache" SET value=jsonb_set(value::jsonb,'{unavailable}','true')::text WHERE key=$1`, [`clip:${creatorId}:${missing}`]);
+		const download = page.waitForEvent("download");
+		await page.getByRole("button", { name: "Start export", exact: true }).click();
+		const path = info.outputPath("partial.zip");
+		await (await download).saveAs(path);
+		const archive = unzipSync(await readFile(path)),
+			manifest = JSON.parse(strFromU8(archive["manifest.json"]));
+		expect(Object.keys(archive).filter((name) => name.endsWith(".mp4"))).toHaveLength(1);
+		const included = manifest.clips.find((clip: any) => clip.status === "included"),
+			skipped = manifest.clips.find((clip: any) => clip.status === "skipped");
+		expect(included).toMatchObject({ id, views: 42, duration: 12, categoryId: "123", broadcasterName: "Browser creator", bytes: archive[included.filename].length });
+		expect(skipped).toMatchObject({ id: missing, code: "clip_unavailable", retryable: false });
+		expect(JSON.stringify(manifest)).not.toContain("sourceToken");
+		const modal = page.getByRole("dialog", { name: "Clip exports", exact: true });
+		await expect(modal.getByText("Clip unavailable", { exact: true })).toBeVisible();
+		await expect(modal.getByRole("button", { name: "Retry failed files", exact: true })).toHaveCount(0);
+		await modal.screenshot({ path: info.outputPath("partial-result.png") });
+	});

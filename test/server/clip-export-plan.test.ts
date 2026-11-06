@@ -23,7 +23,6 @@ it("rejects invalid selections before building queue packets", () => {
 		["", ["ClipA"], [{ key: "original", label: "Original" }]],
 		["owner", [], [{ key: "original", label: "Original" }]],
 		["owner", ["ClipA"], []],
-		["owner", Array.from({ length: 501 }, (_, i) => `Clip${i}`), [{ key: "original", label: "Original" }]],
 		[
 			"owner",
 			["ClipA"],
@@ -41,7 +40,7 @@ it("rejects invalid selections before building queue packets", () => {
 			),
 		).toThrow();
 });
-it("bounds the complete queue and rejects unknown or duplicated file versions", async () => {
+it("rejects unknown or duplicated versions while allowing large bounded-batch queues", async () => {
 	const { clipExportPlanSchema } = await import("@lib/clipExportPlan");
 	const output = { key: "original", label: "Original" };
 	expect(clipExportPlanSchema.safeParse({ creatorId: "owner", outputs: [output], files: [{ clipId: "ClipA", outputKey: "missing" }] }).success).toBe(false);
@@ -58,8 +57,18 @@ it("bounds the complete queue and rejects unknown or duplicated file versions", 
 	expect(() =>
 		createClipExportPlan(
 			"owner",
-			Array.from({ length: 500 }, (_, i) => `Clip${i}`),
+			Array.from({ length: 501 }, (_, i) => `Clip${i}`),
 			Array.from({ length: 21 }, (_, i) => ({ key: `layout${i}`, label: `Layout ${i}` })),
 		),
-	).toThrow();
+	).not.toThrow();
+});
+
+it("keeps every file when the selection exceeds the old total cap", () => {
+	const batches = createClipExportPlan(
+		"owner",
+		Array.from({ length: 501 }, (_, i) => `Clip${i}`),
+		Array.from({ length: 21 }, (_, i) => ({ key: `v${i}`, label: `Version ${i}` })),
+	);
+	expect(batches.reduce((count, batch) => count + batch.files.length, 0)).toBe(10521);
+	expect(batches.every((batch) => batch.files.length <= 50)).toBe(true);
 });

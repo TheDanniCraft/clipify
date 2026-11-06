@@ -45,7 +45,7 @@ const reasons: Record<string, string> = {
 };
 
 export type ExportRequest = { creatorId: string; clipIds: string[]; scope: string; format: "zip" | "mp4"; layout?: ClipLayout; clipNames?: Record<string, string>; plan?: ClipExportPlan; engine?: ExportEngine };
-type Batch = { id: number; group: string; request: ExportRequest; status: "queued" | "waiting" | "processing" | "completed" | "failed" | "cancelled"; clips: ClipExportProgress[]; summary?: ClipExportSummary; error?: string; failures?: ClipExportSummary["skipped"]; retryAt?: string; downloadUrl?: string };
+type Batch = { id: number; group: string; request: ExportRequest; status: "queued" | "waiting" | "processing" | "completed" | "failed" | "cancelled"; clips: ClipExportProgress[]; summary?: ClipExportSummary; error?: string; failures?: ClipExportSummary["skipped"]; retryAt?: string; downloadUrl?: string; packageCount?: number };
 const pending = (batch: Batch) => ["queued", "waiting", "processing"].includes(batch.status);
 export const clipExportRequestKey = (request: ExportRequest) => JSON.stringify(request.plan ? [request.scope, request.clipIds, request.format, request.layout, request.plan, request.engine] : [request.scope, request.clipIds, request.format, request.layout, request.engine]);
 const unit = (batch: Batch, count: number) => (batch.request.plan ? (count === 1 ? "file" : "files") : count === 1 ? "clip" : "clips");
@@ -106,6 +106,20 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 		const timer = setInterval(() => setNow(Date.now()), 1000);
 		return () => clearInterval(timer);
 	}, [batches]);
+	const publish = (bytes: Uint8Array<ArrayBuffer>, batch: Batch, name: string) => {
+		urls.current.forEach((url) => URL.revokeObjectURL(url));
+		urls.current.clear();
+		update((list) => list.map((job) => ({ ...job, downloadUrl: undefined })));
+		const url = URL.createObjectURL(new Blob([bytes], { type: batch.request.format === "mp4" ? "video/mp4" : "application/zip" }));
+		urls.current.add(url);
+		const anchor = document.createElement("a");
+		anchor.href = url;
+		anchor.download = name;
+		document.body.append(anchor);
+		anchor.click();
+		anchor.remove();
+		return url;
+	};
 	const run = async () => {
 		if (running.current) return;
 		running.current = true;
@@ -141,7 +155,7 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 					const report = (event: ClipExportProgress) => {
 						update((list) => list.map((job) => (job.id === batch.id ? { ...job, clips: job.clips.map((clip, index) => (index === event.index ? { ...clip, ...event } : clip)) } : job)));
 					};
-					const result = batch.request.engine === "browser" && batch.request.plan ? await buildBrowserBatch(batch.request.plan, abort.signal, report) : await readClipExportResponse(response!, clipIds.length, format, abort.signal, report);
+					const result = batch.request.engine === "browser" && batch.request.plan ? await buildBrowserBatch(batch.request.plan, abort.signal, report, (bytes, part) => publish(bytes, batch, `clipify-clips-batch-${batch.id}-part-${part}.zip`)) : await readClipExportResponse(response!, clipIds.length, format, abort.signal, report);
 					if (!alive.current) return;
 					setNow(Date.now());
 					abort.signal.throwIfAborted();
@@ -156,19 +170,10 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 						if (["RECONNECT_REQUIRED", "AUTHENTICATION_REQUIRED", "PERMISSION_DENIED", "ACCOUNT_SUSPENDED", "ENTITLEMENT_REQUIRED"].includes(result.code)) update((list) => list.map((job) => (job.status === "queued" ? { ...job, status: "failed", error: result.code } : job)));
 						continue;
 					}
-					urls.current.forEach((url) => URL.revokeObjectURL(url));
-					urls.current.clear();
-					update((list) => list.map((job) => ({ ...job, downloadUrl: undefined })));
-					const url = URL.createObjectURL(new Blob([result.bytes], { type: format === "mp4" ? "video/mp4" : "application/zip" }));
-					urls.current.add(url);
-					const anchor = document.createElement("a");
-					anchor.href = url;
-					anchor.download = downloadName(batch);
-					document.body.append(anchor);
-					anchor.click();
-					anchor.remove();
+					const packageCount = "partCount" in result && typeof result.partCount === "number" ? result.partCount : 1;
+					const url = publish(result.bytes, batch, packageCount > 1 ? `clipify-clips-batch-${batch.id}-part-${packageCount}.zip` : downloadName(batch));
 					const failures = new Map(result.summary.skipped.map((item) => [item.index, item]));
-					patch(batch.id, { status: "completed", downloadUrl: url, summary: result.summary, retryAt: result.summary.retryAt, clips: (jobs.current.find((job) => job.id === batch.id)?.clips ?? batch.clips).map((clip, index) => ({ ...clip, stage: failures.has(index) ? "skipped" : "ready", code: failures.get(index)?.code })) });
+					patch(batch.id, { status: "completed", downloadUrl: url, packageCount, summary: result.summary, retryAt: result.summary.retryAt, clips: (jobs.current.find((job) => job.id === batch.id)?.clips ?? batch.clips).map((clip, index) => ({ ...clip, stage: failures.has(index) ? "skipped" : "ready", code: failures.get(index)?.code })) });
 					announce({ title: result.summary.skipped.length ? "Download started with skipped clips" : "Download started", color: result.summary.skipped.length ? "warning" : "success" });
 				} catch (error) {
 					if (alive.current) {
@@ -189,12 +194,7 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 			changeOpen(true);
 			return true;
 		}
-		const count = jobs.current.filter(pending).reduce((sum, job) => sum + job.request.clipIds.length, 0),
-			addedCount = requests.reduce((sum, request) => sum + request.clipIds.length, 0);
-		if (!addedCount || count + addedCount > 10000) {
-			notify({ title: "The export queue is full", description: "Wait for a batch to finish before adding more files.", color: "warning" });
-			return false;
-		}
+		if (!requests.length) return false;
 		const added: Batch[] = requests.map((request) => ({
 			id: ++sequence.current,
 			group,
@@ -208,7 +208,7 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 		return true;
 	};
 	const enqueue = (request: ExportRequest) => {
-		if (request.creatorId !== creatorId || !request.clipIds.length || request.clipIds.length > 500 || (request.format === "mp4" && request.clipIds.length !== 1)) return;
+		if (request.creatorId !== creatorId || !request.clipIds.length || (request.format === "mp4" && request.clipIds.length !== 1)) return;
 		if (request.plan) {
 			appendRequests([request], clipExportRequestKey(request));
 			return;
@@ -281,7 +281,8 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 				) : null}
 				{batch.summary ? (
 					<p role='status' className='text-sm'>
-						{batch.summary.included.length} {unit(batch, batch.summary.included.length)} ready. Download initiated.{batch.summary.skipped.length ? ` ${batch.summary.skipped.length} ${unit(batch, batch.summary.skipped.length)} skipped.` : ""}
+						{batch.summary.included.length} {unit(batch, batch.summary.included.length)} ready. {batch.packageCount && batch.packageCount > 1 ? `${batch.packageCount} ZIP parts downloaded. Allow multiple downloads if your browser asks.` : "Download initiated."}
+						{batch.summary.skipped.length ? ` ${batch.summary.skipped.length} ${unit(batch, batch.summary.skipped.length)} skipped.` : ""}
 					</p>
 				) : null}
 				<ul aria-label={`Batch ${batch.id} clips`} className='max-h-72 divide-y divide-separator overflow-y-auto overscroll-contain'>
@@ -347,7 +348,7 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 							}}
 						>
 							<IconDownload className='size-4 shrink-0' />
-							{batch.downloadUrl ? `Download ${batch.request.format.toUpperCase()}` : "Export batch again"}
+							{batch.downloadUrl ? `Download ${batch.packageCount && batch.packageCount > 1 ? "latest " : ""}${batch.request.format.toUpperCase()}` : "Export batch again"}
 						</Button>
 					) : null}
 					{pending(batch) ? (

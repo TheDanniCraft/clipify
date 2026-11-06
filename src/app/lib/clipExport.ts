@@ -95,3 +95,17 @@ export function clipExportFilename(title: string, id: string, index: number, use
 	used.add(filename);
 	return filename;
 }
+
+export function isRetryableClipExportFailure(code: string) {
+	return ["provider_error", "download_timeout", "rate_limited", "render_busy", "render_failed", "font_unavailable", "browser_unsupported"].includes(code);
+}
+
+export function clipExportFailureCode(failures: readonly { code: string }[]) {
+	if (failures.some((item) => ["file_size_limit", "package_size_limit"].includes(item.code))) return "EXPORT_LIMIT";
+	if (failures.some((item) => item.code === "reconnect_required")) return "RECONNECT_REQUIRED";
+	if (failures.some((item) => item.code === "rate_limited")) return "RATE_LIMITED";
+	if (failures.some((item) => item.code === "browser_unsupported")) return "BROWSER_UNSUPPORTED";
+	if (failures.some((item) => item.code === "provider_error")) return "PROVIDER_UNAVAILABLE";
+	if (failures.some((item) => item.code === "download_timeout")) return "EXPORT_TIMEOUT";
+	return "EXPORT_UNAVAILABLE";
+}

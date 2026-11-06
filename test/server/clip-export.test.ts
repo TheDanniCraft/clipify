@@ -776,8 +776,41 @@ it("rechecks browser source permission and blocks replayed transfers when the sh
 	transfer.mockResolvedValueOnce({ allowed: false, retryAfterSeconds: 60 });
 	const ticket = signBrowserClipSource("owner", "ClipA");
 	const result = await downloadBrowserClipSource(ticket, AbortSignal.timeout(5000));
-	expect(result).toMatchObject({ ok: false, code: "RATE_LIMITED", status: 429 });
+	expect(result).toMatchObject({ ok: false, code: "RATE_LIMITED", status: 429, retryAt: expect.any(String) });
 	authorize.mockResolvedValue({ allowed: false, code: "PERMISSION_DENIED" });
 	await expect(downloadBrowserClipSource(ticket, AbortSignal.timeout(5000))).resolves.toMatchObject({ ok: false, code: "PERMISSION_DENIED", status: 403 });
 	await expect(downloadBrowserClipSource("forged", AbortSignal.timeout(5000))).resolves.toMatchObject({ ok: false, code: "PERMISSION_DENIED", status: 403 });
+});
+it("prepares a partial browser batch when one owned clip is already unavailable", async () => {
+	const { prepareBrowserClipExport } = await import("@/server/clip-export");
+	const { createClipExportPlan } = await import("@lib/clipExportPlan");
+	const removed = ownedEntry("ClipB");
+	removed.value = JSON.stringify({ ...JSON.parse(removed.value), unavailable: true });
+	cacheRead.mockResolvedValue([ownedEntry("ClipA"), removed]);
+	const result = await prepareBrowserClipExport(createClipExportPlan("owner", ["ClipA", "ClipB"], [{ key: "original", label: "Original" }])[0], AbortSignal.timeout(5000));
+	expect(result.ok).toBe(true);
+	if (result.ok) {
+		expect(result.clips[1]).toMatchObject({ id: "ClipB", error: "clip_unavailable", sourceToken: "" });
+		expect(result.clips[0].sourceToken).not.toBe("");
+	}
+});
+it("stops an oversized browser recipe before allocating every selected widget image", async () => {
+	const sharp = (await import("sharp")).default;
+	const { randomBytes } = await import("node:crypto");
+	const avatar = await sharp(randomBytes(512 * 512 * 3), { raw: { width: 512, height: 512, channels: 3 } })
+		.png()
+		.toBuffer();
+	const fetch = jest.spyOn(globalThis, "fetch").mockImplementation(async () => new Response(new Uint8Array(avatar), { headers: { "content-type": "image/png" } }));
+	authorize.mockResolvedValue({ allowed: true, authUserId: "actor", creator: { avatar: "https://static-cdn.jtvnw.net/avatar.png" } });
+	const ids = Array.from({ length: 50 }, (_, i) => `Clip${i}`);
+	cacheRead.mockResolvedValue(ids.map((id) => ownedEntry(id)));
+	const { createClipComposition } = await import("@lib/clipComposition");
+	const { createClipExportPlan } = await import("@lib/clipExportPlan");
+	const { prepareBrowserClipExport } = await import("@/server/clip-export");
+	const layout = createClipComposition("desktop");
+	layout.watermark = false;
+	layout.layers.push({ id: "logo", kind: "logo", label: "Logo", frame: { x: 0, y: 0, w: 0.1, h: 0.1 } });
+	const result = await prepareBrowserClipExport(createClipExportPlan("owner", ids, [{ key: "desktop", label: "Desktop", layout }])[0], AbortSignal.timeout(15000));
+	expect(result).toMatchObject({ ok: false, code: "EXPORT_LIMIT", status: 413 });
+	expect(fetch.mock.calls.length).toBeLessThan(15);
 });

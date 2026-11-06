@@ -60,7 +60,7 @@ it("keeps Original export available after a failed template lookup", async () =>
 	render(<ClipExportSettings creatorId='owner' clipIds={["A", "B"]} onStart={start} onClose={() => {}} />);
 	await screen.findByText(/Layouts could not be loaded/);
 	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
-	expect(start).toHaveBeenCalledWith(expect.arrayContaining([expect.objectContaining({ files: expect.arrayContaining([expect.objectContaining({ clipId: "A" }), expect.objectContaining({ clipId: "B" })]) })]), "server");
+	expect(start).toHaveBeenCalledWith(expect.arrayContaining([expect.objectContaining({ files: expect.arrayContaining([expect.objectContaining({ clipId: "A" }), expect.objectContaining({ clipId: "B" })]) })]), "browser");
 });
 it.each([Error("Select at most 500 clips."), Error("unexpected"), "unexpected"])("reports queue failures without closing or discarding selection: %s", async (error) => {
 	list.mockResolvedValue({ ok: false, code: "SERVICE_UNAVAILABLE" });

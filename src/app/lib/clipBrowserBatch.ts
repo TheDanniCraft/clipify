@@ -1,10 +1,26 @@
 import { zipSync, strToU8 } from "fflate";
-import { browserExportSchema } from "./clipBrowserExport";
+import { browserExportSchema, browserClipMetadataSchema, type BrowserExport } from "./clipBrowserExport";
 import type { ClipExportPlan } from "./clipExportPlan";
-import { readBoundedResponse, clipExportFilename, type ClipExportSummary } from "./clipExport";
+import { readBoundedResponse, clipExportFilename, clipExportFailureCode, isRetryableClipExportFailure, type ClipExportSummary } from "./clipExport";
 import type { ClipExportProgress } from "./clipExportStream";
 import { renderBrowserClip } from "./clipBrowserRender";
-export async function buildBrowserBatch(plan: ClipExportPlan, signal: AbortSignal, progress: (event: ClipExportProgress) => void) {
+async function readBrowserSource(clip: BrowserExport["clips"][number], signal: AbortSignal) {
+	if (clip.error) return { ok: true as const, code: clip.error };
+	try {
+		const raw = await fetch(`/api/clips/export/browser/source?ticket=${encodeURIComponent(clip.sourceToken)}`, { signal });
+		if (raw.ok) return { ok: true as const, bytes: await readBoundedResponse(raw, 32 * 1024 * 1024, signal) };
+		const error = JSON.parse(new TextDecoder().decode(await readBoundedResponse(raw, 8192, signal)));
+		if (["PERMISSION_DENIED", "AUTHENTICATION_REQUIRED", "ACCOUNT_SUSPENDED", "ENTITLEMENT_REQUIRED"].includes(error.code)) return { ok: false as const, code: String(error.code) };
+		const reason = error.failures?.[0]?.code;
+		const code = ["clip_unavailable", "download_unavailable", "file_size_limit", "invalid_media", "download_timeout"].includes(reason) ? String(reason) : error.code === "RATE_LIMITED" ? "rate_limited" : error.code === "RECONNECT_REQUIRED" ? "reconnect_required" : "provider_error";
+		return { ok: true as const, code, retryAt: typeof error.retryAt === "string" ? error.retryAt : undefined };
+	} catch (error) {
+		signal.throwIfAborted();
+		return { ok: true as const, code: error instanceof Error && error.message === "byte_limit" ? "file_size_limit" : "provider_error" };
+	}
+}
+type BrowserBatchResult = { ok: true; bytes: Uint8Array<ArrayBuffer>; summary: ClipExportSummary; partCount: number } | { ok: false; code: string; retryAt?: string; failures?: ClipExportSummary["skipped"] };
+export async function buildBrowserBatch(plan: ClipExportPlan, signal: AbortSignal, progress: (event: ClipExportProgress) => void, onPart: (bytes: Uint8Array<ArrayBuffer>, part: number) => void): Promise<BrowserBatchResult> {
 	const response = await fetch("/api/clips/export/browser", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(plan), signal });
 	const data = JSON.parse(new TextDecoder().decode(await readBoundedResponse(response, 8 * 1024 * 1024, signal)));
 	if (!response.ok) return { ok: false as const, code: typeof data.code === "string" ? data.code : "SERVICE_UNAVAILABLE", retryAt: data.retryAt as string | undefined };
@@ -13,49 +29,51 @@ export async function buildBrowserBatch(plan: ClipExportPlan, signal: AbortSigna
 		manifest: Record<string, unknown>[] = [],
 		used = new Set<string>();
 	const summary: ClipExportSummary = { included: [], skipped: [] };
-	let total = 0;
+	let total = 0,
+		partCount = 1;
+	const packageBytes = () => {
+		files["manifest.json"] = strToU8(JSON.stringify({ version: 1, createdAt: new Date().toISOString(), clips: manifest }));
+		return zipSync(files, { level: 0 });
+	};
+	const flush = () => {
+		onPart(packageBytes(), partCount++);
+		for (const key of Object.keys(files)) delete files[key];
+		manifest.length = 0;
+		total = 0;
+	};
 	for (const clip of prepared.clips) {
 		signal.throwIfAborted();
-		let source: Uint8Array | undefined, sourceCode: string | undefined;
+		const metadata = browserClipMetadataSchema.parse(clip);
 		const firstIndex = plan.files.findIndex((file) => file.clipId === clip.id);
 		progress({ index: firstIndex, stage: "processing" });
-		try {
-			const raw = await fetch(`/api/clips/export/browser/source?ticket=${encodeURIComponent(clip.sourceToken)}`, { signal });
-			if (!raw.ok) {
-				const error = await raw.json();
-				return { ok: false as const, code: typeof error.code === "string" ? error.code : "PROVIDER_UNAVAILABLE", retryAt: error.retryAt as string | undefined };
-			}
-			source = await readBoundedResponse(raw, 32 * 1024 * 1024, signal);
-		} catch (error) {
-			signal.throwIfAborted();
-			sourceCode = error instanceof Error && error.message === "byte_limit" ? "file_size_limit" : "provider_error";
-		}
+		const source = await readBrowserSource(clip, signal);
+		if (!source.ok) return source;
+		if (source.retryAt) summary.retryAt = source.retryAt;
 		for (const output of clip.outputs) {
 			const index = plan.files.findIndex((file) => file.clipId === clip.id && file.outputKey === output.key);
-			let code = sourceCode;
-			if (source && !code)
+			let code = source.code;
+			if (source.bytes && !code)
 				try {
 					if (output.layout) progress({ index, stage: "rendering" });
-					const bytes = output.layout ? await renderBrowserClip(source, output, signal, () => {}) : source;
-					if (total + bytes.length > 128 * 1024 * 1024) throw new Error("package_size_limit");
-					const filename = clipExportFilename(clip.title, `${clip.id}-${output.key}`, index, used);
+					const bytes = output.layout ? await renderBrowserClip(source.bytes, output, signal, () => {}) : source.bytes;
+					if (total && total + bytes.length > 126 * 1024 * 1024) flush();
+					const filename = clipExportFilename(`${clip.title} ${output.label}`, `${clip.id}-${output.key}`, index, used);
 					files[filename] = bytes;
 					total += bytes.length;
 					summary.included.push(index);
-					manifest.push({ id: clip.id, title: clip.title, status: "included", filename, format: output.layout?.format ?? "original", outputLabel: output.label, outputKey: output.key });
+					manifest.push({ ...metadata, status: "included", filename, bytes: bytes.length, format: output.layout?.format ?? "original", outputLabel: output.label, outputKey: output.key });
 					progress({ index, stage: "ready" });
 				} catch (error) {
 					signal.throwIfAborted();
 					code = error instanceof Error && ["file_size_limit", "package_size_limit"].includes(error.message) ? error.message : "browser_unsupported";
 				}
 			if (code) {
-				summary.skipped.push({ index, code: code as ClipExportSummary["skipped"][number]["code"], retryable: !["file_size_limit", "package_size_limit"].includes(code), title: `${clip.title} / ${output.label}` });
-				manifest.push({ id: clip.id, title: clip.title, status: "skipped", code, outputLabel: output.label });
+				summary.skipped.push({ index, code: code as ClipExportSummary["skipped"][number]["code"], retryable: isRetryableClipExportFailure(code), title: `${clip.title} / ${output.label}` });
+				manifest.push({ ...metadata, status: "skipped", code, retryable: isRetryableClipExportFailure(code), outputKey: output.key, outputLabel: output.label });
 				progress({ index, stage: "skipped", code });
 			}
 		}
 	}
-	if (!summary.included.length) return { ok: false as const, code: summary.skipped.some((item) => item.code === "browser_unsupported") ? "BROWSER_UNSUPPORTED" : "EXPORT_UNAVAILABLE", failures: summary.skipped };
-	files["manifest.json"] = strToU8(JSON.stringify({ version: 1, createdAt: new Date().toISOString(), clips: manifest }));
-	return { ok: true as const, bytes: zipSync(files, { level: 0 }), summary };
+	if (!summary.included.length) return { ok: false as const, code: clipExportFailureCode(summary.skipped), failures: summary.skipped, retryAt: summary.retryAt };
+	return { ok: true as const, bytes: packageBytes(), summary, partCount };
 }

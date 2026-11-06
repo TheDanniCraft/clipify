@@ -173,7 +173,7 @@ export default function ClipExportSettings({ creatorId, clipIds, onStart, onClos
 					isDisabled={(composed && engine === "browser" && (capability === undefined || capability === "unsupported")) || !outputs.length || ((versions.has("desktop") || versions.has("mobile")) && !chosen.length)}
 					onPress={() => {
 						try {
-							if (onStart(createClipExportPlan(creatorId, clipIds, outputs), composed ? engine : "server")) onClose();
+							if (onStart(createClipExportPlan(creatorId, clipIds, outputs), composed ? engine : "browser")) onClose();
 						} catch (error) {
 							notify({ title: "Export could not be queued", description: error instanceof Error && error.message.startsWith("Select ") ? error.message : "Review your clip and output selection.", color: "danger" });
 						}

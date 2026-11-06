@@ -18,7 +18,7 @@ export default function ClipExport({ creatorId, clipIds, scope, format = "zip", 
 	const pending = context.batches.some((batch) => ["queued", "waiting", "processing"].includes(batch.status) && batch.group === key);
 	return (
 		<section aria-label='Clip export'>
-			<Button variant={variant} isDisabled={!clipIds.length || clipIds.length > 500 || (!configure && format === "mp4" && clipIds.length !== 1) || (!configure && pending)} onPress={() => (configure ? setSettingsOpen(true) : context.enqueue(request))}>
+			<Button variant={variant} isDisabled={!clipIds.length || (!configure && format === "mp4" && clipIds.length !== 1) || (!configure && pending)} onPress={() => (configure ? setSettingsOpen(true) : context.enqueue(request))}>
 				{label ?? (layout ? (format === "mp4" ? "Download portrait" : "Export portrait clips") : format === "mp4" ? "Download original" : "Export selected")}
 			</Button>
 			{settingsOpen ? <ClipExportSettings creatorId={creatorId} clipIds={clipIds} onClose={() => setSettingsOpen(false)} onStart={(plans, engine) => context.enqueuePlans(plans, clipNames, scope, engine)} /> : null}

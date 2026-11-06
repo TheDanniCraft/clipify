@@ -68,7 +68,7 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 	const selected = selection.scope === selectionScope ? selection.ids : new Set<string>();
 	const selectClip = (id: string, include: boolean) => {
 		const ids = new Set(selected);
-		if (include && ids.size < 500) ids.add(id);
+		if (include) ids.add(id);
 		else if (!include) ids.delete(id);
 		setSelection({ scope: selectionScope, ids, names: { ...selection.names, ...Object.fromEntries(data.ok ? data.items.map((clip) => [clip.id, clip.title]) : []) } });
 	};
@@ -268,11 +268,11 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 								<div className='flex flex-wrap items-center gap-3'>
 									<Button
 										variant='secondary'
-										isDisabled={!hydrated || pending || selected.size >= 500 || data.items.length === 0}
+										isDisabled={!hydrated || pending || data.items.length === 0}
 										onPress={() => {
 											const ids = new Set(selected);
 											for (const clip of data.items) {
-												if (ids.size < 500) ids.add(clip.id);
+												ids.add(clip.id);
 											}
 											setSelection({ scope: selectionScope, ids, names: { ...selection.names, ...Object.fromEntries(data.ok ? data.items.map((clip) => [clip.id, clip.title]) : []) } });
 										}}
@@ -337,7 +337,7 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 										{data.items.map((clip) => (
 											<Table.Row key={clip.id} id={clip.id} data-clip-id={clip.id}>
 												<Table.Cell>
-													<Checkbox variant='secondary' isSelected={selected.has(clip.id)} isDisabled={!selected.has(clip.id) && selected.size >= 500} onChange={(include) => selectClip(clip.id, include)}>
+													<Checkbox variant='secondary' isSelected={selected.has(clip.id)} onChange={(include) => selectClip(clip.id, include)}>
 														<Checkbox.Content>
 															<Checkbox.Control>
 																<Checkbox.Indicator />

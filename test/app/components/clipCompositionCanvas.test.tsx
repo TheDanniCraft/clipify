@@ -281,3 +281,17 @@ it("requests the protected media route immediately and limits preload to metadat
 	expect(video).toHaveAttribute("preload", "metadata");
 	expect(preview).not.toHaveBeenCalled();
 });
+it("clears the active layer on blank output clicks while retaining it when a layer is pressed", async () => {
+	const select = jest.fn();
+	render(<Canvas creatorId='owner' clip={clip} layout={createClipComposition("mobile")} selected='camera' onSelect={select} onChange={() => {}} onDimensions={() => {}} />);
+	await ready();
+	const canvas = screen.getByLabelText("Layout preview");
+	fireEvent.pointerDown(screen.getByRole("button", { name: "Camera output" }));
+	expect(select).not.toHaveBeenCalled();
+	fireEvent.pointerDown(canvas);
+	expect(select).toHaveBeenLastCalledWith("");
+	select.mockClear();
+	fireEvent.pointerDown(canvas.parentElement!);
+	expect(select).toHaveBeenCalledTimes(1);
+	expect(select).toHaveBeenCalledWith("");
+});

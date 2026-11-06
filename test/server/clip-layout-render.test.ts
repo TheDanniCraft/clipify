@@ -18,6 +18,8 @@ it("renders playable full and stacked portrait MP4s with audio and literal hosti
 			const result = JSON.parse(execFileSync("ffprobe", ["-v", "quiet", "-show_streams", "-of", "json", file], { encoding: "utf8" }));
 			expect(result.streams.find((s: { codec_type: string }) => s.codec_type === "video")).toMatchObject({ width: 720, height: 1280 });
 			expect(result.streams.some((s: { codec_type: string }) => s.codec_type === "audio")).toBe(true);
+			const timing = result.streams.find((s: { codec_type: string }) => s.codec_type === "video");
+			expect(Number(timing.start_time)).toBeLessThan(1 / 30);
 		}
 	} finally {
 		await rm(dir, { recursive: true, force: true });
@@ -66,28 +68,35 @@ it("caps concurrent renders and returns a retryable busy result", async () => {
 	}
 });
 
-it("rejects oversized or incomplete rendered output before returning media", async () => {
-	const fs = (await import("node:fs/promises")).default;
+it("rejects oversized or incomplete piped output before returning media", async () => {
+	const cp = (await import("node:child_process")).default;
+	const { EventEmitter } = await import("node:events");
 	const bytes = new Uint8Array(await readFile("test/fixtures/runner/presentation.mp4"));
-	const size = jest.spyOn(fs, "stat");
-	try {
-		for (const outputSize of [32 * 1024 * 1024, 1]) {
-			size.mockResolvedValueOnce({ size: outputSize } as never);
+	for (const size of [32 * 1024 * 1024, 1]) {
+		const spawn = jest.spyOn(cp, "spawn").mockImplementation(() => {
+			const child = Object.assign(new EventEmitter(), { stdout: new EventEmitter(), stderr: new EventEmitter(), kill: jest.fn() });
+			queueMicrotask(() => {
+				child.stdout.emit("data", Buffer.alloc(size));
+				child.emit("close", 0);
+			});
+			return child as never;
+		});
+		try {
 			await expect(renderClipLayout(bytes, defaultClipLayout, { title: "Bounded output" }, AbortSignal.timeout(15000))).rejects.toThrow("file_size_limit");
+		} finally {
+			spawn.mockRestore();
 		}
-	} finally {
-		size.mockRestore();
 	}
 }, 30000);
-it("releases render capacity when temporary storage cannot be created", async () => {
+it("does not require writable temporary media storage", async () => {
 	const fs = (await import("node:fs/promises")).default;
-	const mkdir = jest.spyOn(fs, "mkdtemp").mockRejectedValue(new Error("temporary storage unavailable"));
+	const mkdir = jest.spyOn(fs, "mkdtemp").mockRejectedValue(new Error("read-only storage"));
 	try {
-		for (let i = 0; i < 3; i++) await expect(renderClipLayout(new Uint8Array([1]), defaultClipLayout, { title: "T" }, AbortSignal.timeout(5000))).rejects.toThrow("temporary storage unavailable");
+		await expect(renderClipLayout(new Uint8Array(await readFile("test/fixtures/runner/presentation.mp4")), defaultClipLayout, { title: "Storage-free" }, AbortSignal.timeout(15000))).resolves.toBeInstanceOf(Uint8Array);
 	} finally {
 		mkdir.mockRestore();
 	}
-});
+}, 20000);
 
 it("renders three independent video crops and widgets in Desktop and Mobile without losing audio", async () => {
 	const dir = await mkdtemp(join(tmpdir(), "clipify-composition-test-"));
@@ -255,19 +264,17 @@ it("keeps Channel info exportable when its optional avatar is unavailable, while
 	const layout = createClipComposition("desktop");
 	layout.layers.push({ id: "channel", kind: "channel", label: "Channel info", fontSize: 32, frame: { x: 0, y: 0, w: 0.5, h: 0.15 } });
 	try {
-		await compositionFilterGraph(layout, dir, { title: "Clip", broadcasterName: "Creator" }, AbortSignal.timeout(5000), "https://static-cdn.jtvnw.net/missing.png");
-		const fallback = await readFile(join(dir, "widget-1.png"));
-		await compositionFilterGraph(layout, dir, { title: "Clip", broadcasterName: "Creator" }, AbortSignal.timeout(5000));
-		expect(fallback.equals(await readFile(join(dir, "widget-1.png")))).toBe(true);
+		const fallback = (await compositionFilterGraph(layout, { title: "Clip", broadcasterName: "Creator" }, AbortSignal.timeout(5000), "https://static-cdn.jtvnw.net/missing.png")).images[0];
+		expect(fallback.equals((await compositionFilterGraph(layout, { title: "Clip", broadcasterName: "Creator" }, AbortSignal.timeout(5000))).images[0])).toBe(true);
 		layout.layers.push({ id: "logo", kind: "logo", label: "Logo", frame: { x: 0, y: 0.5, w: 0.1, h: 0.1 } });
-		await expect(compositionFilterGraph(layout, dir, { title: "Clip" }, AbortSignal.timeout(5000), "https://static-cdn.jtvnw.net/missing.png")).rejects.toThrow("render_failed");
+		await expect(compositionFilterGraph(layout, { title: "Clip" }, AbortSignal.timeout(5000), "https://static-cdn.jtvnw.net/missing.png")).rejects.toThrow("render_failed");
 		layout.layers.pop();
 		const stopped = new AbortController();
 		fetcher.mockImplementation(async () => {
 			stopped.abort();
 			throw Error("aborted");
 		});
-		await expect(compositionFilterGraph(layout, dir, { title: "Clip" }, stopped.signal, "https://static-cdn.jtvnw.net/missing.png")).rejects.toThrow("aborted");
+		await expect(compositionFilterGraph(layout, { title: "Clip" }, stopped.signal, "https://static-cdn.jtvnw.net/missing.png")).rejects.toThrow("aborted");
 	} finally {
 		fetcher.mockRestore();
 		await rm(dir, { recursive: true, force: true });
@@ -362,3 +369,73 @@ it("bounds every image decoder when exporting several widgets and branding", asy
 		spawn.mockRestore();
 	}
 }, 20000);
+it("renders without writing source, output or widget media to server storage", async () => {
+	const fs = (await import("node:fs/promises")).default;
+	const bytes = new Uint8Array(await readFile("test/fixtures/runner/presentation.mp4"));
+	const write = jest.spyOn(fs, "writeFile"),
+		mkdir = jest.spyOn(fs, "mkdtemp");
+	const { createClipComposition } = await import("@lib/clipComposition");
+	try {
+		const result = await renderClipLayout(bytes, createClipComposition("desktop"), { title: "Storage-free" }, AbortSignal.timeout(15000), { watermark: true });
+		expect(Buffer.from(result).subarray(4, 8).toString()).toBe("ftyp");
+		expect(write).not.toHaveBeenCalled();
+		expect(mkdir).not.toHaveBeenCalled();
+	} finally {
+		write.mockRestore();
+		mkdir.mockRestore();
+	}
+}, 20000);
+it("handles a broken input pipe and releases native render capacity", async () => {
+	const cp = (await import("node:child_process")).default;
+	const { EventEmitter } = await import("node:events");
+	const { createClipComposition } = await import("@lib/clipComposition");
+	const bytes = new Uint8Array(await readFile("test/fixtures/runner/presentation.mp4"));
+	const diagnostic = jest.spyOn(console, "error").mockImplementation(() => {});
+	const spawn = jest.spyOn(cp, "spawn").mockImplementation(() => {
+		const stdin = Object.assign(new EventEmitter(), {
+			end: () => {
+				queueMicrotask(() => {
+					stdin.emit("error", new Error("EPIPE"));
+					child.emit("close", 1);
+				});
+			},
+		});
+		const child = Object.assign(new EventEmitter(), { stdin, stdout: new EventEmitter(), stderr: new EventEmitter() });
+		return child as never;
+	});
+	try {
+		await expect(renderClipLayout(bytes, createClipComposition("desktop"), { title: "Pipe failed" }, AbortSignal.timeout(5000))).rejects.toThrow("render_failed");
+	} finally {
+		spawn.mockRestore();
+		diagnostic.mockRestore();
+	}
+	await expect(renderClipLayout(bytes, createClipComposition("desktop"), { title: "Recovered" }, AbortSignal.timeout(15000))).resolves.toBeInstanceOf(Uint8Array);
+}, 20000);
+it("cancels an in-memory source remux before starting FFmpeg", async () => {
+	const { Conversion } = await import("mediabunny");
+	const cp = (await import("node:child_process")).default;
+	const controller = new AbortController(),
+		cancel = jest.fn().mockResolvedValue(undefined);
+	const dir = await mkdtemp(join(tmpdir(), "clipify-remux-cancel-"));
+	const file = join(dir, "source.mp4");
+	execFileSync("ffmpeg", ["-v", "error", "-i", "test/fixtures/runner/presentation.mp4", "-c", "copy", "-y", file]);
+	const remux = jest.spyOn(Conversion, "init").mockResolvedValue({
+		isValid: true,
+		discardedTracks: [],
+		cancel,
+		execute: async () => {
+			controller.abort(new Error("Cancel remux"));
+			throw new Error("Stopped");
+		},
+	} as never);
+	const spawn = jest.spyOn(cp, "spawn");
+	try {
+		await expect(renderClipLayout(new Uint8Array(await readFile(file)), defaultClipLayout, { title: "Cancelled" }, controller.signal)).rejects.toThrow("Cancel remux");
+		expect(cancel).toHaveBeenCalledTimes(1);
+		expect(spawn).not.toHaveBeenCalled();
+	} finally {
+		remux.mockRestore();
+		spawn.mockRestore();
+		await rm(dir, { recursive: true, force: true });
+	}
+});

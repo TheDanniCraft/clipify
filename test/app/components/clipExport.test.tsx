@@ -235,9 +235,9 @@ it("offers reconnect-only retry when the provider requires a renewed token befor
 	await screen.findByRole("button", { name: "Retry after reconnect" });
 	expect(screen.queryByRole("button", { name: "Retry failed clips" })).not.toBeInTheDocument();
 });
-it("bounds the client selection before issuing a request", () => {
+it("allows selections beyond the previous total cap", () => {
 	render(<ClipExport creatorId='owner' clipIds={Array.from({ length: 501 }, (_, i) => String(i))} scope='owner' />);
-	fireEvent.click(screen.getByRole("button", { name: "Export selected" }));
+	expect(screen.getByRole("button", { name: "Export selected" })).toBeEnabled();
 	expect(fetchMock).not.toHaveBeenCalled();
 });
 it.each([
@@ -394,14 +394,15 @@ it("queues a four-version package once and retries only the failed clip/version 
 });
 
 it("opens export settings without starting a download and submits only after confirmation", async () => {
-	fetchMock.mockResolvedValue(responseJSON({ code: "PROVIDER_UNAVAILABLE" }));
+	browserBatch.mockResolvedValue({ ok: false, code: "PROVIDER_UNAVAILABLE" });
 	render(<ClipExport creatorId='owner' clipIds={["A"]} scope='settings' configure />);
 	fireEvent.click(screen.getByRole("button", { name: "Export selected" }));
 	await screen.findByText("Export clips");
 	expect(fetchMock).not.toHaveBeenCalled();
 	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
-	await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-	expect(JSON.parse(fetchMock.mock.calls[0][1].body).files).toEqual([{ clipId: "A", outputKey: "original" }]);
+	await waitFor(() => expect(browserBatch).toHaveBeenCalledTimes(1));
+	expect(browserBatch.mock.calls[0][0].files).toEqual([{ clipId: "A", outputKey: "original" }]);
+	expect(fetchMock).not.toHaveBeenCalled();
 });
 it("cancels queued and active batches together without downloading more files", async () => {
 	fetchMock.mockImplementation((_input, options) => new Promise((_resolve, reject) => options.signal.addEventListener("abort", () => reject(Error("cancelled")))));

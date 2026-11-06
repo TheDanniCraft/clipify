@@ -14,7 +14,7 @@ import { clipExportPlanSchema } from "@lib/clipExportPlan";
 import { listClipLayouts } from "@actions/clipLayoutLibrary";
 import { renderClipLayout } from "./clip-layout-render";
 import { z } from "zod";
-import { readBoundedResponse, clipExportFilename } from "@lib/clipExport";
+import { readBoundedResponse, clipExportFilename, clipExportFailureCode, isRetryableClipExportFailure } from "@lib/clipExport";
 export { readBoundedResponse } from "@lib/clipExport";
 import { zipSync, strToU8 } from "fflate";
 import { and, eq, gt, inArray, isNull, or } from "drizzle-orm";
@@ -231,7 +231,7 @@ async function downloadExportClip(index: number, url: string, creatorId: string,
 	try {
 		progress?.({ index, stage: "processing" });
 		const transfer = await reserveClipSourceTransfer(creatorId);
-		if (!transfer.allowed) return { index, code: "rate_limited" };
+		if (!transfer.allowed) return { index, code: "rate_limited", retryAt: new Date(Date.now() + Math.max(1, transfer.retryAfterSeconds ?? 1) * 1000).toISOString() };
 		let bytes = await downloadMedia(url, fileSignal);
 		if (layout) {
 			progress?.({ index, stage: "rendering" });
@@ -244,8 +244,7 @@ async function downloadExportClip(index: number, url: string, creatorId: string,
 	}
 }
 function emptyArchiveResult(summary: ExportSummary) {
-	const limited = summary.skipped.some((item) => item.code === "file_size_limit" || item.code === "package_size_limit");
-	const code = limited ? "EXPORT_LIMIT" : summary.skipped.some((item) => item.code === "reconnect_required") ? "RECONNECT_REQUIRED" : summary.skipped.some((item) => item.code === "rate_limited") ? "RATE_LIMITED" : summary.skipped.some((item) => item.code === "provider_error") ? "PROVIDER_UNAVAILABLE" : summary.skipped.some((item) => item.code === "download_timeout") ? "EXPORT_TIMEOUT" : "EXPORT_UNAVAILABLE";
+	const code = clipExportFailureCode(summary.skipped);
 	return { ...failure(code, code === "EXPORT_LIMIT" ? 413 : code === "RECONNECT_REQUIRED" ? 403 : code === "RATE_LIMITED" ? 429 : code === "PROVIDER_UNAVAILABLE" ? 502 : code === "EXPORT_TIMEOUT" ? 504 : 409, summary.retryAt), failures: summary.skipped };
 }
 async function finishClipArchive(creatorId: string, clipIds: string[], clips: ExportClips, files: Record<string, Uint8Array>, manifest: Record<string, unknown>[], summary: ExportSummary, format: "zip" | "mp4", signal: AbortSignal): Promise<ArchiveResult> {
@@ -275,6 +274,7 @@ async function finishClipArchive(creatorId: string, clipIds: string[], clips: Ex
 function appendArchiveResults(results: Awaited<ReturnType<typeof downloadExportClip>>[], clips: ExportClips, sources: Map<number, ExportSource>, layout: ClipLayout | ClipComposition | undefined, files: Record<string, Uint8Array>, manifest: Record<string, unknown>[], used: Set<string>, summary: ExportSummary, totalBytes: number, skip: (index: number, code: string) => void, progress?: (event: ClipExportProgress) => void) {
 	for (const result of results) {
 		if (!result.bytes) {
+			if (result.retryAt && (!summary.retryAt || result.retryAt > summary.retryAt)) summary.retryAt = result.retryAt;
 			skip(result.index, result.code!);
 			continue;
 		}
@@ -298,7 +298,7 @@ function createArchiveSkip(clips: ExportClips, summary: ExportSummary, progress?
 			const title = Array.from(clips[index]!.clip.title).slice(0, 80);
 			while (strToU8(title.join("")).length > 80) title.pop();
 			progress?.({ index, stage: "skipped", code });
-			summary.skipped.push({ index, code, retryable: ["provider_error", "download_timeout", "rate_limited", "render_busy", "render_failed", "font_unavailable"].includes(code), title: title.join("") });
+			summary.skipped.push({ index, code, retryable: isRetryableClipExportFailure(code), title: title.join("") });
 		}
 	};
 }
@@ -409,7 +409,7 @@ function appendPlanResults(results: Awaited<ReturnType<typeof renderPlannedExpor
 			if (["AUTHENTICATION_REQUIRED", "PERMISSION_DENIED", "ACCOUNT_SUSPENDED", "ENTITLEMENT_REQUIRED", "LAYOUT_UNAVAILABLE"].includes(result.code)) return result;
 			const item = result.failures?.[0],
 				code = plannedFailureCode(result);
-			skip(index, code, item?.retryable ?? ["rate_limited", "download_timeout", "provider_error"].includes(code));
+			skip(index, code, item?.retryable ?? isRetryableClipExportFailure(code));
 			if (result.retryAt && (!state.summary.retryAt || result.retryAt > state.summary.retryAt)) state.summary.retryAt = result.retryAt;
 			continue;
 		}
@@ -503,7 +503,7 @@ export async function prepareBrowserClipExport(input: unknown, signal: AbortSign
 	if (!grant.allowed) return failure(grant.code, 403);
 	const ids = [...new Set(plan.files.map((file) => file.clipId))];
 	const owned = await readOwnedExportClips(creatorId, ids);
-	if (owned.some((clip) => !clip || clip.unavailable)) return failure("INVALID_INPUT", 400);
+	if (owned.some((clip) => !clip)) return failure("INVALID_INPUT", 400);
 	const resolved = await resolveExportLayouts(plan, creatorId);
 	if (resolved.error) return resolved.error;
 	const access = await prepareClipExportAccess(creatorId, plan.files.length);
@@ -511,20 +511,29 @@ export async function prepareBrowserClipExport(input: unknown, signal: AbortSign
 	const [{ brand }, entitlement] = await Promise.all([readCreatorBrand(creatorId), resolveUserEntitlements(grant.creator)]);
 	const mark = await sharp(Buffer.from(clipifyWatermarkSvg())).png().toBuffer();
 	const clips = [];
+	let imageBytes = 0;
 	for (const [index, id] of ids.entries()) {
 		signal.throwIfAborted();
 		const clip = publicClip(owned[index]!.clip);
+		const unavailable = owned[index]!.unavailable;
 		const outputs: BrowserOutput[] = [];
 		for (const file of plan.files.filter((file) => file.clipId === id)) {
 			const output = plan.outputs.find((output) => output.key === file.outputKey)!;
+			if (unavailable) {
+				outputs.push({ key: output.key, label: output.label, layout: null, assets: {}, watermark: null });
+				continue;
+			}
 			const base = resolved.outputLayouts.get(output.key);
 			const raw = plannedOverride(output.templateId, id, base, resolved.overrides) ?? base;
 			const layout = raw ? (raw.version === 2 ? raw : convertLegacyClipLayout(raw)) : null;
 			const assets = layout ? await compositionAssets(layout, clip, signal, grant.creator?.avatar, brand ?? undefined) : {};
 			const watermark = layout && (!entitlement.proAccess || (layout.watermark ?? true));
+			// Reserve space for public metadata/layouts before encoding repeated PNG payloads.
+			imageBytes += [...Object.values(assets), ...(watermark ? [mark] : [])].reduce((sum, bytes) => sum + Math.ceil(bytes.length / 3) * 4 + 32, 0);
+			if (imageBytes > 6 * 1024 * 1024) return failure("EXPORT_LIMIT", 413);
 			outputs.push({ key: output.key, label: output.label, layout, assets: Object.fromEntries(Object.entries(assets).map(([key, value]) => [key, `data:image/png;base64,${value.toString("base64")}`])), watermark: watermark ? `data:image/png;base64,${mark.toString("base64")}` : null });
 		}
-		clips.push({ id, title: clip.title, sourceToken: signBrowserClipSource(creatorId, id), outputs });
+		clips.push({ ...clip, sourceToken: unavailable ? "" : signBrowserClipSource(creatorId, id), error: unavailable ? ("clip_unavailable" as const) : undefined, outputs });
 	}
 	const final = await authorizeClipExport(creatorId);
 	if (!final.allowed) return failure(final.code, 403);
