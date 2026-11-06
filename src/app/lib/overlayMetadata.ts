@@ -116,7 +116,7 @@ export const CLIPIFY_WATERMARK_ANCHORS = [
 type WatermarkPoint = { x: number; y: number };
 export function clipifyWatermarkPositions(width: number, height: number, widgets: { x: number; y: number; w: number; h: number }[] = []): WatermarkPoint[] {
 	const { inset, width: w, height: h } = CLIPIFY_WATERMARK;
-	const left = Math.max(inset, Math.round(width * 0.05)),
+	const left = inset,
 		top = Math.max(inset, Math.round(height * 0.08)),
 		right = Math.max(left, Math.round(width - w - left)),
 		bottom = Math.max(top, Math.round(height - h - Math.max(inset, height * 0.16)));
@@ -125,8 +125,8 @@ export function clipifyWatermarkPositions(width: number, height: number, widgets
 	const candidates = CLIPIFY_WATERMARK_ANCHORS.map(([x, y]) => ({ x: Math.round(left + x * (right - left)), y: Math.round(top + y * (bottom - top)) }));
 	const free = candidates.filter((point) => overlap(point) === 0);
 	if (free.length) return free;
-	// Obstacle boundaries also find gaps when every usual edge position is occupied.
-	const xs = [left, right, ...obstacles.flatMap((rect) => [rect.x - w, rect.x + rect.w])].filter((x) => x >= left && x <= right);
+	// Try other heights on either side without moving branding into the composition.
+	const xs = [left, right];
 	const ys = [top, bottom, ...obstacles.flatMap((rect) => [rect.y - h, rect.y + rect.h])].filter((y) => y >= top && y <= bottom);
 	for (const y of ys) for (const x of xs) if (overlap({ x, y }) === 0) return [{ x, y }];
 	return [candidates.reduce((best, point) => (overlap(point) < overlap(best) ? point : best))];
