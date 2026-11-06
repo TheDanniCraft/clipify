@@ -46,7 +46,7 @@ beforeEach(() => {
 });
 afterEach(() => jest.restoreAllMocks());
 async function ready() {
-	await waitFor(() => expect(document.querySelector("video")).toHaveAttribute("src", expect.stringMatching(/^\/api\/clips\/preview\?creatorId=owner&clipId=ClipA&attempt=\d+$/)));
+	await waitFor(() => expect(document.querySelector("video")).toHaveAttribute("src", expect.stringMatching(/^\/api\/clips\/preview\?creatorId=owner&clipId=ClipA&attempt=\d+(?:&refresh=1)?$/)));
 	const video = document.querySelector("video")!;
 	Object.defineProperties(video, { videoWidth: { configurable: true, value: 1920 }, videoHeight: { configurable: true, value: 1080 }, readyState: { configurable: true, value: 2 }, duration: { configurable: true, value: 12 } });
 	fireEvent.loadedMetadata(video);
@@ -75,7 +75,7 @@ it("draws actual crops and widgets and keeps media loaded when layout changes", 
 	expect(change).toHaveBeenCalled();
 	expect(select).toHaveBeenCalledWith("camera", "source");
 	view.rerender(<Canvas creatorId='owner' clip={clip} layout={{ ...layout, layers: layout.layers.slice(0, 2) }} selected='camera' onSelect={select} onChange={change} onDimensions={dimensions} />);
-	expect(preview).toHaveBeenCalledTimes(1);
+	expect(preview).not.toHaveBeenCalled();
 });
 it("recovers expired media without losing its layout", async () => {
 	const layout = createClipComposition("desktop");
@@ -84,12 +84,14 @@ it("recovers expired media without losing its layout", async () => {
 	fireEvent.error(video);
 	expect(screen.getByRole("button", { name: "Play preview" })).toBeDisabled();
 	fireEvent.click(screen.getByRole("button", { name: "Retry preview" }));
-	await waitFor(() => expect(preview).toHaveBeenLastCalledWith({ creatorId: "owner", clipId: "ClipA", refresh: true }));
+	await waitFor(() => expect(document.querySelector("video")).toHaveAttribute("src", "/api/clips/preview?creatorId=owner&clipId=ClipA&attempt=1"));
+	expect(preview).toHaveBeenCalledTimes(1);
+	expect(preview).toHaveBeenCalledWith({ creatorId: "owner", clipId: "ClipA", refresh: true });
 	expect(document.querySelector("canvas")).toBeInTheDocument();
 });
 it("shows an actionable preview retry after lookup failure", async () => {
-	preview.mockRejectedValue(Error("offline"));
 	render(<Canvas creatorId='owner' clip={clip} layout={createClipComposition("mobile")} selected='camera' onSelect={() => {}} onChange={() => {}} onDimensions={() => {}} />);
+	fireEvent.error(document.querySelector("video")!);
 	expect(await screen.findByRole("button", { name: "Retry preview" })).toBeVisible();
 	expect(document.querySelector("canvas")).toBeInTheDocument();
 });
@@ -114,7 +116,7 @@ it("draws the channel logo from the authorized image proxy and offers recovery i
 	expect(images.some((image) => decodeURIComponent(image.src).includes("Channel"))).toBe(true);
 	act(() => images[0].onerror());
 	fireEvent.click(screen.getByRole("button", { name: "Retry logo" }));
-	await waitFor(() => expect(preview).toHaveBeenLastCalledWith(expect.objectContaining({ refresh: true })));
+	await waitFor(() => expect(document.querySelector("video")).toHaveAttribute("src", "/api/clips/preview?creatorId=owner&clipId=ClipA&attempt=1"));
 });
 it("pauses and resumes playback and preserves the canvas when drawing fails", async () => {
 	const play = jest.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(),
@@ -137,18 +139,13 @@ it("pauses and resumes playback and preserves the canvas when drawing fails", as
 	expect(document.querySelector("canvas")).toBeInTheDocument();
 	expect(ctx.restore).toHaveBeenCalledTimes(ctx.save.mock.calls.length);
 });
-it("ignores a preview response after its editor has unmounted", async () => {
-	let resolve!: (value: any) => void;
-	preview.mockReturnValue(
-		new Promise((r) => {
-			resolve = r;
-		}),
-	);
+it("unmounts media without starting a separate playback lookup", () => {
 	const view = render(<Canvas creatorId='owner' clip={clip} layout={createClipComposition("mobile")} selected='camera' onSelect={() => {}} onChange={() => {}} onDimensions={() => {}} />);
 	view.unmount();
-	await act(async () => resolve({ playbackUrl: "https://media.invalid/late.mp4" }));
 	expect(document.querySelector("video")).not.toBeInTheDocument();
+	expect(preview).not.toHaveBeenCalled();
 });
+
 it("applies output edits, source ratio modifiers and snapping guides independently", async () => {
 	const layout = createClipComposition("mobile"),
 		change = jest.fn();
@@ -171,8 +168,8 @@ it("applies output edits, source ratio modifiers and snapping guides independent
 	expect(document.querySelector('[style="left: 50%;"]')).toBeInTheDocument();
 });
 it("handles unavailable playback and rejected playback attempts without removing the editable canvas", async () => {
-	preview.mockResolvedValueOnce(null);
 	const view = render(<Canvas creatorId='owner' clip={clip} layout={createClipComposition("desktop")} selected='gameplay' onSelect={() => {}} onChange={() => {}} onDimensions={() => {}} />);
+	fireEvent.error(document.querySelector("video")!);
 	fireEvent.click(await screen.findByRole("button", { name: "Retry preview" }));
 	const video = await ready();
 	jest.spyOn(HTMLMediaElement.prototype, "play").mockRejectedValueOnce(Error("blocked"));
@@ -214,7 +211,7 @@ it("uses the same native font raster for a branded canvas without reloading its 
 	await ready();
 	act(() => frames.shift()!(0));
 	await waitFor(() => expect(rasterImages.some((image) => image.src.startsWith("/api/clips/widget-preview?data=") && decodeURIComponent(image.src).includes('"Laila"'))).toBe(true));
-	expect(preview).toHaveBeenCalledTimes(1);
+	expect(preview).not.toHaveBeenCalled();
 });
 it("offers font retry in a toast without discarding the video preview", async () => {
 	const { creatorBrandSchema } = await import("@lib/overlayMetadata");
@@ -234,7 +231,7 @@ it("offers font retry in a toast without discarding the video preview", async ()
 	fireEvent.click(screen.getByRole("button", { name: "Retry widgets" }));
 	act(() => frames.shift()!(0));
 	await waitFor(() => expect(rasterImages.filter((image) => image.src.startsWith("/api/clips/widget-preview")).length).toBe(2));
-	expect(preview).toHaveBeenCalledTimes(1);
+	expect(preview).not.toHaveBeenCalled();
 
 	expect(screen.getByRole("button", { name: "Play preview" })).toBeEnabled();
 });
@@ -258,7 +255,7 @@ it.each([false, true])("uses native raster fonts for built-in branding and queue
 	const last = requests().at(-1);
 	view.unmount();
 	act(() => last.onload());
-	expect(preview).toHaveBeenCalledTimes(1);
+	expect(preview).not.toHaveBeenCalled();
 });
 
 it("selects the fixed watermark without geometry controls and delegates keyboard removal", async () => {
@@ -275,4 +272,12 @@ it("selects the fixed watermark without geometry controls and delegates keyboard
 	expect(screen.queryByRole("button", { name: /Resize Clipify Watermark/ })).not.toBeInTheDocument();
 	fireEvent.keyDown(mark, { key: "Delete" });
 	expect(remove).toHaveBeenCalledTimes(1);
+});
+
+it("requests the protected media route immediately and limits preload to metadata", () => {
+	render(<Canvas creatorId='owner' clip={clip} layout={createClipComposition("mobile")} selected='camera' onSelect={() => {}} onChange={() => {}} onDimensions={() => {}} />);
+	const video = document.querySelector("video")!;
+	expect(video).toHaveAttribute("src", "/api/clips/preview?creatorId=owner&clipId=ClipA&attempt=0");
+	expect(video).toHaveAttribute("preload", "metadata");
+	expect(preview).not.toHaveBeenCalled();
 });

@@ -15,6 +15,7 @@ it("serves trusted authorized video without requiring CDN CORS and forwards byte
 	expect([...new Uint8Array(await result.arrayBuffer())]).toEqual([1, 2]);
 	expect(result.headers.get("cache-control")).toBe("private, no-store");
 	expect(result.headers.get("content-range")).toBe("bytes 2-3/4");
+	expect(result.headers.get("server-timing")).toMatch(/^playback;dur=\d+\.\d, upstream;dur=\d+\.\d$/);
 	expect(fetch).toHaveBeenCalledWith(expect.stringContaining("twitchcdn.net"), expect.objectContaining({ redirect: "manual", headers: { Range: "bytes=2-3" } }));
 });
 it("never accepts arbitrary media URLs or inaccessible clips", async () => {

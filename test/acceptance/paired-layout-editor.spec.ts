@@ -9,8 +9,13 @@ for (const width of [390, 1440])
 			await page.setViewportSize({ width, height: 1000 });
 			await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
 			const { creatorId, id } = await seedCreatorLibrary({ page, request, tourWorld });
-			const templateName = width === 390 && theme === "light" ? "x".repeat(80) : "My stream";
 			await tourWorld.fixture.pool.query("UPDATE playlist_clips SET clip_data=jsonb_set(clip_data::jsonb,'{testPreviewOfficial}','true')::text WHERE clip_id=$1", [id]);
+			const preflights: string[] = [];
+			page.on("request", (request) => {
+				const body = request.postData();
+				if (request.headers()["next-action"] && body?.includes(id) && !body.includes("cachedOnly")) preflights.push(request.url());
+			});
+			const templateName = width === 390 && theme === "light" ? "x".repeat(80) : "My stream";
 			const desktop = createClipComposition("desktop"),
 				mobile = createClipComposition("mobile");
 			await tourWorld.fixture.pool.query("INSERT INTO user_content_states(user_id,content_key,state) VALUES($1,$2,$3)", [creatorId, "clip-layout-template:v2:paired", JSON.stringify({ name: templateName, composition: mobile, compositions: { desktop, mobile } })]);
@@ -25,6 +30,8 @@ for (const width of [390, 1440])
 			await expect(page.getByRole("option", { name: "Last night's clutch", exact: true })).toBeVisible();
 			await page.getByRole("option", { name: "Last night's clutch", exact: true }).click();
 			await expect(page.getByRole("button", { name: "Play preview", exact: true })).toBeEnabled({ timeout: 20000 });
+			expect(preflights).toHaveLength(0);
+			await expect(page.locator("video")).toHaveAttribute("preload", "metadata");
 			await expect(page.locator("video")).toHaveAttribute("src", /\/api\/clips\/preview\?/);
 			const rendered = () => page.locator("canvas").evaluate((canvas: HTMLCanvasElement) => [...canvas.getContext("2d")!.getImageData(Math.floor(canvas.width / 2), Math.floor(canvas.height / 4), 1, 1).data].slice(0, 3).some((value) => value > 10));
 			await expect.poll(rendered).toBe(true);
@@ -131,6 +138,7 @@ for (const width of [390, 1440])
 		await page.setViewportSize({ width, height: 1000 });
 		await page.addInitScript((theme) => localStorage.setItem("theme", theme), width === 390 ? "dark" : "light");
 		const { creatorId, id } = await seedCreatorLibrary({ page, request, tourWorld });
+		await tourWorld.fixture.pool.query("UPDATE playlist_clips SET clip_data=jsonb_set(clip_data::jsonb,'{testPreviewOfficial}','true')::text WHERE clip_id=$1", [id]);
 		const composition = createClipComposition("mobile");
 		composition.layers.push({ id: "footer", label: "Footer info", kind: "title", fontSize: 32, frame: { x: 0.6, y: 0.88, w: 0.4, h: 0.12 } });
 		await tourWorld.fixture.pool.query("INSERT INTO user_content_states(user_id,content_key,state) VALUES($1,$2,$3)", [creatorId, "clip-layout-template:v2:slow", JSON.stringify({ name: "Saved reference", composition })]);

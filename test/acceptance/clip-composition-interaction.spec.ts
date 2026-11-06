@@ -8,6 +8,7 @@ for (const width of [390, 1440])
 		await page.setViewportSize({ width, height: 950 });
 		await page.addInitScript((theme) => localStorage.setItem("theme", theme), width === 390 ? "dark" : "light");
 		const { creatorId, id } = await seedCreatorLibrary({ page, request, tourWorld });
+		await tourWorld.fixture.pool.query("UPDATE playlist_clips SET clip_data=jsonb_set(clip_data::jsonb,'{testPreviewOfficial}','true')::text WHERE clip_id=$1", [id]);
 		const initial = createClipComposition("mobile");
 		await tourWorld.fixture.pool.query("INSERT INTO user_content_states(user_id,content_key,state) VALUES($1,$2,$3)", [creatorId, "clip-layout-template:v2:custom", JSON.stringify({ name: "My composition", composition: initial })]);
 		await page.goto(`${tourWorld.origin}/dashboard/clip-layouts?layout=custom&reference=${id}`);
@@ -153,6 +154,7 @@ test("Output shape drives locked source cropping; releases stop movement and edg
 	test.setTimeout(120000);
 	await page.setViewportSize({ width: 1440, height: 1000 });
 	const { creatorId, id } = await seedCreatorLibrary({ page, request, tourWorld });
+	await tourWorld.fixture.pool.query("UPDATE playlist_clips SET clip_data=jsonb_set(clip_data::jsonb,'{testPreviewOfficial}','true')::text WHERE clip_id=$1", [id]);
 	const composition = createClipComposition("desktop");
 	composition.layers[0] = { id: "gameplay", kind: "video", label: "Gameplay", source: { x: 0.1, y: 0.1, w: 0.4, h: 0.3 }, frame: { x: 0.2, y: 0.2, w: 0.4, h: 0.3 } };
 	await tourWorld.fixture.pool.query("INSERT INTO user_content_states(user_id,content_key,state) VALUES($1,$2,$3)", [creatorId, "clip-layout-template:v2:modifiers", JSON.stringify({ name: "Modifier layout", composition })]);

@@ -2,11 +2,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Button, Label, Slider, Switch } from "@heroui/react";
 import { IconPlayerPlay, IconPlayerPause, IconRefresh } from "@tabler/icons-react";
-import { getCreatorClipPreview } from "@actions/creatorLibrary";
 import { compositionWidgetTheme, compositionDimensions, updateCompositionFrame, updateCompositionSource, type ClipComposition } from "@lib/clipComposition";
 import { notify } from "@lib/toast";
 import { CLIPIFY_WATERMARK, clipifyWatermarkSvg, clipifyWatermarkPosition, clipifyWatermarkPositions, type CreatorBrand, overlayMetadataSvg } from "@lib/overlayMetadata";
-import { isTrustedClipMediaUrl } from "@lib/clipExport";
+import { getCreatorClipPreview } from "@actions/creatorLibrary";
 import { compositionLayerColor } from "@lib/clipLayoutTemplate";
 import CompositionBox from "./clipCompositionBox";
 export default function ClipCompositionCanvas({
@@ -119,8 +118,7 @@ export default function ClipCompositionCanvas({
 		latest = useRef(layout),
 		logo = useRef<HTMLImageElement | null>(null);
 	const [sourceGuides, setSourceGuides] = useState<{ x?: number; y?: number }>({});
-	const [url, setUrl] = useState<string | null>(),
-		[retry, setRetry] = useState(0),
+	const [retry, setRetry] = useState(0),
 		[ready, setReady] = useState(false),
 		[failed, setFailed] = useState(false),
 		[logoFailed, setLogoFailed] = useState(false),
@@ -141,19 +139,8 @@ export default function ClipCompositionCanvas({
 	}, [layout]);
 	const output = compositionDimensions(layout.format),
 		needsLogo = layout.layers.some((layer) => layer.kind === "logo" || layer.kind === "channel");
-	useEffect(() => {
-		let current = true;
-		void getCreatorClipPreview({ creatorId, clipId: clip.id, ...(retry ? { refresh: true } : {}) })
-			.then((result) => {
-				if (current) setUrl(result?.playbackUrl ? (isTrustedClipMediaUrl(result.playbackUrl) ? `/api/clips/preview?creatorId=${encodeURIComponent(creatorId)}&clipId=${encodeURIComponent(clip.id)}&attempt=${retry}` : result.playbackUrl) : null);
-			})
-			.catch(() => {
-				if (current) setUrl(null);
-			});
-		return () => {
-			current = false;
-		};
-	}, [creatorId, clip.id, retry]);
+	const url = `/api/clips/preview?creatorId=${encodeURIComponent(creatorId)}&clipId=${encodeURIComponent(clip.id)}&attempt=${retry}`;
+
 	useEffect(() => {
 		if (!needsLogo) {
 			logo.current = null;
@@ -188,7 +175,7 @@ export default function ClipCompositionCanvas({
 		};
 	}, [creatorId, needsLogo, retry]);
 	useEffect(() => {
-		if (!url || !ready) return;
+		if (!ready) return;
 		let frame = 0;
 		const draw = () => {
 			const v = video.current,
@@ -289,15 +276,20 @@ export default function ClipCompositionCanvas({
 		frame = requestAnimationFrame(draw);
 		return () => cancelAnimationFrame(frame);
 	}, [url, ready, clip, layout.format, watermark, creatorId, retryWidgets, enqueueNative]);
-	const retryMedia = () => {
+	const retryMedia = async () => {
 		for (const entry of widgetImages.current.values()) entry.cancel?.();
 		widgetImages.current.clear();
-		setUrl(undefined);
 		setReady(false);
 		setPlaying(false);
 		setLogoFailed(false);
-		setRetry((n) => n + 1);
 		setFailed(false);
+		try {
+			const result = await getCreatorClipPreview({ creatorId, clipId: clip.id, refresh: true });
+			if (!result?.playbackUrl) throw Error("unavailable");
+			setRetry((n) => n + 1);
+		} catch {
+			setFailed(true);
+		}
 	};
 
 	const brandingPosition = clipifyWatermarkPosition(time, brandingPositions);
@@ -311,10 +303,10 @@ export default function ClipCompositionCanvas({
 							<video
 								ref={video}
 								crossOrigin='anonymous'
-								src={url ?? undefined}
+								src={url}
 								muted
 								playsInline
-								preload='auto'
+								preload='metadata'
 								className='absolute inset-0 h-full w-full'
 								onLoadedMetadata={() => {
 									const v = video.current;
@@ -410,8 +402,8 @@ export default function ClipCompositionCanvas({
 				</div>
 				{!ready || failed ? (
 					<div className='absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-xl bg-background/90 p-4 text-center'>
-						<p className='text-sm text-muted'>{url !== null && !failed ? "Loading clip preview…" : "Clip preview unavailable. Retry or choose another reference clip."}</p>
-						{url === null || failed ? (
+						<p className='text-sm text-muted'>{!failed ? "Loading clip preview…" : "Clip preview unavailable. Retry or choose another reference clip."}</p>
+						{failed ? (
 							<Button variant='secondary' onPress={retryMedia}>
 								<IconRefresh className='size-4' />
 								Retry preview
