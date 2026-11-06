@@ -285,12 +285,12 @@ it("moves encoded branding from bottom-right to top-left after eight seconds", a
 		const output = join(dir, "output.mp4");
 		await writeFile(output, bytes);
 		for (const [time, left, top, emptyLeft, emptyTop] of [
-			[0, 1116, 664, 16, 178],
-			[8.1, 16, 178, 1116, 664],
+			[0, 1072, 652, 16, 175],
+			[8.1, 16, 175, 1072, 652],
 		]) {
 			const png = execFileSync("ffmpeg", ["-v", "error", "-ss", String(time), "-i", output, "-frames:v", "1", "-f", "image2pipe", "-vcodec", "png", "pipe:1"]);
 			const average = async (x: number, y: number) => {
-				const data = await sharp(png).extract({ left: x, top: y, width: 148, height: 40 }).removeAlpha().raw().toBuffer();
+				const data = await sharp(png).extract({ left: x, top: y, width: 192, height: 52 }).removeAlpha().raw().toBuffer();
 				return data.reduce((n, v) => n + v, 0) / data.length;
 			};
 			expect(await average(left, top)).toBeGreaterThan((await average(emptyLeft, emptyTop)) + 5);

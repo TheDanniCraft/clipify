@@ -108,10 +108,10 @@ for (const width of [390, 1440])
 		await page.screenshot({ path: info.outputPath("custom-composition.png"), fullPage: true, animations: "disabled" });
 		await page.keyboard.press("Escape");
 		await expect(page.getByRole("textbox", { name: "Layer name", exact: true })).toHaveCount(0);
-		await page.getByRole("button", { name: "Clipify watermark", exact: true }).click();
-		const mark = page.getByRole("button", { name: "Clipify watermark output", exact: true });
+		await page.getByRole("button", { name: "Clipify Watermark", exact: true }).click();
+		const mark = page.getByRole("button", { name: "Clipify Watermark output", exact: true });
 		await expect(mark).not.toHaveCSS("border-top-color", "rgba(0, 0, 0, 0)");
-		await expect(page.getByRole("button", { name: /Resize Clipify watermark/ })).toHaveCount(0);
+		await expect(page.getByRole("button", { name: /Resize Clipify Watermark/ })).toHaveCount(0);
 		await expect(page.getByRole("textbox", { name: "Width (%)", exact: true })).toHaveCount(0);
 		await page.screenshot({ path: info.outputPath("selected-branding.png"), fullPage: true, animations: "disabled" });
 		const markBefore = await mark.getAttribute("style");

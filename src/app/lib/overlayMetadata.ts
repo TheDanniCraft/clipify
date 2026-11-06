@@ -104,7 +104,7 @@ export function overlayMetadataSvg(kind: "channel" | "title" | "clipper", clip: 
 }
 
 // Keep preview and encoded watermark timing and positions identical.
-export const CLIPIFY_WATERMARK = { width: 148, height: 40, inset: 16, interval: 8 } as const;
+export const CLIPIFY_WATERMARK = { width: 192, height: 52, inset: 16, interval: 8 } as const;
 export const CLIPIFY_WATERMARK_CORNERS = [
 	[1, 1],
 	[0, 0.25],
@@ -123,7 +123,7 @@ export function clipifyWatermarkExpression(axis: 0 | 1) {
 	return CLIPIFY_WATERMARK_CORNERS.slice(0, -1).reduceRight((next, point, index) => `if(lt(mod(t,${period}),${(index + 1) * CLIPIFY_WATERMARK.interval}),16+(${far}-16)*${point[axis]},${next})`, `16+(${far}-16)*${CLIPIFY_WATERMARK_CORNERS.at(-1)![axis]}`);
 }
 export function clipifyWatermarkSvg() {
-	return '<svg xmlns="http://www.w3.org/2000/svg" width="148" height="40" viewBox="0 0 148 40"><rect width="148" height="40" rx="12" fill="#0a0a0a" fill-opacity="0.65"/><g transform="translate(8 4) scale(0.2)"><path d="M28.1,30.8l100.3,57.7c3.1,1.8,3.1,6.2,0,7.9l-100,57.7c-3.1,1.8-6.9-.4-6.9-4l-.3-115.4c0-3.5,3.8-5.8,6.9-4Z" fill="#2a2a65"/><path d="M11.5,4.8l106.3,61.2c3.2,1.9,3.2,6.6,0,8.4L11.9,135.5c-3.2,1.9-7.3-.5-7.3-4.2l-.4-122.3c0-3.7,4-6.1,7.3-4.2Z" fill="#6355a0"/><path d="M33.6,48.2l35.6,20.5c1.2.7,1.2,2.4,0,3.1l-35.5,20.5c-1.2.7-2.7-.2-2.7-1.5v-41c-.1-1.4,1.3-2.2,2.5-1.5Z" fill="white"/></g><text x="42" y="26" font-family="DejaVu Sans,sans-serif" font-size="17" fill="white">clipify.us</text></svg>';
+	return `<svg xmlns="http://www.w3.org/2000/svg" width="${CLIPIFY_WATERMARK.width}" height="${CLIPIFY_WATERMARK.height}" viewBox="0 0 148 40"><rect width="148" height="40" rx="12" fill="#0a0a0a" fill-opacity="0.65"/><g transform="translate(8 4) scale(0.2)"><path d="M28.1,30.8l100.3,57.7c3.1,1.8,3.1,6.2,0,7.9l-100,57.7c-3.1,1.8-6.9-.4-6.9-4l-.3-115.4c0-3.5,3.8-5.8,6.9-4Z" fill="#2a2a65"/><path d="M11.5,4.8l106.3,61.2c3.2,1.9,3.2,6.6,0,8.4L11.9,135.5c-3.2,1.9-7.3-.5-7.3-4.2l-.4-122.3c0-3.7,4-6.1,7.3-4.2Z" fill="#6355a0"/><path d="M33.6,48.2l35.6,20.5c1.2.7,1.2,2.4,0,3.1l-35.5,20.5c-1.2.7-2.7-.2-2.7-1.5v-41c-.1-1.4,1.3-2.2,2.5-1.5Z" fill="white"/></g><text x="42" y="26" font-family="DejaVu Sans,sans-serif" font-size="17" fill="white">clipify.us</text></svg>`;
 }
 
 export function brandOverlayFields(brand: CreatorBrand) {

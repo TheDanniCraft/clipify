@@ -298,7 +298,7 @@ it("resets only a widget override to its brand without changing the account styl
 
 it("stores branding per layout and lets Pro keep credits on one composition", async () => {
 	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} canRemoveWatermark onBack={() => {}} onSaved={() => {}} />);
-	fireEvent.click(screen.getByRole("button", { name: "Remove Clipify watermark" }));
+	fireEvent.click(screen.getByRole("button", { name: "Remove Clipify Watermark" }));
 	fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
 	await waitFor(() => expect(saveTemplate).toHaveBeenCalledWith("owner", expect.objectContaining({ composition: expect.objectContaining({ watermark: false }) })));
 	expect(composition.watermark).toBeUndefined();
@@ -306,9 +306,9 @@ it("stores branding per layout and lets Pro keep credits on one composition", as
 });
 it("keeps free layout credits on and opens upgrade without saving an unavailable value", () => {
 	render(<ClipCompositionEditor creatorId='owner' user={{ id: "owner" } as never} entry={entry} initial={composition} onBack={() => {}} onSaved={() => {}} />);
-	const toggle = screen.getByRole("button", { name: "Remove Clipify watermark" });
+	const toggle = screen.getByRole("button", { name: "Remove Clipify Watermark" });
 	fireEvent.click(toggle);
-	expect(screen.getByRole("button", { name: "Clipify watermark" })).toBeVisible();
+	expect(screen.getByRole("button", { name: "Clipify Watermark" })).toBeVisible();
 	expect(screen.getByRole("dialog")).toHaveTextContent("Upgrade branding");
 	expect(saveTemplate).not.toHaveBeenCalled();
 });
@@ -361,8 +361,36 @@ it("restores the fixed branding layer without adding editable geometry to the te
 	fireEvent.change(screen.getByRole("combobox", { name: "Add layer" }), { target: { value: "watermark" } });
 	expect(screen.getByRole("region", { name: "Branding layer" })).toHaveTextContent("8 seconds");
 	expect(screen.queryByRole("textbox", { name: "Layer name" })).not.toBeInTheDocument();
-	expect(screen.queryByRole("button", { name: "Bring Clipify watermark forward" })).not.toBeInTheDocument();
+	expect(screen.queryByRole("button", { name: "Bring Clipify Watermark forward" })).not.toBeInTheDocument();
 	fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
 	await waitFor(() => expect(saveTemplate).toHaveBeenCalled());
 	expect(saveTemplate.mock.calls[0][1].composition).toMatchObject({ watermark: true, layers: composition.layers });
+});
+
+it.each([false, true])("keeps branding restorable at the video-layer limit when enabled=%s", (watermark) => {
+	const layers = Array.from({ length: 32 }, (_, index) => ({ ...composition.layers[0], id: `crop-${index}`, label: `Crop ${index}` }));
+	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={{ ...composition, layers, watermark }} canRemoveWatermark onBack={() => {}} onSaved={() => {}} />);
+	const add = screen.getByRole("combobox", { name: "Add layer" });
+	expect(screen.queryByRole("option", { name: "video" })).not.toBeInTheDocument();
+	if (watermark) expect(add).toBeDisabled();
+	else {
+		expect(add).toBeEnabled();
+		fireEvent.change(add, { target: { value: "watermark" } });
+		expect(screen.getByRole("button", { name: "Clipify Watermark" })).toBeVisible();
+		expect(add).toBeDisabled();
+	}
+});
+
+it("deselects branding before removing it and restores the ordinary empty inspector", () => {
+	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} canRemoveWatermark onBack={() => {}} onSaved={() => {}} />);
+	const branding = screen.getByRole("button", { name: "Clipify Watermark" });
+	fireEvent.click(branding);
+	expect(screen.getByRole("region", { name: "Branding layer" })).toBeVisible();
+	fireEvent.click(branding);
+	expect(screen.queryByRole("region", { name: "Branding layer" })).not.toBeInTheDocument();
+	fireEvent.click(branding);
+	fireEvent.click(screen.getByRole("button", { name: "Remove Clipify Watermark" }));
+	expect(screen.queryByRole("button", { name: "Clipify Watermark" })).not.toBeInTheDocument();
+	expect(screen.queryByRole("region", { name: "Branding layer" })).not.toBeInTheDocument();
+	expect(screen.queryByRole("textbox", { name: "Layer name" })).not.toBeInTheDocument();
 });

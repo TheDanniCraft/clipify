@@ -60,7 +60,7 @@ it("saves an explicitly confirmed account brand without export or overlay-import
 	const Panel = panel.default;
 	render(<Panel user={{ id: "creator", username: "Streamer", plan: "free", permissions: ["creator:update"] } as never} />);
 	await screen.findByRole("combobox", { name: "Font source" });
-	expect(screen.queryByRole("switch", { name: "Clipify watermark" })).not.toBeInTheDocument();
+	expect(screen.queryByRole("switch", { name: "Clipify Watermark" })).not.toBeInTheDocument();
 	expect(screen.queryByRole("combobox", { name: "Start from an existing overlay" })).not.toBeInTheDocument();
 	fireEvent.change(screen.getByRole("textbox", { name: "Text Color" }), { target: { value: "#ff0000" } });
 	fireEvent.click(screen.getByRole("button", { name: "Apply brand" }));

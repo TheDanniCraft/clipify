@@ -36,9 +36,9 @@ for (const width of [390, 1440])
 			await tourWorld.fixture.pool.query("UPDATE playlist_clips SET clip_data=jsonb_set(clip_data::jsonb,'{testPreviewOfficial}','true')::text WHERE clip_id=$1", [id]);
 			const imageResponse = page.waitForResponse((response) => response.url().includes("/api/clips/widget-preview?data=") && decodeURIComponent(response.url()).includes("Laila") && response.status() === 200);
 			await page.goto(`${tourWorld.origin}/dashboard/clip-layouts?layout=branded&reference=${id}`);
-			await expect(page.getByRole("button", { name: "Clipify watermark", exact: true })).toBeVisible();
-			await page.getByRole("button", { name: "Remove Clipify watermark", exact: true }).click();
-			await expect(page.getByRole("button", { name: "Clipify watermark", exact: true })).toHaveCount(0);
+			await expect(page.getByRole("button", { name: "Clipify Watermark", exact: true })).toBeVisible();
+			await page.getByRole("button", { name: "Remove Clipify Watermark", exact: true }).click();
+			await expect(page.getByRole("button", { name: "Clipify Watermark", exact: true })).toHaveCount(0);
 			await page.getByRole("button", { name: "Save layout", exact: true }).click();
 			await imageResponse;
 			await expect(page.getByRole("button", { name: "Play preview", exact: true })).toBeEnabled();
@@ -57,7 +57,7 @@ test("Free clip layouts keep the watermark and open the existing upgrade without
 	await page.setViewportSize({ width: 390, height: 900 });
 	await page.goto(`${tourWorld.origin}/dashboard/clip-layouts?layout=free`);
 	await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
-	const watermark = page.getByRole("button", { name: "Remove Clipify watermark", exact: true });
+	const watermark = page.getByRole("button", { name: "Remove Clipify Watermark", exact: true });
 	await expect(watermark).toBeVisible();
 	await watermark.focus();
 	await watermark.press("Space");
@@ -178,5 +178,5 @@ test("Brand settings omit legacy overlay import and layout watermark controls", 
 	await page.goto(`${tourWorld.origin}/dashboard/settings?tab=brand`);
 	await expect(page.getByRole("button", { name: "Apply brand", exact: true })).toBeEnabled();
 	await expect(page.getByRole("button", { name: /Start from an existing overlay/ })).toHaveCount(0);
-	await expect(page.getByRole("switch", { name: "Clipify watermark", exact: true })).toHaveCount(0);
+	await expect(page.getByRole("switch", { name: "Clipify Watermark", exact: true })).toHaveCount(0);
 });

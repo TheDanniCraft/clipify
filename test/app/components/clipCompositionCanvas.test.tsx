@@ -267,12 +267,12 @@ it("selects the fixed watermark without geometry controls and delegates keyboard
 		remove = jest.fn();
 	render(<Canvas creatorId='owner' clip={clip} layout={createClipComposition("mobile")} selected='clipify-watermark' watermark onSelect={select} onChange={change} onDimensions={() => {}} onRemoveWatermark={remove} />);
 	await ready();
-	const mark = screen.getByRole("button", { name: "Clipify watermark output" });
+	const mark = screen.getByRole("button", { name: "Clipify Watermark output" });
 	fireEvent.click(mark);
 	expect(select).toHaveBeenCalledWith("clipify-watermark", "output");
 	fireEvent.keyDown(mark, { key: "ArrowRight" });
 	expect(change).not.toHaveBeenCalled();
-	expect(screen.queryByRole("button", { name: /Resize Clipify watermark/ })).not.toBeInTheDocument();
+	expect(screen.queryByRole("button", { name: /Resize Clipify Watermark/ })).not.toBeInTheDocument();
 	fireEvent.keyDown(mark, { key: "Delete" });
 	expect(remove).toHaveBeenCalledTimes(1);
 });

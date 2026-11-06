@@ -378,7 +378,7 @@ export default function ClipCompositionCanvas({
 								: null}
 							{ready && watermark ? (
 								<Button
-									aria-label='Clipify watermark output'
+									aria-label='Clipify Watermark output'
 									variant='ghost'
 									onPress={() => onSelect("clipify-watermark", "output")}
 									onKeyDown={(event) => {

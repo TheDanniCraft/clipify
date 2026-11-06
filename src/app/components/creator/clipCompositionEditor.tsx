@@ -393,11 +393,11 @@ export default function ClipCompositionEditor({
 										<div className='flex items-center gap-1' data-branding-row>
 											<Button variant={selected === "clipify-watermark" ? "secondary" : "ghost"} className='min-w-0 flex-1 justify-start gap-2' onPress={() => selectLayer(selected === "clipify-watermark" ? "" : "clipify-watermark")}>
 												<Logo size={16} aria-hidden='true' />
-												<span className='min-w-0 flex-1 truncate text-left'>Clipify watermark</span>
+												<span className='min-w-0 flex-1 truncate text-left'>Clipify Watermark</span>
 												<IconLock className='size-3.5 shrink-0 text-muted' aria-hidden='true' />
 											</Button>
 											<Tooltip>
-												<Button isIconOnly size='sm' variant='danger-soft' aria-label='Remove Clipify watermark' onPress={removeWatermark}>
+												<Button isIconOnly size='sm' variant='danger-soft' aria-label='Remove Clipify Watermark' onPress={removeWatermark}>
 													<IconTrash className='size-4' />
 												</Button>
 												<Tooltip.Content>Remove watermark</Tooltip.Content>
@@ -509,8 +509,8 @@ export default function ClipCompositionEditor({
 												</ListBox.Item>
 											))}
 											{!watermarkEnabled ? (
-												<ListBox.Item id='watermark' textValue='Clipify watermark'>
-													<Label>Clipify watermark</Label>
+												<ListBox.Item id='watermark' textValue='Clipify Watermark'>
+													<Label>Clipify Watermark</Label>
 												</ListBox.Item>
 											) : null}
 										</ListBox>
@@ -519,7 +519,7 @@ export default function ClipCompositionEditor({
 							</section>
 							{selected === "clipify-watermark" && watermarkEnabled ? (
 								<section aria-label='Branding layer' className='space-y-2'>
-									<h3 className='font-medium'>Clipify watermark</h3>
+									<h3 className='font-medium'>Clipify Watermark</h3>
 									<p className='text-sm text-muted'>Positioned automatically every 8 seconds.</p>
 								</section>
 							) : selected && selected !== "clipify-watermark" ? (

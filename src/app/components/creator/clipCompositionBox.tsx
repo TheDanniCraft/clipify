@@ -113,10 +113,7 @@ export default function CompositionBox({
 	}, []);
 	const pointer = { onLostPointerCapture: end };
 	return (
-		<div
-			className={`absolute isolate border-2 ${selected ? "opacity-100" : showOutline ? "[--outline-alpha:40%] hover:[--outline-alpha:75%] focus-within:[--outline-alpha:75%]" : "border-transparent"}`}
-			style={{ "--layer-color": color, borderColor: selected ? color : showOutline ? "color-mix(in srgb, var(--layer-color) var(--outline-alpha, 40%), transparent)" : "transparent", left: `${rect.x * 100}%`, top: `${rect.y * 100}%`, width: `${rect.w * 100}%`, height: `${rect.h * 100}%` } as CSSProperties}
-		>
+		<div className={`absolute isolate border-2 ${selected ? "opacity-100" : showOutline ? "[--outline-alpha:40%] hover:[--outline-alpha:75%] focus-within:[--outline-alpha:75%]" : "border-transparent"}`} style={{ "--layer-color": color, borderColor: selected ? color : showOutline ? "color-mix(in srgb, #9ca3af var(--outline-alpha, 40%), transparent)" : "transparent", left: `${rect.x * 100}%`, top: `${rect.y * 100}%`, width: `${rect.w * 100}%`, height: `${rect.h * 100}%` } as CSSProperties}>
 			<Button
 				{...pointer}
 				aria-label={label}

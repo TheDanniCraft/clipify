@@ -63,13 +63,13 @@ it("shows the channel address and cycles branding through six fixed edge positio
 	const { clipifyWatermarkPosition, clipifyWatermarkExpression } = await import("@lib/overlayMetadata");
 	expect(overlayMetadataContent("channel", { title: "", broadcasterName: "TheDanniCraft" }, true)).toEqual({ primary: "TheDanniCraft", secondary: "twitch.tv/thedannicraft" });
 	expect([0, 8, 16, 24, 32, 40, 48].map((time) => clipifyWatermarkPosition(time, 1280, 720))).toEqual([
-		{ x: 1116, y: 664 },
-		{ x: 16, y: 178 },
-		{ x: 1116, y: 404.8 },
-		{ x: 16, y: 664 },
-		{ x: 1116, y: 16 },
-		{ x: 16, y: 437.2 },
-		{ x: 1116, y: 664 },
+		{ x: 1072, y: 652 },
+		{ x: 16, y: 175 },
+		{ x: 1072, y: 16 + 636 * 0.6 },
+		{ x: 16, y: 652 },
+		{ x: 1072, y: 16 },
+		{ x: 16, y: 16 + 636 * 0.65 },
+		{ x: 1072, y: 652 },
 	]);
 	expect(clipifyWatermarkExpression(0)).toContain("mod(t,48)");
 });
