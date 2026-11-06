@@ -19,6 +19,7 @@ BEGIN
   SELECT jsonb_agg(jsonb_build_object('key',key,'broadcast',NULL)) INTO selected FROM (
     SELECT key FROM "twitchCache"
     WHERE type='clip' AND starts_with(key,'clip:' || owner_id || ':')
+      AND (expires_at IS NULL OR expires_at>now())
       AND value::jsonb#>>'{clip,broadcaster_id}'=owner_id
       AND nullif(value::jsonb#>>'{clip,id}','') IS NOT NULL
       AND coalesce(value::jsonb#>>'{clip,video_id}','')=''

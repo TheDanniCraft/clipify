@@ -181,3 +181,70 @@ it("paginates persistent streams independently of expired Twitch provider pages"
 	expect(second.items).toHaveLength(5);
 	expect(new Set([...first.items, ...second.items].map((v) => v.id)).size).toBe(25);
 });
+
+describe("retained stream recovery boundaries", () => {
+	beforeEach(() => {
+		authorize.mockResolvedValue({ allowed: true });
+		cache.mockResolvedValue({ value: null });
+		library.mockResolvedValue({ ok: true, clips: [] });
+		token.mockResolvedValue({ token: null });
+	});
+	it("keeps saved history visible after token expiry and reports the newest saved observation", async () => {
+		saved.mockResolvedValue([
+			{ video: archiveVideo, lastSeenAt: "2026-11-01T00:00:00Z", unavailable: true },
+			{ video: { ...archiveVideo, id: "200" }, lastSeenAt: "2026-11-02T00:00:00Z", unavailable: true },
+		]);
+		const fetch = jest.spyOn(globalThis, "fetch");
+		const { readCreatorBroadcasts } = await import("@/server/creator-broadcasts");
+		expect(await readCreatorBroadcasts("owner")).toMatchObject({
+			ok: true,
+			stale: true,
+			fetchedAt: "2026-11-02T00:00:00Z",
+			items: [
+				{ id: "100", available: false },
+				{ id: "200", available: false },
+			],
+		});
+		expect(fetch).not.toHaveBeenCalled();
+	});
+	it("retains a saved recording on an explicit 404 even after its provider page cache expires", async () => {
+		token.mockResolvedValue({ token: { accessToken: "private" } });
+		saved.mockResolvedValue([{ video: archiveVideo, lastSeenAt: "2026-11-01T00:00:00Z", unavailable: false }]);
+		jest.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 404 }));
+		const { readCreatorBroadcasts } = await import("@/server/creator-broadcasts");
+		expect(await readCreatorBroadcasts("owner", undefined, "100")).toMatchObject({ ok: true, stale: true, items: [{ id: "100", available: false }] });
+		expect(mark).toHaveBeenCalledWith("owner", "100");
+	});
+	it("does not resurrect a missing recording from an older cached page or include a foreign cached broadcast", async () => {
+		const fetchedAt = new Date(Date.now() - 1000).toISOString();
+		saved.mockResolvedValue([{ video: { ...archiveVideo, title: "Saved title" }, lastSeenAt: new Date().toISOString(), unavailable: true }]);
+		cache.mockResolvedValue({ value: { data: [archiveVideo, { ...archiveVideo, id: "200", user_id: "foreign" }], fetchedAt } });
+		const { readCreatorBroadcasts } = await import("@/server/creator-broadcasts");
+		expect(await readCreatorBroadcasts("owner")).toMatchObject({ ok: true, items: [{ id: "100", title: "Saved title", available: false }] });
+		const result = await readCreatorBroadcasts("owner");
+		if (!result.ok) throw new Error(result.code);
+		expect(result.items).toHaveLength(1);
+	});
+	it("rejects malformed saved cursors before reading metadata and stale positions without returning another page", async () => {
+		const { readCreatorBroadcasts } = await import("@/server/creator-broadcasts");
+		cache.mockClear();
+		expect(await readCreatorBroadcasts("owner", sealBroadcastCursor("owner", "saved:bad"))).toEqual({ ok: false, code: "INVALID_INPUT" });
+		expect(cache).not.toHaveBeenCalled();
+		cache.mockResolvedValue({ value: { data: [archiveVideo], fetchedAt: new Date().toISOString() } });
+		expect(await readCreatorBroadcasts("owner", sealBroadcastCursor("owner", "saved:999"))).toEqual({ ok: false, code: "INVALID_INPUT" });
+	});
+	it("orders moments with unknown VOD offsets by creation time without inventing positions", async () => {
+		cache.mockResolvedValue({ value: { data: [archiveVideo], fetchedAt: new Date().toISOString() } });
+		library.mockResolvedValue({
+			ok: true,
+			clips: [
+				{ id: "Later", title: "Later", broadcaster_id: "owner", video_id: "100", duration: 10, created_at: "2026-11-03T00:00:00Z" },
+				{ id: "First", title: "First", broadcaster_id: "owner", video_id: "100", duration: 10, created_at: "2026-11-01T00:00:00Z" },
+			],
+		});
+		const { readCreatorBroadcasts } = await import("@/server/creator-broadcasts");
+		const result = await readCreatorBroadcasts("owner");
+		if (!result.ok) throw new Error(result.code);
+		expect(result.items[0].moments.map((clip) => clip.id)).toEqual(["First", "Later"]);
+	});
+});
