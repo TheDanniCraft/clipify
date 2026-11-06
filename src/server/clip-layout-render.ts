@@ -57,7 +57,7 @@ export async function renderClipLayout(bytes: Uint8Array, layout: ClipLayout | C
 			filters.push(`[${previous}][${index}:v]overlay=x='${clipifyWatermarkExpression(0, positions)}':y='${clipifyWatermarkExpression(1, positions)}':shortest=1:eof_action=repeat[branded]`);
 			previous = "branded";
 		}
-		const args = ["-hide_banner", "-loglevel", "error", "-nostdin", "-protocol_whitelist", "file,pipe", "-threads", "2", "-f", "mov", "-i", input, ...inputs, "-filter_complex_threads", "1", "-filter_complex", filters.join(";"), "-map", `[${previous}]`, "-map", "0:a?", "-c:v", "libx264", "-threads", "2", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-fs", String(LIMIT + 1024 * 1024), "-y", output];
+		const args = ["-hide_banner", "-loglevel", "error", "-nostdin", "-protocol_whitelist", "file,pipe", "-threads", "1", "-f", "mov", "-i", input, ...inputs, "-filter_complex_threads", "1", "-filter_complex", filters.join(";"), "-map", `[${previous}]`, "-map", "0:a?", "-c:v", "libx264", "-threads", "1", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-fs", String(LIMIT + 1024 * 1024), "-y", output];
 		await new Promise<void>((resolve, reject) => {
 			const child = spawn("ffmpeg", args, { stdio: ["ignore", "ignore", "pipe"], signal, killSignal: "SIGKILL", timeout: 90000 });
 			let stderr = "";

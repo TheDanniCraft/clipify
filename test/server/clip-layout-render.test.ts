@@ -355,6 +355,7 @@ it("bounds every image decoder when exporting several widgets and branding", asy
 		const args = spawn.mock.calls[0][1] as string[];
 		const inputs = args.flatMap((arg, index) => (arg === "-i" ? [index] : []));
 		expect(inputs).toHaveLength(5);
+		expect(args.filter((value, index) => args[index - 1] === "-threads")).toEqual(["1", "1", "1", "1", "1", "1"]);
 		for (const input of inputs.slice(1)) expect(args.slice(input - 2, input)).toEqual(["-threads", "1"]);
 	} finally {
 		spawn.mockRestore();
