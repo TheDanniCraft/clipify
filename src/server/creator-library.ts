@@ -49,6 +49,29 @@ export function queryInventoryClips(clips: z.infer<typeof providerClipSchema>[],
 	return { items: matches.slice(offset, offset + filters.pageSize).map(publicClip), total: matches.length };
 }
 
+async function inventoryCategories(clips: z.infer<typeof providerClipSchema>[], creatorId: string, cachedOnly: boolean) {
+	const categoryIds = [...new Set(clips.map((clip) => clip.game_id).filter((id): id is string => Boolean(id)))];
+	const games = categoryIds.length
+		? await db
+				.select({ value: twitchCacheTable.value })
+				.from(twitchCacheTable)
+				.where(and(eq(twitchCacheTable.type, TwitchCacheType.Game), inArray(twitchCacheTable.key, categoryIds)))
+				.execute()
+		: [];
+	const cachedGames = games.flatMap((row) => {
+		try {
+			const game = z.object({ id: z.string(), name: z.string(), box_art_url: z.string().optional() }).safeParse(JSON.parse(row.value));
+			return game.success ? [game.data] : [];
+		} catch {
+			return [];
+		}
+	});
+	const missing = categoryIds.filter((id) => !cachedGames.some((game) => game.id === id));
+	const fetched = missing.length && !cachedOnly ? await getGamesDetailsBulk(missing, creatorId).catch(() => []) : [];
+	const categories = [...cachedGames, ...fetched].filter((game) => categoryIds.includes(game.id)).map((game) => ({ id: game.id, name: game.name, artworkUrl: publicTwitchImageUrl(game.box_art_url?.replace("{width}", "40").replace("{height}", "56")) }));
+	return categories;
+}
+
 export async function readCreatorLibrary(creatorId: string, query: unknown = {}, cachedOnly = false) {
 	const decision = await authorizeCreatorOperation({ creatorId, resourceOwnerId: creatorId, permission: "creator:read" });
 	if (!decision.allowed) return { ok: false as const, code: decision.code };
@@ -81,25 +104,7 @@ export async function readCreatorLibrary(creatorId: string, query: unknown = {},
 			const time = row.fetchedAt.toISOString();
 			if (!fetchedAt || time > fetchedAt) fetchedAt = time;
 		}
-		const categoryIds = [...new Set([...clips.values()].map((clip) => clip.game_id).filter((id): id is string => Boolean(id)))];
-		const games = categoryIds.length
-			? await db
-					.select({ value: twitchCacheTable.value })
-					.from(twitchCacheTable)
-					.where(and(eq(twitchCacheTable.type, TwitchCacheType.Game), inArray(twitchCacheTable.key, categoryIds)))
-					.execute()
-			: [];
-		const cachedGames = games.flatMap((row) => {
-			try {
-				const game = z.object({ id: z.string(), name: z.string(), box_art_url: z.string().optional() }).safeParse(JSON.parse(row.value));
-				return game.success ? [game.data] : [];
-			} catch {
-				return [];
-			}
-		});
-		const missing = categoryIds.filter((id) => !cachedGames.some((game) => game.id === id));
-		const fetched = missing.length && !cachedOnly ? await getGamesDetailsBulk(missing, creatorId).catch(() => []) : [];
-		const categories = [...cachedGames, ...fetched].filter((game) => categoryIds.includes(game.id)).map((game) => ({ id: game.id, name: game.name, artworkUrl: publicTwitchImageUrl(game.box_art_url?.replace("{width}", "40").replace("{height}", "56")) }));
+		const categories = await inventoryCategories([...clips.values()], creatorId, cachedOnly);
 		return { ok: true as const, clips: [...clips.values()], filters: parsed.data, categories, complete: complete && !invalid, fetchedAt };
 	} catch {
 		return { ok: false as const, code: "SERVICE_UNAVAILABLE" };
