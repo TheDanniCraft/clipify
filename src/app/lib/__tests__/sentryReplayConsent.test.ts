@@ -1,3 +1,4 @@
+let mockSentryBrowserEnabled = true;
 import { applySentryReplayConsent } from "../sentryReplayConsent";
 
 const mockOptions: Record<string, unknown> = {};
@@ -28,12 +29,16 @@ jest.mock("@sentry/nextjs", () => ({
 }));
 
 jest.mock("../../../../sentry.shared.config", () => ({
+	get sentryBrowserEnabled() {
+		return mockSentryBrowserEnabled;
+	},
 	sentryBrowserProfileSampleRate: 0.001,
 	sentryReplaySessionSampleRate: 0.01,
 }));
 
 describe("Sentry consent lifecycle", () => {
 	beforeEach(() => {
+		mockSentryBrowserEnabled = true;
 		for (const key of Object.keys(mockOptions)) delete mockOptions[key];
 		jest.clearAllMocks();
 		mockGetClient.mockReturnValue({ getOptions: () => mockOptions, getIntegrationByName: mockGetIntegrationByName });
@@ -89,4 +94,13 @@ describe("Sentry consent lifecycle", () => {
 		expect(mockAddIntegration).not.toHaveBeenCalled();
 		expect(mockStartProfiler).toHaveBeenCalledTimes(1);
 	});
+});
+
+it("does not initialize replay or profiling when Sentry is disabled on previews", async () => {
+	jest.clearAllMocks();
+	mockSentryBrowserEnabled = false;
+	await applySentryReplayConsent(true);
+	expect(mockGetClient).not.toHaveBeenCalled();
+	expect(mockAddIntegration).not.toHaveBeenCalled();
+	expect(mockStartProfiler).not.toHaveBeenCalled();
 });

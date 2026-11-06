@@ -1,5 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
-import { sentryBrowserProfileSampleRate, sentryReplaySessionSampleRate } from "../../../sentry.shared.config";
+import { sentryBrowserEnabled, sentryBrowserProfileSampleRate, sentryReplaySessionSampleRate } from "../../../sentry.shared.config";
 
 type BrowserConsentOptions = ReturnType<NonNullable<ReturnType<typeof Sentry.getClient>>["getOptions"]> & {
 	profileLifecycle?: "manual" | "trace";
@@ -9,6 +9,7 @@ type BrowserConsentOptions = ReturnType<NonNullable<ReturnType<typeof Sentry.get
 };
 
 export async function applySentryReplayConsent(hasMeasurementConsent: boolean) {
+	if (!sentryBrowserEnabled) return;
 	const client = Sentry.getClient();
 	if (!client) return;
 	const options = client.getOptions() as BrowserConsentOptions;

@@ -1,8 +1,9 @@
 import * as Sentry from "@sentry/nextjs";
+import { sentryEnabled } from "../sentry.shared.config";
 
 export async function register() {
 	if (process.env.NEXT_RUNTIME === "nodejs") {
-		await import("../sentry.server.config");
+		if (sentryEnabled) await import("../sentry.server.config");
 		if (process.env.DISABLE_BACKGROUND_JOBS !== "true") {
 			const [{ startEntitlementsScheduler }, { startClipCacheScheduler }, { startCommunitySnapshotScheduler }, { startRunnerScheduler }, { startConsentRetentionScheduler }, { startOperationalHealthPublisher }, { startAccountLifecycleScheduler }] = await Promise.all([
 				import("@lib/entitlementsScheduler"),
@@ -27,8 +28,8 @@ export async function register() {
 		}
 	}
 	if (process.env.NEXT_RUNTIME === "edge") {
-		await import("../sentry.edge.config");
+		if (sentryEnabled) await import("../sentry.edge.config");
 	}
 }
 
-export const onRequestError = Sentry.captureRequestError;
+export const onRequestError = sentryEnabled ? Sentry.captureRequestError : () => {};

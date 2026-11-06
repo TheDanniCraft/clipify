@@ -1,6 +1,7 @@
 "use client";
 
 import * as Sentry from "@sentry/nextjs";
+import { sentryBrowserEnabled } from "../../../sentry.shared.config";
 import { Button } from "@heroui/react";
 import { IconBug } from "@tabler/icons-react";
 import { notify } from "@lib/toast";
@@ -25,7 +26,7 @@ export default function SentryFeedbackWidget() {
 	}, []);
 
 	useEffect(() => {
-		if (isEmbedded || inDashboard) return;
+		if (!sentryBrowserEnabled || isEmbedded || inDashboard) return;
 		const feedback = Sentry.getFeedback();
 		if (!feedback) return;
 		const widget = feedback.createWidget();
@@ -33,7 +34,7 @@ export default function SentryFeedbackWidget() {
 		return () => widget.removeFromDom();
 	}, [isEmbedded, inDashboard]);
 
-	return inDashboard ? (
+	return sentryBrowserEnabled && inDashboard ? (
 		<DashboardUtilityPortal slot='report'>
 			<div>
 				<Button

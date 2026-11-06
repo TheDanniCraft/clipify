@@ -32,6 +32,7 @@ for (const width of [390, 1440])
 			await expect(page.getByRole("button", { name: "Play preview", exact: true })).toBeEnabled({ timeout: 20000 });
 			expect(preflights).toHaveLength(0);
 			await expect(page.locator("video")).toHaveAttribute("preload", "metadata");
+			if (process.env.IS_PREVIEW === "true") await expect(page.getByRole("button", { name: "Report a problem", exact: true })).toHaveCount(0);
 			await expect(page.locator("video")).toHaveAttribute("src", /\/api\/clips\/preview\?/);
 			const rendered = () => page.locator("canvas").evaluate((canvas: HTMLCanvasElement) => [...canvas.getContext("2d")!.getImageData(Math.floor(canvas.width / 2), Math.floor(canvas.height / 4), 1, 1).data].slice(0, 3).some((value) => value > 10));
 			await expect.poll(rendered).toBe(true);

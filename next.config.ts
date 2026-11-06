@@ -103,6 +103,7 @@ export default nextConfigPromise.then((resolvedConfig) => {
 		},
 	};
 
+	if (process.env.IS_PREVIEW === "true") return configWithSentryBuildEnvironment;
 	return withSentryConfig(configWithSentryBuildEnvironment, {
 		org: "thedannicraft",
 		project: "clipify",

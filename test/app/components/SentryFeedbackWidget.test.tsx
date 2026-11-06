@@ -1,3 +1,9 @@
+let mockSentryBrowserEnabled = true;
+jest.mock("../../../sentry.shared.config", () => ({
+	get sentryBrowserEnabled() {
+		return mockSentryBrowserEnabled;
+	},
+}));
 jest.mock("@components/dashboardUtilityPortal", () => ({ __esModule: true, default: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
 const notify = jest.fn();
 beforeEach(() => notify.mockReset());
@@ -18,6 +24,7 @@ jest.mock("next/navigation", () => ({
 
 describe("components/SentryFeedbackWidget", () => {
 	beforeEach(() => {
+		mockSentryBrowserEnabled = true;
 		jest.clearAllMocks();
 		pathname = "/dashboard/playlists";
 	});
@@ -117,4 +124,13 @@ it("keeps admin feedback in the shared sidebar instead of creating a floating wi
 	render(<Widget />);
 	expect(screen.getByRole("button", { name: "Report a problem" })).toBeVisible();
 	expect(createWidget).not.toHaveBeenCalled();
+});
+
+it("omits reporting controls and SDK widget setup when Sentry is disabled", async () => {
+	jest.clearAllMocks();
+	mockSentryBrowserEnabled = false;
+	const Widget = (await import("@/app/components/SentryFeedbackWidget")).default;
+	render(<Widget />);
+	expect(screen.queryByRole("button", { name: "Report a problem" })).not.toBeInTheDocument();
+	expect(getFeedback).not.toHaveBeenCalled();
 });
