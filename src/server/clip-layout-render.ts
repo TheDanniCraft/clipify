@@ -1,5 +1,6 @@
 import "server-only";
 import sharp from "sharp";
+import { Input, BufferSource, MP4 } from "mediabunny";
 import { clipifyWatermarkSvg, clipifyWatermarkExpression, clipifyWatermarkPositions, type CreatorBrand } from "@lib/overlayMetadata";
 import { spawn } from "node:child_process";
 import { mkdtemp, writeFile, readFile, rm, stat } from "node:fs/promises";
@@ -8,6 +9,18 @@ import { join } from "node:path";
 import { clipLayoutSchema, clipLayerText, clipLayerLines, type ClipLayout } from "@lib/clipLayout";
 import { compositionSchema, compositionDimensions, type ClipComposition } from "@lib/clipComposition";
 import { compositionFilterGraph } from "./clip-composition-render";
+async function inputColorArgs(bytes: Uint8Array) {
+	const input = new Input({ source: new BufferSource(bytes), formats: [MP4] });
+	try {
+		const track = await input.getPrimaryVideoTrack();
+		// Match WebCodecs' default for untagged sources; retain explicit source metadata.
+		return track && !(await track.getColorSpace()).matrix ? ["-colorspace", "bt709"] : [];
+	} catch {
+		return []; // FFmpeg validates malformed media and reports the existing typed failure.
+	} finally {
+		input.dispose();
+	}
+}
 let activeRenders = 0;
 const LIMIT = 32 * 1024 * 1024;
 /** FFmpeg receives only bounded local files, never user URLs or shell command strings. */
@@ -57,7 +70,52 @@ export async function renderClipLayout(bytes: Uint8Array, layout: ClipLayout | C
 			filters.push(`[${previous}][${index}:v]overlay=x='${clipifyWatermarkExpression(0, positions)}':y='${clipifyWatermarkExpression(1, positions)}':shortest=1:eof_action=repeat[branded]`);
 			previous = "branded";
 		}
-		const args = ["-hide_banner", "-loglevel", "error", "-nostdin", "-protocol_whitelist", "file,pipe", "-threads", "1", "-f", "mov", "-i", input, ...inputs, "-filter_complex_threads", "1", "-filter_complex", filters.join(";"), "-map", `[${previous}]`, "-map", "0:a?", "-c:v", "libx264", "-threads", "1", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-fs", String(LIMIT + 1024 * 1024), "-y", output];
+		const args = [
+			"-hide_banner",
+			"-loglevel",
+			"error",
+			"-nostdin",
+			"-protocol_whitelist",
+			"file,pipe",
+			"-threads",
+			"1",
+			...(await inputColorArgs(bytes)),
+			"-f",
+			"mov",
+			"-i",
+			input,
+			...inputs,
+			"-filter_complex_threads",
+			"1",
+			"-filter_complex",
+			filters.join(";"),
+			"-map",
+			`[${previous}]`,
+			"-map",
+			"0:a?",
+			"-c:v",
+			"libx264",
+			"-threads",
+			"1",
+			"-preset",
+			"veryfast",
+			"-crf",
+			"23",
+			"-pix_fmt",
+			"yuv420p",
+			"-r",
+			"30",
+			"-c:a",
+			"aac",
+			"-b:a",
+			"128k",
+			"-movflags",
+			"+faststart",
+			"-fs",
+			String(LIMIT + 1024 * 1024),
+			"-y",
+			output,
+		];
 		await new Promise<void>((resolve, reject) => {
 			const child = spawn("ffmpeg", args, { stdio: ["ignore", "ignore", "pipe"], signal, killSignal: "SIGKILL", timeout: 90000 });
 			let stderr = "";

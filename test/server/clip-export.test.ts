@@ -66,6 +66,7 @@ jest.mock("@/server/clip-download-limit", () => ({
 		return result.success ? { allowed: true, remaining: 2 } : { allowed: false, retryAfterSeconds: 60 };
 	},
 	reserveTwitchClipDownloadRequest: (...args: unknown[]) => providerCapacity(...args),
+	reserveClipSourceTransfer: jest.fn().mockResolvedValue({ allowed: true, remaining: 0 }),
 	reserveClipExportVolume: jest.fn().mockResolvedValue({ allowed: true, remaining: 0 }),
 }));
 jest.mock("@/db/client", () => ({
@@ -741,4 +742,42 @@ it("enforces free composed-export branding on the server and honors Pro removal"
 	render.mockClear();
 	expect((await buildClipArchive({ creatorId: "owner", clipIds: ["ClipA"] }, undefined, "mp4")).ok).toBe(true);
 	expect(render).not.toHaveBeenCalled();
+});
+it("prepares authorized browser outputs with scoped source access without rendering or downloading video", async () => {
+	const { prepareBrowserClipExport } = await import("@/server/clip-export");
+	const { readBrowserClipSource } = await import("@/server/clip-browser-source");
+	const { createClipComposition } = await import("@lib/clipComposition");
+	const { createClipExportPlan } = await import("@lib/clipExportPlan");
+	cacheRead.mockResolvedValue([ownedEntry()]);
+	const layout = { ...createClipComposition("desktop"), watermark: false };
+	const plan = createClipExportPlan(
+		"owner",
+		["ClipA"],
+		[
+			{ key: "original", label: "Original" },
+			{ key: "desktop", label: "Desktop", layout },
+		],
+	)[0];
+	const result = await prepareBrowserClipExport(plan, AbortSignal.timeout(5000));
+	expect(result.ok).toBe(true);
+	if (result.ok) {
+		expect(result.clips).toHaveLength(1);
+		expect(readBrowserClipSource(result.clips[0].sourceToken)).toEqual({ creatorId: "owner", clipId: "ClipA" });
+		expect(result.clips[0].outputs.map((o: any) => o.key)).toEqual(["original", "desktop"]);
+	}
+	expect(render).not.toHaveBeenCalled();
+	expect(jest.requireMock("@/server/clip-download-limit").reserveClipExportVolume).toHaveBeenCalledWith("owner", 2);
+});
+it("rechecks browser source permission and blocks replayed transfers when the shared budget is exhausted", async () => {
+	const { downloadBrowserClipSource } = await import("@/server/clip-export");
+	const { signBrowserClipSource } = await import("@/server/clip-browser-source");
+	const transfer = jest.requireMock("@/server/clip-download-limit").reserveClipSourceTransfer;
+	cacheRead.mockResolvedValue([ownedEntry()]);
+	transfer.mockResolvedValueOnce({ allowed: false, retryAfterSeconds: 60 });
+	const ticket = signBrowserClipSource("owner", "ClipA");
+	const result = await downloadBrowserClipSource(ticket, AbortSignal.timeout(5000));
+	expect(result).toMatchObject({ ok: false, code: "RATE_LIMITED", status: 429 });
+	authorize.mockResolvedValue({ allowed: false, code: "PERMISSION_DENIED" });
+	await expect(downloadBrowserClipSource(ticket, AbortSignal.timeout(5000))).resolves.toMatchObject({ ok: false, code: "PERMISSION_DENIED", status: 403 });
+	await expect(downloadBrowserClipSource("forged", AbortSignal.timeout(5000))).resolves.toMatchObject({ ok: false, code: "PERMISSION_DENIED", status: 403 });
 });

@@ -1,5 +1,5 @@
 /** @jest-environment node */
-import { reserveClipDownloadJob, reserveTwitchClipDownloadRequest, reserveClipExportVolume } from "@/server/clip-download-limit";
+import { reserveClipDownloadJob, reserveTwitchClipDownloadRequest, reserveClipExportVolume, reserveClipSourceTransfer } from "@/server/clip-download-limit";
 import { consumeDatabaseRateLimit } from "@/auth/rate-limit";
 jest.mock("@/auth/rate-limit", () => ({ consumeDatabaseRateLimit: jest.fn().mockResolvedValue({ allowed: true, remaining: 1 }) }));
 it("coordinates manual formats and provider requests by the creator, never the viewer or network", async () => {
@@ -12,4 +12,9 @@ it("coordinates manual formats and provider requests by the creator, never the v
 it("counts clips rather than provider calls for the shared fifty-clip minute budget", async () => {
 	await reserveClipExportVolume("creator", 50);
 	expect(consumeDatabaseRateLimit).toHaveBeenLastCalledWith(expect.objectContaining({ identityKey: "creator", networkKey: "creator", action: "clip-export-volume", limit: 50, cost: 50, windowMs: 60000 }));
+});
+
+it("bounds actual source transfers independently of reusable browser tickets", async () => {
+	await reserveClipSourceTransfer("creator");
+	expect(consumeDatabaseRateLimit).toHaveBeenLastCalledWith(expect.objectContaining({ identityKey: "creator", networkKey: "creator", action: "clip-source-transfer", limit: 50, windowMs: 60000 }));
 });

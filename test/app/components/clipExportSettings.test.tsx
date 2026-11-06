@@ -1,3 +1,6 @@
+const browserCapability = jest.fn();
+jest.mock("@lib/clipBrowserRender", () => ({ browserExportCapability: () => browserCapability() }));
+beforeEach(() => browserCapability.mockResolvedValue("supported"));
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import ClipExportSettings from "@components/creator/clipExportSettings";
 import { createClipComposition } from "@lib/clipComposition";
@@ -57,7 +60,7 @@ it("keeps Original export available after a failed template lookup", async () =>
 	render(<ClipExportSettings creatorId='owner' clipIds={["A", "B"]} onStart={start} onClose={() => {}} />);
 	await screen.findByText(/Layouts could not be loaded/);
 	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
-	expect(start).toHaveBeenCalledWith(expect.arrayContaining([expect.objectContaining({ files: expect.arrayContaining([expect.objectContaining({ clipId: "A" }), expect.objectContaining({ clipId: "B" })]) })]));
+	expect(start).toHaveBeenCalledWith(expect.arrayContaining([expect.objectContaining({ files: expect.arrayContaining([expect.objectContaining({ clipId: "A" }), expect.objectContaining({ clipId: "B" })]) })]), "server");
 });
 it.each([Error("Select at most 500 clips."), Error("unexpected"), "unexpected"])("reports queue failures without closing or discarding selection: %s", async (error) => {
 	list.mockResolvedValue({ ok: false, code: "SERVICE_UNAVAILABLE" });
@@ -113,4 +116,16 @@ it("exports both formats of an eighty-character template name without changing t
 		expect(output.label).toMatch(/ (Desktop|Mobile)$/);
 	}
 	expect(screen.getByRole("option", { name })).toBeInTheDocument();
+});
+
+it("warns about a slow device without silently switching to server processing", async () => {
+	browserCapability.mockResolvedValueOnce("slow");
+	list.mockResolvedValue({ ok: true, templates: [{ id: "paired", name: "Paired", composition: createClipComposition("mobile"), updatedAt: "2026-11-05T00:00:00Z" }], defaults: { mobile: "paired" } });
+	const start = jest.fn(() => true);
+	render(<ClipExportSettings creatorId='owner' clipIds={["A"]} onStart={start} onClose={() => {}} />);
+	await screen.findByRole("listbox", { name: "Layout templates" });
+	fireEvent.click(screen.getByRole("checkbox", { name: "Mobile" }));
+	await screen.findByText("This device may be slow. You can continue here or select server processing.");
+	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
+	expect(start).toHaveBeenCalledWith(expect.any(Array), "browser");
 });

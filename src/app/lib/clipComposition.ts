@@ -102,3 +102,6 @@ export function updateCompositionFrame(layout: ClipComposition, id: string, fram
 export function compositionWidgetTheme(layout: ClipComposition, layer: CompositionLayer, brand?: CreatorBrand | null) {
 	return { ...DEFAULT_WIDGET_THEME, ...layout.widgetTheme, ...brand, ...("appearance" in layer ? layer.appearance : {}) };
 }
+export function compositionRectPixels(rect: CompositionRect, width: number, height: number) {
+	return { x: Math.trunc((rect.x * width) / 2) * 2, y: Math.trunc((rect.y * height) / 2) * 2, w: Math.max(2, Math.trunc((rect.w * width) / 2) * 2), h: Math.max(2, Math.trunc((rect.h * height) / 2) * 2) };
+}

@@ -14,3 +14,8 @@ export async function reserveTwitchClipDownloadRequest(creatorId: string) {
 export async function reserveClipExportVolume(creatorId: string, count: number) {
 	return consumeDatabaseRateLimit({ action: "clip-export-volume", identityKey: creatorId, networkKey: creatorId, limit: 50, cost: count, windowMs: 60000, now: new Date() });
 }
+
+/** Bound actual media transfers even when a browser retries a signed source ticket. */
+export async function reserveClipSourceTransfer(creatorId: string) {
+	return consumeDatabaseRateLimit({ action: "clip-source-transfer", identityKey: creatorId, networkKey: creatorId, limit: 50, windowMs: 60000, now: new Date() });
+}

@@ -1,3 +1,5 @@
+const browserBatch = jest.fn();
+jest.mock("@lib/clipBrowserBatch", () => ({ buildBrowserBatch: (...args: unknown[]) => browserBatch(...args) }));
 jest.mock("@heroui/react", () => {
 	const base = jest.requireActual("../../__mocks__/heroui-react.cjs");
 	const Disclosure = Object.assign(
@@ -38,6 +40,7 @@ function responseJSON(value: unknown) {
 }
 beforeEach(() => {
 	fetchMock.mockReset();
+	browserBatch.mockReset();
 	notify.mockClear();
 	globalThis.fetch = fetchMock;
 });
@@ -463,4 +466,36 @@ it("expands completed batch history and downloads a retained file without contac
 	fireEvent.click(screen.getByRole("button", { name: "Download ZIP" }));
 	expect(click).toHaveBeenCalledTimes(3);
 	expect(fetchMock).toHaveBeenCalledTimes(2);
+});
+it("offers explicit server recovery only for unsuccessful browser outputs", async () => {
+	Object.defineProperty(URL, "createObjectURL", { configurable: true, value: jest.fn(() => "blob:browser-recovery") });
+	Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: jest.fn() });
+	jest.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+	browserBatch.mockResolvedValue({ ok: true, bytes: new Uint8Array([1]), summary: { included: [0], skipped: [{ index: 1, code: "browser_unsupported", retryable: true }] } });
+	const { createClipExportPlan } = await import("@lib/clipExportPlan");
+	const { createClipComposition } = await import("@lib/clipComposition");
+	const plans = createClipExportPlan(
+		"owner",
+		["A"],
+		[
+			{ key: "original", label: "Original" },
+			{ key: "mobile", label: "Mobile", layout: createClipComposition("mobile") },
+		],
+	);
+	function Start() {
+		const queue = useClipExports()!;
+		return <button onClick={() => queue.enqueuePlans(plans, undefined, "recovery", "browser")}>Start browser export</button>;
+	}
+	fetchMock.mockResolvedValue(successResponse({ included: [0], skipped: [] }));
+	render(
+		<ClipExportProvider creatorId='owner'>
+			<Start />
+		</ClipExportProvider>,
+	);
+	fireEvent.click(screen.getByRole("button", { name: "Start browser export" }));
+	const fallback = await screen.findByRole("button", { name: "Process failed files on server" });
+	expect(fetchMock).not.toHaveBeenCalled();
+	fireEvent.click(fallback);
+	await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+	expect(JSON.parse(fetchMock.mock.calls[0][1].body).files).toEqual([{ clipId: "A", outputKey: "mobile" }]);
 });

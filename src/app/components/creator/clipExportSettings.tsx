@@ -1,15 +1,28 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Button, Checkbox, Label, Modal, Skeleton, Autocomplete, SearchField, ListBox, EmptyState, useFilter } from "@heroui/react";
+import { Button, Checkbox, Label, Modal, Skeleton, Autocomplete, SearchField, ListBox, EmptyState, RadioGroup, Radio, Description, useFilter } from "@heroui/react";
+import { browserExportCapability, type BrowserCapability } from "@lib/clipBrowserRender";
+import type { ExportEngine } from "@lib/clipBrowserExport";
 import ControlledModal from "@components/controlledModal";
 import { listClipLayouts } from "@actions/clipLayoutLibrary";
 import { createClipExportPlan, type ClipExportPlan, type ClipExportOutput } from "@lib/clipExportPlan";
 import { templateCompositions } from "@lib/clipLayoutTemplate";
 import { notify } from "@lib/toast";
-export default function ClipExportSettings({ creatorId, clipIds, onStart, onClose }: { creatorId: string; clipIds: string[]; onStart: (plans: ClipExportPlan[]) => boolean; onClose: () => void }) {
-	const [library, setLibrary] = useState<Awaited<ReturnType<typeof listClipLayouts>>>(),
+export default function ClipExportSettings({ creatorId, clipIds, onStart, onClose }: { creatorId: string; clipIds: string[]; onStart: (plans: ClipExportPlan[], engine: ExportEngine) => boolean; onClose: () => void }) {
+	const [engine, setEngine] = useState<ExportEngine>("browser"),
+		[capability, setCapability] = useState<BrowserCapability>(),
+		[library, setLibrary] = useState<Awaited<ReturnType<typeof listClipLayouts>>>(),
 		[versions, setVersions] = useState(new Set(["original"])),
 		[selected, setSelected] = useState<string[]>();
+	useEffect(() => {
+		let active = true;
+		void browserExportCapability().then((value) => {
+			if (active) setCapability(value);
+		});
+		return () => {
+			active = false;
+		};
+	}, []);
 	const { contains } = useFilter({ sensitivity: "base" });
 	useEffect(() => {
 		let current = true;
@@ -41,6 +54,7 @@ export default function ClipExportSettings({ creatorId, clipIds, onStart, onClos
 				}),
 		),
 	];
+	const composed = versions.has("desktop") || versions.has("mobile");
 	return (
 		<ControlledModal ariaLabel='Export clips' isOpen onClose={onClose} size='lg'>
 			<Modal.Header>
@@ -124,6 +138,29 @@ export default function ClipExportSettings({ creatorId, clipIds, onStart, onClos
 				) : (
 					<Skeleton className='h-24 rounded-xl' />
 				)}
+				{composed ? (
+					<RadioGroup variant='secondary' value={engine} onChange={(value) => setEngine(value as ExportEngine)} aria-label='Processing'>
+						<Label>Processing</Label>
+						<Radio value='browser' aria-label='On this device' aria-describedby='browser-export-help' isDisabled={capability === undefined || capability === "unsupported"}>
+							<Radio.Content>
+								<Radio.Control>
+									<Radio.Indicator />
+								</Radio.Control>
+								On this device
+							</Radio.Content>
+						</Radio>
+						<Description id='browser-export-help'>{capability === undefined ? "Checking browser support…" : capability === "unsupported" ? "Video export is unavailable on this device. Use a supported browser or select server processing." : capability === "slow" ? "This device may be slow. You can continue here or select server processing." : "Uses your device. Keep this tab open."}</Description>
+						<Radio value='server' aria-label='On the server'>
+							<Radio.Content>
+								<Radio.Control>
+									<Radio.Indicator />
+								</Radio.Control>
+								On the server
+							</Radio.Content>
+							<Description>Limited capacity. Processes two files per batch and may take longer.</Description>
+						</Radio>
+					</RadioGroup>
+				) : null}
 			</Modal.Body>
 			<Modal.Footer className='flex-wrap'>
 				<p role='status' aria-label='Export file count' className='mr-auto text-sm text-muted'>
@@ -133,10 +170,10 @@ export default function ClipExportSettings({ creatorId, clipIds, onStart, onClos
 					Cancel
 				</Button>
 				<Button
-					isDisabled={!outputs.length || ((versions.has("desktop") || versions.has("mobile")) && !chosen.length)}
+					isDisabled={(composed && engine === "browser" && (capability === undefined || capability === "unsupported")) || !outputs.length || ((versions.has("desktop") || versions.has("mobile")) && !chosen.length)}
 					onPress={() => {
 						try {
-							if (onStart(createClipExportPlan(creatorId, clipIds, outputs))) onClose();
+							if (onStart(createClipExportPlan(creatorId, clipIds, outputs), composed ? engine : "server")) onClose();
 						} catch (error) {
 							notify({ title: "Export could not be queued", description: error instanceof Error && error.message.startsWith("Select ") ? error.message : "Review your clip and output selection.", color: "danger" });
 						}

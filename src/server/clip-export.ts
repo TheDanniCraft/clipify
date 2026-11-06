@@ -1,15 +1,20 @@
 import "server-only";
+import sharp from "sharp";
+import { compositionAssets } from "./clip-composition-render";
+import { clipifyWatermarkSvg } from "@lib/overlayMetadata";
+import { signBrowserClipSource, readBrowserClipSource } from "./clip-browser-source";
+import { browserExportSchema, type BrowserOutput } from "@lib/clipBrowserExport";
 import { readCreatorBrand } from "./creator-brand";
 import { resolveUserEntitlements } from "@lib/entitlements";
 import type { ClipExportProgress } from "@lib/clipExportStream";
 import { clipLayoutSchema, type ClipLayout } from "@lib/clipLayout";
-import { compositionSchema, type ClipComposition } from "@lib/clipComposition";
+import { compositionSchema, convertLegacyClipLayout, type ClipComposition } from "@lib/clipComposition";
 import { templateCompositions } from "@lib/clipLayoutTemplate";
 import { clipExportPlanSchema } from "@lib/clipExportPlan";
 import { listClipLayouts } from "@actions/clipLayoutLibrary";
 import { renderClipLayout } from "./clip-layout-render";
 import { z } from "zod";
-import { readBoundedResponse } from "@lib/clipExport";
+import { readBoundedResponse, clipExportFilename } from "@lib/clipExport";
 export { readBoundedResponse } from "@lib/clipExport";
 import { zipSync, strToU8 } from "fflate";
 import { and, eq, gt, inArray, isNull, or } from "drizzle-orm";
@@ -18,7 +23,7 @@ import { twitchCacheTable, userContentStatesTable } from "@/db/schema";
 import { TwitchCacheType } from "@types";
 import { authorizeCreatorOperation } from "@/auth/authorize-operation";
 import { getAccessTokenResultInternal } from "@/server/tokens";
-import { reserveClipDownloadJob, reserveTwitchClipDownloadRequest, reserveClipExportVolume } from "./clip-download-limit";
+import { reserveClipDownloadJob, reserveTwitchClipDownloadRequest, reserveClipExportVolume, reserveClipSourceTransfer } from "./clip-download-limit";
 import { providerClipSchema } from "./resources/clip-validation";
 import { publicClip } from "./resources/clip-discovery";
 
@@ -96,26 +101,7 @@ async function downloadMedia(url: string, signal: AbortSignal) {
 	throw new Error("download_unavailable");
 }
 
-export function clipExportFilename(title: string, id: string, index: number, used: Set<string>) {
-	const clean = (value: string) => {
-		const characters = Array.from(
-			value
-				.normalize("NFKC")
-				.replace(/[^\p{L}\p{N} _-]/gu, "_")
-				.trim(),
-		).slice(0, 80);
-		while (strToU8(characters.join("")).length > 80) characters.pop();
-		return characters.join("") || "clip";
-	};
-	let base = clean(title);
-	if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:[ ._]|$)/i.test(base)) base = `clip_${base}`;
-	const stem = `${base}--${clean(id)}`;
-	let filename = `${stem}.mp4`;
-	let suffix = index + 1;
-	while (used.has(filename)) filename = `${stem}--${suffix++}.mp4`;
-	used.add(filename);
-	return filename;
-}
+export { clipExportFilename } from "@lib/clipExport";
 
 async function readOwnedExportClips(creatorId: string, clipIds: string[]) {
 	const keys = clipIds.map((id) => `clip:${creatorId}:${id}`);
@@ -244,6 +230,8 @@ async function downloadExportClip(index: number, url: string, creatorId: string,
 	const fileSignal = AbortSignal.any([signal, AbortSignal.timeout(30000)]);
 	try {
 		progress?.({ index, stage: "processing" });
+		const transfer = await reserveClipSourceTransfer(creatorId);
+		if (!transfer.allowed) return { index, code: "rate_limited" };
 		let bytes = await downloadMedia(url, fileSignal);
 		if (layout) {
 			progress?.({ index, stage: "rendering" });
@@ -505,4 +493,47 @@ export async function buildClipExportPlan(input: unknown, parentSignal?: AbortSi
 	} catch {
 		return exportAbortResult(signal, parentSignal);
 	}
+}
+export async function prepareBrowserClipExport(input: unknown, signal: AbortSignal) {
+	const parsed = clipExportPlanSchema.safeParse(input);
+	if (!parsed.success) return failure("INVALID_INPUT", 400);
+	const plan = parsed.data,
+		creatorId = plan.creatorId;
+	const grant = await authorizeClipExport(creatorId);
+	if (!grant.allowed) return failure(grant.code, 403);
+	const ids = [...new Set(plan.files.map((file) => file.clipId))];
+	const owned = await readOwnedExportClips(creatorId, ids);
+	if (owned.some((clip) => !clip || clip.unavailable)) return failure("INVALID_INPUT", 400);
+	const resolved = await resolveExportLayouts(plan, creatorId);
+	if (resolved.error) return resolved.error;
+	const access = await prepareClipExportAccess(creatorId, plan.files.length);
+	if (!access.ok) return access;
+	const [{ brand }, entitlement] = await Promise.all([readCreatorBrand(creatorId), resolveUserEntitlements(grant.creator)]);
+	const mark = await sharp(Buffer.from(clipifyWatermarkSvg())).png().toBuffer();
+	const clips = [];
+	for (const [index, id] of ids.entries()) {
+		signal.throwIfAborted();
+		const clip = publicClip(owned[index]!.clip);
+		const outputs: BrowserOutput[] = [];
+		for (const file of plan.files.filter((file) => file.clipId === id)) {
+			const output = plan.outputs.find((output) => output.key === file.outputKey)!;
+			const base = resolved.outputLayouts.get(output.key);
+			const raw = plannedOverride(output.templateId, id, base, resolved.overrides) ?? base;
+			const layout = raw ? (raw.version === 2 ? raw : convertLegacyClipLayout(raw)) : null;
+			const assets = layout ? await compositionAssets(layout, clip, signal, grant.creator?.avatar, brand ?? undefined) : {};
+			const watermark = layout && (!entitlement.proAccess || (layout.watermark ?? true));
+			outputs.push({ key: output.key, label: output.label, layout, assets: Object.fromEntries(Object.entries(assets).map(([key, value]) => [key, `data:image/png;base64,${value.toString("base64")}`])), watermark: watermark ? `data:image/png;base64,${mark.toString("base64")}` : null });
+		}
+		clips.push({ id, title: clip.title, sourceToken: signBrowserClipSource(creatorId, id), outputs });
+	}
+	const final = await authorizeClipExport(creatorId);
+	if (!final.allowed) return failure(final.code, 403);
+	const result = browserExportSchema.parse({ ok: true, clips });
+	if (Buffer.byteLength(JSON.stringify(result)) > 8 * 1024 * 1024) return failure("EXPORT_LIMIT", 413);
+	return result;
+}
+export async function downloadBrowserClipSource(ticket: string, signal: AbortSignal) {
+	const claims = readBrowserClipSource(ticket);
+	if (!claims) return failure("PERMISSION_DENIED", 403);
+	return prepareClipArchive({ creatorId: claims.creatorId, clipIds: [claims.clipId] }, signal, "mp4", undefined, true, true);
 }

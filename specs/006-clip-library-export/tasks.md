@@ -828,3 +828,10 @@ T681–T685 local closure: brand-candidate-browser-export.log passes all10 final
 
 - [x] T690 Inspect the actual preview deployment recipe and native failure logs; install missing preview FFmpeg/fonts and fail both image builds if renderer/probe executables are absent. Verify the preview installation block with real non-root synthetic Desktop/Mobile exports.
 - [x] T691 Place Exports between the guide and support chat, render history as compact expandable rows with an inline trailing chevron, and verify installed controls across desktop/mobile and both themes. Correct the plain-player CI media fixture without changing protected-editor fixtures.
+
+- [x] T692 [BEXP-01] Share composition geometry and native-rasterized assets across server/browser export, preserving custom fonts and existing native tests.
+- [x] T693 [BEXP-02] Prepare authoritative browser export recipes and expiring source capabilities with quota, permission, owner, expiry and size checks.
+- [x] T694 [BEXP-03] Render actual audio-preserving MP4s in a cancellable WebCodecs worker; test capability detection, sequential memory bounds and native pixel parity.
+- [x] T695 [BEXP-04] Default supported devices to browser export, show unsupported/slow feedback and explicit server fallback; preserve batch progress/download/history/retry and verify installed controls.
+- [ ] T696 [BEXP-05] Eliminate accumulation of exported server media; evaluate seekless FFmpeg input/output and streamed ZIP delivery, retaining strict cancellation, permission and byte bounds. Verify no per-library disk growth before claiming zero-disk behavior.
+- [ ] T697 [BEXP-06] Process selections without a fixed total clip cap through bounded batches/packages, retaining account-wide per-minute quotas and browser memory bounds.

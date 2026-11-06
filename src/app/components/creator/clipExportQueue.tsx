@@ -5,11 +5,14 @@ import { IconCheck, IconClock, IconDownload, IconRefresh, IconX } from "@tabler/
 import ControlledModal from "@components/controlledModal";
 import LocalizedDate from "@components/localizedDate";
 import { notify } from "@lib/toast";
+import { buildBrowserBatch } from "@lib/clipBrowserBatch";
+import type { ExportEngine } from "@lib/clipBrowserExport";
 import { clipExportPlanSchema, type ClipExportPlan } from "@lib/clipExportPlan";
 import type { ClipLayout } from "@lib/clipLayout";
 import type { ClipExportSummary } from "@lib/clipExport";
 import { readClipExportResponse, type ClipExportProgress } from "@lib/clipExportStream";
 const messages: Record<string, string> = {
+	BROWSER_UNSUPPORTED: "Video export is unavailable on this device. Try a supported browser or choose server processing.",
 	RECONNECT_REQUIRED: "Reconnect Twitch to download clips, then retry here.",
 	RATE_LIMITED: "The download limit was reached. Wait before trying again.",
 	INVALID_INPUT: "Refresh your clips and select them again.",
@@ -26,6 +29,7 @@ const messages: Record<string, string> = {
 	LAYOUT_UNAVAILABLE: "A selected layout is no longer available. Open export settings and choose another layout.",
 };
 const reasons: Record<string, string> = {
+	browser_unsupported: "Browser rendering unavailable. You can process this file on the server.",
 	clip_unavailable: "Clip unavailable",
 	download_unavailable: "Download unavailable",
 	file_size_limit: "Clip exceeds 32 MiB",
@@ -40,10 +44,10 @@ const reasons: Record<string, string> = {
 	reconnect_required: "Reconnect Twitch",
 };
 
-export type ExportRequest = { creatorId: string; clipIds: string[]; scope: string; format: "zip" | "mp4"; layout?: ClipLayout; clipNames?: Record<string, string>; plan?: ClipExportPlan };
+export type ExportRequest = { creatorId: string; clipIds: string[]; scope: string; format: "zip" | "mp4"; layout?: ClipLayout; clipNames?: Record<string, string>; plan?: ClipExportPlan; engine?: ExportEngine };
 type Batch = { id: number; group: string; request: ExportRequest; status: "queued" | "waiting" | "processing" | "completed" | "failed" | "cancelled"; clips: ClipExportProgress[]; summary?: ClipExportSummary; error?: string; failures?: ClipExportSummary["skipped"]; retryAt?: string; downloadUrl?: string };
 const pending = (batch: Batch) => ["queued", "waiting", "processing"].includes(batch.status);
-const requestKey = (request: ExportRequest) => JSON.stringify(request.plan ? [request.scope, request.clipIds, request.format, request.layout, request.plan] : [request.scope, request.clipIds, request.format, request.layout]);
+export const clipExportRequestKey = (request: ExportRequest) => JSON.stringify(request.plan ? [request.scope, request.clipIds, request.format, request.layout, request.plan, request.engine] : [request.scope, request.clipIds, request.format, request.layout, request.engine]);
 const unit = (batch: Batch, count: number) => (batch.request.plan ? (count === 1 ? "file" : "files") : count === 1 ? "clip" : "clips");
 function subset(request: ExportRequest, indices: number[]): ExportRequest {
 	const clipIds = indices.map((index) => request.clipIds[index]);
@@ -53,7 +57,7 @@ function subset(request: ExportRequest, indices: number[]): ExportRequest {
 	return { ...request, clipIds, format: "zip", plan: { ...request.plan, files, outputs: request.plan.outputs.filter((output) => keys.has(output.key)) } };
 }
 const downloadName = (batch: Batch) => (batch.request.format === "mp4" ? `clipify-${encodeURIComponent(batch.request.clipIds[0])}${batch.request.plan ? "-" + batch.request.plan.files[0].outputKey.slice(0, 40) : ""}.mp4` : `clipify-clips-batch-${batch.id}.zip`);
-const ExportContext = createContext<{ batches: Batch[]; enqueue: (request: ExportRequest) => void; enqueuePlans: (plans: ClipExportPlan[], clipNames: Record<string, string> | undefined, scope: string) => boolean; show: () => void } | null>(null);
+const ExportContext = createContext<{ batches: Batch[]; enqueue: (request: ExportRequest) => void; enqueuePlans: (plans: ClipExportPlan[], clipNames: Record<string, string> | undefined, scope: string, engine?: ExportEngine) => boolean; show: () => void } | null>(null);
 export const useClipExports = () => useContext(ExportContext);
 export function ClipExportProvider({ children, creatorId }: { children: ReactNode; creatorId: string }) {
 	const [batches, setBatches] = useState<Batch[]>([]),
@@ -133,10 +137,11 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 					budget.current.used += batch.request.clipIds.length;
 					patch(batch.id, { status: "processing", error: undefined, retryAt: undefined });
 					const { format, clipIds, layout } = batch.request;
-					const response = await fetch(`/api/clips/export?format=${format}&progress=1${batch.request.plan ? "&plan=1" : ""}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(batch.request.plan ?? { creatorId, clipIds, ...(layout ? { layout } : {}) }), signal: abort.signal });
-					const result = await readClipExportResponse(response, clipIds.length, format, abort.signal, (event) => {
+					const response = batch.request.engine === "browser" && batch.request.plan ? null : await fetch(`/api/clips/export?format=${format}&progress=1${batch.request.plan ? "&plan=1" : ""}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(batch.request.plan ?? { creatorId, clipIds, ...(layout ? { layout } : {}) }), signal: abort.signal });
+					const report = (event: ClipExportProgress) => {
 						update((list) => list.map((job) => (job.id === batch.id ? { ...job, clips: job.clips.map((clip, index) => (index === event.index ? { ...clip, ...event } : clip)) } : job)));
-					});
+					};
+					const result = batch.request.engine === "browser" && batch.request.plan ? await buildBrowserBatch(batch.request.plan, abort.signal, report) : await readClipExportResponse(response!, clipIds.length, format, abort.signal, report);
 					if (!alive.current) return;
 					setNow(Date.now());
 					abort.signal.throwIfAborted();
@@ -205,18 +210,27 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 	const enqueue = (request: ExportRequest) => {
 		if (request.creatorId !== creatorId || !request.clipIds.length || request.clipIds.length > 500 || (request.format === "mp4" && request.clipIds.length !== 1)) return;
 		if (request.plan) {
-			appendRequests([request], requestKey(request));
+			appendRequests([request], clipExportRequestKey(request));
 			return;
 		}
 		const ids = [...new Set(request.clipIds)],
 			requests: ExportRequest[] = [];
 		for (let offset = 0; offset < ids.length; offset += 50) requests.push({ ...request, clipIds: ids.slice(offset, offset + 50) });
-		appendRequests(requests, requestKey(request));
+		appendRequests(requests, clipExportRequestKey(request));
 	};
-	const enqueuePlans = (plans: ClipExportPlan[], clipNames: Record<string, string> | undefined, scope: string) => {
+	const enqueuePlans = (plans: ClipExportPlan[], clipNames: Record<string, string> | undefined, scope: string, engine?: ExportEngine) => {
 		if (!plans.length || plans.some((plan) => plan.creatorId !== creatorId || !plan.files.length || plan.files.length > 50)) return false;
-		const requests: ExportRequest[] = plans.map((plan) => ({ creatorId, scope, clipNames, clipIds: plan.files.map((file) => file.clipId), plan, format: "zip" }));
-		return appendRequests(requests, JSON.stringify(["plan", scope, plans]));
+		const requests: ExportRequest[] = plans.flatMap((plan) => {
+			const size = engine === "server" && plan.outputs.some((o) => o.layout) ? 2 : 50;
+			const chunks: ExportRequest[] = [];
+			for (let offset = 0; offset < plan.files.length; offset += size) {
+				const files = plan.files.slice(offset, offset + size),
+					keys = new Set(files.map((f) => f.outputKey));
+				chunks.push({ creatorId, scope, clipNames, clipIds: files.map((f) => f.clipId), plan: { ...plan, files, outputs: plan.outputs.filter((o) => keys.has(o.key)) }, format: "zip", engine });
+			}
+			return chunks;
+		});
+		return appendRequests(requests, JSON.stringify(["plan", scope, plans, engine]));
 	};
 	const active = batches.filter(pending),
 		latest = batches.at(-1),
@@ -228,7 +242,7 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 	};
 	const view = (batch: Batch) => {
 		const failures = batch.summary?.skipped ?? batch.failures;
-		const retry = failures ? failures.filter((item) => item.retryable && ["provider_error", "download_timeout", "rate_limited", "render_busy", "render_failed", "font_unavailable"].includes(item.code)).map((item) => item.index) : ["PROVIDER_UNAVAILABLE", "EXPORT_TIMEOUT", "SERVICE_UNAVAILABLE", "invalid_response"].includes(batch.error ?? "") ? batch.request.clipIds.map((_, index) => index) : [];
+		const retry = failures ? failures.filter((item) => item.retryable && ["provider_error", "download_timeout", "rate_limited", "render_busy", "render_failed", "font_unavailable", "browser_unsupported"].includes(item.code)).map((item) => item.index) : ["PROVIDER_UNAVAILABLE", "EXPORT_TIMEOUT", "SERVICE_UNAVAILABLE", "invalid_response"].includes(batch.error ?? "") ? batch.request.clipIds.map((_, index) => index) : [];
 		const reconnectIds = failures ? failures.filter((item) => item.code === "reconnect_required").map((item) => item.index) : batch.error === "RECONNECT_REQUIRED" ? batch.request.clipIds.map((_, index) => index) : [];
 		const reconnect = reconnectIds.length > 0;
 		const processed = batch.clips.filter((clip) => ["ready", "skipped"].includes(clip.stage)).length;
@@ -300,6 +314,17 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 						<Button variant={batch.downloadUrl ? "secondary" : "primary"} isDisabled={Boolean(batch.retryAt && Date.parse(batch.retryAt) > now)} onPress={() => enqueue(subset(batch.request, retry))}>
 							<IconRefresh className='size-4 shrink-0' />
 							{batch.request.plan ? "Retry failed files" : "Retry failed clips"}
+						</Button>
+					) : null}
+					{batch.request.engine === "browser" && retry.length && !pending(batch) ? (
+						<Button
+							variant='secondary'
+							onPress={() => {
+								const request = subset(batch.request, retry);
+								if (request.plan) enqueuePlans([request.plan], request.clipNames, request.scope, "server");
+							}}
+						>
+							Process failed files on server
 						</Button>
 					) : null}
 					{reconnect ? (

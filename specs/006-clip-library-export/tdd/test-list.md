@@ -396,3 +396,10 @@ These are regression-after refinements of the existing owners, not a retrospecti
 - BRAND-A03: Custom typography renders actual glyphs in native PNG/video and browser preview; repeated jobs and idle-cache eviction retain identical pixels. Reject untrusted hosts, font URLs/CSS injection, redirects, oversize/malformed fonts and excessive concurrent work.
 - BRAND-A04: Free cannot remove composed-video attribution, including forged payloads or previously saved Pro settings after downgrade. Pro removal works; Original downloads retain original bytes. The locked control opens the existing upgrade flow and consent-aware analytics.
 - BRAND-A05: Inspect real HeroUI account/clip/theme flows at390/1440 in both themes, native font pixels, preview retry without video reload, keyboard watermark operation, responsive upgrade modal and cross-tab conflict recovery. Existing crop, paired-save and palette owners remain green.
+
+## Browser-first manual export
+
+- BEXP-01 VERIFIED: Native and browser use the same even-pixel geometry and raster widget/logo/watermark assets; fonts/wrapping/appearance remain equivalent.
+- BEXP-02 VERIFIED: Browser recipes resolve authoritative overrides, reserve quotas once, and restrict expiring source tickets to authorized owned clips. Forgery, expiry, revocation and limits fail closed.
+- BEXP-03 VERIFIED: A worker produces playable Desktop/Mobile MP4s with audio; decoded frames match native fixtures within lossy-codec tolerance. Stop/cleanup on cancel/error; bounded one render/file and one package.
+- BEXP-04 VERIFIED: Capability success selects Browser; unsupported/unknown/slow states explain choices without automatic server fallback. Explicit server selection, Original-only access, partial retry and accessible responsive controls retain drafts.

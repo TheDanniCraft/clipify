@@ -53,6 +53,10 @@ async function clipMedia(url, input, init, headers) {
 	if (!fixtureId.test(id)) return nativeFetch(input, init);
 	if (headers.has("Authorization") || headers.has("Client-Id")) throw new Error("Provider credentials leaked into a media request");
 	const mode = downloadModes.get(id);
+	if (mode === "audio" || mode === "audio_untagged") {
+		const media = readFileSync(new URL(mode === "audio" ? "../../fixtures/clips/export-audio.mp4" : "../../fixtures/clips/export-audio-untagged.mp4", import.meta.url));
+		return new Response(media, { headers: { "Content-Type": "video/mp4", "Content-Length": String(media.length) } });
+	}
 	if (mode === "deleted") return new Response(null, { status: 404 });
 	if (mode === "media_5xx") return new Response(null, { status: 503 });
 	if (mode === "html") return new Response("<html>provider failure</html>", { headers: { "Content-Type": "text/html" } });

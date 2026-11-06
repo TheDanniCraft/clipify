@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { strToU8 } from "fflate";
 
 export async function readBoundedResponse(response: Pick<Response, "body">, maxBytes: number, signal?: AbortSignal) {
 	const reader = response.body?.getReader();
@@ -35,7 +36,7 @@ export async function readBoundedResponse(response: Pick<Response, "body">, maxB
 
 const summarySchema = z.object({
 	included: z.array(z.number().int().nonnegative()).max(50),
-	skipped: z.array(z.object({ index: z.number().int().nonnegative(), code: z.enum(["clip_unavailable", "download_unavailable", "file_size_limit", "package_size_limit", "invalid_media", "provider_error", "download_timeout", "rate_limited", "reconnect_required", "render_busy", "render_failed", "font_unavailable"]), retryable: z.boolean(), title: z.string().max(1000).optional() })).max(50),
+	skipped: z.array(z.object({ index: z.number().int().nonnegative(), code: z.enum(["clip_unavailable", "download_unavailable", "file_size_limit", "package_size_limit", "invalid_media", "provider_error", "download_timeout", "rate_limited", "reconnect_required", "render_busy", "render_failed", "font_unavailable", "browser_unsupported"]), retryable: z.boolean(), title: z.string().max(1000).optional() })).max(50),
 	retryAt: z.string().datetime().optional(),
 });
 export type ClipExportSummary = z.infer<typeof summarySchema>;
@@ -72,4 +73,25 @@ export function isTrustedClipMediaUrl(value: string) {
 	} catch {
 		return false;
 	}
+}
+
+export function clipExportFilename(title: string, id: string, index: number, used: Set<string>) {
+	const clean = (value: string) => {
+		const characters = Array.from(
+			value
+				.normalize("NFKC")
+				.replace(/[^\p{L}\p{N} _-]/gu, "_")
+				.trim(),
+		).slice(0, 80);
+		while (strToU8(characters.join("")).length > 80) characters.pop();
+		return characters.join("") || "clip";
+	};
+	let base = clean(title);
+	if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:[ ._]|$)/i.test(base)) base = `clip_${base}`;
+	const stem = `${base}--${clean(id)}`;
+	let filename = `${stem}.mp4`;
+	let suffix = index + 1;
+	while (used.has(filename)) filename = `${stem}--${suffix++}.mp4`;
+	used.add(filename);
+	return filename;
 }
