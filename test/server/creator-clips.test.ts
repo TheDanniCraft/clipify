@@ -235,3 +235,11 @@ it("retains owned clips when missing category metadata cannot be refreshed", asy
 	cacheRows.push([{ key: "clip:owner:A", value: JSON.stringify(clip("A")), fetchedAt: new Date() }], []);
 	expect(await readCreatorInventory("owner")).toMatchObject({ ok: true, total: 1, items: [{ id: "A" }], categories: [] });
 });
+
+it("keeps layout picker searches cache-only when category metadata is missing", async () => {
+	jest.requireMock("@actions/twitch").getGamesDetailsBulk.mockClear();
+	authorizeCreatorOperation.mockResolvedValue({ allowed: true });
+	cacheRows.push([{ key: "clip:owner:A", value: JSON.stringify({ clip: { id: "A", title: "Cached moment", broadcaster_id: "owner", duration: 10, created_at: "2026-01-01T00:00:00Z", game_id: "uncached-game" } }), fetchedAt: new Date() }], []);
+	expect(await readCreatorInventory("owner", { pageSize: 10 }, true)).toMatchObject({ ok: true, total: 1, items: [{ id: "A" }], categories: [] });
+	expect(jest.requireMock("@actions/twitch").getGamesDetailsBulk).not.toHaveBeenCalled();
+});

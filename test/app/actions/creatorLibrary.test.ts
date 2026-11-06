@@ -109,3 +109,24 @@ it("delegates validated detail requests to the authorizing reader", async () => 
 	expect(await getCreatorClipDetail({ creatorId: "owner", clipId: "A" })).toEqual({ ok: false, code: "PERMISSION_DENIED" });
 	expect(detail).toHaveBeenCalledWith("owner", "A");
 });
+
+it("passes cache-only layout requests to readers without changing ordinary detail requests", async () => {
+	inventory.mockResolvedValue({ ok: true, items: [] });
+	detail.mockResolvedValue({ ok: true });
+	await getCreatorClipInventory({ creatorId: "owner", cachedOnly: true });
+	expect(inventory).toHaveBeenCalledWith("owner", undefined, true);
+	await searchCreatorLibrary({ creatorId: "owner", title: "clutch", cachedOnly: true });
+	expect(inventory).toHaveBeenCalledWith("owner", { title: "clutch", pageSize: 10 }, true);
+	await getCreatorClipDetail({ creatorId: "owner", clipId: "A", cachedOnly: true });
+	expect(detail).toHaveBeenCalledWith("owner", "A", true);
+});
+
+it("rejects malformed cache-only flags before reader access", async () => {
+	detail.mockClear();
+	inventory.mockClear();
+	expect(await getCreatorClipDetail({ creatorId: "owner", clipId: "A", cachedOnly: "yes" } as never)).toMatchObject({ ok: false, code: "INVALID_INPUT" });
+	expect(await getCreatorClipInventory({ creatorId: "owner", cachedOnly: "yes" } as never)).toMatchObject({ ok: false, code: "INVALID_INPUT" });
+	expect(await searchCreatorLibrary({ creatorId: "owner", title: "clutch", cachedOnly: "yes" } as never)).toMatchObject({ ok: false, code: "INVALID_INPUT" });
+	expect(detail).not.toHaveBeenCalled();
+	expect(inventory).not.toHaveBeenCalled();
+});

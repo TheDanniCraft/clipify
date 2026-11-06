@@ -116,7 +116,7 @@ async function clipAccess(creatorId: string, id: string, clipId: string, write: 
 	if (!validCreator(creatorId) || !idSchema.safeParse(id).success || !idSchema.safeParse(clipId).success) return { ok: false as const, code: "INVALID_INPUT" };
 	const grant = await authorizeCreatorOperation({ creatorId, resourceOwnerId: creatorId, permission: write ? "clips:export" : "creator:read" });
 	if (!grant.allowed) return { ok: false as const, code: grant.code };
-	const detail = await getCreatorClipDetail({ creatorId, clipId });
+	const detail = await getCreatorClipDetail({ creatorId, clipId, cachedOnly: true });
 	if (!detail.ok) return { ok: false as const, code: detail.code };
 	const entry = await template(creatorId, id);
 	return entry ? { ok: true as const, entry } : { ok: false as const, code: "NOT_FOUND" };

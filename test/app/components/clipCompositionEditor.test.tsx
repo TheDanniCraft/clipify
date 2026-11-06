@@ -9,7 +9,7 @@ jest.mock("@components/theme/ThemeColorInput", () => ({
 	),
 }));
 jest.mock("@heroui/react", () => jest.requireActual("../../support/clipCompositionControls").compositionControls(jest.requireActual("../../__mocks__/heroui-react.cjs")));
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import ClipCompositionEditor from "@components/creator/clipCompositionEditor";
 import { createClipComposition } from "@lib/clipComposition";
 const saveTemplate = jest.fn(),
@@ -58,6 +58,7 @@ beforeEach(() => {
 });
 it("saves clip adjustments through the override action without touching the reusable template", async () => {
 	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} clipId='ClipA' onBack={() => {}} onSaved={() => {}} />);
+	await screen.findByRole("textbox", { name: "Layer name" });
 	fireEvent.click(screen.getByRole("button", { name: "Bring Camera forward" }));
 	fireEvent.click(screen.getByRole("button", { name: "Save clip adjustments" }));
 	await waitFor(() => expect(saveOverride).toHaveBeenCalledWith("owner", "template", "ClipA", expect.any(Object)));
@@ -81,6 +82,7 @@ it("retains a global layout draft after save failure and allows a successful ret
 it("adds arbitrary crops and widgets, edits source bounds and retains widget ordering in a named template", async () => {
 	detail.mockResolvedValue({ ok: true, clip: { id: "Ref", title: "Reference" } });
 	render(<ClipCompositionEditor referenceId='Ref' creatorId='owner' entry={entry} initial={composition} onBack={() => {}} onSaved={() => {}} />);
+	await screen.findByRole("textbox", { name: "Layer name" });
 	fireEvent.change(screen.getByRole("textbox", { name: "Layout name" }), { target: { value: "My mobile" } });
 	fireEvent.change(screen.getByRole("combobox", { name: "Add layer" }), { target: { value: "video" } });
 	fireEvent.change(screen.getByRole("textbox", { name: "Layer name" }), { target: { value: "Killfeed" } });
@@ -99,6 +101,7 @@ it("adds arbitrary crops and widgets, edits source bounds and retains widget ord
 it("resets only a clip override and preserves the draft if reset fails", async () => {
 	reset.mockResolvedValueOnce({ ok: false }).mockResolvedValueOnce({ ok: true });
 	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} clipId='ClipA' onBack={() => {}} onSaved={() => {}} />);
+	await screen.findByRole("textbox", { name: "Layer name" });
 	fireEvent.click(screen.getByRole("button", { name: "Reset to template" }));
 	fireEvent.click(screen.getByRole("button", { name: "Reset adjustments" }));
 	await waitFor(() => expect(reset).toHaveBeenCalledTimes(1));
@@ -111,6 +114,7 @@ it("edits source and output geometry, presets, widgets and stacking without chan
 	const saved = jest.fn();
 	detail.mockResolvedValue({ ok: true, clip: { id: "Ref", title: "Reference" } });
 	render(<ClipCompositionEditor referenceId='Ref' creatorId='owner' entry={entry} initial={composition} onBack={() => {}} onSaved={saved} />);
+	await screen.findByRole("textbox", { name: "Layer name" });
 	for (const shape of ["portrait", "landscape", "square"]) fireEvent.change(screen.getByRole("combobox", { name: "Output shape" }), { target: { value: shape } });
 	for (const label of ["Left (%)", "Top (%)", "Width (%)", "Height (%)"]) fireEvent.change(screen.getByRole("spinbutton", { name: label }), { target: { value: "20" } });
 	fireEvent.click(await screen.findByRole("button", { name: "Select source crop" }));
@@ -133,9 +137,11 @@ it("recovers reference lookup/search failures without discarding an edited name"
 	searchClips.mockRejectedValueOnce(Error("offline")).mockResolvedValueOnce({ ok: true, items: [{ id: "ClipB", title: "" }] });
 	detail.mockRejectedValueOnce(Error("offline")).mockResolvedValueOnce({ ok: true, clip: { id: "ClipA", title: "Reference" } });
 	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} referenceId='ClipA' onBack={() => {}} onSaved={() => {}} />);
+	await screen.findByRole("textbox", { name: "Layer name" });
 	fireEvent.change(screen.getByRole("textbox", { name: "Layout name" }), { target: { value: "Draft" } });
 	fireEvent.click(await screen.findByRole("button", { name: "Retry reference" }));
 	await waitFor(() => expect(detail).toHaveBeenCalledTimes(2));
+	fireEvent.focus(screen.getByRole("combobox", { name: "Reference clip" }));
 	const query = screen.getByRole("textbox", { name: "Find a reference clip" });
 	fireEvent.change(query, { target: { value: "first" } });
 	await waitFor(() => expect(searchClips).toHaveBeenCalledTimes(1));
@@ -158,6 +164,7 @@ it.each(["INVALID_INPUT", "throw"])("keeps drafts after save error %s", async (c
 });
 it("can cancel a reset without touching the override", async () => {
 	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} clipId='ClipA' onBack={() => {}} onSaved={() => {}} />);
+	await screen.findByRole("textbox", { name: "Layer name" });
 	fireEvent.click(screen.getByRole("button", { name: "Reset to template" }));
 	fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 	expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -166,7 +173,10 @@ it("can cancel a reset without touching the override", async () => {
 it("does not show the selected reference as a false match for an unrelated search", async () => {
 	detail.mockResolvedValue({ ok: true, clip: { id: "ClipA", title: "Current clip" } });
 	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} referenceId='ClipA' onBack={() => {}} onSaved={() => {}} />);
+	await screen.findByRole("textbox", { name: "Layer name" });
+	fireEvent.focus(screen.getByRole("combobox", { name: "Reference clip" }));
 	await screen.findByRole("option", { name: "Current clip" });
+	fireEvent.focus(screen.getByRole("combobox", { name: "Reference clip" }));
 	fireEvent.change(screen.getByRole("textbox", { name: "Find a reference clip" }), { target: { value: "missing clip" } });
 	await waitFor(() => expect(searchClips).toHaveBeenCalled());
 	expect(screen.getByRole("combobox", { name: "Reference clip" }).querySelector('option[value="ClipA"]')).not.toBeInTheDocument();
@@ -184,8 +194,9 @@ it("keeps unsaved fields intact when rejecting navigation and only discards afte
 	expect(navigationGuard.accept).toHaveBeenCalledTimes(1);
 	expect(saveTemplate).not.toHaveBeenCalled();
 });
-it("closing the reset dialog does not reset a clip override", () => {
+it("closing the reset dialog does not reset a clip override", async () => {
 	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} clipId='ClipA' onBack={() => {}} onSaved={() => {}} />);
+	await screen.findByRole("textbox", { name: "Layer name" });
 	fireEvent.click(screen.getByRole("button", { name: "Reset to template" }));
 	fireEvent.click(screen.getByRole("button", { name: "Close layout dialog" }));
 	expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -196,6 +207,8 @@ it("does not duplicate a selected reference already present in the initial inven
 	inventory.mockResolvedValue({ ok: true, items: [clip] });
 	detail.mockResolvedValue({ ok: true, clip });
 	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} referenceId='ClipA' onBack={() => {}} onSaved={() => {}} />);
+	await screen.findByRole("textbox", { name: "Layer name" });
+	fireEvent.focus(screen.getByRole("combobox", { name: "Reference clip" }));
 	await screen.findByRole("option", { name: "Current clip" });
 	expect(screen.getAllByRole("option", { name: "Current clip" })).toHaveLength(1);
 });
@@ -208,6 +221,7 @@ it.each(["desktop", "mobile"] as const)("adds a usable channel block without a c
 	detail.mockResolvedValue({ ok: true, clip });
 	const selected = jest.fn();
 	render(<ClipCompositionEditor creatorId='owner' entry={{ ...entry, composition: layout }} initial={layout} onReferenceChange={selected} onBack={() => {}} onSaved={() => {}} />);
+	fireEvent.focus(screen.getByRole("combobox", { name: "Reference clip" }));
 	await screen.findByRole("option", { name: "Reference" });
 	fireEvent.change(screen.getByRole("combobox", { name: "Reference clip" }), { target: { value: "ClipA" } });
 	expect(selected).toHaveBeenCalledWith("ClipA");
@@ -236,6 +250,8 @@ it.each(["title", "channel", "clipper"] as const)("fits a saved %s widget withou
 	const clip = { id: "ClipA", title: "Known title", clipCreatorName: "Viewer" };
 	detail.mockResolvedValue({ ok: true, clip });
 	render(<ClipCompositionEditor creatorId='owner' entry={{ ...entry, composition: layout }} initial={layout} referenceId={kind === "title" ? "ClipA" : undefined} onBack={() => {}} onSaved={() => {}} />);
+	await screen.findByRole("textbox", { name: "Layer name" });
+	fireEvent.focus(screen.getByRole("combobox", { name: "Reference clip" }));
 	if (kind === "title") await screen.findByRole("option", { name: "Known title" });
 	fireEvent.click(screen.getByRole("button", { name: "Fit canvas width" }));
 	fireEvent.click(screen.getByRole("button", { name: "Fit content" }));
@@ -264,6 +280,7 @@ it.each(["unavailable", "offline"])("keeps a styled layout draft after reference
 	else inventory.mockResolvedValueOnce({ ok: false, code: "SERVICE_UNAVAILABLE" });
 	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} onBack={() => {}} onSaved={() => {}} />);
 	fireEvent.change(screen.getByRole("textbox", { name: "Layout name" }), { target: { value: "Preserved draft" } });
+	fireEvent.focus(screen.getByRole("combobox", { name: "Reference clip" }));
 	await waitFor(() => expect(jest.requireMock("@lib/toast").notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Reference clips could not be loaded" })));
 	fireEvent.change(screen.getByRole("combobox", { name: "Add layer" }), { target: { value: "title" } });
 	fireEvent.click(screen.getByRole("switch", { name: "Use brand styling" }));
@@ -327,6 +344,7 @@ it("reorders layers by dragging and lets the selected row dismiss the inspector"
 it("targets numeric controls from the clicked canvas and deselects with Escape or an outside click", async () => {
 	detail.mockResolvedValue({ ok: true, clip: { id: "Ref", title: "Reference" } });
 	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} referenceId='Ref' onBack={() => {}} onSaved={() => {}} />);
+	await screen.findByRole("textbox", { name: "Layer name" });
 	fireEvent.click(await screen.findByRole("button", { name: "Select source crop" }));
 	const sourceLeft = (screen.getByRole("spinbutton", { name: "Left (%)" }) as HTMLInputElement).value;
 	expect(screen.queryByRole("heading", { name: "Source crop" })).not.toBeInTheDocument();
@@ -404,6 +422,7 @@ it("shows loading instead of unavailable while a saved reference is being resolv
 	);
 	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} referenceId='Slow' onBack={() => {}} onSaved={() => {}} />);
 	expect(screen.getByRole("status")).toHaveTextContent("Loading reference clip");
+	expect(screen.queryByRole("textbox", { name: "Layer name" })).not.toBeInTheDocument();
 	expect(screen.queryByRole("button", { name: "Retry reference" })).not.toBeInTheDocument();
 	resolve({ ok: false, code: "NOT_FOUND" });
 	await screen.findByRole("button", { name: "Retry reference" });
@@ -413,7 +432,9 @@ it("shows loading instead of unavailable while a saved reference is being resolv
 it("previews a search result immediately without a duplicate detail lookup", async () => {
 	searchClips.mockResolvedValue({ ok: true, items: [{ id: "Found", title: "Found moment" }] });
 	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} onBack={() => {}} onSaved={() => {}} />);
+	fireEvent.focus(screen.getByRole("combobox", { name: "Reference clip" }));
 	fireEvent.change(screen.getByRole("textbox", { name: "Find a reference clip" }), { target: { value: "Found" } });
+	fireEvent.focus(screen.getByRole("combobox", { name: "Reference clip" }));
 	await screen.findByRole("option", { name: "Found moment" });
 	fireEvent.change(screen.getByRole("combobox", { name: "Reference clip" }), { target: { value: "Found" } });
 	expect(screen.getByRole("button", { name: "Select source crop" })).toBeVisible();
@@ -481,15 +502,34 @@ it("preselects the saved template reference when no explicit clip is supplied", 
 	detail.mockResolvedValue({ ok: true, clip: { id: "Saved-CS", title: "CS reference" } });
 	render(<ClipCompositionEditor creatorId='owner' entry={{ ...entry, referenceClipId: "Saved-CS" }} initial={composition} onBack={() => {}} onSaved={() => {}} />);
 	await screen.findByRole("button", { name: "Select source crop" });
-	expect(detail).toHaveBeenCalledWith({ creatorId: "owner", clipId: "Saved-CS" });
+	expect(detail).toHaveBeenCalledWith({ creatorId: "owner", clipId: "Saved-CS", cachedOnly: true });
 });
 
 it("makes reference-only changes saveable and includes the chosen clip in the template", async () => {
 	inventory.mockResolvedValue({ ok: true, items: [{ id: "CS-Clip", title: "CS clutch" }] });
 	render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} onBack={() => {}} onSaved={() => {}} />);
+	fireEvent.focus(screen.getByRole("combobox", { name: "Reference clip" }));
 	await screen.findByRole("option", { name: "CS clutch" });
 	fireEvent.change(screen.getByRole("combobox", { name: "Reference clip" }), { target: { value: "CS-Clip" } });
 	expect(screen.getByRole("button", { name: "Save layout" })).toBeEnabled();
 	fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
 	await waitFor(() => expect(saveTemplate).toHaveBeenCalledWith("owner", expect.objectContaining({ referenceClipId: "CS-Clip" })));
+});
+
+it("does not fetch reference suggestions until the picker opens", async () => {
+	jest.useFakeTimers();
+	try {
+		render(<ClipCompositionEditor creatorId='owner' entry={entry} initial={composition} onBack={() => {}} onSaved={() => {}} />);
+		await act(async () => {
+			jest.advanceTimersByTime(500);
+		});
+		expect(inventory).not.toHaveBeenCalled();
+		fireEvent.focus(screen.getByRole("combobox", { name: "Reference clip" }));
+		await act(async () => {
+			jest.advanceTimersByTime(251);
+		});
+		expect(inventory).toHaveBeenCalledWith({ creatorId: "owner", query: { pageSize: 10 }, cachedOnly: true });
+	} finally {
+		jest.useRealTimers();
+	}
 });

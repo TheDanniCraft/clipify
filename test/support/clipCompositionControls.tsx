@@ -37,9 +37,9 @@ export function compositionControls(base: any) {
 	);
 	const FilterContext = React.createContext<any>({});
 	const Autocomplete = Object.assign(
-		({ children, value, onChange, selectionMode, "aria-label": name }: any) => (
+		({ children, value, onChange, onOpenChange, selectionMode, "aria-label": name }: any) => (
 			<div>
-				<select aria-label={name ?? label(children)} multiple={selectionMode === "multiple"} value={value ?? (selectionMode === "multiple" ? [] : "")} onChange={(event) => onChange(selectionMode === "multiple" ? Array.from(event.target.selectedOptions, (o) => o.value) : event.target.value)}>
+				<select onFocus={() => onOpenChange?.(true)} aria-label={name ?? label(children)} multiple={selectionMode === "multiple"} value={value ?? (selectionMode === "multiple" ? [] : "")} onChange={(event) => onChange(selectionMode === "multiple" ? Array.from(event.target.selectedOptions, (o) => o.value) : event.target.value)}>
 					{selectionMode !== "multiple" ? <option value=''>Choose</option> : null}
 					{nodes(children)
 						.filter((child) => child.props.id)

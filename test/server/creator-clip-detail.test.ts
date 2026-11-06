@@ -3,7 +3,8 @@ jest.mock("@actions/twitch", () => ({ getGamesDetailsBulk: jest.fn(async () => [
 import { readCreatorClipDetail } from "@/server/creator-library";
 const authorize = jest.fn();
 const execute = jest.fn();
-const select = jest.fn(() => ({ from: () => ({ where: () => ({ execute }) }) }));
+const where = jest.fn((_condition: unknown) => ({ execute }));
+const select = jest.fn(() => ({ from: () => ({ where }) }));
 jest.mock("@/auth/authorize-operation", () => ({ authorizeCreatorOperation: (...args: unknown[]) => authorize(...args) }));
 jest.mock("@/db/client", () => ({ db: { select: () => select() } }));
 const clip = { id: "A", title: "Winning round", broadcaster_id: "owner", duration: 12, created_at: "2026-11-01T12:00:00Z", game_id: "game", creator_name: "Viewer" };
@@ -36,6 +37,8 @@ it("keeps clips without category metadata readable", async () => {
 	execute.mockResolvedValue([{ value: JSON.stringify({ ...clip, game_id: undefined }), fetchedAt: new Date() }]);
 	expect(await readCreatorClipDetail("owner", "A")).toMatchObject({ ok: true, categoryName: null });
 	expect(execute).toHaveBeenCalledTimes(1);
+	const { PgDialect } = await import("drizzle-orm/pg-core");
+	expect(new PgDialect().sqlToQuery(where.mock.calls[0][0] as any).sql).toContain("expires_at");
 });
 it.each([JSON.stringify({ clip, unavailable: true }), "malformed-json"])("refuses tombstones and corrupt records", async (value) => {
 	execute.mockResolvedValue([{ value, fetchedAt: new Date() }]);
@@ -50,4 +53,13 @@ it("keeps owned clip details available when the category provider fails", async 
 	jest.mocked(getGameDetails).mockRejectedValueOnce(new Error("provider unavailable"));
 	execute.mockResolvedValueOnce([{ value: JSON.stringify({ clip }), fetchedAt: new Date() }]).mockResolvedValueOnce([]);
 	expect(await readCreatorClipDetail("owner", "A")).toMatchObject({ ok: true, clip: { id: "A" }, categoryName: null });
+});
+
+it("uses cached clip data without category hydration in the layout editor", async () => {
+	execute.mockResolvedValueOnce([{ value: JSON.stringify({ clip }), fetchedAt: new Date("2025-01-01T00:00:00Z") }]);
+	expect(await readCreatorClipDetail("owner", "A", true)).toMatchObject({ ok: true, clip: { id: "A" }, categoryName: null });
+	expect(execute).toHaveBeenCalledTimes(1);
+	const { PgDialect } = await import("drizzle-orm/pg-core");
+	expect(new PgDialect().sqlToQuery(where.mock.calls[0][0] as any).sql).not.toContain("expires_at");
+	expect(jest.requireMock("@actions/twitch").getGameDetails).not.toHaveBeenCalled();
 });

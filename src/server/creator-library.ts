@@ -49,7 +49,7 @@ export function queryInventoryClips(clips: z.infer<typeof providerClipSchema>[],
 	return { items: matches.slice(offset, offset + filters.pageSize).map(publicClip), total: matches.length };
 }
 
-export async function readCreatorLibrary(creatorId: string, query: unknown = {}) {
+export async function readCreatorLibrary(creatorId: string, query: unknown = {}, cachedOnly = false) {
 	const decision = await authorizeCreatorOperation({ creatorId, resourceOwnerId: creatorId, permission: "creator:read" });
 	if (!decision.allowed) return { ok: false as const, code: decision.code };
 	const parsed = inventoryQuerySchema.safeParse(query);
@@ -59,7 +59,7 @@ export async function readCreatorLibrary(creatorId: string, query: unknown = {})
 		const rows = await db
 			.select({ key: twitchCacheTable.key, value: twitchCacheTable.value, fetchedAt: twitchCacheTable.fetchedAt })
 			.from(twitchCacheTable)
-			.where(and(eq(twitchCacheTable.type, TwitchCacheType.Clip), or(sql`starts_with(${twitchCacheTable.key}, ${`clip:${creatorId}:`})`, eq(twitchCacheTable.key, `clip-sync:${creatorId}`)), or(isNull(twitchCacheTable.expiresAt), gt(twitchCacheTable.expiresAt, new Date()))))
+			.where(and(eq(twitchCacheTable.type, TwitchCacheType.Clip), or(sql`starts_with(${twitchCacheTable.key}, ${`clip:${creatorId}:`})`, eq(twitchCacheTable.key, `clip-sync:${creatorId}`)), cachedOnly ? undefined : or(isNull(twitchCacheTable.expiresAt), gt(twitchCacheTable.expiresAt, new Date()))))
 			.execute();
 		const clips = new Map<string, z.infer<typeof providerClipSchema>>();
 		let complete = false;
@@ -98,7 +98,7 @@ export async function readCreatorLibrary(creatorId: string, query: unknown = {})
 			}
 		});
 		const missing = categoryIds.filter((id) => !cachedGames.some((game) => game.id === id));
-		const fetched = missing.length ? await getGamesDetailsBulk(missing, creatorId).catch(() => []) : [];
+		const fetched = missing.length && !cachedOnly ? await getGamesDetailsBulk(missing, creatorId).catch(() => []) : [];
 		const categories = [...cachedGames, ...fetched].filter((game) => categoryIds.includes(game.id)).map((game) => ({ id: game.id, name: game.name, artworkUrl: publicTwitchImageUrl(game.box_art_url?.replace("{width}", "40").replace("{height}", "56")) }));
 		return { ok: true as const, clips: [...clips.values()], filters: parsed.data, categories, complete: complete && !invalid, fetchedAt };
 	} catch {
@@ -106,8 +106,8 @@ export async function readCreatorLibrary(creatorId: string, query: unknown = {})
 	}
 }
 
-export async function readCreatorInventory(creatorId: string, query: unknown = {}) {
-	const library = await readCreatorLibrary(creatorId, query);
+export async function readCreatorInventory(creatorId: string, query: unknown = {}, cachedOnly = false) {
+	const library = await readCreatorLibrary(creatorId, query, cachedOnly);
 	if (!library.ok) return library;
 	return { ok: true as const, ...queryInventoryClips(library.clips, library.filters), categories: library.categories, complete: library.complete, fetchedAt: library.fetchedAt };
 }
@@ -120,14 +120,14 @@ export async function canPreviewInventoryClip(input: { creatorId: string; contex
 	return clip?.id === input.clipId && clip.broadcaster_id === input.creatorId;
 }
 
-export async function readCreatorClipDetail(creatorId: string, clipId: string) {
+export async function readCreatorClipDetail(creatorId: string, clipId: string, cachedOnly = false) {
 	const decision = await authorizeCreatorOperation({ creatorId, resourceOwnerId: creatorId, permission: "creator:read" });
 	if (!decision.allowed) return { ok: false as const, code: decision.code };
 	try {
 		const [row] = await db
 			.select({ value: twitchCacheTable.value, fetchedAt: twitchCacheTable.fetchedAt })
 			.from(twitchCacheTable)
-			.where(and(eq(twitchCacheTable.type, TwitchCacheType.Clip), eq(twitchCacheTable.key, `clip:${creatorId}:${clipId}`), or(isNull(twitchCacheTable.expiresAt), gt(twitchCacheTable.expiresAt, new Date()))))
+			.where(and(eq(twitchCacheTable.type, TwitchCacheType.Clip), eq(twitchCacheTable.key, `clip:${creatorId}:${clipId}`), cachedOnly ? undefined : or(isNull(twitchCacheTable.expiresAt), gt(twitchCacheTable.expiresAt, new Date()))))
 			.execute();
 		if (!row) return { ok: false as const, code: "NOT_FOUND" };
 		const stored = JSON.parse(row.value);
@@ -135,7 +135,7 @@ export async function readCreatorClipDetail(creatorId: string, clipId: string) {
 		if (stored.unavailable || !parsed.success || parsed.data.id !== clipId || parsed.data.broadcaster_id !== creatorId) return { ok: false as const, code: "NOT_FOUND" };
 		const clip = parsed.data;
 		let categoryName: string | null = null;
-		if (clip.game_id) {
+		if (clip.game_id && !cachedOnly) {
 			const [game] = await db
 				.select({ value: twitchCacheTable.value })
 				.from(twitchCacheTable)

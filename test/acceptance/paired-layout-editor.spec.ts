@@ -150,6 +150,7 @@ for (const width of [390, 1440])
 			await page.goto(`${tourWorld.origin}/dashboard/clip-layouts?layout=slow&reference=${id}`);
 			await expect.poll(() => requested).toBe(true);
 			await expect(page.getByRole("status").filter({ hasText: "Loading reference clip" })).toBeVisible();
+			await expect(page.getByRole("textbox", { name: "Layer name", exact: true })).toHaveCount(0);
 			await expect(page.getByText("Reference clip unavailable.", { exact: true })).toHaveCount(0);
 			await expect(page.getByRole("button", { name: "Retry reference", exact: true })).toHaveCount(0);
 			await page.screenshot({ path: info.outputPath("reference-loading.png"), fullPage: true, animations: "disabled" });

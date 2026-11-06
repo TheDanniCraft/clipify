@@ -1,7 +1,7 @@
 "use client";
 import type { AuthenticatedUser } from "@types";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Button, Card, Input, Label, TextField, NumberField, Select, ListBox, Modal, Link, Autocomplete, SearchField, EmptyState, Tabs, Switch, Tooltip, Spinner } from "@heroui/react";
+import { Button, Card, Input, Label, TextField, NumberField, Select, ListBox, Modal, Link, Autocomplete, SearchField, EmptyState, Tabs, Switch, Tooltip, Skeleton } from "@heroui/react";
 import { IconArrowLeft, IconPlus, IconArrowUp, IconArrowDown, IconTrash, IconLock } from "@tabler/icons-react";
 import { useNavigationGuard } from "nextjs-nav-guard";
 import { saveClipLayoutTemplate, saveClipLayoutOverride, resetClipLayoutOverride, type ClipLayoutTemplate } from "@actions/clipLayoutLibrary";
@@ -55,6 +55,7 @@ export default function ClipCompositionEditor({ user, creatorId, entry, initial,
 		[clips, setClips] = useState<Clip[]>([]),
 		[search, setSearch] = useState(""),
 		[loading, setLoading] = useState(true),
+		[pickerOpen, setPickerOpen] = useState(false),
 		[retry, setRetry] = useState(0),
 		[reset, setReset] = useState(false),
 		[upgrade, setUpgrade] = useState(false);
@@ -86,9 +87,10 @@ export default function ClipCompositionEditor({ user, creatorId, entry, initial,
 		return () => window.removeEventListener("beforeunload", warn);
 	}, [dirty]);
 	useEffect(() => {
+		if (!pickerOpen) return;
 		let active = true;
 		const timer = setTimeout(() => {
-			const request = search.trim().length >= 2 ? searchCreatorLibrary({ creatorId, title: search }) : getCreatorClipInventory({ creatorId, query: { pageSize: 10 } });
+			const request = search.trim().length >= 2 ? searchCreatorLibrary({ creatorId, title: search, cachedOnly: true }) : getCreatorClipInventory({ creatorId, query: { pageSize: 10 }, cachedOnly: true });
 			void request
 				.then((result) => {
 					if (!active) return;
@@ -106,11 +108,11 @@ export default function ClipCompositionEditor({ user, creatorId, entry, initial,
 			clearTimeout(timer);
 			active = false;
 		};
-	}, [creatorId, search]);
+	}, [creatorId, search, pickerOpen]);
 	useEffect(() => {
 		let active = true;
 		if (reference && clip?.id !== reference)
-			void getCreatorClipDetail({ creatorId, clipId: reference })
+			void getCreatorClipDetail({ creatorId, clipId: reference, cachedOnly: true })
 				.then((result) => {
 					if (active) {
 						if (result.ok) setClip(result.clip);
@@ -260,7 +262,24 @@ export default function ClipCompositionEditor({ user, creatorId, entry, initial,
 						</Button>
 					</Modal.Footer>
 				</ControlledModal>
-				<Card className='clip-composition-card'>
+				{reference && !clip && !referenceError ? (
+					<Card role='status' aria-label='Loading layout editor' aria-busy='true'>
+						<span className='sr-only'>Loading reference clip…</span>
+						<Card.Header className='space-y-3'>
+							<Skeleton className='h-8 w-48 rounded-lg' />
+							<Skeleton className='h-4 w-64 rounded-lg' />
+						</Card.Header>
+						<Card.Content className='space-y-6'>
+							<Skeleton className='h-12 rounded-lg' />
+							<div className='grid gap-4 lg:grid-cols-[2fr_1fr]'>
+								<Skeleton className='aspect-video rounded-xl' />
+								<Skeleton className='aspect-[9/16] max-h-96 rounded-xl' />
+							</div>
+							<Skeleton className='h-40 rounded-xl' />
+						</Card.Content>
+					</Card>
+				) : null}
+				<Card className={`clip-composition-card ${reference && !clip && !referenceError ? "hidden" : ""}`} hidden={Boolean(reference && !clip && !referenceError)}>
 					<Card.Header className='flex flex-row flex-wrap items-center justify-between gap-4'>
 						<div className='flex min-w-0 items-center gap-3'>
 							<Button isIconOnly variant='tertiary' aria-label='Back to clip layouts' onPress={onBack}>
@@ -320,6 +339,7 @@ export default function ClipCompositionEditor({ user, creatorId, entry, initial,
 								<Autocomplete
 									variant='secondary'
 									placeholder='Choose a clip to preview'
+									onOpenChange={setPickerOpen}
 									value={reference || null}
 									allowsEmptyCollection
 									onChange={(key) => {
@@ -377,12 +397,7 @@ export default function ClipCompositionEditor({ user, creatorId, entry, initial,
 							<ClipCompositionCanvas brand={brand} watermark={watermarkEnabled} onRemoveWatermark={removeWatermark} key={clip.id} creatorId={creatorId} clip={clip} layout={layout} selected={selected} onSelect={selectLayer} onChange={change} onDimensions={setSourceDimensions} />
 						) : (
 							<div className='rounded-xl bg-default/50 p-6 text-sm text-muted'>
-								{reference && !referenceError ? (
-									<div role='status' className='flex items-center gap-2'>
-										<Spinner size='sm' aria-hidden='true' />
-										Loading reference clip…
-									</div>
-								) : reference ? (
+								{referenceError ? (
 									<div className='flex flex-wrap items-center gap-3'>
 										Reference clip unavailable.
 										<Button

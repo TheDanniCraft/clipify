@@ -3,9 +3,9 @@
 import { readCreatorInventory } from "@/server/creator-library";
 import { getTwitchClipPlaybackUrl } from "@actions/twitch";
 
-export async function getCreatorClipInventory(input: { creatorId: string; query?: unknown }) {
-	if (!input || typeof input.creatorId !== "string" || !input.creatorId || input.creatorId.length > 200) return { ok: false as const, code: "INVALID_INPUT" };
-	return readCreatorInventory(input.creatorId, input.query);
+export async function getCreatorClipInventory(input: { creatorId: string; query?: unknown; cachedOnly?: boolean }) {
+	if (!input || typeof input.creatorId !== "string" || !input.creatorId || input.creatorId.length > 200 || (input.cachedOnly !== undefined && typeof input.cachedOnly !== "boolean")) return { ok: false as const, code: "INVALID_INPUT" };
+	return input.cachedOnly ? readCreatorInventory(input.creatorId, input.query, true) : readCreatorInventory(input.creatorId, input.query);
 }
 
 export async function getCreatorClipPreview(input: { creatorId: string; clipId: string; refresh?: boolean }) {
@@ -32,9 +32,9 @@ export async function getCreatorBroadcast(input: { creatorId: string; videoId: s
 	const broadcast = result.items.find((video) => video.id === input.videoId);
 	return broadcast ? { ok: true as const, broadcast, fetchedAt: result.fetchedAt, stale: result.stale } : { ok: false as const, code: "NOT_FOUND" };
 }
-export async function searchCreatorLibrary(input: { creatorId: string; title: string }) {
-	if (!input || typeof input.title !== "string" || input.title.trim().length < 2 || input.title.length > 1000) return { ok: false as const, code: "INVALID_INPUT" };
-	return getCreatorClipInventory({ creatorId: input.creatorId, query: { title: input.title.trim(), pageSize: 10 } });
+export async function searchCreatorLibrary(input: { creatorId: string; title: string; cachedOnly?: boolean }) {
+	if (!input || typeof input.title !== "string" || input.title.trim().length < 2 || input.title.length > 1000 || (input.cachedOnly !== undefined && typeof input.cachedOnly !== "boolean")) return { ok: false as const, code: "INVALID_INPUT" };
+	return getCreatorClipInventory({ creatorId: input.creatorId, query: { title: input.title.trim(), pageSize: 10 }, ...(input.cachedOnly ? { cachedOnly: true } : {}) });
 }
 
 export async function refreshCreatorLibrary(input: { creatorId: string }) {
@@ -53,8 +53,8 @@ export async function refreshCreatorLibrary(input: { creatorId: string }) {
 	}
 }
 
-export async function getCreatorClipDetail(input: { creatorId: string; clipId: string }) {
-	if (!input || typeof input.creatorId !== "string" || typeof input.clipId !== "string" || !input.creatorId || !input.clipId || input.creatorId.length > 200 || input.clipId.length > 200) return { ok: false as const, code: "INVALID_INPUT" };
+export async function getCreatorClipDetail(input: { creatorId: string; clipId: string; cachedOnly?: boolean }) {
+	if (!input || typeof input.creatorId !== "string" || typeof input.clipId !== "string" || !input.creatorId || !input.clipId || input.creatorId.length > 200 || input.clipId.length > 200 || (input.cachedOnly !== undefined && typeof input.cachedOnly !== "boolean")) return { ok: false as const, code: "INVALID_INPUT" };
 	const { readCreatorClipDetail } = await import("@/server/creator-library");
-	return readCreatorClipDetail(input.creatorId, input.clipId);
+	return input.cachedOnly ? readCreatorClipDetail(input.creatorId, input.clipId, true) : readCreatorClipDetail(input.creatorId, input.clipId);
 }
