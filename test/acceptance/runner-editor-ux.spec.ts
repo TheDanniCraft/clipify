@@ -345,6 +345,8 @@ for (const plan of ["free", "pro"] as const)
 				await expect(schedule).toBeVisible();
 				await expect(schedule.getByRole("button", { name: "Today", exact: true })).toBeVisible();
 				await expect(schedule.getByRole("combobox", { name: "Calendar timezone", exact: true })).toHaveValue("Europe/Berlin");
+				// The next half-hour can fall outside this week at Saturday midnight.
+				await schedule.getByRole("radio", { name: "Month", exact: true }).click();
 				await schedule.getByRole("button", { name: "Add schedule", exact: true }).click();
 				const event = page.getByRole("dialog", { name: "Schedule broadcast", exact: true });
 				await expect(event).toBeVisible();
