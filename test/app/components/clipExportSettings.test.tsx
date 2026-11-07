@@ -28,7 +28,7 @@ jest.mock(
 	{ virtual: true },
 );
 const browserCapability = jest.fn();
-jest.mock("@lib/clipBrowserRender", () => ({ browserExportCapability: () => browserCapability() }));
+jest.mock("@lib/clipBrowserRender", () => ({ browserExportCapability: (...args: unknown[]) => browserCapability(...args) }));
 beforeEach(() => browserCapability.mockResolvedValue("supported"));
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import ClipExportSettings from "@components/creator/clipExportSettings";
@@ -208,4 +208,20 @@ it("shows an unsupported state instead of export controls when local encoding is
 	expect(screen.queryByRole("checkbox", { name: "Original" })).toBeNull();
 	expect(screen.queryByRole("button", { name: "Start export" })).toBeNull();
 	expect(screen.queryByText(/selected/)).toBeNull();
+});
+
+it("recovers a failed capability check with a fresh explicit probe before exporting", async () => {
+	browserCapability.mockRejectedValueOnce(Error("worker unavailable")).mockResolvedValueOnce("supported");
+	list.mockResolvedValue({ ok: true, templates: [], defaults: {} });
+	const start = jest.fn(() => true),
+		close = jest.fn();
+	render(<ClipExportSettings creatorId='owner' clipIds={["A"]} onStart={start} onClose={close} />);
+	await screen.findByText("Exporting is not supported in this browser");
+	expect(start).not.toHaveBeenCalled();
+	fireEvent.click(screen.getByRole("button", { name: "Check again" }));
+	expect(await screen.findByRole("checkbox", { name: "Original" })).toBeChecked();
+	expect(browserCapability).toHaveBeenLastCalledWith(true);
+	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
+	expect(start).toHaveBeenCalledWith(expect.arrayContaining([expect.objectContaining({ files: [{ clipId: "A", outputKey: "original" }] })]), "browser");
+	expect(close).toHaveBeenCalledTimes(1);
 });
