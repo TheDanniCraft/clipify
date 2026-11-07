@@ -423,7 +423,7 @@ it.each([[2], [1, 2]])("queues a four-version package once and retries only fail
 		["A"],
 		[
 			{ key: "original", label: "Original" },
-			{ key: "desktop", label: "Desktop", layout: createClipComposition("desktop") },
+			{ key: "desktop", label: "Studio Desktop", templateId: "studio", format: "desktop", layout: createClipComposition("desktop") },
 			{ key: "mobile1", label: "Mobile camera", layout: createClipComposition("mobile") },
 			{ key: "mobile2", label: "Mobile gameplay", layout: createClipComposition("mobile") },
 		],
@@ -443,6 +443,9 @@ it.each([[2], [1, 2]])("queues a four-version package once and retries only fail
 	);
 	fireEvent.click(screen.getByRole("button", { name: "Start versions" }));
 	const retry = await screen.findByRole("button", { name: "Retry failed files" });
+	expect(screen.getByText("Studio", { exact: true })).toBeInTheDocument();
+	expect(screen.getByRole("img", { name: "Desktop" })).toBeInTheDocument();
+	expect(screen.getAllByRole("img", { name: "Mobile" })).toHaveLength(2);
 	expect(browserBatch).toHaveBeenCalledTimes(1);
 	expect(fetchMock).not.toHaveBeenCalled();
 	expect(browserBatch.mock.calls[0][0].files).toHaveLength(4);

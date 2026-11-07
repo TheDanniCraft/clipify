@@ -43,6 +43,37 @@ for (const theme of ["light", "dark"])
 			await expect(page.getByRole("button", { name: "Apply filters", exact: true })).toBeEnabled();
 			const table = page.getByRole("grid", { name: "Clip inventory" });
 			await expect(table.locator("[data-clip-id]")).toHaveCount(25);
+			await expect(page.getByRole("button", { name: "Select page", exact: true })).toBeEnabled();
+			const row = table.locator("[data-clip-id]").first();
+			const rowId = await row.getAttribute("data-clip-id");
+			const select = row.getByRole("checkbox");
+			await row.locator("label").click();
+			await expect(select).toBeChecked();
+			await expect(page).toHaveURL(/\/dashboard\/clips$/);
+			await select.focus();
+			await page.keyboard.press("Space");
+			await expect(select).not.toBeChecked();
+			await row.getByRole("button", { name: /^Preview / }).click();
+			await expect(page.getByRole("dialog")).toBeVisible();
+			await expect(page).toHaveURL(/\/dashboard\/clips$/);
+			await page.getByRole("dialog").getByRole("button", { name: "Close dialog", exact: true }).click();
+			const clipCell = row.getByRole("rowheader");
+			const cellBounds = (await clipCell.boundingBox())!;
+			await clipCell.click({ position: { x: cellBounds.width - 4, y: cellBounds.height - 4 } });
+			await expect(page).toHaveURL(new RegExp(`/dashboard/clips/${rowId}$`));
+			await page.goBack();
+			await expect
+				.poll(async () => {
+					await row.focus();
+					return row.getAttribute("data-focused");
+				})
+				.toBe("true");
+			await row.press("Enter");
+			await expect(page).toHaveURL(new RegExp(`/dashboard/clips/${rowId}$`));
+			await page.goBack();
+			await row.getByRole("link", { name: "View stream", exact: true }).click();
+			await expect(page).toHaveURL(/\/dashboard\/streams\/12345$/);
+			await page.goBack();
 			await expect(page.getByRole("link", { name: "Clip layouts", exact: true })).toBeEnabled();
 			await expect(page.getByRole("link", { name: "Clip layouts", exact: true })).toHaveClass(/button--secondary/);
 			await expect(page.getByRole("button", { name: "Next", exact: true })).toBeVisible();

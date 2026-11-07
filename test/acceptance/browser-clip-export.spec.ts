@@ -54,6 +54,16 @@ for (const mode of ["audio", "audio_untagged"])
 		await dialog.getByRole("button", { name: "Start export", exact: true }).click();
 		const path = info.outputPath("browser.zip");
 		await (await download).saveAs(path);
+		const exports = page.getByRole("dialog", { name: "Clip exports", exact: true });
+		await expect(exports.getByText("Browser parity", { exact: true })).toHaveCount(2);
+		await expect(exports.getByText("Browser parity Desktop", { exact: true })).toHaveCount(0);
+		await expect(exports.getByRole("img", { name: "Original", exact: true })).toBeVisible();
+		for (const format of ["Original", "Desktop", "Mobile"]) {
+			const icon = exports.getByRole("img", { name: format, exact: true });
+			await expect(icon).toBeVisible();
+			await expect(icon.locator("title")).toHaveText(format);
+		}
+		await exports.screenshot({ path: info.outputPath("export-format-icons.png") });
 		expect(heavy).toHaveLength(0);
 		const archive = unzipSync(await readFile(path)),
 			manifest = JSON.parse(strFromU8(archive["manifest.json"]));

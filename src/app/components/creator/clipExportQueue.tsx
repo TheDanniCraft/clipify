@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Button, Disclosure, Link, Modal, Spinner, ProgressBar, toast } from "@heroui/react";
-import { IconCheck, IconClock, IconDownload, IconRefresh, IconX } from "@tabler/icons-react";
+import { IconCheck, IconClock, IconDeviceDesktop, IconDeviceMobile, IconDownload, IconRefresh, IconVideo, IconX } from "@tabler/icons-react";
 import ConfirmModal from "@components/confirmModal";
 import ControlledModal from "@components/controlledModal";
 import LocalizedDate from "@components/localizedDate";
@@ -53,7 +53,7 @@ const reasons: Record<string, string> = {
 };
 
 export type ExportRequest = { creatorId: string; clipIds: string[]; scope: string; format: "zip" | "mp4"; layout?: ClipLayout; clipNames?: Record<string, string>; plan?: ClipExportPlan; plans?: ClipExportPlan[]; engine?: ExportEngine };
-type Batch = { startedAt: string; id: number; group: string; request: ExportRequest; status: "queued" | "waiting" | "processing" | "completed" | "failed" | "cancelled"; clips: (ClipExportProgress & { outputLabel?: string })[]; summary?: ClipExportSummary; error?: string; failures?: ClipExportSummary["skipped"]; retryAt?: string; downloadUrl?: string; packageCount?: number };
+type Batch = { startedAt: string; id: number; group: string; request: ExportRequest; status: "queued" | "waiting" | "processing" | "completed" | "failed" | "cancelled"; clips: (ClipExportProgress & { outputLabel?: string; outputFormat?: "original" | "desktop" | "mobile" })[]; summary?: ClipExportSummary; error?: string; failures?: ClipExportSummary["skipped"]; retryAt?: string; downloadUrl?: string; packageCount?: number };
 const pending = (batch: Batch) => ["queued", "waiting", "processing"].includes(batch.status);
 export const clipExportRequestKey = (request: ExportRequest) => JSON.stringify(request.plan || request.plans ? [request.plans, request.scope, request.clipIds, request.format, request.layout, request.plan, request.engine] : [request.scope, request.clipIds, request.format, request.layout, request.engine]);
 const unit = (batch: Batch, count: number) => (batch.request.plan || batch.request.plans ? (count === 1 ? "file" : "files") : count === 1 ? "clip" : "clips");
@@ -76,7 +76,13 @@ function subset(request: ExportRequest, indices: number[]): ExportRequest {
 }
 const downloadName = (batch: Batch) => (batch.request.format === "mp4" ? `clipify-${encodeURIComponent(batch.request.clipIds[0])}${batch.request.plan ? "-" + batch.request.plan.files[0].outputKey.slice(0, 40) : ""}.mp4` : exportArchiveName(batch.startedAt));
 function requestFiles(request: ExportRequest) {
-	return (request.plans ?? (request.plan ? [request.plan] : [])).flatMap((plan) => plan.files.map((file) => ({ clipId: file.clipId, label: plan.outputs.find((output) => output.key === file.outputKey)?.label ?? "Output" })));
+	return (request.plans ?? (request.plan ? [request.plan] : [])).flatMap((plan) =>
+		plan.files.map((file) => {
+			const output = plan.outputs.find((output) => output.key === file.outputKey);
+			const format = output?.format ?? (output?.layout ? ("format" in output.layout ? output.layout.format : "mobile") : "original");
+			return { clipId: file.clipId, format, label: output?.templateId ? output.label.replace(/ (Desktop|Mobile)$/, "") : (output?.label ?? "Output") } as const;
+		}),
+	);
 }
 function ExportDownloadButton({ batch, onRepeat }: { batch: Batch; onRepeat: (request: ExportRequest) => void }) {
 	return (
@@ -267,7 +273,7 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 				group,
 				request: { ...request, layout: request.layout ? structuredClone(request.layout) : undefined, plans: request.plans?.map((plan) => clipExportPlanSchema.parse(plan)), plan: request.plan ? clipExportPlanSchema.parse(request.plan) : undefined },
 				status: "queued",
-				clips: request.clipIds.map((id, index) => ({ index, stage: "queued", outputLabel: files[index]?.label, title: request.clipNames?.[id] || `Clip ${index + 1}` })),
+				clips: request.clipIds.map((id, index) => ({ index, stage: "queued", outputLabel: files[index]?.label, outputFormat: files[index]?.format, title: request.clipNames?.[id] || `Clip ${index + 1}` })),
 			};
 		});
 		update((list) => [...list.filter(pending), ...list.filter((job) => !pending(job)).slice(-20), ...added]);
@@ -366,6 +372,8 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 							finished = batch.status === "completed" && !failure,
 							busy = pending(batch) && ["processing", "rendering"].includes(clip.stage);
 						const label = failure ? reasons[failure.code] : batch.status === "cancelled" ? "Cancelled" : batch.status === "failed" ? "Not downloaded" : finished ? "Ready" : clip.stage === "ready" ? "Prepared" : clip.stage === "rendering" ? "Rendering video" : clip.stage === "processing" ? "Downloading" : "Queued";
+						const format = clip.outputFormat === "desktop" ? "Desktop" : clip.outputFormat === "mobile" ? "Mobile" : "Original";
+						const FormatIcon = clip.outputFormat === "desktop" ? IconDeviceDesktop : clip.outputFormat === "mobile" ? IconDeviceMobile : IconVideo;
 						return (
 							<li key={index} className='flex items-center gap-3 py-3'>
 								<span className='shrink-0' aria-hidden='true'>
@@ -373,7 +381,14 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 								</span>
 								<div className='min-w-0 flex-1'>
 									<p className='line-clamp-2 text-sm font-medium'>{batch.request.clipNames?.[batch.request.clipIds[index]] || failure?.title || clip.title}</p>
-									{clip.outputLabel ? <p className='text-xs text-muted'>{clip.outputLabel}</p> : null}
+									{clip.outputLabel ? (
+										<div className='flex items-center gap-1.5 text-xs text-muted'>
+											<FormatIcon role='img' aria-label={format} className='size-3.5 shrink-0'>
+												<title>{format}</title>
+											</FormatIcon>
+											<span>{clip.outputLabel}</span>
+										</div>
+									) : null}
 									<p className={`text-xs ${failure || batch.status === "failed" ? "text-danger" : "text-muted"}`}>{label}</p>
 								</div>
 							</li>

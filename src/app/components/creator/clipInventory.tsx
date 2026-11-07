@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition, useSyncExternalStore } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button, Card, Checkbox, Disclosure, Input, Label, ListBox, NumberField, Select, Table, TextField, Link } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
 import { IconChevronRight, IconLayoutCollage } from "@tabler/icons-react";
@@ -40,6 +40,7 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 	const selectionEpoch = useRef(0);
 	const [selectingAll, setSelectingAll] = useState(false);
 	const path = usePathname();
+	const router = useRouter();
 	const fixedVideoId = path.startsWith("/dashboard/streams/") ? initialQuery.videoId : undefined;
 	const [draft, setDraft] = useState(query);
 	const [pending, startTransition] = useTransition();
@@ -345,7 +346,7 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 					) : (
 						<Table>
 							<Table.ScrollContainer>
-								<Table.Content aria-label='Clip inventory' className='w-full @4xl:min-w-[640px]'>
+								<Table.Content onRowAction={(key) => router.push(`/dashboard/clips/${encodeURIComponent(String(key))}`)} aria-label='Clip inventory' className='w-full @4xl:min-w-[640px]'>
 									<Table.Header>
 										<Table.Column aria-label='Select clips'>Select</Table.Column>
 										<Table.Column isRowHeader>Clip</Table.Column>
@@ -358,7 +359,7 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 									</Table.Header>
 									<Table.Body>
 										{data.items.map((clip) => (
-											<Table.Row key={clip.id} id={clip.id} data-clip-id={clip.id}>
+											<Table.Row key={clip.id} id={clip.id} data-clip-id={clip.id} className='cursor-pointer'>
 												<Table.Cell>
 													<Checkbox variant='secondary' isSelected={selected.has(clip.id)} onChange={(include) => selectClip(clip.id, include)}>
 														<Checkbox.Content>

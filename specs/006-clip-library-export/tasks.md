@@ -881,3 +881,8 @@ T681–T685 local closure: brand-candidate-browser-export.log passes all10 final
 - [x] T725 Stream sequential fifty-file packets into one browser-disk ZIP64 archive, with incremental manifest, unique filenames, provider quota waits and direct MP4 compatibility.
 - [x] T726 Protect active exports on reload, clean abandoned temporary archives without touching other tabs, tolerate refused persistence and report unavailable/full storage without losing selection.
 - [x] T727 Complete affected whole-file/browser/BDD validation and visual review for publication. Final owners pass63 unit checks,30 manifest-policy checks,43 rebuilt queue/recovery scenarios and4 BDD scenarios; unchanged27 browser cases retain passing evidence. Publish the tested slice with its separate exact-head CI/deployment outcome tracked on PR546; T059 remains the full merge gate. No merge or production release.
+
+## Output and row polish, 2026-11-07
+
+- [x] T728 Replace generated Desktop/Mobile suffixes in export rows with format icons beside the template name. Preserve readable ZIP filenames/metadata, accessible icon names/native hover titles, automatic completed-ZIP download and the manual recovery action.
+- [x] T729 Open clip details from the whole inventory row using the installed Table action, including keyboard activation. Preserve independent checkbox, preview and stream-link actions on inventory/stream detail surfaces; verify both themes and all three responsive widths.

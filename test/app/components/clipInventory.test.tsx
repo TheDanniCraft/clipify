@@ -6,7 +6,7 @@ let path = "/dashboard/clips";
 const inventory = jest.fn();
 const allMatches = jest.fn();
 const preview = jest.fn();
-jest.mock("next/navigation", () => ({ usePathname: () => path }));
+jest.mock("next/navigation", () => ({ usePathname: () => path, useRouter: () => ({ push: jest.fn() }) }));
 jest.mock("@actions/creatorLibrary", () => ({ getCreatorClipInventory: (...args: unknown[]) => inventory(...args), getCreatorClipSelection: (...args: unknown[]) => allMatches(...args), getCreatorClipPreview: (...args: unknown[]) => preview(...args) }));
 jest.mock("@components/appDateRangePicker", () => ({ __esModule: true, default: ({ value }: { value: { start: { toString: () => string }; end: { toString: () => string } } | null }) => <output data-testid='range'>{value ? `${value.start.toString()}/${value.end.toString()}` : "none"}</output> }));
 jest.mock("@components/appPagination", () => ({ __esModule: true, default: ({ onChange }: { onChange: (page: number) => void }) => <button onClick={() => onChange(2)}>Next page</button> }));
