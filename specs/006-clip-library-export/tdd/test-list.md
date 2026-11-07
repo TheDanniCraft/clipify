@@ -452,3 +452,10 @@ Owners: clipBrowserArchive.test.ts, clipBrowserBatch.test.ts, clipExport.test.ts
 
 ARC-07: Export rows distinguish Original/Desktop/Mobile through accessible format icons and native SVG titles while named templates omit generated format suffixes. Download filenames and manifest labels keep their format. Completing an export starts exactly one ZIP download without pressing the recovery Download button.
 ARC-08: Row body mouse and Enter actions open clip details; checkbox mouse/keyboard selection, Preview and View stream do not trigger clip navigation. Installed Table acceptance covers390/820/1440px in both themes. Owners: clipExport.test.tsx, clipInventory.test.tsx, browser-clip-export.spec.ts and creator-layout.spec.ts.
+
+## Video-only downloads and drag follow-up, 7 November 2026
+
+- US4-AC1 / FR-010: native, browser packet and disk ZIP contain exactly the included MP4 entries and bytes, no manifest. Provider response and archive limits remain bounded; mixed failures remain visible/retryable in the UI.
+- US4-AC1 / SC-004: one configured Original/Desktop/Mobile output downloads automatically as playable MP4; native dragstart carries the actual File, name, video MIME and exact bytes. Multiple selected outputs remain one ZIP without a video/drag preview, including partial success.
+- US4-AC1 / EC-008: preserve audio, custom fonts, native/browser frame parity, cancellation, provider waits, ownership denials and per-file retry across packets. Metadata rule assertions belong at the preparation API boundary rather than in a removed archive sidecar.
+- Compatibility research is not a passing external-upload acceptance claim: failed ordinary-file/text controls remain inconclusive; actual OS/mobile and YouTube/Discord handoffs need target-device validation.

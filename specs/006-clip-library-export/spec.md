@@ -53,15 +53,15 @@ Creators search their own known Twitch clips, filter by creation date, category,
 
 ### User Story 4 - Download a manual clip package (Priority: P1)
 
-Creators export selected clips into a ZIP of original provider MP4 files and a metadata/results manifest. Export reports skipped clips, preserves selection after failures, and supports retrying failed IDs without redownloading successful ones.
+Creators export one selected output as an MP4 or multiple selected outputs as one ZIP of MP4 files, without a metadata sidecar. Export reports skipped clips, preserves selection after failures, and supports retrying failed IDs without redownloading successful ones.
 
 **Why this priority**: Delivers the requested first export capability without automation infrastructure.
-**Independent Test**: Export known video fixtures, inspect ZIP contents and manifest, then force a missing clip and retry.
+**Independent Test**: Export known video fixtures, inspect MP4/ZIP contents and UI results, then force a missing clip and retry.
 **BDD**: Required. **ATDD**: Required; shared browser evidence.
 
 **Acceptance Scenarios**:
 
-1. **US4-AC1**: Given permitted selected clips and Twitch download authorization, when exporting, then bounded ZIP parts contain distinct playable MP4 entries and manifests identifying every requested clip.
+1. **US4-AC1**: Given permitted selected clips and Twitch download authorization, when exporting, then one selected output downloads as MP4 and multiple outputs download as one ZIP containing distinct playable MP4 entries only; per-file results identify requested outputs in the UI.
 2. **US4-AC2**: Given missing scope, stale authorization, a deleted clip or throttling, when exporting, then local actionable feedback distinguishes reconnect, retry later and unavailable content.
 3. **US4-AC3**: Given mixed available and unavailable clips, when exporting, then only complete media files enter the archive, skipped items have reasons, and the UI says partial rather than complete success.
 4. **US4-AC4**: Given cancellation, a connection failure, or all items failing, when the export ends, then no successful archive is claimed and the user can retry without rebuilding the selection.
@@ -92,7 +92,7 @@ Creators export selected clips into a ZIP of original provider MP4 files and a m
 - **FR-007**: Inventory MUST expose title, provider thumbnail when present, category, created date, duration, current views, stream association when known, and preview/provider link.
 - **FR-008**: Support title substring, category, date range, minimum views and duration bounds; newest/most-viewed sorting with ID tie-break, pagination and URL-restorable filters. Default page size 25, maximum 50.
 - **FR-009**: Select individual clips or the visible page across pagination, show selected count, clear on filter/creator/stream changes, without a fixed total clip or output cap; validate and process packets of at most 50 files. No implicit all-history selection.
-- **FR-010**: Export original provider MP4 content in bounded ZIP parts with stable unique filenames and a manifest containing selected IDs, public metadata, included/skipped status and reasons. Original exports require the untouched landscape source; Desktop and Mobile exports render explicitly selected reusable layouts. Preserve the legacy download API and its variant metadata.
+- **FR-010**: Export original provider MP4 content with stable unique filenames: one selected output as MP4, multiple as one ZIP without metadata sidecars. Keep included/skipped status and reasons in the UI. Original exports require the untouched landscape source; Desktop and Mobile exports render explicitly selected reusable layouts. Preserve the legacy download API and its variant metadata.
 - **FR-011**: Limit each queued batch to 50 output files, 32 MiB per file and 128 MiB total media bytes; explain batching before export, reject invalid plans before provider calls, and enforce actual byte caps. Split larger selections automatically, sharing the account-wide allowance across every format.
 - **FR-012**: Recover locally from authorization, unavailable clips, throttling, timeout, partial failures, cancellation and save errors; retain valid selection and offer Retry failed for retryable unsuccessful IDs.
 - **FR-013**: Authorize every read/export at the server for the active creator; recheck membership and clip ownership before media fetch and current authority before emitting the finished archive; reject foreign IDs as a whole request. Export requires explicit clip-export permission and valid Twitch download authorization.
@@ -115,7 +115,7 @@ Creators export selected clips into a ZIP of original provider MP4 files and a m
 - **SC-001**: Every permitted top-level tool is reachable from the sidebar; search is keyboard-operable and existing editor bookmarks still open the same resources.
 - **SC-002**: Seeded Home and stream-detail counts, totals and rankings exactly match the declared creation-window/VOD rules, including zero and partial-data fixtures.
 - **SC-003**: Every filter, both sorts and page selection produce the expected clip identities without duplicate or cross-creator exports.
-- **SC-004**: For 1, 25 and 50 eligible fixture clips within byte limits, bounded ZIP parts contain exactly the selected complete media files and accurate manifest results; mixed failures remain recoverable.
+- **SC-004**: For 1, 25 and 50 eligible fixture clips within byte limits, the MP4 or ZIP contains exactly the selected complete media files and the UI reports accurate per-file results; mixed failures remain recoverable.
 - **SC-005**: Denied identities receive zero clip metadata/media bytes; all declared limits, error and cancellation cases have passing acceptance evidence.
 - **SC-006**: First-run, success, failure recovery and keyboard journeys pass with actual installed components at mobile/desktop sizes in both themes. Warm-cache fixture reads of 10,000 clips display a 25-row page within 2 seconds on CI-class hardware, excluding simulated provider refresh.
 
@@ -201,7 +201,7 @@ Export opens settings before processing. Users can select Original (untouched), 
 
 Sidebar: hide redundant standalone account selection when only the current creator is available; retain meaningful multi-account and stale agency recovery choices. Separate primary/admin/export navigation from onboarding/support/account utilities and anchor profile controls at the bottom. Preserve c15t gating and role checks.
 
-Composition bounds: each layout supports up to32 ordered layers. Total selected clip and output counts are uncapped; processing uses validated50-file packets. Named template management is independent of processing packet limits. Original and rendered outputs are packaged as distinct MP4 files in a ZIP, including a single-file configured batch; legacy direct MP4 downloads remain supported.
+Composition bounds: each layout supports up to32 ordered layers. Total selected clip and output counts are uncapped; processing uses validated50-file packets. Named template management is independent of processing packet limits. One selected Original or rendered output downloads directly as MP4; multiple selected outputs are distinct MP4 entries in one ZIP. Legacy direct MP4 downloads remain supported.
 
 ### Paired templates and editor review, 2026-11-05
 
@@ -266,3 +266,9 @@ All stream moments remain available in a keyboard-scrollable timeline with start
 The latest user review supersedes the bounded scrolling timeline: render every moment in ordinary document flow with Stream start/Stream end, without an internal scroll region or Show more. Keep Cancel export and Continue in background on one row, with danger styling and the existing confirmation dialog before cancellation.
 
 One manual export produces one ZIP across all internal processing packets. Do not expose packet numbers, fifteen-file groups or numbered ZIP parts. Identify exports and downloaded archives by their start date/time. Write media incrementally to origin-private browser disk storage, retaining account quotas, permissions, cancellation and per-file recovery. Request persistent storage when available; a denied persistence request must not block otherwise working storage. ZIP storage support and available space remain browser prerequisites, with actionable errors. The tab must stay open; background means navigating within Clipify, not closing the tab. Protect active work against accidental reload. Remove abandoned temporary archives without deleting another tab's active export.
+
+### Completed-file drag and video-only packages, 7 November 2026
+
+This clarification supersedes earlier manifest/numbered-part requirements. No manual clip export includes manifest.json or another metadata sidecar. Keep API preparation metadata, authorization, quota accounting and UI failure details. Exactly one selected output uses an automatically downloaded MP4 with a playable draggable preview; more than one selected output uses one automatically downloaded ZIP without a drag preview, even when only one output succeeds. A single failed output retried separately becomes an MP4.
+
+The drag source supplies the finished File synchronously. Do not claim universal cross-site/browser/desktop support based on API detection or a same-page drag test. Keep Download MP4 available and disclose browser/destination dependence. See docs/clip-export-drag-research.md for primary sources and calibrated Linux engine observations; actual OS/mobile and external upload targets remain uncertified.

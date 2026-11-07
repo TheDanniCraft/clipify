@@ -65,12 +65,14 @@ for (const mode of ["audio", "audio_untagged"])
 		}
 		await exports.screenshot({ path: info.outputPath("export-format-icons.png") });
 		expect(heavy).toHaveLength(0);
-		const archive = unzipSync(await readFile(path)),
-			manifest = JSON.parse(strFromU8(archive["manifest.json"]));
-		const original = manifest.clips.find((item: any) => item.format === "original");
+		const archive = unzipSync(await readFile(path));
+		const items = Object.keys(archive).map((filename, index) => ({ filename, format: ["original", "desktop", "mobile"][index] }));
+		expect(Object.keys(archive).every((name) => name.endsWith(".mp4"))).toBe(true);
+		const original = items.find((item) => item.format === "original")!;
 		expect(Buffer.from(archive[original.filename]).equals(await readFile(mode === "audio" ? "test/fixtures/clips/export-audio.mp4" : "test/fixtures/clips/export-audio-untagged.mp4"))).toBe(false);
-		expect(manifest.clips).toHaveLength(3);
-		for (const [index, item] of manifest.clips.entries()) {
+		expect(items).toHaveLength(3);
+		expect(items.map((item) => item.filename)).toEqual([expect.stringContaining("Original"), expect.stringContaining("Browser parity Desktop"), expect.stringContaining("Browser parity Mobile")]);
+		for (const [index, item] of items.entries()) {
 			const file = info.outputPath(`browser-${index}.mp4`);
 			await writeFile(file, archive[item.filename]);
 			const streams = JSON.parse(execFileSync("ffprobe", ["-v", "error", "-show_streams", "-of", "json", file], { encoding: "utf8" })).streams;
@@ -160,8 +162,8 @@ test("Unsupported browsers show a recoverable local-support state without server
 	const pending = page.waitForEvent("download");
 	await dialog.getByRole("button", { name: "Start export", exact: true }).click();
 	const download = await pending;
-	const archive = unzipSync(await readFile((await download.path())!));
-	expect(Object.keys(archive).filter((name) => name.endsWith(".mp4"))).toHaveLength(1);
+	expect(download.suggestedFilename()).toMatch(/\.mp4$/);
+	expect((await readFile((await download.path())!)).subarray(4, 8).toString()).toBe("ftyp");
 	await download.delete();
 });
 
@@ -248,19 +250,73 @@ for (const removed of ["cached", "provider"])
 		if (removed === "cached") await tourWorld.fixture.pool.query(`UPDATE "twitchCache" SET value=jsonb_set(value::jsonb,'{unavailable}','true')::text WHERE key=$1`, [`clip:${creatorId}:${missing}`]);
 		const download = page.waitForEvent("download");
 		await page.getByRole("button", { name: "Next", exact: true }).click();
+		const preparedReply = page.waitForResponse((response) => new URL(response.url()).pathname === "/api/clips/export/browser" && response.ok());
 		await page.getByRole("button", { name: "Start export", exact: true }).click();
+		const prepared = (await (await preparedReply).json()).clips;
+		expect(prepared.find((clip: any) => clip.id === id)).toMatchObject({ views: 42, duration: 12, categoryId: "123", broadcasterName: "Browser creator" });
 		const path = info.outputPath("partial.zip");
 		await (await download).saveAs(path);
-		const archive = unzipSync(await readFile(path)),
-			manifest = JSON.parse(strFromU8(archive["manifest.json"]));
-		expect(Object.keys(archive).filter((name) => name.endsWith(".mp4"))).toHaveLength(1);
-		const included = manifest.clips.find((clip: any) => clip.status === "included"),
-			skipped = manifest.clips.find((clip: any) => clip.status === "skipped");
-		expect(included).toMatchObject({ id, views: 42, duration: 12, categoryId: "123", broadcasterName: "Browser creator", bytes: archive[included.filename].length });
-		expect(skipped).toMatchObject({ id: missing, code: "clip_unavailable", retryable: false });
-		expect(JSON.stringify(manifest)).not.toContain("sourceToken");
+		const archive = unzipSync(await readFile(path));
+		const names = Object.keys(archive);
+		expect(names).toHaveLength(1);
+		expect(names[0]).toContain(id);
+		expect(names.every((name) => name.endsWith(".mp4"))).toBe(true);
+		expect(names.some((name) => name.includes(missing))).toBe(false);
+		expect(strFromU8(archive[names[0]].slice(4, 8))).toBe("ftyp");
 		const modal = page.getByRole("dialog", { name: "Clip exports", exact: true });
 		await expect(modal.getByText("Clip unavailable", { exact: true })).toBeVisible();
 		await expect(modal.getByRole("button", { name: "Retry failed files", exact: true })).toHaveCount(0);
 		await modal.screenshot({ path: info.outputPath("partial-result.png") });
+	});
+
+for (const format of ["original", "desktop", "mobile"] as const)
+	test(`Single ${format} output downloads a playable MP4 and exposes the actual file for dragging`, async ({ page, request, tourWorld }, info) => {
+		test.setTimeout(90000);
+		await page.setViewportSize({ width: format === "mobile" ? 390 : 1440, height: 950 });
+		await page.addInitScript((theme) => localStorage.setItem("theme", theme), format === "mobile" ? "light" : "dark");
+		const { creatorId, id } = await seedCreatorLibrary({ page, request, tourWorld });
+		await tourWorld.fixture.pool.query("UPDATE auth.account SET scope='channel:manage:clips' WHERE account_id=$1", [creatorId]);
+		await tourWorld.fixture.pool.query(`UPDATE "twitchCache" SET value=jsonb_set(value::jsonb,'{testDownloadMode}','"audio"'::jsonb)::text WHERE key=$1`, [`clip:${creatorId}:${id}`]);
+		const desktop = createClipComposition("desktop"),
+			mobile = createClipComposition("mobile");
+		await tourWorld.fixture.pool.query("INSERT INTO user_content_states(user_id,content_key,state) VALUES($1,'clip-layout-template:v2:single',$2)", [creatorId, JSON.stringify({ name: "Single video", composition: desktop, compositions: { desktop, mobile } })]);
+		await page.goto(`${tourWorld.origin}/dashboard/clips`);
+		const reload = page.waitForEvent("domcontentloaded");
+		await page.getByRole("button", { name: "Reject optional", exact: true }).click();
+		await reload;
+		await page.getByRole("button", { name: "Select page", exact: true }).click();
+		await page.getByRole("button", { name: "Export selected", exact: true }).click();
+		const settings = page.getByRole("dialog", { name: "Export clips", exact: true });
+		if (format !== "original") {
+			await settings.getByRole("checkbox", { name: "Original", exact: true }).focus();
+			await page.keyboard.press("Space");
+			await settings.getByRole("checkbox", { name: format === "desktop" ? "Desktop" : "Mobile", exact: true }).focus();
+			await page.keyboard.press("Space");
+		}
+		await settings.getByRole("button", { name: "Next", exact: true }).click();
+		const pending = page.waitForEvent("download");
+		await settings.getByRole("button", { name: "Start export", exact: true }).click();
+		const download = await pending;
+		expect(download.suggestedFilename()).toMatch(/\.mp4$/);
+		const file = info.outputPath("single.mp4");
+		await download.saveAs(file);
+		const bytes = await readFile(file);
+		expect(bytes.subarray(4, 8).toString()).toBe("ftyp");
+		const modal = page.getByRole("dialog", { name: "Clip exports", exact: true }),
+			video = modal.getByLabel("Exported video", { exact: true });
+		await expect(video).toBeVisible();
+		await expect(video).toHaveAttribute("draggable", "true");
+		await expect.poll(() => video.evaluate((el) => (el as HTMLVideoElement).readyState)).toBeGreaterThanOrEqual(2);
+		const streams = JSON.parse(execFileSync("ffprobe", ["-v", "quiet", "-show_streams", "-of", "json", file], { encoding: "utf8" })).streams;
+		expect(streams.some((s: any) => s.codec_type === "audio")).toBe(true);
+		if (format !== "original") expect(streams.find((s: any) => s.codec_type === "video")).toMatchObject(format === "desktop" ? { width: 1280, height: 720 } : { width: 720, height: 1280 });
+		await page.evaluate(() =>
+			window.addEventListener("dragstart", (event) => {
+				(window as any).clipDragFiles = [...(event as DragEvent).dataTransfer!.files].map((file) => ({ name: file.name, type: file.type, size: file.size }));
+			}),
+		);
+		await video.dragTo(modal.getByRole("heading", { name: "Clip exports", exact: true }));
+		expect(await page.evaluate(() => (window as any).clipDragFiles)).toEqual([{ name: download.suggestedFilename(), type: "video/mp4", size: bytes.length }]);
+		await expect(modal.getByRole("button", { name: "Download MP4", exact: true })).toBeVisible();
+		await modal.screenshot({ path: info.outputPath("single-video.png") });
 	});

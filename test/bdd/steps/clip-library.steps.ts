@@ -274,18 +274,21 @@ When("I export each explicitly selected set", async ({ page, tourWorld }) => {
 	expect(await download.failure()).toBeNull();
 	state.archive = await readFile((await download.path())!);
 });
-Then("one ZIP per set has exactly those complete MP4s and a manifest for every ID", async ({ tourWorld }) => {
+Then("one video or ZIP contains exactly the selected complete MP4s without a metadata sidecar", async ({ tourWorld }) => {
 	const state = cases.get(tourWorld)!;
-	const entries = unzipSync(state.archive!);
-	const manifest = JSON.parse(strFromU8(entries["manifest.json"]));
-	expect(manifest.clips.map((entry: { id: string }) => entry.id).sort()).toEqual([...state.expected!].sort());
-	expect(Object.keys(entries)).toHaveLength(state.expected!.length + 1);
-	for (const entry of manifest.clips) {
-		expect(entry.status).toBe("included");
-		expect(entries[entry.filename].byteLength).toBe(entry.bytes);
-		expect(strFromU8(entries[entry.filename].slice(4, 8))).toBe("ftyp");
+	if (state.expected!.length === 1) {
+		expect(strFromU8(state.archive!.slice(4, 8))).toBe("ftyp");
+		return;
 	}
-	expect(strFromU8(entries["manifest.json"])).not.toContain("isolated-dashboard-fixture-token");
+	const entries = unzipSync(state.archive!),
+		names = Object.keys(entries);
+	expect(names).toHaveLength(state.expected!.length);
+	expect(names.every((name) => name.endsWith(".mp4"))).toBe(true);
+	for (const id of state.expected!) {
+		const matching = names.filter((name) => name.includes(id));
+		expect(matching).toHaveLength(1);
+		expect(strFromU8(entries[matching[0]].slice(4, 8))).toBe("ftyp");
+	}
 });
 
 const homeVariants = ["start minus one millisecond", "exact start", "end minus one millisecond", "exact exclusive end", "equal view tie", "zero clips"];

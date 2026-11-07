@@ -1,6 +1,6 @@
 /** @jest-environment node */
 import { readFileSync } from "node:fs";
-import { unzipSync, strFromU8 } from "fflate";
+import { unzipSync } from "fflate";
 import { exportRequestSchema, buildClipArchive, buildClipExportPlan, isTrustedClipMediaUrl, isCompleteMp4, clipExportFilename, readBoundedResponse } from "@/server/clip-export";
 
 describe("manual clip export selection", () => {
@@ -97,17 +97,15 @@ beforeEach(() => {
 	cacheRead.mockResolvedValue([{ key: "clip:owner:ClipA", value: JSON.stringify({ clip: { id: "ClipA", title: "My clip", duration: 12, broadcaster_id: "owner", created_at: "2026-11-01T00:00:00Z" } }) }]);
 	jest.spyOn(globalThis, "fetch").mockImplementation(async (input) => (String(input).startsWith("https://api.twitch.tv/") ? Response.json({ data: [{ clip_id: "ClipA", landscape_download_url: "https://production.assets.clips.twitchcdn.net/ClipA.mp4" }] }) : new Response(video, { headers: { "Content-Type": "video/mp4" } })));
 });
-it("U105: creates one ZIP containing complete selected media and a public manifest", async () => {
+it("U105: creates one ZIP containing only complete selected media", async () => {
 	const result = await buildClipArchive({ creatorId: "owner", clipIds: ["ClipA"] });
 	expect(result.ok).toBe(true);
 	if (!result.ok) throw new Error(result.code);
 	const entries = unzipSync(result.bytes);
-	const manifest = JSON.parse(strFromU8(entries["manifest.json"]));
 	expect(result.summary).toEqual({ included: [0], skipped: [] });
-	expect(manifest.clips).toHaveLength(1);
-	expect(manifest.clips[0]).toMatchObject({ id: "ClipA", status: "included", variant: "landscape", bytes: video.byteLength });
-	expect(entries[manifest.clips[0].filename]).toEqual(new Uint8Array(video));
-	expect(strFromU8(entries["manifest.json"])).not.toContain("private-token");
+	expect(Object.keys(entries)).toEqual(["My clip--ClipA.mp4"]);
+	expect(entries["My clip--ClipA.mp4"]).toEqual(new Uint8Array(video));
+	expect(Object.values(entries).every((bytes) => !Buffer.from(bytes).includes(Buffer.from("private-token")))).toBe(true);
 });
 
 it.each(["http://production.assets.clips.twitchcdn.net/a.mp4", "https://user:pass@production.assets.clips.twitchcdn.net/a.mp4", "https://production.assets.clips.twitchcdn.net:444/a.mp4", "https://evil.production.assets.clips.twitchcdn.net/a.mp4", "https://127.0.0.1/a.mp4", "https://[::1]/a.mp4", "not a URL"])("rejects unsafe media URL %s", (url) => expect(isTrustedClipMediaUrl(url)).toBe(false));
@@ -173,7 +171,8 @@ it("records portrait fallback and does not send API credentials to media", async
 	const result = await buildClipArchive({ creatorId: "owner", clipIds: ["ClipA"] });
 	expect(result.ok).toBe(true);
 	if (!result.ok) throw new Error(result.code);
-	expect(JSON.parse(strFromU8(unzipSync(result.bytes)["manifest.json"])).clips[0].variant).toBe("portrait");
+	expect(jest.mocked(globalThis.fetch).mock.calls[1][0]).toBe("https://production.assets.clips.twitchcdn.net/portrait.mp4");
+	expect(Object.keys(unzipSync(result.bytes))).toHaveLength(1);
 	expect(jest.mocked(globalThis.fetch).mock.calls[1][1]?.headers).toBeUndefined();
 });
 it("blocks a media redirect to an untrusted host", async () => {
@@ -288,9 +287,10 @@ it("continues with an eligible clip when another clip has been removed", async (
 	const result = await buildClipArchive({ creatorId: "owner", clipIds: ["A", "B"] });
 	expect(result).toMatchObject({ ok: true, summary: { included: [1], skipped: [{ index: 0, code: "clip_unavailable", retryable: false }] } });
 	if (!result.ok) throw new Error(result.code);
-	const manifest = JSON.parse(strFromU8(unzipSync(result.bytes)["manifest.json"]));
-	expect(manifest.clips.map((clip: { id: string }) => clip.id)).toEqual(["A", "B"]);
-	expect(manifest.clips[0]).toMatchObject({ status: "skipped", code: "clip_unavailable" });
+	const files = unzipSync(result.bytes);
+	expect(Object.keys(files)).toHaveLength(1);
+	expect(Object.keys(files)[0]).toContain("--B.mp4");
+	expect(Object.values(files)[0]).toEqual(new Uint8Array(video));
 });
 it("does not request a clip explicitly marked unavailable in cache", async () => {
 	cacheRead.mockResolvedValue([{ ...ownedEntry(), value: JSON.stringify({ clip: JSON.parse(ownedEntry().value).clip, unavailable: true }) }]);
@@ -436,7 +436,7 @@ it("returns an actionable render failure while preserving export recovery metada
 	jest.mocked(globalThis.fetch).mockImplementation(async (input) => (String(input).startsWith("https://api.twitch.tv/") ? Response.json({ data: [{ clip_id: "ClipA", landscape_download_url: "https://production.assets.clips.twitchcdn.net/ClipA.mp4" }] }) : new Response(fake)));
 	expect(await buildClipArchive({ creatorId: "owner", clipIds: ["ClipA"], layout: defaultClipLayout }, undefined, "mp4")).toMatchObject({ ok: false, failures: [{ index: 0, code: "render_failed", retryable: true }] });
 });
-it("renders a selected batch with each clip metadata and a portrait manifest", async () => {
+it("renders a selected batch with each clip metadata without a metadata sidecar", async () => {
 	const { defaultClipLayout } = await import("@lib/clipLayout");
 	cacheRead.mockResolvedValue([ownedEntry("ClipA", { title: "First moment" }), ownedEntry("ClipB", { title: "Second moment" })]);
 	jest.mocked(globalThis.fetch).mockImplementation(async (input) => (String(input).startsWith("https://api.twitch.tv/") ? Response.json({ data: ["ClipA", "ClipB"].map((clip_id) => ({ clip_id, landscape_download_url: `https://production.assets.clips.twitchcdn.net/${clip_id}.mp4` })) }) : new Response(video)));
@@ -444,8 +444,7 @@ it("renders a selected batch with each clip metadata and a portrait manifest", a
 	expect(result.ok).toBe(true);
 	if (!result.ok) return;
 	const files = unzipSync(result.bytes);
-	const manifest = JSON.parse(strFromU8(files["manifest.json"]));
-	expect(manifest.clips).toEqual(expect.arrayContaining([expect.objectContaining({ id: "ClipA", title: "First moment", variant: "portrait" }), expect.objectContaining({ id: "ClipB", title: "Second moment", variant: "portrait" })]));
+	expect(Object.keys(files)).toEqual(["First moment--ClipA.mp4", "Second moment--ClipB.mp4"]);
 	const media = Object.entries(files).filter(([name]) => name.endsWith(".mp4"));
 	expect(media).toHaveLength(2);
 	expect(Buffer.from(media[0][1]).equals(Buffer.from(media[1][1]))).toBe(false);
@@ -487,10 +486,14 @@ it("packages Original, Desktop and two Mobile versions as four distinct complete
 	expect(result.ok).toBe(true);
 	if (!result.ok) throw new Error(result.code);
 	const files = unzipSync(result.bytes),
-		manifest = JSON.parse(strFromU8(files["manifest.json"]));
-	expect(Object.keys(files).filter((name) => name.endsWith(".mp4"))).toHaveLength(4);
-	expect(manifest.clips.map((clip: any) => clip.outputKey)).toEqual(["original", "desktop", "mobile1", "mobile2"]);
-	expect(files[manifest.clips[0].filename]).toEqual(new Uint8Array(video));
+		names = Object.keys(files);
+	expect(names).toHaveLength(4);
+	expect(names.every((name) => name.endsWith(".mp4"))).toBe(true);
+	for (const [index, output] of plan.outputs.entries()) {
+		expect(names[index]).toContain(output.label);
+		expect(names[index]).toContain(`-${output.key}.mp4`);
+	}
+	expect(files[names[0]]).toEqual(new Uint8Array(video));
 	expect(rateLimit).toHaveBeenCalledTimes(1);
 	expect(volume).toHaveBeenCalledTimes(1);
 	expect(volume).toHaveBeenCalledWith("owner", 4);
@@ -512,8 +515,10 @@ it("records the clip and version for every skipped output in a partial package",
 	const result = await buildClipExportPlan(plan);
 	expect(result.ok).toBe(true);
 	if (!result.ok) return;
-	const manifest = JSON.parse(strFromU8(unzipSync(result.bytes)["manifest.json"]));
-	expect(manifest.clips).toEqual(expect.arrayContaining([expect.objectContaining({ id: "ClipA", outputKey: "second", outputLabel: "Original two", status: "skipped", code: "clip_unavailable" })]));
+	expect(result.summary.skipped).toEqual([expect.objectContaining({ index: 1, code: "clip_unavailable", title: expect.stringContaining("Original two") })]);
+	const names = Object.keys(unzipSync(result.bytes));
+	expect(names).toHaveLength(1);
+	expect(names[0]).toContain("Original one");
 });
 it("rejects malformed plans and foreign clips before reserving download quota", async () => {
 	expect(await buildClipExportPlan({ creatorId: "owner", outputs: [], files: [] })).toMatchObject({ ok: false, code: "INVALID_INPUT" });
@@ -640,7 +645,7 @@ it("honors cancellation, cache failure and final ZIP access revocation for plann
 	afterZip.mockImplementation(() => authorize.mockResolvedValue({ allowed: false, code: "PERMISSION_DENIED" }));
 	expect(await buildClipExportPlan(plan)).toMatchObject({ ok: false, code: "PERMISSION_DENIED" });
 });
-it.each(["media", "manifest", "archive"] as const)("enforces the planned package %s cap before release", async (cap) => {
+it.each(["media", "archive"] as const)("enforces the planned package %s cap before release", async (cap) => {
 	const { EXPORT_LIMITS } = await import("@/server/clip-export");
 	const limits = EXPORT_LIMITS as Record<string, number>,
 		saved = limits[cap];
@@ -723,7 +728,8 @@ it("retains legacy untemplated portrait export plans", async () => {
 	const result = await buildClipExportPlan(createClipExportPlan("owner", ["ClipA"], [{ key: "legacy", label: "Legacy portrait", layout: defaultClipLayout }])[0]);
 	expect(result.ok).toBe(true);
 	if (!result.ok) throw Error(result.code);
-	expect(JSON.parse(strFromU8(unzipSync(result.bytes)["manifest.json"])).clips[0]).toMatchObject({ outputLabel: "Legacy portrait", format: "mobile" });
+	expect(Object.keys(unzipSync(result.bytes))).toEqual([expect.stringContaining("Legacy portrait")]);
+	expect(render.mock.calls[0][1]).toEqual(defaultClipLayout);
 });
 
 it("enforces free composed-export branding on the server and honors Pro removal", async () => {
@@ -885,4 +891,10 @@ it.each([undefined, { id: "general" }] as const)("keeps untouched Original outpu
 	const result = await prepareBrowserClipExport(createClipExportPlan("owner", ["ClipA"], [{ key: "original", label: "Original" }], preset)[0], AbortSignal.timeout(5000));
 	expect(result.ok).toBe(true);
 	if (result.ok) expect(result.clips[0].outputs[0]).toMatchObject({ layout: null, preset: undefined, assets: {}, watermark: null });
+});
+
+it("bounds provider JSON independently of the removed export manifest", async () => {
+	jest.mocked(globalThis.fetch).mockResolvedValueOnce(Response.json({ data: [], padding: "x".repeat(1024 * 1024) }));
+	expect(await buildClipArchive({ creatorId: "owner", clipIds: ["ClipA"] })).toMatchObject({ ok: false, code: "PROVIDER_UNAVAILABLE" });
+	expect(globalThis.fetch).toHaveBeenCalledTimes(1);
 });

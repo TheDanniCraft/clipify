@@ -2,7 +2,7 @@ import { test, expect } from "../bdd/support/user-tour";
 import { guideContentKey } from "../../src/app/lib/userTour";
 import { seedCreatorLibrary } from "../support/creator-library";
 import { readFile } from "node:fs/promises";
-import { unzipSync, strFromU8 } from "fflate";
+import { unzipSync } from "fflate";
 test.use({ actionTimeout: 15000, navigationTimeout: 15000 });
 for (const theme of ["light", "dark"])
 	for (const width of [390, 1440]) {
@@ -111,8 +111,10 @@ for (const theme of ["light", "dark"])
 				await page.getByRole("button", { name: "Start export", exact: true }).click();
 				const download = await pendingDownload;
 				const entries = unzipSync(await readFile((await download.path())!));
-				const manifest = JSON.parse(strFromU8(entries["manifest.json"]));
-				expect(manifest.clips.map((clip: { id: string }) => clip.id).sort()).toEqual(expected.sort());
+				const names = Object.keys(entries);
+				expect(names).toHaveLength(expected.length);
+				expect(names.every((name) => name.endsWith(".mp4"))).toBe(true);
+				for (const id of expected) expect(names.filter((name) => name.includes(id))).toHaveLength(1);
 				await download.delete();
 			});
 		});

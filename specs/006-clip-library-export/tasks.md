@@ -886,3 +886,10 @@ T681–T685 local closure: brand-candidate-browser-export.log passes all10 final
 
 - [x] T728 Replace generated Desktop/Mobile suffixes in export rows with format icons beside “Layout: <name>”. Preserve readable ZIP filenames/metadata, accessible icon names/native hover titles, automatic completed-ZIP download and the manual recovery action.
 - [x] T729 Open clip details from the whole inventory row using the installed Table action, including keyboard activation. Preserve independent checkbox, preview and stream-link actions on inventory/stream detail surfaces; verify both themes and all three responsive widths.
+
+## Video-only export and drag follow-up, 7 November 2026
+
+- [x] T730 Remove clip metadata sidecars from all clip ZIP builders while retaining API metadata, provider-response bounds, permissions and UI per-file results.
+- [x] T731 Select MP4 for one configured output and ZIP for multiple outputs; preserve automatic downloads and retry only failed outputs. Show a playable draggable completed MP4 using its actual File, with a download fallback and no ZIP drag preview.
+- [x] T732 Research browser/OS/receiver boundaries using primary documentation and calibrated engine probes; distinguish working source payloads from uncertified external delivery and record limitations.
+- [x] T733 Complete affected whole-file, browser and BDD checks and inspect mobile/desktop themes:225 inner/API checks and63 browser/BDD cases pass. Publish this tested slice with exact-head CI/deployment evidence tracked on PR546; T059 remains the separate merge gate. No merge or production release.

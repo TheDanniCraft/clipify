@@ -11,7 +11,7 @@ import { buildBrowserBatch } from "@lib/clipBrowserBatch";
 import type { ExportEngine } from "@lib/clipBrowserExport";
 import { clipExportPlanSchema, createClipExportPlan, type ClipExportPlan } from "@lib/clipExportPlan";
 import type { ClipLayout } from "@lib/clipLayout";
-import type { ClipExportSummary } from "@lib/clipExport";
+import { clipExportFilename, type ClipExportSummary } from "@lib/clipExport";
 import { readClipExportResponse, type ClipExportProgress } from "@lib/clipExportStream";
 const messages: Record<string, string> = {
 	BROWSER_PROCESSING_REQUIRED: "Use a supported browser to process videos on this device.",
@@ -53,7 +53,7 @@ const reasons: Record<string, string> = {
 };
 
 export type ExportRequest = { creatorId: string; clipIds: string[]; scope: string; format: "zip" | "mp4"; layout?: ClipLayout; clipNames?: Record<string, string>; plan?: ClipExportPlan; plans?: ClipExportPlan[]; engine?: ExportEngine };
-type Batch = { startedAt: string; id: number; group: string; request: ExportRequest; status: "queued" | "waiting" | "processing" | "completed" | "failed" | "cancelled"; clips: (ClipExportProgress & { outputLabel?: string; outputFormat?: "original" | "desktop" | "mobile" })[]; summary?: ClipExportSummary; error?: string; failures?: ClipExportSummary["skipped"]; retryAt?: string; downloadUrl?: string; packageCount?: number };
+type Batch = { startedAt: string; id: number; group: string; request: ExportRequest; status: "queued" | "waiting" | "processing" | "completed" | "failed" | "cancelled"; clips: (ClipExportProgress & { outputLabel?: string; outputFormat?: "original" | "desktop" | "mobile" })[]; summary?: ClipExportSummary; error?: string; failures?: ClipExportSummary["skipped"]; retryAt?: string; downloadUrl?: string; videoFile?: File; packageCount?: number };
 const pending = (batch: Batch) => ["queued", "waiting", "processing"].includes(batch.status);
 export const clipExportRequestKey = (request: ExportRequest) => JSON.stringify(request.plan || request.plans ? [request.plans, request.scope, request.clipIds, request.format, request.layout, request.plan, request.engine] : [request.scope, request.clipIds, request.format, request.layout, request.engine]);
 const unit = (batch: Batch, count: number) => (batch.request.plan || batch.request.plans ? (count === 1 ? "file" : "files") : count === 1 ? "clip" : "clips");
@@ -72,9 +72,14 @@ function subset(request: ExportRequest, indices: number[]): ExportRequest {
 	if (!request.plan) return { ...request, clipIds };
 	const files = indices.map((index) => request.plan!.files[index]),
 		keys = new Set(files.map((file) => file.outputKey));
-	return { ...request, clipIds, format: "zip", plan: { ...request.plan, files, outputs: request.plan.outputs.filter((output) => keys.has(output.key)) } };
+	return { ...request, clipIds, format: files.length === 1 ? "mp4" : "zip", plan: { ...request.plan, files, outputs: request.plan.outputs.filter((output) => keys.has(output.key)) } };
 }
-const downloadName = (batch: Batch) => (batch.request.format === "mp4" ? `clipify-${encodeURIComponent(batch.request.clipIds[0])}${batch.request.plan ? "-" + batch.request.plan.files[0].outputKey.slice(0, 40) : ""}.mp4` : exportArchiveName(batch.startedAt));
+function downloadName(batch: Batch) {
+	if (batch.request.format === "zip") return exportArchiveName(batch.startedAt);
+	const plan = batch.request.plan,
+		output = plan?.outputs.find((output) => output.key === plan.files[0].outputKey);
+	return clipExportFilename(`${batch.request.clipNames?.[batch.request.clipIds[0]] ?? "clip"} ${output?.label ?? "Original"}`, batch.request.clipIds[0], 0, new Set());
+}
 function requestFiles(request: ExportRequest) {
 	return (request.plans ?? (request.plan ? [request.plan] : [])).flatMap((plan) =>
 		plan.files.map((file) => {
@@ -178,8 +183,10 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 		disposals.current.clear();
 		urls.current.forEach((url) => URL.revokeObjectURL(url));
 		urls.current.clear();
-		update((list) => list.map((job) => ({ ...job, downloadUrl: undefined })));
-		const url = URL.createObjectURL(bytes instanceof Blob ? bytes : new Blob([bytes], { type: batch.request.format === "mp4" ? "video/mp4" : "application/zip" }));
+		update((list) => list.map((job) => ({ ...job, downloadUrl: undefined, videoFile: undefined })));
+		const file = bytes instanceof File ? bytes : new File([bytes], name, { type: batch.request.format === "mp4" ? "video/mp4" : "application/zip" });
+		const url = URL.createObjectURL(file);
+		if (batch.request.format === "mp4") patch(batch.id, { videoFile: file });
 		urls.current.add(url);
 		const anchor = document.createElement("a");
 		anchor.href = url;
@@ -284,7 +291,7 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 	const enqueue = (request: ExportRequest) => {
 		if (request.creatorId !== creatorId || !request.clipIds.length || (request.format === "mp4" && request.clipIds.length !== 1)) return;
 		if (request.plans) {
-			appendRequests([{ ...request, clipIds: request.plans.flatMap((plan) => plan.files.map((file) => file.clipId)) }], clipExportRequestKey(request));
+			enqueuePlans(request.plans, request.clipNames, request.scope, request.engine);
 			return;
 		}
 		if (request.plan) {
@@ -308,7 +315,8 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 	};
 	const enqueuePlans = (plans: ClipExportPlan[], clipNames: Record<string, string> | undefined, scope: string, engine: ExportEngine = "browser") => {
 		if (!plans.length || plans.some((plan) => plan.creatorId !== creatorId || !plan.files.length || plan.files.length > 50)) return false;
-		const request: ExportRequest = { creatorId, scope, clipNames, clipIds: plans.flatMap((plan) => plan.files.map((file) => file.clipId)), plans, format: "zip", engine };
+		const single = plans.length === 1 && plans[0].files.length === 1;
+		const request: ExportRequest = { creatorId, scope, clipNames, clipIds: plans.flatMap((plan) => plan.files.map((file) => file.clipId)), ...(single ? { plan: plans[0], format: "mp4" as const } : { plans, format: "zip" as const }), engine };
 		return appendRequests([request], JSON.stringify(["plan", scope, plans, engine]));
 	};
 	const active = batches.filter(pending),
@@ -365,6 +373,24 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 						{batch.summary.included.length} {unit(batch, batch.summary.included.length)} ready. {batch.packageCount && batch.packageCount > 1 ? `${batch.packageCount} ZIP parts downloaded. Allow multiple downloads if your browser asks.` : "Download initiated."}
 						{batch.summary.skipped.length ? ` ${batch.summary.skipped.length} ${unit(batch, batch.summary.skipped.length)} skipped.` : ""}
 					</p>
+				) : null}
+				{batch.status === "completed" && batch.request.format === "mp4" && batch.downloadUrl && batch.videoFile ? (
+					<div className='space-y-2'>
+						<video
+							src={batch.downloadUrl}
+							controls
+							playsInline
+							draggable
+							aria-label='Exported video'
+							className='max-h-72 w-full cursor-grab rounded-xl bg-black active:cursor-grabbing'
+							onDragStart={(event) => {
+								event.dataTransfer.clearData();
+								event.dataTransfer.items.add(batch.videoFile!);
+								event.dataTransfer.effectAllowed = "copy";
+							}}
+						/>
+						<p className='text-xs text-muted'>Drag the video to an upload area, or use Download MP4. Dragging support depends on your browser and the destination.</p>
+					</div>
 				) : null}
 				<ul aria-label={`Export ${batch.id} files`} className='max-h-72 divide-y divide-separator overflow-y-auto overscroll-contain'>
 					{batch.clips.map((clip, index) => {

@@ -7,7 +7,7 @@ Feature: Creator library story 4
     Given one then twenty-five then fifty eligible small MP4 fixtures
     And the required fixture class is "<example>"
     When I export each explicitly selected set
-    Then one ZIP per set has exactly those complete MP4s and a manifest for every ID
+    Then one video or ZIP contains exactly the selected complete MP4s without a metadata sidecar
 
     Examples:
       | example |

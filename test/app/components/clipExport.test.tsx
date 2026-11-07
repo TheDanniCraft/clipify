@@ -31,7 +31,7 @@ const releaseArchive = jest.fn(async () => {});
 const cleanupDisk = jest.fn(async () => {});
 jest.mock("@lib/clipBrowserArchive", () => ({ ...jest.requireActual("@lib/clipBrowserArchive"), cleanupBrowserExports: () => cleanupDisk(), buildBrowserArchive: (...args: unknown[]) => diskArchive(...args) }));
 beforeEach(() =>
-	diskArchive.mockImplementation(async (plans, startedAt, signal, progress) => {
+	diskArchive.mockClear().mockImplementation(async (plans, startedAt, signal, progress) => {
 		const included: number[] = [],
 			skipped: any[] = [];
 		let offset = 0,
@@ -200,8 +200,8 @@ it("rejects a zero-byte ZIP response before initiating a download", async () => 
 });
 
 function successResponse(summary: unknown) {
-	const { zipSync, strToU8 } = jest.requireActual("fflate");
-	const bytes = zipSync({ "manifest.json": strToU8("{}"), "clip.mp4": new Uint8Array([1, 2, 3]) });
+	const { zipSync } = jest.requireActual("fflate");
+	const bytes = zipSync({ "clip.mp4": new Uint8Array([1, 2, 3]) });
 	let done = false;
 	return { ok: true, headers: { get: (name: string) => (name === "content-type" ? "application/zip" : btoa(JSON.stringify(summary)).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_")) }, body: { getReader: () => ({ read: async () => (done ? { done: true } : ((done = true), { done: false, value: bytes })), releaseLock: jest.fn(), cancel: jest.fn() }) } };
 }
@@ -336,7 +336,7 @@ it("downloads individual MP4 and supports reopening and dismissing result detail
 	Object.defineProperty(URL, "createObjectURL", { configurable: true, value: create });
 	Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: jest.fn() });
 	const click = jest.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
-		expect(this.download).toBe("clipify-A.mp4");
+		expect(this.download).toBe("clip Original--A.mp4");
 	});
 	render(
 		<ClipExportProvider creatorId='owner'>
@@ -661,4 +661,39 @@ it("does not break export controls when abandoned-cache cleanup is unavailable",
 	render(<ClipExport creatorId='owner' clipIds={["A"]} scope='owner' />);
 	await waitFor(() => expect(cleanupDisk).toHaveBeenCalled());
 	expect(screen.getByRole("button", { name: "Export selected" })).toBeEnabled();
+});
+
+it.each([1, 2])("exports %i versions of one clip with the correct file type and single-video preview", async (count) => {
+	const { createClipExportPlan } = await import("@lib/clipExportPlan");
+	const plans = createClipExportPlan(
+		"owner",
+		["A"],
+		Array.from({ length: count }, (_, i) => ({ key: `version${i}`, label: `Version ${i}` })),
+	);
+	const Trigger = () => {
+		const queue = useClipExports()!;
+		return <button onClick={() => queue.enqueuePlans(plans, { A: "My clip" }, "single")}>Queue versions</button>;
+	};
+	Object.defineProperty(URL, "createObjectURL", { configurable: true, value: jest.fn(() => "blob:video") });
+	Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: jest.fn() });
+	const download = jest.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+	render(
+		<ClipExportProvider creatorId='owner'>
+			<Trigger />
+		</ClipExportProvider>,
+	);
+	fireEvent.click(screen.getByRole("button", { name: "Queue versions" }));
+	await screen.findByRole("button", { name: count === 1 ? "Download MP4" : "Download ZIP" });
+	expect(download).toHaveBeenCalledTimes(1);
+	expect(browserBatch.mock.calls[0][4]).toBe(count === 1 ? "mp4" : "zip");
+	const video = screen.queryByLabelText("Exported video");
+	if (count === 1) {
+		expect(video).toHaveAttribute("src", "blob:video");
+		const add = jest.fn(),
+			clearData = jest.fn();
+		fireEvent.dragStart(video!, { dataTransfer: { items: { add }, clearData } });
+		expect(add).toHaveBeenCalledWith(expect.objectContaining({ name: "My clip Version 0--A.mp4", type: "video/mp4" }));
+		expect(clearData).toHaveBeenCalled();
+		expect(diskArchive).not.toHaveBeenCalled();
+	} else expect(video).toBeNull();
 });

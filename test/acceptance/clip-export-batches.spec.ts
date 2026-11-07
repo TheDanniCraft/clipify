@@ -48,7 +48,9 @@ for (const width of [390, 1440])
 			await expect(page.getByRole("button", { name: "Exports", exact: true })).toBeVisible();
 			await page.getByRole("row", { name: "Streams", exact: true }).click();
 			await expect(page).toHaveURL(/\/dashboard\/streams$/);
-			await (await download).saveAs(info.outputPath("batch.zip"));
+			const media = await download;
+			expect(media.suggestedFilename()).toMatch(/\.mp4$/);
+			await media.saveAs(info.outputPath("single.mp4"));
 			if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
 			const sidebar = page.locator(`[data-slot="${width === 390 ? "sidebar-mobile" : "sidebar"}"]`);
 			const utilities = sidebar.locator("[data-dashboard-utility]");

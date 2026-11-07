@@ -4,7 +4,6 @@ import type { ClipExportProgress } from "./clipExportStream";
 import { buildBrowserBatch } from "./clipBrowserBatch";
 export type BrowserArchiveSink = {
 	add: (name: string, bytes: Uint8Array<ArrayBuffer>) => Promise<string>;
-	manifest: (items: Record<string, unknown>[]) => Promise<void>;
 };
 export function exportArchiveName(startedAt: string) {
 	return `clipify-export-${startedAt.replaceAll(":", "-").replace(/\.\d{3}Z$/, "Z")}.zip`;
@@ -54,7 +53,7 @@ export async function createBrowserArchive(startedAt: string) {
 	await cleanAbandoned(root);
 	const id = `export-${crypto.randomUUID()}`,
 		release = await lease(id);
-	let output: WritableStreamDefaultWriter<Uint8Array<ArrayBufferLike>> | undefined, metadata: WritableStreamDefaultWriter<Uint8Array<ArrayBufferLike>> | undefined;
+	let output: WritableStreamDefaultWriter<Uint8Array<ArrayBufferLike>> | undefined;
 	const controller = new AbortController();
 	const dispose = async () => {
 		await root.removeEntry(id, { recursive: true }).catch(() => {});
@@ -62,23 +61,17 @@ export async function createBrowserArchive(startedAt: string) {
 	};
 	const abort = async () => {
 		controller.abort();
-		await Promise.allSettled([output?.abort(), metadata?.abort()]);
+		await Promise.allSettled([output?.abort()]);
 		await dispose();
 	};
 	try {
 		const dir = await root.getDirectoryHandle(id, { create: true });
-		const zipHandle = await dir.getFileHandle("export.zip", { create: true }),
-			manifestHandle = await dir.getFileHandle("manifest.json", { create: true });
+		const zipHandle = await dir.getFileHandle(exportArchiveName(startedAt), { create: true });
 		output = (await zipHandle.createWritable()).getWriter();
-		metadata = (await manifestHandle.createWritable()).getWriter();
-		const disk = output,
-			records = metadata,
-			encode = new TextEncoder();
-		const { ZipWriter, Uint8ArrayReader, BlobReader } = await import("@zip.js/zip.js");
+		const disk = output;
+		const { ZipWriter, Uint8ArrayReader } = await import("@zip.js/zip.js");
 		const zip = new ZipWriter(new WritableStream({ write: (chunk) => disk.write(chunk) }), { level: 0, bufferedWrite: false, zip64: true, useWebWorkers: false, preventClose: true, signal: controller.signal });
-		let count = 0;
 		const names = new Set<string>();
-		await records.write(encode.encode(JSON.stringify({ version: 1, createdAt: startedAt }).slice(0, -1) + ',"clips":['));
 		return {
 			add: async (name: string, bytes: Uint8Array<ArrayBuffer>) => {
 				let unique = name,
@@ -92,18 +85,9 @@ export async function createBrowserArchive(startedAt: string) {
 				}
 				return unique;
 			},
-			manifest: async (items: Record<string, unknown>[]) => {
-				if (!items.length) return;
-				await records.write(encode.encode((count ? "," : "") + JSON.stringify(items).slice(1, -1)));
-				count += items.length;
-			},
 			finish: async () => {
-				await records.write(encode.encode("]}"));
-				await records.close();
-				await zip.add("manifest.json", new BlobReader(await manifestHandle.getFile()));
 				await zip.close();
 				await disk.close();
-				await dir.removeEntry("manifest.json");
 				return { file: await zipHandle.getFile(), dispose };
 			},
 			abort,

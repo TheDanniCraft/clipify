@@ -66,7 +66,7 @@ export function isCompleteMp4(bytes: Uint8Array) {
 	return kinds.has("ftyp") && kinds.has("moov") && kinds.has("mdat");
 }
 
-export const EXPORT_LIMITS = { file: 32 * 1024 * 1024, media: 128 * 1024 * 1024, manifest: 1024 * 1024, archive: 130 * 1024 * 1024 } as const;
+export const EXPORT_LIMITS = { file: 32 * 1024 * 1024, media: 128 * 1024 * 1024, providerResponse: 1024 * 1024, archive: 130 * 1024 * 1024 } as const;
 export type ExportSummary = { included: number[]; skipped: { index: number; code: string; retryable: boolean; title?: string }[]; retryAt?: string };
 type ArchiveResult = { ok: true; bytes: Uint8Array; summary: ExportSummary; filename?: string } | { ok: false; code: string; status: number; retryAt?: string; failures?: ExportSummary["skipped"] };
 const failure = (code: string, status: number, retryAt?: string): Extract<ArchiveResult, { ok: false }> => ({ ok: false, code, status, ...(retryAt ? { retryAt } : {}) });
@@ -219,7 +219,7 @@ async function resolveExportSources(creatorId: string, clipIds: string[], clips:
 				indices.forEach((index) => skip(index, "provider_error"));
 				continue;
 			}
-			const payload = providerSchema.parse(JSON.parse(new TextDecoder().decode(await readBoundedResponse(response, EXPORT_LIMITS.manifest, signal))));
+			const payload = providerSchema.parse(JSON.parse(new TextDecoder().decode(await readBoundedResponse(response, EXPORT_LIMITS.providerResponse, signal))));
 			recordExportSources(indices, clipIds, payload.data, landscapeOnly, sources, skip);
 		} catch {
 			signal.throwIfAborted();
@@ -249,7 +249,7 @@ function emptyArchiveResult(summary: ExportSummary) {
 	const code = clipExportFailureCode(summary.skipped);
 	return { ...failure(code, code === "EXPORT_LIMIT" ? 413 : code === "RECONNECT_REQUIRED" ? 403 : code === "RATE_LIMITED" ? 429 : code === "PROVIDER_UNAVAILABLE" ? 502 : code === "EXPORT_TIMEOUT" ? 504 : 409, summary.retryAt), failures: summary.skipped };
 }
-async function finishClipArchive(creatorId: string, clipIds: string[], clips: ExportClips, files: Record<string, Uint8Array>, manifest: Record<string, unknown>[], summary: ExportSummary, format: "zip" | "mp4", signal: AbortSignal): Promise<ArchiveResult> {
+async function finishClipArchive(creatorId: string, files: Record<string, Uint8Array>, summary: ExportSummary, format: "zip" | "mp4", signal: AbortSignal): Promise<ArchiveResult> {
 	const authorize = () => authorizeClipExport(creatorId);
 	signal.throwIfAborted();
 	const permission = await authorize();
@@ -259,21 +259,16 @@ async function finishClipArchive(creatorId: string, clipIds: string[], clips: Ex
 	if (format === "mp4") {
 		const finalGrant = await authorize();
 		if (!finalGrant.allowed) return failure(finalGrant.code, 403);
-		const filename = String(manifest[0].filename);
+		const filename = Object.keys(files)[0];
 		return { ok: true, bytes: files[filename], filename, summary };
 	}
-	for (const skipped of summary.skipped) manifest.push({ ...publicClip(clips[skipped.index]!.clip), status: "skipped", code: skipped.code, retryable: skipped.retryable });
-	manifest.sort((a, b) => clipIds.indexOf(String(a.id)) - clipIds.indexOf(String(b.id)));
-	const manifestBytes = strToU8(JSON.stringify({ version: 1, createdAt: new Date().toISOString(), clips: manifest }));
-	if (manifestBytes.length > EXPORT_LIMITS.manifest) return failure("EXPORT_LIMIT", 413);
-	files["manifest.json"] = manifestBytes;
 	const bytes = zipSync(files, { level: 0 });
 	if (bytes.length > EXPORT_LIMITS.archive) return failure("EXPORT_LIMIT", 413);
 	const finalGrant = await authorize();
 	if (!finalGrant.allowed) return failure(finalGrant.code, 403);
 	return { ok: true, bytes, summary };
 }
-function appendArchiveResults(results: Awaited<ReturnType<typeof downloadExportClip>>[], clips: ExportClips, sources: Map<number, ExportSource>, layout: ClipLayout | ClipComposition | undefined, files: Record<string, Uint8Array>, manifest: Record<string, unknown>[], used: Set<string>, summary: ExportSummary, totalBytes: number, skip: (index: number, code: string) => void, progress?: (event: ClipExportProgress) => void) {
+function appendArchiveResults(results: Awaited<ReturnType<typeof downloadExportClip>>[], clips: ExportClips, files: Record<string, Uint8Array>, used: Set<string>, summary: ExportSummary, totalBytes: number, skip: (index: number, code: string) => void, progress?: (event: ClipExportProgress) => void) {
 	for (const result of results) {
 		if (!result.bytes) {
 			if (result.retryAt && (!summary.retryAt || result.retryAt > summary.retryAt)) summary.retryAt = result.retryAt;
@@ -290,7 +285,6 @@ function appendArchiveResults(results: Awaited<ReturnType<typeof downloadExportC
 		totalBytes += result.bytes.length;
 		summary.included.push(result.index);
 		progress?.({ index: result.index, stage: "ready" });
-		manifest.push({ ...publicClip(clip), status: "included", filename, bytes: result.bytes.length, variant: layout ? "portrait" : sources.get(result.index)!.variant });
 	}
 	return totalBytes;
 }
@@ -326,7 +320,6 @@ async function prepareClipArchive(input: unknown, parentSignal?: AbortSignal, fo
 		const sourceFailure = await resolveExportSources(creatorId, clipIds, clips, token, signal, Boolean(parsed.data.layout || landscapeOnly), summary, sources, skip);
 		if (sourceFailure) return sourceFailure;
 		const files: Record<string, Uint8Array> = {};
-		const manifest: Record<string, unknown>[] = [];
 		const used = new Set<string>();
 		let totalBytes = 0;
 		const indices = [...sources.keys()];
@@ -336,9 +329,9 @@ async function prepareClipArchive(input: unknown, parentSignal?: AbortSignal, fo
 			if (!permission.allowed) return failure(permission.code, 403);
 			const pair = indices.slice(offset, offset + 2);
 			const results = await Promise.all(pair.map((index) => downloadExportClip(index, sources.get(index)!.url, creatorId, clips[index]!.clip, parsed.data.layout, permission, signal, progress, preset)));
-			totalBytes = appendArchiveResults(results, clips, sources, parsed.data.layout, files, manifest, used, summary, totalBytes, skip, progress);
+			totalBytes = appendArchiveResults(results, clips, files, used, summary, totalBytes, skip, progress);
 		}
-		return await finishClipArchive(creatorId, clipIds, clips, files, manifest, summary, format, signal);
+		return await finishClipArchive(creatorId, files, summary, format, signal);
 	} catch {
 		return exportAbortResult(signal, parentSignal);
 	}
@@ -386,9 +379,7 @@ function plannedOverride(templateId: string | undefined, clipId: string, base: C
 	const legacy = overrides.get(`clip-layout-override:v2:${templateId}:${clipId}`);
 	return overrides.get(`clip-layout-override:v2:${templateId}:${clipId}:${format}`) ?? (legacy?.format === format ? legacy : undefined);
 }
-function plannedOutputFormat(layout: ClipLayout | ClipComposition | undefined, legacy: boolean) {
-	return layout?.version === 2 ? layout.format : legacy ? "mobile" : "original";
-}
+
 async function renderPlannedExport(plan: z.infer<typeof clipExportPlanSchema>, file: z.infer<typeof clipExportPlanSchema>["files"][number], index: number, outputLayouts: Map<string, ClipLayout | ClipComposition | undefined>, overrides: Map<string, ClipComposition>, signal: AbortSignal, title: (index: number) => string, progress?: (event: ClipExportProgress) => void) {
 	const creatorId = plan.creatorId;
 
@@ -400,8 +391,8 @@ async function renderPlannedExport(plan: z.infer<typeof clipExportPlanSchema>, f
 	const result = await prepareClipArchive({ creatorId, clipIds: [file.clipId], ...(layout ? { layout } : {}) }, signal, "mp4", (event) => progress?.({ ...event, index, title: title(index) }), true, true, layout ? plan.preset : undefined);
 	return { index, result, output };
 }
-type ExportPackage = { files: Record<string, Uint8Array>; manifest: Record<string, unknown>[]; used: Set<string>; summary: ExportSummary; total: number };
-function appendPlanResults(results: Awaited<ReturnType<typeof renderPlannedExport>>[], plan: z.infer<typeof clipExportPlanSchema>, known: Map<string, NonNullable<ExportClips[number]>["clip"]>, outputLayouts: Map<string, ClipLayout | ClipComposition | undefined>, state: ExportPackage, title: (index: number) => string, progress?: (event: ClipExportProgress) => void) {
+type ExportPackage = { files: Record<string, Uint8Array>; used: Set<string>; summary: ExportSummary; total: number };
+function appendPlanResults(results: Awaited<ReturnType<typeof renderPlannedExport>>[], plan: z.infer<typeof clipExportPlanSchema>, known: Map<string, NonNullable<ExportClips[number]>["clip"]>, state: ExportPackage, title: (index: number) => string, progress?: (event: ClipExportProgress) => void) {
 	const skip = (index: number, code: string, retryable: boolean) => {
 		state.summary.skipped.push({ index, code, retryable, title: title(index).slice(0, 80) });
 		progress?.({ index, stage: "skipped", code });
@@ -424,12 +415,11 @@ function appendPlanResults(results: Awaited<ReturnType<typeof renderPlannedExpor
 		state.files[filename] = result.bytes;
 		state.total += result.bytes.length;
 		state.summary.included.push(index);
-		state.manifest.push({ ...publicClip(clip), status: "included", filename, bytes: result.bytes.length, outputKey: output.key, outputLabel: output.label, format: plannedOutputFormat(outputLayouts.get(output.key), Boolean(output.layout)) });
 		progress?.({ index, stage: "ready", title: title(index) });
 	}
 	return null;
 }
-async function finishExportPlan(plan: z.infer<typeof clipExportPlanSchema>, known: Map<string, NonNullable<ExportClips[number]>["clip"]>, files: Record<string, Uint8Array>, manifest: Record<string, unknown>[], summary: ExportSummary, format: "zip" | "mp4", signal: AbortSignal): Promise<ArchiveResult> {
+async function finishExportPlan(plan: z.infer<typeof clipExportPlanSchema>, files: Record<string, Uint8Array>, summary: ExportSummary, format: "zip" | "mp4", signal: AbortSignal): Promise<ArchiveResult> {
 	const authorize = () => authorizeClipExport(plan.creatorId);
 	signal.throwIfAborted();
 	const permission = await authorize();
@@ -439,15 +429,10 @@ async function finishExportPlan(plan: z.infer<typeof clipExportPlanSchema>, know
 		const code = summary.skipped.some((item) => item.code === "package_size_limit" || item.code === "file_size_limit") ? "EXPORT_LIMIT" : summary.skipped.some((item) => item.code === "reconnect_required") ? "RECONNECT_REQUIRED" : summary.skipped.some((item) => item.code === "rate_limited") ? "RATE_LIMITED" : "EXPORT_UNAVAILABLE";
 		return { ...failure(code, code === "RATE_LIMITED" ? 429 : 422, summary.retryAt), failures: summary.skipped };
 	}
-	if (format === "mp4") return { ok: true, bytes: files[String(manifest[0].filename)], filename: String(manifest[0].filename), summary };
-	for (const item of summary.skipped) {
-		const file = plan.files[item.index],
-			output = plan.outputs.find((output) => output.key === file.outputKey)!;
-		manifest.push({ ...publicClip(known.get(file.clipId)!), status: "skipped", outputKey: output.key, outputLabel: output.label, code: item.code, retryable: item.retryable });
+	if (format === "mp4") {
+		const filename = Object.keys(files)[0];
+		return { ok: true, bytes: files[filename], filename, summary };
 	}
-	const data = strToU8(JSON.stringify({ version: 2, createdAt: new Date().toISOString(), clips: manifest, skipped: summary.skipped }, null, 2));
-	if (data.length > EXPORT_LIMITS.manifest) return failure("EXPORT_LIMIT", 413);
-	files["manifest.json"] = data;
 	const bytes = zipSync(files, { level: 0 });
 	if (bytes.length > EXPORT_LIMITS.archive) return failure("EXPORT_LIMIT", 413);
 	const finalGrant = await authorize();
@@ -475,9 +460,8 @@ export async function buildClipExportPlan(input: unknown, parentSignal?: AbortSi
 		if (!access.ok) return access;
 		const summary: ExportSummary = { included: [], skipped: [] },
 			files: Record<string, Uint8Array> = {},
-			manifest: Record<string, unknown>[] = [],
 			used = new Set<string>();
-		const state: ExportPackage = { files, manifest, used, summary, total: 0 };
+		const state: ExportPackage = { files, used, summary, total: 0 };
 		const title = (index: number) => {
 			const file = plan.files[index],
 				output = plan.outputs.find((output) => output.key === file.outputKey)!;
@@ -488,10 +472,10 @@ export async function buildClipExportPlan(input: unknown, parentSignal?: AbortSi
 		for (let offset = 0; offset < plan.files.length; offset += 2) {
 			signal.throwIfAborted();
 			const results = await Promise.all(plan.files.slice(offset, offset + 2).map((file, position) => renderPlannedExport(plan, file, offset + position, outputLayouts, overrides, signal, title, progress)));
-			const appendFailure = appendPlanResults(results, plan, known, outputLayouts, state, title, progress);
+			const appendFailure = appendPlanResults(results, plan, known, state, title, progress);
 			if (appendFailure) return appendFailure;
 		}
-		return await finishExportPlan(plan, known, files, manifest, summary, format, signal);
+		return await finishExportPlan(plan, files, summary, format, signal);
 	} catch {
 		return exportAbortResult(signal, parentSignal);
 	}

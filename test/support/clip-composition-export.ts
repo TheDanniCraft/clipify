@@ -65,20 +65,22 @@ export async function downloadCompositionExports({ page, tourWorld }: Context, s
 export async function verifyCompositionExports({ tourWorld }: Context, state: CompositionExportState, info: TestInfo) {
 	const { creatorId, id, foreign, path } = state;
 	const { readFile, writeFile } = await import("node:fs/promises"),
-		{ unzipSync, strFromU8 } = await import("fflate");
+		{ unzipSync } = await import("fflate");
 	const files = unzipSync(await readFile(path!)),
-		manifest = JSON.parse(strFromU8(files["manifest.json"]));
-	expect(manifest.clips).toHaveLength(5);
-	expect(manifest.clips.map((clip: any) => clip.outputLabel)).toEqual(["Original", "Camera mobile Desktop", "Camera mobile Mobile", "Main desktop Desktop", "Main desktop Mobile"]);
-	for (const [index, clip] of manifest.clips.entries()) {
+		names = Object.keys(files);
+	const labels = ["Original", "Camera mobile Desktop", "Camera mobile Mobile", "Main desktop Desktop", "Main desktop Mobile"];
+	expect(names).toHaveLength(5);
+	expect(names.every((name) => name.endsWith(".mp4"))).toBe(true);
+	for (const [index, filename] of names.entries()) {
+		expect(filename).toContain(labels[index]);
+		expect(filename).toContain(id);
 		const mediaPath = info.outputPath(`version-${index}.mp4`);
-		await writeFile(mediaPath, files[clip.filename]);
+		await writeFile(mediaPath, files[filename]);
 		const media = JSON.parse(execFileSync("ffprobe", ["-v", "quiet", "-show_streams", "-of", "json", mediaPath], { encoding: "utf8" }));
-		if (index) expect(media.streams.find((s: any) => s.codec_type === "video")).toMatchObject(clip.format === "desktop" ? { width: 1280, height: 720 } : { width: 720, height: 1280 });
-		expect(clip.id).toBe(id);
+		if (index) expect(media.streams.find((s: any) => s.codec_type === "video")).toMatchObject(labels[index].endsWith("Desktop") ? { width: 1280, height: 720 } : { width: 720, height: 1280 });
 	}
-	const desktopFile = manifest.clips.find((clip: any) => clip.outputLabel === "Main desktop Desktop"),
-		originalFile = manifest.clips.find((clip: any) => clip.outputLabel === "Original");
+	const desktopFile = { filename: names[3] },
+		originalFile = { filename: names[0] };
 	const originalPath = info.outputPath("source-for-parity.mp4"),
 		desktopPath = info.outputPath("desktop-override.mp4");
 	await writeFile(originalPath, files[originalFile.filename]);

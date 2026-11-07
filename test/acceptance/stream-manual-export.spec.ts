@@ -46,6 +46,10 @@ test("saved stream exports every filtered clip across pages after Twitch removes
 	await page.getByRole("button", { name: "Select all 59 clips", exact: true }).click();
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("59 selected");
 	await page.screenshot({ path: info.outputPath("archived-filtered-stream.png"), fullPage: true, animations: "disabled" });
+	const prepared: { id: string; videoId?: string; views?: number }[] = [];
+	page.on("response", async (response) => {
+		if (new URL(response.url()).pathname === "/api/clips/export/browser" && response.ok()) prepared.push(...(await response.json()).clips);
+	});
 	const downloads: import("@playwright/test").Download[] = [];
 	page.on("download", (download) => downloads.push(download));
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
@@ -53,17 +57,22 @@ test("saved stream exports every filtered clip across pages after Twitch removes
 	await page.getByRole("button", { name: "Start export", exact: true }).click();
 	await expect(page.getByRole("button", { name: "Cancel export", exact: true })).toHaveCount(0, { timeout: 130000 });
 	await expect.poll(() => downloads.length, { timeout: 90000 }).toBe(1);
-	const included: string[] = [];
+	await expect.poll(() => prepared.length).toBe(expected.length);
+	expect(prepared.map((clip) => clip.id).sort()).toEqual([...expected].sort());
+	for (const clip of prepared) {
+		expect(clip.videoId).toBe("12345");
+		expect(clip.views).toBeGreaterThanOrEqual(10);
+	}
 	for (const download of downloads) {
 		const entries = unzipSync(await readFile((await download.path())!));
-		const manifest = JSON.parse(strFromU8(entries["manifest.json"]));
-		for (const item of manifest.clips) {
-			expect(item.status).toBe("included");
-			expect(item.videoId).toBe("12345");
-			expect(item.views).toBeGreaterThanOrEqual(10);
-			included.push(item.id);
+		const names = Object.keys(entries);
+		expect(names).toHaveLength(expected.length);
+		expect(names.every((name) => name.endsWith(".mp4"))).toBe(true);
+		for (const id of expected) {
+			const namesForClip = names.filter((name) => name.includes(id));
+			expect(namesForClip).toHaveLength(1);
+			expect(strFromU8(entries[namesForClip[0]].slice(4, 8))).toBe("ftyp");
 		}
 		await download.delete();
 	}
-	expect(included.sort()).toEqual(expected.sort());
 });

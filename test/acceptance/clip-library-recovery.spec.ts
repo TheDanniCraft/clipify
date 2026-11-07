@@ -57,7 +57,7 @@ for (const mode of ["provider_429", "provider_5xx"])
 			await retry.click();
 		}
 		const archive = await download;
-		expect(archive.suggestedFilename()).toMatch(/\.zip$/);
+		expect(archive.suggestedFilename()).toMatch(/\.mp4$/);
 		await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("1 selected");
 	});
 for (const mode of ["deleted", "html", "truncated"])
@@ -91,8 +91,8 @@ for (const width of [390, 1440])
 			await page.getByRole("button", { name: "Start export", exact: true }).click();
 			const archive = await firstDownload;
 			const entries = unzipSync(new Uint8Array(await readFile((await archive.path())!)));
-			const manifest = JSON.parse(strFromU8(entries["manifest.json"]));
-			expect(manifest.clips.filter((clip: { status: string }) => clip.status === "included").map((clip: { id: string }) => clip.id)).toEqual([seeded.id]);
+			expect(Object.keys(entries)).toEqual([expect.stringContaining(seeded.id)]);
+			expect(Object.keys(entries).every((name) => name.endsWith(".mp4"))).toBe(true);
 			await expect(page.getByRole("dialog", { name: "Clip exports" }).getByText(/1 file skipped/)).toBeVisible();
 			await expect(page.getByRole("button", { name: "Download ZIP", exact: true })).toBeVisible();
 			await page.getByRole("dialog", { name: "Clip exports" }).screenshot({ path: info.outputPath("partial-export.png") });
@@ -159,15 +159,14 @@ test("Clip export rejects a mixed owned and foreign selection before emitting me
 	expect(result.status).toBe(400);
 	expect(result.body.code).toBe("INVALID_INPUT");
 });
-test("Clip export records portrait fallback in the downloaded manifest", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
+test("Clip export preserves portrait fallback without a metadata sidecar", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
 	const seeded = await setup({ page, request, tourWorld }, "portrait_only");
 	// The compatibility API retains portrait fallback; configured Original exports require landscape.
 	const response = await page.request.post(`${tourWorld.origin}/api/clips/export`, { headers: { Origin: tourWorld.origin }, data: { creatorId: seeded.creatorId, clipIds: [seeded.id] } });
 	expect(response.status()).toBe(200);
-	const manifest = JSON.parse(strFromU8(unzipSync(new Uint8Array(await response.body()))["manifest.json"]));
-	expect(manifest.clips).toHaveLength(1);
-	expect(manifest.clips[0].variant).toBe("portrait");
-	expect(manifest.clips[0].status).toBe("included");
+	const entries = unzipSync(new Uint8Array(await response.body()));
+	expect(Object.keys(entries)).toEqual([expect.stringContaining(seeded.id)]);
+	expect(strFromU8(Object.values(entries)[0].slice(4, 8))).toBe("ftyp");
 });
 
 test("Clip inventory renders a warm ten-thousand-clip page within two seconds", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }, info) => {
@@ -256,11 +255,11 @@ test("Maximum clips download in one intact ZIP with measured browser memory", { 
 			const bytes = new Uint8Array(await readFile((await archive.path())!));
 			archiveBytes += bytes.length;
 			const entries = unzipSync(bytes);
-			const manifest = JSON.parse(strFromU8(entries["manifest.json"]));
-			const included = manifest.clips.filter((clip: { status: string }) => clip.status === "included");
-			includedIds.push(...included.map((clip: { id: string }) => clip.id));
+			const names = Object.keys(entries);
+			expect(names.every((name) => name.endsWith(".mp4"))).toBe(true);
+			includedIds.push(...names);
 			const videos = Object.entries(entries).filter(([name]) => name.endsWith(".mp4"));
-			expect(videos).toHaveLength(included.length);
+			expect(videos).toHaveLength(4);
 			expect(videos.every(([, bytes]) => bytes.length === 32 * 1024 * 1024)).toBe(true);
 			await archive.delete();
 		}
@@ -284,17 +283,16 @@ test("Reapplying filters reads updated cached metadata and retains selection", {
 });
 
 test("Clip export downloads Twitch legacy CDN media intact", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
-	const seeded = await setup({ page, request, tourWorld }, "legacy_cdn");
+	await setup({ page, request, tourWorld }, "legacy_cdn");
 	const download = page.waitForEvent("download");
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
 	await page.getByRole("dialog", { name: "Export clips", exact: true }).getByRole("button", { name: "Next", exact: true }).click();
 	await page.getByRole("button", { name: "Start export", exact: true }).click();
-	const archive = await download;
-	const entries = unzipSync(await readFile((await archive.path())!));
-	const manifest = JSON.parse(strFromU8(entries["manifest.json"]));
-	expect(manifest.clips).toHaveLength(1);
-	expect(manifest.clips[0]).toMatchObject({ id: seeded.id, status: "included" });
-	expect(strFromU8(entries[manifest.clips[0].filename].slice(4, 8))).toBe("ftyp");
+	const media = await download;
+	expect(media.suggestedFilename()).toMatch(/\.mp4$/);
+	const bytes = await readFile((await media.path())!);
+	expect(bytes.subarray(4, 8).toString()).toBe("ftyp");
+	await expect(page.getByLabel("Exported video", { exact: true })).toBeVisible();
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("1 selected");
 });
 

@@ -1,9 +1,9 @@
 /** @jest-environment node */
 import { readClipExportResponse, EXPORT_STREAM_TYPE } from "@lib/clipExportStream";
-import { zipSync, strToU8 } from "fflate";
+import { zipSync } from "fflate";
 const encode = (value: unknown) => new TextEncoder().encode(JSON.stringify(value) + "\n");
 const summary = Buffer.from(JSON.stringify({ included: [0], skipped: [] })).toString("base64url");
-const media = zipSync({ "manifest.json": strToU8("{}") });
+const media = zipSync({ "clip.mp4": new Uint8Array([1, 2, 3]) });
 function response(parts: Uint8Array[]) {
 	return new Response(
 		new ReadableStream({

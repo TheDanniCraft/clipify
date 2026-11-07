@@ -82,29 +82,29 @@ it.each(["recipe", "media"])("retains available files and does not retry known u
 	}
 	expect(fetch).toHaveBeenCalledTimes(mode === "recipe" ? 2 : 3);
 });
-it("retains public export metadata and byte counts without including source capabilities", async () => {
+it("exports only video bytes without source capabilities or a metadata sidecar", async () => {
 	const plan = createClipExportPlan("creator", ["ClipA"], [{ key: "original", label: "Original" }])[0];
-	const recipe = { ok: true, clips: [{ id: "ClipA", title: "Synthetic", views: 42, duration: 1, categoryId: "123", broadcasterName: "Channel", createdAt: "2026-11-01T00:00:00Z", sourceToken: "secret-source-capability", outputs: [{ key: "original", label: "Original", layout: null, assets: {}, watermark: null }] }] };
+	const recipe = { ok: true, clips: [{ id: "ClipA", title: "Synthetic", sourceToken: "secret-source-capability", outputs: [{ key: "original", label: "Original", layout: null, assets: {}, watermark: null }] }] };
 	jest
 		.spyOn(globalThis, "fetch")
 		.mockResolvedValueOnce(Response.json(recipe))
 		.mockResolvedValueOnce(new Response(new Uint8Array([1, 2, 3])));
-	let manifest = "";
 	archive.mockImplementation((files: Record<string, Uint8Array>) => {
-		manifest = new TextDecoder().decode(files["manifest.json"]);
+		expect(Object.keys(files)).toHaveLength(1);
+		expect(Object.keys(files)[0]).toContain("Original");
+		expect(Object.keys(files)[0]).toMatch(/\.mp4$/);
+		expect(Object.values(files)[0]).toEqual(new Uint8Array([1, 2, 3]));
 		return new Uint8Array([1]);
 	});
-	await buildBrowserBatch(
+	const result = await buildBrowserBatch(
 		plan,
 		new AbortController().signal,
 		() => {},
 		() => {},
 	);
-	expect(JSON.parse(manifest).clips[0]).toMatchObject({ views: 42, duration: 1, categoryId: "123", broadcasterName: "Channel", status: "included", bytes: 3, format: "original" });
-	expect(JSON.parse(manifest).clips[0].filename).toContain("Original");
-	expect(manifest).not.toContain("secret-source-capability");
-	expect(JSON.parse(manifest).clips[0]).not.toHaveProperty("outputs");
+	expect(result).toMatchObject({ ok: true, summary: { included: [0], skipped: [] } });
 });
+
 it("reports an unavailable browser encoder as recoverable through explicit server processing", async () => {
 	const layout = createClipComposition("mobile");
 	const plan = createClipExportPlan("creator", ["ClipA"], [{ key: "mobile", label: "Mobile", layout }])[0];
@@ -160,16 +160,12 @@ it("writes each rendered file to an archive sink without making in-memory ZIP pa
 	renderVideo.mockResolvedValue(new Uint8Array(31 * 1024 * 1024));
 	const sink = {
 			add: jest.fn(async (name: string) => name),
-			manifest: jest.fn(async (items: Record<string, unknown>[]) => {
-				void items;
-			}),
 		},
 		part = jest.fn();
 	archive.mockClear();
 	const result = await buildBrowserBatch(plan, new AbortController().signal, () => {}, part, "zip", sink);
 	expect(result.ok).toBe(true);
 	expect(sink.add).toHaveBeenCalledTimes(5);
-	expect(sink.manifest.mock.calls[0][0]).toHaveLength(5);
 	expect(archive).not.toHaveBeenCalled();
 	expect(part).not.toHaveBeenCalled();
 });

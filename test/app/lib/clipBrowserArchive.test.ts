@@ -1,6 +1,6 @@
 /** @jest-environment node */
 import { buildBrowserArchive, cleanupBrowserExports, createBrowserArchive, exportArchiveName } from "@lib/clipBrowserArchive";
-import { unzipSync, strFromU8 } from "fflate";
+import { unzipSync } from "fflate";
 const packet = jest.fn();
 jest.mock("@lib/clipBrowserBatch", () => ({ buildBrowserBatch: (...args: unknown[]) => packet(...args) }));
 import { createClipExportPlan } from "@lib/clipExportPlan";
@@ -64,20 +64,18 @@ afterEach(() => {
 	if (original) Object.defineProperty(globalThis, "navigator", original);
 	else delete (globalThis as any).navigator;
 });
-it("writes one ZIP64 archive and complete metadata incrementally, then disposes its private files", async () => {
+it("writes one ZIP64 archive containing only complete videos incrementally, then disposes its private files", async () => {
 	const { root, persist, held } = storage();
 	const archive = await createBrowserArchive("2026-11-07T12:30:00.000Z");
 	const bytes = new TextEncoder().encode("video");
 	expect(await archive.add("clip.mp4", bytes)).toBe("clip.mp4");
 	expect(await archive.add("clip.mp4", bytes)).toBe("clip-2.mp4");
-	await archive.manifest([{ id: "A", filename: "clip.mp4" }]);
-	await archive.manifest([]);
-	await archive.manifest([{ id: "B", filename: "clip-2.mp4" }]);
 	const { file, dispose } = await archive.finish();
 	const data = new Uint8Array(await file.arrayBuffer());
 	const zip = unzipSync(data);
-	expect(Object.keys(zip)).toEqual(["clip.mp4", "clip-2.mp4", "manifest.json"]);
-	expect(JSON.parse(strFromU8(zip["manifest.json"])).clips).toHaveLength(2);
+	expect(Object.keys(zip)).toEqual(["clip.mp4", "clip-2.mp4"]);
+	expect(zip["clip.mp4"]).toEqual(bytes);
+	expect(zip["clip-2.mp4"]).toEqual(bytes);
 	expect(Buffer.from(data).includes(Buffer.from([0x50, 0x4b, 0x06, 0x06]))).toBe(true);
 	expect(persist).toHaveBeenCalled();
 	expect(held.size).toBe(1);
@@ -119,7 +117,7 @@ it("removes partial files when construction or entry writing fails", async () =>
 	expect(parent.items.size).toBe(0);
 });
 
-it("combines multiple processing packets into one archive with global progress and metadata", async () => {
+it("combines multiple processing packets into one archive with global progress", async () => {
 	const { root } = storage();
 	const plans = createClipExportPlan(
 		"owner",
@@ -129,8 +127,7 @@ it("combines multiple processing packets into one archive with global progress a
 	packet.mockImplementation(async (plan, signal, progress, onPart, format, sink) => {
 		const included = [];
 		for (const [index, item] of plan.files.entries()) {
-			const filename = await sink.add(`${item.clipId}.mp4`, new Uint8Array([index]));
-			await sink.manifest([{ id: item.clipId, filename }]);
+			await sink.add(`${item.clipId}.mp4`, new Uint8Array([index]));
 			progress({ index, stage: "ready" });
 			included.push(index);
 		}
@@ -144,8 +141,8 @@ it("combines multiple processing packets into one archive with global progress a
 	expect(result.summary.included).toHaveLength(51);
 	expect(progress).toHaveBeenLastCalledWith({ index: 50, stage: "ready" });
 	const zip = unzipSync(new Uint8Array(await result.bytes.arrayBuffer()));
-	expect(Object.keys(zip)).toHaveLength(52);
-	expect(JSON.parse(strFromU8(zip["manifest.json"])).clips).toHaveLength(51);
+	expect(Object.keys(zip)).toHaveLength(51);
+	expect(Object.keys(zip).every((name) => name.endsWith(".mp4"))).toBe(true);
 	await result.dispose();
 	expect(root.items.get("clipify-exports").items.size).toBe(0);
 });
@@ -234,9 +231,8 @@ it("continues with available disk storage when persistence permission is refused
 
 it("propagates retry progress and preserves skipped metadata in a partial archive", async () => {
 	storage();
-	packet.mockResolvedValueOnce({ ok: false, code: "RATE_LIMITED", retryAt: new Date(Date.now() - 1000).toISOString() }).mockImplementationOnce(async (plan, signal, progress, parts, format, sink) => {
+	packet.mockResolvedValueOnce({ ok: false, code: "RATE_LIMITED", retryAt: new Date(Date.now() - 1000).toISOString() }).mockImplementationOnce(async (plan, signal, progress) => {
 		progress({ index: 0, stage: "ready" });
-		await sink.manifest([{ id: "A", status: "skipped" }]);
 		return { ok: true, summary: { included: [1], skipped: [{ index: 0, code: "clip_unavailable", retryable: false }] } };
 	});
 	const progress = jest.fn();
@@ -280,7 +276,7 @@ it("aborts a partially written archive after a disk write error", async () => {
 			getFile = dir.getFileHandle;
 		dir.getFileHandle = async (key: string) => {
 			const file = await getFile(key);
-			if (key === "export.zip")
+			if (key.endsWith(".zip"))
 				file.createWritable = async () =>
 					new WritableStream({
 						write() {

@@ -1,6 +1,6 @@
 import type { BrowserArchiveSink } from "./clipBrowserArchive";
-import { zipSync, strToU8 } from "fflate";
-import { browserExportSchema, browserClipMetadataSchema, type BrowserExport } from "./clipBrowserExport";
+import { zipSync } from "fflate";
+import { browserExportSchema, type BrowserExport } from "./clipBrowserExport";
 import type { ClipExportPlan } from "./clipExportPlan";
 import { readBoundedResponse, clipExportFilename, clipExportFailureCode, isRetryableClipExportFailure, type ClipExportSummary } from "./clipExport";
 import type { ClipExportProgress } from "./clipExportStream";
@@ -28,24 +28,18 @@ export async function buildBrowserBatch(plan: ClipExportPlan, signal: AbortSigna
 	if (!response.ok) return { ok: false as const, code: typeof data.code === "string" ? data.code : "SERVICE_UNAVAILABLE", retryAt: data.retryAt as string | undefined };
 	const prepared = browserExportSchema.parse(data),
 		files: Record<string, Uint8Array> = {},
-		manifest: Record<string, unknown>[] = [],
 		used = new Set<string>();
 	const summary: ClipExportSummary = { included: [], skipped: [] };
 	let total = 0,
 		partCount = 1;
-	const packageBytes = () => {
-		files["manifest.json"] = strToU8(JSON.stringify({ version: 1, createdAt: new Date().toISOString(), clips: manifest }));
-		return zipSync(files, { level: 0 });
-	};
+	const packageBytes = () => zipSync(files, { level: 0 });
 	const flush = () => {
 		onPart?.(packageBytes(), partCount++);
 		for (const key of Object.keys(files)) delete files[key];
-		manifest.length = 0;
 		total = 0;
 	};
 	for (const clip of prepared.clips) {
 		signal.throwIfAborted();
-		const metadata = browserClipMetadataSchema.parse(clip);
 		const firstIndex = plan.files.findIndex((file) => file.clipId === clip.id);
 		progress({ index: firstIndex, stage: "processing" });
 		const source = await readBrowserSource(clip, signal);
@@ -64,7 +58,6 @@ export async function buildBrowserBatch(plan: ClipExportPlan, signal: AbortSigna
 					else files[filename] = bytes;
 					total += bytes.length;
 					summary.included.push(index);
-					manifest.push({ ...metadata, status: "included", filename, bytes: bytes.length, format: output.layout?.format ?? "original", outputLabel: output.label, outputKey: output.key });
 					progress({ index, stage: "ready" });
 					if (format === "mp4") return { ok: true, bytes, summary, partCount: 1 };
 				} catch (error) {
@@ -74,12 +67,10 @@ export async function buildBrowserBatch(plan: ClipExportPlan, signal: AbortSigna
 				}
 			if (code) {
 				summary.skipped.push({ index, code: code as ClipExportSummary["skipped"][number]["code"], retryable: isRetryableClipExportFailure(code), title: `${clip.title} / ${output.label}` });
-				manifest.push({ ...metadata, status: "skipped", code, retryable: isRetryableClipExportFailure(code), outputKey: output.key, outputLabel: output.label });
 				progress({ index, stage: "skipped", code });
 			}
 		}
 	}
-	if (sink) await sink.manifest(manifest);
 	if (!summary.included.length) return { ok: false as const, code: clipExportFailureCode(summary.skipped), failures: summary.skipped, retryAt: summary.retryAt };
 	return { ok: true as const, bytes: sink ? new Uint8Array(0) : packageBytes(), summary, partCount };
 }
