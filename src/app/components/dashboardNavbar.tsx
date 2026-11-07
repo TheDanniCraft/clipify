@@ -12,6 +12,7 @@ import { notify } from "@lib/toast";
 import { DashboardNavigationContext, DashboardNavigationControls, DashboardBreadcrumbs } from "@components/dashboardNavigation";
 import CountdownTimer from "@components/countdownTimer";
 import DashboardUserAvatar from "@components/dashboardUserAvatar";
+import ConfirmModal from "@components/confirmModal";
 import { useRouter } from "next/navigation";
 import { getAdminViewCandidates, stopAdminView, switchAdminView, type AdminViewCandidate } from "@actions/adminView";
 import { getActiveCampaignOfferAction } from "@actions/campaignOffers";
@@ -49,6 +50,7 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 	const router = useRouter();
 	const session = authClient.useSession();
 	const organizations = authClient.useListOrganizations();
+	const [logoutOpen, setLogoutOpen] = useState(false);
 	const [isClearingAdminView, setIsClearingAdminView] = useState(false);
 	const [isSwitchingAdminView, setIsSwitchingAdminView] = useState(false);
 	const [switchQuery, setSwitchQuery] = useState(user?.username ?? "");
@@ -262,7 +264,7 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 										<DashboardUserAvatar username={signedInUsername} avatar={signedInAvatar} showStatus />
 										{navigation.expanded ? <span className='min-w-0 flex-1 truncate text-sm font-medium'>{signedInUsername}</span> : null}
 										<Tooltip>
-											<Button isIconOnly variant='ghost' aria-label='Log out' className='shrink-0 text-muted' onPress={() => router.push("/logout")}>
+											<Button isIconOnly variant='ghost' aria-label='Log out' className='shrink-0 text-danger' onPress={() => setLogoutOpen(true)}>
 												<IconLogout className='size-4' />
 											</Button>
 											<Tooltip.Content>Log out</Tooltip.Content>
@@ -314,7 +316,7 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 												<Dropdown.Item id='help_and_feedback' textValue='Help' onAction={() => router.push("https://help.clipify.us/hc/clipify/articles/1769328012-getting-started-with-clipify")}>
 													<Label>Help</Label>
 												</Dropdown.Item>
-												<Dropdown.Item id='logout' textValue='Log Out' variant='danger' onAction={() => router.push("/logout")}>
+												<Dropdown.Item id='logout' textValue='Log Out' variant='danger' onAction={() => setLogoutOpen(true)}>
 													<Label>Log Out</Label>
 												</Dropdown.Item>
 											</Dropdown.Menu>
@@ -427,6 +429,19 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 					</div>
 				</ContentContainer>
 			</div>
+			<ConfirmModal
+				isOpen={logoutOpen}
+				onOpenChange={setLogoutOpen}
+				title='Log out?'
+				description='Are you sure you want to log out of Clipify?'
+				confirmLabel='Log out'
+				cancelLabel='Cancel'
+				confirmVariant='danger'
+				onConfirm={() => {
+					setLogoutOpen(false);
+					router.push("/logout");
+				}}
+			/>
 		</>
 	);
 }

@@ -53,6 +53,17 @@ jest.mock("@actions/campaignOffers", () => ({
 	getActiveCampaignOfferAction: (...args: unknown[]) => getActiveCampaignOfferAction(...args),
 }));
 
+jest.mock("@components/confirmModal", () => ({
+	__esModule: true,
+	default: ({ isOpen, title, onOpenChange, onConfirm }: { isOpen: boolean; title: string; onOpenChange: (open: boolean) => void; onConfirm: () => void }) =>
+		isOpen ? (
+			<div role='dialog' aria-label={title}>
+				<button onClick={() => onOpenChange(false)}>Cancel</button>
+				<button onClick={onConfirm}>Log out</button>
+			</div>
+		) : null,
+}));
+
 jest.mock("@components/logo", () => ({
 	__esModule: true,
 	default: () => <div>logo</div>,
@@ -170,6 +181,12 @@ describe("components/dashboardNavbar", () => {
 			const profile = await screen.findByRole("button", { name: "Log out" });
 			expect(screen.queryByRole("button", { name: "Open profile menu" })).not.toBeInTheDocument();
 			fireEvent.click(profile);
+			expect(routerPush).not.toHaveBeenCalledWith("/logout");
+			fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+			expect(screen.queryByRole("dialog", { name: "Log out?" })).not.toBeInTheDocument();
+			expect(routerPush).not.toHaveBeenCalledWith("/logout");
+			fireEvent.click(profile);
+			fireEvent.click(screen.getByRole("dialog", { name: "Log out?" }).querySelector("button:last-child")!);
 			expect(routerPush).toHaveBeenCalledWith("/logout");
 			const children = slot.querySelectorAll("[data-dashboard-account-controls] > li");
 			expect(children[children.length - 1]).toContainElement(profile);
@@ -361,6 +378,8 @@ describe("components/dashboardNavbar", () => {
 		expect(routerPush).toHaveBeenCalledWith("https://help.clipify.us/hc/clipify/articles/1769328012-getting-started-with-clipify");
 
 		fireEvent.click(screen.getByText("Log Out"));
+		expect(routerPush).not.toHaveBeenCalledWith("/logout");
+		fireEvent.click(screen.getByRole("dialog", { name: "Log out?" }).querySelector("button:last-child")!);
 		expect(routerPush).toHaveBeenCalledWith("/logout");
 	});
 

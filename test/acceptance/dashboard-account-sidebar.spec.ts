@@ -118,7 +118,18 @@ for (const width of [390, 1440])
 
 			expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 			await openSidebar();
+			await expect(profile).toHaveClass(/text-danger/);
+			const beforeLogout = page.url();
 			await profile.click();
+			const confirmLogout = page.getByRole("dialog", { name: "Log out?", exact: true });
+			await expect(confirmLogout).toBeVisible();
+			await expect(page).toHaveURL(beforeLogout);
+			await page.screenshot({ path: info.outputPath("logout-confirmation.png"), fullPage: true });
+			await confirmLogout.getByRole("button", { name: "Cancel", exact: true }).click();
+			await expect(confirmLogout).toHaveCount(0);
+			await expect(page).toHaveURL(beforeLogout);
+			await profile.click();
+			await confirmLogout.getByRole("button", { name: "Log out", exact: true }).click();
 			await expect(page).toHaveURL(/\/login(?:[/?]|$)/);
 		});
 	}

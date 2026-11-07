@@ -913,3 +913,5 @@ T681–T685 local closure: brand-candidate-browser-export.log passes all10 final
 - [x] T742 Verify affected whole-file owners and real desktop/mobile light/dark navigation, billing, consent, logout and export utility callers; inspect screenshots and publish the tested slice. Exact-head CI and preview evidence belong on PR546; T059 remains the merge gate.
 
 - [x] T743 Resolve the CI-proven sequential-frame export-footer measurement race with one browser evaluation, preserving the half-pixel bound; rerun the complete six-case owner before pushing the test-only correction and track the replacement required checkpoint on PR546; T059 remains the merge gate.
+
+- [x] T744 Make logout red and reuse the existing confirmation dialog in both account navigation contexts. Prove Cancel does not navigate and confirmation signs out; verify the complete navbar/modal owners and five real account journeys across mobile/desktop themes. Keep final CI/readiness separate and do not merge.
