@@ -8,6 +8,7 @@ for (const width of [390, 1440])
 		test(`Account sidebar, admin destinations and suspended-agency recovery at ${width}px in ${theme}`, async ({ page, request, tourWorld }, info) => {
 			test.setTimeout(150000);
 			await page.setViewportSize({ width, height: 900 });
+			await page.emulateMedia({ reducedMotion: "reduce" });
 			await page.addInitScript((value) => localStorage.setItem("theme", value), theme);
 			const seeded = await seedCreatorLibrary({ page, request, tourWorld });
 			const pool = tourWorld.fixture.pool;
@@ -17,7 +18,7 @@ for (const width of [390, 1440])
 			await pool.query("INSERT INTO auth.member(id,organization_id,user_id,role,created_at) VALUES($1,$2,$3,'owner',now())", [randomUUID(), agencyId, seeded.authUserId]);
 			await pool.query("INSERT INTO agency_accounts(organization_id,status) VALUES($1,'suspended')", [agencyId]);
 			await page.goto(`${tourWorld.origin}/dashboard/clips`);
-			if (width === 390) await expect(page.getByRole("button", { name: "Open profile menu", exact: true })).toHaveCount(0);
+			if (width === 390) await expect(page.getByRole("button", { name: "Log out", exact: true })).toHaveCount(0);
 			const openSidebar = async () => {
 				const toggle = page.getByRole("button", { name: "Toggle navigation", exact: true });
 				await expect(toggle).toBeEnabled();
@@ -25,7 +26,8 @@ for (const width of [390, 1440])
 			};
 			await openSidebar();
 			const host = page.locator(width === 390 ? "#dashboard-mobile-utilities" : "#dashboard-utilities");
-			const profile = host.getByRole("button", { name: "Open profile menu", exact: true });
+			const profile = host.getByRole("button", { name: "Log out", exact: true });
+			const help = host.getByRole("link", { name: "Help center", exact: true });
 			const context = host.locator('[data-slot="autocomplete-trigger"]');
 			const guide = host.locator('[data-tour="guide-launcher"]');
 			const support = host.getByRole("button", { name: "Enable support chat", exact: true });
@@ -36,10 +38,17 @@ for (const width of [390, 1440])
 			for (let i = 1; i < boxes.length; i++) expect(boxes[i]!.y).toBeGreaterThanOrEqual(boxes[i - 1]!.y + boxes[i - 1]!.height);
 			await expect(page.getByRole("treegrid", { name: "Admin sections", exact: true })).toBeVisible();
 			await page.screenshot({ path: info.outputPath("pending-consent.png"), fullPage: true });
-			await profile.click();
-			const menu = page.getByRole("menu", { name: "Open profile menu" });
-			await expect(menu).toBeVisible();
-			for (const name of ["My Settings", "Badges", "Tools", "Open Admin View"]) await expect(menu.getByText(name, { exact: true })).toHaveCount(0);
+			await expect(page.getByRole("button", { name: "Open profile menu", exact: true })).toHaveCount(0);
+			await expect(help).toBeVisible();
+			await expect(help).toHaveAttribute("href", "https://help.clipify.us/hc/clipify");
+			await profile.focus();
+			await expect(profile).toBeFocused();
+			await expect(page.getByRole("tooltip", { name: "Log out", exact: true })).toBeVisible();
+			const identity = profile.locator("..");
+			const avatar = identity.locator(".avatar");
+			const accountBounds = await avatar.boundingBox();
+			const logoutBounds = await profile.boundingBox();
+			expect(Math.abs(accountBounds!.y + accountBounds!.height / 2 - logoutBounds!.y - logoutBounds!.height / 2)).toBeLessThanOrEqual(2);
 			await page.keyboard.press("Escape");
 			await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 			await openSidebar();
@@ -48,6 +57,16 @@ for (const width of [390, 1440])
 			const after = await support.boundingBox();
 			expect(Math.abs(after!.y - boxes[1]!.y)).toBeLessThanOrEqual(3);
 			await page.screenshot({ path: info.outputPath("after-reject.png"), fullPage: true });
+			await page.goto(`${tourWorld.origin}/dashboard/settings?tab=billing`);
+			const billing = page.getByText("Billing", { exact: true }).filter({ hasNot: page.locator("svg") });
+			const currentPlan = page.getByText("Current plan", { exact: true }).locator('xpath=ancestor::*[@data-slot="card"][1]');
+			await expect(currentPlan.getByText("active", { exact: true }).locator("..")).toHaveClass(/chip--success/);
+			await expect(currentPlan.getByText("Pro", { exact: true }).locator("..")).toHaveClass(/chip--accent/);
+			const compare = page.getByText("Compare plans", { exact: true });
+			expect((await compare.boundingBox())!.y).toBeGreaterThan((await currentPlan.boundingBox())!.y);
+			await expect(billing.last()).toBeVisible();
+			await page.screenshot({ path: info.outputPath("billing.png"), fullPage: true });
+			await openSidebar();
 			await page.getByRole("row", { name: "Operations", exact: true }).click();
 			await expect(page).toHaveURL(`${tourWorld.origin}/admin`);
 			await openSidebar();
@@ -75,10 +94,8 @@ for (const width of [390, 1440])
 				await page.keyboard.press("Control+b");
 				await expect(profile).toBeVisible();
 				await expect(context).toBeHidden();
-				await profile.click();
-				await expect(menu).toBeVisible();
-				await page.keyboard.press("Escape");
-				await expect(menu).not.toBeVisible();
+				await profile.focus();
+				await expect(profile).toBeFocused();
 				await page.screenshot({ path: info.outputPath("collapsed.png"), fullPage: true });
 			}
 			if (width === 1440 && theme === "dark") {
@@ -100,6 +117,9 @@ for (const width of [390, 1440])
 			}
 
 			expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+			await openSidebar();
+			await profile.click();
+			await expect(page).toHaveURL(/\/login(?:[/?]|$)/);
 		});
 	}
 

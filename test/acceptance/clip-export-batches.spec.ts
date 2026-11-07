@@ -54,7 +54,7 @@ for (const width of [390, 1440])
 			if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
 			const sidebar = page.locator(`[data-slot="${width === 390 ? "sidebar-mobile" : "sidebar"}"]`);
 			const utilities = sidebar.locator("[data-dashboard-utility]");
-			expect(await utilities.evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-dashboard-utility")))).toEqual(["admin", "guide", "exports", "chat", "report", "account"]);
+			expect(await utilities.evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-dashboard-utility")))).toEqual(["admin", "guide", "exports", "chat", "help", "report", "account"]);
 			await expect(sidebar.locator('[data-dashboard-utility="exports"]').getByRole("button", { name: "Exports", exact: true })).toBeVisible();
 			await page.screenshot({ path: info.outputPath("export-footer.png"), fullPage: true, animations: "disabled" });
 			await sidebar.getByRole("button", { name: "Exports", exact: true }).click();
@@ -72,8 +72,15 @@ for (const width of [390, 1440])
 			await page.getByRole("button", { name: "Start export", exact: true }).click();
 			await expect(modal.locator('button[data-export-id="1"]')).toBeVisible();
 			const historyRow = modal.locator('button[data-export-id="1"]');
-			const [label, chevron] = await Promise.all([historyRow.locator("span").first().boundingBox(), historyRow.locator("svg").boundingBox()]);
-			expect(Math.abs(label!.y + label!.height / 2 - chevron!.y - chevron!.height / 2)).toBeLessThanOrEqual(2);
+			await expect
+				.poll(() =>
+					historyRow.evaluate((row) => {
+						const label = row.querySelector("span")!.getBoundingClientRect();
+						const chevron = row.querySelector("svg")!.getBoundingClientRect();
+						return Math.abs(label.y + label.height / 2 - chevron.y - chevron.height / 2);
+					}),
+				)
+				.toBeLessThanOrEqual(2);
 			await modal.screenshot({ path: info.outputPath("collapsed-history.png") });
 			await historyRow.click();
 			await expect(modal.getByRole("list", { name: "Export 1 files" })).toBeVisible();

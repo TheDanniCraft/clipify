@@ -1,9 +1,9 @@
 "use client";
 import NextLink from "next/link";
 
-import { IconBuildingCommunity, IconDiamondFilled, IconMoonFilled, IconSunFilled, IconArrowBackUp } from "@tabler/icons-react";
+import { IconBuildingCommunity, IconDiamondFilled, IconMoonFilled, IconSunFilled, IconArrowBackUp, IconLogout } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
-import { Autocomplete, Button, ComboBox, Dropdown, EmptyState, Input, Label, ListBox, SearchField, Spinner, useFilter } from "@heroui/react";
+import { Autocomplete, Button, ComboBox, Dropdown, EmptyState, Input, Label, ListBox, SearchField, Spinner, Tooltip, useFilter } from "@heroui/react";
 
 import { AuthenticatedUser, CampaignOffer, Role } from "@types";
 import DashboardUtilityPortal from "@components/dashboardUtilityPortal";
@@ -257,58 +257,70 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 							{!inShell ? <li>{themeControl}</li> : null}
 							{inShell ? accountSwitcher : null}
 							<li className={inShell ? "min-w-0 flex-1" : "px-2"}>
-								<Dropdown>
-									<Dropdown.Trigger data-tour='nav-menu' className={inShell ? `flex h-10 w-full min-w-0 items-center gap-2 rounded-lg text-foreground ${navigation.expanded ? "px-2" : "justify-center"}` : "mt-1 h-8 w-8 overflow-visible transition-transform"} aria-label='Open profile menu'>
+								{inShell ? (
+									<div data-tour='nav-menu' className={`flex min-w-0 items-center gap-2 ${navigation.expanded ? "px-2" : "flex-col"}`}>
 										<DashboardUserAvatar username={signedInUsername} avatar={signedInAvatar} showStatus />
-										{inShell && navigation.expanded ? <span className='truncate text-sm font-medium'>{signedInUsername}</span> : null}
-									</Dropdown.Trigger>
-									<Dropdown.Popover placement={inShell ? "top start" : "bottom end"}>
-										<Dropdown.Menu aria-label='Profile Actions' disabledKeys={isClearingAdminView ? ["exit_admin_view"] : []}>
-											<Dropdown.Item id='profile' textValue={`Signed in as ${signedInUsername}`} className={isImpersonating ? "h-20 gap-2" : "h-14 gap-2"}>
-												<Label>
-													<span className='block font-semibold'>Signed in as</span>
-													<span className='block font-semibold'>{signedInUsername}</span>
-													{isImpersonating ? <span className='mt-1 block text-xs font-normal text-muted'>Viewing as {user.username}</span> : null}
-												</Label>
-											</Dropdown.Item>
-											{showUpgradeItem ? (
-												<Dropdown.Item id='upgrade_to_pro' textValue='Upgrade to Pro' className='bg-accent text-accent-foreground data-[hovered]:bg-accent-hover' onAction={() => router.push("/dashboard/settings?upgrade&cycle=yearly&source=paywall_banner&feature=account_menu")}>
-													<IconDiamondFilled aria-hidden='true' size={16} />
-													<Label>Upgrade to Pro</Label>
+										{navigation.expanded ? <span className='min-w-0 flex-1 truncate text-sm font-medium'>{signedInUsername}</span> : null}
+										<Tooltip>
+											<Button isIconOnly variant='ghost' aria-label='Log out' className='shrink-0 text-muted' onPress={() => router.push("/logout")}>
+												<IconLogout className='size-4' />
+											</Button>
+											<Tooltip.Content>Log out</Tooltip.Content>
+										</Tooltip>
+									</div>
+								) : (
+									<Dropdown>
+										<Dropdown.Trigger data-tour='nav-menu' className='mt-1 h-8 w-8 overflow-visible transition-transform' aria-label='Open profile menu'>
+											<DashboardUserAvatar username={signedInUsername} avatar={signedInAvatar} showStatus />
+										</Dropdown.Trigger>
+										<Dropdown.Popover placement='bottom end'>
+											<Dropdown.Menu aria-label='Profile Actions' disabledKeys={isClearingAdminView ? ["exit_admin_view"] : []}>
+												<Dropdown.Item id='profile' textValue={`Signed in as ${signedInUsername}`} className={isImpersonating ? "h-20 gap-2" : "h-14 gap-2"}>
+													<Label>
+														<span className='block font-semibold'>Signed in as</span>
+														<span className='block font-semibold'>{signedInUsername}</span>
+														{isImpersonating ? <span className='mt-1 block text-xs font-normal text-muted'>Viewing as {user.username}</span> : null}
+													</Label>
 												</Dropdown.Item>
-											) : null}
-											{!inShell ? (
-												<>
-													<Dropdown.Item data-tour='nav-settings' id='settings' textValue={user.plan ? "My Settings" : "Agency dashboard"} onAction={() => router.push(user.plan ? "/dashboard/settings" : "/dashboard/agency")}>
-														<Label>{user.plan ? "My Settings" : "Agency dashboard"}</Label>
+												{showUpgradeItem ? (
+													<Dropdown.Item id='upgrade_to_pro' textValue='Upgrade to Pro' className='bg-accent text-accent-foreground data-[hovered]:bg-accent-hover' onAction={() => router.push("/dashboard/settings?upgrade&cycle=yearly&source=paywall_banner&feature=account_menu")}>
+														<IconDiamondFilled aria-hidden='true' size={16} />
+														<Label>Upgrade to Pro</Label>
 													</Dropdown.Item>
-													<Dropdown.Item id='member_card' textValue='Badges' onAction={() => router.push("/dashboard/member-card")}>
-														<Label>Badges</Label>
+												) : null}
+												{!inShell ? (
+													<>
+														<Dropdown.Item data-tour='nav-settings' id='settings' textValue={user.plan ? "My Settings" : "Agency dashboard"} onAction={() => router.push(user.plan ? "/dashboard/settings" : "/dashboard/agency")}>
+															<Label>{user.plan ? "My Settings" : "Agency dashboard"}</Label>
+														</Dropdown.Item>
+														<Dropdown.Item id='member_card' textValue='Badges' onAction={() => router.push("/dashboard/member-card")}>
+															<Label>Badges</Label>
+														</Dropdown.Item>
+														<Dropdown.Item data-tour='nav-tools' id='embeddable_widgets' textValue='Tools' onAction={() => router.push("/dashboard/tools")}>
+															<Label>Tools</Label>
+														</Dropdown.Item>
+													</>
+												) : null}
+												{canOpenAdminView && !inShell ? (
+													<Dropdown.Item id='admin_view' textValue='Open Admin View' onAction={() => router.push("/admin")}>
+														<Label>Open Admin View</Label>
 													</Dropdown.Item>
-													<Dropdown.Item data-tour='nav-tools' id='embeddable_widgets' textValue='Tools' onAction={() => router.push("/dashboard/tools")}>
-														<Label>Tools</Label>
+												) : null}
+												{isImpersonating && !inShell ? (
+													<Dropdown.Item id='exit_admin_view' textValue='Return to Admin' className='text-accent' onAction={handleExitAdminView}>
+														<Label>Return to Admin</Label>
 													</Dropdown.Item>
-												</>
-											) : null}
-											{canOpenAdminView && !inShell ? (
-												<Dropdown.Item id='admin_view' textValue='Open Admin View' onAction={() => router.push("/admin")}>
-													<Label>Open Admin View</Label>
+												) : null}
+												<Dropdown.Item id='help_and_feedback' textValue='Help' onAction={() => router.push("https://help.clipify.us/hc/clipify/articles/1769328012-getting-started-with-clipify")}>
+													<Label>Help</Label>
 												</Dropdown.Item>
-											) : null}
-											{isImpersonating && !inShell ? (
-												<Dropdown.Item id='exit_admin_view' textValue='Return to Admin' className='text-accent' onAction={handleExitAdminView}>
-													<Label>Return to Admin</Label>
+												<Dropdown.Item id='logout' textValue='Log Out' variant='danger' onAction={() => router.push("/logout")}>
+													<Label>Log Out</Label>
 												</Dropdown.Item>
-											) : null}
-											<Dropdown.Item id='help_and_feedback' textValue='Help' onAction={() => router.push("https://help.clipify.us/hc/clipify/articles/1769328012-getting-started-with-clipify")}>
-												<Label>Help</Label>
-											</Dropdown.Item>
-											<Dropdown.Item id='logout' textValue='Log Out' variant='danger' onAction={() => router.push("/logout")}>
-												<Label>Log Out</Label>
-											</Dropdown.Item>
-										</Dropdown.Menu>
-									</Dropdown.Popover>
-								</Dropdown>
+											</Dropdown.Menu>
+										</Dropdown.Popover>
+									</Dropdown>
+								)}
 							</li>
 							{!inShell ? accountSwitcher : null}
 						</ul>

@@ -74,15 +74,6 @@ export default function BillingPanel() {
 		<div className='mt-4 space-y-4'>
 			<Card>
 				<Card.Header>
-					<p className='text-xl font-semibold'>Compare plans</p>
-					<p className='text-sm text-muted'>See the main differences between Free and Pro, or open the full pricing page for every detail.</p>
-				</Card.Header>
-				<Card.Content>
-					<TiersComponent context='dashboard' pricing={pricing} showPlanActions={false} showRunner={false} />
-				</Card.Content>
-			</Card>
-			<Card>
-				<Card.Header>
 					<p className='text-xl font-semibold'>Billing</p>
 					<p className='text-sm text-muted'>Manage your Clipify plan, add-ons, and subscription status.</p>
 				</Card.Header>
@@ -109,11 +100,15 @@ export default function BillingPanel() {
 						<Card.Content className='grid gap-4 sm:grid-cols-3'>
 							<div>
 								<p className='text-xs text-muted'>Status</p>
-								<p className='font-semibold capitalize'>{overview?.status ?? "Inactive"}</p>
+								<Chip className='mt-1 capitalize' color={overview?.status === "active" ? "success" : "default"} variant='soft'>
+									{overview?.status ?? "Inactive"}
+								</Chip>
 							</div>
 							<div>
 								<p className='text-xs text-muted'>Plan</p>
-								<p className='font-semibold'>{planLabel}</p>
+								<Chip className='mt-1' color={planProduct ? "accent" : "default"} variant='soft'>
+									{planLabel}
+								</Chip>
 							</div>
 							<div>
 								<p className='text-xs text-muted'>Access until</p>
@@ -251,6 +246,15 @@ export default function BillingPanel() {
 							addToast({ title: "Changes saved", description: "Your subscription changes were applied.", color: "success" });
 						}}
 					/>
+				</Card.Content>
+			</Card>
+			<Card>
+				<Card.Header>
+					<p className='text-xl font-semibold'>Compare plans</p>
+					<p className='text-sm text-muted'>See the main differences between Free and Pro, or open the full pricing page for every detail.</p>
+				</Card.Header>
+				<Card.Content>
+					<TiersComponent context='dashboard' pricing={pricing} showPlanActions={false} showRunner={false} />
 				</Card.Content>
 			</Card>
 		</div>

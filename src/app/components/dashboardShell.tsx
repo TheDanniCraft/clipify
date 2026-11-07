@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode, type CSSProperties } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Sidebar, Command, useSidebar } from "@heroui-pro/react";
-import { Button, Kbd } from "@heroui/react";
+import { Button, Kbd, Link } from "@heroui/react";
 import { IconBolt, IconPalette, IconHome, IconLayoutCollage, IconVideo, IconScissors, IconLayoutGrid, IconPlaylist, IconPhoto, IconDeviceDesktop, IconTools, IconSettings, IconFolder, IconSearch, IconHelpCircle, IconUserCircle, IconPlug, IconId, IconCreditCard, IconUsers, IconPlayerPlay, IconAward, IconBuildingCommunity } from "@tabler/icons-react";
 import NextLink from "next/link";
 import { ClipExportProvider, ExportQueueLauncher } from "./creator/clipExportQueue";
@@ -230,9 +230,15 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen, isAd
 						</Button>
 					) : null}
 					<div ref={markUtilityHostReady} id={isMobile ? "dashboard-mobile-utilities" : "dashboard-utilities"} className='flex flex-col gap-0.5'>
-						{["admin", "guide", "exports", "chat", "report", "account"].map((slot) => (
+						{["admin", "guide", "exports", "chat", "help", "report", "account"].map((slot) => (
 							<div key={slot} data-dashboard-utility={slot} className={open || isMobile || slot === "account" || slot === "exports" ? "min-w-0 empty:hidden" : "hidden"}>
 								{slot === "exports" ? <ExportQueueLauncher compact={!open && !isMobile} /> : null}
+								{slot === "help" ? (
+									<Link href='https://help.clipify.us/hc/clipify' target='_blank' rel='noopener noreferrer' className='flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm font-medium text-muted hover:bg-default hover:text-foreground'>
+										<IconHelpCircle aria-hidden='true' className='size-4 shrink-0' />
+										Help center
+									</Link>
+								) : null}
 							</div>
 						))}
 					</div>

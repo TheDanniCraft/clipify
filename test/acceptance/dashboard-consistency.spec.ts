@@ -104,10 +104,9 @@ for (const width of [390, 1440])
 						await page.screenshot({ path: info.outputPath(`${index}-${theme}-${width}.png`), fullPage: true, animations: "disabled" });
 					});
 				if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
-				await page.getByRole("button", { name: "Open profile menu", exact: true }).click();
-				await expect(page.getByRole("menu", { name: "Open profile menu" })).toBeVisible();
-				await expect(page.getByRole("menu", { name: "Open profile menu" }).getByText("My Settings", { exact: true })).toHaveCount(0);
-				await page.keyboard.press("Escape");
+				await expect(page.getByRole("button", { name: "Log out", exact: true })).toBeVisible();
+				await expect(page.getByRole("link", { name: "Help center", exact: true })).toBeVisible();
+				await expect(page.getByRole("button", { name: "Open profile menu", exact: true })).toHaveCount(0);
 				const toggle = page.getByRole("button", { name: "Toggle navigation", exact: true });
 				if (width === 390 && (await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
 				const navigation = page.locator(width === 390 ? '[data-slot="sidebar-mobile"]' : '[data-slot="sidebar"]');

@@ -280,3 +280,7 @@ Supersedes the outgoing-drag behavior above. The creator reports Safari on a Mac
 ### Homepage card polish, 7 November 2026
 
 Keep the existing four-card Home layout, Quick access, routes, data, HeroUI theme and Pro access. Make the no-recent-clips message smaller and muted, remove the homepage synchronization/timezone/update sentence, and give Browse clip inventory, View all streams, View all clips and Manage Creator Page the same HeroUI link size and visible navigation treatment. Creator Page insights should fit its content with metrics directly below the description rather than center inside a card stretched to the top-clips table's height. Preserve the lifetime-view explanation for populated clip performance, underlying local-time queries, analytics timestamps and loading/retry/upgrade behavior.
+
+### Account access and sidebar actions, 7 November 2026
+
+Billing precedes Compare plans; Active uses the success color and Pro the accent color. Effective Pro may remain available during the existing seven-day partner transition even when the stored plan is Free and the partner grant's nominal end has passed. Investigation must not modify billing or grant data. In the dashboard sidebar, show account identity and logout directly, with an accessible tooltip on the icon-only action, and put a Help center link below Support chat. Retain organization switching, impersonation recovery, consent behavior and usable expanded/mobile/collapsed navigation.

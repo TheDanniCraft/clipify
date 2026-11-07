@@ -63,6 +63,7 @@ jest.mock("@heroui/react", () => {
 	const ComboContext = ReactLib.createContext<{ inputValue?: string; onInputChange?: (value: string) => void; onSelectionChange?: (key: string) => void }>({});
 	const AutocompleteContext = ReactLib.createContext<{ onChange?: (key: string) => void }>({});
 	return {
+		Tooltip: Object.assign(({ children }: { children: React.ReactNode }) => <>{children}</>, { Content: () => null }),
 		Breadcrumbs: jest.requireActual("../../__mocks__/heroui-react.cjs").Breadcrumbs,
 		Spinner: () => <span role='status' aria-label='Loading' />,
 		Autocomplete: Object.assign(({ children, onChange }: { children: React.ReactNode; onChange?: (key: string) => void }) => <AutocompleteContext.Provider value={{ onChange }}>{children}</AutocompleteContext.Provider>, {
@@ -166,7 +167,10 @@ describe("components/dashboardNavbar", () => {
 			</DashboardNavigationContext.Provider>,
 		);
 		try {
-			const profile = await screen.findByRole("button", { name: "Open profile menu" });
+			const profile = await screen.findByRole("button", { name: "Log out" });
+			expect(screen.queryByRole("button", { name: "Open profile menu" })).not.toBeInTheDocument();
+			fireEvent.click(profile);
+			expect(routerPush).toHaveBeenCalledWith("/logout");
 			const children = slot.querySelectorAll("[data-dashboard-account-controls] > li");
 			expect(children[children.length - 1]).toContainElement(profile);
 		} finally {

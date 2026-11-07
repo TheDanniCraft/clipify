@@ -905,3 +905,9 @@ T681–T685 local closure: brand-candidate-browser-export.log passes all10 final
 - [x] T737 Make the empty performance state smaller, remove sync/timezone/update copy and normalize the four card actions with installed HeroUI links while retaining their routes.
 - [x] T738 Remove the insights card's forced stretch/vertical centering; preserve metrics, local-time queries, Pro access, loading/recovery and first-row alignment. Review focused Mobbin examples and both themes.
 - [x] T739 Verify the complete20-case overview owner and16 installed-component browser scenarios, including five old clips, actual action styles and compact metrics; capture measured before/after evidence and publish the tested slice with exact-head CI/deployment tracked on PR546. T059 remains the merge gate; no merge or production release.
+
+## Account access explanation and sidebar actions, 7 November 2026
+
+- [x] T740 Trace effective Pro separately from the stored plan using a read-only Infisical dev query; account for the existing seven-day partner access transition without modifying grants or billing records.
+- [x] T741 Put Billing before Compare plans and use HeroUI semantic status/plan chips. Replace the dashboard profile popover with identity and a tooltip-labelled logout action; add Help center below Support chat while preserving context switching, consent and admin recovery.
+- [x] T742 Verify affected whole-file owners and real desktop/mobile light/dark navigation, billing, consent, logout and export utility callers; inspect screenshots and publish the tested slice. Exact-head CI and preview evidence belong on PR546; T059 remains the merge gate.
