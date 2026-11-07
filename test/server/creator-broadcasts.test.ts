@@ -248,3 +248,15 @@ describe("retained stream recovery boundaries", () => {
 		expect(result.items[0].moments.map((clip) => clip.id)).toEqual(["First", "Later"]);
 	});
 });
+
+it("uses a safe clip thumbnail for a removed recording and keeps every detail moment", async () => {
+	authorize.mockResolvedValue({ allowed: true });
+	cache.mockResolvedValue({ value: { data: [], fetchedAt: new Date().toISOString() } });
+	saved.mockResolvedValue([{ video: archiveVideo, lastSeenAt: new Date().toISOString(), unavailable: true }]);
+	library.mockResolvedValue({ ok: true, clips: Array.from({ length: 12 }, (_, i) => ({ id: `Clip${i}`, title: `Clip ${i}`, broadcaster_id: "owner", video_id: "100", duration: 10, vod_offset: i * 30, view_count: i, created_at: "2026-11-01T00:00:00Z", thumbnail_url: "https://static-cdn.jtvnw.net/clip.jpg" })) });
+	const { readCreatorBroadcasts } = await import("@/server/creator-broadcasts");
+	const result = await readCreatorBroadcasts("owner", undefined, "100");
+	if (!result.ok) throw Error(result.code);
+	expect(result.items[0].thumbnailUrl).toBe("https://static-cdn.jtvnw.net/clip.jpg");
+	expect(result.items[0].moments).toHaveLength(12);
+});

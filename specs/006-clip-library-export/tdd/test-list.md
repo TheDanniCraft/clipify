@@ -413,3 +413,12 @@ FINAL-01: disabled Automations follows Runner, is labelled Coming soon and has n
 FINAL-02: creator-owned archive records outlive provider page expiry/deletion; bounded collector checkpoints/backoff never erase saved metadata on provider errors; account deletion owns cleanup.
 FINAL-03: provider refresh/validation cannot erase known clip stream identity; foreign identities are rejected; inventory, counts and export manifests agree.
 FINAL-04: select all matching clips across pages, preserve stream/view filters and selection snapshots, ignore stale responses, clear protected data after revocation; real 59-match stream export excludes other streams and low-view clips.
+
+## Stream workspace follow-up
+
+- Whole-row pointer/touch navigation plus keyboard title-link navigation, thumbnail loading and mobile/light/dark layout: stream-workspace.spec.ts.
+- Fixed-anchor overlapping intervals, most-viewed representative, unknown offsets, adjacent events and deterministic ties: streamMoments.test.ts (lib).
+- Vertical installed Timeline, rich grouped HoverCard, selected perspective preview and progressive reveal: streamMoments component owner plus stream-workspace.spec.ts.
+- Removed VOD thumbnail fallback and full detail moment list: creator-broadcasts.test.ts.
+- Matching-filter export preparation, no early download, empty/denied/failure retry: clipExport.test.tsx; actual exact ZIP membership: stream-workspace.spec.ts.
+- Tools/Automations placement and unchanged resource navigation: dashboardShell.test.tsx and dashboard-sidebar-destinations.spec.ts.

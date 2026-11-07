@@ -145,7 +145,7 @@ export async function readCreatorBroadcasts(creatorId: string, after?: string, v
 				moments: matching
 					.slice()
 					.sort((a, b) => (a.vod_offset ?? Infinity) - (b.vod_offset ?? Infinity) || Date.parse(a.created_at) - Date.parse(b.created_at))
-					.slice(0, 8)
+					.slice(0, videoId ? matching.length : 8)
 					.map(publicClip),
 				available: !unavailable,
 				id: video.id,
@@ -153,7 +153,13 @@ export async function readCreatorBroadcasts(creatorId: string, after?: string, v
 				createdAt: video.created_at,
 				duration: video.duration,
 				url: `https://www.twitch.tv/videos/${video.id}`,
-				thumbnailUrl: unavailable ? null : publicTwitchImageUrl(video.thumbnail_url?.replace(/%\{width\}/g, "320").replace(/%\{height\}/g, "180")),
+				thumbnailUrl:
+					(unavailable ? null : publicTwitchImageUrl(video.thumbnail_url?.replace(/%\{width\}/g, "320").replace(/%\{height\}/g, "180"))) ??
+					matching
+						.toSorted((a, b) => (b.view_count ?? 0) - (a.view_count ?? 0))
+						.map((clip) => publicTwitchImageUrl(clip.thumbnail_url))
+						.find(Boolean) ??
+					null,
 				clipCount: library.ok ? matching.length : null,
 				clipViews: library.ok ? matching.reduce((sum, clip) => sum + (clip.view_count ?? 0), 0) : null,
 			};

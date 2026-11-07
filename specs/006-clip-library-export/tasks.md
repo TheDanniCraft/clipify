@@ -848,3 +848,12 @@ T681–T685 local closure: brand-candidate-browser-export.log passes all10 final
 - [x] T704 [FINAL-04] Select/export the complete current filtered clip set across pages from inventory and stream detail, with creator permissions, stable selection scope, loading/error recovery and no fixed selection cap; verify >=10views filtering excludes other streams.
 - [ ] T705 [FINAL-05] Add a clearly labelled preview-only demo stream only after the target test account is identified; include real owned downloadable clips and never seed production/shared customer fixtures.
 - [ ] T706 [FINAL-06] Reconcile superseded task claims against current executable evidence, finish remaining in-scope gaps, update one overall readiness summary and final feature traceability/defects. Preserve honest historical TDD provenance, run owning scenarios and unchanged full CI before claiming release readiness. Keep social publishing integrations deferred.
+
+## Streams UX follow-up, 2026-11-07
+
+- [x] T707 Review actual Mobbin stream/list/timestamp references; preserve HeroUI, themes, cached ownership, routes, Apply filters and the existing export queue. Record before/after evidence.
+- [x] T708 Use visible thumbnails with cached clip fallback and full-row mouse/keyboard navigation for saved streams.
+- [x] T709 Replace the horizontal moments strip with HeroUI Pro Timeline; group substantially overlapping clips, feature highest views, expand alternatives and show additional moments without losing clips.
+- [x] T710 Expose stream duration/view rules and an export-all-matching action without manual row selection, preserving draft/filter/permission recovery.
+- [x] T711 Move disabled Automations into Tools and retain Clip layouts under Create and share; preserve search exclusion and responsive navigation.
+- [x] T712 Replace only the approved dev demo with a clearly labelled estimated session from clustered clip creation metadata, restore previous demo-only associations, verify untouched source clip fields, and publish owning-check results and exact-head CI status. Complete CI remains required before merge.

@@ -96,3 +96,9 @@ Current-head result:3009294d preview deployment finished; CodeQL and CodeFactor 
 Consolidated correction:23 page tests, all10 creator-layout browser cases and all11US2 BDD examples pass locally. Saved-stream pagination now explicitly checks21 retained records in20/1 pages. Existing CI finished before follow-up publication; final exact-head full CI remains mandatory. Manual development-only SQL is provided; no deployment hook or verified demo insertion is claimed.
 
 9972742e checkpoint: all individual suites/browser/build lanes passed; combined coverage rejected creator-broadcasts.ts branches89.39% against90%. Five added recovery tests pass27/27 and measure99.24% scoped branches. Full exact-head combined gate remains mandatory; no production source or coverage threshold changed. Development demo SQL additionally excludes expired cache entries and passes the real disposable-schema check.
+
+## Stream workspace follow-up (2026-11-07)
+
+PR546 adds compact thumbnail stream rows, complete cached moment detail with vertical overlapping-perspective groups, applied-rule export and Automations under Tools. Local affected whole-file owners pass149tests; after a compact metadata correction the inventory owner passes29/29. Coverage inventory verification passes. The exact-head merged CI gate remains required; prior f2582694 CI evidence is baseline only. See the feature report for final browser/CI evidence and the manual dev-only estimated stream reconstruction. Historical TDD provenance limits remain unchanged.
+
+Final local stream checkpoint:27 owning browser scenarios passed; visual review then prompted container-responsive columns and corrected mobile popover placement. The corresponding8 responsive cases and final4 strengthened stream journeys pass on rebuilt artifacts. The final build/types pass; title readability, popup bounds, actual playback and ZIP membership are asserted. Full exact-head CI is required before merge and tracked on PR546.

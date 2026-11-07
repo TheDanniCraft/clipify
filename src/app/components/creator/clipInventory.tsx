@@ -93,6 +93,7 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 			}
 			setSelection({ scope: selectionScope, ids: new Set(result.items.map((clip) => clip.id)), names: Object.fromEntries(result.items.map((clip) => [clip.id, clip.title])) });
 			if (!result.complete) notify({ title: `Selected ${result.items.length} known clips`, description: "Older clips may still be synchronizing.", color: "default" });
+			return { clipIds: result.items.map((clip) => clip.id), clipNames: Object.fromEntries(result.items.map((clip) => [clip.id, clip.title])) };
 		} catch {
 			if (epoch === requestEpoch.current && choice === selectionEpoch.current) notify({ title: "Clips could not be selected. Your selection is kept. Please try again.", color: "danger" });
 		} finally {
@@ -149,9 +150,28 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 	}, [navigate]);
 	const fieldErrors = !data.ok && "fieldErrors" in data ? data.fieldErrors : undefined;
 	const update = (key: string, value: string) => setDraft((current) => ({ ...current, [key]: value }));
+	const numericFilters = ["minViews", "minDuration", "maxDuration"].map((key) => (
+		<NumberField variant='secondary' key={key} value={draft[key] ? Number(draft[key]) : undefined} onChange={(value) => update(key, Number.isNaN(value) ? "" : String(value))} minValue={0} isInvalid={Boolean(fieldErrors?.[key as keyof typeof fieldErrors])}>
+			<Label>
+				{fields[key]}
+				{key.includes("Duration") ? " (seconds)" : ""}
+			</Label>
+			<NumberField.Group>
+				<NumberField.DecrementButton />
+				<NumberField.Input />
+				<NumberField.IncrementButton />
+			</NumberField.Group>
+		</NumberField>
+	));
 	return (
-		<div className='my-6 flex flex-col gap-5'>
+		<div className={`@container flex min-w-0 flex-col gap-5 ${fixedVideoId ? "" : "my-6"}`}>
 			<Card>
+				{fixedVideoId ? (
+					<Card.Header className='flex flex-row flex-wrap items-center justify-between gap-3'>
+						<h2 className='font-semibold'>Clips</h2>
+						<ClipExport key={selectionScope} creatorId={creatorId} clipIds={data.ok ? data.items.map((clip) => clip.id) : []} scope={selectionScope} configure label='Export matching clips' prepareSelection={selectAll} isDisabled={pending || selectingAll || !data.ok || data.total === 0} />
+					</Card.Header>
+				) : null}
 				<Card.Content>
 					<form
 						className='grid grid-cols-[minmax(0,1fr)_auto] gap-3'
@@ -195,7 +215,7 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 						>
 							<IconRefresh className='size-4' aria-hidden='true' /> Refresh library
 						</Button>
-						<Disclosure className='col-span-2' defaultExpanded={Boolean(query.category || query.minViews || query.minDuration || query.maxDuration || query.startedAt || query.sort)}>
+						<Disclosure className='col-span-2' defaultExpanded={Boolean(fixedVideoId || query.category || query.minViews || query.minDuration || query.maxDuration || query.startedAt || query.sort)}>
 							<Disclosure.Heading>
 								<Disclosure.Trigger className='flex w-full items-center justify-between gap-2'>
 									Filters and sorting
@@ -204,6 +224,7 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 							</Disclosure.Heading>
 							<Disclosure.Content>
 								<Disclosure.Body className='grid gap-4 pt-4 sm:grid-cols-2 lg:grid-cols-3'>
+									{fixedVideoId ? numericFilters : null}
 									<Select variant='secondary' aria-label='Category' selectedKey={draft.category || null} onSelectionChange={(key) => update("category", String(key ?? ""))}>
 										<Label>Category</Label>
 										<Select.Trigger>
@@ -240,19 +261,7 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 											</ListBox>
 										</Select.Popover>
 									</Select>
-									{["minViews", "minDuration", "maxDuration"].map((key) => (
-										<NumberField variant='secondary' key={key} value={draft[key] ? Number(draft[key]) : undefined} onChange={(value) => update(key, Number.isNaN(value) ? "" : String(value))} minValue={0} isInvalid={Boolean(fieldErrors?.[key as keyof typeof fieldErrors])}>
-											<Label>
-												{fields[key]}
-												{key.includes("Duration") ? " (seconds)" : ""}
-											</Label>
-											<NumberField.Group>
-												<NumberField.DecrementButton />
-												<NumberField.Input />
-												<NumberField.IncrementButton />
-											</NumberField.Group>
-										</NumberField>
-									))}
+									{!fixedVideoId ? numericFilters : null}
 									<AppDateRangePicker label='Clip creation dates' value={range} onChange={setRange} variant='secondary' fullWidth />
 
 									<Button
@@ -363,15 +372,15 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 					) : (
 						<Table>
 							<Table.ScrollContainer>
-								<Table.Content aria-label='Clip inventory' className='w-full xl:min-w-[640px]'>
+								<Table.Content aria-label='Clip inventory' className='w-full @4xl:min-w-[640px]'>
 									<Table.Header>
 										<Table.Column aria-label='Select clips'>Select</Table.Column>
 										<Table.Column isRowHeader>Clip</Table.Column>
-										<Table.Column className='hidden xl:table-cell'>Category</Table.Column>
-										<Table.Column className='hidden xl:table-cell'>Created</Table.Column>
-										<Table.Column className='hidden xl:table-cell'>Duration</Table.Column>
-										<Table.Column className='hidden xl:table-cell'>Views</Table.Column>
-										<Table.Column className='hidden xl:table-cell'>Stream</Table.Column>
+										<Table.Column className='hidden @4xl:table-cell'>Category</Table.Column>
+										<Table.Column className='hidden @4xl:table-cell'>Created</Table.Column>
+										<Table.Column className='hidden @4xl:table-cell'>Duration</Table.Column>
+										<Table.Column className='hidden @4xl:table-cell'>Views</Table.Column>
+										<Table.Column className='hidden @4xl:table-cell'>Stream</Table.Column>
 										<Table.Column aria-label='Clip details'> </Table.Column>
 									</Table.Header>
 									<Table.Body>
@@ -412,25 +421,28 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 																</Button>
 															</div>
 														</div>
-														<p className='flex w-full flex-wrap gap-x-3 gap-y-1 text-xs text-muted xl:hidden'>
-															{clip.views.toLocaleString()} views, {Math.round(clip.duration)}s{data.categories.find((category) => category.id === clip.categoryId)?.name ?? "Category unavailable"}
+														<p className='flex w-full flex-wrap gap-x-3 gap-y-1 text-xs text-muted @4xl:hidden'>
+															<span>
+																{clip.views.toLocaleString()} views, {Math.round(clip.duration)}s
+															</span>
+															<span>{data.categories.find((category) => category.id === clip.categoryId)?.name ?? "Category unavailable"}</span>
 															<LocalizedDate value={clip.createdAt} showTime timeZone={timeZone} />
 															{clip.videoId ? <Link href={`/dashboard/streams/${encodeURIComponent(clip.videoId)}`}>View stream</Link> : "Unassigned"}
 														</p>
 													</div>
 												</Table.Cell>
-												<Table.Cell className='hidden xl:table-cell'>
+												<Table.Cell className='hidden @4xl:table-cell'>
 													<span className='flex items-center gap-2'>
 														{data.categories.find((category) => category.id === clip.categoryId)?.artworkUrl ? <img alt='' src={data.categories.find((category) => category.id === clip.categoryId)!.artworkUrl!} className='h-9 w-6 rounded object-cover' /> : null}
 														{data.categories.find((category) => category.id === clip.categoryId)?.name ?? "Category unavailable"}
 													</span>
 												</Table.Cell>
-												<Table.Cell className='hidden whitespace-nowrap xl:table-cell'>
+												<Table.Cell className='hidden whitespace-nowrap @4xl:table-cell'>
 													<LocalizedDate value={clip.createdAt} timeZone={timeZone} showTime />
 												</Table.Cell>
-												<Table.Cell className='hidden xl:table-cell'>{Math.round(clip.duration)}s</Table.Cell>
-												<Table.Cell className='hidden xl:table-cell'>{clip.views.toLocaleString()}</Table.Cell>
-												<Table.Cell className='hidden whitespace-nowrap xl:table-cell'>{clip.videoId ? <Link href={`/dashboard/streams/${encodeURIComponent(clip.videoId)}`}>View stream</Link> : "Unassigned"}</Table.Cell>
+												<Table.Cell className='hidden @4xl:table-cell'>{Math.round(clip.duration)}s</Table.Cell>
+												<Table.Cell className='hidden @4xl:table-cell'>{clip.views.toLocaleString()}</Table.Cell>
+												<Table.Cell className='hidden whitespace-nowrap @4xl:table-cell'>{clip.videoId ? <Link href={`/dashboard/streams/${encodeURIComponent(clip.videoId)}`}>View stream</Link> : "Unassigned"}</Table.Cell>
 												<Table.Cell>
 													<Link aria-label={`Open ${clip.title || "Untitled clip"}`} href={`/dashboard/clips/${encodeURIComponent(clip.id)}`}>
 														<IconChevronRight className='size-4' />

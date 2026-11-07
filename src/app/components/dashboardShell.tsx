@@ -186,24 +186,7 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen, isAd
 										<Sidebar.MenuIndicator />
 									</Sidebar.MenuTrigger>
 								</Sidebar.MenuLabel>
-								<Sidebar.Submenu>
-									{allowed
-										.filter((item) => "tour" in item)
-										.flatMap((item) => [
-											menuItem(item),
-											...(item.title === "Runner"
-												? [
-														<Sidebar.MenuItem key='automations' id='automations' textValue='Automations, coming soon' isDisabled tooltip='Automations — coming soon'>
-															<Sidebar.MenuIcon>
-																<IconBolt className='size-4' />
-															</Sidebar.MenuIcon>
-															<Sidebar.MenuLabel>Automations</Sidebar.MenuLabel>
-															<Sidebar.MenuChip>Coming soon</Sidebar.MenuChip>
-														</Sidebar.MenuItem>,
-													]
-												: []),
-										])}
-								</Sidebar.Submenu>
+								<Sidebar.Submenu>{allowed.filter((item) => "tour" in item).map(menuItem)}</Sidebar.Submenu>
 							</Sidebar.MenuItem>
 						) : null}
 						{[
@@ -220,7 +203,18 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen, isAd
 									<Sidebar.MenuTrigger data-tour={`${group.id}-group`}>
 										<Sidebar.MenuIndicator />
 									</Sidebar.MenuTrigger>
-									<Sidebar.Submenu>{group.items.map(menuItem)}</Sidebar.Submenu>
+									<Sidebar.Submenu>
+										{group.items.map(menuItem)}
+										{group.id === "tools" && canSearchClips ? (
+											<Sidebar.MenuItem id='automations' textValue='Automations, coming soon' isDisabled tooltip='Automations — coming soon'>
+												<Sidebar.MenuIcon>
+													<IconBolt className='size-4' />
+												</Sidebar.MenuIcon>
+												<Sidebar.MenuLabel>Automations</Sidebar.MenuLabel>
+												<Sidebar.MenuChip>Coming soon</Sidebar.MenuChip>
+											</Sidebar.MenuItem>
+										) : null}
+									</Sidebar.Submenu>
 								</Sidebar.MenuItem>
 							))}
 					</Sidebar.Menu>

@@ -1,3 +1,4 @@
+jest.mock("@components/creator/streamMoments", () => ({ __esModule: true, default: () => null }));
 import { render, screen } from "@testing-library/react";
 const auth = jest.fn();
 const inventory = jest.fn();
@@ -7,7 +8,7 @@ const broadcast = jest.fn();
 const redirect = jest.fn((destination: string) => {
 	throw new Error(`redirect:${destination}`);
 });
-jest.mock("next/navigation", () => ({ redirect: (destination: string) => redirect(destination) }));
+jest.mock("next/navigation", () => ({ redirect: (destination: string) => redirect(destination), useRouter: () => ({ push: jest.fn() }) }));
 jest.mock("@actions/auth", () => ({ validateAuth: () => auth() }));
 jest.mock("@actions/creatorLibrary", () => ({ getCreatorClipInventory: (...args: unknown[]) => inventory(...args), getCreatorClipDetail: (...args: unknown[]) => detail(...args), getCreatorBroadcasts: (...args: unknown[]) => broadcasts(...args), getCreatorBroadcast: (...args: unknown[]) => broadcast(...args) }));
 jest.mock("@components/dashboardNavbar", () => ({

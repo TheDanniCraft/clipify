@@ -397,7 +397,7 @@ it("closes the mobile drawer for an export launcher outside the utility footer",
 	}
 });
 
-it("shows disabled Automations directly after Runner without a navigation destination", () => {
+it("shows disabled Automations after the tools without a navigation destination", () => {
 	render(
 		<DashboardShell creatorId='owner' permissions={[...PERMISSIONS]}>
 			{content}
@@ -407,5 +407,5 @@ it("shows disabled Automations directly after Runner without a navigation destin
 	expect(automation.closest("[aria-disabled]")).toHaveAttribute("aria-disabled", "true");
 	expect(screen.getByText("Coming soon")).toBeInTheDocument();
 	expect(screen.queryByRole("link", { name: /Automations/ })).not.toBeInTheDocument();
-	expect(screen.getByText("Runner").compareDocumentPosition(automation) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+	expect(screen.getByText("Clip Gallery").compareDocumentPosition(automation) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });

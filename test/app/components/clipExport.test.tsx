@@ -500,3 +500,31 @@ it("offers explicit server recovery only for unsuccessful browser outputs", asyn
 	await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
 	expect(JSON.parse(fetchMock.mock.calls[0][1].body).files).toEqual([{ clipId: "A", outputKey: "mobile" }]);
 });
+
+it("resolves every matching clip before opening settings and exports that snapshot only after confirmation", async () => {
+	browserBatch.mockResolvedValue({ ok: false, code: "PROVIDER_UNAVAILABLE" });
+	const prepareSelection = jest.fn().mockResolvedValue({ clipIds: ["A", "B"], clipNames: { A: "First", B: "Second" } });
+	render(<ClipExport creatorId='owner' clipIds={["A"]} scope='rules' configure label='Export matching clips' prepareSelection={prepareSelection} />);
+	fireEvent.click(screen.getByRole("button", { name: "Export matching clips" }));
+	await screen.findByText("Export clips");
+	expect(prepareSelection).toHaveBeenCalledTimes(1);
+	expect(browserBatch).not.toHaveBeenCalled();
+	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
+	await waitFor(() => expect(browserBatch).toHaveBeenCalledTimes(1));
+	expect(browserBatch.mock.calls[0][0].files.map((file: any) => file.clipId)).toEqual(["A", "B"]);
+});
+
+it.each(["empty", "denied", "failure"])("keeps matching-export settings closed after %s preparation and permits retry", async (kind) => {
+	const prepareSelection = jest.fn();
+	if (kind === "failure") prepareSelection.mockRejectedValueOnce(Error("offline"));
+	else prepareSelection.mockResolvedValueOnce(kind === "empty" ? { clipIds: [] } : undefined);
+	prepareSelection.mockResolvedValue({ clipIds: ["A"] });
+	render(<ClipExport creatorId='owner' clipIds={["A"]} scope='rules-recovery' configure label='Export matching clips' prepareSelection={prepareSelection} />);
+	fireEvent.click(screen.getByRole("button", { name: "Export matching clips" }));
+	await waitFor(() => expect(prepareSelection).toHaveBeenCalledTimes(1));
+	if (kind !== "denied") await waitFor(() => expect(notify).toHaveBeenCalled());
+	expect(screen.queryByText("Export clips")).toBeNull();
+	fireEvent.click(screen.getByRole("button", { name: "Export matching clips" }));
+	await screen.findByText("Export clips");
+	expect(browserBatch).not.toHaveBeenCalled();
+});

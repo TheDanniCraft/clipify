@@ -27,8 +27,11 @@ export default async function StreamPage({ params, searchParams }: { params: Pro
 	const data = await getCreatorClipInventory({ creatorId: user.id, query });
 	return (
 		<DashboardNavbar user={user} title={stream.broadcast.title || "Untitled stream"} tagline='Clips linked to this broadcast'>
-			<div className='mt-4 flex gap-4'>
+			<div className='mt-4 flex flex-wrap items-center gap-4'>
 				<Link href='/dashboard/streams'>Back to streams</Link>
+				<Link href='#stream-moments' className='xl:hidden'>
+					Stream moments
+				</Link>
 				{stream.broadcast.available ? (
 					<Link href={stream.broadcast.url} target='_blank' rel='noopener noreferrer'>
 						Open broadcast on Twitch
@@ -42,8 +45,14 @@ export default async function StreamPage({ params, searchParams }: { params: Pro
 				<span>Current clip views: {stream.broadcast.clipViews === null ? "Unavailable" : stream.broadcast.clipViews.toLocaleString()}</span>
 			</div>
 			{stream.stale ? <p className='mt-3 text-sm text-warning-soft-foreground'>Showing saved broadcast information.</p> : null}
-			<StreamMoments creatorId={user.id} clips={stream.broadcast.moments ?? []} />
-			<ClipInventory key={`${user.id}:${videoId}`} creatorId={user.id} query={raw} data={data} />
+			<div className='mt-6 grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]'>
+				<div className='min-w-0'>
+					<ClipInventory key={`${user.id}:${videoId}`} creatorId={user.id} query={raw} data={data} />
+				</div>
+				<aside className='min-w-0 self-start xl:sticky xl:top-6'>
+					<StreamMoments creatorId={user.id} clips={stream.broadcast.moments ?? []} />
+				</aside>
+			</div>
 		</DashboardNavbar>
 	);
 }

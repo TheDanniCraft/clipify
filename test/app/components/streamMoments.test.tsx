@@ -1,4 +1,23 @@
 import { render, screen, fireEvent } from "@testing-library/react";
+jest.mock(
+	"@heroui-pro/react",
+	() => {
+		const React = jest.requireActual("react");
+		const Open = React.createContext(false);
+		const Timeline = Object.assign(({ children, ...props }: any) => <ol {...props}>{children}</ol>, { Item: ({ children }: any) => <li>{children}</li>, Marker: () => null, Content: ({ children }: any) => <div>{children}</div> });
+		const HoverCard = Object.assign(({ children, open }: any) => <Open.Provider value={open}>{children}</Open.Provider>, {
+			Trigger: ({ children }: any) => <span>{children}</span>,
+			Content: ({ children, role, ...props }: any) =>
+				React.useContext(Open) ? (
+					<div role={role} aria-label={props["aria-label"]}>
+						{children}
+					</div>
+				) : null,
+		});
+		return { Timeline, HoverCard };
+	},
+	{ virtual: true },
+);
 import Moments from "@components/creator/streamMoments";
 jest.mock("@components/creator/clipPreview", () => ({
 	__esModule: true,
@@ -18,8 +37,8 @@ it("omits an empty strip and previews the exact selected moment", () => {
 			creatorId='owner'
 			clips={
 				[
-					{ id: "A", title: "", createdAt: "2026-11-02T00:00:00Z", thumbnailUrl: null },
-					{ id: "B", title: "Winner", createdAt: "2026-11-02T01:00:00Z", thumbnailUrl: "https://static-cdn.jtvnw.net/b.jpg" },
+					{ id: "A", title: "", createdAt: "2026-11-02T00:00:00Z", thumbnailUrl: null, views: 0, duration: 10, vodOffsetSeconds: null },
+					{ id: "B", title: "Winner", createdAt: "2026-11-02T01:00:00Z", thumbnailUrl: "https://static-cdn.jtvnw.net/b.jpg", views: 0, duration: 10, vodOffsetSeconds: null },
 				] as never
 			}
 		/>,
@@ -29,4 +48,33 @@ it("omits an empty strip and previews the exact selected moment", () => {
 	fireEvent.click(screen.getByRole("button", { name: "Close preview" }));
 	expect(screen.queryByRole("dialog")).toBeNull();
 	expect(screen.getByRole("button", { name: "Untitled clip" })).toBeVisible();
+});
+
+it("uses a vertical timeline and opens overlapping alternatives as a rich overview", async () => {
+	render(
+		<Moments
+			creatorId='owner'
+			clips={
+				[
+					{ id: "A", title: "Earlier", createdAt: "2026-11-02T00:00:00Z", thumbnailUrl: null, vodOffsetSeconds: 10, duration: 20, views: 2 },
+					{ id: "B", title: "Popular", createdAt: "2026-11-02T00:00:02Z", thumbnailUrl: null, vodOffsetSeconds: 12, duration: 20, views: 30 },
+				] as never
+			}
+		/>,
+	);
+	expect(screen.getByRole("list", { name: "Stream moments timeline" })).toBeVisible();
+	fireEvent.click(screen.getByRole("button", { name: "2 clips at 0:10" }));
+	const overview = await screen.findByRole("dialog", { name: "Clips at 0:10" });
+	expect(overview).toHaveTextContent("Earlier");
+	fireEvent.click(screen.getByRole("button", { name: /Preview Popular/ }));
+	expect(await screen.findByRole("dialog")).toHaveTextContent("B");
+});
+
+it("shows additional moments and preserves hour-long positions", () => {
+	render(<Moments creatorId='owner' clips={Array.from({ length: 6 }, (_, i) => ({ id: `Clip${i}`, title: `Moment ${i}`, views: 10, duration: 10, thumbnailUrl: null, createdAt: "2026-11-02T00:00:00Z", vodOffsetSeconds: i * 3600 })) as never} />);
+	expect(screen.getAllByRole("listitem")).toHaveLength(5);
+	expect(screen.getByText("1:00:00 into stream")).toBeVisible();
+	fireEvent.click(screen.getByRole("button", { name: "Show more moments" }));
+	expect(screen.getAllByRole("listitem")).toHaveLength(6);
+	expect(screen.queryByRole("button", { name: "Show more moments" })).toBeNull();
 });

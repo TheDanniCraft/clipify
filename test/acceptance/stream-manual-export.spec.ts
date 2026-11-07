@@ -23,6 +23,7 @@ test("saved stream exports every filtered clip across pages after Twitch removes
 	await page.reload();
 	await expect(page.getByRole("heading", { name: "Earlier stream", exact: true })).toBeVisible();
 	await expect(page.getByRole("status", { name: "Inventory results" })).toHaveText("59 clips");
+	await page.getByRole("row", { name: "Tools", exact: true }).click();
 	const automation = page.getByText("Automations", { exact: true });
 	await expect(automation).toBeVisible();
 	await expect(automation.locator('xpath=ancestor::*[@aria-disabled="true"]').first()).toBeVisible();

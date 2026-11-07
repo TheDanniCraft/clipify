@@ -50,6 +50,9 @@ export function readMcpSourceManifest() {
 		"src/app/components/creator/clipExportQueue.tsx",
 		"src/app/lib/clipExportStream.ts",
 		"src/app/components/creator/streamMoments.tsx",
+		"src/app/components/creator/streamTable.tsx",
+		"src/app/components/creator/streamThumbnail.tsx",
+		"src/app/lib/streamMoments.ts",
 		"src/app/dashboard/clips/layout/page.tsx",
 
 		"src/server/clip-download-limit.ts",

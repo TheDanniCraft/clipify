@@ -436,3 +436,14 @@ The stable COMP-U/A rows in tdd/test-list.md map the remaining new unit/action/c
 | FINAL-06    | Feature summary and reports/test-summary.md                                                                                                   | Exact-head CI required; historical TDD governance finding remains disclosed                                               |
 
 FINAL-02 pagination reconciliation: BDD-US2-002 retains its five input classes, with “next saved page” replacing the superseded provider-page presentation. The fixture includes21 saved broadcasts and asserts20 then1 row, including a retained unavailable recording. Provider cursor/backoff/paging remains owned by broadcast-archive.test.ts. Exact renamed heading/grid assertions are retained in creator-library.pages.test.tsx and creator-layout.spec.ts, not weakened to generic visibility checks.
+
+## Stream workspace follow-up
+
+| Behavior                                                                    | Owners                                                                                              |
+| --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Safe thumbnails, full-row action and retained detail moments                | creator-broadcasts.test.ts; streamTable.test.tsx; stream-workspace.spec.ts                          |
+| Non-transitive overlap grouping, representative/tie choice, unknown offsets | test/app/lib/streamMoments.test.ts                                                                  |
+| Vertical Pro timeline, alternatives, preview, hour labels and Show more     | test/app/components/streamMoments.test.tsx; stream-workspace.spec.ts                                |
+| Applied view/duration rules and automatic all-match confirmation/export     | clipInventory.test.tsx; clipExport.test.tsx; stream-workspace.spec.ts; stream-manual-export.spec.ts |
+| Disabled Tools automation and retained layout navigation                    | dashboardShell.test.tsx; dashboard-sidebar-destinations.spec.ts; stream-manual-export.spec.ts       |
+| Coherent estimated development sessions and original metadata preservation  | Guarded Infisical dev operator dry-run + transaction postconditions, streams-ux.md                  |
