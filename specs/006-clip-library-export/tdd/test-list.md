@@ -463,3 +463,7 @@ ARC-08: Row body mouse and Enter actions open clip details; checkbox mouse/keybo
 ## Remove outgoing dragging after Safari feedback, 7 November 2026
 
 US4-AC1: one Original/Desktop/Mobile output still downloads automatically as a playable MP4; the installed Download MP4 button saves it again. No outgoing File drag, grab cursor or drag instruction is offered; native preview dragging is explicitly prevented. Multiple selected outputs retain automatic ZIP downloads with no video preview. Direct Download original, ownership/quotas, per-file retry and cleanup retain their existing whole-file checks.
+
+## Homepage card polish, 7 November 2026
+
+Home summary preserves cached clip/stream metrics, all-time top clips and analytics access/recovery while removing synchronization/timezone diagnostics. In the real installed components, all four summary actions have matching font size/weight and visible link decoration; empty copy does not outrank the card description. With five historical clips and no recent activity, Pro metrics follow their card header without a large centered gap, and the insights card does not stretch to the taller clips list. Cover Free/Pro at390/1440 in both themes and existing navigation/first-row alignment at390/820/1024/1440. Upgrade keyboard navigation remains real.

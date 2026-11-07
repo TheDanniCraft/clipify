@@ -193,3 +193,7 @@ Supersedes earlier metadata-sidecar packaging: remove manifest construction from
 ## Remove outgoing dragging after Safari feedback, 7 November 2026
 
 Delete retained drag File state and the custom File-transfer handler. Keep the existing completed URL and native playback controls, set draggable=false and cancel native drag start. Remove the instruction and grab cursor. Restore automatic MP4/ZIP download as explicitly requested; no changes to preparation, rendering, quotas, ZIP integrity or direct downloads. Record the creator's Safari observation without generalizing it to every macOS browser. Verify whole queue and real export owners, including automatic downloads and the repeat-download button.
+
+## Homepage card polish, 7 November 2026
+
+Scope: CreatorOverview and its local CreatorPageInsights only. Reuse installed HeroUI Card/Link/Link.Icon and existing chevrons. Share one local action class for small underlined navigation links; reduce the empty-state message to the existing secondary text scale. Remove the performance sync/date footer without changing cache/query behavior. Make the insights card self-align at the start and remove vertical centering, keeping its footer next to the content. Preserve the first-row matched card heights, shortcuts, sidebar, analytics access and recovery. Verify a five-old-clip fixture in both plans/themes, actual font/decoration/header-to-metrics spacing, and existing responsive library navigation.

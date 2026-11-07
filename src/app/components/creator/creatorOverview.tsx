@@ -10,6 +10,7 @@ import { getCreatorAnalytics } from "@actions/creatorAnalytics";
 import { buttonVariants } from "@heroui/styles";
 import { today, getLocalTimeZone } from "@internationalized/date";
 import { IconHome, IconLayoutGrid, IconPlaylist, IconPhoto, IconDeviceDesktop, IconScissors, IconLock, IconChevronRight } from "@tabler/icons-react";
+const cardActionClassName = "shrink-0 gap-1 text-sm underline";
 type Overview = Awaited<ReturnType<typeof getCreatorClipOverview>>;
 type Broadcasts = Awaited<ReturnType<typeof getCreatorBroadcasts>>;
 export default function CreatorOverview({ creatorId, analyticsAllowed = false }: { creatorId: string; analyticsAllowed?: boolean }) {
@@ -100,21 +101,17 @@ export default function CreatorOverview({ creatorId, analyticsAllowed = false }:
 										</div>
 									</dl>
 								) : (
-									<div>
-										<p className='font-medium'>No clips from the last 30 days</p>
-										<Link href='/dashboard/clips'>Browse clip inventory</Link>
+									<div className='space-y-2 text-sm'>
+										<p className='text-muted'>No clips from the last 30 days</p>
+										<Link href='/dashboard/clips' className={cardActionClassName}>
+											Browse clip inventory
+											<Link.Icon aria-hidden='true'>
+												<IconChevronRight />
+											</Link.Icon>
+										</Link>
 									</div>
 								)}
-								<p className='text-xs text-muted'>
-									{overview.count ? "Total views on these clips. " : ""}
-									{overview.complete ? "Library synchronized." : "These are known clips; older clips may still be syncing."} Dates use {overview.timeZone}.
-									{overview.fetchedAt ? (
-										<>
-											{" "}
-											Updated <LocalizedDate value={overview.fetchedAt} showTime />
-										</>
-									) : null}
-								</p>
+								{overview.count ? <p className='text-xs text-muted'>Total views on these clips.</p> : null}
 							</>
 						) : overview ? (
 							<div>
@@ -132,8 +129,11 @@ export default function CreatorOverview({ creatorId, analyticsAllowed = false }:
 				<Card>
 					<Card.Header className='flex-row items-center justify-between gap-3'>
 						<Card.Title>Latest stream</Card.Title>
-						<Link href='/dashboard/streams' className='shrink-0 text-sm'>
+						<Link href='/dashboard/streams' className={cardActionClassName}>
 							View all streams
+							<Link.Icon aria-hidden='true'>
+								<IconChevronRight />
+							</Link.Icon>
 						</Link>
 					</Card.Header>
 					<Card.Content className='flex flex-col gap-3'>
@@ -188,7 +188,12 @@ export default function CreatorOverview({ creatorId, analyticsAllowed = false }:
 							<Card.Title>Top clips</Card.Title>
 							<p className='text-sm text-muted'>All-time most viewed clips in your library</p>
 						</div>
-						<Link href='/dashboard/clips'>View all clips</Link>
+						<Link href='/dashboard/clips' className={cardActionClassName}>
+							View all clips
+							<Link.Icon aria-hidden='true'>
+								<IconChevronRight />
+							</Link.Icon>
+						</Link>
 					</Card.Header>
 					<Card.Content>
 						{overview?.ok ? (
@@ -258,12 +263,12 @@ function CreatorPageInsights({ creatorId, allowed }: { creatorId: string; allowe
 		};
 	}, [creatorId, allowed, retry]);
 	return (
-		<Card aria-label='Creator Page insights'>
+		<Card aria-label='Creator Page insights' className='self-start'>
 			<Card.Header>
 				<Card.Title>Creator Page insights</Card.Title>
 				<Card.Description>Visitors and clip plays in the last 30 days</Card.Description>
 			</Card.Header>
-			<Card.Content className='flex flex-1 flex-col justify-center gap-4'>
+			<Card.Content className='flex flex-col gap-4'>
 				{!allowed ? (
 					<div className='space-y-4'>
 						<IconLock className='size-5 text-muted' aria-hidden='true' />
@@ -317,7 +322,12 @@ function CreatorPageInsights({ creatorId, allowed }: { creatorId: string; allowe
 			</Card.Content>
 			{allowed ? (
 				<Card.Footer>
-					<Link href='/dashboard/settings?tab=creator'>Manage Creator Page</Link>
+					<Link href='/dashboard/settings?tab=creator' className={cardActionClassName}>
+						Manage Creator Page
+						<Link.Icon aria-hidden='true'>
+							<IconChevronRight />
+						</Link.Icon>
+					</Link>
 				</Card.Footer>
 			) : null}
 		</Card>

@@ -276,3 +276,7 @@ The preview does not initiate outgoing dragging. Do not infer cross-site/browser
 ### Remove outgoing dragging, 7 November 2026
 
 Supersedes the outgoing-drag behavior above. The creator reports Safari on a MacBook Pro drawing a drag image that stops when leaving the source window. API presence cannot establish cross-window delivery. Remove drag instructions, grab cursors and the generated-file drag handler, and explicitly prevent native preview dragging. Keep the playable single-video preview, automatic MP4/ZIP downloads and the existing manual repeat-download action. Do not introduce browser-name guesses, a new setting or a manual-only download step.
+
+### Homepage card polish, 7 November 2026
+
+Keep the existing four-card Home layout, Quick access, routes, data, HeroUI theme and Pro access. Make the no-recent-clips message smaller and muted, remove the homepage synchronization/timezone/update sentence, and give Browse clip inventory, View all streams, View all clips and Manage Creator Page the same HeroUI link size and visible navigation treatment. Creator Page insights should fit its content with metrics directly below the description rather than center inside a card stretched to the top-clips table's height. Preserve the lifetime-view explanation for populated clip performance, underlying local-time queries, analytics timestamps and loading/retry/upgrade behavior.

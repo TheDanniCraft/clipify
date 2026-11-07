@@ -41,7 +41,7 @@ it("loads clip metrics independently of unavailable broadcasts", async () => {
 	render(<CreatorOverview creatorId='owner' />);
 	await screen.findByText("Clutch");
 	expect(screen.getByText("Broadcasts could not be loaded. Your clip data is kept.")).toBeInTheDocument();
-	expect(screen.getByText(/older clips may still be syncing/)).toBeInTheDocument();
+	expect(screen.getByRole("status", { name: "Current clip views" })).toHaveTextContent("20");
 	expect(overview).toHaveBeenCalledWith({ creatorId: "owner", timeZone: expect.any(String) });
 });
 it("shows independently cached broadcasts when clip metrics fail", async () => {
@@ -60,7 +60,8 @@ it("recovers failed requests without remounting the page", async () => {
 	await screen.findByText("Clip performance could not be loaded.");
 	fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 	await screen.findByText("Clutch");
-	expect(screen.getByText(/Library synchronized/)).toBeInTheDocument();
+	expect(screen.getByRole("status", { name: "Known clips" })).toHaveTextContent("2");
+	expect(screen.queryByText(/Library synchronized|Dates use/)).not.toBeInTheDocument();
 	fireEvent.click(screen.getByRole("button", { name: "Retry broadcasts" }));
 	await screen.findByText(/No available broadcasts/);
 });

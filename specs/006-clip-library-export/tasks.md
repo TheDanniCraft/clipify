@@ -899,3 +899,9 @@ T681–T685 local closure: brand-candidate-browser-export.log passes all10 final
 - [x] T734 Remove outgoing dragging, misleading instructions/grab cursors and retained drag File state; preserve playable previews, automatic MP4/ZIP downloads and manual repeat downloads.
 - [x] T735 Record the creator's MacBook Pro Safari failure and the absence of a reliable general cross-window delivery detector. Avoid user-agent guesses or unsupported claims about all macOS browsers.
 - [x] T736 Validate the complete37-case queue owner and13 real export/browser/BDD scenarios, including actual playback, automatic downloads and blocked dragging; inspect desktop/mobile themes and publish the tested slice with exact-head CI/deployment evidence tracked on PR546. T059 remains the merge gate; no merge or production release.
+
+## Homepage card polish, 7 November 2026
+
+- [x] T737 Make the empty performance state smaller, remove sync/timezone/update copy and normalize the four card actions with installed HeroUI links while retaining their routes.
+- [x] T738 Remove the insights card's forced stretch/vertical centering; preserve metrics, local-time queries, Pro access, loading/recovery and first-row alignment. Review focused Mobbin examples and both themes.
+- [x] T739 Verify the complete20-case overview owner and16 installed-component browser scenarios, including five old clips, actual action styles and compact metrics; capture measured before/after evidence and publish the tested slice with exact-head CI/deployment tracked on PR546. T059 remains the merge gate; no merge or production release.
