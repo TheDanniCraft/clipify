@@ -62,3 +62,13 @@ it("does not publish a finished video if cancellation arrives during encoding", 
 	await expect(encodeForPreset({ id: "discord" }, 10, controller.signal, render)).rejects.toThrow();
 	expect(render).toHaveBeenCalledTimes(1);
 });
+
+it("honors Discord account allowances without expanding per-video memory", () => {
+	expect(exportEncoding({ id: "discord", tier: "free" }, 90).maxBytes).toBe(20_000_000);
+	for (const tier of ["basic", "nitro"] as const) {
+		const policy = exportEncoding({ id: "discord", tier }, 90);
+		expect(policy.maxBytes).toBeGreaterThan(20_000_000);
+		expect(policy.maxBytes).toBeLessThan(32 * 1024 * 1024);
+	}
+	expect(exportPresetSchema.safeParse({ id: "discord", tier: "forged" }).success).toBe(false);
+});

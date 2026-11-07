@@ -866,3 +866,10 @@ T681–T685 local closure: brand-candidate-browser-export.log passes all10 final
 - [x] T716 Remove Refresh library and group explicit filter actions; add visible start/end timeline markers; add approved Counter-Strike preview sessions without changing original cached clip payloads.
 - [x] T717 Validate installed export controls in both themes at 390/1440px, real video/audio/font/size/parity outputs and affected stream/recovery journeys. All 68 owning browser cases pass. The existing T059 remains the separate exact-head CI/merge gate, tracked on PR546.
 - [x] T718 Research Firefox Android software fallback honestly: native first, no reliable current Android benchmark or real Android hardware available; no speculative WASM dependency shipped.
+
+### Export wizard and scrolling timeline follow-up
+
+- [x] T719 Bound the complete timeline to its clips column/viewport, remove Show more and verify keyboard scrolling reaches Stream end with a sixty-moment multi-day disposable fixture.
+- [x] T720 Separate versions/templates from destination settings with installed HeroUI controls; retain Back/Next choices, compact platform selection and Discord-specific account allowances without General file-size clutter.
+- [x] T721 Allow untouched General Original downloads without an encoder; retain recoverable native-only conversion checks, cancellation, per-file progress, filters, quotas and authoritative templates.
+- [x] T722 Verify complete affected local owners and installed responsive/theme flows, update caller/BDD steps, and publish validation evidence with PR546. The separate exact-head CI/merge gate remains T059 and its result is tracked on the PR.

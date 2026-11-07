@@ -56,6 +56,7 @@ export async function downloadCompositionExports({ page, tourWorld }: Context, s
 	await page.keyboard.press("Escape");
 	await expect(page.getByRole("status", { name: "Export file count" })).toHaveText("5 video files");
 	const download = page.waitForEvent("download", { timeout: 90000 });
+	await page.getByRole("dialog", { name: "Export clips", exact: true }).getByRole("button", { name: "Next", exact: true }).click();
 	await page.getByRole("button", { name: "Start export", exact: true }).click();
 	const path = info.outputPath("four-versions.zip");
 	await (await download).saveAs(path);

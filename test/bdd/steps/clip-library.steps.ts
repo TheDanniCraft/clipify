@@ -266,6 +266,7 @@ When("I export each explicitly selected set", async ({ page, tourWorld }) => {
 	const downloading = page.waitForEvent("download", { timeout: 30000 });
 	const responsePromise = page.waitForResponse((response) => new URL(response.url()).pathname === "/api/clips/export/browser" && response.request().method() === "POST", { timeout: 30000 });
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
+	await page.getByRole("dialog", { name: "Export clips", exact: true }).getByRole("button", { name: "Next", exact: true }).click();
 	await page.getByRole("button", { name: "Start export", exact: true }).click();
 	const response = await responsePromise;
 	expect(response.status(), response.ok() ? "export preparation response" : await response.text()).toBe(200);

@@ -33,6 +33,7 @@ for (const mode of ["missing_scope", "revoked"])
 		const seeded = await setup({ page, request, tourWorld }, mode === "revoked" ? mode : undefined);
 		if (mode === "missing_scope") await tourWorld.fixture.pool.query("UPDATE auth.account SET scope=$1 WHERE account_id=$2", ["", seeded.creatorId]);
 		await page.getByRole("button", { name: "Export selected", exact: true }).click();
+		await page.getByRole("dialog", { name: "Export clips", exact: true }).getByRole("button", { name: "Next", exact: true }).click();
 		await page.getByRole("button", { name: "Start export", exact: true }).click();
 		await expect(page.getByRole("dialog", { name: "Clip exports", exact: true })).toContainText("Reconnect Twitch");
 		await expect(page.getByRole("link", { name: "Reconnect Twitch (opens in a new tab)", exact: true })).toHaveAttribute("target", "_blank");
@@ -43,6 +44,7 @@ for (const mode of ["provider_429", "provider_5xx"])
 	test(`Clip export provider recovery: ${mode}`, { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
 		const seeded = await setup({ page, request, tourWorld }, mode);
 		await page.getByRole("button", { name: "Export selected", exact: true }).click();
+		await page.getByRole("dialog", { name: "Export clips", exact: true }).getByRole("button", { name: "Next", exact: true }).click();
 		await page.getByRole("button", { name: "Start export", exact: true }).click();
 		const download = page.waitForEvent("download");
 		if (mode === "provider_429") {
@@ -64,6 +66,7 @@ for (const mode of ["deleted", "html", "truncated"])
 		let downloads = 0;
 		page.on("download", () => downloads++);
 		await page.getByRole("button", { name: "Export selected", exact: true }).click();
+		await page.getByRole("dialog", { name: "Export clips", exact: true }).getByRole("button", { name: "Next", exact: true }).click();
 		await page.getByRole("button", { name: "Start export", exact: true }).click();
 		await expect(page.getByRole("dialog", { name: "Clip exports", exact: true })).toContainText("No selected clips could be downloaded");
 		await expect(page.getByRole("button", { name: "Retry failed files", exact: true })).toHaveCount(0);
@@ -84,6 +87,7 @@ for (const width of [390, 1440])
 			await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("2 selected");
 			const firstDownload = page.waitForEvent("download");
 			await page.getByRole("button", { name: "Export selected", exact: true }).click();
+			await page.getByRole("dialog", { name: "Export clips", exact: true }).getByRole("button", { name: "Next", exact: true }).click();
 			await page.getByRole("button", { name: "Start export", exact: true }).click();
 			const archive = await firstDownload;
 			const entries = unzipSync(new Uint8Array(await readFile((await archive.path())!)));
@@ -102,6 +106,7 @@ for (const width of [390, 1440])
 test("Clip export cancellation retains explicit selection", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
 	await setup({ page, request, tourWorld }, "delay");
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
+	await page.getByRole("dialog", { name: "Export clips", exact: true }).getByRole("button", { name: "Next", exact: true }).click();
 	await page.getByRole("button", { name: "Start export", exact: true }).click();
 	await page.getByRole("button", { name: "Cancel export", exact: true }).click();
 	await expect(page.getByRole("dialog", { name: "Clip exports" }).getByText("Export cancelled. Your selection is kept.", { exact: true })).toBeVisible();
@@ -112,6 +117,7 @@ test("Clip export refuses an expired session without dropping the local selectio
 	const seeded = await setup({ page, request, tourWorld });
 	await tourWorld.fixture.pool.query("DELETE FROM auth.session WHERE user_id=$1", [seeded.authUserId]);
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
+	await page.getByRole("dialog", { name: "Export clips", exact: true }).getByRole("button", { name: "Next", exact: true }).click();
 	await page.getByRole("button", { name: "Start export", exact: true }).click();
 	await expect(page.getByRole("dialog", { name: "Clip exports", exact: true })).toContainText("Sign in again");
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("1 selected");
@@ -179,6 +185,7 @@ test("Clip export refuses a suspended creator with actionable feedback", { tag: 
 	const seeded = await setup({ page, request, tourWorld });
 	await tourWorld.fixture.pool.query("UPDATE users SET disabled=true WHERE id=$1", [seeded.creatorId]);
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
+	await page.getByRole("dialog", { name: "Export clips", exact: true }).getByRole("button", { name: "Next", exact: true }).click();
 	await page.getByRole("button", { name: "Start export", exact: true }).click();
 	await expect(page.getByRole("dialog", { name: "Clip exports", exact: true })).toContainText("This creator account is suspended. Contact support");
 	await expect(page.getByRole("button", { name: "Retry failed files", exact: true })).toHaveCount(0);
@@ -194,6 +201,7 @@ test("Clip export withholds buffered media when the current grant is revoked dur
 	let downloads = 0;
 	page.on("download", () => downloads++);
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
+	await page.getByRole("dialog", { name: "Export clips", exact: true }).getByRole("button", { name: "Next", exact: true }).click();
 	await page.getByRole("button", { name: "Start export", exact: true }).click();
 	await expect
 		.poll(async () => {
@@ -235,6 +243,7 @@ test("Maximum clip package downloads intact with measured browser memory", { tag
 		const downloads: import("@playwright/test").Download[] = [];
 		page.on("download", (download) => downloads.push(download));
 		await page.getByRole("button", { name: "Export selected", exact: true }).click();
+		await page.getByRole("dialog", { name: "Export clips", exact: true }).getByRole("button", { name: "Next", exact: true }).click();
 		await page.getByRole("button", { name: "Start export", exact: true }).click();
 		await expect.poll(() => downloads.length).toBe(2);
 		let archiveBytes = 0;
@@ -274,6 +283,7 @@ test("Clip export downloads Twitch legacy CDN media intact", { tag: "@shard:scen
 	const seeded = await setup({ page, request, tourWorld }, "legacy_cdn");
 	const download = page.waitForEvent("download");
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
+	await page.getByRole("dialog", { name: "Export clips", exact: true }).getByRole("button", { name: "Next", exact: true }).click();
 	await page.getByRole("button", { name: "Start export", exact: true }).click();
 	const archive = await download;
 	const entries = unzipSync(await readFile((await archive.path())!));
@@ -321,6 +331,7 @@ test("Export failure dialog preserves page geometry and selection", { tag: "@sha
 	const selection = page.getByRole("status", { name: "Clip selection", exact: true });
 	const before = await selection.boundingBox();
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
+	await page.getByRole("dialog", { name: "Export clips", exact: true }).getByRole("button", { name: "Next", exact: true }).click();
 	await page.getByRole("button", { name: "Start export", exact: true }).click();
 	const details = page.getByRole("dialog", { name: "Clip exports", exact: true });
 	await expect(details).toBeVisible();

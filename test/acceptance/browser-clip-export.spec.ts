@@ -27,8 +27,9 @@ for (const mode of ["audio", "audio_untagged"])
 			if (new URL(r.url()).pathname === "/api/clips/export") heavy.push(r.url());
 		});
 		await page.goto(`${tourWorld.origin}/dashboard/clips`);
+		const consentReload = page.waitForEvent("domcontentloaded");
 		await page.getByRole("button", { name: "Reject optional", exact: true }).click();
-		await page.reload();
+		await consentReload;
 		await page.getByRole("button", { name: "Select page", exact: true }).click();
 		await page.getByRole("button", { name: "Export selected", exact: true }).click();
 		const dialog = page.getByRole("dialog", { name: "Export clips", exact: true });
@@ -36,13 +37,16 @@ for (const mode of ["audio", "audio_untagged"])
 			await dialog.getByRole("checkbox", { name, exact: true }).focus();
 			await page.keyboard.press("Space");
 		}
+		await dialog.getByRole("button", { name: "Next", exact: true }).click();
+		await dialog.getByRole("button", { name: /Export for/ }).click();
+		await page.getByRole("option", { name: "Discord", exact: true }).click();
 		const preset = mode === "audio" ? { id: "custom", maxSizeMB: 1 } : { id: "discord" };
 		if (mode === "audio") {
 			await dialog.getByRole("radio", { name: "Custom", exact: true }).click();
 			const size = dialog.getByRole("textbox", { name: "Custom maximum size (MB)", exact: true });
 			await size.fill("1");
 			await size.press("Tab");
-		} else await dialog.getByText("Discord", { exact: true }).click();
+		}
 		await expect(dialog.getByRole("radiogroup", { name: "Processing" })).toHaveCount(0);
 		await expect(dialog.getByRole("button", { name: "Start export", exact: true })).toBeEnabled();
 		await dialog.screenshot({ path: info.outputPath("export-settings.png") });
@@ -124,22 +128,31 @@ for (const mode of ["audio", "audio_untagged"])
 test("Unsupported browsers show a recoverable local-support state without server processing", async ({ page, request, tourWorld }, info) => {
 	await page.setViewportSize({ width: 390, height: 950 });
 	await page.addInitScript(() => Object.defineProperty(window, "Worker", { value: undefined, writable: true }));
-	await seedCreatorLibrary({ page, request, tourWorld });
+	const { creatorId } = await seedCreatorLibrary({ page, request, tourWorld });
+	await tourWorld.fixture.pool.query("UPDATE auth.account SET scope='channel:manage:clips' WHERE account_id=$1", [creatorId]);
 	await page.goto(`${tourWorld.origin}/dashboard/clips`);
+	const consentReload = page.waitForEvent("domcontentloaded");
 	await page.getByRole("button", { name: "Reject optional", exact: true }).click();
-	await page.reload();
+	await consentReload;
 	await page.getByRole("button", { name: "Select page", exact: true }).click();
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
 	const dialog = page.getByRole("dialog", { name: "Export clips", exact: true });
-	await expect(dialog.getByRole("heading", { name: "Exporting is not supported in this browser" })).toBeVisible();
-	await expect(dialog.getByRole("checkbox")).toHaveCount(0);
-	await expect(dialog.getByRole("button", { name: "Start export" })).toHaveCount(0);
-	await expect(dialog.getByText(/selected/)).toHaveCount(0);
+	await dialog.getByRole("button", { name: "Next", exact: true }).click();
+	await dialog.getByRole("button", { name: /Export for/ }).click();
+	await page.getByRole("option", { name: "Discord", exact: true }).click();
+	await expect(dialog.getByRole("heading", { name: "Video conversion is not supported in this browser" })).toBeVisible();
+	await expect(dialog.getByRole("button", { name: "Start export", exact: true })).toBeDisabled();
 	await dialog.getByRole("button", { name: "Check again" }).click();
-	await expect(dialog.getByRole("heading", { name: "Exporting is not supported in this browser" })).toBeVisible();
-	await dialog.screenshot({ path: info.outputPath("unsupported-device.png") });
-	await dialog.getByRole("button", { name: "Close", exact: true }).click();
-	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("1 selected");
+	await expect(dialog.getByRole("heading", { name: "Video conversion is not supported in this browser" })).toBeVisible();
+	await dialog.screenshot({ path: info.outputPath("unsupported-conversion.png") });
+	await dialog.getByRole("button", { name: /Export for/ }).click();
+	await page.getByRole("option", { name: "General", exact: true }).click();
+	const pending = page.waitForEvent("download");
+	await dialog.getByRole("button", { name: "Start export", exact: true }).click();
+	const download = await pending;
+	const archive = unzipSync(await readFile((await download.path())!));
+	expect(Object.keys(archive).filter((name) => name.endsWith(".mp4"))).toHaveLength(1);
+	await download.delete();
 });
 
 test("Large browser exports download ZIP parts without dropping files", async ({ page, request, tourWorld }, info) => {
@@ -170,8 +183,9 @@ test("Large browser exports download ZIP parts without dropping files", async ({
 		mobile = createClipComposition("mobile");
 	for (let i = 1; i <= 3; i++) await tourWorld.fixture.pool.query("INSERT INTO user_content_states(user_id,content_key,state) VALUES($1,$2,$3)", [creatorId, `clip-layout-template:v2:parts${i}`, JSON.stringify({ name: `Package ${i}`, composition: desktop, compositions: { desktop, mobile } })]);
 	await page.goto(`${tourWorld.origin}/dashboard/clips`);
+	const consentReload = page.waitForEvent("domcontentloaded");
 	await page.getByRole("button", { name: "Reject optional", exact: true }).click();
-	await page.reload();
+	await consentReload;
 	await page.getByRole("button", { name: "Select page", exact: true }).click();
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
 	const dialog = page.getByRole("dialog", { name: "Export clips", exact: true });
@@ -190,6 +204,7 @@ test("Large browser exports download ZIP parts without dropping files", async ({
 	await expect(dialog.getByRole("status", { name: "Export file count" })).toHaveText("7 video files");
 	const downloads: import("@playwright/test").Download[] = [];
 	page.on("download", (download) => downloads.push(download));
+	await dialog.getByRole("button", { name: "Next", exact: true }).click();
 	await dialog.getByRole("button", { name: "Start export", exact: true }).click();
 	await expect.poll(() => downloads.length, { timeout: 45000 }).toBe(2);
 	const names: string[] = [];
@@ -215,12 +230,14 @@ for (const removed of ["cached", "provider"])
 			missing = `LibrarySort00_${creatorId.slice("e2e-creator-".length)}`;
 		await tourWorld.fixture.pool.query('INSERT INTO "twitchCache"(type,key,value) VALUES($1,$2,$3)', ["clip", `clip:${creatorId}:${missing}`, JSON.stringify({ ...stored, clip: { ...stored.clip, id: missing, title: "Removed" }, ...(removed === "provider" ? { testDownloadMode: "deleted" } : {}) })]);
 		await page.goto(`${tourWorld.origin}/dashboard/clips`);
+		const consentReload = page.waitForEvent("domcontentloaded");
 		await page.getByRole("button", { name: "Reject optional", exact: true }).click();
-		await page.reload();
+		await consentReload;
 		await page.getByRole("button", { name: "Select page", exact: true }).click();
 		await page.getByRole("button", { name: "Export selected", exact: true }).click();
 		if (removed === "cached") await tourWorld.fixture.pool.query(`UPDATE "twitchCache" SET value=jsonb_set(value::jsonb,'{unavailable}','true')::text WHERE key=$1`, [`clip:${creatorId}:${missing}`]);
 		const download = page.waitForEvent("download");
+		await page.getByRole("button", { name: "Next", exact: true }).click();
 		await page.getByRole("button", { name: "Start export", exact: true }).click();
 		const path = info.outputPath("partial.zip");
 		await (await download).saveAs(path);

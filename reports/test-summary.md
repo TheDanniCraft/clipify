@@ -1,7 +1,7 @@
 # Rolling Test Summary
 
 **Mode**: rolling
-**Last Updated**: 2026-10-07
+**Last Updated**: 2026-11-07
 
 ## Included Feature Reports
 
@@ -116,3 +116,9 @@ CI42341017912 completed with42 successful jobs and one failed BDD scenario plus 
 CI42342540741 completed with42 successful jobs; its sole failed scenario was an existing palette test issuing a second reload during Clipify's intentional consent-save navigation. Trace-backed test synchronization replaces the extra reload. The complete palette owner passes with unchanged colour, keyboard, save and error assertions. Export BDD correction passed in CI. Fresh exact-head validation remains required.
 
 CI42343638479 passes all43 execution jobs, including both prior browser corrections; the strict merged gate rejects export-settings function coverage89.18% against90%. A meaningful capability-failure/fresh-retry/export test now passes with the complete14-case settings owner and measures97.29% scoped functions under unchanged policy. Missing unrelated gallery owners make the scoped command diagnostic only. Fresh full merged validation is required for this test addition.
+
+## Current creator-export wizard checkpoint (2026-11-07)
+
+Guided versions/templates and destination settings, Discord account allowances, encoder-free untouched Original downloads, and an independently scrolling complete stream timeline are implemented. Local evidence passes246 unit/API/server checks in ten whole-file owners,60 browser scenarios in six complete owners and four complete export BDD cases. Production browser build/types, patch validation and changed-file lint pass. Final screenshots were reviewed in both themes at390/1440px, including a sixty-moment disposable timeline. See [feature summary](../specs/006-clip-library-export/test-summary.md) and [cycle log](../specs/006-clip-library-export/tdd/cycle-log.md) for exact evidence and retained failed iterations. A subsequent complete stream-owner rerun validates fixture offset consistency without changing application source.
+
+Current status: local Green; the new exact-head full CI and preview identity are tracked on [PR546](https://github.com/TheDanniCraft/clipify/pull/546), not inferred from the older5e242f03 checkpoint. Original/General downloads need no encoder; converted exports remain native-first with no unmeasured Android software fallback. No merge or production deployment is performed.

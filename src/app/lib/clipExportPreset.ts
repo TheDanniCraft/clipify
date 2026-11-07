@@ -1,5 +1,5 @@
 import { z } from "zod";
-export const exportPresetSchema = z.discriminatedUnion("id", [z.object({ id: z.enum(["general", "discord", "youtube", "tiktok", "instagram", "reddit"]) }), z.object({ id: z.literal("custom"), maxSizeMB: z.number().finite().min(1).max(32) })]);
+export const exportPresetSchema = z.discriminatedUnion("id", [z.object({ id: z.enum(["general", "youtube", "tiktok", "instagram", "reddit"]) }), z.object({ id: z.literal("discord"), tier: z.enum(["free", "basic", "nitro"]).optional() }), z.object({ id: z.literal("custom"), maxSizeMB: z.number().finite().min(1).max(32) })]);
 export type ExportPreset = z.infer<typeof exportPresetSchema>;
 export const exportPresets = [
 	{ id: "general", label: "General", description: "Balanced quality for sharing" },
@@ -13,7 +13,7 @@ export const exportPresets = [
 export function exportEncoding(preset: ExportPreset, duration: number, sourceAudioBitrate?: number) {
 	const selected = exportPresetSchema.parse(preset);
 	if (!Number.isFinite(duration) || duration <= 0) throw new Error("invalid_media");
-	const maxBytes = selected.id === "custom" ? Math.floor(selected.maxSizeMB * 1_000_000) : selected.id === "discord" ? 20_000_000 : 32 * 1024 * 1024 - 1;
+	const maxBytes = selected.id === "custom" ? Math.floor(selected.maxSizeMB * 1_000_000) : selected.id === "discord" && (!selected.tier || selected.tier === "free") ? 20_000_000 : 32 * 1024 * 1024 - 1;
 	const audioBitrate = sourceAudioBitrate ?? (selected.id === "youtube" ? 192000 : 128000);
 	if (!Number.isFinite(audioBitrate) || audioBitrate < 0) throw new Error("invalid_media");
 	const ceiling = ["youtube", "tiktok", "instagram"].includes(selected.id) ? 5000000 : 4000000;

@@ -49,8 +49,10 @@ export default async function StreamPage({ params, searchParams }: { params: Pro
 				<div className='min-w-0'>
 					<ClipInventory key={`${user.id}:${videoId}`} creatorId={user.id} query={raw} data={data} />
 				</div>
-				<aside className='min-w-0 self-start xl:sticky xl:top-24'>
-					<StreamMoments creatorId={user.id} clips={stream.broadcast.moments ?? []} startedAt={stream.broadcast.createdAt} duration={stream.broadcast.duration} />
+				<aside className='min-h-0 min-w-0 xl:relative'>
+					<div className='h-full xl:absolute xl:inset-0'>
+						<StreamMoments creatorId={user.id} clips={stream.broadcast.moments ?? []} startedAt={stream.broadcast.createdAt} duration={stream.broadcast.duration} />
+					</div>
 				</aside>
 			</div>
 		</DashboardNavbar>

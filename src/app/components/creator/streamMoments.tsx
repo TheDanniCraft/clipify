@@ -76,50 +76,40 @@ function Moment({ moment, previewing, onPreview }: { moment: ReturnType<typeof g
 }
 export default function StreamMoments({ creatorId, clips, startedAt, duration }: { creatorId: string; clips: Clip[]; startedAt?: string; duration?: string }) {
 	const [preview, setPreview] = useState<Clip | null>(null);
-	const [visible, setVisible] = useState(5);
 	if (!clips.length) return null;
 	const moments = groupStreamMoments(clips);
 	return (
-		<section id='stream-moments' className='min-w-0 scroll-mt-24' aria-label='Stream moments'>
+		<section id='stream-moments' className='flex h-full max-h-[min(36rem,calc(100dvh-8rem))] min-h-0 min-w-0 scroll-mt-24 flex-col xl:sticky xl:top-24' aria-label='Stream moments'>
 			<h2 className='mb-4 font-semibold'>Stream moments</h2>
-			<Timeline density='compact' size='sm' aria-label='Stream moments timeline'>
-				<Timeline.Item>
-					<Timeline.Marker>
-						<IconPlayerPlay aria-hidden='true' />
-					</Timeline.Marker>
-					<Timeline.Content>
-						<span className='text-sm font-medium'>Stream start</span>
-						{startedAt ? (
-							<span className='text-xs text-muted'>
-								<LocalizedDate value={startedAt} showTime />
-							</span>
-						) : null}
-					</Timeline.Content>
-				</Timeline.Item>
-				{moments.slice(0, visible).map((moment) => (
-					<Moment key={moment.id} moment={moment} previewing={!!preview} onPreview={setPreview} />
-				))}
-				{moments.length > visible ? (
+			<div role='region' aria-label='Stream moments scroll area' tabIndex={0} className='min-h-0 overflow-y-auto overscroll-contain pr-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'>
+				<Timeline density='compact' size='sm' aria-label='Stream moments timeline'>
 					<Timeline.Item>
-						<Timeline.Marker />
+						<Timeline.Marker>
+							<IconPlayerPlay aria-hidden='true' />
+						</Timeline.Marker>
 						<Timeline.Content>
-							<Button variant='tertiary' size='sm' onPress={() => setVisible((value) => value + 10)}>
-								Show more moments
-							</Button>
-							<span className='text-xs text-muted'>{moments.length - visible} more moments</span>
+							<span className='text-sm font-medium'>Stream start</span>
+							{startedAt ? (
+								<span className='text-xs text-muted'>
+									<LocalizedDate value={startedAt} showTime />
+								</span>
+							) : null}
 						</Timeline.Content>
 					</Timeline.Item>
-				) : null}
-				<Timeline.Item>
-					<Timeline.Marker>
-						<IconPlayerStop aria-hidden='true' />
-					</Timeline.Marker>
-					<Timeline.Content>
-						<span className='text-sm font-medium'>Stream end</span>
-						{duration ? <span className='text-xs text-muted'>{duration} total</span> : null}
-					</Timeline.Content>
-				</Timeline.Item>
-			</Timeline>
+					{moments.map((moment) => (
+						<Moment key={moment.id} moment={moment} previewing={!!preview} onPreview={setPreview} />
+					))}
+					<Timeline.Item>
+						<Timeline.Marker>
+							<IconPlayerStop aria-hidden='true' />
+						</Timeline.Marker>
+						<Timeline.Content>
+							<span className='text-sm font-medium'>Stream end</span>
+							{duration ? <span className='text-xs text-muted'>{duration} total</span> : null}
+						</Timeline.Content>
+					</Timeline.Item>
+				</Timeline>
+			</div>
 			{preview ? <ClipPreview creatorId={creatorId} clip={preview} onClose={() => setPreview(null)} /> : null}
 		</section>
 	);

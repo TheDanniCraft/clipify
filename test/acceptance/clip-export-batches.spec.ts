@@ -27,6 +27,7 @@ for (const width of [390, 1440])
 			await expect(settings.getByRole("link")).toHaveCount(0);
 			await expect(settings.getByRole("button", { name: /layouts/i })).toHaveCount(0);
 			await settings.screenshot({ path: info.outputPath("settings.png") });
+			await page.getByRole("dialog", { name: "Export clips", exact: true }).getByRole("button", { name: "Next", exact: true }).click();
 			await page.getByRole("button", { name: "Start export", exact: true }).click();
 			const modal = page.getByRole("dialog", { name: "Clip exports", exact: true });
 			await expect(modal).toBeVisible();
@@ -59,6 +60,7 @@ for (const width of [390, 1440])
 			await expect(page).toHaveURL(/\/dashboard\/clips$/);
 			await page.getByRole("button", { name: "Select page", exact: true }).click();
 			await page.getByRole("button", { name: "Export selected", exact: true }).click();
+			await page.getByRole("dialog", { name: "Export clips", exact: true }).getByRole("button", { name: "Next", exact: true }).click();
 			await page.getByRole("button", { name: "Start export", exact: true }).click();
 			await expect(modal.getByRole("button", { name: /Batch 1, completed, 1 file/ })).toBeVisible();
 			const historyRow = modal.getByRole("button", { name: /Batch 1, completed, 1 file/ });
@@ -97,6 +99,7 @@ test("Fifty-one clips split at the minute boundary and share the server quota wi
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("51 selected");
 	const first = page.waitForEvent("download");
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
+	await page.getByRole("dialog", { name: "Export clips", exact: true }).getByRole("button", { name: "Next", exact: true }).click();
 	await page.getByRole("button", { name: "Start export", exact: true }).click();
 	await (await first).saveAs(info.outputPath("first.zip"));
 	await expect(page.getByText(/Waiting for the download limit/)).toBeVisible();

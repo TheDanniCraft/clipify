@@ -66,3 +66,7 @@ After reconnect, an explicit recovery Retry uses only the unsuccessful reconnect
 `GET /api/dashboard/presence` returns `{ live: boolean | null }` for the signed-in identity's own channel, independent of delegated account context. Its response is private/no-store. It is a plain fetch, so presence reads cannot trigger a server-action RSC rerender that discards an expired-session inventory selection.
 
 Home overview adds allTimeTopClips: up to five public clip records ranked by current lifetime views across the known authorized library. Existing count/views/topClips remain scoped to the local30-day creation window. The new Creator Page tile calls the existing getCreatorAnalytics(ownerId, range) action with date-only range transport; its existing Pro/analytics:read authorization and aggregate cache remain authoritative.
+
+## Destination preset clarification 2026-11-07
+
+The existing browser export preset `{id:"discord"}` remains valid and uses the Free allowance. It may include `tier:"free"|"basic"|"nitro"`; unknown tiers are rejected. Custom byte targets retain the existing `{id:"custom",maxSizeMB}` 1–32 MB contract. No server rendering path is added. Raw General Original recipes omit encoding and therefore do not require browser encoder support. UI stages do not change ownership, quotas, authoritative templates, per-file metadata or cancellation contracts.

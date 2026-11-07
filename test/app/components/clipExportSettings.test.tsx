@@ -1,35 +1,15 @@
 jest.mock(
 	"@heroui-pro/react",
 	() => {
-		const React = jest.requireActual("react");
-		const State = React.createContext(null);
-		const RadioButtonGroup = Object.assign(
-			({ children, value, onChange, ...props }: any) => (
-				<div role='radiogroup' aria-label={props["aria-label"]}>
-					<State.Provider value={{ value, onChange }}>{children}</State.Provider>
-				</div>
-			),
-			{
-				Item: ({ children, value, ...props }: any) => {
-					const state = React.useContext(State);
-					return (
-						<label>
-							<input type='radio' aria-label={props["aria-label"]} checked={state.value === value} onChange={() => state.onChange(value)} />
-							{children}
-						</label>
-					);
-				},
-				ItemContent: ({ children }: any) => <span>{children}</span>,
-				ItemIcon: ({ children }: any) => <span>{children}</span>,
-			},
-		);
-		return { RadioButtonGroup };
+		const Part = ({ children }: any) => <span>{children}</span>;
+		const Stepper = Object.assign(Part, { Step: Part, Indicator: () => null, Content: Part, Title: Part, Separator: () => null });
+		return { Stepper };
 	},
 	{ virtual: true },
 );
 const browserCapability = jest.fn();
 jest.mock("@lib/clipBrowserRender", () => ({ browserExportCapability: (...args: unknown[]) => browserCapability(...args) }));
-beforeEach(() => browserCapability.mockResolvedValue("supported"));
+beforeEach(() => browserCapability.mockReset().mockResolvedValue("supported"));
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import ClipExportSettings from "@components/creator/clipExportSettings";
 import { createClipComposition } from "@lib/clipComposition";
@@ -84,6 +64,8 @@ it("selects Original and multiple Desktop/Mobile layouts before starting one exp
 	await screen.findByRole("listbox", { name: "Layout templates" });
 	fireEvent.click(screen.getByRole("checkbox", { name: "Desktop" }));
 	fireEvent.click(screen.getByRole("checkbox", { name: "Mobile" }));
+	fireEvent.click(screen.getByRole("button", { name: "Next" }));
+	await waitFor(() => expect(screen.getByRole("button", { name: "Start export" })).toBeEnabled());
 	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
 	await waitFor(() => expect(start).toHaveBeenCalledTimes(1));
 	expect(start.mock.calls[0][0][0].files).toHaveLength(3);
@@ -97,8 +79,11 @@ it("retains choices when queueing fails without mixing layout management into ex
 	await screen.findByText(/No layout templates yet/);
 	expect(screen.queryByRole("link")).not.toBeInTheDocument();
 	expect(screen.queryByRole("button", { name: /layouts/i })).not.toBeInTheDocument();
+	fireEvent.click(screen.getByRole("button", { name: "Next" }));
+	await waitFor(() => expect(screen.getByRole("button", { name: "Start export" })).toBeEnabled());
 	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
 	expect(close).not.toHaveBeenCalled();
+	fireEvent.click(screen.getByRole("button", { name: "Back" }));
 	expect(screen.getByRole("checkbox", { name: "Original" })).toBeChecked();
 });
 
@@ -107,6 +92,8 @@ it("keeps Original export available after a failed template lookup", async () =>
 	const start = jest.fn(() => true);
 	render(<ClipExportSettings creatorId='owner' clipIds={["A", "B"]} onStart={start} onClose={() => {}} />);
 	await screen.findByText(/Layouts could not be loaded/);
+	fireEvent.click(screen.getByRole("button", { name: "Next" }));
+	await waitFor(() => expect(screen.getByRole("button", { name: "Start export" })).toBeEnabled());
 	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
 	expect(start).toHaveBeenCalledWith(expect.arrayContaining([expect.objectContaining({ files: expect.arrayContaining([expect.objectContaining({ clipId: "A" }), expect.objectContaining({ clipId: "B" })]) })]), "browser");
 });
@@ -124,9 +111,12 @@ it.each([Error("Select at most 500 clips."), Error("unexpected"), "unexpected"])
 		/>,
 	);
 	await screen.findByText(/Layouts could not be loaded/);
+	fireEvent.click(screen.getByRole("button", { name: "Next" }));
+	await waitFor(() => expect(screen.getByRole("button", { name: "Start export" })).toBeEnabled());
 	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
 	expect(jest.requireMock("@lib/toast").notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Export could not be queued", color: "danger" }));
 	expect(close).not.toHaveBeenCalled();
+	fireEvent.click(screen.getByRole("button", { name: "Back" }));
 	expect(screen.getByRole("checkbox", { name: "Original" })).toBeChecked();
 });
 it("ignores a lookup resolving after unmount", async () => {
@@ -142,10 +132,10 @@ it("never substitutes a different template after the selected collection is dele
 	const view = render(<ClipExportSettings creatorId='owner' clipIds={["A"]} onStart={() => true} onClose={() => {}} />);
 	await screen.findByRole("listbox", { name: "Layout templates" });
 	fireEvent.click(screen.getByRole("checkbox", { name: "Desktop" }));
-	expect(screen.getByRole("button", { name: "Start export" })).toBeEnabled();
+	expect(screen.getByRole("button", { name: "Next" })).toBeEnabled();
 	view.rerender(<ClipExportSettings creatorId='other-owner' clipIds={["A"]} onStart={() => true} onClose={() => {}} />);
 	await screen.findByRole("option", { name: "Other" });
-	expect(screen.getByRole("button", { name: "Start export" })).toBeDisabled();
+	expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
 	expect(screen.getByRole("listbox", { name: "Layout templates" })).toHaveValue([]);
 });
 it("exports both formats of an eighty-character template name without changing the stored name", async () => {
@@ -155,6 +145,8 @@ it("exports both formats of an eighty-character template name without changing t
 	render(<ClipExportSettings creatorId='owner' clipIds={["A"]} onStart={start} onClose={() => {}} />);
 	await screen.findByRole("listbox", { name: "Layout templates" });
 	for (const version of ["Desktop", "Mobile"]) fireEvent.click(screen.getByRole("checkbox", { name: version }));
+	fireEvent.click(screen.getByRole("button", { name: "Next" }));
+	await waitFor(() => expect(screen.getByRole("button", { name: "Start export" })).toBeEnabled());
 	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
 	expect(start).toHaveBeenCalledTimes(1);
 	const outputs = (start.mock.calls[0] as any)[0][0].outputs;
@@ -163,6 +155,7 @@ it("exports both formats of an eighty-character template name without changing t
 		expect(output.label.length).toBeLessThanOrEqual(80);
 		expect(output.label).toMatch(/ (Desktop|Mobile)$/);
 	}
+	fireEvent.click(screen.getByRole("button", { name: "Back" }));
 	expect(screen.getByRole("option", { name })).toBeInTheDocument();
 });
 
@@ -174,6 +167,8 @@ it("warns about a slow device without silently switching to server processing", 
 	await screen.findByRole("listbox", { name: "Layout templates" });
 	fireEvent.click(screen.getByRole("checkbox", { name: "Mobile" }));
 	await screen.findByText("This device may take longer");
+	fireEvent.click(screen.getByRole("button", { name: "Next" }));
+	await waitFor(() => expect(screen.getByRole("button", { name: "Start export" })).toBeEnabled());
 	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
 	expect(start).toHaveBeenCalledWith(expect.any(Array), "browser");
 });
@@ -183,10 +178,13 @@ it("queues a chosen custom encoding preset while preserving Original and paired 
 	const start = jest.fn((_plans: any[]) => true);
 	render(<ClipExportSettings creatorId='owner' clipIds={["ClipA"]} onStart={start} onClose={() => {}} />);
 	await screen.findByRole("listbox", { name: "Layout templates" });
-	expect(await screen.findByRole("radiogroup", { name: "Export for" })).toBeVisible();
+
 	fireEvent.click(screen.getByRole("checkbox", { name: "Desktop" }));
+	fireEvent.click(screen.getByRole("button", { name: "Next" }));
+	fireEvent.change(screen.getByRole("combobox", { name: "Export for" }), { target: { value: "discord" } });
 	fireEvent.click(screen.getByRole("button", { name: "Custom" }));
 	fireEvent.change(screen.getByRole("spinbutton", { name: "Custom maximum size (MB)" }), { target: { value: "10" } });
+	await waitFor(() => expect(screen.getByRole("button", { name: "Start export" })).toBeEnabled());
 	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
 	await waitFor(() => expect(start).toHaveBeenCalledTimes(1));
 	expect(start.mock.calls[0][0][0].preset).toEqual({ id: "custom", maxSizeMB: 10 });
@@ -196,32 +194,80 @@ it("offers platform presets for Original without requiring a composition", async
 	list.mockResolvedValue({ ok: true, templates: [], defaults: {} });
 	const start = jest.fn(() => true);
 	render(<ClipExportSettings creatorId='owner' clipIds={["A"]} onStart={start} onClose={() => {}} />);
-	fireEvent.click(await screen.findByRole("radio", { name: "Discord" }));
+	fireEvent.click(await screen.findByRole("button", { name: "Next" }));
+	fireEvent.change(screen.getByRole("combobox", { name: "Export for" }), { target: { value: "discord" } });
+	await waitFor(() => expect(screen.getByRole("button", { name: "Start export" })).toBeEnabled());
 	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
-	await waitFor(() => expect(start).toHaveBeenCalledWith(expect.arrayContaining([expect.objectContaining({ preset: { id: "discord" }, outputs: [{ key: "original", label: "Original" }] })]), "browser"));
+	await waitFor(() => expect(start).toHaveBeenCalledWith(expect.arrayContaining([expect.objectContaining({ preset: { id: "discord", tier: "free" }, outputs: [{ key: "original", label: "Original" }] })]), "browser"));
 });
-it("shows an unsupported state instead of export controls when local encoding is unavailable", async () => {
+it("downloads untouched Original clips without an encoder and has no General size controls", async () => {
 	browserCapability.mockResolvedValue("unsupported");
 	list.mockResolvedValue({ ok: true, templates: [], defaults: {} });
-	render(<ClipExportSettings creatorId='owner' clipIds={["A"]} onStart={() => true} onClose={() => {}} />);
-	expect(await screen.findByText("Exporting is not supported in this browser")).toBeVisible();
-	expect(screen.queryByRole("checkbox", { name: "Original" })).toBeNull();
-	expect(screen.queryByRole("button", { name: "Start export" })).toBeNull();
-	expect(screen.queryByText(/selected/)).toBeNull();
+	const start = jest.fn(() => true);
+	render(<ClipExportSettings creatorId='owner' clipIds={["A"]} onStart={start} onClose={() => {}} />);
+	fireEvent.click(await screen.findByRole("button", { name: "Next" }));
+	expect(screen.queryByRole("group", { name: "File size" })).toBeNull();
+	expect(browserCapability).not.toHaveBeenCalled();
+	await waitFor(() => expect(screen.getByRole("button", { name: "Start export" })).toBeEnabled());
+	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
+	expect(start).toHaveBeenCalledWith(expect.arrayContaining([expect.objectContaining({ preset: { id: "general" } })]), "browser");
 });
-
-it("recovers a failed capability check with a fresh explicit probe before exporting", async () => {
+it("requires an encoder only for conversion and retries without losing selections", async () => {
 	browserCapability.mockRejectedValueOnce(Error("worker unavailable")).mockResolvedValueOnce("supported");
 	list.mockResolvedValue({ ok: true, templates: [], defaults: {} });
-	const start = jest.fn(() => true),
-		close = jest.fn();
-	render(<ClipExportSettings creatorId='owner' clipIds={["A"]} onStart={start} onClose={close} />);
-	await screen.findByText("Exporting is not supported in this browser");
-	expect(start).not.toHaveBeenCalled();
+	const start = jest.fn(() => true);
+	render(<ClipExportSettings creatorId='owner' clipIds={["A"]} onStart={start} onClose={() => {}} />);
+	fireEvent.click(await screen.findByRole("button", { name: "Next" }));
+	fireEvent.change(screen.getByRole("combobox", { name: "Export for" }), { target: { value: "discord" } });
+	await screen.findByText("Video conversion is not supported in this browser");
+	expect(screen.getByRole("button", { name: "Start export" })).toBeDisabled();
 	fireEvent.click(screen.getByRole("button", { name: "Check again" }));
-	expect(await screen.findByRole("checkbox", { name: "Original" })).toBeChecked();
+	await waitFor(() => expect(screen.getByRole("button", { name: "Start export" })).toBeEnabled());
 	expect(browserCapability).toHaveBeenLastCalledWith(true);
+	await waitFor(() => expect(screen.getByRole("button", { name: "Start export" })).toBeEnabled());
 	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
-	expect(start).toHaveBeenCalledWith(expect.arrayContaining([expect.objectContaining({ files: [{ clipId: "A", outputKey: "original" }] })]), "browser");
-	expect(close).toHaveBeenCalledTimes(1);
+	expect(start).toHaveBeenCalledWith(expect.arrayContaining([expect.objectContaining({ preset: { id: "discord", tier: "free" } })]), "browser");
+});
+
+it.each([
+	["Nitro Basic", "basic"],
+	["Nitro", "nitro"],
+])("preserves the %s allowance across Back/Next", async (label, tier) => {
+	list.mockResolvedValue({ ok: true, templates: [], defaults: {} });
+	const start = jest.fn(() => true);
+	render(<ClipExportSettings creatorId='owner' clipIds={["A"]} onStart={start} onClose={() => {}} />);
+	fireEvent.click(await screen.findByRole("button", { name: "Next" }));
+	fireEvent.change(screen.getByRole("combobox", { name: "Export for" }), { target: { value: "discord" } });
+	fireEvent.click(screen.getByRole("button", { name: label }));
+	fireEvent.click(screen.getByRole("button", { name: "Back" }));
+	fireEvent.click(screen.getByRole("button", { name: "Next" }));
+	await waitFor(() => expect(screen.getByRole("button", { name: "Start export" })).toBeEnabled());
+	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
+	expect(start).toHaveBeenCalledWith(expect.arrayContaining([expect.objectContaining({ preset: { id: "discord", tier } })]), "browser");
+});
+it.each(["youtube", "tiktok", "instagram", "reddit"])("exports Original with the %s preset without showing Discord allowances", async (id) => {
+	list.mockResolvedValue({ ok: true, templates: [], defaults: {} });
+	const start = jest.fn(() => true);
+	render(<ClipExportSettings creatorId='owner' clipIds={["A"]} onStart={start} onClose={() => {}} />);
+	fireEvent.click(await screen.findByRole("button", { name: "Next" }));
+	fireEvent.change(screen.getByRole("combobox", { name: "Export for" }), { target: { value: id } });
+	expect(screen.queryByRole("group", { name: "Discord account" })).toBeNull();
+	await waitFor(() => expect(screen.getByRole("button", { name: "Start export" })).toBeEnabled());
+	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
+	expect(start).toHaveBeenCalledWith(expect.arrayContaining([expect.objectContaining({ preset: { id } })]), "browser");
+});
+
+it("keeps destination settings reachable after returning from an invalid custom size", async () => {
+	list.mockResolvedValue({ ok: true, templates: [], defaults: {} });
+	render(<ClipExportSettings creatorId='owner' clipIds={["A"]} onStart={() => true} onClose={() => {}} />);
+	fireEvent.click(await screen.findByRole("button", { name: "Next" }));
+	fireEvent.change(screen.getByRole("combobox", { name: "Export for" }), { target: { value: "discord" } });
+	fireEvent.click(screen.getByRole("button", { name: "Custom" }));
+	fireEvent.change(screen.getByRole("spinbutton", { name: "Custom maximum size (MB)" }), { target: { value: "0" } });
+	expect(screen.getByRole("button", { name: "Start export" })).toBeDisabled();
+	fireEvent.click(screen.getByRole("button", { name: "Back" }));
+	expect(screen.getByRole("button", { name: "Next" })).toBeEnabled();
+	fireEvent.click(screen.getByRole("button", { name: "Next" }));
+	fireEvent.change(screen.getByRole("spinbutton", { name: "Custom maximum size (MB)" }), { target: { value: "10" } });
+	await waitFor(() => expect(screen.getByRole("button", { name: "Start export" })).toBeEnabled());
 });

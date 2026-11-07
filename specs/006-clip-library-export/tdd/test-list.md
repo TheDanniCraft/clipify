@@ -435,3 +435,7 @@ The 2026-11-07 user clarification supersedes BEXP-04's explicit server choice an
 - DEXP-05: real encoded outputs preserve widgets/fonts/audio and native reference SSIM above 0.97, without exposing server processing.
 
 Eight affected whole-file unit/native owners passed 244 tests. Browser evidence remains pending until recorded in the cycle log. No Android device measurements are claimed.
+
+## Wizard and bounded timeline clarification 2026-11-07
+
+Supersedes DEXP-03's single-screen platform/size layout and the blanket unsupported form replacement. WIZ-01: Back/Next preserves versions, template collection and destination/tier. WIZ-02: General has no size controls; Discord account allowances validate without enlarging media bounds. WIZ-03: raw Original/General starts with no encoder probe; conversion alone requires a successful or slow native probe and supports explicit retry. WIZ-04: invalid custom size cannot strand users after Back. WIZ-05: all moments render with start/end markers in a bounded keyboard-scrollable region, with a sixty-moment multi-day disposable fixture and real desktop/mobile measurements. Owners: clipExportSettings.test.tsx, clipExportPreset.test.ts, streamMoments.test.tsx, clip-export-dialog.spec.ts, browser-clip-export.spec.ts and stream-workspace.spec.ts; existing export/recovery/BDD callers retain complete package, permission and quota assertions.

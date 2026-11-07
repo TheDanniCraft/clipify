@@ -28,15 +28,23 @@ for (const theme of ["light", "dark"])
 					if (i === 1 || i === 3) expected.push(clipId);
 				}
 				await page.goto(`${tourWorld.origin}/dashboard/streams`);
+				const consentReload = page.waitForEvent("domcontentloaded");
 				await page.getByRole("button", { name: "Reject optional", exact: true }).click();
-				await page.reload();
+				await consentReload;
 				const row = page.locator('[data-broadcast-id="12345"]');
 				await expect(row).toBeVisible();
 				if (width === 1440) {
 					const link = row.getByRole("link", { name: "Earlier stream", exact: true });
-					await link.focus();
+					// React Aria replaces its SSR collection during hydration; wait for its real focus state.
+					await expect
+						.poll(async () => {
+							await link.focus();
+							return link.getAttribute("data-focused");
+						})
+						.toBe("true");
 					await expect(link).toBeFocused();
 					await link.press("Enter");
+
 					await expect(page).toHaveURL(/\/dashboard\/streams\/12345$/);
 					await page.goBack();
 					await expect(row).toBeVisible();
@@ -99,6 +107,7 @@ for (const theme of ["light", "dark"])
 				await page.getByRole("button", { name: "Export matching clips", exact: true }).click();
 				await expect(page.getByText("Export clips", { exact: true })).toBeVisible();
 				const pendingDownload = page.waitForEvent("download");
+				await page.getByRole("dialog", { name: "Export clips", exact: true }).getByRole("button", { name: "Next", exact: true }).click();
 				await page.getByRole("button", { name: "Start export", exact: true }).click();
 				const download = await pendingDownload;
 				const entries = unzipSync(await readFile((await download.path())!));
@@ -108,3 +117,44 @@ for (const theme of ["light", "dark"])
 			});
 		});
 	}
+
+for (const width of [390, 1440])
+	test(`Long stream timeline scrolls independently at ${width}px`, async ({ page, request, tourWorld }, info) => {
+		await page.setViewportSize({ width, height: 950 });
+		await page.addInitScript((t) => localStorage.setItem("theme", t), width === 390 ? "light" : "dark");
+		const { creatorId, id } = await seedCreatorLibrary({ page, request, tourWorld });
+		const root = JSON.parse((await tourWorld.fixture.pool.query('SELECT value FROM "twitchCache" WHERE key=$1', [`clip:${creatorId}:${id}`])).rows[0].value);
+		for (let i = 1; i < 60; i++) {
+			const clipId = `LibrarySort${String(i).padStart(2, "0")}_${creatorId.slice("e2e-creator-".length)}`;
+			const clip = { ...root.clip, id: clipId, title: `Timeline review ${i}`, vod_offset: i * 60, duration: 10, created_at: new Date(Date.UTC(2026, 10, 1 + Math.floor(i / 20), 12, i % 20)).toISOString() };
+			await tourWorld.fixture.pool.query('INSERT INTO "twitchCache"(type,key,value) VALUES($1,$2,$3)', ["clip", `clip:${creatorId}:${clipId}`, JSON.stringify({ ...root, clip })]);
+		}
+		await page.goto(`${tourWorld.origin}/dashboard/streams/12345`);
+		const reload = page.waitForEvent("domcontentloaded");
+		await page.getByRole("button", { name: "Reject optional", exact: true }).click();
+		await reload;
+		const panel = page.getByRole("region", { name: "Stream moments scroll area" });
+		await expect(panel.getByRole("listitem")).toHaveCount(62);
+		await expect(page.getByRole("button", { name: "Show more moments" })).toHaveCount(0);
+		await panel.scrollIntoViewIfNeeded();
+		const sizes = await panel.evaluate((el) => ({ height: el.clientHeight, content: el.scrollHeight }));
+		expect(sizes.content).toBeGreaterThan(sizes.height * 3);
+		expect(sizes.height).toBeLessThanOrEqual(576);
+		if (width === 1440) {
+			const timeline = (await page.getByRole("region", { name: "Stream moments", exact: true }).boundingBox())!;
+			const inventory = (await page
+				.locator("aside")
+				.filter({ has: page.getByRole("region", { name: "Stream moments", exact: true }) })
+				.locator("..")
+				.locator(":scope > div")
+				.first()
+				.boundingBox())!;
+			expect(timeline.height).toBeLessThanOrEqual(inventory.height);
+		}
+		await page.screenshot({ path: info.outputPath("long-timeline-start.png"), fullPage: true, animations: "disabled" });
+		await panel.focus();
+		await page.keyboard.press("Control+End");
+		await expect.poll(() => panel.evaluate((el) => el.scrollTop + el.clientHeight - el.scrollHeight)).toBeGreaterThanOrEqual(-1);
+		await expect(panel.getByText("Stream end", { exact: true })).toBeInViewport();
+		await page.screenshot({ path: info.outputPath("long-timeline-end.png"), animations: "disabled" });
+	});
