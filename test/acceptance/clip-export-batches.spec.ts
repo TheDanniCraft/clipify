@@ -33,9 +33,16 @@ for (const width of [390, 1440])
 			await expect(modal).toBeVisible();
 			await expect(modal.getByRole("list", { name: "Export 1 files" })).toContainText("Last night's clutch");
 			await expect(modal.getByText("Downloading", { exact: true })).toBeVisible();
-			const cancelBounds = (await modal.getByRole("button", { name: "Cancel export", exact: true }).boundingBox())!;
-			const backgroundBounds = (await modal.getByRole("button", { name: "Continue in background", exact: true }).boundingBox())!;
-			expect(cancelBounds.y + cancelBounds.height / 2).toBeCloseTo(backgroundBounds.y + backgroundBounds.height / 2, 0);
+			await expect
+				.poll(() =>
+					modal.evaluate((dialog) => {
+						const buttons = [...dialog.querySelectorAll("button")];
+						const cancel = buttons.find((node) => node.textContent?.trim() === "Cancel export")!.getBoundingClientRect();
+						const background = buttons.find((node) => node.textContent?.trim() === "Continue in background")!.getBoundingClientRect();
+						return cancel.y + cancel.height / 2 - background.y - background.height / 2;
+					}),
+				)
+				.toBeCloseTo(0, 0);
 			const after = await button.boundingBox();
 			expect(after!.width).toBeCloseTo(before!.width, 0);
 			expect(after!.height).toBeCloseTo(before!.height, 0);
