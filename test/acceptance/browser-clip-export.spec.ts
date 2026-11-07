@@ -55,7 +55,7 @@ for (const mode of ["audio", "audio_untagged"])
 		const path = info.outputPath("browser.zip");
 		await (await download).saveAs(path);
 		const exports = page.getByRole("dialog", { name: "Clip exports", exact: true });
-		await expect(exports.getByText("Browser parity", { exact: true })).toHaveCount(2);
+		await expect(exports.getByText("Layout: Browser parity", { exact: true })).toHaveCount(2);
 		await expect(exports.getByText("Browser parity Desktop", { exact: true })).toHaveCount(0);
 		await expect(exports.getByRole("img", { name: "Original", exact: true })).toBeVisible();
 		for (const format of ["Original", "Desktop", "Mobile"]) {

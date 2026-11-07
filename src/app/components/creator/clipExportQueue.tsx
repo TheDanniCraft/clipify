@@ -80,7 +80,7 @@ function requestFiles(request: ExportRequest) {
 		plan.files.map((file) => {
 			const output = plan.outputs.find((output) => output.key === file.outputKey);
 			const format = output?.format ?? (output?.layout ? ("format" in output.layout ? output.layout.format : "mobile") : "original");
-			return { clipId: file.clipId, format, label: output?.templateId ? output.label.replace(/ (Desktop|Mobile)$/, "") : (output?.label ?? "Output") } as const;
+			return { clipId: file.clipId, format, label: output?.templateId ? `Layout: ${output.label.replace(/ (Desktop|Mobile)$/, "")}` : (output?.label ?? "Output") } as const;
 		}),
 	);
 }

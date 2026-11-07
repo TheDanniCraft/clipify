@@ -443,7 +443,7 @@ it.each([[2], [1, 2]])("queues a four-version package once and retries only fail
 	);
 	fireEvent.click(screen.getByRole("button", { name: "Start versions" }));
 	const retry = await screen.findByRole("button", { name: "Retry failed files" });
-	expect(screen.getByText("Studio", { exact: true })).toBeInTheDocument();
+	expect(screen.getByText("Layout: Studio", { exact: true })).toBeInTheDocument();
 	expect(screen.getByRole("img", { name: "Desktop" })).toBeInTheDocument();
 	expect(screen.getAllByRole("img", { name: "Mobile" })).toHaveLength(2);
 	expect(browserBatch).toHaveBeenCalledTimes(1);

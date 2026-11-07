@@ -884,5 +884,5 @@ T681–T685 local closure: brand-candidate-browser-export.log passes all10 final
 
 ## Output and row polish, 2026-11-07
 
-- [x] T728 Replace generated Desktop/Mobile suffixes in export rows with format icons beside the template name. Preserve readable ZIP filenames/metadata, accessible icon names/native hover titles, automatic completed-ZIP download and the manual recovery action.
+- [x] T728 Replace generated Desktop/Mobile suffixes in export rows with format icons beside “Layout: <name>”. Preserve readable ZIP filenames/metadata, accessible icon names/native hover titles, automatic completed-ZIP download and the manual recovery action.
 - [x] T729 Open clip details from the whole inventory row using the installed Table action, including keyboard activation. Preserve independent checkbox, preview and stream-link actions on inventory/stream detail surfaces; verify both themes and all three responsive widths.
