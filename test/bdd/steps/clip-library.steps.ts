@@ -73,7 +73,7 @@ When("I open Inventory and preview a clip", async ({ page, tourWorld }) => {
 	await expect(page.getByRole("heading", { name: "Clip Inventory", exact: true })).toBeVisible();
 	const row = page.getByRole("row", { name: new RegExp(title) });
 	await expect(row.getByText("42", { exact: true })).toBeVisible();
-	await expect(row.getByText("Strategy", { exact: true })).toBeVisible();
+	await expect(row.getByText("Strategy", { exact: true }).filter({ visible: true })).toBeVisible();
 	await expect(row.locator("time:visible")).toHaveCount(1);
 	await row.getByRole("button", { name: `Preview ${title}` }).click();
 });
