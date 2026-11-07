@@ -429,6 +429,8 @@ for (const plan of ["free", "pro"] as const)
 					await expect(schedule).toBeVisible();
 					const calendar = schedule.getByRole("region", { name: "Broadcast calendar" });
 					for (const view of ["Week", "Month", "Day"]) {
+						// Week navigation can advance the anchor seven days across the fixture's date boundary.
+						await calendar.getByRole("button", { name: "Today", exact: true }).click();
 						await calendar.getByRole("radio", { name: view, exact: true }).click();
 						const locked = calendar.locator('[data-slot="agenda-event"], [data-slot="agenda-month-event"], [data-slot="agenda-month-spanning-event"]').filter({ hasText: "Locked broadcast" }).first();
 						const editable = calendar.locator('[data-slot="agenda-event"], [data-slot="agenda-month-event"], [data-slot="agenda-month-spanning-event"]').filter({ hasText: "Vacation broadcast" }).first();

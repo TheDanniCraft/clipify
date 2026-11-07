@@ -385,7 +385,7 @@ export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<
 			if (variant === "clear_custom_dates") args.patch = { name: "Edited gallery", liveCustomStart: null, liveCustomEnd: null };
 			if (variant === "preview_live") {
 				await fixture.pool.query("UPDATE galleries SET source='live',playlist_id=null WHERE id=$1", [galleryId]);
-				for (const clip of clips) await fixture.pool.query(`INSERT INTO "twitchCache"(type,key,value,expires_at) VALUES('clip',$1,$2,now()+interval '1 hour')`, [`clip:fixture-creator:${clip.id}`, JSON.stringify({ ...clip, creator_name: "Creator" })]);
+				for (const [index, clip] of clips.entries()) await fixture.pool.query(`INSERT INTO "twitchCache"(type,key,value,expires_at) VALUES('clip',$1,$2,now()+interval '1 hour')`, [`clip:fixture-creator:${clip.id}`, JSON.stringify({ ...clip, created_at: new Date(Date.now() - (index + 1) * 3600000).toISOString(), creator_name: "Creator" })]);
 			}
 			if (variant === "preview_free") await fixture.pool.query("UPDATE users SET plan='free' WHERE id='fixture-creator'");
 			if (["existing_page", "free_existing_page", "free_unchanged_social", "clear_social"].includes(variant))
