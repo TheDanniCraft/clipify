@@ -43,15 +43,14 @@ for (const locale of ["en-US", "de-DE"])
 			await pool.query("INSERT INTO stream_session_destinations(session_id,destination_id,owner_id,position) VALUES($1,$2,$3,0)", [sessionId, targetId, owner.fixture.creatorId]);
 			await page.goto("/legal/cookies");
 			const consent = page.getByRole("complementary", { name: "Your privacy choices", exact: true });
-			await consent.getByRole("button", { name: "Reject optional", exact: true }).click();
+			await Promise.all([page.waitForEvent("load"), consent.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 			await expect(consent).not.toBeVisible();
-			await page.reload();
 			await expect(page.getByRole("button", { name: "Enable support chat", exact: true })).toBeVisible();
 			const preferences = page.getByRole("main").getByRole("button", { name: "Cookie preferences", exact: true });
 			await preferences.focus();
 			await preferences.press("Enter");
 			const privacy = page.getByRole("dialog", { name: "Privacy preferences", exact: true });
-			await privacy.getByRole("button", { name: "Reject optional", exact: true }).click();
+			await Promise.all([page.waitForEvent("load"), privacy.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 			await expect(privacy).not.toBeVisible();
 			await page.goto("/legal/privacy");
 			const published = page.locator("time[datetime]").first();
