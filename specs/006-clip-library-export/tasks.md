@@ -753,14 +753,14 @@ T631 preceding checkpoint:23b6dd303fd14462644ee01db3e94e5d84a11ae9 passed full C
 - [x] T647 Test and implement atomic account-wide weighted 50-clip allowance shared by every export path.
 - [x] T648 Add creator-scoped modal queue, sequential batches, sidebar launcher, expandable session history and stable triggers; compact library refresh.
 - [x] T649 Complete affected whole-file and real browser recovery/portrait/batch validation and inspect both themes and mobile/desktop screenshots.
-- [ ] T650 Publish exact source to PR546, verify preview deployment and inspect the separate required CI checkpoint.
+- [x] T650 Publish exact source to PR546, verify preview deployment and inspect the separate required CI checkpoint.
 
 ## Home shortcuts and insights, 2026-11-05
 
 - [x] T651 Inspect existing Home/data/entitlement/upgrade paths, HeroUI APIs and Mobbin creator-dashboard references.
 - [x] T652 Test and implement icon shortcuts, additive all-time top clips, genuine Pro page metrics and a feature-specific upgrade entry.
 - [x] T653 Complete affected owners and real browser states, inspect both themes/viewport sizes and repair the prior export BDD response matcher without weakening content assertions.
-- [ ] T654 Publish the passing source to PR546 and verify its exact preview; report complete CI separately.
+- [x] T654 Publish the passing source to PR546 and verify its exact preview; report complete CI separately.
 
 ## Reusable compositions and export planning
 
@@ -846,7 +846,7 @@ T681–T685 local closure: brand-candidate-browser-export.log passes all10 final
 - [x] T702 [FINAL-02] Persist creator-scoped broadcast metadata independently of expiring provider pages, retain stream detail/count/filter access after Twitch deletion, and refresh metadata through the existing bounded crawler lifecycle. Store no VOD media; preserve authorization, account deletion cleanup, backoff and bounded provider paging.
 - [x] T703 [FINAL-03] Preserve known clip-to-broadcast identity/offset when provider refresh removes VOD fields, including durable crawl and validation paths; verify inventory, stream counts/detail and export metadata remain consistent.
 - [x] T704 [FINAL-04] Select/export the complete current filtered clip set across pages from inventory and stream detail, with creator permissions, stable selection scope, loading/error recovery and no fixed selection cap; verify >=10views filtering excludes other streams.
-- [ ] T705 [FINAL-05] Add a clearly labelled preview-only demo stream only after the target test account is identified; include real owned downloadable clips and never seed production/shared customer fixtures.
+- [x] T705 [FINAL-05] Reconstruct review streams for the approved dev account thedannicraft through explicit manual Infisical dev SQL. Minecraft and Counter-Strike sessions use same-day owned cached clips; original clip payloads and reversal provenance remain intact. Per the later user clarification, normal titles/durations have no visible demo/estimated labels. Media availability remains provider-dependent; no production mutation or startup seed hook exists.
 - [ ] T706 [FINAL-06] Reconcile superseded task claims against current executable evidence, finish remaining in-scope gaps, update one overall readiness summary and final feature traceability/defects. Preserve honest historical TDD provenance, run owning scenarios and unchanged full CI before claiming release readiness. Keep social publishing integrations deferred.
 
 ## Streams UX follow-up, 2026-11-07
@@ -858,3 +858,11 @@ T681–T685 local closure: brand-candidate-browser-export.log passes all10 final
 - [x] T711 Move disabled Automations into Tools and retain Clip layouts under Create and share; preserve search exclusion and responsive navigation.
 - [x] T712 Replace only the approved dev demo with a clearly labelled estimated session from clustered clip creation metadata, restore previous demo-only associations, verify untouched source clip fields, and publish owning-check results and exact-head CI status. Complete CI remains required before merge.
 - [x] T713 Keep sticky stream moments and mobile jump targets clear of the navigation bar; verify scrolled heading clearance and both-axis overview bounds in both themes with real playback and rule-export checks.
+
+### Manual device-only export follow-up
+
+- [x] T714 Keep the export modal stable while selecting versions; offer compact platform/size choices for every output, including Original. Preserve untouched General Original downloads.
+- [x] T715 Route all manual composed/preset exports and retries through the browser, preserve direct MP4 callers, reject public server processing, and retain private native parity references. Affected eight whole-file owners:244 tests passed.
+- [x] T716 Remove Refresh library and group explicit filter actions; add visible start/end timeline markers; add approved Counter-Strike preview sessions without changing original cached clip payloads.
+- [x] T717 Validate installed export controls in both themes at 390/1440px, real video/audio/font/size/parity outputs and affected stream/recovery journeys. All 68 owning browser cases pass. The existing T059 remains the separate exact-head CI/merge gate, tracked on PR546.
+- [x] T718 Research Firefox Android software fallback honestly: native first, no reliable current Android benchmark or real Android hardware available; no speculative WASM dependency shipped.

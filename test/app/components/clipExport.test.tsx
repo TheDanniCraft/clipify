@@ -1,3 +1,19 @@
+jest.mock("@components/creator/clipExportSettings", () => ({
+	__esModule: true,
+	default: ({ creatorId, clipIds, onStart, onClose }: any) => (
+		<section>
+			<h2>Export clips</h2>
+			<button
+				onClick={() => {
+					const { createClipExportPlan } = jest.requireActual("@lib/clipExportPlan");
+					if (onStart(createClipExportPlan(creatorId, clipIds, [{ key: "original", label: "Original" }]), "browser")) onClose();
+				}}
+			>
+				Start export
+			</button>
+		</section>
+	),
+}));
 const browserBatch = jest.fn();
 jest.mock("@lib/clipBrowserBatch", () => ({ buildBrowserBatch: (...args: unknown[]) => browserBatch(...args) }));
 jest.mock("@heroui/react", () => {
@@ -41,6 +57,7 @@ function responseJSON(value: unknown) {
 beforeEach(() => {
 	fetchMock.mockReset();
 	browserBatch.mockReset();
+	browserBatch.mockImplementation(async (plan: any) => ({ ok: true, bytes: new Uint8Array([1]), summary: { included: plan.files.map((_: any, index: number) => index), skipped: [] } }));
 	notify.mockClear();
 	globalThis.fetch = fetchMock;
 });
@@ -373,7 +390,7 @@ it("queues a four-version package once and retries only the failed clip/version 
 		const queue = useClipExports()!;
 		return <button onClick={() => queue.enqueuePlans(plans, { A: "My clip" }, "four")}>Start versions</button>;
 	};
-	fetchMock.mockResolvedValueOnce(successResponse({ included: [0, 1, 3], skipped: [{ index: 2, code: "provider_error", retryable: true, title: "Mobile camera" }] })).mockResolvedValue(responseJSON({ code: "PROVIDER_UNAVAILABLE" }));
+	browserBatch.mockResolvedValueOnce({ ok: true, bytes: new Uint8Array([1]), summary: { included: [0, 1, 3], skipped: [{ index: 2, code: "provider_error", retryable: true, title: "Mobile camera" }] } }).mockResolvedValue({ ok: false, code: "PROVIDER_UNAVAILABLE" });
 	Object.defineProperty(URL, "createObjectURL", { configurable: true, value: jest.fn(() => "blob:versions") });
 	Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: jest.fn() });
 	jest.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
@@ -384,13 +401,13 @@ it("queues a four-version package once and retries only the failed clip/version 
 	);
 	fireEvent.click(screen.getByRole("button", { name: "Start versions" }));
 	const retry = await screen.findByRole("button", { name: "Retry failed files" });
-	expect(fetchMock).toHaveBeenCalledTimes(1);
-	expect(fetchMock.mock.calls[0][0]).toContain("plan=1");
-	expect(JSON.parse(fetchMock.mock.calls[0][1].body).files).toHaveLength(4);
+	expect(browserBatch).toHaveBeenCalledTimes(1);
+	expect(fetchMock).not.toHaveBeenCalled();
+	expect(browserBatch.mock.calls[0][0].files).toHaveLength(4);
 	fireEvent.click(retry);
-	await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-	expect(JSON.parse(fetchMock.mock.calls[1][1].body).files).toEqual([{ clipId: "A", outputKey: "mobile1" }]);
-	expect(JSON.parse(fetchMock.mock.calls[1][1].body).outputs.map((output: any) => output.key)).toEqual(["mobile1"]);
+	await waitFor(() => expect(browserBatch).toHaveBeenCalledTimes(2));
+	expect(browserBatch.mock.calls[1][0].files).toEqual([{ clipId: "A", outputKey: "mobile1" }]);
+	expect(browserBatch.mock.calls[1][0].outputs.map((output: any) => output.key)).toEqual(["mobile1"]);
 });
 
 it("opens export settings without starting a download and submits only after confirmation", async () => {
@@ -468,11 +485,11 @@ it("expands completed batch history and downloads a retained file without contac
 	expect(click).toHaveBeenCalledTimes(3);
 	expect(fetchMock).toHaveBeenCalledTimes(2);
 });
-it("offers explicit server recovery only for unsuccessful browser outputs", async () => {
+it("retries unsuccessful local outputs without exposing server recovery", async () => {
 	Object.defineProperty(URL, "createObjectURL", { configurable: true, value: jest.fn(() => "blob:browser-recovery") });
 	Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: jest.fn() });
 	jest.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
-	browserBatch.mockResolvedValue({ ok: true, bytes: new Uint8Array([1]), summary: { included: [0], skipped: [{ index: 1, code: "browser_unsupported", retryable: true }] } });
+	browserBatch.mockResolvedValueOnce({ ok: true, bytes: new Uint8Array([1]), summary: { included: [0], skipped: [{ index: 1, code: "browser_unsupported", retryable: true }] } }).mockResolvedValue({ ok: true, bytes: new Uint8Array([1]), summary: { included: [0], skipped: [] } });
 	const { createClipExportPlan } = await import("@lib/clipExportPlan");
 	const { createClipComposition } = await import("@lib/clipComposition");
 	const plans = createClipExportPlan(
@@ -494,11 +511,12 @@ it("offers explicit server recovery only for unsuccessful browser outputs", asyn
 		</ClipExportProvider>,
 	);
 	fireEvent.click(screen.getByRole("button", { name: "Start browser export" }));
-	const fallback = await screen.findByRole("button", { name: "Process failed files on server" });
+	const retry = await screen.findByRole("button", { name: "Retry failed files" });
+	expect(screen.queryByRole("button", { name: "Process failed files on server" })).toBeNull();
 	expect(fetchMock).not.toHaveBeenCalled();
-	fireEvent.click(fallback);
-	await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-	expect(JSON.parse(fetchMock.mock.calls[0][1].body).files).toEqual([{ clipId: "A", outputKey: "mobile" }]);
+	fireEvent.click(retry);
+	await waitFor(() => expect(browserBatch).toHaveBeenCalledTimes(2));
+	expect(browserBatch.mock.calls[1][0].files).toEqual([{ clipId: "A", outputKey: "mobile" }]);
 });
 
 it("resolves every matching clip before opening settings and exports that snapshot only after confirmation", async () => {
@@ -527,4 +545,18 @@ it.each(["empty", "denied", "failure"])("keeps matching-export settings closed a
 	fireEvent.click(screen.getByRole("button", { name: "Export matching clips" }));
 	await screen.findByText("Export clips");
 	expect(browserBatch).not.toHaveBeenCalled();
+});
+it("renders a direct layout MP4 locally instead of posting it to the server", async () => {
+	const { defaultClipLayout } = await import("@lib/clipLayout");
+	Object.defineProperty(URL, "createObjectURL", { configurable: true, value: jest.fn(() => "blob:local-mp4") });
+	Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: jest.fn() });
+	jest.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+	render(<ClipExport creatorId='owner' clipIds={["A"]} scope='direct-layout' format='mp4' layout={defaultClipLayout} />);
+	fireEvent.click(screen.getByRole("button", { name: "Download portrait" }));
+	await waitFor(() => expect(browserBatch).toHaveBeenCalledTimes(1));
+	expect(browserBatch.mock.calls[0][0].outputs[0].layout).toEqual(defaultClipLayout);
+	expect(browserBatch.mock.calls[0].at(-1)).toBe("mp4");
+	expect(fetchMock).not.toHaveBeenCalled();
+	await waitFor(() => expect(URL.createObjectURL).toHaveBeenCalled());
+	expect((URL.createObjectURL as jest.Mock).mock.calls[0][0].type).toBe("video/mp4");
 });

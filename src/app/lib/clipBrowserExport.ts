@@ -27,4 +27,4 @@ export const browserClipMetadataSchema = z.object({
 });
 export const browserExportSchema = z.object({ ok: z.literal(true), clips: z.array(browserClipMetadataSchema.extend({ error: z.literal("clip_unavailable").optional(), sourceToken: z.string().max(4096), outputs: z.array(browserOutputSchema).max(50) })).max(50) });
 export type BrowserExport = z.infer<typeof browserExportSchema>;
-export type ExportEngine = "browser" | "server";
+export type ExportEngine = "browser";

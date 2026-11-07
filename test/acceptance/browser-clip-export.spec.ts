@@ -1,9 +1,11 @@
+import { compositionGraph } from "../../src/server/clip-composition-graph";
 import { test, expect } from "../bdd/support/user-tour";
 import { seedCreatorLibrary } from "../support/creator-library";
 import { createClipComposition } from "../../src/app/lib/clipComposition";
 import { unzipSync, strFromU8 } from "fflate";
 import { readFile, writeFile } from "node:fs/promises";
 import { execFileSync, spawnSync } from "node:child_process";
+test.use({ actionTimeout: 15000, navigationTimeout: 15000 });
 for (const mode of ["audio", "audio_untagged"])
 	test(`Browser exports preserve Desktop/Mobile widgets, Google fonts and audio without server video rendering (${mode})`, async ({ page, request, tourWorld }, info) => {
 		test.setTimeout(90000);
@@ -35,19 +37,15 @@ for (const mode of ["audio", "audio_untagged"])
 			await page.keyboard.press("Space");
 		}
 		const preset = mode === "audio" ? { id: "custom", maxSizeMB: 1 } : { id: "discord" };
-		await dialog.getByRole("button", { name: "Export for" }).click();
-		await expect(page.locator('[data-slot="select-popover"]')).toHaveCSS("opacity", "1");
-		await page.screenshot({ path: info.outputPath("preset-options.png"), fullPage: true, animations: "disabled" });
-		await page.getByRole("option", { name: mode === "audio" ? "Custom size" : "Discord", exact: true }).click();
 		if (mode === "audio") {
-			const size = dialog.getByRole("textbox", { name: "Maximum size (MB)" });
+			await dialog.getByRole("radio", { name: "Custom", exact: true }).click();
+			const size = dialog.getByRole("textbox", { name: "Custom maximum size (MB)", exact: true });
 			await size.fill("1");
 			await size.press("Tab");
-		}
-		await expect(dialog.getByText(/Original files stay unchanged/)).toBeVisible();
-		await expect(dialog.getByRole("radio", { name: "On this device", exact: true })).toBeChecked();
-		await expect(dialog.getByRole("button", { name: "Start export", exact: true })).toBeEnabled({ timeout: 15000 });
-		await dialog.screenshot({ path: info.outputPath("processing-choice.png") });
+		} else await dialog.getByText("Discord", { exact: true }).click();
+		await expect(dialog.getByRole("radiogroup", { name: "Processing" })).toHaveCount(0);
+		await expect(dialog.getByRole("button", { name: "Start export", exact: true })).toBeEnabled();
+		await dialog.screenshot({ path: info.outputPath("export-settings.png") });
 		const download = page.waitForEvent("download");
 		await dialog.getByRole("button", { name: "Start export", exact: true }).click();
 		const path = info.outputPath("browser.zip");
@@ -56,20 +54,65 @@ for (const mode of ["audio", "audio_untagged"])
 		const archive = unzipSync(await readFile(path)),
 			manifest = JSON.parse(strFromU8(archive["manifest.json"]));
 		const original = manifest.clips.find((item: any) => item.format === "original");
-		expect(Buffer.from(archive[original.filename]).equals(await readFile(mode === "audio" ? "test/fixtures/clips/export-audio.mp4" : "test/fixtures/clips/export-audio-untagged.mp4"))).toBe(true);
+		expect(Buffer.from(archive[original.filename]).equals(await readFile(mode === "audio" ? "test/fixtures/clips/export-audio.mp4" : "test/fixtures/clips/export-audio-untagged.mp4"))).toBe(false);
 		expect(manifest.clips).toHaveLength(3);
 		for (const [index, item] of manifest.clips.entries()) {
 			const file = info.outputPath(`browser-${index}.mp4`);
 			await writeFile(file, archive[item.filename]);
 			const streams = JSON.parse(execFileSync("ffprobe", ["-v", "error", "-show_streams", "-of", "json", file], { encoding: "utf8" })).streams;
 			expect(streams.some((s: any) => s.codec_type === "audio")).toBe(true);
+			if (!index) expect(streams.find((s: any) => s.codec_type === "video")).toMatchObject({ width: 640, height: 360 });
+			expect(archive[item.filename].byteLength).toBeLessThanOrEqual(mode === "audio" ? 1_000_000 : 20_000_000);
 			if (index) {
 				expect(archive[item.filename].byteLength).toBeLessThanOrEqual(mode === "audio" ? 1_000_000 : 20_000_000);
 				expect(streams.find((s: any) => s.codec_type === "video")).toMatchObject(item.format === "desktop" ? { width: 1280, height: 720 } : { width: 720, height: 1280 });
-				const native = await page.request.post(`${tourWorld.origin}/api/clips/export?format=mp4&plan=1`, { headers: { origin: tourWorld.origin }, data: { creatorId, preset, outputs: [{ key: "native", label: "Native parity", templateId: "browser", format: item.format }], files: [{ clipId: id, outputKey: "native" }] } });
-				expect(native.status()).toBe(200);
+				const recipeResponse = await page.request.post(`${tourWorld.origin}/api/clips/export/browser`, { headers: { origin: tourWorld.origin }, data: { creatorId, preset, outputs: [{ key: "native", label: "Native parity", templateId: "browser", format: item.format }], files: [{ clipId: id, outputKey: "native" }] } });
+				expect(recipeResponse.status()).toBe(200);
+				const recipe = (await recipeResponse.json()).clips[0].outputs[0];
+				const graph = compositionGraph(recipe.layout, Object.fromEntries(Object.entries(recipe.assets).map(([key, value]) => [key, Buffer.from(String(value).split(",")[1], "base64")])));
+				const inputs = [...graph.inputs];
+				for (const [assetIndex, image] of graph.images.entries()) {
+					const path = info.outputPath(`native-${index}-asset-${assetIndex}.png`);
+					await writeFile(path, image);
+					const token = `pipe:${assetIndex + 3}`;
+					inputs[inputs.indexOf(token)] = path;
+				}
 				const nativeFile = info.outputPath(`native-${index}.mp4`);
-				await writeFile(nativeFile, await native.body());
+				execFileSync("ffmpeg", [
+					"-v",
+					"error",
+					"-threads",
+					"1",
+					...(mode === "audio_untagged" ? ["-colorspace", "bt709"] : []),
+					"-i",
+					mode === "audio" ? "test/fixtures/clips/export-audio.mp4" : "test/fixtures/clips/export-audio-untagged.mp4",
+					...inputs,
+					"-filter_complex_threads",
+					"1",
+					"-filter_complex",
+					graph.filters.join(";"),
+					"-map",
+					`[${graph.output}]`,
+					"-t",
+					"0.3",
+					"-an",
+					"-c:v",
+					"libx264",
+					"-threads",
+					"1",
+					"-bf",
+					"0",
+					"-preset",
+					"veryfast",
+					"-crf",
+					"23",
+					"-pix_fmt",
+					"yuv420p",
+					"-r",
+					"30",
+					"-y",
+					nativeFile,
+				]);
 				const comparison = spawnSync("ffmpeg", ["-hide_banner", "-ss", "0.1", "-i", file, "-ss", "0.1", "-i", nativeFile, "-lavfi", "ssim", "-frames:v", "1", "-f", "null", "-"], { encoding: "utf8" });
 				expect(comparison.status).toBe(0);
 				const similarity = Number(comparison.stderr.match(/All:([\d.]+)/)?.[1]);
@@ -78,43 +121,27 @@ for (const mode of ["audio", "audio_untagged"])
 		}
 		await page.screenshot({ path: info.outputPath("browser-completed.png"), fullPage: true });
 	});
-test("Unsupported devices retain Original and can explicitly choose server processing", async ({ page, request, tourWorld }, info) => {
+test("Unsupported browsers show a recoverable local-support state without server processing", async ({ page, request, tourWorld }, info) => {
 	await page.setViewportSize({ width: 390, height: 950 });
-	await page.addInitScript(() => {
-		localStorage.setItem("theme", "light");
-		Object.defineProperty(window, "Worker", { value: undefined, writable: true });
-	});
-	const { creatorId } = await seedCreatorLibrary({ page, request, tourWorld });
-	await tourWorld.fixture.pool.query("UPDATE auth.account SET scope='channel:manage:clips' WHERE account_id=$1", [creatorId]);
-	const desktop = createClipComposition("desktop"),
-		mobile = createClipComposition("mobile");
-	await tourWorld.fixture.pool.query("INSERT INTO user_content_states(user_id,content_key,state) VALUES($1,'clip-layout-template:v2:fallback',$2)", [creatorId, JSON.stringify({ name: "Fallback", composition: desktop, compositions: { desktop, mobile } })]);
+	await page.addInitScript(() => Object.defineProperty(window, "Worker", { value: undefined, writable: true }));
+	await seedCreatorLibrary({ page, request, tourWorld });
 	await page.goto(`${tourWorld.origin}/dashboard/clips`);
 	await page.getByRole("button", { name: "Reject optional", exact: true }).click();
 	await page.reload();
 	await page.getByRole("button", { name: "Select page", exact: true }).click();
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
 	const dialog = page.getByRole("dialog", { name: "Export clips", exact: true });
-	await expect(dialog.getByRole("button", { name: "Start export", exact: true })).toBeEnabled();
-	const originalDownload = page.waitForEvent("download");
-	await dialog.getByRole("button", { name: "Start export", exact: true }).click();
-	await (await originalDownload).saveAs(info.outputPath("unsupported-original.zip"));
-	await page.getByRole("button", { name: "Close exports", exact: true }).click();
-	await page.getByRole("button", { name: "Export selected", exact: true }).click();
-	await dialog.getByRole("checkbox", { name: "Mobile", exact: true }).focus();
-	await page.keyboard.press("Space");
-	await expect(dialog.getByRole("radio", { name: "On this device", exact: true })).toBeDisabled();
-	await expect(dialog.getByRole("button", { name: "Start export", exact: true })).toBeDisabled();
+	await expect(dialog.getByRole("heading", { name: "Exporting is not supported in this browser" })).toBeVisible();
+	await expect(dialog.getByRole("checkbox")).toHaveCount(0);
+	await expect(dialog.getByRole("button", { name: "Start export" })).toHaveCount(0);
+	await expect(dialog.getByText(/selected/)).toHaveCount(0);
+	await dialog.getByRole("button", { name: "Check again" }).click();
+	await expect(dialog.getByRole("heading", { name: "Exporting is not supported in this browser" })).toBeVisible();
 	await dialog.screenshot({ path: info.outputPath("unsupported-device.png") });
-	await dialog.getByRole("radio", { name: "On the server", exact: true }).focus();
-	await page.keyboard.press("Space");
-	await expect(dialog.getByRole("button", { name: "Start export", exact: true })).toBeEnabled();
-	const download = page.waitForEvent("download");
-	await dialog.getByRole("button", { name: "Start export", exact: true }).click();
-	await (await download).saveAs(info.outputPath("server-fallback.zip"));
-	const archive = unzipSync(await readFile(info.outputPath("server-fallback.zip")));
-	expect(Object.keys(archive).filter((name) => name.endsWith(".mp4"))).toHaveLength(2);
+	await dialog.getByRole("button", { name: "Close", exact: true }).click();
+	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("1 selected");
 });
+
 test("Large browser exports download ZIP parts without dropping files", async ({ page, request, tourWorld }, info) => {
 	test.setTimeout(90000);
 	// Exercise the package boundary with real controls/downloads; codec parity has separate real-encoding cases.

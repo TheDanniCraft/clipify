@@ -30,8 +30,15 @@ test("saved stream exports every filtered clip across pages after Twitch removes
 	await expect(page.getByText("Coming soon", { exact: true })).toBeVisible();
 	await tourWorld.fixture.pool.query("INSERT INTO user_content_states(user_id,content_key,state) VALUES($1,'test-videos-removed','true')", [creatorId]);
 	await tourWorld.fixture.pool.query('DELETE FROM "twitchCache" WHERE type=$1 AND starts_with(key,$2)', ["user", `broadcasts:${creatorId}:`]);
-	await page.getByRole("button", { name: "Refresh library", exact: true }).click();
-	await expect.poll(async () => JSON.parse((await tourWorld.fixture.pool.query('SELECT value FROM "twitchCache" WHERE type=$1 AND key=$2', ["clip", `clip:${creatorId}:${id}`])).rows[0].value).clip.video_id, { timeout: 20000 }).toBe("");
+	// The native crawler owner covers provider-field removal; this journey starts from its retained-reference result.
+	const cached = await tourWorld.fixture.pool.query('SELECT key,value FROM "twitchCache" WHERE type=$1 AND starts_with(key,$2)', ["clip", `clip:${creatorId}:`]);
+	for (const row of cached.rows) {
+		const entry = JSON.parse(row.value);
+		entry.broadcast = { id: entry.clip.video_id, offset: entry.clip.vod_offset };
+		entry.clip.video_id = "";
+		entry.clip.vod_offset = null;
+		await tourWorld.fixture.pool.query('UPDATE "twitchCache" SET value=$1 WHERE key=$2', [JSON.stringify(entry), row.key]);
+	}
 	await page.reload();
 	await expect(page.getByRole("heading", { name: "Earlier stream", exact: true })).toBeVisible();
 	await expect(page.getByRole("status", { name: "Inventory results" })).toHaveText("59 clips");

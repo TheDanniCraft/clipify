@@ -4,9 +4,9 @@ import { useCallback, useEffect, useRef, useState, useTransition, useSyncExterna
 import { usePathname } from "next/navigation";
 import { Button, Card, Checkbox, Disclosure, Input, Label, ListBox, NumberField, Select, Table, TextField, Link } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
-import { IconChevronRight, IconLayoutCollage, IconRefresh } from "@tabler/icons-react";
+import { IconChevronRight, IconLayoutCollage } from "@tabler/icons-react";
 import { fromDate, toCalendarDate } from "@internationalized/date";
-import { getCreatorClipInventory, getCreatorClipSelection, refreshCreatorLibrary } from "@actions/creatorLibrary";
+import { getCreatorClipInventory, getCreatorClipSelection } from "@actions/creatorLibrary";
 import AppDateRangePicker, { type AppDateRange } from "@components/appDateRangePicker";
 import AppPagination from "@components/appPagination";
 import ClipPreview from "./clipPreview";
@@ -42,22 +42,6 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 	const path = usePathname();
 	const fixedVideoId = path.startsWith("/dashboard/streams/") ? initialQuery.videoId : undefined;
 	const [draft, setDraft] = useState(query);
-	const [refresh, setRefresh] = useState<Awaited<ReturnType<typeof refreshCreatorLibrary>>>();
-	useEffect(() => {
-		if (!refresh) return;
-		notify({
-			title: refresh.ok ? "Refresh started. New clips may take a moment to appear." : refresh.code === "SYNC_COOLDOWN" ? "The library was refreshed recently." : refresh.code === "RECONNECT_REQUIRED" ? "Connect Twitch to load your clips." : "The library could not be refreshed. Please try again.",
-			description:
-				!refresh.ok && refresh.code === "RECONNECT_REQUIRED" ? (
-					<Link href='/dashboard/settings?tab=connections'>Connect Twitch</Link>
-				) : !refresh.ok && "nextAllowedAt" in refresh && refresh.nextAllowedAt ? (
-					<>
-						Try again after <LocalizedDate value={refresh.nextAllowedAt} showTime />
-					</>
-				) : undefined,
-			color: refresh.ok ? "success" : refresh.code === "SYNC_COOLDOWN" ? "default" : "danger",
-		});
-	}, [refresh]);
 	const [pending, startTransition] = useTransition();
 	const selectionScope = JSON.stringify([
 		creatorId,
@@ -194,27 +178,26 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 							<Label>Title</Label>
 							<Input variant='secondary' placeholder='Search clip titles' />
 						</TextField>
-						<Button className='self-end' type='submit' isPending={pending}>
-							Apply filters
-						</Button>
-						<Button
-							variant='ghost'
-							size='sm'
-							isPending={pending}
-							onPress={() =>
-								startTransition(async () => {
-									try {
-										const result = await refreshCreatorLibrary({ creatorId });
-										setRefresh(result);
-										navigate(query, false);
-									} catch {
-										setRefresh({ ok: false, code: "SERVICE_UNAVAILABLE" });
-									}
-								})
-							}
-						>
-							<IconRefresh className='size-4' aria-hidden='true' /> Refresh library
-						</Button>
+						<div role='group' aria-label='Filter actions' className='flex items-center gap-2 self-end'>
+							<Button
+								variant='tertiary'
+								aria-label='Clear filters'
+								onPress={() => {
+									setDraft({});
+									setRange(null);
+									navigate({});
+								}}
+							>
+								<span>
+									Clear<span className='hidden sm:inline'> filters</span>
+								</span>
+							</Button>
+							<Button type='submit' aria-label='Apply filters' isPending={pending}>
+								<span>
+									Apply<span className='hidden sm:inline'> filters</span>
+								</span>
+							</Button>
+						</div>
 						<Disclosure className='col-span-2' defaultExpanded={Boolean(fixedVideoId || query.category || query.minViews || query.minDuration || query.maxDuration || query.startedAt || query.sort)}>
 							<Disclosure.Heading>
 								<Disclosure.Trigger className='flex w-full items-center justify-between gap-2'>
@@ -264,16 +247,6 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 									{!fixedVideoId ? numericFilters : null}
 									<AppDateRangePicker label='Clip creation dates' value={range} onChange={setRange} variant='secondary' fullWidth />
 
-									<Button
-										variant='secondary'
-										onPress={() => {
-											setDraft({});
-											setRange(null);
-											navigate({});
-										}}
-									>
-										Clear filters
-									</Button>
 									<p className='text-xs text-muted sm:col-span-2 lg:col-span-3'>Dates use {timeZone}. Views are each clip’s current lifetime views.</p>
 								</Disclosure.Body>
 							</Disclosure.Content>

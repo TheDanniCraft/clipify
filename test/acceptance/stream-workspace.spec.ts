@@ -47,6 +47,10 @@ for (const theme of ["light", "dark"])
 				else await row.getByRole("gridcell").last().click();
 				await expect(page).toHaveURL(/\/dashboard\/streams\/12345$/);
 				await expect(page.getByRole("list", { name: "Stream moments timeline" })).toBeVisible();
+				const moments = page.getByRole("list", { name: "Stream moments timeline" });
+				await expect(moments.getByRole("listitem").first()).toContainText("Stream start");
+				await expect(moments.getByRole("listitem").last()).toContainText("Stream end");
+				await expect(moments.getByRole("listitem").last()).toHaveAttribute("data-last", "true");
 				if (width === 390) {
 					await page.getByRole("link", { name: "Stream moments", exact: true }).click();
 					await page.evaluate(() => document.getElementById("stream-moments")!.scrollIntoView({ behavior: "instant" }));

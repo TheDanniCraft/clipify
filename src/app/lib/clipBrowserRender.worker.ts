@@ -63,13 +63,17 @@ async function render(bytes: ArrayBuffer, recipe: BrowserOutput) {
 	const result = await encodeForPreset(recipe.preset, duration, new AbortController().signal, async (encoding) => new Uint8Array(await renderOnce(bytes, recipe, encoding)), audioBitrate);
 	return result.buffer;
 }
+async function outputDimensions(input: Input, layout: BrowserOutput["layout"]) {
+	const video = await input.getPrimaryVideoTrack();
+	if (!video) throw new Error("browser_unsupported");
+	return layout ? compositionDimensions(layout.format) : { width: await video.getDisplayWidth(), height: await video.getDisplayHeight() };
+}
 async function renderOnce(bytes: ArrayBuffer, recipe: BrowserOutput, encoding?: ExportEncoding) {
-	if (!recipe.layout) throw new Error("browser_unsupported");
-	const layout = recipe.layout,
-		{ width, height } = compositionDimensions(layout.format),
-		images = new Map<string, ImageBitmap>();
+	const layout = recipe.layout;
+	const images = new Map<string, ImageBitmap>();
 	const input = new Input({ source: new BufferSource(bytes), formats: [MP4] });
 	try {
+		const { width, height } = await outputDimensions(input, layout);
 		for (const [id, uri] of Object.entries(recipe.assets)) images.set(id, await bitmap(uri));
 		const mark = recipe.watermark ? await bitmap(recipe.watermark) : null;
 		if (mark) images.set("__watermark", mark);
@@ -92,7 +96,7 @@ async function renderOnce(bytes: ArrayBuffer, recipe: BrowserOutput, encoding?: 
 		const positions = clipifyWatermarkPositions(
 			width,
 			height,
-			layout.layers.filter((l) => l.kind !== "video").map((l) => l.frame),
+			(layout?.layers ?? []).filter((l) => l.kind !== "video").map((l) => l.frame),
 		);
 		let first: number | undefined;
 		const conversion = await Conversion.init({
@@ -113,7 +117,8 @@ async function renderOnce(bytes: ArrayBuffer, recipe: BrowserOutput, encoding?: 
 					try {
 						ctx.fillStyle = "#000";
 						ctx.fillRect(0, 0, width, height);
-						for (const layer of layout.layers) {
+						if (!layout) ctx.drawImage(frame, 0, 0, width, height);
+						for (const layer of layout?.layers ?? []) {
 							const { x, y, w, h } = compositionRectPixels(layer.frame, width, height);
 							ctx.save();
 							try {

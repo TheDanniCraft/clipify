@@ -447,3 +447,15 @@ FINAL-02 pagination reconciliation: BDD-US2-002 retains its five input classes, 
 | Applied view/duration rules and automatic all-match confirmation/export     | clipInventory.test.tsx; clipExport.test.tsx; stream-workspace.spec.ts; stream-manual-export.spec.ts |
 | Disabled Tools automation and retained layout navigation                    | dashboardShell.test.tsx; dashboard-sidebar-destinations.spec.ts; stream-manual-export.spec.ts       |
 | Coherent estimated development sessions and original metadata preservation  | Guarded Infisical dev operator dry-run + transaction postconditions, streams-ux.md                  |
+
+## Executed device-only revision (2026-11-07)
+
+| Criterion                                             | Executed owners                                                                                        | Result                                                                            |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| DEXP-01 Original presets and unchanged General source | clip-export.test.ts, clipBrowserBatch.test.ts, browser-clip-export.spec.ts                             | Pass: preset dispatch, source dimensions/audio and actual files                   |
+| DEXP-02 local queue, retry, MP4 and server boundary   | clipExport.test.tsx, clips-export.test.ts, clip-export-batches.spec.ts, clip-library-recovery.spec.ts  | Pass, including saved-template rejection and current permissions                  |
+| DEXP-03 stable installed controls                     | clipExportSettings.test.tsx, clip-export-dialog.spec.ts                                                | Pass in both themes at390/1440px with keyboard/pointer and selection recovery     |
+| DEXP-04 stream bounds and explicit filter actions     | streamMoments.test.tsx, clipInventory.test.tsx, stream-workspace.spec.ts, stream-manual-export.spec.ts | Pass, including all59 matches across pages and minute boundary                    |
+| DEXP-05 real video parity and limits                  | clip-layout-render.test.ts, browser-clip-export.spec.ts                                                | Pass for Desktop/Mobile audio, fonts, widgets, target bytes and native SSIM >0.97 |
+
+Complete local browser owners:10 export cases plus58 caller cases, without overlap. Exact-head CI is recorded on PR546 after publication. Original planned-row provenance and GOV-001 are preserved; this table does not invent historical test-first evidence.

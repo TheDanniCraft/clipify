@@ -20,7 +20,8 @@ async function readBrowserSource(clip: BrowserExport["clips"][number], signal: A
 	}
 }
 type BrowserBatchResult = { ok: true; bytes: Uint8Array<ArrayBuffer>; summary: ClipExportSummary; partCount: number } | { ok: false; code: string; retryAt?: string; failures?: ClipExportSummary["skipped"] };
-export async function buildBrowserBatch(plan: ClipExportPlan, signal: AbortSignal, progress: (event: ClipExportProgress) => void, onPart: (bytes: Uint8Array<ArrayBuffer>, part: number) => void): Promise<BrowserBatchResult> {
+export async function buildBrowserBatch(plan: ClipExportPlan, signal: AbortSignal, progress: (event: ClipExportProgress) => void, onPart: (bytes: Uint8Array<ArrayBuffer>, part: number) => void, format: "zip" | "mp4" = "zip"): Promise<BrowserBatchResult> {
+	if (format === "mp4" && plan.files.length !== 1) return { ok: false, code: "INVALID_INPUT" };
 	const response = await fetch("/api/clips/export/browser", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(plan), signal });
 	const data = JSON.parse(new TextDecoder().decode(await readBoundedResponse(response, 8 * 1024 * 1024, signal)));
 	if (!response.ok) return { ok: false as const, code: typeof data.code === "string" ? data.code : "SERVICE_UNAVAILABLE", retryAt: data.retryAt as string | undefined };
@@ -54,8 +55,8 @@ export async function buildBrowserBatch(plan: ClipExportPlan, signal: AbortSigna
 			let code = source.code;
 			if (source.bytes && !code)
 				try {
-					if (output.layout) progress({ index, stage: "rendering" });
-					const bytes = output.layout ? await renderBrowserClip(source.bytes, output, signal, () => {}) : source.bytes;
+					if (output.layout || output.preset) progress({ index, stage: "rendering" });
+					const bytes = output.layout || output.preset ? await renderBrowserClip(source.bytes, output, signal, () => {}) : source.bytes;
 					if (total && total + bytes.length > 126 * 1024 * 1024) flush();
 					const filename = clipExportFilename(`${clip.title} ${output.label}`, `${clip.id}-${output.key}`, index, used);
 					files[filename] = bytes;
@@ -63,6 +64,7 @@ export async function buildBrowserBatch(plan: ClipExportPlan, signal: AbortSigna
 					summary.included.push(index);
 					manifest.push({ ...metadata, status: "included", filename, bytes: bytes.length, format: output.layout?.format ?? "original", outputLabel: output.label, outputKey: output.key });
 					progress({ index, stage: "ready" });
+					if (format === "mp4") return { ok: true, bytes, summary, partCount: 1 };
 				} catch (error) {
 					signal.throwIfAborted();
 					code = error instanceof Error && ["file_size_limit", "package_size_limit", "preset_size_limit"].includes(error.message) ? error.message : "browser_unsupported";

@@ -336,7 +336,7 @@ Export-flow audit owners: clipPlayer.test.tsx and clipPreview.test.tsx cover lat
 - Failure, reconnect subset retry, partial package retry, cancellation and completed history remain actionable without changing page geometry.
 - Compact refresh retains filtering and cross-page selection; portrait selection explains its 50-clip limit.
 
-Home insights: verify no-recent-activity creators retain old top clips; original recent metrics/window/tie semantics remain intact. Check labeled icon shortcuts and guide targets, server Free/Pro access propagation, no locked analytics fetch, real data/retry/stale freshness, rejection versus upgrade separation and late response isolation. Browser acceptance covers Free/Pro at390/1440px in both themes, keyboard entry into the existing upgrade modal, no horizontal overflow, and the existing portrait journey. Run complete BDD Home/Streams and original export scenarios when changing shared bindings.
+Home insights: verify no-recent-activity creators retain old top clips; original recent metrics/window/tie semantics remain intact. Check labeled icon shortcuts and guide targets, server Free/Pro access propagation, no locked analytics fetch, real data/retry/stale freshness, rejection versus upgrade separation and late response isolation. Browser acceptance covers Free/Pro at 390/1440px in both themes, keyboard entry into the existing upgrade modal, no horizontal overflow, and the existing portrait journey. Run complete BDD Home/Streams and original export scenarios when changing shared bindings.
 
 Composition behaviors: account-scoped named templates/defaults; override save/reset must not mutate templates; existing layouts convert without framing loss; cross-creator/role denial performs no write. Schema validates multiple video/widget layers, unique IDs and bounded rectangles. Revised interaction: output boxes define shape and placement; Shift locks output shape, source crops keep that shape, and output movement preserves crops. Both panes snap on movement and resize to canvas and neighboring edges/centers. Renderer and preview agree for three crops plus widgets in both orientations, preserve audio and reject unsafe logo sources/oversized data. Export settings selects four variants for one clip and yields four distinct real videos in one package, with per-file progress, overrides and shared quota reserved once. Original remains byte-for-byte untouched. Empty layouts, preview/save/render/permission failures, keyboard, touch, cancellation and existing API compatibility are required. Browser owning flows include updated legacy navigation and export scenarios.
 
@@ -423,3 +423,15 @@ FINAL-04: select all matching clips across pages, preserve stream/view filters a
 - Matching-filter export preparation, no early download, empty/denied/failure retry: clipExport.test.tsx; actual exact ZIP membership: stream-workspace.spec.ts.
 - Tools/Automations placement and unchanged resource navigation: dashboardShell.test.tsx and dashboard-sidebar-destinations.spec.ts.
 - Scrolled timeline heading and mobile anchor clear the sticky navigation; grouped overview stays inside both viewport axes: stream-workspace.spec.ts, both themes and input modes.
+
+## Device-only manual export revision
+
+The 2026-11-07 user clarification supersedes BEXP-04's explicit server choice and PSET-01's blanket Original bypass: General/recommended Original remains unchanged, while explicit platform/size presets encode Original framing on the device. Composed outputs always use the selected paired templates. Public server-render requests are rejected. Unsupported capabilities replace the form with an actionable retry/close state.
+
+- DEXP-01: Original preset dispatch, untouched General bypass and actual source framing/audio retention.
+- DEXP-02: local queue processing and retry, direct MP4 compatibility, typed server rejection.
+- DEXP-03: stable installed controls across format toggles, compact platform/size controls, keyboard use, both themes and mobile/desktop.
+- DEXP-04: explicit stream start/end markers and grouped filter actions without Refresh library.
+- DEXP-05: real encoded outputs preserve widgets/fonts/audio and native reference SSIM above 0.97, without exposing server processing.
+
+Eight affected whole-file unit/native owners passed 244 tests. Browser evidence remains pending until recorded in the cycle log. No Android device measurements are claimed.

@@ -122,3 +122,31 @@ it("reports an unavailable browser encoder as recoverable through explicit serve
 	);
 	expect(result).toMatchObject({ ok: false, code: "BROWSER_UNSUPPORTED", failures: [{ index: 0, code: "browser_unsupported", retryable: true }] });
 });
+it("encodes Original framing when an output preset is selected", async () => {
+	const plan = createClipExportPlan("creator", ["A"], [{ key: "original", label: "Original" }], { id: "custom", maxSizeMB: 10 })[0];
+	const output = { key: "original", label: "Original", layout: null, assets: {}, watermark: null, preset: { id: "custom", maxSizeMB: 10 } };
+	jest
+		.spyOn(globalThis, "fetch")
+		.mockResolvedValueOnce(Response.json({ ok: true, clips: [{ id: "A", title: "Original", sourceToken: "ticket", outputs: [output] }] }))
+		.mockResolvedValueOnce(new Response(new Uint8Array([1, 2, 3])));
+	renderVideo.mockResolvedValue(new Uint8Array([4, 5, 6]));
+	archive.mockReturnValue(new Uint8Array([1]));
+	await buildBrowserBatch(
+		plan,
+		new AbortController().signal,
+		() => {},
+		() => {},
+	);
+	expect(renderVideo).toHaveBeenCalledWith(new Uint8Array([1, 2, 3]), output, expect.any(AbortSignal), expect.any(Function));
+});
+it("downloads a single MP4 directly without ZIP wrapping", async () => {
+	const plan = createClipExportPlan("creator", ["A"], [{ key: "original", label: "Original" }])[0];
+	jest
+		.spyOn(globalThis, "fetch")
+		.mockResolvedValueOnce(Response.json({ ok: true, clips: [{ id: "A", title: "Original", sourceToken: "ticket", outputs: [{ key: "original", label: "Original", layout: null, assets: {}, watermark: null }] }] }))
+		.mockResolvedValueOnce(new Response(new Uint8Array([1, 2, 3])));
+	const part = jest.fn();
+	const result = await buildBrowserBatch(plan, new AbortController().signal, () => {}, part, "mp4");
+	expect(result).toMatchObject({ ok: true, bytes: new Uint8Array([1, 2, 3]), summary: { included: [0], skipped: [] } });
+	expect(part).not.toHaveBeenCalled();
+});

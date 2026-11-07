@@ -1,3 +1,32 @@
+jest.mock(
+	"@heroui-pro/react",
+	() => {
+		const React = jest.requireActual("react");
+		const State = React.createContext(null);
+		const RadioButtonGroup = Object.assign(
+			({ children, value, onChange, ...props }: any) => (
+				<div role='radiogroup' aria-label={props["aria-label"]}>
+					<State.Provider value={{ value, onChange }}>{children}</State.Provider>
+				</div>
+			),
+			{
+				Item: ({ children, value, ...props }: any) => {
+					const state = React.useContext(State);
+					return (
+						<label>
+							<input type='radio' aria-label={props["aria-label"]} checked={state.value === value} onChange={() => state.onChange(value)} />
+							{children}
+						</label>
+					);
+				},
+				ItemContent: ({ children }: any) => <span>{children}</span>,
+				ItemIcon: ({ children }: any) => <span>{children}</span>,
+			},
+		);
+		return { RadioButtonGroup };
+	},
+	{ virtual: true },
+);
 const browserCapability = jest.fn();
 jest.mock("@lib/clipBrowserRender", () => ({ browserExportCapability: () => browserCapability() }));
 beforeEach(() => browserCapability.mockResolvedValue("supported"));
@@ -15,7 +44,26 @@ jest.mock("@heroui/react", () => {
 		),
 		{ Content: base.Checkbox.Content, Control: base.Checkbox.Control, Indicator: base.Checkbox.Indicator },
 	);
-	return jest.requireActual("../../support/clipCompositionControls").compositionControls(new Proxy({ ...base, Checkbox }, { get: (target: any, key: any) => (key in target ? target[key] : base[key]) }));
+	const React = jest.requireActual("react");
+	const Toggles = React.createContext(null);
+	const ToggleButtonGroup = Object.assign(
+		({ children, selectedKeys, onSelectionChange, ...props }: any) => (
+			<div role='group' aria-label={props["aria-label"]}>
+				<Toggles.Provider value={{ selectedKeys, onSelectionChange }}>{children}</Toggles.Provider>
+			</div>
+		),
+		{ Separator: () => null },
+	);
+	const ToggleButton = ({ id, children }: any) => {
+		const state = React.useContext(Toggles);
+		return (
+			<button aria-pressed={state.selectedKeys.has(id)} onClick={() => state.onSelectionChange(new Set([id]))}>
+				{children}
+			</button>
+		);
+	};
+
+	return jest.requireActual("../../support/clipCompositionControls").compositionControls(new Proxy({ ...base, Checkbox, ToggleButtonGroup, ToggleButton }, { get: (target: any, key: any) => (key in target ? target[key] : base[key]) }));
 });
 const list = jest.fn();
 jest.mock("@actions/clipLayoutLibrary", () => ({ listClipLayouts: (...args: unknown[]) => list(...args) }));
@@ -32,7 +80,7 @@ it("selects Original and multiple Desktop/Mobile layouts before starting one exp
 		close = jest.fn();
 	render(<ClipExportSettings creatorId='owner' clipIds={["ClipA"]} onStart={start} onClose={close} />);
 	expect(start).not.toHaveBeenCalled();
-	expect(screen.getByRole("checkbox", { name: "Original" })).toBeChecked();
+	expect(await screen.findByRole("checkbox", { name: "Original" })).toBeChecked();
 	await screen.findByRole("listbox", { name: "Layout templates" });
 	fireEvent.click(screen.getByRole("checkbox", { name: "Desktop" }));
 	fireEvent.click(screen.getByRole("checkbox", { name: "Mobile" }));
@@ -125,7 +173,7 @@ it("warns about a slow device without silently switching to server processing", 
 	render(<ClipExportSettings creatorId='owner' clipIds={["A"]} onStart={start} onClose={() => {}} />);
 	await screen.findByRole("listbox", { name: "Layout templates" });
 	fireEvent.click(screen.getByRole("checkbox", { name: "Mobile" }));
-	await screen.findByText("This device may be slow. You can continue here or select server processing.");
+	await screen.findByText("This device may take longer");
 	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
 	expect(start).toHaveBeenCalledWith(expect.any(Array), "browser");
 });
@@ -135,12 +183,29 @@ it("queues a chosen custom encoding preset while preserving Original and paired 
 	const start = jest.fn((_plans: any[]) => true);
 	render(<ClipExportSettings creatorId='owner' clipIds={["ClipA"]} onStart={start} onClose={() => {}} />);
 	await screen.findByRole("listbox", { name: "Layout templates" });
-	expect(screen.queryByRole("combobox", { name: "Export for" })).not.toBeInTheDocument();
+	expect(await screen.findByRole("radiogroup", { name: "Export for" })).toBeVisible();
 	fireEvent.click(screen.getByRole("checkbox", { name: "Desktop" }));
-	fireEvent.change(screen.getByRole("combobox", { name: "Export for" }), { target: { value: "custom" } });
-	fireEvent.change(screen.getByRole("spinbutton", { name: "Maximum size (MB)" }), { target: { value: "10" } });
+	fireEvent.click(screen.getByRole("button", { name: "Custom" }));
+	fireEvent.change(screen.getByRole("spinbutton", { name: "Custom maximum size (MB)" }), { target: { value: "10" } });
 	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
 	await waitFor(() => expect(start).toHaveBeenCalledTimes(1));
 	expect(start.mock.calls[0][0][0].preset).toEqual({ id: "custom", maxSizeMB: 10 });
 	expect(start.mock.calls[0][0][0].outputs[0]).toEqual({ key: "original", label: "Original" });
+});
+it("offers platform presets for Original without requiring a composition", async () => {
+	list.mockResolvedValue({ ok: true, templates: [], defaults: {} });
+	const start = jest.fn(() => true);
+	render(<ClipExportSettings creatorId='owner' clipIds={["A"]} onStart={start} onClose={() => {}} />);
+	fireEvent.click(await screen.findByRole("radio", { name: "Discord" }));
+	fireEvent.click(screen.getByRole("button", { name: "Start export" }));
+	await waitFor(() => expect(start).toHaveBeenCalledWith(expect.arrayContaining([expect.objectContaining({ preset: { id: "discord" }, outputs: [{ key: "original", label: "Original" }] })]), "browser"));
+});
+it("shows an unsupported state instead of export controls when local encoding is unavailable", async () => {
+	browserCapability.mockResolvedValue("unsupported");
+	list.mockResolvedValue({ ok: true, templates: [], defaults: {} });
+	render(<ClipExportSettings creatorId='owner' clipIds={["A"]} onStart={() => true} onClose={() => {}} />);
+	expect(await screen.findByText("Exporting is not supported in this browser")).toBeVisible();
+	expect(screen.queryByRole("checkbox", { name: "Original" })).toBeNull();
+	expect(screen.queryByRole("button", { name: "Start export" })).toBeNull();
+	expect(screen.queryByText(/selected/)).toBeNull();
 });

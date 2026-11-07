@@ -39,6 +39,7 @@ export function readMcpSourceManifest() {
 		"src/app/lib/clipExportPreset.ts",
 		"src/app/actions/clipLayoutLibrary.ts",
 		"src/server/clip-composition-render.ts",
+		"src/server/clip-composition-graph.ts",
 		"src/app/api/clips/layout-logo/route.ts",
 		"src/app/components/creator/clipExportSettings.tsx",
 		"src/app/components/creator/clipLayoutLibrary.tsx",

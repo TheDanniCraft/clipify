@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { IconPlayerPlay, IconPlayerStop } from "@tabler/icons-react";
 import { Button } from "@heroui/react";
 import { Timeline, HoverCard } from "@heroui-pro/react";
 import ClipPreview from "./clipPreview";
@@ -73,7 +74,7 @@ function Moment({ moment, previewing, onPreview }: { moment: ReturnType<typeof g
 		</Timeline.Item>
 	);
 }
-export default function StreamMoments({ creatorId, clips }: { creatorId: string; clips: Clip[] }) {
+export default function StreamMoments({ creatorId, clips, startedAt, duration }: { creatorId: string; clips: Clip[]; startedAt?: string; duration?: string }) {
 	const [preview, setPreview] = useState<Clip | null>(null);
 	const [visible, setVisible] = useState(5);
 	if (!clips.length) return null;
@@ -82,15 +83,43 @@ export default function StreamMoments({ creatorId, clips }: { creatorId: string;
 		<section id='stream-moments' className='min-w-0 scroll-mt-24' aria-label='Stream moments'>
 			<h2 className='mb-4 font-semibold'>Stream moments</h2>
 			<Timeline density='compact' size='sm' aria-label='Stream moments timeline'>
+				<Timeline.Item>
+					<Timeline.Marker>
+						<IconPlayerPlay aria-hidden='true' />
+					</Timeline.Marker>
+					<Timeline.Content>
+						<span className='text-sm font-medium'>Stream start</span>
+						{startedAt ? (
+							<span className='text-xs text-muted'>
+								<LocalizedDate value={startedAt} showTime />
+							</span>
+						) : null}
+					</Timeline.Content>
+				</Timeline.Item>
 				{moments.slice(0, visible).map((moment) => (
 					<Moment key={moment.id} moment={moment} previewing={!!preview} onPreview={setPreview} />
 				))}
+				{moments.length > visible ? (
+					<Timeline.Item>
+						<Timeline.Marker />
+						<Timeline.Content>
+							<Button variant='tertiary' size='sm' onPress={() => setVisible((value) => value + 10)}>
+								Show more moments
+							</Button>
+							<span className='text-xs text-muted'>{moments.length - visible} more moments</span>
+						</Timeline.Content>
+					</Timeline.Item>
+				) : null}
+				<Timeline.Item>
+					<Timeline.Marker>
+						<IconPlayerStop aria-hidden='true' />
+					</Timeline.Marker>
+					<Timeline.Content>
+						<span className='text-sm font-medium'>Stream end</span>
+						{duration ? <span className='text-xs text-muted'>{duration} total</span> : null}
+					</Timeline.Content>
+				</Timeline.Item>
 			</Timeline>
-			{moments.length > visible ? (
-				<Button variant='tertiary' size='sm' className='mt-3' onPress={() => setVisible((value) => value + 10)}>
-					Show more moments
-				</Button>
-			) : null}
 			{preview ? <ClipPreview creatorId={creatorId} clip={preview} onClose={() => setPreview(null)} /> : null}
 		</section>
 	);

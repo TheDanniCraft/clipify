@@ -533,7 +533,7 @@ export async function prepareBrowserClipExport(input: unknown, signal: AbortSign
 			// Reserve space for public metadata/layouts before encoding repeated PNG payloads.
 			imageBytes += [...Object.values(assets), ...(watermark ? [mark] : [])].reduce((sum, bytes) => sum + Math.ceil(bytes.length / 3) * 4 + 32, 0);
 			if (imageBytes > 6 * 1024 * 1024) return failure("EXPORT_LIMIT", 413);
-			outputs.push({ preset: layout ? plan.preset : undefined, key: output.key, label: output.label, layout, assets: Object.fromEntries(Object.entries(assets).map(([key, value]) => [key, `data:image/png;base64,${value.toString("base64")}`])), watermark: watermark ? `data:image/png;base64,${mark.toString("base64")}` : null });
+			outputs.push({ preset: !layout && plan.preset?.id === "general" ? undefined : plan.preset, key: output.key, label: output.label, layout, assets: Object.fromEntries(Object.entries(assets).map(([key, value]) => [key, `data:image/png;base64,${value.toString("base64")}`])), watermark: watermark ? `data:image/png;base64,${mark.toString("base64")}` : null });
 		}
 		clips.push({ ...clip, sourceToken: unavailable ? "" : signBrowserClipSource(creatorId, id), error: unavailable ? ("clip_unavailable" as const) : undefined, outputs });
 	}

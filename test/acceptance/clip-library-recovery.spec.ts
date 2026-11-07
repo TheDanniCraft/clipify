@@ -19,6 +19,8 @@ async function setup({ page, request, tourWorld }: { page: Page; request: APIReq
 	if (mobile) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
 	await expect(page.locator('[data-tour="guide-launcher"]')).toBeVisible();
 	if (mobile) await page.keyboard.press("Escape");
+	await page.getByRole("button", { name: "Apply filters", exact: true }).click();
+	await expect(page).toHaveURL(/timeZone=/);
 	await page.getByRole("button", { name: "Select page", exact: true }).click();
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("1 selected");
 	return { ...seeded, value };
@@ -76,7 +78,7 @@ for (const width of [390, 1440])
 			const seeded = await setup({ page, request, tourWorld });
 			const second = `LibrarySort01_${seeded.creatorId.slice("e2e-creator-".length)}`;
 			await tourWorld.fixture.pool.query('INSERT INTO "twitchCache" (type,key,value) VALUES ($1,$2,$3)', ["clip", `clip:${seeded.creatorId}:${second}`, JSON.stringify({ ...seeded.value, clip: { ...seeded.value.clip, id: second, title: "Retry this clip" }, testDownloadMode: "media_5xx" })]);
-			await page.getByRole("button", { name: "Refresh library", exact: true }).click();
+			await page.getByRole("button", { name: "Apply filters", exact: true }).click();
 			await expect(page.getByRole("status", { name: "Inventory results" })).toHaveText("2 clips");
 			await page.getByRole("button", { name: "Select page", exact: true }).click();
 			await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("2 selected");
@@ -161,7 +163,7 @@ test("Clip export records portrait fallback in the downloaded manifest", { tag: 
 test("Clip inventory renders a warm ten-thousand-clip page within two seconds", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }, info) => {
 	const seeded = await setup({ page, request, tourWorld });
 	await tourWorld.fixture.pool.query(`INSERT INTO "twitchCache" (type,key,value) SELECT 'clip','clip:'||$1||':Warm'||i,jsonb_build_object('clip',$2::jsonb||jsonb_build_object('id','Warm'||i,'view_count',i))::text FROM generate_series(1,9999) AS i`, [seeded.creatorId, JSON.stringify(seeded.value.clip)]);
-	await page.getByRole("button", { name: "Refresh library", exact: true }).click();
+	await page.getByRole("button", { name: "Apply filters", exact: true }).click();
 	await expect(page.getByRole("status", { name: "Inventory results" })).toHaveText("10000 clips");
 	await expect(page.locator("[data-clip-id]")).toHaveCount(25);
 	const first = await page.locator("[data-clip-id]").first().getAttribute("data-clip-id");
@@ -185,7 +187,7 @@ test("Clip export withholds buffered media when the current grant is revoked dur
 	const seeded = await setup({ page, request, tourWorld });
 	const second = `LibrarySort01_${seeded.creatorId.slice("e2e-creator-".length)}`;
 	await tourWorld.fixture.pool.query('INSERT INTO "twitchCache" (type,key,value) VALUES ($1,$2,$3)', ["clip", `clip:${seeded.creatorId}:${second}`, JSON.stringify({ ...seeded.value, clip: { ...seeded.value.clip, id: second, title: "Delayed clip" }, testDownloadMode: "delay" })]);
-	await page.getByRole("button", { name: "Refresh library", exact: true }).click();
+	await page.getByRole("button", { name: "Apply filters", exact: true }).click();
 	await expect(page.getByRole("status", { name: "Inventory results" })).toHaveText("2 clips");
 	await page.getByRole("button", { name: "Select page", exact: true }).click();
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("2 selected");
@@ -212,7 +214,7 @@ test("Maximum clip package downloads intact with measured browser memory", { tag
 		const id = `LibrarySort${String(index).padStart(2, "0")}_${seeded.creatorId.slice("e2e-creator-".length)}`;
 		await tourWorld.fixture.pool.query('INSERT INTO "twitchCache" (type,key,value) VALUES ($1,$2,$3)', ["clip", `clip:${seeded.creatorId}:${id}`, JSON.stringify({ ...seeded.value, clip: { ...seeded.value.clip, id, title: `Maximum package clip ${index}` }, testDownloadMode: "maximum_file" })]);
 	}
-	await page.getByRole("button", { name: "Refresh library", exact: true }).click();
+	await page.getByRole("button", { name: "Apply filters", exact: true }).click();
 	await expect(page.getByRole("status", { name: "Inventory results" })).toHaveText("4 clips");
 	await page.getByRole("button", { name: "Select page", exact: true }).click();
 	const cdp = await page.context().newCDPSession(page);
@@ -260,22 +262,10 @@ test("Maximum clip package downloads intact with measured browser memory", { tag
 	}
 });
 
-test("Refresh library shows synchronized provider metadata and retains selection", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
+test("Reapplying filters reads updated cached metadata and retains selection", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
 	const seeded = await setup({ page, request, tourWorld });
-	await tourWorld.fixture.pool.query('DELETE FROM "twitchCache" WHERE type=$1 AND key=$2', ["clip", `clip-sync-force:${seeded.creatorId}`]);
-	await tourWorld.fixture.pool.query('UPDATE "twitchCache" SET value=$1 WHERE type=$2 AND key=$3', [JSON.stringify({ ...seeded.value, testProviderTitle: "Synchronized highlight" }), "clip", `clip:${seeded.creatorId}:${seeded.id}`]);
-	await page.getByRole("button", { name: "Refresh library", exact: true }).click();
-	await expect(page.getByText("Refresh started. New clips may take a moment to appear.", { exact: false })).toBeVisible();
-	await expect
-		.poll(
-			async () => {
-				const row = await tourWorld.fixture.pool.query('SELECT value FROM "twitchCache" WHERE type=$1 AND key=$2', ["clip", `clip:${seeded.creatorId}:${seeded.id}`]);
-				return JSON.parse(row.rows[0].value).clip.title;
-			},
-			{ timeout: 15000 },
-		)
-		.toBe("Synchronized highlight");
-	await page.getByRole("button", { name: "Refresh library", exact: true }).click();
+	await tourWorld.fixture.pool.query('UPDATE "twitchCache" SET value=$1 WHERE type=$2 AND key=$3', [JSON.stringify({ ...seeded.value, clip: { ...seeded.value.clip, title: "Synchronized highlight" } }), "clip", `clip:${seeded.creatorId}:${seeded.id}`]);
+	await page.getByRole("button", { name: "Apply filters", exact: true }).click();
 	await expect(page.getByRole("button", { name: "Preview Synchronized highlight", exact: true })).toBeVisible();
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("1 selected");
 });

@@ -1,7 +1,16 @@
-import { buildClipArchive, buildClipExportPlan, readBoundedResponse } from "@/server/clip-export";
+import { clipExportPlanSchema } from "@lib/clipExportPlan";
+import { buildClipArchive, buildClipExportPlan, readBoundedResponse, exportRequestSchema } from "@/server/clip-export";
 import { EXPORT_STREAM_TYPE } from "@lib/clipExportStream";
 export const runtime = "nodejs";
 const privateHeaders = { "Cache-Control": "private, no-store" };
+function requiresLocalProcessing(input: unknown, planned: boolean) {
+	if (!planned) {
+		const result = exportRequestSchema.safeParse(input);
+		return result.success && Boolean(result.data.layout);
+	}
+	const result = clipExportPlanSchema.safeParse(input);
+	return result.success && (result.data.outputs.some((output) => output.layout || output.templateId || output.format) || Boolean(result.data.preset && result.data.preset.id !== "general"));
+}
 export async function POST(request: Request) {
 	const requestUrl = new URL(request.url);
 	const planned = requestUrl.searchParams.get("plan") === "1";
@@ -24,6 +33,7 @@ export async function POST(request: Request) {
 	} catch (error) {
 		return Response.json({ ok: false, code: error instanceof Error && error.message === "byte_limit" ? "EXPORT_LIMIT" : "INVALID_INPUT" }, { status: error instanceof Error && error.message === "byte_limit" ? 413 : 400, headers: privateHeaders });
 	}
+	if (requiresLocalProcessing(input, planned)) return Response.json({ ok: false, code: "BROWSER_PROCESSING_REQUIRED" }, { status: 409, headers: privateHeaders });
 	try {
 		const format = requestUrl.searchParams.get("format") ?? "zip";
 		if (format !== "zip" && format !== "mp4") return Response.json({ ok: false, code: "INVALID_INPUT" }, { status: 400, headers: privateHeaders });

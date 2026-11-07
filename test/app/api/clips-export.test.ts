@@ -121,3 +121,16 @@ it("dispatches a bounded multi-version plan through the private progress respons
 	expect(planArchive).toHaveBeenCalledWith(input, expect.any(AbortSignal), "zip", expect.any(Function));
 	expect(archive).not.toHaveBeenCalled();
 });
+it.each(["legacy", "layout", "template", "preset"])("keeps public manual video processing off the app server: %s", async (mode) => {
+	const { createClipComposition } = await import("@lib/clipComposition");
+	const { createClipExportPlan } = await import("@lib/clipExportPlan");
+	const layout = createClipComposition("desktop");
+	const body = mode === "legacy" ? { creatorId: "owner", clipIds: ["A"], layout } : createClipExportPlan("owner", ["A"], [{ key: "video", label: "Video", ...(mode === "layout" ? { layout } : mode === "template" ? { templateId: "saved", format: "desktop" } : {}) }], mode === "preset" ? { id: "discord" } : undefined)[0];
+	archive.mockClear();
+	planArchive.mockClear();
+	const response = await POST(new Request(`https://clipify.test/api/clips/export${mode === "legacy" ? "" : "?plan=1"}`, { method: "POST", headers: { origin: "https://clipify.test", "content-type": "application/json" }, body: JSON.stringify(body) }));
+	expect(response.status).toBe(409);
+	expect(await response.json()).toMatchObject({ code: "BROWSER_PROCESSING_REQUIRED" });
+	expect(archive).not.toHaveBeenCalled();
+	expect(planArchive).not.toHaveBeenCalled();
+});

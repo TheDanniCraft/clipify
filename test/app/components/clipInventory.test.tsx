@@ -6,9 +6,8 @@ let path = "/dashboard/clips";
 const inventory = jest.fn();
 const allMatches = jest.fn();
 const preview = jest.fn();
-const refresh = jest.fn();
 jest.mock("next/navigation", () => ({ usePathname: () => path }));
-jest.mock("@actions/creatorLibrary", () => ({ getCreatorClipInventory: (...args: unknown[]) => inventory(...args), getCreatorClipSelection: (...args: unknown[]) => allMatches(...args), getCreatorClipPreview: (...args: unknown[]) => preview(...args), refreshCreatorLibrary: (...args: unknown[]) => refresh(...args) }));
+jest.mock("@actions/creatorLibrary", () => ({ getCreatorClipInventory: (...args: unknown[]) => inventory(...args), getCreatorClipSelection: (...args: unknown[]) => allMatches(...args), getCreatorClipPreview: (...args: unknown[]) => preview(...args) }));
 jest.mock("@components/appDateRangePicker", () => ({ __esModule: true, default: ({ value }: { value: { start: { toString: () => string }; end: { toString: () => string } } | null }) => <output data-testid='range'>{value ? `${value.start.toString()}/${value.end.toString()}` : "none"}</output> }));
 jest.mock("@components/appPagination", () => ({ __esModule: true, default: ({ onChange }: { onChange: (page: number) => void }) => <button onClick={() => onChange(2)}>Next page</button> }));
 jest.mock("@components/controlledModal", () => ({
@@ -135,36 +134,17 @@ it("shows actionable validation errors at the inventory boundary", () => {
 	render(<ClipInventory creatorId='owner' query={{}} data={{ ok: false, code: "INVALID_INPUT", fieldErrors: { minViews: ["Choose a positive value"] } }} />);
 	expect(screen.getByText("Minimum views: Choose a positive value")).toBeInTheDocument();
 });
-it.each([
-	{ ok: true, accepted: true },
-	{ ok: false, code: "SYNC_COOLDOWN", nextAllowedAt: "2026-11-04T00:00:00Z" },
-	{ ok: false, code: "RECONNECT_REQUIRED" },
-	{ ok: false, code: "SERVICE_UNAVAILABLE" },
-])("reports library refresh outcome %#", async (result) => {
-	refresh.mockResolvedValue(result);
-	inventory.mockResolvedValue(data);
-	render(<ClipInventory creatorId='owner' query={{}} data={data} />);
-	fireEvent.click(screen.getByRole("button", { name: "Refresh library" }));
-	await waitFor(() => expect(refresh).toHaveBeenCalledWith({ creatorId: "owner" }));
-	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: expect.any(String) })));
-});
-it("retains filter drafts after refresh and reload transport failures", async () => {
-	refresh.mockRejectedValue(new Error("offline"));
-	inventory.mockRejectedValue(new Error("offline"));
+it("retains filter drafts and reports failed reloads without changing the layout", async () => {
+	inventory.mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce(data);
 	render(<ClipInventory creatorId='owner' query={{}} data={data} />);
 	const title = screen.getByPlaceholderText("Search clip titles");
 	fireEvent.change(title, { target: { value: "Keep this filter" } });
-	fireEvent.click(screen.getByRole("button", { name: "Refresh library" }));
-	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: "The library could not be refreshed. Please try again." })));
-	refresh.mockResolvedValue({ ok: true, accepted: true });
-	const reload = screen.getByRole("button", { name: "Refresh library" });
-	await waitFor(() => expect(reload).toBeEnabled());
-	fireEvent.click(reload);
+	fireEvent.submit(title.closest("form")!);
 	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Your clips could not be loaded. Please try again." })));
-	expect(screen.getByPlaceholderText("Search clip titles")).toHaveValue("Keep this filter");
-	await act(async () => {
-		fireEvent.submit(title.closest("form")!);
-	});
+	expect(title).toHaveValue("Keep this filter");
+	expect(screen.queryByRole("alert")).toBeNull();
+	fireEvent.submit(title.closest("form")!);
+	await waitFor(() => expect(inventory).toHaveBeenCalledTimes(2));
 	expect(inventory).toHaveBeenLastCalledWith(expect.objectContaining({ query: expect.objectContaining({ title: "Keep this filter" }) }));
 });
 it("previews a private clip and closes its player", async () => {
@@ -271,14 +251,6 @@ it("enables page selection only after the client can handle it", () => {
 	render(<ClipInventory {...props} />);
 	expect(screen.getByRole("button", { name: "Select page" })).toBeEnabled();
 });
-
-it("keeps operational refresh errors out of the page layout", async () => {
-	refresh.mockRejectedValue(new Error("offline"));
-	render(<ClipInventory creatorId='owner' query={{}} data={data} />);
-	fireEvent.click(screen.getByRole("button", { name: "Refresh library" }));
-	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ color: "danger" })));
-	expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-});
 it("clears visible clip metadata after access is revoked", async () => {
 	inventory.mockResolvedValue({ ok: false, code: "PERMISSION_DENIED" });
 	render(<ClipInventory creatorId='owner' query={{}} data={{ ...data, items: [item], total: 1 }} />);
@@ -322,4 +294,10 @@ it("clears protected metadata when select-all reports revoked access", async () 
 	render(<ClipInventory creatorId='owner' query={{}} data={{ ...data, items: [item], total: 60 }} />);
 	fireEvent.click(screen.getByRole("button", { name: "Select all 60 clips" }));
 	await waitFor(() => expect(screen.queryByRole("link", { name: "Clutch" })).not.toBeInTheDocument());
+});
+it("keeps filter actions together without a library refresh control", () => {
+	render(<ClipInventory creatorId='owner' query={{}} data={data} />);
+	expect(screen.queryByRole("button", { name: "Refresh library" })).toBeNull();
+	expect(screen.getByRole("group", { name: "Filter actions" })).toContainElement(screen.getByRole("button", { name: "Clear filters" }));
+	expect(screen.getByRole("group", { name: "Filter actions" })).toContainElement(screen.getByRole("button", { name: "Apply filters" }));
 });

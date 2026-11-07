@@ -72,9 +72,16 @@ it("uses a vertical timeline and opens overlapping alternatives as a rich overvi
 
 it("shows additional moments and preserves hour-long positions", () => {
 	render(<Moments creatorId='owner' clips={Array.from({ length: 6 }, (_, i) => ({ id: `Clip${i}`, title: `Moment ${i}`, views: 10, duration: 10, thumbnailUrl: null, createdAt: "2026-11-02T00:00:00Z", vodOffsetSeconds: i * 3600 })) as never} />);
-	expect(screen.getAllByRole("listitem")).toHaveLength(5);
+	expect(screen.getAllByRole("listitem")).toHaveLength(8);
 	expect(screen.getByText("1:00:00 into stream")).toBeVisible();
 	fireEvent.click(screen.getByRole("button", { name: "Show more moments" }));
-	expect(screen.getAllByRole("listitem")).toHaveLength(6);
+	expect(screen.getAllByRole("listitem")).toHaveLength(8);
 	expect(screen.queryByRole("button", { name: "Show more moments" })).toBeNull();
+});
+it("closes the complete stream timeline with explicit start and end markers", () => {
+	render(<Moments creatorId='owner' duration='2h10m' startedAt='2026-11-02T00:00:00Z' clips={[{ id: "A", title: "First moment", createdAt: "2026-11-02T00:01:00Z", thumbnailUrl: null, views: 5, duration: 10, vodOffsetSeconds: 60 }] as never} />);
+	const items = screen.getAllByRole("listitem");
+	expect(items[0]).toHaveTextContent("Stream start");
+	expect(items.at(-1)).toHaveTextContent("Stream end");
+	expect(items.at(-1)).toHaveTextContent("2h10m");
 });

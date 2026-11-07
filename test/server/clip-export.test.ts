@@ -765,7 +765,7 @@ it("prepares authorized browser outputs with scoped source access without render
 		expect(result.clips).toHaveLength(1);
 		expect(readBrowserClipSource(result.clips[0].sourceToken)).toEqual({ creatorId: "owner", clipId: "ClipA" });
 		expect(result.clips[0].outputs.map((o: any) => o.key)).toEqual(["original", "desktop"]);
-		expect(result.clips[0].outputs[0].preset).toBeUndefined();
+		expect(result.clips[0].outputs[0].preset).toEqual({ id: "discord" });
 		expect(result.clips[0].outputs[1].preset).toEqual({ id: "discord" });
 	}
 	expect(render).not.toHaveBeenCalled();
@@ -876,4 +876,13 @@ it("retains a historical stream ID in export metadata after the provider removes
 	entry.value = JSON.stringify(stored);
 	cacheRead.mockResolvedValue([entry]);
 	expect(await prepareBrowserClipExport(createClipExportPlan("owner", ["ClipA"], [{ key: "original", label: "Original" }])[0], AbortSignal.timeout(5000))).toMatchObject({ ok: true, clips: [{ videoId: "123", vodOffsetSeconds: 42 }] });
+});
+
+it.each([undefined, { id: "general" }] as const)("keeps untouched Original outputs without a processing preset: %s", async (preset) => {
+	const { prepareBrowserClipExport } = await import("@/server/clip-export");
+	const { createClipExportPlan } = await import("@lib/clipExportPlan");
+	cacheRead.mockResolvedValue([ownedEntry()]);
+	const result = await prepareBrowserClipExport(createClipExportPlan("owner", ["ClipA"], [{ key: "original", label: "Original" }], preset)[0], AbortSignal.timeout(5000));
+	expect(result.ok).toBe(true);
+	if (result.ok) expect(result.clips[0].outputs[0]).toMatchObject({ layout: null, preset: undefined, assets: {}, watermark: null });
 });
