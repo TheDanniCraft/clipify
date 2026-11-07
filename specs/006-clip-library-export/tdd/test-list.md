@@ -422,3 +422,4 @@ FINAL-04: select all matching clips across pages, preserve stream/view filters a
 - Removed VOD thumbnail fallback and full detail moment list: creator-broadcasts.test.ts.
 - Matching-filter export preparation, no early download, empty/denied/failure retry: clipExport.test.tsx; actual exact ZIP membership: stream-workspace.spec.ts.
 - Tools/Automations placement and unchanged resource navigation: dashboardShell.test.tsx and dashboard-sidebar-destinations.spec.ts.
+- Scrolled timeline heading and mobile anchor clear the sticky navigation; grouped overview stays inside both viewport axes: stream-workspace.spec.ts, both themes and input modes.

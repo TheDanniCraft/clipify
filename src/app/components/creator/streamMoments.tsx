@@ -79,7 +79,7 @@ export default function StreamMoments({ creatorId, clips }: { creatorId: string;
 	if (!clips.length) return null;
 	const moments = groupStreamMoments(clips);
 	return (
-		<section id='stream-moments' className='min-w-0 scroll-mt-6' aria-label='Stream moments'>
+		<section id='stream-moments' className='min-w-0 scroll-mt-24' aria-label='Stream moments'>
 			<h2 className='mb-4 font-semibold'>Stream moments</h2>
 			<Timeline density='compact' size='sm' aria-label='Stream moments timeline'>
 				{moments.slice(0, visible).map((moment) => (

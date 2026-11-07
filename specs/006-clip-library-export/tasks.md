@@ -857,3 +857,4 @@ T681–T685 local closure: brand-candidate-browser-export.log passes all10 final
 - [x] T710 Expose stream duration/view rules and an export-all-matching action without manual row selection, preserving draft/filter/permission recovery.
 - [x] T711 Move disabled Automations into Tools and retain Clip layouts under Create and share; preserve search exclusion and responsive navigation.
 - [x] T712 Replace only the approved dev demo with a clearly labelled estimated session from clustered clip creation metadata, restore previous demo-only associations, verify untouched source clip fields, and publish owning-check results and exact-head CI status. Complete CI remains required before merge.
+- [x] T713 Keep sticky stream moments and mobile jump targets clear of the navigation bar; verify scrolled heading clearance and both-axis overview bounds in both themes with real playback and rule-export checks.

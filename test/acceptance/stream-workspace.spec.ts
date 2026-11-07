@@ -47,6 +47,19 @@ for (const theme of ["light", "dark"])
 				else await row.getByRole("gridcell").last().click();
 				await expect(page).toHaveURL(/\/dashboard\/streams\/12345$/);
 				await expect(page.getByRole("list", { name: "Stream moments timeline" })).toBeVisible();
+				if (width === 390) {
+					await page.getByRole("link", { name: "Stream moments", exact: true }).click();
+					await page.evaluate(() => document.getElementById("stream-moments")!.scrollIntoView({ behavior: "instant" }));
+				} else await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" }));
+				const heading = page.getByRole("heading", { name: "Stream moments", exact: true });
+				const navigation = page.locator("nav").first();
+				await expect
+					.poll(async () => {
+						const titleBounds = (await heading.boundingBox())!;
+						const navBounds = (await navigation.boundingBox())!;
+						return titleBounds.y - navBounds.y - navBounds.height;
+					})
+					.toBeGreaterThanOrEqual(0);
 				const group = page.getByRole("button", { name: "2 clips at 0:10", exact: true });
 				if (width === 1440) await group.hover();
 				else await group.tap();
@@ -55,6 +68,8 @@ for (const theme of ["light", "dark"])
 				const bounds = (await overview.boundingBox())!;
 				expect(bounds.x).toBeGreaterThanOrEqual(0);
 				expect(bounds.x + bounds.width).toBeLessThanOrEqual(width);
+				expect(bounds.y).toBeGreaterThanOrEqual(0);
+				expect(bounds.y + bounds.height).toBeLessThanOrEqual(950);
 				await page.screenshot({ path: info.outputPath("moment-overview.png"), animations: "disabled" });
 				await overview.getByRole("button", { name: /Second perspective/ }).click();
 				await expect(page.getByRole("dialog", { name: "Second perspective", exact: true })).toBeVisible();
