@@ -689,11 +689,12 @@ it.each([1, 2])("exports %i versions of one clip with the correct file type and 
 	const video = screen.queryByLabelText("Exported video");
 	if (count === 1) {
 		expect(video).toHaveAttribute("src", "blob:video");
-		const add = jest.fn(),
-			clearData = jest.fn();
-		fireEvent.dragStart(video!, { dataTransfer: { items: { add }, clearData } });
-		expect(add).toHaveBeenCalledWith(expect.objectContaining({ name: "My clip Version 0--A.mp4", type: "video/mp4" }));
-		expect(clearData).toHaveBeenCalled();
+		expect(video).toHaveAttribute("draggable", "false");
+		expect(fireEvent.dragStart(video!)).toBe(false);
+		expect(screen.queryByText(/Drag the video/)).toBeNull();
+		expect(screen.getByText(/Download initiated/)).toBeVisible();
+		fireEvent.click(screen.getByRole("button", { name: "Download MP4" }));
+		expect(download).toHaveBeenCalledTimes(2);
 		expect(diskArchive).not.toHaveBeenCalled();
 	} else expect(video).toBeNull();
 });

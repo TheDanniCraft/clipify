@@ -456,6 +456,10 @@ ARC-08: Row body mouse and Enter actions open clip details; checkbox mouse/keybo
 ## Video-only downloads and drag follow-up, 7 November 2026
 
 - US4-AC1 / FR-010: native, browser packet and disk ZIP contain exactly the included MP4 entries and bytes, no manifest. Provider response and archive limits remain bounded; mixed failures remain visible/retryable in the UI.
-- US4-AC1 / SC-004: one configured Original/Desktop/Mobile output downloads automatically as playable MP4; native dragstart carries the actual File, name, video MIME and exact bytes. Multiple selected outputs remain one ZIP without a video/drag preview, including partial success.
+- US4-AC1 / SC-004: one configured Original/Desktop/Mobile output downloads automatically as playable MP4. The initial drag-payload check is superseded by the outgoing-drag prevention follow-up below. Multiple selected outputs remain one ZIP without a video/drag preview, including partial success.
 - US4-AC1 / EC-008: preserve audio, custom fonts, native/browser frame parity, cancellation, provider waits, ownership denials and per-file retry across packets. Metadata rule assertions belong at the preparation API boundary rather than in a removed archive sidecar.
 - Compatibility research is not a passing external-upload acceptance claim: failed ordinary-file/text controls remain inconclusive; actual OS/mobile and YouTube/Discord handoffs need target-device validation.
+
+## Remove outgoing dragging after Safari feedback, 7 November 2026
+
+US4-AC1: one Original/Desktop/Mobile output still downloads automatically as a playable MP4; the installed Download MP4 button saves it again. No outgoing File drag, grab cursor or drag instruction is offered; native preview dragging is explicitly prevented. Multiple selected outputs retain automatic ZIP downloads with no video preview. Direct Download original, ownership/quotas, per-file retry and cleanup retain their existing whole-file checks.

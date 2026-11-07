@@ -270,7 +270,7 @@ for (const removed of ["cached", "provider"])
 	});
 
 for (const format of ["original", "desktop", "mobile"] as const)
-	test(`Single ${format} output downloads a playable MP4 and exposes the actual file for dragging`, async ({ page, request, tourWorld }, info) => {
+	test(`Single ${format} output downloads a playable MP4 and prevents outgoing dragging`, async ({ page, request, tourWorld }, info) => {
 		test.setTimeout(90000);
 		await page.setViewportSize({ width: format === "mobile" ? 390 : 1440, height: 950 });
 		await page.addInitScript((theme) => localStorage.setItem("theme", theme), format === "mobile" ? "light" : "dark");
@@ -305,18 +305,26 @@ for (const format of ["original", "desktop", "mobile"] as const)
 		const modal = page.getByRole("dialog", { name: "Clip exports", exact: true }),
 			video = modal.getByLabel("Exported video", { exact: true });
 		await expect(video).toBeVisible();
-		await expect(video).toHaveAttribute("draggable", "true");
+		await expect(video).toHaveAttribute("draggable", "false");
 		await expect.poll(() => video.evaluate((el) => (el as HTMLVideoElement).readyState)).toBeGreaterThanOrEqual(2);
 		const streams = JSON.parse(execFileSync("ffprobe", ["-v", "quiet", "-show_streams", "-of", "json", file], { encoding: "utf8" })).streams;
 		expect(streams.some((s: any) => s.codec_type === "audio")).toBe(true);
 		if (format !== "original") expect(streams.find((s: any) => s.codec_type === "video")).toMatchObject(format === "desktop" ? { width: 1280, height: 720 } : { width: 720, height: 1280 });
+		await video.evaluate(async (element) => {
+			const player = element as HTMLVideoElement;
+			player.muted = true;
+			await player.play();
+		});
+		await expect.poll(() => video.evaluate((element) => (element as HTMLVideoElement).currentTime)).toBeGreaterThan(0);
+		await expect(modal.getByText(/Drag the video/)).toHaveCount(0);
 		await page.evaluate(() =>
 			window.addEventListener("dragstart", (event) => {
-				(window as any).clipDragFiles = [...(event as DragEvent).dataTransfer!.files].map((file) => ({ name: file.name, type: file.type, size: file.size }));
+				(window as any).outgoingDrag = !event.defaultPrevented;
 			}),
 		);
 		await video.dragTo(modal.getByRole("heading", { name: "Clip exports", exact: true }));
-		expect(await page.evaluate(() => (window as any).clipDragFiles)).toEqual([{ name: download.suggestedFilename(), type: "video/mp4", size: bytes.length }]);
+		expect(await page.evaluate(() => (window as any).outgoingDrag)).not.toBe(true);
 		await expect(modal.getByRole("button", { name: "Download MP4", exact: true })).toBeVisible();
+		await video.evaluate((element) => (element as HTMLVideoElement).pause());
 		await modal.screenshot({ path: info.outputPath("single-video.png") });
 	});

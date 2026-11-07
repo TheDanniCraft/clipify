@@ -890,6 +890,12 @@ T681–T685 local closure: brand-candidate-browser-export.log passes all10 final
 ## Video-only export and drag follow-up, 7 November 2026
 
 - [x] T730 Remove clip metadata sidecars from all clip ZIP builders while retaining API metadata, provider-response bounds, permissions and UI per-file results.
-- [x] T731 Select MP4 for one configured output and ZIP for multiple outputs; preserve automatic downloads and retry only failed outputs. Show a playable draggable completed MP4 using its actual File, with a download fallback and no ZIP drag preview.
+- [x] T731 Select MP4 for one configured output and ZIP for multiple outputs; preserve automatic downloads and retry only failed outputs. Show the completed MP4 preview and no ZIP drag preview; its initial drag prototype is superseded by T734.
 - [x] T732 Research browser/OS/receiver boundaries using primary documentation and calibrated engine probes; distinguish working source payloads from uncertified external delivery and record limitations.
 - [x] T733 Complete affected whole-file, browser and BDD checks and inspect mobile/desktop themes:225 inner/API checks and63 browser/BDD cases pass. Publish this tested slice with exact-head CI/deployment evidence tracked on PR546; T059 remains the separate merge gate. No merge or production release.
+
+## Remove outgoing dragging after Safari feedback, 7 November 2026
+
+- [x] T734 Remove outgoing dragging, misleading instructions/grab cursors and retained drag File state; preserve playable previews, automatic MP4/ZIP downloads and manual repeat downloads.
+- [x] T735 Record the creator's MacBook Pro Safari failure and the absence of a reliable general cross-window delivery detector. Avoid user-agent guesses or unsupported claims about all macOS browsers.
+- [x] T736 Validate the complete37-case queue owner and13 real export/browser/BDD scenarios, including actual playback, automatic downloads and blocked dragging; inspect desktop/mobile themes and publish the tested slice with exact-head CI/deployment evidence tracked on PR546. T059 remains the merge gate; no merge or production release.
