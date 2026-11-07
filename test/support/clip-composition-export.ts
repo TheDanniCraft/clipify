@@ -37,6 +37,13 @@ export async function downloadCompositionExports({ page, tourWorld }: Context, s
 	await page.reload();
 	await page.getByRole("button", { name: "Select page", exact: true }).click();
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
+	for (const name of ["Desktop", "Mobile"]) {
+		const checkbox = page.getByRole("checkbox", { name, exact: true });
+		await checkbox.focus();
+		await page.keyboard.press("Space");
+		await expect(checkbox).toBeChecked();
+	}
+	await expect(page.getByRole("dialog", { name: "Export clips", exact: true }).getByRole("button", { name: /Layout templates/ })).toBeEnabled();
 	await page.getByRole("dialog", { name: "Export clips", exact: true }).locator('[data-slot="autocomplete-trigger"]').click();
 	await expect(page.getByRole("option", { name: "Forbidden layout", exact: true })).toHaveCount(0);
 	for (const name of ["Camera mobile", "Main desktop"]) {
@@ -47,12 +54,6 @@ export async function downloadCompositionExports({ page, tourWorld }: Context, s
 	const extra = page.getByRole("option", { name: "Gameplay mobile", exact: true });
 	if ((await extra.getAttribute("aria-selected")) === "true") await extra.click();
 	await page.keyboard.press("Escape");
-	for (const name of ["Desktop", "Mobile"]) {
-		const checkbox = page.getByRole("checkbox", { name, exact: true });
-		await checkbox.focus();
-		await page.keyboard.press("Space");
-		await expect(checkbox).toBeChecked();
-	}
 	await expect(page.getByRole("status", { name: "Export file count" })).toHaveText("5 video files");
 	const download = page.waitForEvent("download", { timeout: 90000 });
 	await page.getByRole("button", { name: "Start export", exact: true }).click();
