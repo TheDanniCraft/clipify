@@ -35,8 +35,8 @@ for (const theme of ["light", "dark"])
 			await expect(page.getByRole("grid", { name: "Saved streams" })).toBeVisible();
 			await page.screenshot({ path: info.outputPath("streams.png"), fullPage: true, animations: "disabled" });
 			await page.getByRole("link", { name: "Evening community stream", exact: true }).click();
-			await expect(page.getByRole("region", { name: "Stream moments" })).toBeVisible();
-			await expect(page.getByRole("region", { name: "Stream moments" }).getByText("0:10 into stream", { exact: true }).first()).toBeVisible();
+			await expect(page.getByRole("region", { name: "Stream moments", exact: true })).toBeVisible();
+			await expect(page.getByRole("region", { name: "Stream moments", exact: true }).getByText("0:10 into stream", { exact: true }).first()).toBeVisible();
 			await page.screenshot({ path: info.outputPath("stream-detail.png"), fullPage: true, animations: "disabled" });
 			await page.goto(`${tourWorld.origin}/dashboard/clips`);
 			await expect(page.getByRole("status", { name: "Inventory results" })).toHaveText("31 clips");

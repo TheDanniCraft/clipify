@@ -55,6 +55,7 @@ const customJestConfig = {
 		"src/app/api/clips/preview/route.ts",
 		"src/app/lib/clipExportPlan.ts",
 		"src/app/lib/clipExportPreset.ts",
+		"src/app/lib/clipBrowserArchive.ts",
 		"src/app/actions/clipLayoutLibrary.ts",
 		"src/server/clip-composition-render.ts",
 		"src/server/clip-composition-graph.ts",

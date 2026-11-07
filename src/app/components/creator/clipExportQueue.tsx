@@ -2,9 +2,11 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Button, Disclosure, Link, Modal, Spinner, ProgressBar, toast } from "@heroui/react";
 import { IconCheck, IconClock, IconDownload, IconRefresh, IconX } from "@tabler/icons-react";
+import ConfirmModal from "@components/confirmModal";
 import ControlledModal from "@components/controlledModal";
 import LocalizedDate from "@components/localizedDate";
 import { notify } from "@lib/toast";
+import { buildBrowserArchive, cleanupBrowserExports, exportArchiveName } from "@lib/clipBrowserArchive";
 import { buildBrowserBatch } from "@lib/clipBrowserBatch";
 import type { ExportEngine } from "@lib/clipBrowserExport";
 import { clipExportPlanSchema, createClipExportPlan, type ClipExportPlan } from "@lib/clipExportPlan";
@@ -27,6 +29,9 @@ const messages: Record<string, string> = {
 	ACCOUNT_SUSPENDED: "This creator account is suspended. Contact support before exporting clips.",
 	ENTITLEMENT_REQUIRED: "This team access needs an active Pro plan. Ask the creator to review their plan.",
 	SERVICE_UNAVAILABLE: "The export could not be prepared. Please try again.",
+	browser_storage_unavailable: "This browser cannot save export ZIPs. Allow site storage or use a supported browser.",
+	browser_storage_full: "There is not enough browser storage for this export. Free space and retry.",
+	browser_storage_error: "The ZIP could not be saved. Check available storage and retry.",
 	invalid_response: "The download response was incomplete. Please try again.",
 	LAYOUT_UNAVAILABLE: "A selected layout is no longer available. Open export settings and choose another layout.",
 };
@@ -47,22 +52,57 @@ const reasons: Record<string, string> = {
 	reconnect_required: "Reconnect Twitch",
 };
 
-export type ExportRequest = { creatorId: string; clipIds: string[]; scope: string; format: "zip" | "mp4"; layout?: ClipLayout; clipNames?: Record<string, string>; plan?: ClipExportPlan; engine?: ExportEngine };
-type Batch = { id: number; group: string; request: ExportRequest; status: "queued" | "waiting" | "processing" | "completed" | "failed" | "cancelled"; clips: ClipExportProgress[]; summary?: ClipExportSummary; error?: string; failures?: ClipExportSummary["skipped"]; retryAt?: string; downloadUrl?: string; packageCount?: number };
+export type ExportRequest = { creatorId: string; clipIds: string[]; scope: string; format: "zip" | "mp4"; layout?: ClipLayout; clipNames?: Record<string, string>; plan?: ClipExportPlan; plans?: ClipExportPlan[]; engine?: ExportEngine };
+type Batch = { startedAt: string; id: number; group: string; request: ExportRequest; status: "queued" | "waiting" | "processing" | "completed" | "failed" | "cancelled"; clips: (ClipExportProgress & { outputLabel?: string })[]; summary?: ClipExportSummary; error?: string; failures?: ClipExportSummary["skipped"]; retryAt?: string; downloadUrl?: string; packageCount?: number };
 const pending = (batch: Batch) => ["queued", "waiting", "processing"].includes(batch.status);
-export const clipExportRequestKey = (request: ExportRequest) => JSON.stringify(request.plan ? [request.scope, request.clipIds, request.format, request.layout, request.plan, request.engine] : [request.scope, request.clipIds, request.format, request.layout, request.engine]);
-const unit = (batch: Batch, count: number) => (batch.request.plan ? (count === 1 ? "file" : "files") : count === 1 ? "clip" : "clips");
+export const clipExportRequestKey = (request: ExportRequest) => JSON.stringify(request.plan || request.plans ? [request.plans, request.scope, request.clipIds, request.format, request.layout, request.plan, request.engine] : [request.scope, request.clipIds, request.format, request.layout, request.engine]);
+const unit = (batch: Batch, count: number) => (batch.request.plan || batch.request.plans ? (count === 1 ? "file" : "files") : count === 1 ? "clip" : "clips");
 function subset(request: ExportRequest, indices: number[]): ExportRequest {
 	const clipIds = indices.map((index) => request.clipIds[index]);
+	if (request.plans) {
+		const chosen = new Set(indices);
+		let offset = 0;
+		const plans = request.plans.flatMap((plan) => {
+			const files = plan.files.filter((_, index) => chosen.has(index + offset));
+			offset += plan.files.length;
+			return files.length ? [{ ...plan, files, outputs: plan.outputs.filter((output) => files.some((file) => file.outputKey === output.key)) }] : [];
+		});
+		return { ...request, clipIds, plans };
+	}
 	if (!request.plan) return { ...request, clipIds };
 	const files = indices.map((index) => request.plan!.files[index]),
 		keys = new Set(files.map((file) => file.outputKey));
 	return { ...request, clipIds, format: "zip", plan: { ...request.plan, files, outputs: request.plan.outputs.filter((output) => keys.has(output.key)) } };
 }
-const downloadName = (batch: Batch) => (batch.request.format === "mp4" ? `clipify-${encodeURIComponent(batch.request.clipIds[0])}${batch.request.plan ? "-" + batch.request.plan.files[0].outputKey.slice(0, 40) : ""}.mp4` : `clipify-clips-batch-${batch.id}.zip`);
+const downloadName = (batch: Batch) => (batch.request.format === "mp4" ? `clipify-${encodeURIComponent(batch.request.clipIds[0])}${batch.request.plan ? "-" + batch.request.plan.files[0].outputKey.slice(0, 40) : ""}.mp4` : exportArchiveName(batch.startedAt));
+function requestFiles(request: ExportRequest) {
+	return (request.plans ?? (request.plan ? [request.plan] : [])).flatMap((plan) => plan.files.map((file) => ({ clipId: file.clipId, label: plan.outputs.find((output) => output.key === file.outputKey)?.label ?? "Output" })));
+}
+function ExportDownloadButton({ batch, onRepeat }: { batch: Batch; onRepeat: (request: ExportRequest) => void }) {
+	return (
+		<Button
+			variant={batch.downloadUrl ? "primary" : "secondary"}
+			onPress={() => {
+				if (batch.downloadUrl) {
+					const link = document.createElement("a");
+					link.href = batch.downloadUrl;
+					link.download = downloadName(batch);
+					document.body.append(link);
+					link.click();
+					link.remove();
+				} else onRepeat(batch.request);
+			}}
+		>
+			<IconDownload className='size-4 shrink-0' />
+			{batch.downloadUrl ? `Download ${batch.packageCount && batch.packageCount > 1 ? "latest " : ""}${batch.request.format.toUpperCase()}` : "Export again"}
+		</Button>
+	);
+}
+
 const ExportContext = createContext<{ batches: Batch[]; enqueue: (request: ExportRequest) => void; enqueuePlans: (plans: ClipExportPlan[], clipNames: Record<string, string> | undefined, scope: string, engine?: ExportEngine) => boolean; show: () => void } | null>(null);
 export const useClipExports = () => useContext(ExportContext);
 export function ClipExportProvider({ children, creatorId }: { children: ReactNode; creatorId: string }) {
+	const [cancelIds, setCancelIds] = useState<number[]>([]);
 	const [batches, setBatches] = useState<Batch[]>([]),
 		[open, setOpen] = useState(false),
 		[expanded, setExpanded] = useState<number[]>([]),
@@ -86,6 +126,7 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 		sequence = useRef(0),
 		controller = useRef<AbortController | null>(null),
 		urls = useRef(new Set<string>()),
+		disposals = useRef(new Map<string, () => Promise<void>>()),
 		budget = useRef({ used: 0, resetAt: 0 });
 	const update = (fn: (jobs: Batch[]) => Batch[]) => {
 		if (!alive.current) return;
@@ -97,11 +138,16 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 	};
 	useEffect(() => {
 		alive.current = true;
+		void cleanupBrowserExports().catch(() => {});
 		const activeUrls = urls.current;
+		const activeDisposals = disposals.current;
 		return () => {
 			alive.current = false;
 			controller.current?.abort();
 			activeUrls.forEach((url) => URL.revokeObjectURL(url));
+			activeDisposals.forEach((dispose) => {
+				void dispose();
+			});
 		};
 	}, []);
 	useEffect(() => {
@@ -109,11 +155,25 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 		const timer = setInterval(() => setNow(Date.now()), 1000);
 		return () => clearInterval(timer);
 	}, [batches]);
-	const publish = (bytes: Uint8Array<ArrayBuffer>, batch: Batch, name: string) => {
+	useEffect(() => {
+		if (!batches.some(pending)) return;
+		const protect = (event: BeforeUnloadEvent) => {
+			event.preventDefault();
+			event.returnValue = "";
+		};
+		window.addEventListener("beforeunload", protect);
+		return () => window.removeEventListener("beforeunload", protect);
+	}, [batches]);
+
+	const publish = (bytes: Uint8Array<ArrayBuffer> | Blob, batch: Batch, name: string) => {
+		disposals.current.forEach((dispose) => {
+			void dispose();
+		});
+		disposals.current.clear();
 		urls.current.forEach((url) => URL.revokeObjectURL(url));
 		urls.current.clear();
 		update((list) => list.map((job) => ({ ...job, downloadUrl: undefined })));
-		const url = URL.createObjectURL(new Blob([bytes], { type: batch.request.format === "mp4" ? "video/mp4" : "application/zip" }));
+		const url = URL.createObjectURL(bytes instanceof Blob ? bytes : new Blob([bytes], { type: batch.request.format === "mp4" ? "video/mp4" : "application/zip" }));
 		urls.current.add(url);
 		const anchor = document.createElement("a");
 		anchor.href = url;
@@ -134,7 +194,7 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 				controller.current = abort;
 				try {
 					if (Date.now() >= budget.current.resetAt) budget.current = { used: 0, resetAt: Date.now() + 60000 };
-					const nextAt = Math.max(batch.retryAt ? Date.parse(batch.retryAt) : 0, budget.current.used + batch.request.clipIds.length > 50 ? budget.current.resetAt : 0);
+					const nextAt = Math.max(batch.retryAt ? Date.parse(batch.retryAt) : 0, !batch.request.plans && budget.current.used + batch.request.clipIds.length > 50 ? budget.current.resetAt : 0);
 					if (nextAt > Date.now()) {
 						patch(batch.id, { status: "waiting", retryAt: new Date(nextAt).toISOString() });
 						await new Promise<void>((resolve, reject) => {
@@ -151,14 +211,14 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 					}
 					abort.signal.throwIfAborted();
 					if (Date.now() >= budget.current.resetAt) budget.current = { used: 0, resetAt: Date.now() + 60000 };
-					budget.current.used += batch.request.clipIds.length;
+					if (!batch.request.plans) budget.current.used += batch.request.clipIds.length;
 					patch(batch.id, { status: "processing", error: undefined, retryAt: undefined });
 					const { format, clipIds, layout } = batch.request;
-					const response = batch.request.plan ? null : await fetch(`/api/clips/export?format=${format}&progress=1${batch.request.plan ? "&plan=1" : ""}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(batch.request.plan ?? { creatorId, clipIds, ...(layout ? { layout } : {}) }), signal: abort.signal });
+					const response = batch.request.plan || batch.request.plans ? null : await fetch(`/api/clips/export?format=${format}&progress=1${batch.request.plan ? "&plan=1" : ""}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(batch.request.plan ?? { creatorId, clipIds, ...(layout ? { layout } : {}) }), signal: abort.signal });
 					const report = (event: ClipExportProgress) => {
 						update((list) => list.map((job) => (job.id === batch.id ? { ...job, clips: job.clips.map((clip, index) => (index === event.index ? { ...clip, ...event } : clip)) } : job)));
 					};
-					const result = batch.request.plan ? await buildBrowserBatch(batch.request.plan, abort.signal, report, (bytes, part) => publish(bytes, batch, `clipify-clips-batch-${batch.id}-part-${part}.zip`), format) : await readClipExportResponse(response!, clipIds.length, format, abort.signal, report);
+					const result = batch.request.plans ? await buildBrowserArchive(batch.request.plans, batch.startedAt, abort.signal, report, (retryAt) => patch(batch.id, { status: retryAt ? "waiting" : "processing", retryAt })) : batch.request.plan ? await buildBrowserBatch(batch.request.plan, abort.signal, report, (bytes, part) => publish(bytes, batch, `clipify-clips-batch-${batch.id}-part-${part}.zip`), format) : await readClipExportResponse(response!, clipIds.length, format, abort.signal, report);
 					if (!alive.current) return;
 					setNow(Date.now());
 					abort.signal.throwIfAborted();
@@ -175,12 +235,13 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 					}
 					const packageCount = "partCount" in result && typeof result.partCount === "number" ? result.partCount : 1;
 					const url = publish(result.bytes, batch, packageCount > 1 ? `clipify-clips-batch-${batch.id}-part-${packageCount}.zip` : downloadName(batch));
+					if ("dispose" in result && typeof result.dispose === "function") disposals.current.set(url, result.dispose);
 					const failures = new Map(result.summary.skipped.map((item) => [item.index, item]));
 					patch(batch.id, { status: "completed", downloadUrl: url, packageCount, summary: result.summary, retryAt: result.summary.retryAt, clips: (jobs.current.find((job) => job.id === batch.id)?.clips ?? batch.clips).map((clip, index) => ({ ...clip, stage: failures.has(index) ? "skipped" : "ready", code: failures.get(index)?.code })) });
 					announce({ title: result.summary.skipped.length ? "Download started with skipped clips" : "Download started", color: result.summary.skipped.length ? "warning" : "success" });
 				} catch (error) {
 					if (alive.current) {
-						const code = abort.signal.aborted ? "CANCELLED" : error instanceof Error && error.message === "invalid_response" ? "invalid_response" : "SERVICE_UNAVAILABLE";
+						const code = abort.signal.aborted ? "CANCELLED" : error instanceof DOMException ? (error.name === "QuotaExceededError" ? "browser_storage_full" : "browser_storage_error") : error instanceof Error && ["invalid_response", "browser_storage_unavailable", "browser_storage_full", "browser_storage_error"].includes(error.message) ? error.message : "SERVICE_UNAVAILABLE";
 						patch(batch.id, { status: code === "CANCELLED" ? "cancelled" : "failed", error: code });
 						announce({ title: code === "CANCELLED" ? "Export cancelled. Your selection is kept." : messages[code], color: code === "CANCELLED" ? "default" : "danger" });
 					}
@@ -198,13 +259,17 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 			return true;
 		}
 		if (!requests.length) return false;
-		const added: Batch[] = requests.map((request) => ({
-			id: ++sequence.current,
-			group,
-			request: { ...request, layout: request.layout ? structuredClone(request.layout) : undefined, plan: request.plan ? clipExportPlanSchema.parse(request.plan) : undefined },
-			status: "queued",
-			clips: request.clipIds.map((id, index) => ({ index, stage: "queued", title: request.plan ? `${request.clipNames?.[id] || `Clip ${index + 1}`} / ${request.plan.outputs.find((output) => output.key === request.plan!.files[index].outputKey)?.label || "Output"}` : request.clipNames?.[id] || `Clip ${index + 1}` })),
-		}));
+		const added: Batch[] = requests.map((request) => {
+			const files = requestFiles(request);
+			return {
+				startedAt: new Date().toISOString(),
+				id: ++sequence.current,
+				group,
+				request: { ...request, layout: request.layout ? structuredClone(request.layout) : undefined, plans: request.plans?.map((plan) => clipExportPlanSchema.parse(plan)), plan: request.plan ? clipExportPlanSchema.parse(request.plan) : undefined },
+				status: "queued",
+				clips: request.clipIds.map((id, index) => ({ index, stage: "queued", outputLabel: files[index]?.label, title: request.clipNames?.[id] || `Clip ${index + 1}` })),
+			};
+		});
 		update((list) => [...list.filter(pending), ...list.filter((job) => !pending(job)).slice(-20), ...added]);
 		changeOpen(true);
 		void run();
@@ -212,16 +277,22 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 	};
 	const enqueue = (request: ExportRequest) => {
 		if (request.creatorId !== creatorId || !request.clipIds.length || (request.format === "mp4" && request.clipIds.length !== 1)) return;
+		if (request.plans) {
+			appendRequests([{ ...request, clipIds: request.plans.flatMap((plan) => plan.files.map((file) => file.clipId)) }], clipExportRequestKey(request));
+			return;
+		}
 		if (request.plan) {
-			appendRequests([{ ...request, engine: "browser" }], clipExportRequestKey(request));
+			appendRequests([{ ...request, ...(request.format === "zip" ? { plans: [request.plan], plan: undefined } : {}), engine: "browser" }], clipExportRequestKey(request));
 			return;
 		}
 		if (request.layout) {
 			const plans = createClipExportPlan(creatorId, request.clipIds, [{ key: "preview", label: "Layout", layout: request.layout }]);
-			appendRequests(
-				plans.map((plan) => ({ ...request, layout: undefined, clipIds: plan.files.map((file) => file.clipId), plan, engine: "browser" })),
-				clipExportRequestKey(request),
-			);
+			if (request.format === "zip") appendRequests([{ ...request, layout: undefined, plans, clipIds: plans.flatMap((plan) => plan.files.map((file) => file.clipId)), engine: "browser" }], clipExportRequestKey(request));
+			else
+				appendRequests(
+					plans.map((plan) => ({ ...request, layout: undefined, clipIds: plan.files.map((file) => file.clipId), plan, engine: "browser" })),
+					clipExportRequestKey(request),
+				);
 			return;
 		}
 		const ids = [...new Set(request.clipIds)],
@@ -231,8 +302,8 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 	};
 	const enqueuePlans = (plans: ClipExportPlan[], clipNames: Record<string, string> | undefined, scope: string, engine: ExportEngine = "browser") => {
 		if (!plans.length || plans.some((plan) => plan.creatorId !== creatorId || !plan.files.length || plan.files.length > 50)) return false;
-		const requests: ExportRequest[] = plans.map((plan) => ({ creatorId, scope, clipNames, clipIds: plan.files.map((file) => file.clipId), plan, format: "zip", engine }));
-		return appendRequests(requests, JSON.stringify(["plan", scope, plans, engine]));
+		const request: ExportRequest = { creatorId, scope, clipNames, clipIds: plans.flatMap((plan) => plan.files.map((file) => file.clipId)), plans, format: "zip", engine };
+		return appendRequests([request], JSON.stringify(["plan", scope, plans, engine]));
 	};
 	const active = batches.filter(pending),
 		latest = batches.at(-1),
@@ -244,14 +315,16 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 	};
 	const view = (batch: Batch) => {
 		const failures = batch.summary?.skipped ?? batch.failures;
-		const retry = failures ? failures.filter((item) => item.retryable && ["provider_error", "download_timeout", "rate_limited", "render_busy", "render_failed", "font_unavailable", "browser_unsupported"].includes(item.code)).map((item) => item.index) : ["PROVIDER_UNAVAILABLE", "EXPORT_TIMEOUT", "SERVICE_UNAVAILABLE", "invalid_response"].includes(batch.error ?? "") ? batch.request.clipIds.map((_, index) => index) : [];
+		const retry = failures ? failures.filter((item) => item.retryable && ["provider_error", "download_timeout", "rate_limited", "render_busy", "render_failed", "font_unavailable", "browser_unsupported"].includes(item.code)).map((item) => item.index) : ["PROVIDER_UNAVAILABLE", "EXPORT_TIMEOUT", "SERVICE_UNAVAILABLE", "invalid_response", "browser_storage_unavailable", "browser_storage_full", "browser_storage_error"].includes(batch.error ?? "") ? batch.request.clipIds.map((_, index) => index) : [];
 		const reconnectIds = failures ? failures.filter((item) => item.code === "reconnect_required").map((item) => item.index) : batch.error === "RECONNECT_REQUIRED" ? batch.request.clipIds.map((_, index) => index) : [];
 		const reconnect = reconnectIds.length > 0;
 		const processed = batch.clips.filter((clip) => ["ready", "skipped"].includes(clip.stage)).length;
 		return (
 			<div className='space-y-4'>
 				<div className='flex flex-wrap items-center justify-between gap-2'>
-					<h3 className='font-medium'>Batch {batch.id}</h3>
+					<h3 className='font-medium'>
+						Export <LocalizedDate value={batch.startedAt} showTime />
+					</h3>
 					<span className='text-sm text-muted'>
 						{batch.request.clipIds.length} {unit(batch, batch.request.clipIds.length)} ({batch.request.format.toUpperCase()})
 					</span>
@@ -287,7 +360,7 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 						{batch.summary.skipped.length ? ` ${batch.summary.skipped.length} ${unit(batch, batch.summary.skipped.length)} skipped.` : ""}
 					</p>
 				) : null}
-				<ul aria-label={`Batch ${batch.id} clips`} className='max-h-72 divide-y divide-separator overflow-y-auto overscroll-contain'>
+				<ul aria-label={`Export ${batch.id} files`} className='max-h-72 divide-y divide-separator overflow-y-auto overscroll-contain'>
 					{batch.clips.map((clip, index) => {
 						const failure = failures?.find((item) => item.index === index),
 							finished = batch.status === "completed" && !failure,
@@ -300,7 +373,7 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 								</span>
 								<div className='min-w-0 flex-1'>
 									<p className='line-clamp-2 text-sm font-medium'>{batch.request.clipNames?.[batch.request.clipIds[index]] || failure?.title || clip.title}</p>
-									{batch.request.plan ? <p className='text-xs text-muted'>{batch.request.plan.outputs.find((output) => output.key === batch.request.plan!.files[index].outputKey)?.label}</p> : null}
+									{clip.outputLabel ? <p className='text-xs text-muted'>{clip.outputLabel}</p> : null}
 									<p className={`text-xs ${failure || batch.status === "failed" ? "text-danger" : "text-muted"}`}>{label}</p>
 								</div>
 							</li>
@@ -316,7 +389,7 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 					{!pending(batch) && batch.status !== "cancelled" && (batch.error || failures?.length) && retry.length ? (
 						<Button variant={batch.downloadUrl ? "secondary" : "primary"} isDisabled={Boolean(batch.retryAt && Date.parse(batch.retryAt) > now)} onPress={() => enqueue(subset(batch.request, retry))}>
 							<IconRefresh className='size-4 shrink-0' />
-							{batch.request.plan ? "Retry failed files" : "Retry failed clips"}
+							{batch.request.plan || batch.request.plans ? "Retry failed files" : "Retry failed clips"}
 						</Button>
 					) : null}
 					{reconnect ? (
@@ -324,29 +397,7 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 							Retry after reconnect
 						</Button>
 					) : null}
-					{batch.status === "completed" ? (
-						<Button
-							variant={batch.downloadUrl ? "primary" : "secondary"}
-							onPress={() => {
-								if (batch.downloadUrl) {
-									const link = document.createElement("a");
-									link.href = batch.downloadUrl;
-									link.download = downloadName(batch);
-									document.body.append(link);
-									link.click();
-									link.remove();
-								} else enqueue(batch.request);
-							}}
-						>
-							<IconDownload className='size-4 shrink-0' />
-							{batch.downloadUrl ? `Download ${batch.packageCount && batch.packageCount > 1 ? "latest " : ""}${batch.request.format.toUpperCase()}` : "Export batch again"}
-						</Button>
-					) : null}
-					{pending(batch) ? (
-						<Button variant='secondary' onPress={() => cancel(batch)}>
-							Cancel export
-						</Button>
-					) : null}
+					{batch.status === "completed" && batch.id !== latest?.id ? <ExportDownloadButton batch={batch} onRepeat={enqueue} /> : null}
 				</div>
 				{batch.retryAt && Date.parse(batch.retryAt) > now && batch.status !== "waiting" ? (
 					<p className='text-sm text-muted'>
@@ -364,15 +415,15 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 					<Modal.Heading>Clip exports</Modal.Heading>
 				</Modal.Header>
 				<Modal.Body className='max-h-[60dvh] space-y-6 overflow-y-auto'>
-					<p className='text-sm text-muted'>Keep this tab open. Your downloads start automatically when ready.</p>
+					<p className='text-sm text-muted'>Keep this tab open. Your download starts when the export is ready.</p>
 					{current.map((batch) => (
-						<section key={batch.id} aria-label={`Batch ${batch.id}`} className='space-y-4'>
+						<section key={batch.id} aria-label={`Export ${batch.id}`} className='space-y-4'>
 							{batch.status === "queued" ? (
 								<div className='flex items-center justify-between gap-3'>
 									<p className='text-sm'>
-										Batch {batch.id}, {batch.request.clipIds.length} {unit(batch, batch.request.clipIds.length)} queued
+										Export <LocalizedDate value={batch.startedAt} showTime />, {batch.request.clipIds.length} {unit(batch, batch.request.clipIds.length)} queued
 									</p>
-									<Button size='sm' variant='ghost' aria-label={`Cancel batch ${batch.id}`} onPress={() => cancel(batch)}>
+									<Button size='sm' variant='danger-soft' aria-label={`Cancel queued export ${batch.id}`} onPress={() => setCancelIds([batch.id])}>
 										Cancel
 									</Button>
 								</div>
@@ -383,12 +434,14 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 					))}
 					{history.length ? (
 						<div className='space-y-2'>
-							<h3 className='text-sm font-medium text-muted'>Previous batches</h3>
+							<h3 className='text-sm font-medium text-muted'>Previous exports</h3>
 							{history.map((batch) => (
 								<Disclosure className='border-b border-separator last:border-b-0' key={batch.id} isExpanded={expanded.includes(batch.id)} onExpandedChange={(value) => setExpanded((ids) => (value ? [...ids, batch.id] : ids.filter((id) => id !== batch.id)))}>
 									<Disclosure.Heading>
-										<Button slot='trigger' variant='ghost' className='h-auto w-full justify-start gap-3 rounded-none px-0 py-3 text-sm' aria-label={`Batch ${batch.id}, ${batch.status}, ${batch.request.clipIds.length} ${unit(batch, batch.request.clipIds.length)}`}>
-											<span className='min-w-0 flex-1 text-left'>Batch {batch.id}</span>
+										<Button slot='trigger' variant='ghost' className='h-auto w-full justify-start gap-3 rounded-none px-0 py-3 text-sm' data-export-id={batch.id}>
+											<span className='min-w-0 flex-1 text-left'>
+												Export <LocalizedDate value={batch.startedAt} showTime />
+											</span>
 											<span className='text-muted capitalize'>{batch.status}</span>
 											<span className='text-muted'>
 												{batch.request.clipIds.length} {unit(batch, batch.request.clipIds.length)}
@@ -404,23 +457,32 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 						</div>
 					) : null}
 				</Modal.Body>
-				<Modal.Footer>
-					{active.length > 1 ? (
-						<Button
-							variant='danger-soft'
-							onPress={() => {
-								update((list) => list.map((job) => (pending(job) ? { ...job, status: "cancelled", error: "CANCELLED" } : job)));
-								controller.current?.abort();
-							}}
-						>
-							Cancel all batches
+				<Modal.Footer className='flex flex-row flex-nowrap items-center justify-end gap-2'>
+					{active.length ? (
+						<Button variant='danger-soft' className='shrink-0 px-3' onPress={() => setCancelIds(active.map((batch) => batch.id))}>
+							Cancel export
 						</Button>
 					) : null}
-					<Button variant='secondary' onPress={() => changeOpen(false)}>
+					{!active.length && latest?.status === "completed" ? <ExportDownloadButton batch={latest} onRepeat={enqueue} /> : null}
+					<Button variant={!active.length && latest?.status === "completed" ? "secondary" : "primary"} className='min-w-0 px-3' onPress={() => changeOpen(false)}>
 						{active.length ? "Continue in background" : "Close exports"}
 					</Button>
 				</Modal.Footer>
 			</ControlledModal>
+			<ConfirmModal
+				isOpen={cancelIds.length > 0}
+				onOpenChange={(open) => {
+					if (!open) setCancelIds([]);
+				}}
+				title='Cancel export?'
+				description='Stop the selected unfinished work? Files already downloaded are kept.'
+				confirmLabel='Stop export'
+				cancelLabel='Keep exporting'
+				onConfirm={() => {
+					jobs.current.filter((batch) => cancelIds.includes(batch.id) && pending(batch)).forEach(cancel);
+					setCancelIds([]);
+				}}
+			/>
 		</ExportContext.Provider>
 	);
 }

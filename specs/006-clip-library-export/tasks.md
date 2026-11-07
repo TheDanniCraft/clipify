@@ -873,3 +873,11 @@ T681–T685 local closure: brand-candidate-browser-export.log passes all10 final
 - [x] T720 Separate versions/templates from destination settings with installed HeroUI controls; retain Back/Next choices, compact platform selection and Discord-specific account allowances without General file-size clutter.
 - [x] T721 Allow untouched General Original downloads without an encoder; retain recoverable native-only conversion checks, cancellation, per-file progress, filters, quotas and authoritative templates.
 - [x] T722 Verify complete affected local owners and installed responsive/theme flows, update caller/BDD steps, and publish validation evidence with PR546. The separate exact-head CI/merge gate remains T059 and its result is tracked on the PR.
+
+## Single-archive follow-up, 2026-11-07
+
+- [x] T723 Supersede T719's scroll constraint with a complete natural-flow timeline and visible start/end markers; keep all moments and exact region selection in responsive callers.
+- [x] T724 Put cancellation and background actions on one footer row, wire the existing danger confirmation, preserve selection and show dated export history with output labels.
+- [x] T725 Stream sequential fifty-file packets into one browser-disk ZIP64 archive, with incremental manifest, unique filenames, provider quota waits and direct MP4 compatibility.
+- [x] T726 Protect active exports on reload, clean abandoned temporary archives without touching other tabs, tolerate refused persistence and report unavailable/full storage without losing selection.
+- [x] T727 Complete affected whole-file/browser/BDD validation and visual review for publication. Final owners pass63 unit checks,30 manifest-policy checks,43 rebuilt queue/recovery scenarios and4 BDD scenarios; unchanged27 browser cases retain passing evidence. Publish the tested slice with its separate exact-head CI/deployment outcome tracked on PR546; T059 remains the full merge gate. No merge or production release.

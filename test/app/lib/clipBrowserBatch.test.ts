@@ -150,3 +150,26 @@ it("downloads a single MP4 directly without ZIP wrapping", async () => {
 	expect(result).toMatchObject({ ok: true, bytes: new Uint8Array([1, 2, 3]), summary: { included: [0], skipped: [] } });
 	expect(part).not.toHaveBeenCalled();
 });
+it("writes each rendered file to an archive sink without making in-memory ZIP parts", async () => {
+	const outputs = Array.from({ length: 5 }, (_, i) => ({ key: `version${i}`, label: `Version ${i}`, layout: createClipComposition("desktop") }));
+	const plan = createClipExportPlan("creator", ["ClipA"], outputs)[0];
+	jest
+		.spyOn(globalThis, "fetch")
+		.mockResolvedValueOnce(Response.json({ ok: true, clips: [{ id: "ClipA", title: "Clip", sourceToken: "ticket", outputs: outputs.map((output) => ({ ...output, assets: {}, watermark: null })) }] }))
+		.mockResolvedValueOnce(new Response(new Uint8Array([1])));
+	renderVideo.mockResolvedValue(new Uint8Array(31 * 1024 * 1024));
+	const sink = {
+			add: jest.fn(async (name: string) => name),
+			manifest: jest.fn(async (items: Record<string, unknown>[]) => {
+				void items;
+			}),
+		},
+		part = jest.fn();
+	archive.mockClear();
+	const result = await buildBrowserBatch(plan, new AbortController().signal, () => {}, part, "zip", sink);
+	expect(result.ok).toBe(true);
+	expect(sink.add).toHaveBeenCalledTimes(5);
+	expect(sink.manifest.mock.calls[0][0]).toHaveLength(5);
+	expect(archive).not.toHaveBeenCalled();
+	expect(part).not.toHaveBeenCalled();
+});

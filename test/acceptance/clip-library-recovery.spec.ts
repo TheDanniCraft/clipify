@@ -109,6 +109,10 @@ test("Clip export cancellation retains explicit selection", { tag: "@shard:scena
 	await page.getByRole("dialog", { name: "Export clips", exact: true }).getByRole("button", { name: "Next", exact: true }).click();
 	await page.getByRole("button", { name: "Start export", exact: true }).click();
 	await page.getByRole("button", { name: "Cancel export", exact: true }).click();
+	const confirmation = page.getByRole("dialog", { name: "Cancel export?", exact: true });
+	await confirmation.getByRole("button", { name: "Keep exporting", exact: true }).click();
+	await page.getByRole("button", { name: "Cancel export", exact: true }).click();
+	await page.getByRole("dialog", { name: "Cancel export?", exact: true }).getByRole("button", { name: "Stop export", exact: true }).click();
 	await expect(page.getByRole("dialog", { name: "Clip exports" }).getByText("Export cancelled. Your selection is kept.", { exact: true })).toBeVisible();
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("1 selected");
 	await expect(page.getByRole("button", { name: "Export selected", exact: true })).toBeEnabled();
@@ -215,7 +219,7 @@ test("Clip export withholds buffered media when the current grant is revoked dur
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("2 selected");
 });
 
-test("Maximum clip package downloads intact with measured browser memory", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }, info) => {
+test("Maximum clips download in one intact ZIP with measured browser memory", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }, info) => {
 	test.setTimeout(120000);
 	const seeded = await setup({ page, request, tourWorld }, "maximum_file");
 	for (let index = 1; index < 4; index++) {
@@ -245,7 +249,7 @@ test("Maximum clip package downloads intact with measured browser memory", { tag
 		await page.getByRole("button", { name: "Export selected", exact: true }).click();
 		await page.getByRole("dialog", { name: "Export clips", exact: true }).getByRole("button", { name: "Next", exact: true }).click();
 		await page.getByRole("button", { name: "Start export", exact: true }).click();
-		await expect.poll(() => downloads.length).toBe(2);
+		await expect.poll(() => downloads.length).toBe(1);
 		let archiveBytes = 0;
 		const includedIds: string[] = [];
 		for (const archive of downloads) {

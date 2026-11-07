@@ -62,7 +62,7 @@ for (const theme of ["light", "dark"])
 				if (width === 390) {
 					await page.getByRole("link", { name: "Stream moments", exact: true }).click();
 					await page.evaluate(() => document.getElementById("stream-moments")!.scrollIntoView({ behavior: "instant" }));
-				} else await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" }));
+				} else await page.getByRole("heading", { name: "Stream moments", exact: true }).scrollIntoViewIfNeeded();
 				const heading = page.getByRole("heading", { name: "Stream moments", exact: true });
 				const navigation = page.locator("nav").first();
 				await expect
@@ -119,7 +119,7 @@ for (const theme of ["light", "dark"])
 	}
 
 for (const width of [390, 1440])
-	test(`Long stream timeline scrolls independently at ${width}px`, async ({ page, request, tourWorld }, info) => {
+	test(`Long stream timeline stays in document flow at ${width}px`, async ({ page, request, tourWorld }, info) => {
 		await page.setViewportSize({ width, height: 950 });
 		await page.addInitScript((t) => localStorage.setItem("theme", t), width === 390 ? "light" : "dark");
 		const { creatorId, id } = await seedCreatorLibrary({ page, request, tourWorld });
@@ -133,28 +133,14 @@ for (const width of [390, 1440])
 		const reload = page.waitForEvent("domcontentloaded");
 		await page.getByRole("button", { name: "Reject optional", exact: true }).click();
 		await reload;
-		const panel = page.getByRole("region", { name: "Stream moments scroll area" });
+		const panel = page.getByRole("region", { name: "Stream moments", exact: true });
 		await expect(panel.getByRole("listitem")).toHaveCount(62);
+		await expect(page.getByRole("region", { name: "Stream moments scroll area" })).toHaveCount(0);
 		await expect(page.getByRole("button", { name: "Show more moments" })).toHaveCount(0);
-		await panel.scrollIntoViewIfNeeded();
-		const sizes = await panel.evaluate((el) => ({ height: el.clientHeight, content: el.scrollHeight }));
-		expect(sizes.content).toBeGreaterThan(sizes.height * 3);
-		expect(sizes.height).toBeLessThanOrEqual(576);
-		if (width === 1440) {
-			const timeline = (await page.getByRole("region", { name: "Stream moments", exact: true }).boundingBox())!;
-			const inventory = (await page
-				.locator("aside")
-				.filter({ has: page.getByRole("region", { name: "Stream moments", exact: true }) })
-				.locator("..")
-				.locator(":scope > div")
-				.first()
-				.boundingBox())!;
-			expect(timeline.height).toBeLessThanOrEqual(inventory.height);
-		}
-		await page.screenshot({ path: info.outputPath("long-timeline-start.png"), fullPage: true, animations: "disabled" });
-		await panel.focus();
-		await page.keyboard.press("Control+End");
-		await expect.poll(() => panel.evaluate((el) => el.scrollTop + el.clientHeight - el.scrollHeight)).toBeGreaterThanOrEqual(-1);
+		const overflow = await panel.evaluate((el) => ({ height: el.clientHeight, content: el.scrollHeight, overflow: getComputedStyle(el).overflowY }));
+		expect(overflow.content).toBeLessThanOrEqual(overflow.height + 1);
+		expect(overflow.overflow).toBe("visible");
+		await panel.getByText("Stream end", { exact: true }).scrollIntoViewIfNeeded();
 		await expect(panel.getByText("Stream end", { exact: true })).toBeInViewport();
-		await page.screenshot({ path: info.outputPath("long-timeline-end.png"), animations: "disabled" });
+		await page.screenshot({ path: info.outputPath("complete-timeline-end.png"), animations: "disabled" });
 	});

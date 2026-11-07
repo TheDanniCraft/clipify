@@ -155,7 +155,7 @@ test("Unsupported browsers show a recoverable local-support state without server
 	await download.delete();
 });
 
-test("Large browser exports download ZIP parts without dropping files", async ({ page, request, tourWorld }, info) => {
+test("Large browser exports write one disk-backed ZIP without dropping files", async ({ page, request, tourWorld }, info) => {
 	test.setTimeout(90000);
 	// Exercise the package boundary with real controls/downloads; codec parity has separate real-encoding cases.
 	await page.addInitScript(() => {
@@ -206,10 +206,10 @@ test("Large browser exports download ZIP parts without dropping files", async ({
 	page.on("download", (download) => downloads.push(download));
 	await dialog.getByRole("button", { name: "Next", exact: true }).click();
 	await dialog.getByRole("button", { name: "Start export", exact: true }).click();
-	await expect.poll(() => downloads.length, { timeout: 45000 }).toBe(2);
+	await expect.poll(() => downloads.length, { timeout: 45000 }).toBe(1);
 	const names: string[] = [];
 	for (const [i, download] of downloads.entries()) {
-		expect(download.suggestedFilename()).toBe(`clipify-clips-batch-1-part-${i + 1}.zip`);
+		expect(download.suggestedFilename()).toMatch(/^clipify-export-.*Z\.zip$/);
 		const path = info.outputPath(`part-${i}.zip`);
 		await download.saveAs(path);
 		const archive = unzipSync(await readFile(path));
@@ -218,8 +218,8 @@ test("Large browser exports download ZIP parts without dropping files", async ({
 	}
 	expect(names).toHaveLength(7);
 	expect(new Set(names).size).toBe(7);
-	await expect(page.getByRole("button", { name: "Download latest ZIP", exact: true })).toBeVisible();
-	await page.getByRole("dialog", { name: "Clip exports", exact: true }).screenshot({ path: info.outputPath("completed-parts.png") });
+	await expect(page.getByRole("button", { name: "Download ZIP", exact: true })).toBeVisible();
+	await page.getByRole("dialog", { name: "Clip exports", exact: true }).screenshot({ path: info.outputPath("completed-archive.png") });
 });
 for (const removed of ["cached", "provider"])
 	test(`Partial browser exports retain metadata and skip removed clips (${removed})`, async ({ page, request, tourWorld }, info) => {

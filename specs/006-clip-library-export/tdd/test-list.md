@@ -439,3 +439,13 @@ Eight affected whole-file unit/native owners passed 244 tests. Browser evidence 
 ## Wizard and bounded timeline clarification 2026-11-07
 
 Supersedes DEXP-03's single-screen platform/size layout and the blanket unsupported form replacement. WIZ-01: Back/Next preserves versions, template collection and destination/tier. WIZ-02: General has no size controls; Discord account allowances validate without enlarging media bounds. WIZ-03: raw Original/General starts with no encoder probe; conversion alone requires a successful or slow native probe and supports explicit retry. WIZ-04: invalid custom size cannot strand users after Back. WIZ-05: all moments render with start/end markers in a bounded keyboard-scrollable region, with a sixty-moment multi-day disposable fixture and real desktop/mobile measurements. Owners: clipExportSettings.test.tsx, clipExportPreset.test.ts, streamMoments.test.tsx, clip-export-dialog.spec.ts, browser-clip-export.spec.ts and stream-workspace.spec.ts; existing export/recovery/BDD callers retain complete package, permission and quota assertions.
+
+## Single-archive follow-up 2026-11-07
+
+ARC-01: Complete moments use document flow, no inner scroll/Show more, reachable start/end at390/1440px in both themes.
+ARC-02: Cancel/background share a row; Keep exporting preserves work; Stop export aborts and retains selection.
+ARC-03: Fifty-one outputs across recipe/quota boundaries produce one dated ZIP with every member; a >126MiB archive also produces exactly one download. Actual ZIP64 bytes and manifest round-trip through an independent ZIP reader.
+ARC-04: Metadata and file progress retain global indexes and output labels across packets/retries; duplicate filenames stay unique; failed outputs alone are retried.
+ARC-05: Missing storage, disk-write failure, cancelled quota wait, refused persistence and fatal permission errors recover without a corrupt download. Cleanup preserves active other-tab archives and ignores unrelated paths.
+ARC-06: Original/General downloads need no encoder; actual composed audio/fonts/pixels remain equivalent to the native reference. Background route navigation retains work; beforeunload protection is removed after completion.
+Owners: clipBrowserArchive.test.ts, clipBrowserBatch.test.ts, clipExport.test.tsx, streamMoments.test.tsx; complete browser-clip-export, clip-export-batches, clip-export-dialog, clip-library-recovery, creator-layout, stream-workspace and stream-manual-export owners; complete US4 BDD owner.

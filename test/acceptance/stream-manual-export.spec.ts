@@ -52,7 +52,7 @@ test("saved stream exports every filtered clip across pages after Twitch removes
 	await page.getByRole("dialog", { name: "Export clips", exact: true }).getByRole("button", { name: "Next", exact: true }).click();
 	await page.getByRole("button", { name: "Start export", exact: true }).click();
 	await expect(page.getByRole("button", { name: "Cancel export", exact: true })).toHaveCount(0, { timeout: 130000 });
-	await expect.poll(() => downloads.length).toBe(2);
+	await expect.poll(() => downloads.length, { timeout: 90000 }).toBe(1);
 	const included: string[] = [];
 	for (const download of downloads) {
 		const entries = unzipSync(await readFile((await download.path())!));

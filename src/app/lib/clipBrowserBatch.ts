@@ -1,3 +1,4 @@
+import type { BrowserArchiveSink } from "./clipBrowserArchive";
 import { zipSync, strToU8 } from "fflate";
 import { browserExportSchema, browserClipMetadataSchema, type BrowserExport } from "./clipBrowserExport";
 import type { ClipExportPlan } from "./clipExportPlan";
@@ -20,8 +21,8 @@ async function readBrowserSource(clip: BrowserExport["clips"][number], signal: A
 	}
 }
 type BrowserBatchResult = { ok: true; bytes: Uint8Array<ArrayBuffer>; summary: ClipExportSummary; partCount: number } | { ok: false; code: string; retryAt?: string; failures?: ClipExportSummary["skipped"] };
-export async function buildBrowserBatch(plan: ClipExportPlan, signal: AbortSignal, progress: (event: ClipExportProgress) => void, onPart: (bytes: Uint8Array<ArrayBuffer>, part: number) => void, format: "zip" | "mp4" = "zip"): Promise<BrowserBatchResult> {
-	if (format === "mp4" && plan.files.length !== 1) return { ok: false, code: "INVALID_INPUT" };
+export async function buildBrowserBatch(plan: ClipExportPlan, signal: AbortSignal, progress: (event: ClipExportProgress) => void, onPart: ((bytes: Uint8Array<ArrayBuffer>, part: number) => void) | undefined, format: "zip" | "mp4" = "zip", sink?: BrowserArchiveSink): Promise<BrowserBatchResult> {
+	if ((!sink && !onPart && format === "zip") || (format === "mp4" && plan.files.length !== 1)) return { ok: false, code: "INVALID_INPUT" };
 	const response = await fetch("/api/clips/export/browser", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(plan), signal });
 	const data = JSON.parse(new TextDecoder().decode(await readBoundedResponse(response, 8 * 1024 * 1024, signal)));
 	if (!response.ok) return { ok: false as const, code: typeof data.code === "string" ? data.code : "SERVICE_UNAVAILABLE", retryAt: data.retryAt as string | undefined };
@@ -37,7 +38,7 @@ export async function buildBrowserBatch(plan: ClipExportPlan, signal: AbortSigna
 		return zipSync(files, { level: 0 });
 	};
 	const flush = () => {
-		onPart(packageBytes(), partCount++);
+		onPart?.(packageBytes(), partCount++);
 		for (const key of Object.keys(files)) delete files[key];
 		manifest.length = 0;
 		total = 0;
@@ -57,9 +58,10 @@ export async function buildBrowserBatch(plan: ClipExportPlan, signal: AbortSigna
 				try {
 					if (output.layout || output.preset) progress({ index, stage: "rendering" });
 					const bytes = output.layout || output.preset ? await renderBrowserClip(source.bytes, output, signal, () => {}) : source.bytes;
-					if (total && total + bytes.length > 126 * 1024 * 1024) flush();
-					const filename = clipExportFilename(`${clip.title} ${output.label}`, `${clip.id}-${output.key}`, index, used);
-					files[filename] = bytes;
+					if (!sink && total && total + bytes.length > 126 * 1024 * 1024) flush();
+					let filename = clipExportFilename(`${clip.title} ${output.label}`, `${clip.id}-${output.key}`, index, used);
+					if (sink) filename = await sink.add(filename, bytes);
+					else files[filename] = bytes;
 					total += bytes.length;
 					summary.included.push(index);
 					manifest.push({ ...metadata, status: "included", filename, bytes: bytes.length, format: output.layout?.format ?? "original", outputLabel: output.label, outputKey: output.key });
@@ -67,6 +69,7 @@ export async function buildBrowserBatch(plan: ClipExportPlan, signal: AbortSigna
 					if (format === "mp4") return { ok: true, bytes, summary, partCount: 1 };
 				} catch (error) {
 					signal.throwIfAborted();
+					if (sink && error instanceof Error && error.message === "browser_storage_error") throw error;
 					code = error instanceof Error && ["file_size_limit", "package_size_limit", "preset_size_limit"].includes(error.message) ? error.message : "browser_unsupported";
 				}
 			if (code) {
@@ -76,6 +79,7 @@ export async function buildBrowserBatch(plan: ClipExportPlan, signal: AbortSigna
 			}
 		}
 	}
+	if (sink) await sink.manifest(manifest);
 	if (!summary.included.length) return { ok: false as const, code: clipExportFailureCode(summary.skipped), failures: summary.skipped, retryAt: summary.retryAt };
-	return { ok: true as const, bytes: packageBytes(), summary, partCount };
+	return { ok: true as const, bytes: sink ? new Uint8Array(0) : packageBytes(), summary, partCount };
 }

@@ -70,11 +70,11 @@ it("uses a vertical timeline and opens overlapping alternatives as a rich overvi
 	expect(await screen.findByRole("dialog")).toHaveTextContent("B");
 });
 
-it("shows every moment inside an independently scrollable timeline", () => {
+it("shows every moment as one complete document-flow timeline", () => {
 	render(<Moments creatorId='owner' clips={Array.from({ length: 6 }, (_, i) => ({ id: `Clip${i}`, title: `Moment ${i}`, views: 10, duration: 10, thumbnailUrl: null, createdAt: "2026-11-02T00:00:00Z", vodOffsetSeconds: i * 3600 })) as never} />);
 	expect(screen.getAllByRole("listitem")).toHaveLength(8);
 	expect(screen.getByText("1:00:00 into stream")).toBeVisible();
-	expect(screen.getByRole("region", { name: "Stream moments scroll area" })).toHaveAttribute("tabindex", "0");
+	expect(screen.queryByRole("region", { name: "Stream moments scroll area" })).toBeNull();
 	expect(screen.getAllByRole("listitem")).toHaveLength(8);
 	expect(screen.queryByRole("button", { name: "Show more moments" })).toBeNull();
 });

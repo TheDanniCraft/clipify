@@ -75,6 +75,7 @@
 		"@tiptap/starter-kit": ">=3.32.0",
 		"@tiptap/suggestion": ">=3.32.0",
 		"@types/ffbinaries": "^1.1.5",
+		"@zip.js/zip.js": "^2.24.0",
 		"axios": "^1.20.0",
 		"better-auth": "1.7.12",
 		"c15t": "^3.1.0",

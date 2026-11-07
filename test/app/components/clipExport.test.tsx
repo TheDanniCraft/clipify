@@ -1,3 +1,13 @@
+jest.mock("@components/confirmModal", () => ({
+	__esModule: true,
+	default: ({ isOpen, title, onConfirm, onOpenChange, confirmLabel, cancelLabel }: any) =>
+		isOpen ? (
+			<section role='dialog' aria-label={title}>
+				<button onClick={onConfirm}>{confirmLabel}</button>
+				<button onClick={() => onOpenChange(false)}>{cancelLabel}</button>
+			</section>
+		) : null,
+}));
 jest.mock("@components/creator/clipExportSettings", () => ({
 	__esModule: true,
 	default: ({ creatorId, clipIds, onStart, onClose }: any) => (
@@ -16,6 +26,33 @@ jest.mock("@components/creator/clipExportSettings", () => ({
 }));
 const browserBatch = jest.fn();
 jest.mock("@lib/clipBrowserBatch", () => ({ buildBrowserBatch: (...args: unknown[]) => browserBatch(...args) }));
+const diskArchive = jest.fn();
+const releaseArchive = jest.fn(async () => {});
+const cleanupDisk = jest.fn(async () => {});
+jest.mock("@lib/clipBrowserArchive", () => ({ ...jest.requireActual("@lib/clipBrowserArchive"), cleanupBrowserExports: () => cleanupDisk(), buildBrowserArchive: (...args: unknown[]) => diskArchive(...args) }));
+beforeEach(() =>
+	diskArchive.mockImplementation(async (plans, startedAt, signal, progress) => {
+		const included: number[] = [],
+			skipped: any[] = [];
+		let offset = 0,
+			bytes: any;
+		for (const plan of plans) {
+			const result = await browserBatch(
+				plan,
+				signal,
+				(event: any) => progress({ ...event, index: event.index + offset }),
+				() => {},
+				"zip",
+			);
+			if (!result.ok) return result;
+			included.push(...result.summary.included.map((index: number) => index + offset));
+			skipped.push(...result.summary.skipped.map((item: any) => ({ ...item, index: item.index + offset })));
+			offset += plan.files.length;
+			bytes = result.bytes;
+		}
+		return { ok: true, bytes, summary: { included, skipped }, dispose: releaseArchive };
+	}),
+);
 jest.mock("@heroui/react", () => {
 	const base = jest.requireActual("../../__mocks__/heroui-react.cjs");
 	const Disclosure = Object.assign(
@@ -44,7 +81,7 @@ jest.mock("@components/controlledModal", () => ({
 			</section>
 		) : null,
 }));
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { ClipExportProvider, ExportQueueLauncher, useClipExports } from "@components/creator/clipExportQueue";
 import ClipExport from "@components/creator/clipExport";
 import { toast } from "@heroui/react";
@@ -117,6 +154,11 @@ it("cancels an in-flight export without clearing the selection", async () => {
 	fireEvent.click(screen.getByRole("button", { name: "Export selected" }));
 	expect(screen.getByRole("button", { name: "Export selected" })).toBeDisabled();
 	fireEvent.click(screen.getByRole("button", { name: "Cancel export" }));
+	expect(screen.getByRole("dialog", { name: "Cancel export?" })).toBeInTheDocument();
+	fireEvent.click(screen.getByRole("button", { name: "Keep exporting" }));
+	expect(screen.queryByText("Export cancelled. Your selection is kept.")).toBeNull();
+	fireEvent.click(screen.getByRole("button", { name: "Cancel export" }));
+	fireEvent.click(screen.getByRole("button", { name: "Stop export" }));
 	await screen.findByText("Export cancelled. Your selection is kept.");
 	expect(notify).not.toHaveBeenCalled();
 	expect(screen.getByRole("button", { name: "Export selected" })).toBeEnabled();
@@ -373,7 +415,7 @@ it("continues an active export when its dialog and page are closed, and reopens 
 	expect(closeToast).toHaveBeenCalledWith("background-export");
 });
 
-it("queues a four-version package once and retries only the failed clip/version pair", async () => {
+it.each([[2], [1, 2]])("queues a four-version package once and retries only failed clip/version pairs %j", async (...failed: number[]) => {
 	const { createClipExportPlan } = await import("@lib/clipExportPlan");
 	const { createClipComposition } = await import("@lib/clipComposition");
 	const plans = createClipExportPlan(
@@ -390,7 +432,7 @@ it("queues a four-version package once and retries only the failed clip/version 
 		const queue = useClipExports()!;
 		return <button onClick={() => queue.enqueuePlans(plans, { A: "My clip" }, "four")}>Start versions</button>;
 	};
-	browserBatch.mockResolvedValueOnce({ ok: true, bytes: new Uint8Array([1]), summary: { included: [0, 1, 3], skipped: [{ index: 2, code: "provider_error", retryable: true, title: "Mobile camera" }] } }).mockResolvedValue({ ok: false, code: "PROVIDER_UNAVAILABLE" });
+	browserBatch.mockResolvedValueOnce({ ok: true, bytes: new Uint8Array([1]), summary: { included: [0, 1, 2, 3].filter((index) => !failed.includes(index)), skipped: failed.map((index) => ({ index, code: "provider_error", retryable: true })) } }).mockResolvedValue({ ok: false, code: "PROVIDER_UNAVAILABLE" });
 	Object.defineProperty(URL, "createObjectURL", { configurable: true, value: jest.fn(() => "blob:versions") });
 	Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: jest.fn() });
 	jest.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
@@ -406,8 +448,9 @@ it("queues a four-version package once and retries only the failed clip/version 
 	expect(browserBatch.mock.calls[0][0].files).toHaveLength(4);
 	fireEvent.click(retry);
 	await waitFor(() => expect(browserBatch).toHaveBeenCalledTimes(2));
-	expect(browserBatch.mock.calls[1][0].files).toEqual([{ clipId: "A", outputKey: "mobile1" }]);
-	expect(browserBatch.mock.calls[1][0].outputs.map((output: any) => output.key)).toEqual(["mobile1"]);
+	expect(browserBatch.mock.calls[1][0].files).toEqual(failed.map((index) => plans[0].files[index]));
+	expect(browserBatch.mock.calls[1][0].outputs.map((output: any) => output.key)).toEqual(failed.map((index) => plans[0].files[index].outputKey));
+	expect(within(screen.getByRole("list", { name: "Export 2 files" })).getAllByRole("listitem")).toHaveLength(failed.length);
 });
 
 it("opens export settings without starting a download and submits only after confirmation", async () => {
@@ -439,10 +482,12 @@ it("cancels queued and active batches together without downloading more files", 
 	);
 	fireEvent.click(screen.getByRole("button", { name: "Queue batches" }));
 	await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-	fireEvent.click(screen.getByRole("button", { name: /Cancel batch 2/ }));
-	expect(screen.queryByRole("button", { name: /Cancel batch 2/ })).not.toBeInTheDocument();
+	fireEvent.click(screen.getByRole("button", { name: /Cancel queued export 2/ }));
+	fireEvent.click(screen.getByRole("button", { name: "Stop export" }));
+	expect(screen.queryByRole("button", { name: /Cancel queued export 2/ })).not.toBeInTheDocument();
 	fireEvent.click(screen.getByRole("button", { name: "Queue another" }));
-	fireEvent.click(screen.getByRole("button", { name: "Cancel all batches" }));
+	fireEvent.click(screen.getByRole("button", { name: "Cancel export" }));
+	fireEvent.click(screen.getByRole("button", { name: "Stop export" }));
 	await screen.findByText("Export cancelled. Your selection is kept.");
 	expect(fetchMock).toHaveBeenCalledTimes(1);
 });
@@ -457,6 +502,8 @@ it("can cancel while waiting for a quota reset and download a completed package 
 		fireEvent.click(screen.getByRole("button", { name: "Export selected" }));
 		await screen.findByText(/Waiting for the download limit/);
 		fireEvent.click(screen.getByRole("button", { name: "Cancel export" }));
+		expect(screen.getByRole("dialog", { name: "Cancel export?" })).toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Stop export" }));
 		await screen.findByText("Export cancelled. Your selection is kept.");
 		fireEvent.click(screen.getByRole("button", { name: "Export selected" }));
 		await screen.findByText("1 clip ready. Download initiated.");
@@ -559,4 +606,56 @@ it("renders a direct layout MP4 locally instead of posting it to the server", as
 	expect(fetchMock).not.toHaveBeenCalled();
 	await waitFor(() => expect(URL.createObjectURL).toHaveBeenCalled());
 	expect((URL.createObjectURL as jest.Mock).mock.calls[0][0].type).toBe("video/mp4");
+});
+
+it("keeps archive waiting and per-file progress visible until the single download is complete", async () => {
+	const { ClipExportProvider, useClipExports } = jest.requireActual("@components/creator/clipExportQueue");
+	const { createClipExportPlan } = jest.requireActual("@lib/clipExportPlan");
+	let report: any, waiting: any, finish: any;
+	diskArchive.mockImplementationOnce((plans, startedAt, signal, onProgress, onWaiting) => {
+		report = onProgress;
+		waiting = onWaiting;
+		return new Promise((resolve) => {
+			finish = resolve;
+		});
+	});
+	function Queue() {
+		const queue = useClipExports();
+		return <button onClick={() => queue.enqueuePlans(createClipExportPlan("owner", ["A", "B"], [{ key: "original", label: "Original" }]), undefined, "progress")}>Queue archive</button>;
+	}
+	render(
+		<ClipExportProvider creatorId='owner'>
+			<Queue />
+		</ClipExportProvider>,
+	);
+	fireEvent.click(screen.getByRole("button", { name: "Queue archive" }));
+	await waitFor(() => expect(report).toBeDefined());
+	await import("@testing-library/react").then(({ act }) =>
+		act(async () => {
+			waiting(new Date(Date.now() + 60000).toISOString());
+			report({ index: 0, stage: "rendering" });
+		}),
+	);
+	expect(screen.getByText("Rendering video")).toBeVisible();
+	const leaving = new Event("beforeunload", { cancelable: true });
+	window.dispatchEvent(leaving);
+	expect(leaving.defaultPrevented).toBe(true);
+	await import("@testing-library/react").then(({ act }) =>
+		act(async () => {
+			waiting();
+			report({ index: 0, stage: "ready" });
+			finish({ ok: true, bytes: new Uint8Array([1]), dispose: releaseArchive, summary: { included: [0], skipped: [{ index: 1, code: "clip_unavailable", retryable: false }] } });
+		}),
+	);
+	await screen.findByRole("button", { name: "Download ZIP" });
+	expect(screen.getByText("Ready")).toBeVisible();
+	const finished = new Event("beforeunload", { cancelable: true });
+	window.dispatchEvent(finished);
+	expect(finished.defaultPrevented).toBe(false);
+});
+it("does not break export controls when abandoned-cache cleanup is unavailable", async () => {
+	cleanupDisk.mockRejectedValueOnce(Error("storage blocked"));
+	render(<ClipExport creatorId='owner' clipIds={["A"]} scope='owner' />);
+	await waitFor(() => expect(cleanupDisk).toHaveBeenCalled());
+	expect(screen.getByRole("button", { name: "Export selected" })).toBeEnabled();
 });
