@@ -1,19 +1,26 @@
 "use client";
 import NextLink from "next/link";
 
-import { IconBuildingCommunity, IconDiamondFilled, IconMoonFilled, IconSunFilled } from "@tabler/icons-react";
+import { IconBuildingCommunity, IconDiamondFilled, IconMoonFilled, IconSunFilled, IconArrowBackUp } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
 import { Autocomplete, Button, ComboBox, Dropdown, EmptyState, Input, Label, ListBox, SearchField, Spinner, useFilter } from "@heroui/react";
 
 import { AuthenticatedUser, CampaignOffer, Role } from "@types";
+import DashboardUtilityPortal from "@components/dashboardUtilityPortal";
 import Logo from "@components/logo";
+import { notify } from "@lib/toast";
+import { DashboardNavigationContext, DashboardNavigationControls, DashboardBreadcrumbs } from "@components/dashboardNavigation";
 import CountdownTimer from "@components/countdownTimer";
 import DashboardUserAvatar from "@components/dashboardUserAvatar";
 import { useRouter } from "next/navigation";
 import { getAdminViewCandidates, stopAdminView, switchAdminView, type AdminViewCandidate } from "@actions/adminView";
 import { getActiveCampaignOfferAction } from "@actions/campaignOffers";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { authClient } from "@/auth/client";
+
+const subscribeToHydration = () => () => undefined;
+const clientReady = () => true;
+const serverReady = () => false;
 
 export type DashboardNavbarUser = Pick<AuthenticatedUser, "id" | "username"> & Partial<Pick<AuthenticatedUser, "avatar" | "role" | "plan" | "entitlements" | "adminView">>;
 
@@ -31,8 +38,13 @@ function accountType(organization: OrganizationOption) {
 	return metadata && typeof metadata === "object" && "accountType" in metadata && metadata.accountType === "agency" ? "agency" : "creator";
 }
 
-export default function DashboardNavbar({ children, user, title, tagline, organizationId }: { children?: React.ReactNode; user: DashboardNavbarUser; title: string; tagline: string; organizationId?: string }) {
+export default function DashboardNavbar({ children, user, title, tagline, organizationId, stickyHeading = false }: { children?: React.ReactNode; user: DashboardNavbarUser; title: string; tagline: string; organizationId?: string; stickyHeading?: boolean }) {
+	const navigation = useContext(DashboardNavigationContext);
+	const inShell = navigation !== null;
+	const AccountControlsContainer = inShell ? DashboardUtilityPortal : Fragment;
+	const ContentContainer = inShell ? "div" : "main";
 	const { theme, setTheme } = useTheme();
+	const hydrated = useSyncExternalStore(subscribeToHydration, clientReady, serverReady);
 	const { contains } = useFilter({ sensitivity: "base" });
 	const router = useRouter();
 	const session = authClient.useSession();
@@ -43,7 +55,7 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 	const [switchCandidates, setSwitchCandidates] = useState<AdminViewCandidate[]>([]);
 	const [isLoadingSwitchCandidates, setIsLoadingSwitchCandidates] = useState(false);
 	const [isSwitchingOrganization, setIsSwitchingOrganization] = useState(false);
-	const [switchError, setSwitchError] = useState<string | null>(null);
+	const appliedOrganization = useRef<string | null>(null);
 	const [campaignOffer, setCampaignOffer] = useState<CampaignOffer | null>(null);
 	const effectivePlan = user?.entitlements?.effectivePlan ?? user?.plan;
 	const showUpgradeItem = user?.plan === "free" && (effectivePlan === "free" || Boolean(user?.entitlements?.reverseTrialActive));
@@ -55,12 +67,20 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 	const sessionOrganizationId = session.data?.session.activeOrganizationId ?? null;
 	const activeOrganizationId = organizationId ?? sessionOrganizationId;
 	const activeOrganization = organizationOptions.find((organization) => organization.id === activeOrganizationId);
-	const displayedOrganization = activeOrganization ?? organizationOptions.find((organization) => accountType(organization) === "creator") ?? organizationOptions[0];
+	const displayedOrganization = activeOrganization;
 
 	useEffect(() => {
-		if (!organizationId || !session.data || organizations.isPending || sessionOrganizationId === organizationId || !organizationOptions.some((organization) => organization.id === organizationId)) return;
+		if (!organizationId) {
+			appliedOrganization.current = null;
+			return;
+		}
+		if (!session.data || organizations.isPending || appliedOrganization.current === organizationId || !organizationOptions.some((organization) => organization.id === organizationId)) return;
+		// Apply each route's account request once; a later user switch takes precedence.
+		appliedOrganization.current = organizationId;
+		if (sessionOrganizationId === organizationId) return;
 		void authClient.organization.setActive({ organizationId }).then((result) => {
-			if (!result.error) router.refresh();
+			if (result.error) appliedOrganization.current = null;
+			else router.refresh();
 		});
 	}, [organizationId, organizationOptions, organizations.isPending, router, session.data, sessionOrganizationId]);
 
@@ -69,9 +89,14 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 		setIsSwitchingOrganization(true);
 		try {
 			const result = await authClient.organization.setActive({ organizationId: organization.id });
-			if (result.error) return;
+			if (result.error) {
+				notify({ title: "Account could not be switched", description: "Please try again or choose another account.", color: "danger" });
+				return;
+			}
 			router.push(accountType(organization) === "agency" ? "/dashboard/agency" : "/dashboard");
 			router.refresh();
+		} catch {
+			notify({ title: "Account could not be switched", description: "Please try again or choose another account.", color: "danger" });
 		} finally {
 			setIsSwitchingOrganization(false);
 		}
@@ -148,11 +173,10 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 	async function handleSwitchAdminView(targetUserId: string) {
 		if (isSwitchingAdminView || !targetUserId) return;
 		setIsSwitchingAdminView(true);
-		setSwitchError(null);
 		try {
 			const result = await switchAdminView(targetUserId);
 			if (!result.ok) {
-				setSwitchError(`Switch failed: ${result.error}`);
+				notify({ title: "Account could not be switched", description: result.error, color: "danger" });
 				return;
 			}
 			router.push("/dashboard");
@@ -162,119 +186,147 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 		}
 	}
 
+	const themeControl = (
+		<Button isDisabled={!hydrated} isIconOnly variant='ghost' onPress={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label='Toggle Theme'>
+			{!hydrated || theme !== "light" ? <IconSunFilled className={inShell ? "text-muted" : "text-accent-foreground/60"} width={24} /> : <IconMoonFilled className={inShell ? "text-muted" : "text-accent-foreground/60"} width={24} />}
+		</Button>
+	);
+
+	const accountSwitcher =
+		((organizations.isPending && !inShell) || organizationOptions.length > 1 || (organizationOptions.length === 1 && accountType(organizationOptions[0]) === "agency" && !activeOrganization)) && (!inShell || navigation.expanded) ? (
+			<li className={inShell ? "w-full" : "mr-1 w-36 sm:w-48"}>
+				<Autocomplete
+					aria-label='Account context'
+					isDisabled={organizations.isPending || isSwitchingOrganization}
+					placeholder='Select account'
+					selectionMode='single'
+					value={displayedOrganization?.id ?? null}
+					variant='secondary'
+					onChange={(key) => {
+						const organization = organizationOptions.find((candidate) => candidate.id === String(key ?? ""));
+						if (organization) void switchAccount(organization);
+					}}
+				>
+					<Label className='sr-only'>Account</Label>
+					<Autocomplete.Trigger className='h-9 items-center gap-2 rounded-xl border-transparent bg-default px-2 text-foreground shadow-none hover:bg-default-hover'>
+						<span className='flex h-5 w-4 shrink-0 items-center justify-center text-muted'>
+							<IconBuildingCommunity aria-hidden='true' className='translate-y-px' size={15} />
+						</span>
+						<Autocomplete.Value className='block min-w-0 flex-1 truncate text-left text-sm font-medium leading-5'>{displayedOrganization?.name ?? (organizations.isPending ? "Loading accounts…" : "Select account")}</Autocomplete.Value>
+						<Autocomplete.Indicator className='shrink-0 text-muted' />
+					</Autocomplete.Trigger>
+					<Autocomplete.Popover className='min-w-64' placement='bottom end'>
+						<Autocomplete.Filter filter={contains}>
+							<SearchField autoFocus aria-label='Search accounts' name='account-search' variant='secondary'>
+								<SearchField.Group>
+									<SearchField.SearchIcon />
+									<SearchField.Input placeholder='Search accounts' />
+									<SearchField.ClearButton />
+								</SearchField.Group>
+							</SearchField>
+							<ListBox renderEmptyState={() => <EmptyState>No accounts found.</EmptyState>}>
+								{organizationOptions.map((organization) => (
+									<ListBox.Item key={organization.id} id={organization.id} textValue={organization.name}>
+										<div className='min-w-0'>
+											<Label className='block truncate'>{organization.name}</Label>
+											<p className='text-xs capitalize text-muted'>{accountType(organization)} account</p>
+										</div>
+										<ListBox.ItemIndicator />
+									</ListBox.Item>
+								))}
+							</ListBox>
+						</Autocomplete.Filter>
+					</Autocomplete.Popover>
+				</Autocomplete>
+			</li>
+		) : null;
+
 	return (
 		<>
-			<nav className='w-full bg-accent'>
-				<header className='mx-auto flex h-16 w-full max-w-5xl items-center px-4 lg:px-8'>
-					<NextLink data-tour='dashboard-home' href='/dashboard' className='flex items-center'>
+			<nav className={inShell ? "sticky top-0 z-30 w-full border-b border-separator bg-background" : "sticky top-0 z-30 w-full bg-accent"}>
+				<header className={`flex min-h-16 w-full items-center gap-3 px-4 py-2 ${inShell && !navigation?.expanded ? "lg:pl-2 lg:pr-8" : "lg:px-8"}`}>
+					<NextLink data-tour={inShell ? undefined : "dashboard-home"} href='/dashboard' className={inShell ? "hidden" : "flex items-center"}>
 						<Logo width={30} />
 						<p className='ml-2 font-bold text-white'>Clipify</p>
 					</NextLink>
-					<ul className='ml-auto flex h-12 max-w-fit items-center gap-0'>
-						{organizationOptions.length > 1 ? (
-							<li className='mr-1 w-36 sm:w-48'>
-								<Autocomplete
-									aria-label='Account context'
-									isDisabled={organizations.isPending || isSwitchingOrganization}
-									placeholder='Select account'
-									selectionMode='single'
-									value={displayedOrganization?.id ?? null}
-									variant='secondary'
-									onChange={(key) => {
-										const organization = organizationOptions.find((candidate) => candidate.id === String(key ?? ""));
-										if (organization) void switchAccount(organization);
-									}}
-								>
-									<Label className='sr-only'>Account</Label>
-									<Autocomplete.Trigger className='h-9 items-center gap-2 rounded-xl border-transparent bg-accent-foreground/10 px-2 text-accent-foreground shadow-none hover:bg-accent-foreground/15'>
-										<span className='flex h-5 w-4 shrink-0 items-center justify-center text-accent-foreground/70'>
-											<IconBuildingCommunity aria-hidden='true' className='translate-y-px' size={15} />
-										</span>
-										<Autocomplete.Value className='flex min-w-0 items-center truncate text-sm font-medium leading-5'>{displayedOrganization?.name ?? "Select account"}</Autocomplete.Value>
-										<Autocomplete.Indicator className='shrink-0 text-accent-foreground/70' />
-									</Autocomplete.Trigger>
-									<Autocomplete.Popover className='min-w-64' placement='bottom end'>
-										<Autocomplete.Filter filter={contains}>
-											<SearchField autoFocus aria-label='Search accounts' name='account-search' variant='secondary'>
-												<SearchField.Group>
-													<SearchField.SearchIcon />
-													<SearchField.Input placeholder='Search accounts' />
-													<SearchField.ClearButton />
-												</SearchField.Group>
-											</SearchField>
-											<ListBox renderEmptyState={() => <EmptyState>No accounts found.</EmptyState>}>
-												{organizationOptions.map((organization) => (
-													<ListBox.Item key={organization.id} id={organization.id} textValue={organization.name}>
-														<div className='min-w-0'>
-															<Label className='block truncate'>{organization.name}</Label>
-															<p className='text-xs capitalize text-muted'>{accountType(organization)} account</p>
-														</div>
-														<ListBox.ItemIndicator />
-													</ListBox.Item>
-												))}
-											</ListBox>
-										</Autocomplete.Filter>
-									</Autocomplete.Popover>
-								</Autocomplete>
+					<DashboardNavigationControls />
+					{inShell ? <div className='min-w-0 flex-1'>{!navigation?.current || (navigation.current.href === (navigation.homeHref ?? "/dashboard") && !navigation.current.detail) ? <span className='text-sm font-medium'>{navigation?.current?.title ?? title}</span> : <DashboardBreadcrumbs />}</div> : null}
+					{inShell ? themeControl : null}
+					<AccountControlsContainer {...(inShell ? { slot: "account" as const } : {})}>
+						<ul data-dashboard-account-controls className={inShell ? "flex w-full flex-col items-stretch gap-1" : "order-2 ml-auto flex h-12 max-w-fit items-center gap-0 sm:order-3"}>
+							{!inShell ? <li>{themeControl}</li> : null}
+							{inShell ? accountSwitcher : null}
+							<li className={inShell ? "min-w-0 flex-1" : "px-2"}>
+								<Dropdown>
+									<Dropdown.Trigger data-tour='nav-menu' className={inShell ? `flex h-10 w-full min-w-0 items-center gap-2 rounded-lg text-foreground ${navigation.expanded ? "px-2" : "justify-center"}` : "mt-1 h-8 w-8 overflow-visible transition-transform"} aria-label='Open profile menu'>
+										<DashboardUserAvatar username={signedInUsername} avatar={signedInAvatar} showStatus />
+										{inShell && navigation.expanded ? <span className='truncate text-sm font-medium'>{signedInUsername}</span> : null}
+									</Dropdown.Trigger>
+									<Dropdown.Popover placement={inShell ? "top start" : "bottom end"}>
+										<Dropdown.Menu aria-label='Profile Actions' disabledKeys={isClearingAdminView ? ["exit_admin_view"] : []}>
+											<Dropdown.Item id='profile' textValue={`Signed in as ${signedInUsername}`} className={isImpersonating ? "h-20 gap-2" : "h-14 gap-2"}>
+												<Label>
+													<span className='block font-semibold'>Signed in as</span>
+													<span className='block font-semibold'>{signedInUsername}</span>
+													{isImpersonating ? <span className='mt-1 block text-xs font-normal text-muted'>Viewing as {user.username}</span> : null}
+												</Label>
+											</Dropdown.Item>
+											{showUpgradeItem ? (
+												<Dropdown.Item id='upgrade_to_pro' textValue='Upgrade to Pro' className='bg-accent text-accent-foreground data-[hovered]:bg-accent-hover' onAction={() => router.push("/dashboard/settings?upgrade&cycle=yearly&source=paywall_banner&feature=account_menu")}>
+													<IconDiamondFilled aria-hidden='true' size={16} />
+													<Label>Upgrade to Pro</Label>
+												</Dropdown.Item>
+											) : null}
+											{!inShell ? (
+												<>
+													<Dropdown.Item data-tour='nav-settings' id='settings' textValue={user.plan ? "My Settings" : "Agency dashboard"} onAction={() => router.push(user.plan ? "/dashboard/settings" : "/dashboard/agency")}>
+														<Label>{user.plan ? "My Settings" : "Agency dashboard"}</Label>
+													</Dropdown.Item>
+													<Dropdown.Item id='member_card' textValue='Badges' onAction={() => router.push("/dashboard/member-card")}>
+														<Label>Badges</Label>
+													</Dropdown.Item>
+													<Dropdown.Item data-tour='nav-tools' id='embeddable_widgets' textValue='Tools' onAction={() => router.push("/dashboard/tools")}>
+														<Label>Tools</Label>
+													</Dropdown.Item>
+												</>
+											) : null}
+											{canOpenAdminView && !inShell ? (
+												<Dropdown.Item id='admin_view' textValue='Open Admin View' onAction={() => router.push("/admin")}>
+													<Label>Open Admin View</Label>
+												</Dropdown.Item>
+											) : null}
+											{isImpersonating && !inShell ? (
+												<Dropdown.Item id='exit_admin_view' textValue='Return to Admin' className='text-accent' onAction={handleExitAdminView}>
+													<Label>Return to Admin</Label>
+												</Dropdown.Item>
+											) : null}
+											<Dropdown.Item id='help_and_feedback' textValue='Help' onAction={() => router.push("https://help.clipify.us/hc/clipify/articles/1769328012-getting-started-with-clipify")}>
+												<Label>Help</Label>
+											</Dropdown.Item>
+											<Dropdown.Item id='logout' textValue='Log Out' variant='danger' onAction={() => router.push("/logout")}>
+												<Label>Log Out</Label>
+											</Dropdown.Item>
+										</Dropdown.Menu>
+									</Dropdown.Popover>
+								</Dropdown>
 							</li>
-						) : null}
-						<li>
-							<Button isIconOnly variant='ghost' onPress={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label='Toggle Theme'>
-								{(theme ?? "dark") === "dark" ? <IconSunFilled className='text-accent-foreground/60' width={24} /> : <IconMoonFilled className='text-accent-foreground/60' width={24} />}
-							</Button>
-						</li>
-						<li className='px-2'>
-							<Dropdown>
-								<Dropdown.Trigger data-tour='nav-menu' className='mt-1 h-8 w-8 overflow-visible transition-transform' aria-label='Open profile menu'>
-									<DashboardUserAvatar username={signedInUsername} avatar={signedInAvatar} showStatus />
-								</Dropdown.Trigger>
-								<Dropdown.Popover placement='bottom end'>
-									<Dropdown.Menu aria-label='Profile Actions' disabledKeys={isClearingAdminView ? ["exit_admin_view"] : []}>
-										<Dropdown.Item id='profile' textValue={`Signed in as ${signedInUsername}`} className={isImpersonating ? "h-20 gap-2" : "h-14 gap-2"}>
-											<Label>
-												<span className='block font-semibold'>Signed in as</span>
-												<span className='block font-semibold'>{signedInUsername}</span>
-												{isImpersonating ? <span className='mt-1 block text-xs font-normal text-muted'>Viewing as {user.username}</span> : null}
-											</Label>
-										</Dropdown.Item>
-										{showUpgradeItem ? (
-											<Dropdown.Item id='upgrade_to_pro' textValue='Upgrade to Pro' className='bg-accent text-accent-foreground data-[hovered]:bg-accent-hover' onAction={() => router.push("/dashboard/settings?upgrade&cycle=yearly&source=paywall_banner&feature=account_menu")}>
-												<IconDiamondFilled aria-hidden='true' size={16} />
-												<Label>Upgrade to Pro</Label>
-											</Dropdown.Item>
-										) : null}
-										<Dropdown.Item data-tour='nav-settings' id='settings' textValue={user.plan ? "My Settings" : "Agency dashboard"} onAction={() => router.push(user.plan ? "/dashboard/settings" : "/dashboard/agency")}>
-											<Label>{user.plan ? "My Settings" : "Agency dashboard"}</Label>
-										</Dropdown.Item>
-										<Dropdown.Item id='member_card' textValue='Badges' onAction={() => router.push("/dashboard/member-card")}>
-											<Label>Badges</Label>
-										</Dropdown.Item>
-										<Dropdown.Item data-tour='nav-tools' id='embeddable_widgets' textValue='Tools' onAction={() => router.push("/dashboard/tools")}>
-											<Label>Tools</Label>
-										</Dropdown.Item>
-										{canOpenAdminView ? (
-											<Dropdown.Item id='admin_view' textValue='Open Admin View' onAction={() => router.push("/admin")}>
-												<Label>Open Admin View</Label>
-											</Dropdown.Item>
-										) : null}
-										{isImpersonating ? (
-											<Dropdown.Item id='exit_admin_view' textValue='Return to Admin' className='text-accent' onAction={handleExitAdminView}>
-												<Label>Return to Admin</Label>
-											</Dropdown.Item>
-										) : null}
-										<Dropdown.Item id='help_and_feedback' textValue='Help' onAction={() => router.push("https://help.clipify.us/hc/clipify/articles/1769328012-getting-started-with-clipify")}>
-											<Label>Help</Label>
-										</Dropdown.Item>
-										<Dropdown.Item id='logout' textValue='Log Out' variant='danger' onAction={() => router.push("/logout")}>
-											<Label>Log Out</Label>
-										</Dropdown.Item>
-									</Dropdown.Menu>
-								</Dropdown.Popover>
-							</Dropdown>
-						</li>
-					</ul>
+							{!inShell ? accountSwitcher : null}
+						</ul>
+					</AccountControlsContainer>
 				</header>
 			</nav>
+			{inShell && isImpersonating ? (
+				<DashboardUtilityPortal slot='admin'>
+					<div className='mt-2 border-t border-separator pt-2'>
+						<p className='px-2 text-xs text-muted'>Admin</p>
+						<Button fullWidth variant='ghost' className='justify-start text-muted' isPending={isClearingAdminView} onPress={handleExitAdminView}>
+							<IconArrowBackUp className='size-4' />
+							Return to Admin
+						</Button>
+					</div>
+				</DashboardUtilityPortal>
+			) : null}
+
 			{showUpgradeItem && campaignOffer?.showDashboardBanner ? (
 				<div className='w-full border-b border-default bg-surface/95'>
 					<div className='mx-auto flex w-full max-w-5xl flex-col gap-2 px-4 py-3 lg:flex-row lg:items-center lg:justify-between lg:px-8'>
@@ -302,7 +354,7 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 								allowsEmptyCollection
 								allowsCustomValue
 								aria-label='Search and select user for admin view'
-								className='min-w-[380px]'
+								className='w-full min-w-0 sm:min-w-[380px]'
 								inputValue={switchQuery}
 								isDisabled={isSwitchingAdminView}
 								onInputChange={setSwitchQuery}
@@ -347,22 +399,21 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 								Exit
 							</Button>
 						</div>
-						{switchError ? <p className='text-[11px] text-danger'>{switchError}</p> : null}
 					</div>
 				</div>
 			) : null}
 			<div className='w-full'>
-				<main className='mt-6 flex w-full flex-col items-center'>
-					<div className='w-full max-w-5xl px-4 lg:px-8'>
-						<header className=' flex w-full items-center justify-between'>
-							<div className='flex flex-col'>
+				<ContentContainer className='mt-6 flex w-full flex-col items-center'>
+					<div data-sticky-heading={stickyHeading || undefined} className='mx-auto w-full min-w-0 max-w-7xl px-4 pb-8 lg:px-8'>
+						<header className={`flex w-full min-w-0 items-start justify-between gap-4 ${stickyHeading ? "sticky top-16 z-20 bg-background pb-4" : ""}`}>
+							<div className='flex min-w-0 flex-col gap-1'>
 								<h1 className='text-xl font-bold text-foreground lg:text-3xl'>{title}</h1>
 								<p className='text-sm text-muted lg:text-base'>{tagline}</p>
 							</div>
 						</header>
 						{children}
 					</div>
-				</main>
+				</ContentContainer>
 			</div>
 		</>
 	);

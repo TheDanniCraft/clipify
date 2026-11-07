@@ -1,3 +1,6 @@
+const readBrand = jest.fn().mockResolvedValue({ brand: null, revision: 0 });
+jest.mock("@/server/creator-brand", () => ({ readCreatorBrand: (...args: unknown[]) => readBrand(...args) }));
+beforeEach(() => readBrand.mockReset().mockResolvedValue({ brand: null, revision: 0 }));
 jest.mock("@/auth/session-principal", () => ({ getVerifiedSessionPrincipal: async () => ({ kind: "session", authUserId: "auth-user-1", sessionId: "session-1", authenticatedAt: new Date() }) }));
 /** @jest-environment node */
 export {};
@@ -234,6 +237,16 @@ describe("actions/database overlay logic", () => {
 		expect(result).toMatchObject({ id: "overlay-1", ownerDisabled: true, ownerDisabledReason: "banned" });
 	});
 
+	it("applies the owning creator's brand only after the overlay secret is authorized", async () => {
+		const { getOverlayBySecret } = await loadDatabaseActions();
+		const { creatorBrandSchema } = await import("@lib/overlayMetadata");
+		readBrand.mockResolvedValue({ brand: creatorBrandSchema.parse({ themeTextColor: "#ff0000", fontFamily: "Laila", fontSource: "google" }), revision: 1 });
+		queueSelectResult([{ id: "overlay-1", ownerId: "user-1", secret: "secret-1", clipInfoX: 72 }]);
+		queueSelectResult([{ disabled: false }]);
+		queueSelectResult([{ status: "active" }]);
+		expect(await getOverlayBySecret("overlay-1", "secret-1")).toMatchObject({ themeTextColor: "#ff0000", themeFontFamily: expect.stringContaining("Laila"), clipInfoX: 72 });
+		expect(readBrand).toHaveBeenCalledWith("user-1");
+	});
 	it("gets overlay by secret", async () => {
 		const { getOverlayBySecret } = await loadDatabaseActions();
 		queueSelectResult([{ id: "overlay-1", ownerId: "user-1", secret: "secret-1" }]); // overlay select

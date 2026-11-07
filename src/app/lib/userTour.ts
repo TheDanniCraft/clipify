@@ -123,7 +123,7 @@ export function shouldOfferGuideWelcome(progress: GuideProgress): boolean {
 	return !progress.welcomeSeen && !progress.active && !journeys[0].tasks.every((task) => progress.completed.includes(task.id) || progress.skipped.includes(task.id));
 }
 export function guideLocation(pathname: string): GuideLocation {
-	if (pathname === "/dashboard") return "dashboard";
+	if (pathname === "/dashboard" || /^\/dashboard\/(overlays|playlists|galleries|runners)$/.test(pathname)) return "dashboard";
 	if (pathname === "/dashboard/settings" || pathname === "/dashboard/settings/team") return "settings";
 	if (/^\/dashboard\/overlay\/[a-zA-Z0-9_-]+\/theme$/.test(pathname)) return "theme";
 	if (/^\/dashboard\/overlay\/[a-zA-Z0-9_-]+$/.test(pathname)) return "overlay";
@@ -151,25 +151,27 @@ export function navigationForTask(task: TaskId, location: GuideLocation, progres
 export type GuideStep = { target: string; title: string; description: string; next?: boolean; nextDisabled?: boolean; action?: boolean; finish?: boolean; nextLabel?: string; allowDialog?: boolean; inDialog?: boolean; dialogClosed?: boolean; destination?: GuideLocation; preserveFocus?: boolean; reveals?: string; pauseOnInteract?: boolean };
 const navigationSteps: Record<NavigationTarget, GuideStep> = {
 	"connections-panel": { target: "settings-connections-tab", title: "Choose Connections", description: "Choose Connections to return to your connected AI apps.", action: true, next: true, reveals: "connected-ai-apps" },
-	"settings-panel": { target: "settings-core-tab", title: "Choose Settings", description: "Choose Settings to return to this guide.", action: true, next: true, reveals: "settings-overview" },
-	"account-settings": { target: "nav-settings", title: "Open Settings", description: "Choose My Settings.", destination: "settings", preserveFocus: true },
-	"core-settings": { target: "settings-core-tab", title: "Open Settings", description: "Choose Settings to return to your account preferences.", destination: "settings" },
+	"settings-panel": { target: "settings-core-tab", title: "Choose Account", description: "Choose Account to return to this guide.", action: true, next: true, reveals: "settings-overview" },
+	"account-settings": { target: "settings-core-tab", title: "Open Account", description: "Choose Account in the Settings sidebar.", destination: "settings", preserveFocus: true },
+	"core-settings": { target: "settings-core-tab", title: "Open Account", description: "Choose Account to return to your account preferences.", destination: "settings" },
 	team: { target: "settings-team-tab", title: "Open Team", description: "Choose Team to find your team members and manage their access.", action: true, next: true, reveals: "team-overview" },
 	"close-picker": { target: "playlist-clip-cancel", title: "Return to Add Clips", description: "Click Cancel to return to the playlist and its Add Clips button.", action: true, next: true, inDialog: true, dialogClosed: true },
 	"clip-picker": { target: "playlist-add", title: "Open the clip picker", description: "Click Add Clips to return to your clip selection.", action: true, next: true, reveals: "playlist-clip-search", allowDialog: true },
 	settings: { target: "theme-back", title: "Return to overlay settings", description: "Use the back button to return to your overlay settings.", destination: "overlay" },
 	theme: { target: "overlay-customize", title: "Open Theme Studio", description: "Click Customize Overlay Style to return to your look.", destination: "theme" },
-	home: { target: "dashboard-home", title: "Open your Dashboard", description: "Click the Clipify logo to find your overlays and playlists.", destination: "dashboard" },
-	overlays: { target: "overlays-tab", title: "Open Overlays", description: "Choose the Overlays tab.", action: true, next: true },
+	home: { target: "dashboard-home", title: "Open your Dashboard", description: "Open Home to find your overlays and playlists.", destination: "dashboard" },
+	overlays: { target: "overlays-tab", title: "Open Overlays", description: "Choose Overlays in navigation.", action: true, next: true },
 	overlay: { target: "open-overlay", title: "Open your overlay", description: "Click your overlay's row to open its settings.", destination: "overlay" },
-	playlists: { target: "playlists-tab", title: "Open Playlists", description: "Choose the Playlists tab.", action: true, next: true },
+	playlists: { target: "playlists-tab", title: "Open Playlists", description: "Choose Playlists in navigation.", action: true, next: true },
 	playlist: { target: "open-playlist", title: "Open your playlist", description: "Click your playlist's row to edit its clips.", destination: "playlist" },
-	profile: { target: "nav-menu", reveals: "nav-tools", title: "Open the app menu", description: "Click your avatar.", action: true, next: true },
-	tools: { target: "nav-tools", title: "Open Tools", description: "Choose Tools for website players and galleries.", destination: "tools", preserveFocus: true },
+	profile: { target: "settings-group", reveals: "settings-core-tab", title: "Expand Settings", description: "Expand Settings in the sidebar.", action: true, next: true },
+	tools: { target: "nav-tools", title: "Open Clip Player", description: "Choose Clip Player in the Tools sidebar.", destination: "tools", preserveFocus: true },
 };
 export function currentGuideStep(progress: GuideProgress): GuideStep | undefined {
 	if (!progress.active) return;
 	const navigation = progress.active.navigation?.[0];
+	// Saved guides retain the legacy profile step while navigation lives in the sidebar.
+	if (navigation === "profile" && progress.active.task === "explore.tools") return { target: "tools-group", reveals: "nav-tools", title: "Expand Tools", description: "Expand Tools in the sidebar.", action: true, next: true };
 	return navigation ? navigationSteps[navigation] : stepsForTask(progress.active.task, progress)[progress.active.index];
 }
 export function activeGuidePercent(progress: GuideProgress) {
@@ -454,15 +456,20 @@ export function transition(progress: GuideProgress, event: GuideEvent, accountId
 }
 /** Expected page only, never a command to navigate. */
 export function routeForTask(task: TaskId, progress: GuideProgress): string {
-	if (task === "playlist.use" && !progress.playlistId) return "/dashboard";
+	if (task === "playlist.use" && !progress.playlistId) return "/dashboard/playlists";
 	const nav = progress.active?.task === task ? progress.active.navigation?.[0] : undefined;
-	if (nav === "home" || nav === "overlays" || nav === "overlay" || nav === "playlists" || nav === "playlist") return "/dashboard";
+	if (nav === "home") return "/dashboard";
+	if (nav === "overlays" || nav === "overlay") return "/dashboard/overlays";
+	if (nav === "playlists" || nav === "playlist") return "/dashboard/playlists";
+	if (task === "explore.runners") return "/dashboard/runners";
+	if (task === "explore.galleries") return "/dashboard/galleries";
 	if (task === "explore.tools") return "/dashboard/tools";
 	if (task === "explore.settings" || task === "explore.ai") return "/dashboard/settings";
 	if (task === "explore.editors") return "/dashboard/settings";
 	if (task.startsWith("explore.")) return "/dashboard";
-	if (task === "playlist.name" || task === "playlist.clips") return progress.playlistId ? `/dashboard/playlist/${progress.playlistId}` : "/dashboard";
-	if (!progress.overlayId || (task === "overlay.name" && !progress.active?.index)) return "/dashboard";
+	if (task === "playlist.name" && !progress.active?.index) return "/dashboard/playlists";
+	if (task === "playlist.name" || task === "playlist.clips") return progress.playlistId ? `/dashboard/playlist/${progress.playlistId}` : "/dashboard/playlists";
+	if (!progress.overlayId || (task === "overlay.name" && !progress.active?.index)) return "/dashboard/overlays";
 	return `/dashboard/overlay/${progress.overlayId}${isThemeTask(task) && (progress.active?.index ?? 0) > 0 ? "/theme" : ""}`;
 }
 const createOverlay: GuideStep = { target: "create-overlay", title: "Create an overlay", description: "Click Add Overlay to create one. This opens its settings." };
@@ -543,7 +550,7 @@ export function stepsForTask(task: TaskId, progress: GuideProgress): GuideStep[]
 			];
 		case "explore.settings":
 			return [
-				{ target: "settings-core-tab", title: "Choose Settings", description: "Open the Settings tab for your account preferences.", action: true, next: true, reveals: "settings-overview" },
+				{ target: "settings-core-tab", title: "Choose Account", description: "Choose Account in the Settings sidebar for your account preferences.", action: true, next: true, reveals: "settings-overview" },
 				{ target: "settings-overview", title: "Your account settings", description: "Find your profile, plan and preferences here. The tabs above also lead to connections, your creator page, billing and team.", next: true },
 				{ target: "account-security", title: "Sign-in and security", description: "Manage your sign-in email and passkeys here. You can review these options without changing anything.", next: true, finish: true, nextLabel: "Done" },
 			];

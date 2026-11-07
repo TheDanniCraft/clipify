@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
-const { browserTestCases, listBrowserTests } = require("./browser-sharding.cjs");
+const { browserTestCases, listBrowserTests, BROWSER_PROJECTS } = require("./browser-sharding.cjs");
 function collectBrowserDurations(reports, expectedIds) {
 	const durations = {},
 		seen = new Set(),
@@ -7,9 +7,9 @@ function collectBrowserDurations(reports, expectedIds) {
 	for (const report of reports) {
 		if (report.stats?.unexpected !== 0 || report.stats?.skipped !== 0 || report.errors?.length) throw Error("Timing evidence must come from successful complete browser runs");
 		let attemptsSeconds = 0;
-		for (const row of browserTestCases(report)) {
-			if (seen.has(row.id)) throw Error("Browser timing evidence contains duplicate scenarios");
-			seen.add(row.id);
+		for (const row of browserTestCases(report, BROWSER_PROJECTS)) {
+			if (seen.has(row.selector)) throw Error("Browser timing evidence contains duplicate scenarios");
+			seen.add(row.selector);
 			if (!["expected", "flaky"].includes(row.test.status) || !row.test.results?.length || row.test.results.at(-1).status !== "passed") throw Error("Timing evidence must contain successful scenarios");
 			for (const attempt of row.test.results) if (!Number.isFinite(attempt.duration) || attempt.duration < 0) throw Error("Invalid browser duration");
 			attemptsSeconds += row.test.results.reduce((n, r) => n + r.duration, 0) / 1000;
@@ -17,15 +17,22 @@ function collectBrowserDurations(reports, expectedIds) {
 			if (!Number.isFinite(elapsed) || elapsed < 0 || elapsed > 86400) throw Error("Invalid browser duration");
 			const file = row.file.replace(/^\.features-gen\//, "");
 			durations[file] = (durations[file] ?? 0) + Math.max(0.001, elapsed);
+			const qualifiedFile = `[${row.test.projectName}] › ${row.file}`;
+			durations[qualifiedFile] = (durations[qualifiedFile] ?? 0) + Math.max(0.001, elapsed);
 			durations[row.selector] = Math.max(0.001, elapsed);
 		}
 		if (report.stats.duration !== undefined) {
 			if (!Number.isFinite(report.stats.duration) || report.stats.duration < 0) throw Error("Invalid browser duration");
-			startup.push(Math.max(0, report.stats.duration / 1000 - attemptsSeconds));
+			const project = browserTestCases(report, BROWSER_PROJECTS)[0].test.projectName;
+			startup.push({ project, seconds: Math.max(0, report.stats.duration / 1000 - attemptsSeconds) });
 		}
 	}
-	const startupSeconds = startup.reduce((sum, seconds) => sum + seconds, 0) / startup.length;
-	if (startupSeconds > 0) durations.__browserStartupSeconds = startupSeconds;
+	for (const project of BROWSER_PROJECTS) {
+		const samples = startup.filter((s) => s.project === project);
+		const seconds = samples.reduce((n, s) => n + s.seconds, 0) / samples.length;
+		if (seconds > 0) durations[`__browserStartupSeconds:${project}`] = seconds;
+	}
+
 	if (!seen.size) throw Error("Browser timing inventory is empty");
 	if (expectedIds && JSON.stringify([...seen].sort()) !== JSON.stringify([...expectedIds].sort())) throw Error("Browser shards did not execute their complete scenario inventory");
 	return durations;
@@ -40,7 +47,7 @@ if (require.main === module) {
 		.map((p) => JSON.parse(readFileSync(join(directory, p), "utf8")));
 	const durations = collectBrowserDurations(
 		reports,
-		browserTestCases(listBrowserTests()).map((c) => c.id),
+		browserTestCases(listBrowserTests([], BROWSER_PROJECTS), BROWSER_PROJECTS).map((c) => c.selector),
 	);
 	mkdirSync(dirname(output), { recursive: true });
 	writeFileSync(output, JSON.stringify(durations, null, 2) + "\n");

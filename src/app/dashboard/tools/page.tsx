@@ -15,7 +15,7 @@ export default async function ToolsPage({ searchParams }: { searchParams: Promis
 	const tool = (Array.isArray(params.tool) ? params.tool[0] : params.tool) === "gallery" ? "gallery" : "player";
 	const galleryId = Array.isArray(params.gallery) ? params.gallery[0] : params.gallery;
 	return (
-		<DashboardNavbar user={user} title='Tools' tagline='Install Clipify on your website'>
+		<DashboardNavbar user={user} title={tool === "gallery" ? "Clip Gallery" : "Clip Player"} tagline='Install Clipify on your website'>
 			<ToolsClient key={user.id} overlays={(overlays ?? []).filter((overlay) => overlay.ownerId === user.id)} galleries={(galleries ?? []).filter((gallery) => gallery.ownerId === user.id)} initialTool={tool} initialGalleryId={galleryId} origin={origin} />
 		</DashboardNavbar>
 	);

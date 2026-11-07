@@ -158,9 +158,9 @@ Feature: Clipify guided onboarding
     Then the guide explains Pro availability without starting a paywall
 
   @US1 @FR-001 @SC-001 @BDD-TOUR-US1-027
-  Scenario: Show the checklist in the corner by default
+  Scenario: Keep the checklist accessible beside sidebar navigation
     Given an isolated authenticated Clipify guide account
-    Then the checklist is open in the corner with progress and no automatic spotlight
+    Then the checklist opens beside sidebar navigation with progress and no automatic spotlight
 
   @US1 @FR-006 @SC-002 @BDD-TOUR-US1-028
   Scenario: Skip and restore a task with the real checkbox

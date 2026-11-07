@@ -26,6 +26,13 @@ browser jobs. These local instructions use 18 for both. The owning CI jobs remai
 the required version-specific release validation. Other operating systems need
 their native PostgreSQL installation and the same Playwright dependency setup.
 
+## Creator portrait exports
+
+Portrait export tests and the app runtime need `ffmpeg`, `ffprobe`, and DejaVu Sans.
+On Ubuntu install them with `sudo apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core`.
+The production container and owning CI jobs install these packages. Renderer tests use
+locally generated media; they never download customer clips.
+
 ## Runner package prerequisites
 
 The guarded Playwright server generates a disposable Ed25519 signing key for
@@ -243,6 +250,7 @@ browser shards without native workflow duplication:
 
 ```sh
 bunx bddgen
+node scripts/run-browser-shard.mjs acceptance-chromium 1/1
 node scripts/run-browser-shard.mjs atdd-chromium 1/1
 node scripts/run-browser-shard.mjs bdd-chromium 1/1
 node scripts/run-browser-shard.mjs compliance-chromium 1/1
@@ -335,16 +343,17 @@ and timing classification to both local runners and CI.
 
 Browser scheduling uses recent successful CI timings, with
 `scripts/test-duration-baseline.json` as the fallback. CI creates one immutable plan
-for every browser matrix job, targeting five minutes of estimated BDD test work
-per shard. Shard counts grow with measured work; there is no artificial job ceiling. Setup, builds and queues are additional; the
+for every browser matrix job, targeting five minutes of estimated test work per shard for acceptance, BDD, ATDD and compliance. Shard counts grow with measured work; there is no artificial job ceiling. Setup, builds and queues are additional; the
 job summary reports any over-budget shard rather than omitting tests. The other
 coverage and browser lanes retain their complete inventories and thresholds.
 
-Mark a feature `@shard:scenario` only after verifying that every scenario owns an
-independent fixture. The guide feature has that property; its former 12.7-minute
+New scenarios and files receive equal estimates based on measured peers in their suite, and are spread across shards where fixture independence allows. The next complete successful run supplies their actual durations; every subsequent plan recalculates both placement and shard count. Serial/shared fixtures remain atomic. The checked-in browser baseline includes successful acceptance, ATDD and compliance timings from run42117799101; it is scheduling data, never passing evidence for a changed commit.
+
+Mark a feature or Playwright case `@shard:scenario` only after verifying that every scenario owns an
+independent fixture. The guide feature and the per-case database/server recovery and brand-settings suites have that property; the guide's former 12.7-minute
 file can therefore split across workers. Other files stay grouped to preserve
 shared setup. Every planned selector is resolved through Playwright before running.
-The final gate verifies that the collected BDD reports cover the complete current
+The final gate verifies that reports from all four browser projects cover the complete current
 scenario inventory exactly once before saving new scheduling timings. Timing
 caches never substitute for passing test results.
 
@@ -422,11 +431,11 @@ list of equally expensive browser scenarios.
 ### Browser setup and build transfer
 
 CI downloads the exact Playwright browser revision once into a versioned binary
-cache. Each browser job still checks its own OS dependencies with Playwright's
-`install-deps --dry-run`, installs missing libraries, and ensures the matching
-browser is present. A binary cache never establishes OS readiness or a test pass.
+cache. Each browser job ensures the matching browser exists and verifies its own OS libraries by actually launching Chromium. A dry run only prints installation commands and cannot establish readiness. Missing libraries invoke the official dependency installer, then the launch is checked again. A binary cache never establishes OS readiness or a test pass.
 [Playwright cautions that binary-cache restore can cost as much as downloading](https://playwright.dev/docs/ci#caching-browsers);
 compare actual cache and setup timings rather than assuming a cache is faster.
+
+Linux CI jobs follow `ubuntu-latest`; setup checks and installs the required tools on the selected image. Media setup reuses the bundled licensed font files and installed FFmpeg before contacting package mirrors. On disposable GitHub runners, setup replaces the stalled Azure Ubuntu mirror with Ubuntu’s primary mirror in both repository entries and the `apt-mirrors*.txt` files used by APT’s mirror-list transport before APT runs. Local host repository files remain unchanged. Installation commands run noninteractively with bounded network retries, network/lock timeouts, a three-minute whole-command deadline and explicit workflow step deadlines. A failed setup remains a failed prerequisite; it never becomes passing test evidence or a silently skipped suite.
 
 The shared build artifact is `browser-build.tar.gz`. It preserves runtime files,
 static assets, manifests and source maps, while excluding compilation cache and

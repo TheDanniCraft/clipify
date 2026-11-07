@@ -5,7 +5,7 @@ it("opens the checklist by default, without starting a blocking spotlight", () =
 });
 it("starts creation at Add Overlay even when the dashboard discovered an existing overlay", () => {
 	const state = apply({ ...defaultProgress(), overlayId: "existing" }, { type: "start", task: "overlay.name" });
-	expect(routeForTask("overlay.name", state)).toBe("/dashboard");
+	expect(routeForTask("overlay.name", state)).toBe("/dashboard/overlays");
 	expect(stepsForTask("overlay.name", state)[state.active!.index].target).toBe("create-overlay");
 	const created = apply(state, { type: "overlay.created", ownerId: "owner", id: "new" });
 	expect(stepsForTask("overlay.name", created)[created.active!.index].target).toBe("overlay-name");

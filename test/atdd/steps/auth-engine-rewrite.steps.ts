@@ -98,8 +98,15 @@ When("the creator owner accepts the request with a creator-approved permission s
 	await page.goto("/dashboard/settings/agencies");
 	await expect(page.getByRole("heading", { name: "Agency access" })).toBeVisible({ timeout: 30_000 });
 	await prepareInteractivePage(page);
+	const analytics = page.getByRole("checkbox", { name: "Analytics Read", exact: true });
+	await expect(analytics).toBeChecked();
+	await analytics.press("Space");
+	await expect(analytics).not.toBeChecked();
+	await expect(page.getByRole("checkbox", { name: "Overlay Read", exact: true })).toBeChecked();
 	await page.getByRole("button", { name: "Approve agency access" }).click();
 	await expect(page.getByText("Accepted", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
+	await expect(page.getByText("overlay:read", { exact: true })).toBeVisible();
+	await expect(page.getByText("analytics:read", { exact: true })).toHaveCount(0);
 });
 
 Then("the staff member can manage the creator only through permissions present in both sets", async ({ authWorld }) => {
@@ -127,6 +134,10 @@ Given("an agency has an available paid creator license and an accepted creator l
 });
 
 When("the agency allocates the license to that creator", async ({ page, authWorld }) => {
+	const hydrationErrors: string[] = [];
+	page.on("pageerror", (error) => {
+		if (/hydration|#418/i.test(error.message)) hydrationErrors.push(error.message);
+	});
 	await (authWorld.values.get("allocationService") as AgencyAllocationService).allocate({ linkId: "link-atdd", creatorId: "creator-atdd", sourceReference: "custom-contract" });
 	const fixture = authWorld.values.get("realAgencyFixture") as { fixture: { creatorOrganizationId: string } };
 	await page.goto(`/dashboard/agency?creator=${encodeURIComponent(fixture.fixture.creatorOrganizationId)}`);
@@ -137,6 +148,7 @@ When("the agency allocates the license to that creator", async ({ page, authWorl
 	await expect(commercialReference).toHaveValue("e2e-atdd-allocation");
 	await page.getByRole("button", { name: "Allocate Pro seat" }).click();
 	await expect(page.getByText("Creator Pro seat allocated.", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
+	expect(hydrationErrors).toEqual([]);
 	const occupiedSeatCard = page.getByText("Occupied", { exact: true }).locator("..");
 	await expect(occupiedSeatCard.getByRole("heading", { name: "1", exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
 });
@@ -340,7 +352,7 @@ When(/^the owner (updates account information|requests an account export|cancels
 	await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible({ timeout: 30_000 });
 	await prepareInteractivePage(page);
 	if (operation === "updates account information") {
-		await page.getByRole("tab", { name: "Creator Page" }).click();
+		await page.getByRole("treegrid", { name: "Creator navigation", exact: true }).getByRole("row", { name: "Creator Page", exact: true }).click();
 		const creatorPageSwitch = page.getByRole("switch", { name: "Enable creator page" });
 		await expect(creatorPageSwitch).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
 		await expect(creatorPageSwitch).toBeEnabled({ timeout: DATABASE_ACTION_TIMEOUT_MS });
@@ -358,7 +370,7 @@ When(/^the owner (updates account information|requests an account export|cancels
 		await dialog.getByRole("button", { name: "Email download link" }).click();
 		await expect(page.getByText("Data export requested", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
 	} else {
-		await page.getByRole("tab", { name: "Billing" }).click();
+		await page.getByRole("treegrid", { name: "Creator navigation", exact: true }).getByRole("row", { name: "Billing", exact: true }).click();
 		const pro = page.getByRole("checkbox", { name: "Pro" });
 		await expect(pro).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
 		await pro.press("Space");

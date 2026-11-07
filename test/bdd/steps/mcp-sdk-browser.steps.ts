@@ -71,7 +71,7 @@ When("the official SDK completes {word} approval edit abandoned consent and revo
 			await expect(page.getByRole("textbox", { name: /^Overlay Name\*?$/ })).toHaveValue("Official SDK browser edit", { timeout: 30000 });
 			const listed = await connected.client.callTool({ name: "list_overlays", arguments: { creatorId: args.creatorId } });
 			expect((listed.structuredContent as any)?.items?.some((item: any) => item.id === args.overlayId && item.name === "Official SDK browser edit")).toBe(true);
-			await page.goto(`${origin}/dashboard`, { waitUntil: "domcontentloaded" });
+			await page.goto(`${origin}/dashboard/overlays`, { waitUntil: "domcontentloaded" });
 			await expect(page.getByText("Loading overlays", { exact: true })).toHaveCount(0, { timeout: 30000 });
 			await expect(page.getByText("Official SDK browser edit", { exact: true })).toBeVisible();
 			const limited = await connected.client.callTool({ name: "create_overlay", arguments: { creatorId: args.creatorId, retryKey: "sdk-browser-over-limit", name: "Must not appear" } });
@@ -91,14 +91,13 @@ When("the official SDK completes {word} approval edit abandoned consent and revo
 			await expect(page.getByText("Official SDK created overlay", { exact: true })).toBeVisible();
 		}
 		if (area === "playlists") {
-			await page.goto(`${origin}/dashboard`, { waitUntil: "domcontentloaded" });
-			await expect(page.getByText("Loading overlays", { exact: true })).toHaveCount(0, { timeout: 30000 });
+			await page.goto(`${origin}/dashboard/playlists`, { waitUntil: "domcontentloaded" });
+			await expect(page.getByText("Loading playlists", { exact: true })).toHaveCount(0, { timeout: 30000 });
 			const playlistArgs = { creatorId: args.creatorId, playlistId: owner.fixture.playlistId };
 			const playlistRead = await connected.client.callTool({ name: "get_playlist", arguments: playlistArgs });
 			expect((playlistRead.structuredContent as any)?.items.map((item: any) => item.id)).toEqual(["ClipFirst", "ClipSecond"]);
 			const playlistList = await connected.client.callTool({ name: "list_playlists", arguments: { creatorId: args.creatorId } });
 			expect((playlistList.structuredContent as any)?.items.some((item: any) => item.id === playlistArgs.playlistId)).toBe(true);
-			await page.getByRole("tab", { name: "Playlists", exact: true }).click();
 			await expect(page.getByText("Browser playlist", { exact: true })).toBeVisible();
 			await page.goto(`${origin}/dashboard/playlist/${playlistArgs.playlistId}`);
 			await expect(page.getByPlaceholder("Playlist name")).toHaveValue("Browser playlist", { timeout: 30000 });
@@ -129,15 +128,14 @@ When("the official SDK completes {word} approval edit abandoned consent and revo
 			expect((playlistLimit.structuredContent as any)?.error?.code).toBe("PLAN_LIMIT_REACHED");
 			const playlistDelete = await connected.client.callTool({ name: "delete_playlist", arguments: { ...playlistArgs, expectedRevision: 5 } });
 			expect((playlistDelete.structuredContent as any)?.deletedId).toBe(playlistArgs.playlistId);
-			await page.goto(`${origin}/dashboard`, { waitUntil: "domcontentloaded" });
-			await expect(page.getByText("Loading overlays", { exact: true })).toHaveCount(0, { timeout: 30000 });
-			await page.getByRole("tab", { name: "Playlists", exact: true }).click();
+			await page.goto(`${origin}/dashboard/playlists`, { waitUntil: "domcontentloaded" });
+			await expect(page.getByText("Loading playlists", { exact: true })).toHaveCount(0, { timeout: 30000 });
+			await expect(page.getByText("No playlists found", { exact: true })).toBeVisible();
 			await expect(page.getByText("Official SDK playlist edit", { exact: true })).toHaveCount(0);
 			const playlistCreate = await connected.client.callTool({ name: "create_playlist", arguments: { creatorId: args.creatorId, retryKey: "sdk-browser-new-playlist", name: "Official SDK created playlist" } });
 			expect(typeof (playlistCreate.structuredContent as any)?.id).toBe("string");
 			await page.reload({ waitUntil: "domcontentloaded" });
-			await expect(page.getByText("Loading overlays", { exact: true })).toHaveCount(0, { timeout: 30000 });
-			await page.getByRole("tab", { name: "Playlists", exact: true }).click();
+			await expect(page.getByText("Loading playlists", { exact: true })).toHaveCount(0, { timeout: 30000 });
 			await expect(page.getByText("Official SDK created playlist", { exact: true })).toBeVisible();
 		}
 		await page.goto(authorization);

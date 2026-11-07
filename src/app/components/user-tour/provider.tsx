@@ -1,5 +1,7 @@
 "use client";
 import { createContext, lazy, Suspense, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import DashboardUtilityPortal from "@components/dashboardUtilityPortal";
 import { usePathname } from "next/navigation";
 import { notify as addToast } from "@lib/toast";
 import { trackEvent } from "@lib/analytics";
@@ -93,6 +95,7 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 	const [message, setMessage] = useState("");
 	const [consentOpen, setConsentOpen] = useState(false);
 	const [consentBanner, setConsentBanner] = useState(false);
+	const [guideRequested, setGuideRequested] = useState(false);
 	const [syncState, setSyncState] = useState<"idle" | "saving" | "error">("idle");
 	const launcher = useRef<HTMLButtonElement>(null);
 	const previousPath = useRef(pathname);
@@ -194,7 +197,8 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 			setTimeout(() => {
 				const focusOwner = document.activeElement;
 				if (document.querySelector(`${tourModalSelector}, ${tourPopoverSelector}`) || focusOwner?.id === "sentry-feedback" || focusOwner?.tagName === "IFRAME") return;
-				launcher.current?.focus();
+				if (launcher.current?.getClientRects().length) launcher.current.focus();
+				else document.querySelector<HTMLButtonElement>('[aria-label="Toggle navigation"]')?.focus();
 			}, 0);
 		},
 		[activeTask, report],
@@ -238,6 +242,7 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 	const onPrevious = useCallback(() => report({ type: "previous", location, pickerOpen: Boolean(document.querySelector('[data-tour="playlist-clip-search"]')) }), [report, location]);
 	const isFinished = (task: TaskId) => progress.completed.includes(task) || progress.skipped.includes(task);
 	const currentJourney = journeys.find((journey) => journey.id === (active?.task.split(".")[0] ?? progress.journeyId)) ?? journeys[0];
+	const panelVisible = !progress.minimized && (!consentBanner || guideRequested);
 	const launcherTitle = currentJourney.id === "overlay" ? "Get started" : currentJourney.title;
 	const percentage = journeyGuidePercent(progress);
 	return (
@@ -245,93 +250,110 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 			{children}
 			{hydrated && <DashboardContentHost isVisible={!consentOpen && !consentBanner} items={dashboardContent.length ? dashboardContent : offerWelcome ? [guidedWelcome] : []} onStartGuide={offerWelcome ? () => report({ type: "welcome.start", location: rawLocation }) : undefined} onDismissGuide={offerWelcome ? () => report({ type: "welcome.dismiss" }) : undefined} />}
 			<span hidden data-guide-sync={syncState} />
-			{hydrated && !consentOpen && !consentBanner && (
-				<aside aria-label='Clipify guide' style={{ bottom }} className='user-tour-launcher fixed right-4 flex flex-col items-end z-40 max-w-[calc(100vw-2rem)]'>
-					{!progress.minimized && (
-						<section id='clipify-guide-panel' aria-label='Your Clipify guide' style={{ maxHeight: `calc(100dvh - ${bottom + 80}px)` }} className='mb-3 w-80 overflow-y-auto rounded-2xl border border-separator bg-surface p-4 text-foreground shadow-xl'>
-							<div className='mb-2 flex items-center justify-between gap-3'>
-								<h2 className='font-semibold'>Get started</h2>
-								<Button isIconOnly size='sm' variant='ghost' aria-label='Minimize guide' onPress={() => report({ type: "panel", minimized: true })}>
-									<IconMinus size={16} />
-								</Button>
-							</div>
-							{message && (
-								<p role='status' className='mb-3 text-xs text-muted'>
-									{message}
-								</p>
-							)}
-							{syncState === "error" && (
-								<div role='status' className='mb-3 flex items-center justify-between gap-2 text-xs'>
-									<span>Could not save progress.</span>
-									<Button size='sm' variant='ghost' onPress={() => void drain()}>
-										Retry
-									</Button>
-								</div>
-							)}
-							<Accordion allowsMultipleExpanded={false} expandedKeys={expanded ? new Set([expanded]) : new Set()} onExpandedChange={(keys) => setExpanded(keys.size ? String([...keys][0]) : null)}>
-								{journeys.map((journey) => (
-									<Accordion.Item key={journey.id} id={journey.id}>
-										<Accordion.Heading>
-											<Accordion.Trigger className='gap-2 py-3 text-sm'>
-												<span className='flex-1 text-left'>{journey.title}</span>
-												<span className='text-xs text-muted'>
-													{journey.tasks.filter((task) => isFinished(task.id)).length}/{journey.tasks.length}
-												</span>
-												<Accordion.Indicator />
-											</Accordion.Trigger>
-										</Accordion.Heading>
-										<Accordion.Panel>
-											<Accordion.Body className='px-0 pb-2'>
-												<ul className='space-y-1'>
-													{journey.tasks.map((task) => {
-														const current = activeTask === task.id;
-														const finished = isFinished(task.id);
-														const skipped = progress.skipped.includes(task.id);
-														return (
-															<li key={task.id} className={`flex items-start gap-3 rounded-lg px-2 py-2 ${current ? "bg-accent-soft" : ""}`}>
-																<TaskCheckbox
-																	task={task}
-																	selected={finished}
-																	current={current}
-																	onRestore={() => report({ type: "task.restore", task: task.id })}
-																	onRequest={() => {
-																		if (active && !active.paused) report({ type: "pause" });
-																	}}
-																	onConfirm={() => report({ type: "task.skip", task: task.id })}
-																/>
-																<Button aria-label={task.title} aria-describedby={skipped && !current ? `guide-task-${task.id}-status` : undefined} variant='ghost' className={`group h-auto min-w-0 flex-1 justify-between gap-2 whitespace-normal px-0 py-0.5 text-left text-sm ${finished && !current ? "text-muted" : ""}`} onPress={() => start(task.id)}>
-																	<span className='min-w-0'>
-																		<span>{task.title}</span>
-																		{skipped && !current && (
-																			<span id={`guide-task-${task.id}-status`} className='ml-2 whitespace-nowrap text-sm font-medium text-foreground'>
-																				Skipped
+			{hydrated && !consentOpen && (
+				<DashboardUtilityPortal slot='guide'>
+					<aside aria-label='Clipify guide' className='user-tour-launcher relative flex min-w-0 flex-col items-start'>
+						{panelVisible &&
+							createPortal(
+								<section id='clipify-guide-panel' aria-label='Your Clipify guide' style={{ maxHeight: `calc(100dvh - ${bottom + 80}px)` }} className='user-tour-launcher fixed bottom-24 left-4 z-40 w-80 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl border border-separator bg-surface p-4 text-foreground shadow-xl md:left-[17rem]'>
+									<div className='mb-2 flex items-center justify-between gap-3'>
+										<h2 className='font-semibold'>Get started</h2>
+										<Button isIconOnly size='sm' variant='ghost' aria-label='Minimize guide' onPress={() => report({ type: "panel", minimized: true })}>
+											<IconMinus size={16} />
+										</Button>
+									</div>
+									{message && (
+										<p role='status' className='mb-3 text-xs text-muted'>
+											{message}
+										</p>
+									)}
+									{syncState === "error" && (
+										<div role='status' className='mb-3 flex items-center justify-between gap-2 text-xs'>
+											<span>Could not save progress.</span>
+											<Button size='sm' variant='ghost' onPress={() => void drain()}>
+												Retry
+											</Button>
+										</div>
+									)}
+									<Accordion allowsMultipleExpanded={false} expandedKeys={expanded ? new Set([expanded]) : new Set()} onExpandedChange={(keys) => setExpanded(keys.size ? String([...keys][0]) : null)}>
+										{journeys.map((journey) => (
+											<Accordion.Item key={journey.id} id={journey.id}>
+												<Accordion.Heading>
+													<Accordion.Trigger className='gap-2 py-3 text-sm'>
+														<span className='flex-1 text-left'>{journey.title}</span>
+														<span className='text-xs text-muted'>
+															{journey.tasks.filter((task) => isFinished(task.id)).length}/{journey.tasks.length}
+														</span>
+														<Accordion.Indicator />
+													</Accordion.Trigger>
+												</Accordion.Heading>
+												<Accordion.Panel>
+													<Accordion.Body className='px-0 pb-2'>
+														<ul className='space-y-1'>
+															{journey.tasks.map((task) => {
+																const current = activeTask === task.id;
+																const finished = isFinished(task.id);
+																const skipped = progress.skipped.includes(task.id);
+																return (
+																	<li key={task.id} className={`flex items-start gap-3 rounded-lg px-2 py-2 ${current ? "bg-accent-soft" : ""}`}>
+																		<TaskCheckbox
+																			task={task}
+																			selected={finished}
+																			current={current}
+																			onRestore={() => report({ type: "task.restore", task: task.id })}
+																			onRequest={() => {
+																				if (active && !active.paused) report({ type: "pause" });
+																			}}
+																			onConfirm={() => report({ type: "task.skip", task: task.id })}
+																		/>
+																		<Button aria-label={task.title} aria-describedby={skipped && !current ? `guide-task-${task.id}-status` : undefined} variant='ghost' className={`group h-auto min-w-0 flex-1 justify-between gap-2 whitespace-normal px-0 py-0.5 text-left text-sm ${finished && !current ? "text-muted" : ""}`} onPress={() => start(task.id)}>
+																			<span className='min-w-0'>
+																				<span>{task.title}</span>
+																				{skipped && !current && (
+																					<span id={`guide-task-${task.id}-status`} className='ml-2 whitespace-nowrap text-sm font-medium text-foreground'>
+																						Skipped
+																					</span>
+																				)}
 																			</span>
-																		)}
-																	</span>
-																	{finished && !current ? <IconRotateClockwise size={14} className='shrink-0 opacity-50 group-hover:opacity-100' /> : <IconChevronRight size={14} className='shrink-0 opacity-50 group-hover:opacity-100' />}
-																</Button>
-															</li>
-														);
-													})}
-												</ul>
-											</Accordion.Body>
-										</Accordion.Panel>
-									</Accordion.Item>
-								))}
-							</Accordion>
-						</section>
-					)}
-					<Button ref={launcher} data-tour='guide-launcher' aria-label={`${launcherTitle} · ${percentage}%`} aria-expanded={!progress.minimized} aria-controls='clipify-guide-panel' variant='secondary' className='ml-auto h-12 gap-3 rounded-full border border-separator bg-surface pl-2 pr-4 text-foreground shadow-lg' onPress={() => report({ type: "panel", minimized: !progress.minimized })}>
-						<ProgressCircle aria-label={`${currentJourney.title} progress`} value={percentage} size='lg' className='relative size-9 shrink-0'>
-							<ProgressCircle.Track style={{ width: 36, height: 36 }}>
-								<ProgressCircle.TrackCircle style={{ stroke: "var(--color-muted)", opacity: 0.45 }} />
-								<ProgressCircle.FillCircle />
-							</ProgressCircle.Track>
-							<span className='absolute inset-0 grid place-items-center text-[10px] font-semibold'>{`${percentage}%`}</span>
-						</ProgressCircle>
-						<span className='text-sm font-semibold'>{launcherTitle}</span>
-					</Button>
-				</aside>
+																			{finished && !current ? <IconRotateClockwise size={14} className='shrink-0 opacity-50 group-hover:opacity-100' /> : <IconChevronRight size={14} className='shrink-0 opacity-50 group-hover:opacity-100' />}
+																		</Button>
+																	</li>
+																);
+															})}
+														</ul>
+													</Accordion.Body>
+												</Accordion.Panel>
+											</Accordion.Item>
+										))}
+									</Accordion>
+								</section>,
+								document.body,
+							)}
+						<Button
+							ref={launcher}
+							data-tour='guide-launcher'
+							aria-label={`${launcherTitle} · ${percentage}%`}
+							aria-expanded={panelVisible}
+							aria-controls='clipify-guide-panel'
+							variant='ghost'
+							fullWidth
+							className='max-w-full justify-start gap-2 text-muted'
+							onPress={() => {
+								setGuideRequested(true);
+								report({ type: "panel", minimized: panelVisible });
+							}}
+						>
+							<ProgressCircle aria-label={`${currentJourney.title} progress`} value={percentage} size='sm' className='size-4 shrink-0'>
+								<ProgressCircle.Track style={{ width: 16, height: 16 }}>
+									<ProgressCircle.TrackCircle style={{ stroke: "var(--color-muted)", opacity: 0.45 }} />
+									<ProgressCircle.FillCircle />
+								</ProgressCircle.Track>
+							</ProgressCircle>
+							<span className='min-w-0 flex-1 truncate text-left'>{launcherTitle}</span>
+							<span className='text-xs tabular-nums'>{`${percentage}%`}</span>
+						</Button>
+					</aside>
+				</DashboardUtilityPortal>
 			)}
 			{hydrated && !consentOpen && !consentBanner && active && !active.paused && step && (
 				<Suspense fallback={null}>

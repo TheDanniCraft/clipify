@@ -55,6 +55,7 @@ export const tiers: Tier[] = [
 			"Advanced clip filtering",
 			"Additional playback modes: Top and Smart Shuffle",
 			"Theme Studio",
+			"Clip export watermark removal",
 			"Advanced clip player for embedding in websites",
 			"Priority support",
 			"Access to beta and upcoming features",
@@ -88,6 +89,8 @@ export const pricingFeatures: PricingFeatures = [
 	{
 		title: "Clips and playback",
 		items: [
+			{ title: "Manual clip exports", tiers: { free: true, pro: true }, helpText: "Download original clips or export Desktop and Mobile compositions from reusable layouts." },
+			{ title: "Clip export branding", tiers: { free: "Included", pro: "Optional" }, helpText: "Free Desktop and Mobile exports include a small Clipify watermark. Pro lets you remove it. Original downloads stay untouched." },
 			{ title: "Twitch clips", tiers: { free: "Unlimited", pro: "Unlimited" }, helpText: "Import and use your available Twitch clips throughout Clipify." },
 			{ title: "Playback modes", tiers: { free: "Random", pro: "Random, Top, and Smart Shuffle" }, helpText: "Choose how Clipify selects the next clip. Pro adds ranking and repeat-aware playback." },
 			{ title: "Clip filtering", tiers: { free: "Essential filters", pro: "Advanced filters" }, helpText: "Advanced filters include creator, category, duration, title, views, and date controls where supported." },
@@ -144,7 +147,8 @@ export const pricingFeatures: PricingFeatures = [
 	{
 		title: "Customization and support",
 		items: [
-			{ title: "Theme Studio", tiers: { free: false, pro: true }, helpText: "Customize overlay layouts, colors, typography, effects, timers, and progress elements." },
+			{ title: "Account brand styling", tiers: { free: true, pro: true }, helpText: "Share widget colors, corners and fonts across your overlays and clip layouts." },
+			{ title: "Theme Studio", tiers: { free: false, pro: true }, helpText: "Arrange overlay widgets and customize video effects, timers and progress elements." },
 			{ title: "Priority support", tiers: { free: false, pro: true }, helpText: "Pro support requests are prioritized when you need help with Clipify." },
 			{ title: "Beta and upcoming features", tiers: { free: false, pro: true }, helpText: "Get access to selected beta capabilities and upcoming Pro features as they become available." },
 		],

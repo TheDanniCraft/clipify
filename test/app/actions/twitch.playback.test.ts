@@ -760,3 +760,5 @@ describe("actions/twitch playback and cache behavior", () => {
 		expect(clips.map((clip) => clip.id)).toEqual(["dup", "kept"]);
 	});
 });
+
+jest.mock("@/server/clip-download-limit", () => ({ reserveTwitchClipDownloadRequest: jest.fn().mockResolvedValue({ allowed: true, remaining: 99 }) }));

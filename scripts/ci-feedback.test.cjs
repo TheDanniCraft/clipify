@@ -55,9 +55,9 @@ test("CI metadata planning loads the real Playwright config without enabling dat
 	const planned = spawnSync(process.execPath, ["scripts/plan-browser-shards.cjs"], { env, encoding: "utf8", timeout: 30000 });
 	assert.equal(planned.status, 0, planned.stderr);
 	const plan = JSON.parse(readFileSync("test-results/browser-shard-plan.json", "utf8"));
-	assert.ok(plan.shards.length > 6);
-	assert.ok(plan.shards.every((shard) => shard.testIds.length > 0));
-	assert.ok(plan.shards.filter((shard) => shard.selectors.some((selector) => selector.includes("/runner-free-pro.feature.spec.js ›"))).length > 1);
+	assert.ok(plan.projects["bdd-chromium"].every((shard) => shard.estimatedSeconds <= 300));
+	assert.ok(plan.projects["bdd-chromium"].every((shard) => shard.testIds.length > 0));
+	assert.ok(plan.projects["bdd-chromium"].flatMap((shard) => shard.selectors).filter((selector) => selector.includes("/runner-free-pro.feature.spec.js ›")).length > 1);
 	const steps = ci.jobs["browser-tests"].steps;
 	for (const name of ["📦 Install BDD native presentation dependencies", "🌐 Prepare BDD native presentation browser", "🎞️ Install BDD native media system dependencies"]) assert.equal(steps.find((step) => step.name === name).if, "matrix.native_media == true");
 	assert.equal(steps.find((step) => step.name === "🎞️ Prepare frame decoding only where required").if, "matrix.ffmpeg == true && matrix.native_media != true");
@@ -73,4 +73,24 @@ test("browser jobs share versioned binaries and transfer the exact runtime witho
 	assert.ok(steps.some((step) => step.with?.key === "${{ needs.deps.outputs.browser-cache-key }}"));
 	assert.ok(steps.some((step) => step.run?.includes("install-playwright-chromium.sh")));
 	assert.ok(steps.some((step) => step.run?.includes("browser-build-artifact.mjs unpack")));
+});
+
+test("system-package and browser bootstrap work is bounded without weakening the test gate", () => {
+	const ci = require("yaml").parse(readFileSync(".github/workflows/ci.yml", "utf8"));
+	for (const job of Object.values(ci.jobs))
+		for (const step of job.steps ?? []) {
+			if (step.run?.includes("install-frame-deps.sh") || step.run?.includes("install-runner-media-deps.sh") || step.run?.includes("install-playwright-chromium.sh")) assert.ok(step["timeout-minutes"] > 0 && step["timeout-minutes"] <= 10);
+			assert.doesNotMatch(step.run ?? "", /sudo apt-get/);
+		}
+	const install = ci.jobs.deps.steps.find((step) => step.run?.includes("bunx playwright install chromium"));
+	assert.ok(install["timeout-minutes"] > 0);
+	assert.match(install.run, /timeout/);
+	assert.equal(ci.jobs["browser-tests"].steps.find((step) => step.name === "📦 Upload successful browser timing evidence").if, "success()");
+});
+
+test("CI follows the latest Ubuntu image across planning, execution and evidence collection", () => {
+	const ci = require("yaml").parse(readFileSync(".github/workflows/ci.yml", "utf8"));
+	for (const [name, job] of Object.entries(ci.jobs)) {
+		if (typeof job["runs-on"] === "string" && job["runs-on"].startsWith("ubuntu-")) assert.equal(job["runs-on"], "ubuntu-latest", name);
+	}
 });

@@ -23,6 +23,8 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 	useEffect(() => {
 		let disposed = false;
 		let shown = false;
+		let requestedNavigation = false;
+		const sidebarStep = step.target.startsWith("settings-") || step.target === "tools-group" || step.target === "nav-tools";
 		let suspended = false;
 		let advanced = false;
 		let missingTimer: ReturnType<typeof setTimeout> | undefined;
@@ -44,9 +46,10 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 				}
 		};
 		const target = () => {
-			if (step.target === "support-report") return document.querySelector("#sentry-feedback")?.shadowRoot?.querySelector<HTMLElement>(".widget__actor") ?? null;
+			if (step.target === "support-report") return document.querySelector<HTMLElement>('[data-tour="support-report"]') ?? document.querySelector("#sentry-feedback")?.shadowRoot?.querySelector<HTMLElement>(".widget__actor") ?? null;
 			if (step.target === "support-chat") return document.querySelector<HTMLElement>('[aria-label="Enable support chat"], .woot--bubble-holder');
-			return document.querySelector<HTMLElement>(`[data-tour="${step.target}"]`);
+			const matches = [...document.querySelectorAll<HTMLElement>(`[data-tour="${step.target}"]`)];
+			return matches.find((element) => element.getClientRects().length > 0) ?? matches[0] ?? null;
 		};
 		const spotlight = driver({
 			animate: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
@@ -67,6 +70,7 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 		});
 		driverRef.current = spotlight;
 		const currentModal = () => Array.from(document.querySelectorAll<HTMLElement>(tourModalSelector)).findLast((modal) => !modal.closest('[data-exiting="true"]'));
+		const ownsModal = (modal: HTMLElement | undefined, element: HTMLElement | null) => Boolean(modal && element && modal.contains(element) && (step.inDialog || (sidebarStep && element.closest('[data-slot="sidebar-mobile"]'))));
 		const show = () => {
 			if (disposed) return;
 			if (document.querySelector("#consent-banner-title")) {
@@ -75,7 +79,15 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 			}
 			const element = target();
 			const modal = currentModal();
-			const ownsDialog = Boolean(step.inDialog && modal && element && modal.contains(element));
+			if (sidebarStep && !requestedNavigation && !element?.getClientRects().length) {
+				const toggle = document.querySelector<HTMLButtonElement>('[aria-label="Toggle navigation"][aria-expanded="false"]');
+				if (toggle && !toggle.disabled) {
+					requestedNavigation = true;
+					toggle.click();
+					return;
+				}
+			}
+			const ownsDialog = ownsModal(modal, element);
 			const revealed = step.reveals ? document.querySelector(`[data-tour="${step.reveals}"]`) : null;
 			const revealsExpectedDialog = Boolean(step.allowDialog && revealed && modal?.contains(revealed) && !revealed.closest('[data-exiting="true"]'));
 			if (modal && !ownsDialog && !revealsExpectedDialog) {
@@ -107,7 +119,7 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 				guidedModal = modal;
 				modal.dataset.tourGuidedDialog = "true";
 			}
-			if (step.action && element?.getAttribute("role") === "tab" && element.getAttribute("aria-selected") === "true") {
+			if (step.action && ((element?.getAttribute("role") === "tab" && element.getAttribute("aria-selected") === "true") || element?.getAttribute("aria-current") === "page")) {
 				if (!advanced) {
 					advanced = true;
 					onNext();
@@ -131,7 +143,7 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 						onCloseClick: onPause,
 						onNextClick: onConfirm ?? onNext,
 						onPopoverRender: ({ wrapper, closeButton }) => {
-							if (step.inDialog && guidedModal) {
+							if (guidedModal) {
 								guidedPopover = wrapper;
 								guidedModal.appendChild(wrapper);
 								restorePopoverScope();
@@ -184,7 +196,7 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 
 		const observer = new MutationObserver(() => {
 			const modal = currentModal();
-			if (modal && !(step.inDialog && target() && modal.contains(target()))) {
+			if (modal && !ownsModal(modal, target())) {
 				show();
 				return;
 			}
@@ -205,7 +217,7 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 			restorePopoverScope();
 			if (shown) spotlight.refresh();
 		});
-		observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-tour", "aria-modal", "role", "aria-selected", "data-entering", "data-exiting", "inert", "aria-hidden"] });
+		observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-tour", "aria-modal", "role", "aria-selected", "aria-current", "data-entering", "data-exiting", "inert", "aria-hidden"] });
 		show();
 		const timeout = window.setTimeout(() => {
 			if (!shown && !suspended && !advanced) {

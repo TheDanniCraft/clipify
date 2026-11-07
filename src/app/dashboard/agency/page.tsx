@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { IconArrowRight, IconBuildingCommunity, IconCheck, IconCreditCard, IconExternalLink, IconLicense, IconLink, IconUsersGroup } from "@tabler/icons-react";
 import { allocateAgencyLicenseFormAction, changeAgencySeatQuantityFormAction, getAgencyOverviewAction, openAgencyBillingPortalFormAction, proposeAgencyLinkFormAction, startAgencyBillingFormAction } from "@/app/actions/agency";
 import DashboardNavbar from "@components/dashboardNavbar";
-import { Button, Checkbox, Chip, Input, Label, TextField } from "@components/heroui-client";
+import { Button, Checkbox, CheckboxContent, CheckboxControl, CheckboxIndicator, Chip, Input, Label, TextField, Link as HeroLink } from "@components/heroui-client";
 import { Alert, Card, ProgressBar } from "@components/heroui-server";
 import { PERMISSIONS } from "@/auth/permissions";
 import { getDashboardNavbarUser } from "@/auth/navigation-user";
@@ -21,7 +21,7 @@ async function loadAgencyOverview(requestedCreatorOrganizationId?: string) {
 	try {
 		return await getAgencyOverviewAction(requestedCreatorOrganizationId);
 	} catch (error) {
-		if (error instanceof Error && ["AGENCY_CONTEXT_REQUIRED", "ACTIVE_AGENCY_MEMBERSHIP_REQUIRED"].includes(error.message)) redirect("/dashboard?agency=unavailable");
+		if (error instanceof Error && ["AGENCY_CONTEXT_REQUIRED", "ACTIVE_AGENCY_MEMBERSHIP_REQUIRED"].includes(error.message)) return null;
 		throw error;
 	}
 }
@@ -32,6 +32,20 @@ export default async function AgencyDashboardPage({ searchParams }: { searchPara
 	const params = await searchParams;
 	const requestedCreator = params.creator;
 	const overview = await loadAgencyOverview(typeof requestedCreator === "string" ? requestedCreator : undefined);
+	if (!overview)
+		return (
+			<DashboardNavbar user={user} title='Agency unavailable' tagline='Choose another account to continue'>
+				<Card className='my-6 max-w-2xl'>
+					<Card.Header>
+						<Card.Title>This agency is unavailable</Card.Title>
+						<Card.Description>Your access may have changed. Choose another account using the account switcher. You can stay signed in.</Card.Description>
+					</Card.Header>
+					<Card.Content>
+						<HeroLink href={user.plan ? "/dashboard" : "/logout"}>{user.plan ? "Return to your dashboard" : "Sign out"}</HeroLink>
+					</Card.Content>
+				</Card>
+			</DashboardNavbar>
+		);
 	const creatorContext = overview.creatorContext;
 	const availableSeats = Math.max(0, overview.account.creatorSeatLimit - overview.occupiedSeats);
 	const utilization = overview.account.creatorSeatLimit === 0 ? 0 : Math.round((overview.occupiedSeats / overview.account.creatorSeatLimit) * 100);
@@ -260,8 +274,13 @@ export default async function AgencyDashboardPage({ searchParams }: { searchPara
 											{actions.map((action) => {
 												const permission = `${resource}:${action}`;
 												return (
-													<Checkbox key={permission} name='permission' value={permission}>
-														{label(action)}
+													<Checkbox key={permission} name='permission' value={permission} variant='secondary'>
+														<CheckboxContent>
+															<CheckboxControl>
+																<CheckboxIndicator />
+															</CheckboxControl>
+															{label(action)}
+														</CheckboxContent>
 													</Checkbox>
 												);
 											})}

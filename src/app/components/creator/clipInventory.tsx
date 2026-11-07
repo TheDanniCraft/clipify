@@ -1,0 +1,455 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState, useTransition, useSyncExternalStore } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { Button, Card, Checkbox, Disclosure, Input, Label, ListBox, NumberField, Select, Table, TextField, Link } from "@heroui/react";
+import { buttonVariants } from "@heroui/styles";
+import { IconChevronRight, IconLayoutCollage } from "@tabler/icons-react";
+import { fromDate, toCalendarDate } from "@internationalized/date";
+import { getCreatorClipInventory, getCreatorClipSelection } from "@actions/creatorLibrary";
+import AppDateRangePicker, { type AppDateRange } from "@components/appDateRangePicker";
+import AppPagination from "@components/appPagination";
+import ClipPreview from "./clipPreview";
+import LocalizedDate from "@components/localizedDate";
+import ClipExport from "./clipExport";
+import { notify } from "@lib/toast";
+
+const subscribeToHydration = () => () => undefined;
+const clientReady = () => true;
+const serverReady = () => false;
+
+type InventoryResult = Awaited<ReturnType<typeof getCreatorClipInventory>>;
+type Clip = Extract<InventoryResult, { ok: true }>["items"][number];
+const fields: Record<string, string> = { title: "Title", category: "Category", minViews: "Minimum views", minDuration: "Minimum duration", maxDuration: "Maximum duration", startedAt: "Start date", endedAt: "End date", page: "Page", pageSize: "Page size", timeZone: "Timezone" };
+
+function restoredRange(query: Record<string, string>): AppDateRange | null {
+	try {
+		if (!query.startedAt || !query.endedAt || !Number.isFinite(Date.parse(query.startedAt)) || !Number.isFinite(Date.parse(query.endedAt))) return null;
+		const timeZone = query.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+		return { start: toCalendarDate(fromDate(new Date(query.startedAt), timeZone)), end: toCalendarDate(fromDate(new Date(query.endedAt), timeZone)).subtract({ days: 1 }) };
+	} catch {
+		return null;
+	}
+}
+
+export default function ClipInventory({ creatorId, query: initialQuery, data: initialData }: { creatorId: string; query: Record<string, string>; data: InventoryResult }) {
+	const hydrated = useSyncExternalStore(subscribeToHydration, clientReady, serverReady);
+	const [view, setView] = useState({ query: initialQuery, data: initialData });
+	const { query, data } = view;
+	const requestEpoch = useRef(0);
+	const selectionEpoch = useRef(0);
+	const [selectingAll, setSelectingAll] = useState(false);
+	const path = usePathname();
+	const router = useRouter();
+	const fixedVideoId = path.startsWith("/dashboard/streams/") ? initialQuery.videoId : undefined;
+	const [draft, setDraft] = useState(query);
+	const [pending, startTransition] = useTransition();
+	const selectionScope = JSON.stringify([
+		creatorId,
+		path,
+		Object.entries(query)
+			.filter(([key]) => key !== "page")
+			.sort(),
+	]);
+	const [selection, setSelection] = useState<{ scope: string; ids: Set<string>; cleared?: boolean; names?: Record<string, string> }>({ scope: selectionScope, ids: new Set<string>() });
+	const selected = selection.scope === selectionScope ? selection.ids : new Set<string>();
+	const selectClip = (id: string, include: boolean) => {
+		selectionEpoch.current++;
+		const ids = new Set(selected);
+		if (include) ids.add(id);
+		else if (!include) ids.delete(id);
+		setSelection({ scope: selectionScope, ids, names: { ...selection.names, ...Object.fromEntries(data.ok ? data.items.map((clip) => [clip.id, clip.title]) : []) } });
+	};
+	const selectAll = async () => {
+		const epoch = requestEpoch.current,
+			choice = ++selectionEpoch.current;
+		setSelectingAll(true);
+		try {
+			const parsed: Record<string, unknown> = { ...query };
+			for (const key of ["page", "pageSize", "minViews", "minDuration", "maxDuration"]) if (query[key] !== undefined) parsed[key] = Number(query[key]);
+			const result = await getCreatorClipSelection({ creatorId, query: parsed });
+			if (epoch !== requestEpoch.current || choice !== selectionEpoch.current) return;
+			if (!result.ok) {
+				if (result.code === "SERVICE_UNAVAILABLE" || result.code === "INVALID_INPUT") throw new Error(result.code);
+				setSelection({ scope: selectionScope, ids: new Set() });
+				setView({ query, data: result });
+				notify({ title: "You don’t have access to this creator’s clips.", color: "danger" });
+				return;
+			}
+			setSelection({ scope: selectionScope, ids: new Set(result.items.map((clip) => clip.id)), names: Object.fromEntries(result.items.map((clip) => [clip.id, clip.title])) });
+			if (!result.complete) notify({ title: `Selected ${result.items.length} known clips`, description: "Older clips may still be synchronizing.", color: "default" });
+			return { clipIds: result.items.map((clip) => clip.id), clipNames: Object.fromEntries(result.items.map((clip) => [clip.id, clip.title])) };
+		} catch {
+			if (epoch === requestEpoch.current && choice === selectionEpoch.current) notify({ title: "Clips could not be selected. Your selection is kept. Please try again.", color: "danger" });
+		} finally {
+			setSelectingAll(false);
+		}
+	};
+	const [preview, setPreview] = useState<Clip | null>(null);
+	const timeZone = query.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+	const [range, setRange] = useState<AppDateRange | null>(() => restoredRange(query));
+	const navigate = useCallback(
+		(next: Record<string, string>, push = true) => {
+			if (fixedVideoId) next = { ...next, videoId: fixedVideoId };
+			const epoch = ++requestEpoch.current;
+			const nextScope = JSON.stringify([
+				creatorId,
+				path,
+				Object.entries(next)
+					.filter(([key]) => key !== "page")
+					.sort(),
+			]);
+			setSelection((current) => (current.scope === nextScope ? current : { scope: nextScope, ids: new Set(), cleared: current.ids.size > 0 || current.cleared }));
+			startTransition(async () => {
+				const parsed: Record<string, unknown> = { ...next };
+				for (const key of ["page", "pageSize", "minViews", "minDuration", "maxDuration"]) if (next[key] !== undefined) parsed[key] = Number(next[key]);
+				let result: InventoryResult;
+				try {
+					result = await getCreatorClipInventory({ creatorId, query: parsed });
+				} catch {
+					result = { ok: false, code: "SERVICE_UNAVAILABLE" };
+				}
+				if (epoch !== requestEpoch.current) return;
+				if (!result.ok && result.code !== "INVALID_INPUT") {
+					notify({ title: result.code === "SERVICE_UNAVAILABLE" ? "Your clips could not be loaded. Please try again." : "You don’t have access to this creator’s clips.", color: "danger" });
+					if (result.code === "SERVICE_UNAVAILABLE") return;
+				}
+				setView({ query: next, data: result });
+				if (push) window.history.pushState(null, "", `${path}?${new URLSearchParams(next)}`);
+			});
+		},
+		[creatorId, path, fixedVideoId],
+	);
+	useEffect(() => {
+		const restore = () => {
+			const next = Object.fromEntries(new URLSearchParams(window.location.search));
+			setDraft(next);
+			setRange(restoredRange(next));
+			navigate(next, false);
+		};
+		window.addEventListener("popstate", restore);
+		return () => {
+			window.removeEventListener("popstate", restore);
+			requestEpoch.current++;
+		};
+	}, [navigate]);
+	const fieldErrors = !data.ok && "fieldErrors" in data ? data.fieldErrors : undefined;
+	const update = (key: string, value: string) => setDraft((current) => ({ ...current, [key]: value }));
+	const numericFilters = ["minViews", "minDuration", "maxDuration"].map((key) => (
+		<NumberField variant='secondary' key={key} value={draft[key] ? Number(draft[key]) : undefined} onChange={(value) => update(key, Number.isNaN(value) ? "" : String(value))} minValue={0} isInvalid={Boolean(fieldErrors?.[key as keyof typeof fieldErrors])}>
+			<Label>
+				{fields[key]}
+				{key.includes("Duration") ? " (seconds)" : ""}
+			</Label>
+			<NumberField.Group>
+				<NumberField.DecrementButton />
+				<NumberField.Input />
+				<NumberField.IncrementButton />
+			</NumberField.Group>
+		</NumberField>
+	));
+	return (
+		<div className={`@container flex min-w-0 flex-col gap-5 ${fixedVideoId ? "" : "my-6"}`}>
+			<Card>
+				{fixedVideoId ? (
+					<Card.Header className='flex flex-row flex-wrap items-center justify-between gap-3'>
+						<h2 className='font-semibold'>Clips</h2>
+						<ClipExport key={selectionScope} creatorId={creatorId} clipIds={data.ok ? data.items.map((clip) => clip.id) : []} scope={selectionScope} configure label='Export matching clips' prepareSelection={selectAll} isDisabled={pending || selectingAll || !data.ok || data.total === 0} />
+					</Card.Header>
+				) : null}
+				<Card.Content>
+					<form
+						className='grid grid-cols-[minmax(0,1fr)_auto] gap-3'
+						onSubmit={(event) => {
+							event.preventDefault();
+							const next = Object.fromEntries(Object.entries(draft).filter(([, value]) => value !== ""));
+							next.page = "1";
+							next.timeZone = timeZone;
+							if (range) {
+								next.startedAt = range.start.toDate(timeZone).toISOString();
+								next.endedAt = range.end.add({ days: 1 }).toDate(timeZone).toISOString();
+							} else {
+								delete next.startedAt;
+								delete next.endedAt;
+							}
+							navigate(next);
+						}}
+					>
+						<TextField value={draft.title ?? ""} onChange={(value) => update("title", value)}>
+							<Label>Title</Label>
+							<Input variant='secondary' placeholder='Search clip titles' />
+						</TextField>
+						<div role='group' aria-label='Filter actions' className='flex items-center gap-2 self-end'>
+							<Button
+								variant='tertiary'
+								aria-label='Clear filters'
+								onPress={() => {
+									setDraft({});
+									setRange(null);
+									navigate({});
+								}}
+							>
+								<span>
+									Clear<span className='hidden sm:inline'> filters</span>
+								</span>
+							</Button>
+							<Button type='submit' aria-label='Apply filters' isPending={pending}>
+								<span>
+									Apply<span className='hidden sm:inline'> filters</span>
+								</span>
+							</Button>
+						</div>
+						<Disclosure className='col-span-2' defaultExpanded={Boolean(fixedVideoId || query.category || query.minViews || query.minDuration || query.maxDuration || query.startedAt || query.sort)}>
+							<Disclosure.Heading>
+								<Disclosure.Trigger className='flex w-full items-center justify-between gap-2'>
+									Filters and sorting
+									<Disclosure.Indicator />
+								</Disclosure.Trigger>
+							</Disclosure.Heading>
+							<Disclosure.Content>
+								<Disclosure.Body className='grid gap-4 pt-4 sm:grid-cols-2 lg:grid-cols-3'>
+									{fixedVideoId ? numericFilters : null}
+									<Select variant='secondary' aria-label='Category' selectedKey={draft.category || null} onSelectionChange={(key) => update("category", String(key ?? ""))}>
+										<Label>Category</Label>
+										<Select.Trigger>
+											<Select.Value />
+										</Select.Trigger>
+										<Select.Popover>
+											<ListBox>
+												<ListBox.Item id='' textValue='All categories'>
+													All categories
+												</ListBox.Item>
+												{data.ok
+													? data.categories.map((category) => (
+															<ListBox.Item key={category.id} id={category.id} textValue={category.name}>
+																{category.name}
+															</ListBox.Item>
+														))
+													: null}
+											</ListBox>
+										</Select.Popover>
+									</Select>
+									<Select variant='secondary' selectedKey={draft.sort ?? "newest"} onSelectionChange={(key) => update("sort", String(key ?? "newest"))}>
+										<Label>Sort</Label>
+										<Select.Trigger>
+											<Select.Value />
+										</Select.Trigger>
+										<Select.Popover>
+											<ListBox>
+												<ListBox.Item id='newest' textValue='Newest'>
+													Newest
+												</ListBox.Item>
+												<ListBox.Item id='most_viewed' textValue='Most viewed'>
+													Most viewed
+												</ListBox.Item>
+											</ListBox>
+										</Select.Popover>
+									</Select>
+									{!fixedVideoId ? numericFilters : null}
+									<AppDateRangePicker label='Clip creation dates' value={range} onChange={setRange} variant='secondary' fullWidth />
+
+									<p className='text-xs text-muted sm:col-span-2 lg:col-span-3'>Dates use {timeZone}. Views are each clip’s current lifetime views.</p>
+								</Disclosure.Body>
+							</Disclosure.Content>
+						</Disclosure>
+					</form>
+				</Card.Content>
+			</Card>
+			{!data.ok ? (
+				<div role='alert' aria-label={data.code === "INVALID_INPUT" ? "Filter validation" : "Inventory unavailable"} className='rounded-xl border border-danger p-4'>
+					{fieldErrors ? (
+						Object.entries(fieldErrors).map(([key, messages]) => (
+							<p key={key} data-filter-error-field={key}>
+								{fields[key] ?? "Filter"}: {messages?.join(" ")}
+							</p>
+						))
+					) : (
+						<p>{data.code === "SERVICE_UNAVAILABLE" ? "Your clips could not be loaded. Please try again." : "You don’t have access to this creator’s clips."}</p>
+					)}
+					<Button variant='secondary' onPress={() => navigate(query, false)} isPending={pending}>
+						Retry
+					</Button>
+				</div>
+			) : (
+				<>
+					{data.items.length || selected.size ? (
+						<Card>
+							<Card.Content className='flex flex-row flex-wrap items-center justify-between gap-3'>
+								<div className='flex flex-wrap items-center gap-3'>
+									<Button
+										variant='secondary'
+										isDisabled={!hydrated || pending || data.items.length === 0}
+										onPress={() => {
+											selectionEpoch.current++;
+											const ids = new Set(selected);
+											for (const clip of data.items) {
+												ids.add(clip.id);
+											}
+											setSelection({ scope: selectionScope, ids, names: { ...selection.names, ...Object.fromEntries(data.ok ? data.items.map((clip) => [clip.id, clip.title]) : []) } });
+										}}
+									>
+										Select page
+									</Button>
+									{data.total > data.items.length ? (
+										<Button variant='secondary' isPending={selectingAll} isDisabled={!hydrated || pending} onPress={selectAll}>
+											Select all {data.total} clips
+										</Button>
+									) : null}
+									<Button
+										className={selected.size ? "" : "hidden"}
+										variant='tertiary'
+										isDisabled={selected.size === 0}
+										onPress={() => {
+											selectionEpoch.current++;
+											setSelection({ scope: selectionScope, ids: new Set() });
+										}}
+									>
+										Clear selection
+									</Button>
+									<p role='status' aria-label='Clip selection'>
+										{selected.size} selected
+									</p>
+
+									{selection.cleared ? <p role='status'>Selection cleared because the filters changed.</p> : null}
+								</div>
+								<div className='flex flex-wrap items-center gap-3'>
+									<Link className={buttonVariants({ variant: "secondary", className: "gap-2" })} href='/dashboard/clip-layouts'>
+										<IconLayoutCollage className='size-4' aria-hidden='true' />
+										Clip layouts
+									</Link>
+									<ClipExport creatorId={creatorId} clipIds={[...selected]} scope={selection.scope} clipNames={selection.names} configure />
+								</div>
+							</Card.Content>
+						</Card>
+					) : null}
+					<div className='flex flex-row flex-wrap items-center justify-between gap-3'>
+						<p role='status' aria-label='Inventory results'>
+							{data.total} {data.total === 1 ? "clip" : "clips"}
+						</p>
+						<p className='text-sm text-muted'>
+							{data.complete ? "Library synchronized" : "Showing known clips. Older clips may still be syncing."}
+							{data.fetchedAt ? (
+								<>
+									{" "}
+									Updated <LocalizedDate value={data.fetchedAt} timeZone={timeZone} showTime />
+								</>
+							) : null}
+						</p>
+					</div>
+					{data.total === 0 ? (
+						<Card>
+							<Card.Content>
+								<h2 className='font-semibold'>No clips found</h2>
+								<p className='text-muted'>Try clearing your filters. Newly connected accounts may need time to sync clips.</p>
+							</Card.Content>
+						</Card>
+					) : (
+						<Table>
+							<Table.ScrollContainer>
+								<Table.Content onRowAction={(key) => router.push(`/dashboard/clips/${encodeURIComponent(String(key))}`)} aria-label='Clip inventory' className='w-full @4xl:min-w-[640px]'>
+									<Table.Header>
+										<Table.Column aria-label='Select clips'>Select</Table.Column>
+										<Table.Column isRowHeader>Clip</Table.Column>
+										<Table.Column className='hidden @4xl:table-cell'>Category</Table.Column>
+										<Table.Column className='hidden @4xl:table-cell'>Created</Table.Column>
+										<Table.Column className='hidden @4xl:table-cell'>Duration</Table.Column>
+										<Table.Column className='hidden @4xl:table-cell'>Views</Table.Column>
+										<Table.Column className='hidden @4xl:table-cell'>Stream</Table.Column>
+										<Table.Column aria-label='Clip details'> </Table.Column>
+									</Table.Header>
+									<Table.Body>
+										{data.items.map((clip) => (
+											<Table.Row key={clip.id} id={clip.id} data-clip-id={clip.id} className='cursor-pointer'>
+												<Table.Cell>
+													<Checkbox variant='secondary' isSelected={selected.has(clip.id)} onChange={(include) => selectClip(clip.id, include)}>
+														<Checkbox.Content>
+															<Checkbox.Control>
+																<Checkbox.Indicator />
+															</Checkbox.Control>
+															<span className='sr-only'>Select {clip.title}</span>
+														</Checkbox.Content>
+													</Checkbox>
+												</Table.Cell>
+												<Table.Cell className='py-2'>
+													<div className='flex min-w-0 flex-col gap-1'>
+														<div className='flex min-w-0 items-center gap-3'>
+															{clip.thumbnailUrl ? (
+																<Link href={`/dashboard/clips/${encodeURIComponent(clip.id)}`} aria-label={`Details for ${clip.title || "Untitled clip"}`} className='shrink-0'>
+																	<img src={clip.thumbnailUrl} alt='' className='h-10 w-18 rounded-md object-cover' />
+																</Link>
+															) : null}
+															<div className='flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1'>
+																<Link href={`/dashboard/clips/${encodeURIComponent(clip.id)}`} className='line-clamp-1 min-w-0 font-medium'>
+																	{clip.title || "Untitled clip"}
+																</Link>
+
+																<Button
+																	variant='ghost'
+																	className='h-auto px-0 py-1 text-xs text-muted'
+																	aria-label={`Preview ${clip.title}`}
+																	onPress={() => {
+																		setPreview(clip);
+																	}}
+																>
+																	Preview
+																</Button>
+															</div>
+														</div>
+														<p className='flex w-full flex-wrap gap-x-3 gap-y-1 text-xs text-muted @4xl:hidden'>
+															<span>
+																{clip.views.toLocaleString()} views, {Math.round(clip.duration)}s
+															</span>
+															<span>{data.categories.find((category) => category.id === clip.categoryId)?.name ?? "Category unavailable"}</span>
+															<LocalizedDate value={clip.createdAt} showTime timeZone={timeZone} />
+															{clip.videoId ? <Link href={`/dashboard/streams/${encodeURIComponent(clip.videoId)}`}>View stream</Link> : "Unassigned"}
+														</p>
+													</div>
+												</Table.Cell>
+												<Table.Cell className='hidden @4xl:table-cell'>
+													<span className='flex items-center gap-2'>
+														{data.categories.find((category) => category.id === clip.categoryId)?.artworkUrl ? <img alt='' src={data.categories.find((category) => category.id === clip.categoryId)!.artworkUrl!} className='h-9 w-6 rounded object-cover' /> : null}
+														{data.categories.find((category) => category.id === clip.categoryId)?.name ?? "Category unavailable"}
+													</span>
+												</Table.Cell>
+												<Table.Cell className='hidden whitespace-nowrap @4xl:table-cell'>
+													<LocalizedDate value={clip.createdAt} timeZone={timeZone} showTime />
+												</Table.Cell>
+												<Table.Cell className='hidden @4xl:table-cell'>{Math.round(clip.duration)}s</Table.Cell>
+												<Table.Cell className='hidden @4xl:table-cell'>{clip.views.toLocaleString()}</Table.Cell>
+												<Table.Cell className='hidden whitespace-nowrap @4xl:table-cell'>{clip.videoId ? <Link href={`/dashboard/streams/${encodeURIComponent(clip.videoId)}`}>View stream</Link> : "Unassigned"}</Table.Cell>
+												<Table.Cell>
+													<Link aria-label={`Open ${clip.title || "Untitled clip"}`} href={`/dashboard/clips/${encodeURIComponent(clip.id)}`}>
+														<IconChevronRight className='size-4' />
+													</Link>
+												</Table.Cell>
+											</Table.Row>
+										))}
+									</Table.Body>
+								</Table.Content>
+							</Table.ScrollContainer>
+						</Table>
+					)}
+					<div className='flex flex-wrap items-center justify-between gap-3'>
+						<Select aria-label='Clips per page' variant='secondary' className='w-36' selectedKey={query.pageSize || "25"} onSelectionChange={(key) => navigate({ ...query, page: "1", pageSize: String(key) })}>
+							<Select.Trigger>
+								<Select.Value />
+							</Select.Trigger>
+							<Select.Popover>
+								<ListBox>
+									<ListBox.Item id='25' textValue='25 per page'>
+										25 per page
+									</ListBox.Item>
+									<ListBox.Item id='50' textValue='50 per page'>
+										50 per page
+									</ListBox.Item>
+								</ListBox>
+							</Select.Popover>
+						</Select>
+						<AppPagination className='w-auto' page={Number(query.page) || 1} total={Math.ceil(data.total / (Number(query.pageSize) || 25))} onChange={(page) => navigate({ ...query, page: String(page) })} />
+					</div>
+				</>
+			)}
+			{preview ? <ClipPreview key={`${creatorId}:${preview.id}`} creatorId={creatorId} clip={preview} onClose={() => setPreview(null)} /> : null}
+		</div>
+	);
+}

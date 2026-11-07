@@ -7,7 +7,7 @@ import { getGalleryPreview } from "@actions/gallery";
 import ClipifyElementPreview from "@components/clipifyElementPreview";
 import CodeSnippet from "@components/codeSnippet";
 import GalleryInlinePreview from "@components/gallery/GalleryInlinePreview";
-import { Button, Card, Label, Link, ListBox, Select, Separator, Switch, Tabs } from "@heroui/react";
+import { Button, Card, Label, Link, ListBox, Select, Separator, Switch } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
 import { CLIPIFY_ELEMENTS_HELP_URL } from "@lib/constants";
 import { IconArrowLeft } from "@tabler/icons-react";
@@ -65,7 +65,7 @@ function OptionSwitch({ children, isSelected, onChange }: { children: string; is
 export default function ToolsClient({ overlays, galleries, initialTool, initialGalleryId, origin }: { overlays: Overlay[]; galleries: Gallery[]; initialTool: "player" | "gallery"; initialGalleryId?: string; origin: string }) {
 	const router = useRouter();
 	const { report } = useUserTour();
-	const [tool, setTool] = useState<"player" | "gallery">(initialTool);
+	const tool = initialTool;
 	const [overlayId, setOverlayId] = useState(overlays[0]?.id ?? "");
 	const [galleryId, setGalleryId] = useState(initialGalleryId && galleries.some((item) => item.id === initialGalleryId) ? initialGalleryId : (galleries[0]?.id ?? ""));
 	const [muted, setMuted] = useState(false);
@@ -100,22 +100,7 @@ export default function ToolsClient({ overlays, galleries, initialTool, initialG
 
 	return (
 		<DashboardEditorLayout>
-			<Tabs data-tour='tools-tabs' selectedKey={tool} onSelectionChange={(key) => setTool(key === "gallery" ? "gallery" : "player")} className='w-fit max-w-full'>
-				<Tabs.ListContainer className='w-fit max-w-full'>
-					<Tabs.List aria-label='Integration tool' className='w-fit max-w-full *:w-fit'>
-						<Tabs.Tab id='player' className='flex-none'>
-							<Label>Clip Player</Label>
-							<Tabs.Indicator />
-						</Tabs.Tab>
-						<Tabs.Tab id='gallery' className='flex-none'>
-							<Label>Clip Gallery</Label>
-							<Tabs.Indicator />
-						</Tabs.Tab>
-					</Tabs.List>
-				</Tabs.ListContainer>
-			</Tabs>
-
-			<div className='grid grid-cols-1 items-start gap-4 md:grid-cols-2 md:gap-8'>
+			<div className='grid grid-cols-1 items-start gap-6 lg:grid-cols-2 lg:gap-8'>
 				<Card>
 					<Card.Header>
 						<div className='flex items-center gap-3'>
@@ -199,7 +184,7 @@ export default function ToolsClient({ overlays, galleries, initialTool, initialG
 					</Card.Footer>
 				</Card>
 
-				<Card>
+				<Card className='lg:sticky lg:top-20'>
 					<Card.Header>
 						<div>
 							<h2 className='text-xl font-bold'>Preview</h2>

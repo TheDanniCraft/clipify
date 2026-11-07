@@ -117,7 +117,6 @@
 	display: flex;
 	flex-wrap: wrap;
 	gap: 4px 12px;
-	opacity: 0.72;
 	font-size: 12px;
 }
 .carouselItem {
@@ -143,11 +142,11 @@
 	text-decoration: underline;
 }
 .empty {
+	background: var(--clipify-card, #18181b);
 	padding: 32px;
 	text-align: center;
 	border: 1px dashed currentColor;
 	border-radius: 16px;
-	opacity: 0.72;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -2,6 +2,49 @@
 @import "@heroui/styles";
 @import "@heroui-pro/react/css";
 @import "./themes/clipify.css";
+@font-face {
+	font-family: "DejaVu Sans";
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url("/api/brand-font?family=DejaVu%20Sans&weight=400") format("truetype");
+}
+@font-face {
+	font-family: "DejaVu Sans";
+	font-style: normal;
+	font-weight: 700;
+	font-display: swap;
+	src: url("/api/brand-font?family=DejaVu%20Sans&weight=700") format("truetype");
+}
+@font-face {
+	font-family: "DejaVu Serif";
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url("/api/brand-font?family=DejaVu%20Serif&weight=400") format("truetype");
+}
+@font-face {
+	font-family: "DejaVu Serif";
+	font-style: normal;
+	font-weight: 700;
+	font-display: swap;
+	src: url("/api/brand-font?family=DejaVu%20Serif&weight=700") format("truetype");
+}
+@font-face {
+	font-family: "DejaVu Sans Mono";
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url("/api/brand-font?family=DejaVu%20Sans%20Mono&weight=400") format("truetype");
+}
+@font-face {
+	font-family: "DejaVu Sans Mono";
+	font-style: normal;
+	font-weight: 700;
+	font-display: swap;
+	src: url("/api/brand-font?family=DejaVu%20Sans%20Mono&weight=700") format("truetype");
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme {
@@ -57,4 +100,49 @@ table {
 
 html {
 	scroll-behavior: smooth;
+}
+
+.clipify-creator-navigation[data-guide-lines] .sidebar__menu-item::before {
+	left: var(--sidebar-menu-indent);
+}
+
+@media (min-width: 769px) {
+	html:has([data-slot="sidebar"]) {
+		scrollbar-gutter: stable;
+	}
+}
+
+/* Keep contextual editor actions below the dashboard's sticky toolbar. */
+.clipify-editor-workspace > .card > .card__header {
+	position: sticky;
+	top: 4rem;
+	z-index: 20;
+	background: var(--surface);
+}
+@media (max-width: 639px) {
+	.clipify-editor-workspace > .card > .card__header {
+		position: static;
+	}
+}
+
+/* Keep privacy choices reachable without moving sidebar account and support actions. */
+[data-dashboard-consent] .clipify-consent-banner {
+	position: relative;
+	inset: auto;
+	margin: 0.5rem;
+}
+[data-dashboard-consent] .clipify-consent-banner .card__content {
+	padding: 0.75rem;
+}
+@media (min-width: 769px) {
+	body:has([data-slot="sidebar"][data-state="expanded"]) .clipify-consent-banner {
+		left: calc(16rem + 0.75rem);
+	}
+	body:has([data-slot="sidebar"][data-state="collapsed"]) .clipify-consent-banner {
+		left: calc(3rem + 0.75rem);
+	}
+}
+
+[data-sticky-heading] .clipify-editor-workspace > .card > .card__header {
+	position: static;
 }

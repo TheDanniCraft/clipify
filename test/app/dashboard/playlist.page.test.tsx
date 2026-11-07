@@ -603,14 +603,14 @@ describe("dashboard playlist page", () => {
 		expect(screen.getByRole("button", { name: "Remove selected (0)" })).toBeDisabled();
 		expect(screen.getByText("Clip saved")).toBeInTheDocument();
 	});
-	it("returns from a missing playlist to the dashboard", async () => {
+	it("returns from a missing playlist to the playlist list", async () => {
 		getAllPlaylists.mockResolvedValue([]);
 		const Page = (await import("@/app/dashboard/playlist/[playlistId]/page")).default;
 		await act(async () => {
 			render(<Page />);
 		});
-		await press("Back to Dashboard");
-		expect(router.push).toHaveBeenCalledWith("/dashboard");
+		await press("Back to Playlists");
+		expect(router.push).toHaveBeenCalledWith("/dashboard/playlists");
 	});
 	it("uses a safe category label for missing names and unresolved provider identifiers", async () => {
 		getCachedClipsByOwner.mockResolvedValue([

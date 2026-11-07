@@ -78,11 +78,11 @@ describe("user tour progress", () => {
 		expect(routeForTask("appearance.style", next)).toBe("/dashboard/overlay/overlay-1");
 		expect(routeForTask("playlist.clips", next)).toBe("/dashboard/playlist/playlist-1");
 		expect(routeForTask("playlist.use", next)).toBe("/dashboard/overlay/overlay-1");
-		expect(routeForTask("overlay.name", defaultProgress())).toBe("/dashboard");
+		expect(routeForTask("overlay.name", defaultProgress())).toBe("/dashboard/overlays");
 	});
 	it("returns playlist association to its missing playlist prerequisite", () => {
 		const state = { ...defaultProgress(), overlayId: "overlay-1" };
-		expect(routeForTask("playlist.use", state)).toBe("/dashboard");
+		expect(routeForTask("playlist.use", state)).toBe("/dashboard/playlists");
 	});
 	it("lets users explicitly replace a missing resource without losing completed work", () => {
 		const state = { ...defaultProgress(), overlayId: "deleted", copiedOverlayId: "deleted", completed: ["overlay.name" as const], active: { task: "overlay.source" as const, index: 1, paused: true } };

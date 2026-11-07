@@ -88,3 +88,5 @@ describe("getGamesDetailsBulk", () => {
 		expect(axios.get).not.toHaveBeenCalled();
 	});
 });
+
+jest.mock("@/server/clip-download-limit", () => ({ reserveTwitchClipDownloadRequest: jest.fn().mockResolvedValue({ allowed: true, remaining: 99 }) }));

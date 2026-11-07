@@ -39,7 +39,7 @@ export default function CodeSnippet({ children, symbol = "$", size = "md", class
 
 	return (
 		<div className={["flex items-center gap-2 rounded-lg bg-surface-secondary", sizeClasses[size], className].filter(Boolean).join(" ")}>
-			<pre className={["m-0 min-w-0 flex-1 font-mono", preClassName].filter(Boolean).join(" ")}>
+			<pre tabIndex={0} className={["m-0 min-w-0 flex-1 font-mono", preClassName].filter(Boolean).join(" ")}>
 				{symbol ? <span className='text-muted'>{symbol} </span> : null}
 				<code>{children}</code>
 			</pre>

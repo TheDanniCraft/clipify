@@ -65,3 +65,26 @@ test("application lane counts grow from measured work while retaining all files"
 	assert.equal(options.databaseCount, 10);
 	assert.deepEqual(Object.values(parts).flat().sort(), paths.sort());
 });
+
+test("new application files get equal measured estimates and redistribute after their first timings", () => {
+	const { estimatedTestWeights, balance, planApplicationLanes } = require("./test-execution.cjs");
+	const paths = Array.from({ length: 12 }, (_, i) => `test/app/new-${i}.test.ts`);
+	const profile = Object.fromEntries(paths.slice(0, 6).map((path) => [path, 100]));
+	assert.equal(estimatedTestWeights(paths, profile)[paths[11]], 100);
+	const bins = balance(paths, 4, profile);
+	const news = bins.map((bin) => bin.filter((p) => !Object.hasOwn(profile, p)).length);
+	assert.ok(Math.max(...news) - Math.min(...news) <= 1);
+	const options = planApplicationLanes(paths, profile, 1);
+	assert.equal(options.unitCount, 4);
+	const faster = Object.fromEntries(paths.map((path) => [path, 10]));
+	assert.equal(planApplicationLanes(paths, faster, 1).unitCount, 1);
+});
+
+test("application plans add a shard when atomic files cannot fit the mean-based count", () => {
+	const { planApplicationLanes, partitionTests } = require("./test-execution.cjs");
+	const paths = ["test/app/a.test.ts", "test/app/b.test.ts", "test/app/c.test.ts"];
+	const profile = Object.fromEntries(paths.map((p) => [p, 200]));
+	const options = planApplicationLanes(paths, profile, 1);
+	assert.equal(options.unitCount, 3);
+	assert.ok(Object.values(partitionTests(paths, options)).every((paths) => paths.length <= 1));
+});

@@ -10,13 +10,10 @@ Given("an authenticated dashboard has two overlays and one becomes stale", async
 	const owner = await response.json();
 	mcpWorld.input = { bulkOwner: owner };
 	await page.context().addCookies([owner.cookie]);
-	await page.goto(`${origin}/dashboard`, { waitUntil: "domcontentloaded" });
+	await page.goto(`${origin}/dashboard/overlays`, { waitUntil: "domcontentloaded" });
 	await expect(page.getByText("E2E continuity overlay", { exact: true })).toBeVisible({ timeout: 30000 });
 	await expect(page.getByText("Second continuity overlay", { exact: true })).toBeVisible();
-	const support = page.getByRole("button", { name: "Enable support chat", exact: true });
-	await support.focus();
-	await support.press("Enter");
-	const reject = page.getByRole("dialog").getByRole("button", { name: "Reject optional", exact: true });
+	const reject = page.getByRole("button", { name: "Reject optional", exact: true });
 	await expect(reject).toBeVisible();
 	await Promise.all([page.waitForEvent("load"), reject.click()]);
 	await expect(page.getByText("Second continuity overlay", { exact: true })).toBeVisible();

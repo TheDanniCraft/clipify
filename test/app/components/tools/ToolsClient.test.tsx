@@ -21,9 +21,9 @@ jest.mock("@heroui/react", () => {
 	const Container = ({ children }: Children) => <div>{children}</div>;
 	const Card = Object.assign(Container, { Header: Container, Content: Container, Footer: Container });
 	const Link = Object.assign(({ children, ...props }: Children & React.AnchorHTMLAttributes<HTMLAnchorElement>) => <a {...props}>{children}</a>, { Icon: () => <span aria-hidden='true'>external</span> });
-	const Tabs = Object.assign(Container, { ListContainer: Container, List: Container, Tab: Container, Indicator: Container });
-	const Select = Object.assign(Container, { Trigger: Container, Value: Container, Indicator: Container, Popover: Container });
-	const ListBox = Object.assign(Container, { Item: Object.assign(Container, { ItemIndicator: Container }) });
+	const Tabs = Object.assign(Container, { ListContainer: Container, List: Container, Tab: Container, Indicator: Container, Panel: Container });
+	const Select = Object.assign(Container, { Trigger: Container, Value: Container, Indicator: Container, Panel: Container, Popover: Container });
+	const ListBox = Object.assign(Container, { Item: Object.assign(Container, { ItemIndicator: Container, Panel: Container }) });
 	const Switch = Object.assign(({ children }: Children) => <div>{children}</div>, { Content: Container, Control: Container, Thumb: Container });
 	return {
 		Button: ({ children }: Children) => <button>{children}</button>,

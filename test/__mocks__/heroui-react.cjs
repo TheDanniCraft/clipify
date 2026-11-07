@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const React = require("react");
 
-const Component = React.forwardRef(function HeroUIComponent({ children, onPress, className, id, style, "aria-label": ariaLabel, "aria-pressed": ariaPressed }, ref) {
-	return React.createElement("div", { className, id, style, ref, "aria-label": ariaLabel, "aria-pressed": ariaPressed, onClick: onPress }, children);
+const Component = React.forwardRef(function HeroUIComponent({ children, onPress, className, id, style, role, hidden, "aria-label": ariaLabel, "aria-pressed": ariaPressed, "aria-expanded": ariaExpanded }, ref) {
+	return React.createElement("div", { className, id, style, ref, role, hidden, "aria-label": ariaLabel, "aria-pressed": ariaPressed, "aria-expanded": ariaExpanded, onClick: onPress }, children);
 });
 
 const CompoundComponent = new Proxy(Component, {
@@ -13,14 +13,15 @@ const CompoundComponent = new Proxy(Component, {
 });
 
 const toast = Object.assign(() => undefined, {
+	close: () => undefined,
 	success: () => undefined,
 	warning: () => undefined,
 	danger: () => undefined,
 	info: () => undefined,
 });
 
-const Button = React.forwardRef(function HeroUIButton({ children, onPress, isDisabled, className, type, "aria-label": ariaLabel, "aria-pressed": ariaPressed }, ref) {
-	return React.createElement("button", { className, disabled: isDisabled, ref, type, "aria-label": ariaLabel, "aria-pressed": ariaPressed, onClick: onPress }, children);
+const Button = React.forwardRef(function HeroUIButton({ children, onPress, onKeyDown, style, isDisabled, className, type, "aria-label": ariaLabel, "aria-pressed": ariaPressed, "aria-expanded": ariaExpanded }, ref) {
+	return React.createElement("button", { className, style, onKeyDown, disabled: isDisabled, ref, type, "aria-label": ariaLabel, "aria-pressed": ariaPressed, "aria-expanded": ariaExpanded, onClick: onPress }, children);
 });
 
 const Switch = Object.assign(React.forwardRef(function HeroUISwitch({ children, isSelected, onChange, isDisabled, "aria-label": ariaLabel }, ref) {
@@ -42,7 +43,7 @@ const InputGroup = Object.assign(Component, {
 	TextArea,
 });
 
-const Card = Object.assign(Component, { Content: Component, Footer: Component, Header: Component, Title: Component });
+const Card = Object.assign(Component, { Content: Component, Footer: Component, Header: Component, Title: Component, Description: Component });
 const Table = Object.assign(Component, {
 	Body: Component,
 	Cell: Component,

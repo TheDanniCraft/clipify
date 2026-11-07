@@ -9,7 +9,7 @@ import { Button, Card, Chip, Spinner, Table, TextField, Label, InputGroup, Check
 
 import { IconSearch } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 type AdminExplorerRow = {
 	id: string;
@@ -31,6 +31,9 @@ type AdminUserExplorerProps = {
 };
 
 const PAGE_SIZE = 25;
+const subscribe = () => () => undefined;
+const ready = () => true;
+const notReady = () => false;
 
 function formatLastLoginLabel(value: Date | string | null) {
 	if (!value) return "never";
@@ -39,6 +42,7 @@ function formatLastLoginLabel(value: Date | string | null) {
 
 export default function AdminUserExplorer({ users, initialPage, initialTotalPages, initialTotalRows, initialQuery }: AdminUserExplorerProps) {
 	const router = useRouter();
+	const hydrated = useSyncExternalStore(subscribe, ready, notReady);
 	const [selected, setSelected] = useState<Record<string, string>>({});
 	const [switchingUserId, setSwitchingUserId] = useState<string | null>(null);
 	const [inputValue, setInputValue] = useState(initialQuery);
@@ -229,7 +233,7 @@ export default function AdminUserExplorer({ users, initialPage, initialTotalPage
 										<Table.Cell className='text-right'>
 											<AdminAwardsControl recipients={[row]} onChanged={() => loadPage(searchQuery, page)} />
 											<AdminAccountAccessControl user={row} onChanged={() => loadPage(searchQuery, page)} />
-											<Button size='sm' variant='primary' onPress={() => void handleViewAsUser(row.id)} isPending={switchingUserId === row.id} isDisabled={switchingUserId != null}>
+											<Button size='sm' variant='primary' onPress={() => void handleViewAsUser(row.id)} isPending={switchingUserId === row.id} isDisabled={!hydrated || switchingUserId != null}>
 												View as User
 											</Button>
 										</Table.Cell>

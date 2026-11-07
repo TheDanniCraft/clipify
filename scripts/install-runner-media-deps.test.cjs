@@ -14,8 +14,9 @@ test("prepared runners avoid apt while missing declared media dependencies are i
 		mkdirSync(chrome);
 		writeFileSync(join(chrome, "deb.deps"), "libnss3 (>= 2:3.26)\nlibgbm1\n");
 		const executable = (name, body) => writeFileSync(join(bin, name), "#!/bin/sh\n" + body, { mode: 0o755 });
-		executable("dpkg-checkbuilddeps", 'case "$*" in *ffmpeg,libnss3*libgbm1*) exit "$MISSING_DEPS";; *) exit 2;; esac\n');
+		executable("dpkg-checkbuilddeps", 'case "$*" in *libnss3*libgbm1*) exit "$MISSING_DEPS";; *) exit 2;; esac\n');
 		executable("sudo", 'printf "%s\\n" "$*" >> "$INSTALL_LOG"\n');
+		executable("ffprobe", "exit 0\n");
 		executable("ffmpeg", 'echo "ffmpeg verified"\n');
 		for (const missing of ["0", "1"]) {
 			const result = spawnSync("bash", [resolve("scripts/install-runner-media-deps.sh")], { encoding: "utf8", env: { ...process.env, PATH: bin + ":" + process.env.PATH, RUNNER_CHROME_PATH: join(chrome, "chrome"), MISSING_DEPS: missing, INSTALL_LOG: log } });
@@ -25,7 +26,7 @@ test("prepared runners avoid apt while missing declared media dependencies are i
 			else {
 				const calls = readFileSync(log, "utf8");
 				assert.match(calls, /apt-get update/);
-				assert.match(calls, /apt-get install.*ffmpeg/);
+				assert.doesNotMatch(calls, /apt-get install.*ffmpeg/);
 				assert.match(calls, /apt-get satisfy.*libnss3.*libgbm1/);
 			}
 		}

@@ -485,7 +485,7 @@ export default function RunnerPage() {
 				<Card>
 					<Card.Header className='flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between'>
 						<div className='flex min-w-0 flex-1 items-center gap-3'>
-							<Button isIconOnly className='shrink-0' variant='tertiary' aria-label='Back to runners' onPress={() => router.push("/dashboard?tab=runners")}>
+							<Button isIconOnly className='shrink-0' variant='tertiary' aria-label='Back to runners' onPress={() => router.push("/dashboard/runners")}>
 								<IconArrowLeft />
 							</Button>
 							<h2 className='min-w-0 break-words text-xl font-bold'>{runner.name}</h2>

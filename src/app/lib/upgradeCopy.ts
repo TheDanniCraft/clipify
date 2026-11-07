@@ -1,4 +1,5 @@
 const upgradeCopy: Record<string, { title: string; description: string }> = {
+	clip_export_branding: { title: "Make every clip your own with Pro", description: "Clipify branding helps us keep exports available on the free plan. Upgrade to Pro to export Desktop and Mobile clips without the Clipify watermark." },
 	creator_social_preview: { title: "Make every share yours with Pro", description: "Choose the title and description people see when they share your Creator Page." },
 	creator_analytics: { title: "Understand your audience with Pro", description: "See how people discover and use your Creator Page, and export the results for your reports." },
 	playlist_import: { title: "Build playlists faster with Pro", description: "Import clips with advanced filters instead of adding each clip by hand." },

@@ -408,3 +408,214 @@ it("holds a reveal checkpoint while an unrelated navigation dialog owns focus", 
 	expect(next).toHaveBeenCalledTimes(1);
 	expect(pause).not.toHaveBeenCalled();
 });
+it("advances a navigation step only after its current page is acknowledged", async () => {
+	const next = jest.fn();
+	const view = render(
+		<>
+			<span data-tour='control'>Playlists</span>
+			<Spotlight step={{ ...step, action: true }} onPause={jest.fn()} onMissing={jest.fn()} onNext={next} />
+		</>,
+	);
+	expect(next).not.toHaveBeenCalled();
+	view.rerender(
+		<>
+			<span data-tour='control' aria-current='page'>
+				Playlists
+			</span>
+			<Spotlight step={{ ...step, action: true }} onPause={jest.fn()} onMissing={jest.fn()} onNext={next} />
+		</>,
+	);
+	await act(async () => {
+		await Promise.resolve();
+	});
+	expect(next).toHaveBeenCalledTimes(1);
+});
+it("advances a normal navigation action once and ignores later clicks", () => {
+	const next = jest.fn();
+	render(
+		<>
+			<div data-tour='control'>
+				<span>Navigate</span>
+			</div>
+			<Spotlight step={{ ...step, action: true }} onPause={jest.fn()} onMissing={jest.fn()} onNext={next} />
+		</>,
+	);
+	fireEvent.click(screen.getByText("Navigate"));
+	fireEvent.click(screen.getByText("Navigate"));
+	expect(next).toHaveBeenCalledTimes(1);
+});
+it("waits for destination navigation before declaring its removed target missing", async () => {
+	jest.useFakeTimers();
+	try {
+		const missing = jest.fn();
+		const pointer = <Spotlight key='pointer' step={{ ...step, destination: "overlay" }} onPause={jest.fn()} onMissing={missing} onNext={jest.fn()} />;
+		const view = render(
+			<>
+				<button data-tour='control'>Navigate</button>
+				{pointer}
+			</>,
+		);
+		view.rerender(<>{pointer}</>);
+		await act(async () => {
+			await Promise.resolve();
+		});
+		expect(missing).not.toHaveBeenCalled();
+		act(() => jest.advanceTimersByTime(8000));
+		expect(missing).toHaveBeenCalledTimes(1);
+	} finally {
+		jest.useRealTimers();
+	}
+});
+it("acknowledges a closed guided dialog when its control disappears", async () => {
+	const next = jest.fn();
+	const pointer = <Spotlight key='pointer' step={{ ...step, dialogClosed: true }} onPause={jest.fn()} onMissing={jest.fn()} onNext={next} />;
+	const view = render(
+		<>
+			<button data-tour='control'>Return</button>
+			{pointer}
+		</>,
+	);
+	view.rerender(<>{pointer}</>);
+	await act(async () => {
+		await Promise.resolve();
+	});
+	expect(next).toHaveBeenCalledTimes(1);
+});
+it("refreshes guided modal geometry on scroll and leaves modal Tab handling local", () => {
+	const pause = jest.fn(),
+		windowKey = jest.fn();
+	window.addEventListener("keydown", windowKey);
+	try {
+		render(
+			<>
+				<section role='dialog' aria-modal='true'>
+					<button data-tour='control'>Picker</button>
+				</section>
+				<Spotlight step={{ ...step, inDialog: true }} onPause={pause} onMissing={jest.fn()} onNext={jest.fn()} />
+			</>,
+		);
+		fireEvent.scroll(document);
+		expect(refresh).toHaveBeenCalled();
+		fireEvent.keyDown(screen.getByRole("button", { name: "Picker" }), { key: "Tab" });
+		expect(windowKey).not.toHaveBeenCalled();
+		fireEvent.keyDown(document, { key: "Escape" });
+		expect(pause).not.toHaveBeenCalled();
+	} finally {
+		window.removeEventListener("keydown", windowKey);
+	}
+});
+it("leaves native popover Escape and Tab handling with its own controls", () => {
+	const pause = jest.fn(),
+		windowKey = jest.fn();
+	window.addEventListener("keydown", windowKey);
+	try {
+		render(
+			<>
+				<button data-tour='control'>Select</button>
+				<div data-slot='select-popover'>
+					<input aria-label='Native search' />
+				</div>
+				<Spotlight step={step} onPause={pause} onMissing={jest.fn()} onNext={jest.fn()} />
+			</>,
+		);
+		const input = screen.getByRole("textbox", { name: "Native search" });
+		fireEvent.keyDown(input, { key: "Tab" });
+		expect(windowKey).not.toHaveBeenCalled();
+		fireEvent.keyDown(input, { key: "Escape" });
+		expect(pause).not.toHaveBeenCalled();
+	} finally {
+		window.removeEventListener("keydown", windowKey);
+	}
+});
+it("finds the support report control inside its existing shadow root", () => {
+	const host = document.createElement("div");
+	host.id = "sentry-feedback";
+	const root = host.attachShadow({ mode: "open" });
+	const actor = document.createElement("button");
+	actor.className = "widget__actor";
+	root.append(actor);
+	document.body.append(host);
+	const view = render(<Spotlight step={{ ...step, target: "support-report" }} onPause={jest.fn()} onMissing={jest.fn()} onNext={jest.fn()} />);
+	expect(highlight.mock.calls[0][0].element).toBe(actor);
+	view.unmount();
+	host.remove();
+});
+it("finds the existing support chat control and respects normal animation settings", () => {
+	window.matchMedia = jest.fn().mockReturnValue({ matches: false });
+	render(
+		<>
+			<button aria-label='Enable support chat'>Chat</button>
+			<Spotlight step={{ ...step, target: "support-chat" }} onPause={jest.fn()} onMissing={jest.fn()} onNext={jest.fn()} />
+		</>,
+	);
+	expect(highlight.mock.calls[0][0].element).toBe(screen.getByRole("button", { name: "Enable support chat" }));
+	expect(config.animate).toBe(true);
+});
+
+it("pauses while the existing consent banner owns the page", () => {
+	const pause = jest.fn();
+	render(
+		<>
+			<h2 id='consent-banner-title'>Privacy choices</h2>
+			<button data-tour='control'>Continue</button>
+			<Spotlight step={step} onPause={pause} onMissing={jest.fn()} onNext={jest.fn()} />
+		</>,
+	);
+	expect(pause).toHaveBeenCalled();
+	expect(highlight).not.toHaveBeenCalled();
+});
+it("reports an unexpectedly removed ordinary control without waiting for destination navigation", async () => {
+	const missing = jest.fn();
+	const pointer = <Spotlight key='pointer' step={step} onPause={jest.fn()} onMissing={missing} onNext={jest.fn()} />;
+	const view = render(
+		<>
+			<button data-tour='control'>Control</button>
+			{pointer}
+		</>,
+	);
+	view.rerender(<>{pointer}</>);
+	await act(async () => {
+		await Promise.resolve();
+	});
+	expect(missing).toHaveBeenCalledTimes(1);
+});
+it("leaves non-Escape keys alone and does not pause twice after driver disposal", () => {
+	const pause = jest.fn();
+	const view = render(
+		<>
+			<button data-tour='control'>Control</button>
+			<Spotlight step={step} onPause={pause} onMissing={jest.fn()} onNext={jest.fn()} />
+		</>,
+	);
+	fireEvent.keyDown(document, { key: "Enter" });
+	expect(pause).not.toHaveBeenCalled();
+	const destroyed = config.onDestroyed;
+	act(() => destroyed());
+	expect(pause).toHaveBeenCalledTimes(1);
+	view.unmount();
+	act(() => destroyed());
+	expect(pause).toHaveBeenCalledTimes(1);
+});
+it("waits for an unavailable support shadow host without inventing a target", () => {
+	jest.useFakeTimers();
+	try {
+		const missing = jest.fn();
+		render(<Spotlight step={{ ...step, target: "support-report" }} onPause={jest.fn()} onMissing={missing} onNext={jest.fn()} />);
+		expect(highlight).not.toHaveBeenCalled();
+		act(() => jest.advanceTimersByTime(8000));
+		expect(missing).toHaveBeenCalledTimes(1);
+	} finally {
+		jest.useRealTimers();
+	}
+});
+it("highlights a Settings sidebar destination inside the mobile drawer", () => {
+	render(
+		<section role='dialog' aria-modal='true'>
+			<div data-slot='sidebar-mobile'>
+				<button data-tour='settings-connections-tab'>Connections</button>
+			</div>
+			<Spotlight step={{ ...step, target: "settings-connections-tab" }} onPause={jest.fn()} onMissing={jest.fn()} onNext={jest.fn()} />
+		</section>,
+	);
+	expect(highlight).toHaveBeenCalledWith(expect.objectContaining({ element: document.querySelector('[data-tour="settings-connections-tab"]') }));
+});

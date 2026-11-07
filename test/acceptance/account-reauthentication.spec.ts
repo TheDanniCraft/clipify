@@ -6,10 +6,23 @@ import { requiredAuthSetting } from "../../src/auth/environment";
 import { createAuthenticatedFixture, type AuthFixture } from "../atdd/support/auth-engine-rewrite";
 import { browserDatabaseUrl, browserProviderEnvironment } from "../support/mcp/browser-database.cjs";
 
+let owner: AuthFixture | undefined;
+
+test.afterEach(async ({ page, request }) => {
+	try {
+		if (!page.isClosed()) await page.close();
+	} finally {
+		if (owner) {
+			const response = await request.delete("/api/test/auth-fixture", { headers: { Authorization: "Bearer clipify-playwright-auth-fixture" }, data: { authUserId: owner.fixture.authUserId, creatorId: owner.fixture.creatorId, organizationIds: [owner.fixture.creatorOrganizationId, owner.fixture.agencyOrganizationId] } });
+			owner = undefined;
+			expect(response.status()).toBe(204);
+		}
+	}
+});
+
 test("stale sensitive actions offer verification through production server actions", async ({ page, context, request }, info) => {
 	test.setTimeout(120000);
 	const pool = new Pool({ connectionString: browserDatabaseUrl(), max: 1 });
-	let owner: AuthFixture | undefined;
 	const pageErrors: string[] = [];
 	page.on("pageerror", (error) => pageErrors.push(error.message));
 	try {
@@ -18,6 +31,7 @@ test("stale sensitive actions offer verification through production server actio
 		await page.goto("/dashboard/settings");
 		await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 		await page.getByRole("button", { name: "Export Account Data", exact: true }).click();
+		await expect(page.getByRole("dialog", { name: "Request your Clipify data" })).toBeVisible();
 		await page.getByRole("dialog", { name: "Request your Clipify data" }).getByRole("button", { name: "Email download link" }).click();
 		const verification = page.getByRole("dialog", { name: "Sign in again to continue" });
 		await expect(verification).toBeVisible();
@@ -69,18 +83,12 @@ test("stale sensitive actions offer verification through production server actio
 		await expect(page.getByRole("button", { name: "Save Settings", exact: true })).toBeVisible();
 		expect(pageErrors).toEqual([]);
 	} finally {
-		if (!page.isClosed()) await page.goto("about:blank");
 		await pool.end();
-		if (owner) {
-			const response = await request.delete("/api/test/auth-fixture", { headers: { Authorization: "Bearer clipify-playwright-auth-fixture" }, data: { authUserId: owner.fixture.authUserId, creatorId: owner.fixture.creatorId, organizationIds: [owner.fixture.creatorOrganizationId, owner.fixture.agencyOrganizationId] } });
-			expect(response.status()).toBe(204);
-		}
 	}
 });
 
 test("a suspended account can verify its identity before recovery", async ({ page, context, request }) => {
 	const pool = new Pool({ connectionString: browserDatabaseUrl(), max: 1 });
-	let owner: AuthFixture | undefined;
 	try {
 		owner = await createAuthenticatedFixture(request, context, { deletionState: "suspended" });
 		await pool.query(`UPDATE auth.session SET created_at=now()-interval '10 minutes' WHERE user_id=$1`, [owner.fixture.authUserId]);
@@ -96,9 +104,5 @@ test("a suspended account can verify its identity before recovery", async ({ pag
 		expect(status.rows[0].status).toBe("suspended");
 	} finally {
 		await pool.end();
-		if (owner) {
-			const response = await request.delete("/api/test/auth-fixture", { headers: { Authorization: "Bearer clipify-playwright-auth-fixture" }, data: { authUserId: owner.fixture.authUserId, creatorId: owner.fixture.creatorId, organizationIds: [owner.fixture.creatorOrganizationId, owner.fixture.agencyOrganizationId] } });
-			expect(response.status()).toBe(204);
-		}
 	}
 });

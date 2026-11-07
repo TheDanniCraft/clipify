@@ -1,0 +1,134 @@
+import { test, expect } from "../bdd/support/user-tour";
+import { seedCreatorLibrary } from "../support/creator-library";
+import { randomUUID } from "node:crypto";
+import { defaultProgress, guideContentKey } from "../../src/app/lib/userTour";
+test.use({ actionTimeout: 10000, navigationTimeout: 15000 });
+for (const width of [390, 1440])
+	for (const theme of ["light", "dark"]) {
+		test(`Account sidebar, admin destinations and suspended-agency recovery at ${width}px in ${theme}`, async ({ page, request, tourWorld }, info) => {
+			test.setTimeout(150000);
+			await page.setViewportSize({ width, height: 900 });
+			await page.addInitScript((value) => localStorage.setItem("theme", value), theme);
+			const seeded = await seedCreatorLibrary({ page, request, tourWorld });
+			const pool = tourWorld.fixture.pool;
+			await pool.query("UPDATE users SET role='admin' WHERE id=$1", [seeded.creatorId]);
+			const agencyId = randomUUID();
+			await pool.query("INSERT INTO auth.organization(id,name,slug,metadata,created_at) VALUES($1,'Suspended agency',$2,$3,now())", [agencyId, `agency-${agencyId}`, JSON.stringify({ accountType: "agency" })]);
+			await pool.query("INSERT INTO auth.member(id,organization_id,user_id,role,created_at) VALUES($1,$2,$3,'owner',now())", [randomUUID(), agencyId, seeded.authUserId]);
+			await pool.query("INSERT INTO agency_accounts(organization_id,status) VALUES($1,'suspended')", [agencyId]);
+			await page.goto(`${tourWorld.origin}/dashboard/clips`);
+			if (width === 390) await expect(page.getByRole("button", { name: "Open profile menu", exact: true })).toHaveCount(0);
+			const openSidebar = async () => {
+				const toggle = page.getByRole("button", { name: "Toggle navigation", exact: true });
+				await expect(toggle).toBeEnabled();
+				if (width === 390 && (await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+			};
+			await openSidebar();
+			const host = page.locator(width === 390 ? "#dashboard-mobile-utilities" : "#dashboard-utilities");
+			const profile = host.getByRole("button", { name: "Open profile menu", exact: true });
+			const context = host.locator('[data-slot="autocomplete-trigger"]');
+			const guide = host.locator('[data-tour="guide-launcher"]');
+			const support = host.getByRole("button", { name: "Enable support chat", exact: true });
+			await expect(profile).toBeVisible();
+			await expect(context).toBeVisible();
+			await expect(guide).toBeVisible();
+			const boxes = await Promise.all([guide, support, context, profile].map((locator) => locator.boundingBox()));
+			for (let i = 1; i < boxes.length; i++) expect(boxes[i]!.y).toBeGreaterThanOrEqual(boxes[i - 1]!.y + boxes[i - 1]!.height);
+			await expect(page.getByRole("treegrid", { name: "Admin sections", exact: true })).toBeVisible();
+			await page.screenshot({ path: info.outputPath("pending-consent.png"), fullPage: true });
+			await profile.click();
+			const menu = page.getByRole("menu", { name: "Open profile menu" });
+			await expect(menu).toBeVisible();
+			for (const name of ["My Settings", "Badges", "Tools", "Open Admin View"]) await expect(menu.getByText(name, { exact: true })).toHaveCount(0);
+			await page.keyboard.press("Escape");
+			await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
+			await openSidebar();
+			await expect(guide).toBeVisible();
+			await expect(support).toBeVisible();
+			const after = await support.boundingBox();
+			expect(Math.abs(after!.y - boxes[1]!.y)).toBeLessThanOrEqual(3);
+			await page.screenshot({ path: info.outputPath("after-reject.png"), fullPage: true });
+			await page.getByRole("row", { name: "Operations", exact: true }).click();
+			await expect(page).toHaveURL(`${tourWorld.origin}/admin`);
+			await openSidebar();
+			await expect(page.getByRole("treegrid", { name: "Admin sections", exact: true })).toBeVisible();
+			await expect(page.getByRole("tablist", { name: "Admin sections", exact: true })).toHaveCount(0);
+			await page.getByRole("row", { name: "Agencies", exact: true }).click();
+			await expect(page).toHaveURL(`${tourWorld.origin}/admin/agencies`);
+			await expect(page.getByText("Provision an agency", { exact: true })).toBeVisible();
+			await openSidebar();
+			await context.click();
+			await page.getByRole("option", { name: /Suspended agency/ }).click();
+			await expect(page).toHaveURL(`${tourWorld.origin}/dashboard/agency`);
+			await expect(page.getByRole("heading", { name: "This agency is unavailable", exact: true })).toBeVisible();
+			await page.goto(`${tourWorld.origin}/dashboard?agency=unavailable`);
+			await expect(page).toHaveURL(`${tourWorld.origin}/dashboard/agency`);
+			await expect(page.getByRole("heading", { name: "This agency is unavailable", exact: true })).toBeVisible();
+			await openSidebar();
+			await expect(context).toBeVisible();
+			await page.screenshot({ path: info.outputPath("agency-recovery.png"), fullPage: true });
+			await context.click();
+			await page.getByRole("option", { name: /E2E Creator Account/ }).click();
+			await expect(page).toHaveURL(`${tourWorld.origin}/dashboard`);
+			await expect(page.getByRole("heading", { name: "Home", exact: true })).toBeVisible();
+			if (width === 1440) {
+				await page.keyboard.press("Control+b");
+				await expect(profile).toBeVisible();
+				await expect(context).toBeHidden();
+				await profile.click();
+				await expect(menu).toBeVisible();
+				await page.keyboard.press("Escape");
+				await expect(menu).not.toBeVisible();
+				await page.screenshot({ path: info.outputPath("collapsed.png"), fullPage: true });
+			}
+			if (width === 1440 && theme === "dark") {
+				const response = await request.post(`${tourWorld.origin}/api/test/auth-fixture`, { headers: { Authorization: "Bearer clipify-playwright-auth-fixture" }, data: { withProviderCredentials: true } });
+				expect(response.status()).toBe(200);
+				const target = (await response.json()).fixture;
+				await pool.query("INSERT INTO user_content_states(user_id,content_key,state) VALUES($1,$2,$3)", [target.creatorId, guideContentKey, JSON.stringify({ ...defaultProgress(), welcomeSeen: true, minimized: true })]);
+				await page.goto(`${tourWorld.origin}/admin`);
+				await page.getByRole("textbox", { name: "Search users", exact: true }).fill(target.creatorId);
+				await expect(page.getByRole("row").filter({ has: page.getByRole("button", { name: "View as User", exact: true }) })).toHaveCount(1);
+				await page.getByRole("row").filter({ hasText: target.username }).getByRole("button", { name: "View as User", exact: true }).click();
+				await expect(page).toHaveURL(`${tourWorld.origin}/dashboard`);
+				const returnAdmin = host.getByRole("button", { name: "Return to Admin", exact: true });
+				await expect(returnAdmin).toBeVisible();
+				await returnAdmin.click();
+				await expect(page.getByRole("treegrid", { name: "Admin sections", exact: true })).toBeVisible();
+				await expect(returnAdmin).toHaveCount(0);
+				await page.screenshot({ path: info.outputPath("admin-return.png"), fullPage: true });
+			}
+
+			expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+		});
+	}
+
+test("Agency-only identity recovers its single valid account without signing out", async ({ page, request, tourWorld }, info) => {
+	test.setTimeout(120000);
+	await page.setViewportSize({ width: 1440, height: 900 });
+	const response = await request.post(`${tourWorld.origin}/api/test/auth-fixture`, { headers: { Authorization: "Bearer clipify-playwright-auth-fixture" }, data: { withProviderCredentials: false } });
+	expect(response.status()).toBe(200);
+	const owner = await response.json();
+	await page.context().addCookies([owner.cookie]);
+	const pool = tourWorld.fixture.pool;
+	await pool.query("DELETE FROM creator_identity_links WHERE auth_user_id=$1", [owner.fixture.authUserId]);
+	await pool.query("DELETE FROM creator_accounts WHERE creator_id=$1", [owner.fixture.creatorId]);
+	await pool.query("DELETE FROM auth.member WHERE organization_id=$1 AND user_id=$2", [owner.fixture.creatorOrganizationId, owner.fixture.authUserId]);
+	await page.goto(`${tourWorld.origin}/dashboard`);
+	await expect(page).toHaveURL(`${tourWorld.origin}/dashboard/agency`);
+	await expect(page.getByRole("heading", { name: "This agency is unavailable", exact: true })).toBeVisible();
+	await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
+	const host = page.locator("#dashboard-utilities");
+	await expect(page.getByRole("link", { name: "Clipify Home" })).toHaveAttribute("href", "/dashboard/agency");
+	await expect(page.getByRole("row", { name: "Tools", exact: true })).toHaveCount(0);
+	const context = host.locator('[data-slot="autocomplete-trigger"]');
+	await expect(context).toContainText("Select account");
+	await context.click();
+	await expect(page.getByRole("option")).toHaveCount(1);
+	await page.getByRole("option", { name: /E2E Agency Account/ }).click();
+	await expect(page.getByRole("heading", { name: "Agency dashboard", exact: true })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "This agency is unavailable", exact: true })).toHaveCount(0);
+	await page.getByRole("link", { name: "Clipify Home" }).click();
+	await expect(page.getByRole("heading", { name: "Agency dashboard", exact: true })).toBeVisible();
+	await page.screenshot({ path: info.outputPath("agency-only.png"), fullPage: true });
+});

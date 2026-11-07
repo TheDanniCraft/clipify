@@ -75,6 +75,7 @@
 		"@tiptap/starter-kit": ">=3.32.0",
 		"@tiptap/suggestion": ">=3.32.0",
 		"@types/ffbinaries": "^1.1.5",
+		"@zip.js/zip.js": "^2.24.0",
 		"axios": "^1.20.0",
 		"better-auth": "1.7.12",
 		"c15t": "^3.1.0",
@@ -88,6 +89,7 @@
 		"jsonwebtoken": "^9.0.3",
 		"maplibre-gl": ">=6.15.0",
 		"marked": ">=18.1.1",
+		"mediabunny": "^1.65.2",
 		"minimatch": "^10.2.6",
 		"motion": "^13.5.1",
 		"next": "16.4.3",
@@ -161,6 +163,8 @@
 		"next@16.4.3": "patches/next.patch"
 	},
 	"overrides": {
+		"follow-redirects": "1.16.2",
+		"zod": "4.6.7",
 		"effect": "4.1.1",
 		"figlet": "1.12.0",
 		"tar": "^7.5.22",

@@ -86,6 +86,7 @@ export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<
 	addSubscriber("fixture-creator", overlayId, source as any);
 	const originalFetch = globalThis.fetch;
 	let providerCalls = 0;
+	let broadcastProviderCalls = 0;
 	const crawlRequests: Array<{ start: string; end: string; cursor: string | null }> = [];
 	const clips = [
 		{ id: "MinecraftClip", title: "Minecraft adventure", duration: 12, broadcaster_id: "fixture-creator", broadcaster_name: "Fixture creator", creator_id: "clipper-id", creator_name: "Fixture clipper", video_id: "123456789", vod_offset: 42, language: "en", is_featured: true, created_at: "2026-10-06T12:00:00Z", game_id: "27471", view_count: 100, url: "https://clips.twitch.tv/MinecraftClip", thumbnail_url: "https://static-cdn.jtvnw.net/test.jpg", secret: "private-provider-payload" },
@@ -111,6 +112,10 @@ export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<
 		const url = new URL(req.url);
 		if (url.origin === origin) return auth.handler(req);
 		if (url.origin !== "https://api.twitch.tv") throw new Error("WORKFLOW_EXTERNAL_IO_FORBIDDEN");
+		if (url.pathname === "/helix/videos") {
+			broadcastProviderCalls++;
+			return Promise.resolve(Response.json({ data: [{ id: "123456789", user_id: "fixture-creator", title: "Workflow stream", type: "archive", created_at: "2026-10-06T00:00:00Z", duration: "12h", thumbnail_url: "" }], pagination: {} }));
+		}
 		providerCalls++;
 		if (variant === "provider_failure") return Promise.resolve(new Response(null, { status: 503 }));
 		if (variant === "provider_rate_limit") return Promise.resolve(new Response(null, { status: 429 }));
@@ -385,7 +390,7 @@ export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<
 			if (variant === "clear_custom_dates") args.patch = { name: "Edited gallery", liveCustomStart: null, liveCustomEnd: null };
 			if (variant === "preview_live") {
 				await fixture.pool.query("UPDATE galleries SET source='live',playlist_id=null WHERE id=$1", [galleryId]);
-				for (const clip of clips) await fixture.pool.query(`INSERT INTO "twitchCache"(type,key,value,expires_at) VALUES('clip',$1,$2,now()+interval '1 hour')`, [`clip:fixture-creator:${clip.id}`, JSON.stringify({ ...clip, creator_name: "Creator" })]);
+				for (const [index, clip] of clips.entries()) await fixture.pool.query(`INSERT INTO "twitchCache"(type,key,value,expires_at) VALUES('clip',$1,$2,now()+interval '1 hour')`, [`clip:fixture-creator:${clip.id}`, JSON.stringify({ ...clip, created_at: new Date(Date.now() - (index + 1) * 3600000).toISOString(), creator_name: "Creator" })]);
 			}
 			if (variant === "preview_free") await fixture.pool.query("UPDATE users SET plan='free' WHERE id='fixture-creator'");
 			if (["existing_page", "free_existing_page", "free_unchanged_social", "clear_social"].includes(variant))
@@ -570,6 +575,7 @@ export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<
 				safe,
 				commands,
 				providerCalls,
+				broadcastProviderCalls,
 				writes,
 				ids: { overlayId, playlistId, galleryId, runnerId, sessionId },
 				schemaValid: toolInputSchemas[name as keyof typeof toolInputSchemas]?.safeParse(args).success,

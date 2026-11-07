@@ -8,7 +8,6 @@ import AdminMcpMetrics from "@components/adminMcpMetrics";
 import AdminHealthCharts from "@components/adminHealthCharts";
 import AdminUserExplorer from "@components/adminUserExplorer";
 import DashboardNavbar from "@components/dashboardNavbar";
-import AdminNavigation from "@components/adminNavigation";
 import { Alert, Card, CardContent, CardHeader, Chip } from "@components/heroui-client";
 
 import { notFound } from "next/navigation";
@@ -64,7 +63,6 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 	return (
 		<DashboardNavbar user={adminUser} title='Admin' tagline='Operational telemetry and account entry points'>
 			<div className='mt-5 flex flex-col gap-4'>
-				<AdminNavigation active='operations' />
 				<AdminUserTourStats stats={health.onboarding} />
 				<AdminMcpMetrics metrics={health.mcp} />
 				<AdminMcpClients stats={clientStats} />

@@ -198,8 +198,8 @@ describe("GalleryEditor", () => {
 		expect(screen.getByText("Draft")).toBeInTheDocument();
 		expect(screen.getByText("Website Preview")).toBeInTheDocument();
 		expect(screen.getByText(/ID:/)).toHaveTextContent("ID: gallery-1");
-		fireEvent.click(screen.getByRole("button", { name: "Back to dashboard" }));
-		expect(push).toHaveBeenCalledWith("/dashboard");
+		fireEvent.click(screen.getByRole("button", { name: "Back to galleries" }));
+		expect(push).toHaveBeenCalledWith("/dashboard/galleries");
 
 		fireEvent.click(screen.getByRole("button", { name: "Set gallery publication status" }));
 		expect(screen.getByText("Published")).toBeInTheDocument();

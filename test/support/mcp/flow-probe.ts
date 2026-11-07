@@ -811,9 +811,9 @@ async function main() {
 									const patch = (message.params.arguments as { patch: Record<string, unknown> }).patch;
 									const { overlayFieldGroups } = await import("@/server/mcp/focused-fields");
 									const group = Object.entries(overlayFieldGroups).find(([, fields]) => Object.keys(patch).every((field) => (fields as readonly string[]).includes(field)))?.[0];
-									message.params.name = `update_overlay_${group}`;
+									(message.params as { name: string }).name = `update_overlay_${group}`;
 								}
-								if (mode.startsWith("protocol:unknown-tool:") && "name" in message.params) message.params.name = mode.slice("protocol:unknown-tool:".length);
+								if (mode.startsWith("protocol:unknown-tool:") && "name" in message.params) (message.params as { name: string }).name = mode.slice("protocol:unknown-tool:".length);
 								if (mode.includes(":unknown:audit-storage-failure") && "arguments" in message.params) (message.params.arguments as Record<string, unknown>).secret = "private-input-value";
 								async function executeResourceRequest() {
 									const request = new Request(`${origin}/mcp`, {

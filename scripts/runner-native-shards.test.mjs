@@ -65,8 +65,8 @@ test("native producer matrices belong to Runner while dependency preparation rem
 	assert.equal(ci.jobs.deps.strategy, undefined);
 	assert.equal(ci.jobs.runner.strategy.matrix, "${{ fromJSON(needs.validation-plan.outputs.runner_matrix) }}");
 	assert.ok(ci.jobs["runner-coverage"].needs.includes("runner"));
-	assert.equal(ci.jobs.runner["runs-on"], "ubuntu-24.04");
-	assert.equal(ci.jobs["runner-coverage"]["runs-on"], "ubuntu-24.04");
+	assert.equal(ci.jobs.runner["runs-on"], "ubuntu-latest");
+	assert.equal(ci.jobs["runner-coverage"]["runs-on"], "ubuntu-latest");
 });
 
 test("partial source coverage defers completeness only; the native aggregate remains strict", async () => {
@@ -86,4 +86,11 @@ test("partial source coverage defers completeness only; the native aggregate rem
 	report[path].s[0] = 1;
 	results.testResults[0].assertionResults[0].status = "pending";
 	assert.equal(validateRunnerPartialEvidence(results, report, [owner]).ok, false);
+});
+
+test("Runner planning respects atomic-file cost and adjusts for newly measured files", () => {
+	const files = ["test/a.test.ts", "test/b.test.ts", "test/new.test.ts"];
+	const weights = { "packages/runner/test/a.test.ts": 200, "packages/runner/test/b.test.ts": 200 };
+	assert.equal(planRunnerShards(files, weights).length, 3);
+	assert.equal(planRunnerShards(files, Object.fromEntries(files.map((p) => ["packages/runner/" + p, 10]))).length, 1);
 });

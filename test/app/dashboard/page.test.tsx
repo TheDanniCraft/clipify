@@ -1,3 +1,5 @@
+const navigationIdentity = jest.fn();
+jest.mock("@/auth/navigation-user", () => ({ getDashboardNavbarUser: () => navigationIdentity() }));
 import React from "react";
 import { render, screen } from "@testing-library/react";
 
@@ -55,87 +57,72 @@ function makeUser(role: "user" | "admin", id = "user-1") {
 	};
 }
 
+jest.mock("@components/creator/creatorOverview", () => ({ __esModule: true, default: ({ creatorId, analyticsAllowed }: { creatorId: string; analyticsAllowed: boolean }) => <div data-analytics={analyticsAllowed ? "enabled" : "locked"}>{`creator-overview:${creatorId}`}</div> }));
 describe("app/dashboard/page", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
-		getActiveCampaignOffer.mockResolvedValue(null);
+		navigationIdentity.mockResolvedValue(null);
 		redirect.mockImplementation(() => {
 			throw new Error("NEXT_REDIRECT");
 		});
-		getAccessTokenResult.mockResolvedValue({
-			token: {
-				id: "user-1",
-				accessToken: "access-token",
-				refreshToken: "refresh-token",
-				expiresAt: new Date(Date.now() + 60_000),
-				scope: [],
-				tokenType: "bearer",
-			},
-		});
 	});
-
-	it("renders dashboard for a normal user after login", async () => {
-		validateAuth.mockResolvedValue(makeUser("user", "user-1"));
+	it.each(["user", "admin"] as const)("renders cached creator metrics for a %s without requiring a fresh provider token", async (role) => {
+		validateAuth.mockResolvedValue(makeUser(role, "owner"));
 		const DashboardPage = (await import("@/app/dashboard/page")).default;
-
 		render(await DashboardPage());
-
+		expect(screen.getByText("creator-overview:owner")).toBeInTheDocument();
+		expect(screen.getByText("chatwoot:owner")).toBeInTheDocument();
+		expect(screen.getByText("dashboard-navbar:owner")).toBeInTheDocument();
+		expect(getAccessTokenResult).not.toHaveBeenCalled();
 		expect(redirect).not.toHaveBeenCalled();
-		expect(getAccessTokenResult).toHaveBeenCalledWith("user-1");
-		expect(screen.getByText("dashboard-navbar:user-1")).toBeInTheDocument();
-		expect(screen.getByText("overlay-table:user-1")).toBeInTheDocument();
-		expect(screen.getByText("chatwoot:user-1")).toBeInTheDocument();
 	});
-
-	it("renders dashboard for an admin user after login", async () => {
-		validateAuth.mockResolvedValue(makeUser("admin", "admin-1"));
-		getAccessTokenResult.mockResolvedValue({
-			token: {
-				id: "admin-1",
-				accessToken: "admin-token",
-				refreshToken: "refresh-token",
-				expiresAt: new Date(Date.now() + 60_000),
-				scope: [],
-				tokenType: "bearer",
-			},
-		});
-		const DashboardPage = (await import("@/app/dashboard/page")).default;
-
-		render(await DashboardPage());
-
-		expect(redirect).not.toHaveBeenCalled();
-		expect(getAccessTokenResult).toHaveBeenCalledWith("admin-1");
-		expect(screen.getByText("dashboard-navbar:admin-1")).toBeInTheDocument();
-		expect(screen.getByText("overlay-table:admin-1")).toBeInTheDocument();
-		expect(screen.getByText("chatwoot:admin-1")).toBeInTheDocument();
-	});
-
-	it("redirects to logout when user is not authenticated", async () => {
+	it("redirects an unauthenticated visitor", async () => {
 		validateAuth.mockResolvedValue(false);
 		const DashboardPage = (await import("@/app/dashboard/page")).default;
-
 		await expect(DashboardPage()).rejects.toThrow("NEXT_REDIRECT");
 		expect(redirect).toHaveBeenCalledWith("/logout");
-		expect(getAccessTokenResult).not.toHaveBeenCalled();
 	});
+});
 
-	it("redirects to logout when token lookup fails", async () => {
-		validateAuth.mockResolvedValue(makeUser("user", "user-2"));
-		getAccessTokenResult.mockResolvedValue({ token: null, reason: "token_row_missing" });
-		const DashboardPage = (await import("@/app/dashboard/page")).default;
+it.each([
+	["overlays", "/dashboard/overlays"],
+	["playlists", "/dashboard/playlists"],
+	["galleries", "/dashboard/galleries"],
+	["runners", "/dashboard/runners"],
+])("preserves a bookmarked %s dashboard tab", async (tab, target) => {
+	validateAuth.mockResolvedValue(makeUser("user", "owner"));
+	const Page = (await import("@/app/dashboard/page")).default;
+	await expect(Page({ searchParams: Promise.resolve({ tab }) })).rejects.toThrow("NEXT_REDIRECT");
+	expect(redirect).toHaveBeenCalledWith(target);
+});
 
-		await expect(DashboardPage()).rejects.toThrow("NEXT_REDIRECT");
-		expect(getAccessTokenResult).toHaveBeenCalledWith("user-2");
-		expect(redirect).toHaveBeenCalledWith("/logout");
+it("recovers the old unavailable-agency URL before creator authentication", async () => {
+	redirect.mockImplementation(() => {
+		throw new Error("NEXT_REDIRECT");
 	});
+	validateAuth.mockClear();
+	const Page = (await import("@/app/dashboard/page")).default;
+	await expect(Page({ searchParams: Promise.resolve({ agency: "unavailable" }) })).rejects.toThrow("NEXT_REDIRECT");
+	expect(redirect).toHaveBeenCalledWith("/dashboard/agency");
+	expect(validateAuth).not.toHaveBeenCalled();
+});
 
-	it("redirects to logout with accountDisabled when token missing and user is disabled", async () => {
-		validateAuth.mockResolvedValue(makeUser("user", "user-3"));
-		getAccessTokenResult.mockResolvedValue({ token: null, reason: "user_disabled" });
-		const DashboardPage = (await import("@/app/dashboard/page")).default;
+it("retains an authenticated session when its creator context is unavailable", async () => {
+	redirect.mockClear();
+	validateAuth.mockResolvedValue(false);
+	navigationIdentity.mockResolvedValue({ id: "agency-member", username: "Member" });
+	const Page = (await import("@/app/dashboard/page")).default;
+	await expect(Page()).rejects.toThrow("NEXT_REDIRECT");
+	expect(redirect).toHaveBeenCalledWith("/dashboard/agency");
+	expect(redirect).not.toHaveBeenCalledWith("/logout");
+});
 
-		await expect(DashboardPage()).rejects.toThrow("NEXT_REDIRECT");
-		expect(getAccessTokenResult).toHaveBeenCalledWith("user-3");
-		expect(redirect).toHaveBeenCalledWith("/logout?error=accountDisabled");
-	});
+it.each([
+	["free", "locked"],
+	["pro", "enabled"],
+])("passes %s page analytics access to Home", async (plan, state) => {
+	validateAuth.mockResolvedValue({ ...makeUser("user", "owner"), plan });
+	const Page = (await import("@/app/dashboard/page")).default;
+	render(await Page());
+	expect(screen.getByText("creator-overview:owner")).toHaveAttribute("data-analytics", state);
 });
