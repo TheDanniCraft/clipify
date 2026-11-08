@@ -12,6 +12,7 @@ type AppPaginationProps = {
 	onChange: (page: number) => void;
 	className?: string;
 	showSinglePage?: boolean;
+	isDisabled?: boolean;
 };
 
 function pageItems(page: number, total: number): Array<number | "ellipsis-start" | "ellipsis-end"> {
@@ -25,7 +26,7 @@ function pageItems(page: number, total: number): Array<number | "ellipsis-start"
 	return items;
 }
 
-export default function AppPagination({ page, total, onChange, className, showSinglePage = false }: AppPaginationProps) {
+export default function AppPagination({ page, total, onChange, className, showSinglePage = false, isDisabled = false }: AppPaginationProps) {
 	const hydrated = useSyncExternalStore(subscribe, ready, notReady);
 	if (total <= 1 && !showSinglePage) return null;
 
@@ -33,7 +34,7 @@ export default function AppPagination({ page, total, onChange, className, showSi
 		<Pagination className={className} size='sm'>
 			<Pagination.Content>
 				<Pagination.Item>
-					<Pagination.Previous isDisabled={!hydrated || page <= 1} onPress={() => onChange(page - 1)}>
+					<Pagination.Previous isDisabled={!hydrated || isDisabled || page <= 1} onPress={() => onChange(page - 1)}>
 						<Pagination.PreviousIcon />
 						<span className='sr-only'>Previous</span>
 					</Pagination.Previous>
@@ -45,14 +46,14 @@ export default function AppPagination({ page, total, onChange, className, showSi
 						</Pagination.Item>
 					) : (
 						<Pagination.Item key={item}>
-							<Pagination.Link isDisabled={!hydrated} isActive={item === page} onPress={() => onChange(item)}>
+							<Pagination.Link isDisabled={!hydrated || isDisabled} isActive={item === page} onPress={() => onChange(item)}>
 								{item}
 							</Pagination.Link>
 						</Pagination.Item>
 					),
 				)}
 				<Pagination.Item>
-					<Pagination.Next isDisabled={!hydrated || page >= total} onPress={() => onChange(page + 1)}>
+					<Pagination.Next isDisabled={!hydrated || isDisabled || page >= total} onPress={() => onChange(page + 1)}>
 						<span className='sr-only'>Next</span>
 						<Pagination.NextIcon />
 					</Pagination.Next>

@@ -103,3 +103,13 @@
 .driver-active [data-tour-guided-dialog="true"] .driver-active-element {
 	outline-offset: -2px;
 }
+
+/* The guide panel must stay above the sidebar only while a spotlight is active. */
+.driver-active #clipify-guide-panel {
+	z-index: 1000000002;
+}
+
+/* The mobile drawer owns focus; keep the page guide available after it closes. */
+body:has([data-slot="sidebar-mobile"]) #clipify-guide-panel {
+	visibility: hidden;
+}

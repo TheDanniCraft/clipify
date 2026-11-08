@@ -136,3 +136,24 @@ test("invalid authentication timestamp cannot reach creator lookup", async () =>
 	expect(await listAuthorizedCreatorOperations({ permission: "creator:read", principal: { ...principal, authenticatedAt: new Date(NaN) } })).toEqual([]);
 	expect(db.select).not.toHaveBeenCalled();
 });
+
+test("verified admin view grants target navigation without changing the audit actor", async () => {
+	enqueue([account], [creator], []);
+	expect(await authorizeTrustedCreatorOperation({ principal: { ...principal, adminViewCreatorId: "creator" }, creatorId: "creator", permission: "creator:read" })).toMatchObject({ allowed: true, accessPath: "direct", authUserId: "actor", sessionId: "session" });
+});
+test.each(["other", undefined])("admin view does not authorize a different or absent target %s", async (adminViewCreatorId) => {
+	enqueue([account], [creator], []);
+	expect(await authorizeTrustedCreatorOperation({ principal: { ...principal, adminViewCreatorId }, creatorId: "creator", permission: "creator:read" })).toEqual({ allowed: false, code: "ACCESS_PATH_REQUIRED" });
+});
+test("admin view retains owner-only and entitlement restrictions", async () => {
+	for (const restriction of [{ ownerOnlyAction: "account:delete" as const }, { requiredEntitlement: "pro" as const }]) {
+		enqueue([account], [creator], []);
+		(resolveUserEntitlements as jest.Mock).mockResolvedValue({ proAccess: false });
+		const result = await authorizeTrustedCreatorOperation({ principal: { ...principal, adminViewCreatorId: "creator" }, creatorId: "creator", permission: "creator:read", ...restriction });
+		expect(result).toEqual({ allowed: false, code: "ownerOnlyAction" in restriction ? "OWNER_REQUIRED" : "ENTITLEMENT_REQUIRED" });
+	}
+});
+test("OAuth cannot inherit browser admin-view authority", async () => {
+	enqueue([account], [creator], []);
+	expect(await authorizeTrustedCreatorOperation({ principal: { ...principal, kind: "oauth", adminViewCreatorId: "creator", scopes: ["creator:read"], creators: [{ creatorId: "creator", agencyOrganizationId: null }] }, creatorId: "creator", permission: "creator:read" })).toEqual({ allowed: false, code: "ACCESS_PATH_REQUIRED" });
+});

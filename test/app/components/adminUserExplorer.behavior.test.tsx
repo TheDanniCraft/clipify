@@ -24,6 +24,19 @@ jest.mock("@actions/adminView", () => ({
 }));
 
 jest.mock("@/app/components/adminAwardsControl", () => ({ __esModule: true, default: () => null }));
+jest.mock("@components/appPagination", () => ({
+	__esModule: true,
+	default: ({ page, total, onChange, isDisabled }: any) => (
+		<>
+			<button disabled={page <= 1 || isDisabled} onClick={() => onChange(page - 1)}>
+				Previous
+			</button>
+			<button disabled={page >= total || isDisabled} onClick={() => onChange(page + 1)}>
+				Next
+			</button>
+		</>
+	),
+}));
 jest.mock("@heroui/react", () => ({
 	Checkbox: Object.assign(
 		({ children, isSelected, onChange, ...props }: any) => (
@@ -34,8 +47,9 @@ jest.mock("@heroui/react", () => ({
 		),
 		{ Control: ({ children }: any) => <>{children}</>, Indicator: () => null },
 	),
-	Button: ({ children, onPress, isDisabled }: { children: React.ReactNode; onPress?: () => void; isDisabled?: boolean }) => (
-		<button onClick={onPress} disabled={isDisabled}>
+	Tooltip: Object.assign(({ children }: any) => <>{children}</>, { Content: () => null }),
+	Button: ({ children, onPress, isDisabled, "aria-label": ariaLabel }: { children: React.ReactNode; onPress?: () => void; isDisabled?: boolean; "aria-label"?: string }) => (
+		<button onClick={onPress} disabled={isDisabled} aria-label={ariaLabel}>
 			{children}
 		</button>
 	),
@@ -339,6 +353,6 @@ it("does not accept a View as User click before its client handler is ready", ()
 	const html = renderToString(<AdminUserExplorer users={[{ id: "target", username: "target", email: "target@example.invalid", role: "user", plan: "pro", lastLoginLabel: "now" }]} initialPage={1} initialTotalPages={1} initialTotalRows={1} initialQuery='' />);
 	const container = document.createElement("div");
 	container.innerHTML = html;
-	const button = [...container.querySelectorAll("button")].find((node) => node.textContent === "View as User");
+	const button = container.querySelector('button[aria-label="View as User"]');
 	expect(button).toBeDisabled();
 });

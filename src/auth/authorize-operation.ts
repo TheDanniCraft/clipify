@@ -56,6 +56,7 @@ export type TrustedCreatorPrincipal = {
 	authenticatedAt: Date;
 	sessionId?: string;
 	organizationId?: string | null;
+	adminViewCreatorId?: string;
 	clientId?: string;
 	grantId?: string;
 	generation?: number;
@@ -98,6 +99,7 @@ export async function authorizeTrustedCreatorOperation(input: { creatorId: strin
 		.limit(1);
 
 	async function resolveCreatorAccessPath() {
+		if (principal.kind === "session" && principal.adminViewCreatorId === input.creatorId) return { access: { kind: "direct" as const, permissions: PERMISSIONS } };
 		let access = resolveDirectAccessGrant({ owner: false, activeMember: false, memberPermissions: [], ownerPermissions: STANDARD_ROLES.owner });
 		const directRole = directMembership[0]?.role;
 		if (directRole) {

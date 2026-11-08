@@ -1,9 +1,11 @@
 "use client";
 import LocalizedDate from "@components/localizedDate";
 import { useState, useTransition } from "react";
-import { Button, Modal, TextField, TextArea, Input, Label, Select, ListBox, Checkbox } from "@heroui/react";
+import { Button, Modal, TextField, TextArea, Input, Label, Select, ListBox, Checkbox, Tooltip } from "@heroui/react";
 import { grantAdminAwards, getAdminUserAwards, revokeAdminAward, type AdminAwardInput } from "@/app/actions/admin-benefits";
 import { badgeCatalog } from "@lib/badgeCatalog";
+
+import { IconGift } from "@tabler/icons-react";
 
 type Recipient = { id: string; username: string };
 function Choice({ label, value, options, onChange }: { label: string; value: string; options: { id: string; label: string }[]; onChange: (value: string) => void }) {
@@ -27,7 +29,7 @@ function Choice({ label, value, options, onChange }: { label: string; value: str
 		</Select>
 	);
 }
-export default function AdminAwardsControl({ recipients, onChanged, label = "Manage benefits" }: { recipients: Recipient[]; onChanged: () => Promise<void>; label?: string }) {
+export default function AdminAwardsControl({ recipients, onChanged, label = "Manage benefits", compact = false }: { recipients: Recipient[]; onChanged: () => Promise<void>; label?: string; compact?: boolean }) {
 	const [open, setOpen] = useState(false),
 		[kind, setKind] = useState<AdminAwardInput["kind"]>("pro_access"),
 		[days, setDays] = useState("7"),
@@ -81,22 +83,27 @@ export default function AdminAwardsControl({ recipients, onChanged, label = "Man
 	}
 	return (
 		<>
-			<Button
-				size='sm'
-				variant='tertiary'
-				isDisabled={!recipients.length}
-				onPress={() => {
-					setOpen(true);
-					setReview(false);
-					setRemoval(null);
-					setMessage("");
-					setOperationId(crypto.randomUUID());
-					setAwards(null);
-					loadAwards();
-				}}
-			>
-				{label}
-			</Button>
+			<Tooltip isDisabled={!compact}>
+				<Button
+					size='sm'
+					isIconOnly={compact}
+					aria-label={compact ? label : undefined}
+					variant='tertiary'
+					isDisabled={!recipients.length}
+					onPress={() => {
+						setOpen(true);
+						setReview(false);
+						setRemoval(null);
+						setMessage("");
+						setOperationId(crypto.randomUUID());
+						setAwards(null);
+						loadAwards();
+					}}
+				>
+					{compact ? <IconGift className='size-4' /> : label}
+				</Button>
+				<Tooltip.Content>{label}</Tooltip.Content>
+			</Tooltip>
 			{open && (
 				<Modal.Backdrop
 					isOpen={open}

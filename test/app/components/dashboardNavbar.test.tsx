@@ -418,6 +418,7 @@ describe("components/dashboardNavbar", () => {
 		);
 
 		expect(screen.getByText("You are viewing as")).toBeInTheDocument();
+		expect(screen.getByRole("region", { name: "Admin view" }).compareDocumentPosition(screen.getByRole("navigation")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
 		await act(async () => {
 			jest.advanceTimersByTime(200);

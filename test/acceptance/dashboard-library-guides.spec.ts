@@ -18,6 +18,17 @@ for (const width of [390, 1440])
 				if (await page.getByRole("region", { name: "Your Clipify guide", exact: true }).isVisible()) return;
 				if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
 				await page.locator('button[aria-controls="clipify-guide-panel"]:visible').click();
+				const panel = page.getByRole("region", { name: "Your Clipify guide", exact: true });
+				await expect(panel).toBeVisible();
+				await expect
+					.poll(() =>
+						panel.evaluate((node) => {
+							const rect = node.getBoundingClientRect();
+							return node.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + 20));
+						}),
+					)
+					.toBe(true);
+				await page.screenshot({ path: info.outputPath("guide-panel.png") });
 			};
 			for (const [task, label, target, title, path] of [
 				["explore.home", "Understand your Home dashboard", "dashboard-home", "Your clips at a glance", "/dashboard"],
