@@ -311,7 +311,8 @@ Then("the recent clip metrics and all-time top five or actionable empty state ar
 	const home = cases.get(tourWorld)!.home!;
 	if (home.count === 0) {
 		await expect(page.getByText("No clips from the last 30 days", { exact: true })).toBeVisible();
-		await expect(page.getByRole("link", { name: "Browse clip inventory", exact: true })).toHaveAttribute("href", "/dashboard/clips");
+		await expect(page.getByRole("button", { name: /^(Set up an overlay|Continue overlay setup)$/ })).toBeVisible();
+		await expect(page.getByRole("navigation", { name: "Quick access", exact: true }).getByRole("link", { name: "Clip Inventory", exact: true })).toHaveAttribute("href", "/dashboard/clips");
 		await expect(page.getByRole("status", { name: "Known clips" })).toHaveCount(0);
 		await expect(page.getByRole("status", { name: "Current clip views" })).toHaveCount(0);
 	} else {

@@ -18,6 +18,8 @@ for (const width of [390, 1440])
 				const toggle = page.getByRole("button", { name: "Toggle navigation", exact: true });
 				await expect(toggle).toBeEnabled();
 				if (width === 390 && (await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+				// Do not let automatic control scrolling interrupt the sheet entrance.
+				if (width === 390) await expect(page.locator('[data-slot="sidebar-mobile"]')).toBeInViewport({ ratio: 1 });
 			};
 			await page.goto(`${tourWorld.origin}/dashboard`);
 			await expect(page.getByRole("complementary", { name: "Your privacy choices", exact: true })).toBeVisible();

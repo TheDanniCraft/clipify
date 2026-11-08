@@ -93,3 +93,13 @@ The final loading trace identified an eager newsletter Turnstile challenge. Veri
 Deployment labels use the existing `resolveBaseUrl()` runtime policy, including Coolify preview overrides, rather than assuming the public build URL always names the running environment. Paid-invoice dates use the signed Stripe event timestamp. The mobile comparison provides table, row, column-header and cell semantics. Root Twitter metadata keeps the card type but allows route-specific title/description fallback instead of inheriting the old homepage headline.
 
 The final real-browser keyboard review found that the newsletter's opacity-hidden name step remained in the tab order. Both inactive step containers are now inert. Advancing focuses the name field, and Back restores email focus; confirmation-dialog focus stays owned by HeroUI. A dedicated browser case checks that Tab skips the inactive name field, and whole-file tests cover the handoff and return without sending email.
+
+## Umami reporting follow-up
+
+New exports emit consent-gated start, completion, failure, cancellation and manual retry events with counts and formats, without clip IDs or layout names. Layout saves report success or failure and whether they affect a reusable template or a clip override. Overlay runtime playback now uses `overlay_clip_played`; public creator and gallery plays keep `clip_played`. Historical playback events retain their original meaning.
+
+Private dashboard resource paths are grouped under `:id`; public creator and gallery paths remain distinct for their existing reports. Native bounce rate counts visits with one recorded event. Engagement events intentionally count as activity; use pageview-based reports when that is the desired denominator.
+
+Server delivery counters expose rejected and interrupted sends through existing instance health diagnostics. Only an explicit rate-limit rejection receives one short retry, after checking consent again. Committed outcomes include an audit ID for read-only reconciliation through `marketing-outcome-report.sql`; the ledger remains authoritative and this does not guarantee exactly-once delivery.
+
+Home and broadcast summary reads use cached clip metadata instead of requesting missing category details. Compare dashboard performance after deployment with the same device and route cohorts; old production measurements cannot establish the rewrite's performance.

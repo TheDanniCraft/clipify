@@ -16,8 +16,8 @@ import DashboardContentHost from "@components/dashboardContentHost";
 import type { DashboardContentItem } from "@lib/dashboardContent";
 const guidedWelcome: DashboardContentItem = { key: "guided-welcome", title: "Welcome", headline: "Welcome to Clipify!", intro: "Let’s get your first overlay running.", highlight: { title: "Learn by doing", text: "Follow the real controls to create, configure and use your overlay." }, image: { src: "/clippy/Clippy.svg", alt: "Clippy, the Clipify mascot" }, actionLabel: "Start guided tour" };
 const Spotlight = lazy(() => import("./spotlight"));
-type GuideContextValue = { report: (event: GuideEvent) => void; activeTask: TaskId | null; resourceIds: { overlayId: string | null; playlistId: string | null } };
-const GuideContext = createContext<GuideContextValue>({ report: () => undefined, activeTask: null, resourceIds: { overlayId: null, playlistId: null } });
+type GuideContextValue = { report: (event: GuideEvent) => void; activeTask: TaskId | null; nextSetupTask: (typeof journeys)[0]["tasks"][number] | null; startSetup: () => void; resourceIds: { overlayId: string | null; playlistId: string | null } };
+const GuideContext = createContext<GuideContextValue>({ report: () => undefined, activeTask: null, nextSetupTask: null, startSetup: () => undefined, resourceIds: { overlayId: null, playlistId: null } });
 export const useUserTour = () => useContext(GuideContext);
 export function PreviewTourCheckpoint({ ownerId, overlayId, count, isOpen }: { ownerId: string; overlayId: string; count: number; isOpen: boolean }) {
 	const { report } = useUserTour();
@@ -84,7 +84,7 @@ function TaskCheckbox({ task, selected, current, onRequest, onConfirm, onRestore
 	);
 }
 /** Server state is authoritative. Browser storage is only imported once for older accounts. */
-export function UserTourProvider({ accountId, children, appearanceAvailable = true, initialProgress = defaultProgress(), importLegacy = false, dashboardContent = [] }: { accountId: string; children: ReactNode; appearanceAvailable?: boolean; initialProgress?: GuideProgress; importLegacy?: boolean; dashboardContent?: DashboardContentItem[] }) {
+export function UserTourProvider({ accountId, children, setupAvailable = false, appearanceAvailable = true, initialProgress = defaultProgress(), importLegacy = false, dashboardContent = [] }: { accountId: string; children: ReactNode; setupAvailable?: boolean; appearanceAvailable?: boolean; initialProgress?: GuideProgress; importLegacy?: boolean; dashboardContent?: DashboardContentItem[] }) {
 	const pathname = usePathname();
 
 	const [progress, setProgress] = useState(() => (pathname !== "/dashboard" && !initialProgress.active ? { ...initialProgress, minimized: true } : initialProgress));
@@ -245,8 +245,9 @@ export function UserTourProvider({ accountId, children, appearanceAvailable = tr
 	const panelVisible = !progress.minimized && (!consentBanner || guideRequested);
 	const launcherTitle = currentJourney.id === "overlay" ? "Get started" : currentJourney.title;
 	const percentage = journeyGuidePercent(progress);
+	const nextSetupTask = setupAvailable ? (journeys[0].tasks.find((task) => !isFinished(task.id)) ?? null) : null;
 	return (
-		<GuideContext.Provider value={{ report, activeTask, resourceIds: { overlayId: progress.overlayId, playlistId: progress.playlistId } }}>
+		<GuideContext.Provider value={{ report, activeTask, nextSetupTask, startSetup: () => nextSetupTask && start(nextSetupTask.id), resourceIds: { overlayId: progress.overlayId, playlistId: progress.playlistId } }}>
 			{children}
 			{hydrated && <DashboardContentHost isVisible={!consentOpen && !consentBanner} items={dashboardContent.length ? dashboardContent : offerWelcome ? [guidedWelcome] : []} onStartGuide={offerWelcome ? () => report({ type: "welcome.start", location: rawLocation }) : undefined} onDismissGuide={offerWelcome ? () => report({ type: "welcome.dismiss" }) : undefined} />}
 			<span hidden data-guide-sync={syncState} />

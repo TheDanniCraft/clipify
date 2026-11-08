@@ -8,6 +8,12 @@ import { browserDatabaseUrl } from "../support/mcp/browser-database.cjs";
 
 test.use({ actionTimeout: 30000 });
 
+// Wait for the native sheet scroll animation before Playwright scrolls its controls into view.
+async function openMobileNavigation(page: Page) {
+	await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+	await expect(page.locator('[data-slot="sidebar-mobile"]')).toBeInViewport({ ratio: 1 });
+}
+
 const axeSource = readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
 async function checkAccessibility(page: Page) {
 	await page.addScriptTag({ content: axeSource });
@@ -91,7 +97,9 @@ for (const width of [390, 1440])
 							expect(bounds).not.toBeNull();
 							expect(bounds!.x).toBeGreaterThanOrEqual(0);
 							expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
-							if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+							if (width === 390) {
+								await openMobileNavigation(page);
+							}
 							await page.locator(width === 390 ? '[data-slot="sidebar-mobile"] [data-tour="settings-core-tab"]' : '[data-slot="sidebar"] [data-tour="settings-core-tab"]').press("Enter");
 							await expect(page).toHaveURL(/\/dashboard\/settings$/);
 							await expect(page.locator('[data-tour="settings-core-tab"][aria-current="page"]')).toHaveCount(1);
@@ -103,12 +111,16 @@ for (const width of [390, 1440])
 						await checkAccessibility(page);
 						await page.screenshot({ path: info.outputPath(`${index}-${theme}-${width}.png`), fullPage: true, animations: "disabled" });
 					});
-				if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+				if (width === 390) {
+					await openMobileNavigation(page);
+				}
 				await expect(page.getByRole("button", { name: "Log out", exact: true })).toBeVisible();
 				await expect(page.getByRole("link", { name: "Help center", exact: true })).toBeVisible();
 				await expect(page.getByRole("button", { name: "Open profile menu", exact: true })).toHaveCount(0);
 				const toggle = page.getByRole("button", { name: "Toggle navigation", exact: true });
-				if (width === 390 && (await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+				if (width === 390 && (await toggle.getAttribute("aria-expanded")) !== "true") {
+					await openMobileNavigation(page);
+				}
 				const navigation = page.locator(width === 390 ? '[data-slot="sidebar-mobile"]' : '[data-slot="sidebar"]');
 				await navigation.locator('[data-tour="settings-group"]').click();
 				await navigation.locator('[data-tour="settings-core-tab"]').click();
@@ -183,12 +195,16 @@ for (const width of [390, 1440])
 					await checkAccessibility(page);
 					await page.screenshot({ path: info.outputPath(`${index}-${theme}-${width}.png`), fullPage: true, animations: "disabled" });
 				}
-				if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+				if (width === 390) {
+					await openMobileNavigation(page);
+				}
 				await page.locator('[data-slot="autocomplete-trigger"]').click();
 				await page.getByRole("option", { name: "E2E Creator Account creator account", exact: true }).click();
 				await expect(page).toHaveURL(/\/dashboard$/);
 				await expect(page.getByRole("heading", { name: "Home", exact: true })).toBeVisible();
-				if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+				if (width === 390) {
+					await openMobileNavigation(page);
+				}
 				await expect(page.locator('[data-dashboard-account-controls] [data-slot="autocomplete-value"]')).toHaveText("E2E Creator Account");
 				expect(errors).toEqual([]);
 			} finally {

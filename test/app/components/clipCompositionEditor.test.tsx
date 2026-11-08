@@ -1,3 +1,5 @@
+const mockLayoutEvent = jest.fn();
+jest.mock("@lib/analytics", () => ({ trackProductEvent: (...args: unknown[]) => mockLayoutEvent(...args) }));
 jest.mock("@components/upgradeModal", () => ({ __esModule: true, default: ({ isOpen }: any) => (isOpen ? <div role='dialog'>Upgrade branding</div> : null) }));
 jest.mock("@components/theme/ThemeColorInput", () => ({
 	__esModule: true,
@@ -78,6 +80,8 @@ it("retains a global layout draft after save failure and allows a successful ret
 	expect(saveTemplate.mock.calls[1][1]).toEqual(saveTemplate.mock.calls[0][1]);
 	expect(saveTemplate.mock.calls[1][1].composition.layers.map((layer: any) => layer.id)).toEqual(["gameplay", "camera"]);
 	expect(saveOverride).not.toHaveBeenCalled();
+	expect(mockLayoutEvent).toHaveBeenCalledWith("clip_layout_save_failed", { scope: "template", format: "mobile" });
+	expect(mockLayoutEvent).toHaveBeenCalledWith("clip_layout_saved", { scope: "template", format: "mobile" });
 });
 it("adds arbitrary crops and widgets, edits source bounds and retains widget ordering in a named template", async () => {
 	detail.mockResolvedValue({ ok: true, clip: { id: "Ref", title: "Reference" } });
