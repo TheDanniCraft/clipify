@@ -15,9 +15,9 @@ import { isEmbeddedRoute } from "@lib/embeddedRoutes";
 import type { Permission } from "@/auth/permissions";
 type Destination = { title: string; href: string; permission: Permission | null; icon?: typeof IconHome; tour?: string };
 const destinations: Destination[] = [
-	{ title: "Home", href: "/dashboard", permission: "creator:read", icon: IconHome },
-	{ title: "Streams", href: "/dashboard/streams", permission: "creator:read", icon: IconVideo },
-	{ title: "Clip Inventory", href: "/dashboard/clips", permission: "creator:read", icon: IconScissors },
+	{ title: "Home", href: "/dashboard", permission: "creator:read", icon: IconHome, tour: "dashboard-home" },
+	{ title: "Streams", href: "/dashboard/streams", permission: "creator:read", icon: IconVideo, tour: "streams-tab" },
+	{ title: "Clip Inventory", href: "/dashboard/clips", permission: "creator:read", icon: IconScissors, tour: "clips-tab" },
 	{ title: "Overlays", href: "/dashboard/overlays", permission: "overlay:read", icon: IconLayoutGrid, tour: "overlays-tab" },
 	{ title: "Playlists", href: "/dashboard/playlists", permission: "playlist:read", icon: IconPlaylist, tour: "playlists-tab" },
 	{ title: "Galleries", href: "/dashboard/galleries", permission: "gallery:read", icon: IconPhoto, tour: "galleries-tab" },
@@ -60,6 +60,7 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen, isAd
 	const toolItems: Destination[] = permissions.length ? toolSections.map((item) => ({ ...item, permission: null, icon: item.title === "Clip Player" ? IconPlayerPlay : IconPhoto, tour: item.title === "Clip Player" ? "nav-tools" : undefined })) : [];
 	const allowed = [...(!permissions.length ? [{ title: "Agency", href: "/dashboard/agency", permission: null, icon: IconBuildingCommunity }] : []), ...destinations].filter((item) => (item.title === "Settings" ? settingsItems.length > 0 : item.title === "Tools" ? toolItems.length > 0 : item.permission === null || permissions.includes(item.permission)));
 	const searchable = [...new Map([...settingsItems, ...toolItems, ...allowed].map((item) => [item.href, item])).values()];
+	const resources = allowed.filter((item) => ["Overlays", "Playlists", "Galleries", "Runner", "Clip layouts"].includes(item.title));
 	const currentChild = activeGroup === "settings" && path === "/dashboard/settings" ? settingsItems.find((item) => item.href === settingsSections.find((candidate) => candidate.key === section)?.href) : activeGroup === "tools" ? toolItems[params.get("tool") === "gallery" ? 1 : 0] : undefined;
 	let active = path;
 	if (path.startsWith("/dashboard/overlay/")) active = "/dashboard/overlays";
@@ -142,7 +143,7 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen, isAd
 		};
 	}, [creatorId, query, searchOpen, retry, canSearchClips]);
 	const menuItem = (item: Destination) => (
-		<Sidebar.MenuItem key={item.href} id={item.href} href={item.href} isCurrent={(currentChild?.href ?? current?.href) === item.href} render={(props) => <div {...props} aria-current={(currentChild?.href ?? current?.href) === item.href ? "page" : undefined} />} aria-current={(currentChild?.href ?? current?.href) === item.href ? "page" : undefined} textValue={item.title} data-tour={item.tour}>
+		<Sidebar.MenuItem key={item.href} id={item.href} href={item.href} isCurrent={(currentChild?.href ?? current?.href) === item.href} render={(props) => <div {...props} aria-current={(currentChild?.href ?? current?.href) === item.href ? "page" : undefined} />} aria-current={(currentChild?.href ?? current?.href) === item.href ? "page" : undefined} textValue={item.title} data-tour={item.tour} data-guide-navigation>
 			{item.icon ? (
 				<Sidebar.MenuIcon>
 					<item.icon className='size-4' />
@@ -175,18 +176,16 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen, isAd
 				<Sidebar.Group>
 					<Sidebar.Menu aria-label='Creator navigation' className='clipify-creator-navigation' key={activeGroup ?? "root"} defaultExpandedKeys={["resources", ...(activeGroup ? [activeGroup] : [])]}>
 						{allowed.filter((item) => ["Home", "Streams", "Clip Inventory", "Agency"].includes(item.title)).map(menuItem)}
-						{allowed.some((item) => "tour" in item) ? (
-							<Sidebar.MenuItem id='resources' textValue='Create and share'>
+						{resources.length > 0 ? (
+							<Sidebar.MenuItem id='resources' textValue='Create and share' data-tour='resources-group' data-guide-navigation>
 								<Sidebar.MenuIcon>
 									<IconFolder className='size-4' />
 								</Sidebar.MenuIcon>
-								<Sidebar.MenuLabel>
-									Create and share
-									<Sidebar.MenuTrigger>
-										<Sidebar.MenuIndicator />
-									</Sidebar.MenuTrigger>
-								</Sidebar.MenuLabel>
-								<Sidebar.Submenu>{allowed.filter((item) => "tour" in item).map(menuItem)}</Sidebar.Submenu>
+								<Sidebar.MenuLabel>Create and share</Sidebar.MenuLabel>
+								<Sidebar.MenuTrigger>
+									<Sidebar.MenuIndicator />
+								</Sidebar.MenuTrigger>
+								<Sidebar.Submenu>{resources.map(menuItem)}</Sidebar.Submenu>
 							</Sidebar.MenuItem>
 						) : null}
 						{[
@@ -195,12 +194,12 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen, isAd
 						]
 							.filter((group) => group.items.length > 0)
 							.map((group) => (
-								<Sidebar.MenuItem key={group.id} id={group.id} textValue={group.title}>
+								<Sidebar.MenuItem key={group.id} id={group.id} textValue={group.title} data-tour={`${group.id}-group`} data-guide-navigation>
 									<Sidebar.MenuIcon>
 										<group.icon className='size-4' />
 									</Sidebar.MenuIcon>
 									<Sidebar.MenuLabel>{group.title}</Sidebar.MenuLabel>
-									<Sidebar.MenuTrigger data-tour={`${group.id}-group`}>
+									<Sidebar.MenuTrigger>
 										<Sidebar.MenuIndicator />
 									</Sidebar.MenuTrigger>
 									<Sidebar.Submenu>

@@ -1,3 +1,4 @@
+jest.mock("@components/user-tour/provider", () => ({ useUserTour: () => ({ report: () => undefined }) }));
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import DashboardShell from "@components/dashboardShell";
 import { DashboardNavigationControls, DashboardBreadcrumbs } from "@components/dashboardNavigation";

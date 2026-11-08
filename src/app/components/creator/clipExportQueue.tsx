@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Button, Disclosure, Link, Modal, Spinner, ProgressBar, toast } from "@heroui/react";
 import { IconCheck, IconClock, IconDeviceDesktop, IconDeviceMobile, IconDownload, IconRefresh, IconVideo, IconX } from "@tabler/icons-react";
+import { useUserTour } from "@components/user-tour/provider";
 import ConfirmModal from "@components/confirmModal";
 import ControlledModal from "@components/controlledModal";
 import LocalizedDate from "@components/localizedDate";
@@ -113,11 +114,20 @@ function ExportDownloadButton({ batch, onRepeat }: { batch: Batch; onRepeat: (re
 const ExportContext = createContext<{ batches: Batch[]; enqueue: (request: ExportRequest) => void; enqueuePlans: (plans: ClipExportPlan[], clipNames: Record<string, string> | undefined, scope: string, engine?: ExportEngine) => boolean; show: () => void } | null>(null);
 export const useClipExports = () => useContext(ExportContext);
 export function ClipExportProvider({ children, creatorId }: { children: ReactNode; creatorId: string }) {
+	const { report } = useUserTour();
+	const reportedExports = useRef(new Set<number>());
 	const [cancelIds, setCancelIds] = useState<number[]>([]);
 	const [batches, setBatches] = useState<Batch[]>([]),
 		[open, setOpen] = useState(false),
 		[expanded, setExpanded] = useState<number[]>([]),
 		[now, setNow] = useState(() => Date.now());
+	useEffect(() => {
+		for (const batch of batches) {
+			if (batch.status !== "completed" || !batch.summary?.included.length || reportedExports.current.has(batch.id)) continue;
+			reportedExports.current.add(batch.id);
+			report({ type: "export.completed", ownerId: creatorId, id: `batch-${batch.id}` });
+		}
+	}, [batches, creatorId, report]);
 	const modalOpen = useRef(false),
 		notice = useRef<string | undefined>(undefined);
 	const changeOpen = (value: boolean) => {
@@ -437,7 +447,7 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 				<Modal.Header>
 					<Modal.Heading>Clip exports</Modal.Heading>
 				</Modal.Header>
-				<Modal.Body className='max-h-[60dvh] space-y-6 overflow-y-auto'>
+				<Modal.Body data-tour='export-progress' className='max-h-[60dvh] space-y-6 overflow-y-auto'>
 					<p className='text-sm text-muted'>Keep this tab open. Your download starts when the export is ready.</p>
 					{current.map((batch) => (
 						<section key={batch.id} aria-label={`Export ${batch.id}`} className='space-y-4'>

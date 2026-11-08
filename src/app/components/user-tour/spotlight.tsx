@@ -24,7 +24,9 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 		let disposed = false;
 		let shown = false;
 		let requestedNavigation = false;
-		const sidebarStep = step.target.startsWith("settings-") || step.target === "tools-group" || step.target === "nav-tools";
+		let requestedResources = false;
+		let requestedNavigationClose = false;
+		const sidebarStep = step.target.startsWith("settings-") || step.target === "tools-group" || step.target === "nav-tools" || step.target.endsWith("-tab") || step.target === "dashboard-home";
 		let suspended = false;
 		let advanced = false;
 		let missingTimer: ReturnType<typeof setTimeout> | undefined;
@@ -32,7 +34,7 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 		let guidedPopover: HTMLElement | null = null;
 		const restorePopoverScope = () => {
 			// React Aria may inert the newly body-portalled wrapper before it is moved into its modal.
-			if (!step.inDialog || !guidedModal || !guidedPopover || !guidedModal.contains(guidedPopover)) return;
+			if ((!step.inDialog && !sidebarStep) || !guidedModal || !guidedPopover || !guidedModal.contains(guidedPopover)) return;
 			if (guidedPopover.hasAttribute("inert")) guidedPopover.removeAttribute("inert");
 			if (guidedPopover.getAttribute("aria-hidden") === "true") guidedPopover.removeAttribute("aria-hidden");
 		};
@@ -48,7 +50,8 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 		const target = () => {
 			if (step.target === "support-report") return document.querySelector<HTMLElement>('[data-tour="support-report"]') ?? document.querySelector("#sentry-feedback")?.shadowRoot?.querySelector<HTMLElement>(".widget__actor") ?? null;
 			if (step.target === "support-chat") return document.querySelector<HTMLElement>('[aria-label="Enable support chat"], .woot--bubble-holder');
-			const matches = [...document.querySelectorAll<HTMLElement>(`[data-tour="${step.target}"]`)];
+			const navigation = sidebarStep ? [...document.querySelectorAll<HTMLElement>(`[data-guide-navigation][data-tour="${step.target}"]`)] : [];
+			const matches = navigation.length ? navigation : [...document.querySelectorAll<HTMLElement>(`[data-tour="${step.target}"]`)];
 			return matches.find((element) => element.getClientRects().length > 0) ?? matches[0] ?? null;
 		};
 		const spotlight = driver({
@@ -69,8 +72,8 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 			},
 		});
 		driverRef.current = spotlight;
-		const currentModal = () => Array.from(document.querySelectorAll<HTMLElement>(tourModalSelector)).findLast((modal) => !modal.closest('[data-exiting="true"]'));
-		const ownsModal = (modal: HTMLElement | undefined, element: HTMLElement | null) => Boolean(modal && element && modal.contains(element) && (step.inDialog || (sidebarStep && element.closest('[data-slot="sidebar-mobile"]'))));
+		const currentModal = () => Array.from(document.querySelectorAll<HTMLElement>(`${tourModalSelector}, [data-slot="sidebar-mobile"]`)).findLast((modal) => !modal.closest('[data-exiting="true"]'));
+		const ownsModal = (modal: HTMLElement | undefined, element: HTMLElement | null) => Boolean(modal && element && modal.contains(element) && (step.inDialog || element.closest('[data-slot="sidebar-mobile"]')));
 		const show = () => {
 			if (disposed) return;
 			if (document.querySelector("#consent-banner-title")) {
@@ -78,6 +81,15 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 				return;
 			}
 			const element = target();
+			const drawer = document.querySelector<HTMLElement>('[data-slot="sidebar-mobile"]');
+			if (!sidebarStep && !step.inDialog && element && drawer?.getClientRects().length && !drawer.contains(element) && !requestedNavigationClose) {
+				const toggle = document.querySelector<HTMLButtonElement>('[aria-label="Toggle navigation"][aria-expanded="true"]');
+				if (toggle) {
+					requestedNavigationClose = true;
+					toggle.click();
+					return;
+				}
+			}
 			const modal = currentModal();
 			if (sidebarStep && !requestedNavigation && !element?.getClientRects().length) {
 				const toggle = document.querySelector<HTMLButtonElement>('[aria-label="Toggle navigation"][aria-expanded="false"]');
@@ -87,9 +99,17 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 					return;
 				}
 			}
+			if (sidebarStep && !requestedResources && ["overlays-tab", "playlists-tab", "galleries-tab", "runners-tab", "clip-layouts-tab"].includes(step.target)) {
+				const trigger = [...document.querySelectorAll<HTMLElement>('[data-tour="resources-group"]')].find((node) => node.getClientRects().length && node.closest('[aria-expanded="false"]'));
+				if (trigger) {
+					requestedResources = true;
+					(trigger.querySelector<HTMLElement>('[data-slot="sidebar-menu-trigger"]') ?? trigger).click();
+					return;
+				}
+			}
 			const ownsDialog = ownsModal(modal, element);
 			const revealed = step.reveals ? document.querySelector(`[data-tour="${step.reveals}"]`) : null;
-			const revealsExpectedDialog = Boolean(step.allowDialog && revealed && modal?.contains(revealed) && !revealed.closest('[data-exiting="true"]'));
+			const revealsExpectedDialog = Boolean((step.allowDialog || step.inDialog) && revealed && modal?.contains(revealed) && !revealed.closest('[data-exiting="true"]'));
 			if (modal && !ownsDialog && !revealsExpectedDialog) {
 				if (!suspended) {
 					suspended = true;
@@ -119,7 +139,7 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 				guidedModal = modal;
 				modal.dataset.tourGuidedDialog = "true";
 			}
-			if (step.action && ((element?.getAttribute("role") === "tab" && element.getAttribute("aria-selected") === "true") || element?.getAttribute("aria-current") === "page")) {
+			if (step.action && ((element?.getAttribute("role") === "tab" && element.getAttribute("aria-selected") === "true") || (element?.getAttribute("aria-current") === "page" && !step.reveals))) {
 				if (!advanced) {
 					advanced = true;
 					onNext();
@@ -201,7 +221,7 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 				return;
 			}
 			if (shown && !target()) {
-				if (step.dialogClosed) {
+				if (step.dialogClosed || (step.reveals && document.querySelector(`[data-tour="${step.reveals}"]`))) {
 					show();
 					return;
 				}
@@ -217,7 +237,7 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 			restorePopoverScope();
 			if (shown) spotlight.refresh();
 		});
-		observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-tour", "aria-modal", "role", "aria-selected", "aria-current", "data-entering", "data-exiting", "inert", "aria-hidden"] });
+		observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["aria-expanded", "data-tour", "aria-modal", "role", "aria-selected", "aria-current", "data-entering", "data-exiting", "inert", "aria-hidden"] });
 		show();
 		const timeout = window.setTimeout(() => {
 			if (!shown && !suspended && !advanced) {

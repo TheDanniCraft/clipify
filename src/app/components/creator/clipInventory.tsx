@@ -149,7 +149,7 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 		</NumberField>
 	));
 	return (
-		<div className={`@container flex min-w-0 flex-col gap-5 ${fixedVideoId ? "" : "my-6"}`}>
+		<div data-tour='clip-inventory' className={`@container flex min-w-0 flex-col gap-5 ${fixedVideoId ? "" : "my-6"}`}>
 			<Card>
 				{fixedVideoId ? (
 					<Card.Header className='flex flex-row flex-wrap items-center justify-between gap-3'>
@@ -159,6 +159,7 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 				) : null}
 				<Card.Content>
 					<form
+						data-tour='clip-filters'
 						className='grid grid-cols-[minmax(0,1fr)_auto] gap-3'
 						onSubmit={(event) => {
 							event.preventDefault();
@@ -274,7 +275,7 @@ export default function ClipInventory({ creatorId, query: initialQuery, data: in
 				<>
 					{data.items.length || selected.size ? (
 						<Card>
-							<Card.Content className='flex flex-row flex-wrap items-center justify-between gap-3'>
+							<Card.Content data-tour='clip-selection' className='flex flex-row flex-wrap items-center justify-between gap-3'>
 								<div className='flex flex-wrap items-center gap-3'>
 									<Button
 										variant='secondary'

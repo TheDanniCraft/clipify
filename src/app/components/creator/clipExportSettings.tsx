@@ -46,11 +46,11 @@ function ExportFooter({ step, capability, count, disabled, onClose, onStart, onS
 					Cancel
 				</Button>
 				{step === 0 ? (
-					<Button isDisabled={disabled} onPress={() => onStep(1)}>
+					<Button data-tour='export-next' isDisabled={disabled} onPress={() => onStep(1)}>
 						Next
 					</Button>
 				) : (
-					<Button isDisabled={disabled} onPress={onStart}>
+					<Button data-tour='export-start' isDisabled={disabled} onPress={onStart}>
 						Start export
 					</Button>
 				)}
@@ -147,7 +147,7 @@ export default function ClipExportSettings({ creatorId, clipIds, onStart, onClos
 				<div>
 					{step === 0 ? (
 						<div className='space-y-5'>
-							<section aria-label='Export versions' className='grid gap-2'>
+							<section data-tour='export-versions' aria-label='Export versions' className='grid gap-2'>
 								{(["original", "desktop", "mobile"] as const).map((version) => (
 									<Checkbox
 										key={version}
@@ -208,7 +208,7 @@ export default function ClipExportSettings({ creatorId, clipIds, onStart, onClos
 							</Autocomplete>
 						</div>
 					) : (
-						<div className='space-y-5'>
+						<div data-tour='export-destination' className='space-y-5'>
 							<Select autoFocus variant='secondary' value={destination} onChange={(value) => setDestination(value as typeof destination)}>
 								<Label>Export for</Label>
 								<Select.Trigger>

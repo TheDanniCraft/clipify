@@ -12,7 +12,7 @@ export default async function StreamsPage({ searchParams }: { searchParams: Prom
 	const result = await getCreatorBroadcasts({ creatorId: user.id, after });
 	return (
 		<DashboardNavbar user={user} title='Streams' tagline='Saved streams and their clips'>
-			<div className='my-6 flex flex-col gap-4'>
+			<div data-tour='stream-library' className='my-6 flex flex-col gap-4'>
 				<p className='text-sm text-muted'>Stream details stay here after Twitch removes a recording. Older streams appear as your library synchronizes.</p>
 				{!result.ok ? (
 					<Card>

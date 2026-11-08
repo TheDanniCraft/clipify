@@ -220,7 +220,7 @@ it("starts welcome guidance at the first unfinished core task and remembers the 
 });
 it("requires every guide task for Expert, with no credit for skipped tasks", () => {
 	const tasks = journeys.flatMap((journey) => journey.tasks.map((task) => task.id));
-	expect(tasks).toHaveLength(18);
+	expect(tasks).toHaveLength(23);
 	expect(hasCompletedAllGuides({ ...defaultProgress(), completed: tasks })).toBe(true);
 	for (const missing of tasks) {
 		expect(hasCompletedAllGuides({ ...defaultProgress(), completed: tasks.filter((task) => task !== missing), skipped: [missing] })).toBe(false);
@@ -380,4 +380,34 @@ it.each([
 ] as const)("keeps saved profile navigation compatible with the sidebar for %s", (task, target) => {
 	const state = apply(defaultProgress(), { type: "start", task, location: "dashboard" });
 	expect(currentGuideStep(state)).toMatchObject({ target, action: true });
+});
+
+it.each([
+	["explore.home", "/dashboard", "dashboard-home", "home-overview"],
+	["explore.streams", "/dashboard/streams", "streams-tab", "stream-library"],
+	["explore.clips", "/dashboard/clips", "clips-tab", "clip-inventory"],
+	["explore.layouts", "/dashboard/clip-layouts", "clip-layouts-tab", "clip-layout-library"],
+] as const)("introduces %s through navigation without requiring any resources", (task, route, nav, content) => {
+	let state = apply(defaultProgress(), { type: "start", task, location: "other" });
+	expect(currentGuideStep(state)?.target).toBe(nav);
+	expect(routeForTask(task, state)).toBe(route);
+	state = apply(state, { type: "next" });
+	expect(currentGuideStep(state)?.target).toBe(content);
+	state = apply(state, { type: "next" });
+	expect(state.completed).toContain(task);
+	expect(state.overlayId).toBeNull();
+});
+it("keeps exports outside Explore and requires a successful owned export to finish its hands-on guide", () => {
+	expect(journeys.find((j) => j.id === "explore")!.tasks.some((t) => t.id.startsWith("export."))).toBe(false);
+	let state = apply(defaultProgress(), { type: "start", task: "export.manual", location: "clips" });
+	state = apply(state, { type: "export.completed", ownerId: "someone-else", id: "batch-1" });
+	expect(state.completed).not.toContain("export.manual");
+	state = apply(state, { type: "export.completed", ownerId: "owner", id: "batch-1" });
+	expect(state.completed).toContain("export.manual");
+});
+it("preserves saved guide completions and Expert awards when adding discovery tasks", () => {
+	const progress = parseProgress(JSON.stringify({ ...defaultProgress(), completed: ["overlay.name", "explore.galleries"], expertAwardVersion: 2, expertAwardedAt: "2026-01-01T00:00:00Z" }));
+	expect(progress.completed).toEqual(["overlay.name", "explore.galleries"]);
+	expect(progress.completed).not.toContain("explore.clips");
+	expect(progress.expertAwardedAt).toBe("2026-01-01T00:00:00.000Z");
 });

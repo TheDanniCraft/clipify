@@ -47,6 +47,7 @@ export default function ClipExport({
 	return (
 		<section aria-label={label ?? "Clip export"}>
 			<Button
+				data-tour='export-selected'
 				variant={variant}
 				isPending={preparing}
 				isDisabled={isDisabled || !clipIds.length || (!configure && format === "mp4" && clipIds.length !== 1) || (!configure && pending)}

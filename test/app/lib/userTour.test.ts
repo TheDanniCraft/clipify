@@ -2,8 +2,8 @@ import { defaultProgress, journeys, parseProgress, routeForTask, storageKey, tra
 
 describe("user tour progress", () => {
 	const apply = (event: GuideEvent, progress = defaultProgress()) => transition(progress, event, "owner");
-	it("offers four bounded sections and a four-task activation path", () => {
-		expect(journeys.map((journey) => journey.id)).toEqual(["overlay", "appearance", "playlist", "explore"]);
+	it("offers five bounded sections and a four-task activation path", () => {
+		expect(journeys.map((journey) => journey.id)).toEqual(["overlay", "appearance", "playlist", "explore", "export"]);
 		expect(journeys[0].tasks).toHaveLength(4);
 		expect(defaultProgress().completed).toEqual([]);
 	});
