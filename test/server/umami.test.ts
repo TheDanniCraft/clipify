@@ -1,5 +1,6 @@
 /** @jest-environment node */
 import { queryUmami, sendServerProductEvent, trackCommittedProductEvent, trackCommittedCreatorOutcome, trackServerProductEvent } from "@/server/umami";
+import { getCreatorAnalyticsRuntimeMetrics } from "@/app/lib/plausibleCreatorAnalytics";
 const allowed = jest.fn();
 const callbacks: Array<() => Promise<void>> = [];
 const selectRows = jest.fn();
@@ -8,13 +9,51 @@ jest.mock("@/db/client", () => ({ db: { select: () => ({ from: () => ({ where: (
 jest.mock("@/server/analytics-consent", () => ({ readAnalyticsConsent: (...args: unknown[]) => allowed(...args), readRequestAnalyticsState: jest.fn().mockResolvedValue(undefined), linkRequestAnalyticsSubject: jest.fn().mockResolvedValue(true) }));
 
 beforeEach(() => {
+	globalThis.__creatorAnalyticsMetrics = undefined;
 	callbacks.length = 0;
 	selectRows.mockReset();
-	allowed.mockResolvedValue(false);
+	allowed.mockReset().mockResolvedValue(false);
 	process.env.NEXT_PUBLIC_BASE_URL = "https://clipify.us";
 	process.env.UMAMI_WEBSITE_ID = "cc971acc-716d-4056-a79c-3cfda9fb8e1d";
 	delete process.env.E2E_TEST_MODE;
 	global.fetch = jest.fn().mockResolvedValue({ ok: true });
+});
+it("counts rejected event deliveries without failing the business operation", async () => {
+	allowed.mockResolvedValue(true);
+	(global.fetch as jest.Mock).mockResolvedValue({ ok: false, status: 503 });
+	const warning = jest.spyOn(console, "warn").mockImplementation(() => {});
+	await expect(sendServerProductEvent("private-account", "payment_verified", { revenue: 2 })).resolves.toBeUndefined();
+	expect(getCreatorAnalyticsRuntimeMetrics()).toMatchObject({ deliveryAttempts: 1, deliveryFailed: 1, deliverySucceeded: 0 });
+	expect(global.fetch).toHaveBeenCalledTimes(1);
+	expect(warning).toHaveBeenCalled();
+	expect(JSON.stringify(warning.mock.calls)).not.toContain("private-account");
+	warning.mockRestore();
+});
+
+it("retries an explicitly rejected rate-limited event once and records recovery", async () => {
+	allowed.mockResolvedValue(true);
+	(global.fetch as jest.Mock).mockResolvedValueOnce({ ok: false, status: 429, headers: new Headers({ "Retry-After": "0" }) }).mockResolvedValueOnce({ ok: true });
+	await sendServerProductEvent("account", "resource_saved", {});
+	expect(global.fetch).toHaveBeenCalledTimes(2);
+	expect(getCreatorAnalyticsRuntimeMetrics()).toMatchObject({ deliveryAttempts: 2, deliveryRetries: 1, deliverySucceeded: 1, deliveryFailed: 0 });
+});
+
+it("honors withdrawal before retrying a rejected event", async () => {
+	allowed.mockResolvedValueOnce(true).mockResolvedValue(false);
+	(global.fetch as jest.Mock).mockResolvedValue({ ok: false, status: 429, headers: new Headers({ "Retry-After": "0" }) });
+	await sendServerProductEvent("account", "resource_saved", {});
+	expect(global.fetch).toHaveBeenCalledTimes(1);
+	expect(allowed).toHaveBeenCalledTimes(2);
+});
+
+it("stops retrying instead of tying up a response lifecycle for a long provider cooldown", async () => {
+	allowed.mockResolvedValue(true);
+	(global.fetch as jest.Mock).mockResolvedValue({ ok: false, status: 429, headers: new Headers({ "Retry-After": "60" }) });
+	const warning = jest.spyOn(console, "warn").mockImplementation(() => {});
+	await sendServerProductEvent("account", "resource_saved", {});
+	expect(global.fetch).toHaveBeenCalledTimes(1);
+	expect(getCreatorAnalyticsRuntimeMetrics()).toMatchObject({ deliveryFailed: 1, deliveryRetries: 0 });
+	warning.mockRestore();
 });
 it("does not send optional server outcomes without authoritative statistics consent", async () => {
 	await sendServerProductEvent("account", "payment_verified", { revenue: 2, currency: "EUR" });
@@ -55,6 +94,7 @@ it("resolves the committed creator's verified auth link for background outcomes"
 	await callbacks.pop()!();
 	expect(allowed).toHaveBeenCalledWith("verified-auth-account", undefined);
 	expect(JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body).payload.id).toBe("verified-auth-account");
+	expect(JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body).payload.data.outcome_id).toBe("invoice-audit");
 });
 
 it("never schedules collection in isolated E2E runs or for missing identities", () => {

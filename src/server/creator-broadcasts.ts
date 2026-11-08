@@ -137,7 +137,7 @@ export async function readCreatorBroadcasts(creatorId: string, after?: string, v
 		if (localAfter && !start) return { ok: false as const, code: "INVALID_INPUT" };
 		const visible = ordered.slice(start, start + 20);
 
-		const library = await readCreatorLibrary(creatorId);
+		const library = await readCreatorLibrary(creatorId, {}, true);
 		const clips = library.ok ? library.clips : [];
 		const items = visible.map(({ video, unavailable }) => {
 			const matching = clips.filter((clip) => clip.video_id === video.id);

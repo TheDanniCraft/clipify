@@ -69,6 +69,8 @@ jest.mock("@heroui/react", () => {
 	return new Proxy({ ...base, Disclosure, useFilter: () => ({ contains: (text: string, input: string) => text.toLowerCase().includes(input.toLowerCase()) }) }, { get: (target: any, key: any) => (key in target ? target[key] : base[key]) });
 });
 const notify = jest.fn();
+const mockProductEvent = jest.fn();
+jest.mock("@lib/analytics", () => ({ trackProductEvent: (...args: unknown[]) => mockProductEvent(...args) }));
 jest.mock("@actions/clipLayoutLibrary", () => ({ listClipLayouts: async () => ({ ok: true, templates: [], defaults: {} }) }));
 jest.mock("@lib/toast", () => ({ notify: (...args: unknown[]) => notify(...args) }));
 jest.mock("@components/controlledModal", () => ({
@@ -99,6 +101,7 @@ beforeEach(() => {
 	browserBatch.mockReset();
 	browserBatch.mockImplementation(async (plan: any) => ({ ok: true, bytes: new Uint8Array([1]), summary: { included: plan.files.map((_: any, index: number) => index), skipped: [] } }));
 	notify.mockClear();
+	mockProductEvent.mockClear();
 	globalThis.fetch = fetchMock;
 });
 afterEach(() => {
@@ -125,6 +128,8 @@ it("retries only retryable unsuccessful IDs when every download failed", async (
 	await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
 	expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({ creatorId: "owner", clipIds: ["B"] });
 	expect(mockGuideReport).not.toHaveBeenCalled();
+	expect(mockProductEvent).toHaveBeenCalledWith("clip_export_retried", { file_count: 1 });
+	expect(mockProductEvent).toHaveBeenCalledWith("clip_export_failed", expect.objectContaining({ file_count: 3, reason: "PROVIDER_UNAVAILABLE" }));
 });
 
 it("keeps permanent failures visible without offering a futile retry", async () => {
@@ -166,6 +171,7 @@ it("cancels an in-flight export without clearing the selection", async () => {
 	await screen.findByText("Export cancelled. Your selection is kept.");
 	expect(notify).not.toHaveBeenCalled();
 	expect(screen.getByRole("button", { name: "Export selected" })).toBeEnabled();
+	expect(mockProductEvent.mock.calls.filter(([event]) => event === "clip_export_cancelled")).toHaveLength(1);
 });
 it("aborts and hides an export when the creator changes", async () => {
 	fetchMock.mockImplementation((_url, options) => new Promise((_resolve, reject) => options.signal.addEventListener("abort", () => reject(new Error("aborted")))));
@@ -353,6 +359,10 @@ it("downloads individual MP4 and supports reopening and dismissing result detail
 	expect(fetchMock.mock.calls[0][0]).toBe("/api/clips/export?format=mp4&progress=1");
 	expect(create).toHaveBeenCalledWith(expect.objectContaining({ type: "video/mp4" }));
 	await waitFor(() => expect(mockGuideReport).toHaveBeenCalledWith({ type: "export.completed", ownerId: "owner", id: "batch-1" }));
+	expect(mockProductEvent).toHaveBeenCalledWith("clip_export_started", expect.objectContaining({ file_count: 1, clip_count: 1, format: "mp4" }));
+	expect(mockProductEvent).toHaveBeenCalledWith("clip_export_completed", expect.objectContaining({ ready_count: 1, skipped_count: 0 }));
+	expect(mockProductEvent.mock.calls.filter(([event]) => event === "clip_export_completed")).toHaveLength(1);
+	expect(mockProductEvent.mock.calls.some(([, data]) => JSON.stringify(data).includes("owner:A"))).toBe(false);
 	fireEvent.click(screen.getByRole("button", { name: "Exports" }));
 	expect(screen.getByRole("dialog")).toHaveTextContent("1 clip ready");
 	fireEvent.click(screen.getByRole("button", { name: "Close exports" }));

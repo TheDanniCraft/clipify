@@ -14,7 +14,7 @@ export function summarizeCreatorClips(clips: import("zod").z.infer<typeof import
 
 export async function readCreatorOverview(creatorId: string, timeZone: string) {
 	const { readCreatorLibrary } = await import("./creator-library");
-	const library = await readCreatorLibrary(creatorId, { timeZone });
+	const library = await readCreatorLibrary(creatorId, { timeZone }, true);
 	if (!library.ok) return library;
 	return { ok: true as const, ...summarizeCreatorClips(library.clips, timeZone, new Date()), complete: library.complete, fetchedAt: library.fetchedAt, timeZone };
 }

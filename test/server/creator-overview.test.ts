@@ -23,7 +23,7 @@ it("reports known empty metrics with completeness and freshness", async () => {
 	readLibrary.mockResolvedValue({ ok: true, clips: [], complete: false, fetchedAt: null });
 	const { readCreatorOverview } = await import("@/server/creator-overview");
 	expect(await readCreatorOverview("owner", "UTC")).toMatchObject({ ok: true, count: 0, views: 0, topClips: [], complete: false, fetchedAt: null, timeZone: "UTC" });
-	expect(readLibrary).toHaveBeenCalledWith("owner", { timeZone: "UTC" });
+	expect(readLibrary).toHaveBeenCalledWith("owner", { timeZone: "UTC" }, true);
 });
 it("uses thirty local days across the autumn DST change", () => {
 	expect(localCreationWindow("Europe/Berlin", new Date("2026-10-26T12:00:00Z"))).toEqual({ startedAt: "2026-09-26T22:00:00.000Z", endedAt: "2026-10-26T23:00:00.000Z" });

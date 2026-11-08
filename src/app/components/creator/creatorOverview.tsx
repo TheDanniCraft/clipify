@@ -9,13 +9,14 @@ import { useUserTour } from "@components/user-tour/provider";
 import { getCreatorAnalytics } from "@actions/creatorAnalytics";
 import { buttonVariants } from "@heroui/styles";
 import { today, getLocalTimeZone } from "@internationalized/date";
+import { trackProductEvent } from "@lib/analytics";
 import { IconHome, IconLayoutGrid, IconPlaylist, IconPhoto, IconDeviceDesktop, IconScissors, IconLock, IconChevronRight } from "@tabler/icons-react";
 const cardActionClassName = "shrink-0 gap-1 text-sm underline";
 type Overview = Awaited<ReturnType<typeof getCreatorClipOverview>>;
 type Broadcasts = Awaited<ReturnType<typeof getCreatorBroadcasts>>;
 export default function CreatorOverview({ creatorId, analyticsAllowed = false }: { creatorId: string; analyticsAllowed?: boolean }) {
 	const navigation = useContext(DashboardNavigationContext);
-	const { activeTask } = useUserTour();
+	const { activeTask, nextSetupTask, startSetup } = useUserTour();
 	const [preview, setPreview] = useState<{ id: string; title: string; url: string } | null>(null);
 	const [overview, setOverview] = useState<Overview>();
 	const [broadcasts, setBroadcasts] = useState<Broadcasts>();
@@ -103,12 +104,24 @@ export default function CreatorOverview({ creatorId, analyticsAllowed = false }:
 								) : (
 									<div className='space-y-2 text-sm'>
 										<p className='text-muted'>No clips from the last 30 days</p>
-										<Link href='/dashboard/clips' className={cardActionClassName}>
-											Browse clip inventory
-											<Link.Icon aria-hidden='true'>
-												<IconChevronRight />
-											</Link.Icon>
-										</Link>
+										{nextSetupTask ? (
+											<Button
+												variant='secondary'
+												onPress={() => {
+													trackProductEvent("activation_setup_opened", { task: nextSetupTask.id });
+													startSetup();
+												}}
+											>
+												{nextSetupTask.id === "overlay.name" ? "Set up an overlay" : "Continue overlay setup"}
+											</Button>
+										) : (
+											<Link href='/dashboard/clips' className={cardActionClassName}>
+												Browse clip inventory
+												<Link.Icon aria-hidden='true'>
+													<IconChevronRight />
+												</Link.Icon>
+											</Link>
+										)}
 									</div>
 								)}
 								{overview.count ? <p className='text-xs text-muted'>Total views on these clips.</p> : null}

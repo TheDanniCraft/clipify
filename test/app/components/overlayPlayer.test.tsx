@@ -4,6 +4,8 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import OverlayPlayer from "@/app/components/overlayPlayer";
 
 const getAvatar = jest.fn();
+const mockTrackEvent = jest.fn();
+jest.mock("@lib/analytics", () => ({ trackEvent: (...args: unknown[]) => mockTrackEvent(...args) }));
 const getDemoClip = jest.fn();
 const getGameDetails = jest.fn();
 const getTwitchClipBatch = jest.fn();
@@ -731,6 +733,7 @@ describe("components/overlayPlayer", () => {
 	});
 
 	it("recomputes smart-shuffle selection after a played clip is recorded via crossfade", async () => {
+		mockTrackEvent.mockClear();
 		jest.useFakeTimers();
 		const randomSpy = jest.spyOn(Math, "random").mockReturnValue(0);
 		const clips = Array.from({ length: 13 }, (_, index) =>
@@ -769,6 +772,8 @@ describe("components/overlayPlayer", () => {
 			await waitFor(() => {
 				expect(resolvePlayableClip.mock.calls.length).toBeGreaterThan(1);
 			});
+			expect(mockTrackEvent).toHaveBeenCalledWith("overlay_clip_played", expect.objectContaining({ mode: "smart_shuffle" }));
+			expect(mockTrackEvent).not.toHaveBeenCalledWith("clip_played", expect.anything());
 		} finally {
 			randomSpy.mockRestore();
 		}

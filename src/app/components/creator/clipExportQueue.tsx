@@ -7,6 +7,7 @@ import ConfirmModal from "@components/confirmModal";
 import ControlledModal from "@components/controlledModal";
 import LocalizedDate from "@components/localizedDate";
 import { notify } from "@lib/toast";
+import { trackProductEvent } from "@lib/analytics";
 import { buildBrowserArchive, cleanupBrowserExports, exportArchiveName } from "@lib/clipBrowserArchive";
 import { buildBrowserBatch } from "@lib/clipBrowserBatch";
 import type { ExportEngine } from "@lib/clipBrowserExport";
@@ -90,6 +91,26 @@ function requestFiles(request: ExportRequest) {
 		}),
 	);
 }
+function trackBatchTransitions(previous: Batch[], next: Batch[]) {
+	for (const batch of next) {
+		const before = previous.find((job) => job.id === batch.id);
+		const outcome = !before ? "started" : before.status !== batch.status && ["completed", "failed", "cancelled"].includes(batch.status) ? batch.status : null;
+		if (!outcome) continue;
+		const files = requestFiles(batch.request);
+		trackProductEvent(`clip_export_${outcome}`, {
+			file_count: batch.request.clipIds.length,
+			clip_count: new Set(batch.request.clipIds).size,
+			format: batch.request.format,
+			original_count: files.filter((file) => file.format === "original").length,
+			desktop_count: files.filter((file) => file.format === "desktop").length,
+			mobile_count: files.filter((file) => file.format === "mobile").length,
+			ready_count: batch.summary?.included.length ?? 0,
+			skipped_count: batch.summary?.skipped.length ?? batch.failures?.length ?? 0,
+			duration_ms: Math.max(0, Date.now() - Date.parse(batch.startedAt)),
+			reason: batch.error && Object.hasOwn(messages, batch.error) ? batch.error : undefined,
+		});
+	}
+}
 function ExportDownloadButton({ batch, onRepeat }: { batch: Batch; onRepeat: (request: ExportRequest) => void }) {
 	return (
 		<Button
@@ -151,7 +172,9 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 		budget = useRef({ used: 0, resetAt: 0 });
 	const update = (fn: (jobs: Batch[]) => Batch[]) => {
 		if (!alive.current) return;
+		const previous = jobs.current;
 		jobs.current = fn(jobs.current);
+		trackBatchTransitions(previous, jobs.current);
 		setBatches(jobs.current);
 	};
 	const patch = (id: number, value: Partial<Batch>) => {
@@ -420,7 +443,14 @@ export function ClipExportProvider({ children, creatorId }: { children: ReactNod
 						</Link>
 					) : null}
 					{!pending(batch) && batch.status !== "cancelled" && (batch.error || failures?.length) && retry.length ? (
-						<Button variant={batch.downloadUrl ? "secondary" : "primary"} isDisabled={Boolean(batch.retryAt && Date.parse(batch.retryAt) > now)} onPress={() => enqueue(subset(batch.request, retry))}>
+						<Button
+							variant={batch.downloadUrl ? "secondary" : "primary"}
+							isDisabled={Boolean(batch.retryAt && Date.parse(batch.retryAt) > now)}
+							onPress={() => {
+								trackProductEvent("clip_export_retried", { file_count: retry.length });
+								enqueue(subset(batch.request, retry));
+							}}
+						>
 							<IconRefresh className='size-4 shrink-0' />
 							{batch.request.plan || batch.request.plans ? "Retry failed files" : "Retry failed clips"}
 						</Button>

@@ -46,14 +46,14 @@ export type CreatorAnalyticsExportDataset = "daily" | "acquisition" | "locations
 type PlausibleRow = { dimensions?: unknown[]; metrics?: unknown[] };
 type PlausibleResponse = { results?: PlausibleRow[]; meta?: { time_labels?: unknown[] }; query?: { metrics?: unknown[] } };
 
-type AnalyticsRuntimeMetrics = { hits: number; misses: number; apiRequests: number; apiFailures: number; rateLimited: number; staleFallbacks: number; totalLatencyMs: number; lastFetchAt: string | null };
+type AnalyticsRuntimeMetrics = { hits: number; misses: number; apiRequests: number; apiFailures: number; rateLimited: number; staleFallbacks: number; deliveryAttempts: number; deliverySucceeded: number; deliveryFailed: number; deliveryRetries: number; totalLatencyMs: number; lastFetchAt: string | null };
 
 declare global {
 	var __creatorAnalyticsMetrics: AnalyticsRuntimeMetrics | undefined;
 }
 
 function store(): AnalyticsRuntimeMetrics {
-	return (globalThis.__creatorAnalyticsMetrics ??= { hits: 0, misses: 0, apiRequests: 0, apiFailures: 0, rateLimited: 0, staleFallbacks: 0, totalLatencyMs: 0, lastFetchAt: null });
+	return (globalThis.__creatorAnalyticsMetrics ??= { hits: 0, misses: 0, apiRequests: 0, apiFailures: 0, rateLimited: 0, staleFallbacks: 0, deliveryAttempts: 0, deliverySucceeded: 0, deliveryFailed: 0, deliveryRetries: 0, totalLatencyMs: 0, lastFetchAt: null });
 }
 
 function number(value: unknown) {
@@ -125,9 +125,9 @@ function joinedLocation(row: PlausibleRow, indices: number[]) {
 		.join(", ");
 }
 
-export function recordCreatorAnalyticsMetric(type: keyof Pick<AnalyticsRuntimeMetrics, "hits" | "misses" | "apiRequests" | "apiFailures" | "rateLimited" | "staleFallbacks">, latencyMs = 0) {
+export function recordCreatorAnalyticsMetric(type: keyof Pick<AnalyticsRuntimeMetrics, "hits" | "misses" | "apiRequests" | "apiFailures" | "rateLimited" | "staleFallbacks" | "deliveryAttempts" | "deliverySucceeded" | "deliveryFailed" | "deliveryRetries">, latencyMs = 0) {
 	const metrics = store();
-	metrics[type] += 1;
+	metrics[type] = (metrics[type] ?? 0) + 1;
 	if (type === "apiRequests") {
 		metrics.totalLatencyMs += latencyMs;
 		metrics.lastFetchAt = new Date().toISOString();

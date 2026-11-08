@@ -359,3 +359,16 @@ it("returns focus to the visible guide launcher on desktop", () => {
 		jest.useRealTimers();
 	}
 });
+
+it.each([true, false])("exposes the Home setup action only with overlay editing permission: %s", (setupAvailable) => {
+	function Setup() {
+		const { nextSetupTask } = useUserTour();
+		return <span>{nextSetupTask ? "Setup available" : "Setup hidden"}</span>;
+	}
+	render(
+		<UserTourProvider accountId='owner' setupAvailable={setupAvailable}>
+			<Setup />
+		</UserTourProvider>,
+	);
+	expect(screen.getByText(setupAvailable ? "Setup available" : "Setup hidden")).toBeVisible();
+});

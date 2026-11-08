@@ -27,6 +27,10 @@ const campaignKeys = new Set(["utm_source", "utm_medium", "utm_campaign", "utm_c
 const privateFields = /^(?:email|name|password|token|secret|access_token|refresh_token|code|stream_key|authorization)$/i;
 const marketingRoutes = new Set(["/", "/pricing", "/community", "/changelog", "/roadmap", "/features", "/gallery"]);
 
+function dashboardPath(pathname: string) {
+	return pathname.replace(/^\/dashboard\/(overlay|playlist|runner|runners|streams|clips|galleries|clip-layouts)\/([^/]+)/, (path, resource, id) => (id === "new" || id === "layout" ? path : `/dashboard/${resource}/:id`)).replace(/^(\/dashboard\/galleries\/:id\/preview\/clip\/)[^/]+/, "$1:id");
+}
+
 function safeUrl(raw: unknown, relative: boolean) {
 	if (typeof raw !== "string") return undefined;
 	try {
@@ -35,6 +39,7 @@ function safeUrl(raw: unknown, relative: boolean) {
 		url.username = "";
 		url.password = "";
 		url.hash = "";
+		if (relative || url.hostname === "clipify.us") url.pathname = dashboardPath(url.pathname);
 		for (const key of [...url.searchParams.keys()]) if (!campaignKeys.has(key)) url.searchParams.delete(key);
 		return relative ? `${url.pathname}${url.search}` : url.toString();
 	} catch {

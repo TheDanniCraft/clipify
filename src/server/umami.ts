@@ -31,15 +31,36 @@ export async function sendServerProductEvent(authUserId: string, name: string, d
 	try {
 		const { readAnalyticsConsent, linkRequestAnalyticsSubject } = await import("./analytics-consent");
 		if (requestState && !(await linkRequestAnalyticsSubject(authUserId, requestState))) return;
-		if (!(await readAnalyticsConsent(authUserId, requestState))) return;
-		await fetch(`${baseUrl()}/api/send`, {
-			method: "POST",
-			// No browser agent exists for a verified background outcome.
-			headers: { "Content-Type": "application/json", "User-Agent": "" },
-			body: JSON.stringify({ type: "event", payload: { website: umamiWebsiteId(), hostname: resolveBaseUrl().hostname, url: "/dashboard", id: authUserId, name, tag: "server", data } }),
-			signal: AbortSignal.timeout(2000),
-		});
+		for (let attempt = 0; attempt < 2; attempt++) {
+			if (!(await readAnalyticsConsent(authUserId, requestState))) return;
+			recordCreatorAnalyticsMetric("deliveryAttempts");
+			const response = await fetch(`${baseUrl()}/api/send`, {
+				method: "POST",
+				// No browser agent exists for a verified background outcome.
+				headers: { "Content-Type": "application/json", "User-Agent": "" },
+				body: JSON.stringify({ type: "event", payload: { website: umamiWebsiteId(), hostname: resolveBaseUrl().hostname, url: "/dashboard", id: authUserId, name, tag: "server", data } }),
+				signal: AbortSignal.timeout(2000),
+			});
+			await response.body?.cancel().catch(() => undefined);
+			if (response.ok) {
+				recordCreatorAnalyticsMetric("deliverySucceeded");
+				return;
+			}
+			const retryAfter = response.headers?.get("Retry-After");
+			const delay = retryAfter === null || retryAfter === undefined ? 250 : Number(retryAfter) * 1000;
+			// Ambiguous failures may already be committed upstream; only retry an explicit rejection.
+			if (response.status === 429 && attempt === 0 && Number.isFinite(delay) && delay >= 0 && delay <= 2000) {
+				recordCreatorAnalyticsMetric("deliveryRetries");
+				await new Promise((resolve) => setTimeout(resolve, delay));
+				continue;
+			}
+			recordCreatorAnalyticsMetric("deliveryFailed");
+			console.warn("[umami] Event delivery rejected", { event: name, status: response.status });
+			return;
+		}
 	} catch {
+		recordCreatorAnalyticsMetric("deliveryFailed");
+		console.warn("[umami] Event delivery interrupted", { event: name });
 		// Optional measurement must not fail a payment, save or playback.
 	}
 }
@@ -63,7 +84,7 @@ export function trackCommittedCreatorOutcome(creatorId: string, outcomeId: strin
 				const committed = await db.select({ id: auditEventsTable.id }).from(auditEventsTable).where(eq(auditEventsTable.id, outcomeId)).limit(1);
 				if (!committed.length) return;
 				const links = await db.select({ authUserId: creatorIdentityLinksTable.authUserId }).from(creatorIdentityLinksTable).where(eq(creatorIdentityLinksTable.creatorId, creatorId)).limit(1);
-				if (links[0]) await sendServerProductEvent(links[0].authUserId, name, data, name === "creator_created" || name === "trial_granted" ? await requestState : undefined);
+				if (links[0]) await sendServerProductEvent(links[0].authUserId, name, { ...data, outcome_id: outcomeId }, name === "creator_created" || name === "trial_granted" ? await requestState : undefined);
 			} catch {
 				/* Analytics has no bearing on the committed business outcome. */
 			}
@@ -81,7 +102,7 @@ export function trackCommittedProductEvent(authUserId: string, auditId: string, 
 		after(async () => {
 			try {
 				const committed = await db.select({ id: auditEventsTable.id }).from(auditEventsTable).where(eq(auditEventsTable.id, auditId)).limit(1);
-				if (committed.length) await sendServerProductEvent(authUserId, name, data, await requestState);
+				if (committed.length) await sendServerProductEvent(authUserId, name, { ...data, outcome_id: auditId }, await requestState);
 			} catch {
 				/* Measurement does not affect the committed operation. */
 			}

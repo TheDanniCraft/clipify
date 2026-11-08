@@ -135,9 +135,8 @@ for (const width of [390, 1440])
 		await expect(panel.getByRole("listitem")).toHaveCount(62);
 		await expect(page.getByRole("region", { name: "Stream moments scroll area" })).toHaveCount(0);
 		await expect(page.getByRole("button", { name: "Show more moments" })).toHaveCount(0);
-		const overflow = await panel.evaluate((el) => ({ height: el.clientHeight, content: el.scrollHeight, overflow: getComputedStyle(el).overflowY }));
-		expect(overflow.content).toBeLessThanOrEqual(overflow.height + 1);
-		expect(overflow.overflow).toBe("visible");
+		await expect(panel).toHaveCSS("overflow-y", "visible");
+		await expect.poll(() => panel.evaluate((el) => el.isConnected && el.clientHeight > 0 && el.scrollHeight <= el.clientHeight + 1)).toBe(true);
 		await panel.getByText("Stream end", { exact: true }).scrollIntoViewIfNeeded();
 		await expect(panel.getByText("Stream end", { exact: true })).toBeInViewport();
 		await page.screenshot({ path: info.outputPath("complete-timeline-end.png"), animations: "disabled" });

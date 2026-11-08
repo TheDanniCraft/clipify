@@ -1804,7 +1804,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 
 		if (clipRef.current) {
 			if (!isDemoPlayer) {
-				trackEvent(ANALYTICS_EVENTS.clipPlayed, {
+				trackEvent(ANALYTICS_EVENTS.overlayClipPlayed, {
 					overlayId: overlay.id,
 					clipId: clipRef.current.id,
 					mode: playbackMode,

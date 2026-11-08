@@ -1,5 +1,7 @@
 let mockActiveTask: string | null = null;
-jest.mock("@components/user-tour/provider", () => ({ useUserTour: () => ({ activeTask: mockActiveTask }) }));
+let mockSetupTask: { id: string; title: string } | null = null;
+const mockStartSetup = jest.fn();
+jest.mock("@components/user-tour/provider", () => ({ useUserTour: () => ({ activeTask: mockActiveTask, nextSetupTask: mockSetupTask, startSetup: mockStartSetup }) }));
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import CreatorOverview from "@components/creator/creatorOverview";
 import { DashboardNavigationContext } from "@components/dashboardNavigation";
@@ -20,6 +22,8 @@ jest.mock("@components/localizedDate", () => ({ __esModule: true, default: ({ va
 const metrics = { ok: true, count: 2, views: 20, topClips: [{ id: "A", title: "Clutch", views: 20 }], allTimeTopClips: [{ id: "A", title: "Clutch", views: 20 }], complete: false, fetchedAt: "2026-11-03T00:00:00Z", timeZone: "UTC" };
 beforeEach(() => {
 	mockActiveTask = null;
+	mockSetupTask = null;
+	mockStartSetup.mockClear();
 	overview.mockReset();
 	broadcasts.mockReset();
 	analytics.mockReset();
@@ -227,4 +231,13 @@ it("retains a labeled region for the top-clip card", async () => {
 	render(<CreatorOverview creatorId='owner' />);
 	await screen.findByText("Clutch");
 	expect(screen.getByRole("region", { name: "Top clips" })).toBeVisible();
+});
+
+it("offers the existing overlay setup guide when an empty overview still has setup steps", async () => {
+	overview.mockResolvedValue({ ...metrics, count: 0, topClips: [], allTimeTopClips: [] });
+	broadcasts.mockResolvedValue({ ok: true, items: [], stale: false });
+	mockSetupTask = { id: "overlay.setup", title: "Add it to OBS or Streamlabs" };
+	render(<CreatorOverview creatorId='owner' />);
+	fireEvent.click(await screen.findByRole("button", { name: "Continue overlay setup" }));
+	expect(mockStartSetup).toHaveBeenCalledTimes(1);
 });
