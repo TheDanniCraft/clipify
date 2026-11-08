@@ -109,7 +109,8 @@ export function cacheHealthCounts(now: Date) {
 	const cache = twitchCacheTable;
 	return {
 		count: count(),
-		unavailable: sql<number>`count(*) filter (where ${cache.type} = ${TwitchCacheType.Clip} and coalesce((${cache.value}::jsonb ->> 'unavailable')::boolean, false))`,
-		staleValidated: sql<number>`count(*) filter (where ${cache.type} = ${TwitchCacheType.Clip} and ${cache.key} like 'clip:%' and ${cache.value}::jsonb ? 'lastValidatedAt' and ${cache.fetchedAt} < ${now.toISOString()}::timestamptz - interval '6 hours')`,
+		// CASE prevents decoding large owner-list payloads while counting individual clips.
+		unavailable: sql<number>`count(*) filter (where case when ${cache.type} = ${TwitchCacheType.Clip} and ${cache.key} like 'clip:%' then coalesce((${cache.value}::jsonb ->> 'unavailable')::boolean, false) else false end)`,
+		staleValidated: sql<number>`count(*) filter (where case when ${cache.type} = ${TwitchCacheType.Clip} and ${cache.key} like 'clip:%' and ${cache.fetchedAt} < ${now.toISOString()}::timestamptz - interval '6 hours' then ${cache.value}::jsonb ? 'lastValidatedAt' else false end)`,
 	};
 }

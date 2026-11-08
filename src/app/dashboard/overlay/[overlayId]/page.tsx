@@ -821,7 +821,7 @@ export default function OverlaySettings() {
 				color: "success",
 			});
 		} catch {
-			addToast({ title: "Could not save overlay", description: "Overlay changed or access was updated. Reload and try again.", color: "danger" });
+			addToast({ title: "Could not save overlay", description: "Check your connection and confirm whether the change was saved before trying again.", color: "danger" });
 		}
 	}
 

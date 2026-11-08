@@ -71,7 +71,15 @@ async function processJob(job: CrawlJob) {
 		}
 	} catch (error) {
 		captureUnexpectedError(error, "clip-crawler", "job");
-		if (!leaseLost) await retryClipCrawlJob(job, "Crawl failed", new Date(Date.now() + Math.min(900_000, 30_000 * 2 ** Math.min(job.failures, 5))));
+		if (!leaseLost) {
+			try {
+				await retryClipCrawlJob(job, "Crawl failed", new Date(Date.now() + Math.min(900_000, 30_000 * 2 ** Math.min(job.failures, 5))));
+			} catch (retryError) {
+				// The durable lease will expire; keep both failures instead of replacing the original.
+				captureUnexpectedError(retryError, "clip-crawler", "reschedule");
+				throw error;
+			}
+		}
 		operationalCount("clipify.clip_cache.jobs", 1, { kind: job.kind, status: "failed" });
 	} finally {
 		clearInterval(timer);

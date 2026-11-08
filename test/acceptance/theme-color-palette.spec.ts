@@ -11,6 +11,9 @@ test("theme palettes recover stored equivalent colors and save native swatch sel
 	let owner: AuthFixture | undefined;
 	const errors: string[] = [];
 	page.on("pageerror", (error) => errors.push(error.message));
+	page.on("console", (message) => {
+		if (message.type() === "error" && /removeChild|Invalid array length/.test(message.text())) errors.push(message.text());
+	});
 	try {
 		owner = await createAuthenticatedFixture(request, context, { withProviderCredentials: true, billingState: "active" });
 		await pool.query("UPDATE users SET plan='pro' WHERE id=$1", [owner.fixture.creatorId]);

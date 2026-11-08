@@ -1,9 +1,10 @@
+import { getCacheHealthCounts } from "./cacheHealth";
 import { grantAccessNotExpired } from "@/server/entitlements/grant-period";
 /* istanbul ignore file */
 /* istanbul ignore file */
 /* istanbul ignore file */
 /* istanbul ignore file */
-import { userHealthCounts, overlayHealthCounts, settingsHealthCounts, tokenHealthCounts, runnerHealthCounts, streamHealthCounts, crawlerHealthCounts, notificationHealthCounts, cacheHealthCounts } from "./health-counts";
+import { userHealthCounts, overlayHealthCounts, settingsHealthCounts, tokenHealthCounts, runnerHealthCounts, streamHealthCounts, crawlerHealthCounts, notificationHealthCounts } from "./health-counts";
 import { db as database, type QueryClient } from "@/db/client";
 import { billingSubscriptionItemsTable, billingSubscriptionsTable, entitlementGrantsTable, galleriesTable, modQueueTable, overlaysTable, plausibleStatsCacheTable, playlistClipsTable, playlistsTable, queueTable, runnersTable, settingsTable, streamSessionsTable, twitchCacheTable, usersTable, clipCrawlJobsTable, notificationOutboxTable } from "@/db/schema";
 import { account as authAccountTable } from "@/db/auth-schema";
@@ -501,14 +502,7 @@ async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealth
 		byModeAndDestination[row.mode][row.destination] += value;
 	}
 
-	const cacheTotals = await db
-		.select({
-			type: twitchCacheTable.type,
-			...cacheHealthCounts(now),
-		})
-		.from(twitchCacheTable)
-		.groupBy(twitchCacheTable.type)
-		.execute();
+	const cacheTotals = await getCacheHealthCounts(db, now);
 
 	const cacheTotalEntries = cacheTotals.reduce((sum, row) => sum + Number(row.count ?? 0), 0);
 	const clipEntries = Number(cacheTotals.find((row) => row.type === TwitchCacheType.Clip)?.count ?? 0);

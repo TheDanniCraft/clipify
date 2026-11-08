@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Modal } from "@heroui/react";
 import { IconRefresh } from "@tabler/icons-react";
 import { preserveDeploymentDrafts, hasDeploymentDrafts } from "@lib/deploymentDrafts";
+import { notify } from "@lib/toast";
 import { usePathname } from "next/navigation";
 import { DEPLOYMENT_CHECK_EVENT, DEPLOYMENT_ID_HEADER, isLongLivedRuntimePath, isMissingServerActionError } from "@lib/deployment";
 
@@ -117,6 +118,7 @@ export default function RuntimeDeploymentReload({ deploymentId }: { deploymentId
 		document.addEventListener("input", trackSensitiveEdit, true);
 		document.addEventListener("change", trackSensitiveEdit, true);
 		const originalFetch = window.fetch;
+		const actionFailures = new WeakSet<object>();
 		const obsoleteActions = new Set<string>();
 		const recoveryFetch: typeof fetch = async (input, init) => {
 			const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
@@ -130,7 +132,18 @@ export default function RuntimeDeploymentReload({ deploymentId }: { deploymentId
 				error.name = "UnrecognizedActionError";
 				throw error;
 			}
-			const response = await originalFetch(input, init);
+			let response: Response;
+			try {
+				response = await originalFetch(input, init);
+			} catch (error) {
+				if (actionId && error && typeof error === "object") actionFailures.add(error);
+				throw error;
+			}
+			if (actionId && response.status >= 500 && response.headers.get("x-nextjs-action-not-found") !== "1") {
+				const error = new Error("The server is temporarily unavailable.", { cause: new Error(`Server action returned HTTP ${response.status}`) });
+				actionFailures.add(error);
+				throw error;
+			}
 			if (actionId && response.headers.get("x-nextjs-action-not-found") === "1") {
 				obsoleteActions.add(actionId);
 				requiresRefresh.current = true;
@@ -149,6 +162,11 @@ export default function RuntimeDeploymentReload({ deploymentId }: { deploymentId
 		const checkAfterActionFailure = (event: ErrorEvent | PromiseRejectionEvent) => {
 			const error = "reason" in event ? event.reason : event.error;
 			if (isMissingServerActionError(error)) void checkDeployment(true);
+			// Handled actions already show their own feedback. Only cover otherwise unhandled failures.
+			if (error && typeof error === "object" && actionFailures.has(error)) {
+				actionFailures.delete(error);
+				notify({ title: "Action could not complete", description: "Check your connection and confirm the result before trying again.", color: "danger" });
+			}
 		};
 
 		const initialCheck = canDetectUpdates ? window.setTimeout(requestCheck, 0) : undefined;

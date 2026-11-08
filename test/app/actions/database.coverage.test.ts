@@ -896,7 +896,7 @@ describe("database.ts coverage tests", () => {
 		dbSelect.mockImplementationOnce(() => {
 			throw new Error("DB Error");
 		});
-		await expect(getOverlayBySecret("ov1", "secret")).rejects.toThrow("Failed to fetch overlay");
+		await expect(getOverlayBySecret("ov1", "secret")).rejects.toMatchObject({ message: "Failed to fetch overlay", cause: expect.objectContaining({ message: "DB Error" }) });
 	});
 
 	it("covers getOverlay catch branch", async () => {

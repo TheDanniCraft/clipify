@@ -226,3 +226,46 @@ test("public pages and embedded galleries recover missing actions without a refr
 		await pool.end();
 	}
 });
+
+for (const [failure, theme, width] of [
+	["abort", "dark", 390],
+	["502", "light", 1280],
+] as const) {
+	test(`a save failure (${failure}) keeps the overlay draft and never replays the write`, async ({ page, request, context }, info) => {
+		test.setTimeout(120000);
+		await page.setViewportSize({ width, height: 900 });
+		await page.addInitScript((value) => localStorage.setItem("theme", value), theme);
+		const pool = new Pool({ connectionString: browserDatabaseUrl(), max: 1 });
+		let owner: AuthFixture | undefined;
+		try {
+			owner = await createAuthenticatedFixture(request, context, { withProviderCredentials: true });
+			const path = `/dashboard/overlay/${owner.fixture.overlayId}`;
+			await page.goto(path);
+			await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
+			const name = page.getByRole("textbox", { name: /Overlay Name/ });
+			await name.fill("Draft survives transport failure");
+			let attempts = 0;
+			await page.route(`**${path}`, (route) => {
+				const req = route.request();
+				if (req.method() === "POST" && req.headers()["next-action"] && req.postData()?.startsWith(`["${owner!.fixture.overlayId}",`)) {
+					attempts++;
+					if (attempts === 1) return failure === "abort" ? route.abort("failed") : route.fulfill({ status: 502, contentType: "text/html", body: "Unavailable" });
+				}
+				return route.continue();
+			});
+			await page.getByRole("button", { name: "Save Overlay Settings", exact: true }).click();
+			await expect(page.getByText("Could not save overlay", { exact: true })).toBeVisible();
+			await expect(page.getByText("Action could not complete", { exact: true })).toHaveCount(0);
+			await expect(name).toHaveValue("Draft survives transport failure");
+			expect(attempts).toBe(1);
+			expect((await pool.query("SELECT name FROM overlays WHERE id=$1", [owner.fixture.overlayId])).rows[0].name).not.toBe("Draft survives transport failure");
+			await page.screenshot({ path: info.outputPath(`save-failure-${theme}-${width}.png`) });
+			await page.getByRole("button", { name: "Save Overlay Settings", exact: true }).click();
+			await expect.poll(async () => (await pool.query("SELECT name FROM overlays WHERE id=$1", [owner!.fixture.overlayId])).rows[0].name).toBe("Draft survives transport failure");
+			expect(attempts).toBe(2);
+		} finally {
+			if (owner) await request.delete("/api/test/auth-fixture", { headers: { Authorization: "Bearer clipify-playwright-auth-fixture" }, data: { authUserId: owner.fixture.authUserId, creatorId: owner.fixture.creatorId, organizationIds: [owner.fixture.creatorOrganizationId, owner.fixture.agencyOrganizationId] } });
+			await pool.end();
+		}
+	});
+}

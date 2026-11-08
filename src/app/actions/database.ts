@@ -1143,7 +1143,7 @@ export async function getOverlayPublic(overlayId: string) {
 		return { ...runtime.overlay, rewardId: null, secret: "" };
 	} catch (error) {
 		console.error("Error fetching overlay:", error);
-		throw new Error("Failed to fetch overlay");
+		throw new Error("Failed to fetch overlay", { cause: error });
 	}
 }
 
@@ -1155,7 +1155,7 @@ export async function getOverlayBySecret(overlayId: string, secret?: string) {
 		return brand ? { ...overlay, ...brandOverlayFields(brand) } : overlay;
 	} catch (error) {
 		console.error("Error fetching overlay:", error);
-		throw new Error("Failed to fetch overlay");
+		throw new Error("Failed to fetch overlay", { cause: error });
 	}
 }
 
@@ -1183,7 +1183,7 @@ export async function getOverlay(overlayId: string) {
 		return ctx.overlay;
 	} catch (error) {
 		console.error("Error fetching overlay:", error);
-		throw new Error("Failed to fetch overlay");
+		throw new Error("Failed to fetch overlay", { cause: error });
 	}
 }
 
@@ -1193,7 +1193,7 @@ export async function getOverlayWithEditAccess(overlayId: string) {
 		return ctx?.overlay ?? null;
 	} catch (error) {
 		console.error("Error fetching overlay with edit access:", error);
-		throw new Error("Failed to fetch overlay");
+		throw new Error("Failed to fetch overlay", { cause: error });
 	}
 }
 
@@ -1665,7 +1665,7 @@ export async function getSettingsServer(userId: string, forceSyncExternal = fals
 		return currentSettings;
 	} catch (error) {
 		console.error("Error fetching settings server:", error);
-		throw new Error("Failed to fetch settings server");
+		throw new Error("Failed to fetch settings server", { cause: error });
 	}
 }
 

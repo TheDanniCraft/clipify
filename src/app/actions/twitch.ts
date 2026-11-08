@@ -3,7 +3,7 @@
 import { rememberClipBroadcast, type ClipBroadcastReference } from "@lib/clipBroadcast";
 import { reserveTwitchClipDownloadRequest } from "@/server/clip-download-limit";
 
-import axios from "axios";
+import axios, { type AxiosResponse } from "axios";
 import { crawlRecentClips, type RecentCrawlState } from "@/server/clip-crawler/recent";
 import type { ClipCrawlOptions, ClipCrawlResult } from "@/server/clip-crawler/types";
 import { AuthenticatedUser, Game, Overlay, OverlayType, PlaybackMode, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchCacheType, TwitchClip, TwitchClipDownloadResponse, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipResponse, TwitchClipVideoQuality, TwitchReward, TwitchRewardResponse, TwitchUserResponse } from "@types";
@@ -846,6 +846,20 @@ async function getCreatorAppAccessToken(): Promise<TwitchAppAccessTokenResponse 
 	return value ? { ...value } : null;
 }
 
+async function getCreatorApi<T>(url: string, accessToken: string, params: Record<string, unknown>, retry = true): Promise<AxiosResponse<T>> {
+	const appToken = appTokenCache?.value.access_token === accessToken;
+	try {
+		return await axios.get<T>(url, { headers: { Authorization: `Bearer ${accessToken}`, "Client-Id": process.env.TWITCH_CLIENT_ID || "" }, params });
+	} catch (error) {
+		if (!axios.isAxiosError(error) || error.response?.status !== 401 || !appToken) throw error;
+		if (appTokenCache?.value.access_token === accessToken) appTokenCache = undefined;
+		if (!retry) throw error;
+		const replacement = await getCreatorAppAccessToken();
+		if (!replacement) throw error;
+		return getCreatorApi<T>(url, replacement.access_token, params, false);
+	}
+}
+
 export async function getAppAccessToken(): Promise<TwitchAppAccessTokenResponse | null> {
 	const url = "https://id.twitch.tv/oauth2/token";
 	try {
@@ -869,14 +883,9 @@ export async function getCreatorTwitchDetails(_username: string, ownerId: string
 	const token = await getCreatorAppAccessToken();
 	if (!token) return { profile: null, live: null };
 	const profilePromise = getUsersDetailsBulk({ userIds: [ownerId], accessToken: token.access_token });
-	const livePromise = axios
-		.get<TwitchApiResponse<{ id: string; user_id: string; user_name: string; game_name: string; title: string; viewer_count: number; started_at: string; thumbnail_url: string }>>("https://api.twitch.tv/helix/streams", {
-			headers: { Authorization: `Bearer ${token.access_token}`, "Client-Id": process.env.TWITCH_CLIENT_ID || "" },
-			params: { user_id: ownerId, first: 1 },
-		})
+	const livePromise = getCreatorApi<TwitchApiResponse<{ id: string; user_id: string; user_name: string; game_name: string; title: string; viewer_count: number; started_at: string; thumbnail_url: string }>>("https://api.twitch.tv/helix/streams", token.access_token, { user_id: ownerId, first: 1 })
 		.then((response) => response.data.data[0] ?? null)
 		.catch((error) => {
-			if (axios.isAxiosError(error) && error.response?.status === 401 && appTokenCache?.value.access_token === token.access_token) appTokenCache = undefined;
 			logTwitchError("Error fetching creator live status", error);
 			return null;
 		});
@@ -936,15 +945,7 @@ export async function getUsersDetailsBulk({ userIds, userNames, accessToken }: {
 			if (missingIds.length === 0) return cachedUsers;
 		}
 
-		const response = await axios.get<TwitchApiResponse<TwitchUserResponse>>(url, {
-			headers: {
-				Authorization: `Bearer ${accessToken}`,
-				/* istanbul ignore next */
-				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
-			},
-			/* istanbul ignore next */
-			params: missingIds.length > 0 ? { id: missingIds } : { login: userNames },
-		});
+		const response = await getCreatorApi<TwitchApiResponse<TwitchUserResponse>>(url, accessToken, missingIds.length > 0 ? { id: missingIds } : { login: userNames });
 
 		const fresh = response.data.data;
 		/* istanbul ignore next */
@@ -964,7 +965,6 @@ export async function getUsersDetailsBulk({ userIds, userNames, accessToken }: {
 			const staleUsers = await getTwitchCacheStaleBatch<TwitchUserResponse>(TwitchCacheType.User, ids);
 			if (staleUsers.length > 0) return staleUsers;
 		}
-		if (axios.isAxiosError(error) && error.response?.status === 401 && appTokenCache?.value.access_token === accessToken) appTokenCache = undefined;
 		logTwitchError("Error fetching bulk user details", error);
 		return [];
 	}

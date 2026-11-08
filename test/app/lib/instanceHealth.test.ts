@@ -1,6 +1,7 @@
 /** @jest-environment node */
 jest.mock("@/server/user-tour/metrics", () => ({ getUserTourHealthStats: jest.fn(async () => ({ startedAccounts: 0, inProgressAccounts: 0, overlayLinkCopiedAccounts: 0, tasks: {}, trackedAccounts: 0, untrackedAccounts: 0, invalidProgressAccounts: 0, tasksPerAccount: 18, accountsWithProgress: 0, completedAccounts: 0, completedTasks: 0, skippedTasks: 0, completionRate: 0, averageProgress: 0, sections: {} })) }));
 export {};
+jest.mock("@lib/cacheHealth", () => ({ getCacheHealthCounts: (db: any) => db.select().from().groupBy().execute() }));
 
 const dbSelect = jest.fn();
 const dbExecute = jest.fn();
