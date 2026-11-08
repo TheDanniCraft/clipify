@@ -1,5 +1,7 @@
 /* istanbul ignore file */
 "use server";
+import { rememberClipBroadcast, type ClipBroadcastReference } from "@lib/clipBroadcast";
+import { reserveTwitchClipDownloadRequest } from "@/server/clip-download-limit";
 
 import axios from "axios";
 import { crawlRecentClips, type RecentCrawlState } from "@/server/clip-crawler/recent";
@@ -19,6 +21,7 @@ import { canResolveDemoClipPlayback, canResolvePublicClipPlayback, canResolveTru
 import { TWITCH_CLIPS_LAUNCH_MS } from "@lib/constants";
 import { operationalCount, operationalDuration } from "@lib/operationalHealth";
 import { authorizeCreatorOperation } from "@/auth/authorize-operation";
+import { canPreviewInventoryClip } from "@/server/creator-library";
 import { readCachedClipsByOwner } from "@/server/clip-cache-read";
 
 export async function logTwitchError(context: string, error: unknown) {
@@ -54,6 +57,7 @@ type ClipSyncState = RecentCrawlState & {
 
 type CachedClipValue = {
 	clip: TwitchClip;
+	broadcast?: ClipBroadcastReference;
 	unavailable?: boolean;
 	lastSeenAt?: string;
 	lastValidatedAt?: string;
@@ -271,6 +275,10 @@ async function resolveTwitchClipPlaybackUrl(clipId: string, broadcasterId: strin
 	}
 
 	try {
+		if (!(await reserveTwitchClipDownloadRequest(broadcasterId)).allowed) {
+			incrementClipFetchRateLimited();
+			return getTwitchClipPlaybackUrlFromGraphQL(clipId);
+		}
 		const response = await axios.get<TwitchClipDownloadResponse>("https://api.twitch.tv/helix/clips/downloads", {
 			headers: {
 				Authorization: `Bearer ${token.accessToken}`,
@@ -368,10 +376,11 @@ const MAX_CLIP_PLAYBACK_URLS = 1_000;
 const clipPlaybackUrlCache = new Map<string, { url: string; expiresAt: number }>();
 const clipPlaybackUrlRequests = new Map<string, Promise<string | undefined>>();
 
-export type ClipPlaybackContext = { kind: "overlay"; overlayId: string; secret?: string } | { kind: "demo"; overlayId: string } | { kind: "gallery"; galleryId: string; preview?: boolean } | { kind: "creator"; username: string };
+export type ClipPlaybackContext = { kind: "inventory"; creatorId: string; refresh?: boolean } | { kind: "overlay"; overlayId: string; secret?: string } | { kind: "demo"; overlayId: string } | { kind: "gallery"; galleryId: string; preview?: boolean } | { kind: "creator"; username: string };
 
 async function canPlayClipInContext(clipId: string, broadcasterId: string, context: ClipPlaybackContext | undefined) {
 	if (!clipId || !broadcasterId || !context || typeof context !== "object") return false;
+	if (context.kind === "inventory") return canPreviewInventoryClip({ creatorId: broadcasterId, contextCreatorId: context.creatorId, clipId }, () => getCachedClipByOwner(broadcasterId, clipId));
 	if (context.kind === "demo") {
 		if (!process.env.DEMO_OVERLAY_ID || context.overlayId !== process.env.DEMO_OVERLAY_ID) return false;
 		const overlay = await getOverlayPublic(context.overlayId).catch(() => null);
@@ -424,6 +433,7 @@ export async function getTwitchClipPlaybackUrl(clipId: string, broadcasterId: st
 		return undefined;
 	}
 	const key = `${broadcasterId}:${clipId}`;
+	if (context.kind === "inventory" && context.refresh === true) clipPlaybackUrlCache.delete(key);
 	const cached = clipPlaybackUrlCache.get(key);
 	if (cached && cached.expiresAt > Date.now()) {
 		operationalCount("clipify.clip_fetch.requests", 1, { outcome: "cache_hit" });
@@ -436,7 +446,7 @@ export async function getTwitchClipPlaybackUrl(clipId: string, broadcasterId: st
 		operationalCount("clipify.clip_fetch.requests", 1, { outcome: "coalesced" });
 		return pending;
 	}
-	const allowed = context.kind === "demo" ? await canResolveDemoClipPlayback(broadcasterId) : context.kind === "overlay" && context.secret ? await canResolveTrustedClipPlayback(broadcasterId) : await canResolvePublicClipPlayback(broadcasterId);
+	const allowed = context.kind === "demo" ? await canResolveDemoClipPlayback(broadcasterId) : context.kind === "inventory" || (context.kind === "overlay" && context.secret) ? await canResolveTrustedClipPlayback(broadcasterId) : await canResolvePublicClipPlayback(broadcasterId);
 	if (!allowed) {
 		operationalCount("clipify.clip_fetch.requests", 1, { outcome: "not_authorized" });
 		return undefined;
@@ -603,20 +613,36 @@ async function upsertClipsByOwner(ownerId: string, clips: TwitchClip[], durable 
 	if (clips.length === 0) return;
 	const nowIso = new Date().toISOString();
 	if (durable) {
-		const rows = clips.map((clip) => ({ key: toClipCacheKey(ownerId, clip.id), value: JSON.stringify({ clip, lastSeenAt: nowIso, lastValidatedAt: nowIso }) }));
+		const rows = clips.map((clip) => ({ key: toClipCacheKey(ownerId, clip.id), value: JSON.stringify({ clip, broadcast: rememberClipBroadcast(clip), lastSeenAt: nowIso, lastValidatedAt: nowIso }) }));
 		await dbPool.query(
 			`INSERT INTO "twitchCache"(type,key,value,fetched_at,expires_at)
    SELECT 'clip',key,value,now(),NULL FROM jsonb_to_recordset($1::jsonb) AS items(key text,value text)
-   ON CONFLICT(type,key) DO UPDATE SET value=excluded.value,fetched_at=excluded.fetched_at,expires_at=NULL`,
+   ON CONFLICT(type,key) DO UPDATE SET
+ value=(SELECT (incoming || jsonb_build_object('broadcast',COALESCE(incoming->'broadcast',
+ CASE WHEN prior->>'id'=incoming#>>'{clip,id}' AND prior->>'broadcaster_id'=incoming#>>'{clip,broadcaster_id}' THEN
+ COALESCE(NULLIF(stored->'broadcast','null'::jsonb),CASE WHEN nullif(prior->>'video_id','') IS NOT NULL THEN jsonb_build_object('id',prior->>'video_id','offset',prior->'vod_offset') END) END)))::text
+ FROM (SELECT excluded.value::jsonb AS incoming,"twitchCache".value::jsonb AS stored,coalesce("twitchCache".value::jsonb->'clip',"twitchCache".value::jsonb) AS prior) AS history),
+ fetched_at=excluded.fetched_at,expires_at=NULL`,
 			[JSON.stringify(rows)],
 		);
 		return;
 	}
+	const previous =
+		(await getTwitchCacheBatch<CachedClipValue | TwitchClip>(
+			TwitchCacheType.Clip,
+			clips.map((clip) => toClipCacheKey(ownerId, clip.id)),
+		)) ?? [];
+	const prior = new Map(
+		previous.flatMap((value) => {
+			const clip = parseCachedClipValue(value);
+			return clip ? [[clip.id, value] as const] : [];
+		}),
+	);
 	await setTwitchCacheBatch(
 		TwitchCacheType.Clip,
 		clips.map((clip) => ({
 			key: toClipCacheKey(ownerId, clip.id),
-			value: { clip, lastSeenAt: nowIso, lastValidatedAt: nowIso } satisfies CachedClipValue,
+			value: { clip, broadcast: rememberClipBroadcast(clip, prior.get(clip.id)), lastSeenAt: nowIso, lastValidatedAt: nowIso } satisfies CachedClipValue,
 		})),
 	);
 }
@@ -670,6 +696,7 @@ export async function resolvePlayableClip(overlayId: string, clip: TwitchClip, o
 			await setTwitchCache(TwitchCacheType.Clip, key, {
 				/* istanbul ignore next */
 				clip: cachedClip,
+				broadcast: rememberClipBroadcast(cachedClip, cachedValue),
 				unavailable: true,
 				lastSeenAt: (cachedValue as CachedClipValue | null)?.lastSeenAt ?? nowIso,
 				lastValidatedAt: nowIso,
@@ -680,6 +707,7 @@ export async function resolvePlayableClip(overlayId: string, clip: TwitchClip, o
 	if (fresh.broadcaster_id !== ownerId) return fresh;
 	await setTwitchCache(TwitchCacheType.Clip, key, {
 		clip: fresh,
+		broadcast: rememberClipBroadcast(fresh, cachedValue),
 		unavailable: false,
 		lastSeenAt: nowIso,
 		lastValidatedAt: nowIso,
@@ -1771,6 +1799,7 @@ export async function getGamesDetailsBulk(gameIds: string[], authUserId: string)
 
 		for (const chunk of chunks) {
 			const response = await axios.get<TwitchApiResponse<Game>>("https://api.twitch.tv/helix/games", {
+				timeout: 5000,
 				headers: {
 					Authorization: `Bearer ${accessToken}`,
 					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
@@ -1825,6 +1854,7 @@ export async function getGameDetails(gameId: string, authUserId: string): Promis
 
 	try {
 		const response = await axios.get<TwitchApiResponse<Game>>(url, {
+			timeout: 5000,
 			headers: {
 				Authorization: `Bearer ${accessToken}`,
 				/* istanbul ignore next */

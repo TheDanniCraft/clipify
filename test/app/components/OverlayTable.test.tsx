@@ -222,7 +222,7 @@ jest.mock("@heroui/react", () => {
 
 jest.mock("@tabler/icons-react", () => ({
 	IconAlertTriangle: () => <span>warning</span>,
-	IconPencil: () => <button aria-label='Edit'>Pencil</button>,
+	IconPencil: () => <span aria-hidden='true'>Pencil</span>,
 	IconTrash: () => <span>Trash</span>,
 	IconSearch: () => <span>Search</span>,
 	IconAdjustmentsHorizontal: () => <span>Filter</span>,

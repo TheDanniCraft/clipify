@@ -390,9 +390,9 @@ export default function PlaylistPage() {
 						<Card.Content className='flex flex-col items-center gap-4 py-10 text-center'>
 							<div className='text-xl font-semibold'>Playlist not found</div>
 							<div className='text-sm text-muted'>This playlist may not exist anymore, or you might not have access.</div>
-							<Button onPress={() => router.push("/dashboard")}>
+							<Button onPress={() => router.push("/dashboard/playlists")}>
 								{<IconArrowLeft size={16} />}
-								Back to Dashboard
+								Back to Playlists
 							</Button>
 						</Card.Content>
 					</Card>
@@ -404,10 +404,10 @@ export default function PlaylistPage() {
 	return (
 		<DashboardNavbar user={user!} title='Playlist Management' tagline='Manage your curated clip sets'>
 			<DashboardEditorLayout>
-				<Card className='w-full max-w-4xl'>
+				<Card className='w-full'>
 					<Card.Header className='flex flex-col items-stretch gap-3'>
 						<div className='flex items-center gap-2'>
-							<Button isIconOnly variant='tertiary' aria-label='Back to dashboard' onPress={() => router.push("/dashboard")}>
+							<Button isIconOnly variant='tertiary' aria-label='Back to playlists' onPress={() => router.push("/dashboard/playlists")}>
 								<IconArrowLeft />
 							</Button>
 							<TextField className='min-w-0 flex-1'>
@@ -593,7 +593,7 @@ export default function PlaylistPage() {
 									</Button>
 								</li>
 							))}
-							{playlistClips.length === 0 && <div className='py-12 text-center text-muted border-2 border-dashed border-default rounded-lg'>This playlist is empty. Add clips to get started!</div>}
+							{playlistClips.length === 0 && <li className='py-12 text-center text-muted border-2 border-dashed border-default rounded-lg'>This playlist is empty. Add clips to get started!</li>}
 						</ul>
 					</Card.Content>
 				</Card>

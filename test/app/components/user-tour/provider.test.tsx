@@ -68,11 +68,16 @@ const mount = (initialProgress = defaultProgress(), accountId = "owner") =>
 		</UserTourProvider>,
 	);
 beforeEach(() => {
+	const sidebar = document.createElement("div");
+	sidebar.id = "dashboard-utilities";
+	sidebar.setAttribute("data-dashboard-utilities-ready", "true");
+	document.body.append(sidebar);
 	jest.clearAllMocks();
 	currentPath = "/dashboard";
 	localStorage.clear();
 	save.mockImplementation(async (accountId: string) => ({ ok: true, accountId }));
 });
+afterEach(() => document.getElementById("dashboard-utilities")?.remove());
 it("opens a first-use checklist with a ring and four concise sections", () => {
 	mount();
 	expect(screen.getByRole("region", { name: "Your Clipify guide" })).toBeVisible();
@@ -283,4 +288,74 @@ it("opens the next chapter when the current chapter finishes without starting it
 	expect(screen.getByRole("button", { name: "Make your overlay yours · 0%" })).toBeVisible();
 	expect(screen.queryByRole("button", { name: "Pointer next" })).not.toBeInTheDocument();
 	expect(save).toHaveBeenCalledWith("owner", { type: "next" });
+});
+
+it("keeps the expanded checklist outside the sidebar clipping container", async () => {
+	const sidebar = document.getElementById("dashboard-utilities")!;
+	try {
+		const view = mount();
+		await waitFor(() => expect(sidebar).toContainElement(screen.getByRole("button", { name: /Get started.*0%/ })));
+		expect(sidebar).not.toContainElement(screen.getByRole("region", { name: "Your Clipify guide" }));
+		fireEvent.click(screen.getByRole("button", { name: "Minimize guide" }));
+		expect(screen.queryByRole("region", { name: "Your Clipify guide" })).not.toBeInTheDocument();
+		view.unmount();
+	} finally {
+		sidebar.remove();
+	}
+});
+
+it("keeps Explore Clipify available before the first privacy choice", async () => {
+	const banner = document.createElement("h2");
+	banner.id = "consent-banner-title";
+	document.body.append(banner);
+	try {
+		render(
+			<UserTourProvider accountId='owner' initialProgress={{ ...defaultProgress(), minimized: false }}>
+				<Harness />
+			</UserTourProvider>,
+		);
+		await act(async () => {
+			await new Promise((resolve) => setTimeout(resolve, 40));
+		});
+		expect(screen.getByRole("button", { name: /Get started/ })).toBeVisible();
+		expect(screen.queryByRole("region", { name: "Your Clipify guide" })).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: /Get started/ }));
+		expect(screen.getByRole("region", { name: "Your Clipify guide" })).toBeVisible();
+	} finally {
+		banner.remove();
+	}
+});
+
+it("returns keyboard focus to navigation when the guide launcher is hidden", () => {
+	jest.useFakeTimers();
+	const toggle = document.createElement("button");
+	toggle.setAttribute("aria-label", "Toggle navigation");
+	document.body.append(toggle);
+	const view = mount({ ...defaultProgress(), minimized: true, overlayId: "overlay-1", active: { task: "overlay.source", index: 0, paused: false, navigation: [] } });
+	try {
+		document.getElementById("dashboard-utilities")!.hidden = true;
+		fireEvent.click(screen.getByText("Pause spotlight"));
+		act(() => jest.runOnlyPendingTimers());
+		expect(toggle).toHaveFocus();
+	} finally {
+		view.unmount();
+		toggle.remove();
+		jest.useRealTimers();
+	}
+});
+
+it("returns focus to the visible guide launcher on desktop", () => {
+	jest.useFakeTimers();
+	const view = mount({ ...defaultProgress(), minimized: true, overlayId: "overlay-1", active: { task: "overlay.source", index: 0, paused: false, navigation: [] } });
+	const launcher = screen.getByRole("button", { name: /Get started/ });
+	const rectangles = jest.spyOn(launcher, "getClientRects").mockReturnValue([{}] as unknown as DOMRectList);
+	try {
+		fireEvent.click(screen.getByText("Pause spotlight"));
+		act(() => jest.runOnlyPendingTimers());
+		expect(launcher).toHaveFocus();
+	} finally {
+		rectangles.mockRestore();
+		view.unmount();
+		jest.useRealTimers();
+	}
 });

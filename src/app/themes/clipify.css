@@ -16,7 +16,7 @@
 [data-theme="default"] {
 	/* Theme Colors */
 	--background: oklch(97.02% 0.0001 263.28);
-	--muted: oklch(55.17% 0 284.36);
+	--muted: oklch(51% 0 284.36);
 	--scrollbar: oklch(87.1% 0 284.36);
 	--surface-secondary: oklch(95.24% 0 284.36);
 	--surface-tertiary: oklch(93.73% 0 284.36);
@@ -25,8 +25,10 @@
 	--accent-foreground: oklch(99.11% 0 0);
 	--success: oklch(73.29% 0.1941 154.47);
 	--success-foreground: oklch(21.03% 0.0059 154.47);
+	--success-soft-foreground: color-mix(in oklab, var(--success) 50%, var(--foreground) 50%);
+	--warning-soft-foreground: color-mix(in oklab, var(--warning) 60%, var(--foreground) 40%);
 	--warning: oklch(74.65% 0.1645 67.39);
-	--danger: oklch(61.31% 0.2258 20.68);
+	--danger: oklch(55% 0.2258 20.68);
 	--field-border: oklch(90% 0 284.36);
 	--border: oklch(90% 0 284.36);
 	--separator: oklch(92% 0 284.36);
@@ -43,9 +45,10 @@
 	--scrollbar: oklch(70.5% 0 284.36);
 	--surface: oklch(21.03% 0 284.36);
 	--surface-secondary: oklch(25.7% 0 284.36);
-	--surface-secondary-foreground: oklch(25.7% 0 284.36);
+	--surface-secondary-foreground: var(--foreground);
+	--accent-soft-foreground: color-mix(in oklab, var(--accent) 55%, var(--foreground) 45%);
 	--surface-tertiary: oklch(27.21% 0 284.36);
-	--surface-tertiary-foreground: oklch(27.21% 0 284.36);
+	--surface-tertiary-foreground: var(--foreground);
 	--overlay: oklch(21.03% 0 284.36);
 	--default: oklch(27.4% 0 284.36);
 	--accent: oklch(48.8% 0.2839 284.35);
@@ -53,7 +56,7 @@
 	--success: oklch(73.29% 0.1941 154.47);
 	--success-foreground: oklch(21.03% 0.0059 154.47);
 	--warning: oklch(78.19% 0.1584 72.32);
-	--danger: oklch(61.93% 0.2419 11.32);
+	--danger: oklch(55% 0.2419 11.32);
 	--field-background: oklch(21.03% 0 284.36);
 	--field-placeholder: oklch(70.5% 0 284.36);
 	--field-border: oklch(28% 0 284.36);

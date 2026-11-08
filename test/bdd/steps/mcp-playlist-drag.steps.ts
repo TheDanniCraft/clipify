@@ -14,10 +14,7 @@ Given("a native playlist editor contains two saved clips for dragging", async ({
 	await page.context().addCookies([owner.cookie]);
 	await page.goto(`${origin}/dashboard/playlist/${owner.fixture.playlistId}`);
 	await expect(page.getByPlaceholder("Playlist name")).toHaveValue("Browser playlist", { timeout: 30000 });
-	const support = page.getByRole("button", { name: "Enable support chat", exact: true });
-	await support.focus();
-	await support.press("Enter");
-	const reject = page.getByRole("dialog").getByRole("button", { name: "Reject optional", exact: true });
+	const reject = page.getByRole("button", { name: "Reject optional", exact: true });
 	await expect(reject).toBeVisible();
 	await Promise.all([page.waitForEvent("load"), reject.click()]);
 	await expect(page.getByPlaceholder("Playlist name")).toHaveValue("Browser playlist");
@@ -26,10 +23,7 @@ Given("a native playlist editor contains two saved clips for dragging", async ({
 When("the owner drags the first clip below the second and drops it", async ({ page }) => {
 	const first = page.locator("li[draggable=true]").filter({ hasText: "ClipFirst" });
 	const second = page.locator("li[draggable=true]").filter({ hasText: "ClipSecond" });
-	await first.dispatchEvent("dragstart");
-	await second.dispatchEvent("dragover");
-	await second.dispatchEvent("drop");
-	await first.dispatchEvent("dragend");
+	await first.dragTo(second);
 });
 Then("the changed clip order can be saved and survives reloading", async ({ page }) => {
 	await expect(page.getByRole("button", { name: "Save Playlist", exact: true })).toBeEnabled();

@@ -333,3 +333,12 @@ describe("components/adminUserExplorer behavior", () => {
 		expect(screen.getByText("@bob")).toBeInTheDocument();
 	});
 });
+
+it("does not accept a View as User click before its client handler is ready", () => {
+	const { renderToString } = jest.requireActual("react-dom/server.node");
+	const html = renderToString(<AdminUserExplorer users={[{ id: "target", username: "target", email: "target@example.invalid", role: "user", plan: "pro", lastLoginLabel: "now" }]} initialPage={1} initialTotalPages={1} initialTotalRows={1} initialQuery='' />);
+	const container = document.createElement("div");
+	container.innerHTML = html;
+	const button = [...container.querySelectorAll("button")].find((node) => node.textContent === "View as User");
+	expect(button).toBeDisabled();
+});

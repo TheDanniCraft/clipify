@@ -1,6 +1,8 @@
 /** @jest-environment node */
 import type { CrawlJob } from "@/server/clip-crawler/queue";
 const syncOwnerClipCache = jest.fn();
+const archive = jest.fn().mockResolvedValue({ ok: true });
+jest.mock("@/server/broadcast-archive", () => ({ syncBroadcastArchive: (...args: unknown[]) => archive(...args) }));
 const claim = jest.fn(),
 	complete = jest.fn(),
 	retry = jest.fn(),
@@ -16,6 +18,7 @@ const job = (id: string): CrawlJob => ({ creator_id: id, kind: "recent", request
 const flush = () => new Promise<void>((resolve) => setImmediate(resolve));
 beforeEach(() => {
 	jest.clearAllMocks();
+	archive.mockResolvedValue({ ok: true });
 	globalThis.__clipCrawlActiveWorkers = 0;
 	globalThis.__clipCrawlClaimCounter = 0;
 	claim.mockResolvedValue(null);
@@ -148,4 +151,13 @@ test("a slow batch stops claiming after one minute and drains its current jobs",
 	} finally {
 		time.mockRestore();
 	}
+});
+
+test("collects stream metadata after a successful recent crawl without failing clip work on provider outage", async () => {
+	claim.mockResolvedValueOnce(job("creator"));
+	archive.mockResolvedValueOnce({ ok: false, code: "RATE_LIMITED" });
+	await runClipCrawlerBatch({ maxJobs: 1 });
+	expect(archive).toHaveBeenCalledWith("creator");
+	expect(complete).toHaveBeenCalledTimes(1);
+	expect(retry).not.toHaveBeenCalled();
 });

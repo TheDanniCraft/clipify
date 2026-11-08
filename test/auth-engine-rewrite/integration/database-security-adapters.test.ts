@@ -91,3 +91,33 @@ describe("TDD-US3-006 database security adapters", () => {
 		expect(onDeadLetter).not.toHaveBeenCalled();
 	});
 });
+
+it("uses the reserved clip quantity in persisted counters", async () => {
+	process.env.RATE_LIMIT_HASH_SECRET = "test-only-rate-limit-secret";
+	execute.mockResolvedValue({ rows: [{ count: 50, expires_at: new Date(Date.now() + 60000) }] });
+	expect(await consumeDatabaseRateLimit({ identityKey: "creator", networkKey: "creator", action: "clip-volume", limit: 50, cost: 50, windowMs: 60000, now: new Date() })).toMatchObject({ allowed: true, remaining: 0 });
+	expect(execute.mock.calls.at(-1)[0].parameters.filter((value: unknown) => value === 50).length).toBeGreaterThanOrEqual(3);
+	await expect(consumeDatabaseRateLimit({ identityKey: "creator", networkKey: "creator", action: "clip-volume", limit: 50, cost: 51, windowMs: 60000, now: new Date() })).rejects.toThrow("Invalid rate limit cost");
+});
+
+it("rolls back a rejected quantity reservation and translates its denial", async () => {
+	process.env.RATE_LIMIT_HASH_SECRET = "test-only-rate-limit-secret";
+	execute.mockResolvedValue({ rows: [{ count: 60, expires_at: new Date(Date.now() + 60000) }] });
+	let rejectedInsideTransaction = false;
+	transaction.mockImplementationOnce(async (operation) => {
+		try {
+			return await operation({ execute });
+		} catch (error) {
+			rejectedInsideTransaction = true;
+			throw error;
+		}
+	});
+	await expect(consumeDatabaseRateLimit({ identityKey: "creator", networkKey: "creator", action: "clip-volume", limit: 50, cost: 30, windowMs: 60000, now: new Date() })).resolves.toMatchObject({ allowed: false, code: "RATE_LIMITED" });
+	expect(rejectedInsideTransaction).toBe(true);
+});
+
+it("propagates unexpected database failures rather than disguising them as a quota denial", async () => {
+	process.env.RATE_LIMIT_HASH_SECRET = "test-only-rate-limit-secret";
+	execute.mockRejectedValueOnce(new Error("database unavailable"));
+	await expect(consumeDatabaseRateLimit({ identityKey: "creator", networkKey: "creator", action: "clip-volume", limit: 50, cost: 1, windowMs: 60000, now: new Date() })).rejects.toThrow("database unavailable");
+});

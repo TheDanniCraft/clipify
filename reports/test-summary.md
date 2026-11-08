@@ -1,7 +1,7 @@
 # Rolling Test Summary
 
 **Mode**: rolling
-**Last Updated**: 2026-10-07
+**Last Updated**: 2026-11-07
 
 ## Included Feature Reports
 
@@ -65,3 +65,72 @@ Canonical feature 003 now has 50 tools and 535/549 tasks complete; the original 
 ## MCP activation flag removal
 
 542/556 tasks complete; 14 original blocked obligations remain. MCP/native OAuth/discovery are always installed. 156 unit and 84 affected OAuth/configuration/discovery checks pass, as do strict/global coverage (91 files), types/lint/format/build/action manifest. No activation environment toggle remains. See the canonical feature test summary for current evidence; the previous full 4495-test checkpoint is historical after this refinement.
+
+## Manual clip-export dashboard checkpoint, 2026-11-06
+
+**Mode:** rolling. **Release ID:** N/A. **Scope:** PR546 manual-export dashboard only; other feature reports above remain authoritative for their own scope.
+
+| Feature                           | Spec / Plan                                                                                        | Feature summary                                                  | Traceability                                                          | Defects                                                   | Recommendation                                        |
+| --------------------------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------- | ----------------------------------------------------- |
+| Creator Library and Manual Export | [Spec](../specs/006-clip-library-export/spec.md), [Plan](../specs/006-clip-library-export/plan.md) | [Test summary](../specs/006-clip-library-export/test-summary.md) | [Traceability](../specs/006-clip-library-export/test-traceability.md) | [Defects](../specs/006-clip-library-export/defect-log.md) | No-Go pending final exact-head CI and preview outcome |
+
+Included: dashboard, reusable compositions, browser-first/manual server exports, size-aware presets, archived stream metadata, retained clip identity and all-filtered export. Excluded: automated publishing/integrations; sidebar has a disabled Coming soon entry with no page.
+
+| Required gate                                      | Result                        | Evidence / remaining gap                                                       |
+| -------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------ |
+| Affected unit/service owners                       | Pass                          | 199 tests / 8 suites, final feature cycle log                                  |
+| Native crawler/workflow integration                | Pass                          | 79 tests / 3 suites, disposable PostgreSQL                                     |
+| Production build / TypeScript / dependency guards  | Pass                          | Corrected exact-source browser build                                           |
+| Lint / formatting                                  | Pass with existing warnings   | No errors; ref/image warnings disclosed in feature summary                     |
+| Installed browser components / responsive journeys | Final checkpoint in progress  | Stream export plus sidebar owners; see feature summary                         |
+| Full merged coverage and required CI               | Pending follow-up             | Prior head a7175caa passed CI42273518405; cannot substitute for changed source |
+| Preview demo                                       | Pending deployed verification | Local idempotency and target guards passed; no production seed                 |
+| Historical TDD chronology                          | Unresolved historical GOV-001 | Existing verification retained, no fabricated evidence or waiver               |
+
+Only the final required CI gate and explicitly recorded preview outcome establish this follow-up's readiness. No merge/release is performed by this report. No complete unrelated local suite is repeated; unchanged full CI remains mandatory before merge.
+
+Local completion update: all10 final browser cases pass across the two sequential owners, including actual59-clip archived-stream export, both themes and collapsed navigation. The new-source diagnostic has100%line/function coverage and95.18%branches; complete merged CI remains pending for the follow-up. A transient second-browser port conflict ran no tests and was resolved by sequential execution. Four lint warnings, zero errors. No production/platform claim follows from local Linux evidence.
+
+Current-head result:3009294d preview deployment finished; CodeQL and CodeFactor passed. Full CI42286859229 has a stale exact-copy failure in the page-test owner; its complete23-test file passes after correction. Full gate remains No-Go pending publication and complete validation. Demo preparation is now manual development SQL only, per user instruction; no deployment hook remains and no demo insertion is claimed.
+
+Consolidated correction:23 page tests, all10 creator-layout browser cases and all11US2 BDD examples pass locally. Saved-stream pagination now explicitly checks21 retained records in20/1 pages. Existing CI finished before follow-up publication; final exact-head full CI remains mandatory. Manual development-only SQL is provided; no deployment hook or verified demo insertion is claimed.
+
+9972742e checkpoint: all individual suites/browser/build lanes passed; combined coverage rejected creator-broadcasts.ts branches89.39% against90%. Five added recovery tests pass27/27 and measure99.24% scoped branches. Full exact-head combined gate remains mandatory; no production source or coverage threshold changed. Development demo SQL additionally excludes expired cache entries and passes the real disposable-schema check.
+
+## Stream workspace follow-up (2026-11-07)
+
+PR546 adds compact thumbnail stream rows, complete cached moment detail with vertical overlapping-perspective groups, applied-rule export and Automations under Tools. Local affected whole-file owners pass149tests; after a compact metadata correction the inventory owner passes29/29. Coverage inventory verification passes. The exact-head merged CI gate remains required; prior f2582694 CI evidence is baseline only. See the feature report for final browser/CI evidence and the manual dev-only estimated stream reconstruction. Historical TDD provenance limits remain unchanged.
+
+Final local stream checkpoint:27 owning browser scenarios passed; visual review then prompted container-responsive columns and corrected mobile popover placement. The corresponding8 responsive cases and final4 strengthened stream journeys pass on rebuilt artifacts. The final build/types pass; title readability, popup bounds, actual playback and ZIP membership are asserted. Full exact-head CI is required before merge and tracked on PR546.
+
+CI42327460064 finished with44 successful jobs and a BDD selector ambiguity plus its failed aggregate gate. The exact-category assertion now selects the visible responsive copy; all25 owning US3 browser cases pass locally (5.8min wall,5.5min serial file). Product source is unchanged from03b0284a; a fresh exact-head CI gate is required and recorded on PR546.
+
+CI42329215582 passed for1fe6c52c. A subsequent real scroll check found41px of sticky-heading occlusion; two spacing classes fix it. The rebuilt4-case stream owner passes heading clearance, both-axis popup bounds, playback and exact ZIP assertions. The source follow-up has a separate exact-head CI gate on PR546; previous results are not reused as its passing evidence.
+
+## Device-only manual export follow-up (2026-11-07)
+
+Local owners pass:244 assertions across eight files, then the strengthened21-case API owner and final settings/inventory owners; coverage inventory30/30. Real export browser owners pass10/10, complete caller owners58/58. Actual Original preset dimensions/audio, Desktop/Mobile fonts/widgets/size targets/native SSIM, stable responsive controls, recoverable unsupported state, permissions/quotas/retries, Sentry feedback, and the59-clip retained-stream export are exercised. Local build/types pass. Exact-head full CI and preview deployment are recorded separately on PR546 after publication;109a8918's earlier Green is not reused as this revision's evidence. No Android hardware benchmark or WASM fallback support is claimed.
+
+CI42341017912 completed with42 successful jobs and one failed BDD scenario plus its aggregate gate. The sole failure was a stale named-layout helper opening the disabled picker before selecting Desktop/Mobile. Its complete four-case owner reproduces the failure and passes after reordering the prerequisite actions; no product code, deadlines or assertions were weakened. The correction requires a fresh exact-head full gate.
+
+CI42342540741 completed with42 successful jobs; its sole failed scenario was an existing palette test issuing a second reload during Clipify's intentional consent-save navigation. Trace-backed test synchronization replaces the extra reload. The complete palette owner passes with unchanged colour, keyboard, save and error assertions. Export BDD correction passed in CI. Fresh exact-head validation remains required.
+
+CI42343638479 passes all43 execution jobs, including both prior browser corrections; the strict merged gate rejects export-settings function coverage89.18% against90%. A meaningful capability-failure/fresh-retry/export test now passes with the complete14-case settings owner and measures97.29% scoped functions under unchanged policy. Missing unrelated gallery owners make the scoped command diagnostic only. Fresh full merged validation is required for this test addition.
+
+## Current creator-export wizard checkpoint (2026-11-07)
+
+Guided versions/templates and destination settings, Discord account allowances, encoder-free untouched Original downloads, and an independently scrolling complete stream timeline are implemented. Local evidence passes246 unit/API/server checks in ten whole-file owners,60 browser scenarios in six complete owners and four complete export BDD cases. Production browser build/types, patch validation and changed-file lint pass. Final screenshots were reviewed in both themes at390/1440px, including a sixty-moment disposable timeline. See [feature summary](../specs/006-clip-library-export/test-summary.md) and [cycle log](../specs/006-clip-library-export/tdd/cycle-log.md) for exact evidence and retained failed iterations. A subsequent complete stream-owner rerun validates fixture offset consistency without changing application source.
+
+Current status: local Green; the new exact-head full CI and preview identity are tracked on [PR546](https://github.com/TheDanniCraft/clipify/pull/546), not inferred from the older5e242f03 checkpoint. Original/General downloads need no encoder; converted exports remain native-first with no unmeasured Android software fallback. No merge or production deployment is performed.
+
+## Single browser-disk archive follow-up (2026-11-07)
+
+The latest review supersedes the scrolling timeline and numbered archive parts. Stream moments now uses natural document flow. Cancel/background actions share one row with the existing danger confirmation. Exports are identified by localized start date/time; the dated ZIP filename contains all selected outputs across internal fifty-file quota packets. ZIP64 payloads and an incremental manifest write to browser OPFS rather than accumulating video data in RAM. Persistence requests are best-effort; unavailable/full storage is recoverable. Web Locks keep cleanup away from another tab's active archive, and active work protects against accidental reload. The tab must remain open; no resume-after-close or unlimited quota is promised.
+
+Final affected unit owners pass63 checks, and the separate coverage-manifest owner passes30. The first complete seven-owner browser checkpoint passes69/70; the sole stale assertion expected two ZIPs where the new contract requires one. It now retains the four32MiB member/metadata and memory-sampling assertions while expecting one download. The final rebuilt queue/recovery owners and complete US4 export BDD owner are the publication boundary. Prior actual-media checks preserve audio/fonts, unchanged >0.97 native similarity, one >126MiB ZIP, encoder-free Original, complete51/59-file quota-boundary exports and continuous60-moment desktop/mobile timelines. Types/build, patched dependencies, changed-file lint and high-severity audit pass. Strict merged exact-head CI is still required; old58a3ceaa CI failed and is not passing evidence.
+
+See the cycle log for the caught multiple-version retry bug, intended Red/Green evidence, test setup errors and diagnostic coverage limits. No production database change, migration, automatic seeding, server render fallback or unmeasured Android WASM support is included.
+
+Final local publication evidence: the rebuilt queue/recovery owners pass43/43 in5.2minutes (`/tmp/clipify-archive-retry-browser.log`), and the complete US4 export BDD owner passes4/4 in57.3seconds (`/tmp/clipify-archive-retry-bdd.log`). Together with the unchanged27 scenarios from the preceding seven-owner checkpoint, all70 distinct affected browser scenarios have passing owning evidence. The final four unit owners pass63, and the separate manifest-policy owner passes30 (`/tmp/clipify-archive-manifest-tests.log`). Final build/types/patch validation pass; no source changed after the last build. Mobile/desktop processing/completion captures were inspected in both themes, including aligned cancellation and visible Download ZIP; the long timeline reaches its end in document flow. Exact-head CI/deployment outcome is maintained on PR546 after publication. This local checkpoint is not a complete CI Green or merge authorization.
+
+Final output/row checkpoint: both complete component owners pass60 tests (`/tmp/clipify-export-polish-publish-units.log`). Both complete real-browser owners pass16/16 in2.5minutes (`/tmp/clipify-export-polish-publish-browser.log`). All390/820/1440px light/dark cases pass body-click/Enter navigation and independent mouse/keyboard selection, Preview and View stream. Export cases pass native title/accessibility names, plain template names, automatic download and unchanged media/font/audio/native-parity checks. Final dark desktop/light mobile export screenshots were visually reviewed. Build/types and patched-dependency validation pass; scoped lint has zero errors and three pre-existing inventory warnings. No application source changes follow that final build. The UI follow-up's exact-head CI and deployment remain separately tracked on PR546; the preceding139b3c28 complete45-job Green is baseline evidence only.

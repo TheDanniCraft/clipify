@@ -11,25 +11,27 @@ const cli = "node_modules/@playwright/test/cli.js";
 const directory = mkdtempSync(join(tmpdir(), "clipify-browser-shard-"));
 try {
 	let selected = [];
-	if (project === "bdd-chromium") {
-		const inventory = sharding.listBrowserTests();
+	if (!sharding.BROWSER_PROJECTS.includes(project)) throw Error("Unknown browser project");
+	{
+		const inventory = sharding.listBrowserTests([], [project]);
 		const planFile = process.env.CLIPIFY_BROWSER_SHARD_PLAN;
-		const shards = planFile ? JSON.parse(readFileSync(planFile, "utf8")).shards : null;
+		const shards = planFile ? JSON.parse(readFileSync(planFile, "utf8")).projects[project] : null;
+		if (planFile && !shards) throw Error("Browser plan is missing the selected project");
 		if (shards) {
 			const expected = sharding
-				.browserTestCases(inventory)
+				.browserTestCases(inventory, [project])
 				.map((c) => c.id)
 				.sort();
 			const planned = shards.flatMap((s) => s.testIds).sort();
 			if (shards.length !== count || new Set(planned).size !== planned.length || JSON.stringify(expected) !== JSON.stringify(planned)) throw Error("Browser plan does not match the complete current scenario inventory");
 		}
-		const part = shards ? shards[index - 1] : sharding.selectBrowserTests(inventory, index - 1, count);
+		const part = shards ? shards[index - 1] : sharding.selectBrowserTests(inventory, index - 1, count, sharding.readTestDurations(), [project]);
 		if (!part.testIds.length) throw Error("Browser shard has no scenarios");
 		const list = join(directory, "tests.txt");
 		writeFileSync(list, part.selectors.join("\n") + "\n");
 		selected = ["--test-list", list];
 		const actual = sharding
-			.browserTestCases(sharding.listBrowserTests(selected))
+			.browserTestCases(sharding.listBrowserTests(selected, [project]), [project])
 			.map((c) => c.id)
 			.sort();
 		if (JSON.stringify(actual) !== JSON.stringify([...part.testIds].sort())) throw Error("Browser test selectors did not resolve to the exact planned scenarios");

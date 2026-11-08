@@ -3,7 +3,7 @@ import { IconBuilding, IconCheck, IconLockAccess, IconShieldCheck, IconTrash } f
 import { validateAuth } from "@actions/auth";
 import { acceptAgencyLinkFormAction, getCreatorAgencyLinksAction, revokeAgencyLinkFormAction } from "@/app/actions/agency";
 import DashboardNavbar from "@components/dashboardNavbar";
-import { AlertContent, AlertDescription, AlertRoot, AlertTitle, Button, CardContent, CardDescription, CardHeader, CardRoot, CardTitle, Checkbox, Chip } from "@components/heroui-client";
+import { AlertContent, AlertDescription, AlertRoot, AlertTitle, Button, CardContent, CardDescription, CardHeader, CardRoot, CardTitle, Checkbox, CheckboxContent, CheckboxControl, CheckboxIndicator, Chip } from "@components/heroui-client";
 
 export const dynamic = "force-dynamic";
 
@@ -68,8 +68,13 @@ export default async function CreatorAgencySettingsPage() {
 											</div>
 											<div className='grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3'>
 												{link.permissionCeiling.map((permission) => (
-													<Checkbox key={permission} name='permission' value={permission} defaultSelected>
-														<span className='font-mono text-xs'>{permission.replace(":", ".")}</span>
+													<Checkbox key={permission} name='permission' value={permission} defaultSelected variant='secondary'>
+														<CheckboxContent>
+															<CheckboxControl>
+																<CheckboxIndicator />
+															</CheckboxControl>
+															{label(permission)}
+														</CheckboxContent>
 													</Checkbox>
 												))}
 											</div>

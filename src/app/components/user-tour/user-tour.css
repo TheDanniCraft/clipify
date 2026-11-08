@@ -59,6 +59,8 @@
 .driver-active:has(#consent-banner-title) .clipify-tour-popover {
 	display: none;
 }
+/* The sticky sidebar creates a stacking context around the guide launcher. */
+.driver-active [data-slot="sidebar"]:has(.user-tour-launcher),
 .driver-active .user-tour-launcher {
 	z-index: 1000000001;
 }

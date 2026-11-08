@@ -86,6 +86,7 @@ export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<
 	addSubscriber("fixture-creator", overlayId, source as any);
 	const originalFetch = globalThis.fetch;
 	let providerCalls = 0;
+	let broadcastProviderCalls = 0;
 	const crawlRequests: Array<{ start: string; end: string; cursor: string | null }> = [];
 	const clips = [
 		{ id: "MinecraftClip", title: "Minecraft adventure", duration: 12, broadcaster_id: "fixture-creator", broadcaster_name: "Fixture creator", creator_id: "clipper-id", creator_name: "Fixture clipper", video_id: "123456789", vod_offset: 42, language: "en", is_featured: true, created_at: "2026-10-06T12:00:00Z", game_id: "27471", view_count: 100, url: "https://clips.twitch.tv/MinecraftClip", thumbnail_url: "https://static-cdn.jtvnw.net/test.jpg", secret: "private-provider-payload" },
@@ -111,6 +112,10 @@ export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<
 		const url = new URL(req.url);
 		if (url.origin === origin) return auth.handler(req);
 		if (url.origin !== "https://api.twitch.tv") throw new Error("WORKFLOW_EXTERNAL_IO_FORBIDDEN");
+		if (url.pathname === "/helix/videos") {
+			broadcastProviderCalls++;
+			return Promise.resolve(Response.json({ data: [{ id: "123456789", user_id: "fixture-creator", title: "Workflow stream", type: "archive", created_at: "2026-10-06T00:00:00Z", duration: "12h", thumbnail_url: "" }], pagination: {} }));
+		}
 		providerCalls++;
 		if (variant === "provider_failure") return Promise.resolve(new Response(null, { status: 503 }));
 		if (variant === "provider_rate_limit") return Promise.resolve(new Response(null, { status: 429 }));
@@ -570,6 +575,7 @@ export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<
 				safe,
 				commands,
 				providerCalls,
+				broadcastProviderCalls,
 				writes,
 				ids: { overlayId, playlistId, galleryId, runnerId, sessionId },
 				schemaValid: toolInputSchemas[name as keyof typeof toolInputSchemas]?.safeParse(args).success,

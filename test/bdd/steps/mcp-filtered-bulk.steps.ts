@@ -22,12 +22,9 @@ Given("a native dashboard filters two overlays to the paused overlay", async ({ 
 		await pool.end();
 	}
 	await page.context().addCookies([owner.cookie]);
-	await page.goto(`${origin}/dashboard`, { waitUntil: "domcontentloaded" });
+	await page.goto(`${origin}/dashboard/overlays`, { waitUntil: "domcontentloaded" });
 	await expect(page.getByText("Second continuity overlay", { exact: true })).toBeVisible({ timeout: 30000 });
-	const support = page.getByRole("button", { name: "Enable support chat", exact: true });
-	await support.focus();
-	await support.press("Enter");
-	const reject = page.getByRole("dialog").getByRole("button", { name: "Reject optional", exact: true });
+	const reject = page.getByRole("button", { name: "Reject optional", exact: true });
 	await expect(reject).toBeVisible();
 	await Promise.all([page.waitForEvent("load"), reject.click()]);
 	await expect(page.getByText("Second continuity overlay", { exact: true })).toBeVisible({ timeout: 30000 });

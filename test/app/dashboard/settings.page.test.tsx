@@ -1,3 +1,4 @@
+jest.mock("@components/settings/BrandSettingsPanel", () => ({ __esModule: true, default: () => <div>Brand settings panel</div> }));
 import React from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 const validateAuth = jest.fn();
@@ -9,6 +10,7 @@ const forceRefreshOwnClipCache = jest.fn();
 const router = { push: jest.fn(), replace: jest.fn() };
 const notify = jest.fn();
 const getFeatureAccess = jest.fn();
+const navigationGuard = jest.fn();
 jest.mock("@heroui/react", () => {
 	const React = require("react");
 	const fixture = jest.requireActual("../../__mocks__/heroui-react.cjs");
@@ -33,7 +35,28 @@ jest.mock("@heroui/react", () => {
 	};
 	return fixture;
 });
-jest.mock("next/navigation", () => ({ useRouter: () => router }));
+jest.mock("next/navigation", () => ({
+	useRouter: () => router,
+	useSearchParams: () => {
+		const React = jest.requireActual("react");
+		const search = React.useSyncExternalStore(
+			(listener: () => void) => {
+				window.addEventListener("popstate", listener);
+				return () => window.removeEventListener("popstate", listener);
+			},
+			() => window.location.search,
+		);
+		return new URLSearchParams(search);
+	},
+}));
+function navigateSection(section: string) {
+	act(() => {
+		const url = new URL(window.location.href);
+		url.searchParams.set("tab", section);
+		window.history.pushState({}, "", url);
+		window.dispatchEvent(new PopStateEvent("popstate"));
+	});
+}
 jest.mock("@actions/auth", () => ({ validateAuth: (...args: unknown[]) => validateAuth(...args) }));
 jest.mock("@actions/database", () => ({ getSettings: (...args: unknown[]) => getSettings(...args), saveSettings: (...args: unknown[]) => saveSettings(...args), getClipCacheStatus: (...args: unknown[]) => getClipCacheStatus(...args) }));
 jest.mock("@actions/twitch", () => ({ getOwnClipForceRefreshStatus: (...args: unknown[]) => getOwnClipForceRefreshStatus(...args), forceRefreshOwnClipCache: (...args: unknown[]) => forceRefreshOwnClipCache(...args) }));
@@ -41,7 +64,12 @@ jest.mock("@actions/subscription", () => ({ requestAccountDataExport: jest.fn(),
 jest.mock("@/auth/client", () => ({ authClient: { signIn: { social: jest.fn() } } }));
 jest.mock("@lib/toast", () => ({ notify: (...args: unknown[]) => notify(...args) }));
 jest.mock("@lib/featureAccess", () => ({ getFeatureAccess: (...args: unknown[]) => getFeatureAccess(...args), getTrialDaysLeft: () => 0, isReverseTrialActive: () => false }));
-jest.mock("nextjs-nav-guard", () => ({ useNavigationGuard: () => ({ active: false, accept: jest.fn(), reject: jest.fn() }) }));
+jest.mock("nextjs-nav-guard", () => ({
+	useNavigationGuard: ({ enabled }: { enabled: (...args: any[]) => boolean }) => {
+		navigationGuard.mockImplementation(enabled);
+		return { active: false, accept: jest.fn(), reject: jest.fn() };
+	},
+}));
 jest.mock("next/image", () => ({ __esModule: true, default: () => null }));
 jest.mock("@components/dashboardNavbar", () => ({ __esModule: true, default: ({ children }: any) => <main>{children}</main> }));
 jest.mock("@components/fullscreenLoadingState", () => ({ __esModule: true, default: ({ message }: any) => <p>{message}</p> }));
@@ -82,18 +110,6 @@ jest.mock("@components/controlledModal", () => ({
 		) : null,
 }));
 jest.mock("@components/creator/CreatorAnalyticsCard", () => ({ __esModule: true, default: () => <p>Creator analytics panel</p> }));
-jest.mock("@components/settingsNavigation", () => ({
-	__esModule: true,
-	default: ({ onCoreSectionChange }: any) => (
-		<nav>
-			{["settings", "connections", "creator", "billing", "team"].map((section) => (
-				<button key={section} onClick={() => onCoreSectionChange(section)}>
-					{section} section
-				</button>
-			))}
-		</nav>
-	),
-}));
 jest.mock("@components/settings/TeamSettingsPanel", () => ({ __esModule: true, default: ({ embedded }: any) => <p>{embedded ? "Embedded team panel" : "Standalone team panel"}</p> }));
 jest.mock("@/app/dashboard/settings/billing-panel", () => ({ __esModule: true, default: () => <p>Billing panel</p> }));
 jest.mock("@/app/dashboard/settings/security-panel", () => ({ __esModule: true, default: () => <p>Security panel</p> }));
@@ -106,6 +122,10 @@ import { authClient } from "@/auth/client";
 
 beforeEach(() => {
 	jest.clearAllMocks();
+	router.push.mockImplementation((url: string) => {
+		window.history.pushState({}, "", url);
+		window.dispatchEvent(new PopStateEvent("popstate"));
+	});
 	getFeatureAccess.mockReset().mockReturnValue({ allowed: true });
 	window.history.replaceState({}, "", "/dashboard/settings");
 	sessionStorage.clear();
@@ -136,7 +156,7 @@ test("authenticated settings separates security from account and AI connections"
 	expect(await screen.findByText("Security panel")).toBeVisible();
 	expect(screen.queryByText("Connected AI apps panel")).not.toBeInTheDocument();
 	expect(await screen.findByRole("button", { name: "Save Settings" })).toBeDisabled();
-	fireEvent.click(screen.getByRole("button", { name: "connections section" }));
+	navigateSection("connections");
 	expect(screen.getByText("Linked accounts panel")).toBeVisible();
 	expect(screen.getByText("Connected AI apps panel")).toBeVisible();
 	expect(screen.getByText("AI app activity panel")).toBeVisible();
@@ -151,11 +171,11 @@ test.each(["billing", "creator", "connections"])("requested %s section renders i
 test("section navigation restores connected-app controls", async () => {
 	render(<SettingsPage />);
 	await screen.findByText("Security panel");
-	fireEvent.click(screen.getByRole("button", { name: "connections section" }));
+	navigateSection("connections");
 	expect(screen.getByText("Connected AI apps panel")).toBeVisible();
-	fireEvent.click(screen.getByRole("button", { name: "billing section" }));
+	navigateSection("billing");
 	expect(screen.getByText("Billing panel")).toBeVisible();
-	fireEvent.click(screen.getByRole("button", { name: "connections section" }));
+	navigateSection("connections");
 	expect(screen.getByText("Connected AI apps panel")).toBeVisible();
 });
 test("settings load failure gives safe feedback", async () => {
@@ -316,13 +336,13 @@ test("creator profile controls save current title description and visibility cho
 	expect(screen.getByRole("checkbox", { name: "Show Twitch bio" })).toBeDisabled();
 	expect(screen.queryByText("Open Creator Page")).not.toBeInTheDocument();
 });
-test("team action selects the embedded Team tab without navigating away", async () => {
+test("team action selects the embedded Team destination", async () => {
 	render(<SettingsPage />);
 	fireEvent.click(await screen.findByRole("button", { name: "Manage team" }));
 	expect(await screen.findByText("Embedded team panel")).toBeVisible();
 	expect(window.location.pathname).toBe("/dashboard/settings");
 	expect(new URLSearchParams(window.location.search).get("tab")).toBe("team");
-	expect(router.push).not.toHaveBeenCalled();
+	expect(router.push).toHaveBeenCalledWith("/dashboard/settings?tab=team");
 });
 
 test("upgrade request preserves chosen billing cycle and feature", async () => {
@@ -407,7 +427,7 @@ test.each([
 
 test("inline settings and creator links preserve navigation between sections", async () => {
 	render(<SettingsPage />);
-	fireEvent.click(await screen.findByText("Creator Page tab"));
+	fireEvent.click(await screen.findByText("Creator Page settings"));
 	expect(screen.getByText("Creator analytics panel")).toBeVisible();
 	fireEvent.click(screen.getByText("Settings", { selector: "a" }));
 	expect(screen.getByText("Security panel")).toBeVisible();
@@ -467,7 +487,7 @@ test("Team deep links select the same embedded panel and preserve query context"
 	window.history.replaceState({}, "", "/dashboard/settings?tab=team&organization=creator-org");
 	render(<SettingsPage />);
 	expect(await screen.findByText("Embedded team panel")).toBeVisible();
-	fireEvent.click(screen.getByRole("button", { name: "connections section" }));
+	navigateSection("connections");
 	expect(screen.getByText("Connected AI apps panel")).toBeVisible();
 	expect(new URLSearchParams(window.location.search).get("organization")).toBe("creator-org");
 	expect(new URLSearchParams(window.location.search).get("tab")).toBe("connections");
@@ -501,4 +521,37 @@ test("an obsolete export action closes the export dialog without a misleading fa
 		window.removeEventListener("clipify:check-deployment", check);
 		view.unmount();
 	}
+});
+
+test("keeps leave and reload protection while allowing same-account section navigation", async () => {
+	render(<SettingsPage />);
+	await screen.findByDisplayValue("!");
+	fireEvent.click(await screen.findByRole("checkbox", { name: "Receive emails" }));
+	expect(navigationGuard({ to: "/dashboard/settings?tab=connections", type: "push" })).toBe(false);
+	expect(navigationGuard({ to: "/dashboard/settings", type: "refresh" })).toBe(true);
+	expect(navigationGuard({ to: "", type: "beforeunload" })).toBe(true);
+	expect(navigationGuard({ to: "/dashboard", type: "push" })).toBe(true);
+	expect(navigationGuard({ to: "https://other.invalid/dashboard/settings", type: "push" })).toBe(true);
+});
+
+test("brand settings do not query unrelated private account settings", async () => {
+	window.history.replaceState({}, "", "/dashboard/settings?tab=brand");
+	render(<SettingsPage />);
+	expect(await screen.findByText("Brand settings panel")).toBeVisible();
+	expect(getSettings).not.toHaveBeenCalled();
+	expect(getClipCacheStatus).not.toHaveBeenCalled();
+});
+test("opening account settings after Brand loads them without replacing an existing draft", async () => {
+	window.history.replaceState({}, "", "/dashboard/settings?tab=brand");
+	getSettings.mockResolvedValue({ id: "owner", prefix: "!", marketingOptIn: false });
+	render(<SettingsPage />);
+	await screen.findByText("Brand settings panel");
+	navigateSection("settings");
+	const input = await screen.findByDisplayValue("!");
+	fireEvent.change(input, { target: { value: "?" } });
+	navigateSection("brand");
+	getSettings.mockResolvedValue({ id: "owner", prefix: "??", marketingOptIn: false });
+	navigateSection("settings");
+	await waitFor(() => expect(getSettings).toHaveBeenCalledTimes(2));
+	expect(screen.getByDisplayValue("?")).toBeVisible();
 });

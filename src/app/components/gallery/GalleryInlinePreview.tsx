@@ -22,17 +22,17 @@ export default function GalleryInlinePreview({ gallery, clips, ownerName, showAt
 
 	return (
 		<>
-			<div className='overflow-hidden rounded-xl border border-default bg-[#f4f1eb] text-[#191714] dark:bg-[#16171b] dark:text-[#f4f4f5]'>
-				<div className='flex items-center gap-1.5 border-b border-black/10 bg-white/80 px-3 py-2 dark:border-white/10 dark:bg-[#202126]/90' aria-hidden='true'>
+			<div className='overflow-hidden rounded-xl border border-default bg-surface-secondary text-foreground'>
+				<div className='flex items-center gap-1.5 border-b border-default bg-surface px-3 py-2' aria-hidden='true'>
 					<span className='size-2.5 rounded-full bg-red-400' />
 					<span className='size-2.5 rounded-full bg-amber-400' />
 					<span className='size-2.5 rounded-full bg-green-400' />
-					<span className='ml-2 text-[11px] text-black/45 dark:text-white/50'>Website preview</span>
-					{isUpdating ? <span className='ml-auto text-[11px] text-black/45 dark:text-white/50'>Updating...</span> : null}
+					<span className='ml-2 text-[11px] text-muted'>Website preview</span>
+					{isUpdating ? <span className='ml-auto text-[11px] text-muted'>Updating...</span> : null}
 					{hasError ? <span className='ml-auto text-[11px] text-danger'>Preview unavailable</span> : null}
 				</div>
 				<div className='p-4 sm:p-6'>
-					<p className='mb-3 text-xs font-semibold uppercase tracking-wider text-black/50 dark:text-white/55'>Featured clips</p>
+					<p className='mb-3 text-xs font-semibold text-muted'>Featured clips</p>
 					<GalleryFrame gallery={gallery} clips={clips} ownerName={ownerName} showAttribution={showAttribution} onSelectClip={openClip} />
 				</div>
 			</div>

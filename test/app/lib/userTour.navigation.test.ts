@@ -1,5 +1,17 @@
 import { hasCompletedAllGuides, guideLocation, routeForTask, journeys, journeyGuidePercent, currentGuideStep, defaultProgress, transition, stepsForTask, navigationForTask, parseProgress, type GuideProgress } from "@lib/userTour";
 const apply = (state: ReturnType<typeof defaultProgress>, event: Parameters<typeof transition>[1]) => transition(state, event, "owner");
+it("keeps playlist creation replay active on its resource list with an existing playlist", () => {
+	let state = apply({ ...defaultProgress(), playlistId: "existing", completed: ["playlist.name"] }, { type: "start", task: "playlist.name", location: "playlist" });
+	state = apply(state, { type: "location", location: "dashboard" });
+	state = apply(state, { type: "next" });
+	expect(currentGuideStep(state)?.target).toBe("create-playlist");
+	expect(routeForTask("playlist.name", state)).toBe("/dashboard/playlists");
+	state = apply(state, { type: "location", location: "dashboard" });
+	expect(state.active).toMatchObject({ paused: false, index: 0, navigation: [] });
+	expect(state.playlistId).toBe("existing");
+	state = apply(state, { type: "playlist.created", ownerId: "owner", id: "existing" });
+	expect(routeForTask("playlist.name", state)).toBe("/dashboard/playlist/existing");
+});
 it("replays creation at Add Overlay even when it was completed before", () => {
 	let state: GuideProgress = { ...defaultProgress(), overlayId: "existing", completed: ["overlay.name" as const] };
 	state = apply(state, { type: "start", task: "overlay.name", location: "dashboard" });
@@ -24,7 +36,7 @@ it("continues the first-overlay flow after a real save without a completion card
 	expect(saved.completed).toEqual(["overlay.name"]);
 	expect(saved.minimized).toBe(true);
 });
-it("uses the normal profile menu and Tools action instead of navigating on behalf of users", () => {
+it("uses sidebar navigation without navigating on behalf of users", () => {
 	expect(navigationForTask("explore.tools", "overlay", { ...defaultProgress(), overlayId: "overlay" })).toEqual(["profile", "tools"]);
 });
 it("resumes an action checkpoint while teaching navigation from the current page", () => {
@@ -241,12 +253,12 @@ it("finishes the guided overlay save using the editor's actual playlist rather t
 	expect(apply(state, { ...saved, id: "another-overlay", playlistId: "tutorial-playlist" }).completed).not.toContain("playlist.use");
 	expect(apply(state, { ...saved, playlistId: null }).completed).not.toContain("playlist.use");
 });
-it("teaches Settings, AI and Team through the avatar menu and native tabs", () => {
+it("teaches Settings, AI and Team through sidebar groups", () => {
 	for (const task of ["explore.settings", "explore.ai", "explore.editors"] as const) {
 		const state = apply(defaultProgress(), { type: "start", task, location: "dashboard" });
 		expect(state.active?.navigation).toEqual(task === "explore.editors" ? ["profile", "account-settings", "team"] : ["profile", "account-settings"]);
 		const menu = apply(state, { type: "next" });
-		expect(currentGuideStep(menu)).toMatchObject({ target: "nav-settings", destination: "settings" });
+		expect(currentGuideStep(menu)).toMatchObject({ target: "settings-core-tab", destination: "settings" });
 		const settings = apply(menu, { type: "location", location: "settings" });
 		expect(currentGuideStep(settings)?.target).toBe(task === "explore.editors" ? "settings-team-tab" : task === "explore.ai" ? "settings-connections-tab" : "settings-core-tab");
 		if (task === "explore.editors") expect(currentGuideStep(apply(settings, { type: "next" }))?.target).toBe("team-overview");
@@ -295,7 +307,7 @@ it("recognizes settings routes and teaches every discovery entry point", () => {
 	expect(navigationForTask("explore.ai", "settings", defaultProgress(), 2)).toEqual(["connections-panel"]);
 	for (const task of ["explore.settings", "explore.ai"] as const) expect(routeForTask(task, defaultProgress())).toBe("/dashboard/settings");
 	expect(routeForTask("explore.editors", defaultProgress())).toBe("/dashboard/settings");
-	expect(routeForTask("explore.runners", defaultProgress())).toBe("/dashboard");
+	expect(routeForTask("explore.runners", defaultProgress())).toBe("/dashboard/runners");
 	const state = apply({ ...defaultProgress(), active: { task: "explore.ai", index: 2, paused: true } }, { type: "resume", location: "settings" });
 	expect(parseProgress(JSON.stringify(state)).active?.navigation).toEqual(["connections-panel"]);
 });
@@ -360,4 +372,12 @@ it.each([1, 2, 3])("accepts successful native clip additions before Continue at 
 	const added = apply(state, { type: "playlist.clips-added", ownerId: "owner", id: "playlist", count: 2 });
 	expect(added.active).toMatchObject({ task: "playlist.clips", index: 4, paused: false, navigation: [] });
 	expect(currentGuideStep(added)?.target).toBe("playlist-order");
+});
+
+it.each([
+	["explore.tools", "tools-group"],
+	["explore.settings", "settings-group"],
+] as const)("keeps saved profile navigation compatible with the sidebar for %s", (task, target) => {
+	const state = apply(defaultProgress(), { type: "start", task, location: "dashboard" });
+	expect(currentGuideStep(state)).toMatchObject({ target, action: true });
 });

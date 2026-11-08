@@ -42,3 +42,13 @@ test("planned workflow producers generate scenarios on a fresh checkout before e
 		rmSync(directory, { recursive: true, force: true });
 	}
 });
+
+test("workflow plans fit atomic work rather than relying only on average total duration", async () => {
+	const { planWorkflowShards } = await import("./workflow-test-planning.cjs");
+	const specs = ["a", "b", "c"].map((id) => ({ id, title: id, file: ".features-gen/bdd/independent.feature.spec.js", tags: [], tests: [{ projectName: "bdd-chromium" }] }));
+	const report = { suites: [{ title: ".features-gen/bdd/independent.feature.spec.js", file: ".features-gen/bdd/independent.feature.spec.js", specs }] };
+	const profile = Object.fromEntries(specs.map((s) => [`[bdd-chromium] › ${s.file} › ${s.title}`, 200]));
+	const lanes = Object.values(planWorkflowShards(report, profile, 1).lanes);
+	assert.equal(lanes.length, 3);
+	assert.ok(lanes.every((l) => l.estimatedSeconds <= 300));
+});

@@ -1,3 +1,5 @@
+const navbarIdentity = jest.fn();
+jest.mock("@/auth/navigation-user", () => ({ getDashboardNavbarUser: () => navbarIdentity() }));
 jest.mock("@actions/userTour", () => ({ getUserTourProgress: async () => ({ progress: { version: 2, completed: [], skipped: [], active: null, minimized: false }, importLegacy: false }) }));
 jest.mock("@components/user-tour/provider", () => ({
 	UserTourProvider: ({ children, accountId, dashboardContent }: { children: React.ReactNode; accountId: string; dashboardContent: unknown[] }) => (
@@ -39,6 +41,7 @@ jest.mock("@components/SentryFeedbackWidget", () => ({
 describe("app/dashboard/layout", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
+		authorize.mockResolvedValue({ allowed: true, accessPath: "owner" });
 	});
 
 	it("mounts feedback for every dashboard page", async () => {
@@ -55,4 +58,41 @@ describe("app/dashboard/layout", () => {
 		expect(connection).toHaveBeenCalledTimes(1);
 		expect(getPendingDashboardContent).toHaveBeenCalledWith(user);
 	});
+});
+
+const authorize = jest.fn();
+jest.mock("@/auth/authorize-operation", () => ({ authorizeCreatorOperation: (...args: unknown[]) => authorize(...args) }));
+jest.mock("@components/dashboardShell", () => ({
+	__esModule: true,
+	default: ({ children, creatorId, permissions }: { children: React.ReactNode; creatorId: string; permissions: string[] }) => (
+		<div data-testid='shell' data-creator={creatorId} data-permissions={permissions.join(",")}>
+			{children}
+		</div>
+	),
+}));
+it("filters navigation using each permission for a delegated account", async () => {
+	validateAuth.mockResolvedValue({ id: "delegated" });
+	getPendingDashboardContent.mockResolvedValue([]);
+	authorize.mockImplementation(async ({ permission }: { permission: string }) => ({ allowed: permission === "playlist:read", accessPath: "membership" }));
+	const Layout = (await import("@/app/dashboard/layout")).default;
+	render(await Layout({ children: <div>Delegated editor</div> }));
+	expect(screen.getByTestId("shell")).toHaveAttribute("data-permissions", "playlist:read");
+	expect(screen.getByTestId("shell")).toHaveAttribute("data-creator", "delegated");
+});
+it("keeps unauthenticated content outside the creator shell", async () => {
+	validateAuth.mockResolvedValue(false);
+	const Layout = (await import("@/app/dashboard/layout")).default;
+	render(await Layout({ children: <div>Public content</div> }));
+	expect(screen.getByText("Public content")).toBeInTheDocument();
+	expect(screen.queryByTestId("shell")).not.toBeInTheDocument();
+});
+
+it("retains the sidebar and account switcher for email-only agency members", async () => {
+	validateAuth.mockResolvedValue(false);
+	navbarIdentity.mockResolvedValue({ id: "agency-member", username: "Agency owner" });
+	const Layout = (await import("@/app/dashboard/layout")).default;
+	render(await Layout({ children: <p>Agency recovery</p> }));
+	expect(screen.getByTestId("shell")).toHaveAttribute("data-creator", "agency-member");
+	expect(screen.getByTestId("shell")).toHaveAttribute("data-permissions", "");
+	expect(screen.getByText("Agency recovery")).toBeVisible();
 });

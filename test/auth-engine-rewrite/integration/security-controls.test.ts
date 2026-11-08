@@ -101,3 +101,15 @@ describe("TDD-US3-003 shared security controls", () => {
 		expect(event.metadata).toEqual({ accessToken: "[REDACTED]", safe: "value" });
 	});
 });
+
+it("reserves clip quantities atomically within the shared minute allowance", async () => {
+	const repository = new MemoryRateLimits();
+	const now = new Date();
+	const input = { identityKey: "creator", networkKey: "creator", action: "clip-volume", limit: 50, windowMs: 60000, now };
+	expect(await consumeRateLimit(repository, { ...input, cost: 30 })).toMatchObject({ allowed: true, remaining: 20 });
+	expect(await consumeRateLimit(repository, { ...input, cost: 21 })).toMatchObject({ allowed: false, retryAfterSeconds: 60 });
+	expect(await consumeRateLimit(repository, { ...input, cost: 20 })).toMatchObject({ allowed: true, remaining: 0 });
+	expect(await consumeRateLimit(repository, { ...input, cost: 1 })).toMatchObject({ allowed: false });
+	expect(await consumeRateLimit(repository, { ...input, cost: 50, now: new Date(now.getTime() + 60000) })).toMatchObject({ allowed: true });
+	await expect(consumeRateLimit(repository, { ...input, cost: 0 })).rejects.toThrow("Invalid rate limit cost");
+});

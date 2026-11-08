@@ -87,3 +87,10 @@ test("partial source coverage defers completeness only; the native aggregate rem
 	results.testResults[0].assertionResults[0].status = "pending";
 	assert.equal(validateRunnerPartialEvidence(results, report, [owner]).ok, false);
 });
+
+test("Runner planning respects atomic-file cost and adjusts for newly measured files", () => {
+	const files = ["test/a.test.ts", "test/b.test.ts", "test/new.test.ts"];
+	const weights = { "packages/runner/test/a.test.ts": 200, "packages/runner/test/b.test.ts": 200 };
+	assert.equal(planRunnerShards(files, weights).length, 3);
+	assert.equal(planRunnerShards(files, Object.fromEntries(files.map((p) => ["packages/runner/" + p, 10]))).length, 1);
+});

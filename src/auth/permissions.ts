@@ -11,6 +11,7 @@ export const PERMISSIONS = [
 	"role:update",
 	"role:delete",
 	"creator:read",
+	"clips:export",
 	"creator:update",
 	"creator:connect",
 	"creator:disconnect",
@@ -70,7 +71,7 @@ const without = (excluded: readonly Permission[]) => PERMISSIONS.filter((permiss
 export const STANDARD_ROLES = {
 	owner: PERMISSIONS,
 	operations: without(["account:export", "member:read", "member:invite", "member:update", "member:remove", "role:read", "role:create", "role:update", "role:delete", "subscription:read", "subscription:manage", "subscription:cancel", "billing:read", "billing:manage", "agency:read", "agency:update", "agency:link-creator", "agency:unlink-creator", "agency:allocate-license", "agency:revoke-license"]),
-	contentManager: ["playlist:create", "playlist:read", "playlist:update", "playlist:delete", "playlist-items:manage", "playlist:control", "gallery:create", "gallery:read", "gallery:update", "gallery:delete", "gallery:publish"] satisfies readonly Permission[],
+	contentManager: ["creator:read", "clips:export", "playlist:create", "playlist:read", "playlist:update", "playlist:delete", "playlist-items:manage", "playlist:control", "gallery:create", "gallery:read", "gallery:update", "gallery:delete", "gallery:publish"] satisfies readonly Permission[],
 	analyst: ["analytics:read", "analytics:export", "audit:read"] satisfies readonly Permission[],
 	billingManager: ["subscription:read", "subscription:manage", "subscription:cancel", "billing:read", "billing:manage"] satisfies readonly Permission[],
 } as const satisfies Record<string, readonly Permission[]>;

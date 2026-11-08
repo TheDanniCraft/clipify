@@ -18,18 +18,19 @@ import { notify as addToast } from "@lib/toast";
 
 import { IconAlertTriangle, IconDatabase, IconDeviceFloppy, IconInfoCircle, IconMail, IconRefresh, IconShieldLock, IconTrash } from "@tabler/icons-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { requestAccountDataExport, requestAccountDeletion } from "@actions/subscription";
 import { forceRefreshOwnClipCache, getOwnClipForceRefreshStatus } from "@actions/twitch";
 import { useNavigationGuard } from "nextjs-nav-guard";
 import { getUpgradeCopy } from "@lib/upgradeCopy";
 import UpgradeModal from "@components/upgradeModal";
+import BrandSettingsPanel from "@components/settings/BrandSettingsPanel";
 import BillingPanel from "./billing-panel";
 import ChatwootData from "@components/chatwootData";
 import ControlledModal from "@components/controlledModal";
 import CreatorAnalyticsCard from "@components/creator/CreatorAnalyticsCard";
-import SettingsNavigation, { type SettingsNavigationKey } from "@components/settingsNavigation";
+import { settingsSection, type SettingsSection } from "@lib/dashboardSections";
 import TeamSettingsPanel from "@components/settings/TeamSettingsPanel";
 import { getFeatureAccess, getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
 import type { BillingCycle, PaywallSource } from "@actions/subscription";
@@ -58,13 +59,13 @@ type ClipForceRefreshStatusState = {
 	canRefresh: boolean;
 } | null;
 
-type SettingsSection = SettingsNavigationKey;
-
 export default function SettingsPage() {
 	const [user, setUser] = useState<AuthenticatedUser | null>(null);
 	const { isOpen: upgradeModalIsOpen, open: upgradeModalOnOpen, setOpen: upgradeModalOnOpenChange } = useOverlayState();
 
-	const [sectionTab, setSectionTab] = useState<SettingsSection>("settings");
+	const params = useSearchParams();
+	const sectionTab = settingsSection(params);
+	const isBrandSection = sectionTab === "brand";
 	const { isOpen: deleteModalIsOpen, open: deleteModalOnOpen, setOpen: deleteModalOnOpenChange } = useOverlayState();
 	const { isOpen: exportModalIsOpen, open: exportModalOnOpen, setOpen: exportModalOnOpenChange } = useOverlayState();
 	const [deletionChoice, setDeletionChoice] = useState<"paid_through" | "immediate">("paid_through");
@@ -86,7 +87,16 @@ export default function SettingsPage() {
 	const [isRequestingDeletion, setIsRequestingDeletion] = useState(false);
 
 	const router = useRouter();
-	const navigationGuardEnabled = useCallback(() => JSON.stringify(settings) !== JSON.stringify(baseSettings), [settings, baseSettings]);
+	const navigationGuardEnabled = useCallback(
+		({ to, type }: { to: string; type: string }) => {
+			if (["push", "replace", "popstate"].includes(type)) {
+				const destination = new URL(to, window.location.href);
+				if (destination.origin === window.location.origin && destination.pathname === "/dashboard/settings") return false;
+			}
+			return JSON.stringify(settings) !== JSON.stringify(baseSettings);
+		},
+		[settings, baseSettings],
+	);
 	const navGuard = useNavigationGuard({ enabled: navigationGuardEnabled });
 
 	useEffect(() => {
@@ -126,12 +136,12 @@ export default function SettingsPage() {
 		let cancelled = false;
 
 		async function fetchSettings() {
-			if (!user) return;
+			if (!user || isBrandSection) return;
 			try {
 				const fetchedSettings = await getSettings(user.id, true);
 				if (cancelled) return;
-				setSettings(fetchedSettings);
-				setBaseSettings(fetchedSettings);
+				setSettings((previous) => (previous?.id === user.id ? previous : fetchedSettings));
+				setBaseSettings((previous) => (previous?.id === user.id ? previous : fetchedSettings));
 				const status = await getClipCacheStatus(user.id);
 				if (cancelled) return;
 				setClipCacheStatus(status);
@@ -148,7 +158,7 @@ export default function SettingsPage() {
 		return () => {
 			cancelled = true;
 		};
-	}, [user]);
+	}, [user, isBrandSection]);
 
 	useEffect(() => {
 		if (!user || sectionTab !== "settings") return;
@@ -221,9 +231,7 @@ export default function SettingsPage() {
 				router.replace(params.size ? `/dashboard/settings?${params.toString()}` : "/dashboard/settings");
 			}
 			const requestedTab = params.get("tab");
-			if (requestedTab === "creator" || requestedTab === "connections" || requestedTab === "billing" || requestedTab === "team") setSectionTab(requestedTab);
-			else if (requestedTab === "badges" || requestedTab === "achievements") router.replace("/dashboard/member-card");
-			else if (params.has("billing") || params.has("checkout") || params.get("addon") === "runner") setSectionTab("billing");
+			if (requestedTab === "badges" || requestedTab === "achievements") router.replace("/dashboard/member-card");
 		});
 		return () => {
 			cancelled = true;
@@ -352,11 +360,10 @@ export default function SettingsPage() {
 	}
 
 	function selectSection(section: SettingsSection) {
-		setSectionTab(section);
 		const params = new URLSearchParams(window.location.search);
 		if (section === "settings") params.delete("tab");
 		else params.set("tab", section);
-		window.history.replaceState(window.history.state, "", params.size ? `/dashboard/settings?${params.toString()}` : "/dashboard/settings");
+		router.push(params.size ? `/dashboard/settings?${params.toString()}` : "/dashboard/settings");
 	}
 
 	return (
@@ -365,340 +372,341 @@ export default function SettingsPage() {
 
 			<DashboardNavbar user={user} title='Settings' tagline='Manage your settings'>
 				<div className='mt-4 flex w-full flex-col gap-2'>
-					<SettingsNavigation active={sectionTab} onCoreSectionChange={selectSection} />
-				</div>
-				{sectionTab === "team" ? (
-					<TeamSettingsPanel embedded />
-				) : sectionTab === "billing" ? (
-					<BillingPanel />
-				) : sectionTab === "connections" ? (
-					<div className='mt-4 space-y-4'>
-						<LinkedAccountsPanel />
-						<ConnectedAppsPanel />
-						<McpActivityPanel />
-					</div>
-				) : sectionTab === "creator" ? (
-					<Card className='mt-4'>
-						<Card.Header>
-							<p className='text-xl font-semibold'>Creator Page</p>
-							<p className='text-sm text-muted'>Manage your public Clipify profile, discovery visibility, and analytics.</p>
-						</Card.Header>
-						<Separator />
-						<Card.Content className='flex flex-col gap-6 p-6'>
-							<Form className='flex w-full flex-col gap-6' onSubmit={handleSubmit}>
-								<section className='space-y-4' aria-labelledby='creator-page-availability-heading'>
-									<div>
-										<h3 id='creator-page-availability-heading' className='text-base font-semibold'>
-											Page availability
-										</h3>
-										<p className='text-xs text-muted'>Control your shareable Creator Page and the profile information shown on it.</p>
-									</div>
-									<div className='flex items-center justify-between gap-6'>
-										<div className='min-w-0'>
-											<p className='text-sm font-semibold'>Enable Creator Page</p>
-											<p className='text-xs text-muted'>Your shareable Clipify profile with all cached clips, Twitch details, and live status.</p>
-											{settings?.creatorPageEnabled !== false ? (
-												<Link className='mt-2 text-xs' href={`/creators/${encodeURIComponent(user.username)}`} target='_blank' rel='noopener noreferrer'>
-													Open Creator Page
-													<Link.Icon />
-												</Link>
-											) : null}
-										</div>
-										<Switch isSelected={settings?.creatorPageEnabled !== false} isDisabled={!settings} aria-label='Enable creator page' onChange={(value) => settings && setSettings({ ...settings, creatorPageEnabled: value })}>
-											<Switch.Content>
-												<Switch.Control>
-													<Switch.Thumb />
-												</Switch.Control>
-											</Switch.Content>
-										</Switch>
-									</div>
-									<Separator />
-									<div className='flex items-center justify-between gap-6'>
-										<div className='min-w-0'>
-											<p className='text-sm font-semibold'>Show Twitch bio</p>
-											<p className='text-xs text-muted'>Use your Twitch channel description in the profile card.</p>
-										</div>
-										<Switch isSelected={settings?.creatorPageShowBio !== false} isDisabled={!settings || settings.creatorPageEnabled === false} aria-label='Show Twitch bio' onChange={(value) => settings && setSettings({ ...settings, creatorPageShowBio: value })}>
-											<Switch.Content>
-												<Switch.Control>
-													<Switch.Thumb />
-												</Switch.Control>
-											</Switch.Content>
-										</Switch>
-									</div>
-								</section>
+					<section aria-label='Settings content'>
+						{sectionTab === "brand" ? (
+							<BrandSettingsPanel key={user.id} user={user} />
+						) : sectionTab === "team" ? (
+							<TeamSettingsPanel embedded />
+						) : sectionTab === "billing" ? (
+							<BillingPanel />
+						) : sectionTab === "connections" ? (
+							<div className='mt-4 space-y-4'>
+								<LinkedAccountsPanel />
+								<ConnectedAppsPanel />
+								<McpActivityPanel />
+							</div>
+						) : sectionTab === "creator" ? (
+							<Card className='mt-4'>
+								<Card.Header>
+									<p className='text-xl font-semibold'>Creator Page</p>
+									<p className='text-sm text-muted'>Manage your public Clipify profile, discovery visibility, and analytics.</p>
+								</Card.Header>
 								<Separator />
-								<section className='space-y-4' aria-labelledby='creator-social-preview-heading'>
-									<div>
-										<h3 id='creator-social-preview-heading' className='text-base font-semibold'>
-											Social preview
-										</h3>
-										<p className='text-xs text-muted'>Preview and customize how your Creator Page appears when its link is shared.</p>
-									</div>
-									<div className='grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.9fr)]'>
-										{creatorSocialPreviewAccess.allowed ? (
-											<div className='space-y-3'>
-												<TextField value={settings?.creatorPageSocialTitle ?? ""} onChange={(value) => settings && setSettings({ ...settings, creatorPageSocialTitle: value })} variant='secondary' maxLength={120} isDisabled={!settings || settings.creatorPageEnabled === false}>
-													<Label>Preview title</Label>
-													<Input placeholder={`${user.username}'s Twitch clips`} />
-													<Description>Optional, up to 120 characters.</Description>
-												</TextField>
-												<TextField value={settings?.creatorPageSocialDescription ?? ""} onChange={(value) => settings && setSettings({ ...settings, creatorPageSocialDescription: value })} variant='secondary' maxLength={240} isDisabled={!settings || settings.creatorPageEnabled === false}>
-													<Label>Preview description</Label>
-													<TextArea rows={3} placeholder={`Watch clips from ${user.username} on Clipify.`} />
-													<Description>Optional, up to 240 characters.</Description>
-												</TextField>
-											</div>
-										) : (
-											<Alert status='warning'>
-												<Alert.Content>
-													<Alert.Title>Custom social previews are a Pro feature</Alert.Title>
-													<Alert.Description>Upgrade to control the title and description shown when people share your Creator Page.</Alert.Description>
-												</Alert.Content>
-												<Button
-													size='sm'
-													variant='tertiary'
-													onPress={() => {
-														setUpgradeFeature("creator_social_preview");
-														upgradeModalOnOpen();
-													}}
-												>
-													Upgrade to Pro
-												</Button>
-											</Alert>
-										)}
-										<div className='overflow-hidden rounded-xl border border-default/60 bg-surface-secondary shadow-sm' aria-label='Social preview example'>
-											<div className='relative aspect-[1.91/1] bg-background'>
-												<Image src='/og-image.png' alt='Clipify social preview image' fill sizes='(min-width: 1024px) 40vw, 100vw' className='object-cover' />
-											</div>
-											<div className='space-y-1 p-4'>
-												<p className='line-clamp-2 text-sm font-semibold'>{creatorSocialTitle}</p>
-												<p className='line-clamp-2 text-xs text-muted'>{creatorSocialDescription}</p>
-												<p className='pt-1 text-[11px] uppercase tracking-wide text-muted'>clipify.us</p>
-											</div>
-										</div>
-									</div>
-								</section>
-								<Separator />
-								<p className='text-xs text-muted'>
-									Search-engine and Clipify Discovery visibility is managed under <Link onPress={() => setSectionTab("settings")}>Settings</Link>.
-								</p>
-								<Button fullWidth type='submit' isDisabled={!isFormDirty()} aria-label='Save Creator Page Settings' variant='primary'>
-									<IconDeviceFloppy /> Save Creator Page Settings
-								</Button>
-							</Form>
-							<Separator />
-							<div>
-								<h3 className='mb-3 text-base font-semibold'>Creator Page Analytics</h3>
-								<CreatorAnalyticsCard
-									allowed={creatorAnalyticsAccess.allowed}
-									onUpgrade={() => {
-										setUpgradeFeature("creator_analytics");
-										upgradeModalOnOpen();
-									}}
-								/>
-							</div>
-						</Card.Content>
-					</Card>
-				) : (
-					<Card className='mt-4'>
-						<Card.Header>
-							<div className='flex w-full items-center justify-end'>
-								<div className='flex items-center gap-2'>
-									<div className='flex items-center overflow-hidden'>
-										<CodeSnippet size='sm' symbol='User ID:' preClassName='overflow-hidden whitespace-nowrap'>
-											{user.id}
-										</CodeSnippet>
-									</div>
-									<Tooltip delay={0}>
-										<Button isIconOnly size='sm' variant='ghost' aria-label='About your user ID'>
-											<IconInfoCircle size={20} className='text-muted' aria-hidden='true' />
-										</Button>
-										<Tooltip.Content>If you contact support, please specify this user ID.</Tooltip.Content>
-									</Tooltip>
-								</div>
-							</div>
-						</Card.Header>
-						<Card.Content className='px-6 pt-0 pb-6'>
-							<div data-tour='settings-overview' className='mb-5 flex items-center gap-3'>
-								<DashboardUserAvatar username={user.username} avatar={user.avatar} />
-								<div>
-									<p className='text-2xl font-bold'>{user.username}</p>
-									<p className='text-sm font-bold text-muted'>
-										<span>Plan:</span> <span className={`${effectivePlan === Plan.Free ? "text-success" : "text-brand-400"}`}>{effectivePlanLabel}</span>
-									</p>
-								</div>
-							</div>
-							<Separator className='my-6' />
-
-							<div className='space-y-6'>
-								<section className='space-y-3'>
-									<div className='flex items-center justify-between gap-3'>
-										<div className='flex items-center gap-2'>
-											<IconDatabase className='text-muted' />
+								<Card.Content className='flex flex-col gap-6 p-6'>
+									<Form className='flex w-full flex-col gap-6' onSubmit={handleSubmit}>
+										<section className='space-y-4' aria-labelledby='creator-page-availability-heading'>
 											<div>
-												<p className='font-semibold text-sm'>Clip crawl status</p>
-												<p className='text-xs text-muted'>Your clip cache is checked in the background about every minute.</p>
+												<h3 id='creator-page-availability-heading' className='text-base font-semibold'>
+													Page availability
+												</h3>
+												<p className='text-xs text-muted'>Control your shareable Creator Page and the profile information shown on it.</p>
 											</div>
-										</div>
-										<span className={`text-xs font-semibold ${clipCacheStatus?.backfillComplete ? "text-success" : "text-warning"}`}>{clipCacheStatus?.backfillComplete ? "Complete" : "Syncing"}</span>
-									</div>
-									<div className='flex flex-wrap items-center justify-between gap-2'>
-										<p className='text-xs text-muted'>Manual refresh: {clipForceRefreshStatus?.canRefresh ? "available now" : `available in ${formatDurationMs(clipForceRefreshStatus?.remainingMs ?? 0)}`}</p>
-										<div className='flex items-center gap-2'>
-											<Tooltip delay={0}>
-												<Button isIconOnly size='sm' variant='tertiary' onPress={handleRefreshStats} isPending={isRefreshingStats} aria-label='Refresh statistics'>
-													{isRefreshingStats ? <Spinner color='current' size='sm' /> : <IconRefresh size={18} />}
-												</Button>
-												<Tooltip.Content>Refresh statistics</Tooltip.Content>
-											</Tooltip>
-											<Button size='sm' variant='danger' className='font-semibold' isPending={isForceRefreshing} isDisabled={isForceRefreshing || !clipForceRefreshStatus?.canRefresh} onPress={handleForceRefreshCache}>
-												{isForceRefreshing ? <Spinner color='current' size='sm' /> : null}
-												Force Refresh Cache
-											</Button>
-										</div>
-									</div>
-									<div className='h-2 w-full overflow-hidden rounded-full bg-default'>
-										<div className='h-full bg-gradient-to-r from-brand-700 to-brand-400' style={{ width: `${clipCacheStatus?.estimatedCoveragePercent ?? 0}%` }} />
-									</div>
-									<p className='text-xs text-muted'>Cached clips are stored clip records used by the player so playback works quickly without refetching everything from Twitch on each request.</p>
-									<ClipCrawlSchedule jobs={clipForceRefreshStatus?.jobs} />
-									<div className='grid grid-cols-1 gap-2 text-xs text-muted md:grid-cols-2'>
-										<p>
-											<span className='font-semibold'>Backfill progress (estimate):</span> {clipCacheStatus?.estimatedCoveragePercent ?? 0}%
+											<div className='flex items-center justify-between gap-6'>
+												<div className='min-w-0'>
+													<p className='text-sm font-semibold'>Enable Creator Page</p>
+													<p className='text-xs text-muted'>Your shareable Clipify profile with all cached clips, Twitch details, and live status.</p>
+													{settings?.creatorPageEnabled !== false ? (
+														<Link className='mt-2 text-xs' href={`/creators/${encodeURIComponent(user.username)}`} target='_blank' rel='noopener noreferrer'>
+															Open Creator Page
+															<Link.Icon />
+														</Link>
+													) : null}
+												</div>
+												<Switch isSelected={settings?.creatorPageEnabled !== false} isDisabled={!settings} aria-label='Enable creator page' onChange={(value) => settings && setSettings({ ...settings, creatorPageEnabled: value })}>
+													<Switch.Content>
+														<Switch.Control>
+															<Switch.Thumb />
+														</Switch.Control>
+													</Switch.Content>
+												</Switch>
+											</div>
+											<Separator />
+											<div className='flex items-center justify-between gap-6'>
+												<div className='min-w-0'>
+													<p className='text-sm font-semibold'>Show Twitch bio</p>
+													<p className='text-xs text-muted'>Use your Twitch channel description in the profile card.</p>
+												</div>
+												<Switch isSelected={settings?.creatorPageShowBio !== false} isDisabled={!settings || settings.creatorPageEnabled === false} aria-label='Show Twitch bio' onChange={(value) => settings && setSettings({ ...settings, creatorPageShowBio: value })}>
+													<Switch.Content>
+														<Switch.Control>
+															<Switch.Thumb />
+														</Switch.Control>
+													</Switch.Content>
+												</Switch>
+											</div>
+										</section>
+										<Separator />
+										<section className='space-y-4' aria-labelledby='creator-social-preview-heading'>
+											<div>
+												<h3 id='creator-social-preview-heading' className='text-base font-semibold'>
+													Social preview
+												</h3>
+												<p className='text-xs text-muted'>Preview and customize how your Creator Page appears when its link is shared.</p>
+											</div>
+											<div className='grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.9fr)]'>
+												{creatorSocialPreviewAccess.allowed ? (
+													<div className='space-y-3'>
+														<TextField value={settings?.creatorPageSocialTitle ?? ""} onChange={(value) => settings && setSettings({ ...settings, creatorPageSocialTitle: value })} variant='secondary' maxLength={120} isDisabled={!settings || settings.creatorPageEnabled === false}>
+															<Label>Preview title</Label>
+															<Input placeholder={`${user.username}'s Twitch clips`} />
+															<Description>Optional, up to 120 characters.</Description>
+														</TextField>
+														<TextField value={settings?.creatorPageSocialDescription ?? ""} onChange={(value) => settings && setSettings({ ...settings, creatorPageSocialDescription: value })} variant='secondary' maxLength={240} isDisabled={!settings || settings.creatorPageEnabled === false}>
+															<Label>Preview description</Label>
+															<TextArea rows={3} placeholder={`Watch clips from ${user.username} on Clipify.`} />
+															<Description>Optional, up to 240 characters.</Description>
+														</TextField>
+													</div>
+												) : (
+													<Alert status='warning'>
+														<Alert.Content>
+															<Alert.Title>Custom social previews are a Pro feature</Alert.Title>
+															<Alert.Description>Upgrade to control the title and description shown when people share your Creator Page.</Alert.Description>
+														</Alert.Content>
+														<Button
+															size='sm'
+															variant='tertiary'
+															onPress={() => {
+																setUpgradeFeature("creator_social_preview");
+																upgradeModalOnOpen();
+															}}
+														>
+															Upgrade to Pro
+														</Button>
+													</Alert>
+												)}
+												<div className='overflow-hidden rounded-xl border border-default/60 bg-surface-secondary shadow-sm' aria-label='Social preview example'>
+													<div className='relative aspect-[1.91/1] bg-background'>
+														<Image src='/og-image.png' alt='Clipify social preview image' fill sizes='(min-width: 1024px) 40vw, 100vw' className='object-cover' />
+													</div>
+													<div className='space-y-1 p-4'>
+														<p className='line-clamp-2 text-sm font-semibold'>{creatorSocialTitle}</p>
+														<p className='line-clamp-2 text-xs text-muted'>{creatorSocialDescription}</p>
+														<p className='pt-1 text-[11px] uppercase tracking-wide text-muted'>clipify.us</p>
+													</div>
+												</div>
+											</div>
+										</section>
+										<Separator />
+										<p className='text-xs text-muted'>
+											Search-engine and Clipify Discovery visibility is managed under <Link onPress={() => selectSection("settings")}>Settings</Link>.
 										</p>
-										<p>
-											<span className='font-semibold'>Cached clips:</span> {clipCacheStatus?.cachedClipCount ?? 0}
-										</p>
-										<p>
-											<span className='font-semibold'>Unavailable clips:</span> {clipCacheStatus?.unavailableClipCount ?? 0}
-										</p>
-										<p>
-											<span className='font-semibold'>Oldest cached clip:</span> {formatStatusDate(clipCacheStatus?.oldestClipDate)}
-										</p>
-										<p>
-											<span className='font-semibold'>Last fresh sync:</span> {formatStatusDate(clipCacheStatus?.lastIncrementalSyncAt)}
-										</p>
-										<p>
-											<span className='font-semibold'>Last backfill sync:</span> {formatStatusDate(clipCacheStatus?.lastBackfillSyncAt)}
-										</p>
-										<p>
-											<span className='font-semibold'>Last manual refresh:</span> {formatStatusDate(clipForceRefreshStatus?.lastForcedAt)}
-										</p>
-									</div>
-								</section>
-
-								<Separator />
-
-								<Form className='flex w-full flex-col gap-4' onSubmit={handleSubmit}>
-									<TextField fullWidth variant='secondary' type='text' isRequired>
-										<Label>Command Prefix</Label>
-										<Input
-											className='w-full'
-											value={settings?.prefix || ""}
-											maxLength={3}
-											onChange={(e) => {
-												if (!settings) {
-													return;
-												}
-												const value = e.target.value.trim();
-												if (value.length <= 3) {
-													setSettings({ ...settings, prefix: value });
-												}
+										<Button fullWidth type='submit' isDisabled={!isFormDirty()} aria-label='Save Creator Page Settings' variant='primary'>
+											<IconDeviceFloppy /> Save Creator Page Settings
+										</Button>
+									</Form>
+									<Separator />
+									<div>
+										<h3 className='mb-3 text-base font-semibold'>Creator Page Analytics</h3>
+										<CreatorAnalyticsCard
+											allowed={creatorAnalyticsAccess.allowed}
+											onUpgrade={() => {
+												setUpgradeFeature("creator_analytics");
+												upgradeModalOnOpen();
 											}}
 										/>
-										<Description>Maximum of 3 characters. This prefix will be used for all bot commands.</Description>
-										<FieldError />
-									</TextField>
-									<Card variant='secondary' className='w-full'>
-										<Card.Content>
-											<div className='flex items-center justify-between gap-4'>
-												<div>
-													<p className='font-semibold text-sm'>Email Preferences</p>
-													<p className='text-xs text-muted'>Product updates and occasional special offers.</p>
+									</div>
+								</Card.Content>
+							</Card>
+						) : (
+							<Card className='mt-4'>
+								<Card.Header className='flex flex-row flex-wrap items-center justify-between gap-4'>
+									<div data-tour='settings-overview' className='flex items-center gap-3'>
+										<DashboardUserAvatar username={user.username} avatar={user.avatar} />
+										<div>
+											<p className='text-2xl font-bold'>{user.username}</p>
+											<p className='text-sm font-bold text-muted'>
+												<span>Plan:</span> <span className={`${effectivePlan === Plan.Free ? "text-success-soft-foreground" : "text-accent-soft-foreground"}`}>{effectivePlanLabel}</span>
+											</p>
+										</div>
+									</div>
+									<div className='flex max-w-full min-w-0 items-center gap-2 sm:max-w-sm'>
+										<div className='min-w-0 overflow-hidden'>
+											<CodeSnippet className='w-full min-w-0' size='sm' symbol='User ID:' preClassName='overflow-hidden whitespace-nowrap'>
+												{user.id}
+											</CodeSnippet>
+										</div>
+										<Tooltip delay={0}>
+											<Button isIconOnly size='sm' variant='ghost' aria-label='About your user ID'>
+												<IconInfoCircle size={20} className='text-muted' aria-hidden='true' />
+											</Button>
+											<Tooltip.Content>If you contact support, please specify this user ID.</Tooltip.Content>
+										</Tooltip>
+									</div>
+								</Card.Header>
+								<Card.Content className='px-6 pt-0 pb-6'>
+									<Separator className='my-6' />
+
+									<div className='space-y-6'>
+										<section className='space-y-3'>
+											<div className='flex items-center justify-between gap-3'>
+												<div className='flex items-center gap-2'>
+													<IconDatabase className='text-muted' />
+													<div>
+														<p className='font-semibold text-sm'>Clip crawl status</p>
+														<p className='text-xs text-muted'>Your clip cache is checked in the background about every minute.</p>
+													</div>
 												</div>
-												<Switch
-													isSelected={receivesProductUpdates}
-													isDisabled={!settings}
-													aria-label='Receive emails'
-													onChange={(value) => {
+												<span className={`text-xs font-semibold ${clipCacheStatus?.backfillComplete ? "text-success-soft-foreground" : "text-warning-soft-foreground"}`}>{clipCacheStatus?.backfillComplete ? "Complete" : "Syncing"}</span>
+											</div>
+											<div className='flex flex-wrap items-center justify-between gap-2'>
+												<p className='text-xs text-muted'>Manual refresh: {clipForceRefreshStatus?.canRefresh ? "available now" : `available in ${formatDurationMs(clipForceRefreshStatus?.remainingMs ?? 0)}`}</p>
+												<div className='flex items-center gap-2'>
+													<Tooltip delay={0}>
+														<Button isIconOnly size='sm' variant='tertiary' onPress={handleRefreshStats} isPending={isRefreshingStats} aria-label='Refresh statistics'>
+															{isRefreshingStats ? <Spinner color='current' size='sm' /> : <IconRefresh size={18} />}
+														</Button>
+														<Tooltip.Content>Refresh statistics</Tooltip.Content>
+													</Tooltip>
+													<Button size='sm' variant='danger' className='font-semibold' isPending={isForceRefreshing} isDisabled={isForceRefreshing || !clipForceRefreshStatus?.canRefresh} onPress={handleForceRefreshCache}>
+														{isForceRefreshing ? <Spinner color='current' size='sm' /> : null}
+														Force Refresh Cache
+													</Button>
+												</div>
+											</div>
+											<div className='h-2 w-full overflow-hidden rounded-full bg-default'>
+												<div className='h-full bg-gradient-to-r from-brand-700 to-brand-400' style={{ width: `${clipCacheStatus?.estimatedCoveragePercent ?? 0}%` }} />
+											</div>
+											<p className='text-xs text-muted'>Cached clips are stored clip records used by the player so playback works quickly without refetching everything from Twitch on each request.</p>
+											<ClipCrawlSchedule jobs={clipForceRefreshStatus?.jobs} />
+											<div className='grid grid-cols-1 gap-2 text-xs text-muted md:grid-cols-2'>
+												<p>
+													<span className='font-semibold'>Backfill progress (estimate):</span> {clipCacheStatus?.estimatedCoveragePercent ?? 0}%
+												</p>
+												<p>
+													<span className='font-semibold'>Cached clips:</span> {clipCacheStatus?.cachedClipCount ?? 0}
+												</p>
+												<p>
+													<span className='font-semibold'>Unavailable clips:</span> {clipCacheStatus?.unavailableClipCount ?? 0}
+												</p>
+												<p>
+													<span className='font-semibold'>Oldest cached clip:</span> {formatStatusDate(clipCacheStatus?.oldestClipDate)}
+												</p>
+												<p>
+													<span className='font-semibold'>Last fresh sync:</span> {formatStatusDate(clipCacheStatus?.lastIncrementalSyncAt)}
+												</p>
+												<p>
+													<span className='font-semibold'>Last backfill sync:</span> {formatStatusDate(clipCacheStatus?.lastBackfillSyncAt)}
+												</p>
+												<p>
+													<span className='font-semibold'>Last manual refresh:</span> {formatStatusDate(clipForceRefreshStatus?.lastForcedAt)}
+												</p>
+											</div>
+										</section>
+
+										<Separator />
+
+										<Form className='flex w-full flex-col gap-4' onSubmit={handleSubmit}>
+											<TextField fullWidth variant='secondary' type='text' isRequired>
+												<Label>Command Prefix</Label>
+												<Input
+													className='w-full'
+													value={settings?.prefix || ""}
+													maxLength={3}
+													onChange={(e) => {
 														if (!settings) {
 															return;
 														}
-														setSettings({
-															...settings,
-															marketingOptIn: value,
-															marketingOptInSource: value ? "settings_page_explicit_optin" : "settings_page_optout",
-														});
+														const value = e.target.value.trim();
+														if (value.length <= 3) {
+															setSettings({ ...settings, prefix: value });
+														}
 													}}
-												>
-													<Switch.Content>
-														<Switch.Control>
-															<Switch.Thumb />
-														</Switch.Control>
-													</Switch.Content>
-												</Switch>
-											</div>
-											<p className='mt-2 text-xs text-muted'>Opt out anytime here or by using the unsubscribe link in any email.</p>
-											{settings?.marketingOptInAt && <p className='mt-1 text-xs text-muted'>Consent recorded on {<LocalizedDate value={settings.marketingOptInAt} showTime />}.</p>}
-										</Card.Content>
-									</Card>
-									<Card variant='secondary' className='w-full'>
-										<Card.Content>
-											<div className='flex items-center justify-between gap-4'>
-												<div className='min-w-0'>
-													<p className='text-sm font-semibold'>Search engines and Clipify Discovery</p>
-													<p className='text-xs text-muted'>Controls whether your Creator Page appears in search, the sitemap, and Clipify discovery. The direct URL continues to work when disabled.</p>
-												</div>
-												<Switch isSelected={creatorPageDiscoverable} isDisabled={!settings || settings.creatorPageEnabled === false} aria-label='Appear in search engines and Clipify Discovery' onChange={(value) => settings && setSettings({ ...settings, showOnCommunityPage: value, creatorPageVisibility: value ? "discoverable" : "unlisted" })}>
-													<Switch.Content>
-														<Switch.Control>
-															<Switch.Thumb />
-														</Switch.Control>
-													</Switch.Content>
-												</Switch>
-											</div>
-											<p className='mt-2 text-xs text-muted'>
-												Creator Page availability and profile content are configured in the <Link onPress={() => setSectionTab("creator")}>Creator Page tab</Link>.
-											</p>
-										</Card.Content>
-									</Card>
-									<SecuritySettingsPanel />
-									<Card variant='secondary' className='w-full'>
-										<Card.Content>
-											<div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
-												<div>
-													<p className='text-sm font-semibold'>Team access</p>
-													<p className='text-xs text-muted'>Invite team members and assign preset or custom permissions.</p>
-												</div>
-												<Button variant='secondary' onPress={() => selectSection("team")}>
-													Manage team
-												</Button>
-											</div>
-										</Card.Content>
-									</Card>
+												/>
+												<Description>Maximum of 3 characters. This prefix will be used for all bot commands.</Description>
+												<FieldError />
+											</TextField>
+											<Card variant='secondary' className='w-full'>
+												<Card.Content>
+													<div className='flex items-center justify-between gap-4'>
+														<div>
+															<p className='font-semibold text-sm'>Email Preferences</p>
+															<p className='text-xs text-muted'>Product updates and occasional special offers.</p>
+														</div>
+														<Switch
+															isSelected={receivesProductUpdates}
+															isDisabled={!settings}
+															aria-label='Receive emails'
+															onChange={(value) => {
+																if (!settings) {
+																	return;
+																}
+																setSettings({
+																	...settings,
+																	marketingOptIn: value,
+																	marketingOptInSource: value ? "settings_page_explicit_optin" : "settings_page_optout",
+																});
+															}}
+														>
+															<Switch.Content>
+																<Switch.Control>
+																	<Switch.Thumb />
+																</Switch.Control>
+															</Switch.Content>
+														</Switch>
+													</div>
+													<p className='mt-2 text-xs text-muted'>Opt out anytime here or by using the unsubscribe link in any email.</p>
+													{settings?.marketingOptInAt && <p className='mt-1 text-xs text-muted'>Consent recorded on {<LocalizedDate value={settings.marketingOptInAt} showTime />}.</p>}
+												</Card.Content>
+											</Card>
+											<Card variant='secondary' className='w-full'>
+												<Card.Content>
+													<div className='flex items-center justify-between gap-4'>
+														<div className='min-w-0'>
+															<p className='text-sm font-semibold'>Search engines and Clipify Discovery</p>
+															<p className='text-xs text-muted'>Controls whether your Creator Page appears in search, the sitemap, and Clipify discovery. The direct URL continues to work when disabled.</p>
+														</div>
+														<Switch isSelected={creatorPageDiscoverable} isDisabled={!settings || settings.creatorPageEnabled === false} aria-label='Appear in search engines and Clipify Discovery' onChange={(value) => settings && setSettings({ ...settings, showOnCommunityPage: value, creatorPageVisibility: value ? "discoverable" : "unlisted" })}>
+															<Switch.Content>
+																<Switch.Control>
+																	<Switch.Thumb />
+																</Switch.Control>
+															</Switch.Content>
+														</Switch>
+													</div>
+													<p className='mt-2 text-xs text-muted'>
+														Creator Page availability and profile content are configured in the <Link onPress={() => selectSection("creator")}>Creator Page settings</Link>.
+													</p>
+												</Card.Content>
+											</Card>
+											<SecuritySettingsPanel />
+											<Card variant='secondary' className='w-full'>
+												<Card.Content>
+													<div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+														<div>
+															<p className='text-sm font-semibold'>Team access</p>
+															<p className='text-xs text-muted'>Invite team members and assign preset or custom permissions.</p>
+														</div>
+														<Button variant='secondary' onPress={() => selectSection("team")}>
+															Manage team
+														</Button>
+													</div>
+												</Card.Content>
+											</Card>
 
-									<Button fullWidth type='submit' isDisabled={!isFormDirty()} aria-label='Save Settings' variant='primary'>
-										{<IconDeviceFloppy />}
-										Save Settings
-									</Button>
-								</Form>
-								<Separator className='my-4' />
-								<div className='flex  flex-col gap-2 justify-end'>
-									<Button fullWidth variant='secondary' aria-label='Export Account Data' onPress={exportModalOnOpen}>
-										<IconDatabase />
-										Request Account Data
-									</Button>
-									<Button fullWidth onPress={deleteModalOnOpen} variant='danger'>
-										{<IconTrash />}
-										Schedule Account Deletion
-									</Button>
-									<span className='text-sm text-muted'>Account deletion keeps your resources recoverable for 30 days before permanent erasure.</span>
-								</div>
-							</div>
-						</Card.Content>
-					</Card>
-				)}
+											<Button fullWidth type='submit' isDisabled={!isFormDirty()} aria-label='Save Settings' variant='primary'>
+												{<IconDeviceFloppy />}
+												Save Settings
+											</Button>
+										</Form>
+										<Separator className='my-4' />
+										<div className='flex  flex-col gap-2 justify-end'>
+											<Button fullWidth variant='secondary' aria-label='Export Account Data' onPress={exportModalOnOpen}>
+												<IconDatabase />
+												Request Account Data
+											</Button>
+											<Button fullWidth onPress={deleteModalOnOpen} variant='danger'>
+												{<IconTrash />}
+												Schedule Account Deletion
+											</Button>
+											<span className='text-sm text-muted'>Account deletion keeps your resources recoverable for 30 days before permanent erasure.</span>
+										</div>
+									</div>
+								</Card.Content>
+							</Card>
+						)}
+					</section>
+				</div>
 			</DashboardNavbar>
 
 			<ControlledModal variant='blur' isOpen={navGuard.active} onClose={navGuard.reject}>
@@ -710,7 +718,7 @@ export default function SettingsPage() {
 				</Modal.Header>
 				<Modal.Body>
 					<p className='text-sm text-foreground'>
-						You&apos;ve made changes to your <span className='font-semibold text-foreground'> settings</span> that haven&apos;t been saved. If you go back now, <span className='font-semibold text-danger'>those changes will be lost</span>.
+						You&apos;ve made changes to your <span className='font-semibold text-foreground'> settings</span> that haven&apos;t been saved. If you go back now, <span className='font-semibold text-danger-soft-foreground'>those changes will be lost</span>.
 						<br />
 						<br />
 						<span className='font-semibold text-foreground'>Do you want to continue without saving?</span>

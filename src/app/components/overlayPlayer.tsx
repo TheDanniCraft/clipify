@@ -1,11 +1,12 @@
 "use client";
 
+import { OverlayChannelMetadata, OverlayClipMetadata } from "@components/overlayMetadata";
 import { type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type RefObject, type SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ClipQueueItem, ModQueueItem, Overlay, PlaybackMode, TwitchClip, VideoClip } from "@types";
 import { getAvatar, getDemoClip, getGameDetails, getTwitchClipBatch, getTwitchClipPlaybackUrl, resolvePlayableClip, subscribeToChat } from "@actions/twitch";
 import { recordOverlayPlayback } from "@actions/productPlayback";
 import PlayerOverlay from "@components/playerOverlay";
-import { Avatar, Link } from "@heroui/react";
+import { Link } from "@heroui/react";
 
 import { motion, AnimatePresence } from "motion/react";
 import { getFirstValidQueuedClip, removeFromClipQueue, removeFromModQueue } from "@actions/database";
@@ -329,16 +330,7 @@ function OverlayViewport({
 									className='w-fit p-2 shadow-lg backdrop-blur-sm'
 									style={themeStyle}
 								>
-									<div className={`flex items-center ${channelMirrored ? "flex-row-reverse" : ""}`}>
-										<Avatar size='md'>
-											<Avatar.Image alt={videoClip.broadcaster_name} src={videoClip.brodcasterAvatar || ownerAvatar} />
-											<Avatar.Fallback>{videoClip.broadcaster_name.slice(0, 2).toUpperCase()}</Avatar.Fallback>
-										</Avatar>
-										<div className={`flex flex-col justify-center text-xs ${channelMirrored ? "mr-2 items-end text-right" : "ml-2 items-start text-left"}`}>
-											<span className='font-semibold'>{videoClip.broadcaster_name}</span>
-											<span className='text-xs opacity-80'>Playing {videoClip.game?.name}</span>
-										</div>
-									</div>
+									<OverlayChannelMetadata name={videoClip.broadcaster_name} avatar={videoClip.brodcasterAvatar || ownerAvatar} category={videoClip.game?.name} mirrored={channelMirrored} />
 								</PlayerOverlay>
 							)}
 
@@ -355,10 +347,7 @@ function OverlayViewport({
 									className='w-fit p-2 shadow-lg backdrop-blur-sm max-w-[min(360px,42vw)]'
 									style={themeStyle}
 								>
-									<div className={`flex flex-col break-normal ${clipAnchoredRight ? "items-end text-right" : "items-start text-left"}`}>
-										<span className='font-bold'>{videoClip.title}</span>
-										<span className='text-xs opacity-80 mt-1'>clipped by {videoClip.creator_name}</span>
-									</div>
+									<OverlayClipMetadata title={videoClip.title} clipper={videoClip.creator_name} alignRight={clipAnchoredRight} />
 								</PlayerOverlay>
 							)}
 
