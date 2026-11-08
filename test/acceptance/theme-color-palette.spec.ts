@@ -17,9 +17,7 @@ test("theme palettes recover stored equivalent colors and save native swatch sel
 		await context.addInitScript(() => localStorage.setItem("clipify:overlay-theme-recent-colors", JSON.stringify(["#fff", "rgba(255, 255, 255, 1)", "hsl(0, 0%, 100%)", "rgba(255, 255, 255, 0.5)", "not-a-color"])));
 		await page.goto("/legal/cookies");
 		const consent = page.getByRole("complementary", { name: "Your privacy choices", exact: true });
-		const consentReload = page.waitForEvent("domcontentloaded");
-		await consent.getByRole("button", { name: "Reject optional", exact: true }).click();
-		await consentReload;
+		await Promise.all([page.waitForEvent("load"), consent.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 		await expect(consent).not.toBeVisible();
 		for (const [index, theme, width] of [
 			[1, "dark", 390],

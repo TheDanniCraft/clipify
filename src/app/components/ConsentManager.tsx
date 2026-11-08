@@ -16,6 +16,7 @@ import { consentCategoryDetails, consentServices, necessaryConsentServices } fro
 import { hadMeasurementConsentAtPageLoad, setBrowserMeasurementConsent } from "@lib/consent/browserMeasurement";
 import { applySentryReplayConsent } from "@lib/sentryReplayConsent";
 import { reloadAfterConsentSave } from "@lib/consent/reload";
+import { CONSENT_LIFETIME_DAYS } from "@lib/consent/lifetime";
 import { CONSENT_PREFERENCES_VISIBILITY_EVENT, OPEN_CONSENT_PREFERENCES_EVENT, type ConsentPreferencesVisibilityDetail, type OpenConsentPreferencesDetail } from "@lib/consent/events";
 import { legalDocumentRoutes } from "@lib/legal/documents";
 
@@ -319,7 +320,7 @@ function ConsentInterface() {
 
 export default function ConsentManager({ children }: { children: ReactNode }) {
 	return (
-		<ConsentProvider options={{ mode: hosted({ backendURL: "/api/c15t" }), consentCategories: ["necessary", "functionality", "measurement"], reloadOnConsentRevoked: false }}>
+		<ConsentProvider options={{ mode: hosted({ backendURL: "/api/c15t" }), consentCategories: ["necessary", "functionality", "measurement"], reloadOnConsentRevoked: false, storageConfig: { defaultExpiryDays: CONSENT_LIFETIME_DAYS } }}>
 			<ConsentDraftProvider>
 				<ConsentIntegrations />
 				<ConsentInterface />

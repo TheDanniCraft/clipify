@@ -45,7 +45,6 @@ for (const locale of ["en-US", "de-DE"])
 			const consent = page.getByRole("complementary", { name: "Your privacy choices", exact: true });
 			await Promise.all([page.waitForEvent("load"), consent.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 			await expect(consent).not.toBeVisible();
-			await page.reload();
 			await expect(page.getByRole("button", { name: "Enable support chat", exact: true })).toBeVisible();
 			const preferences = page.getByRole("main").getByRole("button", { name: "Cookie preferences", exact: true });
 			await preferences.focus();

@@ -102,6 +102,18 @@ Other jurisdictions are revisited only when Clipify establishes or targets opera
 - Full automated request portal now: deferred because identity, data discovery, exceptions, deletion dependencies, and abuse handling deserve a separate feature.
 - Generic support chat only: rejected because chat is optional and not a durable privacy-request channel.
 
+## Decision 9: c15t consent identifier (2026-11-08)
+
+**Operator decision**: Keep the SDK's consent-only identifier and disclose its persistence. The operator explicitly selected this option during the c15t 3.2 update review.
+
+**Behavior and disclosure**: Declare `c15t-sid` as necessary first-party cookie and local storage under the existing consent-record service. Consent choices and cookies remain bounded to the existing 180-day lifetime. The identifier in local storage remains until site data is cleared, including after choices expire or are withdrawn. The Privacy and Cookie Policies move to version 1.3.0 and describe this behavior.
+
+**Consent and notice decision**: Publish the updated disclosures with this release. Do not reset existing optional choices: their purposes, recipients, categories and opt-in requirements are unchanged. The identifier itself is not consent and must not activate support chat, optional measurement or replay. The browser release gate checks the fresh-visit banner, disabled optional services, cookie expiry and complete storage inventory.
+
+**Alternative rejected**: Add custom 180-day expiry management for the local identifier. The operator chose the SDK behavior instead; no additional storage-expiry mechanism is introduced.
+
+**Technical reference**: [c15t backend changelog](https://github.com/c15t/c15t/blob/main/packages/backend/CHANGELOG.md), “Give every visitor a subject ID from the first page load”.
+
 ## Tooling Constraint Found During Planning
 
 The repository's Spec Kit template resolver and `setup-plan.ps1` fail on this Windows environment while invoking the discovered `python3.exe` shim (`StandardOutputEncoding is only supported when standard output is redirected`). The resolved base and `test-first-governance` templates were read directly and materialized without changing Spec Kit or Python configuration. This is a planning-tool defect, not a product defect.

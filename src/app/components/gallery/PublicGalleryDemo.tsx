@@ -70,6 +70,11 @@ export default function PublicGalleryDemo({ initialBundle }: { initialBundle: Aw
 			if (generation === request.current) setPlayerError(true);
 		}
 	}
+	function closePlayer() {
+		++request.current;
+		setSelected(null);
+		setMedia(null);
+	}
 	return (
 		<section aria-label='Clip gallery example' className='w-full'>
 			{bundle ? (
@@ -87,11 +92,7 @@ export default function PublicGalleryDemo({ initialBundle }: { initialBundle: Aw
 			<Modal.Backdrop
 				isOpen={selected !== null}
 				onOpenChange={(open) => {
-					if (!open) {
-						++request.current;
-						setSelected(null);
-						setMedia(null);
-					}
+					if (!open) closePlayer();
 				}}
 			>
 				<Modal.Container size='lg'>
@@ -109,7 +110,22 @@ export default function PublicGalleryDemo({ initialBundle }: { initialBundle: Aw
 									</Button>
 								</div>
 							) : media ? (
-								<video className='aspect-video w-full rounded-xl bg-black' src={media} controls autoPlay playsInline onError={() => setPlayerError(true)} aria-label={selected?.title} />
+								<video
+									className='aspect-video w-full rounded-xl bg-black'
+									src={media}
+									controls
+									autoPlay
+									playsInline
+									onError={() => setPlayerError(true)}
+									aria-label={selected?.title}
+									onKeyDownCapture={(event) => {
+										// Native media controls can consume Escape before the modal's bubble handler.
+										if (event.key !== "Escape") return;
+										event.preventDefault();
+										event.stopPropagation();
+										closePlayer();
+									}}
+								/>
 							) : (
 								<div role='status' className='flex items-center gap-3'>
 									<Spinner />

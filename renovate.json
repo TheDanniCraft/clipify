@@ -37,6 +37,13 @@
 			"additionalBranchPrefix": "npm/"
 		},
 		{
+			"description": "Keep version-specific patch selectors on their package major",
+			"matchManagers": ["custom.regex"],
+			"matchDepTypes": ["patchedDependencies"],
+			"matchUpdateTypes": ["major"],
+			"enabled": false
+		},
+		{
 			"groupName": "next/react ecosystem",
 			"matchPackageNames": ["/^next$/", "/^react$/", "/^react-dom$/", "/^eslint-config-next$/", "/^next-/"]
 		},

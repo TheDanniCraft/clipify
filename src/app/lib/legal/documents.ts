@@ -25,8 +25,8 @@ export const legalDocumentRoutes = {
 } as const;
 
 export const legalDocuments: readonly LegalDocumentManifestEntry[] = [
-	{ id: "privacy", route: legalDocumentRoutes.privacy, title: "Privacy Policy", description: "How Clipify collects, uses, shares, and protects personal data.", ...initialPolicyMetadata, version: "1.2.0", effectiveDate: "2026-10-30", updatedDate: "2026-10-30" },
-	{ id: "cookies", route: legalDocumentRoutes.cookies, title: "Cookie Policy", description: "Which services and browser storage Clipify uses, and how you can manage optional choices.", ...initialPolicyMetadata, version: "1.2.0", effectiveDate: "2026-10-30", updatedDate: "2026-10-30" },
+	{ id: "privacy", route: legalDocumentRoutes.privacy, title: "Privacy Policy", description: "How Clipify collects, uses, shares, and protects personal data.", ...initialPolicyMetadata, version: "1.3.0", effectiveDate: "2026-11-08", updatedDate: "2026-11-08" },
+	{ id: "cookies", route: legalDocumentRoutes.cookies, title: "Cookie Policy", description: "Which services and browser storage Clipify uses, and how you can manage optional choices.", ...initialPolicyMetadata, version: "1.3.0", effectiveDate: "2026-11-08", updatedDate: "2026-11-08" },
 	{ id: "terms", route: legalDocumentRoutes.terms, title: "Terms of Service", description: "The rules that apply when you use Clipify and the self-hosted Runner.", ...initialPolicyMetadata },
 	{ id: "privacy-requests", route: legalDocumentRoutes.privacyRequests, title: "Privacy Requests", description: "How to exercise your privacy rights and what to expect after contacting us.", ...initialPolicyMetadata },
 	{ id: "imprint", route: legalDocumentRoutes.imprint, title: "Imprint", description: "Provider and contact information for Clipify.", ...initialPolicyMetadata },
@@ -106,7 +106,7 @@ export const privacyPolicySections: readonly LegalDocumentSection[] = [
 		id: "security-and-consent-records",
 		title: "8. Security, fraud prevention, and consent records",
 		summary: "We retain proportionate authentication, rate-limit, audit, abuse-prevention, and consent evidence to protect Clipify and demonstrate your choices.",
-		details: ["Security measures include access controls, encrypted transport, separated secrets, software updates, monitoring, and data minimization. No online service can guarantee absolute security, but we review safeguards according to the nature and risk of the processing."],
+		details: ["Security measures include access controls, encrypted transport, separated secrets, software updates, monitoring, and data minimization. No online service can guarantee absolute security, but we review safeguards according to the nature and risk of the processing.", "On a first visit, a first-party identifier is created for consent records. It does not enable optional services, which still require your choice. Its browser storage and retention are listed in the Cookie Policy."],
 	},
 	{
 		id: "analytics-observability-and-logs",

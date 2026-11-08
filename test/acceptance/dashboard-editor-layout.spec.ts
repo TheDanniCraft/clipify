@@ -24,9 +24,8 @@ test("resource editors share card navigation, gutters and responsive headers", a
 		await page.goto("/legal/cookies");
 		await expect(page.getByRole("button", { name: "Enable support chat", exact: true })).toBeVisible();
 		const consent = page.getByRole("complementary", { name: "Your privacy choices", exact: true });
-		await consent.getByRole("button", { name: "Reject optional", exact: true }).click();
+		await Promise.all([page.waitForEvent("load"), consent.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 		await expect(consent).not.toBeVisible();
-		await page.reload();
 		const editors = [
 			{ key: "runner", path: `/dashboard/runners/${runnerId}`, back: "Back to runners", destination: /\/dashboard\/runners$/, heading: runnerName },
 			{ key: "overlay", path: `/dashboard/overlay/${owner.fixture.overlayId}`, back: "Back to overlays", destination: /\/dashboard\/overlays$/, heading: "E2E continuity overlay" },
