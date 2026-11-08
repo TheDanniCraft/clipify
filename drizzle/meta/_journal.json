@@ -260,6 +260,13 @@
       "when": 1793240594966,
       "tag": "0036_nebulous_hiroim",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1794169888210,
+      "tag": "0037_tan_legion",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,1 @@
+CREATE INDEX "twitch_cache_type_key_prefix_idx" ON "twitchCache" USING btree ("type","key" varchar_pattern_ops);
