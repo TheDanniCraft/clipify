@@ -89,10 +89,12 @@ it("rejects oversized or incomplete piped output before returning media", async 
 	}
 }, 30000);
 it("does not require writable temporary media storage", async () => {
+	// Storage independence needs a real encode, not the unrelated 30-second playback fixture.
+	const source = execFileSync("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "color=c=blue:s=640x360:r=15", "-t", "0.3", "-c:v", "libx264", "-threads", "1", "-movflags", "frag_keyframe+empty_moov", "-f", "mp4", "pipe:1"]);
 	const fs = (await import("node:fs/promises")).default;
 	const mkdir = jest.spyOn(fs, "mkdtemp").mockRejectedValue(new Error("read-only storage"));
 	try {
-		await expect(renderClipLayout(new Uint8Array(await readFile("test/fixtures/runner/presentation.mp4")), defaultClipLayout, { title: "Storage-free" }, AbortSignal.timeout(15000))).resolves.toBeInstanceOf(Uint8Array);
+		await expect(renderClipLayout(new Uint8Array(source), defaultClipLayout, { title: "Storage-free" }, AbortSignal.timeout(15000))).resolves.toBeInstanceOf(Uint8Array);
 	} finally {
 		mkdir.mockRestore();
 	}
