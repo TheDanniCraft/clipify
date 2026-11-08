@@ -12,9 +12,8 @@ async function setup({ page, request, tourWorld }: { page: Page; request: APIReq
 	await tourWorld.fixture.pool.query('UPDATE "twitchCache" SET value=$1 WHERE type=$2 AND key=$3', [JSON.stringify({ ...value, testDownloadMode: mode }), "clip", `clip:${seeded.creatorId}:${seeded.id}`]);
 	await page.goto(`${tourWorld.origin}/dashboard/clips`);
 	const consent = page.getByRole("button", { name: "Reject optional", exact: true });
-	await consent.click();
+	await Promise.all([page.waitForEvent("load"), consent.click()]);
 	await expect(consent).not.toBeVisible();
-	await page.reload();
 	const mobile = (page.viewportSize()?.width ?? 1280) < 768;
 	if (mobile) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
 	await expect(page.locator('[data-tour="guide-launcher"]')).toBeVisible();
@@ -409,8 +408,7 @@ for (const width of [390, 1440])
 			const { defaultProgress, guideContentKey, journeys } = await import("../../src/app/lib/userTour");
 			await tourWorld.fixture.pool.query("UPDATE user_content_states SET state=$1 WHERE user_id=$2 AND content_key=$3", [JSON.stringify({ ...defaultProgress(), welcomeSeen: true, minimized: true, journeyId: journeys.at(-1)!.id, completed: journeys.flatMap((journey) => journey.tasks.map((task) => task.id)) }), seeded.creatorId, guideContentKey]);
 			await page.goto(`${tourWorld.origin}/dashboard/tools`);
-			await page.getByRole("button", { name: "Reject optional", exact: true }).click();
-			await page.reload();
+			await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 			if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
 			const sidebar = page.locator(`[data-slot="${width === 390 ? "sidebar-mobile" : "sidebar"}"]`);
 			const navigation = sidebar.getByRole("treegrid", { name: "Creator navigation", exact: true });
