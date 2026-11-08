@@ -17,6 +17,7 @@ RUN --mount=type=cache,target=/root/.bun \
 # -------------------------
 FROM oven/bun:1 AS builder
 WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
 ARG COOLIFY_URL
 ARG SOURCE_COMMIT
 ARG SENTRY_RELEASE

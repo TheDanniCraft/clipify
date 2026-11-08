@@ -17,7 +17,7 @@ locally; that schema-push command is restricted to its owning CI job.
 ```sh
 bun install --frozen-lockfile
 sudo apt-get update
-sudo apt-get install -y --no-install-recommends postgresql-18
+sudo apt-get install -y --no-install-recommends postgresql-18 git
 bunx playwright install --with-deps chromium
 ```
 
