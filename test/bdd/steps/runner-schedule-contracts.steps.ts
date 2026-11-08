@@ -370,7 +370,8 @@ When("they drag an empty calendar range from eighteen to twenty", async ({ page 
 	expect(box).not.toBeNull();
 	const x = box!.x + box!.width / 2,
 		startY = box!.y + (box!.height * 18) / 24 + 1,
-		endY = box!.y + (box!.height * 20) / 24 + 1;
+		// Agenda rounds the end up: release inside the intended ending slot.
+		endY = box!.y + (box!.height * 20) / 24 - 1;
 	for (const y of [startY, endY]) expect(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-slot="agenda-day-column"]')?.getAttribute("data-date"), { x, y })).toBe("2027-01-04");
 	await page.mouse.move(x, startY);
 	await page.mouse.down();

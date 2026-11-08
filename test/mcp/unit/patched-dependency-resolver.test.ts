@@ -8,7 +8,8 @@ test.each([
 	{ name: "resolves matching nested version beside another direct version", extraCopy: false, missingVersion: false, status: 0 },
 	{ name: "validates every matching installed copy", extraCopy: true, missingVersion: false, status: 1 },
 	{ name: "rejects a missing exact version", extraCopy: false, missingVersion: true, status: 1 },
-])("DEF-US1-032: $name", ({ extraCopy, missingVersion, status }) => {
+	{ name: "rejects installed content that does not match the patch", extraCopy: false, missingVersion: false, contentMismatch: true, status: 1 },
+])("DEF-US1-032: $name", ({ extraCopy, missingVersion, contentMismatch = false, status }) => {
 	const directory = mkdtempSync(join(tmpdir(), "clipify-patch-resolution-"));
 	try {
 		const direct = join(directory, "node_modules/fixture-dependency"),
@@ -19,7 +20,7 @@ test.each([
 		writeFileSync(join(direct, "package.json"), JSON.stringify({ name: "fixture-dependency", version: "1.0.0" }));
 		writeFileSync(join(directory, "node_modules/consumer/package.json"), JSON.stringify({ name: "consumer", version: "1.0.0" }));
 		writeFileSync(join(nested, "package.json"), JSON.stringify({ name: "fixture-dependency", version: missingVersion ? "3.0.0" : "2.0.0" }));
-		writeFileSync(join(nested, "README.md"), "patched\n");
+		writeFileSync(join(nested, "README.md"), contentMismatch ? "original\n" : "patched\n");
 		writeFileSync(join(directory, "fixture.patch"), "diff --git a/README.md b/README.md\n--- a/README.md\n+++ b/README.md\n@@ -1 +1 @@\n-original\n+patched\n");
 		if (extraCopy) {
 			const extra = join(directory, "node_modules/other-consumer/node_modules/fixture-dependency");
@@ -30,7 +31,7 @@ test.each([
 		const run = spawnSync("bun", [resolve("scripts/validate-patched-dependencies.ts")], { cwd: directory, encoding: "utf8", timeout: 10000 });
 		expect({ status: run.status, output: run.stdout + run.stderr }).toMatchObject({ status });
 		if (status === 0) expect(run.stdout).toContain("1 patched files");
-		else expect(run.stderr).toContain(extraCopy ? "Patched target is missing" : "Patched dependency version is not installed");
+		else expect(run.stderr).toContain(extraCopy ? "Patched target is missing" : contentMismatch ? "Patch content is not applied" : "Patched dependency version is not installed");
 	} finally {
 		rmSync(directory, { recursive: true, force: true });
 	}
