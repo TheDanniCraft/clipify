@@ -155,7 +155,7 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen, isAd
 	const navigation = (
 		<>
 			<Sidebar.Header>
-				<NextLink data-tour={isMobile ? undefined : "dashboard-home"} href={homeHref} aria-label='Clipify Home' className='flex h-12 items-center gap-2 px-1 font-bold text-foreground'>
+				<NextLink href={homeHref} aria-label='Clipify Home' className='flex h-12 items-center gap-2 px-1 font-bold text-foreground'>
 					<Logo width={28} />
 					{isMobile || open ? <span>Clipify</span> : null}
 				</NextLink>

@@ -28,6 +28,7 @@ for (const width of [390, 1440])
 				if (task === "explore.layouts" && width === 1440) {
 					await page.locator('[data-tour="resources-group"]:visible').click();
 				}
+				if (width === 1440) await expect(page.locator('[data-tour="dashboard-home"]')).toHaveCount(1);
 				await openGuide();
 				const chapter = page.getByRole("region", { name: "Your Clipify guide", exact: true }).getByRole("button", { name: /^Explore Clipify/ });
 				if ((await chapter.getAttribute("aria-expanded")) !== "true") await chapter.click();

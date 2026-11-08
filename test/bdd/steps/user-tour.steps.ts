@@ -308,7 +308,8 @@ When("the guide sections are inspected", async ({ page }) => {
 });
 Then("the supported journeys are offered", async ({ page }) => {
 	const sections = page.locator('[data-slot="accordion-trigger"]');
-	await expect(sections).toHaveCount(4);
+	await expect(sections).toHaveCount(journeys.length);
+	await expect(sections.nth(4)).toContainText("Export your clips");
 	await expect(sections.nth(3)).toContainText("Explore Clipify");
 	await expect(page.getByText("Bring Clipify to your website", { exact: true })).toHaveCount(0);
 });

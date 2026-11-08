@@ -26,18 +26,14 @@ export function DashboardBreadcrumbs() {
 	if (!context) return null;
 	const homeHref = context.homeHref ?? "/dashboard";
 	if (context.current?.href === homeHref && !context.current.detail) return null;
-	const tourTargets: Record<string, string> = { "/dashboard/overlays": "overlays-tab", "/dashboard/playlists": "playlists-tab", "/dashboard/galleries": "galleries-tab", "/dashboard/runners": "runners-tab" };
-	const tourTarget = context.mobile && !context.current?.detail ? tourTargets[context.current?.href ?? ""] : undefined;
 	return (
 		<Breadcrumbs aria-label='Dashboard breadcrumb' className='min-w-0'>
 			<Breadcrumbs.Item href={homeHref}>
-				<span data-tour={context.mobile ? "dashboard-home" : undefined}>{homeHref === "/dashboard/agency" ? "Agency" : "Home"}</span>
+				<span>{homeHref === "/dashboard/agency" ? "Agency" : "Home"}</span>
 			</Breadcrumbs.Item>
 			{context.current && context.current.href !== homeHref ? (
 				<Breadcrumbs.Item href={context.current.detail ? context.current.href : undefined}>
-					<span data-tour={tourTarget} aria-current={tourTarget ? "page" : undefined}>
-						{context.current.title}
-					</span>
+					<span>{context.current.title}</span>
 				</Breadcrumbs.Item>
 			) : null}
 			{context.current?.detail ? <Breadcrumbs.Item>{context.current.detailLabel ?? (context.current.href === "/dashboard/streams" ? "Stream" : "Editor")}</Breadcrumbs.Item> : null}
