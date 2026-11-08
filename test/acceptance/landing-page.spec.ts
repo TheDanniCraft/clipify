@@ -252,51 +252,54 @@ for (const theme of ["light", "dark"]) {
 			await page.screenshot({ path: testInfo.outputPath(`reflow-${consentWidth}-${theme}.png`), fullPage: true });
 		});
 	}
-	test(`public gallery plays controlled media and restores keyboard focus in ${theme} mode`, async ({ page }, testInfo) => {
-		await page.setViewportSize({ width: 390, height: 900 });
-		await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
-		const sample = { id: "demo-clip", title: "A demo highlight", broadcaster_id: "demo-owner", creator_name: "Demo creator", duration: 8, thumbnail_url: "/landing-playback.png" };
-		let loads = 0,
-			mediaRequests = 0;
-		// Substitute only the external clip/media results; real actions, renderer and HeroUI modal remain installed.
-		await page.route("**/gallery", async (route) => {
-			if (route.request().method() !== "POST") return route.continue();
-			const response = await route.fetch();
-			let body = await response.text();
-			if (route.request().postData() === "[]") {
-				loads++;
-				expect(body).toContain("1:null");
-				body = body.replace("1:null", `1:${JSON.stringify({ overlayId: "demo", clips: [sample] })}`);
-			} else if (route.request().postData()?.includes("demo-clip")) {
-				mediaRequests++;
-				expect(body).toContain('1:"$undefined"');
-				body = body.replace('1:"$undefined"', `1:"/__gallery-fixture.mp4"`);
-			}
-			await route.fulfill({ response, body });
+	for (const width of [390, 1280])
+		test(`public gallery plays controlled media and restores keyboard focus in ${theme} mode at ${width}px`, async ({ page }, testInfo) => {
+			await page.setViewportSize({ width, height: 900 });
+			await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
+			const sample = { id: "demo-clip", title: "A demo highlight", broadcaster_id: "demo-owner", creator_name: "Demo creator", duration: 8, thumbnail_url: "/landing-playback.png" };
+			let loads = 0,
+				mediaRequests = 0;
+			// Substitute only the external clip/media results; real actions, renderer and HeroUI modal remain installed.
+			await page.route("**/gallery", async (route) => {
+				if (route.request().method() !== "POST") return route.continue();
+				const response = await route.fetch();
+				let body = await response.text();
+				if (route.request().postData() === "[]") {
+					loads++;
+					expect(body).toContain("1:null");
+					body = body.replace("1:null", `1:${JSON.stringify({ overlayId: "demo", clips: [sample] })}`);
+				} else if (route.request().postData()?.includes("demo-clip")) {
+					mediaRequests++;
+					expect(body).toContain('1:"$undefined"');
+					body = body.replace('1:"$undefined"', `1:"/__gallery-fixture.mp4"`);
+				}
+				await route.fulfill({ response, body });
+			});
+			await page.route("**/__gallery-fixture.mp4", (route) => route.fulfill({ contentType: "video/mp4", body: readFileSync("test/fixtures/runner/presentation.mp4") }));
+			await page.goto("/gallery");
+			await dismissPrivacy(page);
+			expect(loads).toBe(0);
+			expect(mediaRequests).toBe(0);
+			await page.getByRole("button", { name: "Try gallery again" }).click();
+			const card = page.getByRole("button", { name: /A demo highlight/ });
+			await expect(card).toBeVisible();
+			expect(mediaRequests).toBe(0);
+			await assertAccessibleMain(page);
+			await card.focus();
+			await card.press("Enter");
+			const dialog = page.getByRole("dialog");
+			await expect(dialog).toBeVisible();
+			const video = dialog.locator("video");
+			await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.currentTime)).toBeGreaterThan(0.2);
+			await page.screenshot({ path: testInfo.outputPath(`gallery-${theme}-${width}.png`), fullPage: true });
+			await video.focus();
+			await expect(video).toBeFocused();
+			await page.keyboard.press("Escape");
+			await expect(dialog).toHaveCount(0);
+			await expect(card).toBeFocused();
+			await expect(page.locator("video")).toHaveCount(0);
+			expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 		});
-		await page.route("**/__gallery-fixture.mp4", (route) => route.fulfill({ contentType: "video/mp4", body: readFileSync("test/fixtures/runner/presentation.mp4") }));
-		await page.goto("/gallery");
-		await dismissPrivacy(page);
-		expect(loads).toBe(0);
-		expect(mediaRequests).toBe(0);
-		await page.getByRole("button", { name: "Try gallery again" }).click();
-		const card = page.getByRole("button", { name: /A demo highlight/ });
-		await expect(card).toBeVisible();
-		expect(mediaRequests).toBe(0);
-		await assertAccessibleMain(page);
-		await card.focus();
-		await card.press("Enter");
-		const dialog = page.getByRole("dialog");
-		await expect(dialog).toBeVisible();
-		const video = dialog.locator("video");
-		await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.currentTime)).toBeGreaterThan(0.2);
-		await page.screenshot({ path: testInfo.outputPath(`gallery-${theme}.png`), fullPage: true });
-		await page.keyboard.press("Escape");
-		await expect(dialog).toHaveCount(0);
-		await expect(card).toBeFocused();
-		await expect(page.locator("video")).toHaveCount(0);
-		expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-	});
 }
 
 test("unavailable public gallery offers retry without requiring login", async ({ page }) => {
