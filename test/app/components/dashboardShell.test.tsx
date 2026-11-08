@@ -1,6 +1,7 @@
+jest.mock("@components/user-tour/provider", () => ({ useUserTour: () => ({ report: () => undefined }) }));
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import DashboardShell from "@components/dashboardShell";
-import { DashboardNavigationControls, DashboardBreadcrumbs } from "@components/dashboardNavigation";
+import { DashboardNavigationContext, DashboardNavigationControls, DashboardBreadcrumbs } from "@components/dashboardNavigation";
 import { PERMISSIONS } from "@/auth/permissions";
 let path = "/dashboard/clips";
 let mobile = false;
@@ -40,7 +41,16 @@ jest.mock(
 			Submenu: wrapper,
 			Main: wrapper,
 			Mobile: () => null,
-			MenuItem: ({ children, render, href, isDisabled }: { children: React.ReactNode; render?: (props: Record<string, unknown>) => React.ReactNode; href?: string; isDisabled?: boolean }) => (render ? render({ "data-href": href, "aria-disabled": isDisabled || undefined, children }) : <div aria-disabled={isDisabled || undefined}>{children}</div>),
+			MenuItem: ({ children, render, href, isDisabled, ...props }: { children: React.ReactNode; render?: (props: Record<string, unknown>) => React.ReactNode; href?: string; isDisabled?: boolean; [key: string]: unknown }) => {
+				const attributes = Object.fromEntries(Object.entries(props).filter(([key]) => key.startsWith("data-") || key.startsWith("aria-")));
+				return render ? (
+					render({ ...attributes, "data-href": href, "aria-disabled": isDisabled || undefined, children })
+				) : (
+					<div {...attributes} aria-disabled={isDisabled || undefined}>
+						{children}
+					</div>
+				);
+			},
 		});
 		const Input = ({ onKeyDownCapture, ...props }: React.InputHTMLAttributes<HTMLInputElement>) => {
 			const state = React.useContext(SearchContext);
@@ -250,7 +260,7 @@ it.each([
 	["playlists", "Playlists"],
 	["galleries", "Galleries"],
 	["runners", "Runner"],
-])("exposes the already-open mobile %s destination to the guide", (resource, _title) => {
+])("exposes the current mobile %s sidebar destination to the guide", (resource, _title) => {
 	mobile = true;
 	window.innerWidth = 390;
 	path = `/dashboard/${resource}`;
@@ -259,7 +269,7 @@ it.each([
 			{content}
 		</DashboardShell>,
 	);
-	expect(document.querySelector(`[data-tour="${resource}-tab"][aria-current="page"]`)).not.toBeNull();
+	expect(document.querySelector(`[data-guide-navigation][data-tour="${resource}-tab"][aria-current="page"]`)).not.toBeNull();
 	expect(screen.getByText("Resource editor")).toBeInTheDocument();
 });
 
@@ -408,4 +418,22 @@ it("shows disabled Automations after the tools without a navigation destination"
 	expect(screen.getByText("Coming soon")).toBeInTheDocument();
 	expect(screen.queryByRole("link", { name: /Automations/ })).not.toBeInTheDocument();
 	expect(screen.getByText("Clip Gallery").compareDocumentPosition(automation) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+});
+
+it("keeps the logo outside the Home guide target namespace", () => {
+	render(
+		<DashboardShell creatorId='owner' permissions={[...PERMISSIONS]}>
+			{content}
+		</DashboardShell>,
+	);
+	expect(screen.getByRole("link", { name: "Clipify Home" })).not.toHaveAttribute("data-tour");
+});
+
+it("keeps mobile breadcrumbs outside the sidebar guide target namespace", () => {
+	render(
+		<DashboardNavigationContext.Provider value={{ mobile: true, expanded: false, toggle: jest.fn(), search: jest.fn(), registerSearch: jest.fn(), current: { href: "/dashboard/overlays", title: "Overlays", detail: false } }}>
+			<DashboardBreadcrumbs />
+		</DashboardNavigationContext.Provider>,
+	);
+	expect(document.querySelector("[data-tour]")).toBeNull();
 });

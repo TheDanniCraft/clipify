@@ -1,3 +1,5 @@
+const mockGuideReport = jest.fn();
+jest.mock("@components/user-tour/provider", () => ({ useUserTour: () => ({ report: mockGuideReport }) }));
 jest.mock("@components/confirmModal", () => ({
 	__esModule: true,
 	default: ({ isOpen, title, onConfirm, onOpenChange, confirmLabel, cancelLabel }: any) =>
@@ -95,6 +97,7 @@ function responseJSON(value: unknown) {
 }
 beforeEach(() => {
 	fetchMock.mockReset();
+	mockGuideReport.mockClear();
 	browserBatch.mockReset();
 	browserBatch.mockImplementation(async (plan: any) => ({ ok: true, bytes: new Uint8Array([1]), summary: { included: plan.files.map((_: any, index: number) => index), skipped: [] } }));
 	notify.mockClear();
@@ -124,6 +127,7 @@ it("retries only retryable unsuccessful IDs when every download failed", async (
 	fireEvent.click(screen.getByRole("button", { name: "Retry failed clips" }));
 	await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
 	expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({ creatorId: "owner", clipIds: ["B"] });
+	expect(mockGuideReport).not.toHaveBeenCalled();
 	expect(mockProductEvent).toHaveBeenCalledWith("clip_export_retried", { file_count: 1 });
 	expect(mockProductEvent).toHaveBeenCalledWith("clip_export_failed", expect.objectContaining({ file_count: 3, reason: "PROVIDER_UNAVAILABLE" }));
 });
@@ -354,6 +358,7 @@ it("downloads individual MP4 and supports reopening and dismissing result detail
 	await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
 	expect(fetchMock.mock.calls[0][0]).toBe("/api/clips/export?format=mp4&progress=1");
 	expect(create).toHaveBeenCalledWith(expect.objectContaining({ type: "video/mp4" }));
+	await waitFor(() => expect(mockGuideReport).toHaveBeenCalledWith({ type: "export.completed", ownerId: "owner", id: "batch-1" }));
 	expect(mockProductEvent).toHaveBeenCalledWith("clip_export_started", expect.objectContaining({ file_count: 1, clip_count: 1, format: "mp4" }));
 	expect(mockProductEvent).toHaveBeenCalledWith("clip_export_completed", expect.objectContaining({ ready_count: 1, skipped_count: 0 }));
 	expect(mockProductEvent.mock.calls.filter(([event]) => event === "clip_export_completed")).toHaveLength(1);

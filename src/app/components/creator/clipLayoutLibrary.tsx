@@ -61,7 +61,7 @@ export default function ClipLayoutLibrary({ user, creatorId, layoutId, clipId, r
 	if (activeEntry && initial) return <ClipCompositionEditor user={user} brand={brand} canRemoveWatermark={canRemoveWatermark} key={`${activeEntry.id}:${clipId ?? ""}:${clipId ? selectedFormat : "template"}`} creatorId={creatorId} entry={activeEntry} initial={initial} clipId={clipId} referenceId={referenceId} onBack={() => router.push("/dashboard/clip-layouts")} onSaved={() => setAttempt((n) => n + 1)} />;
 	return (
 		<DashboardEditorLayout>
-			<Card>
+			<Card data-tour='clip-layout-library'>
 				<Card.Header className='flex flex-row flex-wrap justify-between gap-4'>
 					<div>
 						<Card.Title>Clip layouts</Card.Title>

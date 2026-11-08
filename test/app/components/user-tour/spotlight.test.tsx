@@ -619,3 +619,119 @@ it("highlights a Settings sidebar destination inside the mobile drawer", () => {
 	);
 	expect(highlight).toHaveBeenCalledWith(expect.objectContaining({ element: document.querySelector('[data-tour="settings-connections-tab"]') }));
 });
+
+it("prefers actual sidebar destinations over Home quick links", () => {
+	render(
+		<>
+			<button data-tour='clips-tab'>Quick link</button>
+			<button data-guide-navigation data-tour='clips-tab'>
+				Sidebar
+			</button>
+			<Spotlight step={{ ...step, target: "clips-tab" }} onPause={jest.fn()} onMissing={jest.fn()} onNext={jest.fn()} />
+		</>,
+	);
+	expect(highlight).toHaveBeenCalledWith(expect.objectContaining({ element: screen.getByRole("button", { name: "Sidebar" }) }));
+});
+it.each(["streams-tab", "clips-tab", "clip-layouts-tab", "overlays-tab"])("owns the mobile drawer while highlighting %s", (target) => {
+	render(
+		<section role='dialog' aria-modal='true'>
+			<div data-slot='sidebar-mobile'>
+				<button data-guide-navigation data-tour={target}>
+					Destination
+				</button>
+			</div>
+			<Spotlight step={{ ...step, target }} onPause={jest.fn()} onMissing={jest.fn()} onNext={jest.fn()} />
+		</section>,
+	);
+	expect(highlight).toHaveBeenCalledWith(expect.objectContaining({ element: screen.getByRole("button", { name: "Destination" }) }));
+});
+
+it("closes the mobile navigation before highlighting page content outside its focus scope", () => {
+	const close = jest.fn();
+	render(
+		<>
+			<button aria-label='Toggle navigation' aria-expanded='true' onClick={close}>
+				Menu
+			</button>
+			<div
+				data-slot='sidebar-mobile'
+				ref={(node) => {
+					if (node) node.getClientRects = () => [new DOMRect()] as unknown as DOMRectList;
+				}}
+			>
+				Navigation
+			</div>
+			<div data-tour='home-overview'>Home content</div>
+			<Spotlight step={{ ...step, target: "home-overview" }} onPause={jest.fn()} onMissing={jest.fn()} onNext={jest.fn()} />
+		</>,
+	);
+	expect(close).toHaveBeenCalledTimes(1);
+	expect(highlight).not.toHaveBeenCalled();
+});
+
+it("waits for the destination page when a sidebar section is current on a detail page", () => {
+	const next = jest.fn();
+	render(
+		<>
+			<button data-guide-navigation data-tour='clips-tab' aria-current='page'>
+				Clip Inventory
+			</button>
+			<Spotlight step={{ ...step, target: "clips-tab", action: true, reveals: "clip-inventory" }} onPause={jest.fn()} onMissing={jest.fn()} onNext={next} />
+		</>,
+	);
+	expect(next).not.toHaveBeenCalled();
+	expect(highlight).toHaveBeenCalledWith(expect.objectContaining({ element: screen.getByRole("button", { name: "Clip Inventory" }) }));
+});
+
+it("advances when a modal step replaces its button with the revealed next screen", async () => {
+	const next = jest.fn(),
+		missing = jest.fn();
+	const props = { step: { ...step, target: "export-next", action: true, reveals: "export-destination", inDialog: true }, onPause: jest.fn(), onMissing: missing, onNext: next };
+	const view = render(
+		<section role='dialog' aria-modal='true'>
+			<button data-tour='export-next'>Next</button>
+			<Spotlight {...props} />
+		</section>,
+	);
+	await act(async () =>
+		view.rerender(
+			<section role='dialog' aria-modal='true'>
+				<div data-tour='export-destination'>Destination settings</div>
+				<Spotlight {...props} />
+			</section>,
+		),
+	);
+	expect(next).toHaveBeenCalledTimes(1);
+	expect(missing).not.toHaveBeenCalled();
+});
+
+it("expands a closed resource group through its actual disclosure button", () => {
+	const expand = jest.fn();
+	render(
+		<>
+			<div
+				data-tour='resources-group'
+				aria-expanded='false'
+				ref={(node) => {
+					if (node) node.getClientRects = () => [new DOMRect()] as unknown as DOMRectList;
+				}}
+			>
+				<button data-slot='sidebar-menu-trigger' onClick={expand}>
+					Expand
+				</button>
+				<span
+					data-guide-navigation
+					data-tour='clip-layouts-tab'
+					style={{ visibility: "hidden" }}
+					ref={(node) => {
+						if (node) node.getClientRects = () => [new DOMRect()] as unknown as DOMRectList;
+					}}
+				>
+					Retained during collapse
+				</span>
+			</div>
+			<Spotlight step={{ ...step, target: "clip-layouts-tab" }} onPause={jest.fn()} onMissing={jest.fn()} onNext={jest.fn()} />
+		</>,
+	);
+	expect(expand).toHaveBeenCalledTimes(1);
+});

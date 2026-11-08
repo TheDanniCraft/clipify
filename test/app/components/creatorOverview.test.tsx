@@ -118,7 +118,7 @@ it("retries only the failed broadcasts without replacing successful clip metrics
 	expect(overview).toHaveBeenCalledTimes(1);
 });
 
-it.each([true, false])("shows guide destination shortcuts only during mobile guidance: mobile=%s", async (mobile) => {
+it.each([true, false])("keeps quick access separate from sidebar guide targets: mobile=%s", async (mobile) => {
 	mockActiveTask = "overlay.name";
 	overview.mockResolvedValue(metrics);
 	broadcasts.mockResolvedValue({ ok: true, stale: false, items: [{ id: "one", title: "One clip stream", clipCount: 1, createdAt: "2026-11-03T00:00:00Z" }] });
@@ -131,7 +131,7 @@ it.each([true, false])("shows guide destination shortcuts only during mobile gui
 	expect(screen.getByText("1 clip", { exact: true })).toBeInTheDocument();
 	if (mobile) {
 		expect(screen.getByRole("navigation", { name: "Creator shortcuts" })).toBeVisible();
-		for (const [name, path, target] of [
+		for (const [name, path] of [
 			["Home", "/dashboard", "dashboard-home"],
 			["Overlays", "/dashboard/overlays", "overlays-tab"],
 			["Playlists", "/dashboard/playlists", "playlists-tab"],
@@ -139,7 +139,7 @@ it.each([true, false])("shows guide destination shortcuts only during mobile gui
 			["Runner", "/dashboard/runners", "runners-tab"],
 		]) {
 			expect(screen.getByRole("link", { name })).toHaveAttribute("href", path);
-			expect(screen.getByRole("link", { name })).toHaveAttribute("data-tour", target);
+			expect(screen.getByRole("link", { name })).not.toHaveAttribute("data-tour");
 		}
 	} else expect(screen.queryByRole("navigation", { name: "Creator shortcuts" })).not.toBeInTheDocument();
 });

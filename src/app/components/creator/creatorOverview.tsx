@@ -50,11 +50,11 @@ export default function CreatorOverview({ creatorId, analyticsAllowed = false }:
 		};
 	}, [creatorId, retryBroadcasts]);
 	return (
-		<div className='my-6 flex flex-col gap-6'>
+		<div data-tour='home-overview' className='my-6 flex flex-col gap-6'>
 			<nav aria-label={activeTask && navigation?.mobile ? "Creator shortcuts" : "Quick access"} className='flex flex-wrap items-center gap-2 text-sm'>
 				<span className='w-full text-sm font-medium text-muted'>Quick access</span>
 				{activeTask && navigation?.mobile ? (
-					<Link className={buttonVariants({ variant: "secondary", className: "gap-2" })} href='/dashboard' data-tour='dashboard-home'>
+					<Link className={buttonVariants({ variant: "secondary", className: "gap-2" })} href='/dashboard'>
 						<IconHome className='size-4' aria-hidden='true' />
 						Home
 					</Link>
@@ -67,7 +67,7 @@ export default function CreatorOverview({ creatorId, analyticsAllowed = false }:
 						["Runner", "runners", IconDeviceDesktop],
 					] as const
 				).map(([label, path, Icon]) => (
-					<Link className={buttonVariants({ variant: "secondary", className: "gap-2" })} key={path} href={`/dashboard/${path}`} data-tour={activeTask && navigation?.mobile ? `${path}-tab` : undefined}>
+					<Link className={buttonVariants({ variant: "secondary", className: "gap-2" })} key={path} href={`/dashboard/${path}`}>
 						<Icon className='size-4' aria-hidden='true' />
 						{label}
 					</Link>

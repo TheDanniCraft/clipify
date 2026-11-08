@@ -78,7 +78,7 @@ beforeEach(() => {
 	save.mockImplementation(async (accountId: string) => ({ ok: true, accountId }));
 });
 afterEach(() => document.getElementById("dashboard-utilities")?.remove());
-it("opens a first-use checklist with a ring and four concise sections", () => {
+it("opens a first-use checklist with a ring and five concise sections", () => {
 	mount();
 	expect(screen.getByRole("region", { name: "Your Clipify guide" })).toBeVisible();
 	expect(screen.getByRole("progressbar", { name: "Get your first overlay running progress" })).toHaveAttribute("aria-valuenow", "0");
