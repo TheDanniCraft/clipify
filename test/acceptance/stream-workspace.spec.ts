@@ -28,9 +28,7 @@ for (const theme of ["light", "dark"])
 					if (i === 1 || i === 3) expected.push(clipId);
 				}
 				await page.goto(`${tourWorld.origin}/dashboard/streams`);
-				const consentReload = page.waitForEvent("domcontentloaded");
-				await page.getByRole("button", { name: "Reject optional", exact: true }).click();
-				await consentReload;
+				await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 				const row = page.locator('[data-broadcast-id="12345"]');
 				await expect(row).toBeVisible();
 				if (width === 1440) {
@@ -132,9 +130,7 @@ for (const width of [390, 1440])
 			await tourWorld.fixture.pool.query('INSERT INTO "twitchCache"(type,key,value) VALUES($1,$2,$3)', ["clip", `clip:${creatorId}:${clipId}`, JSON.stringify({ ...root, clip })]);
 		}
 		await page.goto(`${tourWorld.origin}/dashboard/streams/12345`);
-		const reload = page.waitForEvent("domcontentloaded");
-		await page.getByRole("button", { name: "Reject optional", exact: true }).click();
-		await reload;
+		await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 		const panel = page.getByRole("region", { name: "Stream moments", exact: true });
 		await expect(panel.getByRole("listitem")).toHaveCount(62);
 		await expect(page.getByRole("region", { name: "Stream moments scroll area" })).toHaveCount(0);
