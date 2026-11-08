@@ -227,7 +227,7 @@ jobs:
       - name: 🟢 Match coverage producer Node
         uses: actions/setup-node@v7
         with:
-          node-version: 26.12.1
+          node-version: 26.13.0
 
       - name: ♻️ Restore deps cache
         uses: actions/cache/restore@v6
@@ -394,7 +394,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 26.12.1
+          node-version: 26.13.0
       - uses: oven-sh/setup-bun@v2
       - uses: actions/cache/restore@v6
         with:
@@ -510,7 +510,7 @@ jobs:
       - name: 🟢 Set up verified Node runtime
         uses: actions/setup-node@v7
         with:
-          node-version: 26.12.1
+          node-version: 26.13.0
 
       - name: 📥 Download immutable workflow coverage plan
         uses: actions/download-artifact@v8
@@ -584,7 +584,7 @@ jobs:
       MCP_TEST_TEMPLATE_ID: browser-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.label }}
     services:
       postgres:
-        image: postgres:16
+        image: postgres:18
         env:
           POSTGRES_DB: clipify_e2e
           POSTGRES_PASSWORD: clipify_e2e
@@ -617,7 +617,7 @@ jobs:
       - name: 🟢 Set up verified Node runtime
         uses: actions/setup-node@v7
         with:
-          node-version: 26.12.1
+          node-version: 26.13.0
 
       - name: 🗃️ Prepare disposable E2E database
         run: bun run db:push:e2e
@@ -768,7 +768,7 @@ jobs:
       - name: 🟢 Match native test Node
         uses: actions/setup-node@v7
         with:
-          node-version: 26.12.1
+          node-version: 26.13.0
       - name: 🟢 Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -825,7 +825,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 26.12.1
+          node-version: 26.13.0
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.4

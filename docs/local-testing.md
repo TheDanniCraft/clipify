@@ -2,7 +2,7 @@
 
 Application development and test fixtures use different databases. The test
 commands need the same prerequisites that `.github/workflows/ci.yml` provisions:
-Node 26.12.1, Bun 1.4.4, PostgreSQL, and Chromium with its operating-system
+Node 26.13.0, Bun 1.4.4, PostgreSQL, and Chromium with its operating-system
 libraries. Installing JavaScript dependencies alone does not provide the database
 service or browser libraries. A green CI run therefore does not establish that a
 new workspace is ready to run the same tests locally.
@@ -21,8 +21,8 @@ sudo apt-get install -y --no-install-recommends postgresql-18
 bunx playwright install --with-deps chromium
 ```
 
-CI currently uses PostgreSQL 18 for native/coverage jobs and PostgreSQL 16 for
-browser jobs. These local instructions use 18 for both. The owning CI jobs remain
+CI and these local instructions use PostgreSQL 18 for native, coverage and
+browser jobs. The owning CI jobs remain
 the required version-specific release validation. Other operating systems need
 their native PostgreSQL installation and the same Playwright dependency setup.
 
