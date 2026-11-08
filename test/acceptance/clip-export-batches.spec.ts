@@ -15,9 +15,7 @@ for (const width of [390, 1440])
 			await pool.query("UPDATE user_content_states SET state=jsonb_set(state::jsonb,'{minimized}','true')::text WHERE user_id=$1 AND content_key=$2", [creatorId, guideContentKey]);
 			await pool.query(`UPDATE "twitchCache" SET value=jsonb_set(value::jsonb,'{testDownloadMode}','"delay"')::text WHERE key=$1`, [`clip:${creatorId}:${id}`]);
 			await page.goto(`${tourWorld.origin}/dashboard/clips`);
-			await page.getByRole("button", { name: "Reject optional", exact: true }).click();
-			await expect(page.getByRole("button", { name: "Reject optional", exact: true })).not.toBeVisible();
-			await page.reload();
+			await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 			await expect(page.getByRole("button", { name: "Check for new clips", exact: true })).toHaveCount(0);
 			await page.getByRole("button", { name: "Select page", exact: true }).click();
 			const button = page.getByRole("button", { name: "Export selected", exact: true }),
@@ -62,9 +60,10 @@ for (const width of [390, 1440])
 			const sidebar = page.locator(`[data-slot="${width === 390 ? "sidebar-mobile" : "sidebar"}"]`);
 			const utilities = sidebar.locator("[data-dashboard-utility]");
 			expect(await utilities.evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-dashboard-utility")))).toEqual(["admin", "guide", "exports", "chat", "help", "report", "account"]);
-			await expect(sidebar.locator('[data-dashboard-utility="exports"]').getByRole("button", { name: "Exports", exact: true })).toBeVisible();
-			await page.screenshot({ path: info.outputPath("export-footer.png"), fullPage: true, animations: "disabled" });
-			await sidebar.getByRole("button", { name: "Exports", exact: true }).click();
+			const launcher = sidebar.locator('[data-dashboard-utility="exports"]').getByRole("button", { name: "Exports", exact: true });
+			await expect(launcher).toBeInViewport({ ratio: 1 });
+			await page.screenshot({ path: info.outputPath("export-footer.png"), fullPage: true });
+			await launcher.click();
 			await expect(modal).toContainText("1 file ready");
 			await expect(modal.getByText("Ready", { exact: true })).toBeVisible();
 			await expect(page.getByText("Download started", { exact: true })).not.toBeVisible();
@@ -108,9 +107,7 @@ test("Fifty-one clips split at the minute boundary and share the server quota wi
 		await pool.query('INSERT INTO "twitchCache"(type,key,value) VALUES($1,$2,$3)', ["clip", `clip:${creatorId}:${clipId}`, JSON.stringify({ clip: { ...stored.clip, id: clipId, title: `Batch clip ${index}` } })]);
 	}
 	await page.goto(`${tourWorld.origin}/dashboard/clips`);
-	await page.getByRole("button", { name: "Reject optional", exact: true }).click();
-	await expect(page.getByRole("button", { name: "Reject optional", exact: true })).not.toBeVisible();
-	await page.reload();
+	await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 	await page.getByRole("button", { name: "Select page", exact: true }).click();
 	await page.getByRole("button", { name: "Next", exact: true }).click();
 	await expect(page).toHaveURL(/page=2/);
