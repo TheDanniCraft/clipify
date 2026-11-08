@@ -28,7 +28,7 @@ jest.mock("@heroui/react", () => {
 					</div>
 				) : null,
 			Container: Part,
-			Dialog: Part,
+			Dialog: ({ children }: { children: React.ReactNode }) => <div role='dialog'>{children}</div>,
 			Header: Part,
 			Heading: Part,
 			Body: Part,
@@ -43,7 +43,9 @@ beforeEach(() => {
 });
 async function open() {
 	await screen.findByRole("button", { name: "Play sample" });
-	fireEvent.click(screen.getByRole("button", { name: "Play sample" }));
+	await act(async () => {
+		fireEvent.click(screen.getByRole("button", { name: "Play sample" }));
+	});
 }
 it("shows initial clips immediately, requests media only on selection, and removes it on close", async () => {
 	const { container } = render(<PublicGalleryDemo initialBundle={{ overlayId: "public-demo", clips }} />);
@@ -57,6 +59,18 @@ it("shows initial clips immediately, requests media only on selection, and remov
 	fireEvent.click(screen.getByRole("button", { name: "Keep open" }));
 	fireEvent.click(screen.getByRole("button", { name: "Close player" }));
 	expect(container.querySelector("video")).toBeNull();
+});
+it("closes on Escape before native media controls stop keyboard propagation", async () => {
+	const { container } = render(<PublicGalleryDemo initialBundle={{ overlayId: "public-demo", clips }} />);
+	await open();
+	await waitFor(() => expect(container.querySelector("video")).not.toBeNull());
+	const video = container.querySelector("video")!;
+	video.addEventListener("keydown", (event) => event.stopPropagation());
+	fireEvent.keyDown(video, { key: "ArrowRight" });
+	expect(video).toBeInTheDocument();
+	fireEvent.keyDown(video, { key: "Escape" });
+	expect(container.querySelector("video")).toBeNull();
+	expect(screen.queryByRole("dialog")).toBeNull();
 });
 it.each([null, new Error("network")])("recovers from absent clips and gallery lookup failure", async (result) => {
 	if (result instanceof Error) load.mockRejectedValueOnce(result);
