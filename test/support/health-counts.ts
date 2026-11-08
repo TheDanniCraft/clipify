@@ -150,7 +150,8 @@ test("cache totals, unavailable and stale validation counts share one scan with 
  ('clip','clip:unchecked','{}','2026-10-09T01:00:00Z'),
  ('clip','clip-sync:owner','{"unavailable":true,"lastValidatedAt":"yes"}','2026-10-09T01:00:00Z'),
  ('avatar','avatar:owner','{}','2026-10-09T01:00:00Z'),
- ('game','game:one',NULL,NULL);
+ ('game','game:one',NULL,NULL),
+ ('clip','clips:owner','not JSON: an owner cache is not individual clip metadata',NULL);
  `);
 	const db = drizzle(postgres);
 	const read = async () =>
@@ -164,7 +165,7 @@ test("cache totals, unavailable and stale validation counts share one scan with 
 			.sort((a, b) => a.type.localeCompare(b.type));
 	assert.deepEqual(await read(), [
 		{ type: "avatar", count: 1, unavailable: 0, staleValidated: 0 },
-		{ type: "clip", count: 5, unavailable: 2, staleValidated: 1 },
+		{ type: "clip", count: 6, unavailable: 1, staleValidated: 1 },
 		{ type: "game", count: 1, unavailable: 0, staleValidated: 0 },
 	]);
 	await postgres.exec(`UPDATE "twitchCache" SET fetched_at='2026-10-09T11:00:00Z' WHERE key='clip:old'`);

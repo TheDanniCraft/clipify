@@ -645,6 +645,8 @@ export const twitchCacheTable = pgTable(
 	},
 	(t) => [
 		uniqueIndex("twitch_cache_type_key_unique").on(t.type, t.key),
+		// Prefix reads need character ordering even when the database uses a locale collation.
+		index("twitch_cache_type_key_prefix_idx").on(t.type, sql`"key" varchar_pattern_ops`),
 		index("twitch_cache_expires_at_idx").on(t.expiresAt),
 		index("twitch_cache_clip_validation_idx")
 			.on(t.fetchedAt)

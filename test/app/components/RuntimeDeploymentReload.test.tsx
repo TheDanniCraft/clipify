@@ -2,6 +2,9 @@ import { act, render, waitFor, fireEvent, screen } from "@testing-library/react"
 import RuntimeDeploymentReload from "@/app/components/RuntimeDeploymentReload";
 import { DEPLOYMENT_CHECK_EVENT } from "@/app/lib/deployment";
 
+const notify = jest.fn();
+jest.mock("@lib/toast", () => ({ notify: (...args: unknown[]) => notify(...args) }));
+
 let pathname = "/dashboard";
 
 jest.mock("next/navigation", () => ({
@@ -15,6 +18,7 @@ describe("RuntimeDeploymentReload", () => {
 
 	beforeEach(() => {
 		pathname = "/dashboard";
+		notify.mockClear();
 		sessionStorage.clear();
 		global.Request = class {} as unknown as typeof Request;
 		fetchMock.mockReset();
@@ -25,6 +29,37 @@ describe("RuntimeDeploymentReload", () => {
 	afterAll(() => {
 		global.fetch = originalFetch;
 		global.Request = originalRequest;
+	});
+
+	it("reports a failed server action without retrying a potentially completed write", async () => {
+		const view = render(<RuntimeDeploymentReload deploymentId='deployment-1' />);
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+		fetchMock.mockImplementation(async (url) => {
+			if (url === "/api/deployment") return { ok: true, headers: { get: () => "deployment-1" } };
+			throw new TypeError("Failed to fetch");
+		});
+		const error = await window.fetch("/dashboard", { method: "POST", headers: { "Next-Action": "save" } }).catch((error) => error);
+		expect(error.message).toBe("Failed to fetch");
+		expect(notify).not.toHaveBeenCalled();
+		window.dispatchEvent(Object.assign(new Event("unhandledrejection"), { reason: error }));
+		expect(fetchMock.mock.calls.filter(([url]) => url === "/dashboard")).toHaveLength(1);
+		expect(notify).toHaveBeenCalledWith(expect.objectContaining({ color: "danger", title: "Action could not complete" }));
+		notify.mockClear();
+		await expect(window.fetch("/api/other")).rejects.toThrow("Failed to fetch");
+		expect(notify).not.toHaveBeenCalled();
+		view.unmount();
+	});
+	it("reports otherwise unhandled server outages with their HTTP cause", async () => {
+		const view = render(<RuntimeDeploymentReload deploymentId='deployment-1' />);
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+		const response = { status: 502, ok: false, headers: { get: () => null } };
+		fetchMock.mockImplementation(async (url) => (url === "/api/deployment" ? { ok: true, headers: { get: () => "deployment-1" } } : response));
+		const error = await window.fetch("/dashboard", { method: "POST", headers: { "Next-Action": "save" } }).catch((error) => error);
+		expect(error.cause.message).toBe("Server action returned HTTP 502");
+		expect(notify).not.toHaveBeenCalled();
+		window.dispatchEvent(Object.assign(new Event("unhandledrejection"), { reason: error }));
+		expect(notify).toHaveBeenCalledWith(expect.objectContaining({ color: "danger" }));
+		view.unmount();
 	});
 
 	it("checks for a newer deployment on an overlay runtime page", async () => {

@@ -440,9 +440,25 @@ describe("actions/twitch external API and failure handling", () => {
 
 		await expect(getUsersDetailsBulk({ accessToken: "token" })).resolves.toEqual([]);
 		await expect(getUsersDetailsBulk({ accessToken: "token", userIds: ["1"], userNames: ["one"] })).resolves.toEqual([]);
-		await expect(getUsersDetailsBulk({ accessToken: "token", userIds: Array.from({ length: 100 }, (_, i) => String(i)) })).resolves.toEqual([]);
+		await expect(getUsersDetailsBulk({ accessToken: "token", userIds: Array.from({ length: 101 }, (_, i) => String(i)) })).resolves.toEqual([]);
 
 		expect(consoleSpy).toHaveBeenCalled();
+	});
+
+	it.each([99, 100])("accepts %i bulk user IDs and logins", async (count) => {
+		const users = Array.from({ length: count }, (_, i) => ({ id: String(i), login: `user${i}` }));
+		const getSpy = jest.spyOn(axios, "get").mockResolvedValue({ data: { data: users } });
+		const { getUsersDetailsBulk } = await loadTwitch();
+		await expect(getUsersDetailsBulk({ accessToken: "token", userIds: users.map((user) => user.id) })).resolves.toEqual(users);
+		await expect(getUsersDetailsBulk({ accessToken: "token", userNames: users.map((user) => user.login) })).resolves.toEqual(users);
+		expect(getSpy).toHaveBeenCalledTimes(2);
+	});
+
+	it("rejects more than 100 logins without contacting Twitch", async () => {
+		const getSpy = jest.spyOn(axios, "get");
+		const { getUsersDetailsBulk } = await loadTwitch();
+		await expect(getUsersDetailsBulk({ accessToken: "token", userNames: Array.from({ length: 101 }, (_, i) => `user${i}`) })).resolves.toEqual([]);
+		expect(getSpy).not.toHaveBeenCalled();
 	});
 
 	it("merges cached and freshly fetched bulk users and stores fresh cache entries", async () => {
@@ -1397,6 +1413,38 @@ describe("actions/twitch external API and failure handling", () => {
 			// Since it is internal, let's use a function that calls it if possible.
 			// Most 429 logic is in twitch.sync.ts which we will handle separately or it's already covered.
 		});
+	});
+
+	it("refreshes a rejected creator app token once within the same public-page request", async () => {
+		getTwitchCacheBatch.mockResolvedValue([{ id: "owner-1" }]);
+		const post = jest
+			.spyOn(axios, "post")
+			.mockResolvedValueOnce({ data: { access_token: "old", expires_in: 3600 } } as never)
+			.mockResolvedValueOnce({ data: { access_token: "new", expires_in: 3600 } } as never);
+		const get = jest
+			.spyOn(axios, "get")
+			.mockRejectedValueOnce(createAxiosError(401))
+			.mockResolvedValueOnce({ data: { data: [{ id: "live" }] } } as never);
+		const { getCreatorTwitchDetails } = await loadTwitch();
+		expect(await getCreatorTwitchDetails("alice", "owner-1")).toMatchObject({ live: { id: "live" } });
+		expect(post).toHaveBeenCalledTimes(2);
+		expect(get).toHaveBeenCalledTimes(2);
+		expect(get.mock.calls[1][1]?.headers?.Authorization).toBe("Bearer new");
+	});
+	it("bounds creator token retries and does not swap a caller's user credentials", async () => {
+		getTwitchCacheBatch.mockResolvedValue([]);
+		getTwitchCacheStaleBatch.mockResolvedValue([]);
+		const post = jest.spyOn(axios, "post").mockResolvedValue({ data: { access_token: "app", expires_in: 3600 } } as never);
+		const get = jest.spyOn(axios, "get").mockRejectedValue(createAxiosError(401));
+		const { getCreatorTwitchDetails, getUsersDetailsBulk } = await loadTwitch();
+		await getCreatorTwitchDetails("alice", "owner-1");
+		expect(get).toHaveBeenCalledTimes(4);
+		expect(post.mock.calls.length).toBeLessThanOrEqual(3);
+		get.mockClear();
+		post.mockClear();
+		await expect(getUsersDetailsBulk({ userIds: ["owner-1"], accessToken: "user-token" })).resolves.toEqual([]);
+		expect(get).toHaveBeenCalledTimes(1);
+		expect(post).not.toHaveBeenCalled();
 	});
 	it("shares creator app tokens, starts live loading alongside cached profiles, renews expiry and discards rejected tokens", async () => {
 		let clock = Date.parse("2030-01-01T00:00:00Z");

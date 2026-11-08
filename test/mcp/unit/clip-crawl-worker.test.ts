@@ -161,3 +161,13 @@ test("collects stream metadata after a successful recent crawl without failing c
 	expect(complete).toHaveBeenCalledTimes(1);
 	expect(retry).not.toHaveBeenCalled();
 });
+
+test("a retry-write outage retains the original failure and releases capacity", async () => {
+	const original = new Error("Provider failed");
+	claim.mockResolvedValueOnce(job("failure"));
+	syncOwnerClipCache.mockRejectedValueOnce(original);
+	retry.mockRejectedValueOnce(new Error("the database system is shutting down"));
+	await expect(runClipCrawlerBatch({ maxJobs: 1 })).rejects.toThrow("Provider failed");
+	expect(globalThis.__clipCrawlActiveWorkers).toBe(0);
+	expect(complete).not.toHaveBeenCalled();
+});

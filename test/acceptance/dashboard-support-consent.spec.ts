@@ -5,6 +5,11 @@ test.use({ actionTimeout: 10000 });
 for (const width of [390, 1440])
 	for (const theme of ["dark", "light"])
 		test(`Dashboard support preserves c15t choices at ${width}px in ${theme}`, async ({ page, request, tourWorld }, info) => {
+			const errors: string[] = [];
+			page.on("pageerror", (error) => errors.push(error.message));
+			page.on("console", (message) => {
+				if (message.type() === "error" && /removeChild|Invalid array length/.test(message.text())) errors.push(message.text());
+			});
 			await page.setViewportSize({ width, height: 900 });
 			await page.addInitScript((theme) => localStorage.setItem("theme", theme), theme);
 			let sdkRequests = 0;
@@ -62,4 +67,6 @@ for (const width of [390, 1440])
 			await expect(preferences).toBeVisible();
 			await expect(preferences.getByRole("switch", { name: "Allow Functionality", exact: true })).not.toBeChecked();
 			expect(sdkRequests).toBe(requestsBeforeRevocation);
+			await expect(page.getByRole("heading", { name: "Home", exact: true })).toBeVisible();
+			expect(errors).toEqual([]);
 		});

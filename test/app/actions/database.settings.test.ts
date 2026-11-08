@@ -208,6 +208,14 @@ describe("actions/database settings logic", () => {
 		expect(insertCalls.some((call) => call.table === settingsTable)).toBe(true);
 	});
 
+	it("retains the database cause when server settings cannot be read", async () => {
+		const { getSettingsServer } = await loadDatabaseActions();
+		const cause = Object.assign(new Error("connection terminated"), { code: "57P01" });
+		dbSelect.mockImplementationOnce(() => {
+			throw cause;
+		});
+		await expect(getSettingsServer("user-1")).rejects.toMatchObject({ message: "Failed to fetch settings server", cause });
+	});
 	it("does not create settings for a user that no longer exists", async () => {
 		const { getSettingsServer } = await loadDatabaseActions();
 		queueSelectResult([]); // settings select

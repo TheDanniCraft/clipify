@@ -360,7 +360,7 @@ it("bounds every image decoder when exporting several widgets and branding", asy
 	const layout = createClipComposition("desktop");
 	for (const kind of ["title", "channel", "clipper"] as const) layout.layers.push({ id: kind, kind, label: kind, fontSize: 24, frame: { x: 0, y: 0.7, w: 0.5, h: 0.1 } });
 	try {
-		await renderClipLayout(new Uint8Array(await readFile("test/fixtures/runner/presentation.mp4")), layout, { title: "Synthetic clip" }, AbortSignal.timeout(15000), { watermark: true });
+		await renderClipLayout(new Uint8Array(await readFile("test/fixtures/clips/export-audio-untagged.mp4")), layout, { title: "Synthetic clip" }, AbortSignal.timeout(15000), { watermark: true });
 		const args = spawn.mock.calls[0][1] as string[];
 		const inputs = args.flatMap((arg, index) => (arg === "-i" ? [index] : []));
 		expect(inputs).toHaveLength(5);
@@ -373,7 +373,7 @@ it("bounds every image decoder when exporting several widgets and branding", asy
 }, 20000);
 it("renders without writing source, output or widget media to server storage", async () => {
 	const fs = (await import("node:fs/promises")).default;
-	const bytes = new Uint8Array(await readFile("test/fixtures/runner/presentation.mp4"));
+	const bytes = new Uint8Array(await readFile("test/fixtures/clips/export-audio-untagged.mp4"));
 	const write = jest.spyOn(fs, "writeFile"),
 		mkdir = jest.spyOn(fs, "mkdtemp");
 	const { createClipComposition } = await import("@lib/clipComposition");
