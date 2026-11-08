@@ -4,6 +4,7 @@ import path from "node:path";
 import jwt from "jsonwebtoken";
 import { CHATWOOT_BASE_URL, CHATWOOT_WEBSITE_TOKEN } from "../../src/app/lib/consent/chatwoot";
 import { consentServices, necessaryConsentServices } from "../../src/app/lib/consent/registry";
+import { CONSENT_LIFETIME_DAYS } from "../../src/app/lib/consent/lifetime";
 import { runComplianceGate, type ExpectedObservationMatrix, type InventoryDeclaration, type InventoryObservation, type InventoryKind } from "./support/inventoryAudit";
 import { writeInventoryEvidence } from "./support/evidenceWriter";
 
@@ -79,6 +80,12 @@ async function collectPublicFlow(browser: Browser) {
 		await page.goto("/legal/cookies");
 		await expect(page.getByRole("heading", { name: "Cookie Policy" })).toBeVisible();
 		await waitForDocumentReady(page);
+		await expect(page.getByRole("complementary", { name: "Your privacy choices", exact: true })).toBeVisible();
+		await expect.poll(async () => (await context.cookies()).some(({ name }) => name === "c15t-sid")).toBe(true);
+		const subjectCookie = (await context.cookies()).find(({ name }) => name === "c15t-sid")!;
+		expect(subjectCookie.expires).toBeLessThanOrEqual(Date.now() / 1000 + CONSENT_LIFETIME_DAYS * 86400 + 60);
+		await expect(page.locator(`script[src="${CHATWOOT_BASE_URL}/packs/js/sdk.js"]`)).toHaveCount(0);
+		expect(await page.evaluate(() => sessionStorage.getItem("sentryReplaySession"))).toBeNull();
 		return collectInventory(page, "public:default", requestedOrigins);
 	});
 }
@@ -114,6 +121,17 @@ async function collectConsentEnabledFlow(browser: Browser) {
 		await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), `chatwoot_available_agents_${CHATWOOT_WEBSITE_TOKEN}`)).not.toBeNull();
 		await expect.poll(() => page.evaluate(() => Boolean((window as typeof window & { $chatwoot?: unknown }).$chatwoot))).toBe(true);
 		await expect.poll(() => page.evaluate(() => sessionStorage.getItem("sentryReplaySession"))).not.toBeNull();
+		for (const [action, enabled] of [
+			["Reject optional", false],
+			["Accept all", true],
+		] as const) {
+			await page.getByRole("main").getByRole("button", { name: "Cookie preferences", exact: true }).click();
+			const preferences = page.getByRole("dialog", { name: "Privacy preferences", exact: true });
+			await Promise.all([page.waitForEvent("load"), preferences.getByRole("button", { name: action, exact: true }).click()]);
+			await expect(page.locator(`script[src="${CHATWOOT_BASE_URL}/packs/js/sdk.js"]`)).toHaveCount(enabled ? 1 : 0);
+			await expect.poll(() => page.evaluate(() => sessionStorage.getItem("sentryReplaySession") !== null)).toBe(enabled);
+			expect((await context.cookies()).some(({ name }) => name === "c15t-sid")).toBe(true);
+		}
 		await waitForDocumentReady(page);
 		return collectInventory(page, "public:consent-enabled", requestedOrigins);
 	});
