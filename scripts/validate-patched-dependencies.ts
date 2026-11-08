@@ -1,7 +1,8 @@
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
-import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
-import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync } from "node:fs";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { tmpdir } from "node:os";
 
 type PackageJson = {
 	patchedDependencies?: Record<string, string>;
@@ -174,6 +175,21 @@ function verifyCodeTargets(targets: PatchTarget[], specifier: string) {
 	return codeTargets.length;
 }
 
+function verifyPatchContent(packageDirectory: string, patchPath: string, files: PatchedFile[], specifier: string) {
+	const directory = mkdtempSync(join(tmpdir(), "clipify-patch-content-"));
+	try {
+		for (const { file } of files) {
+			const target = join(directory, file);
+			mkdirSync(dirname(target), { recursive: true });
+			copyFileSync(resolve(packageDirectory, file), target);
+		}
+		const result = run("git", ["apply", "--reverse", "--check", patchPath], { cwd: directory });
+		if (result.status !== 0) fail(`Patch content is not applied for ${specifier}`, result.output);
+	} finally {
+		rmSync(directory, { recursive: true, force: true });
+	}
+}
+
 let patchedFileCount = 0;
 let typeCheckedFileCount = 0;
 
@@ -199,6 +215,7 @@ for (const [specifier, patchFile] of Object.entries(patchedDependencies)) {
 			if (!existsSync(targetPath)) fail(`Patched target is missing for ${specifier}: ${targetPath}`);
 		}
 
+		verifyPatchContent(packageDirectory, patchPath, patchedFiles, specifier);
 		patchedFileCount += targets.length;
 		typeCheckedFileCount += verifyCodeTargets(targets, specifier);
 	}

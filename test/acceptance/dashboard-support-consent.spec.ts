@@ -22,10 +22,12 @@ for (const width of [390, 1440])
 			await page.goto(`${tourWorld.origin}/dashboard`);
 			await expect(page.getByRole("complementary", { name: "Your privacy choices", exact: true })).toBeVisible();
 			await openSidebar();
+			if (width === 390) await expect(page.locator('[data-slot="sidebar-mobile"] [data-dashboard-consent]').getByRole("complementary", { name: "Your privacy choices", exact: true })).toBeVisible();
 			const support = page.getByRole("button", { name: "Enable support chat", exact: true });
 			await expect(support).toBeVisible();
+			await expect(support).toBeInViewport({ ratio: 1 });
 			expect(sdkRequests).toBe(0);
-			await page.screenshot({ path: info.outputPath("before-consent.png"), animations: "disabled" });
+			await page.screenshot({ path: info.outputPath("before-consent.png") });
 			await support.click();
 			const preferences = page.getByRole("dialog", { name: "Privacy preferences", exact: true });
 			await expect(preferences).toBeVisible();
@@ -34,7 +36,7 @@ for (const width of [390, 1440])
 			expect(sdkRequests).toBe(0);
 			await Promise.all([page.waitForEvent("load"), preferences.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 			await openSidebar();
-			await page.screenshot({ path: info.outputPath("after-reject.png"), animations: "disabled" });
+			await page.screenshot({ path: info.outputPath("after-reject.png") });
 			await support.click();
 			await expect(preferences).toBeVisible();
 			await preferences.getByRole("switch", { name: "Allow Functionality", exact: true }).focus();
