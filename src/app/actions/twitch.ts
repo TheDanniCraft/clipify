@@ -929,7 +929,7 @@ export async function getUsersDetailsBulk({ userIds, userNames, accessToken }: {
 		}
 
 		/* istanbul ignore next */
-		if ((userIds?.length ?? 0) >= 100 || (userNames?.length ?? 0) >= 100) {
+		if ((userIds?.length ?? 0) > 100 || (userNames?.length ?? 0) > 100) {
 			console.error("You cannot provide more than 100 userIds or userNames");
 			return [];
 		}

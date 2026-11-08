@@ -440,9 +440,25 @@ describe("actions/twitch external API and failure handling", () => {
 
 		await expect(getUsersDetailsBulk({ accessToken: "token" })).resolves.toEqual([]);
 		await expect(getUsersDetailsBulk({ accessToken: "token", userIds: ["1"], userNames: ["one"] })).resolves.toEqual([]);
-		await expect(getUsersDetailsBulk({ accessToken: "token", userIds: Array.from({ length: 100 }, (_, i) => String(i)) })).resolves.toEqual([]);
+		await expect(getUsersDetailsBulk({ accessToken: "token", userIds: Array.from({ length: 101 }, (_, i) => String(i)) })).resolves.toEqual([]);
 
 		expect(consoleSpy).toHaveBeenCalled();
+	});
+
+	it.each([99, 100])("accepts %i bulk user IDs and logins", async (count) => {
+		const users = Array.from({ length: count }, (_, i) => ({ id: String(i), login: `user${i}` }));
+		const getSpy = jest.spyOn(axios, "get").mockResolvedValue({ data: { data: users } });
+		const { getUsersDetailsBulk } = await loadTwitch();
+		await expect(getUsersDetailsBulk({ accessToken: "token", userIds: users.map((user) => user.id) })).resolves.toEqual(users);
+		await expect(getUsersDetailsBulk({ accessToken: "token", userNames: users.map((user) => user.login) })).resolves.toEqual(users);
+		expect(getSpy).toHaveBeenCalledTimes(2);
+	});
+
+	it("rejects more than 100 logins without contacting Twitch", async () => {
+		const getSpy = jest.spyOn(axios, "get");
+		const { getUsersDetailsBulk } = await loadTwitch();
+		await expect(getUsersDetailsBulk({ accessToken: "token", userNames: Array.from({ length: 101 }, (_, i) => `user${i}`) })).resolves.toEqual([]);
+		expect(getSpy).not.toHaveBeenCalled();
 	});
 
 	it("merges cached and freshly fetched bulk users and stores fresh cache entries", async () => {
