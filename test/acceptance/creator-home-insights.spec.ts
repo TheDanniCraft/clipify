@@ -2,7 +2,7 @@ import { writeFile } from "node:fs/promises";
 import { test, expect } from "../bdd/support/user-tour";
 import { seedCreatorLibrary } from "../support/creator-library";
 import { createEmptyCreatorAnalytics } from "../../src/app/lib/plausibleCreatorAnalytics";
-import { guideContentKey } from "../../src/app/lib/userTour";
+import { guideContentKey, journeys } from "../../src/app/lib/userTour";
 for (const plan of ["free", "pro"])
 	for (const width of [390, 1440])
 		for (const theme of ["light", "dark"])
@@ -21,6 +21,7 @@ for (const plan of ["free", "pro"])
 				}
 				await pool.query('INSERT INTO "twitchCache"(type,key,value) VALUES($1,$2,$3)', ["user", `broadcasts:${creatorId}:first`, JSON.stringify({ data: [], fetchedAt: new Date().toISOString() })]);
 				await pool.query("UPDATE user_content_states SET state=jsonb_set(state::jsonb,'{minimized}','true')::text WHERE user_id=$1 AND content_key=$2", [creatorId, guideContentKey]);
+				await pool.query("UPDATE user_content_states SET state=jsonb_set(state::jsonb,'{completed}',$3::jsonb)::text WHERE user_id=$1 AND content_key=$2", [creatorId, guideContentKey, JSON.stringify(journeys[0].tasks.map((task) => task.id))]);
 				const username = (await pool.query("SELECT username FROM users WHERE id=$1", [creatorId])).rows[0].username;
 				const end = new Date().toISOString().slice(0, 10),
 					start = new Date(Date.parse(end) - 29 * 86400000).toISOString().slice(0, 10);
@@ -81,3 +82,16 @@ for (const plan of ["free", "pro"])
 					await expect(page.getByRole("dialog")).toBeVisible();
 				}
 			});
+
+test("Inactive Home offers the existing overlay setup without inventing activation", async ({ page, request, tourWorld }) => {
+	const { creatorId, id } = await seedCreatorLibrary({ page, request, tourWorld });
+	await tourWorld.fixture.pool.query(`UPDATE "twitchCache" SET value=jsonb_set(value::jsonb,'{clip,created_at}','"2020-01-01T00:00:00Z"')::text WHERE key=$1`, [`clip:${creatorId}:${id}`]);
+	await page.goto(`${tourWorld.origin}/dashboard`);
+	await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
+	const setup = page.getByRole("button", { name: "Set up an overlay", exact: true });
+	await expect(setup).toBeVisible();
+	await expect(page.getByRole("dialog", { name: "Open Overlays", exact: true })).toHaveCount(0);
+	await setup.focus();
+	await page.keyboard.press("Enter");
+	await expect(page.getByRole("dialog", { name: "Open Overlays", exact: true })).toBeVisible();
+});

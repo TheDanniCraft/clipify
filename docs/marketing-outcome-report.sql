@@ -90,3 +90,15 @@ WHERE action IN ('product:refund_succeeded','product:payment_failed')
  AND metadata->>'deployment' = 'https://clipify.us'
  AND occurred_at >= now()-interval '30 days'
 GROUP BY action, metadata->>'currency';
+
+-- Reconcile delivery using (event, outcome_id), not raw native event counts.
+-- The immutable ledger remains authoritative. Missing optional events can mean
+-- consent was absent or withdrawn; do not replay them without checking consent.
+-- Delivery attempts, successes, failures and retries appear in instance health.
+-- Network failures are not blindly retried: ingestion has no exactly-once promise.
+SELECT id AS outcome_id, substring(action FROM 9) AS event, occurred_at
+FROM audit_events
+WHERE action LIKE 'product:%'
+ AND metadata->>'deployment' = 'https://clipify.us'
+ AND occurred_at >= now() - interval '30 days'
+ORDER BY occurred_at;

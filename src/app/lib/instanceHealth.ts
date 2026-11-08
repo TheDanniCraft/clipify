@@ -182,6 +182,10 @@ export type InstanceHealthSnapshot = {
 		apiFailures: number;
 		rateLimited: number;
 		staleFallbacks: number;
+		deliveryAttempts: number;
+		deliverySucceeded: number;
+		deliveryFailed: number;
+		deliveryRetries: number;
 		averageLatencyMs: number;
 		lastFetchAt: string | null;
 	};
@@ -668,6 +672,10 @@ async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealth
 			apiFailures: analyticsRuntime.apiFailures,
 			rateLimited: analyticsRuntime.rateLimited,
 			staleFallbacks: analyticsRuntime.staleFallbacks,
+			deliveryAttempts: analyticsRuntime.deliveryAttempts ?? 0,
+			deliverySucceeded: analyticsRuntime.deliverySucceeded ?? 0,
+			deliveryFailed: analyticsRuntime.deliveryFailed ?? 0,
+			deliveryRetries: analyticsRuntime.deliveryRetries ?? 0,
 			averageLatencyMs: analyticsRuntime.averageLatencyMs,
 			lastFetchAt: analyticsRuntime.lastFetchAt,
 		},

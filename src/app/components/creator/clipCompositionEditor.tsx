@@ -182,6 +182,7 @@ export default function ClipCompositionEditor({ user, creatorId, entry, initial,
 			for (const composition of pending) {
 				const result = clipId ? await saveClipLayoutOverride(creatorId, entry.id, clipId, composition) : await saveClipLayoutTemplate(creatorId, { id: entry.id, name, composition, referenceClipId: reference || null });
 				if (!result.ok) {
+					trackProductEvent("clip_layout_save_failed", { scope: clipId ? "clip" : "template", format: layout.format });
 					notify({ title: "Layout could not be saved", description: result.code === "INVALID_INPUT" ? "Check the layout name and keep every layer inside the canvas." : "Your changes are preserved. Try again.", color: "danger" });
 					return;
 				}
@@ -191,9 +192,11 @@ export default function ClipCompositionEditor({ user, creatorId, entry, initial,
 				setEditedFormats(new Set());
 			}
 
+			trackProductEvent("clip_layout_saved", { scope: clipId ? "clip" : "template", format: layout.format });
 			notify({ title: clipId ? "Clip adjustments saved" : "Layout saved", color: "success" });
 			onSaved();
 		} catch {
+			trackProductEvent("clip_layout_save_failed", { scope: clipId ? "clip" : "template", format: layout.format });
 			notify({ title: "Layout could not be saved", description: "Your changes are preserved. Try again.", color: "danger" });
 		} finally {
 			setSaving(false);

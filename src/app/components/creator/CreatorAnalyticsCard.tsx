@@ -414,6 +414,7 @@ export default function CreatorAnalyticsCard({ allowed, onUpgrade }: { allowed: 
 				<MetricCard title='Clip plays per visit' value={data.metrics.playsPerVisit} valueKey='playsPerVisit' points={data.timeseries} icon={<IconRepeat size={18} />} color='var(--chart-5)' average />
 				<MetricCard title='Playback rate' value={data.metrics.playRate} valueKey='playRate' points={data.timeseries} icon={<IconPercentage size={18} />} color='var(--chart-5)' suffix='%' average />
 			</div>
+			<Description>Bounce rate counts visits with one recorded event. Scroll and active-time measurements also count as activity.</Description>
 			<Tabs defaultSelectedKey='acquisition' variant='secondary' className='w-full'>
 				<Tabs.ListContainer className='w-full'>
 					<Tabs.List aria-label='Creator analytics breakdowns' className='w-full'>
