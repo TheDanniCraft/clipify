@@ -37,6 +37,19 @@ async function recordRunnerAccount(account: { id: string; userId: string; provid
 	return true;
 }
 
+// The verified OAuth state may only reduce onboarding privileges for event viewers.
+async function isEventParticipation(path?: string) {
+	if (!path?.startsWith("/callback/")) return false;
+	const state = await getOAuthState();
+	if (typeof state?.eventParticipation !== "string" || !/^[0-9a-f-]{36}$/i.test(state.eventParticipation) || state.link) return false;
+	try {
+		const callback = new URL(state.callbackURL);
+		return callback.origin === resolveBaseUrl().origin && callback.pathname === `/events/${state.eventParticipation}`;
+	} catch {
+		return false;
+	}
+}
+
 const resolvedBaseUrl = resolveBaseUrl();
 const baseURL = resolvedBaseUrl.origin;
 const productionURL = "https://clipify.us";
@@ -117,6 +130,7 @@ export const auth = betterAuth({
 			create: {
 				after: async (account, context) => {
 					const runnerConnection = await recordRunnerAccount(account, context?.path);
+					if (await isEventParticipation(context?.path)) return;
 					if (account.providerId === "twitch" && !runnerConnection) {
 						const { completeTwitchSignIn } = await import("@/server/creator-onboarding");
 						await completeTwitchSignIn(account.accountId, account.userId);
@@ -137,6 +151,7 @@ export const auth = betterAuth({
 				},
 				after: async (account, context) => {
 					const runnerConnection = await recordRunnerAccount(account, context?.path);
+					if (await isEventParticipation(context?.path)) return;
 					if (!runnerConnection && account.providerId === "twitch" && (context?.path === "/callback/twitch" || (context?.path === "/callback/:id" && context.params?.id === "twitch"))) {
 						const { completeTwitchSignIn } = await import("@/server/creator-onboarding");
 						await completeTwitchSignIn(account.accountId, account.userId);
@@ -158,7 +173,8 @@ export const auth = betterAuth({
 		},
 		user: {
 			create: {
-				after: async (user) => {
+				after: async (user, context) => {
+					if (await isEventParticipation(context?.path)) return;
 					await queueIdentityEmail(user.email, { type: "welcome", name: user.name }, `welcome:${user.id}`);
 				},
 			},

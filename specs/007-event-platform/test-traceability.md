@@ -179,3 +179,16 @@ US1–US6: TDD, BDD and ATDD Required. No N/A. Positive enumerations: all source
 | Build            | bun run app:build                                       | Planned | CI artifacts |
 | Migration policy | bun run test:migration-policy                           | Planned | CI artifacts |
 | Security         | Existing dependency gate plus auth/input negative tests | Planned | CI artifacts |
+
+## Executed foundation artifacts
+
+| Artifact              | Owner | Roles | Path                                        | Command                         | Status | Evidence                |
+| --------------------- | ----- | ----- | ------------------------------------------- | ------------------------------- | ------ | ----------------------- |
+| TDD-EVENT-POLICY      | TDD   | TDD   | test/server/events/policy.test.ts           | Whole-file Jest command in plan | Green  | 14 tests; cycle 1       |
+| TDD-EVENT-CONFIG      | TDD   | TDD   | test/server/events/configuration.test.ts    | Whole-file Jest command in plan | Green  | 18 tests; cycle 2       |
+| TDD-EVENT-PERSISTENCE | TDD   | TDD   | test/server/events/persistence.test.ts      | Whole-file Jest command in plan | Green  | 9 tests; cycles 3,6,7,8 |
+| TDD-EVENT-CANDIDATES  | TDD   | TDD   | test/server/events/candidates.test.ts       | Whole-file Jest command in plan | Green  | 7 tests; cycle 5        |
+| TDD-EVENT-PUBLIC      | TDD   | TDD   | test/server/events/public-view.test.ts      | Whole-file Jest command in plan | Green  | 2 tests; cycle 9        |
+| TDD-EVENT-AUTH        | TDD   | TDD   | test/mcp/unit/auth-config-callbacks.test.ts | Whole-file Jest command in plan | Green  | 49 tests; cycle 4       |
+
+Combined foundation check: 6 suites, 99 tests passed. These are implementation-level results, not completed BDD/browser acceptance. Original planned scenario rows remain Planned until actual bindings execute.

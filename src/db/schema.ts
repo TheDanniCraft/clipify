@@ -1157,3 +1157,82 @@ export const mcpMutationRetriesTable = pgTable(
 		check("mcp_retry_safe_response_object", sql`jsonb_typeof(${table.safeResponse}) = 'object'`),
 	],
 );
+
+export const awardEventsTable = pgTable(
+	"award_events",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		ownerId: varchar("owner_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		configuration: jsonb("configuration").$type<import("@/app/lib/eventConfiguration").EventConfiguration>().notNull(),
+		revision: integer("revision").notNull().default(1),
+		publishedAt: timestamp("published_at", { withTimezone: true }),
+		resultsPublishedAt: timestamp("results_published_at", { withTimezone: true }),
+		reviewReleased: boolean("review_released").notNull().default(false),
+		presenterDigest: varchar("presenter_digest", { length: 64 }).notNull(),
+		frozenAt: timestamp("frozen_at", { withTimezone: true }),
+		frozenResults: jsonb("frozen_results").$type<Record<string, unknown>>(),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+	},
+	(t) => [index("award_events_owner").on(t.ownerId)],
+);
+
+export const awardCandidatesTable = pgTable(
+	"award_candidates",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		eventId: uuid("event_id")
+			.notNull()
+			.references(() => awardEventsTable.id, { onDelete: "cascade" }),
+		categoryId: uuid("category_id").notNull(),
+		canonicalKey: varchar("canonical_key").notNull(),
+		content: jsonb("content").$type<import("@/app/lib/eventCandidates").EventCandidateContent>().notNull(),
+		nominated: boolean("nominated").notNull().default(false),
+		parentId: uuid("parent_id"),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+	},
+	(t) => [unique("award_candidate_canonical").on(t.eventId, t.categoryId, t.canonicalKey), foreignKey({ columns: [t.parentId], foreignColumns: [t.id] }), index("award_candidate_event").on(t.eventId, t.categoryId)],
+);
+export const awardSubmissionsTable = pgTable(
+	"award_submissions",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		eventId: uuid("event_id")
+			.notNull()
+			.references(() => awardEventsTable.id, { onDelete: "cascade" }),
+		categoryId: uuid("category_id").notNull(),
+		candidateId: uuid("candidate_id")
+			.notNull()
+			.references(() => awardCandidatesTable.id),
+		authUserId: varchar("auth_user_id")
+			.notNull()
+			.references(() => authUserTable.id, { onDelete: "cascade" }),
+		original: jsonb("original").$type<import("@/app/lib/eventCandidates").EventCandidateContent>().notNull(),
+		withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+	},
+	(t) => [
+		index("award_submission_viewer").on(t.eventId, t.authUserId),
+		uniqueIndex("award_submission_active")
+			.on(t.categoryId, t.candidateId, t.authUserId)
+			.where(sql`${t.withdrawnAt} IS NULL`),
+	],
+);
+export const awardVotesTable = pgTable(
+	"award_votes",
+	{
+		eventId: uuid("event_id")
+			.notNull()
+			.references(() => awardEventsTable.id, { onDelete: "cascade" }),
+		categoryId: uuid("category_id").notNull(),
+		candidateId: uuid("candidate_id")
+			.notNull()
+			.references(() => awardCandidatesTable.id),
+		authUserId: varchar("auth_user_id")
+			.notNull()
+			.references(() => authUserTable.id, { onDelete: "cascade" }),
+	},
+	(t) => [primaryKey({ columns: [t.categoryId, t.candidateId, t.authUserId] }), index("award_vote_event").on(t.eventId)],
+);
