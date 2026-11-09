@@ -33,7 +33,7 @@ it("routes nominations through the same service with the trusted principal and m
 it.each([
 	["NOT_FOUND", "RESOURCE_UNAVAILABLE"],
 	["AUTHENTICATION_REQUIRED", "ACCESS_DENIED"],
-	["REVISION_CONFLICT", "REVISION_CONFLICT"],
+	["CONFLICT", "CONFLICT"],
 	[undefined, "SERVICE_UNAVAILABLE"],
 ])("maps service failure %s without leaking its private details", async (code, expected) => {
 	const tool = eventTools(principal).find((tool) => tool.name === "list_events")!;
@@ -53,8 +53,8 @@ it("lists only the requested creator through the trusted principal and rejects f
 it("saves presentation settings separately from published voting rules with the expected revision", async () => {
 	const tool = eventTools(principal).find((tool) => tool.name === "update_event_presentation")!;
 	const input = { creatorId: "host", eventId: crypto.randomUUID(), expectedRevision: 7, slides: [], presentation: { showChat: true, hiddenAccounts: ["@Bot", "bot"], commandPrefixes: ["!", "?"] } };
-	jest.mocked(saveAwardPresentation).mockResolvedValue({ ok: false, code: "REVISION_CONFLICT" });
-	await expect(tool.run(input)).rejects.toThrow("REVISION_CONFLICT");
+	jest.mocked(saveAwardPresentation).mockResolvedValue({ ok: false, code: "CONFLICT" });
+	await expect(tool.run(input)).rejects.toThrow("CONFLICT");
 	expect(saveAwardPresentation).toHaveBeenCalledWith(principal, "host", input.eventId, 7, { slides: [], presentation: { showChat: true, hiddenAccounts: ["bot"], commandPrefixes: ["!", "?"] } });
 });
 it("reads leading ties and forwards only the explicit category winner to the team decision service", async () => {

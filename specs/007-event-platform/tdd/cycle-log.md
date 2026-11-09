@@ -221,3 +221,8 @@ At source 08639fec all 41 applicable CI producer/check jobs passed, including ev
 The missing transport boundaries now have focused tests: creator listing rejects forged identity; published deck updates preserve expected revision and normalized chat settings; tie reads/decisions forward the trusted principal and explicit category/candidate; errors map missing resources, absent authentication and uncoded service failures without private detail. Existing real OAuth/MCP flow remains the success-path owner. Production source and thresholds are unchanged.
 
 Both whole files pass 10 checks under the existing partial coverage producer (`/tmp/events-mcp-target-coverage.log`, 4.672s). This diagnostic is limited to the affected two owners, not passing full-suite evidence. The affected file reports 100% lines, 100% functions, 98.38% statements and 92.85% branches; evaluateMcpCoverage passes using that file's unchanged manifest classification and thresholds. The next full GitHub run remains the final merge gate and is tracked on PR #560.
+
+
+## Cycle 41 — type-correct conflict fixture
+
+CI 42577725280 caught the new presentation mock using the unsupported literal REVISION_CONFLICT; the service's established code is CONFLICT. The test now uses and asserts that actual contract. Application source, coverage branches and thresholds are unchanged. Local repository TypeScript check emits no errors (`/tmp/events-mcp-typecheck-final.log`), and both complete MCP files pass all ten checks (`/tmp/events-mcp-boundary-green2.log`, 12.577s). The failed CI checkpoint is allowed to finish before this correction is pushed.
