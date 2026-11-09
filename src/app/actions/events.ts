@@ -122,3 +122,26 @@ export async function completeEventGoogleConnectionAction(provider: "drive" | "y
 	if (!principal) return unauthenticated;
 	return { ok: true as const, connection: await (await import("@/server/events/connections")).completeEventGoogleConnection(principal, provider, intent) };
 }
+
+export async function setEventDataResultAction(creatorId: string, eventId: string, categoryId: string, input: unknown) {
+	const principal = await getVerifiedSessionPrincipal();
+	return principal ? (await import("@/server/events/freeze")).setAwardDataResult(principal, creatorId, eventId, categoryId, input) : unauthenticated;
+}
+
+export async function addEventTeamCandidateAction(creatorId: string, eventId: string, categoryId: string, input: unknown) {
+	const principal = await getVerifiedSessionPrincipal();
+	return principal ? (await import("@/server/events/review")).addAwardTeamCandidate(principal, creatorId, eventId, categoryId, input) : unauthenticated;
+}
+export async function searchEventTeamSourcesAction(creatorId: string, eventId: string, categoryId: string, query: string) {
+	const principal = await getVerifiedSessionPrincipal();
+	if (!principal) return unauthenticated;
+	const event = await readAwardEvent(principal, creatorId, eventId);
+	if (!event.ok) return event;
+	const category = event.event.configuration.categories.find((c) => c.id === categoryId);
+	if (!category || category.selection === "data") return { ok: false as const, code: "INVALID_INPUT" as const };
+	try {
+		return { ok: true as const, items: await (await import("@/server/events/sources")).searchAwardSources(creatorId, category, query) };
+	} catch {
+		return { ok: false as const, code: "PROVIDER_UNAVAILABLE" as const };
+	}
+}

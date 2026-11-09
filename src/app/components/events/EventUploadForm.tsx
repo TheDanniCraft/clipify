@@ -4,7 +4,7 @@ import { Button } from "@heroui/react";
 import { DropZone } from "@heroui-pro/react";
 import { EventText } from "./EventFields";
 import { eventUploadMimes, MAX_EVENT_UPLOAD_BYTES } from "@lib/eventUploads";
-export default function EventUploadForm({ eventId, categoryId, kind, onSubmitted }: { eventId: string; categoryId: string; kind: "image" | "audio" | "video"; onSubmitted: () => void }) {
+export default function EventUploadForm({ eventId, categoryId, kind, onSubmitted, team = false }: { eventId: string; categoryId: string; kind: "image" | "audio" | "video"; onSubmitted: () => void; team?: boolean }) {
 	const [file, setFile] = useState<File | null>(null),
 		[title, setTitle] = useState(""),
 		[busy, setBusy] = useState(false),
@@ -34,7 +34,7 @@ export default function EventUploadForm({ eventId, categoryId, kind, onSubmitted
 		setMessage("");
 		upload.current = new AbortController();
 		try {
-			const response = await fetch(`/api/events/${eventId}/upload?category=${encodeURIComponent(categoryId)}`, { method: "POST", headers: { "Content-Type": file.type, "X-Upload-Size": String(file.size), "X-Upload-Title": encodeURIComponent(title) }, body: file, signal: upload.current.signal });
+			const response = await fetch(`/api/events/${eventId}/upload?category=${encodeURIComponent(categoryId)}${team ? "&mode=team" : ""}`, { method: "POST", headers: { "Content-Type": file.type, "X-Upload-Size": String(file.size), "X-Upload-Title": encodeURIComponent(title) }, body: file, signal: upload.current.signal });
 			const result = (await response.json()) as { ok?: boolean; code?: string };
 			if (!response.ok || !result.ok) {
 				setError(result.code === "PHASE_CLOSED" ? "Nominations have closed. Your file was not submitted." : result.code === "LIMIT_REACHED" ? "You have reached this category’s limit or another upload is still running. Withdraw an earlier proposal or try again shortly." : "Your file could not be submitted. Your selection is preserved; please try again.");
@@ -42,7 +42,7 @@ export default function EventUploadForm({ eventId, categoryId, kind, onSubmitted
 			}
 			setFile(null);
 			setTitle("");
-			setMessage("Your proposal was submitted.");
+			setMessage(team ? "Candidate added." : "Your proposal was submitted.");
 			onSubmitted();
 		} catch (exception) {
 			setError(exception instanceof Error && exception.name === "AbortError" ? "Upload cancelled. Your selection is preserved." : "Your file could not be submitted. Your selection is preserved; please try again.");
@@ -94,7 +94,7 @@ export default function EventUploadForm({ eventId, categoryId, kind, onSubmitted
 			) : null}
 			<div className='flex gap-3'>
 				<Button isPending={busy} isDisabled={!file || busy} onPress={() => void submit()}>
-					Submit proposal
+					{team ? "Add candidate" : "Submit proposal"}
 				</Button>
 				{busy ? (
 					<Button variant='secondary' onPress={() => upload.current?.abort()}>

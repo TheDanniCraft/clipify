@@ -176,3 +176,61 @@ Then("viewers see one nominee without its original grouped proposals", async ({ 
 	await expect(page.getByText("Birne explodiert", { exact: true })).toHaveCount(0);
 	await expect(page.getByRole("checkbox")).toHaveCount(1);
 });
+
+Given("an award show has closed with an unconfirmed watchtime result", async ({ page, tourWorld }) => {
+	const now = Date.now(),
+		instant = (offset: number) => new Date(now + offset).toISOString();
+	const configuration = createAwardConfiguration("Babbler Awards", "UTC");
+	configuration.categories[0] = { ...configuration.categories[0], source: "text", title: "Top Watchtime", selection: "data" };
+	configuration.schedule = { submissionsStart: instant(-14400000), submissionsEnd: instant(-10800000), votingStart: instant(-7200000), votingEnd: instant(-3600000), reviewRequired: false, timezone: "UTC" };
+	const eventId = randomUUID(),
+		categoryId = configuration.categories[0].id;
+	tourWorld.result = { eventId, categoryId, configuration };
+	await tourWorld.fixture.pool.query("INSERT INTO award_events(id,owner_id,configuration,published_at,presenter_digest,frozen_at,frozen_results) VALUES($1,$2,$3,now(),$4,$5,$6)", [eventId, tourWorld.owner!.creatorId, JSON.stringify(configuration), createHash("sha256").update("fixture-presenter-secret").digest("hex"), configuration.schedule.submissionsEnd, JSON.stringify({ [categoryId]: { status: "missing", reason: "manual_required" } })]);
+	await page.goto(`${tourWorld.origin}/dashboard/events/${eventId}`);
+	await page.getByRole("tab", { name: "Data awards", exact: true }).click();
+});
+When("the team records {string} with {int} watched hours", async ({ page }, name: string, hours: number) => {
+	await page.getByRole("textbox", { name: "Winner name", exact: true }).fill(name);
+	await page.getByText("Include a number", { exact: true }).click();
+	await page.getByRole("textbox", { name: "Result value", exact: true }).fill(String(hours), { timeout: 10000 });
+	await page.getByRole("button", { name: "Save result", exact: true }).click();
+	await expect(page.getByText("Result saved.", { exact: true })).toBeVisible();
+});
+When("explicitly publishes the award results", async ({ page }) => {
+	await page.getByRole("button", { name: "Publish results", exact: true }).click();
+	await expect(page.getByText("Results published.", { exact: true })).toBeVisible();
+});
+Then("the public archive shows that data winner and its number", async ({ page, tourWorld }) => {
+	await page.goto(`${tourWorld.origin}/events/${awardWorld(tourWorld).eventId}`);
+	await expect(page.getByRole("heading", { name: "Top Watchtime", exact: true })).toBeVisible();
+	await expect(page.getByRole("button", { name: "View Babbler One", exact: true })).toBeVisible();
+	await expect(page.getByText("321", { exact: true })).toBeVisible();
+	await expect(page.getByRole("checkbox")).toHaveCount(0);
+});
+
+When("the team adds a candidate named {string}", async ({ page }, title: string) => {
+	await page.getByRole("button", { name: "Add candidate", exact: true }).click();
+	const dialog = page.getByRole("dialog", { name: "Add award candidate", exact: true });
+	await dialog.getByRole("textbox", { name: "Proposal name", exact: true }).fill(title);
+	await dialog.getByRole("button", { name: "Add candidate", exact: true }).click();
+	await expect(dialog).not.toBeVisible();
+	await expect(page.getByRole("rowheader", { name: new RegExp(`^${title}`) })).toBeVisible();
+});
+When("the team adds an image candidate named {string}", async ({ page, tourWorld }, name: string) => {
+	await page.goto(`${tourWorld.origin}/dashboard/events/${awardWorld(tourWorld).eventId}`);
+	await page.getByRole("tab", { name: "Review", exact: true }).click();
+	await page.getByRole("button", { name: "Add candidate", exact: true }).click();
+	const dialog = page.getByRole("dialog", { name: "Add award candidate", exact: true });
+	await dialog.locator('input[type="file"]').setInputFiles({ name, mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aVZkAAAAASUVORK5CYII=", "base64") });
+	await dialog.getByRole("button", { name: "Add candidate", exact: true }).click();
+	await expect(dialog).not.toBeVisible();
+	await expect(page.getByRole("rowheader", { name: "Lampe", exact: true })).toBeVisible();
+});
+Then("the team image is available as a public nominee", async ({ page, tourWorld }) => {
+	await page.goto(`${tourWorld.origin}/events/${awardWorld(tourWorld).eventId}`);
+	await page.getByRole("button", { name: "View Lampe", exact: true }).click();
+	const preview = page.getByRole("dialog", { name: "Lampe", exact: true });
+	await expect(preview).toBeVisible();
+	await expect.poll(() => preview.getByRole("img", { name: "Lampe", exact: true }).evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBe(1);
+});

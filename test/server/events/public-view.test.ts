@@ -32,3 +32,8 @@ it("reveals results only to presenter or after explicit publication", () => {
 	expect(archive.phase).toBe("results");
 	expect(archive.categories).toHaveLength(2);
 });
+
+it("does not substitute unfrozen category settings for a historical result", () => {
+	const view = projectAwardEvent({ ...event, frozenResults: null } as never, candidates as never, [], true, new Date("2026-02-16"));
+	expect(view.categories.find((category) => category.id === "data")?.dataResult).toBeNull();
+});

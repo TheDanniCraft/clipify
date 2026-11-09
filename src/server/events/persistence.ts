@@ -10,14 +10,14 @@ import { getActivePartnerAccessGrant, resolveUserEntitlements } from "@/app/lib/
 
 export type AwardEvent = typeof awardEventsTable.$inferSelect;
 export type ManagedAwardEvent = Omit<AwardEvent, "presenterDigest">;
-export type EventErrorCode = "INVALID_INPUT" | "ACCESS_DENIED" | "AUTHENTICATION_REQUIRED" | "NOT_FOUND" | "CONFLICT" | "PARTNER_REQUIRED" | "PRO_REQUIRED" | "PHASE_CLOSED" | "LIMIT_REACHED" | "STORAGE_REQUIRED" | "PROVIDER_UNAVAILABLE" | "SERVICE_UNAVAILABLE";
+export type EventErrorCode = "INVALID_INPUT" | "ACCESS_DENIED" | "AUTHENTICATION_REQUIRED" | "NOT_FOUND" | "CONFLICT" | "PARTNER_REQUIRED" | "PRO_REQUIRED" | "RESULTS_REQUIRED" | "PHASE_CLOSED" | "LIMIT_REACHED" | "STORAGE_REQUIRED" | "PROVIDER_UNAVAILABLE" | "SERVICE_UNAVAILABLE";
 export class EventError extends Error {
 	constructor(readonly code: EventErrorCode) {
 		super(code);
 	}
 }
 export function eventError(error: unknown) {
-	const codes: EventErrorCode[] = ["INVALID_INPUT", "ACCESS_DENIED", "AUTHENTICATION_REQUIRED", "NOT_FOUND", "CONFLICT", "PARTNER_REQUIRED", "PRO_REQUIRED", "PHASE_CLOSED", "LIMIT_REACHED", "STORAGE_REQUIRED", "PROVIDER_UNAVAILABLE"];
+	const codes: EventErrorCode[] = ["INVALID_INPUT", "ACCESS_DENIED", "AUTHENTICATION_REQUIRED", "NOT_FOUND", "CONFLICT", "PARTNER_REQUIRED", "PRO_REQUIRED", "RESULTS_REQUIRED", "PHASE_CLOSED", "LIMIT_REACHED", "STORAGE_REQUIRED", "PROVIDER_UNAVAILABLE"];
 	return { ok: false as const, code: error instanceof Error && codes.includes(error.message as EventErrorCode) ? (error.message as EventErrorCode) : ("SERVICE_UNAVAILABLE" as const) };
 }
 export function managedEvent(row: AwardEvent): ManagedAwardEvent {

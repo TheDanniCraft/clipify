@@ -4,6 +4,7 @@ import { Button, Checkbox, Modal, Table } from "@heroui/react";
 import ControlledModal from "@components/controlledModal";
 import { getEventReviewAction, nominateEventCandidatesAction, groupEventCandidatesAction, releaseEventReviewAction } from "@actions/events";
 import { EventSelect, EventText } from "./EventFields";
+import EventSubmissionForm from "./EventSubmissionForm";
 import { EventMedia } from "./EventMedia";
 import type { EventCandidateContent } from "@lib/eventCandidates";
 type ReviewData = Extract<Awaited<ReturnType<typeof getEventReviewAction>>, { ok: true }>;
@@ -18,6 +19,7 @@ export default function EventReview({ creatorId, eventId }: { creatorId: string;
 		[busy, setBusy] = useState(false),
 		[error, setError] = useState(""),
 		[message, setMessage] = useState(""),
+		[addOpen, setAddOpen] = useState(false),
 		[groupOpen, setGroupOpen] = useState(false),
 		[groupTitle, setGroupTitle] = useState(""),
 		[releaseOpen, setReleaseOpen] = useState(false),
@@ -169,6 +171,9 @@ export default function EventReview({ creatorId, eventId }: { creatorId: string;
 						/>
 					</div>
 					<div className='flex flex-wrap items-center gap-2'>
+						<Button variant='secondary' isDisabled={busy || locked || !category} onPress={() => setAddOpen(true)}>
+							Add candidate
+						</Button>
 						<Button isDisabled={busy || locked || !selected.length} onPress={() => void nominate(true)}>
 							Nominate selected
 						</Button>
@@ -274,6 +279,25 @@ export default function EventReview({ creatorId, eventId }: { creatorId: string;
 					) : null}
 				</>
 			)}
+			<ControlledModal isOpen={addOpen} onOpenChange={setAddOpen} ariaLabel='Add award candidate' size='lg'>
+				<Modal.Header>
+					<Modal.Heading>Add candidate</Modal.Heading>
+				</Modal.Header>
+				<Modal.Body>
+					{category ? (
+						<EventSubmissionForm
+							key={category.id}
+							eventId={eventId}
+							teamCreatorId={creatorId}
+							category={{ ...category, candidates: [] }}
+							onSubmitted={() => {
+								setAddOpen(false);
+								void reload();
+							}}
+						/>
+					) : null}
+				</Modal.Body>
+			</ControlledModal>
 			<ControlledModal isOpen={groupOpen} onOpenChange={setGroupOpen} ariaLabel='Group proposals'>
 				<Modal.Header>
 					<Modal.Heading>Group proposals</Modal.Heading>

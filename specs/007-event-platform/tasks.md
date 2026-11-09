@@ -94,8 +94,8 @@ Implementation paths below name current owners; related UI lives in src/app/comp
 ### FR-015 — US3
 
 - [ ] T045 [US3] [BDD] Bind BDD-US3-015, enumerate source options and relevant failures in test/bdd/steps/events.steps.ts
-- [ ] T046 [US3] [TDD] [U15] Write focused tests in test/server/events/freeze.test.ts and record intended Red in tdd/cycle-log.md
-- [ ] T047 [US3] Implement FR-015 in src/server/events/freeze.ts and relevant callers/UI; prove Green and refactor
+- [x] T046 [US3] [TDD] [U15] Write focused tests in test/server/events/freeze.test.ts and record intended Red in tdd/cycle-log.md
+- [x] T047 [US3] Implement FR-015 in src/server/events/freeze.ts and relevant callers/UI; prove Green and refactor
 
 ### FR-016 — US4
 

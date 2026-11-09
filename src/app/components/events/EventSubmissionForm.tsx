@@ -2,17 +2,17 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Button, ComboBox, Input, Label, ListBox, TextArea, TextField } from "@heroui/react";
-import { searchEventSourcesAction, submitEventAction } from "@actions/events";
+import { searchEventSourcesAction, submitEventAction, searchEventTeamSourcesAction, addEventTeamCandidateAction } from "@actions/events";
 import { EventSelect, EventText } from "./EventFields";
 import type { PublicAwardEvent } from "@lib/eventPublicView";
 import type { EventCandidateContent } from "@lib/eventCandidates";
 import EventUploadForm from "./EventUploadForm";
 type Category = PublicAwardEvent["categories"][number];
-export default function EventSubmissionForm(props: { eventId: string; category: Category; onSubmitted: () => void }) {
+export default function EventSubmissionForm(props: { eventId: string; category: Category; onSubmitted: () => void; teamCreatorId?: string }) {
 	const kind = props.category.source;
-	return kind === "image" || kind === "video" || kind === "audio" ? <EventUploadForm eventId={props.eventId} categoryId={props.category.id} kind={kind} onSubmitted={props.onSubmitted} /> : <SourceSubmissionForm {...props} />;
+	return kind === "image" || kind === "video" || kind === "audio" ? <EventUploadForm eventId={props.eventId} categoryId={props.category.id} kind={kind} team={!!props.teamCreatorId} onSubmitted={props.onSubmitted} /> : <SourceSubmissionForm {...props} />;
 }
-function SourceSubmissionForm({ eventId, category, onSubmitted }: { eventId: string; category: Category; onSubmitted: () => void }) {
+function SourceSubmissionForm({ eventId, category, onSubmitted, teamCreatorId }: { eventId: string; category: Category; onSubmitted: () => void; teamCreatorId?: string }) {
 	const [query, setQuery] = useState(""),
 		[reference, setReference] = useState(""),
 		[title, setTitle] = useState(""),
@@ -28,7 +28,7 @@ function SourceSubmissionForm({ eventId, category, onSubmitted }: { eventId: str
 		let active = true;
 		const timer = setTimeout(() => {
 			setLoading(true);
-			void searchEventSourcesAction(eventId, category.id, query)
+			void (teamCreatorId ? searchEventTeamSourcesAction(teamCreatorId, eventId, category.id, query) : searchEventSourcesAction(eventId, category.id, query))
 				.then((result) => {
 					if (!active) return;
 					if (result.ok) {
@@ -50,18 +50,18 @@ function SourceSubmissionForm({ eventId, category, onSubmitted }: { eventId: str
 			active = false;
 			clearTimeout(timer);
 		};
-	}, [eventId, category.id, query, searchable]);
+	}, [eventId, category.id, query, searchable, teamCreatorId]);
 	async function submit() {
 		setBusy(true);
 		setError("");
 		setMessage("");
 		try {
-			const result = await submitEventAction(eventId, category.id, { reference, title, description });
+			const result = await (teamCreatorId ? addEventTeamCandidateAction(teamCreatorId, eventId, category.id, { reference, title, description }) : submitEventAction(eventId, category.id, { reference, title, description }));
 			if (!result.ok) {
 				setError(result.code === "LIMIT_REACHED" ? "You have reached this category's limit. Withdraw an earlier proposal to submit another." : result.code === "PHASE_CLOSED" ? "Nominations have closed." : "This proposal could not be submitted. Check the category rules and try again.");
 				return;
 			}
-			setMessage("Your proposal was submitted.");
+			setMessage(teamCreatorId ? "Candidate added." : "Your proposal was submitted.");
 			setReference("");
 			setTitle("");
 			setDescription("");
@@ -148,7 +148,7 @@ function SourceSubmissionForm({ eventId, category, onSubmitted }: { eventId: str
 				</p>
 			) : null}
 			<Button isPending={busy} isDisabled={busy || (searchable && !reference)} onPress={() => void submit()}>
-				Submit proposal
+				{teamCreatorId ? "Add candidate" : "Submit proposal"}
 			</Button>
 		</div>
 	);

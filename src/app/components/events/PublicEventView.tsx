@@ -156,13 +156,18 @@ export default function PublicEventView({ initial, creatorName, brand }: { initi
 							) : event.phase === "voting" ? (
 								<p className='text-sm text-muted'>No nominees in this category.</p>
 							) : null}
-							{"dataResult" in category && category.dataResult && typeof category.dataResult === "object" && "title" in category.dataResult ? (
-								<Card>
-									<Card.Content>
-										<h3 className='text-xl font-semibold'>{String(category.dataResult.title)}</h3>
-										{"description" in category.dataResult ? <p>{String(category.dataResult.description)}</p> : null}
-									</Card.Content>
-								</Card>
+							{category.dataResult?.status === "ready" ? (
+								<div className='max-w-lg space-y-3'>
+									{category.dataResult.value !== undefined ? <p className='text-2xl font-semibold'>{new Intl.NumberFormat().format(category.dataResult.value)}</p> : null}
+									<EventNomineeCard
+										candidate={{ id: category.id, content: category.dataResult.content ?? { kind: "text", title: category.dataResult.title, description: category.dataResult.description, reference: "" } }}
+										onOpen={() => {
+											const result = category.dataResult;
+											if (result?.status === "ready") setOpened(result.content ?? { kind: "text", title: result.title, description: result.description, reference: "" });
+										}}
+										result={{ winner: true }}
+									/>
+								</div>
 							) : null}
 						</section>
 					))}

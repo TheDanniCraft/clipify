@@ -2,6 +2,7 @@ import { getEventParticipant } from "@/server/events/participant";
 import { acceptAwardUpload } from "@/server/events/uploads";
 import { uploadInputSchema } from "@/server/events/upload-policy";
 import { consumeAppRateLimit } from "@/server/rate-limit";
+import type { TrustedCreatorPrincipal } from "@/auth/authorize-operation";
 export const runtime = "nodejs";
 export async function POST(request: Request, { params }: { params: Promise<{ eventId: string }> }) {
 	const headers = { "Cache-Control": "private, no-store" };
@@ -21,10 +22,23 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
 	}
 	const input = uploadInputSchema.safeParse({ mime: request.headers.get("content-type"), size: Number(request.headers.get("x-upload-size")), title });
 	if (!input.success) return fail("INVALID_INPUT", 400);
-	const participant = await getEventParticipant();
-	if (!participant) return fail("AUTHENTICATION_REQUIRED", 401);
-	const limit = await consumeAppRateLimit({ key: "event-upload", identifier: participant.authUserId, points: 12, duration: 3600 });
+
+	let team: { principal: TrustedCreatorPrincipal; ownerId: string } | undefined, authUserId: string;
+	if (url.searchParams.get("mode") === "team") {
+		const principal = await (await import("@/auth/session-principal")).getVerifiedSessionPrincipal();
+		if (!principal) return fail("AUTHENTICATION_REQUIRED", 401);
+		const event = await (await import("@/server/events/public-read")).readPublicAwardEvent(eventId);
+		if (!event.ok) return fail("NOT_FOUND", 404);
+		team = { principal, ownerId: event.event.ownerId };
+		authUserId = principal.authUserId;
+	} else {
+		const participant = await getEventParticipant();
+		if (!participant) return fail("AUTHENTICATION_REQUIRED", 401);
+		authUserId = participant.authUserId;
+	}
+	const limit = await consumeAppRateLimit({ key: "event-upload", identifier: authUserId, points: 12, duration: 3600 });
 	if (!limit.success) return fail("LIMIT_REACHED", 429);
-	const result = await acceptAwardUpload(participant.authUserId, eventId, categoryId, input.data, request.body, request.signal);
-	return Response.json(result, { status: result.ok ? 200 : result.code === "PHASE_CLOSED" || result.code === "LIMIT_REACHED" ? 409 : result.code === "INVALID_INPUT" ? 400 : 503, headers });
+	const result = team ? await acceptAwardUpload(authUserId, eventId, categoryId, input.data, request.body, request.signal, team) : await acceptAwardUpload(authUserId, eventId, categoryId, input.data, request.body, request.signal);
+
+	return Response.json(result, { status: result.ok ? 200 : result.code === "PHASE_CLOSED" || result.code === "LIMIT_REACHED" ? 409 : result.code === "INVALID_INPUT" ? 400 : result.code === "ACCESS_DENIED" ? 403 : result.code === "NOT_FOUND" ? 404 : 503, headers });
 }

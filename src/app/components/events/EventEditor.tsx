@@ -11,6 +11,7 @@ import { eventPhase } from "@lib/events";
 import { EventText, EventSelect, EventNumber } from "./EventFields";
 import EventRoadmap from "./EventRoadmap";
 import EventCategories from "./EventCategories";
+import EventDataResults from "./EventDataResults";
 import EventReview from "./EventReview";
 import EventConnections from "./EventConnections";
 import EventDeckEditor from "./EventDeckEditor";
@@ -75,7 +76,7 @@ export default function EventEditor({ creatorId, initial, user, canWhiteLabel = 
 			if (result.ok) {
 				setEvent(result.event);
 				setMessage("Results published.");
-			} else setError("Results can be published after voting closes. Please try again then.");
+			} else setError(result.code === "RESULTS_REQUIRED" ? "Complete the missing data awards before publishing results." : "Results can be published after voting closes. Please try again then.");
 		} finally {
 			setBusy(false);
 		}
@@ -139,9 +140,9 @@ export default function EventEditor({ creatorId, initial, user, canWhiteLabel = 
 					<Tabs defaultSelectedKey='event'>
 						<Tabs.ListContainer>
 							<Tabs.List aria-label='Event editor sections'>
-								{["event", "roadmap", "categories", "review", "connections", "presentation"].map((id) => (
+								{["event", "roadmap", "categories", "review", "results", "connections", "presentation"].map((id) => (
 									<Tabs.Tab key={id} id={id}>
-										{id === "event" ? "Event" : id === "roadmap" ? "Roadmap" : id === "categories" ? "Categories" : id === "review" ? "Review" : id === "connections" ? "Connections" : "Presentation"}
+										{id === "event" ? "Event" : id === "roadmap" ? "Roadmap" : id === "categories" ? "Categories" : id === "review" ? "Review" : id === "results" ? "Data awards" : id === "connections" ? "Connections" : "Presentation"}
 									</Tabs.Tab>
 								))}
 							</Tabs.List>
@@ -211,6 +212,9 @@ export default function EventEditor({ creatorId, initial, user, canWhiteLabel = 
 						</Tabs.Panel>
 						<Tabs.Panel id='review' className='pt-5'>
 							<EventReview creatorId={creatorId} eventId={event.id} />
+						</Tabs.Panel>
+						<Tabs.Panel id='results' className='pt-5'>
+							<EventDataResults creatorId={creatorId} eventId={event.id} resultsPublished={!!event.resultsPublishedAt} />
 						</Tabs.Panel>
 						<Tabs.Panel id='connections' className='pt-5'>
 							<EventConnections creatorId={creatorId} eventId={event.id} value={draft.storageConnectionId} readOnly={!!event.publishedAt} onChange={(storageConnectionId) => update({ storageConnectionId })} />

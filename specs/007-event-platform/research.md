@@ -22,3 +22,11 @@ Incremental scopes work with one OAuth client; permission checks must inspect gr
 - [Substack selected table actions](https://mobbin.com/screens/1ae6cda7-a71e-408f-bf26-b2198e562d16): selected-count/action toolbar and focused confirmation; borrow for review bulk grouping/nomination, not subscriber-specific semantics.
 - Voting search returned [Zoom setup](https://mobbin.com/screens/b8a67c06-900f-43a1-89f7-e786c243f551), not an appropriate nominee-card voting reference. Do not claim its cards as evidence; search refined before voting UI.
 - [Pitch slide editor](https://mobbin.com/screens/37d0056e-75e2-499c-a607-6248570906e5): ordered slide list adjacent to selected-slide settings/preview and distinct Present action; simplify to the agreed non-canvas deck editor.
+
+## Presenter reference and chat transport checkpoint
+
+Inspected [Pitch recorder/presentation screen](https://mobbin.com/screens/87702475-884a-4c03-b109-8221d48ab7fe): large central canvas and small navigation at the lower edge. Reuse the restrained presentation controls, not recording controls. Manus speaker notes and Gamma's editable canvas were less relevant to the broadcast output. Existing Pitch slide-order reference still guides the dashboard deck.
+
+Twitch's [current IRC documentation](https://dev.twitch.tv/docs/chat/irc/) recommends EventSub and documents authenticated IRC. A read-only anonymous socket connectivity probe timed out; this is not evidence that a production anonymous chat integration works. The repository already receives signed `channel.chat.message` EventSub notifications and subscribes its existing bot using host `channel:bot` grants. Reuse that established transport for awards rather than introducing another IRC client or exposing creator OAuth tokens to a presenter URL. Relay follows the existing process-local live-overlay architecture; a separate distributed chat framework is outside this PR.
+
+Use the current [SevenTV repository](https://github.com/SevenTV/SevenTV) for API models. The older SevenTV/API repository is archived and must not be treated as the current implementation without checking compatibility.

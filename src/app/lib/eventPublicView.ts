@@ -1,3 +1,4 @@
+import { awardDataResultSchema } from "./eventResults";
 import { eventPhase } from "./events";
 import { visibleCandidates, votingResults } from "./eventCandidates";
 import type { EventCandidateContent } from "./eventCandidates";
@@ -28,7 +29,7 @@ export function projectAwardEvent(event: EventViewInput, candidates: CandidateVi
 				rules: category.rules,
 				options: category.options,
 				candidates: phase === "announcement" || phase === "submissions" ? [] : nominees,
-				...(reveal && category.selection === "data" ? { dataResult: event.frozenResults?.[category.id] ?? category.manualResult ?? null } : {}),
+				...(reveal && category.selection === "data" ? { dataResult: awardDataResultSchema.safeParse(event.frozenResults?.[category.id]).data ?? null } : {}),
 				...(results ? { results: results.map((result) => (presenter || event.configuration.resultDetail === "votes" ? result : event.configuration.resultDetail === "percentages" ? { id: result.id, percentage: result.percentage, winner: result.winner } : { id: result.id, winner: result.winner })) } : {}),
 			};
 		});

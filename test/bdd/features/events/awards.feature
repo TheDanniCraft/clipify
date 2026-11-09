@@ -33,6 +33,23 @@ Feature: Set up a community award show
   Scenario: Team groups related proposals and releases a held review
     Given a creator is ready to organize an award show
     And the team is reviewing two related text proposals after the planned voting start
-    When the team groups those proposals as "Lampe raucht ab"
+    When the team adds a candidate named "Team insider"
+    And the team groups those proposals as "Lampe raucht ab"
     And nominates the group and finishes review
     Then viewers see one nominee without its original grouped proposals
+
+  @BDD-US3-105 @US3 @US6 @FR-015 @FR-023 @SC-001
+  Scenario: Team records a manual data winner and explicitly publishes the archive
+    Given a creator is ready to organize an award show
+    And an award show has closed with an unconfirmed watchtime result
+    When the team records "Babbler One" with 321 watched hours
+    And explicitly publishes the award results
+    Then the public archive shows that data winner and its number
+
+  @BDD-US3-106 @US3 @FR-006 @FR-011 @SC-001
+  Scenario: Team adds a stored image nominee before voting
+    Given a creator is ready to organize an award show
+    And a published award show is accepting images into connected Google Drive
+    When the team adds an image candidate named "Lampe.png"
+    And voting opens for the award show
+    Then the team image is available as a public nominee

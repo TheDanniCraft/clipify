@@ -2,7 +2,7 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db/client";
-import { awardEventsTable, eventConnectionsTable } from "@/db/schema";
+import { awardEventsTable, eventConnectionsTable, awardCandidatesTable } from "@/db/schema";
 import type { TrustedCreatorPrincipal } from "@/auth/authorize-operation";
 import { authorizeLockedMutation } from "@/server/resources/mutation";
 import { EventError, eventError, lockAwardEvent, managedEvent, presenterDigest } from "./persistence";
@@ -25,6 +25,12 @@ export async function publishAwardEvent(principal: TrustedCreatorPrincipal, owne
 					.limit(1);
 				if (!storage) throw new EventError("STORAGE_REQUIRED");
 			}
+			for (const category of event.configuration.categories.filter((c) => c.selection === "team" && c.source === "choice")) {
+				await tx
+					.insert(awardCandidatesTable)
+					.values(category.options.map((option) => ({ eventId: id, categoryId: category.id, canonicalKey: `choice:${option}`, content: { kind: "choice" as const, reference: option, title: option, description: "" }, nominated: !event.configuration.schedule.reviewRequired })))
+					.onConflictDoNothing();
+			}
 			const [row] = await tx
 				.update(awardEventsTable)
 				.set({ publishedAt: now, revision: revision + 1, updatedAt: now })
@@ -43,6 +49,21 @@ export async function publishAwardResults(principal: TrustedCreatorPrincipal, ow
 			const authority = await authorizeLockedMutation(principal, ownerId, "event:publish", tx);
 			const event = await lockAwardEvent(tx, ownerId, id);
 			if (!event.publishedAt || now < new Date(event.configuration.schedule.votingEnd)) throw new EventError("PHASE_CLOSED");
+			const dataCategories = event.configuration.categories.filter((c) => c.selection === "data");
+			if (dataCategories.length) {
+				const { updateAwardDataSnapshot } = await import("./freeze");
+				await updateAwardDataSnapshot(tx, event, now);
+				const [latest] = await tx.select().from(awardEventsTable).where(eq(awardEventsTable.id, id)).limit(1);
+				const { awardDataResultSchema } = await import("@/app/lib/eventResults");
+				if (
+					dataCategories.some((category) => {
+						const result = awardDataResultSchema.safeParse(latest.frozenResults?.[category.id]);
+						return !result.success || result.data.status !== "ready";
+					})
+				)
+					throw new EventError("RESULTS_REQUIRED");
+			}
+
 			const [row] = await tx
 				.update(awardEventsTable)
 				.set({ resultsPublishedAt: event.resultsPublishedAt ?? now, updatedAt: now })

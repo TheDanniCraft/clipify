@@ -123,3 +123,18 @@ it("queues withdrawn files for deletion instead of filling the creator's storage
 	const [asset] = await fixture.db.select().from(awardAssetsTable);
 	expect(asset.state).toBe("cleanup");
 });
+
+it("accepts team uploads only through verified team authority and creates no viewer receipt", async () => {
+	const { eq } = await import("drizzle-orm");
+	const [event] = await fixture.db.select().from(awardEventsTable);
+	event.configuration.categories[0].selection = "team";
+	await fixture.db.update(awardEventsTable).set({ configuration: event.configuration }).where(eq(awardEventsTable.id, eventId));
+	expect(await acceptAwardUpload("viewer", eventId, categoryId, input, body(), new AbortController().signal)).toMatchObject({ ok: false, code: "INVALID_INPUT" });
+	const principal = { kind: "session" as const, authUserId: "viewer", sessionId: "session", authenticatedAt: new Date() };
+	const { authorizeLockedMutation } = await import("@/server/resources/mutation");
+	jest.mocked(authorizeLockedMutation).mockRejectedValueOnce(new Error("ACCESS_DENIED"));
+	expect(await acceptAwardUpload("viewer", eventId, categoryId, input, body(), new AbortController().signal, { principal, ownerId: "host" })).toMatchObject({ ok: false, code: "ACCESS_DENIED" });
+	expect(await acceptAwardUpload("viewer", eventId, categoryId, input, body(), new AbortController().signal, { principal, ownerId: "host" })).toMatchObject({ ok: true });
+	expect(await fixture.db.select().from(awardSubmissionsTable)).toHaveLength(0);
+	expect(await fixture.db.select().from(awardAssetsTable)).toHaveLength(1);
+});

@@ -1,6 +1,7 @@
 import "server-only";
 import { sql } from "drizzle-orm";
 import { db } from "@/db/client";
+import { refreshAwardDataResults } from "./freeze";
 import { cleanupAwardUploads } from "./uploads";
 import { captureUnexpectedError } from "@lib/sentryServer";
 declare global {
@@ -14,7 +15,10 @@ export function startAwardScheduler() {
 		globalThis.__awardSchedulerRunning = true;
 		try {
 			const schema = await db.execute<{ present: boolean }>(sql`SELECT to_regclass('public.award_assets') IS NOT NULL AS present`);
-			if (schema.rows[0]?.present) await cleanupAwardUploads();
+			if (schema.rows[0]?.present) {
+				await refreshAwardDataResults();
+				await cleanupAwardUploads();
+			}
 		} catch (error) {
 			captureUnexpectedError(error, "award-scheduler", "cleanup-uploads");
 		} finally {

@@ -6,27 +6,40 @@ import { awardAssetsTable as assets, awardSubmissionsTable as submissions, event
 import { lockPublicAwardEvent, awardPhase, commitAwardSubmission } from "./submissions";
 import { uploadInputSchema } from "./upload-policy";
 import { allocateAwardUpload, writeAwardUpload, deleteAwardUpload } from "./upload-provider";
+import type { TrustedCreatorPrincipal } from "@/auth/authorize-operation";
+import { authorizeLockedMutation } from "@/server/resources/mutation";
+import { commitAwardTeamCandidate, isAwardReviewOpen } from "./review";
 import { EventError, eventError } from "./persistence";
-export async function acceptAwardUpload(authUserId: string, eventId: string, categoryId: string, raw: unknown, body: ReadableStream<Uint8Array>, signal: AbortSignal) {
+type TeamUploadContext = { principal: TrustedCreatorPrincipal; ownerId: string };
+type PublicUploadResult = Awaited<ReturnType<typeof commitAwardSubmission>> | ReturnType<typeof eventError>;
+type TeamUploadResult = ({ ok: true } & Awaited<ReturnType<typeof commitAwardTeamCandidate>>) | ReturnType<typeof eventError>;
+export function acceptAwardUpload(authUserId: string, eventId: string, categoryId: string, raw: unknown, body: ReadableStream<Uint8Array>, signal: AbortSignal): Promise<PublicUploadResult>;
+export function acceptAwardUpload(authUserId: string, eventId: string, categoryId: string, raw: unknown, body: ReadableStream<Uint8Array>, signal: AbortSignal, team: TeamUploadContext): Promise<TeamUploadResult>;
+export async function acceptAwardUpload(authUserId: string, eventId: string, categoryId: string, raw: unknown, body: ReadableStream<Uint8Array>, signal: AbortSignal, team?: TeamUploadContext) {
 	const uploadSignal = AbortSignal.any([signal, AbortSignal.timeout(180000)]);
 	const parsed = uploadInputSchema.safeParse(raw);
 	if (!authUserId || !parsed.success) return eventError(new EventError("INVALID_INPUT"));
 	let asset: typeof assets.$inferSelect | undefined, connection: typeof connections.$inferSelect | undefined, key: string | undefined;
 	try {
 		const reserved = await db.transaction(async (tx) => {
+			if (team && team.principal.authUserId !== authUserId) throw new EventError("ACCESS_DENIED");
+			const authority = team ? await authorizeLockedMutation(team.principal, team.ownerId, "event:review", tx) : undefined;
 			const event = await lockPublicAwardEvent(tx, eventId);
-			if (awardPhase(event, new Date()) !== "submissions") throw new EventError("PHASE_CLOSED");
+			if (team && event.ownerId !== team.ownerId) throw new EventError("ACCESS_DENIED");
+			if (team ? !isAwardReviewOpen(event, new Date()) : awardPhase(event, new Date()) !== "submissions") throw new EventError("PHASE_CLOSED");
 			const category = event.configuration.categories.find((c) => c.id === categoryId);
-			if (!category || category.selection !== "audience" || !["image", "audio", "video"].includes(category.source) || !parsed.data.mime.startsWith(`${category.source}/`)) throw new EventError("INVALID_INPUT");
-			const active = await tx
-				.select({ id: submissions.id })
-				.from(submissions)
-				.where(and(eq(submissions.eventId, eventId), eq(submissions.categoryId, categoryId), eq(submissions.authUserId, authUserId), isNull(submissions.withdrawnAt)));
+			if (!category || (!team && category.selection !== "audience") || category.selection === "data" || !["image", "audio", "video"].includes(category.source) || !parsed.data.mime.startsWith(`${category.source}/`)) throw new EventError("INVALID_INPUT");
+			const active = team
+				? []
+				: await tx
+						.select({ id: submissions.id })
+						.from(submissions)
+						.where(and(eq(submissions.eventId, eventId), eq(submissions.categoryId, categoryId), eq(submissions.authUserId, authUserId), isNull(submissions.withdrawnAt)));
 			const pending = await tx
 				.select({ id: assets.id })
 				.from(assets)
 				.where(and(eq(assets.eventId, eventId), eq(assets.categoryId, categoryId), eq(assets.authUserId, authUserId), eq(assets.state, "pending"), gt(assets.createdAt, new Date(Date.now() - 600000))));
-			if (pending.length || (category.submissionLimit !== null && active.length + pending.length >= category.submissionLimit)) throw new EventError("LIMIT_REACHED");
+			if (pending.length || (!team && category.submissionLimit !== null && active.length + pending.length >= category.submissionLimit)) throw new EventError("LIMIT_REACHED");
 			const [storage] = await tx
 				.select()
 				.from(connections)
@@ -37,6 +50,7 @@ export async function acceptAwardUpload(authUserId: string, eventId: string, cat
 				.insert(assets)
 				.values({ eventId, categoryId, authUserId, connectionId: storage.id, ...parsed.data })
 				.returning();
+			authority?.assertAuthorityCurrent();
 			return { asset: row, connection: storage };
 		});
 		asset = reserved.asset;
@@ -47,7 +61,7 @@ export async function acceptAwardUpload(authUserId: string, eventId: string, cat
 		uploadSignal.throwIfAborted();
 		const content = { kind: parsed.data.mime.split("/")[0], title: parsed.data.title, description: parsed.data.description, reference: asset.id, storageAssetId: asset.id, mediaUrl: `/api/events/${eventId}/media/${asset.id}` };
 		return await db.transaction(async (tx) => {
-			const result = await commitAwardSubmission(tx, authUserId, eventId, categoryId, content);
+			const result = team ? { ok: true as const, ...(await commitAwardTeamCandidate(tx, team.principal, team.ownerId, eventId, categoryId, content)) } : await commitAwardSubmission(tx, authUserId, eventId, categoryId, content);
 			const [finished] = await tx
 				.update(assets)
 				.set({ state: "completed", updatedAt: new Date() })

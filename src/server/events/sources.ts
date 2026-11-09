@@ -80,10 +80,14 @@ export async function resolveEventCandidate(eventId: string, categoryId: string,
 }
 export async function searchEventSources(eventId: string, categoryId: string, query: string) {
 	const { event, category } = await eventSourceContext(eventId, categoryId);
-	if (category.source === "clip") return searchAwardClips(event.ownerId, category, query);
-	if (category.source === "youtube") return (await (await import("./youtube")).searchAwardYoutube(event.ownerId, query)).filter((item) => candidateMatchesRules(item, event.ownerId, category.rules));
+	return searchAwardSources(event.ownerId, category, query);
+}
+export async function searchAwardSources(ownerId: string, category: EventCategory, query: string) {
+	if (query.length > 2048) throw new EventError("INVALID_INPUT");
+	if (category.source === "clip") return searchAwardClips(ownerId, category, query);
+	if (category.source === "youtube") return (await (await import("./youtube")).searchAwardYoutube(ownerId, query)).filter((item) => candidateMatchesRules(item, ownerId, category.rules));
 	if (category.source === "game") {
-		const games = await (await import("@/app/actions/twitch")).getTwitchGames(query, event.ownerId);
+		const games = await (await import("@/app/actions/twitch")).getTwitchGames(query, ownerId);
 		return games.slice(0, 40).map((game) => ({ kind: "game" as const, reference: game.id, title: game.name, description: "", thumbnailUrl: game.box_art_url.replace("{width}", "480").replace("{height}", "640") }));
 	}
 	throw new EventError("INVALID_INPUT");

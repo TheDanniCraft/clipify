@@ -27,3 +27,15 @@ it("recognizes the public same-origin host behind the deployment proxy", async (
 	const proxied = new Request(`http://internal-next:3000/api/events/${eventId}/upload?category=${categoryId}`, { method: "POST", headers, body: new Uint8Array(16) });
 	expect((await POST(proxied, { params: Promise.resolve({ eventId }) })).status).toBe(200);
 });
+
+jest.mock("@/auth/session-principal", () => ({ getVerifiedSessionPrincipal: jest.fn(async () => ({ kind: "session", authUserId: "team-actor", sessionId: "session", authenticatedAt: new Date() })) }));
+jest.mock("@/server/events/public-read", () => ({ readPublicAwardEvent: jest.fn(async () => ({ ok: true, event: { ownerId: "actual-host" } })) }));
+it("uses the verified team actor and stored event owner for a team upload", async () => {
+	const { getEventParticipant } = await import("@/server/events/participant");
+	jest.mocked(getEventParticipant).mockClear();
+	const original = request();
+	const response = await POST(new Request(`${original.url}&mode=team`, original), { params: Promise.resolve({ eventId }) });
+	expect(response.status).toBe(200);
+	expect(acceptAwardUpload).toHaveBeenLastCalledWith("team-actor", eventId, categoryId, expect.anything(), expect.anything(), expect.anything(), expect.objectContaining({ ownerId: "actual-host", principal: expect.objectContaining({ authUserId: "team-actor" }) }));
+	expect(getEventParticipant).not.toHaveBeenCalled();
+});

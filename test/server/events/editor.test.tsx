@@ -3,6 +3,7 @@ import EventEditor from "@/app/components/events/EventEditor";
 import { createAwardConfiguration } from "@/app/lib/eventDefaults";
 import { saveEventAction } from "@/app/actions/events";
 jest.mock("@/app/actions/events", () => ({ saveEventAction: jest.fn() }));
+jest.mock("@/app/components/events/EventDataResults", () => ({ __esModule: true, default: () => null }));
 jest.mock("@/app/components/events/EventReview", () => ({ __esModule: true, default: () => null }));
 jest.mock("@/app/components/events/EventConnections", () => ({ __esModule: true, default: () => null }));
 jest.mock("@/app/components/events/EventRoadmap", () => ({ __esModule: true, default: () => null }));

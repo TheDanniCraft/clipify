@@ -201,3 +201,21 @@ it("returns grouped review entries only through creator authorization", async ()
 		expect(result.candidates.filter((c) => c.parentId)).toHaveLength(2);
 	}
 });
+
+it("prepares the configured team choice list when the event is published", async () => {
+	const created = await createAwardEvent(principal, "host", { ...config, categories: [{ ...config.categories[0], source: "choice", selection: "team", options: ["Lime", "Peach"] }] });
+	if (!created.ok) throw new Error("creation failed");
+	expect(await publishAwardEvent(principal, "host", created.event.id, 1, new Date("2025-12-01"))).toMatchObject({ ok: true });
+	const rows = await database.query<{ content: { title: string }; nominated: boolean }>("SELECT content,nominated FROM award_candidates WHERE event_id=$1 ORDER BY canonical_key", [created.event.id]);
+	expect(rows.rows.map((row) => row.content.title)).toEqual(["Lime", "Peach"]);
+	expect(rows.rows.every((row) => !row.nominated)).toBe(true);
+});
+it("lets the authorized team add a text nominee without creating a viewer receipt", async () => {
+	const created = await createAwardEvent(principal, "host", { ...config, categories: [{ ...config.categories[0], source: "text", selection: "team" }] });
+	if (!created.ok) throw new Error("creation failed");
+	await publishAwardEvent(principal, "host", created.event.id, 1, new Date("2025-12-01"));
+	const { addAwardTeamCandidate } = await import("@/server/events/review");
+	expect(await addAwardTeamCandidate({ ...principal, authUserId: "other" }, "host", created.event.id, config.categories[0].id, { title: "Insider" }, new Date("2026-01-10"))).toMatchObject({ ok: false, code: "ACCESS_DENIED" });
+	expect(await addAwardTeamCandidate(principal, "host", created.event.id, config.categories[0].id, { title: "Insider", description: "Team nomination" }, new Date("2026-01-10"))).toMatchObject({ ok: true, candidate: { content: { title: "Insider" }, nominated: false } });
+	expect((await database.query("SELECT id FROM award_submissions WHERE event_id=$1", [created.event.id])).rows).toHaveLength(0);
+});
