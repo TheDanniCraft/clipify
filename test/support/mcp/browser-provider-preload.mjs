@@ -4,10 +4,12 @@ import "./browser-admin-provider-preload.mjs";
 // Native OAuth, SDK transport and application authorization remain real.
 import { Pool } from "pg";
 import { browserDatabaseUrl } from "./browser-database.cjs";
+import { googleDiscovery } from "./google-discovery.mjs";
 const pool = new Pool({ connectionString: browserDatabaseUrl(), max: 1 });
 const nativeFetch = globalThis.fetch.bind(globalThis);
 globalThis.fetch = async (input, init) => {
 	const url = new URL(input instanceof Request ? input.url : String(input));
+	if (url.href === "https://accounts.google.com/.well-known/openid-configuration") return Response.json(googleDiscovery);
 	const ids = url.searchParams.getAll("id");
 	if (url.origin !== "https://api.twitch.tv" || url.pathname !== "/helix/clips" || ids.length !== 1 || !/^SdkBrowser_[a-f0-9-]{36}$/.test(ids[0])) return nativeFetch(input, init);
 	const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
