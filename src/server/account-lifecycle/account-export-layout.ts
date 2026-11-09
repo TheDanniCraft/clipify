@@ -1,6 +1,9 @@
 type Location = { file: string; pointer: string };
 
 const overrides: Record<string, [string, string]> = {
+	"events.connections": ["security", "eventConnections"],
+	"events.storageCredentials": ["security", "credentials/eventStorage"],
+	"events.connectionIntents": ["security", "eventConnectionIntents"],
 	"identity.providerAccounts": ["security", "providerAccounts"],
 	"identity.sessions": ["security", "sessions"],
 	"identity.passkeys": ["security", "passkeys"],
@@ -20,6 +23,7 @@ const overrides: Record<string, [string, string]> = {
 };
 const sections: Record<string, [string, string]> = {
 	identity: ["account", ""],
+	events: ["events", ""],
 	organization: ["account", "team"],
 	agency: ["account", "agency"],
 	privacy: ["account", "privacy"],

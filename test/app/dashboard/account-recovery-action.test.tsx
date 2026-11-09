@@ -1,3 +1,4 @@
+import { TWITCH_ADDITIONAL_SCOPES } from "@/auth/providers/twitch";
 import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import RecoveryAction from "@/app/dashboard/settings/account/recovery/recovery-action";
@@ -31,7 +32,7 @@ test("verification failure stays actionable and preserves the recovery request",
 	fireEvent.click(screen.getByRole("button", { name: "Recover my account" }));
 	fireEvent.click(await screen.findByRole("button", { name: "Continue with Twitch" }));
 	expect(await screen.findByRole("alert")).toHaveTextContent("Sign-in could not start");
-	expect(signIn).toHaveBeenCalledWith({ provider: "twitch", callbackURL: "/dashboard/settings/account/recovery", errorCallbackURL: "/dashboard/settings/account/recovery?verification=failed" });
+	expect(signIn).toHaveBeenCalledWith({ provider: "twitch", scopes: [...TWITCH_ADDITIONAL_SCOPES], callbackURL: "/dashboard/settings/account/recovery", errorCallbackURL: "/dashboard/settings/account/recovery?verification=failed" });
 	expect(screen.getByRole("button", { name: "Continue with Twitch" })).not.toBeDisabled();
 	expect(recover).toHaveBeenCalledTimes(1);
 });

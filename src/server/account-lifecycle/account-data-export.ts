@@ -1,4 +1,5 @@
 import "server-only";
+import { collectAwardAccountData } from "@/server/events/account-export";
 
 import { and, eq, inArray, like, or, sql } from "drizzle-orm";
 import * as tables from "@/db/schema";
@@ -152,6 +153,7 @@ export async function collectComprehensiveAccountData(input: { authUserId: strin
 	]);
 	const emails = [...new Set([profiles[0]?.email, authUsers[0]?.email].filter((email): email is string => Boolean(email)))];
 	const { resourceAuditEvents, addressedNotifications, receivedInvitations, ...additional } = await collectAdditionalAccountData(input, { emails, resourceIds: [...overlays, ...playlists, ...galleries, ...runners, ...streamSessions].map((row) => row.id).concat(grantIds), queuedClips, playlistClips, modQueue });
+	const eventData = await collectAwardAccountData(input);
 	const reusableCredentials = { ...collectReusableCredentialExport({ overlays, runners, streamSessions, destinations: additional.runner.destinations }), oauthAccounts: await collectOAuthCredentialExport(providerAccounts) };
 	const external = await collectExternalAccountData(
 		authUsers.filter((row) => row.emailVerified).map((row) => row.email),
@@ -165,6 +167,7 @@ export async function collectComprehensiveAccountData(input: { authUserId: strin
 		identity: { profile: profiles[0] ?? null, settings: settings[0] ?? null, badges, contentStates, creatorAccounts, identityLinks, authUsers, providerAccounts, sessions, passkeys },
 		organization: { organizations, memberships, roles, invitations: [...new Map([...invitations, ...receivedInvitations].map((row) => [row.id, row])).values()] },
 		content: { overlays, queuedClips, playlists, playlistClips, galleries, runners, enrollments, streamSessions, modQueue },
+		events: eventData,
 		reusableCredentials,
 		billing: { subscriptions, subscriptionItems, entitlements },
 		agency: { links: agencyLinks, licenseAllocations },

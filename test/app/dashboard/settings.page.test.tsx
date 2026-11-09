@@ -1,3 +1,4 @@
+import { TWITCH_ADDITIONAL_SCOPES } from "@/auth/providers/twitch";
 jest.mock("@components/settings/BrandSettingsPanel", () => ({ __esModule: true, default: () => <div>Brand settings panel</div> }));
 import React from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -382,7 +383,7 @@ test("a stale download preserves its token for verification and removes it from 
 	expect(await screen.findByText("Sign in again to continue")).toBeVisible();
 	expect(window.location.hash).toBe("");
 	fireEvent.click(screen.getByRole("button", { name: "Continue with Twitch" }));
-	await waitFor(() => expect(authClient.signIn.social).toHaveBeenCalledWith({ provider: "twitch", callbackURL: `/dashboard/settings?reauthenticated=download#downloadExport=${encodeURIComponent(token)}`, errorCallbackURL: "/dashboard/settings?verification=failed" }));
+	await waitFor(() => expect(authClient.signIn.social).toHaveBeenCalledWith({ provider: "twitch", scopes: [...TWITCH_ADDITIONAL_SCOPES], callbackURL: `/dashboard/settings?reauthenticated=download#downloadExport=${encodeURIComponent(token)}`, errorCallbackURL: "/dashboard/settings?verification=failed" }));
 	expect(requestAccountDataExport).not.toHaveBeenCalled();
 });
 
@@ -410,7 +411,7 @@ test.each(["success", "failure"])("export recent-auth verification handles %s", 
 	fireEvent.click(await screen.findByRole("button", { name: "Export Account Data" }));
 	fireEvent.click(screen.getByRole("button", { name: "Email download link" }));
 	fireEvent.click(await screen.findByRole("button", { name: "Continue with Twitch" }));
-	await waitFor(() => expect(authClient.signIn.social).toHaveBeenCalledWith({ provider: "twitch", callbackURL: "/dashboard/settings?reauthenticated=export", errorCallbackURL: "/dashboard/settings?verification=failed" }));
+	await waitFor(() => expect(authClient.signIn.social).toHaveBeenCalledWith({ provider: "twitch", scopes: [...TWITCH_ADDITIONAL_SCOPES], callbackURL: "/dashboard/settings?reauthenticated=export", errorCallbackURL: "/dashboard/settings?verification=failed" }));
 	if (mode === "failure") expect(await screen.findByRole("alert")).toHaveTextContent("Sign-in could not start. Please try again.");
 	expect(JSON.stringify(notify.mock.calls)).not.toContain("private auth failure");
 });
