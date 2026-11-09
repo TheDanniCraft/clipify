@@ -1236,3 +1236,61 @@ export const awardVotesTable = pgTable(
 	},
 	(t) => [primaryKey({ columns: [t.categoryId, t.candidateId, t.authUserId] }), index("award_vote_event").on(t.eventId)],
 );
+
+export const eventConnectionsTable = pgTable(
+	"event_connections",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		ownerId: varchar("owner_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		provider: varchar("provider", { length: 16 }).$type<"s3" | "drive" | "youtube">().notNull(),
+		authAccountId: text("auth_account_id"),
+		authUserId: text("auth_user_id").references(() => authUserTable.id, { onDelete: "set null" }),
+		identityId: varchar("identity_id").notNull(),
+		identityName: varchar("identity_name").notNull(),
+		encryptedConfiguration: text("encrypted_configuration"),
+		connected: boolean("connected").notNull().default(true),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+	},
+	(t) => [unique("event_connection_owner_provider").on(t.ownerId, t.provider)],
+);
+export const eventConnectionIntentsTable = pgTable("event_connection_intents", {
+	digest: varchar("digest", { length: 64 }).primaryKey(),
+	ownerId: varchar("owner_id")
+		.notNull()
+		.references(() => usersTable.id, { onDelete: "cascade" }),
+	authUserId: text("auth_user_id")
+		.notNull()
+		.references(() => authUserTable.id, { onDelete: "cascade" }),
+	sessionId: text("session_id").notNull(),
+	provider: varchar("provider", { length: 16 }).$type<"drive" | "youtube">().notNull(),
+	returnPath: varchar("return_path").notNull(),
+	connectionId: uuid("connection_id").references(() => eventConnectionsTable.id, { onDelete: "set null" }),
+	expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+});
+
+export const awardAssetsTable = pgTable(
+	"award_assets",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		eventId: uuid("event_id")
+			.notNull()
+			.references(() => awardEventsTable.id, { onDelete: "cascade" }),
+		categoryId: uuid("category_id").notNull(),
+		authUserId: text("auth_user_id").references(() => authUserTable.id, { onDelete: "set null" }),
+		connectionId: uuid("connection_id")
+			.notNull()
+			.references(() => eventConnectionsTable.id, { onDelete: "restrict" }),
+		providerKey: varchar("provider_key", { length: 512 }),
+		mime: varchar("mime", { length: 100 }).notNull(),
+		size: integer("size").notNull(),
+		title: varchar("title", { length: 160 }).notNull(),
+		description: text("description").notNull().default(""),
+		state: varchar("state", { length: 16 }).$type<"pending" | "completed" | "cleanup">().notNull().default("pending"),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+	},
+	(t) => [index("award_asset_pending").on(t.state, t.updatedAt), index("award_asset_receipt").on(t.eventId, t.categoryId, t.authUserId)],
+);

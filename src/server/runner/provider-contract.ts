@@ -1,3 +1,4 @@
+import { TWITCH_ADDITIONAL_SCOPES } from "@/auth/providers/twitch";
 import { z } from "zod";
 
 export type StreamingProvider = "twitch" | "youtube";
@@ -14,9 +15,9 @@ export function providerLinkRequest(provider: StreamingProvider, origin: string,
 		callbackURL: callback.toString(),
 		errorCallbackURL: callback.toString(),
 		disableRedirect: true,
-		scopes: providerScopes(provider),
+		scopes: [...providerScopes(provider), ...(provider === "twitch" ? TWITCH_ADDITIONAL_SCOPES : [])],
 		additionalData: { runnerConnectionIntent: intent },
-		additionalParams: (provider === "youtube" ? { access_type: "offline", prompt: "consent" } : { force_verify: "true" }) as Record<string, string>,
+		additionalParams: (provider === "youtube" ? { access_type: "offline", prompt: "consent", include_granted_scopes: "true" } : { force_verify: "true" }) as Record<string, string>,
 	};
 }
 export const streamDetailSchema = z

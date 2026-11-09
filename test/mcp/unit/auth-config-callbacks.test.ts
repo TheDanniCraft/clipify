@@ -332,3 +332,17 @@ test("event participant callbacks do not provision creators or send creator welc
 	expect(queueIdentityEmail).not.toHaveBeenCalled();
 	expect(restoreTwitchAccountAccess).not.toHaveBeenCalled();
 });
+
+test("Twitch provider defaults request identity only so viewers do not grant creator tools", () => {
+	expect(options.socialProviders.twitch.scope ?? []).toEqual([]);
+});
+
+jest.mock("@/server/events/connections", () => ({ recordEventGoogleAccount: jest.fn(), disconnectEventConnectionsForAuthAccount: jest.fn() }));
+import { recordEventGoogleAccount } from "@/server/events/connections";
+test("event Google callbacks record the exact selected linked account", async () => {
+	jest.mocked(getOAuthState).mockResolvedValue({ link: { userId: "identity" }, eventConnectionIntent: "a".repeat(43) } as never);
+	const account = { id: "selected-google", userId: "identity", providerId: "google", scope: "https://www.googleapis.com/auth/drive.file" };
+	await options.databaseHooks.account.update.after(account, { path: "/callback/google" });
+	expect(recordEventGoogleAccount).toHaveBeenCalledWith(account, "a".repeat(43));
+	expect(completeTwitchSignIn).not.toHaveBeenCalled();
+});

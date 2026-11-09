@@ -64,3 +64,14 @@ describe("native MCP login continuation", () => {
 		expect(redirect).toHaveBeenCalledWith("/checkout/continue");
 	});
 });
+
+it("lets an event-only viewer deliberately start creator onboarding", async () => {
+	jest.clearAllMocks();
+	readCheckoutIntent.mockResolvedValue(null);
+	validateAuth.mockResolvedValue(null);
+	getAuthSession.mockResolvedValue({ session: { id: "viewer-session" } });
+	const LoginPage = (await import("@/app/login/page")).default;
+	renderToStaticMarkup(await LoginPage({ searchParams: Promise.resolve({}) }));
+	expect(redirect).not.toHaveBeenCalled();
+	expect(loginClient).toHaveBeenCalledWith({ returnUrl: "", oauthAuthorization: false });
+});

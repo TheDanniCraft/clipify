@@ -12,3 +12,9 @@ describe("Event configuration (FR-001/006)", () => {
 	it("rejects reused category IDs", () => expect(eventInputSchema.safeParse({ ...base, categories: [base.categories[0], base.categories[0]] }).success).toBe(false));
 	it("rejects inverted clip rule windows", () => expect(categorySchema.safeParse({ ...base.categories[0], rules: { startedAt: schedule.submissionsEnd, endedAt: schedule.submissionsStart } }).success).toBe(false));
 });
+
+it("accepts an explicitly selected storage connection and rejects an invalid ID", () => {
+	const storageConnectionId = "4455a7b3-993d-4cf6-b9d3-52a9c03a0ba2";
+	expect(eventInputSchema.safeParse({ ...base, storageConnectionId }).success).toBe(true);
+	expect(eventInputSchema.safeParse({ ...base, storageConnectionId: "other" }).success).toBe(false);
+});

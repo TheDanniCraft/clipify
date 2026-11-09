@@ -1,8 +1,20 @@
 import { z } from "zod";
 import { eventSourceSchema, type EventCategory } from "./eventConfiguration";
-const httpsUrl = z.url().refine((value) => new URL(value).protocol === "https:", "Use a secure media URL.");
+const httpsUrl = z.url().refine((value) => /^https:\/\//i.test(value), "Use a secure media URL.");
 export const candidateInputSchema = z
-	.object({ kind: eventSourceSchema, reference: z.string().max(2048).default(""), title: z.string().trim().min(1).max(160), description: z.string().max(5000).default(""), thumbnailUrl: httpsUrl.optional(), mediaUrl: httpsUrl.optional(), createdAt: z.iso.datetime({ offset: true }).optional(), views: z.number().int().nonnegative().optional(), duration: z.number().nonnegative().optional(), creatorId: z.string().max(200).optional(), storageAssetId: z.uuid().optional() })
+	.object({
+		kind: eventSourceSchema,
+		reference: z.string().max(2048).default(""),
+		title: z.string().trim().min(1).max(160),
+		description: z.string().max(5000).default(""),
+		thumbnailUrl: httpsUrl.optional(),
+		mediaUrl: z.union([httpsUrl, z.string().regex(/^\/api\/events\/[0-9a-f-]{36}\/media\/[0-9a-f-]{36}$/i)]).optional(),
+		createdAt: z.iso.datetime({ offset: true }).optional(),
+		views: z.number().int().nonnegative().optional(),
+		duration: z.number().nonnegative().optional(),
+		creatorId: z.string().max(200).optional(),
+		storageAssetId: z.uuid().optional(),
+	})
 	.strict();
 export type EventCandidateContent = z.infer<typeof candidateInputSchema>;
 export function canonicalCandidateKey(candidate: Pick<EventCandidateContent, "kind" | "reference">, submissionId: string) {

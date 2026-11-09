@@ -1,0 +1,73 @@
+"use client";
+import Image from "next/image";
+import { Button, Checkbox, Link } from "@heroui/react";
+import type { EventCandidateContent } from "@lib/eventCandidates";
+export function EventMedia({ content }: { content: EventCandidateContent }) {
+	if (content.kind === "clip" && /^[A-Za-z0-9_-]{1,200}$/.test(content.reference)) return <iframe title={content.title} className='aspect-video h-full w-full border-0' src={`https://clips.twitch.tv/embed?clip=${encodeURIComponent(content.reference)}&parent=${encodeURIComponent(window.location.hostname)}&autoplay=true`} allow='autoplay; fullscreen' allowFullScreen />;
+	if (content.kind === "youtube" && /^[A-Za-z0-9_-]{11}$/.test(content.reference)) return <iframe title={content.title} className='aspect-video h-full w-full border-0' src={`https://www.youtube-nocookie.com/embed/${content.reference}?autoplay=1`} allow='autoplay; fullscreen' allowFullScreen />;
+	if (content.kind === "video" && content.mediaUrl) return <video aria-label={content.title} src={content.mediaUrl} className='max-h-[80vh] w-full' controls autoPlay playsInline />;
+	if (content.kind === "audio" && content.mediaUrl)
+		return (
+			<div className='flex h-full flex-col items-center justify-center gap-6 p-6'>
+				<h2 className='text-2xl font-semibold'>{content.title}</h2>
+				<audio aria-label={content.title} src={content.mediaUrl} controls autoPlay className='w-full' />
+			</div>
+		);
+	if ((content.kind === "image" || content.kind === "game") && (content.mediaUrl || content.thumbnailUrl))
+		return (
+			<div className='relative aspect-video h-full w-full'>
+				<Image src={(content.mediaUrl || content.thumbnailUrl)!} unoptimized fill alt={content.title} className='object-contain' />
+			</div>
+		);
+	return (
+		<div className='flex min-h-64 flex-col items-center justify-center gap-5 p-8 text-center'>
+			<h2 className='break-words text-3xl font-semibold'>{content.title}</h2>
+			{content.description ? <p className='max-w-3xl whitespace-pre-wrap break-words text-xl text-muted'>{content.description}</p> : null}
+			{content.kind === "link" && /^https:\/\//.test(content.reference) ? (
+				<Link href={content.reference} target='_blank' rel='noopener noreferrer'>
+					Open submitted link
+				</Link>
+			) : null}
+			{content.kind === "person" ? (
+				<Link href={`https://twitch.tv/${encodeURIComponent(content.reference)}`} target='_blank' rel='noopener noreferrer'>
+					Open Twitch profile
+				</Link>
+			) : null}
+		</div>
+	);
+}
+export function EventNomineeCard({ candidate, selected = false, disabled = false, onSelect, onOpen, result }: { candidate: { id: string; content: EventCandidateContent }; selected?: boolean; disabled?: boolean; onSelect?: (selected: boolean) => void; onOpen: () => void; result?: { percentage?: number; winner: boolean; votes?: number } }) {
+	return (
+		<div className={`overflow-hidden rounded-2xl border ${selected ? "border-accent bg-accent/5" : "border-separator bg-surface"}`}>
+			<div className='relative aspect-video'>
+				<Button aria-label={`View ${candidate.content.title}`} variant='tertiary' className='relative h-full w-full overflow-hidden rounded-none p-0' onPress={onOpen}>
+					{candidate.content.thumbnailUrl || (candidate.content.kind === "image" && candidate.content.mediaUrl) ? <Image src={(candidate.content.thumbnailUrl || candidate.content.mediaUrl)!} alt='' unoptimized fill className='object-cover' /> : <span className='max-w-full break-words px-5 text-lg font-medium'>{candidate.content.title}</span>}
+				</Button>
+				{result?.percentage !== undefined ? <div aria-hidden='true' className='pointer-events-none absolute inset-x-0 bottom-0 bg-accent/45 transition-[height] duration-1000' style={{ height: `${Math.min(100, Math.max(0, result.percentage))}%` }} /> : null}
+				{result?.winner ? <span className='pointer-events-none absolute right-3 top-3 rounded-full bg-accent px-3 py-1 text-sm font-semibold text-accent-foreground'>Winner</span> : null}
+			</div>
+			<div className='space-y-2 p-4'>
+				{onSelect ? (
+					<Checkbox aria-label={`Vote for ${candidate.content.title}`} isSelected={selected} isDisabled={disabled} onChange={onSelect} className='w-full'>
+						<Checkbox.Content>
+							<Checkbox.Control>
+								<Checkbox.Indicator />
+							</Checkbox.Control>
+							<span className='break-words font-medium'>{candidate.content.title}</span>
+						</Checkbox.Content>
+					</Checkbox>
+				) : (
+					<div className='space-y-2'>
+						<h3 className='break-words font-medium'>{candidate.content.title}</h3>
+						{selected ? <p className='text-sm font-medium text-accent'>Your selection</p> : null}
+					</div>
+				)}
+				{result?.percentage !== undefined ? (
+					<p className='text-sm text-muted'>
+						{new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(result.percentage)}%{result.votes !== undefined ? ` (${new Intl.NumberFormat().format(result.votes)} votes)` : ""}
+					</p>
+				) : null}
+			</div>
+		</div>
+	);
+}

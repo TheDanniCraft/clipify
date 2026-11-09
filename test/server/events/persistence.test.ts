@@ -108,6 +108,7 @@ it("enforces personal quota, retains originals and releases quota on withdrawal"
 	expect(await withdrawAwardSubmission("other", event.event.id, first.submission.id, now)).toMatchObject({ ok: false, code: "NOT_FOUND" });
 	expect(await ownAwardSubmissions("viewer", event.event.id)).toMatchObject({ ok: true, submissions: [{ original: { title: candidate.title } }] });
 	expect(await withdrawAwardSubmission("viewer", event.event.id, first.submission.id, now)).toMatchObject({ ok: true });
+	expect((await database.query<{ nominated: boolean }>("SELECT nominated FROM award_candidates WHERE id=$1", [first.submission.candidateId])).rows[0].nominated).toBe(false);
 	expect(await submitAwardCandidate("viewer", event.event.id, categoryId, { ...candidate, title: "Besserer Vorschlag" }, now)).toMatchObject({ ok: true });
 	expect(await submitAwardCandidate("viewer", event.event.id, categoryId, candidate, new Date(config.schedule.submissionsEnd))).toMatchObject({ ok: false, code: "PHASE_CLOSED" });
 });
@@ -138,4 +139,65 @@ it("groups originals into one nominee and enforces global voting limits and serv
 	expect(await saveAwardVotes("a", event.event.id, config.categories[0].id, [grouped.candidate.id, first.submission.candidateId], new Date(config.schedule.votingStart))).toMatchObject({ ok: false, code: "LIMIT_REACHED" });
 	expect(await saveAwardVotes("a", event.event.id, config.categories[0].id, [], new Date(config.schedule.votingStart))).toMatchObject({ ok: true });
 	expect(await saveAwardVotes("a", event.event.id, config.categories[0].id, [grouped.candidate.id], new Date(config.schedule.votingEnd))).toMatchObject({ ok: false, code: "PHASE_CLOSED" });
+});
+
+import { readPublicAwardEvent } from "@/server/events/public-read";
+it("rejects invalid presenter capabilities and never returns secret material", async () => {
+	const event = await createAwardEvent(principal, "host", config);
+	if (!event.ok) throw new Error("creation failed");
+	expect(await readPublicAwardEvent(event.event.id)).toMatchObject({ ok: false, code: "NOT_FOUND" });
+	await publishAwardEvent(principal, "host", event.event.id, 1, new Date("2025-12-01"));
+	expect(await readPublicAwardEvent(event.event.id, undefined, "wrong")).toMatchObject({ ok: false, code: "NOT_FOUND" });
+	const publicRead = await readPublicAwardEvent(event.event.id, "viewer");
+	expect(publicRead).toMatchObject({ ok: true });
+	expect(JSON.stringify(publicRead)).not.toContain(event.presenterSecret);
+	expect(JSON.stringify(publicRead)).not.toContain("presenterDigest");
+	const presenter = await readPublicAwardEvent(event.event.id, undefined, event.presenterSecret);
+	expect(presenter).toMatchObject({ ok: true });
+	await rotateAwardPresenterSecret(principal, "host", event.event.id);
+	expect(await readPublicAwardEvent(event.event.id, undefined, event.presenterSecret)).toMatchObject({ ok: false, code: "NOT_FOUND" });
+});
+
+it("removes an automatically nominated candidate when its last proposal is withdrawn", async () => {
+	const event = await createAwardEvent(principal, "host", { ...config, schedule: { ...config.schedule, reviewRequired: false }, categories: [{ ...config.categories[0], source: "text" }] });
+	if (!event.ok) throw new Error("creation failed");
+	await publishAwardEvent(principal, "host", event.event.id, 1, new Date("2025-12-01"));
+	const now = new Date("2026-01-15");
+	const proposed = await submitAwardCandidate("viewer", event.event.id, config.categories[0].id, candidate, now);
+	if (!proposed.ok) throw new Error("submit failed");
+	expect((await database.query<{ nominated: boolean }>("SELECT nominated FROM award_candidates WHERE id=$1", [proposed.submission.candidateId])).rows[0].nominated).toBe(true);
+	expect(await withdrawAwardSubmission("viewer", event.event.id, proposed.submission.id, now)).toMatchObject({ ok: true });
+	expect((await database.query<{ nominated: boolean }>("SELECT nominated FROM award_candidates WHERE id=$1", [proposed.submission.candidateId])).rows[0].nominated).toBe(false);
+});
+
+it("lets the team finish a held review after the planned voting start without accepting late votes", async () => {
+	const created = await createAwardEvent(principal, "host", { ...config, categories: [{ ...config.categories[0], source: "text" }] });
+	if (!created.ok) throw new Error("creation failed");
+	await database.query("UPDATE award_events SET published_at=$2 WHERE id=$1", [created.event.id, "2025-12-31T00:00:00Z"]);
+	const proposal = await submitAwardCandidate("viewer", created.event.id, config.categories[0].id, { kind: "text", title: "Lampe", reference: "" }, new Date("2026-01-10"));
+	if (!proposal.ok) throw new Error("submission failed");
+	const now = new Date("2026-02-09");
+	expect(await saveAwardVotes("viewer", created.event.id, config.categories[0].id, [proposal.submission.candidateId], now)).toMatchObject({ ok: false, code: "PHASE_CLOSED" });
+	expect(await nominateAwardCandidates(principal, "host", created.event.id, config.categories[0].id, [proposal.submission.candidateId], now)).toMatchObject({ ok: true });
+	expect(await releaseAwardReview(principal, "host", created.event.id, now)).toMatchObject({ ok: true });
+	expect(await saveAwardVotes("viewer", created.event.id, config.categories[0].id, [proposal.submission.candidateId], now)).toMatchObject({ ok: true });
+	expect(await nominateAwardCandidates(principal, "host", created.event.id, config.categories[0].id, [], now)).toMatchObject({ ok: false, code: "PHASE_CLOSED" });
+});
+
+it("returns grouped review entries only through creator authorization", async () => {
+	const created = await createAwardEvent(principal, "host", { ...config, categories: [{ ...config.categories[0], source: "text", submissionLimit: null }] });
+	if (!created.ok) throw new Error("creation failed");
+	await database.query("UPDATE award_events SET published_at=$2 WHERE id=$1", [created.event.id, "2025-12-31T00:00:00Z"]);
+	const first = await submitAwardCandidate("viewer", created.event.id, config.categories[0].id, { kind: "text", title: "hahaha die Lampe", reference: "" }, new Date("2026-01-10"));
+	const second = await submitAwardCandidate("viewer", created.event.id, config.categories[0].id, { kind: "text", title: "Birne explodiert", reference: "" }, new Date("2026-01-10"));
+	if (!first.ok || !second.ok) throw new Error("submission failed");
+	await groupAwardCandidates(principal, "host", created.event.id, config.categories[0].id, [first.submission.candidateId, second.submission.candidateId], "Lampe raucht ab", new Date("2026-02-02"));
+	const { readAwardReview } = await import("@/server/events/review");
+	expect(await readAwardReview({ ...principal, authUserId: "other" }, "host", created.event.id)).toMatchObject({ ok: false, code: "ACCESS_DENIED" });
+	const result = await readAwardReview(principal, "host", created.event.id);
+	expect(result).toMatchObject({ ok: true });
+	if (result.ok) {
+		expect(result.candidates).toHaveLength(3);
+		expect(result.candidates.filter((c) => c.parentId)).toHaveLength(2);
+	}
 });

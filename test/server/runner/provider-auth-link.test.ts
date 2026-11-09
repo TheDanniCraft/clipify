@@ -1,10 +1,11 @@
 /** @jest-environment node */
+import { TWITCH_ADDITIONAL_SCOPES } from "@/auth/providers/twitch";
 import { providerLinkRequest } from "@/server/runner/provider-contract";
 import { TWITCH_REQUIRED_SCOPES } from "@/auth/providers/twitch";
 
 test("streaming consent uses Better Auth linking with combined permissions and a local completion URL", () => {
 	const result = providerLinkRequest("twitch", "https://preview.clipify.cloud.thedannicraft.de", "intent");
-	expect(result).toMatchObject({ provider: "twitch", disableRedirect: true, scopes: ["channel:read:stream_key", "channel:manage:broadcast"], additionalData: { runnerConnectionIntent: "intent" } });
+	expect(result).toMatchObject({ provider: "twitch", disableRedirect: true, scopes: ["channel:read:stream_key", "channel:manage:broadcast", ...TWITCH_ADDITIONAL_SCOPES], additionalData: { runnerConnectionIntent: "intent" } });
 	expect(result.callbackURL).toBe("https://preview.clipify.cloud.thedannicraft.de/runner/connect/twitch/complete?intent=intent");
 	expect(result.errorCallbackURL).toBe(result.callbackURL);
 	expect(TWITCH_REQUIRED_SCOPES).not.toContain("channel:read:stream_key");

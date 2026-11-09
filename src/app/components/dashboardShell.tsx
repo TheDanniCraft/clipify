@@ -23,6 +23,7 @@ const destinations: Destination[] = [
 	{ title: "Galleries", href: "/dashboard/galleries", permission: "gallery:read", icon: IconPhoto, tour: "galleries-tab" },
 	{ title: "Runner", href: "/dashboard/runners", permission: "runner:read", icon: IconDeviceDesktop, tour: "runners-tab" },
 	{ title: "Clip layouts", href: "/dashboard/clip-layouts", permission: "creator:read", icon: IconLayoutCollage, tour: "clip-layouts-tab" },
+	{ title: "Events", href: "/dashboard/events", permission: "event:read", icon: IconAward, tour: "events-tab" },
 	{ title: "Tools", href: "/dashboard/tools", permission: null, icon: IconTools },
 	{ title: "Settings", href: "/dashboard/settings", permission: "account:read", icon: IconSettings },
 ];
@@ -60,7 +61,7 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen, isAd
 	const toolItems: Destination[] = permissions.length ? toolSections.map((item) => ({ ...item, permission: null, icon: item.title === "Clip Player" ? IconPlayerPlay : IconPhoto, tour: item.title === "Clip Player" ? "nav-tools" : undefined })) : [];
 	const allowed = [...(!permissions.length ? [{ title: "Agency", href: "/dashboard/agency", permission: null, icon: IconBuildingCommunity }] : []), ...destinations].filter((item) => (item.title === "Settings" ? settingsItems.length > 0 : item.title === "Tools" ? toolItems.length > 0 : item.permission === null || permissions.includes(item.permission)));
 	const searchable = [...new Map([...settingsItems, ...toolItems, ...allowed].map((item) => [item.href, item])).values()];
-	const resources = allowed.filter((item) => ["Overlays", "Playlists", "Galleries", "Runner", "Clip layouts"].includes(item.title));
+	const resources = allowed.filter((item) => ["Overlays", "Playlists", "Galleries", "Runner", "Clip layouts", "Events"].includes(item.title));
 	const currentChild = activeGroup === "settings" && path === "/dashboard/settings" ? settingsItems.find((item) => item.href === settingsSections.find((candidate) => candidate.key === section)?.href) : activeGroup === "tools" ? toolItems[params.get("tool") === "gallery" ? 1 : 0] : undefined;
 	let active = path;
 	if (path.startsWith("/dashboard/overlay/")) active = "/dashboard/overlays";

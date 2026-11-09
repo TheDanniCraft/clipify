@@ -45,7 +45,7 @@ export async function createAwardEvent(principal: TrustedCreatorPrincipal, owner
 	if (!parsed.success || !ownerId || ownerId.length > 200) return eventError(new EventError("INVALID_INPUT"));
 	try {
 		return await db.transaction(async (tx) => {
-			const authority = await authorizeLockedMutation(principal, ownerId, "creator:update", tx);
+			const authority = await authorizeLockedMutation(principal, ownerId, "event:create", tx);
 			await validateBenefits(ownerId, parsed.data, authority.creator);
 			const secret = randomBytes(32).toString("base64url");
 			const [row] = await tx
@@ -63,7 +63,7 @@ export async function readAwardEvent(principal: TrustedCreatorPrincipal, ownerId
 	if (!/^[0-9a-f-]{36}$/i.test(id)) return eventError(new EventError("INVALID_INPUT"));
 	try {
 		return await db.transaction(async (tx) => {
-			const authority = await authorizeLockedMutation(principal, ownerId, "creator:read", tx);
+			const authority = await authorizeLockedMutation(principal, ownerId, "event:read", tx);
 			const event = await lockAwardEvent(tx, ownerId, id);
 			authority.assertAuthorityCurrent();
 			return { ok: true as const, event: managedEvent(event) };
@@ -75,7 +75,7 @@ export async function readAwardEvent(principal: TrustedCreatorPrincipal, ownerId
 export async function listAwardEvents(principal: TrustedCreatorPrincipal, ownerId: string) {
 	try {
 		return await db.transaction(async (tx) => {
-			const authority = await authorizeLockedMutation(principal, ownerId, "creator:read", tx);
+			const authority = await authorizeLockedMutation(principal, ownerId, "event:read", tx);
 			const rows = await tx.select().from(awardEventsTable).where(eq(awardEventsTable.ownerId, ownerId)).orderBy(desc(awardEventsTable.createdAt));
 			authority.assertAuthorityCurrent();
 			return { ok: true as const, events: rows.map(managedEvent) };
@@ -89,7 +89,7 @@ export async function updateAwardEvent(principal: TrustedCreatorPrincipal, owner
 	if (!parsed.success || !Number.isSafeInteger(revision) || revision < 1 || !/^[0-9a-f-]{36}$/i.test(id)) return eventError(new EventError("INVALID_INPUT"));
 	try {
 		return await db.transaction(async (tx) => {
-			const authority = await authorizeLockedMutation(principal, ownerId, "creator:update", tx);
+			const authority = await authorizeLockedMutation(principal, ownerId, "event:update", tx);
 			const event = await lockAwardEvent(tx, ownerId, id);
 			if (event.revision !== revision) throw new EventError("CONFLICT");
 			if (event.publishedAt) throw new EventError("PHASE_CLOSED");

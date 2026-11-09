@@ -1,25 +1,25 @@
 # Test Summary
 
-## Scope and references
-
-See spec.md, plan.md, test-traceability.md and defect-log.md.
-
 ## Execution
 
-Not Run. No feature product tests executed yet.
+Implementation is ongoing. Focused tests and actual Next.js browser journeys have run; complete acceptance and the required CI gate remain pending.
+
+- Creator event creation and roadmap editing passed in a browser.
+- Participant submission, withdrawal, replacement, vote persistence and closed selection passed in a browser.
+- Image upload into creator-owned Google Drive and full nominee playback passed in a browser using a controlled provider transport.
+- Team grouping, nomination, held-review release and public hiding of originals passed in a browser.
+- Focused policy, configuration, persistence, source resolution, OAuth participant isolation, team permissions, storage security, upload recovery and media privacy checks passed. Exact whole-file counts and Red/Green evidence are in tdd/cycle-log.md.
+- TypeScript and browser production build passed at the latest recorded checkpoint. Subsequent slices require their own checks.
+- Live Google/Twitch account validation is separate from controlled provider transport evidence. S3 transport and signing use focused security checks; a live cloud bucket is not claimed as verified.
+
+## Remaining work
+
+Frozen data results, team-entered candidates/results, presenter/chat, explicit presenter publication, public discovery, MCP operations and complete browser journeys are not yet all implemented and validated. No claim of complete Babbler Awards readiness.
 
 ## Coverage and traceability
 
-Planned; no coverage claim. Existing CI thresholds remain mandatory.
-
-## Defects and risks
-
-No confirmed defects. Provider delivery/auth integration pending research and execution.
-
-## Evidence
-
-Local TDD: tdd/cycle-log.md. Required gates: owning CI artifacts linked from traceability.
+No full-coverage claim. Owning CI validation and unchanged thresholds remain required. See test-traceability.md, defect-log.md and tdd/cycle-log.md.
 
 ## Recommendation
 
-Not Go: implementation and required evidence pending.
+Not Go for running the show: required implementation and acceptance work remains. The active goal is the entire working award-show flow.

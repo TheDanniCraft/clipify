@@ -11,10 +11,10 @@ import type { EventCategory } from "@/app/lib/eventConfiguration";
 async function reviewMutation<T>(principal: TrustedCreatorPrincipal, ownerId: string, id: string, categoryId: string | undefined, now: Date | undefined, operation: (tx: TransactionClient, category: EventCategory | undefined) => Promise<T>) {
 	try {
 		return await db.transaction(async (tx) => {
-			const authority = await authorizeLockedMutation(principal, ownerId, "creator:update", tx);
+			const authority = await authorizeLockedMutation(principal, ownerId, "event:review", tx);
 			const event = await lockAwardEvent(tx, ownerId, id);
 			const current = now ?? new Date();
-			if (!event.publishedAt || current >= new Date(event.configuration.schedule.votingStart) || event.reviewReleased) throw new EventError("PHASE_CLOSED");
+			if (!event.publishedAt || current >= new Date(event.configuration.schedule.votingEnd) || (!event.configuration.schedule.reviewRequired && current >= new Date(event.configuration.schedule.votingStart)) || event.reviewReleased) throw new EventError("PHASE_CLOSED");
 			const category = event.configuration.categories.find((c) => c.id === categoryId);
 			if (categoryId && (!category || category.selection === "data")) throw new EventError("INVALID_INPUT");
 			const result = await operation(tx, category);
@@ -32,7 +32,7 @@ export async function groupAwardCandidates(principal: TrustedCreatorPrincipal, o
 			.select()
 			.from(candidates)
 			.where(and(eq(candidates.eventId, id), eq(candidates.categoryId, categoryId), inArray(candidates.id, ids), isNull(candidates.parentId)));
-		if (rows.length !== ids.length) throw new EventError("INVALID_INPUT");
+		if (rows.length !== ids.length || rows.some((row) => row.canonicalKey.startsWith("group:"))) throw new EventError("INVALID_INPUT");
 		const [group] = await tx
 			.insert(candidates)
 			.values({ eventId: id, categoryId, canonicalKey: `group:${randomUUID()}`, content: { kind: category.source, title: title.trim(), description: "", reference: "" } })
@@ -70,4 +70,18 @@ export async function releaseAwardReview(principal: TrustedCreatorPrincipal, own
 			.where(eq(events.id, id));
 		return { released: true };
 	});
+}
+
+export async function readAwardReview(principal: TrustedCreatorPrincipal, ownerId: string, id: string) {
+	try {
+		return await db.transaction(async (tx) => {
+			const authority = await authorizeLockedMutation(principal, ownerId, "event:review", tx);
+			const event = await lockAwardEvent(tx, ownerId, id);
+			const rows = await tx.select().from(candidates).where(eq(candidates.eventId, id));
+			authority.assertAuthorityCurrent();
+			return { ok: true as const, candidates: rows, event: { configuration: event.configuration, published: !!event.publishedAt, reviewReleased: event.reviewReleased } };
+		});
+	} catch (error) {
+		return eventError(error);
+	}
 }

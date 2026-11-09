@@ -15,7 +15,7 @@ function validatedPermissions(values: readonly string[]): Permission[] {
 
 export function parseOrganizationRolePermissions(role: string, serialized?: string | null): Permission[] {
 	if (role === "owner") return [...PERMISSIONS];
-	const standardRoleKey = role === "content-manager" ? "contentManager" : role === "billing-manager" ? "billingManager" : role;
+	const standardRoleKey = role === "event-manager" ? "eventManager" : role === "content-manager" ? "contentManager" : role === "billing-manager" ? "billingManager" : role;
 	const standard = STANDARD_ROLES[standardRoleKey as keyof typeof STANDARD_ROLES];
 	if (standard) return [...standard];
 	if (!serialized) return [];

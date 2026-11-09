@@ -10,7 +10,6 @@ import { creatorIdentityLinksTable, usersTable } from "@/db/schema";
 import { passkey } from "@better-auth/passkey";
 import { db } from "@/db/client";
 import * as schema from "@/db/auth-schema";
-import { TWITCH_ADDITIONAL_SCOPES } from "./providers/twitch";
 import { refreshTwitchAccessToken } from "./providers/twitch-refresh";
 import { betterAuthOrganizationRoles, clipifyAccessControl } from "./organization-access";
 import { EMAIL_OTP_POLICY } from "./credential-policy";
@@ -33,6 +32,21 @@ async function recordRunnerAccount(account: { id: string; userId: string; provid
 		await recordStreamingAccount(account, state.runnerConnectionIntent);
 	} catch (error) {
 		if (!(error instanceof ProviderRequestError) && toPublicResourceError(error).code === "SERVICE_UNAVAILABLE") throw error;
+	}
+	return true;
+}
+
+async function recordEventAccount(account: { id: string; userId: string; providerId: string; scope?: string | null }, path?: string) {
+	if (account.providerId !== "google" || !path?.startsWith("/callback/")) return false;
+	const state = await getOAuthState();
+	if (state?.link?.userId !== account.userId || typeof state.eventConnectionIntent !== "string") return false;
+	const { recordEventGoogleAccount } = await import("@/server/events/connections");
+	const { EventError } = await import("@/server/events/persistence");
+	const { ProviderRequestError } = await import("@/server/runner/provider-api");
+	try {
+		await recordEventGoogleAccount(account, state.eventConnectionIntent);
+	} catch (error) {
+		if (!(error instanceof EventError) && !(error instanceof ProviderRequestError)) throw error;
 	}
 	return true;
 }
@@ -72,7 +86,6 @@ export const auth = betterAuth({
 		twitch: {
 			clientId: requiredAuthSetting("TWITCH_CLIENT_ID"),
 			clientSecret: requiredAuthSetting("TWITCH_CLIENT_SECRET"),
-			scope: TWITCH_ADDITIONAL_SCOPES,
 			refreshAccessToken: refreshTwitchAccessToken,
 			requireEmailVerification: true,
 		},
@@ -129,6 +142,7 @@ export const auth = betterAuth({
 		account: {
 			create: {
 				after: async (account, context) => {
+					if (await recordEventAccount(account, context?.path)) return;
 					const runnerConnection = await recordRunnerAccount(account, context?.path);
 					if (await isEventParticipation(context?.path)) return;
 					if (account.providerId === "twitch" && !runnerConnection) {
@@ -150,6 +164,7 @@ export const auth = betterAuth({
 					return { data: { ...account, ...preserved } };
 				},
 				after: async (account, context) => {
+					if (await recordEventAccount(account, context?.path)) return;
 					const runnerConnection = await recordRunnerAccount(account, context?.path);
 					if (await isEventParticipation(context?.path)) return;
 					if (!runnerConnection && account.providerId === "twitch" && (context?.path === "/callback/twitch" || (context?.path === "/callback/:id" && context.params?.id === "twitch"))) {
@@ -168,6 +183,8 @@ export const auth = betterAuth({
 				after: async (account) => {
 					const { disconnectStreamingConnectionsForAuthAccount } = await import("@/server/runner/provider-connections");
 					await disconnectStreamingConnectionsForAuthAccount({ id: account.id, userId: account.userId });
+					const { disconnectEventConnectionsForAuthAccount } = await import("@/server/events/connections");
+					await disconnectEventConnectionsForAuthAccount(account.id, account.userId);
 				},
 			},
 		},

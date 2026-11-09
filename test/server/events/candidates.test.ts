@@ -59,3 +59,9 @@ describe("Award candidate rules and results", () => {
 	});
 	it.each(["javascript:alert(1)", "http://example.com/image.png"])("rejects unsafe media %s", (thumbnailUrl) => expect(candidateInputSchema.safeParse({ ...clip, thumbnailUrl }).success).toBe(false));
 });
+
+it("accepts event-owned media routes without allowing arbitrary relative URLs", () => {
+	const mediaUrl = "/api/events/4455a7b3-993d-4cf6-b9d3-52a9c03a0ba2/media/8c317b25-5083-4cae-b939-0487a7fa8ff6";
+	expect(candidateInputSchema.safeParse({ ...clip, kind: "image", mediaUrl }).success).toBe(true);
+	expect(candidateInputSchema.safeParse({ ...clip, kind: "image", mediaUrl: "//evil.example/image" }).success).toBe(false);
+});

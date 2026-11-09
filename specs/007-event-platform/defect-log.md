@@ -23,3 +23,9 @@ Command: whole-file Jest for existing consentOrigins and new event policy. Expec
 ENV-001 resolved: same existing suite passes 3/3 outside sandbox using Node 26.13.0. Commands must use escalated execution in this workspace for Next subprocess capture.
 
 FIXTURE-001: PGlite event fixture omitted schema `defaultRandom()` equivalent; corrected to `DEFAULT gen_random_uuid()`. No production defect or relaxed assertion.
+
+UI-001 (fixed, browser verified): DatePicker redundant aria-label plus Label produced duplicated accessible names. Removed redundant aria-label; BDD-US1-101 passes unchanged single-name assertion.
+
+TEST-002 (fixed): standard HeroUI Checkbox mock is a generic div. Local media test supplies functional checkbox adapter; production retains installed accessible component, with real interaction acceptance pending.
+
+STORAGE-001 (fixed, 20-test file verified): IPv6 mapped address block in shared Node BlockList also matched all IPv4. Global-unicast IPv6 restriction already rejects mapped addresses; removed redundant blocks. Exact AWS signature reference passes.

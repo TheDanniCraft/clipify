@@ -19,6 +19,8 @@ export const test = base.extend<{ tourWorld: TourWorld; deploymentId: string | u
 			APP_ENV: "test",
 			E2E_TEST_MODE: "true",
 			DISABLE_BACKGROUND_JOBS: "true",
+			YOUTUBE_CLIENT_ID: "isolated-browser-google-client",
+			YOUTUBE_CLIENT_SECRET: "isolated-browser-google-secret",
 			RUNNER_ARTIFACT_SOURCE: "local",
 			ENCRYPTION_SECRET: "clipify-e2e-encryption-secret-not-for-production",
 			JWT_SECRET: "clipify-e2e-jwt-secret-not-for-production",

@@ -1,5 +1,7 @@
 # Tasks: Event Platform
 
+Implementation paths below name current owners; related UI lives in src/app/components/events. Checked test tasks record focused Red/Green evidence only. BDD and implementation tasks remain open until their full acceptance boundary is verified.
+
 ## Setup
 
 - [x] T001 Record approved scope and add Mobbin guidance in AGENTS.md and specs/007-event-platform/spec.md
@@ -8,86 +10,86 @@
 ### FR-001 — US1
 
 - [ ] T003 [US1] [BDD] Bind BDD-US1-001, enumerate source options and relevant failures in test/bdd/steps/events.steps.ts
-- [ ] T004 [US1] [TDD] [U1] Write focused tests in test/server/events/configuration.test.ts and record intended Red in tdd/cycle-log.md
-- [ ] T005 [US1] Implement FR-001 in src/server/events/configuration.ts and relevant callers/UI; prove Green and refactor
+- [x] T004 [US1] [TDD] [U1] Write focused tests in test/server/events/configuration.test.ts and record intended Red in tdd/cycle-log.md
+- [ ] T005 [US1] Implement FR-001 in src/app/lib/eventConfiguration.ts and relevant callers/UI; prove Green and refactor
 
 ### FR-002 — US1
 
 - [ ] T006 [US1] [BDD] Bind BDD-US1-002, enumerate source options and relevant failures in test/bdd/steps/events.steps.ts
-- [ ] T007 [US1] [TDD] [U2] Write focused tests in test/server/events/configuration.test.ts and record intended Red in tdd/cycle-log.md
-- [ ] T008 [US1] Implement FR-002 in src/server/events/configuration.ts and relevant callers/UI; prove Green and refactor
+- [x] T007 [US1] [TDD] [U2] Write focused tests in test/server/events/tour.test.ts and record intended Red in tdd/cycle-log.md
+- [x] T008 [US1] Implement FR-002 in src/app/lib/eventConfiguration.ts and relevant callers/UI; prove Green and refactor
 
 ### FR-003 — US1
 
 - [ ] T009 [US1] [BDD] Bind BDD-US1-003, enumerate source options and relevant failures in test/bdd/steps/events.steps.ts
 - [ ] T010 [US1] [TDD] [U3] Write focused tests in test/server/events/configuration.test.ts and record intended Red in tdd/cycle-log.md
-- [ ] T011 [US1] Implement FR-003 in src/server/events/configuration.ts and relevant callers/UI; prove Green and refactor
+- [ ] T011 [US1] Implement FR-003 in src/app/lib/eventConfiguration.ts and relevant callers/UI; prove Green and refactor
 
 ### FR-004 — US1
 
 - [ ] T012 [US1] [BDD] Bind BDD-US1-004, enumerate source options and relevant failures in test/bdd/steps/events.steps.ts
 - [ ] T013 [US1] [TDD] [U4] Write focused tests in test/server/events/configuration.test.ts and record intended Red in tdd/cycle-log.md
-- [ ] T014 [US1] Implement FR-004 in src/server/events/configuration.ts and relevant callers/UI; prove Green and refactor
+- [x] T014 [US1] Implement FR-004 in src/server/events/persistence.ts and src/app/components/events/EventEditor.tsx and relevant callers/UI; prove Green and refactor
 
 ### FR-005 — US1
 
 - [ ] T015 [US1] [BDD] Bind BDD-US1-005, enumerate source options and relevant failures in test/bdd/steps/events.steps.ts
-- [ ] T016 [US1] [TDD] [U5] Write focused tests in test/server/events/policy.test.ts and record intended Red in tdd/cycle-log.md
-- [ ] T017 [US1] Implement FR-005 in src/server/events/policy.ts and relevant callers/UI; prove Green and refactor
+- [x] T016 [US1] [TDD] [U5] Write focused tests in test/server/events/policy.test.ts and record intended Red in tdd/cycle-log.md
+- [x] T017 [US1] Implement FR-005 in src/app/lib/events.ts and relevant callers/UI; prove Green and refactor
 
 ### FR-006 — US1
 
 - [ ] T018 [US1] [BDD] Bind BDD-US1-006, enumerate source options and relevant failures in test/bdd/steps/events.steps.ts
-- [ ] T019 [US1] [TDD] [U6] Write focused tests in test/server/events/configuration.test.ts and record intended Red in tdd/cycle-log.md
-- [ ] T020 [US1] Implement FR-006 in src/server/events/configuration.ts and relevant callers/UI; prove Green and refactor
+- [x] T019 [US1] [TDD] [U6] Write focused tests in test/server/events/configuration.test.ts and record intended Red in tdd/cycle-log.md
+- [ ] T020 [US1] Implement FR-006 in src/app/lib/eventConfiguration.ts and relevant callers/UI; prove Green and refactor
 
 ### FR-007 — US2
 
 - [ ] T021 [US2] [BDD] Bind BDD-US2-007, enumerate source options and relevant failures in test/bdd/steps/events.steps.ts
-- [ ] T022 [US2] [TDD] [U7] Write focused tests in test/server/events/participant-auth.test.ts and record intended Red in tdd/cycle-log.md
-- [ ] T023 [US2] Implement FR-007 in src/server/events/participant-auth.ts and relevant callers/UI; prove Green and refactor
+- [x] T022 [US2] [TDD] [U7] Write focused tests in test/server/events/participant-auth.test.ts and record intended Red in tdd/cycle-log.md
+- [x] T023 [US2] Implement FR-007 in src/server/events/participant.ts and src/auth/config.ts and relevant callers/UI; prove Green and refactor
 
 ### FR-008 — US2
 
 - [ ] T024 [US2] [BDD] Bind BDD-US2-008, enumerate source options and relevant failures in test/bdd/steps/events.steps.ts
-- [ ] T025 [US2] [TDD] [U8] Write focused tests in test/server/events/sources.test.ts and record intended Red in tdd/cycle-log.md
+- [x] T025 [US2] [TDD] [U8] Write focused tests in test/server/events/sources.test.ts and record intended Red in tdd/cycle-log.md
 - [ ] T026 [US2] Implement FR-008 in src/server/events/sources.ts and relevant callers/UI; prove Green and refactor
 
 ### FR-009 — US2
 
 - [ ] T027 [US2] [BDD] Bind BDD-US2-009, enumerate source options and relevant failures in test/bdd/steps/events.steps.ts
-- [ ] T028 [US2] [TDD] [U9] Write focused tests in test/server/events/sources.test.ts and record intended Red in tdd/cycle-log.md
+- [x] T028 [US2] [TDD] [U9] Write focused tests in test/server/events/youtube.test.ts and test/server/events/connections.test.ts and record intended Red in tdd/cycle-log.md
 - [ ] T029 [US2] Implement FR-009 in src/server/events/sources.ts and relevant callers/UI; prove Green and refactor
 
 ### FR-010 — US2
 
 - [ ] T030 [US2] [BDD] Bind BDD-US2-010, enumerate source options and relevant failures in test/bdd/steps/events.steps.ts
-- [ ] T031 [US2] [TDD] [U10] Write focused tests in test/server/events/sources.test.ts and record intended Red in tdd/cycle-log.md
+- [x] T031 [US2] [TDD] [U10] Write focused tests in test/server/events/sources.test.ts and record intended Red in tdd/cycle-log.md
 - [ ] T032 [US2] Implement FR-010 in src/server/events/sources.ts and relevant callers/UI; prove Green and refactor
 
 ### FR-011 — US2
 
 - [ ] T033 [US2] [BDD] Bind BDD-US2-011, enumerate source options and relevant failures in test/bdd/steps/events.steps.ts
-- [ ] T034 [US2] [TDD] [U11] Write focused tests in test/server/events/storage.test.ts and record intended Red in tdd/cycle-log.md
-- [ ] T035 [US2] Implement FR-011 in src/server/events/storage.ts and relevant callers/UI; prove Green and refactor
+- [x] T034 [US2] [TDD] [U11] Write focused tests in test/server/events/uploads.test.ts, upload-provider.test.ts, storage-security.test.ts and upload-route.test.ts and record intended Red in tdd/cycle-log.md
+- [ ] T035 [US2] Implement FR-011 in src/server/events/uploads.ts, upload-provider.ts, media.ts and storage-http.ts and relevant callers/UI; prove Green and refactor
 
 ### FR-012 — US2
 
 - [ ] T036 [US2] [BDD] Bind BDD-US2-012, enumerate source options and relevant failures in test/bdd/steps/events.steps.ts
-- [ ] T037 [US2] [TDD] [U12] Write focused tests in test/server/events/submissions.test.ts and record intended Red in tdd/cycle-log.md
-- [ ] T038 [US2] Implement FR-012 in src/server/events/submissions.ts and relevant callers/UI; prove Green and refactor
+- [x] T037 [US2] [TDD] [U12] Write focused tests in test/server/events/persistence.test.ts and record intended Red in tdd/cycle-log.md
+- [x] T038 [US2] Implement FR-012 in src/server/events/submissions.ts and relevant callers/UI; prove Green and refactor
 
 ### FR-013 — US3
 
 - [ ] T039 [US3] [BDD] Bind BDD-US3-013, enumerate source options and relevant failures in test/bdd/steps/events.steps.ts
-- [ ] T040 [US3] [TDD] [U13] Write focused tests in test/server/events/submissions.test.ts and record intended Red in tdd/cycle-log.md
+- [x] T040 [US3] [TDD] [U13] Write focused tests in test/server/events/persistence.test.ts and record intended Red in tdd/cycle-log.md
 - [ ] T041 [US3] Implement FR-013 in src/server/events/submissions.ts and relevant callers/UI; prove Green and refactor
 
 ### FR-014 — US3
 
 - [ ] T042 [US3] [BDD] Bind BDD-US3-014, enumerate source options and relevant failures in test/bdd/steps/events.steps.ts
-- [ ] T043 [US3] [TDD] [U14] Write focused tests in test/server/events/review.test.ts and record intended Red in tdd/cycle-log.md
-- [ ] T044 [US3] Implement FR-014 in src/server/events/review.ts and relevant callers/UI; prove Green and refactor
+- [x] T043 [US3] [TDD] [U14] Write focused tests in test/server/events/persistence.test.ts and review-ui.test.tsx and record intended Red in tdd/cycle-log.md
+- [x] T044 [US3] Implement FR-014 in src/server/events/review.ts and relevant callers/UI; prove Green and refactor
 
 ### FR-015 — US3
 
@@ -98,13 +100,13 @@
 ### FR-016 — US4
 
 - [ ] T048 [US4] [BDD] Bind BDD-US4-016, enumerate source options and relevant failures in test/bdd/steps/events.steps.ts
-- [ ] T049 [US4] [TDD] [U16] Write focused tests in test/server/events/voting.test.ts and record intended Red in tdd/cycle-log.md
-- [ ] T050 [US4] Implement FR-016 in src/server/events/voting.ts and relevant callers/UI; prove Green and refactor
+- [x] T049 [US4] [TDD] [U16] Write focused tests in test/server/events/persistence.test.ts and record intended Red in tdd/cycle-log.md
+- [x] T050 [US4] Implement FR-016 in src/server/events/voting.ts and relevant callers/UI; prove Green and refactor
 
 ### FR-017 — US4
 
 - [ ] T051 [US4] [BDD] Bind BDD-US4-017, enumerate source options and relevant failures in test/bdd/steps/events.steps.ts
-- [ ] T052 [US4] [TDD] [U17] Write focused tests in test/server/events/voting.test.ts and record intended Red in tdd/cycle-log.md
+- [x] T052 [US4] [TDD] [U17] Write focused tests in test/server/events/media.test.tsx and public-page.test.tsx and record intended Red in tdd/cycle-log.md
 - [ ] T053 [US4] Implement FR-017 in src/server/events/voting.ts and relevant callers/UI; prove Green and refactor
 
 ### FR-018 — US5
@@ -159,13 +161,13 @@
 
 - [ ] T078 [US1] [BDD] Bind BDD-US1-026, enumerate source options and relevant failures in test/bdd/steps/events.steps.ts
 - [ ] T079 [US1] [TDD] [U26] Write focused tests in test/server/events/policy.test.ts and record intended Red in tdd/cycle-log.md
-- [ ] T080 [US1] Implement EC-001 in src/server/events/policy.ts and relevant callers/UI; prove Green and refactor
+- [ ] T080 [US1] Implement EC-001 in src/app/lib/events.ts and relevant callers/UI; prove Green and refactor
 
 ### EC-002 — US2
 
 - [ ] T081 [US2] [BDD] Bind BDD-US2-027, enumerate source options and relevant failures in test/bdd/steps/events.steps.ts
 - [ ] T082 [US2] [TDD] [U27] Write focused tests in test/server/events/storage.test.ts and record intended Red in tdd/cycle-log.md
-- [ ] T083 [US2] Implement EC-002 in src/server/events/storage.ts and relevant callers/UI; prove Green and refactor
+- [ ] T083 [US2] Implement EC-002 in src/server/events/uploads.ts, upload-provider.ts, media.ts and storage-http.ts and relevant callers/UI; prove Green and refactor
 
 ### EC-003 — US2
 

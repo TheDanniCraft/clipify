@@ -43,6 +43,7 @@ export const journeys = [
 			{ id: "explore.streams", title: "Discover your streams" },
 			{ id: "explore.clips", title: "Discover Clip Inventory" },
 			{ id: "explore.layouts", title: "Discover clip layouts" },
+			{ id: "explore.events", title: "Discover community events" },
 			{ id: "explore.galleries", title: "Discover clip galleries" },
 			{ id: "explore.runners", title: "Discover runners" },
 			{ id: "explore.tools", title: "Add Clipify to your website" },
@@ -60,7 +61,7 @@ const taskIds = new Set<string>(journeys.flatMap((journey) => journey.tasks.map(
 export const isTaskId = (value: unknown): value is TaskId => typeof value === "string" && taskIds.has(value);
 const isThemeTask = (task: TaskId) => task.startsWith("appearance.") && task !== "appearance.clip-filters";
 const validId = (value: unknown): value is string => typeof value === "string" && /^[a-zA-Z0-9_-]{1,128}$/.test(value);
-export type GuideLocation = "dashboard" | "overlay" | "theme" | "playlist" | "tools" | "settings" | "team" | "clips" | "streams" | "layouts" | "other";
+export type GuideLocation = "dashboard" | "overlay" | "theme" | "playlist" | "tools" | "settings" | "team" | "clips" | "streams" | "layouts" | "events" | "other";
 export type NavigationTarget = "home" | "overlays" | "overlay" | "playlists" | "playlist" | "profile" | "tools" | "theme" | "settings" | "clip-picker" | "close-picker" | "account-settings" | "core-settings" | "settings-panel" | "connections-panel" | "team" | "inventory";
 export type GuideSectionStats = { title: string; tasksPerAccount: number; accountsWithProgress: number; completedAccounts: number; completedTasks: number; skippedTasks: number; completionRate: number; averageProgress: number };
 export type UserTourStats = Omit<GuideSectionStats, "title"> & { trackedAccounts: number; untrackedAccounts: number; invalidProgressAccounts: number; startedAccounts: number; inProgressAccounts: number; overlayLinkCopiedAccounts: number; tasks: Record<string, { title: string; section: string; completedAccounts: number; skippedAccounts: number; pendingAccounts: number; completionRate: number }>; sections: Record<string, GuideSectionStats> };
@@ -87,7 +88,7 @@ export const defaultProgress = (): GuideProgress => ({ version: 2, playlistClips
 export const storageKey = (accountId: string) => `clipify:user-tour:v1:${accountId}`;
 export const guideContentKey = "clipify-user-tour:v2";
 const navigationIds = new Set<string>(["home", "overlays", "overlay", "playlists", "playlist", "profile", "tools", "theme", "settings", "clip-picker", "close-picker", "account-settings", "core-settings", "settings-panel", "connections-panel", "team", "inventory"]);
-const locations = new Set<string>(["dashboard", "overlay", "theme", "playlist", "tools", "settings", "team", "clips", "streams", "layouts", "other"]);
+const locations = new Set<string>(["dashboard", "overlay", "theme", "playlist", "tools", "settings", "team", "clips", "streams", "layouts", "events", "other"]);
 const migrateTask = (id: unknown) => (id === "website.embed" ? "explore.tools" : id === "appearance.filters" ? "appearance.clip-filters" : id);
 export function parseProgress(raw: string | null, restorePaused = true): GuideProgress {
 	try {
@@ -130,6 +131,7 @@ export function shouldOfferGuideWelcome(progress: GuideProgress): boolean {
 export function guideLocation(pathname: string): GuideLocation {
 	if (pathname === "/dashboard/clips") return "clips";
 	if (pathname.startsWith("/dashboard/streams")) return "streams";
+	if (pathname.startsWith("/dashboard/events")) return "events";
 	if (pathname.startsWith("/dashboard/clip-layouts")) return "layouts";
 	if (pathname === "/dashboard" || /^\/dashboard\/(overlays|playlists|galleries|runners)$/.test(pathname)) return "dashboard";
 	if (pathname === "/dashboard/settings" || pathname === "/dashboard/settings/team") return "settings";
@@ -139,7 +141,7 @@ export function guideLocation(pathname: string): GuideLocation {
 	return pathname === "/dashboard/tools" ? "tools" : "other";
 }
 export function navigationForTask(task: TaskId, location: GuideLocation, progress: GuideProgress, index = 0): NavigationTarget[] {
-	if (["explore.support", "explore.home", "explore.streams", "explore.clips", "explore.layouts"].includes(task)) return [];
+	if (["explore.support", "explore.home", "explore.streams", "explore.clips", "explore.layouts", "explore.events"].includes(task)) return [];
 	if (task === "export.manual") return location === "clips" ? [] : ["inventory"];
 	if (["explore.settings", "explore.ai", "explore.editors"].includes(task)) {
 		const settings: NavigationTarget[] = location === "settings" || location === "team" ? (index > 0 ? [task === "explore.ai" ? "connections-panel" : "settings-panel"] : []) : ["profile", "account-settings"];
@@ -472,6 +474,7 @@ export function transition(progress: GuideProgress, event: GuideEvent, accountId
 export function routeForTask(task: TaskId, progress: GuideProgress): string {
 	if (task === "explore.streams") return "/dashboard/streams";
 	if (task === "explore.clips" || task === "export.manual") return "/dashboard/clips";
+	if (task === "explore.events") return "/dashboard/events";
 	if (task === "explore.layouts") return "/dashboard/clip-layouts";
 	if (task === "playlist.use" && !progress.playlistId) return "/dashboard/playlists";
 	const nav = progress.active?.task === task ? progress.active.navigation?.[0] : undefined;
@@ -570,6 +573,8 @@ export function stepsForTask(task: TaskId, progress: GuideProgress): GuideStep[]
 				{ target: "clips-tab", title: "Open Clip Inventory", description: "Choose Clip Inventory in the sidebar.", action: true, next: true, reveals: "clip-inventory" },
 				{ target: "clip-inventory", title: "Your clip library", description: "Search and filter your clips, open a row for details, or select several clips. Filters can narrow clips by views, duration and category. No clips yet? You can still finish this introduction.", next: true, finish: true, nextLabel: "Done" },
 			];
+		case "explore.events":
+			return [{ target: "event-library", title: "Community events", description: "Create an award show, collect nominations, run voting and present the winners with your community.", next: true, finish: true, nextLabel: "Done" }];
 		case "explore.layouts":
 			return [
 				{ target: "clip-layouts-tab", title: "Open Clip layouts", description: "Choose Clip layouts under Create and share.", action: true, next: true, reveals: "clip-layout-library" },

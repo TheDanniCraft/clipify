@@ -13,7 +13,7 @@ export const categorySchema = z
 const statisticSchema = z.object({ label: title, source: z.enum(["manual", "submissions", "categories", "nominees", "voters", "clips"]), value: z.number().finite().optional() }).strict();
 export const eventSlideSchema = z.object({ id: z.uuid(), type: z.enum(["welcome", "text", "statistics", "category", "closing"]), title: z.string().max(160), text: z.string().max(5000).default(""), categoryId: z.uuid().optional(), statistics: z.array(statisticSchema).max(100).default([]) }).strict();
 export const eventInputSchema = z
-	.object({ title, description: z.string().max(5000), visibility: z.enum(["unlisted", "public"]), schedule: eventScheduleSchema, votesPerCategory: z.number().int().min(1).max(100), tiePolicy: z.enum(["shared", "team"]), resultDetail: z.enum(["winner", "percentages", "votes"]), whiteLabel: z.boolean(), categories: z.array(categorySchema).min(1).max(100), slides: z.array(eventSlideSchema).max(500) })
+	.object({ title, description: z.string().max(5000), visibility: z.enum(["unlisted", "public"]), schedule: eventScheduleSchema, votesPerCategory: z.number().int().min(1).max(100), tiePolicy: z.enum(["shared", "team"]), resultDetail: z.enum(["winner", "percentages", "votes"]), whiteLabel: z.boolean(), storageConnectionId: z.uuid().nullable().default(null), categories: z.array(categorySchema).min(1).max(100), slides: z.array(eventSlideSchema).max(500) })
 	.strict()
 	.superRefine((event, ctx) => {
 		const ids = new Set(event.categories.map((c) => c.id));
@@ -24,3 +24,17 @@ export const eventInputSchema = z
 export type EventConfiguration = z.infer<typeof eventInputSchema>;
 export type EventCategory = z.infer<typeof categorySchema>;
 export type EventSource = z.infer<typeof eventSourceSchema>;
+
+export type ManagedAwardEvent = {
+	id: string;
+	ownerId: string;
+	configuration: EventConfiguration;
+	revision: number;
+	publishedAt: Date | null;
+	resultsPublishedAt: Date | null;
+	reviewReleased: boolean;
+	frozenAt: Date | null;
+	frozenResults: Record<string, unknown> | null;
+	createdAt: Date;
+	updatedAt: Date;
+};
