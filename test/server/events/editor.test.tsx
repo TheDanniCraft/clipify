@@ -8,7 +8,7 @@ jest.mock("@/app/components/events/EventReview", () => ({ __esModule: true, defa
 jest.mock("@/app/components/events/EventConnections", () => ({ __esModule: true, default: () => null }));
 jest.mock("@/app/components/events/EventRoadmap", () => ({ __esModule: true, default: () => null }));
 jest.mock("@/app/components/events/EventCategories", () => ({ __esModule: true, default: () => null }));
-jest.mock("@/app/components/events/EventDeckEditor", () => ({ __esModule: true, default: () => null }));
+jest.mock("@/app/components/events/EventPresentationEditor", () => ({ __esModule: true, default: () => null }));
 it("retains edits after a failed save and explains recovery", async () => {
 	jest.mocked(saveEventAction).mockResolvedValue({ ok: false, code: "CONFLICT" });
 	const initial = { id: "8c317b25-5083-4cae-b939-0487a7fa8ff6", ownerId: "host", configuration: createAwardConfiguration("Awards", "UTC"), revision: 1, publishedAt: null, resultsPublishedAt: null, reviewReleased: false, frozenAt: null, frozenResults: null, createdAt: new Date(), updatedAt: new Date() };

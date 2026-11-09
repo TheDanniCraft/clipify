@@ -57,7 +57,7 @@ export function EventNomineeCard({ candidate, selected = false, disabled = false
 		<div className={`overflow-hidden rounded-2xl border ${selected ? "border-accent bg-accent/5" : "border-separator bg-surface"}`}>
 			<div className='relative aspect-video'>
 				<Button data-award-candidate={candidate.id} aria-label={`View ${candidate.content.title}`} variant='tertiary' className='relative h-full w-full overflow-hidden rounded-none p-0' onPress={onOpen}>
-					{candidate.content.thumbnailUrl || (candidate.content.kind === "image" && candidate.content.mediaUrl) ? <Image src={(candidate.content.thumbnailUrl || candidate.content.mediaUrl)!} alt='' unoptimized fill className='object-cover' /> : <span className='max-w-full break-words px-5 text-lg font-medium'>{candidate.content.title}</span>}
+					{candidate.content.thumbnailUrl || (candidate.content.kind === "image" && candidate.content.mediaUrl) ? <Image src={(candidate.content.thumbnailUrl || candidate.content.mediaUrl)!} alt='' unoptimized fill className='object-cover' /> : <span className='line-clamp-3 max-w-full whitespace-normal break-words px-5 text-center text-lg font-medium'>{candidate.content.title}</span>}
 				</Button>
 				{result?.percentage !== undefined ? <motion.div aria-hidden='true' className='pointer-events-none absolute inset-x-0 bottom-0 bg-accent/45' initial={{ height: 0 }} animate={{ height: `${Math.min(100, Math.max(0, result.percentage))}%` }} transition={{ duration: 1.2, ease: "easeOut" }} /> : null}
 				{result?.winner ? <span className='pointer-events-none absolute right-3 top-3 rounded-full bg-accent px-3 py-1 text-sm font-semibold text-accent-foreground'>Winner</span> : null}

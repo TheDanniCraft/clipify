@@ -7,7 +7,9 @@ try {
 const workflowRisk = {
 	list_events: "read",
 	get_event: "read",
+	get_event_preview: "read",
 	create_event: "createOnce",
+	create_event_example: "createOnce",
 	update_event: "mutation",
 	update_event_presentation: "mutation",
 	publish_event: "mutation",
@@ -94,7 +96,7 @@ describe("TDD-US2-039 truthful tool risk annotations", () => {
 		expect(risk.toolAnnotations(name)).toEqual(expectedHints[profile]);
 	});
 	test("risk table covers workflows, focused tools and internal compatibility schemas", () => {
-		expect(Object.keys(workflowRisk)).toHaveLength(62);
+		expect(Object.keys(workflowRisk)).toHaveLength(64);
 		expect(Object.keys(toolInputSchemas).filter((name) => !(name in workflowRisk))).toHaveLength(34);
 		for (const name of Object.keys(workflowRisk)) expect(toolInputSchemas).toHaveProperty(name);
 	});

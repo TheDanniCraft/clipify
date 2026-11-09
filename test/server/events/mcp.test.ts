@@ -17,7 +17,7 @@ it("registers every event tool with an explicit scope and truthful effect hints"
 		expect(toolInputSchemas).toHaveProperty(name);
 		expect(toolPermissions[name]).toBe(eventToolPermissions[name]);
 		expect(MCP_SCOPES).toContain(eventToolPermissions[name]);
-		expect(eventToolAnnotations(name).idempotentHint).toBe(!["create_event", "add_event_candidate", "group_event_candidates", "rotate_event_presenter"].includes(name));
+		expect(eventToolAnnotations(name).idempotentHint).toBe(!["create_event", "create_event_example", "add_event_candidate", "group_event_candidates", "rotate_event_presenter"].includes(name));
 	}
 	expect(eventToolAnnotations("rotate_event_presenter").destructiveHint).toBe(true);
 });
@@ -74,4 +74,16 @@ it("reads leading ties and forwards only the explicit category winner to the tea
 			.run(choice),
 	).rejects.toThrow("INVALID_INPUT");
 	expect(chooseAwardTieWinner).toHaveBeenCalledWith(principal, "host", target.eventId, choice.categoryId, choice.candidateId);
+});
+
+jest.mock("@/server/events/preview", () => ({ createAwardPreview: jest.fn() }));
+it("returns the same read-only preview capability through MCP and rejects forged ownership", async () => {
+	const { createAwardPreview } = await import("@/server/events/preview");
+	const tool = eventTools(principal).find((tool) => tool.name === "get_event_preview")!;
+	const input = { creatorId: "host", eventId: crypto.randomUUID() };
+	jest.mocked(createAwardPreview).mockResolvedValue({ ok: true, token: "preview-token" });
+	await expect(tool.run(input)).resolves.toEqual({ ok: true, previewPath: `/events/${input.eventId}/preview#preview-token` });
+	expect(createAwardPreview).toHaveBeenCalledWith(principal, input.creatorId, input.eventId);
+	expect(eventToolPermissions.get_event_preview).toBe("event:update");
+	await expect(tool.run({ ...input, authUserId: "forged" })).rejects.toThrow();
 });

@@ -138,3 +138,32 @@ it("accepts team uploads only through verified team authority and creates no vie
 	expect(await fixture.db.select().from(awardSubmissionsTable)).toHaveLength(0);
 	expect(await fixture.db.select().from(awardAssetsTable)).toHaveLength(1);
 });
+
+it("lets a valid preview read a root nominee's file while keeping unshared/grouped files private", async () => {
+	const uploaded = await acceptAwardUpload("viewer", eventId, categoryId, input, body(), new AbortController().signal);
+	if (!uploaded.ok) throw new Error("upload failed");
+	const { eq } = await import("drizzle-orm");
+	const { awardCandidatesTable } = await import("@/db/schema");
+	const { createAwardPreviewToken } = await import("@/auth/event-preview-token");
+	const { serveAwardAsset } = await import("@/server/events/media");
+	const { readAwardUpload } = await import("@/server/events/upload-provider");
+	jest.mocked(readAwardUpload).mockImplementation(async () => new Response(new Uint8Array(16)));
+	const [asset] = await fixture.db.select().from(awardAssetsTable);
+	await fixture.db.update(awardEventsTable).set({ publishedAt: null }).where(eq(awardEventsTable.id, eventId));
+	const [event] = await fixture.db.select().from(awardEventsTable);
+	const token = createAwardPreviewToken(event);
+	const { readAwardPreview } = await import("@/server/events/preview");
+	const view = await readAwardPreview(eventId, token);
+	if (!view.ok) throw new Error("preview failed");
+	expect(view.event.categories[0].candidates[0].content.mediaUrl).toBe(`/api/events/${eventId}/media/${asset.id}?preview=${token}`);
+	expect((await serveAwardAsset(eventId, asset.id, null, new AbortController().signal)).status).toBe(404);
+	const preview = await serveAwardAsset(eventId, asset.id, null, new AbortController().signal, undefined, false, token);
+	expect(preview.status).toBe(200);
+	expect((await preview.arrayBuffer()).byteLength).toBe(16);
+	const [parent] = await fixture.db
+		.insert(awardCandidatesTable)
+		.values({ eventId, categoryId, canonicalKey: "parent", content: { kind: "text", reference: "", title: "Group", description: "" } })
+		.returning();
+	await fixture.db.update(awardCandidatesTable).set({ parentId: parent.id }).where(eq(awardCandidatesTable.id, uploaded.submission.candidateId));
+	expect((await serveAwardAsset(eventId, asset.id, null, new AbortController().signal, undefined, false, token)).status).toBe(404);
+});

@@ -40,3 +40,13 @@ Chat provider verification: Twitch's current EventSub documentation (https://dev
 ## Resource creation and load recovery refinement
 
 [Revolut Business connection issue](https://mobbin.com/screens/b719158e-0a19-4b2e-8cc0-5217648ea20a): inspected the short error caption and retry grouped within the resource area. Clipify keeps its existing surface tokens, muted 14px body copy and compact secondary action in one responsive row/stack. The shared ResourceLoadError applies this to Events, discovery, layout loading and streams without changing field-validation errors. Creation follows Clipify's existing overlay/gallery pattern: create a generic unlisted New event draft and navigate directly to its editor; no title modal and no Awards-specific creation label.
+
+## Event workspace and safe review links
+
+Follow-up references: Payloadbay's route-aware dashboard shell in [PR 13](https://github.com/payloadbay/payloadbay/pull/13), GitLab project navigation and n8n context, plus Gamma/Pitch slide editing (individual Mobbin screen links in ux-audit.md). Adopt focused Event navigation, an ordered slide strip and the same show renderer as a stable editable preview. Keep the installed Clipify/HeroUI visual language.
+
+The installed HeroUI Switch implementation makes Switch.Content the interactive SwitchButton. Control/Thumb belong inside it alongside the Label. A hidden-input click does not verify this composition; the regression must click the visible control.
+
+Google [incremental authorization](https://developers.google.com/identity/protocols/oauth2/web-server#incrementalAuth) supports requesting the relevant extra scope when a feature is used; separate OAuth clients are not required for that purpose. Google identifies [drive.file](https://developers.google.com/workspace/drive/api/guides/api-specific-auth) as the recommended non-sensitive per-file scope. Reuse the existing linking and contextual intent flow; verify the generated redirect scopes. This does not claim exemption from all branding/provider configuration requirements or verify a live consent exchange.
+
+Shareable previews need a different capability from a presenter that can publish results. Use a signed seven-day token bound to the event and current presenter generation, no schema change. Its read projection can include unreviewed root candidates, labelled as a preview, while excluding grouped originals and voter identity. Protected media verifies both this capability and the referenced root nominee. A preview never advances phases, freezes data, casts votes or publishes results.

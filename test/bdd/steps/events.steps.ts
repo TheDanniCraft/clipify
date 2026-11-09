@@ -1,3 +1,4 @@
+import { openEventSection } from "../../support/event-editor-navigation";
 import { openConsentPage } from "../../support/consent-page";
 import { createBdd } from "playwright-bdd";
 import { test, expect } from "../support/user-tour";
@@ -28,7 +29,7 @@ When("the creator creates an event named {string}", async ({ page }, name: strin
 Then("the award editor preserves its name and shows editable phase dates", async ({ page }) => {
 	await expect(page.getByRole("textbox", { name: /^Event title/ })).toHaveValue("Babbler Awards");
 	await expect(page.getByRole("button", { name: "Save event", exact: true })).toBeEnabled();
-	await page.getByRole("tab", { name: "Roadmap", exact: true }).click();
+	await openEventSection(page, "Roadmap");
 	for (const label of ["Submissions open", "Submissions close", "Voting opens", "Voting closes"]) await expect(page.getByRole("group", { name: label, exact: true })).toBeVisible();
 	await expect(page.getByRole("button", { name: "Save event", exact: true })).toBeVisible();
 });
@@ -143,7 +144,7 @@ Given("the team is reviewing two related text proposals after the planned voting
 	}
 	await page.goto(`${tourWorld.origin}/dashboard/events/${eventId}`);
 	await expect(page.getByRole("button", { name: /^Save (event|presentation)$/ })).toBeEnabled();
-	await page.getByRole("tab", { name: "Review", exact: true }).click();
+	await openEventSection(page, "Review");
 });
 When("the team groups those proposals as {string}", async ({ page }, title: string) => {
 	for (const proposal of ["hahaha die Lampe", "Birne explodiert"]) {
@@ -194,7 +195,7 @@ Given("an award show has closed with an unconfirmed watchtime result", async ({ 
 	await tourWorld.fixture.pool.query("INSERT INTO award_events(id,owner_id,configuration,published_at,presenter_digest,frozen_at,frozen_results) VALUES($1,$2,$3,now(),$4,$5,$6)", [eventId, tourWorld.owner!.creatorId, JSON.stringify(configuration), createHash("sha256").update("fixture-presenter-secret").digest("hex"), configuration.schedule.submissionsEnd, JSON.stringify({ [categoryId]: { status: "missing", reason: "manual_required" } })]);
 	await page.goto(`${tourWorld.origin}/dashboard/events/${eventId}`);
 	await expect(page.getByRole("button", { name: /^Save (event|presentation)$/ })).toBeEnabled();
-	await page.getByRole("tab", { name: "Data awards", exact: true }).click();
+	await openEventSection(page, "Data awards");
 });
 When("the team records {string} with {int} watched hours", async ({ page }, name: string, hours: number) => {
 	await page.getByRole("textbox", { name: "Winner name", exact: true }).fill(name);
@@ -216,7 +217,7 @@ Then("the public archive shows that data winner and its number", async ({ page, 
 });
 
 When("the team adds a candidate named {string}", async ({ page }, title: string) => {
-	await page.getByRole("button", { name: "Add candidate", exact: true }).click();
+	await page.getByRole("button", { name: /^(Add candidate|Add the first candidate)$/ }).click();
 	const dialog = page.getByRole("dialog", { name: "Add award candidate", exact: true });
 	await dialog.getByRole("textbox", { name: "Proposal name", exact: true }).fill(title);
 	await dialog.getByRole("button", { name: "Add candidate", exact: true }).click();
@@ -226,8 +227,8 @@ When("the team adds a candidate named {string}", async ({ page }, title: string)
 When("the team adds an image candidate named {string}", async ({ page, tourWorld }, name: string) => {
 	await page.goto(`${tourWorld.origin}/dashboard/events/${awardWorld(tourWorld).eventId}`);
 	await expect(page.getByRole("button", { name: /^Save (event|presentation)$/ })).toBeEnabled();
-	await page.getByRole("tab", { name: "Review", exact: true }).click();
-	await page.getByRole("button", { name: "Add candidate", exact: true }).click();
+	await openEventSection(page, "Review");
+	await page.getByRole("button", { name: /^(Add candidate|Add the first candidate)$/ }).click();
 	const dialog = page.getByRole("dialog", { name: "Add award candidate", exact: true });
 	await dialog.locator('input[type="file"]').setInputFiles({ name, mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aVZkAAAAASUVORK5CYII=", "base64") });
 	await dialog.getByRole("button", { name: "Add candidate", exact: true }).click();
@@ -295,14 +296,12 @@ Given("presenter live chat is enabled with a hidden bot and command prefix", asy
 	const world = awardWorld(tourWorld);
 	await page.goto(`${tourWorld.origin}/dashboard/events/${world.eventId}`);
 	await expect(page.getByRole("button", { name: "Save presentation", exact: true })).toBeEnabled();
-	await page.getByRole("tab", { name: "Presentation", exact: true }).click();
-	await page.getByRole("button", { name: "Chat settings", exact: true }).click();
-	const dialog = page.getByRole("dialog", { name: "Presenter chat settings", exact: true });
+	await openEventSection(page, "Chat");
+	const dialog = page.getByRole("tabpanel", { name: "Chat", exact: true });
 	await dialog.getByText("Show Twitch chat", { exact: true }).click();
 	await expect(dialog.getByRole("switch")).toBeChecked();
 	await dialog.getByRole("textbox", { name: /^Hidden accounts/ }).fill("spam_bot");
 	await dialog.getByRole("textbox", { name: /^Hidden command prefixes/ }).fill("?");
-	await dialog.getByRole("button", { name: "Done", exact: true }).click();
 	await page.getByRole("button", { name: "Save presentation", exact: true }).click();
 	await expect(page.getByText("Event saved.", { exact: true })).toBeVisible();
 
@@ -377,11 +376,8 @@ Then("the award editor and presenter can be reviewed in both themes and viewport
 			await page.goto(`${tourWorld.origin}/dashboard/events/${eventId}`);
 			await expect(page.getByRole("button", { name: /^Save (event|presentation)$/ })).toBeEnabled();
 			await expect(page.getByRole("button", { name: "Save presentation", exact: true })).toBeEnabled();
-			await page.getByRole("tab", { name: "Event", exact: true }).focus();
-			await page.keyboard.press("End");
-			await page.keyboard.press("Enter");
-			await expect(page.getByRole("tab", { name: "Presentation", exact: true })).toHaveAttribute("aria-selected", "true");
-			await expect(page.getByRole("button", { name: "Add statistics slide", exact: true })).toBeVisible();
+			await openEventSection(page, "Presentation");
+			await expect(page.getByRole("button", { name: "Add slide", exact: true })).toBeVisible();
 			await page.screenshot({ path: test.info().outputPath(`awards-editor-${size}-${theme}.png`), fullPage: true });
 			await page.goto(`${tourWorld.origin}/events/${eventId}/present#${"s".repeat(43)}`);
 			await expect(page.getByRole("heading", { name: "Babbler Awards", exact: true })).toBeVisible();
@@ -430,7 +426,7 @@ Given("the full Babbler pilot is prepared as an unpublished draft", async ({ pag
 	await expect(page.getByRole("button", { name: /^Save (event|presentation)$/ })).toBeEnabled();
 });
 When("the creator reviews the pilot categories and publishes the announcement", async ({ page, tourWorld }) => {
-	await page.getByRole("tab", { name: "Categories", exact: true }).click();
+	await openEventSection(page, "Categories");
 	for (const category of awardWorld(tourWorld).configuration.categories) await expect(page.getByText(category.title, { exact: true })).toBeVisible();
 	await page.getByRole("button", { name: "Publish event", exact: true }).click();
 	await expect(page.getByText("Your event is published.", { exact: true })).toBeVisible();
@@ -487,8 +483,9 @@ When("the creator adds and arranges a statistic with {int} watched hours", async
 	await page.goto(`${tourWorld.origin}/dashboard/events/${world.eventId}`);
 	await expect(page.getByRole("button", { name: /^Save (event|presentation)$/ })).toBeEnabled();
 	await expect(page.getByRole("button", { name: "Save presentation", exact: true })).toBeEnabled();
-	await page.getByRole("tab", { name: "Presentation", exact: true }).click();
-	await page.getByRole("button", { name: "Add statistics slide", exact: true }).click();
+	await openEventSection(page, "Presentation");
+	await page.getByRole("button", { name: "Add slide", exact: true }).click();
+	await page.getByRole("menuitem", { name: "Add statistics slide", exact: true }).click();
 	await page.getByRole("textbox", { name: "Slide title", exact: true }).fill("Your year in numbers");
 	await page.getByRole("button", { name: "Add statistic", exact: true }).click();
 	await page.getByRole("textbox", { name: "Statistic 1 label", exact: true }).fill("Watched hours");

@@ -1,6 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { Button, Card, Label, Link, Switch, Tabs, TextArea, TextField } from "@heroui/react";
+import { DashboardNavigationContext } from "@components/dashboardNavigation";
+import { eventEditorSections, type EventEditorSection } from "@lib/dashboardSections";
 import UpgradeModal from "@components/upgradeModal";
 import type { AuthenticatedUser } from "@types";
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
@@ -17,8 +19,10 @@ import EventTieResults from "./EventTieResults";
 import EventDataResults from "./EventDataResults";
 import EventReview from "./EventReview";
 import EventConnections from "./EventConnections";
-import EventDeckEditor from "./EventDeckEditor";
-export default function EventEditor({ creatorId, initial, user, canWhiteLabel = false }: { creatorId: string; initial: ManagedAwardEvent; user?: AuthenticatedUser; canWhiteLabel?: boolean }) {
+import EventPresentationEditor from "./EventPresentationEditor";
+export default function EventEditor({ creatorId, initial, user, canWhiteLabel = false, connectionStatus }: { creatorId: string; initial: ManagedAwardEvent; user?: AuthenticatedUser; canWhiteLabel?: boolean; connectionStatus?: "connected" | "retry" }) {
+	const navigation = useContext(DashboardNavigationContext);
+	const [localSection, setLocalSection] = useState<EventEditorSection>("event");
 	const [upgrade, setUpgrade] = useState(false);
 	const [event, setEvent] = useState(initial),
 		[draft, setDraft] = useState(initial.configuration),
@@ -99,6 +103,15 @@ export default function EventEditor({ creatorId, initial, user, canWhiteLabel = 
 						<Card.Description>{phase === "draft" ? "Configure your community event." : `Current phase: ${phase}`}</Card.Description>
 					</div>
 					<div className='flex flex-wrap gap-2'>
+						<Button
+							variant='secondary'
+							onPress={() => {
+								if (navigation?.eventWorkspace) navigation.eventWorkspace.select("presentation");
+								else setLocalSection("presentation");
+							}}
+						>
+							Preview event
+						</Button>
 						{!event.publishedAt ? (
 							<>
 								<Button variant='secondary' isPending={busy} onPress={() => void save()}>
@@ -127,6 +140,7 @@ export default function EventEditor({ creatorId, initial, user, canWhiteLabel = 
 					</div>
 				</Card.Header>
 				<Card.Content className='space-y-5'>
+					<p className='text-sm text-muted'>{event.publishedAt ? "Setup is locked after publication. Continue with proposals, data awards and your presentation." : "Set your categories and roadmap, connect storage if you accept uploads, then publish. You can preview and share your draft first."}</p>
 					{error ? (
 						<p role='alert' className='text-sm text-danger'>
 							{error}
@@ -148,12 +162,19 @@ export default function EventEditor({ creatorId, initial, user, canWhiteLabel = 
 							</Button>
 						</div>
 					) : null}
-					<Tabs defaultSelectedKey='event'>
-						<Tabs.ListContainer>
+					<Tabs
+						selectedKey={navigation?.eventWorkspace?.section ?? localSection}
+						onSelectionChange={(key) => {
+							const section = String(key) as EventEditorSection;
+							if (navigation?.eventWorkspace) navigation.eventWorkspace.select(section);
+							else setLocalSection(section);
+						}}
+					>
+						<Tabs.ListContainer className={navigation?.eventWorkspace ? "hidden" : undefined}>
 							<Tabs.List aria-label='Event editor sections'>
-								{["event", "roadmap", "categories", "review", "results", "connections", "presentation"].map((id) => (
-									<Tabs.Tab key={id} id={id} className='whitespace-nowrap'>
-										{id === "event" ? "Event" : id === "roadmap" ? "Roadmap" : id === "categories" ? "Categories" : id === "review" ? "Review" : id === "results" ? "Data awards" : id === "connections" ? "Connections" : "Presentation"}
+								{eventEditorSections.map((item) => (
+									<Tabs.Tab key={item.key} id={item.key} className='whitespace-nowrap'>
+										{item.title}
 									</Tabs.Tab>
 								))}
 							</Tabs.List>
@@ -206,10 +227,10 @@ export default function EventEditor({ creatorId, initial, user, canWhiteLabel = 
 										update({ whiteLabel });
 									}}
 								>
-									<Switch.Control>
-										<Switch.Thumb />
-									</Switch.Control>
 									<Switch.Content>
+										<Switch.Control>
+											<Switch.Thumb />
+										</Switch.Control>
 										<Label>Hide Clipify branding (Pro)</Label>
 									</Switch.Content>
 								</Switch>
@@ -243,12 +264,13 @@ export default function EventEditor({ creatorId, initial, user, canWhiteLabel = 
 							{event.configuration.tiePolicy === "team" ? <EventTieResults creatorId={creatorId} eventId={event.id} locked={!!event.resultsPublishedAt} /> : null}
 						</Tabs.Panel>
 						<Tabs.Panel id='connections' className='pt-5'>
-							<EventConnections beforeConnect={async () => !!(await save())} creatorId={creatorId} eventId={event.id} value={draft.storageConnectionId} readOnly={busy || !!event.publishedAt} onChange={(storageConnectionId) => update({ storageConnectionId })} />
+							<EventConnections status={connectionStatus} beforeConnect={async () => !!(await save())} creatorId={creatorId} eventId={event.id} value={draft.storageConnectionId} readOnly={busy || !!event.publishedAt} onChange={(storageConnectionId) => update({ storageConnectionId })} />
 						</Tabs.Panel>
 						<Tabs.Panel id='presentation' className='pt-5'>
+							<EventPresentationEditor creatorId={creatorId} eventId={event.id} draft={draft} busy={busy} onChange={(slides) => update({ slides })} />
+						</Tabs.Panel>
+						<Tabs.Panel id='chat' className='pt-5'>
 							<EventPresentationSettings value={draft.presentation ?? DEFAULT_AWARD_PRESENTATION} disabled={busy} onChange={(presentation) => update({ presentation })} />
-							<p className='my-4 text-sm text-muted'>Save your presentation, then reload the presenter to use the updated deck.</p>
-							<EventDeckEditor value={draft.slides} categories={draft.categories} readOnly={busy} onChange={(slides) => update({ slides })} />
 						</Tabs.Panel>
 					</Tabs>
 				</Card.Content>

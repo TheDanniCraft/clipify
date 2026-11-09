@@ -8,6 +8,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ prov
 	if (!completed.ok) return NextResponse.redirect(new URL("/login", url.origin));
 	const result = completed.connection;
 	const destination = new URL(result?.returnPath ?? "/dashboard/events", url.origin);
+	destination.searchParams.set("section", "connections");
+	destination.searchParams.set("provider", provider);
 	destination.searchParams.set("connection", result?.connected ? "connected" : "retry");
 	return NextResponse.redirect(destination);
 }

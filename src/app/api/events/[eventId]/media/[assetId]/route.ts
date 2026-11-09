@@ -16,5 +16,5 @@ export async function GET(request: Request, { params }: { params: Promise<{ even
 		const [event] = await db.select({ ownerId: awardEventsTable.ownerId }).from(awardEventsTable).where(eq(awardEventsTable.id, eventId)).limit(1);
 		if (event) teamAuthorized = (await readAwardReview(principal, event.ownerId, eventId)).ok;
 	}
-	return serveAwardAsset(eventId, assetId, request.headers.get("range"), request.signal, participant?.authUserId, teamAuthorized);
+	return serveAwardAsset(eventId, assetId, request.headers.get("range"), request.signal, participant?.authUserId, teamAuthorized, new URL(request.url).searchParams.get("preview") ?? undefined);
 }

@@ -5,7 +5,7 @@ import ControlledModal from "@components/controlledModal";
 import { listEventConnectionsAction, beginEventGoogleConnectionAction, saveEventS3ConnectionAction } from "@actions/events";
 import { EventSelect, EventText } from "./EventFields";
 type Connection = { id: string; provider: "s3" | "drive" | "youtube"; identityName: string; connected: boolean };
-export default function EventConnections({ creatorId, eventId, value, onChange, readOnly = false, beforeConnect }: { creatorId: string; eventId: string; value: string | null; onChange: (id: string | null) => void; readOnly?: boolean; beforeConnect?: () => Promise<boolean> }) {
+export default function EventConnections({ creatorId, eventId, value, onChange, readOnly = false, beforeConnect, status }: { creatorId: string; eventId: string; value: string | null; onChange: (id: string | null) => void; readOnly?: boolean; beforeConnect?: () => Promise<boolean>; status?: "connected" | "retry" }) {
 	const [connections, setConnections] = useState<Connection[]>([]),
 		[loading, setLoading] = useState(true),
 		[attempt, setAttempt] = useState(0),
@@ -73,8 +73,17 @@ export default function EventConnections({ creatorId, eventId, value, onChange, 
 		<div className='space-y-5'>
 			<div>
 				<h2 className='font-semibold'>Connected accounts</h2>
-				<p className='mt-1 text-sm text-muted'>Connect Google Drive or S3 to accept files. Save your event before connecting Google.</p>
+				<p className='mt-1 text-sm text-muted'>Choose where uploaded files are stored. Google asks for access only to files created by Clipify; YouTube is connected separately.</p>
 			</div>
+			{status === "connected" ? (
+				<p role='status' className='text-sm text-success'>
+					Google account connected. Your available accounts are listed below.
+				</p>
+			) : status === "retry" ? (
+				<p role='alert' className='text-sm text-danger'>
+					Google was not connected. Try again and grant the requested access.
+				</p>
+			) : null}
 			{error && !open ? (
 				<div className='flex flex-wrap items-center gap-3'>
 					<p role='alert' className='text-sm text-danger'>

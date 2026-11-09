@@ -31,3 +31,19 @@ These references supply interaction and layout structure, not Clipify's colors o
 ## Verification
 
 All eight new creation/editor browser audit cases and thirteen complete Event journeys pass. The four affected UI test files pass fourteen checks; build/TypeScript, scoped lint and formatting pass. Detailed commands and evidence are recorded in tdd/cycle-log.md. All fixtures use disposable loopback databases. Real provider consent screens and a live broadcast are outside this local UI pass.
+
+## Follow-up: visible controls, contextual navigation and show preview
+
+The previous audit did not establish that the visible switch controls worked. Tests that clicked a hidden input missed incorrect installed HeroUI composition: `Switch.Control` must be inside `Switch.Content`, which owns the visible button. A real-browser Red reproduced the failed branding toggle. All five Event switches now use the installed composition; browser checks exercise their visible controls and the existing Pro upgrade modal.
+
+The Event editor now replaces its resource navigation with an Event-scoped sidebar: Set up, Run event and Show, plus All events. Global account and help controls stay available. References inspected: [GitLab project context](https://mobbin.com/screens/fe41479b-fdb6-45bd-b2f2-ff2d07ba2bbf), [n8n project navigation](https://mobbin.com/screens/4fbc82db-053f-47ba-8db4-348ebaf65271) and [Payloadbay PR 13](https://github.com/payloadbay/payloadbay/pull/13), specifically its route-derived dashboard shell. Same-event navigation preserves unsaved fields and browser history.
+
+The presentation editor pairs slide tiles and selected fields with the actual show renderer, informed by [Gamma](https://mobbin.com/screens/ddf68377-321d-40e0-b409-f359d8a5bcea) and [Pitch](https://mobbin.com/screens/f0fbc334-3bde-4bea-b9bc-e4031d5a8fbe). Chat is a focused inline section. Empty Review categories show guidance instead of an empty table and unavailable bulk actions. The Event library gives names the full row width and renders dates as secondary metadata.
+
+A separate seven-day preview capability permits signed-out review without voting or publishing. Rotating the presenter secret revokes previews. Group originals remain private; only root-candidate media referenced by the preview may be loaded. The normal publishing-capable presenter link remains separate.
+
+Use Babbler example creates an unlisted draft with the supplied nineteen categories. Cached clips include all years, with no implicit date restriction. Fictional proposals and manual results are labelled demo content. The same authorized services power the dashboard and the new create_event_example/get_event_preview MCP actions. This does not establish that an example has been created in the user's real account: the connected tool catalogue does not yet expose the branch's Event actions.
+
+Drive and YouTube links use contextual incremental Google consent. Installed-provider and browser redirect checks verify Drive requests drive.file without youtube.readonly, and YouTube requests youtube.readonly without drive.file. Real Google consent and cloud-account access remain separate external checks.
+
+Follow-up verification: all twelve focused editor/control/recovery cases pass across both widths/themes. All thirteen complete Event journeys have passing final-source evidence (twelve in the complete run and the corrected empty-state caller in the final recheck). The entire four-case editor owner was also rerun after the shared nominee text-wrap fix, waiting for the actual header animation to settle before screenshots. Relevant unit/service/native MCP owners, final build/TypeScript, scoped lint and formatting pass. Real account creation remains unavailable until the connected MCP deployment exposes Events; no Infisical fallback or shared-database seed was performed.

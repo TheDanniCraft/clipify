@@ -9,6 +9,8 @@ export async function runMutationScopeCatalogue(input: { pool: Pool; auth: any; 
 	const privateKey = await importJWK(JSON.parse(decrypted), algorithm);
 	const mutations = [
 		["create_event", "event:create"],
+		["get_event_preview", "event:update"],
+		["create_event_example", "event:create"],
 		["update_event", "event:update"],
 		["nominate_event_candidates", "event:review"],
 		["publish_event", "event:publish"],

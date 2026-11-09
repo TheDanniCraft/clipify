@@ -1,3 +1,4 @@
+import { openEventSection } from "../support/event-editor-navigation";
 import { randomUUID } from "node:crypto";
 import { test, expect } from "../bdd/support/user-tour";
 import { seedCreatorLibrary } from "../support/creator-library";
@@ -26,16 +27,19 @@ for (const width of [390, 1440])
 			await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 			await expect(page.getByRole("button", { name: "Save presentation", exact: true })).toBeEnabled();
 			for (const section of ["Event", "Roadmap", "Categories", "Data awards", "Connections", "Presentation", "Review"]) {
-				const tab = page.getByRole("tab", { name: section, exact: true });
 				const failConnections = (route: import("@playwright/test").Route) => (route.request().method() === "POST" && route.request().headers()["next-action"] ? route.fulfill({ status: 503, contentType: "text/plain", body: "Unavailable" }) : route.continue());
-				if (section === "Connections") await page.route(`${tourWorld.origin}/dashboard/events/${eventId}`, failConnections);
-				await tab.click();
-				await expect(tab).toHaveAttribute("aria-selected", "true");
+				if (section === "Connections") await page.route(new RegExp(`/dashboard/events/${eventId}(?:[?].*)?$`), failConnections);
+				await openEventSection(page, section);
 				if (section === "Review") await expect(page.getByRole("grid", { name: "Award proposals" })).toBeVisible();
-				if (section === "Data awards") await expect(page.getByRole("textbox", { name: "Winner name", exact: true })).toBeVisible();
+				if (section === "Data awards") {
+					await expect(page.getByRole("textbox", { name: "Winner name", exact: true })).toBeVisible();
+					const numeric = page.locator('[data-slot="switch"]').filter({ hasText: "Include a number" });
+					await numeric.locator('[data-slot="switch-control"]').click();
+					await expect(numeric.getByRole("switch")).toBeChecked();
+				}
 				if (section === "Connections") {
 					await expect(page.getByRole("alert").filter({ hasText: "Connections could not be loaded." })).toBeVisible();
-					await page.unroute(`${tourWorld.origin}/dashboard/events/${eventId}`, failConnections);
+					await page.unroute(new RegExp(`/dashboard/events/${eventId}(?:[?].*)?$`), failConnections);
 					await page.getByRole("button", { name: "Retry connections", exact: true }).click();
 					await expect(page.getByRole("button", { name: "Connect S3", exact: true })).toBeEnabled();
 					await page.getByRole("button", { name: "Connect S3", exact: true }).click();
@@ -43,6 +47,16 @@ for (const width of [390, 1440])
 					await page.getByRole("button", { name: "Cancel", exact: true }).click();
 				}
 
+				if (section === "Presentation") {
+					const preview = page.getByLabel("Live presentation preview", { exact: true });
+					await expect(preview.locator("header")).toHaveCSS("opacity", "1");
+					await expect(
+						preview
+							.getByRole("button", { name: `View ${title}`, exact: true })
+							.locator("span")
+							.first(),
+					).toHaveCSS("white-space", "normal");
+				}
 				await page.screenshot({ path: info.outputPath(`${section.replaceAll(" ", "-")}.png`), fullPage: true, animations: "disabled" });
 				expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 				if (section === "Presentation") {

@@ -128,10 +128,10 @@ export default function EventCategories({ value, onChange, readOnly = false, tim
 								</TextField>
 							) : null}
 							<Switch isSelected={edit.submissionLimit === null} onChange={(unlimited) => patch({ submissionLimit: unlimited ? null : 1 })}>
-								<Switch.Control>
-									<Switch.Thumb />
-								</Switch.Control>
 								<Switch.Content>
+									<Switch.Control>
+										<Switch.Thumb />
+									</Switch.Control>
 									<Label>Unlimited submissions per viewer</Label>
 								</Switch.Content>
 							</Switch>

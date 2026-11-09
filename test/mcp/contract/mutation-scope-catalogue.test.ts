@@ -7,6 +7,8 @@ describe("each mutation requires its independently approved OAuth scope", () => 
 	});
 	test.each([
 		["create_event", "event:create"],
+		["create_event_example", "event:create"],
+		["get_event_preview", "event:update"],
 		["update_event", "event:update"],
 		["nominate_event_candidates", "event:review"],
 		["publish_event", "event:publish"],

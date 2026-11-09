@@ -11,7 +11,9 @@ const creatorId = z.string().regex(/^[A-Za-z0-9_-]{1,200}$/),
 	revision = z.number().int().positive();
 export const eventToolSchemas = {
 	list_events: z.object({ creatorId }).strict(),
+	create_event_example: z.object({ creatorId, example: z.literal("babbler") }).strict(),
 	get_event: z.object(target).strict(),
+	get_event_preview: z.object(target).strict(),
 	create_event: z.object({ creatorId, configuration: eventInputSchema }).strict(),
 	update_event: z.object({ ...target, expectedRevision: revision, configuration: eventInputSchema }).strict(),
 	update_event_presentation: z.object({ ...target, expectedRevision: revision, slides: z.array(eventSlideSchema).max(500), presentation: awardPresentationSchema }).strict(),
@@ -30,7 +32,9 @@ export const eventToolSchemas = {
 export type EventToolName = keyof typeof eventToolSchemas;
 export const eventToolPermissions = {
 	list_events: "event:read",
+	create_event_example: "event:create",
 	get_event: "event:read",
+	get_event_preview: "event:update",
 	create_event: "event:create",
 	update_event: "event:update",
 	update_event_presentation: "event:update",
@@ -50,7 +54,7 @@ export function eventToolAnnotations(name: EventToolName) {
 	return {
 		readOnlyHint: name.startsWith("get_") || name.startsWith("list_"),
 		destructiveHint: ["update_event", "update_event_presentation", "nominate_event_candidates", "group_event_candidates", "release_event_review", "publish_event", "publish_event_results", "rotate_event_presenter", "set_event_data_result", "choose_event_tie_winner"].includes(name),
-		idempotentHint: !["create_event", "add_event_candidate", "group_event_candidates", "rotate_event_presenter"].includes(name),
+		idempotentHint: !["create_event", "create_event_example", "add_event_candidate", "group_event_candidates", "rotate_event_presenter"].includes(name),
 		openWorldHint: ["add_event_candidate", "set_event_data_result"].includes(name),
 	};
 }

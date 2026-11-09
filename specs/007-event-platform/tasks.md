@@ -231,3 +231,15 @@ Assessment: 25 FRs, 9 edge cases, 6 stories and 5 success criteria; the five imp
 - [x] T111 Reject disabled-host stale-page writes and source requests through the shared public-event guard, locking creator lifecycle before event rows, with a real PostgreSQL Red/Green check per EC-001, EC-003 and Constitution III (contradicts).
 
 Completion evidence: normal [PR #560](https://github.com/TheDanniCraft/clipify/pull/560) is open. Thirteen Awards browser journeys, the affected whole-file service/native checks, both themes and desktop/mobile inspection are complete. Full CI caller findings and their corrections are documented in tdd/cycle-log.md; the required replacement CI result is tracked on the PR. Task completion does not authorize merge or deployment before that gate passes.
+
+## Event editor follow-up
+
+- [x] T112 Fix all visible HeroUI Event switches and verify the actual control, including the Pro upgrade interaction.
+- [x] T113 Provide Event-scoped grouped sidebar navigation while preserving drafts, global account controls and mobile access; inspect Payloadbay PR 13 and Mobbin references.
+- [x] T114 Add a real presentation preview beside ordered slide tiles and focused inline chat settings; simplify empty Review states and library metadata.
+- [x] T115 Add a revocable, read-only shared preview capability, including protected root-candidate media and denial of publishing/group originals.
+- [x] T116 Add the requested nineteen-category Babbler example through the same authorized dashboard/MCP service, with all-time creator clips and labelled demo data.
+- [x] T117 Verify contextual Google Drive/YouTube scopes using installed-provider and real browser authorization redirects without using live provider accounts as fixtures.
+- [x] T118 Rehearse all affected Event browser journeys, record the follow-up evidence and push the completed slice to PR #560.
+
+Creating the example in the user's actual account is an external follow-up after the connected MCP server exposes the branch's Event actions. Authentication now succeeds for the approved creator, but its deployed capability list contains no Event operations. No direct shared-database seeding substitutes for that authorized route.

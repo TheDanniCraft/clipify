@@ -106,3 +106,33 @@ it("requires a team tie decision among the tied leaders before public release", 
 	expect(await publishAwardPresenterResults(eventId, secret, now)).toEqual({ ok: true });
 	expect(await chooseAwardTieWinner(principal, "host", eventId, categoryId, second.id, now)).toMatchObject({ ok: false, code: "PHASE_CLOSED" });
 });
+
+it("shares a read-only draft preview without publishing it or exposing grouped originals", async () => {
+	const { createAwardPreview, readAwardPreview } = await import("@/server/events/preview");
+	const { readPublicAwardEvent } = await import("@/server/events/public-read");
+	await fixture.db.update(awardEventsTable).set({ publishedAt: null }).where(eq(awardEventsTable.id, eventId));
+	const [parent] = await fixture.db.select().from(awardCandidatesTable);
+	await fixture.db.insert(awardCandidatesTable).values({ eventId, categoryId: parent.categoryId, canonicalKey: "grouped-original", parentId: parent.id, content: { kind: "text", title: "Private original suggestion", description: "", reference: "" } });
+	const principal = { kind: "session" as const, authUserId: "team-actor", sessionId: "session", authenticatedAt: now };
+	expect(await createAwardPreview({ ...principal, authUserId: "outsider" }, "host", eventId, now)).toMatchObject({ ok: false, code: "ACCESS_DENIED" });
+	expect(await createAwardPreview(principal, "other-owner", eventId, now)).toMatchObject({ ok: false, code: "NOT_FOUND" });
+	const created = await createAwardPreview(principal, "host", eventId, now);
+	if (!created.ok) throw new Error("preview failed");
+	const view = await readAwardPreview(eventId, created.token, now);
+	expect(view).toMatchObject({ ok: true, event: { title: "Awards", phase: "closed", categories: [{ candidates: [{ content: { title: "Lampe" } }] }] }, statistics: { voters: 1 } });
+	expect(JSON.stringify(view)).not.toContain("Private original suggestion");
+	expect(JSON.stringify(view)).not.toContain("private-voter-id");
+	expect(await readPublicAwardEvent(eventId)).toMatchObject({ ok: false, code: "NOT_FOUND" });
+	const { publishAwardPresenterResults } = await import("@/server/events/presenter");
+	expect(await publishAwardPresenterResults(eventId, created.token, now)).toMatchObject({ ok: false, code: "NOT_FOUND" });
+	const [stored] = await fixture.db.select().from(awardEventsTable);
+	expect(stored.publishedAt).toBeNull();
+	expect(stored.resultsPublishedAt).toBeNull();
+	expect(stored.frozenAt).toBeNull();
+	expect(await readAwardPreview(eventId, created.token, new Date(now.getTime() + 7 * 86400000))).toMatchObject({ ok: false, code: "NOT_FOUND" });
+	await fixture.db
+		.update(awardEventsTable)
+		.set({ presenterDigest: hash("n".repeat(43)) })
+		.where(eq(awardEventsTable.id, eventId));
+	expect(await readAwardPreview(eventId, created.token, now)).toMatchObject({ ok: false, code: "NOT_FOUND" });
+});

@@ -1,3 +1,11 @@
+jest.mock(
+	"@heroui-pro/react",
+	() => {
+		const Slot = ({ children }: { children: React.ReactNode }) => <div>{children}</div>;
+		return { EmptyState: Object.assign(Slot, { Header: Slot, Title: Slot, Description: Slot, Content: Slot }) };
+	},
+	{ virtual: true },
+);
 import { fireEvent, render, screen } from "@testing-library/react";
 import EventReview from "@/app/components/events/EventReview";
 import { createAwardConfiguration } from "@/app/lib/eventDefaults";
@@ -29,6 +37,8 @@ it("explains why draft review actions are unavailable", async () => {
 		candidates: [],
 	});
 	render(<EventReview creatorId='host' eventId='event' />);
-	expect(await screen.findByText("Publish your event before reviewing proposals.")).toBeInTheDocument();
-	expect(screen.getByRole("button", { name: "Add candidate" })).toBeDisabled();
+	expect(await screen.findByText("Publish your event before reviewing proposals. Viewer submissions will appear here.")).toBeInTheDocument();
+	expect(screen.queryByRole("button", { name: "Add candidate" })).toBeNull();
+	expect(screen.queryByRole("button", { name: "Finish review" })).toBeNull();
+	expect(screen.queryByRole("textbox", { name: "Search proposals" })).toBeNull();
 });

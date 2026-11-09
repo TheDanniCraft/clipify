@@ -3,5 +3,5 @@ const EMBEDDED_ROUTE_PREFIXES = ["/runner/preview/", "/runner/presentation/", "/
 const GALLERY_PREVIEW_ROUTE = /^\/dashboard\/galleries\/[^/]+\/preview(?:\/|$)/;
 
 export function isEmbeddedRoute(pathname: string) {
-	return EMBEDDED_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix)) || GALLERY_PREVIEW_ROUTE.test(pathname) || /^\/events\/[^/]+\/present(?:\/|$)/.test(pathname);
+	return EMBEDDED_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix)) || GALLERY_PREVIEW_ROUTE.test(pathname) || /^\/events\/[^/]+\/(?:present|preview)(?:\/|$)/.test(pathname);
 }

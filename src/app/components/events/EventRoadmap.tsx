@@ -18,10 +18,10 @@ export default function EventRoadmap({ value, onChange, phase = "draft", readOnl
 				<>
 					<TimezonePicker value={value.timezone} onChange={(timezone) => onChange?.({ ...value, timezone })} />
 					<Switch isSelected={value.reviewRequired} onChange={(reviewRequired) => onChange?.({ ...value, reviewRequired })}>
-						<Switch.Control>
-							<Switch.Thumb />
-						</Switch.Control>
 						<Switch.Content>
+							<Switch.Control>
+								<Switch.Thumb />
+							</Switch.Control>
 							<Label>Review nominations before voting</Label>
 						</Switch.Content>
 					</Switch>

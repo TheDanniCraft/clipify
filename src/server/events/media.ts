@@ -3,8 +3,9 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { awardAssetsTable as assets, awardEventsTable as events, eventConnectionsTable as connections, awardCandidatesTable as candidates, usersTable } from "@/db/schema";
 import { readAwardUpload } from "./upload-provider";
+import { hasAwardPreviewToken } from "@/auth/event-preview-token";
 import { awardPhase } from "./submissions";
-export async function serveAwardAsset(eventId: string, assetId: string, range: string | null, signal: AbortSignal, participantId?: string, teamAuthorized = false) {
+export async function serveAwardAsset(eventId: string, assetId: string, range: string | null, signal: AbortSignal, participantId?: string, teamAuthorized = false, previewToken?: string) {
 	const headers = new Headers({ "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "default-src 'none'; sandbox", "Referrer-Policy": "no-referrer" });
 	const fail = (status: number) => new Response(null, { status, headers });
 	if (!/^[0-9a-f-]{36}$/i.test(eventId) || !/^[0-9a-f-]{36}$/i.test(assetId)) return fail(404);
@@ -17,18 +18,20 @@ export async function serveAwardAsset(eventId: string, assetId: string, range: s
 			.innerJoin(usersTable, eq(usersTable.id, events.ownerId))
 			.where(and(eq(assets.id, assetId), eq(assets.eventId, eventId), eq(assets.state, "completed")))
 			.limit(1);
-		if (!row || row.disabled || !row.event.publishedAt || row.connection.ownerId !== row.event.ownerId || !row.asset.providerKey) return fail(404);
+		if (!row || row.disabled || row.connection.ownerId !== row.event.ownerId || !row.asset.providerKey) return fail(404);
+		const preview = previewToken !== undefined && hasAwardPreviewToken(row.event, previewToken);
+		if (!row.event.publishedAt && !preview) return fail(404);
 		const own = participantId !== undefined && row.asset.authUserId === participantId;
 		if (!own && !teamAuthorized) {
 			const phase = awardPhase(row.event, new Date());
-			if (phase === "announcement" || phase === "submissions") return fail(404);
+			if (!preview && (phase === "announcement" || phase === "submissions")) return fail(404);
 			const visible = await db
 				.select()
 				.from(candidates)
-				.where(and(eq(candidates.eventId, eventId), eq(candidates.categoryId, row.asset.categoryId), eq(candidates.nominated, true)));
+				.where(and(eq(candidates.eventId, eventId), eq(candidates.categoryId, row.asset.categoryId), preview ? undefined : eq(candidates.nominated, true)));
 			if (!visible.some((c) => !c.parentId && c.content.storageAssetId === assetId)) return fail(404);
 			const category = row.event.configuration.categories.find((c) => c.id === row.asset.categoryId);
-			if (!category || (category.selection === "data" && !row.event.resultsPublishedAt)) return fail(404);
+			if (!category || (!preview && category.selection === "data" && !row.event.resultsPublishedAt)) return fail(404);
 		}
 		const response = await readAwardUpload(row.connection, row.asset.providerKey, range, signal);
 		if (response.status === 416) {

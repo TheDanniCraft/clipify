@@ -175,3 +175,15 @@ export async function chooseEventTieWinnerAction(creatorId: string, eventId: str
 	const principal = await getVerifiedSessionPrincipal();
 	return principal ? (await import("@/server/events/ties")).chooseAwardTieWinner(principal, creatorId, eventId, categoryId, candidateId) : unauthenticated;
 }
+
+export async function createEventPreviewAction(creatorId: string, eventId: string) {
+	const principal = await getVerifiedSessionPrincipal();
+	return principal ? (await import("@/server/events/preview")).createAwardPreview(principal, creatorId, eventId) : unauthenticated;
+}
+export async function getEventPreviewAction(eventId: string, token: string) {
+	return (await import("@/server/events/preview")).readAwardPreview(eventId, token);
+}
+export async function createEventExampleAction(creatorId: string) {
+	const principal = await getVerifiedSessionPrincipal();
+	return principal ? (await import("@/server/events/examples")).createAwardExample(principal, creatorId) : unauthenticated;
+}

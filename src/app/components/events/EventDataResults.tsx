@@ -45,6 +45,7 @@ export default function EventDataResults({ creatorId, eventId, resultsPublished 
 			{data && !categories.length ? <p className='text-sm text-muted'>Save a data category in Categories to prepare its result here.</p> : null}
 			{category && data ? (
 				<>
+					{!data.event.published ? <p className='text-sm text-muted'>Publish the event before recording final data results. You can prepare manual winners in Category settings now.</p> : null}
 					<EventSelect label='Data category' value={category.id} onChange={setSelected} options={categories.map((c) => ({ id: c.id, label: c.title }))} />
 					<DataResultEditor key={category.id} creatorId={creatorId} eventId={eventId} category={category} initial={data.event.frozenResults?.[category.id]} published={data.event.published} locked={resultsPublished || !!data.event.resultsPublishedAt} onSaved={(result) => setData((current) => (current ? { ...current, event: { ...current.event, frozenResults: { ...current.event.frozenResults, [category.id]: result } } } : current))} />
 				</>
@@ -110,10 +111,10 @@ function DataResultEditor({ creatorId, eventId, category, initial, published, lo
 					<TextArea variant='secondary' aria-label='Description (optional)' value={description} onChange={(event) => setDescription(event.target.value)} />
 				</TextField>
 				<Switch aria-label='Include a number' isSelected={includeValue} onChange={setIncludeValue}>
-					<Switch.Control>
-						<Switch.Thumb />
-					</Switch.Control>
 					<Switch.Content>
+						<Switch.Control>
+							<Switch.Thumb />
+						</Switch.Control>
 						<Label>Include a number</Label>
 					</Switch.Content>
 				</Switch>

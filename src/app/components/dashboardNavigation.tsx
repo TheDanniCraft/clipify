@@ -2,10 +2,11 @@
 import { createContext, useContext, useSyncExternalStore } from "react";
 import { Breadcrumbs, Button } from "@heroui/react";
 import { IconMenu2, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand } from "@tabler/icons-react";
+import type { EventEditorSection } from "@lib/dashboardSections";
 const subscribeToHydration = () => () => undefined;
 const clientReady = () => true;
 const serverReady = () => false;
-export const DashboardNavigationContext = createContext<{ toggle: () => void; search: () => void; expanded: boolean; mobile?: boolean; homeHref?: string; current?: { href: string; title: string; detail: boolean; detailLabel?: string }; registerSearch: (node: HTMLButtonElement | null) => void } | null>(null);
+export const DashboardNavigationContext = createContext<{ toggle: () => void; search: () => void; expanded: boolean; mobile?: boolean; homeHref?: string; current?: { href: string; title: string; detail: boolean; detailLabel?: string }; eventWorkspace?: { section: EventEditorSection; select: (section: EventEditorSection) => void }; registerSearch: (node: HTMLButtonElement | null) => void } | null>(null);
 export function DashboardNavigationControls() {
 	const hydrated = useSyncExternalStore(subscribeToHydration, clientReady, serverReady);
 	const context = useContext(DashboardNavigationContext);

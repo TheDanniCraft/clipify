@@ -2,6 +2,8 @@ import "server-only";
 import type { TrustedCreatorPrincipal } from "@/auth/authorize-operation";
 import { eventToolSchemas } from "./schemas";
 const descriptions = {
+	create_event_example: "Create the requested Babbler Awards example as an unlisted, unpublished draft with all nineteen supplied categories. Uses only this creator's cached clips from all years; other samples are labelled demo data. Does not upload files, connect providers, vote or publish. Not retry-idempotent; list events before retrying. Use get_event_preview to share the read-only show.",
+	get_event_preview: "Create a read-only, seven-day preview link for a draft or published event. Includes root candidates and results for reviewing the show; does not publish or vote. Requires event:update. Share this preview with reviewers instead of the publishing-capable presenter link. Rotating the presenter link also revokes previews.",
 	list_events: "List the approved creator's awards drafts and published events without presenter secrets.",
 	get_event: "Read an award event's current configuration, revision and frozen data results without private credentials or voter identities.",
 	create_event: "Create a validated awards draft. Public listing requires an active partner grant; unlisted events are available to every creator. This operation is not retry-idempotent. The presenter secret is omitted; rotate_event_presenter explicitly issues a new private link.",
@@ -30,6 +32,15 @@ export function eventTools(principal: TrustedCreatorPrincipal) {
 		description: descriptions[name],
 		run: async (raw: unknown): Promise<Record<string, unknown>> => {
 			switch (name) {
+				case "create_event_example": {
+					const i = eventToolSchemas[name].parse(raw);
+					return unwrap(await (await import("@/server/events/examples")).createAwardExample(principal, i.creatorId));
+				}
+				case "get_event_preview": {
+					const i = eventToolSchemas[name].parse(raw);
+					const result = unwrap(await (await import("@/server/events/preview")).createAwardPreview(principal, i.creatorId, i.eventId));
+					return result.ok ? { ok: true, previewPath: `/events/${i.eventId}/preview#${result.token}` } : result;
+				}
 				case "list_events": {
 					const i = eventToolSchemas[name].parse(raw);
 					return unwrap(await (await import("@/server/events/persistence")).listAwardEvents(principal, i.creatorId));

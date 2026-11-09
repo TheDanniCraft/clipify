@@ -18,3 +18,15 @@ export const toolSections = [
 	{ title: "Clip Player", href: "/dashboard/tools?tool=player" },
 	{ title: "Clip Gallery", href: "/dashboard/tools?tool=gallery" },
 ] as const;
+
+export const eventEditorSections = [
+	{ key: "event", title: "Event", group: "Set up" },
+	{ key: "roadmap", title: "Roadmap", group: "Set up" },
+	{ key: "categories", title: "Categories", group: "Set up" },
+	{ key: "connections", title: "Connections", group: "Set up" },
+	{ key: "review", title: "Review", group: "Run event" },
+	{ key: "results", title: "Data awards", group: "Run event" },
+	{ key: "presentation", title: "Presentation", group: "Show" },
+	{ key: "chat", title: "Chat", group: "Show" },
+] as const;
+export type EventEditorSection = (typeof eventEditorSections)[number]["key"];

@@ -3,12 +3,12 @@ import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode, type
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Sidebar, Command, useSidebar } from "@heroui-pro/react";
 import { Button, Kbd, Link } from "@heroui/react";
-import { IconBolt, IconPalette, IconHome, IconLayoutCollage, IconVideo, IconScissors, IconLayoutGrid, IconPlaylist, IconPhoto, IconDeviceDesktop, IconTools, IconSettings, IconFolder, IconSearch, IconHelpCircle, IconUserCircle, IconPlug, IconId, IconCreditCard, IconUsers, IconPlayerPlay, IconAward, IconBuildingCommunity } from "@tabler/icons-react";
+import { IconBolt, IconPalette, IconHome, IconLayoutCollage, IconVideo, IconScissors, IconLayoutGrid, IconPlaylist, IconPhoto, IconDeviceDesktop, IconTools, IconSettings, IconFolder, IconSearch, IconHelpCircle, IconUserCircle, IconPlug, IconId, IconCreditCard, IconUsers, IconPlayerPlay, IconAward, IconBuildingCommunity, IconCalendar, IconChecklist, IconChartBar, IconPresentation, IconMessageCircle } from "@tabler/icons-react";
 import NextLink from "next/link";
 import { ClipExportProvider, ExportQueueLauncher } from "./creator/clipExportQueue";
 import AdminNavigation from "./adminNavigation";
 import Logo from "./logo";
-import { settingsSections, settingsSection, toolSections } from "@lib/dashboardSections";
+import { settingsSections, settingsSection, toolSections, eventEditorSections } from "@lib/dashboardSections";
 import { searchCreatorLibrary } from "@actions/creatorLibrary";
 import { DashboardNavigationContext } from "./dashboardNavigation";
 import { isEmbeddedRoute } from "@lib/embeddedRoutes";
@@ -36,6 +36,9 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen, isAd
 	const path = usePathname();
 	const params = useSearchParams();
 	const section = settingsSection(params);
+	const eventId = permissions.includes("event:read") ? /^\/dashboard\/events\/([0-9a-f-]{36})$/i.exec(path)?.[1] : undefined;
+	const eventIcons = { event: IconAward, roadmap: IconCalendar, categories: IconLayoutGrid, connections: IconPlug, review: IconChecklist, results: IconChartBar, presentation: IconPresentation, chat: IconMessageCircle };
+	const eventSection = eventEditorSections.find((item) => item.key === params.get("section"))?.key ?? "event";
 	const activeGroup = path.startsWith("/dashboard/settings") || path === "/dashboard/member-card" ? "settings" : path === "/dashboard/tools" ? "tools" : undefined;
 	const commandKey = useSyncExternalStore(
 		() => () => undefined,
@@ -174,51 +177,86 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen, isAd
 				</Button>
 			</Sidebar.Header>
 			<Sidebar.Content>
-				<Sidebar.Group>
-					<Sidebar.Menu aria-label='Creator navigation' className='clipify-creator-navigation' key={activeGroup ?? "root"} defaultExpandedKeys={["resources", ...(activeGroup ? [activeGroup] : [])]}>
-						{allowed.filter((item) => ["Home", "Streams", "Clip Inventory", "Agency"].includes(item.title)).map(menuItem)}
-						{resources.length > 0 ? (
-							<Sidebar.MenuItem id='resources' textValue='Create and share' data-tour='resources-group' data-guide-navigation>
-								<Sidebar.MenuIcon>
-									<IconFolder className='size-4' />
-								</Sidebar.MenuIcon>
-								<Sidebar.MenuLabel>Create and share</Sidebar.MenuLabel>
-								<Sidebar.MenuTrigger>
-									<Sidebar.MenuIndicator />
-								</Sidebar.MenuTrigger>
-								<Sidebar.Submenu>{resources.map(menuItem)}</Sidebar.Submenu>
-							</Sidebar.MenuItem>
-						) : null}
-						{[
-							{ id: "tools", title: "Tools", icon: IconTools, items: toolItems },
-							{ id: "settings", title: "Settings", icon: IconSettings, items: settingsItems },
-						]
-							.filter((group) => group.items.length > 0)
-							.map((group) => (
-								<Sidebar.MenuItem key={group.id} id={group.id} textValue={group.title} data-tour={`${group.id}-group`} data-guide-navigation>
+				{eventId ? (
+					<>
+						<Sidebar.Group>
+							<Sidebar.Menu aria-label='Event workspace'>
+								<Sidebar.MenuItem id='all-events' href='/dashboard/events' textValue='All events'>
 									<Sidebar.MenuIcon>
-										<group.icon className='size-4' />
+										<IconFolder className='size-4' />
 									</Sidebar.MenuIcon>
-									<Sidebar.MenuLabel>{group.title}</Sidebar.MenuLabel>
+									<Sidebar.MenuLabel>All events</Sidebar.MenuLabel>
+								</Sidebar.MenuItem>
+							</Sidebar.Menu>
+						</Sidebar.Group>
+						{["Set up", "Run event", "Show"].map((group) => (
+							<Sidebar.Group key={group}>
+								<Sidebar.GroupLabel>{group}</Sidebar.GroupLabel>
+								<Sidebar.Menu aria-label={`${group} event`}>
+									{eventEditorSections
+										.filter((item) => item.group === group)
+										.map((item) => {
+											const Icon = eventIcons[item.key];
+											return (
+												<Sidebar.MenuItem key={item.key} id={item.key} href={`${path}?section=${item.key}`} textValue={item.title} isCurrent={eventSection === item.key} aria-current={eventSection === item.key ? "page" : undefined}>
+													<Sidebar.MenuIcon>
+														<Icon className='size-4' />
+													</Sidebar.MenuIcon>
+													<Sidebar.MenuLabel>{item.title}</Sidebar.MenuLabel>
+												</Sidebar.MenuItem>
+											);
+										})}
+								</Sidebar.Menu>
+							</Sidebar.Group>
+						))}
+					</>
+				) : (
+					<Sidebar.Group>
+						<Sidebar.Menu aria-label='Creator navigation' className='clipify-creator-navigation' key={activeGroup ?? "root"} defaultExpandedKeys={["resources", ...(activeGroup ? [activeGroup] : [])]}>
+							{allowed.filter((item) => ["Home", "Streams", "Clip Inventory", "Agency"].includes(item.title)).map(menuItem)}
+							{resources.length > 0 ? (
+								<Sidebar.MenuItem id='resources' textValue='Create and share' data-tour='resources-group' data-guide-navigation>
+									<Sidebar.MenuIcon>
+										<IconFolder className='size-4' />
+									</Sidebar.MenuIcon>
+									<Sidebar.MenuLabel>Create and share</Sidebar.MenuLabel>
 									<Sidebar.MenuTrigger>
 										<Sidebar.MenuIndicator />
 									</Sidebar.MenuTrigger>
-									<Sidebar.Submenu>
-										{group.items.map(menuItem)}
-										{group.id === "tools" && canSearchClips ? (
-											<Sidebar.MenuItem id='automations' textValue='Automations, coming soon' isDisabled tooltip='Automations — coming soon'>
-												<Sidebar.MenuIcon>
-													<IconBolt className='size-4' />
-												</Sidebar.MenuIcon>
-												<Sidebar.MenuLabel>Automations</Sidebar.MenuLabel>
-												<Sidebar.MenuChip>Coming soon</Sidebar.MenuChip>
-											</Sidebar.MenuItem>
-										) : null}
-									</Sidebar.Submenu>
+									<Sidebar.Submenu>{resources.map(menuItem)}</Sidebar.Submenu>
 								</Sidebar.MenuItem>
-							))}
-					</Sidebar.Menu>
-				</Sidebar.Group>
+							) : null}
+							{[
+								{ id: "tools", title: "Tools", icon: IconTools, items: toolItems },
+								{ id: "settings", title: "Settings", icon: IconSettings, items: settingsItems },
+							]
+								.filter((group) => group.items.length > 0)
+								.map((group) => (
+									<Sidebar.MenuItem key={group.id} id={group.id} textValue={group.title} data-tour={`${group.id}-group`} data-guide-navigation>
+										<Sidebar.MenuIcon>
+											<group.icon className='size-4' />
+										</Sidebar.MenuIcon>
+										<Sidebar.MenuLabel>{group.title}</Sidebar.MenuLabel>
+										<Sidebar.MenuTrigger>
+											<Sidebar.MenuIndicator />
+										</Sidebar.MenuTrigger>
+										<Sidebar.Submenu>
+											{group.items.map(menuItem)}
+											{group.id === "tools" && canSearchClips ? (
+												<Sidebar.MenuItem id='automations' textValue='Automations, coming soon' isDisabled tooltip='Automations — coming soon'>
+													<Sidebar.MenuIcon>
+														<IconBolt className='size-4' />
+													</Sidebar.MenuIcon>
+													<Sidebar.MenuLabel>Automations</Sidebar.MenuLabel>
+													<Sidebar.MenuChip>Coming soon</Sidebar.MenuChip>
+												</Sidebar.MenuItem>
+											) : null}
+										</Sidebar.Submenu>
+									</Sidebar.MenuItem>
+								))}
+						</Sidebar.Menu>
+					</Sidebar.Group>
+				)}
 				{isAdmin ? <AdminNavigation /> : null}
 			</Sidebar.Content>
 			{isMobile ? <div ref={markUtilityHostReady} data-dashboard-consent className='max-h-[35dvh] shrink-0 overflow-y-auto' /> : null}
@@ -254,6 +292,14 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen, isAd
 		<DashboardNavigationContext.Provider
 			value={{
 				homeHref,
+				eventWorkspace: eventId
+					? {
+							section: eventSection,
+							select: (section) => {
+								window.history.pushState(null, "", `${path}?section=${section}`);
+							},
+						}
+					: undefined,
 				toggle,
 				search: showSearch,
 				expanded: isMobile ? isMobileOpen : open,
@@ -263,7 +309,11 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen, isAd
 							href: current.href,
 							title: current.title,
 							detail: Boolean(currentChild) || path !== current.href,
-							detailLabel: currentChild?.title ?? (path === "/dashboard/agency/allocations" ? "Allocations" : path === "/dashboard/clips/layout" ? "Portrait layout" : path.startsWith("/dashboard/clips/") ? "Clip" : undefined) ?? (current.href === "/dashboard/settings" ? (path.startsWith("/dashboard/settings/team") ? "Team" : path.startsWith("/dashboard/settings/agencies") ? "Agency access" : "Account recovery") : undefined),
+							detailLabel:
+								currentChild?.title ??
+								(eventId ? eventEditorSections.find((item) => item.key === eventSection)?.title : undefined) ??
+								(path === "/dashboard/agency/allocations" ? "Allocations" : path === "/dashboard/clips/layout" ? "Portrait layout" : path.startsWith("/dashboard/clips/") ? "Clip" : undefined) ??
+								(current.href === "/dashboard/settings" ? (path.startsWith("/dashboard/settings/team") ? "Team" : path.startsWith("/dashboard/settings/agencies") ? "Agency access" : "Account recovery") : undefined),
 						}
 					: undefined,
 				registerSearch: (node) => {
@@ -375,7 +425,15 @@ export default function DashboardShell({ children, creatorId, permissions, isAdm
 	const [open, setOpen] = useState(true);
 	if (isEmbeddedRoute(path)) return children;
 	return (
-		<Sidebar.Provider open={open} onOpenChange={setOpen} navigate={router.push} toggleShortcut={false}>
+		<Sidebar.Provider
+			open={open}
+			onOpenChange={setOpen}
+			navigate={(href) => {
+				if (/^\/dashboard\/events\/[0-9a-f-]{36}$/i.test(path) && href.startsWith(`${path}?section=`)) window.history.pushState(null, "", href);
+				else router.push(href);
+			}}
+			toggleShortcut={false}
+		>
 			<ClipExportProvider key={creatorId} creatorId={creatorId}>
 				<NavigationFrame isAdmin={isAdmin} creatorId={creatorId} permissions={permissions} open={open} setOpen={setOpen}>
 					{children}

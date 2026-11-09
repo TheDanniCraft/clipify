@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { Button, Card, Link, Skeleton, Spinner } from "@heroui/react";
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
 import ResourceLoadError from "@components/resourceLoadError";
-import { createEventAction, listEventsAction } from "@actions/events";
+import { createEventAction, createEventExampleAction, listEventsAction } from "@actions/events";
 import { createAwardConfiguration } from "@lib/eventDefaults";
 import LocalizedDate from "@components/localizedDate";
 export default function EventLibrary({ creatorId }: { creatorId: string }) {
@@ -26,12 +26,12 @@ export default function EventLibrary({ creatorId }: { creatorId: string }) {
 			active = false;
 		};
 	}, [creatorId, attempt]);
-	async function create() {
+	async function create(example = false) {
 		if (busy) return;
 		setBusy(true);
 		setError("");
 		try {
-			const result = await createEventAction(creatorId, createAwardConfiguration("New event", Intl.DateTimeFormat().resolvedOptions().timeZone));
+			const result = example ? await createEventExampleAction(creatorId) : await createEventAction(creatorId, createAwardConfiguration("New event", Intl.DateTimeFormat().resolvedOptions().timeZone));
 			if (!result.ok) {
 				setError("Your event could not be created. Please try again.");
 				setBusy(false);
@@ -51,10 +51,15 @@ export default function EventLibrary({ creatorId }: { creatorId: string }) {
 						<Card.Title>Events</Card.Title>
 						<Card.Description>Create and manage events for your community.</Card.Description>
 					</div>
-					<Button isPending={busy} isDisabled={busy} onPress={() => void create()}>
-						{busy ? <Spinner aria-hidden='true' size='sm' color='current' /> : null}
-						Create event
-					</Button>
+					<div className='flex flex-wrap gap-2'>
+						<Button variant='secondary' isDisabled={busy} onPress={() => void create(true)}>
+							Use Babbler example
+						</Button>
+						<Button isPending={busy} isDisabled={busy} onPress={() => void create()}>
+							{busy ? <Spinner aria-hidden='true' size='sm' color='current' /> : null}
+							Create event
+						</Button>
+					</div>
 				</Card.Header>
 				<Card.Content className='space-y-4' aria-busy={busy}>
 					{busy ? (
@@ -84,14 +89,16 @@ export default function EventLibrary({ creatorId }: { creatorId: string }) {
 							</Button>
 						</ResourceLoadError>
 					) : library.events.length ? (
-						<div className='grid gap-3'>
+						<div className='grid w-full gap-3'>
 							{library.events.map((event) => (
-								<Link key={event.id} href={`/dashboard/events/${event.id}`} className='flex flex-wrap items-center justify-between gap-3 rounded-xl bg-default/40 p-4'>
+								<Link key={event.id} href={`/dashboard/events/${event.id}`} className='flex w-full flex-wrap items-center justify-between gap-3 rounded-xl bg-default/40 p-4'>
 									<div>
 										<p className='font-medium'>{event.configuration.title}</p>
 										<p className='text-sm text-muted'>{event.resultsPublishedAt ? "Results published" : event.publishedAt ? "Published" : "Draft"}</p>
 									</div>
-									<LocalizedDate value={event.createdAt} />
+									<span className='text-xs text-muted'>
+										<LocalizedDate value={event.createdAt} />
+									</span>
 								</Link>
 							))}
 						</div>

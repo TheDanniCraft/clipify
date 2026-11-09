@@ -1,3 +1,4 @@
+import { openEventSection } from "../support/event-editor-navigation";
 import { test, expect } from "../bdd/support/user-tour";
 import { seedCreatorLibrary } from "../support/creator-library";
 import { guideContentKey } from "../../src/app/lib/userTour";
@@ -62,4 +63,9 @@ for (const width of [390, 1440])
 			await expect(page.getByRole("heading", { name: "Community event", exact: true })).toBeVisible();
 			expect((await tourWorld.fixture.pool.query("SELECT configuration->>'title' AS title FROM award_events WHERE owner_id=$1", [creatorId])).rows).toEqual([{ title: "Community event" }]);
 			await page.screenshot({ path: info.outputPath("event-editor.png"), fullPage: true, animations: "disabled" });
+			await openEventSection(page, "Review");
+			await expect(page.getByText("No proposals yet", { exact: true })).toBeVisible();
+			await expect(page.getByRole("button", { name: "Nominate selected" })).toHaveCount(0);
+			await expect(page.getByRole("grid", { name: "Award proposals" })).toHaveCount(0);
+			await page.screenshot({ path: info.outputPath("empty-review.png"), fullPage: true, animations: "disabled" });
 		});

@@ -25,7 +25,14 @@ export async function runEventProbe(input: { fixture: Awaited<ReturnType<typeof 
 			return result.result.structuredContent;
 		}
 		const listed = await request("tools/list", {});
-		const discovered = listed.result.tools.some((tool: { name: string }) => tool.name === "nominate_event_candidates");
+		const discovered = ["nominate_event_candidates", "create_event_example", "get_event_preview"].every((name) => listed.result.tools.some((tool: { name: string }) => tool.name === name));
+		await fixture.pool.query('INSERT INTO "twitchCache" (type,key,value) VALUES ($1,$2,$3)', ["clip", "clip:fixture-creator:OldBabblerExampleClip", JSON.stringify({ clip: { id: "OldBabblerExampleClip", broadcaster_id: "fixture-creator", title: "An older creator clip", creator_name: "Clipper", view_count: 9999, duration: 12, created_at: "2023-06-01T12:00:00Z", thumbnail_url: "https://static-cdn.jtvnw.net/old-event-example.png" } })]);
+		const example = await call("create_event_example", { creatorId: "fixture-creator", example: "babbler" });
+		const previewLink = await call("get_event_preview", { creatorId: "fixture-creator", eventId: example.event.id });
+		const previewToken = previewLink.previewPath.split("#")[1];
+		const preview = await (await import("../../../src/server/events/preview")).readAwardPreview(example.event.id, previewToken);
+		const exampleRow = (await fixture.pool.query("SELECT published_at, results_published_at FROM award_events WHERE id=$1", [example.event.id])).rows[0];
+		const previewReadOnly = preview.ok && !exampleRow.published_at && !exampleRow.results_published_at && preview.event.categories.some((category) => category.candidates.some((candidate) => candidate.content.createdAt === "2023-06-01T12:00:00Z"));
 		const configuration = createAwardConfiguration("Awards", "UTC"),
 			now = Date.now(),
 			instant = (offset: number) => new Date(now + offset).toISOString();
@@ -63,6 +70,8 @@ export async function runEventProbe(input: { fixture: Awaited<ReturnType<typeof 
 		const safe = await call("get_event", target);
 		return {
 			discovered,
+			previewReadOnly,
+			exampleCategories: example.event.configuration.categories.length,
 			title: safe.event.configuration.title,
 			secretReturnedAtCreate: Object.hasOwn(created, "presenterSecret"),
 			secretBeforeRelease,

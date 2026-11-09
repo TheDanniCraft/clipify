@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { Button, Checkbox, Modal, Spinner, Table } from "@heroui/react";
+import { EmptyState } from "@heroui-pro/react";
 import ControlledModal from "@components/controlledModal";
 import { getEventReviewAction, nominateEventCandidatesAction, groupEventCandidatesAction, releaseEventReviewAction } from "@actions/events";
 import { EventSelect, EventText } from "./EventFields";
@@ -147,7 +148,7 @@ export default function EventReview({ creatorId, eventId }: { creatorId: string;
 				<p role='status'>Loading proposals…</p>
 			) : (
 				<>
-					{locked ? <p className='text-sm text-muted'>{!data.event.published ? "Publish your event before reviewing proposals." : data.event.reviewReleased ? "Review is complete. Nominations are locked." : "Voting has closed or opened without review. Nominations are locked."}</p> : null}
+					{locked && top.length > 0 ? <p className='text-sm text-muted'>{!data.event.published ? "Publish your event before reviewing proposals." : data.event.reviewReleased ? "Review is complete. Nominations are locked." : "Voting has closed or opened without review. Nominations are locked."}</p> : null}
 					{busy ? (
 						<p role='status' className='flex items-center gap-2 text-sm text-muted'>
 							<Spinner size='sm' />
@@ -165,113 +166,155 @@ export default function EventReview({ creatorId, eventId }: { creatorId: string;
 							}}
 							options={data.event.configuration.categories.filter((c) => c.selection !== "data").map((c) => ({ id: c.id, label: c.title }))}
 						/>
-						<EventText label='Search proposals' value={filter} onChange={setFilter} />
-						<EventSelect
-							label='Nomination status'
-							value={status}
-							onChange={setStatus}
-							options={[
-								{ id: "all", label: "All proposals" },
-								{ id: "nominated", label: "Nominated" },
-								{ id: "pending", label: "Not nominated" },
-							]}
-						/>
-					</div>
-					<div className='flex flex-wrap items-center gap-2'>
-						<Button variant='secondary' isDisabled={busy || locked || !category} onPress={() => setAddOpen(true)}>
-							Add candidate
-						</Button>
-						<Button isDisabled={busy || locked || !selected.length} onPress={() => void nominate(true)}>
-							Nominate selected
-						</Button>
-						<Button variant='secondary' isDisabled={busy || locked || !selected.length} onPress={() => void nominate(false)}>
-							Remove nomination
-						</Button>
-						{category && ["text", "link"].includes(category.source) ? (
-							<Button
-								variant='secondary'
-								isDisabled={busy || locked || selected.length < 2 || selected.some((id) => rows.find((c) => c.id === id)?.canonicalKey.startsWith("group:"))}
-								onPress={() => {
-									setError("");
-									setGroupOpen(true);
-								}}
-							>
-								Group selected
-							</Button>
+						{top.length > 0 ? (
+							<>
+								<EventText label='Search proposals' value={filter} onChange={setFilter} />
+								<EventSelect
+									label='Nomination status'
+									value={status}
+									onChange={setStatus}
+									options={[
+										{ id: "all", label: "All proposals" },
+										{ id: "nominated", label: "Nominated" },
+										{ id: "pending", label: "Not nominated" },
+									]}
+								/>
+							</>
 						) : null}
-						<p className='text-sm text-muted'>
-							{selected.length ? `${selected.length} selected. ` : ""}
-							{top.filter((c) => c.nominated).length} nominated{category?.nomineeLimit !== null && category?.nomineeLimit !== undefined ? ` of ${category.nomineeLimit}` : ""}
-						</p>
 					</div>
-					<Table>
-						<Table.ScrollContainer>
-							<Table.Content className='min-w-[640px]' aria-label='Award proposals' selectionMode='multiple' selectedKeys={new Set(selected)} disabledKeys={busy || locked ? visible.map((c) => c.id) : []} onSelectionChange={(keys) => setSelected(keys === "all" ? visible.map((c) => c.id) : [...keys].map(String))}>
-								<Table.Header>
-									<Table.Column className='w-12'>
-										<Checkbox slot='selection' aria-label='Select all proposals'>
-											<Checkbox.Content>
-												<Checkbox.Control>
-													<Checkbox.Indicator />
-												</Checkbox.Control>
-											</Checkbox.Content>
-										</Checkbox>
-									</Table.Column>
-									<Table.Column isRowHeader>Proposal</Table.Column>
-									<Table.Column>Status</Table.Column>
-									<Table.Column>Preview</Table.Column>
-								</Table.Header>
-								<Table.Body renderEmptyState={() => "No proposals match this category."}>
-									{visible.map((candidate) => {
-										const children = rows.filter((c) => c.parentId === candidate.id);
-										const isExpanded = expanded.includes(candidate.id);
-										return (
-											<Table.Row key={candidate.id} id={candidate.id}>
-												<Table.Cell>
-													<Checkbox slot='selection' aria-label={`Select ${candidate.content.title}`}>
-														<Checkbox.Content>
-															<Checkbox.Control>
-																<Checkbox.Indicator />
-															</Checkbox.Control>
-														</Checkbox.Content>
-													</Checkbox>
-												</Table.Cell>
-												<Table.Cell>
-													<p className='break-words font-medium'>{candidate.content.title}</p>
-													{children.length ? (
-														<>
-															<Button variant='tertiary' size='sm' aria-label={`${isExpanded ? "Hide" : "Show"} grouped proposals for ${candidate.content.title}`} onPress={() => setExpanded((current) => (isExpanded ? current.filter((id) => id !== candidate.id) : [...current, candidate.id]))}>
-																{children.length} grouped proposals
-															</Button>
-															{isExpanded ? (
-																<ul className='mt-2 space-y-2 border-l border-separator pl-4'>
-																	{children.map((child) => (
-																		<li key={child.id}>
-																			<p>{child.content.title}</p>
-																			{child.content.description ? <p className='text-sm text-muted'>{child.content.description}</p> : null}
-																		</li>
-																	))}
-																</ul>
-															) : null}
-														</>
-													) : candidate.content.description ? (
-														<p className='line-clamp-2 text-sm text-muted'>{candidate.content.description}</p>
-													) : null}
-												</Table.Cell>
-												<Table.Cell className='whitespace-nowrap'>{candidate.nominated ? "Nominated" : "Not nominated"}</Table.Cell>
-												<Table.Cell>
-													<Button variant='tertiary' size='sm' aria-label={`Preview ${candidate.content.title}`} onPress={() => setOpened(candidate.content)}>
-														Preview
+					{top.length > 0 ? (
+						<div className='flex flex-wrap items-center gap-2'>
+							<Button variant='secondary' isDisabled={busy || locked || !category} onPress={() => setAddOpen(true)}>
+								Add candidate
+							</Button>
+							<Button isDisabled={busy || locked || !selected.length} onPress={() => void nominate(true)}>
+								Nominate selected
+							</Button>
+							<Button variant='secondary' isDisabled={busy || locked || !selected.length} onPress={() => void nominate(false)}>
+								Remove nomination
+							</Button>
+							{category && ["text", "link"].includes(category.source) ? (
+								<Button
+									variant='secondary'
+									isDisabled={busy || locked || selected.length < 2 || selected.some((id) => rows.find((c) => c.id === id)?.canonicalKey.startsWith("group:"))}
+									onPress={() => {
+										setError("");
+										setGroupOpen(true);
+									}}
+								>
+									Group selected
+								</Button>
+							) : null}
+							<p className='text-sm text-muted'>
+								{selected.length ? `${selected.length} selected. ` : ""}
+								{top.filter((c) => c.nominated).length} nominated{category?.nomineeLimit !== null && category?.nomineeLimit !== undefined ? ` of ${category.nomineeLimit}` : ""}
+							</p>
+						</div>
+					) : null}
+					{!top.length ? (
+						<EmptyState className='py-8'>
+							<EmptyState.Header>
+								<EmptyState.Title>No proposals yet</EmptyState.Title>
+								<EmptyState.Description>{!data.event.published ? "Publish your event before reviewing proposals. Viewer submissions will appear here." : "Proposals will appear here when viewers submit to this category. You can also add a candidate."}</EmptyState.Description>
+							</EmptyState.Header>
+							{!locked && category ? (
+								<EmptyState.Content>
+									<Button variant='secondary' onPress={() => setAddOpen(true)}>
+										Add the first candidate
+									</Button>
+								</EmptyState.Content>
+							) : null}
+						</EmptyState>
+					) : (
+						<Table>
+							<Table.ScrollContainer>
+								<Table.Content className='min-w-[640px]' aria-label='Award proposals' selectionMode='multiple' selectedKeys={new Set(selected)} disabledKeys={busy || locked ? visible.map((c) => c.id) : []} onSelectionChange={(keys) => setSelected(keys === "all" ? visible.map((c) => c.id) : [...keys].map(String))}>
+									<Table.Header>
+										<Table.Column className='w-12'>
+											<Checkbox slot='selection' aria-label='Select all proposals'>
+												<Checkbox.Content>
+													<Checkbox.Control>
+														<Checkbox.Indicator />
+													</Checkbox.Control>
+												</Checkbox.Content>
+											</Checkbox>
+										</Table.Column>
+										<Table.Column isRowHeader>Proposal</Table.Column>
+										<Table.Column>Status</Table.Column>
+										<Table.Column>Preview</Table.Column>
+									</Table.Header>
+									<Table.Body
+										renderEmptyState={() => (
+											<EmptyState className='py-6'>
+												<EmptyState.Header>
+													<EmptyState.Title>No matching proposals</EmptyState.Title>
+													<EmptyState.Description>Try another search or nomination status.</EmptyState.Description>
+												</EmptyState.Header>
+												<EmptyState.Content>
+													<Button
+														variant='secondary'
+														onPress={() => {
+															setFilter("");
+															setStatus("all");
+														}}
+													>
+														Clear filters
 													</Button>
-												</Table.Cell>
-											</Table.Row>
-										);
-									})}
-								</Table.Body>
-							</Table.Content>
-						</Table.ScrollContainer>
-					</Table>
-					{schedule?.reviewRequired && !data.event.reviewReleased ? (
+												</EmptyState.Content>
+											</EmptyState>
+										)}
+									>
+										{visible.map((candidate) => {
+											const children = rows.filter((c) => c.parentId === candidate.id);
+											const isExpanded = expanded.includes(candidate.id);
+											return (
+												<Table.Row key={candidate.id} id={candidate.id}>
+													<Table.Cell>
+														<Checkbox slot='selection' aria-label={`Select ${candidate.content.title}`}>
+															<Checkbox.Content>
+																<Checkbox.Control>
+																	<Checkbox.Indicator />
+																</Checkbox.Control>
+															</Checkbox.Content>
+														</Checkbox>
+													</Table.Cell>
+													<Table.Cell>
+														<p className='break-words font-medium'>{candidate.content.title}</p>
+														{children.length ? (
+															<>
+																<Button variant='tertiary' size='sm' aria-label={`${isExpanded ? "Hide" : "Show"} grouped proposals for ${candidate.content.title}`} onPress={() => setExpanded((current) => (isExpanded ? current.filter((id) => id !== candidate.id) : [...current, candidate.id]))}>
+																	{children.length} grouped proposals
+																</Button>
+																{isExpanded ? (
+																	<ul className='mt-2 space-y-2 border-l border-separator pl-4'>
+																		{children.map((child) => (
+																			<li key={child.id}>
+																				<p>{child.content.title}</p>
+																				{child.content.description ? <p className='text-sm text-muted'>{child.content.description}</p> : null}
+																			</li>
+																		))}
+																	</ul>
+																) : null}
+															</>
+														) : candidate.content.description ? (
+															<p className='line-clamp-2 text-sm text-muted'>{candidate.content.description}</p>
+														) : null}
+													</Table.Cell>
+													<Table.Cell className='whitespace-nowrap'>{candidate.nominated ? "Nominated" : "Not nominated"}</Table.Cell>
+													<Table.Cell>
+														<Button variant='tertiary' size='sm' aria-label={`Preview ${candidate.content.title}`} onPress={() => setOpened(candidate.content)}>
+															Preview
+														</Button>
+													</Table.Cell>
+												</Table.Row>
+											);
+										})}
+									</Table.Body>
+								</Table.Content>
+							</Table.ScrollContainer>
+						</Table>
+					)}
+					{data.event.published && schedule?.reviewRequired && !data.event.reviewReleased ? (
 						<div className='flex flex-wrap items-center justify-between gap-3 border-t border-separator pt-5'>
 							<p className='max-w-xl text-sm text-muted'>Complete every category before finishing review. Nominees cannot change once review is complete.</p>
 							<Button
