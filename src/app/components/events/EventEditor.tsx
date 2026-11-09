@@ -92,7 +92,7 @@ export default function EventEditor({ creatorId, initial, user, canWhiteLabel = 
 					<div className='space-y-2'>
 						<Link href='/dashboard/events'>Back to events</Link>
 						<Card.Title>{event.configuration.title}</Card.Title>
-						<Card.Description>{phase === "draft" ? "Prepare your community award show." : `Current phase: ${phase}`}</Card.Description>
+						<Card.Description>{phase === "draft" ? "Configure your community event." : `Current phase: ${phase}`}</Card.Description>
 					</div>
 					<div className='flex flex-wrap gap-2'>
 						{!event.publishedAt ? (

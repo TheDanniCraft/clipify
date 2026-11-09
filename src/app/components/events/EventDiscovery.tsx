@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Button, Card, Chip, Link } from "@heroui/react";
 import { listPublicEventsAction } from "@actions/events";
+import ResourceLoadError from "@components/resourceLoadError";
 import LocalizedDate from "@components/localizedDate";
 type Listing = Extract<Awaited<ReturnType<typeof listPublicEventsAction>>, { ok: true }>;
 const phases = { announcement: "Coming soon", submissions: "Suggest nominees", review: "Nominations in review", voting: "Voting open", closed: "Voting closed", results: "View winners", draft: "Draft" };
@@ -37,9 +38,9 @@ export default function EventDiscovery({ preview = false }: { preview?: boolean 
 				{preview ? <Link href='/events'>Explore events</Link> : null}
 			</header>
 			{error ? (
-				<div role='alert' className='space-y-3'>
-					<p>Events could not load.</p>
+				<ResourceLoadError message='Events could not load.'>
 					<Button
+						size='sm'
 						variant='secondary'
 						onPress={() => {
 							setError(false);
@@ -48,7 +49,7 @@ export default function EventDiscovery({ preview = false }: { preview?: boolean 
 					>
 						Try again
 					</Button>
-				</div>
+				</ResourceLoadError>
 			) : !data ? (
 				<p role='status' className='text-muted'>
 					Loading events…

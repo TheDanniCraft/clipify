@@ -11,7 +11,7 @@ export default async function EventPage({ params }: { params: Promise<{ eventId:
 	const result = await getEventAction(user.id, eventId);
 	if (!result.ok) notFound();
 	return (
-		<DashboardNavbar stickyHeading user={user} title='Event' tagline='Prepare your award show'>
+		<DashboardNavbar stickyHeading user={user} title='Event' tagline='Set up your community event'>
 			<EventEditor creatorId={user.id} user={user} canWhiteLabel={(await resolveUserEntitlements(user)).proAccess} initial={result.event} />
 		</DashboardNavbar>
 	);

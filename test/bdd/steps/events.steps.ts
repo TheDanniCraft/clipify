@@ -18,9 +18,12 @@ Given("a creator is ready to organize an award show", async ({ page, request, to
 });
 When("the creator creates an event named {string}", async ({ page }, name: string) => {
 	await page.getByRole("button", { name: "Create event", exact: true }).click();
-	await page.getByRole("textbox", { name: /^Event title/ }).fill(name);
-	await page.getByRole("button", { name: "Create awards", exact: true }).click();
 	await expect(page).toHaveURL(/\/dashboard\/events\/[0-9a-f-]{36}$/);
+	await expect(page.getByRole("dialog")).toHaveCount(0);
+	await expect(page.getByRole("button", { name: "Save event", exact: true })).toBeEnabled();
+	await page.getByRole("textbox", { name: /^Event title/ }).fill(name);
+	await page.getByRole("button", { name: "Save event", exact: true }).click();
+	await expect(page.getByRole("status").filter({ hasText: "Event saved." })).toHaveText("Event saved.");
 });
 Then("the award editor preserves its name and shows editable phase dates", async ({ page }) => {
 	await expect(page.getByRole("textbox", { name: /^Event title/ })).toHaveValue("Babbler Awards");

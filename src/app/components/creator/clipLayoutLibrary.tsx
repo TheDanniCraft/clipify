@@ -10,6 +10,7 @@ import { createClipComposition, type ClipComposition } from "@lib/clipCompositio
 import { templateCompositions } from "@lib/clipLayoutTemplate";
 import { notify } from "@lib/toast";
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
+import ResourceLoadError from "@components/resourceLoadError";
 import ControlledModal from "@components/controlledModal";
 import ClipCompositionEditor from "./clipCompositionEditor";
 export default function ClipLayoutLibrary({ user, creatorId, layoutId, clipId, referenceId, newFormat, outputFormat, brand, canRemoveWatermark }: { user?: AuthenticatedUser; brand?: CreatorBrand | null; canRemoveWatermark?: boolean; creatorId: string; layoutId?: string; clipId?: string; referenceId?: string; newFormat?: string; outputFormat?: string }) {
@@ -76,12 +77,11 @@ export default function ClipLayoutLibrary({ user, creatorId, layoutId, clipId, r
 					{!library || (entry && !initial && !overrideError) ? (
 						<Skeleton className='h-40 rounded-xl' />
 					) : !library.ok || overrideError ? (
-						<div className='space-y-3'>
-							<p className='text-sm text-muted'>Layouts could not be loaded.</p>
-							<Button variant='secondary' onPress={() => setAttempt((n) => n + 1)}>
+						<ResourceLoadError message='Layouts could not be loaded.'>
+							<Button size='sm' variant='secondary' onPress={() => setAttempt((n) => n + 1)}>
 								Retry layouts
 							</Button>
-						</div>
+						</ResourceLoadError>
 					) : (
 						<>
 							{layoutId && !entry ? <p className='text-sm text-muted'>This layout is no longer available. Choose another layout.</p> : null}

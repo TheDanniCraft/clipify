@@ -1,3 +1,4 @@
+import ResourceLoadError from "@components/resourceLoadError";
 import { redirect } from "next/navigation";
 import { Card, Link } from "@heroui/react";
 import { validateAuth } from "@actions/auth";
@@ -17,9 +18,10 @@ export default async function StreamsPage({ searchParams }: { searchParams: Prom
 				{!result.ok ? (
 					<Card>
 						<Card.Content>
-							<p role='alert'>{result.code === "RECONNECT_REQUIRED" ? "Reconnect Twitch to load your broadcasts." : "Broadcasts could not be loaded. Please try again."}</p>
-							<Link href='/dashboard/streams'>Retry streams</Link>
-							{result.code === "RECONNECT_REQUIRED" ? <Link href='/dashboard/settings'>Manage linked accounts</Link> : null}
+							<ResourceLoadError message={result.code === "RECONNECT_REQUIRED" ? "Reconnect Twitch to load your broadcasts." : "Broadcasts could not be loaded. Please try again."}>
+								<Link href='/dashboard/streams'>Retry streams</Link>
+								{result.code === "RECONNECT_REQUIRED" ? <Link href='/dashboard/settings'>Manage linked accounts</Link> : null}
+							</ResourceLoadError>
 						</Card.Content>
 					</Card>
 				) : (

@@ -226,3 +226,13 @@ Both whole files pass 10 checks under the existing partial coverage producer (`/
 ## Cycle 41 — type-correct conflict fixture
 
 CI 42577725280 caught the new presentation mock using the unsupported literal REVISION_CONFLICT; the service's established code is CONFLICT. The test now uses and asserts that actual contract. Application source, coverage branches and thresholds are unchanged. Local repository TypeScript check emits no errors (`/tmp/events-mcp-typecheck-final.log`), and both complete MCP files pass all ten checks (`/tmp/events-mcp-boundary-green2.log`, 12.577s). The failed CI checkpoint is allowed to finish before this correction is pushed.
+
+
+## Cycle 42 — direct generic event creation and shared load errors
+
+User refinement: keep creation generic for future event modules, remove the preliminary title modal, reduce load-error emphasis and integrate retry actions. Red: two of three library checks fail on the original modal/title-error behavior (`/tmp/events-polish-red.log`). Green: the three complete event UI files pass seven checks and both existing layout owners pass thirteen (`/tmp/events-polish-green.log`, `/tmp/events-polish-callers.log`). New defaults are still unlisted and server-validated; busy state prevents repeated creation while pending. Server errors no longer blame the title. The shared load-error surface preserves existing retry handlers and local drafts.
+
+A read-only Infisical dev query confirms award_events and associated award tables are absent. The operator schema push has not run: automatic approval rejected it because the user had asked for diagnosis, not explicitly approved the shared-dev mutation. No migrations or production schema are changed. The normal PR remains the code review vehicle; the dev schema action requires explicit operator approval under AGENTS.md.
+
+
+Final refinement verification: all four actual browser creation/recovery cases pass (390/1440px × light/dark, `/tmp/events-polish-browser3.log`, 38.3s). The three affected existing creation/full-pilot/discovery journeys pass (`/tmp/events-polish-bdd.log`, 31.3s). Eight error/editor screenshots were retained in `/tmp/events-polish-visual`; mobile light and desktop dark recovery plus the editor were visually inspected. The new checks assert 14px muted error copy, a colocated Retry action, keyboard retry, server failure recovery, no title modal, generic New event defaults and exactly one saved event after retry. Initial fixture locators also matched Next's route announcer and desktop sign-in status; they now target the actual event messages without weakening expectations. Build/TypeScript and affected lint pass; the final post-build source edit only makes the route tagline generic. No shared-dev schema push occurred.

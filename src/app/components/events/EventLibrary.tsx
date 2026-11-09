@@ -1,9 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, Input, Label, Link, Modal, Skeleton, TextField } from "@heroui/react";
+import { Button, Card, Link, Skeleton } from "@heroui/react";
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
-import ControlledModal from "@components/controlledModal";
+import ResourceLoadError from "@components/resourceLoadError";
 import { createEventAction, listEventsAction } from "@actions/events";
 import { createAwardConfiguration } from "@lib/eventDefaults";
 import LocalizedDate from "@components/localizedDate";
@@ -11,8 +11,6 @@ export default function EventLibrary({ creatorId }: { creatorId: string }) {
 	const router = useRouter();
 	const [library, setLibrary] = useState<Awaited<ReturnType<typeof listEventsAction>>>();
 	const [attempt, setAttempt] = useState(0),
-		[open, setOpen] = useState(false),
-		[title, setTitle] = useState(""),
 		[busy, setBusy] = useState(false),
 		[error, setError] = useState("");
 	useEffect(() => {
@@ -33,9 +31,9 @@ export default function EventLibrary({ creatorId }: { creatorId: string }) {
 		setBusy(true);
 		setError("");
 		try {
-			const result = await createEventAction(creatorId, createAwardConfiguration(title, Intl.DateTimeFormat().resolvedOptions().timeZone));
+			const result = await createEventAction(creatorId, createAwardConfiguration("New event", Intl.DateTimeFormat().resolvedOptions().timeZone));
 			if (!result.ok) {
-				setError("Your event could not be created. Check the title and try again.");
+				setError("Your event could not be created. Please try again.");
 				return;
 			}
 			router.push(`/dashboard/events/${result.event.id}`);
@@ -51,20 +49,33 @@ export default function EventLibrary({ creatorId }: { creatorId: string }) {
 				<Card.Header className='flex flex-row flex-wrap justify-between gap-4'>
 					<div>
 						<Card.Title>Events</Card.Title>
-						<Card.Description>Bring your community together for an award show.</Card.Description>
+						<Card.Description>Create and manage events for your community.</Card.Description>
 					</div>
-					<Button onPress={() => setOpen(true)}>Create event</Button>
+					<Button isPending={busy} isDisabled={busy} onPress={() => void create()}>
+						Create event
+					</Button>
 				</Card.Header>
 				<Card.Content className='space-y-4'>
+					{error ? (
+						<p role='alert' className='text-sm text-danger'>
+							{error}
+						</p>
+					) : null}
 					{!library ? (
 						<Skeleton className='h-32 rounded-xl' />
 					) : !library.ok ? (
-						<div>
-							<p role='alert'>Events could not be loaded.</p>
-							<Button variant='secondary' onPress={() => setAttempt((a) => a + 1)}>
+						<ResourceLoadError message='Events could not be loaded.'>
+							<Button
+								size='sm'
+								variant='secondary'
+								onPress={() => {
+									setLibrary(undefined);
+									setAttempt((a) => a + 1);
+								}}
+							>
 								Retry events
 							</Button>
-						</div>
+						</ResourceLoadError>
 					) : library.events.length ? (
 						<div className='grid gap-3'>
 							{library.events.map((event) => (
@@ -80,35 +91,11 @@ export default function EventLibrary({ creatorId }: { creatorId: string }) {
 					) : (
 						<div className='py-10 text-center'>
 							<h2 className='font-medium'>No events yet</h2>
-							<p className='mt-2 text-sm text-muted'>Create awards, collect nominations and celebrate your community.</p>
+							<p className='mt-2 text-sm text-muted'>Create an event and bring your community together.</p>
 						</div>
 					)}
 				</Card.Content>
 			</Card>
-			<ControlledModal isOpen={open} onOpenChange={setOpen}>
-				<Modal.Header>
-					<Modal.Heading>Create awards</Modal.Heading>
-				</Modal.Header>
-				<Modal.Body>
-					<TextField isRequired>
-						<Label>Event title</Label>
-						<Input aria-label='Event title' variant='secondary' maxLength={160} value={title} onChange={(e) => setTitle(e.target.value)} />
-					</TextField>
-					{error ? (
-						<p role='alert' className='text-sm text-danger'>
-							{error}
-						</p>
-					) : null}
-				</Modal.Body>
-				<Modal.Footer>
-					<Button variant='tertiary' onPress={() => setOpen(false)}>
-						Cancel
-					</Button>
-					<Button isPending={busy} isDisabled={!title.trim() || busy} onPress={() => void create()}>
-						Create awards
-					</Button>
-				</Modal.Footer>
-			</ControlledModal>
 		</DashboardEditorLayout>
 	);
 }
