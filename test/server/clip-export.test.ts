@@ -78,7 +78,7 @@ jest.mock("@/db/client", () => ({
 	},
 }));
 afterEach(() => jest.restoreAllMocks());
-const video = readFileSync("test/fixtures/runner/presentation.mp4");
+const video = readFileSync("test/fixtures/clips/export-audio-untagged.mp4");
 const ownedEntry = (id = "ClipA", extra: Record<string, unknown> = {}) => ({ key: `clip:owner:${id}`, value: JSON.stringify({ clip: { id, title: "My clip", duration: 12, broadcaster_id: "owner", created_at: "2026-11-01T00:00:00Z", ...extra } }) });
 beforeEach(() => {
 	afterZip.mockReset();

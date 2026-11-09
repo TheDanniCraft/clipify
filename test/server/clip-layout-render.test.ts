@@ -391,7 +391,7 @@ it("handles a broken input pipe and releases native render capacity", async () =
 	const cp = (await import("node:child_process")).default;
 	const { EventEmitter } = await import("node:events");
 	const { createClipComposition } = await import("@lib/clipComposition");
-	const bytes = new Uint8Array(await readFile("test/fixtures/runner/presentation.mp4"));
+	const bytes = new Uint8Array(await readFile("test/fixtures/clips/export-audio-untagged.mp4"));
 	const diagnostic = jest.spyOn(console, "error").mockImplementation(() => {});
 	const spawn = jest.spyOn(cp, "spawn").mockImplementation(() => {
 		const stdin = Object.assign(new EventEmitter(), {
