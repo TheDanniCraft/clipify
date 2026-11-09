@@ -12,7 +12,7 @@ Three bounded deliberate mutants were killed: accepting the exact voting deadlin
 
 ## Gate and evidence limits
 
-The final required GitHub gate remains mandatory with unchanged thresholds. No full local coverage run was started; affected whole files and browser journeys own local evidence. Earlier draft CI passed at 8b9e801c (run 42562970680); it is not passing evidence for the final source. Final local lint, formatting and TypeScript/build pass. Required full CI runs at [42573028335](https://github.com/TheDanniCraft/clipify/actions/runs/42573028335) for source `e8bbcd623866065c30c00364467a75a3fba93f3d`; its final result and other gate status are maintained in [test-traceability.md](test-traceability.md).
+The final required GitHub gate remains mandatory with unchanged thresholds. No full local coverage run was started; affected whole files and browser journeys own local evidence. Earlier draft CI passed at 8b9e801c (run 42562970680); it is not passing evidence for the final source. Final local lint, formatting and TypeScript/build pass. Initial full [CI 42573028335](https://github.com/TheDanniCraft/clipify/actions/runs/42573028335) found catalogue, tour and browser caller gaps; their corrections and local evidence are recorded in cycle-log.md. The replacement required CI is tracked on PR #560, and other gate status is maintained in [test-traceability.md](test-traceability.md).
 
 Critical business rules have recorded Red/Green evidence. Some UI glue/acceptance checks were added as verification, and local historical logs are not immutable CI artifacts. This process limitation is explicit; a complete test-first chronology is not certified retroactively.
 

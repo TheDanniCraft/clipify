@@ -214,7 +214,7 @@ Implementation paths below name current owners; related UI lives in src/app/comp
 ## Final validation
 
 - [x] T105 [GATE] Rehearse complete pilot via real browser, review desktop/mobile and themes; update test-summary.md and defect-log.md
-- [ ] T106 [GATE] Run affected tests, review CI gates and open normal GitHub PR once complete
+- [x] T106 [GATE] Run affected tests, review CI gates and open normal GitHub PR once complete
 
 ## Dependencies
 
@@ -227,5 +227,7 @@ Assessment: 25 FRs, 9 edge cases, 6 stories and 5 success criteria; the five imp
 - [x] T107 CRITICAL Reconcile the actual owning browser/native artifacts, task completion and test list in test-traceability.md, tdd/test-list.md, test-summary.md and defect-log.md; materialize reports/test-summary.md. Record verification-first UI checks honestly instead of claiming retrospective Red evidence per Constitution I, IV, TF-7 and TF-8 (contradicts).
 - [x] T108 Add local error/retry recovery for unavailable image/audio/video content in EventMedia.tsx, preserving show navigation, with a focused failing test before the fix per EC-008 (partial).
 - [x] T109 Exercise real clip autocomplete/link-rule rejection and statistics-slide editing/presentation in the browser, and include Twitch emote rendering in the signed-chat journey per FR-008, FR-019, FR-022 and Constitution II (partial).
-- [ ] T110 Verify the final current-step visibility fix and completed pilot/browser journeys, inspect both themes and viewport screenshots, then update the normal reviewable PR and its gate evidence without weakening thresholds per FR-025, SC-001 through SC-005 and plan: completion boundary (partial).
+- [x] T110 Verify the final current-step visibility fix and completed pilot/browser journeys, inspect both themes and viewport screenshots, then update the normal reviewable PR and its gate evidence without weakening thresholds per FR-025, SC-001 through SC-005 and plan: completion boundary (partial).
 - [x] T111 Reject disabled-host stale-page writes and source requests through the shared public-event guard, locking creator lifecycle before event rows, with a real PostgreSQL Red/Green check per EC-001, EC-003 and Constitution III (contradicts).
+
+Completion evidence: normal [PR #560](https://github.com/TheDanniCraft/clipify/pull/560) is open. Thirteen Awards browser journeys, the affected whole-file service/native checks, both themes and desktop/mobile inspection are complete. Full CI caller findings and their corrections are documented in tdd/cycle-log.md; the required replacement CI result is tracked on the PR. Task completion does not authorize merge or deployment before that gate passes.
