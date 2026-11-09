@@ -170,10 +170,13 @@ Add advanced Runner ingest settings
 - The `Generate Migrations` workflow owns ordinary migration generation after a
   completed pull request lands on `master`. It generates one migration from the
   final schema diff.
-- Development and preview databases are synchronized only by an explicit
-  operator-run `bun run db:push` through Infisical. Preview container startup
-  must never run `drizzle-kit push`, `drizzle-kit migrate`, or any equivalent
-  automatic schema mutation.
+- `bun run db:push` is configured to use Infisical `dev`. The user authorizes
+  agents to run this command against that development database without asking
+  again. Inspect the diff and preserve existing data. This authorization does not
+  extend to other database environments or manual/custom SQL migration files.
+- Other preview database targets require an explicit operator-run schema sync.
+  Preview container startup must never run `drizzle-kit push`,
+  `drizzle-kit migrate`, or any equivalent automatic schema mutation.
 - Production releases apply the generated migrations committed after merge.
   Never use `db:push` against production, and never use production migrations
   to synchronize a feature branch's preview database before those migrations
