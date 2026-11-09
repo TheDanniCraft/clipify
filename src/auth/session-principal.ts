@@ -8,5 +8,12 @@ export async function getVerifiedSessionPrincipal(requestHeaders?: Headers): Pro
 	if (!envelope?.session) return null;
 	const authenticatedAt = new Date(envelope.session.createdAt);
 	if (!Number.isFinite(authenticatedAt.getTime())) return null;
-	return { kind: "session", authUserId: envelope.session.userId, sessionId: envelope.session.id, authenticatedAt, organizationId: envelope.session.activeOrganizationId ?? null };
+	const principal = { kind: "session" as const, authUserId: envelope.session.userId, sessionId: envelope.session.id, authenticatedAt, organizationId: envelope.session.activeOrganizationId ?? null };
+	const currentHeaders = requestHeaders ?? (await (await import("next/headers")).headers());
+	if (/(?:^|;\s*)admin_view=/.test(currentHeaders.get("cookie") ?? "")) {
+		const { getVerifiedAdminViewContext } = await import("@actions/auth");
+		const view = await getVerifiedAdminViewContext(currentHeaders);
+		if (view?.authUserId === principal.authUserId && view.sessionId === principal.sessionId) return { ...principal, adminViewCreatorId: view.creatorId };
+	}
+	return principal;
 }

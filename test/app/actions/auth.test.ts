@@ -37,6 +37,7 @@ jest.mock("@/db/client", () => ({
 }));
 
 jest.mock("@/db/schema", () => ({
+	creatorIdentityLinksTable: { creatorId: "creator_id", authUserId: "auth_user_id" },
 	usersTable: {
 		id: "id",
 	},
@@ -497,5 +498,48 @@ describe("actions/auth", () => {
 				maxAge: 0,
 			}),
 		);
+	});
+});
+
+describe("verified admin view context for creator authorization", () => {
+	beforeEach(() => {
+		jest.clearAllMocks();
+		process.env.JWT_SECRET = "jwt-secret";
+		getAuthActorContext.mockResolvedValue({ authUserId: "admin-auth", sessionId: "verified-session", accountStatus: "active", user: { id: "admin-1", role: "admin" } });
+		verify.mockReturnValue({ adminUserId: "admin-1", targetUserId: "target" });
+	});
+	it("verifies cookies from the same explicit request and retains the real actor", async () => {
+		mockDbRows([{ creatorId: "admin-1" }], [{ id: "target", username: "Target" }]);
+		const headers = new Headers({ cookie: "admin_view=signed-view" });
+		const { getVerifiedAdminViewContext } = await import("@actions/auth");
+		await expect(getVerifiedAdminViewContext(headers)).resolves.toEqual({ creatorId: "target", authUserId: "admin-auth", sessionId: "verified-session" });
+		expect(getAuthActorContext).toHaveBeenCalledWith(headers);
+		expect(verify).toHaveBeenCalledWith("signed-view", "jwt-secret", { algorithms: ["HS256"], issuer: "clipify-admin-view" });
+	});
+	it.each(["suspended", "purge_eligible"])("denies a %s admin before reading the target", async (accountStatus) => {
+		getAuthActorContext.mockResolvedValue({ accountStatus, user: { id: "admin-1", role: "admin" } });
+		const { getVerifiedAdminViewContext } = await import("@actions/auth");
+		await expect(getVerifiedAdminViewContext(new Headers({ cookie: "admin_view=signed-view" }))).resolves.toBeNull();
+		expect(verify).not.toHaveBeenCalled();
+	});
+	it("rejects revoked admin roles, expired tokens and tokens belonging to another admin", async () => {
+		const { getVerifiedAdminViewContext } = await import("@actions/auth");
+		const headers = new Headers({ cookie: "admin_view=signed-view" });
+		getAuthActorContext.mockResolvedValueOnce({ accountStatus: "active", user: { id: "admin-1", role: "user" } });
+		await expect(getVerifiedAdminViewContext(headers)).resolves.toBeNull();
+		mockDbRows([{ creatorId: "admin-1" }], [{ creatorId: "admin-1" }]);
+		verify.mockImplementationOnce(() => {
+			throw new Error("expired");
+		});
+		await expect(getVerifiedAdminViewContext(headers)).resolves.toBeNull();
+		verify.mockReturnValueOnce({ adminUserId: "other-admin", targetUserId: "target" });
+		await expect(getVerifiedAdminViewContext(headers)).resolves.toBeNull();
+		expect(dbSelect).toHaveBeenCalledTimes(2);
+	});
+	it("does not inherit an admin role from a selected creator owned by somebody else", async () => {
+		mockDbRows([{ creatorId: "own-non-admin-creator" }]);
+		const { getVerifiedAdminViewContext } = await import("@actions/auth");
+		await expect(getVerifiedAdminViewContext(new Headers({ cookie: "admin_view=signed-view" }))).resolves.toBeNull();
+		expect(verify).not.toHaveBeenCalled();
 	});
 });

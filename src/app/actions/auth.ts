@@ -1,7 +1,7 @@
 /* istanbul ignore file */
 "use server";
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import * as Sentry from "@sentry/nextjs";
 import { AuthenticatedUser, Role } from "@types";
@@ -9,7 +9,7 @@ import { cookies } from "next/headers";
 import { getBaseUrl } from "@actions/utils";
 import { resolveUserEntitlements } from "@lib/entitlements";
 import { db } from "@/db/client";
-import { adminImpersonationSessionsTable, usersTable } from "@/db/schema";
+import { adminImpersonationSessionsTable, creatorIdentityLinksTable, usersTable } from "@/db/schema";
 import { and, eq, isNull, lt } from "drizzle-orm";
 
 const ADMIN_VIEW_COOKIE_NAME = "admin_view";
@@ -171,7 +171,7 @@ async function getUserById(userId: string): Promise<AuthenticatedUser | null> {
 	return rows[0] || null;
 }
 
-async function resolveEffectiveUser(actorUser: AuthenticatedUser, cookieStore: Awaited<ReturnType<typeof cookies>>) {
+async function resolveEffectiveUser(actorUser: AuthenticatedUser, cookieStore: Pick<Awaited<ReturnType<typeof cookies>>, "get">) {
 	if (actorUser.role !== Role.Admin) {
 		await closeAdminViewSessionReadOnly(cookieStore);
 		return { effectiveUser: actorUser, adminView: undefined as AuthenticatedUser["adminView"] };
@@ -204,7 +204,19 @@ async function resolveEffectiveUser(actorUser: AuthenticatedUser, cookieStore: A
 	};
 }
 
-async function getAdminViewPayload(adminUserId: string, cookieStore: Awaited<ReturnType<typeof cookies>>): Promise<AdminViewPayload | null> {
+/** Reuse the signed, actor-bound admin view for the current verified browser session. */
+export async function getVerifiedAdminViewContext(requestHeaders: Headers) {
+	const { getAuthActorContext } = await import("@/auth/session");
+	const actor = await getAuthActorContext(requestHeaders);
+	if (!actor || actor.user.role !== Role.Admin || actor.accountStatus === "suspended" || actor.accountStatus === "purge_eligible") return null;
+	const identity = await db.select({ creatorId: creatorIdentityLinksTable.creatorId }).from(creatorIdentityLinksTable).where(eq(creatorIdentityLinksTable.authUserId, actor.authUserId)).limit(1).execute();
+	if (identity[0]?.creatorId !== actor.user.id) return null;
+	const cookieStore = new NextRequest("http://localhost", { headers: requestHeaders }).cookies;
+	const { effectiveUser, adminView } = await resolveEffectiveUser(actor.user, cookieStore);
+	return adminView ? { creatorId: effectiveUser.id, authUserId: actor.authUserId, sessionId: actor.sessionId } : null;
+}
+
+async function getAdminViewPayload(adminUserId: string, cookieStore: Pick<Awaited<ReturnType<typeof cookies>>, "get">): Promise<AdminViewPayload | null> {
 	const encoded = cookieStore.get(ADMIN_VIEW_COOKIE_NAME)?.value;
 	/* ignore: auth edge case / redirect handling */
 	if (!encoded) return null;
@@ -228,7 +240,7 @@ async function getAdminViewPayload(adminUserId: string, cookieStore: Awaited<Ret
 	}
 }
 
-async function closeAdminViewSessionReadOnly(cookieStore: Awaited<ReturnType<typeof cookies>>) {
+async function closeAdminViewSessionReadOnly(cookieStore: Pick<Awaited<ReturnType<typeof cookies>>, "get">) {
 	const sessionId = cookieStore.get(ADMIN_VIEW_SESSION_COOKIE_NAME)?.value;
 	if (!sessionId) return;
 	/* ignore: auth edge case / redirect handling */

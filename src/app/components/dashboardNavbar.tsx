@@ -245,6 +245,65 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 
 	return (
 		<>
+			{isImpersonating ? (
+				<div role='region' aria-label='Admin view' className='w-full border-b border-separator bg-surface/95'>
+					<div className='mx-auto flex w-full max-w-5xl flex-col gap-2 px-4 py-2 lg:flex-row lg:items-center lg:justify-between lg:px-8'>
+						<p className='text-xs text-foreground dark:text-muted'>
+							You are viewing as <span className='font-semibold'>@{user.username}</span>
+						</p>
+						<div className='flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:w-auto'>
+							<ComboBox
+								allowsEmptyCollection
+								allowsCustomValue
+								aria-label='Search and select user for admin view'
+								className='w-full min-w-0 sm:min-w-[380px]'
+								inputValue={switchQuery}
+								isDisabled={isSwitchingAdminView}
+								onInputChange={setSwitchQuery}
+								onSelectionChange={(key) => {
+									const nextKey = String(key ?? "");
+									if (!nextKey) return;
+									const selected = switchOptions.find((candidate) => candidate.id === nextKey);
+									if (selected) setSwitchQuery(selected.username);
+									void handleSwitchAdminView(nextKey);
+								}}
+							>
+								<Label className='sr-only'>Search users</Label>
+								<ComboBox.InputGroup>
+									<Input placeholder='Search users' />
+									<ComboBox.Trigger />
+								</ComboBox.InputGroup>
+								<ComboBox.Popover>
+									<ListBox
+										items={switchOptions}
+										renderEmptyState={() => {
+											if (switchQuery.length === 0) return <div className='p-4 text-center text-sm text-muted'>Type to search...</div>;
+											if (isLoadingSwitchCandidates)
+												return (
+													<div className='flex items-center justify-center p-4'>
+														<Spinner size='sm' color='current' />
+													</div>
+												);
+											if (switchQuery.length < 3) return <div className='p-4 text-center text-sm text-muted'>Keep typing...</div>;
+											return <div className='p-4 text-center text-sm text-muted'>No users found.</div>;
+										}}
+									>
+										{(candidate) => (
+											<ListBox.Item id={candidate.id} textValue={candidate.username}>
+												<Label>@{candidate.username}</Label>
+												<ListBox.ItemIndicator />
+											</ListBox.Item>
+										)}
+									</ListBox>
+								</ComboBox.Popover>
+							</ComboBox>
+							<Button size='sm' variant='danger-soft' onPress={handleExitAdminView} isDisabled={isClearingAdminView}>
+								Exit
+							</Button>
+						</div>
+					</div>
+				</div>
+			) : null}
 			<nav className={inShell ? "sticky top-0 z-30 w-full border-b border-separator bg-background" : "sticky top-0 z-30 w-full bg-accent"}>
 				<header className={`flex min-h-16 w-full items-center gap-3 px-4 py-2 ${inShell && !navigation?.expanded ? "lg:pl-2 lg:pr-8" : "lg:px-8"}`}>
 					<NextLink data-tour={inShell ? undefined : "dashboard-home"} href='/dashboard' className={inShell ? "hidden" : "flex items-center"}>
@@ -352,65 +411,6 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 							{campaignOffer.endAt ? <CountdownTimer endAt={campaignOffer.endAt} tone='light' size='sm' showSeconds className='scale-90 origin-right' /> : null}
 							<Button size='sm' onPress={() => router.push("/dashboard/settings?upgrade&cycle=yearly&source=paywall_banner&feature=active_campaign")} variant='primary'>
 								Upgrade Today
-							</Button>
-						</div>
-					</div>
-				</div>
-			) : null}
-			{isImpersonating ? (
-				<div className='w-full bg-surface/95'>
-					<div className='mx-auto flex w-full max-w-5xl flex-col gap-2 px-4 py-2 lg:flex-row lg:items-center lg:justify-between lg:px-8'>
-						<p className='text-xs text-foreground dark:text-muted'>
-							You are viewing as <span className='font-semibold'>@{user.username}</span>
-						</p>
-						<div className='flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:w-auto'>
-							<ComboBox
-								allowsEmptyCollection
-								allowsCustomValue
-								aria-label='Search and select user for admin view'
-								className='w-full min-w-0 sm:min-w-[380px]'
-								inputValue={switchQuery}
-								isDisabled={isSwitchingAdminView}
-								onInputChange={setSwitchQuery}
-								onSelectionChange={(key) => {
-									const nextKey = String(key ?? "");
-									if (!nextKey) return;
-									const selected = switchOptions.find((candidate) => candidate.id === nextKey);
-									if (selected) setSwitchQuery(selected.username);
-									void handleSwitchAdminView(nextKey);
-								}}
-							>
-								<Label className='sr-only'>Search users</Label>
-								<ComboBox.InputGroup>
-									<Input placeholder='Search users' />
-									<ComboBox.Trigger />
-								</ComboBox.InputGroup>
-								<ComboBox.Popover>
-									<ListBox
-										items={switchOptions}
-										renderEmptyState={() => {
-											if (switchQuery.length === 0) return <div className='p-4 text-center text-sm text-muted'>Type to search...</div>;
-											if (isLoadingSwitchCandidates)
-												return (
-													<div className='flex items-center justify-center p-4'>
-														<Spinner size='sm' color='current' />
-													</div>
-												);
-											if (switchQuery.length < 3) return <div className='p-4 text-center text-sm text-muted'>Keep typing...</div>;
-											return <div className='p-4 text-center text-sm text-muted'>No users found.</div>;
-										}}
-									>
-										{(candidate) => (
-											<ListBox.Item id={candidate.id} textValue={candidate.username}>
-												<Label>@{candidate.username}</Label>
-												<ListBox.ItemIndicator />
-											</ListBox.Item>
-										)}
-									</ListBox>
-								</ComboBox.Popover>
-							</ComboBox>
-							<Button size='sm' variant='danger-soft' onPress={handleExitAdminView} isDisabled={isClearingAdminView}>
-								Exit
 							</Button>
 						</div>
 					</div>

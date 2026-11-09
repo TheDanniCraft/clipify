@@ -31,3 +31,10 @@ it("hides unnecessary pagination and disables the first and last boundaries", ()
 	expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
 	expect(screen.getByRole("button", { name: "Previous" })).toBeDisabled();
 });
+
+it("keeps a million-page inventory bounded and disables controls while loading", () => {
+	render(<AppPagination page={500000} total={1000000} onChange={jest.fn()} isDisabled />);
+	expect(screen.getAllByRole("button")).toHaveLength(7);
+	expect(screen.getAllByText("…")).toHaveLength(2);
+	for (const button of screen.getAllByRole("button")) expect(button).toBeDisabled();
+});

@@ -1,13 +1,14 @@
 "use client";
 
+import AppPagination from "@components/appPagination";
 import LocalizedDate from "@components/localizedDate";
 import AdminAwardsControl from "./adminAwardsControl";
 import AdminAccountAccessControl from "./adminAccountAccessControl";
 import { getAdminExplorerPage } from "@actions/adminView";
 import { startAdminView } from "@actions/auth";
-import { Button, Card, Chip, Spinner, Table, TextField, Label, InputGroup, Checkbox } from "@heroui/react";
+import { Button, Card, Chip, Spinner, Table, TextField, Label, InputGroup, Checkbox, Tooltip } from "@heroui/react";
 
-import { IconSearch } from "@tabler/icons-react";
+import { IconSearch, IconUserSearch } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
@@ -178,7 +179,7 @@ export default function AdminUserExplorer({ users, initialPage, initialTotalPage
 								<Table.Column id='plan'>Plan</Table.Column>
 								<Table.Column id='lastLogin'>Last Login</Table.Column>
 								<Table.Column id='action' className='text-end'>
-									Action
+									Actions
 								</Table.Column>
 							</Table.Header>
 							<Table.Body renderEmptyState={() => <div className='p-4 text-center text-muted'>No users found.</div>}>
@@ -204,18 +205,24 @@ export default function AdminUserExplorer({ users, initialPage, initialTotalPage
 											</Checkbox>
 										</Table.Cell>
 										<Table.Cell>
-											<span className='font-medium'>@{row.username}</span>
-											{row.disabled && (
-												<Chip size='sm' className='ml-2 text-danger'>
-													Disabled
-												</Chip>
-											)}
+											<div className='flex items-center gap-2 whitespace-nowrap'>
+												<span className='font-medium'>@{row.username}</span>
+												{row.disabled && (
+													<Chip size='sm' color='danger' variant='soft'>
+														Disabled
+													</Chip>
+												)}
+											</div>
 										</Table.Cell>
 										<Table.Cell>
-											<span className='text-muted'>{row.id}</span>
+											<span className='block max-w-32 truncate font-mono text-xs text-muted' title={row.id}>
+												{row.id}
+											</span>
 										</Table.Cell>
 										<Table.Cell>
-											<span className='text-muted'>{row.email}</span>
+											<span className='block max-w-48 truncate text-muted' title={row.email}>
+												{row.email}
+											</span>
 										</Table.Cell>
 										<Table.Cell>
 											<Chip size='sm' variant='tertiary'>
@@ -228,14 +235,19 @@ export default function AdminUserExplorer({ users, initialPage, initialTotalPage
 											</Chip>
 										</Table.Cell>
 										<Table.Cell>
-											<span className='text-muted'>{row.lastLoginLabel}</span>
+											<span className='whitespace-nowrap text-muted'>{row.lastLoginLabel}</span>
 										</Table.Cell>
-										<Table.Cell className='text-right'>
-											<AdminAwardsControl recipients={[row]} onChanged={() => loadPage(searchQuery, page)} />
-											<AdminAccountAccessControl user={row} onChanged={() => loadPage(searchQuery, page)} />
-											<Button size='sm' variant='primary' onPress={() => void handleViewAsUser(row.id)} isPending={switchingUserId === row.id} isDisabled={!hydrated || switchingUserId != null}>
-												View as User
-											</Button>
+										<Table.Cell>
+											<div className='flex items-center justify-end gap-2 whitespace-nowrap'>
+												<AdminAwardsControl compact recipients={[row]} onChanged={() => loadPage(searchQuery, page)} />
+												<AdminAccountAccessControl compact user={row} onChanged={() => loadPage(searchQuery, page)} />
+												<Tooltip>
+													<Button isIconOnly aria-label='View as User' size='sm' variant='tertiary' onPress={() => void handleViewAsUser(row.id)} isPending={switchingUserId === row.id} isDisabled={!hydrated || switchingUserId != null}>
+														<IconUserSearch className='size-4' />
+													</Button>
+													<Tooltip.Content>View as User</Tooltip.Content>
+												</Tooltip>
+											</div>
 										</Table.Cell>
 									</Table.Row>
 								))}
@@ -245,15 +257,10 @@ export default function AdminUserExplorer({ users, initialPage, initialTotalPage
 				</Table>
 
 				<div className='flex flex-wrap items-center justify-between gap-2'>
-					<Button size='sm' variant='tertiary' isDisabled={page <= 1 || isLoading} onPress={() => handlePageChange(page - 1)}>
-						Previous
-					</Button>
 					<p className='text-xs text-muted'>
 						Page {page} / {totalPages}
 					</p>
-					<Button size='sm' variant='tertiary' isDisabled={page >= totalPages || isLoading} onPress={() => handlePageChange(page + 1)}>
-						Next
-					</Button>
+					<AppPagination className='w-auto' page={page} total={totalPages} onChange={handlePageChange} isDisabled={isLoading} />
 				</div>
 			</Card.Content>
 		</Card>
