@@ -36,7 +36,22 @@ for (const width of [390, 1440])
 			await page.getByRole("button", { name: "Create event", exact: true }).click();
 			await expect(page.getByRole("alert").filter({ hasText: "Your event could not be created." })).toHaveText("Your event could not be created. Please try again.");
 			await page.unroute(url, failAction);
-			await page.getByRole("button", { name: "Create event", exact: true }).click();
+			let releaseCreation!: () => void;
+			const creationGate = new Promise<void>((resolve) => {
+				releaseCreation = resolve;
+			});
+			const holdCreation = async (route: import("@playwright/test").Route) => {
+				if (route.request().method() === "POST" && route.request().headers()["next-action"]) await creationGate;
+				await route.continue();
+			};
+			await page.route(url, holdCreation);
+			const create = page.getByRole("button", { name: "Create event", exact: true });
+			await create.click();
+			await expect(create).toBeDisabled();
+			await expect(page.getByRole("status").filter({ hasText: "Creating event…" })).toBeVisible();
+			await expect(create.locator('[data-slot="spinner"]')).toBeVisible();
+			await page.screenshot({ path: info.outputPath("creating-event.png"), fullPage: true, animations: "disabled" });
+			releaseCreation();
 			await expect(page).toHaveURL(/\/dashboard\/events\/[0-9a-f-]{36}$/);
 			await expect(page.getByRole("dialog")).toHaveCount(0);
 			await expect(page.getByRole("textbox", { name: "Event title", exact: true })).toHaveValue("New event");

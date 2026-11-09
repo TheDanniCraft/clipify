@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, Link, Skeleton } from "@heroui/react";
+import { Button, Card, Link, Skeleton, Spinner } from "@heroui/react";
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
 import ResourceLoadError from "@components/resourceLoadError";
 import { createEventAction, listEventsAction } from "@actions/events";
@@ -34,12 +34,12 @@ export default function EventLibrary({ creatorId }: { creatorId: string }) {
 			const result = await createEventAction(creatorId, createAwardConfiguration("New event", Intl.DateTimeFormat().resolvedOptions().timeZone));
 			if (!result.ok) {
 				setError("Your event could not be created. Please try again.");
+				setBusy(false);
 				return;
 			}
 			router.push(`/dashboard/events/${result.event.id}`);
 		} catch {
 			setError("Your event could not be created. Please try again.");
-		} finally {
 			setBusy(false);
 		}
 	}
@@ -52,10 +52,17 @@ export default function EventLibrary({ creatorId }: { creatorId: string }) {
 						<Card.Description>Create and manage events for your community.</Card.Description>
 					</div>
 					<Button isPending={busy} isDisabled={busy} onPress={() => void create()}>
+						{busy ? <Spinner aria-hidden='true' size='sm' color='current' /> : null}
 						Create event
 					</Button>
 				</Card.Header>
-				<Card.Content className='space-y-4'>
+				<Card.Content className='space-y-4' aria-busy={busy}>
+					{busy ? (
+						<p role='status' className='flex items-center gap-2 text-sm text-muted'>
+							<Spinner aria-hidden='true' size='sm' />
+							Creating event…
+						</p>
+					) : null}
 					{error ? (
 						<p role='alert' className='text-sm text-danger'>
 							{error}

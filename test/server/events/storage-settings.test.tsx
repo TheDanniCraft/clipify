@@ -28,3 +28,13 @@ it("stays on the editor when its changes cannot be saved before Google OAuth", a
 	expect(beforeConnect).toHaveBeenCalled();
 	expect(beginEventGoogleConnectionAction).not.toHaveBeenCalled();
 });
+
+it("retries loading connections without leaving the tab", async () => {
+	const { listEventConnectionsAction } = await import("@/app/actions/events");
+	jest.mocked(listEventConnectionsAction).mockRejectedValueOnce(new Error("Network unavailable"));
+	render(<EventConnections creatorId='host' eventId='11111111-1111-4111-8111-111111111111' value={null} onChange={jest.fn()} />);
+	expect(await screen.findByRole("alert")).toHaveTextContent("Connections could not be loaded.");
+	fireEvent.click(screen.getByRole("button", { name: "Retry connections" }));
+	await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+	await waitFor(() => expect(screen.getByRole("button", { name: "Connect S3" })).toBeEnabled());
+});

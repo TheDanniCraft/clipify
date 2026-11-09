@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { Button, Checkbox, Modal, Table } from "@heroui/react";
+import { Button, Checkbox, Modal, Spinner, Table } from "@heroui/react";
 import ControlledModal from "@components/controlledModal";
 import { getEventReviewAction, nominateEventCandidatesAction, groupEventCandidatesAction, releaseEventReviewAction } from "@actions/events";
 import { EventSelect, EventText } from "./EventFields";
@@ -123,7 +123,7 @@ export default function EventReview({ creatorId, eventId }: { creatorId: string;
 		}
 	}
 	return (
-		<div className='space-y-5'>
+		<div className='min-w-0 space-y-5'>
 			<div className='flex flex-wrap items-center justify-between gap-3'>
 				<div>
 					<h2 className='font-semibold'>Review proposals</h2>
@@ -147,6 +147,13 @@ export default function EventReview({ creatorId, eventId }: { creatorId: string;
 				<p role='status'>Loading proposals…</p>
 			) : (
 				<>
+					{locked ? <p className='text-sm text-muted'>{!data.event.published ? "Publish your event before reviewing proposals." : data.event.reviewReleased ? "Review is complete. Nominations are locked." : "Voting has closed or opened without review. Nominations are locked."}</p> : null}
+					{busy ? (
+						<p role='status' className='flex items-center gap-2 text-sm text-muted'>
+							<Spinner size='sm' />
+							Saving review…
+						</p>
+					) : null}
 					<div className='grid gap-4 sm:grid-cols-3'>
 						<EventSelect
 							label='Review category'
@@ -193,14 +200,15 @@ export default function EventReview({ creatorId, eventId }: { creatorId: string;
 							</Button>
 						) : null}
 						<p className='text-sm text-muted'>
+							{selected.length ? `${selected.length} selected. ` : ""}
 							{top.filter((c) => c.nominated).length} nominated{category?.nomineeLimit !== null && category?.nomineeLimit !== undefined ? ` of ${category.nomineeLimit}` : ""}
 						</p>
 					</div>
 					<Table>
 						<Table.ScrollContainer>
-							<Table.Content aria-label='Award proposals' selectionMode='multiple' selectedKeys={new Set(selected)} disabledKeys={busy || locked ? visible.map((c) => c.id) : []} onSelectionChange={(keys) => setSelected(keys === "all" ? visible.map((c) => c.id) : [...keys].map(String))}>
+							<Table.Content className='min-w-[640px]' aria-label='Award proposals' selectionMode='multiple' selectedKeys={new Set(selected)} disabledKeys={busy || locked ? visible.map((c) => c.id) : []} onSelectionChange={(keys) => setSelected(keys === "all" ? visible.map((c) => c.id) : [...keys].map(String))}>
 								<Table.Header>
-									<Table.Column>
+									<Table.Column className='w-12'>
 										<Checkbox slot='selection' aria-label='Select all proposals'>
 											<Checkbox.Content>
 												<Checkbox.Control>
@@ -229,7 +237,7 @@ export default function EventReview({ creatorId, eventId }: { creatorId: string;
 													</Checkbox>
 												</Table.Cell>
 												<Table.Cell>
-													<p className='font-medium'>{candidate.content.title}</p>
+													<p className='break-words font-medium'>{candidate.content.title}</p>
 													{children.length ? (
 														<>
 															<Button variant='tertiary' size='sm' aria-label={`${isExpanded ? "Hide" : "Show"} grouped proposals for ${candidate.content.title}`} onPress={() => setExpanded((current) => (isExpanded ? current.filter((id) => id !== candidate.id) : [...current, candidate.id]))}>
@@ -250,7 +258,7 @@ export default function EventReview({ creatorId, eventId }: { creatorId: string;
 														<p className='line-clamp-2 text-sm text-muted'>{candidate.content.description}</p>
 													) : null}
 												</Table.Cell>
-												<Table.Cell>{candidate.nominated ? "Nominated" : "Not nominated"}</Table.Cell>
+												<Table.Cell className='whitespace-nowrap'>{candidate.nominated ? "Nominated" : "Not nominated"}</Table.Cell>
 												<Table.Cell>
 													<Button variant='tertiary' size='sm' aria-label={`Preview ${candidate.content.title}`} onPress={() => setOpened(candidate.content)}>
 														Preview

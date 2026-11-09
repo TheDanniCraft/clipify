@@ -31,11 +31,13 @@ export default function EventDeckEditor({ value, categories, onChange, readOnly 
 				</div>
 			) : null}
 			<div className='grid gap-5 md:grid-cols-[240px_minmax(0,1fr)]'>
-				<ol className='space-y-2'>
+				<ol className='min-w-0 space-y-2'>
 					{value.map((slide, index) => (
 						<li key={slide.id} className='rounded-xl bg-default/40 p-3'>
-							<Button variant={selected === slide.id ? "secondary" : "tertiary"} className='w-full justify-start' onPress={() => setSelected(slide.id)}>
-								{index + 1}. {slide.title || (slide.type === "category" ? categories.find((category) => category.id === slide.categoryId)?.title || "Category" : slide.type)}
+							<Button variant={selected === slide.id ? "secondary" : "tertiary"} className='h-auto min-h-10 w-full justify-start whitespace-normal text-left' onPress={() => setSelected(slide.id)}>
+								<span className='min-w-0 break-words'>
+									{index + 1}. {slide.title || (slide.type === "category" ? categories.find((category) => category.id === slide.categoryId)?.title || "Category" : slide.type)}
+								</span>
 							</Button>
 							{!readOnly ? (
 								<div className='mt-2 flex gap-2'>

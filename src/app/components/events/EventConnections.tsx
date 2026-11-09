@@ -8,6 +8,7 @@ type Connection = { id: string; provider: "s3" | "drive" | "youtube"; identityNa
 export default function EventConnections({ creatorId, eventId, value, onChange, readOnly = false, beforeConnect }: { creatorId: string; eventId: string; value: string | null; onChange: (id: string | null) => void; readOnly?: boolean; beforeConnect?: () => Promise<boolean> }) {
 	const [connections, setConnections] = useState<Connection[]>([]),
 		[loading, setLoading] = useState(true),
+		[attempt, setAttempt] = useState(0),
 		[busy, setBusy] = useState(false),
 		[error, setError] = useState(""),
 		[open, setOpen] = useState(false);
@@ -19,10 +20,10 @@ export default function EventConnections({ creatorId, eventId, value, onChange, 
 			.then((result) => {
 				if (!active) return;
 				if (result.ok) setConnections(result.connections);
-				else setError("Connections could not be loaded. Reopen this tab to retry.");
+				else setError("Connections could not be loaded. Please retry.");
 			})
 			.catch(() => {
-				if (active) setError("Connections could not be loaded. Reopen this tab to retry.");
+				if (active) setError("Connections could not be loaded. Please retry.");
 			})
 			.finally(() => {
 				if (active) setLoading(false);
@@ -30,7 +31,7 @@ export default function EventConnections({ creatorId, eventId, value, onChange, 
 		return () => {
 			active = false;
 		};
-	}, [creatorId]);
+	}, [creatorId, attempt]);
 	async function google(provider: "drive" | "youtube") {
 		setBusy(true);
 		setError("");
@@ -75,9 +76,23 @@ export default function EventConnections({ creatorId, eventId, value, onChange, 
 				<p className='mt-1 text-sm text-muted'>Connect Google Drive or S3 to accept files. Save your event before connecting Google.</p>
 			</div>
 			{error && !open ? (
-				<p role='alert' className='text-sm text-danger'>
-					{error}
-				</p>
+				<div className='flex flex-wrap items-center gap-3'>
+					<p role='alert' className='text-sm text-danger'>
+						{error}
+					</p>
+					<Button
+						size='sm'
+						variant='secondary'
+						isDisabled={busy || loading}
+						onPress={() => {
+							setLoading(true);
+							setError("");
+							setAttempt((value) => value + 1);
+						}}
+					>
+						Retry connections
+					</Button>
+				</div>
 			) : null}
 			{loading ? (
 				<p role='status' className='text-sm text-muted'>

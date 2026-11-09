@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import EventEditor from "@/app/components/events/EventEditor";
 import { createAwardConfiguration } from "@/app/lib/eventDefaults";
 import { saveEventAction } from "@/app/actions/events";
-jest.mock("@/app/actions/events", () => ({ saveEventAction: jest.fn(), saveEventPresentationAction: jest.fn() }));
+jest.mock("@/app/actions/events", () => ({ saveEventAction: jest.fn(), saveEventPresentationAction: jest.fn(), rotateEventPresenterAction: jest.fn(), publishEventResultsAction: jest.fn() }));
 jest.mock("@/app/components/events/EventDataResults", () => ({ __esModule: true, default: () => null }));
 jest.mock("@/app/components/events/EventReview", () => ({ __esModule: true, default: () => null }));
 jest.mock("@/app/components/events/EventConnections", () => ({ __esModule: true, default: () => null }));
@@ -40,4 +40,19 @@ it("saves only presentation settings once an event is published", async () => {
 	fireEvent.click(screen.getByRole("button", { name: "Save presentation" }));
 	expect(await screen.findByRole("alert")).toHaveTextContent("changed");
 	expect(saveEventPresentationAction).toHaveBeenCalledWith("host", initial.id, 2, { slides: initial.configuration.slides, presentation: initial.configuration.presentation });
+});
+
+it.each([
+	["New presenter link", "rotateEventPresenterAction", "The presenter link could not be created. Please retry."],
+	["Publish results", "publishEventResultsAction", "Results could not be published. Please retry."],
+] as const)("recovers from a failed %s request", async (label, action, feedback) => {
+	const actions = await import("@/app/actions/events");
+	jest.mocked(actions[action]).mockRejectedValueOnce(new Error("Network unavailable"));
+	const configuration = createAwardConfiguration("Awards", "UTC");
+	configuration.schedule = { ...configuration.schedule, submissionsStart: "2020-01-01T00:00:00Z", submissionsEnd: "2020-01-02T00:00:00Z", votingStart: "2020-01-03T00:00:00Z", votingEnd: "2020-01-04T00:00:00Z" };
+	const initial = { id: "8c317b25-5083-4cae-b939-0487a7fa8ff6", ownerId: "host", configuration, revision: 1, publishedAt: new Date(), resultsPublishedAt: null, reviewReleased: true, frozenAt: null, frozenResults: null, createdAt: new Date(), updatedAt: new Date() };
+	render(<EventEditor creatorId='host' initial={initial} />);
+	fireEvent.click(screen.getByRole("button", { name: label }));
+	expect(await screen.findByRole("alert")).toHaveTextContent(feedback);
+	expect(screen.getByRole("button", { name: label })).toBeEnabled();
 });

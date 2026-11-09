@@ -68,6 +68,8 @@ export default function EventEditor({ creatorId, initial, user, canWhiteLabel = 
 			const result = await rotateEventPresenterAction(creatorId, event.id);
 			if (result.ok) setPresenterUrl(`${window.location.origin}/events/${event.id}/present#${result.presenterSecret}`);
 			else setError("The presenter link could not be created. Please retry.");
+		} catch {
+			setError("The presenter link could not be created. Please retry.");
 		} finally {
 			setBusy(false);
 		}
@@ -81,6 +83,8 @@ export default function EventEditor({ creatorId, initial, user, canWhiteLabel = 
 				setEvent(result.event);
 				setMessage("Results published.");
 			} else setError(result.code === "RESULTS_REQUIRED" ? "Complete the missing data awards before publishing results." : "Results can be published after voting closes. Please try again then.");
+		} catch {
+			setError("Results could not be published. Please retry.");
 		} finally {
 			setBusy(false);
 		}
@@ -148,7 +152,7 @@ export default function EventEditor({ creatorId, initial, user, canWhiteLabel = 
 						<Tabs.ListContainer>
 							<Tabs.List aria-label='Event editor sections'>
 								{["event", "roadmap", "categories", "review", "results", "connections", "presentation"].map((id) => (
-									<Tabs.Tab key={id} id={id}>
+									<Tabs.Tab key={id} id={id} className='whitespace-nowrap'>
 										{id === "event" ? "Event" : id === "roadmap" ? "Roadmap" : id === "categories" ? "Categories" : id === "review" ? "Review" : id === "results" ? "Data awards" : id === "connections" ? "Connections" : "Presentation"}
 									</Tabs.Tab>
 								))}

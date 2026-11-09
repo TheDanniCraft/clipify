@@ -21,3 +21,14 @@ it("shows the group's presentation title and lets the team inspect its original 
 	fireEvent.click(screen.getByRole("button", { name: "Show grouped proposals for Lampe raucht ab" }));
 	expect(screen.getByText("hahaha die Lampe", { exact: true })).toBeInTheDocument();
 });
+
+it("explains why draft review actions are unavailable", async () => {
+	jest.mocked(getEventReviewAction).mockResolvedValue({
+		ok: true,
+		event: { configuration, published: false, reviewReleased: false, frozenAt: null, frozenResults: null, resultsPublishedAt: null },
+		candidates: [],
+	});
+	render(<EventReview creatorId='host' eventId='event' />);
+	expect(await screen.findByText("Publish your event before reviewing proposals.")).toBeInTheDocument();
+	expect(screen.getByRole("button", { name: "Add candidate" })).toBeDisabled();
+});

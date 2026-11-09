@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import EventLibrary from "@/app/components/events/EventLibrary";
 import { createEventAction, listEventsAction } from "@/app/actions/events";
 const push = jest.fn();
@@ -33,4 +33,25 @@ it("retries an unavailable library without losing the create action", async () =
 	fireEvent.click(screen.getByRole("button", { name: "Retry events" }));
 	expect(await screen.findByText("No events yet")).toBeInTheDocument();
 	expect(screen.getByRole("button", { name: "Create event" })).toBeEnabled();
+});
+
+it("shows visible progress, blocks repeat creation and stays pending until the editor replaces the page", async () => {
+	let resolve!: (result: Awaited<ReturnType<typeof createEventAction>>) => void;
+	jest.mocked(createEventAction).mockReturnValue(
+		new Promise((done) => {
+			resolve = done;
+		}),
+	);
+	render(<EventLibrary creatorId='host' />);
+	await screen.findByText("No events yet");
+	const button = screen.getByRole("button", { name: "Create event" });
+	fireEvent.click(button);
+	expect(button).toBeDisabled();
+	expect(screen.getByRole("status")).toHaveTextContent("Creating event…");
+	fireEvent.click(button);
+	expect(createEventAction).toHaveBeenCalledTimes(1);
+	await act(async () => resolve({ ok: true, event: { id: "event-id" } } as never));
+	expect(push).toHaveBeenCalledWith("/dashboard/events/event-id");
+	expect(button).toBeDisabled();
+	expect(screen.getByRole("status")).toHaveTextContent("Creating event…");
 });
