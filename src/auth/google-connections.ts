@@ -5,7 +5,7 @@ export function isGoogleProvider(providerId: string) {
 	return providerId === "google" || providerId === eventGoogleProviderIds.drive || providerId === eventGoogleProviderIds.youtube;
 }
 
-export function eventGoogleProviders(environment: NodeJS.ProcessEnv = process.env): GenericOAuthConfig[] {
+export function eventGoogleProviders(environment: Readonly<Record<string, string | undefined>> = process.env): GenericOAuthConfig[] {
 	const clientId = environment.YOUTUBE_CLIENT_ID?.trim();
 	const clientSecret = environment.YOUTUBE_CLIENT_SECRET?.trim();
 	if (!clientId || !clientSecret) return [];
