@@ -81,6 +81,8 @@ export const mcpOperationLabels: Record<string, string> = {
 	list_events: "List events",
 	get_event: "Read event",
 	create_event: "Create event",
+	create_event_example: "Create example event",
+	get_event_preview: "Get event preview",
 	update_event: "Edit event",
 	update_event_presentation: "Edit event presentation",
 	publish_event: "Publish event",

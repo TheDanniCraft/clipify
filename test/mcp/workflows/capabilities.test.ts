@@ -20,7 +20,7 @@ test("basic Runner setup and registration remain available without a standalone 
 test("capabilities expose only the current public tools and accurately flag Pro overlay editing", () => {
 	const row = flowProbe("catalogue:workflow:get_capabilities:free");
 	const operations = row.result?.structuredContent.operations;
-	expect(Object.keys(operations)).toHaveLength(92);
+	expect(Object.keys(operations)).toHaveLength(94);
 	for (const name of ["update_overlay", "update_gallery", "get_overlay_embed"]) expect(operations).not.toHaveProperty(name);
 	for (const name of ["update_overlay_theme", "update_overlay_filters", "update_overlay_playback"]) expect(operations[name]).toEqual({ allowed: false, reason: "FEATURE_RESTRICTED" });
 	expect(operations.update_overlay_settings).toEqual({ allowed: true });
