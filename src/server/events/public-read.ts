@@ -1,9 +1,10 @@
 import "server-only";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db/client";
-import { awardEventsTable as events, awardCandidatesTable as candidates, awardVotesTable as votes } from "@/db/schema";
+import { awardEventsTable as events, awardCandidatesTable as candidates, awardVotesTable as votes, usersTable } from "@/db/schema";
+import { resolveUserEntitlements } from "@lib/entitlements";
 import { projectAwardEvent } from "@/app/lib/eventPublicView";
-import { EventError, eventError, presenterDigest } from "./persistence";
+import { EventError, eventError, hasAwardPresenterSecret } from "./persistence";
 /** participantId is supplied only from the current verified session by the action boundary. */
 export async function readPublicAwardEvent(id: string, participantId?: string, secret?: string, now = new Date()) {
 	if (!/^[0-9a-f-]{36}$/i.test(id)) return eventError(new EventError("NOT_FOUND"));
@@ -11,7 +12,13 @@ export async function readPublicAwardEvent(id: string, participantId?: string, s
 		const [event] = await db.select().from(events).where(eq(events.id, id)).limit(1);
 		if (!event?.publishedAt) throw new EventError("NOT_FOUND");
 		const presenter = secret !== undefined;
-		if (presenter && (!/^[A-Za-z0-9_-]{43}$/.test(secret!) || presenterDigest(secret!) !== event.presenterDigest)) throw new EventError("NOT_FOUND");
+		if (presenter && !hasAwardPresenterSecret(event, secret)) throw new EventError("NOT_FOUND");
+		const [creator] = await db.select({ id: usersTable.id, disabled: usersTable.disabled }).from(usersTable).where(eq(usersTable.id, event.ownerId)).limit(1);
+		if (!creator || creator.disabled) throw new EventError("NOT_FOUND");
+		if (event.configuration.whiteLabel) {
+			const [owner] = await db.select().from(usersTable).where(eq(usersTable.id, event.ownerId)).limit(1);
+			if (!(await resolveUserEntitlements(owner)).proAccess) event.configuration = { ...event.configuration, whiteLabel: false };
+		}
 		const rows = await db.select().from(candidates).where(eq(candidates.eventId, id));
 		const reveal = !!event.resultsPublishedAt || (presenter && now >= new Date(event.configuration.schedule.votingEnd));
 		const counts = reveal

@@ -145,3 +145,33 @@ export async function searchEventTeamSourcesAction(creatorId: string, eventId: s
 		return { ok: false as const, code: "PROVIDER_UNAVAILABLE" as const };
 	}
 }
+
+export async function saveEventPresentationAction(creatorId: string, eventId: string, revision: number, input: unknown) {
+	const principal = await getVerifiedSessionPrincipal();
+	return principal ? (await import("@/server/events/persistence")).saveAwardPresentation(principal, creatorId, eventId, revision, input) : unauthenticated;
+}
+
+export async function getEventPresenterAction(eventId: string, secret: string) {
+	return (await import("@/server/events/presenter")).readAwardPresenter(eventId, secret);
+}
+export async function publishEventPresenterResultsAction(eventId: string, secret: string) {
+	return (await import("@/server/events/presenter")).publishAwardPresenterResults(eventId, secret);
+}
+
+export async function connectEventChatAction(eventId: string, secret: string) {
+	return (await import("@/server/events/chat")).connectAwardChat(eventId, secret);
+}
+export async function pollEventChatAction(eventId: string, secret: string) {
+	return (await import("@/server/events/chat")).pollAwardChat(eventId, secret);
+}
+export async function listPublicEventsAction() {
+	return (await import("@/server/events/discovery")).listPublicAwardEvents();
+}
+export async function getEventTiesAction(creatorId: string, eventId: string) {
+	const principal = await getVerifiedSessionPrincipal();
+	return principal ? (await import("@/server/events/ties")).readAwardTieResults(principal, creatorId, eventId) : unauthenticated;
+}
+export async function chooseEventTieWinnerAction(creatorId: string, eventId: string, categoryId: string, candidateId: string) {
+	const principal = await getVerifiedSessionPrincipal();
+	return principal ? (await import("@/server/events/ties")).chooseAwardTieWinner(principal, creatorId, eventId, categoryId, candidateId) : unauthenticated;
+}

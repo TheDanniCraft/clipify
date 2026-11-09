@@ -1,3 +1,4 @@
+import { eventToolSchemas } from "./events/schemas";
 import { overlayFieldGroups, galleryFieldGroups } from "./focused-fields";
 import { workflowInputSchemas, galleryFields } from "./workflows/schemas";
 import { z } from "zod";
@@ -122,6 +123,7 @@ export const focusedGallerySchemas = {
 	update_gallery_theme: galleryAreaUpdate("theme"),
 };
 export const toolInputSchemas = {
+	...eventToolSchemas,
 	...focusedGallerySchemas,
 	...focusedOverlaySchemas,
 	get_overlay_link: overlayAreaRead,

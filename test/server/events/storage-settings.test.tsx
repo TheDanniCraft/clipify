@@ -16,3 +16,15 @@ it("preserves S3 fields and explains a failed connection without selecting unava
 	expect(screen.getByRole("textbox", { name: "Bucket" })).toHaveValue("awards");
 	expect(selected).not.toHaveBeenCalled();
 });
+
+it("stays on the editor when its changes cannot be saved before Google OAuth", async () => {
+	const { beginEventGoogleConnectionAction } = await import("@/app/actions/events");
+	jest.mocked(beginEventGoogleConnectionAction).mockClear();
+	const beforeConnect = jest.fn(async () => false);
+	render(<EventConnections creatorId='host' eventId='11111111-1111-4111-8111-111111111111' value={null} onChange={jest.fn()} beforeConnect={beforeConnect} />);
+	await waitFor(() => expect(screen.getByRole("button", { name: "Connect Google Drive" })).toBeEnabled());
+	fireEvent.click(screen.getByRole("button", { name: "Connect Google Drive" }));
+	expect(await screen.findByRole("alert")).toHaveTextContent("Save your event changes");
+	expect(beforeConnect).toHaveBeenCalled();
+	expect(beginEventGoogleConnectionAction).not.toHaveBeenCalled();
+});

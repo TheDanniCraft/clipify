@@ -5,4 +5,5 @@
 - [x] Identity, storage ownership and partner listing boundaries defined
 - [x] Original submissions and grouped candidates distinguished
 - [x] FR/EC/SC have planned owning evidence
-- [ ] Scenario skeletons refined into concrete supported option examples before corresponding implementation
+- [x] Scenario skeletons replaced by concrete supported option examples and actual executable owners
+- [ ] Complete historical before-implementation chronology certified for every UI addition (not claimed; PROCESS-001)

@@ -20,7 +20,7 @@ export async function resolveAwardSource(ownerId: string, category: EventCategor
 		const id = parseClipReference(input.reference);
 		const [clip] = await resolveValidatedPlaylistClips(ownerId, [id]);
 		if (!clip || clip.broadcaster_id !== ownerId) throw new EventError("INVALID_INPUT");
-		return eligible({ kind: "clip", reference: clip.id, title: clip.title, description: "", creatorId: clip.broadcaster_id, createdAt: clip.created_at, views: clip.view_count ?? 0, duration: clip.duration, ...(clip.thumbnail_url ? { thumbnailUrl: clip.thumbnail_url } : {}) }, ownerId, category);
+		return eligible({ kind: "clip", reference: clip.id, title: clip.title, description: "", creatorId: clip.broadcaster_id, ...(clip.creator_name ? { clipperName: clip.creator_name } : {}), createdAt: clip.created_at, views: clip.view_count ?? 0, duration: clip.duration, ...(clip.thumbnail_url ? { thumbnailUrl: clip.thumbnail_url } : {}) }, ownerId, category);
 	}
 	if (category.source === "youtube") return eligible(await (await import("./youtube")).resolveAwardYoutube(ownerId, input.reference), ownerId, category);
 	if (category.source === "game") {
@@ -57,18 +57,16 @@ export async function searchAwardClips(ownerId: string, category: EventCategory,
 	const batch = await fetchClipDiscovery(ownerId, { startedAt: rules.startedAt, endedAt: rules.endedAt, minViews: rules.minViews, minDuration: rules.minDuration, maxDuration: rules.maxDuration, title: rules.titleIncludes });
 	const search = query.trim().toLocaleLowerCase("en");
 	return batch.clips
-		.map((clip) => ({ kind: "clip" as const, reference: clip.id, title: clip.title, description: "", creatorId: clip.broadcaster_id, createdAt: clip.created_at, views: clip.view_count ?? 0, duration: clip.duration, ...(clip.thumbnail_url ? { thumbnailUrl: clip.thumbnail_url } : {}) }))
+		.map((clip) => ({ kind: "clip" as const, reference: clip.id, title: clip.title, description: "", creatorId: clip.broadcaster_id, ...(clip.creator_name ? { clipperName: clip.creator_name } : {}), createdAt: clip.created_at, views: clip.view_count ?? 0, duration: clip.duration, ...(clip.thumbnail_url ? { thumbnailUrl: clip.thumbnail_url } : {}) }))
 		.filter((clip) => candidateMatchesRules(clip, ownerId, rules) && (!search || clip.title.toLocaleLowerCase("en").includes(search) || clip.reference === query))
 		.slice(0, 40);
 }
 
 import { db } from "@/db/client";
-import { awardEventsTable } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { awardPhase } from "./submissions";
+import { awardPhase, lockPublicAwardEvent } from "./submissions";
 async function eventSourceContext(eventId: string, categoryId: string) {
 	if (!z.uuid().safeParse(eventId).success || !z.uuid().safeParse(categoryId).success) throw new EventError("INVALID_INPUT");
-	const [event] = await db.select().from(awardEventsTable).where(eq(awardEventsTable.id, eventId)).limit(1);
+	const event = await db.transaction((tx) => lockPublicAwardEvent(tx, eventId));
 	if (!event?.publishedAt || awardPhase(event, new Date()) !== "submissions") throw new EventError("PHASE_CLOSED");
 	const category = event.configuration.categories.find((c) => c.id === categoryId);
 	if (!category || category.selection !== "audience") throw new EventError("INVALID_INPUT");

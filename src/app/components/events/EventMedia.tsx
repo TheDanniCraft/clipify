@@ -1,22 +1,38 @@
 "use client";
 import Image from "next/image";
+import { useState } from "react";
+import { motion } from "motion/react";
 import { Button, Checkbox, Link } from "@heroui/react";
 import type { EventCandidateContent } from "@lib/eventCandidates";
 export function EventMedia({ content }: { content: EventCandidateContent }) {
+	const [failed, setFailed] = useState<string | null>(null),
+		identity = content.mediaUrl ?? content.thumbnailUrl ?? content.reference;
+	if (failed === identity)
+		return (
+			<div role='status' className='flex min-h-64 flex-col items-center justify-center gap-5 p-8 text-center'>
+				<h2 className='text-2xl font-semibold'>{content.title}</h2>
+				<p className='text-muted'>This media could not load. You can retry or return to the show.</p>
+				<Button variant='secondary' onPress={() => setFailed(null)}>
+					Retry media
+				</Button>
+			</div>
+		);
+	const onError = () => setFailed(identity);
+
 	if (content.kind === "clip" && /^[A-Za-z0-9_-]{1,200}$/.test(content.reference)) return <iframe title={content.title} className='aspect-video h-full w-full border-0' src={`https://clips.twitch.tv/embed?clip=${encodeURIComponent(content.reference)}&parent=${encodeURIComponent(window.location.hostname)}&autoplay=true`} allow='autoplay; fullscreen' allowFullScreen />;
 	if (content.kind === "youtube" && /^[A-Za-z0-9_-]{11}$/.test(content.reference)) return <iframe title={content.title} className='aspect-video h-full w-full border-0' src={`https://www.youtube-nocookie.com/embed/${content.reference}?autoplay=1`} allow='autoplay; fullscreen' allowFullScreen />;
-	if (content.kind === "video" && content.mediaUrl) return <video aria-label={content.title} src={content.mediaUrl} className='max-h-[80vh] w-full' controls autoPlay playsInline />;
+	if (content.kind === "video" && content.mediaUrl) return <video onError={onError} aria-label={content.title} src={content.mediaUrl} className='max-h-[80vh] w-full' controls autoPlay playsInline />;
 	if (content.kind === "audio" && content.mediaUrl)
 		return (
 			<div className='flex h-full flex-col items-center justify-center gap-6 p-6'>
 				<h2 className='text-2xl font-semibold'>{content.title}</h2>
-				<audio aria-label={content.title} src={content.mediaUrl} controls autoPlay className='w-full' />
+				<audio onError={onError} aria-label={content.title} src={content.mediaUrl} controls autoPlay className='w-full' />
 			</div>
 		);
 	if ((content.kind === "image" || content.kind === "game") && (content.mediaUrl || content.thumbnailUrl))
 		return (
 			<div className='relative aspect-video h-full w-full'>
-				<Image src={(content.mediaUrl || content.thumbnailUrl)!} unoptimized fill alt={content.title} className='object-contain' />
+				<Image onError={onError} src={(content.mediaUrl || content.thumbnailUrl)!} unoptimized fill alt={content.title} className='object-contain' />
 			</div>
 		);
 	return (
@@ -40,10 +56,10 @@ export function EventNomineeCard({ candidate, selected = false, disabled = false
 	return (
 		<div className={`overflow-hidden rounded-2xl border ${selected ? "border-accent bg-accent/5" : "border-separator bg-surface"}`}>
 			<div className='relative aspect-video'>
-				<Button aria-label={`View ${candidate.content.title}`} variant='tertiary' className='relative h-full w-full overflow-hidden rounded-none p-0' onPress={onOpen}>
+				<Button data-award-candidate={candidate.id} aria-label={`View ${candidate.content.title}`} variant='tertiary' className='relative h-full w-full overflow-hidden rounded-none p-0' onPress={onOpen}>
 					{candidate.content.thumbnailUrl || (candidate.content.kind === "image" && candidate.content.mediaUrl) ? <Image src={(candidate.content.thumbnailUrl || candidate.content.mediaUrl)!} alt='' unoptimized fill className='object-cover' /> : <span className='max-w-full break-words px-5 text-lg font-medium'>{candidate.content.title}</span>}
 				</Button>
-				{result?.percentage !== undefined ? <div aria-hidden='true' className='pointer-events-none absolute inset-x-0 bottom-0 bg-accent/45 transition-[height] duration-1000' style={{ height: `${Math.min(100, Math.max(0, result.percentage))}%` }} /> : null}
+				{result?.percentage !== undefined ? <motion.div aria-hidden='true' className='pointer-events-none absolute inset-x-0 bottom-0 bg-accent/45' initial={{ height: 0 }} animate={{ height: `${Math.min(100, Math.max(0, result.percentage))}%` }} transition={{ duration: 1.2, ease: "easeOut" }} /> : null}
 				{result?.winner ? <span className='pointer-events-none absolute right-3 top-3 rounded-full bg-accent px-3 py-1 text-sm font-semibold text-accent-foreground'>Winner</span> : null}
 			</div>
 			<div className='space-y-2 p-4'>

@@ -4,13 +4,16 @@ import { Button, Card, Label, Link, Switch, Tabs, TextArea, TextField } from "@h
 import UpgradeModal from "@components/upgradeModal";
 import type { AuthenticatedUser } from "@types";
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
-import { saveEventAction, publishEventAction, publishEventResultsAction, rotateEventPresenterAction } from "@actions/events";
+import { saveEventAction, saveEventPresentationAction, publishEventAction, publishEventResultsAction, rotateEventPresenterAction } from "@actions/events";
+import { defaultAwardSlides } from "@lib/eventPresenter";
 import type { ManagedAwardEvent } from "@lib/eventConfiguration";
-import { eventInputSchema, type EventConfiguration } from "@lib/eventConfiguration";
+import { DEFAULT_AWARD_PRESENTATION, eventInputSchema, type EventConfiguration } from "@lib/eventConfiguration";
 import { eventPhase } from "@lib/events";
 import { EventText, EventSelect, EventNumber } from "./EventFields";
 import EventRoadmap from "./EventRoadmap";
 import EventCategories from "./EventCategories";
+import EventPresentationSettings from "./EventPresentationSettings";
+import EventTieResults from "./EventTieResults";
 import EventDataResults from "./EventDataResults";
 import EventReview from "./EventReview";
 import EventConnections from "./EventConnections";
@@ -35,7 +38,7 @@ export default function EventEditor({ creatorId, initial, user, canWhiteLabel = 
 		}
 		setBusy(true);
 		try {
-			const result = await saveEventAction(creatorId, event.id, event.revision, parsed.data);
+			const result = event.publishedAt ? await saveEventPresentationAction(creatorId, event.id, event.revision, { slides: parsed.data.slides, presentation: parsed.data.presentation }) : await saveEventAction(creatorId, event.id, event.revision, parsed.data);
 			if (!result.ok) {
 				setError(result.code === "CONFLICT" ? "This event changed in another tab. Your edits are preserved; reopen the event before saving again." : "Your event could not be saved. Check the settings and try again.");
 				return;
@@ -51,6 +54,7 @@ export default function EventEditor({ creatorId, initial, user, canWhiteLabel = 
 				setEvent(published.event);
 				setMessage("Your event is published.");
 			} else setMessage("Event saved.");
+			return true;
 		} catch {
 			setError("Your event could not be saved. Your edits are preserved.");
 		} finally {
@@ -102,6 +106,9 @@ export default function EventEditor({ creatorId, initial, user, canWhiteLabel = 
 							</>
 						) : (
 							<>
+								<Button variant='secondary' isPending={busy} onPress={() => void save()}>
+									Save presentation
+								</Button>
 								<Link href={`/events/${event.id}`}>Open event</Link>
 								<Button variant='secondary' isDisabled={busy} onPress={() => void presenter()}>
 									New presenter link
@@ -148,7 +155,7 @@ export default function EventEditor({ creatorId, initial, user, canWhiteLabel = 
 							</Tabs.List>
 						</Tabs.ListContainer>
 						<Tabs.Panel id='event' className='space-y-5 pt-5'>
-							<fieldset disabled={!!event.publishedAt} className='space-y-5'>
+							<fieldset disabled={busy || !!event.publishedAt} className='space-y-5'>
 								<EventText label='Event title' value={draft.title} onChange={(title) => update({ title })} />
 								<TextField>
 									<Label>Description</Label>
@@ -205,22 +212,39 @@ export default function EventEditor({ creatorId, initial, user, canWhiteLabel = 
 							</fieldset>
 						</Tabs.Panel>
 						<Tabs.Panel id='roadmap' className='pt-5'>
-							<EventRoadmap value={draft.schedule} phase={phase} readOnly={!!event.publishedAt} onChange={(schedule) => update({ schedule })} />
+							<EventRoadmap value={draft.schedule} phase={phase} readOnly={busy || !!event.publishedAt} onChange={(schedule) => update({ schedule })} />
 						</Tabs.Panel>
 						<Tabs.Panel id='categories' className='pt-5'>
-							<EventCategories timezone={draft.schedule.timezone} value={draft.categories} readOnly={!!event.publishedAt} onChange={(categories) => update({ categories })} />
+							<EventCategories
+								timezone={draft.schedule.timezone}
+								value={draft.categories}
+								readOnly={busy || !!event.publishedAt}
+								onChange={(categories) => {
+									const ids = new Set(categories.map((category) => category.id));
+									const slides = draft.slides.length ? draft.slides.filter((slide) => slide.type !== "category" || (!!slide.categoryId && ids.has(slide.categoryId))) : defaultAwardSlides(categories);
+									if (draft.slides.length) {
+										const additions = categories.filter((category) => !draft.categories.some((previous) => previous.id === category.id)).map((category) => ({ id: crypto.randomUUID(), type: "category" as const, categoryId: category.id, title: "", text: "", statistics: [] }));
+										const closing = slides.findIndex((slide) => slide.type === "closing");
+										slides.splice(closing < 0 ? slides.length : closing, 0, ...additions);
+									}
+									update({ categories, slides });
+								}}
+							/>
 						</Tabs.Panel>
 						<Tabs.Panel id='review' className='pt-5'>
 							<EventReview creatorId={creatorId} eventId={event.id} />
 						</Tabs.Panel>
 						<Tabs.Panel id='results' className='pt-5'>
 							<EventDataResults creatorId={creatorId} eventId={event.id} resultsPublished={!!event.resultsPublishedAt} />
+							{event.configuration.tiePolicy === "team" ? <EventTieResults creatorId={creatorId} eventId={event.id} locked={!!event.resultsPublishedAt} /> : null}
 						</Tabs.Panel>
 						<Tabs.Panel id='connections' className='pt-5'>
-							<EventConnections creatorId={creatorId} eventId={event.id} value={draft.storageConnectionId} readOnly={!!event.publishedAt} onChange={(storageConnectionId) => update({ storageConnectionId })} />
+							<EventConnections beforeConnect={async () => !!(await save())} creatorId={creatorId} eventId={event.id} value={draft.storageConnectionId} readOnly={busy || !!event.publishedAt} onChange={(storageConnectionId) => update({ storageConnectionId })} />
 						</Tabs.Panel>
 						<Tabs.Panel id='presentation' className='pt-5'>
-							<EventDeckEditor value={draft.slides} categories={draft.categories} readOnly={!!event.publishedAt} onChange={(slides) => update({ slides })} />
+							<EventPresentationSettings value={draft.presentation ?? DEFAULT_AWARD_PRESENTATION} disabled={busy} onChange={(presentation) => update({ presentation })} />
+							<p className='my-4 text-sm text-muted'>Save your presentation, then reload the presenter to use the updated deck.</p>
+							<EventDeckEditor value={draft.slides} categories={draft.categories} readOnly={busy} onChange={(slides) => update({ slides })} />
 						</Tabs.Panel>
 					</Tabs>
 				</Card.Content>

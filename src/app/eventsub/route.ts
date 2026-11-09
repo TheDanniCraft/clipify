@@ -10,6 +10,7 @@ import { sendMessage } from "@actions/websocket";
 import { handleCommand } from "@actions/commands";
 
 import { captureUnexpectedError } from "@lib/sentryServer";
+import { relayAwardChat } from "@/server/events/chat-buffer";
 import { operationalCount } from "@lib/operationalHealth";
 function parseEventSub<T = Record<string, unknown>>(body: string): EventSubNotification<T> {
 	return JSON.parse(body) as EventSubNotification<T>;
@@ -105,6 +106,7 @@ async function handleNotification(bodyText: string): Promise<Response | null> {
 	switch (notification.subscription.type) {
 		case "channel.chat.message": {
 			const event = notification.event as TwitchMessage;
+			relayAwardChat(event);
 			after(async () => {
 				try {
 					await Sentry.startSpan({ name: "Handle Twitch chat command", op: "task" }, () => handleCommand(event));

@@ -36,3 +36,13 @@ it("uses a stored image as the nominee thumbnail", () => {
 	render(<EventNomineeCard candidate={{ id: "image", content: { kind: "image", title: "Bild", description: "", reference: "asset", mediaUrl } }} onOpen={() => undefined} />);
 	expect(screen.getByRole("button", { name: "View Bild" }).querySelector("img")).toHaveAttribute("src", mediaUrl);
 });
+
+it.each(["image", "video", "audio"] as const)("offers local retry after a %s fails without taking over navigation", (kind) => {
+	render(<EventMedia content={{ kind, title: "Unavailable nominee", description: "", reference: "", mediaUrl: "https://storage.example.invalid/nominee" }} />);
+	const media = kind === "image" ? screen.getByRole("img", { name: "Unavailable nominee" }) : screen.getByLabelText("Unavailable nominee");
+	fireEvent.error(media);
+	expect(screen.getByRole("status")).toHaveTextContent("could not load");
+	fireEvent.click(screen.getByRole("button", { name: "Retry media" }));
+	expect(screen.queryByRole("status")).not.toBeInTheDocument();
+	expect(kind === "image" ? screen.getByRole("img", { name: "Unavailable nominee" }) : screen.getByLabelText("Unavailable nominee")).toBeInTheDocument();
+});

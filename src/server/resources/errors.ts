@@ -10,6 +10,13 @@ export class LegacyBroadcastRecoveryRequired extends Error {
 }
 
 const messages = {
+	PARTNER_REQUIRED: "Only active partner creators can publicly list events. Choose unlisted to share by link.",
+	PRO_REQUIRED: "Your creator needs Pro to use this option.",
+	RESULTS_REQUIRED: "Complete missing data results and tied-award decisions before publishing.",
+	PHASE_CLOSED: "This operation is unavailable in the current event phase. Read the event roadmap again.",
+	LIMIT_REACHED: "The configured event limit has been reached.",
+	STORAGE_REQUIRED: "Connect creator-owned S3 or Google Drive storage in the dashboard before using file categories.",
+	PROVIDER_UNAVAILABLE: "The connected provider is unavailable. Retry or reconnect it in the dashboard.",
 	SCHEDULE_WINDOW_ENDED: "This scheduled window is not active. Use Manual control or plan another event.",
 	SCHEDULE_COMPLETED: "This broadcast has ended. Its schedule is read-only.",
 	ACTIVE_OCCURRENCE_LOCKED: "This occurrence has started. Its streaming settings are read-only.",

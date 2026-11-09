@@ -78,6 +78,7 @@ export default function PublicEventView({ initial, creatorName, brand }: { initi
 	const active = event.phase === "submissions" || event.phase === "voting";
 	return (
 		<main className='mx-auto min-h-screen w-full max-w-6xl space-y-7 px-4 py-8 sm:px-8' style={brand ? ({ "--color-accent": brand.themeAccentColor, fontFamily: `${brand.fontFamily}, sans-serif` } as React.CSSProperties) : undefined}>
+			{brand?.fontSource === "google" ? <link rel='stylesheet' href={`https://fonts.googleapis.com/css2?family=${encodeURIComponent(brand.fontFamily)}:wght@400;700&display=swap`} /> : null}
 			<header className='space-y-4'>
 				<div className='flex flex-wrap items-center justify-between gap-3'>
 					<p className='text-sm text-muted'>{creatorName}&apos;s community awards</p>

@@ -13,6 +13,7 @@ export const candidateInputSchema = z
 		views: z.number().int().nonnegative().optional(),
 		duration: z.number().nonnegative().optional(),
 		creatorId: z.string().max(200).optional(),
+		clipperName: z.string().max(200).optional(),
 		storageAssetId: z.uuid().optional(),
 	})
 	.strict();

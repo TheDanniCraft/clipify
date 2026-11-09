@@ -16,7 +16,7 @@ async function observeCategory(event: typeof events.$inferSelect, category: Even
 		const discovered = await fetchClipDiscovery(event.ownerId, { startedAt: category.rules.startedAt, endedAt: category.rules.endedAt, sort: "most_viewed" });
 		if (!discovered.complete) return previous.success && previous.data.status === "ready" ? previous.data : { status: "missing", reason: "incomplete_library" };
 		const clips = discovered.clips
-			.map((clip) => candidateInputSchema.safeParse({ kind: "clip", reference: clip.id, title: clip.title, description: "", creatorId: clip.broadcaster_id, createdAt: clip.created_at, views: clip.view_count ?? 0, duration: clip.duration, ...(clip.thumbnail_url ? { thumbnailUrl: clip.thumbnail_url } : {}) }))
+			.map((clip) => candidateInputSchema.safeParse({ kind: "clip", reference: clip.id, title: clip.title, description: "", creatorId: clip.broadcaster_id, ...(clip.creator_name ? { clipperName: clip.creator_name } : {}), createdAt: clip.created_at, views: clip.view_count ?? 0, duration: clip.duration, ...(clip.thumbnail_url ? { thumbnailUrl: clip.thumbnail_url } : {}) }))
 			.flatMap((parsed) => (parsed.success && candidateMatchesRules(parsed.data, event.ownerId, category.rules) ? [parsed.data] : []))
 			.sort((a, b) => (b.views ?? 0) - (a.views ?? 0) || a.reference.localeCompare(b.reference));
 		const winner = clips[0];

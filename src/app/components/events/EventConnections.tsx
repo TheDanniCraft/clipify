@@ -5,7 +5,7 @@ import ControlledModal from "@components/controlledModal";
 import { listEventConnectionsAction, beginEventGoogleConnectionAction, saveEventS3ConnectionAction } from "@actions/events";
 import { EventSelect, EventText } from "./EventFields";
 type Connection = { id: string; provider: "s3" | "drive" | "youtube"; identityName: string; connected: boolean };
-export default function EventConnections({ creatorId, eventId, value, onChange, readOnly = false }: { creatorId: string; eventId: string; value: string | null; onChange: (id: string | null) => void; readOnly?: boolean }) {
+export default function EventConnections({ creatorId, eventId, value, onChange, readOnly = false, beforeConnect }: { creatorId: string; eventId: string; value: string | null; onChange: (id: string | null) => void; readOnly?: boolean; beforeConnect?: () => Promise<boolean> }) {
 	const [connections, setConnections] = useState<Connection[]>([]),
 		[loading, setLoading] = useState(true),
 		[busy, setBusy] = useState(false),
@@ -35,6 +35,10 @@ export default function EventConnections({ creatorId, eventId, value, onChange, 
 		setBusy(true);
 		setError("");
 		try {
+			if (beforeConnect && !(await beforeConnect())) {
+				setError("Save your event changes before connecting Google.");
+				return;
+			}
 			const result = await beginEventGoogleConnectionAction(creatorId, provider, eventId);
 			if (result.ok && result.url) window.location.assign(result.url);
 			else setError("Google could not be connected. Please try again.");

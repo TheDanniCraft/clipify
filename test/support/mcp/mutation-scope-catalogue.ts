@@ -8,6 +8,11 @@ export async function runMutationScopeCatalogue(input: { pool: Pool; auth: any; 
 	const algorithm = key.alg ?? "EdDSA";
 	const privateKey = await importJWK(JSON.parse(decrypted), algorithm);
 	const mutations = [
+		["create_event", "event:create"],
+		["update_event", "event:update"],
+		["nominate_event_candidates", "event:review"],
+		["publish_event", "event:publish"],
+		["rotate_event_presenter", "event-presenter:rotate"],
 		["create_overlay", "overlay:create"],
 		["update_overlay_settings", "overlay:update"],
 		["delete_overlay", "overlay:delete"],
@@ -19,6 +24,7 @@ export async function runMutationScopeCatalogue(input: { pool: Pool; auth: any; 
 		["reorder_playlist_items", "playlist-items:manage"],
 	] as const;
 	const reads = [
+		["list_events", "event:read"],
 		["list_creators", "creator:read"],
 		["get_capabilities", "creator:read"],
 		["list_overlays", "overlay:read"],

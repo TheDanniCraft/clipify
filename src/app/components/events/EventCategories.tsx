@@ -120,6 +120,7 @@ export default function EventCategories({ value, onChange, readOnly = false, tim
 								/>
 							</div>
 							{["image", "audio", "video"].includes(edit.source) ? <p className='text-sm text-muted'>Connect Google Drive or S3 storage before publishing this category.</p> : null}
+							{edit.source === "youtube" ? <p className='text-sm text-muted'>Connect the host’s YouTube channel in Connections so viewers can find its videos.</p> : null}
 							{edit.source === "choice" ? (
 								<TextField>
 									<Label>Choices, one per line</Label>

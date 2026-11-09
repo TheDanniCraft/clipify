@@ -12,8 +12,36 @@ export const categorySchema = z
 	.refine((c) => c.source !== "choice" || (c.options.length >= 2 && new Set(c.options).size === c.options.length), "Add at least two distinct choices.");
 const statisticSchema = z.object({ label: title, source: z.enum(["manual", "submissions", "categories", "nominees", "voters", "clips"]), value: z.number().finite().optional() }).strict();
 export const eventSlideSchema = z.object({ id: z.uuid(), type: z.enum(["welcome", "text", "statistics", "category", "closing"]), title: z.string().max(160), text: z.string().max(5000).default(""), categoryId: z.uuid().optional(), statistics: z.array(statisticSchema).max(100).default([]) }).strict();
+export const DEFAULT_AWARD_PRESENTATION = { showChat: false, hiddenAccounts: [] as string[], commandPrefixes: ["!"] };
+export const awardPresentationSchema = z
+	.object({
+		showChat: z.boolean(),
+		hiddenAccounts: z
+			.array(z.string().max(100))
+			.max(100)
+			.transform((values) => [...new Set(values.map((value) => value.trim().replace(/^@/, "").toLowerCase()).filter(Boolean))])
+			.pipe(z.array(z.string().regex(/^[a-z0-9_]{1,25}$/))),
+		commandPrefixes: z
+			.array(z.string().max(32))
+			.max(20)
+			.transform((values) => [...new Set(values.map((value) => value.trim()).filter(Boolean))]),
+	})
+	.strict();
 export const eventInputSchema = z
-	.object({ title, description: z.string().max(5000), visibility: z.enum(["unlisted", "public"]), schedule: eventScheduleSchema, votesPerCategory: z.number().int().min(1).max(100), tiePolicy: z.enum(["shared", "team"]), resultDetail: z.enum(["winner", "percentages", "votes"]), whiteLabel: z.boolean(), storageConnectionId: z.uuid().nullable().default(null), categories: z.array(categorySchema).min(1).max(100), slides: z.array(eventSlideSchema).max(500) })
+	.object({
+		title,
+		description: z.string().max(5000),
+		visibility: z.enum(["unlisted", "public"]),
+		schedule: eventScheduleSchema,
+		votesPerCategory: z.number().int().min(1).max(100),
+		tiePolicy: z.enum(["shared", "team"]),
+		resultDetail: z.enum(["winner", "percentages", "votes"]),
+		whiteLabel: z.boolean(),
+		presentation: awardPresentationSchema.default(() => ({ ...DEFAULT_AWARD_PRESENTATION, hiddenAccounts: [], commandPrefixes: [...DEFAULT_AWARD_PRESENTATION.commandPrefixes] })),
+		storageConnectionId: z.uuid().nullable().default(null),
+		categories: z.array(categorySchema).min(1).max(100),
+		slides: z.array(eventSlideSchema).max(500),
+	})
 	.strict()
 	.superRefine((event, ctx) => {
 		const ids = new Set(event.categories.map((c) => c.id));

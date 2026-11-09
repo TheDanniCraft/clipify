@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-09
 
-**Status**: Specified; implementation not started
+**Status**: Implemented; final review and CI gates in progress
 
 **Input**: Approved multi-turn requirements for a reusable Awards platform capable of running the complete Babbler Awards.
 
@@ -26,7 +26,7 @@ All material product questions were answered in the preceding conversation. No f
 
 **Acceptance Scenarios**:
 
-1. **Given** a correctly authorized event context, **When** the participant uses this capability, **Then** FR-001 holds: Create and manage Awards events for the selected creator, including agency context, title, description, category groups, draft/published state and deletion safeguards.
+1. **Given** a correctly authorized event context, **When** the participant uses this capability, **Then** FR-001 holds: Create and manage Awards events for the selected creator, including agency context, title, description, category groups, draft/published state.
 2. **Given** a correctly authorized event context, **When** the participant uses this capability, **Then** FR-002 holds: Place Events with clip tools and add one short Explore Clipify tour step without a separate creation tour.
 3. **Given** a correctly authorized event context, **When** the participant uses this capability, **Then** FR-003 holds: Permit public discovery only for partner creators; all creators may share unlisted events. Enforce this through UI, server and MCP.
 4. **Given** a correctly authorized event context, **When** the participant uses this capability, **Then** FR-004 holds: Keep core events free and gate white-label/additional branding through existing Pro upgrades without silently saving unavailable values.
@@ -123,7 +123,7 @@ All material product questions were answered in the preceding conversation. No f
 
 ### Functional Requirements
 
-- **FR-001**: System MUST create and manage Awards events for the selected creator, including agency context, title, description, category groups, draft/published state and deletion safeguards.
+- **FR-001**: System MUST create and manage Awards events for the selected creator, including agency context, title, description, category groups, draft/published state.
 - **FR-002**: System MUST place Events with clip tools and add one short Explore Clipify tour step without a separate creation tour.
 - **FR-003**: System MUST permit public discovery only for partner creators; all creators may share unlisted events. Enforce this through UI, server and MCP.
 - **FR-004**: System MUST keep core events free and gate white-label/additional branding through existing Pro upgrades without silently saving unavailable values.

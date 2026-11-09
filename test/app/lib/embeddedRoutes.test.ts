@@ -3,6 +3,10 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 describe("isEmbeddedRoute", () => {
+	it("keeps award presenter capabilities away from optional page scripts", () => {
+		expect(isEmbeddedRoute("/events/award-id/present")).toBe(true);
+		expect(isEmbeddedRoute("/events/award-id")).toBe(false);
+	});
 	it.each(["/runner/presentation/session-id", "/embed/player-id", "/overlay/overlay-id", "/demoPlayer", "/gallery/gallery-id", "/gallery/gallery-id/clip/clip-id", "/dashboard/galleries/gallery-id/preview", "/dashboard/galleries/gallery-id/preview/clip/clip-id"])("excludes third-party page scripts from %s", (pathname) => {
 		expect(isEmbeddedRoute(pathname)).toBe(true);
 	});

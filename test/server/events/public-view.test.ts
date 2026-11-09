@@ -37,3 +37,19 @@ it("does not substitute unfrozen category settings for a historical result", () 
 	const view = projectAwardEvent({ ...event, frozenResults: null } as never, candidates as never, [], true, new Date("2026-02-16"));
 	expect(view.categories.find((category) => category.id === "data")?.dataResult).toBeNull();
 });
+
+it("keeps data-award slide positions stable for the presenter while withholding unfinished results", () => {
+	const view = projectAwardEvent(event as never, candidates as never, [], true, new Date("2026-02-10"));
+	expect(view.categories.map((category) => category.id)).toEqual(["category", "data"]);
+	expect(view.categories[1]).not.toHaveProperty("dataResult");
+	expect(JSON.stringify(view)).not.toContain("Secret winner");
+});
+
+it.each(["winner", "percentages"] as const)("honors the creator's %s public result detail without leaking vote counts", (detail) => {
+	const view = projectAwardEvent({ ...event, configuration: { ...event.configuration, resultDetail: detail }, resultsPublishedAt: new Date("2026-02-16") } as never, candidates as never, [{ candidateId: "one", votes: 12 }], false, new Date("2026-02-16"));
+	const result = view.categories[0].results![0];
+	expect(result).toMatchObject({ id: "one", winner: true });
+	expect(result).not.toHaveProperty("votes");
+	if (detail === "winner") expect(result).not.toHaveProperty("percentage");
+	else expect(result).toHaveProperty("percentage", 100);
+});

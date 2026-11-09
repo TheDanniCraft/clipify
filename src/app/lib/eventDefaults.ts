@@ -10,6 +10,7 @@ export function createAwardConfiguration(title: string, timezone: string, now = 
 		tiePolicy: "shared",
 		resultDetail: "percentages",
 		whiteLabel: false,
+		presentation: { showChat: false, hiddenAccounts: [], commandPrefixes: ["!"] },
 		storageConnectionId: null,
 		categories: [{ id: crypto.randomUUID(), title: "Best clip", group: "", source: "clip", selection: "audience", submissionLimit: 1, nomineeLimit: 6, rules: {}, options: [] }],
 		slides: [],

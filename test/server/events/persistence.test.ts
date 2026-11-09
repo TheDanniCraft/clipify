@@ -14,7 +14,7 @@ jest.mock("@/server/resources/mutation", () => ({
 		return { creator: { id: ownerId }, assertAuthorityCurrent() {} };
 	}),
 }));
-jest.mock("@/app/lib/entitlements", () => ({ resolveUserEntitlements: jest.fn(async () => ({ proAccess: false, partner: false })) }));
+jest.mock("@/app/lib/entitlements", () => ({ resolveUserEntitlements: jest.fn(async () => ({ proAccess: false, partner: false })), getActivePartnerAccessGrant: jest.fn(async () => null) }));
 import { createAwardEvent, updateAwardEvent, readAwardEvent } from "@/server/events/persistence";
 import type { TrustedCreatorPrincipal } from "@/auth/authorize-operation";
 declare const PGlite: typeof import("@electric-sql/pglite").PGlite;
@@ -35,8 +35,8 @@ const config = {
 beforeAll(async () => {
 	database = new PGlite();
 	client = drizzle(database);
-	await database.exec(`CREATE TABLE users (id varchar PRIMARY KEY); INSERT INTO users VALUES ('host');
- CREATE TABLE award_events (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), owner_id varchar NOT NULL REFERENCES users(id), configuration jsonb NOT NULL, revision integer NOT NULL DEFAULT 1, published_at timestamptz, results_published_at timestamptz, review_released boolean NOT NULL DEFAULT false, presenter_digest varchar NOT NULL, frozen_at timestamptz, frozen_results jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+	await database.exec(`CREATE TABLE users (id varchar PRIMARY KEY, disabled boolean DEFAULT false); INSERT INTO users(id) VALUES ('host');
+ CREATE TABLE award_events (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), owner_id varchar NOT NULL REFERENCES users(id), configuration jsonb NOT NULL, revision integer NOT NULL DEFAULT 1, published_at timestamptz, results_published_at timestamptz, review_released boolean NOT NULL DEFAULT false, presenter_digest varchar NOT NULL, frozen_at timestamptz, frozen_results jsonb, tie_winners jsonb NOT NULL DEFAULT '{}', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
  CREATE TABLE award_candidates (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), event_id uuid NOT NULL REFERENCES award_events(id) ON DELETE CASCADE, category_id uuid NOT NULL, canonical_key varchar NOT NULL, content jsonb NOT NULL, nominated boolean NOT NULL DEFAULT false, parent_id uuid REFERENCES award_candidates(id), created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(event_id,category_id,canonical_key));
  CREATE TABLE award_submissions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), event_id uuid NOT NULL REFERENCES award_events(id) ON DELETE CASCADE, category_id uuid NOT NULL, candidate_id uuid NOT NULL REFERENCES award_candidates(id), auth_user_id varchar NOT NULL, original jsonb NOT NULL, withdrawn_at timestamptz, created_at timestamptz NOT NULL DEFAULT now());
  CREATE TABLE award_votes (event_id uuid NOT NULL REFERENCES award_events(id) ON DELETE CASCADE, category_id uuid NOT NULL, candidate_id uuid NOT NULL REFERENCES award_candidates(id), auth_user_id varchar NOT NULL, PRIMARY KEY(category_id,candidate_id,auth_user_id));
@@ -218,4 +218,41 @@ it("lets the authorized team add a text nominee without creating a viewer receip
 	expect(await addAwardTeamCandidate({ ...principal, authUserId: "other" }, "host", created.event.id, config.categories[0].id, { title: "Insider" }, new Date("2026-01-10"))).toMatchObject({ ok: false, code: "ACCESS_DENIED" });
 	expect(await addAwardTeamCandidate(principal, "host", created.event.id, config.categories[0].id, { title: "Insider", description: "Team nomination" }, new Date("2026-01-10"))).toMatchObject({ ok: true, candidate: { content: { title: "Insider" }, nominated: false } });
 	expect((await database.query("SELECT id FROM award_submissions WHERE event_id=$1", [created.event.id])).rows).toHaveLength(0);
+});
+
+it("lets the team arrange a published show without changing frozen event rules", async () => {
+	const created = await createAwardEvent(principal, "host", config);
+	if (!created.ok) throw new Error("creation failed");
+	await publishAwardEvent(principal, "host", created.event.id, 1, new Date("2025-12-01"));
+	const { saveAwardPresentation } = await import("@/server/events/persistence");
+	const slides = [{ id: "cf404150-2525-41e2-9d8f-87b114d7a9b9", type: "statistics", title: "The year", text: "", statistics: [{ label: "Hours", source: "manual", value: 321 }] }];
+	const presentation = { showChat: true, hiddenAccounts: ["nightbot"], commandPrefixes: ["!"] };
+	expect(await saveAwardPresentation(principal, "host", created.event.id, 2, { slides, presentation, title: "Attempted title change" })).toMatchObject({ ok: false, code: "INVALID_INPUT" });
+	const saved = await saveAwardPresentation(principal, "host", created.event.id, 2, { slides, presentation });
+	expect(saved).toMatchObject({ ok: true, event: { revision: 3, configuration: { title: "Babbler Awards", slides } } });
+	expect(await saveAwardPresentation(principal, "host", created.event.id, 2, { slides, presentation })).toMatchObject({ ok: false, code: "CONFLICT" });
+});
+
+it("materializes the automatic show deck so adding a statistics slide cannot drop award categories", async () => {
+	const created = await createAwardEvent(principal, "host", config);
+	if (!created.ok) throw new Error("creation failed");
+	expect(created.event.configuration.slides.map((slide) => slide.type)).toEqual(["welcome", "category", "closing"]);
+	expect(created.event.configuration.slides[1].categoryId).toBe(config.categories[0].id);
+});
+
+it("rejects Pro branding and nonpartner listing at the persistence boundary without saving unavailable values", async () => {
+	expect(await createAwardEvent(principal, "host", { ...config, whiteLabel: true })).toMatchObject({ ok: false, code: "PRO_REQUIRED" });
+	expect(await createAwardEvent(principal, "host", { ...config, visibility: "public" })).toMatchObject({ ok: false, code: "PARTNER_REQUIRED" });
+	const created = await createAwardEvent(principal, "host", config);
+	if (!created.ok) throw new Error("draft failed");
+	expect(await updateAwardEvent(principal, "host", created.event.id, 1, { ...config, whiteLabel: true })).toMatchObject({ ok: false, code: "PRO_REQUIRED" });
+	expect(await readAwardEvent(principal, "host", created.event.id)).toMatchObject({ ok: true, event: { revision: 1, configuration: { whiteLabel: false } } });
+});
+it("rechecks an active partner grant at publication rather than trusting draft-time approval", async () => {
+	const { getActivePartnerAccessGrant } = await import("@/app/lib/entitlements");
+	jest.mocked(getActivePartnerAccessGrant).mockResolvedValueOnce({ id: "partner-grant" } as never);
+	const created = await createAwardEvent(principal, "host", { ...config, visibility: "public" });
+	if (!created.ok) throw new Error("partner draft failed");
+	expect(await publishAwardEvent(principal, "host", created.event.id, 1, new Date("2025-12-01"))).toMatchObject({ ok: false, code: "PARTNER_REQUIRED" });
+	expect(await readAwardEvent(principal, "host", created.event.id)).toMatchObject({ ok: true, event: { publishedAt: null } });
 });

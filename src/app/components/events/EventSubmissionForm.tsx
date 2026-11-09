@@ -6,6 +6,7 @@ import { searchEventSourcesAction, submitEventAction, searchEventTeamSourcesActi
 import { EventSelect, EventText } from "./EventFields";
 import type { PublicAwardEvent } from "@lib/eventPublicView";
 import type { EventCandidateContent } from "@lib/eventCandidates";
+import LocalizedDate from "@components/localizedDate";
 import EventUploadForm from "./EventUploadForm";
 type Category = PublicAwardEvent["categories"][number];
 export default function EventSubmissionForm(props: { eventId: string; category: Category; onSubmitted: () => void; teamCreatorId?: string }) {
@@ -77,6 +78,8 @@ function SourceSubmissionForm({ eventId, category, onSubmitted, teamCreatorId }:
 		<div className='space-y-4'>
 			{searchable ? (
 				<ComboBox
+					allowsEmptyCollection
+					menuTrigger='input'
 					aria-label={`Choose ${category.title}`}
 					variant='secondary'
 					inputValue={query}
@@ -101,14 +104,19 @@ function SourceSubmissionForm({ eventId, category, onSubmitted, teamCreatorId }:
 						<ComboBox.Trigger />
 					</ComboBox.InputGroup>
 					<ComboBox.Popover>
-						<ListBox items={items.map((item) => ({ ...item, id: item.reference }))} renderEmptyState={() => (loading ? "Searching…" : "No eligible matches")}>
+						<ListBox items={items.map((item) => ({ ...item, id: item.reference }))} renderEmptyState={() => (loading ? "Searching…" : error || "No eligible matches")}>
 							{(item) => (
 								<ListBox.Item id={item.id} textValue={item.title}>
 									<div className='flex max-w-md items-center gap-3'>
 										{item.thumbnailUrl ? <Image src={item.thumbnailUrl} unoptimized alt='' width={80} height={45} className='aspect-video rounded object-cover' /> : null}
 										<div className='min-w-0'>
 											<Label className='line-clamp-2'>{item.title}</Label>
+											{item.clipperName ? <p className='text-xs text-muted'>Clipped by {item.clipperName}</p> : null}
 											<p className='text-xs text-muted'>{item.views !== undefined ? `${new Intl.NumberFormat().format(item.views)} views` : item.kind === "game" ? "Twitch game" : ""}</p>
+											<p className='flex flex-wrap gap-x-3 text-xs text-muted'>
+												{item.duration !== undefined ? <span>{new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(item.duration)} seconds</span> : null}
+												{item.createdAt ? <LocalizedDate value={item.createdAt} /> : null}
+											</p>
 										</div>
 									</div>
 									<ListBox.ItemIndicator />

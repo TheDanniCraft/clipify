@@ -2,13 +2,22 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { and, eq, isNull } from "drizzle-orm";
 import { db, type TransactionClient } from "@/db/client";
-import { awardEventsTable as events, awardCandidatesTable as candidates, awardSubmissionsTable as submissions, awardAssetsTable } from "@/db/schema";
+import { awardEventsTable as events, awardCandidatesTable as candidates, awardSubmissionsTable as submissions, awardAssetsTable, usersTable } from "@/db/schema";
 import { candidateInputSchema, canonicalCandidateKey, candidateMatchesRules } from "@/app/lib/eventCandidates";
 import { eventPhase } from "@/app/lib/events";
 import { EventError, eventError } from "./persistence";
 
 export async function lockPublicAwardEvent(tx: TransactionClient, id: string) {
 	if (!/^[0-9a-f-]{36}$/i.test(id)) throw new EventError("INVALID_INPUT");
+	// Match management lock order: creator lifecycle before the event row.
+	const [owner] = await tx
+		.select({ id: usersTable.id })
+		.from(events)
+		.innerJoin(usersTable, eq(usersTable.id, events.ownerId))
+		.where(and(eq(events.id, id), eq(usersTable.disabled, false)))
+		.limit(1)
+		.for("share", { of: usersTable });
+	if (!owner) throw new EventError("NOT_FOUND");
 	const [event] = await tx.select().from(events).where(eq(events.id, id)).limit(1).for("update");
 	if (!event?.publishedAt) throw new EventError("NOT_FOUND");
 	return event;

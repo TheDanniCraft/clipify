@@ -42,14 +42,20 @@ it("applies category rules to resolved YouTube videos too", async () => {
 	expect(await resolveAwardSource("host", { ...category, source: "youtube" }, { reference: "https://youtu.be/abcdefghijk" })).toMatchObject({ kind: "youtube", views: 20 });
 });
 
-jest.mock("@/db/client", () => ({ db: { select: jest.fn() } }));
+jest.mock("@/db/client", () => ({ db: { select: jest.fn(), transaction: jest.fn() } }));
 import { db } from "@/db/client";
 import { getTwitchGames } from "@/app/actions/twitch";
 import { searchEventSources } from "@/server/events/sources";
 it("routes a public game autocomplete through the host's Twitch catalog", async () => {
-	const query = { from: () => query, where: () => query, limit: async () => [{ ownerId: "host", publishedAt: new Date(), reviewReleased: false, resultsPublishedAt: null, configuration: { schedule: { submissionsStart: "2020-01-01T00:00:00Z", submissionsEnd: "2099-01-01T00:00:00Z", votingStart: "2099-02-01T00:00:00Z", votingEnd: "2099-03-01T00:00:00Z", reviewRequired: true, timezone: "UTC" }, categories: [{ ...category, source: "game", rules: {} }] } }] };
+	const event = { ownerId: "host", publishedAt: new Date(), reviewReleased: false, resultsPublishedAt: null, configuration: { schedule: { submissionsStart: "2020-01-01T00:00:00Z", submissionsEnd: "2099-01-01T00:00:00Z", votingStart: "2099-02-01T00:00:00Z", votingEnd: "2099-03-01T00:00:00Z", reviewRequired: true, timezone: "UTC" }, categories: [{ ...category, source: "game", rules: {} }] } };
+	const query = { from: () => query, innerJoin: () => query, where: () => query, limit: () => query, for: async () => [event] };
+	(db.transaction as jest.Mock).mockImplementation(async (run) => run(db));
 	(db.select as jest.Mock).mockReturnValue(query);
 	jest.mocked(getTwitchGames).mockResolvedValue([{ id: "42", name: "Side Game", box_art_url: "https://static-cdn.jtvnw.net/ttv-boxart/42-{width}x{height}.jpg", igdb_id: "" }]);
 	expect(await searchEventSources("4455a7b3-993d-4cf6-b9d3-52a9c03a0ba2", category.id, "Side")).toMatchObject([{ kind: "game", title: "Side Game" }]);
 	expect(getTwitchGames).toHaveBeenCalledWith("Side", "host");
+});
+it("keeps trusted clip attribution and timing in pasted-link search suggestions", async () => {
+	jest.mocked(resolveValidatedPlaylistClips).mockResolvedValue([{ ...clip, creator_name: "ActualClipper" }]);
+	expect(await searchAwardClips("host", category, "https://clips.twitch.tv/ActualClip")).toMatchObject([{ clipperName: "ActualClipper", duration: 30, createdAt: "2026-01-01T00:00:00Z" }]);
 });

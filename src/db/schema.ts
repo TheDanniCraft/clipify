@@ -1173,6 +1173,7 @@ export const awardEventsTable = pgTable(
 		presenterDigest: varchar("presenter_digest", { length: 64 }).notNull(),
 		frozenAt: timestamp("frozen_at", { withTimezone: true }),
 		frozenResults: jsonb("frozen_results").$type<Record<string, unknown>>(),
+		tieWinners: jsonb("tie_winners").$type<Record<string, string>>().notNull().default({}),
 		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 	},

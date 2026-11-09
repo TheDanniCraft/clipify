@@ -28,6 +28,7 @@ Feature: Set up a community award show
     Then the personal proposals show "Lampe"
     When voting opens for the award show
     Then the nominated image opens as a full preview
+    And a failed image can be retried inside the same preview
 
   @BDD-US3-104 @US3 @FR-014 @FR-005 @SC-001
   Scenario: Team groups related proposals and releases a held review
@@ -53,3 +54,60 @@ Feature: Set up a community award show
     When the team adds an image candidate named "Lampe.png"
     And voting opens for the award show
     Then the team image is available as a public nominee
+
+  @BDD-US5-107 @US5 @US6 @FR-019 @FR-020 @FR-023 @SC-001
+  Scenario: Host presents nominees and publishes only after the show
+    Given a creator is ready to organize an award show
+    And a completed award show has a nominated text winner
+    When the host presents the nominees and reveals the winner
+    Then results remain hidden from the public
+    When the host explicitly publishes from the last presenter slide
+    Then the public archive shows the presented winner
+
+  @BDD-US5-108 @US5 @FR-022 @SC-001
+  Scenario: Presenter sees filtered live reactions with Twitch badges and emotes
+    Given a creator is ready to organize an award show
+    And a completed award show has a nominated text winner
+    And presenter live chat is enabled with a hidden bot and command prefix
+    When the host opens a nominee and receives signed Twitch reactions
+    Then the presenter chat shows badges and emotes while hiding commands and bots
+
+  @BDD-US5-109 @US5 @FR-025 @SC-001
+  Scenario: Award pages work in light and dark themes on desktop and phone
+    Given a creator is ready to organize an award show
+    And a completed award show has a nominated text winner
+    Then the award editor and presenter can be reviewed in both themes and viewport sizes
+
+  @BDD-US6-110 @US6 @FR-003 @FR-023 @SC-003
+  Scenario: Viewers discover only currently partnered public events
+    Given a creator is ready to organize an award show
+    And a completed award show has a nominated text winner
+    Then the public event list explains that no events are available
+    When the creator lists the event with an active partner grant
+    Then the public event card opens the award page
+    When the partner grant is revoked
+    Then the public event list explains that no events are available
+
+  @BDD-US1-111 @US1 @FR-001 @FR-006 @FR-011 @SC-001
+  Scenario: Creator publishes the full Babbler pilot category set
+    Given a creator is ready to organize an award show
+    And a published award show is accepting images into connected Google Drive
+    And the full Babbler pilot is prepared as an unpublished draft
+    When the creator reviews the pilot categories and publishes the announcement
+    Then the public event announces the coming nomination period
+
+  @BDD-US2-112 @US2 @FR-008 @FR-013 @EC-002 @SC-002
+  Scenario: Participant finds an eligible creator clip by its link and rejects a rule mismatch
+    Given a creator is ready to organize an award show
+    And an award category accepts creator clips with at least two views
+    When the participant pastes a clip link outside the rules
+    Then the autocomplete explains that the clip is not eligible
+    When the participant searches and selects the eligible clip link
+    Then the personal proposals show "Lampe raucht ab"
+
+  @BDD-US5-113 @US5 @FR-019 @SC-003
+  Scenario: Creator arranges a custom statistics slide in the show
+    Given a creator is ready to organize an award show
+    And a completed award show has a nominated text winner
+    When the creator adds and arranges a statistic with 321 watched hours
+    Then the presenter shows the saved statistics before the category

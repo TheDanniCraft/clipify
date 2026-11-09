@@ -12,7 +12,10 @@ export default function EventDeckEditor({ value, categories, onChange, readOnly 
 	}
 	function add(type: Slide["type"]) {
 		const slide: Slide = { id: crypto.randomUUID(), type, title: type === "welcome" ? "Welcome" : type === "closing" ? "Thank you!" : "", text: "", statistics: [], ...(type === "category" ? { categoryId: categories[0]?.id } : {}) };
-		onChange([...value, slide]);
+		const next = [...value];
+		const closing = next.findIndex((item) => item.type === "closing");
+		next.splice(type === "welcome" ? 0 : type === "closing" || closing < 0 ? next.length : closing, 0, slide);
+		onChange(next);
 		setSelected(slide.id);
 	}
 	return (
@@ -32,7 +35,7 @@ export default function EventDeckEditor({ value, categories, onChange, readOnly 
 					{value.map((slide, index) => (
 						<li key={slide.id} className='rounded-xl bg-default/40 p-3'>
 							<Button variant={selected === slide.id ? "secondary" : "tertiary"} className='w-full justify-start' onPress={() => setSelected(slide.id)}>
-								{index + 1}. {slide.title || slide.type}
+								{index + 1}. {slide.title || (slide.type === "category" ? categories.find((category) => category.id === slide.categoryId)?.title || "Category" : slide.type)}
 							</Button>
 							{!readOnly ? (
 								<div className='mt-2 flex gap-2'>
@@ -48,6 +51,19 @@ export default function EventDeckEditor({ value, categories, onChange, readOnly 
 										}}
 									>
 										↑
+									</Button>
+									<Button
+										size='sm'
+										variant='tertiary'
+										aria-label={`Move slide ${index + 1} down`}
+										isDisabled={index === value.length - 1}
+										onPress={() => {
+											const next = [...value];
+											[next[index + 1], next[index]] = [next[index], next[index + 1]];
+											onChange(next);
+										}}
+									>
+										↓
 									</Button>
 									<Button
 										size='sm'
@@ -88,7 +104,7 @@ export default function EventDeckEditor({ value, categories, onChange, readOnly 
 												{ id: "categories", label: "Categories" },
 												{ id: "nominees", label: "Nominees" },
 												{ id: "voters", label: "Voters" },
-												{ id: "clips", label: "Twitch clips" },
+												{ id: "clips", label: "Clipify clip library" },
 											]}
 											onChange={(source) => patch({ statistics: active.statistics.map((s, i) => (i === index ? { ...s, source: source as typeof stat.source } : s)) })}
 										/>
