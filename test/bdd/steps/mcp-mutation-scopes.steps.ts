@@ -16,7 +16,7 @@ When("the authenticated client attempts the affected operation without its scope
 });
 Then("the missing scope is rejected before inputs or resources are processed", async () => {
 	const current = isRead() ? readResult : result;
-	expect(current.outcomes).toHaveLength(isRead() ? 6 : 9);
+	expect(current.outcomes).toHaveLength(isRead() ? 7 : 14);
 	expect(current.outcomes.find((row: any) => row.name === selected.name)).toEqual({
 		...selected,
 		status: 403,

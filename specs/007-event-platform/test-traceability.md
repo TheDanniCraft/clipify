@@ -93,13 +93,13 @@ The production behaviors have recorded Red/Green cycles, but some UI glue and ac
 
 ## Quality Gate Results
 
-| Gate                                          | Current result                                                                                                               | Owner                                      |
-| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| Local feature whole files                     | Green checkpoint; final completed slice pending                                                                              | E1                                         |
-| Real browser and visual inspection            | All thirteen concrete journeys passed through the combined run and scoped retakes; build 15 combined run Green (13/13, 2.2m) | E2                                         |
-| Native OAuth/MCP and caller compatibility     | Green                                                                                                                        | E3–E6                                      |
-| Targeted mutation strength                    | Three killed mutants; no full mutation percentage                                                                            | E7                                         |
-| Lint / formatting                             | Repository lint Green (0 errors); final formatting check pending                                                             | Repository checks and commit hook          |
-| TypeScript / browser production build         | Build 15 Green, including TypeScript                                                                                         | Existing build command                     |
-| Complete coverage and required CI             | Pending; thresholds unchanged                                                                                                | GitHub required gate                       |
-| Real creator accounts / production deployment | Not executed; controlled provider evidence only                                                                              | Operator rehearsal and ordinary deployment |
+| Gate                                          | Current result                                                                                                                        | Owner                                      |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| Local feature whole files                     | 39-file checkpoint Green; final benefit/lifecycle whole-file checks Green                                                             | E1                                         |
+| Real browser and visual inspection            | All thirteen concrete journeys passed through the combined run and scoped retakes; build 15 combined run Green (13/13, 2.2m)          | E2                                         |
+| Native OAuth/MCP and caller compatibility     | Green                                                                                                                                 | E3–E6                                      |
+| Targeted mutation strength                    | Three killed mutants; no full mutation percentage                                                                                     | E7                                         |
+| Lint / formatting                             | Repository lint Green (0 errors, 12 existing warnings); all 97 final owned files formatted; commit hooks Green                        | Repository checks and commit hook          |
+| TypeScript / browser production build         | Build 15 Green, including TypeScript                                                                                                  | Existing build command                     |
+| Complete coverage and required CI             | Initial full run found catalogue/tour/login caller gaps; local corrections Green; replacement full gate pending; thresholds unchanged | GitHub required gate                       |
+| Real creator accounts / production deployment | Not executed; controlled provider evidence only                                                                                       | Operator rehearsal and ordinary deployment |

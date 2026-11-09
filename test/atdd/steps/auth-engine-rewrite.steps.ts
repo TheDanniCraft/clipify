@@ -217,17 +217,11 @@ Given("a creator is signed out of Clipify", async ({ context, authWorld }) => {
 When("the creator starts Twitch sign-in from the public login page", async ({ page, authWorld }) => {
 	await page.goto("/login");
 	await expect(page.getByRole("button", { name: "Login with Twitch" })).toBeVisible();
-	const result = await page.evaluate(async () => {
-		const response = await fetch("/api/auth/sign-in/social", {
-			method: "POST",
-			headers: { "content-type": "application/json" },
-			body: JSON.stringify({ provider: "twitch", callbackURL: "/dashboard", disableRedirect: true }),
-		});
-		return { status: response.status, body: (await response.json()) as { url?: string } };
-	});
-	expect(result.status).toBe(200);
-	expect(result.body.url).toBeTruthy();
-	authWorld.values.set("twitchAuthorizationUrl", result.body.url);
+	await page.route("https://id.twitch.tv/**", (route) => route.fulfill({ contentType: "text/html", body: "Twitch authorization" }));
+	const authorization = page.waitForRequest((request) => request.url().startsWith("https://id.twitch.tv/oauth2/authorize"));
+	await page.getByRole("button", { name: "Login with Twitch" }).click();
+	const request = await authorization;
+	authWorld.values.set("twitchAuthorizationUrl", request.url());
 });
 
 Then("Better Auth requests the complete Twitch permission set", async ({ authWorld }) => {
