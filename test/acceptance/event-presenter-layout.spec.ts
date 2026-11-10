@@ -16,6 +16,8 @@ for (const width of [390, 1440])
 			configuration.description = "Demo nominations and votes for reviewing the award show.";
 			const category = configuration.categories[0];
 			category.title = "Best clip";
+			const quote = { ...category, id: randomUUID(), title: "Best quote", source: "text" as const };
+			configuration.categories.push(quote);
 			configuration.slides = [
 				{ id: randomUUID(), type: "welcome", title: "", text: "", statistics: [] },
 				{
@@ -30,6 +32,7 @@ for (const width of [390, 1440])
 					],
 				},
 				{ id: randomUUID(), type: "category", categoryId: category.id, title: "", text: "", statistics: [] },
+				{ id: randomUUID(), type: "category", categoryId: quote.id, title: "", text: "", statistics: [] },
 			];
 			await tourWorld.fixture.pool.query("INSERT INTO award_events(id,owner_id,configuration,presenter_digest) VALUES($1,$2,$3,$4)", [id, creatorId, JSON.stringify(configuration), digest]);
 			const candidateIds = Array.from({ length: 5 }, () => randomUUID());
@@ -39,6 +42,9 @@ for (const width of [390, 1440])
 				await tourWorld.fixture.pool.query('INSERT INTO auth."user"(id,name,email) VALUES($1,$2,$3)', [viewer, "Demo voter", `${viewer}@example.invalid`]);
 				await tourWorld.fixture.pool.query("INSERT INTO award_votes(event_id,category_id,candidate_id,auth_user_id) VALUES($1,$2,$3,$4)", [id, category.id, candidateIds[0], viewer]);
 			}
+			const quoteTitle = "Everything is under control, I promise.";
+			const quoteDescription = "A fictional demonstration quote with enough context to remain readable when the nominee is opened on a phone.";
+			await tourWorld.fixture.pool.query("INSERT INTO award_candidates(id,event_id,category_id,canonical_key,content,nominated) VALUES($1,$2,$3,$4,$5,true)", [randomUUID(), id, quote.id, "text:quote", JSON.stringify({ kind: "text", reference: "", title: quoteTitle, description: quoteDescription })]);
 			const expiry = String(Date.now() + 3600000),
 				signature = createHmac("sha256", browserProviderEnvironment({ APP_ENV: "test", E2E_TEST_MODE: "true", MCP_BROWSER_PROVIDER_FIXTURE: "true", MCP_BROWSER_DATABASE_URL: tourWorld.fixture.url }).BETTER_AUTH_SECRET)
 					.update(`clipify-event-preview:${id}:${digest}:${expiry}`)
@@ -66,6 +72,7 @@ for (const width of [390, 1440])
 			await page.waitForTimeout(700);
 			const heading = page.getByRole("heading", { name: "Best clip", exact: true }),
 				before = await heading.boundingBox();
+			if (width === 1440) expect(await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight)).toBeLessThanOrEqual(1);
 			await page.screenshot({ path: info.outputPath(`nominees-${theme}-${width}.png`), fullPage: true });
 			await page.getByRole("button", { name: "View Nominee 1", exact: true }).click();
 			await expect(page.frameLocator('iframe[title="Nominee 1"]').getByText("Twitch clip provider loaded")).toBeVisible();
@@ -84,7 +91,16 @@ for (const width of [390, 1440])
 				otherBox = await others.getByRole("button").first().boundingBox();
 			expect(winningBox!.width).toBeGreaterThan(otherBox!.width);
 			expect(winningBox!.y + winningBox!.height).toBeLessThan(otherBox!.y);
+			if (width === 1440) expect(await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight)).toBeLessThanOrEqual(1);
 			await page.screenshot({ path: info.outputPath(`results-${theme}-${width}.png`), fullPage: true });
 			expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+			await page.keyboard.press("ArrowRight");
+			await expect(page.getByRole("heading", { name: "Best quote", exact: true })).toBeVisible();
+			await page.getByRole("button", { name: `View ${quoteTitle}`, exact: true }).click();
+			const textPanel = page.getByText(quoteDescription, { exact: true }).locator("..");
+			const textBox = await textPanel.boundingBox(),
+				frameBox = await textPanel.locator("..").boundingBox();
+			expect(textBox!.y + textBox!.height).toBeLessThanOrEqual(frameBox!.y + frameBox!.height + 1);
+			await page.screenshot({ path: info.outputPath(`quote-${theme}-${width}.png`), fullPage: true });
 		});
 	}

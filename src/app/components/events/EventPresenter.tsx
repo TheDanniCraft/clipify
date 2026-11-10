@@ -170,14 +170,14 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 		<Surface className={`relative flex flex-col bg-background text-foreground ${embedded ? "min-h-[420px]" : "min-h-dvh"}`} style={style}>
 			{preview && !embedded ? <p className='border-b border-separator bg-surface px-5 py-3 text-sm text-muted'>Read-only event preview. Includes unreviewed candidates. Nothing here changes votes or publishes results.</p> : null}
 			{show.brand?.fontSource === "google" ? <link rel='stylesheet' href={`https://fonts.googleapis.com/css2?family=${encodeURIComponent(show.brand.fontFamily)}:wght@400;700&display=swap`} /> : null}
-			<section className={`mx-auto flex w-full max-w-[1600px] flex-1 flex-col ${category ? "justify-start" : "justify-center"} ${embedded ? "px-5 py-8" : "px-6 py-10 sm:px-14 sm:py-12"}`} aria-label='Award presentation'>
+			<section className={`mx-auto flex w-full max-w-[1600px] flex-1 flex-col ${category ? "justify-start" : "justify-center"} ${embedded ? "px-5 py-8" : category || step?.type === "closing" ? "px-6 py-8 sm:px-14" : "px-6 py-10 sm:px-14 sm:py-12"}`} aria-label='Award presentation'>
 				{opened ? (
 					<div className='space-y-4'>
 						<Button variant='tertiary' onPress={close}>
 							Back to the show
 						</Button>
 						<div className={show.event.presentation?.showChat ? "grid gap-5 lg:grid-cols-[3fr_1fr]" : ""}>
-							<div className={`mx-auto flex aspect-video w-full items-center justify-center overflow-hidden rounded-2xl bg-surface ${embedded ? "" : "max-w-[calc(65dvh*16/9)]"}`}>
+							<div className={`mx-auto flex w-full items-center justify-center overflow-hidden rounded-2xl bg-surface ${["clip", "youtube", "video", "image", "game"].includes(opened.kind) ? "aspect-video" : "min-h-64"} ${embedded ? "" : "max-w-[calc(65dvh*16/9)]"}`}>
 								<EventMedia content={opened} />
 							</div>
 							{show.event.presentation?.showChat ? (
@@ -217,7 +217,7 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 						) : null}
 					</div>
 				) : step && "slide" in step ? (
-					<div key={step.slide.id} className='space-y-6 sm:space-y-8'>
+					<div key={step.slide.id} className={category ? "space-y-6" : "space-y-6 sm:space-y-8"}>
 						<motion.header initial={{ opacity: 0, y: 32 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className='text-center'>
 							<h1 className={`mx-auto max-w-5xl break-words text-balance font-bold ${embedded ? "text-3xl" : category ? "text-3xl sm:text-5xl" : "text-4xl sm:text-6xl"}`}>{step.slide.title || category?.title || show.event.title}</h1>
 							{step.type === "welcome" ? <p className='mx-auto mt-6 max-w-2xl whitespace-pre-wrap text-pretty text-lg text-muted sm:text-xl'>{step.slide.text || show.event.description}</p> : step.slide.text ? <p className='mx-auto mt-5 max-w-2xl whitespace-pre-wrap text-lg text-muted sm:text-xl'>{step.slide.text}</p> : null}
@@ -247,14 +247,14 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 											const candidate = category.candidates.find((c) => c.id === id),
 												result = category.results?.find((r) => r.id === id);
 											return candidate && result?.winner ? (
-												<div key={id} className='w-full max-w-md'>
+												<div key={id} className='w-full max-w-sm'>
 													<EventNomineeCard candidate={candidate} onOpen={() => open(candidate.content)} result={result} />
 												</div>
 											) : null;
 										})}
 									</div>
 								) : null}
-								<div aria-label={step.type === "results" ? "Nominee results" : "Category nominees"} className='mx-auto flex w-full max-w-6xl flex-wrap justify-center gap-5'>
+								<div aria-label={step.type === "results" ? "Nominee results" : "Category nominees"} className='mx-auto flex w-full max-w-5xl flex-wrap justify-center gap-5'>
 									{step.candidateIds.map((id) => {
 										const candidate = category.candidates.find((c) => c.id === id);
 										const result = step.type === "results" ? category.results?.find((r) => r.id === id) : undefined;
