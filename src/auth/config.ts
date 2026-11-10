@@ -5,6 +5,8 @@ import { nextCookies } from "better-auth/next-js";
 import { APIError, createAuthMiddleware, getSessionFromCtx, getOAuthState } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { emailOTP, magicLink, oAuthProxy, organization } from "better-auth/plugins";
+import { genericOAuth } from "better-auth/plugins/generic-oauth";
+import { eventGoogleProviders } from "./google-connections";
 import { and, eq, gt, inArray } from "drizzle-orm";
 import { creatorIdentityLinksTable, usersTable } from "@/db/schema";
 import { passkey } from "@better-auth/passkey";
@@ -65,21 +67,23 @@ export const auth = betterAuth({
 		},
 		...(process.env.YOUTUBE_CLIENT_ID?.trim() && process.env.YOUTUBE_CLIENT_SECRET?.trim()
 			? {
-					google: { clientId: process.env.YOUTUBE_CLIENT_ID.trim(), clientSecret: process.env.YOUTUBE_CLIENT_SECRET.trim(), accessType: "offline" as const, prompt: "consent" as const, disableSignUp: true },
+					google: { clientId: process.env.YOUTUBE_CLIENT_ID.trim(), clientSecret: process.env.YOUTUBE_CLIENT_SECRET.trim(), accessType: "offline" as const, prompt: "consent" as const, disableSignUp: true, includeGrantedScopes: false },
 				}
 			: {}),
 	},
 	user: {
 		validateUserInfo: async ({ user, source }) => {
-			if (source.action !== "sign-in" || source.method !== "oauth" || source.oauth?.providerId !== "twitch") return;
+			const providerId = source.oauth?.providerId;
+			if (source.action !== "sign-in" || source.method !== "oauth" || (providerId !== "twitch" && providerId !== "google")) return;
 			const state = await getOAuthState();
 			if (!state || state.link || typeof user.id !== "string" || typeof source.oauth?.profile?.sub !== "string") return;
 			const [account] = await db
 				.select()
 				.from(schema.account)
-				.where(and(eq(schema.account.userId, user.id), eq(schema.account.providerId, "twitch"), eq(schema.account.accountId, source.oauth.profile.sub)))
+				.where(and(eq(schema.account.userId, user.id), eq(schema.account.providerId, providerId), eq(schema.account.accountId, source.oauth.profile.sub)))
 				.limit(1);
-			if (!account || !["channel:read:stream_key", "channel:manage:broadcast"].every((scope) => (account.scope ?? "").split(/[ ,]+/).includes(scope))) return;
+			const requiredScopes = providerId === "google" ? ["https://www.googleapis.com/auth/youtube.force-ssl"] : ["channel:read:stream_key", "channel:manage:broadcast"];
+			if (!account || !requiredScopes.every((scope) => (account.scope ?? "").split(/[ ,]+/).includes(scope))) return;
 			// This request-local state is already consumed and is never sent back to the provider.
 			state.serverContext = { ...state.serverContext, runnerAccountTokens: { accessToken: account.accessToken, refreshToken: account.refreshToken, accessTokenExpiresAt: account.accessTokenExpiresAt, refreshTokenExpiresAt: account.refreshTokenExpiresAt } };
 		},
@@ -129,7 +133,7 @@ export const auth = betterAuth({
 			},
 			update: {
 				before: async (account, context) => {
-					if (account.providerId !== "twitch" || !context?.path?.startsWith("/callback/")) return;
+					if ((account.providerId !== "twitch" && account.providerId !== "google") || !context?.path?.startsWith("/callback/")) return;
 					const state = await getOAuthState();
 					const preserved = state?.serverContext?.runnerAccountTokens;
 					if (!preserved || state?.link) return;
@@ -253,6 +257,7 @@ export const auth = betterAuth({
 		}),
 	},
 	plugins: [
+		genericOAuth({ config: eventGoogleProviders() }),
 		...createMcpPlugins({ origin: baseURL, options: providerGrantOptions }),
 		magicLink({
 			expiresIn: 7 * 24 * 60 * 60,
