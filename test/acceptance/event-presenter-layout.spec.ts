@@ -79,6 +79,28 @@ for (const width of [390, 1440])
 			await expect(page.locator('iframe[title="Nominee 1"]')).toHaveAttribute("referrerpolicy", "strict-origin-when-cross-origin");
 			await page.keyboard.press("Escape");
 			await page.keyboard.press("ArrowRight");
+			const distribution = page.getByLabel("Vote distribution");
+			await expect(distribution.getByRole("progressbar")).toHaveCount(5);
+			await expect(distribution.getByRole("button")).toHaveCount(0);
+			const entries = distribution.getByRole("heading");
+			const [first, second] = await Promise.all([entries.nth(0).boundingBox(), entries.nth(1).boundingBox()]);
+			expect(first!.y).toBe(second!.y);
+			expect(first!.width).toBe(second!.width);
+			await expect(distribution.getByText(/Nominee/)).toHaveCount(0);
+			await expect(distribution.getByText("100% (5 votes)", { exact: true })).toBeVisible();
+			await expect(distribution.getByText("0% (0 votes)", { exact: true })).toHaveCount(4);
+			await expect(distribution.locator('[data-slot="progress-bar-fill"]').filter({ visible: true })).toHaveCount(1);
+			await expect(page.getByLabel("Award winners")).toHaveCount(0);
+			const filledTrack = distribution.getByRole("progressbar").filter({ has: page.locator('[data-slot="progress-bar-fill"]').filter({ visible: true }) });
+			await expect
+				.poll(async () => {
+					const fill = await filledTrack.locator('[data-slot="progress-bar-fill"]').boundingBox();
+					const track = await filledTrack.locator('[data-slot="progress-bar-track"]').boundingBox();
+					return Math.abs(fill!.width - track!.width);
+				})
+				.toBeLessThan(1);
+			await page.screenshot({ path: info.outputPath(`distribution-${theme}-${width}.png`), fullPage: true });
+			await page.keyboard.press("ArrowRight");
 			const winner = page.getByLabel("Award winners"),
 				others = page.getByLabel("Nominee results");
 			await expect(winner.getByText("Winner", { exact: true })).toBeVisible();
@@ -103,5 +125,11 @@ for (const width of [390, 1440])
 				frameBox = await textPanel.locator("..").boundingBox();
 			expect(textBox!.y + textBox!.height).toBeLessThanOrEqual(frameBox!.y + frameBox!.height + 1);
 			await page.screenshot({ path: info.outputPath(`quote-${theme}-${width}.png`), fullPage: true });
+			await page.keyboard.press("Escape");
+			await page.keyboard.press("ArrowRight");
+			await expect(distribution.getByText("0% (0 votes)", { exact: true })).toBeVisible();
+			await page.keyboard.press("ArrowRight");
+			await expect(others.getByRole("button", { name: `View ${quoteTitle}`, exact: true })).toBeVisible();
+			await expect(winner).toHaveCount(0);
 		});
 	}

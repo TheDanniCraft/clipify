@@ -5,6 +5,12 @@ it("presents every nominee in bounded pages before revealing that category's res
 	expect(steps[0].type).toBe("welcome");
 	expect(steps.flatMap((s) => (s.type === "nominees" ? [s.candidateIds.length] : []))).toEqual([6, 6, 1]);
 	expect(steps.flatMap((s) => (s.type === "results" ? [s.candidateIds.length] : []))).toEqual([6, 6, 1]);
+	const reveals = steps.flatMap((s) => (s.type === "distribution" || s.type === "results" ? [{ type: s.type, candidateIds: s.candidateIds }] : []));
+	expect(reveals.map((s) => s.type)).toEqual(["distribution", "results", "distribution", "results", "distribution", "results"]);
+	for (let i = 0; i < reveals.length; i += 2) {
+		expect(reveals[i]).toMatchObject({ candidateIds: reveals[i + 1].candidateIds });
+	}
+	expect(reveals.flatMap((s) => (s.type === "distribution" ? s.candidateIds : []))).not.toEqual(category.candidates.map((candidate) => candidate.id));
 	const lastNominee = steps.findLastIndex((s) => s.type === "nominees"),
 		firstResult = steps.findIndex((s) => s.type === "results");
 	expect(firstResult).toBeGreaterThan(lastNominee);

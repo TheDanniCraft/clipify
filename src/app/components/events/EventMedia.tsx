@@ -1,8 +1,8 @@
 "use client";
 import Image from "next/image";
 import { useState } from "react";
-import { motion } from "motion/react";
-import { Button, Checkbox, Link } from "@heroui/react";
+import { motion, useReducedMotion } from "motion/react";
+import { Button, Checkbox, Link, ProgressBar } from "@heroui/react";
 import type { EventCandidateContent } from "@lib/eventCandidates";
 export function EventMedia({ content }: { content: EventCandidateContent }) {
 	const [failed, setFailed] = useState<string | null>(null),
@@ -52,15 +52,21 @@ export function EventMedia({ content }: { content: EventCandidateContent }) {
 		</div>
 	);
 }
-export function EventNomineeCard({ candidate, selected = false, disabled = false, onSelect, onOpen, result }: { candidate: { id: string; content: EventCandidateContent }; selected?: boolean; disabled?: boolean; onSelect?: (selected: boolean) => void; onOpen: () => void; result?: { percentage?: number; winner: boolean; votes?: number } }) {
+export function EventNomineeCard({ candidate, selected = false, disabled = false, onSelect, onOpen, result, concealedLabel }: { candidate: { id: string; content: EventCandidateContent }; selected?: boolean; disabled?: boolean; onSelect?: (selected: boolean) => void; onOpen: () => void; concealedLabel?: string; result?: { percentage?: number; winner: boolean; votes?: number } }) {
+	const reduceMotion = useReducedMotion();
+	const label = concealedLabel ?? candidate.content.title;
+	const winner = !concealedLabel && result?.winner;
 	return (
-		<div className={`overflow-hidden rounded-2xl border ${result?.winner ? "border-accent bg-surface ring-2 ring-accent" : selected ? "border-accent bg-accent/5" : "border-separator bg-surface"}`}>
+		<div className={`overflow-hidden rounded-2xl border ${winner ? "border-accent bg-surface ring-2 ring-accent" : selected ? "border-accent bg-accent/5" : "border-separator bg-surface"}`}>
 			<div className='relative aspect-video'>
-				<Button data-award-candidate={candidate.id} aria-label={`View ${candidate.content.title}`} variant='tertiary' className='relative h-full w-full overflow-hidden rounded-none p-0' onPress={onOpen}>
-					{candidate.content.thumbnailUrl || (candidate.content.kind === "image" && candidate.content.mediaUrl) ? <Image src={(candidate.content.thumbnailUrl || candidate.content.mediaUrl)!} alt='' unoptimized fill className='object-cover' /> : <span className='line-clamp-3 max-w-full whitespace-normal break-words px-5 text-center text-lg font-medium'>{candidate.content.title}</span>}
-				</Button>
-				{result?.percentage !== undefined ? <motion.div aria-hidden='true' className='pointer-events-none absolute inset-x-0 bottom-0 bg-accent/45' initial={{ height: 0 }} animate={{ height: `${Math.min(100, Math.max(0, result.percentage))}%` }} transition={{ duration: 1.2, ease: "easeOut" }} /> : null}
-				{result?.winner ? <span className='pointer-events-none absolute right-3 top-3 rounded-full bg-accent px-3 py-1 text-sm font-semibold text-accent-foreground'>Winner</span> : null}
+				{concealedLabel ? (
+					<div aria-hidden='true' className='h-full bg-default' />
+				) : (
+					<Button data-award-candidate={candidate.id} aria-label={`View ${candidate.content.title}`} variant='tertiary' className='relative h-full w-full overflow-hidden rounded-none p-0' onPress={onOpen}>
+						{candidate.content.thumbnailUrl || (candidate.content.kind === "image" && candidate.content.mediaUrl) ? <Image src={(candidate.content.thumbnailUrl || candidate.content.mediaUrl)!} alt='' unoptimized fill className='object-cover' /> : <span className='line-clamp-3 max-w-full whitespace-normal break-words px-5 text-center text-lg font-medium'>{candidate.content.title}</span>}
+					</Button>
+				)}
+				{winner ? <span className='pointer-events-none absolute right-3 top-3 rounded-full bg-accent px-3 py-1 text-sm font-semibold text-accent-foreground'>Winner</span> : null}
 			</div>
 			<div className='space-y-2 p-4'>
 				{onSelect ? (
@@ -74,14 +80,21 @@ export function EventNomineeCard({ candidate, selected = false, disabled = false
 					</Checkbox>
 				) : (
 					<div className='space-y-2'>
-						<h3 className='line-clamp-2 break-words font-medium'>{candidate.content.title}</h3>
+						<h3 className={`line-clamp-2 break-words font-medium ${result?.percentage !== undefined ? "min-h-12" : ""}`}>{label}</h3>
 						{selected ? <p className='text-sm font-medium text-accent'>Your selection</p> : null}
 					</div>
 				)}
 				{result?.percentage !== undefined ? (
-					<p className='text-sm text-muted'>
-						{new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(result.percentage)}%{result.votes !== undefined ? ` (${new Intl.NumberFormat().format(result.votes)} votes)` : ""}
-					</p>
+					<div>
+						<ProgressBar key={concealedLabel ? "concealed" : "revealed"} size='sm' aria-label={`Vote share for ${label}`} value={Math.max(0, Math.min(100, result.percentage))}>
+							<ProgressBar.Track>
+								<ProgressBar.Fill className='origin-left' render={({ className, style, ref }) => <motion.div className={className} style={style} ref={ref} data-slot='progress-bar-fill' initial={concealedLabel && !reduceMotion ? { scaleX: 0 } : false} animate={{ scaleX: 1 }} transition={{ duration: 1.2, ease: "easeOut" }} />} />
+							</ProgressBar.Track>
+						</ProgressBar>
+						<p className='mt-1 text-sm text-muted'>
+							{new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(result.percentage)}%{result.votes !== undefined ? ` (${new Intl.NumberFormat().format(result.votes)} votes)` : ""}
+						</p>
+					</div>
 				) : null}
 			</div>
 		</div>

@@ -1,6 +1,6 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { motion } from "motion/react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { LayoutGroup, motion, useReducedMotion } from "motion/react";
 import { Button, Link, Spinner } from "@heroui/react";
 import { getEventPresenterAction, getEventPreviewAction, publishEventPresenterResultsAction } from "@actions/events";
 import { buildAwardPresenterSteps } from "@lib/eventPresenter";
@@ -60,6 +60,17 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 	}, [eventId, preview, initial]);
 	const steps = show ? buildAwardPresenterSteps(show.event) : [],
 		step = steps[index];
+	const layoutId = useId();
+	const reduceMotion = useReducedMotion();
+	const [promotedStep, setPromotedStep] = useState<string | null>(null);
+	const revealId = step?.type === "results" && (show?.event.phase === "closed" || show?.event.phase === "results") ? step.id : null;
+	useEffect(() => {
+		if (!revealId || reduceMotion) return;
+		const timer = setTimeout(() => setPromotedStep(revealId), 600);
+		return () => clearTimeout(timer);
+	}, [revealId, reduceMotion]);
+	const promote = !!revealId && (reduceMotion || promotedStep === revealId);
+
 	const stepCount = steps.length,
 		loaded = !!show;
 	const close = useCallback(() => {
@@ -74,9 +85,11 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 				close();
 				return;
 			}
+			if ((direction < 0 && index === 0) || (direction > 0 && index === stepCount - 1)) return;
+			setPromotedStep(null);
 			setIndex((current) => Math.max(0, Math.min(stepCount - 1, current + direction)));
 		},
-		[opened, close, stepCount],
+		[opened, close, stepCount, index],
 	);
 	useEffect(() => {
 		function key(event: KeyboardEvent) {
@@ -218,7 +231,7 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 						) : null}
 					</div>
 				) : step && "slide" in step ? (
-					<div key={step.slide.id} className={category ? "space-y-6" : "space-y-6 sm:space-y-8"}>
+					<div key={step.slide.id} className={category ? "space-y-4" : "space-y-6 sm:space-y-8"}>
 						<motion.header initial={{ opacity: 0, y: 32 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className='text-center'>
 							<h1 className={`mx-auto max-w-5xl break-words text-balance font-bold ${embedded ? "text-3xl" : category ? "text-3xl sm:text-5xl" : "text-4xl sm:text-6xl"}`}>{step.slide.title || category?.title || show.event.title}</h1>
 							{step.type === "welcome" ? <p className='mx-auto mt-6 max-w-2xl whitespace-pre-wrap text-pretty text-lg text-muted sm:text-xl'>{step.slide.text || show.event.description}</p> : step.slide.text ? <p className='mx-auto mt-5 max-w-2xl whitespace-pre-wrap text-lg text-muted sm:text-xl'>{step.slide.text}</p> : null}
@@ -236,37 +249,39 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 								})}
 							</div>
 						) : null}
-						{(step.type === "nominees" || step.type === "results") && category ? (
+						{(step.type === "nominees" || step.type === "distribution" || step.type === "results") && category ? (
 							<>
 								<p className='text-center text-muted'>
-									{step.type === "results" ? (resultsReady ? "The results" : "Results will be available after voting closes") : "The nominees"}
+									{step.type === "nominees" ? "The nominees" : !resultsReady ? "Results will be available after voting closes" : step.type === "distribution" ? "How the votes landed" : "The results"}
 									{step.pages > 1 ? ` (${step.page + 1} / ${step.pages})` : ""}
 								</p>
-								{step.type === "results" && category.results?.some((result) => result.winner && step.candidateIds.includes(result.id)) ? (
-									<div aria-label='Award winners' className='mx-auto flex max-w-4xl flex-wrap justify-center gap-5'>
-										{step.candidateIds.map((id) => {
-											const candidate = category.candidates.find((c) => c.id === id),
-												result = category.results?.find((r) => r.id === id);
-											return candidate && result?.winner ? (
-												<div key={id} className='w-full max-w-sm'>
-													<EventNomineeCard candidate={candidate} onOpen={() => open(candidate.content)} result={result} />
-												</div>
-											) : null;
+								<LayoutGroup id={layoutId}>
+									{promote && category.results?.some((result) => result.winner && step.candidateIds.includes(result.id)) ? (
+										<div aria-label='Award winners' className='mx-auto flex max-w-4xl flex-wrap justify-center gap-5'>
+											{step.candidateIds.map((id) => {
+												const candidate = category.candidates.find((c) => c.id === id),
+													result = category.results?.find((r) => r.id === id);
+												return candidate && result?.winner ? (
+													<motion.div key={id} layoutId={reduceMotion ? undefined : id} className='w-full max-w-sm'>
+														<EventNomineeCard candidate={candidate} onOpen={() => open(candidate.content)} result={result} />
+													</motion.div>
+												) : null;
+											})}
+										</div>
+									) : null}
+									<div aria-label={step.type === "results" ? "Nominee results" : step.type === "distribution" ? "Vote distribution" : "Category nominees"} className='mx-auto flex w-full max-w-5xl flex-wrap justify-center gap-5'>
+										{step.candidateIds.map((id, i) => {
+											const candidate = category.candidates.find((c) => c.id === id);
+											const result = step.type !== "nominees" && resultsReady ? category.results?.find((r) => r.id === id) : undefined;
+											if (!candidate || (promote && result?.winner)) return null;
+											return (
+												<motion.div key={id} layoutId={revealId && !reduceMotion ? id : undefined} className={promote && category.results?.some((r) => r.winner && step.candidateIds.includes(r.id)) ? "w-[calc((100%-1.25rem)/2)] lg:w-[calc((100%-3.75rem)/4)]" : "w-[calc((100%-1.25rem)/2)] only:w-full only:max-w-sm lg:w-[calc((100%-2.5rem)/3)]"}>
+													<EventNomineeCard candidate={candidate} onOpen={() => open(candidate.content)} result={result ? { ...result, winner: false } : undefined} concealedLabel={step.type === "distribution" ? `Entry ${step.page * 6 + i + 1}` : undefined} />
+												</motion.div>
+											);
 										})}
 									</div>
-								) : null}
-								<div aria-label={step.type === "results" ? "Nominee results" : "Category nominees"} className='mx-auto flex w-full max-w-5xl flex-wrap justify-center gap-5'>
-									{step.candidateIds.map((id) => {
-										const candidate = category.candidates.find((c) => c.id === id);
-										const result = step.type === "results" ? category.results?.find((r) => r.id === id) : undefined;
-										if (!candidate || result?.winner) return null;
-										return (
-											<div key={id} className={step.type === "results" && category.results?.some((r) => r.winner) ? "w-[calc((100%-1.25rem)/2)] lg:w-[calc((100%-3.75rem)/4)]" : "w-full sm:w-[calc((100%-1.25rem)/2)] lg:w-[calc((100%-2.5rem)/3)]"}>
-												<EventNomineeCard candidate={candidate} onOpen={() => open(candidate.content)} result={result} />
-											</div>
-										);
-									})}
-								</div>
+								</LayoutGroup>
 								{!step.candidateIds.length ? <p className='text-center text-muted'>No nominees in this category.</p> : null}
 							</>
 						) : null}

@@ -270,6 +270,9 @@ When("the host presents the nominees and reveals the winner", async ({ page }) =
 	await page.keyboard.press("Escape");
 	await expect(page.getByRole("button", { name: "Back to the show", exact: true })).toHaveCount(0);
 	await page.keyboard.press("ArrowRight");
+	await expect(page.getByLabel("Vote distribution").getByText("100% (1 votes)", { exact: true })).toBeVisible();
+	await expect(page.getByRole("button", { name: "View Lampe raucht ab", exact: true })).toHaveCount(0);
+	await page.keyboard.press("ArrowRight");
 	await expect(page.getByText("Winner", { exact: true })).toBeVisible();
 	await expect(page.getByText("100% (1 votes)", { exact: true })).toBeVisible();
 });
