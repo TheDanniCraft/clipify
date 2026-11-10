@@ -97,6 +97,7 @@ for (const width of [390, 1440])
 			await page.keyboard.press("ArrowRight");
 			await expect(page.getByRole("heading", { name: "Best quote", exact: true })).toBeVisible();
 			await page.getByRole("button", { name: `View ${quoteTitle}`, exact: true }).click();
+			await expect(page.getByRole("heading", { name: quoteTitle, exact: true })).toHaveCount(1);
 			const textPanel = page.getByText(quoteDescription, { exact: true }).locator("..");
 			const textBox = await textPanel.boundingBox(),
 				frameBox = await textPanel.locator("..").boundingBox();

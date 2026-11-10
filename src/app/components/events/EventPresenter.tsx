@@ -155,6 +155,7 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 		);
 	const Surface = embedded ? "div" : "main";
 	const category = step && "categoryId" in step ? show.event.categories.find((c) => c.id === step.categoryId) : undefined;
+	const openedHasCaption = opened && ["clip", "youtube", "video", "image", "game"].includes(opened.kind);
 	const style = show.brand ? ({ "--color-accent": show.brand.themeAccentColor, fontFamily: `${show.brand.fontFamily}, sans-serif` } as React.CSSProperties) : undefined;
 	const resultsReady = show.event.phase === "closed" || show.event.phase === "results";
 	const winners = show.event.categories.flatMap(
@@ -177,7 +178,7 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 							Back to the show
 						</Button>
 						<div className={show.event.presentation?.showChat ? "grid gap-5 lg:grid-cols-[3fr_1fr]" : ""}>
-							<div className={`mx-auto flex w-full items-center justify-center overflow-hidden rounded-2xl bg-surface ${["clip", "youtube", "video", "image", "game"].includes(opened.kind) ? "aspect-video" : "min-h-64"} ${embedded ? "" : "max-w-[calc(65dvh*16/9)]"}`}>
+							<div className={`mx-auto flex w-full items-center justify-center overflow-hidden rounded-2xl bg-surface ${openedHasCaption ? "aspect-video" : "min-h-64"} ${embedded ? "" : "max-w-[calc(65dvh*16/9)]"}`}>
 								<EventMedia content={opened} />
 							</div>
 							{show.event.presentation?.showChat ? (
@@ -190,7 +191,7 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 								)
 							) : null}
 						</div>
-						<h1 className='text-center text-2xl font-semibold'>{opened.title}</h1>
+						{openedHasCaption ? <h1 className='text-center text-2xl font-semibold'>{opened.title}</h1> : null}
 					</div>
 				) : step?.type === "publish" && preview ? (
 					<div className='space-y-4 text-center'>
