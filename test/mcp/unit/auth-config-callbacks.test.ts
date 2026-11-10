@@ -22,6 +22,7 @@ jest.mock("better-auth/api", () => ({
 	},
 }));
 jest.mock("better-auth/next-js", () => ({ nextCookies: () => ({ id: "next-cookies" }) }));
+jest.mock("better-auth/plugins/generic-oauth", () => ({ genericOAuth: (options: unknown) => ({ id: "generic-oauth", options }) }));
 jest.mock("@/server/runner/provider-connections", () => ({ recordStreamingAccount: jest.fn(), disconnectStreamingConnectionsForAuthAccount: jest.fn() }));
 jest.mock("better-auth/adapters/drizzle", () => ({ drizzleAdapter: jest.fn(() => ({})) }));
 jest.mock("better-auth/plugins", () => ({ magicLink: (options: unknown) => ({ id: "magic-link", options }), emailOTP: (options: unknown) => ({ id: "email-otp", options }), oAuthProxy: (options: unknown) => ({ id: "oauth-proxy", options }), organization: (options: unknown) => ({ id: "organization", options }) }));
@@ -149,7 +150,7 @@ test.each([
 			const proxy = configured.plugins.find((value: any) => value.id === "oauth-proxy").options;
 			expect(proxy).toMatchObject({ currentURL: "https://clipify.us", productionURL: "https://clipify.us", secret: process.env.OAUTH_PROXY_SECRET });
 			if (enabled) {
-				expect(configured.socialProviders.google).toEqual({ clientId: "google-client", clientSecret: "google-secret", accessType: "offline", prompt: "consent", disableSignUp: true });
+				expect(configured.socialProviders.google).toEqual({ clientId: "google-client", clientSecret: "google-secret", accessType: "offline", prompt: "consent", disableSignUp: true, includeGrantedScopes: false });
 			} else {
 				expect(configured.socialProviders.google).toBeUndefined();
 			}
@@ -341,8 +342,8 @@ jest.mock("@/server/events/connections", () => ({ recordEventGoogleAccount: jest
 import { recordEventGoogleAccount } from "@/server/events/connections";
 test("event Google callbacks record the exact selected linked account", async () => {
 	jest.mocked(getOAuthState).mockResolvedValue({ link: { userId: "identity" }, eventConnectionIntent: "a".repeat(43) } as never);
-	const account = { id: "selected-google", userId: "identity", providerId: "google", scope: "https://www.googleapis.com/auth/drive.file" };
-	await options.databaseHooks.account.update.after(account, { path: "/callback/google" });
+	const account = { id: "selected-google", userId: "identity", providerId: "google-drive", scope: "https://www.googleapis.com/auth/drive.file" };
+	await options.databaseHooks.account.update.after(account, { path: "/callback/google-drive/oauth-proxy" });
 	expect(recordEventGoogleAccount).toHaveBeenCalledWith(account, "a".repeat(43));
 	expect(completeTwitchSignIn).not.toHaveBeenCalled();
 });

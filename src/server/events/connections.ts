@@ -13,10 +13,11 @@ import { withSerializedProviderCredential } from "@/server/provider-credentials"
 import { encryptString, decryptString } from "@lib/encryption";
 import { s3CredentialsSchema, s3Request } from "./storage-http";
 import { fetchStreamingChannel, requestProviderJson } from "@/server/runner/provider-api";
+import { eventGoogleProviderIds } from "@/auth/google-connections";
 export type EventGoogleProvider = "drive" | "youtube";
 export const eventGoogleScope = (provider: EventGoogleProvider) => (provider === "drive" ? "https://www.googleapis.com/auth/drive.file" : "https://www.googleapis.com/auth/youtube.readonly");
 const digest = (value: string) => createHash("sha256").update(value).digest("hex");
-export async function beginEventGoogleConnection(principal: TrustedCreatorPrincipal, ownerId: string, provider: EventGoogleProvider, returnPath: string, client: DatabaseClient = db, requestHeaders?: Headers) {
+export async function beginEventGoogleConnection(principal: TrustedCreatorPrincipal, ownerId: string, provider: EventGoogleProvider, returnPath: string, client: DatabaseClient = db) {
 	if (!["drive", "youtube"].includes(provider) || !safeReturnPath(returnPath)) return eventError(new EventError("INVALID_INPUT"));
 	if (principal.kind !== "session" || !principal.sessionId) return eventError(new EventError("AUTHENTICATION_REQUIRED"));
 	if (!process.env.YOUTUBE_CLIENT_ID || !process.env.YOUTUBE_CLIENT_SECRET) return eventError(new EventError("PROVIDER_UNAVAILABLE"));
@@ -36,17 +37,14 @@ export async function beginEventGoogleConnection(principal: TrustedCreatorPrinci
 		});
 		const callback = new URL(`/dashboard/events/connect/${provider}/complete`, resolveBaseUrl().origin);
 		callback.searchParams.set("intent", intent);
-		const { auth } = await import("@/auth/config");
-		const headers = requestHeaders ?? (await (await import("next/headers")).headers());
-		const result = await auth.api.linkSocialAccount({ headers, body: { provider: "google", callbackURL: callback.toString(), errorCallbackURL: callback.toString(), disableRedirect: true, scopes: [eventGoogleScope(provider)], additionalData: { eventConnectionIntent: intent }, additionalParams: { access_type: "offline", prompt: "consent", include_granted_scopes: "true" } } });
-		return { ok: true as const, url: result.url };
+		return { ok: true as const, link: { provider: eventGoogleProviderIds[provider], callbackURL: callback.toString(), errorCallbackURL: callback.toString(), scopes: [eventGoogleScope(provider)], additionalData: { eventConnectionIntent: intent }, additionalParams: { access_type: "offline", prompt: "consent", include_granted_scopes: "false" } } };
 	} catch (error) {
 		await client.delete(intents).where(eq(intents.digest, digest(intent)));
 		return eventError(error);
 	}
 }
 export async function recordEventGoogleAccount(account: { id: string; userId: string; providerId: string; scope?: string | null }, intent: string, client: DatabaseClient = db) {
-	if (account.providerId !== "google" || !/^[A-Za-z0-9_-]{43}$/.test(intent)) return null;
+	if (!Object.values(eventGoogleProviderIds).some((provider) => provider === account.providerId) || !/^[A-Za-z0-9_-]{43}$/.test(intent)) return null;
 	const [claim] = await client
 		.select({ intent: intents, session: sessions })
 		.from(intents)
@@ -54,10 +52,11 @@ export async function recordEventGoogleAccount(account: { id: string; userId: st
 		.where(and(eq(intents.digest, digest(intent)), eq(intents.authUserId, account.userId), gt(intents.expiresAt, new Date()), gt(sessions.expiresAt, new Date())))
 		.limit(1);
 	if (!claim) return null;
+	if (account.providerId !== eventGoogleProviderIds[claim.intent.provider]) throw new EventError("PROVIDER_UNAVAILABLE");
 	const [linked] = await client
 		.select()
 		.from(accounts)
-		.where(and(eq(accounts.id, account.id), eq(accounts.userId, account.userId), eq(accounts.providerId, "google")))
+		.where(and(eq(accounts.id, account.id), eq(accounts.userId, account.userId), eq(accounts.providerId, eventGoogleProviderIds[claim.intent.provider])))
 		.limit(1);
 	if (!linked || !(linked.scope ?? "").split(/[ ,]+/).includes(eventGoogleScope(claim.intent.provider))) throw new EventError("PROVIDER_UNAVAILABLE");
 	const { auth } = await import("@/auth/config");
@@ -109,9 +108,13 @@ export async function listEventConnections(principal: TrustedCreatorPrincipal, o
 	try {
 		return await client.transaction(async (tx) => {
 			const authority = await authorizeLockedMutation(principal, ownerId, "event:read", tx);
-			const rows = await tx.select({ id: connections.id, provider: connections.provider, identityName: connections.identityName, connected: connections.connected }).from(connections).where(eq(connections.ownerId, ownerId));
+			const rows = await tx
+				.select({ id: connections.id, provider: connections.provider, identityName: connections.identityName, connected: connections.connected, authProvider: accounts.providerId })
+				.from(connections)
+				.leftJoin(accounts, and(eq(accounts.id, connections.authAccountId), eq(accounts.userId, connections.authUserId)))
+				.where(eq(connections.ownerId, ownerId));
 			authority.assertAuthorityCurrent();
-			return { ok: true as const, connections: rows };
+			return { ok: true as const, connections: rows.map(({ authProvider, ...connection }) => ({ ...connection, connected: connection.connected && (connection.provider === "s3" || authProvider === eventGoogleProviderIds[connection.provider]) })) };
 		});
 	} catch (error) {
 		return eventError(error);
@@ -127,7 +130,7 @@ export async function eventGoogleToken(ownerId: string, provider: EventGooglePro
 	const [account] = await client
 		.select()
 		.from(accounts)
-		.where(and(eq(accounts.id, connection.authAccountId), eq(accounts.userId, connection.authUserId), eq(accounts.providerId, "google")))
+		.where(and(eq(accounts.id, connection.authAccountId), eq(accounts.userId, connection.authUserId), eq(accounts.providerId, eventGoogleProviderIds[provider])))
 		.limit(1);
 	if (!account || !(account.scope ?? "").split(/[ ,]+/).includes(eventGoogleScope(provider))) throw new EventError("PROVIDER_UNAVAILABLE");
 	const { auth } = await import("@/auth/config");

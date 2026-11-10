@@ -32,18 +32,29 @@ it("binds contextual Google scopes and selected Brand account to the requesting 
 	const begun = await beginEventGoogleConnection(principal, "host", "youtube", "/dashboard/events", fixture.db);
 	expect(begun).toMatchObject({ ok: true });
 	if (!begun.ok) throw new Error("begin failed");
-	const intent = new URL(begun.url).searchParams.get("intent")!;
-	await fixture.db.insert(account).values({ id: "selected-google", userId: "actor", providerId: "google", accountId: "brand-subject", scope: "https://www.googleapis.com/auth/youtube.readonly", accessToken: "fixture-token", refreshToken: "fixture-refresh", updatedAt: new Date() });
-	expect(await recordEventGoogleAccount({ id: "selected-google", userId: "other", providerId: "google", scope: "https://www.googleapis.com/auth/youtube.readonly" }, intent, fixture.db)).toBeNull();
-	expect(await recordEventGoogleAccount({ id: "selected-google", userId: "actor", providerId: "google", scope: "https://www.googleapis.com/auth/youtube.readonly" }, intent, fixture.db)).toMatchObject({ provider: "youtube", identityName: "Selected Brand" });
+	const intent = new URL(begun.link.callbackURL).searchParams.get("intent")!;
+	await fixture.db.insert(account).values({ id: "selected-google", userId: "actor", providerId: "google-events-youtube", accountId: "brand-subject", scope: "https://www.googleapis.com/auth/youtube.readonly", accessToken: "fixture-token", refreshToken: "fixture-refresh", updatedAt: new Date() });
+	expect(await recordEventGoogleAccount({ id: "selected-google", userId: "other", providerId: "google-events-youtube", scope: "https://www.googleapis.com/auth/youtube.readonly" }, intent, fixture.db)).toBeNull();
+	expect(await recordEventGoogleAccount({ id: "selected-google", userId: "actor", providerId: "google-events-youtube", scope: "https://www.googleapis.com/auth/youtube.readonly" }, intent, fixture.db)).toMatchObject({ provider: "youtube", identityName: "Selected Brand" });
 	const listed = await listEventConnections(principal, "host", fixture.db);
 	expect(listed).toMatchObject({ ok: true, connections: [{ provider: "youtube", identityName: "Selected Brand" }] });
 	expect(JSON.stringify(listed)).not.toContain("fixture-token");
 });
 it("does not request Drive permissions while linking YouTube", async () => {
+	const begun = await beginEventGoogleConnection(principal, "host", "youtube", "/dashboard/events", fixture.db);
+	expect(begun).toMatchObject({ ok: true, link: { provider: "google-events-youtube", scopes: ["https://www.googleapis.com/auth/youtube.readonly"] } });
 	const { auth } = await import("@/auth/config");
-	await beginEventGoogleConnection(principal, "host", "youtube", "/dashboard/events", fixture.db);
-	expect(auth.api.linkSocialAccount).toHaveBeenLastCalledWith(expect.objectContaining({ body: expect.objectContaining({ scopes: ["https://www.googleapis.com/auth/youtube.readonly"] }) }));
+	expect(auth.api.linkSocialAccount).not.toHaveBeenCalled();
+});
+
+it("requires reconnecting a legacy shared Google credential without changing its Runner grant", async () => {
+	const { eventConnectionsTable } = await import("@/db/schema");
+	await fixture.db.insert(account).values({ id: "legacy-google", userId: "actor", providerId: "google", accountId: "same-identity", scope: "https://www.googleapis.com/auth/youtube.force-ssl", accessToken: "runner-access", updatedAt: new Date() });
+	await fixture.db.insert(eventConnectionsTable).values({ ownerId: "host", provider: "drive", authAccountId: "legacy-google", authUserId: "actor", identityId: "old-folder", identityName: "Google Drive", connected: true });
+	expect(await listEventConnections(principal, "host", fixture.db)).toMatchObject({ ok: true, connections: [{ provider: "drive", connected: false }] });
+	const { eventGoogleToken } = await import("@/server/events/connections");
+	await expect(eventGoogleToken("host", "drive", fixture.db)).rejects.toThrow("PROVIDER_UNAVAILABLE");
+	expect((await fixture.db.select().from(account))[0]).toMatchObject({ scope: "https://www.googleapis.com/auth/youtube.force-ssl", accessToken: "runner-access" });
 });
 
 jest.mock("@/server/events/storage-http", () => ({ ...jest.requireActual("@/server/events/storage-http"), s3Request: jest.fn(async () => new Response(null, { status: 200 })) }));

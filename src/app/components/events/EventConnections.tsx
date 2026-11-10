@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Button, Input, Label, Modal, TextField } from "@heroui/react";
 import ControlledModal from "@components/controlledModal";
+import { authClient } from "@/auth/client";
 import { listEventConnectionsAction, beginEventGoogleConnectionAction, saveEventS3ConnectionAction } from "@actions/events";
 import { EventSelect, EventText } from "./EventFields";
 type Connection = { id: string; provider: "s3" | "drive" | "youtube"; identityName: string; connected: boolean };
@@ -41,8 +42,12 @@ export default function EventConnections({ creatorId, eventId, value, onChange, 
 				return;
 			}
 			const result = await beginEventGoogleConnectionAction(creatorId, provider, eventId);
-			if (result.ok && result.url) window.location.assign(result.url);
-			else setError("Google could not be connected. Please try again.");
+			if (!result.ok) {
+				setError("Google could not be connected. Please try again.");
+				return;
+			}
+			const linked = await authClient.linkSocial(result.link);
+			if (linked.error || !linked.data?.url) setError("Google could not be connected. Please try again.");
 		} catch {
 			setError("Google could not be connected. Please try again.");
 		} finally {

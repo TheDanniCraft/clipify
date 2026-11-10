@@ -104,7 +104,7 @@ Given("a published award show is accepting images into connected Google Drive", 
 		connectionId = randomUUID(),
 		eventId = randomUUID();
 	const token = await symmetricEncrypt({ key: "clipify-e2e-better-auth-secret-not-for-production", data: "isolated-event-drive-token" });
-	await tourWorld.fixture.pool.query("INSERT INTO auth.account(id,account_id,provider_id,user_id,access_token,access_token_expires_at,scope,created_at,updated_at) VALUES($1,$2,'google',$3,$4,$5,$6,now(),now())", [accountId, "drive-fixture-account", authUserId, token, new Date(Date.now() + 3600000), "https://www.googleapis.com/auth/drive.file"]);
+	await tourWorld.fixture.pool.query("INSERT INTO auth.account(id,account_id,provider_id,user_id,access_token,access_token_expires_at,scope,created_at,updated_at) VALUES($1,$2,'google-drive',$3,$4,$5,$6,now(),now())", [accountId, "drive-fixture-account", authUserId, token, new Date(Date.now() + 3600000), "https://www.googleapis.com/auth/drive.file"]);
 	await tourWorld.fixture.pool.query("INSERT INTO event_connections(id,owner_id,provider,auth_account_id,auth_user_id,identity_id,identity_name) VALUES($1,$2,'drive',$3,$4,'fixture-folder','Google Drive')", [connectionId, owner, accountId, authUserId]);
 	const configuration = createAwardConfiguration("Babbler Awards", "UTC");
 	configuration.storageConnectionId = connectionId;

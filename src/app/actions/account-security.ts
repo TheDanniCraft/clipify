@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { auth } from "@/auth/config";
 import { isPrimaryTwitchAccount } from "@/server/primary-twitch-account";
+import { isGoogleProvider } from "@/auth/google-connections";
 
 const FRESH_SESSION_MS = 5 * 60 * 1000;
 const FRESH_SESSION_SAFETY_MS = 5_000;
@@ -77,15 +78,19 @@ export async function disconnectLinkedAccount(accountId: string): Promise<Discon
 	if (!session) return { success: false, code: "REAUTHENTICATION_REQUIRED", error: "Sign in again before disconnecting this account." };
 	const accounts = await auth.api.listUserAccounts({ headers: requestHeaders });
 	const account = accounts.find((candidate) => candidate.id === accountId);
-	if (!account || (account.providerId !== "twitch" && account.providerId !== "google")) return { success: false, code: "ACCOUNT_NOT_FOUND", error: "This account is no longer linked." };
+	if (!account || (account.providerId !== "twitch" && !isGoogleProvider(account.providerId))) return { success: false, code: "ACCOUNT_NOT_FOUND", error: "This account is no longer linked." };
 	if (await isPrimaryTwitchAccount({ ...account, userId: session.user.id })) return { success: false, code: "PRIMARY_ACCOUNT_REQUIRED", error: "Your primary Twitch account is required for Clipify. Manage Runner channels separately." };
 	const reauthProvider = ([account.providerId, ...accounts.map((candidate) => candidate.providerId)].find((provider) => provider === "twitch" || provider === "google") ?? undefined) as "twitch" | "google" | undefined;
 	if (Date.now() - new Date(session.session.createdAt).getTime() >= FRESH_SESSION_MS - FRESH_SESSION_SAFETY_MS) {
 		return { success: false, code: "REAUTHENTICATION_REQUIRED", error: "Sign in again before disconnecting this account.", reauthProvider };
 	}
 	try {
-		const token = await auth.api.getAccessToken({ headers: requestHeaders, body: { accountId: account.id } });
-		await revokeProviderGrant(account.providerId, token.accessToken);
+		// Google revocation affects the project grant, including sibling feature links.
+		const hasOtherGoogleLink = accounts.some((candidate) => candidate.id !== account.id && isGoogleProvider(candidate.providerId));
+		if (account.providerId === "twitch" || (account.providerId === "google" && !hasOtherGoogleLink)) {
+			const token = await auth.api.getAccessToken({ headers: requestHeaders, body: { accountId: account.id } });
+			await revokeProviderGrant(account.providerId, token.accessToken);
+		}
 		await auth.api.unlinkAccount({ headers: requestHeaders, body: { accountId: account.id } });
 		return { success: true, providerId: account.providerId };
 	} catch (error) {

@@ -4,6 +4,7 @@ import { betterAuth } from "better-auth";
 import { oAuthProxy } from "better-auth/plugins";
 import { symmetricEncrypt } from "better-auth/crypto";
 import { createMcpPostgresFixture } from "./postgres";
+import { googleDiscovery } from "./google-discovery.mjs";
 
 async function main() {
 	const fixture = await createMcpPostgresFixture();
@@ -15,9 +16,10 @@ async function main() {
 	const origin = preview ? "https://beta-519.clipify.cloud.thedannicraft.de" : "https://clipify.us";
 	Object.assign(process.env, { DATABASE_URL: fixture.url, APP_ENV: "test", NEXT_PUBLIC_BASE_URL: origin, BETTER_AUTH_SECRET: "isolated-runner-auth-secret-32-characters", OAUTH_PROXY_SECRET: "isolated-runner-proxy-secret-32-characters", TWITCH_CLIENT_ID: "fixture-client", TWITCH_CLIENT_SECRET: "fixture-secret", YOUTUBE_CLIENT_ID: "fixture-google-client", YOUTUBE_CLIENT_SECRET: "fixture-google-secret", DISABLE_BACKGROUND_JOBS: "true" });
 	delete process.env.COOLIFY_URL;
+	const previousFetch = globalThis.fetch;
+	globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => (String(input) === "https://accounts.google.com/.well-known/openid-configuration" ? Promise.resolve(Response.json(googleDiscovery)) : previousFetch(input, init))) as typeof fetch;
 	const { auth } = await import("@/auth/config");
 	const { dbPool } = await import("@/db/client");
-	const previousFetch = globalThis.fetch;
 	try {
 		await fixture.pool.query("INSERT INTO auth.\"user\"(id,name,email,email_verified) VALUES('actor','Fixture','actor@example.invalid',true)");
 		await fixture.pool.query("INSERT INTO users(id,email,username,avatar,role,plan) VALUES('creator','actor@example.invalid','Fixture','','user','pro')");
@@ -96,14 +98,13 @@ async function main() {
 		assert.equal(stillSignedIn?.user.id, "actor");
 		assert.equal(stillSignedIn?.user.email, "actor@example.invalid");
 		assert.equal(stillSignedIn?.user.name, "Fixture");
-		// A linked provider logs into the same user; normal Twitch login must not narrow its Runner grant.
-		if (!google)
-			for (const instance of new Set([auth, remote])) {
-				const context = await instance.$context;
-				const provider = context.socialProviders.find((item) => typeof item !== "function" && item.id === "twitch");
-				assert(provider && typeof provider !== "function");
-				provider.validateAuthorizationCode = async () => ({ accessToken: "login-only-access", refreshToken: "login-only-refresh", accessTokenExpiresAt: new Date(Date.now() + 3600000), scopes: ["openid", "user:read:email"] });
-			}
+		// Reauthentication must not replace a Runner grant with basic identity tokens.
+		for (const instance of new Set([auth, remote])) {
+			const context = await instance.$context;
+			const provider = context.socialProviders.find((item) => typeof item !== "function" && item.id === providerId);
+			assert(provider && typeof provider !== "function");
+			provider.validateAuthorizationCode = async () => ({ accessToken: "login-only-access", refreshToken: "login-only-refresh", accessTokenExpiresAt: new Date(Date.now() + 3600000), scopes: google ? ["openid", "email", "profile"] : ["openid", "user:read:email"] });
+		}
 		async function roundTrip(path: "sign-in/social" | "link-social", body: Record<string, unknown>) {
 			const start = await auth.handler(new Request(`${origin}/api/auth/${path}`, { method: "POST", headers: { origin, "Content-Type": "application/json", ...(path === "link-social" ? { cookie } : {}) }, body: JSON.stringify({ provider: providerId, callbackURL: origin + "/dashboard", errorCallbackURL: origin + "/dashboard", ...body }) }));
 			assert.equal(start.status, 200);

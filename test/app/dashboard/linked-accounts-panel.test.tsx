@@ -53,6 +53,14 @@ test("keeps the primary Twitch identity connected", async () => {
 	expect(disconnectLinkedAccount).not.toHaveBeenCalled();
 });
 
+test("shows separate Google Drive and Event YouTube links alongside the existing Google account", async () => {
+	listAccounts.mockResolvedValue({ data: [...accounts, { id: "drive", providerId: "google-drive", accountId: "google-channel" }, { id: "events", providerId: "google-events-youtube", accountId: "google-channel" }], error: null });
+	render(<LinkedAccountsPanel />);
+	expect(await screen.findByText("Google Drive")).toBeVisible();
+	expect(screen.getByText("YouTube Events")).toBeVisible();
+	expect(screen.getByText("Google")).toBeVisible();
+});
+
 test("disconnects through the coordinated account action and refreshes the list", async () => {
 	disconnectLinkedAccount.mockResolvedValue({ success: true, providerId: "google" });
 	render(<LinkedAccountsPanel />);

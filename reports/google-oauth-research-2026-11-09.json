@@ -13,7 +13,7 @@
 		"Better Auth enables include_granted_scopes by default; both Runner and Event flows also explicitly set it true.",
 		"The Event completion route incorrectly used request.url origin. Four regression cases reproduced internal 0.0.0.0 redirects; resolveBaseUrl fixes them. A real HTTP/browser test with an internal Host header passes.",
 		"Both Runner and Events use Better Auth account linking and the same registered Google callback at https://clipify.us/api/auth/callback/google. Their completion pages are internal application returns.",
-		"Current stored Google credentials are shared by linked Better Auth account references. Simply replacing the scope/token can break another feature; credentials must be preserved during repair.",
+		"Before this repair, stored Google credentials were shared by linked Better Auth account references. Simply replacing the scope/token can break another feature; credentials must be preserved during repair.",
 		"MCP approval has separately failed with both CIMD and DCR. The preview MCP endpoint is reachable and advertises its correct authorization server. No live root cause for approval is yet established."
 	],
 	"not_established": [
@@ -54,7 +54,9 @@
 	"ci_findings": {
 		"run": 42698250565,
 		"failed_owners": ["capabilities.test.ts: old tool count", "client-profiles.test.ts: old tool count", "feedback-contract.test.ts: missing operation labels", "mcp-custom-sdk.steps.ts: old tool count", "mcp-sdk-browser.steps.ts: old tool count"],
-		"thresholds_changed": false
+		"thresholds_changed": false,
+		"followup_run": 42716924934,
+		"followup_failure": "BDD mutation scope owner still expected 14 privileged outcomes after the two tools were added; the probe returned 16. Added both explicit scenarios and classified get_event_preview by its event:update permission rather than its get_ prefix."
 	},
 	"constraints": ["No diagnostic instrumentation or diagnostic redeploy.", "No emails or support messages to Google.", "No OAuth token revocation or broadening Drive permissions.", "No manual/generated SQL migrations.", "Do not claim the live user flow is fixed until it is exercised."],
 	"findings": [
@@ -92,7 +94,7 @@
 		"Check Verification Center for the new scope. Submit the new sensitive scope for review through Console if requested. Existing approval is not a substitute for approval of this scope.",
 		"Use a demo video showing the Event YouTube connect consent and selected channel/video use if the review requires it. Whether an existing video suffices cannot be established from the screenshots. No need is established to redo approval of the already approved Runner scope.",
 		"Keep drive.file as the narrow per-file Drive permission. Do not add full Drive access.",
-		"Keep the existing Better Auth Google callback. Internal Event completion URLs do not need separate Google callback registration."
+		"Keep https://clipify.us/api/auth/callback/google and add only the stable production callback URIs listed in implementation_update. Do not add preview-specific Google redirect URIs. Deploy PR #561 before exercising the new provider links through the preview proxy."
 	],
 	"suggested_readonly_justification": "Clipify lets signed-in creators connect their own YouTube channel for community award events. We use youtube.readonly to identify the channel selected during Google authorization and retrieve its video titles, thumbnails, publication dates and view counts for creator-scoped nominations and data awards. Users can preview these videos during their award presentation. This feature does not upload, edit or delete videos. Basic profile scopes do not identify the selected YouTube channel or authorize channels.list with mine=true. We request this permission only when the creator connects YouTube.",
 	"verification": {
@@ -104,5 +106,26 @@
 		"static_checks": "Affected lint, formatting, build and TypeScript passed",
 		"full_new_head_ci": "Not yet completed",
 		"first_browser_attempt": "Missing disposable runtime database; two real-browser fixtures failed before scenarios. Correct documented database setup yielded both passing."
+	},
+	"implementation_update": {
+		"prerequisite_pr": "https://github.com/TheDanniCraft/clipify/pull/561",
+		"event_pr": "https://github.com/TheDanniCraft/clipify/pull/560",
+		"account_namespaces": {
+			"google": "Runner youtube.force-ssl",
+			"google-drive": "Event drive.file",
+			"google-events-youtube": "Event youtube.readonly"
+		},
+		"oauth_owner": "Better Auth Generic OAuth and existing built-in Google provider; standard callbacks, OAuth proxy, state, PKCE, OIDC verification, encrypted accounts and refresh. No custom callback/token-exchange handler.",
+		"browser_start": "Event server action only authorizes the selected creator/session and issues a connection intent; authClient.linkSocial owns browser authorization and redirect.",
+		"grant_merging": "Disabled for Runner and both Event providers. All three native integration-test authorization URLs contain only the feature permission plus identity scopes.",
+		"proxy": "No bypass header. Production must register the two new provider IDs before it can exchange their callback codes and forward the encrypted result to preview.",
+		"google_console_redirect_uris_to_add": ["https://clipify.us/api/auth/callback/google-drive", "https://clipify.us/api/auth/callback/google-events-youtube"],
+		"do_not_add_preview_google_redirect_uris": true,
+		"correction": "An earlier request to add preview URIs and a local bypass approach were withdrawn. Neither is part of the final implementation.",
+		"reauthentication": "Reproduced production and preview Google sign-in replacing Runner access with login-only-access. Extended the existing Twitch preservation hook to Google and verified Runner access remains usable.",
+		"unlinking": "Separate Event links unlink locally through Better Auth; removing a link with known Google siblings does not revoke the project-wide grant.",
+		"legacy_connections": "Old Event connections pointing to shared google credentials are shown as disconnected and require reconnecting. Existing Runner credentials are retained.",
+		"native_validation": "41 affected whole-file checks pass on the Event branch. The minimal production registration branch passes its 7 affected checks and TypeScript/lint/format.",
+		"transient_error_limit": "The screenshot establishes a genuine Clipify global error before Google. Ordinary local browser runs did not reproduce the original crash and the Sentry reference was not found; removing OAuth cookie writes from the Server Action addresses that rerender boundary. Final browser and live status are recorded separately."
 	}
 }

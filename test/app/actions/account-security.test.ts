@@ -54,6 +54,18 @@ describe("account security actions", () => {
 		expect(auth.api.unlinkAccount).toHaveBeenCalledWith(expect.objectContaining({ body: { accountId: "google-account" } }));
 		expect((global.fetch as jest.Mock).mock.invocationCallOrder[0]).toBeLessThan(auth.api.unlinkAccount.mock.invocationCallOrder[0]);
 	});
+	it.each(["google", "google-drive", "google-events-youtube"])("unlinks %s without revoking sibling Google feature grants", async (providerId) => {
+		auth.api.listUserAccounts.mockResolvedValue([
+			{ id: "runner", providerId: "google" },
+			{ id: "drive", providerId: "google-drive" },
+			{ id: "events", providerId: "google-events-youtube" },
+		]);
+		const id = providerId === "google" ? "runner" : providerId === "google-drive" ? "drive" : "events";
+		expect(await disconnectLinkedAccount(id)).toEqual({ success: true, providerId });
+		expect(auth.api.unlinkAccount).toHaveBeenCalledWith(expect.objectContaining({ body: { accountId: id } }));
+		expect(global.fetch).not.toHaveBeenCalled();
+		expect(auth.api.getAccessToken).not.toHaveBeenCalled();
+	});
 	it("requires recent authentication before revoking anything", async () => {
 		auth.api.getSession.mockResolvedValue({ user: { id: "identity", email: "Current@Example.com" }, session: { createdAt: new Date(Date.now() - 6 * 60_000) } });
 		expect(await disconnectLinkedAccount("google-account")).toEqual(expect.objectContaining({ success: false, code: "REAUTHENTICATION_REQUIRED", reauthProvider: "google" }));

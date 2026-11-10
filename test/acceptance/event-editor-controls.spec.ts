@@ -57,7 +57,7 @@ for (const width of [390, 1440])
 					scopes = google.searchParams.get("scope")!.split(" ");
 				expect(scopes).toContain(provider === "drive" ? "https://www.googleapis.com/auth/drive.file" : "https://www.googleapis.com/auth/youtube.readonly");
 				expect(scopes).not.toContain(provider === "drive" ? "https://www.googleapis.com/auth/youtube.readonly" : "https://www.googleapis.com/auth/drive.file");
-				expect(google.searchParams.get("include_granted_scopes")).toBe("true");
+				expect(google.searchParams.get("include_granted_scopes")).toBe("false");
 				await page.goto(`${tourWorld.origin}/dashboard/events/${eventId}?section=connections&connection=retry`);
 				await expect(page.getByRole("alert").filter({ hasText: "Google was not connected." })).toBeVisible();
 			}

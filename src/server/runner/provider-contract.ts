@@ -17,7 +17,7 @@ export function providerLinkRequest(provider: StreamingProvider, origin: string,
 		disableRedirect: true,
 		scopes: [...providerScopes(provider), ...(provider === "twitch" ? TWITCH_ADDITIONAL_SCOPES : [])],
 		additionalData: { runnerConnectionIntent: intent },
-		additionalParams: (provider === "youtube" ? { access_type: "offline", prompt: "consent", include_granted_scopes: "true" } : { force_verify: "true" }) as Record<string, string>,
+		additionalParams: (provider === "youtube" ? { access_type: "offline", prompt: "consent", include_granted_scopes: "false" } : { force_verify: "true" }) as Record<string, string>,
 	};
 }
 export const streamDetailSchema = z

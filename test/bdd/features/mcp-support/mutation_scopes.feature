@@ -8,6 +8,8 @@ Feature: Require each operation's approved OAuth permission
     Examples:
       | tool                   | permission            |
       | create_event           | event:create          |
+      | create_event_example   | event:create          |
+      | get_event_preview      | event:update          |
       | update_event           | event:update          |
       | nominate_event_candidates | event:review       |
       | publish_event          | event:publish         |
