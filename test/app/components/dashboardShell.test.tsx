@@ -4,11 +4,12 @@ import DashboardShell from "@components/dashboardShell";
 import { DashboardNavigationContext, DashboardNavigationControls, DashboardBreadcrumbs } from "@components/dashboardNavigation";
 import { PERMISSIONS } from "@/auth/permissions";
 let path = "/dashboard/clips";
+let query = "";
 let mobile = false;
 const push = jest.fn();
 const search = jest.fn();
 const preview = jest.fn().mockResolvedValue({ playbackUrl: "https://example.com/clip.mp4" });
-jest.mock("next/navigation", () => ({ usePathname: () => path, useSearchParams: () => new URLSearchParams(), useRouter: () => ({ push }) }));
+jest.mock("next/navigation", () => ({ usePathname: () => path, useSearchParams: () => new URLSearchParams(query), useRouter: () => ({ push }) }));
 jest.mock("@components/controlledModal", () => ({
 	__esModule: true,
 	default: ({ children, onClose }: { children: React.ReactNode; onClose: () => void }) => (
@@ -32,6 +33,7 @@ jest.mock(
 			Content: wrapper,
 			Footer: wrapper,
 			Group: wrapper,
+			GroupLabel: wrapper,
 			Menu: wrapper,
 			MenuIcon: wrapper,
 			MenuLabel: wrapper,
@@ -46,7 +48,7 @@ jest.mock(
 				return render ? (
 					render({ ...attributes, "data-href": href, "aria-disabled": isDisabled || undefined, children })
 				) : (
-					<div {...attributes} aria-disabled={isDisabled || undefined}>
+					<div {...attributes} data-href={href} aria-disabled={isDisabled || undefined}>
 						{children}
 					</div>
 				);
@@ -95,6 +97,7 @@ const content = (
 );
 beforeEach(() => {
 	path = "/dashboard/clips";
+	query = "";
 	mobile = false;
 	window.innerWidth = 1024;
 	jest.clearAllMocks();
@@ -436,4 +439,44 @@ it("keeps mobile breadcrumbs outside the sidebar guide target namespace", () => 
 		</DashboardNavigationContext.Provider>,
 	);
 	expect(document.querySelector("[data-tour]")).toBeNull();
+});
+
+it.each([
+	["section=review", "Review"],
+	["section=unknown", "Event"],
+])("keeps the event workspace and home destination available for %s", (section, current) => {
+	path = "/dashboard/events/faa4a23d-b115-4be8-9d40-790600db1226";
+	query = section;
+	render(
+		<DashboardShell creatorId='owner' permissions={[...PERMISSIONS]}>
+			{content}
+		</DashboardShell>,
+	);
+	expect(screen.getByText("Back to home").closest("[data-href]")).toHaveAttribute("data-href", "/dashboard");
+	expect(document.querySelector('[data-href][aria-current="page"]')).toHaveTextContent(current);
+	expect(screen.getByText("Chat", { exact: true }).closest("[data-href]")).toHaveAttribute("data-href", `${path}?section=chat`);
+	expect(screen.queryByText("Create and share")).not.toBeInTheDocument();
+});
+
+it("keeps creator navigation when the event workspace permission is absent", () => {
+	path = "/dashboard/events/faa4a23d-b115-4be8-9d40-790600db1226";
+	render(
+		<DashboardShell creatorId='owner' permissions={["creator:read"]}>
+			{content}
+		</DashboardShell>,
+	);
+	expect(screen.queryByText("Back to home")).not.toBeInTheDocument();
+	expect(screen.queryByText("Review", { exact: true })).not.toBeInTheDocument();
+});
+
+it("marks the selected settings subsection as current", () => {
+	path = "/dashboard/settings";
+	query = "tab=connections";
+	render(
+		<DashboardShell creatorId='owner' permissions={[...PERMISSIONS]}>
+			{content}
+		</DashboardShell>,
+	);
+	expect(document.querySelector('[data-href="/dashboard/settings?tab=connections"]')).toHaveAttribute("aria-current", "page");
+	expect(document.querySelector('[data-href="/dashboard/settings?tab=brand"]')).not.toHaveAttribute("aria-current");
 });
