@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@lib/toast";
 import { useEffect, useState } from "react";
 import { Button, Label, Modal, Switch, TextArea, TextField } from "@heroui/react";
 import { getEventReviewAction, setEventDataResultAction } from "@actions/events";
@@ -62,24 +63,21 @@ function DataResultEditor({ creatorId, eventId, category, initial, published, lo
 		[value, setValue] = useState(ready?.value ?? category.manualResult?.value ?? 0),
 		[reference, setReference] = useState(ready?.content?.reference ?? ""),
 		[busy, setBusy] = useState(false),
-		[error, setError] = useState(""),
-		[message, setMessage] = useState(""),
 		[preview, setPreview] = useState(false);
 	async function save() {
 		setBusy(true);
-		setError("");
-		setMessage("");
+
 		try {
 			const result = await setEventDataResultAction(creatorId, eventId, category.id, { title, description, ...(includeValue ? { value } : {}), ...(reference ? { reference } : {}) });
 			if (!result.ok) {
-				setError(result.code === "PHASE_CLOSED" ? "Results are already published. They can no longer be changed." : "Check the winner name, number and source rules, then try again.");
+				notify({ title: result.code === "PHASE_CLOSED" ? "Results are already published. They can no longer be changed." : "Check the winner name, number and source rules, then try again.", color: "danger" });
 				return;
 			}
 			onSaved(result.result);
 			setTitle(result.result.status === "ready" ? result.result.title : title);
-			setMessage("Result saved.");
+			notify({ title: "Result saved.", color: "success" });
 		} catch {
-			setError("Your result could not be saved. Your draft is preserved; please retry.");
+			notify({ title: "Your result could not be saved. Your draft is preserved; please retry.", color: "danger" });
 		} finally {
 			setBusy(false);
 		}
@@ -120,16 +118,6 @@ function DataResultEditor({ creatorId, eventId, category, initial, published, lo
 				</Switch>
 				{includeValue ? <EventNumber label='Result value' value={value} min={-1000000000} max={1000000000000} onChange={setValue} /> : null}
 			</fieldset>
-			{error ? (
-				<p role='alert' className='text-sm text-danger'>
-					{error}
-				</p>
-			) : null}
-			{message ? (
-				<p role='status' className='text-sm text-success'>
-					{message}
-				</p>
-			) : null}
 			<Button isPending={busy} isDisabled={busy || locked || !published} onPress={() => void save()}>
 				Save result
 			</Button>

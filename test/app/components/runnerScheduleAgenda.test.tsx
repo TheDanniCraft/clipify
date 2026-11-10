@@ -1,3 +1,4 @@
+jest.mock("@lib/toast", () => ({ notify: jest.fn() }));
 import { render } from "@testing-library/react";
 jest.mock("@/app/components/runner/ScheduleFields", () => ({ ScheduleDateField: () => null, ScheduleTimeField: () => null, TimezonePicker: () => null }));
 import RunnerScheduleAgenda from "@/app/components/runnerScheduleAgenda";

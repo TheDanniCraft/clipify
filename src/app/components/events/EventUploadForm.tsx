@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@lib/toast";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@heroui/react";
 import { DropZone } from "@heroui-pro/react";
@@ -8,14 +9,12 @@ export default function EventUploadForm({ eventId, categoryId, kind, onSubmitted
 	const [file, setFile] = useState<File | null>(null),
 		[title, setTitle] = useState(""),
 		[busy, setBusy] = useState(false),
-		[error, setError] = useState(""),
-		[message, setMessage] = useState("");
+		[error, setError] = useState("");
 	const upload = useRef<AbortController | null>(null);
 	useEffect(() => () => upload.current?.abort(), []);
 	function select(incoming: File | undefined) {
 		if (busy || !incoming) return;
 		setError("");
-		setMessage("");
 		if (!incoming.type.startsWith(`${kind}/`) || !eventUploadMimes.some((mime) => mime === incoming.type) || incoming.size < 1 || incoming.size > MAX_EVENT_UPLOAD_BYTES) {
 			setError(`Choose a supported ${kind} up to 100 MB.`);
 			return;
@@ -26,26 +25,25 @@ export default function EventUploadForm({ eventId, categoryId, kind, onSubmitted
 	async function submit() {
 		if (!file || busy) return;
 		if (!title.trim()) {
-			setError("Give your proposal a name.");
+			notify({ title: "Give your proposal a name.", color: "danger" });
 			return;
 		}
 		setBusy(true);
-		setError("");
-		setMessage("");
+
 		upload.current = new AbortController();
 		try {
 			const response = await fetch(`/api/events/${eventId}/upload?category=${encodeURIComponent(categoryId)}${team ? "&mode=team" : ""}`, { method: "POST", headers: { "Content-Type": file.type, "X-Upload-Size": String(file.size), "X-Upload-Title": encodeURIComponent(title) }, body: file, signal: upload.current.signal });
 			const result = (await response.json()) as { ok?: boolean; code?: string };
 			if (!response.ok || !result.ok) {
-				setError(result.code === "PHASE_CLOSED" ? "Nominations have closed. Your file was not submitted." : result.code === "LIMIT_REACHED" ? "You have reached this category’s limit or another upload is still running. Withdraw an earlier proposal or try again shortly." : "Your file could not be submitted. Your selection is preserved; please try again.");
+				notify({ title: result.code === "PHASE_CLOSED" ? "Nominations have closed. Your file was not submitted." : result.code === "LIMIT_REACHED" ? "You have reached this category’s limit or another upload is still running. Withdraw an earlier proposal or try again shortly." : "Your file could not be submitted. Your selection is preserved; please try again.", color: "danger" });
 				return;
 			}
 			setFile(null);
 			setTitle("");
-			setMessage(team ? "Candidate added." : "Your proposal was submitted.");
+			notify({ title: team ? "Candidate added." : "Your proposal was submitted.", color: "success" });
 			onSubmitted();
 		} catch (exception) {
-			setError(exception instanceof Error && exception.name === "AbortError" ? "Upload cancelled. Your selection is preserved." : "Your file could not be submitted. Your selection is preserved; please try again.");
+			notify({ title: exception instanceof Error && exception.name === "AbortError" ? "Upload cancelled. Your selection is preserved." : "Your file could not be submitted. Your selection is preserved; please try again.", color: "danger" });
 		} finally {
 			setBusy(false);
 			upload.current = null;
@@ -85,11 +83,6 @@ export default function EventUploadForm({ eventId, categoryId, kind, onSubmitted
 			{error ? (
 				<p role='alert' className='text-sm text-danger'>
 					{error}
-				</p>
-			) : null}
-			{message ? (
-				<p role='status' className='text-sm text-success'>
-					{message}
 				</p>
 			) : null}
 			<div className='flex gap-3'>

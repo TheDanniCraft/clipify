@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+import { notify } from "@lib/toast";
+import { useCallback, useEffect, useState } from "react";
 import { Button, ComboBox, Input, Label, ListBox, Select, Switch, TextArea, TextField } from "@heroui/react";
 import ImageDropZone from "./ImageDropZone";
 import { searchRunnerTwitchCategories, uploadRunnerScheduleThumbnail } from "@/app/actions/runner";
@@ -11,7 +12,9 @@ export default function BroadcastDetails({ ownerId, runnerId, targets, eventTitl
 	const [selected, setSelected] = useState(eligible[0]?.id ?? "");
 	const target = eligible.find((target) => target.id === selected) ?? eligible[0];
 	const value = details.find((detail) => detail.destinationId === target?.id);
-	const [error, setError] = useState<string | null>(null);
+	const setError = useCallback((title?: string | null) => {
+		if (title) notify({ title, color: "danger" });
+	}, []);
 	const [uploading, setUploading] = useState(false);
 	const [query, setQuery] = useState(value?.categoryName ?? "");
 	const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
@@ -52,7 +55,7 @@ export default function BroadcastDetails({ ownerId, runnerId, targets, eventTitl
 	}, [ownerId, target?.connectionId, target?.provider, query, disabled]);
 	async function upload(file: File | undefined) {
 		if (!file || !target) return;
-		setError(null);
+
 		setUploading(true);
 		onBusyChange(true);
 		try {
@@ -213,11 +216,6 @@ export default function BroadcastDetails({ ownerId, runnerId, targets, eventTitl
 						</>
 					)}
 				</>
-			)}
-			{error && (
-				<p role='alert' className='text-sm text-danger'>
-					{error}
-				</p>
 			)}
 		</div>
 	);

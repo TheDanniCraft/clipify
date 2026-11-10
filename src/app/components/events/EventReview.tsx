@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@lib/toast";
 import { useCallback, useEffect, useState } from "react";
 import { Button, Checkbox, Modal, Spinner, Table } from "@heroui/react";
 import { EmptyState } from "@heroui-pro/react";
@@ -19,7 +20,6 @@ export default function EventReview({ creatorId, eventId }: { creatorId: string;
 		[expanded, setExpanded] = useState<string[]>([]),
 		[busy, setBusy] = useState(false),
 		[error, setError] = useState(""),
-		[message, setMessage] = useState(""),
 		[addOpen, setAddOpen] = useState(false),
 		[groupOpen, setGroupOpen] = useState(false),
 		[groupTitle, setGroupTitle] = useState(""),
@@ -67,58 +67,57 @@ export default function EventReview({ creatorId, eventId }: { creatorId: string;
 	const locked = !data?.event.published || data.event.reviewReleased || (!!schedule && (now >= Date.parse(schedule.votingEnd) || (!schedule.reviewRequired && now >= Date.parse(schedule.votingStart))));
 	async function nominate(include: boolean) {
 		setBusy(true);
-		setError("");
-		setMessage("");
+
 		try {
 			const ids = include ? [...new Set([...top.filter((c) => c.nominated).map((c) => c.id), ...selected])] : top.filter((c) => c.nominated && !selected.includes(c.id)).map((c) => c.id);
 			const result = await nominateEventCandidatesAction(creatorId, eventId, categoryId, ids);
 			if (!result.ok) {
-				setError(result.code === "LIMIT_REACHED" ? "This category has reached its nominee limit. Remove a nomination first." : "Nominations could not be saved. Voting may have started; refresh and try again.");
+				notify({ title: result.code === "LIMIT_REACHED" ? "This category has reached its nominee limit. Remove a nomination first." : "Nominations could not be saved. Voting may have started; refresh and try again.", color: "danger" });
 				return;
 			}
 			setSelected([]);
 			await reload();
-			setMessage("Nominations saved.");
+			notify({ title: "Nominations saved.", color: "success" });
 		} catch {
-			setError("Nominations could not be saved. Your selection is preserved.");
+			notify({ title: "Nominations could not be saved. Your selection is preserved.", color: "danger" });
 		} finally {
 			setBusy(false);
 		}
 	}
 	async function group() {
 		setBusy(true);
-		setError("");
+
 		try {
 			const result = await groupEventCandidatesAction(creatorId, eventId, categoryId, selected, groupTitle);
 			if (!result.ok) {
-				setError("These proposals could not be grouped. Select at least two ungrouped proposals and enter a title.");
+				notify({ title: "These proposals could not be grouped. Select at least two ungrouped proposals and enter a title.", color: "danger" });
 				return;
 			}
 			setGroupOpen(false);
 			setGroupTitle("");
 			setSelected([]);
 			await reload();
-			setMessage("Proposals grouped. You can now nominate the group.");
+			notify({ title: "Proposals grouped. You can now nominate the group.", color: "success" });
 		} catch {
-			setError("Grouping failed. Your title and selection are preserved.");
+			notify({ title: "Grouping failed. Your title and selection are preserved.", color: "danger" });
 		} finally {
 			setBusy(false);
 		}
 	}
 	async function release() {
 		setBusy(true);
-		setError("");
+
 		try {
 			const result = await releaseEventReviewAction(creatorId, eventId);
 			if (!result.ok) {
-				setError("Review cannot be completed yet. Submissions must be closed and voting must not have ended.");
+				notify({ title: "Review cannot be completed yet. Submissions must be closed and voting must not have ended.", color: "danger" });
 				return;
 			}
 			setReleaseOpen(false);
 			await reload();
-			setMessage("Review completed. Voting follows your roadmap.");
+			notify({ title: "Review completed. Voting follows your roadmap.", color: "success" });
 		} catch {
-			setError("Review could not be completed. Please retry.");
+			notify({ title: "Review could not be completed. Please retry.", color: "danger" });
 		} finally {
 			setBusy(false);
 		}
@@ -137,11 +136,6 @@ export default function EventReview({ creatorId, eventId }: { creatorId: string;
 			{error && !groupOpen && !releaseOpen ? (
 				<p role='alert' className='text-sm text-danger'>
 					{error}
-				</p>
-			) : null}
-			{message ? (
-				<p role='status' className='text-sm text-success'>
-					{message}
 				</p>
 			) : null}
 			{!data ? (

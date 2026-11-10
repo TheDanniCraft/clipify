@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@lib/toast";
 import { trackProductEvent } from "@lib/analytics";
 
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -79,7 +80,6 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 	const [controlsUnlocked, setControlsUnlocked] = useState(false);
 	const [modClipUrl, setModClipUrl] = useState("");
 	const [isSubmittingModClip, setIsSubmittingModClip] = useState(false);
-	const [modClipFeedback, setModClipFeedback] = useState<{ tone: "default" | "danger" | "success"; text: string } | null>(null);
 	const [mounted, setMounted] = useState(false);
 	const [timeNow, setTimeNow] = useState(() => Date.now());
 
@@ -316,15 +316,15 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 		if (!clipUrl || controlsDisabled) return;
 
 		setIsSubmittingModClip(true);
-		setModClipFeedback(null);
+
 		try {
 			const response = await executeControllerAction("add_mod_clip", { clipUrl });
 			if (!response.ok) {
-				setModClipFeedback({ tone: "danger", text: response.error ?? "Unable to add clip to mod queue." });
+				notify({ color: "danger", title: response.error ?? "Unable to add clip to mod queue." });
 				return;
 			}
 			setModClipUrl("");
-			setModClipFeedback({ tone: "success", text: "Clip added to mod queue." });
+			notify({ color: "success", title: "Clip added to mod queue." });
 		} finally {
 			setIsSubmittingModClip(false);
 		}
@@ -484,7 +484,6 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 										</Button>
 									</div>
 									{controlsDisabled ? <p className='mt-3 text-xs text-warning'>Unlock controls before queue edits.</p> : null}
-									{modClipFeedback ? <p className={`mt-3 text-sm ${modClipFeedback.tone === "danger" ? "text-danger" : modClipFeedback.tone === "success" ? "text-success" : "text-muted"}`}>{modClipFeedback.text}</p> : null}
 								</div>
 							</div>
 						</div>

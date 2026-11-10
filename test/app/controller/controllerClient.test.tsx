@@ -1,3 +1,5 @@
+import { notify } from "@lib/toast";
+jest.mock("@lib/toast", () => ({ notify: jest.fn() }));
 import React from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import ControllerClient from "@/app/controller/[overlayId]/controllerClient";
@@ -218,7 +220,7 @@ describe("controller/[overlayId]/controllerClient", () => {
 		fireEvent.click(screen.getByText("Add clip"));
 
 		await waitFor(() => expect(runControllerAction).toHaveBeenCalledWith("ov-1", { action: "add_mod_clip", volume: undefined, clipUrl: "https://clips.twitch.tv/abc" }));
-		expect(await screen.findByText("Clip added to mod queue.")).toBeInTheDocument();
+		await waitFor(() => expect(notify).toHaveBeenCalledWith({ title: "Clip added to mod queue.", color: "success" }));
 
 		fireEvent.click(screen.getByRole("button", { name: "Clear mods" }));
 		fireEvent.click(screen.getByRole("button", { name: "Clear viewers" }));
@@ -275,7 +277,7 @@ describe("controller/[overlayId]/controllerClient", () => {
 		fireEvent.change(screen.getByLabelText("Mod queue clip URL"), { target: { value: "https://clips.twitch.tv/error" } });
 		fireEvent.click(screen.getByText("Add clip"));
 
-		expect(await screen.findByText("Unable to add clip.")).toBeInTheDocument();
+		await waitFor(() => expect(notify).toHaveBeenCalledWith({ title: "Unable to add clip.", color: "danger" }));
 
 		act(() => {
 			jest.advanceTimersByTime(1000);

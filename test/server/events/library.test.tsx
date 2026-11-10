@@ -1,3 +1,5 @@
+import { notify } from "@lib/toast";
+jest.mock("@lib/toast", () => ({ notify: jest.fn() }));
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import EventLibrary from "@/app/components/events/EventLibrary";
 import { createEventAction, listEventsAction } from "@/app/actions/events";
@@ -22,7 +24,7 @@ it("offers creation recovery without blaming a valid title for a server failure"
 	render(<EventLibrary creatorId='host' />);
 	await screen.findByText("No events yet");
 	fireEvent.click(screen.getByRole("button", { name: "Create event" }));
-	expect(await screen.findByRole("alert")).toHaveTextContent("Your event could not be created. Please try again.");
+	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringContaining("Your event could not be created. Please try again."), color: "danger" })));
 	expect(screen.getByRole("button", { name: "Create event" })).toBeEnabled();
 	expect(push).not.toHaveBeenCalled();
 });

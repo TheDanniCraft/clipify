@@ -1,4 +1,6 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { notify } from "@lib/toast";
+jest.mock("@lib/toast", () => ({ notify: jest.fn() }));
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import EventUploadForm from "@/app/components/events/EventUploadForm";
 jest.mock(
 	"@heroui-pro/react",
@@ -15,7 +17,9 @@ it("preserves a selected image and title after upload failure", async () => {
 	fireEvent.change(screen.getByLabelText("Choose image"), { target: { files: [new File(["image"], "Lampe.png", { type: "image/png" })] } });
 	fireEvent.change(screen.getByLabelText("Proposal name"), { target: { value: "Beste Lampe" } });
 	fireEvent.click(screen.getByRole("button", { name: "Submit proposal" }));
-	expect(await screen.findByRole("alert")).toHaveTextContent("Your file could not be submitted");
+	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringContaining("Your file could not be submitted"), color: "danger" })));
 	expect(screen.getByText("Lampe.png", { exact: true })).toBeInTheDocument();
 	expect(screen.getByLabelText("Proposal name")).toHaveValue("Beste Lampe");
 });
+
+beforeEach(() => jest.mocked(notify).mockClear());

@@ -26,10 +26,11 @@ for (const provider of ["drive", "youtube"] as const)
 		const connect = page.getByRole("button", { name: provider === "drive" ? "Connect Google Drive" : "Connect YouTube", exact: true });
 		await page.route("**/api/auth/link-social", (route) => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ code: "SERVICE_UNAVAILABLE", message: "Isolated unavailable provider" }) }));
 		await connect.click();
-		await expect(page.getByRole("alert").filter({ hasText: "Google could not be connected." })).toBeVisible();
+		await expect(page.getByText("Google could not be connected. Please try again.", { exact: true })).toBeVisible();
 		await expect(connect).toBeEnabled();
 		expect((await tourWorld.fixture.pool.query("SELECT configuration->>'title' AS title FROM award_events WHERE id=$1", [eventId])).rows[0].title).toBe("Connection test draft");
 		expect(errors).toEqual([]);
+		await expect(page.getByText("Event saved.", { exact: true })).toHaveCount(0);
 		await page.unroute("**/api/auth/link-social");
 		const linkRequest = page.waitForRequest((request) => new URL(request.url()).pathname === "/api/auth/link-social");
 		await connect.click();

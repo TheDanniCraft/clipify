@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button, Input, Label, Modal, TextField } from "@heroui/react";
+import { notify } from "@lib/toast";
 import ControlledModal from "@components/controlledModal";
 import { authClient } from "@/auth/client";
 import { listEventConnectionsAction, beginEventGoogleConnectionAction, saveEventS3ConnectionAction } from "@actions/events";
@@ -13,6 +14,17 @@ export default function EventConnections({ creatorId, eventId, value, onChange, 
 		[busy, setBusy] = useState(false),
 		[error, setError] = useState(""),
 		[open, setOpen] = useState(false);
+	const reportedStatus = useRef<string | undefined>(undefined);
+	useEffect(() => {
+		if (!status || reportedStatus.current === status) return;
+		reportedStatus.current = status;
+		const url = new URL(window.location.href);
+		if (url.searchParams.get("connection") === status) {
+			url.searchParams.delete("connection");
+			window.history.replaceState(window.history.state, "", url);
+		}
+		notify(status === "connected" ? { title: "Google account connected.", color: "success" } : { title: "Google was not connected.", description: "Try again and grant the requested access.", color: "danger" });
+	}, [status]);
 	const [credentials, setCredentials] = useState({ endpoint: "", region: "auto", bucket: "", accessKeyId: "", secretAccessKey: "", prefix: "clipify-events" });
 	const update = (patch: Partial<typeof credentials>) => setCredentials((current) => ({ ...current, ...patch }));
 	useEffect(() => {
@@ -35,32 +47,32 @@ export default function EventConnections({ creatorId, eventId, value, onChange, 
 	}, [creatorId, attempt]);
 	async function google(provider: "drive" | "youtube") {
 		setBusy(true);
-		setError("");
+
 		try {
 			if (beforeConnect && !(await beforeConnect())) {
-				setError("Save your event changes before connecting Google.");
+				notify({ title: "Save your event changes before connecting Google.", color: "danger" });
 				return;
 			}
 			const result = await beginEventGoogleConnectionAction(creatorId, provider, eventId);
 			if (!result.ok) {
-				setError("Google could not be connected. Please try again.");
+				notify({ title: "Google could not be connected. Please try again.", color: "danger" });
 				return;
 			}
 			const linked = await authClient.linkSocial(result.link);
-			if (linked.error || !linked.data?.url) setError("Google could not be connected. Please try again.");
+			if (linked.error || !linked.data?.url) notify({ title: "Google could not be connected. Please try again.", color: "danger" });
 		} catch {
-			setError("Google could not be connected. Please try again.");
+			notify({ title: "Google could not be connected. Please try again.", color: "danger" });
 		} finally {
 			setBusy(false);
 		}
 	}
 	async function s3() {
 		setBusy(true);
-		setError("");
+
 		try {
 			const result = await saveEventS3ConnectionAction(creatorId, credentials);
 			if (!result.ok) {
-				setError(result.code === "CONFLICT" ? "This bucket already contains event files. Keep the same endpoint, region and bucket when updating its credentials." : "Check your S3 endpoint, credentials and bucket permissions, then try again.");
+				notify({ title: result.code === "CONFLICT" ? "This bucket already contains event files. Keep the same endpoint, region and bucket when updating its credentials." : "Check your S3 endpoint, credentials and bucket permissions, then try again.", color: "danger" });
 				return;
 			}
 			setConnections((current) => [...current.filter((c) => c.provider !== "s3"), result.connection]);
@@ -68,7 +80,7 @@ export default function EventConnections({ creatorId, eventId, value, onChange, 
 			setOpen(false);
 			setCredentials((current) => ({ ...current, accessKeyId: "", secretAccessKey: "" }));
 		} catch {
-			setError("Check your S3 endpoint, credentials and bucket permissions, then try again.");
+			notify({ title: "Check your S3 endpoint, credentials and bucket permissions, then try again.", color: "danger" });
 		} finally {
 			setBusy(false);
 		}
@@ -80,15 +92,6 @@ export default function EventConnections({ creatorId, eventId, value, onChange, 
 				<h2 className='font-semibold'>Connected accounts</h2>
 				<p className='mt-1 text-sm text-muted'>Choose where uploaded files are stored. Google asks for access only to files created by Clipify; YouTube is connected separately.</p>
 			</div>
-			{status === "connected" ? (
-				<p role='status' className='text-sm text-success'>
-					Google account connected. Your available accounts are listed below.
-				</p>
-			) : status === "retry" ? (
-				<p role='alert' className='text-sm text-danger'>
-					Google was not connected. Try again and grant the requested access.
-				</p>
-			) : null}
 			{error && !open ? (
 				<div className='flex flex-wrap items-center gap-3'>
 					<p role='alert' className='text-sm text-danger'>

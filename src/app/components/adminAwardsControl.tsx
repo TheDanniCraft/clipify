@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@lib/toast";
 import LocalizedDate from "@components/localizedDate";
 import { useState, useTransition } from "react";
 import { Button, Modal, TextField, TextArea, Input, Label, Select, ListBox, Checkbox, Tooltip } from "@heroui/react";
@@ -39,7 +40,6 @@ export default function AdminAwardsControl({ recipients, onChanged, label = "Man
 		[review, setReview] = useState(false),
 		[removal, setRemoval] = useState<{ grantId?: string; badge?: string } | null>(null),
 		[operationId, setOperationId] = useState(""),
-		[message, setMessage] = useState(""),
 		[pending, startTransition] = useTransition(),
 		[awards, setAwards] = useState<Awaited<ReturnType<typeof getAdminUserAwards>> | null>(null);
 	const badgeOptions = Object.entries(badgeCatalog)
@@ -51,7 +51,7 @@ export default function AdminAwardsControl({ recipients, onChanged, label = "Man
 				try {
 					setAwards(await getAdminUserAwards(recipients[0].id));
 				} catch {
-					setMessage("Could not load existing benefits.");
+					notify({ title: "Could not load existing benefits.", color: "danger" });
 				}
 			});
 	}
@@ -60,11 +60,11 @@ export default function AdminAwardsControl({ recipients, onChanged, label = "Man
 			try {
 				const result = await grantAdminAwards({ userIds: recipients.map((r) => r.id), operationId, kind, days: unlimited ? null : Number(days), badge: kind === "badge" ? badge : undefined, reason });
 				const failed = result.results.filter((r) => r.status === "failed");
-				setMessage(`${result.results.filter((r) => r.status === "granted").length} granted; ${result.results.filter((r) => r.status === "unchanged").length} already granted; ${failed.length} failed.${failed.length ? " Retry to process failed recipients; successful grants will not be duplicated." : " Notification emails are queued."}`);
+				notify({ title: `${result.results.filter((r) => r.status === "granted").length} granted; ${result.results.filter((r) => r.status === "unchanged").length} already granted; ${failed.length} failed.${failed.length ? " Retry to process failed recipients; successful grants will not be duplicated." : " Notification emails are queued."}`, color: failed.length ? "warning" : "success" });
 				await onChanged();
 				if (recipients.length === 1) setAwards(await getAdminUserAwards(recipients[0].id));
 			} catch {
-				setMessage("Could not grant these benefits. Check your selection and try again.");
+				notify({ title: "Could not grant these benefits. Check your selection and try again.", color: "danger" });
 			}
 		});
 	}
@@ -75,9 +75,9 @@ export default function AdminAwardsControl({ recipients, onChanged, label = "Man
 				setAwards(await getAdminUserAwards(recipients[0].id));
 				await onChanged();
 				setRemoval(null);
-				setMessage("Benefit removed and notification queued.");
+				notify({ title: "Benefit removed and notification queued.", color: "success" });
 			} catch {
-				setMessage("Could not remove this benefit.");
+				notify({ title: "Could not remove this benefit.", color: "danger" });
 			}
 		});
 	}
@@ -94,7 +94,7 @@ export default function AdminAwardsControl({ recipients, onChanged, label = "Man
 						setOpen(true);
 						setReview(false);
 						setRemoval(null);
-						setMessage("");
+
 						setOperationId(crypto.randomUUID());
 						setAwards(null);
 						loadAwards();
@@ -164,7 +164,7 @@ export default function AdminAwardsControl({ recipients, onChanged, label = "Man
 										<p className='text-sm text-muted'>Entitlement recipients see this reason in their email. Automatic badges such as Partner are managed by their eligibility rules.</p>
 									</>
 								)}
-								{message && <p role='status'>{message}</p>}
+
 								{removal && (
 									<section className='rounded-xl bg-danger-soft p-4 space-y-2' aria-label='Confirm removal'>
 										<p>

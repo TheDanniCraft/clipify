@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@lib/toast";
 import { useDeploymentDraft } from "@lib/deploymentDrafts";
 
 import RunnerDestinations from "./runnerDestinations";
@@ -24,6 +25,9 @@ type Draft = { setStreamDetails: boolean; streamDetails: StreamDetails[]; allDay
 const weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 export default function RunnerSchedule(props: Props) {
+	const setError = useCallback((title?: string | null) => {
+		if (title) notify({ title, color: "danger" });
+	}, []);
 	const [editorView, setEditorView] = useState("schedule");
 	const [destinationReturnView, setDestinationReturnView] = useState("details");
 	const [destinations, setDestinations] = useState(props.destinations);
@@ -43,9 +47,7 @@ export default function RunnerSchedule(props: Props) {
 		[editing, setEditing] = useState<RunnerScheduleView | null>(null),
 		[saving, setSaving] = useState(false),
 		[deleting, setDeleting] = useState(false),
-		[deleteError, setDeleteError] = useState<string | null>(null),
 		[draftNotice, setDraftNotice] = useState<string | null>(null),
-		[error, setError] = useState<string | null>(null),
 		[draft, setDraft] = useState<Draft | null>(null);
 	const [selectedOccurrenceStart, setSelectedOccurrenceStart] = useState<string | null>(null);
 	const [scopePrompt, setScopePrompt] = useState<"save" | "delete" | null>(null);
@@ -74,7 +76,7 @@ export default function RunnerSchedule(props: Props) {
 				onPolicyChange(result.policy);
 			} else setError(result.error);
 		},
-		[onPolicyChange],
+		[onPolicyChange, setError],
 	);
 	const reload = useCallback(async () => {
 		const generation = requestGeneration.current;
@@ -86,7 +88,7 @@ export default function RunnerSchedule(props: Props) {
 		} finally {
 			if (generation === requestGeneration.current) setLoading(false);
 		}
-	}, [ownerId, runnerId, accept]);
+	}, [ownerId, runnerId, accept, setError]);
 	useEffect(() => {
 		const generation = ++requestGeneration.current;
 		void listRunnerScheduleEvents(ownerId, runnerId)
@@ -102,7 +104,7 @@ export default function RunnerSchedule(props: Props) {
 		return () => {
 			requestGeneration.current = generation + 1;
 		};
-	}, [ownerId, runnerId, accept]);
+	}, [ownerId, runnerId, accept, setError]);
 
 	useEffect(() => {
 		if (!policy?.runnerPro || !policy.validUntil) return;
@@ -136,7 +138,6 @@ export default function RunnerSchedule(props: Props) {
 	function toggleAutomation() {
 		if (!automation || automationPending) return;
 		startAutomationTransition(async () => {
-			setError(null);
 			try {
 				const result = await setRunnerAutomationPaused({ ownerId, runnerId, sessionId: automation.sessionId, expectedRevision: automation.configurationRevision, expectedAutomationRevision: automation.automationRevision, paused: !automationPaused });
 				if (!result.success) setError(result.error);
@@ -157,7 +158,7 @@ export default function RunnerSchedule(props: Props) {
 		setDraftNotice(null);
 		setTitleError(null);
 		setEditing(event);
-		setError(null);
+
 		const local = calendarNow(calendarTimezone);
 		const start = local.add({ minutes: 30 - (local.minute % 30) }).set({ second: 0, millisecond: 0 });
 		const end = start.add({ hours: 1 });
@@ -211,7 +212,6 @@ export default function RunnerSchedule(props: Props) {
 		const invalidTitle = !draft.title.trim() ? "Enter an event title." : draft.title.trim().length > 80 ? "Use 80 characters or fewer." : null;
 		setTitleError(invalidTitle);
 		if (invalidTitle) {
-			setError(null);
 			titleInput.current?.focus();
 			return;
 		}
@@ -221,7 +221,7 @@ export default function RunnerSchedule(props: Props) {
 		}
 		setScopePrompt(null);
 		setSaving(true);
-		setError(null);
+
 		try {
 			const { allDay, ...fields } = draft;
 			fields.streamDetails = fields.streamDetails.filter((detail) => fields.destinationIds.includes(detail.destinationId));
@@ -253,16 +253,14 @@ export default function RunnerSchedule(props: Props) {
 		}
 		setScopePrompt(null);
 		setSaving(true);
-		setDeleteError(null);
+
 		try {
 			const result = await deleteRunnerScheduleEvent({ ownerId, runnerId, id: editing.id, expectedRevision: editing.configurationRevision, ...(scope ? { scope, occurrenceStart: selectedOccurrenceStart } : {}) });
 			if (!result.success) {
-				setDeleteError(result.error);
-				if (scope) setError(result.error);
+				setError(result.error);
 				if (result.code === "CONFLICT" || result.code === "ACTIVE_OCCURRENCE_LOCKED" || result.code === "SCHEDULE_COMPLETED") {
 					setDeleting(false);
 					setOpen(false);
-					setError(result.error);
 					await reload();
 				}
 				return;
@@ -271,8 +269,7 @@ export default function RunnerSchedule(props: Props) {
 			setDeleting(false);
 			setOpen(false);
 		} catch {
-			setDeleteError("Could not delete your schedule. Please try again.");
-			if (scope) setError("Could not delete your schedule. Please try again.");
+			setError("Could not delete your schedule. Please try again.");
 		} finally {
 			setSaving(false);
 		}
@@ -287,11 +284,6 @@ export default function RunnerSchedule(props: Props) {
 						</p>
 					)}
 					{loading ? <Spinner size='sm' aria-label='Loading schedule' /> : !policy?.scheduling ? <p className='text-sm text-muted'>Upgrade to Pro to schedule broadcasts.</p> : !props.clipPlayback ? <p className='text-sm text-muted'>Scheduling is available for Clip playback.</p> : !props.sessionId ? <p className='text-sm text-muted'>Save your broadcast configuration before adding a schedule.</p> : null}
-					{error && !open && (
-						<p role='alert' className='text-sm text-danger'>
-							{error}
-						</p>
-					)}
 					{!loading && (
 						<>
 							<RunnerScheduleAgenda
@@ -532,11 +524,6 @@ export default function RunnerSchedule(props: Props) {
 																<RunnerDestinationSelection label='Schedule destinations' destinations={destinations} selectedIds={draft.destinationIds} runnerPro onChange={selectDestinations} onManage={() => manageDestinations("schedule")} />
 															</>
 														)}
-														{error && (
-															<p role='alert' className='text-sm text-danger'>
-																{error}
-															</p>
-														)}
 													</>
 												)}
 											</>
@@ -557,7 +544,6 @@ export default function RunnerSchedule(props: Props) {
 											variant='danger'
 											isDisabled={!canEdit || saving}
 											onPress={() => {
-												setDeleteError(null);
 												if (editing.recurrence === "weekly") setScopePrompt("delete");
 												else setDeleting(true);
 											}}
@@ -624,11 +610,6 @@ export default function RunnerSchedule(props: Props) {
 				description={
 					<div className='space-y-3'>
 						<p>Remove “{editing?.title}” and its future scheduled broadcasts? Your source and destinations will be kept.</p>
-						{deleteError && (
-							<p role='alert' className='text-sm text-danger'>
-								{deleteError}
-							</p>
-						)}
 					</div>
 				}
 			/>

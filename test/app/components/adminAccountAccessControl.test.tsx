@@ -1,3 +1,5 @@
+import { notify } from "@lib/toast";
+jest.mock("@lib/toast", () => ({ notify: jest.fn() }));
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -24,6 +26,6 @@ it("reports notification failure separately from a successful enablement", async
 	render(<AdminAccountAccessControl user={{ id: "u1", username: "Alex", disabled: true }} onChanged={async () => {}} />);
 	await user.click(screen.getByRole("button", { name: "Enable" }));
 	await user.click(screen.getByRole("button", { name: "Enable account" }));
-	await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("notification email could not be queued"));
+	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringContaining("notification email could not be queued"), color: "warning" })));
 	expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });

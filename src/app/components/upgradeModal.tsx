@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@lib/toast";
 import { Button, Chip, Modal, Tabs } from "@heroui/react";
 
 import { IconCheck, IconCrown } from "@tabler/icons-react";
@@ -51,7 +52,6 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 	const [priceLoadError, setPriceLoadError] = useState(false);
 	const [priceLoadAttempt, setPriceLoadAttempt] = useState(0);
 	const [checkingOut, setCheckingOut] = useState(false);
-	const [checkoutError, setCheckoutError] = useState<string | null>(null);
 	const [productCycles, setProductCycles] = useState<Map<BillingProduct, BillingCycle>>(new Map());
 	const [campaignOffer, setCampaignOffer] = useState<CampaignOffer | null>(null);
 	const proTier = useMemo(() => tiers.find((t) => t.key === TiersEnum.Pro), []);
@@ -203,7 +203,7 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 									selectedKey={cycleFor(proBillingOption)}
 									onSelectionChange={(key) => {
 										const cycle = String(key) as BillingCycle;
-										setCheckoutError(null);
+
 										setBillingCycle(cycle);
 										trackProductEvent("upgrade_cycle_changed", { source, feature, cycle });
 										setProductCycles((previous) => new Map(previous).set(proBillingOption.key, cycle));
@@ -249,18 +249,13 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 						)}
 					</Modal.Body>
 					<Modal.Footer className='flex-col items-stretch gap-3'>
-						{checkoutError && (
-							<p role='alert' className='text-sm text-danger'>
-								{checkoutError}
-							</p>
-						)}
 						<div>
 							<Button
 								onPress={async () => {
 									if (checkingOut) return;
 									setCheckingOut(true);
 									trackProductEvent("upgrade_cta_clicked", { source, feature, cycle: billingCycle });
-									setCheckoutError(null);
+
 									try {
 										trackPaywallEvent("paywall_cta_click", {
 											source,
@@ -280,11 +275,11 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 											});
 											window.location.assign(link);
 										} else {
-											setCheckoutError(link && typeof link === "object" ? link.error : "Could not open checkout. Please try again.");
+											notify({ title: link && typeof link === "object" ? link.error : "Could not open checkout. Please try again.", color: "danger" });
 											trackProductEvent("checkout_failed", { source, feature, stage: "session" });
 										}
 									} catch {
-										setCheckoutError("Could not open checkout. Please try again.");
+										notify({ title: "Could not open checkout. Please try again.", color: "danger" });
 										trackProductEvent("checkout_failed", { source, feature, stage: "session" });
 									} finally {
 										setCheckingOut(false);

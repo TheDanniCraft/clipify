@@ -1,6 +1,10 @@
-import { render, screen } from "@testing-library/react";
+import { notify } from "@lib/toast";
+import { withdrawEventSubmissionAction } from "@actions/events";
+import { createAwardConfiguration } from "@lib/eventDefaults";
+jest.mock("@lib/toast", () => ({ notify: jest.fn() }));
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import PublicEventView from "@/app/components/events/PublicEventView";
-jest.mock("@/app/actions/events", () => ({ getPublicEventAction: jest.fn() }));
+jest.mock("@/app/actions/events", () => ({ getPublicEventAction: jest.fn(), withdrawEventSubmissionAction: jest.fn() }));
 jest.mock("@/app/components/events/EventProgress", () => ({ __esModule: true, default: () => null }));
 jest.mock("@/app/components/events/EventRoadmap", () => ({ __esModule: true, default: () => null }));
 jest.mock("@/app/components/events/EventSubmissionForm", () => ({ __esModule: true, default: () => null }));
@@ -10,4 +14,14 @@ it("explains closed voting without revealing results or offering vote changes", 
 	expect(screen.getByRole("heading", { name: "Babbler Awards" })).toBeInTheDocument();
 	expect(screen.getByText(/Voting has ended/)).toBeInTheDocument();
 	expect(screen.queryByRole("button", { name: /Vote for/ })).not.toBeInTheDocument();
+});
+
+it("reports a failed withdrawal as a toast and keeps the original proposal available", async () => {
+	jest.mocked(withdrawEventSubmissionAction).mockRejectedValueOnce(new Error("Network unavailable"));
+	const event = { ...createAwardConfiguration("Awards", "UTC"), id: "event", phase: "submissions", categories: [] };
+	render(<PublicEventView initial={{ ok: true, event, selection: [], participating: true, submissions: [{ id: "receipt", categoryId: "category", original: { title: "My proposal" } }] } as never} creatorName='Host' />);
+	fireEvent.click(screen.getByRole("button", { name: "Withdraw proposal" }));
+	await waitFor(() => expect(notify).toHaveBeenCalledWith({ title: "This proposal could not be withdrawn. Please try again.", color: "danger" }));
+	expect(screen.getByText("My proposal")).toBeVisible();
+	expect(screen.getByRole("button", { name: "Withdraw proposal" })).toBeEnabled();
 });

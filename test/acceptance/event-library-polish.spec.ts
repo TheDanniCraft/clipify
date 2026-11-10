@@ -35,7 +35,7 @@ for (const width of [390, 1440])
 			await expect(page.getByText("No events yet", { exact: true })).toBeVisible();
 			await page.route(url, failAction);
 			await page.getByRole("button", { name: "Create event", exact: true }).click();
-			await expect(page.getByRole("alert").filter({ hasText: "Your event could not be created." })).toHaveText("Your event could not be created. Please try again.");
+			await expect(page.getByText("Your event could not be created. Please try again.", { exact: true })).toHaveText("Your event could not be created. Please try again.");
 			await page.unroute(url, failAction);
 			let releaseCreation!: () => void;
 			const creationGate = new Promise<void>((resolve) => {
@@ -59,7 +59,7 @@ for (const width of [390, 1440])
 			await expect(page.getByRole("button", { name: "Save event", exact: true })).toBeEnabled();
 			await page.getByRole("textbox", { name: "Event title", exact: true }).fill("Community event");
 			await page.getByRole("button", { name: "Save event", exact: true }).click();
-			await expect(page.getByRole("status").filter({ hasText: "Event saved." })).toHaveText("Event saved.");
+			await expect(page.getByText("Event saved.", { exact: true })).toHaveText("Event saved.");
 			await expect(page.getByRole("heading", { name: "Community event", exact: true })).toBeVisible();
 			expect((await tourWorld.fixture.pool.query("SELECT configuration->>'title' AS title FROM award_events WHERE owner_id=$1", [creatorId])).rows).toEqual([{ title: "Community event" }]);
 			await page.screenshot({ path: info.outputPath("event-editor.png"), fullPage: true, animations: "disabled" });

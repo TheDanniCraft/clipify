@@ -1,3 +1,4 @@
+jest.mock("@lib/toast", () => ({ notify: jest.fn() }));
 jest.mock("@/app/actions/admin-account-access", () => ({ setAdminAccountAccess: jest.fn() }));
 import React from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";

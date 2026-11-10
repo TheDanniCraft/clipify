@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@lib/toast";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Button, ComboBox, Input, Label, ListBox, TextArea, TextField } from "@heroui/react";
@@ -21,8 +22,7 @@ function SourceSubmissionForm({ eventId, category, onSubmitted, teamCreatorId }:
 		[items, setItems] = useState<EventCandidateContent[]>([]),
 		[busy, setBusy] = useState(false),
 		[loading, setLoading] = useState(false),
-		[error, setError] = useState(""),
-		[message, setMessage] = useState("");
+		[error, setError] = useState("");
 	const searchable = ["clip", "youtube", "game"].includes(category.source);
 	useEffect(() => {
 		if (!searchable) return;
@@ -54,22 +54,21 @@ function SourceSubmissionForm({ eventId, category, onSubmitted, teamCreatorId }:
 	}, [eventId, category.id, query, searchable, teamCreatorId]);
 	async function submit() {
 		setBusy(true);
-		setError("");
-		setMessage("");
+
 		try {
 			const result = await (teamCreatorId ? addEventTeamCandidateAction(teamCreatorId, eventId, category.id, { reference, title, description }) : submitEventAction(eventId, category.id, { reference, title, description }));
 			if (!result.ok) {
-				setError(result.code === "LIMIT_REACHED" ? "You have reached this category's limit. Withdraw an earlier proposal to submit another." : result.code === "PHASE_CLOSED" ? "Nominations have closed." : "This proposal could not be submitted. Check the category rules and try again.");
+				notify({ title: result.code === "LIMIT_REACHED" ? "You have reached this category's limit. Withdraw an earlier proposal to submit another." : result.code === "PHASE_CLOSED" ? "Nominations have closed." : "This proposal could not be submitted. Check the category rules and try again.", color: "danger" });
 				return;
 			}
-			setMessage(teamCreatorId ? "Candidate added." : "Your proposal was submitted.");
+			notify({ title: teamCreatorId ? "Candidate added." : "Your proposal was submitted.", color: "success" });
 			setReference("");
 			setTitle("");
 			setDescription("");
 			setQuery("");
 			onSubmitted();
 		} catch {
-			setError("Your proposal could not be submitted. Your draft is preserved; please try again.");
+			notify({ title: "Your proposal could not be submitted. Your draft is preserved; please try again.", color: "danger" });
 		} finally {
 			setBusy(false);
 		}
@@ -148,11 +147,6 @@ function SourceSubmissionForm({ eventId, category, onSubmitted, teamCreatorId }:
 			{error ? (
 				<p role='alert' className='text-sm text-danger'>
 					{error}
-				</p>
-			) : null}
-			{message ? (
-				<p role='status' className='text-sm text-success'>
-					{message}
 				</p>
 			) : null}
 			<Button isPending={busy} isDisabled={busy || (searchable && !reference)} onPress={() => void submit()}>

@@ -1,3 +1,4 @@
+jest.mock("@lib/toast", () => ({ notify: jest.fn() }));
 import { render, screen, fireEvent } from "@testing-library/react";
 import BroadcastDetails from "@/app/components/runner/BroadcastDetails";
 jest.mock("@/app/actions/runner", () => ({ searchRunnerTwitchCategories: jest.fn(), uploadRunnerScheduleThumbnail: jest.fn() }));

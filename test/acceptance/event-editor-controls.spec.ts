@@ -32,7 +32,7 @@ for (const width of [390, 1440])
 			await expect(unlimited.getByRole("switch")).toBeChecked();
 			await page.getByRole("button", { name: "Apply category", exact: true }).click();
 			await page.getByRole("button", { name: "Save event", exact: true }).click();
-			await expect(page.getByRole("status").filter({ hasText: "Event saved." })).toBeVisible();
+			await expect(page.getByText("Event saved.", { exact: true })).toBeVisible();
 			const stored = (await tourWorld.fixture.pool.query("SELECT configuration FROM award_events WHERE id=$1", [eventId])).rows[0].configuration;
 			expect(stored.categories).toHaveLength(20);
 			expect(stored.categories.filter((category: { source: string }) => category.source === "clip").every((category: { rules: { startedAt?: string; endedAt?: string } }) => !category.rules.startedAt && !category.rules.endedAt)).toBe(true);
@@ -59,7 +59,7 @@ for (const width of [390, 1440])
 				expect(scopes).not.toContain(provider === "drive" ? "https://www.googleapis.com/auth/youtube.readonly" : "https://www.googleapis.com/auth/drive.file");
 				expect(google.searchParams.get("include_granted_scopes")).toBe("false");
 				await page.goto(`${tourWorld.origin}/dashboard/events/${eventId}?section=connections&connection=retry`);
-				await expect(page.getByRole("alert").filter({ hasText: "Google was not connected." })).toBeVisible();
+				await expect(page.getByText("Google was not connected.", { exact: true })).toBeVisible();
 			}
 			await openEventSection(page, "Chat");
 			const chat = page.locator('[data-slot="switch"]').filter({ hasText: "Show Twitch chat" });
@@ -67,7 +67,7 @@ for (const width of [390, 1440])
 			await expect(chat.getByRole("switch")).toBeChecked();
 			await page.screenshot({ path: info.outputPath("chat-settings.png"), fullPage: true, animations: "disabled" });
 			await page.getByRole("button", { name: "Save event", exact: true }).click();
-			await expect(page.getByRole("status").filter({ hasText: "Event saved." })).toBeVisible();
+			await expect(page.getByText("Event saved.", { exact: true })).toBeVisible();
 			await openEventSection(page, "Presentation");
 			await expect(page.getByRole("link", { name: "Open preview", exact: true })).toBeVisible();
 			await page.screenshot({ path: info.outputPath("presentation-editor.png"), fullPage: true, animations: "disabled" });

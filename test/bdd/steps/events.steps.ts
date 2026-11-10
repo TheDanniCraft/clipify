@@ -24,7 +24,7 @@ When("the creator creates an event named {string}", async ({ page }, name: strin
 	await expect(page.getByRole("button", { name: "Save event", exact: true })).toBeEnabled();
 	await page.getByRole("textbox", { name: /^Event title/ }).fill(name);
 	await page.getByRole("button", { name: "Save event", exact: true }).click();
-	await expect(page.getByRole("status").filter({ hasText: "Event saved." })).toHaveText("Event saved.");
+	await expect(page.getByText("Event saved.", { exact: true })).toHaveText("Event saved.");
 });
 Then("the award editor preserves its name and shows editable phase dates", async ({ page }) => {
 	await expect(page.getByRole("textbox", { name: /^Event title/ })).toHaveValue("Babbler Awards");
@@ -54,7 +54,8 @@ When("the participant submits the proposal {string}", async ({ page }, title: st
 	await page.getByRole("tab", { name: "Categories", exact: true }).click();
 	await page.getByRole("textbox", { name: /^Proposal name/ }).fill(title);
 	await page.getByRole("button", { name: "Submit proposal", exact: true }).click();
-	await expect(page.getByText("Your proposal was submitted.", { exact: true })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Submit proposal", exact: true })).toBeEnabled();
+	await expect(page.getByText("Your proposal was submitted.", { exact: true }).first()).toBeVisible();
 });
 Then("the personal proposals show {string}", async ({ page }, title: string) => {
 	await page.getByRole("tab", { name: "My proposals", exact: true }).click();
@@ -119,7 +120,7 @@ When("the participant uploads a picture named {string}", async ({ page }, name: 
 	const [response] = await Promise.all([page.waitForResponse((response) => new URL(response.url()).pathname.endsWith("/upload") && response.request().method() === "POST"), page.getByRole("button", { name: "Submit proposal", exact: true }).click()]);
 	const outcome = await response.json();
 	expect(outcome, JSON.stringify(outcome)).toMatchObject({ ok: true });
-	await expect(page.getByText("Your proposal was submitted.", { exact: true })).toBeVisible();
+	await expect(page.getByText("Your proposal was submitted.", { exact: true }).first()).toBeVisible();
 });
 Then("the nominated image opens as a full preview", async ({ page }) => {
 	await page.getByRole("button", { name: "View Lampe", exact: true }).click();
@@ -471,7 +472,8 @@ When("the participant searches and selects the eligible clip link", async ({ pag
 	await expect(page.getByText("Clipped by ActualClipper", { exact: true })).toBeVisible();
 	await page.getByRole("option", { name: /^Lampe raucht ab/ }).click();
 	await page.getByRole("button", { name: "Submit proposal", exact: true }).click();
-	await expect(page.getByText("Your proposal was submitted.", { exact: true })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Submit proposal", exact: true })).toBeEnabled();
+	await expect(page.getByText("Your proposal was submitted.", { exact: true }).first()).toBeVisible();
 	const receipts = await tourWorld.fixture.pool.query("SELECT original->>'reference' AS reference FROM award_submissions WHERE event_id=$1 AND withdrawn_at IS NULL", [awardWorld(tourWorld).eventId]);
 	expect(receipts.rows.map((row) => row.reference)).toEqual([`Eligible_${awardWorld(tourWorld).eventId}`]);
 });

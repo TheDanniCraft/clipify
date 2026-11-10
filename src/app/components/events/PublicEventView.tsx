@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@lib/toast";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Card, Link, Modal, Tabs } from "@heroui/react";
 import { getPublicEventAction, beginEventLoginAction, voteEventAction, withdrawEventSubmissionAction } from "@actions/events";
@@ -36,9 +37,9 @@ export default function PublicEventView({ initial, creatorName, brand }: { initi
 		try {
 			const result = await beginEventLoginAction(data.event.id);
 			if (result.ok && result.url) window.location.assign(result.url);
-			else setError("Twitch sign-in could not be started. Please try again.");
+			else notify({ title: "Twitch sign-in could not be started. Please try again.", color: "danger" });
 		} catch {
-			setError("Twitch sign-in could not be started. Please try again.");
+			notify({ title: "Twitch sign-in could not be started. Please try again.", color: "danger" });
 		} finally {
 			setBusy(null);
 		}
@@ -48,17 +49,17 @@ export default function PublicEventView({ initial, creatorName, brand }: { initi
 		const previous = data.selection.filter((s) => s.categoryId === categoryId).map((s) => s.candidateId);
 		const next = selected ? (data.event.votesPerCategory === 1 ? [candidateId] : [...previous, candidateId]) : previous.filter((id) => id !== candidateId);
 		if (next.length > data.event.votesPerCategory) {
-			setError(`Choose up to ${data.event.votesPerCategory} nominees per category.`);
+			notify({ title: `Choose up to ${data.event.votesPerCategory} nominees per category.`, color: "danger" });
 			return;
 		}
 		setBusy(categoryId);
 		setError("");
 		try {
 			const result = await voteEventAction(data.event.id, categoryId, next);
-			if (!result.ok) setError(result.code === "PHASE_CLOSED" ? "Voting has ended. Your last saved selection is preserved." : "Your vote could not be saved. Please try again.");
+			if (!result.ok) notify({ title: result.code === "PHASE_CLOSED" ? "Voting has ended. Your last saved selection is preserved." : "Your vote could not be saved. Please try again.", color: "danger" });
 			await reload();
 		} catch {
-			setError("Your vote could not be saved. Please try again.");
+			notify({ title: "Your vote could not be saved. Please try again.", color: "danger" });
 		} finally {
 			setBusy(null);
 		}
@@ -68,8 +69,10 @@ export default function PublicEventView({ initial, creatorName, brand }: { initi
 		setError("");
 		try {
 			const result = await withdrawEventSubmissionAction(data.event.id, id);
-			if (!result.ok) setError("This proposal could not be withdrawn. Nominations may have closed.");
+			if (!result.ok) notify({ title: "This proposal could not be withdrawn. Nominations may have closed.", color: "danger" });
 			await reload();
+		} catch {
+			notify({ title: "This proposal could not be withdrawn. Please try again.", color: "danger" });
 		} finally {
 			setBusy(null);
 		}

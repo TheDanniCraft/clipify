@@ -98,11 +98,11 @@ test("Runner preserves first connection, headless setup, updates, quality and re
 			});
 		});
 		await setup.getByRole("button", { name: "Copy runner token", exact: true }).click();
-		await expect(setup.getByRole("alert")).toHaveText("Clipboard unavailable. Reveal the token and copy it manually.");
+		await expect(page.getByText("Clipboard unavailable. Reveal the token and copy it manually.", { exact: true })).toHaveText("Clipboard unavailable. Reveal the token and copy it manually.");
 		await context.grantPermissions(["clipboard-read", "clipboard-write"]);
 		await page.evaluate(() => Reflect.deleteProperty(navigator.clipboard, "writeText"));
 		await setup.getByRole("button", { name: "Copy runner token", exact: true }).click();
-		await expect(setup.getByRole("status").filter({ hasText: "Token copied" })).toBeVisible();
+		await expect(page.getByText("Token copied", { exact: true })).toBeVisible();
 		await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(runnerToken);
 		// Observe the real download link action without requiring five executable builds
 		// in the browser job. Binary delivery/execution belongs to the native matrix.

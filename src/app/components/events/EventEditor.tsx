@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@lib/toast";
 import { useContext, useState } from "react";
 import { Button, Card, Label, Link, Switch, Tabs, TextArea, TextField } from "@heroui/react";
 import { DashboardNavigationContext } from "@components/dashboardNavigation";
@@ -27,24 +28,20 @@ export default function EventEditor({ creatorId, initial, user, canWhiteLabel = 
 	const [event, setEvent] = useState(initial),
 		[draft, setDraft] = useState(initial.configuration),
 		[busy, setBusy] = useState(false),
-		[error, setError] = useState(""),
-		[message, setMessage] = useState(""),
 		[presenterUrl, setPresenterUrl] = useState("");
 	const phase = eventPhase({ schedule: event.configuration.schedule, published: !!event.publishedAt, resultsPublished: !!event.resultsPublishedAt, reviewReleased: event.reviewReleased });
 	const update = (patch: Partial<EventConfiguration>) => setDraft({ ...draft, ...patch });
-	async function save(publish = false) {
-		setError("");
-		setMessage("");
+	async function save(publish = false, silent = false) {
 		const parsed = eventInputSchema.safeParse(draft);
 		if (!parsed.success) {
-			setError(parsed.error.issues[0]?.message ?? "Check your event settings.");
+			notify({ title: parsed.error.issues[0]?.message ?? "Check your event settings.", color: "danger" });
 			return;
 		}
 		setBusy(true);
 		try {
 			const result = event.publishedAt ? await saveEventPresentationAction(creatorId, event.id, event.revision, { slides: parsed.data.slides, presentation: parsed.data.presentation }) : await saveEventAction(creatorId, event.id, event.revision, parsed.data);
 			if (!result.ok) {
-				setError(result.code === "CONFLICT" ? "This event changed in another tab. Your edits are preserved; reopen the event before saving again." : "Your event could not be saved. Check the settings and try again.");
+				notify({ title: result.code === "CONFLICT" ? "This event changed in another tab. Your edits are preserved; reopen the event before saving again." : "Your event could not be saved. Check the settings and try again.", color: "danger" });
 				return;
 			}
 			setEvent(result.event);
@@ -52,43 +49,43 @@ export default function EventEditor({ creatorId, initial, user, canWhiteLabel = 
 			if (publish) {
 				const published = await publishEventAction(creatorId, event.id, result.event.revision);
 				if (!published.ok) {
-					setError(published.code === "STORAGE_REQUIRED" ? "Connect storage before publishing upload categories." : published.code === "PARTNER_REQUIRED" ? "Only Clipify partners can list public events. Choose an unlisted event." : "Your event was saved, but could not be published. Please try again.");
+					notify({ title: published.code === "STORAGE_REQUIRED" ? "Connect storage before publishing upload categories." : published.code === "PARTNER_REQUIRED" ? "Only Clipify partners can list public events. Choose an unlisted event." : "Your event was saved, but could not be published. Please try again.", color: "danger" });
 					return;
 				}
 				setEvent(published.event);
-				setMessage("Your event is published.");
-			} else setMessage("Event saved.");
+				notify({ title: "Your event is published.", color: "success" });
+			} else if (!silent) notify({ title: "Event saved.", color: "success" });
 			return true;
 		} catch {
-			setError("Your event could not be saved. Your edits are preserved.");
+			notify({ title: "Your event could not be saved. Your edits are preserved.", color: "danger" });
 		} finally {
 			setBusy(false);
 		}
 	}
 	async function presenter() {
 		setBusy(true);
-		setError("");
+
 		try {
 			const result = await rotateEventPresenterAction(creatorId, event.id);
 			if (result.ok) setPresenterUrl(`${window.location.origin}/events/${event.id}/present#${result.presenterSecret}`);
-			else setError("The presenter link could not be created. Please retry.");
+			else notify({ title: "The presenter link could not be created. Please retry.", color: "danger" });
 		} catch {
-			setError("The presenter link could not be created. Please retry.");
+			notify({ title: "The presenter link could not be created. Please retry.", color: "danger" });
 		} finally {
 			setBusy(false);
 		}
 	}
 	async function publishResults() {
 		setBusy(true);
-		setError("");
+
 		try {
 			const result = await publishEventResultsAction(creatorId, event.id);
 			if (result.ok) {
 				setEvent(result.event);
-				setMessage("Results published.");
-			} else setError(result.code === "RESULTS_REQUIRED" ? "Complete the missing data awards before publishing results." : "Results can be published after voting closes. Please try again then.");
+				notify({ title: "Results published.", color: "success" });
+			} else notify({ title: result.code === "RESULTS_REQUIRED" ? "Complete the missing data awards before publishing results." : "Results can be published after voting closes. Please try again then.", color: "danger" });
 		} catch {
-			setError("Results could not be published. Please retry.");
+			notify({ title: "Results could not be published. Please retry.", color: "danger" });
 		} finally {
 			setBusy(false);
 		}
@@ -141,16 +138,6 @@ export default function EventEditor({ creatorId, initial, user, canWhiteLabel = 
 				</Card.Header>
 				<Card.Content className='space-y-5'>
 					<p className='text-sm text-muted'>{event.publishedAt ? "Setup is locked after publication. Continue with proposals, data awards and your presentation." : "Set your categories and roadmap, connect storage if you accept uploads, then publish. You can preview and share your draft first."}</p>
-					{error ? (
-						<p role='alert' className='text-sm text-danger'>
-							{error}
-						</p>
-					) : null}
-					{message ? (
-						<p role='status' className='text-sm text-success'>
-							{message}
-						</p>
-					) : null}
 					{presenterUrl ? (
 						<div className='rounded-xl bg-default/40 p-4'>
 							<p className='text-sm'>Keep this link private. Previous presenter links no longer work.</p>
@@ -264,7 +251,7 @@ export default function EventEditor({ creatorId, initial, user, canWhiteLabel = 
 							{event.configuration.tiePolicy === "team" ? <EventTieResults creatorId={creatorId} eventId={event.id} locked={!!event.resultsPublishedAt} /> : null}
 						</Tabs.Panel>
 						<Tabs.Panel id='connections' className='pt-5'>
-							<EventConnections status={connectionStatus} beforeConnect={async () => !!(await save())} creatorId={creatorId} eventId={event.id} value={draft.storageConnectionId} readOnly={busy || !!event.publishedAt} onChange={(storageConnectionId) => update({ storageConnectionId })} />
+							<EventConnections status={connectionStatus} beforeConnect={async () => !!(await save(false, true))} creatorId={creatorId} eventId={event.id} value={draft.storageConnectionId} readOnly={busy || !!event.publishedAt} onChange={(storageConnectionId) => update({ storageConnectionId })} />
 						</Tabs.Panel>
 						<Tabs.Panel id='presentation' className='pt-5'>
 							<EventPresentationEditor creatorId={creatorId} eventId={event.id} draft={draft} busy={busy} onChange={(slides) => update({ slides })} />

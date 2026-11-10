@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@lib/toast";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, Link, Skeleton, Spinner, Table, Chip } from "@heroui/react";
@@ -11,8 +12,7 @@ export default function EventLibrary({ creatorId }: { creatorId: string }) {
 	const router = useRouter();
 	const [library, setLibrary] = useState<Awaited<ReturnType<typeof listEventsAction>>>();
 	const [attempt, setAttempt] = useState(0),
-		[busy, setBusy] = useState(false),
-		[error, setError] = useState("");
+		[busy, setBusy] = useState(false);
 	useEffect(() => {
 		let active = true;
 		void listEventsAction(creatorId)
@@ -29,17 +29,16 @@ export default function EventLibrary({ creatorId }: { creatorId: string }) {
 	async function create(example = false) {
 		if (busy) return;
 		setBusy(true);
-		setError("");
 		try {
 			const result = example ? await createEventExampleAction(creatorId) : await createEventAction(creatorId, createAwardConfiguration("New event", Intl.DateTimeFormat().resolvedOptions().timeZone));
 			if (!result.ok) {
-				setError("Your event could not be created. Please try again.");
+				notify({ title: "Your event could not be created. Please try again.", color: "danger" });
 				setBusy(false);
 				return;
 			}
 			router.push(`/dashboard/events/${result.event.id}`);
 		} catch {
-			setError("Your event could not be created. Please try again.");
+			notify({ title: "Your event could not be created. Please try again.", color: "danger" });
 			setBusy(false);
 		}
 	}
@@ -66,11 +65,6 @@ export default function EventLibrary({ creatorId }: { creatorId: string }) {
 						<p role='status' className='flex items-center gap-2 text-sm text-muted'>
 							<Spinner aria-hidden='true' size='sm' />
 							Creating event…
-						</p>
-					) : null}
-					{error ? (
-						<p role='alert' className='text-sm text-danger'>
-							{error}
 						</p>
 					) : null}
 					{!library ? (
