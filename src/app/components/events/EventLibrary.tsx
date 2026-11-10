@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, Link, Skeleton, Spinner } from "@heroui/react";
+import { Button, Card, Link, Skeleton, Spinner, Table, Chip } from "@heroui/react";
 import DashboardEditorLayout from "@components/dashboardEditorLayout";
 import ResourceLoadError from "@components/resourceLoadError";
 import { createEventAction, createEventExampleAction, listEventsAction } from "@actions/events";
@@ -89,19 +89,42 @@ export default function EventLibrary({ creatorId }: { creatorId: string }) {
 							</Button>
 						</ResourceLoadError>
 					) : library.events.length ? (
-						<div className='grid w-full gap-3'>
-							{library.events.map((event) => (
-								<Link key={event.id} href={`/dashboard/events/${event.id}`} className='flex w-full flex-wrap items-center justify-between gap-3 rounded-xl bg-default/40 p-4'>
-									<div>
-										<p className='font-medium'>{event.configuration.title}</p>
-										<p className='text-sm text-muted'>{event.resultsPublishedAt ? "Results published" : event.publishedAt ? "Published" : "Draft"}</p>
-									</div>
-									<span className='text-xs text-muted'>
-										<LocalizedDate value={event.createdAt} />
-									</span>
-								</Link>
-							))}
-						</div>
+						<Table>
+							<Table.ScrollContainer>
+								<Table.Content aria-label='Events' onRowAction={(key) => router.push(`/dashboard/events/${key}`)}>
+									<Table.Header>
+										<Table.Column isRowHeader>Name</Table.Column>
+										<Table.Column>Status</Table.Column>
+										<Table.Column className='hidden md:table-cell'>Created</Table.Column>
+										<Table.Column>Actions</Table.Column>
+									</Table.Header>
+									<Table.Body items={library.events}>
+										{(event) => (
+											<Table.Row id={event.id} textValue={event.configuration.title}>
+												<Table.Cell>
+													<Link href={`/dashboard/events/${event.id}`} className='font-medium text-foreground'>
+														{event.configuration.title}
+													</Link>
+												</Table.Cell>
+												<Table.Cell>
+													<Chip size='sm' variant='soft'>
+														{event.resultsPublishedAt ? "Results published" : event.publishedAt ? "Published" : "Draft"}
+													</Chip>
+												</Table.Cell>
+												<Table.Cell className='hidden md:table-cell'>
+													<LocalizedDate value={event.createdAt} />
+												</Table.Cell>
+												<Table.Cell>
+													<Link href={`/dashboard/events/${event.id}`} className='text-sm'>
+														Edit event
+													</Link>
+												</Table.Cell>
+											</Table.Row>
+										)}
+									</Table.Body>
+								</Table.Content>
+							</Table.ScrollContainer>
+						</Table>
 					) : (
 						<div className='py-10 text-center'>
 							<h2 className='font-medium'>No events yet</h2>

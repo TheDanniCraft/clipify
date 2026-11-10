@@ -2,7 +2,7 @@
 import type { AuthenticatedUser } from "@types";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, Input, Label, TextField, Modal, Skeleton, Chip } from "@heroui/react";
+import { Button, Card, Input, Label, TextField, Modal, Skeleton, Chip, Table } from "@heroui/react";
 import { IconPlus, IconLayoutCollage } from "@tabler/icons-react";
 import { listClipLayouts, saveClipLayoutTemplate, setDefaultClipLayout, deleteClipLayoutTemplate, loadClipLayoutOverride, type ClipLayoutTemplate } from "@actions/clipLayoutLibrary";
 import type { CreatorBrand } from "@lib/overlayMetadata";
@@ -86,51 +86,65 @@ export default function ClipLayoutLibrary({ user, creatorId, layoutId, clipId, r
 						<>
 							{layoutId && !entry ? <p className='text-sm text-muted'>This layout is no longer available. Choose another layout.</p> : null}
 							{library.templates.length ? (
-								<section key='templates' className='space-y-3'>
-									<h3 className='text-sm font-medium'>Desktop and Mobile templates</h3>
-									{library.templates.map((item) => (
-										<div key={item.id} className='flex flex-wrap items-center justify-between gap-3 rounded-xl bg-default/40 p-4'>
-											<div className='flex min-w-0 items-center gap-3'>
-												<IconLayoutCollage className='size-5 shrink-0 text-muted' />
-												<div className='min-w-0'>
-													<p className='break-words font-medium'>{item.name}</p>
-													<p className='text-xs text-muted'>Desktop 16:9 / Mobile 9:16</p>
-												</div>
-												{library.defaults.desktop === item.id ? <Chip size='sm'>Default</Chip> : null}
-											</div>
-											<div className='flex flex-wrap gap-2'>
-												<Button variant='secondary' onPress={() => router.push(path(item.id))}>
-													{clipId ? "Adjust clip" : "Edit layout"}
-												</Button>
-												{!clipId && library.defaults.desktop !== item.id ? (
-													<Button
-														variant='ghost'
-														isDisabled={busy}
-														onPress={async () => {
-															setBusy(true);
-															try {
-																const r = await setDefaultClipLayout(creatorId, item.id);
-																if (!r.ok) error();
-																else setAttempt((n) => n + 1);
-															} catch {
-																error();
-															} finally {
-																setBusy(false);
-															}
-														}}
-													>
-														Make default
-													</Button>
-												) : null}
-												{!clipId ? (
-													<Button variant='danger-soft' onPress={() => setRemove(item)}>
-														Delete
-													</Button>
-												) : null}
-											</div>
-										</div>
-									))}
-								</section>
+								<Table>
+									<Table.ScrollContainer>
+										<Table.Content aria-label='Clip layouts' onRowAction={(key) => router.push(path(String(key)))}>
+											<Table.Header>
+												<Table.Column isRowHeader>Name</Table.Column>
+												<Table.Column className='hidden md:table-cell'>Formats</Table.Column>
+												<Table.Column>Actions</Table.Column>
+											</Table.Header>
+											<Table.Body>
+												{library.templates.map((item) => (
+													<Table.Row key={item.id} id={item.id} textValue={item.name}>
+														<Table.Cell>
+															<div className='flex min-w-0 items-center gap-3'>
+																<IconLayoutCollage className='size-5 shrink-0 text-muted' />
+																<div className='min-w-0'>
+																	<p className='break-words font-medium'>{item.name}</p>
+																</div>
+																{library.defaults.desktop === item.id ? <Chip size='sm'>Default</Chip> : null}
+															</div>
+														</Table.Cell>
+														<Table.Cell className='hidden md:table-cell'>Desktop 16:9 / Mobile 9:16</Table.Cell>
+														<Table.Cell>
+															<div className='flex flex-wrap justify-end gap-2'>
+																<Button variant='secondary' onPress={() => router.push(path(item.id))}>
+																	{clipId ? "Adjust clip" : "Edit layout"}
+																</Button>
+																{!clipId && library.defaults.desktop !== item.id ? (
+																	<Button
+																		variant='ghost'
+																		isDisabled={busy}
+																		onPress={async () => {
+																			setBusy(true);
+																			try {
+																				const r = await setDefaultClipLayout(creatorId, item.id);
+																				if (!r.ok) error();
+																				else setAttempt((n) => n + 1);
+																			} catch {
+																				error();
+																			} finally {
+																				setBusy(false);
+																			}
+																		}}
+																	>
+																		Make default
+																	</Button>
+																) : null}
+																{!clipId ? (
+																	<Button variant='danger-soft' onPress={() => setRemove(item)}>
+																		Delete
+																	</Button>
+																) : null}
+															</div>
+														</Table.Cell>
+													</Table.Row>
+												))}
+											</Table.Body>
+										</Table.Content>
+									</Table.ScrollContainer>
+								</Table>
 							) : (
 								<div className='space-y-2 py-6'>
 									<p className='font-medium'>Create your first layout</p>

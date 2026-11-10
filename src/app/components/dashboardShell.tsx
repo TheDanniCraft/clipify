@@ -181,11 +181,11 @@ function NavigationFrame({ children, creatorId, permissions, open, setOpen, isAd
 					<>
 						<Sidebar.Group>
 							<Sidebar.Menu aria-label='Event workspace'>
-								<Sidebar.MenuItem id='all-events' href='/dashboard/events' textValue='All events'>
+								<Sidebar.MenuItem id='back-home' href={homeHref} textValue='Back to home'>
 									<Sidebar.MenuIcon>
 										<IconFolder className='size-4' />
 									</Sidebar.MenuIcon>
-									<Sidebar.MenuLabel>All events</Sidebar.MenuLabel>
+									<Sidebar.MenuLabel>Back to home</Sidebar.MenuLabel>
 								</Sidebar.MenuItem>
 							</Sidebar.Menu>
 						</Sidebar.Group>
