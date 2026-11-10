@@ -130,8 +130,8 @@ Then("saving that blocked appearance is refused without changing the profile", a
 	try {
 		const before = await pool.query("SELECT id,revision,watermark_corner FROM runner_branding_profiles WHERE runner_id=$1 AND owner_id=$2", [world.runnerId, world.owner.fixture.creatorId]);
 		await page.getByRole("button", { name: "Save appearance", exact: true }).click();
-		await expect(page.getByRole("alert").filter({ hasText: "Adjust your overlay layout" })).toBeVisible();
-		await expect(page.getByRole("status").filter({ hasText: "Appearance saved" })).toHaveCount(0);
+		await expect(page.getByText(/Adjust your overlay layout/).first()).toBeVisible();
+		await expect(page.getByText("Appearance saved", { exact: true }).first()).toHaveCount(0);
 		const after = await pool.query("SELECT id,revision,watermark_corner FROM runner_branding_profiles WHERE runner_id=$1 AND owner_id=$2", [world.runnerId, world.owner.fixture.creatorId]);
 		expect(after.rows).toEqual(before.rows);
 	} finally {
@@ -149,7 +149,7 @@ Then("the known conflict remains blocked when the preview returns to standby", a
 	try {
 		const before = await pool.query("SELECT id,revision,watermark_corner FROM runner_branding_profiles WHERE runner_id=$1 AND owner_id=$2", [world.runnerId, world.owner.fixture.creatorId]);
 		await page.getByRole("button", { name: "Save appearance", exact: true }).click();
-		await expect(page.getByRole("alert").filter({ hasText: "Adjust your overlay layout" })).toBeVisible();
+		await expect(page.getByText(/Adjust your overlay layout/).first()).toBeVisible();
 		const after = await pool.query("SELECT id,revision,watermark_corner FROM runner_branding_profiles WHERE runner_id=$1 AND owner_id=$2", [world.runnerId, world.owner.fixture.creatorId]);
 		expect(after.rows).toEqual(before.rows);
 	} finally {

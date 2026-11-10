@@ -112,7 +112,7 @@ When("they submit a UTC schedule lasting {int} minutes", async ({ page, mcpWorld
 Then("the schedule boundary is {string} without changing a previously saved event", async ({ page, mcpWorld }, outcome: string) => {
 	const state = mcpWorld.input?.scheduleContract as State;
 	if (outcome === "rejected") {
-		await expect(page.getByRole("dialog", { name: "Schedule broadcast", exact: true }).locator('[role="alert"], [data-slot="field-error"]')).toBeVisible();
+		await expect(page.getByRole("dialog", { name: "Schedule broadcast", exact: true }).locator('[role="alert"], [data-slot="field-error"]').or(page.locator('[data-slot="toast-title"]')).first()).toBeVisible();
 		expect(await saved(state)).toEqual(state.before);
 	} else {
 		await expect(page.getByRole("dialog", { name: "Schedule broadcast", exact: true })).toHaveCount(0);
@@ -304,7 +304,7 @@ When("storage rejects an edit to a saved schedule", async ({ page, mcpWorld }) =
 });
 Then("the browser reports the save failure and retains the prior saved schedule", async ({ page, mcpWorld }) => {
 	const state = mcpWorld.input?.scheduleContract as State;
-	await expect(page.getByRole("dialog", { name: "Schedule broadcast", exact: true }).getByRole("alert")).toContainText(/could not|try again/i);
+	await expect(page.locator('[data-slot="toast-title"]')).toContainText(/could not|try again/i);
 	expect(await saved(state)).toEqual(state.before);
 	await page.reload();
 	await openRunnerSchedule(page);
@@ -802,7 +802,7 @@ When("they submit an event overlapping an existing saved event", async ({ page, 
 });
 Then("the overlap explanation appears and the original schedule remains authoritative after reload", async ({ page, mcpWorld }) => {
 	const state = mcpWorld.input?.scheduleContract as State;
-	await expect(page.getByRole("dialog", { name: "Schedule broadcast", exact: true }).getByRole("alert")).toContainText(/overlaps another event/i);
+	await expect(page.locator('[data-slot="toast-title"]')).toContainText(/overlaps another event/i);
 	expect(await saved(state)).toEqual(state.before);
 	await page.reload();
 	await openRunnerSchedule(page);

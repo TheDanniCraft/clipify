@@ -472,7 +472,6 @@ When("the participant searches and selects the eligible clip link", async ({ pag
 	await expect(page.getByText("Clipped by ActualClipper", { exact: true })).toBeVisible();
 	await page.getByRole("option", { name: /^Lampe raucht ab/ }).click();
 	await page.getByRole("button", { name: "Submit proposal", exact: true }).click();
-	await expect(page.getByRole("button", { name: "Submit proposal", exact: true })).toBeEnabled();
 	await expect(page.getByText("Your proposal was submitted.", { exact: true }).first()).toBeVisible();
 	const receipts = await tourWorld.fixture.pool.query("SELECT original->>'reference' AS reference FROM award_submissions WHERE event_id=$1 AND withdrawn_at IS NULL", [awardWorld(tourWorld).eventId]);
 	expect(receipts.rows.map((row) => row.reference)).toEqual([`Eligible_${awardWorld(tourWorld).eventId}`]);

@@ -95,7 +95,8 @@ Then("clearing optional images previews the saved color and message before apply
 	await expect(preview.locator("[data-runner-standby]")).toHaveCSS("background-color", "rgb(22, 50, 79)");
 	await expect(preview.getByText("Back soon <3", { exact: true })).toBeVisible();
 	await page.getByRole("button", { name: "Save appearance", exact: true }).click();
-	await expect(page.getByRole("status").filter({ hasText: "Appearance saved" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Save appearance", exact: true })).toBeEnabled();
+	await expect(page.getByText("Appearance saved", { exact: true }).first()).toBeVisible();
 	const world = state(mcpWorld.input);
 	const response = await page.request.post("http://127.0.0.1:3107/api/runner/presentation", { headers: { Authorization: `Bearer ${world.token}` }, data: { sessionId: world.sessionId, executionGeneration: world.generation } });
 	expect(response.status()).toBe(200);

@@ -48,7 +48,8 @@ Then("choosing {word} persists and the preview and generated presentation use th
 	await expect(option).toBeChecked();
 	await expectCornerAttribution(page.frameLocator('iframe[title="Runner appearance preview"]').getByLabel("Livestream powered by Clipify.us", { exact: true }), selectedCorner);
 	await page.getByRole("button", { name: "Save appearance", exact: true }).click();
-	await expect(page.getByRole("status").filter({ hasText: "Appearance saved" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Save appearance", exact: true })).toBeEnabled();
+	await expect(page.getByText("Appearance saved", { exact: true }).first()).toBeVisible();
 	await page.reload();
 	await openRunnerAppearance(page);
 	await expect(option).toBeChecked();
