@@ -11,7 +11,7 @@ export function babblerAwardPilot(storageConnectionId: string) {
 			["Bestes YouTube Thumbnail", "image"],
 			["Größter Technischer Fail", "clip"],
 			["Bester Play des Jahres von Jan", "clip"],
-			["Dümmstes Zitat von Jan", "clip"],
+			["Dümmstes Zitat von Jan", "text"],
 			["Bester Erschrecker des Jahres", "clip"],
 			["Bester Holy des Jahres", "choice"],
 		].map(([title, source]) => category(title, "Jan Deluxe", source as EventSource, source === "choice" ? "team" : "audience")),

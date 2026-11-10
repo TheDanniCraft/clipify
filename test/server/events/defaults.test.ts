@@ -19,3 +19,11 @@ it("can represent all nineteen supplied Babbler categories without hard-coded pr
 	expect(configuration.categories.filter((category) => category.selection === "data")).toHaveLength(4);
 	expect(new Set(configuration.categories.map((category) => category.source))).toEqual(new Set(["image", "clip", "choice", "person", "text", "game", "youtube"]));
 });
+
+it("uses text for the Babbler quote category in the creator preset", async () => {
+	const { createBabblerExampleConfiguration } = await import("@/app/lib/eventExamples");
+	const configuration = createBabblerExampleConfiguration();
+	expect(configuration.categories.find((c) => c.title === "Dümmstes Zitat von Jan")?.source).toBe("text");
+	expect(configuration.categories).toHaveLength(19);
+	expect(eventInputSchema.safeParse(configuration).success).toBe(true);
+});

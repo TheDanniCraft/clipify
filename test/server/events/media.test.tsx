@@ -46,3 +46,14 @@ it.each(["image", "video", "audio"] as const)("offers local retry after a %s fai
 	expect(screen.queryByRole("status")).not.toBeInTheDocument();
 	expect(kind === "image" ? screen.getByRole("img", { name: "Unavailable nominee" }) : screen.getByLabelText("Unavailable nominee")).toBeInTheDocument();
 });
+
+it.each([
+	["clip", "ValidClip", "clips.twitch.tv"],
+	["youtube", "abcdefghijk", "www.youtube-nocookie.com"],
+] as const)("provides an origin referrer to the %s provider without leaking preview credentials", (kind, reference, host) => {
+	render(<EventMedia content={{ kind, reference, title: "Playable nominee", description: "" }} />);
+	const frame = screen.getByTitle("Playable nominee");
+	expect(frame).toHaveAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+	expect(new URL(frame.getAttribute("src")!).hostname).toBe(host);
+	expect(new URL(frame.getAttribute("src")!).hash).toBe("");
+});

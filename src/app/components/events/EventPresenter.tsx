@@ -167,17 +167,17 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 				}) ?? (c.dataResult?.status === "ready" ? [{ category: c.title, content: c.dataResult.content ?? { kind: "text" as const, title: c.dataResult.title, description: c.dataResult.description, reference: "" } }] : []),
 	);
 	return (
-		<Surface className={embedded ? "relative min-h-[420px] bg-background text-foreground" : "min-h-dvh bg-background text-foreground"} style={style}>
+		<Surface className={`relative flex flex-col bg-background text-foreground ${embedded ? "min-h-[420px]" : "min-h-dvh"}`} style={style}>
 			{preview && !embedded ? <p className='border-b border-separator bg-surface px-5 py-3 text-sm text-muted'>Read-only event preview. Includes unreviewed candidates. Nothing here changes votes or publishes results.</p> : null}
 			{show.brand?.fontSource === "google" ? <link rel='stylesheet' href={`https://fonts.googleapis.com/css2?family=${encodeURIComponent(show.brand.fontFamily)}:wght@400;700&display=swap`} /> : null}
-			<section className={embedded ? "mx-auto flex min-h-[420px] max-w-[1600px] flex-col justify-center px-5 py-16" : "mx-auto flex min-h-dvh max-w-[1600px] flex-col justify-center px-6 py-16 sm:px-14"} aria-label='Award presentation'>
+			<section className={`mx-auto flex w-full max-w-[1600px] flex-1 flex-col ${category ? "justify-start" : "justify-center"} ${embedded ? "px-5 py-8" : "px-6 py-10 sm:px-14 sm:py-12"}`} aria-label='Award presentation'>
 				{opened ? (
 					<div className='space-y-4'>
 						<Button variant='tertiary' onPress={close}>
 							Back to the show
 						</Button>
 						<div className={show.event.presentation?.showChat ? "grid gap-5 lg:grid-cols-[3fr_1fr]" : ""}>
-							<div className={embedded ? "flex min-h-64 items-center justify-center overflow-hidden rounded-2xl bg-surface" : "flex min-h-[65vh] items-center justify-center overflow-hidden rounded-2xl bg-surface"}>
+							<div className={`mx-auto flex aspect-video w-full items-center justify-center overflow-hidden rounded-2xl bg-surface ${embedded ? "" : "max-w-[calc(65dvh*16/9)]"}`}>
 								<EventMedia content={opened} />
 							</div>
 							{show.event.presentation?.showChat ? (
@@ -217,18 +217,18 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 						) : null}
 					</div>
 				) : step && "slide" in step ? (
-					<div key={step.id} className='space-y-8'>
+					<div key={step.slide.id} className='space-y-6 sm:space-y-8'>
 						<motion.header initial={{ opacity: 0, y: 32 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className='text-center'>
-							<h1 className={embedded ? "break-words text-3xl font-bold" : "break-words text-4xl font-bold sm:text-6xl"}>{step.slide.title || category?.title || show.event.title}</h1>
-							{step.type === "welcome" ? <p className='mt-6 whitespace-pre-wrap text-xl text-muted'>{step.slide.text || show.event.description}</p> : step.slide.text ? <p className='mt-5 whitespace-pre-wrap text-xl text-muted'>{step.slide.text}</p> : null}
+							<h1 className={`mx-auto max-w-5xl break-words text-balance font-bold ${embedded ? "text-3xl" : category ? "text-3xl sm:text-5xl" : "text-4xl sm:text-6xl"}`}>{step.slide.title || category?.title || show.event.title}</h1>
+							{step.type === "welcome" ? <p className='mx-auto mt-6 max-w-2xl whitespace-pre-wrap text-pretty text-lg text-muted sm:text-xl'>{step.slide.text || show.event.description}</p> : step.slide.text ? <p className='mx-auto mt-5 max-w-2xl whitespace-pre-wrap text-lg text-muted sm:text-xl'>{step.slide.text}</p> : null}
 						</motion.header>
 						{step.type === "statistics" ? (
-							<div className='grid grid-cols-2 gap-6 lg:grid-cols-4'>
+							<div className='mx-auto grid w-full max-w-6xl grid-cols-[repeat(auto-fit,minmax(min(100%,220px),1fr))] gap-5'>
 								{step.slide.statistics.map((stat, i) => {
 									const value = stat.source === "manual" ? stat.value : show.statistics[stat.source];
 									return (
 										<div key={i} className='rounded-2xl bg-surface p-6 text-center'>
-											<p className='text-4xl font-bold text-accent sm:text-6xl'>{typeof value === "number" ? <AnimatedNumber value={value} /> : "—"}</p>
+											<p className='text-4xl font-bold text-accent tabular-nums sm:text-6xl'>{typeof value === "number" ? <AnimatedNumber value={value} /> : "—"}</p>
 											<p className='mt-4 text-lg text-muted'>{stat.label}</p>
 										</div>
 									);
@@ -241,10 +241,29 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 									{step.type === "results" ? (resultsReady ? "The results" : "Results will be available after voting closes") : "The nominees"}
 									{step.pages > 1 ? ` (${step.page + 1} / ${step.pages})` : ""}
 								</p>
-								<div className='grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3'>
+								{step.type === "results" && category.results?.some((result) => result.winner && step.candidateIds.includes(result.id)) ? (
+									<div aria-label='Award winners' className='mx-auto flex max-w-4xl flex-wrap justify-center gap-5'>
+										{step.candidateIds.map((id) => {
+											const candidate = category.candidates.find((c) => c.id === id),
+												result = category.results?.find((r) => r.id === id);
+											return candidate && result?.winner ? (
+												<div key={id} className='w-full max-w-md'>
+													<EventNomineeCard candidate={candidate} onOpen={() => open(candidate.content)} result={result} />
+												</div>
+											) : null;
+										})}
+									</div>
+								) : null}
+								<div aria-label={step.type === "results" ? "Nominee results" : "Category nominees"} className='mx-auto flex w-full max-w-6xl flex-wrap justify-center gap-5'>
 									{step.candidateIds.map((id) => {
 										const candidate = category.candidates.find((c) => c.id === id);
-										return candidate ? <EventNomineeCard key={`${step.type}:${id}`} candidate={candidate} onOpen={() => open(candidate.content)} result={step.type === "results" ? category.results?.find((r) => r.id === id) : undefined} /> : null;
+										const result = step.type === "results" ? category.results?.find((r) => r.id === id) : undefined;
+										if (!candidate || result?.winner) return null;
+										return (
+											<div key={id} className={step.type === "results" && category.results?.some((r) => r.winner) ? "w-[calc((100%-1.25rem)/2)] lg:w-[calc((100%-3.75rem)/4)]" : "w-full sm:w-[calc((100%-1.25rem)/2)] lg:w-[calc((100%-2.5rem)/3)]"}>
+												<EventNomineeCard candidate={candidate} onOpen={() => open(candidate.content)} result={result} />
+											</div>
+										);
 									})}
 								</div>
 								{!step.candidateIds.length ? <p className='text-center text-muted'>No nominees in this category.</p> : null}
@@ -280,11 +299,11 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 							</div>
 						) : null}
 						{step.type === "closing" ? (
-							<div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3'>
+							<div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
 								{winners.map((winner, i) => (
-									<Button key={i} variant='secondary' className='h-auto flex-col whitespace-normal p-6 text-center' onPress={() => open(winner.content)}>
+									<Button key={i} variant='secondary' className='h-auto flex-col whitespace-normal p-4 text-center' onPress={() => open(winner.content)}>
 										<span className='text-sm text-muted'>{winner.category}</span>
-										<span className='text-xl font-semibold'>{winner.content.title}</span>
+										<span className='line-clamp-2 text-lg font-semibold'>{winner.content.title}</span>
 									</Button>
 								))}
 							</div>
@@ -292,15 +311,17 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 					</div>
 				) : null}
 			</section>
-			{!show.event.whiteLabel ? <p className={`pointer-events-none ${embedded ? "absolute" : "fixed"} bottom-4 left-5 text-xs text-muted/60`}>Clipify</p> : null}
-			<nav aria-label='Show navigation' className={`${embedded ? "absolute" : "fixed"} bottom-3 right-3 flex gap-1 opacity-50 transition-opacity hover:opacity-100 focus-within:opacity-100`}>
-				<Button aria-label='Previous slide' variant='tertiary' size='sm' isDisabled={!opened && index === 0} onPress={() => navigate(-1)}>
-					←
-				</Button>
-				<Button aria-label={opened ? "Close media" : "Next slide"} variant='tertiary' size='sm' isDisabled={!opened && index === steps.length - 1} onPress={() => navigate(1)}>
-					→
-				</Button>
-			</nav>
+			<footer className='flex shrink-0 items-center justify-between gap-4 px-5 pb-4 pt-3'>
+				{!show.event.whiteLabel ? <p className='pointer-events-none text-xs text-muted/60'>Clipify</p> : <span />}
+				<nav aria-label='Show navigation' className='flex gap-1 opacity-50 transition-opacity hover:opacity-100 focus-within:opacity-100'>
+					<Button aria-label='Previous slide' variant='tertiary' size='sm' isDisabled={!opened && index === 0} onPress={() => navigate(-1)}>
+						←
+					</Button>
+					<Button aria-label={opened ? "Close media" : "Next slide"} variant='tertiary' size='sm' isDisabled={!opened && index === steps.length - 1} onPress={() => navigate(1)}>
+						→
+					</Button>
+				</nav>
+			</footer>
 		</Surface>
 	);
 }

@@ -46,3 +46,18 @@ it("explains revoked links without exposing a presentation", async () => {
 	expect(await screen.findByRole("alert")).toHaveTextContent("unavailable");
 	expect(screen.queryByRole("button", { name: "Next slide" })).not.toBeInTheDocument();
 });
+
+it("keeps the category header mounted and promotes the winner above the other nominees", async () => {
+	const initial: typeof view = JSON.parse(JSON.stringify(view));
+	initial.event.categories[0].candidates.push({ id: "other", content: { kind: "text", title: "Another nominee", description: "", reference: "" } });
+	initial.event.categories[0].results.push({ id: "other", votes: 1, percentage: 25, winner: false });
+	render(<EventPresenter eventId='show' initial={initial as never} />);
+	fireEvent.keyDown(window, { key: "ArrowRight" });
+	const header = screen.getByRole("heading", { name: "Best fail" });
+	expect(screen.getByLabelText("Category nominees")).toHaveTextContent("Another nominee");
+	fireEvent.keyDown(window, { key: "ArrowRight" });
+	expect(screen.getByRole("heading", { name: "Best fail" })).toBe(header);
+	expect(screen.getByLabelText("Award winners")).toHaveTextContent("Lampe raucht ab winner");
+	expect(screen.getByLabelText("Nominee results")).toHaveTextContent("Another nominee");
+	expect(screen.getByLabelText("Nominee results")).not.toHaveTextContent("Lampe raucht ab");
+});

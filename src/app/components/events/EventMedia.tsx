@@ -19,9 +19,9 @@ export function EventMedia({ content }: { content: EventCandidateContent }) {
 		);
 	const onError = () => setFailed(identity);
 
-	if (content.kind === "clip" && /^[A-Za-z0-9_-]{1,200}$/.test(content.reference)) return <iframe title={content.title} className='aspect-video h-full w-full border-0' src={`https://clips.twitch.tv/embed?clip=${encodeURIComponent(content.reference)}&parent=${encodeURIComponent(window.location.hostname)}&autoplay=true`} allow='autoplay; fullscreen' allowFullScreen />;
-	if (content.kind === "youtube" && /^[A-Za-z0-9_-]{11}$/.test(content.reference)) return <iframe title={content.title} className='aspect-video h-full w-full border-0' src={`https://www.youtube-nocookie.com/embed/${content.reference}?autoplay=1`} allow='autoplay; fullscreen' allowFullScreen />;
-	if (content.kind === "video" && content.mediaUrl) return <video onError={onError} aria-label={content.title} src={content.mediaUrl} className='max-h-[80vh] w-full' controls autoPlay playsInline />;
+	if (content.kind === "clip" && /^[A-Za-z0-9_-]{1,200}$/.test(content.reference)) return <iframe title={content.title} referrerPolicy='strict-origin-when-cross-origin' className='aspect-video h-full w-full border-0' src={`https://clips.twitch.tv/embed?clip=${encodeURIComponent(content.reference)}&parent=${encodeURIComponent(window.location.hostname)}&autoplay=true`} allow='autoplay; fullscreen' allowFullScreen />;
+	if (content.kind === "youtube" && /^[A-Za-z0-9_-]{11}$/.test(content.reference)) return <iframe title={content.title} referrerPolicy='strict-origin-when-cross-origin' className='aspect-video h-full w-full border-0' src={`https://www.youtube-nocookie.com/embed/${content.reference}?autoplay=1`} allow='autoplay; fullscreen' allowFullScreen />;
+	if (content.kind === "video" && content.mediaUrl) return <video onError={onError} aria-label={content.title} src={content.mediaUrl} className='max-h-full w-full' controls autoPlay playsInline />;
 	if (content.kind === "audio" && content.mediaUrl)
 		return (
 			<div className='flex h-full flex-col items-center justify-center gap-6 p-6'>
@@ -54,7 +54,7 @@ export function EventMedia({ content }: { content: EventCandidateContent }) {
 }
 export function EventNomineeCard({ candidate, selected = false, disabled = false, onSelect, onOpen, result }: { candidate: { id: string; content: EventCandidateContent }; selected?: boolean; disabled?: boolean; onSelect?: (selected: boolean) => void; onOpen: () => void; result?: { percentage?: number; winner: boolean; votes?: number } }) {
 	return (
-		<div className={`overflow-hidden rounded-2xl border ${selected ? "border-accent bg-accent/5" : "border-separator bg-surface"}`}>
+		<div className={`overflow-hidden rounded-2xl border ${result?.winner ? "border-accent bg-surface ring-2 ring-accent" : selected ? "border-accent bg-accent/5" : "border-separator bg-surface"}`}>
 			<div className='relative aspect-video'>
 				<Button data-award-candidate={candidate.id} aria-label={`View ${candidate.content.title}`} variant='tertiary' className='relative h-full w-full overflow-hidden rounded-none p-0' onPress={onOpen}>
 					{candidate.content.thumbnailUrl || (candidate.content.kind === "image" && candidate.content.mediaUrl) ? <Image src={(candidate.content.thumbnailUrl || candidate.content.mediaUrl)!} alt='' unoptimized fill className='object-cover' /> : <span className='line-clamp-3 max-w-full whitespace-normal break-words px-5 text-center text-lg font-medium'>{candidate.content.title}</span>}
@@ -74,7 +74,7 @@ export function EventNomineeCard({ candidate, selected = false, disabled = false
 					</Checkbox>
 				) : (
 					<div className='space-y-2'>
-						<h3 className='break-words font-medium'>{candidate.content.title}</h3>
+						<h3 className='line-clamp-2 break-words font-medium'>{candidate.content.title}</h3>
 						{selected ? <p className='text-sm font-medium text-accent'>Your selection</p> : null}
 					</div>
 				)}
