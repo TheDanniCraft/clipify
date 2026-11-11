@@ -1,4 +1,5 @@
 "use client";
+import { preload } from "react-dom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { Button, Link, Spinner } from "@heroui/react";
@@ -87,11 +88,20 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 		function key(event: KeyboardEvent) {
 			if (embedded) return;
 			if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
-			const target = event.target;
-			if (target instanceof HTMLElement && target.closest("input,textarea,select,video,audio,[contenteditable=true]")) return;
 			if (event.key === "Escape" && opened) {
 				event.preventDefault();
 				close();
+				return;
+			}
+			const target = event.target;
+			if (target instanceof HTMLElement && target.closest("input,textarea,select,video,audio,[contenteditable=true]")) return;
+			if (event.code === "Space" && !opened) {
+				if (target instanceof HTMLElement && target.closest("button,a,[role=button]")) return;
+				const featured = document.querySelector<HTMLButtonElement>("[data-award-featured] [data-award-candidate]");
+				if (featured) {
+					event.preventDefault();
+					featured.click();
+				}
 			} else if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
 				event.preventDefault();
 				navigate(event.key === "ArrowRight" ? 1 : -1);
@@ -166,6 +176,11 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 	const style = show.brand ? ({ "--color-accent": show.brand.themeAccentColor, fontFamily: `${show.brand.fontFamily}, sans-serif` } as React.CSSProperties) : undefined;
 	const titleOnly = step?.type === "statistics-title" || step?.type === "category-title" || step?.type === "closing-title";
 	const entrance = { initial: reduceMotion ? (false as const) : { opacity: 0, y: 24 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.4 } };
+	const contentEntrance = { initial: reduceMotion ? (false as const) : { opacity: 0 }, animate: { opacity: 1 }, transition: { delay: reduceMotion ? 0 : 0.5, duration: 0.2 } };
+	for (const candidate of [...(category?.candidates ?? [])].sort((a, b) => a.id.localeCompare(b.id)).slice(step?.type === "nominee" ? step.position : 0, (step?.type === "nominee" ? step.position : 0) + 6)) {
+		const source = candidate.content.thumbnailUrl || (candidate.content.kind === "image" ? candidate.content.mediaUrl : undefined);
+		if (source) preload(source, { as: "image", fetchPriority: "high" });
+	}
 	const resultsReady = show.event.phase === "closed" || show.event.phase === "results";
 	const winners = show.event.categories.flatMap(
 		(c) =>
@@ -183,12 +198,12 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 			<section className={`mx-auto flex w-full max-w-[1600px] flex-1 flex-col justify-center ${embedded ? "px-5 py-8" : category || step?.type === "closing" ? "px-6 py-8 sm:px-14" : "px-6 py-10 sm:px-14 sm:py-12"}`} aria-label='Award presentation'>
 				{opened ? (
 					<div className='space-y-4'>
-						<Button variant='tertiary' onPress={close}>
-							Back to the show
-						</Button>
 						<div className={show.event.presentation?.showChat ? "grid gap-5 lg:grid-cols-[3fr_1fr]" : ""}>
-							<div className={`mx-auto flex w-full items-center justify-center overflow-hidden rounded-2xl bg-surface ${openedHasCaption ? "aspect-video" : "min-h-64"} ${embedded ? "" : "max-w-[calc(65dvh*16/9)]"}`}>
+							<div className={`relative mx-auto flex w-full items-center justify-center overflow-hidden rounded-2xl bg-surface ${openedHasCaption ? "aspect-video" : "min-h-64"} ${embedded ? "" : "max-w-[calc(65dvh*16/9)]"}`}>
 								<EventMedia content={opened} />
+								<Button isIconOnly size='sm' variant='secondary' aria-label='Close preview' className='absolute right-2 top-2 opacity-50 hover:opacity-100 focus-visible:opacity-100' onPress={close}>
+									×
+								</Button>
 							</div>
 							{show.event.presentation?.showChat ? (
 								preview ? (
@@ -228,13 +243,13 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 					</div>
 				) : step && "slide" in step ? (
 					<div key={step.slide.id} className={category ? "space-y-4" : "space-y-6 sm:space-y-8"}>
-						<motion.header layout={!reduceMotion ? "position" : false} {...entrance} className='text-center'>
+						<motion.header layout={!reduceMotion ? "position" : false} {...entrance} transition={{ duration: 0.4, layout: { duration: 0.4, ease: "easeInOut" } }} className='text-center'>
 							<h1 className={`mx-auto max-w-5xl break-words text-balance font-bold ${embedded ? "text-3xl" : category ? "text-3xl sm:text-5xl" : "text-4xl sm:text-6xl"}`}>{step.slide.title || category?.title || show.event.title}</h1>
 							{step.type === "welcome" ? <p className='mx-auto mt-6 max-w-2xl whitespace-pre-wrap text-pretty text-lg text-muted sm:text-xl'>{step.slide.text || show.event.description}</p> : step.slide.text ? <p className='mx-auto mt-5 max-w-2xl whitespace-pre-wrap text-lg text-muted sm:text-xl'>{step.slide.text}</p> : null}
 							{category && step.type !== "data-intro" && step.type !== "data-result" && category.selection !== "data" && (titleOnly || step.type === "nominee") ? <p className='mt-2 text-lg text-muted'>The nominees</p> : null}
 						</motion.header>
 						{step.type === "statistics" ? (
-							<motion.div {...entrance} transition={{ ...entrance.transition, delay: reduceMotion ? 0 : 0.2 }} className='mx-auto grid w-full max-w-6xl grid-cols-[repeat(auto-fit,minmax(min(100%,220px),1fr))] gap-5'>
+							<motion.div {...contentEntrance} className='mx-auto grid w-full max-w-6xl grid-cols-[repeat(auto-fit,minmax(min(100%,220px),1fr))] gap-5'>
 								{step.slide.statistics.map((stat, i) => {
 									const value = stat.source === "manual" ? stat.value : show.statistics[stat.source];
 									return (
@@ -248,12 +263,12 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 						) : null}
 						{category && (step.type === "nominee" || step.type === "reveal") ? <EventNomineeStage category={category} position={step.type === "nominee" ? step.position : undefined} place={step.type === "reveal" ? step.place : undefined} onOpen={open} /> : null}
 						{step.type === "data-intro" ? (
-							<motion.p {...entrance} className='py-16 text-center text-2xl text-muted'>
+							<motion.p {...contentEntrance} className='py-16 text-center text-2xl text-muted'>
 								And the award goes to…
 							</motion.p>
 						) : null}
 						{step.type === "data-result" ? (
-							<motion.div {...entrance} className='mx-auto max-w-3xl space-y-5 text-center'>
+							<motion.div {...contentEntrance} className='mx-auto max-w-3xl space-y-5 text-center'>
 								{dataResult ? (
 									<>
 										<h2 className='text-4xl font-bold text-accent'>{dataResult.title}</h2>
@@ -275,7 +290,7 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 							</motion.div>
 						) : null}
 						{step.type === "closing" ? (
-							<motion.div {...entrance} aria-label='Winner recap' className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
+							<motion.div {...contentEntrance} aria-label='Winner recap' className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
 								{winners.map((winner, i) => (
 									<div key={i} className='grid grid-rows-[auto_1fr] gap-2'>
 										<p className='text-sm font-semibold text-muted'>{winner.category}</p>

@@ -1,5 +1,5 @@
 "use client";
-import { animate, useReducedMotion } from "motion/react";
+import { animate, motion, useReducedMotion } from "motion/react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Button, Checkbox, Link, ProgressBar } from "@heroui/react";
@@ -81,11 +81,17 @@ export function EventNomineeCard({ candidate, selected = false, disabled = false
 		<div className={`overflow-hidden rounded-2xl border ${winner ? "border-accent bg-surface ring-2 ring-accent" : selected ? "border-accent bg-accent/5" : "border-separator bg-surface"}`}>
 			<div className='relative aspect-video'>
 				<Button data-award-candidate={candidate.id} aria-label={`View ${candidate.content.title}`} variant='tertiary' className='relative h-full w-full overflow-hidden rounded-none p-0' onPress={onOpen}>
-					{candidate.content.thumbnailUrl || (candidate.content.kind === "image" && candidate.content.mediaUrl) ? <Image src={(candidate.content.thumbnailUrl || candidate.content.mediaUrl)!} alt='' unoptimized fill className='object-cover' /> : <span className='line-clamp-3 max-w-full whitespace-normal break-words px-5 text-center text-lg font-medium'>{candidate.content.title}</span>}
+					{candidate.content.thumbnailUrl || (candidate.content.kind === "image" && candidate.content.mediaUrl) ? (
+						<Image src={(candidate.content.thumbnailUrl || candidate.content.mediaUrl)!} alt='' unoptimized fill loading='eager' className='object-cover' />
+					) : (
+						<motion.span layout='position' className='line-clamp-3 max-w-full whitespace-normal break-words px-5 text-center text-lg font-medium'>
+							{candidate.content.title}
+						</motion.span>
+					)}
 				</Button>
 				{winner || rank ? <span className='pointer-events-none absolute right-3 top-3 rounded-full bg-accent px-3 py-1 text-sm font-semibold text-accent-foreground'>{winner ? "Winner" : `#${rank}`}</span> : null}
 			</div>
-			<div className={`space-y-2 ${compact ? "p-2 text-sm" : "p-4"}`}>
+			<motion.div layout='position' className={`space-y-2 ${compact ? "p-2 text-sm" : "p-4"}`}>
 				{onSelect ? (
 					<Checkbox aria-label={`Vote for ${candidate.content.title}`} isSelected={selected} isDisabled={disabled} onChange={onSelect} className='w-full'>
 						<Checkbox.Content>
@@ -102,7 +108,7 @@ export function EventNomineeCard({ candidate, selected = false, disabled = false
 					</div>
 				)}
 				{result?.percentage !== undefined || compact ? <div className={compact ? "h-9" : undefined}>{result?.percentage !== undefined ? <EventVoteShare percentage={result.percentage} votes={result.votes} delay={resultDelay} label={label} /> : null}</div> : null}
-			</div>
+			</motion.div>
 		</div>
 	);
 }

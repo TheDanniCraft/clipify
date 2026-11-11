@@ -269,7 +269,7 @@ When("the host presents the nominees and reveals the winner", async ({ page }) =
 	await page.getByRole("button", { name: "View Lampe raucht ab", exact: true }).click();
 	await expect(page.getByText("Der Stromausfall des Jahres", { exact: true })).toBeVisible();
 	await page.keyboard.press("Escape");
-	await expect(page.getByRole("button", { name: "Back to the show", exact: true })).toHaveCount(0);
+	await expect(page.getByRole("button", { name: "Close preview", exact: true })).toHaveCount(0);
 	await page.keyboard.press("ArrowRight");
 	await expect(page.getByLabel("Nominee results").getByRole("button")).toHaveCount(1);
 	await expect(page.getByLabel("Nominee results").getByRole("progressbar")).toHaveCount(0);
@@ -394,7 +394,7 @@ Then("the award editor and presenter can be reviewed in both themes and viewport
 			await expect(page.getByRole("heading", { name: "Best fail", exact: true }).locator("..")).toHaveCSS("opacity", "1");
 			await page.screenshot({ path: test.info().outputPath(`awards-presenter-${size}-${theme}.png`), fullPage: true });
 			await page.getByRole("button", { name: "View Lampe raucht ab", exact: true }).click();
-			await expect(page.getByRole("button", { name: "Back to the show", exact: true })).toBeVisible();
+			await expect(page.getByRole("button", { name: "Close preview", exact: true })).toBeVisible();
 			await page.keyboard.press("Escape");
 			await expect(page.getByRole("button", { name: "View Lampe raucht ab", exact: true })).toBeFocused();
 			await page.goto(`${tourWorld.origin}/events/${eventId}`);

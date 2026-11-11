@@ -58,8 +58,8 @@ it("reveals podium places one click at a time and conceals them again on back", 
 	const category = initial.event.categories[0];
 	category.results[0].votes = 10;
 	for (const [index, title] of ["Second nominee", "Third nominee", "Fourth nominee"].entries()) {
-		category.candidates.push({ id: title, content: { kind: "text", title, description: "", reference: "" } });
-		category.results.push({ id: title, votes: 5 - index, percentage: 10, winner: false });
+		category.candidates.push({ id: `nominee-${index}`, content: { kind: "text", title, description: "", reference: "" } });
+		category.results.push({ id: `nominee-${index}`, votes: 5 - index, percentage: 10, winner: false });
 	}
 	render(<EventPresenter eventId='show' initial={initial as never} />);
 	const next = () => fireEvent.keyDown(window, { key: "ArrowRight" });
@@ -87,4 +87,16 @@ it("reveals podium places one click at a time and conceals them again on back", 
 	expect(screen.getByLabelText("Nominee results")).toHaveTextContent("Fourth nominee");
 	fireEvent.keyDown(window, { key: "ArrowLeft" });
 	expect(screen.queryByLabelText("Award winners")).not.toBeInTheDocument();
+});
+
+it("presents nominees independently of vote order", () => {
+	const initial: typeof view = JSON.parse(JSON.stringify(view));
+	initial.event.categories[0].candidates.push({ id: "a-other", content: { kind: "text", title: "Another nominee", description: "", reference: "" } });
+	initial.event.categories[0].results.push({ id: "a-other", votes: 0, percentage: 0, winner: false });
+	render(<EventPresenter eventId='show' initial={initial as never} />);
+	fireEvent.keyDown(window, { key: "ArrowRight" });
+	fireEvent.keyDown(window, { key: "ArrowRight" });
+	expect(screen.getByLabelText("Category nominees")).toHaveTextContent("Another nominee");
+	fireEvent.keyDown(window, { key: "ArrowRight" });
+	expect(screen.getByLabelText("Category nominees")).toHaveTextContent("Lampe raucht ab");
 });
