@@ -260,3 +260,5 @@ Creating the example in the user's actual account is an external follow-up after
 - [x] T127 Update the YouTube connection-start browser fixture to configure a YouTube category before testing its contextual connection action; retain the actual failure-recovery and Better Auth consent assertions.
 
 - [x] T128 Restore the requested single-card flight between the main presentation area and its reserved nominee slot. Return the outgoing card before raising the next, animate position/width without scaling captions, retain stable result geometry and instant Back/Escape recovery, and verify actual in-flight frames and one card per nominee.
+
+- [x] T129 Preserve the complete featured wrapper height during single-card flights so placement labels remain above the card without a landing jump. Make first place explicit with a trophy announcement and stronger winner emphasis. Sample label/card geometry during the flight and retain all existing presenter journeys.

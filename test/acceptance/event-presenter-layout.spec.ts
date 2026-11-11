@@ -167,6 +167,23 @@ for (const width of [390, 1440])
 				}),
 			);
 			await page.keyboard.press("ArrowRight");
+			const trackPlacement = () =>
+				page.evaluate(async () => {
+					let top = Infinity,
+						bottom = -Infinity,
+						overlap = 0;
+					for (let frame = 0; frame < 90; frame++) {
+						await new Promise(requestAnimationFrame);
+						const main = document.querySelector("[data-award-featured]")!;
+						const label = main.querySelector("[data-award-placement]")!.getBoundingClientRect();
+						const card = main.querySelector("[data-award-flight]")!.getBoundingClientRect();
+						top = Math.min(top, label.y);
+						bottom = Math.max(bottom, label.y);
+						overlap = Math.max(overlap, label.bottom - card.top);
+					}
+					return { travel: bottom - top, overlap };
+				});
+			const revealGeometry = [trackPlacement()];
 			if (width === 1440 && theme === "dark") {
 				for (const [label, wait] of [
 					["early", 0],
@@ -180,6 +197,9 @@ for (const width of [390, 1440])
 				}
 			}
 			await expect(page.getByLabel("Featured nominee").getByRole("button", { name: "View Nominee 3", exact: true })).toBeVisible();
+			const placement = await revealGeometry[0];
+			expect(placement.travel).toBeLessThan(2);
+			expect(placement.overlap).toBeLessThanOrEqual(0);
 			await expect(others.getByRole("progressbar")).toHaveCount(0);
 			await expect.poll(() => page.getByLabel("Featured nominee").getByRole("progressbar").getAttribute("aria-valuenow").then(Number)).toBeCloseTo(20, 1);
 			const resultFooterHeight = await page
@@ -190,12 +210,15 @@ for (const width of [390, 1440])
 
 			await page.screenshot({ path: info.outputPath(`third-${theme}-${width}.png`), fullPage: true });
 			await page.keyboard.press("ArrowRight");
+			revealGeometry.push(trackPlacement());
 			await expect(page.getByLabel("Featured nominee").getByRole("button", { name: "View Nominee 2", exact: true })).toBeVisible();
 			await expect(others.getByRole("button", { name: "View Nominee 3", exact: true })).toBeVisible();
 			await expect.poll(() => page.getByLabel("Featured nominee").getByRole("progressbar").getAttribute("aria-valuenow").then(Number)).toBeCloseTo((100 * 4) / 15, 1);
 			await expect(winner).toHaveCount(0);
 			await page.keyboard.press("ArrowRight");
+			revealGeometry.push(trackPlacement());
 			await expect(winner.getByRole("button", { name: "View Nominee 1", exact: true })).toBeVisible();
+			await expect(winner.getByRole("heading", { name: "First place", exact: true })).toBeVisible();
 			await expect(others.getByRole("button")).toHaveCount(4);
 			await expect(others.getByText("20% (3 votes)", { exact: true })).toBeVisible();
 			await expect
@@ -216,6 +239,11 @@ for (const width of [390, 1440])
 					return Math.max(...now.flatMap((box, i) => [Math.abs(box.x - positions[i].x), Math.abs(box.y - positions[i].y), Math.abs(box.width - positions[i].width)]));
 				})
 				.toBeLessThan(2);
+			for (const pending of revealGeometry) {
+				const measured = await pending;
+				expect(measured.travel).toBeLessThan(2);
+				expect(measured.overlap).toBeLessThanOrEqual(0);
+			}
 			await page.screenshot({ path: info.outputPath(`results-${theme}-${width}.png`), fullPage: true });
 			expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
 			await page.keyboard.press("ArrowLeft");

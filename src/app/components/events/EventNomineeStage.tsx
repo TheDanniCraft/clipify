@@ -1,6 +1,7 @@
 "use client";
 import { useLayoutEffect, useRef } from "react";
 import { motion, useReducedMotion } from "motion/react";
+import { IconTrophy } from "@tabler/icons-react";
 import type { PublicAwardEvent } from "@lib/eventPublicView";
 import { rankAwardNominees } from "@lib/eventPresenter";
 import type { EventCandidateContent } from "@lib/eventCandidates";
@@ -31,7 +32,7 @@ export default function EventNomineeStage({ category, position, place, onOpen, i
 				if (!box.width || !node.animate) continue;
 				if (old && Math.abs(old.box.x - box.x) + Math.abs(old.box.y - box.y) + Math.abs(old.box.width - box.width) < 1) continue;
 				const slot = node.parentElement!;
-				slot.style.height = `${box.height}px`;
+				slot.style.height = `${slot.getBoundingClientRect().height}px`;
 				// Fixed positioning lets the single card fly outside the scrollable strip without clipping.
 				Object.assign(node.style, { position: "fixed", left: `${box.x}px`, top: `${box.y}px`, width: `${box.width}px`, zIndex: "40" });
 				const animation = node.animate(
@@ -80,7 +81,16 @@ export default function EventNomineeStage({ category, position, place, onOpen, i
 				<div className='flex w-full items-center justify-center gap-5'>
 					{active.map((candidate) => (
 						<div key={candidate.id} className='w-full max-w-[min(24rem,38dvh)] [@media(max-height:800px)]:max-w-[min(24rem,32dvh)] space-y-2'>
-							<div className='h-10 text-center text-2xl font-bold tracking-tight text-foreground sm:text-3xl'>{reveal && place ? (final ? "Winner" : place === 2 ? "Second place" : "Third place") : null}</div>
+							<motion.div key={place ?? "nominee"} data-award-placement initial={!immediate && final ? { opacity: 0 } : false} animate={{ opacity: 1 }} transition={{ delay: immediate ? 0 : 1.1, duration: 0.25 }} className={`flex h-10 items-center justify-center gap-3 text-center font-bold tracking-tight text-foreground ${final ? "text-3xl sm:text-4xl" : "text-2xl sm:text-3xl"}`}>
+								{reveal && place ? (
+									<>
+										{final ? <IconTrophy aria-hidden='true' className='size-8 shrink-0 text-warning' /> : null}
+										<span role='heading' aria-level={2}>
+											{final ? "First place" : place === 2 ? "Second place" : "Third place"}
+										</span>
+									</>
+								) : null}
+							</motion.div>
 							{card(candidate, true)}
 						</div>
 					))}

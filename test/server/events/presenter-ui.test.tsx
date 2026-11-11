@@ -39,6 +39,7 @@ it("lets the host inspect nominees, reveal results and explicitly publish after 
 	expect(screen.queryByLabelText("Award winners")).not.toBeInTheDocument();
 	fireEvent.keyDown(window, { key: "ArrowRight" });
 	expect(await within(screen.getByLabelText("Award winners")).findByRole("button", { name: "Lampe raucht ab winner #1" })).toBeInTheDocument();
+	expect(screen.getByRole("heading", { name: "First place" })).toBeInTheDocument();
 	fireEvent.keyDown(window, { key: "ArrowRight" });
 	expect(screen.getByRole("heading", { name: "Thank you!" })).toBeInTheDocument();
 	fireEvent.keyDown(window, { key: "ArrowRight" });
