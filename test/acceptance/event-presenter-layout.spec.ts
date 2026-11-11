@@ -88,6 +88,16 @@ for (const width of [390, 1440])
 			for (let position = 1; position <= 5; position++) {
 				await page.keyboard.press("ArrowRight");
 				await expect(page.getByLabel("Category nominees").getByRole("button", { name: `View Nominee ${position}`, exact: true })).toBeVisible();
+				await expect(page.getByRole("button", { name: `View Nominee ${position}`, exact: true })).toHaveCount(1);
+				if (position === 2) {
+					const outgoing = page.getByRole("button", { name: "View Nominee 1", exact: true });
+					const start = await outgoing.boundingBox();
+					await page.waitForTimeout(180);
+					const moving = await outgoing.boundingBox();
+					expect(moving!.y).toBeGreaterThan(start!.y + 10);
+					await page.screenshot({ path: info.outputPath(`nominee-flying-${theme}-${width}.png`) });
+				}
+				if (position !== 1) await expect.poll(() => page.locator("[data-award-flight]").evaluateAll((nodes) => nodes.reduce((count, node) => count + node.getAnimations().length, 0))).toBe(0);
 				if (position === 1) {
 					const overlap = await page.evaluate(async () => {
 						let maximum = 0;
@@ -163,7 +173,7 @@ for (const width of [390, 1440])
 				}
 			}
 			await expect(page.getByLabel("Featured nominee").getByRole("button", { name: "View Nominee 3", exact: true })).toBeVisible();
-			await expect(others.getByRole("progressbar")).toHaveCount(1);
+			await expect(others.getByRole("progressbar")).toHaveCount(0);
 			await expect.poll(() => page.getByLabel("Featured nominee").getByRole("progressbar").getAttribute("aria-valuenow").then(Number)).toBeCloseTo(20, 1);
 			const resultFooterHeight = await page
 				.getByLabel("Featured nominee")
@@ -179,7 +189,7 @@ for (const width of [390, 1440])
 			await expect(winner).toHaveCount(0);
 			await page.keyboard.press("ArrowRight");
 			await expect(winner.getByRole("button", { name: "View Nominee 1", exact: true })).toBeVisible();
-			await expect(others.getByRole("button")).toHaveCount(5);
+			await expect(others.getByRole("button")).toHaveCount(4);
 			await expect(others.getByText("20% (3 votes)", { exact: true })).toBeVisible();
 			await expect
 				.poll(async () => {

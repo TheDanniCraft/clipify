@@ -258,3 +258,5 @@ Creating the example in the user's actual account is an external follow-up after
 
 - [x] T126 Replace unstable shared card projection with a short focused reveal while retaining the nominee strip. Reserve title/result space, keep the final score readable without a temporary zero, integrate placement labels, and restore previous steps/media returns without replaying entrances. Verify early/intermediate/final frames and immediate/repeated backwards navigation with real components.
 - [x] T127 Update the YouTube connection-start browser fixture to configure a YouTube category before testing its contextual connection action; retain the actual failure-recovery and Better Auth consent assertions.
+
+- [x] T128 Restore the requested single-card flight between the main presentation area and its reserved nominee slot. Return the outgoing card before raising the next, animate position/width without scaling captions, retain stable result geometry and instant Back/Escape recovery, and verify actual in-flight frames and one card per nominee.

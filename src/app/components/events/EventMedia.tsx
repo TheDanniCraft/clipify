@@ -94,7 +94,7 @@ export function EventNomineeCard({ candidate, selected = false, disabled = false
 				</Button>
 				{!presentation && (winner || rank) ? <span className='pointer-events-none absolute right-3 top-3 rounded-full bg-accent px-3 py-1 text-sm font-semibold text-accent-foreground'>{winner ? "Winner" : `#${rank}`}</span> : null}
 			</div>
-			<motion.div layout={presentation ? false : "position"} className={`space-y-2 ${compact ? "p-2 text-sm" : "p-4"}`}>
+			<motion.div layout={presentation ? false : "position"} className={`space-y-2 ${presentation ? "p-3 text-sm" : compact ? "p-2 text-sm" : "p-4"}`}>
 				{onSelect ? (
 					<Checkbox aria-label={`Vote for ${candidate.content.title}`} isSelected={selected} isDisabled={disabled} onChange={onSelect} className='w-full'>
 						<Checkbox.Content>
@@ -106,7 +106,7 @@ export function EventNomineeCard({ candidate, selected = false, disabled = false
 					</Checkbox>
 				) : (
 					<div className='space-y-2'>
-						<h3 className={`line-clamp-2 break-words font-medium ${compact ? "min-h-10" : presentation || result?.percentage !== undefined ? "min-h-12" : ""}`}>{label}</h3>
+						<h3 className={`line-clamp-2 break-words font-medium ${presentation ? "min-h-12" : compact ? "min-h-10" : result?.percentage !== undefined ? "min-h-12" : ""}`}>{label}</h3>
 						{selected ? <p className='text-sm font-medium text-accent'>Your selection</p> : null}
 					</div>
 				)}

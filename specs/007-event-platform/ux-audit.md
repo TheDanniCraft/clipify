@@ -83,3 +83,9 @@ The targeted changes keep the original media, votes, candidate order, theme, man
 Mobbin's [Duolingo leaderboard](https://mobbin.com/screens/c60e1207-648b-491d-8eb8-4b626fb22c17) and [Brilliant league result](https://mobbin.com/screens/501c2702-a562-4fcc-b9e5-ddd41d769162) were inspected for their aligned score rows. They are learning-product examples used for score alignment only, not an Awards motion precedent. No close Awards-specific reveal reference was found. The short stage transition and placement line are implementation judgement based on the user's named faults and the captured baseline.
 
 The category subtitle keeps a fixed-height line during results, and the thumbnail strip stays in one horizontal row (scrollable on narrow viewports). The current nominee also retains its strip position. This prevents both subtitle removal and row wrapping from recentering the stage during reveal.
+
+### Restore single-card flights — 11 November 2026
+
+The user rejected the fade replacement and duplicated active thumbnail. Their intended interaction is a single nominee card moving from the main area into its reserved strip slot and later rising for its reveal. The correction keeps the fixed header/footer geometry, unobscured images, final numeric scores and immediate Back/Escape restoration. Flights measure the two real card locations, return the outgoing card first and then raise the incoming card. Position and width animate without applying scale to captions. The moving card escapes the strip's scroll clipping only while in flight; its slot preserves the layout.
+
+Mobbin's [Canva presentation filmstrip](https://mobbin.com/screens/c88dc34a-45b1-452a-9ded-b96369b0c4e3) was inspected for the main-view/thumbnail-strip relationship. It is an arrangement reference, not evidence of this Awards animation. The sequential single-card flight follows the user's explicit requirement.
