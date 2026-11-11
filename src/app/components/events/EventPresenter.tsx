@@ -1,9 +1,9 @@
 "use client";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { LayoutGroup, motion, useReducedMotion } from "motion/react";
 import { Button, Link, Spinner } from "@heroui/react";
 import { getEventPresenterAction, getEventPreviewAction, publishEventPresenterResultsAction } from "@actions/events";
-import { buildAwardPresenterSteps } from "@lib/eventPresenter";
+import { buildAwardPresenterSteps, rankAwardNominees } from "@lib/eventPresenter";
 import type { EventCandidateContent } from "@lib/eventCandidates";
 import EventPresenterChat from "./EventPresenterChat";
 import { EventMedia, EventNomineeCard } from "./EventMedia";
@@ -28,14 +28,7 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 	const [remoteShow, setShow] = useState<Show | null>(null),
 		[secret, setSecret] = useState(""),
 		[error, setError] = useState(""),
-		[index, setIndex] = useState(() =>
-			initial && initialSlideId
-				? Math.max(
-						0,
-						buildAwardPresenterSteps(initial.event).findIndex((step) => "slide" in step && step.slide.id === initialSlideId),
-					)
-				: 0,
-		),
+		[stepId, setStepId] = useState(() => (initial && initialSlideId ? buildAwardPresenterSteps(initial.event).find((step) => "slide" in step && step.slide.id === initialSlideId)?.id : undefined)),
 		[opened, setOpened] = useState<EventCandidateContent | null>(null),
 		[busy, setBusy] = useState(false);
 	const opener = useRef<string | null>(null);
@@ -58,18 +51,15 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 			active = false;
 		};
 	}, [eventId, preview, initial]);
-	const steps = show ? buildAwardPresenterSteps(show.event) : [],
+	const event = show?.event;
+	const steps = useMemo(() => (event ? buildAwardPresenterSteps(event) : []), [event]),
+		index = Math.max(
+			0,
+			steps.findIndex((step) => step.id === stepId),
+		),
 		step = steps[index];
 	const layoutId = useId();
 	const reduceMotion = useReducedMotion();
-	const [promotedStep, setPromotedStep] = useState<string | null>(null);
-	const revealId = step?.type === "results" && (show?.event.phase === "closed" || show?.event.phase === "results") ? step.id : null;
-	useEffect(() => {
-		if (!revealId || reduceMotion) return;
-		const timer = setTimeout(() => setPromotedStep(revealId), 600);
-		return () => clearTimeout(timer);
-	}, [revealId, reduceMotion]);
-	const promote = !!revealId && (reduceMotion || promotedStep === revealId);
 
 	const stepCount = steps.length,
 		loaded = !!show;
@@ -86,10 +76,9 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 				return;
 			}
 			if ((direction < 0 && index === 0) || (direction > 0 && index === stepCount - 1)) return;
-			setPromotedStep(null);
-			setIndex((current) => Math.max(0, Math.min(stepCount - 1, current + direction)));
+			setStepId(steps[index + direction]?.id);
 		},
-		[opened, close, stepCount, index],
+		[opened, close, stepCount, index, steps],
 	);
 	useEffect(() => {
 		function key(event: KeyboardEvent) {
@@ -168,9 +157,19 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 		);
 	const Surface = embedded ? "div" : "main";
 	const category = step && "categoryId" in step ? show.event.categories.find((c) => c.id === step.categoryId) : undefined;
+	const dataResult = category?.dataResult?.status === "ready" ? category.dataResult : undefined;
+	const dataWinner = dataResult?.content;
 	const openedHasCaption = opened && ["clip", "youtube", "video", "image", "game"].includes(opened.kind);
 	const style = show.brand ? ({ "--color-accent": show.brand.themeAccentColor, fontFamily: `${show.brand.fontFamily}, sans-serif` } as React.CSSProperties) : undefined;
+	const titleOnly = step?.type === "statistics-title" || step?.type === "category-title" || step?.type === "closing-title";
+	const entrance = { initial: reduceMotion ? (false as const) : { opacity: 0, y: 24 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.4 } };
 	const resultsReady = show.event.phase === "closed" || show.event.phase === "results";
+	const reveal = step?.type === "reveal" ? step : undefined;
+	const ranked = reveal && category ? rankAwardNominees(category) : [];
+	const final = reveal?.place === 1;
+	const revealedWinners = final ? ranked.filter(({ result }) => result.winner) : [];
+	const others = ranked.filter(({ result }) => !final || !result.winner);
+
 	const winners = show.event.categories.flatMap(
 		(c) =>
 			c.results
@@ -184,7 +183,7 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 		<Surface className={`relative flex flex-col bg-background text-foreground ${embedded ? "min-h-[420px]" : "min-h-dvh"}`} style={style}>
 			{preview && !embedded ? <p className='border-b border-separator bg-surface px-5 py-3 text-sm text-muted'>Read-only event preview. Includes unreviewed candidates. Nothing here changes votes or publishes results.</p> : null}
 			{show.brand?.fontSource === "google" ? <link rel='stylesheet' href={`https://fonts.googleapis.com/css2?family=${encodeURIComponent(show.brand.fontFamily)}:wght@400;700&display=swap`} /> : null}
-			<section className={`mx-auto flex w-full max-w-[1600px] flex-1 flex-col ${category ? "justify-start" : "justify-center"} ${embedded ? "px-5 py-8" : category || step?.type === "closing" ? "px-6 py-8 sm:px-14" : "px-6 py-10 sm:px-14 sm:py-12"}`} aria-label='Award presentation'>
+			<section className={`mx-auto flex w-full max-w-[1600px] flex-1 flex-col ${(category && !titleOnly) || step?.type === "statistics" || step?.type === "closing" ? "justify-start" : "justify-center"} ${embedded ? "px-5 py-8" : category || step?.type === "closing" ? "px-6 py-8 sm:px-14" : "px-6 py-10 sm:px-14 sm:py-12"}`} aria-label='Award presentation'>
 				{opened ? (
 					<div className='space-y-4'>
 						<Button variant='tertiary' onPress={close}>
@@ -232,12 +231,13 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 					</div>
 				) : step && "slide" in step ? (
 					<div key={step.slide.id} className={category ? "space-y-4" : "space-y-6 sm:space-y-8"}>
-						<motion.header initial={{ opacity: 0, y: 32 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className='text-center'>
+						<motion.header layout={!reduceMotion ? "position" : false} {...entrance} className='text-center'>
 							<h1 className={`mx-auto max-w-5xl break-words text-balance font-bold ${embedded ? "text-3xl" : category ? "text-3xl sm:text-5xl" : "text-4xl sm:text-6xl"}`}>{step.slide.title || category?.title || show.event.title}</h1>
 							{step.type === "welcome" ? <p className='mx-auto mt-6 max-w-2xl whitespace-pre-wrap text-pretty text-lg text-muted sm:text-xl'>{step.slide.text || show.event.description}</p> : step.slide.text ? <p className='mx-auto mt-5 max-w-2xl whitespace-pre-wrap text-lg text-muted sm:text-xl'>{step.slide.text}</p> : null}
+							{category && step.type !== "data-intro" && step.type !== "data-result" && category.selection !== "data" && (titleOnly || step.type === "nominee") ? <p className='mt-2 text-lg text-muted'>The nominees</p> : null}
 						</motion.header>
 						{step.type === "statistics" ? (
-							<div className='mx-auto grid w-full max-w-6xl grid-cols-[repeat(auto-fit,minmax(min(100%,220px),1fr))] gap-5'>
+							<motion.div {...entrance} transition={{ ...entrance.transition, delay: reduceMotion ? 0 : 0.2 }} className='mx-auto grid w-full max-w-6xl grid-cols-[repeat(auto-fit,minmax(min(100%,220px),1fr))] gap-5'>
 								{step.slide.statistics.map((stat, i) => {
 									const value = stat.source === "manual" ? stat.value : show.statistics[stat.source];
 									return (
@@ -247,82 +247,104 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 										</div>
 									);
 								})}
+							</motion.div>
+						) : null}
+						{step.type === "nominee" && category ? (
+							<LayoutGroup id={layoutId}>
+								<div aria-label='Category nominees' className='mx-auto max-w-xl'>
+									{category.candidates.slice(step.position, step.position + 1).map((candidate) => (
+										<motion.div key={candidate.id} layoutId={reduceMotion ? undefined : candidate.id} {...entrance}>
+											<EventNomineeCard candidate={candidate} onOpen={() => open(candidate.content)} />
+										</motion.div>
+									))}
+								</div>
+								{step.position > 0 ? (
+									<div aria-label='Previously presented nominees' className='mx-auto grid max-w-5xl grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6'>
+										{category.candidates.slice(0, step.position).map((candidate) => (
+											<motion.div key={candidate.id} layoutId={reduceMotion ? undefined : candidate.id}>
+												<EventNomineeCard candidate={candidate} onOpen={() => open(candidate.content)} />
+											</motion.div>
+										))}
+									</div>
+								) : null}
+							</LayoutGroup>
+						) : null}
+						{reveal && category ? (
+							<div className='mx-auto max-w-4xl space-y-4'>
+								{!resultsReady ? <p className='text-center text-muted'>Results will be available after voting closes.</p> : !ranked.some(({ result }) => result.votes > 0) ? <p className='text-center text-muted'>No votes were cast.</p> : <p className='text-center text-muted'>{revealedWinners.length ? "And the award goes to…" : final ? "The results" : "The reveal"}</p>}
+								{revealedWinners.length > 0 ? (
+									<motion.div {...entrance} aria-label='Award winners' className='mx-auto flex max-w-3xl flex-wrap justify-center gap-4'>
+										{revealedWinners.map(({ candidate, result }) => (
+											<div key={candidate.id} className='w-full max-w-sm'>
+												<EventNomineeCard candidate={candidate} result={result} onOpen={() => open(candidate.content)} />
+											</div>
+										))}
+									</motion.div>
+								) : null}
+								<ol aria-label='Nominee results' className='space-y-2'>
+									{(reveal.place === 0 ? category.candidates : others.map(({ candidate }) => candidate)).map((candidate, i) => {
+										const entry = others.find((item) => item.candidate.id === candidate.id);
+										const visible = final || (reveal.place > 1 && !!entry?.place && entry.place >= reveal.place && entry.place <= 3);
+										const place = reveal.place === 0 ? i + 1 : entry?.place;
+										return (
+											<li key={reveal.place === 0 ? i : candidate.id} className='flex min-h-14 items-center gap-3 rounded-xl border border-separator bg-surface px-4'>
+												<span className='w-9 shrink-0 text-sm font-semibold text-muted'>{place ? `#${place}` : "—"}</span>
+												{visible && entry ? (
+													<motion.div key={candidate.id} {...entrance} className='flex min-w-0 flex-1 items-center justify-between gap-3'>
+														<Button data-award-candidate={candidate.id} variant='tertiary' className='h-auto min-w-0 whitespace-normal py-2 text-left' onPress={() => open(candidate.content)}>
+															{candidate.content.title}
+														</Button>
+														<span className='shrink-0 text-sm tabular-nums text-muted'>
+															{entry.result.votes} {entry.result.votes === 1 ? "vote" : "votes"}
+														</span>
+													</motion.div>
+												) : (
+													<span className='text-muted' aria-label='Hidden nominee'>
+														—
+													</span>
+												)}
+											</li>
+										);
+									})}
+								</ol>
 							</div>
 						) : null}
-						{(step.type === "nominees" || step.type === "distribution" || step.type === "results") && category ? (
-							<>
-								<p className='text-center text-muted'>
-									{step.type === "nominees" ? "The nominees" : !resultsReady ? "Results will be available after voting closes" : step.type === "distribution" ? "How the votes landed" : "The results"}
-									{step.pages > 1 ? ` (${step.page + 1} / ${step.pages})` : ""}
-								</p>
-								<LayoutGroup id={layoutId}>
-									{promote && category.results?.some((result) => result.winner && step.candidateIds.includes(result.id)) ? (
-										<div aria-label='Award winners' className='mx-auto flex max-w-4xl flex-wrap justify-center gap-5'>
-											{step.candidateIds.map((id) => {
-												const candidate = category.candidates.find((c) => c.id === id),
-													result = category.results?.find((r) => r.id === id);
-												return candidate && result?.winner ? (
-													<motion.div key={id} layoutId={reduceMotion ? undefined : id} className='w-full max-w-sm'>
-														<EventNomineeCard candidate={candidate} onOpen={() => open(candidate.content)} result={result} />
-													</motion.div>
-												) : null;
-											})}
-										</div>
-									) : null}
-									<div aria-label={step.type === "results" ? "Nominee results" : step.type === "distribution" ? "Vote distribution" : "Category nominees"} className='mx-auto flex w-full max-w-5xl flex-wrap justify-center gap-5'>
-										{step.candidateIds.map((id, i) => {
-											const candidate = category.candidates.find((c) => c.id === id);
-											const result = step.type !== "nominees" && resultsReady ? category.results?.find((r) => r.id === id) : undefined;
-											if (!candidate || (promote && result?.winner)) return null;
-											return (
-												<motion.div key={id} layoutId={revealId && !reduceMotion ? id : undefined} className={promote && category.results?.some((r) => r.winner && step.candidateIds.includes(r.id)) ? "w-[calc((100%-1.25rem)/2)] lg:w-[calc((100%-3.75rem)/4)]" : "w-[calc((100%-1.25rem)/2)] only:w-full only:max-w-sm lg:w-[calc((100%-2.5rem)/3)]"}>
-													<EventNomineeCard candidate={candidate} onOpen={() => open(candidate.content)} result={result ? { ...result, winner: false } : undefined} concealedLabel={step.type === "distribution" ? `Entry ${step.page * 6 + i + 1}` : undefined} />
-												</motion.div>
-											);
-										})}
-									</div>
-								</LayoutGroup>
-								{!step.candidateIds.length ? <p className='text-center text-muted'>No nominees in this category.</p> : null}
-							</>
+						{step.type === "data-intro" ? (
+							<motion.p {...entrance} className='py-16 text-center text-2xl text-muted'>
+								And the award goes to…
+							</motion.p>
 						) : null}
-						{step.type === "data-intro" ? <p className='py-16 text-center text-2xl text-muted'>And the award goes to…</p> : null}
 						{step.type === "data-result" ? (
-							<div className='mx-auto max-w-3xl space-y-5 text-center'>
-								{category?.dataResult?.status === "ready" ? (
+							<motion.div {...entrance} className='mx-auto max-w-3xl space-y-5 text-center'>
+								{dataResult ? (
 									<>
-										<h2 className='text-4xl font-bold text-accent'>{category.dataResult.title}</h2>
-										{category.dataResult.value !== undefined ? (
+										<h2 className='text-4xl font-bold text-accent'>{dataResult.title}</h2>
+										{dataResult.value !== undefined ? (
 											<p className='text-6xl font-bold'>
-												<AnimatedNumber value={category.dataResult.value} />
+												<AnimatedNumber value={dataResult.value} />
 											</p>
 										) : null}
-										<p className='whitespace-pre-wrap text-xl text-muted'>{category.dataResult.description}</p>
-										{category.dataResult.content ? (
-											<Button
-												variant='secondary'
-												onPress={() => {
-													const result = category.dataResult;
-													if (result?.status === "ready" && result.content) open(result.content);
-												}}
-											>
-												View winner
-											</Button>
+										<p className='whitespace-pre-wrap text-xl text-muted'>{dataResult.description}</p>
+										{dataWinner ? (
+											<motion.div {...entrance} className='mx-auto max-w-sm'>
+												<EventNomineeCard candidate={{ id: dataWinner.reference || step.categoryId, content: dataWinner }} result={{ winner: true }} onOpen={() => open(dataWinner)} />
+											</motion.div>
 										) : null}
 									</>
 								) : (
 									<p className='text-xl text-muted'>{resultsReady ? "Complete this category’s result in the dashboard, then reload the presenter." : "Results will be available after voting closes."}</p>
 								)}
-							</div>
+							</motion.div>
 						) : null}
 						{step.type === "closing" ? (
-							<div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
+							<motion.div {...entrance} aria-label='Winner recap' className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
 								{winners.map((winner, i) => (
-									<Button key={i} variant='secondary' className='h-auto flex-col whitespace-normal p-4 text-center' onPress={() => open(winner.content)}>
-										<span className='text-sm text-muted'>{winner.category}</span>
-										<span className='line-clamp-2 text-lg font-semibold'>{winner.content.title}</span>
-									</Button>
+									<div key={i} className='grid grid-rows-[auto_1fr] gap-2'>
+										<p className='text-sm font-semibold text-muted'>{winner.category}</p>
+										<EventNomineeCard candidate={{ id: `recap-${i}`, content: winner.content }} onOpen={() => open(winner.content)} />
+									</div>
 								))}
-							</div>
+							</motion.div>
 						) : null}
 					</div>
 				) : null}

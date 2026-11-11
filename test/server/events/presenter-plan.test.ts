@@ -1,23 +1,28 @@
 import { buildAwardPresenterSteps } from "@/app/lib/eventPresenter";
-const category = { id: "category", title: "Best fail", selection: "audience", candidates: Array.from({ length: 13 }, (_, index) => ({ id: String(index), content: { kind: "text", title: `Candidate ${index}`, description: "", reference: "" } })) };
-it("presents every nominee in bounded pages before revealing that category's results", () => {
+
+const candidates = Array.from({ length: 5 }, (_, index) => ({ id: String(index), content: { kind: "text", title: `Candidate ${index}` } }));
+const category = { id: "category", title: "Best fail", selection: "audience", candidates, results: candidates.map(({ id }, index) => ({ id, votes: 5 - index, winner: index === 0 })) };
+
+it("stages every nominee separately and reveals third, second and first in order", () => {
 	const steps = buildAwardPresenterSteps({ title: "Awards", categories: [category], slides: [] } as never);
-	expect(steps[0].type).toBe("welcome");
-	expect(steps.flatMap((s) => (s.type === "nominees" ? [s.candidateIds.length] : []))).toEqual([6, 6, 1]);
-	expect(steps.flatMap((s) => (s.type === "results" ? [s.candidateIds.length] : []))).toEqual([6, 6, 1]);
-	const reveals = steps.flatMap((s) => (s.type === "distribution" || s.type === "results" ? [{ type: s.type, candidateIds: s.candidateIds }] : []));
-	expect(reveals.map((s) => s.type)).toEqual(["distribution", "results", "distribution", "results", "distribution", "results"]);
-	for (let i = 0; i < reveals.length; i += 2) {
-		expect(reveals[i]).toMatchObject({ candidateIds: reveals[i + 1].candidateIds });
-	}
-	expect(reveals.flatMap((s) => (s.type === "distribution" ? s.candidateIds : []))).not.toEqual(category.candidates.map((candidate) => candidate.id));
-	const lastNominee = steps.findLastIndex((s) => s.type === "nominees"),
-		firstResult = steps.findIndex((s) => s.type === "results");
-	expect(firstResult).toBeGreaterThan(lastNominee);
-	expect(steps.at(-2)?.type).toBe("closing");
-	expect(steps.at(-1)?.type).toBe("publish");
+	expect(steps.slice(0, 2).map(({ type }) => type)).toEqual(["welcome", "category-title"]);
+	expect(steps.flatMap((step) => (step.type === "nominee" ? [step.position] : []))).toEqual([0, 1, 2, 3, 4]);
+	expect(steps.flatMap((step) => (step.type === "reveal" ? [step.place] : []))).toEqual([0, 3, 2, 1]);
+	expect(steps.slice(-3).map(({ type }) => type)).toEqual(["closing-title", "closing", "publish"]);
 });
-it("keeps manually arranged statistic slides and data awards in order without inventing nominees", () => {
+
+it("skips nonexistent ranks for ties and zero votes", () => {
+	const results = [
+		{ id: "0", votes: 5, winner: true },
+		{ id: "1", votes: 5, winner: true },
+		{ id: "2", votes: 3, winner: false },
+		{ id: "3", votes: 0, winner: false },
+	];
+	const steps = buildAwardPresenterSteps({ title: "Awards", categories: [{ ...category, results }], slides: [] } as never);
+	expect(steps.flatMap((step) => (step.type === "reveal" ? [step.place] : []))).toEqual([0, 3, 1]);
+});
+
+it("introduces statistics and data awards before displaying their contents", () => {
 	const steps = buildAwardPresenterSteps({
 		title: "Awards",
 		categories: [{ ...category, id: "watchtime", selection: "data", candidates: [] }],
@@ -26,6 +31,5 @@ it("keeps manually arranged statistic slides and data awards in order without in
 			{ id: "watchtime-slide", type: "category", categoryId: "watchtime", title: "", text: "", statistics: [] },
 		],
 	} as never);
-	expect(steps.map((s) => s.type)).toEqual(["statistics", "data-intro", "data-result", "publish"]);
-	expect(steps[0]).toMatchObject({ slide: { statistics: [{ value: 321 }] } });
+	expect(steps.map((step) => step.type)).toEqual(["statistics-title", "statistics", "category-title", "data-intro", "data-result", "publish"]);
 });

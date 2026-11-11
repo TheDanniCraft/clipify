@@ -4,15 +4,12 @@ import { getEventPresenterAction, publishEventPresenterResultsAction } from "@/a
 jest.mock("@/app/actions/events", () => ({ getEventPresenterAction: jest.fn(), publishEventPresenterResultsAction: jest.fn() }));
 jest.mock("@/app/components/events/EventMedia", () => ({
 	EventMedia: ({ content }: { content: { title: string } }) => <div data-testid='opened-media'>{content.title}</div>,
-	EventNomineeCard: ({ candidate, onOpen, result, concealedLabel }: { candidate: { content: { title: string } }; onOpen: () => void; result?: { winner: boolean }; concealedLabel?: string }) =>
-		concealedLabel ? (
-			<div>{concealedLabel}</div>
-		) : (
-			<button onClick={onOpen}>
-				{candidate.content.title}
-				{result?.winner ? " winner" : ""}
-			</button>
-		),
+	EventNomineeCard: ({ candidate, onOpen, result }: { candidate: { content: { title: string } }; onOpen: () => void; result?: { winner: boolean } }) => (
+		<button onClick={onOpen}>
+			{candidate.content.title}
+			{result?.winner ? " winner" : ""}
+		</button>
+	),
 }));
 const view = {
 	ok: true,
@@ -30,17 +27,19 @@ it("lets the host inspect nominees, reveal results and explicitly publish after 
 	render(<EventPresenter eventId='show' />);
 	await screen.findByRole("heading", { name: "Babbler Awards" });
 	fireEvent.keyDown(window, { key: "ArrowRight" });
+	fireEvent.keyDown(window, { key: "ArrowRight" });
 	fireEvent.click(screen.getByRole("button", { name: "Lampe raucht ab" }));
 	expect(screen.getByTestId("opened-media")).toBeInTheDocument();
 	fireEvent.keyDown(window, { key: "Escape" });
 	expect(screen.queryByTestId("opened-media")).not.toBeInTheDocument();
 	fireEvent.keyDown(window, { key: "ArrowRight" });
-	expect(screen.getByLabelText("Vote distribution")).toHaveTextContent("Entry 1");
+	expect(screen.getByLabelText("Nominee results")).toHaveTextContent("#1");
 	expect(screen.queryByText("Lampe raucht ab")).not.toBeInTheDocument();
 	fireEvent.keyDown(window, { key: "ArrowRight" });
 	expect(await screen.findByRole("button", { name: "Lampe raucht ab winner" })).toBeInTheDocument();
 	fireEvent.keyDown(window, { key: "ArrowRight" });
 	expect(screen.getByRole("heading", { name: "Thank you!" })).toBeInTheDocument();
+	fireEvent.keyDown(window, { key: "ArrowRight" });
 	fireEvent.keyDown(window, { key: "ArrowRight" });
 	expect(publishEventPresenterResultsAction).not.toHaveBeenCalled();
 	fireEvent.click(screen.getByRole("button", { name: "Publish results" }));
@@ -53,25 +52,37 @@ it("explains revoked links without exposing a presentation", async () => {
 	expect(screen.queryByRole("button", { name: "Next slide" })).not.toBeInTheDocument();
 });
 
-it("keeps the category header mounted and promotes the winner above the other nominees", async () => {
+it("reveals podium places one click at a time and conceals them again on back", () => {
 	const initial: typeof view = JSON.parse(JSON.stringify(view));
-	initial.event.categories[0].candidates.push({ id: "other", content: { kind: "text", title: "Another nominee", description: "", reference: "" } });
-	initial.event.categories[0].results.push({ id: "other", votes: 1, percentage: 25, winner: false });
+	const category = initial.event.categories[0];
+	category.results[0].votes = 10;
+	for (const [index, title] of ["Second nominee", "Third nominee", "Fourth nominee"].entries()) {
+		category.candidates.push({ id: title, content: { kind: "text", title, description: "", reference: "" } });
+		category.results.push({ id: title, votes: 5 - index, percentage: 10, winner: false });
+	}
 	render(<EventPresenter eventId='show' initial={initial as never} />);
-	fireEvent.keyDown(window, { key: "ArrowRight" });
+	const next = () => fireEvent.keyDown(window, { key: "ArrowRight" });
+	next();
 	const header = screen.getByRole("heading", { name: "Best fail" });
-	expect(screen.getByLabelText("Category nominees")).toHaveTextContent("Another nominee");
-	fireEvent.keyDown(window, { key: "ArrowRight" });
-	expect(screen.getByRole("heading", { name: "Best fail" })).toBe(header);
-	expect(screen.queryByLabelText("Award winners")).not.toBeInTheDocument();
-	fireEvent.keyDown(window, { key: "ArrowRight" });
-	expect(await screen.findByLabelText("Award winners")).toHaveTextContent("Lampe raucht ab winner");
-	expect(screen.getByLabelText("Nominee results")).toHaveTextContent("Another nominee");
-	expect(screen.getByLabelText("Nominee results")).not.toHaveTextContent("Lampe raucht ab");
-	fireEvent.keyDown(window, { key: "ArrowLeft" });
 	expect(screen.queryByText("Lampe raucht ab")).not.toBeInTheDocument();
-	fireEvent.keyDown(window, { key: "ArrowRight" });
-	expect(screen.getByLabelText("Nominee results")).toHaveTextContent("Lampe raucht ab");
+	next();
+	expect(screen.getByLabelText("Category nominees")).toHaveTextContent("Lampe raucht ab");
+	next();
+	expect(screen.getByLabelText("Previously presented nominees")).toHaveTextContent("Lampe raucht ab");
+	next();
+	next();
+	next();
+	expect(screen.getByRole("heading", { name: "Best fail" })).toBe(header);
+	expect(screen.getByLabelText("Nominee results")).not.toHaveTextContent("Third nominee");
+	next();
+	expect(screen.getByLabelText("Nominee results")).toHaveTextContent("Third nominee");
+	expect(screen.queryByText("Second nominee")).not.toBeInTheDocument();
+	next();
+	expect(screen.getByLabelText("Nominee results")).toHaveTextContent("Second nominee");
+	expect(screen.queryByText("Fourth nominee")).not.toBeInTheDocument();
+	next();
+	expect(screen.getByLabelText("Award winners")).toHaveTextContent("Lampe raucht ab winner");
+	expect(screen.getByLabelText("Nominee results")).toHaveTextContent("Fourth nominee");
+	fireEvent.keyDown(window, { key: "ArrowLeft" });
 	expect(screen.queryByLabelText("Award winners")).not.toBeInTheDocument();
-	expect(await screen.findByLabelText("Award winners")).toHaveTextContent("Lampe raucht ab winner");
 });

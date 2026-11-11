@@ -81,7 +81,10 @@ for (const width of [390, 1440])
 				await viewer.goto(previewUrl);
 				await expect(viewer.getByRole("heading", { name: "Babbler Awards", exact: true })).toBeVisible();
 				await expect(viewer.getByText(/Read-only event preview/)).toBeVisible();
-				for (let i = 0; i < 50; i++) await viewer.keyboard.press("ArrowRight");
+				const nomineeCount = Number((await tourWorld.fixture.pool.query("SELECT count(*) FROM award_candidates WHERE event_id=$1", [eventId])).rows[0].count);
+				const next = viewer.getByRole("button", { name: "Next slide", exact: true });
+				const maxSteps = nomineeCount + 5 * stored.categories.length + 10;
+				for (let i = 0; i < maxSteps && (await next.isEnabled()); i++) await viewer.keyboard.press("ArrowRight");
 				await expect(viewer.getByRole("heading", { name: "End of preview", exact: true })).toBeVisible();
 				await expect(viewer.getByRole("button", { name: "Publish results", exact: true })).toHaveCount(0);
 				await viewer.screenshot({ path: info.outputPath("shared-preview.png"), fullPage: true, animations: "disabled" });

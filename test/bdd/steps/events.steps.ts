@@ -265,12 +265,13 @@ Given("a completed award show has a nominated text winner", async ({ page, tourW
 When("the host presents the nominees and reveals the winner", async ({ page }) => {
 	await page.keyboard.press("ArrowRight");
 	await expect(page.getByRole("heading", { name: "Best fail", exact: true })).toBeVisible();
+	await page.keyboard.press("ArrowRight");
 	await page.getByRole("button", { name: "View Lampe raucht ab", exact: true }).click();
 	await expect(page.getByText("Der Stromausfall des Jahres", { exact: true })).toBeVisible();
 	await page.keyboard.press("Escape");
 	await expect(page.getByRole("button", { name: "Back to the show", exact: true })).toHaveCount(0);
 	await page.keyboard.press("ArrowRight");
-	await expect(page.getByLabel("Vote distribution").getByText("100% (1 votes)", { exact: true })).toBeVisible();
+	await expect(page.getByLabel("Nominee results").getByRole("button")).toHaveCount(0);
 	await expect(page.getByRole("button", { name: "View Lampe raucht ab", exact: true })).toHaveCount(0);
 	await page.keyboard.press("ArrowRight");
 	await expect(page.getByText("Winner", { exact: true })).toBeVisible();
@@ -286,6 +287,7 @@ Then("results remain hidden from the public", async ({ page, tourWorld }) => {
 When("the host explicitly publishes from the last presenter slide", async ({ page }) => {
 	await page.keyboard.press("ArrowRight");
 	await expect(page.getByRole("heading", { name: "Thank you!", exact: true })).toBeVisible();
+	await page.keyboard.press("ArrowRight");
 	await page.keyboard.press("ArrowRight");
 	await page.getByRole("button", { name: "Publish results", exact: true }).click();
 	await expect(page.getByRole("heading", { name: "Results are published", exact: true })).toBeVisible();
@@ -316,6 +318,7 @@ Given("presenter live chat is enabled with a hidden bot and command prefix", asy
 	await expect(page.getByRole("heading", { name: "Babbler Awards", exact: true })).toBeVisible();
 });
 When("the host opens a nominee and receives signed Twitch reactions", async ({ page, tourWorld }) => {
+	await page.keyboard.press("ArrowRight");
 	await page.keyboard.press("ArrowRight");
 	await page.getByRole("button", { name: "View Lampe raucht ab", exact: true }).click();
 	await expect(page.getByText("Waiting for live reactions…", { exact: true })).toBeVisible();
@@ -385,6 +388,7 @@ Then("the award editor and presenter can be reviewed in both themes and viewport
 			await page.screenshot({ path: test.info().outputPath(`awards-editor-${size}-${theme}.png`), fullPage: true });
 			await page.goto(`${tourWorld.origin}/events/${eventId}/present#${"s".repeat(43)}`);
 			await expect(page.getByRole("heading", { name: "Babbler Awards", exact: true })).toBeVisible();
+			await page.getByRole("button", { name: "Next slide", exact: true }).click();
 			await page.getByRole("button", { name: "Next slide", exact: true }).click();
 			await expect(page.getByRole("button", { name: "View Lampe raucht ab", exact: true })).toBeVisible();
 			await expect(page.getByRole("heading", { name: "Best fail", exact: true }).locator("..")).toHaveCSS("opacity", "1");
@@ -503,6 +507,7 @@ Then("the presenter shows the saved statistics before the category", async ({ pa
 	await expect(page.getByRole("heading", { name: "Babbler Awards", exact: true })).toBeVisible();
 	await page.keyboard.press("ArrowRight");
 	await expect(page.getByRole("heading", { name: "Your year in numbers", exact: true })).toBeVisible();
+	await page.keyboard.press("ArrowRight");
 	await expect(page.getByText("Watched hours", { exact: true })).toBeVisible();
 	await expect(page.getByText("321", { exact: true })).toBeVisible();
 	await page.keyboard.press("ArrowRight");
