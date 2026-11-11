@@ -11,6 +11,13 @@ for (const provider of ["drive", "youtube"] as const)
 		await expect(page).toHaveURL(/\/dashboard\/events\/[0-9a-f-]{36}$/);
 		const eventId = new URL(page.url()).pathname.split("/").at(-1)!;
 		await page.getByRole("textbox", { name: "Event title", exact: true }).fill("Connection test draft");
+		if (provider === "youtube") {
+			await openEventSection(page, "Categories");
+			await page.getByRole("button", { name: "Edit Best clip", exact: true }).click();
+			await page.getByRole("button", { name: "Submission type" }).click();
+			await page.getByRole("option", { name: "YouTube video", exact: true }).click();
+			await page.getByRole("button", { name: "Apply category", exact: true }).click();
+		}
 		await openEventSection(page, "Connections");
 		const errors: string[] = [];
 		page.on("pageerror", (error) => errors.push(error.message));

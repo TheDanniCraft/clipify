@@ -52,7 +52,7 @@ export function EventMedia({ content }: { content: EventCandidateContent }) {
 		</div>
 	);
 }
-function EventVoteShare({ percentage, votes, delay, label }: { percentage: number; votes?: number; delay?: number; label: string }) {
+function EventVoteShare({ percentage, votes, delay, label, presentation = false, rank }: { percentage: number; votes?: number; delay?: number; label: string; presentation?: boolean; rank?: number }) {
 	const reduceMotion = useReducedMotion();
 	const [shown, setShown] = useState(delay !== undefined && !reduceMotion ? 0 : percentage);
 	useEffect(() => {
@@ -62,19 +62,22 @@ function EventVoteShare({ percentage, votes, delay, label }: { percentage: numbe
 	}, [percentage, delay, reduceMotion]);
 	const value = delay === undefined || reduceMotion ? percentage : shown;
 	return (
-		<div>
+		<motion.div initial={presentation && delay !== undefined && !reduceMotion ? { opacity: 0 } : false} animate={{ opacity: 1 }} transition={{ delay: delay ?? 0, duration: 0.18 }}>
 			<ProgressBar size='sm' aria-label={`Vote share for ${label}`} value={Math.max(0, Math.min(100, value))}>
 				<ProgressBar.Track>
 					<ProgressBar.Fill />
 				</ProgressBar.Track>
 			</ProgressBar>
-			<p className='mt-1 text-sm tabular-nums text-muted'>
-				{new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value)}%{votes !== undefined ? ` (${new Intl.NumberFormat().format(votes)} ${votes === 1 ? "vote" : "votes"})` : ""}
+			<p className='mt-1 flex items-center justify-between gap-2 text-sm tabular-nums text-muted'>
+				{presentation && rank ? <span className='font-medium text-accent'>#{rank}</span> : null}
+				<span className={presentation ? "ml-auto" : undefined}>
+					{new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(presentation ? percentage : value)}%{votes !== undefined ? ` (${new Intl.NumberFormat().format(votes)} ${votes === 1 ? "vote" : "votes"})` : ""}
+				</span>
 			</p>
-		</div>
+		</motion.div>
 	);
 }
-export function EventNomineeCard({ candidate, selected = false, disabled = false, onSelect, onOpen, result, resultDelay, compact = false, rank }: { candidate: { id: string; content: EventCandidateContent }; selected?: boolean; disabled?: boolean; onSelect?: (selected: boolean) => void; onOpen: () => void; resultDelay?: number; compact?: boolean; rank?: number; result?: { percentage?: number; winner: boolean; votes?: number } }) {
+export function EventNomineeCard({ candidate, selected = false, disabled = false, onSelect, onOpen, result, resultDelay, compact = false, presentation = false, rank }: { candidate: { id: string; content: EventCandidateContent }; selected?: boolean; disabled?: boolean; onSelect?: (selected: boolean) => void; onOpen: () => void; resultDelay?: number; compact?: boolean; presentation?: boolean; rank?: number; result?: { percentage?: number; winner: boolean; votes?: number } }) {
 	const label = candidate.content.title;
 	const winner = result?.winner;
 	return (
@@ -84,14 +87,14 @@ export function EventNomineeCard({ candidate, selected = false, disabled = false
 					{candidate.content.thumbnailUrl || (candidate.content.kind === "image" && candidate.content.mediaUrl) ? (
 						<Image src={(candidate.content.thumbnailUrl || candidate.content.mediaUrl)!} alt='' unoptimized fill loading='eager' className='object-cover' />
 					) : (
-						<motion.span layout='position' className='line-clamp-3 max-w-full whitespace-normal break-words px-5 text-center text-lg font-medium'>
+						<motion.span layout={presentation ? false : "position"} className='line-clamp-3 max-w-full whitespace-normal break-words px-5 text-center text-lg font-medium'>
 							{candidate.content.title}
 						</motion.span>
 					)}
 				</Button>
-				{winner || rank ? <span className='pointer-events-none absolute right-3 top-3 rounded-full bg-accent px-3 py-1 text-sm font-semibold text-accent-foreground'>{winner ? "Winner" : `#${rank}`}</span> : null}
+				{!presentation && (winner || rank) ? <span className='pointer-events-none absolute right-3 top-3 rounded-full bg-accent px-3 py-1 text-sm font-semibold text-accent-foreground'>{winner ? "Winner" : `#${rank}`}</span> : null}
 			</div>
-			<motion.div layout='position' className={`space-y-2 ${compact ? "p-2 text-sm" : "p-4"}`}>
+			<motion.div layout={presentation ? false : "position"} className={`space-y-2 ${compact ? "p-2 text-sm" : "p-4"}`}>
 				{onSelect ? (
 					<Checkbox aria-label={`Vote for ${candidate.content.title}`} isSelected={selected} isDisabled={disabled} onChange={onSelect} className='w-full'>
 						<Checkbox.Content>
@@ -103,11 +106,11 @@ export function EventNomineeCard({ candidate, selected = false, disabled = false
 					</Checkbox>
 				) : (
 					<div className='space-y-2'>
-						<h3 className={`line-clamp-2 break-words font-medium ${compact ? "min-h-10" : result?.percentage !== undefined ? "min-h-12" : ""}`}>{label}</h3>
+						<h3 className={`line-clamp-2 break-words font-medium ${compact ? "min-h-10" : presentation || result?.percentage !== undefined ? "min-h-12" : ""}`}>{label}</h3>
 						{selected ? <p className='text-sm font-medium text-accent'>Your selection</p> : null}
 					</div>
 				)}
-				{result?.percentage !== undefined || compact ? <div className={compact ? "h-9" : undefined}>{result?.percentage !== undefined ? <EventVoteShare percentage={result.percentage} votes={result.votes} delay={resultDelay} label={label} /> : null}</div> : null}
+				{result?.percentage !== undefined || compact || presentation ? <div className={compact || presentation ? "h-9" : undefined}>{result?.percentage !== undefined ? <EventVoteShare presentation={presentation} rank={compact ? rank : undefined} percentage={result.percentage} votes={result.votes} delay={resultDelay} label={label} /> : null}</div> : null}
 			</motion.div>
 		</div>
 	);

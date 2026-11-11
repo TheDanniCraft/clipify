@@ -1,6 +1,7 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, within, waitFor } from "@testing-library/react";
 import EventPresenter from "@/app/components/events/EventPresenter";
 import { getEventPresenterAction, publishEventPresenterResultsAction } from "@/app/actions/events";
+jest.mock("motion/react", () => ({ ...jest.requireActual("motion/react"), AnimatePresence: ({ children }: { children: React.ReactNode }) => children }));
 jest.mock("@/app/actions/events", () => ({ getEventPresenterAction: jest.fn(), publishEventPresenterResultsAction: jest.fn() }));
 jest.mock("@/app/components/events/EventMedia", () => ({
 	EventMedia: ({ content }: { content: { title: string } }) => <div data-testid='opened-media'>{content.title}</div>,
@@ -29,7 +30,7 @@ it("lets the host inspect nominees, reveal results and explicitly publish after 
 	await screen.findByRole("heading", { name: "Babbler Awards" });
 	fireEvent.keyDown(window, { key: "ArrowRight" });
 	fireEvent.keyDown(window, { key: "ArrowRight" });
-	fireEvent.click(screen.getByRole("button", { name: "Lampe raucht ab" }));
+	fireEvent.click(within(screen.getByLabelText("Category nominees")).getByRole("button", { name: "Lampe raucht ab" }));
 	expect(screen.getByTestId("opened-media")).toBeInTheDocument();
 	fireEvent.keyDown(window, { key: "Escape" });
 	expect(screen.queryByTestId("opened-media")).not.toBeInTheDocument();
@@ -37,7 +38,7 @@ it("lets the host inspect nominees, reveal results and explicitly publish after 
 	expect(screen.getByLabelText("Nominee results")).toHaveTextContent("Lampe raucht ab");
 	expect(screen.queryByLabelText("Award winners")).not.toBeInTheDocument();
 	fireEvent.keyDown(window, { key: "ArrowRight" });
-	expect(await screen.findByRole("button", { name: "Lampe raucht ab winner #1" })).toBeInTheDocument();
+	expect(await within(screen.getByLabelText("Award winners")).findByRole("button", { name: "Lampe raucht ab winner #1" })).toBeInTheDocument();
 	fireEvent.keyDown(window, { key: "ArrowRight" });
 	expect(screen.getByRole("heading", { name: "Thank you!" })).toBeInTheDocument();
 	fireEvent.keyDown(window, { key: "ArrowRight" });
@@ -69,7 +70,7 @@ it("reveals podium places one click at a time and conceals them again on back", 
 	next();
 	expect(screen.getByLabelText("Category nominees")).toHaveTextContent("Lampe raucht ab");
 	next();
-	expect(screen.getByLabelText("Previously presented nominees")).toHaveTextContent("Lampe raucht ab");
+	expect(screen.getByLabelText("Presented nominees")).toHaveTextContent("Lampe raucht ab");
 	next();
 	next();
 	next();

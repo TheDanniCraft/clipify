@@ -253,3 +253,8 @@ Creating the example in the user's actual account is an external follow-up after
 - [x] T123 Add optional Twitch poll/prediction authorization through Better Auth, requesting the appropriate manage scopes only when needed. Configure the connection centrally and activation per category slide.
 - [x] T124 Enforce Twitch's complete-option limits before allowing a slide interaction: two to five poll choices or two to ten prediction outcomes. Keep every nominee included and revalidate the actual nominees when starting an interaction.
 - [x] T125 Add an optional slide navigation lock until its poll finishes or prediction entry window closes, then resolve predictions when the award winner is revealed. Keep the host's show sequence operable on provider failures.
+
+## Reveal and reverse-navigation follow-up
+
+- [x] T126 Replace unstable shared card projection with a short focused reveal while retaining the nominee strip. Reserve title/result space, keep the final score readable without a temporary zero, integrate placement labels, and restore previous steps/media returns without replaying entrances. Verify early/intermediate/final frames and immediate/repeated backwards navigation with real components.
+- [x] T127 Update the YouTube connection-start browser fixture to configure a YouTube category before testing its contextual connection action; retain the actual failure-recovery and Better Auth consent assertions.

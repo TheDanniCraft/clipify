@@ -38,6 +38,7 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 		[opened, setOpened] = useState<EventCandidateContent | null>(null),
 		[busy, setBusy] = useState(false);
 	const opener = useRef<string | null>(null);
+	const [stageNavigation, setStageNavigation] = useState({ instant: false, version: 0 });
 	const show = initial ?? remoteShow;
 	useEffect(() => {
 		if (initial) return;
@@ -72,6 +73,7 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 	const stepCount = steps.length,
 		loaded = !!show;
 	const close = useCallback(() => {
+		setStageNavigation((current) => ({ instant: true, version: current.version + 1 }));
 		setOpened(null);
 		requestAnimationFrame(() => {
 			if (opener.current) document.querySelector<HTMLButtonElement>(`[data-award-candidate="${CSS.escape(opener.current)}"]`)?.focus();
@@ -85,6 +87,7 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 			}
 			if (direction > 0 && interactionBlocked) return;
 			if ((direction < 0 && index === 0) || (direction > 0 && index === stepCount - 1)) return;
+			setStageNavigation((current) => ({ instant: direction < 0, version: current.version + (direction < 0 ? 1 : 0) }));
 			setStepId(steps[index + direction]?.id);
 		},
 		[opened, close, stepCount, index, steps, interactionBlocked],
@@ -181,8 +184,8 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 	const openedHasCaption = opened && ["clip", "youtube", "video", "image", "game"].includes(opened.kind);
 	const style = show.brand ? ({ "--color-accent": show.brand.themeAccentColor, fontFamily: `${show.brand.fontFamily}, sans-serif` } as React.CSSProperties) : undefined;
 	const titleOnly = step?.type === "statistics-title" || step?.type === "category-title" || step?.type === "closing-title";
-	const entrance = { initial: reduceMotion ? (false as const) : { opacity: 0, y: 24 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.4 } };
-	const contentEntrance = { initial: reduceMotion ? (false as const) : { opacity: 0 }, animate: { opacity: 1 }, transition: { delay: reduceMotion ? 0 : 0.5, duration: 0.2 } };
+	const entrance = { initial: reduceMotion || stageNavigation.instant ? (false as const) : { opacity: 0, y: 24 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.4 } };
+	const contentEntrance = { initial: reduceMotion || stageNavigation.instant ? (false as const) : { opacity: 0 }, animate: { opacity: 1 }, transition: { delay: reduceMotion || stageNavigation.instant ? 0 : 0.5, duration: 0.2 } };
 	for (const candidate of [...(category?.candidates ?? [])].sort((a, b) => a.id.localeCompare(b.id)).slice(step?.type === "nominee" ? step.position : 0, (step?.type === "nominee" ? step.position : 0) + 6)) {
 		const source = candidate.content.thumbnailUrl || (candidate.content.kind === "image" ? candidate.content.mediaUrl : undefined);
 		if (source) preload(source, { as: "image", fetchPriority: "high" });
@@ -201,7 +204,7 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 		<Surface className={`relative flex flex-col bg-background text-foreground ${embedded ? "min-h-[420px]" : "min-h-dvh"}`} style={style}>
 			{preview && !embedded ? <p className='border-b border-separator bg-surface px-5 py-3 text-sm text-muted'>Read-only event preview. Includes unreviewed candidates. Nothing here changes votes or publishes results.</p> : null}
 			{show.brand?.fontSource === "google" ? <link rel='stylesheet' href={`https://fonts.googleapis.com/css2?family=${encodeURIComponent(show.brand.fontFamily)}:wght@400;700&display=swap`} /> : null}
-			<section className={`mx-auto flex w-full max-w-[1600px] flex-1 flex-col justify-center ${embedded ? "px-5 py-8" : category || step?.type === "closing" ? "px-6 py-8 sm:px-14" : "px-6 py-10 sm:px-14 sm:py-12"}`} aria-label='Award presentation'>
+			<section className={`mx-auto flex w-full max-w-[1600px] flex-1 flex-col justify-center ${embedded ? "px-5 py-8" : category || step?.type === "closing" ? "px-6 py-8 sm:px-14 [@media(max-height:800px)]:py-2" : "px-6 py-10 sm:px-14 sm:py-12"}`} aria-label='Award presentation'>
 				{opened ? (
 					<div className='space-y-4'>
 						<div className={show.event.presentation?.showChat ? "grid gap-5 lg:grid-cols-[3fr_1fr]" : ""}>
@@ -252,7 +255,11 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 						<motion.header layout={!reduceMotion ? "position" : false} {...entrance} transition={{ duration: 0.4, layout: { duration: 0.4, ease: "easeInOut" } }} className='text-center'>
 							<h1 className={`mx-auto max-w-5xl break-words text-balance font-bold ${embedded ? "text-3xl" : category ? "text-3xl sm:text-5xl" : "text-4xl sm:text-6xl"}`}>{step.slide.title || category?.title || show.event.title}</h1>
 							{step.type === "welcome" ? <p className='mx-auto mt-6 max-w-2xl whitespace-pre-wrap text-pretty text-lg text-muted sm:text-xl'>{step.slide.text || show.event.description}</p> : step.slide.text ? <p className='mx-auto mt-5 max-w-2xl whitespace-pre-wrap text-lg text-muted sm:text-xl'>{step.slide.text}</p> : null}
-							{category && step.type !== "data-intro" && step.type !== "data-result" && category.selection !== "data" && (titleOnly || step.type === "nominee") ? <p className='mt-2 text-lg text-muted'>The nominees</p> : null}
+							{category && category.selection !== "data" ? (
+								<p aria-hidden={!(titleOnly || step.type === "nominee")} className='mt-2 h-7 text-lg text-muted'>
+									{titleOnly || step.type === "nominee" ? "The nominees" : null}
+								</p>
+							) : null}
 						</motion.header>
 						{step.type === "statistics" ? (
 							<motion.div {...contentEntrance} className='mx-auto grid w-full max-w-6xl grid-cols-[repeat(auto-fit,minmax(min(100%,220px),1fr))] gap-5'>
@@ -267,7 +274,7 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 								})}
 							</motion.div>
 						) : null}
-						{category && (step.type === "nominee" || step.type === "reveal") ? <EventNomineeStage category={category} position={step.type === "nominee" ? step.position : undefined} place={step.type === "reveal" ? step.place : undefined} onOpen={open} /> : null}
+						{category && (step.type === "nominee" || step.type === "reveal") ? <EventNomineeStage key={stageNavigation.version} instant={stageNavigation.instant} category={category} position={step.type === "nominee" ? step.position : undefined} place={step.type === "reveal" ? step.place : undefined} onOpen={open} /> : null}
 						{step.type === "data-intro" ? (
 							<motion.p {...contentEntrance} className='py-16 text-center text-2xl text-muted'>
 								And the award goes to…
@@ -277,7 +284,7 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 							<motion.div {...contentEntrance} className='mx-auto max-w-3xl space-y-5 text-center'>
 								{dataResult && category?.presenterMode === "nominees" ? (
 									<>
-										<EventNomineeStage category={category} place={1} onOpen={open} />
+										<EventNomineeStage key={stageNavigation.version} instant={stageNavigation.instant} category={category} place={1} onOpen={open} />
 										{dataResult.value !== undefined ? (
 											<p className='text-3xl font-bold text-accent'>
 												<AnimatedNumber value={dataResult.value} />
