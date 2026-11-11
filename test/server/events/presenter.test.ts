@@ -136,3 +136,26 @@ it("shares a read-only draft preview without publishing it or exposing grouped o
 		.where(eq(awardEventsTable.id, eventId));
 	expect(await readAwardPreview(eventId, created.token, now)).toMatchObject({ ok: false, code: "NOT_FOUND" });
 });
+
+it("enriches chatter badges once per cached user and keeps messages when 7TV fails", async () => {
+	const { pollAwardChat } = await import("@/server/events/chat");
+	const [event] = await fixture.db.select().from(awardEventsTable);
+	event.configuration.presentation.showChat = true;
+	await fixture.db.update(awardEventsTable).set({ configuration: event.configuration }).where(eq(awardEventsTable.id, eventId));
+	await pollAwardChat(eventId, secret);
+	const { relayAwardChat } = await import("@/server/events/chat-buffer");
+	const send = (id: string) => relayAwardChat({ broadcaster_user_id: "host", message_id: `${eventId}:${id}`, chatter_user_id: id, chatter_user_login: "viewer", chatter_user_name: "Viewer", color: "", message: { text: "Badge test", fragments: [{ type: "text", text: "Badge test" }] }, badges: [] });
+	const request = jest.spyOn(globalThis, "fetch").mockResolvedValue(Response.json({ data: { users: { userByConnection: { style: { activeBadge: { id: "founder", name: "Founder", images: [{ url: "https://cdn.7tv.app/badge/founder/2x.webp", scale: 2, mime: "image/webp" }] } } } } } }));
+	try {
+		send("123456789");
+		const first = await pollAwardChat(eventId, secret);
+		expect(first).toMatchObject({ ok: true, messages: expect.arrayContaining([expect.objectContaining({ userId: "123456789", sevenTvBadge: { id: "founder", name: "Founder", url: "https://cdn.7tv.app/badge/founder/2x.webp" } })]) });
+		await pollAwardChat(eventId, secret);
+		expect(request).toHaveBeenCalledTimes(1);
+		request.mockRejectedValue(new Error("7TV temporarily unavailable"));
+		send("987654321");
+		expect(await pollAwardChat(eventId, secret)).toMatchObject({ ok: true, messages: expect.arrayContaining([expect.objectContaining({ userId: "987654321", text: "Badge test" })]) });
+	} finally {
+		request.mockRestore();
+	}
+});

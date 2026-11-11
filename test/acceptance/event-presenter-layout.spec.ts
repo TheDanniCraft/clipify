@@ -318,5 +318,23 @@ for (const width of [390, 1440])
 			await expect.poll(() => recap.locator("img").evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
 			await expect(page.getByLabel("Winner recap")).toHaveCSS("opacity", "1");
 			await page.screenshot({ path: info.outputPath(`recap-${theme}-${width}.png`), fullPage: true });
+			configuration.presentation.showChat = true;
+			await tourWorld.fixture.pool.query("UPDATE award_events SET configuration=$2 WHERE id=$1", [id, JSON.stringify(configuration)]);
+			await page.reload();
+			const chat = page.getByRole("complementary", { name: "Twitch chat preview", exact: true });
+			await expect(chat).toBeVisible();
+			for (let step = 0; step < 4; step++) await page.keyboard.press("ArrowRight");
+			await expect(page.getByLabel("Category nominees").getByRole("button", { name: "View Nominee 1", exact: true })).toBeVisible();
+			if (width === 1440) {
+				const media = await page.getByLabel("Category nominees").boundingBox();
+				const sidebar = await chat.boundingBox();
+				expect(media!.x + media!.width).toBeLessThanOrEqual(sidebar!.x);
+			}
+			await page.getByLabel("Category nominees").getByRole("button", { name: "View Nominee 1", exact: true }).click();
+			await expect(chat).toBeVisible();
+			await page.keyboard.press("Escape");
+			await expect(chat).toBeVisible();
+			expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+			await page.screenshot({ path: info.outputPath(`chat-overview-${theme}-${width}.png`), fullPage: true });
 		});
 	}

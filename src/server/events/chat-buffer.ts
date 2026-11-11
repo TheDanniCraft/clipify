@@ -21,7 +21,7 @@ export function relayAwardChat(input: unknown, now = Date.now()) {
 		channel = channels.get(data.broadcaster_user_id);
 	if (!channel || channel.activeUntil < now) return;
 	if (channel.messages.some((message) => message.id === data.message_id)) return;
-	channel.messages = [...channel.messages.filter((message) => message.at > now - 60000), { id: data.message_id, login: data.chatter_user_login.toLowerCase(), name: data.chatter_user_name, color: data.color, text: data.message.text, fragments: data.message.fragments, badges: data.badges, at: now }].slice(-50);
+	channel.messages = [...channel.messages.filter((message) => message.at > now - 60000), { id: data.message_id, userId: data.chatter_user_id, login: data.chatter_user_login.toLowerCase(), name: data.chatter_user_name, color: data.color, text: data.message.text, fragments: data.message.fragments, badges: data.badges, at: now }].slice(-50);
 }
 export function readAwardChat(ownerId: string, now = Date.now()) {
 	const channel = channels.get(ownerId);

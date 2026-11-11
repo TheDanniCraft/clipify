@@ -28,8 +28,22 @@ export function parseAwardChatCatalog(badgeSets: unknown[], emoteSets: unknown[]
 	return result;
 }
 
+export type AwardChatBadge = { id: string; name: string; url: string };
+export function parseAwardChatBadge(input: unknown): AwardChatBadge | null {
+	const badge = z.object({ id: z.string().max(100), name: z.string().max(100), images: z.array(z.object({ url: z.string().max(1000), scale: z.number(), mime: z.string() })).max(30) });
+	const response = z.object({ data: z.object({ users: z.object({ userByConnection: z.object({ style: z.object({ activeBadge: badge.nullable() }) }).nullable() }) }) }).safeParse(input);
+	const value = response.data?.data.users.userByConnection?.style.activeBadge;
+	if (!value) return null;
+	const image = [...value.images].sort((a, b) => Math.abs(a.scale - 2) - Math.abs(b.scale - 2)).find((image) => /^image\/(webp|avif|png|gif)$/.test(image.mime) && cdn.safeParse(image.url).success && new URL(image.url).hostname === "cdn.7tv.app");
+	return image ? { id: value.id, name: value.name, url: image.url } : null;
+}
+
 export const awardChatMessageSchema = z.object({
 	broadcaster_user_id: z.string().max(200),
+	chatter_user_id: z
+		.string()
+		.regex(/^\d{1,30}$/)
+		.optional(),
 	message_id: z.string().max(200),
 	chatter_user_login: z.string().max(100),
 	chatter_user_name: z.string().max(100),
@@ -54,4 +68,4 @@ export const awardChatMessageSchema = z.object({
 	}),
 	badges: z.array(z.object({ set_id: z.string().max(100), id: z.string().max(100) })).max(30),
 });
-export type AwardChatMessage = { id: string; login: string; name: string; color: string; text: string; fragments: z.infer<typeof awardChatMessageSchema>["message"]["fragments"]; badges: z.infer<typeof awardChatMessageSchema>["badges"]; at: number };
+export type AwardChatMessage = { id: string; userId?: string; sevenTvBadge?: AwardChatBadge; login: string; name: string; color: string; text: string; fragments: z.infer<typeof awardChatMessageSchema>["message"]["fragments"]; badges: z.infer<typeof awardChatMessageSchema>["badges"]; at: number };

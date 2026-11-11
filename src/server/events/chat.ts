@@ -9,9 +9,9 @@ import { DEFAULT_AWARD_PRESENTATION } from "@/app/lib/eventConfiguration";
 import { getAppAccessToken } from "@/app/actions/twitch";
 import { getBaseUrl } from "@/app/actions/utils";
 import { isPreview } from "@/app/actions/utils";
-import { parseAwardChatCatalog, type AwardChatCatalog } from "@/app/lib/eventChat";
-async function providerJson(url: string, headers?: HeadersInit, body?: unknown) {
-	const response = await fetch(url, { method: body ? "POST" : "GET", headers, body: body ? JSON.stringify(body) : undefined, cache: "no-store", redirect: "error", signal: AbortSignal.timeout(10000) });
+import { parseAwardChatCatalog, parseAwardChatBadge, type AwardChatCatalog, type AwardChatBadge, type AwardChatMessage } from "@/app/lib/eventChat";
+async function providerJson(url: string, headers?: HeadersInit, body?: unknown, timeout = 10000) {
+	const response = await fetch(url, { method: body ? "POST" : "GET", headers, body: body ? JSON.stringify(body) : undefined, cache: "no-store", redirect: "error", signal: AbortSignal.timeout(timeout) });
 	if (response.status === 409) return {};
 	if (!response.ok) throw new Error("PROVIDER_UNAVAILABLE");
 	const reader = response.body?.getReader();
@@ -89,11 +89,34 @@ export async function connectAwardChat(id: string, secret: string) {
 		return eventError(error);
 	}
 }
+const userBadges = new Map<string, { until: number; value: Promise<AwardChatBadge | null> }>();
+async function enrichChatBadges(messages: AwardChatMessage[]): Promise<AwardChatMessage[]> {
+	for (const [id, entry] of userBadges) if (entry.until <= Date.now()) userBadges.delete(id);
+	const ids = [...new Set(messages.flatMap((message) => (message.userId ? [message.userId] : [])))];
+	// Bound new lookups per poll; cached viewers leave room for the next uncached viewers.
+	for (const id of ids.filter((id) => !userBadges.has(id)).slice(0, 10)) {
+		if (userBadges.size >= 1000) userBadges.delete(userBadges.keys().next().value!);
+		const value = providerJson(
+			"https://7tv.io/v4/gql",
+			{ "Content-Type": "application/json" },
+			{
+				query: "query AwardChatBadge($id: String!) { users { userByConnection(platform: TWITCH, platformId: $id) { style { activeBadge { id name images { url scale mime } } } } } }",
+				variables: { id },
+			},
+			1500,
+		)
+			.then(parseAwardChatBadge)
+			.catch(() => null);
+		userBadges.set(id, { until: Date.now() + 60000, value });
+	}
+	const badges = new Map(await Promise.all(ids.filter((id) => userBadges.has(id)).map(async (id) => [id, await userBadges.get(id)!.value] as const)));
+	return messages.map((message) => ({ ...message, sevenTvBadge: badges.get(message.userId ?? "") ?? undefined }));
+}
 export async function pollAwardChat(id: string, secret: string) {
 	try {
 		const { ownerId, settings } = await access(id, secret);
 		if (!activateAwardChat(ownerId)) throw new EventError("SERVICE_UNAVAILABLE");
-		return { ok: true as const, messages: filterAwardChat(readAwardChat(ownerId), settings) };
+		return { ok: true as const, messages: await enrichChatBadges(filterAwardChat(readAwardChat(ownerId), settings)) };
 	} catch (error) {
 		return eventError(error);
 	}

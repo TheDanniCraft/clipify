@@ -54,6 +54,6 @@ for (const type of ["poll", "prediction"] as const) {
 		expect((await read()).id).toBe(remoteId);
 		await next.click(); // Only one nominee received votes, so the next reveal is the winner.
 		await expect.poll(async () => (await read())?.status).toBe(type === "prediction" ? "RESOLVED" : "COMPLETED");
-		await expect(page.getByText("Winner", { exact: true }).first()).toBeVisible();
+		await expect(page.getByRole("heading", { name: "First place", exact: true })).toBeVisible();
 	});
 }

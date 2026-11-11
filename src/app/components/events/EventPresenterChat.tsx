@@ -89,6 +89,7 @@ export default function EventPresenterChat({ eventId, secret }: { eventId: strin
 				{messages.map((message) => (
 					<p key={message.id} className='text-sm leading-7'>
 						{message.badges.map((badge) => (catalog?.badges[`${badge.set_id}:${badge.id}`] ? <Image key={`${badge.set_id}:${badge.id}`} alt={badge.set_id} src={catalog.badges[`${badge.set_id}:${badge.id}`]} unoptimized width={18} height={18} className='mr-1 inline-block align-middle' /> : null))}
+						{message.sevenTvBadge ? <Image alt={`7TV ${message.sevenTvBadge.name}`} title={`7TV ${message.sevenTvBadge.name}`} src={message.sevenTvBadge.url} unoptimized width={18} height={18} className='mr-1 inline-block align-middle' /> : null}
 						<span className='font-semibold' style={message.color ? { color: message.color } : undefined}>
 							{message.name}:{" "}
 						</span>

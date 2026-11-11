@@ -6,7 +6,7 @@ export default function EventPresentationSettings({ value, onChange, disabled = 
 		<fieldset disabled={disabled} className='max-w-3xl space-y-6'>
 			<div>
 				<h2 className='font-semibold'>Presenter chat</h2>
-				<p className='mt-1 text-sm text-muted'>Show live Twitch reactions beside an enlarged nominee during your show.</p>
+				<p className='mt-1 text-sm text-muted'>Show live Twitch reactions alongside every slide during your show.</p>
 			</div>
 			<Switch aria-label='Show Twitch chat' isSelected={value.showChat} onChange={(showChat) => onChange({ ...value, showChat })}>
 				<Switch.Content>

@@ -262,3 +262,6 @@ Creating the example in the user's actual account is an external follow-up after
 - [x] T128 Restore the requested single-card flight between the main presentation area and its reserved nominee slot. Return the outgoing card before raising the next, animate position/width without scaling captions, retain stable result geometry and instant Back/Escape recovery, and verify actual in-flight frames and one card per nominee.
 
 - [x] T129 Preserve the complete featured wrapper height during single-card flights so placement labels remain above the card without a landing jump. Make first place explicit with a trophy announcement and stronger winner emphasis. Sample label/card geometry during the flight and retain all existing presenter journeys.
+
+- [x] T130 Resolve chatters' active 7TV badges from the official API with bounded cached lookups and graceful provider failure, render alongside Twitch badges/emotes, and verify the signed EventSub-to-browser journey.
+- [x] T131 Keep enabled chat mounted alongside the entire show, including nominee overview, media and reveals, and enable chat for the owned Babbler demo. Preserve the preview's non-live capability boundary and verify both themes and responsive layouts.

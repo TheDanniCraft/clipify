@@ -205,124 +205,128 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 			{preview && !embedded ? <p className='border-b border-separator bg-surface px-5 py-3 text-sm text-muted'>Read-only event preview. Includes unreviewed candidates. Nothing here changes votes or publishes results.</p> : null}
 			{show.brand?.fontSource === "google" ? <link rel='stylesheet' href={`https://fonts.googleapis.com/css2?family=${encodeURIComponent(show.brand.fontFamily)}:wght@400;700&display=swap`} /> : null}
 			<section className={`mx-auto flex w-full max-w-[1600px] flex-1 flex-col justify-center ${embedded ? "px-5 py-8" : category || step?.type === "closing" ? "px-6 py-8 sm:px-14 [@media(max-height:800px)]:py-2" : "px-6 py-10 sm:px-14 sm:py-12"}`} aria-label='Award presentation'>
-				{opened ? (
-					<div className='space-y-4'>
-						<div className={show.event.presentation?.showChat ? "grid gap-5 lg:grid-cols-[3fr_1fr]" : ""}>
-							<div className={`relative mx-auto flex w-full items-center justify-center overflow-hidden rounded-2xl bg-surface ${openedHasCaption ? "aspect-video" : "min-h-64"} ${embedded ? "" : "max-w-[calc(65dvh*16/9)]"}`}>
-								<EventMedia content={opened} />
-								<Button isIconOnly size='sm' variant='secondary' aria-label='Close preview' className='absolute right-2 top-2 opacity-50 hover:opacity-100 focus-visible:opacity-100' onPress={close}>
-									×
-								</Button>
+				<div className={show.event.presentation?.showChat ? "grid w-full items-center gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(16rem,1fr)]" : "w-full"}>
+					<div className='min-w-0'>
+						{opened ? (
+							<div className='space-y-4'>
+								<div className={`relative mx-auto flex w-full items-center justify-center overflow-hidden rounded-2xl bg-surface ${openedHasCaption ? "aspect-video" : "min-h-64"} ${embedded ? "" : "max-w-[calc(65dvh*16/9)]"}`}>
+									<EventMedia content={opened} />
+									<Button isIconOnly size='sm' variant='secondary' aria-label='Close preview' className='absolute right-2 top-2 opacity-50 hover:opacity-100 focus-visible:opacity-100' onPress={close}>
+										×
+									</Button>
+								</div>
+
+								{openedHasCaption ? <h1 className='text-center text-2xl font-semibold'>{opened.title}</h1> : null}
 							</div>
-							{show.event.presentation?.showChat ? (
-								preview ? (
-									<aside aria-label='Twitch chat preview' className='rounded-xl bg-surface p-5 text-sm text-muted'>
-										Live Twitch reactions appear here during your show.
-									</aside>
+						) : step?.type === "publish" && preview ? (
+							<div className='space-y-4 text-center'>
+								<h1 className='text-3xl font-semibold'>End of preview</h1>
+								<p className='text-muted'>The real show ends with a separate result publication step.</p>
+							</div>
+						) : step?.type === "publish" ? (
+							<div className='mx-auto max-w-2xl space-y-7 text-center'>
+								<h1 className='text-4xl font-bold'>{show.event.phase === "results" ? "Results are published" : "Ready to share the results?"}</h1>
+								<p className='text-lg text-muted'>{show.event.phase === "results" ? "Everyone can now revisit the winners on your event page." : "Publish when your show is finished. Until then, the audience cannot see the results."}</p>
+								{show.event.phase !== "results" ? (
+									<Button onPress={publish} isPending={busy}>
+										Publish results
+									</Button>
 								) : (
-									<EventPresenterChat eventId={eventId} secret={secret} />
-								)
-							) : null}
-						</div>
-						{openedHasCaption ? <h1 className='text-center text-2xl font-semibold'>{opened.title}</h1> : null}
-					</div>
-				) : step?.type === "publish" && preview ? (
-					<div className='space-y-4 text-center'>
-						<h1 className='text-3xl font-semibold'>End of preview</h1>
-						<p className='text-muted'>The real show ends with a separate result publication step.</p>
-					</div>
-				) : step?.type === "publish" ? (
-					<div className='mx-auto max-w-2xl space-y-7 text-center'>
-						<h1 className='text-4xl font-bold'>{show.event.phase === "results" ? "Results are published" : "Ready to share the results?"}</h1>
-						<p className='text-lg text-muted'>{show.event.phase === "results" ? "Everyone can now revisit the winners on your event page." : "Publish when your show is finished. Until then, the audience cannot see the results."}</p>
-						{show.event.phase !== "results" ? (
-							<Button onPress={publish} isPending={busy}>
-								Publish results
-							</Button>
-						) : (
-							<Link href={`/events/${eventId}`} target='_blank'>
-								View public results
-							</Link>
-						)}
-						{error ? (
-							<p role='alert' className='text-danger'>
-								{error}
-							</p>
-						) : null}
-					</div>
-				) : step && "slide" in step ? (
-					<div key={step.slide.id} className={category ? "space-y-4" : "space-y-6 sm:space-y-8"}>
-						<motion.header layout={!reduceMotion ? "position" : false} {...entrance} transition={{ duration: 0.4, layout: { duration: 0.4, ease: "easeInOut" } }} className='text-center'>
-							<h1 className={`mx-auto max-w-5xl break-words text-balance font-bold ${embedded ? "text-3xl" : category ? "text-3xl sm:text-5xl" : "text-4xl sm:text-6xl"}`}>{step.slide.title || category?.title || show.event.title}</h1>
-							{step.type === "welcome" ? <p className='mx-auto mt-6 max-w-2xl whitespace-pre-wrap text-pretty text-lg text-muted sm:text-xl'>{step.slide.text || show.event.description}</p> : step.slide.text ? <p className='mx-auto mt-5 max-w-2xl whitespace-pre-wrap text-lg text-muted sm:text-xl'>{step.slide.text}</p> : null}
-							{category && category.selection !== "data" ? (
-								<p aria-hidden={!(titleOnly || step.type === "nominee")} className='mt-2 h-7 text-lg text-muted'>
-									{titleOnly || step.type === "nominee" ? "The nominees" : null}
-								</p>
-							) : null}
-						</motion.header>
-						{step.type === "statistics" ? (
-							<motion.div {...contentEntrance} className='mx-auto grid w-full max-w-6xl grid-cols-[repeat(auto-fit,minmax(min(100%,220px),1fr))] gap-5'>
-								{step.slide.statistics.map((stat, i) => {
-									const value = stat.source === "manual" ? stat.value : show.statistics[stat.source];
-									return (
-										<div key={i} className='rounded-2xl bg-surface p-6 text-center'>
-											<p className='text-4xl font-bold text-accent tabular-nums sm:text-6xl'>{typeof value === "number" ? <AnimatedNumber value={value} /> : "—"}</p>
-											<p className='mt-4 text-lg text-muted'>{stat.label}</p>
-										</div>
-									);
-								})}
-							</motion.div>
-						) : null}
-						{category && (step.type === "nominee" || step.type === "reveal") ? <EventNomineeStage key={stageNavigation.version} instant={stageNavigation.instant} category={category} position={step.type === "nominee" ? step.position : undefined} place={step.type === "reveal" ? step.place : undefined} onOpen={open} /> : null}
-						{step.type === "data-intro" ? (
-							<motion.p {...contentEntrance} className='py-16 text-center text-2xl text-muted'>
-								And the award goes to…
-							</motion.p>
-						) : null}
-						{step.type === "data-result" ? (
-							<motion.div {...contentEntrance} className='mx-auto max-w-3xl space-y-5 text-center'>
-								{dataResult && category?.presenterMode === "nominees" ? (
-									<>
-										<EventNomineeStage key={stageNavigation.version} instant={stageNavigation.instant} category={category} place={1} onOpen={open} />
-										{dataResult.value !== undefined ? (
-											<p className='text-3xl font-bold text-accent'>
-												<AnimatedNumber value={dataResult.value} />
-											</p>
-										) : null}
-									</>
-								) : dataResult ? (
-									<>
-										<h2 className='text-4xl font-bold text-accent'>{dataResult.title}</h2>
-										{dataResult.value !== undefined ? (
-											<p className='text-6xl font-bold'>
-												<AnimatedNumber value={dataResult.value} />
-											</p>
-										) : null}
-										<p className='whitespace-pre-wrap text-xl text-muted'>{dataResult.description}</p>
-										{dataWinner ? (
-											<motion.div {...entrance} className='mx-auto max-w-sm'>
-												<EventNomineeCard candidate={{ id: dataWinner.reference || step.categoryId, content: dataWinner }} result={{ winner: true }} onOpen={() => open(dataWinner)} />
-											</motion.div>
-										) : null}
-									</>
-								) : (
-									<p className='text-xl text-muted'>{resultsReady ? "Complete this category’s result in the dashboard, then reload the presenter." : "Results will be available after voting closes."}</p>
+									<Link href={`/events/${eventId}`} target='_blank'>
+										View public results
+									</Link>
 								)}
-							</motion.div>
-						) : null}
-						{step.type === "closing" ? (
-							<motion.div {...contentEntrance} aria-label='Winner recap' className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
-								{winners.map((winner, i) => (
-									<div key={i} className='grid grid-rows-[auto_1fr] gap-2'>
-										<p className='text-sm font-semibold text-muted'>{winner.category}</p>
-										<EventNomineeCard candidate={{ id: `recap-${i}`, content: winner.content }} onOpen={() => open(winner.content)} />
-									</div>
-								))}
-							</motion.div>
+								{error ? (
+									<p role='alert' className='text-danger'>
+										{error}
+									</p>
+								) : null}
+							</div>
+						) : step && "slide" in step ? (
+							<div key={step.slide.id} className={category ? "space-y-4" : "space-y-6 sm:space-y-8"}>
+								<motion.header layout={!reduceMotion ? "position" : false} {...entrance} transition={{ duration: 0.4, layout: { duration: 0.4, ease: "easeInOut" } }} className='text-center'>
+									<h1 className={`mx-auto max-w-5xl break-words text-balance font-bold ${embedded ? "text-3xl" : category ? "text-3xl sm:text-5xl" : "text-4xl sm:text-6xl"}`}>{step.slide.title || category?.title || show.event.title}</h1>
+									{step.type === "welcome" ? <p className='mx-auto mt-6 max-w-2xl whitespace-pre-wrap text-pretty text-lg text-muted sm:text-xl'>{step.slide.text || show.event.description}</p> : step.slide.text ? <p className='mx-auto mt-5 max-w-2xl whitespace-pre-wrap text-lg text-muted sm:text-xl'>{step.slide.text}</p> : null}
+									{category && category.selection !== "data" ? (
+										<p aria-hidden={!(titleOnly || step.type === "nominee")} className='mt-2 h-7 text-lg text-muted'>
+											{titleOnly || step.type === "nominee" ? "The nominees" : null}
+										</p>
+									) : null}
+								</motion.header>
+								{step.type === "statistics" ? (
+									<motion.div {...contentEntrance} className='mx-auto grid w-full max-w-6xl grid-cols-[repeat(auto-fit,minmax(min(100%,220px),1fr))] gap-5'>
+										{step.slide.statistics.map((stat, i) => {
+											const value = stat.source === "manual" ? stat.value : show.statistics[stat.source];
+											return (
+												<div key={i} className='rounded-2xl bg-surface p-6 text-center'>
+													<p className='text-4xl font-bold text-accent tabular-nums sm:text-6xl'>{typeof value === "number" ? <AnimatedNumber value={value} /> : "—"}</p>
+													<p className='mt-4 text-lg text-muted'>{stat.label}</p>
+												</div>
+											);
+										})}
+									</motion.div>
+								) : null}
+								{category && (step.type === "nominee" || step.type === "reveal") ? <EventNomineeStage key={stageNavigation.version} instant={stageNavigation.instant} category={category} position={step.type === "nominee" ? step.position : undefined} place={step.type === "reveal" ? step.place : undefined} onOpen={open} /> : null}
+								{step.type === "data-intro" ? (
+									<motion.p {...contentEntrance} className='py-16 text-center text-2xl text-muted'>
+										And the award goes to…
+									</motion.p>
+								) : null}
+								{step.type === "data-result" ? (
+									<motion.div {...contentEntrance} className='mx-auto max-w-3xl space-y-5 text-center'>
+										{dataResult && category?.presenterMode === "nominees" ? (
+											<>
+												<EventNomineeStage key={stageNavigation.version} instant={stageNavigation.instant} category={category} place={1} onOpen={open} />
+												{dataResult.value !== undefined ? (
+													<p className='text-3xl font-bold text-accent'>
+														<AnimatedNumber value={dataResult.value} />
+													</p>
+												) : null}
+											</>
+										) : dataResult ? (
+											<>
+												<h2 className='text-4xl font-bold text-accent'>{dataResult.title}</h2>
+												{dataResult.value !== undefined ? (
+													<p className='text-6xl font-bold'>
+														<AnimatedNumber value={dataResult.value} />
+													</p>
+												) : null}
+												<p className='whitespace-pre-wrap text-xl text-muted'>{dataResult.description}</p>
+												{dataWinner ? (
+													<motion.div {...entrance} className='mx-auto max-w-sm'>
+														<EventNomineeCard candidate={{ id: dataWinner.reference || step.categoryId, content: dataWinner }} result={{ winner: true }} onOpen={() => open(dataWinner)} />
+													</motion.div>
+												) : null}
+											</>
+										) : (
+											<p className='text-xl text-muted'>{resultsReady ? "Complete this category’s result in the dashboard, then reload the presenter." : "Results will be available after voting closes."}</p>
+										)}
+									</motion.div>
+								) : null}
+								{step.type === "closing" ? (
+									<motion.div {...contentEntrance} aria-label='Winner recap' className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
+										{winners.map((winner, i) => (
+											<div key={i} className='grid grid-rows-[auto_1fr] gap-2'>
+												<p className='text-sm font-semibold text-muted'>{winner.category}</p>
+												<EventNomineeCard candidate={{ id: `recap-${i}`, content: winner.content }} onOpen={() => open(winner.content)} />
+											</div>
+										))}
+									</motion.div>
+								) : null}
+							</div>
 						) : null}
 					</div>
-				) : null}
+					{show.event.presentation?.showChat ? (
+						preview ? (
+							<aside aria-label='Twitch chat preview' className='flex h-[65vh] min-w-0 flex-col rounded-2xl bg-surface p-4'>
+								<h2 className='mb-4 text-sm font-semibold text-muted'>Live chat</h2>
+								<p className='text-sm text-muted'>Live Twitch reactions appear here during your show.</p>
+							</aside>
+						) : (
+							<EventPresenterChat eventId={eventId} secret={secret} />
+						)
+					) : null}
+				</div>
 			</section>
 			<footer className='flex shrink-0 flex-wrap items-center justify-between gap-4 px-5 pb-4 pt-3'>
 				{!show.event.whiteLabel ? <p className='pointer-events-none text-xs text-muted/60'>Clipify</p> : <span />}

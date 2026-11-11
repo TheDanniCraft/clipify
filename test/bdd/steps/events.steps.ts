@@ -274,7 +274,7 @@ When("the host presents the nominees and reveals the winner", async ({ page }) =
 	await expect(page.getByLabel("Nominee results").getByRole("button")).toHaveCount(1);
 	await expect(page.getByLabel("Nominee results").getByRole("progressbar")).toHaveCount(0);
 	await page.keyboard.press("ArrowRight");
-	await expect(page.getByText("Winner", { exact: true })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "First place", exact: true })).toBeVisible();
 	await expect(page.getByText("100% (1 vote)", { exact: true })).toBeVisible();
 });
 Then("results remain hidden from the public", async ({ page, tourWorld }) => {
@@ -313,9 +313,11 @@ Given("presenter live chat is enabled with a hidden bot and command prefix", asy
 
 	await page.route("https://static-cdn.jtvnw.net/isolated-event-badge.png", (route) => route.fulfill({ contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aVZkAAAAASUVORK5CYII=", "base64") }));
 	await page.route("https://cdn.7tv.app/emote/isolated-event/2x.webp", (route) => route.fulfill({ contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aVZkAAAAASUVORK5CYII=", "base64") }));
+	await page.route("https://cdn.7tv.app/badge/isolated-founder/2x.webp", (route) => route.fulfill({ contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aVZkAAAAASUVORK5CYII=", "base64") }));
 	await page.route("https://static-cdn.jtvnw.net/emoticons/v2/isolated-event-emote/default/dark/2.0", (route) => route.fulfill({ contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aVZkAAAAASUVORK5CYII=", "base64") }));
 	await page.goto(`${tourWorld.origin}/events/${world.eventId}/present#${"s".repeat(43)}`);
 	await expect(page.getByRole("heading", { name: "Babbler Awards", exact: true })).toBeVisible();
+	await expect(page.getByRole("complementary", { name: "Twitch chat", exact: true })).toBeVisible();
 });
 When("the host opens a nominee and receives signed Twitch reactions", async ({ page, tourWorld }) => {
 	await page.keyboard.press("ArrowRight");
@@ -334,6 +336,7 @@ When("the host opens a nominee and receives signed Twitch reactions", async ({ p
 				event: {
 					broadcaster_user_id: tourWorld.owner!.creatorId,
 					message_id: messageId,
+					chatter_user_id: login === "viewer" ? "12345" : "54321",
 					chatter_user_login: login,
 					chatter_user_name: login,
 					color: "#abcdef",
@@ -364,7 +367,11 @@ Then("the presenter chat shows badges and emotes while hiding commands and bots"
 	await expect(chat.getByText(/Great moment/)).toBeVisible();
 	await expect(chat.getByText("?song", { exact: true })).toHaveCount(0);
 	await expect(chat.getByText("spam message", { exact: true })).toHaveCount(0);
-	for (const name of ["subscriber", "peepoHappy", "Kappa"]) await expect.poll(() => chat.getByRole("img", { name, exact: true }).evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBe(1);
+	for (const name of ["subscriber", "7TV Founder", "peepoHappy", "Kappa"]) await expect.poll(() => chat.getByRole("img", { name, exact: true }).evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBe(1);
+	await page.keyboard.press("Escape");
+	await expect(chat).toBeVisible();
+	await expect(chat.getByText(/Great moment/)).toBeVisible();
+	await expect(page.getByText("Connecting to Twitch…", { exact: true })).toHaveCount(0);
 });
 
 Then("the award editor and presenter can be reviewed in both themes and viewport sizes", async ({ page, tourWorld }) => {

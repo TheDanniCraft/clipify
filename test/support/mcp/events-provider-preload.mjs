@@ -32,6 +32,11 @@ globalThis.fetch = async (input, init) => {
 		}
 		return Response.json({ data: [{ set_id: "subscriber", versions: [{ id: "1", image_url_2x: "https://static-cdn.jtvnw.net/isolated-event-badge.png" }] }] });
 	}
+	if (process.env.MCP_EVENT_CHAT_PROVIDER_FIXTURE === "true" && url.origin === "https://7tv.io" && url.pathname === "/v4/gql") {
+		const body = JSON.parse(String(init?.body));
+		if (!/^\d+$/.test(body.variables?.id ?? "")) throw new Error("Unexpected 7TV badge lookup");
+		return Response.json({ data: { users: { userByConnection: { style: { activeBadge: { id: "isolated-founder", name: "Founder", images: [{ url: "https://cdn.7tv.app/badge/isolated-founder/2x.webp", scale: 2, mime: "image/webp" }] } } } } } });
+	}
 	if (process.env.MCP_EVENT_CHAT_PROVIDER_FIXTURE === "true" && url.origin === "https://7tv.io" && url.pathname.startsWith("/v3/")) {
 		const set = { emotes: [{ name: "peepoHappy", data: { host: { url: "//cdn.7tv.app/emote/isolated-event", files: [{ name: "2x.webp" }] } } }] };
 		return Response.json(url.pathname === "/v3/emote-sets/global" ? set : { emote_set: set });
