@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within, waitFor } from "@testing-library/react";
 import EventPresenter from "@/app/components/events/EventPresenter";
 import { getEventPresenterAction, publishEventPresenterResultsAction } from "@/app/actions/events";
+jest.mock("@/app/components/events/EventPresenterChat", () => ({ __esModule: true, default: () => <aside aria-label='Twitch chat' /> }));
 jest.mock("@/app/actions/events", () => ({ getEventPresenterAction: jest.fn(), publishEventPresenterResultsAction: jest.fn() }));
 jest.mock("@/app/components/events/EventMedia", () => ({
 	EventMedia: ({ content }: { content: { title: string } }) => <div data-testid='opened-media'>{content.title}</div>,
@@ -106,12 +107,12 @@ it("presents nominees independently of vote order", () => {
 it("keeps enabled preview chat visible across the overview, media and reveals", () => {
 	const initial = { ...view, event: { ...view.event, presentation: { showChat: true, hiddenAccounts: [], commandPrefixes: [] } } };
 	render(<EventPresenter eventId='show' preview initial={initial as never} />);
-	const chat = screen.getByRole("complementary", { name: "Twitch chat preview" });
+	const chat = screen.getByRole("complementary", { name: "Twitch chat" });
 	fireEvent.keyDown(window, { key: "ArrowRight" });
 	fireEvent.keyDown(window, { key: "ArrowRight" });
 	fireEvent.click(within(screen.getByLabelText("Category nominees")).getByRole("button", { name: "Lampe raucht ab" }));
-	expect(screen.getByRole("complementary", { name: "Twitch chat preview" })).toBe(chat);
+	expect(screen.getByRole("complementary", { name: "Twitch chat" })).toBe(chat);
 	fireEvent.keyDown(window, { key: "Escape" });
 	fireEvent.keyDown(window, { key: "ArrowRight" });
-	expect(screen.getByRole("complementary", { name: "Twitch chat preview" })).toBe(chat);
+	expect(screen.getByRole("complementary", { name: "Twitch chat" })).toBe(chat);
 });

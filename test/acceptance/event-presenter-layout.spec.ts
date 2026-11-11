@@ -6,7 +6,7 @@ import { browserProviderEnvironment } from "../support/mcp/browser-database.cjs"
 
 for (const width of [390, 1440])
 	for (const theme of ["light", "dark"]) {
-		test(`Award preview layout and provider frames at ${width}px in ${theme}`, async ({ page, request, tourWorld }, info) => {
+		test(`Award preview layout and provider frames at ${width}px in ${theme}`, { tag: "@event-chat" }, async ({ page, request, tourWorld }, info) => {
 			await page.setViewportSize({ width, height: 900 });
 			await page.addInitScript((value) => localStorage.setItem("theme", value), theme);
 			const { creatorId } = await seedCreatorLibrary({ page, request, tourWorld });
@@ -321,8 +321,9 @@ for (const width of [390, 1440])
 			configuration.presentation.showChat = true;
 			await tourWorld.fixture.pool.query("UPDATE award_events SET configuration=$2 WHERE id=$1", [id, JSON.stringify(configuration)]);
 			await page.reload();
-			const chat = page.getByRole("complementary", { name: "Twitch chat preview", exact: true });
+			const chat = page.getByRole("complementary", { name: "Twitch chat", exact: true });
 			await expect(chat).toBeVisible();
+			await expect(chat.getByText("Waiting for live reactions…", { exact: true })).toBeVisible();
 			for (let step = 0; step < 4; step++) await page.keyboard.press("ArrowRight");
 			await expect(page.getByLabel("Category nominees").getByRole("button", { name: "View Nominee 1", exact: true })).toBeVisible();
 			if (width === 1440) {

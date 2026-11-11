@@ -1,3 +1,4 @@
+import { browserProviderEnvironment } from "../../support/mcp/browser-database.cjs";
 import { openEventSection } from "../../support/event-editor-navigation";
 import { openConsentPage } from "../../support/consent-page";
 import { createBdd } from "playwright-bdd";
@@ -362,7 +363,7 @@ When("the host opens a nominee and receives signed Twitch reactions", async ({ p
 		expect((await page.request.post(`${tourWorld.origin}/eventsub`, { data: body, headers: { "Content-Type": "application/json", "Twitch-Eventsub-Message-Id": messageId, "Twitch-Eventsub-Message-Timestamp": timestamp, "Twitch-Eventsub-Message-Signature": signature, "Twitch-Eventsub-Message-Type": "notification" } })).status()).toBe(204);
 	}
 });
-Then("the presenter chat shows badges and emotes while hiding commands and bots", async ({ page }) => {
+Then("the presenter chat shows badges and emotes while hiding commands and bots", async ({ page, tourWorld }) => {
 	const chat = page.getByRole("complementary", { name: "Twitch chat", exact: true });
 	await expect(chat.getByText(/Great moment/)).toBeVisible();
 	await expect(chat.getByText("?song", { exact: true })).toHaveCount(0);
@@ -372,6 +373,18 @@ Then("the presenter chat shows badges and emotes while hiding commands and bots"
 	await expect(chat).toBeVisible();
 	await expect(chat.getByText(/Great moment/)).toBeVisible();
 	await expect(page.getByText("Connecting to Twitch…", { exact: true })).toHaveCount(0);
+	const eventId = awardWorld(tourWorld).eventId;
+	const row = (await tourWorld.fixture.pool.query("SELECT presenter_digest FROM award_events WHERE id=$1", [eventId])).rows[0];
+	const { createHmac } = await import("node:crypto");
+	const expires = String(Date.now() + 3600000);
+	const key = browserProviderEnvironment({ APP_ENV: "test", E2E_TEST_MODE: "true", MCP_BROWSER_PROVIDER_FIXTURE: "true", MCP_BROWSER_DATABASE_URL: tourWorld.fixture.url }).BETTER_AUTH_SECRET;
+	const token = `${expires}.${createHmac("sha256", key).update(`clipify-event-preview:${eventId}:${row.presenter_digest}:${expires}`).digest("base64url")}`;
+	await page.goto(`${tourWorld.origin}/events/${eventId}/preview#${token}`);
+	const previewChat = page.getByRole("complementary", { name: "Twitch chat", exact: true });
+	await expect(previewChat.getByText(/Great moment/)).toBeVisible();
+	await expect(previewChat.getByRole("img", { name: "7TV Founder", exact: true })).toBeVisible();
+	await expect(previewChat.getByText("?song", { exact: true })).toHaveCount(0);
+	await expect(page.getByText("Live Twitch reactions appear here during your show.", { exact: true })).toHaveCount(0);
 });
 
 Then("the award editor and presenter can be reviewed in both themes and viewport sizes", async ({ page, tourWorld }) => {

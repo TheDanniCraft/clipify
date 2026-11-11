@@ -28,3 +28,18 @@ it("bounds the buffer and rejects malformed or executable fragment data", () => 
 	relayAwardChat({ ...message, broadcaster_user_id: "bounded", message: { text: "x".repeat(5000), fragments: [] } }, 1000);
 	expect(readAwardChat("bounded", 1000)).toHaveLength(50);
 });
+
+it("pushes each accepted message immediately and stops on unsubscribe", async () => {
+	const { subscribeAwardChat } = await import("@/server/events/chat-buffer");
+	activateAwardChat("streaming", 1000);
+	const receive = jest.fn();
+	const unsubscribe = subscribeAwardChat("streaming", receive);
+	relayAwardChat({ ...message, broadcaster_user_id: "streaming" }, 1000);
+	expect(receive).toHaveBeenCalledTimes(1);
+	expect(receive.mock.calls[0][0]).toMatchObject([{ text: "hi" }]);
+	relayAwardChat({ ...message, broadcaster_user_id: "streaming" }, 1000);
+	expect(receive).toHaveBeenCalledTimes(1);
+	unsubscribe();
+	relayAwardChat({ ...message, broadcaster_user_id: "streaming", message_id: "two" }, 1000);
+	expect(receive).toHaveBeenCalledTimes(1);
+});

@@ -1,15 +1,15 @@
 import "server-only";
 import { awardChatMessageSchema as schema, type AwardChatMessage } from "@/app/lib/eventChat";
-type Channel = { activeUntil: number; messages: AwardChatMessage[] };
+type Channel = { activeUntil: number; messages: AwardChatMessage[]; listeners: Set<(messages: AwardChatMessage[]) => void> };
 declare global {
 	var __awardChat: Map<string, Channel> | undefined;
 }
 // shortcut: like existing overlay subscriptions this is process-local; use shared pubsub before deploying replicas.
 const channels = globalThis.__awardChat ?? (globalThis.__awardChat = new Map<string, Channel>());
 export function activateAwardChat(ownerId: string, now = Date.now()) {
-	for (const [id, channel] of channels) if (channel.activeUntil < now) channels.delete(id);
+	for (const [id, channel] of channels) if (channel.activeUntil < now && !channel.listeners.size) channels.delete(id);
 	if (!channels.has(ownerId) && channels.size >= 100) return false;
-	const channel = channels.get(ownerId) ?? { activeUntil: 0, messages: [] };
+	const channel = channels.get(ownerId) ?? { activeUntil: 0, messages: [], listeners: new Set<(messages: AwardChatMessage[]) => void>() };
 	channel.activeUntil = now + 30000;
 	channels.set(ownerId, channel);
 	return true;
@@ -22,6 +22,7 @@ export function relayAwardChat(input: unknown, now = Date.now()) {
 	if (!channel || channel.activeUntil < now) return;
 	if (channel.messages.some((message) => message.id === data.message_id)) return;
 	channel.messages = [...channel.messages.filter((message) => message.at > now - 60000), { id: data.message_id, userId: data.chatter_user_id, login: data.chatter_user_login.toLowerCase(), name: data.chatter_user_name, color: data.color, text: data.message.text, fragments: data.message.fragments, badges: data.badges, at: now }].slice(-50);
+	for (const receive of channel.listeners) receive(channel.messages);
 }
 export function readAwardChat(ownerId: string, now = Date.now()) {
 	const channel = channels.get(ownerId);
@@ -29,4 +30,12 @@ export function readAwardChat(ownerId: string, now = Date.now()) {
 }
 export function filterAwardChat(messages: AwardChatMessage[], settings: { hiddenAccounts: string[]; commandPrefixes: string[] }) {
 	return messages.filter((message) => !settings.hiddenAccounts.includes(message.login) && !settings.commandPrefixes.some((prefix) => message.text.trimStart().startsWith(prefix)));
+}
+
+export function subscribeAwardChat(ownerId: string, receive: (messages: AwardChatMessage[]) => void) {
+	const listeners = channels.get(ownerId)?.listeners;
+	listeners?.add(receive);
+	return () => {
+		listeners?.delete(receive);
+	};
 }

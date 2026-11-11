@@ -2,69 +2,74 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@heroui/react";
-import { connectEventChatAction, pollEventChatAction } from "@actions/events";
 import type { AwardChatCatalog } from "@lib/eventChat";
 import type { AwardChatMessage } from "@lib/eventChat";
 function textEmotes(text: string, emotes: Record<string, string>) {
 	return text.split(/(\s+)/).map((word, index) => (Object.hasOwn(emotes, word) ? <Image key={index} alt={word} title={word} src={emotes[word]} unoptimized width={32} height={32} className='inline-block max-h-8 w-auto align-middle' /> : word));
 }
-export default function EventPresenterChat({ eventId, secret }: { eventId: string; secret: string }) {
+export default function EventPresenterChat({ eventId, secret, preview = false }: { eventId: string; secret: string; preview?: boolean }) {
 	const [catalog, setCatalog] = useState<AwardChatCatalog | null>(null),
 		[messages, setMessages] = useState<AwardChatMessage[]>([]),
 		[error, setError] = useState(""),
 		[attempt, setAttempt] = useState(0),
 		[ready, setReady] = useState(false);
-	const end = useRef<HTMLDivElement>(null);
+	const log = useRef<HTMLDivElement>(null);
 	useEffect(() => {
-		let active = true;
-		connectEventChatAction(eventId, secret)
-			.then((result) => {
-				if (!active) return;
-				if (result.ok) {
-					setError("");
-					setCatalog(result.catalog);
-					setReady(true);
-				} else setError("Chat could not connect. Check the creator’s Twitch connection in the dashboard, then retry.");
-			})
-			.catch(() => {
-				if (active) setError("Chat could not connect. Try again.");
-			});
-		return () => {
-			active = false;
-		};
-	}, [eventId, secret, attempt]);
-	useEffect(() => {
-		if (!ready) return;
+		if (!secret) return;
 		let active = true,
-			pending = false;
-		async function poll() {
-			if (pending) return;
-			pending = true;
-			try {
-				const result = await pollEventChatAction(eventId, secret);
-				if (!active) return;
-				if (result.ok) {
-					setMessages(result.messages);
-					setError("");
-				} else {
-					setMessages([]);
-					setError("Chat is unavailable. Check the presenter link and retry.");
+			socket: WebSocket,
+			retry: ReturnType<typeof setTimeout> | undefined,
+			retries = 0;
+		function connect() {
+			if (!active) return;
+			setReady(false);
+			const url = new URL("/ws", window.location.href);
+			url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+			const connection = new WebSocket(url);
+			socket = connection;
+			connection.onopen = () => connection.send(JSON.stringify({ type: "event_chat_subscribe", data: { eventId, secret, preview } }));
+			connection.onmessage = (event) => {
+				if (!active || socket !== connection) return;
+				try {
+					const frame = JSON.parse(event.data);
+					if (frame.type === "event_chat_catalog") {
+						setCatalog(frame.data);
+						setReady(true);
+						setError("");
+						retries = 0;
+					} else if (frame.type === "event_chat_messages" && Array.isArray(frame.data?.messages)) {
+						setMessages(frame.data.messages);
+						setError("");
+					} else if (frame.type === "event_chat_error") {
+						setError("Chat could not connect. Check that chat is enabled and the link is current, then retry.");
+					}
+				} catch {
+					setError("Chat received an invalid update. Reconnect to retry.");
 				}
-			} catch {
+			};
+			connection.onerror = () => {
 				if (active) setError("Chat connection interrupted. Retrying…");
-			} finally {
-				pending = false;
-			}
+			};
+			connection.onclose = (event) => {
+				if (!active || socket !== connection) return;
+				setReady(false);
+				if (event.code === 4002 || event.code === 4003) {
+					setError("Chat access ended. Check the link and chat setting, then retry.");
+					return;
+				}
+				setError("Chat connection interrupted. Retrying…");
+				retry = setTimeout(connect, Math.min(10000, 1000 * 2 ** retries++));
+			};
 		}
-		void poll();
-		const timer = setInterval(poll, 1500);
+		connect();
 		return () => {
 			active = false;
-			clearInterval(timer);
+			clearTimeout(retry);
+			socket?.close();
 		};
-	}, [ready, eventId, secret]);
+	}, [eventId, secret, preview, attempt]);
 	useEffect(() => {
-		end.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+		if (log.current) log.current.scrollTop = log.current.scrollHeight;
 	}, [messages]);
 	return (
 		<aside aria-label='Twitch chat' className='flex h-[65vh] min-w-0 flex-col overflow-hidden rounded-2xl bg-surface p-4'>
@@ -85,7 +90,7 @@ export default function EventPresenterChat({ eventId, secret }: { eventId: strin
 					</Button>
 				</div>
 			) : null}
-			<div className='min-h-0 flex-1 space-y-3 overflow-y-auto break-words' role='log' aria-label='Live reactions'>
+			<div ref={log} className='min-h-0 flex-1 space-y-3 overflow-y-auto break-words' role='log' aria-label='Live reactions'>
 				{messages.map((message) => (
 					<p key={message.id} className='text-sm leading-7'>
 						{message.badges.map((badge) => (catalog?.badges[`${badge.set_id}:${badge.id}`] ? <Image key={`${badge.set_id}:${badge.id}`} alt={badge.set_id} src={catalog.badges[`${badge.set_id}:${badge.id}`]} unoptimized width={18} height={18} className='mr-1 inline-block align-middle' /> : null))}
@@ -97,7 +102,6 @@ export default function EventPresenterChat({ eventId, secret }: { eventId: strin
 					</p>
 				))}
 				{!messages.length && !error ? <p className='text-sm text-muted'>{ready ? "Waiting for live reactions…" : "Connecting to Twitch…"}</p> : null}
-				<div ref={end} />
 			</div>
 			{catalog?.warnings.map((warning) => (
 				<p key={warning} className='mt-2 text-xs text-muted'>

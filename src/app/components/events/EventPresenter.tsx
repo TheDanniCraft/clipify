@@ -316,16 +316,7 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 							</div>
 						) : null}
 					</div>
-					{show.event.presentation?.showChat ? (
-						preview ? (
-							<aside aria-label='Twitch chat preview' className='flex h-[65vh] min-w-0 flex-col rounded-2xl bg-surface p-4'>
-								<h2 className='mb-4 text-sm font-semibold text-muted'>Live chat</h2>
-								<p className='text-sm text-muted'>Live Twitch reactions appear here during your show.</p>
-							</aside>
-						) : (
-							<EventPresenterChat eventId={eventId} secret={secret} />
-						)
-					) : null}
+					{show.event.presentation?.showChat ? <EventPresenterChat eventId={eventId} secret={secret} preview={preview} /> : null}
 				</div>
 			</section>
 			<footer className='flex shrink-0 flex-wrap items-center justify-between gap-4 px-5 pb-4 pt-3'>

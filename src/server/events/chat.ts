@@ -5,6 +5,7 @@ import { db } from "@/db/client";
 import { awardEventsTable, usersTable } from "@/db/schema";
 import { EventError, eventError, hasAwardPresenterSecret } from "./persistence";
 import { activateAwardChat, filterAwardChat, readAwardChat } from "./chat-buffer";
+import { hasAwardPreviewToken } from "@/auth/event-preview-token";
 import { DEFAULT_AWARD_PRESENTATION } from "@/app/lib/eventConfiguration";
 import { getAppAccessToken } from "@/app/actions/twitch";
 import { getBaseUrl } from "@/app/actions/utils";
@@ -32,7 +33,7 @@ async function providerJson(url: string, headers?: HeadersInit, body?: unknown, 
 		reader.releaseLock();
 	}
 }
-async function access(id: string, secret: string) {
+export async function authorizeAwardChat(id: string, secret: string, preview = false) {
 	if (!z.uuid().safeParse(id).success) throw new EventError("NOT_FOUND");
 	const [row] = await db
 		.select({ event: awardEventsTable })
@@ -40,7 +41,7 @@ async function access(id: string, secret: string) {
 		.innerJoin(usersTable, and(eq(usersTable.id, awardEventsTable.ownerId), eq(usersTable.disabled, false)))
 		.where(eq(awardEventsTable.id, id))
 		.limit(1);
-	if (!row?.event.publishedAt || !hasAwardPresenterSecret(row.event, secret)) throw new EventError("NOT_FOUND");
+	if (!row || (preview ? !hasAwardPreviewToken(row.event, secret) : !row.event.publishedAt || !hasAwardPresenterSecret(row.event, secret))) throw new EventError("NOT_FOUND");
 	const settings = row.event.configuration.presentation ?? DEFAULT_AWARD_PRESENTATION;
 	if (!settings.showChat) throw new EventError("ACCESS_DENIED");
 	return { ownerId: row.event.ownerId, settings };
@@ -66,9 +67,9 @@ async function subscribe(ownerId: string, headers: Record<string, string>) {
 	}
 }
 const catalogs = new Map<string, { until: number; value: AwardChatCatalog }>();
-export async function connectAwardChat(id: string, secret: string) {
+export async function connectAwardChat(id: string, secret: string, preview = false) {
 	try {
-		const { ownerId } = await access(id, secret);
+		const { ownerId } = await authorizeAwardChat(id, secret, preview);
 		if (!activateAwardChat(ownerId)) throw new EventError("SERVICE_UNAVAILABLE");
 		const token = await getAppAccessToken();
 		if (!token) throw new EventError("PROVIDER_UNAVAILABLE");
@@ -90,10 +91,10 @@ export async function connectAwardChat(id: string, secret: string) {
 	}
 }
 const userBadges = new Map<string, { until: number; value: Promise<AwardChatBadge | null> }>();
-async function enrichChatBadges(messages: AwardChatMessage[]): Promise<AwardChatMessage[]> {
+export async function enrichChatBadges(messages: AwardChatMessage[]): Promise<AwardChatMessage[]> {
 	for (const [id, entry] of userBadges) if (entry.until <= Date.now()) userBadges.delete(id);
 	const ids = [...new Set(messages.flatMap((message) => (message.userId ? [message.userId] : [])))];
-	// Bound new lookups per poll; cached viewers leave room for the next uncached viewers.
+	// Bound new lookups per snapshot; cached viewers leave room for the next uncached viewers.
 	for (const id of ids.filter((id) => !userBadges.has(id)).slice(0, 10)) {
 		if (userBadges.size >= 1000) userBadges.delete(userBadges.keys().next().value!);
 		const value = providerJson(
@@ -114,7 +115,7 @@ async function enrichChatBadges(messages: AwardChatMessage[]): Promise<AwardChat
 }
 export async function pollAwardChat(id: string, secret: string) {
 	try {
-		const { ownerId, settings } = await access(id, secret);
+		const { ownerId, settings } = await authorizeAwardChat(id, secret);
 		if (!activateAwardChat(ownerId)) throw new EventError("SERVICE_UNAVAILABLE");
 		return { ok: true as const, messages: await enrichChatBadges(filterAwardChat(readAwardChat(ownerId), settings)) };
 	} catch (error) {

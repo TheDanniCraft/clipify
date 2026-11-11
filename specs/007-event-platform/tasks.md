@@ -264,4 +264,6 @@ Creating the example in the user's actual account is an external follow-up after
 - [x] T129 Preserve the complete featured wrapper height during single-card flights so placement labels remain above the card without a landing jump. Make first place explicit with a trophy announcement and stronger winner emphasis. Sample label/card geometry during the flight and retain all existing presenter journeys.
 
 - [x] T130 Resolve chatters' active 7TV badges from the official API with bounded cached lookups and graceful provider failure, render alongside Twitch badges/emotes, and verify the signed EventSub-to-browser journey.
-- [x] T131 Keep enabled chat mounted alongside the entire show, including nominee overview, media and reveals, and enable chat for the owned Babbler demo. Preserve the preview's non-live capability boundary and verify both themes and responsive layouts.
+- [x] T131 Keep enabled chat mounted alongside the entire show, including nominee overview, media and reveals, and enable chat for the owned Babbler demo. Preserve the preview's read-only capability boundary and verify both themes and responsive layouts.
+
+- [x] T132 Replace chat polling and preview placeholders with a capability-checked live WebSocket subscription on the existing endpoint. Keep text independent of badge lookup latency, preserve messages across reconnects, recheck/revoke access, clean up subscriptions, and verify draft-preview chat plus signed EventSub delivery without enabling write controls.

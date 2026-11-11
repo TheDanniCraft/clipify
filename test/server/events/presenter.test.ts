@@ -159,3 +159,19 @@ it("enriches chatter badges once per cached user and keeps messages when 7TV fai
 		request.mockRestore();
 	}
 });
+
+it("allows a valid preview capability to read enabled draft chat without granting presenter authority", async () => {
+	const { authorizeAwardChat, pollAwardChat } = await import("@/server/events/chat");
+	const { createAwardPreviewToken } = await import("@/auth/event-preview-token");
+	const [event] = await fixture.db.select().from(awardEventsTable);
+	event.configuration.presentation.showChat = true;
+	await fixture.db.update(awardEventsTable).set({ configuration: event.configuration, publishedAt: null }).where(eq(awardEventsTable.id, eventId));
+	const token = createAwardPreviewToken(event);
+	expect(await authorizeAwardChat(eventId, token, true)).toMatchObject({ ownerId: "host" });
+	expect(await pollAwardChat(eventId, token)).toMatchObject({ ok: false, code: "NOT_FOUND" });
+	await fixture.db
+		.update(awardEventsTable)
+		.set({ presenterDigest: hash("changed") })
+		.where(eq(awardEventsTable.id, eventId));
+	await expect(authorizeAwardChat(eventId, token, true)).rejects.toThrow();
+});
