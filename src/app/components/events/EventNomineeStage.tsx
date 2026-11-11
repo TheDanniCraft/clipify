@@ -80,7 +80,7 @@ export default function EventNomineeStage({ category, position, place, onOpen, i
 				<div className='flex w-full items-center justify-center gap-5'>
 					{active.map((candidate) => (
 						<div key={candidate.id} className='w-full max-w-[min(24rem,38dvh)] [@media(max-height:800px)]:max-w-[min(24rem,32dvh)] space-y-2'>
-							<div className='h-6 text-center text-sm font-semibold tracking-wide text-accent'>{reveal && place ? (final ? "Winner" : place === 2 ? "Second place" : "Third place") : null}</div>
+							<div className='h-10 text-center text-2xl font-bold tracking-tight text-foreground sm:text-3xl'>{reveal && place ? (final ? "Winner" : place === 2 ? "Second place" : "Third place") : null}</div>
 							{card(candidate, true)}
 						</div>
 					))}
