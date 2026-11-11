@@ -1,10 +1,11 @@
 "use client";
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { LayoutGroup, motion, useReducedMotion } from "motion/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { Button, Link, Spinner } from "@heroui/react";
 import { getEventPresenterAction, getEventPreviewAction, publishEventPresenterResultsAction } from "@actions/events";
-import { buildAwardPresenterSteps, rankAwardNominees } from "@lib/eventPresenter";
+import { buildAwardPresenterSteps } from "@lib/eventPresenter";
 import type { EventCandidateContent } from "@lib/eventCandidates";
+import EventNomineeStage from "./EventNomineeStage";
 import EventPresenterChat from "./EventPresenterChat";
 import { EventMedia, EventNomineeCard } from "./EventMedia";
 export type AwardShow = Extract<Awaited<ReturnType<typeof getEventPresenterAction>>, { ok: true }>;
@@ -28,7 +29,10 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 	const [remoteShow, setShow] = useState<Show | null>(null),
 		[secret, setSecret] = useState(""),
 		[error, setError] = useState(""),
-		[stepId, setStepId] = useState(() => (initial && initialSlideId ? buildAwardPresenterSteps(initial.event).find((step) => "slide" in step && step.slide.id === initialSlideId)?.id : undefined)),
+		[stepId, setStepId] = useState(() => {
+			if (!initial) return;
+			return buildAwardPresenterSteps(initial.event).find((step) => "slide" in step && (!initialSlideId || step.slide.id === initialSlideId) && (!embedded || !step.type.endsWith("-title")))?.id;
+		}),
 		[opened, setOpened] = useState<EventCandidateContent | null>(null),
 		[busy, setBusy] = useState(false);
 	const opener = useRef<string | null>(null);
@@ -58,7 +62,6 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 			steps.findIndex((step) => step.id === stepId),
 		),
 		step = steps[index];
-	const layoutId = useId();
 	const reduceMotion = useReducedMotion();
 
 	const stepCount = steps.length,
@@ -164,12 +167,6 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 	const titleOnly = step?.type === "statistics-title" || step?.type === "category-title" || step?.type === "closing-title";
 	const entrance = { initial: reduceMotion ? (false as const) : { opacity: 0, y: 24 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.4 } };
 	const resultsReady = show.event.phase === "closed" || show.event.phase === "results";
-	const reveal = step?.type === "reveal" ? step : undefined;
-	const ranked = reveal && category ? rankAwardNominees(category) : [];
-	const final = reveal?.place === 1;
-	const revealedWinners = final ? ranked.filter(({ result }) => result.winner) : [];
-	const others = ranked.filter(({ result }) => !final || !result.winner);
-
 	const winners = show.event.categories.flatMap(
 		(c) =>
 			c.results
@@ -183,7 +180,7 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 		<Surface className={`relative flex flex-col bg-background text-foreground ${embedded ? "min-h-[420px]" : "min-h-dvh"}`} style={style}>
 			{preview && !embedded ? <p className='border-b border-separator bg-surface px-5 py-3 text-sm text-muted'>Read-only event preview. Includes unreviewed candidates. Nothing here changes votes or publishes results.</p> : null}
 			{show.brand?.fontSource === "google" ? <link rel='stylesheet' href={`https://fonts.googleapis.com/css2?family=${encodeURIComponent(show.brand.fontFamily)}:wght@400;700&display=swap`} /> : null}
-			<section className={`mx-auto flex w-full max-w-[1600px] flex-1 flex-col ${(category && !titleOnly) || step?.type === "statistics" || step?.type === "closing" ? "justify-start" : "justify-center"} ${embedded ? "px-5 py-8" : category || step?.type === "closing" ? "px-6 py-8 sm:px-14" : "px-6 py-10 sm:px-14 sm:py-12"}`} aria-label='Award presentation'>
+			<section className={`mx-auto flex w-full max-w-[1600px] flex-1 flex-col justify-center ${embedded ? "px-5 py-8" : category || step?.type === "closing" ? "px-6 py-8 sm:px-14" : "px-6 py-10 sm:px-14 sm:py-12"}`} aria-label='Award presentation'>
 				{opened ? (
 					<div className='space-y-4'>
 						<Button variant='tertiary' onPress={close}>
@@ -249,66 +246,7 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 								})}
 							</motion.div>
 						) : null}
-						{step.type === "nominee" && category ? (
-							<LayoutGroup id={layoutId}>
-								<div aria-label='Category nominees' className='mx-auto max-w-xl'>
-									{category.candidates.slice(step.position, step.position + 1).map((candidate) => (
-										<motion.div key={candidate.id} layoutId={reduceMotion ? undefined : candidate.id} {...entrance}>
-											<EventNomineeCard candidate={candidate} onOpen={() => open(candidate.content)} />
-										</motion.div>
-									))}
-								</div>
-								{step.position > 0 ? (
-									<div aria-label='Previously presented nominees' className='mx-auto grid max-w-5xl grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6'>
-										{category.candidates.slice(0, step.position).map((candidate) => (
-											<motion.div key={candidate.id} layoutId={reduceMotion ? undefined : candidate.id}>
-												<EventNomineeCard candidate={candidate} onOpen={() => open(candidate.content)} />
-											</motion.div>
-										))}
-									</div>
-								) : null}
-							</LayoutGroup>
-						) : null}
-						{reveal && category ? (
-							<div className='mx-auto max-w-4xl space-y-4'>
-								{!resultsReady ? <p className='text-center text-muted'>Results will be available after voting closes.</p> : !ranked.some(({ result }) => result.votes > 0) ? <p className='text-center text-muted'>No votes were cast.</p> : <p className='text-center text-muted'>{revealedWinners.length ? "And the award goes to…" : final ? "The results" : "The reveal"}</p>}
-								{revealedWinners.length > 0 ? (
-									<motion.div {...entrance} aria-label='Award winners' className='mx-auto flex max-w-3xl flex-wrap justify-center gap-4'>
-										{revealedWinners.map(({ candidate, result }) => (
-											<div key={candidate.id} className='w-full max-w-sm'>
-												<EventNomineeCard candidate={candidate} result={result} onOpen={() => open(candidate.content)} />
-											</div>
-										))}
-									</motion.div>
-								) : null}
-								<ol aria-label='Nominee results' className='space-y-2'>
-									{(reveal.place === 0 ? category.candidates : others.map(({ candidate }) => candidate)).map((candidate, i) => {
-										const entry = others.find((item) => item.candidate.id === candidate.id);
-										const visible = final || (reveal.place > 1 && !!entry?.place && entry.place >= reveal.place && entry.place <= 3);
-										const place = reveal.place === 0 ? i + 1 : entry?.place;
-										return (
-											<li key={reveal.place === 0 ? i : candidate.id} className='flex min-h-14 items-center gap-3 rounded-xl border border-separator bg-surface px-4'>
-												<span className='w-9 shrink-0 text-sm font-semibold text-muted'>{place ? `#${place}` : "—"}</span>
-												{visible && entry ? (
-													<motion.div key={candidate.id} {...entrance} className='flex min-w-0 flex-1 items-center justify-between gap-3'>
-														<Button data-award-candidate={candidate.id} variant='tertiary' className='h-auto min-w-0 whitespace-normal py-2 text-left' onPress={() => open(candidate.content)}>
-															{candidate.content.title}
-														</Button>
-														<span className='shrink-0 text-sm tabular-nums text-muted'>
-															{entry.result.votes} {entry.result.votes === 1 ? "vote" : "votes"}
-														</span>
-													</motion.div>
-												) : (
-													<span className='text-muted' aria-label='Hidden nominee'>
-														—
-													</span>
-												)}
-											</li>
-										);
-									})}
-								</ol>
-							</div>
-						) : null}
+						{category && (step.type === "nominee" || step.type === "reveal") ? <EventNomineeStage category={category} position={step.type === "nominee" ? step.position : undefined} place={step.type === "reveal" ? step.place : undefined} onOpen={open} /> : null}
 						{step.type === "data-intro" ? (
 							<motion.p {...entrance} className='py-16 text-center text-2xl text-muted'>
 								And the award goes to…

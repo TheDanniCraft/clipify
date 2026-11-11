@@ -81,8 +81,23 @@ for (const width of [390, 1440])
 			for (let position = 1; position <= 5; position++) {
 				await page.keyboard.press("ArrowRight");
 				await expect(page.getByLabel("Category nominees").getByRole("button", { name: `View Nominee ${position}`, exact: true })).toBeVisible();
+				if (position === 1) {
+					await expect
+						.poll(async () => {
+							const box = await page.getByLabel("Category nominees").getByRole("button").boundingBox();
+							return Math.abs(box!.x + box!.width / 2 - width / 2);
+						})
+						.toBeLessThan(2);
+					await page.screenshot({ path: info.outputPath(`first-nominee-${theme}-${width}.png`), fullPage: true });
+				}
 			}
-			await expect(page.getByLabel("Category nominees").locator(":scope > div")).toHaveCSS("opacity", "1");
+			const hero = page.getByLabel("Category nominees");
+			await expect
+				.poll(async () => {
+					const box = await hero.getByRole("button").boundingBox();
+					return Math.abs(box!.x + box!.width / 2 - width / 2);
+				})
+				.toBeLessThan(2);
 			await page.screenshot({ path: info.outputPath(`nominees-${theme}-${width}.png`), fullPage: true });
 			await page.getByRole("button", { name: "View Nominee 1", exact: true }).click();
 			await expect(page.frameLocator('iframe[title="Nominee 1"]').getByText("Twitch clip provider loaded")).toBeVisible();
@@ -91,18 +106,46 @@ for (const width of [390, 1440])
 			await page.keyboard.press("ArrowRight");
 			const winner = page.getByLabel("Award winners");
 			const others = page.getByLabel("Nominee results");
-			await expect(others.getByRole("button")).toHaveCount(0);
+			await expect(others.getByRole("button")).toHaveCount(5);
+			const slots = others.locator("[data-award-slot]");
+			const positions = await slots.evaluateAll((nodes) =>
+				nodes.map((node) => {
+					const { x, y, width } = node.getBoundingClientRect();
+					return { x, y, width };
+				}),
+			);
 			await page.keyboard.press("ArrowRight");
-			await expect(others.getByRole("button", { name: "Nominee 3", exact: true })).toBeVisible();
-			await expect(others.getByRole("button", { name: "Nominee 2", exact: true })).toHaveCount(0);
+			await expect(page.getByLabel("Featured nominee").getByRole("button", { name: "View Nominee 3", exact: true })).toBeVisible();
+			await expect(others.getByRole("progressbar")).toHaveCount(0);
+			await expect.poll(() => page.getByLabel("Featured nominee").getByRole("progressbar").getAttribute("aria-valuenow").then(Number)).toBeCloseTo(20, 1);
+			await page.screenshot({ path: info.outputPath(`third-${theme}-${width}.png`), fullPage: true });
 			await page.keyboard.press("ArrowRight");
-			await expect(others.getByRole("button", { name: "Nominee 2", exact: true })).toBeVisible();
+			await expect(page.getByLabel("Featured nominee").getByRole("button", { name: "View Nominee 2", exact: true })).toBeVisible();
+			await expect(others.getByRole("button", { name: "View Nominee 3", exact: true })).toBeVisible();
+			await expect.poll(() => page.getByLabel("Featured nominee").getByRole("progressbar").getAttribute("aria-valuenow").then(Number)).toBeCloseTo((100 * 4) / 15, 1);
 			await expect(winner).toHaveCount(0);
 			await page.keyboard.press("ArrowRight");
 			await expect(winner.getByRole("button", { name: "View Nominee 1", exact: true })).toBeVisible();
 			await expect(others.getByRole("button")).toHaveCount(4);
-			await expect(others.getByText("3 votes", { exact: true })).toBeVisible();
-			await expect(winner).toHaveCSS("opacity", "1");
+			await expect(others.getByText("20% (3 votes)", { exact: true })).toBeVisible();
+			await expect
+				.poll(async () => {
+					const box = await winner.getByRole("button").boundingBox();
+					return Math.abs(box!.x + box!.width / 2 - width / 2);
+				})
+				.toBeLessThan(2);
+			await expect.poll(() => winner.getByRole("progressbar").getAttribute("aria-valuenow").then(Number)).toBeCloseTo(100 / 3, 1);
+			await expect
+				.poll(async () => {
+					const now = await slots.evaluateAll((nodes) =>
+						nodes.map((node) => {
+							const { x, y, width } = node.getBoundingClientRect();
+							return { x, y, width };
+						}),
+					);
+					return Math.max(...now.flatMap((box, i) => [Math.abs(box.x - positions[i].x), Math.abs(box.y - positions[i].y), Math.abs(box.width - positions[i].width)]));
+				})
+				.toBeLessThan(2);
 			await page.screenshot({ path: info.outputPath(`results-${theme}-${width}.png`), fullPage: true });
 			expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
 			await page.keyboard.press("ArrowRight");
@@ -117,9 +160,9 @@ for (const width of [390, 1440])
 			await page.screenshot({ path: info.outputPath(`quote-${theme}-${width}.png`), fullPage: true });
 			await page.keyboard.press("Escape");
 			await page.keyboard.press("ArrowRight");
-			await expect(others.getByRole("button")).toHaveCount(0);
+			await expect(others.getByRole("button")).toHaveCount(1);
 			await page.keyboard.press("ArrowRight");
-			await expect(others.getByRole("button", { name: quoteTitle, exact: true })).toBeVisible();
+			await expect(others.getByRole("button", { name: `View ${quoteTitle}`, exact: true })).toBeVisible();
 			await expect(winner).toHaveCount(0);
 			await page.keyboard.press("ArrowRight");
 			await expect(page.getByRole("heading", { name: "The winners", exact: true })).toBeVisible();

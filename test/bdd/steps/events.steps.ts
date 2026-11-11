@@ -271,11 +271,11 @@ When("the host presents the nominees and reveals the winner", async ({ page }) =
 	await page.keyboard.press("Escape");
 	await expect(page.getByRole("button", { name: "Back to the show", exact: true })).toHaveCount(0);
 	await page.keyboard.press("ArrowRight");
-	await expect(page.getByLabel("Nominee results").getByRole("button")).toHaveCount(0);
-	await expect(page.getByRole("button", { name: "View Lampe raucht ab", exact: true })).toHaveCount(0);
+	await expect(page.getByLabel("Nominee results").getByRole("button")).toHaveCount(1);
+	await expect(page.getByLabel("Nominee results").getByRole("progressbar")).toHaveCount(0);
 	await page.keyboard.press("ArrowRight");
 	await expect(page.getByText("Winner", { exact: true })).toBeVisible();
-	await expect(page.getByText("100% (1 votes)", { exact: true })).toBeVisible();
+	await expect(page.getByText("100% (1 vote)", { exact: true })).toBeVisible();
 });
 Then("results remain hidden from the public", async ({ page, tourWorld }) => {
 	const audience = await page.context().newPage();

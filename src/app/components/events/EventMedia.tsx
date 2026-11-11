@@ -1,6 +1,7 @@
 "use client";
+import { animate, useReducedMotion } from "motion/react";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button, Checkbox, Link, ProgressBar } from "@heroui/react";
 import type { EventCandidateContent } from "@lib/eventCandidates";
 export function EventMedia({ content }: { content: EventCandidateContent }) {
@@ -51,7 +52,29 @@ export function EventMedia({ content }: { content: EventCandidateContent }) {
 		</div>
 	);
 }
-export function EventNomineeCard({ candidate, selected = false, disabled = false, onSelect, onOpen, result }: { candidate: { id: string; content: EventCandidateContent }; selected?: boolean; disabled?: boolean; onSelect?: (selected: boolean) => void; onOpen: () => void; result?: { percentage?: number; winner: boolean; votes?: number } }) {
+function EventVoteShare({ percentage, votes, delay, label }: { percentage: number; votes?: number; delay?: number; label: string }) {
+	const reduceMotion = useReducedMotion();
+	const [shown, setShown] = useState(delay !== undefined && !reduceMotion ? 0 : percentage);
+	useEffect(() => {
+		if (delay === undefined || reduceMotion) return;
+		const controls = animate(0, percentage, { delay, duration: 1.1, ease: "easeOut", onUpdate: setShown });
+		return () => controls.stop();
+	}, [percentage, delay, reduceMotion]);
+	const value = delay === undefined || reduceMotion ? percentage : shown;
+	return (
+		<div>
+			<ProgressBar size='sm' aria-label={`Vote share for ${label}`} value={Math.max(0, Math.min(100, value))}>
+				<ProgressBar.Track>
+					<ProgressBar.Fill />
+				</ProgressBar.Track>
+			</ProgressBar>
+			<p className='mt-1 text-sm tabular-nums text-muted'>
+				{new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value)}%{votes !== undefined ? ` (${new Intl.NumberFormat().format(votes)} ${votes === 1 ? "vote" : "votes"})` : ""}
+			</p>
+		</div>
+	);
+}
+export function EventNomineeCard({ candidate, selected = false, disabled = false, onSelect, onOpen, result, resultDelay, compact = false, rank }: { candidate: { id: string; content: EventCandidateContent }; selected?: boolean; disabled?: boolean; onSelect?: (selected: boolean) => void; onOpen: () => void; resultDelay?: number; compact?: boolean; rank?: number; result?: { percentage?: number; winner: boolean; votes?: number } }) {
 	const label = candidate.content.title;
 	const winner = result?.winner;
 	return (
@@ -60,9 +83,9 @@ export function EventNomineeCard({ candidate, selected = false, disabled = false
 				<Button data-award-candidate={candidate.id} aria-label={`View ${candidate.content.title}`} variant='tertiary' className='relative h-full w-full overflow-hidden rounded-none p-0' onPress={onOpen}>
 					{candidate.content.thumbnailUrl || (candidate.content.kind === "image" && candidate.content.mediaUrl) ? <Image src={(candidate.content.thumbnailUrl || candidate.content.mediaUrl)!} alt='' unoptimized fill className='object-cover' /> : <span className='line-clamp-3 max-w-full whitespace-normal break-words px-5 text-center text-lg font-medium'>{candidate.content.title}</span>}
 				</Button>
-				{winner ? <span className='pointer-events-none absolute right-3 top-3 rounded-full bg-accent px-3 py-1 text-sm font-semibold text-accent-foreground'>Winner</span> : null}
+				{winner || rank ? <span className='pointer-events-none absolute right-3 top-3 rounded-full bg-accent px-3 py-1 text-sm font-semibold text-accent-foreground'>{winner ? "Winner" : `#${rank}`}</span> : null}
 			</div>
-			<div className='space-y-2 p-4'>
+			<div className={`space-y-2 ${compact ? "p-2 text-sm" : "p-4"}`}>
 				{onSelect ? (
 					<Checkbox aria-label={`Vote for ${candidate.content.title}`} isSelected={selected} isDisabled={disabled} onChange={onSelect} className='w-full'>
 						<Checkbox.Content>
@@ -74,22 +97,11 @@ export function EventNomineeCard({ candidate, selected = false, disabled = false
 					</Checkbox>
 				) : (
 					<div className='space-y-2'>
-						<h3 className={`line-clamp-2 break-words font-medium ${result?.percentage !== undefined ? "min-h-12" : ""}`}>{label}</h3>
+						<h3 className={`line-clamp-2 break-words font-medium ${compact ? "min-h-10" : result?.percentage !== undefined ? "min-h-12" : ""}`}>{label}</h3>
 						{selected ? <p className='text-sm font-medium text-accent'>Your selection</p> : null}
 					</div>
 				)}
-				{result?.percentage !== undefined ? (
-					<div>
-						<ProgressBar size='sm' aria-label={`Vote share for ${label}`} value={Math.max(0, Math.min(100, result.percentage))}>
-							<ProgressBar.Track>
-								<ProgressBar.Fill />
-							</ProgressBar.Track>
-						</ProgressBar>
-						<p className='mt-1 text-sm text-muted'>
-							{new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(result.percentage)}%{result.votes !== undefined ? ` (${new Intl.NumberFormat().format(result.votes)} votes)` : ""}
-						</p>
-					</div>
-				) : null}
+				{result?.percentage !== undefined || compact ? <div className={compact ? "h-9" : undefined}>{result?.percentage !== undefined ? <EventVoteShare percentage={result.percentage} votes={result.votes} delay={resultDelay} label={label} /> : null}</div> : null}
 			</div>
 		</div>
 	);

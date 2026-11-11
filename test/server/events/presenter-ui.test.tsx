@@ -4,10 +4,11 @@ import { getEventPresenterAction, publishEventPresenterResultsAction } from "@/a
 jest.mock("@/app/actions/events", () => ({ getEventPresenterAction: jest.fn(), publishEventPresenterResultsAction: jest.fn() }));
 jest.mock("@/app/components/events/EventMedia", () => ({
 	EventMedia: ({ content }: { content: { title: string } }) => <div data-testid='opened-media'>{content.title}</div>,
-	EventNomineeCard: ({ candidate, onOpen, result }: { candidate: { content: { title: string } }; onOpen: () => void; result?: { winner: boolean } }) => (
+	EventNomineeCard: ({ candidate, onOpen, result, rank }: { candidate: { content: { title: string } }; onOpen: () => void; result?: { winner: boolean }; rank?: number }) => (
 		<button onClick={onOpen}>
 			{candidate.content.title}
 			{result?.winner ? " winner" : ""}
+			{rank ? ` #${rank}` : ""}
 		</button>
 	),
 }));
@@ -33,10 +34,10 @@ it("lets the host inspect nominees, reveal results and explicitly publish after 
 	fireEvent.keyDown(window, { key: "Escape" });
 	expect(screen.queryByTestId("opened-media")).not.toBeInTheDocument();
 	fireEvent.keyDown(window, { key: "ArrowRight" });
-	expect(screen.getByLabelText("Nominee results")).toHaveTextContent("#1");
-	expect(screen.queryByText("Lampe raucht ab")).not.toBeInTheDocument();
+	expect(screen.getByLabelText("Nominee results")).toHaveTextContent("Lampe raucht ab");
+	expect(screen.queryByLabelText("Award winners")).not.toBeInTheDocument();
 	fireEvent.keyDown(window, { key: "ArrowRight" });
-	expect(await screen.findByRole("button", { name: "Lampe raucht ab winner" })).toBeInTheDocument();
+	expect(await screen.findByRole("button", { name: "Lampe raucht ab winner #1" })).toBeInTheDocument();
 	fireEvent.keyDown(window, { key: "ArrowRight" });
 	expect(screen.getByRole("heading", { name: "Thank you!" })).toBeInTheDocument();
 	fireEvent.keyDown(window, { key: "ArrowRight" });
@@ -73,13 +74,14 @@ it("reveals podium places one click at a time and conceals them again on back", 
 	next();
 	next();
 	expect(screen.getByRole("heading", { name: "Best fail" })).toBe(header);
-	expect(screen.getByLabelText("Nominee results")).not.toHaveTextContent("Third nominee");
-	next();
 	expect(screen.getByLabelText("Nominee results")).toHaveTextContent("Third nominee");
-	expect(screen.queryByText("Second nominee")).not.toBeInTheDocument();
+	expect(screen.getByLabelText("Featured nominee")).toHaveTextContent("And the award goes to");
 	next();
+	expect(screen.getByLabelText("Featured nominee")).toHaveTextContent("Third nominee #3");
 	expect(screen.getByLabelText("Nominee results")).toHaveTextContent("Second nominee");
-	expect(screen.queryByText("Fourth nominee")).not.toBeInTheDocument();
+	next();
+	expect(screen.getByLabelText("Featured nominee")).toHaveTextContent("Second nominee #2");
+	expect(screen.getByLabelText("Nominee results")).toHaveTextContent("Third nominee #3");
 	next();
 	expect(screen.getByLabelText("Award winners")).toHaveTextContent("Lampe raucht ab winner");
 	expect(screen.getByLabelText("Nominee results")).toHaveTextContent("Fourth nominee");
