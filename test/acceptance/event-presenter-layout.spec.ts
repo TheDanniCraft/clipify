@@ -152,6 +152,13 @@ for (const width of [390, 1440])
 			const winner = page.getByLabel("Award winners");
 			const others = page.getByLabel("Nominee results");
 			await expect(others.getByRole("button")).toHaveCount(5);
+			const partialCaptionLines = await others.locator("h3").evaluateAll((headings) =>
+				headings.some((heading) => {
+					const lines = heading.getBoundingClientRect().height / parseFloat(getComputedStyle(heading).lineHeight);
+					return Math.abs(lines - Math.round(lines)) > 0.01;
+				}),
+			);
+			expect(partialCaptionLines).toBe(false);
 			const slots = others.locator("[data-award-slot]");
 			const positions = await slots.evaluateAll((nodes) =>
 				nodes.map((node) => {
