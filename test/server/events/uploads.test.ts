@@ -167,3 +167,34 @@ it("lets a valid preview read a root nominee's file while keeping unshared/group
 	await fixture.db.update(awardCandidatesTable).set({ parentId: parent.id }).where(eq(awardCandidatesTable.id, uploaded.submission.candidateId));
 	expect((await serveAwardAsset(eventId, asset.id, null, new AbortController().signal, undefined, false, token)).status).toBe(404);
 });
+
+it("allows team files for data-award nominees while keeping viewer submissions disabled", async () => {
+	const { eq } = await import("drizzle-orm");
+	const [event] = await fixture.db.select().from(awardEventsTable);
+	event.configuration.categories[0] = { ...event.configuration.categories[0], selection: "data", presenterMode: "nominees", dataNomineeSource: "team" };
+	await fixture.db.update(awardEventsTable).set({ configuration: event.configuration }).where(eq(awardEventsTable.id, eventId));
+	expect(await acceptAwardUpload("viewer", eventId, categoryId, input, body(), new AbortController().signal)).toMatchObject({ ok: false, code: "INVALID_INPUT" });
+	const principal = { kind: "session" as const, authUserId: "viewer", sessionId: "session", authenticatedAt: new Date() };
+	expect(await acceptAwardUpload("viewer", eventId, categoryId, input, body(), new AbortController().signal, { principal, ownerId: "host" })).toMatchObject({ ok: true });
+	expect(await fixture.db.select().from(awardSubmissionsTable)).toHaveLength(0);
+	const { awardCandidatesTable } = await import("@/db/schema");
+	const { createHash } = await import("node:crypto");
+	const secret = "s".repeat(43);
+	event.configuration.schedule = { ...event.configuration.schedule, submissionsStart: new Date(Date.now() - 7200000).toISOString(), submissionsEnd: new Date(Date.now() - 6000000).toISOString(), votingStart: new Date(Date.now() - 3600000).toISOString(), votingEnd: new Date(Date.now() - 1000).toISOString() };
+	await fixture.db
+		.update(awardEventsTable)
+		.set({ configuration: event.configuration, presenterDigest: createHash("sha256").update(secret).digest("hex"), frozenAt: new Date(), frozenResults: { [categoryId]: { status: "ready", source: "manual", title: "Winner", description: "", asOf: new Date().toISOString() } } })
+		.where(eq(awardEventsTable.id, eventId));
+	await fixture.db.update(awardCandidatesTable).set({ nominated: true }).where(eq(awardCandidatesTable.eventId, eventId));
+	const { readAwardPresenter } = await import("@/server/events/presenter");
+	const show = await readAwardPresenter(eventId, secret);
+	if (!show.ok) throw new Error("Presenter unavailable");
+	const file = show.event.categories[0].candidates.find((c) => c.content.storageAssetId);
+	const token = new URL(file!.content.mediaUrl!, "http://fixture.invalid").searchParams.get("preview");
+	expect(token).toBeTruthy();
+	const { serveAwardAsset } = await import("@/server/events/media");
+	const { readAwardUpload } = await import("@/server/events/upload-provider");
+	jest.mocked(readAwardUpload).mockResolvedValueOnce(new Response(new Uint8Array(16)));
+	expect((await serveAwardAsset(eventId, file!.content.storageAssetId!, null, new AbortController().signal, undefined, false, token!)).status).toBe(200);
+	expect((await serveAwardAsset(eventId, file!.content.storageAssetId!, null, new AbortController().signal)).status).toBe(404);
+});

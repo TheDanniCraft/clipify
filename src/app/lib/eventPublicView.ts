@@ -12,7 +12,14 @@ export function projectAwardEvent(event: EventViewInput, candidates: CandidateVi
 	const categories = event.configuration.categories
 		.filter((c) => c.selection !== "data" || reveal || presenter)
 		.map((category) => {
-			const nominees = visibleCandidates(candidates.filter((c) => c.categoryId === category.id)).map((c) => ({ id: c.id, content: c.content }));
+			let nominees = visibleCandidates(candidates.filter((c) => c.categoryId === category.id)).map((c) => ({ id: c.id, content: c.content }));
+			const dataResult = reveal && category.selection === "data" ? (awardDataResultSchema.safeParse(event.frozenResults?.[category.id]).data ?? null) : null;
+			if (category.selection === "data" && dataResult?.status === "ready") {
+				const winner = dataResult.content ?? { kind: "text" as const, reference: "", title: dataResult.title, description: dataResult.description };
+				const pool = (category.dataNomineeSource ?? (category.source === "clip" ? "top" : "team")) === "team" ? nominees.map(({ content }) => content) : (dataResult.nominees ?? []);
+				const extra = pool.filter((content) => !(content.kind === winner.kind && content.reference === winner.reference && (content.reference || content.title === winner.title)));
+				nominees = [{ id: `data:${category.id}:${winner.kind}:${winner.reference || winner.title}`, content: winner }, ...extra.map((content) => ({ id: `data:${category.id}:${content.kind}:${content.reference || content.title}`, content }))].slice(0, category.nomineeLimit ?? extra.length + 1);
+			}
 			const results =
 				reveal && category.selection !== "data"
 					? votingResults(
@@ -27,11 +34,12 @@ export function projectAwardEvent(event: EventViewInput, candidates: CandidateVi
 				group: category.group,
 				source: category.source,
 				selection: category.selection,
+				presenterMode: category.presenterMode ?? (category.selection === "data" ? "winner" : "nominees"),
 				submissionLimit: category.submissionLimit,
 				rules: category.rules,
 				options: category.options,
 				candidates: phase === "announcement" || phase === "submissions" ? [] : nominees,
-				...(reveal && category.selection === "data" ? { dataResult: awardDataResultSchema.safeParse(event.frozenResults?.[category.id]).data ?? null } : {}),
+				...(reveal && category.selection === "data" ? { dataResult } : {}),
 				...(results ? { results: results.map((result) => (presenter || event.configuration.resultDetail === "votes" ? result : event.configuration.resultDetail === "percentages" ? { id: result.id, percentage: result.percentage, winner: result.winner } : { id: result.id, winner: result.winner })) } : {}),
 			};
 		});

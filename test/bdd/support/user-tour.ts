@@ -19,6 +19,7 @@ export const test = base.extend<{ tourWorld: TourWorld; deploymentId: string | u
 			APP_ENV: "test",
 			E2E_TEST_MODE: "true",
 			DISABLE_BACKGROUND_JOBS: "true",
+			...(testInfo.tags.includes("@event-twitch-interactions") ? { MCP_EVENT_INTERACTION_PROVIDER_FIXTURE: "true" } : {}),
 			...(testInfo.tags.includes("@BDD-US5-108") ? { MCP_EVENT_CHAT_PROVIDER_FIXTURE: "true", TWITCH_USER_ID: "isolated-event-bot", WEBHOOK_SECRET: "isolated-event-webhook-secret", TWITCH_EVENTSUB_URL: "https://fixture.invalid/eventsub" } : {}),
 			YOUTUBE_CLIENT_ID: "isolated-browser-google-client",
 			YOUTUBE_CLIENT_SECRET: "isolated-browser-google-secret",

@@ -7,11 +7,38 @@ export const eventRulesSchema = z
 	.strict()
 	.refine((r) => (!r.startedAt || !r.endedAt || Date.parse(r.startedAt) < Date.parse(r.endedAt)) && (r.minDuration === undefined || r.maxDuration === undefined || r.minDuration <= r.maxDuration), "Check the source limits.");
 export const categorySchema = z
-	.object({ id: z.uuid(), title, group: z.string().trim().max(160).default(""), source: eventSourceSchema, selection: z.enum(["audience", "team", "data"]), submissionLimit: z.number().int().min(1).max(10000).nullable(), nomineeLimit: z.number().int().min(1).max(1000).nullable(), rules: eventRulesSchema, options: z.array(title).max(100), manualResult: z.object({ title, description: z.string().max(5000).default(""), value: z.number().finite().optional() }).optional() })
+	.object({
+		id: z.uuid(),
+		title,
+		group: z.string().trim().max(160).default(""),
+		source: eventSourceSchema,
+		selection: z.enum(["audience", "team", "data"]),
+		presenterMode: z.enum(["nominees", "winner"]).optional(),
+		dataNomineeSource: z.enum(["top", "team"]).optional(),
+		submissionLimit: z.number().int().min(1).max(10000).nullable(),
+		nomineeLimit: z.number().int().min(1).max(1000).nullable(),
+		rules: eventRulesSchema,
+		options: z.array(title).max(100),
+		manualResult: z.object({ title, description: z.string().max(5000).default(""), value: z.number().finite().optional() }).optional(),
+	})
 	.strict()
 	.refine((c) => c.source !== "choice" || (c.options.length >= 2 && new Set(c.options).size === c.options.length), "Add at least two distinct choices.");
 const statisticSchema = z.object({ label: title, source: z.enum(["manual", "submissions", "categories", "nominees", "voters", "clips"]), value: z.number().finite().optional() }).strict();
-export const eventSlideSchema = z.object({ id: z.uuid(), type: z.enum(["welcome", "text", "statistics", "category", "closing"]), title: z.string().max(160), text: z.string().max(5000).default(""), categoryId: z.uuid().optional(), statistics: z.array(statisticSchema).max(100).default([]) }).strict();
+export const eventSlideSchema = z
+	.object({
+		id: z.uuid(),
+		type: z.enum(["welcome", "text", "statistics", "category", "closing"]),
+		title: z.string().max(160),
+		text: z.string().max(5000).default(""),
+		categoryId: z.uuid().optional(),
+		presenterMode: z.enum(["nominees", "winner"]).optional(),
+		statistics: z.array(statisticSchema).max(100).default([]),
+		interaction: z
+			.object({ type: z.enum(["poll", "prediction"]), wait: z.boolean().default(true), duration: z.number().int().min(15).max(60).default(60) })
+			.strict()
+			.optional(),
+	})
+	.strict();
 export const DEFAULT_AWARD_PRESENTATION = { showChat: false, hiddenAccounts: [] as string[], commandPrefixes: ["!"] };
 export const awardPresentationSchema = z
 	.object({
@@ -47,6 +74,7 @@ export const eventInputSchema = z
 		const ids = new Set(event.categories.map((c) => c.id));
 		if (ids.size !== event.categories.length) ctx.addIssue({ code: "custom", message: "Category IDs must be unique.", path: ["categories"] });
 		if (new Set(event.slides.map((s) => s.id)).size !== event.slides.length) ctx.addIssue({ code: "custom", message: "Slide IDs must be unique.", path: ["slides"] });
+		for (const slide of event.slides) if (slide.interaction && (slide.type !== "category" || slide.presenterMode === "winner")) ctx.addIssue({ code: "custom", message: "Twitch interactions require a category slide with nominees.", path: ["slides"] });
 		for (const slide of event.slides) if (slide.type === "category" && (!slide.categoryId || !ids.has(slide.categoryId))) ctx.addIssue({ code: "custom", message: "Choose an existing category.", path: ["slides"] });
 	});
 export type EventConfiguration = z.infer<typeof eventInputSchema>;
@@ -66,3 +94,10 @@ export type ManagedAwardEvent = {
 	createdAt: Date;
 	updatedAt: Date;
 };
+
+export function hasTeamDataNominees(category: Pick<EventCategory, "selection" | "presenterMode" | "dataNomineeSource" | "source">) {
+	return category.selection === "data" && category.presenterMode === "nominees" && (category.dataNomineeSource ?? (category.source === "clip" ? "top" : "team")) === "team";
+}
+export function additionalNomineeLimit(category: Pick<EventCategory, "selection" | "nomineeLimit">) {
+	return category.nomineeLimit === null ? null : category.selection === "data" ? Math.max(0, category.nomineeLimit - 1) : category.nomineeLimit;
+}

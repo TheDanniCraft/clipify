@@ -6,6 +6,7 @@ import { Button, Link, Spinner } from "@heroui/react";
 import { getEventPresenterAction, getEventPreviewAction, publishEventPresenterResultsAction } from "@actions/events";
 import { buildAwardPresenterSteps } from "@lib/eventPresenter";
 import type { EventCandidateContent } from "@lib/eventCandidates";
+import EventInteractionControl from "./EventInteractionControl";
 import EventNomineeStage from "./EventNomineeStage";
 import EventPresenterChat from "./EventPresenterChat";
 import { EventMedia, EventNomineeCard } from "./EventMedia";
@@ -65,6 +66,9 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 		step = steps[index];
 	const reduceMotion = useReducedMotion();
 
+	const [interactionStatus, setInteractionStatus] = useState<{ slideId: string; blocked: boolean } | null>(null);
+	const interactionSlide = !preview && secret && step && "slide" in step && (step.type === "reveal" || step.type === "data-intro" || step.type === "data-result") && step.slide.interaction ? step.slide : undefined;
+	const interactionBlocked = !!interactionSlide?.interaction?.wait && (interactionStatus?.slideId !== interactionSlide.id || interactionStatus.blocked);
 	const stepCount = steps.length,
 		loaded = !!show;
 	const close = useCallback(() => {
@@ -79,10 +83,11 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 				close();
 				return;
 			}
+			if (direction > 0 && interactionBlocked) return;
 			if ((direction < 0 && index === 0) || (direction > 0 && index === stepCount - 1)) return;
 			setStepId(steps[index + direction]?.id);
 		},
-		[opened, close, stepCount, index, steps],
+		[opened, close, stepCount, index, steps, interactionBlocked],
 	);
 	useEffect(() => {
 		function key(event: KeyboardEvent) {
@@ -169,7 +174,8 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 			</main>
 		);
 	const Surface = embedded ? "div" : "main";
-	const category = step && "categoryId" in step ? show.event.categories.find((c) => c.id === step.categoryId) : undefined;
+	const baseCategory = step && "categoryId" in step ? show.event.categories.find((c) => c.id === step.categoryId) : undefined;
+	const category = baseCategory && step && "slide" in step && step.slide.presenterMode ? { ...baseCategory, presenterMode: step.slide.presenterMode } : baseCategory;
 	const dataResult = category?.dataResult?.status === "ready" ? category.dataResult : undefined;
 	const dataWinner = dataResult?.content;
 	const openedHasCaption = opened && ["clip", "youtube", "video", "image", "game"].includes(opened.kind);
@@ -269,7 +275,16 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 						) : null}
 						{step.type === "data-result" ? (
 							<motion.div {...contentEntrance} className='mx-auto max-w-3xl space-y-5 text-center'>
-								{dataResult ? (
+								{dataResult && category?.presenterMode === "nominees" ? (
+									<>
+										<EventNomineeStage category={category} place={1} onOpen={open} />
+										{dataResult.value !== undefined ? (
+											<p className='text-3xl font-bold text-accent'>
+												<AnimatedNumber value={dataResult.value} />
+											</p>
+										) : null}
+									</>
+								) : dataResult ? (
 									<>
 										<h2 className='text-4xl font-bold text-accent'>{dataResult.title}</h2>
 										{dataResult.value !== undefined ? (
@@ -302,13 +317,14 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 					</div>
 				) : null}
 			</section>
-			<footer className='flex shrink-0 items-center justify-between gap-4 px-5 pb-4 pt-3'>
+			<footer className='flex shrink-0 flex-wrap items-center justify-between gap-4 px-5 pb-4 pt-3'>
 				{!show.event.whiteLabel ? <p className='pointer-events-none text-xs text-muted/60'>Clipify</p> : <span />}
+				{interactionSlide?.interaction ? <EventInteractionControl key={interactionSlide.id} eventId={eventId} secret={secret} slideId={interactionSlide.id} type={interactionSlide.interaction.type} wait={interactionSlide.interaction.wait} winner={step?.type === "data-result" || (step?.type === "reveal" && step.place === 1)} onState={setInteractionStatus} /> : null}
 				<nav aria-label='Show navigation' className='flex gap-1 opacity-50 transition-opacity hover:opacity-100 focus-within:opacity-100'>
 					<Button aria-label='Previous slide' variant='tertiary' size='sm' isDisabled={!opened && index === 0} onPress={() => navigate(-1)}>
 						←
 					</Button>
-					<Button aria-label={opened ? "Close media" : "Next slide"} variant='tertiary' size='sm' isDisabled={!opened && index === steps.length - 1} onPress={() => navigate(1)}>
+					<Button aria-label={opened ? "Close media" : "Next slide"} variant='tertiary' size='sm' isDisabled={!opened && (index === steps.length - 1 || interactionBlocked)} onPress={() => navigate(1)}>
 						→
 					</Button>
 				</nav>

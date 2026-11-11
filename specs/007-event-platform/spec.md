@@ -166,7 +166,7 @@ Event; category; source rules; storage connection; personal submission; canonica
 ## Assumptions
 
 - Existing authorization, billing, creator branding, provider linking and media helpers are reused.
-- Recaps, tournaments, plugin marketplace, newsletter, automatic YouTube rankings and Twitch polls/predictions are out of scope. 7TV badges are optional.
+- Recaps, tournaments, plugin marketplace, newsletter and automatic YouTube rankings are out of scope. 7TV badges are optional.
 - The pilot category list below is fixture/acceptance data, not hard-coded product behavior.
 - Basic keyboard accessibility is required; exhaustive device/screenreader/scaling certification is not.
 - Normal uploads retain provider references; lifecycle/deletion must preserve published candidate integrity.
@@ -230,3 +230,9 @@ Data/team: most-viewed Twitch clip; most-viewed YouTube video (manual allowed); 
 ## Planned evidence
 
 Canonical scenario and implementation-test inventories are maintained in `test-traceability.md` and `tdd/test-list.md` before implementation. Each FR receives distinct scenario examples for supported types and each EC has negative examples; one executable owner may provide both BDD and ATDD when the same real boundary proves both. No passing evidence is claimed at specification time.
+
+### Presenter follow-up — 11 November 2026
+
+Each category and category slide supports nominees plus winner or winner only. Data awards may show the top clips from the submission-cutoff snapshot or team-selected nominees alongside the frozen winner. Limits count the winner, so five permits four additional team selections; unlimited uses the actual selected entries. Source rules continue to apply, without an implicit minimum view count.
+
+Storage connection actions follow the selected Drive/S3 provider. YouTube linking is shown when the event needs YouTube. Optional Twitch poll/prediction permissions are granted through existing Better Auth linking and the existing production OAuth proxy, without expanding ordinary login scopes. Activation and waiting are per category slide. Polls include all two-to-five nominees; predictions include all two-to-ten. Durations are 15–60 seconds. Incompatible choices are disabled and actual counts revalidated server-side. Next and its keyboard equivalent wait for polls to complete or prediction entries to close when configured. Predictions resolve to the event winner on reveal, with tied outcomes canceled/refunded. Remote state survives reloads and concurrent starts; provider failures offer explicit recovery and never silently discard nominees. Shared previews cannot create or resolve Twitch interactions.

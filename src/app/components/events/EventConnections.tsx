@@ -5,9 +5,10 @@ import { notify } from "@lib/toast";
 import ControlledModal from "@components/controlledModal";
 import { authClient } from "@/auth/client";
 import { listEventConnectionsAction, beginEventGoogleConnectionAction, saveEventS3ConnectionAction } from "@actions/events";
+import EventTwitchConnection from "./EventTwitchConnection";
 import { EventSelect, EventText } from "./EventFields";
 type Connection = { id: string; provider: "s3" | "drive" | "youtube"; identityName: string; connected: boolean };
-export default function EventConnections({ creatorId, eventId, value, onChange, readOnly = false, beforeConnect, status }: { creatorId: string; eventId: string; value: string | null; onChange: (id: string | null) => void; readOnly?: boolean; beforeConnect?: () => Promise<boolean>; status?: "connected" | "retry" }) {
+export default function EventConnections({ creatorId, eventId, value, onChange, readOnly = false, beforeConnect, status, needsYouTube = false }: { needsYouTube?: boolean; creatorId: string; eventId: string; value: string | null; onChange: (id: string | null) => void; readOnly?: boolean; beforeConnect?: () => Promise<boolean>; status?: "connected" | "retry" }) {
 	const [connections, setConnections] = useState<Connection[]>([]),
 		[loading, setLoading] = useState(true),
 		[attempt, setAttempt] = useState(0),
@@ -85,6 +86,8 @@ export default function EventConnections({ creatorId, eventId, value, onChange, 
 			setBusy(false);
 		}
 	}
+	const [storageProvider, setStorageProvider] = useState<string | null>(null);
+	const provider = storageProvider ?? connections.find((connection) => connection.id === value)?.provider ?? "drive";
 	const storage = connections.filter((c) => c.connected && c.provider !== "youtube");
 	return (
 		<div className='space-y-5'>
@@ -116,22 +119,39 @@ export default function EventConnections({ creatorId, eventId, value, onChange, 
 					Loading connections…
 				</p>
 			) : null}
+			<EventSelect
+				label='Storage location'
+				isDisabled={loading || busy}
+				value={provider}
+				options={[
+					{ id: "drive", label: "Google Drive" },
+					{ id: "s3", label: "S3" },
+				]}
+				onChange={(provider) => {
+					setStorageProvider(provider);
+					if (!readOnly) onChange(connections.find((connection) => connection.provider === provider && connection.connected)?.id ?? null);
+				}}
+			/>
 			<div className='flex flex-wrap gap-3'>
-				{(["drive", "youtube"] as const).map((provider) => (
-					<Button key={provider} variant='secondary' isDisabled={busy || loading} onPress={() => void google(provider)}>
-						{connections.some((c) => c.provider === provider && c.connected) ? "Reconnect" : "Connect"} {provider === "drive" ? "Google Drive" : "YouTube"}
+				{(["drive", "youtube"] as const)
+					.filter((candidateProvider) => (candidateProvider === "youtube" ? needsYouTube : provider === "drive"))
+					.map((provider) => (
+						<Button key={provider} variant='secondary' isDisabled={busy || loading} onPress={() => void google(provider)}>
+							{connections.some((c) => c.provider === provider && c.connected) ? "Reconnect" : "Connect"} {provider === "drive" ? "Google Drive" : "YouTube"}
+						</Button>
+					))}
+				{provider === "s3" ? (
+					<Button
+						variant='secondary'
+						isDisabled={busy || loading}
+						onPress={() => {
+							setError("");
+							setOpen(true);
+						}}
+					>
+						Connect S3
 					</Button>
-				))}
-				<Button
-					variant='secondary'
-					isDisabled={busy || loading}
-					onPress={() => {
-						setError("");
-						setOpen(true);
-					}}
-				>
-					Connect S3
-				</Button>
+				) : null}
 			</div>
 			{connections
 				.filter((c) => c.connected)
@@ -140,8 +160,9 @@ export default function EventConnections({ creatorId, eventId, value, onChange, 
 						{c.provider === "youtube" ? "YouTube" : c.provider === "drive" ? "Google Drive" : "S3"}: {c.identityName}
 					</p>
 				))}
-			{!readOnly ? <EventSelect label='Upload storage' value={value ?? ""} onChange={(id) => onChange(id || null)} options={[{ id: "", label: "Select connected storage" }, ...storage.map((c) => ({ id: c.id, label: `${c.provider === "drive" ? "Google Drive" : "S3"}: ${c.identityName}` }))]} /> : null}
+			{!readOnly ? <EventSelect label='Upload storage' value={value ?? ""} onChange={(id) => onChange(id || null)} options={[{ id: "", label: "Select connected storage" }, ...storage.filter((connection) => connection.provider === provider).map((c) => ({ id: c.id, label: `${c.provider === "drive" ? "Google Drive" : "S3"}: ${c.identityName}` }))]} /> : null}
 			{!storage.length && !loading ? <p className='text-sm text-muted'>Connect storage above before publishing categories that accept uploads.</p> : null}
+			<EventTwitchConnection creatorId={creatorId} eventId={eventId} beforeConnect={beforeConnect} />
 			<ControlledModal isOpen={open} onOpenChange={setOpen} ariaLabel='Connect S3' size='lg'>
 				<Modal.Header>
 					<Modal.Heading>Connect S3</Modal.Heading>

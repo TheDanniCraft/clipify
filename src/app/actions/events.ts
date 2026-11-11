@@ -1,4 +1,5 @@
 "use server";
+import { hasTeamDataNominees } from "@/app/lib/eventConfiguration";
 import { getVerifiedSessionPrincipal } from "@/auth/session-principal";
 import { createAwardEvent, listAwardEvents, readAwardEvent, updateAwardEvent } from "@/server/events/persistence";
 const unauthenticated = { ok: false as const, code: "AUTHENTICATION_REQUIRED" as const };
@@ -138,7 +139,7 @@ export async function searchEventTeamSourcesAction(creatorId: string, eventId: s
 	const event = await readAwardEvent(principal, creatorId, eventId);
 	if (!event.ok) return event;
 	const category = event.event.configuration.categories.find((c) => c.id === categoryId);
-	if (!category || category.selection === "data") return { ok: false as const, code: "INVALID_INPUT" as const };
+	if (!category || (category.selection === "data" && !hasTeamDataNominees(category))) return { ok: false as const, code: "INVALID_INPUT" as const };
 	try {
 		return { ok: true as const, items: await (await import("@/server/events/sources")).searchAwardSources(creatorId, category, query) };
 	} catch {
@@ -186,4 +187,12 @@ export async function getEventPreviewAction(eventId: string, token: string) {
 export async function createEventExampleAction(creatorId: string) {
 	const principal = await getVerifiedSessionPrincipal();
 	return principal ? (await import("@/server/events/examples")).createAwardExample(principal, creatorId) : unauthenticated;
+}
+
+export async function getEventTwitchConnectionAction(creatorId: string, type?: "poll" | "prediction", eventId?: string) {
+	const principal = await getVerifiedSessionPrincipal();
+	return principal ? (await import("@/server/events/twitch-interactions")).eventTwitchConnection(principal, creatorId, type, eventId) : unauthenticated;
+}
+export async function eventInteractionAction(eventId: string, secret: string, slideId: string, action: "start" | "status" | "resolve" | "skip") {
+	return (await import("@/server/events/twitch-interactions")).runEventInteraction(eventId, secret, slideId, action);
 }

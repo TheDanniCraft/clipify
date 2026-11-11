@@ -41,6 +41,10 @@ for (const width of [390, 1440])
 					await expect(page.getByRole("alert").filter({ hasText: "Connections could not be loaded." })).toBeVisible();
 					await page.unroute(new RegExp(`/dashboard/events/${eventId}(?:[?].*)?$`), failConnections);
 					await page.getByRole("button", { name: "Retry connections", exact: true }).click();
+					await expect(page.getByRole("button", { name: "Connect Google Drive", exact: true })).toBeEnabled();
+					await expect(page.getByRole("button", { name: "Connect S3", exact: true })).toHaveCount(0);
+					await page.getByRole("button", { name: "Storage location" }).click();
+					await page.getByRole("option", { name: "S3", exact: true }).click();
 					await expect(page.getByRole("button", { name: "Connect S3", exact: true })).toBeEnabled();
 					await page.getByRole("button", { name: "Connect S3", exact: true }).click();
 					await expect(page.getByRole("textbox", { name: "S3 endpoint", exact: true })).toBeVisible();

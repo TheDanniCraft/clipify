@@ -1,6 +1,6 @@
 # Implementation Plan: Event Platform — Awards
 
-Branch: `feature/event-platform`. Scope: complete agreed Babbler Awards flow; no optional predictions/polls or automatic YouTube rankings.
+Branch: `feature/event-platform`. Scope: complete agreed Babbler Awards flow; includes the requested optional Twitch predictions/polls; no automatic YouTube rankings.
 
 ## Technical Context
 
@@ -39,3 +39,9 @@ Rolling: `reports/test-summary.md`; no release ID because this is a feature PR.
 ## Completion boundary
 
 All required FR/SC/EC evidence passes, complete Babbler pilot rehearsal succeeds, no open release-blocking defects, normal reviewable PR opened. Incomplete work uses a draft PR with explicit remaining tasks, never a false completion claim.
+
+### Presenter follow-up implementation
+
+Extend the existing category/slide configuration with optional presentation and nominee-source fields, preserving legacy defaults. Snapshot top clip content with the existing frozen result rather than querying historical counters later. Reuse root candidate nominations for team selections and count the data winner against limits. The public projection supplies the same candidates to show playback and Twitch options.
+
+Store Twitch remote interaction state by slide on the event. Use the existing account link, Better Auth access-token refresh and serialized provider-credential helper. Serialize starts under the event row and broadcaster advisory lock, enforce complete nominee limits, and persist outcome IDs for winner resolution. Integrate one presenter control into existing footer navigation; previews never mount it. The schema addition follows normal migration ownership after merge.

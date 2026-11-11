@@ -7,6 +7,7 @@ import type { TrustedCreatorPrincipal } from "@/auth/authorize-operation";
 import { authorizeLockedMutation } from "@/server/resources/mutation";
 import { EventError, eventError, lockAwardEvent } from "./persistence";
 import { candidateInputSchema, canonicalCandidateKey, candidateMatchesRules } from "@/app/lib/eventCandidates";
+import { hasTeamDataNominees, additionalNomineeLimit } from "@/app/lib/eventConfiguration";
 import type { EventCategory } from "@/app/lib/eventConfiguration";
 
 export function isAwardReviewOpen(event: typeof events.$inferSelect, now: Date) {
@@ -20,7 +21,7 @@ async function reviewMutation<T>(principal: TrustedCreatorPrincipal, ownerId: st
 			const current = now ?? new Date();
 			if (!isAwardReviewOpen(event, current)) throw new EventError("PHASE_CLOSED");
 			const category = event.configuration.categories.find((c) => c.id === categoryId);
-			if (categoryId && (!category || category.selection === "data")) throw new EventError("INVALID_INPUT");
+			if (categoryId && (!category || (category.selection === "data" && !hasTeamDataNominees(category)))) throw new EventError("INVALID_INPUT");
 			const result = await operation(tx, category, event);
 			authority.assertAuthorityCurrent();
 			return { ok: true as const, ...result };
@@ -48,7 +49,8 @@ export async function groupAwardCandidates(principal: TrustedCreatorPrincipal, o
 export async function nominateAwardCandidates(principal: TrustedCreatorPrincipal, ownerId: string, id: string, categoryId: string, ids: string[], now?: Date) {
 	return reviewMutation(principal, ownerId, id, categoryId, now, async (tx, category) => {
 		if (!category || new Set(ids).size !== ids.length || ids.length > 1000) throw new EventError("INVALID_INPUT");
-		if (category.nomineeLimit !== null && ids.length > category.nomineeLimit) throw new EventError("LIMIT_REACHED");
+		const limit = additionalNomineeLimit(category);
+		if (limit !== null && ids.length > limit) throw new EventError("LIMIT_REACHED");
 		const rows = ids.length
 			? await tx
 					.select()
@@ -100,6 +102,14 @@ async function writeTeamCandidate(tx: TransactionClient, event: typeof events.$i
 		.where(and(eq(candidates.eventId, event.id), eq(candidates.categoryId, category.id), eq(candidates.canonicalKey, key)))
 		.limit(1);
 	if (existing) return { candidate: existing };
+	const limit = additionalNomineeLimit(category);
+	if (!event.configuration.schedule.reviewRequired && limit !== null) {
+		const nominated = await tx
+			.select({ id: candidates.id })
+			.from(candidates)
+			.where(and(eq(candidates.eventId, event.id), eq(candidates.categoryId, category.id), eq(candidates.nominated, true), isNull(candidates.parentId)));
+		if (nominated.length >= limit) throw new EventError("LIMIT_REACHED");
+	}
 	const [candidate] = await tx.insert(candidates).values({ eventId: event.id, categoryId: category.id, canonicalKey: key, content: parsed.data, nominated: !event.configuration.schedule.reviewRequired }).returning();
 	return { candidate };
 }
@@ -117,7 +127,7 @@ export async function commitAwardTeamCandidate(tx: TransactionClient, principal:
 	const event = await lockAwardEvent(tx, ownerId, eventId);
 	if (!isAwardReviewOpen(event, new Date())) throw new EventError("PHASE_CLOSED");
 	const category = event.configuration.categories.find((c) => c.id === categoryId);
-	if (!category || category.selection === "data") throw new EventError("INVALID_INPUT");
+	if (!category || (category.selection === "data" && !hasTeamDataNominees(category))) throw new EventError("INVALID_INPUT");
 	const result = await writeTeamCandidate(tx, event, category, content);
 	authority.assertAuthorityCurrent();
 	return result;

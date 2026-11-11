@@ -1,4 +1,5 @@
 import "server-only";
+import { hasTeamDataNominees } from "@/app/lib/eventConfiguration";
 import { randomUUID } from "node:crypto";
 import { and, eq, gt, inArray, isNull, lt } from "drizzle-orm";
 import { db } from "@/db/client";
@@ -28,7 +29,7 @@ export async function acceptAwardUpload(authUserId: string, eventId: string, cat
 			if (team && event.ownerId !== team.ownerId) throw new EventError("ACCESS_DENIED");
 			if (team ? !isAwardReviewOpen(event, new Date()) : awardPhase(event, new Date()) !== "submissions") throw new EventError("PHASE_CLOSED");
 			const category = event.configuration.categories.find((c) => c.id === categoryId);
-			if (!category || (!team && category.selection !== "audience") || category.selection === "data" || !["image", "audio", "video"].includes(category.source) || !parsed.data.mime.startsWith(`${category.source}/`)) throw new EventError("INVALID_INPUT");
+			if (!category || (!team && category.selection !== "audience") || (category.selection === "data" && (!team || !hasTeamDataNominees(category))) || !["image", "audio", "video"].includes(category.source) || !parsed.data.mime.startsWith(`${category.source}/`)) throw new EventError("INVALID_INPUT");
 			const active = team
 				? []
 				: await tx

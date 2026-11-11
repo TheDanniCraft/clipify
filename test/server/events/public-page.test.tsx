@@ -25,3 +25,30 @@ it("reports a failed withdrawal as a toast and keeps the original proposal avail
 	expect(screen.getByText("My proposal")).toBeVisible();
 	expect(screen.getByRole("button", { name: "Withdraw proposal" })).toBeEnabled();
 });
+
+it("shows a data-award winner once above its other nominees in the published archive", () => {
+	const configuration = createAwardConfiguration("Awards", "UTC");
+	const winner = { kind: "text", title: "Data winner", description: "", reference: "" };
+	const event = {
+		...configuration,
+		id: "event",
+		phase: "results",
+		categories: [
+			{
+				...configuration.categories[0],
+				selection: "data",
+				candidates: [
+					{ id: "winner", content: winner },
+					{ id: "other", content: { ...winner, title: "Other nominee" } },
+				],
+				dataResult: { status: "ready", source: "manual", title: winner.title, description: "", content: winner, asOf: new Date().toISOString() },
+			},
+		],
+	};
+	render(<PublicEventView initial={{ ok: true, event, selection: [], participating: false, submissions: [] } as never} creatorName='Host' />);
+	expect(screen.getAllByRole("button", { name: "View Data winner" })).toHaveLength(1);
+	const first = screen.getByRole("button", { name: "View Data winner" }),
+		other = screen.getByRole("button", { name: "View Other nominee" });
+	expect(first.compareDocumentPosition(other) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+	expect(screen.getByText("Winner", { exact: true })).toBeVisible();
+});

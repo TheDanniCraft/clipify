@@ -8,9 +8,10 @@ export function EventText({ label, value, onChange, multiline = false }: { label
 		</TextField>
 	);
 }
-export function EventSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: readonly { id: string; label: string }[] }) {
+export function EventSelect({ label, value, onChange, options, isDisabled }: { isDisabled?: boolean; label: string; value: string; onChange: (value: string) => void; options: readonly { id: string; label: string; isDisabled?: boolean }[] }) {
 	return (
 		<Select
+			isDisabled={isDisabled}
 			aria-label={label}
 			variant='secondary'
 			value={value}
@@ -26,7 +27,7 @@ export function EventSelect({ label, value, onChange, options }: { label: string
 			<Select.Popover>
 				<ListBox>
 					{options.map((option) => (
-						<ListBox.Item key={option.id} id={option.id} textValue={option.label}>
+						<ListBox.Item isDisabled={option.isDisabled} key={option.id} id={option.id} textValue={option.label}>
 							{option.label}
 							<ListBox.ItemIndicator />
 						</ListBox.Item>

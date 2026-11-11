@@ -151,15 +151,6 @@ export default function PublicEventView({ initial, creatorName, brand }: { initi
 								</Card>
 							) : null}
 							{event.phase === "voting" ? <p className='text-sm text-muted'>Choose up to {event.votesPerCategory}. Your selection saves automatically.</p> : null}
-							{category.candidates.length ? (
-								<div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3'>
-									{category.candidates.map((candidate) => (
-										<EventNomineeCard key={candidate.id} candidate={candidate} selected={data.selection.some((s) => s.categoryId === category.id && s.candidateId === candidate.id)} onOpen={() => setOpened(candidate.content)} disabled={!!busy} onSelect={event.phase === "voting" && data.participating ? (selected) => void vote(category.id, candidate.id, selected) : undefined} result={category.results?.find((r) => r.id === candidate.id)} />
-									))}
-								</div>
-							) : event.phase === "voting" ? (
-								<p className='text-sm text-muted'>No nominees in this category.</p>
-							) : null}
 							{category.dataResult?.status === "ready" ? (
 								<div className='max-w-lg space-y-3'>
 									{category.dataResult.value !== undefined ? <p className='text-2xl font-semibold'>{new Intl.NumberFormat().format(category.dataResult.value)}</p> : null}
@@ -172,6 +163,17 @@ export default function PublicEventView({ initial, creatorName, brand }: { initi
 										result={{ winner: true }}
 									/>
 								</div>
+							) : null}
+							{(category.dataResult?.status === "ready" ? category.candidates.length > 1 : category.candidates.length > 0) ? (
+								<div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3'>
+									{category.candidates
+										.filter((_, index) => category.dataResult?.status !== "ready" || index > 0)
+										.map((candidate) => (
+											<EventNomineeCard key={candidate.id} candidate={candidate} selected={data.selection.some((s) => s.categoryId === category.id && s.candidateId === candidate.id)} onOpen={() => setOpened(candidate.content)} disabled={!!busy} onSelect={event.phase === "voting" && data.participating ? (selected) => void vote(category.id, candidate.id, selected) : undefined} result={category.results?.find((r) => r.id === candidate.id)} />
+										))}
+								</div>
+							) : event.phase === "voting" ? (
+								<p className='text-sm text-muted'>No nominees in this category.</p>
 							) : null}
 						</section>
 					))}

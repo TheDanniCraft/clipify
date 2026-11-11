@@ -1,4 +1,5 @@
 "use client";
+import { hasTeamDataNominees, additionalNomineeLimit } from "@lib/eventConfiguration";
 import { notify } from "@lib/toast";
 import { useCallback, useEffect, useState } from "react";
 import { Button, Checkbox, Modal, Spinner, Table } from "@heroui/react";
@@ -33,7 +34,7 @@ export default function EventReview({ creatorId, eventId }: { creatorId: string;
 				return;
 			}
 			setData(result);
-			setCategoryId((current) => current || result.event.configuration.categories.find((c) => c.selection !== "data")?.id || "");
+			setCategoryId((current) => current || result.event.configuration.categories.find((c) => c.selection !== "data" || hasTeamDataNominees(c))?.id || "");
 		} catch {
 			setError("Proposals could not be loaded. Please retry.");
 		}
@@ -48,7 +49,7 @@ export default function EventReview({ creatorId, eventId }: { creatorId: string;
 					return;
 				}
 				setData(result);
-				setCategoryId((current) => current || result.event.configuration.categories.find((c) => c.selection !== "data")?.id || "");
+				setCategoryId((current) => current || result.event.configuration.categories.find((c) => c.selection !== "data" || hasTeamDataNominees(c))?.id || "");
 			})
 			.catch(() => {
 				if (active) setError("Proposals could not be loaded. Please retry.");
@@ -60,6 +61,7 @@ export default function EventReview({ creatorId, eventId }: { creatorId: string;
 		};
 	}, [creatorId, eventId]);
 	const category = data?.event.configuration.categories.find((c) => c.id === categoryId);
+	const nomineeLimit = category ? additionalNomineeLimit(category) : null;
 	const rows = data?.candidates.filter((c) => c.categoryId === categoryId) ?? [];
 	const top = rows.filter((c) => !c.parentId),
 		visible = top.filter((c) => (!filter || c.content.title.toLocaleLowerCase().includes(filter.toLocaleLowerCase())) && (status === "all" || (status === "nominated" ? c.nominated : !c.nominated)));
@@ -127,7 +129,7 @@ export default function EventReview({ creatorId, eventId }: { creatorId: string;
 			<div className='flex flex-wrap items-center justify-between gap-3'>
 				<div>
 					<h2 className='font-semibold'>Review proposals</h2>
-					<p className='mt-1 text-sm text-muted'>Choose the nominees your community will vote for.</p>
+					<p className='mt-1 text-sm text-muted'>Choose nominees for voting or your show.</p>
 				</div>
 				<Button variant='secondary' isDisabled={busy} onPress={() => void reload()}>
 					Refresh proposals
@@ -158,7 +160,7 @@ export default function EventReview({ creatorId, eventId }: { creatorId: string;
 								setSelected([]);
 								setExpanded([]);
 							}}
-							options={data.event.configuration.categories.filter((c) => c.selection !== "data").map((c) => ({ id: c.id, label: c.title }))}
+							options={data.event.configuration.categories.filter((c) => c.selection !== "data" || hasTeamDataNominees(c)).map((c) => ({ id: c.id, label: c.title }))}
 						/>
 						{top.length > 0 ? (
 							<>
@@ -201,7 +203,10 @@ export default function EventReview({ creatorId, eventId }: { creatorId: string;
 							) : null}
 							<p className='text-sm text-muted'>
 								{selected.length ? `${selected.length} selected. ` : ""}
-								{top.filter((c) => c.nominated).length} nominated{category?.nomineeLimit !== null && category?.nomineeLimit !== undefined ? ` of ${category.nomineeLimit}` : ""}
+								{category?.selection === "data" ? "Additional nominees: " : ""}
+								{top.filter((c) => c.nominated).length}
+								{category?.selection === "data" ? "" : " nominated"}
+								{nomineeLimit !== null ? ` of ${nomineeLimit}` : ""}
 							</p>
 						</div>
 					) : null}
@@ -334,7 +339,7 @@ export default function EventReview({ creatorId, eventId }: { creatorId: string;
 							key={category.id}
 							eventId={eventId}
 							teamCreatorId={creatorId}
-							category={{ ...category, candidates: [] }}
+							category={{ ...category, presenterMode: category.presenterMode ?? (category.selection === "data" ? "winner" : "nominees"), candidates: [] }}
 							onSubmitted={() => {
 								setAddOpen(false);
 								void reload();

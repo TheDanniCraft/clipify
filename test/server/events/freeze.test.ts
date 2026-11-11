@@ -44,7 +44,7 @@ it("freezes the last pre-cutoff data snapshot and never substitutes later live c
 	await refreshAwardDataResults(new Date("2026-02-01T00:01:00Z"));
 	await refreshAwardDataResults(new Date("2026-02-02T00:00:00Z"));
 	const [frozen] = await fixture.db.select().from(awardEventsTable);
-	expect(frozen.frozenResults?.[categoryId]).toMatchObject({ value: 100 });
+	expect(frozen.frozenResults?.[categoryId]).toMatchObject({ value: 100, nominees: [expect.objectContaining({ reference: "WinnerClip", views: 100 })] });
 	expect(frozen.frozenAt?.toISOString()).toBe("2026-02-01T00:00:00.000Z");
 	expect(fetchClipDiscovery).not.toHaveBeenCalled();
 });

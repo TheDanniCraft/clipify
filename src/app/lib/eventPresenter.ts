@@ -32,7 +32,14 @@ export function buildAwardPresenterSteps(event: PublicAwardEvent): AwardPresente
 		const section = { slide, categoryId: category.id };
 		steps.push({ ...section, id: `${slide.id}:title`, type: "category-title" });
 		if (category.selection === "data") {
+			if ((slide.presenterMode ?? category.presenterMode) === "nominees") {
+				for (const [position] of category.candidates.entries()) steps.push({ ...section, id: `${slide.id}:nominee:${position}`, type: "nominee", position });
+			}
 			steps.push({ ...section, id: `${slide.id}:intro`, type: "data-intro" }, { ...section, id: `${slide.id}:result`, type: "data-result" });
+			continue;
+		}
+		if ((slide.presenterMode ?? category.presenterMode) === "winner") {
+			steps.push({ ...section, id: `${slide.id}:place:1`, type: "reveal", place: 1 });
 			continue;
 		}
 		for (const [position] of category.candidates.entries()) {

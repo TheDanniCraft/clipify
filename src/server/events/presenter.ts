@@ -6,6 +6,8 @@ import { awardEventsTable as events, awardCandidatesTable as candidates, awardSu
 import { hasAwardPresenterSecret, EventError, eventError } from "./persistence";
 import { readPublicAwardEvent } from "./public-read";
 import { updateAwardDataSnapshot } from "./freeze";
+import { createAwardPreviewToken } from "@/auth/event-preview-token";
+import type { EventCandidateContent } from "@/app/lib/eventCandidates";
 import { readCreatorBrand } from "@/server/creator-brand";
 export async function readAwardPresenter(id: string, secret: string, now = new Date()) {
 	if (!z.uuid().safeParse(id).success) return eventError(new EventError("NOT_FOUND"));
@@ -16,10 +18,15 @@ export async function readAwardPresenter(id: string, secret: string, now = new D
 			const [creator] = await tx.select({ username: usersTable.username, disabled: usersTable.disabled }).from(usersTable).where(eq(usersTable.id, event.ownerId)).limit(1);
 			if (!creator || creator.disabled) throw new EventError("NOT_FOUND");
 			if (now >= new Date(event.configuration.schedule.submissionsEnd)) await updateAwardDataSnapshot(tx, event, now);
-			return { id: event.ownerId, name: creator.username };
+			return { id: event.ownerId, name: creator.username, mediaToken: createAwardPreviewToken(event, now) };
 		});
 		const view = await readPublicAwardEvent(id, undefined, secret, now);
 		if (!view.ok) return view;
+		const presenterMedia = (content: EventCandidateContent) => (content.mediaUrl?.startsWith(`/api/events/${id}/media/`) ? { ...content, mediaUrl: `${content.mediaUrl}?preview=${encodeURIComponent(owner.mediaToken)}` } : content);
+		for (const category of view.event.categories.filter((category) => category.selection === "data")) {
+			category.candidates = category.candidates.map((candidate) => ({ ...candidate, content: presenterMedia(candidate.content) }));
+			if (category.dataResult?.status === "ready" && category.dataResult.content) category.dataResult.content = presenterMedia(category.dataResult.content);
+		}
 		const [brand, submitted, nominated, voted] = await Promise.all([
 			readCreatorBrand(owner.id),
 			db

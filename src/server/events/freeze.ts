@@ -21,7 +21,7 @@ async function observeCategory(event: typeof events.$inferSelect, category: Even
 			.sort((a, b) => (b.views ?? 0) - (a.views ?? 0) || a.reference.localeCompare(b.reference));
 		const winner = clips[0];
 		if (!winner) return { status: "missing", reason: "no_candidates" };
-		return { status: "ready", source: "clips", title: winner.title, description: "", value: winner.views, content: winner, asOf: now.toISOString() };
+		return { status: "ready", source: "clips", title: winner.title, description: "", value: winner.views, content: winner, nominees: clips.slice(0, category.nomineeLimit ?? clips.length), asOf: now.toISOString() };
 	} catch {
 		return previous.success && previous.data.status === "ready" ? previous.data : { status: "missing", reason: "unavailable" };
 	}
@@ -85,7 +85,8 @@ export async function setAwardDataResult(principal: TrustedCreatorPrincipal, own
 			const content = parsed.data.reference ? await (await import("./sources")).resolveAwardSource(ownerId, category, { reference: parsed.data.reference, title: parsed.data.title, description: parsed.data.description }) : undefined;
 			await updateAwardDataSnapshot(tx, event, current);
 			const [latest] = await tx.select().from(events).where(eq(events.id, eventId)).limit(1);
-			const result: AwardDataResult = { status: "ready", source: "manual", title: content?.title ?? parsed.data.title, description: parsed.data.description, ...(parsed.data.value !== undefined ? { value: parsed.data.value } : {}), asOf: current.toISOString(), ...(content ? { content } : {}) };
+			const previousResult = awardDataResultSchema.safeParse(latest.frozenResults?.[categoryId]);
+			const result: AwardDataResult = { ...(previousResult.success && previousResult.data.status === "ready" ? { nominees: previousResult.data.nominees } : {}), status: "ready", source: "manual", title: content?.title ?? parsed.data.title, description: parsed.data.description, ...(parsed.data.value !== undefined ? { value: parsed.data.value } : {}), asOf: current.toISOString(), ...(content ? { content } : {}) };
 			await tx
 				.update(events)
 				.set({ frozenResults: { ...latest.frozenResults, [categoryId]: result }, updatedAt: current })

@@ -2,13 +2,27 @@ import { notify } from "@lib/toast";
 jest.mock("@lib/toast", () => ({ notify: jest.fn() }));
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import EventConnections from "@/app/components/events/EventConnections";
+jest.mock("@/app/components/events/EventFields", () => ({
+	...jest.requireActual("@/app/components/events/EventFields"),
+	EventSelect: ({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: { id: string; label: string }[] }) => (
+		<select aria-label={label} value={value} onChange={(e) => onChange(e.target.value)}>
+			{options.map((o) => (
+				<option key={o.id} value={o.id}>
+					{o.label}
+				</option>
+			))}
+		</select>
+	),
+}));
 jest.mock("@/auth/client", () => ({ authClient: { linkSocial: jest.fn() } }));
 jest.mock("@/app/components/controlledModal", () => ({ __esModule: true, default: ({ isOpen, children }: { isOpen: boolean; children: React.ReactNode }) => (isOpen ? <div role='dialog'>{children}</div> : null) }));
-jest.mock("@/app/actions/events", () => ({ listEventConnectionsAction: jest.fn(async () => ({ ok: true, connections: [] })), saveEventS3ConnectionAction: jest.fn(async () => ({ ok: false, code: "PROVIDER_UNAVAILABLE" })), beginEventGoogleConnectionAction: jest.fn() }));
+jest.mock("@/app/actions/events", () => ({ getEventTwitchConnectionAction: jest.fn(async () => ({ ok: true, poll: false, prediction: false, canAuthorize: true })), listEventConnectionsAction: jest.fn(async () => ({ ok: true, connections: [] })), saveEventS3ConnectionAction: jest.fn(async () => ({ ok: false, code: "PROVIDER_UNAVAILABLE" })), beginEventGoogleConnectionAction: jest.fn() }));
 it("preserves S3 fields and explains a failed connection without selecting unavailable storage", async () => {
 	const selected = jest.fn();
 	render(<EventConnections creatorId='host' eventId='11111111-1111-4111-8111-111111111111' value={null} onChange={selected} />);
 	await waitFor(() => expect(screen.getByRole("button", { name: "Connect Google Drive" })).toBeEnabled());
+	fireEvent.change(screen.getByRole("combobox", { name: "Storage location" }), { target: { value: "s3" } });
+	selected.mockClear();
 	fireEvent.click(screen.getByRole("button", { name: "Connect S3" }));
 	fireEvent.change(screen.getByRole("textbox", { name: "S3 endpoint" }), { target: { value: "https://storage.example.com" } });
 	fireEvent.change(screen.getByRole("textbox", { name: "Bucket" }), { target: { value: "awards" } });
@@ -39,7 +53,7 @@ it("retries loading connections without leaving the tab", async () => {
 	expect(await screen.findByRole("alert")).toHaveTextContent("Connections could not be loaded.");
 	fireEvent.click(screen.getByRole("button", { name: "Retry connections" }));
 	await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
-	await waitFor(() => expect(screen.getByRole("button", { name: "Connect S3" })).toBeEnabled());
+	await waitFor(() => expect(screen.getByRole("button", { name: "Connect Google Drive" })).toBeEnabled());
 });
 
 it("keeps the editor usable when Better Auth declines a Google connection", async () => {

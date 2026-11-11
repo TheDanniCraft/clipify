@@ -56,7 +56,7 @@ export async function readAwardPreview(id: string, token: string, now = new Date
 		for (const category of configuration.categories) if (category.manualResult && !frozenResults[category.id]) frozenResults[category.id] = { ...category.manualResult, status: "ready", source: "manual", asOf: now.toISOString() };
 		const view = projectAwardEvent(
 			{ ...event, configuration, publishedAt: event.publishedAt ?? now, resultsPublishedAt: null, reviewReleased: true, frozenResults },
-			rows.map((row) => ({ ...row, nominated: !row.parentId })),
+			rows.map((row) => ({ ...row, nominated: configuration.categories.find((category) => category.id === row.categoryId)?.selection === "data" ? row.nominated : !row.parentId })),
 			counts,
 			true,
 			new Date(Math.max(now.getTime(), Date.parse(configuration.schedule.votingEnd) + 1)),
@@ -67,7 +67,14 @@ export async function readAwardPreview(id: string, token: string, now = new Date
 			if (category.dataResult?.status === "ready" && category.dataResult.content) category.dataResult.content = previewMedia(category.dataResult.content);
 		}
 		const clips = configuration.slides.some((slide) => slide.statistics.some((stat) => stat.source === "clips")) ? (await (await import("@/server/clip-cache-read")).readCachedClipsByOwner(event.ownerId)).length : null;
-		return { ok: true as const, event: view, creatorName: owner.username, brand: brand.brand, statistics: { submissions: submitted[0].count, categories: view.categories.length, nominees: rows.filter((row) => !row.parentId).length, voters: voted[0].count, clips } };
+		return {
+			ok: true as const,
+			event: view,
+			nomineeCounts: Object.fromEntries(view.categories.map((category) => [category.id, category.selection === "data" ? category.candidates.length : rows.filter((row) => row.categoryId === category.id && row.nominated && !row.parentId).length])),
+			creatorName: owner.username,
+			brand: brand.brand,
+			statistics: { submissions: submitted[0].count, categories: view.categories.length, nominees: rows.filter((row) => !row.parentId).length, voters: voted[0].count, clips },
+		};
 	} catch (error) {
 		return eventError(error);
 	}

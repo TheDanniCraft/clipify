@@ -4,8 +4,24 @@ import { browserDatabaseUrl } from "./browser-database.cjs";
 browserDatabaseUrl();
 const nativeFetch = globalThis.fetch.bind(globalThis);
 const files = new Map();
+const interactions = new Map();
 globalThis.fetch = async (input, init) => {
 	const url = new URL(input instanceof Request ? input.url : String(input));
+	if (process.env.MCP_EVENT_INTERACTION_PROVIDER_FIXTURE === "true" && url.origin === "https://api.twitch.tv" && ["/helix/polls", "/helix/predictions"].includes(url.pathname)) {
+		const headers = new Headers(init?.headers);
+		if (headers.get("Authorization") !== "Bearer isolated-dashboard-fixture-token") throw new Error("Unexpected controlled event interaction credential");
+		const body = init?.body ? JSON.parse(String(init.body)) : {};
+		const key = `${url.pathname}:${body.broadcaster_id ?? url.searchParams.get("broadcaster_id")}`;
+		let current = interactions.get(key);
+		if (init?.method === "POST") {
+			const options = body.choices ?? body.outcomes;
+			current = { id: randomUUID(), status: "ACTIVE", endsAt: Date.now() + 1000 * (body.duration ?? body.prediction_window), [body.choices ? "choices" : "outcomes"]: options.map((option) => ({ ...option, id: randomUUID() })) };
+			interactions.set(key, current);
+		}
+		if (current && init?.method === "PATCH") current.status = body.status;
+		if (current?.status === "ACTIVE" && Date.now() >= current.endsAt) current.status = url.pathname.endsWith("polls") ? "COMPLETED" : "LOCKED";
+		return Response.json({ data: current ? [current] : [] });
+	}
 	if (process.env.MCP_EVENT_CHAT_PROVIDER_FIXTURE === "true" && url.origin === "https://api.twitch.tv" && ["/helix/eventsub/subscriptions", "/helix/chat/badges", "/helix/chat/badges/global"].includes(url.pathname)) {
 		const auth = new Headers(init?.headers);
 		if (auth.get("Authorization") !== "Bearer isolated-event-app-token") throw new Error("Unexpected controlled event chat credential");

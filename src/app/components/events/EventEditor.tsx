@@ -251,7 +251,7 @@ export default function EventEditor({ creatorId, initial, user, canWhiteLabel = 
 							{event.configuration.tiePolicy === "team" ? <EventTieResults creatorId={creatorId} eventId={event.id} locked={!!event.resultsPublishedAt} /> : null}
 						</Tabs.Panel>
 						<Tabs.Panel id='connections' className='pt-5'>
-							<EventConnections status={connectionStatus} beforeConnect={async () => !!(await save(false, true))} creatorId={creatorId} eventId={event.id} value={draft.storageConnectionId} readOnly={busy || !!event.publishedAt} onChange={(storageConnectionId) => update({ storageConnectionId })} />
+							<EventConnections needsYouTube={draft.categories.some((category) => category.source === "youtube")} status={connectionStatus} beforeConnect={async () => !!(await save(false, true))} creatorId={creatorId} eventId={event.id} value={draft.storageConnectionId} readOnly={busy || !!event.publishedAt} onChange={(storageConnectionId) => update({ storageConnectionId })} />
 						</Tabs.Panel>
 						<Tabs.Panel id='presentation' className='pt-5'>
 							<EventPresentationEditor creatorId={creatorId} eventId={event.id} draft={draft} busy={busy} onChange={(slides) => update({ slides })} />

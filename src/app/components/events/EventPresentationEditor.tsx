@@ -6,7 +6,7 @@ import type { EventConfiguration } from "@lib/eventConfiguration";
 import EventPresenter, { type AwardShow } from "./EventPresenter";
 import EventDeckEditor from "./EventDeckEditor";
 export default function EventPresentationEditor({ creatorId, eventId, draft, busy, onChange }: { creatorId: string; eventId: string; draft: EventConfiguration; busy: boolean; onChange: (slides: EventConfiguration["slides"]) => void }) {
-	const [show, setShow] = useState<AwardShow | null>(null),
+	const [show, setShow] = useState<Extract<Awaited<ReturnType<typeof getEventPreviewAction>>, { ok: true }> | null>(null),
 		[token, setToken] = useState(""),
 		[error, setError] = useState(""),
 		[attempt, setAttempt] = useState(0),
@@ -36,7 +36,15 @@ export default function EventPresentationEditor({ creatorId, eventId, draft, bus
 	const preview: AwardShow | null = show
 		? {
 				...show,
-				event: { ...show.event, title: draft.title, description: draft.description, whiteLabel: draft.whiteLabel, slides: draft.slides, presentation: draft.presentation, categories: draft.categories.map((category) => ({ ...category, candidates: show.event.categories.find((item) => item.id === category.id)?.candidates ?? [], results: show.event.categories.find((item) => item.id === category.id)?.results, dataResult: show.event.categories.find((item) => item.id === category.id)?.dataResult })) },
+				event: {
+					...show.event,
+					title: draft.title,
+					description: draft.description,
+					whiteLabel: draft.whiteLabel,
+					slides: draft.slides,
+					presentation: draft.presentation,
+					categories: draft.categories.map((category) => ({ ...category, presenterMode: category.presenterMode ?? (category.selection === "data" ? "winner" : "nominees"), candidates: show.event.categories.find((item) => item.id === category.id)?.candidates ?? [], results: show.event.categories.find((item) => item.id === category.id)?.results, dataResult: show.event.categories.find((item) => item.id === category.id)?.dataResult })),
+				},
 			}
 		: null;
 	return (
@@ -81,6 +89,7 @@ export default function EventPresentationEditor({ creatorId, eventId, draft, bus
 			<EventDeckEditor
 				value={draft.slides}
 				categories={draft.categories}
+				nomineeCounts={show?.nomineeCounts}
 				readOnly={busy}
 				onChange={onChange}
 				preview={(slideId) => (

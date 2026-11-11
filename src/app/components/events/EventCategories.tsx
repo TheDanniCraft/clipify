@@ -107,7 +107,7 @@ export default function EventCategories({ value, onChange, readOnly = false, tim
 							<EventText label='Category title' value={edit.title} onChange={(title) => patch({ title })} />
 							<EventText label='Category group' value={edit.group} onChange={(group) => patch({ group })} />
 							<div className='grid gap-4 sm:grid-cols-2'>
-								<EventSelect label='Submission type' value={edit.source} options={sources} onChange={(source) => patch({ source: source as EventCategory["source"] })} />
+								<EventSelect label='Submission type' value={edit.source} options={sources} onChange={(source) => patch({ source: source as EventCategory["source"], dataNomineeSource: undefined })} />
 								<EventSelect
 									label='Candidates'
 									value={edit.selection}
@@ -119,6 +119,17 @@ export default function EventCategories({ value, onChange, readOnly = false, tim
 									onChange={(selection) => patch({ selection: selection as EventCategory["selection"] })}
 								/>
 							</div>
+							<EventSelect
+								label='Show in presentation'
+								value={edit.presenterMode ?? (edit.selection === "data" ? "winner" : "nominees")}
+								options={[
+									{ id: "nominees", label: "Nominees and winner" },
+									{ id: "winner", label: "Winner only" },
+								]}
+								onChange={(presenterMode) => patch({ presenterMode: presenterMode as "nominees" | "winner" })}
+							/>
+							{edit.selection === "data" && edit.presenterMode === "nominees" ? <EventSelect label='Presentation nominees' value={edit.dataNomineeSource ?? (edit.source === "clip" ? "top" : "team")} options={[...(edit.source === "clip" ? [{ id: "top", label: "Most-viewed clips from the snapshot" }] : []), { id: "team", label: "Selected by the team" }]} onChange={(dataNomineeSource) => patch({ dataNomineeSource: dataNomineeSource as "top" | "team" })} /> : null}
+
 							{["image", "audio", "video"].includes(edit.source) ? <p className='text-sm text-muted'>Connect Google Drive or S3 storage before publishing this category.</p> : null}
 							{edit.source === "youtube" ? <p className='text-sm text-muted'>Connect the host’s YouTube channel in Connections so viewers can find its videos.</p> : null}
 							{edit.source === "choice" ? (
@@ -137,8 +148,17 @@ export default function EventCategories({ value, onChange, readOnly = false, tim
 							</Switch>
 							<div className='grid gap-4 sm:grid-cols-2'>
 								{edit.submissionLimit !== null ? <EventNumber label='Submissions per viewer' min={1} value={edit.submissionLimit} onChange={(submissionLimit) => patch({ submissionLimit })} /> : null}
-								<EventNumber label='Maximum nominees' min={1} max={1000} value={edit.nomineeLimit ?? 6} onChange={(nomineeLimit) => patch({ nomineeLimit })} />
+								{edit.nomineeLimit !== null ? <EventNumber label='Maximum nominees' min={1} max={1000} value={edit.nomineeLimit} onChange={(nomineeLimit) => patch({ nomineeLimit })} /> : null}
 							</div>
+							<Switch isSelected={edit.nomineeLimit === null} onChange={(unlimited) => patch({ nomineeLimit: unlimited ? null : 5 })}>
+								<Switch.Content>
+									<Switch.Control>
+										<Switch.Thumb />
+									</Switch.Control>
+									<Label>Unlimited nominees</Label>
+								</Switch.Content>
+							</Switch>
+							{edit.selection === "data" && edit.presenterMode === "nominees" ? <p className='text-sm text-muted'>The winner takes one place. Select any additional nominees in Review when using a team selection.</p> : null}
 							{["clip", "youtube"].includes(edit.source) ? (
 								<div className='space-y-4 border-t border-separator pt-4'>
 									<h3 className='font-medium'>Source conditions</h3>
@@ -155,7 +175,7 @@ export default function EventCategories({ value, onChange, readOnly = false, tim
 							) : null}
 							{edit.selection === "data" ? (
 								<div className='space-y-4'>
-									<p className='text-sm text-muted'>Hidden from nominations and voting. Enter a result for manually awarded categories.</p>
+									<p className='text-sm text-muted'>Hidden from public voting. Enter a result for manually awarded categories.</p>
 									<EventText label='Manual winner' value={edit.manualResult?.title ?? ""} onChange={(title) => patch({ manualResult: title ? { title, description: edit.manualResult?.description ?? "" } : undefined })} />
 									{edit.manualResult ? <EventText label='Result description' value={edit.manualResult.description} onChange={(description) => patch({ manualResult: { ...edit.manualResult!, description } })} /> : null}
 								</div>

@@ -45,4 +45,16 @@ The recorded Red/Green cycles are in cycle-log.md. Verification-first UI/accepta
 
 ## Exclusions
 
-Recaps, tournaments, newsletters, Twitch polls/predictions, automatic YouTube rankings, optional 7TV badges and exhaustive device/accessibility programs remain outside this release.
+Recaps, tournaments, newsletters, automatic YouTube rankings, optional 7TV badges and exhaustive device/accessibility programs remain outside this release.
+
+## Presenter follow-up ownership — 11 November 2026
+
+| Behavior                                                                                              | Owning evidence                                                                |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Category/slide nominee versus winner mode, legacy data defaults                                       | presenter-plan, configuration, event-presentation-options browser              |
+| Frozen top entries, winner-inclusive cap, unlimited low-view team nominations                         | freeze, public-view, data-nominees                                             |
+| Contextual Drive/S3/YouTube controls and preserved recovery                                           | storage-settings; event-editor-controls and event-editor-review browser        |
+| Incremental Twitch permission through Better Auth                                                     | twitch-interactions; event-presentation-options browser authorization redirect |
+| Complete options, concurrent idempotent start, deadline, correct outcome, tied refund, preview denial | twitch-interactions                                                            |
+| Presenter keyboard/button lock, state persistence, poll completion and prediction resolution          | event-twitch-interactions browser                                              |
+| Retry/Skip control and unconfirmed cancellation warning                                               | interaction-control; twitch-interactions                                       |

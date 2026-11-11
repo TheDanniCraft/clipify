@@ -27,3 +27,35 @@ it("normalizes presenter chat filters while retaining configurable command prefi
 	expect(parsed.success).toBe(true);
 	if (parsed.success) expect(parsed.data.presentation).toEqual({ showChat: true, hiddenAccounts: ["nightbot", "somebot"], commandPrefixes: ["!", "/", "?"] });
 });
+
+it("retains legacy category defaults and accepts nominee sources and unlimited limits", () => {
+	const input = createAwardConfiguration("Awards", "UTC");
+	expect(eventInputSchema.parse(input).categories[0].presenterMode).toBeUndefined();
+	input.categories[0] = { ...input.categories[0], selection: "data", presenterMode: "nominees", dataNomineeSource: "team", nomineeLimit: null };
+	expect(eventInputSchema.parse(input).categories[0]).toMatchObject({ nomineeLimit: null, dataNomineeSource: "team" });
+});
+it.each([14, 61])("rejects Twitch duration %s outside the supported window", (duration) => {
+	const input = createAwardConfiguration("Awards", "UTC");
+	input.slides = [{ id: crypto.randomUUID(), type: "category", categoryId: input.categories[0].id, title: "", text: "", statistics: [], interaction: { type: "poll", wait: true, duration } }];
+	expect(eventInputSchema.safeParse(input).success).toBe(false);
+});
+it("rejects interactions on winner-only or non-category slides", () => {
+	const input = createAwardConfiguration("Awards", "UTC");
+	const slide = { id: crypto.randomUUID(), type: "category" as const, categoryId: input.categories[0].id, title: "", text: "", statistics: [], presenterMode: "winner" as const, interaction: { type: "poll" as const, wait: true, duration: 60 } };
+	expect(eventInputSchema.safeParse({ ...input, slides: [slide] }).success).toBe(false);
+	expect(eventInputSchema.safeParse({ ...input, slides: [{ ...slide, type: "welcome", presenterMode: undefined }] }).success).toBe(false);
+});
+
+it.each([
+	["poll", 1, false],
+	["poll", 2, true],
+	["poll", 5, true],
+	["poll", 6, false],
+	["prediction", 1, false],
+	["prediction", 2, true],
+	["prediction", 10, true],
+	["prediction", 11, false],
+] as const)("checks every Twitch %s option boundary at %s", async (type, count, expected) => {
+	const { eventInteractionFits } = await import("@/app/lib/eventInteractions");
+	expect(eventInteractionFits(type, count)).toBe(expected);
+});
