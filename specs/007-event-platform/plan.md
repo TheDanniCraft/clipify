@@ -67,3 +67,7 @@ The presenter fills its browser viewport rather than enforcing a 16:9 canvas. At
 Each manual placement step reserves an outgoing-card beat, shows its bronze/silver/gold cue on the empty stage, then flies the same nominee card up from its strip slot. Show placement, score and frame emphasis after arrival, with a longer first-place cue, warm spotlight/podium light and one brief finite confetti burst. Keep lower nominees, media playback, navigation and all geometry stable. Back/Escape and reduced-motion restoration do not replay celebration. Data awards use the same stage, including winner-only mode. No sound autoplay or new configuration layer is added.
 
 [Duolingo milestone reference](https://mobbin.com/screens/5c97a190-7800-4f7d-b672-c7259474a2b7) informs a distinct illustration-led celebration before the statistics, not the exact podium motion. Keep Clipify's existing single-card flight and caption patterns.
+
+### Continuous stage lighting — 12 November 2026
+
+[Kahoot!'s iOS podium reference](https://mobbin.com/screens/2019296c-8e14-448b-a02d-19ccf2b0c573) uses a continuous background behind the podium. Remove the added horizontal floor strip and fade the existing halo through a soft mask that extends into the nominee area. Keep cards, animation timing, ranking, controls and chat intact; this fixes the clipped lighting boundary rather than replacing the presenter with a leaderboard.

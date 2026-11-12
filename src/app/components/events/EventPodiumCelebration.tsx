@@ -4,12 +4,12 @@ import { IconTrophy } from "@tabler/icons-react";
 
 export default function EventPodiumCelebration({ place, immediate, arrival, cueStart, cueDuration }: { place: number; immediate: boolean; arrival: number; cueStart: number; cueDuration: number }) {
 	const winner = place === 1;
+	const lightMask = "radial-gradient(ellipse closest-side at center, black 30%, transparent 100%)";
 	const color = winner ? "#f4bc4a" : place === 2 ? "#b8c5d6" : "#cd7f32";
 	return (
 		<>
-			<div aria-hidden='true' data-award-podium={place} className='pointer-events-none absolute inset-0 overflow-hidden rounded-3xl'>
-				<motion.div initial={immediate ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: immediate ? 0 : arrival, duration: 0.45 }} className='absolute -inset-x-12 -inset-y-8' style={{ background: `radial-gradient(ellipse at 50% 60%, color-mix(in srgb, ${color} 25%, transparent), transparent 65%)` }} />
-				<motion.div initial={immediate ? false : { opacity: 0, scaleX: 0.7 }} animate={{ opacity: 1, scaleX: 1 }} transition={{ delay: immediate ? 0 : arrival, duration: 0.45 }} className='absolute bottom-0 left-1/2 h-5 w-[min(80%,42rem)] -translate-x-1/2 rounded-[50%] blur-sm' style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
+			<div aria-hidden='true' data-award-podium={place} className='pointer-events-none absolute inset-x-0 -top-8 -bottom-16 overflow-hidden' style={{ maskImage: lightMask, WebkitMaskImage: lightMask }}>
+				<motion.div initial={immediate ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: immediate ? 0 : arrival, duration: 0.45 }} className='absolute -inset-x-12 -inset-y-8' style={{ background: `radial-gradient(ellipse at 50% 50%, color-mix(in srgb, ${color} 25%, transparent), transparent 65%)` }} />
 			</div>
 			{!immediate ? (
 				<motion.div aria-hidden='true' key={`cue:${place}`} data-award-podium-cue initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: [0, 1, 1, 0], scale: [0.92, 1, 1, 1.04] }} transition={{ delay: cueStart, duration: cueDuration, times: [0, 0.15, 0.7, 1] }} className='pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 text-center'>

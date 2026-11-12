@@ -273,3 +273,5 @@ Creating the example in the user's actual account is an external follow-up after
 - [x] T134 Let the presenter use ultrawide viewports without a fixed 16:9 canvas; remove ultrawide page/stage caps, size nominees with available height and keep chat readable. Verify both themes at 3440×1440 and 5120×1080 alongside the existing mobile/desktop journeys, preserving flights, reveals, keyboard playback and media proportions.
 
 - [x] T135 Complete the approved bronze/silver/gold ceremony: anticipation on the empty stage, single-card entrance, post-arrival score and winner emphasis, gold spotlight and finite confetti. Unify winner-only data awards, retain manual navigation/media, and verify Back/reduced-motion behavior and real browser flight/placement geometry in both themes and all existing viewport sizes.
+
+- [x] T136 Remove the hard stage/nominee lighting seam using the Kahoot podium reference: remove the floor strip, fade the halo beyond the stage boundary, and inspect light/dark and actual-demo before/after renders without changing the ceremony.
