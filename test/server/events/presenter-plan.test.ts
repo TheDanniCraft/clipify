@@ -36,8 +36,8 @@ it("introduces statistics and data awards before displaying their contents", () 
 
 it("allows a category slide to show only its winner", () => {
 	const steps = buildAwardPresenterSteps({ title: "Awards", categories: [category], slides: [{ id: "slide", type: "category", categoryId: category.id, title: "", text: "", statistics: [], presenterMode: "winner" }] } as never);
-	expect(steps.map((step) => step.type)).toEqual(["category-title", "reveal", "publish"]);
-	expect(steps[1]).toMatchObject({ place: 1 });
+	expect(steps.map((step) => step.type)).toEqual(["category-title", "reveal-cue", "reveal", "publish"]);
+	expect(steps[2]).toMatchObject({ place: 1 });
 });
 
 it("presents data nominees before the data award winner when configured", () => {
@@ -45,4 +45,17 @@ it("presents data nominees before the data award winner when configured", () => 
 	expect(steps.filter((step) => step.type === "nominee")).toHaveLength(5);
 	expect(steps.map((step) => step.type)).toContain("data-result");
 	expect(steps.map((step) => step.type)).not.toContain("reveal");
+});
+
+it("holds a separate announcement step before each podium reveal", () => {
+	const steps = buildAwardPresenterSteps({ title: "Awards", categories: [category], slides: [] } as never);
+	const podium = steps.filter((step) => step.type === "reveal-cue" || (step.type === "reveal" && step.place > 0));
+	expect(podium.map((step) => [step.type, "place" in step ? step.place : undefined])).toEqual([
+		["reveal-cue", 3],
+		["reveal", 3],
+		["reveal-cue", 2],
+		["reveal", 2],
+		["reveal-cue", 1],
+		["reveal", 1],
+	]);
 });

@@ -2,7 +2,7 @@ import type { PublicAwardEvent } from "./eventPublicView";
 import type { EventConfiguration } from "./eventConfiguration";
 type Slide = EventConfiguration["slides"][number];
 type Category = PublicAwardEvent["categories"][number];
-export type AwardPresenterStep = { id: string; type: "welcome" | "text" | "statistics-title" | "statistics" | "closing-title" | "closing"; slide: Slide } | { id: string; type: "category-title" | "data-intro" | "data-result"; slide: Slide; categoryId: string } | { id: string; type: "nominee"; slide: Slide; categoryId: string; position: number } | { id: string; type: "reveal"; slide: Slide; categoryId: string; place: number } | { id: string; type: "publish" };
+export type AwardPresenterStep = { id: string; type: "welcome" | "text" | "statistics-title" | "statistics" | "closing-title" | "closing"; slide: Slide } | { id: string; type: "category-title" | "data-intro" | "data-result"; slide: Slide; categoryId: string } | { id: string; type: "nominee"; slide: Slide; categoryId: string; position: number } | { id: string; type: "reveal" | "reveal-cue"; slide: Slide; categoryId: string; place: number } | { id: string; type: "publish" };
 
 export function rankAwardNominees(category: Category) {
 	const entries = category.candidates.flatMap((candidate) => {
@@ -39,7 +39,7 @@ export function buildAwardPresenterSteps(event: PublicAwardEvent): AwardPresente
 			continue;
 		}
 		if ((slide.presenterMode ?? category.presenterMode) === "winner") {
-			steps.push({ ...section, id: `${slide.id}:place:1`, type: "reveal", place: 1 });
+			steps.push({ ...section, id: `${slide.id}:cue:1`, type: "reveal-cue", place: 1 }, { ...section, id: `${slide.id}:place:1`, type: "reveal", place: 1 });
 			continue;
 		}
 		for (const [position] of category.candidates.entries()) {
@@ -49,7 +49,7 @@ export function buildAwardPresenterSteps(event: PublicAwardEvent): AwardPresente
 		const places = [...new Set(rankAwardNominees(category).flatMap(({ place }) => (place && place <= 3 ? [place] : [])))].sort((a, b) => b - a);
 		if (!places.includes(1)) places.push(1);
 		for (const place of places) {
-			steps.push({ ...section, id: `${slide.id}:place:${place}`, type: "reveal", place });
+			steps.push({ ...section, id: `${slide.id}:cue:${place}`, type: "reveal-cue", place }, { ...section, id: `${slide.id}:place:${place}`, type: "reveal", place });
 		}
 	}
 	steps.push({ id: "publish", type: "publish" });

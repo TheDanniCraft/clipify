@@ -16,3 +16,12 @@ it("restores the podium immediately without replaying buildup or confetti on Bac
 	expect(document.querySelector("[data-award-podium-cue]")).toBeNull();
 	expect(document.querySelector("[data-award-confetti]")).toBeNull();
 });
+
+it("holds a host-controlled place announcement until the reveal replaces it", () => {
+	const view = render(<EventPodiumCelebration place={3} immediate={false} arrival={0} cueStart={0.55} cueDuration={0} cueOnly />);
+	expect(document.querySelector("[data-award-podium-cue]")).toHaveTextContent("Third place");
+	expect(document.querySelector("[data-award-podium]")).toBeNull();
+	view.rerender(<EventPodiumCelebration place={3} immediate={false} arrival={0.55} cueStart={0} cueDuration={0} announced />);
+	expect(document.querySelector("[data-award-podium-cue]")).toBeNull();
+	expect(document.querySelector("[data-award-podium='3']")).not.toBeNull();
+});

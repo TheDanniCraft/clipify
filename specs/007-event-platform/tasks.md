@@ -275,3 +275,5 @@ Creating the example in the user's actual account is an external follow-up after
 - [x] T135 Complete the approved bronze/silver/gold ceremony: anticipation on the empty stage, single-card entrance, post-arrival score and winner emphasis, gold spotlight and finite confetti. Unify winner-only data awards, retain manual navigation/media, and verify Back/reduced-motion behavior and real browser flight/placement geometry in both themes and all existing viewport sizes.
 
 - [x] T136 Remove the hard stage/nominee lighting seam using the Kahoot podium reference: remove the floor strip, fade the halo beyond the stage boundary, and inspect light/dark and actual-demo before/after renders without changing the ceremony.
+
+- [x] T137 Hold each podium announcement until Next, then reveal its nominee and votes. Fly revealed bronze/silver cards into visible stepped positions without exposing unrevealed ranks; preserve keyboard/media/Back and Twitch interaction timing. Verify the affected presenter owners and real light/dark/mobile/ultrawide journeys.

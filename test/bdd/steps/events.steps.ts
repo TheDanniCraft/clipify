@@ -275,6 +275,8 @@ When("the host presents the nominees and reveals the winner", async ({ page }) =
 	await expect(page.getByLabel("Nominee results").getByRole("button")).toHaveCount(1);
 	await expect(page.getByLabel("Nominee results").getByRole("progressbar")).toHaveCount(0);
 	await page.keyboard.press("ArrowRight");
+	await expect(page.locator("[data-award-podium-cue]")).toHaveText("And the award goes to…");
+	await page.keyboard.press("ArrowRight");
 	await expect(page.getByRole("heading", { name: "First place", exact: true })).toBeVisible();
 	await expect(page.getByText("100% (1 vote)", { exact: true })).toBeVisible();
 });

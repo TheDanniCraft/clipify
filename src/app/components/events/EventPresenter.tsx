@@ -68,7 +68,7 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 	const reduceMotion = useReducedMotion();
 
 	const [interactionStatus, setInteractionStatus] = useState<{ slideId: string; blocked: boolean } | null>(null);
-	const interactionSlide = !preview && secret && step && "slide" in step && (step.type === "reveal" || step.type === "data-intro" || step.type === "data-result") && step.slide.interaction ? step.slide : undefined;
+	const interactionSlide = !preview && secret && step && "slide" in step && (step.type === "reveal-cue" || step.type === "reveal" || step.type === "data-intro" || step.type === "data-result") && step.slide.interaction ? step.slide : undefined;
 	const interactionBlocked = !!interactionSlide?.interaction?.wait && (interactionStatus?.slideId !== interactionSlide.id || interactionStatus.blocked);
 	const stepCount = steps.length,
 		loaded = !!show;
@@ -266,7 +266,7 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 										})}
 									</motion.div>
 								) : null}
-								{category && (step.type === "nominee" || step.type === "reveal") ? <EventNomineeStage key={stageNavigation.version} instant={stageNavigation.instant} category={category} position={step.type === "nominee" ? step.position : undefined} place={step.type === "reveal" ? step.place : undefined} onOpen={open} /> : null}
+								{category && (step.type === "nominee" || step.type === "reveal" || step.type === "reveal-cue") ? <EventNomineeStage key={stageNavigation.version} instant={stageNavigation.instant} category={category} position={step.type === "nominee" ? step.position : undefined} place={step.type === "reveal" || step.type === "reveal-cue" ? step.place : undefined} cue={step.type === "reveal-cue"} onOpen={open} /> : null}
 								{step.type === "data-intro" ? (
 									<motion.p {...contentEntrance} className='py-16 text-center text-2xl text-muted'>
 										And the award goes to…

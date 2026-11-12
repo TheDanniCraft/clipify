@@ -71,3 +71,7 @@ Each manual placement step reserves an outgoing-card beat, shows its bronze/silv
 ### Continuous stage lighting — 12 November 2026
 
 [Kahoot!'s iOS podium reference](https://mobbin.com/screens/2019296c-8e14-448b-a02d-19ccf2b0c573) uses a continuous background behind the podium. Remove the added horizontal floor strip and fade the existing halo through a soft mask that extends into the nominee area. Keep cards, animation timing, ranking, controls and chat intact; this fixes the clipped lighting boundary rather than replacing the presenter with a leaderboard.
+
+### Host-controlled podium announcements
+
+Split audience podium reveals into announcement and result steps. The announcement persists until Next; the outgoing card lands before it appears. Only a revealed rank may move to a bronze/silver position, with gold staying prominent in the featured area. Keep the already-inspected [Kahoot iOS podium](https://mobbin.com/screens/2019296c-8e14-448b-a02d-19ccf2b0c573) as the spatial reference; a static reference does not establish its timing. Preserve the existing single-card flights and original order for unrevealed nominees. Predictions resolve on the actual winner result, not its announcement.

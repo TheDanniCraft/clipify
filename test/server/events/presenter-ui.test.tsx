@@ -39,6 +39,9 @@ it("lets the host inspect nominees, reveal results and explicitly publish after 
 	expect(screen.getByLabelText("Nominee results")).toHaveTextContent("Lampe raucht ab");
 	expect(screen.queryByLabelText("Award winners")).not.toBeInTheDocument();
 	fireEvent.keyDown(window, { key: "ArrowRight" });
+	expect(document.querySelector("[data-award-podium-cue]")).toHaveTextContent("And the award goes to…");
+	expect(screen.queryByLabelText("Award winners")).not.toBeInTheDocument();
+	fireEvent.keyDown(window, { key: "ArrowRight" });
 	expect(await within(screen.getByLabelText("Award winners")).findByRole("button", { name: "Lampe raucht ab winner #1" })).toBeInTheDocument();
 	expect(screen.getByRole("heading", { name: "First place" })).toBeInTheDocument();
 	fireEvent.keyDown(window, { key: "ArrowRight" });
@@ -80,11 +83,18 @@ it("reveals podium places one click at a time and conceals them again on back", 
 	expect(screen.getByLabelText("Nominee results")).toHaveTextContent("Third nominee");
 	expect(screen.getByLabelText("Featured nominee")).toHaveTextContent("Let’s reveal the results");
 	next();
+	expect(document.querySelector("[data-award-podium-cue]")).toHaveTextContent("Third place");
+	expect(screen.getByLabelText("Featured nominee")).not.toHaveTextContent("Third nominee");
+	next();
 	expect(screen.getByLabelText("Featured nominee")).toHaveTextContent("Third nominee #3");
 	expect(screen.getByLabelText("Nominee results")).toHaveTextContent("Second nominee");
 	next();
+	expect(document.querySelector('[data-award-settled="3"]')).toHaveTextContent("Third nominee #3");
+	next();
 	expect(screen.getByLabelText("Featured nominee")).toHaveTextContent("Second nominee #2");
 	expect(screen.getByLabelText("Nominee results")).toHaveTextContent("Third nominee #3");
+	next();
+	expect(document.querySelector('[data-award-settled="2"]')).toHaveTextContent("Second nominee #2");
 	next();
 	expect(screen.getByLabelText("Award winners")).toHaveTextContent("Lampe raucht ab winner");
 	expect(screen.getByLabelText("Nominee results")).toHaveTextContent("Fourth nominee");

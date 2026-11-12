@@ -52,7 +52,10 @@ for (const type of ["poll", "prediction"] as const) {
 		}
 		await expect(next).toBeEnabled();
 		expect((await read()).id).toBe(remoteId);
-		await next.click(); // Only one nominee received votes, so the next reveal is the winner.
+		await next.click(); // Only one nominee received votes: announce the winner, then reveal on Next.
+		await expect(page.locator("[data-award-podium-cue]")).toHaveText("And the award goes to…");
+		expect((await read()).status).toBe(type === "prediction" ? "LOCKED" : "COMPLETED");
+		await next.click();
 		await expect.poll(async () => (await read())?.status).toBe(type === "prediction" ? "RESOLVED" : "COMPLETED");
 		await expect(page.getByRole("heading", { name: "First place", exact: true })).toBeVisible();
 	});
