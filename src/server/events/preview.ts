@@ -61,7 +61,7 @@ export async function readAwardPreview(id: string, token: string, now = new Date
 			true,
 			new Date(Math.max(now.getTime(), Date.parse(configuration.schedule.votingEnd) + 1)),
 		);
-		const previewMedia = (content: EventCandidateContent) => (content.mediaUrl?.startsWith(`/api/events/${id}/media/`) ? { ...content, mediaUrl: `${content.mediaUrl}?preview=${encodeURIComponent(token)}` } : content);
+		const previewMedia = (content: EventCandidateContent) => (content.mediaUrl?.startsWith(`/api/events/${id}/media/`) || content.mediaUrl?.startsWith(`/api/events/${id}/clips/`) ? { ...content, mediaUrl: `${content.mediaUrl}?preview=${encodeURIComponent(token)}` } : content);
 		for (const category of view.categories) {
 			category.candidates = category.candidates.map((candidate) => ({ ...candidate, content: previewMedia(candidate.content) }));
 			if (category.dataResult?.status === "ready" && category.dataResult.content) category.dataResult.content = previewMedia(category.dataResult.content);

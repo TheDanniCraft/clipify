@@ -122,7 +122,7 @@ function DataResultEditor({ creatorId, eventId, category, initial, published, lo
 				Save result
 			</Button>
 			<ControlledModal isOpen={preview} onOpenChange={setPreview} ariaLabel={ready?.title} size='lg'>
-				<Modal.Body>{ready?.content ? <EventMedia content={ready.content} /> : null}</Modal.Body>
+				<Modal.Body>{ready?.content ? <EventMedia eventId={eventId} content={ready.content} /> : null}</Modal.Body>
 			</ControlledModal>
 		</div>
 	);

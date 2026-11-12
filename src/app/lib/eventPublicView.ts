@@ -9,6 +9,7 @@ type CandidateViewInput = { id: string; categoryId: string; content: EventCandid
 export function projectAwardEvent(event: EventViewInput, candidates: CandidateViewInput[], counts: { candidateId: string; votes: number }[], presenter = false, now = new Date()) {
 	const phase = eventPhase({ schedule: event.configuration.schedule, published: !!event.publishedAt, resultsPublished: !!event.resultsPublishedAt, reviewReleased: event.reviewReleased }, now);
 	const reveal = (presenter && phase === "closed") || !!event.resultsPublishedAt;
+	const media = (content: EventCandidateContent): EventCandidateContent => (content.kind === "clip" ? { ...content, mediaUrl: `/api/events/${event.id}/clips/${encodeURIComponent(content.reference)}` } : content);
 	const categories = event.configuration.categories
 		.filter((c) => c.selection !== "data" || reveal || presenter)
 		.map((category) => {
@@ -38,8 +39,8 @@ export function projectAwardEvent(event: EventViewInput, candidates: CandidateVi
 				submissionLimit: category.submissionLimit,
 				rules: category.rules,
 				options: category.options,
-				candidates: phase === "announcement" || phase === "submissions" ? [] : nominees,
-				...(reveal && category.selection === "data" ? { dataResult } : {}),
+				candidates: phase === "announcement" || phase === "submissions" ? [] : nominees.map((candidate) => ({ ...candidate, content: media(candidate.content) })),
+				...(reveal && category.selection === "data" ? { dataResult: dataResult?.status === "ready" && dataResult.content ? { ...dataResult, content: media(dataResult.content) } : dataResult } : {}),
 				...(results ? { results: results.map((result) => (presenter || event.configuration.resultDetail === "votes" ? result : event.configuration.resultDetail === "percentages" ? { id: result.id, percentage: result.percentage, winner: result.winner } : { id: result.id, winner: result.winner })) } : {}),
 			};
 		});

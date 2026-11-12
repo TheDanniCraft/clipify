@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { randomUUID, createHmac } from "node:crypto";
 import { test, expect } from "../bdd/support/user-tour";
 import { seedCreatorLibrary } from "../support/creator-library";
@@ -53,7 +54,7 @@ for (const width of [390, 1440])
 				signature = createHmac("sha256", browserProviderEnvironment({ APP_ENV: "test", E2E_TEST_MODE: "true", MCP_BROWSER_PROVIDER_FIXTURE: "true", MCP_BROWSER_DATABASE_URL: tourWorld.fixture.url }).BETTER_AUTH_SECRET)
 					.update(`clipify-event-preview:${id}:${digest}:${expiry}`)
 					.digest("base64url");
-			await page.route("https://clips.twitch.tv/embed?**", (route) => route.fulfill({ contentType: "text/html", body: "<body style='background:#111;color:white'>Twitch clip provider loaded</body>" }));
+			await page.route("**/api/events/*/clips/*", (route) => route.fulfill({ contentType: "video/mp4", body: readFileSync("test/fixtures/clips/export-audio.mp4") }));
 			let thumbnailRequests = 0;
 			await page.route(`${thumbnailUrl}*`, (route) => {
 				thumbnailRequests++;
@@ -138,8 +139,17 @@ for (const width of [390, 1440])
 			const nomineeFooterHeight = await hero.getByRole("button").evaluate((node) => node.closest("div.overflow-hidden")!.lastElementChild!.getBoundingClientRect().height);
 			await page.screenshot({ path: info.outputPath(`nominees-${theme}-${width}.png`), fullPage: true });
 			await page.keyboard.press("Space");
-			await expect(page.frameLocator('iframe[title="Nominee 5"]').getByText("Twitch clip provider loaded")).toBeVisible();
-			await expect(page.locator('iframe[title="Nominee 5"]')).toHaveAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+			await expect(page.locator('video[aria-label="Nominee 5"]')).toBeVisible();
+			await expect.poll(() => page.locator('video[aria-label="Nominee 5"]').evaluate((node: HTMLVideoElement) => node.readyState)).toBeGreaterThanOrEqual(2);
+			await expect(page.locator('iframe[title="Nominee 5"]')).toHaveCount(0);
+			await page.getByRole("slider", { name: "Event volume" }).focus();
+			await page.keyboard.press("Home");
+			await page.keyboard.press("ArrowRight");
+			await page.getByRole("button", { name: "Mute event audio" }).click();
+			await expect.poll(() => page.locator("video").evaluate((node: HTMLVideoElement) => node.muted)).toBe(true);
+			await page.getByText("Level audio", { exact: true }).click();
+			await expect(page.getByRole("switch", { name: "Level audio" })).toBeChecked();
+			await page.screenshot({ path: info.outputPath(`native-player-${theme}-${width}.png`), fullPage: true });
 			await page.keyboard.press("Escape");
 			const restored = await page.evaluate(() => ({ header: Number(getComputedStyle(document.querySelector("header")!).opacity), stage: Number(getComputedStyle(document.querySelector("[data-award-featured]")!.parentElement!).opacity) }));
 			expect(restored.header).toBe(1);
@@ -337,5 +347,21 @@ for (const width of [390, 1440])
 			await expect(chat).toBeVisible();
 			expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
 			await page.screenshot({ path: info.outputPath(`chat-overview-${theme}-${width}.png`), fullPage: true });
+			const now = Date.now();
+			configuration.schedule = { ...configuration.schedule, submissionsStart: new Date(now - 3 * 86400000).toISOString(), submissionsEnd: new Date(now - 2 * 86400000).toISOString(), votingStart: new Date(now - 86400000).toISOString(), votingEnd: new Date(now + 86400000).toISOString() };
+			await tourWorld.fixture.pool.query("UPDATE award_events SET configuration=$2,published_at=now(),review_released=true WHERE id=$1", [id, JSON.stringify(configuration)]);
+			await page.goto(`${tourWorld.origin}/events/${id}`);
+			const reject = page.getByRole("button", { name: "Reject optional", exact: true });
+			await Promise.all([page.waitForEvent("load"), reject.click()]);
+			await page.getByRole("button", { name: "View Nominee 1", exact: true }).click();
+			await expect(page.getByRole("dialog").locator("video")).toBeVisible();
+			await expect(page.getByRole("button", { name: "Unmute event audio" })).toBeVisible();
+			await expect(page.getByRole("switch", { name: "Level audio" })).toBeChecked();
+			await page.getByRole("dialog").evaluate((node) => Promise.all(node.parentElement!.getAnimations({ subtree: true }).map((animation) => animation.finished.catch(() => undefined))));
+			const videoBox = await page.getByRole("dialog").locator("video").boundingBox();
+			expect(videoBox!.height).toBeLessThanOrEqual((videoBox!.width * 9) / 16 + 2);
+			await page.screenshot({ path: info.outputPath(`voting-player-${theme}-${width}.png`), fullPage: true });
+			await page.keyboard.press("Escape");
+			await expect(page.getByRole("dialog")).toHaveCount(0);
 		});
 	}

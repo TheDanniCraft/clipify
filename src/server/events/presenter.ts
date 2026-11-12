@@ -22,8 +22,8 @@ export async function readAwardPresenter(id: string, secret: string, now = new D
 		});
 		const view = await readPublicAwardEvent(id, undefined, secret, now);
 		if (!view.ok) return view;
-		const presenterMedia = (content: EventCandidateContent) => (content.mediaUrl?.startsWith(`/api/events/${id}/media/`) ? { ...content, mediaUrl: `${content.mediaUrl}?preview=${encodeURIComponent(owner.mediaToken)}` } : content);
-		for (const category of view.event.categories.filter((category) => category.selection === "data")) {
+		const presenterMedia = (content: EventCandidateContent) => (content.mediaUrl?.startsWith(`/api/events/${id}/media/`) || content.mediaUrl?.startsWith(`/api/events/${id}/clips/`) ? { ...content, mediaUrl: `${content.mediaUrl}?preview=${encodeURIComponent(owner.mediaToken)}` } : content);
+		for (const category of view.event.categories) {
 			category.candidates = category.candidates.map((candidate) => ({ ...candidate, content: presenterMedia(candidate.content) }));
 			if (category.dataResult?.status === "ready" && category.dataResult.content) category.dataResult.content = presenterMedia(category.dataResult.content);
 		}

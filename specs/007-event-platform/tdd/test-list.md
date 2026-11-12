@@ -58,3 +58,10 @@ Recaps, tournaments, newsletters, automatic YouTube rankings, optional 7TV badge
 | Complete options, concurrent idempotent start, deadline, correct outcome, tied refund, preview denial | twitch-interactions                                                            |
 | Presenter keyboard/button lock, state persistence, poll completion and prediction resolution          | event-twitch-interactions browser                                              |
 | Retry/Skip control and unconfirmed cancellation warning                                               | interaction-control; twitch-interactions                                       |
+
+### Native nominee audio follow-up (FR-017/FR-020, EC-001/EC-008)
+
+- Event clip resolution checks public projection or private preview/review authority before using even a cached playback URL; wrong creator, revoked capability and hidden clips remain unavailable.
+- Streaming preserves bounded media/range handling and retry/navigation recovery; Twitch clips open through Clipify rather than an iframe.
+- Browser preferences preserve volume/mute/leveling between nominees and across presenter/public voting views. Repeated toggles reuse one graph; close disposes it. Cross-origin media without an approved delivery path cannot enable processing.
+- Actual Chromium audio output narrows a generated 24x quiet/loud input difference, mute yields silence, 20% volume remains quieter with leveling enabled and disabled, and the context closes. This is not a LUFS or physical-device listening certification.

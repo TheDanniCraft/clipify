@@ -102,7 +102,7 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 				return;
 			}
 			const target = event.target;
-			if (target instanceof HTMLElement && target.closest("input,textarea,select,video,audio,[contenteditable=true]")) return;
+			if (target instanceof HTMLElement && target.closest("input,textarea,select,video,audio,[role=slider],[role=switch],[contenteditable=true]")) return;
 			if (event.code === "Space" && !opened) {
 				if (target instanceof HTMLElement && target.closest("button,a,[role=button]")) return;
 				const featured = document.querySelector<HTMLButtonElement>("[data-award-featured] [data-award-candidate]");

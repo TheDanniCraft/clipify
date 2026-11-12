@@ -3,7 +3,7 @@ jest.mock("@heroui/react", () => {
 	const React = jest.requireActual("react");
 	const Checkbox = ({ children, isSelected, onChange, ...props }: { children: React.ReactNode; isSelected: boolean; onChange: (value: boolean) => void; "aria-label"?: string }) => React.createElement("label", null, React.createElement("input", { type: "checkbox", checked: isSelected, "aria-label": props["aria-label"], onChange: (e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.checked) }), children);
 	Object.assign(Checkbox, { Content: base.Checkbox.Content, Control: base.Checkbox.Control, Indicator: base.Checkbox.Indicator });
-	return { ...base, Checkbox };
+	return { ...base, Checkbox, Slider: base.Slider };
 });
 import { fireEvent, render, screen } from "@testing-library/react";
 import { EventMedia, EventNomineeCard } from "@/app/components/events/EventMedia";
@@ -47,13 +47,16 @@ it.each(["image", "video", "audio"] as const)("offers local retry after a %s fai
 	expect(kind === "image" ? screen.getByRole("img", { name: "Unavailable nominee" }) : screen.getByLabelText("Unavailable nominee")).toBeInTheDocument();
 });
 
-it.each([
-	["clip", "ValidClip", "clips.twitch.tv"],
-	["youtube", "abcdefghijk", "www.youtube-nocookie.com"],
-] as const)("provides an origin referrer to the %s provider without leaking preview credentials", (kind, reference, host) => {
+it.each([["youtube", "abcdefghijk", "www.youtube-nocookie.com"]] as const)("provides an origin referrer to the %s provider without leaking preview credentials", (kind, reference, host) => {
 	render(<EventMedia content={{ kind, reference, title: "Playable nominee", description: "" }} />);
 	const frame = screen.getByTitle("Playable nominee");
 	expect(frame).toHaveAttribute("referrerpolicy", "strict-origin-when-cross-origin");
 	expect(new URL(frame.getAttribute("src")!).hostname).toBe(host);
 	expect(new URL(frame.getAttribute("src")!).hash).toBe("");
+});
+
+it("plays Twitch clips through the event media route rather than an advertising iframe", () => {
+	render(<EventMedia content={{ kind: "clip", reference: "ValidClip", title: "Clip", description: "", mediaUrl: "/api/events/11111111-1111-4111-8111-111111111111/clips/ValidClip?preview=capability" }} />);
+	expect(document.querySelector("iframe")).toBeNull();
+	expect(screen.getByLabelText("Clip")).toHaveAttribute("src", expect.stringContaining("/clips/ValidClip?preview=capability"));
 });

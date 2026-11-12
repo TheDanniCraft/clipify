@@ -267,3 +267,5 @@ Creating the example in the user's actual account is an external follow-up after
 - [x] T131 Keep enabled chat mounted alongside the entire show, including nominee overview, media and reveals, and enable chat for the owned Babbler demo. Preserve the preview's read-only capability boundary and verify both themes and responsive layouts.
 
 - [x] T132 Replace chat polling and preview placeholders with a capability-checked live WebSocket subscription on the existing endpoint. Keep text independent of badge lookup latency, preserve messages across reconnects, recheck/revoke access, clean up subscriptions, and verify draft-preview chat plus signed EventSub delivery without enabling write controls.
+
+- [x] T133 Use event-authorized native Twitch clip playback across presenter/preview/review/voting, preserve volume/mute and optional streaming audio leveling, verify quiet/loud output plus mute/volume/bypass/cleanup in Chromium, and inspect real controls in light/dark desktop/mobile presenter and voting journeys. Keep YouTube embeds and other preview webhooks unchanged.

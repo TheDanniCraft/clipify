@@ -399,7 +399,7 @@ export default function EventReview({ creatorId, eventId }: { creatorId: string;
 				ariaLabel={opened?.title}
 				size='lg'
 			>
-				<Modal.Body>{opened ? <EventMedia content={opened} /> : null}</Modal.Body>
+				<Modal.Body>{opened ? <EventMedia eventId={eventId} content={opened} /> : null}</Modal.Body>
 			</ControlledModal>
 		</div>
 	);

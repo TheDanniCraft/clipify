@@ -4,7 +4,8 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Button, Checkbox, Link, ProgressBar } from "@heroui/react";
 import type { EventCandidateContent } from "@lib/eventCandidates";
-export function EventMedia({ content }: { content: EventCandidateContent }) {
+import EventNativePlayer from "./EventNativePlayer";
+export function EventMedia({ content, eventId }: { content: EventCandidateContent; eventId?: string }) {
 	const [failed, setFailed] = useState<string | null>(null),
 		identity = content.mediaUrl ?? content.thumbnailUrl ?? content.reference;
 	if (failed === identity)
@@ -19,14 +20,23 @@ export function EventMedia({ content }: { content: EventCandidateContent }) {
 		);
 	const onError = () => setFailed(identity);
 
-	if (content.kind === "clip" && /^[A-Za-z0-9_-]{1,200}$/.test(content.reference)) return <iframe title={content.title} referrerPolicy='strict-origin-when-cross-origin' className='aspect-video h-full w-full border-0' src={`https://clips.twitch.tv/embed?clip=${encodeURIComponent(content.reference)}&parent=${encodeURIComponent(window.location.hostname)}&autoplay=true`} allow='autoplay; fullscreen' allowFullScreen />;
+	if (content.kind === "clip" && /^[A-Za-z0-9_-]{1,200}$/.test(content.reference)) {
+		const src = content.mediaUrl?.startsWith("/api/events/") ? content.mediaUrl : eventId ? `/api/events/${eventId}/clips/${encodeURIComponent(content.reference)}` : undefined;
+		return src ? (
+			<EventNativePlayer src={src} title={content.title} onError={onError} />
+		) : (
+			<p role='status' className='p-6 text-muted'>
+				Clip playback is unavailable. Reopen the event and try again.
+			</p>
+		);
+	}
 	if (content.kind === "youtube" && /^[A-Za-z0-9_-]{11}$/.test(content.reference)) return <iframe title={content.title} referrerPolicy='strict-origin-when-cross-origin' className='aspect-video h-full w-full border-0' src={`https://www.youtube-nocookie.com/embed/${content.reference}?autoplay=1`} allow='autoplay; fullscreen' allowFullScreen />;
-	if (content.kind === "video" && content.mediaUrl) return <video onError={onError} aria-label={content.title} src={content.mediaUrl} className='max-h-full w-full' controls autoPlay playsInline />;
+	if (content.kind === "video" && content.mediaUrl) return <EventNativePlayer onError={onError} title={content.title} src={content.mediaUrl} />;
 	if (content.kind === "audio" && content.mediaUrl)
 		return (
 			<div className='flex h-full flex-col items-center justify-center gap-6 p-6'>
 				<h2 className='text-2xl font-semibold'>{content.title}</h2>
-				<audio onError={onError} aria-label={content.title} src={content.mediaUrl} controls autoPlay className='w-full' />
+				<EventNativePlayer audio onError={onError} title={content.title} src={content.mediaUrl} />
 			</div>
 		);
 	if ((content.kind === "image" || content.kind === "game") && (content.mediaUrl || content.thumbnailUrl))
