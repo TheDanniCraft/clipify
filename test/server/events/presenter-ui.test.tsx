@@ -87,7 +87,7 @@ it("reveals podium places one click at a time and conceals them again on back", 
 	expect(screen.getByLabelText("Featured nominee")).not.toHaveTextContent("Third nominee");
 	next();
 	expect(screen.getByLabelText("Featured nominee")).toHaveTextContent("Third nominee #3");
-	expect(screen.getByLabelText("Nominee results")).toHaveTextContent("Second nominee");
+	expect(screen.getByLabelText("Nominee draw stack")).toHaveTextContent("Second nominee");
 	next();
 	expect(document.querySelector('[data-award-settled="3"]')).toHaveTextContent("Third nominee #3");
 	next();
@@ -97,7 +97,7 @@ it("reveals podium places one click at a time and conceals them again on back", 
 	expect(document.querySelector('[data-award-settled="2"]')).toHaveTextContent("Second nominee #2");
 	next();
 	expect(screen.getByLabelText("Award winners")).toHaveTextContent("Lampe raucht ab winner");
-	expect(screen.getByLabelText("Nominee results")).toHaveTextContent("Fourth nominee");
+	expect(screen.getByLabelText("Nominee draw stack")).toHaveTextContent("Fourth nominee");
 	fireEvent.keyDown(window, { key: "ArrowLeft" });
 	expect(screen.queryByLabelText("Award winners")).not.toBeInTheDocument();
 });

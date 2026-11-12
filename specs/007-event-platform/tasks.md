@@ -277,3 +277,5 @@ Creating the example in the user's actual account is an external follow-up after
 - [x] T136 Remove the hard stage/nominee lighting seam using the Kahoot podium reference: remove the floor strip, fade the halo beyond the stage boundary, and inspect light/dark and actual-demo before/after renders without changing the ceremony.
 
 - [x] T137 Hold each podium announcement until Next, then reveal its nominee and votes. Fly revealed bronze/silver cards into visible stepped positions without exposing unrevealed ranks; preserve keyboard/media/Back and Twitch interaction timing. Verify the affected presenter owners and real light/dark/mobile/ultrawide journeys.
+
+- [x] T138 Correct the reveal choreography to gather nominees vertically on the left after the results introduction, draw each ranked nominee into the main stage, and return revealed bronze/silver to separate lower podium slots. Preserve held cues, one card per nominee, existing playback/Back behavior and unrevealed ordering. Verify actual gathering/draw flights and responsive light/dark renders.

@@ -87,25 +87,50 @@ function EventVoteShare({ percentage, votes, delay, label, presentation = false,
 		</motion.div>
 	);
 }
-export function EventNomineeCard({ candidate, selected = false, disabled = false, onSelect, onOpen, result, resultDelay, compact = false, presentation = false, rank }: { candidate: { id: string; content: EventCandidateContent }; selected?: boolean; disabled?: boolean; onSelect?: (selected: boolean) => void; onOpen: () => void; resultDelay?: number; compact?: boolean; presentation?: boolean; rank?: number; result?: { percentage?: number; winner: boolean; votes?: number } }) {
+export function EventNomineeCard({
+	candidate,
+	selected = false,
+	disabled = false,
+	onSelect,
+	onOpen,
+	result,
+	resultDelay,
+	compact = false,
+	presentation = false,
+	stacked = false,
+	rank,
+}: {
+	candidate: { id: string; content: EventCandidateContent };
+	selected?: boolean;
+	disabled?: boolean;
+	onSelect?: (selected: boolean) => void;
+	onOpen: () => void;
+	resultDelay?: number;
+	compact?: boolean;
+	presentation?: boolean;
+	stacked?: boolean;
+	rank?: number;
+	result?: { percentage?: number; winner: boolean; votes?: number };
+}) {
 	const label = candidate.content.title;
 	const winner = result?.winner;
+	const voteShare = result?.percentage !== undefined ? <EventVoteShare presentation={presentation} rank={compact ? rank : undefined} percentage={result.percentage} votes={result.votes} delay={resultDelay} label={label} /> : null;
 	return (
-		<div className={`relative overflow-hidden rounded-2xl border ${winner && !presentation ? "border-accent bg-surface ring-2 ring-accent" : selected ? "border-accent bg-accent/5" : "border-separator bg-surface"}`}>
+		<div className={`relative overflow-hidden rounded-2xl border ${stacked ? "grid grid-cols-[2.5rem_minmax(0,1fr)] items-center lg:grid-cols-[5rem_minmax(0,1fr)]" : ""} ${winner && !presentation ? "border-accent bg-surface ring-2 ring-accent" : selected ? "border-accent bg-accent/5" : "border-separator bg-surface"}`}>
 			{winner && presentation ? <motion.div aria-hidden='true' initial={resultDelay !== undefined ? { opacity: 0 } : false} animate={{ opacity: 1 }} transition={{ delay: resultDelay ?? 0, duration: 0.4 }} className='pointer-events-none absolute inset-0 z-10 rounded-2xl ring-4 ring-inset ring-warning' /> : null}
 			<div className='relative aspect-video'>
 				<Button data-award-candidate={candidate.id} aria-label={`View ${candidate.content.title}`} variant='tertiary' className='relative h-full w-full overflow-hidden rounded-none p-0' onPress={onOpen}>
 					{candidate.content.thumbnailUrl || (candidate.content.kind === "image" && candidate.content.mediaUrl) ? (
 						<Image src={(candidate.content.thumbnailUrl || candidate.content.mediaUrl)!} alt='' unoptimized fill loading='eager' className='object-cover' />
 					) : (
-						<motion.span layout={presentation ? false : "position"} className='line-clamp-3 max-w-full whitespace-normal break-words px-5 text-center text-lg font-medium'>
+						<motion.span layout={presentation ? false : "position"} className={`line-clamp-3 max-w-full whitespace-normal break-words text-center font-medium ${stacked ? "px-2 text-xs" : "px-5 text-lg"}`}>
 							{candidate.content.title}
 						</motion.span>
 					)}
 				</Button>
 				{!presentation && (winner || rank) ? <span className='pointer-events-none absolute right-3 top-3 rounded-full bg-accent px-3 py-1 text-sm font-semibold text-accent-foreground'>{winner ? "Winner" : `#${rank}`}</span> : null}
 			</div>
-			<motion.div layout={presentation ? false : "position"} className={`space-y-2 ${presentation ? "p-3 text-sm" : compact ? "p-2 text-sm" : "p-4"}`}>
+			<motion.div layout={presentation ? false : "position"} className={`space-y-2 ${stacked ? "min-w-0 p-2 text-sm" : presentation ? "p-3 text-sm" : compact ? "p-2 text-sm" : "p-4"}`}>
 				{onSelect ? (
 					<Checkbox aria-label={`Vote for ${candidate.content.title}`} isSelected={selected} isDisabled={disabled} onChange={onSelect} className='w-full'>
 						<Checkbox.Content>
@@ -117,12 +142,13 @@ export function EventNomineeCard({ candidate, selected = false, disabled = false
 					</Checkbox>
 				) : (
 					<div className='space-y-2'>
-						<h3 className={`line-clamp-2 break-words font-medium ${presentation ? "min-h-12 leading-6" : compact ? "min-h-10" : result?.percentage !== undefined ? "min-h-12" : ""}`}>{label}</h3>
+						<h3 className={`line-clamp-2 break-words font-medium ${stacked ? "leading-5" : presentation ? "min-h-12 leading-6" : compact ? "min-h-10" : result?.percentage !== undefined ? "min-h-12" : ""}`}>{label}</h3>
 						{selected ? <p className='text-sm font-medium text-accent'>Your selection</p> : null}
 					</div>
 				)}
-				{result?.percentage !== undefined || compact || presentation ? <div className={compact || presentation ? "h-9" : undefined}>{result?.percentage !== undefined ? <EventVoteShare presentation={presentation} rank={compact ? rank : undefined} percentage={result.percentage} votes={result.votes} delay={resultDelay} label={label} /> : null}</div> : null}
+				{!stacked && (result?.percentage !== undefined || compact || presentation) ? <div className={compact || presentation ? "h-9" : undefined}>{voteShare}</div> : null}
 			</motion.div>
+			{stacked && voteShare ? <div className='col-span-2 px-2 pb-2 [&_p]:text-xs'>{voteShare}</div> : null}
 		</div>
 	);
 }

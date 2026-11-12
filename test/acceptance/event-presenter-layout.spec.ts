@@ -105,10 +105,11 @@ for (const width of [390, 1440, 3440, 5120])
 						for (let frame = 0; frame < 40; frame++) {
 							await new Promise(requestAnimationFrame);
 							const main = document.querySelector("[data-award-featured]")!;
-							const stage = main.parentElement!;
 							const heading = document.querySelector("header")!;
 							const card = main.querySelector("button")!;
-							if (Number(getComputedStyle(stage).opacity) > 0.05) maximum = Math.max(maximum, heading.getBoundingClientRect().bottom - card.getBoundingClientRect().top);
+							let opacity = 1;
+							for (let node: Element | null = card; node; node = node.parentElement) opacity *= Number(getComputedStyle(node).opacity);
+							if (opacity > 0.05) maximum = Math.max(maximum, heading.getBoundingClientRect().bottom - card.getBoundingClientRect().top);
 						}
 						return maximum;
 					});
@@ -179,7 +180,22 @@ for (const width of [390, 1440, 3440, 5120])
 			);
 			expect(partialCaptionLines).toBe(false);
 
+			const horizontal = await page.locator("[data-award-flight]").evaluateAll((nodes) => nodes.map((node) => ({ id: node.getAttribute("data-award-flight"), x: node.getBoundingClientRect().x, y: node.getBoundingClientRect().y })));
 			await page.keyboard.press("ArrowRight");
+			const drawStack = page.getByLabel("Nominee draw stack");
+			await expect(drawStack.getByRole("button")).toHaveCount(5);
+			await expect.poll(() => drawStack.locator("[data-award-flight]").evaluateAll((nodes) => nodes.filter((node) => node.getAnimations().length > 0).length)).toBeGreaterThan(0);
+			await page.waitForTimeout(150);
+			await page.screenshot({ path: info.outputPath(`gathering-stack-${theme}-${width}.png`) });
+			await expect.poll(() => page.locator("[data-award-flight]").evaluateAll((nodes) => nodes.reduce((n, node) => n + node.getAnimations().length, 0))).toBe(0);
+			const vertical = await drawStack.locator("[data-award-flight]").evaluateAll((nodes) => nodes.map((node) => ({ id: node.getAttribute("data-award-flight"), x: node.getBoundingClientRect().x, y: node.getBoundingClientRect().y, bottom: node.getBoundingClientRect().bottom })));
+			expect(vertical.map((node) => node.id)).toEqual(horizontal.map((node) => node.id));
+			for (let i = 1; i < vertical.length; i++) {
+				expect(Math.abs(vertical[i].x - vertical[0].x)).toBeLessThan(2);
+				expect(vertical[i].y).toBeGreaterThanOrEqual(vertical[i - 1].bottom);
+			}
+			expect(vertical.some((node, i) => Math.abs(node.x - horizontal[i].x) > 20)).toBe(true);
+			await expect(others.getByRole("button")).toHaveCount(0);
 			const cue = page.locator("[data-award-podium-cue]");
 			await expect(cue).toHaveText("3Third place");
 			await expect(cue).toHaveCSS("opacity", "1");
@@ -188,7 +204,28 @@ for (const width of [390, 1440, 3440, 5120])
 			await expect(page.locator("[data-award-featured] [data-award-flight]")).toHaveCount(0);
 			await expect(others.getByRole("progressbar")).toHaveCount(0);
 			await page.screenshot({ path: info.outputPath(`held-third-${theme}-${width}.png`), fullPage: true });
+			if (width === 1440 && theme === "dark") {
+				const waitingCard = drawStack.getByRole("button", { name: "View Nominee 4", exact: true });
+				expect(
+					await waitingCard.evaluate((node) => {
+						const box = node.getBoundingClientRect();
+						return document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2)?.closest("button") === node;
+					}),
+				).toBe(true);
+				await waitingCard.click();
+				await expect(page.locator('video[aria-label="Nominee 4"]')).toBeVisible();
+				await page.keyboard.press("Escape");
+				await expect(drawStack.getByRole("button")).toHaveCount(5);
+				await expect(cue).toHaveCSS("opacity", "1");
+				expect(await page.locator("[data-award-flight]").evaluateAll((nodes) => nodes.reduce((count, node) => count + node.getAnimations().length, 0))).toBe(0);
+			}
+
+			const drawOrigin = await drawStack.getByRole("button", { name: "View Nominee 3", exact: true }).boundingBox();
 			await page.keyboard.press("ArrowRight");
+			await page.waitForTimeout(180);
+			const drawnCard = await page.getByLabel("Featured nominee").getByRole("button", { name: "View Nominee 3", exact: true }).boundingBox();
+			expect(drawnCard!.x).toBeGreaterThan(drawOrigin!.x + 5);
+			expect(drawnCard!.width).toBeGreaterThan(drawOrigin!.width);
 			const trackPlacement = () =>
 				page.evaluate(async () => {
 					let top = Infinity,
@@ -197,11 +234,12 @@ for (const width of [390, 1440, 3440, 5120])
 					for (let frame = 0; frame < 90; frame++) {
 						await new Promise(requestAnimationFrame);
 						const main = document.querySelector("[data-award-featured]")!;
-						const label = main.querySelector("[data-award-placement]")!.getBoundingClientRect();
+						const placement = main.querySelector("[data-award-placement]")!;
+						const label = placement.getBoundingClientRect();
 						const card = main.querySelector("[data-award-flight]")!.getBoundingClientRect();
 						top = Math.min(top, label.y);
 						bottom = Math.max(bottom, label.y);
-						overlap = Math.max(overlap, label.bottom - card.top);
+						if (Number(getComputedStyle(placement).opacity) > 0.05 && Math.min(label.right, card.right) > Math.max(label.left, card.left)) overlap = Math.max(overlap, Math.min(label.bottom, card.bottom) - Math.max(label.top, card.top));
 					}
 					return { travel: bottom - top, overlap };
 				});
@@ -259,12 +297,15 @@ for (const width of [390, 1440, 3440, 5120])
 				await page.waitForTimeout(250);
 				await page.screenshot({ path: info.outputPath("winner-confetti.png") });
 			}
-			await expect(others.getByRole("button")).toHaveCount(4);
+			await expect(others.getByRole("button")).toHaveCount(2);
+			await expect(drawStack.getByRole("button")).toHaveCount(2);
+			await expect(drawStack.getByText("13.3% (2 votes)", { exact: true })).toBeVisible();
 			await expect(others.getByText("20% (3 votes)", { exact: true })).toBeVisible();
 			await expect
 				.poll(async () => {
 					const box = await winner.getByRole("button").boundingBox();
-					return Math.abs(box!.x + box!.width / 2 - width / 2);
+					const area = await winner.boundingBox();
+					return Math.abs(box!.x + box!.width / 2 - area!.x - area!.width / 2);
 				})
 				.toBeLessThan(2);
 			await expect.poll(() => winner.getByRole("progressbar").getAttribute("aria-valuenow").then(Number)).toBeCloseTo(100 / 3, 1);
@@ -345,7 +386,7 @@ for (const width of [390, 1440, 3440, 5120])
 			expect(textScale).toBeLessThan(0.05);
 			await expect(others.getByRole("button")).toHaveCount(1);
 			await page.keyboard.press("ArrowRight");
-			await expect(others.getByRole("button", { name: `View ${quoteTitle}`, exact: true })).toBeVisible();
+			await expect(drawStack.getByRole("button", { name: `View ${quoteTitle}`, exact: true })).toBeVisible();
 			await expect(winner).toHaveCount(0);
 			await page.keyboard.press("ArrowRight");
 			await page.keyboard.press("ArrowRight");
