@@ -5,10 +5,10 @@ import { seedCreatorLibrary } from "../support/creator-library";
 import { createAwardConfiguration } from "../../src/app/lib/eventDefaults";
 import { browserProviderEnvironment } from "../support/mcp/browser-database.cjs";
 
-for (const width of [390, 1440])
+for (const width of [390, 1440, 3440, 5120])
 	for (const theme of ["light", "dark"]) {
 		test(`Award preview layout and provider frames at ${width}px in ${theme}`, { tag: "@event-chat" }, async ({ page, request, tourWorld }, info) => {
-			await page.setViewportSize({ width, height: 900 });
+			await page.setViewportSize({ width, height: width === 5120 ? 1080 : width >= 1920 ? 1440 : 900 });
 			await page.addInitScript((value) => localStorage.setItem("theme", value), theme);
 			const { creatorId } = await seedCreatorLibrary({ page, request, tourWorld });
 			const id = randomUUID(),
@@ -137,6 +137,15 @@ for (const width of [390, 1440])
 				})
 				.toBeLessThan(2);
 			const nomineeFooterHeight = await hero.getByRole("button").evaluate((node) => node.closest("div.overflow-hidden")!.lastElementChild!.getBoundingClientRect().height);
+			if (width >= 1920) {
+				const bounds = await page.getByRole("region", { name: "Award presentation" }).boundingBox();
+				expect(bounds!.width).toBeGreaterThan(width * 0.95);
+				const stage = await hero.locator("..").boundingBox();
+				expect(stage!.width).toBeGreaterThan(width * 0.9);
+				const tile = await hero.getByRole("button").boundingBox();
+				expect(tile!.width).toBeGreaterThan(width === 5120 ? 400 : 500);
+				expect(await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight)).toBeLessThanOrEqual(1);
+			}
 			await page.screenshot({ path: info.outputPath(`nominees-${theme}-${width}.png`), fullPage: true });
 			await page.keyboard.press("Space");
 			await expect(page.locator('video[aria-label="Nominee 5"]')).toBeVisible();
@@ -333,10 +342,14 @@ for (const width of [390, 1440])
 			await page.reload();
 			const chat = page.getByRole("complementary", { name: "Twitch chat", exact: true });
 			await expect(chat).toBeVisible();
+			if (width >= 1920) {
+				const bounds = await chat.boundingBox();
+				expect(bounds!.width).toBeLessThanOrEqual(450);
+			}
 			await expect(chat.getByText("Waiting for live reactions…", { exact: true })).toBeVisible();
 			for (let step = 0; step < 4; step++) await page.keyboard.press("ArrowRight");
 			await expect(page.getByLabel("Category nominees").getByRole("button", { name: "View Nominee 1", exact: true })).toBeVisible();
-			if (width === 1440) {
+			if (width >= 1440) {
 				const media = await page.getByLabel("Category nominees").boundingBox();
 				const sidebar = await chat.boundingBox();
 				expect(media!.x + media!.width).toBeLessThanOrEqual(sidebar!.x);

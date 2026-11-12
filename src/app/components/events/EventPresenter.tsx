@@ -204,8 +204,8 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 		<Surface className={`relative flex flex-col bg-background text-foreground ${embedded ? "min-h-[420px]" : "min-h-dvh"}`} style={style}>
 			{preview && !embedded ? <p className='border-b border-separator bg-surface px-5 py-3 text-sm text-muted'>Read-only event preview. Includes unreviewed candidates. Nothing here changes votes or publishes results.</p> : null}
 			{show.brand?.fontSource === "google" ? <link rel='stylesheet' href={`https://fonts.googleapis.com/css2?family=${encodeURIComponent(show.brand.fontFamily)}:wght@400;700&display=swap`} /> : null}
-			<section className={`mx-auto flex w-full max-w-[1600px] flex-1 flex-col justify-center ${embedded ? "px-5 py-8" : category || step?.type === "closing" ? "px-6 py-8 sm:px-14 [@media(max-height:800px)]:py-2" : "px-6 py-10 sm:px-14 sm:py-12"}`} aria-label='Award presentation'>
-				<div className={show.event.presentation?.showChat ? "grid w-full items-center gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(16rem,1fr)]" : "w-full"}>
+			<section className={`mx-auto flex w-full max-w-[1600px] min-[120rem]:max-w-none flex-1 flex-col justify-center ${embedded ? "px-5 py-8" : category || step?.type === "closing" ? "px-6 py-8 sm:px-14 [@media(max-height:800px)]:py-2" : "px-6 py-10 sm:px-14 sm:py-12"}`} aria-label='Award presentation'>
+				<div className={show.event.presentation?.showChat ? "grid w-full items-center gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(16rem,1fr)] min-[120rem]:grid-cols-[minmax(0,1fr)_28rem]" : "w-full"}>
 					<div className='min-w-0'>
 						{opened ? (
 							<div className='space-y-4'>

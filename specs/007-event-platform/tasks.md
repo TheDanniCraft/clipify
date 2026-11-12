@@ -269,3 +269,5 @@ Creating the example in the user's actual account is an external follow-up after
 - [x] T132 Replace chat polling and preview placeholders with a capability-checked live WebSocket subscription on the existing endpoint. Keep text independent of badge lookup latency, preserve messages across reconnects, recheck/revoke access, clean up subscriptions, and verify draft-preview chat plus signed EventSub delivery without enabling write controls.
 
 - [x] T133 Use event-authorized native Twitch clip playback across presenter/preview/review/voting, preserve volume/mute and optional streaming audio leveling, verify quiet/loud output plus mute/volume/bypass/cleanup in Chromium, and inspect real controls in light/dark desktop/mobile presenter and voting journeys. Keep YouTube embeds and other preview webhooks unchanged.
+
+- [x] T134 Let the presenter use ultrawide viewports without a fixed 16:9 canvas; remove ultrawide page/stage caps, size nominees with available height and keep chat readable. Verify both themes at 3440×1440 and 5120×1080 alongside the existing mobile/desktop journeys, preserving flights, reveals, keyboard playback and media proportions.

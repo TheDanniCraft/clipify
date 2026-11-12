@@ -76,11 +76,12 @@ export default function EventNomineeStage({ category, position, place, onOpen, i
 		);
 	}
 	return (
-		<motion.div ref={stage} initial={immediate || position !== 0 ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: immediate || position !== 0 ? 0 : 0.5, duration: 0.2 }} className='mx-auto w-full max-w-6xl space-y-6'>
-			<div data-award-featured aria-label={reveal ? (final && active.length ? "Award winners" : "Featured nominee") : "Category nominees"} className='mx-auto flex min-h-[min(24rem,42dvh)] w-full items-center justify-center gap-5'>
+		<motion.div ref={stage} initial={immediate || position !== 0 ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: immediate || position !== 0 ? 0 : 0.5, duration: 0.2 }} className='mx-auto w-full max-w-6xl min-[120rem]:max-w-none space-y-6'>
+			{/* Reserve the enlarged card and captions even during the empty reveal step. */}
+			<div data-award-featured aria-label={reveal ? (final && active.length ? "Award winners" : "Featured nominee") : "Category nominees"} className='mx-auto flex min-h-[min(24rem,42dvh)] min-[120rem]:min-h-[calc(min(36rem,44dvh)*9/16+11rem)] w-full items-center justify-center gap-5'>
 				<div className='flex w-full items-center justify-center gap-5'>
 					{active.map((candidate) => (
-						<div key={candidate.id} className='w-full max-w-[min(24rem,38dvh)] [@media(max-height:800px)]:max-w-[min(24rem,32dvh)] space-y-2'>
+						<div key={candidate.id} className='w-full max-w-[min(24rem,38dvh)] min-[120rem]:max-w-[min(36rem,44dvh)] [@media(max-height:800px)]:max-w-[min(24rem,32dvh)] space-y-2'>
 							<motion.div key={place ?? "nominee"} data-award-placement initial={!immediate && final ? { opacity: 0 } : false} animate={{ opacity: 1 }} transition={{ delay: immediate ? 0 : 1.1, duration: 0.25 }} className={`flex h-10 items-center justify-center gap-3 text-center font-bold tracking-tight text-foreground ${final ? "text-3xl sm:text-4xl" : "text-2xl sm:text-3xl"}`}>
 								{reveal && place ? (
 									<>
@@ -102,7 +103,7 @@ export default function EventNomineeStage({ category, position, place, onOpen, i
 					{candidates.map((candidate, index) => {
 						const presented = reveal || index < (position ?? 0);
 						return (
-							<div key={candidate.id} data-award-slot={candidate.id} className={`w-40 shrink-0 sm:w-44 lg:w-[calc((100%-3.75rem)/6)] [@media(max-height:800px)]:w-40 ${!presented && !activeIds.has(candidate.id) ? "hidden lg:block" : ""}`}>
+							<div key={candidate.id} data-award-slot={candidate.id} className={`w-40 shrink-0 sm:w-44 lg:w-[calc((100%-3.75rem)/6)] min-[120rem]:w-[clamp(11rem,calc((100%_-_3.75rem)/6),min(22rem,24dvh))] [@media(max-height:800px)]:w-40 ${!presented && !activeIds.has(candidate.id) ? "hidden lg:block" : ""}`}>
 								{presented && !activeIds.has(candidate.id) ? (
 									card(candidate, false)
 								) : (
