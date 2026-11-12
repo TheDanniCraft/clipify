@@ -61,3 +61,9 @@ Reference: [Disney+ playback controls](https://mobbin.com/screens/2c79a674-393f-
 ### Ultrawide presenter layout — 12 November 2026
 
 The presenter fills its browser viewport rather than enforcing a 16:9 canvas. At desktop widths of 1920px and above, remove the page/stage width caps, grow the featured nominee and strip cards within height-aware readability limits, and keep the chat column at 28rem. Preserve the aspect ratio of individual media. OBS/browser-source framing belongs to the host's chosen viewport. [Canva presenter reference](https://mobbin.com/screens/597fac49-7dbf-496d-9650-7dafa9f16bcd) informs separating stage space from a bounded side panel; retain Clipify's existing controls and manual single-card flights.
+
+### Podium ceremony — 12 November 2026
+
+Each manual placement step reserves an outgoing-card beat, shows its bronze/silver/gold cue on the empty stage, then flies the same nominee card up from its strip slot. Show placement, score and frame emphasis after arrival, with a longer first-place cue, warm spotlight/podium light and one brief finite confetti burst. Keep lower nominees, media playback, navigation and all geometry stable. Back/Escape and reduced-motion restoration do not replay celebration. Data awards use the same stage, including winner-only mode. No sound autoplay or new configuration layer is added.
+
+[Duolingo milestone reference](https://mobbin.com/screens/5c97a190-7800-4f7d-b672-c7259474a2b7) informs a distinct illustration-led celebration before the statistics, not the exact podium motion. Keep Clipify's existing single-card flight and caption patterns.

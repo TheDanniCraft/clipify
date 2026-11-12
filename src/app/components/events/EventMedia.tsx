@@ -91,7 +91,8 @@ export function EventNomineeCard({ candidate, selected = false, disabled = false
 	const label = candidate.content.title;
 	const winner = result?.winner;
 	return (
-		<div className={`overflow-hidden rounded-2xl border ${winner ? (presentation ? "border-accent bg-surface ring-4 ring-accent shadow-xl shadow-accent/25" : "border-accent bg-surface ring-2 ring-accent") : selected ? "border-accent bg-accent/5" : "border-separator bg-surface"}`}>
+		<div className={`relative overflow-hidden rounded-2xl border ${winner && !presentation ? "border-accent bg-surface ring-2 ring-accent" : selected ? "border-accent bg-accent/5" : "border-separator bg-surface"}`}>
+			{winner && presentation ? <motion.div aria-hidden='true' initial={resultDelay !== undefined ? { opacity: 0 } : false} animate={{ opacity: 1 }} transition={{ delay: resultDelay ?? 0, duration: 0.4 }} className='pointer-events-none absolute inset-0 z-10 rounded-2xl ring-4 ring-inset ring-warning' /> : null}
 			<div className='relative aspect-video'>
 				<Button data-award-candidate={candidate.id} aria-label={`View ${candidate.content.title}`} variant='tertiary' className='relative h-full w-full overflow-hidden rounded-none p-0' onPress={onOpen}>
 					{candidate.content.thumbnailUrl || (candidate.content.kind === "image" && candidate.content.mediaUrl) ? (

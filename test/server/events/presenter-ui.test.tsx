@@ -78,7 +78,7 @@ it("reveals podium places one click at a time and conceals them again on back", 
 	next();
 	expect(screen.getByRole("heading", { name: "Best fail" })).toBe(header);
 	expect(screen.getByLabelText("Nominee results")).toHaveTextContent("Third nominee");
-	expect(screen.getByLabelText("Featured nominee")).toHaveTextContent("And the award goes to");
+	expect(screen.getByLabelText("Featured nominee")).toHaveTextContent("Let’s reveal the results");
 	next();
 	expect(screen.getByLabelText("Featured nominee")).toHaveTextContent("Third nominee #3");
 	expect(screen.getByLabelText("Nominee results")).toHaveTextContent("Second nominee");
@@ -115,4 +115,15 @@ it("keeps enabled preview chat visible across the overview, media and reveals", 
 	fireEvent.keyDown(window, { key: "Escape" });
 	fireEvent.keyDown(window, { key: "ArrowRight" });
 	expect(screen.getByRole("complementary", { name: "Twitch chat" })).toBe(chat);
+});
+
+it("uses the same winner ceremony for winner-only data awards", () => {
+	const initial = { ...view, event: { ...view.event, categories: [{ ...view.event.categories[0], selection: "data", presenterMode: "winner", results: undefined, dataResult: { status: "ready", source: "manual", title: "Data winner", description: "", content: view.event.categories[0].candidates[0].content } }] } };
+	render(<EventPresenter eventId='show' initial={initial as never} />);
+	for (let step = 0; step < 3; step++) fireEvent.keyDown(window, { key: "ArrowRight" });
+	expect(screen.getByLabelText("Award winners")).toHaveTextContent("Lampe raucht ab winner");
+	expect(screen.queryByLabelText("Nominee results")).not.toBeInTheDocument();
+	expect(document.querySelector("[data-award-confetti]")).not.toBeNull();
+	fireEvent.keyDown(window, { key: "ArrowLeft" });
+	expect(document.querySelector("[data-award-confetti]")).toBeNull();
 });

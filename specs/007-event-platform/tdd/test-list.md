@@ -65,3 +65,9 @@ Recaps, tournaments, newsletters, automatic YouTube rankings, optional 7TV badge
 - Streaming preserves bounded media/range handling and retry/navigation recovery; Twitch clips open through Clipify rather than an iframe.
 - Browser preferences preserve volume/mute/leveling between nominees and across presenter/public voting views. Repeated toggles reuse one graph; close disposes it. Cross-origin media without an approved delivery path cannot enable processing.
 - Actual Chromium audio output narrows a generated 24x quiet/loud input difference, mute yields silence, 20% volume remains quieter with leveling enabled and disabled, and the context closes. This is not a LUFS or physical-device listening certification.
+
+### Podium ceremony follow-up (FR-020/FR-021, EC-008)
+
+- Bronze/silver/gold buildup precedes the incoming single-card flight; score and winner emphasis appear after landing without moving the header, caption or strip slots.
+- Winner-only data awards use the same ceremony, remain manually playable and return immediately from media.
+- Winner confetti is visibly finite; Back/Escape and reduced motion restore the stage without replaying the effect. Manual Next and existing Twitch interaction behavior remain intact.

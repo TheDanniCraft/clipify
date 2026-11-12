@@ -273,8 +273,8 @@ export default function EventPresenter({ eventId, preview = false, initial, init
 									</motion.p>
 								) : null}
 								{step.type === "data-result" ? (
-									<motion.div {...contentEntrance} className='mx-auto max-w-3xl space-y-5 text-center'>
-										{dataResult && category?.presenterMode === "nominees" ? (
+									<motion.div {...contentEntrance} className='mx-auto w-full space-y-5 text-center'>
+										{dataResult && category && category.candidates.length > 0 ? (
 											<>
 												<EventNomineeStage key={stageNavigation.version} instant={stageNavigation.instant} category={category} place={1} onOpen={open} />
 												{dataResult.value !== undefined ? (

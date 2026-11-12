@@ -203,13 +203,14 @@ for (const width of [390, 1440, 3440, 5120])
 					return { travel: bottom - top, overlap };
 				});
 			const revealGeometry = [trackPlacement()];
+			await expect(page.locator('[data-award-podium="3"]')).toBeVisible();
 			if (width === 1440 && theme === "dark") {
 				for (const [label, wait] of [
 					["early", 0],
-					["moving", 120],
-					["arrived", 180],
-					["score", 300],
-					["settled", 700],
+					["anticipation", 650],
+					["moving", 500],
+					["arrived", 500],
+					["score", 500],
 				] as const) {
 					await page.waitForTimeout(wait);
 					await page.screenshot({ path: info.outputPath(`reveal-${label}.png`) });
@@ -238,6 +239,18 @@ for (const width of [390, 1440, 3440, 5120])
 			revealGeometry.push(trackPlacement());
 			await expect(winner.getByRole("button", { name: "View Nominee 1", exact: true })).toBeVisible();
 			await expect(winner.getByRole("heading", { name: "First place", exact: true })).toBeVisible();
+			await expect(page.locator("[data-award-confetti]")).toBeVisible();
+			if (width === 1440 && theme === "dark") {
+				await expect.poll(() => page.locator("[data-award-podium-cue]").evaluate((node) => Number(getComputedStyle(node).opacity))).toBeGreaterThan(0.5);
+				expect(await page.locator("[data-award-confetti] span").evaluateAll((nodes) => nodes.filter((node) => Number(getComputedStyle(node).opacity) > 0.05).length)).toBe(0);
+				await page.screenshot({ path: info.outputPath("winner-buildup.png") });
+			}
+			await expect.poll(() => page.locator("[data-award-flight][data-featured=true]").evaluateAll((nodes) => nodes.reduce((sum, node) => sum + node.getAnimations().length, 0))).toBe(0);
+			await expect.poll(() => page.locator("[data-award-confetti] span").evaluateAll((nodes) => nodes.filter((node) => Number(getComputedStyle(node).opacity) > 0.2).length)).toBeGreaterThan(0);
+			if (width === 1440 && theme === "dark") {
+				await page.waitForTimeout(250);
+				await page.screenshot({ path: info.outputPath("winner-confetti.png") });
+			}
 			await expect(others.getByRole("button")).toHaveCount(4);
 			await expect(others.getByText("20% (3 votes)", { exact: true })).toBeVisible();
 			await expect
@@ -266,6 +279,8 @@ for (const width of [390, 1440, 3440, 5120])
 			await page.screenshot({ path: info.outputPath(`results-${theme}-${width}.png`), fullPage: true });
 			expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
 			await page.keyboard.press("ArrowLeft");
+			await expect(page.locator("[data-award-confetti]")).toHaveCount(0);
+			await expect(page.locator("[data-award-podium-cue]")).toHaveCount(0);
 			await page.screenshot({ path: info.outputPath(`back-immediate-${theme}-${width}.png`) });
 			const reverse = await page.evaluate(async () => {
 				let opacity = 1,
@@ -376,5 +391,24 @@ for (const width of [390, 1440, 3440, 5120])
 			await page.screenshot({ path: info.outputPath(`voting-player-${theme}-${width}.png`), fullPage: true });
 			await page.keyboard.press("Escape");
 			await expect(page.getByRole("dialog")).toHaveCount(0);
+			if (width === 1440 && theme === "dark") {
+				category.selection = "data";
+				category.presenterMode = "winner";
+				const content = { kind: "clip", reference: "fixture0", title: "Data award winner", description: "", creatorId, thumbnailUrl };
+				await tourWorld.fixture.pool.query("UPDATE award_events SET configuration=$2,frozen_results=$3 WHERE id=$1", [id, JSON.stringify(configuration), JSON.stringify({ [category.id]: { status: "ready", source: "manual", title: content.title, description: "", asOf: new Date().toISOString(), content } })]);
+				await page.goto(`${tourWorld.origin}/events/${id}/preview#${expiry}.${signature}`);
+				await expect(page.getByRole("heading", { name: "Babbler Awards", exact: true })).toBeVisible();
+				for (let step = 0; step < 5; step++) await page.keyboard.press("ArrowRight");
+				const dataWinner = page.getByLabel("Award winners");
+				await expect(dataWinner.getByRole("button", { name: "View Data award winner", exact: true })).toBeVisible();
+				await expect(page.getByLabel("Nominee results")).toHaveCount(0);
+				await expect(page.locator("[data-award-confetti]")).toBeVisible();
+				await expect.poll(() => page.locator("[data-award-flight]").evaluateAll((nodes) => nodes.reduce((sum, node) => sum + node.getAnimations().length, 0))).toBe(0);
+				await page.screenshot({ path: info.outputPath("data-winner-ceremony.png") });
+				await page.keyboard.press("Space");
+				await expect(page.locator('video[aria-label="Data award winner"]')).toBeVisible();
+				await page.keyboard.press("Escape");
+				await expect(page.locator("[data-award-confetti]")).toHaveCount(0);
+			}
 		});
 	}
