@@ -15,11 +15,9 @@ declare global {
 	}
 }
 
-let identifiedSession = false;
 let productContext: AnalyticsData = {};
 
 export function setAnalyticsContext(context: AnalyticsData) {
-	identifiedSession = true;
 	productContext = context;
 }
 
@@ -47,11 +45,10 @@ function safeUrl(raw: unknown, relative: boolean) {
 	}
 }
 
-/** Native tracker hook; preserve traffic coverage without exporting source credentials. */
+/** Defense in depth: optional measurement never leaves the browser without consent. */
 export function prepareUmamiPayload(type: string, payload: Record<string, unknown>) {
 	const consented = browserMeasurementAllowed();
-	if (identifiedSession && !consented) return null;
-	if ((type === "identify" || type === "performance") && !consented) return null;
+	if (!consented) return null;
 	const result = { ...payload };
 	const url = safeUrl(result.url, true);
 	const pathname = url?.split("?")[0] ?? "/";
@@ -68,6 +65,7 @@ export function prepareUmamiPayload(type: string, payload: Record<string, unknow
 }
 
 export function trackEvent(name: string, data?: AnalyticsData) {
+	if (!browserMeasurementAllowed()) return;
 	try {
 		const pending = typeof window !== "undefined" ? window.umami?.track(name, data) : undefined;
 		if (pending) void pending.catch(() => undefined);

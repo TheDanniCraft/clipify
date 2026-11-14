@@ -21,7 +21,8 @@ export default function UmamiClient({ websiteId }: { websiteId: string }) {
 	const previousMeasurement = useRef(measurement);
 	const identified = useRef<string | null>(null);
 	const identifiedContext = useRef<string | null>(null);
-	const enabled = process.env.E2E_TEST_MODE !== "true" && !policyPending && Boolean(websiteId);
+	const identityEnabled = process.env.E2E_TEST_MODE !== "true" && !policyPending && Boolean(websiteId);
+	const enabled = identityEnabled && measurement;
 	const recorderEligible = measurement && ready && canRecordHeatmap(pathname, window.location.origin) && canRecordHeatmap(window.location.href, window.location.origin);
 
 	if (recorderEligible && !recorderStarted) setRecorderStarted(true);
@@ -30,8 +31,8 @@ export default function UmamiClient({ websiteId }: { websiteId: string }) {
 		const revoked = previousMeasurement.current && !measurement;
 		previousMeasurement.current = measurement;
 		// Clear an identified tracker session on withdrawal; heatmaps are blocked by the request filter.
-		if (enabled && revoked && identified.current) window.location.reload();
-	}, [enabled, measurement, pathname]);
+		if (revoked && ready) window.location.reload();
+	}, [enabled, measurement, pathname, ready]);
 
 	useEffect(() => {
 		if (enabled) installRecorderFetch(websiteId);
@@ -39,6 +40,10 @@ export default function UmamiClient({ websiteId }: { websiteId: string }) {
 
 	useEffect(() => {
 		window.clipifyBeforeUmamiSend = prepareUmamiPayload;
+		if (!enabled)
+			return () => {
+				delete window.clipifyBeforeUmamiSend;
+			};
 		const stopEngagement = startEngagementTracking((payload) => {
 			try {
 				void Promise.resolve(window.umami?.track(payload)).catch(() => undefined);
@@ -50,10 +55,12 @@ export default function UmamiClient({ websiteId }: { websiteId: string }) {
 			stopEngagement();
 			delete window.clipifyBeforeUmamiSend;
 		};
-	}, []);
+	}, [enabled]);
 
 	useEffect(() => {
-		if (!enabled || !pathname || window.self !== window.top || pathname.startsWith("/creators/") || pathname.startsWith("/gallery/") || pathname.startsWith("/overlay/") || pathname.startsWith("/embed/") || pathname.startsWith("/runner/presentation/") || pathname.startsWith("/runner/preview/") || pathname === "/demoPlayer") return;
+		// Link privacy choices to the verified account even when measurement is rejected.
+		// Otherwise a rejection on a new device could leave an older account consent effective.
+		if (!identityEnabled || !pathname || window.self !== window.top || pathname.startsWith("/creators/") || pathname.startsWith("/gallery/") || pathname.startsWith("/overlay/") || pathname.startsWith("/embed/") || pathname.startsWith("/runner/presentation/") || pathname.startsWith("/runner/preview/") || pathname === "/demoPlayer") return;
 		let cancelled = false;
 		void getAnalyticsIdentity()
 			.then(async (identity) => {
@@ -79,7 +86,7 @@ export default function UmamiClient({ websiteId }: { websiteId: string }) {
 		return () => {
 			cancelled = true;
 		};
-	}, [measurement, ready, pathname, enabled, identifyConsent]);
+	}, [measurement, ready, pathname, identityEnabled, identifyConsent]);
 
 	if (!enabled) return null;
 	return (

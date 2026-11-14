@@ -34,13 +34,13 @@ for (const theme of ["light", "dark"]) {
 			await page.goto("/");
 			await dismissPrivacy(page);
 			await expect(page).toHaveTitle("Twitch Clip Player for OBS Break Screens | Clipify");
-			await expect(page.getByRole("heading", { level: 1 })).toHaveText("Take a break.Let your Twitch clips play.");
+			await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your best moments.Back on stream.");
 			await expect(page.getByRole("link", { name: "Start free with Twitch" }).first()).toBeVisible();
 			await expect(page.getByRole("button", { name: "Watch the demo", exact: true })).toBeVisible();
 			expect(demoRequests).toHaveLength(0);
 			await assertAccessibleMain(page);
 			await expect(page.locator("#features")).not.toContainText("Pro:");
-			await expect(page.getByRole("link", { name: "playlists", exact: true })).toHaveAttribute("href", "/features#playlists");
+			await expect(page.getByRole("link", { name: "Build your playlist", exact: true })).toHaveAttribute("href", "/features#playlists");
 			await page.getByRole("img", { name: "A Twitch gaming highlight playing through Clipify" }).evaluate((image: HTMLImageElement) => image.decode());
 			await page.screenshot({ timeout: 15000, path: testInfo.outputPath(`landing-${width}-${theme}.png`), fullPage: true, animations: "disabled" });
 			const monthly = page.getByRole("radio", { name: "Pay Monthly", exact: true });
@@ -87,6 +87,33 @@ test("missing demo configuration gives actionable recovery without blocking sign
 	await expect(page.locator("iframe[title='Clipify playback demo']")).toHaveCount(0);
 	await page.getByRole("link", { name: "Start free with Twitch" }).first().click();
 	await expect(page.getByRole("button", { name: "Login with Twitch" })).toBeVisible();
+});
+
+test("signup retries a rejected auth start and preserves its destination", async ({ page }) => {
+	await page.goto("/login?returnUrl=%2Fdashboard%2Fgalleries");
+	await dismissPrivacy(page);
+	const attempts: Record<string, unknown>[] = [];
+	await page.route("**/api/auth/sign-in/social", async (route) => {
+		attempts.push(route.request().postDataJSON());
+		await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ code: "SERVICE_UNAVAILABLE", message: "Temporarily unavailable" }) });
+	});
+	const login = page.getByRole("button", { name: "Login with Twitch", exact: true });
+	await login.focus();
+	await page.keyboard.press("Enter");
+	await expect(page.getByRole("main").getByRole("alert")).toHaveText("Twitch sign-in could not be started. Please try again.");
+	await expect(login).toBeEnabled();
+	await login.click();
+	await expect.poll(() => attempts.length).toBe(2);
+	expect(attempts.map((body) => body.callbackURL)).toEqual(["/dashboard/galleries", "/dashboard/galleries"]);
+});
+
+test("expired checkout recovery offers plan selection without a broken retry", async ({ page }) => {
+	await page.goto("/pricing?checkout=cancelled");
+	await dismissPrivacy(page);
+	await expect(page.getByText("Checkout cancelled", { exact: true })).toBeVisible();
+	await expect(page.getByText("Choose a plan below to start again. You can also keep using Clipify Free.", { exact: true })).toBeVisible();
+	await expect(page.getByRole("link", { name: "Retry checkout", exact: true })).toHaveCount(0);
+	await expect(page.getByRole("radio", { name: "Pay Monthly", exact: true })).toBeEnabled();
 });
 
 test("demo shell plays controlled real media on mobile, sends skip, and stops offscreen", async ({ page }) => {
@@ -370,7 +397,7 @@ for (const theme of ["light", "dark"]) {
 				await expect(action).toBeFocused();
 				expect(await contrast()).toBeGreaterThanOrEqual(4.5);
 				await assertAccessibleMain(page);
-				await expect(action).toHaveAttribute("href", "/login");
+				await expect(action).toHaveAttribute("href", path === "/gallery" ? "/login?returnUrl=%2Fdashboard%2Fgalleries" : "/login");
 			}
 			if (path === "/gallery") {
 				await expect(page.locator("main").getByRole("link", { name: "Explore Clipify", exact: true })).toHaveCount(0);

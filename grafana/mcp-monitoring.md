@@ -1,9 +1,9 @@
-# Health and MCP monitoring contract (v6)
+# Health, conversion and MCP monitoring contract (v7)
 
-`clipify-vm01-overview-v6.json` is the complete Grafana Cloud **Edit as JSON**
+`clipify-vm01-overview-v7.json` is the complete Grafana Cloud **Edit as JSON**
 resource, including `apiVersion`, `kind`, `metadata` and `spec`. Keep the existing
 dashboard identity `clipify-vm01-overview` and the API version used by your editor.
-The revised dashboard has 85 panels in 15 rows.
+The revised dashboard extends v6 with seven panels in a conversion row. Existing panel identities and queries remain unchanged.
 
 ## Data sources
 
@@ -152,3 +152,55 @@ independent task counts are not an ordered conversion funnel.
 These additional recursive `onboarding_tasks_*` fields become available after
 the application is deployed and scraped. No account or resource identifiers are
 exported and no migration or extra event tracking is introduced.
+
+## Conversion and measurement health (v7)
+
+Regenerate the v7 editor resource with
+`python3 scripts/monitoring/build-conversion-dashboard.py`, then format the JSON.
+It preserves the v6 dashboard identity and panels. Do not import it into another
+customer's dashboard or change datasource credentials in JSON.
+
+`conversion` exports numeric aggregates only. The rolling 30-day cohort uses
+committed creator-created outcomes for the current deployment, then distinct
+creators with observed playback, checkout and verified payment after signup.
+It is not an ordered anonymous visitor funnel. Mature first-week activation
+includes only creators at least seven days old, and requires playback within
+their first seven days. This is a first-week window, not a claim that every
+creator received a trial. Account deletion and rolling-window expiry can lower
+these gauges. Never add database-wide gauges across replicas.
+
+`billing.payingSubscriptions` counts active, positive-priced subscriptions in
+the local billing mirror. It is not recognized revenue or proof that the latest
+invoice was paid. Stripe remains authoritative for receipts. Trial, past-due /
+unpaid and cancel-at-period-end subscriptions have separate counts; reverse
+trials and complimentary access stay in entitlement metrics.
+
+New fixed process-operation counters cover auth sessions (including returning
+users), authenticated public checkout continuation, verified webhook handling,
+and analytics consent exclusions. They contain neither account identifiers nor
+browser events. Counts can include retries; they are not unique buyers.
+Dashboard checkout callers remain covered by the durable checkout-created ledger,
+not by the public-route operation counter. Normalize resets per stable source.
+The new charts show observed increase from the start of the selected range;
+first samples are baselines and unsampled work before restart can be lost.
+
+The collector already exports `analyticsCache.deliveryAttempts`,
+`deliverySucceeded`, `deliveryFailed` and `deliveryRetries`; v7 makes them
+visible. A successful HTTP response is accepted delivery, not proof of exactly-once
+ingestion. The existing outcome ID supports reconciliation. Consent exclusions
+are expected. Zero attempted deliveries does not prove complete collection or a
+failed pipeline. Missing scrapes must remain missing, not healthy zeros.
+
+Do not enable no-sales or zero-event paging at this traffic volume. First inspect
+existing alert rules; the connected alert-rule endpoint was unavailable during
+the audit. Appropriate operational candidates are stale scrapes, sustained
+checkout failures with real attempts, webhook-processing failures/backlog, and
+rejected analytics deliveries. Validate thresholds with actual traffic and
+separate expected plan restrictions and consent denials from incidents.
+
+Import v7 only with validated queries. New fields remain unavailable until the
+application containing this implementation is released and scraped. Existing
+retention, credentials, routing and live alert rules are not changed by this
+repository artifact.
+
+Webhook backlog gauges come from durable `billing_webhook_events` rows. Failed events remain visible until recovered. Processing older than the existing five-minute lease is counted separately, with the oldest processing age in seconds. These are not failed-payment counts.

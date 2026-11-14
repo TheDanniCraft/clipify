@@ -17,16 +17,7 @@ export function projectConsentCategories(selections: ConsentSelections) {
 	}));
 }
 
+/** Analytics is optional; no audience-measurement service is always on. */
 export function getAlwaysOnServiceDisclosures() {
-	return [
-		{
-			id: "umami-baseline",
-			name: "Umami audience statistics",
-			purpose: "Produce cookieless traffic, campaign, engagement and existing product-event statistics without attaching your Clipify account.",
-			alwaysOn: true,
-			consentRequired: false,
-			optionalToggle: false,
-			storageDeclarations: [],
-		},
-	] as const;
+	return [] as const;
 }

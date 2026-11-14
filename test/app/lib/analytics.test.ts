@@ -2,6 +2,8 @@
 import { prepareUmamiPayload, setAnalyticsContext, trackEvent, trackProductEvent } from "@/app/lib/analytics";
 import { setBrowserMeasurementConsent } from "@/app/lib/consent/browserMeasurement";
 
+beforeEach(() => setBrowserMeasurementConsent(true));
+
 afterEach(() => {
 	setBrowserMeasurementConsent(false);
 	Reflect.deleteProperty(window, "umami");
@@ -29,11 +31,9 @@ it("preserves dashboard traffic and arbitrary standard UTM campaigns while remov
 	expect(payload).toMatchObject({ website: "site", tag: "application", url: "/dashboard/overlay/:id?utm_campaign=summer-any-name&utm_source=discord", referrer: "https://example.com/", title: "Clipify dashboard" });
 });
 
-it("keeps baseline events but blocks native identification and performance before consent", () => {
-	expect(prepareUmamiPayload("event", { hostname: "clipify.us", url: "/pricing", name: "paywall_impression", id: "account" })).toMatchObject({ name: "paywall_impression", tag: "marketing" });
-	expect(prepareUmamiPayload("event", { hostname: "clipify.us", url: "/pricing", id: "account" })).not.toHaveProperty("id");
-	expect(prepareUmamiPayload("identify", { id: "account" })).toBeNull();
-	expect(prepareUmamiPayload("performance", { lcp: 10 })).toBeNull();
+it.each(["event", "identify", "performance", "error"])("blocks every %s payload without consent", (type) => {
+	setBrowserMeasurementConsent(false);
+	expect(prepareUmamiPayload(type, { hostname: "clipify.us", url: "/pricing", name: "paywall_impression", id: "account" })).toBeNull();
 });
 
 it("permits consented identity and performance while still stripping secret query values", () => {
@@ -47,17 +47,19 @@ it("separates nonproduction and audience traffic without dropping their pageview
 	expect(prepareUmamiPayload("event", { hostname: "clipify.us", url: "/creators/demo" })).toMatchObject({ tag: "audience" });
 });
 
-it("sends native baseline events and gates additional product events on current consent", () => {
+it("sends neither standard nor product events before consent or after withdrawal", () => {
 	const track = jest.fn();
 	Object.assign(window, { umami: { track } });
-	trackEvent("guide_started", { journey: "overlay" });
-	trackProductEvent("theme_saved", { changed_group: "layout" });
-	expect(track).toHaveBeenCalledTimes(1);
-	expect(track).toHaveBeenCalledWith("guide_started", { journey: "overlay" });
-	setBrowserMeasurementConsent(true);
-	trackProductEvent("theme_saved", { changed_group: "layout" });
-	expect(track).toHaveBeenLastCalledWith("theme_saved", { changed_group: "layout" });
 	setBrowserMeasurementConsent(false);
+	trackEvent("guide_started", { journey: "overlay" });
+	trackProductEvent("theme_saved");
+	expect(track).not.toHaveBeenCalled();
+	setBrowserMeasurementConsent(true);
+	trackEvent("guide_started", { journey: "overlay" });
+	trackProductEvent("theme_saved");
+	expect(track).toHaveBeenCalledTimes(2);
+	setBrowserMeasurementConsent(false);
+	trackEvent("guide_started");
 	trackProductEvent("theme_saved");
 	expect(track).toHaveBeenCalledTimes(2);
 });

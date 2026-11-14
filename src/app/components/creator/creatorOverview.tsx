@@ -51,6 +51,29 @@ export default function CreatorOverview({ creatorId, analyticsAllowed = false }:
 	}, [creatorId, retryBroadcasts]);
 	return (
 		<div data-tour='home-overview' className='my-6 flex flex-col gap-6'>
+			{nextSetupTask ? (
+				<Card className='border border-accent/30' aria-label='Finish your stream setup'>
+					<Card.Header>
+						<Card.Title>Get your first overlay running</Card.Title>
+						<Card.Description>Choose your clips, preview playback, and add your overlay to your stream.</Card.Description>
+					</Card.Header>
+					<Card.Footer className='flex flex-wrap items-center gap-3'>
+						<Button
+							variant='primary'
+							onPress={() => {
+								trackProductEvent("activation_setup_opened", { task: nextSetupTask.id, source: "dashboard" });
+								startSetup();
+							}}
+						>
+							{nextSetupTask.title}
+							<IconChevronRight className='size-4' aria-hidden='true' />
+						</Button>
+						<Link className='shrink-0 text-sm' href='https://help.clipify.us/hc/clipify/articles/1769328012-getting-started-with-clipify'>
+							Setup guide
+						</Link>
+					</Card.Footer>
+				</Card>
+			) : null}
 			<nav aria-label={activeTask && navigation?.mobile ? "Creator shortcuts" : "Quick access"} className='flex flex-wrap items-center gap-2 text-sm'>
 				<span className='w-full text-sm font-medium text-muted'>Quick access</span>
 				{activeTask && navigation?.mobile ? (
@@ -104,24 +127,12 @@ export default function CreatorOverview({ creatorId, analyticsAllowed = false }:
 								) : (
 									<div className='space-y-2 text-sm'>
 										<p className='text-muted'>No clips from the last 30 days</p>
-										{nextSetupTask ? (
-											<Button
-												variant='secondary'
-												onPress={() => {
-													trackProductEvent("activation_setup_opened", { task: nextSetupTask.id });
-													startSetup();
-												}}
-											>
-												{nextSetupTask.id === "overlay.name" ? "Set up an overlay" : "Continue overlay setup"}
-											</Button>
-										) : (
-											<Link href='/dashboard/clips' className={cardActionClassName}>
-												Browse clip inventory
-												<Link.Icon aria-hidden='true'>
-													<IconChevronRight />
-												</Link.Icon>
-											</Link>
-										)}
+										<Link href='/dashboard/clips' className={cardActionClassName}>
+											Browse clip inventory
+											<Link.Icon aria-hidden='true'>
+												<IconChevronRight />
+											</Link.Icon>
+										</Link>
 									</div>
 								)}
 								{overview.count ? <p className='text-xs text-muted'>Total views on these clips.</p> : null}

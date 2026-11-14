@@ -2,7 +2,7 @@ import { socialPreview } from "@lib/socialPreview";
 import type { Metadata } from "next";
 import LegalDocumentLayout from "@components/legal/LegalDocumentLayout";
 import CookiePreferencesLink from "@components/legal/CookiePreferencesLink";
-import { getAlwaysOnServiceDisclosures, projectConsentCategories } from "@lib/legal/consentProjection";
+import { projectConsentCategories } from "@lib/legal/consentProjection";
 import { legalDocuments } from "@lib/legal/documents";
 
 const cookieDocument = legalDocuments.find(({ id }) => id === "cookies")!;
@@ -91,16 +91,6 @@ export default function CookiesPage() {
 							</div>
 						</section>
 					))}
-					<section aria-labelledby='always-on-services'>
-						<h3 id='always-on-services' className='text-xl font-semibold'>
-							Cookieless audience statistics
-						</h3>
-						{getAlwaysOnServiceDisclosures().map((service) => (
-							<p key={service.id} className='mt-2 text-foreground/70'>
-								<strong>{service.name}:</strong> {service.purpose}
-							</p>
-						))}
-					</section>
 				</div>
 			</section>
 		</LegalDocumentLayout>

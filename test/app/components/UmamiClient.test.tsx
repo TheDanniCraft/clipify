@@ -22,6 +22,8 @@ jest.mock("next/script", () => ({
 	},
 }));
 
+beforeEach(() => jest.clearAllMocks());
+
 afterEach(() => {
 	measurement = false;
 	setBrowserMeasurementConsent(false);
@@ -33,17 +35,16 @@ afterEach(() => {
 	window.history.replaceState({}, "", "/");
 });
 
-it("loads baseline without statistics consent and keeps recorder absent", () => {
+it("does not load measurement scripts without statistics consent", () => {
 	render(<UmamiClient websiteId='b1e8f2fb-9b3e-4276-91f6-dfbce9455377' />);
-	expect(screen.getByTestId("clipify-analytics")).toHaveAttribute("data-website", "b1e8f2fb-9b3e-4276-91f6-dfbce9455377");
-	expect(screen.getByTestId("clipify-analytics")).toHaveAttribute("data-performance", "false");
+	expect(screen.queryByTestId("clipify-analytics")).not.toBeInTheDocument();
 	expect(screen.queryByTestId("clipify-heatmaps")).not.toBeInTheDocument();
 });
 
-it("preserves baseline collection on editors", () => {
+it("keeps private editor measurement off without consent", () => {
 	pathname = "/dashboard/overlay/example";
 	render(<UmamiClient websiteId='b1e8f2fb-9b3e-4276-91f6-dfbce9455377' />);
-	expect(screen.getByTestId("clipify-analytics")).toBeInTheDocument();
+	expect(screen.queryByTestId("clipify-analytics")).not.toBeInTheDocument();
 	expect(screen.queryByTestId("clipify-heatmaps")).not.toBeInTheDocument();
 });
 
@@ -76,21 +77,22 @@ it("starts native heatmaps only after the consented tracker is ready", async () 
 	measurement = false;
 	setBrowserMeasurementConsent(false);
 	view.rerender(<UmamiClient websiteId='b1e8f2fb-9b3e-4276-91f6-dfbce9455377' />);
-	expect(screen.getByTestId("clipify-heatmaps")).toBeInTheDocument();
+	expect(screen.queryByTestId("clipify-heatmaps")).not.toBeInTheDocument();
 });
 
-it("verifies c15t identity but never identifies the Umami account before statistics consent", async () => {
+it("links rejected privacy choices to the verified account without loading or identifying Umami", async () => {
 	const identity = { id: "verified-auth-id", identityToken: "signed-proof", plan: "free", access_source: "billing", is_paying: false } as Awaited<ReturnType<typeof getAnalyticsIdentity>>;
 	jest.mocked(getAnalyticsIdentity).mockResolvedValue(identity);
 	const identify = jest.fn();
 	window.umami = { identify, track: jest.fn() };
-	const view = render(<UmamiClient websiteId='b1e8f2fb-9b3e-4276-91f6-dfbce9455377' />);
-	await act(async () => scriptReady["clipify-analytics"]());
+	const view = render(<UmamiClient websiteId='site' />);
 	await waitFor(() => expect(identifyConsent).toHaveBeenCalledWith({ externalId: "verified-auth-id", identityToken: "signed-proof" }));
+	expect(screen.queryByTestId("clipify-analytics")).not.toBeInTheDocument();
 	expect(identify).not.toHaveBeenCalled();
 	measurement = true;
 	setBrowserMeasurementConsent(true);
-	view.rerender(<UmamiClient websiteId='b1e8f2fb-9b3e-4276-91f6-dfbce9455377' />);
+	view.rerender(<UmamiClient websiteId='site' />);
+	await act(async () => scriptReady["clipify-analytics"]());
 	await waitFor(() => expect(identify).toHaveBeenCalledWith("verified-auth-id", { plan: "free", access_source: "billing", is_paying: false }));
 });
 
@@ -139,6 +141,8 @@ it("includes authenticated Runner enrollment in the consented product journey", 
 });
 
 it("uses the site ID supplied by the runtime without a hostname restriction", () => {
+	measurement = true;
+	setBrowserMeasurementConsent(true);
 	render(<UmamiClient websiteId='b1e8f2fb-9b3e-4276-91f6-dfbce9455377' />);
 	expect(screen.getByTestId("clipify-analytics")).toHaveAttribute("data-website", "b1e8f2fb-9b3e-4276-91f6-dfbce9455377");
 	expect(screen.getByTestId("clipify-analytics")).not.toHaveAttribute("data-domains");

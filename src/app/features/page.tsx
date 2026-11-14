@@ -1,3 +1,4 @@
+import MarketingLink from "@components/LandingPage/MarketingLink";
 import { socialPreview } from "@lib/socialPreview";
 import PublicPageHeader from "@components/LandingPage/publicPageHeader";
 import { buttonVariants } from "@heroui/styles";
@@ -94,9 +95,9 @@ export default function FeaturesPage() {
 					<section className='grid gap-6 py-14 sm:py-20 md:grid-cols-2 md:gap-14'>
 						<div>
 							<h2 className='text-3xl font-semibold tracking-tight'>Ready for your next stream?</h2>
-							<Link href='/login' className={buttonVariants({ variant: "primary", className: "mt-6 no-underline" })}>
+							<MarketingLink href='/login' placement='features' className={buttonVariants({ variant: "primary", className: "mt-6 no-underline" })}>
 								Start free with Twitch
-							</Link>
+							</MarketingLink>
 						</div>
 						<div>
 							<h3 className='text-lg font-semibold'>Need a hand setting it up?</h3>

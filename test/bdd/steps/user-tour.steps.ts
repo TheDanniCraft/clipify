@@ -36,7 +36,7 @@ async function start(page: Page, name: string, section?: string) {
 		const trigger = page.getByRole("region", { name: "Your Clipify guide" }).getByRole("button", { name: new RegExp(`^${section}`) });
 		if ((await trigger.getAttribute("aria-expanded")) !== "true") await trigger.click();
 	}
-	await page.getByRole("button", { name, exact: true }).click();
+	await page.getByRole("region", { name: "Your Clipify guide", exact: true }).getByRole("button", { name, exact: true }).click();
 }
 async function overlay(page: Page, world: TourWorld) {
 	await page.goto(`${world.origin}/dashboard/overlay/${world.owner!.overlayId}`);
@@ -284,11 +284,26 @@ Then("the matching checklist tasks complete", async ({ page, tourWorld }) => {
 });
 When("guide analytics are emitted", async ({ page, tourWorld }) => {
 	await overlay(page, tourWorld);
-	await page.evaluate(() => {
-		const calls: unknown[] = [];
-		(window as any).tourEvents = calls;
-		(window as any).umami = { track: (event: string, data: unknown) => calls.push({ event, data }) };
-	});
+	const capture = () =>
+		page.evaluate(() => {
+			const calls: unknown[] = [];
+			(window as any).tourEvents = calls;
+			(window as any).umami = { track: (event: string, data: unknown) => calls.push({ event, data }) };
+		});
+	await capture();
+	await start(page, "Choose your clips");
+	await pause(page);
+	expect(await page.evaluate(() => (window as any).tourEvents)).toEqual([]);
+	await page.goto(`${tourWorld.origin}/legal/cookies`);
+	await page.getByRole("main").getByRole("button", { name: "Cookie preferences", exact: true }).click();
+	const preferences = page.getByRole("dialog", { name: "Privacy preferences", exact: true });
+	const statistics = preferences.getByRole("switch", { name: "Allow Statistics and product analytics", exact: true });
+	await statistics.focus();
+	await statistics.press("Space");
+	await expect(statistics).toBeChecked();
+	await Promise.all([page.waitForEvent("load"), preferences.getByRole("button", { name: "Save choices", exact: true }).click()]);
+	await overlay(page, tourWorld);
+	await capture();
 	await start(page, "Choose your clips");
 	await expect(page.locator(".driver-popover-title")).toHaveText("Choose your clips");
 	await pause(page);

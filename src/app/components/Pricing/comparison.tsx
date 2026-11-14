@@ -86,7 +86,7 @@ export default function PricingComparison({ campaignOffer = null, pricing }: { c
 	return (
 		<div className='mx-auto flex w-full max-w-6xl flex-col items-center py-14 sm:py-20'>
 			<div className='w-full'>
-				<PublicPageHeader title='Compare plans & features.' description='Plans for your clip playlists, overlays, and broadcasts.' />
+				<PublicPageHeader title='Choose the setup that fits your stream.' description='Start with one overlay on Free. Choose Pro for more scenes, custom layouts, and team controls.' />
 			</div>
 			<div className='w-full'>
 				<BillingFrequency value={selectedFrequency} onChange={onFrequencyChange} pricing={campaignOffer?.showPricingTierPromo ? null : pricing} />

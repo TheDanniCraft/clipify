@@ -16,7 +16,7 @@ Given("a visitor is viewing Clipify's public pricing", async ({ page }) => {
 	await expect(privacy).toBeVisible();
 	await Promise.all([page.waitForEvent("load"), privacy.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 	await page.goto("http://127.0.0.1:3107/pricing");
-	await expect(page.getByRole("heading", { name: "Compare plans & features.", exact: true })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "Choose the setup that fits your stream.", exact: true })).toBeVisible();
 });
 
 When("they open the Pro setup dialog", async ({ page }) => {
@@ -57,7 +57,7 @@ When("they follow an old Runner purchase link", async ({ page }) => {
 
 Then("they return to pricing without a Runner checkout intent", async ({ page, context }) => {
 	await expect(page).toHaveURL("http://127.0.0.1:3107/pricing");
-	await expect(page.getByRole("heading", { name: "Compare plans & features.", exact: true })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "Choose the setup that fits your stream.", exact: true })).toBeVisible();
 	expect((await context.cookies()).some((cookie) => cookie.name === "clipify_checkout_intent")).toBe(false);
 });
 

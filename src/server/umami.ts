@@ -1,3 +1,4 @@
+import { recordConversionOperation } from "./conversion-health";
 import "server-only";
 import { after } from "next/server";
 import { db } from "@/db/client";
@@ -32,7 +33,10 @@ export async function sendServerProductEvent(authUserId: string, name: string, d
 		const { readAnalyticsConsent, linkRequestAnalyticsSubject } = await import("./analytics-consent");
 		if (requestState && !(await linkRequestAnalyticsSubject(authUserId, requestState))) return;
 		for (let attempt = 0; attempt < 2; attempt++) {
-			if (!(await readAnalyticsConsent(authUserId, requestState))) return;
+			if (!(await readAnalyticsConsent(authUserId, requestState))) {
+				recordConversionOperation("analyticsConsentExcluded");
+				return;
+			}
 			recordCreatorAnalyticsMetric("deliveryAttempts");
 			const response = await fetch(`${baseUrl()}/api/send`, {
 				method: "POST",

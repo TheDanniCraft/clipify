@@ -81,7 +81,7 @@ export default function DemoPlayer() {
 					<span className='rounded-md bg-white/5 px-2 py-1 text-zinc-300'>Browser source</span>
 				</div>
 				<div className='relative aspect-video overflow-hidden bg-zinc-950'>
-					<Image src={landingPlayback} alt='A Twitch gaming highlight playing through Clipify' fill sizes='(max-width: 1024px) 100vw, 650px' loading='eager' className='object-cover' />
+					<Image src={landingPlayback} alt='A Twitch gaming highlight playing through Clipify' fill sizes='(max-width: 1024px) 100vw, 1024px' loading='eager' className='object-cover' />
 					{active ? <iframe ref={iframeRef} src='/demoPlayer' title='Clipify playback demo' referrerPolicy='strict-origin-when-cross-origin' allow='autoplay' onLoad={onPlayerLoad} className='absolute inset-0 h-full w-full border-0' /> : null}
 					{status !== "playing" ? (
 						<div className='absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60 px-5 text-center text-white'>
@@ -137,12 +137,12 @@ export default function DemoPlayer() {
 			</div>
 
 			{status === "error" ? (
-				<p role='alert' className='mt-2 text-center text-xs leading-relaxed text-violet-100'>
+				<p role='alert' className='mt-2 text-center text-xs leading-relaxed text-muted'>
 					Please try again. You can still explore Clipify and start free.
 				</p>
 			) : null}
 			{status === "paused" ? (
-				<p role='status' className='mt-1 text-center text-xs text-violet-100/80'>
+				<p role='status' className='mt-1 text-center text-xs text-muted'>
 					Demo paused to save bandwidth. Resume starts a new clip.
 				</p>
 			) : null}

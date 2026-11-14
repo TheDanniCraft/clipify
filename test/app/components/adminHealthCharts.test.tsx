@@ -40,6 +40,16 @@ jest.mock("recharts", () => ({
 }));
 
 const healthSnapshot: InstanceHealthSnapshot = {
+	conversion: {
+		webhooks: { failed: 0, staleProcessing: 0, oldestProcessingAgeSeconds: 0 },
+		signups30d: 0,
+		activated30d: 0,
+		checkoutCreators30d: 0,
+		paidCreators30d: 0,
+		mature7dCreators: 0,
+		activatedWithin7d: 0,
+		operations: { authSessionCreated: 0, checkoutRequested: 0, checkoutCreated: 0, checkoutUnavailable: 0, checkoutAlreadyOwned: 0, webhookReceived: 0, webhookFailed: 0, webhookProcessed: 0, analyticsConsentExcluded: 0 },
+	},
 	onboarding: { startedAccounts: 0, inProgressAccounts: 0, overlayLinkCopiedAccounts: 0, tasks: {}, trackedAccounts: 0, untrackedAccounts: 0, invalidProgressAccounts: 0, tasksPerAccount: 18, accountsWithProgress: 0, completedAccounts: 0, completedTasks: 0, skippedTasks: 0, completionRate: 0, averageProgress: 0, sections: {} },
 	crawler: sample.crawler,
 	notifications: sample.notifications,
@@ -147,6 +157,10 @@ const healthSnapshot: InstanceHealthSnapshot = {
 	},
 	billing: {
 		activeSubscriptions: 4,
+		payingSubscriptions: 4,
+		trialSubscriptions: 0,
+		paymentProblemSubscriptions: 0,
+		cancelingSubscriptions: 0,
 	},
 	runners: {
 		total: 3,

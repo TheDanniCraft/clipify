@@ -71,6 +71,8 @@ export const runnerIncluded = {
 	availability: "Included with Free and Pro",
 };
 
+const featureOrder = ["Overlays and playlists", "Clips and playback", "Customization and support", "Collaboration and live control", "Websites and galleries", "Creator Page and analytics", "Runner and broadcasting"];
+
 export const pricingFeatures: PricingFeatures = [
 	{
 		title: "Runner and broadcasting",
@@ -153,4 +155,4 @@ export const pricingFeatures: PricingFeatures = [
 			{ title: "Beta and upcoming features", tiers: { free: false, pro: true }, helpText: "Get access to selected beta capabilities and upcoming Pro features as they become available." },
 		],
 	},
-];
+].sort((left, right) => featureOrder.indexOf(left.title) - featureOrder.indexOf(right.title));

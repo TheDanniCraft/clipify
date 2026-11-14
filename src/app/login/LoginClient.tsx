@@ -22,10 +22,12 @@ export default function LoginClient({ returnUrl, oauthAuthorization = false }: {
 				errorCallbackURL: oauthAuthorization ? `${window.location.pathname}${window.location.search}` : returnUrl ? `/login?returnUrl=${encodeURIComponent(returnUrl)}` : "/login",
 			});
 			if (result.error) {
+				trackEvent("auth_failed", { provider: "twitch", reason: "start_rejected" });
 				setLocalError("Twitch sign-in could not be started. Please try again.");
 				setPending(false);
 			}
 		} catch {
+			trackEvent("auth_failed", { provider: "twitch", reason: "network" });
 			setLocalError("Twitch sign-in could not be started. Please try again.");
 			setPending(false);
 		}
@@ -33,8 +35,8 @@ export default function LoginClient({ returnUrl, oauthAuthorization = false }: {
 
 	return (
 		<div className='flex flex-col items-center gap-3'>
-			<Button aria-label='Login with Twitch' isDisabled={pending} isPending={pending} onPress={signInWithTwitch} size='lg' variant='tertiary'>
-				<IconBrandTwitch color='#8956FB' aria-hidden='true' />
+			<Button aria-label='Login with Twitch' isDisabled={pending} isPending={pending} onPress={signInWithTwitch} fullWidth size='lg' variant='primary'>
+				<IconBrandTwitch aria-hidden='true' />
 				{pending ? "Connecting to Twitch…" : "Login with Twitch"}
 			</Button>
 			{localError ? (

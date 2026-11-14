@@ -1,4 +1,5 @@
 /** @jest-environment node */
+jest.mock("@/server/conversion-health", () => ({ getConversionHealth: jest.fn(async () => ({ signups30d: 0, activated30d: 0, checkoutCreators30d: 0, paidCreators30d: 0, mature7dCreators: 0, activatedWithin7d: 0, operations: {} })) }));
 jest.mock("@/server/user-tour/metrics", () => ({ getUserTourHealthStats: jest.fn(async () => ({ startedAccounts: 0, inProgressAccounts: 0, overlayLinkCopiedAccounts: 0, tasks: {}, trackedAccounts: 0, untrackedAccounts: 0, invalidProgressAccounts: 0, tasksPerAccount: 18, accountsWithProgress: 0, completedAccounts: 0, completedTasks: 0, skippedTasks: 0, completionRate: 0, averageProgress: 0, sections: {} })) }));
 export {};
 jest.mock("@lib/cacheHealth", () => ({ getCacheHealthCounts: (db: any) => db.select().from().groupBy().execute() }));

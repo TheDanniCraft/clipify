@@ -15,7 +15,7 @@ const init = await setup.json(),
 
 const ih = { Authorization: "Token " + token };
 const headers = { Authorization: "Basic " + Buffer.from("admin:admin").toString("base64"), "Content-Type": "application/json" };
-const dashboard = JSON.parse(await fs.readFile("grafana/clipify-vm01-overview-v6.json", "utf8"));
+const dashboard = JSON.parse(await fs.readFile("grafana/clipify-vm01-overview-v7.json", "utf8"));
 assert.equal(dashboard.apiVersion, "dashboard.grafana.app/v2");
 assert.equal(dashboard.kind, "Dashboard");
 const panels = Object.values(dashboard.spec.elements).map(({ spec }) => ({ id: spec.id, title: spec.title, targets: spec.data.spec.queries.map(({ spec: target }) => ({ ...target.query.spec, refId: target.refId, hide: target.hidden, datasource: { type: target.query.group, uid: target.query.datasource.name } })) }));
@@ -32,7 +32,7 @@ function flattenNumbers(value, path) {
 	if (typeof value === "number") fields[path] = value;
 	else if (value && typeof value === "object") for (const [key, child] of Object.entries(value)) flattenNumbers(child, `${path}_${key}`);
 }
-for (const key of ["crawler", "notifications", "clips", "onboarding"]) flattenNumbers(sample[key], key);
+for (const key of ["crawler", "notifications", "clips", "onboarding", "conversion", "billing", "analyticsCache"]) flattenNumbers(sample[key], key);
 const healthFixture = { ...sample, mcpClients: { ...sample.mcpClients, items: Array.from({ length: 25 }, (_, index) => ({ name: index === 0 ? "Meta MCP" : `Custom ${index + 1}`, registeredClients: 1, authorizedClients: 1, activeConnections: 1, activeClients30d: 1, calls30d: 4 })) } };
 let healthReads = 0;
 const fixture = createServer((request, response) => {
@@ -59,6 +59,7 @@ for (const scenario of scenarios)
 			const total = scenario === "zero" ? 0 : scenario === "reset" && i >= 3 ? i - 3 : i;
 			const values = { ...fields };
 			for (const key of Object.keys(values)) {
+				if (key.startsWith("conversion_operations_") || key.startsWith("analyticsCache_delivery")) values[key] = total;
 				if (key.startsWith("mcp_duration_buckets_")) values[key] = key === "mcp_duration_buckets_le_inf_total" || Number(key.slice("mcp_duration_buckets_le_".length, -"_total".length).replace("_", ".")) >= 0.1 ? total : 0;
 			}
 			if (scenario === "zero") for (const key of Object.keys(values)) if (key.startsWith("onboarding_") && !key.endsWith("tasksPerAccount")) values[key] = 0;
@@ -142,6 +143,17 @@ for (const scenario of ["normal", "replicas", "gap"]) {
 	assert(values(scenario, "Average guide progress").every((value) => Math.abs(value - 22 / 90) < 1e-10));
 }
 assert.deepEqual(values("zero", "First-overlay guide completion"), [0]);
+for (const title of ["Umami delivery (observed counter increase)", "Checkout service operations (observed increase)", "Measurement exclusions and service processing"]) {
+	assert.equal(Math.max(...values("normal", title)), 5, title);
+	assert.equal(Math.max(...values("reset", title)), 4, title + " resets");
+	assert(
+		values("zero", title).every((value) => value === 0),
+		title + " zero activity",
+	);
+	assert.equal(Math.max(...values("replicas", title)), 5, title + " per-source normalization");
+}
+assert.equal(Math.max(...values("normal", "New creator outcomes (rolling 30 days)")), 27);
+assert.equal(Math.max(...values("replicas", "New creator outcomes (rolling 30 days)")), 27, "database gauges must not double across replicas");
 const rateTitle = "MCP calls per minute";
 assert.deepEqual(values("normal", rateTitle), [3, 3, 3, 3, 3]);
 assert.deepEqual(values("reset", rateTitle), [3, 3, 0, 3, 3]);

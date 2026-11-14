@@ -1,3 +1,5 @@
+import CheckoutRecovery from "@components/Pricing/CheckoutRecovery";
+import { readCheckoutIntent } from "@/server/checkoutIntent";
 import { socialPreview } from "@lib/socialPreview";
 import type { Metadata } from "next";
 import PricingFaq from "@components/Pricing/pricing-faq";
@@ -39,7 +41,11 @@ const pricingFaq = [
 	},
 ];
 
-export default async function PricingPage() {
+export default async function PricingPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> } = {}) {
+	const parameters = await searchParams;
+	const checkoutStatus = parameters?.checkout;
+	const recoveryStatus = checkoutStatus === "cancelled" || checkoutStatus === "unavailable" ? checkoutStatus : null;
+	const intent = recoveryStatus ? await readCheckoutIntent() : null;
 	const [campaignOffer, catalog] = await Promise.all([getActiveCampaignOffer(), resolveBillingCatalog()]);
 	const pricing: RuntimePricing = {
 		pro: {
@@ -52,6 +58,7 @@ export default async function PricingPage() {
 		<div className='min-h-screen bg-background'>
 			<BasicNavbar shouldHideOnScroll={false} />
 			<main>
+				{recoveryStatus ? <CheckoutRecovery status={recoveryStatus} canRetry={Boolean(intent)} /> : null}
 				<section className='px-6 sm:px-8'>
 					<PricingComparison campaignOffer={campaignOffer} pricing={pricing} />
 				</section>
