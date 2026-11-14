@@ -12,7 +12,10 @@ export async function GET() {
 	const user = await validateAuth();
 	if (!user) return NextResponse.redirect(new URL("/login", baseUrl));
 	const intent = await readCheckoutIntent();
-	if (!intent) return NextResponse.redirect(new URL("/pricing?checkout=unavailable", baseUrl));
+	if (!intent) {
+		await clearCheckoutIntent();
+		return NextResponse.redirect(new URL("/pricing?checkout=unavailable", baseUrl));
+	}
 
 	recordConversionOperation("checkoutRequested");
 	try {

@@ -43,3 +43,10 @@ test("returns an expired session to login without discarding its selection", asy
 	expect((await GET()).headers.get("location")).toBe("https://clipify.us/login");
 	expect(clearCheckoutIntent).not.toHaveBeenCalled();
 });
+
+test("clears an invalid selection without attempting payment", async () => {
+	readCheckoutIntent.mockResolvedValue(null);
+	expect((await GET()).headers.get("location")).toBe("https://clipify.us/pricing?checkout=unavailable");
+	expect(clearCheckoutIntent).toHaveBeenCalledTimes(1);
+	expect(generateCheckout).not.toHaveBeenCalled();
+});
