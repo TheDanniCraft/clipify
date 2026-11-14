@@ -19,6 +19,8 @@ it("draws nominees once from a left stack, then settles only revealed places ont
 	const podium = () => screen.getByLabelText("Nominee results");
 	expect(within(stack()).getAllByRole("button")).toHaveLength(5);
 	expect(within(podium()).queryAllByRole("button")).toHaveLength(0);
+	expect(document.querySelectorAll("[data-award-podium-slot]")).toHaveLength(3);
+	const slots = [...document.querySelectorAll("[data-award-podium-slot]")];
 	expect(screen.queryByText(/votes/)).not.toBeInTheDocument();
 	view.rerender(<EventNomineeStage category={category as never} place={3} cue={false} onOpen={jest.fn()} />);
 	expect(within(stack()).getAllByRole("button")).toHaveLength(4);
@@ -35,7 +37,8 @@ it("draws nominees once from a left stack, then settles only revealed places ont
 	expect(stack()).not.toHaveTextContent("votes");
 	view.rerender(<EventNomineeStage category={category as never} place={1} cue={false} onOpen={jest.fn()} />);
 	expect(screen.getByLabelText("Award winners")).toHaveTextContent("Nominee 1 #1 (5 votes)");
-	expect(within(podium()).getAllByRole("button")).toHaveLength(2);
+	expect(within(podium()).getAllByRole("button")).toHaveLength(3);
+	expect([...document.querySelectorAll("[data-award-podium-slot]")]).toEqual(slots);
 	expect(within(stack()).getAllByRole("button")).toHaveLength(2);
 	expect(screen.getAllByRole("button")).toHaveLength(5);
 	view.rerender(<EventNomineeStage category={category as never} place={2} cue instant onOpen={jest.fn()} />);

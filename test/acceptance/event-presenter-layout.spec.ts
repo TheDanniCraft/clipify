@@ -197,6 +197,13 @@ for (const width of [390, 1440, 3440, 5120])
 			expect(vertical.some((node, i) => Math.abs(node.x - horizontal[i].x) > 20)).toBe(true);
 			await expect(others.getByRole("button")).toHaveCount(0);
 			const cue = page.locator("[data-award-podium-cue]");
+			await expect(page.locator("[data-award-podium-slot]")).toHaveCount(3);
+			const reservedSlots = await page.locator("[data-award-podium-slot]").evaluateAll((nodes) =>
+				nodes.map((node) => {
+					const b = node.getBoundingClientRect();
+					return { x: b.x, y: b.y, width: b.width, height: b.height };
+				}),
+			);
 			await expect(cue).toHaveText("3Third place");
 			await expect(cue).toHaveCSS("opacity", "1");
 			await page.waitForTimeout(2500);
@@ -233,7 +240,7 @@ for (const width of [390, 1440, 3440, 5120])
 						overlap = 0;
 					for (let frame = 0; frame < 90; frame++) {
 						await new Promise(requestAnimationFrame);
-						const main = document.querySelector("[data-award-featured]")!;
+						const main = document.querySelector('[aria-label="Award winners"]') ?? document.querySelector("[data-award-featured]")!;
 						const placement = main.querySelector("[data-award-placement]")!;
 						const label = placement.getBoundingClientRect();
 						const card = main.querySelector("[data-award-flight]")!.getBoundingClientRect();
@@ -297,7 +304,7 @@ for (const width of [390, 1440, 3440, 5120])
 				await page.waitForTimeout(250);
 				await page.screenshot({ path: info.outputPath("winner-confetti.png") });
 			}
-			await expect(others.getByRole("button")).toHaveCount(2);
+			await expect(others.getByRole("button")).toHaveCount(3);
 			await expect(drawStack.getByRole("button")).toHaveCount(2);
 			await expect(drawStack.getByText("13.3% (2 votes)", { exact: true })).toBeVisible();
 			await expect(others.getByText("20% (3 votes)", { exact: true })).toBeVisible();
@@ -309,6 +316,13 @@ for (const width of [390, 1440, 3440, 5120])
 				})
 				.toBeLessThan(2);
 			await expect.poll(() => winner.getByRole("progressbar").getAttribute("aria-valuenow").then(Number)).toBeCloseTo(100 / 3, 1);
+			const landedSlots = await page.locator("[data-award-podium-slot]").evaluateAll((nodes) =>
+				nodes.map((node) => {
+					const b = node.getBoundingClientRect();
+					return { x: b.x, y: b.y, width: b.width, height: b.height };
+				}),
+			);
+			expect(Math.max(...landedSlots.flatMap((box, i) => [Math.abs(box.x - reservedSlots[i].x), Math.abs(box.y - reservedSlots[i].y), Math.abs(box.width - reservedSlots[i].width), Math.abs(box.height - reservedSlots[i].height)])), JSON.stringify({ reservedSlots, landedSlots })).toBeLessThan(2);
 			const bronze = await page.locator('[data-award-settled="3"]').boundingBox();
 			const silver = await page.locator('[data-award-settled="2"]').boundingBox();
 			expect(bronze!.x).toBeLessThan(silver!.x);
