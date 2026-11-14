@@ -1,7 +1,14 @@
 /node_modules/
 /out/
+/public/*/fonts/*.ttf
+/public/clipify-flow/audio/
+/public/clipify-flow/media/*-source.mp4
+/public/clipify-rebuilt/audio/
+/public/moments-preview/audio/
+/public/moments-trailer/audio/
 /.remotion/
 /public/clipify-showcase/audio/clipify-trailer-original.wav
+/public/clipify-pulse/audio/clipify-pulse-original.wav
 
 # Graphify: publish the package graph, keep local extraction state private.
 /graphify-out/cache/
