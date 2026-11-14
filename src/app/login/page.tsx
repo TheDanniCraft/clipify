@@ -1,6 +1,6 @@
 import { socialPreview } from "@lib/socialPreview";
 import type { Metadata } from "next";
-import { Link, Card, CardHeader, CardContent } from "@components/heroui-client";
+import { Link } from "@components/heroui-client";
 import Logo from "@components/logo";
 import ErrorToast from "@components/errorToast";
 import { validateAuth } from "@actions/auth";
@@ -40,35 +40,28 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
 			<ErrorToast error={error as string} errorCode={errorCode as string} />
 
 			<main className='flex min-h-svh items-center justify-center bg-background px-6 py-12 pb-48 sm:pb-12'>
-				<div className='w-full max-w-md'>
+				<div className='w-full max-w-sm text-center'>
 					<Link href='/' className='mb-8 inline-flex items-center gap-3 font-semibold text-foreground'>
 						<Logo size={32} />
 						Clipify
 					</Link>
-					<Card className='border border-border p-3 shadow-none sm:p-5'>
-						<CardHeader>
-							<h1 className='text-3xl font-semibold tracking-tight'>{oauthAuthorization ? "Connect your account" : checkoutIntent ? "Your Pro plan is selected" : "Put your clips to work."}</h1>
-							<p className='mt-3 text-muted'>{oauthAuthorization ? "Sign in with Twitch to continue. You can review the app's requested access before authorizing it." : checkoutIntent ? "Sign in with Twitch to continue to secure checkout. Your billing selection is saved." : "Sign in with Twitch, choose your clips, and create your first overlay. New to Clipify? Your account is created when you connect."}</p>
-						</CardHeader>
-						<CardContent className='space-y-6'>
-							<LoginClient returnUrl={returnDestination} oauthAuthorization={oauthAuthorization} />
-							{!oauthAuthorization && !checkoutIntent ? <p className='text-sm text-muted'>Start on Free. Eligible new creators get seven days of Pro without a card, then continue on Free unless they subscribe.</p> : null}
-							<p className='text-xs leading-relaxed text-muted'>
-								By logging in, you agree to our{" "}
-								<Link href={legalDocumentRoutes.terms} className='text-xs underline'>
-									Terms
-								</Link>{" "}
-								and{" "}
-								<Link href={legalDocumentRoutes.privacy} className='text-xs underline'>
-									Privacy
-								</Link>
-								. We send you product update emails by default. You can opt out anytime.
-							</p>
-						</CardContent>
-					</Card>
-					<Link href='/' className='mt-6 text-sm'>
-						Back to Clipify
-					</Link>
+					<h1 className='text-3xl font-semibold tracking-tight'>{oauthAuthorization ? "Connect your account" : checkoutIntent ? "Your Pro plan is selected" : "Sign in to Clipify"}</h1>
+					<p className='mt-3 leading-relaxed text-muted'>{oauthAuthorization ? "Sign in with Twitch to review this app’s requested access." : checkoutIntent ? "Sign in with Twitch to continue to checkout. Your billing selection is saved." : "Use your Twitch account. New here? We’ll create your Clipify account when you connect."}</p>
+					<div className='mt-8'>
+						<LoginClient returnUrl={returnDestination} oauthAuthorization={oauthAuthorization} />
+					</div>
+					<p className='mt-8 text-xs leading-relaxed text-muted'>
+						By continuing, you agree to our{" "}
+						<Link href={legalDocumentRoutes.terms} className='text-xs underline'>
+							Terms
+						</Link>
+						. Read our{" "}
+						<Link href={legalDocumentRoutes.privacy} className='text-xs underline'>
+							Privacy Policy
+						</Link>
+						.
+					</p>
+					<p className='mt-3 text-xs leading-relaxed text-muted'>Product emails are on by default. Unsubscribe anytime.</p>
 				</div>
 			</main>
 		</>

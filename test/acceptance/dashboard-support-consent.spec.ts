@@ -56,24 +56,19 @@ for (const width of [390, 1440])
 			await support.click();
 			await expect.poll(() => page.evaluate(() => (window as typeof window & { __supportOpens?: number }).__supportOpens)).toBe(1);
 			await expect(preferences).not.toBeVisible();
-			await openSidebar();
-			// Preferences stay reachable after the banner is dismissed and chat is enabled.
-			// On desktop also exercise the permanently available collapsed account control.
-			if (width === 1440) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
-			const accountMenu = page.getByRole("button", { name: "Open account menu", exact: true });
-			await expect(accountMenu).toBeInViewport({ ratio: 1 });
-			await accountMenu.focus();
+			await page.goto(`${tourWorld.origin}/dashboard/settings`);
+			const privacyButton = page.getByRole("button", { name: "Privacy preferences", exact: true });
+			await privacyButton.scrollIntoViewIfNeeded();
+			await privacyButton.focus();
 			await page.keyboard.press("Enter");
-			await page.getByRole("menuitem", { name: "Privacy preferences", exact: true }).click();
 			await expect(preferences).toBeVisible();
 			await expect(preferences.getByRole("switch", { name: "Allow Statistics and product analytics", exact: true })).not.toBeChecked();
 			await page.screenshot({ path: info.outputPath("account-privacy-preferences.png"), animations: "disabled" });
 			await preferences.getByRole("switch", { name: "Allow Statistics and product analytics", exact: true }).focus();
 			await page.keyboard.press("Space");
 			await Promise.all([page.waitForEvent("load"), preferences.getByRole("button", { name: "Save choices", exact: true }).click()]);
-			await openSidebar();
-			await accountMenu.click();
-			await page.getByRole("menuitem", { name: "Privacy preferences", exact: true }).click();
+			await privacyButton.scrollIntoViewIfNeeded();
+			await privacyButton.click();
 			await expect(preferences.getByRole("switch", { name: "Allow Statistics and product analytics", exact: true })).toBeChecked();
 			await expect(preferences.getByRole("switch", { name: "Allow Functionality", exact: true })).toBeChecked();
 			const requestsBeforeRevocation = sdkRequests;

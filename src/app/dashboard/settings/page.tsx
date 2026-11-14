@@ -38,6 +38,7 @@ import SecuritySettingsPanel from "./security-panel";
 import ConnectedAppsPanel from "./connected-apps-panel";
 import McpActivityPanel from "./mcp-activity-panel";
 import LinkedAccountsPanel from "./linked-accounts-panel";
+import { OPEN_CONSENT_PREFERENCES_EVENT } from "@lib/consent/events";
 import ClipCrawlSchedule, { type ClipCrawlScheduleJob } from "./clip-crawl-schedule";
 
 type ClipCacheStatusState = {
@@ -691,6 +692,10 @@ export default function SettingsPage() {
 										</Form>
 										<Separator className='my-4' />
 										<div className='flex  flex-col gap-2 justify-end'>
+											<Button fullWidth type='button' variant='secondary' onPress={() => window.dispatchEvent(new CustomEvent(OPEN_CONSENT_PREFERENCES_EVENT))}>
+												<IconShieldLock aria-hidden='true' />
+												Privacy preferences
+											</Button>
 											<Button fullWidth variant='secondary' aria-label='Export Account Data' onPress={exportModalOnOpen}>
 												<IconDatabase />
 												Request Account Data

@@ -72,7 +72,7 @@ for (const theme of ["light", "dark"]) {
 			await expect(page).toHaveURL(/\/login(?:\?|$)/);
 			await expect(page.getByRole("button", { name: "Login with Twitch", exact: true })).toBeVisible();
 			await expect(page.getByRole("link", { name: "Terms", exact: true })).toHaveAttribute("href", "/legal/terms");
-			await expect(page.getByRole("link", { name: "Privacy", exact: true })).toHaveAttribute("href", "/legal/privacy");
+			await expect(page.getByRole("link", { name: "Privacy Policy", exact: true })).toHaveAttribute("href", "/legal/privacy");
 			await assertAccessibleMain(page);
 		});
 	}

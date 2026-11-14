@@ -13,6 +13,8 @@ const switchAdminView = jest.fn();
 const stopAdminView = jest.fn();
 const getActiveCampaignOfferAction = jest.fn();
 const setActiveOrganization = jest.fn();
+const getDefaultAccountContext = jest.fn();
+jest.mock("@actions/accountContext", () => ({ getDefaultAccountContext: () => getDefaultAccountContext() }));
 let currentTheme = "dark";
 let identitySession: { data: { session: { activeOrganizationId: string | null } } | null; isPending: boolean } = { data: { session: { activeOrganizationId: "creator-org" } }, isPending: false };
 let organizationList: { data: Array<{ id: string; name: string; metadata?: unknown }> | undefined; isPending: boolean } = { data: [], isPending: false };
@@ -215,6 +217,7 @@ describe("components/dashboardNavbar", () => {
 		switchAdminView.mockResolvedValue({ ok: true });
 		stopAdminView.mockResolvedValue(undefined);
 		setActiveOrganization.mockResolvedValue({ data: {}, error: null });
+		getDefaultAccountContext.mockResolvedValue(null);
 		identitySession = { data: { session: { activeOrganizationId: "creator-org" } }, isPending: false };
 		organizationList = { data: [], isPending: false };
 	});
@@ -269,6 +272,57 @@ describe("components/dashboardNavbar", () => {
 		expect(screen.getByText("Upgrade to Pro")).toBeInTheDocument();
 		fireEvent.click(screen.getByText("Upgrade to Pro"));
 		expect(routerPush).toHaveBeenCalledWith(expect.stringContaining("upgrade"));
+	});
+
+	it.each([false, true])("defaults an unset context to the signed-in creator, serialized metadata=%s", (serialized) => {
+		identitySession = { data: { session: { activeOrganizationId: null } }, isPending: false };
+		const metadata = { kind: "creator", creatorId: "user-1" };
+		organizationList = {
+			data: [
+				{ id: "other", name: "Other creator", metadata: { kind: "creator", creatorId: "other-user" } },
+				{ id: "agency", name: "Agency", metadata: { accountType: "agency" } },
+				{ id: "own", name: "My creator", metadata: serialized ? JSON.stringify(metadata) : metadata },
+			],
+			isPending: false,
+		};
+		render(<DashboardNavbar user={mockUser()} title='Home' tagline='Overview' />);
+		expect(screen.queryByText("Select account")).not.toBeInTheDocument();
+		expect(setActiveOrganization).not.toHaveBeenCalled();
+	});
+
+	it("resolves legacy personal accounts from the server without picking the first collaborator", async () => {
+		identitySession = { data: { session: { activeOrganizationId: null } }, isPending: false };
+		getDefaultAccountContext.mockResolvedValue("own");
+		organizationList = {
+			data: [
+				{ id: "other", name: "Other creator" },
+				{ id: "own", name: "My creator" },
+			],
+			isPending: false,
+		};
+		render(<DashboardNavbar user={mockUser()} title='Home' tagline='Overview' />);
+		await waitFor(() => expect(screen.queryByText("Loading accounts…")).not.toBeInTheDocument());
+		expect(screen.queryByText("Select account")).not.toBeInTheDocument();
+		expect(getDefaultAccountContext).toHaveBeenCalledTimes(1);
+		expect(setActiveOrganization).not.toHaveBeenCalled();
+	});
+
+	it.each([false, true])("keeps manual selection available when the personal context cannot be resolved, network=%s", async (networkFailure) => {
+		identitySession = { data: { session: { activeOrganizationId: null } }, isPending: false };
+		if (networkFailure) getDefaultAccountContext.mockRejectedValueOnce(new Error("offline"));
+		else getDefaultAccountContext.mockResolvedValue("not-an-approved-account");
+		organizationList = {
+			data: [
+				{ id: "other", name: "Other creator" },
+				{ id: "own", name: "My creator" },
+			],
+			isPending: false,
+		};
+		render(<DashboardNavbar user={mockUser()} title='Home' tagline='Overview' />);
+		await waitFor(() => expect(screen.getByText("Select account")).toBeVisible());
+		expect(setActiveOrganization).not.toHaveBeenCalled();
+		fireEvent.click(screen.getByRole("button", { name: /^My creator/ }));
+		await waitFor(() => expect(setActiveOrganization).toHaveBeenCalledWith({ organizationId: "own" }));
 	});
 
 	it("shows the active account in a compact context selector and switches organizations", async () => {

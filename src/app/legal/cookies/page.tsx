@@ -35,7 +35,7 @@ export default function CookiesPage() {
 					<h2 id='manage-cookie-choices' className='text-2xl font-semibold tracking-tight'>
 						Your choices
 					</h2>
-					<p className='mt-3 max-w-3xl leading-7 text-foreground/75'>Optional services stay disabled until you choose them. You can accept, reject, or change optional categories at any time. Privacy preferences are available from your dashboard account menu, the public footer and this page. Withdrawing consent affects future optional processing and reloads the page so the updated choice is applied consistently.</p>
+					<p className='mt-3 max-w-3xl leading-7 text-foreground/75'>Optional services stay disabled until you choose them. You can accept, reject, or change optional categories at any time. Privacy preferences are available from Settings → Account, the public footer and this page. Withdrawing consent affects future optional processing and reloads the page so the updated choice is applied consistently.</p>
 					<div className='mt-5 inline-flex rounded-full border border-default px-4 py-2 text-sm font-medium text-primary underline-offset-4 hover:underline'>
 						<CookiePreferencesLink />
 					</div>

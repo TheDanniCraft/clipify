@@ -17,6 +17,7 @@ for (const width of [390, 1440])
 			await pool.query("INSERT INTO auth.organization(id,name,slug,metadata,created_at) VALUES($1,'Suspended agency',$2,$3,now())", [agencyId, `agency-${agencyId}`, JSON.stringify({ accountType: "agency" })]);
 			await pool.query("INSERT INTO auth.member(id,organization_id,user_id,role,created_at) VALUES($1,$2,$3,'owner',now())", [randomUUID(), agencyId, seeded.authUserId]);
 			await pool.query("INSERT INTO agency_accounts(organization_id,status) VALUES($1,'suspended')", [agencyId]);
+			await pool.query("UPDATE auth.session SET active_organization_id=NULL WHERE user_id=$1", [seeded.authUserId]);
 			await page.goto(`${tourWorld.origin}/dashboard/clips`);
 			if (width === 390) await expect(page.getByRole("button", { name: "Log out", exact: true })).toHaveCount(0);
 			const openSidebar = async () => {
@@ -33,6 +34,10 @@ for (const width of [390, 1440])
 			const support = host.getByRole("button", { name: "Enable support chat", exact: true });
 			await expect(profile).toBeVisible();
 			await expect(context).toBeVisible();
+			await expect(context).not.toContainText("Select account");
+			const ownOrganization = await pool.query("SELECT o.name FROM auth.organization o JOIN creator_accounts c ON c.organization_id=o.id WHERE c.creator_id=$1", [seeded.creatorId]);
+			await expect(context).toContainText(ownOrganization.rows[0].name);
+			await expect(page.getByRole("button", { name: "Open account menu", exact: true })).toHaveCount(0);
 			await expect(guide).toBeVisible();
 			const boxes = await Promise.all([guide, support, context, profile].map((locator) => locator.boundingBox()));
 			for (let i = 1; i < boxes.length; i++) expect(boxes[i]!.y).toBeGreaterThanOrEqual(boxes[i - 1]!.y + boxes[i - 1]!.height);

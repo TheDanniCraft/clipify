@@ -123,7 +123,7 @@ export const privacyPolicySections: readonly LegalDocumentSection[] = [
 		id: "cookies-and-storage",
 		title: "10. Cookies and similar storage",
 		summary: "The Cookie Policy lists the current first- and third-party services, cookies, local storage, session storage, purposes, and consent status.",
-		details: ["Strictly necessary storage supports account security, privacy choices, and protected forms. Optional functionality and measurement services remain off until you choose them. Privacy preferences can be changed later from the dashboard account menu, public footer or Cookie Policy. Basic cookieless audience statistics remain active independently of these choices."],
+		details: ["Strictly necessary storage supports account security, privacy choices, and protected forms. Optional functionality and measurement services remain off until you choose them. Privacy preferences can be changed later in Settings → Account, the public footer or Cookie Policy. Basic cookieless audience statistics remain active independently of these choices."],
 	},
 	{
 		id: "recipients-and-processors",
