@@ -199,3 +199,40 @@ functionality preservation and withdrawal. Focused analytics/consent and navigat
 whole-file tests passed. The previous CI failures exposed stale policy metadata
 assertions and invalid checkout-intent cleanup: rejected/retired selections now
 clear at the continuation route, while valid selections remain available for retry.
+
+## Follow-up visual and feature coverage audit
+
+The initial visual review missed the separation between the Pro heading and its
+far-right comparison button. The corrected action is a text link immediately
+below the heading, using the same treatment as feature links. Feature text starts
+at the top of its screenshot rather than halfway down a tall image. The scope
+keeps Clipify's theme, screenshots and installed components. [Cohere](https://mobbin.com/sites/sections/34577db3-2a65-4847-9f63-07b6a95d5d31)
+and [Figma](https://mobbin.com/sites/sections/09bac752-13b5-4d35-9f6b-7c99c8959ec8)
+references informed grouping links with the content they describe; exact spacing
+and Clipify copy are implementation judgments.
+
+The landing and feature pages omitted manual clip exports and reusable layouts,
+although the pricing catalog already included them. They now cover the clip
+inventory/past-stream entry points, Original/Desktop/Mobile outputs, saved layouts,
+manual sharing, and Free branding versus Pro watermark removal. The export visual
+is captured from the installed interface using a disposable local creator. Exports
+have their own section outside Pro-only features. The FAQ, page descriptions,
+llms.txt and llms-full.txt describe the same availability; the full reference also
+covers shared account-brand settings and export recovery. Generated plan details
+remain sourced from the existing pricing catalog. Marketing video compositions in
+packages/video are not advertised as an end-user trailer creation feature, and
+social upload/scheduling is not claimed.
+
+The browser review covers 320, 390, 1440 and 2000 pixel widths in both themes,
+comparison-link grouping, export discovery, the served LLM documents and layout
+reflow. Matching before/after section captures reapply the original source classes
+to the live target for the baseline; the after captures show the applied source.
+
+Final checks: ten focused unit/LLM-route cases passed; the browser build and
+scoped lint/format checks passed. Fourteen focused public browser journeys passed,
+including eight feature/export cases across the four widths and both themes,
+keyboard pricing navigation, preserved clip-inventory sign-in destination, and
+served LLM content. The existing landing inventory also passed, with screenshots
+reviewed separately from its accessibility and interaction assertions. Production
+and live Grafana configuration remain unchanged; required CI still owns the final
+gate before merge.

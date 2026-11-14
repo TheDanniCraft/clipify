@@ -1,6 +1,6 @@
 # Clipify
 
-> Clipify keeps Twitch streams alive and viewers engaged by automatically playing clips when a streamer is away. It also helps creators publish, organize, embed, and share their clips beyond the stream.
+> Clipify keeps Twitch streams alive and viewers engaged by automatically playing clips when a streamer is away. It also helps creators organize clips, export original or composed videos, and share highlights beyond the stream.
 
 Clipify uses browser-source overlays, so streamers can add it to OBS Studio, Streamlabs, XSplit, or similar software without installing a plugin. Its central promise is: Let your clips talk, even when you cannot.
 
@@ -11,6 +11,9 @@ Clipify uses browser-source overlays, so streamers can add it to OBS Studio, Str
 - [Help Center](https://help.clipify.us): Setup instructions, guides, and support documentation.
 
 ## Core experiences
+
+- [Clip exports and reusable layouts](https://clipify.us/features#exports): Search your clip inventory or past streams, download Original clips, or export Desktop (16:9) and Mobile (9:16) versions using saved layouts. Free includes exports with Clipify branding on composed video; Pro can remove the watermark. Original downloads remain untouched. Upload exported files yourself; automatic social publishing is not included.
+- [Features](https://clipify.us/features): Clip exports, reusable layouts, playlists, overlays, Theme Studio, playback controls, galleries and Runner.
 
 - [Clipify Galleries](https://clipify.us/gallery): Publish curated or automatically updated Twitch clip galleries on a website using Clipify Elements.
 - [Community](https://clipify.us/community): Discover opted-in Clipify creators, including partners, live channels, and other community members.

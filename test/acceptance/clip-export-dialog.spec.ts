@@ -39,6 +39,7 @@ for (const theme of ["light", "dark"])
 				expect((await dialog.locator('[data-slot="autocomplete-trigger"]').boundingBox())!.y).toBeCloseTo(templateBox.y, 0);
 			}
 			await expect(dialog.getByRole("status", { name: "Export file count" })).toHaveText("3 video files");
+			await dialog.screenshot({ path: info.outputPath("selected-versions.png"), animations: "disabled" });
 			await dialog.getByRole("button", { name: "Next", exact: true }).click();
 			await expect(dialog.getByRole("button", { name: /Export for/ })).toBeFocused();
 			await expect(dialog.getByRole("group", { name: "Discord account", exact: true })).toHaveCount(0);

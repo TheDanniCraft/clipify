@@ -8,9 +8,11 @@ import overlayMobile from "../../../../public/product/overlay-mobile.webp";
 import controls from "../../../../public/product/controls.webp";
 import controlsMobile from "../../../../public/product/controls-mobile.webp";
 import selection from "../../../../public/product/selection.webp";
+import exportsImage from "../../../../public/product/exports.webp";
 import broadcast from "../../../../public/product/broadcast.webp";
 
 const productImages = {
+	exports: { alt: "Clipify export options with Original, Desktop and Mobile versions and a saved layout selected", desktop: exportsImage, mobile: null },
 	theme: { alt: "Theme Studio typography and background color controls with the color picker open", desktop: theme, mobile: themeMobile },
 	playlist: { alt: "Clipify playlist editor with selected clips and saved playlist controls", desktop: playlist, mobile: playlistMobile },
 	overlay: { alt: "Clipify overlay settings with a saved playlist and playback options", desktop: overlay, mobile: overlayMobile },

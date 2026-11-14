@@ -1,6 +1,7 @@
 import type { Faq } from "@types";
 
 const faqs: Faq[] = [
+	{ title: "Can I download clips for social media?", content: "Yes. Select clips from your inventory or past streams, then download Original clips or export Desktop and Mobile versions using saved layouts. Free compositions include a Clipify watermark; Pro can remove it. Original downloads stay untouched. Download your files and upload them to your chosen platform; Clipify does not publish them automatically." },
 	{ title: "Does Clipify work with OBS and Streamlabs?", content: "Yes. Clipify plays through a browser source, so it fits into your BRB, Starting Soon, or intermission scene. Connect Twitch, choose clips, save an overlay, and add its URL to your streaming software." },
 	{ title: "Can I choose which clips play?", content: "Yes. Save a handpicked playlist or use a clip source and filters. You can come back to the same setup for your next stream and change the selection without replacing the OBS browser source." },
 	{ title: "Can I get started for free?", content: "Yes. Free includes a clip player, one overlay and one playlist with up to 50 clips. Eligible new creators also receive seven days of Pro without a card. When that access ends, you continue on Free unless you choose a paid plan." },

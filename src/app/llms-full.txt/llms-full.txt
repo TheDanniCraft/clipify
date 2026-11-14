@@ -2,7 +2,7 @@
 
 > Clipify keeps Twitch streams alive and viewers engaged by automatically playing clips while a streamer is away. It also gives creators tools to organize, publish, embed, and share Twitch clips on stream and across the web.
 
-Last reviewed: 2026-09-04
+Last reviewed: 2026-11-14
 
 Clipify's central promise is: Let your clips talk, even when you cannot.
 
@@ -16,6 +16,7 @@ Clipify helps creators:
 - Give new viewers something to watch when they arrive mid-break.
 - Showcase memorable channel moments automatically.
 - Encourage viewers to keep watching and talking in chat.
+- Export Twitch highlights as original, landscape or vertical videos for manual sharing.
 - Reuse Twitch clips on Creator Pages and external websites.
 
 ## Browser-source overlays
@@ -39,6 +40,17 @@ Overlay sources include:
 Playback modes include Random, Top, Smart Shuffle, and playlist order where applicable. Filters can use clip duration, view count, blocked title words, clip creators, Twitch categories or games, and the current stream category.
 
 If no clips match the configured source and filters, the overlay remains idle until eligible clips become available.
+
+## Clip inventory, exports and reusable layouts
+
+- Search and filter your clip inventory or open a past stream to find its highlights. Preview clips, select individual clips or a page of results, then choose export versions.
+- Original downloads remain untouched. Desktop exports use landscape 16:9 layouts; Mobile exports use portrait 9:16 layouts.
+- Save reusable clip layouts with Desktop and Mobile compositions. Arrange and crop gameplay and camera layers, and add titles, channel/clipper text or a logo. Account brand settings share colors, fonts and corners across overlays and clip layouts.
+- Manual exports and saved layouts are available on Free and Pro. Free composed exports include a Clipify watermark; Pro can remove it. This does not change original downloads.
+- One selected output downloads as an MP4; multiple outputs download in a ZIP of video files. Progress, skipped-file reasons, cancellation and retry are shown in the export queue. Keep the browser tab open while it works.
+- Choose General, YouTube, TikTok, Instagram Reels, Reddit, Discord or custom-size export presets. These prepare downloadable files; they do not publish or schedule posts on those services.
+- Original downloads need the relevant Twitch download authorization. Composed exports depend on browser/device support; unavailable capabilities and reconnect/retry steps are shown locally.
+- Public overview: https://clipify.us/features#exports. Sign in and open Clip Inventory or Clip layouts in the dashboard to start.
 
 ## Playlists
 

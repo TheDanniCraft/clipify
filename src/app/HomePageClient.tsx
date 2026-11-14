@@ -156,8 +156,23 @@ export default function HomePageClient({ campaignOffer, pricing }: HomePageClien
 						</div>
 					</section>
 
+					<section aria-labelledby='exports-heading' className='mx-auto grid max-w-7xl items-start gap-8 border-b border-border px-6 py-14 sm:px-8 sm:py-20 lg:grid-cols-2 lg:gap-16'>
+						<div className='max-w-lg'>
+							<p className='mb-4 text-sm text-accent dark:text-violet-300'>Clip exports</p>
+							<h2 id='exports-heading' className='text-3xl font-semibold tracking-tight sm:text-4xl'>
+								Your clips. Ready to share.
+							</h2>
+							<p className='mt-5 text-lg leading-relaxed text-muted'>Download the original, or export landscape and vertical versions with your saved layouts. Arrange gameplay, camera, text and your logo for the places you share.</p>
+							<p className='mt-4 leading-relaxed text-muted'>Free includes exports. Desktop and Mobile versions carry a Clipify watermark; Pro can remove it. Original downloads stay untouched.</p>
+							<Link href='/features#exports' className='mt-6 gap-2 font-medium'>
+								Explore clip exports <IconArrowRight size={18} aria-hidden='true' />
+							</Link>
+						</div>
+						<ProductImage view='exports' className='mx-auto w-full max-w-md' />
+					</section>
+
 					<section aria-labelledby='pro-features-heading' className='mx-auto max-w-7xl px-6 py-16 sm:px-8 sm:py-24'>
-						<div className='mb-12 flex flex-wrap items-end justify-between gap-6'>
+						<div className='mb-10 max-w-xl'>
 							<div>
 								<p className='mb-3 text-sm text-accent dark:text-violet-300'>Go further with Pro</p>
 								<h2 id='pro-features-heading' className='max-w-xl text-3xl font-semibold tracking-tight sm:text-4xl'>
@@ -166,12 +181,13 @@ export default function HomePageClient({ campaignOffer, pricing }: HomePageClien
 									Your team at the controls.
 								</h2>
 							</div>
-							<Link href='#pricing' className={buttonVariants({ variant: "secondary" })}>
+							<Link href='#pricing' className='mt-6 gap-2 font-medium text-foreground'>
 								Compare Free and Pro
+								<IconArrowRight size={18} aria-hidden='true' />
 							</Link>
 						</div>
 						<div className='space-y-16 sm:space-y-24'>
-							<article className='grid items-center gap-8 lg:grid-cols-2 lg:gap-16'>
+							<article className='grid items-start gap-8 lg:grid-cols-2 lg:gap-16'>
 								<div className='lg:order-2'>
 									<h3 className='text-xl font-semibold'>Make the break screen yours</h3>
 									<p className='mt-3 max-w-lg leading-relaxed text-muted'>Arrange clip information, timers, fonts, and colors in Theme Studio. Save different overlays for the scenes you use.</p>
@@ -182,7 +198,7 @@ export default function HomePageClient({ campaignOffer, pricing }: HomePageClien
 								</div>
 								<ProductImage view='theme' className='mx-auto w-full max-w-md lg:order-1' />
 							</article>
-							<article className='grid items-center gap-8 border-t border-border pt-12 lg:grid-cols-2 lg:gap-16 lg:pt-16'>
+							<article className='grid items-start gap-8 border-t border-border pt-12 lg:grid-cols-2 lg:gap-16 lg:pt-16'>
 								<div>
 									<h3 className='text-xl font-semibold'>Give your moderators the controls</h3>
 									<p className='mt-3 max-w-lg leading-relaxed text-muted'>Skip, pause, or mute from a second screen. Let trusted teammates help with their own accounts, chat commands, and channel points.</p>
