@@ -46,6 +46,21 @@ Public CTA measurements distinguish placements. Gallery signup preserves its
 intended dashboard destination. Prices, trials, promotions and payment fulfillment
 retain their existing rules. No generated migrations or schema changes are needed.
 
+The theme editor and playback controls use separate feature rows that accommodate
+their different proportions. Product views use rounded clipping without extra
+gray screenshot wrappers. The public support launcher stays under Clipify's
+control before and after functionality consent, with the vendor's duplicate
+launcher hidden. It moves above the privacy banner only when their horizontal
+bounds overlap.
+
+The community page now places browsing below a compact introduction, with name
+and username search, existing membership/live groups as tabs, and consistent
+creator cards. All creators appears once per account; group membership and
+existing profile/Twitch link rules remain intact. Unlisted profiles are filtered
+on the server before the browser receives directory data. Search has a reset
+action that returns focus to the field, and an empty directory has an explicit
+state. The directory uses the existing HeroUI components and Clipify themes.
+
 ## Design evidence
 
 The structural references reviewed on Mobbin were:
@@ -53,6 +68,8 @@ The structural references reviewed on Mobbin were:
 - [VEED](https://mobbin.com/sites/sections/b8cc9a0e-0fde-47d8-a726-a2a42e863c5a): concrete product output beside an explicit action.
 - [Twenty](https://mobbin.com/sites/sections/abe261e4-d901-42f1-bea3-0a806e2d0669): a prominent application view below a concise introduction.
 - [Aside](https://mobbin.com/sites/sections/de9e1a65-59c9-41f0-8c73-01df009482e1): short plan descriptions tied to differences in use.
+- [Delphi discovery](https://mobbin.com/screens/b29eb123-cbd6-4146-8e8f-e0a53cc71d3d): search and categories above people, with names on their profiles.
+- [Base44 directory](https://mobbin.com/screens/a02b2613-3fdb-4284-80c2-9b51840ef360): browsing controls above a grid of people and their actions. This supplies directory structure from another domain.
 
 These inform structure, not copied branding, assets or claims of conversion lift.
 Clipify keeps its own installed controls, screenshots, colors and typography.
@@ -131,6 +148,13 @@ admin health, Pro setup and retired checkout links. The guide analytics journey
 explicitly verified zero calls after rejection, then allowlisted event properties
 after statistics opt-in. E2E tracker transport stays disabled; this establishes
 the application event consent boundary, not third-party ingestion or retention.
+
+The community directory was also checked with isolated public and unlisted
+creator fixtures at desktop/mobile widths in both themes: deduplication, group
+tabs, case-insensitive search, empty/reset recovery with focus, profile/Twitch
+link rules, visibility exclusion and accessibility. Public support checks verify
+the same launcher bounds before and after functionality opt-in, the hidden vendor
+launcher, chat opening and placement beside a wide-screen privacy banner.
 
 Desktop and mobile screenshots were inspected in light and dark themes,
 including the first-visit privacy banner, login card and setup entry. Runtime

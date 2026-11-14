@@ -22,7 +22,7 @@ const productImages = {
 export default function ProductImage({ view, className = "" }: { view: keyof typeof productImages; className?: string }) {
 	const image = productImages[view];
 	return (
-		<picture className={`block min-w-0 overflow-hidden rounded-xl ${className}`}>
+		<picture className={`block min-w-0 overflow-hidden rounded-3xl ${className}`}>
 			{image.mobile && <source media='(max-width: 480px)' srcSet={`${image.mobile.src} 3x`} width={image.mobile.width} height={image.mobile.height} />}
 			<Image unoptimized src={image.desktop} alt={image.alt} sizes={view === "broadcast" ? "(max-width: 1024px) 100vw, 720px" : "(max-width: 767px) 100vw, (max-width: 1024px) 50vw, 768px"} loading='lazy' className='h-auto w-full' />
 		</picture>

@@ -26,7 +26,7 @@ export default function CommunityHeroAvatars({ streamers, totalCount }: Communit
 					);
 				})}
 			</div>
-			{totalCount > visibleStreamers.length ? <p className='ms-2 shrink-0 whitespace-nowrap text-sm font-medium text-white/70'>+{totalCount - visibleStreamers.length} more</p> : null}
+			{totalCount > visibleStreamers.length ? <p className='ms-2 shrink-0 whitespace-nowrap text-sm font-medium text-muted'>+{totalCount - visibleStreamers.length} more</p> : null}
 		</div>
 	);
 }

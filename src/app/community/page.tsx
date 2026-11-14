@@ -1,16 +1,11 @@
 import { socialPreview } from "@lib/socialPreview";
-import { Avatar, AvatarFallback, AvatarImage, Chip, Link } from "@components/heroui-client";
-
-import { IconBroadcast, IconBrandTwitch, IconCircleMinus, IconDiamondFilled, IconPlugConnected, IconSparkles } from "@tabler/icons-react";
-
+import { buttonVariants } from "@heroui/styles";
 import { getPublicCommunityPageDataAction } from "@actions/community";
-
 import BasicNavbar from "@components/LandingPage/basicNavbar";
+import MarketingLink from "@components/LandingPage/MarketingLink";
 import Footer from "@components/footer";
-
 import CommunityHeroAvatars from "./community-hero-avatars";
-import type { CommunityPageGroup, CommunityPageStreamer } from "@lib/community-types";
-import { getCommunityAvatarTone } from "@lib/communityAvatarTone";
+import CommunityDirectory from "./community-directory";
 
 export const metadata = {
 	title: "Community | Clipify",
@@ -18,141 +13,36 @@ export const metadata = {
 	alternates: { canonical: "https://clipify.us/community" },
 	openGraph: { ...socialPreview, title: "Community | Clipify", url: "https://clipify.us/community" },
 };
-
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-function getSectionTone(group: CommunityPageGroup) {
-	switch (group.key) {
-		case "partners":
-			return { color: "accent" as const, icon: <IconSparkles size={16} />, variant: "tertiary" as const };
-		case "pro":
-			return { color: "accent" as const, icon: <IconDiamondFilled size={16} />, variant: "primary" as const };
-		case "now_live_with_clipify":
-			return { color: "success" as const, icon: <IconPlugConnected size={16} />, variant: "tertiary" as const };
-		case "now_live":
-			return { color: "danger" as const, icon: <IconBroadcast size={16} />, variant: "tertiary" as const };
-		default:
-			return { color: "default" as const, icon: <IconCircleMinus size={16} />, variant: "tertiary" as const };
-	}
-}
-
-function StreamerRow({ streamer }: { streamer: CommunityPageStreamer }) {
-	const avatarTone = getCommunityAvatarTone(streamer);
-	const canOpenTwitch = streamer.partner || streamer.plan === "pro";
-	const badgeLabel = streamer.partner ? "Partner" : streamer.plan === "pro" ? "Pro" : "Free";
-	const badgeColor = badgeLabel === "Partner" || badgeLabel === "Pro" ? "accent" : "default";
-	const badgeVariant = badgeLabel === "Pro" ? "primary" : "tertiary";
-
-	return (
-		<div className='flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between'>
-			<div className='flex min-w-0 items-center gap-3'>
-				<Avatar role='img' aria-label={`${streamer.displayName}: ${avatarTone.label}`} color={avatarTone.color} variant='soft' className={`ring-2 ${avatarTone.ringClass}`} size='md'>
-					<AvatarImage alt='' src={streamer.avatar} />
-					<AvatarFallback>{streamer.displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
-				</Avatar>
-				<div className='min-w-0'>
-					<div className='flex flex-wrap items-center gap-2'>
-						{streamer.profileUrl ? (
-							<Link href={streamer.profileUrl} className='min-w-0 max-w-full truncate text-base font-semibold text-foreground'>
-								{streamer.displayName}
-							</Link>
-						) : (
-							<p className='truncate text-base font-semibold text-foreground'>{streamer.displayName}</p>
-						)}
-						<Chip size='sm' color={badgeColor} variant={badgeVariant}>
-							{badgeLabel}
-						</Chip>
-					</div>
-					<p className='truncate text-sm text-muted'>@{streamer.username}</p>
-				</div>
-			</div>
-
-			{canOpenTwitch ? (
-				<Link href={streamer.twitchUrl} rel='noreferrer' target='_blank' className='rounded-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-transparent text-foreground hover:bg-default/40 text-sm'>
-					Open Twitch
-					{<IconBrandTwitch size={16} />}
-				</Link>
-			) : null}
-		</div>
-	);
-}
-
-function CommunitySection({ group }: { group: CommunityPageGroup }) {
-	const tone = getSectionTone(group);
-	const streamers = group.streamers;
-
-	return (
-		<section className='border-t border-default pt-12'>
-			<div className='flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between'>
-				<div className='min-w-0'>
-					<Chip color={tone.color} variant={tone.variant}>
-						{tone.icon}
-						<span>{group.title}</span>
-					</Chip>
-					<p className='mt-3 max-w-3xl text-sm text-muted'>{group.description}</p>
-				</div>
-				<Chip color='default' className='self-start' variant='tertiary'>
-					{streamers.length} streamer{streamers.length === 1 ? "" : "s"}
-				</Chip>
-			</div>
-			<div className='mt-6 divide-y divide-border'>
-				{streamers.map((streamer) => (
-					<StreamerRow key={`${group.key}:${streamer.id}`} streamer={streamer} />
-				))}
-			</div>
-		</section>
-	);
-}
-
 export default async function CommunityPage() {
 	const { featuredStreamers, communityGroups, totalCount } = await getPublicCommunityPageDataAction();
-
 	return (
 		<div className='bg-background text-foreground'>
-			<div className='bg-gradient-to-br from-brand-800 to-brand-400 relative flex flex-col overflow-hidden text-white'>
-				<BasicNavbar />
-				<div
-					className='
-						pointer-events-none
-						absolute inset-[-20%]
-						bg-hero-vignette
-						mix-blend-multiply
-						blur-3xl
-						opacity-30
-					'
-				/>
-				<div className='mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-10 sm:py-16 sm:px-6 lg:px-8'>
-					<main className='container mx-auto flex flex-1 flex-col justify-center px-0'>
-						<section className='z-20 max-w-3xl'>
-							<div className='flex flex-col items-start gap-6'>
-								<h1 className='max-w-3xl text-[clamp(40px,10vw,64px)] font-bold leading-[1.05] tracking-tighter'>Find your next favorite creator.</h1>
-								<p className='max-w-xl text-lg leading-8 text-white/70'>Explore creators who appear in the Clipify directory and visit their channels.</p>
-								<div className='flex flex-col gap-3 sm:flex-row sm:items-center'>
-									<Link href='/login' className='h-10 w-[163px] bg-white px-[16px] py-[10px] text-sm font-medium leading-5 text-black rounded-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-accent text-accent-foreground hover:bg-accent-hover'>
-										Register now
-									</Link>
-								</div>
-								<div className='mt-[-15px]'>
-									<CommunityHeroAvatars streamers={featuredStreamers} totalCount={totalCount} />
-								</div>
-							</div>
-						</section>
-					</main>
-				</div>
-			</div>
-			<div className='w-full bg-background px-4 py-24'>
-				<div className='mx-auto flex w-full max-w-6xl flex-col'>
-					<div className='mb-6 flex flex-col items-start gap-2'>
-						<p className='max-w-2xl text-sm text-muted'>Meet creators with public Clipify profiles. You can manage your profile and community visibility in Settings.</p>
+			<BasicNavbar classNames={{ wrapper: "max-w-7xl" }} />
+			<main className='mx-auto w-full max-w-7xl px-6 pb-16 pt-10 sm:px-8 sm:pb-24 sm:pt-16'>
+				<header className='mb-8 border-b border-border pb-8 sm:mb-10 sm:pb-10'>
+					<div className='flex flex-wrap items-start justify-between gap-6'>
+						<div className='max-w-2xl'>
+							<p className='mb-3 text-sm font-medium text-muted'>The Clipify community</p>
+							<h1 className='text-4xl font-semibold leading-tight tracking-tight sm:text-5xl'>Find your next favorite creator.</h1>
+							<p className='mt-4 max-w-xl text-lg leading-relaxed text-muted'>Explore creators who appear in the Clipify directory and visit their channels.</p>
+						</div>
+						<MarketingLink href='/login' placement='community' className={buttonVariants({ variant: "primary", className: "shrink-0" })}>
+							Register now
+						</MarketingLink>
 					</div>
-					<div className='mt-4'>
-						{communityGroups.map((group) => (
-							<CommunitySection key={group.key} group={group} />
-						))}
+					<div className='mt-6 flex flex-wrap items-center gap-4'>
+						{featuredStreamers.length ? <CommunityHeroAvatars streamers={featuredStreamers} totalCount={totalCount} /> : null}
+						<p className='text-sm text-muted'>
+							{totalCount} public creator{totalCount === 1 ? "" : "s"}
+						</p>
 					</div>
-				</div>
-			</div>
+				</header>
+				<CommunityDirectory groups={communityGroups} />
+				<p className='mt-10 border-t border-border pt-6 text-sm leading-relaxed text-muted'>Meet creators with public Clipify profiles. You can manage your profile and community visibility in Settings.</p>
+			</main>
 			<Footer />
 		</div>
 	);

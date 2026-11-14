@@ -135,7 +135,7 @@ export default function HomePageClient({ campaignOffer, pricing }: HomePageClien
 						</div>
 					</section>
 
-					<section id='features' aria-labelledby='features-heading' className='scroll-mt-20 border-y border-border bg-surface-secondary/40'>
+					<section id='features' aria-labelledby='features-heading' className='scroll-mt-20 border-y border-border'>
 						<div className='mx-auto max-w-7xl px-6 py-16 sm:px-8 sm:py-24'>
 							<div className='grid items-center gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16'>
 								<div>
@@ -170,28 +170,28 @@ export default function HomePageClient({ campaignOffer, pricing }: HomePageClien
 								Compare Free and Pro
 							</Link>
 						</div>
-						<div className='grid gap-12 md:grid-cols-2'>
-							<article className='min-w-0'>
-								<div className='mb-6 bg-surface-secondary rounded-xl p-3 sm:p-6'>
-									<ProductImage view='theme' />
+						<div className='space-y-16 sm:space-y-24'>
+							<article className='grid items-center gap-8 lg:grid-cols-2 lg:gap-16'>
+								<div className='lg:order-2'>
+									<h3 className='text-xl font-semibold'>Make the break screen yours</h3>
+									<p className='mt-3 max-w-lg leading-relaxed text-muted'>Arrange clip information, timers, fonts, and colors in Theme Studio. Save different overlays for the scenes you use.</p>
+									<Link href='/features#styling' className='mt-4 gap-2'>
+										Explore scene styling
+										<IconArrowRight size={16} aria-hidden='true' />
+									</Link>
 								</div>
-								<h3 className='text-xl font-semibold'>Make the break screen yours</h3>
-								<p className='mt-3 max-w-lg leading-relaxed text-muted'>Arrange clip information, timers, fonts, and colors in Theme Studio. Save different overlays for the scenes you use.</p>
-								<Link href='/features#styling' className='mt-4 gap-2'>
-									Explore scene styling
-									<IconArrowRight size={16} aria-hidden='true' />
-								</Link>
+								<ProductImage view='theme' className='mx-auto w-full max-w-md lg:order-1' />
 							</article>
-							<article className='min-w-0'>
-								<div className='mb-6 bg-surface-secondary rounded-xl p-3 sm:p-6'>
-									<ProductImage view='controls' />
+							<article className='grid items-center gap-8 border-t border-border pt-12 lg:grid-cols-2 lg:gap-16 lg:pt-16'>
+								<div>
+									<h3 className='text-xl font-semibold'>Give your moderators the controls</h3>
+									<p className='mt-3 max-w-lg leading-relaxed text-muted'>Skip, pause, or mute from a second screen. Let trusted teammates help with their own accounts, chat commands, and channel points.</p>
+									<Link href='/features#controls' className='mt-4 gap-2'>
+										See playback controls
+										<IconArrowRight size={16} aria-hidden='true' />
+									</Link>
 								</div>
-								<h3 className='text-xl font-semibold'>Give your moderators the controls</h3>
-								<p className='mt-3 max-w-lg leading-relaxed text-muted'>Skip, pause, or mute from a second screen. Let trusted teammates help with their own accounts, chat commands, and channel points.</p>
-								<Link href='/features#controls' className='mt-4 gap-2'>
-									See playback controls
-									<IconArrowRight size={16} aria-hidden='true' />
-								</Link>
+								<ProductImage view='controls' />
 							</article>
 						</div>
 						<div className='mt-14 grid gap-6 border-t border-border pt-8 sm:grid-cols-2'>

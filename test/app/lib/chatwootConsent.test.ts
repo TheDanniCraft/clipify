@@ -10,7 +10,7 @@ describe("Chatwoot consent script", () => {
 
 		expect(chatwootConsentScript.category).toBe("functionality");
 		expect(chatwootConsentScript.src).toBe(`${CHATWOOT_BASE_URL}/packs/js/sdk.js`);
-		expect(window.chatwootSettings).toEqual(expect.objectContaining({ hideMessageBubble: false, position: "left" }));
+		expect(window.chatwootSettings).toEqual(expect.objectContaining({ hideMessageBubble: true, position: "left" }));
 		expect(run).toHaveBeenCalledWith({ websiteToken: CHATWOOT_WEBSITE_TOKEN, baseUrl: CHATWOOT_BASE_URL });
 	});
 });
