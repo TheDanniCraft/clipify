@@ -1,3 +1,5 @@
+import { notify } from "@lib/toast";
+jest.mock("@lib/toast", () => ({ notify: jest.fn() }));
 jest.mock("@heroui-pro/react", () => require("../../support/mcp/heroui-fixture").proComponents, { virtual: true });
 jest.mock("@heroui/react", () => require("./ai-apps-heroui-fixture").components);
 import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
@@ -30,7 +32,7 @@ describe("TDD-US1-020/024 connected apps UI", () => {
 		(getConnectedMcpApps as jest.Mock).mockResolvedValue({ connections: [{ ...connection, active: false, revokedAt: "2026-10-04T01:00:00Z" }] });
 		fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
 		await waitFor(() => expect(revokeConnectedMcpApp).toHaveBeenCalledWith("first"));
-		expect(await screen.findByRole("status")).toHaveTextContent("The app is disconnected");
+		await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringContaining("The app is disconnected"), color: "success" })));
 		expect(screen.queryByText("My custom AI")).not.toBeInTheDocument();
 		fireEvent.click(screen.getByRole("button", { name: "Show inactive (1)" }));
 		expect(screen.getByText("Disconnected")).toBeVisible();
@@ -42,7 +44,7 @@ describe("TDD-US1-020/024 connected apps UI", () => {
 		(revokeConnectedMcpApp as jest.Mock).mockResolvedValue({ error: "The app could not be disconnected. Try again." });
 		fireEvent.click(screen.getByRole("button", { name: "Disconnect My custom AI" }));
 		fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent("The app could not be disconnected");
+		await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringContaining("The app could not be disconnected"), color: "danger" })));
 		expect(screen.getByText("Active")).toBeVisible();
 	});
 	test("cancel leaves authority unchanged and never calls revoke", async () => {
@@ -61,11 +63,11 @@ describe("TDD-US1-020/024 connected apps UI", () => {
 		(getConnectedMcpApps as jest.Mock).mockResolvedValue({ connections: [], error: "Refresh failed" });
 		fireEvent.click(screen.getByRole("button", { name: "Disconnect My custom AI" }));
 		fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
-		expect(await screen.findByRole("status")).toHaveTextContent("The app is disconnected");
+		await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringContaining("The app is disconnected"), color: "success" })));
 		expect(screen.queryByText("My custom AI")).not.toBeInTheDocument();
 		fireEvent.click(screen.getByRole("button", { name: "Show inactive (1)" }));
 		expect(screen.getByText("Disconnected")).toBeVisible();
-		expect(screen.getByRole("status")).toHaveTextContent("The app is disconnected");
+		expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringContaining("The app is disconnected"), color: "success" }));
 		expect(screen.queryByText("Active")).not.toBeInTheDocument();
 		expect(screen.queryByRole("button", { name: "Retry cleanup for My custom AI" })).not.toBeInTheDocument();
 	});
@@ -75,7 +77,7 @@ describe("TDD-US1-020/024 connected apps UI", () => {
 		(revokeConnectedMcpApp as jest.Mock).mockRejectedValue(new Error("network unavailable"));
 		fireEvent.click(screen.getByRole("button", { name: "Disconnect My custom AI" }));
 		fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent("The app could not be disconnected");
+		await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringContaining("The app could not be disconnected"), color: "danger" })));
 		expect(screen.getByText("Active")).toBeVisible();
 	});
 	test("empty connected-app response shows the onboarding empty state", async () => {
@@ -88,7 +90,7 @@ describe("TDD-US1-020/024 connected apps UI", () => {
 	test("rejected initial load shows safe feedback and ends loading", async () => {
 		(getConnectedMcpApps as jest.Mock).mockRejectedValue(new Error("private network details"));
 		render(<Panel />);
-		expect(await screen.findByRole("alert")).toHaveTextContent("Connected apps could not be loaded. Try again.");
+		await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringContaining("Connected apps could not be loaded. Try again."), color: "danger" })));
 		expect(screen.queryByText("Loading connected apps…")).not.toBeInTheDocument();
 		expect(screen.queryByText("private network details")).not.toBeInTheDocument();
 	});
@@ -106,7 +108,7 @@ describe("TDD-US1-020/024 connected apps UI", () => {
 		await screen.findByText("My custom AI");
 		fireEvent.click(screen.getByRole("button", { name: "Disconnect My custom AI" }));
 		fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent("The app could not be disconnected. Try again.");
+		await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringContaining("The app could not be disconnected. Try again."), color: "danger" })));
 		expect(screen.getByText("Active")).toBeVisible();
 	});
 	test("a load resolving after unmount does not render stale app data", async () => {
@@ -173,7 +175,7 @@ test("failed purge keeps its modal and connection records available", async () =
 	render(<Panel />);
 	fireEvent.click(await screen.findByRole("button", { name: "Purge all inactive" }));
 	fireEvent.click(screen.getByRole("button", { name: "Confirm purge" }));
-	expect(await screen.findByRole("alert")).toHaveTextContent("Inactive connections could not be purged");
+	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringContaining("Inactive connections could not be purged"), color: "danger" })));
 	expect(screen.getByRole("dialog")).toBeVisible();
 	expect(screen.getByRole("button", { name: "Show inactive (1)" })).toBeInTheDocument();
 });
@@ -195,7 +197,7 @@ test.each([{ error: "Cleanup unavailable" }, {}])("unsuccessful purge acknowledg
 	render(<Panel />);
 	fireEvent.click(await screen.findByRole("button", { name: "Purge all inactive" }));
 	fireEvent.click(screen.getByRole("button", { name: "Confirm purge" }));
-	expect(await screen.findByRole("alert")).toHaveTextContent(result.error ?? "Inactive connections could not be purged");
+	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringContaining(result.error ?? "Inactive connections could not be purged"), color: "danger" })));
 	expect(screen.getByRole("dialog")).toBeVisible();
 });
 test("purging an inspected inactive connection closes its details while preserving another connection", async () => {

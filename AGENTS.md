@@ -170,10 +170,13 @@ Add advanced Runner ingest settings
 - The `Generate Migrations` workflow owns ordinary migration generation after a
   completed pull request lands on `master`. It generates one migration from the
   final schema diff.
-- Development and preview databases are synchronized only by an explicit
-  operator-run `bun run db:push` through Infisical. Preview container startup
-  must never run `drizzle-kit push`, `drizzle-kit migrate`, or any equivalent
-  automatic schema mutation.
+- `bun run db:push` is configured to use Infisical `dev`. The user authorizes
+  agents to run this command against that development database without asking
+  again. Inspect the diff and preserve existing data. This authorization does not
+  extend to other database environments or manual/custom SQL migration files.
+- Other preview database targets require an explicit operator-run schema sync.
+  Preview container startup must never run `drizzle-kit push`,
+  `drizzle-kit migrate`, or any equivalent automatic schema mutation.
 - Production releases apply the generated migrations committed after merge.
   Never use `db:push` against production, and never use production migrations
   to synchronize a feature branch's preview database before those migrations
@@ -213,3 +216,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Format browser-visible dates through the shared LocalizedDate component and dateFormat utilities, using the user's browser locale consistently with HeroUI date pickers. Preserve date-only calendar days and explicit saved timezones. Keep ISO values for storage, APIs and form transport; do not hard-code US/UK display formats.
 - Return expected validation, plan restrictions, conflicts and missing prerequisites as typed action results with local actionable feedback. Do not report ordinary user denials as Sentry incidents. Internal transaction rollback exceptions must be translated at the action/API boundary.
 - Acceptance for a changed user flow includes real installed components in a browser: first-run setup, success and failure recovery, permissions/upgrade behavior, keyboard/focus, and desktop/mobile layout. Inspect screenshots against the existing Clipify design in both themes. Mocked component tests, screenshot capture alone, and a no-overflow assertion do not establish acceptable UX.
+
+## Mobbin references
+
+- Before designing or changing a product page or material user flow, use the connected Mobbin MCP to find relevant screen/flow references. Apply its search skills and record useful references and the interaction decisions they inform. Search comparable patterns when no Awards-specific reference exists; report missing references honestly. Reuse Clipify and installed HeroUI conventions when applying them. This is a design research step, not permission to expand feature scope.

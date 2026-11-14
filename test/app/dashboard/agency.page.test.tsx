@@ -1,3 +1,4 @@
+jest.mock("@lib/toast", () => ({ notify: jest.fn() }));
 import { render, screen } from "@testing-library/react";
 const identity = jest.fn();
 const overview = jest.fn();

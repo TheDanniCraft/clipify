@@ -1,7 +1,9 @@
+import { eventToolPermissions } from "./events/schemas";
 import { workflowPermissions } from "./workflows/catalogue";
 import type { Permission } from "@/auth/permissions";
 import type { ToolName } from "./schemas";
 export const toolPermissions = {
+	...eventToolPermissions,
 	...workflowPermissions,
 	get_overlay_link: "overlay-secret:read",
 	get_gallery_source: "gallery:read",

@@ -5,6 +5,7 @@ import { toolInputSchemas } from "@/server/mcp/schemas";
 export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<typeof createMcpPostgresFixture>>; auth: any; origin: string; token: string; actorId: string; mode: string }) {
 	const { fixture, auth, origin, token, actorId, mode } = input;
 	const [, , name, variant = "success"] = mode.split(":");
+	if (name === "awards") return (await import("./events-probe")).runEventProbe(input);
 	if (
 		name === "runner_free_pro" &&
 		(variant.startsWith("occupied_") ||

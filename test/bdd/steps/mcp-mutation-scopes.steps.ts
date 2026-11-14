@@ -9,14 +9,14 @@ Given("the valid token lacks {string} for {string}", async ({}, permission: stri
 });
 
 let readResult: any;
-const isRead = () => selected.name.startsWith("list_") || selected.name.startsWith("get_");
+const isRead = () => selected.name !== "get_event_preview" && (selected.name.startsWith("list_") || selected.name.startsWith("get_"));
 When("the authenticated client attempts the affected operation without its scope", async () => {
 	if (isRead()) readResult ??= flowProbe("catalogue:read-scopes");
 	else result ??= flowProbe("catalogue:mutation-scopes");
 });
 Then("the missing scope is rejected before inputs or resources are processed", async () => {
 	const current = isRead() ? readResult : result;
-	expect(current.outcomes).toHaveLength(isRead() ? 6 : 9);
+	expect(current.outcomes).toHaveLength(isRead() ? 7 : 16);
 	expect(current.outcomes.find((row: any) => row.name === selected.name)).toEqual({
 		...selected,
 		status: 403,

@@ -7,7 +7,6 @@ import { redirect } from "next/navigation";
 import { readCheckoutIntent } from "@/server/checkoutIntent";
 import { legalDocumentRoutes } from "@lib/legal/documents";
 import LoginClient from "./LoginClient";
-import { getAuthSession } from "@/auth/session";
 import { safeReturnPath } from "@/auth/return-url";
 
 export const metadata: Metadata = {
@@ -29,8 +28,8 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
 	// The OAuth provider resumes its signed request after sign-in. A login prompt
 	// can deliberately require reauthentication even when a session exists.
 	const returnDestination = oauthAuthorization ? "" : checkoutIntent ? "/checkout/continue" : ru;
-	const [session, loggedInUser] = await Promise.all([process.env.E2E_TEST_MODE === "true" ? null : getAuthSession(), validateAuth()]);
-	if (!oauthAuthorization && (session || loggedInUser)) {
+	const loggedInUser = await validateAuth();
+	if (!oauthAuthorization && loggedInUser) {
 		redirect(returnDestination || "/dashboard");
 	}
 

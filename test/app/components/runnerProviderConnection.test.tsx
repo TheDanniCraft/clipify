@@ -1,3 +1,5 @@
+import { notify } from "@lib/toast";
+jest.mock("@lib/toast", () => ({ notify: jest.fn() }));
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { connectRunnerStreamingProvider, disconnectRunnerStreamingProvider, getRunnerStreamingConnections, getRunnerYoutubeStreams, listRunnerDestinations, startRunnerConnectionTest } from "@/app/actions/runner";
 import RunnerDestinations from "@/app/components/runnerDestinations";
@@ -39,7 +41,7 @@ test("PC-5 cancelling a failed connection test clears its error from the destina
 	fireEvent.click(await screen.findByRole("button", { name: "Edit Main Twitch" }));
 	fireEvent.click(await screen.findByRole("button", { name: "Test connection" }));
 	fireEvent.click(screen.getByRole("button", { name: "Start test" }));
-	expect(await screen.findByRole("alert")).toHaveTextContent("Stop your broadcasts");
+	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringContaining("Stop your broadcasts"), color: "danger" })));
 	fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 	expect(await screen.findByRole("button", { name: "Save destination" })).toBeVisible();
 	expect(screen.queryByRole("alert")).not.toBeInTheDocument();
@@ -65,7 +67,7 @@ test("PC-1/6 one contextual connection action preserves the draft after a config
 		fireEvent.click(await screen.findByRole("button", { name: "Add destination" }));
 		fireEvent.change(screen.getByRole("textbox"), { target: { value: "Draft channel" } });
 		fireEvent.click(await screen.findByRole("button", { name: "Connect Twitch" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent("You can enter a stream key instead.");
+		await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringContaining("You can enter a stream key instead."), color: "danger" })));
 		expect(screen.getByRole("textbox")).toHaveValue("Draft channel");
 		expect(close).toHaveBeenCalledTimes(1);
 		expect(connectRunnerStreamingProvider).toHaveBeenCalledWith({ ownerId: "owner", provider: "twitch" });

@@ -6,13 +6,12 @@ import { APIError, createAuthMiddleware, getSessionFromCtx, getOAuthState } from
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { emailOTP, magicLink, oAuthProxy, organization } from "better-auth/plugins";
 import { genericOAuth } from "better-auth/plugins/generic-oauth";
-import { eventGoogleProviders } from "./google-connections";
+import { eventGoogleProviders, eventGoogleProviderIds } from "./google-connections";
 import { and, eq, gt, inArray } from "drizzle-orm";
 import { creatorIdentityLinksTable, usersTable } from "@/db/schema";
 import { passkey } from "@better-auth/passkey";
 import { db } from "@/db/client";
 import * as schema from "@/db/auth-schema";
-import { TWITCH_ADDITIONAL_SCOPES } from "./providers/twitch";
 import { refreshTwitchAccessToken } from "./providers/twitch-refresh";
 import { betterAuthOrganizationRoles, clipifyAccessControl } from "./organization-access";
 import { EMAIL_OTP_POLICY } from "./credential-policy";
@@ -39,6 +38,34 @@ async function recordRunnerAccount(account: { id: string; userId: string; provid
 	return true;
 }
 
+async function recordEventAccount(account: { id: string; userId: string; providerId: string; scope?: string | null }, path?: string) {
+	if (!Object.values(eventGoogleProviderIds).some((provider) => provider === account.providerId) || !path?.startsWith("/callback/")) return false;
+	const state = await getOAuthState();
+	if (state?.link?.userId !== account.userId || typeof state.eventConnectionIntent !== "string") return false;
+	const { recordEventGoogleAccount } = await import("@/server/events/connections");
+	const { EventError } = await import("@/server/events/persistence");
+	const { ProviderRequestError } = await import("@/server/runner/provider-api");
+	try {
+		await recordEventGoogleAccount(account, state.eventConnectionIntent);
+	} catch (error) {
+		if (!(error instanceof EventError) && !(error instanceof ProviderRequestError)) throw error;
+	}
+	return true;
+}
+
+// The verified OAuth state may only reduce onboarding privileges for event viewers.
+async function isEventParticipation(path?: string) {
+	if (!path?.startsWith("/callback/")) return false;
+	const state = await getOAuthState();
+	if (typeof state?.eventParticipation !== "string" || !/^[0-9a-f-]{36}$/i.test(state.eventParticipation) || state.link) return false;
+	try {
+		const callback = new URL(state.callbackURL);
+		return callback.origin === resolveBaseUrl().origin && callback.pathname === `/events/${state.eventParticipation}`;
+	} catch {
+		return false;
+	}
+}
+
 const resolvedBaseUrl = resolveBaseUrl();
 const baseURL = resolvedBaseUrl.origin;
 const productionURL = "https://clipify.us";
@@ -61,7 +88,6 @@ export const auth = betterAuth({
 		twitch: {
 			clientId: requiredAuthSetting("TWITCH_CLIENT_ID"),
 			clientSecret: requiredAuthSetting("TWITCH_CLIENT_SECRET"),
-			scope: TWITCH_ADDITIONAL_SCOPES,
 			refreshAccessToken: refreshTwitchAccessToken,
 			requireEmailVerification: true,
 		},
@@ -120,7 +146,9 @@ export const auth = betterAuth({
 		account: {
 			create: {
 				after: async (account, context) => {
+					if (await recordEventAccount(account, context?.path)) return;
 					const runnerConnection = await recordRunnerAccount(account, context?.path);
+					if (await isEventParticipation(context?.path)) return;
 					if (account.providerId === "twitch" && !runnerConnection) {
 						const { completeTwitchSignIn } = await import("@/server/creator-onboarding");
 						await completeTwitchSignIn(account.accountId, account.userId);
@@ -140,7 +168,9 @@ export const auth = betterAuth({
 					return { data: { ...account, ...preserved } };
 				},
 				after: async (account, context) => {
+					if (await recordEventAccount(account, context?.path)) return;
 					const runnerConnection = await recordRunnerAccount(account, context?.path);
+					if (await isEventParticipation(context?.path)) return;
 					if (!runnerConnection && account.providerId === "twitch" && (context?.path === "/callback/twitch" || (context?.path === "/callback/:id" && context.params?.id === "twitch"))) {
 						const { completeTwitchSignIn } = await import("@/server/creator-onboarding");
 						await completeTwitchSignIn(account.accountId, account.userId);
@@ -157,12 +187,15 @@ export const auth = betterAuth({
 				after: async (account) => {
 					const { disconnectStreamingConnectionsForAuthAccount } = await import("@/server/runner/provider-connections");
 					await disconnectStreamingConnectionsForAuthAccount({ id: account.id, userId: account.userId });
+					const { disconnectEventConnectionsForAuthAccount } = await import("@/server/events/connections");
+					await disconnectEventConnectionsForAuthAccount(account.id, account.userId);
 				},
 			},
 		},
 		user: {
 			create: {
-				after: async (user) => {
+				after: async (user, context) => {
+					if (await isEventParticipation(context?.path)) return;
 					await queueIdentityEmail(user.email, { type: "welcome", name: user.name }, `welcome:${user.id}`);
 				},
 			},

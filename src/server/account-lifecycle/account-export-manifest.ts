@@ -6,6 +6,13 @@ import * as authSchema from "@/db/auth-schema";
 
 // Every schema table must have an ownership-scoped dataset or an explicit reason.
 export const accountExportCoverage: Record<string, { paths: string[] } | { excluded: string }> = {
+	"public.award_events": { paths: ["events.events"] },
+	"public.award_candidates": { paths: ["events.candidates"] },
+	"public.award_submissions": { paths: ["events.submissions"] },
+	"public.award_votes": { paths: ["events.votes"] },
+	"public.award_assets": { paths: ["events.assets", "events.personalUploads"] },
+	"public.event_connections": { paths: ["events.connections", "events.storageCredentials"] },
+	"public.event_connection_intents": { paths: ["events.connectionIntents"] },
 	"public.account_deletion_requests": { paths: ["accountLifecycle.deletionRequests"] },
 	"public.admin_impersonation_sessions": { paths: ["accountActivity.impersonationSessions"] },
 	"public.agency_accounts": { paths: ["ownedAgencies.accounts"] },
@@ -122,6 +129,9 @@ export function createAccountExportManifest(data: Record<string, unknown>, locat
 const sensitiveSources: Record<string, string> = {
 	"external.support": "conversations[].messages[].attachments[].data_url, conversations[].messages[].attachments[].thumb_url",
 	"identity.providerAccounts": "accessToken, refreshToken, idToken, password",
+	"events.connections": "encryptedConfiguration",
+	"events.storageCredentials": "storedEncryptedValue, value",
+	"events.connectionIntents": "digest",
 	"identity.sessions": "token",
 	"identity.passkeys": "credentialID, publicKey",
 	"content.overlays": "secret",

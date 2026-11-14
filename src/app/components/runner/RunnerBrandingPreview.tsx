@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@lib/toast";
 import { useDeploymentDraft } from "@lib/deploymentDrafts";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -32,8 +33,9 @@ export default function RunnerBrandingPreview({ ownerId, runnerId, overlayId, re
 	const runnerPro = loadedRunnerPro && (sharedRunnerPro ?? true);
 	const [showAttribution, setShowAttribution] = useState(false);
 	const [saving, setSaving] = useState(false);
-	const [error, setError] = useState<string | null>(null);
-	const [notice, setNotice] = useState<string | null>(null);
+	const setError = useCallback((title?: string | null) => {
+		if (title) notify({ title, color: "danger" });
+	}, []);
 	useEffect(() => {
 		let current = true;
 		void getRunnerBrandingProfile(ownerId, runnerId)
@@ -57,7 +59,7 @@ export default function RunnerBrandingPreview({ ownerId, runnerId, overlayId, re
 		return () => {
 			current = false;
 		};
-	}, [ownerId, runnerId]);
+	}, [ownerId, runnerId, setError]);
 	const draft = { watermarkCorner: corner, proShowAttribution: showAttribution, standbyBackgroundColor, backgroundAssetId, logoAssetId, message, showNextBroadcastTime, previewMode };
 	useDeploymentDraft(
 		profile ? `runner-appearance:${ownerId}:${runnerId}` : null,
@@ -103,8 +105,7 @@ export default function RunnerBrandingPreview({ ownerId, runnerId, overlayId, re
 			return;
 		}
 		setUploading(true);
-		setError(null);
-		setNotice(null);
+
 		try {
 			const response = await fetch(`/api/runner/branding-assets?ownerId=${encodeURIComponent(ownerId)}&runnerId=${runnerId}&kind=${kind}`, { method: "POST", credentials: "same-origin", body: file });
 			const result = await response.json();
@@ -127,8 +128,7 @@ export default function RunnerBrandingPreview({ ownerId, runnerId, overlayId, re
 	async function save() {
 		if (!profile || saving || uploading) return;
 		setSaving(true);
-		setError(null);
-		setNotice(null);
+
 		try {
 			let ready = false;
 			for (let attempt = 0; attempt < 50; attempt++) {
@@ -160,7 +160,7 @@ export default function RunnerBrandingPreview({ ownerId, runnerId, overlayId, re
 				return;
 			}
 			setProfile(result.profile);
-			setNotice("Appearance saved");
+			notify({ title: "Appearance saved", color: "success" });
 		} catch {
 			setError("Could not save appearance. Please try again.");
 		} finally {
@@ -172,12 +172,6 @@ export default function RunnerBrandingPreview({ ownerId, runnerId, overlayId, re
 			<div className='space-y-5 px-6 sm:px-0'>
 				<h3 className='text-lg font-semibold'>Standby and branding</h3>
 				<p className='text-sm text-muted'>Choose where Clipify attribution appears on generated content.</p>
-
-				{error && (
-					<p role='alert' className='text-sm text-danger'>
-						{error}
-					</p>
-				)}
 				{runnerPro && (
 					<StandbyEditor
 						logoUrl={logoAssetId ? `/runner/preview/${runnerId}/assets/${logoAssetId}?kind=logo` : undefined}
@@ -208,7 +202,6 @@ export default function RunnerBrandingPreview({ ownerId, runnerId, overlayId, re
 					value={corner}
 					onChange={(value) => {
 						setCorner(value as Profile["watermarkCorner"]);
-						setNotice(null);
 					}}
 					variant='secondary'
 					isDisabled={!profile || saving || uploading}
@@ -235,11 +228,6 @@ export default function RunnerBrandingPreview({ ownerId, runnerId, overlayId, re
 				<Button onPress={() => void save()} isDisabled={!profile || !overlayId || saving || uploading}>
 					Save appearance
 				</Button>
-				{notice && (
-					<p role='status' className='text-sm text-success'>
-						{notice}
-					</p>
-				)}
 			</div>
 			<div className='space-y-4 xl:sticky xl:top-0 xl:self-start'>
 				{profile && overlayId && (

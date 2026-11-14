@@ -1,0 +1,131 @@
+{
+	"title": "Clipify Google OAuth incident and research export",
+	"date": "2026-11-09",
+	"privacy": "Sanitized research evidence. Google session URLs, part/rapt/state values, cookies, authorization codes, access tokens and client secrets are deliberately excluded. No original audio recording is available in this workspace.",
+	"verified_facts": [
+		"User screenshots show verified branding and verified data access for the Clipify Google Cloud project.",
+		"youtube.force-ssl has an explicit green approval mark. drive.file appears under non-sensitive scopes.",
+		"The Event YouTube connection requests youtube.readonly, which is absent from the shown Console scope list.",
+		"The Google consent text supplied by the user says YouTube-Konto abrufen, matching the documented youtube.readonly description.",
+		"Google rejects a combined authorization with drive.file and youtube.force-ssl as invalid_request.",
+		"Production and preview use the same Google client. The client ID from the user warning matches the public production OAuth initiation response.",
+		"The production initiation response for the Runner scope includes email profile openid youtube.force-ssl and include_granted_scopes=true.",
+		"Better Auth enables include_granted_scopes by default; both Runner and Event flows also explicitly set it true.",
+		"The Event completion route incorrectly used request.url origin. Four regression cases reproduced internal 0.0.0.0 redirects; resolveBaseUrl fixes them. A real HTTP/browser test with an internal Host header passes.",
+		"Both Runner and Events use Better Auth account linking and the same registered Google callback at https://clipify.us/api/auth/callback/google. Their completion pages are internal application returns.",
+		"Before this repair, stored Google credentials were shared by linked Better Auth account references. Simply replacing the scope/token can break another feature; credentials must be preserved during repair.",
+		"MCP approval has separately failed with both CIMD and DCR. The preview MCP endpoint is reachable and advertises its correct authorization server. No live root cause for approval is yet established."
+	],
+	"not_established": [
+		"Whether every production user sees the warning, or only accounts with preview authorization history.",
+		"The effective merged scope set in the user-specific Google warning. The supplied warning URLs do not expose a readable scope parameter.",
+		"Whether Google configuration propagation contributes. No documented propagation deadline has been established.",
+		"A causal connection between the CMS PocketBase timeouts and the Google/MCP failures. CMS errors are not treated as the OAuth root cause."
+	],
+	"research_questions": [
+		"Does verification of youtube.force-ssl cover separately requesting youtube.readonly? Verify against official scope migration and app verification guidance.",
+		"How does include_granted_scopes merge grants across clients/environments in the same Google project?",
+		"How can Drive and YouTube grants and refresh tokens remain independent without invalidating existing Runner connections?",
+		"Which exact Console changes are needed for the chosen narrow-scope design, and is a new verification video necessary?",
+		"How can the existing Better Auth account-linking and OAuth proxy be reused while avoiding container-origin redirects and cross-feature token replacement?"
+	],
+	"sources": [
+		{
+			"url": "https://support.google.com/cloud/answer/13807380?hl=en",
+			"supports": "Narrower scopes must match the verification submission; migration guidance retains approved production scopes until new approval."
+		},
+		{
+			"url": "https://support.google.com/cloud/answer/15549135?hl=en",
+			"supports": "Scope registration and new sensitive scope approval; user warnings when new sensitive scopes are requested before approval."
+		},
+		{
+			"url": "https://developers.google.com/identity/protocols/oauth2/web-server#incrementalAuth",
+			"supports": "Combined grants can include previously granted scopes across clients in one project and cause warnings/errors."
+		},
+		{
+			"url": "https://developers.google.com/workspace/drive/api/guides/api-specific-auth",
+			"supports": "drive.file is non-sensitive and grants per-file/app-created-file access."
+		},
+		{
+			"url": "https://developers.google.com/youtube/data/guides/authentication#api-scopes",
+			"supports": "Distinct descriptions for youtube.readonly and youtube.force-ssl."
+		}
+	],
+	"ci_findings": {
+		"run": 42698250565,
+		"failed_owners": ["capabilities.test.ts: old tool count", "client-profiles.test.ts: old tool count", "feedback-contract.test.ts: missing operation labels", "mcp-custom-sdk.steps.ts: old tool count", "mcp-sdk-browser.steps.ts: old tool count"],
+		"thresholds_changed": false,
+		"followup_run": 42716924934,
+		"followup_failure": "BDD mutation scope owner still expected 14 privileged outcomes after the two tools were added; the probe returned 16. Added both explicit scenarios and classified get_event_preview by its event:update permission rather than its get_ prefix."
+	},
+	"constraints": ["No diagnostic instrumentation or diagnostic redeploy.", "No emails or support messages to Google.", "No OAuth token revocation or broadening Drive permissions.", "No manual/generated SQL migrations.", "Do not claim the live user flow is fixed until it is exercised."],
+	"findings": [
+		{
+			"issue": "Unverified-app warning",
+			"status": "Specific scope mismatch established; exact effective merged scope set not visible in supplied session URLs",
+			"evidence": "Event code requests youtube.readonly. User Console screenshots approve youtube.force-ssl and omit youtube.readonly. User consent text matches youtube.readonly.",
+			"explanation": "Google verification is scope-specific. A previously approved broader scope does not automatically approve a newly requested narrower scope. Adding drive.file alone is not established as the cause."
+		},
+		{
+			"issue": "Scopes cannot be requested together",
+			"status": "Google rejection observed; merging path established in application configuration",
+			"evidence": "User supplied the exact drive.file + youtube.force-ssl invalid_request. Both Event and Runner calls enable include_granted_scopes and the installed Google provider also defaults it on.",
+			"explanation": "Google documents merging earlier grants within one project, including across clients. This can introduce scopes absent from the current explicit request. Credential isolation must accompany disabling this behavior because features currently reference one Better Auth account token."
+		},
+		{
+			"issue": "Internal container redirect",
+			"status": "Fixed and locally browser-verified",
+			"explanation": "Event completion now uses existing resolveBaseUrl, including error and unauthenticated returns, instead of request.url origin."
+		},
+		{
+			"issue": "Red CI",
+			"status": "Exact failing callers corrected; affected local owners passed; new-head full CI still required",
+			"explanation": "All stale discovery counts updated from 92 to 94 and two missing public activity labels added. 18 whole-file tests and 4 SDK transport/browser journeys pass."
+		},
+		{
+			"issue": "Preview MCP approval",
+			"status": "Still unresolved live",
+			"explanation": "Real isolated OAuth/SDK browser journeys pass. This does not establish that the user-specific deployed approval works. No new diagnostic instrumentation was added."
+		}
+	],
+	"manual_console_steps": [
+		"Keep the approved youtube.force-ssl scope; do not remove it or revoke existing users.",
+		"For the current Event OAuth channel-selection design: Google Auth Platform > Data Access > Add or remove scopes > add https://www.googleapis.com/auth/youtube.readonly > Update.",
+		"Check Verification Center for the new scope. Submit the new sensitive scope for review through Console if requested. Existing approval is not a substitute for approval of this scope.",
+		"Use a demo video showing the Event YouTube connect consent and selected channel/video use if the review requires it. Whether an existing video suffices cannot be established from the screenshots. No need is established to redo approval of the already approved Runner scope.",
+		"Keep drive.file as the narrow per-file Drive permission. Do not add full Drive access.",
+		"Keep https://clipify.us/api/auth/callback/google and add only the stable production callback URIs listed in implementation_update. Do not add preview-specific Google redirect URIs. Deploy PR #561 before exercising the new provider links through the preview proxy."
+	],
+	"suggested_readonly_justification": "Clipify lets signed-in creators connect their own YouTube channel for community award events. We use youtube.readonly to identify the channel selected during Google authorization and retrieve its video titles, thumbnails, publication dates and view counts for creator-scoped nominations and data awards. Users can preview these videos during their award presentation. This feature does not upload, edit or delete videos. Basic profile scopes do not identify the selected YouTube channel or authorize channels.list with mine=true. We request this permission only when the creator connects YouTube.",
+	"verification": {
+		"whole_file_tests": 18,
+		"independent_sdk_scenarios": 2,
+		"real_browser_sdk_scenarios": 2,
+		"redirect_unit_tests": 4,
+		"redirect_browser_cases": 1,
+		"static_checks": "Affected lint, formatting, build and TypeScript passed",
+		"full_new_head_ci": "Not yet completed",
+		"first_browser_attempt": "Missing disposable runtime database; two real-browser fixtures failed before scenarios. Correct documented database setup yielded both passing."
+	},
+	"implementation_update": {
+		"prerequisite_pr": "https://github.com/TheDanniCraft/clipify/pull/561",
+		"event_pr": "https://github.com/TheDanniCraft/clipify/pull/560",
+		"account_namespaces": {
+			"google": "Runner youtube.force-ssl",
+			"google-drive": "Event drive.file",
+			"google-events-youtube": "Event youtube.readonly"
+		},
+		"oauth_owner": "Better Auth Generic OAuth and existing built-in Google provider; standard callbacks, OAuth proxy, state, PKCE, OIDC verification, encrypted accounts and refresh. No custom callback/token-exchange handler.",
+		"browser_start": "Event server action only authorizes the selected creator/session and issues a connection intent; authClient.linkSocial owns browser authorization and redirect.",
+		"grant_merging": "Disabled for Runner and both Event providers. All three native integration-test authorization URLs contain only the feature permission plus identity scopes.",
+		"proxy": "No bypass header. Production must register the two new provider IDs before it can exchange their callback codes and forward the encrypted result to preview.",
+		"google_console_redirect_uris_to_add": ["https://clipify.us/api/auth/callback/google-drive", "https://clipify.us/api/auth/callback/google-events-youtube"],
+		"do_not_add_preview_google_redirect_uris": true,
+		"correction": "An earlier request to add preview URIs and a local bypass approach were withdrawn. Neither is part of the final implementation.",
+		"reauthentication": "Reproduced production and preview Google sign-in replacing Runner access with login-only-access. Extended the existing Twitch preservation hook to Google and verified Runner access remains usable.",
+		"unlinking": "Separate Event links unlink locally through Better Auth; removing a link with known Google siblings does not revoke the project-wide grant.",
+		"legacy_connections": "Old Event connections pointing to shared google credentials are shown as disconnected and require reconnecting. Existing Runner credentials are retained.",
+		"native_validation": "41 affected whole-file checks pass on the Event branch. The minimal production registration branch passes its 7 affected checks and TypeScript/lint/format.",
+		"transient_error_limit": "The screenshot establishes a genuine Clipify global error before Google. Ordinary local browser runs did not reproduce the original crash and the Sentry reference was not found; removing OAuth cookie writes from the Server Action addresses that rerender boundary. Final browser and live status are recorded separately."
+	}
+}

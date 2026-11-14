@@ -368,3 +368,16 @@ describe("app/eventsub route", () => {
 		expect(unknownRes.status).toBe(200);
 	});
 });
+
+it("relays only signature-verified chat into an active award show", async () => {
+	const { POST } = await loadRoute("secret");
+	const { activateAwardChat, readAwardChat } = await import("@/server/events/chat-buffer");
+	activateAwardChat("award-host");
+	const body = JSON.stringify({ subscription: { type: "channel.chat.message" }, event: { broadcaster_user_id: "award-host", message_id: "award-message", chatter_user_login: "viewer", chatter_user_name: "Viewer", color: "", message: { text: "Great clip", fragments: [{ type: "text", text: "Great clip" }] }, badges: [] } });
+	const invalid = createSignedRequest("wrong-secret", "notification", body);
+	expect((await POST(invalid as never)).status).toBe(403);
+	expect(readAwardChat("award-host")).toEqual([]);
+	expect((await POST(createSignedRequest("secret", "notification", body) as never)).status).toBe(204);
+	expect(readAwardChat("award-host")).toMatchObject([{ text: "Great clip" }]);
+	await runAfterCallbacks();
+});

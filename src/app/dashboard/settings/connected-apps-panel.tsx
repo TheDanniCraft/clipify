@@ -1,7 +1,8 @@
 "use client";
+import { notify } from "@lib/toast";
 import LocalizedDate from "@components/localizedDate";
-import { useEffect, useState } from "react";
-import { Accordion, Alert, Button, Card, Chip, Link, Modal, Spinner, Table } from "@heroui/react";
+import { useCallback, useEffect, useState } from "react";
+import { Accordion, Button, Card, Chip, Link, Modal, Spinner, Table } from "@heroui/react";
 import ConfirmModal from "@components/confirmModal";
 import { EmptyState } from "@heroui-pro/react";
 import { IconExternalLink, IconShieldCheck } from "@tabler/icons-react";
@@ -27,8 +28,9 @@ export default function ConnectedAppsPanel() {
 	const [loading, setLoading] = useState(true);
 	const [pending, setPending] = useState<string | null>(null);
 	const [confirmation, setConfirmation] = useState<string | null>(null);
-	const [error, setError] = useState<string>();
-	const [notice, setNotice] = useState<string>();
+	const setError = useCallback((title?: string | null) => {
+		if (title) notify({ title, color: "danger" });
+	}, []);
 	useEffect(() => {
 		let active = true;
 		void getConnectedMcpApps()
@@ -48,11 +50,11 @@ export default function ConnectedAppsPanel() {
 		return () => {
 			active = false;
 		};
-	}, []);
+	}, [setError]);
 	async function revoke(id: string) {
 		setPending(id);
 		setError(undefined);
-		setNotice(undefined);
+
 		try {
 			const result = await revokeConnectedMcpApp(id);
 			if (result.error || !result.revoked) {
@@ -61,7 +63,7 @@ export default function ConnectedAppsPanel() {
 			}
 			setConnections((current) => current.map((connection) => (connection.id === id ? { ...connection, active: false, revokedAt: new Date().toISOString() } : connection)));
 			setConfirmation(null);
-			setNotice("The app is disconnected. It no longer has access to your creators.");
+			notify({ title: "The app is disconnected. It no longer has access to your creators.", color: "success" });
 			const refreshed = await getConnectedMcpApps();
 			if (!refreshed.error) setConnections(refreshed.connections);
 		} catch {
@@ -73,7 +75,7 @@ export default function ConnectedAppsPanel() {
 	async function purgeInactive() {
 		setPending("purge");
 		setError(undefined);
-		setNotice(undefined);
+
 		try {
 			const result = await (purgeTargetId === undefined ? purgeInactiveConnectedMcpApps() : purgeInactiveConnectedMcpApps(purgeTargetId));
 			if (result.error || !result.purgedIds) {
@@ -123,24 +125,6 @@ export default function ConnectedAppsPanel() {
 							</EmptyState.Header>
 						</EmptyState>
 					)
-				)}
-				{error && !confirmation && !purgeOpen && (
-					<Alert status='danger' role='alert'>
-						<Alert.Indicator />
-						<Alert.Content>
-							<Alert.Title>Connection update failed</Alert.Title>
-							<Alert.Description>{error}</Alert.Description>
-						</Alert.Content>
-					</Alert>
-				)}
-				{notice && (
-					<Alert status='success' role='status'>
-						<Alert.Indicator />
-						<Alert.Content>
-							<Alert.Title>App disconnected</Alert.Title>
-							<Alert.Description>{notice}</Alert.Description>
-						</Alert.Content>
-					</Alert>
 				)}
 				<Accordion className='rounded-xl border border-border px-4'>
 					<Accordion.Item id='ai-example-prompts'>
@@ -311,15 +295,6 @@ export default function ConnectedAppsPanel() {
 					content={
 						<>
 							<p>This app will lose access to your creators. You can connect it again at any time.</p>
-							{error && (
-								<Alert status='danger' role='alert'>
-									<Alert.Indicator />
-									<Alert.Content>
-										<Alert.Title>Could not disconnect</Alert.Title>
-										<Alert.Description>{error}</Alert.Description>
-									</Alert.Content>
-								</Alert>
-							)}
 						</>
 					}
 				/>
@@ -338,15 +313,6 @@ export default function ConnectedAppsPanel() {
 							</Modal.Header>
 							<Modal.Body>
 								<p>{purgeTargetId ? "Permanently remove this inactive connection. Your activity history will be kept." : "Permanently remove expired, revoked and inactive connections. Active connections and your activity history will be kept."}</p>
-								{error && (
-									<Alert status='danger' role='alert'>
-										<Alert.Indicator />
-										<Alert.Content>
-											<Alert.Title>Purge failed</Alert.Title>
-											<Alert.Description>{error}</Alert.Description>
-										</Alert.Content>
-									</Alert>
-								)}
 							</Modal.Body>
 							<Modal.Footer>
 								<Button variant='secondary' isDisabled={pending !== null} onPress={() => setPurgeOpen(false)}>

@@ -1,5 +1,6 @@
 "use client";
 
+import { TWITCH_ADDITIONAL_SCOPES } from "@/auth/providers/twitch";
 import { useState } from "react";
 import { Button, Modal } from "@heroui/react";
 import ControlledModal from "@components/controlledModal";
@@ -12,7 +13,7 @@ export default function ReauthenticationModal({ isOpen, onClose, callbackURL, er
 		setPending(true);
 		setError(false);
 		try {
-			const result = await authClient.signIn.social({ provider, callbackURL, errorCallbackURL });
+			const result = await authClient.signIn.social({ provider, callbackURL, errorCallbackURL, ...(provider === "twitch" ? { scopes: [...TWITCH_ADDITIONAL_SCOPES] } : {}) });
 			if (result.error) throw new Error("SIGN_IN_NOT_STARTED");
 		} catch {
 			setError(true);

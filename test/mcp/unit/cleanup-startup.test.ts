@@ -12,6 +12,8 @@ jest.mock("@lib/consent/retention", () => ({ startConsentRetentionScheduler: jes
 jest.mock("@lib/operationalHealth", () => ({ startOperationalHealthPublisher: jest.fn() }));
 jest.mock("@lib/accountLifecycleScheduler", () => ({ startAccountLifecycleScheduler: jest.fn() }));
 // This owner exercises MCP cleanup; other startup workers retain separate real-owner tests.
+jest.mock("@/server/events/scheduler", () => ({ startAwardScheduler: jest.fn() }));
+import { startAwardScheduler } from "@/server/events/scheduler";
 jest.mock("@/server/resources/overlay-effect-scheduler", () => ({ startOverlayEffectScheduler: jest.fn() }));
 import { startOverlayEffectScheduler } from "@/server/resources/overlay-effect-scheduler";
 jest.mock("@/server/mcp/cleanup", () => ({ pruneMcpOperationalRecords: jest.fn().mockResolvedValue({ clients: 0, retries: 0, counters: 0 }), pruneRevokedMcpCredentials: jest.fn().mockResolvedValue({ accessTokens: 0, refreshTokens: 0, consents: 0 }), pruneMcpActivity: jest.fn().mockResolvedValue(0) }));
@@ -46,12 +48,14 @@ describe("TDD-CLEANUP-002 actual application startup", () => {
 		expect(pruneMcpOperationalRecords).toHaveBeenCalledTimes(1);
 		expect(db.execute).not.toHaveBeenCalled();
 		expect(startOverlayEffectScheduler).toHaveBeenCalledTimes(1);
+		expect(startAwardScheduler).toHaveBeenCalledTimes(1);
 	});
 	test.each([{ DISABLE_BACKGROUND_JOBS: "true" }, { NEXT_RUNTIME: "edge" }])("does not start cleanup for %j", async (patch) => {
 		Object.assign(process.env, patch);
 		await register();
 		expect(pruneMcpOperationalRecords).not.toHaveBeenCalled();
 		expect(startOverlayEffectScheduler).not.toHaveBeenCalled();
+		expect(startAwardScheduler).not.toHaveBeenCalled();
 	});
 	test("continues cleanup without an activation toggle", async () => {
 		await register();

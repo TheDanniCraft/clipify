@@ -220,7 +220,8 @@ it("starts welcome guidance at the first unfinished core task and remembers the 
 });
 it("requires every guide task for Expert, with no credit for skipped tasks", () => {
 	const tasks = journeys.flatMap((journey) => journey.tasks.map((task) => task.id));
-	expect(tasks).toHaveLength(23);
+	expect(tasks).toHaveLength(24);
+	expect(tasks).toContain("explore.events");
 	expect(hasCompletedAllGuides({ ...defaultProgress(), completed: tasks })).toBe(true);
 	for (const missing of tasks) {
 		expect(hasCompletedAllGuides({ ...defaultProgress(), completed: tasks.filter((task) => task !== missing), skipped: [missing] })).toBe(false);

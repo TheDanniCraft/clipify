@@ -1,7 +1,8 @@
 "use client";
+import { notify } from "@lib/toast";
 import { useDeploymentDraft } from "@lib/deploymentDrafts";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Chip, Input, Link, Label, ListBox, Modal, Select, Table, TextField, Tooltip, Tabs, Spinner, FieldError } from "@heroui/react";
 import { IconPlus, IconPencil, IconTrash, IconBrandTwitch, IconBrandYoutube, IconActivity, IconCircleCheck, IconAlertTriangle } from "@tabler/icons-react";
 import { deleteRunnerDestination, listRunnerDestinations, saveRunnerDestination } from "@/app/actions/runner";
@@ -43,7 +44,9 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 	const [saving, setSaving] = useState(false);
 	const [blockedDeletion, setBlockedDeletion] = useState(false);
 	const [scheduleUsage, setScheduleUsage] = useState<{ eventId: string; title: string; runnerId: string }[]>([]);
-	const [error, setError] = useState<string | null>(null);
+	const setError = useCallback((title?: string | null) => {
+		if (title) notify({ title, color: "danger" });
+	}, []);
 	const account = useProviderConnection(ownerId, setError);
 	const connectionTest = useConnectionTest(ownerId, runnerId, setError);
 	const testRunning = Boolean(connectionTest.test && connectionTest.test.state !== "stopped");
@@ -81,7 +84,7 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 		return () => {
 			current = false;
 		};
-	}, [ownerId, runnerId]);
+	}, [ownerId, runnerId, setError]);
 
 	useEffect(() => {
 		if (!deleting && focusAddAfterDelete.current) {
@@ -99,14 +102,14 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 		setProvider(destination?.provider ?? "twitch");
 		setUrl(destination?.provider === "custom" ? "" : endpoints[destination?.provider ?? "twitch"]);
 		setKey("");
-		setError(null);
+
 		setOpen(true);
 	}
 
 	async function save() {
 		if (!valid || saving) return;
 		setSaving(true);
-		setError(null);
+
 		try {
 			const result = await saveRunnerDestination({
 				ownerId,
@@ -139,7 +142,7 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 	async function remove() {
 		if (!deleting || saving || blockedDeletion) return;
 		setSaving(true);
-		setError(null);
+
 		try {
 			const result = await deleteRunnerDestination({ ownerId, id: deleting.id, expectedRevision: deleting.configurationRevision, removeFromSavedBroadcasts: true });
 			if (!result.success) {
@@ -170,7 +173,7 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 		const stopped = await connectionTest.stop();
 		if (!stopped) return;
 		connectionTest.reset();
-		setError(null);
+
 		setTestOpen(false);
 		setOpen(true);
 	}
@@ -185,11 +188,6 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 					</Button>
 				</div>
 				<div className='space-y-3'>
-					{error && !open && !deleting && (
-						<p role='alert' className='text-sm text-danger'>
-							{error}
-						</p>
-					)}
 					{destinations.length === 0 ? (
 						<p className='text-sm text-muted'>No saved destinations yet.</p>
 					) : (
@@ -235,7 +233,6 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 																className='text-danger'
 																aria-label={`Delete ${destination.name}`}
 																onPress={() => {
-																	setError(null);
 																	setDeleting(destination);
 																}}
 															>
@@ -274,7 +271,6 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 						setDeleting(null);
 						setBlockedDeletion(false);
 						setScheduleUsage([]);
-						setError(null);
 					}
 				}}
 				title='Delete destination?'
@@ -291,11 +287,6 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 									</Link>
 								))}
 							</div>
-						)}
-						{error && (
-							<p role='alert' className='text-sm text-danger'>
-								{error}
-							</p>
 						)}
 					</div>
 				}
@@ -360,11 +351,6 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 												<p className='text-sm'>{connectionTest.test.successful ? `${providerName} received the test stream.` : `${providerName} did not report receiving the test stream.`}</p>
 											</div>
 										</div>
-									)}
-									{error && (
-										<p role='alert' className='text-sm text-danger'>
-											{error}
-										</p>
 									)}
 								</Modal.Body>
 								<Modal.Footer>
@@ -570,11 +556,6 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 											<p className='text-xs text-muted'>{provider === "custom" ? "Optional for custom RTMP servers." : "Required for this provider."}</p>
 										</TextField>
 									)}
-									{error && (
-										<p role='alert' className='text-sm text-danger'>
-											{error}
-										</p>
-									)}
 								</Modal.Body>
 								<Modal.Footer className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
 									{provider !== "custom" && accountConnected && connectionMethod === "account" && (
@@ -583,7 +564,7 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 											variant='secondary'
 											onPress={() => {
 												connectionTest.reset();
-												setError(null);
+
 												setTestOpen(true);
 											}}
 										>

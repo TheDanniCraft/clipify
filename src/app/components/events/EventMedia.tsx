@@ -1,0 +1,154 @@
+"use client";
+import { animate, motion, useReducedMotion } from "motion/react";
+import Image from "next/image";
+import { useEffect, useState } from "react";
+import { Button, Checkbox, Link, ProgressBar } from "@heroui/react";
+import type { EventCandidateContent } from "@lib/eventCandidates";
+import EventNativePlayer from "./EventNativePlayer";
+export function EventMedia({ content, eventId }: { content: EventCandidateContent; eventId?: string }) {
+	const [failed, setFailed] = useState<string | null>(null),
+		identity = content.mediaUrl ?? content.thumbnailUrl ?? content.reference;
+	if (failed === identity)
+		return (
+			<div role='status' className='flex min-h-64 flex-col items-center justify-center gap-5 p-8 text-center'>
+				<h2 className='text-2xl font-semibold'>{content.title}</h2>
+				<p className='text-muted'>This media could not load. You can retry or return to the show.</p>
+				<Button variant='secondary' onPress={() => setFailed(null)}>
+					Retry media
+				</Button>
+			</div>
+		);
+	const onError = () => setFailed(identity);
+
+	if (content.kind === "clip" && /^[A-Za-z0-9_-]{1,200}$/.test(content.reference)) {
+		const src = content.mediaUrl?.startsWith("/api/events/") ? content.mediaUrl : eventId ? `/api/events/${eventId}/clips/${encodeURIComponent(content.reference)}` : undefined;
+		return src ? (
+			<EventNativePlayer src={src} title={content.title} onError={onError} />
+		) : (
+			<p role='status' className='p-6 text-muted'>
+				Clip playback is unavailable. Reopen the event and try again.
+			</p>
+		);
+	}
+	if (content.kind === "youtube" && /^[A-Za-z0-9_-]{11}$/.test(content.reference)) return <iframe title={content.title} referrerPolicy='strict-origin-when-cross-origin' className='aspect-video h-full w-full border-0' src={`https://www.youtube-nocookie.com/embed/${content.reference}?autoplay=1`} allow='autoplay; fullscreen' allowFullScreen />;
+	if (content.kind === "video" && content.mediaUrl) return <EventNativePlayer onError={onError} title={content.title} src={content.mediaUrl} />;
+	if (content.kind === "audio" && content.mediaUrl)
+		return (
+			<div className='flex h-full flex-col items-center justify-center gap-6 p-6'>
+				<h2 className='text-2xl font-semibold'>{content.title}</h2>
+				<EventNativePlayer audio onError={onError} title={content.title} src={content.mediaUrl} />
+			</div>
+		);
+	if ((content.kind === "image" || content.kind === "game") && (content.mediaUrl || content.thumbnailUrl))
+		return (
+			<div className='relative aspect-video h-full w-full'>
+				<Image onError={onError} src={(content.mediaUrl || content.thumbnailUrl)!} unoptimized fill alt={content.title} className='object-contain' />
+			</div>
+		);
+	return (
+		<div className='flex min-h-64 flex-col items-center justify-center gap-5 p-8 text-center'>
+			<h2 className='break-words text-3xl font-semibold'>{content.title}</h2>
+			{content.description ? <p className='max-w-3xl whitespace-pre-wrap break-words text-xl text-muted'>{content.description}</p> : null}
+			{content.kind === "link" && /^https:\/\//.test(content.reference) ? (
+				<Link href={content.reference} target='_blank' rel='noopener noreferrer'>
+					Open submitted link
+				</Link>
+			) : null}
+			{content.kind === "person" ? (
+				<Link href={`https://twitch.tv/${encodeURIComponent(content.reference)}`} target='_blank' rel='noopener noreferrer'>
+					Open Twitch profile
+				</Link>
+			) : null}
+		</div>
+	);
+}
+function EventVoteShare({ percentage, votes, delay, label, presentation = false, rank }: { percentage: number; votes?: number; delay?: number; label: string; presentation?: boolean; rank?: number }) {
+	const reduceMotion = useReducedMotion();
+	const [shown, setShown] = useState(delay !== undefined && !reduceMotion ? 0 : percentage);
+	useEffect(() => {
+		if (delay === undefined || reduceMotion) return;
+		const controls = animate(0, percentage, { delay, duration: 1.1, ease: "easeOut", onUpdate: setShown });
+		return () => controls.stop();
+	}, [percentage, delay, reduceMotion]);
+	const value = delay === undefined || reduceMotion ? percentage : shown;
+	return (
+		<motion.div initial={presentation && delay !== undefined && !reduceMotion ? { opacity: 0 } : false} animate={{ opacity: 1 }} transition={{ delay: delay ?? 0, duration: 0.18 }}>
+			<ProgressBar size='sm' aria-label={`Vote share for ${label}`} value={Math.max(0, Math.min(100, value))}>
+				<ProgressBar.Track>
+					<ProgressBar.Fill />
+				</ProgressBar.Track>
+			</ProgressBar>
+			<p className='mt-1 flex items-center justify-between gap-2 text-sm tabular-nums text-muted'>
+				{presentation && rank ? <span className='font-medium text-accent'>#{rank}</span> : null}
+				<span className={presentation ? "ml-auto" : undefined}>
+					{new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(presentation ? percentage : value)}%{votes !== undefined ? ` (${new Intl.NumberFormat().format(votes)} ${votes === 1 ? "vote" : "votes"})` : ""}
+				</span>
+			</p>
+		</motion.div>
+	);
+}
+export function EventNomineeCard({
+	candidate,
+	selected = false,
+	disabled = false,
+	onSelect,
+	onOpen,
+	result,
+	resultDelay,
+	compact = false,
+	presentation = false,
+	stacked = false,
+	rank,
+}: {
+	candidate: { id: string; content: EventCandidateContent };
+	selected?: boolean;
+	disabled?: boolean;
+	onSelect?: (selected: boolean) => void;
+	onOpen: () => void;
+	resultDelay?: number;
+	compact?: boolean;
+	presentation?: boolean;
+	stacked?: boolean;
+	rank?: number;
+	result?: { percentage?: number; winner: boolean; votes?: number };
+}) {
+	const label = candidate.content.title;
+	const winner = result?.winner;
+	const voteShare = result?.percentage !== undefined ? <EventVoteShare presentation={presentation} rank={compact ? rank : undefined} percentage={result.percentage} votes={result.votes} delay={resultDelay} label={label} /> : null;
+	return (
+		<div className={`relative overflow-hidden rounded-2xl border ${stacked ? "grid grid-cols-[2.5rem_minmax(0,1fr)] items-center lg:grid-cols-[5rem_minmax(0,1fr)]" : ""} ${winner && !presentation ? "border-accent bg-surface ring-2 ring-accent" : selected ? "border-accent bg-accent/5" : "border-separator bg-surface"}`}>
+			{winner && presentation ? <motion.div aria-hidden='true' initial={resultDelay !== undefined ? { opacity: 0 } : false} animate={{ opacity: 1 }} transition={{ delay: resultDelay ?? 0, duration: 0.4 }} className='pointer-events-none absolute inset-0 z-10 rounded-2xl ring-4 ring-inset ring-warning' /> : null}
+			<div className='relative aspect-video'>
+				<Button data-award-candidate={candidate.id} aria-label={`View ${candidate.content.title}`} variant='tertiary' className='relative h-full w-full overflow-hidden rounded-none p-0' onPress={onOpen}>
+					{candidate.content.thumbnailUrl || (candidate.content.kind === "image" && candidate.content.mediaUrl) ? (
+						<Image src={(candidate.content.thumbnailUrl || candidate.content.mediaUrl)!} alt='' unoptimized fill loading='eager' className='object-cover' />
+					) : (
+						<motion.span layout={presentation ? false : "position"} className={`line-clamp-3 max-w-full whitespace-normal break-words text-center font-medium ${stacked ? "px-2 text-xs" : "px-5 text-lg"}`}>
+							{candidate.content.title}
+						</motion.span>
+					)}
+				</Button>
+				{!presentation && (winner || rank) ? <span className='pointer-events-none absolute right-3 top-3 rounded-full bg-accent px-3 py-1 text-sm font-semibold text-accent-foreground'>{winner ? "Winner" : `#${rank}`}</span> : null}
+			</div>
+			<motion.div layout={presentation ? false : "position"} className={`space-y-2 ${stacked ? "min-w-0 p-2 text-sm" : presentation ? "p-3 text-sm" : compact ? "p-2 text-sm" : "p-4"}`}>
+				{onSelect ? (
+					<Checkbox aria-label={`Vote for ${candidate.content.title}`} isSelected={selected} isDisabled={disabled} onChange={onSelect} className='w-full'>
+						<Checkbox.Content>
+							<Checkbox.Control>
+								<Checkbox.Indicator />
+							</Checkbox.Control>
+							<span className='break-words font-medium'>{candidate.content.title}</span>
+						</Checkbox.Content>
+					</Checkbox>
+				) : (
+					<div className='space-y-2'>
+						<h3 className={`line-clamp-2 break-words font-medium ${stacked ? "leading-5" : presentation ? "min-h-12 leading-6" : compact ? "min-h-10" : result?.percentage !== undefined ? "min-h-12" : ""}`}>{label}</h3>
+						{selected ? <p className='text-sm font-medium text-accent'>Your selection</p> : null}
+					</div>
+				)}
+				{!stacked && (result?.percentage !== undefined || compact || presentation) ? <div className={compact || presentation ? "h-9" : undefined}>{voteShare}</div> : null}
+			</motion.div>
+			{stacked && voteShare ? <div className='col-span-2 px-2 pb-2 [&_p]:text-xs'>{voteShare}</div> : null}
+		</div>
+	);
+}

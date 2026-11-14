@@ -10,7 +10,7 @@ export class ProviderRequestError extends Error {
 		this.name = "ProviderRequestError";
 	}
 }
-const roots = ["https://id.twitch.tv/", "https://api.twitch.tv/helix/", "https://oauth2.googleapis.com/", "https://www.googleapis.com/youtube/"];
+const roots = ["https://id.twitch.tv/", "https://api.twitch.tv/helix/", "https://oauth2.googleapis.com/", "https://www.googleapis.com/youtube/", "https://www.googleapis.com/drive/"];
 async function readProviderJson(response: Response): Promise<unknown> {
 	const reader = response.body?.getReader();
 	if (!reader) throw new ProviderRequestError("PROVIDER_UNAVAILABLE");
@@ -210,3 +210,5 @@ export async function searchTwitchCategories(context: ProviderContext, query: st
 	if (!parsed.success) throw new ProviderRequestError("PROVIDER_UNAVAILABLE");
 	return parsed.data.data;
 }
+
+export { request as requestProviderJson, readProviderJson as readProviderResponseJson };

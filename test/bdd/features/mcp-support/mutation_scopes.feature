@@ -7,6 +7,14 @@ Feature: Require each operation's approved OAuth permission
     Then the missing scope is rejected before inputs or resources are processed
     Examples:
       | tool                   | permission            |
+      | create_event           | event:create          |
+      | create_event_example   | event:create          |
+      | get_event_preview      | event:update          |
+      | update_event           | event:update          |
+      | nominate_event_candidates | event:review       |
+      | publish_event          | event:publish         |
+      | rotate_event_presenter | event-presenter:rotate |
+      | list_events            | event:read            |
       | create_overlay         | overlay:create        |
       | update_overlay_settings         | overlay:update        |
       | delete_overlay         | overlay:delete        |

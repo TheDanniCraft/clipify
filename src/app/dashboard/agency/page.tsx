@@ -1,10 +1,11 @@
+import ActionToast from "@components/actionToast";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { IconArrowRight, IconBuildingCommunity, IconCheck, IconCreditCard, IconExternalLink, IconLicense, IconLink, IconUsersGroup } from "@tabler/icons-react";
+import { IconArrowRight, IconBuildingCommunity, IconCreditCard, IconExternalLink, IconLicense, IconLink, IconUsersGroup } from "@tabler/icons-react";
 import { allocateAgencyLicenseFormAction, changeAgencySeatQuantityFormAction, getAgencyOverviewAction, openAgencyBillingPortalFormAction, proposeAgencyLinkFormAction, startAgencyBillingFormAction } from "@/app/actions/agency";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { Button, Checkbox, CheckboxContent, CheckboxControl, CheckboxIndicator, Chip, Input, Label, TextField, Link as HeroLink } from "@components/heroui-client";
-import { Alert, Card, ProgressBar } from "@components/heroui-server";
+import { Card, ProgressBar } from "@components/heroui-server";
 import { PERMISSIONS } from "@/auth/permissions";
 import { getDashboardNavbarUser } from "@/auth/navigation-user";
 
@@ -61,47 +62,24 @@ export default async function AgencyDashboardPage({ searchParams }: { searchPara
 		<DashboardNavbar user={user} title='Agency dashboard' tagline='Manage creator access, staff, and Pro seat allocation' organizationId={overview.account.organizationId}>
 			<div className='mt-6 flex flex-col gap-6 pb-10'>
 				{typeof params.billing === "string" && ["increase-pending", "decrease-scheduled", "unchanged", "invoice-sent", "success"].includes(params.billing) ? (
-					<Alert status='success'>
-						<IconCheck aria-hidden='true' />
-						<Alert.Content>
-							<Alert.Description>
-								{params.billing === "increase-pending"
-									? overview.billing?.collectionMethod === "send_invoice"
-										? "Stripe issued the prorated invoice. The additional seats become available after the invoice is paid."
-										: "Stripe is processing the prorated charge. The additional seats become available after payment succeeds."
-									: params.billing === "decrease-scheduled"
-										? "The seat reduction is scheduled for the next billing period."
-										: params.billing === "unchanged"
-											? "The seat quantity is already up to date."
-											: "Agency billing was started successfully."}
-							</Alert.Description>
-						</Alert.Content>
-					</Alert>
+					<ActionToast
+						color='success'
+						title={
+							params.billing === "increase-pending"
+								? overview.billing?.collectionMethod === "send_invoice"
+									? "Stripe issued the prorated invoice. The additional seats become available after the invoice is paid."
+									: "Stripe is processing the prorated charge. The additional seats become available after payment succeeds."
+								: params.billing === "decrease-scheduled"
+									? "The seat reduction is scheduled for the next billing period."
+									: params.billing === "unchanged"
+										? "The seat quantity is already up to date."
+										: "Agency billing was started successfully."
+						}
+					/>
 				) : null}
-				{params.allocated === "1" ? (
-					<Alert status='success'>
-						<IconCheck aria-hidden='true' />
-						<Alert.Content>
-							<Alert.Description>Creator Pro seat allocated.</Alert.Description>
-						</Alert.Content>
-					</Alert>
-				) : null}
-				{typeof params.error === "string" ? (
-					<Alert status='danger'>
-						<Alert.Content>
-							<Alert.Title>Allocation failed</Alert.Title>
-							<Alert.Description>{label(params.error)}</Alert.Description>
-						</Alert.Content>
-					</Alert>
-				) : null}
-				{typeof params.billingError === "string" ? (
-					<Alert status='danger'>
-						<Alert.Content>
-							<Alert.Title>Billing change failed</Alert.Title>
-							<Alert.Description>{label(params.billingError)}</Alert.Description>
-						</Alert.Content>
-					</Alert>
-				) : null}
+				{params.allocated === "1" ? <ActionToast color='success' title='Creator Pro seat allocated.' /> : null}
+				{typeof params.error === "string" ? <ActionToast color='danger' title='Allocation failed' description={label(params.error)} /> : null}
+				{typeof params.billingError === "string" ? <ActionToast color='danger' title='Billing change failed' description={label(params.billingError)} /> : null}
 
 				<Card>
 					<Card.Header className='gap-3'>

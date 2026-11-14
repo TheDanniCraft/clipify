@@ -1,0 +1,73 @@
+# Behavioral Test List
+
+Source IDs retain their original U1–U34 references. Current implementation tests and outer acceptance owners replace the initial placeholder filenames. Execution evidence is recorded once in [../test-traceability.md](../test-traceability.md) and [cycle-log.md](cycle-log.md).
+
+| Behavior ID | Source | Focused behavior and inner owner                                                                                                                                 | Outer acceptance                                              |
+| ----------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| U1          | FR-001 | Configuration, creator/agency authority and persisted drafts; configuration, persistence, permissions                                                            | E2 101,111; E3/E4 for management                              |
+| U2          | FR-002 | Navigation and one Explore tour entry; tour                                                                                                                      | E2 101; E3/E4 for management                                  |
+| U3          | FR-003 | Partner-only public listing and unlisted access; discovery, persistence, mcp                                                                                     | E2 110; E3/E4 for management                                  |
+| U4          | FR-004 | Free core, Pro lock and existing upgrade flow; editor, persistence                                                                                               | E2 101; E3/E4 for management                                  |
+| U5          | FR-005 | Timezone roadmap, optional held review and current phase; policy, configuration, persistence                                                                     | E2 101,104,109; E3/E4 for management                          |
+| U6          | FR-006 | Ten source kinds, category groups and selection modes; configuration, sources, youtube, upload-policy, defaults                                                  | E2 103,106,111,112; E3/E4 for management                      |
+| U7          | FR-007 | Twitch participant isolation and deliberate creator promotion; participant-auth, participant, actions                                                            | E2 102; E3/E4 for management                                  |
+| U8          | FR-008 | Host-only query/link clip picker, attribution and rule revalidation; sources, candidates                                                                         | E2 112; E3/E4 for management                                  |
+| U9          | FR-009 | Contextual Google linking, Brand-channel identity, YouTube metadata/search; youtube, connections, sources                                                        | E2 112 (shared picker); E3/E4 for management                  |
+| U10         | FR-010 | Game/person/choice/text inputs; sources, configuration                                                                                                           | E2 102,104,111; E3/E4 for management                          |
+| U11         | FR-011 | Creator-owned S3/Drive streaming uploads and protected delivery; storage-security, connections, upload-provider, upload-policy, uploads, upload-route, upload-ui | E2 103,106,111; E3/E4 for management                          |
+| U12         | FR-012 | Original personal entries, withdrawal and atomic limits; persistence, concurrency, uploads                                                                       | E2 102,104; E3/E4 for management                              |
+| U13         | FR-013 | Canonical deduplication with separate private receipts; candidates, concurrency, persistence                                                                     | E2 112; E3/E4 for management                                  |
+| U14         | FR-014 | Team table, nomination, grouping and hidden children; persistence, review-ui, public-view                                                                        | E2 104,106; E3/E4 for management                              |
+| U15         | FR-015 | Frozen counters, missing-snapshot recovery and manual awards; freeze, data-results-ui, public-view                                                               | E2 105; E3/E4 for management                                  |
+| U16         | FR-016 | Immediate replaceable global-limit ballots and exact server close; persistence, concurrency, policy                                                              | E2 102; E3/E4 for management                                  |
+| U17         | FR-017 | Separate media/selection controls and retained private choice; media, public-page, public-view                                                                   | E2 102,103; E3/E4 for management                              |
+| U18         | FR-018 | Rotatable fragment capability, arrows, branding, themes; presenter, presenter-ui, presenter-plan                                                                 | E2 107,109; E3/E4 for management                              |
+| U19         | FR-019 | Arranged deck, multiple/custom statistics and count-up; configuration, presenter-plan, presenter-ui, persistence                                                 | E2 113; E3/E4 for management                                  |
+| U20         | FR-020 | Animated category intro, anonymous vote reveal and manual media/chat stage; media, presenter-plan, presenter-ui                                                  | E2 107,108,109; E3/E4 for management                          |
+| U21         | FR-021 | Percentage fills, shared/team ties, result-detail visibility; candidates, presenter, public-view                                                                 | E2 107; E3/E4 for management                                  |
+| U22         | FR-022 | Signed Twitch chat, Twitch badges/emotes, 7TV, account/prefix filters; chat-buffer, chat-catalog, presenter-chat-ui, presenter                                   | E2 108; E3/E4 for management                                  |
+| U23         | FR-023 | Explicit dashboard/final-slide publication and same-link archive; presenter, persistence, public-view                                                            | E2 105,107; E3/E4 for management                              |
+| U24         | FR-024 | Shared MCP operations, independent scopes and secret handling; mcp; native OAuth/MCP and scope contracts                                                         | E2 Native MCP owns this service journey; E3/E4 for management |
+| U25         | FR-025 | Installed HeroUI/Pro, preserved drafts and inspected responsive themes; editor, storage-settings, discovery-ui, media, upload-ui                                 | E2 101–113; E3/E4 for management                              |
+| U26         | EC-001 | Invalid schedules, stale revisions, foreign authority; policy, configuration, persistence; MCP scope contracts                                                   | E2 101; E3/E4 for management                                  |
+| U27         | EC-002 | Ineligible media, unsafe endpoints, expired credentials; sources, youtube, connections, storage-security, upload-policy, uploads                                 | E2 103,112; E3/E4 for management                              |
+| U28         | EC-003 | Concurrent quota, deadline and foreign withdrawal; concurrency, persistence, uploads                                                                             | E2 102; E3/E4 for management                                  |
+| U29         | EC-004 | Group membership, category, phase and child nomination guards; persistence, candidates                                                                           | E2 104; E3/E4 for management                                  |
+| U30         | EC-005 | Incomplete historical results are explicit missing states; freeze, public-view                                                                                   | E2 105; E3/E4 for management                                  |
+| U31         | EC-006 | Stale-page votes, allowed nominees and atomic retries; policy, persistence, concurrency                                                                          | E2 102; E3/E4 for management                                  |
+| U32         | EC-007 | Revoked capability, private DTOs and script isolation; presenter, public-view; embeddedRoutes caller                                                             | E2 107; E3/E4 for management                                  |
+| U33         | EC-008 | Media retry, provider failure and independent navigation; media, upload-provider, upload-ui, presenter-chat-ui                                                   | E2 103,108,109; E3/E4 for management                          |
+| U34         | EC-009 | Partner/publication boundaries and idempotent explicit release; discovery, presenter, persistence; MCP scope contracts                                           | E2 105,107,110; E3/E4 for management                          |
+
+## Loop evidence
+
+The recorded Red/Green cycles are in cycle-log.md. Verification-first UI/acceptance additions are explicitly identified there and in the evidence index. They are not rewritten as historical Red cycles. The exact deadline, secret results and hidden children have also survived deliberate fault injection by failing the relevant owning tests.
+
+## Exclusions
+
+Recaps, tournaments, newsletters, automatic YouTube rankings, optional 7TV badges and exhaustive device/accessibility programs remain outside this release.
+
+## Presenter follow-up ownership — 11 November 2026
+
+| Behavior                                                                                              | Owning evidence                                                                |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Category/slide nominee versus winner mode, legacy data defaults                                       | presenter-plan, configuration, event-presentation-options browser              |
+| Frozen top entries, winner-inclusive cap, unlimited low-view team nominations                         | freeze, public-view, data-nominees                                             |
+| Contextual Drive/S3/YouTube controls and preserved recovery                                           | storage-settings; event-editor-controls and event-editor-review browser        |
+| Incremental Twitch permission through Better Auth                                                     | twitch-interactions; event-presentation-options browser authorization redirect |
+| Complete options, concurrent idempotent start, deadline, correct outcome, tied refund, preview denial | twitch-interactions                                                            |
+| Presenter keyboard/button lock, state persistence, poll completion and prediction resolution          | event-twitch-interactions browser                                              |
+| Retry/Skip control and unconfirmed cancellation warning                                               | interaction-control; twitch-interactions                                       |
+
+### Native nominee audio follow-up (FR-017/FR-020, EC-001/EC-008)
+
+- Event clip resolution checks public projection or private preview/review authority before using even a cached playback URL; wrong creator, revoked capability and hidden clips remain unavailable.
+- Streaming preserves bounded media/range handling and retry/navigation recovery; Twitch clips open through Clipify rather than an iframe.
+- Browser preferences preserve volume/mute/leveling between nominees and across presenter/public voting views. Repeated toggles reuse one graph; close disposes it. Cross-origin media without an approved delivery path cannot enable processing.
+- Actual Chromium audio output narrows a generated 24x quiet/loud input difference, mute yields silence, 20% volume remains quieter with leveling enabled and disabled, and the context closes. This is not a LUFS or physical-device listening certification.
+
+### Podium ceremony follow-up (FR-020/FR-021, EC-008)
+
+- Bronze/silver/gold buildup precedes the incoming single-card flight; score and winner emphasis appear after landing without moving the header, caption or strip slots.
+- Winner-only data awards use the same ceremony, remain manually playable and return immediately from media.
+- Winner confetti is visibly finite; Back/Escape and reduced motion restore the stage without replaying the effect. Manual Next and existing Twitch interaction behavior remain intact.

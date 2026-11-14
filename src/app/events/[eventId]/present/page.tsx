@@ -1,0 +1,6 @@
+import EventPresenter from "@components/events/EventPresenter";
+export const metadata = { title: "Award show | Clipify", robots: { index: false, follow: false }, referrer: "no-referrer" };
+export default async function PresenterPage({ params }: { params: Promise<{ eventId: string }> }) {
+	const { eventId } = await params;
+	return <EventPresenter eventId={eventId} />;
+}

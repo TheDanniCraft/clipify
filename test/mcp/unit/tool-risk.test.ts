@@ -5,6 +5,25 @@ try {
 	risk = require("@/server/mcp/risk");
 } catch {}
 const workflowRisk = {
+	list_events: "read",
+	get_event: "read",
+	get_event_preview: "read",
+	create_event: "createOnce",
+	create_event_example: "createOnce",
+	update_event: "mutation",
+	update_event_presentation: "mutation",
+	publish_event: "mutation",
+	publish_event_results: "mutation",
+	rotate_event_presenter: "control",
+	get_event_review: "read",
+	nominate_event_candidates: "mutation",
+	group_event_candidates: "control",
+	release_event_review: "mutation",
+	add_event_candidate: "externalCreateOnce",
+	set_event_data_result: "externalMutation",
+	get_event_ties: "read",
+	choose_event_tie_winner: "mutation",
+
 	get_clip_crawler_status: "read",
 	refresh_clips: "refresh",
 	get_overlay_runtime: "read",
@@ -54,6 +73,8 @@ const workflowRisk = {
 	submit_feedback: "externalFeedback",
 } as const;
 const expectedHints = {
+	createOnce: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+	externalCreateOnce: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
 	refresh: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
 	externalFeedback: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
 	read: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
@@ -75,7 +96,7 @@ describe("TDD-US2-039 truthful tool risk annotations", () => {
 		expect(risk.toolAnnotations(name)).toEqual(expectedHints[profile]);
 	});
 	test("risk table covers workflows, focused tools and internal compatibility schemas", () => {
-		expect(Object.keys(workflowRisk)).toHaveLength(46);
+		expect(Object.keys(workflowRisk)).toHaveLength(64);
 		expect(Object.keys(toolInputSchemas).filter((name) => !(name in workflowRisk))).toHaveLength(34);
 		for (const name of Object.keys(workflowRisk)) expect(toolInputSchemas).toHaveProperty(name);
 	});

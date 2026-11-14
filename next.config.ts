@@ -11,7 +11,7 @@ const umamiTrackerName = `bundle_${crypto.randomBytes(8).toString("hex")}.js`;
 const umamiRecorderName = `bundle_${crypto.randomBytes(8).toString("hex")}.js`;
 const umamiBaseUrl = process.env.UMAMI_BASE_URL || "https://umami.cloud.thedannicraft.de";
 const deploymentId = toDeploymentId(process.env.SOURCE_COMMIT) || toDeploymentId(process.env.SENTRY_RELEASE) || undefined;
-const replayContentSecurityPolicy = (frameAncestors: string) => `frame-ancestors ${frameAncestors}; frame-src 'self' https://challenges.cloudflare.com https://chat.cloud.thedannicraft.de; worker-src 'self' blob:; child-src 'self' blob:;`;
+const replayContentSecurityPolicy = (frameAncestors: string, eventMedia = false) => `frame-ancestors ${frameAncestors}; frame-src 'self' https://challenges.cloudflare.com https://chat.cloud.thedannicraft.de${eventMedia ? " https://clips.twitch.tv https://www.youtube-nocookie.com" : ""}; worker-src 'self' blob:; child-src 'self' blob:;`;
 
 const nextConfigPromise = Promise.resolve(drizzle).then(
 	(drizzle) =>
@@ -84,6 +84,7 @@ const nextConfigPromise = Promise.resolve(drizzle).then(
 						source: "/:path((?!$|features/?$|pricing/?$|community/?$|changelog/?$|roadmap/?$|runner/preview/[^/]+/?$|demoPlayer$|embed/[^/]+/?$|gallery/[^/]+/frame/?$|gallery/[^/]+/clip/[^/]+/?$|dashboard/galleries/[^/]+/preview/clip/[^/]+/?$).*)",
 						headers: [...baseSecurityHeaders, { key: "X-Frame-Options", value: "DENY" }, { key: "Content-Security-Policy", value: replayContentSecurityPolicy("'none'") }],
 					},
+					...["/events/:eventId/:path*", "/dashboard/events/:eventId"].map((source) => ({ source, headers: [{ key: "Content-Security-Policy", value: replayContentSecurityPolicy("'none'", true) }] })),
 				];
 			},
 		}) as NextConfig,

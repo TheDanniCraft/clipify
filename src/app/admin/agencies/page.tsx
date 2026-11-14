@@ -1,10 +1,11 @@
+import ActionToast from "@components/actionToast";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { IconBuildingBank, IconCheck, IconPlus, IconUsers } from "@tabler/icons-react";
+import { IconBuildingBank, IconPlus, IconUsers } from "@tabler/icons-react";
 import { validateAdminAuth } from "@actions/auth";
 import { getAdminAgenciesAction } from "@/app/actions/agency";
 import DashboardNavbar from "@components/dashboardNavbar";
-import { AlertContent, AlertDescription, AlertRoot, AlertTitle, CardContent, CardDescription, CardHeader, CardRoot, CardTitle, Chip, TableBody, TableCell, TableColumn, TableContent, TableHeader, TableRoot, TableRow, TableScrollContainer } from "@components/heroui-client";
+import { CardContent, CardDescription, CardHeader, CardRoot, CardTitle, Chip, TableBody, TableCell, TableColumn, TableContent, TableHeader, TableRoot, TableRow, TableScrollContainer } from "@components/heroui-client";
 import AgencyProvisionForm from "./agency-provision-form";
 
 export const dynamic = "force-dynamic";
@@ -25,28 +26,16 @@ export default async function AdminAgenciesPage({ searchParams }: { searchParams
 	return (
 		<DashboardNavbar user={user} title='Agency accounts' tagline='Provision negotiated terms and Stripe-backed creator or Runner seats'>
 			<div className='mt-6 flex flex-col gap-6 pb-10'>
-				{params.error ? (
-					<AlertRoot status='danger'>
-						<AlertContent>
-							<AlertTitle>Provisioning failed</AlertTitle>
-							<AlertDescription>{label(params.error)}</AlertDescription>
-						</AlertContent>
-					</AlertRoot>
-				) : null}
+				{params.error ? <ActionToast color='danger' title='Provisioning failed' description={label(params.error)} /> : null}
 				{params.created ? (
-					<AlertRoot status='success'>
-						<IconCheck aria-hidden='true' />
-						<AlertContent>
-							<AlertDescription>
-								<span>Agency account and owner invitation created.</span> {params.emailSent === "1" ? "The invitation email was sent." : "Email delivery failed; share the invitation link manually."}{" "}
-								{invitationHref ? (
-									<Link href={invitationHref} className='font-medium text-accent underline underline-offset-4'>
-										Open invitation
-									</Link>
-								) : null}
-							</AlertDescription>
-						</AlertContent>
-					</AlertRoot>
+					<>
+						<ActionToast color={params.emailSent === "1" ? "success" : "warning"} title='Agency account and owner invitation created.' description={params.emailSent === "1" ? "The invitation email was sent." : "Email delivery failed; share the invitation link manually."} />
+						{invitationHref ? (
+							<Link href={invitationHref} className='font-medium text-accent underline underline-offset-4'>
+								Open invitation
+							</Link>
+						) : null}
+					</>
 				) : null}
 
 				<CardRoot>

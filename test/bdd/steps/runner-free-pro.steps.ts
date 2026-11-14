@@ -232,7 +232,8 @@ async function verifySavedAttribution(page: Page, mcpWorld: { input?: Record<str
 	await expect(attribution).toBeChecked({ checked: enabled });
 	await verifyPreviewAttribution(page, enabled);
 	await page.getByRole("button", { name: "Save appearance", exact: true }).click();
-	await expect(page.getByRole("status").filter({ hasText: "Appearance saved" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Save appearance", exact: true })).toBeEnabled();
+	await expect(page.getByText("Appearance saved", { exact: true }).first()).toBeVisible();
 	await page.reload();
 	await openRunnerAppearance(page);
 	await expect(attribution).toBeChecked({ checked: enabled });
@@ -345,7 +346,8 @@ Then("their standby background color matches draft preview and saved generated s
 	const standby = page.frameLocator('iframe[title="Runner appearance preview"]').locator("[data-runner-standby]");
 	await expect(standby).toHaveCSS("background-color", "rgb(22, 50, 79)");
 	await page.getByRole("button", { name: "Save appearance", exact: true }).click();
-	await expect(page.getByRole("status").filter({ hasText: "Appearance saved" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Save appearance", exact: true })).toBeEnabled();
+	await expect(page.getByText("Appearance saved", { exact: true }).first()).toBeVisible();
 	await page.reload();
 	await openRunnerAppearance(page);
 	await expect(color).toHaveValue(/^#16324f$/i);
@@ -370,7 +372,8 @@ Then("their uploaded background image matches preview and saved generated standb
 	await expect(preview).toHaveJSProperty("naturalWidth", 16);
 	await expect(preview).toHaveJSProperty("naturalHeight", 16);
 	await page.getByRole("button", { name: "Save appearance", exact: true }).click();
-	await expect(page.getByRole("status").filter({ hasText: "Appearance saved" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Save appearance", exact: true })).toBeEnabled();
+	await expect(page.getByText("Appearance saved", { exact: true }).first()).toBeVisible();
 	await page.reload();
 	await openRunnerAppearance(page);
 	await expect(preview).toBeVisible();
@@ -398,7 +401,8 @@ Then("their uploaded logo matches preview and saved generated standby", async ({
 	await expect(preview).toHaveJSProperty("naturalWidth", 16);
 	await expect(preview).toHaveJSProperty("naturalHeight", 16);
 	await page.getByRole("button", { name: "Save appearance", exact: true }).click();
-	await expect(page.getByRole("status").filter({ hasText: "Appearance saved" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Save appearance", exact: true })).toBeEnabled();
+	await expect(page.getByText("Appearance saved", { exact: true }).first()).toBeVisible();
 	await page.reload();
 	await openRunnerAppearance(page);
 	await expect(preview).toBeVisible();
@@ -442,7 +446,8 @@ Then("their standby message matches draft preview and the already active present
 		const preview = page.frameLocator('iframe[title="Runner appearance preview"]').getByText(message, { exact: true });
 		await expect(preview).toBeVisible();
 		await page.getByRole("button", { name: "Save appearance", exact: true }).click();
-		await expect(page.getByRole("status").filter({ hasText: "Appearance saved" })).toBeVisible();
+		await expect(page.getByRole("button", { name: "Save appearance", exact: true })).toBeEnabled();
+		await expect(page.getByText("Appearance saved", { exact: true }).first()).toBeVisible();
 		await page.reload();
 		await openRunnerAppearance(page);
 		await expect(editor).toHaveValue(message);
@@ -493,7 +498,8 @@ Then("Runner playback schedules are not advertised as the next Twitch broadcast"
 	const preview = page.frameLocator('iframe[title="Runner appearance preview"]').locator("[data-runner-next-broadcast]");
 	await expect(preview).toHaveCount(0);
 	await page.getByRole("button", { name: "Save appearance", exact: true }).click();
-	await expect(page.getByRole("status").filter({ hasText: "Appearance saved" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Save appearance", exact: true })).toBeEnabled();
+	await expect(page.getByText("Appearance saved", { exact: true }).first()).toBeVisible();
 	await page.reload();
 	await openRunnerAppearance(page);
 	await expect(choice).toBeChecked();

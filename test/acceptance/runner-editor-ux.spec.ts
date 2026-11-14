@@ -261,7 +261,7 @@ for (const plan of ["free", "pro"] as const)
 				const monthlyCheckout = upgrade.getByRole("button", { name: "Upgrade to Pro for €2.00/month", exact: true });
 				await expect(monthlyCheckout).toBeEnabled();
 				await monthlyCheckout.click();
-				await expect(upgrade.getByRole("alert")).toHaveText("Could not open checkout. Please try again.");
+				await expect(page.getByText("Could not open checkout. Please try again.", { exact: true })).toHaveText("Could not open checkout. Please try again.");
 				expect(checkoutAttempts).toHaveLength(1);
 				expect(checkoutAttempts[0]).toContain('"billingCycle":"monthly"');
 				await expect(monthlyCheckout).toBeEnabled();
@@ -546,7 +546,7 @@ for (const plan of ["free", "pro"] as const)
 				await color.press("Tab");
 				await expect(preview.contentFrame().locator("[data-runner-standby]")).toHaveCSS("background-color", "rgb(22, 50, 79)");
 				await appearance.getByRole("button", { name: "Save appearance", exact: true }).click();
-				await expect(appearance.getByRole("status").filter({ hasText: "Appearance saved" })).toBeVisible();
+				await expect(page.getByText("Appearance saved", { exact: true })).toBeVisible();
 			}
 			await expect(page.locator('[data-slot="toast"]:not([data-hidden="true"])').filter({ hasText: "Stream session configuration saved." })).toHaveCount(0);
 			await page.screenshot({ path: testInfo.outputPath(`${plan}-appearance-desktop.png`), fullPage: true, animations: "disabled" });

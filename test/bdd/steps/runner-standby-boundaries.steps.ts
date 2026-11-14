@@ -19,7 +19,7 @@ When("image storage fails while they upload a new standby image", async ({ page,
 	});
 	await page.locator('input[type="file"][aria-label="Standby background image"]').setInputFiles(file);
 	await expect.poll(() => failedUploads).toBe(1);
-	await expect(page.getByRole("alert").filter({ hasText: "Could not upload the image. Your saved appearance is unchanged." })).toBeVisible();
+	await expect(page.getByText("Could not upload the image. Your saved appearance is unchanged. Please try again.", { exact: true })).toBeVisible();
 });
 
 Given("its playlist has no playable clips", async ({ mcpWorld }) => {
@@ -90,8 +90,8 @@ When("they submit a standby message containing {int} characters", async ({ page,
 });
 Then("the standby message is {string} and the saved appearance is consistent", async ({ page, mcpWorld }, outcome: string) => {
 	const boundary = mcpWorld.input?.standbyBoundary as Boundary;
-	if (outcome === "accepted") await expect(page.getByRole("status").filter({ hasText: "Appearance saved" })).toBeVisible();
-	else await expect(page.getByRole("alert")).toBeVisible();
+	if (outcome === "accepted") await expect(page.getByText("Appearance saved", { exact: true }).first()).toBeVisible();
+	else await expect(page.locator('[data-slot="toast-title"]')).toBeVisible();
 	const stored = await readStored(mcpWorld.input);
 	if (outcome === "accepted") {
 		expect(stored.profile).toMatchObject({ ...boundary.before, message: "x".repeat(boundary.length!), revision: Number(boundary.before.revision) + 1, updated_at: expect.any(String) });
@@ -124,7 +124,8 @@ Then("the standby image is {string} and the saved appearance is consistent", asy
 		expect((await readStored(mcpWorld.input)).profile).toEqual(boundary.before);
 		await expect(page.getByRole("button", { name: "Save appearance", exact: true })).toBeEnabled();
 		await page.getByRole("button", { name: "Save appearance", exact: true }).click();
-		await expect(page.getByRole("status").filter({ hasText: "Appearance saved" })).toBeVisible();
+		await expect(page.getByRole("button", { name: "Save appearance", exact: true })).toBeEnabled();
+		await expect(page.getByText("Appearance saved", { exact: true }).first()).toBeVisible();
 		const stored = await readStored(mcpWorld.input);
 		expect(stored.assets).toHaveLength(1);
 		const asset = stored.assets[0];
@@ -134,7 +135,7 @@ Then("the standby image is {string} and the saved appearance is consistent", asy
 		expect(Number(asset.size_bytes)).toBeLessThanOrEqual(2097152);
 		expect(stored.profile).toEqual({ ...boundary.before, background_asset_id: asset.id, revision: Number(boundary.before.revision) + 1, updated_at: expect.any(String) });
 	} else {
-		await expect(page.getByRole("alert").filter({ hasText: /Images must|Use a PNG|This image could not be read|Could not upload the image/ })).toBeVisible();
+		await expect(page.locator('[data-slot="toast-title"]').filter({ hasText: /Images must|Use a PNG|This image could not be read|Could not upload the image/ })).toBeVisible();
 		await expect(image).toHaveAttribute("src", new RegExp(boundary.oldAsset));
 		await expect(image).toHaveJSProperty("naturalWidth", 16);
 		await expect(page.frameLocator('iframe[title="Runner appearance preview"]').getByText(String(boundary.before.message), { exact: true })).toBeVisible();

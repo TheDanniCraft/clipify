@@ -6,6 +6,7 @@ describe("TDD-READ-SCOPES-001 read tools require their own OAuth permission", ()
 		result = flowProbe("catalogue:read-scopes");
 	});
 	test.each([
+		["list_events", "event:read"],
 		["list_creators", "creator:read"],
 		["get_capabilities", "creator:read"],
 		["list_overlays", "overlay:read"],

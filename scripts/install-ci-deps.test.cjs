@@ -85,7 +85,7 @@ test("hosted runner setup replaces the stalled Azure Ubuntu mirror before instal
 		const result = spawnSync("bash", ["scripts/install-ci-deps.sh", "apt-get", "update"], { encoding: "utf8", env: { ...process.env, GITHUB_ACTIONS: "false", PATH: dir + ":" + process.env.PATH, GITHUB_ACTIONS: "true", CALL_LOG: log } });
 		assert.equal(result.status, 0, result.stderr);
 		const calls = fs.readFileSync(log, "utf8").split("\n");
-		assert.ok(calls.some((call) => /sed -i .*azure\.archive\.ubuntu\.com.*archive\.ubuntu\.com.*(?:sources\.list|\.sources|\.list)$/.test(call)));
+		assert.ok(calls.some((call) => /sed -i .*https:\/\/archive\.ubuntu\.com.*(?:sources\.list|\.sources|\.list)$/.test(call)));
 		assert.match(calls.at(-2), /apt-get update/);
 	} finally {
 		fs.rmSync(dir, { recursive: true, force: true });
@@ -95,4 +95,15 @@ test("hosted runner setup replaces the stalled Azure Ubuntu mirror before instal
 test("mirror setup includes the mirror-list transport used by hosted Ubuntu runners", () => {
 	const script = fs.readFileSync("scripts/install-ci-deps.sh", "utf8");
 	assert.match(script, /for source in \/etc\/apt\/apt-mirrors\.txt \/etc\/apt\/apt-mirrors-\*\.txt/);
+});
+
+test("runner mirror rewriting uses HTTPS for primary and Azure archive entries", () => {
+	const script = fs.readFileSync("scripts/install-ci-deps.sh", "utf8");
+	const expression = script.match(/sudo sed -i '([^']+)'/)[1];
+	const result = spawnSync("sed", [expression], {
+		input: "http://azure.archive.ubuntu.com/ubuntu\nhttps://azure.archive.ubuntu.com/ubuntu\nhttp://archive.ubuntu.com/ubuntu\nhttps://archive.ubuntu.com/ubuntu\nhttps://packages.microsoft.com/ubuntu/26.04/prod\n",
+		encoding: "utf8",
+	});
+	assert.equal(result.status, 0, result.stderr);
+	assert.equal(result.stdout, "https://archive.ubuntu.com/ubuntu\n".repeat(4) + "https://packages.microsoft.com/ubuntu/26.04/prod\n");
 });

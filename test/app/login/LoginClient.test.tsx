@@ -1,3 +1,4 @@
+import { TWITCH_ADDITIONAL_SCOPES } from "@/auth/providers/twitch";
 import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { authClient } from "@/auth/client";
@@ -67,7 +68,7 @@ describe("native MCP sign-in", () => {
 		try {
 			render(<LoginClient returnUrl='' oauthAuthorization />);
 			fireEvent.click(screen.getByRole("button", { name: "Login with Twitch" }));
-			await waitFor(() => expect(authClient.signIn.social).toHaveBeenCalledWith({ provider: "twitch", callbackURL: "/dashboard", errorCallbackURL: `/login?${query}` }));
+			await waitFor(() => expect(authClient.signIn.social).toHaveBeenCalledWith({ provider: "twitch", scopes: [...TWITCH_ADDITIONAL_SCOPES], callbackURL: "/dashboard", errorCallbackURL: `/login?${query}` }));
 		} finally {
 			window.history.replaceState({}, "", "/");
 		}

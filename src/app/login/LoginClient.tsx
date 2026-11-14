@@ -1,5 +1,6 @@
 "use client";
 
+import { TWITCH_ADDITIONAL_SCOPES } from "@/auth/providers/twitch";
 import { trackEvent } from "@lib/analytics";
 import { useState } from "react";
 import { Button } from "@components/heroui-client";
@@ -17,6 +18,7 @@ export default function LoginClient({ returnUrl, oauthAuthorization = false }: {
 		try {
 			const result = await authClient.signIn.social({
 				provider: "twitch",
+				scopes: [...TWITCH_ADDITIONAL_SCOPES],
 				callbackURL: returnUrl || "/dashboard",
 				// Keep the provider-signed query on the login page for cancellation/retry.
 				errorCallbackURL: oauthAuthorization ? `${window.location.pathname}${window.location.search}` : returnUrl ? `/login?returnUrl=${encodeURIComponent(returnUrl)}` : "/login",

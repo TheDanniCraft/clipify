@@ -7,6 +7,7 @@ const STATIC_ROLE_PERMISSIONS: Record<string, readonly Permission[]> = {
 	admin: STANDARD_ROLES.operations,
 	member: [],
 	operations: STANDARD_ROLES.operations,
+	"event-manager": STANDARD_ROLES.eventManager,
 	"content-manager": STANDARD_ROLES.contentManager,
 	analyst: STANDARD_ROLES.analyst,
 	"billing-manager": STANDARD_ROLES.billingManager,

@@ -1,4 +1,5 @@
 /** @jest-environment node */
+import { TWITCH_ADDITIONAL_SCOPES } from "@/auth/providers/twitch";
 import { createMcpPostgresFixture } from "../../support/mcp/postgres";
 import { beginStreamingConnection, consumeStreamingState } from "@/server/runner/provider-connections";
 import { user as authUser, session as authSession } from "@/db/auth-schema";
@@ -752,7 +753,7 @@ test("PC-6 authenticated linking delegates to Better Auth and removes abandoned 
 	const { auth } = await import("@/auth/config");
 	const headers = new Headers({ cookie: "session=fixture" });
 	await beginStreamingConnection(principal, { ownerId: "provider-owner", provider: "twitch" }, fixture.db, Date.now, headers);
-	expect(auth.api.linkSocialAccount).toHaveBeenCalledWith(expect.objectContaining({ headers, body: expect.objectContaining({ provider: "twitch", scopes: ["channel:read:stream_key", "channel:manage:broadcast"], disableRedirect: true }) }));
+	expect(auth.api.linkSocialAccount).toHaveBeenCalledWith(expect.objectContaining({ headers, body: expect.objectContaining({ provider: "twitch", scopes: ["channel:read:stream_key", "channel:manage:broadcast", ...TWITCH_ADDITIONAL_SCOPES], disableRedirect: true }) }));
 	const before = (await fixture.pool.query("SELECT count(*) FROM runner_provider_states")).rows[0].count;
 	jest.mocked(auth.api.linkSocialAccount).mockRejectedValueOnce(new Error("private configuration"));
 	expect(await beginStreamingConnection(principal, { ownerId: "provider-owner", provider: "twitch" }, fixture.db)).toMatchObject({ success: false, error: expect.stringContaining("try again") });

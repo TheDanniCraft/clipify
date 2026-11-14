@@ -7,12 +7,15 @@ import ConfirmModal from "@components/confirmModal";
 import ReauthenticationModal from "@components/reauthenticationModal";
 import { notify as addToast } from "@lib/toast";
 import { disconnectLinkedAccount, listLinkedAccounts } from "@/app/actions/account-security";
+import { isGoogleProvider, eventGoogleProviderIds } from "@/auth/google-connections";
 
 type LinkedAccount = { id: string; providerId: string; accountId: string; isPrimary?: boolean };
 
 const PENDING_DISCONNECT_KEY = "clipify.pending-linked-account-disconnect";
 
 function providerName(providerId: string) {
+	if (providerId === eventGoogleProviderIds.drive) return "Google Drive";
+	if (providerId === eventGoogleProviderIds.youtube) return "YouTube Events";
 	return providerId === "google" ? "Google" : providerId === "twitch" ? "Twitch" : providerId === "credential" ? "Email" : providerId.charAt(0).toUpperCase() + providerId.slice(1);
 }
 
@@ -29,7 +32,7 @@ export default function LinkedAccountsPanel() {
 	const refresh = useCallback(async () => {
 		const result = await listLinkedAccounts();
 		if (result.error) throw new Error("ACCOUNTS_NOT_LOADED");
-		setAccounts(((result.data ?? []) as LinkedAccount[]).filter((account) => account.providerId === "google" || account.providerId === "twitch"));
+		setAccounts(((result.data ?? []) as LinkedAccount[]).filter((account) => isGoogleProvider(account.providerId) || account.providerId === "twitch"));
 		setLoadError(false);
 	}, []);
 
@@ -39,7 +42,7 @@ export default function LinkedAccountsPanel() {
 			.then((result) => {
 				if (!active) return;
 				if (result.error) throw new Error("ACCOUNTS_NOT_LOADED");
-				setAccounts(((result.data ?? []) as LinkedAccount[]).filter((account) => account.providerId === "google" || account.providerId === "twitch"));
+				setAccounts(((result.data ?? []) as LinkedAccount[]).filter((account) => isGoogleProvider(account.providerId) || account.providerId === "twitch"));
 			})
 			.catch(() => {
 				if (!active) return;
@@ -74,7 +77,7 @@ export default function LinkedAccountsPanel() {
 				setUnlinking(null);
 				setReauthProvider(null);
 				await refresh();
-				addToast({ title: `${providerName(disconnectedProvider)} disconnected`, description: "Its Clipify access and Runner channel connection were removed.", color: "success" });
+				addToast({ title: `${providerName(disconnectedProvider)} disconnected`, description: "This account's Clipify connection was removed.", color: "success" });
 			} catch {
 				addToast({ title: "Account could not be disconnected", description: "Please try again.", color: "danger" });
 			} finally {
@@ -143,7 +146,7 @@ export default function LinkedAccountsPanel() {
 						<p className='p-5 text-sm text-muted'>No Twitch or YouTube accounts are linked.</p>
 					) : (
 						accounts.map((account) => {
-							const Icon = account.providerId === "google" ? IconBrandGoogle : account.providerId === "twitch" ? IconBrandTwitch : account.providerId === "credential" ? IconMail : IconLink;
+							const Icon = isGoogleProvider(account.providerId) ? IconBrandGoogle : account.providerId === "twitch" ? IconBrandTwitch : account.providerId === "credential" ? IconMail : IconLink;
 							return (
 								<div key={account.id} className='flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between'>
 									<div className='flex min-w-0 items-center gap-3'>

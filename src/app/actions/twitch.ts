@@ -376,10 +376,11 @@ const MAX_CLIP_PLAYBACK_URLS = 1_000;
 const clipPlaybackUrlCache = new Map<string, { url: string; expiresAt: number }>();
 const clipPlaybackUrlRequests = new Map<string, Promise<string | undefined>>();
 
-export type ClipPlaybackContext = { kind: "inventory"; creatorId: string; refresh?: boolean } | { kind: "overlay"; overlayId: string; secret?: string } | { kind: "demo"; overlayId: string } | { kind: "gallery"; galleryId: string; preview?: boolean } | { kind: "creator"; username: string };
+export type ClipPlaybackContext = { kind: "event"; eventId: string; previewToken?: string } | { kind: "inventory"; creatorId: string; refresh?: boolean } | { kind: "overlay"; overlayId: string; secret?: string } | { kind: "demo"; overlayId: string } | { kind: "gallery"; galleryId: string; preview?: boolean } | { kind: "creator"; username: string };
 
 async function canPlayClipInContext(clipId: string, broadcasterId: string, context: ClipPlaybackContext | undefined) {
 	if (!clipId || !broadcasterId || !context || typeof context !== "object") return false;
+	if (context.kind === "event") return (await import("@/server/events/clip-playback")).canPlayAwardClip(clipId, broadcasterId, context.eventId, context.previewToken);
 	if (context.kind === "inventory") return canPreviewInventoryClip({ creatorId: broadcasterId, contextCreatorId: context.creatorId, clipId }, () => getCachedClipByOwner(broadcasterId, clipId));
 	if (context.kind === "demo") {
 		if (!process.env.DEMO_OVERLAY_ID || context.overlayId !== process.env.DEMO_OVERLAY_ID) return false;

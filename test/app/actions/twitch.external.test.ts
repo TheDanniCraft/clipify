@@ -4,6 +4,8 @@ export {};
 import axios from "axios";
 import { REWARD_NOT_FOUND } from "@lib/twitchErrors";
 
+const awardClip = jest.fn();
+jest.mock("@/server/events/clip-playback", () => ({ canPlayAwardClip: (...args: unknown[]) => awardClip(...args) }));
 const getAccessToken = jest.fn();
 const getTwitchCache = jest.fn();
 const getTwitchCacheBatch = jest.fn();
@@ -1483,6 +1485,18 @@ describe("actions/twitch external API and failure handling", () => {
 		await getCreatorTwitchDetails("alice", "owner-1");
 		expect(post).toHaveBeenCalledTimes(5);
 		now.mockRestore();
+	});
+	it("rechecks event clip authority before reusing a cached playback URL", async () => {
+		awardClip.mockResolvedValue(true);
+		getAccessTokenResultInternal.mockResolvedValue({ token: null, reason: "missing" });
+		const post = jest.spyOn(axios, "post").mockResolvedValue(buildGraphqlClipResponse("event-clip", "https://clips.twitchcdn.net/event.mp4"));
+		const { getTwitchClipPlaybackUrl } = await loadTwitch();
+		const context = { kind: "event" as const, eventId: "event", previewToken: "capability" };
+		await expect(getTwitchClipPlaybackUrl("event-clip", "owner-1", context)).resolves.toContain("event.mp4");
+		expect(awardClip).toHaveBeenLastCalledWith("event-clip", "owner-1", "event", "capability");
+		awardClip.mockResolvedValue(false);
+		await expect(getTwitchClipPlaybackUrl("event-clip", "owner-1", context)).resolves.toBeUndefined();
+		expect(post).toHaveBeenCalledTimes(1);
 	});
 	it("U174: previews a privately authorized inventory clip without requiring a public creator page", async () => {
 		authorizeCreatorOperation.mockResolvedValue({ allowed: true });

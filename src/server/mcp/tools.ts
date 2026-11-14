@@ -1,3 +1,4 @@
+import { eventTools } from "./events/tools";
 import { registerMcpPrompts } from "./prompts";
 import { focusedTools } from "./focused-tools";
 import { workflowTools } from "./workflows/tools";
@@ -22,8 +23,9 @@ function measuredFailure(cause: unknown) {
 }
 
 function readActivityTarget(input: unknown) {
-	const selectors = input as { creatorId?: string; overlayId?: string; playlistId?: string; galleryId?: string; runnerId?: string; sessionId?: string } | undefined;
+	const selectors = input as { creatorId?: string; overlayId?: string; playlistId?: string; galleryId?: string; runnerId?: string; sessionId?: string; eventId?: string } | undefined;
 	const targetFields = [
+		["eventId", "event"],
 		["overlayId", "overlay"],
 		["playlistId", "playlist"],
 		["galleryId", "gallery"],
@@ -82,6 +84,7 @@ async function readResult(operation: () => Promise<Record<string, unknown>>, pri
 export function registerMcpTools(server: McpServer, principal: TrustedCreatorPrincipal) {
 	registerMcpPrompts(server);
 	const tools = [
+		...eventTools(principal),
 		...workflowTools(principal),
 		...focusedTools(principal),
 		{ name: "list_creators", description: "List approved creators you can currently access, with their stored Twitch avatarUrl (including default avatars) or null when unavailable. If displaying an avatar, use only that creator's returned avatarUrl; never guess or substitute an image.", schema: toolInputSchemas.list_creators, run: (input: unknown) => listCreators(principal, toolInputSchemas.list_creators.parse(input)) },

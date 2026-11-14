@@ -24,6 +24,7 @@ declare module "ws" {
 export function UPGRADE(client: WebSocket, server: WebSocketServer) {
 	client.isAlive = true;
 	let pendingMessages = 0;
+	let chatClaimed = false;
 	let messageQueue = Promise.resolve();
 	client.on("pong", () => {
 		client.isAlive = true;
@@ -75,7 +76,22 @@ export function UPGRADE(client: WebSocket, server: WebSocketServer) {
 		pendingMessages += 1;
 		messageQueue = messageQueue
 			.then(async () => {
-				if (client.readyState === WebSocket.OPEN) await handleMessage(buffer, client);
+				if (client.readyState !== WebSocket.OPEN) return;
+				let frame: { type?: unknown; data?: unknown } | undefined;
+				try {
+					frame = JSON.parse(buffer.toString());
+				} catch {
+					/* Existing handler rejects malformed frames. */
+				}
+				if (frame?.type === "event_chat_subscribe") {
+					if (chatClaimed || client.ownerId || client.overlayId) {
+						client.close(4003);
+						return;
+					}
+					chatClaimed = true;
+					await (await import("@/server/events/chat-socket")).attachAwardChatSocket(client, frame.data);
+				} else if (chatClaimed) client.close(4003);
+				else await handleMessage(buffer, client);
 			})
 			.catch((error) => {
 				console.error("Failed to process WebSocket message:", error);

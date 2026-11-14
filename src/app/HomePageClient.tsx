@@ -13,6 +13,7 @@ import { IconArrowRight, IconBrandTwitch, IconBrowser, IconCheck, IconPalette, I
 import TiersComponent from "@components/Pricing";
 import faqs from "@components/LandingPage/faqs";
 import CommunityTeaser from "@components/LandingPage/communityTeaser";
+import EventDiscovery from "@components/events/EventDiscovery";
 import Footer from "@components/footer";
 import FloatingBanner from "@components/floatingBanner";
 import DemoPlayer from "@components/DemoPlayer";
@@ -299,6 +300,9 @@ export default function HomePageClient({ campaignOffer, pricing }: HomePageClien
 							</Accordion>
 						</div>
 					</section>
+					<div className='mx-auto max-w-7xl px-6 py-14 sm:px-8'>
+						<EventDiscovery preview />
+					</div>
 					<section aria-labelledby='start-heading' className='mx-4 mb-8 rounded-3xl bg-gradient-to-br from-brand-900 to-brand-700 px-6 py-14 text-center text-white sm:mx-8 sm:py-20'>
 						<p className='mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-violet-200'>Your next break, covered</p>
 						<h2 id='start-heading' className='text-3xl font-bold tracking-tight sm:text-4xl'>

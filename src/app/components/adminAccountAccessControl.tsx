@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@lib/toast";
 
 import { useState, useTransition } from "react";
 import { Button, Modal, TextField, Label, TextArea, Tooltip } from "@heroui/react";
@@ -9,23 +10,21 @@ import { IconUserOff, IconUserCheck } from "@tabler/icons-react";
 export default function AdminAccountAccessControl({ user, onChanged, compact = false }: { user: { id: string; username: string; disabled?: boolean; disabledReason?: string | null }; onChanged: () => Promise<void>; compact?: boolean }) {
 	const [open, setOpen] = useState(false);
 	const [reason, setReason] = useState("");
-	const [message, setMessage] = useState("");
 	const [pending, startTransition] = useTransition();
 	function submit() {
 		startTransition(async () => {
-			setMessage("");
 			try {
 				const result = await setAdminAccountAccess({ userId: user.id, disabled: !user.disabled, reason });
 				await onChanged();
 				if (result.changed && !result.notificationQueued) {
-					setMessage("Account access updated, but the notification email could not be queued.");
+					notify({ title: "Account access updated, but the notification email could not be queued.", color: "warning" });
 					setOpen(false);
 				} else {
 					setOpen(false);
 					setReason("");
 				}
 			} catch (error) {
-				setMessage(error instanceof Error && error.message === "CANNOT_DISABLE_OWN_ACCOUNT" ? "You cannot disable your own account." : "Could not update account access. Please try again.");
+				notify({ title: error instanceof Error && error.message === "CANNOT_DISABLE_OWN_ACCOUNT" ? "You cannot disable your own account." : "Could not update account access. Please try again.", color: "danger" });
 			}
 		});
 	}
@@ -39,7 +38,6 @@ export default function AdminAccountAccessControl({ user, onChanged, compact = f
 					variant='tertiary'
 					className={user.disabled ? "text-success" : "text-danger"}
 					onPress={() => {
-						setMessage("");
 						setReason("");
 						setOpen(true);
 					}}
@@ -48,11 +46,6 @@ export default function AdminAccountAccessControl({ user, onChanged, compact = f
 				</Button>
 				<Tooltip.Content>{user.disabled ? "Enable account" : "Disable account"}</Tooltip.Content>
 			</Tooltip>
-			{!open && message && (
-				<p role='alert' className='text-sm text-danger'>
-					{message}
-				</p>
-			)}
 			{open && (
 				<Modal.Backdrop
 					isOpen={open}
@@ -76,11 +69,6 @@ export default function AdminAccountAccessControl({ user, onChanged, compact = f
 										<Label>Reason shown to the user</Label>
 										<TextArea value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} disabled={pending} aria-label='Reason shown to the user' />
 									</TextField>
-								)}
-								{message && (
-									<p role='alert' className='text-sm text-danger'>
-										{message}
-									</p>
 								)}
 							</Modal.Body>
 							<Modal.Footer>

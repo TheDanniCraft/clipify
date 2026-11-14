@@ -53,7 +53,7 @@ When("the official SDK completes {word} approval edit abandoned consent and revo
 		const tokens = await exchange.json();
 		connected = await connectMcpClient(new URL(`${origin}/mcp`), tokens.access_token, "auto");
 		const tools = await connected.client.listTools();
-		expect(tools.tools.length).toBe(76);
+		expect(tools.tools.length).toBe(94);
 		const prompts = await connected.client.listPrompts();
 		expect(prompts.prompts).toHaveLength(7);
 		expect(tools.tools.find((tool) => tool.name === "delete_overlay")?.annotations?.destructiveHint).toBe(true);
@@ -154,7 +154,7 @@ When("the official SDK completes {word} approval edit abandoned consent and revo
 		await expect(row).toHaveCount(1, { timeout: 30000 });
 		await row.getByRole("button", { name: "Disconnect Official SDK browser acceptance", exact: true }).click();
 		await page.getByRole("dialog", { name: "Disconnect this app?", exact: true }).getByRole("button", { name: "Disconnect", exact: true }).click();
-		await expect(page.getByRole("status").filter({ hasText: "The app is disconnected" })).toBeVisible({ timeout: 30000 });
+		await expect(page.getByText("The app is disconnected. It no longer has access to your creators.", { exact: true })).toBeVisible({ timeout: 30000 });
 		await expect(row).toHaveCount(0);
 		await page.getByRole("button", { name: /^Show inactive/ }).click();
 		await expect(page.getByRole("row").filter({ hasText: "Official SDK browser acceptance" }).getByText("Disconnected", { exact: true })).toBeVisible({ timeout: 30000 });

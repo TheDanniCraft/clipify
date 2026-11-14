@@ -2,6 +2,9 @@
 export type AccessLevel = "none" | "read" | "write";
 export type ConsentMode = "read" | "write" | "custom";
 export const CONSENT_GROUPS = [
+	{ id: "events", title: "Community events", description: "Read award events. Write can configure events, review nominations and prepare data results. Publication and private presenter links are separate permissions.", read: ["event:read"], write: ["event:create", "event:update", "event:review"] },
+	{ id: "event-publication", title: "Award publication", description: "Publish events and reveal their final results to the audience.", read: [], write: ["event:publish"] },
+	{ id: "event-presenter", title: "Private award presenter", description: "Issue a new private presenter link and revoke the previous link. Keep these links private.", read: [], write: ["event-presenter:rotate"] },
 	{ id: "creator", title: "Creator information", description: "View creator details, capabilities and discover Twitch clips. This does not grant account or billing access.", read: ["creator:read"], write: [] },
 	{ id: "overlays", title: "Overlays", description: "Read overlay settings, playback status, queues and public embeds. Write can create, edit and delete overlays when requested.", read: ["overlay:read"], write: ["overlay:create", "overlay:update", "overlay:delete"] },
 	{ id: "playlists", title: "Playlists", description: "Read playlists and preview clip imports. Write can create, edit and delete playlists and manage their clips.", read: ["playlist:read"], write: ["playlist:create", "playlist:update", "playlist:delete", "playlist-items:manage"] },

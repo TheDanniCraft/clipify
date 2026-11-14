@@ -22,11 +22,12 @@ type InvitationRow = { id: string; email: string; role: string | null; status: s
 type RoleRow = { id: string; role: string; permission: Record<string, string[]> };
 type TeamRow = { kind: "member"; member: MemberRow } | { kind: "invitation"; invitation: InvitationRow };
 
-const STANDARD_STAFF_ROLES = ["operations", "content-manager", "analyst", "billing-manager"] as const;
+const STANDARD_STAFF_ROLES = ["operations", "event-manager", "content-manager", "analyst", "billing-manager"] as const;
 const CUSTOM_ROLE = "custom";
 
 const STANDARD_ROLE_PERMISSIONS: Record<(typeof STANDARD_STAFF_ROLES)[number], readonly Permission[]> = {
 	operations: STANDARD_ROLES.operations,
+	"event-manager": STANDARD_ROLES.eventManager,
 	"content-manager": STANDARD_ROLES.contentManager,
 	analyst: STANDARD_ROLES.analyst,
 	"billing-manager": STANDARD_ROLES.billingManager,

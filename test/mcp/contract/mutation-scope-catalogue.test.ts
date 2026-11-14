@@ -6,6 +6,13 @@ describe("each mutation requires its independently approved OAuth scope", () => 
 		result = flowProbe("catalogue:mutation-scopes");
 	});
 	test.each([
+		["create_event", "event:create"],
+		["create_event_example", "event:create"],
+		["get_event_preview", "event:update"],
+		["update_event", "event:update"],
+		["nominate_event_candidates", "event:review"],
+		["publish_event", "event:publish"],
+		["rotate_event_presenter", "event-presenter:rotate"],
 		["create_overlay", "overlay:create"],
 		["update_overlay_settings", "overlay:update"],
 		["delete_overlay", "overlay:delete"],

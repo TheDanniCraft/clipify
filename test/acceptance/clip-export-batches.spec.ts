@@ -49,14 +49,20 @@ for (const width of [390, 1440])
 			await modal.getByRole("button", { name: "Continue in background", exact: true }).click();
 			await page.getByRole("link", { name: "Last night's clutch", exact: true }).click();
 			await expect(page).toHaveURL(/\/dashboard\/clips\//);
-			if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+			if (width === 390) {
+				await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+				await expect(page.locator('[data-slot="sidebar-mobile"]')).toBeInViewport({ ratio: 1 });
+			}
 			await expect(page.getByRole("button", { name: "Exports", exact: true })).toBeVisible();
 			await page.getByRole("row", { name: "Streams", exact: true }).click();
 			await expect(page).toHaveURL(/\/dashboard\/streams$/);
 			const media = await download;
 			expect(media.suggestedFilename()).toMatch(/\.mp4$/);
 			await media.saveAs(info.outputPath("single.mp4"));
-			if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+			if (width === 390) {
+				await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+				await expect(page.locator('[data-slot="sidebar-mobile"]')).toBeInViewport({ ratio: 1 });
+			}
 			const sidebar = page.locator(`[data-slot="${width === 390 ? "sidebar-mobile" : "sidebar"}"]`);
 			const utilities = sidebar.locator("[data-dashboard-utility]");
 			expect(await utilities.evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-dashboard-utility")))).toEqual(["admin", "guide", "exports", "chat", "help", "report", "account"]);
@@ -69,7 +75,10 @@ for (const width of [390, 1440])
 			await expect(page.getByText("Download started", { exact: true })).not.toBeVisible();
 			await page.screenshot({ path: info.outputPath("completed.png"), fullPage: true, animations: "disabled" });
 			await modal.getByRole("button", { name: "Close exports", exact: true }).click();
-			if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+			if (width === 390) {
+				await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+				await expect(page.locator('[data-slot="sidebar-mobile"]')).toBeInViewport({ ratio: 1 });
+			}
 			await page.getByRole("row", { name: "Clip Inventory", exact: true }).click();
 			await expect(page).toHaveURL(/\/dashboard\/clips$/);
 			await page.getByRole("button", { name: "Select page", exact: true }).click();

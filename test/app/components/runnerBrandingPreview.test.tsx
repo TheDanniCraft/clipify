@@ -1,3 +1,5 @@
+import { notify } from "@lib/toast";
+jest.mock("@lib/toast", () => ({ notify: jest.fn() }));
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import RunnerBrandingPreview from "@/app/components/runner/RunnerBrandingPreview";
 import { getRunnerBrandingProfile, saveRunnerBrandingProfile } from "@/app/actions/runner";
@@ -129,7 +131,7 @@ test("TDD-US4-DEC012: an unfinished preview refuses persistence and gives a norm
 		await act(async () => {
 			await jest.advanceTimersByTimeAsync(5000);
 		});
-		expect(screen.getByRole("alert")).toHaveTextContent("Wait for the appearance preview to finish loading");
+		expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringContaining("Wait for the appearance preview to finish loading"), color: "danger" }));
 		expect(saveRunnerBrandingProfile).not.toHaveBeenCalled();
 		expect(save).toBeEnabled();
 	} finally {
@@ -157,7 +159,7 @@ async function previewWithLayout(status: "placed" | "clean" | "blocked") {
 test("TDD-US4-DEC012: a measured blocked layout refuses persistence with its actionable layout error", async () => {
 	const { save } = await previewWithLayout("blocked");
 	fireEvent.click(save);
-	expect(await screen.findByRole("alert")).toHaveTextContent("Adjust your overlay layout to leave room for Clipify attribution before saving.");
+	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringContaining("Adjust your overlay layout to leave room for Clipify attribution before saving."), color: "danger" })));
 	expect(saveRunnerBrandingProfile).not.toHaveBeenCalled();
 	expect(save).toBeEnabled();
 });
@@ -166,7 +168,7 @@ test.each(["placed", "clean"] as const)("TDD-US4-FR017: a %s preview saves its e
 	jest.mocked(saveRunnerBrandingProfile).mockResolvedValue({ success: true, profile: { ...profile, id: "33333333-3333-4333-8333-333333333333", revision: 1 } });
 	const { save } = await previewWithLayout(status);
 	fireEvent.click(save);
-	expect(await screen.findByRole("status")).toHaveTextContent("Appearance saved");
+	await waitFor(() => expect(notify).toHaveBeenCalledWith({ title: "Appearance saved", color: "success" }));
 	expect(saveRunnerBrandingProfile).toHaveBeenCalledTimes(1);
 	expect(saveRunnerBrandingProfile).toHaveBeenCalledWith({ ownerId: "fixture-owner", runnerId: "11111111-1111-4111-8111-111111111111", expectedRevision: 0, watermarkCorner: "bottom_right" });
 	expect(save).toBeEnabled();
@@ -179,11 +181,11 @@ test.each(["conflict", "transport"])("TDD-US4-FR017: a %s save failure preserves
 	else jest.mocked(saveRunnerBrandingProfile).mockRejectedValueOnce(new Error("fixture transport unavailable"));
 	const { save } = await previewWithLayout("placed");
 	fireEvent.click(save);
-	expect(await screen.findByRole("alert")).toHaveTextContent(failure === "conflict" ? "Appearance changed. Reload and try again." : "Could not save appearance. Please try again.");
+	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringContaining(failure === "conflict" ? "Appearance changed. Reload and try again." : "Could not save appearance. Please try again."), color: "danger" })));
 	expect(screen.queryByRole("status")).not.toBeInTheDocument();
 	expect(save).toBeEnabled();
 	fireEvent.click(save);
-	expect(await screen.findByRole("status")).toHaveTextContent("Appearance saved");
+	await waitFor(() => expect(notify).toHaveBeenCalledWith({ title: "Appearance saved", color: "success" }));
 	expect(saveRunnerBrandingProfile).toHaveBeenNthCalledWith(2, { ownerId: "fixture-owner", runnerId: "11111111-1111-4111-8111-111111111111", expectedRevision: 0, watermarkCorner: "bottom_right" });
 });
 
@@ -191,7 +193,7 @@ test.each(["denied", "transport"])("TDD-US4-FR017: a %s load failure shows a nor
 	if (failure === "denied") jest.mocked(getRunnerBrandingProfile).mockResolvedValue({ success: false, code: "ACCESS_DENIED", error: "Access denied" });
 	else jest.mocked(getRunnerBrandingProfile).mockRejectedValue(new Error("fixture load unavailable"));
 	render(<RunnerBrandingPreview ownerId='fixture-owner' runnerId='11111111-1111-4111-8111-111111111111' overlayId='22222222-2222-4222-8222-222222222222' />);
-	expect(await screen.findByRole("alert")).toHaveTextContent(failure === "denied" ? "Access denied" : "Could not load appearance. Please try again.");
+	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringContaining(failure === "denied" ? "Access denied" : "Could not load appearance. Please try again."), color: "danger" })));
 	expect(screen.getByRole("button", { name: "Save appearance" })).toBeDisabled();
 	expect(screen.queryByTitle("Runner appearance preview")).not.toBeInTheDocument();
 	expect(saveRunnerBrandingProfile).not.toHaveBeenCalled();
@@ -284,7 +286,7 @@ test("TDD-US4-FR019 strength: Pro edits and staged images reach preview before o
 		frame.contentDocument!.close();
 		acknowledgePreview(frame);
 		fireEvent.click(screen.getByRole("button", { name: "Save appearance" }));
-		expect(await screen.findByRole("status")).toHaveTextContent("Appearance saved");
+		await waitFor(() => expect(notify).toHaveBeenCalledWith({ title: "Appearance saved", color: "success" }));
 		expect(saveRunnerBrandingProfile).toHaveBeenCalledTimes(1);
 		expect(saveRunnerBrandingProfile).toHaveBeenCalledWith({ ownerId: "fixture-owner", runnerId: "11111111-1111-4111-8111-111111111111", expectedRevision: 0, watermarkCorner: "bottom_right", proShowAttribution: false, standbyBackgroundColor: updated.standbyBackgroundColor, backgroundAssetId, logoAssetId, message: updated.message, showNextBroadcastTime: true });
 	} finally {
@@ -306,9 +308,8 @@ test.each(["validation", "missing error text", "malformed success", "transport"]
 		const frame = (await observeDraftPreview()) as HTMLIFrameElement;
 		const originalUrl = frame.src;
 		fireEvent.change(screen.getByLabelText("Standby background image"), { target: { files: [new File(["fixture"], "standby.png", { type: "image/png" })] } });
-		const error = await screen.findByRole("alert");
-		expect(error).toHaveTextContent(failure === "validation" ? "The image could not be saved." : "Could not upload the image.");
-		expect(error).not.toHaveTextContent("PRIVATE_UPLOAD_FAILURE");
+		await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringContaining(failure === "validation" ? "The image could not be saved." : "Could not upload the image."), color: "danger" })));
+		expect(JSON.stringify(jest.mocked(notify).mock.calls)).not.toContain("PRIVATE_UPLOAD_FAILURE");
 		expect(screen.getByTitle("Runner appearance preview")).toBe(frame);
 		expect(frame.src).toBe(originalUrl);
 		expect(screen.getByLabelText("Standby message")).toHaveValue(saved.message);
@@ -317,7 +318,7 @@ test.each(["validation", "missing error text", "malformed success", "transport"]
 		frame.contentDocument!.close();
 		acknowledgePreview(frame);
 		fireEvent.click(screen.getByRole("button", { name: "Save appearance" }));
-		expect(await screen.findByRole("status")).toHaveTextContent("Appearance saved");
+		await waitFor(() => expect(notify).toHaveBeenCalledWith({ title: "Appearance saved", color: "success" }));
 		expect(saveRunnerBrandingProfile).toHaveBeenCalledWith(expect.objectContaining({ expectedRevision: 3, backgroundAssetId: saved.backgroundAssetId, message: saved.message, standbyBackgroundColor: saved.standbyBackgroundColor }));
 	} finally {
 		Reflect.set(globalThis, "fetch", previousFetch);
@@ -334,7 +335,7 @@ test.each(["cancelled", "oversized"])("TDD-US4-EC012 strength: a %s file selecti
 		const frame = (await observeDraftPreview()) as HTMLIFrameElement;
 		const originalUrl = frame.src;
 		fireEvent.change(screen.getByLabelText("Standby logo"), { target: { files: selection === "cancelled" ? [] : [new File([new Uint8Array(2097153)], "large.png", { type: "image/png" })] } });
-		if (selection === "oversized") expect(await screen.findByRole("alert")).toHaveTextContent("Images must be no larger than 2 MiB.");
+		if (selection === "oversized") await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringContaining("Images must be no larger than 2 MiB."), color: "danger" })));
 		expect(upload).not.toHaveBeenCalled();
 		expect(frame.src).toBe(originalUrl);
 		expect(screen.getByLabelText("Standby message")).toHaveValue("Saved scene");
@@ -381,7 +382,7 @@ test("restores appearance edits with their original save revision after deployme
 		acknowledgePreview(frame);
 		fireEvent.click(save);
 		await waitFor(() => expect(saveRunnerBrandingProfile).toHaveBeenCalledWith(expect.objectContaining({ watermarkCorner: "top_left", expectedRevision: 0 })));
-		expect(await screen.findByRole("status")).toHaveTextContent("Appearance saved");
+		await waitFor(() => expect(notify).toHaveBeenCalledWith({ title: "Appearance saved", color: "success" }));
 	} finally {
 		sessionStorage.clear();
 	}

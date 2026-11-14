@@ -1,20 +1,20 @@
 "use client";
+import { notify } from "@lib/toast";
 import { useState } from "react";
 import { Accordion, Button, InputGroup, Label, Link, TextField } from "@heroui/react";
 import { IconCheck, IconCopy, IconEye, IconEyeOff } from "@tabler/icons-react";
 
 export default function AdvancedRunnerSetup({ token, error, onRetry, pending = false }: { token: string | null; error: string | null; onRetry: () => void; pending?: boolean }) {
 	const [visible, setVisible] = useState(false),
-		[copied, setCopied] = useState(false),
-		[copyError, setCopyError] = useState<string | null>(null);
+		[copied, setCopied] = useState(false);
 	async function copy() {
 		if (!token) return;
 		try {
 			await navigator.clipboard.writeText(token);
 			setCopied(true);
-			setCopyError(null);
+			notify({ title: "Token copied", color: "success" });
 		} catch {
-			setCopyError("Clipboard unavailable. Reveal the token and copy it manually.");
+			notify({ title: "Clipboard unavailable. Reveal the token and copy it manually.", color: "danger" });
 		}
 	}
 	return (
@@ -48,14 +48,9 @@ export default function AdvancedRunnerSetup({ token, error, onRetry, pending = f
 						<Link href='https://help.clipify.us/hc/clipify/articles/self-hosted-clipify-runner' target='_blank' rel='noopener noreferrer'>
 							Read the headless setup guide
 						</Link>
-						{copied && (
-							<p role='status' className='text-sm text-success'>
-								Token copied
-							</p>
-						)}
-						{(error || copyError) && (
+						{error && (
 							<p role='alert' className='text-sm text-danger'>
-								{error || copyError}
+								{error}
 							</p>
 						)}
 						{!token && (

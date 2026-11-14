@@ -49,4 +49,5 @@ const workflowNames = [
 	"submit_feedback",
 ];
 const focusedNames = ["get_overlay_source", "update_overlay_source", "get_overlay_filters", "update_overlay_filters", "get_overlay_playback", "update_overlay_playback", "get_overlay_theme", "update_overlay_theme", "get_gallery_source", "update_gallery_source", "get_gallery_filters", "update_gallery_filters", "get_gallery_layout", "update_gallery_layout", "get_gallery_theme", "update_gallery_theme"];
-export const PUBLIC_TOOL_NAMES = [...CORE_TOOL_NAMES, ...workflowNames, ...focusedNames];
+const eventNames = ["get_event_preview", "create_event_example", "list_events", "get_event", "create_event", "update_event", "update_event_presentation", "publish_event", "get_event_review", "add_event_candidate", "group_event_candidates", "nominate_event_candidates", "release_event_review", "set_event_data_result", "get_event_ties", "choose_event_tie_winner", "rotate_event_presenter", "publish_event_results"];
+export const PUBLIC_TOOL_NAMES = [...CORE_TOOL_NAMES, ...workflowNames, ...focusedNames, ...eventNames];

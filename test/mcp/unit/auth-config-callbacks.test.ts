@@ -323,3 +323,27 @@ test("ordinary login without a saved streaming grant keeps normal credential upd
 	expect(await options.databaseHooks.account.update.before({ providerId: "google" }, { path: "/callback/:id" })).toBeUndefined();
 	expect(await options.databaseHooks.account.update.before({ providerId: "twitch" }, { path: "/get-access-token" })).toBeUndefined();
 });
+
+test("event participant callbacks do not provision creators or send creator welcome mail", async () => {
+	jest.mocked(getOAuthState).mockResolvedValue({ eventParticipation: "8c317b25-5083-4cae-b939-0487a7fa8ff6", callbackURL: "http://localhost:3000/events/8c317b25-5083-4cae-b939-0487a7fa8ff6" } as never);
+	await options.databaseHooks.user.create.after({ id: "viewer", email: "viewer@example.test", name: "Viewer" }, { path: "/callback/twitch" });
+	await options.databaseHooks.account.create.after({ id: "a", providerId: "twitch", userId: "viewer", accountId: "viewer-twitch" }, { path: "/callback/twitch" });
+	await options.databaseHooks.account.update.after({ id: "a", providerId: "twitch", userId: "viewer", accountId: "viewer-twitch" }, { path: "/callback/twitch" });
+	expect(completeTwitchSignIn).not.toHaveBeenCalled();
+	expect(queueIdentityEmail).not.toHaveBeenCalled();
+	expect(restoreTwitchAccountAccess).not.toHaveBeenCalled();
+});
+
+test("Twitch provider defaults request identity only so viewers do not grant creator tools", () => {
+	expect(options.socialProviders.twitch.scope ?? []).toEqual([]);
+});
+
+jest.mock("@/server/events/connections", () => ({ recordEventGoogleAccount: jest.fn(), disconnectEventConnectionsForAuthAccount: jest.fn() }));
+import { recordEventGoogleAccount } from "@/server/events/connections";
+test("event Google callbacks record the exact selected linked account", async () => {
+	jest.mocked(getOAuthState).mockResolvedValue({ link: { userId: "identity" }, eventConnectionIntent: "a".repeat(43) } as never);
+	const account = { id: "selected-google", userId: "identity", providerId: "google-drive", scope: "https://www.googleapis.com/auth/drive.file" };
+	await options.databaseHooks.account.update.after(account, { path: "/callback/google-drive/oauth-proxy" });
+	expect(recordEventGoogleAccount).toHaveBeenCalledWith(account, "a".repeat(43));
+	expect(completeTwitchSignIn).not.toHaveBeenCalled();
+});

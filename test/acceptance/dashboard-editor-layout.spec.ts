@@ -128,7 +128,10 @@ for (const width of [1280, 390]) {
 			await name.fill("Keep this unsaved gallery");
 			await expect(page.getByRole("button", { name: "Save Gallery Settings", exact: true })).toBeEnabled();
 			const confirmation = page.getByRole("dialog").filter({ hasText: "Unsaved Changes" });
-			if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+			if (width === 390) {
+				await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+				await expect(page.locator('[data-slot="sidebar-mobile"]')).toBeInViewport({ ratio: 1 });
+			}
 			await page.getByRole("button", { name: "Search clips and tools", exact: true }).click();
 			const search = page.getByRole("dialog", { name: "Search clips and tools", exact: true });
 			await expect(search).toBeVisible();
@@ -137,7 +140,10 @@ for (const width of [1280, 390]) {
 			await confirmation.getByRole("button", { name: "Cancel", exact: true }).click();
 			await expect(name).toHaveValue("Keep this unsaved gallery");
 			const leave = async () => {
-				if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+				if (width === 390) {
+					await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+					await expect(page.locator('[data-slot="sidebar-mobile"]')).toBeInViewport({ ratio: 1 });
+				}
 				await page.getByRole("row", { name: "Home", exact: true }).click();
 			};
 			await leave();

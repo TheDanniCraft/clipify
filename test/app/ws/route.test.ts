@@ -5,11 +5,13 @@ import { WebSocket, type WebSocketServer } from "ws";
 const revalidate = jest.fn();
 const revalidateController = jest.fn();
 const message = jest.fn();
+const chat = jest.fn();
 const remove = jest.fn();
 const disconnected = jest.fn();
 const rejected = jest.fn();
 jest.mock("@/server/resources/overlay-source-runtime", () => ({ revalidateOverlaySource: (...args: unknown[]) => revalidate(...args) }));
 jest.mock("@actions/websocket", () => ({ handleMessage: (...args: unknown[]) => message(...args), revalidateController: (...args: unknown[]) => revalidateController(...args) }));
+jest.mock("@/server/events/chat-socket", () => ({ attachAwardChatSocket: (...args: unknown[]) => chat(...args) }));
 jest.mock("@store/overlaySubscribers", () => ({ removeSubscriber: (...args: unknown[]) => remove(...args) }));
 jest.mock("@lib/operationalHealth", () => ({ recordWebSocketDisconnected: (...args: unknown[]) => disconnected(...args), recordWebSocketRejected: (...args: unknown[]) => rejected(...args) }));
 
@@ -43,10 +45,24 @@ describe("websocket upgrade lifecycle", () => {
 		revalidate.mockReset().mockResolvedValue(true);
 		revalidateController.mockReset().mockResolvedValue(true);
 		message.mockResolvedValue(undefined);
+		chat.mockResolvedValue(undefined);
 	});
 	afterEach(() => {
 		jest.clearAllTimers();
 		jest.useRealTimers();
+	});
+	test("routes an event-chat subscription separately and prevents changing its role", async () => {
+		const {
+			clients: [socket],
+		} = await setup();
+		const data = { eventId: "event", secret: "isolated-capability", preview: true };
+		socket.emit("message", Buffer.from(JSON.stringify({ type: "event_chat_subscribe", data })));
+		await jest.advanceTimersByTimeAsync(0);
+		expect(chat).toHaveBeenCalledWith(socket, data);
+		expect(message).not.toHaveBeenCalled();
+		socket.emit("message", Buffer.from(JSON.stringify({ type: "subscribe", data: { overlayId: "other" } })));
+		await jest.advanceTimersByTimeAsync(0);
+		expect(socket.close).toHaveBeenCalledWith(4003);
 	});
 	test("serves the upgrade endpoint health response", async () => {
 		const { GET } = await setup();

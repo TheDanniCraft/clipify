@@ -46,7 +46,8 @@ test("one aggregate matches guide completion, migrations, duplicate and skip sem
 	assert.equal(result.tasks.overlay_preview.skippedAccounts, 1);
 	assert.equal(result.tasks.appearance_clip_filters.completedAccounts, 2);
 	assert.equal(result.tasks.explore_tools.skippedAccounts, 1);
-	assert.equal(Object.keys(result.tasks).length, 23);
+	assert.equal(Object.keys(result.tasks).length, 24);
+	assert.deepEqual(result.tasks.explore_events, { title: "Discover community events", section: "explore", completedAccounts: 1, skippedAccounts: 0, pendingAccounts: 3, completionRate: 0.25 });
 	assert.equal(result.completedAccounts, 1);
 	assert.equal(result.completionRate, 0.2);
 	const parsed = states.map((state) => parseProgress(state));
@@ -58,7 +59,7 @@ test("one aggregate matches guide completion, migrations, duplicate and skip sem
 		result.skippedTasks,
 		parsed.reduce((sum, progress) => sum + progress.skipped.length, 0),
 	);
-	assert.equal(result.averageProgress, 27 / 115);
+	assert.equal(result.averageProgress, 28 / 120);
 	assert.equal(result.sections.overlay.averageProgress, 7 / 20);
 	assert.equal(result.sections.overlay.completedAccounts, 1);
 	assert.equal(result.sections.appearance.completedTasks, 5);
