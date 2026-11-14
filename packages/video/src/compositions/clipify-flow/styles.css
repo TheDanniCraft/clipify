@@ -1,0 +1,995 @@
+.cf-root {
+	--primary: oklch(48.8% 0.2839 284.35);
+	background: #6500d9;
+	color: white;
+	font-family: FlowInter, Arial, sans-serif;
+	overflow: hidden;
+}
+.cf-root * {
+	box-sizing: border-box;
+}
+.cf-product-layer {
+	position: absolute;
+	inset: 0;
+}
+.cf-end-screen {
+	position: absolute;
+	inset: 0;
+	z-index: 50;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 44px;
+	padding: 80px;
+	text-align: center;
+}
+.cf-end-screen .cf-brand-large > b {
+	font-size: 76px;
+}
+.cf-end-screen h1 {
+	margin: 0;
+	font-size: 88px;
+	line-height: 1.12;
+	font-weight: 650;
+	letter-spacing: -1.8px;
+}
+.cf-end-screen-cta {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	margin-top: 12px;
+}
+.cf-end-screen-cta > span {
+	font-size: 24px;
+	color: #f2d9ff;
+}
+.cf-end-screen-cta > b {
+	font-size: 54px;
+	line-height: 1.1;
+	font-weight: 650;
+	letter-spacing: -1px;
+}
+.cf-feed .cf-end-screen h1 {
+	font-size: 66px;
+}
+.cf-vertical .cf-end-screen h1 {
+	font-size: 70px;
+}
+.cf-vertical .cf-end-screen-cta > b {
+	font-size: 60px;
+}
+.cf-color-field {
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(125deg, #a026a2 0%, #7913d7 30%, #5800cf 67%, #4700bd 100%);
+}
+.cf-grid {
+	position: absolute;
+	inset: 0;
+	background-image: linear-gradient(#ffffff2e var(--grid-stroke), transparent var(--grid-stroke)), linear-gradient(90deg, #ffffff2e var(--grid-stroke), transparent var(--grid-stroke));
+	background-size: var(--grid-cell) var(--grid-cell);
+	background-position: var(--grid-offset) var(--grid-offset);
+	opacity: 0.65;
+}
+.cf-corner-glow {
+	position: absolute;
+	inset: 0;
+	background: radial-gradient(ellipse at 100% 100%, #22007f77, transparent 65%);
+	pointer-events: none;
+}
+.cf-corner-brand {
+	position: absolute;
+	left: 100px;
+	top: 60px;
+	right: 100px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	z-index: 9;
+}
+.cf-brand {
+	display: flex;
+	gap: 17px;
+	align-items: center;
+}
+.cf-brand > b {
+	font-size: 35px;
+	font-weight: 700;
+	letter-spacing: -1px;
+}
+.cf-corner-brand > span {
+	font-size: 13px;
+	letter-spacing: 2px;
+	font-weight: 650;
+	color: #fffd;
+}
+.cf-brand-large {
+	gap: 23px;
+}
+.cf-brand-large > b {
+	font-size: 61px;
+	letter-spacing: -1px;
+	font-weight: 650;
+}
+.cf-heading {
+	position: absolute;
+	z-index: 5;
+}
+.cf-eyebrow {
+	font-size: 13px;
+	letter-spacing: 2.8px;
+	font-weight: 750;
+	margin-bottom: 22px;
+	color: #f7dcff;
+}
+.cf-heading h1 {
+	font-size: 114px;
+	line-height: 1.06;
+	letter-spacing: -2.2px;
+	font-weight: 680;
+	margin: 0;
+}
+.cf-heading .cf-heading-wide {
+	font-size: 75px;
+	letter-spacing: -1.5px;
+	white-space: nowrap;
+}
+.cf-heading p {
+	font-size: 28px;
+	line-height: 1.3;
+	letter-spacing: -0.4px;
+	font-weight: 500;
+	color: #f4ddff;
+	margin-top: 24px;
+}
+.cf-letters {
+	display: inline-block;
+	white-space: nowrap;
+	perspective: 800px;
+}
+.cf-letters > span {
+	display: inline-block;
+	transform-origin: 50% 100%;
+	will-change: transform, opacity, filter;
+}
+.cf-intro-answer {
+	margin-top: 34px;
+	font-size: 49px;
+	font-weight: 550;
+	letter-spacing: -1.5px;
+}
+.cf-hero,
+.cf-minecraft-player {
+	position: absolute;
+	overflow: hidden;
+	background: #191324;
+	outline: 5px solid #261337;
+	box-shadow: 0 35px 95px #25004f66;
+}
+.cf-hero > video,
+.cf-minecraft-player > video {
+	display: block;
+}
+.cf-video-title {
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	right: 0;
+	padding: 38px 28px 22px;
+	background: linear-gradient(transparent, #120b21e8);
+	display: flex;
+	flex-direction: column;
+	gap: 9px;
+}
+.cf-video-title > span {
+	font-size: 10px;
+	letter-spacing: 2.5px;
+	color: #dfbbff;
+	font-weight: 800;
+}
+.cf-video-title > b {
+	font-size: 25px;
+	font-weight: 700;
+	letter-spacing: -0.5px;
+}
+.cf-video-title > small {
+	font-size: 11px;
+	color: #fff9;
+}
+.cf-selected {
+	outline-color: white;
+}
+.cf-moments-context {
+	position: absolute;
+	inset: 0;
+}
+.cf-stream-track {
+	position: absolute;
+	left: 150px;
+	right: 150px;
+	top: 390px;
+	height: 2px;
+	background: #ffffff6b;
+}
+.cf-stream-track > i {
+	position: absolute;
+	top: -7px;
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background: #fff;
+	box-shadow: 0 0 0 8px #ffffff18;
+}
+.cf-stream-track > i:first-child {
+	left: 340px;
+}
+.cf-stream-track > i:last-child {
+	right: 380px;
+}
+.cf-track-start,
+.cf-track-end {
+	position: absolute;
+	top: 361px;
+	font-size: 11px;
+	letter-spacing: 1.5px;
+	color: #ffffffb8;
+}
+.cf-track-start {
+	left: 150px;
+}
+.cf-track-end {
+	right: 150px;
+}
+.cf-other-moment {
+	position: absolute;
+	left: 150px;
+	top: 470px;
+	width: 640px;
+	height: 360px;
+	border: 4px solid #261337;
+	border-radius: 15px;
+	overflow: visible;
+	background: #171120;
+	box-shadow: 0 25px 70px #23004755;
+}
+.cf-other-moment > video {
+	border-radius: 11px;
+	width: 100%;
+	height: 100%;
+}
+.cf-other-moment > div:last-child {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	padding: 20px 4px;
+	display: flex;
+	flex-direction: column;
+	gap: 11px;
+}
+.cf-other-moment b {
+	font-size: 25px;
+	font-weight: 650;
+}
+.cf-other-moment span {
+	font-size: 11px;
+	letter-spacing: 2px;
+	color: #f0d3ff;
+}
+.cf-pointer {
+	position: absolute;
+	z-index: 35;
+	width: 35px;
+	height: 35px;
+	pointer-events: none;
+	color: white;
+	filter: drop-shadow(0 2px 4px #200049aa);
+}
+.cf-pointer > i {
+	position: absolute;
+	left: 9px;
+	top: 8px;
+	width: 25px;
+	height: 25px;
+	outline: 2px solid white;
+	border-radius: 50%;
+}
+.cf-source-shade {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+}
+.cf-source-selection {
+	position: absolute;
+	z-index: 10;
+	border: 2px solid #e3ccff;
+	border-radius: 2px;
+	pointer-events: none;
+	box-shadow: 0 0 25px #ffffff44;
+}
+.cf-source-selection > span {
+	position: absolute;
+	top: -35px;
+	left: -3px;
+	font-size: 14px;
+	font-weight: 800;
+	letter-spacing: 1px;
+	padding: 6px 12px;
+	background: #251137;
+	border-radius: 5px;
+}
+.cf-source-selection > i {
+	position: absolute;
+	width: 12px;
+	height: 12px;
+	background: white;
+	box-shadow: 0 0 0 1px #4b167c;
+}
+.cf-source-selection > i:nth-of-type(1) {
+	left: -7px;
+	top: -7px;
+}
+.cf-source-selection > i:nth-of-type(2) {
+	right: -7px;
+	top: -7px;
+}
+.cf-source-selection > i:nth-of-type(3) {
+	left: -7px;
+	bottom: -7px;
+}
+.cf-source-selection > i:nth-of-type(4) {
+	right: -7px;
+	bottom: -7px;
+}
+.cf-crop-travel {
+	position: absolute;
+	z-index: 13;
+	overflow: hidden;
+	background: #21132f;
+}
+.cf-phone-backdrop {
+	position: absolute;
+	z-index: 12;
+	background: #171020;
+	border-radius: 16px;
+	outline: 3px solid #261337;
+}
+.cf-portrait-mark {
+	position: absolute;
+	right: 12px;
+	bottom: 12px;
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	font-size: 12px;
+	font-weight: 650;
+	filter: drop-shadow(0 2px 4px #000);
+}
+.cf-export-result {
+	position: absolute;
+	left: 1374px;
+	top: 982px;
+	width: 394px;
+	z-index: 14;
+}
+.cf-export-button {
+	height: 62px;
+	border: 1px solid #ffffff30;
+	border-radius: 999px;
+	display: flex;
+	align-items: center;
+	gap: 13px;
+	padding: 0 18px;
+	background: #22122f;
+	box-shadow: 0 15px 40px #23004755;
+}
+.cf-export-button b {
+	font-size: 20px;
+	font-weight: 550;
+	letter-spacing: -0.15px;
+}
+.cf-export-button > span {
+	margin-left: auto;
+	font-size: 9px;
+	font-weight: 800;
+	letter-spacing: 0.6px;
+}
+.cf-export-button.is-ready {
+	background: #142b23;
+	color: #b8f5d0;
+	border-color: #8bdab333;
+}
+.cf-basic-widget,
+.cf-basic-clip {
+	position: absolute;
+	bottom: 60px;
+	width: 330px;
+	height: 84px;
+}
+.cf-basic-widget {
+	left: 35px;
+}
+.cf-basic-clip {
+	right: 35px;
+}
+.cf-live-progress {
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	height: 6px;
+	background: #bd84ff;
+}
+.cf-auto-panel {
+	position: absolute;
+	background: #1b1429;
+	border: 1px solid #ffffff33;
+	border-radius: 24px;
+	z-index: 8;
+	box-shadow: 0 30px 80px #23004766;
+}
+.cf-auto-panel > span {
+	font-size: 13px;
+	letter-spacing: 1px;
+	font-weight: 800;
+	color: #ceafea;
+}
+.cf-auto-panel h2 {
+	font-size: 30px;
+	letter-spacing: -0.5px;
+	margin: 18px 0 28px;
+	font-weight: 650;
+}
+.cf-auto-filters {
+	display: flex;
+	justify-content: space-between;
+	color: #c9b5dc;
+	font-size: 21px;
+}
+.cf-auto-filters b {
+	display: block;
+	color: white;
+	font-size: 34px;
+	font-weight: 600;
+	margin-top: 9px;
+}
+.cf-auto-rule {
+	height: 1px;
+	background: #ffffff22;
+	margin-top: 26px;
+}
+.cf-up-next {
+	display: block;
+	font-size: 24px;
+	margin-top: 26px;
+	font-weight: 650;
+}
+.cf-auto-panel > small {
+	display: block;
+	font-size: 14px;
+	color: #d7c6e7;
+	margin-top: 10px;
+}
+.cf-queue-play {
+	position: absolute;
+	left: calc(50% - 22px);
+	top: calc(50% - 22px);
+	width: 44px;
+	height: 44px;
+	background: #200d38ba;
+	border: 1px solid #fff9;
+	display: grid;
+	place-items: center;
+	border-radius: 50%;
+}
+.cf-minecraft-player {
+	z-index: 10;
+}
+.cf-next-confirm {
+	position: absolute;
+	left: 1360px;
+	top: 982px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 15px;
+	font-weight: 650;
+}
+.cf-widget {
+	position: absolute;
+	width: 330px;
+	height: 84px;
+}
+.cf-clip-widget {
+	position: absolute;
+	right: 36px;
+	top: 520px;
+}
+.cf-metadata {
+	width: 330px;
+	height: 84px;
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	padding: 14px 18px;
+	border: 1px solid #ffffff1a;
+	box-shadow: 0 10px 25px #0003;
+	backdrop-filter: blur(12px);
+}
+.cf-channel-avatar {
+	width: 44px;
+	height: 44px;
+	border-radius: 50%;
+	object-fit: cover;
+	flex-shrink: 0;
+}
+.cf-metadata > div {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	min-width: 0;
+}
+.cf-metadata b {
+	font-size: 22px;
+	font-weight: var(--metadata-weight);
+	letter-spacing: -0.2px;
+	white-space: nowrap;
+}
+.cf-metadata span {
+	font-size: 13.5px;
+	opacity: 0.72;
+	white-space: nowrap;
+}
+.cf-metadata-clip b {
+	font-size: 18px;
+}
+.cf-metadata-clip span {
+	font-size: 12px;
+}
+.cf-widget-handles {
+	position: absolute;
+	inset: -8px;
+	border: 1px solid;
+}
+.cf-widget-handles > i {
+	position: absolute;
+	width: 9px;
+	height: 9px;
+	background: white;
+	border: 1px solid #251234;
+}
+.cf-widget-handles > i:nth-child(1) {
+	left: -5px;
+	top: -5px;
+}
+.cf-widget-handles > i:nth-child(2) {
+	right: -5px;
+	top: -5px;
+}
+.cf-widget-handles > i:nth-child(3) {
+	left: -5px;
+	bottom: -5px;
+}
+.cf-widget-handles > i:nth-child(4) {
+	right: -5px;
+	bottom: -5px;
+}
+.cf-guide {
+	position: absolute;
+	z-index: 3;
+	border-color: #a0ffe0;
+	opacity: 0.9;
+}
+.cf-guide-x {
+	top: 0;
+	bottom: 0;
+	border-left: 1px dashed;
+}
+.cf-guide-y {
+	left: 0;
+	right: 0;
+	border-top: 1px dashed;
+}
+.cf-theme-controls {
+	position: absolute;
+	left: 1420px;
+	top: 390px;
+	width: 380px;
+	z-index: 15;
+}
+.cf-theme-controls > span {
+	font-size: 13px;
+	letter-spacing: 2px;
+	font-weight: 800;
+}
+.cf-theme-controls > div:not(.cf-drag-hint) {
+	padding: 10px;
+	height: 112px;
+	border: 1px solid #ffffff20;
+	border-radius: 14px;
+	background: #140c22a6;
+	margin-top: 28px;
+	box-shadow: 0 15px 35px #22004222;
+}
+.cf-theme-controls > div.is-active {
+	border-color: #ffffffb3;
+}
+.cf-metadata.is-compact {
+	width: 100%;
+	height: 64px;
+	padding: 10px 12px;
+	gap: 10px;
+	box-shadow: none;
+	border-color: #ffffff0d;
+}
+.cf-metadata.is-compact .cf-channel-avatar {
+	width: 34px;
+	height: 34px;
+}
+.cf-metadata.is-compact b {
+	font-size: 16px;
+}
+.cf-metadata.is-compact span {
+	font-size: 11px;
+}
+.cf-template-label {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	height: 24px;
+	padding: 4px 2px 0;
+	font-size: 12px;
+	color: #ffffffd9;
+}
+.cf-theme-controls > p {
+	display: flex;
+	gap: 20px;
+	font-size: 13px;
+	font-weight: 500;
+	letter-spacing: 0;
+	margin-top: 30px;
+	color: #f1d5ff;
+}
+.cf-drag-hint {
+	margin-top: 40px;
+	display: flex;
+	gap: 10px;
+	align-items: center;
+	font-size: 17px;
+	font-weight: 500;
+	line-height: 1.5;
+	color: white;
+}
+.cf-ending-copy {
+	position: absolute;
+	left: 100px;
+	top: 100px;
+	z-index: 20;
+}
+.cf-ending-copy h1 {
+	font-size: 113px;
+	line-height: 1.14;
+	letter-spacing: -2px;
+	font-weight: 650;
+	margin: 200px 0 20px;
+}
+.cf-end-sub {
+	font-size: 39px;
+	letter-spacing: -0.7px;
+	font-weight: 500;
+	color: #f2d9ff;
+}
+.cf-final-cta {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 10px;
+	width: max-content;
+	margin-top: 60px;
+	color: white;
+}
+.cf-final-cta > b {
+	font-size: 56px;
+	line-height: 1.05;
+	font-weight: 650;
+	letter-spacing: -1px;
+}
+.cf-final-cta > span {
+	font-size: 22px;
+	line-height: 1.3;
+	font-weight: 500;
+	color: #f2d9ff;
+}
+.cf-closing-caption {
+	position: absolute;
+	left: 1050px;
+	top: 744px;
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+}
+.cf-closing-caption > b {
+	font-size: 29px;
+	font-weight: 600;
+	letter-spacing: -0.5px;
+}
+.cf-closing-caption > span {
+	font-size: 23px;
+	color: #f2d4ff;
+}
+
+/* Social layouts retain all scene components, clocks and action cues. */
+.cf-vertical,
+.cf-feed {
+	--social-content-width: 900px;
+}
+.cf-vertical .cf-corner-brand,
+.cf-feed .cf-corner-brand {
+	left: 72px;
+	right: 108px;
+}
+.cf-vertical .cf-corner-brand > span,
+.cf-feed .cf-corner-brand > span {
+	font-size: 10px;
+	letter-spacing: 1px;
+}
+.cf-vertical .cf-heading,
+.cf-feed .cf-heading {
+	max-width: var(--social-content-width);
+}
+.cf-vertical .cf-heading h1 {
+	font-size: 120px;
+}
+.cf-feed .cf-heading h1 {
+	font-size: 96px;
+}
+.cf-vertical .cf-heading .cf-heading-wide {
+	font-size: 82px;
+	line-height: 1.1;
+}
+.cf-feed .cf-heading .cf-heading-wide {
+	font-size: 60px;
+	line-height: 1.1;
+}
+.cf-vertical .cf-heading p,
+.cf-feed .cf-heading p {
+	font-size: 25px;
+}
+.cf-vertical .cf-eyebrow,
+.cf-feed .cf-eyebrow {
+	font-size: 12px;
+	letter-spacing: 1.8px;
+}
+.cf-vertical .cf-stream-track,
+.cf-feed .cf-stream-track {
+	left: 72px;
+	right: 108px;
+}
+.cf-vertical .cf-stream-track {
+	left: 96px;
+	right: auto;
+	top: 560px;
+	width: 2px;
+	height: 1070px;
+}
+.cf-feed .cf-stream-track {
+	top: 490px;
+}
+.cf-vertical .cf-stream-track > i:first-child {
+	left: -7px;
+	top: 282.75px;
+}
+.cf-vertical .cf-stream-track > i:last-child {
+	left: -7px;
+	right: auto;
+	top: 792.8125px;
+}
+.cf-vertical .cf-stream-track > i::after {
+	content: "";
+	position: absolute;
+	left: 16px;
+	top: 7px;
+	width: 75px;
+	height: 1px;
+	background: #ffffff6b;
+}
+.cf-vertical .cf-track-start {
+	top: 515px;
+}
+.cf-vertical .cf-track-end {
+	top: 1650px;
+	left: 72px;
+	right: auto;
+}
+.cf-feed .cf-stream-track > i:first-child {
+	left: 207px;
+}
+.cf-feed .cf-stream-track > i:last-child {
+	left: 677px;
+	right: auto;
+}
+.cf-vertical .cf-other-moment > div:last-child {
+	padding-top: 16px;
+}
+.cf-feed .cf-track-start,
+.cf-feed .cf-track-end {
+	top: 460px;
+}
+.cf-vertical .cf-track-start,
+.cf-feed .cf-track-start {
+	left: 72px;
+}
+.cf-feed .cf-track-end {
+	right: 108px;
+}
+.cf-vertical .cf-other-moment b,
+.cf-feed .cf-other-moment b {
+	font-size: 21px;
+}
+.cf-vertical .cf-auto-filters {
+	width: 440px;
+}
+.cf-vertical .cf-auto-rule {
+	width: 440px;
+}
+.cf-feed .cf-auto-panel h2 {
+	font-size: 26px;
+	margin: 12px 0 16px;
+}
+.cf-feed .cf-auto-filters {
+	width: 430px;
+	font-size: 17px;
+}
+.cf-feed .cf-auto-filters b {
+	font-size: 26px;
+}
+.cf-feed .cf-auto-rule {
+	display: none;
+}
+.cf-feed .cf-up-next {
+	position: absolute;
+	top: 30px;
+	left: var(--queue-left);
+	width: var(--queue-width);
+	margin: 0;
+	font-size: 20px;
+}
+.cf-feed .cf-auto-panel > small {
+	position: absolute;
+	top: 64px;
+	left: var(--queue-left);
+	width: var(--queue-width);
+	font-size: 12px;
+}
+.cf-vertical .cf-next-confirm {
+	left: 72px;
+	top: 1680px;
+}
+.cf-feed .cf-next-confirm {
+	left: 103px;
+	top: 1230px;
+	font-size: 14px;
+}
+.cf-vertical .cf-theme-controls,
+.cf-feed .cf-theme-controls {
+	left: 72px;
+	width: 900px;
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 18px;
+}
+.cf-vertical .cf-theme-controls {
+	top: 1210px;
+}
+.cf-feed .cf-theme-controls {
+	top: 1010px;
+}
+.cf-vertical .cf-theme-controls > span,
+.cf-feed .cf-theme-controls > span {
+	grid-column: 1 / -1;
+}
+.cf-vertical .cf-theme-controls > div:not(.cf-drag-hint),
+.cf-feed .cf-theme-controls > div:not(.cf-drag-hint) {
+	margin: 0;
+	height: 130px;
+	padding: 10px;
+}
+.cf-vertical .cf-metadata.is-compact,
+.cf-feed .cf-metadata.is-compact {
+	height: 78px;
+	gap: 8px;
+	padding: 8px;
+}
+.cf-vertical .cf-metadata.is-compact b,
+.cf-feed .cf-metadata.is-compact b {
+	font-size: 14px;
+}
+.cf-vertical .cf-metadata.is-compact span,
+.cf-feed .cf-metadata.is-compact span {
+	font-size: 10px;
+}
+.cf-vertical .cf-metadata.is-compact .cf-channel-avatar,
+.cf-feed .cf-metadata.is-compact .cf-channel-avatar {
+	width: 28px;
+	height: 28px;
+}
+.cf-vertical .cf-template-label,
+.cf-feed .cf-template-label {
+	height: 28px;
+	font-size: 12px;
+}
+.cf-vertical .cf-theme-controls > p,
+.cf-feed .cf-theme-controls > p {
+	grid-column: 1 / -1;
+	margin: 4px 0;
+}
+.cf-vertical .cf-drag-hint,
+.cf-feed .cf-drag-hint {
+	grid-column: 1 / -1;
+	margin: 0;
+	font-size: 20px;
+}
+.cf-vertical .cf-ending-copy {
+	left: 72px;
+	top: 140px;
+}
+.cf-feed .cf-ending-copy {
+	left: 72px;
+	top: 60px;
+}
+.cf-vertical .cf-ending-copy h1 {
+	font-size: 90px;
+	margin-top: 140px;
+}
+.cf-feed .cf-ending-copy h1 {
+	font-size: 60px;
+	margin-top: 100px;
+}
+.cf-vertical .cf-final-cta,
+.cf-feed .cf-final-cta {
+	margin-top: 48px;
+}
+.cf-vertical .cf-closing-caption {
+	left: 72px;
+	top: 1480px;
+}
+.cf-feed .cf-closing-caption {
+	left: 72px;
+	top: 1020px;
+	gap: 6px;
+}
+.cf-feed .cf-closing-caption > b {
+	font-size: 22px;
+}
+.cf-feed .cf-closing-caption > span {
+	font-size: 18px;
+}
+.cf-vertical .cf-end-sub {
+	font-size: 30px;
+}
+.cf-vertical .cf-final-cta {
+	position: absolute;
+	left: 0;
+	top: 1120px;
+	margin-top: 0;
+	white-space: nowrap;
+}
+.cf-vertical .cf-final-cta > b {
+	font-size: 64px;
+}
+.cf-vertical .cf-final-cta > span {
+	font-size: 24px;
+}
+.cf-feed .cf-end-sub {
+	font-size: 28px;
+}
+.cf-feed .cf-final-cta {
+	gap: 6px;
+	margin-top: 20px;
+}
+.cf-feed .cf-final-cta > b {
+	font-size: 40px;
+}
+.cf-feed .cf-final-cta > span {
+	font-size: 16px;
+}
