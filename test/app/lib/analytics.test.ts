@@ -2,7 +2,10 @@
 import { prepareUmamiPayload, setAnalyticsContext, trackEvent, trackProductEvent } from "@/app/lib/analytics";
 import { setBrowserMeasurementConsent } from "@/app/lib/consent/browserMeasurement";
 
-beforeEach(() => setBrowserMeasurementConsent(true));
+beforeEach(() => {
+	setBrowserMeasurementConsent(true);
+	setAnalyticsContext(null);
+});
 
 afterEach(() => {
 	setBrowserMeasurementConsent(false);
@@ -34,6 +37,26 @@ it("preserves dashboard traffic and arbitrary standard UTM campaigns while remov
 it.each(["event", "identify", "performance", "error"])("blocks every %s payload without consent", (type) => {
 	setBrowserMeasurementConsent(false);
 	expect(prepareUmamiPayload(type, { hostname: "clipify.us", url: "/pricing", name: "paywall_impression", id: "account" })).toBeNull();
+});
+
+it("retains native pageviews, campaign sources and device fields before consent, without account properties", () => {
+	setBrowserMeasurementConsent(false);
+	expect(prepareUmamiPayload("event", { website: "site", hostname: "clipify.us", url: "/dashboard/overlay/private?utm_source=twitch&token=secret", referrer: "https://example.com/?code=secret", screen: "1440x900", language: "en", title: "My overlay", id: "account", data: { plan: "pro" } })).toEqual({
+		website: "site",
+		hostname: "clipify.us",
+		url: "/dashboard/overlay/:id?utm_source=twitch",
+		referrer: "https://example.com/",
+		screen: "1440x900",
+		language: "en",
+		title: "Clipify dashboard",
+		tag: "application",
+	});
+});
+
+it("blocks pageviews from an already identified client immediately after withdrawal", () => {
+	setAnalyticsContext({ plan: "pro" });
+	setBrowserMeasurementConsent(false);
+	expect(prepareUmamiPayload("event", { hostname: "clipify.us", url: "/dashboard" })).toBeNull();
 });
 
 it("permits consented identity and performance while still stripping secret query values", () => {

@@ -31,16 +31,16 @@ so existing alert coverage remains unverified.
 
 ## Changes
 
-| Gap                                                  | Implementation                                                                                                                                        |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Generic public presentation and repeated slogans     | Neutral theme-aware navigation, a large product preview, actual playlist/editor screenshots and concrete Pro examples                                 |
-| Sparse signup screen                                 | Branded sign-in card with a heading, next steps, Free/trial terms, saved checkout context and existing signed OAuth continuation                      |
-| Setup action hidden for creators with existing clips | A resumable next-step card independent of the clip-performance empty state                                                                            |
-| Failed checkout loses its intent                     | Retain the signed selection and nonce on failure/cancellation, provide local recovery and retry, clear on completed checkout or already-owned result  |
-| Mixed consent boundaries                             | Load browser measurement only after consent; reject every tracker payload and direct event after withdrawal; remove always-on analytics disclosures   |
-| Missing diagnostic steps                             | Safe auth-start failure reasons, consented auth-session completion, guide save/control failures, upgrade opening/dismissal and checkout return events |
-| Missing Grafana presentation                         | v7 dashboard extends v6 with cohort outcomes, mature first-week activation, delivery, checkout, subscription and processing panels                    |
-| Missing service telemetry                            | Fixed aggregate checkout, auth-session, webhook and consent-exclusion process counters; current billing-state counts                                  |
+| Gap                                                  | Implementation                                                                                                                                               |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Generic public presentation and repeated slogans     | Neutral theme-aware navigation, a large product preview, actual playlist/editor screenshots and concrete Pro examples                                        |
+| Sparse signup screen                                 | Branded sign-in card with a heading, next steps, Free/trial terms, saved checkout context and existing signed OAuth continuation                             |
+| Setup action hidden for creators with existing clips | A resumable next-step card independent of the clip-performance empty state                                                                                   |
+| Failed checkout loses its intent                     | Retain the signed selection and nonce on failure/cancellation, provide local recovery and retry, clear on completed checkout or already-owned result         |
+| Mixed consent boundaries                             | Restore native cookieless pageviews; gate all custom events, identity, engagement, performance and heatmaps behind consent; disclose the baseline separately |
+| Missing diagnostic steps                             | Safe auth-start failure reasons, consented auth-session completion, guide save/control failures, upgrade opening/dismissal and checkout return events        |
+| Missing Grafana presentation                         | v7 dashboard extends v6 with cohort outcomes, mature first-week activation, delivery, checkout, subscription and processing panels                           |
+| Missing service telemetry                            | Fixed aggregate checkout, auth-session, webhook and consent-exclusion process counters; current billing-state counts                                         |
 
 Public CTA measurements distinguish placements. Gallery signup preserves its
 intended dashboard destination. Prices, trials, promotions and payment fulfillment
@@ -76,8 +76,24 @@ Clipify keeps its own installed controls, screenshots, colors and typography.
 
 ## Privacy and reporting boundaries
 
-Browser measurement, analytics account linking, heatmaps and performance require current
-measurement consent. No pre-consent behavior is buffered for later replay. Necessary c15t account identification still links rejected choices to the verified account; it does not identify the account to Umami. The
+Custom product events, engagement, analytics account linking, heatmaps and performance require current
+measurement consent. Basic native pageviews load independently of the optional
+measurement choice after policy hydration. Existing URL filtering preserves paths,
+public creator/gallery URLs, UTM campaigns and referrer domains while grouping
+private editor IDs and removing sensitive query values. This is the existing
+Umami site and native tracker, not a separate counter or second analytics service.
+Native visitor/session counts, realtime traffic and page-based funnels/journeys
+remain available; click events and behavioral diagnostics need consent. No custom
+pre-consent events are buffered for later replay. Umami's native identification
+may associate an earlier anonymous session with the account after consent. It is
+cookieless pseudonymous measurement, not a guarantee of irreversible anonymity.
+Withdrawal blocks the identified client immediately and reloads without sending
+its account identifier; the baseline resumes. Existing server-side session links
+and historical records are not erased by withdrawal. The deployment's retention,
+salt rotation and legal basis remain operator responsibilities; this patch does
+not certify a consent exemption for every jurisdiction or Umami configuration.
+Necessary c15t account identification still links rejected choices to the verified
+account; it does not identify the account to Umami. The
 server rechecks authoritative consent, including before retry. Consent exclusion
 is expected and is not a service error. Existing deduplicated operational outcome
 records are aggregated before export to Grafana; individual IDs are not exported
@@ -163,3 +179,23 @@ dialog journey supplied only an external catalog fixture. No real purchase or
 Twitch authorization was made. Complete CI is still required before merge. The
 redesign and new health fields have not been deployed, and the v7 dashboard has
 not been imported into production.
+
+## Native traffic restoration and privacy access
+
+Restored the basic Umami tracker while keeping custom events, account identity,
+engagement, browser performance and public heatmaps consented. The permanent
+Privacy preferences entry sits in the dashboard avatar/account menu, including
+the collapsed sidebar and mobile navigation. It reopens the existing c15t dialog
+and preserves choices without adding another dashboard utility row. Public profile
+menus expose the same action. Clearing browser storage is not the withdrawal UI:
+account consent records are maintained by the consent service.
+
+The privacy and cookie policies describe the baseline and optional scope briefly;
+technical session-linking limitations are recorded here rather than in UI copy.
+
+The dashboard preference journey passed at 390px and 1440px in both themes,
+including keyboard opening, collapsed account access, saved statistics choices,
+functionality preservation and withdrawal. Focused analytics/consent and navigation
+whole-file tests passed. The previous CI failures exposed stale policy metadata
+assertions and invalid checkout-intent cleanup: rejected/retired selections now
+clear at the continuation route, while valid selections remain available for retry.

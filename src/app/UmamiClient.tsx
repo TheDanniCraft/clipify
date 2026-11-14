@@ -22,7 +22,7 @@ export default function UmamiClient({ websiteId }: { websiteId: string }) {
 	const identified = useRef<string | null>(null);
 	const identifiedContext = useRef<string | null>(null);
 	const identityEnabled = process.env.E2E_TEST_MODE !== "true" && !policyPending && Boolean(websiteId);
-	const enabled = identityEnabled && measurement;
+	const enabled = identityEnabled;
 	const recorderEligible = measurement && ready && canRecordHeatmap(pathname, window.location.origin) && canRecordHeatmap(window.location.href, window.location.origin);
 
 	if (recorderEligible && !recorderStarted) setRecorderStarted(true);
@@ -40,7 +40,7 @@ export default function UmamiClient({ websiteId }: { websiteId: string }) {
 
 	useEffect(() => {
 		window.clipifyBeforeUmamiSend = prepareUmamiPayload;
-		if (!enabled)
+		if (!enabled || !measurement)
 			return () => {
 				delete window.clipifyBeforeUmamiSend;
 			};
@@ -55,7 +55,7 @@ export default function UmamiClient({ websiteId }: { websiteId: string }) {
 			stopEngagement();
 			delete window.clipifyBeforeUmamiSend;
 		};
-	}, [enabled]);
+	}, [enabled, measurement]);
 
 	useEffect(() => {
 		// Link privacy choices to the verified account even when measurement is rejected.
@@ -92,7 +92,7 @@ export default function UmamiClient({ websiteId }: { websiteId: string }) {
 	return (
 		<>
 			<Script id='clipify-analytics' src={process.env.NEXT_PUBLIC_UMAMI_TRACKER_PATH || "/statistics/script.js"} data-website-id={websiteId} data-host-url='/statistics' data-before-send='clipifyBeforeUmamiSend' data-performance={measurement ? "true" : "false"} onReady={() => setReady(true)} />
-			{recorderStarted ? <Script id='clipify-heatmaps' src={process.env.NEXT_PUBLIC_UMAMI_RECORDER_PATH || "/statistics/recorder.js"} data-website-id={websiteId} data-host-url='/statistics' /> : null}
+			{measurement && recorderStarted ? <Script id='clipify-heatmaps' src={process.env.NEXT_PUBLIC_UMAMI_RECORDER_PATH || "/statistics/recorder.js"} data-website-id={websiteId} data-host-url='/statistics' /> : null}
 		</>
 	);
 }

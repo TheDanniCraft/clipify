@@ -22,7 +22,7 @@ for (const width of [390, 1440])
 			const openSidebar = async () => {
 				const toggle = page.getByRole("button", { name: "Toggle navigation", exact: true });
 				await expect(toggle).toBeEnabled();
-				if (width === 390 && (await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+				if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
 				// Do not let automatic control scrolling interrupt the sheet entrance.
 				if (width === 390) await expect(page.locator('[data-slot="sidebar-mobile"]')).toBeInViewport({ ratio: 1 });
 			};
@@ -56,8 +56,25 @@ for (const width of [390, 1440])
 			await support.click();
 			await expect.poll(() => page.evaluate(() => (window as typeof window & { __supportOpens?: number }).__supportOpens)).toBe(1);
 			await expect(preferences).not.toBeVisible();
-			await page.goto(`${tourWorld.origin}/legal/cookies`);
-			await page.getByRole("main").getByRole("button", { name: "Cookie preferences", exact: true }).click();
+			await openSidebar();
+			// Preferences stay reachable after the banner is dismissed and chat is enabled.
+			// On desktop also exercise the permanently available collapsed account control.
+			if (width === 1440) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+			const accountMenu = page.getByRole("button", { name: "Open account menu", exact: true });
+			await expect(accountMenu).toBeInViewport({ ratio: 1 });
+			await accountMenu.focus();
+			await page.keyboard.press("Enter");
+			await page.getByRole("menuitem", { name: "Privacy preferences", exact: true }).click();
+			await expect(preferences).toBeVisible();
+			await expect(preferences.getByRole("switch", { name: "Allow Statistics and product analytics", exact: true })).not.toBeChecked();
+			await page.screenshot({ path: info.outputPath("account-privacy-preferences.png"), animations: "disabled" });
+			await preferences.getByRole("switch", { name: "Allow Statistics and product analytics", exact: true }).focus();
+			await page.keyboard.press("Space");
+			await Promise.all([page.waitForEvent("load"), preferences.getByRole("button", { name: "Save choices", exact: true }).click()]);
+			await openSidebar();
+			await accountMenu.click();
+			await page.getByRole("menuitem", { name: "Privacy preferences", exact: true }).click();
+			await expect(preferences.getByRole("switch", { name: "Allow Statistics and product analytics", exact: true })).toBeChecked();
 			await expect(preferences.getByRole("switch", { name: "Allow Functionality", exact: true })).toBeChecked();
 			const requestsBeforeRevocation = sdkRequests;
 			await Promise.all([page.waitForEvent("load"), preferences.getByRole("button", { name: "Reject optional", exact: true }).click()]);
