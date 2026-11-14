@@ -236,3 +236,54 @@ served LLM content. The existing landing inventory also passed, with screenshots
 reviewed separately from its accessibility and interaction assertions. Production
 and live Grafana configuration remain unchanged; required CI still owns the final
 gate before merge.
+
+## Account context, login and full-reference follow-up
+
+The dashboard avatar menu introduced earlier in this PR is removed. The account
+selector and identity row have a clear gap, and Privacy preferences is a labeled
+button in Settings → Account. Public footer/Cookie Policy access remains. The
+existing c15t dialog still owns saves, revocation and reloads.
+
+With no explicit workspace, the selector now shows the creator account already
+used by the authenticated backend. Current creator metadata resolves immediately;
+legacy metadata uses a read-only authenticated action to resolve the implicit
+context. It does not choose the first collaborator, change session context, select
+an unavailable account, override an explicit route/selection, or interfere with
+Admin View. Failed lookup leaves manual account selection available.
+
+Login uses a plain sign-in layout with one Twitch action, account-creation copy
+and required notices. The marketing card, trial pitch and redundant back link are
+removed. Checkout and signed MCP authorization continuations keep their existing
+behavior. Structural references: [Modal](https://mobbin.com/screens/eac946fc-7909-478d-926e-02b07cc840be)
+and [Mixpanel](https://mobbin.com/screens/80d98293-0bc4-48be-a191-96880a9596da);
+Clipify's own controls, colors and authentication remain.
+
+The LLM review covered the route inventory and owning product/permission modules,
+not only the newly added export section:
+
+| Area                                   | Sources checked                                                                              | Reference correction                                                                                                                            |
+| -------------------------------------- | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dashboard and account context          | Dashboard routes, navigation, auth/session, creator onboarding                               | Own default, explicit selection, role/agency boundaries, setup and clip performance                                                             |
+| Clips, streams and layouts             | Clip/stream pages, export settings/queue/presets, composition and brand modules              | Cached discovery, backfill/refresh, output formats, saved layouts, branding, retry and manual publishing                                        |
+| Overlays, playlists and live control   | Resource actions, focused schemas, feature access                                            | Source/filter/playback rules, Pro on-demand imports, Viewer Queue and named live actions                                                        |
+| Galleries, Creator Pages and community | Public/dashboard routes, gallery resources and discovery settings                            | Elements versus iframe rules, visibility, plan limits, analytics and directory behavior                                                         |
+| Runner                                 | Runner settings/resources, scheduling/provider metadata and pricing                          | Included manual broadcasting, Pro limits, local device responsibility, destinations and recovery                                                |
+| Team and agencies                      | Permissions, invitations, agency account/link/allocation actions                             | Accepted relationships, permission ceilings and creator seats; no retired Runner-seat purchase                                                  |
+| Security and lifecycle                 | Settings/security/linked accounts, lifecycle service and recovery                            | Verified email/passkeys, provider unlinking, recent verification, data export and 30-day deletion recovery                                      |
+| MCP                                    | Public schemas, consent permissions, tools and prompt registry                               | Replace stale 66-tool/six-prompt claims with generated 76-tool/seven-prompt data and public tool names; remove obsolete control recommendations |
+| Pricing and recognition                | Seven comparison sections, all 42 comparison features, live catalog usage and badge registry | Keep plans/badges generated, surface exports in Free's summary, avoid static price claims and trial/revenue confusion                           |
+| Privacy and support                    | Consent policy/registry, optional collection boundaries and settings UI                      | Settings → Account entry point and basic-versus-optional measurement scope                                                                      |
+
+Both LLM templates are rewritten around current workflows. Tool counts, public
+tool names and prompt suggestions now render from their registries; full plan and
+badge details retain their existing generators. A test renders the actual source
+templates against those registries/catalogs to catch unresolved or missing output.
+No secrets, live account data, private URLs or static checkout prices are included.
+
+Validation: focused account, login, settings, pricing, LLM and service-classification
+whole-file checks passed. The browser build passed. Real browser checks covered
+personal default selection with legacy metadata, explicit switching and recovery,
+restored avatar spacing/menu removal, settings privacy reopening/withdrawal, and
+login in desktop/mobile and both themes. The previous CI service-classification
+assertion was corrected to test basic traffic separately from optional product
+analytics. Required CI remains the merge gate; no production changes were made.

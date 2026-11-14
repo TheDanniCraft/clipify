@@ -1,4 +1,6 @@
 import { pricingFeatures } from "@components/Pricing/pricing-catalog";
+import { publicToolNames } from "@/server/mcp/schemas";
+import { MCP_EXAMPLE_PROMPTS } from "@lib/mcpPrompts";
 import { badgeCatalog } from "@lib/badgeCatalog";
 
 const describeAvailability = (value: boolean | string) => (typeof value === "boolean" ? (value ? "Included" : "Not included") : value);
@@ -21,8 +23,17 @@ export function renderPlanComparison() {
 		.join("\n\n");
 }
 
-export function renderLlmsFullText(template: string) {
-	const rendered = template.replace("{{BADGE_CATALOG}}", renderBadgeCatalog()).replace("{{PLAN_COMPARISON}}", renderPlanComparison());
+export function renderLlmsText(template: string) {
+	const rendered = template
+		.replaceAll("{{MCP_TOOL_COUNT}}", String(publicToolNames.length))
+		.replaceAll("{{MCP_PROMPT_COUNT}}", String(MCP_EXAMPLE_PROMPTS.length))
+		.replaceAll("{{MCP_TOOL_LIST}}", publicToolNames.map((name) => `- \`${name}\``).join("\n"))
+		.replaceAll("{{MCP_PROMPTS}}", MCP_EXAMPLE_PROMPTS.map((prompt) => `- \`${prompt.name}\`: ${prompt.title}`).join("\n"));
 	if (/{{[A-Z_]+}}/.test(rendered)) throw new Error("Unresolved llms-full.txt template placeholder");
+	return rendered;
+}
+
+export function renderLlmsFullText(template: string) {
+	const rendered = renderLlmsText(template.replace("{{BADGE_CATALOG}}", renderBadgeCatalog()).replace("{{PLAN_COMPARISON}}", renderPlanComparison()));
 	return `${rendered.trim()}\n`;
 }

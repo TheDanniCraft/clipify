@@ -1,46 +1,40 @@
 # Clipify
 
-> Clipify keeps Twitch streams alive and viewers engaged by automatically playing clips when a streamer is away. It also helps creators organize clips, export original or composed videos, and share highlights beyond the stream.
+> Clipify helps Twitch creators organize clips, play highlights on stream, export videos for sharing, and publish galleries and Creator Pages.
 
-Clipify uses browser-source overlays, so streamers can add it to OBS Studio, Streamlabs, XSplit, or similar software without installing a plugin. Its central promise is: Let your clips talk, even when you cannot.
+Use one browser-source URL in OBS Studio, Streamlabs, XSplit or similar software. Clip export and public sharing also work without an OBS setup. The optional Runner broadcasts from the creator's own computer; Clipify does not host the broadcast.
 
 ## Product reference
 
-- [Complete Clipify reference](https://clipify.us/llms-full.txt): Detailed product behavior, feature availability, galleries, Creator Pages, membership, integrations, and terminology.
-- [Pricing](https://clipify.us/pricing): Current Free and Pro features, live prices, billing options, promotions, and included self-hosted Runner broadcasting.
-- [Help Center](https://help.clipify.us): Setup instructions, guides, and support documentation.
+- [Full product reference](https://clipify.us/llms-full.txt): Product behavior, account contexts, security, collaboration, exports, integrations and the generated plan comparison.
+- [Features](https://clipify.us/features): Exports, reusable layouts, playlists, overlays, live controls, galleries and Runner.
+- [Pricing](https://clipify.us/pricing): Current Free/Pro availability, live monthly/yearly prices and promotions. Do not infer prices from old examples.
+- [Help Center](https://help.clipify.us): Setup and troubleshooting.
 
-## Core experiences
+## Creator workflows
 
-- [Clip exports and reusable layouts](https://clipify.us/features#exports): Search your clip inventory or past streams, download Original clips, or export Desktop (16:9) and Mobile (9:16) versions using saved layouts. Free includes exports with Clipify branding on composed video; Pro can remove the watermark. Original downloads remain untouched. Upload exported files yourself; automatic social publishing is not included.
-- [Features](https://clipify.us/features): Clip exports, reusable layouts, playlists, overlays, Theme Studio, playback controls, galleries and Runner.
+- [Get started](https://clipify.us/login): Twitch sign-in creates or opens the creator account. An existing account can continue to a saved destination.
+- [Clip exports and layouts](https://clipify.us/features#exports): Find highlights in Clip Inventory or past streams. Download Original clips or export Desktop (16:9) and Mobile (9:16) versions using saved layouts. Free composed exports have Clipify branding; Pro can remove it. Original downloads remain untouched. Download and upload files yourself; automatic social publishing is not included.
+- [Playlists and OBS overlays](https://clipify.us/features#playlists): Curate reusable playlists and choose playback sources. Pro adds advanced filters, on-demand imports, Theme Studio and live controls. Runner is not required for browser-source playback.
+- [Website galleries](https://clipify.us/gallery): Publish curated or live clip collections using Clipify Elements. Public website embeds and private OBS source URLs are different.
+- [Community](https://clipify.us/community): Search discoverable creators. A Creator Page can be unlisted and remain available through its direct URL.
+- [Runner](https://clipify.us/features#runner): Free includes manual playback/live fallback on one active broadcast and destination, with unlimited hours on the creator's computer. Pro adds scheduling, multiple destinations/broadcasts, standby customization and watermark removal.
 
-- [Clipify Galleries](https://clipify.us/gallery): Publish curated or automatically updated Twitch clip galleries on a website using Clipify Elements.
-- [Community](https://clipify.us/community): Discover opted-in Clipify creators, including partners, live channels, and other community members.
-- [Interactive demo](https://clipify.us/#demo): Preview Clipify playback in a simulated streaming setup.
-- [Get started](https://clipify.us/login): Sign in with Twitch and create a browser-source overlay.
+## Accounts and access
+
+Dashboard context follows the selected creator or agency. Without an explicit selection, a creator's own account is the default. Team membership and agency permissions do not grant unrestricted access. Invitations, custom roles, connected provider accounts, verified email, passkeys and recovery are managed through their relevant account screens. Some sensitive actions require fresh authentication.
+
+Privacy preferences are available in Settings → Account, the public footer and the Cookie Policy. Basic cookieless traffic statistics remain active. Account-linked analytics, engagement, heatmaps and browser measurement require statistics consent; support chat uses functionality consent.
 
 ## AI assistant access (MCP)
 
-MCP access is included in Free and Pro. Compatible AI assistants and custom clients connect to `https://clipify.us/mcp` through OAuth with PKCE and dynamic client registration. Supported scopes are discovered automatically; no manual scope configuration is needed for normal setup. Users choose creators and Read, Write or Custom permissions on Clipify’s consent page. Write includes supported deletion; secret links and credential rotation require explicit Custom permissions. Existing creator permissions and plan limits apply equally to MCP and browser requests. Revoke app access in account settings.
+MCP is included on Free and Pro at `https://clipify.us/mcp`. Compatible clients use OAuth with PKCE; metadata and supported scopes are discovered automatically. Users approve creators and Read, Write or Custom permissions. Write can include deletion when requested. Private OBS links and device credential rotation require their specific permissions. Creator permissions and plan limits still apply; revoke access in Settings → Connections.
 
-## Product updates
+The public catalog contains {{MCP_TOOL_COUNT}} tools and {{MCP_PROMPT_COUNT}} optional prompt suggestions, generated from the current registries. See the full reference for tool names and supported workflows. Exporting video files, billing, team administration and security settings are not MCP capabilities.
 
-- [Changelog](https://clipify.us/changelog): Released features and product changes.
-- [Roadmap](https://clipify.us/roadmap): Planned and upcoming work.
-- [Service status](https://status.thedannicraft.de/status/clipify): Current availability and incidents.
+## Updates and policies
 
-## Optional
-
-- [Privacy policy](https://clipify.us/legal/privacy): Privacy information.
-- [Cookie policy](https://clipify.us/legal/cookies): Cookie and comparable storage information.
-- [Terms of service](https://clipify.us/legal/terms): Terms governing Clipify.
-- [Privacy requests](https://clipify.us/legal/privacy-requests): How to exercise privacy rights.
-
-### Focused AI editing and suggestions
-
-MCP exposes 66 tools with focused overlay settings, source, filters, playback and Theme Studio editing, plus gallery settings, source, filters, layout and theme tools. Partial updates preserve omitted fields and require the current configuration revision. Use get_overlay_theme/update_overlay_theme for appearance, get_overlay_filters/update_overlay_filters for clip rules, and control_overlay for temporary live playback changes. get_overlay_link returns a private streaming browser-source URL only with explicit secret-read permission; get_player_embed returns a public website embed. Bulk clip imports use preview_playlist_import and commit_playlist_import after reviewing the selection. Six optional MCP prompts describe common workflows, with English examples also available in connected-app settings. Prompt picker availability depends on the connected client.
-
-## Runner broadcasting
-
-Runner is included with Free and Pro, with unlimited streaming hours on your own computer. Free supports manual clip playback or live fallback, one active broadcast and one destination, with Clipify attribution on generated content. Pro adds scheduled broadcasts, multiple destinations and active broadcasts, custom standby screens, and watermark removal. Keep your Runner online; Clipify does not host or run your broadcast. Destinations are account-wide, with optional Twitch or YouTube channel connections and manual stream keys. Pro schedule events can optionally set stream details, using the event title by default, with Twitch categories and YouTube descriptions/thumbnails. Channel connection requests streaming and metadata permissions together and does not change normal Clipify sign-in.
+- [Changelog](https://clipify.us/changelog): Released changes.
+- [Roadmap](https://clipify.us/roadmap): Planned work, not a promise of existing functionality.
+- [Service status](https://status.thedannicraft.de/status/clipify): Availability and incidents.
+- [Privacy](https://clipify.us/legal/privacy), [Cookies](https://clipify.us/legal/cookies), [Terms](https://clipify.us/legal/terms) and [Privacy requests](https://clipify.us/legal/privacy-requests).
