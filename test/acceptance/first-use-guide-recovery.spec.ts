@@ -1,6 +1,7 @@
 import { test, expect } from "../bdd/support/user-tour";
 import { seedCreatorLibrary } from "../support/creator-library";
 import { defaultProgress, guideContentKey } from "../../src/app/lib/userTour";
+import { openMobileNavigation } from "../support/mobile-navigation";
 
 for (const width of [390, 1440])
 	for (const theme of ["light", "dark"])
@@ -46,10 +47,15 @@ for (const width of [390, 1440])
 				await route.fulfill({ response, body });
 			});
 			const panel = page.getByRole("region", { name: "Your Clipify guide", exact: true });
-			if (!(await panel.isVisible())) {
-				if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+			const launcher = page.locator('[data-dashboard-utilities-ready="true"] [data-tour="guide-launcher"]').first();
+			// The panel mounts after hydration. Inspect the hydrated sidebar's state
+			// before toggling, otherwise a late-mounting open panel gets closed.
+			await expect(launcher).toHaveAttribute("aria-expanded", /^(true|false)$/);
+			if ((await launcher.getAttribute("aria-expanded")) === "false") {
+				if (width === 390) await openMobileNavigation(page);
 				await page.locator('[data-tour="guide-launcher"]:visible').click();
 			}
+			await expect(panel).toBeVisible();
 			await panel.getByRole("button", { name: /^Make your overlay yours/ }).click();
 			await panel.getByRole("button", { name: "Choose colors and style", exact: true }).click();
 			const pro = panel.getByRole("button", { name: "Explore Theme Studio with Pro", exact: true });
