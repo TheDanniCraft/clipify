@@ -18,7 +18,7 @@ Use one browser-source URL in OBS Studio, Streamlabs, XSplit or similar software
 - [Playlists and OBS overlays](https://clipify.us/features#playlists): Curate reusable playlists and choose playback sources. Pro adds advanced filters, on-demand imports, Theme Studio and live controls. Runner is not required for browser-source playback.
 - [Website galleries](https://clipify.us/gallery): Publish curated or live clip collections using Clipify Elements. Public website embeds and private OBS source URLs are different.
 - [Community](https://clipify.us/community): Search discoverable creators. A Creator Page can be unlisted and remain available through its direct URL.
-- [Runner](https://clipify.us/features#runner): Free includes manual playback/live fallback on one active broadcast and destination, with unlimited hours on the creator's computer. Pro adds scheduling, multiple destinations/broadcasts, standby customization and watermark removal.
+- [Runner](https://clipify.us/features#runner): Runner is included with Free and Pro, with unlimited streaming hours on your own computer. Free supports manual playback/live fallback on one active broadcast and destination. Pro adds scheduling, multiple destinations/broadcasts, standby customization and watermark removal.
 
 ## Accounts and access
 

@@ -14,7 +14,7 @@ export const tiers: Tier[] = [
 		featured: false,
 		mostPopular: false,
 		description: "Everything you need to get your clips on stream and online.",
-		summaryFeatures: ["Unlimited Twitch clips", "Clip exports and reusable layouts", "One overlay and one 50-clip playlist", "One branded website gallery", "A shareable Creator Page", "Basic website Clip Player", "Manual Runner with unlimited hours"],
+		summaryFeatures: ["Unlimited Twitch clips", "Clip exports and reusable layouts", "One overlay and one 50-clip playlist", "One branded gallery and a Creator Page", "Basic website Clip Player", "Manual Runner with unlimited hours"],
 		features: [
 			"Unlimited clips",
 			"Original, Desktop and Mobile clip exports",

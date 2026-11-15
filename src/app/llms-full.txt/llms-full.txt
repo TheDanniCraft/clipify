@@ -74,8 +74,10 @@ This reference describes the current application and pricing catalog. Planned ro
 
 ## Self-hosted Runner and broadcasting
 
+Runner is included with Free and Pro, with unlimited streaming hours on your own computer. Advanced Runner features require effective Pro, including valid Pro grants, trials, and agency creator seats.
+
 - Runner is optional software on the creator's own Windows, Linux or macOS computer. Clipify coordinates it; Clipify does not host its compute or guarantee that the user's computer stays online.
-- Free and Pro include unlimited streaming hours. Free allows one active broadcast across devices and one destination, with manual clip playback or live-input fallback. Registering another device does not add another active Free broadcast.
+- Free allows one active broadcast across devices and one destination, with manual clip playback or live-input fallback. Registering another device does not add another active Free broadcast.
 - Free generated clips/standby include Clipify attribution. The normal incoming live feed is not watermarked by Runner. Pro adds multiple destinations, independent broadcasts, schedules, custom standby and watermark removal, subject to hardware and bandwidth.
 - Saved destinations belong to the creator and can be reused by devices. Twitch/YouTube connections and manual stream keys are supported. Each destination consumes upload bandwidth.
 - Pro schedules support local/saved timezones, recurring occurrences and edits to one or following occurrences. Future scheduling and past/current broadcast details have different editing rules. Scheduled stops finish the current clip.
