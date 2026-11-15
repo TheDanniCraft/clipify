@@ -37,7 +37,11 @@ for (const theme of ["light", "dark"])
 				});
 				await page.goto(`${tourWorld.origin}/community`);
 				await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
-				await expect(page.getByRole("heading", { level: 1 })).toHaveText("Find your next favorite creator.");
+				await expect(page.getByRole("heading", { level: 1 })).toHaveText("You make Clipify more than code.");
+				const signup = page.locator("main header").getByRole("link", { name: "Start free", exact: true });
+				await expect(signup).toHaveAttribute("href", "/login");
+				await expect(signup).toBeInViewport();
+				await expect(page.getByText("Make it part of your stream, too.", { exact: true })).toBeVisible();
 				await page.screenshot({ animations: "disabled", path: info.outputPath(`community-${width}-${theme}.png`), fullPage: true });
 				const regions = await page.evaluate(() => {
 					const measure = (element: Element | null) => {
@@ -123,6 +127,12 @@ for (const theme of ["light", "dark"])
 				await tourWorld.fixture.pool.query('UPDATE "twitchCache" SET value=$1 WHERE type=$2 AND key=$3', [JSON.stringify({ streamers: [...streamers, ...additional], totalCount: 171, liveCount: 1, overlayActiveCount: 0, updatedAt: new Date().toISOString() }), "user", "community:snapshot:obs-presence"]);
 				await page.reload();
 				await expect(avatars).toHaveCount(170);
+				await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+				await expect(signup).toBeInViewport();
+				const signupBounds = (await signup.boundingBox())!;
+				const wallBounds = (await page.getByRole("list", { name: "Creators", exact: true }).boundingBox())!;
+				expect(signupBounds.y + signupBounds.height).toBeLessThan(wallBounds.y);
+				await expect(page.getByRole("navigation", { name: /pagination/i })).toHaveCount(0);
 				await page.getByRole("list", { name: "Creators", exact: true }).screenshot({ animations: "disabled", path: info.outputPath(`community-dense-${width}-${theme}.png`) });
 				const layout = await page.getByRole("list", { name: "Creators", exact: true }).evaluate((list) => ({
 					columns: getComputedStyle(list).gridTemplateColumns.split(" ").length,
@@ -172,6 +182,9 @@ for (const theme of ["light", "dark"])
 				await page.reload();
 				await expect(page.getByText("No public creators yet", { exact: true })).toBeVisible();
 				await expect(page.getByRole("searchbox")).toHaveCount(0);
+				await signup.focus();
+				await signup.press("Enter");
+				await expect(page).toHaveURL(/\/login$/);
 			});
 		});
 	}

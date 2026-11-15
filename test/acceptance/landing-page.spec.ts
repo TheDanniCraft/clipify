@@ -345,7 +345,7 @@ for (const theme of ["light", "dark"]) {
 			await page.setViewportSize({ width, height: 900 });
 			await page.goto("/community");
 			if (await page.getByRole("button", { name: "Reject optional", exact: true }).isVisible()) await dismissPrivacy(page);
-			await expect(page.getByRole("heading", { level: 1 })).toHaveText("Find your next favorite creator.");
+			await expect(page.getByRole("heading", { level: 1 })).toHaveText("You make Clipify more than code.");
 			const context = page.getByText("Meet creators with public Clipify profiles.", { exact: false });
 			await expect(context).toBeVisible();
 			expect((await context.boundingBox())!.y).toBeLessThan(900);
