@@ -6,6 +6,16 @@ import { BillingProduct } from "@types";
 const getActiveCampaignOffer = jest.fn();
 const resolveBillingCatalog = jest.fn();
 const comparisonProps = jest.fn();
+const readCheckoutIntent = jest.fn();
+const recoveryProps = jest.fn();
+jest.mock("@/server/checkoutIntent", () => ({ readCheckoutIntent: () => readCheckoutIntent() }));
+jest.mock("@components/Pricing/CheckoutRecovery", () => ({
+	__esModule: true,
+	default: (props: { status: string; canRetry: boolean }) => {
+		recoveryProps(props);
+		return <aside aria-label='Checkout recovery'>{props.status}</aside>;
+	},
+}));
 jest.mock("@lib/campaignOffers", () => ({ getActiveCampaignOffer: () => getActiveCampaignOffer() }));
 jest.mock("@/server/billingCatalog", () => ({ resolveBillingCatalog: () => resolveBillingCatalog() }));
 jest.mock("@components/LandingPage/basicNavbar", () => ({ __esModule: true, default: () => <nav aria-label='Public navigation' /> }));
@@ -28,7 +38,30 @@ describe("public pricing server page and FAQ boundary", () => {
 		expect(metadata.title).toBe("Pricing | Clipify");
 		expect(metadata.description).toMatch(/Free and Pro/);
 	});
-	beforeEach(() => jest.clearAllMocks());
+	beforeEach(() => {
+		jest.clearAllMocks();
+		getActiveCampaignOffer.mockResolvedValue(null);
+		resolveBillingCatalog.mockResolvedValue({ [BillingProduct.Pro]: { monthly: null, yearly: null } });
+		readCheckoutIntent.mockResolvedValue(null);
+	});
+	test.each(["cancelled", "unavailable"] as const)("shows %s recovery with a retry only when the signed selection survives", async (status) => {
+		readCheckoutIntent.mockResolvedValueOnce({ product: BillingProduct.Pro });
+		const view = render(await PricingPage({ searchParams: Promise.resolve({ checkout: status }) }));
+		expect(recoveryProps).toHaveBeenLastCalledWith({ status, canRetry: true });
+		expect(screen.getByRole("complementary", { name: "Checkout recovery" })).toHaveTextContent(status);
+		expect(screen.getByText("Plan comparison")).toBeInTheDocument();
+		view.unmount();
+		render(await PricingPage({ searchParams: Promise.resolve({ checkout: status }) }));
+		expect(recoveryProps).toHaveBeenLastCalledWith({ status, canRetry: false });
+		expect(readCheckoutIntent).toHaveBeenCalledTimes(2);
+	});
+	test.each([{}, { checkout: "success" }, { checkout: ["cancelled", "unavailable"] }])("ignores unrecognized checkout parameters %j", async (parameters) => {
+		render(await PricingPage({ searchParams: Promise.resolve(parameters) }));
+		expect(readCheckoutIntent).not.toHaveBeenCalled();
+		expect(recoveryProps).not.toHaveBeenCalled();
+		expect(screen.queryByRole("complementary", { name: "Checkout recovery" })).not.toBeInTheDocument();
+		expect(screen.getByText("Plan comparison")).toBeInTheDocument();
+	});
 	test("passes current billing prices and campaign to comparison and renders all FAQ content", async () => {
 		const campaign = { title: "Current offer" };
 		const proMonthly = { amount: 4, currency: "EUR", formatted: "4 EUR" };
