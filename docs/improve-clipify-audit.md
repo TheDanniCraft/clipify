@@ -287,3 +287,48 @@ restored avatar spacing/menu removal, settings privacy reopening/withdrawal, and
 login in desktop/mobile and both themes. The previous CI service-classification
 assertion was corrected to test basic traffic separately from optional product
 analytics. Required CI remains the merge gate; no production changes were made.
+
+## Merge readiness and directory scale
+
+The failed merge gate on November 15 was a real pricing-page coverage gap:
+checkout recovery branches had 66.66% coverage against the existing 85% floor.
+The zero-total `branchesTrue` counter was not the failure. Server-page tests now
+cover cancelled/unavailable returns with and without a surviving checkout intent,
+plus unknown and repeated query values. All nine pricing-page branches are covered;
+no gate, inventory or threshold was changed.
+
+Community entries now use a compact grid with four columns on wide screens,
+smaller avatars, and creator information and links grouped together. Search,
+group tabs, ordering, membership labels and server-side discovery permissions
+remain. Browser acceptance includes 170 synthetic discoverable creators, one
+unlisted creator, a long display name, and finding the final creator by username.
+The structural references are [Wellfound's compact people entries](https://mobbin.com/screens/fa3c239d-c566-40a5-8854-eb369db26d8a)
+and [HelloFresh's horizontal profiles](https://mobbin.com/screens/9ad368e4-3979-483c-ad77-82726b866a71).
+They inform structure only; Clipify's components and themes remain.
+
+The live Grafana dashboard remains v6 (version 22, last updated October 31).
+Prepared v7 already adds rolling creator outcomes, mature first-week activation,
+Umami delivery, checkout operations, subscription states and webhook processing.
+Import it after its app fields are released and scraped. Adding more charts before
+that would not improve the evidence available today.
+
+Recommended next measurements, requiring their own implementation and validation:
+
+- Return within seven days and time to first successful playback, with mature
+  signup cohorts and explicit counts beside rates.
+- First successful clip export and repeat export use, to compare export value
+  with overlay activation. Existing first-playback events cannot answer this.
+- Payment completion, failed payment and cancellation cohorts alongside actual
+  Stripe revenue. Stored Pro access, trials and grants must remain separate.
+- Scrape freshness and missing-field visibility for these panels; absent data
+  must not display as zero conversions or a healthy service.
+
+Keep creator-level journeys in consented analytics, operational aggregates in
+Grafana and money reporting in Stripe. No live dashboard or alert was changed
+in this follow-up.
+
+Follow-up local validation: 29 affected whole-file tests, all three coverage-merger
+checks and the production-mode build/typecheck passed. Pricing-page coverage is
+100% for statements, branches, functions and lines. All four real community browser
+journeys passed at 390/1440 px in light/dark, including the 170-creator fixture,
+keyboard filtering/focus, link permissions, empty recovery and accessibility.

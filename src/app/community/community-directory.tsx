@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Avatar, Button, Card, Chip, Link, SearchField, Tabs } from "@heroui/react";
+import { Avatar, Button, Chip, Link, SearchField, Tabs } from "@heroui/react";
 import { IconBrandTwitch } from "@tabler/icons-react";
 import { getCommunityAvatarTone } from "@lib/communityAvatarTone";
 import { compareCommunityStreamers } from "@lib/communitySort";
@@ -12,42 +12,36 @@ function CreatorCard({ streamer }: { streamer: CommunityPageStreamer }) {
 	const membership = streamer.partner ? "Partner" : streamer.plan === "pro" ? "Pro" : "Free";
 	const status = streamer.status === "live_with_overlay" ? "Live with Clipify" : streamer.status === "live" ? "Live on Twitch" : "Offline";
 	return (
-		<Card role='article' aria-label={`${streamer.displayName} creator`} className='h-full border border-border shadow-none'>
-			<Card.Header className='flex-row items-start gap-4'>
-				<Avatar role='img' aria-label={`${streamer.displayName}: ${tone.label}`} color={tone.color} variant='soft' className={`size-16 shrink-0 ring-2 ${tone.ringClass}`}>
-					<Avatar.Image alt='' src={streamer.avatar} />
-					<Avatar.Fallback>{streamer.displayName.slice(0, 2).toUpperCase()}</Avatar.Fallback>
-				</Avatar>
-				<div className='min-w-0'>
-					<h3 className='break-words text-lg font-semibold leading-snug'>
-						{streamer.profileUrl ? (
-							<Link href={streamer.profileUrl} className='text-foreground'>
-								{streamer.displayName}
-							</Link>
-						) : (
-							streamer.displayName
-						)}
-					</h3>
-					<p className='mt-1 break-all text-sm text-muted'>@{streamer.username}</p>
-					<div className='mt-3 flex flex-wrap items-center gap-2'>
-						<Chip size='sm' variant='soft' color={streamer.status === "live_with_overlay" ? "success" : streamer.status === "live" ? "danger" : "default"}>
-							{status}
-						</Chip>
-						<Chip size='sm' variant='tertiary' color={streamer.partner || streamer.plan === "pro" ? "accent" : "default"}>
-							{membership}
-						</Chip>
-					</div>
+		<article role='article' aria-label={`${streamer.displayName} creator`} className='flex h-full items-start gap-3 border-b border-border py-4'>
+			<Avatar role='img' aria-label={`${streamer.displayName}: ${tone.label}`} color={tone.color} variant='soft' className={`size-12 shrink-0 ring-2 ${tone.ringClass}`}>
+				<Avatar.Image alt='' src={streamer.avatar} />
+				<Avatar.Fallback>{streamer.displayName.slice(0, 2).toUpperCase()}</Avatar.Fallback>
+			</Avatar>
+			<div className='min-w-0'>
+				<h3 className='break-words text-base font-semibold leading-snug'>
+					{streamer.profileUrl ? (
+						<Link href={streamer.profileUrl} className='text-foreground'>
+							{streamer.displayName}
+						</Link>
+					) : (
+						streamer.displayName
+					)}
+				</h3>
+				<p className='mt-1 break-all text-xs text-muted'>@{streamer.username}</p>
+				<div className='mt-2 flex flex-wrap items-center gap-2'>
+					<span className='text-xs text-muted'>{status}</span>
+					<Chip size='sm' variant='tertiary' color={streamer.partner || streamer.plan === "pro" ? "accent" : "default"}>
+						{membership}
+					</Chip>
 				</div>
-			</Card.Header>
-			{streamer.partner || streamer.plan === "pro" ? (
-				<Card.Footer className='mt-auto'>
-					<Link href={streamer.twitchUrl} target='_blank' rel='noreferrer' className='gap-2 text-sm text-foreground'>
+				{streamer.partner || streamer.plan === "pro" ? (
+					<Link href={streamer.twitchUrl} target='_blank' rel='noreferrer' className='mt-2 gap-2 text-sm text-foreground'>
 						<IconBrandTwitch className='size-4' aria-hidden='true' />
 						Open Twitch
 					</Link>
-				</Card.Footer>
-			) : null}
-		</Card>
+				) : null}
+			</div>
+		</article>
 	);
 }
 
@@ -104,7 +98,7 @@ export default function CommunityDirectory({ groups }: { groups: CommunityPageGr
 								</p>
 							</div>
 							{matches.length ? (
-								<ul aria-label='Creators' className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3'>
+								<ul aria-label='Creators' className='grid gap-x-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
 									{matches.map((streamer) => (
 										<li key={streamer.id} className='min-w-0'>
 											<CreatorCard streamer={streamer} />

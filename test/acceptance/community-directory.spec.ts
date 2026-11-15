@@ -60,6 +60,31 @@ for (const theme of ["light", "dark"])
 			await expect(page.getByRole("article")).toHaveCount(1);
 			await expect(page.getByRole("link", { name: "Open Twitch", exact: true })).toHaveCount(0);
 			await search.fill("");
+			// A directory-sized fixture catches layouts that only work with a few cards.
+			const additional = Array.from({ length: 167 }, (_, index) => {
+				const username = `directory_dense_${String(index).padStart(3, "0")}`;
+				return { id: username, username, displayName: index === 0 ? "A creator with a particularly long display name" : `Creator ${String(index).padStart(3, "0")}`, avatar: "/community-avatar-directory_free.svg", plan: "free", partner: false, status: "offline", profileUrl: `/creators/${username}`, viewCount: 0, lastActiveAt: null };
+			});
+			await tourWorld.fixture.pool.query("INSERT INTO users(id,email,username,avatar,role,plan) SELECT id,id || '@example.test',id,'/community-avatar-directory_free.svg','user','free' FROM unnest($1::text[]) AS id", [additional.map((creator) => creator.id)]);
+			await tourWorld.fixture.pool.query("INSERT INTO \"userSettings\"(id,creator_page_enabled,creator_page_visibility) SELECT id,true,'discoverable' FROM unnest($1::text[]) AS id", [additional.map((creator) => creator.id)]);
+			await tourWorld.fixture.pool.query('UPDATE "twitchCache" SET value=$1 WHERE type=$2 AND key=$3', [JSON.stringify({ streamers: [...streamers, ...additional], totalCount: 171, liveCount: 1, overlayActiveCount: 0, updatedAt: new Date().toISOString() }), "user", "community:snapshot:obs-presence"]);
+			await page.reload();
+			await expect(page.getByRole("article")).toHaveCount(170);
+			await page.getByRole("list", { name: "Creators", exact: true }).screenshot({ path: info.outputPath(`community-dense-${width}-${theme}.png`) });
+			const layout = await page.getByRole("list", { name: "Creators", exact: true }).evaluate((list) => ({
+				columns: getComputedStyle(list).gridTemplateColumns.split(" ").length,
+				firstHeight: list.querySelector('[role="article"]')!.getBoundingClientRect().height,
+				totalHeight: list.getBoundingClientRect().height,
+			}));
+			await writeFile(info.outputPath("community-density.json"), JSON.stringify(layout));
+			expect(layout.columns).toBe(width === 1440 ? 4 : 1);
+			expect(layout.firstHeight).toBeLessThan(145);
+			await search.fill("directory_dense_166");
+			await expect(page.getByRole("article")).toHaveCount(1);
+			await expect(page.getByRole("link", { name: "Creator 166", exact: true })).toHaveAttribute("href", "/creators/directory_dense_166");
+			await page.getByRole("link", { name: "Creator 166", exact: true }).focus();
+			await expect(page.getByRole("link", { name: "Creator 166", exact: true })).toBeFocused();
+			await search.fill("");
 			expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 			await page.addScriptTag({ content: axeSource });
 			expect(await page.evaluate(async () => (await (window as typeof window & { axe: typeof import("axe-core") }).axe.run(document.querySelector("main")!, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] } })).violations.map(({ id }) => id))).toEqual([]);
