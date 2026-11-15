@@ -1015,6 +1015,7 @@ export default function OverlaySettings() {
 																source: "paywall_banner",
 																feature: "advanced_filters",
 																plan: user?.plan ?? "free",
+																target_plan: "pro",
 															});
 															openFeatureUpgrade();
 														}}

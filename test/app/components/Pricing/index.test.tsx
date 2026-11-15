@@ -4,6 +4,7 @@ export {};
 import type { ReactNode } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import TiersComponent from "@/app/components/Pricing";
+import { trackPaywallEvent } from "@lib/paywallTracking";
 
 jest.mock("@/app/components/Pricing/BillingFrequency", () => ({
 	__esModule: true,
@@ -127,6 +128,7 @@ describe("components/Pricing index", () => {
 		expect(screen.getByRole("link", { name: /See all plan differences/i })).toHaveAttribute("href", "/pricing");
 		expect(screen.queryByRole("link", { name: "Add Runner" })).not.toBeInTheDocument();
 		fireEvent.click(screen.getByRole("button", { name: "Get Pro" }));
+		expect(trackPaywallEvent).toHaveBeenCalledWith("paywall_cta_click", expect.objectContaining({ target_plan: "pro", cycle: "yearly" }));
 		expect(screen.getByText("Shared Pro setup")).toBeInTheDocument();
 	});
 });

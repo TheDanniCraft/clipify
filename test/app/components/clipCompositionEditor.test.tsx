@@ -1,6 +1,14 @@
 const mockLayoutEvent = jest.fn();
 jest.mock("@lib/analytics", () => ({ trackProductEvent: (...args: unknown[]) => mockLayoutEvent(...args) }));
-jest.mock("@components/upgradeModal", () => ({ __esModule: true, default: ({ isOpen }: any) => (isOpen ? <div role='dialog'>Upgrade branding</div> : null) }));
+jest.mock("@components/upgradeModal", () => ({
+	__esModule: true,
+	default: ({ isOpen, feature }: any) =>
+		isOpen ? (
+			<div role='dialog' data-feature={feature}>
+				Upgrade branding
+			</div>
+		) : null,
+}));
 jest.mock("@components/theme/ThemeColorInput", () => ({
 	__esModule: true,
 	default: ({ label, value, onChange }: any) => (
@@ -331,6 +339,7 @@ it("keeps free layout credits on and opens upgrade without saving an unavailable
 	fireEvent.click(toggle);
 	expect(screen.getByRole("button", { name: "Clipify Watermark" })).toBeVisible();
 	expect(screen.getByRole("dialog")).toHaveTextContent("Upgrade branding");
+	expect(screen.getByRole("dialog")).toHaveAttribute("data-feature", "clip_export_branding");
 	expect(saveTemplate).not.toHaveBeenCalled();
 });
 

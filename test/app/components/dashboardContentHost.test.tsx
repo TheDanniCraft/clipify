@@ -27,6 +27,11 @@ it("keeps welcome visible when its account dismissal fails", async () => {
 	await waitFor(() => expect(dismiss).toHaveBeenCalled());
 	expect(start).not.toHaveBeenCalled();
 	expect(screen.getByRole("button", { name: "Start guided tour" })).toBeVisible();
+	expect(await screen.findByRole("alert")).toHaveTextContent("Could not save your choice. Please try again.");
+	dismiss.mockResolvedValue({ ok: true });
+	fireEvent.click(screen.getByRole("button", { name: "Start guided tour" }));
+	await waitFor(() => expect(start).toHaveBeenCalledTimes(1));
+	expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
 it("lets the user defer the generic welcome through the guide account preference", async () => {
 	const later = jest.fn(),

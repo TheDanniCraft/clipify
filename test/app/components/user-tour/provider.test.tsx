@@ -52,6 +52,15 @@ jest.mock("@components/user-tour/spotlight", () => ({
 		</div>
 	),
 }));
+jest.mock("@components/upgradeModal", () => ({
+	__esModule: true,
+	default: ({ feature, onOpenChange, isOpen }: any) =>
+		isOpen ? (
+			<div role='dialog' aria-label={`Upgrade ${feature}`}>
+				<button onClick={() => onOpenChange(false)}>Cancel upgrade</button>
+			</div>
+		) : null,
+}));
 function Harness() {
 	const { report } = useUserTour();
 	return (
@@ -165,6 +174,35 @@ it("honors unavailable Theme Studio without navigating or forcing an upgrade", (
 	expect(screen.getByText("Theme Studio requires Pro.")).toHaveAttribute("role", "status");
 	expect(push).not.toHaveBeenCalled();
 });
+it("offers the contextual Pro dialog only on request and keeps guide progress after cancellation", async () => {
+	const snapshot = { ...defaultProgress(), welcomeSeen: true, completed: ["overlay.name" as const] };
+	render(
+		<UserTourProvider accountId='owner' initialProgress={snapshot} appearanceAvailable={false} upgradeUser={{ id: "owner", plan: "free" } as never}>
+			<Harness />
+		</UserTourProvider>,
+	);
+	fireEvent.click(screen.getByRole("button", { name: "Choose colors and style" }));
+	expect(screen.getByText(/Match your stream with custom colors/)).toBeVisible();
+	expect(screen.queryByRole("dialog", { name: "Upgrade theme_studio" })).not.toBeInTheDocument();
+	await act(async () => fireEvent.click(screen.getByRole("button", { name: "Explore Theme Studio with Pro" })));
+	expect(await screen.findByRole("dialog", { name: "Upgrade theme_studio" })).toBeVisible();
+	await act(async () => fireEvent.click(screen.getByRole("button", { name: "Cancel upgrade" })));
+	expect(screen.queryByRole("dialog", { name: "Upgrade theme_studio" })).not.toBeInTheDocument();
+	expect(screen.getByRole("checkbox", { name: "Mark Create and name your overlay as done" })).toBeChecked();
+	expect(save).not.toHaveBeenCalled();
+	expect(push).not.toHaveBeenCalled();
+});
+it("pauses an existing spotlight before explaining a locked appearance task", async () => {
+	render(
+		<UserTourProvider accountId='owner' appearanceAvailable={false} initialProgress={{ ...defaultProgress(), welcomeSeen: true, active: { task: "overlay.source", index: 0, paused: false, navigation: [] } }}>
+			<Harness />
+		</UserTourProvider>,
+	);
+	fireEvent.click(screen.getByRole("button", { name: "Choose colors and style" }));
+	await waitFor(() => expect(save).toHaveBeenCalledWith("owner", { type: "pause" }));
+	expect(screen.queryByRole("button", { name: "Pause spotlight" })).not.toBeInTheDocument();
+	expect(screen.getByText("Theme Studio requires Pro.")).toBeVisible();
+});
 it("yields to consent preferences and leaves the pointer paused", async () => {
 	mount();
 	fireEvent.click(screen.getByRole("button", { name: "Create and name your overlay" }));
@@ -248,6 +286,7 @@ it("starts the first unfinished task from the welcome dialog without routing the
 	await waitFor(() => expect(save).toHaveBeenCalledWith("owner", { type: "welcome.start", location: "dashboard" }));
 	expect(screen.queryByRole("dialog", { name: "Welcome" })).not.toBeInTheDocument();
 	expect(push).not.toHaveBeenCalled();
+	expect(track).toHaveBeenCalledWith("guide_started", { journey: "overlay", task: "overlay.name", source: "welcome" });
 });
 it.each(["/dashboard/runners/runner-1", "/dashboard/settings", "/dashboard/overlay/overlay-1"])("defers the welcome on %s until the user opens the Dashboard", (path) => {
 	currentPath = path;

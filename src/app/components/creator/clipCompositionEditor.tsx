@@ -219,7 +219,7 @@ export default function ClipCompositionEditor({ user, creatorId, entry, initial,
 			}}
 		>
 			<DashboardEditorLayout>
-				{user ? <UpgradeModal user={user} isOpen={upgrade} onOpenChange={setUpgrade} title='Make every clip your own with Pro' description='Remove Clipify branding from your composed exports.' /> : null}
+				{user ? <UpgradeModal user={user} isOpen={upgrade} onOpenChange={setUpgrade} feature='clip_export_branding' /> : null}
 				<ControlledModal ariaLabel='Unsaved layout changes' isOpen={guard.active} onClose={() => guard.reject()}>
 					<Modal.Header>
 						<Modal.Heading>Leave without saving?</Modal.Heading>

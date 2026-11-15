@@ -161,7 +161,7 @@ When("the URL is copied without installation confirmation", async ({ page, tourW
 Then("setup stays incomplete until confirmation", async ({ page, tourWorld }) => {
 	expect((await progress(page, tourWorld)).completed).not.toContain("overlay.setup");
 	await page.getByRole("button", { name: "Finish guide", exact: true }).click();
-	expect((await progress(page, tourWorld)).completed).toContain("overlay.setup");
+	await expect.poll(async () => (await progress(page, tourWorld)).completed).toContain("overlay.setup");
 	expect((await progress(page, tourWorld)).active).toBeNull();
 	await expect(page.locator(".driver-popover")).toHaveCount(0);
 });
@@ -354,6 +354,7 @@ When("the default appearance is kept", async ({ page, tourWorld }) => {
 	await page.getByRole("button", { name: "Keep default look" }).click();
 });
 Then("the appearance guide completes without changing the saved style", async ({ page, tourWorld }) => {
+	await expect.poll(async () => (await progress(page, tourWorld)).completed).toContain("appearance.style");
 	const saved = await progress(page, tourWorld);
 	expect(saved.completed).toContain("appearance.style");
 	expect(saved.skipped).not.toContain("appearance.style");
@@ -426,7 +427,7 @@ When("the guided playlist is selected and the overlay saved", async ({ page, tou
 	await expect(page.getByText("Overlay settings saved", { exact: true })).toBeVisible();
 });
 Then("the playlist association task completes", async ({ page, tourWorld }) => {
-	expect((await progress(page, tourWorld)).completed).toContain("playlist.use");
+	await expect.poll(async () => (await progress(page, tourWorld)).completed).toContain("playlist.use");
 	expect((await tourWorld.fixture.pool.query("SELECT playlist_id FROM overlays WHERE id=$1", [tourWorld.owner!.overlayId])).rows[0].playlist_id).toBe(tourWorld.owner!.playlistId);
 });
 When("a completed playlist tour is replayed", async ({ page, tourWorld }) => {
@@ -679,7 +680,7 @@ When("a running task's checkbox is opened and cancellation is retried", async ({
 	await confirmation.getByRole("button", { name: "Skip task", exact: true }).click();
 });
 Then("the task is skipped only after its popover confirmation", async ({ page, tourWorld }) => {
-	expect((await progress(page, tourWorld)).skipped).toEqual(["overlay.source"]);
+	await expect.poll(async () => (await progress(page, tourWorld)).skipped).toEqual(["overlay.source"]);
 	expect((await progress(page, tourWorld)).completed).not.toContain("overlay.source");
 });
 When("the report button is clicked during its introduction", async ({ page }) => {
@@ -924,7 +925,7 @@ When("playlist source guidance changes to Playlist and back to another type", as
 	await page.getByRole("option", { name: "All Clips", exact: true }).click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Use a playlist");
 	await expect(page.locator('[data-tour-action="next"]')).toBeDisabled();
-	expect((await progress(page, tourWorld)).active).toMatchObject({ task: "playlist.use", index: 0, paused: false });
+	await expect.poll(async () => (await progress(page, tourWorld)).active).toMatchObject({ task: "playlist.use", index: 0, paused: false });
 });
 Then("it stays in the flow and advances again when Playlist is selected", async ({ page, tourWorld }) => {
 	await page.getByRole("button", { name: /Overlay Type/ }).click();
@@ -1143,6 +1144,7 @@ When("the AI discovery guide is followed", async ({ page }) => {
 	await pause(page);
 	await page.getByRole("button", { name: "Minimize guide", exact: true }).click();
 	await page.locator('[data-tour="settings-core-tab"]').click();
+	await expect(page.locator('[data-tour="settings-overview"]')).toBeVisible();
 	await start(page, "Discover AI connections", "Explore Clipify");
 	await expect(page.locator(".driver-popover-title")).toHaveText("Choose Connections");
 	await page.locator('[data-tour="settings-connections-tab"]').click();
@@ -1254,6 +1256,7 @@ When("guided navigation opens the unsaved changes dialog", async ({ page, tourWo
 	await expect(page.getByRole("dialog", { name: "Unsaved Changes", exact: true })).toBeVisible();
 });
 Then("Cancel restores the guide and Discard continues through normal navigation", async ({ page, tourWorld }) => {
+	await expect.poll(async () => (await progress(page, tourWorld)).active?.task).toBe("overlay.name");
 	const before = (await progress(page, tourWorld)).active;
 	await expect(page.locator(".driver-popover")).toHaveCount(0);
 	expect(before).toMatchObject({ task: "overlay.name", paused: false, navigation: ["home", "overlays"] });

@@ -14,8 +14,10 @@ import "driver.js/dist/driver.css";
 import "./user-tour.css";
 import DashboardContentHost from "@components/dashboardContentHost";
 import type { DashboardContentItem } from "@lib/dashboardContent";
+import type { AuthenticatedUser } from "@types";
 const guidedWelcome: DashboardContentItem = { key: "guided-welcome", title: "Welcome", headline: "Welcome to Clipify!", intro: "Let’s get your first overlay running.", highlight: { title: "Learn by doing", text: "Follow the real controls to create, configure and use your overlay." }, image: { src: "/clippy/Clippy.svg", alt: "Clippy, the Clipify mascot" }, actionLabel: "Start guided tour" };
 const Spotlight = lazy(() => import("./spotlight"));
+const UpgradeModal = lazy(() => import("@components/upgradeModal"));
 type GuideContextValue = { report: (event: GuideEvent) => void; activeTask: TaskId | null; nextSetupTask: (typeof journeys)[0]["tasks"][number] | null; startSetup: () => void; resourceIds: { overlayId: string | null; playlistId: string | null } };
 const GuideContext = createContext<GuideContextValue>({ report: () => undefined, activeTask: null, nextSetupTask: null, startSetup: () => undefined, resourceIds: { overlayId: null, playlistId: null } });
 export const useUserTour = () => useContext(GuideContext);
@@ -84,7 +86,7 @@ function TaskCheckbox({ task, selected, current, onRequest, onConfirm, onRestore
 	);
 }
 /** Server state is authoritative. Browser storage is only imported once for older accounts. */
-export function UserTourProvider({ accountId, children, setupAvailable = false, appearanceAvailable = true, initialProgress = defaultProgress(), importLegacy = false, dashboardContent = [] }: { accountId: string; children: ReactNode; setupAvailable?: boolean; appearanceAvailable?: boolean; initialProgress?: GuideProgress; importLegacy?: boolean; dashboardContent?: DashboardContentItem[] }) {
+export function UserTourProvider({ accountId, children, setupAvailable = false, appearanceAvailable = true, initialProgress = defaultProgress(), importLegacy = false, dashboardContent = [], upgradeUser }: { accountId: string; children: ReactNode; setupAvailable?: boolean; appearanceAvailable?: boolean; initialProgress?: GuideProgress; importLegacy?: boolean; dashboardContent?: DashboardContentItem[]; upgradeUser?: AuthenticatedUser }) {
 	const pathname = usePathname();
 
 	const [progress, setProgress] = useState(() => (pathname !== "/dashboard" && !initialProgress.active ? { ...initialProgress, minimized: true } : initialProgress));
@@ -93,6 +95,9 @@ export function UserTourProvider({ accountId, children, setupAvailable = false, 
 	const [hydrated, setHydrated] = useState(false);
 	const [expanded, setExpanded] = useState<string | null>(initialProgress.active?.task.split(".")[0] ?? initialProgress.journeyId ?? "overlay");
 	const [message, setMessage] = useState("");
+	const [appearanceLocked, setAppearanceLocked] = useState(false);
+	const [upgradeOpen, setUpgradeOpen] = useState(false);
+	const [upgradeRequested, setUpgradeRequested] = useState(false);
 	const [consentOpen, setConsentOpen] = useState(false);
 	const [consentBanner, setConsentBanner] = useState(false);
 	const [guideRequested, setGuideRequested] = useState(false);
@@ -227,10 +232,13 @@ export function UserTourProvider({ accountId, children, setupAvailable = false, 
 	}, [active, pause]);
 	const start = (task: TaskId) => {
 		if (task.startsWith("appearance.") && task !== "appearance.clip-filters" && !appearanceAvailable) {
+			if (active && !active.paused) report({ type: "pause" });
 			setMessage("Theme Studio requires Pro.");
+			setAppearanceLocked(true);
 			return;
 		}
 		setMessage("");
+		setAppearanceLocked(false);
 		const section = journeys.find((journey) => journey.tasks.some((item) => item.id === task));
 		setExpanded(section?.id ?? "overlay");
 		if (active?.task === task) report({ type: "resume", location, pickerOpen: Boolean(document.querySelector('[data-tour="playlist-clip-search"]')) });
@@ -253,7 +261,22 @@ export function UserTourProvider({ accountId, children, setupAvailable = false, 
 	return (
 		<GuideContext.Provider value={{ report, activeTask, nextSetupTask, startSetup: () => nextSetupTask && start(nextSetupTask.id), resourceIds: { overlayId: progress.overlayId, playlistId: progress.playlistId } }}>
 			{children}
-			{hydrated && <DashboardContentHost isVisible={!consentOpen && !consentBanner} items={dashboardContent.length ? dashboardContent : offerWelcome ? [guidedWelcome] : []} onStartGuide={offerWelcome ? () => report({ type: "welcome.start", location: rawLocation }) : undefined} onDismissGuide={offerWelcome ? () => report({ type: "welcome.dismiss" }) : undefined} />}
+			{hydrated && (
+				<DashboardContentHost
+					isVisible={!consentOpen && !consentBanner}
+					items={dashboardContent.length ? dashboardContent : offerWelcome ? [guidedWelcome] : []}
+					onStartGuide={
+						offerWelcome
+							? () => {
+									const task = journeys[0].tasks.find((item) => !isFinished(item.id));
+									if (task) trackEvent("guide_started", { journey: "overlay", task: task.id, source: "welcome" });
+									report({ type: "welcome.start", location: rawLocation });
+								}
+							: undefined
+					}
+					onDismissGuide={offerWelcome ? () => report({ type: "welcome.dismiss" }) : undefined}
+				/>
+			)}
 			<span hidden data-guide-sync={syncState} />
 			{hydrated && !consentOpen && (
 				<DashboardUtilityPortal slot='guide'>
@@ -268,9 +291,28 @@ export function UserTourProvider({ accountId, children, setupAvailable = false, 
 										</Button>
 									</div>
 									{message && (
-										<p role='status' className='mb-3 text-xs text-muted'>
-											{message}
-										</p>
+										<div className='mb-3 space-y-2 text-xs text-muted'>
+											<p role='status'>{message}</p>
+											{appearanceLocked && (
+												<>
+													<p>Match your stream with custom colors, fonts, and overlay layouts. Your current overlay keeps working on Free.</p>
+													{upgradeUser ? (
+														<Button
+															size='sm'
+															variant='secondary'
+															onPress={() => {
+																setUpgradeRequested(true);
+																setUpgradeOpen(true);
+															}}
+														>
+															Explore Theme Studio with Pro
+														</Button>
+													) : (
+														<p>Ask the account owner about Pro access.</p>
+													)}
+												</>
+											)}
+										</div>
 									)}
 									{syncState === "error" && (
 										<div role='status' className='mb-3 flex items-center justify-between gap-2 text-xs'>
@@ -363,6 +405,11 @@ export function UserTourProvider({ accountId, children, setupAvailable = false, 
 			{hydrated && !consentOpen && !consentBanner && active && !active.paused && step && (
 				<Suspense fallback={null}>
 					<Spotlight key={`${active.task}:${active.index}:${active.navigation?.join(",")}:${step.target}`} step={step} onPause={onPause} onMissing={onMissing} onNext={onNext} onPrevious={active.index > 0 ? onPrevious : undefined} />
+				</Suspense>
+			)}
+			{upgradeUser && upgradeRequested && (
+				<Suspense fallback={null}>
+					<UpgradeModal user={upgradeUser} isOpen={upgradeOpen} onOpenChange={setUpgradeOpen} source='upgrade_modal' feature='theme_studio' />
 				</Suspense>
 			)}
 		</GuideContext.Provider>

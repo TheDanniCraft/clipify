@@ -66,7 +66,7 @@ export default function ProSetupModal({ source = "pricing_page", isOpen, onOpenC
 							href={checkoutHref}
 							onPress={() => {
 								continued.current = true;
-								trackPaywallEvent("checkout_start", { source, feature: "plan", plan: "pro", cycle: selectedFrequency });
+								trackPaywallEvent("checkout_start", { source, feature: "plan", target_plan: "pro", cycle: selectedFrequency });
 							}}
 							className={buttonVariants({ variant: "primary", className: "no-underline" })}
 						>
