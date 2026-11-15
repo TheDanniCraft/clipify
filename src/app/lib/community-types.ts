@@ -38,6 +38,8 @@ export type CommunityPageGroup = {
 };
 
 export type CommunitySnapshot = {
+	/** Creators covered by successful Twitch stream-status batches. Absent in old caches. */
+	liveStatusKnownCount?: number;
 	streamers: CommunityStreamer[];
 	totalCount: number;
 	liveCount: number;

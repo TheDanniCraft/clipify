@@ -1,4 +1,5 @@
 /** @jest-environment node */
+jest.mock("@/server/creator-presence-health", () => ({ getCreatorPresenceHealth: jest.fn(async () => ({ twitchOnline: 2, twitchOffline: 3, twitchUnknown: 0, twitchSnapshotFresh: 1, twitchSnapshotAgeSeconds: 10, connectedCreators: 1, onlineUsingClipify: 1 })) }));
 jest.mock("@/server/conversion-health", () => ({ getConversionHealth: jest.fn(async () => ({ signups30d: 0, activated30d: 0, checkoutCreators30d: 0, paidCreators30d: 0, mature7dCreators: 0, activatedWithin7d: 0, operations: {} })) }));
 jest.mock("@/server/user-tour/metrics", () => ({ getUserTourHealthStats: jest.fn(async () => ({ startedAccounts: 0, inProgressAccounts: 0, overlayLinkCopiedAccounts: 0, tasks: {}, trackedAccounts: 0, untrackedAccounts: 0, invalidProgressAccounts: 0, tasksPerAccount: 18, accountsWithProgress: 0, completedAccounts: 0, completedTasks: 0, skippedTasks: 0, completionRate: 0, averageProgress: 0, sections: {} })) }));
 export {};
@@ -232,6 +233,7 @@ describe("lib/instanceHealth", () => {
 	it("builds full snapshot from db and scheduler sources", async () => {
 		const { getInstanceHealthSnapshot } = await import("@/app/lib/instanceHealth");
 		const snapshot = await getInstanceHealthSnapshot();
+		expect(snapshot.presence).toMatchObject({ twitchOnline: 2, twitchOffline: 3, connectedCreators: 1, onlineUsingClipify: 1 });
 
 		expect(snapshot.mcp.calls.started_total).toBeGreaterThanOrEqual(0);
 		expect(snapshot.mcp.processStartedAt).toEqual(expect.any(String));

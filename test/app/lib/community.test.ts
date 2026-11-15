@@ -103,6 +103,7 @@ describe("lib/community", () => {
 		const snapshot = await refreshCommunitySnapshot();
 
 		expect(snapshot?.totalCount).toBe(1);
+		expect(snapshot?.liveStatusKnownCount).toBe(0);
 		expect(snapshot?.streamers.map((streamer) => streamer.id)).toEqual(["user-1"]);
 		expect(queryBuilder.leftJoin).not.toHaveBeenCalled();
 		expect(queryBuilder.innerJoin).not.toHaveBeenCalled();
@@ -118,6 +119,37 @@ describe("lib/community", () => {
 			const { refreshCommunitySnapshot } = await loadCommunity();
 			const snapshot = await refreshCommunitySnapshot();
 			expect(snapshot?.streamers[0]).toMatchObject({ username: "current_login", displayName: "家姐", profileUrl: "/creators/thedanni" });
+			expect(snapshot?.liveStatusKnownCount).toBe(1);
+		} finally {
+			global.fetch = originalFetch;
+		}
+	});
+
+	it("marks only successful Twitch batches as known, including partial failures", async () => {
+		selectExecute.mockReset();
+		selectExecute.mockResolvedValueOnce(Array.from({ length: 101 }, (_, index) => ({ id: `creator-${index}`, username: `creator-${index}`, avatar: "", plan: Plan.Free, createdAt: new Date() }))).mockResolvedValueOnce([]);
+		getAppAccessToken.mockResolvedValue({ access_token: "local-fixture" });
+		const originalFetch = global.fetch;
+		global.fetch = jest
+			.fn()
+			.mockResolvedValueOnce({ ok: true, json: async () => ({ data: [{ user_id: "creator-0" }] }) })
+			.mockResolvedValueOnce({ ok: false });
+		try {
+			const { refreshCommunitySnapshot } = await loadCommunity();
+			const result = await refreshCommunitySnapshot();
+			expect(result).toMatchObject({ totalCount: 101, liveStatusKnownCount: 100, liveCount: 1 });
+		} finally {
+			global.fetch = originalFetch;
+		}
+	});
+
+	it.each([{}, { data: [{ user_id: "outside-the-requested-batch" }] }])("does not treat an invalid Twitch response as confirmed offline: %j", async (payload) => {
+		getAppAccessToken.mockResolvedValue({ access_token: "local-fixture" });
+		const originalFetch = global.fetch;
+		global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => payload });
+		try {
+			const { refreshCommunitySnapshot } = await loadCommunity();
+			expect(await refreshCommunitySnapshot()).toMatchObject({ totalCount: 1, liveStatusKnownCount: 0, liveCount: 0 });
 		} finally {
 			global.fetch = originalFetch;
 		}

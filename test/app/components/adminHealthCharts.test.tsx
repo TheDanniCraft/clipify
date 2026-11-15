@@ -40,6 +40,7 @@ jest.mock("recharts", () => ({
 }));
 
 const healthSnapshot: InstanceHealthSnapshot = {
+	presence: sample.presence,
 	conversion: {
 		webhooks: { failed: 0, staleProcessing: 0, oldestProcessingAgeSeconds: 0 },
 		signups30d: 0,

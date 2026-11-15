@@ -129,7 +129,10 @@ export default function CreatorAvatar({ streamer, isOpen, pinned, onOpenChange }
 							<Chip size='sm' variant='tertiary' color={streamer.partner || streamer.plan === "pro" ? "accent" : "default"}>
 								{membership}
 							</Chip>
-							<span className='text-sm text-muted'>{status}</span>
+							<Chip size='sm' variant='soft' color={streamer.status === "live_with_overlay" ? "success" : streamer.status === "live" ? "danger" : "default"}>
+								<span aria-hidden='true' className='size-1.5 shrink-0 rounded-full bg-current' />
+								<Chip.Label>{status}</Chip.Label>
+							</Chip>
 						</div>
 						{stats?.status === "ready" ? (
 							<p className='text-sm text-muted'>

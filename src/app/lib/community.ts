@@ -11,11 +11,11 @@ import { getAppAccessToken, getUsersDetailsBulk } from "@actions/twitch";
 import type { CommunitySnapshot, CommunityStreamer, CommunityStreamerStatus } from "./community-types";
 import { compareCommunityStreamers } from "./communitySort";
 import { getActiveOverlayOwnerIds } from "@store/overlaySubscribers";
+import { COMMUNITY_SNAPSHOT_CACHE_KEY, COMMUNITY_SNAPSHOT_MAX_AGE_MS } from "./community-presence-contract";
 
 const TWITCH_BATCH_LIMIT = 100;
 const COMMUNITY_SNAPSHOT_CACHE_TYPE = TwitchCacheType.User;
-const COMMUNITY_SNAPSHOT_CACHE_KEY = "community:snapshot:obs-presence";
-const COMMUNITY_SNAPSHOT_CACHE_TTL_SECONDS = 120;
+const COMMUNITY_SNAPSHOT_CACHE_TTL_SECONDS = COMMUNITY_SNAPSHOT_MAX_AGE_MS / 1000;
 const COMMUNITY_REFRESH_LOCK_KEY = "community_snapshot_refresh";
 
 type CommunityUserRow = {
@@ -49,6 +49,7 @@ function chunkArray<T>(items: T[], chunkSize: number): T[][] {
 
 function emptyCommunitySnapshot(): CommunitySnapshot {
 	return {
+		liveStatusKnownCount: 0,
 		streamers: [],
 		totalCount: 0,
 		liveCount: 0,
@@ -225,8 +226,9 @@ async function fetchTwitchUsers(ownerIds: string[], accessToken: string): Promis
 	return result;
 }
 
-async function fetchLiveOwnerIds(ownerIds: string[], accessToken: string): Promise<Set<string>> {
+async function fetchLiveOwnerIds(ownerIds: string[], accessToken: string): Promise<{ liveOwnerIds: Set<string>; knownCount: number }> {
 	const liveOwnerIds = new Set<string>();
+	let knownCount = 0;
 	for (const batch of chunkArray(ownerIds, TWITCH_BATCH_LIMIT)) {
 		try {
 			const url = new URL("https://api.twitch.tv/helix/streams");
@@ -245,6 +247,8 @@ async function fetchLiveOwnerIds(ownerIds: string[], accessToken: string): Promi
 			if (!response.ok) continue;
 
 			const payload = (await response.json()) as TwitchApiResponse<TwitchStreamResponse>;
+			if (!Array.isArray(payload.data) || payload.data.some((stream) => typeof stream.user_id !== "string" || !batch.includes(stream.user_id))) continue;
+			knownCount += batch.length;
 			for (const stream of payload.data ?? []) {
 				liveOwnerIds.add(stream.user_id);
 			}
@@ -253,7 +257,7 @@ async function fetchLiveOwnerIds(ownerIds: string[], accessToken: string): Promi
 		}
 	}
 
-	return liveOwnerIds;
+	return { liveOwnerIds, knownCount };
 }
 
 async function buildCommunitySnapshot(): Promise<CommunitySnapshot> {
@@ -277,13 +281,13 @@ async function buildCommunitySnapshot(): Promise<CommunitySnapshot> {
 		return null;
 	});
 
-	const [twitchUsers, liveOwnerIds] = await Promise.all([appToken ? fetchTwitchUsers(ownerIds, appToken.access_token) : Promise.resolve(new Map<string, TwitchUserResponse>()), appToken ? fetchLiveOwnerIds(ownerIds, appToken.access_token) : Promise.resolve(new Set<string>())]);
+	const [twitchUsers, liveStatus] = await Promise.all([appToken ? fetchTwitchUsers(ownerIds, appToken.access_token) : Promise.resolve(new Map<string, TwitchUserResponse>()), appToken ? fetchLiveOwnerIds(ownerIds, appToken.access_token) : Promise.resolve({ liveOwnerIds: new Set<string>(), knownCount: 0 })]);
 	const activeOwnerIds = getActiveOverlayOwnerIds();
 
 	const streamers = users.map((user) => {
 		const twitchUser = twitchUsers.get(user.id);
 		const hasActiveOverlay = activeOwnerIds.has(user.id);
-		const isLive = liveOwnerIds.has(user.id);
+		const isLive = liveStatus.liveOwnerIds.has(user.id);
 		const status: CommunityStreamerStatus = isLive && hasActiveOverlay ? "live_with_overlay" : isLive ? "live" : "offline";
 		const entitlements = entitlementsByUserId.get(user.id);
 
@@ -304,6 +308,7 @@ async function buildCommunitySnapshot(): Promise<CommunitySnapshot> {
 	streamers.sort(compareCommunityStreamers);
 
 	return {
+		liveStatusKnownCount: liveStatus.knownCount,
 		streamers,
 		totalCount: streamers.length,
 		liveCount: streamers.filter((streamer) => streamer.status !== "offline").length,

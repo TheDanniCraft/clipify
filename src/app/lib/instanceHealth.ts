@@ -1,4 +1,5 @@
 import { getConversionHealth } from "@/server/conversion-health";
+import { getCreatorPresenceHealth, type CreatorPresenceHealth } from "@/server/creator-presence-health";
 import { getCacheHealthCounts } from "./cacheHealth";
 import { grantAccessNotExpired } from "@/server/entitlements/grant-period";
 /* istanbul ignore file */
@@ -92,6 +93,7 @@ export function recordTwitchRateLimit(log: TwitchRateLimitLog) {
 }
 
 export type InstanceHealthSnapshot = {
+	presence: CreatorPresenceHealth;
 	conversion: Awaited<ReturnType<typeof getConversionHealth>>;
 	onboarding: UserTourStats;
 	crawler: Record<keyof ReturnType<typeof crawlerHealthCounts>, number>;
@@ -574,6 +576,7 @@ async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealth
 	const mcpClients = await getMcpClientHealthStats(db).catch(() => null);
 	const onboarding = await getUserTourHealthStats(db, usersTotal);
 	const conversion = await getConversionHealth(db, now);
+	const presence = await getCreatorPresenceHealth(db, usersTotal - disabledUsers, now);
 	const healthAggregationMs = Date.now() - started;
 
 	let status: HealthStatus = "ok";
@@ -581,6 +584,7 @@ async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealth
 	if (dbPingMs > 5000 || healthAggregationMs > 5000) status = "down";
 
 	const health = {
+		presence,
 		conversion,
 		onboarding,
 		crawler: numericCounts(crawlerFields, crawlerCounts),

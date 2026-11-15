@@ -2349,5 +2349,14 @@
 		"deliverySucceeded": 6,
 		"deliveryFailed": 2,
 		"deliveryRetries": 1
+	},
+	"presence": {
+		"twitchOnline": 2,
+		"twitchOffline": 3,
+		"twitchUnknown": 1,
+		"twitchSnapshotFresh": 1,
+		"twitchSnapshotAgeSeconds": 10,
+		"connectedCreators": 1,
+		"onlineUsingClipify": 1
 	}
 }
