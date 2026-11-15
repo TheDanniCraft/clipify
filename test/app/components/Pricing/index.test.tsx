@@ -120,7 +120,8 @@ describe("components/Pricing index", () => {
 	it("keeps the cards concise and links to the full comparison", () => {
 		render(<TiersComponent pricing={pricing} />);
 
-		expect(screen.getByText("One branded website gallery")).toBeInTheDocument();
+		expect(screen.getByText("One branded gallery and a Creator Page")).toBeInTheDocument();
+		expect(screen.getByText("Clip exports and reusable layouts")).toBeInTheDocument();
 		expect(screen.queryByText("Append or replace behavior on playlist import")).not.toBeInTheDocument();
 		expect(screen.getByText(/directly supports an independent developer/i)).toBeInTheDocument();
 		expect(screen.getByRole("link", { name: /See all plan differences/i })).toHaveAttribute("href", "/pricing");
