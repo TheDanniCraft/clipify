@@ -324,6 +324,11 @@ panel positions or custom dimensions. Conversion and onboarding follow Executive
 Summary; newsletter and migration telemetry appear near the bottom. All 93 panels
 and their queries are retained. This layout imported successfully into disposable
 Grafana 13.2.3 with the complete V2 resource envelope.
+All stats and gauges use four narrow columns with short rows, restoring compact
+metrics in the summary, onboarding, scheduler and migration sections. Mixed sections
+group metrics above their charts without additional visible subheadings. Chart
+sections use two columns so their plots and legends remain readable. Existing
+visualization options and font settings are unchanged.
 Prepared v7 already adds rolling creator outcomes, mature first-week activation,
 Umami delivery, checkout operations, subscription states and webhook processing.
 Import it after its app fields are released and scraped. Adding more charts before

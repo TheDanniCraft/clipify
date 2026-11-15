@@ -14,19 +14,29 @@ test("v7 preserves the complete dashboard and uses automatic layouts for every s
 	expect(rows.slice(0, 3).map((row: any) => row.spec.title)).toEqual(["Executive Summary", "Conversion and measurement health", "Onboarding guides"]);
 	expect(rows.map((row: any) => row.spec.title).sort()).toEqual([...previous.spec.layout.spec.rows.map((row: any) => row.spec.title), "Conversion and measurement health"].sort());
 	const references: string[] = [];
-	for (const row of rows) {
-		expect(row.spec.layout.kind).toBe("AutoGridLayout");
-		expect(row.spec.layout.spec).toEqual({
-			maxColumnCount: 3,
-			columnWidthMode: "standard",
-			rowHeightMode: "standard",
+	function checkLayout(layout: any) {
+		if (layout.kind === "RowsLayout") {
+			for (const row of layout.spec.rows) {
+				expect(row.spec.hideHeader).toBe(true);
+				checkLayout(row.spec.layout);
+			}
+			return;
+		}
+		expect(layout.kind).toBe("AutoGridLayout");
+		const compact = layout.spec.items.every((item: any) => ["stat", "gauge"].includes(dashboard.spec.elements[item.spec.element.name].spec.vizConfig.group));
+		expect(layout.spec).toEqual({
+			maxColumnCount: compact ? 4 : 2,
+			columnWidthMode: compact ? "narrow" : "standard",
+			rowHeightMode: compact ? "short" : "standard",
 			items: expect.any(Array),
 		});
-		for (const item of row.spec.layout.spec.items) {
+		for (const item of layout.spec.items) {
 			expect(item).toEqual({ kind: "AutoGridLayoutItem", spec: { element: { kind: "ElementReference", name: expect.any(String) } } });
+			expect(["stat", "gauge"].includes(dashboard.spec.elements[item.spec.element.name].spec.vizConfig.group)).toBe(compact);
 			references.push(item.spec.element.name);
 		}
 	}
+	for (const row of rows) checkLayout(row.spec.layout);
 	expect(references.sort()).toEqual(Object.keys(dashboard.spec.elements).sort());
 });
 

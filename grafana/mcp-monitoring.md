@@ -5,8 +5,11 @@ resource, including `apiVersion`, `kind`, `metadata` and `spec`. Keep the existi
 dashboard identity `clipify-vm01-overview` and the API version used by your editor.
 The revised dashboard extends v6 with seven panels in a conversion row. Existing panel identities and queries remain unchanged.
 
-Every section uses Grafana's automatic grid with standard column widths and row
-heights. There are no fixed panel coordinates or custom sizes. Executive Summary,
+Every section uses Grafana's automatic grid. Stats and gauges use four narrow
+columns and short rows, including onboarding and scheduler metrics. Mixed sections
+group compact metrics above their charts without adding visible subheadings.
+Charts use two standard-width columns and standard row heights.
+There are no fixed panel coordinates or custom sizes. Executive Summary,
 Conversion and measurement health, and Onboarding guides appear first, followed
 by account, system and product operations. Newsletter and migration telemetry
 remain available near the bottom.
