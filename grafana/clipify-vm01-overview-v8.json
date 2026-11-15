@@ -12249,7 +12249,7 @@
 				"spec": {
 					"id": 602,
 					"title": "Umami delivery (observed counter increase)",
-					"description": "Process counter increases, normalized per source before combining. First samples are baselines; missing scrapes remain gaps. Accepted does not prove exactly-once ingestion. Zero attempts does not establish complete collection. Counter increases remain per server instance so process restarts and replicas are not confused with shared database gauges.",
+					"description": "Observed counter increases across Clipify deployments. First samples are baselines; missing scrapes remain gaps. Accepted does not prove exactly-once ingestion. Zero attempts does not establish complete collection. Clipify is one logical instance. Deployment IDs are removed before sorting the counter history and calculating reset-aware increases. Duplicate timestamps are selected once.",
 					"links": [],
 					"data": {
 						"kind": "QueryGroup",
@@ -12266,7 +12266,7 @@
 												"name": "efg3es37pgh6ob"
 											},
 											"spec": {
-												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"analyticsCache_deliveryAttempts\" or r._field == \"analyticsCache_deliverySucceeded\" or r._field == \"analyticsCache_deliveryFailed\" or r._field == \"analyticsCache_deliveryRetries\")\n  |> increase()\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n"
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"analyticsCache_deliveryAttempts\" or r._field == \"analyticsCache_deliverySucceeded\" or r._field == \"analyticsCache_deliveryFailed\" or r._field == \"analyticsCache_deliveryRetries\")\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\", \"_time\"])\n  |> max(column: \"_value\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> increase()\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n"
 											}
 										},
 										"refId": "A",
@@ -12360,7 +12360,14 @@
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "Attempts (server ${__field.labels.host})"
+												"value": "Attempts"
+											},
+											{
+												"id": "color",
+												"value": {
+													"mode": "fixed",
+													"fixedColor": "#5794F2"
+												}
 											}
 										]
 									},
@@ -12372,7 +12379,14 @@
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "Accepted (server ${__field.labels.host})"
+												"value": "Accepted"
+											},
+											{
+												"id": "color",
+												"value": {
+													"mode": "fixed",
+													"fixedColor": "#73BF69"
+												}
 											}
 										]
 									},
@@ -12384,7 +12398,14 @@
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "Failed (server ${__field.labels.host})"
+												"value": "Failed"
+											},
+											{
+												"id": "color",
+												"value": {
+													"mode": "fixed",
+													"fixedColor": "#F2495C"
+												}
 											}
 										]
 									},
@@ -12396,7 +12417,14 @@
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "Explicit rejection retries (server ${__field.labels.host})"
+												"value": "Explicit rejection retries"
+											},
+											{
+												"id": "color",
+												"value": {
+													"mode": "fixed",
+													"fixedColor": "#FF9830"
+												}
 											}
 										]
 									}
@@ -12411,7 +12439,7 @@
 				"spec": {
 					"id": 603,
 					"title": "Checkout service operations (observed increase)",
-					"description": "Authenticated public checkout continuation operations. Includes retries, not unique buyers. Does not count dashboard checkout callers. No-attempt periods are not a service failure. Counter increases remain per server instance so process restarts and replicas are not confused with shared database gauges.",
+					"description": "Authenticated public checkout continuation operations. Includes retries, not unique buyers. Does not count dashboard checkout callers. No-attempt periods are not a service failure. Clipify is one logical instance. Deployment IDs are removed before sorting the counter history and calculating reset-aware increases. Duplicate timestamps are selected once.",
 					"links": [],
 					"data": {
 						"kind": "QueryGroup",
@@ -12428,7 +12456,7 @@
 												"name": "efg3es37pgh6ob"
 											},
 											"spec": {
-												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"conversion_operations_checkoutRequested\" or r._field == \"conversion_operations_checkoutCreated\" or r._field == \"conversion_operations_checkoutUnavailable\" or r._field == \"conversion_operations_checkoutAlreadyOwned\")\n  |> increase()\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n"
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"conversion_operations_checkoutRequested\" or r._field == \"conversion_operations_checkoutCreated\" or r._field == \"conversion_operations_checkoutUnavailable\" or r._field == \"conversion_operations_checkoutAlreadyOwned\")\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\", \"_time\"])\n  |> max(column: \"_value\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> increase()\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n"
 											}
 										},
 										"refId": "A",
@@ -12522,7 +12550,14 @@
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "Requested (server ${__field.labels.host})"
+												"value": "Requested"
+											},
+											{
+												"id": "color",
+												"value": {
+													"mode": "fixed",
+													"fixedColor": "#5794F2"
+												}
 											}
 										]
 									},
@@ -12534,7 +12569,14 @@
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "Redirect URL returned (server ${__field.labels.host})"
+												"value": "Redirect URL returned"
+											},
+											{
+												"id": "color",
+												"value": {
+													"mode": "fixed",
+													"fixedColor": "#73BF69"
+												}
 											}
 										]
 									},
@@ -12546,7 +12588,14 @@
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "Unavailable (server ${__field.labels.host})"
+												"value": "Unavailable"
+											},
+											{
+												"id": "color",
+												"value": {
+													"mode": "fixed",
+													"fixedColor": "#FF9830"
+												}
 											}
 										]
 									},
@@ -12558,7 +12607,14 @@
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "Already owned (server ${__field.labels.host})"
+												"value": "Already owned"
+											},
+											{
+												"id": "color",
+												"value": {
+													"mode": "fixed",
+													"fixedColor": "#B877D9"
+												}
 											}
 										]
 									}
@@ -12763,7 +12819,7 @@
 				"spec": {
 					"id": 605,
 					"title": "Measurement exclusions and service processing",
-					"description": "Fixed aggregate operation counters. Consent exclusions are expected, not errors. Auth includes returning users. Webhook retries can increase requests. No user IDs, browser behavior or payloads are exported. Counter increases remain per server instance so process restarts and replicas are not confused with shared database gauges.",
+					"description": "Fixed aggregate operation counters. Consent exclusions are expected, not errors. Auth includes returning users. Webhook retries can increase requests. No user IDs, browser behavior or payloads are exported. Clipify is one logical instance. Deployment IDs are removed before sorting the counter history and calculating reset-aware increases. Duplicate timestamps are selected once.",
 					"links": [],
 					"data": {
 						"kind": "QueryGroup",
@@ -12780,7 +12836,7 @@
 												"name": "efg3es37pgh6ob"
 											},
 											"spec": {
-												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"conversion_operations_analyticsConsentExcluded\" or r._field == \"conversion_operations_authSessionCreated\" or r._field == \"conversion_operations_webhookReceived\" or r._field == \"conversion_operations_webhookProcessed\" or r._field == \"conversion_operations_webhookFailed\")\n  |> increase()\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n"
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"conversion_operations_analyticsConsentExcluded\" or r._field == \"conversion_operations_authSessionCreated\" or r._field == \"conversion_operations_webhookReceived\" or r._field == \"conversion_operations_webhookProcessed\" or r._field == \"conversion_operations_webhookFailed\")\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\", \"_time\"])\n  |> max(column: \"_value\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> increase()\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n"
 											}
 										},
 										"refId": "A",
@@ -12874,7 +12930,14 @@
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "Analytics consent not allowed (server ${__field.labels.host})"
+												"value": "Analytics consent not allowed"
+											},
+											{
+												"id": "color",
+												"value": {
+													"mode": "fixed",
+													"fixedColor": "#8E8E8E"
+												}
 											}
 										]
 									},
@@ -12886,7 +12949,14 @@
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "Auth sessions created (server ${__field.labels.host})"
+												"value": "Auth sessions created"
+											},
+											{
+												"id": "color",
+												"value": {
+													"mode": "fixed",
+													"fixedColor": "#5794F2"
+												}
 											}
 										]
 									},
@@ -12898,7 +12968,14 @@
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "Verified webhook requests (server ${__field.labels.host})"
+												"value": "Verified webhook requests"
+											},
+											{
+												"id": "color",
+												"value": {
+													"mode": "fixed",
+													"fixedColor": "#B877D9"
+												}
 											}
 										]
 									},
@@ -12910,7 +12987,14 @@
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "Webhook handlers completed (server ${__field.labels.host})"
+												"value": "Webhook handlers completed"
+											},
+											{
+												"id": "color",
+												"value": {
+													"mode": "fixed",
+													"fixedColor": "#73BF69"
+												}
 											}
 										]
 									},
@@ -12922,7 +13006,14 @@
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "Webhook handler failures (server ${__field.labels.host})"
+												"value": "Webhook handler failures"
+											},
+											{
+												"id": "color",
+												"value": {
+													"mode": "fixed",
+													"fixedColor": "#F2495C"
+												}
 											}
 										]
 									}
@@ -13272,7 +13363,7 @@
 				"kind": "Panel",
 				"spec": {
 					"id": 702,
-					"title": "Using Clipify on this instance",
+					"title": "Using Clipify now",
 					"description": "Distinct creators with an open, active OBS source on the most recently scraped server instance. Controllers, inactive previews and closed sockets are excluded. This is not a fleet-wide total.",
 					"links": [],
 					"data": {
@@ -13364,7 +13455,7 @@
 				"kind": "Panel",
 				"spec": {
 					"id": 703,
-					"title": "Live with Clipify on this instance",
+					"title": "Live with Clipify now",
 					"description": "Confirmed Twitch-live creators with an active OBS source on the most recently scraped server instance. Stale Twitch snapshots show no data; this is not a fleet-wide total.",
 					"links": [],
 					"data": {
@@ -13811,8 +13902,8 @@
 				"kind": "Panel",
 				"spec": {
 					"id": 707,
-					"title": "Clipify usage by server instance",
-					"description": "Distinct active OBS-source owners per server instance. A creator can connect to several instances; these series must not be added into a global creator count.",
+					"title": "Clipify usage over time",
+					"description": "Active Clipify source owners and live creators using Clipify over time. Deployment IDs are combined into one chronological series per metric. Unknown Twitch observations are omitted.",
 					"links": [],
 					"data": {
 						"kind": "QueryGroup",
@@ -13829,7 +13920,7 @@
 												"name": "efg3es37pgh6ob"
 											},
 											"spec": {
-												"query": "data = from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field =~ /^presence_/)\n  |> group(columns: [\"host\", \"url\"])\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\nconnected = data\n  |> filter(fn: (r) => exists r.presence_connectedCreators)\n  |> map(fn: (r) => ({_time: r._time, _field: \"presence_connectedCreators\", _value: float(v: r.presence_connectedCreators), host: r.host, url: r.url}))\nlive = data\n  |> filter(fn: (r) => exists r.presence_onlineUsingClipify and r.presence_twitchSnapshotFresh == 1.0)\n  |> map(fn: (r) => ({_time: r._time, _field: \"presence_onlineUsingClipify\", _value: float(v: r.presence_onlineUsingClipify), host: r.host, url: r.url}))\nunion(tables: [connected, live])\n  |> group(columns: [\"_field\", \"host\", \"url\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+												"query": "data = from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field =~ /^presence_/)\n  |> group(columns: [\"host\", \"url\"])\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\nconnected = data\n  |> filter(fn: (r) => exists r.presence_connectedCreators)\n  |> map(fn: (r) => ({_time: r._time, _field: \"presence_connectedCreators\", _value: float(v: r.presence_connectedCreators), host: r.host, url: r.url}))\nlive = data\n  |> filter(fn: (r) => exists r.presence_onlineUsingClipify and r.presence_twitchSnapshotFresh == 1.0)\n  |> map(fn: (r) => ({_time: r._time, _field: \"presence_onlineUsingClipify\", _value: float(v: r.presence_onlineUsingClipify), host: r.host, url: r.url}))\nunion(tables: [connected, live])\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
 											}
 										},
 										"refId": "A",
@@ -13923,7 +14014,14 @@
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "Active Clipify sources (server ${__field.labels.host})"
+												"value": "Using Clipify"
+											},
+											{
+												"id": "color",
+												"value": {
+													"mode": "fixed",
+													"fixedColor": "#5794F2"
+												}
 											}
 										]
 									},
@@ -13935,7 +14033,14 @@
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "Live with Clipify (server ${__field.labels.host})"
+												"value": "Live with Clipify"
+											},
+											{
+												"id": "color",
+												"value": {
+													"mode": "fixed",
+													"fixedColor": "#73BF69"
+												}
 											}
 										]
 									}

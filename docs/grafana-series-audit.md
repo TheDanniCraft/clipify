@@ -52,10 +52,12 @@ The full Clipify panel inventory and aggregation policy is recorded in
 sizes; it changes query grouping/selection, series naming and color assignment
 where the audit found ambiguity. Shared database gauges are never summed across
 replicas. Sampled-instance gauges use time ordering so retired hosts cannot win
-last-value selection. Reset-sensitive counters retain their process dimensions
-until their existing increase/rate calculations; remaining per-instance increase
-charts explicitly include server identity. The new source-presence history is
-also explicitly per instance.
+last-value selection. Clipify has one logical instance. Counter-increase history
+removes deployment metadata, collapses duplicate timestamps, sorts the observations and applies
+reset-aware increases to the combined timeline. A restart remains part of the
+same metric history. Existing rate queries already reduce their process-local
+increments into one logical series. Source-presence history also uses one line
+per metric across deployment IDs; no chart exposes host IDs as separate legends.
 
 Plan labels now say Pro/Free plan creators, not paid customers. Recent sign-in
 labels describe sign-ins rather than continuous activity. Enabled-overlay labels

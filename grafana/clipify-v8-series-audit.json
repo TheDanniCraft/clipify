@@ -532,14 +532,14 @@
 		{
 			"id": 602,
 			"title": "Umami delivery (observed counter increase)",
-			"policy": "process-counter-per-instance",
-			"queryChanged": false
+			"policy": "single-instance-counter",
+			"queryChanged": true
 		},
 		{
 			"id": 603,
 			"title": "Checkout service operations (observed increase)",
-			"policy": "process-counter-per-instance",
-			"queryChanged": false
+			"policy": "single-instance-counter",
+			"queryChanged": true
 		},
 		{
 			"id": 604,
@@ -550,8 +550,8 @@
 		{
 			"id": 605,
 			"title": "Measurement exclusions and service processing",
-			"policy": "process-counter-per-instance",
-			"queryChanged": false
+			"policy": "single-instance-counter",
+			"queryChanged": true
 		},
 		{
 			"id": 606,
@@ -573,13 +573,13 @@
 		},
 		{
 			"id": 702,
-			"title": "Using Clipify on this instance",
+			"title": "Using Clipify now",
 			"policy": "presence",
 			"queryChanged": false
 		},
 		{
 			"id": 703,
-			"title": "Live with Clipify on this instance",
+			"title": "Live with Clipify now",
 			"policy": "presence",
 			"queryChanged": false
 		},
@@ -603,9 +603,9 @@
 		},
 		{
 			"id": 707,
-			"title": "Clipify usage by server instance",
-			"policy": "presence",
-			"queryChanged": false
+			"title": "Clipify usage over time",
+			"policy": "single-instance-presence",
+			"queryChanged": true
 		}
 	]
 }

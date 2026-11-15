@@ -38,7 +38,7 @@ test("v8 remains a complete dashboard and adds compact presence metrics without 
 		expect(panel.data.spec.queries[0].spec.query.spec.query).toContain("date.sub(d: 3m, from: now())");
 	}
 	for (const id of [700, 701, 703]) expect(dashboard.spec.elements[`panel-${id}`].spec.data.spec.queries[0].spec.query.spec.query).toContain("presence_twitchSnapshotFresh == 1.0");
-	expect(dashboard.spec.elements["panel-707"].spec.description).toContain("must not be added into a global creator count");
+	expect(dashboard.spec.elements["panel-707"].spec.title).toBe("Clipify usage over time");
 });
 
 test("v8 collapses deployment host labels for shared gauges and gives series stable colors", () => {
@@ -55,8 +55,11 @@ test("v8 collapses deployment host labels for shared gauges and gives series sta
 				expect(target.spec.query.spec.query).toContain('sort(columns: ["_time"])');
 			}
 		}
-		if (policy === "process-counter-per-instance") {
-			for (const rule of panel.vizConfig.spec.fieldConfig.overrides) expect(rule.properties.find((property: any) => property.id === "displayName").value).toContain("${__field.labels.host}");
+		expect(JSON.stringify(panel.vizConfig.spec.fieldConfig)).not.toContain("__field.labels.host");
+		if (policy === "single-instance-counter") {
+			const query = panel.data.spec.queries[0].spec.query.spec.query;
+			expect(query.indexOf('group(columns: ["_field"])')).toBeLessThan(query.indexOf("increase()"));
+			expect(query).toContain('group(columns: ["_field", "_time"])');
 		}
 	}
 	const crawler = dashboard.spec.elements["panel-402"].spec;

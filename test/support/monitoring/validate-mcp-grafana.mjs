@@ -90,7 +90,10 @@ for (const scenario of scenarios)
 				clips_fetches_v1GraphQL: total,
 			});
 			for (const old of ["galleries_total", "galleries_published", "galleries_draft", "galleries_orphanedCurated", "galleries_curated", "galleries_live", "creatorPages_discoverable", "creatorPages_unlisted", "creatorPages_disabled", "creatorPages_showBio", "analyticsCache_valid", "analyticsCache_expired", "analyticsCache_apiFailures", "analyticsCache_rateLimited", "analyticsCache_staleFallbacks"]) values[old] = 1;
-			if (scenario === "rotation") values.crawler_oldestManualWaitSeconds = instance === "old" ? 999 : 45;
+			if (scenario === "rotation") {
+				values.crawler_oldestManualWaitSeconds = instance === "old" ? 999 : 45;
+				for (const key of Object.keys(values)) if (key.startsWith("conversion_operations_") || key.startsWith("analyticsCache_delivery")) values[key] = instance === "old" ? i : i - 3;
+			}
 			if (scenario === "zero") {
 				for (const key of Object.keys(values)) if (key.startsWith("presence_")) values[key] = 0;
 				values.presence_twitchSnapshotFresh = 1;
@@ -161,11 +164,12 @@ assert.deepEqual(values("zero", "First-overlay guide completion"), [0]);
 for (const title of ["Umami delivery (observed counter increase)", "Checkout service operations (observed increase)", "Measurement exclusions and service processing"]) {
 	assert.equal(Math.max(...values("normal", title)), 5, title);
 	assert.equal(Math.max(...values("reset", title)), 4, title + " resets");
+	assert.equal(Math.max(...values("rotation", title)), 4, title + " restart must continue the same history");
 	assert(
 		values("zero", title).every((value) => value === 0),
 		title + " zero activity",
 	);
-	assert.equal(Math.max(...values("replicas", title)), 5, title + " per-source normalization");
+	assert.equal(Math.max(...values("replicas", title)), 5, title + " duplicate scrape identity must not double counts");
 }
 assert.equal(Math.max(...values("normal", "New creator outcomes (rolling 30 days)")), 27);
 assert.equal(Math.max(...values("replicas", "New creator outcomes (rolling 30 days)")), 27, "database gauges must not double across replicas");
@@ -194,7 +198,7 @@ for (const panel of panels) {
 	const data = await res.json();
 	if (!res.ok || Object.values(data.results ?? {}).some((result) => result.error)) throw Error("Grafana query " + panel.title + " " + JSON.stringify(data));
 	const policy = seriesAudit.policies.find((row) => row.id === panel.id).policy;
-	if (["shared-gauge", "sampled-instance-gauge", "shared-derived-gauge", "counter-reduced", "process-gauge-reduced", "scrape-freshness"].includes(policy)) {
+	if (["shared-gauge", "sampled-instance-gauge", "shared-derived-gauge", "counter-reduced", "process-gauge-reduced", "scrape-freshness", "single-instance-counter", "single-instance-presence"].includes(policy)) {
 		const keys = [];
 		for (const result of Object.values(data.results ?? {}))
 			for (const frame of result.frames ?? [])
@@ -236,8 +240,8 @@ assert.deepEqual(values("zero", "Twitch creators online"), [0]);
 assert.deepEqual(values("gap", "Twitch creators online"), [], "Do not fall back to an older online count after status becomes unavailable");
 assert.deepEqual(values("gap", "Twitch creators offline"), []);
 assert.deepEqual(values("gap", "Twitch status unknown"), [6]);
-assert.deepEqual(values("gap", "Live with Clipify on this instance"), []);
-assert.deepEqual(values("gap", "Using Clipify on this instance"), [1], "Active sources remain observable during Twitch outages");
+assert.deepEqual(values("gap", "Live with Clipify now"), []);
+assert.deepEqual(values("gap", "Using Clipify now"), [1], "Active sources remain observable during Twitch outages");
 assert.equal(values("rotation", "Crawler wait time").at(-1), 45, "A retired host's older sample must not replace the latest observation");
 fixture.close();
 console.log("Flux queries:", results.length, "Grafana panels:", panels.length);

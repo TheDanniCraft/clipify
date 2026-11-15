@@ -30,11 +30,11 @@ sockets and disconnected sources do not count. An active source does not prove
 that a clip is playing or visible to Twitch viewers. This is operational presence,
 not a new visitor-tracking mechanism; health exposes no creator IDs or profiles.
 
-Twitch counts are shared observations and must not be summed across replicas.
-Current stat panels use the latest scraped instance; historical shared counts use
-window maxima. Source counts remain explicitly per-instance because the same
-creator can connect to multiple servers. Historical source lines identify their
-server, without printing the raw metric or URL labels.
+Clipify runs as one logical instance. Container/host IDs are deployment metadata,
+not separate products or separate creator histories. Current counts select the
+latest observation. Usage history combines deployment IDs into one chronological
+line per metric, keeping the same legend and color across restarts. These source
+counts describe active OBS source owners, not dashboard visitors.
 
 Current stat queries select the newest health sample before checking freshness,
 so an older successful observation cannot conceal a current outage. Health samples
