@@ -3,6 +3,7 @@ import { seedCreatorLibrary } from "../support/creator-library";
 import { guideContentKey } from "../../src/app/lib/userTour";
 import { unzipSync } from "fflate";
 import { readFile } from "node:fs/promises";
+import { openMobileNavigation } from "../support/mobile-navigation";
 for (const width of [390, 1440])
 	for (const theme of ["light", "dark"])
 		test(`Batch exports stay stable and continue through navigation at ${width}px in ${theme}`, async ({ page, request, tourWorld }, info) => {
@@ -49,14 +50,14 @@ for (const width of [390, 1440])
 			await modal.getByRole("button", { name: "Continue in background", exact: true }).click();
 			await page.getByRole("link", { name: "Last night's clutch", exact: true }).click();
 			await expect(page).toHaveURL(/\/dashboard\/clips\//);
-			if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+			if (width === 390) await openMobileNavigation(page);
 			await expect(page.getByRole("button", { name: "Exports", exact: true })).toBeVisible();
 			await page.getByRole("row", { name: "Streams", exact: true }).click();
 			await expect(page).toHaveURL(/\/dashboard\/streams$/);
 			const media = await download;
 			expect(media.suggestedFilename()).toMatch(/\.mp4$/);
 			await media.saveAs(info.outputPath("single.mp4"));
-			if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+			if (width === 390) await openMobileNavigation(page);
 			const sidebar = page.locator(`[data-slot="${width === 390 ? "sidebar-mobile" : "sidebar"}"]`);
 			const utilities = sidebar.locator("[data-dashboard-utility]");
 			expect(await utilities.evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-dashboard-utility")))).toEqual(["admin", "guide", "exports", "chat", "help", "report", "account"]);
@@ -69,7 +70,7 @@ for (const width of [390, 1440])
 			await expect(page.getByText("Download started", { exact: true })).not.toBeVisible();
 			await page.screenshot({ path: info.outputPath("completed.png"), fullPage: true, animations: "disabled" });
 			await modal.getByRole("button", { name: "Close exports", exact: true }).click();
-			if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+			if (width === 390) await openMobileNavigation(page);
 			await page.getByRole("row", { name: "Clip Inventory", exact: true }).click();
 			await expect(page).toHaveURL(/\/dashboard\/clips$/);
 			await page.getByRole("button", { name: "Select page", exact: true }).click();
@@ -121,7 +122,9 @@ test("Fifty-one clips split at the minute boundary and share the server quota wi
 	page.on("download", (file) => downloads.push(file));
 	await page.getByRole("button", { name: "Export selected", exact: true }).click();
 	await page.getByRole("dialog", { name: "Export clips", exact: true }).getByRole("button", { name: "Next", exact: true }).click();
+	const quotaReached = page.waitForResponse((response) => new URL(response.url()).pathname === "/api/clips/export/browser" && response.status() === 429);
 	await page.getByRole("button", { name: "Start export", exact: true }).click();
+	await quotaReached;
 	await expect(page.getByText(/Waiting for the download limit/)).toBeVisible();
 	expect(downloads).toHaveLength(0);
 	const blocked = await page.request.post(`${tourWorld.origin}/api/clips/export?format=mp4`, { headers: { Origin: tourWorld.origin }, data: { creatorId, clipIds: [id] } });

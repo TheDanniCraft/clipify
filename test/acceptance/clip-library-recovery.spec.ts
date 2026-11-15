@@ -3,6 +3,7 @@ import { seedCreatorLibrary } from "../support/creator-library";
 import { unzipSync, strFromU8 } from "fflate";
 import { readFile } from "node:fs/promises";
 import type { Page, APIRequestContext } from "@playwright/test";
+import { openMobileNavigation } from "../support/mobile-navigation";
 async function setup({ page, request, tourWorld }: { page: Page; request: APIRequestContext; tourWorld: TourWorld }, mode?: string) {
 	const seeded = await seedCreatorLibrary({ page, request, tourWorld });
 	await tourWorld.fixture.pool.query('INSERT INTO "twitchCache" (type,key,value) VALUES ($1,$2,$3)', ["clip", `clip-sync-force:${seeded.creatorId}`, JSON.stringify({ lastForcedAt: new Date().toISOString() })]);
@@ -409,20 +410,12 @@ for (const width of [390, 1440])
 			await tourWorld.fixture.pool.query("UPDATE user_content_states SET state=$1 WHERE user_id=$2 AND content_key=$3", [JSON.stringify({ ...defaultProgress(), welcomeSeen: true, minimized: true, journeyId: journeys.at(-1)!.id, completed: journeys.flatMap((journey) => journey.tasks.map((task) => task.id)) }), seeded.creatorId, guideContentKey]);
 			await page.goto(`${tourWorld.origin}/dashboard/tools`);
 			await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
-			if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+			if (width === 390) await openMobileNavigation(page);
 			const sidebar = page.locator(`[data-slot="${width === 390 ? "sidebar-mobile" : "sidebar"}"]`);
 			const navigation = sidebar.getByRole("treegrid", { name: "Creator navigation", exact: true });
 			for (const title of ["Clip Player", "Clip Gallery"]) await expect(navigation.getByRole("row", { name: title, exact: true }).locator("svg").first()).toBeVisible();
 			const settings = navigation.getByRole("row", { name: "Settings", exact: true });
-			// RAC's SSR rows can appear before the interactive collection is ready.
-			// Expand with the tree keyboard action, without scrolling the Sheet horizontally.
-			await expect
-				.poll(async () => {
-					await settings.focus();
-					return settings.getAttribute("data-focused");
-				})
-				.toBe("true");
-			await settings.press("ArrowRight");
+			await settings.click();
 			await expect(settings).toHaveAttribute("aria-expanded", "true");
 			for (const title of ["Account", "Connections", "Creator Page", "Billing", "Team"]) {
 				const icon = navigation.getByRole("row", { name: title, exact: true }).locator("svg").first();

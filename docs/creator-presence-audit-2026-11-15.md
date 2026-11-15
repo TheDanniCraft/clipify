@@ -158,15 +158,21 @@ subscription renewal, reconnect, preview exclusion, inactive heartbeat and the
 protected instance-health response. The focused unit and embedded-route checks pass 32 tests.
 The native reproduction above separately checks actual OBS event delivery.
 
-The master failure was the mobile sidebar polish scenario. The green PR and
-failed squash commit had identical source trees. Playwright's row click could
-center-scroll the native Sheet out of view and dismiss it. The scenario now
-establishes React Aria focus, expands Settings with ArrowRight, and verifies the
-expanded state before checking icons, progress and spacing. Existing pointer
-navigation remains covered. All 37 owning recovery/sidebar browser scenarios
-passed, including desktop/mobile and both themes. No forced clicks, skipped
-scenarios, raised timeouts or reduced coverage thresholds are used.
+The master failure was a mobile sidebar interaction. The green PR and failed
+squash commit had identical source trees. The native Sheet mounts its children
+before its enter scroll completes; clicking then can scroll the swipe container
+closed. A shared browser helper now waits for the installed component's public
+`data-expanded` state before pointer interactions. The sidebar, gallery-draft and
+export-navigation journeys retain their real pointer actions and assertions.
 
+A subsequent CI run also exposed an export test that expected the waiting label
+within five seconds of starting 51 files, while the first 50 were still preparing.
+The test now waits for the actual quota response before asserting waiting and
+shared quota enforcement. No forced clicks, skipped scenarios, raised timeouts or
+reduced coverage thresholds are used.
+
+The complete affected recovery, batch-export and editor browser files pass 47
+scenarios, including all previously failing mobile and quota journeys.
 The head-bootstrap follow-up also passes 31 public-page browser scenarios and
 both real overlay reporting journeys. The final production test build, lint and
 formatting pass locally. Full required
