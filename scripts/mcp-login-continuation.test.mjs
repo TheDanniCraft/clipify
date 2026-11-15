@@ -168,7 +168,11 @@ test("native email change delivers both codes with hashed storage and updates th
 	const newMail = delivered.at(-1);
 	assert.equal(newMail.type, "change-email");
 	assert.equal(newMail.email, "after@example.invalid");
-	await assert.rejects(auth.api.getVerificationOTP({ query: { email: `${email}-after@example.invalid`, type: "change-email" } }), /hashed/);
+	const expectedHash = createHash("sha256").update(newMail.otp).digest("base64url");
+	assert.deepEqual(
+		database.verification.map(({ value }) => value),
+		[`${expectedHash}:0`],
+	);
 	await auth.api.changeEmailEmailOTP({ headers, body: { newEmail: newMail.email, otp: newMail.otp } });
 	assert.equal(database.user[0].email, newMail.email);
 	assert.equal(database.user[0].emailVerified, true);
