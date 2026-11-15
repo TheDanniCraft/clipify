@@ -1,4 +1,4 @@
-import { createAuthMiddleware } from "better-auth/api";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { getOAuthProviderApi } from "@better-auth/oauth-provider";
 import { jwt } from "better-auth/plugins";
 import { mcp, type McpOptions } from "@better-auth/mcp";
@@ -7,6 +7,7 @@ import { fetchClientMetadataResource } from "@better-auth/cimd/node";
 import type { BetterAuthPlugin } from "better-auth";
 
 import { MCP_SCOPES } from "@/server/mcp/scopes";
+import { connectedAppResource, CONNECTED_APP_SCOPE, requireConnectedAppAdmin } from "@/server/connected-apps/oauth-policy";
 export { MCP_SCOPES } from "@/server/mcp/scopes";
 
 function validCallback(value: unknown): boolean {
@@ -117,7 +118,41 @@ const registrationBoundary: BetterAuthPlugin = {
 
 export function createMcpPlugins(input: { origin: string; options?: Partial<McpOptions> }): BetterAuthPlugin[] {
 	const origin = new URL(input.origin).origin;
-	const options: McpOptions = { ...input.options, loginPage: "/login", consentPage: "/auth/mcp/consent", resource: `${origin}/mcp`, scopes: [...MCP_SCOPES, "offline_access"], grantTypes: ["authorization_code", "refresh_token"], refreshTokenReuseInterval: 0, allowDynamicClientRegistration: true, allowUnauthenticatedClientRegistration: true };
+	const options: McpOptions = {
+		...input.options,
+		loginPage: "/login",
+		consentPage: "/auth/mcp/consent",
+		resource: `${origin}/mcp`,
+		scopes: [...MCP_SCOPES, "offline_access"],
+		grantTypes: ["authorization_code", "refresh_token", "client_credentials"],
+		resources: [...(input.options?.resources ?? []), { identifier: connectedAppResource(origin), allowedScopes: [CONNECTED_APP_SCOPE], accessTokenTtl: 300 }],
+		refreshTokenReuseInterval: 0,
+		allowDynamicClientRegistration: true,
+		allowUnauthenticatedClientRegistration: true,
+	};
+	options.clientPrivileges = async (context) => {
+		if (context.action === "configure-client-credentials-scopes") {
+			try {
+				await requireConnectedAppAdmin(context.headers);
+			} catch {
+				return false;
+			}
+		}
+		return input.options?.clientPrivileges ? input.options.clientPrivileges(context) : true;
+	};
+	options.resourcePrivileges = async (context) => {
+		try {
+			await requireConnectedAppAdmin(context.headers);
+		} catch {
+			return false;
+		}
+		return input.options?.resourcePrivileges ? input.options.resourcePrivileges(context) : true;
+	};
+	options.customAccessTokenClaims = async (info) => {
+		if (info.user === undefined && !info.referenceId && info.resources?.length === 1 && info.resources[0] === connectedAppResource(origin) && info.scopes.length > 0 && info.scopes.every((scope) => scope === CONNECTED_APP_SCOPE)) return { clipify_application: true };
+		if (!info.user || info.resources?.includes(connectedAppResource(origin))) throw new APIError("BAD_REQUEST", { error: "invalid_grant", error_description: "Application authorization is unavailable" });
+		return (await input.options?.customAccessTokenClaims?.(info)) ?? {};
+	};
 	const provider = mcp(options);
 	const persistentAccess: BetterAuthPlugin = {
 		id: "clipify-mcp-persistent-access",

@@ -1,0 +1,3 @@
+# Data model
+
+Connected application grant: UUID ID, unique provider client ID (foreign key), creator ID (foreign key), allowed operations string array restricted in code to search_clips, required expiry, optional revocation timestamp, provisioning admin auth-user ID, created timestamp. OAuth provider retains credentials and client disable state. Existing audit_events records actual provisioning admin or null machine actor plus client/grant/creator/operation metadata; never tokens or secrets. Existing shared rate counters bound machine/network callers. No Awards tables or source records are migrated. Its database is independent and used for connectivity only.

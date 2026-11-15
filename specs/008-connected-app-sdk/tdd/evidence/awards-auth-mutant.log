@@ -1,0 +1,27 @@
+$ jest --runInBand --runTestsByPath test/server/connected-apps/oauth-policy.test.ts "--coverage=false"
+[tests] ordinary: 1 suites, 1 worker(s)
+FAIL test/server/connected-apps/oauth-policy.test.ts
+  ● rejects ordinary creator without consulting creator links
+
+    expect(received).rejects.toThrow()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"accountStatus": "active", "activeOrganizationId": null, "authUserId": "admin-auth", "authenticatedAt": 2026-11-15T22:14:20.670Z, "creatorId": "admin-creator", "sessionId": "admin-session", "user": {"disabled": false, "id": "admin-creator", "role": "user"}}
+
+      34 | ])("rejects %s without consulting creator links", async (_label, value) => {
+      35 | 	actor(value as typeof admin);
+    > 36 | 	await expect(requireConnectedAppAdmin(new Headers())).rejects.toThrow("ACCESS_DENIED");
+         | 	      ^
+      37 | 	expect(db.select).not.toHaveBeenCalled();
+      38 | });
+      39 | test("a selected creator's admin role cannot confer provisioning privileges", async () => {
+
+      at expect (node_modules/@jest/expect/node_modules/expect/build/index.js:2116:15)
+      at expect (test/server/connected-apps/oauth-policy.test.ts:36:8)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 7 passed, 8 total
+Snapshots:   0 total
+Time:        0.434 s, estimated 1 s
+Ran all test suites within paths "test/server/connected-apps/oauth-policy.test.ts".
+error: script "test" exited with code 1

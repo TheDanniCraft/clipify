@@ -1,0 +1,8 @@
+$ jest --runInBand "--coverage=false" test/server/connected-apps test/mcp/unit/auth-config-callbacks.test.ts test/mcp/unit/registration-boundary-inputs.test.ts test/mcp/unit/creator-operation-policy.test.ts
+[tests] ordinary: 14 suites, 1 worker(s)
+
+Test Suites: 14 passed, 14 total
+Tests:       276 passed, 276 total
+Snapshots:   0 total
+Time:        4.612 s, estimated 7 s
+Ran all test suites matching test/server/connected-apps|test/mcp/unit/auth-config-callbacks.test.ts|test/mcp/unit/registration-boundary-inputs.test.ts|test/mcp/unit/creator-operation-policy.test.ts.

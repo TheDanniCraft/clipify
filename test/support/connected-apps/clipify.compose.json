@@ -1,0 +1,71 @@
+{
+	"services": {
+		"clipify-db": {
+			"image": "postgres:18",
+			"environment": {
+				"POSTGRES_DB": "clipify_apps_fixture",
+				"POSTGRES_USER": "clipify_fixture",
+				"POSTGRES_PASSWORD": "clipify_fixture_password"
+			},
+			"networks": ["clipify-private"],
+			"volumes": ["clipify-data:/var/lib/postgresql"],
+			"healthcheck": {
+				"test": ["CMD", "pg_isready", "-U", "clipify_fixture", "-d", "clipify_apps_fixture"],
+				"interval": "2s",
+				"timeout": "3s",
+				"retries": 30
+			}
+		},
+		"clipify": {
+			"image": "oven/bun:1.4.4",
+			"working_dir": "/workspace",
+			"command": ["bun", "--preload", "./test/support/connected-apps/preload.mjs", "test/support/connected-apps/server.ts"],
+			"environment": {
+				"CLIPIFY_CONNECTED_APP_FIXTURE": "1",
+				"APP_ENV": "test",
+				"DISABLE_BACKGROUND_JOBS": "true",
+				"DATABASE_URL": "postgresql://clipify_fixture:clipify_fixture_password@clipify-db:5432/clipify_apps_fixture",
+				"BETTER_AUTH_SECRET": "isolated-connected-app-fixture-secret-not-production",
+				"JWT_SECRET": "isolated-connected-app-fixture-secret-not-production",
+				"RATE_LIMIT_HASH_SECRET": "isolated-connected-app-rate-limit-not-production",
+				"TWITCH_CLIENT_ID": "isolated-fixture-client",
+				"TWITCH_CLIENT_SECRET": "isolated-fixture-client-secret",
+				"ENCRYPTION_SECRET": "isolated-connected-app-encryption-secret",
+				"NEXT_PUBLIC_BASE_URL": "https://clipify:3108",
+				"SENTRY_DSN": "",
+				"SENTRY_AUTH_TOKEN": "",
+				"NODE_EXTRA_CA_CERTS": "/fixture-secrets/ca.crt"
+			},
+			"volumes": ["${CLIPIFY_APPS_SOURCE}:/workspace:ro", "${CLIPIFY_APPS_TEST_DIRECTORY}:/fixture-secrets"],
+			"networks": ["clipify-private", "app-http"],
+			"depends_on": {
+				"clipify-db": {
+					"condition": "service_healthy"
+				}
+			},
+			"read_only": true,
+			"tmpfs": ["/tmp"],
+			"healthcheck": {
+				"test": ["CMD", "bun", "-e", "fetch('https://clipify:3108/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"],
+				"interval": "2s",
+				"timeout": "3s",
+				"retries": 40
+			},
+			"cap_drop": ["ALL"],
+			"security_opt": ["no-new-privileges:true"],
+			"user": "${CLIPIFY_APPS_UID}:${CLIPIFY_APPS_GID}"
+		}
+	},
+	"networks": {
+		"clipify-private": {
+			"internal": true
+		},
+		"app-http": {
+			"external": true,
+			"name": "${CLIPIFY_APPS_HTTP_NETWORK}"
+		}
+	},
+	"volumes": {
+		"clipify-data": {}
+	}
+}

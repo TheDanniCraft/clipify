@@ -1,0 +1,134 @@
+$ tsc -p tsconfig.json
+ Image clipify-apps-4d25ee72-awards-awards Building
+#1 [internal] load local bake definitions
+#1 reading from stdin 588B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 485B done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:26.13.0-alpine
+#3 DONE 0.5s
+
+#4 [internal] load metadata for docker.io/oven/bun:1.4.4-alpine
+#4 DONE 0.5s
+
+#5 [internal] load .dockerignore
+#5 transferring context: 83B done
+#5 DONE 0.0s
+
+#6 [dependencies 1/5] FROM docker.io/oven/bun:1.4.4-alpine@sha256:4cf82f5686b196504fe119db3fcd9185b191f82ece82c40680e597228ec6070a
+#6 DONE 0.0s
+
+#7 [stage-1 1/5] FROM docker.io/library/node:26.13.0-alpine@sha256:8996bb5821d62a8fd9bb27c1cb07462f3fdce6e47d640c6a881ead0b064ce216
+#7 DONE 0.0s
+
+#8 [internal] load build context
+#8 transferring context: 4.21kB done
+#8 DONE 0.0s
+
+#9 [dependencies 4/5] COPY vendor/ ./vendor/
+#9 CACHED
+
+#10 [stage-1 3/5] COPY --from=dependencies --chown=node:node /app/node_modules ./node_modules
+#10 CACHED
+
+#11 [dependencies 5/5] RUN bun install --frozen-lockfile --production --ignore-scripts
+#11 CACHED
+
+#12 [dependencies 3/5] COPY package.json bun.lock ./
+#12 CACHED
+
+#13 [stage-1 2/5] WORKDIR /app
+#13 CACHED
+
+#14 [stage-1 4/5] COPY --chown=node:node package.json ./
+#14 CACHED
+
+#15 [dependencies 2/5] WORKDIR /app
+#15 CACHED
+
+#16 [stage-1 5/5] COPY --chown=node:node src/ ./src/
+#16 CACHED
+
+#17 exporting to image
+#17 exporting layers done
+#17 writing image sha256:9d733446fc81199e7b1743befa75ff0877690d873b37a1d5fd892aa8f91a6182 0.0s done
+#17 naming to docker.io/library/clipify-apps-4d25ee72-awards-awards 0.0s done
+#17 DONE 0.1s
+
+#18 resolving provenance for metadata file
+#18 DONE 0.0s
+ Image clipify-apps-4d25ee72-awards-awards Built
+ Network clipify-apps-4d25ee72-clipify_clipify-private Creating
+ Network clipify-apps-4d25ee72-clipify_clipify-private Creating
+ Volume clipify-apps-4d25ee72-clipify_clipify-data Creating
+ Volume clipify-apps-4d25ee72-clipify_clipify-data Creating
+ Volume clipify-apps-4d25ee72-clipify_clipify-data Created
+ Volume clipify-apps-4d25ee72-clipify_clipify-data Created
+ Network clipify-apps-4d25ee72-clipify_clipify-private Created
+ Network clipify-apps-4d25ee72-clipify_clipify-private Created
+ Container clipify-apps-4d25ee72-clipify-clipify-db-1 Creating
+ Container clipify-apps-4d25ee72-clipify-clipify-db-1 Created
+ Container clipify-apps-4d25ee72-clipify-clipify-1 Creating
+ Container clipify-apps-4d25ee72-clipify-clipify-1 Created
+ Container clipify-apps-4d25ee72-clipify-clipify-db-1 Starting
+ Container clipify-apps-4d25ee72-clipify-clipify-db-1 Started
+ Container clipify-apps-4d25ee72-clipify-clipify-db-1 Waiting
+ Container clipify-apps-4d25ee72-clipify-clipify-db-1 Healthy
+ Container clipify-apps-4d25ee72-clipify-clipify-1 Starting
+ Container clipify-apps-4d25ee72-clipify-clipify-1 Started
+ Container clipify-apps-4d25ee72-clipify-clipify-db-1 Waiting
+ Container clipify-apps-4d25ee72-clipify-clipify-1 Waiting
+ Container clipify-apps-4d25ee72-clipify-clipify-db-1 Healthy
+ Container clipify-apps-4d25ee72-clipify-clipify-1 Healthy
+ Volume clipify-apps-4d25ee72-awards_awards-data Creating
+ Volume clipify-apps-4d25ee72-awards_awards-data Creating
+ Network clipify-apps-4d25ee72-awards_awards-private Creating
+ Network clipify-apps-4d25ee72-awards_awards-private Creating
+ Volume clipify-apps-4d25ee72-awards_awards-data Created
+ Volume clipify-apps-4d25ee72-awards_awards-data Created
+ Network clipify-apps-4d25ee72-awards_awards-private Created
+ Network clipify-apps-4d25ee72-awards_awards-private Created
+ Container clipify-apps-4d25ee72-awards-awards-db-1 Creating
+ Container clipify-apps-4d25ee72-awards-awards-db-1 Created
+ Container clipify-apps-4d25ee72-awards-awards-db-1 Starting
+ Container clipify-apps-4d25ee72-awards-awards-db-1 Started
+ Container clipify-apps-4d25ee72-awards-awards-db-1 Waiting
+ Container clipify-apps-4d25ee72-awards-awards-db-1 Healthy
+ Container clipify-apps-4d25ee72-awards-awards-run-243d25fc9c93 Creating
+ Container clipify-apps-4d25ee72-awards-awards-run-243d25fc9c93 Created
+ Container clipify-apps-4d25ee72-awards-awards-run-834ac07491fc Creating
+ Container clipify-apps-4d25ee72-awards-awards-run-834ac07491fc Created
+ Container clipify-apps-4d25ee72-awards-awards-run-f71dba67c1e2 Creating
+ Container clipify-apps-4d25ee72-awards-awards-run-f71dba67c1e2 Created
+{"ok":false,"error":{"code":"ACCESS_DENIED"}}
+
+ Container clipify-apps-4d25ee72-awards-awards-run-ae1694ab0c4e Creating
+ Container clipify-apps-4d25ee72-awards-awards-run-ae1694ab0c4e Created
+ Container clipify-apps-4d25ee72-awards-awards-run-0e1ecb97d4b1 Creating
+ Container clipify-apps-4d25ee72-awards-awards-run-0e1ecb97d4b1 Created
+{"ok":false,"error":{"code":"ACCESS_DENIED"}}
+
+{"ok":true,"composeProjects":2,"privateDatabases":2,"authorisedSearch":true,"emptySearch":true,"foreignCreatorDenied":true,"crossDatabaseConnectionsDenied":true,"revokedApplicationDenied":true,"security":["signed-machine-token","missing-token","forged-signature","foreign-creator","unregistered-operation","invalid-input","wrong-client-secret","wrong-resource","non-admin","cross-origin-admin","anonymous-admin","public-machine-registration","expired-grant","operation-ceiling","disabled-client","disabled-creator","no-creator-login","application-audit"]}
+ Container clipify-apps-4d25ee72-awards-awards-db-1 Stopping
+ Container clipify-apps-4d25ee72-awards-awards-db-1 Stopped
+ Container clipify-apps-4d25ee72-awards-awards-db-1 Removing
+ Container clipify-apps-4d25ee72-awards-awards-db-1 Removed
+ Volume clipify-apps-4d25ee72-awards_awards-data Removing
+ Network clipify-apps-4d25ee72-awards_awards-private Removing
+ Volume clipify-apps-4d25ee72-awards_awards-data Removed
+ Network clipify-apps-4d25ee72-awards_awards-private Removed
+ Container clipify-apps-4d25ee72-clipify-clipify-1 Stopping
+ Container clipify-apps-4d25ee72-clipify-clipify-1 Stopped
+ Container clipify-apps-4d25ee72-clipify-clipify-1 Removing
+ Container clipify-apps-4d25ee72-clipify-clipify-1 Removed
+ Container clipify-apps-4d25ee72-clipify-clipify-db-1 Stopping
+ Container clipify-apps-4d25ee72-clipify-clipify-db-1 Stopped
+ Container clipify-apps-4d25ee72-clipify-clipify-db-1 Removing
+ Container clipify-apps-4d25ee72-clipify-clipify-db-1 Removed
+ Volume clipify-apps-4d25ee72-clipify_clipify-data Removing
+ Network clipify-apps-4d25ee72-clipify_clipify-private Removing
+ Volume clipify-apps-4d25ee72-clipify_clipify-data Removed
+ Network clipify-apps-4d25ee72-clipify_clipify-private Removed

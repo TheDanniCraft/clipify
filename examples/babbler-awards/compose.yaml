@@ -1,0 +1,58 @@
+services:
+  awards:
+    build: .
+    environment:
+      CLIPIFY_BASE_URL: ${CLIPIFY_BASE_URL:?Set the HTTPS Clipify origin}
+      CLIPIFY_CREATOR_ID: ${CLIPIFY_CREATOR_ID:?Set the granted creator ID}
+      CLIPIFY_CLIENT_ID_FILE: /run/secrets/clipify_client_id
+      CLIPIFY_CLIENT_SECRET_FILE: /run/secrets/clipify_client_secret
+      AWARDS_DATABASE_PASSWORD_FILE: /run/secrets/awards_database_password
+    secrets:
+      - clipify_client_id
+      - clipify_client_secret
+      - awards_database_password
+    networks:
+      - awards-database
+      - awards-outbound
+    depends_on:
+      awards-db:
+        condition: service_healthy
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  awards-db:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: awards
+      POSTGRES_USER: awards
+      POSTGRES_PASSWORD_FILE: /run/secrets/awards_database_password
+    secrets:
+      - awards_database_password
+    volumes:
+      - awards-data:/var/lib/postgresql
+    networks:
+      - awards-database
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U awards -d awards"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+networks:
+  awards-database:
+    internal: true
+  awards-outbound:
+
+volumes:
+  awards-data:
+
+secrets:
+  clipify_client_id:
+    file: ${CLIPIFY_CLIENT_ID_FILE:?Set a client ID file}
+  clipify_client_secret:
+    file: ${CLIPIFY_CLIENT_SECRET_FILE:?Set a client secret file}
+  awards_database_password:
+    file: ${AWARDS_DATABASE_PASSWORD_FILE:?Set a separate Awards database password file}

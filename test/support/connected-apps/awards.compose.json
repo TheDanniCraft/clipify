@@ -1,0 +1,70 @@
+{
+	"services": {
+		"awards-db": {
+			"image": "postgres:18",
+			"environment": {
+				"POSTGRES_DB": "awards",
+				"POSTGRES_USER": "awards",
+				"POSTGRES_PASSWORD": "awards_fixture_password"
+			},
+			"networks": ["awards-private"],
+			"volumes": ["awards-data:/var/lib/postgresql"],
+			"healthcheck": {
+				"test": ["CMD", "pg_isready", "-U", "awards", "-d", "awards"],
+				"interval": "2s",
+				"timeout": "3s",
+				"retries": 30
+			}
+		},
+		"awards": {
+			"build": {
+				"context": "${CLIPIFY_APPS_SOURCE}/examples/babbler-awards"
+			},
+			"environment": {
+				"CLIPIFY_BASE_URL": "https://clipify:3108",
+				"CLIPIFY_CREATOR_ID": "274252231",
+				"CLIPIFY_CLIENT_ID_FILE": "/run/secrets/client_id",
+				"CLIPIFY_CLIENT_SECRET_FILE": "/run/secrets/client_secret",
+				"AWARDS_DATABASE_PASSWORD_FILE": "/run/secrets/awards_password",
+				"AWARDS_DATABASE_HOST": "awards-db",
+				"NODE_EXTRA_CA_CERTS": "/run/secrets/fixture_ca"
+			},
+			"secrets": ["client_id", "client_secret", "awards_password", "fixture_ca"],
+			"networks": ["awards-private", "app-http"],
+			"depends_on": {
+				"awards-db": {
+					"condition": "service_healthy"
+				}
+			},
+			"read_only": true,
+			"cap_drop": ["ALL"],
+			"security_opt": ["no-new-privileges:true"]
+		}
+	},
+	"networks": {
+		"awards-private": {
+			"internal": true
+		},
+		"app-http": {
+			"external": true,
+			"name": "${CLIPIFY_APPS_HTTP_NETWORK}"
+		}
+	},
+	"volumes": {
+		"awards-data": {}
+	},
+	"secrets": {
+		"client_id": {
+			"file": "${CLIPIFY_APPS_TEST_DIRECTORY}/client_id"
+		},
+		"client_secret": {
+			"file": "${CLIPIFY_APPS_TEST_DIRECTORY}/client_secret"
+		},
+		"awards_password": {
+			"file": "${CLIPIFY_APPS_TEST_DIRECTORY}/awards_password"
+		},
+		"fixture_ca": {
+			"file": "${CLIPIFY_APPS_TEST_DIRECTORY}/ca.crt"
+		}
+	}
+}

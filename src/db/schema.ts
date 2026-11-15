@@ -35,7 +35,7 @@ import { sql } from "drizzle-orm";
 import { badgeSlugs } from "@lib/badgeCatalog";
 import type { StreamDetails } from "@/app/lib/runnerProviderDetails";
 import type { Permission } from "@/auth/permissions";
-import { organization as authOrganizationTable, user as authUserTable } from "./auth-schema";
+import { organization as authOrganizationTable, user as authUserTable, oauthClient as authOauthClientTable } from "./auth-schema";
 
 function enumToPgEnum<T extends Record<string, unknown>>(myEnum: T): [T[keyof T], ...T[keyof T][]] {
 	return Object.values(myEnum).map((value: unknown) => `${value}`) as [T[keyof T], ...T[keyof T][]];
@@ -1156,4 +1156,25 @@ export const mcpMutationRetriesTable = pgTable(
 		check("mcp_retry_minimum_retention", sql`${table.expiresAt} >= ${table.createdAt} + interval '24 hours'`),
 		check("mcp_retry_safe_response_object", sql`jsonb_typeof(${table.safeResponse}) = 'object'`),
 	],
+);
+
+// Machine application authority is independent of user OAuth consent and membership.
+export const connectedAppGrantsTable = pgTable(
+	"connected_app_grants",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		clientId: text("client_id")
+			.notNull()
+			.unique()
+			.references(() => authOauthClientTable.clientId, { onDelete: "cascade" }),
+		creatorId: varchar("creator_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		operations: text("operations").array().notNull(),
+		expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+		revokedAt: timestamp("revoked_at", { withTimezone: true }),
+		provisionedBy: text("provisioned_by").references(() => authUserTable.id, { onDelete: "set null" }),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+	},
+	(table) => [index("connected_app_creator_idx").on(table.creatorId)],
 );

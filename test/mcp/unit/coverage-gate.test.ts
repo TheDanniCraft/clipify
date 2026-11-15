@@ -198,3 +198,10 @@ test("Runner appearance placement, owner preview and controls retain mandatory s
 	expect(result.collected).toContain("src/app/lib/**/*.{ts,tsx}");
 	expect(result.collected).toContain("src/app/components/**/*.{ts,tsx}");
 });
+
+test("connected application authorisation and SDK sources remain inside the required coverage inventory", () => {
+	const code = "const {readMcpSourceManifest}=await import('./scripts/check-mcp-coverage.mjs');process.stdout.write(JSON.stringify(readMcpSourceManifest()));";
+	const result = JSON.parse(execFileSync(process.execPath, ["--input-type=module", "--eval", code], { encoding: "utf8" }));
+	expect(result.feature).toEqual(expect.arrayContaining(["packages/sdk/src/index.ts", "src/app/api/connected-apps/route.ts", "src/app/api/connected-apps/admin/route.ts"]));
+	expect(result.critical).toEqual(expect.arrayContaining(["src/server/connected-apps/admin.ts", "src/server/connected-apps/gateway.ts", "src/server/connected-apps/storage.ts", "src/server/connected-apps/oauth-policy.ts"]));
+});

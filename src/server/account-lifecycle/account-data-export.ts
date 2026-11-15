@@ -1,3 +1,4 @@
+import { exportConnectedAppGrants } from "@/server/connected-apps/storage";
 import "server-only";
 
 import { and, eq, inArray, like, or, sql } from "drizzle-orm";
@@ -124,6 +125,7 @@ export async function collectComprehensiveAccountData(input: { authUserId: strin
 	const grantIds = grants.map(({ grant }) => grant.id);
 	const approvals = grantIds.length ? await db.select().from(mcpGrantCreatorsTable).where(inArray(mcpGrantCreatorsTable.grantId, grantIds)) : [];
 	const mcp = {
+		applicationConnections: await exportConnectedAppGrants(input.creatorId),
 		grants: grants.map(({ grant }) => grant),
 		creatorApprovals: approvals,
 		connections: grants.map(({ grant, clientName }) => ({

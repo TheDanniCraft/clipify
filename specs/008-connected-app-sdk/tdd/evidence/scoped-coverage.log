@@ -1,0 +1,30 @@
+$ jest --runInBand test/server/connected-apps --coverage "--collectCoverageFrom=src/server/connected-apps/**/*.ts" "--collectCoverageFrom=src/app/api/connected-apps/**/*.ts" "--collectCoverageFrom=packages/sdk/src/**/*.ts" "--coverageDirectory=/tmp/awards-feature-final-coverage" "--coverageReporters=json-summary" "--coverageReporters=text"
+[tests] ordinary: 11 suites, 1 worker(s)
+----------------------------------|---------|----------|---------|---------|-------------------
+File                              | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s
+----------------------------------|---------|----------|---------|---------|-------------------
+All files                         |   97.35 |    92.82 |   97.87 |   98.79 |
+ packages/sdk/src                 |   94.44 |    90.37 |   95.45 |   96.55 |
+  index.ts                        |   94.44 |    90.37 |   95.45 |   96.55 | 5,50-51
+ src/app/api/connected-apps       |     100 |      100 |     100 |     100 |
+  route.ts                        |     100 |      100 |     100 |     100 |
+ src/app/api/connected-apps/admin |     100 |      100 |     100 |     100 |
+  route.ts                        |     100 |      100 |     100 |     100 |
+ src/server/connected-apps        |   98.87 |    96.59 |     100 |     100 |
+  admin.ts                        |   98.14 |    95.23 |     100 |     100 | 43
+  gateway.ts                      |   97.22 |     91.3 |     100 |     100 | 21,30
+  grants.ts                       |     100 |      100 |     100 |     100 |
+  http.ts                         |     100 |      100 |     100 |     100 |
+  oauth-policy.ts                 |     100 |      100 |     100 |     100 |
+  storage.ts                      |     100 |      100 |     100 |     100 |
+----------------------------------|---------|----------|---------|---------|-------------------
+Jest: Coverage data for src/app/actions/gallery.ts was not found.
+Jest: Coverage data for src/app/lib/gallery.ts was not found.
+Jest: Coverage data for src/app/components/gallery/**/*.{ts,tsx} was not found.
+
+Test Suites: 11 passed, 11 total
+Tests:       140 passed, 140 total
+Snapshots:   0 total
+Time:        3.08 s, estimated 4 s
+Ran all test suites matching test/server/connected-apps.
+error: script "test" exited with code 1

@@ -1,0 +1,27 @@
+{
+	"name": "@clipify/sdk",
+	"version": "0.1.0",
+	"description": "Server-side client for explicitly granted Clipify connected-app operations",
+	"type": "module",
+	"license": "UNLICENSED",
+	"engines": {
+		"node": ">=22"
+	},
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		}
+	},
+	"files": [
+		"dist",
+		"README.md"
+	],
+	"scripts": {
+		"build": "tsc -p tsconfig.json",
+		"pack": "bun run build && bun pm pack"
+	},
+	"devDependencies": {
+		"typescript": "6.0.3"
+	}
+}
