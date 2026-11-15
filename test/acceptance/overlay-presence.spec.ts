@@ -1,5 +1,39 @@
 import { test, expect } from "../bdd/support/user-tour";
 
+test("OBS activity during head parsing is retained before the player hydrates", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
+	const response = await request.post(`${tourWorld.origin}/api/test/auth-fixture`, { headers: { Authorization: "Bearer clipify-playwright-auth-fixture" }, data: { withProviderCredentials: true } });
+	expect(response.ok()).toBe(true);
+	const { fixture } = await response.json();
+	// Rewriting a navigation response loses Chromium's loopback address-space
+	// classification. Permit this disposable origin to reach its own local socket.
+	await page.context().grantPermissions(["local-network-access"], { origin: tourWorld.origin });
+	let subscribed = false;
+	page.on("websocket", (socket) =>
+		socket.on("framereceived", ({ payload }) => {
+			if (payload === `subscribed ${fixture.overlayId}`) subscribed = true;
+		}),
+	);
+	await page.addInitScript(() => {
+		(window as any).obsstudio = {};
+	});
+	await page.route("**/overlay/**", async (route) => {
+		if (!route.request().isNavigationRequest()) return route.continue();
+		const response = await route.fetch();
+		const html = await response.text();
+		expect(html).toContain("</head>");
+		await route.fulfill({ response, body: html.replace("</head>", "<script>window.dispatchEvent(new CustomEvent('obsSourceActiveChanged',{detail:{active:true}}));</script></head>") });
+	});
+	await page.goto(`${tourWorld.origin}/overlay/${fixture.overlayId}?secret=${encodeURIComponent(fixture.overlaySecret)}`);
+	await expect.poll(() => subscribed).toBe(true);
+	await expect
+		.poll(async () => {
+			const health = await request.get(`${tourWorld.origin}/internal/health/instance`, { headers: { Authorization: "Bearer clipify-e2e-instance-health-not-for-production" } });
+			expect(health.ok()).toBe(true);
+			return (await health.json()).presence.connectedCreators;
+		})
+		.toBe(1);
+});
+
 test("Overlay activity reaches instance health and survives subscription renewal and reconnect", { tag: "@shard:scenario" }, async ({ page, request, tourWorld }) => {
 	test.setTimeout(120000);
 	const response = await request.post(`${tourWorld.origin}/api/test/auth-fixture`, { headers: { Authorization: "Bearer clipify-playwright-auth-fixture" }, data: { withProviderCredentials: true } });

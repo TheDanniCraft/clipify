@@ -97,12 +97,29 @@ Final adapter evidence, native logs and source hashes are in
 
 ## Available APIs and limits
 
-`getCurrentScene` exposes the program scene name and dimensions, not its source
-membership. `getStatus` exposes streaming/recording status, not this source's
-program participation. Document visibility includes Studio Mode previews.
-Playback, audio and Twitch-live status also do not establish that this particular
-source is being broadcast. They cannot replace a positive activity observation
-without allowing false positives.
+A separate native test compared the exact initial getters with OBS's independent
+source-active control API. With read-user permission enabled, it produced:
+
+| Source placement | `visibilityState` | `hidden` | `getCurrentScene()`       | Native `videoActive` |
+| ---------------- | ----------------- | -------- | ------------------------- | -------------------- |
+| In Program       | visible           | false    | Probe Program, 1280 × 900 | true                 |
+| Only in Preview  | visible           | false    | Probe Program, 1280 × 900 | false                |
+
+The webpage saw identical initial getter values for opposite program states.
+It cannot distinguish these cases without source membership information. At the
+tested default status-only permission level (1), `getCurrentScene` returned null;
+the scene object required read-user permission (2). Both tests used the same OBS
+instance and browser source, without starting any output.
+
+`getStatus` exposes streaming/recording status, not this source's participation.
+Playback, audio and Twitch-live status also do not establish whether this source
+is being broadcast. Visibility can identify some hidden sources, but promoting a
+visible source to active would count Studio Mode previews. A 50ms delay does not
+remove that ambiguity. Hardcoded scene names also cannot establish whether a
+source in that scene is enabled or hidden.
+
+Getter experiment records are `/tmp/clipify-obs-getters-evidence/getters.json`;
+its isolated probe source is `/tmp/clipify-obs-getters-probe`.
 
 OBS's external WebSocket control API can query initial source activity, but users
 must configure access and authentication. It is not a zero-setup feature of a
@@ -123,7 +140,14 @@ hosted browser source, so it is not added to Clipify's default setup.
 
 ## Patch and verification
 
-The patch repeats the last OBS-confirmed boolean every 25 seconds over the
+The patch moves the passive OBS bootstrap from the overlay body to the document
+head, before the overlay page and its client bundle. A real-app regression case
+sends an activity event during head parsing and checks that the observation is
+retained through hydration and subscription. Events that
+precede the document itself remain unobservable; visibility is not used as a
+positive fallback. Ordinary browsers do not install OBS listeners.
+
+The patch also repeats the last OBS-confirmed boolean every 25 seconds over the
 existing authenticated WebSocket and replays it on every subscription
 acknowledgement, including renewal on the same connection. Cleanup stops periodic
 reports. This repairs reconciliation without introducing another HTTP presence
@@ -131,7 +155,7 @@ system or inferring activity from connection/visibility alone.
 
 A real-app Chromium journey verifies the actual overlay, authenticated socket,
 subscription renewal, reconnect, preview exclusion, inactive heartbeat and the
-protected instance-health response. The two affected unit files pass 15 tests.
+protected instance-health response. The focused unit and embedded-route checks pass 32 tests.
 The native reproduction above separately checks actual OBS event delivery.
 
 The master failure was the mobile sidebar polish scenario. The green PR and
@@ -143,7 +167,9 @@ navigation remains covered. All 37 owning recovery/sidebar browser scenarios
 passed, including desktop/mobile and both themes. No forced clicks, skipped
 scenarios, raised timeouts or reduced coverage thresholds are used.
 
-The final production test build, lint and formatting pass locally. Full required
+The head-bootstrap follow-up also passes 31 public-page browser scenarios and
+both real overlay reporting journeys. The final production test build, lint and
+formatting pass locally. Full required
 CI remains the merge gate; local/native investigation is not a substitute.
 
 ## Remaining restart problem

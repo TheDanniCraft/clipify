@@ -1,6 +1,5 @@
 import { getOverlayBySecret, getOverlayPublic, touchOverlay } from "@actions/database";
 import OverlayPlayer from "@components/overlayPlayer";
-import { OBS_ACTIVITY_BOOTSTRAP } from "@lib/overlayPresence";
 import type { Overlay } from "@types";
 
 type PublicOverlayWithDisabledState = Overlay & {
@@ -56,7 +55,6 @@ export default async function Overlay({ params, searchParams }: { params: Promis
 
 	return (
 		<>
-			<script dangerouslySetInnerHTML={{ __html: OBS_ACTIVITY_BOOTSTRAP }} />
 			<style>{`
 				html, body {
 					background: transparent !important;
