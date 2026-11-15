@@ -2,8 +2,8 @@ const navbarIdentity = jest.fn();
 jest.mock("@/auth/navigation-user", () => ({ getDashboardNavbarUser: () => navbarIdentity() }));
 jest.mock("@actions/userTour", () => ({ getUserTourProgress: async () => ({ progress: { version: 2, completed: [], skipped: [], active: null, minimized: false }, importLegacy: false }) }));
 jest.mock("@components/user-tour/provider", () => ({
-	UserTourProvider: ({ children, accountId, dashboardContent }: { children: React.ReactNode; accountId: string; dashboardContent: unknown[] }) => (
-		<div data-testid='user-tour' data-account={accountId}>
+	UserTourProvider: ({ children, accountId, dashboardContent, upgradeUser }: { children: React.ReactNode; accountId: string; dashboardContent: unknown[]; upgradeUser?: { id: string } }) => (
+		<div data-testid='user-tour' data-account={accountId} data-upgrade-account={upgradeUser?.id}>
 			{children}
 			<span>{`dashboard-content:${dashboardContent.length}`}</span>
 		</div>
@@ -57,6 +57,7 @@ describe("app/dashboard/layout", () => {
 		expect(screen.getByText("playlist-page")).toBeInTheDocument();
 		expect(connection).toHaveBeenCalledTimes(1);
 		expect(getPendingDashboardContent).toHaveBeenCalledWith(user);
+		expect(screen.getByTestId("user-tour")).toHaveAttribute("data-upgrade-account", user.id);
 	});
 });
 
@@ -78,6 +79,7 @@ it("filters navigation using each permission for a delegated account", async () 
 	render(await Layout({ children: <div>Delegated editor</div> }));
 	expect(screen.getByTestId("shell")).toHaveAttribute("data-permissions", "playlist:read");
 	expect(screen.getByTestId("shell")).toHaveAttribute("data-creator", "delegated");
+	expect(screen.getByTestId("user-tour")).not.toHaveAttribute("data-upgrade-account");
 });
 it("keeps unauthenticated content outside the creator shell", async () => {
 	validateAuth.mockResolvedValue(false);

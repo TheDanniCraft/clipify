@@ -29,6 +29,7 @@ test("feature upgrades preserve intent and account upgrades remain generic", asy
 			await route.fulfill({ response, body: fixture });
 		});
 		const cases = [
+			["clip_export_branding", "Make every clip your own with Pro"],
 			["runner_scheduling", "Schedule your broadcasts with Pro"],
 			["theme_studio", "Design your overlay with Pro"],
 			["gallery_filters", "Refine your gallery with Pro"],

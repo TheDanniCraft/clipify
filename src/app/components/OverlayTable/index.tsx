@@ -954,6 +954,7 @@ export default function OverlayTable({ userId, resourceType }: { userId: string;
 									source: "paywall_banner",
 									feature: "multi_overlay",
 									plan: currentUser?.plan ?? "free",
+									target_plan: "pro",
 								});
 								addToast({
 									title: "Upgrade Required",
@@ -978,6 +979,7 @@ export default function OverlayTable({ userId, resourceType }: { userId: string;
 									source: "paywall_banner",
 									feature: "multi_playlist",
 									plan: currentUser?.plan ?? "free",
+									target_plan: "pro",
 								});
 								addToast({
 									title: "Upgrade Required",
@@ -1002,6 +1004,7 @@ export default function OverlayTable({ userId, resourceType }: { userId: string;
 									source: "paywall_banner",
 									feature: "multi_gallery",
 									plan: currentUser?.plan ?? "free",
+									target_plan: "pro",
 								});
 								addToast({
 									title: "Upgrade Required",
@@ -1097,6 +1100,7 @@ export default function OverlayTable({ userId, resourceType }: { userId: string;
 									source: "paywall_banner",
 									feature: "trial_active",
 									plan: currentUser?.plan ?? "free",
+									target_plan: "pro",
 								});
 								setTrialUpgrade(true);
 								onUpgradeOpen();

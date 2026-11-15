@@ -7,6 +7,16 @@ beforeEach(() => {
 	setAnalyticsContext(null);
 });
 
+it.each(["free", "pro"])("keeps the selected %s plan separate from the current account plan", (targetPlan) => {
+	setAnalyticsContext({ plan: "free", access_source: "free", is_paying: false });
+	expect(prepareUmamiPayload("event", { hostname: "clipify.us", url: "/pricing", name: "paywall_cta_click", data: { target_plan: targetPlan, current_plan: "pro", plan: "pro" } })).toMatchObject({ data: { target_plan: targetPlan, current_plan: "free", plan: "free", is_paying: false } });
+});
+
+it("retains anonymous purchase intent without inventing an account plan", () => {
+	expect(prepareUmamiPayload("event", { hostname: "clipify.us", url: "/pricing", name: "checkout_start", data: { target_plan: "pro", cycle: "monthly" } })).toMatchObject({ data: { target_plan: "pro", cycle: "monthly" } });
+	expect(prepareUmamiPayload("event", { hostname: "clipify.us", url: "/pricing", name: "checkout_start", data: { target_plan: "pro" } })?.data).not.toHaveProperty("current_plan");
+});
+
 afterEach(() => {
 	setBrowserMeasurementConsent(false);
 	Reflect.deleteProperty(window, "umami");

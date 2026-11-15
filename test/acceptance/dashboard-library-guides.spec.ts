@@ -1,6 +1,7 @@
 import { test, expect } from "../bdd/support/user-tour";
 import { seedCreatorLibrary } from "../support/creator-library";
 import { defaultProgress, guideContentKey } from "../../src/app/lib/userTour";
+import { openMobileNavigation } from "../support/mobile-navigation";
 
 test.use({ actionTimeout: 12000, navigationTimeout: 15000 });
 
@@ -16,7 +17,7 @@ for (const width of [390, 1440])
 			await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 			const openGuide = async () => {
 				if (await page.getByRole("region", { name: "Your Clipify guide", exact: true }).isVisible()) return;
-				if (width === 390) await page.getByRole("button", { name: "Toggle navigation", exact: true }).click();
+				if (width === 390) await openMobileNavigation(page);
 				await page.locator('button[aria-controls="clipify-guide-panel"]:visible').click();
 				const panel = page.getByRole("region", { name: "Your Clipify guide", exact: true });
 				await expect(panel).toBeVisible();

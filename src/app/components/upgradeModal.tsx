@@ -266,6 +266,7 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 											source,
 											feature,
 											plan: user.plan,
+											target_plan: "pro",
 											cycle: billingCycle,
 										});
 										const products = payableProducts.map((option) => ({ product: option.key, billingCycle: cycleFor(option) }));
@@ -276,6 +277,7 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 												source,
 												feature,
 												plan: user.plan,
+												target_plan: "pro",
 												cycle: billingCycle,
 											});
 											window.location.assign(link);

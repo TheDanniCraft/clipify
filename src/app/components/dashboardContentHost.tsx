@@ -10,6 +10,7 @@ import { useState } from "react";
 export default function DashboardContentHost({ items, onStartGuide, onDismissGuide, isVisible = true }: { items: DashboardContentItem[]; onStartGuide?: () => void; onDismissGuide?: () => void; isVisible?: boolean }) {
 	const [pending, setPending] = useState(items);
 	const [dismissing, setDismissing] = useState(false);
+	const [saveError, setSaveError] = useState<string | null>(null);
 	const current = pending.find((item) => items.some((available) => available.key === item.key));
 
 	if (!current) return null;
@@ -17,11 +18,14 @@ export default function DashboardContentHost({ items, onStartGuide, onDismissGui
 	const dismiss = async (startGuide = false) => {
 		if (dismissing) return;
 		setDismissing(true);
+		setSaveError(null);
 		const result = current.key === "guided-welcome" ? { ok: true } : await dismissDashboardContent(current.key).catch(() => ({ ok: false as const }));
 		if (result.ok) {
 			setPending((items) => items.filter((item) => item.key !== current.key));
 			if (startGuide) onStartGuide?.();
 			else onDismissGuide?.();
+		} else {
+			setSaveError("Could not save your choice. Please try again.");
 		}
 		setDismissing(false);
 	};
@@ -60,6 +64,11 @@ export default function DashboardContentHost({ items, onStartGuide, onDismissGui
 						</section>
 						{onStartGuide && <p className='mt-3 text-sm'>Complete every guide to earn Clipify Expert, a badge on your profile showing you know your way around Clipify. You can pause anytime.</p>}
 						{current.helpText ? <p className='mt-3 text-sm text-muted'>{current.helpText}</p> : null}
+						{saveError ? (
+							<p role='alert' className='mt-3 text-sm text-danger'>
+								{saveError}
+							</p>
+						) : null}
 					</Modal.Body>
 					<Modal.Footer>
 						{onStartGuide && (

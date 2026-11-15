@@ -79,7 +79,7 @@ export default function PricingComparison({ campaignOffer = null, pricing }: { c
 	};
 	const freeHref = "/checkout/clear";
 	const openProSetup = () => {
-		trackPaywallEvent("paywall_cta_click", { source: "pricing_page", feature: "plan", plan: "pro", cycle: selectedFrequency });
+		trackPaywallEvent("paywall_cta_click", { source: "pricing_page", feature: "plan", target_plan: "pro", cycle: selectedFrequency });
 		setIsPlanModalOpen(true);
 	};
 
@@ -135,7 +135,7 @@ export default function PricingComparison({ campaignOffer = null, pricing }: { c
 										{tier.buttonText}
 									</Button>
 								) : (
-									<Link href={freeHref} onPress={() => trackPaywallEvent("paywall_cta_click", { source: "pricing_page", feature: "plan", plan: tier.key, cycle: selectedFrequency })} className={buttonVariants({ fullWidth: true, variant: "secondary", className: "no-underline text-foreground" })}>
+									<Link href={freeHref} onPress={() => trackPaywallEvent("paywall_cta_click", { source: "pricing_page", feature: "plan", target_plan: tier.key, cycle: selectedFrequency })} className={buttonVariants({ fullWidth: true, variant: "secondary", className: "no-underline text-foreground" })}>
 										{tier.buttonText}
 									</Link>
 								)}
@@ -219,7 +219,7 @@ export default function PricingComparison({ campaignOffer = null, pricing }: { c
 												{tier.buttonText}
 											</Button>
 										) : (
-											<Link href={freeHref} onPress={() => trackPaywallEvent("paywall_cta_click", { source: "pricing_page", feature: "plan", plan: tier.key, cycle: selectedFrequency })} className={buttonVariants({ fullWidth: true, variant: "secondary", className: "mt-6 no-underline text-foreground" })}>
+											<Link href={freeHref} onPress={() => trackPaywallEvent("paywall_cta_click", { source: "pricing_page", feature: "plan", target_plan: tier.key, cycle: selectedFrequency })} className={buttonVariants({ fullWidth: true, variant: "secondary", className: "mt-6 no-underline text-foreground" })}>
 												{tier.buttonText}
 											</Link>
 										)}
