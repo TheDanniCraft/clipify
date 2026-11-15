@@ -12,6 +12,7 @@ export function readMcpSourceManifest() {
 	const runner = JSON.parse(readFileSync(new URL("./runner-feature-coverage.json", import.meta.url), "utf8"));
 	const directories = ["src/server/mcp", "src/server/resources", "src/server/runner", "src/app/auth/mcp", "src/app/mcp", "src/app/.well-known"];
 	const files = [
+		"src/server/creator-presence-health.ts",
 		"src/app/lib/userTour.ts",
 		"src/app/components/user-tour/spotlight.tsx",
 		"src/app/components/gallery/GalleryEditor.tsx",

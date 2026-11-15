@@ -15,7 +15,7 @@ const init = await setup.json(),
 
 const ih = { Authorization: "Token " + token };
 const headers = { Authorization: "Basic " + Buffer.from("admin:admin").toString("base64"), "Content-Type": "application/json" };
-const dashboard = JSON.parse(await fs.readFile("grafana/clipify-vm01-overview-v7.json", "utf8"));
+const dashboard = JSON.parse(await fs.readFile("grafana/clipify-vm01-overview-v8.json", "utf8"));
 assert.equal(dashboard.apiVersion, "dashboard.grafana.app/v2");
 assert.equal(dashboard.kind, "Dashboard");
 const panels = Object.values(dashboard.spec.elements).map(({ spec }) => ({ id: spec.id, title: spec.title, targets: spec.data.spec.queries.map(({ spec: target }) => ({ ...target.query.spec, refId: target.refId, hide: target.hidden, datasource: { type: target.query.group, uid: target.query.datasource.name } })) }));
@@ -32,7 +32,7 @@ function flattenNumbers(value, path) {
 	if (typeof value === "number") fields[path] = value;
 	else if (value && typeof value === "object") for (const [key, child] of Object.entries(value)) flattenNumbers(child, `${path}_${key}`);
 }
-for (const key of ["crawler", "notifications", "clips", "onboarding", "conversion", "billing", "analyticsCache"]) flattenNumbers(sample[key], key);
+for (const key of ["crawler", "notifications", "clips", "onboarding", "conversion", "billing", "analyticsCache", "presence"]) flattenNumbers(sample[key], key);
 const healthFixture = { ...sample, mcpClients: { ...sample.mcpClients, items: Array.from({ length: 25 }, (_, index) => ({ name: index === 0 ? "Meta MCP" : `Custom ${index + 1}`, registeredClients: 1, authorizedClients: 1, activeConnections: 1, activeClients30d: 1, calls30d: 4 })) } };
 let healthReads = 0;
 const fixture = createServer((request, response) => {
@@ -50,12 +50,13 @@ fixture.unref();
 const healthUrl = `http://127.0.0.1:${fixture.address().port}/internal/health/instance`;
 const end = Math.floor(Date.now() / 1000) - 10,
 	start = end - 120;
-const scenarios = ["normal", "reset", "replicas", "zero", "gap"];
+const scenarios = ["normal", "reset", "replicas", "zero", "gap", "rotation"];
 let lines = [];
 for (const scenario of scenarios)
-	for (const instance of scenario === "replicas" ? ["a", "b"] : ["a"])
+	for (const instance of scenario === "replicas" ? ["a", "b"] : scenario === "rotation" ? ["new", "old"] : ["a"])
 		for (let i = 0; i <= 5; i++) {
 			if (scenario === "gap" && i === 3) continue;
+			if (scenario === "rotation" && (instance === "old" ? i >= 3 : i < 3)) continue;
 			const total = scenario === "zero" ? 0 : scenario === "reset" && i >= 3 ? i - 3 : i;
 			const values = { ...fields };
 			for (const key of Object.keys(values)) {
@@ -89,11 +90,28 @@ for (const scenario of scenarios)
 				clips_fetches_v1GraphQL: total,
 			});
 			for (const old of ["galleries_total", "galleries_published", "galleries_draft", "galleries_orphanedCurated", "galleries_curated", "galleries_live", "creatorPages_discoverable", "creatorPages_unlisted", "creatorPages_disabled", "creatorPages_showBio", "analyticsCache_valid", "analyticsCache_expired", "analyticsCache_apiFailures", "analyticsCache_rateLimited", "analyticsCache_staleFallbacks"]) values[old] = 1;
+			if (scenario === "rotation") {
+				values.crawler_oldestManualWaitSeconds = instance === "old" ? 999 : 45;
+				for (const key of Object.keys(values)) if (key.startsWith("conversion_operations_") || key.startsWith("analyticsCache_delivery")) values[key] = instance === "old" ? i : i - 3;
+			}
+			if (scenario === "zero") {
+				for (const key of Object.keys(values)) if (key.startsWith("presence_")) values[key] = 0;
+				values.presence_twitchSnapshotFresh = 1;
+			}
+			if (scenario === "gap" && i >= 4) {
+				values.presence_twitchSnapshotFresh = 0;
+				values.presence_twitchUnknown = 6;
+				values.presence_twitchSnapshotAgeSeconds = 180;
+				for (const key of ["presence_twitchOnline", "presence_twitchOffline", "presence_onlineUsingClipify"]) delete values[key];
+			}
 			lines.push(
 				"clipify_vm01,scenario=" +
 					scenario +
 					",instance=" +
 					instance +
+					",host=fixture-" +
+					instance +
+					",url=fixture" +
 					" " +
 					Object.entries(values)
 						.map(([k, v]) => k + "=" + (typeof v === "string" ? JSON.stringify(v) : Number(v)))
@@ -146,11 +164,12 @@ assert.deepEqual(values("zero", "First-overlay guide completion"), [0]);
 for (const title of ["Umami delivery (observed counter increase)", "Checkout service operations (observed increase)", "Measurement exclusions and service processing"]) {
 	assert.equal(Math.max(...values("normal", title)), 5, title);
 	assert.equal(Math.max(...values("reset", title)), 4, title + " resets");
+	assert.equal(Math.max(...values("rotation", title)), 4, title + " restart must continue the same history");
 	assert(
 		values("zero", title).every((value) => value === 0),
 		title + " zero activity",
 	);
-	assert.equal(Math.max(...values("replicas", title)), 5, title + " per-source normalization");
+	assert.equal(Math.max(...values("replicas", title)), 5, title + " duplicate scrape identity must not double counts");
 }
 assert.equal(Math.max(...values("normal", "New creator outcomes (rolling 30 days)")), 27);
 assert.equal(Math.max(...values("replicas", "New creator outcomes (rolling 30 days)")), 27, "database gauges must not double across replicas");
@@ -171,12 +190,24 @@ for (const scenario of ["normal", "replicas", "gap"]) {
 let namedApplications;
 let guideSections;
 let guideSteps;
+const seriesAudit = JSON.parse(await fs.readFile("grafana/clipify-v8-series-audit.json", "utf8"));
 for (const panel of panels) {
 	const targets = (panel.targets ?? []).filter((target) => target.query || target.type === "json");
 	if (!targets.length) continue;
 	const res = await fetch(grafana + "/api/ds/query", { method: "POST", headers, body: JSON.stringify({ from: String(start * 1000), to: String((end + 1) * 1000), queries: targets.map((target) => ({ ...target, ...(target.type === "json" ? { url: healthUrl } : {}), intervalMs: 20000, maxDataPoints: 1000 })) }) });
 	const data = await res.json();
 	if (!res.ok || Object.values(data.results ?? {}).some((result) => result.error)) throw Error("Grafana query " + panel.title + " " + JSON.stringify(data));
+	const policy = seriesAudit.policies.find((row) => row.id === panel.id).policy;
+	if (["shared-gauge", "sampled-instance-gauge", "shared-derived-gauge", "counter-reduced", "process-gauge-reduced", "scrape-freshness", "single-instance-counter", "single-instance-presence"].includes(policy)) {
+		const keys = [];
+		for (const result of Object.values(data.results ?? {}))
+			for (const frame of result.frames ?? [])
+				for (const field of frame.schema.fields.filter((field) => field.type === "number")) {
+					assert(!field.labels?.host && !field.labels?.url, panel.title + " must not retain host/URL legend dimensions");
+					keys.push(field.labels?._field ?? field.name);
+				}
+		assert.equal(new Set(keys).size, keys.length, panel.title + " returned duplicate logical series");
+	}
 	if (panel.title === "MCP applications (current)") namedApplications = data;
 	if (panel.title === "Guide sections") guideSections = data;
 	if (panel.title === "Guide step details") guideSteps = data;
@@ -202,6 +233,16 @@ assert(JSON.stringify(namedApplications).includes("Custom 25"), "Every applicati
 assert(healthReads > 0, "Named applications are read through the authenticated health datasource");
 assert(values("normal", "Oldest overdue email").every((value) => value === 30));
 assert(values("normal", "Crawler wait time").includes(45));
+assert.deepEqual(values("normal", "Twitch creators online"), [2]);
+assert.deepEqual(values("normal", "Twitch creators offline"), [3]);
+assert.deepEqual(values("replicas", "Twitch creators online"), [2], "Shared Twitch counts must not double across replicas");
+assert.deepEqual(values("zero", "Twitch creators online"), [0]);
+assert.deepEqual(values("gap", "Twitch creators online"), [], "Do not fall back to an older online count after status becomes unavailable");
+assert.deepEqual(values("gap", "Twitch creators offline"), []);
+assert.deepEqual(values("gap", "Twitch status unknown"), [6]);
+assert.deepEqual(values("gap", "Live with Clipify now"), []);
+assert.deepEqual(values("gap", "Using Clipify now"), [1], "Active sources remain observable during Twitch outages");
+assert.equal(values("rotation", "Crawler wait time").at(-1), 45, "A retired host's older sample must not replace the latest observation");
 fixture.close();
 console.log("Flux queries:", results.length, "Grafana panels:", panels.length);
 await fs.writeFile("/tmp/clipify-monitoring-validation.json", JSON.stringify({ grafana: (await (await fetch(grafana + "/api/health")).json()).version, influx: "2.9.1", imported: true, panels: panels.length, fluxQueries: results.length, scenarios, validatedAt: new Date().toISOString() }, null, 2));

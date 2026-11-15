@@ -65,6 +65,7 @@ for (const theme of ["light", "dark"])
 				expect(previewRequests).toBe(1);
 				await expect(liveProfile.getByRole("link", { name: /Creator Page/ })).toHaveAttribute("href", "/creators/directory_live");
 				await page.addScriptTag({ content: axeSource });
+				await expect(liveProfile.locator("..")).not.toHaveAttribute("data-entering", "true");
 				expect(await page.evaluate(async () => (await (window as typeof window & { axe: typeof import("axe-core") }).axe.run(document.querySelector('[role="dialog"]')!, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] } })).violations.map(({ id }) => id))).toEqual([]);
 				const profileBounds = await liveProfile.boundingBox();
 				expect(profileBounds!.x).toBeGreaterThanOrEqual(0);

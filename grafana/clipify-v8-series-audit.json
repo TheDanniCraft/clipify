@@ -1,0 +1,611 @@
+{
+	"dashboard": "clipify-vm01-overview",
+	"policies": [
+		{
+			"id": 10,
+			"title": "Backfill Complete",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 101,
+			"title": "Clip download permission coverage",
+			"policy": "shared-derived-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 102,
+			"title": "API Fetch Health & Rate Limits",
+			"policy": "counter-reduced",
+			"queryChanged": false
+		},
+		{
+			"id": 13,
+			"title": "Health Timing Over Time",
+			"policy": "sampled-instance-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 14,
+			"title": "Uptime Over Time",
+			"policy": "sampled-instance-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 15,
+			"title": "Backfill Completion Over Time",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 16,
+			"title": "Cache hit rate over time",
+			"policy": "sampled-instance-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 19,
+			"title": "User Base",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 20,
+			"title": "Recent sign-ins",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 201,
+			"title": "Gallery Inventory",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 202,
+			"title": "Gallery Configuration",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 203,
+			"title": "Creator Page Visibility",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 204,
+			"title": "Creator Analytics Cache Health",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 21,
+			"title": "Overlay Counts",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 22,
+			"title": "Overlay Owners",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 25,
+			"title": "Grant Summary",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 26,
+			"title": "Grant Sources",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 27,
+			"title": "Pro Access Trend",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 3,
+			"title": "DB Ping",
+			"policy": "sampled-instance-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 30,
+			"title": "Cache reads per minute",
+			"policy": "counter-reduced",
+			"queryChanged": false
+		},
+		{
+			"id": 300,
+			"title": "MCP calls per minute",
+			"policy": "counter-reduced",
+			"queryChanged": false
+		},
+		{
+			"id": 301,
+			"title": "MCP outcomes per minute",
+			"policy": "counter-reduced",
+			"queryChanged": false
+		},
+		{
+			"id": 302,
+			"title": "MCP tool usage",
+			"policy": "counter-reduced",
+			"queryChanged": false
+		},
+		{
+			"id": 303,
+			"title": "MCP rejection reasons",
+			"policy": "counter-reduced",
+			"queryChanged": false
+		},
+		{
+			"id": 304,
+			"title": "MCP error ratio",
+			"policy": "counter-reduced",
+			"queryChanged": false
+		},
+		{
+			"id": 305,
+			"title": "MCP in-flight calls",
+			"policy": "process-gauge-reduced",
+			"queryChanged": true
+		},
+		{
+			"id": 306,
+			"title": "MCP average duration",
+			"policy": "counter-reduced",
+			"queryChanged": false
+		},
+		{
+			"id": 307,
+			"title": "MCP p95 duration (histogram)",
+			"policy": "counter-reduced",
+			"queryChanged": false
+		},
+		{
+			"id": 309,
+			"title": "MCP scrape age",
+			"policy": "scrape-freshness",
+			"queryChanged": true
+		},
+		{
+			"id": 31,
+			"title": "Cache Inventory",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 310,
+			"title": "MCP applications (current)",
+			"policy": "table",
+			"queryChanged": false
+		},
+		{
+			"id": 311,
+			"title": "MCP adoption totals",
+			"policy": "table",
+			"queryChanged": false
+		},
+		{
+			"id": 32,
+			"title": "Clip Sync State",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 33,
+			"title": "Clip Availability",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 36,
+			"title": "Scheduler Duration",
+			"policy": "sampled-instance-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 37,
+			"title": "Scheduler Workload",
+			"policy": "sampled-instance-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 38,
+			"title": "Scheduler Totals",
+			"policy": "sampled-instance-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 39,
+			"title": "Scheduler Failure Delta",
+			"policy": "counter-reduced",
+			"queryChanged": false
+		},
+		{
+			"id": 4,
+			"title": "Uptime",
+			"policy": "sampled-instance-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 40,
+			"title": "Scheduler Interval",
+			"policy": "sampled-instance-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 41,
+			"title": "Last Run Owner Count",
+			"policy": "sampled-instance-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 42,
+			"title": "Enabled overlays",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 43,
+			"title": "Playlists Total",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 44,
+			"title": "Queue Depth",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 45,
+			"title": "Newsletter Opted In",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 46,
+			"title": "Twitch access-token expiry",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 47,
+			"title": "Account Status",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 48,
+			"title": "Disable Reasons",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 49,
+			"title": "Entitlement Coverage",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 5,
+			"title": "Users Total",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 50,
+			"title": "Overlay Playback Modes",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 51,
+			"title": "Overlay Types",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 52,
+			"title": "Playlists Overview",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 53,
+			"title": "Playlist Overlay Usage",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 54,
+			"title": "Rewards Overview",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 55,
+			"title": "Queue Depths",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 56,
+			"title": "Newsletter Summary",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 57,
+			"title": "Newsletter Consent Sources",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 58,
+			"title": "Newsletter Opt-out Sources",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 59,
+			"title": "Scheduler Performance",
+			"policy": "sampled-instance-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 6,
+			"title": "Users on Pro",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 60,
+			"title": "Runner Workers",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 61,
+			"title": "Runner Stream State",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 62,
+			"title": "Runner Modes and Destinations",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 63,
+			"title": "Runner Mode x Destination",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 7,
+			"title": "Users on Free",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 8,
+			"title": "Grant Users",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 9,
+			"title": "Cache Hit Rate",
+			"policy": "sampled-instance-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 103,
+			"title": "GraphQL fallback reasons",
+			"policy": "counter-reduced",
+			"queryChanged": false
+		},
+		{
+			"id": 312,
+			"title": "MCP HTTP responses per minute",
+			"policy": "counter-reduced",
+			"queryChanged": false
+		},
+		{
+			"id": 400,
+			"title": "Crawler jobs waiting to run",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 401,
+			"title": "Crawler jobs running",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 402,
+			"title": "Crawler wait time",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 403,
+			"title": "Crawler retries and expired leases",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 410,
+			"title": "Emails ready to send",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 411,
+			"title": "Email delivery state",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 412,
+			"title": "Oldest overdue email",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 413,
+			"title": "Scheduled emails",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 500,
+			"title": "Onboarding status",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 501,
+			"title": "Overlay link copied",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 502,
+			"title": "First-overlay guide completion",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 503,
+			"title": "Average guide progress",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 504,
+			"title": "Onboarding progress over time",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 505,
+			"title": "Guide section completion rates",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 506,
+			"title": "Guide sections",
+			"policy": "table",
+			"queryChanged": false
+		},
+		{
+			"id": 507,
+			"title": "Guide step details",
+			"policy": "table",
+			"queryChanged": false
+		},
+		{
+			"id": 600,
+			"title": "New creator outcomes (rolling 30 days)",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 601,
+			"title": "First-week activation (mature creators)",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 602,
+			"title": "Umami delivery (observed counter increase)",
+			"policy": "single-instance-counter",
+			"queryChanged": true
+		},
+		{
+			"id": 603,
+			"title": "Checkout service operations (observed increase)",
+			"policy": "single-instance-counter",
+			"queryChanged": true
+		},
+		{
+			"id": 604,
+			"title": "Subscription state",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 605,
+			"title": "Measurement exclusions and service processing",
+			"policy": "single-instance-counter",
+			"queryChanged": true
+		},
+		{
+			"id": 606,
+			"title": "Webhook processing backlog",
+			"policy": "shared-gauge",
+			"queryChanged": true
+		},
+		{
+			"id": 700,
+			"title": "Twitch creators online",
+			"policy": "presence",
+			"queryChanged": false
+		},
+		{
+			"id": 701,
+			"title": "Twitch creators offline",
+			"policy": "presence",
+			"queryChanged": false
+		},
+		{
+			"id": 702,
+			"title": "Using Clipify now",
+			"policy": "presence",
+			"queryChanged": false
+		},
+		{
+			"id": 703,
+			"title": "Live with Clipify now",
+			"policy": "presence",
+			"queryChanged": false
+		},
+		{
+			"id": 704,
+			"title": "Twitch status unknown",
+			"policy": "presence",
+			"queryChanged": false
+		},
+		{
+			"id": 705,
+			"title": "Twitch status snapshot age",
+			"policy": "presence",
+			"queryChanged": false
+		},
+		{
+			"id": 706,
+			"title": "Twitch creator status over time",
+			"policy": "presence",
+			"queryChanged": false
+		},
+		{
+			"id": 707,
+			"title": "Clipify usage over time",
+			"policy": "single-instance-presence",
+			"queryChanged": true
+		}
+	]
+}
