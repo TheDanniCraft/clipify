@@ -42,7 +42,7 @@ test("saved stream exports every filtered clip across pages after Twitch removes
 	await page.reload();
 	await expect(page.getByRole("heading", { name: "Earlier stream", exact: true })).toBeVisible();
 	await expect(page.getByRole("status", { name: "Inventory results" })).toHaveText("59 clips");
-	await expect(page.getByText("Recording no longer available on Twitch. Your clips are kept.")).toBeVisible();
+	await expect(page.getByRole("main").getByText("Recording no longer available on Twitch. Your clips are kept.")).toBeVisible();
 	await page.getByRole("button", { name: "Select all 59 clips", exact: true }).click();
 	await expect(page.getByRole("status", { name: "Clip selection" })).toHaveText("59 selected");
 	await page.screenshot({ path: info.outputPath("archived-filtered-stream.png"), fullPage: true, animations: "disabled" });
