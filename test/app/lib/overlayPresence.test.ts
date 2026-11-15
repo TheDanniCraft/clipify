@@ -42,15 +42,16 @@ it("leaves unknown and preview-only sources unconfirmed", () => {
 	activity("true");
 	expect(socket.send).not.toHaveBeenCalled();
 });
-it("sends only state changes after subscription, without periodic heartbeats", () => {
+it("reconciles known state periodically after subscription and never guesses unknown activity", () => {
 	stop = start();
 	activity(true);
 	expect(socket.send).not.toHaveBeenCalled();
 	acknowledge();
 	activity(true);
-	jest.advanceTimersByTime(5 * 60_000);
+	jest.advanceTimersByTime(25_000);
 	activity(false);
 	expect(reports()).toEqual([
+		{ type: "source_activity", data: { active: true } },
 		{ type: "source_activity", data: { active: true } },
 		{ type: "source_activity", data: { active: false } },
 	]);
@@ -118,4 +119,19 @@ it("keeps separate reports for multiple source connections", () => {
 	expect(socket.send).toHaveBeenCalledTimes(1);
 	expect(other.send).toHaveBeenCalledTimes(1);
 	stopOther();
+});
+
+it("reconciles a renewed subscription and stops periodic reports after cleanup", () => {
+	stop = start();
+	acknowledge();
+	jest.advanceTimersByTime(50_000);
+	expect(socket.send).not.toHaveBeenCalled();
+	activity(true);
+	acknowledge();
+	expect(reports().map((report) => report.data.active)).toEqual([true, true]);
+	stop();
+	stop = undefined;
+	const count = reports().length;
+	jest.advanceTimersByTime(75_000);
+	expect(reports()).toHaveLength(count);
 });

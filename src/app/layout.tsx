@@ -7,6 +7,7 @@ import { getBaseUrl } from "@actions/utils";
 import ConsentManager from "./components/ConsentManager";
 import RuntimeDeploymentReload from "./components/RuntimeDeploymentReload";
 import { getDeploymentId } from "./lib/deployment";
+import { OBS_ACTIVITY_BOOTSTRAP } from "./lib/overlayPresence";
 
 const baseUrl = await getBaseUrl();
 const manifestUrl = new URL("manifest.webmanifest", baseUrl);
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 	return (
 		<html lang='en' suppressHydrationWarning data-scroll-behavior='smooth'>
 			<head>
+				<script id='clipify-obs-activity' dangerouslySetInnerHTML={{ __html: OBS_ACTIVITY_BOOTSTRAP }} />
 				<meta name='apple-mobile-web-app-title' content='Clipify' />
 			</head>
 			<body className='min-h-screen bg-background text-foreground' suppressHydrationWarning>

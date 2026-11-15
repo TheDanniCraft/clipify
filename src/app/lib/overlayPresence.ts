@@ -52,11 +52,16 @@ export function startOverlayPresence(socket: WebSocket, overlayId: string): () =
 	// Report only after the existing secret-authenticated subscription succeeds.
 	// A new connection re-sends the latest state without waiting for another event.
 	const onMessage = (event: MessageEvent) => {
-		if (event.data !== `subscribed ${overlayId}` || subscribed) return;
+		if (event.data !== `subscribed ${overlayId}`) return;
 		subscribed = true;
 		if (typeof active === "boolean") report(active);
 	};
 	socket.addEventListener("message", onMessage);
+	// Reconcile the last host-confirmed state after subscription resets. This does
+	// not establish an initial state: an unobserved source stays unknown.
+	const heartbeat = window.setInterval(() => {
+		if (typeof active === "boolean") report(active);
+	}, 25_000);
 	const onPageHide = () => {
 		active = undefined;
 		obsWindow.__clipifyObsActive = undefined;
@@ -66,6 +71,7 @@ export function startOverlayPresence(socket: WebSocket, overlayId: string): () =
 	return () => {
 		report(false);
 		stopped = true;
+		window.clearInterval(heartbeat);
 		window.removeEventListener("obsSourceActiveChanged", onActive);
 		window.removeEventListener("pagehide", onPageHide);
 		socket.removeEventListener("message", onMessage);

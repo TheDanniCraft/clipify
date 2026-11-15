@@ -22,6 +22,7 @@ export const test = base.extend<{ tourWorld: TourWorld; deploymentId: string | u
 			RUNNER_ARTIFACT_SOURCE: "local",
 			ENCRYPTION_SECRET: "clipify-e2e-encryption-secret-not-for-production",
 			JWT_SECRET: "clipify-e2e-jwt-secret-not-for-production",
+			INSTANCE_HEALTH_TOKEN: "clipify-e2e-instance-health-not-for-production",
 			NEXT_PUBLIC_PLAUSIBLE_SCRIPT_NAME: "clipify-e2e",
 			...browserProviderEnvironment({ APP_ENV: "test", E2E_TEST_MODE: "true", MCP_BROWSER_PROVIDER_FIXTURE: "true", MCP_BROWSER_DATABASE_URL: fixture.url }, "--max-old-space-size=1024"),
 		};
