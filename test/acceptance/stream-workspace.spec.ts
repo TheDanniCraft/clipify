@@ -132,6 +132,14 @@ for (const width of [390, 1440])
 		await page.goto(`${tourWorld.origin}/dashboard/streams/12345`);
 		await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 		const panel = page.getByRole("region", { name: "Stream moments", exact: true });
+		// Wait for the timeline's interactive client tree before scrolling past SSR markup.
+		const moment = panel.getByRole("button").first();
+		await expect
+			.poll(async () => {
+				await moment.focus();
+				return moment.getAttribute("data-focused");
+			})
+			.toBe("true");
 		await expect(panel.getByRole("listitem")).toHaveCount(62);
 		await expect(page.getByRole("region", { name: "Stream moments scroll area" })).toHaveCount(0);
 		await expect(page.getByRole("button", { name: "Show more moments" })).toHaveCount(0);
