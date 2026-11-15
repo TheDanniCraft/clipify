@@ -413,7 +413,17 @@ for (const width of [390, 1440])
 			const sidebar = page.locator(`[data-slot="${width === 390 ? "sidebar-mobile" : "sidebar"}"]`);
 			const navigation = sidebar.getByRole("treegrid", { name: "Creator navigation", exact: true });
 			for (const title of ["Clip Player", "Clip Gallery"]) await expect(navigation.getByRole("row", { name: title, exact: true }).locator("svg").first()).toBeVisible();
-			await navigation.getByRole("row", { name: "Settings", exact: true }).click();
+			const settings = navigation.getByRole("row", { name: "Settings", exact: true });
+			// RAC's SSR rows can appear before the interactive collection is ready.
+			// Expand with the tree keyboard action, without scrolling the Sheet horizontally.
+			await expect
+				.poll(async () => {
+					await settings.focus();
+					return settings.getAttribute("data-focused");
+				})
+				.toBe("true");
+			await settings.press("ArrowRight");
+			await expect(settings).toHaveAttribute("aria-expanded", "true");
 			for (const title of ["Account", "Connections", "Creator Page", "Billing", "Team"]) {
 				const icon = navigation.getByRole("row", { name: title, exact: true }).locator("svg").first();
 				await icon.scrollIntoViewIfNeeded();
