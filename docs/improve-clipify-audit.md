@@ -297,14 +297,24 @@ cover cancelled/unavailable returns with and without a surviving checkout intent
 plus unknown and repeated query values. All nine pricing-page branches are covered;
 no gate, inventory or threshold was changed.
 
-Community entries now use a compact grid with four columns on wide screens,
-smaller avatars, and creator information and links grouped together. Search,
+Community now uses an avatar-only grid with twelve columns on wide screens and
+four on phones. Hover, click/tap or keyboard activation opens a HeroUI profile
+popover with identity, membership, live status and profile links. Pro/partner
+creators retain a direct Twitch link. Search,
 group tabs, ordering, membership labels and server-side discovery permissions
 remain. Browser acceptance includes 170 synthetic discoverable creators, one
 unlisted creator, a long display name, and finding the final creator by username.
-The structural references are [Wellfound's compact people entries](https://mobbin.com/screens/fa3c239d-c566-40a5-8854-eb369db26d8a)
-and [HelloFresh's horizontal profiles](https://mobbin.com/screens/9ad368e4-3979-483c-ad77-82726b866a71).
-They inform structure only; Clipify's components and themes remain.
+The avatar-grid structural references are [HBO Max](https://mobbin.com/screens/56db06b2-a421-412c-a9a4-e768acafaa7b)
+and [Portrait](https://mobbin.com/screens/315d7b24-0fe2-4cfe-8418-6d881297729a).
+The profile card follows the user's [HeroUI interactive-content reference](https://heroui.com/en/docs/react/components/popover#interactive-content).
+Clipify's components and themes remain.
+
+Clip counts load only when a popover opens. The query counts this creator's
+available, unexpired public clip cache, and rechecks enabled/discoverable status
+in the same query. It excludes neighboring creator keys, expired and unavailable
+clips. It reports a missing/failed lookup as unavailable with retry, preserving
+a real zero as zero. These are clips on Clipify, not all-time Twitch totals;
+no stream count, followers or other unverified statistics are invented.
 
 The live Grafana dashboard remains v6 (version 22, last updated October 31).
 Prepared v7 already adds rolling creator outcomes, mature first-week activation,
@@ -327,8 +337,10 @@ Keep creator-level journeys in consented analytics, operational aggregates in
 Grafana and money reporting in Stripe. No live dashboard or alert was changed
 in this follow-up.
 
-Follow-up local validation: 29 affected whole-file tests, all three coverage-merger
-checks and the production-mode build/typecheck passed. Pricing-page coverage is
-100% for statements, branches, functions and lines. All four real community browser
-journeys passed at 390/1440 px in light/dark, including the 170-creator fixture,
-keyboard filtering/focus, link permissions, empty recovery and accessibility.
+The full CI gate passed after the pricing coverage fix. Pricing-page coverage is
+100% for statements, branches, functions and lines, with unchanged thresholds.
+The subsequent avatar-profile follow-up passed 35 affected whole-file tests and
+the production-mode build/typecheck. All four real community browser journeys
+passed at 390/1440 px in light/dark, including real touch, the 170-creator fixture,
+hover-to-click focus, Escape restoration, lazy clip counts, failed-count retry,
+link permissions, empty recovery and accessibility. Its final CI remains the merge gate.

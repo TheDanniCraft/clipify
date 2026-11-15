@@ -1,5 +1,11 @@
 "use server";
 
+export async function getPublicCommunityCreatorStatsAction(creatorId: string) {
+	const { db } = await import("@/db/client");
+	const { readCommunityCreatorStats } = await import("@/server/community-preview");
+	return readCommunityCreatorStats(db, creatorId);
+}
+
 export async function getPublicCommunityTeaserAction() {
 	const { getCommunitySnapshot, fetchCommunityPageVisibleUserIds } = await import("@lib/community");
 	const { buildCommunityTeaserStreamers } = await import("../community/community-data");

@@ -1,53 +1,15 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Avatar, Button, Chip, Link, SearchField, Tabs } from "@heroui/react";
-import { IconBrandTwitch } from "@tabler/icons-react";
-import { getCommunityAvatarTone } from "@lib/communityAvatarTone";
+import { Button, SearchField, Tabs } from "@heroui/react";
 import { compareCommunityStreamers } from "@lib/communitySort";
-import type { CommunityPageGroup, CommunityPageStreamer } from "@lib/community-types";
-
-function CreatorCard({ streamer }: { streamer: CommunityPageStreamer }) {
-	const tone = getCommunityAvatarTone(streamer);
-	const membership = streamer.partner ? "Partner" : streamer.plan === "pro" ? "Pro" : "Free";
-	const status = streamer.status === "live_with_overlay" ? "Live with Clipify" : streamer.status === "live" ? "Live on Twitch" : "Offline";
-	return (
-		<article role='article' aria-label={`${streamer.displayName} creator`} className='flex h-full items-start gap-3 border-b border-border py-4'>
-			<Avatar role='img' aria-label={`${streamer.displayName}: ${tone.label}`} color={tone.color} variant='soft' className={`size-12 shrink-0 ring-2 ${tone.ringClass}`}>
-				<Avatar.Image alt='' src={streamer.avatar} />
-				<Avatar.Fallback>{streamer.displayName.slice(0, 2).toUpperCase()}</Avatar.Fallback>
-			</Avatar>
-			<div className='min-w-0'>
-				<h3 className='break-words text-base font-semibold leading-snug'>
-					{streamer.profileUrl ? (
-						<Link href={streamer.profileUrl} className='text-foreground'>
-							{streamer.displayName}
-						</Link>
-					) : (
-						streamer.displayName
-					)}
-				</h3>
-				<p className='mt-1 break-all text-xs text-muted'>@{streamer.username}</p>
-				<div className='mt-2 flex flex-wrap items-center gap-2'>
-					<span className='text-xs text-muted'>{status}</span>
-					<Chip size='sm' variant='tertiary' color={streamer.partner || streamer.plan === "pro" ? "accent" : "default"}>
-						{membership}
-					</Chip>
-				</div>
-				{streamer.partner || streamer.plan === "pro" ? (
-					<Link href={streamer.twitchUrl} target='_blank' rel='noreferrer' className='mt-2 gap-2 text-sm text-foreground'>
-						<IconBrandTwitch className='size-4' aria-hidden='true' />
-						Open Twitch
-					</Link>
-				) : null}
-			</div>
-		</article>
-	);
-}
+import type { CommunityPageGroup } from "@lib/community-types";
+import CreatorAvatar from "./creator-avatar";
 
 export default function CommunityDirectory({ groups }: { groups: CommunityPageGroup[] }) {
 	const [query, setQuery] = useState("");
 	const [selected, setSelected] = useState("all");
+	const [openCreator, setOpenCreator] = useState<{ id: string; pinned: boolean } | null>(null);
 	const searchRef = useRef<HTMLInputElement>(null);
 	const creators = [...new Map(groups.flatMap((group) => group.streamers).map((streamer) => [streamer.id, streamer])).values()].sort(compareCommunityStreamers);
 	const categories = [{ key: "all", title: "All creators", description: "", streamers: creators }, ...groups];
@@ -98,10 +60,10 @@ export default function CommunityDirectory({ groups }: { groups: CommunityPageGr
 								</p>
 							</div>
 							{matches.length ? (
-								<ul aria-label='Creators' className='grid gap-x-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
+								<ul aria-label='Creators' className='grid grid-cols-4 justify-items-center gap-x-4 gap-y-6 py-2 sm:grid-cols-6 lg:grid-cols-10 xl:grid-cols-12'>
 									{matches.map((streamer) => (
 										<li key={streamer.id} className='min-w-0'>
-											<CreatorCard streamer={streamer} />
+											<CreatorAvatar streamer={streamer} isOpen={openCreator?.id === streamer.id} pinned={openCreator?.id === streamer.id && openCreator.pinned} onOpenChange={(open, pinned = false) => setOpenCreator((current) => (open ? (!pinned && current?.pinned ? current : { id: streamer.id, pinned }) : current?.id === streamer.id ? null : current))} />
 										</li>
 									))}
 								</ul>
