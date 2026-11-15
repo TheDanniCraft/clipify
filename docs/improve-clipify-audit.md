@@ -54,8 +54,8 @@ launcher hidden. It moves above the privacy banner only when their horizontal
 bounds overlap.
 
 The community page now places browsing below a compact introduction, with name
-and username search, existing membership/live groups as tabs, and consistent
-creator cards. All creators appears once per account; group membership and
+and username search and small outlined avatars with profile previews. Each
+creator appears once; membership status and
 existing profile/Twitch link rules remain intact. Unlisted profiles are filtered
 on the server before the browser receives directory data. Search has a reset
 action that returns focus to the field, and an empty directory has an explicit
@@ -166,8 +166,8 @@ after statistics opt-in. E2E tracker transport stays disabled; this establishes
 the application event consent boundary, not third-party ingestion or retention.
 
 The community directory was also checked with isolated public and unlisted
-creator fixtures at desktop/mobile widths in both themes: deduplication, group
-tabs, case-insensitive search, empty/reset recovery with focus, profile/Twitch
+creator fixtures at desktop/mobile widths in both themes: deduplication,
+directory navigation, case-insensitive search, empty/reset recovery with focus, profile/Twitch
 link rules, visibility exclusion and accessibility. Public support checks verify
 the same launcher bounds before and after functionality opt-in, the hidden vendor
 launcher, chat opening and placement beside a wide-screen privacy banner.
@@ -297,11 +297,13 @@ cover cancelled/unavailable returns with and without a surviving checkout intent
 plus unknown and repeated query values. All nine pricing-page branches are covered;
 no gate, inventory or threshold was changed.
 
-Community now uses an avatar-only grid with twelve columns on wide screens and
-four on phones. Hover, click/tap or keyboard activation opens a HeroUI profile
+Community uses a tightly packed grid of 32 px circular avatars with visible
+outlines and 44 px interaction targets. Category tabs and the duplicate group
+heading are removed. The grid adapts to its available width instead of stretching
+a small number of avatars across fixed columns. Hover, click/tap or keyboard activation opens a HeroUI profile
 popover with identity, membership, live status and profile links. Pro/partner
 creators retain a direct Twitch link. Search,
-group tabs, ordering, membership labels and server-side discovery permissions
+ordering, membership labels and server-side discovery permissions
 remain. Browser acceptance includes 170 synthetic discoverable creators, one
 unlisted creator, a long display name, and finding the final creator by username.
 The avatar-grid structural references are [HBO Max](https://mobbin.com/screens/56db06b2-a421-412c-a9a4-e768acafaa7b)
@@ -339,8 +341,12 @@ in this follow-up.
 
 The full CI gate passed after the pricing coverage fix. Pricing-page coverage is
 100% for statements, branches, functions and lines, with unchanged thresholds.
-The subsequent avatar-profile follow-up passed 35 affected whole-file tests and
-the production-mode build/typecheck. All four real community browser journeys
-passed at 390/1440 px in light/dark, including real touch, the 170-creator fixture,
-hover-to-click focus, Escape restoration, lazy clip counts, failed-count retry,
-link permissions, empty recovery and accessibility. Its final CI remains the merge gate.
+The avatar-profile follow-up passed 35 affected whole-file tests and the
+production-mode build/typecheck. The final compact layout passed all eight
+community/discovery browser journeys at 390/1440 px in light/dark, including real
+touch, one-creator and 170-creator fixtures, 32 px photos with 44 px targets,
+focus-preserving hover, hover-to-click focus, Escape restoration, lazy clip
+counts, failed-count retry, link permissions, empty recovery and accessibility.
+Unicode Creator Page navigation, canonical URLs, sitemap inclusion and
+unlisted/disabled exclusions also passed through the actual popover flow.
+The original coverage blocker is fixed; the final CI remains the merge gate.

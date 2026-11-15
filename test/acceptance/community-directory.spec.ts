@@ -38,7 +38,7 @@ for (const theme of ["light", "dark"])
 				await page.goto(`${tourWorld.origin}/community`);
 				await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 				await expect(page.getByRole("heading", { level: 1 })).toHaveText("Find your next favorite creator.");
-				await page.screenshot({ path: info.outputPath(`community-${width}-${theme}.png`), fullPage: true });
+				await page.screenshot({ animations: "disabled", path: info.outputPath(`community-${width}-${theme}.png`), fullPage: true });
 				const regions = await page.evaluate(() => {
 					const measure = (element: Element | null) => {
 						if (!element) return undefined;
@@ -50,7 +50,7 @@ for (const theme of ["light", "dark"])
 				await writeFile(info.outputPath("community-regions.json"), JSON.stringify(regions));
 				const search = page.getByRole("searchbox", { name: "Search creators", exact: true });
 				await expect(search).toBeVisible();
-				await expect(page.getByRole("tab", { name: "Partners", exact: true })).toBeInViewport();
+				await expect(page.getByRole("tablist")).toHaveCount(0);
 				const avatars = page.getByRole("list", { name: "Creators", exact: true }).getByRole("button", { name: / creator$/ });
 				await expect(avatars).toHaveCount(3);
 				expect(previewRequests).toBe(0);
@@ -69,15 +69,16 @@ for (const theme of ["light", "dark"])
 				const profileBounds = await liveProfile.boundingBox();
 				expect(profileBounds!.x).toBeGreaterThanOrEqual(0);
 				expect(profileBounds!.x + profileBounds!.width).toBeLessThanOrEqual(width);
-				await liveProfile.screenshot({ path: info.outputPath(`creator-popover-${width}-${theme}.png`) });
+				await liveProfile.screenshot({ animations: "disabled", path: info.outputPath(`creator-popover-${width}-${theme}.png`) });
 				await page.keyboard.press("Escape");
 				await expect(liveProfile).toHaveCount(0);
 				await expect(liveAvatar).toBeFocused();
-				await page.getByRole("tab", { name: "Now live", exact: true }).click();
-				await expect(avatars).toHaveCount(1);
+				await expect(avatars).toHaveCount(3);
 				if (width === 1440) {
+					await page.mouse.move(0, 0);
 					await liveAvatar.hover();
 					await expect(liveProfile).toBeVisible();
+					await expect(liveAvatar).toBeFocused();
 					await liveProfile.getByRole("link", { name: /Creator Page/ }).hover();
 					await expect(liveProfile).toBeVisible();
 				}
@@ -87,14 +88,9 @@ for (const theme of ["light", "dark"])
 				await expect(liveProfile.getByRole("link", { name: "Open Twitch", exact: true })).toHaveAttribute("href", "https://twitch.tv/directory_live");
 				await page.keyboard.press("Escape");
 				await expect(liveProfile).toHaveCount(0);
-				const all = page.getByRole("tab", { name: "All creators", exact: true });
-				await all.focus();
-				await all.press("End");
-				await expect(page.getByRole("tab", { name: "Offline", exact: true })).toHaveAttribute("aria-selected", "true");
-				await expect(avatars).toHaveCount(2);
 				await search.fill("no such creator");
 				await expect(page.getByText("No creators found", { exact: true })).toBeVisible();
-				await page.getByRole("button", { name: "Reset filters", exact: true }).click();
+				await page.getByRole("button", { name: "Show all creators", exact: true }).click();
 				await expect(search).toBeFocused();
 				await expect(avatars).toHaveCount(3);
 				await search.fill("DIRECTORY_FREE");
@@ -126,22 +122,27 @@ for (const theme of ["light", "dark"])
 				await tourWorld.fixture.pool.query('UPDATE "twitchCache" SET value=$1 WHERE type=$2 AND key=$3', [JSON.stringify({ streamers: [...streamers, ...additional], totalCount: 171, liveCount: 1, overlayActiveCount: 0, updatedAt: new Date().toISOString() }), "user", "community:snapshot:obs-presence"]);
 				await page.reload();
 				await expect(avatars).toHaveCount(170);
-				await page.getByRole("list", { name: "Creators", exact: true }).screenshot({ path: info.outputPath(`community-dense-${width}-${theme}.png`) });
+				await page.getByRole("list", { name: "Creators", exact: true }).screenshot({ animations: "disabled", path: info.outputPath(`community-dense-${width}-${theme}.png`) });
 				const layout = await page.getByRole("list", { name: "Creators", exact: true }).evaluate((list) => ({
 					columns: getComputedStyle(list).gridTemplateColumns.split(" ").length,
 					firstHeight: list.querySelector("button")!.getBoundingClientRect().height,
+					avatarWidth: list.querySelector('[role="img"]')!.getBoundingClientRect().width,
+					ringWidth: getComputedStyle(list.querySelector('[role="img"]')!).boxShadow,
 					totalHeight: list.getBoundingClientRect().height,
 				}));
 				await writeFile(info.outputPath("community-density.json"), JSON.stringify(layout));
-				expect(layout.columns).toBe(width === 1440 ? 12 : 4);
-				expect(layout.firstHeight).toBeLessThan(70);
+				expect(layout.columns).toBeGreaterThanOrEqual(width === 1440 ? 20 : 6);
+				expect(layout.firstHeight).toBeGreaterThanOrEqual(44);
+				expect(layout.avatarWidth).toBe(32);
+				expect(layout.ringWidth).not.toBe("none");
+				expect(layout.totalHeight).toBeLessThan(width === 1440 ? 600 : 1800);
 				await avatars.first().click();
 				const denseProfile = page.getByRole("dialog", { name: "Live creator profile", exact: true });
 				await expect(denseProfile.getByText("2 clips on Clipify", { exact: true })).toBeVisible();
 				const gridBounds = await page.getByRole("list", { name: "Creators", exact: true }).boundingBox();
 				const cardBounds = await denseProfile.boundingBox();
 				await writeFile(info.outputPath("community-profile-region.json"), JSON.stringify({ x: cardBounds!.x - gridBounds!.x, y: cardBounds!.y - gridBounds!.y, w: cardBounds!.width, h: cardBounds!.height }));
-				await page.getByRole("list", { name: "Creators", exact: true }).screenshot({ path: info.outputPath(`community-dense-profile-${width}-${theme}.png`) });
+				await page.getByRole("list", { name: "Creators", exact: true }).screenshot({ animations: "disabled", path: info.outputPath(`community-dense-profile-${width}-${theme}.png`) });
 				await page.keyboard.press("Escape");
 				await expect(denseProfile).toHaveCount(0);
 				await search.fill("directory_dense_166");
@@ -158,6 +159,14 @@ for (const theme of ["light", "dark"])
 				expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 				await page.addScriptTag({ content: axeSource });
 				expect(await page.evaluate(async () => (await (window as typeof window & { axe: typeof import("axe-core") }).axe.run(document.querySelector("main")!, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] } })).violations.map(({ id }) => id))).toEqual([]);
+				await tourWorld.fixture.pool.query("UPDATE \"userSettings\" SET creator_page_visibility=CASE WHEN id=$1 THEN 'discoverable' ELSE 'unlisted' END", [streamers[0].id]);
+				await page.reload();
+				await expect(avatars).toHaveCount(1);
+				await expect(page.getByRole("tablist")).toHaveCount(0);
+				await expect(avatars.first()).toHaveCSS("width", "44px");
+				await expect(avatars.first().getByRole("img")).toHaveCSS("width", "32px");
+				await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+				await page.screenshot({ animations: "disabled", path: info.outputPath(`community-single-${width}-${theme}.png`), fullPage: true });
 				await tourWorld.fixture.pool.query('UPDATE "userSettings" SET creator_page_visibility=$1', ["unlisted"]);
 				await page.reload();
 				await expect(page.getByText("No public creators yet", { exact: true })).toBeVisible();

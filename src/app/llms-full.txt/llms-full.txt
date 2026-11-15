@@ -62,7 +62,7 @@ This reference describes the current application and pricing catalog. Planned ro
 - Free and Pro include a shareable Creator Page with creator details and browsable, playable Twitch clips.
 - Page availability and discovery are separate settings. A disabled page is unavailable; an unlisted page remains accessible by direct URL but is excluded from search/Clipify discovery and the sitemap.
 - Pro includes Creator Page traffic and clip-engagement analytics, acquisition/location/device/browser/OS breakdowns, CSV downloads and supported social-preview title/description customization.
-- Community is the public directory of eligible discoverable creators. It has name/username search, group tabs and an avatar grid. Hovering or opening an avatar shows a profile popover with available clips on Clipify, a Creator Page link, and a direct Twitch link for Pro/partner creators. Clip counts load on demand and recheck discovery visibility; they are not lifetime Twitch clip totals. Live and membership indicators do not grant permissions or a paid plan.
+- Community is the public directory of eligible discoverable creators. It has name/username search and a compact grid of outlined avatars. Hovering or opening an avatar shows a profile popover with available clips on Clipify, a Creator Page link, and a direct Twitch link for Pro/partner creators. Clip counts load on demand and recheck discovery visibility; they are not lifetime Twitch clip totals. Live and membership indicators do not grant permissions or a paid plan.
 - Public URLs can be shared in Twitch panels, Discord, social profiles and websites. Keeping a page unlisted is not a substitute for access control over private OBS sources.
 
 ## Team and agency access

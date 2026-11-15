@@ -18,6 +18,7 @@ export default function CreatorAvatar({ streamer, isOpen, pinned, onOpenChange }
 	const pressing = useRef(false);
 	const suppressHover = useRef(false);
 	const dialogRef = useRef<HTMLElement | null>(null);
+	const ProfileDialog = pinned ? Popover.Dialog : "div";
 	const clearTimers = () => {
 		clearTimeout(openTimer.current);
 		clearTimeout(closeTimer.current);
@@ -68,7 +69,7 @@ export default function CreatorAvatar({ streamer, isOpen, pinned, onOpenChange }
 				isIconOnly
 				variant='ghost'
 				aria-label={`${streamer.displayName} creator`}
-				className='size-14 min-w-14 overflow-visible rounded-full p-0 sm:size-16 sm:min-w-16'
+				className='size-11 min-w-11 overflow-visible rounded-full p-0'
 				onHoverStart={() => {
 					if (suppressHover.current) return;
 					clearTimers();
@@ -78,7 +79,9 @@ export default function CreatorAvatar({ streamer, isOpen, pinned, onOpenChange }
 					suppressHover.current = false;
 					closePreview();
 				}}
-				onBlur={closePreview}
+				onBlur={(event) => {
+					if (!dialogRef.current?.contains(event.relatedTarget)) closePreview();
+				}}
 				onPressStart={() => {
 					clearTimers();
 					pressing.current = true;
@@ -89,13 +92,20 @@ export default function CreatorAvatar({ streamer, isOpen, pinned, onOpenChange }
 					})
 				}
 			>
-				<Avatar role='img' aria-label={`${streamer.displayName}: ${tone.label}`} color={tone.color} variant='soft' className={`size-14 ring-2 sm:size-16 ${tone.ringClass}`}>
+				<Avatar size='sm' role='img' aria-label={`${streamer.displayName}: ${tone.label}`} color={tone.color} variant='soft' className={`rounded-full ring-2 ring-offset-2 ring-offset-background ${tone.color === "default" ? "ring-muted" : tone.ringClass}`}>
 					<Avatar.Image alt='' src={streamer.avatar} />
 					<Avatar.Fallback>{streamer.displayName.slice(0, 2).toUpperCase()}</Avatar.Fallback>
 				</Avatar>
 			</Button>
 			<Popover.Content placement='bottom start' offset={10} isNonModal={!pinned} trigger={pinned ? "DialogTrigger" : "PreviewTrigger"} className='w-72 max-w-[calc(100vw-2rem)]'>
-				<Popover.Dialog ref={dialogRef} aria-label={`${streamer.displayName} profile`}>
+				<ProfileDialog
+					ref={(node: HTMLElement | null) => {
+						dialogRef.current = node;
+					}}
+					role='dialog'
+					aria-label={`${streamer.displayName} profile`}
+					className='p-4 outline-none'
+				>
 					<div
 						className='space-y-4'
 						onPointerEnter={clearTimers}
@@ -160,7 +170,7 @@ export default function CreatorAvatar({ streamer, isOpen, pinned, onOpenChange }
 							) : null}
 						</div>
 					</div>
-				</Popover.Dialog>
+				</ProfileDialog>
 			</Popover.Content>
 		</Popover>
 	);
