@@ -6,12 +6,13 @@ dashboard identity `clipify-vm01-overview` and the API version used by your edit
 The revised dashboard extends v6 with seven panels in a conversion row. Existing panel identities and queries remain unchanged.
 
 Every section uses Grafana's automatic grid. Stats and gauges use four narrow
-columns and short rows, including onboarding and scheduler metrics. Mixed sections
-group compact metrics above their charts without adding visible subheadings.
+columns and short rows, including onboarding and scheduler metrics. Every section
+is named and top-level. Metrics and activity charts have separate named sections;
+there are no hidden, unnamed or nested rows, including in Grafana's edit view.
 Charts use two standard-width columns and standard row heights.
 There are no fixed panel coordinates or custom sizes. Executive Summary,
 Conversion and measurement health, and Onboarding guides appear first, followed
-by account, system and product operations. Newsletter and migration telemetry
+by account, system and product operations. Newsletter and Twitch API health
 remain available near the bottom.
 
 ## Data sources

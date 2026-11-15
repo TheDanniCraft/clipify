@@ -12,16 +12,12 @@ test("v7 preserves the complete dashboard and uses automatic layouts for every s
 	expect(dashboard.spec.layout.kind).toBe("RowsLayout");
 	const rows = dashboard.spec.layout.spec.rows;
 	expect(rows.slice(0, 3).map((row: any) => row.spec.title)).toEqual(["Executive Summary", "Conversion and measurement health", "Onboarding guides"]);
-	expect(rows.map((row: any) => row.spec.title).sort()).toEqual([...previous.spec.layout.spec.rows.map((row: any) => row.spec.title), "Conversion and measurement health"].sort());
+	const titles = rows.map((row: any) => row.spec.title);
+	expect(titles).toHaveLength(19);
+	expect(new Set(titles).size).toBe(titles.length);
+	expect(titles).toEqual(expect.arrayContaining(["Onboarding guide activity", "Scheduler status", "Scheduler activity", "Twitch clip permissions", "Twitch API health"]));
 	const references: string[] = [];
 	function checkLayout(layout: any) {
-		if (layout.kind === "RowsLayout") {
-			for (const row of layout.spec.rows) {
-				expect(row.spec.hideHeader).toBe(true);
-				checkLayout(row.spec.layout);
-			}
-			return;
-		}
 		expect(layout.kind).toBe("AutoGridLayout");
 		const compact = layout.spec.items.every((item: any) => ["stat", "gauge"].includes(dashboard.spec.elements[item.spec.element.name].spec.vizConfig.group));
 		expect(layout.spec).toEqual({
@@ -36,7 +32,12 @@ test("v7 preserves the complete dashboard and uses automatic layouts for every s
 			references.push(item.spec.element.name);
 		}
 	}
-	for (const row of rows) checkLayout(row.spec.layout);
+	for (const row of rows) {
+		expect(row.spec.title.trim()).not.toBe("");
+		expect(row.spec.title).not.toBe("New row");
+		expect(row.spec.hideHeader).toBeUndefined();
+		checkLayout(row.spec.layout);
+	}
 	expect(references.sort()).toEqual(Object.keys(dashboard.spec.elements).sort());
 });
 

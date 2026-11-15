@@ -12031,112 +12031,98 @@
 							"title": "Onboarding guides",
 							"collapse": false,
 							"layout": {
-								"kind": "RowsLayout",
+								"kind": "AutoGridLayout",
 								"spec": {
-									"rows": [
+									"maxColumnCount": 4,
+									"columnWidthMode": "narrow",
+									"rowHeightMode": "short",
+									"items": [
 										{
-											"kind": "RowsLayoutRow",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"hideHeader": true,
-												"collapse": false,
-												"layout": {
-													"kind": "AutoGridLayout",
-													"spec": {
-														"maxColumnCount": 4,
-														"columnWidthMode": "narrow",
-														"rowHeightMode": "short",
-														"items": [
-															{
-																"kind": "AutoGridLayoutItem",
-																"spec": {
-																	"element": {
-																		"kind": "ElementReference",
-																		"name": "panel-500"
-																	}
-																}
-															},
-															{
-																"kind": "AutoGridLayoutItem",
-																"spec": {
-																	"element": {
-																		"kind": "ElementReference",
-																		"name": "panel-501"
-																	}
-																}
-															},
-															{
-																"kind": "AutoGridLayoutItem",
-																"spec": {
-																	"element": {
-																		"kind": "ElementReference",
-																		"name": "panel-502"
-																	}
-																}
-															},
-															{
-																"kind": "AutoGridLayoutItem",
-																"spec": {
-																	"element": {
-																		"kind": "ElementReference",
-																		"name": "panel-503"
-																	}
-																}
-															}
-														]
-													}
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-500"
 												}
 											}
 										},
 										{
-											"kind": "RowsLayoutRow",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"hideHeader": true,
-												"collapse": false,
-												"layout": {
-													"kind": "AutoGridLayout",
-													"spec": {
-														"maxColumnCount": 2,
-														"columnWidthMode": "standard",
-														"rowHeightMode": "standard",
-														"items": [
-															{
-																"kind": "AutoGridLayoutItem",
-																"spec": {
-																	"element": {
-																		"kind": "ElementReference",
-																		"name": "panel-504"
-																	}
-																}
-															},
-															{
-																"kind": "AutoGridLayoutItem",
-																"spec": {
-																	"element": {
-																		"kind": "ElementReference",
-																		"name": "panel-505"
-																	}
-																}
-															},
-															{
-																"kind": "AutoGridLayoutItem",
-																"spec": {
-																	"element": {
-																		"kind": "ElementReference",
-																		"name": "panel-506"
-																	}
-																}
-															},
-															{
-																"kind": "AutoGridLayoutItem",
-																"spec": {
-																	"element": {
-																		"kind": "ElementReference",
-																		"name": "panel-507"
-																	}
-																}
-															}
-														]
-													}
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-501"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-502"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-503"
+												}
+											}
+										}
+									]
+								}
+							}
+						}
+					},
+					{
+						"kind": "RowsLayoutRow",
+						"spec": {
+							"title": "Onboarding guide activity",
+							"collapse": false,
+							"layout": {
+								"kind": "AutoGridLayout",
+								"spec": {
+									"maxColumnCount": 2,
+									"columnWidthMode": "standard",
+									"rowHeightMode": "standard",
+									"items": [
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-504"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-505"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-506"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-507"
 												}
 											}
 										}
@@ -12751,97 +12737,83 @@
 					{
 						"kind": "RowsLayoutRow",
 						"spec": {
-							"title": "Scheduler",
+							"title": "Scheduler status",
 							"collapse": false,
 							"layout": {
-								"kind": "RowsLayout",
+								"kind": "AutoGridLayout",
 								"spec": {
-									"rows": [
+									"maxColumnCount": 4,
+									"columnWidthMode": "narrow",
+									"rowHeightMode": "short",
+									"items": [
 										{
-											"kind": "RowsLayoutRow",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"hideHeader": true,
-												"collapse": false,
-												"layout": {
-													"kind": "AutoGridLayout",
-													"spec": {
-														"maxColumnCount": 4,
-														"columnWidthMode": "narrow",
-														"rowHeightMode": "short",
-														"items": [
-															{
-																"kind": "AutoGridLayoutItem",
-																"spec": {
-																	"element": {
-																		"kind": "ElementReference",
-																		"name": "panel-40"
-																	}
-																}
-															},
-															{
-																"kind": "AutoGridLayoutItem",
-																"spec": {
-																	"element": {
-																		"kind": "ElementReference",
-																		"name": "panel-41"
-																	}
-																}
-															}
-														]
-													}
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-40"
 												}
 											}
 										},
 										{
-											"kind": "RowsLayoutRow",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"hideHeader": true,
-												"collapse": false,
-												"layout": {
-													"kind": "AutoGridLayout",
-													"spec": {
-														"maxColumnCount": 2,
-														"columnWidthMode": "standard",
-														"rowHeightMode": "standard",
-														"items": [
-															{
-																"kind": "AutoGridLayoutItem",
-																"spec": {
-																	"element": {
-																		"kind": "ElementReference",
-																		"name": "panel-36"
-																	}
-																}
-															},
-															{
-																"kind": "AutoGridLayoutItem",
-																"spec": {
-																	"element": {
-																		"kind": "ElementReference",
-																		"name": "panel-37"
-																	}
-																}
-															},
-															{
-																"kind": "AutoGridLayoutItem",
-																"spec": {
-																	"element": {
-																		"kind": "ElementReference",
-																		"name": "panel-38"
-																	}
-																}
-															},
-															{
-																"kind": "AutoGridLayoutItem",
-																"spec": {
-																	"element": {
-																		"kind": "ElementReference",
-																		"name": "panel-39"
-																	}
-																}
-															}
-														]
-													}
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-41"
+												}
+											}
+										}
+									]
+								}
+							}
+						}
+					},
+					{
+						"kind": "RowsLayoutRow",
+						"spec": {
+							"title": "Scheduler activity",
+							"collapse": false,
+							"layout": {
+								"kind": "AutoGridLayout",
+								"spec": {
+									"maxColumnCount": 2,
+									"columnWidthMode": "standard",
+									"rowHeightMode": "standard",
+									"items": [
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-36"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-37"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-38"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-39"
 												}
 											}
 										}
@@ -12950,70 +12922,56 @@
 					{
 						"kind": "RowsLayoutRow",
 						"spec": {
-							"title": "V2 Migration & Telemetry",
+							"title": "Twitch clip permissions",
 							"collapse": false,
 							"layout": {
-								"kind": "RowsLayout",
+								"kind": "AutoGridLayout",
 								"spec": {
-									"rows": [
+									"maxColumnCount": 4,
+									"columnWidthMode": "narrow",
+									"rowHeightMode": "short",
+									"items": [
 										{
-											"kind": "RowsLayoutRow",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"hideHeader": true,
-												"collapse": false,
-												"layout": {
-													"kind": "AutoGridLayout",
-													"spec": {
-														"maxColumnCount": 4,
-														"columnWidthMode": "narrow",
-														"rowHeightMode": "short",
-														"items": [
-															{
-																"kind": "AutoGridLayoutItem",
-																"spec": {
-																	"element": {
-																		"kind": "ElementReference",
-																		"name": "panel-101"
-																	}
-																}
-															}
-														]
-													}
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-101"
+												}
+											}
+										}
+									]
+								}
+							}
+						}
+					},
+					{
+						"kind": "RowsLayoutRow",
+						"spec": {
+							"title": "Twitch API health",
+							"collapse": false,
+							"layout": {
+								"kind": "AutoGridLayout",
+								"spec": {
+									"maxColumnCount": 2,
+									"columnWidthMode": "standard",
+									"rowHeightMode": "standard",
+									"items": [
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-102"
 												}
 											}
 										},
 										{
-											"kind": "RowsLayoutRow",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"hideHeader": true,
-												"collapse": false,
-												"layout": {
-													"kind": "AutoGridLayout",
-													"spec": {
-														"maxColumnCount": 2,
-														"columnWidthMode": "standard",
-														"rowHeightMode": "standard",
-														"items": [
-															{
-																"kind": "AutoGridLayoutItem",
-																"spec": {
-																	"element": {
-																		"kind": "ElementReference",
-																		"name": "panel-102"
-																	}
-																}
-															},
-															{
-																"kind": "AutoGridLayoutItem",
-																"spec": {
-																	"element": {
-																		"kind": "ElementReference",
-																		"name": "panel-103"
-																	}
-																}
-															}
-														]
-													}
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-103"
 												}
 											}
 										}
