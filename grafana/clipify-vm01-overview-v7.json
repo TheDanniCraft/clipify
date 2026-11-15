@@ -127,8 +127,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "cache_backfillCompleteRatio"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?cache_backfillCompleteRatio(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"cache_backfillCompleteRatio\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -233,22 +233,10 @@
 									},
 									"color": {
 										"mode": "thresholds"
-									}
+									},
+									"displayName": "Accounts with clip download permission"
 								},
-								"overrides": [
-									{
-										"matcher": {
-											"id": "byName",
-											"options": "db_pingMs"
-										},
-										"properties": [
-											{
-												"id": "displayName",
-												"value": "DB Ping"
-											}
-										]
-									}
-								]
+								"overrides": []
 							}
 						}
 					}
@@ -427,7 +415,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:clips_fetches_v2TwitchApi|_value\\s*\\{[^}]*\\b_field=\"clips_fetches_v2TwitchApi\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?clips_fetches_v2TwitchApi(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"clips_fetches_v2TwitchApi\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -446,7 +434,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:clips_fetches_v1GraphQL|_value\\s*\\{[^}]*\\b_field=\"clips_fetches_v1GraphQL\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?clips_fetches_v1GraphQL(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"clips_fetches_v1GraphQL\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -465,7 +453,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:clips_fetches_v2FallbackGraphQL|_value\\s*\\{[^}]*\\b_field=\"clips_fetches_v2FallbackGraphQL\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?clips_fetches_v2FallbackGraphQL(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"clips_fetches_v2FallbackGraphQL\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -484,7 +472,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:clips_fetches_v2RateLimited|_value\\s*\\{[^}]*\\b_field=\"clips_fetches_v2RateLimited\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?clips_fetches_v2RateLimited(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"clips_fetches_v2RateLimited\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -628,8 +616,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "db_pingMs"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?db_pingMs(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"db_pingMs\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -664,8 +652,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "db_healthAggregationMs"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?db_healthAggregationMs(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"db_healthAggregationMs\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -814,8 +802,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "uptimeSec"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?uptimeSec(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"uptimeSec\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -941,8 +929,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "cache_backfillCompleteRatio"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?cache_backfillCompleteRatio(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"cache_backfillCompleteRatio\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -1069,8 +1057,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "cache_globalReadHitRate"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?cache_globalReadHitRate(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"cache_globalReadHitRate\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -1195,8 +1183,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "counts_users"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?counts_users(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"counts_users\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -1207,8 +1195,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "counts_usersFree"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?counts_usersFree(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"counts_usersFree\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -1219,8 +1207,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "counts_usersPaid"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?counts_usersPaid(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"counts_usersPaid\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -1345,8 +1333,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "counts_activeUsers24h"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?counts_activeUsers24h(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"counts_activeUsers24h\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -1357,8 +1345,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "counts_activeUsers7d"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?counts_activeUsers7d(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"counts_activeUsers7d\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -1369,8 +1357,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "counts_activeUsers30d"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?counts_activeUsers30d(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"counts_activeUsers30d\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -1495,8 +1483,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "galleries_total"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?galleries_total(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"galleries_total\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -1507,8 +1495,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "galleries_published"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?galleries_published(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"galleries_published\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -1519,8 +1507,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "galleries_draft"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?galleries_draft(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"galleries_draft\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -1531,8 +1519,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "galleries_orphanedCurated"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?galleries_orphanedCurated(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"galleries_orphanedCurated\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -1657,8 +1645,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "galleries_curated"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?galleries_curated(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"galleries_curated\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -1669,8 +1657,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "galleries_live"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?galleries_live(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"galleries_live\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -1681,8 +1669,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "galleries_byLayout_grid"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?galleries_byLayout_grid(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"galleries_byLayout_grid\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -1693,8 +1681,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "galleries_byLayout_list"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?galleries_byLayout_list(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"galleries_byLayout_list\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -1705,8 +1693,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "galleries_byLayout_carousel"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?galleries_byLayout_carousel(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"galleries_byLayout_carousel\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -1831,8 +1819,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "creatorPages_discoverable"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?creatorPages_discoverable(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"creatorPages_discoverable\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -1843,8 +1831,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "creatorPages_unlisted"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?creatorPages_unlisted(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"creatorPages_unlisted\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -1855,8 +1843,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "creatorPages_disabled"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?creatorPages_disabled(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"creatorPages_disabled\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -1867,8 +1855,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "creatorPages_showBio"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?creatorPages_showBio(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"creatorPages_showBio\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -1993,8 +1981,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "analyticsCache_valid"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?analyticsCache_valid(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"analyticsCache_valid\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -2005,8 +1993,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "analyticsCache_expired"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?analyticsCache_expired(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"analyticsCache_expired\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -2017,8 +2005,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "analyticsCache_apiFailures"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?analyticsCache_apiFailures(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"analyticsCache_apiFailures\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -2029,8 +2017,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "analyticsCache_rateLimited"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?analyticsCache_rateLimited(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"analyticsCache_rateLimited\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -2041,8 +2029,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "analyticsCache_staleFallbacks"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?analyticsCache_staleFallbacks(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"analyticsCache_staleFallbacks\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -2167,8 +2155,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "counts_overlaysActive"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?counts_overlaysActive(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"counts_overlaysActive\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -2179,8 +2167,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "counts_overlaysPaused"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?counts_overlaysPaused(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"counts_overlaysPaused\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -2191,8 +2179,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "counts_overlaysTotal"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?counts_overlaysTotal(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"counts_overlaysTotal\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -2317,8 +2305,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "counts_activeOverlayOwnersFree"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?counts_activeOverlayOwnersFree(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"counts_activeOverlayOwnersFree\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -2329,8 +2317,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "counts_activeOverlayOwnersPaid"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?counts_activeOverlayOwnersPaid(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"counts_activeOverlayOwnersPaid\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -2455,8 +2443,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "entitlements_activeGrantCount"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?entitlements_activeGrantCount(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"entitlements_activeGrantCount\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -2467,8 +2455,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "entitlements_activeGrantUsers"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?entitlements_activeGrantUsers(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"entitlements_activeGrantUsers\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -2479,8 +2467,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "entitlements_activeGrantUsersOnFree"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?entitlements_activeGrantUsersOnFree(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"entitlements_activeGrantUsersOnFree\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -2491,8 +2479,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "entitlements_effectiveProUsersEstimate"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?entitlements_effectiveProUsersEstimate(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"entitlements_effectiveProUsersEstimate\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -2617,8 +2605,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "entitlements_grantsBySource_promo"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?entitlements_grantsBySource_promo(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"entitlements_grantsBySource_promo\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -2629,8 +2617,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "entitlements_grantsBySource_reverse_trial"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?entitlements_grantsBySource_reverse_trial(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"entitlements_grantsBySource_reverse_trial\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -2641,8 +2629,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "entitlements_grantsBySource_support"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?entitlements_grantsBySource_support(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"entitlements_grantsBySource_support\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -2653,8 +2641,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "entitlements_grantsBySource_system"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?entitlements_grantsBySource_system(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"entitlements_grantsBySource_system\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -2779,8 +2767,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "entitlements_activeGrantUsers"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?entitlements_activeGrantUsers(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"entitlements_activeGrantUsers\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -2791,8 +2779,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "entitlements_effectiveProUsersEstimate"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?entitlements_effectiveProUsersEstimate(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"entitlements_effectiveProUsersEstimate\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -2803,8 +2791,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "entitlements_grantsByEntitlement_pro_access"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?entitlements_grantsByEntitlement_pro_access(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"entitlements_grantsByEntitlement_pro_access\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -2905,8 +2893,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "db_pingMs"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?db_pingMs(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"db_pingMs\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -3031,8 +3019,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "cache_globalReadHits"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?cache_globalReadHits(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"cache_globalReadHits\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -3043,8 +3031,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "cache_globalReadMisses"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?cache_globalReadMisses(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"cache_globalReadMisses\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -3055,8 +3043,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "cache_globalReadTotal"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?cache_globalReadTotal(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"cache_globalReadTotal\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -3067,8 +3055,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "cache_globalStaleHits"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?cache_globalStaleHits(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"cache_globalStaleHits\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -3204,7 +3192,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:mcp_calls_success_total|_value\\s*\\{[^}]*\\b_field=\"mcp_calls_success_total\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?mcp_calls_success_total(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"mcp_calls_success_total\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -3216,7 +3204,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:mcp_calls_denied_total|_value\\s*\\{[^}]*\\b_field=\"mcp_calls_denied_total\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?mcp_calls_denied_total(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"mcp_calls_denied_total\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -3228,7 +3216,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:mcp_calls_error_total|_value\\s*\\{[^}]*\\b_field=\"mcp_calls_error_total\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?mcp_calls_error_total(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"mcp_calls_error_total\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -3240,7 +3228,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:mcp_calls_cancelled_total|_value\\s*\\{[^}]*\\b_field=\"mcp_calls_cancelled_total\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?mcp_calls_cancelled_total(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"mcp_calls_cancelled_total\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -3822,8 +3810,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "cache_avatarEntries"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?cache_avatarEntries(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"cache_avatarEntries\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -3834,8 +3822,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "cache_clipEntries"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?cache_clipEntries(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"cache_clipEntries\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -3846,8 +3834,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "cache_gameEntries"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?cache_gameEntries(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"cache_gameEntries\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -3858,8 +3846,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "cache_entriesTotal"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?cache_entriesTotal(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"cache_entriesTotal\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -4186,8 +4174,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "cache_clipSyncStates"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?cache_clipSyncStates(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"cache_clipSyncStates\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -4198,8 +4186,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "cache_clipSyncComplete"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?cache_clipSyncComplete(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"cache_clipSyncComplete\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -4324,8 +4312,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "cache_staleValidatedClips"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?cache_staleValidatedClips(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"cache_staleValidatedClips\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -4336,8 +4324,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "cache_unavailableClips"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?cache_unavailableClips(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"cache_unavailableClips\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -4462,8 +4450,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "scheduler_clipCache_lastRunDurationMs"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?scheduler_clipCache_lastRunDurationMs(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"scheduler_clipCache_lastRunDurationMs\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -4588,8 +4576,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "scheduler_clipCache_batchSize"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?scheduler_clipCache_batchSize(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"scheduler_clipCache_batchSize\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -4600,8 +4588,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "scheduler_clipCache_lastRunOwnerCount"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?scheduler_clipCache_lastRunOwnerCount(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"scheduler_clipCache_lastRunOwnerCount\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -4726,8 +4714,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "scheduler_clipCache_totalRuns"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?scheduler_clipCache_totalRuns(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"scheduler_clipCache_totalRuns\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -4738,8 +4726,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "scheduler_clipCache_totalFailures"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?scheduler_clipCache_totalFailures(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"scheduler_clipCache_totalFailures\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -4864,8 +4852,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "scheduler_clipCache_totalFailures"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?scheduler_clipCache_totalFailures(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"scheduler_clipCache_totalFailures\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -4954,8 +4942,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "uptimeSec"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?uptimeSec(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"uptimeSec\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -5044,8 +5032,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "scheduler_clipCache_intervalMs"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?scheduler_clipCache_intervalMs(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"scheduler_clipCache_intervalMs\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -5134,8 +5122,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "scheduler_clipCache_lastRunOwnerCount"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?scheduler_clipCache_lastRunOwnerCount(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"scheduler_clipCache_lastRunOwnerCount\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -5224,8 +5212,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "counts_overlaysActive"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?counts_overlaysActive(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"counts_overlaysActive\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -5314,8 +5302,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "playlists_total"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?playlists_total(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"playlists_total\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -5404,8 +5392,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "queues_clipQueueDepth"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?queues_clipQueueDepth(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"queues_clipQueueDepth\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -5494,8 +5482,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "newsletter_optedIn"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?newsletter_optedIn(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"newsletter_optedIn\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -5620,8 +5608,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "auth_tokenRows"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?auth_tokenRows(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"auth_tokenRows\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -5632,8 +5620,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "auth_expiredTokens"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?auth_expiredTokens(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"auth_expiredTokens\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -5644,8 +5632,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "auth_expiringIn24h"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?auth_expiringIn24h(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"auth_expiringIn24h\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -5770,8 +5758,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "accounts_disabledAutomatic"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?accounts_disabledAutomatic(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"accounts_disabledAutomatic\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -5782,8 +5770,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "accounts_disabledManual"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?accounts_disabledManual(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"accounts_disabledManual\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -5794,8 +5782,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "accounts_disabledUsers"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?accounts_disabledUsers(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"accounts_disabledUsers\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -5806,8 +5794,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "accounts_neverLoggedIn"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?accounts_neverLoggedIn(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"accounts_neverLoggedIn\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -5932,8 +5920,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "accounts_disabledReasonCounts_invalid_refresh_token"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?accounts_disabledReasonCounts_invalid_refresh_token(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"accounts_disabledReasonCounts_invalid_refresh_token\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -6058,8 +6046,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "entitlements_activeGrantCount"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?entitlements_activeGrantCount(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"entitlements_activeGrantCount\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -6070,8 +6058,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "entitlements_activeGrantUsers"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?entitlements_activeGrantUsers(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"entitlements_activeGrantUsers\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -6082,8 +6070,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "entitlements_activeGrantUsersOnFree"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?entitlements_activeGrantUsersOnFree(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"entitlements_activeGrantUsersOnFree\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -6094,8 +6082,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "entitlements_effectiveProUsersEstimate"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?entitlements_effectiveProUsersEstimate(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"entitlements_effectiveProUsersEstimate\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -6184,8 +6172,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "counts_users"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?counts_users(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"counts_users\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -6310,8 +6298,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "overlayConfig_byPlaybackMode_order"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?overlayConfig_byPlaybackMode_order(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"overlayConfig_byPlaybackMode_order\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -6322,8 +6310,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "overlayConfig_byPlaybackMode_random"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?overlayConfig_byPlaybackMode_random(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"overlayConfig_byPlaybackMode_random\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -6334,8 +6322,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "overlayConfig_byPlaybackMode_smart_shuffle"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?overlayConfig_byPlaybackMode_smart_shuffle(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"overlayConfig_byPlaybackMode_smart_shuffle\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -6346,8 +6334,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "overlayConfig_byPlaybackMode_top"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?overlayConfig_byPlaybackMode_top(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"overlayConfig_byPlaybackMode_top\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -6472,8 +6460,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "overlayConfig_byType_1"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?overlayConfig_byType_1(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"overlayConfig_byType_1\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -6484,8 +6472,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "overlayConfig_byType_7"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?overlayConfig_byType_7(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"overlayConfig_byType_7\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -6496,8 +6484,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "overlayConfig_byType_30"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?overlayConfig_byType_30(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"overlayConfig_byType_30\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -6508,8 +6496,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "overlayConfig_byType_90"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?overlayConfig_byType_90(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"overlayConfig_byType_90\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -6520,8 +6508,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "overlayConfig_byType_180"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?overlayConfig_byType_180(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"overlayConfig_byType_180\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -6532,8 +6520,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "overlayConfig_byType_365"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?overlayConfig_byType_365(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"overlayConfig_byType_365\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -6544,8 +6532,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "overlayConfig_byType_All"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?overlayConfig_byType_All(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"overlayConfig_byType_All\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -6556,8 +6544,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "overlayConfig_byType_Featured"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?overlayConfig_byType_Featured(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"overlayConfig_byType_Featured\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -6568,8 +6556,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "overlayConfig_byType_Playlist"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?overlayConfig_byType_Playlist(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"overlayConfig_byType_Playlist\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -6580,8 +6568,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "overlayConfig_byType_Queue"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?overlayConfig_byType_Queue(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"overlayConfig_byType_Queue\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -6706,8 +6694,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "playlists_total"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?playlists_total(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"playlists_total\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -6718,8 +6706,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "playlists_nonEmpty"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?playlists_nonEmpty(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"playlists_nonEmpty\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -6730,8 +6718,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "playlists_empty"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?playlists_empty(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"playlists_empty\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -6742,8 +6730,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "playlists_clipRows"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?playlists_clipRows(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"playlists_clipRows\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -6754,8 +6742,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "playlists_avgClipsPerPlaylist"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?playlists_avgClipsPerPlaylist(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"playlists_avgClipsPerPlaylist\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -6880,8 +6868,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "playlists_overlaysWithPlaylist"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?playlists_overlaysWithPlaylist(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"playlists_overlaysWithPlaylist\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -6892,8 +6880,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "playlists_activeOverlaysWithPlaylist"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?playlists_activeOverlaysWithPlaylist(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"playlists_activeOverlaysWithPlaylist\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -7018,8 +7006,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "rewards_overlaysWithReward"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?rewards_overlaysWithReward(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"rewards_overlaysWithReward\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -7030,8 +7018,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "rewards_activeOverlaysWithReward"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?rewards_activeOverlaysWithReward(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"rewards_activeOverlaysWithReward\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -7042,8 +7030,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "rewards_ownersWithReward"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?rewards_ownersWithReward(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"rewards_ownersWithReward\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -7054,8 +7042,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "rewards_uniqueRewardIds"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?rewards_uniqueRewardIds(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"rewards_uniqueRewardIds\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -7180,8 +7168,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "queues_clipQueueDepth"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?queues_clipQueueDepth(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"queues_clipQueueDepth\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -7192,8 +7180,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "queues_modQueueDepth"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?queues_modQueueDepth(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"queues_modQueueDepth\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -7318,8 +7306,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "newsletter_optedIn"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?newsletter_optedIn(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"newsletter_optedIn\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -7330,8 +7318,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "newsletter_optedOut"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?newsletter_optedOut(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"newsletter_optedOut\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -7342,8 +7330,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "newsletter_settingsRows"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?newsletter_settingsRows(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"newsletter_settingsRows\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -7468,8 +7456,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "newsletter_consentSourceCounts_external_usesend_sync_optout"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?newsletter_consentSourceCounts_external_usesend_sync_optout(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"newsletter_consentSourceCounts_external_usesend_sync_optout\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -7480,8 +7468,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "newsletter_consentSourceCounts_settings_page_explicit_optin"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?newsletter_consentSourceCounts_settings_page_explicit_optin(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"newsletter_consentSourceCounts_settings_page_explicit_optin\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -7492,8 +7480,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "newsletter_consentSourceCounts_settings_page_optout"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?newsletter_consentSourceCounts_settings_page_optout(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"newsletter_consentSourceCounts_settings_page_optout\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -7504,8 +7492,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "newsletter_consentSourceCounts_soft_opt_in_default"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?newsletter_consentSourceCounts_soft_opt_in_default(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"newsletter_consentSourceCounts_soft_opt_in_default\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -7630,8 +7618,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "newsletter_optedOutSourceCounts_external_usesend_sync_optout"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?newsletter_optedOutSourceCounts_external_usesend_sync_optout(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"newsletter_optedOutSourceCounts_external_usesend_sync_optout\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -7642,8 +7630,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "newsletter_optedOutSourceCounts_settings_page_optout"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?newsletter_optedOutSourceCounts_settings_page_optout(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"newsletter_optedOutSourceCounts_settings_page_optout\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -7768,8 +7756,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "scheduler_clipCache_lastRunDurationMs"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?scheduler_clipCache_lastRunDurationMs(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"scheduler_clipCache_lastRunDurationMs\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -7780,8 +7768,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "scheduler_clipCache_batchSize"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?scheduler_clipCache_batchSize(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"scheduler_clipCache_batchSize\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -7792,8 +7780,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "scheduler_clipCache_lastRunOwnerCount"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?scheduler_clipCache_lastRunOwnerCount(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"scheduler_clipCache_lastRunOwnerCount\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -7882,8 +7870,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "counts_usersPaid"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?counts_usersPaid(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"counts_usersPaid\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8008,8 +7996,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "runners_total"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?runners_total(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"runners_total\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8020,8 +8008,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "runners_online"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?runners_online(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"runners_online\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8032,8 +8020,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "runners_offline"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?runners_offline(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"runners_offline\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8044,8 +8032,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "runners_owners"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?runners_owners(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"runners_owners\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8170,8 +8158,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "runners_streamSessionsTotal"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?runners_streamSessionsTotal(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"runners_streamSessionsTotal\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8182,8 +8170,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "runners_streamsDesiredRunning"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?runners_streamsDesiredRunning(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"runners_streamsDesiredRunning\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8194,8 +8182,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "runners_streamsActuallyRunning"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?runners_streamsActuallyRunning(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"runners_streamsActuallyRunning\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8206,8 +8194,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "runners_streamsErrored"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?runners_streamsErrored(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"runners_streamsErrored\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8332,8 +8320,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "runners_byMode_24/7"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?runners_byMode_24/7(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"runners_byMode_24/7\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8344,8 +8332,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "runners_byMode_failsafe"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?runners_byMode_failsafe(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"runners_byMode_failsafe\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8356,8 +8344,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "runners_byDestination_youtube"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?runners_byDestination_youtube(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"runners_byDestination_youtube\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8368,8 +8356,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "runners_byDestination_twitch"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?runners_byDestination_twitch(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"runners_byDestination_twitch\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8380,8 +8368,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "runners_byDestination_custom"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?runners_byDestination_custom(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"runners_byDestination_custom\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8506,8 +8494,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "runners_byModeAndDestination_24/7_youtube"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?runners_byModeAndDestination_24/7_youtube(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"runners_byModeAndDestination_24/7_youtube\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8518,8 +8506,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "runners_byModeAndDestination_24/7_twitch"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?runners_byModeAndDestination_24/7_twitch(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"runners_byModeAndDestination_24/7_twitch\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8530,8 +8518,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "runners_byModeAndDestination_24/7_custom"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?runners_byModeAndDestination_24/7_custom(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"runners_byModeAndDestination_24/7_custom\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8542,8 +8530,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "runners_byModeAndDestination_failsafe_youtube"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?runners_byModeAndDestination_failsafe_youtube(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"runners_byModeAndDestination_failsafe_youtube\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8554,8 +8542,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "runners_byModeAndDestination_failsafe_twitch"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?runners_byModeAndDestination_failsafe_twitch(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"runners_byModeAndDestination_failsafe_twitch\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8566,8 +8554,8 @@
 									},
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "runners_byModeAndDestination_failsafe_custom"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?runners_byModeAndDestination_failsafe_custom(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"runners_byModeAndDestination_failsafe_custom\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8656,8 +8644,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "counts_usersFree"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?counts_usersFree(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"counts_usersFree\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8746,8 +8734,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "entitlements_activeGrantUsers"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?entitlements_activeGrantUsers(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"entitlements_activeGrantUsers\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8861,8 +8849,8 @@
 								"overrides": [
 									{
 										"matcher": {
-											"id": "byName",
-											"options": "cache_globalReadHitRate"
+											"id": "byRegexp",
+											"options": "^(?:(?:_value\\s+)?cache_globalReadHitRate(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"cache_globalReadHitRate\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8937,7 +8925,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:clips_fallbackReasons_missingCredentials|_value\\s*\\{[^}]*\\b_field=\"clips_fallbackReasons_missingCredentials\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?clips_fallbackReasons_missingCredentials(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"clips_fallbackReasons_missingCredentials\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8949,7 +8937,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:clips_fallbackReasons_disabledAccount|_value\\s*\\{[^}]*\\b_field=\"clips_fallbackReasons_disabledAccount\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?clips_fallbackReasons_disabledAccount(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"clips_fallbackReasons_disabledAccount\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8961,7 +8949,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:clips_fallbackReasons_refreshFailed|_value\\s*\\{[^}]*\\b_field=\"clips_fallbackReasons_refreshFailed\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?clips_fallbackReasons_refreshFailed(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"clips_fallbackReasons_refreshFailed\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8973,7 +8961,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:clips_fallbackReasons_missingScope|_value\\s*\\{[^}]*\\b_field=\"clips_fallbackReasons_missingScope\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?clips_fallbackReasons_missingScope(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"clips_fallbackReasons_missingScope\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8985,7 +8973,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:clips_fallbackReasons_apiRejected|_value\\s*\\{[^}]*\\b_field=\"clips_fallbackReasons_apiRejected\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?clips_fallbackReasons_apiRejected(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"clips_fallbackReasons_apiRejected\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -8997,7 +8985,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:clips_fallbackReasons_apiError|_value\\s*\\{[^}]*\\b_field=\"clips_fallbackReasons_apiError\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?clips_fallbackReasons_apiError(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"clips_fallbackReasons_apiError\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9009,7 +8997,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:clips_fallbackReasons_rateLimited|_value\\s*\\{[^}]*\\b_field=\"clips_fallbackReasons_rateLimited\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?clips_fallbackReasons_rateLimited(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"clips_fallbackReasons_rateLimited\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9021,7 +9009,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:clips_fallbackReasons_emptyResponse|_value\\s*\\{[^}]*\\b_field=\"clips_fallbackReasons_emptyResponse\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?clips_fallbackReasons_emptyResponse(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"clips_fallbackReasons_emptyResponse\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9096,7 +9084,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:mcp_requests_status_2xx_total|_value\\s*\\{[^}]*\\b_field=\"mcp_requests_status_2xx_total\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?mcp_requests_status_2xx_total(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"mcp_requests_status_2xx_total\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9108,7 +9096,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:mcp_requests_status_3xx_total|_value\\s*\\{[^}]*\\b_field=\"mcp_requests_status_3xx_total\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?mcp_requests_status_3xx_total(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"mcp_requests_status_3xx_total\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9120,7 +9108,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:mcp_requests_status_4xx_total|_value\\s*\\{[^}]*\\b_field=\"mcp_requests_status_4xx_total\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?mcp_requests_status_4xx_total(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"mcp_requests_status_4xx_total\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9132,7 +9120,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:mcp_requests_status_5xx_total|_value\\s*\\{[^}]*\\b_field=\"mcp_requests_status_5xx_total\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?mcp_requests_status_5xx_total(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"mcp_requests_status_5xx_total\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9207,7 +9195,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:crawler_dueRecent|_value\\s*\\{[^}]*\\b_field=\"crawler_dueRecent\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?crawler_dueRecent(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"crawler_dueRecent\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9219,7 +9207,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:crawler_dueBackfill|_value\\s*\\{[^}]*\\b_field=\"crawler_dueBackfill\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?crawler_dueBackfill(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"crawler_dueBackfill\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9294,7 +9282,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:crawler_runningRecent|_value\\s*\\{[^}]*\\b_field=\"crawler_runningRecent\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?crawler_runningRecent(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"crawler_runningRecent\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9306,7 +9294,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:crawler_runningBackfill|_value\\s*\\{[^}]*\\b_field=\"crawler_runningBackfill\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?crawler_runningBackfill(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"crawler_runningBackfill\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9381,7 +9369,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:crawler_oldestDueAgeSeconds|_value\\s*\\{[^}]*\\b_field=\"crawler_oldestDueAgeSeconds\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?crawler_oldestDueAgeSeconds(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"crawler_oldestDueAgeSeconds\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9393,7 +9381,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:crawler_oldestManualWaitSeconds|_value\\s*\\{[^}]*\\b_field=\"crawler_oldestManualWaitSeconds\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?crawler_oldestManualWaitSeconds(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"crawler_oldestManualWaitSeconds\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9468,7 +9456,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:crawler_retrying|_value\\s*\\{[^}]*\\b_field=\"crawler_retrying\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?crawler_retrying(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"crawler_retrying\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9480,7 +9468,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:crawler_expiredLeases|_value\\s*\\{[^}]*\\b_field=\"crawler_expiredLeases\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?crawler_expiredLeases(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"crawler_expiredLeases\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9492,7 +9480,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:crawler_manualPending|_value\\s*\\{[^}]*\\b_field=\"crawler_manualPending\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?crawler_manualPending(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"crawler_manualPending\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9567,7 +9555,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:notifications_duePending|_value\\s*\\{[^}]*\\b_field=\"notifications_duePending\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?notifications_duePending(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"notifications_duePending\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9579,7 +9567,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:notifications_dueRetry|_value\\s*\\{[^}]*\\b_field=\"notifications_dueRetry\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?notifications_dueRetry(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"notifications_dueRetry\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9654,7 +9642,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:notifications_claimed|_value\\s*\\{[^}]*\\b_field=\"notifications_claimed\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?notifications_claimed(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"notifications_claimed\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9666,7 +9654,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:notifications_expiredClaims|_value\\s*\\{[^}]*\\b_field=\"notifications_expiredClaims\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?notifications_expiredClaims(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"notifications_expiredClaims\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9678,7 +9666,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:notifications_failed|_value\\s*\\{[^}]*\\b_field=\"notifications_failed\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?notifications_failed(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"notifications_failed\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9690,7 +9678,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:notifications_skipped|_value\\s*\\{[^}]*\\b_field=\"notifications_skipped\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?notifications_skipped(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"notifications_skipped\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9765,7 +9753,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:notifications_oldestDueAgeSeconds|_value\\s*\\{[^}]*\\b_field=\"notifications_oldestDueAgeSeconds\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?notifications_oldestDueAgeSeconds(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"notifications_oldestDueAgeSeconds\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9840,7 +9828,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:notifications_scheduledPending|_value\\s*\\{[^}]*\\b_field=\"notifications_scheduledPending\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?notifications_scheduledPending(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"notifications_scheduledPending\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9852,7 +9840,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:notifications_scheduledRetry|_value\\s*\\{[^}]*\\b_field=\"notifications_scheduledRetry\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?notifications_scheduledRetry(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"notifications_scheduledRetry\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9933,7 +9921,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:onboarding_startedAccounts|_value\\s*\\{[^}]*\\b_field=\"onboarding_startedAccounts\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?onboarding_startedAccounts(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"onboarding_startedAccounts\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9952,7 +9940,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:onboarding_inProgressAccounts|_value\\s*\\{[^}]*\\b_field=\"onboarding_inProgressAccounts\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?onboarding_inProgressAccounts(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"onboarding_inProgressAccounts\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9971,7 +9959,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:onboarding_sections_overlay_completedAccounts|_value\\s*\\{[^}]*\\b_field=\"onboarding_sections_overlay_completedAccounts\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?onboarding_sections_overlay_completedAccounts(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"onboarding_sections_overlay_completedAccounts\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -9990,7 +9978,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:onboarding_invalidProgressAccounts|_value\\s*\\{[^}]*\\b_field=\"onboarding_invalidProgressAccounts\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?onboarding_invalidProgressAccounts(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"onboarding_invalidProgressAccounts\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -10093,7 +10081,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:onboarding_overlayLinkCopiedAccounts|_value\\s*\\{[^}]*\\b_field=\"onboarding_overlayLinkCopiedAccounts\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?onboarding_overlayLinkCopiedAccounts(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"onboarding_overlayLinkCopiedAccounts\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -10183,7 +10171,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:onboarding_sections_overlay_completionRate|_value\\s*\\{[^}]*\\b_field=\"onboarding_sections_overlay_completionRate\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?onboarding_sections_overlay_completionRate(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"onboarding_sections_overlay_completionRate\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -10273,7 +10261,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:onboarding_averageProgress|_value\\s*\\{[^}]*\\b_field=\"onboarding_averageProgress\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?onboarding_averageProgress(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"onboarding_averageProgress\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -10348,7 +10336,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:onboarding_startedAccounts|_value\\s*\\{[^}]*\\b_field=\"onboarding_startedAccounts\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?onboarding_startedAccounts(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"onboarding_startedAccounts\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -10367,7 +10355,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:onboarding_inProgressAccounts|_value\\s*\\{[^}]*\\b_field=\"onboarding_inProgressAccounts\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?onboarding_inProgressAccounts(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"onboarding_inProgressAccounts\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -10386,7 +10374,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:onboarding_sections_overlay_completedAccounts|_value\\s*\\{[^}]*\\b_field=\"onboarding_sections_overlay_completedAccounts\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?onboarding_sections_overlay_completedAccounts(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"onboarding_sections_overlay_completedAccounts\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -10470,7 +10458,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:onboarding_sections_overlay_completionRate|_value\\s*\\{[^}]*\\b_field=\"onboarding_sections_overlay_completionRate\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?onboarding_sections_overlay_completionRate(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"onboarding_sections_overlay_completionRate\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -10482,7 +10470,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:onboarding_sections_appearance_completionRate|_value\\s*\\{[^}]*\\b_field=\"onboarding_sections_appearance_completionRate\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?onboarding_sections_appearance_completionRate(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"onboarding_sections_appearance_completionRate\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -10494,7 +10482,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:onboarding_sections_playlist_completionRate|_value\\s*\\{[^}]*\\b_field=\"onboarding_sections_playlist_completionRate\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?onboarding_sections_playlist_completionRate(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"onboarding_sections_playlist_completionRate\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -10506,7 +10494,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:onboarding_sections_explore_completionRate|_value\\s*\\{[^}]*\\b_field=\"onboarding_sections_explore_completionRate\"[^}]*\\})$"
+											"options": "^(?:(?:_value\\s+)?onboarding_sections_explore_completionRate(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"onboarding_sections_explore_completionRate\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -10828,7 +10816,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:_value )?conversion_signups30d(?: \\{.*\\})?$"
+											"options": "^(?:(?:_value\\s+)?conversion_signups30d(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"conversion_signups30d\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -10840,7 +10828,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:_value )?conversion_activated30d(?: \\{.*\\})?$"
+											"options": "^(?:(?:_value\\s+)?conversion_activated30d(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"conversion_activated30d\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -10852,7 +10840,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:_value )?conversion_checkoutCreators30d(?: \\{.*\\})?$"
+											"options": "^(?:(?:_value\\s+)?conversion_checkoutCreators30d(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"conversion_checkoutCreators30d\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -10864,7 +10852,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:_value )?conversion_paidCreators30d(?: \\{.*\\})?$"
+											"options": "^(?:(?:_value\\s+)?conversion_paidCreators30d(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"conversion_paidCreators30d\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -10990,7 +10978,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:_value )?conversion_mature7dCreators(?: \\{.*\\})?$"
+											"options": "^(?:(?:_value\\s+)?conversion_mature7dCreators(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"conversion_mature7dCreators\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -11002,7 +10990,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:_value )?conversion_activatedWithin7d(?: \\{.*\\})?$"
+											"options": "^(?:(?:_value\\s+)?conversion_activatedWithin7d(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"conversion_activatedWithin7d\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -11128,7 +11116,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:_value )?analyticsCache_deliveryAttempts(?: \\{.*\\})?$"
+											"options": "^(?:(?:_value\\s+)?analyticsCache_deliveryAttempts(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"analyticsCache_deliveryAttempts\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -11140,7 +11128,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:_value )?analyticsCache_deliverySucceeded(?: \\{.*\\})?$"
+											"options": "^(?:(?:_value\\s+)?analyticsCache_deliverySucceeded(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"analyticsCache_deliverySucceeded\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -11152,7 +11140,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:_value )?analyticsCache_deliveryFailed(?: \\{.*\\})?$"
+											"options": "^(?:(?:_value\\s+)?analyticsCache_deliveryFailed(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"analyticsCache_deliveryFailed\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -11164,7 +11152,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:_value )?analyticsCache_deliveryRetries(?: \\{.*\\})?$"
+											"options": "^(?:(?:_value\\s+)?analyticsCache_deliveryRetries(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"analyticsCache_deliveryRetries\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -11290,7 +11278,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:_value )?conversion_operations_checkoutRequested(?: \\{.*\\})?$"
+											"options": "^(?:(?:_value\\s+)?conversion_operations_checkoutRequested(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"conversion_operations_checkoutRequested\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -11302,7 +11290,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:_value )?conversion_operations_checkoutCreated(?: \\{.*\\})?$"
+											"options": "^(?:(?:_value\\s+)?conversion_operations_checkoutCreated(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"conversion_operations_checkoutCreated\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -11314,7 +11302,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:_value )?conversion_operations_checkoutUnavailable(?: \\{.*\\})?$"
+											"options": "^(?:(?:_value\\s+)?conversion_operations_checkoutUnavailable(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"conversion_operations_checkoutUnavailable\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -11326,7 +11314,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:_value )?conversion_operations_checkoutAlreadyOwned(?: \\{.*\\})?$"
+											"options": "^(?:(?:_value\\s+)?conversion_operations_checkoutAlreadyOwned(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"conversion_operations_checkoutAlreadyOwned\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -11452,7 +11440,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:_value )?billing_payingSubscriptions(?: \\{.*\\})?$"
+											"options": "^(?:(?:_value\\s+)?billing_payingSubscriptions(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"billing_payingSubscriptions\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -11464,7 +11452,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:_value )?billing_trialSubscriptions(?: \\{.*\\})?$"
+											"options": "^(?:(?:_value\\s+)?billing_trialSubscriptions(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"billing_trialSubscriptions\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -11476,7 +11464,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:_value )?billing_paymentProblemSubscriptions(?: \\{.*\\})?$"
+											"options": "^(?:(?:_value\\s+)?billing_paymentProblemSubscriptions(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"billing_paymentProblemSubscriptions\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -11488,7 +11476,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:_value )?billing_cancelingSubscriptions(?: \\{.*\\})?$"
+											"options": "^(?:(?:_value\\s+)?billing_cancelingSubscriptions(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"billing_cancelingSubscriptions\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -11614,7 +11602,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:_value )?conversion_operations_analyticsConsentExcluded(?: \\{.*\\})?$"
+											"options": "^(?:(?:_value\\s+)?conversion_operations_analyticsConsentExcluded(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"conversion_operations_analyticsConsentExcluded\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -11626,7 +11614,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:_value )?conversion_operations_authSessionCreated(?: \\{.*\\})?$"
+											"options": "^(?:(?:_value\\s+)?conversion_operations_authSessionCreated(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"conversion_operations_authSessionCreated\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -11638,7 +11626,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:_value )?conversion_operations_webhookReceived(?: \\{.*\\})?$"
+											"options": "^(?:(?:_value\\s+)?conversion_operations_webhookReceived(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"conversion_operations_webhookReceived\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -11650,7 +11638,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:_value )?conversion_operations_webhookProcessed(?: \\{.*\\})?$"
+											"options": "^(?:(?:_value\\s+)?conversion_operations_webhookProcessed(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"conversion_operations_webhookProcessed\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -11662,7 +11650,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:_value )?conversion_operations_webhookFailed(?: \\{.*\\})?$"
+											"options": "^(?:(?:_value\\s+)?conversion_operations_webhookFailed(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"conversion_operations_webhookFailed\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -11788,7 +11776,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:_value )?conversion_webhooks_failed(?: \\{.*\\})?$"
+											"options": "^(?:(?:_value\\s+)?conversion_webhooks_failed(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"conversion_webhooks_failed\"[^}]*\\})$"
 										},
 										"properties": [
 											{
@@ -11800,7 +11788,7 @@
 									{
 										"matcher": {
 											"id": "byRegexp",
-											"options": "^(?:_value )?conversion_webhooks_staleProcessing(?: \\{.*\\})?$"
+											"options": "^(?:(?:_value\\s+)?conversion_webhooks_staleProcessing(?:\\s*\\{[^}]*\\})?|_value\\s*\\{[^}]*\\b_field=\"conversion_webhooks_staleProcessing\"[^}]*\\})$"
 										},
 										"properties": [
 											{

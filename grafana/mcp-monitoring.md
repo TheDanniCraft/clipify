@@ -15,6 +15,11 @@ Conversion and measurement health, and Onboarding guides appear first, followed
 by account, system and product operations. Newsletter and Twitch API health
 remain available near the bottom.
 
+Series labels match both bare metric names and Influx names carrying host, URL
+or query-range tags. Legends show names such as "Ready for first attempt" and
+"Clip history" instead of collector keys. The tags remain in the query results
+for inspection; label formatting does not change aggregation or replica handling.
+
 ## Data sources
 
 Historical charts use the existing InfluxDB datasource `efg3es37pgh6ob`, bucket

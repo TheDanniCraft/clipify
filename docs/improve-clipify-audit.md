@@ -318,7 +318,7 @@ clips. It reports a missing/failed lookup as unavailable with retry, preserving
 a real zero as zero. These are clips on Clipify, not all-time Twitch totals;
 no stream count, followers or other unverified statistics are invented.
 
-The live Grafana dashboard remains v6 (version 22, last updated October 31).
+At the original live audit, Grafana was on v6 (version 22, last updated October 31).
 The complete v7 export now uses automatic grids in every section, without fixed
 panel positions or custom dimensions. Conversion and onboarding follow Executive
 Summary; newsletter and Twitch API health appear near the bottom. All 93 panels
@@ -330,6 +330,13 @@ use flat, explicitly named sections for metrics and activity charts. There are n
 hidden or nested rows that appear as "New row" in Grafana's editor. Chart
 sections use two columns so their plots and legends remain readable. Existing
 visualization options and font settings are unchanged.
+
+A series-label audit found that exact-name rules and several older regular
+expressions missed metric names followed by Influx host/URL tags. Updated all 224
+static metric label matchers to accept tagged numeric fields and the `_value`
+format, while rejecting metadata fields and similarly named metrics. Corrected
+the clip-permission gauge's unrelated DB Ping override. Queries, series values,
+aggregation, layout and visualization sizing remain unchanged by this label fix.
 Prepared v7 already adds rolling creator outcomes, mature first-week activation,
 Umami delivery, checkout operations, subscription states and webhook processing.
 Import it after its app fields are released and scraped. Adding more charts before
