@@ -14,8 +14,25 @@ export const tiers: Tier[] = [
 		featured: false,
 		mostPopular: false,
 		description: "Everything you need to get your clips on stream and online.",
-		summaryFeatures: ["Unlimited Twitch clips", "One overlay and one 50-clip playlist", "One branded website gallery", "A shareable Creator Page", "Basic website Clip Player", "Manual Runner with unlimited hours"],
-		features: ["Unlimited clips", "One overlay", "One playlist (up to 50 clips)", "One branded clip gallery (up to 50 live clips)", "Shareable Creator Page for your Twitch clips", "Playlist overlay type", "Manual playlist curation", "Plug & Play setup", "Random playback mode", "Basic clip filtering", "Keeps your stream entertained", "Basic clip player for embedding in websites", "AI assistant access (MCP)", "Manual Runner broadcasting with unlimited hours"],
+		summaryFeatures: ["Unlimited Twitch clips", "Clip exports and reusable layouts", "One overlay and one 50-clip playlist", "One branded gallery and a Creator Page", "Basic website Clip Player", "Manual Runner with unlimited hours"],
+		features: [
+			"Unlimited clips",
+			"Original, Desktop and Mobile clip exports",
+			"Reusable clip layouts and shared brand styling",
+			"One overlay",
+			"One playlist (up to 50 clips)",
+			"One branded clip gallery (up to 50 live clips)",
+			"Shareable Creator Page for your Twitch clips",
+			"Playlist overlay type",
+			"Manual playlist curation",
+			"Plug & Play setup",
+			"Random playback mode",
+			"Basic clip filtering",
+			"Keeps your stream entertained",
+			"Basic clip player for embedding in websites",
+			"AI assistant access (MCP)",
+			"Manual Runner broadcasting with unlimited hours",
+		],
 		buttonText: "Start for Free",
 	},
 	{
@@ -32,7 +49,7 @@ export const tiers: Tier[] = [
 			[FrequencyEnum.Yearly]: "10 EUR",
 		},
 		featured: false,
-		summaryFeatures: ["Unlimited overlays, playlists, and galleries", "Advanced filters and playback modes", "Theme Studio and website customization", "Remote controls, chat, and channel points", "Editors and managers", "Creator analytics, exports, and advanced Runner"],
+		summaryFeatures: ["Unlimited overlays, playlists, and galleries", "Advanced filters and playback modes", "Theme Studio and website customization", "Remote controls, chat, and channel points", "Editors and managers", "Creator analytics and advanced Runner"],
 		personalNote: "Your subscription directly supports an independent developer building Clipify.",
 		features: [
 			"Everything in Free",
@@ -70,6 +87,8 @@ export const runnerIncluded = {
 	description: "Broadcast clips from your computer or play them automatically when your live feed goes offline.",
 	availability: "Included with Free and Pro",
 };
+
+const featureOrder = ["Overlays and playlists", "Clips and playback", "Customization and support", "Collaboration and live control", "Websites and galleries", "Creator Page and analytics", "Runner and broadcasting"];
 
 export const pricingFeatures: PricingFeatures = [
 	{
@@ -153,4 +172,4 @@ export const pricingFeatures: PricingFeatures = [
 			{ title: "Beta and upcoming features", tiers: { free: false, pro: true }, helpText: "Get access to selected beta capabilities and upcoming Pro features as they become available." },
 		],
 	},
-];
+].sort((left, right) => featureOrder.indexOf(left.title) - featureOrder.indexOf(right.title));

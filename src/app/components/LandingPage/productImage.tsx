@@ -8,9 +8,11 @@ import overlayMobile from "../../../../public/product/overlay-mobile.webp";
 import controls from "../../../../public/product/controls.webp";
 import controlsMobile from "../../../../public/product/controls-mobile.webp";
 import selection from "../../../../public/product/selection.webp";
+import exportsImage from "../../../../public/product/exports.webp";
 import broadcast from "../../../../public/product/broadcast.webp";
 
 const productImages = {
+	exports: { alt: "Clipify export options with Original, Desktop and Mobile versions and a saved layout selected", desktop: exportsImage, mobile: null },
 	theme: { alt: "Theme Studio typography and background color controls with the color picker open", desktop: theme, mobile: themeMobile },
 	playlist: { alt: "Clipify playlist editor with selected clips and saved playlist controls", desktop: playlist, mobile: playlistMobile },
 	overlay: { alt: "Clipify overlay settings with a saved playlist and playback options", desktop: overlay, mobile: overlayMobile },
@@ -22,7 +24,7 @@ const productImages = {
 export default function ProductImage({ view, className = "" }: { view: keyof typeof productImages; className?: string }) {
 	const image = productImages[view];
 	return (
-		<picture className={`block min-w-0 overflow-hidden rounded-xl ${className}`}>
+		<picture className={`block min-w-0 overflow-hidden rounded-3xl ${className}`}>
 			{image.mobile && <source media='(max-width: 480px)' srcSet={`${image.mobile.src} 3x`} width={image.mobile.width} height={image.mobile.height} />}
 			<Image unoptimized src={image.desktop} alt={image.alt} sizes={view === "broadcast" ? "(max-width: 1024px) 100vw, 720px" : "(max-width: 767px) 100vw, (max-width: 1024px) 50vw, 768px"} loading='lazy' className='h-auto w-full' />
 		</picture>

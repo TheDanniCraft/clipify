@@ -1,4 +1,6 @@
 "use client";
+
+import { trackProductEvent } from "@lib/analytics";
 import { Button, Link, Separator, cn } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
 import React from "react";
@@ -61,17 +63,17 @@ const BasicNavbar = React.forwardRef<HTMLElement, BasicNavbarProps>(({ className
 	}, [isMenuOpen]);
 
 	return (
-		<nav ref={ref} {...props} className={cn("sticky top-0 z-40 w-full bg-brand-900/95 backdrop-blur-lg backdrop-saturate-150 transition-transform duration-300", isMenuOpen && "bg-brand-900", isHidden && "-translate-y-full", classNames.base, className)}>
+		<nav ref={ref} {...props} className={cn("sticky top-0 z-40 w-full bg-background/95 backdrop-blur-lg backdrop-saturate-150 transition-transform duration-300", isMenuOpen && "bg-background", isHidden && "-translate-y-full", classNames.base, className)}>
 			<header className={cn("mx-auto flex h-[60px] w-full max-w-[1024px] items-center justify-between px-8", classNames.wrapper)}>
 				<Link href='/' className='flex items-center'>
 					<Logo size={34} />
-					<span className='ml-2 text-lg font-bold text-white'>Clipify</span>
+					<span className='ml-2 text-lg font-bold text-foreground'>Clipify</span>
 				</Link>
 
 				<ul className='hidden items-center justify-center gap-4 md:flex'>
 					{menuItems.map((item) => (
-						<li className={cn("text-white", classNames.item)} key={item.href}>
-							<Link className='text-sm font-bold text-white' href={item.href}>
+						<li className={cn("text-foreground", classNames.item)} key={item.href}>
+							<Link className='text-sm font-bold text-foreground' href={item.href}>
 								{item.name}
 							</Link>
 						</li>
@@ -79,22 +81,22 @@ const BasicNavbar = React.forwardRef<HTMLElement, BasicNavbarProps>(({ className
 				</ul>
 
 				<div className='ml-2 hidden items-center gap-2 md:flex'>
-					<Link className={cn(buttonVariants({ variant: "ghost" }), "text-white")} href='/login'>
+					<Link className={cn(buttonVariants({ variant: "ghost" }), "text-foreground")} href='/login'>
 						Login
 					</Link>
-					<Link className={buttonVariants({ variant: "primary", className: "gap-2 bg-accent-foreground text-black hover:bg-accent-foreground/90" })} href='/login'>
+					<Link className={buttonVariants({ variant: "primary", className: "gap-2" })} href='/login' onPress={() => trackProductEvent("marketing_cta_click", { placement: "navbar", action: "start_free" })}>
 						Start free
 						<IconChevronRight />
 					</Link>
 				</div>
 
-				<Button ref={menuButtonRef} type='button' isIconOnly variant='ghost' className='text-white md:hidden' aria-expanded={isMenuOpen} aria-controls={isMenuOpen ? "public-mobile-navigation" : undefined} aria-label='Toggle navigation menu' onPress={() => setIsMenuOpen((open) => !open)}>
+				<Button ref={menuButtonRef} type='button' isIconOnly variant='ghost' className='text-foreground md:hidden' aria-expanded={isMenuOpen} aria-controls={isMenuOpen ? "public-mobile-navigation" : undefined} aria-label='Toggle navigation menu' onPress={() => setIsMenuOpen((open) => !open)}>
 					{isMenuOpen ? <IconX /> : <IconMenu2 />}
 				</Button>
 			</header>
 
 			{isMenuOpen ? (
-				<div id='public-mobile-navigation' className='max-h-fit bg-brand-900 pb-6 pt-6 shadow-medium md:hidden'>
+				<div id='public-mobile-navigation' className='max-h-fit bg-background pb-6 pt-6 shadow-medium md:hidden'>
 					<ul className='flex flex-col gap-2 px-4'>
 						<li>
 							<Link href='/login' onPress={() => setIsMenuOpen(false)} className={buttonVariants({ variant: "secondary", fullWidth: true })}>
@@ -102,13 +104,20 @@ const BasicNavbar = React.forwardRef<HTMLElement, BasicNavbarProps>(({ className
 							</Link>
 						</li>
 						<li className='mb-4'>
-							<Link href='/login' onPress={() => setIsMenuOpen(false)} className={buttonVariants({ variant: "primary", fullWidth: true, className: "bg-accent-foreground text-black hover:bg-accent-foreground/90" })}>
+							<Link
+								href='/login'
+								onPress={() => {
+									setIsMenuOpen(false);
+									trackProductEvent("marketing_cta_click", { placement: "navbar_mobile", action: "start_free" });
+								}}
+								className={buttonVariants({ variant: "primary", fullWidth: true, className: "" })}
+							>
 								Start free
 							</Link>
 						</li>
 						{menuItems.map((item, index) => (
 							<li key={item.href}>
-								<Link className='mb-2 w-full text-base text-white' href={item.href} onPress={() => setIsMenuOpen(false)}>
+								<Link className='mb-2 w-full text-base text-foreground' href={item.href} onPress={() => setIsMenuOpen(false)}>
 									{item.name}
 								</Link>
 								{index < menuItems.length - 1 ? <Separator className='opacity-50' /> : null}

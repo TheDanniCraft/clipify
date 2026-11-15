@@ -22,7 +22,7 @@ for (const width of [390, 1440])
 			const openSidebar = async () => {
 				const toggle = page.getByRole("button", { name: "Toggle navigation", exact: true });
 				await expect(toggle).toBeEnabled();
-				if (width === 390 && (await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+				if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
 				// Do not let automatic control scrolling interrupt the sheet entrance.
 				if (width === 390) await expect(page.locator('[data-slot="sidebar-mobile"]')).toBeInViewport({ ratio: 1 });
 			};
@@ -56,8 +56,20 @@ for (const width of [390, 1440])
 			await support.click();
 			await expect.poll(() => page.evaluate(() => (window as typeof window & { __supportOpens?: number }).__supportOpens)).toBe(1);
 			await expect(preferences).not.toBeVisible();
-			await page.goto(`${tourWorld.origin}/legal/cookies`);
-			await page.getByRole("main").getByRole("button", { name: "Cookie preferences", exact: true }).click();
+			await page.goto(`${tourWorld.origin}/dashboard/settings`);
+			const privacyButton = page.getByRole("button", { name: "Privacy preferences", exact: true });
+			await privacyButton.scrollIntoViewIfNeeded();
+			await privacyButton.focus();
+			await page.keyboard.press("Enter");
+			await expect(preferences).toBeVisible();
+			await expect(preferences.getByRole("switch", { name: "Allow Statistics and product analytics", exact: true })).not.toBeChecked();
+			await page.screenshot({ path: info.outputPath("account-privacy-preferences.png"), animations: "disabled" });
+			await preferences.getByRole("switch", { name: "Allow Statistics and product analytics", exact: true }).focus();
+			await page.keyboard.press("Space");
+			await Promise.all([page.waitForEvent("load"), preferences.getByRole("button", { name: "Save choices", exact: true }).click()]);
+			await privacyButton.scrollIntoViewIfNeeded();
+			await privacyButton.click();
+			await expect(preferences.getByRole("switch", { name: "Allow Statistics and product analytics", exact: true })).toBeChecked();
 			await expect(preferences.getByRole("switch", { name: "Allow Functionality", exact: true })).toBeChecked();
 			const requestsBeforeRevocation = sdkRequests;
 			await Promise.all([page.waitForEvent("load"), preferences.getByRole("button", { name: "Reject optional", exact: true }).click()]);

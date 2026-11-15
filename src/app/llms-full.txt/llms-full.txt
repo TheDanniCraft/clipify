@@ -1,237 +1,148 @@
 # Clipify full product reference
 
-> Clipify keeps Twitch streams alive and viewers engaged by automatically playing clips while a streamer is away. It also gives creators tools to organize, publish, embed, and share Twitch clips on stream and across the web.
+> Clipify helps Twitch creators organize clips, play highlights on stream, export videos for sharing, and publish galleries and Creator Pages.
 
-Last reviewed: 2026-09-04
+Last reviewed: 2026-11-14
 
-Clipify's central promise is: Let your clips talk, even when you cannot.
+This reference describes the current application and pricing catalog. Planned roadmap items and the marketing-video compositions in the repository are not end-user product features. Current prices come from the live billing catalog, not static examples.
 
-## Why Clipify exists
+## Getting started and account context
 
-A static Break, AFK, Starting Soon, or Ending screen gives viewers little reason to stay. New viewers who arrive during downtime may leave before the streamer returns. Clipify replaces that dead time with highlights from the channel so the stream remains entertaining and active.
+- Creator signup/sign-in uses Twitch. New users get a Clipify account when they connect; returning users open their existing account. Safe saved destinations and checkout selections continue after sign-in.
+- The dashboard opens the active creator or agency context. With no explicit workspace selected, the creator's own account is the default. Choosing an account changes the resources and permissions in use; the next page does not silently replace that selection.
+- The sidebar provides Home, Streams, Clip Inventory, Overlays, Playlists, Galleries, Runner, Clip layouts, Tools and Settings where permitted. Home shows recent clip performance and setup next steps. Existing clips do not mean OBS setup is complete.
+- Invited team/agency members can have account access without a creator plan of their own. The invitation and recovery screens support their appropriate sign-in methods; the public creator signup remains Twitch-based.
+- Admin View is a separate, visibly identified support context. It is not a creator-facing collaboration or account-sharing feature.
 
-Clipify helps creators:
+## Clip inventory, streams and cache
 
-- Keep existing viewers entertained during breaks.
-- Give new viewers something to watch when they arrive mid-break.
-- Showcase memorable channel moments automatically.
-- Encourage viewers to keep watching and talking in chat.
-- Reuse Twitch clips on Creator Pages and external websites.
+- Clip Inventory supports searching known clips, date/category/view/duration filters, sorting, preview and selection. Stream detail narrows the same workflow to one stream.
+- Streams provides recent stream history and clip performance. Counts describe the available cached clips, not proof that every Twitch clip has already been retrieved.
+- Clip synchronization includes incremental work and historical backfill. Account settings show cache coverage, recent sync status, refresh availability and scheduled crawl work. A refresh request starts background work; inspect status instead of claiming immediate completion.
+- Clip searches and exports can require renewed Twitch authorization, and unavailable/deleted provider clips can be skipped with an explanation.
 
-## Browser-source overlays
+## Clip inventory, exports and reusable layouts
 
-- Every overlay has a unique URL.
-- The streamer adds that URL as a browser source in OBS Studio, Streamlabs, XSplit, or comparable streaming software.
-- No streaming plugin or local overlay installation is required.
-- An overlay can be used in Break, AFK, Starting Soon, Ending, or custom scenes.
-- Each overlay has its own playback, filtering, layout, and theme configuration.
+- Original downloads remain untouched. Desktop exports use landscape 16:9 compositions; Mobile exports use portrait 9:16 compositions.
+- Save reusable layouts with Desktop and Mobile versions. Arrange and crop gameplay and camera layers; add titles, channel/clipper information and a logo. Account brand styling supplies shared colors, fonts and corners for layouts and overlays.
+- Manual exports and layouts are available on Free and Pro. Free Desktop/Mobile exports include a Clipify watermark; Pro can remove it. Original downloads are not branded or recomposed.
+- One output downloads as MP4; multiple outputs download as a ZIP of videos without a metadata sidecar. The export queue shows progress, skipped-file reasons, cancellation and retry. Keep the browser tab open while processing.
+- General, YouTube, TikTok, Instagram Reels, Reddit, Discord and custom-size presets prepare downloadable files. Discord options distinguish upload allowances. A preset is not an automatic upload or a guarantee that a platform will accept a file.
+- Composed exports depend on browser/device capabilities. Unsupported conversion, authorization failures and size constraints have local recovery feedback. Retry does not require rebuilding the whole clip selection.
+- Start at https://clipify.us/features#exports, then Clip Inventory, a stream's clips, or Clip layouts in the dashboard. Automated social publishing and social-post scheduling are not included.
 
-## Clip playback
+## Browser-source overlays and playback
 
-Overlay sources include:
+- Save an overlay, then add its private URL as a browser source in OBS Studio, Streamlabs, XSplit or comparable software. No local plugin or Runner is required for this workflow.
+- Use separate overlays for BRB, Starting Soon, Ending or other scenes within plan limits. Changing the saved clips/settings does not require replacing the source URL.
+- Sources include all-time clips, supported recent periods, featured clips, reusable playlists and the Viewer Queue. Filtering can use dates, duration, views, title words, clip creators and Twitch categories; advanced controls require the relevant plan.
+- Free supports Random playback. Pro adds Top and Smart Shuffle. Playlist order is available for playlist sources. A configured source with no matching clips can remain idle.
+- Account brand styling is shared across overlays and clip layouts. Pro Theme Studio additionally arranges clip/channel information, timers, progress elements, typography and appearance effects.
+- Private OBS URLs grant access to an overlay. Do not publish them as public website embed links or expose them in public documentation.
 
-- Top clips from today, the last 7, 30, 90, or 180 days, or the last year.
-- All-time clips.
-- Featured Twitch clips.
-- Reusable playlists.
-- The Viewer Queue.
+## Playlists, Viewer Queue and live control
 
-Playback modes include Random, Top, Smart Shuffle, and playlist order where applicable. Filters can use clip duration, view count, blocked title words, clip creators, Twitch categories or games, and the current stream category.
+- Playlists are independent saved clip selections reusable across overlays. Add/remove clips and reorder a handpicked selection. Counts and limits come from the generated plan comparison below.
+- Pro on-demand imports let the creator review filtered discovery and append to or replace a playlist. This is a requested import, not an automatic daily playlist-publishing service.
+- Pro includes the remote panel, configured Twitch chat commands and channel-point integration. Supported live actions include play/pause, skip, mute/volume, visibility and queue operations.
+- A connected Twitch Channel Points reward can let viewers submit clip links for the Viewer Queue, subject to configured queue/source rules. Twitch reward eligibility and permissions still apply.
+- The remote panel is usable from another screen. A queued command or stale player report does not prove that OBS received or played the requested clip.
 
-If no clips match the configured source and filters, the overlay remains idle until eligible clips become available.
+## Website galleries, Clip Player and Clipify Elements
 
-## Playlists
+- Galleries use curated playlists or live clip sources. Live resolution can use newest/most-viewed selection; advanced filters, themes and runtime styling depend on the plan.
+- Free includes one branded gallery with up to 50 live results; Pro supports unlimited galleries and up to 100 live results per gallery. The generated pricing comparison is authoritative for plan availability.
+- Install Clipify Elements once, then place supported custom elements on the website. A gallery uses `<clipify-gallery gallery-id="GALLERY_ID"></clipify-gallery>`.
+- Raw gallery iframes are unsupported because gallery playback/modal coordination belongs to the host page. Individual Clip Player embeds support Clipify Elements or the supported public `/embed/` iframe workflow.
+- Free gallery attribution is included; Pro can choose whether to show it. Public preview/embed links and private streaming-source links serve different purposes.
+- Installation guide: https://help.clipify.us/hc/clipify/articles/install-clipify-elements.
 
-- Playlists are independent from overlays and can be reused by multiple overlays.
-- Creators can manually curate and reorder playlist clips.
-- Automatic import can select clips by date, category, creator, views, duration, and blocked title words.
-- Automatic imports can append to or replace an existing playlist.
-- The playlist source supports deterministic playlist order.
+## Creator Pages and community discovery
 
-## Overlay design and control
+- Free and Pro include a shareable Creator Page with creator details and browsable, playable Twitch clips.
+- Page availability and discovery are separate settings. A disabled page is unavailable; an unlisted page remains accessible by direct URL but is excluded from search/Clipify discovery and the sitemap.
+- Pro includes Creator Page traffic and clip-engagement analytics, acquisition/location/device/browser/OS breakdowns, CSV downloads and supported social-preview title/description customization.
+- Community is the public directory of eligible discoverable creators. It has name/username search and a compact grid of outlined avatars. Hovering or opening an avatar shows a profile popover with available clips on Clipify, a Creator Page link, and a direct Twitch link for Pro/partner creators. Clip counts load on demand and recheck discovery visibility; they are not lifetime Twitch clip totals. Live and membership indicators do not grant permissions or a paid plan.
+- Public URLs can be shared in Twitch panels, Discord, social profiles and websites. Keeping a page unlisted is not a substitute for access control over private OBS sources.
 
-- Theme Studio controls colors, typography, borders, effects, timers, progress elements, and layout.
-- Channel information, clip information, and timers can be positioned and resized.
-- Player controls include pause, resume, skip, mute, volume, show or hide, and queue management.
-- The mobile-friendly Remote Control Panel shows playback progress, queue state, and player health.
-- Twitch chat commands let authorized streamers or moderators control supported playback actions.
-- Editors and managers can help operate overlays and playlists without receiving the owner's account credentials.
+## Team and agency access
 
-## Twitch Channel Points
+- Creator owners can invite collaborators and use preset/custom permissions. Team access and custom roles are managed in Settings → Team and the relevant role/invitation screens. Pro collaboration does not require sharing the owner's login.
+- Agency workspaces provide creator links, member permissions, billing and creator-seat allocations. Creator access requires an accepted, active relationship and the allowed permissions; selecting an agency does not grant unrestricted access to every creator.
+- A valid agency creator-seat allocation can provide effective Pro access. Revocation, suspension or expiry affects future operations. Agency billing is separate from a creator's personal subscription.
+- The standalone paid Runner product and agency Runner-seat product are retired. Do not recommend purchasing a separate Runner entitlement.
 
-Clipify can connect a Twitch Channel Points reward to the Viewer Queue. When a viewer redeems the configured reward, an eligible clip can be added to the queue for playback. This turns break-time viewing into an interactive experience and can encourage retention and chat activity.
+## Self-hosted Runner and broadcasting
 
-Channel Points integration is a Pro feature.
+Runner is included with Free and Pro, with unlimited streaming hours on your own computer. Advanced Runner features require effective Pro, including valid Pro grants, trials, and agency creator seats.
 
-## Clip galleries
+- Runner is optional software on the creator's own Windows, Linux or macOS computer. Clipify coordinates it; Clipify does not host its compute or guarantee that the user's computer stays online.
+- Free allows one active broadcast across devices and one destination, with manual clip playback or live-input fallback. Registering another device does not add another active Free broadcast.
+- Free generated clips/standby include Clipify attribution. The normal incoming live feed is not watermarked by Runner. Pro adds multiple destinations, independent broadcasts, schedules, custom standby and watermark removal, subject to hardware and bandwidth.
+- Saved destinations belong to the creator and can be reused by devices. Twitch/YouTube connections and manual stream keys are supported. Each destination consumes upload bandwidth.
+- Pro schedules support local/saved timezones, recurring occurrences and edits to one or following occurrences. Future scheduling and past/current broadcast details have different editing rules. Scheduled stops finish the current clip.
+- Scheduling can set supported stream details, including titles, Twitch categories and YouTube descriptions/thumbnails. Provider streaming/metadata permissions are separate from normal Clipify sign-in.
+- Initial setup provides platform downloads, enrollment and manual instructions for headless use. A device must connect before configuration/health is available. Snapshots/previews may wait for a fresh frame or require retry.
+- Keep the device and connectivity available. Missing stream credentials, a disconnected Runner or expired permissions require recovery before a broadcast can run. Credentials and stream keys are not public status data.
 
-Clipify Galleries are responsive collections of Twitch clips designed for a creator's own website. Visitors can browse clips and open them in a website-level player.
+## Settings, security and privacy controls
 
-- Curated galleries use a hand-picked Clipify playlist.
-- Live galleries automatically resolve clips from the creator's Twitch catalog.
-- Layouts include grid, list, and carousel.
-- Supported sorting includes newest, most viewed, and stable random where available.
-- Live gallery filters can include date windows, categories, creators, views, duration, and title terms.
-- Gallery cards can show or hide title, creator, views, duration, and creation date.
-- Free includes one branded gallery with up to 50 live results.
-- Pro includes unlimited galleries, up to 100 live results, advanced filters, saved themes, runtime styling, and attribution control.
-- Free galleries include a small Made with Clipify attribution. Pro creators can choose whether to show it.
+- Settings groups Account, Brand styling, Connections, Creator Page, Billing and Team, subject to permissions.
+- Account settings include verified email/security management, clip-cache status, privacy preferences and account data/deletion actions. Passkeys and email-code access are managed through security/recovery screens; this does not add a password signup form to the public creator login.
+- Connections lists linked Twitch/Google accounts, connected AI apps and AI-app activity. Removing a provider can also remove its Runner channel connection. The required primary Twitch identity cannot be disconnected as a way to bypass creator sign-in requirements.
+- Some sensitive account/provider actions require fresh identity verification. A failed or cancelled verification does not complete the requested action.
+- Request account-data exports and deletion through Account settings. Export links are time-limited. Deletion can be scheduled around paid access or requested immediately, with a 30-day recovery period before permanent erasure. These controls are separate from downloading Twitch clip videos.
+- Privacy preferences are available in Settings → Account, the public footer and Cookie Policy. Basic cookieless Umami traffic statistics run independently of optional consent. Statistics consent enables account-linked product analytics, engagement, browser performance and public-page heatmaps; functionality consent enables support chat. Withdrawal stops new optional collection and preserves basic pageviews.
+- Consent choices are maintained by the consent service. Clearing browser storage is not the account-level withdrawal control. See the Privacy/Cookie policies for data categories, legal bases and retention.
 
-## Clipify Elements
+## Membership, member cards and badges
 
-Clipify Elements is the recommended website integration for responsive players and galleries. A website installs the Elements script once and places Clipify custom elements where content should appear.
-
-Example gallery element:
-
-```html
-<clipify-gallery gallery-id="GALLERY_ID"></clipify-gallery>
-```
-
-Raw gallery iframes are intentionally unsupported because the gallery's clip modal must be created at the host-page level. The Clip Player remains available for supported individual or traditional embed workflows.
-
-Installation guide: https://help.clipify.us/hc/clipify/articles/install-clipify-elements
-
-## Creator Pages
-
-A Creator Page is a shareable Clipify profile for a Twitch creator. It combines creator information with clips that visitors can browse, sort, filter, and play. A Creator Page can be linked from Twitch panels, social profiles, Discord, or a personal website.
-
-- Creator Pages are available on Free and Pro.
-- Creators can enable or disable their page.
-- A discoverable page may appear in search engines, Clipify discovery, and the sitemap.
-- An unlisted page remains available through its direct URL but is excluded from discovery surfaces.
-- Pro includes detailed traffic and clip-engagement analytics.
-- Pro analytics include acquisition, location, device, browser, and operating-system breakdowns plus CSV export.
-- Pro can customize the title and description used for supported social previews.
-
-## Community directory
-
-The Community page is a public directory of creators who opted into Clipify discovery. It is separate from an individual Creator Page.
-
-- It can highlight Clipify Partners and Pro creators.
-- It distinguishes creators currently live with Clipify, creators live on Twitch, and offline creators.
-- Only eligible, discoverable creators appear.
-- A direct Creator Page can remain usable even when its creator is not listed in the directory.
-
-## Membership, member cards, and badges
-
-Clipify accounts can have a stable member number and a member-since date. A member card is a premium, interactive representation of that identity with the creator's avatar, membership details, and recognition badges.
-
-- Member cards use stable, non-guessable public identifiers rather than usernames in their share URLs.
-- A card can be shared through the system share sheet and supported social destinations.
-- A rendered PNG can be downloaded for posting elsewhere.
-- Badge icons are also suitable for compact display on Creator Pages.
-- A badge is community recognition, not a subscription plan.
-
-The badge catalog is generated below from Clipify's authoritative TypeScript registry:
+- Accounts can have a stable member number and member-since date. Member cards provide a shareable public identity with supported badges.
+- Card URLs use non-guessable identifiers rather than usernames. Share through supported system/social actions or download a rendered PNG.
+- Recognition badges are not subscription plans. Some reflect an active qualifying status; others are lasting recognition. The current catalog is generated from the application registry:
 
 {{BADGE_CATALOG}}
 
-## Self-hosted Runner
+## Plans, trials and billing
 
-Runner is included with Free and Pro, with unlimited streaming hours and no separate Runner subscription.
-
-- Runner plays clips manually or provides live fallback when the creator's normal live input is offline.
-- It runs on the creator's own Windows, Linux, or macOS computer. The creator supplies hardware, upload bandwidth and electricity; Clipify does not host the broadcast.
-- Free supports unlimited registered devices, one active broadcast across those devices, and one destination. Free requires connectivity to Clipify to renew broadcast permission; loss of connectivity eventually stops generated playback safely.
-- Free generated clips and standby include readable Clipify attribution. The normal live feed is not watermarked by Runner.
-- Pro adds scheduling, multiple destinations per broadcast, multiple independent active broadcasts, custom standby screens, and watermark removal. Additional destinations use the creator's upload bandwidth; they do not require separate quality encodes.
-- Schedule blocks can span days and weeks in the configured timezone. The computer and Runner must stay online. New starts and schedule changes require Clipify connectivity. Scheduled stops finish the current clip before going offline.
-- Past and current occurrences open read-only broadcast details; their titles can still be renamed. Future recurring edits and deletion offer This occurrence or This and following, preserving earlier broadcasts.
-- Advanced Runner features require effective Pro, including valid Pro grants, trials, and agency creator seats. The standalone Runner entitlement, purchase and agency Runner seats are retired.
-- Saved destinations belong to the creator account and can be reused across its Runners without re-entering stream keys. Manage destinations alongside broadcast configuration. Appearance and schedules open in dedicated editors; the calendar supports day, week, and month views with local timezone date/time controls.
-- First-time Runner setup includes platform downloads, installation instructions and a manual token for Docker or headless use. Configuration appears after the first heartbeat. Connected details include update status and video quality; running previews support first-frame waiting and retry.
-- Enroll and manage devices from the dashboard. Streaming keys stay protected and are delivered only to the authorized assigned Runner; public setup/status responses do not reveal them.
-
-## Free, Pro, trials, and pricing
-
-New Free accounts receive seven days of temporary Pro feature access. When that trial expires, Free limits apply unless the creator purchases Pro or receives another qualifying entitlement.
-
-Exact Pro prices are resolved from Clipify's live billing catalog and can be affected by active campaigns. The authoritative current amounts are on https://clipify.us/pricing. Static price amounts are intentionally not duplicated here.
-
-The feature comparison below is generated from the same TypeScript catalog used by Clipify's pricing interface:
+- Free continues without a paid subscription. Eligible new creators receive seven days of temporary Pro access without a card; eligibility and effective entitlements come from the account, not simply its age.
+- A valid trial, grant or agency seat can provide effective Pro features. It is not the same as a paid subscription or recorded revenue.
+- Pro has monthly/yearly billing. Live prices, promotions and availability come from https://clipify.us/pricing. Billing settings support the currently available plan changes, cancellation/reactivation and billing-provider flows.
+- A checkout click is not a completed payment. Valid selections are retained for retry after recoverable checkout failures; unavailable/invalid selections return to plan selection.
+- Current feature availability below is generated from the same catalog as the pricing page:
 
 {{PLAN_COMPARISON}}
 
-## Setup and onboarding
-
-1. Sign in with Twitch.
-2. Create an overlay.
-3. Copy its URL into a browser source in streaming software.
-4. Configure playback sources, filters, and presentation as needed.
-
-Once configured, Clipify operates automatically during the selected stream scenes.
-
 ## AI assistant access (MCP)
 
-Clipify provides an authenticated MCP endpoint at `https://clipify.us/mcp` for compatible AI assistants and independently registered custom clients. MCP access is included on Free and Pro; it does not add overlays, playlists, playlist clips, or paid capabilities beyond the creator’s existing plan. Every operation uses the same backend authorization and plan limits as the browser.
+- Connect compatible clients to `https://clipify.us/mcp` using OAuth authorization code flow with PKCE. Metadata/scopes are discovered from the endpoint; supported public clients can register their callbacks dynamically.
+- Users approve accessible creators and Read, Write or Custom permissions. Write can include requested deletion permissions. An operation must be requested, approved and allowed by the current creator/team/agency permissions and plan; registration alone grants no access.
+- Private OBS links and Runner credential rotation require their specific approved permissions. Keep private URLs out of public website snippets. Clients do not receive the browser session, Twitch access tokens or broadcast stream keys.
+- Connections settings show approved apps, permissions and activity, and let users revoke access. Revoked credentials cannot continue operating. Client-side warning labels do not replace backend checks.
+- The public catalog contains {{MCP_TOOL_COUNT}} tools. Use focused overlay/gallery settings, source, filters, playback and theme operations. Partial edits preserve omitted values and require current revisions where specified.
+- Live control uses the public named actions such as `play_overlay`, `pause_overlay`, `skip_overlay` and `set_overlay_volume`. The broad `control_overlay`, `update_overlay`, `update_gallery` and `get_overlay_embed` helpers are internal, not public MCP tools.
+- Search/resolve clips, preview imports and commit the exact reviewed selection. Incomplete discovery needs narrower filters. Free limits still apply; filtered bulk import requires Pro.
+- Public website snippets use `get_gallery_embed` or `get_player_embed`; private OBS source URLs use `get_overlay_link` with its separate permission.
+- Runner workflows cover setup, configuration, stream sessions, commands and available snapshots. Installation/enrollment and missing provider credentials still require the supported user/device flow.
+- Feedback submission is only for an explicit user-requested report with confirmation. It returns a queued receipt, not proof that support has read it. No transcript, screenshot or replay is attached automatically.
+- Video-file exports, billing changes, team/security administration and AI marketplace submissions are outside this MCP tool set. Named AI-host support depends on that host's remote MCP/OAuth implementation.
 
-Clients discover OAuth metadata from the endpoint’s authentication challenge and connect through OAuth authorization code flow with PKCE. Public clients may dynamically register their own callbacks; registration alone grants no creator access. Consent identifies the app, lets the user select accessible creators, offers Read or Read & edit presets, and permits customizing individual scopes. Deletion, publication, live controls, runner disconnection and private OBS URL access require deliberate permission selection. The AI client never receives the user’s browser session, Twitch tokens, runner credentials or stream keys. Private OBS browser-source URLs are returned only through explicitly approved `overlay-secret:read` access and must not be published on a website.
+### Public tool catalog
 
-Users can inspect approved creators and permissions in account settings and revoke a connection immediately. Revoked access and refresh credentials cannot continue operating. Client-provided destructive-action warnings are informational; the backend always enforces authority, ownership, plan limits and revision checks. Named AI-host compatibility depends on that host’s support for remote MCP and OAuth.
+This list is generated from the public registration schema and excludes internal aliases:
 
-The server exposes 66 tools across creator capabilities, overlay configuration and themes, playlists, clip discovery/import, live remote control, galleries, public website embeds, Creator Pages, runner setup/stream sessions, and user-requested feedback. Availability depends on the approved scopes, current creator/team permissions and current entitlements.
+{{MCP_TOOL_LIST}}
 
-- Discover clips by title, game/category and explicit date/timezone filters, or resolve a Twitch clip link. Preview imports before committing the exact selected clips; incomplete searches require narrower filters. Free clip and playlist limits still apply; filtered bulk imports require Pro.
-- Pro remote control can inspect reported current playback, read queues, enqueue a creator clip, and send play/pause/skip/show/hide/volume/mute commands. Reports and command delivery can be stale or unavailable; accepted commands do not prove the player applied them.
-- Create and edit galleries within plan limits, publish with explicit authority, and generate supported Clipify Elements gallery snippets. Public player embeds use Elements or `/embed/` iframes; private OBS sources use a separate permission and are unsuitable for public websites.
-- Read and edit supported Creator Page settings and publication state. Social-preview customization requires Pro.
-- Basic Runner setup and stream creation/control are included with Free and Pro, subject to creator permissions and the plan’s active-broadcast and destination limits. Get official download/enrollment instructions, manage runner records and stream assignments, request start/stop, and inspect a fresh JPEG snapshot when available. Device installation/enrollment and missing stream credentials are completed through the normal user/dashboard flow. Read and cleanup access to existing records remains available after Runner access expires.
+### Optional prompt suggestions
 
-Team administration, billing changes, account-security settings, and AI marketplace submissions are outside this tool set.
+There are {{MCP_PROMPT_COUNT}} static suggestions. They contain no account data and do not execute tools by themselves. Picker availability depends on the connected client:
 
-## Technical characteristics
+{{MCP_PROMPTS}}
 
-- Web-based service using Twitch OAuth.
-- Uses Twitch APIs for clips, account information, and Channel Points integration.
-- Uses live WebSocket synchronization for overlay and controller state.
-- Overlay playback runs in the browser context supplied by streaming software.
-- Public website galleries use Clipify Elements so playback can coordinate with the host page.
+## Entry points and policies
 
-## Intended audience
-
-- Twitch streamers who take breaks or use Starting Soon and Ending scenes.
-- Creators who want to reduce viewer drop-off during downtime.
-- Streamers who want to increase retention and chat engagement.
-- Creators who want to organize and reuse their Twitch highlights.
-- Creators who want a shareable clip profile or galleries on their own website.
-- Teams that use moderators, editors, or managers to help operate a stream.
-
-## Questions this reference should answer
-
-- Why is Clipify more engaging than a static break screen?
-- How do Clipify overlays work with OBS or other streaming software?
-- Which clip sources, playback modes, and filters are supported?
-- How do playlists differ from overlays and galleries?
-- How does the Channel Points Viewer Queue work?
-- What is a Creator Page, and how does discoverable differ from unlisted?
-- How are galleries embedded with Clipify Elements?
-- What is included in Free, Pro, and the seven-day trial?
-- Is the self-hosted Runner included with Pro?
-- What do member cards, member numbers, and badges represent?
-
-## Entry points
-
-- [Get started](https://clipify.us/login): Twitch authentication and onboarding.
-- [Pricing](https://clipify.us/pricing): Live prices, current promotions, feature comparison, and billing options.
-- [Clipify Galleries](https://clipify.us/gallery): Gallery product introduction.
-- [Community](https://clipify.us/community): Public creator discovery.
-- [Interactive demo](https://clipify.us/#demo): Overlay preview in a simulated streaming environment.
-- [Help Center](https://help.clipify.us): Documentation and support.
-- [Service status](https://status.thedannicraft.de/status/clipify): Availability and incidents.
-
-## Optional
-
-- [Changelog](https://clipify.us/changelog): Released product changes.
-- [Roadmap](https://clipify.us/roadmap): Planned and upcoming features.
-- [Privacy policy](https://clipify.us/legal/privacy): Privacy information.
-- [Cookie policy](https://clipify.us/legal/cookies): Cookie and comparable storage information.
-- [Terms of service](https://clipify.us/legal/terms): Terms governing Clipify.
-- [Privacy requests](https://clipify.us/legal/privacy-requests): How to exercise privacy rights.
-
-### User-requested MCP feedback
-
-The submit_feedback tool submits a Clipify bug report or suggestion to the existing Sentry feedback product on explicit user request. Available on Free using existing creator:read authorization; no separate feedback scope. Requires confirmed=true, a bounded message and retryKey. Five distinct reports per verified user per fixed 24-hour window starting with the first accepted report, using the shared application rate-limiter-flexible engine in process-local RAM shared across clients/creators. Deduplication and limits reset on server restart and are independent per replica. No automatic transcript, replay, screenshot or email is attached. The result is a queued receipt, not delivery confirmation.
-
-### Focused AI editing and suggestions
-
-MCP exposes 66 tools with focused overlay settings, source, filters, playback and Theme Studio editing, plus gallery settings, source, filters, layout and theme tools. Partial updates preserve omitted fields and require the current configuration revision. Use get_overlay_theme/update_overlay_theme for appearance, get_overlay_filters/update_overlay_filters for clip rules, and control_overlay for temporary live playback changes. get_overlay_link returns a private streaming browser-source URL only with explicit secret-read permission; get_player_embed returns a public website embed. Bulk clip imports use preview_playlist_import and commit_playlist_import after reviewing the selection. Six optional MCP prompts describe common workflows, with English examples also available in connected-app settings. Prompt picker availability depends on the connected client.
+- [Sign in](https://clipify.us/login), [Features](https://clipify.us/features) and [Pricing](https://clipify.us/pricing).
+- [Clip exports](https://clipify.us/features#exports), [Galleries](https://clipify.us/gallery), [Community](https://clipify.us/community) and [Demo](https://clipify.us/#demo).
+- [Help Center](https://help.clipify.us) and [Service status](https://status.thedannicraft.de/status/clipify).
+- [Changelog](https://clipify.us/changelog) records released changes. [Roadmap](https://clipify.us/roadmap) describes planned work.
+- [Privacy](https://clipify.us/legal/privacy), [Cookies](https://clipify.us/legal/cookies), [Terms](https://clipify.us/legal/terms) and [Privacy requests](https://clipify.us/legal/privacy-requests).

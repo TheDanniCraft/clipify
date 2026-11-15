@@ -11,7 +11,7 @@ export const chatwootConsentScript: Script = {
 	defer: true,
 	onBeforeLoad: () => {
 		window.chatwootSettings = {
-			hideMessageBubble: false,
+			hideMessageBubble: true,
 			position: "left",
 			locale: "en",
 			type: "expanded_bubble",

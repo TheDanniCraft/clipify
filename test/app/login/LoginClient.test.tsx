@@ -19,10 +19,10 @@ jest.mock("@components/heroui-client", () => ({
 }));
 
 describe("app/login/LoginClient", () => {
-	it("uses the original Twitch button appearance", () => {
+	it("makes Twitch connection the primary action", () => {
 		render(<LoginClient returnUrl='/dashboard' />);
 
-		expect(screen.getByRole("button", { name: "Login with Twitch" })).toHaveAttribute("data-variant", "tertiary");
+		expect(screen.getByRole("button", { name: "Login with Twitch" })).toHaveAttribute("data-variant", "primary");
 	});
 });
 
@@ -96,5 +96,6 @@ it.each(["returned", "thrown"])("allows retry after a %s authentication-start er
 	expect(screen.getByRole("button", { name: "Login with Twitch" })).toBeEnabled();
 	fireEvent.click(screen.getByRole("button", { name: "Login with Twitch" }));
 	await waitFor(() => expect(social).toHaveBeenCalledTimes(2));
-	expect(plausible).toHaveBeenCalledTimes(2);
+	expect(plausible).toHaveBeenCalledTimes(3);
+	expect(plausible).toHaveBeenCalledWith("auth_failed", { provider: "twitch", reason: mode === "thrown" ? "network" : "start_rejected" });
 });

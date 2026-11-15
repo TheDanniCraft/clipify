@@ -1,3 +1,4 @@
+import { getConversionHealth } from "@/server/conversion-health";
 import { getCacheHealthCounts } from "./cacheHealth";
 import { grantAccessNotExpired } from "@/server/entitlements/grant-period";
 /* istanbul ignore file */
@@ -91,6 +92,7 @@ export function recordTwitchRateLimit(log: TwitchRateLimitLog) {
 }
 
 export type InstanceHealthSnapshot = {
+	conversion: Awaited<ReturnType<typeof getConversionHealth>>;
 	onboarding: UserTourStats;
 	crawler: Record<keyof ReturnType<typeof crawlerHealthCounts>, number>;
 	notifications: Record<keyof ReturnType<typeof notificationHealthCounts>, number>;
@@ -221,6 +223,10 @@ export type InstanceHealthSnapshot = {
 		grantsByEntitlement: Record<string, number>;
 	};
 	billing: {
+		payingSubscriptions: number;
+		trialSubscriptions: number;
+		paymentProblemSubscriptions: number;
+		cancelingSubscriptions: number;
 		activeSubscriptions: number;
 	};
 	runners: {
@@ -567,6 +573,7 @@ async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealth
 	const numericCounts = <T extends Record<string, unknown>>(fields: T, row: Record<string, unknown> | undefined): Record<keyof T, number> => Object.fromEntries(Object.keys(fields).map((key) => [key, Number(row?.[key] ?? 0)])) as Record<keyof T, number>;
 	const mcpClients = await getMcpClientHealthStats(db).catch(() => null);
 	const onboarding = await getUserTourHealthStats(db, usersTotal);
+	const conversion = await getConversionHealth(db, now);
 	const healthAggregationMs = Date.now() - started;
 
 	let status: HealthStatus = "ok";
@@ -574,6 +581,7 @@ async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealth
 	if (dbPingMs > 5000 || healthAggregationMs > 5000) status = "down";
 
 	const health = {
+		conversion,
 		onboarding,
 		crawler: numericCounts(crawlerFields, crawlerCounts),
 		notifications: numericCounts(notificationFields, notificationCounts),
@@ -705,6 +713,10 @@ async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealth
 		},
 		billing: {
 			activeSubscriptions: new Set(billingItems.filter((item) => activeBillingStatuses.has(item.status)).map((item) => item.subscriptionId)).size,
+			payingSubscriptions: new Set(billingItems.filter((item) => item.status === "active" && Number(item.unitAmount) > 0).map((item) => item.subscriptionId)).size,
+			trialSubscriptions: new Set(billingItems.filter((item) => item.status === "trialing").map((item) => item.subscriptionId)).size,
+			paymentProblemSubscriptions: new Set(billingItems.filter((item) => ["past_due", "unpaid"].includes(item.status)).map((item) => item.subscriptionId)).size,
+			cancelingSubscriptions: new Set(billingItems.filter((item) => item.cancelAtPeriodEnd && activeBillingStatuses.has(item.status)).map((item) => item.subscriptionId)).size,
 		},
 		runners: {
 			total: Number(runnerCountRows[0]?.count ?? 0),

@@ -3,6 +3,81 @@ import { readFileSync } from "node:fs";
 import { createMcpMetricsStore } from "@/server/mcp/metrics";
 import { flattenMcpMetrics, flattenMcpClientStats } from "@/server/mcp/metrics-export";
 
+test("v7 preserves the complete dashboard and uses automatic layouts for every section", () => {
+	const previous = JSON.parse(readFileSync("grafana/clipify-vm01-overview-v6.json", "utf8"));
+	const dashboard = JSON.parse(readFileSync("grafana/clipify-vm01-overview-v7.json", "utf8"));
+	expect(dashboard).toMatchObject({ apiVersion: previous.apiVersion, kind: "Dashboard", metadata: previous.metadata });
+	for (const [name, oldElement] of Object.entries(previous.spec.elements) as [string, any][]) {
+		const panel = dashboard.spec.elements[name].spec;
+		expect(panel.data).toEqual(oldElement.spec.data);
+		expect(panel.vizConfig.spec.options).toEqual(oldElement.spec.vizConfig.spec.options);
+		expect(panel.vizConfig.spec.fieldConfig.defaults).toMatchObject(oldElement.spec.vizConfig.spec.fieldConfig.defaults);
+		if (panel.id !== 101) expect(panel.vizConfig.spec.fieldConfig.overrides.map((rule: any) => rule.properties)).toEqual(oldElement.spec.vizConfig.spec.fieldConfig.overrides.map((rule: any) => rule.properties));
+	}
+	expect(Object.keys(dashboard.spec.elements)).toHaveLength(93);
+	expect(dashboard.spec.layout.kind).toBe("RowsLayout");
+	const rows = dashboard.spec.layout.spec.rows;
+	expect(rows.slice(0, 3).map((row: any) => row.spec.title)).toEqual(["Executive Summary", "Conversion and measurement health", "Onboarding guides"]);
+	const titles = rows.map((row: any) => row.spec.title);
+	expect(titles).toHaveLength(19);
+	expect(new Set(titles).size).toBe(titles.length);
+	expect(titles).toEqual(expect.arrayContaining(["Onboarding guide activity", "Scheduler status", "Scheduler activity", "Twitch clip permissions", "Twitch API health"]));
+	const references: string[] = [];
+	function checkLayout(layout: any) {
+		expect(layout.kind).toBe("AutoGridLayout");
+		const compact = layout.spec.items.every((item: any) => ["stat", "gauge"].includes(dashboard.spec.elements[item.spec.element.name].spec.vizConfig.group));
+		expect(layout.spec).toEqual({
+			maxColumnCount: compact ? 4 : 2,
+			columnWidthMode: compact ? "narrow" : "standard",
+			rowHeightMode: compact ? "short" : "standard",
+			items: expect.any(Array),
+		});
+		for (const item of layout.spec.items) {
+			expect(item).toEqual({ kind: "AutoGridLayoutItem", spec: { element: { kind: "ElementReference", name: expect.any(String) } } });
+			expect(["stat", "gauge"].includes(dashboard.spec.elements[item.spec.element.name].spec.vizConfig.group)).toBe(compact);
+			references.push(item.spec.element.name);
+		}
+	}
+	for (const row of rows) {
+		expect(row.spec.title.trim()).not.toBe("");
+		expect(row.spec.title).not.toBe("New row");
+		expect(row.spec.hideHeader).toBeUndefined();
+		checkLayout(row.spec.layout);
+	}
+	expect(references.sort()).toEqual(Object.keys(dashboard.spec.elements).sort());
+});
+
+test("v7 numeric series keep readable labels with Influx host, URL and range tags", () => {
+	const dashboard = JSON.parse(readFileSync("grafana/clipify-vm01-overview-v7.json", "utf8"));
+	let checked = 0;
+	for (const element of Object.values(dashboard.spec.elements) as any[]) {
+		const panel = element.spec;
+		const fields = [...new Set(panel.data.spec.queries.flatMap((query: any) => [...(query.spec.query.spec.query ?? "").matchAll(/r(?:\._field|\["_field"\]) == "([^"]+)"/g)].map((match: RegExpMatchArray) => match[1])))];
+		if (panel.id === 202) fields.push("galleries_byLayout_grid", "galleries_byLayout_list", "galleries_byLayout_carousel");
+		for (const override of panel.vizConfig.spec.fieldConfig.overrides ?? []) {
+			if (!override.properties.some((property: any) => property.id === "displayName") || override.matcher.options === ".*") continue;
+			expect(override.matcher.id).toBe("byRegexp");
+			const matcher = new RegExp(override.matcher.options);
+			const matched = fields.filter((field) => matcher.test(String(field)));
+			expect(matched).toHaveLength(1);
+			const metric = matched[0];
+			for (const name of [String(metric), `${metric} {host="fixture-a", url="https://fixture.invalid/health"}`, `${metric} {url="https://fixture.invalid/health", host="fixture-b"}`, `_value {_field="${metric}", _start="then", _stop="now", host="fixture-a"}`, `_value {_stop="now", host="fixture-a", _field="${metric}"}`]) expect(matcher.test(name)).toBe(true);
+			for (const name of [`${metric}_other {host="fixture-a"}`, `other_${metric}`, `host {_field="${metric}"}`, `url {_field="${metric}"}`, `_value {_field="${metric}_other"}`]) expect(matcher.test(name)).toBe(false);
+			checked++;
+		}
+	}
+	expect(checked).toBeGreaterThan(200);
+	for (const [panel, metric, label] of [
+		[410, "notifications_duePending", "Ready for first attempt"],
+		[400, "crawler_dueBackfill", "Clip history"],
+	] as const) {
+		const rules = dashboard.spec.elements[`panel-${panel}`].spec.vizConfig.spec.fieldConfig.overrides;
+		const rule = rules.find((candidate: any) => new RegExp(candidate.matcher.options).test(`${metric} {host="fixture-a", url="https://fixture.invalid/health"}`));
+		expect(rule.properties).toContainEqual({ id: "displayName", value: label });
+	}
+	expect(dashboard.spec.elements["panel-101"].spec.vizConfig.spec.fieldConfig).toMatchObject({ defaults: { displayName: "Accounts with clip download permission" }, overrides: [] });
+});
+
 test("v6 is a complete V2 editor resource preserving the existing dashboard identity and queries", () => {
 	const dashboard = JSON.parse(readFileSync("grafana/clipify-vm01-overview-v6.json", "utf8"));
 	const previous = JSON.parse(readFileSync("grafana/clipify-vm01-overview-v5.json", "utf8"));

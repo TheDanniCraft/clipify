@@ -20,7 +20,12 @@ for (const theme of ["light", "dark"]) {
 				const reject = page.getByRole("button", { name: "Reject optional", exact: true });
 				await reject.waitFor();
 				await Promise.all([page.waitForEvent("load"), reject.click()]);
-				const profile = page.getByRole("link", { name: username, exact: true });
+				const avatar = page.getByRole("button", { name: `${username} creator`, exact: true });
+				await avatar.focus();
+				await avatar.press("Enter");
+				const preview = page.getByRole("dialog", { name: `${username} profile`, exact: true });
+				await expect(preview).toBeVisible();
+				const profile = preview.getByRole("link", { name: /Creator Page/ });
 				await expect(profile).toHaveAttribute("href", path);
 				await profile.scrollIntoViewIfNeeded();
 				await page.screenshot({ path: info.outputPath("community-profile-link.png"), fullPage: true });
@@ -35,20 +40,20 @@ for (const theme of ["light", "dark"]) {
 
 				await pool.query("UPDATE \"userSettings\" SET creator_page_visibility='unlisted' WHERE id=$1", [id]);
 				await page.goto("/community");
-				await expect(page.getByRole("link", { name: username, exact: true })).toHaveCount(0);
+				await expect(avatar).toHaveCount(0);
 				expect(await (await request.get("/sitemap.xml")).text()).not.toContain(path);
 				await page.goto(path);
 				await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", "noindex, nofollow");
 
 				await pool.query("UPDATE \"userSettings\" SET creator_page_visibility='discoverable',creator_page_enabled=false WHERE id=$1", [id]);
 				await page.goto("/community");
-				await expect(page.getByRole("link", { name: username, exact: true })).toHaveCount(0);
+				await expect(avatar).toHaveCount(0);
 				expect((await request.get(path)).status()).toBe(404);
 
 				await pool.query('UPDATE "userSettings" SET creator_page_enabled=true WHERE id=$1', [id]);
 				await pool.query("UPDATE users SET disabled=true WHERE id=$1", [id]);
 				await page.goto("/community");
-				await expect(page.getByRole("link", { name: username, exact: true })).toHaveCount(0);
+				await expect(avatar).toHaveCount(0);
 				expect((await request.get(path)).status()).toBe(404);
 				expect(await (await request.get("/sitemap.xml")).text()).not.toContain(path);
 			} finally {

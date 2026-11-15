@@ -29,18 +29,29 @@ export default function CookiesPage() {
 					<h2 id='how-we-use-storage' className='text-2xl font-semibold tracking-tight'>
 						How Clipify uses them
 					</h2>
-					<p className='mt-3 max-w-3xl leading-7 text-foreground/75'>Strictly necessary storage protects sign-in, remembers privacy choices, and secures protected forms. Optional functionality enables live support. Optional measurement helps diagnose browser performance and errors. Clipify does not use advertising cookies or sell browser activity.</p>
+					<p className='mt-3 max-w-3xl leading-7 text-foreground/75'>Strictly necessary storage protects sign-in, remembers privacy choices, and secures protected forms. Optional functionality enables live support. Optional measurement enables account-linked product analytics, public-page heatmaps and browser diagnostics. Clipify does not use advertising cookies or sell browser activity.</p>
 				</section>
 				<section aria-labelledby='manage-cookie-choices'>
 					<h2 id='manage-cookie-choices' className='text-2xl font-semibold tracking-tight'>
 						Your choices
 					</h2>
-					<p className='mt-3 max-w-3xl leading-7 text-foreground/75'>Optional services stay disabled until you choose them. You can accept, reject, or change optional categories at any time. Withdrawing consent affects future processing and reloads the page so the updated choice is applied consistently.</p>
+					<p className='mt-3 max-w-3xl leading-7 text-foreground/75'>Optional services stay disabled until you choose them. You can accept, reject, or change optional categories at any time. Privacy preferences are available from Settings → Account, the public footer and this page. Withdrawing consent affects future optional processing and reloads the page so the updated choice is applied consistently.</p>
 					<div className='mt-5 inline-flex rounded-full border border-default px-4 py-2 text-sm font-medium text-primary underline-offset-4 hover:underline'>
 						<CookiePreferencesLink />
 					</div>
 				</section>
 			</div>
+			<section aria-labelledby='audience-statistics-title' className='mb-10 space-y-3'>
+				<h2 id='audience-statistics-title' className='text-2xl font-semibold tracking-tight'>
+					Cookieless audience statistics
+				</h2>
+				{getAlwaysOnServiceDisclosures().map((service) => (
+					<p key={service.id} className='max-w-3xl leading-7 text-foreground/75'>
+						{service.purpose}
+					</p>
+				))}
+				<p className='max-w-3xl leading-7 text-foreground/75'>Basic statistics remain active in our self-hosted EU Umami service. See the Privacy Policy for legal bases and retention.</p>
+			</section>
 			<section aria-labelledby='service-declarations-title'>
 				<h2 id='service-declarations-title' className='text-2xl font-semibold tracking-tight'>
 					Service and storage declarations
@@ -91,16 +102,6 @@ export default function CookiesPage() {
 							</div>
 						</section>
 					))}
-					<section aria-labelledby='always-on-services'>
-						<h3 id='always-on-services' className='text-xl font-semibold'>
-							Cookieless audience statistics
-						</h3>
-						{getAlwaysOnServiceDisclosures().map((service) => (
-							<p key={service.id} className='mt-2 text-foreground/70'>
-								<strong>{service.name}:</strong> {service.purpose}
-							</p>
-						))}
-					</section>
 				</div>
 			</section>
 		</LegalDocumentLayout>

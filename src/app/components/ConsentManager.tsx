@@ -169,7 +169,7 @@ function ConsentInterface() {
 										Your privacy choices
 									</h2>
 									<p className='mt-0.5 text-xs leading-5 text-muted sm:text-sm'>
-										Optional support and measurement services stay off until you choose. Essential security remains active.{" "}
+										Optional support and detailed analytics stay off until you choose. Basic cookieless traffic statistics remain active.{" "}
 										<a className='font-medium text-foreground underline underline-offset-2' href={legalDocumentRoutes.privacy}>
 											Privacy
 										</a>{" "}
@@ -238,7 +238,7 @@ function ConsentInterface() {
 														<Accordion.Trigger className='gap-2.5 py-3 hover:bg-transparent'>
 															<CategoryIcon className={`size-4 shrink-0 ${isNecessary ? "text-success" : "text-muted"}`} aria-hidden='true' />
 															<span className='min-w-0 flex-1 text-left text-sm font-medium'>{details?.title ?? type.name}</span>
-															{isNecessary && <span className='text-xs text-muted'>Always active</span>}
+															{isNecessary && <span className='hidden text-xs text-muted sm:inline'>Always active</span>}
 															<Accordion.Indicator>
 																<IconChevronDown className='size-4' aria-hidden='true' />
 															</Accordion.Indicator>

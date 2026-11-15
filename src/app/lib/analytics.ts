@@ -15,12 +15,12 @@ declare global {
 	}
 }
 
-let identifiedSession = false;
 let productContext: AnalyticsData = {};
+let accountLinked = false;
 
-export function setAnalyticsContext(context: AnalyticsData) {
-	identifiedSession = true;
-	productContext = context;
+export function setAnalyticsContext(context: AnalyticsData | null) {
+	accountLinked = context !== null;
+	productContext = context ?? {};
 }
 
 const campaignKeys = new Set(["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"]);
@@ -47,17 +47,20 @@ function safeUrl(raw: unknown, relative: boolean) {
 	}
 }
 
-/** Native tracker hook; preserve traffic coverage without exporting source credentials. */
+/** Native pageviews remain available; custom measurement and identity require consent. */
 export function prepareUmamiPayload(type: string, payload: Record<string, unknown>) {
 	const consented = browserMeasurementAllowed();
-	if (identifiedSession && !consented) return null;
-	if ((type === "identify" || type === "performance") && !consented) return null;
+	// Stop the identified client immediately on withdrawal, before its reload completes.
+	if (!consented && (accountLinked || type !== "event" || payload.name)) return null;
 	const result = { ...payload };
 	const url = safeUrl(result.url, true);
 	const pathname = url?.split("?")[0] ?? "/";
 	result.url = url;
 	if (result.referrer) result.referrer = safeUrl(result.referrer, false);
-	if (!consented) delete result.id;
+	if (!consented) {
+		delete result.id;
+		delete result.data;
+	}
 	if (result.data && typeof result.data === "object") result.data = Object.fromEntries(Object.entries(result.data).filter(([key]) => !privateFields.test(key)));
 	if (consented && result.name) result.data = { ...(result.data as AnalyticsData | undefined), ...productContext };
 	const embedded = typeof window !== "undefined" && window.self !== window.top;
@@ -68,6 +71,7 @@ export function prepareUmamiPayload(type: string, payload: Record<string, unknow
 }
 
 export function trackEvent(name: string, data?: AnalyticsData) {
+	if (!browserMeasurementAllowed()) return;
 	try {
 		const pending = typeof window !== "undefined" ? window.umami?.track(name, data) : undefined;
 		if (pending) void pending.catch(() => undefined);

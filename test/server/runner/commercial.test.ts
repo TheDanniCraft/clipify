@@ -305,9 +305,9 @@ test("TDD-US5-CON014: an old signed Runner intent is consumed once and cannot cr
 		});
 		const { GET } = await import("@/app/checkout/continue/route");
 		const response = await GET();
-		expect(response.headers.get("location")).toBe("https://clipify.example.invalid/pricing");
+		expect(response.headers.get("location")).toBe("https://clipify.example.invalid/pricing?checkout=unavailable");
 		expect(cookieSet).toHaveBeenCalledWith(CHECKOUT_INTENT_COOKIE, "", expect.objectContaining({ maxAge: 0 }));
-		expect((await GET()).headers.get("location")).toBe("https://clipify.example.invalid/pricing");
+		expect((await GET()).headers.get("location")).toBe("https://clipify.example.invalid/pricing?checkout=unavailable");
 		expect(checkoutCreate).not.toHaveBeenCalled();
 		expect(customerCreate).not.toHaveBeenCalled();
 		expect(stripe.prices.list).not.toHaveBeenCalled();

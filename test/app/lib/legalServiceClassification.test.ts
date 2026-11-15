@@ -1,21 +1,9 @@
 /** @jest-environment node */
-
 import { getAlwaysOnServiceDisclosures, projectConsentCategories } from "@lib/legal/consentProjection";
-
-describe("legal service classification", () => {
-	it("discloses necessary and cookieless measurement truthfully", () => {
-		const categories = projectConsentCategories({ necessary: true, functionality: false, measurement: false });
-		const necessary = categories.find((category) => category.id === "necessary");
-		const plausible = getAlwaysOnServiceDisclosures().find((service) => service.id === "umami-baseline");
-
-		expect(necessary).toEqual(expect.objectContaining({ selected: true, userConfigurable: false }));
-		expect(plausible).toEqual(
-			expect.objectContaining({
-				alwaysOn: true,
-				consentRequired: false,
-				optionalToggle: false,
-				storageDeclarations: [],
-			}),
-		);
-	});
+test("separates basic traffic from optional account-linked analytics", () => {
+	const categories = projectConsentCategories({ necessary: true, functionality: false, measurement: false });
+	expect(categories.find((c) => c.id === "necessary")).toMatchObject({ selected: true, userConfigurable: false });
+	expect(categories.find((c) => c.id === "measurement")?.services.find((s) => s.id === "umami-product-analytics")).toMatchObject({ consentRequired: true });
+	expect(getAlwaysOnServiceDisclosures()).toEqual([expect.objectContaining({ id: "umami-baseline", alwaysOn: true, consentRequired: false, optionalToggle: false })]);
+	expect(categories.find((c) => c.id === "necessary")?.services.map((service) => service.id)).not.toContain("umami-baseline");
 });

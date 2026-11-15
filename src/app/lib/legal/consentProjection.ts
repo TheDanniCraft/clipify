@@ -17,12 +17,13 @@ export function projectConsentCategories(selections: ConsentSelections) {
 	}));
 }
 
+/** Basic native audience measurement is separate from optional product analytics. */
 export function getAlwaysOnServiceDisclosures() {
 	return [
 		{
 			id: "umami-baseline",
 			name: "Umami audience statistics",
-			purpose: "Produce cookieless traffic, campaign, engagement and existing product-event statistics without attaching your Clipify account.",
+			purpose: "Basic cookieless Umami statistics measure page visits and traffic sources without a Clipify account ID. Account-linked analytics and heatmaps require statistics consent.",
 			alwaysOn: true,
 			consentRequired: false,
 			optionalToggle: false,

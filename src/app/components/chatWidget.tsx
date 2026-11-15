@@ -12,10 +12,6 @@ import { notify } from "@lib/toast";
 
 type ConsentScriptStatus = "blocked" | "loading" | "ready";
 
-export function shouldShowChatConsentFallback({ isEmbedded, preferencesVisible, scriptStatus }: { isEmbedded: boolean; preferencesVisible: boolean; scriptStatus: ConsentScriptStatus }) {
-	return !isEmbedded && !preferencesVisible && scriptStatus === "blocked";
-}
-
 function isChatwootAvailable() {
 	return Boolean(window.chatwootSDK || window.$chatwoot || document.querySelector("#chatwoot_live_chat_widget, iframe[src*='chat.cloud.thedannicraft.de']"));
 }
@@ -42,11 +38,15 @@ const ChatWidget = () => {
 		if (!banner.isVisible) return;
 		let element: HTMLElement | null = null;
 		const positionPreview = () => {
-			if (element) setPreviewBottom(window.innerHeight - element.getBoundingClientRect().top + 12);
+			if (!element) return;
+			const rect = element.getBoundingClientRect();
+			const overlapsLauncher = rect.left < 20 + 56 && rect.right > 20;
+			setPreviewBottom(overlapsLauncher ? Math.max(20, window.innerHeight - rect.top + 12) : 20);
 		};
 		const observer = new ResizeObserver(positionPreview);
 		const findBanner = () => {
-			const next = document.getElementById("consent-banner-title")?.closest("aside") ?? null;
+			const aside = document.getElementById("consent-banner-title")?.closest("aside");
+			const next = aside?.querySelector<HTMLElement>(".card") ?? aside ?? null;
 			if (next === element) return;
 			observer.disconnect();
 			element = next;
@@ -76,7 +76,8 @@ const ChatWidget = () => {
 				return;
 			}
 
-			chatwoot.toggleBubbleVisibility?.(inDashboard ? "hide" : "show");
+			// Keep Clipify's launcher stable before and after consent.
+			chatwoot.toggleBubbleVisibility?.("hide");
 		}
 
 		syncChatwootVisibility();
@@ -103,11 +104,10 @@ const ChatWidget = () => {
 		return () => window.removeEventListener(CONSENT_PREFERENCES_VISIBILITY_EVENT, updatePreferencesVisibility);
 	}, []);
 
-	if (!chatwootState.checked || (!inDashboard && chatwootState.available) || (!inDashboard && !shouldShowChatConsentFallback({ isEmbedded, preferencesVisible: dialog.isVisible || preferencesVisible, scriptStatus }))) return null;
-	if (inDashboard && (dialog.isVisible || preferencesVisible || isEmbedded)) return null;
+	if (!chatwootState.checked || isEmbedded || dialog.isVisible || preferencesVisible) return null;
 
 	function openSupportConsent() {
-		if (inDashboard && functionalityAllowed && !consentVisible) {
+		if (functionalityAllowed && !consentVisible) {
 			if (isChatwootWidgetMounted() && typeof window.$chatwoot?.toggle === "function") window.$chatwoot.toggle("open");
 			else notify({ title: "Support chat is loading", description: "Please try again in a moment." });
 			return;

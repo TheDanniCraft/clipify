@@ -133,7 +133,7 @@ export default function TiersComponent({ source = "pricing_page", campaignOffer 
 
 			{showComparisonLink ? (
 				<Link href='/pricing' className={buttonVariants({ variant: "outline", fullWidth: true, className: "mt-4 gap-2 no-underline sm:w-auto sm:min-w-64" })}>
-					Compare Free and Pro
+					See all plan differences
 					<IconArrowRight width={18} />
 				</Link>
 			) : null}

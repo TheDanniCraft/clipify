@@ -2313,5 +2313,41 @@
 				"completionRate": 0.25
 			}
 		}
+	},
+	"conversion": {
+		"signups30d": 27,
+		"activated30d": 5,
+		"checkoutCreators30d": 0,
+		"paidCreators30d": 0,
+		"mature7dCreators": 10,
+		"activatedWithin7d": 1,
+		"operations": {
+			"authSessionCreated": 15,
+			"checkoutRequested": 4,
+			"checkoutCreated": 2,
+			"checkoutUnavailable": 1,
+			"checkoutAlreadyOwned": 1,
+			"webhookReceived": 5,
+			"webhookFailed": 1,
+			"webhookProcessed": 4,
+			"analyticsConsentExcluded": 6
+		},
+		"webhooks": {
+			"failed": 1,
+			"staleProcessing": 1,
+			"oldestProcessingAgeSeconds": 600
+		}
+	},
+	"billing": {
+		"payingSubscriptions": 6,
+		"trialSubscriptions": 0,
+		"paymentProblemSubscriptions": 1,
+		"cancelingSubscriptions": 1
+	},
+	"analyticsCache": {
+		"deliveryAttempts": 8,
+		"deliverySucceeded": 6,
+		"deliveryFailed": 2,
+		"deliveryRetries": 1
 	}
 }

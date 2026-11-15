@@ -77,7 +77,7 @@ describe("components/ChatWidget", () => {
 		const title = document.createElement("h2");
 		title.id = "consent-banner-title";
 		banner.append(title);
-		jest.spyOn(banner, "getBoundingClientRect").mockReturnValue({ top: 500 } as DOMRect);
+		jest.spyOn(banner, "getBoundingClientRect").mockReturnValue({ top: 500, left: 0, right: window.innerWidth } as DOMRect);
 		document.body.append(banner);
 		try {
 			await waitFor(() => expect(screen.getByRole("button", { name: "Enable support chat" })).toHaveStyle({ bottom: `${window.innerHeight - 500 + 12}px` }));
@@ -99,6 +99,36 @@ describe("components/ChatWidget", () => {
 		fireEvent.click(screen.getByRole("button", { name: "Enable support chat" }));
 		expect(toggle).toHaveBeenLastCalledWith("open");
 		expect(mockOpenDialog).not.toHaveBeenCalled();
+	});
+
+	it("keeps the public launcher after consent and opens chat through the same button", () => {
+		const { rerender } = render(<ChatWidget />);
+		const launcher = screen.getByRole("button", { name: "Enable support chat" });
+		mockFunctionalityAllowed = true;
+		mountChatwootWidget();
+		const toggle = jest.fn();
+		window.$chatwoot = { toggle, toggleBubbleVisibility: jest.fn() } as unknown as NonNullable<Window["$chatwoot"]>;
+		fireEvent(window, new Event("chatwoot:ready"));
+		rerender(<ChatWidget />);
+		expect(screen.getByRole("button", { name: "Enable support chat" })).toBe(launcher);
+		fireEvent.click(launcher);
+		expect(toggle).toHaveBeenLastCalledWith("open");
+		expect(window.$chatwoot.toggleBubbleVisibility).toHaveBeenLastCalledWith("hide");
+	});
+
+	it("keeps the bottom anchor when the banner leaves room beside it", async () => {
+		mockBannerVisible = true;
+		const banner = document.createElement("aside");
+		banner.innerHTML = '<div class="card"><h2 id="consent-banner-title"></h2></div>';
+		jest.spyOn(banner.firstElementChild!, "getBoundingClientRect").mockReturnValue({ top: 500, left: 150, right: 1130 } as DOMRect);
+		document.body.append(banner);
+		const { unmount } = render(<ChatWidget />);
+		try {
+			await waitFor(() => expect(screen.getByRole("button", { name: "Enable support chat" })).toHaveStyle({ bottom: "20px" }));
+		} finally {
+			unmount();
+			banner.remove();
+		}
 	});
 
 	it("offers dashboard support consent before the initial banner is dismissed", () => {
@@ -175,20 +205,20 @@ describe("components/ChatWidget", () => {
 		window.removeEventListener(OPEN_CONSENT_PREFERENCES_EVENT, openPreferences);
 	});
 
-	it("does not compete with Chatwoot while the consent script is loading", () => {
+	it("keeps the launcher available while the consent script is loading", () => {
 		mockFunctionalityAllowed = true;
 
 		render(<ChatWidget />);
 
-		expect(screen.queryByRole("button", { name: "Enable support chat" })).not.toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Enable support chat" })).toBeVisible();
 	});
 
-	it("does not render over an already available Chatwoot widget even if consent state is stale", () => {
+	it("keeps consent reachable even when a stale Chatwoot object exists", () => {
 		window.$chatwoot = {} as NonNullable<Window["$chatwoot"]>;
 
 		render(<ChatWidget />);
 
-		expect(screen.queryByRole("button", { name: "Enable support chat" })).not.toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Enable support chat" })).toBeVisible();
 	});
 
 	it("closes and hides Chatwoot when client navigation enters an embedded route", () => {
@@ -226,7 +256,7 @@ describe("components/ChatWidget", () => {
 		expect(toggleBubbleVisibility).toHaveBeenCalledWith("hide");
 	});
 
-	it("restores the Chatwoot bubble after leaving an embedded route with consent", () => {
+	it("restores the Clipify launcher after leaving an embedded route with consent", () => {
 		mountChatwootWidget();
 		const toggleBubbleVisibility = jest.fn();
 		window.$chatwoot = { toggle: jest.fn(), toggleBubbleVisibility } as unknown as NonNullable<Window["$chatwoot"]>;
@@ -240,7 +270,7 @@ describe("components/ChatWidget", () => {
 		mockIsEmbedded = false;
 		rerender(<ChatWidget />);
 
-		expect(toggleBubbleVisibility).toHaveBeenCalledWith("show");
+		expect(toggleBubbleVisibility).toHaveBeenCalledWith("hide");
 	});
 
 	it("waits for Chatwoot to mount its DOM before changing bubble visibility", () => {
@@ -253,7 +283,7 @@ describe("components/ChatWidget", () => {
 		expect(toggleBubbleVisibility).not.toHaveBeenCalled();
 		mountChatwootWidget();
 		fireEvent(window, new Event("chatwoot:ready"));
-		expect(toggleBubbleVisibility).toHaveBeenCalledWith("show");
+		expect(toggleBubbleVisibility).toHaveBeenCalledWith("hide");
 	});
 
 	it("keeps the local support preview visible with the initial banner and hides it for the preferences dialog", () => {
@@ -285,7 +315,7 @@ describe("components/ChatWidget", () => {
 		expect(toggleBubbleVisibility).toHaveBeenCalledWith("hide");
 		mockBannerVisible = false;
 		rerender(<ChatWidget />);
-		expect(toggleBubbleVisibility).toHaveBeenLastCalledWith("show");
+		expect(toggleBubbleVisibility).toHaveBeenLastCalledWith("hide");
 	});
 });
 

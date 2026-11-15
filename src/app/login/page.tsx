@@ -1,6 +1,7 @@
 import { socialPreview } from "@lib/socialPreview";
 import type { Metadata } from "next";
 import { Link } from "@components/heroui-client";
+import Logo from "@components/logo";
 import ErrorToast from "@components/errorToast";
 import { validateAuth } from "@actions/auth";
 import { redirect } from "next/navigation";
@@ -38,23 +39,29 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
 		<>
 			<ErrorToast error={error as string} errorCode={errorCode as string} />
 
-			<main className='min-h-screen min-w-screen flex items-center justify-center bg-gradient-to-br from-brand-800 to-brand-400'>
-				<div className='flex flex-col items-center'>
-					<LoginClient returnUrl={returnDestination} oauthAuthorization={oauthAuthorization} />
-
-					<div className='mt-2 flex max-w-[240px] flex-col items-center text-center text-xs text-white/90'>
-						<p>
-							By logging in, you agree to our{" "}
-							<Link href={legalDocumentRoutes.terms} className='text-xs text-white underline'>
-								Terms
-							</Link>{" "}
-							and{" "}
-							<Link href={legalDocumentRoutes.privacy} className='text-xs text-white underline'>
-								Privacy
-							</Link>
-							. We send you product update emails by default. You can opt out anytime.
-						</p>
+			<main className='flex min-h-svh items-center justify-center bg-background px-6 py-12 pb-48 sm:pb-12'>
+				<div className='w-full max-w-sm text-center'>
+					<Link href='/' className='mb-8 inline-flex items-center gap-3 font-semibold text-foreground'>
+						<Logo size={32} />
+						Clipify
+					</Link>
+					<h1 className='text-3xl font-semibold tracking-tight'>{oauthAuthorization ? "Connect your account" : checkoutIntent ? "Your Pro plan is selected" : "Sign in to Clipify"}</h1>
+					<p className='mt-3 leading-relaxed text-muted'>{oauthAuthorization ? "Sign in with Twitch to review this app’s requested access." : checkoutIntent ? "Sign in with Twitch to continue to checkout. Your billing selection is saved." : "Use your Twitch account. New here? We’ll create your Clipify account when you connect."}</p>
+					<div className='mt-8'>
+						<LoginClient returnUrl={returnDestination} oauthAuthorization={oauthAuthorization} />
 					</div>
+					<p className='mt-8 text-xs leading-relaxed text-muted'>
+						By continuing, you agree to our{" "}
+						<Link href={legalDocumentRoutes.terms} className='text-xs underline'>
+							Terms
+						</Link>
+						. Read our{" "}
+						<Link href={legalDocumentRoutes.privacy} className='text-xs underline'>
+							Privacy Policy
+						</Link>
+						.
+					</p>
+					<p className='mt-3 text-xs leading-relaxed text-muted'>Product emails are on by default. Unsubscribe anytime.</p>
 				</div>
 			</main>
 		</>

@@ -1,3 +1,4 @@
+import MarketingLink from "@components/LandingPage/MarketingLink";
 import { socialPreview } from "@lib/socialPreview";
 import { connection } from "next/server";
 import { getDemoGalleryClips } from "@actions/gallery";
@@ -5,7 +6,6 @@ import PublicPageHeader from "@components/LandingPage/publicPageHeader";
 import PublicGalleryDemo from "@components/gallery/PublicGalleryDemo";
 import { buttonVariants } from "@heroui/styles";
 import type { Metadata } from "next";
-import { Link } from "@components/heroui-client";
 import BasicNavbar from "@components/LandingPage/basicNavbar";
 import Footer from "@components/footer";
 export const metadata: Metadata = {
@@ -23,9 +23,9 @@ export default async function GalleryLandingPage() {
 			<BasicNavbar />
 			<main className='mx-auto max-w-6xl px-6 py-14 sm:px-8 sm:py-20'>
 				<PublicPageHeader title='Your clips, together.' description='Collect your Twitch highlights in one public gallery. Share the link with your community or embed it on your website.'>
-					<Link className={buttonVariants({ variant: "primary", className: "mt-7 no-underline" })} href='/login'>
+					<MarketingLink className={buttonVariants({ variant: "primary", className: "mt-7 no-underline" })} href='/login?returnUrl=%2Fdashboard%2Fgalleries' placement='gallery'>
 						Create your gallery
-					</Link>
+					</MarketingLink>
 				</PublicPageHeader>
 				<PublicGalleryDemo initialBundle={initialBundle} />
 			</main>

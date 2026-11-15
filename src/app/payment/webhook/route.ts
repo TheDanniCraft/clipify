@@ -1,5 +1,6 @@
 /* istanbul ignore file */
 "use server";
+import { recordConversionOperation } from "@/server/conversion-health";
 import { recordProductOutcome } from "@/server/product-outcomes";
 import { queueProPaymentEmail } from "@/server/notifications/pro-events";
 import { resolveBillingProductForPrice } from "@/server/billingCatalog";
@@ -124,6 +125,7 @@ export async function POST(req: Request) {
 		return NextResponse.json({ error: message }, { status: 400 });
 	}
 
+	recordConversionOperation("webhookReceived");
 	const handledEvents = new Set(["refund.created", "refund.updated", "checkout.session.completed", "checkout.session.async_payment_succeeded", "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted", "invoice.paid", "invoice.payment_failed"]);
 	if (!handledEvents.has(event.type)) return NextResponse.json({});
 
@@ -134,9 +136,11 @@ export async function POST(req: Request) {
 
 	try {
 		await processEvent(stripe, event);
+		recordConversionOperation("webhookProcessed");
 		await db.update(billingWebhookEventsTable).set({ status: "processed", processingStartedAt: null, processedAt: new Date(), lastError: null }).where(leaseCondition);
 		return NextResponse.json({});
 	} catch (error) {
+		recordConversionOperation("webhookFailed");
 		const message = error instanceof Error ? error.message : "Unknown Stripe webhook error";
 		await db.update(billingWebhookEventsTable).set({ status: "failed", processingStartedAt: null, lastError: message }).where(leaseCondition);
 		console.error(`Stripe webhook failed: ${message} | EVENT TYPE: ${event.type}`);

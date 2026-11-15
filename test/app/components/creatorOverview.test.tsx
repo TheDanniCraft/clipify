@@ -238,6 +238,16 @@ it("offers the existing overlay setup guide when an empty overview still has set
 	broadcasts.mockResolvedValue({ ok: true, items: [], stale: false });
 	mockSetupTask = { id: "overlay.setup", title: "Add it to OBS or Streamlabs" };
 	render(<CreatorOverview creatorId='owner' />);
-	fireEvent.click(await screen.findByRole("button", { name: "Continue overlay setup" }));
+	fireEvent.click(await screen.findByRole("button", { name: "Add it to OBS or Streamlabs" }));
+	expect(mockStartSetup).toHaveBeenCalledTimes(1);
+});
+
+it("keeps setup available when recent clips are already present", async () => {
+	mockSetupTask = { id: "overlay.setup", title: "Add it to OBS or Streamlabs" };
+	overview.mockResolvedValue(metrics);
+	broadcasts.mockResolvedValue({ ok: true, stale: false, items: [] });
+	render(<CreatorOverview creatorId='owner' />);
+	await screen.findByText("Clutch");
+	fireEvent.click(screen.getByRole("button", { name: "Add it to OBS or Streamlabs" }));
 	expect(mockStartSetup).toHaveBeenCalledTimes(1);
 });

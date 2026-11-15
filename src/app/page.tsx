@@ -9,7 +9,7 @@ import { FrequencyEnum, type RuntimePricing } from "@components/Pricing/pricing-
 export const dynamic = "force-dynamic";
 
 const title = "Twitch Clip Player for OBS Break Screens | Clipify";
-const description = "Turn your Twitch highlights into a BRB or Starting Soon screen. Choose clips, save your overlay, and add a browser source in OBS. Start with Clipify Free.";
+const description = "Turn your Twitch highlights into a BRB or Starting Soon screen. Choose clips, add an OBS overlay, or export highlights for sharing. Start with Clipify Free.";
 
 export const metadata: Metadata = {
 	title,

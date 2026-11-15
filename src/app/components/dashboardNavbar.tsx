@@ -18,6 +18,7 @@ import { getAdminViewCandidates, stopAdminView, switchAdminView, type AdminViewC
 import { getActiveCampaignOfferAction } from "@actions/campaignOffers";
 import { Fragment, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { authClient } from "@/auth/client";
+import { getDefaultAccountContext } from "@actions/accountContext";
 
 const subscribeToHydration = () => () => undefined;
 const clientReady = () => true;
@@ -27,21 +28,25 @@ export type DashboardNavbarUser = Pick<AuthenticatedUser, "id" | "username"> & P
 
 type OrganizationOption = { id: string; name: string; metadata?: unknown };
 
-function accountType(organization: OrganizationOption) {
+function organizationMetadata(organization: OrganizationOption): Record<string, unknown> | null {
 	let metadata = organization.metadata;
 	if (typeof metadata === "string") {
 		try {
-			metadata = JSON.parse(metadata || "{}");
+			metadata = JSON.parse(metadata);
 		} catch {
-			metadata = {};
+			return null;
 		}
 	}
-	return metadata && typeof metadata === "object" && "accountType" in metadata && metadata.accountType === "agency" ? "agency" : "creator";
+	return metadata && typeof metadata === "object" ? (metadata as Record<string, unknown>) : null;
+}
+function accountType(organization: OrganizationOption) {
+	return organizationMetadata(organization)?.accountType === "agency" ? "agency" : "creator";
 }
 
 export default function DashboardNavbar({ children, user, title, tagline, organizationId, stickyHeading = false }: { children?: React.ReactNode; user: DashboardNavbarUser; title: string; tagline: string; organizationId?: string; stickyHeading?: boolean }) {
 	const navigation = useContext(DashboardNavigationContext);
 	const inShell = navigation !== null;
+
 	const AccountControlsContainer = inShell ? DashboardUtilityPortal : Fragment;
 	const ContentContainer = inShell ? "div" : "main";
 	const { theme, setTheme } = useTheme();
@@ -58,6 +63,7 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 	const [isLoadingSwitchCandidates, setIsLoadingSwitchCandidates] = useState(false);
 	const [isSwitchingOrganization, setIsSwitchingOrganization] = useState(false);
 	const appliedOrganization = useRef<string | null>(null);
+	const [defaultContext, setDefaultContext] = useState<{ creatorId: string; organizationId: string | null } | null>(null);
 	const [campaignOffer, setCampaignOffer] = useState<CampaignOffer | null>(null);
 	const effectivePlan = user?.entitlements?.effectivePlan ?? user?.plan;
 	const showUpgradeItem = user?.plan === "free" && (effectivePlan === "free" || Boolean(user?.entitlements?.reverseTrialActive));
@@ -69,7 +75,25 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 	const sessionOrganizationId = session.data?.session.activeOrganizationId ?? null;
 	const activeOrganizationId = organizationId ?? sessionOrganizationId;
 	const activeOrganization = organizationOptions.find((organization) => organization.id === activeOrganizationId);
-	const displayedOrganization = activeOrganization;
+	const personalOrganization = organizationOptions.find((organization) => organizationMetadata(organization)?.creatorId === user.id);
+	const needsDefaultContext = !activeOrganizationId && !isImpersonating && !organizations.isPending && Boolean(session.data) && !personalOrganization;
+	const resolvingDefaultContext = needsDefaultContext && defaultContext?.creatorId !== user.id;
+	const displayedOrganization = activeOrganization ?? (!activeOrganizationId && !isImpersonating ? (personalOrganization ?? organizationOptions.find((organization) => defaultContext?.creatorId === user.id && organization.id === defaultContext.organizationId)) : undefined);
+
+	useEffect(() => {
+		if (!resolvingDefaultContext) return;
+		let cancelled = false;
+		void getDefaultAccountContext()
+			.then((organizationId) => {
+				if (!cancelled) setDefaultContext({ creatorId: user.id, organizationId });
+			})
+			.catch(() => {
+				if (!cancelled) setDefaultContext({ creatorId: user.id, organizationId: null });
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [resolvingDefaultContext, user.id]);
 
 	useEffect(() => {
 		if (!organizationId) {
@@ -214,7 +238,7 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 						<span className='flex h-5 w-4 shrink-0 items-center justify-center text-muted'>
 							<IconBuildingCommunity aria-hidden='true' className='translate-y-px' size={15} />
 						</span>
-						<Autocomplete.Value className='block min-w-0 flex-1 truncate text-left text-sm font-medium leading-5'>{displayedOrganization?.name ?? (organizations.isPending ? "Loading accounts…" : "Select account")}</Autocomplete.Value>
+						<Autocomplete.Value className='block min-w-0 flex-1 truncate text-left text-sm font-medium leading-5'>{displayedOrganization?.name ?? (organizations.isPending || resolvingDefaultContext ? "Loading accounts…" : "Select account")}</Autocomplete.Value>
 						<Autocomplete.Indicator className='shrink-0 text-muted' />
 					</Autocomplete.Trigger>
 					<Autocomplete.Popover className='min-w-64' placement='bottom end'>
@@ -314,7 +338,7 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 					{inShell ? <div className='min-w-0 flex-1'>{!navigation?.current || (navigation.current.href === (navigation.homeHref ?? "/dashboard") && !navigation.current.detail) ? <span className='text-sm font-medium'>{navigation?.current?.title ?? title}</span> : <DashboardBreadcrumbs />}</div> : null}
 					{inShell ? themeControl : null}
 					<AccountControlsContainer {...(inShell ? { slot: "account" as const } : {})}>
-						<ul data-dashboard-account-controls className={inShell ? "flex w-full flex-col items-stretch gap-1" : "order-2 ml-auto flex h-12 max-w-fit items-center gap-0 sm:order-3"}>
+						<ul data-dashboard-account-controls className={inShell ? "flex w-full flex-col items-stretch gap-2" : "order-2 ml-auto flex h-12 max-w-fit items-center gap-0 sm:order-3"}>
 							{!inShell ? <li>{themeControl}</li> : null}
 							{inShell ? accountSwitcher : null}
 							<li className={inShell ? "min-w-0 flex-1" : "px-2"}>
@@ -375,6 +399,7 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 												<Dropdown.Item id='help_and_feedback' textValue='Help' onAction={() => router.push("https://help.clipify.us/hc/clipify/articles/1769328012-getting-started-with-clipify")}>
 													<Label>Help</Label>
 												</Dropdown.Item>
+
 												<Dropdown.Item id='logout' textValue='Log Out' variant='danger' onAction={() => setLogoutOpen(true)}>
 													<Label>Log Out</Label>
 												</Dropdown.Item>

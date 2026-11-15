@@ -3,16 +3,29 @@
 import { Button, Checkbox, Link, Modal } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
 
+import { useEffect, useRef } from "react";
+import { trackProductEvent } from "@lib/analytics";
 import { trackPaywallEvent } from "@lib/paywallTracking";
 import { FrequencyEnum, type RuntimePricing } from "./pricing-types";
 
 export default function ProSetupModal({ source = "pricing_page", isOpen, onOpenChange, pricing, selectedFrequency, entrypoint }: { source?: "homepage" | "pricing_page"; isOpen: boolean; onOpenChange: (isOpen: boolean) => void; pricing: RuntimePricing; selectedFrequency: FrequencyEnum; entrypoint: "direct_cta" | "pricing_comparison" }) {
+	const continued = useRef(false);
+	useEffect(() => {
+		if (isOpen) {
+			continued.current = false;
+			trackProductEvent("upgrade_opened", { source, cycle: selectedFrequency });
+		}
+	}, [isOpen, source, selectedFrequency]);
+	const changeOpen = (open: boolean) => {
+		if (!open && !continued.current) trackProductEvent("upgrade_dismissed", { source, cycle: selectedFrequency });
+		onOpenChange(open);
+	};
 	const checkoutHref = `/checkout/start?plan=pro&cycle=${selectedFrequency}&entrypoint=${entrypoint}`;
 	const selectedTotalLabel = pricing.pro[selectedFrequency].formatted;
 	const period = selectedFrequency === FrequencyEnum.Monthly ? "month" : "year";
 
 	return (
-		<Modal.Backdrop isOpen={isOpen} onOpenChange={onOpenChange} variant='blur'>
+		<Modal.Backdrop isOpen={isOpen} onOpenChange={changeOpen} variant='blur'>
 			<Modal.Container size='lg'>
 				<Modal.Dialog>
 					<Modal.CloseTrigger />
@@ -49,7 +62,14 @@ export default function ProSetupModal({ source = "pricing_page", isOpen, onOpenC
 						<Button slot='close' variant='secondary'>
 							Cancel
 						</Button>
-						<Link href={checkoutHref} onPress={() => trackPaywallEvent("checkout_start", { source, feature: "plan", plan: "pro", cycle: selectedFrequency })} className={buttonVariants({ variant: "primary", className: "no-underline" })}>
+						<Link
+							href={checkoutHref}
+							onPress={() => {
+								continued.current = true;
+								trackPaywallEvent("checkout_start", { source, feature: "plan", plan: "pro", cycle: selectedFrequency });
+							}}
+							className={buttonVariants({ variant: "primary", className: "no-underline" })}
+						>
 							Continue to checkout
 						</Link>
 					</Modal.Footer>

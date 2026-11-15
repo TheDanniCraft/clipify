@@ -1,3 +1,5 @@
+import { trackServerProductEvent } from "@/server/umami";
+import { recordConversionOperation } from "@/server/conversion-health";
 import { queueIdentityEmail } from "@/server/notifications/identity-events";
 import { randomUUID } from "node:crypto";
 import { betterAuth } from "better-auth";
@@ -110,6 +112,8 @@ export const auth = betterAuth({
 		session: {
 			create: {
 				after: async (session) => {
+					recordConversionOperation("authSessionCreated");
+					trackServerProductEvent(session.userId, "auth_completed", { source: "session" });
 					await db
 						.update(usersTable)
 						.set({ lastLogin: new Date() })

@@ -88,7 +88,7 @@ test("Inactive Home offers the existing overlay setup without inventing activati
 	await tourWorld.fixture.pool.query(`UPDATE "twitchCache" SET value=jsonb_set(value::jsonb,'{clip,created_at}','"2020-01-01T00:00:00Z"')::text WHERE key=$1`, [`clip:${creatorId}:${id}`]);
 	await page.goto(`${tourWorld.origin}/dashboard`);
 	await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
-	const setup = page.getByRole("button", { name: "Set up an overlay", exact: true });
+	const setup = page.locator('[aria-label="Finish your stream setup"]').getByRole("button", { name: "Create and name your overlay", exact: true });
 	await expect(setup).toBeVisible();
 	await expect(page.getByRole("dialog", { name: "Open Overlays", exact: true })).toHaveCount(0);
 	await setup.focus();

@@ -1,3 +1,4 @@
+import MarketingLink from "@components/LandingPage/MarketingLink";
 import { socialPreview } from "@lib/socialPreview";
 import PublicPageHeader from "@components/LandingPage/publicPageHeader";
 import { buttonVariants } from "@heroui/styles";
@@ -8,12 +9,22 @@ import ProductImage from "@components/LandingPage/productImage";
 import Footer from "@components/footer";
 
 export const metadata: Metadata = {
-	title: "Twitch Clip Playlists, OBS Overlays & Live Controls | Clipify",
-	description: "Explore Clipify's saved Twitch clip playlists, OBS browser-source overlays, Theme Studio, live playback controls, galleries, and self-hosted Runner.",
+	title: "Twitch Clip Exports, Playlists & OBS Overlays | Clipify",
+	description: "Download Twitch clips, export landscape and vertical videos with reusable layouts, and explore Clipify playlists, OBS overlays, live controls, galleries and Runner.",
 	alternates: { canonical: "https://clipify.us/features" },
 	openGraph: { ...socialPreview, title: "Explore Clipify's Twitch streaming tools", description: "Choose your clips, build a break scene, and control playback with Clipify.", url: "https://clipify.us/features" },
 };
 const features = [
+	{
+		id: "exports",
+		label: "Clip exports & reusable layouts",
+		title: "One highlight. The versions you need.",
+		text: "Find highlights in your clip inventory or past streams, select the clips you want, and download them. Save layouts for landscape and vertical video with your gameplay, camera, text and logo arranged for each format.",
+		detail: "Free includes Original downloads, Desktop (16:9) and Mobile (9:16) exports. Free Desktop and Mobile exports include a Clipify watermark; Pro can remove it. Original downloads remain untouched. Choose sharing presets for YouTube, TikTok, Instagram Reels, Reddit or Discord, then upload the files yourself.",
+		image: "exports",
+		href: "/login?returnUrl=%2Fdashboard%2Fclips",
+		action: "Start exporting clips",
+	},
 	{
 		id: "playlists",
 		label: "Clip playlists",
@@ -52,7 +63,7 @@ export default function FeaturesPage() {
 			<BasicNavbar />
 			<main>
 				<div className='mx-auto max-w-6xl px-6 py-14 sm:px-8 sm:py-20'>
-					<PublicPageHeader title='Build your break screen.' description='Choose Twitch clips, save an OBS overlay, and keep playback under control.' />
+					<PublicPageHeader title='Play your clips. Share your highlights.' description='Download clips for sharing, save reusable video layouts, or build an OBS break screen from your Twitch highlights.' />
 					{features.map((feature, index) => (
 						<section key={feature.id} id={feature.id} className='grid min-w-0 scroll-mt-24 items-start gap-6 border-b border-separator py-14 first-of-type:pt-0 sm:py-20 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-x-14 md:gap-y-4 md:grid-rows-[auto_1fr]'>
 							<header className={`min-w-0 ${feature.image && index % 2 ? "md:col-start-2" : ""}`}>
@@ -94,9 +105,9 @@ export default function FeaturesPage() {
 					<section className='grid gap-6 py-14 sm:py-20 md:grid-cols-2 md:gap-14'>
 						<div>
 							<h2 className='text-3xl font-semibold tracking-tight'>Ready for your next stream?</h2>
-							<Link href='/login' className={buttonVariants({ variant: "primary", className: "mt-6 no-underline" })}>
+							<MarketingLink href='/login' placement='features' className={buttonVariants({ variant: "primary", className: "mt-6 no-underline" })}>
 								Start free with Twitch
-							</Link>
+							</MarketingLink>
 						</div>
 						<div>
 							<h3 className='text-lg font-semibold'>Need a hand setting it up?</h3>

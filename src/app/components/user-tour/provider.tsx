@@ -131,6 +131,7 @@ export function UserTourProvider({ accountId, children, setupAvailable = false, 
 			}
 			if (mounted.current) setSyncState("idle");
 		} catch {
+			trackEvent("setup_failed", { reason: "progress_save_failed" });
 			if (mounted.current) setSyncState("error");
 		} finally {
 			processing.current = false;
@@ -237,7 +238,10 @@ export function UserTourProvider({ accountId, children, setupAvailable = false, 
 		trackEvent("guide_started", { journey: task.split(".")[0], task });
 	};
 	const onPause = useCallback(() => pause(), [pause]);
-	const onMissing = useCallback(() => pause(step?.inDialog ? "Clip selection closed. Click the task to reopen it." : "That control isn't available here. Close any open dialog and try the task again."), [pause, step?.inDialog]);
+	const onMissing = useCallback(() => {
+		trackEvent("setup_failed", { reason: "control_unavailable" });
+		pause(step?.inDialog ? "Clip selection closed. Click the task to reopen it." : "That control isn't available here. Close any open dialog and try the task again.");
+	}, [pause, step?.inDialog]);
 	const onNext = useCallback(() => report({ type: "next" }), [report]);
 	const onPrevious = useCallback(() => report({ type: "previous", location, pickerOpen: Boolean(document.querySelector('[data-tour="playlist-clip-search"]')) }), [report, location]);
 	const isFinished = (task: TaskId) => progress.completed.includes(task) || progress.skipped.includes(task);

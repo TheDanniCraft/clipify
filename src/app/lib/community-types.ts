@@ -2,6 +2,8 @@ import type { Plan } from "@types";
 
 export type CommunityStreamerStatus = "live_with_overlay" | "live" | "offline";
 
+export type CommunityCreatorStats = { status: "ready"; clipCount: number } | { status: "unavailable" };
+
 export type CommunityStreamer = {
 	id: string;
 	username: string;

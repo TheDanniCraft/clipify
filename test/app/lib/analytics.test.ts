@@ -2,6 +2,11 @@
 import { prepareUmamiPayload, setAnalyticsContext, trackEvent, trackProductEvent } from "@/app/lib/analytics";
 import { setBrowserMeasurementConsent } from "@/app/lib/consent/browserMeasurement";
 
+beforeEach(() => {
+	setBrowserMeasurementConsent(true);
+	setAnalyticsContext(null);
+});
+
 afterEach(() => {
 	setBrowserMeasurementConsent(false);
 	Reflect.deleteProperty(window, "umami");
@@ -29,11 +34,29 @@ it("preserves dashboard traffic and arbitrary standard UTM campaigns while remov
 	expect(payload).toMatchObject({ website: "site", tag: "application", url: "/dashboard/overlay/:id?utm_campaign=summer-any-name&utm_source=discord", referrer: "https://example.com/", title: "Clipify dashboard" });
 });
 
-it("keeps baseline events but blocks native identification and performance before consent", () => {
-	expect(prepareUmamiPayload("event", { hostname: "clipify.us", url: "/pricing", name: "paywall_impression", id: "account" })).toMatchObject({ name: "paywall_impression", tag: "marketing" });
-	expect(prepareUmamiPayload("event", { hostname: "clipify.us", url: "/pricing", id: "account" })).not.toHaveProperty("id");
-	expect(prepareUmamiPayload("identify", { id: "account" })).toBeNull();
-	expect(prepareUmamiPayload("performance", { lcp: 10 })).toBeNull();
+it.each(["event", "identify", "performance", "error"])("blocks every %s payload without consent", (type) => {
+	setBrowserMeasurementConsent(false);
+	expect(prepareUmamiPayload(type, { hostname: "clipify.us", url: "/pricing", name: "paywall_impression", id: "account" })).toBeNull();
+});
+
+it("retains native pageviews, campaign sources and device fields before consent, without account properties", () => {
+	setBrowserMeasurementConsent(false);
+	expect(prepareUmamiPayload("event", { website: "site", hostname: "clipify.us", url: "/dashboard/overlay/private?utm_source=twitch&token=secret", referrer: "https://example.com/?code=secret", screen: "1440x900", language: "en", title: "My overlay", id: "account", data: { plan: "pro" } })).toEqual({
+		website: "site",
+		hostname: "clipify.us",
+		url: "/dashboard/overlay/:id?utm_source=twitch",
+		referrer: "https://example.com/",
+		screen: "1440x900",
+		language: "en",
+		title: "Clipify dashboard",
+		tag: "application",
+	});
+});
+
+it("blocks pageviews from an already identified client immediately after withdrawal", () => {
+	setAnalyticsContext({ plan: "pro" });
+	setBrowserMeasurementConsent(false);
+	expect(prepareUmamiPayload("event", { hostname: "clipify.us", url: "/dashboard" })).toBeNull();
 });
 
 it("permits consented identity and performance while still stripping secret query values", () => {
@@ -47,17 +70,19 @@ it("separates nonproduction and audience traffic without dropping their pageview
 	expect(prepareUmamiPayload("event", { hostname: "clipify.us", url: "/creators/demo" })).toMatchObject({ tag: "audience" });
 });
 
-it("sends native baseline events and gates additional product events on current consent", () => {
+it("sends neither standard nor product events before consent or after withdrawal", () => {
 	const track = jest.fn();
 	Object.assign(window, { umami: { track } });
-	trackEvent("guide_started", { journey: "overlay" });
-	trackProductEvent("theme_saved", { changed_group: "layout" });
-	expect(track).toHaveBeenCalledTimes(1);
-	expect(track).toHaveBeenCalledWith("guide_started", { journey: "overlay" });
-	setBrowserMeasurementConsent(true);
-	trackProductEvent("theme_saved", { changed_group: "layout" });
-	expect(track).toHaveBeenLastCalledWith("theme_saved", { changed_group: "layout" });
 	setBrowserMeasurementConsent(false);
+	trackEvent("guide_started", { journey: "overlay" });
+	trackProductEvent("theme_saved");
+	expect(track).not.toHaveBeenCalled();
+	setBrowserMeasurementConsent(true);
+	trackEvent("guide_started", { journey: "overlay" });
+	trackProductEvent("theme_saved");
+	expect(track).toHaveBeenCalledTimes(2);
+	setBrowserMeasurementConsent(false);
+	trackEvent("guide_started");
 	trackProductEvent("theme_saved");
 	expect(track).toHaveBeenCalledTimes(2);
 });

@@ -25,8 +25,8 @@ export const legalDocumentRoutes = {
 } as const;
 
 export const legalDocuments: readonly LegalDocumentManifestEntry[] = [
-	{ id: "privacy", route: legalDocumentRoutes.privacy, title: "Privacy Policy", description: "How Clipify collects, uses, shares, and protects personal data.", ...initialPolicyMetadata, version: "1.3.0", effectiveDate: "2026-11-08", updatedDate: "2026-11-08" },
-	{ id: "cookies", route: legalDocumentRoutes.cookies, title: "Cookie Policy", description: "Which services and browser storage Clipify uses, and how you can manage optional choices.", ...initialPolicyMetadata, version: "1.3.0", effectiveDate: "2026-11-08", updatedDate: "2026-11-08" },
+	{ id: "privacy", route: legalDocumentRoutes.privacy, title: "Privacy Policy", description: "How Clipify collects, uses, shares, and protects personal data.", ...initialPolicyMetadata, version: "1.4.0", effectiveDate: "2026-11-14", updatedDate: "2026-11-14" },
+	{ id: "cookies", route: legalDocumentRoutes.cookies, title: "Cookie Policy", description: "Which services and browser storage Clipify uses, and how you can manage optional choices.", ...initialPolicyMetadata, version: "1.4.0", effectiveDate: "2026-11-14", updatedDate: "2026-11-14" },
 	{ id: "terms", route: legalDocumentRoutes.terms, title: "Terms of Service", description: "The rules that apply when you use Clipify and the self-hosted Runner.", ...initialPolicyMetadata },
 	{ id: "privacy-requests", route: legalDocumentRoutes.privacyRequests, title: "Privacy Requests", description: "How to exercise your privacy rights and what to expect after contacting us.", ...initialPolicyMetadata },
 	{ id: "imprint", route: legalDocumentRoutes.imprint, title: "Imprint", description: "Provider and contact information for Clipify.", ...initialPolicyMetadata },
@@ -113,8 +113,9 @@ export const privacyPolicySections: readonly LegalDocumentSection[] = [
 		title: "9. Analytics, diagnostics, and logs",
 		summary: "Clipify uses self-hosted, cookieless Umami statistics and operational server diagnostics to understand use, reliability, and failures.",
 		details: [
-			"Umami records page visits, referral and campaign sources, browser, device, approximate location, scroll and focused engagement, and existing product events without attaching your Clipify account. We use these statistics to understand service usage; there are no advertising profiles or cross-site tracking. Server logs, metrics, traces, database spans, and captured backend errors are processed for security and reliable operation under our legitimate interests.",
-			"After statistics consent, Umami also links feature use and verified outcomes to your Clipify account to measure setup, conversion and retention. Public landing, features and pricing pages can collect click heatmaps, and browser performance is measured. Umami session recording is disabled. Withdrawing consent stops new optional collection; existing records follow the configured retention period.",
+			"Basic cookieless Umami statistics measure page visits, traffic sources, campaigns, browser/device types and approximate location under our legitimate interests (Article 6(1)(f) GDPR). Private dashboard IDs and sensitive URL values are removed; no Clipify account ID is sent before consent.",
+			"With statistics consent, Umami also collects product events, engagement, browser performance and public-page heatmaps, and can link your session to your account. You can withdraw consent in Privacy preferences. This stops new optional collection; basic traffic statistics continue. Existing records follow the configured retention period. Umami session recording is disabled.",
+			"Server logs, metrics, traces and backend errors support security and reliable operation under our legitimate interests.",
 			"Sentry browser performance measurement, browser profiling, and masked Session Replay are optional and start only after measurement consent. Replay masks text and inputs and blocks media by default. Sampling means only a portion of eligible sessions is recorded. You can withdraw measurement consent at any time.",
 		],
 	},
@@ -122,7 +123,7 @@ export const privacyPolicySections: readonly LegalDocumentSection[] = [
 		id: "cookies-and-storage",
 		title: "10. Cookies and similar storage",
 		summary: "The Cookie Policy lists the current first- and third-party services, cookies, local storage, session storage, purposes, and consent status.",
-		details: ["Strictly necessary storage supports account security, privacy choices, and protected forms. Optional functionality and measurement services remain off until you choose them. Cookie preferences can be changed later from the footer or Cookie Policy."],
+		details: ["Strictly necessary storage supports account security, privacy choices, and protected forms. Optional functionality and measurement services remain off until you choose them. Privacy preferences can be changed later in Settings → Account, the public footer or Cookie Policy. Basic cookieless audience statistics remain active independently of these choices."],
 	},
 	{
 		id: "recipients-and-processors",
