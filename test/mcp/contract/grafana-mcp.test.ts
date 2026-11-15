@@ -3,6 +3,33 @@ import { readFileSync } from "node:fs";
 import { createMcpMetricsStore } from "@/server/mcp/metrics";
 import { flattenMcpMetrics, flattenMcpClientStats } from "@/server/mcp/metrics-export";
 
+test("v7 preserves the complete dashboard and uses automatic layouts for every section", () => {
+	const previous = JSON.parse(readFileSync("grafana/clipify-vm01-overview-v6.json", "utf8"));
+	const dashboard = JSON.parse(readFileSync("grafana/clipify-vm01-overview-v7.json", "utf8"));
+	expect(dashboard).toMatchObject({ apiVersion: previous.apiVersion, kind: "Dashboard", metadata: previous.metadata });
+	expect(dashboard.spec.elements).toMatchObject(previous.spec.elements);
+	expect(Object.keys(dashboard.spec.elements)).toHaveLength(93);
+	expect(dashboard.spec.layout.kind).toBe("RowsLayout");
+	const rows = dashboard.spec.layout.spec.rows;
+	expect(rows.slice(0, 3).map((row: any) => row.spec.title)).toEqual(["Executive Summary", "Conversion and measurement health", "Onboarding guides"]);
+	expect(rows.map((row: any) => row.spec.title).sort()).toEqual([...previous.spec.layout.spec.rows.map((row: any) => row.spec.title), "Conversion and measurement health"].sort());
+	const references: string[] = [];
+	for (const row of rows) {
+		expect(row.spec.layout.kind).toBe("AutoGridLayout");
+		expect(row.spec.layout.spec).toEqual({
+			maxColumnCount: 3,
+			columnWidthMode: "standard",
+			rowHeightMode: "standard",
+			items: expect.any(Array),
+		});
+		for (const item of row.spec.layout.spec.items) {
+			expect(item).toEqual({ kind: "AutoGridLayoutItem", spec: { element: { kind: "ElementReference", name: expect.any(String) } } });
+			references.push(item.spec.element.name);
+		}
+	}
+	expect(references.sort()).toEqual(Object.keys(dashboard.spec.elements).sort());
+});
+
 test("v6 is a complete V2 editor resource preserving the existing dashboard identity and queries", () => {
 	const dashboard = JSON.parse(readFileSync("grafana/clipify-vm01-overview-v6.json", "utf8"));
 	const previous = JSON.parse(readFileSync("grafana/clipify-vm01-overview-v5.json", "utf8"));

@@ -5,6 +5,12 @@ resource, including `apiVersion`, `kind`, `metadata` and `spec`. Keep the existi
 dashboard identity `clipify-vm01-overview` and the API version used by your editor.
 The revised dashboard extends v6 with seven panels in a conversion row. Existing panel identities and queries remain unchanged.
 
+Every section uses Grafana's automatic grid with standard column widths and row
+heights. There are no fixed panel coordinates or custom sizes. Executive Summary,
+Conversion and measurement health, and Onboarding guides appear first, followed
+by account, system and product operations. Newsletter and migration telemetry
+remain available near the bottom.
+
 ## Data sources
 
 Historical charts use the existing InfluxDB datasource `efg3es37pgh6ob`, bucket

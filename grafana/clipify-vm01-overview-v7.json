@@ -11826,16 +11826,15 @@
 							"title": "Executive Summary",
 							"collapse": false,
 							"layout": {
-								"kind": "GridLayout",
+								"kind": "AutoGridLayout",
 								"spec": {
+									"maxColumnCount": 3,
+									"columnWidthMode": "standard",
+									"rowHeightMode": "standard",
 									"items": [
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 0,
-												"width": 6,
-												"height": 4,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-3"
@@ -11843,12 +11842,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 6,
-												"y": 0,
-												"width": 6,
-												"height": 4,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-4"
@@ -11856,12 +11851,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 12,
-												"y": 0,
-												"width": 6,
-												"height": 4,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-9"
@@ -11869,12 +11860,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 18,
-												"y": 0,
-												"width": 6,
-												"height": 4,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-10"
@@ -11882,12 +11869,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 4,
-												"width": 6,
-												"height": 4,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-5"
@@ -11895,12 +11878,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 6,
-												"y": 4,
-												"width": 6,
-												"height": 4,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-6"
@@ -11908,12 +11887,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 12,
-												"y": 4,
-												"width": 6,
-												"height": 4,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-7"
@@ -11921,12 +11896,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 18,
-												"y": 4,
-												"width": 6,
-												"height": 4,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-8"
@@ -11934,12 +11905,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 8,
-												"width": 6,
-												"height": 4,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-42"
@@ -11947,12 +11914,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 6,
-												"y": 8,
-												"width": 6,
-												"height": 4,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-45"
@@ -11960,12 +11923,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 12,
-												"y": 8,
-												"width": 6,
-												"height": 4,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-43"
@@ -11973,12 +11932,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 18,
-												"y": 8,
-												"width": 6,
-												"height": 4,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-44"
@@ -11993,87 +11948,164 @@
 					{
 						"kind": "RowsLayoutRow",
 						"spec": {
-							"title": "System Health",
+							"title": "Conversion and measurement health",
 							"collapse": false,
 							"layout": {
-								"kind": "GridLayout",
+								"kind": "AutoGridLayout",
 								"spec": {
+									"maxColumnCount": 3,
+									"columnWidthMode": "standard",
+									"rowHeightMode": "standard",
 									"items": [
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 0,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
-													"name": "panel-13"
+													"name": "panel-600"
 												}
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 12,
-												"y": 0,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
-													"name": "panel-14"
+													"name": "panel-601"
 												}
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 8,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
-													"name": "panel-15"
+													"name": "panel-602"
 												}
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 12,
-												"y": 8,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
-													"name": "panel-16"
+													"name": "panel-603"
 												}
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 16,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
-													"name": "panel-46"
+													"name": "panel-604"
 												}
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 12,
-												"y": 16,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
-													"name": "panel-59"
+													"name": "panel-605"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-606"
+												}
+											}
+										}
+									]
+								}
+							}
+						}
+					},
+					{
+						"kind": "RowsLayoutRow",
+						"spec": {
+							"title": "Onboarding guides",
+							"collapse": false,
+							"layout": {
+								"kind": "AutoGridLayout",
+								"spec": {
+									"maxColumnCount": 3,
+									"columnWidthMode": "standard",
+									"rowHeightMode": "standard",
+									"items": [
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-500"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-501"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-502"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-503"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-504"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-505"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-506"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-507"
 												}
 											}
 										}
@@ -12088,16 +12120,15 @@
 							"title": "Users and Accounts",
 							"collapse": false,
 							"layout": {
-								"kind": "GridLayout",
+								"kind": "AutoGridLayout",
 								"spec": {
+									"maxColumnCount": 3,
+									"columnWidthMode": "standard",
+									"rowHeightMode": "standard",
 									"items": [
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 0,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-19"
@@ -12105,12 +12136,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 12,
-												"y": 0,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-20"
@@ -12118,12 +12145,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 8,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-21"
@@ -12131,12 +12154,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 12,
-												"y": 8,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-22"
@@ -12144,12 +12163,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 16,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-47"
@@ -12157,12 +12172,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 12,
-												"y": 16,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-48"
@@ -12180,16 +12191,15 @@
 							"title": "Entitlements",
 							"collapse": false,
 							"layout": {
-								"kind": "GridLayout",
+								"kind": "AutoGridLayout",
 								"spec": {
+									"maxColumnCount": 3,
+									"columnWidthMode": "standard",
+									"rowHeightMode": "standard",
 									"items": [
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 0,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-25"
@@ -12197,12 +12207,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 12,
-												"y": 0,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-26"
@@ -12210,12 +12216,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 8,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-27"
@@ -12223,12 +12225,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 12,
-												"y": 8,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-49"
@@ -12243,19 +12241,142 @@
 					{
 						"kind": "RowsLayoutRow",
 						"spec": {
+							"title": "System Health",
+							"collapse": false,
+							"layout": {
+								"kind": "AutoGridLayout",
+								"spec": {
+									"maxColumnCount": 3,
+									"columnWidthMode": "standard",
+									"rowHeightMode": "standard",
+									"items": [
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-13"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-14"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-15"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-16"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-46"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-59"
+												}
+											}
+										}
+									]
+								}
+							}
+						}
+					},
+					{
+						"kind": "RowsLayoutRow",
+						"spec": {
+							"title": "Clip crawling",
+							"collapse": false,
+							"layout": {
+								"kind": "AutoGridLayout",
+								"spec": {
+									"maxColumnCount": 3,
+									"columnWidthMode": "standard",
+									"rowHeightMode": "standard",
+									"items": [
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-400"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-401"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-402"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-403"
+												}
+											}
+										}
+									]
+								}
+							}
+						}
+					},
+					{
+						"kind": "RowsLayoutRow",
+						"spec": {
 							"title": "Cache and Content",
 							"collapse": false,
 							"layout": {
-								"kind": "GridLayout",
+								"kind": "AutoGridLayout",
 								"spec": {
+									"maxColumnCount": 3,
+									"columnWidthMode": "standard",
+									"rowHeightMode": "standard",
 									"items": [
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 0,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-30"
@@ -12263,12 +12384,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 12,
-												"y": 0,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-31"
@@ -12276,12 +12393,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 8,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-32"
@@ -12289,12 +12402,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 12,
-												"y": 8,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-33"
@@ -12312,16 +12421,15 @@
 							"title": "Overlays, Playlists, Rewards",
 							"collapse": false,
 							"layout": {
-								"kind": "GridLayout",
+								"kind": "AutoGridLayout",
 								"spec": {
+									"maxColumnCount": 3,
+									"columnWidthMode": "standard",
+									"rowHeightMode": "standard",
 									"items": [
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 0,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-50"
@@ -12329,12 +12437,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 12,
-												"y": 0,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-51"
@@ -12342,12 +12446,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 8,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-52"
@@ -12355,12 +12455,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 12,
-												"y": 8,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-53"
@@ -12368,12 +12464,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 16,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-54"
@@ -12381,12 +12473,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 12,
-												"y": 16,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-55"
@@ -12401,283 +12489,18 @@
 					{
 						"kind": "RowsLayoutRow",
 						"spec": {
-							"title": "Self-hosted Runners",
-							"collapse": false,
-							"layout": {
-								"kind": "GridLayout",
-								"spec": {
-									"items": [
-										{
-											"kind": "GridLayoutItem",
-											"spec": {
-												"x": 0,
-												"y": 0,
-												"width": 12,
-												"height": 8,
-												"element": {
-													"kind": "ElementReference",
-													"name": "panel-60"
-												}
-											}
-										},
-										{
-											"kind": "GridLayoutItem",
-											"spec": {
-												"x": 12,
-												"y": 0,
-												"width": 12,
-												"height": 8,
-												"element": {
-													"kind": "ElementReference",
-													"name": "panel-61"
-												}
-											}
-										},
-										{
-											"kind": "GridLayoutItem",
-											"spec": {
-												"x": 0,
-												"y": 8,
-												"width": 12,
-												"height": 8,
-												"element": {
-													"kind": "ElementReference",
-													"name": "panel-62"
-												}
-											}
-										},
-										{
-											"kind": "GridLayoutItem",
-											"spec": {
-												"x": 12,
-												"y": 8,
-												"width": 12,
-												"height": 8,
-												"element": {
-													"kind": "ElementReference",
-													"name": "panel-63"
-												}
-											}
-										}
-									]
-								}
-							}
-						}
-					},
-					{
-						"kind": "RowsLayoutRow",
-						"spec": {
-							"title": "Newsletter",
-							"collapse": false,
-							"layout": {
-								"kind": "GridLayout",
-								"spec": {
-									"items": [
-										{
-											"kind": "GridLayoutItem",
-											"spec": {
-												"x": 0,
-												"y": 0,
-												"width": 12,
-												"height": 8,
-												"element": {
-													"kind": "ElementReference",
-													"name": "panel-56"
-												}
-											}
-										},
-										{
-											"kind": "GridLayoutItem",
-											"spec": {
-												"x": 12,
-												"y": 0,
-												"width": 12,
-												"height": 8,
-												"element": {
-													"kind": "ElementReference",
-													"name": "panel-57"
-												}
-											}
-										},
-										{
-											"kind": "GridLayoutItem",
-											"spec": {
-												"x": 0,
-												"y": 8,
-												"width": 12,
-												"height": 8,
-												"element": {
-													"kind": "ElementReference",
-													"name": "panel-58"
-												}
-											}
-										}
-									]
-								}
-							}
-						}
-					},
-					{
-						"kind": "RowsLayoutRow",
-						"spec": {
-							"title": "Scheduler",
-							"collapse": false,
-							"layout": {
-								"kind": "GridLayout",
-								"spec": {
-									"items": [
-										{
-											"kind": "GridLayoutItem",
-											"spec": {
-												"x": 0,
-												"y": 0,
-												"width": 8,
-												"height": 8,
-												"element": {
-													"kind": "ElementReference",
-													"name": "panel-36"
-												}
-											}
-										},
-										{
-											"kind": "GridLayoutItem",
-											"spec": {
-												"x": 8,
-												"y": 0,
-												"width": 8,
-												"height": 8,
-												"element": {
-													"kind": "ElementReference",
-													"name": "panel-37"
-												}
-											}
-										},
-										{
-											"kind": "GridLayoutItem",
-											"spec": {
-												"x": 16,
-												"y": 0,
-												"width": 8,
-												"height": 8,
-												"element": {
-													"kind": "ElementReference",
-													"name": "panel-38"
-												}
-											}
-										},
-										{
-											"kind": "GridLayoutItem",
-											"spec": {
-												"x": 0,
-												"y": 8,
-												"width": 12,
-												"height": 8,
-												"element": {
-													"kind": "ElementReference",
-													"name": "panel-39"
-												}
-											}
-										},
-										{
-											"kind": "GridLayoutItem",
-											"spec": {
-												"x": 12,
-												"y": 8,
-												"width": 6,
-												"height": 8,
-												"element": {
-													"kind": "ElementReference",
-													"name": "panel-40"
-												}
-											}
-										},
-										{
-											"kind": "GridLayoutItem",
-											"spec": {
-												"x": 18,
-												"y": 8,
-												"width": 6,
-												"height": 8,
-												"element": {
-													"kind": "ElementReference",
-													"name": "panel-41"
-												}
-											}
-										}
-									]
-								}
-							}
-						}
-					},
-					{
-						"kind": "RowsLayoutRow",
-						"spec": {
-							"title": "V2 Migration & Telemetry",
-							"collapse": false,
-							"layout": {
-								"kind": "GridLayout",
-								"spec": {
-									"items": [
-										{
-											"kind": "GridLayoutItem",
-											"spec": {
-												"x": 0,
-												"y": 0,
-												"width": 6,
-												"height": 8,
-												"element": {
-													"kind": "ElementReference",
-													"name": "panel-101"
-												}
-											}
-										},
-										{
-											"kind": "GridLayoutItem",
-											"spec": {
-												"x": 6,
-												"y": 0,
-												"width": 18,
-												"height": 8,
-												"element": {
-													"kind": "ElementReference",
-													"name": "panel-102"
-												}
-											}
-										},
-										{
-											"kind": "GridLayoutItem",
-											"spec": {
-												"x": 0,
-												"y": 8,
-												"width": 24,
-												"height": 8,
-												"element": {
-													"kind": "ElementReference",
-													"name": "panel-103"
-												}
-											}
-										}
-									]
-								}
-							}
-						}
-					},
-					{
-						"kind": "RowsLayoutRow",
-						"spec": {
 							"title": "Galleries & Creator Pages",
 							"collapse": false,
 							"layout": {
-								"kind": "GridLayout",
+								"kind": "AutoGridLayout",
 								"spec": {
+									"maxColumnCount": 3,
+									"columnWidthMode": "standard",
+									"rowHeightMode": "standard",
 									"items": [
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 0,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-201"
@@ -12685,12 +12508,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 12,
-												"y": 0,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-202"
@@ -12698,12 +12517,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 8,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-203"
@@ -12711,12 +12526,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 12,
-												"y": 8,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-204"
@@ -12731,19 +12542,71 @@
 					{
 						"kind": "RowsLayoutRow",
 						"spec": {
+							"title": "Self-hosted Runners",
+							"collapse": false,
+							"layout": {
+								"kind": "AutoGridLayout",
+								"spec": {
+									"maxColumnCount": 3,
+									"columnWidthMode": "standard",
+									"rowHeightMode": "standard",
+									"items": [
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-60"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-61"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-62"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-63"
+												}
+											}
+										}
+									]
+								}
+							}
+						}
+					},
+					{
+						"kind": "RowsLayoutRow",
+						"spec": {
 							"title": "MCP",
 							"collapse": false,
 							"layout": {
-								"kind": "GridLayout",
+								"kind": "AutoGridLayout",
 								"spec": {
+									"maxColumnCount": 3,
+									"columnWidthMode": "standard",
+									"rowHeightMode": "standard",
 									"items": [
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 0,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-300"
@@ -12751,12 +12614,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 12,
-												"y": 0,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-301"
@@ -12764,12 +12623,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 8,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-302"
@@ -12777,12 +12632,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 12,
-												"y": 8,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-303"
@@ -12790,12 +12641,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 16,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-304"
@@ -12803,12 +12650,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 12,
-												"y": 16,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-305"
@@ -12816,12 +12659,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 24,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-306"
@@ -12829,12 +12668,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 12,
-												"y": 24,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-307"
@@ -12842,12 +12677,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 32,
-												"width": 24,
-												"height": 5,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-309"
@@ -12855,12 +12686,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 37,
-												"width": 24,
-												"height": 10,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-310"
@@ -12868,12 +12695,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 47,
-												"width": 24,
-												"height": 5,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-311"
@@ -12881,12 +12704,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 52,
-												"width": 24,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-312"
@@ -12901,61 +12720,66 @@
 					{
 						"kind": "RowsLayoutRow",
 						"spec": {
-							"title": "Clip crawling",
+							"title": "Scheduler",
 							"collapse": false,
 							"layout": {
-								"kind": "GridLayout",
+								"kind": "AutoGridLayout",
 								"spec": {
+									"maxColumnCount": 3,
+									"columnWidthMode": "standard",
+									"rowHeightMode": "standard",
 									"items": [
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 0,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
-													"name": "panel-400"
+													"name": "panel-36"
 												}
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 12,
-												"y": 0,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
-													"name": "panel-401"
+													"name": "panel-37"
 												}
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 8,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
-													"name": "panel-402"
+													"name": "panel-38"
 												}
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 12,
-												"y": 8,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
-													"name": "panel-403"
+													"name": "panel-39"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-40"
+												}
+											}
+										},
+										{
+											"kind": "AutoGridLayoutItem",
+											"spec": {
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-41"
 												}
 											}
 										}
@@ -12970,16 +12794,15 @@
 							"title": "Transactional emails",
 							"collapse": false,
 							"layout": {
-								"kind": "GridLayout",
+								"kind": "AutoGridLayout",
 								"spec": {
+									"maxColumnCount": 3,
+									"columnWidthMode": "standard",
+									"rowHeightMode": "standard",
 									"items": [
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 0,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-410"
@@ -12987,12 +12810,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 12,
-												"y": 0,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-411"
@@ -13000,12 +12819,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 8,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-412"
@@ -13013,12 +12828,8 @@
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 12,
-												"y": 8,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-413"
@@ -13033,113 +12844,39 @@
 					{
 						"kind": "RowsLayoutRow",
 						"spec": {
-							"title": "Onboarding guides",
+							"title": "Newsletter",
 							"collapse": false,
 							"layout": {
-								"kind": "GridLayout",
+								"kind": "AutoGridLayout",
 								"spec": {
+									"maxColumnCount": 3,
+									"columnWidthMode": "standard",
+									"rowHeightMode": "standard",
 									"items": [
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 0,
-												"width": 6,
-												"height": 5,
 												"element": {
 													"kind": "ElementReference",
-													"name": "panel-500"
+													"name": "panel-56"
 												}
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 6,
-												"y": 0,
-												"width": 6,
-												"height": 5,
 												"element": {
 													"kind": "ElementReference",
-													"name": "panel-501"
+													"name": "panel-57"
 												}
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 12,
-												"y": 0,
-												"width": 6,
-												"height": 5,
 												"element": {
 													"kind": "ElementReference",
-													"name": "panel-502"
-												}
-											}
-										},
-										{
-											"kind": "GridLayoutItem",
-											"spec": {
-												"x": 18,
-												"y": 0,
-												"width": 6,
-												"height": 5,
-												"element": {
-													"kind": "ElementReference",
-													"name": "panel-503"
-												}
-											}
-										},
-										{
-											"kind": "GridLayoutItem",
-											"spec": {
-												"x": 0,
-												"y": 5,
-												"width": 12,
-												"height": 8,
-												"element": {
-													"kind": "ElementReference",
-													"name": "panel-504"
-												}
-											}
-										},
-										{
-											"kind": "GridLayoutItem",
-											"spec": {
-												"x": 12,
-												"y": 5,
-												"width": 12,
-												"height": 8,
-												"element": {
-													"kind": "ElementReference",
-													"name": "panel-505"
-												}
-											}
-										},
-										{
-											"kind": "GridLayoutItem",
-											"spec": {
-												"x": 0,
-												"y": 13,
-												"width": 24,
-												"height": 8,
-												"element": {
-													"kind": "ElementReference",
-													"name": "panel-506"
-												}
-											}
-										},
-										{
-											"kind": "GridLayoutItem",
-											"spec": {
-												"x": 0,
-												"y": 22,
-												"width": 24,
-												"height": 16,
-												"element": {
-													"kind": "ElementReference",
-													"name": "panel-507"
+													"name": "panel-58"
 												}
 											}
 										}
@@ -13151,100 +12888,39 @@
 					{
 						"kind": "RowsLayoutRow",
 						"spec": {
-							"title": "Conversion and measurement health",
+							"title": "V2 Migration & Telemetry",
 							"collapse": false,
 							"layout": {
-								"kind": "GridLayout",
+								"kind": "AutoGridLayout",
 								"spec": {
+									"maxColumnCount": 3,
+									"columnWidthMode": "standard",
+									"rowHeightMode": "standard",
 									"items": [
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 0,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
-													"name": "panel-600"
+													"name": "panel-101"
 												}
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 12,
-												"y": 0,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
-													"name": "panel-601"
+													"name": "panel-102"
 												}
 											}
 										},
 										{
-											"kind": "GridLayoutItem",
+											"kind": "AutoGridLayoutItem",
 											"spec": {
-												"x": 0,
-												"y": 8,
-												"width": 12,
-												"height": 8,
 												"element": {
 													"kind": "ElementReference",
-													"name": "panel-602"
-												}
-											}
-										},
-										{
-											"kind": "GridLayoutItem",
-											"spec": {
-												"x": 12,
-												"y": 8,
-												"width": 12,
-												"height": 8,
-												"element": {
-													"kind": "ElementReference",
-													"name": "panel-603"
-												}
-											}
-										},
-										{
-											"kind": "GridLayoutItem",
-											"spec": {
-												"x": 0,
-												"y": 16,
-												"width": 12,
-												"height": 8,
-												"element": {
-													"kind": "ElementReference",
-													"name": "panel-604"
-												}
-											}
-										},
-										{
-											"kind": "GridLayoutItem",
-											"spec": {
-												"x": 12,
-												"y": 16,
-												"width": 12,
-												"height": 8,
-												"element": {
-													"kind": "ElementReference",
-													"name": "panel-605"
-												}
-											}
-										},
-										{
-											"kind": "GridLayoutItem",
-											"spec": {
-												"x": 0,
-												"y": 24,
-												"width": 12,
-												"height": 8,
-												"element": {
-													"kind": "ElementReference",
-													"name": "panel-606"
+													"name": "panel-103"
 												}
 											}
 										}

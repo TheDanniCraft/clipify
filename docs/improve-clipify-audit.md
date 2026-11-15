@@ -319,6 +319,11 @@ a real zero as zero. These are clips on Clipify, not all-time Twitch totals;
 no stream count, followers or other unverified statistics are invented.
 
 The live Grafana dashboard remains v6 (version 22, last updated October 31).
+The complete v7 export now uses automatic grids in every section, without fixed
+panel positions or custom dimensions. Conversion and onboarding follow Executive
+Summary; newsletter and migration telemetry appear near the bottom. All 93 panels
+and their queries are retained. This layout imported successfully into disposable
+Grafana 13.2.3 with the complete V2 resource envelope.
 Prepared v7 already adds rolling creator outcomes, mature first-week activation,
 Umami delivery, checkout operations, subscription states and webhook processing.
 Import it after its app fields are released and scraped. Adding more charts before
