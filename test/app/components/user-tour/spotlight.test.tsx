@@ -317,7 +317,7 @@ it("refreshes portal geometry after Driver finishes its highlight animation", ()
 	act(() => config.onHighlighted());
 	expect(refresh).toHaveBeenCalledTimes(1);
 });
-it("keeps guided picker controls inside the owning modal focus scope", () => {
+it("keeps guided picker controls inside the owning modal focus scope after Driver repositions them", async () => {
 	const pause = jest.fn(),
 		next = jest.fn();
 	const view = render(
@@ -342,6 +342,21 @@ it("keeps guided picker controls inside the owning modal focus scope", () => {
 	expect(modal).toContainElement(wrapper);
 	expect(wrapper).not.toHaveAttribute("inert");
 	expect(wrapper).not.toHaveAttribute("aria-hidden");
+	await act(async () => {});
+	refresh.mockClear();
+	await act(async () => {
+		document.body.appendChild(wrapper);
+		wrapper.setAttribute("inert", "");
+		wrapper.setAttribute("aria-hidden", "true");
+		config.onPopoverPositioned();
+	});
+	expect(modal).toContainElement(wrapper);
+	expect(wrapper).not.toHaveAttribute("inert");
+	expect(wrapper).not.toHaveAttribute("aria-hidden");
+	// Positioning must settle rather than repeatedly moving the panel between body and modal.
+	const refreshes = refresh.mock.calls.length;
+	await act(async () => {});
+	expect(refresh).toHaveBeenCalledTimes(refreshes);
 	const windowTab = jest.fn();
 	window.addEventListener("keydown", windowTab);
 	const tab = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true });

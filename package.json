@@ -80,7 +80,7 @@
 		"better-auth": "1.7.18",
 		"c15t": "^3.2.2",
 		"dotenv": "^18.0.9",
-		"driver.js": "^1.11.0",
+		"driver.js": "^1.14.0",
 		"drizzle-orm": "^0.45.4",
 		"embla-carousel": ">=8.6.0",
 		"embla-carousel-react": ">=8.6.0",
