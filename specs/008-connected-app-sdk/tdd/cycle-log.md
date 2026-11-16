@@ -33,3 +33,30 @@ Identity isolation tests failed for missing identity scopes/reference bypass and
 The earlier TDD-001 chronology exception remains disclosed and unresolved. Live deployment, independent-site browser acceptance and current-source CI remain required; this evidence does not certify release readiness.
 
 CI follow-up: resource-seeding race acceptance now expects the identity resource as well as MCP/machine resources. The container job exposed a stale tarball hash after SDK source formatting; regenerate the single SDK lock entry from a clean cache and verify the actual artifact hash. Two-project Docker acceptance now passes all 18 security checks. CodeQL flagged the native test's URL prefix assertion; compare parsed URL origins instead. No security alert was suppressed and no threshold was lowered.
+
+## Preview OAuth URL length regression (2026-11-16)
+
+A real Awards → PR569 → Twitch redirect reproduced an 8,571-byte authorization
+URL (8,122 bytes of state), exceeding CloudFront's 8,192-byte URL limit. The
+provider client already preserves the signed authorization request in OAuth
+server context; duplicating it in our error callback inflated the proxy's nested
+encrypted state. The focused component test first failed because that callback
+still contained the full signed query (`/tmp/login-414-red.log`).
+
+Keep only a short retry reference in the error callback, with its signed login
+query held in tab-local session storage for ten minutes. Restore signed parameters
+before the provider client's next request. Missing/expired/damaged storage fails
+closed with an actionable restart message; no shared credentials, callback
+registration or provider signature/PKCE/state checks change.
+
+Green: 30 tests across the three owning login files, lint and TypeScript. The
+whole real-component login browser file passes all five scenarios, including
+light/dark mobile/desktop layouts and provider cancellation followed by retry.
+The initial dev-server cold consent compilation timeout is setup evidence, not
+an intended Red; its warmed whole-file run passed. The new browser test also
+needed to wait for the failure navigation's load before retrying hydration.
+A live request using the shortened callback produced a 5,587-byte URL and Twitch
+HTTP302 instead of414. Logs: `/tmp/login-414-green.log`,
+`/tmp/login-414-browser-green.log`; no user OAuth state was copied into the repo.
+The existing TDD chronology exception remains unchanged. CI and deployed-head
+verification remain separate gates.

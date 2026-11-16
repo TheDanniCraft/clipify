@@ -64,3 +64,13 @@ describe("native MCP login continuation", () => {
 		expect(redirect).toHaveBeenCalledWith("/checkout/continue");
 	});
 });
+
+it("allows tab-local OAuth retry recovery even if a session already exists", async () => {
+	jest.clearAllMocks();
+	getAuthSession.mockResolvedValue({ session: { id: "existing" } });
+	validateAuth.mockResolvedValue({ id: "creator-1" });
+	const LoginPage = (await import("@/app/login/page")).default;
+	renderToStaticMarkup(await LoginPage({ searchParams: Promise.resolve({ oauthRetry: "12345678-1234-1234-1234-123456789012" }) }));
+	expect(redirect).not.toHaveBeenCalled();
+	expect(loginClient).toHaveBeenCalledWith({ returnUrl: "", oauthAuthorization: true });
+});

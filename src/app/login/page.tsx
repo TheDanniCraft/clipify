@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 export default async function Login({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
 	const parameters = await searchParams;
 	const { error, errorCode, returnUrl } = parameters;
-	const oauthAuthorization = typeof parameters.client_id === "string" && typeof parameters.sig === "string";
+	const oauthAuthorization = (typeof parameters.client_id === "string" && typeof parameters.sig === "string") || typeof parameters.oauthRetry === "string";
 	const rawReturnUrl = typeof returnUrl === "string" ? returnUrl : "";
 	const ru = safeReturnPath(rawReturnUrl) ?? "";
 

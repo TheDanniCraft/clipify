@@ -59,7 +59,7 @@ describe("Twitch authorization return links", () => {
 });
 
 describe("native MCP sign-in", () => {
-	it("keeps the signed query on the login page for retry without nesting it in the callback", async () => {
+	it("keeps the signed retry query in this tab instead of duplicating it in Twitch state", async () => {
 		jest.clearAllMocks();
 		(authClient.signIn.social as jest.Mock).mockResolvedValue({ error: null });
 		const query = "client_id=client&state=relay&sig=signed&ba_param=client_id&ba_param=state&ba_param=ba_param";
@@ -67,7 +67,12 @@ describe("native MCP sign-in", () => {
 		try {
 			render(<LoginClient returnUrl='' oauthAuthorization />);
 			fireEvent.click(screen.getByRole("button", { name: "Login with Twitch" }));
-			await waitFor(() => expect(authClient.signIn.social).toHaveBeenCalledWith({ provider: "twitch", callbackURL: "/dashboard", errorCallbackURL: `/login?${query}` }));
+			await waitFor(() => expect(authClient.signIn.social).toHaveBeenCalled());
+			const options = (authClient.signIn.social as jest.Mock).mock.calls[0][0];
+			expect(options.callbackURL).toBe("/dashboard");
+			expect(options.errorCallbackURL).toMatch(/^\/login\?oauthRetry=[0-9a-f-]{36}$/);
+			expect(options.errorCallbackURL).not.toContain("sig=");
+			expect(options.errorCallbackURL.length).toBeLessThan(80);
 		} finally {
 			window.history.replaceState({}, "", "/");
 		}
@@ -98,4 +103,37 @@ it.each(["returned", "thrown"])("allows retry after a %s authentication-start er
 	await waitFor(() => expect(social).toHaveBeenCalledTimes(2));
 	expect(plausible).toHaveBeenCalledTimes(3);
 	expect(plausible).toHaveBeenCalledWith("auth_failed", { provider: "twitch", reason: mode === "thrown" ? "network" : "start_rejected" });
+});
+
+it("restores the signed authorization query before a cancelled Twitch login is retried", async () => {
+	jest.clearAllMocks();
+	(authClient.signIn.social as jest.Mock).mockResolvedValue({ error: null });
+	const { saveOAuthLoginRetry } = await import("@/auth/oauth-login-retry");
+	const query = "client_id=client&sig=signed&ba_param=client_id&ba_param=ba_param";
+	const retry = saveOAuthLoginRetry(sessionStorage, `/login?${query}`);
+	window.history.replaceState({}, "", retry + "&error=access_denied");
+	try {
+		render(<LoginClient returnUrl='' oauthAuthorization />);
+		fireEvent.click(screen.getByRole("button", { name: "Login with Twitch" }));
+		await waitFor(() => expect(authClient.signIn.social).toHaveBeenCalled());
+		expect(window.location.search).toContain("sig=signed");
+		expect(window.location.search).toContain("error=access_denied");
+		expect(window.location.search).not.toContain("oauthRetry");
+		expect((authClient.signIn.social as jest.Mock).mock.calls[0][0].errorCallbackURL.length).toBeLessThan(80);
+	} finally {
+		window.history.replaceState({}, "", "/");
+	}
+});
+
+it("keeps a missing tab continuation from silently authorizing a different destination", async () => {
+	window.history.replaceState({}, "", "/login?oauthRetry=12345678-1234-1234-1234-123456789012");
+	sessionStorage.clear();
+	try {
+		render(<LoginClient returnUrl='' oauthAuthorization />);
+		fireEvent.click(screen.getByRole("button", { name: "Login with Twitch" }));
+		expect(await screen.findByRole("alert")).toHaveTextContent("Return to the app");
+		expect(screen.getByRole("button", { name: "Login with Twitch" })).toBeDisabled();
+	} finally {
+		window.history.replaceState({}, "", "/");
+	}
 });
