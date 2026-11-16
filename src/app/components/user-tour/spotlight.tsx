@@ -34,7 +34,9 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 		let guidedPopover: HTMLElement | null = null;
 		const restorePopoverScope = () => {
 			// React Aria may inert the newly body-portalled wrapper before it is moved into its modal.
-			if ((!step.inDialog && !sidebarStep) || !guidedModal || !guidedPopover || !guidedModal.contains(guidedPopover)) return;
+			if ((!step.inDialog && !sidebarStep) || !guidedModal || !guidedPopover) return;
+			// Driver refreshes may move the panel back to body; keep React Aria's modal ownership.
+			if (!guidedModal.contains(guidedPopover)) guidedModal.appendChild(guidedPopover);
 			if (guidedPopover.hasAttribute("inert")) guidedPopover.removeAttribute("inert");
 			if (guidedPopover.getAttribute("aria-hidden") === "true") guidedPopover.removeAttribute("aria-hidden");
 		};
@@ -60,9 +62,11 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 			stagePadding: 8,
 			stageRadius: 10,
 			disableActiveInteraction: false,
+			allowPageInteraction: true,
 			allowKeyboardControl: false,
 			overlayClickBehavior: "none",
 			popoverClass: "clipify-tour-popover",
+			onPopoverPositioned: restorePopoverScope,
 			onHighlighted: () => {
 				restorePopoverScope();
 				spotlight.refresh();
@@ -214,7 +218,9 @@ export default function Spotlight({ step, onPause, onMissing, onNext, onPrevious
 		};
 		document.addEventListener("keydown", keydown, true);
 
-		const observer = new MutationObserver(() => {
+		const observer = new MutationObserver((mutations) => {
+			// Reparenting the guide itself must not trigger another Driver refresh.
+			if (mutations.every((mutation) => mutation.type === "childList" && [...mutation.addedNodes, ...mutation.removedNodes].every((node) => node === guidedPopover))) return;
 			const modal = currentModal();
 			if (modal && !ownsModal(modal, target())) {
 				show();
