@@ -60,3 +60,9 @@ HTTP302 instead of414. Logs: `/tmp/login-414-green.log`,
 `/tmp/login-414-browser-green.log`; no user OAuth state was copied into the repo.
 The existing TDD chronology exception remains unchanged. CI and deployed-head
 verification remain separate gates.
+
+### 2026-11-16: merge preparation after master #573
+
+Rebased onto 08ce16d2 without conflicts. All 164 connected-app tests (12 whole-file suites) pass. Live preview SDK search, resolution and playback return real ranged media (HTTP206); production was not contacted. Initial current-head CI completed with 50 checks passing and one intended draft skip. The container owner failed because correcting the packaged SDK README changed its tarball bytes without refreshing the example consumer's integrity pin; the final Test gate correctly rejected that missing container evidence.
+
+Updated only the example's SDK SHA-512 pin to the actual deterministic package bytes. A fresh-cache frozen install passes on CI's Bun1.4.4; 13 packaging/CLI tests pass. The complete local two-project Docker owner passes, including 18 security checks, private databases, cross-database denial, foreign-creator denial and revocation. No integrity check, threshold or assertion was weakened. The next pushed head must pass its complete GitHub gate independently.
