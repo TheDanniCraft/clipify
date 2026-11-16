@@ -155,5 +155,8 @@
 	"mcp_clients_app_25_authorizedClients": 0,
 	"mcp_clients_app_25_activeConnections": 0,
 	"mcp_clients_app_25_activeClients30d": 0,
-	"mcp_clients_app_25_calls30d": 0
+	"mcp_clients_app_25_calls30d": 0,
+	"mcp_clients_entry_activeConnections": 0,
+	"mcp_clients_entry_activeConnectionsUsed30d": 0,
+	"mcp_clients_entry_emptyReadCalls30d": 0
 }

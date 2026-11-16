@@ -96,7 +96,21 @@ export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<
 	const cachedClips = variant === "cached_large" ? Array.from({ length: 1200 }, (_, n) => ({ ...clips[0], id: `LargeClip${n}` })) : variant === "provider_partial" ? Array.from({ length: 5 }, (_, n) => ({ ...clips[0], id: `PageClip${n}` })) : variant === "provider_foreign" ? [{ ...clips[0], broadcaster_id: "foreign-creator" }] : variant === "provider_malformed" ? [{ id: "Broken" }] : clips;
 	if (["search_clips", "preview_playlist_import", "commit_playlist_import", "get_clip_crawler_status", "refresh_clips"].includes(name)) {
 		for (const clip of cachedClips) await fixture.pool.query("INSERT INTO \"twitchCache\"(type,key,value) VALUES('clip',$1,$2)", [`clip:fixture-creator:${clip.id}`, JSON.stringify(clip)]);
-		await fixture.pool.query("INSERT INTO \"twitchCache\"(type,key,value) VALUES('clip','clip-sync:fixture-creator',$1),('game','27471',$2)", [JSON.stringify({ backfillComplete: !["provider_partial", "history_incomplete", "backfill_resume"].includes(variant), ...(["history_incomplete", "backfill_resume"].includes(variant) ? { backfillWindowEnd: "2020-01-01T00:00:00.000Z", backfillCursor: "history-cursor", backfillWindowPages: 2 } : {}) }), JSON.stringify({ id: "27471", name: "Minecraft" })]);
+		await fixture.pool.query("INSERT INTO \"twitchCache\"(type,key,value) VALUES('clip','clip-sync:fixture-creator',$1),('game','27471',$2)", [
+			JSON.stringify({ lastIncrementalSyncAt: variant === "history_before_recent" ? undefined : new Date().toISOString(), backfillComplete: !["provider_partial", "history_incomplete", "backfill_resume"].includes(variant), ...(["history_incomplete", "backfill_resume"].includes(variant) ? { backfillWindowEnd: "2020-01-01T00:00:00.000Z", backfillCursor: "history-cursor", backfillWindowPages: 2 } : {}) }),
+			JSON.stringify({ id: "27471", name: "Minecraft" }),
+		]);
+	}
+	if (variant === "status_unavailable") await fixture.pool.query("DROP TABLE clip_crawl_jobs");
+	if (variant === "history_before_recent") {
+		await fixture.pool.query("INSERT INTO clip_crawl_jobs(creator_id,kind,next_run_at) VALUES('fixture-creator','recent',now()) ON CONFLICT DO NOTHING");
+	}
+	if (variant.startsWith("empty_")) {
+		await fixture.pool.query("DELETE FROM \"twitchCache\" WHERE type='clip'");
+		await fixture.pool.query("DELETE FROM clip_crawl_jobs");
+		if (variant === "empty_complete") await fixture.pool.query("INSERT INTO \"twitchCache\"(type,key,value) VALUES('clip','clip-sync:fixture-creator',$1)", [JSON.stringify({ backfillComplete: true, lastIncrementalSyncAt: new Date().toISOString() })]);
+		if (["empty_queued", "empty_running"].includes(variant)) await fixture.pool.query("INSERT INTO clip_crawl_jobs(creator_id,kind,next_run_at,lease_id,lease_expires_at) VALUES('fixture-creator','backfill',now(),$1,$2)", [variant === "empty_running" ? randomUUID() : null, variant === "empty_running" ? new Date(Date.now() + 120000) : null]);
+		if (variant === "empty_read_only") await fixture.pool.query("UPDATE mcp_grant_creators SET scopes=ARRAY['creator:read']");
 	}
 	const axios = (await import("axios")).default;
 	const originalAdapter = axios.defaults.adapter;

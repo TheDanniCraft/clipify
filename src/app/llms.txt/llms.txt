@@ -38,3 +38,9 @@ The public catalog contains {{MCP_TOOL_COUNT}} tools and {{MCP_PROMPT_COUNT}} op
 - [Roadmap](https://clipify.us/roadmap): Planned work, not a promise of existing functionality.
 - [Service status](https://status.thedannicraft.de/status/clipify): Availability and incidents.
 - [Privacy](https://clipify.us/legal/privacy), [Cookies](https://clipify.us/legal/cookies), [Terms](https://clipify.us/legal/terms) and [Privacy requests](https://clipify.us/legal/privacy-requests).
+
+### First use through connected AI apps
+
+New accounts receive recent and historical clip-sync jobs without creating an overlay first. Clip discovery reads the cached Twitch channel inventory. An empty result while synchronization is queued, running, partial, retrying or rate-limited does not prove that Twitch has no clips. Check `get_clip_crawler_status`, explain the returned state and use available cached clips. `canRefresh` includes connection permissions and cooldown; refresh requires an explicit user request and `creator:update`. Never suggest Pro to resolve a missing connection permission.
+
+Begin with `list_creators` and `get_capabilities`. Follow their setup guidance and reuse the existing dashboard guide; do not invent a second setup flow. Read-only connections cannot create overlays or playlists. Clipify's MCP tools use existing Twitch channel clips, not uploaded local gameplay recordings. Optional analytics require statistics consent. Authorization/code issuance, clicking the return link, authenticated MCP requests and tool outcomes are separate stages; none alone proves first playback or a paying subscription.

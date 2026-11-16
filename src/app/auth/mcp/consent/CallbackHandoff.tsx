@@ -1,4 +1,5 @@
 "use client";
+import { trackProductEvent } from "@lib/analytics";
 import { Accordion, Card, Link, Separator, Tabs } from "@heroui/react";
 import { CodeBlock } from "@heroui-pro/react/code-block";
 import { IconCircleCheck, IconCircleX } from "@tabler/icons-react";
@@ -19,7 +20,7 @@ export function CallbackHandoff({ clientName, callbackUrl, authorized }: { clien
 				{authorized ? <IconCircleCheck size={48} className='text-accent' aria-hidden='true' /> : <IconCircleX size={48} className='text-muted' aria-hidden='true' />}
 				<h1 className='text-2xl font-semibold'>{authorized ? "Authorization successful" : "Authorization declined"}</h1>
 				<Card.Description>{authorized ? "Your access choices have been saved. Continue to your app to finish connecting." : "Return to your app to finish this authorization request."}</Card.Description>
-				<Link href={callbackUrl} rel='noreferrer' className='rounded-full bg-accent px-6 py-3 font-medium text-accent-foreground'>
+				<Link href={callbackUrl} onClick={() => trackProductEvent("connected_app_handoff_clicked", { authorized, stage: "return_to_client" })} rel='noreferrer' className='rounded-full bg-accent px-6 py-3 font-medium text-accent-foreground'>
 					Continue to {clientName}
 				</Link>
 			</Card.Header>

@@ -108,3 +108,38 @@ test("bounded historical jobs persist their cursor and resume the same date wind
 	expect(row.providerCalls).toBeLessThanOrEqual(11);
 	expect(row.cachedClipCount).toBe(2);
 });
+
+test("read-only crawler status separates permission from elapsed cooldown", () => {
+	const row = flowProbe("catalogue:workflow:get_clip_crawler_status:read_only");
+	expect(row.result?.structuredContent).toMatchObject({ cooldownElapsed: true, canRefresh: false, refreshPermission: { allowed: false, requiredScope: "creator:update" } });
+	expect(row.providerCalls).toBe(0);
+});
+test.each([
+	["empty_not_started", "not_started"],
+	["empty_queued", "queued"],
+	["empty_running", "running"],
+	["empty_complete", "empty_collection"],
+	["empty_read_only", "not_started"],
+])("empty discovery explains %s without starting Twitch requests", (variant, reason) => {
+	const row = flowProbe(`catalogue:workflow:search_clips:${variant}`);
+	expect(row.result?.structuredContent).toMatchObject({ items: [], complete: variant === "empty_complete", guidance: { reason }, collection: { cachedClipCount: 0 } });
+	if (variant === "empty_read_only") {
+		expect(row.result.structuredContent.collection.canRefresh).toBe(false);
+		expect(row.result.structuredContent.guidance.nextStep.tool).toBe("get_clip_crawler_status");
+	}
+	expect(row.providerCalls).toBe(0);
+});
+
+test("history completing before the first recent scan cannot mark a nonempty inventory complete", () => {
+	const row = flowProbe("catalogue:workflow:search_clips:history_before_recent");
+	expect(row.result.structuredContent.items.length).toBeGreaterThan(0);
+	expect(row.result.structuredContent).toMatchObject({ complete: false, collection: { inventoryReady: false, collectionState: "queued" } });
+	expect(row.providerCalls).toBe(0);
+});
+
+test("a crawler-status outage retains usable search results without claiming completeness", () => {
+	const row = flowProbe("catalogue:workflow:search_clips:status_unavailable");
+	expect(row.result.structuredContent.items.length).toBeGreaterThan(0);
+	expect(row.result.structuredContent).toMatchObject({ complete: false, guidance: { reason: "status_unavailable", nextStep: { tool: "get_clip_crawler_status" } } });
+	expect(row.providerCalls).toBe(0);
+});

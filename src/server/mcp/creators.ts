@@ -62,5 +62,18 @@ export async function getCapabilities(principal: TrustedCreatorPrincipal, creato
 		}
 	}
 	await resolveOperationCapabilities();
-	return { creatorId, effectivePlan: entitlements.effectivePlan, usage, limits, operations, features: { advancedFilters: pro, remoteControl: pro, runnerAccess: true, advancedGalleries: pro, creatorPageSocialPreview: pro } };
+	const nextSteps = [
+		...(usage.overlays === 0
+			? [
+					{
+						tool: operations.create_overlay.allowed ? "create_overlay" : null,
+						reason: operations.create_overlay.reason ?? null,
+						requiredScope: "overlay:create",
+						message: operations.create_overlay.allowed ? "Offer to create the first overlay after the user chooses what they want to show." : operations.create_overlay.reason === "PLAN_LIMIT_REACHED" ? "The overlay limit is reached. Manage an existing overlay or compare plans." : "Use the existing dashboard setup guide or change connection permissions; a missing permission does not require Pro.",
+					},
+				]
+			: []),
+		...(usage.playlists === 0 ? [{ tool: "search_clips", message: "Check available Twitch channel clips before offering to create a playlist. If the inventory is incomplete, explain synchronization status." }] : []),
+	];
+	return { setup: { dashboardPath: "/dashboard", nextSteps }, creatorId, effectivePlan: entitlements.effectivePlan, usage, limits, operations, features: { advancedFilters: pro, remoteControl: pro, runnerAccess: true, advancedGalleries: pro, creatorPageSocialPreview: pro } };
 }

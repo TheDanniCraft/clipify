@@ -18,6 +18,22 @@ async function main() {
 		await queue.seedClipCrawlJobs(pool);
 		const claim = (preferManual = false) => queue.claimClipCrawlJob({ preferManual }, pool);
 		let output: unknown;
+		if (mode === "seed-new-account") {
+			await pool.query("INSERT INTO users(id,email,username,avatar,role,plan,disabled,onboarding_pending) VALUES ('fresh','fresh@example.invalid','Fresh','','user','free',false,false),('disabled','disabled@example.invalid','Disabled','','user','free',true,false),('pending','pending@example.invalid','Pending','','user','free',false,true)");
+			await queue.seedClipCrawlJobs(pool);
+			const rows = (await pool.query("SELECT kind,next_run_at<=now() AS due FROM clip_crawl_jobs WHERE creator_id='fresh' ORDER BY kind")).rows;
+			output = { kinds: rows.map((row) => row.kind), due: rows.every((row) => row.due), overlays: (await pool.query("SELECT count(*)::int AS count FROM overlays WHERE owner_id='fresh'")).rows[0].count, excludedJobs: (await pool.query("SELECT count(*)::int AS count FROM clip_crawl_jobs WHERE creator_id IN ('disabled','pending')")).rows[0].count };
+		}
+		if (mode.startsWith("seed-repair:")) {
+			const kind = mode.split(":")[1];
+			await pool.query("DELETE FROM clip_crawl_jobs WHERE creator_id='creator-a' AND kind<>$1", [kind]);
+			await pool.query("UPDATE clip_crawl_jobs SET next_run_at=NULL,last_completed_at=now(),attempts=42,failures=2,last_error='Preserve retry state',requested_at=now(),lease_id=$1,lease_expires_at=now()+interval '2 minutes' WHERE creator_id='creator-a'", [randomUUID()]);
+			const before = (await pool.query("SELECT * FROM clip_crawl_jobs WHERE creator_id='creator-a'")).rows[0];
+			const inserted = await queue.seedClipCrawlJobs(pool);
+			const rows = (await pool.query("SELECT * FROM clip_crawl_jobs WHERE creator_id='creator-a' ORDER BY kind")).rows;
+			const repeated = await queue.seedClipCrawlJobs(pool);
+			output = { kinds: rows.map((row) => row.kind), existingPreserved: JSON.stringify(rows.find((row) => row.kind === kind)) === JSON.stringify(before), addedDue: Boolean(rows.find((row) => row.kind !== kind)?.next_run_at && rows.find((row) => row.kind !== kind).next_run_at <= new Date()), inserted, repeated };
+		}
 		if (mode === "concurrent") {
 			const jobs = (await Promise.all(Array.from({ length: 12 }, () => claim()))).filter(Boolean);
 			output = { count: jobs.length, identities: jobs.map((job) => `${job!.creator_id}:${job!.kind}`) };

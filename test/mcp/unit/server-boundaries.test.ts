@@ -1,6 +1,8 @@
 /** @jest-environment node */
 import { handleMcpRequest } from "@/server/mcp/server";
 
+const protocolActivity = jest.fn();
+jest.mock("@/server/mcp/journey", () => ({ trackMcpAuthenticatedRequest: (...args: unknown[]) => protocolActivity(...args) }));
 const resolveGrant = jest.fn();
 const fetchHandler = jest.fn();
 const registerTools = jest.fn();
@@ -228,4 +230,18 @@ test("actual server boundary counts rate-limited tools once before SDK dispatch"
 	const { getMcpMetricsSnapshot } = await import("@/server/mcp/metrics");
 	expect(getMcpMetricsSnapshot().calls).toMatchObject({ started_total: 1, completed_total: 1, denied_total: 1, inFlight: 0 });
 	expect(getMcpMetricsSnapshot().reasons.RATE_LIMITED_total).toBe(1);
+});
+
+test("only an accepted grant reaches protocol-stage measurement", async () => {
+	protocolActivity.mockClear();
+	configuration.valid = true;
+	ready.mockResolvedValue(true);
+	fetchHandler.mockResolvedValue(new Response(null, { status: 200 }));
+	resolveGrant.mockResolvedValueOnce({ authUserId: "actor", clientId: "client", scopes: [] });
+	await handleMcpRequest(request(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} })));
+	expect(protocolActivity).toHaveBeenCalledWith(expect.objectContaining({ authUserId: "actor" }), "initialize");
+	protocolActivity.mockClear();
+	resolveGrant.mockRejectedValueOnce(new Error("AUTHENTICATION_REQUIRED"));
+	await handleMcpRequest(request(JSON.stringify({ jsonrpc: "2.0", id: 2, method: "initialize", params: {} })));
+	expect(protocolActivity).not.toHaveBeenCalled();
 });

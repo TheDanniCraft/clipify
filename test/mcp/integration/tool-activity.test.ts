@@ -10,7 +10,8 @@ describe("TDD-ACTIVITY-001 authenticated call activity", () => {
 		expect(event.actor_user_id).toEqual(expect.any(String));
 		expect(event.actor_session_id).toBeNull();
 		expect(event.metadata).toMatchObject({ creatorId: "fixture-creator", tool: mode === "resources:playlist-get" ? "get_playlist" : "list_overlays", generation: 1 });
-		expect(Object.keys(event.metadata).sort()).toEqual(["clientId", "creatorId", "generation", "grantId", "tool"]);
+		expect(Object.keys(event.metadata).sort()).toEqual(["clientId", "creatorId", "generation", "grantId", "resultState", "tool"]);
+		expect(event.metadata.resultState).toBe("items_returned");
 	});
 	test.each([
 		["resources:overlay-get:denied", "ACCESS_DENIED"],

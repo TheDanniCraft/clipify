@@ -1,3 +1,4 @@
+import { safeResultState, trackMcpToolResult } from "./journey";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { db, type QueryClient } from "@/db/client";
@@ -14,7 +15,7 @@ import type { TrustedCreatorPrincipal } from "@/auth/authorize-operation";
 import type { ToolName } from "./schemas";
 
 /** Explicit fields only: neither payloads nor denied target selectors enter activity. */
-export async function recordMcpCallActivity(principal: TrustedCreatorPrincipal, input: { tool?: ToolName; outcome: "success" | "denied" | "error"; reason?: string; creatorId?: string; targetType?: string; targetId?: string }, client: QueryClient = db) {
+export async function recordMcpCallActivity(principal: TrustedCreatorPrincipal, input: { tool?: ToolName; outcome: "success" | "denied" | "error"; reason?: string; resultState?: string; creatorId?: string; targetType?: string; targetId?: string }, client: QueryClient = db) {
 	if (principal.kind !== "oauth" || !principal.clientId || !principal.grantId) throw new Error("AUTHENTICATION_REQUIRED");
 	const success = input.outcome === "success";
 	try {
@@ -27,8 +28,9 @@ export async function recordMcpCallActivity(principal: TrustedCreatorPrincipal, 
 			reason: input.reason,
 			correlationId: randomUUID(),
 			occurredAt: new Date(),
-			metadata: { clientId: principal.clientId, grantId: principal.grantId, generation: principal.generation, ...(input.tool ? { tool: input.tool } : {}), ...(success && input.creatorId ? { creatorId: input.creatorId } : {}) },
+			metadata: { clientId: principal.clientId, grantId: principal.grantId, generation: principal.generation, ...(input.tool ? { tool: input.tool } : {}), ...(success && input.creatorId ? { creatorId: input.creatorId } : {}), ...(safeResultState(input.resultState) ? { resultState: safeResultState(input.resultState) } : {}) },
 		});
+		trackMcpToolResult(principal, input);
 	} catch {
 		throw new Error("SERVICE_UNAVAILABLE");
 	}

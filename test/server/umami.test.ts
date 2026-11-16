@@ -168,3 +168,13 @@ it("leaves collection disabled instead of falling back to production when the si
 	await expect(queryUmami("/stats", {})).rejects.toThrow("UMAMI_WEBSITE_ID is not configured");
 	delete process.env.UMAMI_API_KEY;
 });
+
+it.each(["mcp_authenticated_request", "mcp_tool_result"])("keeps %s gated by stored statistics consent", async (event) => {
+	trackServerProductEvent("account", event, { channel: "ai", stage: "initialize" });
+	await callbacks.shift()!();
+	expect(global.fetch).not.toHaveBeenCalled();
+	allowed.mockResolvedValue(true);
+	trackServerProductEvent("account", event, { channel: "ai", stage: "initialize" });
+	await callbacks.shift()!();
+	expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining("/api/send"), expect.objectContaining({ body: expect.stringContaining(event) }));
+});

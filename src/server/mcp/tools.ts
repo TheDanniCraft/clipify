@@ -1,3 +1,6 @@
+import { trackMcpToolResult } from "./journey";
+import { emptyResourceGuidance, clipGuidance } from "./entry-guidance";
+import { getClipCrawlerStatus } from "@/server/resources/clip-cache";
 import { registerMcpPrompts } from "./prompts";
 import { focusedTools } from "./focused-tools";
 import { workflowTools } from "./workflows/tools";
@@ -63,18 +66,36 @@ async function readResult(operation: () => Promise<Record<string, unknown>>, pri
 		reportMcpToolOutcome("denied", result.error.code);
 		return { isError: true, content: [{ type: "text" as const, text: JSON.stringify(result.error) }], structuredContent: { error: result.error } };
 	}
+	// Add recovery only after the resource read has passed authorization.
+	const selectors = input as { creatorId?: string; cursor?: string } | undefined;
+	if ((name === "list_overlays" || name === "list_playlists") && Array.isArray(result.items) && result.items.length === 0 && !selectors?.cursor) {
+		result = { ...result, guidance: emptyResourceGuidance(name) };
+	}
+	if (name === "search_clips" && selectors?.creatorId && Array.isArray(result.items)) {
+		try {
+			const status = await getClipCrawlerStatus(principal, { creatorId: selectors.creatorId });
+			if (typeof status.collectionState === "string") {
+				result = { ...result, complete: status.inventoryReady === true && result.complete === true, collection: status, ...(!result.items.length ? { guidance: clipGuidance(status.collectionState as Parameters<typeof clipGuidance>[0], status.canRefresh === true, Number(status.cachedClipCount)) } : {}) };
+			}
+		} catch {
+			// A status outage must not discard otherwise usable search results.
+			result = { ...result, complete: false, guidance: { reason: "status_unavailable", message: "Collection status is unavailable. Do not infer that this channel has no clips; retry get_clip_crawler_status.", nextStep: { tool: "get_clip_crawler_status" } } };
+		}
+	}
 	if (toolAnnotations(name).readOnlyHint) {
 		try {
 			await recordMcpCallActivity(principal, {
 				tool: name,
 				outcome: "success",
 				...readActivityTarget(input),
+				resultState: result.guidance && typeof result.guidance === "object" && "reason" in result.guidance ? String(result.guidance.reason) : Array.isArray(result.items) ? (result.items.length ? "items_returned" : "empty_page") : undefined,
 			});
 		} catch (error) {
 			return measuredFailure(error);
 		}
 	}
 
+	if (!toolAnnotations(name).readOnlyHint) trackMcpToolResult(principal, { tool: name, outcome: "success" });
 	reportMcpToolOutcome("success");
 	return readResultContent(name, result);
 }

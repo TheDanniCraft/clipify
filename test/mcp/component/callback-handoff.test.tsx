@@ -1,3 +1,5 @@
+jest.mock("@lib/analytics", () => ({ trackProductEvent: jest.fn() }));
+import { trackProductEvent } from "@lib/analytics";
 jest.mock("@heroui/react", () => {
 	const React = require("react");
 	const Slot = ({ children }: any) => React.createElement("div", null, children);
@@ -12,7 +14,7 @@ jest.mock(
 	},
 	{ virtual: true },
 );
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, fireEvent } from "@testing-library/react";
 import { CallbackHandoff } from "@/app/auth/mcp/consent/CallbackHandoff";
 
 beforeEach(() => jest.useFakeTimers());
@@ -48,4 +50,11 @@ test("successful handoff stays on the page and offers a same-tab continuation", 
 	expect(link).toHaveAttribute("href", callbackUrl);
 	expect(link).not.toHaveAttribute("target");
 	expect(screen.getByText("Connecting from another device or remote environment?")).toBeVisible();
+});
+
+test("return-link measurement never includes the callback code or client-provided text", () => {
+	render(<CallbackHandoff clientName='Custom AI' callbackUrl='https://example.invalid/callback?code=private-code&state=private-state' authorized={true} />);
+	fireEvent.click(screen.getByRole("link", { name: "Continue to Custom AI" }));
+	expect(trackProductEvent).toHaveBeenCalledWith("connected_app_handoff_clicked", { authorized: true, stage: "return_to_client" });
+	expect(JSON.stringify(jest.mocked(trackProductEvent).mock.calls)).not.toContain("private-code");
 });

@@ -31,7 +31,8 @@ for (const name of ["list_overlays", "list_playlists"]) {
 		expect(catalogue.invalid.find((row: any) => row.name === name && row.mode === mode)).toMatchObject({ error: "INVALID_INPUT", safe: true });
 	});
 	test(`${name} approved empty creator gets an empty final page`, () => {
-		expect(catalogue.boundaries.find((row: any) => row.name === name && row.limit === 0).first.result).toEqual({ items: [], nextCursor: null });
+		const result = catalogue.boundaries.find((row: any) => row.name === name && row.limit === 0).first.result;
+		expect(result).toEqual({ items: [], nextCursor: null, guidance: { reason: name === "list_overlays" ? "no_overlays" : "no_playlists", message: expect.any(String), nextStep: { tool: "get_capabilities" }, dashboardPath: "/dashboard" } });
 	});
 }
 test("creator pages recheck current membership rather than copying an old approval", () => {

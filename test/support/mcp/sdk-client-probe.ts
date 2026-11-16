@@ -88,7 +88,7 @@ async function main() {
 		const client = await registered.json();
 		if (registered.status !== 201) throw new Error("SDK native DCR failed");
 		const verifier = "independent-sdk-pkce-proof-at-least-43-characters-12345";
-		const scopes = ["creator:read", "overlay:read", "overlay:create", "overlay:update", "offline_access"];
+		const scopes = ["creator:read", "playlist:read", "overlay:read", "overlay:create", "overlay:update", "offline_access"];
 		const authorize = async () => {
 			const query = new URLSearchParams({ client_id: client.client_id, redirect_uri: client.redirect_uris[0], response_type: "code", scope: scopes.join(" "), code_challenge: createHash("sha256").update(verifier).digest("base64url"), code_challenge_method: "S256", state: "independent-sdk-state", resource: origin + "/mcp", prompt: "consent" });
 			const response = await fetch(origin + "/api/auth/oauth2/authorize?" + query, { headers: { Cookie: cookie, Origin: origin }, redirect: "manual" });
@@ -119,14 +119,18 @@ async function main() {
 			}
 
 			const read = await connected.client.callTool({ name: "list_creators", arguments: {} });
+			const firstCapabilities = await connected.client.callTool({ name: "get_capabilities", arguments: { creatorId: "sdk-creator" } });
+			const firstOverlays = await connected.client.callTool({ name: "list_overlays", arguments: { creatorId: "sdk-creator" } });
+			const firstPlaylists = await connected.client.callTool({ name: "list_playlists", arguments: { creatorId: "sdk-creator" } });
+			const firstUse = { capabilities: firstCapabilities.structuredContent, overlays: firstOverlays.structuredContent, playlists: firstPlaylists.structuredContent };
 			const created = await connected.client.callTool({ name: "create_overlay", arguments: { creatorId: "sdk-creator", retryKey: "independent-sdk-create", name: "Created by official SDK" } });
 			const dto: any = created.structuredContent;
 			if (!dto?.id) throw new Error("SDK create did not return safe DTO");
 			const edited = await connected.client.callTool({ name: "update_overlay_settings", arguments: { creatorId: "sdk-creator", overlayId: dto.id, expectedRevision: 1, patch: { name: "Edited by official SDK" } } });
 			const limited = await connected.client.callTool({ name: "create_overlay", arguments: { creatorId: "sdk-creator", retryKey: "independent-sdk-over-limit", name: "Must be denied" } });
-			return { tools, prompts, themePrompt, focusedDiscoveryValid, obsoleteToolDenied, read, created, dto, edited, limited };
+			return { firstUse, tools, prompts, themePrompt, focusedDiscoveryValid, obsoleteToolDenied, read, created, dto, edited, limited };
 		}
-		const { tools, prompts, themePrompt, focusedDiscoveryValid, obsoleteToolDenied, read, created, dto, edited, limited } = await exerciseSdkResourceWorkflow(connected);
+		const { firstUse, tools, prompts, themePrompt, focusedDiscoveryValid, obsoleteToolDenied, read, created, dto, edited, limited } = await exerciseSdkResourceWorkflow(connected);
 		const { getMcpMetricsSnapshot } = await import("@/server/mcp/metrics");
 		const measuredCalls = getMcpMetricsSnapshot();
 		async function exerciseSdkDenialAndRevocation(connected: Awaited<ReturnType<typeof connectMcpClient>>) {
@@ -173,6 +177,7 @@ async function main() {
 			console.log(
 				JSON.stringify({
 					urlOnlyConsentWrite,
+					firstUse,
 					measuredCalls,
 					metadataValid: metadata.resource === origin + "/mcp" && metadata.authorization_servers?.includes(origin + "/api/auth") && authorizationMetadata.registration_endpoint === origin + "/api/auth/oauth2/register",
 					registrationStatus: registered.status,

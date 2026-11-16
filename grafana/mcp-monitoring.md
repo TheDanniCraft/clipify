@@ -219,3 +219,17 @@ retention, credentials, routing and live alert rules are not changed by this
 repository artifact.
 
 Webhook backlog gauges come from durable `billing_webhook_events` rows. Failed events remain visible until recovered. Processing older than the existing five-minute lease is counted separately, with the oldest processing age in seconds. These are not failed-payment counts.
+
+## Connected-app entry diagnostics
+
+The existing health response now includes `mcpClients.entry`, with fixed numeric fields flattened from health as `mcpClients_entry_*` and by the dedicated MCP exporter as `mcp_clients_entry_*`:
+
+- `activeConnections`: currently active, unexpired grants for enabled clients. A grant means a code was issued, not that a client exchanged it or finished connecting.
+- `activeConnectionsUsed30d`: those current grants with at least one audited tool attempt in the last 30 days, including denials. This is not successful activation or a signup cohort.
+- `emptyReadCalls30d`: successful reads with one of the explicit empty-result or incomplete-inventory labels. These labels are collected from this release onward and are not retroactively inferred.
+
+Existing per-tool failure counters distinguish missing scopes and plan restrictions. Keep connection grants, client applications, individual accounts and tool-call counts separate. These aggregate diagnostics describe existing authorization and service records; they do not replace optional behavioral analytics.
+
+Umami's optional events remain behind statistics consent: `connected_app_authorized` has `stage=code_issued`; `connected_app_handoff_clicked` records a return-link click; `mcp_authenticated_request` records an authenticated `initialize` or `tools_list` request; `mcp_tool_result` records bounded tool/outcome/reason/result-state labels. Requests are not unique users. An authenticated request proves an accepted token and grant, not successful initialization or completion of the user's task. `first_playback` and verified payments remain separate outcomes. No callback URLs, OAuth codes, prompts or clip titles are included.
+
+Native SDK tests establish protocol behavior, not acceptance in the ChatGPT host UI. This change does not modify the plugin package, store listing or dashboard configuration.

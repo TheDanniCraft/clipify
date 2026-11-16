@@ -115,8 +115,30 @@ describe("Better Auth hooks own Clipify creator setup", () => {
 		probe(id);
 		expect((await expectComplete(id)).member_number).toBe(1);
 		expect(probe(id, "entitlements")).toMatchObject({ proAccess: true, reverseTrialActive: true, isBillingPro: false });
+		expect((await fixture.pool.query("SELECT kind,next_run_at<=now() AS due FROM clip_crawl_jobs WHERE creator_id=$1 ORDER BY kind", [id])).rows).toEqual([
+			{ kind: "backfill", due: true },
+			{ kind: "recent", due: true },
+		]);
+		expect((await fixture.pool.query("SELECT count(*)::int AS count FROM overlays WHERE owner_id=$1", [id])).rows[0].count).toBe(0);
+		const jobs = (await fixture.pool.query("SELECT * FROM clip_crawl_jobs WHERE creator_id=$1 ORDER BY kind", [id])).rows;
+		probe(id, "initialize");
+		expect((await fixture.pool.query("SELECT * FROM clip_crawl_jobs WHERE creator_id=$1 ORDER BY kind", [id])).rows).toEqual(jobs);
 		const notices = await fixture.pool.query("SELECT count(*)::int AS count FROM notification_outbox WHERE dedupe_key LIKE 'benefit:%:granted' AND recipient=$1", [`${id}@example.invalid`]);
 		expect(notices.rows[0].count).toBe(1);
+	});
+
+	it.each(["inventory", "inventory-empty"])("crawls a fresh Twitch signup through the real worker without an overlay (%s)", async (mode) => {
+		const result = probe(randomUUID(), mode);
+		expect(result).toEqual({
+			clipIds: mode === "inventory" ? ["inventory-1", "inventory-20"] : [],
+			backfillComplete: true,
+			jobs: [
+				{ kind: "backfill", completed: true },
+				{ kind: "recent", completed: true },
+			],
+			historicalRequest: true,
+			overlays: 0,
+		});
 	});
 
 	it("blocks primary Twitch unlinking through the native endpoint without removing login credentials", async () => {
@@ -178,6 +200,7 @@ describe("Better Auth hooks own Clipify creator setup", () => {
 		expect((await fixture.pool.query("SELECT count(*)::int AS count FROM auth.account WHERE account_id=$1", [id])).rows[0].count).toBe(1);
 		expect((await fixture.pool.query("SELECT count(*)::int AS count FROM creator_accounts")).rows[0].count).toBe(0);
 		expect((await fixture.pool.query("SELECT count(*)::int AS count FROM member_number_allocator")).rows[0].count).toBe(0);
+		expect((await fixture.pool.query("SELECT count(*)::int AS count FROM clip_crawl_jobs WHERE creator_id=$1", [id])).rows[0].count).toBe(0);
 		await fixture.pool.query("DROP TRIGGER reject_signup_trial ON entitlement_grants");
 		probe(id, "retry");
 		await expectComplete(id);
@@ -213,6 +236,7 @@ describe("Better Auth hooks own Clipify creator setup", () => {
 		await fixture.pool.query('INSERT INTO "userSettings"(id,prefix,marketing_opt_in) VALUES($1,$2,false)', [id, "keep!"]);
 		probe(id);
 		expect(await state(id)).toMatchObject({ plan: "pro", disabled: true, disable_type: "manual", member_number: 500, prefix: "keep!", marketing_opt_in: false, trials: 0, owners: 1 });
+		expect((await fixture.pool.query("SELECT count(*)::int AS count FROM clip_crawl_jobs WHERE creator_id=$1", [id])).rows[0].count).toBe(0);
 		await fixture.pool.query("UPDATE auth.member SET role='operations' WHERE organization_id=$1", [`creator:${id}`]);
 		probe(id, "initialize");
 		expect((await fixture.pool.query("SELECT role FROM auth.member WHERE organization_id=$1", [`creator:${id}`])).rows[0].role).toBe("operations");
