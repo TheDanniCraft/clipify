@@ -41,3 +41,14 @@ test.each([
 	await expect(recordMcpCallActivity(identity as TrustedCreatorPrincipal, { outcome: "error" }, client)).rejects.toThrow("AUTHENTICATION_REQUIRED");
 	expect(client.insert).not.toHaveBeenCalled();
 });
+
+test.each([
+	["queued", "queued"],
+	["private-input-value", undefined],
+])("read-result metadata admits only fixed operational labels: %s", async (resultState, expected) => {
+	const values = jest.fn().mockResolvedValue(undefined);
+	const client = { insert: jest.fn().mockReturnValue({ values }) } as unknown as QueryClient;
+	await recordMcpCallActivity(principal, { tool: "search_clips", outcome: "success", resultState }, client);
+	expect(values.mock.calls[0][0].metadata.resultState).toBe(expected);
+	expect(JSON.stringify(values.mock.calls)).not.toContain("private-input-value");
+});

@@ -1,8 +1,8 @@
 {
 	"$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
 	"name": "clipify",
-	"version": "1.0.1",
-	"description": "Use your existing Twitch channel clips in Clipify overlays and playlists.",
+	"version": "1.0.0",
+	"description": "Manage your clips, overlays, playlists, and themes.",
 	"author": {
 		"name": "TheDanniCraft",
 		"email": "contact@clipify.us",
@@ -14,7 +14,7 @@
 			"interface": {
 				"displayName": "Clipify",
 				"shortDescription": "Keep your stream alive",
-				"longDescription": "Set up Clipify overlays, playlists and galleries using existing Twitch channel clips. Check clip synchronization and manage approved creators through your AI assistant. Clipify does not turn uploaded gameplay recordings into highlights. Choose which creators and permissions to connect; use the existing dashboard guide for streaming-software setup.",
+				"longDescription": "Manage your Clipify creators, overlays, playlists, galleries, and appearance through your AI assistant. Choose which creators to connect and the permissions each connection can use.",
 				"developerName": "TheDanniCraft",
 				"category": "Creativity",
 				"capabilities": ["Read", "Write"],
@@ -22,7 +22,7 @@
 				"supportURL": "https://help.clipify.us/",
 				"privacyPolicyURL": "https://clipify.us/legal/privacy",
 				"termsOfServiceURL": "https://clipify.us/legal/terms",
-				"defaultPrompt": ["Help me get started with Clipify and check whether my Twitch clips are ready.", "Change my overlay theme to purple.", "Create a playlist using my most popular clips."],
+				"defaultPrompt": ["Show my Clipify overlays and playlists.", "Change my overlay theme to purple.", "Create a playlist using my most popular clips."],
 				"brandColor": "#6200FF",
 				"composerIcon": "./assets/logo.png",
 				"logo": "./assets/logo.png"
