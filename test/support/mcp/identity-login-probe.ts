@@ -59,7 +59,8 @@ async function main() {
 		const bad = new URLSearchParams(query);
 		bad.set("redirect_uri", "https://attacker.invalid/callback");
 		const denied = await request("/oauth2/authorize?" + bad, { headers: { Cookie: cookie } });
-		assert.ok(denied.status >= 400 || !denied.headers.get("location")?.startsWith("https://attacker.invalid"));
+		const deniedLocation = denied.headers.get("location");
+		if (denied.status < 400 && deniedLocation) assert.notEqual(new URL(deniedLocation, origin).origin, "https://attacker.invalid");
 		const registration = await request("/oauth2/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ redirect_uris: [callback], scope: "openid profile email" }) });
 		assert.equal(registration.status, 400);
 		const grants = await fixture.pool.query("SELECT count(*)::int AS count FROM mcp_connection_grants");
