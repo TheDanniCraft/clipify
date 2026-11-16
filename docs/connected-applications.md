@@ -7,7 +7,9 @@ Awards dashboard, or provision a production connection automatically.
 The Awards image uses its own PostgreSQL and an application credential. It never
 receives Clipify's database URL, session cookies, signing secrets or Twitch tokens.
 Clipify rechecks its explicit creator/operation grant on every operation and before
-returning data. Only `search_clips` is enabled. User/MCP grants are unchanged.
+returning data. The gateway supports `search_clips`, `resolve_clip` and
+`get_clip_playback`, each checked against the application grant. The provision
+command grants only search by default. User/MCP grants are unchanged.
 
 ## Provision a connection
 
@@ -94,3 +96,25 @@ provider and database operations are real. It is not a substitute for the requir
 Next.js build. No production/shared-development credentials or database are used.
 Both stacks are removed after the run, including owned test volumes. Do not run
 schema generation or application schema sync as part of container startup.
+
+## Standalone Awards application and release boundary
+
+The independently deployed Awards website now lives in the private
+`TheDanniCraft/babbler-awards` repository. The example in this repository remains
+a minimal headless SDK consumer and isolation test fixture; it is not the deployed
+Awards website. Awards editors, submissions, votes, presentation and uploaded
+media belong to the separate application and its own private database/storage.
+This change does not install Awards into Clipify's dashboard or move/delete source
+show data.
+
+Application access and participant sign-in use separate OAuth clients. Awards
+sign-in uses Clipify's authorization-code/PKCE OIDC flow; application credentials
+cannot impersonate participants. Twitch polls and predictions are not supported by
+this gateway and are not part of this release.
+
+The Test deployment currently uses PR569's preview gateway. Merging this PR does
+not change that URL or provision production clients. After the normal generated
+migration/release, configure the intended target and explicitly provision its
+application/identity clients and grants before switching the consumer. Keep both
+databases private; no shared database credentials or published database ports are
+needed.

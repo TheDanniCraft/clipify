@@ -29,7 +29,7 @@
 
 - [x] T014 [GATE] Run affected whole-file OAuth/search/gateway/SDK suites and update test-summary.md.
 - [x] T015 [GATE] Run lint/format/type checks, configure required coverage/CI owners and audit auth boundary.
-- [ ] T016 [GATE] Update analysis.md, traceability, defect log, TDD verification and docs; open normal PR after local checks pass.
+- [x] T016 [GATE] Update analysis.md, traceability, defect log, TDD verification and docs; open normal PR after local checks pass.
 
 Dependencies: U1/U2 before U3 acceptance; U4 independent against fixed contract; U5 after SDK package. Independent ownership may run concurrently with one execution owner per suite. Each behavior gets observed Red before production and Green/refactor before push. No test-only Red is pushed.
 
@@ -37,7 +37,7 @@ Dependencies: U1/U2 before U3 acceptance; U4 independent against fixed contract;
 
 The feature is not certified complete while the blocking chronology exception remains unresolved. Existing U5 implementation and passing tests do not establish initial test-first delivery.
 
-- [ ] T017 [GATE] Obtain an explicit project decision on disclosed TDD-001 (verification finding 1); preserve the original test-after evidence and decision, without manufacturing chronology.
+- [x] T017 [GATE] Obtain an explicit project decision on disclosed TDD-001 (verification finding 1); preserve the original test-after evidence and decision, without manufacturing chronology.
 - [ ] T018 [GATE] Require current-source full CI, merged coverage, build and static/security gates before merge; record the actual PR results.
 
 - [x] T019 [GATE] Reproduce and repair all three failed CI-owner assumptions without weakening authority assertions; native contracts26 and policy11 pass.

@@ -2,7 +2,8 @@
 
 A server-side client for explicitly provisioned Clipify connected applications.
 It has no runtime dependencies and imports no Clipify database or application code.
-Only cached clip search is supported in this milestone.
+Supports cached clip search, clip lookup and short-lived playback URLs. Each operation
+requires its own explicit creator-scoped application grant.
 
 ```ts
 import { createClipifyClient } from "@clipify/sdk";
