@@ -9,3 +9,5 @@
 | TDD-001  | Open, project decision required   | Initial Awards CLI prototype preceded its first 11 tests. Passing characterization does not prove test-first history. Strict verification remains FAIL; no historical evidence is fabricated. |
 
 Setup-only failures (mock reuse/matrix syntax, PGlite fixture callback) are excluded from intended Red evidence. No production/shared development database was used or changed.
+
+CI-001 fixed locally: OAuth discovery/startup and mandatory-gate fixtures assumed the pre-application resource topology. Exact two-resource assertions and explicit connected-app gate refusal preserve the real guarantees; 26+11 tests pass. Full current-source CI remains required.

@@ -39,3 +39,6 @@ The feature is not certified complete while the blocking chronology exception re
 
 - [ ] T017 [GATE] Obtain an explicit project decision on disclosed TDD-001 (verification finding 1); preserve the original test-after evidence and decision, without manufacturing chronology.
 - [ ] T018 [GATE] Require current-source full CI, merged coverage, build and static/security gates before merge; record the actual PR results.
+
+- [x] T019 [GATE] Reproduce and repair all three failed CI-owner assumptions without weakening authority assertions; native contracts26 and policy11 pass.
+- [ ] T020 [GATE] Prepare independent private repository/Coolify and verified demo-only copy; preserve source until destination verification and account for existing-show cutover.

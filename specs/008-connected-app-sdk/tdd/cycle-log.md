@@ -21,3 +21,5 @@ The original CLI test-after delivery cannot be repaired by manufacturing a later
 Final defensive characterization: failing stream cancellation during abort/oversized upload preserves the original safe error. Added against existing handlers; no test-first implementation claim.
 
 Retained terminal logs have trailing spaces stripped for repository whitespace hygiene; assertion text and execution results are preserved.
+
+2026-11-16 CI repair: reproduced native discovery/resource-seed failures (2 failed,24 passed) and missing connected-app result in runner gate fixture (1 failed). Updated expected advertised grants, assert exact two distinct resource identifiers under concurrent startup, and supply/assert mandatory CONNECTED_APPS result in gate test. Green:26 native contract tests;11 native CI-policy tests. No production authorization checks or thresholds changed. Rebased onto master a0d9510c before repair.

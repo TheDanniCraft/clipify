@@ -1,0 +1,45 @@
+$ jest --runInBand "--coverage=false" test/mcp/contract/discovery.test.ts test/mcp/integration/resource-seed-race.test.ts
+[tests] Native application probes compiled once for this run
+[tests] database: 2 suites, 1 worker(s)
+FAIL test/mcp/contract/discovery.test.ts (18.363 s)
+  ● TDD-US1-028 discovery security › advertises CIMD and only supported grants/scopes
+
+    expect(received).not.toContain(expected) // indexOf
+
+    Expected value: not "client_credentials"
+    Received array:     ["authorization_code", "refresh_token", "client_credentials"]
+
+       7 | 		expect(result.client_id_metadata_document_supported).toBe(true);
+       8 | 		expect(result.grant_types_supported).toEqual(expect.arrayContaining(["authorization_code", "refresh_token"]));
+    >  9 | 		expect(result.grant_types_supported).not.toContain("client_credentials");
+         | 		                                         ^
+      10 | 		expect(result.scopes_supported).toContain("overlay-secret:read");
+      11 | 		expect(result.scopes_supported).not.toContain("runner-credential:read");
+      12 | 	});
+
+      at Object.toContain (test/mcp/contract/discovery.test.ts:9:44)
+
+FAIL test/mcp/integration/resource-seed-race.test.ts
+  ● concurrent Better Auth startup tolerates the Drizzle-wrapped resource uniqueness race
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: 2
+
+       5 | 	const result = runMcpProbe("resource-seed-probe", ["fixed"]);
+       6 | 	expect(result.initialized).toEqual(["fulfilled", "fulfilled"]);
+    >  7 | 	expect(result.resources).toBe(1);
+         | 	                         ^
+       8 | 	expect(result.statuses).toEqual([200, 200]);
+       9 | });
+      10 |
+
+      at Object.toBe (test/mcp/integration/resource-seed-race.test.ts:7:27)
+
+Test Suites: 2 failed, 2 total
+Tests:       2 failed, 24 passed, 26 total
+Snapshots:   0 total
+Time:        21.319 s
+Ran all test suites matching test/mcp/contract/discovery.test.ts|test/mcp/integration/resource-seed-race.test.ts.
+error: script "test" exited with code 1

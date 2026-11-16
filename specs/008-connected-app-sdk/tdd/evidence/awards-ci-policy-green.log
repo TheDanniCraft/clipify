@@ -1,0 +1,19 @@
+✔ complete Test gate skips scoped drafts instead of failing them (0.856504ms)
+✔ mandatory Test gate retains its existing COVERAGE refusal (2.694185ms)
+✔ mandatory Test gate retains its existing BROWSER refusal (1.626827ms)
+✔ mandatory Test gate retains its existing CONNECTED_APPS refusal (1.465565ms)
+✔ mandatory Test gate rejects a required native result of failure (2.037701ms)
+✔ mandatory Test gate rejects a required native result of cancelled (1.614932ms)
+✔ mandatory Test gate rejects a required native result of skipped (1.665884ms)
+✔ mandatory Test gate permits unchanged Runner scope and requires the actual native job (3.349886ms)
+✔ coverage merger uses the same pinned Node as the owning lanes (0.326894ms)
+✔ every official native platform checks out identical LF source before fingerprinting (0.514488ms)
+✔ native coverage collects all Runner modules and keeps critical95/90 and ordinary90/85 floors (1.602684ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 140.68827
