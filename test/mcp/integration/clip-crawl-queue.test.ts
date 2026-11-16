@@ -29,3 +29,11 @@ test("claims use due and priority indexes with 200000 queued jobs", () => {
 	expect(result.indexedDue).toBe(true);
 	expect(result.indexedPriority).toBe(true);
 });
+
+test("seeds a complete inventory for enabled accounts before their first overlay", () => {
+	expect(probe("seed-new-account")).toEqual({ kinds: ["backfill", "recent"], due: true, overlays: 0, excludedJobs: 0 });
+});
+
+test.each(["recent", "backfill"])("repairs a missing job alongside an existing %s job without resetting its progress", (kind) => {
+	expect(probe(`seed-repair:${kind}`)).toEqual({ kinds: ["backfill", "recent"], existingPreserved: true, addedDue: true, inserted: 1, repeated: 0 });
+});

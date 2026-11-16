@@ -4,7 +4,7 @@ import { recordProductOutcome } from "./product-outcomes";
 import { and, eq, or } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { db } from "@/db/client";
-import { usersTable, settingsTable, creatorAccountsTable, creatorIdentityLinksTable } from "@/db/schema";
+import { usersTable, settingsTable, creatorAccountsTable, creatorIdentityLinksTable, clipCrawlJobsTable } from "@/db/schema";
 import { user as authUsers, account as authAccounts, organization, member } from "@/db/auth-schema";
 import { Plan, Role } from "@types";
 import { allocateMemberNumber } from "./memberNumbers";
@@ -77,6 +77,18 @@ export async function initializeCreator(creatorId: string, twitchCreatedAt: Date
 
 		if (!user) {
 			throw new Error("ONBOARDING_CREATOR_CONFLICT");
+		}
+
+		// Commit both crawl jobs with the account so AI-only signups also get history.
+		// Conflict handling preserves completed scans, leases and retry schedules on sign-in.
+		if (!user.disabled) {
+			await tx
+				.insert(clipCrawlJobsTable)
+				.values([
+					{ creatorId, kind: "recent", nextRunAt: now },
+					{ creatorId, kind: "backfill", nextRunAt: now },
+				])
+				.onConflictDoNothing();
 		}
 
 		const organizationProfile = {

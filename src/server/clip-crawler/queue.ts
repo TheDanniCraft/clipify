@@ -14,18 +14,19 @@ export type CrawlJob = {
 type Connection = { query: (statement: string, parameters?: unknown[]) => Promise<{ rows: unknown[]; rowCount: number | null }> };
 export const CRAWL_LEASE_MS = 120_000;
 
-/** Backfill the queue incrementally; selection excludes already seeded creators. */
+/** Seed every enabled account and repair either missing job without resetting existing work. */
 export async function seedClipCrawlJobs(connection: Connection = dbPool, limit = 1000) {
 	const result = await connection.query(
 		`
 		WITH creators AS (
-			SELECT DISTINCT o.owner_id FROM overlays o JOIN users u ON u.id=o.owner_id
-			WHERE o.status='active' AND NOT u.disabled AND NOT EXISTS (
-				SELECT 1 FROM clip_crawl_jobs j WHERE j.creator_id=o.owner_id AND j.kind='recent'
-			) ORDER BY o.owner_id LIMIT $1
+			SELECT u.id FROM users u
+			WHERE NOT u.disabled AND NOT u.onboarding_pending AND (
+				NOT EXISTS (SELECT 1 FROM clip_crawl_jobs j WHERE j.creator_id=u.id AND j.kind='recent')
+				OR NOT EXISTS (SELECT 1 FROM clip_crawl_jobs j WHERE j.creator_id=u.id AND j.kind='backfill')
+			) ORDER BY u.id LIMIT $1
 		)
 		INSERT INTO clip_crawl_jobs(creator_id,kind,next_run_at)
-		SELECT owner_id,kind,now() FROM creators CROSS JOIN (VALUES ('recent'),('backfill')) kinds(kind)
+		SELECT id,kind,now() FROM creators CROSS JOIN (VALUES ('recent'),('backfill')) kinds(kind)
 		ON CONFLICT (creator_id,kind) DO NOTHING`,
 		[Math.max(1, Math.min(10_000, Math.floor(limit)))],
 	);
