@@ -15,7 +15,7 @@ describe("effective security dependency resolutions", () => {
 	});
 
 	test("Axios resolves the patched redirect implementation", () => {
-		expect(version("follow-redirects", consumer("axios"))).toBe("1.16.2");
+		expect(version("follow-redirects", consumer("axios"))).toBe("1.16.3");
 	});
 
 	test("the lint schema consumer shares the patched application Zod", () => {
