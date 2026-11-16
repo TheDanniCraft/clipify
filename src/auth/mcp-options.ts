@@ -46,6 +46,9 @@ const boundedClientMetadataFetch: typeof fetchClientMetadataResource = async (in
 	}
 };
 
+const IDENTITY_SCOPES = ["openid", "profile", "email"];
+const identityOnly = (scopes: string[]) => scopes.includes("openid") && scopes.every((scope) => IDENTITY_SCOPES.includes(scope));
+
 const MAX_REGISTRATION_BYTES = 256 * 1024;
 
 async function readRegistrationBody(request: Request): Promise<Uint8Array> {
@@ -123,13 +126,19 @@ export function createMcpPlugins(input: { origin: string; options?: Partial<McpO
 		loginPage: "/login",
 		consentPage: "/auth/mcp/consent",
 		resource: `${origin}/mcp`,
-		scopes: [...MCP_SCOPES, "offline_access"],
+		scopes: [...MCP_SCOPES, "offline_access", ...IDENTITY_SCOPES],
+		clientRegistrationDefaultScopes: [...MCP_SCOPES, "offline_access"],
+		clientRegistrationAllowedScopes: [...MCP_SCOPES, "offline_access"],
 		grantTypes: ["authorization_code", "refresh_token", "client_credentials"],
-		resources: [...(input.options?.resources ?? []), { identifier: connectedAppResource(origin), allowedScopes: [CONNECTED_APP_SCOPE], accessTokenTtl: 300 }],
+		resources: [...(input.options?.resources ?? []), { identifier: `${origin}/mcp`, allowedScopes: [...MCP_SCOPES, "offline_access"] }, { identifier: `${origin}/api/auth/oauth2/userinfo`, allowedScopes: IDENTITY_SCOPES, accessTokenTtl: 300 }, { identifier: connectedAppResource(origin), allowedScopes: [CONNECTED_APP_SCOPE], accessTokenTtl: 300 }],
 		refreshTokenReuseInterval: 0,
 		allowDynamicClientRegistration: true,
 		allowUnauthenticatedClientRegistration: true,
 	};
+	if (input.options?.postLogin) {
+		const postLogin = input.options.postLogin;
+		options.postLogin = { ...postLogin, consentReferenceId: async (context) => (identityOnly(context.scopes) ? undefined : postLogin.consentReferenceId?.(context)) };
+	}
 	options.clientPrivileges = async (context) => {
 		if (context.action === "configure-client-credentials-scopes") {
 			try {
@@ -149,6 +158,10 @@ export function createMcpPlugins(input: { origin: string; options?: Partial<McpO
 		return input.options?.resourcePrivileges ? input.options.resourcePrivileges(context) : true;
 	};
 	options.customAccessTokenClaims = async (info) => {
+		if (info.resources?.includes(`${origin}/api/auth/oauth2/userinfo`)) {
+			if (!info.user || info.referenceId || info.resources.length !== 1 || !identityOnly(info.scopes)) throw new APIError("BAD_REQUEST", { error: "invalid_grant", error_description: "Identity authorization is unavailable" });
+			return { clipify_identity: true };
+		}
 		if (info.user === undefined && !info.referenceId && info.resources?.length === 1 && info.resources[0] === connectedAppResource(origin) && info.scopes.length > 0 && info.scopes.every((scope) => scope === CONNECTED_APP_SCOPE)) return { clipify_application: true };
 		if (!info.user || info.resources?.includes(connectedAppResource(origin))) throw new APIError("BAD_REQUEST", { error: "invalid_grant", error_description: "Application authorization is unavailable" });
 		return (await input.options?.customAccessTokenClaims?.(info)) ?? {};

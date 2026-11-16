@@ -11,7 +11,7 @@
 		"test": "node --test test/*.test.mjs"
 	},
 	"dependencies": {
-		"@clipify/sdk": "file:vendor/clipify-sdk-0.1.0.tgz",
+		"@clipify/sdk": "file:vendor/clipify-sdk-0.2.0.tgz",
 		"pg": "8.23.1"
 	}
 }

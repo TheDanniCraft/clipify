@@ -42,3 +42,9 @@ The feature is not certified complete while the blocking chronology exception re
 
 - [x] T019 [GATE] Reproduce and repair all three failed CI-owner assumptions without weakening authority assertions; native contracts26 and policy11 pass.
 - [ ] T020 [GATE] Prepare independent private repository/Coolify and verified demo-only copy; preserve source until destination verification and account for existing-show cutover.
+
+## Standalone website integration follow-up
+
+- [x] T021 Add individually granted clip resolution/playback operations and SDK methods without a public Server Action authorization bypass.
+- [x] T022 Isolate user-only OIDC scopes from public registration, MCP creator references and machine resources; exercise a native PKCE/ID-token/UserInfo round trip.
+- [ ] T023 Validate the independent Awards browser login against the PR preview and verify actual clip playback there.

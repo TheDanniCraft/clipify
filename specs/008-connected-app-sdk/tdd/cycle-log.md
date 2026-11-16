@@ -23,3 +23,11 @@ Final defensive characterization: failing stream cancellation during abort/overs
 Retained terminal logs have trailing spaces stripped for repository whitespace hygiene; assertion text and execution results are preserved.
 
 2026-11-16 CI repair: reproduced native discovery/resource-seed failures (2 failed,24 passed) and missing connected-app result in runner gate fixture (1 failed). Updated expected advertised grants, assert exact two distinct resource identifiers under concurrent startup, and supply/assert mandatory CONNECTED_APPS result in gate test. Green:26 native contract tests;11 native CI-policy tests. No production authorization checks or thresholds changed. Rebased onto master a0d9510c before repair.
+
+## Standalone website integration follow-up (2026-11-16)
+
+Added explicit `resolve_clip` and `get_clip_playback` grant operations and SDK 0.2 methods. The new clip-read tests first failed because the module did not exist; operation tests then failed for unsupported operations. Green evidence: 250 tests across 15 affected suites, including legacy Twitch actions, SDK, gateway/grants and native consent/OIDC contracts (`/tmp/gateway-full-slice.log`). Playback resolution moved from the existing excluded legacy action into a server-only module; the public action retains its original authorization checks. No caller-controlled application bypass was added.
+
+Identity isolation tests failed for missing identity scopes/reference bypass and leaking MCP claims before implementation (`/tmp/gateway-identity-red.log`). Native authorization-code/PKCE, signed ID token, UserInfo, callback rejection and public identity-registration rejection pass against disposable loopback PostgreSQL (`/tmp/gateway-identity-native.log`). Native fixture cleanup initially leaked the separately imported application pool; it now closes both pools. This integration probe was added after the options implementation and does not establish test-first chronology for that integration behavior.
+
+The earlier TDD-001 chronology exception remains disclosed and unresolved. Live deployment, independent-site browser acceptance and current-source CI remain required; this evidence does not certify release readiness.

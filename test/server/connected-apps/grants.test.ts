@@ -17,3 +17,7 @@ it("denies missing grants and unsupported operations", () => {
 	expect(() => assertConnectedAppGrant(undefined, { clientId: "client", creatorId: "creator", operation: "search_clips" }, now)).toThrow("ACCESS_DENIED");
 	expect(() => assertConnectedAppGrant(grant, { clientId: "client", creatorId: "creator", operation: "delete_creator" }, now)).toThrow("ACCESS_DENIED");
 });
+it.each(["resolve_clip", "get_clip_playback"])("requires an explicit grant for reusable clip read operation %s", (operation) => {
+	expect(() => assertConnectedAppGrant(grant, { clientId: "client", creatorId: "creator", operation }, now)).toThrow("ACCESS_DENIED");
+	expect(() => assertConnectedAppGrant({ ...grant, operations: [operation] }, { clientId: "client", creatorId: "creator", operation }, now)).not.toThrow();
+});

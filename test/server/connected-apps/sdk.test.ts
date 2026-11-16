@@ -196,3 +196,35 @@ it("rejects a successful response that contains no body", async () => {
 	const fetcher = jest.fn().mockResolvedValue(new Response(null, { status: 200 }));
 	await expect(createClipifyClient({ ...config, fetch: fetcher }).clips.search({ creatorId: "owner" })).rejects.toMatchObject({ code: "INVALID_RESPONSE" });
 });
+it("resolves creator-bound clip metadata using the same token cache", async () => {
+	const fetcher = jest
+		.fn()
+		.mockImplementationOnce(tokenResponse)
+		.mockResolvedValueOnce(Response.json({ ok: true, data: { creatorId: "owner", clip: { id: "ClipA", title: "A clip", broadcasterId: "owner" } } }));
+	const client = createClipifyClient({ ...config, fetch: fetcher });
+	await expect(client.clips.resolve({ creatorId: "owner", reference: "ClipA" })).resolves.toMatchObject({ clip: { id: "ClipA" } });
+	expect(JSON.parse(fetcher.mock.calls[1][1].body)).toEqual({ operation: "resolve_clip", input: { creatorId: "owner", reference: "ClipA" } });
+});
+it("resolves trusted playback only for the requested creator and clip", async () => {
+	const fetcher = jest
+		.fn()
+		.mockImplementationOnce(tokenResponse)
+		.mockResolvedValueOnce(Response.json({ ok: true, data: { creatorId: "owner", clipId: "ClipA", playbackUrl: "https://production.assets.clips.twitchcdn.net/c.mp4" } }));
+	const client = createClipifyClient({ ...config, fetch: fetcher });
+	await expect(client.clips.playback({ creatorId: "owner", clipId: "ClipA" })).resolves.toMatchObject({ clipId: "ClipA" });
+	expect(JSON.parse(fetcher.mock.calls[1][1].body)).toEqual({ operation: "get_clip_playback", input: { creatorId: "owner", reference: "ClipA" } });
+});
+it.each([{ creatorId: "foreign" }, { clipId: "Other" }, { playbackUrl: "https://attacker.example/c.mp4" }, { playbackUrl: "http://production.assets.clips.twitchcdn.net/c.mp4" }])("rejects foreign or untrusted playback metadata %j", async (change) => {
+	const fetcher = jest
+		.fn()
+		.mockImplementationOnce(tokenResponse)
+		.mockResolvedValueOnce(Response.json({ ok: true, data: { creatorId: "owner", clipId: "ClipA", playbackUrl: "https://production.assets.clips.twitchcdn.net/c.mp4", ...change } }));
+	await expect(createClipifyClient({ ...config, fetch: fetcher }).clips.playback({ creatorId: "owner", clipId: "ClipA" })).rejects.toMatchObject({ code: "INVALID_RESPONSE" });
+});
+it("rejects resolved metadata from a foreign creator", async () => {
+	const fetcher = jest
+		.fn()
+		.mockImplementationOnce(tokenResponse)
+		.mockResolvedValueOnce(Response.json({ ok: true, data: { creatorId: "owner", clip: { id: "ClipA", title: "T", broadcasterId: "foreign" } } }));
+	await expect(createClipifyClient({ ...config, fetch: fetcher }).clips.resolve({ creatorId: "owner", reference: "ClipA" })).rejects.toMatchObject({ code: "INVALID_RESPONSE" });
+});

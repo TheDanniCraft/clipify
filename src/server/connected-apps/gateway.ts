@@ -7,9 +7,11 @@ import { searchCachedClips } from "@/server/resources/cached-clip-search";
 import { withConnectedAppGrant } from "./storage";
 import { connectedAppResource, CONNECTED_APP_SCOPE } from "./oauth-policy";
 import { ConnectedAppError } from "./grants";
+import { resolveConnectedClip } from "./clip-read";
 import { readConnectedAppJson, connectedAppFailure } from "./http";
 const claimsSchema = z.object({ sub: z.string().min(1), client_id: z.string().min(1), scope: z.literal(CONNECTED_APP_SCOPE), iss: z.string(), aud: z.union([z.string(), z.array(z.string())]), exp: z.number().int().positive(), clipify_application: z.literal(true) });
-const operationSchema = z.object({ operation: z.literal("search_clips"), input: workflowInputSchemas.search_clips }).strict();
+const clipInput = z.object({ creatorId: z.string().min(1).max(200), reference: z.string().min(1).max(2048) }).strict();
+const operationSchema = z.discriminatedUnion("operation", [z.object({ operation: z.literal("search_clips"), input: workflowInputSchemas.search_clips }).strict(), z.object({ operation: z.enum(["resolve_clip", "get_clip_playback"]), input: clipInput }).strict()]);
 export async function handleConnectedAppRequest(request: Request): Promise<Response> {
 	try {
 		const origin = resolveBaseUrl().origin;
@@ -26,7 +28,8 @@ export async function handleConnectedAppRequest(request: Request): Promise<Respo
 		const input = operationSchema.safeParse(await readConnectedAppJson(request));
 		if (!input.success) throw new ConnectedAppError("INVALID_INPUT", 400);
 		const data = await withConnectedAppGrant({ clientId: claims.client_id, creatorId: input.data.input.creatorId, operation: input.data.operation }, async (grant) => {
-			const result = await searchCachedClips(input.data.input, `application:${grant.id}`);
+			const operation = input.data;
+			const result = operation.operation === "search_clips" ? await searchCachedClips(operation.input, `application:${grant.id}`) : await resolveConnectedClip(operation.input.creatorId, operation.input.reference, operation.operation === "get_clip_playback");
 			if (claims.exp * 1000 <= Date.now()) throw new ConnectedAppError("AUTHENTICATION_REQUIRED", 401);
 			return result;
 		});

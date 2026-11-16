@@ -81,3 +81,26 @@ test("verified own-identity admins can provision machine scopes and link resourc
 	await expect(options.clientPrivileges({ headers: new Headers(), action: "configure-client-credentials-scopes" })).resolves.toBe(true);
 	await expect(options.resourcePrivileges({ headers: new Headers(), action: "link", resourceId: resource })).resolves.toBe(true);
 });
+test("adds user-only identity scopes without widening MCP resources or public registration", () => {
+	const o = provider();
+	expect(o.scopes).toEqual(expect.arrayContaining(["openid", "profile", "email"]));
+	expect(o.resources).toContainEqual({ identifier: `${origin}/api/auth/oauth2/userinfo`, allowedScopes: ["openid", "profile", "email"], accessTokenTtl: 300 });
+	expect(o.resources).toContainEqual(expect.objectContaining({ identifier: `${origin}/mcp`, allowedScopes: expect.not.arrayContaining(["openid"]) }));
+	expect(o.clientRegistrationDefaultScopes).not.toContain("openid");
+	expect(o.clientRegistrationAllowedScopes).not.toContain("openid");
+});
+test("identity-only login bypasses creator consent references but preserves MCP callbacks", async () => {
+	const selected = jest.fn().mockResolvedValue("mcp-reference");
+	const opts = provider({ postLogin: { page: "/auth/mcp/consent", shouldRedirect: async () => false, consentReferenceId: selected } });
+	await expect(opts.postLogin.consentReferenceId({ user: { id: "u" }, scopes: ["openid", "profile", "email"] })).resolves.toBeUndefined();
+	expect(selected).not.toHaveBeenCalled();
+	await expect(opts.postLogin.consentReferenceId({ user: { id: "u" }, scopes: ["creator:read"] })).resolves.toBe("mcp-reference");
+});
+test("identity access tokens require a real user, exact audience and identity-only scopes", async () => {
+	const callback = jest.fn().mockResolvedValue({ clipify_grant_id: "must-not-leak" });
+	const claims = provider({ customAccessTokenClaims: callback }).customAccessTokenClaims;
+	await expect(claims({ user: { id: "u" }, scopes: ["openid", "profile"], resources: [`${origin}/api/auth/oauth2/userinfo`] })).resolves.toEqual({ clipify_identity: true });
+	expect(callback).not.toHaveBeenCalled();
+	await expect(claims({ scopes: ["openid"], resources: [`${origin}/api/auth/oauth2/userinfo`] })).rejects.toThrow("invalid_grant");
+	await expect(claims({ user: { id: "u" }, scopes: ["openid", "creator:read"], resources: [`${origin}/api/auth/oauth2/userinfo`] })).rejects.toThrow("invalid_grant");
+});

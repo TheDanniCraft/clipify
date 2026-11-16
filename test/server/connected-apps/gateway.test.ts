@@ -2,6 +2,8 @@
 const verify = jest.fn();
 const access = jest.fn();
 const search = jest.fn();
+const readClip = jest.fn();
+jest.mock("@/server/connected-apps/clip-read", () => ({ resolveConnectedClip: (...a: unknown[]) => readClip(...a) }));
 jest.mock("better-auth/oauth2", () => ({ verifyAccessTokenRequest: (...args: unknown[]) => verify(...args), requestToResourceInput: (r: Request) => r }));
 jest.mock("@/server/connected-apps/storage", () => ({ withConnectedAppGrant: (...args: unknown[]) => access(...args) }));
 jest.mock("@/server/resources/cached-clip-search", () => ({ searchCachedClips: (...args: unknown[]) => search(...args) }));
@@ -12,6 +14,7 @@ const claims = () => ({ sub: "app", client_id: "app", scope: "creator:read", iss
 const request = (body: unknown = { operation: "search_clips", input: { creatorId: "creator", filters: { title: "Minecraft" } } }) => new Request(resource, { method: "POST", headers: { Authorization: "Bearer scoped-machine", "Content-Type": "application/json" }, body: JSON.stringify(body) });
 beforeEach(() => {
 	verify.mockReset().mockResolvedValue(claims());
+	readClip.mockReset().mockResolvedValue({ creatorId: "creator", clip: { id: "ClipA", broadcasterId: "creator" } });
 	search.mockReset().mockResolvedValue({ creatorId: "creator", items: [], complete: false, nextCursor: null });
 	access.mockReset().mockImplementation(async (_identity, run) => run({ id: "grant" }));
 });
@@ -95,4 +98,19 @@ it("mounts the operation on the Node App Router route", async () => {
 	const route = await import("@/app/api/connected-apps/route");
 	expect(route.runtime).toBe("nodejs");
 	expect((await route.POST(request())).status).toBe(200);
+});
+
+it.each(["resolve_clip", "get_clip_playback"])("dispatches %s only inside its explicit creator grant", async (operation) => {
+	const r = await handleConnectedAppRequest(request({ operation, input: { creatorId: "creator", reference: "ClipA" } }));
+	expect(r.status).toBe(200);
+	expect(access).toHaveBeenCalledWith(expect.objectContaining({ creatorId: "creator", operation }), expect.any(Function));
+	expect(readClip).toHaveBeenCalledWith("creator", "ClipA", operation === "get_clip_playback");
+	expect(search).not.toHaveBeenCalled();
+});
+it("does not resolve a clip after the grant denies it", async () => {
+	const { ConnectedAppError } = await import("@/server/connected-apps/grants");
+	access.mockRejectedValueOnce(new ConnectedAppError("ACCESS_DENIED"));
+	const r = await handleConnectedAppRequest(request({ operation: "get_clip_playback", input: { creatorId: "other", reference: "ClipA" } }));
+	expect(r.status).toBe(403);
+	expect(readClip).not.toHaveBeenCalled();
 });

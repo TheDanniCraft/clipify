@@ -1,4 +1,7 @@
 export type ClipSearchInput = { creatorId: string; filters?: { title?: string }; limit?: number; cursor?: string };
+export type ClipReferenceInput = { creatorId: string; reference: string };
+export type ClipResolveResult = { creatorId: string; clip: Clip };
+export type ClipPlaybackResult = { creatorId: string; clipId: string; playbackUrl: string };
 export type Clip = { id: string; title: string; broadcasterId: string; [field: string]: unknown };
 export type ClipSearchResult = { creatorId: string; items: Clip[]; complete: boolean; nextCursor: string | null; [field: string]: unknown };
 export type ClipifyClientOptions = { baseUrl: string; clientId: string; clientSecret: string; fetch?: typeof fetch; timeoutMs?: number; allowInsecureHttp?: boolean };
@@ -38,7 +41,7 @@ export function createClipifyClient(options: ClipifyClientOptions) {
 	const base = origin(options);
 	const fetcher = options.fetch ?? globalThis.fetch;
 	let token: { value: string; until: number } | undefined;
-	async function search(input: ClipSearchInput, request?: { signal?: AbortSignal }): Promise<ClipSearchResult> {
+	async function execute<T>(operation: string, input: ClipSearchInput | ClipReferenceInput, validate: (value: unknown, creatorId: string) => T, request?: { signal?: AbortSignal }): Promise<T> {
 		if (!input || typeof input.creatorId !== "string" || !input.creatorId || input.creatorId.length > 200) throw new ClipifySdkError("INVALID_INPUT");
 		const deadline = new AbortController();
 		const timer = setTimeout(() => deadline.abort(), options.timeoutMs ?? 10000);
@@ -108,7 +111,7 @@ export function createClipifyClient(options: ClipifyClientOptions) {
 				if (!record(value) || typeof value.access_token !== "string" || !value.access_token || value.access_token.length > 16384 || /[\r\n]/.test(value.access_token) || typeof value.token_type !== "string" || value.token_type.toLowerCase() !== "bearer" || typeof value.expires_in !== "number" || !Number.isFinite(value.expires_in) || value.expires_in <= 0 || value.expires_in > 86400) throw new ClipifySdkError("INVALID_RESPONSE");
 				token = { value: value.access_token, until: Date.now() + value.expires_in * 900 };
 			}
-			const response = await send(`${base}/api/connected-apps`, { method: "POST", headers: { Authorization: `Bearer ${token.value}`, "Content-Type": "application/json" }, body: JSON.stringify({ operation: "search_clips", input }) });
+			const response = await send(`${base}/api/connected-apps`, { method: "POST", headers: { Authorization: `Bearer ${token.value}`, "Content-Type": "application/json" }, body: JSON.stringify({ operation, input }) });
 			if (response.status === 401) token = undefined;
 			if (!response.ok) {
 				const retry = response.headers.get("retry-after");
@@ -119,7 +122,7 @@ export function createClipifyClient(options: ClipifyClientOptions) {
 			}
 			const value = await json(response);
 			if (!record(value) || value.ok !== true) throw new ClipifySdkError("INVALID_RESPONSE");
-			return validateResult(value.data, input.creatorId);
+			return validate(value.data, input.creatorId);
 		} catch (error) {
 			if (signal.aborted) throw abortError();
 			if (error instanceof ClipifySdkError) throw error;
@@ -128,5 +131,37 @@ export function createClipifyClient(options: ClipifyClientOptions) {
 			clearTimeout(timer);
 		}
 	}
-	return { clips: { search } };
+	const search = (input: ClipSearchInput, request?: { signal?: AbortSignal }) => execute("search_clips", input, validateResult, request);
+	const resolve = (input: ClipReferenceInput, request?: { signal?: AbortSignal }) => {
+		if (!input || typeof input.reference !== "string" || !input.reference || input.reference.length > 2048) return Promise.reject(new ClipifySdkError("INVALID_INPUT"));
+		return execute(
+			"resolve_clip",
+			input,
+			(value, creatorId): ClipResolveResult => {
+				if (!record(value) || value.creatorId !== creatorId || !record(value.clip) || typeof value.clip.id !== "string" || !value.clip.id || typeof value.clip.title !== "string" || value.clip.broadcasterId !== creatorId) throw new ClipifySdkError("INVALID_RESPONSE");
+				return value as ClipResolveResult;
+			},
+			request,
+		);
+	};
+	const playback = (input: { creatorId: string; clipId: string }, request?: { signal?: AbortSignal }) => {
+		if (!input || typeof input.clipId !== "string" || !/^[A-Za-z0-9_-]{1,200}$/.test(input.clipId)) return Promise.reject(new ClipifySdkError("INVALID_INPUT"));
+		return execute(
+			"get_clip_playback",
+			{ creatorId: input.creatorId, reference: input.clipId },
+			(value, creatorId): ClipPlaybackResult => {
+				if (!record(value) || value.creatorId !== creatorId || value.clipId !== input.clipId || typeof value.playbackUrl !== "string") throw new ClipifySdkError("INVALID_RESPONSE");
+				let url: URL;
+				try {
+					url = new URL(value.playbackUrl);
+				} catch {
+					throw new ClipifySdkError("INVALID_RESPONSE");
+				}
+				if (url.protocol !== "https:" || !["production.assets.clips.twitchcdn.net", "d1ndex63qxojbr.cloudfront.net"].includes(url.hostname) || url.username || url.password || url.port) throw new ClipifySdkError("INVALID_RESPONSE");
+				return value as ClipPlaybackResult;
+			},
+			request,
+		);
+	};
+	return { clips: { search, resolve, playback } };
 }

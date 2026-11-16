@@ -5,13 +5,13 @@
     "": {
       "name": "babbler-awards",
       "dependencies": {
-        "@clipify/sdk": "file:vendor/clipify-sdk-0.1.0.tgz",
+        "@clipify/sdk": "file:vendor/clipify-sdk-0.2.0.tgz",
         "pg": "8.23.1",
       },
     },
   },
   "packages": {
-    "@clipify/sdk": ["@clipify/sdk@vendor/clipify-sdk-0.1.0.tgz", {}, "sha512-nyA7Bvb9p4fEzSuTTb+BTLb0xypScx/Im9+d7PzQSni85OIDfO6HLE/PwiAqfpcA2Qdv/y1XE2QQH9mNVWoJFw=="],
+    "@clipify/sdk": ["@clipify/sdk@vendor/clipify-sdk-0.2.0.tgz", {}, "sha512-Q4bETSym0BgVf7jba8vWvnwQb3jl66FSeggF/w6slFYc+LDjB/LOMW8pISPGOmTU1Gi4oCdOGdKFS6YDtun6Xw=="],
 
     "pg": ["pg@8.23.1", "", { "dependencies": { "pg-connection-string": "^2.14.1", "pg-pool": "^3.14.0", "pg-protocol": "^1.16.1", "pg-types": "2.2.0", "pgpass": "1.0.5" }, "optionalDependencies": { "pg-cloudflare": "^1.4.1" }, "peerDependencies": { "pg-native": ">=3.0.1" }, "optionalPeers": ["pg-native"] }, "sha512-aL96AHANtWjPLDOLqnhx+ngp9+UK7ETEU8VJrDCGvsSSi/mGLcWYsS6Herg7lmaBJe4uwrfqsa7gTEFaSizDoQ=="],
 
