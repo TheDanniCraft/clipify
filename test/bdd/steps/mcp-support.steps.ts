@@ -308,7 +308,7 @@ Given("a real browser has an authenticated creator and registered MCP client", a
 	const client = await response.json();
 	const verifier = "real-browser-fixture-pkce-proof-at-least-43-characters-123456";
 	const { createHash } = await import("node:crypto");
-	const query = new URLSearchParams({ client_id: client.client_id, redirect_uri: client.redirect_uris[0], response_type: "code", scope: "creator:read overlay:read offline_access", code_challenge: createHash("sha256").update(verifier).digest("base64url"), code_challenge_method: "S256", state: "real-browser-regression", resource: `${origin}/mcp` });
+	const query = new URLSearchParams({ client_id: client.client_id, redirect_uri: client.redirect_uris[0], response_type: "code", scope: "creator:read creator:update overlay:read offline_access", code_challenge: createHash("sha256").update(verifier).digest("base64url"), code_challenge_method: "S256", state: "real-browser-regression", resource: `${origin}/mcp` });
 	mcpWorld.result = { status: 200, body: { origin, owner, client, verifier, authorization: `${origin}/api/auth/oauth2/authorize?${query}` } };
 });
 When("the browser approves the provider’s signed consent request", async ({ page, mcpWorld }) => {
@@ -322,6 +322,9 @@ When("the browser approves the provider’s signed consent request", async ({ pa
 	const creator = page.getByRole("button", { name: state.owner.fixture.username, exact: true });
 	await creator.focus();
 	await creator.press("Space");
+	await page.getByRole("radiogroup", { name: "General permissions" }).getByRole("radio", { name: "Custom", exact: true }).click();
+	await page.getByRole("button", { name: "Creator Page & clip synchronization", exact: true }).click();
+	await expect(page.getByText("Request clip synchronization, edit the Creator Page and change its publication status. Reading page settings and cached clips is covered by Creator information.", { exact: true })).toBeVisible();
 	await page.screenshot({ path: "test-results/browser/consent-permissions.png" });
 	await page.getByRole("button", { name: "Review", exact: true }).click();
 	const stayConnected = page.getByRole("checkbox", { name: "Stay connected between sessions" });

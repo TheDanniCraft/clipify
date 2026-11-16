@@ -7,7 +7,13 @@ export type { McpClientGroup, McpClientStats } from "@/app/lib/mcpMetrics";
 export async function getMcpClientStats(page = 1, pageSize: number | null = 20, client: QueryClient = db): Promise<McpClientStats> {
 	if (!Number.isSafeInteger(page) || page < 1 || page > 1000000 || (pageSize !== null && (!Number.isSafeInteger(pageSize) || pageSize < 1 || pageSize > 100))) throw Error("INVALID_INPUT");
 	const result = await client.execute(sql`
- WITH usage AS (
+ WITH active_grants AS (
+  SELECT g.id FROM mcp_connection_grants g JOIN auth.oauth_client c ON c.client_id=g.client_id
+  WHERE g.active AND g.revoked_at IS NULL AND (g.expires_at IS NULL OR g.expires_at>now()) AND NOT c.disabled
+ ), recent_calls AS (
+  SELECT metadata, outcome FROM audit_events
+  WHERE action LIKE 'sensitive-integration:mcp.%' AND occurred_at>=now()-interval '30 days'
+ ), usage AS (
   SELECT metadata->>'clientId' AS client_id,count(*) AS calls,max(occurred_at) AS last_used
   FROM audit_events WHERE action LIKE 'sensitive-integration:mcp.%'
    AND occurred_at >= now()-interval '30 days' AND jsonb_typeof(metadata->'clientId')='string'
@@ -30,10 +36,15 @@ export async function getMcpClientStats(page = 1, pageSize: number | null = 20, 
   SELECT * FROM groups ORDER BY calls DESC,name ASC LIMIT ${pageSize} OFFSET ${(page - 1) * (pageSize ?? 0)}
  )
  SELECT jsonb_build_object(
+   'entry',jsonb_build_object(
+   'activeConnections',(SELECT count(*) FROM active_grants),
+   'activeConnectionsUsed30d',(SELECT count(*) FROM active_grants g WHERE EXISTS(SELECT 1 FROM recent_calls a WHERE a.metadata->>'grantId'=g.id::text)),
+   'emptyReadCalls30d',(SELECT count(*) FROM recent_calls WHERE outcome='success' AND metadata->>'resultState' IN ('no_overlays','no_playlists','empty_collection','not_started','queued','running','retrying','rate_limited','no_matching_clips'))
+  ),
   'summary',(SELECT jsonb_build_object('registeredClients',coalesce(sum(registered_clients),0),'authorizedClients',coalesce(sum(authorized_clients),0),'activeClients30d',coalesce(sum(active_clients),0),'calls30d',coalesce(sum(calls),0),'applicationNames',count(*)) FROM groups),
   'items',coalesce((SELECT jsonb_agg(jsonb_build_object('name',name,'registeredClients',registered_clients,'authorizedClients',authorized_clients,'activeConnections',active_connections,'activeClients30d',active_clients,'calls30d',calls,'lastUsedAt',last_used) ORDER BY calls DESC,name ASC) FROM page),'[]'::jsonb)
  ) AS data`);
-	const data = result.rows[0]?.data as Pick<McpClientStats, "summary" | "items"> | undefined;
+	const data = result.rows[0]?.data as Pick<McpClientStats, "summary" | "items" | "entry"> | undefined;
 	if (!data) throw Error("SERVICE_UNAVAILABLE");
 	return { ...data, page, pageSize: pageSize ?? data.items.length, sampledAt: new Date().toISOString() };
 }

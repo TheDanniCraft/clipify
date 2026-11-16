@@ -113,7 +113,7 @@ export function ConsentForm({ clientName, requestedScopes, creators, oauthQuery,
 								if (result?.error) setError(result.error);
 								else if (result?.callbackUrl) {
 									const authorized = result.authorized ?? data.get("accept") === "true";
-									trackProductEvent(authorized ? "connected_app_authorized" : "connected_app_declined", { creator_count: entries.length });
+									trackProductEvent(authorized ? "connected_app_authorized" : "connected_app_declined", { creator_count: entries.length, stage: authorized ? "code_issued" : "declined", write_access: entries.some((entry) => entry.scopes.some((scope) => scope !== "offline_access" && !scope.endsWith(":read"))) });
 									setHandoff({ callbackUrl: result.callbackUrl, authorized });
 								}
 							} catch {

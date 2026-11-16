@@ -1,3 +1,4 @@
+import { trackMcpAuthenticatedRequest } from "./journey";
 import "server-only";
 import { withDatabaseRequest } from "@/db/request-scope";
 import { createMcpHandler, McpServer } from "@modelcontextprotocol/server";
@@ -112,6 +113,7 @@ async function handleAuthenticatedRequest(request: Request, configuration: Retur
 						.clone()
 						.json()
 						.catch(() => null);
+					trackMcpAuthenticatedRequest(principal, body?.method);
 					async function enforceToolCallBudget() {
 						if (body?.method === "tools/call") {
 							const { consumeMcpRateLimit, getMcpNetworkSignal, getMcpRateLimits } = await import("./rate-limit");

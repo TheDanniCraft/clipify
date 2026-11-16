@@ -17,6 +17,7 @@ export function flattenMcpMetrics(snapshot: McpMetricsSnapshot): Record<string, 
 export function flattenMcpClientStats(stats: import("./client-stats").McpClientStats | null): Record<string, number | string> {
 	const fields: Record<string, number | string> = { mcp_clients_available: stats ? 1 : 0 };
 	for (const key of ["registeredClients", "authorizedClients", "activeClients30d", "calls30d", "applicationNames"] as const) fields[`mcp_clients_${key}`] = stats?.summary[key] ?? 0;
+	for (const key of ["activeConnections", "activeConnectionsUsed30d", "emptyReadCalls30d"] as const) fields[`mcp_clients_entry_${key}`] = stats?.entry?.[key] ?? 0;
 	fields.mcp_clients_sampledAtUnixSeconds = stats ? Date.parse(stats.sampledAt) / 1000 : 0;
 	for (let rank = 1; rank <= (stats?.items.length ?? 0); rank++) {
 		const item = stats?.items[rank - 1];
