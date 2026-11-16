@@ -1,4 +1,5 @@
 .clipify-tour-popover {
+	z-index: 1000000003;
 	font-family: inherit;
 	color: var(--color-foreground);
 	background: var(--color-surface);
