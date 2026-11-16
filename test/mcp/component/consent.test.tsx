@@ -103,7 +103,7 @@ test.each([
 	choose("Creator one");
 	if (mode === "Write") fireEvent.click(within(screen.getByRole("radiogroup", { name: "General permissions" })).getByRole("radio", { name: "Write" }));
 	review();
-	fireEvent.click(screen.getByRole("button", { name: "Authorize", exact: true }));
+	fireEvent.click(screen.getByRole("button", { name: /^Authorize$/ }));
 	await screen.findByRole("heading", { name: expected ? "Authorization successful" : "Authorization declined" });
 	expect(action).toHaveBeenCalledTimes(1);
 	expect(action.mock.calls[0][0].get("accept")).toBe("true");
@@ -119,12 +119,12 @@ test("a provider validation failure preserves review and permits a measured succ
 	choose("Creator one");
 	review();
 	const choices = container.querySelector<HTMLInputElement>('input[name="creators"]')!.value;
-	fireEvent.click(screen.getByRole("button", { name: "Authorize", exact: true }));
+	fireEvent.click(screen.getByRole("button", { name: /^Authorize$/ }));
 	await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Restart the connection"));
 	expect(trackProductEvent).not.toHaveBeenCalled();
 	expect(container.querySelector<HTMLInputElement>('input[name="creators"]')!.value).toBe(choices);
-	expect(screen.getByRole("button", { name: "Authorize", exact: true })).toBeEnabled();
-	fireEvent.click(screen.getByRole("button", { name: "Authorize", exact: true }));
+	expect(screen.getByRole("button", { name: /^Authorize$/ })).toBeEnabled();
+	fireEvent.click(screen.getByRole("button", { name: /^Authorize$/ }));
 	await screen.findByRole("heading", { name: "Authorization successful" });
 	expect(action).toHaveBeenCalledTimes(2);
 	expect(trackProductEvent).toHaveBeenCalledTimes(1);
@@ -136,9 +136,9 @@ test("an empty provider response does not fabricate authorization or leave submi
 	render(<ConsentForm {...props} action={action} />);
 	choose("Creator one");
 	review();
-	fireEvent.click(screen.getByRole("button", { name: "Authorize", exact: true }));
+	fireEvent.click(screen.getByRole("button", { name: /^Authorize$/ }));
 	await waitFor(() => expect(action).toHaveBeenCalledTimes(1));
-	await waitFor(() => expect(screen.getByRole("button", { name: "Authorize", exact: true })).toBeEnabled());
+	await waitFor(() => expect(screen.getByRole("button", { name: /^Authorize$/ })).toBeEnabled());
 	expect(trackProductEvent).not.toHaveBeenCalled();
 	expect(screen.getByRole("heading", { name: "Review and authorize" })).toBeVisible();
 });
