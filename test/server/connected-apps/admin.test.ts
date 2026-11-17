@@ -5,8 +5,9 @@ const remove = jest.fn();
 const insert = jest.fn();
 const update = jest.fn();
 let rows: unknown[] = [];
-const query = { from: () => query, innerJoin: () => query, where: () => query, limit: async () => rows };
+const query = { from: () => query, innerJoin: () => query, leftJoin: () => query, where: () => query, limit: async () => rows };
 const tx = {
+	select: () => query,
 	insert: () => ({
 		values: (value: unknown) => {
 			insert(value);
@@ -36,7 +37,7 @@ beforeEach(() => {
 	insert.mockReset();
 	update.mockReset();
 	remove.mockReset().mockResolvedValue({ success: true });
-	rows = [{ id: "creator", disabled: false, status: "active" }];
+	rows = [{ id: "creator", disabled: false, status: "active", subject: "owner-subject" }];
 });
 it("denies unauthorised administrators before provisioning credentials", async () => {
 	requireAdmin.mockRejectedValue(new Error("ACCESS_DENIED"));
@@ -113,4 +114,55 @@ it("retains a safe failure if compensating client deletion is unavailable", asyn
 	expect(response.status).toBe(503);
 	expect(await response.text()).not.toMatch(/private/);
 	expect(capture).toHaveBeenCalledWith(expect.objectContaining({ message: "Connected application provisioning cleanup failed" }), "connected-apps", "cleanup-client");
+});
+
+it("grants only explicitly selected read operations", async () => {
+	const response = await handleConnectedAppAdminRequest(request({ ...provision(), operations: ["resolve_clip", "get_clip_playback"] }));
+	expect(response.status).toBe(201);
+	expect(insert).toHaveBeenCalledWith(expect.objectContaining({ operations: ["resolve_clip", "get_clip_playback"] }));
+});
+it.each([{ operations: [] }, { operations: ["search_clips", "search_clips"] }, { operations: ["delete_creator"] }])("rejects invalid operation selection $operations", async ({ operations }) => {
+	expect((await handleConnectedAppAdminRequest(request({ ...provision(), operations }))).status).toBe(400);
+	expect(create).not.toHaveBeenCalled();
+});
+it.each(["http://app.test/callback", "https://user:pass@app.test/callback", "https://app.test/callback#fragment", "https://app.test/callback?next=evil", "https://*.test/callback", "https://app.test/%2A"])("rejects unsafe callback %s", async (callbackUrl) => {
+	expect((await handleConnectedAppAdminRequest(request({ ...provision(), callbackUrl }))).status).toBe(400);
+	expect(create).not.toHaveBeenCalled();
+});
+
+it("creates a separate PKCE sign-in client with an exact callback and returns both secrets once", async () => {
+	create.mockResolvedValueOnce({ client_id: "machine", client_secret: "machine-once" }).mockResolvedValueOnce({ client_id: "login", client_secret: "login-once" });
+	const response = await handleConnectedAppAdminRequest(request({ ...provision(), callbackUrl: "https://app.test/api/auth/callback/clipify" }));
+	expect(response.status).toBe(201);
+	expect(create.mock.calls[1][0].body).toMatchObject({ grant_types: ["authorization_code"], scope: "openid profile email", require_pkce: true, redirect_uris: ["https://app.test/api/auth/callback/clipify"], resources: ["https://clipify.test/api/auth/oauth2/userinfo"] });
+	expect(create.mock.calls[1][0].body).not.toHaveProperty("client_credentials_scopes");
+	expect(await response.json()).toMatchObject({ data: { clientSecret: "machine-once", identity: { clientId: "login", clientSecret: "login-once" } } });
+	expect(update).toHaveBeenCalledWith(expect.objectContaining({ metadata: expect.anything() }));
+	expect(JSON.stringify(insert.mock.calls)).not.toMatch(/machine-once|login-once/);
+});
+it("removes the machine client if creating the sign-in client fails", async () => {
+	create.mockResolvedValueOnce({ client_id: "machine", client_secret: "machine-once" }).mockRejectedValueOnce(Error("private-provider"));
+	expect((await handleConnectedAppAdminRequest(request({ ...provision(), callbackUrl: "https://app.test/callback" }))).status).toBe(503);
+	expect(remove).toHaveBeenCalledWith(expect.objectContaining({ body: { client_id: "machine" } }));
+});
+
+it("disables both clients when revoking a paired connection", async () => {
+	rows = [{ id: "grant", creatorId: "creator", clientId: "machine", metadata: { connectedAppIdentityClientId: "login" } }];
+	const response = await handleConnectedAppAdminRequest(request({ action: "revoke", grantId: "11111111-1111-4111-8111-111111111111" }));
+	expect(response.status).toBe(200);
+	expect(update).toHaveBeenCalledWith({ disabled: true });
+	expect(insert).toHaveBeenCalledWith(expect.objectContaining({ action: "connected-app.revoke" }));
+});
+it("removes both issued clients if saving the paired grant fails", async () => {
+	create.mockResolvedValueOnce({ client_id: "machine", client_secret: "machine-once" }).mockResolvedValueOnce({ client_id: "login", client_secret: "login-once" });
+	insert.mockImplementationOnce(() => {
+		throw Error("database unavailable");
+	});
+	expect((await handleConnectedAppAdminRequest(request({ ...provision(), callbackUrl: "https://app.test/callback" }))).status).toBe(503);
+	expect(remove.mock.calls.map(([input]) => input.body.client_id)).toEqual(["machine", "login"]);
+});
+it("refuses sign-in provisioning without a linked creator identity", async () => {
+	rows = [{ id: "creator", disabled: false, status: "active" }];
+	expect((await handleConnectedAppAdminRequest(request({ ...provision(), callbackUrl: "https://app.test/callback" }))).status).toBe(403);
+	expect(create).not.toHaveBeenCalled();
 });

@@ -66,3 +66,35 @@ verification remain separate gates.
 Rebased onto 08ce16d2 without conflicts. All 164 connected-app tests (12 whole-file suites) pass. Live preview SDK search, resolution and playback return real ranged media (HTTP206); production was not contacted. Initial current-head CI completed with 50 checks passing and one intended draft skip. The container owner failed because correcting the packaged SDK README changed its tarball bytes without refreshing the example consumer's integrity pin; the final Test gate correctly rejected that missing container evidence.
 
 Updated only the example's SDK SHA-512 pin to the actual deterministic package bytes. A fresh-cache frozen install passes on CI's Bun1.4.4; 13 packaging/CLI tests pass. The complete local two-project Docker owner passes, including 18 security checks, private databases, cross-database denial, foreign-creator denial and revocation. No integrity check, threshold or assertion was weakened. The next pushed head must pass its complete GitHub gate independently.
+
+## Administrator-managed connections follow-up (2026-11-17)
+
+Scope: T024–T027. Extend the existing administrative endpoint, rather than adding
+application-specific SQL provisioning or another gateway. No schema change.
+
+Observed local Red: selecting explicit read operations returned HTTP 400 instead
+of 201 against the prior handler. Invalid operation selection checks also exposed
+the former search-only input contract. This evidence covers the endpoint extension;
+it does not establish test-first chronology for every new UI/listing behavior.
+
+Green: 34 admin provisioning/listing tests pass. Nearby grant, storage, OAuth policy
+and gateway suites also pass. The canonical Turbopack E2E build, TypeScript and
+changed-file lint pass. Three actual HeroUI browser journeys pass (29.1 seconds):
+desktop dark, mobile light and non-administrator denial. These issue real OAuth
+machine tokens against disposable loopback PostgreSQL, verify stored secrets differ
+from the issued secrets, deny unselected playback, and revoke both paired clients.
+Already-issued tokens are denied after revocation. Disabled machine clients can
+still have their full connection revoked.
+
+Browser review found and fixed cramped modal spacing, notification/modal overlap
+on recovery, and squeezed mobile table cells. Failed requests now use focused
+feedback with the unchanged draft underneath. Clipboard success appears on its
+button. Screenshots were inspected in desktop dark and mobile light.
+
+Local setup corrections: use the canonical Turbopack build with dependencies inside
+the worktree; the alternate Webpack path and a symlink outside Turbopack's root were
+not owning-CI-equivalent checks. The initial build exhausted Node's default heap;
+validation used an 8 GB build-only heap. No runtime memory settings changed.
+Job-owned database fixtures and the template were removed. Full CI/security remains
+T028 and is not claimed green from these local checks. No production client or
+grant has been created.
