@@ -7,7 +7,7 @@ export default async function ConnectionsPage() {
 	const user = await validateAdminAuth(true);
 	if (!user) notFound();
 	return (
-		<DashboardNavbar user={user} title='Application connections' tagline='Approve companion applications and control their access'>
+		<DashboardNavbar user={user} title='Connections' tagline='Approve companion applications and control their access'>
 			<ApplicationConnections />
 		</DashboardNavbar>
 	);

@@ -10,7 +10,7 @@ export default function AdminNavigation() {
 			<Sidebar.Menu aria-label='Admin sections'>
 				{[
 					{ href: "/admin", title: "Operations", icon: IconLayoutDashboard },
-					{ href: "/admin/connections", title: "Application connections", icon: IconPlugConnected },
+					{ href: "/admin/connections", title: "Connections", icon: IconPlugConnected },
 					{ href: "/admin/agencies", title: "Agencies", icon: IconBuildingBank },
 				].map((item) => (
 					<Sidebar.MenuItem key={item.href} id={item.href} href={item.href} isCurrent={path === item.href} textValue={item.title} render={(props) => <div {...props} />}>
