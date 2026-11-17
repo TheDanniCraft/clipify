@@ -1,5 +1,6 @@
 /** @jest-environment node */
 const requireAdmin = jest.fn();
+jest.mock("@/server/connected-apps/admin", () => ({ handleConnectedAppAdminRequest: jest.fn() }));
 let rows: unknown[] = [];
 const select = jest.fn();
 const offset = jest.fn(async () => rows);
@@ -43,4 +44,12 @@ it("redacts database failures", async () => {
 	const response = await listApplicationConnections(new Request("https://clipify.test/api/connected-apps/admin"));
 	expect(response.status).toBe(503);
 	expect(await response.text()).not.toContain("private");
+});
+
+it("mounts authenticated listing on the Node route and retains its denial boundary", async () => {
+	const route = await import("@/app/api/connected-apps/admin/route");
+	expect(route.runtime).toBe("nodejs");
+	expect((await route.GET(new Request("https://clipify.test/api/connected-apps/admin"))).status).toBe(200);
+	requireAdmin.mockRejectedValueOnce(Error("ACCESS_DENIED"));
+	expect((await route.GET(new Request("https://clipify.test/api/connected-apps/admin"))).status).toBe(403);
 });

@@ -27,6 +27,7 @@ jest.mock("@/server/connected-apps/oauth-policy", () => ({ CONNECTED_APP_SCOPE: 
 jest.mock("@/app/lib/baseUrl", () => ({ resolveBaseUrl: () => new URL("https://clipify.test") }));
 const capture = jest.fn();
 jest.mock("@/app/lib/sentryServer", () => ({ captureUnexpectedError: (...args: unknown[]) => capture(...args) }));
+import { connectionOperations } from "@/server/connected-apps/admin-input";
 import { handleConnectedAppAdminRequest } from "@/server/connected-apps/admin";
 const provision = () => ({ action: "provision", name: "Babbler Awards", creatorId: "creator", expiresAt: new Date(Date.now() + 3600000).toISOString() });
 const request = (body: unknown = provision(), origin = "https://clipify.test") => new Request("https://clipify.test/api/connected-apps/admin", { method: "POST", headers: { "Content-Type": "application/json", Origin: origin, Cookie: "real-admin-session" }, body: JSON.stringify(body) });
@@ -165,4 +166,11 @@ it("refuses sign-in provisioning without a linked creator identity", async () =>
 	rows = [{ id: "creator", disabled: false, status: "active" }];
 	expect((await handleConnectedAppAdminRequest(request({ ...provision(), callbackUrl: "https://app.test/callback" }))).status).toBe(403);
 	expect(create).not.toHaveBeenCalled();
+});
+
+it.each(connectionOperations)("provisions only the UI-offered permission %s when selected alone", async (operation) => {
+	const response = await handleConnectedAppAdminRequest(request({ ...provision(), operations: [operation] }));
+	expect(response.status).toBe(201);
+	expect(insert).toHaveBeenCalledWith(expect.objectContaining({ operations: [operation] }));
+	expect(create.mock.calls[0][0].body).toMatchObject({ grant_types: ["client_credentials"], scope: "creator:read", client_credentials_scopes: ["creator:read"] });
 });

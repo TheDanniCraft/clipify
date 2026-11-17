@@ -98,3 +98,16 @@ validation used an 8 GB build-only heap. No runtime memory settings changed.
 Job-owned database fixtures and the template were removed. Full CI/security remains
 T028 and is not claimed green from these local checks. No production client or
 grant has been created.
+
+### PR #575 aggregate coverage correction
+
+All browser, build, type, lint and security jobs passed on the initial head, but
+the aggregate gate correctly rejected missing native execution of the GET route
+wrapper and the exported permission getter. Add a real route GET test that retains
+authenticated/denied behavior, and provision each UI-offered permission independently.
+The 38 admin checks pass; affected critical files now satisfy the unchanged per-file
+gate (100% lines/functions, 99.09% statements, 95.45% branches). A narrow Jest
+coverage run also reports unrelated gallery threshold sources missing because they
+are outside that selection; the repository critical-source evaluator independently
+passes every affected file. No coverage floor or CI policy was changed. Full CI
+on the corrective commit remains required before merge.
