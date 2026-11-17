@@ -1,0 +1,21 @@
+✔ search accepts a title and bounded result limit (1.632128ms)
+✔ reject invalid arguments [] (0.330911ms)
+✔ reject invalid arguments ["unknown"] (0.095587ms)
+✔ reject invalid arguments ["search","--title"] (0.091809ms)
+✔ reject invalid arguments ["search","--limit","0"] (0.149344ms)
+✔ reject invalid arguments ["search","--limit","101"] (0.089109ms)
+✔ reject invalid arguments ["search","--limit","NaN"] (0.088963ms)
+✔ reject invalid arguments ["search","--title","xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (0.098804ms)
+✔ reject invalid arguments ["search","--limit","1","--limit","2"] (0.120209ms)
+✔ reject invalid arguments ["search","--creator","foreign"] (0.199761ms)
+✔ missing setup returns a typed failure without echoing environment secrets (55.779485ms)
+✔ secret-file failures never reveal paths or contents and leave private file permissions intact (126.182686ms)
+✔ SDK package bytes are reproducible and contain only the public release files (111.144599ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 256.673784

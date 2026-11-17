@@ -32,6 +32,9 @@ const customJestConfig = {
 	testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/"],
 	modulePathIgnorePatterns: ["<rootDir>/.next/"],
 	collectCoverageFrom: [
+		"src/server/connected-apps/**/*.ts",
+		"src/app/api/connected-apps/**/*.ts",
+		"packages/sdk/src/**/*.ts",
 		"src/server/creator-presence-health.ts",
 		"src/auth/permissions.ts",
 		"src/server/creator-library.ts",

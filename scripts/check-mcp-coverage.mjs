@@ -10,7 +10,7 @@ const normalize = (path) => relative(process.cwd(), resolve(path)).replaceAll("\
 const object = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 export function readMcpSourceManifest() {
 	const runner = JSON.parse(readFileSync(new URL("./runner-feature-coverage.json", import.meta.url), "utf8"));
-	const directories = ["src/server/mcp", "src/server/resources", "src/server/runner", "src/app/auth/mcp", "src/app/mcp", "src/app/.well-known"];
+	const directories = ["src/server/connected-apps", "src/app/api/connected-apps", "packages/sdk/src", "src/server/mcp", "src/server/resources", "src/server/runner", "src/app/auth/mcp", "src/app/mcp", "src/app/.well-known"];
 	const files = [
 		"src/server/creator-presence-health.ts",
 		"src/app/lib/userTour.ts",
@@ -169,6 +169,8 @@ export function readMcpSourceManifest() {
 			path === "src/app/lib/runnerBrandingLayout.ts" ||
 			path === "src/app/components/runnerGeneratedPresentation.tsx" ||
 			path.startsWith("src/server/mcp/") ||
+			path.startsWith("src/server/connected-apps/") ||
+			path.startsWith("src/app/api/connected-apps/") ||
 			path.startsWith("src/server/resources/") ||
 			path.startsWith("src/server/runner/") ||
 			path === "packages/runner/src/protocol.ts" ||

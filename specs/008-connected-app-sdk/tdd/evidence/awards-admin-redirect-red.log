@@ -1,0 +1,27 @@
+$ jest --runInBand --runTestsByPath test/server/connected-apps/admin.test.ts "--coverage=false"
+[tests] ordinary: 1 suites, 1 worker(s)
+FAIL test/server/connected-apps/admin.test.ts
+  ● provisions only machine clip-search access for an enabled creator and real admin
+
+    expect(received).not.toHaveProperty(path)
+
+    Expected path: not "redirect_uris"
+
+    Received value: []
+
+      15 |  const response=await handleConnectedAppAdminRequest(request());expect(response.status).toBe(201);expect(await response.json()).toMatchObject({ok:true,data:{clientId:"app",clientSecret:"private-once",grantId:expect.any(String)}});
+      16 |  expect(create).toHaveBeenCalledWith(expect.objectContaining({headers:expect.any(Headers),body:expect.objectContaining({grant_types:["client_credentials"],client_credentials_scopes:["creator:read"],scope:"creator:read",resources:["https://clipify.test/api/connected-apps"]})}));
+    > 17 |  expect(create.mock.calls[0][0].body).not.toHaveProperty("redirect_uris");
+         |                                           ^
+      18 |  expect(insert).toHaveBeenCalledWith(expect.objectContaining({clientId:"app",creatorId:"creator",operations:["search_clips"],provisionedBy:"admin"}));
+      19 |  expect(response.headers.get("Cache-Control")).toBe("no-store");
+      20 | });
+
+      at Object.toHaveProperty (test/server/connected-apps/admin.test.ts:17:43)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 7 passed, 8 total
+Snapshots:   0 total
+Time:        0.536 s, estimated 1 s
+Ran all test suites within paths "test/server/connected-apps/admin.test.ts".
+error: script "test" exited with code 1

@@ -11,20 +11,22 @@ const guard = ci.jobs.test.steps.find((step) => step.name?.includes("Require com
 test("complete Test gate skips scoped drafts instead of failing them", () => {
 	assert.equal(ci.jobs.test.if, "${{ !cancelled() && needs.changes.outputs.full == 'true' }}");
 });
-for (const field of ["COVERAGE", "BROWSER"]) {
+for (const field of ["COVERAGE", "BROWSER", "CONNECTED_APPS"]) {
 	test(`mandatory Test gate retains its existing ${field} refusal`, () => {
-		const env = { ...process.env, COVERAGE: "success", BROWSER: "success", RUNNER_REQUIRED: "true", RUNNER: "success", [field]: "failure" };
+		const env = { ...process.env, COVERAGE: "success", BROWSER: "success", CONNECTED_APPS: "success", RUNNER_REQUIRED: "true", RUNNER: "success", [field]: "failure" };
 		assert.notEqual(spawnSync("bash", ["-e", "-c", guard.run], { env }).status, 0);
 	});
 }
 for (const status of ["failure", "cancelled", "skipped"]) {
 	test(`mandatory Test gate rejects a required native result of ${status}`, () => {
-		const result = spawnSync("bash", ["-e", "-c", guard.run], { env: { ...process.env, COVERAGE: "success", BROWSER: "success", RUNNER_REQUIRED: "true", RUNNER: status } });
+		const result = spawnSync("bash", ["-e", "-c", guard.run], { env: { ...process.env, COVERAGE: "success", BROWSER: "success", CONNECTED_APPS: "success", RUNNER_REQUIRED: "true", RUNNER: status } });
 		assert.notEqual(result.status, 0);
 	});
 }
 test("mandatory Test gate permits unchanged Runner scope and requires the actual native job", () => {
 	assert.ok(ci.jobs.test.needs.includes("runner"));
+	assert.ok(ci.jobs.test.needs.includes("connected-apps"));
+	assert.equal(guard.env.CONNECTED_APPS, "${{ needs.connected-apps.result }}");
 	assert.ok(ci.jobs.test.needs.includes("runner-coverage"));
 	assert.equal(guard.env.RUNNER, "${{ needs.runner-coverage.result }}");
 	assert.equal(guard.env.RUNNER_REQUIRED, "${{ needs.changes.outputs.runner }}");
@@ -34,7 +36,7 @@ test("mandatory Test gate permits unchanged Runner scope and requires the actual
 		["false", "skipped"],
 		["true", "success"],
 	])
-		assert.equal(spawnSync("bash", ["-e", "-c", guard.run], { env: { ...process.env, COVERAGE: "success", BROWSER: "success", RUNNER_REQUIRED: required, RUNNER: status } }).status, 0);
+		assert.equal(spawnSync("bash", ["-e", "-c", guard.run], { env: { ...process.env, COVERAGE: "success", BROWSER: "success", CONNECTED_APPS: "success", RUNNER_REQUIRED: required, RUNNER: status } }).status, 0);
 });
 test("coverage merger uses the same pinned Node as the owning lanes", () => {
 	const node = (job) => job.steps.find((step) => step.uses?.startsWith("actions/setup-node@"))?.with?.["node-version"];

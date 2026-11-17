@@ -1,0 +1,38 @@
+OAuth configuration and provisioning policy TDD evidence
+Owner: /root/research_service_auth. No generated migrations or application DB changes.
+Common command: PATH=/tmp/node-v26.13.0-linux-x64/bin:$PATH [JWT_SECRET=isolated-connected-app-auth-test-secret] bun run test --runInBand --runTestsByPath <files> --coverage=false
+
+Cycle 1: anonymous provisioning fails closed.
+Red /tmp/awards-auth-red1.log: missing oauth-policy module (new feature boundary absent).
+Green /tmp/awards-auth-green1.log: one test passes with fail-closed helper.
+Cycle 2: own-identity verified administrator is accepted.
+Red /tmp/awards-auth-red2.log: valid admin rejected ACCESS_DENIED by deny-only implementation.
+Green /tmp/awards-auth-green2.log: 2 tests pass after role/state/own identity checks.
+Cycle 3: bounded machine resource and grant enabled without changing DCR defaults.
+Red /tmp/awards-auth-red3.log: client_credentials absent from configured grant types.
+Green /tmp/awards-auth-green3.log: 9 tests pass after resource/grant configuration.
+Cycle 4: token issuance distinguishes machine application from delegated user.
+Red /tmp/awards-auth-red4.log: customAccessTokenClaims machine path absent.
+Green /tmp/awards-auth-green4.log: 10 tests pass after machine marker plus exact audience/scope guards.
+Cycle 5: machine scope provisioning requires actual independent admin authority.
+Red /tmp/awards-auth-red5.log: clientPrivileges callback absent (1 failure, 12 pass).
+Green /tmp/awards-auth-green5.log: 21 tests pass after admin-only scope/resource guards.
+Additional complete-file boundaries cover invalid audience classes, missing/extra scopes,
+user/deleted-user tokens, own identity mismatch, disabled/suspended accounts, registration compatibility,
+preserved previous callback denials, successful admin provisioning and missing identity link.
+
+Final /tmp/awards-auth-final.log: 124 tests / 4 files pass, 2.369s.
+Files: test/server/connected-apps/oauth-policy.test.ts;
+test/server/connected-apps/oauth-config.test.ts;
+test/mcp/unit/registration-boundary-inputs.test.ts;
+test/mcp/unit/auth-config-callbacks.test.ts.
+Changed-file ESLint and Prettier pass (/tmp/awards-auth-lint.log).
+Deliberate mutant /tmp/awards-auth-mutant.log: remove global admin role check;
+ordinary-creator test fails, mutant killed. Original source restored in finally.
+First sandbox invocation could not parse TypeScript subprocess output; excluded as prerequisite failure,
+not counted as product Red. Escalated invocation recorded real Red evidence.
+Native DB HTTP creator-grant tests remain parent's execution ownership; not claimed here.
+OAuth bootstrap regression: actual native DCR failed503 because new static policy db import initialized global pool before fixture DATABASE_URL; registration limiter hit localhost5432 ECONNREFUSED. /tmp/awards-oauth-diagnostic.log.
+Red /tmp/awards-oauth-bootstrap-red.log: mockDatabaseBootstrap called1 unexpectedly when importing policy.
+Green /tmp/awards-oauth-bootstrap-green.log: lazy DB import after verified actor; 26/26 tests across three affected files pass.
+Native Green /tmp/awards-oauth-diagnostic-green.log: real public DCR201, consent200, token200, refresh token and MCPaudience preserved, approved cached read true. Diagnostic source removed.

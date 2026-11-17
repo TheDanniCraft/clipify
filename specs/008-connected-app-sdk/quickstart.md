@@ -1,0 +1,3 @@
+# Validation quickstart
+
+Use documented docs/local-testing.md disposable loopback PostgreSQL and unique MCP_TEST_TEMPLATE_ID. Run affected test/server/connected-apps whole-file Jest owners and existing OAuth/search owners. Build SDK, pack tarball into the independent Awards vendor directory, build Docker image, and run the dedicated container-smoke command documented in the package README. Inspect both Compose database services for absence of host ports and isolated networks. Real fixture token/provider and gateway requests must demonstrate allowed title search, foreign creator denial, revoked/expired grant denial and credential redaction. Do not connect to production/shared development for tests or mutate existing show data.

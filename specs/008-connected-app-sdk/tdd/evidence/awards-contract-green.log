@@ -1,0 +1,9 @@
+$ jest --runInBand "--coverage=false" test/mcp/contract/discovery.test.ts test/mcp/integration/resource-seed-race.test.ts
+[tests] Native application probes compiled once for this run
+[tests] database: 2 suites, 1 worker(s)
+
+Test Suites: 2 passed, 2 total
+Tests:       26 passed, 26 total
+Snapshots:   0 total
+Time:        14.721 s, estimated 21 s
+Ran all test suites matching test/mcp/contract/discovery.test.ts|test/mcp/integration/resource-seed-race.test.ts.

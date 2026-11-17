@@ -1,0 +1,41 @@
+✔ complete Test gate skips scoped drafts instead of failing them (1.322614ms)
+✔ mandatory Test gate retains its existing COVERAGE refusal (3.844713ms)
+✔ mandatory Test gate retains its existing BROWSER refusal (2.874718ms)
+✔ mandatory Test gate rejects a required native result of failure (3.245217ms)
+✔ mandatory Test gate rejects a required native result of cancelled (3.09161ms)
+✔ mandatory Test gate rejects a required native result of skipped (2.355091ms)
+✖ mandatory Test gate permits unchanged Runner scope and requires the actual native job (3.597882ms)
+✔ coverage merger uses the same pinned Node as the owning lanes (0.259028ms)
+✔ every official native platform checks out identical LF source before fingerprinting (0.350707ms)
+✔ native coverage collects all Runner modules and keeps critical95/90 and ordinary90/85 floors (2.241418ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 9
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 161.194969
+
+✖ failing tests:
+
+test at scripts/runner-ci-policy.test.mjs:26:1
+✖ mandatory Test gate permits unchanged Runner scope and requires the actual native job (3.597882ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  1 !== 0
+
+      at TestContext.<anonymous> (file:///tmp/clipify-awards-sdk/scripts/runner-ci-policy.test.mjs:37:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

@@ -34,9 +34,9 @@ async function main() {
 		const database = process.argv[2] === "raw" ? racing : withResourceSeedErrorCompatibility(racing);
 		const instances = [0, 1].map(() => betterAuth({ baseURL: origin, secret: "isolated-resource-seed-secret-32chars", database, plugins: createMcpPlugins({ origin }) }));
 		const results = await Promise.allSettled(instances.map((auth) => auth.$context));
-		const count = await fixture.pool.query("SELECT count(*) FROM auth.oauth_resource");
+		const resources = await fixture.pool.query("SELECT identifier FROM auth.oauth_resource ORDER BY identifier");
 		const statuses = await Promise.all(instances.map(async (auth, i) => (results[i].status === "fulfilled" ? (await auth.handler(new Request(`${origin}/.well-known/oauth-authorization-server/api/auth`))).status : null)));
-		console.log(JSON.stringify({ initialized: results.map((result) => result.status), resources: Number(count.rows[0].count), statuses }));
+		console.log(JSON.stringify({ initialized: results.map((result) => result.status), resources: resources.rows.map((row) => row.identifier), statuses }));
 	} finally {
 		await fixture.close();
 	}

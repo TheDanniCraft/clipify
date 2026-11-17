@@ -5,8 +5,7 @@ describe("TDD-US1-028 discovery security", () => {
 	test("advertises CIMD and only supported grants/scopes", () => {
 		const result = providerProbe("metadata").body;
 		expect(result.client_id_metadata_document_supported).toBe(true);
-		expect(result.grant_types_supported).toEqual(expect.arrayContaining(["authorization_code", "refresh_token"]));
-		expect(result.grant_types_supported).not.toContain("client_credentials");
+		expect(result.grant_types_supported).toEqual(["authorization_code", "refresh_token", "client_credentials"]);
 		expect(result.scopes_supported).toContain("overlay-secret:read");
 		expect(result.scopes_supported).not.toContain("runner-credential:read");
 	});

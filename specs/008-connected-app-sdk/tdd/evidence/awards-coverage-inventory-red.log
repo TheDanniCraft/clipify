@@ -1,0 +1,26 @@
+$ jest --runInBand --runTestsByPath test/mcp/unit/coverage-gate.test.ts "--coverage=false"
+[tests] ordinary: 1 suites, 1 worker(s)
+FAIL test/mcp/unit/coverage-gate.test.ts (25.037 s)
+  ● connected application authorisation and SDK sources remain inside the required coverage inventory
+
+    expect(received).toEqual(expected) // deep equality
+
+    Expected: ArrayContaining ["packages/sdk/src/index.ts", "src/app/api/connected-apps/route.ts", "src/app/api/connected-apps/admin/route.ts"]
+    Received: ["packages/runner/src/execution-clock.ts", "packages/runner/src/protocol.ts", "src/app/.well-known/oauth-authorization-server/api/auth/route.ts", "src/app/.well-known/oauth-protected-resource/mcp/route.ts", "src/app/.well-known/oauth-protected-resource/route.ts", "src/app/actions/clipLayoutLibrary.ts", "src/app/actions/clipLayouts.ts", "src/app/actions/commands.ts", "src/app/actions/controller.ts", "src/app/actions/creatorBrand.ts", …]
+
+      203 |  const code="const {readMcpSourceManifest}=await import('./scripts/check-mcp-coverage.mjs');process.stdout.write(JSON.stringify(readMcpSourceManifest()));";
+      204 |  const result=JSON.parse(execFileSync(process.execPath,["--input-type=module","--eval",code],{encoding:"utf8"}));
+    > 205 |  expect(result.feature).toEqual(expect.arrayContaining(["packages/sdk/src/index.ts","src/app/api/connected-apps/route.ts","src/app/api/connected-apps/admin/route.ts"]));
+          |                         ^
+      206 |  expect(result.critical).toEqual(expect.arrayContaining(["src/server/connected-apps/admin.ts","src/server/connected-apps/gateway.ts","src/server/connected-apps/storage.ts","src/server/connected-apps/oauth-policy.ts"]));
+      207 | });
+      208 |
+
+      at Object.toEqual (test/mcp/unit/coverage-gate.test.ts:205:25)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 30 passed, 31 total
+Snapshots:   0 total
+Time:        25.315 s
+Ran all test suites within paths "test/mcp/unit/coverage-gate.test.ts".
+error: script "test" exited with code 1

@@ -1,0 +1,169 @@
+$ jest --runInBand --runTestsByPath test/server/connected-apps/storage.test.ts test/server/connected-apps/gateway.test.ts "--coverage=false"
+[tests] ordinary: 2 suites, 1 worker(s)
+FAIL test/server/connected-apps/storage.test.ts (26.87 s)
+  ● rechecks authority changed during an operation: UPDATE users SET disabled=true WHERE id='creator'
+
+    thrown: "Exceeded timeout of 5000 ms for a test.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+      at _getError (node_modules/jest-circus/build/jestAdapterInit.js:1985:12)
+          at Array.map (<anonymous>)
+
+    Cause:
+        thrown: "Exceeded timeout of 5000 ms for a test.
+        Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+          19 |  const audit=await database.query<{actor_user_id:null;metadata:{clientId:string}}>("select actor_user_id,metadata from audit_events");expect(audit.rows[0]).toMatchObject({actor_user_id:null,metadata:{clientId:"app",creatorId:"creator",operation:"search_clips"}});
+          20 | });
+        > 21 | it.each(["UPDATE users SET disabled=true WHERE id='creator'","UPDATE creator_accounts SET status='suspended' WHERE creator_id='creator'","UPDATE auth.oauth_client SET disabled=true WHERE client_id='app'"])("rechecks authority changed during an operation: %s",async sql=>{
+             |                                                                                                                                                                                                             ^
+          22 |  await expect(withConnectedAppGrant(identity,async()=>{await database.exec(sql);return {items:["must-not-leak"]};})).rejects.toThrow("ACCESS_DENIED");
+          23 | });
+          24 | it("refuses foreign creators, revoked grants and exhausted shared budgets",async()=>{
+
+          at eachBind (node_modules/jest-each/build/index.js:54:13)
+          at Object.<anonymous> (test/server/connected-apps/storage.test.ts:21:205)
+
+  ● rechecks authority changed during an operation: UPDATE creator_accounts SET status='suspended' WHERE creator_id='creator'
+
+    thrown: "Exceeded timeout of 5000 ms for a hook.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+      at _getError (node_modules/jest-circus/build/jestAdapterInit.js:1985:12)
+          at Array.map (<anonymous>)
+
+    Cause:
+        thrown: "Exceeded timeout of 5000 ms for a hook.
+        Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+          14 | });
+          15 | afterAll(async()=>database.close());
+        > 16 | beforeEach(async()=>{rate.mockReset().mockResolvedValue({allowed:true});await database.exec(`TRUNCATE connected_app_grants,auth.oauth_client,users,creator_accounts,audit_events;INSERT INTO auth.oauth_client VALUES('app',false);INSERT INTO users VALUES('creator',false);INSERT INTO creator_accounts VALUES('creator','active');INSERT INTO connected_app_grants(client_id,creator_id,operations,expires_at)VALUES('app','creator',ARRAY['search_clips'],now()+interval '1 hour');`);});
+             | ^
+          17 | it("executes and audits an enabled grant without impersonating a user",async()=>{
+          18 |  const result=await withConnectedAppGrant(identity,async()=>({items:["matching"]}));expect(result).toEqual({items:["matching"]});
+          19 |  const audit=await database.query<{actor_user_id:null;metadata:{clientId:string}}>("select actor_user_id,metadata from audit_events");expect(audit.rows[0]).toMatchObject({actor_user_id:null,metadata:{clientId:"app",creatorId:"creator",operation:"search_clips"}});
+
+          at Object.beforeEach (test/server/connected-apps/storage.test.ts:16:1)
+
+  ● rechecks authority changed during an operation: UPDATE auth.oauth_client SET disabled=true WHERE client_id='app'
+
+    thrown: "Exceeded timeout of 5000 ms for a hook.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+      at _getError (node_modules/jest-circus/build/jestAdapterInit.js:1985:12)
+          at Array.map (<anonymous>)
+
+    Cause:
+        thrown: "Exceeded timeout of 5000 ms for a hook.
+        Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+          14 | });
+          15 | afterAll(async()=>database.close());
+        > 16 | beforeEach(async()=>{rate.mockReset().mockResolvedValue({allowed:true});await database.exec(`TRUNCATE connected_app_grants,auth.oauth_client,users,creator_accounts,audit_events;INSERT INTO auth.oauth_client VALUES('app',false);INSERT INTO users VALUES('creator',false);INSERT INTO creator_accounts VALUES('creator','active');INSERT INTO connected_app_grants(client_id,creator_id,operations,expires_at)VALUES('app','creator',ARRAY['search_clips'],now()+interval '1 hour');`);});
+             | ^
+          17 | it("executes and audits an enabled grant without impersonating a user",async()=>{
+          18 |  const result=await withConnectedAppGrant(identity,async()=>({items:["matching"]}));expect(result).toEqual({items:["matching"]});
+          19 |  const audit=await database.query<{actor_user_id:null;metadata:{clientId:string}}>("select actor_user_id,metadata from audit_events");expect(audit.rows[0]).toMatchObject({actor_user_id:null,metadata:{clientId:"app",creatorId:"creator",operation:"search_clips"}});
+
+          at Object.beforeEach (test/server/connected-apps/storage.test.ts:16:1)
+
+  ● refuses foreign creators, revoked grants and exhausted shared budgets
+
+    thrown: "Exceeded timeout of 5000 ms for a hook.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+      at _getError (node_modules/jest-circus/build/jestAdapterInit.js:1985:12)
+          at Array.map (<anonymous>)
+
+    Cause:
+        thrown: "Exceeded timeout of 5000 ms for a hook.
+        Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+          14 | });
+          15 | afterAll(async()=>database.close());
+        > 16 | beforeEach(async()=>{rate.mockReset().mockResolvedValue({allowed:true});await database.exec(`TRUNCATE connected_app_grants,auth.oauth_client,users,creator_accounts,audit_events;INSERT INTO auth.oauth_client VALUES('app',false);INSERT INTO users VALUES('creator',false);INSERT INTO creator_accounts VALUES('creator','active');INSERT INTO connected_app_grants(client_id,creator_id,operations,expires_at)VALUES('app','creator',ARRAY['search_clips'],now()+interval '1 hour');`);});
+             | ^
+          17 | it("executes and audits an enabled grant without impersonating a user",async()=>{
+          18 |  const result=await withConnectedAppGrant(identity,async()=>({items:["matching"]}));expect(result).toEqual({items:["matching"]});
+          19 |  const audit=await database.query<{actor_user_id:null;metadata:{clientId:string}}>("select actor_user_id,metadata from audit_events");expect(audit.rows[0]).toMatchObject({actor_user_id:null,metadata:{clientId:"app",creatorId:"creator",operation:"search_clips"}});
+
+          at Object.beforeEach (test/server/connected-apps/storage.test.ts:16:1)
+
+
+  ● Test suite failed to run
+
+    thrown: "Exceeded timeout of 5000 ms for a hook.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+      at _getError (node_modules/jest-circus/build/jestAdapterInit.js:1985:12)
+          at Array.map (<anonymous>)
+
+    Cause:
+
+
+          13 |  await database.exec(`CREATE SCHEMA auth; CREATE TABLE auth.oauth_client(client_id text primary key,disabled boolean);CREATE TABLE users(id varchar primary key,disabled boolean);CREATE TABLE creator_accounts(creator_id varchar primary key,status text);CREATE TABLE connected_app_grants(id uuid primary key default gen_random_uuid(),client_id text unique,creator_id varchar,operations text[],expires_at timestamptz,revoked_at timestamptz,provisioned_by text,created_at timestamptz default now());CREATE TABLE audit_events(id uuid primary key default gen_random_uuid(),occurred_at timestamptz default now(),actor_user_id text,actor_session_id text,account_organization_id text,target_type text,target_id text,action text,outcome text,reason text,correlation_id text,ip_prefix text,user_agent_family text,metadata jsonb);`);
+          14 | });
+        > 15 | afterAll(async()=>database.close());
+             | ^
+          16 | beforeEach(async()=>{rate.mockReset().mockResolvedValue({allowed:true});await database.exec(`TRUNCATE connected_app_grants,auth.oauth_client,users,creator_accounts,audit_events;INSERT INTO auth.oauth_client VALUES('app',false);INSERT INTO users VALUES('creator',false);INSERT INTO creator_accounts VALUES('creator','active');INSERT INTO connected_app_grants(client_id,creator_id,operations,expires_at)VALUES('app','creator',ARRAY['search_clips'],now()+interval '1 hour');`);});
+          17 | it("executes and audits an enabled grant without impersonating a user",async()=>{
+          18 |  const result=await withConnectedAppGrant(identity,async()=>({items:["matching"]}));expect(result).toEqual({items:["matching"]});
+
+          at Object.afterAll (test/server/connected-apps/storage.test.ts:15:1)
+
+FAIL test/server/connected-apps/gateway.test.ts
+  ● preserves expected search failure CONFLICT
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 409
+    Received: 503
+
+      40 | });
+      41 | it.each([["CONFLICT",409],["INVALID_CURSOR",400],["INVALID_INPUT",400]])("preserves expected search failure %s",async(code,status)=>{
+    > 42 |  search.mockRejectedValue(new Error(code));const response=await handleConnectedAppRequest(request());expect(response.status).toBe(status);expect(await response.json()).toEqual({ok:false,error:{code}});
+         |                                                                                                                              ^
+      43 | });
+      44 |
+
+      at toBe (test/server/connected-apps/gateway.test.ts:42:126)
+
+  ● preserves expected search failure INVALID_CURSOR
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 503
+
+      40 | });
+      41 | it.each([["CONFLICT",409],["INVALID_CURSOR",400],["INVALID_INPUT",400]])("preserves expected search failure %s",async(code,status)=>{
+    > 42 |  search.mockRejectedValue(new Error(code));const response=await handleConnectedAppRequest(request());expect(response.status).toBe(status);expect(await response.json()).toEqual({ok:false,error:{code}});
+         |                                                                                                                              ^
+      43 | });
+      44 |
+
+      at toBe (test/server/connected-apps/gateway.test.ts:42:126)
+
+  ● preserves expected search failure INVALID_INPUT
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 503
+
+      40 | });
+      41 | it.each([["CONFLICT",409],["INVALID_CURSOR",400],["INVALID_INPUT",400]])("preserves expected search failure %s",async(code,status)=>{
+    > 42 |  search.mockRejectedValue(new Error(code));const response=await handleConnectedAppRequest(request());expect(response.status).toBe(status);expect(await response.json()).toEqual({ok:false,error:{code}});
+         |                                                                                                                              ^
+      43 | });
+      44 |
+
+      at toBe (test/server/connected-apps/gateway.test.ts:42:126)
+
+Test Suites: 2 failed, 2 total
+Tests:       7 failed, 19 passed, 26 total
+Snapshots:   0 total
+Time:        27.537 s
+Ran all test suites within paths "test/server/connected-apps/storage.test.ts", "test/server/connected-apps/gateway.test.ts".
+error: script "test" exited with code 1

@@ -1,0 +1,170 @@
+$ jest --runInBand --runTestsByPath test/server/connected-apps/grants.test.ts "--coverage=false"
+[tests] ordinary: 1 suites, 1 worker(s)
+FAIL test/server/connected-apps/grants.test.ts
+  ● denies an unavailable application grant: {"expiresAt":"2026-11-15T12:00:00.000Z"}
+
+    expect(received).toThrow(expected)
+
+    Expected substring: "ACCESS_DENIED"
+
+    Received function did not throw
+
+      14 |  { expiresAt: now }, { expiresAt: new Date(now.getTime()-1) }, { revokedAt: now }, { clientDisabled: true }, { creatorDisabled: true }, { creatorStatus: "suspended" }, { operations: [] }, { clientId: "other" },
+      15 | ])("denies an unavailable application grant: %j", (change) => {
+    > 16 |  expect(() => assertConnectedAppGrant({ ...grant, ...change }, { clientId: "client", creatorId: "creator", operation: "search_clips" }, now)).toThrow("ACCESS_DENIED");
+         |                                                                                                                                               ^
+      17 | });
+      18 | it("denies missing grants and unsupported operations", () => {
+      19 |  expect(() => assertConnectedAppGrant(undefined,{clientId:"client",creatorId:"creator",operation:"search_clips"},now)).toThrow("ACCESS_DENIED");
+
+      at toThrow (test/server/connected-apps/grants.test.ts:16:143)
+
+  ● denies an unavailable application grant: {"expiresAt":"2026-11-15T11:59:59.999Z"}
+
+    expect(received).toThrow(expected)
+
+    Expected substring: "ACCESS_DENIED"
+
+    Received function did not throw
+
+      14 |  { expiresAt: now }, { expiresAt: new Date(now.getTime()-1) }, { revokedAt: now }, { clientDisabled: true }, { creatorDisabled: true }, { creatorStatus: "suspended" }, { operations: [] }, { clientId: "other" },
+      15 | ])("denies an unavailable application grant: %j", (change) => {
+    > 16 |  expect(() => assertConnectedAppGrant({ ...grant, ...change }, { clientId: "client", creatorId: "creator", operation: "search_clips" }, now)).toThrow("ACCESS_DENIED");
+         |                                                                                                                                               ^
+      17 | });
+      18 | it("denies missing grants and unsupported operations", () => {
+      19 |  expect(() => assertConnectedAppGrant(undefined,{clientId:"client",creatorId:"creator",operation:"search_clips"},now)).toThrow("ACCESS_DENIED");
+
+      at toThrow (test/server/connected-apps/grants.test.ts:16:143)
+
+  ● denies an unavailable application grant: {"revokedAt":"2026-11-15T12:00:00.000Z"}
+
+    expect(received).toThrow(expected)
+
+    Expected substring: "ACCESS_DENIED"
+
+    Received function did not throw
+
+      14 |  { expiresAt: now }, { expiresAt: new Date(now.getTime()-1) }, { revokedAt: now }, { clientDisabled: true }, { creatorDisabled: true }, { creatorStatus: "suspended" }, { operations: [] }, { clientId: "other" },
+      15 | ])("denies an unavailable application grant: %j", (change) => {
+    > 16 |  expect(() => assertConnectedAppGrant({ ...grant, ...change }, { clientId: "client", creatorId: "creator", operation: "search_clips" }, now)).toThrow("ACCESS_DENIED");
+         |                                                                                                                                               ^
+      17 | });
+      18 | it("denies missing grants and unsupported operations", () => {
+      19 |  expect(() => assertConnectedAppGrant(undefined,{clientId:"client",creatorId:"creator",operation:"search_clips"},now)).toThrow("ACCESS_DENIED");
+
+      at toThrow (test/server/connected-apps/grants.test.ts:16:143)
+
+  ● denies an unavailable application grant: {"clientDisabled":true}
+
+    expect(received).toThrow(expected)
+
+    Expected substring: "ACCESS_DENIED"
+
+    Received function did not throw
+
+      14 |  { expiresAt: now }, { expiresAt: new Date(now.getTime()-1) }, { revokedAt: now }, { clientDisabled: true }, { creatorDisabled: true }, { creatorStatus: "suspended" }, { operations: [] }, { clientId: "other" },
+      15 | ])("denies an unavailable application grant: %j", (change) => {
+    > 16 |  expect(() => assertConnectedAppGrant({ ...grant, ...change }, { clientId: "client", creatorId: "creator", operation: "search_clips" }, now)).toThrow("ACCESS_DENIED");
+         |                                                                                                                                               ^
+      17 | });
+      18 | it("denies missing grants and unsupported operations", () => {
+      19 |  expect(() => assertConnectedAppGrant(undefined,{clientId:"client",creatorId:"creator",operation:"search_clips"},now)).toThrow("ACCESS_DENIED");
+
+      at toThrow (test/server/connected-apps/grants.test.ts:16:143)
+
+  ● denies an unavailable application grant: {"creatorDisabled":true}
+
+    expect(received).toThrow(expected)
+
+    Expected substring: "ACCESS_DENIED"
+
+    Received function did not throw
+
+      14 |  { expiresAt: now }, { expiresAt: new Date(now.getTime()-1) }, { revokedAt: now }, { clientDisabled: true }, { creatorDisabled: true }, { creatorStatus: "suspended" }, { operations: [] }, { clientId: "other" },
+      15 | ])("denies an unavailable application grant: %j", (change) => {
+    > 16 |  expect(() => assertConnectedAppGrant({ ...grant, ...change }, { clientId: "client", creatorId: "creator", operation: "search_clips" }, now)).toThrow("ACCESS_DENIED");
+         |                                                                                                                                               ^
+      17 | });
+      18 | it("denies missing grants and unsupported operations", () => {
+      19 |  expect(() => assertConnectedAppGrant(undefined,{clientId:"client",creatorId:"creator",operation:"search_clips"},now)).toThrow("ACCESS_DENIED");
+
+      at toThrow (test/server/connected-apps/grants.test.ts:16:143)
+
+  ● denies an unavailable application grant: {"creatorStatus":"suspended"}
+
+    expect(received).toThrow(expected)
+
+    Expected substring: "ACCESS_DENIED"
+
+    Received function did not throw
+
+      14 |  { expiresAt: now }, { expiresAt: new Date(now.getTime()-1) }, { revokedAt: now }, { clientDisabled: true }, { creatorDisabled: true }, { creatorStatus: "suspended" }, { operations: [] }, { clientId: "other" },
+      15 | ])("denies an unavailable application grant: %j", (change) => {
+    > 16 |  expect(() => assertConnectedAppGrant({ ...grant, ...change }, { clientId: "client", creatorId: "creator", operation: "search_clips" }, now)).toThrow("ACCESS_DENIED");
+         |                                                                                                                                               ^
+      17 | });
+      18 | it("denies missing grants and unsupported operations", () => {
+      19 |  expect(() => assertConnectedAppGrant(undefined,{clientId:"client",creatorId:"creator",operation:"search_clips"},now)).toThrow("ACCESS_DENIED");
+
+      at toThrow (test/server/connected-apps/grants.test.ts:16:143)
+
+  ● denies an unavailable application grant: {"operations":[]}
+
+    expect(received).toThrow(expected)
+
+    Expected substring: "ACCESS_DENIED"
+
+    Received function did not throw
+
+      14 |  { expiresAt: now }, { expiresAt: new Date(now.getTime()-1) }, { revokedAt: now }, { clientDisabled: true }, { creatorDisabled: true }, { creatorStatus: "suspended" }, { operations: [] }, { clientId: "other" },
+      15 | ])("denies an unavailable application grant: %j", (change) => {
+    > 16 |  expect(() => assertConnectedAppGrant({ ...grant, ...change }, { clientId: "client", creatorId: "creator", operation: "search_clips" }, now)).toThrow("ACCESS_DENIED");
+         |                                                                                                                                               ^
+      17 | });
+      18 | it("denies missing grants and unsupported operations", () => {
+      19 |  expect(() => assertConnectedAppGrant(undefined,{clientId:"client",creatorId:"creator",operation:"search_clips"},now)).toThrow("ACCESS_DENIED");
+
+      at toThrow (test/server/connected-apps/grants.test.ts:16:143)
+
+  ● denies an unavailable application grant: {"clientId":"other"}
+
+    expect(received).toThrow(expected)
+
+    Expected substring: "ACCESS_DENIED"
+
+    Received function did not throw
+
+      14 |  { expiresAt: now }, { expiresAt: new Date(now.getTime()-1) }, { revokedAt: now }, { clientDisabled: true }, { creatorDisabled: true }, { creatorStatus: "suspended" }, { operations: [] }, { clientId: "other" },
+      15 | ])("denies an unavailable application grant: %j", (change) => {
+    > 16 |  expect(() => assertConnectedAppGrant({ ...grant, ...change }, { clientId: "client", creatorId: "creator", operation: "search_clips" }, now)).toThrow("ACCESS_DENIED");
+         |                                                                                                                                               ^
+      17 | });
+      18 | it("denies missing grants and unsupported operations", () => {
+      19 |  expect(() => assertConnectedAppGrant(undefined,{clientId:"client",creatorId:"creator",operation:"search_clips"},now)).toThrow("ACCESS_DENIED");
+
+      at toThrow (test/server/connected-apps/grants.test.ts:16:143)
+
+  ● denies missing grants and unsupported operations
+
+    expect(received).toThrow(expected)
+
+    Expected substring: "ACCESS_DENIED"
+
+    Received function did not throw
+
+      18 | it("denies missing grants and unsupported operations", () => {
+      19 |  expect(() => assertConnectedAppGrant(undefined,{clientId:"client",creatorId:"creator",operation:"search_clips"},now)).toThrow("ACCESS_DENIED");
+    > 20 |  expect(() => assertConnectedAppGrant(grant,{clientId:"client",creatorId:"creator",operation:"delete_creator"},now)).toThrow("ACCESS_DENIED");
+         |                                                                                                                      ^
+      21 | });
+      22 |
+
+      at Object.toThrow (test/server/connected-apps/grants.test.ts:20:118)
+
+Test Suites: 1 failed, 1 total
+Tests:       9 failed, 2 passed, 11 total
+Snapshots:   0 total
+Time:        0.49 s, estimated 1 s
+Ran all test suites within paths "test/server/connected-apps/grants.test.ts".
+error: script "test" exited with code 1

@@ -6,6 +6,7 @@ import * as authSchema from "@/db/auth-schema";
 
 // Every schema table must have an ownership-scoped dataset or an explicit reason.
 export const accountExportCoverage: Record<string, { paths: string[] } | { excluded: string }> = {
+	"public.connected_app_grants": { paths: ["mcp.applicationConnections"] },
 	"public.account_deletion_requests": { paths: ["accountLifecycle.deletionRequests"] },
 	"public.admin_impersonation_sessions": { paths: ["accountActivity.impersonationSessions"] },
 	"public.agency_accounts": { paths: ["ownedAgencies.accounts"] },
