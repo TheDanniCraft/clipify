@@ -157,7 +157,7 @@
 		"prettier": "^3.9.10",
 		"tailwindcss": "^4.3.5",
 		"tsx": "^4.23.15",
-		"typescript": "^6.0.3"
+		"typescript": "^7.0.2"
 	},
 	"patchedDependencies": {
 		"next@16.4.5": "patches/next.patch"
