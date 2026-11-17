@@ -267,6 +267,13 @@
       "when": 1794169888210,
       "tag": "0037_tan_legion",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1794903435484,
+      "tag": "0038_lucky_junta",
+      "breakpoints": true
     }
   ]
 }
