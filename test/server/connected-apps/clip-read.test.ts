@@ -15,9 +15,10 @@ it("resolves explicit clip references to matching creator metadata", async () =>
 	expect(playback).not.toHaveBeenCalled();
 });
 it("returns playback only after verifying exact creator ownership", async () => {
-	const r = await resolveConnectedClip("owner", "ClipA", true);
+	const signal = AbortSignal.timeout(1000);
+	const r = await resolveConnectedClip("owner", "ClipA", true, signal);
 	expect(r).toMatchObject({ creatorId: "owner", clipId: "ClipA", playbackUrl: expect.stringContaining("twitchcdn.net") });
-	expect(playback).toHaveBeenCalledWith("ClipA", "owner");
+	expect(playback).toHaveBeenCalledWith("ClipA", "owner", signal);
 });
 it.each([{ value: [] }, { value: [{ ...clip, broadcaster_id: "foreign" }] }, { value: [{ ...clip, id: "Other" }] }])("denies missing/foreign clips before resolving playback %j", async ({ value }) => {
 	clips.mockResolvedValue(value);

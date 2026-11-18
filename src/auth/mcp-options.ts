@@ -96,13 +96,6 @@ const registrationBoundary: BetterAuthPlugin = {
 	id: "clipify-mcp-registration",
 	onRequest: async (request) => {
 		if (!new URL(request.url).pathname.endsWith("/oauth2/register") || request.method !== "POST") return;
-		try {
-			const { consumeMcpRateLimit, getMcpNetworkSignal, getMcpRateLimits } = await import("@/server/mcp/rate-limit");
-			const decision = await consumeMcpRateLimit({ kind: "registration", network: getMcpNetworkSignal(request), limits: getMcpRateLimits() });
-			if (!decision.allowed) return { response: Response.json({ error: "rate_limited" }, { status: 429, headers: { "Retry-After": String(decision.retryAfterSeconds) } }) };
-		} catch {
-			return { response: Response.json({ error: "temporarily_unavailable" }, { status: 503 }) };
-		}
 		let body: Record<string, unknown>;
 		let bytes: Uint8Array;
 		try {
@@ -114,6 +107,13 @@ const registrationBoundary: BetterAuthPlugin = {
 		if (!body || typeof body !== "object" || Array.isArray(body)) return { response: Response.json({ error: "invalid_client_metadata" }, { status: 400 }) };
 		const valid = Array.isArray(body.redirect_uris) && body.redirect_uris.length > 0 && body.redirect_uris.length <= 10 && body.redirect_uris.every(validCallback) && (!body.grant_types || (Array.isArray(body.grant_types) && body.grant_types.every((value) => ["authorization_code", "refresh_token"].includes(value)))) && (!body.scope || (typeof body.scope === "string" && body.scope.split(" ").every((scope) => [...MCP_SCOPES, "offline_access"].includes(scope as (typeof MCP_SCOPES)[number]))));
 		if (!valid) return { response: Response.json({ error: "invalid_client_metadata" }, { status: 400 }) };
+		try {
+			const { consumeMcpRateLimit, getMcpNetworkSignal, getMcpRateLimits } = await import("@/server/mcp/rate-limit");
+			const decision = await consumeMcpRateLimit({ kind: "registration", network: getMcpNetworkSignal(request), limits: getMcpRateLimits() });
+			if (!decision.allowed) return { response: Response.json({ error: "rate_limited" }, { status: 429, headers: { "Retry-After": String(decision.retryAfterSeconds) } }) };
+		} catch {
+			return { response: Response.json({ error: "temporarily_unavailable" }, { status: 503 }) };
+		}
 		// Avoid copying private Request state from Next.js proxies on Node 24.
 		return { request: new Request(request.url, { method: request.method, headers: request.headers, signal: request.signal, body: Buffer.from(bytes) }) };
 	},
@@ -142,7 +142,7 @@ export function createMcpPlugins(input: { origin: string; options?: Partial<McpO
 	options.clientPrivileges = async (context) => {
 		if (context.action === "configure-client-credentials-scopes") {
 			try {
-				await requireConnectedAppAdmin(context.headers);
+				await requireConnectedAppAdmin(context.headers, true);
 			} catch {
 				return false;
 			}
@@ -151,7 +151,7 @@ export function createMcpPlugins(input: { origin: string; options?: Partial<McpO
 	};
 	options.resourcePrivileges = async (context) => {
 		try {
-			await requireConnectedAppAdmin(context.headers);
+			await requireConnectedAppAdmin(context.headers, true);
 		} catch {
 			return false;
 		}

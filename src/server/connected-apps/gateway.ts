@@ -29,7 +29,7 @@ export async function handleConnectedAppRequest(request: Request): Promise<Respo
 		if (!input.success) throw new ConnectedAppError("INVALID_INPUT", 400);
 		const data = await withConnectedAppGrant({ clientId: claims.client_id, creatorId: input.data.input.creatorId, operation: input.data.operation }, async (grant) => {
 			const operation = input.data;
-			const result = operation.operation === "search_clips" ? await searchCachedClips(operation.input, `application:${grant.id}`) : await resolveConnectedClip(operation.input.creatorId, operation.input.reference, operation.operation === "get_clip_playback");
+			const result = operation.operation === "search_clips" ? await searchCachedClips(operation.input, `application:${grant.id}`) : await resolveConnectedClip(operation.input.creatorId, operation.input.reference, operation.operation === "get_clip_playback", request.signal);
 			if (claims.exp * 1000 <= Date.now()) throw new ConnectedAppError("AUTHENTICATION_REQUIRED", 401);
 			return result;
 		});

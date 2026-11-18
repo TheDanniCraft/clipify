@@ -17,8 +17,9 @@ export async function handleConnectedAppAdminRequest(request: Request): Promise<
 		if (request.headers.get("origin") !== origin) throw new ConnectedAppError("ACCESS_DENIED");
 		let actor: Awaited<ReturnType<typeof requireConnectedAppAdmin>>;
 		try {
-			actor = await requireConnectedAppAdmin(request.headers);
-		} catch {
+			actor = await requireConnectedAppAdmin(request.headers, true);
+		} catch (error) {
+			if (error instanceof Error && error.message === "RECENT_AUTH_REQUIRED") throw new ConnectedAppError("RECENT_AUTH_REQUIRED", 401);
 			throw new ConnectedAppError("ACCESS_DENIED");
 		}
 		const parsed = connectionInput.safeParse(await readConnectedAppJson(request));

@@ -98,7 +98,7 @@ export default function ApplicationConnections() {
 			setOpen(false);
 			void load();
 		} catch (error) {
-			setActionError(error instanceof Error && error.message === "ACCESS_DENIED" ? "Access denied. Check your administrator session and the creator’s account." : "Connection could not be created. Check the fields and try again.");
+			setActionError(error instanceof Error && error.message === "RECENT_AUTH_REQUIRED" ? "Sign in again before creating application credentials." : error instanceof Error && error.message === "ACCESS_DENIED" ? "Access denied. Check your administrator session and the creator’s account." : "Connection could not be created. Check the fields and try again.");
 		} finally {
 			setPending(false);
 		}
@@ -111,8 +111,8 @@ export default function ApplicationConnections() {
 			setRevoke(null);
 			notify({ title: "Application access revoked", color: "success" });
 			void load();
-		} catch {
-			setActionError("Could not revoke access. Try again.");
+		} catch (error) {
+			setActionError(error instanceof Error && error.message === "RECENT_AUTH_REQUIRED" ? "Sign in again before revoking application access." : "Could not revoke access. Try again.");
 		} finally {
 			setPending(false);
 		}

@@ -11,6 +11,7 @@ import { getAccessTokenResultInternal } from "./tokens";
 import { reserveTwitchClipDownloadRequest } from "./clip-download-limit";
 type VideoQualityWithNumeric = TwitchClipVideoQuality & { numericQuality: number };
 const CLIP_DOWNLOAD_SCOPES = new Set(["channel:manage:clips", "editor:manage:clips"]);
+const PLAYBACK_REQUEST_TIMEOUT_MS = 10_000;
 type ClipDownloadAttemptLog = {
 	endpoint: "helix/clips/downloads";
 	clipId: string;
@@ -55,7 +56,7 @@ function hasClipDownloadScope(scopes: string[] | undefined): boolean {
 	return Array.isArray(scopes) && scopes.some((scope) => CLIP_DOWNLOAD_SCOPES.has(scope));
 }
 
-async function getTwitchClipPlaybackUrlFromGraphQL(clipId: string): Promise<string | undefined> {
+async function getTwitchClipPlaybackUrlFromGraphQL(clipId: string, signal?: AbortSignal): Promise<string | undefined> {
 	const query = [
 		{
 			operationName: "VideoAccessToken_Clip",
@@ -78,6 +79,8 @@ async function getTwitchClipPlaybackUrlFromGraphQL(clipId: string): Promise<stri
 				"Client-Id": "kimne78kx3ncx6brgo4mv6wki5h1ko",
 				"Content-Type": "application/json",
 			},
+			signal,
+			timeout: PLAYBACK_REQUEST_TIMEOUT_MS,
 		});
 
 		const clipData = res.data[0]?.data?.clip as TwitchClipGqlData | undefined;
@@ -109,7 +112,8 @@ async function getTwitchClipPlaybackUrlFromGraphQL(clipId: string): Promise<stri
 	}
 }
 
-export async function resolveTwitchClipPlaybackUrl(clipId: string, broadcasterId: string): Promise<string | undefined> {
+export async function resolveTwitchClipPlaybackUrl(clipId: string, broadcasterId: string, parentSignal?: AbortSignal): Promise<string | undefined> {
+	const signal = parentSignal ? AbortSignal.any([parentSignal, AbortSignal.timeout(PLAYBACK_REQUEST_TIMEOUT_MS)]) : AbortSignal.timeout(PLAYBACK_REQUEST_TIMEOUT_MS);
 	const timestamp = new Date().toISOString();
 	const tokenResult = await getAccessTokenResultInternal(broadcasterId);
 	const token = tokenResult.token;
@@ -119,13 +123,13 @@ export async function resolveTwitchClipPlaybackUrl(clipId: string, broadcasterId
 		const reason = token ? "missingScope" : tokenResult.reason === "user_disabled" ? "disabledAccount" : tokenResult.reason === "refresh_failed" ? "refreshFailed" : "missingCredentials";
 		incrementClipFetchFallbackReason(reason);
 		operationalCount("clipify.clip_fetch.sources", 1, { source: "graphql", reason });
-		return getTwitchClipPlaybackUrlFromGraphQL(clipId);
+		return getTwitchClipPlaybackUrlFromGraphQL(clipId, signal);
 	}
 
 	try {
 		if (!(await reserveTwitchClipDownloadRequest(broadcasterId)).allowed) {
 			incrementClipFetchRateLimited();
-			return getTwitchClipPlaybackUrlFromGraphQL(clipId);
+			return getTwitchClipPlaybackUrlFromGraphQL(clipId, signal);
 		}
 		const response = await axios.get<TwitchClipDownloadResponse>("https://api.twitch.tv/helix/clips/downloads", {
 			headers: {
@@ -137,6 +141,8 @@ export async function resolveTwitchClipPlaybackUrl(clipId: string, broadcasterId
 				broadcaster_id: broadcasterId,
 				clip_id: clipId,
 			},
+			signal,
+			timeout: PLAYBACK_REQUEST_TIMEOUT_MS,
 		});
 
 		const clipDownload = response.data.data.find((entry) => entry.clip_id === clipId) ?? response.data.data[0];
@@ -216,5 +222,5 @@ export async function resolveTwitchClipPlaybackUrl(clipId: string, broadcasterId
 	}
 
 	operationalCount("clipify.clip_fetch.sources", 1, { source: "graphql", reason: "api_fallback" });
-	return getTwitchClipPlaybackUrlFromGraphQL(clipId);
+	return getTwitchClipPlaybackUrlFromGraphQL(clipId, signal);
 }

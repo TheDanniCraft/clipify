@@ -47,9 +47,17 @@ it("denies unauthorised administrators before provisioning credentials", async (
 	expect(create).not.toHaveBeenCalled();
 	expect(insert).not.toHaveBeenCalled();
 });
+it("requires a recently authenticated administrator for provisioning", async () => {
+	requireAdmin.mockRejectedValue(new Error("RECENT_AUTH_REQUIRED"));
+	const response = await handleConnectedAppAdminRequest(request());
+	expect(response.status).toBe(401);
+	expect(await response.json()).toEqual({ ok: false, error: { code: "RECENT_AUTH_REQUIRED" } });
+	expect(create).not.toHaveBeenCalled();
+});
 it("provisions only machine clip-search access for an enabled creator and real admin", async () => {
 	const response = await handleConnectedAppAdminRequest(request());
 	expect(response.status).toBe(201);
+	expect(requireAdmin).toHaveBeenCalledWith(expect.any(Headers), true);
 	expect(await response.json()).toMatchObject({ ok: true, data: { clientId: "app", clientSecret: "private-once", grantId: expect.any(String) } });
 	expect(create).toHaveBeenCalledWith(expect.objectContaining({ headers: expect.any(Headers), body: expect.objectContaining({ grant_types: ["client_credentials"], client_credentials_scopes: ["creator:read"], scope: "creator:read", resources: ["https://clipify.test/api/connected-apps"] }) }));
 	expect(create.mock.calls[0][0].body).not.toHaveProperty("redirect_uris");

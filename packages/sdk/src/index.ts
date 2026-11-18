@@ -27,7 +27,7 @@ function origin(options: ClipifyClientOptions) {
 	const address = url.hostname.split(".").map(Number);
 	const ipv4 = address.length === 4 && address.every((part) => Number.isInteger(part) && part >= 0 && part <= 255);
 	const privateAddress = ipv4 && (address[0] === 127 || address[0] === 10 || (address[0] === 192 && address[1] === 168) || (address[0] === 172 && address[1] >= 16 && address[1] <= 31));
-	const privateHost = privateAddress || url.hostname === "localhost" || url.hostname === "[::1]" || /^[a-z][a-z0-9-]*$/i.test(url.hostname) || url.hostname === "host.docker.internal";
+	const privateHost = privateAddress || url.hostname === "localhost" || url.hostname === "[::1]";
 	const validTransport = url.protocol === "https:" || (url.protocol === "http:" && options.allowInsecureHttp === true && privateHost);
 	const validCredential = (value: string) => typeof value === "string" && value.length > 0 && value.length <= 4096 && !/[\r\n]/.test(value);
 	if (!validTransport || url.username || url.password || url.pathname !== "/" || url.search || url.hash || !validCredential(options.clientId) || !validCredential(options.clientSecret) || (options.timeoutMs !== undefined && (!Number.isInteger(options.timeoutMs) || options.timeoutMs < 1 || options.timeoutMs > 120000))) throw new ClipifySdkError("INVALID_CONFIGURATION");

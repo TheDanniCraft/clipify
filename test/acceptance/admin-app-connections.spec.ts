@@ -31,6 +31,13 @@ for (const [width, theme] of [
 		await expect(signIn).toBeChecked();
 		await dialog.getByRole("textbox", { name: /^Sign-in callback URL/ }).fill("https://awards.example/api/auth/callback/clipify");
 		await dialog.screenshot({ path: info.outputPath(`connection-create-${width}-${theme}.png`) });
+		await tourWorld.fixture.pool.query(`UPDATE auth.session SET created_at=now()-interval '10 minutes' WHERE user_id=$1`, [owner.fixture.authUserId]);
+		await dialog.getByRole("button", { name: "Create connection", exact: true }).click();
+		await expect(page.getByText("Sign in again before creating application credentials.")).toBeVisible();
+		await page.getByRole("dialog", { name: "Action could not be completed", exact: true }).getByRole("button", { name: "Close message", exact: true }).click();
+		await expect(dialog.getByRole("textbox", { name: /^Application name/ })).toHaveValue("Browser Awards");
+		expect(Number((await tourWorld.fixture.pool.query("SELECT count(*) FROM connected_app_grants")).rows[0].count)).toBe(0);
+		await tourWorld.fixture.pool.query("UPDATE auth.session SET created_at=now() WHERE user_id=$1", [owner.fixture.authUserId]);
 		// An actual denial preserves the draft and has no credential side effects.
 		await page.route("**/api/connected-apps/admin", async (route) => {
 			if (route.request().method() === "POST") {

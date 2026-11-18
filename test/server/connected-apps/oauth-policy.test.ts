@@ -25,6 +25,11 @@ test("allows the admin's own verified identity and returns the real audit actor"
 	await expect(requireConnectedAppAdmin(headers)).resolves.toBe(admin);
 	expect(getAuthActorContext).toHaveBeenCalledWith(headers);
 });
+test("requires recent authentication only for credential mutations", async () => {
+	actor({ ...admin, authenticatedAt: new Date(Date.now() - 5 * 60 * 1000 - 1) });
+	await expect(requireConnectedAppAdmin(new Headers())).resolves.toMatchObject({ authUserId: "admin-auth" });
+	await expect(requireConnectedAppAdmin(new Headers(), true)).rejects.toThrow("RECENT_AUTH_REQUIRED");
+});
 
 test.each([
 	["ordinary creator", { ...admin, user: { ...admin.user, role: "user" } }],

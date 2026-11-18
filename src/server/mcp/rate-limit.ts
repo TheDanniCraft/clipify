@@ -1,5 +1,6 @@
 import "server-only";
 import { createHmac } from "node:crypto";
+import { isIP } from "node:net";
 import { sql } from "drizzle-orm";
 import { db, type DatabaseClient } from "@/db/client";
 
@@ -13,11 +14,15 @@ export function getMcpRateLimits(): Limits {
 	return { ...defaults };
 }
 
-/** Client forwarding headers are untrusted; all ingress shares a bounded network budget. */
+/** Read only the peer header that trusted ingress is configured to overwrite. */
 export function getMcpNetworkSignal(request: Request): string {
-	// The request is deliberately ignored until ingress provides a verified peer address.
-	void request;
-	return "unknown-network";
+	const header = process.env.MCP_TRUSTED_CLIENT_IP_HEADER?.trim().toLowerCase();
+	// Direct test requests have no ingress; production always requires its verified header.
+	if (!header && process.env.APP_ENV === "test") return "127.0.0.1";
+	if (!header || !/^[a-z0-9-]{1,64}$/.test(header)) throw new Error("SERVICE_UNAVAILABLE");
+	const value = request.headers.get(header)?.split(",")[0]?.trim();
+	if (!value || !isIP(value)) throw new Error("SERVICE_UNAVAILABLE");
+	return value;
 }
 
 /** Shared counters serialize callers across replicas; denied calls consume no budget. */

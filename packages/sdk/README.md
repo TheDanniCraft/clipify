@@ -17,8 +17,9 @@ creator-scoped operation gateway, preserves typed failures, and bounds each sear
 (including token exchange) to ten seconds by default. It does not retry a denied
 operation. After a 401, the next call obtains a new token.
 
-`allowInsecureHttp: true` is only for an explicitly trusted private Docker/loopback
-test network. Production URLs require HTTPS. Responses are bounded to 4 MiB.
+`allowInsecureHttp: true` is only for literal private IP addresses or loopback in a
+trusted test network. DNS hostnames, including Docker service names, require HTTPS.
+Responses are bounded to 4 MiB.
 
 Build and package from the repository root:
 
