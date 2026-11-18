@@ -86,6 +86,7 @@ test("hosted runner setup replaces the stalled Azure Ubuntu mirror before instal
 		assert.equal(result.status, 0, result.stderr);
 		const calls = fs.readFileSync(log, "utf8").split("\n");
 		assert.ok(calls.some((call) => /sed -i .*azure\.archive\.ubuntu\.com.*archive\.ubuntu\.com.*(?:sources\.list|\.sources|\.list)$/.test(call)));
+		assert.ok(calls.some((call) => /sed -E -i .*ec2.*archive\.ubuntu\.com.*(?:sources\.list|\.sources|\.list)$/.test(call)));
 		assert.match(calls.at(-2), /apt-get update/);
 	} finally {
 		fs.rmSync(dir, { recursive: true, force: true });

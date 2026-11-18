@@ -8,6 +8,7 @@ if [ "${GITHUB_ACTIONS:-false}" = true ]; then
   for source in /etc/apt/apt-mirrors.txt /etc/apt/apt-mirrors-*.txt /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
     if test -f "$source"; then
       sudo sed -i 's|://azure.archive.ubuntu.com/ubuntu|://archive.ubuntu.com/ubuntu|g' "$source"
+      sudo sed -E -i 's|://[a-z0-9.-]+\.ec2\.archive\.ubuntu\.com/ubuntu|://archive.ubuntu.com/ubuntu|g' "$source"
     fi
   done
 fi
