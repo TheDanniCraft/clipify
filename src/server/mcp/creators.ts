@@ -17,6 +17,8 @@ import { FREE_GALLERY_LIMIT } from "@lib/gallery";
 import { publicToolNames } from "./schemas";
 import { toolPermissions } from "./permissions";
 import { encodePageCursor, decodePageCursor } from "./pagination";
+import { clipCrawlerStatus } from "@/server/clip-cache";
+import { firstOverlayGuidance } from "./entry-guidance";
 
 export async function listCreators(principal: TrustedCreatorPrincipal, input: { limit: number; cursor?: string }, client: QueryClient = db) {
 	const context = `${principal.grantId}:${principal.generation}:list_creators`;
@@ -61,19 +63,7 @@ export async function getCapabilities(principal: TrustedCreatorPrincipal, creato
 			else operations[name] = { allowed: true };
 		}
 	}
-	await resolveOperationCapabilities();
-	const nextSteps = [
-		...(usage.overlays === 0
-			? [
-					{
-						tool: operations.create_overlay.allowed ? "create_overlay" : null,
-						reason: operations.create_overlay.reason ?? null,
-						requiredScope: "overlay:create",
-						message: operations.create_overlay.allowed ? "Offer to create the first overlay after the user chooses what they want to show." : operations.create_overlay.reason === "PLAN_LIMIT_REACHED" ? "The overlay limit is reached. Manage an existing overlay or compare plans." : "Use the existing dashboard setup guide or change connection permissions; a missing permission does not require Pro.",
-					},
-				]
-			: []),
-		...(usage.playlists === 0 ? [{ tool: "search_clips", message: "Check available Twitch channel clips before offering to create a playlist. If the inventory is incomplete, explain synchronization status." }] : []),
-	];
+	const [collection] = await Promise.all([usage.overlays === 0 ? clipCrawlerStatus(creatorId).catch(() => null) : null, resolveOperationCapabilities()]);
+	const nextSteps = [...(usage.overlays === 0 ? [firstOverlayGuidance(collection, operations.create_overlay)] : []), ...(usage.playlists === 0 && (usage.overlays > 0 || (collection?.cachedClipCount ?? 0) > 0) ? [{ tool: "search_clips", message: "If the user wants a playlist, search the available Twitch clips first. A playlist is optional for the first Featured Clips overlay." }] : [])];
 	return { setup: { dashboardPath: "/dashboard", nextSteps }, creatorId, effectivePlan: entitlements.effectivePlan, usage, limits, operations, features: { advancedFilters: pro, remoteControl: pro, runnerAccess: true, advancedGalleries: pro, creatorPageSocialPreview: pro } };
 }
