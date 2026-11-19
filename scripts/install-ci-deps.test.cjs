@@ -11,17 +11,16 @@ test("package commands have noninteractive, network, lock and whole-command boun
 		fs.writeFileSync(join(dir, "sudo"), '#!/bin/sh\nexec "$@"\n', { mode: 0o755 });
 		fs.writeFileSync(join(dir, "timeout"), '#!/bin/sh\necho "$*" >> "$CALL_LOG"\n[ "$FAIL_MODE" = timeout ] && exit 124\nwhile [ "${1#--}" != "$1" ];do shift;done\nshift\nexec "$@"\n', { mode: 0o755 });
 		fs.writeFileSync(join(dir, "apt-get"), '#!/bin/sh\necho "config=$APT_CONFIG" >> "$CALL_LOG"\ncat "$APT_CONFIG" >> "$CALL_LOG"\n[ "$DEBIAN_FRONTEND" = noninteractive ] || exit 9\n[ "$NEEDRESTART_MODE" = a ] || exit 10\n[ "$FAIL_MODE" = install ] && exit 42\nexit 0\n', { mode: 0o755 });
-		for (const [mode, status, args, deadline] of [
-			["ready", 0, ["update"], "180s"],
-			["install", 42, ["update"], "180s"],
-			["timeout", 124, ["update"], "180s"],
-			["timeout", 124, ["install", "-y", "--no-install-recommends", "ffmpeg"], "300s"],
+		for (const [mode, status] of [
+			["ready", 0],
+			["install", 42],
+			["timeout", 124],
 		]) {
 			fs.writeFileSync(log, "");
-			const r = spawnSync("bash", ["scripts/install-ci-deps.sh", "apt-get", ...args], { encoding: "utf8", env: { ...process.env, GITHUB_ACTIONS: "false", PATH: dir + ":" + process.env.PATH, CALL_LOG: log, FAIL_MODE: mode } });
+			const r = spawnSync("bash", ["scripts/install-ci-deps.sh", "apt-get", "update"], { encoding: "utf8", env: { ...process.env, GITHUB_ACTIONS: "false", PATH: dir + ":" + process.env.PATH, CALL_LOG: log, FAIL_MODE: mode } });
 			assert.equal(r.status, status, r.stderr);
 			const text = fs.readFileSync(log, "utf8");
-			assert.ok(text.includes(`--kill-after=15s ${deadline}`));
+			assert.match(text, /--kill-after=15s 180s/);
 			if (mode !== "timeout") {
 				assert.match(text, /Acquire::https::Timeout "30"/);
 				assert.match(text, /DPkg::Lock::Timeout "60"/);

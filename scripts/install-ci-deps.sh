@@ -13,7 +13,6 @@ if [ "${GITHUB_ACTIONS:-false}" = true ]; then
 fi
 cat > "$config" <<'APT'
 Acquire::Retries "2";
-Acquire::Languages "none";
 Acquire::http::Timeout "30";
 Acquire::https::Timeout "30";
 DPkg::Lock::Timeout "60";
@@ -22,12 +21,8 @@ APT::Update::Error-Mode "any";
 APT
 # Bound the whole command too: per-request timeouts do not bound a stalled installer.
 status=0
-deadline=180s
-if [ "$*" = "apt-get install -y --no-install-recommends ffmpeg" ]; then
-  deadline=300s
-fi
-sudo env APT_CONFIG="$config" DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a timeout --signal=TERM --kill-after=15s "$deadline" "$@" || status=$?
+sudo env APT_CONFIG="$config" DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a timeout --signal=TERM --kill-after=15s 180s "$@" || status=$?
 if [ "$status" -eq 124 ] || [ "$status" -eq 137 ]; then
-  echo "Dependency installation exceeded its ${deadline} deadline; check package mirrors or package-manager locks." >&2
+  echo "Dependency installation exceeded its three-minute deadline; check package mirrors or package-manager locks." >&2
 fi
 exit "$status"
