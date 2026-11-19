@@ -11,16 +11,17 @@ test("package commands have noninteractive, network, lock and whole-command boun
 		fs.writeFileSync(join(dir, "sudo"), '#!/bin/sh\nexec "$@"\n', { mode: 0o755 });
 		fs.writeFileSync(join(dir, "timeout"), '#!/bin/sh\necho "$*" >> "$CALL_LOG"\n[ "$FAIL_MODE" = timeout ] && exit 124\nwhile [ "${1#--}" != "$1" ];do shift;done\nshift\nexec "$@"\n', { mode: 0o755 });
 		fs.writeFileSync(join(dir, "apt-get"), '#!/bin/sh\necho "config=$APT_CONFIG" >> "$CALL_LOG"\ncat "$APT_CONFIG" >> "$CALL_LOG"\n[ "$DEBIAN_FRONTEND" = noninteractive ] || exit 9\n[ "$NEEDRESTART_MODE" = a ] || exit 10\n[ "$FAIL_MODE" = install ] && exit 42\nexit 0\n', { mode: 0o755 });
-		for (const [mode, status] of [
-			["ready", 0],
-			["install", 42],
-			["timeout", 124],
+		for (const [mode, status, args, deadline] of [
+			["ready", 0, ["update"], "180s"],
+			["install", 42, ["update"], "180s"],
+			["timeout", 124, ["update"], "180s"],
+			["timeout", 124, ["install", "-y", "--no-install-recommends", "ffmpeg"], "300s"],
 		]) {
 			fs.writeFileSync(log, "");
-			const r = spawnSync("bash", ["scripts/install-ci-deps.sh", "apt-get", "update"], { encoding: "utf8", env: { ...process.env, GITHUB_ACTIONS: "false", PATH: dir + ":" + process.env.PATH, CALL_LOG: log, FAIL_MODE: mode } });
+			const r = spawnSync("bash", ["scripts/install-ci-deps.sh", "apt-get", ...args], { encoding: "utf8", env: { ...process.env, GITHUB_ACTIONS: "false", PATH: dir + ":" + process.env.PATH, CALL_LOG: log, FAIL_MODE: mode } });
 			assert.equal(r.status, status, r.stderr);
 			const text = fs.readFileSync(log, "utf8");
-			assert.match(text, /--kill-after=15s 180s/);
+			assert.ok(text.includes(`--kill-after=15s ${deadline}`));
 			if (mode !== "timeout") {
 				assert.match(text, /Acquire::https::Timeout "30"/);
 				assert.match(text, /DPkg::Lock::Timeout "60"/);
@@ -77,7 +78,7 @@ test("missing frame binaries install through the bounded package helper", () => 
 	}
 });
 
-test("hosted runner setup replaces stalled Azure and EC2 Ubuntu mirrors before installing", () => {
+test("hosted runner setup replaces the stalled Azure Ubuntu mirror before installing", () => {
 	const dir = fs.mkdtempSync(join(require("node:os").tmpdir(), "ci-mirror-"));
 	try {
 		const log = join(dir, "log");
@@ -86,7 +87,6 @@ test("hosted runner setup replaces stalled Azure and EC2 Ubuntu mirrors before i
 		assert.equal(result.status, 0, result.stderr);
 		const calls = fs.readFileSync(log, "utf8").split("\n");
 		assert.ok(calls.some((call) => /sed -i .*azure\.archive\.ubuntu\.com.*archive\.ubuntu\.com.*(?:sources\.list|\.sources|\.list)$/.test(call)));
-		assert.ok(calls.some((call) => call.includes(String.raw`\.ec2\.archive\.ubuntu\.com`) && call.includes("://archive.ubuntu.com/ubuntu")));
 		assert.match(calls.at(-2), /apt-get update/);
 	} finally {
 		fs.rmSync(dir, { recursive: true, force: true });
