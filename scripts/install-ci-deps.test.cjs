@@ -77,7 +77,7 @@ test("missing frame binaries install through the bounded package helper", () => 
 	}
 });
 
-test("hosted runner setup replaces the stalled Azure Ubuntu mirror before installing", () => {
+test("hosted runner setup replaces stalled Azure and EC2 Ubuntu mirrors before installing", () => {
 	const dir = fs.mkdtempSync(join(require("node:os").tmpdir(), "ci-mirror-"));
 	try {
 		const log = join(dir, "log");
@@ -86,6 +86,7 @@ test("hosted runner setup replaces the stalled Azure Ubuntu mirror before instal
 		assert.equal(result.status, 0, result.stderr);
 		const calls = fs.readFileSync(log, "utf8").split("\n");
 		assert.ok(calls.some((call) => /sed -i .*azure\.archive\.ubuntu\.com.*archive\.ubuntu\.com.*(?:sources\.list|\.sources|\.list)$/.test(call)));
+		assert.ok(calls.some((call) => call.includes(String.raw`\.ec2\.archive\.ubuntu\.com`) && call.includes("://archive.ubuntu.com/ubuntu")));
 		assert.match(calls.at(-2), /apt-get update/);
 	} finally {
 		fs.rmSync(dir, { recursive: true, force: true });
