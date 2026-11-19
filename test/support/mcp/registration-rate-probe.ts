@@ -8,12 +8,11 @@ async function main() {
 	const fixture = await createMcpPostgresFixture();
 	process.env.DATABASE_URL = fixture.url;
 	process.env.RATE_LIMIT_HASH_SECRET = "isolated-registration-budget-hmac-32chars";
-	process.env.MCP_TRUSTED_CLIENT_IP_HEADER = "x-forwarded-for";
 	const origin = "http://127.0.0.1:3107";
 	try {
 		const auth = betterAuth({ baseURL: origin, secret: "isolated-mcp-provider-secret-32chars", database: drizzleAdapter(fixture.db, { provider: "pg", schema }), plugins: createMcpPlugins({ origin }) });
 		// Seed eight real prior registrations to exercise the fixed tenth-request boundary.
-		const hash = createHmac("sha256", process.env.RATE_LIMIT_HASH_SECRET!).update("mcp:registration:minute:network:").update("192.0.2.1").digest("hex");
+		const hash = createHmac("sha256", process.env.RATE_LIMIT_HASH_SECRET!).update("mcp:registration:minute:network:").update("unknown-network").digest("hex");
 		await fixture.pool.query("INSERT INTO rate_limit_counters(action,signal_type,signal_hash,count,window_started_at,expires_at,updated_at) VALUES ('mcp:registration:minute','network',$1,8,now(),now()+interval '1 minute',now())", [hash]);
 		const results = [];
 		for (let index = 0; index < 4; index++) {

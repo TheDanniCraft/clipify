@@ -10,8 +10,8 @@ When("it submits another registration", async ({ mcpWorld }) => {
 });
 Then("registration is throttled with retry guidance and no client record is created", async ({ mcpWorld }) => {
 	const result = mcpWorld.result?.body;
-	expect(result.results.map((value: any) => value.status)).toEqual([201, 201, 429, 201]);
-	expect(result.clients).toBe(3);
+	expect(result.results.map((value: any) => value.status)).toEqual([201, 201, 429, 429]);
+	expect(result.clients).toBe(2);
 	expect(Number(result.results[2].retryAfter)).toBeGreaterThan(0);
 });
 Given("a client exhausts its configured tool-call budget", async ({ mcpWorld }) => {

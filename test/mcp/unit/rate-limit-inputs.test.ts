@@ -16,21 +16,8 @@ afterEach(() => {
 	process.env = { ...savedEnvironment };
 });
 
-test("unconfigured ingress refuses client forwarding headers", () => {
-	process.env.APP_ENV = "production";
-	expect(() => getMcpNetworkSignal(new Request("https://clipify.example/mcp", { headers: { "x-forwarded-for": "127.0.0.1" } }))).toThrow("SERVICE_UNAVAILABLE");
-});
-test("direct test requests use the loopback test identity", () => {
-	process.env.APP_ENV = "test";
-	expect(getMcpNetworkSignal(new Request("http://127.0.0.1:3107/mcp"))).toBe("127.0.0.1");
-});
-test.each(["127.0.0.1", "2001:db8::1", "127.0.0.1, 127.0.0.2"])("uses the configured ingress-overwritten peer header %s", (address) => {
-	process.env.MCP_TRUSTED_CLIENT_IP_HEADER = "x-real-ip";
-	expect(getMcpNetworkSignal(new Request("https://clipify.example/mcp", { headers: { "x-real-ip": address } }))).toBe(address.split(",")[0]);
-});
-test.each(["attacker", "127.0.0.1.example", "", "127.0.0.1:80"])("rejects malformed trusted peer values %s", (address) => {
-	process.env.MCP_TRUSTED_CLIENT_IP_HEADER = "x-real-ip";
-	expect(() => getMcpNetworkSignal(new Request("https://clipify.example/mcp", { headers: { "x-real-ip": address } }))).toThrow("SERVICE_UNAVAILABLE");
+test("ignores client forwarding headers", () => {
+	expect(getMcpNetworkSignal(new Request("https://clipify.example/mcp", { headers: { "cf-connecting-ip": "127.0.0.1", "x-forwarded-for": "2001:db8::1" } }))).toBe("unknown-network");
 });
 test("fixed budgets are returned without mutable shared state", () => {
 	const limits = getMcpRateLimits();

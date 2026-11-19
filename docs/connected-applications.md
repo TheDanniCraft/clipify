@@ -67,11 +67,10 @@ creator ID, client ID and client secret. The SDK requests five-minute machine
 tokens and renews them without an interactive administrator/creator session.
 Grant expiry, revocation, disabled clients and disabled creators still deny reads.
 
-Public OAuth registration and authenticated MCP calls require
-`MCP_TRUSTED_CLIENT_IP_HEADER` to name the single client-IP header that the
-deployment ingress overwrites (for example, `x-real-ip`). Do not configure a
-header that clients can send through unchanged; missing or malformed peer identity
-fails the request closed.
+Cloudflare applies the production per-IP limit to public OAuth registration.
+The application deliberately ignores forwarding headers and keeps a shared
+database-backed circuit breaker for registration plus per-client authenticated
+call budgets, so spoofed proxy headers cannot select another quota bucket.
 
 ## Revoke
 
