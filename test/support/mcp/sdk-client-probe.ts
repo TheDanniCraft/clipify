@@ -127,9 +127,12 @@ async function main() {
 			const emptyInventory = await capabilities();
 			await fixture.pool.query("INSERT INTO \"twitchCache\"(type,key,value) VALUES('clip','clip:sdk-creator:fixture',$1)", [JSON.stringify({ id: "fixture", broadcaster_id: "sdk-creator" })]);
 			const readyInventory = await capabilities();
+			await fixture.pool.query("ALTER TABLE clip_crawl_jobs RENAME TO clip_crawl_jobs_unavailable");
+			const unavailableInventory = await capabilities();
+			await fixture.pool.query("ALTER TABLE clip_crawl_jobs_unavailable RENAME TO clip_crawl_jobs");
 			const firstOverlays = await connected.client.callTool({ name: "list_overlays", arguments: { creatorId: "sdk-creator" } });
 			const firstPlaylists = await connected.client.callTool({ name: "list_playlists", arguments: { creatorId: "sdk-creator" } });
-			const firstUse = { capabilities: firstCapabilities.structuredContent, emptyInventory: emptyInventory.structuredContent, readyInventory: readyInventory.structuredContent, overlays: firstOverlays.structuredContent, playlists: firstPlaylists.structuredContent };
+			const firstUse = { capabilities: firstCapabilities.structuredContent, emptyInventory: emptyInventory.structuredContent, readyInventory: readyInventory.structuredContent, unavailableInventory: unavailableInventory.structuredContent, overlays: firstOverlays.structuredContent, playlists: firstPlaylists.structuredContent };
 			const created = await connected.client.callTool({ name: "create_overlay", arguments: { creatorId: "sdk-creator", retryKey: "independent-sdk-create", name: "Created by official SDK" } });
 			const dto: any = created.structuredContent;
 			if (!dto?.id) throw new Error("SDK create did not return safe DTO");
