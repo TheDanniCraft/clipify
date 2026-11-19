@@ -13,9 +13,8 @@ export function getMcpRateLimits(): Limits {
 	return { ...defaults };
 }
 
-/** Client forwarding headers are untrusted; all ingress shares a bounded network budget. */
+/** Client forwarding headers are untrusted; all ingress shares a bounded circuit breaker. */
 export function getMcpNetworkSignal(request: Request): string {
-	// The request is deliberately ignored until ingress provides a verified peer address.
 	void request;
 	return "unknown-network";
 }

@@ -15,12 +15,29 @@ jest.mock("@better-auth/cimd", () => ({ cimd: (options: unknown) => ({ id: "cimd
 jest.mock("@better-auth/cimd/node", () => ({ fetchClientMetadataResource: jest.fn() }));
 jest.mock("@/auth/session", () => ({ getAuthActorContext: jest.fn() }));
 jest.mock("@/db/client", () => ({ db: { select: jest.fn() } }));
+const consumeRateLimit = jest.fn();
+jest.mock("@/server/mcp/rate-limit", () => ({ consumeMcpRateLimit: (...args: unknown[]) => consumeRateLimit(...args), getMcpNetworkSignal: () => "203.0.113.7", getMcpRateLimits: () => ({}) }));
 import { createMcpPlugins } from "@/auth/mcp-options";
 import { getAuthActorContext } from "@/auth/session";
 import { db } from "@/db/client";
 const origin = "https://clipify.test";
 const resource = `${origin}/api/connected-apps`;
 const provider = (options: Record<string, unknown> = {}) => createMcpPlugins({ origin, options } as never).find((item) => item.id === "provider")!.options as Record<string, any>;
+const registration = () => createMcpPlugins({ origin }).find((item) => item.id === "clipify-mcp-registration")!;
+
+beforeEach(() => consumeRateLimit.mockReset().mockResolvedValue({ allowed: true, remaining: 9 }));
+
+test("validates registration metadata before spending a per-peer allowance", async () => {
+	const invalid = new Request(`${origin}/api/auth/oauth2/register`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ redirect_uris: ["https://*.example/callback"] }) });
+	const rejected = await registration().onRequest?.(invalid, {} as never);
+	expect(rejected).toMatchObject({ response: { status: 400 } });
+	expect(consumeRateLimit).not.toHaveBeenCalled();
+
+	const valid = new Request(`${origin}/api/auth/oauth2/register`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ redirect_uris: ["https://app.example/callback"], grant_types: ["authorization_code"] }) });
+	const accepted = await registration().onRequest?.(valid, {} as never);
+	expect(consumeRateLimit).toHaveBeenCalledWith(expect.objectContaining({ kind: "registration", network: "203.0.113.7" }));
+	expect(accepted).toMatchObject({ request: expect.any(Request) });
+});
 
 test("adds a scope-bounded machine resource while preserving existing grants and registration", () => {
 	const options = provider();
@@ -74,7 +91,7 @@ test("additional configured privilege denials remain effective", async () => {
 });
 
 test("verified own-identity admins can provision machine scopes and link resources", async () => {
-	jest.mocked(getAuthActorContext).mockResolvedValue({ authUserId: "admin-auth", accountStatus: "active", user: { id: "admin-creator", role: "admin", disabled: false } } as never);
+	jest.mocked(getAuthActorContext).mockResolvedValue({ authUserId: "admin-auth", authenticatedAt: new Date(), accountStatus: "active", user: { id: "admin-creator", role: "admin", disabled: false } } as never);
 	const query = { from: () => query, where: () => query, limit: async () => [{ creatorId: "admin-creator" }] };
 	jest.mocked(db.select).mockReturnValue(query as never);
 	const options = provider();

@@ -20,7 +20,7 @@ test("package commands have noninteractive, network, lock and whole-command boun
 			const r = spawnSync("bash", ["scripts/install-ci-deps.sh", "apt-get", "update"], { encoding: "utf8", env: { ...process.env, GITHUB_ACTIONS: "false", PATH: dir + ":" + process.env.PATH, CALL_LOG: log, FAIL_MODE: mode } });
 			assert.equal(r.status, status, r.stderr);
 			const text = fs.readFileSync(log, "utf8");
-			assert.match(text, /--kill-after=15s 180s/);
+			assert.match(text, /--kill-after=15s 600s/);
 			if (mode !== "timeout") {
 				assert.match(text, /Acquire::https::Timeout "30"/);
 				assert.match(text, /DPkg::Lock::Timeout "60"/);
@@ -77,22 +77,8 @@ test("missing frame binaries install through the bounded package helper", () => 
 	}
 });
 
-test("hosted runner setup replaces the stalled Azure Ubuntu mirror before installing", () => {
-	const dir = fs.mkdtempSync(join(require("node:os").tmpdir(), "ci-mirror-"));
-	try {
-		const log = join(dir, "log");
-		fs.writeFileSync(join(dir, "sudo"), '#!/bin/sh\necho "$*" >> "$CALL_LOG"\nexit 0\n', { mode: 0o755 });
-		const result = spawnSync("bash", ["scripts/install-ci-deps.sh", "apt-get", "update"], { encoding: "utf8", env: { ...process.env, GITHUB_ACTIONS: "false", PATH: dir + ":" + process.env.PATH, GITHUB_ACTIONS: "true", CALL_LOG: log } });
-		assert.equal(result.status, 0, result.stderr);
-		const calls = fs.readFileSync(log, "utf8").split("\n");
-		assert.ok(calls.some((call) => /sed -i .*azure\.archive\.ubuntu\.com.*archive\.ubuntu\.com.*(?:sources\.list|\.sources|\.list)$/.test(call)));
-		assert.match(calls.at(-2), /apt-get update/);
-	} finally {
-		fs.rmSync(dir, { recursive: true, force: true });
-	}
-});
-
-test("mirror setup includes the mirror-list transport used by hosted Ubuntu runners", () => {
+test("hosted runner setup preserves GitHub's managed mirror list", () => {
 	const script = fs.readFileSync("scripts/install-ci-deps.sh", "utf8");
-	assert.match(script, /for source in \/etc\/apt\/apt-mirrors\.txt \/etc\/apt\/apt-mirrors-\*\.txt/);
+	assert.doesNotMatch(script, /sed -[Ei ]*i/);
+	assert.match(script, /Keep GitHub's managed mirror list intact/);
 });

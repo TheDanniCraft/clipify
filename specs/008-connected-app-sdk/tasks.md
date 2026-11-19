@@ -48,3 +48,11 @@ The feature is not certified complete while the blocking chronology exception re
 - [x] T021 Add individually granted clip resolution/playback operations and SDK methods without a public Server Action authorization bypass.
 - [x] T022 Isolate user-only OIDC scopes from public registration, MCP creator references and machine resources; exercise a native PKCE/ID-token/UserInfo round trip.
 - [ ] T023 Validate the independent Awards browser login against the PR preview and verify actual clip playback there.
+
+## Administrator connection management follow-up
+
+- [x] T024 Add an administrator-only connection list and creation flow using existing HeroUI patterns and recorded Mobbin references.
+- [x] T025 Extend provisioning with explicit read operations and optional isolated PKCE sign-in credentials; preserve provider metadata and compensate partial failures.
+- [x] T026 Revoke the creator grant and both linked clients atomically; list only public fields with bounded pagination.
+- [x] T027 Validate creation/recovery, one-time credentials, real token issuance, revocation and permissions in desktop/mobile browsers.
+- [ ] T028 Require complete CI and security checks on the management-flow PR before merge.

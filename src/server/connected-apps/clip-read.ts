@@ -5,7 +5,7 @@ import { publicClip } from "@/server/resources/clip-discovery";
 import { resolveTwitchClipPlaybackUrl } from "@/server/clip-playback-resolver";
 import { isTrustedClipMediaUrl } from "@/app/lib/clipExport";
 import { ConnectedAppError } from "./grants";
-export async function resolveConnectedClip(creatorId: string, reference: string, playback = false) {
+export async function resolveConnectedClip(creatorId: string, reference: string, playback = false, signal?: AbortSignal) {
 	let clipId: string;
 	try {
 		clipId = parseClipReference(reference);
@@ -16,7 +16,7 @@ export async function resolveConnectedClip(creatorId: string, reference: string,
 	const clip = clips.find((c) => c.id === clipId && c.broadcaster_id === creatorId);
 	if (!clip) throw new ConnectedAppError("NOT_FOUND", 404);
 	if (!playback) return { creatorId, clip: publicClip(clip) };
-	const playbackUrl = await resolveTwitchClipPlaybackUrl(clipId, creatorId);
+	const playbackUrl = await resolveTwitchClipPlaybackUrl(clipId, creatorId, signal);
 	if (!playbackUrl || !isTrustedClipMediaUrl(playbackUrl)) throw new ConnectedAppError("RESOURCE_UNAVAILABLE", 404);
 	return { creatorId, clipId, playbackUrl };
 }

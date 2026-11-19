@@ -1,16 +1,19 @@
 /** @jest-environment ./test/helpers/pgliteEnvironment.cjs */
 import { drizzle } from "drizzle-orm/pglite";
-import { sql as querySql } from "drizzle-orm";
-let changeAuthority: (statement: string) => Promise<unknown>;
 let client: ReturnType<typeof drizzle>;
+let transactionDepth = 0;
 jest.mock("@/db/client", () => ({
 	get db() {
 		return {
 			select: client.select.bind(client),
 			transaction: (operation: (tx: unknown) => Promise<unknown>) =>
 				client.transaction(async (tx) => {
-					changeAuthority = (statement) => tx.execute(querySql.raw(statement));
-					return operation(tx);
+					transactionDepth++;
+					try {
+						return await operation(tx);
+					} finally {
+						transactionDepth--;
+					}
 				}),
 		};
 	},
@@ -34,15 +37,19 @@ beforeEach(async () => {
 	await database.exec(`TRUNCATE connected_app_grants,auth.oauth_client,users,creator_accounts,audit_events;INSERT INTO auth.oauth_client VALUES('app',false);INSERT INTO users VALUES('creator',false);INSERT INTO creator_accounts VALUES('creator','active');INSERT INTO connected_app_grants(client_id,creator_id,operations,expires_at)VALUES('app','creator',ARRAY['search_clips'],now()+interval '1 hour');`);
 });
 it("executes and audits an enabled grant without impersonating a user", async () => {
-	const result = await withConnectedAppGrant(identity, async () => ({ items: ["matching"] }));
+	const result = await withConnectedAppGrant(identity, async () => {
+		expect(transactionDepth).toBe(0);
+		return { items: ["matching"] };
+	});
 	expect(result).toEqual({ items: ["matching"] });
+	expect(rate).toHaveBeenCalledWith(expect.objectContaining({ network: expect.stringMatching(/^application:/), authUserId: expect.stringMatching(/^application:/), clientId: "app" }));
 	const audit = await database.query<{ actor_user_id: null; metadata: { clientId: string } }>("select actor_user_id,metadata from audit_events");
 	expect(audit.rows[0]).toMatchObject({ actor_user_id: null, metadata: { clientId: "app", creatorId: "creator", operation: "search_clips" } });
 });
 it.each(["UPDATE users SET disabled=true WHERE id='creator'", "UPDATE creator_accounts SET status='suspended' WHERE creator_id='creator'", "UPDATE auth.oauth_client SET disabled=true WHERE client_id='app'"])("rechecks authority changed during an operation: %s", async (sql) => {
 	await expect(
 		withConnectedAppGrant(identity, async () => {
-			await changeAuthority(sql);
+			await database.exec(sql);
 			return { items: ["must-not-leak"] };
 		}),
 	).rejects.toThrow("ACCESS_DENIED");

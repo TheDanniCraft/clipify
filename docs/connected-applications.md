@@ -67,6 +67,11 @@ creator ID, client ID and client secret. The SDK requests five-minute machine
 tokens and renews them without an interactive administrator/creator session.
 Grant expiry, revocation, disabled clients and disabled creators still deny reads.
 
+Cloudflare applies the production per-IP limit to public OAuth registration.
+The application deliberately ignores forwarding headers and keeps a shared
+database-backed circuit breaker for registration plus per-client authenticated
+call budgets, so spoofed proxy headers cannot select another quota bucket.
+
 ## Revoke
 
 ```sh

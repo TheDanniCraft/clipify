@@ -9,12 +9,15 @@ import { assertConnectedAppGrant, ConnectedAppError } from "./grants";
 
 type Identity = { clientId: string; creatorId: string; operation: string };
 export async function withConnectedAppGrant<T>(identity: Identity, run: (grant: { id: string }) => Promise<T>): Promise<T> {
-	return db.transaction(async (tx) => {
+	const grant = await db.transaction(async (tx) => {
 		const grant = await readGrant(tx, identity);
 		assertConnectedAppGrant(grant, identity);
-		const budget = await consumeMcpRateLimit({ kind: "call", network: "connected-applications", authUserId: `application:${grant.id}`, clientId: identity.clientId });
-		if (!budget.allowed) throw new ConnectedAppError("RATE_LIMITED", 429);
-		const result = await run(grant);
+		return { id: grant.id };
+	});
+	const budget = await consumeMcpRateLimit({ kind: "call", network: `application:${grant.id}`, authUserId: `application:${grant.id}`, clientId: identity.clientId });
+	if (!budget.allowed) throw new ConnectedAppError("RATE_LIMITED", 429);
+	const result = await run(grant);
+	return db.transaction(async (tx) => {
 		assertConnectedAppGrant(await readGrant(tx, identity), identity);
 		const auditId = randomUUID();
 		await tx.insert(auditEventsTable).values({ id: auditId, actorUserId: null, targetType: "connected_application", targetId: grant.id, action: `connected-app.${identity.operation}`, outcome: "success", correlationId: auditId, metadata: { ...identity, grantId: grant.id } });

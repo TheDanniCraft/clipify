@@ -1,9 +1,9 @@
 /** @jest-environment node */
 import { runMcpProbe, flowProbe } from "../../support/mcp/probe";
 describe("TDD-US4-001/002 real public registration and mutation budgets", () => {
-	test("registration stops at the fixed budget after prior registrations despite spoofed forwarding headers and persists no rejected client", () => {
+	test("registration circuit breaker ignores spoofed forwarding headers", () => {
 		const result = runMcpProbe("registration-rate-probe", []);
-		expect(result.results.map((value: any) => value.status)).toEqual([201, 201, 429]);
+		expect(result.results.map((value: any) => value.status)).toEqual([201, 201, 429, 429]);
 		expect(result.results[2]).toMatchObject({ error: "rate_limited", registered: false });
 		expect(Number(result.results[2].retryAfter)).toBeGreaterThan(0);
 		expect(result.clients).toBe(2);

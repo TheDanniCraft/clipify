@@ -16,11 +16,8 @@ afterEach(() => {
 	process.env = { ...savedEnvironment };
 });
 
-test("unconfigured ingress ignores spoofed client forwarding headers", () => {
-	expect(getMcpNetworkSignal(new Request("https://clipify.example/mcp", { headers: { "x-forwarded-for": "127.0.0.1" } }))).toBe("unknown-network");
-});
-test.each(["127.0.0.1", "2001:db8::1", "127.0.0.1, 127.0.0.2"])("client real-IP header %s cannot split the shared budget", (address) => {
-	expect(getMcpNetworkSignal(new Request("https://clipify.example/mcp", { headers: { "x-real-ip": address } }))).toBe("unknown-network");
+test("ignores client forwarding headers", () => {
+	expect(getMcpNetworkSignal(new Request("https://clipify.example/mcp", { headers: { "cf-connecting-ip": "127.0.0.1", "x-forwarded-for": "2001:db8::1" } }))).toBe("unknown-network");
 });
 test("fixed budgets are returned without mutable shared state", () => {
 	const limits = getMcpRateLimits();

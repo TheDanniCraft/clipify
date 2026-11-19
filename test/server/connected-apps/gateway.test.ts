@@ -104,7 +104,7 @@ it.each(["resolve_clip", "get_clip_playback"])("dispatches %s only inside its ex
 	const r = await handleConnectedAppRequest(request({ operation, input: { creatorId: "creator", reference: "ClipA" } }));
 	expect(r.status).toBe(200);
 	expect(access).toHaveBeenCalledWith(expect.objectContaining({ creatorId: "creator", operation }), expect.any(Function));
-	expect(readClip).toHaveBeenCalledWith("creator", "ClipA", operation === "get_clip_playback");
+	expect(readClip).toHaveBeenCalledWith("creator", "ClipA", operation === "get_clip_playback", expect.any(AbortSignal));
 	expect(search).not.toHaveBeenCalled();
 });
 it("does not resolve a clip after the grant denies it", async () => {

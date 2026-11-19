@@ -22,8 +22,10 @@ it("searches through client credentials and reuses the short-lived token", async
 it.each(["http://public.example", "https://user:pass@clipify.example", "https://clipify.example/prefix", "https://clipify.example?token=secret", "file:///tmp/app"])("rejects unsafe base URL %s before sending credentials", (baseUrl) => {
 	expect(() => createClipifyClient({ baseUrl, clientId: "app", clientSecret: "secret" })).toThrow("INVALID_CONFIGURATION");
 });
-it("allows explicitly opted-in private Docker HTTP but never arbitrary public HTTP", () => {
-	expect(() => createClipifyClient({ baseUrl: "http://clipify:3000", clientId: "app", clientSecret: "secret", allowInsecureHttp: true })).not.toThrow();
+it("allows explicitly opted-in literal private HTTP but never DNS hostnames", () => {
+	expect(() => createClipifyClient({ baseUrl: "http://10.0.0.2:3000", clientId: "app", clientSecret: "secret", allowInsecureHttp: true })).not.toThrow();
+	expect(() => createClipifyClient({ baseUrl: "http://clipify:3000", clientId: "app", clientSecret: "secret", allowInsecureHttp: true })).toThrow("INVALID_CONFIGURATION");
+	expect(() => createClipifyClient({ baseUrl: "http://host.docker.internal:3000", clientId: "app", clientSecret: "secret", allowInsecureHttp: true })).toThrow("INVALID_CONFIGURATION");
 	expect(() => createClipifyClient({ baseUrl: "http://public.example", clientId: "app", clientSecret: "secret", allowInsecureHttp: true })).toThrow("INVALID_CONFIGURATION");
 });
 it.each(["", "contains\nnewline"])("rejects invalid client identifiers without requests", (clientId) => {
