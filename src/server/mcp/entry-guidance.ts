@@ -9,16 +9,18 @@ export function collectionState(collection: Collection) {
 	return collection.cachedClipCount > 0 ? "partial" : "not_started";
 }
 export type CollectionState = ReturnType<typeof collectionState>;
+const emptyInventoryMessage = "The Twitch clip import finished without finding any clips. If the user wants to use Twitch clips, ask them to check the connected channel or create a clip on Twitch and check back after the next sync. For highlights from uploaded gameplay, explain that Clipify does not create those. Pro does not supply missing clips.";
+
 export function clipGuidance(state: CollectionState, canRefresh: boolean, cachedClipCount: number) {
 	const reason = state === "ready" ? (cachedClipCount > 0 ? "no_matching_clips" : "empty_collection") : state;
 	const messages = {
 		not_started: "Clip synchronization has not started. This does not mean your Twitch channel has no clips.",
-		queued: "Clip synchronization is queued. Cached clips can be used while more history is collected.",
-		running: "Clip synchronization is running. The current results may not include all Twitch clips yet.",
+		queued: "Clip import is queued. Check progress with get_clip_crawler_status; do not start another import. Use any clips already available, or open the existing dashboard guide to prepare an overlay while waiting.",
+		running: "Clip import is still running. Check progress with get_clip_crawler_status; an empty result does not mean the channel has no clips. Use any clips already available, or open the existing dashboard guide to prepare an overlay while waiting.",
 		partial: "Only part of the clip inventory is available. Cached clips can already be used.",
 		retrying: "Clip synchronization encountered a problem and is scheduled to retry.",
 		rate_limited: "Twitch has temporarily limited synchronization. Check the returned retry deadline before checking again.",
-		empty_collection: "Synchronization completed with no clips in the cached inventory. Ask whether the user means existing Twitch channel clips or highlights from uploaded gameplay recordings; Clipify does not create the latter. Pro does not supply missing Twitch clips.",
+		empty_collection: emptyInventoryMessage,
 		no_matching_clips: "The inventory has clips, but none match this search. Try fewer filters.",
 	};
 	return {
@@ -28,6 +30,22 @@ export function clipGuidance(state: CollectionState, canRefresh: boolean, cached
 		dashboardPath: "/dashboard",
 	};
 }
+
+export function firstOverlayGuidance(collection: Collection | null, createOverlay: { allowed: boolean; reason?: string }) {
+	const requiredScope = "overlay:create";
+	const fallback = "Open the Clipify dashboard and choose “Get your first overlay running” to set up and preview your overlay.";
+	if (!collection) return { tool: "get_clip_crawler_status", reason: "status_unavailable", requiredScope, message: "Check the Twitch clip import before assuming the channel has no clips. " + fallback };
+	const state = collectionState(collection);
+	if (collection.cachedClipCount === 0) {
+		const guidance = clipGuidance(state, false, 0);
+		return { tool: guidance.nextStep.tool, reason: guidance.reason, requiredScope, message: guidance.message };
+	}
+	const inventory = `${collection.cachedClipCount} Twitch clips are available${state === "ready" ? "." : " so far; the full import is not complete yet."}`;
+	const message = createOverlay.allowed ? "Offer to create the first overlay if the user wants one, then point them to the existing dashboard setup to preview playback and add it to their stream." : fallback + (createOverlay.reason === "ACCESS_DENIED" ? " This ChatGPT connection cannot create overlays; the dashboard setup does not require changing its permissions." : "");
+	return { tool: createOverlay.allowed ? "create_overlay" : null, reason: createOverlay.reason ?? null, requiredScope, message: `${inventory} ${message}` };
+}
+
 export function emptyResourceGuidance(tool: "list_overlays" | "list_playlists") {
-	return { reason: tool === "list_overlays" ? "no_overlays" : "no_playlists", message: "Nothing has been created yet. Check capabilities before offering to create it. If this connection cannot write, use the existing setup guide in the dashboard or ask the user to change the connection's permissions in Settings → Connections. This is separate from their subscription.", nextStep: { tool: "get_capabilities" }, dashboardPath: "/dashboard" };
+	const overlay = tool === "list_overlays";
+	return { reason: overlay ? "no_overlays" : "no_playlists", message: overlay ? "No overlay yet. Use get_capabilities for this creator to check clip import progress and find the next step for their first overlay." : "No playlists yet. A playlist is optional for the first Featured Clips overlay. Use get_capabilities for the first overlay, or search_clips if the user specifically wants to build a playlist.", nextStep: { tool: "get_capabilities" }, dashboardPath: "/dashboard" };
 }

@@ -1,5 +1,5 @@
 /** @jest-environment node */
-import { collectionState, clipGuidance, emptyResourceGuidance } from "@/server/mcp/entry-guidance";
+import { collectionState, clipGuidance, emptyResourceGuidance, firstOverlayGuidance } from "@/server/mcp/entry-guidance";
 const base = { isSyncComplete: false, cachedClipCount: 0, jobs: [], rateLimitedUntil: null };
 test.each([
 	[base, "not_started"],
@@ -36,4 +36,22 @@ test("finished history does not hide an unprocessed recent-clips job", () => {
 
 test("finished history alone cannot prove a complete current inventory", () => {
 	expect(collectionState({ ...base, isSyncComplete: true, cachedClipCount: 2, lastIncrementalSyncAt: null })).toBe("partial");
+});
+
+test("first overlay guidance distinguishes a running import from a completed empty channel", () => {
+	const running = firstOverlayGuidance({ ...base, jobs: [{ status: "running", failures: 0 }] }, { allowed: true });
+	expect(running).toMatchObject({ reason: "running", tool: "get_clip_crawler_status", message: expect.stringContaining("still running") });
+	const empty = firstOverlayGuidance({ ...base, isSyncComplete: true }, { allowed: true });
+	expect(empty).toMatchObject({ reason: "empty_collection", tool: null, message: expect.stringContaining("check the connected channel") });
+});
+
+test("cached clips lead to first overlay setup even while more history imports", () => {
+	const partial = { ...base, cachedClipCount: 10, jobs: [{ status: "running", failures: 0 }] };
+	expect(firstOverlayGuidance(partial, { allowed: true })).toMatchObject({ tool: "create_overlay", message: expect.stringContaining("10 Twitch clips are available so far") });
+	const ready = { ...partial, isSyncComplete: true };
+	expect(firstOverlayGuidance(ready, { allowed: false, reason: "ACCESS_DENIED" })).toMatchObject({ tool: null, message: expect.stringContaining("Get your first overlay running") });
+});
+
+test("unavailable status does not send an empty account to create an overlay blindly", () => {
+	expect(firstOverlayGuidance(null, { allowed: true })).toMatchObject({ tool: "get_clip_crawler_status", reason: "status_unavailable" });
 });
