@@ -1201,6 +1201,8 @@ When("the complete personalization chapter is followed", async ({ page, tourWorl
 	await expect(page.locator('[data-tour="overlay-filters"]')).toHaveClass(/driver-active-element/);
 	await page.getByRole("textbox", { name: "Minimum Clip Views", exact: true }).fill("2");
 	await page.getByRole("textbox", { name: "Minimum Clip Views", exact: true }).press("Tab");
+	await expect(page.getByRole("listbox", { name: "Suggestions Allowed Games / Categories" })).toBeVisible();
+	await page.keyboard.press("Escape");
 	await page.getByRole("button", { name: "Continue", exact: true }).click();
 	await expect(page.locator(".driver-popover-title")).toHaveText("Save your filters");
 	await page.getByRole("button", { name: "Back", exact: true }).click();
@@ -1250,6 +1252,8 @@ When("guided navigation opens the unsaved changes dialog", async ({ page, tourWo
 	await start(page, "Choose your filters", "Make your overlay yours");
 	await page.getByRole("textbox", { name: "Minimum Clip Views", exact: true }).fill("2");
 	await page.getByRole("textbox", { name: "Minimum Clip Views", exact: true }).press("Tab");
+	await expect(page.getByRole("listbox", { name: "Suggestions Allowed Games / Categories" })).toBeVisible();
+	await page.keyboard.press("Escape");
 	await start(page, "Create and name your overlay", "Get your first overlay running");
 	await expect(page.locator(".driver-popover-title")).toHaveText("Open your Dashboard");
 	await page.locator('[data-tour="dashboard-home"]').click();
