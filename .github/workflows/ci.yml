@@ -175,7 +175,7 @@ jobs:
   browser-build:
     name: 🏗️ Shared browser build
     if: needs.changes.outputs.full == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [deps, changes]
     env:
       MCP_BROWSER_PROVIDER_FIXTURE: "true"
@@ -470,7 +470,8 @@ jobs:
   coverage-lanes:
     name: 🧪 Coverage (${{ matrix.lane }})
     if: needs.changes.outputs.full == 'true'
-    runs-on: ubuntu-latest
+    # Keep media dependencies on a fixed Ubuntu release.
+    runs-on: ubuntu-24.04
     needs: [deps, changes, validation-plan]
     strategy:
       fail-fast: false
@@ -574,7 +575,7 @@ jobs:
   browser-tests:
     if: needs.changes.outputs.full == 'true'
     name: 🌐 Browser tests (${{ matrix.label }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [deps, changes, browser-build, validation-plan]
     strategy:
       fail-fast: false
