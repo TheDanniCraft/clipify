@@ -27,7 +27,7 @@ for (const [width, theme] of [
 		await expect(untilRevoked).toBeChecked();
 		await dialog.getByText("Keep access until revoked", { exact: true }).click();
 		await expect(untilRevoked).not.toBeChecked();
-		const duration = dialog.getByLabel("Clip access duration in days");
+		const duration = dialog.getByRole("textbox", { name: /^Clip access duration in days/ });
 		await duration.fill("730");
 		await expect(duration).toHaveValue("730");
 		await dialog.getByText("Keep access until revoked", { exact: true }).click();
