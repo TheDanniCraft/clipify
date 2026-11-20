@@ -25,13 +25,13 @@ for (const [width, theme] of [
 		await page.getByRole("option").filter({ hasText: owner.fixture.username }).click();
 		const untilRevoked = dialog.getByRole("checkbox", { name: "Keep access until revoked", exact: true });
 		await expect(untilRevoked).toBeChecked();
-		await untilRevoked.focus();
-		await untilRevoked.press("Space");
+		await dialog.getByText("Keep access until revoked", { exact: true }).click();
+		await expect(untilRevoked).not.toBeChecked();
 		const duration = dialog.getByRole("spinbutton", { name: "Clip access duration in days" });
 		await duration.fill("730");
 		await expect(duration).toHaveValue("730");
-		await untilRevoked.focus();
-		await untilRevoked.press("Space");
+		await dialog.getByText("Keep access until revoked", { exact: true }).click();
+		await expect(untilRevoked).toBeChecked();
 		await dialog.getByText("Play clips", { exact: true }).click();
 		await expect(dialog.getByRole("checkbox", { name: "Play clips", exact: true })).not.toBeChecked();
 		const signIn = dialog.getByRole("checkbox", { name: "Allow sign-in with Clipify", exact: true });
