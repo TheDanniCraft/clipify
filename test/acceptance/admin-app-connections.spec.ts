@@ -23,6 +23,15 @@ for (const [width, theme] of [
 		await dialog.getByRole("textbox", { name: /^Application name/ }).fill("Browser Awards");
 		await dialog.getByRole("combobox", { name: /^Creator/ }).fill(owner.fixture.username);
 		await page.getByRole("option").filter({ hasText: owner.fixture.username }).click();
+		const untilRevoked = dialog.getByRole("checkbox", { name: "Keep access until revoked", exact: true });
+		await expect(untilRevoked).toBeChecked();
+		await dialog.getByText("Keep access until revoked", { exact: true }).click();
+		await expect(untilRevoked).not.toBeChecked();
+		const duration = dialog.getByRole("textbox", { name: /^Clip access duration in days/ });
+		await duration.fill("730");
+		await expect(duration).toHaveValue("730");
+		await dialog.getByText("Keep access until revoked", { exact: true }).click();
+		await expect(untilRevoked).toBeChecked();
 		await dialog.getByText("Play clips", { exact: true }).click();
 		await expect(dialog.getByRole("checkbox", { name: "Play clips", exact: true })).not.toBeChecked();
 		const signIn = dialog.getByRole("checkbox", { name: "Allow sign-in with Clipify", exact: true });
@@ -64,7 +73,10 @@ for (const [width, theme] of [
 		await expect(page.getByRole("textbox", { name: "Connection configuration" })).toHaveCount(0);
 		const row = page.getByRole("row").filter({ hasText: "Browser Awards" });
 		await expect(row).toBeVisible();
+		await expect(row.getByText("Until revoked", { exact: true })).toBeVisible();
 		await expect(row.getByText("Play clips", { exact: true })).toHaveCount(0);
+		const storedGrant = await tourWorld.fixture.pool.query("SELECT expires_at FROM connected_app_grants WHERE id=$1", [connection.grantId]);
+		expect(storedGrant.rows[0].expires_at.toISOString()).toBe("9999-12-31T23:59:59.999Z");
 		await page.screenshot({ path: info.outputPath(`connection-list-${width}-${theme}.png`), fullPage: true });
 		const tokenResponse = await request.post(`${tourWorld.origin}/api/auth/oauth2/token`, { headers: { Authorization: `Basic ${Buffer.from(`${connection.clientId}:${connection.clientSecret}`).toString("base64")}` }, form: { grant_type: "client_credentials", scope: "creator:read", resource: `${tourWorld.origin}/api/connected-apps` } });
 		expect(tokenResponse.status(), await tokenResponse.text()).toBe(200);

@@ -1,13 +1,16 @@
 import { z } from "zod";
 
 export const connectionOperations = ["search_clips", "resolve_clip", "get_clip_playback"] as const;
+export const maximumConnectionDurationDays = 36500;
+export const untilRevokedExpiry = "9999-12-31T23:59:59.999Z";
+export const untilRevokedValue = "until_revoked" as const;
 export const connectionInput = z.discriminatedUnion("action", [
 	z
 		.object({
 			action: z.literal("provision"),
 			name: z.string().trim().min(1).max(80),
 			creatorId: z.string().regex(/^[A-Za-z0-9_-]{1,200}$/),
-			expiresAt: z.iso.datetime(),
+			expiresAt: z.union([z.iso.datetime(), z.literal(untilRevokedValue)]),
 			operations: z
 				.array(z.enum(connectionOperations))
 				.min(1)

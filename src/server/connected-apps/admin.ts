@@ -1,7 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { eq, inArray, sql } from "drizzle-orm";
-import { connectionInput } from "./admin-input";
+import { connectionInput, maximumConnectionDurationDays, untilRevokedExpiry, untilRevokedValue } from "./admin-input";
 import { oauthClient } from "@/db/auth-schema";
 import { db } from "@/db/client";
 import { auth } from "@/auth/config";
@@ -39,9 +39,9 @@ export async function handleConnectedAppAdminRequest(request: Request): Promise<
 			});
 			return Response.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
 		}
-		const expiresAt = new Date(input.expiresAt);
+		const expiresAt = new Date(input.expiresAt === untilRevokedValue ? untilRevokedExpiry : input.expiresAt);
 		const now = Date.now();
-		if (expiresAt.getTime() <= now || expiresAt.getTime() > now + 90 * 86400000) throw new ConnectedAppError("INVALID_INPUT", 400);
+		if (expiresAt.getTime() <= now || (input.expiresAt !== untilRevokedValue && expiresAt.getTime() > now + maximumConnectionDurationDays * 86400000)) throw new ConnectedAppError("INVALID_INPUT", 400);
 		const [creator] = await db.select({ id: usersTable.id, disabled: usersTable.disabled, status: creatorAccountsTable.status, subject: creatorIdentityLinksTable.authUserId }).from(usersTable).innerJoin(creatorAccountsTable, eq(creatorAccountsTable.creatorId, usersTable.id)).leftJoin(creatorIdentityLinksTable, eq(creatorIdentityLinksTable.creatorId, usersTable.id)).where(eq(usersTable.id, input.creatorId)).limit(1);
 		if (!creator || creator.disabled || creator.status !== "active" || (input.callbackUrl && !creator.subject)) throw new ConnectedAppError("ACCESS_DENIED");
 		// The provider validates and hashes secrets; never write raw credentials to storage.
