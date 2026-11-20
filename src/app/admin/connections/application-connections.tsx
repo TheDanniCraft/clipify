@@ -6,7 +6,7 @@ import ConfirmModal from "@components/confirmModal";
 import LocalizedDate from "@components/localizedDate";
 import { getAdminExplorerPage } from "@actions/adminView";
 import { notify } from "@lib/toast";
-import { connectionOperations } from "@/server/connected-apps/admin-input";
+import { connectionOperations, untilRevokedExpiry, untilRevokedValue } from "@/server/connected-apps/admin-input";
 
 type Operation = (typeof connectionOperations)[number];
 const labels: Record<Operation, string> = { search_clips: "Search clips", resolve_clip: "Read clip details", get_clip_playback: "Play clips" };
@@ -37,7 +37,7 @@ export default function ApplicationConnections() {
 		[creators, setCreators] = useState<{ id: string; username: string }[]>([]),
 		[creatorError, setCreatorError] = useState(false),
 		[creatorLoading, setCreatorLoading] = useState(false);
-	const [days, setDays] = useState("30"),
+	const [duration, setDuration] = useState<string>(untilRevokedValue),
 		[operations, setOperations] = useState<Operation[]>([...connectionOperations]),
 		[signIn, setSignIn] = useState(false),
 		[callbackUrl, setCallbackUrl] = useState("");
@@ -92,7 +92,8 @@ export default function ApplicationConnections() {
 		if (pending) return;
 		setPending(true);
 		try {
-			const result = await send({ action: "provision", name, creatorId, operations, expiresAt: new Date(Date.now() + Number(days) * 86400000).toISOString(), ...(signIn ? { callbackUrl } : {}) });
+			const expiresAt = duration === untilRevokedValue ? untilRevokedValue : new Date(Date.now() + Number(duration) * 86400000).toISOString();
+			const result = await send({ action: "provision", name, creatorId, operations, expiresAt, ...(signIn ? { callbackUrl } : {}) });
 			setCredentials(result);
 			setCopied(false);
 			setOpen(false);
@@ -141,6 +142,7 @@ export default function ApplicationConnections() {
 							setCreatorId(null);
 							setQuery("");
 							setOperations([...connectionOperations]);
+							setDuration(untilRevokedValue);
 							setSignIn(false);
 							setCallbackUrl("");
 							setOpen(true);
@@ -168,7 +170,7 @@ export default function ApplicationConnections() {
 										<Table.Column isRowHeader>Application</Table.Column>
 										<Table.Column>Creator</Table.Column>
 										<Table.Column>Permissions</Table.Column>
-										<Table.Column>Clip access expires</Table.Column>
+										<Table.Column>Clip access</Table.Column>
 										<Table.Column>Status</Table.Column>
 										<Table.Column>Actions</Table.Column>
 									</Table.Header>
@@ -199,9 +201,7 @@ export default function ApplicationConnections() {
 															))}
 														</div>
 													</Table.Cell>
-													<Table.Cell>
-														<LocalizedDate value={item.expiresAt} showTime />
-													</Table.Cell>
+													<Table.Cell>{item.expiresAt === untilRevokedExpiry ? "Until revoked" : <LocalizedDate value={item.expiresAt} showTime />}</Table.Cell>
 													<Table.Cell>
 														<Chip size='sm' color={inactive ? "default" : expired ? "warning" : "success"} variant='secondary'>
 															{item.revokedAt ? "Revoked" : item.disabled ? "Disabled" : expired ? "Expired" : "Active"}
@@ -246,18 +246,19 @@ export default function ApplicationConnections() {
 							<Modal.Heading>Add application connection</Modal.Heading>
 						</Modal.Header>
 						<Form
+							className='w-full'
 							onSubmit={(event) => {
 								event.preventDefault();
 								void create();
 							}}
 						>
 							<Modal.Body className='flex flex-col gap-5'>
-								<TextField isRequired variant='secondary' value={name} onChange={setName} isDisabled={pending}>
+								<TextField fullWidth isRequired variant='secondary' value={name} onChange={setName} isDisabled={pending}>
 									<Label>Application name</Label>
-									<Input maxLength={80} placeholder='Babbler Awards' />
+									<Input fullWidth maxLength={80} placeholder='Babbler Awards' />
 									<FieldError />
 								</TextField>
-								<ComboBox isRequired variant='secondary' selectedKey={creatorId} onSelectionChange={(key) => setCreatorId(key ? String(key) : null)} inputValue={query} onInputChange={setQuery} isDisabled={pending} allowsEmptyCollection>
+								<ComboBox fullWidth isRequired variant='secondary' selectedKey={creatorId} onSelectionChange={(key) => setCreatorId(key ? String(key) : null)} inputValue={query} onInputChange={setQuery} isDisabled={pending} allowsEmptyCollection>
 									<Label>Creator</Label>
 									<ComboBox.InputGroup>
 										<Input placeholder='Search by username or creator ID' />
@@ -290,13 +291,17 @@ export default function ApplicationConnections() {
 										</Checkbox>
 									))}
 								</fieldset>
-								<Select aria-label='Clip access duration' variant='secondary' selectedKey={days} onSelectionChange={(key) => setDays(String(key))} isDisabled={pending}>
+								<Select fullWidth aria-label='Clip access duration' variant='secondary' selectedKey={duration} onSelectionChange={(key) => setDuration(String(key))} isDisabled={pending}>
 									<Label>Clip access duration</Label>
 									<Select.Trigger>
 										<Select.Value />
 									</Select.Trigger>
 									<Select.Popover>
 										<ListBox>
+											<ListBox.Item id={untilRevokedValue} textValue='Until revoked'>
+												Until revoked
+												<ListBox.ItemIndicator />
+											</ListBox.Item>
 											{["7", "30", "90"].map((value) => (
 												<ListBox.Item key={value} id={value} textValue={`${value} days`}>
 													{value} days
@@ -305,6 +310,7 @@ export default function ApplicationConnections() {
 											))}
 										</ListBox>
 									</Select.Popover>
+									<Description>Temporary access expires automatically. Until revoked remains active until an administrator revokes it.</Description>
 								</Select>
 								<Checkbox isSelected={signIn} isDisabled={pending} onChange={setSignIn}>
 									<Checkbox.Content>
@@ -315,9 +321,9 @@ export default function ApplicationConnections() {
 									</Checkbox.Content>
 								</Checkbox>
 								{signIn && (
-									<TextField isRequired type='url' variant='secondary' value={callbackUrl} onChange={setCallbackUrl} isDisabled={pending}>
+									<TextField fullWidth isRequired type='url' variant='secondary' value={callbackUrl} onChange={setCallbackUrl} isDisabled={pending}>
 										<Label>Sign-in callback URL</Label>
-										<Input placeholder='https://app.example/api/auth/callback/clipify' />
+										<Input fullWidth placeholder='https://awards.example/api/auth/callback/clipify' />
 										<Description>Use the app’s exact HTTPS callback address. Users still authorize their own sign-in. This client remains enabled until you revoke the connection.</Description>
 										<FieldError />
 									</TextField>

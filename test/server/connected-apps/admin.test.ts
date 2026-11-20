@@ -27,7 +27,7 @@ jest.mock("@/server/connected-apps/oauth-policy", () => ({ CONNECTED_APP_SCOPE: 
 jest.mock("@/app/lib/baseUrl", () => ({ resolveBaseUrl: () => new URL("https://clipify.test") }));
 const capture = jest.fn();
 jest.mock("@/app/lib/sentryServer", () => ({ captureUnexpectedError: (...args: unknown[]) => capture(...args) }));
-import { connectionOperations } from "@/server/connected-apps/admin-input";
+import { connectionOperations, untilRevokedExpiry, untilRevokedValue } from "@/server/connected-apps/admin-input";
 import { handleConnectedAppAdminRequest } from "@/server/connected-apps/admin";
 const provision = () => ({ action: "provision", name: "Babbler Awards", creatorId: "creator", expiresAt: new Date(Date.now() + 3600000).toISOString() });
 const request = (body: unknown = provision(), origin = "https://clipify.test") => new Request("https://clipify.test/api/connected-apps/admin", { method: "POST", headers: { "Content-Type": "application/json", Origin: origin, Cookie: "real-admin-session" }, body: JSON.stringify(body) });
@@ -63,6 +63,12 @@ it("provisions only machine clip-search access for an enabled creator and real a
 	expect(create.mock.calls[0][0].body).not.toHaveProperty("redirect_uris");
 	expect(insert).toHaveBeenCalledWith(expect.objectContaining({ clientId: "app", creatorId: "creator", operations: ["search_clips"], provisionedBy: "admin" }));
 	expect(response.headers.get("Cache-Control")).toBe("no-store");
+});
+it("provisions clip access until an administrator revokes it", async () => {
+	const response = await handleConnectedAppAdminRequest(request({ ...provision(), expiresAt: untilRevokedValue }));
+	expect(response.status).toBe(201);
+	expect(insert).toHaveBeenCalledWith(expect.objectContaining({ expiresAt: new Date(untilRevokedExpiry) }));
+	expect(await response.json()).toMatchObject({ ok: true, data: { expiresAt: untilRevokedExpiry } });
 });
 it.each([
 	{ label: "missing", creators: [] },

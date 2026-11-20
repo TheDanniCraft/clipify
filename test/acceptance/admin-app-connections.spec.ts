@@ -23,6 +23,7 @@ for (const [width, theme] of [
 		await dialog.getByRole("textbox", { name: /^Application name/ }).fill("Browser Awards");
 		await dialog.getByRole("combobox", { name: /^Creator/ }).fill(owner.fixture.username);
 		await page.getByRole("option").filter({ hasText: owner.fixture.username }).click();
+		await expect(dialog.getByRole("combobox", { name: "Clip access duration" })).toHaveText(/Until revoked/);
 		await dialog.getByText("Play clips", { exact: true }).click();
 		await expect(dialog.getByRole("checkbox", { name: "Play clips", exact: true })).not.toBeChecked();
 		const signIn = dialog.getByRole("checkbox", { name: "Allow sign-in with Clipify", exact: true });
@@ -64,7 +65,10 @@ for (const [width, theme] of [
 		await expect(page.getByRole("textbox", { name: "Connection configuration" })).toHaveCount(0);
 		const row = page.getByRole("row").filter({ hasText: "Browser Awards" });
 		await expect(row).toBeVisible();
+		await expect(row.getByText("Until revoked", { exact: true })).toBeVisible();
 		await expect(row.getByText("Play clips", { exact: true })).toHaveCount(0);
+		const storedGrant = await tourWorld.fixture.pool.query("SELECT expires_at FROM connected_app_grants WHERE id=$1", [connection.grantId]);
+		expect(storedGrant.rows[0].expires_at.toISOString()).toBe("9999-12-31T23:59:59.999Z");
 		await page.screenshot({ path: info.outputPath(`connection-list-${width}-${theme}.png`), fullPage: true });
 		const tokenResponse = await request.post(`${tourWorld.origin}/api/auth/oauth2/token`, { headers: { Authorization: `Basic ${Buffer.from(`${connection.clientId}:${connection.clientSecret}`).toString("base64")}` }, form: { grant_type: "client_credentials", scope: "creator:read", resource: `${tourWorld.origin}/api/connected-apps` } });
 		expect(tokenResponse.status(), await tokenResponse.text()).toBe(200);
