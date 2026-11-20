@@ -2,7 +2,7 @@
 
 Administrators use **Admin → Connections** to approve a companion app.
 Choose the creator, the required clip-read permissions, and either access until
-revocation or a temporary 7-, 30-, or 90-day clip-access period. Sign-in is optional and uses a separate OAuth client with PKCE and
+revocation or a custom temporary clip-access period in days. Sign-in is optional and uses a separate OAuth client with PKCE and
 an exact HTTPS callback. Its sign-in client remains enabled until the connection is
 revoked; the chosen expiry limits creator clip access. Sign-in does not grant the
 app access to other creators.

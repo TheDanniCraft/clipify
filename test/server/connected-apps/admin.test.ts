@@ -27,7 +27,7 @@ jest.mock("@/server/connected-apps/oauth-policy", () => ({ CONNECTED_APP_SCOPE: 
 jest.mock("@/app/lib/baseUrl", () => ({ resolveBaseUrl: () => new URL("https://clipify.test") }));
 const capture = jest.fn();
 jest.mock("@/app/lib/sentryServer", () => ({ captureUnexpectedError: (...args: unknown[]) => capture(...args) }));
-import { connectionOperations, untilRevokedExpiry, untilRevokedValue } from "@/server/connected-apps/admin-input";
+import { connectionOperations, maximumConnectionDurationDays, untilRevokedExpiry, untilRevokedValue } from "@/server/connected-apps/admin-input";
 import { handleConnectedAppAdminRequest } from "@/server/connected-apps/admin";
 const provision = () => ({ action: "provision", name: "Babbler Awards", creatorId: "creator", expiresAt: new Date(Date.now() + 3600000).toISOString() });
 const request = (body: unknown = provision(), origin = "https://clipify.test") => new Request("https://clipify.test/api/connected-apps/admin", { method: "POST", headers: { "Content-Type": "application/json", Origin: origin, Cookie: "real-admin-session" }, body: JSON.stringify(body) });
@@ -84,7 +84,7 @@ it("refuses foreign origins and malformed or overlong authorisation", async () =
 	for (const body of [
 		{ ...provision(), operations: ["delete_creator"] },
 		{ ...provision(), expiresAt: new Date(0).toISOString() },
-		{ ...provision(), expiresAt: new Date(Date.now() + 91 * 86400000).toISOString() },
+		{ ...provision(), expiresAt: new Date(Date.now() + (maximumConnectionDurationDays + 1) * 86400000).toISOString() },
 		{ ...provision(), name: "" },
 	])
 		expect((await handleConnectedAppAdminRequest(request(body))).status).toBe(400);

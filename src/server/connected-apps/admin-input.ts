@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const connectionOperations = ["search_clips", "resolve_clip", "get_clip_playback"] as const;
+export const maximumConnectionDurationDays = 36500;
 export const untilRevokedExpiry = "9999-12-31T23:59:59.999Z";
 export const untilRevokedValue = "until_revoked" as const;
 export const connectionInput = z.discriminatedUnion("action", [

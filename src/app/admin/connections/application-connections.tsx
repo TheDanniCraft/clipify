@@ -1,12 +1,12 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { Button, Card, Checkbox, Chip, ComboBox, Description, FieldError, Form, Input, Label, ListBox, Modal, Select, Skeleton, Table, TextArea, TextField } from "@heroui/react";
+import { Button, Card, Checkbox, Chip, ComboBox, Description, FieldError, Form, Input, Label, ListBox, Modal, NumberField, Skeleton, Table, TextArea, TextField } from "@heroui/react";
 import { IconCopy, IconPlus, IconPlugConnected } from "@tabler/icons-react";
 import ConfirmModal from "@components/confirmModal";
 import LocalizedDate from "@components/localizedDate";
 import { getAdminExplorerPage } from "@actions/adminView";
 import { notify } from "@lib/toast";
-import { connectionOperations, untilRevokedExpiry, untilRevokedValue } from "@/server/connected-apps/admin-input";
+import { connectionOperations, maximumConnectionDurationDays, untilRevokedExpiry, untilRevokedValue } from "@/server/connected-apps/admin-input";
 
 type Operation = (typeof connectionOperations)[number];
 const labels: Record<Operation, string> = { search_clips: "Search clips", resolve_clip: "Read clip details", get_clip_playback: "Play clips" };
@@ -37,7 +37,8 @@ export default function ApplicationConnections() {
 		[creators, setCreators] = useState<{ id: string; username: string }[]>([]),
 		[creatorError, setCreatorError] = useState(false),
 		[creatorLoading, setCreatorLoading] = useState(false);
-	const [duration, setDuration] = useState<string>(untilRevokedValue),
+	const [untilRevoked, setUntilRevoked] = useState(true),
+		[durationDays, setDurationDays] = useState(365),
 		[operations, setOperations] = useState<Operation[]>([...connectionOperations]),
 		[signIn, setSignIn] = useState(false),
 		[callbackUrl, setCallbackUrl] = useState("");
@@ -92,7 +93,7 @@ export default function ApplicationConnections() {
 		if (pending) return;
 		setPending(true);
 		try {
-			const expiresAt = duration === untilRevokedValue ? untilRevokedValue : new Date(Date.now() + Number(duration) * 86400000).toISOString();
+			const expiresAt = untilRevoked ? untilRevokedValue : new Date(Date.now() + durationDays * 86400000).toISOString();
 			const result = await send({ action: "provision", name, creatorId, operations, expiresAt, ...(signIn ? { callbackUrl } : {}) });
 			setCredentials(result);
 			setCopied(false);
@@ -142,7 +143,8 @@ export default function ApplicationConnections() {
 							setCreatorId(null);
 							setQuery("");
 							setOperations([...connectionOperations]);
-							setDuration(untilRevokedValue);
+							setUntilRevoked(true);
+							setDurationDays(365);
 							setSignIn(false);
 							setCallbackUrl("");
 							setOpen(true);
@@ -255,7 +257,7 @@ export default function ApplicationConnections() {
 							<Modal.Body className='flex flex-col gap-5'>
 								<TextField fullWidth isRequired variant='secondary' value={name} onChange={setName} isDisabled={pending}>
 									<Label>Application name</Label>
-									<Input fullWidth maxLength={80} placeholder='Babbler Awards' />
+									<Input fullWidth maxLength={80} placeholder='Application name' />
 									<FieldError />
 								</TextField>
 								<ComboBox fullWidth isRequired variant='secondary' selectedKey={creatorId} onSelectionChange={(key) => setCreatorId(key ? String(key) : null)} inputValue={query} onInputChange={setQuery} isDisabled={pending} allowsEmptyCollection>
@@ -291,27 +293,24 @@ export default function ApplicationConnections() {
 										</Checkbox>
 									))}
 								</fieldset>
-								<Select fullWidth aria-label='Clip access duration' variant='secondary' selectedKey={duration} onSelectionChange={(key) => setDuration(String(key))} isDisabled={pending}>
-									<Label>Clip access duration</Label>
-									<Select.Trigger>
-										<Select.Value />
-									</Select.Trigger>
-									<Select.Popover>
-										<ListBox>
-											<ListBox.Item id={untilRevokedValue} textValue='Until revoked'>
-												Until revoked
-												<ListBox.ItemIndicator />
-											</ListBox.Item>
-											{["7", "30", "90"].map((value) => (
-												<ListBox.Item key={value} id={value} textValue={`${value} days`}>
-													{value} days
-													<ListBox.ItemIndicator />
-												</ListBox.Item>
-											))}
-										</ListBox>
-									</Select.Popover>
-									<Description>Temporary access expires automatically. Until revoked remains active until an administrator revokes it.</Description>
-								</Select>
+								<NumberField fullWidth isRequired variant='secondary' value={durationDays} onChange={setDurationDays} minValue={1} maxValue={maximumConnectionDurationDays} step={1} isDisabled={pending || untilRevoked}>
+									<Label>Clip access duration in days</Label>
+									<NumberField.Group>
+										<NumberField.DecrementButton />
+										<NumberField.Input />
+										<NumberField.IncrementButton />
+									</NumberField.Group>
+									<Description>Choose how many days the application can access this creator’s clips.</Description>
+									<FieldError />
+								</NumberField>
+								<Checkbox isSelected={untilRevoked} isDisabled={pending} onChange={setUntilRevoked}>
+									<Checkbox.Content>
+										<Checkbox.Control>
+											<Checkbox.Indicator />
+										</Checkbox.Control>
+										Keep access until revoked
+									</Checkbox.Content>
+								</Checkbox>
 								<Checkbox isSelected={signIn} isDisabled={pending} onChange={setSignIn}>
 									<Checkbox.Content>
 										<Checkbox.Control>
@@ -323,7 +322,7 @@ export default function ApplicationConnections() {
 								{signIn && (
 									<TextField fullWidth isRequired type='url' variant='secondary' value={callbackUrl} onChange={setCallbackUrl} isDisabled={pending}>
 										<Label>Sign-in callback URL</Label>
-										<Input fullWidth placeholder='https://awards.example/api/auth/callback/clipify' />
+										<Input fullWidth placeholder='https://app.example/api/auth/callback/clipify' />
 										<Description>Use the app’s exact HTTPS callback address. Users still authorize their own sign-in. This client remains enabled until you revoke the connection.</Description>
 										<FieldError />
 									</TextField>

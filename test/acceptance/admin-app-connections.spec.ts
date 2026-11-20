@@ -23,7 +23,14 @@ for (const [width, theme] of [
 		await dialog.getByRole("textbox", { name: /^Application name/ }).fill("Browser Awards");
 		await dialog.getByRole("combobox", { name: /^Creator/ }).fill(owner.fixture.username);
 		await page.getByRole("option").filter({ hasText: owner.fixture.username }).click();
-		await expect(dialog.getByRole("combobox", { name: "Clip access duration" })).toHaveText(/Until revoked/);
+		const untilRevoked = dialog.getByRole("checkbox", { name: "Keep access until revoked", exact: true });
+		const duration = dialog.getByRole("spinbutton", { name: "Clip access duration in days" });
+		await expect(untilRevoked).toBeChecked();
+		await expect(duration).toBeDisabled();
+		await untilRevoked.click();
+		await duration.fill("730");
+		await expect(duration).toHaveValue("730");
+		await untilRevoked.click();
 		await dialog.getByText("Play clips", { exact: true }).click();
 		await expect(dialog.getByRole("checkbox", { name: "Play clips", exact: true })).not.toBeChecked();
 		const signIn = dialog.getByRole("checkbox", { name: "Allow sign-in with Clipify", exact: true });
