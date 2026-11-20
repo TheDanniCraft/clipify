@@ -26,7 +26,7 @@ for (const [width, theme] of [
 		const untilRevoked = dialog.getByRole("checkbox", { name: "Keep access until revoked", exact: true });
 		const duration = dialog.getByRole("spinbutton", { name: "Clip access duration in days" });
 		await expect(untilRevoked).toBeChecked();
-		await expect(duration).toBeDisabled();
+		await expect(duration).toHaveJSProperty("readOnly", true);
 		await untilRevoked.click();
 		await duration.fill("730");
 		await expect(duration).toHaveValue("730");

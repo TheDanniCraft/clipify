@@ -293,7 +293,7 @@ export default function ApplicationConnections() {
 										</Checkbox>
 									))}
 								</fieldset>
-								<NumberField fullWidth isRequired variant='secondary' value={durationDays} onChange={setDurationDays} minValue={1} maxValue={maximumConnectionDurationDays} step={1} isDisabled={pending || untilRevoked}>
+								<NumberField fullWidth isRequired variant='secondary' value={durationDays} onChange={setDurationDays} minValue={1} maxValue={maximumConnectionDurationDays} step={1} isDisabled={pending} isReadOnly={untilRevoked}>
 									<Label>Clip access duration in days</Label>
 									<NumberField.Group>
 										<NumberField.DecrementButton />
