@@ -25,6 +25,7 @@ for (const [width, theme] of [
 		await page.getByRole("option").filter({ hasText: owner.fixture.username }).click();
 		const untilRevoked = dialog.getByRole("checkbox", { name: "Keep access until revoked", exact: true });
 		await expect(untilRevoked).toBeChecked();
+		await expect(dialog.getByRole("textbox", { name: /^Clip access duration in days/ })).toHaveCount(0);
 		await dialog.getByText("Keep access until revoked", { exact: true }).click();
 		await expect(untilRevoked).not.toBeChecked();
 		const duration = dialog.getByRole("textbox", { name: /^Clip access duration in days/ });
@@ -32,6 +33,7 @@ for (const [width, theme] of [
 		await expect(duration).toHaveValue("730");
 		await dialog.getByText("Keep access until revoked", { exact: true }).click();
 		await expect(untilRevoked).toBeChecked();
+		await expect(dialog.getByRole("textbox", { name: /^Clip access duration in days/ })).toHaveCount(0);
 		await dialog.getByText("Play clips", { exact: true }).click();
 		await expect(dialog.getByRole("checkbox", { name: "Play clips", exact: true })).not.toBeChecked();
 		const signIn = dialog.getByRole("checkbox", { name: "Allow sign-in with Clipify", exact: true });
@@ -42,11 +44,17 @@ for (const [width, theme] of [
 		await dialog.screenshot({ path: info.outputPath(`connection-create-${width}-${theme}.png`) });
 		await tourWorld.fixture.pool.query(`UPDATE auth.session SET created_at=now()-interval '10 minutes' WHERE user_id=$1`, [owner.fixture.authUserId]);
 		await dialog.getByRole("button", { name: "Create connection", exact: true }).click();
-		await expect(page.getByText("Sign in again before creating application credentials.")).toBeVisible();
-		await page.getByRole("dialog", { name: "Action could not be completed", exact: true }).getByRole("button", { name: "Close message", exact: true }).click();
+		const reauthentication = page.getByRole("dialog").filter({ has: page.getByRole("heading", { name: "Sign in again to continue", exact: true }) });
+		await expect(reauthentication).toBeVisible();
 		await expect(dialog.getByRole("textbox", { name: /^Application name/ })).toHaveValue("Browser Awards");
 		expect(Number((await tourWorld.fixture.pool.query("SELECT count(*) FROM connected_app_grants")).rows[0].count)).toBe(0);
 		await tourWorld.fixture.pool.query("UPDATE auth.session SET created_at=now() WHERE user_id=$1", [owner.fixture.authUserId]);
+		await page.goto(`${tourWorld.origin}/admin/connections?reauthentication=complete`);
+		const restoredDialog = page.getByRole("dialog").filter({ has: page.getByRole("heading", { name: "Add application connection", exact: true }) });
+		await expect(restoredDialog).toBeVisible();
+		await expect(restoredDialog.getByRole("textbox", { name: /^Application name/ })).toHaveValue("Browser Awards");
+		await expect(restoredDialog.getByRole("checkbox", { name: "Keep access until revoked", exact: true })).toBeChecked();
+		await expect(restoredDialog.getByRole("textbox", { name: /^Clip access duration in days/ })).toHaveCount(0);
 		// An actual denial preserves the draft and has no credential side effects.
 		await page.route("**/api/connected-apps/admin", async (route) => {
 			if (route.request().method() === "POST") {
@@ -54,12 +62,12 @@ for (const [width, theme] of [
 				await page.unroute("**/api/connected-apps/admin");
 			} else await route.continue();
 		});
-		await dialog.getByRole("button", { name: "Create connection", exact: true }).click();
+		await restoredDialog.getByRole("button", { name: "Create connection", exact: true }).click();
 		await expect(page.getByText("Access denied. Check your administrator session and the creator’s account.")).toBeVisible();
 		await page.getByRole("dialog", { name: "Action could not be completed", exact: true }).getByRole("button", { name: "Close message", exact: true }).click();
-		await expect(dialog.getByRole("textbox", { name: /^Application name/ })).toHaveValue("Browser Awards");
+		await expect(restoredDialog.getByRole("textbox", { name: /^Application name/ })).toHaveValue("Browser Awards");
 		const created = page.waitForResponse((response) => response.url().endsWith("/api/connected-apps/admin") && response.request().method() === "POST");
-		await dialog.getByRole("button", { name: "Create connection", exact: true }).click();
+		await restoredDialog.getByRole("button", { name: "Create connection", exact: true }).click();
 		const response = await created;
 		expect(response.status()).toBe(201);
 		const connection = (await response.json()).data;

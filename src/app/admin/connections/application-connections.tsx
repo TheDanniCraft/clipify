@@ -4,6 +4,7 @@ import { Button, Card, Checkbox, Chip, ComboBox, Description, FieldError, Form, 
 import { IconCopy, IconPlus, IconPlugConnected } from "@tabler/icons-react";
 import ConfirmModal from "@components/confirmModal";
 import LocalizedDate from "@components/localizedDate";
+import ReauthenticationModal from "@components/reauthenticationModal";
 import { getAdminExplorerPage } from "@actions/adminView";
 import { notify } from "@lib/toast";
 import { connectionOperations, maximumConnectionDurationDays, untilRevokedExpiry, untilRevokedValue } from "@/server/connected-apps/admin-input";
@@ -12,6 +13,9 @@ type Operation = (typeof connectionOperations)[number];
 const labels: Record<Operation, string> = { search_clips: "Search clips", resolve_clip: "Read clip details", get_clip_playback: "Play clips" };
 type Connection = { id: string; name: string | null; clientId: string; creatorId: string; username: string; operations: Operation[]; expiresAt: string; revokedAt: string | null; disabled: boolean | null };
 type Credentials = { clientId: string; clientSecret: string; creatorId: string; expiresAt: string; identity?: { clientId: string; clientSecret: string }; callbackUrl?: string; creatorSubject?: string };
+type ConnectionDraft = { name: string; creatorId: string | null; operations: Operation[]; untilRevoked: boolean; durationDays: number; signIn: boolean; callbackUrl: string };
+type PendingSensitiveAction = { kind: "provision"; draft: ConnectionDraft } | { kind: "revoke"; grantId: string };
+const pendingSensitiveActionKey = "clipify.pending-application-connection-action";
 async function send(body: unknown) {
 	const response = await fetch("/api/connected-apps/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 	const result = await response.json();
@@ -29,6 +33,8 @@ export default function ApplicationConnections() {
 		[loadFailed, setLoadFailed] = useState(false);
 	const [open, setOpen] = useState(false),
 		[pending, setPending] = useState(false),
+		[reauthenticating, setReauthenticating] = useState(false),
+		[resumeRevokeId, setResumeRevokeId] = useState<string | null>(null),
 		[revoke, setRevoke] = useState<Connection | null>(null),
 		[credentials, setCredentials] = useState<Credentials | null>(null);
 	const [name, setName] = useState(""),
@@ -70,6 +76,43 @@ export default function ApplicationConnections() {
 		};
 	}, [load]);
 	useEffect(() => {
+		const search = new URLSearchParams(window.location.search);
+		const outcome = search.get("reauthentication");
+		if (!outcome) return;
+		search.delete("reauthentication");
+		window.history.replaceState(null, "", `${window.location.pathname}${search.size ? `?${search.toString()}` : ""}${window.location.hash}`);
+		const stored = window.sessionStorage.getItem(pendingSensitiveActionKey);
+		window.sessionStorage.removeItem(pendingSensitiveActionKey);
+		if (!stored) return;
+		try {
+			const action = JSON.parse(stored) as PendingSensitiveAction;
+			queueMicrotask(() => {
+				if (action.kind === "provision") {
+					setName(action.draft.name);
+					setCreatorId(action.draft.creatorId);
+					setQuery("");
+					setOperations(action.draft.operations);
+					setUntilRevoked(action.draft.untilRevoked);
+					setDurationDays(action.draft.durationDays);
+					setSignIn(action.draft.signIn);
+					setCallbackUrl(action.draft.callbackUrl);
+					setOpen(true);
+				} else if (action.kind === "revoke") setResumeRevokeId(action.grantId);
+				if (outcome === "complete") notify({ title: "Identity verified", description: "You can now finish the application connection action.", color: "success" });
+				else notify({ title: "Sign-in could not be completed", description: "No application access was changed.", color: "danger" });
+			});
+		} catch {
+			// Ignore invalid browser state; the server remains the source of truth.
+		}
+	}, []);
+	useEffect(() => {
+		if (!resumeRevokeId || loading) return;
+		queueMicrotask(() => {
+			setRevoke(items.find((item) => item.id === resumeRevokeId) ?? null);
+			setResumeRevokeId(null);
+		});
+	}, [items, loading, resumeRevokeId]);
+	useEffect(() => {
 		if (!open) return;
 		let active = true;
 		const timer = setTimeout(async () => {
@@ -91,6 +134,7 @@ export default function ApplicationConnections() {
 	}, [open, query]);
 	async function create() {
 		if (pending) return;
+		const draft: ConnectionDraft = { name, creatorId, operations, untilRevoked, durationDays, signIn, callbackUrl };
 		setPending(true);
 		try {
 			const expiresAt = untilRevoked ? untilRevokedValue : new Date(Date.now() + durationDays * 86400000).toISOString();
@@ -100,7 +144,10 @@ export default function ApplicationConnections() {
 			setOpen(false);
 			void load();
 		} catch (error) {
-			setActionError(error instanceof Error && error.message === "RECENT_AUTH_REQUIRED" ? "Sign in again before creating application credentials." : error instanceof Error && error.message === "ACCESS_DENIED" ? "Access denied. Check your administrator session and the creator’s account." : "Connection could not be created. Check the fields and try again.");
+			if (error instanceof Error && error.message === "RECENT_AUTH_REQUIRED") {
+				window.sessionStorage.setItem(pendingSensitiveActionKey, JSON.stringify({ kind: "provision", draft } satisfies PendingSensitiveAction));
+				setReauthenticating(true);
+			} else setActionError(error instanceof Error && error.message === "ACCESS_DENIED" ? "Access denied. Check your administrator session and the creator’s account." : "Connection could not be created. Check the fields and try again.");
 		} finally {
 			setPending(false);
 		}
@@ -114,7 +161,10 @@ export default function ApplicationConnections() {
 			notify({ title: "Application access revoked", color: "success" });
 			void load();
 		} catch (error) {
-			setActionError(error instanceof Error && error.message === "RECENT_AUTH_REQUIRED" ? "Sign in again before revoking application access." : "Could not revoke access. Try again.");
+			if (error instanceof Error && error.message === "RECENT_AUTH_REQUIRED") {
+				window.sessionStorage.setItem(pendingSensitiveActionKey, JSON.stringify({ kind: "revoke", grantId: revoke.id } satisfies PendingSensitiveAction));
+				setReauthenticating(true);
+			} else setActionError("Could not revoke access. Try again.");
 		} finally {
 			setPending(false);
 		}
@@ -236,7 +286,7 @@ export default function ApplicationConnections() {
 				</Card.Content>
 			</Card>
 			<Modal.Backdrop
-				isOpen={open}
+				isOpen={open && !reauthenticating}
 				onOpenChange={(value) => {
 					if (!pending) setOpen(value);
 				}}
@@ -293,16 +343,6 @@ export default function ApplicationConnections() {
 										</Checkbox>
 									))}
 								</fieldset>
-								<NumberField fullWidth isRequired variant='secondary' value={durationDays} onChange={setDurationDays} minValue={1} maxValue={maximumConnectionDurationDays} step={1} isDisabled={pending} isReadOnly={untilRevoked}>
-									<Label>Clip access duration in days</Label>
-									<NumberField.Group>
-										<NumberField.DecrementButton />
-										<NumberField.Input />
-										<NumberField.IncrementButton />
-									</NumberField.Group>
-									<Description>Choose how many days the application can access this creator’s clips.</Description>
-									<FieldError />
-								</NumberField>
 								<Checkbox isSelected={untilRevoked} isDisabled={pending} onChange={setUntilRevoked}>
 									<Checkbox.Content>
 										<Checkbox.Control>
@@ -311,6 +351,18 @@ export default function ApplicationConnections() {
 										Keep access until revoked
 									</Checkbox.Content>
 								</Checkbox>
+								{!untilRevoked && (
+									<NumberField fullWidth isRequired variant='secondary' value={durationDays} onChange={setDurationDays} minValue={1} maxValue={maximumConnectionDurationDays} step={1} isDisabled={pending}>
+										<Label>Clip access duration in days</Label>
+										<NumberField.Group>
+											<NumberField.DecrementButton />
+											<NumberField.Input />
+											<NumberField.IncrementButton />
+										</NumberField.Group>
+										<Description>Choose how many days the application can access this creator’s clips.</Description>
+										<FieldError />
+									</NumberField>
+								)}
 								<Checkbox isSelected={signIn} isDisabled={pending} onChange={setSignIn}>
 									<Checkbox.Content>
 										<Checkbox.Control>
@@ -395,7 +447,7 @@ export default function ApplicationConnections() {
 				</Modal.Container>
 			</Modal.Backdrop>
 			<ConfirmModal
-				isOpen={Boolean(revoke)}
+				isOpen={Boolean(revoke) && !reauthenticating}
 				isPending={pending}
 				onOpenChange={(value) => {
 					if (!value && !pending) setRevoke(null);
@@ -404,6 +456,15 @@ export default function ApplicationConnections() {
 				description={`Stop ${revoke?.name ?? "this application"} from accessing this creator’s clips and disable its associated sign-in client.`}
 				confirmLabel='Revoke access'
 				onConfirm={revokeAccess}
+			/>
+			<ReauthenticationModal
+				isOpen={reauthenticating}
+				onClose={() => {
+					setReauthenticating(false);
+					window.sessionStorage.removeItem(pendingSensitiveActionKey);
+				}}
+				callbackURL='/admin/connections?reauthentication=complete'
+				errorCallbackURL='/admin/connections?reauthentication=failed'
 			/>
 		</div>
 	);
