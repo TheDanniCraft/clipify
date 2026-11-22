@@ -7,7 +7,7 @@ import LocalizedDate from "@components/localizedDate";
 import ReauthenticationModal from "@components/reauthenticationModal";
 import { getAdminExplorerPage } from "@actions/adminView";
 import { notify } from "@lib/toast";
-import { connectionOperations, maximumConnectionDurationDays, untilRevokedExpiry, untilRevokedValue } from "@/server/connected-apps/admin-input";
+import { connectionCallbackUrlInput, connectionOperations, maximumConnectionDurationDays, untilRevokedExpiry, untilRevokedValue } from "@/server/connected-apps/admin-input";
 
 type Operation = (typeof connectionOperations)[number];
 const labels: Record<Operation, string> = { search_clips: "Search clips", resolve_clip: "Read clip details", get_clip_playback: "Play clips" };
@@ -47,7 +47,8 @@ export default function ApplicationConnections() {
 		[durationDays, setDurationDays] = useState(365),
 		[operations, setOperations] = useState<Operation[]>([...connectionOperations]),
 		[signIn, setSignIn] = useState(false),
-		[callbackUrl, setCallbackUrl] = useState("");
+		[callbackUrl, setCallbackUrl] = useState(""),
+		[callbackUrlError, setCallbackUrlError] = useState("");
 	const load = useCallback(
 		async (signal?: AbortSignal) => {
 			setLoading(true);
@@ -134,6 +135,10 @@ export default function ApplicationConnections() {
 	}, [open, query]);
 	async function create() {
 		if (pending) return;
+		if (signIn && !connectionCallbackUrlInput.safeParse(callbackUrl).success) {
+			setCallbackUrlError("Enter an exact HTTPS callback URL without a query, fragment or custom port.");
+			return;
+		}
 		const draft: ConnectionDraft = { name, creatorId, creatorQuery: query, operations, untilRevoked, durationDays, signIn, callbackUrl };
 		setPending(true);
 		try {
@@ -197,6 +202,7 @@ export default function ApplicationConnections() {
 							setDurationDays(365);
 							setSignIn(false);
 							setCallbackUrl("");
+							setCallbackUrlError("");
 							setOpen(true);
 						}}
 					>
@@ -372,11 +378,24 @@ export default function ApplicationConnections() {
 									</Checkbox.Content>
 								</Checkbox>
 								{signIn && (
-									<TextField fullWidth isRequired type='url' variant='secondary' value={callbackUrl} onChange={setCallbackUrl} isDisabled={pending}>
+									<TextField
+										fullWidth
+										isRequired
+										type='url'
+										variant='secondary'
+										validationBehavior='aria'
+										value={callbackUrl}
+										onChange={(value) => {
+											setCallbackUrl(value);
+											setCallbackUrlError("");
+										}}
+										isInvalid={Boolean(callbackUrlError)}
+										isDisabled={pending}
+									>
 										<Label>Sign-in callback URL</Label>
 										<Input fullWidth placeholder='https://app.example/api/auth/callback/clipify' />
 										<Description>Use the app’s exact HTTPS callback address. Users still authorize their own sign-in. This client remains enabled until you revoke the connection.</Description>
-										<FieldError />
+										<FieldError>{callbackUrlError}</FieldError>
 									</TextField>
 								)}
 							</Modal.Body>
