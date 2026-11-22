@@ -53,6 +53,7 @@ for (const [width, theme] of [
 		const restoredDialog = page.getByRole("dialog").filter({ has: page.getByRole("heading", { name: "Add application connection", exact: true }) });
 		await expect(restoredDialog).toBeVisible();
 		await expect(restoredDialog.getByRole("textbox", { name: /^Application name/ })).toHaveValue("Browser Awards");
+		await expect(restoredDialog.getByRole("combobox", { name: /^Creator/ })).toHaveValue(owner.fixture.username);
 		await expect(restoredDialog.getByRole("checkbox", { name: "Keep access until revoked", exact: true })).toBeChecked();
 		await expect(restoredDialog.getByRole("textbox", { name: /^Clip access duration in days/ })).toHaveCount(0);
 		// An actual denial preserves the draft and has no credential side effects.

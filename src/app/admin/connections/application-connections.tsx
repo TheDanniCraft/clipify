@@ -13,7 +13,7 @@ type Operation = (typeof connectionOperations)[number];
 const labels: Record<Operation, string> = { search_clips: "Search clips", resolve_clip: "Read clip details", get_clip_playback: "Play clips" };
 type Connection = { id: string; name: string | null; clientId: string; creatorId: string; username: string; operations: Operation[]; expiresAt: string; revokedAt: string | null; disabled: boolean | null };
 type Credentials = { clientId: string; clientSecret: string; creatorId: string; expiresAt: string; identity?: { clientId: string; clientSecret: string }; callbackUrl?: string; creatorSubject?: string };
-type ConnectionDraft = { name: string; creatorId: string | null; operations: Operation[]; untilRevoked: boolean; durationDays: number; signIn: boolean; callbackUrl: string };
+type ConnectionDraft = { name: string; creatorId: string | null; creatorQuery: string; operations: Operation[]; untilRevoked: boolean; durationDays: number; signIn: boolean; callbackUrl: string };
 type PendingSensitiveAction = { kind: "provision"; draft: ConnectionDraft } | { kind: "revoke"; grantId: string };
 const pendingSensitiveActionKey = "clipify.pending-application-connection-action";
 async function send(body: unknown) {
@@ -90,7 +90,7 @@ export default function ApplicationConnections() {
 				if (action.kind === "provision") {
 					setName(action.draft.name);
 					setCreatorId(action.draft.creatorId);
-					setQuery("");
+					setQuery(action.draft.creatorQuery);
 					setOperations(action.draft.operations);
 					setUntilRevoked(action.draft.untilRevoked);
 					setDurationDays(action.draft.durationDays);
@@ -134,7 +134,7 @@ export default function ApplicationConnections() {
 	}, [open, query]);
 	async function create() {
 		if (pending) return;
-		const draft: ConnectionDraft = { name, creatorId, operations, untilRevoked, durationDays, signIn, callbackUrl };
+		const draft: ConnectionDraft = { name, creatorId, creatorQuery: query, operations, untilRevoked, durationDays, signIn, callbackUrl };
 		setPending(true);
 		try {
 			const expiresAt = untilRevoked ? untilRevokedValue : new Date(Date.now() + durationDays * 86400000).toISOString();
