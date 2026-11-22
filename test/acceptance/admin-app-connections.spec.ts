@@ -40,7 +40,13 @@ for (const [width, theme] of [
 		await signIn.focus();
 		await signIn.press("Space");
 		await expect(signIn).toBeChecked();
-		await dialog.getByRole("textbox", { name: /^Sign-in callback URL/ }).fill("https://awards.example/api/auth/callback/clipify");
+		const callbackUrl = dialog.getByRole("textbox", { name: /^Sign-in callback URL/ });
+		await callbackUrl.fill("ttps://awards.example/api/auth/callback/clipify");
+		await dialog.getByRole("button", { name: "Create connection", exact: true }).click();
+		await expect(dialog.getByText("Enter an exact HTTPS callback URL without a query, fragment or custom port.")).toBeVisible();
+		await expect(dialog).toBeVisible();
+		await callbackUrl.fill("https://awards.example/api/auth/callback/clipify");
+		await expect(dialog.getByText("Enter an exact HTTPS callback URL without a query, fragment or custom port.")).toHaveCount(0);
 		await dialog.screenshot({ path: info.outputPath(`connection-create-${width}-${theme}.png`) });
 		await tourWorld.fixture.pool.query(`UPDATE auth.session SET created_at=now()-interval '10 minutes' WHERE user_id=$1`, [owner.fixture.authUserId]);
 		await dialog.getByRole("button", { name: "Create connection", exact: true }).click();
