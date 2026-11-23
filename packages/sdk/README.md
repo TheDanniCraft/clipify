@@ -2,13 +2,14 @@
 
 A server-side client for explicitly provisioned Clipify connected applications.
 It has no runtime dependencies and imports no Clipify database or application code.
-Supports cached clip search, clip lookup and short-lived playback URLs. Each operation
-requires its own explicit creator-scoped application grant.
+Supports cached clip search, Twitch category search, clip lookup and short-lived
+playback URLs. Every request requires a creator-scoped application grant.
 
 ```ts
 import { createClipifyClient } from "@clipify/sdk";
 const clipify = createClipifyClient({ baseUrl, clientId, clientSecret });
 const clips = await clipify.clips.search({ creatorId, filters: { title: "Minecraft" } });
+const categories = await clipify.categories.search({ creatorId, query: "Minecraft" });
 ```
 
 Supply credentials only in your backend. Never ship them to a browser or print
@@ -45,3 +46,7 @@ Playback URLs expire. A public application must authorize access to its own even
 or resource before requesting playback, then proxy the media through its backend.
 Keep SDK credentials server-side. Application credentials do not sign people in;
 use a separately registered authorization-code/PKCE identity client for login.
+
+Category discovery is covered by the existing `search_clips` grant. It returns
+only Twitch category IDs, names and validated public Twitch artwork URLs; it does
+not expose another creator resource or require Twitch credentials in the client.

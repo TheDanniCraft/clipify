@@ -21,3 +21,9 @@ it.each(["resolve_clip", "get_clip_playback"])("requires an explicit grant for r
 	expect(() => assertConnectedAppGrant(grant, { clientId: "client", creatorId: "creator", operation }, now)).toThrow("ACCESS_DENIED");
 	expect(() => assertConnectedAppGrant({ ...grant, operations: [operation] }, { clientId: "client", creatorId: "creator", operation }, now)).not.toThrow();
 });
+it("allows category discovery through an existing clip-search grant", () => {
+	expect(() => assertConnectedAppGrant(grant, { clientId: "client", creatorId: "creator", operation: "search_categories" }, now)).not.toThrow();
+});
+it("denies category discovery without the clip-search grant", () => {
+	expect(() => assertConnectedAppGrant({ ...grant, operations: ["resolve_clip"] }, { clientId: "client", creatorId: "creator", operation: "search_categories" }, now)).toThrow("ACCESS_DENIED");
+});

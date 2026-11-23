@@ -18,6 +18,24 @@ it("searches through client credentials and reuses the short-lived token", async
 	expect(fetcher.mock.calls[1][1].headers.Authorization).toBe("Bearer machine-token");
 	expect(JSON.parse(fetcher.mock.calls[1][1].body)).toEqual({ operation: "search_clips", input: { creatorId: "owner", filters: { title: "clip" } } });
 });
+it("searches and validates Twitch categories through the scoped gateway", async () => {
+	const data = { creatorId: "owner", items: [{ id: "509658", name: "Just Chatting", artworkUrl: "https://static-cdn.jtvnw.net/ttv-boxart/509658-285x380.jpg" }] };
+	const fetcher = jest
+		.fn()
+		.mockImplementationOnce(tokenResponse)
+		.mockResolvedValueOnce(Response.json({ ok: true, data }));
+	const client = createClipifyClient({ ...config, fetch: fetcher });
+	await expect(client.categories.search({ creatorId: "owner", query: "chat", limit: 10 })).resolves.toEqual(data);
+	expect(JSON.parse(fetcher.mock.calls[1][1].body)).toEqual({ operation: "search_categories", input: { creatorId: "owner", query: "chat", limit: 10 } });
+});
+it.each([
+	{ creatorId: "owner", query: "" },
+	{ creatorId: "owner", query: "game", limit: 41 },
+])("rejects invalid Twitch category search input %j", async (input) => {
+	const fetcher = jest.fn();
+	await expect(createClipifyClient({ ...config, fetch: fetcher }).categories.search(input)).rejects.toMatchObject({ code: "INVALID_INPUT" });
+	expect(fetcher).not.toHaveBeenCalled();
+});
 
 it.each(["http://public.example", "https://user:pass@clipify.example", "https://clipify.example/prefix", "https://clipify.example?token=secret", "file:///tmp/app"])("rejects unsafe base URL %s before sending credentials", (baseUrl) => {
 	expect(() => createClipifyClient({ baseUrl, clientId: "app", clientSecret: "secret" })).toThrow("INVALID_CONFIGURATION");
