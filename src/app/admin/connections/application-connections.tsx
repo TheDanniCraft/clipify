@@ -10,7 +10,7 @@ import { notify } from "@lib/toast";
 import { connectionCallbackUrlInput, connectionOperations, maximumConnectionDurationDays, untilRevokedExpiry, untilRevokedValue } from "@/server/connected-apps/admin-input";
 
 type Operation = (typeof connectionOperations)[number];
-const labels: Record<Operation, string> = { search_clips: "Search clips", resolve_clip: "Read clip details", get_clip_playback: "Play clips" };
+const labels: Record<Operation, string> = { search_clips: "Search clips and Twitch categories", resolve_clip: "Read clip details", get_clip_playback: "Play clips" };
 type Connection = { id: string; name: string | null; clientId: string; creatorId: string; username: string; operations: Operation[]; expiresAt: string; revokedAt: string | null; disabled: boolean | null };
 type Credentials = { clientId: string; clientSecret: string; creatorId: string; expiresAt: string; identity?: { clientId: string; clientSecret: string }; callbackUrl?: string; creatorSubject?: string };
 type ConnectionDraft = { name: string; creatorId: string | null; creatorQuery: string; operations: Operation[]; untilRevoked: boolean; durationDays: number; signIn: boolean; callbackUrl: string };

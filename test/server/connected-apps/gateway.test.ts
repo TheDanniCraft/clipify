@@ -3,10 +3,12 @@ const verify = jest.fn();
 const access = jest.fn();
 const search = jest.fn();
 const readClip = jest.fn();
+const searchCategories = jest.fn();
 jest.mock("@/server/connected-apps/clip-read", () => ({ resolveConnectedClip: (...a: unknown[]) => readClip(...a) }));
 jest.mock("better-auth/oauth2", () => ({ verifyAccessTokenRequest: (...args: unknown[]) => verify(...args), requestToResourceInput: (r: Request) => r }));
 jest.mock("@/server/connected-apps/storage", () => ({ withConnectedAppGrant: (...args: unknown[]) => access(...args) }));
 jest.mock("@/server/resources/cached-clip-search", () => ({ searchCachedClips: (...args: unknown[]) => search(...args) }));
+jest.mock("@actions/twitch", () => ({ getTwitchGames: (...args: unknown[]) => searchCategories(...args) }));
 jest.mock("@/app/lib/baseUrl", () => ({ resolveBaseUrl: () => new URL("https://clipify.test") }));
 import { handleConnectedAppRequest } from "@/server/connected-apps/gateway";
 const resource = "https://clipify.test/api/connected-apps";
@@ -16,7 +18,21 @@ beforeEach(() => {
 	verify.mockReset().mockResolvedValue(claims());
 	readClip.mockReset().mockResolvedValue({ creatorId: "creator", clip: { id: "ClipA", broadcasterId: "creator" } });
 	search.mockReset().mockResolvedValue({ creatorId: "creator", items: [], complete: false, nextCursor: null });
+	searchCategories.mockReset().mockResolvedValue([{ id: "509658", name: "Just Chatting", box_art_url: "https://static-cdn.jtvnw.net/ttv-boxart/509658-{width}x{height}.jpg" }]);
 	access.mockReset().mockImplementation(async (_identity, run) => run({ id: "grant" }));
+});
+it("searches Twitch categories through the creator-bound clip discovery grant", async () => {
+	const response = await handleConnectedAppRequest(request({ operation: "search_categories", input: { creatorId: "creator", query: "chat", limit: 10 } }));
+	expect(response.status).toBe(200);
+	expect(await response.json()).toEqual({ ok: true, data: { creatorId: "creator", items: [{ id: "509658", name: "Just Chatting", artworkUrl: "https://static-cdn.jtvnw.net/ttv-boxart/509658-285x380.jpg" }] } });
+	expect(access).toHaveBeenCalledWith(expect.objectContaining({ clientId: "app", creatorId: "creator", operation: "search_categories" }), expect.any(Function));
+	expect(searchCategories).toHaveBeenCalledWith("chat", "creator");
+});
+it("does not expose an untrusted category artwork URL", async () => {
+	searchCategories.mockResolvedValueOnce([{ id: "509658", name: "Just Chatting", box_art_url: "https://attacker.example/{width}x{height}.jpg" }]);
+	const response = await handleConnectedAppRequest(request({ operation: "search_categories", input: { creatorId: "creator", query: "chat" } }));
+	expect(response.status).toBe(200);
+	expect(await response.json()).toEqual({ ok: true, data: { creatorId: "creator", items: [{ id: "509658", name: "Just Chatting", artworkUrl: null }] } });
 });
 it("returns a typed authentication denial without exposing missing-credential details", async () => {
 	const response = await handleConnectedAppRequest(new Request(resource, { method: "POST" }));
@@ -43,6 +59,8 @@ it.each([
 	{ operation: "search_clips", input: { creatorId: "creator", filters: { unknown: true } } },
 	{ operation: "search_clips", input: { creatorId: "creator", limit: 101 } },
 	{ operation: "search_clips", input: { creatorId: "creator", cursor: "" } },
+	{ operation: "search_categories", input: { creatorId: "creator", query: "" } },
+	{ operation: "search_categories", input: { creatorId: "creator", query: "chat", limit: 41 } },
 ])("rejects invalid operation inputs %j", async (body) => {
 	expect((await handleConnectedAppRequest(request(body))).status).toBe(400);
 	expect(search).not.toHaveBeenCalled();

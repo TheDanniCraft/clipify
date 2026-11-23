@@ -4,6 +4,9 @@ export type ClipResolveResult = { creatorId: string; clip: Clip };
 export type ClipPlaybackResult = { creatorId: string; clipId: string; playbackUrl: string };
 export type Clip = { id: string; title: string; broadcasterId: string; [field: string]: unknown };
 export type ClipSearchResult = { creatorId: string; items: Clip[]; complete: boolean; nextCursor: string | null; [field: string]: unknown };
+export type CategorySearchInput = { creatorId: string; query: string; limit?: number };
+export type TwitchCategory = { id: string; name: string; artworkUrl: string | null };
+export type CategorySearchResult = { creatorId: string; items: TwitchCategory[] };
 export type ClipifyClientOptions = { baseUrl: string; clientId: string; clientSecret: string; fetch?: typeof fetch; timeoutMs?: number; allowInsecureHttp?: boolean };
 export class ClipifySdkError extends Error {
 	constructor(
@@ -41,7 +44,7 @@ export function createClipifyClient(options: ClipifyClientOptions) {
 	const base = origin(options);
 	const fetcher = options.fetch ?? globalThis.fetch;
 	let token: { value: string; until: number } | undefined;
-	async function execute<T>(operation: string, input: ClipSearchInput | ClipReferenceInput, validate: (value: unknown, creatorId: string) => T, request?: { signal?: AbortSignal }): Promise<T> {
+	async function execute<T>(operation: string, input: ClipSearchInput | ClipReferenceInput | CategorySearchInput, validate: (value: unknown, creatorId: string) => T, request?: { signal?: AbortSignal }): Promise<T> {
 		if (!input || typeof input.creatorId !== "string" || !input.creatorId || input.creatorId.length > 200) throw new ClipifySdkError("INVALID_INPUT");
 		const deadline = new AbortController();
 		const timer = setTimeout(() => deadline.abort(), options.timeoutMs ?? 10000);
@@ -163,5 +166,33 @@ export function createClipifyClient(options: ClipifyClientOptions) {
 			request,
 		);
 	};
-	return { clips: { search, resolve, playback } };
+	const searchCategories = (input: CategorySearchInput, request?: { signal?: AbortSignal }) => {
+		if (!input || typeof input.query !== "string" || !input.query.trim() || input.query.length > 200 || (input.limit !== undefined && (!Number.isInteger(input.limit) || input.limit < 1 || input.limit > 40))) return Promise.reject(new ClipifySdkError("INVALID_INPUT"));
+		return execute(
+			"search_categories",
+			input,
+			(value, creatorId): CategorySearchResult => {
+				if (
+					!record(value) ||
+					value.creatorId !== creatorId ||
+					!Array.isArray(value.items) ||
+					value.items.length > 40 ||
+					!value.items.every((item) => {
+						if (!record(item) || typeof item.id !== "string" || !/^\d{1,20}$/.test(item.id) || typeof item.name !== "string" || !item.name || item.name.length > 200 || (item.artworkUrl !== null && typeof item.artworkUrl !== "string")) return false;
+						if (item.artworkUrl === null) return true;
+						try {
+							const url = new URL(item.artworkUrl);
+							return url.protocol === "https:" && !url.username && !url.password && !url.port && (url.hostname.endsWith(".jtvnw.net") || url.hostname.endsWith(".twitchcdn.net"));
+						} catch {
+							return false;
+						}
+					})
+				)
+					throw new ClipifySdkError("INVALID_RESPONSE");
+				return value as CategorySearchResult;
+			},
+			request,
+		);
+	};
+	return { clips: { search, resolve, playback }, categories: { search: searchCategories } };
 }
