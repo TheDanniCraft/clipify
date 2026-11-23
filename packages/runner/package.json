@@ -11,15 +11,15 @@
 	},
 	"dependencies": {
 		"@napi-rs/keyring": "^2.1.2",
-		"@puppeteer/browsers": "^3.2.6",
+		"@puppeteer/browsers": "^3.2.7",
 		"@internationalized/date": "3.12.4",
-		"puppeteer-core": "^25.16.0",
+		"puppeteer-core": "^25.17.0",
 		"puppeteer-stream": "^3.0.23"
 	},
 	"devDependencies": {
 		"@yao-pkg/pkg": "6.25.0",
 		"esbuild": "^0.28.2",
-		"resedit": "^3.1.0",
+		"resedit": "^3.1.1",
 		"@swc/core": "^1.16.22",
 		"@swc/jest": "^0.2.39",
 		"@types/jest": "^30.0.0",
@@ -38,7 +38,7 @@
 		"@yao-pkg/pkg@6.25.0": "patches/yao-pkg-qemu.patch"
 	},
 	"overrides": {
-		"@puppeteer/browsers": "^3.2.6",
+		"@puppeteer/browsers": "^3.2.7",
 		"undici": "^8.12.4",
 		"zod": "4.6.7"
 	}

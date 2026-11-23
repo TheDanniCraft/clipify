@@ -49,13 +49,13 @@
 		"fonts:prepare": "bun scripts/prepare-fonts.mjs"
 	},
 	"dependencies": {
-		"@tabler/icons-react": "3.51.0",
+		"@tabler/icons-react": "3.52.0",
 		"react": "19.3.1",
 		"react-dom": "19.3.1",
-		"remotion": "4.0.542"
+		"remotion": "4.0.543"
 	},
 	"devDependencies": {
-		"@remotion/cli": "4.0.542",
+		"@remotion/cli": "4.0.543",
 		"@types/react": "19.3.0",
 		"typescript": "6.0.3"
 	}
