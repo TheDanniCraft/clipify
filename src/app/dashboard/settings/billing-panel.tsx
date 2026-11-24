@@ -5,10 +5,13 @@ import { generateCheckout, getBillingOverview, getBillingProductOptions, getPort
 import type { BillingCycle, BillingOverview, BillingProductOption } from "@actions/subscription";
 import ConfirmModal from "@components/confirmModal";
 import SubscriptionChangeSummary from "./subscription-change-summary";
-import { BillingProduct } from "@types";
+import { BillingProduct, type AuthenticatedUser } from "@types";
+import UpgradeModal from "@components/upgradeModal";
+import { trackPaywallEvent } from "@lib/paywallTracking";
+import { trackProductEvent } from "@lib/analytics";
 import { Button, Card, Checkbox, Chip, Spinner, Tabs, useOverlayState } from "@heroui/react";
 import { IconCreditCardFilled } from "@tabler/icons-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { notify as addToast } from "@lib/toast";
 import TiersComponent from "@components/Pricing";
 import type { RuntimePricing } from "@components/Pricing/pricing-types";
@@ -22,12 +25,22 @@ function productAccessLabel(product: BillingOverview["products"][number]) {
 	);
 }
 
-export default function BillingPanel() {
+export default function BillingPanel({ user }: { user: AuthenticatedUser }) {
 	const [overview, setOverview] = useState<BillingOverview | null>(null);
 	const [options, setOptions] = useState<BillingProductOption[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [selectedProducts, setSelectedProducts] = useState<Map<BillingProduct, BillingCycle>>(new Map());
 	const { isOpen: confirmOpen, open: openConfirm, setOpen: setConfirmOpen } = useOverlayState();
+	const { isOpen: keepProOpen, open: openKeepPro, setOpen: setKeepProOpen } = useOverlayState();
+	const trialPlan = overview?.products.find((product) => product.key === BillingProduct.Pro && product.source === "grant" && product.grantSource === "reverse_trial");
+	const playedClips = overview?.trialRetention?.playedClips ?? false;
+	const feature = playedClips && overview?.trialRetention?.customizedOverlay ? "theme_studio" : "trial_active";
+	const trackedTrial = useRef<string | null>(null);
+	useEffect(() => {
+		if (!trialPlan || trackedTrial.current === user.id) return;
+		trackedTrial.current = user.id;
+		trackProductEvent("keep_pro_shown", { source: "billing_trial", feature, played_clips: playedClips });
+	}, [feature, playedClips, trialPlan, user.id]);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -38,7 +51,7 @@ export default function BillingPanel() {
 				if (cancelled) return;
 				setOverview(nextOverview);
 				setOptions(nextOptions.options);
-				setSelectedProducts(new Map(nextOverview.products.filter((product) => !product.cancelAtPeriodEnd).map((product) => [product.key, product.billingInterval ?? nextOptions.preferredBillingCycle ?? "yearly"] as [BillingProduct, BillingCycle])));
+				setSelectedProducts(new Map(nextOverview.products.filter((product) => !product.cancelAtPeriodEnd && product.grantSource !== "reverse_trial").map((product) => [product.key, product.billingInterval ?? nextOptions.preferredBillingCycle ?? "yearly"] as [BillingProduct, BillingCycle])));
 			} catch {
 				if (!cancelled) addToast({ title: "Error", description: "Failed to load billing information.", color: "danger" });
 			} finally {
@@ -57,7 +70,7 @@ export default function BillingPanel() {
 			</div>
 		);
 
-	const owned = new Set(overview?.products.map((product) => product.key) ?? []);
+	const owned = new Set(overview?.products.filter((product) => product.grantSource !== "reverse_trial").map((product) => product.key) ?? []);
 	const additions = options.filter((option) => selectedProducts.has(option.key) && !owned.has(option.key)).map((option) => ({ option, billingCycle: selectedProducts.get(option.key) ?? ("yearly" as BillingCycle) }));
 	const removals = options.filter((option) => !selectedProducts.has(option.key) && owned.has(option.key));
 	const reactivations = options.filter((option) => selectedProducts.has(option.key) && overview?.products.some((product) => product.key === option.key && product.cancelAtPeriodEnd));
@@ -84,17 +97,30 @@ export default function BillingPanel() {
 								<p className='text-lg font-semibold'>Current plan</p>
 								<p className='text-sm text-muted'>Manage your plan, add-ons, and billing status.</p>
 							</div>
-							{overview?.canManageInApp && (
+							{trialPlan ? (
 								<Button
-									variant='secondary'
-									onPress={async () => {
-										const link = await getPortalLink();
-										if (typeof link === "string" && link) window.location.href = link;
+									variant='primary'
+									onPress={() => {
+										trackProductEvent("keep_pro_clicked", { source: "billing_trial", feature, played_clips: playedClips });
+										trackPaywallEvent("paywall_cta_click", { source: "billing_trial", feature, target_plan: "pro" });
+										openKeepPro();
 									}}
 								>
-									<IconCreditCardFilled />
-									Manage billing
+									Keep Pro
 								</Button>
+							) : (
+								overview?.canManageInApp && (
+									<Button
+										variant='secondary'
+										onPress={async () => {
+											const link = await getPortalLink();
+											if (typeof link === "string" && link) window.location.href = link;
+										}}
+									>
+										<IconCreditCardFilled />
+										Manage billing
+									</Button>
+								)
 							)}
 						</Card.Header>
 						<Card.Content className='grid gap-4 sm:grid-cols-3'>
@@ -126,91 +152,94 @@ export default function BillingPanel() {
 									</div>
 								</div>
 							))}
+							{trialPlan && <p className='text-sm text-muted sm:col-span-3'>{feature === "theme_studio" ? "Keep your custom overlay style with Pro when your trial ends." : "Choose a paid plan to keep Pro. Your trial ends automatically without a charge."}</p>}
 						</Card.Content>
 					</Card>
 
-					<Card>
-						<Card.Header>
-							<p className='text-lg font-semibold'>Your plan</p>
-							<p className='text-sm text-muted'>Select the products you want, then save your subscription changes.</p>
-						</Card.Header>
-						<Card.Content className='space-y-3'>
-							{options.map((option) => {
-								const product = overview?.products.find((entry) => entry.key === option.key);
-								const checked = selectedProducts.has(option.key);
-								const locked = option.owned && product?.source === "grant";
-								const cycle = selectedProducts.get(option.key) ?? product?.billingInterval ?? "yearly";
-								const canceling = Boolean(product?.cancelAtPeriodEnd);
-								return (
-									<div key={option.key} className='flex flex-wrap items-center justify-between gap-3 rounded-xl border border-default/60 bg-surface-secondary p-4'>
-										<div className='flex items-center gap-3'>
-											<Checkbox
-												aria-label={option.label}
-												isSelected={checked}
-												isDisabled={locked}
-												onChange={(selected) =>
-													setSelectedProducts((previous) => {
-														const next = new Map(previous);
-														if (selected) next.set(option.key, cycle);
-														else next.delete(option.key);
-														return next;
-													})
-												}
-											>
-												<Checkbox.Content>
-													<Checkbox.Control>
-														<Checkbox.Indicator />
-													</Checkbox.Control>
-													<div>
-														<p className='font-medium'>{option.label}</p>
-														<p className='text-xs text-muted'>{locked ? "Included access" : option.description}</p>
-													</div>
-												</Checkbox.Content>
-											</Checkbox>
-										</div>
-										<div className='flex items-center gap-3'>
-											{option.owned ? (
-												<Chip color={canceling ? "warning" : "success"} variant='soft'>
-													{product ? productAccessLabel(product) : "Included"}
-												</Chip>
-											) : (
-												<Tabs
-													selectedKey={cycle}
-													onSelectionChange={(key) =>
+					{!trialPlan && (
+						<Card>
+							<Card.Header>
+								<p className='text-lg font-semibold'>Your plan</p>
+								<p className='text-sm text-muted'>Select the products you want, then save your subscription changes.</p>
+							</Card.Header>
+							<Card.Content className='space-y-3'>
+								{options.map((option) => {
+									const product = overview?.products.find((entry) => entry.key === option.key);
+									const checked = selectedProducts.has(option.key);
+									const locked = option.owned && product?.source === "grant";
+									const cycle = selectedProducts.get(option.key) ?? product?.billingInterval ?? "yearly";
+									const canceling = Boolean(product?.cancelAtPeriodEnd);
+									return (
+										<div key={option.key} className='flex flex-wrap items-center justify-between gap-3 rounded-xl border border-default/60 bg-surface-secondary p-4'>
+											<div className='flex items-center gap-3'>
+												<Checkbox
+													aria-label={option.label}
+													isSelected={checked}
+													isDisabled={locked}
+													onChange={(selected) =>
 														setSelectedProducts((previous) => {
 															const next = new Map(previous);
-															if (checked) next.set(option.key, String(key) as BillingCycle);
+															if (selected) next.set(option.key, cycle);
+															else next.delete(option.key);
 															return next;
 														})
 													}
-													className='w-fit'
 												>
-													<Tabs.ListContainer>
-														<Tabs.List aria-label={`${option.label} billing frequency`}>
-															<Tabs.Tab id='monthly'>
-																Monthly
-																<Tabs.Indicator />
-															</Tabs.Tab>
-															<Tabs.Tab id='yearly'>
-																Yearly
-																<Tabs.Indicator />
-															</Tabs.Tab>
-														</Tabs.List>
-													</Tabs.ListContainer>
-												</Tabs>
-											)}{" "}
-											{!option.owned && <span className='text-sm font-medium'>{option.prices[cycle].formatted}</span>}
+													<Checkbox.Content>
+														<Checkbox.Control>
+															<Checkbox.Indicator />
+														</Checkbox.Control>
+														<div>
+															<p className='font-medium'>{option.label}</p>
+															<p className='text-xs text-muted'>{locked ? "Included access" : option.description}</p>
+														</div>
+													</Checkbox.Content>
+												</Checkbox>
+											</div>
+											<div className='flex items-center gap-3'>
+												{option.owned ? (
+													<Chip color={canceling ? "warning" : "success"} variant='soft'>
+														{product ? productAccessLabel(product) : "Included"}
+													</Chip>
+												) : (
+													<Tabs
+														selectedKey={cycle}
+														onSelectionChange={(key) =>
+															setSelectedProducts((previous) => {
+																const next = new Map(previous);
+																if (checked) next.set(option.key, String(key) as BillingCycle);
+																return next;
+															})
+														}
+														className='w-fit'
+													>
+														<Tabs.ListContainer>
+															<Tabs.List aria-label={`${option.label} billing frequency`}>
+																<Tabs.Tab id='monthly'>
+																	Monthly
+																	<Tabs.Indicator />
+																</Tabs.Tab>
+																<Tabs.Tab id='yearly'>
+																	Yearly
+																	<Tabs.Indicator />
+																</Tabs.Tab>
+															</Tabs.List>
+														</Tabs.ListContainer>
+													</Tabs>
+												)}{" "}
+												{!option.owned && <span className='text-sm font-medium'>{option.prices[cycle].formatted}</span>}
+											</div>
 										</div>
-									</div>
-								);
-							})}
-							<div className='flex justify-end border-t border-default/60 pt-4'>
-								<Button variant='primary' isDisabled={!hasChanges} onPress={openConfirm}>
-									Save changes
-								</Button>
-							</div>
-						</Card.Content>
-					</Card>
+									);
+								})}
+								<div className='flex justify-end border-t border-default/60 pt-4'>
+									<Button variant='primary' isDisabled={!hasChanges} onPress={openConfirm}>
+										Save changes
+									</Button>
+								</div>
+							</Card.Content>
+						</Card>
+					)}
 					<ConfirmModal
 						isOpen={confirmOpen}
 						onOpenChange={setConfirmOpen}
@@ -248,6 +277,7 @@ export default function BillingPanel() {
 					/>
 				</Card.Content>
 			</Card>
+			{trialPlan && <UpgradeModal isOpen={keepProOpen} onOpenChange={setKeepProOpen} user={user} title='Keep Pro' source='billing_trial' feature={feature} returnUrl='/dashboard/settings?tab=billing' />}
 			<Card>
 				<Card.Header>
 					<p className='text-xl font-semibold'>Compare plans</p>

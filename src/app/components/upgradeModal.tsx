@@ -283,11 +283,11 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 											window.location.assign(link);
 										} else {
 											setCheckoutError(link && typeof link === "object" ? link.error : "Could not open checkout. Please try again.");
-											trackProductEvent("checkout_failed", { source, feature, stage: "session" });
+											trackProductEvent("checkout_failed", { source, feature, stage: "session", cycle: billingCycle, reason: link && typeof link === "object" ? link.code : "missing_url" });
 										}
 									} catch {
 										setCheckoutError("Could not open checkout. Please try again.");
-										trackProductEvent("checkout_failed", { source, feature, stage: "session" });
+										trackProductEvent("checkout_failed", { source, feature, stage: "session", cycle: billingCycle, reason: "request_failed" });
 									} finally {
 										setCheckingOut(false);
 									}
