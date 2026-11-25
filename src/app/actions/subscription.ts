@@ -11,8 +11,8 @@ import { getBaseUrl } from "@actions/utils";
 import { cookies } from "next/headers";
 import { validateAuth } from "@actions/auth";
 import { db } from "@/db/client";
-import { billingSubscriptionItemsTable, billingSubscriptionsTable, usersTable } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { auditEventsTable, billingSubscriptionItemsTable, billingSubscriptionsTable, overlaysTable, usersTable } from "@/db/schema";
+import { and, eq, sql } from "drizzle-orm";
 import { getActiveCampaignOffer } from "@lib/campaignOffers";
 import { tryRateLimit } from "@actions/rateLimit";
 import { resolveUserEntitlements } from "@lib/entitlements";
@@ -24,7 +24,7 @@ import { sendAccountDataExport } from "@/auth/transactional-mail";
 import { withSensitiveActionResult } from "@/auth/recent-auth";
 
 export type BillingCycle = "monthly" | "yearly";
-export type PaywallSource = "pricing_page" | "upgrade_modal" | "paywall_banner";
+export type PaywallSource = "pricing_page" | "upgrade_modal" | "paywall_banner" | "billing_trial";
 
 function usesE2EBillingAdapter() {
 	return process.env.APP_ENV === "test" && process.env.E2E_TEST_MODE === "true";
@@ -58,6 +58,7 @@ export type BillingOverview = {
 		grantSource: EntitlementGrantSource | null;
 	}>;
 	canManageInApp: boolean;
+	trialRetention?: { playedClips: boolean; customizedOverlay: boolean };
 };
 
 const BILLING_PRODUCT_INFO: Record<BillingProduct, { label: string; description: string; category: "plan" | "addon" }> = {
@@ -174,13 +175,42 @@ export async function getBillingOverview(): Promise<BillingOverview> {
 	if (entitlements.proAccess && !products.some((product) => product.key === BillingProduct.Pro)) {
 		products.push({ key: BillingProduct.Pro, label: BILLING_PRODUCT_INFO[BillingProduct.Pro].label, active: true, billingInterval: null, unitAmount: null, currency: "EUR", currentPeriodEnd: entitlements.trialEndsAt ? new Date(entitlements.trialEndsAt).toISOString() : null, cancelAtPeriodEnd: false, source: "grant", grantSource: entitlements.grantSource ?? null });
 	}
+	const trialRetention = !subscription && entitlements.reverseTrialActive ? await getTrialRetentionContext(authUser.id).catch(() => undefined) : undefined;
 	return {
+		trialRetention,
 		status: subscription?.status ?? (entitlements.proAccess ? "active" : "inactive"),
 		currentPeriodEnd: subscription?.currentPeriodEnd?.toISOString() ?? null,
 		cancelAtPeriodEnd: Boolean(subscription?.cancelAtPeriodEnd),
 		products,
 		canManageInApp: Boolean(authUser.stripeCustomerId),
 	};
+}
+
+async function getTrialRetentionContext(creatorId: string) {
+	const [playback, styledOverlay] = await Promise.all([
+		db
+			.select({ id: auditEventsTable.id })
+			.from(auditEventsTable)
+			.where(and(eq(auditEventsTable.targetId, creatorId), eq(auditEventsTable.action, "product:first_playback")))
+			.limit(1),
+		db
+			.select({ id: overlaysTable.id })
+			.from(overlaysTable)
+			.where(
+				and(
+					eq(overlaysTable.ownerId, creatorId),
+					sql`(
+			${overlaysTable.themeFontFamily} <> 'inherit' OR
+			${overlaysTable.themeTextColor} <> '#FFFFFF' OR
+			${overlaysTable.themeAccentColor} <> '#7C3AED' OR
+			${overlaysTable.themeBackgroundColor} <> 'rgba(10,10,10,0.65)' OR
+			${overlaysTable.effectScanlines} OR ${overlaysTable.effectStatic} OR ${overlaysTable.effectCrt}
+		)`,
+				),
+			)
+			.limit(1),
+	]);
+	return { playedClips: playback.length > 0, customizedOverlay: styledOverlay.length > 0 };
 }
 
 export async function scheduleProductCancellation(product: BillingProduct, cancel: boolean) {
