@@ -12,6 +12,8 @@ import { journeyGuidePercent, currentGuideStep, defaultProgress, shouldOfferGuid
 import { CONSENT_PREFERENCES_VISIBILITY_EVENT, type ConsentPreferencesVisibilityDetail } from "@lib/consent/events";
 import "driver.js/dist/driver.css";
 import "./user-tour.css";
+import DashboardBillingNotice from "@components/dashboardBillingNotice";
+import type { BillingNotice } from "@lib/billingNotice";
 import DashboardContentHost from "@components/dashboardContentHost";
 import type { DashboardContentItem } from "@lib/dashboardContent";
 import type { AuthenticatedUser } from "@types";
@@ -86,7 +88,7 @@ function TaskCheckbox({ task, selected, current, onRequest, onConfirm, onRestore
 	);
 }
 /** Server state is authoritative. Browser storage is only imported once for older accounts. */
-export function UserTourProvider({ accountId, children, setupAvailable = false, appearanceAvailable = true, initialProgress = defaultProgress(), importLegacy = false, dashboardContent = [], upgradeUser }: { accountId: string; children: ReactNode; setupAvailable?: boolean; appearanceAvailable?: boolean; initialProgress?: GuideProgress; importLegacy?: boolean; dashboardContent?: DashboardContentItem[]; upgradeUser?: AuthenticatedUser }) {
+export function UserTourProvider({ accountId, children, setupAvailable = false, appearanceAvailable = true, initialProgress = defaultProgress(), importLegacy = false, dashboardContent = [], billingNotice, upgradeUser }: { accountId: string; children: ReactNode; setupAvailable?: boolean; appearanceAvailable?: boolean; initialProgress?: GuideProgress; importLegacy?: boolean; dashboardContent?: DashboardContentItem[]; billingNotice?: BillingNotice | null; upgradeUser?: AuthenticatedUser }) {
 	const pathname = usePathname();
 
 	const [progress, setProgress] = useState(() => (pathname !== "/dashboard" && !initialProgress.active ? { ...initialProgress, minimized: true } : initialProgress));
@@ -262,20 +264,22 @@ export function UserTourProvider({ accountId, children, setupAvailable = false, 
 		<GuideContext.Provider value={{ report, activeTask, nextSetupTask, startSetup: () => nextSetupTask && start(nextSetupTask.id), resourceIds: { overlayId: progress.overlayId, playlistId: progress.playlistId } }}>
 			{children}
 			{hydrated && (
-				<DashboardContentHost
-					isVisible={!consentOpen && !consentBanner}
-					items={dashboardContent.length ? dashboardContent : offerWelcome ? [guidedWelcome] : []}
-					onStartGuide={
-						offerWelcome
-							? () => {
-									const task = journeys[0].tasks.find((item) => !isFinished(item.id));
-									if (task) trackEvent("guide_started", { journey: "overlay", task: task.id, source: "welcome" });
-									report({ type: "welcome.start", location: rawLocation });
-								}
-							: undefined
-					}
-					onDismissGuide={offerWelcome ? () => report({ type: "welcome.dismiss" }) : undefined}
-				/>
+				<DashboardBillingNotice notice={billingNotice} user={upgradeUser} isVisible={!consentOpen && !consentBanner}>
+					<DashboardContentHost
+						isVisible={!consentOpen && !consentBanner}
+						items={dashboardContent.length ? dashboardContent : offerWelcome ? [guidedWelcome] : []}
+						onStartGuide={
+							offerWelcome
+								? () => {
+										const task = journeys[0].tasks.find((item) => !isFinished(item.id));
+										if (task) trackEvent("guide_started", { journey: "overlay", task: task.id, source: "welcome" });
+										report({ type: "welcome.start", location: rawLocation });
+									}
+								: undefined
+						}
+						onDismissGuide={offerWelcome ? () => report({ type: "welcome.dismiss" }) : undefined}
+					/>
+				</DashboardBillingNotice>
 			)}
 			<span hidden data-guide-sync={syncState} />
 			{hydrated && !consentOpen && (

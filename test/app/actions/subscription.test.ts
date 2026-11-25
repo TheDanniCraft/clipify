@@ -8,6 +8,9 @@ jest.mock("@/auth/session-principal", () => ({ getVerifiedSessionPrincipal: (...
 jest.mock("@/server/analytics-consent", () => ({ readAnalyticsConsent: (...args: unknown[]) => analyticsAllowed(...args) }));
 const stripeCtor = jest.fn();
 const subscriptionsList = jest.fn();
+const subscriptionsRetrieve = jest.fn();
+const findOverdueProSubscription = jest.fn();
+jest.mock("@lib/overdueSubscription", () => ({ findOverdueProSubscription: (...args: unknown[]) => findOverdueProSubscription(...args) }));
 const subscriptionsUpdate = jest.fn();
 const subscriptionsCancel = jest.fn();
 const customersCreate = jest.fn();
@@ -138,7 +141,7 @@ describe("actions/subscription", () => {
 		updateExecute.mockResolvedValue([{ id: "user-1" }]);
 		stripeCtor.mockReturnValue({
 			prices: { list: (...args: unknown[]) => pricesList(...args) },
-			subscriptions: { list: (...args: unknown[]) => subscriptionsList(...args), update: (...args: unknown[]) => subscriptionsUpdate(...args), cancel: (...args: unknown[]) => subscriptionsCancel(...args) },
+			subscriptions: { retrieve: (...args: unknown[]) => subscriptionsRetrieve(...args), list: (...args: unknown[]) => subscriptionsList(...args), update: (...args: unknown[]) => subscriptionsUpdate(...args), cancel: (...args: unknown[]) => subscriptionsCancel(...args) },
 			customers: { create: (...args: unknown[]) => customersCreate(...args) },
 			checkout: { sessions: { create: (...args: unknown[]) => checkoutCreate(...args) } },
 			promotionCodes: { list: (...args: unknown[]) => promotionCodesList(...args) },
@@ -209,7 +212,7 @@ describe("actions/subscription", () => {
 		expect(checkoutCreate).toHaveBeenCalledWith(
 			expect.objectContaining({
 				customer: "cus_new",
-				cancel_url: "https://clipify.us/dashboard/settings",
+				cancel_url: "https://clipify.us/dashboard/settings?checkout=cancelled",
 			}),
 		);
 		expect(result).toBe("https://checkout.stripe.test/session-1");
@@ -239,7 +242,7 @@ describe("actions/subscription", () => {
 		checkoutCreate.mockResolvedValue({ id: "cs_fixture", url: "https://checkout.stripe.test/session-1" });
 		const { generateCheckout } = await loadSubscription();
 		await generateCheckout(["pro" as never], "yearly", undefined, undefined, undefined, { successUrl: "https://evil.example/success", cancelUrl: "//evil.example/cancel" });
-		expect(checkoutCreate).toHaveBeenCalledWith(expect.objectContaining({ success_url: "https://clipify.us/dashboard/settings", cancel_url: "https://clipify.us/dashboard/settings" }));
+		expect(checkoutCreate).toHaveBeenCalledWith(expect.objectContaining({ success_url: "https://clipify.us/dashboard/settings", cancel_url: "https://clipify.us/dashboard/settings?checkout=cancelled" }));
 	});
 
 	it("allows purchasing paid Pro while a reverse trial is active", async () => {
@@ -389,5 +392,45 @@ describe("actions/subscription", () => {
 
 		await expect(requestAccountDataExport()).resolves.toEqual({ success: false, code: "EXPORT_RATE_LIMITED" });
 		expect(sendAccountDataExport).not.toHaveBeenCalled();
+	});
+	describe("payment recovery", () => {
+		beforeEach(() => {
+			validateAuth.mockResolvedValue({ id: "user-1", stripeCustomerId: "cus_owner" });
+			findOverdueProSubscription.mockResolvedValue({ id: "sub_overdue" });
+		});
+
+		it("opens the Stripe invoice for an outstanding Pro payment", async () => {
+			const url = "https://invoice.stripe.com/test";
+			subscriptionsRetrieve.mockResolvedValue({ customer: "cus_owner", status: "past_due", latest_invoice: { status: "open", amount_remaining: 200, customer: "cus_owner", hosted_invoice_url: url } });
+			const { getPaymentRecoveryLink } = await loadSubscription();
+			await expect(getPaymentRecoveryLink()).resolves.toEqual({ url });
+			expect(findOverdueProSubscription).toHaveBeenCalledWith("user-1", "cus_owner");
+			expect(portalCreate).not.toHaveBeenCalled();
+		});
+
+		it.each([
+			["cus_owner", "active"],
+			["cus_other", "past_due"],
+		])("ignores a nonpayable or mismatched subscription (%s, %s)", async (customer, status) => {
+			subscriptionsRetrieve.mockResolvedValue({ customer, status });
+			const { getPaymentRecoveryLink } = await loadSubscription();
+			await expect(getPaymentRecoveryLink()).resolves.toEqual({ error: "not_due" });
+			expect(portalCreate).not.toHaveBeenCalled();
+		});
+
+		it("falls back to the owning customer's billing portal if there is no payable invoice link", async () => {
+			subscriptionsRetrieve.mockResolvedValue({ customer: "cus_owner", status: "unpaid", latest_invoice: null });
+			portalCreate.mockResolvedValue({ url: "https://billing.stripe.com/test" });
+			const { getPaymentRecoveryLink } = await loadSubscription();
+			await expect(getPaymentRecoveryLink()).resolves.toEqual({ url: "https://billing.stripe.com/test" });
+			expect(portalCreate).toHaveBeenCalledWith({ customer: "cus_owner", return_url: "https://clipify.us/dashboard/settings?tab=billing" });
+		});
+
+		it("does not look up invoices while impersonating an owner", async () => {
+			validateAuth.mockResolvedValue({ id: "user-1", stripeCustomerId: "cus_owner", adminView: { active: true } });
+			const { getPaymentRecoveryLink } = await loadSubscription();
+			await expect(getPaymentRecoveryLink()).resolves.toEqual({ error: "not_due" });
+			expect(findOverdueProSubscription).not.toHaveBeenCalled();
+		});
 	});
 });

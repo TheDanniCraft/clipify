@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import CheckoutFeedback from "@components/checkoutFeedback";
 import CheckoutRecovery from "@components/Pricing/CheckoutRecovery";
 import { readCheckoutIntent } from "@/server/checkoutIntent";
 import { socialPreview } from "@lib/socialPreview";
@@ -57,6 +59,11 @@ export default async function PricingPage({ searchParams }: { searchParams?: Pro
 	return (
 		<div className='min-h-screen bg-background'>
 			<BasicNavbar shouldHideOnScroll={false} />
+			{recoveryStatus === "cancelled" && intent && (
+				<Suspense fallback={null}>
+					<CheckoutFeedback />
+				</Suspense>
+			)}
 			<main>
 				{recoveryStatus ? <CheckoutRecovery status={recoveryStatus} canRetry={Boolean(intent)} /> : null}
 				<section className='px-6 sm:px-8'>

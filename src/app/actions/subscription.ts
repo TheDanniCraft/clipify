@@ -18,6 +18,8 @@ import { tryRateLimit } from "@actions/rateLimit";
 import { resolveUserEntitlements } from "@lib/entitlements";
 import { EntitlementGrantSource } from "@types";
 import { isProductOwnedByEntitlement } from "@lib/billingOwnership";
+import { findOverdueProSubscription } from "@lib/overdueSubscription";
+import { isBillingOverdue } from "@lib/billingNotice";
 import type { DeletionChoice } from "@/server/account-lifecycle/service";
 import { ACCOUNT_DATA_EXPORT_TTL_MS, createAccountDataExportToken } from "@/auth/account-data-export-token";
 import { sendAccountDataExport } from "@/auth/transactional-mail";
@@ -58,6 +60,7 @@ export type BillingOverview = {
 		grantSource: EntitlementGrantSource | null;
 	}>;
 	canManageInApp: boolean;
+	paymentOverdue: boolean;
 	trialRetention?: { playedClips: boolean; customizedOverlay: boolean };
 };
 
@@ -183,6 +186,7 @@ export async function getBillingOverview(): Promise<BillingOverview> {
 		cancelAtPeriodEnd: Boolean(subscription?.cancelAtPeriodEnd),
 		products,
 		canManageInApp: Boolean(authUser.stripeCustomerId),
+		paymentOverdue: Boolean(!authUser.adminView?.active && authUser.stripeCustomerId && activeRows.some(({ subscription }) => subscription.stripeCustomerId === authUser.stripeCustomerId && isBillingOverdue(subscription.status))),
 	};
 }
 
@@ -304,7 +308,8 @@ export async function generateCheckout(productKeys: BillingProduct[] | Array<{ p
 			return defaultReturnUrl;
 		}
 	};
-	const cancelUrl = safeReturnUrl(checkoutOptions?.cancelUrl ?? returnUrl);
+	const cancelUrl = new URL(safeReturnUrl(checkoutOptions?.cancelUrl ?? returnUrl));
+	cancelUrl.searchParams.set("checkout", "cancelled");
 	let stripeCustomerId = authUser.stripeCustomerId ?? null;
 
 	if (!stripeCustomerId) {
@@ -359,7 +364,7 @@ export async function generateCheckout(productKeys: BillingProduct[] | Array<{ p
 		mode: "subscription",
 		subscription_data: { metadata: { userId: authUser.id, products: productsToBuy.join(","), ...(analyticsFeature ? { analyticsFeature } : {}) } },
 		success_url: safeReturnUrl(checkoutOptions?.successUrl),
-		cancel_url: cancelUrl,
+		cancel_url: cancelUrl.toString(),
 		customer: stripeCustomerId,
 		metadata: {
 			userId: authUser.id,
@@ -431,4 +436,33 @@ export async function getPortalLink() {
 	});
 
 	return session.url;
+}
+
+export async function getPaymentRecoveryLink(): Promise<{ url: string } | { error: "not_due" | "unavailable" }> {
+	const user = await validateAuth(true);
+	if (!user || user.adminView?.active || !user.stripeCustomerId) return { error: "not_due" };
+	const customer = user.stripeCustomerId;
+	const overdue = await findOverdueProSubscription(user.id, customer);
+	if (!overdue) return { error: "not_due" };
+
+	try {
+		const stripe = getServerStripe();
+		const subscription = await stripe.subscriptions.retrieve(overdue.id, { expand: ["latest_invoice"] });
+		const subscriptionCustomer = typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
+		if (subscriptionCustomer !== customer || !isBillingOverdue(subscription.status)) return { error: "not_due" };
+
+		const invoice = subscription.latest_invoice;
+		if (invoice && typeof invoice !== "string" && invoice.status === "open" && invoice.amount_remaining > 0 && invoice.hosted_invoice_url) {
+			const invoiceCustomer = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
+			if (invoiceCustomer === customer) return { url: invoice.hosted_invoice_url };
+		}
+
+		const portal = await stripe.billingPortal.sessions.create({
+			customer,
+			return_url: new URL("/dashboard/settings?tab=billing", await getBaseUrl()).toString(),
+		});
+		return { url: portal.url };
+	} catch {
+		return { error: "unavailable" };
+	}
 }
