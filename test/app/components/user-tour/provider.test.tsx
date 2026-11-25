@@ -40,7 +40,7 @@ jest.mock("@heroui/react", () => {
 let currentPath = "/dashboard";
 const push = jest.fn(),
 	track = jest.fn();
-jest.mock("next/navigation", () => ({ usePathname: () => currentPath, useRouter: () => ({ push }) }));
+jest.mock("next/navigation", () => ({ usePathname: () => currentPath, useSearchParams: () => new URLSearchParams(), useRouter: () => ({ push }) }));
 jest.mock("@lib/analytics", () => ({ trackEvent: (...args: unknown[]) => track(...args), trackProductEvent: jest.fn() }));
 jest.mock("@components/user-tour/spotlight", () => ({
 	__esModule: true,

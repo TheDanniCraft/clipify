@@ -9,6 +9,7 @@ const comparisonProps = jest.fn();
 const readCheckoutIntent = jest.fn();
 const recoveryProps = jest.fn();
 jest.mock("@/server/checkoutIntent", () => ({ readCheckoutIntent: () => readCheckoutIntent() }));
+jest.mock("@components/checkoutFeedback", () => ({ __esModule: true, default: () => <div>Checkout feedback prompt</div> }));
 jest.mock("@components/Pricing/CheckoutRecovery", () => ({
 	__esModule: true,
 	default: (props: { status: string; canRetry: boolean }) => {
@@ -49,11 +50,13 @@ describe("public pricing server page and FAQ boundary", () => {
 		const view = render(await PricingPage({ searchParams: Promise.resolve({ checkout: status }) }));
 		expect(recoveryProps).toHaveBeenLastCalledWith({ status, canRetry: true });
 		expect(screen.getByRole("complementary", { name: "Checkout recovery" })).toHaveTextContent(status);
+		expect(Boolean(screen.queryByText("Checkout feedback prompt"))).toBe(status === "cancelled");
 		expect(screen.getByText("Plan comparison")).toBeInTheDocument();
 		view.unmount();
 		render(await PricingPage({ searchParams: Promise.resolve({ checkout: status }) }));
 		expect(recoveryProps).toHaveBeenLastCalledWith({ status, canRetry: false });
 		expect(readCheckoutIntent).toHaveBeenCalledTimes(2);
+		expect(screen.queryByText("Checkout feedback prompt")).not.toBeInTheDocument();
 	});
 	test.each([{}, { checkout: "success" }, { checkout: ["cancelled", "unavailable"] }])("ignores unrecognized checkout parameters %j", async (parameters) => {
 		render(await PricingPage({ searchParams: Promise.resolve(parameters) }));

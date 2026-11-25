@@ -3,6 +3,7 @@
 import LocalizedDate from "@components/localizedDate";
 import { generateCheckout, getBillingOverview, getBillingProductOptions, getPortalLink, scheduleProductCancellation } from "@actions/subscription";
 import type { BillingCycle, BillingOverview, BillingProductOption } from "@actions/subscription";
+import PaymentRecoveryButton from "@components/paymentRecoveryButton";
 import ConfirmModal from "@components/confirmModal";
 import SubscriptionChangeSummary from "./subscription-change-summary";
 import { BillingProduct, type AuthenticatedUser } from "@types";
@@ -29,6 +30,7 @@ export default function BillingPanel({ user }: { user: AuthenticatedUser }) {
 	const [overview, setOverview] = useState<BillingOverview | null>(null);
 	const [options, setOptions] = useState<BillingProductOption[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [paymentResolved, setPaymentResolved] = useState(false);
 	const [selectedProducts, setSelectedProducts] = useState<Map<BillingProduct, BillingCycle>>(new Map());
 	const { isOpen: confirmOpen, open: openConfirm, setOpen: setConfirmOpen } = useOverlayState();
 	const { isOpen: keepProOpen, open: openKeepPro, setOpen: setKeepProOpen } = useOverlayState();
@@ -47,11 +49,12 @@ export default function BillingPanel({ user }: { user: AuthenticatedUser }) {
 		void Promise.resolve().then(async () => {
 			setLoading(true);
 			try {
-				const [nextOverview, nextOptions] = await Promise.all([getBillingOverview(), getBillingProductOptions(BillingProduct.Pro)]);
+				const [nextOverview, optionsResult] = await Promise.all([getBillingOverview(), getBillingProductOptions(BillingProduct.Pro).catch(() => null)]);
 				if (cancelled) return;
 				setOverview(nextOverview);
-				setOptions(nextOptions.options);
-				setSelectedProducts(new Map(nextOverview.products.filter((product) => !product.cancelAtPeriodEnd && product.grantSource !== "reverse_trial").map((product) => [product.key, product.billingInterval ?? nextOptions.preferredBillingCycle ?? "yearly"] as [BillingProduct, BillingCycle])));
+				setOptions(optionsResult?.options ?? []);
+				if (!optionsResult) addToast({ title: "Could not load plan options", description: "Refresh to try again.", color: "danger" });
+				setSelectedProducts(new Map(nextOverview.products.filter((product) => !product.cancelAtPeriodEnd && product.grantSource !== "reverse_trial").map((product) => [product.key, product.billingInterval ?? optionsResult?.preferredBillingCycle ?? "yearly"] as [BillingProduct, BillingCycle])));
 			} catch {
 				if (!cancelled) addToast({ title: "Error", description: "Failed to load billing information.", color: "danger" });
 			} finally {
@@ -82,6 +85,7 @@ export default function BillingPanel({ user }: { user: AuthenticatedUser }) {
 	const addOnProducts = overview?.products.filter((product) => product.key !== BillingProduct.Pro) ?? [];
 	const planLabel = planProduct?.grantSource === "reverse_trial" ? "Pro trial" : (planProduct?.label ?? "Free");
 	const accessLabel = planProduct ? productAccessLabel(planProduct) : "—";
+	const paymentOverdue = overview?.paymentOverdue && !paymentResolved;
 
 	return (
 		<div className='mt-4 space-y-4'>
@@ -97,7 +101,9 @@ export default function BillingPanel({ user }: { user: AuthenticatedUser }) {
 								<p className='text-lg font-semibold'>Current plan</p>
 								<p className='text-sm text-muted'>Manage your plan, add-ons, and billing status.</p>
 							</div>
-							{trialPlan ? (
+							{paymentOverdue ? (
+								<PaymentRecoveryButton onResolved={() => setPaymentResolved(true)} />
+							) : trialPlan ? (
 								<Button
 									variant='primary'
 									onPress={() => {
@@ -126,8 +132,8 @@ export default function BillingPanel({ user }: { user: AuthenticatedUser }) {
 						<Card.Content className='grid gap-4 sm:grid-cols-3'>
 							<div>
 								<p className='text-xs text-muted'>Status</p>
-								<Chip className='mt-1 capitalize' color={overview?.status === "active" ? "success" : "default"} variant='soft'>
-									{overview?.status ?? "Inactive"}
+								<Chip className='mt-1 capitalize' color={paymentOverdue ? "danger" : overview?.status === "active" ? "success" : "default"} variant='soft'>
+									{paymentOverdue ? "Payment overdue" : paymentResolved ? "No payment due" : (overview?.status ?? "Inactive")}
 								</Chip>
 							</div>
 							<div>
