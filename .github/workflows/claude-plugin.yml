@@ -1,0 +1,41 @@
+name: 📦 Validate Claude Plugin
+
+on:
+  pull_request:
+    paths:
+      - "plugins/clipify/**"
+      - ".claude-plugin/**"
+      - ".github/workflows/claude-plugin.yml"
+  push:
+    branches: [master]
+    paths:
+      - "plugins/clipify/**"
+      - ".claude-plugin/**"
+      - ".github/workflows/claude-plugin.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26.13.0
+      - name: Validate plugin
+        run: npx -y @anthropic-ai/claude-code@2.1.332 plugin validate ./plugins/clipify --strict
+      - name: Validate marketplace
+        run: npx -y @anthropic-ai/claude-code@2.1.332 plugin validate . --strict
+      - name: Check manifest versions match
+        run: |
+          openai=$(jq -r .version plugins/clipify/plugin.json)
+          claude=$(jq -r .version plugins/clipify/.claude-plugin/plugin.json)
+          if [ "$openai" != "$claude" ]; then
+            echo "Plugin versions differ: OpenAI $openai, Claude $claude"
+            exit 1
+          fi
