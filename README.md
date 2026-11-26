@@ -35,6 +35,14 @@ The community's “live with Clipify” status combines Twitch's live status wit
 
 OBS's browser API exposes active-state changes but no initial-active getter. After a source reload, its state stays unconfirmed until OBS emits an active-state event (switching the source out of program output and back in confirms it). Modern events and the legacy `obsstudio.onActiveChange` callback are supported. OBS activation also triggers a deployment check; already-loaded older JavaScript relies on its existing deployment polling until it reloads. Streaming software that does not expose these bindings stays unconfirmed; Streamlabs compatibility still needs an application-level check. These signals confirm source participation in program output, including an idle Clipify overlay, rather than whether a clip is currently playing or whether pixels are obscured by another source.
 
+## Use Clipify with Claude Code
+
+Install the Clipify plugin in Claude Code, then run `/mcp` to sign in and choose which creators and permissions to connect:
+
+```text
+/plugin install clipify --marketplace TheDanniCraft/clipify
+```
+
 ## Pricing
 
 - **Free:** Unlimited clips, one overlay, all core features.

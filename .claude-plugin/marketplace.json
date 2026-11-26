@@ -1,0 +1,16 @@
+{
+	"name": "clipify",
+	"owner": {
+		"name": "TheDanniCraft",
+		"email": "contact@clipify.us",
+		"url": "https://clipify.us"
+	},
+	"description": "Clipify plugins for Claude Code.",
+	"plugins": [
+		{
+			"name": "clipify",
+			"source": "./plugins/clipify",
+			"description": "Manage your Clipify creators, overlays, playlists, galleries, and appearance."
+		}
+	]
+}

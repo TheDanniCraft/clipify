@@ -1,0 +1,20 @@
+{
+	"name": "clipify",
+	"displayName": "Clipify",
+	"version": "1.0.0",
+	"description": "Manage your Clipify creators, overlays, playlists, galleries, and appearance. Choose which creators to connect and the permissions each connection can use.",
+	"author": {
+		"name": "TheDanniCraft",
+		"email": "contact@clipify.us",
+		"url": "https://clipify.us"
+	},
+	"homepage": "https://clipify.us",
+	"repository": "https://github.com/TheDanniCraft/clipify",
+	"license": "AGPL-3.0-only",
+	"keywords": ["twitch", "clips", "streaming", "obs", "overlay", "playlist", "mcp"],
+	"icon": "./assets/logo.png",
+	"documentationUrl": "https://help.clipify.us/",
+	"supportUrl": "https://help.clipify.us/",
+	"privacyPolicyUrl": "https://clipify.us/legal/privacy",
+	"termsOfServiceUrl": "https://clipify.us/legal/terms"
+}
