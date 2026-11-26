@@ -14,6 +14,7 @@ import type { TrustedCreatorPrincipal } from "@/auth/authorize-operation";
 import { listCreators, getCapabilities } from "./creators";
 import { toolInputSchemas, type ToolName } from "./schemas";
 import { toolAnnotations } from "./risk";
+import { toolTitle } from "./titles";
 import { listOverlays, getOverlay, createOverlayForPrincipal, deleteOverlay } from "@/server/resources/overlays";
 
 import { reportMcpToolOutcome } from "./metrics-dispatch";
@@ -120,7 +121,7 @@ export function registerMcpTools(server: McpServer, principal: TrustedCreatorPri
 		{ name: "reorder_playlist_items", description: "Replace playlist item order with an exact permutation using its current revision", schema: toolInputSchemas.reorder_playlist_items, run: (input: unknown) => reorderPlaylistItems(principal, input) },
 		{ name: "add_playlist_items", description: "Append Twitch-validated clips within the creator’s current plan limits using the playlist revision", schema: toolInputSchemas.add_playlist_items, run: (input: unknown) => addPlaylistItems(principal, input) },
 	] as const;
-	for (const tool of tools) server.registerTool(tool.name, { description: tool.description, inputSchema: tool.schema, annotations: toolAnnotations(tool.name) }, (input: unknown) => readResult(() => tool.run(input), principal, tool.name, input));
+	for (const tool of tools) server.registerTool(tool.name, { title: toolTitle(tool.name), description: tool.description, inputSchema: tool.schema, annotations: { title: toolTitle(tool.name), ...toolAnnotations(tool.name) } }, (input: unknown) => readResult(() => tool.run(input), principal, tool.name, input));
 	// Preserve SDK protocol validation and tool discovery while giving all business
 	// input failures the same safe envelope instead of SDK exception strings.
 	server.server.setRequestHandler("tools/call", async (request) => {
