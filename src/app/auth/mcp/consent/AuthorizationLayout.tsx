@@ -21,7 +21,7 @@ export function AuthorizationLayout({ children }: { children: ReactNode }) {
 					<Link href='/legal/terms' className='text-xs'>
 						Terms
 					</Link>
-					<Link href='https://docs.clipify.us' className='text-xs' target='_blank' rel='noreferrer'>
+					<Link href='https://help.clipify.us' className='text-xs' target='_blank' rel='noreferrer'>
 						Help
 					</Link>
 				</footer>
