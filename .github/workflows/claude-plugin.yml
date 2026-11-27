@@ -26,7 +26,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v7
         with:
-          node-version: 26.13.0
+          node-version: 26.13.1
       - name: Validate plugin
         run: npx -y @anthropic-ai/claude-code@2.1.332 plugin validate ./plugins/clipify --strict
       - name: Validate marketplace
