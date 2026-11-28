@@ -8,7 +8,7 @@
         "@internationalized/date": "3.12.4",
         "@napi-rs/keyring": "^2.1.2",
         "@puppeteer/browsers": "^3.2.7",
-        "puppeteer-core": "^25.17.0",
+        "puppeteer-core": "^25.18.1",
         "puppeteer-stream": "^3.0.23",
       },
       "devDependencies": {
@@ -31,7 +31,7 @@
   },
   "overrides": {
     "@puppeteer/browsers": "^3.2.7",
-    "undici": "^8.12.4",
+    "undici": "^8.13.1",
     "zod": "4.6.7",
   },
   "packages": {
@@ -883,7 +883,7 @@
 
     "typescript": ["typescript@6.0.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw=="],
 
-    "undici": ["undici@8.12.4", "", {}, "sha512-8Mx+uNKKER2bA4AdtedkqRbwUCIJFr2nJckXRe5yrDqzePqwLP7VNcctN8/XdmDSbF7mS+jJKIszlL+vbam1VA=="],
+    "undici": ["undici@8.14.0", "", {}, "sha512-MqM6wqORYo0jb1WFUwFKZTFWFz6VeBMPj9op5Hq+RvlrQjISQCyLEfx5+/iqOLWC/LL1HliJ5t0NP1BgYpXeVQ=="],
 
     "undici-types": ["undici-types@8.9.0", "", {}, "sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg=="],
 

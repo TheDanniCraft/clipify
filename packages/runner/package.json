@@ -13,7 +13,7 @@
 		"@napi-rs/keyring": "^2.1.2",
 		"@puppeteer/browsers": "^3.2.7",
 		"@internationalized/date": "3.12.4",
-		"puppeteer-core": "^25.17.0",
+		"puppeteer-core": "^25.18.1",
 		"puppeteer-stream": "^3.0.23"
 	},
 	"devDependencies": {
@@ -39,7 +39,7 @@
 	},
 	"overrides": {
 		"@puppeteer/browsers": "^3.2.7",
-		"undici": "^8.12.4",
+		"undici": "^8.13.1",
 		"zod": "4.6.7"
 	}
 }
